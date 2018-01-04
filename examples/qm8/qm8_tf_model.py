@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 import os
 import deepchem as dc
 import numpy as np
-from qm8_datasets import load_qm8
+from deepchem.molnet import load_qm8
 
 np.random.seed(123)
 qm8_tasks, datasets, transformers = load_qm8()
@@ -18,7 +18,7 @@ regression_metric = [
     dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
     dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
 ]
-model = dc.models.TensorflowMultiTaskFitTransformRegressor(
+model = dc.models.MultiTaskFitTransformRegressor(
     n_tasks=len(qm8_tasks),
     n_features=[26, 26],
     learning_rate=0.001,

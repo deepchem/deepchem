@@ -107,7 +107,7 @@ class PPO(object):
     env: Environment
       the Environment to interact with
     policy: Policy
-      the Policy to optimize.  Its create_layers() method must return a map containing the
+      the Policy to optimize.  Its create_layers() method must return a dict containing the
       keys 'action_prob' and 'value', corresponding to the action probabilities and value estimate
     max_rollout_length: int
       the maximum length of rollouts to generate
@@ -444,7 +444,7 @@ class _Worker(object):
       global_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                       'global')
       self.update_local_variables = tf.group(
-          * [tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
+          *[tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
 
   def run(self):
     rollouts = []

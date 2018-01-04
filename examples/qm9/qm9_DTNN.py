@@ -18,23 +18,22 @@ metric = [dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")]
 # Batch size of models
 batch_size = 50
 n_embedding = 20
-graph_model = dc.nn.SequentialDTNNGraph(n_distance=100)
-graph_model.add(dc.nn.DTNNEmbedding(n_embedding=n_embedding))
-graph_model.add(dc.nn.DTNNStep(n_embedding=n_embedding, n_distance=100))
-graph_model.add(dc.nn.DTNNStep(n_embedding=n_embedding, n_distance=100))
-graph_model.add(dc.nn.DTNNGather(n_embedding=n_embedding))
-n_feat = n_embedding
-
-model = dc.models.MultitaskGraphRegressor(
-    graph_model,
+n_distance = 51
+distance_min = -1.
+distance_max = 9.2
+n_hidden = 15
+model = dc.models.DTNNTensorGraph(
     len(tasks),
-    n_feat,
+    n_embedding=n_embedding,
+    n_hidden=n_hidden,
+    n_distance=n_distance,
+    distance_min=distance_min,
+    distance_max=distance_max,
+    output_activation=False,
     batch_size=batch_size,
-    learning_rate=0.0005,
-    learning_rate_decay_time=1000,
-    optimizer_type="adam",
-    beta1=.9,
-    beta2=.999)
+    learning_rate=0.0001,
+    use_queue=False,
+    mode="regression")
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=20)

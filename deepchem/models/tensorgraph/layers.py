@@ -211,6 +211,7 @@ class Layer(object):
     Instead, the input to the first dense layer will be a different layer
     specified in the replacements map.
 
+    >>> new_input = Feature(shape=(None, 100))
     >>> replacements = {input: new_input}
     >>> dense3_copy = dense3.copy(replacements)
 
@@ -425,8 +426,8 @@ class Conv1D(Layer):
       raise ValueError("Parent tensor must be (batch, width, channel)")
     parent_shape = parent.get_shape()
     parent_channel_size = parent_shape[2].value
-    f = tf.Variable(self.weights_initializer()
-                    ([self.width, parent_channel_size, self.out_channels]))
+    f = tf.Variable(self.weights_initializer()(
+        [self.width, parent_channel_size, self.out_channels]))
     t = tf.nn.conv1d(parent, f, stride=self.stride, padding=self.padding)
     if self.biases_initializer is not None:
       b = tf.Variable(self.biases_initializer()([self.out_channels]))
@@ -819,7 +820,7 @@ class GRU(Layer):
   """A Gated Recurrent Unit.
 
   This layer expects its input to be of shape (batch_size, sequence_length, ...).
-  It consists of a set of independent sequence (one for each element in the batch),
+  It consists of a set of independent sequences (one for each element in the batch),
   that are each propagated independently through the GRU.
   """
 
@@ -861,6 +862,76 @@ class GRU(Layer):
       self.rnn_initial_states.append(initial_state)
       self.rnn_final_states.append(final_state)
       self.rnn_zero_states.append(np.zeros(zero_state.get_shape(), np.float32))
+    return out_tensor
+
+  def none_tensors(self):
+    saved_tensors = [
+        self.out_tensor, self.rnn_initial_states, self.rnn_final_states,
+        self.rnn_zero_states
+    ]
+    self.out_tensor = None
+    self.rnn_initial_states = []
+    self.rnn_final_states = []
+    self.rnn_zero_states = []
+    return saved_tensors
+
+  def set_tensors(self, tensor):
+    self.out_tensor, self.rnn_initial_states, self.rnn_final_states, self.rnn_zero_states = tensor
+
+
+class LSTM(Layer):
+  """A Long Short Term Memory.
+
+  This layer expects its input to be of shape (batch_size, sequence_length, ...).
+  It consists of a set of independent sequences (one for each element in the batch),
+  that are each propagated independently through the LSTM.
+  """
+
+  def __init__(self, n_hidden, batch_size, **kwargs):
+    """Create a Long Short Term Memory.
+
+    Parameters
+    ----------
+    n_hidden: int
+      the size of the LSTM's hidden state, which also determines the size of its output
+    batch_size: int
+      the batch size that will be used with this layer
+    """
+    self.n_hidden = n_hidden
+    self.batch_size = batch_size
+    super(LSTM, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = (batch_size, parent_shape[1], n_hidden)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError("Must have one parent")
+    parent_tensor = inputs[0]
+    lstm_cell = tf.contrib.rnn.LSTMCell(self.n_hidden)
+    zero_state = lstm_cell.zero_state(self.batch_size, tf.float32)
+    if set_tensors:
+      initial_state = tf.contrib.rnn.LSTMStateTuple(
+          tf.placeholder(tf.float32, zero_state.c.get_shape()),
+          tf.placeholder(tf.float32, zero_state.h.get_shape()))
+    else:
+      initial_state = zero_state
+    out_tensor, final_state = tf.nn.dynamic_rnn(
+        lstm_cell, parent_tensor, initial_state=initial_state, scope=self.name)
+    if set_tensors:
+      self._record_variable_scope(self.name)
+      self.out_tensor = out_tensor
+      self.rnn_initial_states.append(initial_state.c)
+      self.rnn_initial_states.append(initial_state.h)
+      self.rnn_final_states.append(final_state.c)
+      self.rnn_final_states.append(final_state.h)
+      self.rnn_zero_states.append(
+          np.zeros(zero_state.c.get_shape(), np.float32))
+      self.rnn_zero_states.append(
+          np.zeros(zero_state.h.get_shape(), np.float32))
     return out_tensor
 
   def none_tensors(self):
@@ -920,8 +991,8 @@ class Input(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
-  def create_pre_q(self, batch_size):
-    q_shape = (batch_size,) + self._shape[1:]
+  def create_pre_q(self):
+    q_shape = (None,) + self._shape[1:]
     return Input(shape=q_shape, name="%s_pre_q" % self.name, dtype=self.dtype)
 
   def get_pre_q_name(self):
@@ -947,6 +1018,12 @@ class Weights(Input):
 
 
 class L1Loss(Layer):
+  """Compute the mean absolute difference between the elements of the inputs.
+
+  This layer should have two or three inputs.  If there is a third input, the
+  difference between the first two inputs is multiplied by the third one to
+  produce a weighted error.
+  """
 
   def __init__(self, in_layers=None, **kwargs):
     super(L1Loss, self).__init__(in_layers, **kwargs)
@@ -954,14 +1031,22 @@ class L1Loss(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers, True)
     guess, label = inputs[0], inputs[1]
-    out_tensor = tf.reduce_mean(
-        tf.abs(guess - label), axis=list(range(1, len(label.shape))))
+    l1 = tf.abs(guess - label)
+    if len(inputs) > 2:
+      l1 *= inputs[2]
+    out_tensor = tf.reduce_mean(l1, axis=list(range(1, len(label.shape))))
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
 
 
 class L2Loss(Layer):
+  """Compute the mean squared difference between the elements of the inputs.
+
+  This layer should have two or three inputs.  If there is a third input, the
+  squared difference between the first two inputs is multiplied by the third one to
+  produce a weighted error.
+  """
 
   def __init__(self, in_layers=None, **kwargs):
     super(L2Loss, self).__init__(in_layers, **kwargs)
@@ -969,17 +1054,19 @@ class L2Loss(Layer):
       shape1 = self.in_layers[0].shape
       shape2 = self.in_layers[1].shape
       if shape1[0] is None:
-        self._shape = (parent_shape[1],)
+        self._shape = (shape2[0],)
       else:
-        self._shape = (parent_shape[0],)
+        self._shape = (shape1[0],)
     except:
       pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers, True)
     guess, label = inputs[0], inputs[1]
-    out_tensor = tf.reduce_mean(
-        tf.square(guess - label), axis=list(range(1, len(label._shape))))
+    l2 = tf.square(guess - label)
+    if len(inputs) > 2:
+      l2 *= inputs[2]
+    out_tensor = tf.reduce_mean(l2, axis=list(range(1, len(label._shape))))
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -997,7 +1084,7 @@ class SoftMax(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 1:
-      raise ValueError("Must only Softmax single parent")
+      raise ValueError("Softmax must have a single input layer.")
     parent = inputs[0]
     out_tensor = tf.contrib.layers.softmax(parent)
     if set_tensors:
@@ -1315,7 +1402,7 @@ class SparseSoftMaxCrossEntropy(Layer):
   def __init__(self, in_layers=None, **kwargs):
     super(SparseSoftMaxCrossEntropy, self).__init__(in_layers, **kwargs)
     try:
-      self._shape = (self.in_layers[1].shape[0], 1)
+      self._shape = self.in_layers[1].shape[:-1]
     except:
       pass
 
@@ -1324,9 +1411,8 @@ class SparseSoftMaxCrossEntropy(Layer):
     if len(inputs) != 2:
       raise ValueError()
     labels, logits = inputs[0], inputs[1]
-    self.out_tensor = tf.nn.sparse_softmax_cross_entropy_with_logits(
+    out_tensor = tf.nn.sparse_softmax_cross_entropy_with_logits(
         logits=logits, labels=labels)
-    out_tensor = tf.reshape(self.out_tensor, [-1, 1])
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1337,7 +1423,7 @@ class SoftMaxCrossEntropy(Layer):
   def __init__(self, in_layers=None, **kwargs):
     super(SoftMaxCrossEntropy, self).__init__(in_layers, **kwargs)
     try:
-      self._shape = (self.in_layers[1].shape[0], 1)
+      self._shape = self.in_layers[1].shape[:-1]
     except:
       pass
 
@@ -1346,9 +1432,8 @@ class SoftMaxCrossEntropy(Layer):
     if len(inputs) != 2:
       raise ValueError()
     labels, logits = inputs[0], inputs[1]
-    self.out_tensor = tf.nn.softmax_cross_entropy_with_logits(
+    out_tensor = tf.nn.softmax_cross_entropy_with_logits(
         logits=logits, labels=labels)
-    out_tensor = tf.reshape(self.out_tensor, [-1, 1])
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1887,8 +1972,8 @@ class MaxPool1D(Layer):
     super(MaxPool1D, self).__init__(**kwargs)
     try:
       parent_shape = self.in_layers[0].shape
-      self._shape = tuple(None if p is None else p // s
-                          for p, s in zip(parent_shape, strides))
+      self._shape = tuple(
+          None if p is None else p // s for p, s in zip(parent_shape, strides))
     except:
       pass
 
@@ -1919,8 +2004,8 @@ class MaxPool2D(Layer):
     super(MaxPool2D, self).__init__(**kwargs)
     try:
       parent_shape = self.in_layers[0].shape
-      self._shape = tuple(None if p is None else p // s
-                          for p, s in zip(parent_shape, strides))
+      self._shape = tuple(
+          None if p is None else p // s for p, s in zip(parent_shape, strides))
     except:
       pass
 
@@ -1966,8 +2051,8 @@ class MaxPool3D(Layer):
     super(MaxPool3D, self).__init__(**kwargs)
     try:
       parent_shape = self.in_layers[0].shape
-      self._shape = tuple(None if p is None else p // s
-                          for p, s in zip(parent_shape, strides))
+      self._shape = tuple(
+          None if p is None else p // s for p, s in zip(parent_shape, strides))
     except:
       pass
 
@@ -2000,8 +2085,7 @@ class InputFifoQueue(Layer):
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
     self.dtypes = [x.out_tensor.dtype for x in in_layers]
-    self.queue = tf.FIFOQueue(
-        self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
+    self.queue = tf.FIFOQueue(self.capacity, self.dtypes, names=self.names)
     feed_dict = {x.name: x.out_tensor for x in in_layers}
     self.out_tensor = self.queue.enqueue(feed_dict)
     self.close_op = self.queue.close()
@@ -2679,7 +2763,7 @@ class WeightedError(Layer):
     self._shape = tuple()
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers, True)
+    inputs = self._get_input_tensors(in_layers)
     entropy, weights = inputs[0], inputs[1]
     out_tensor = tf.reduce_sum(entropy * weights)
     if set_tensors:
@@ -3118,8 +3202,8 @@ class NeighborList(Layer):
     mesh_args = [tf.range(start, stop, nbr_cutoff) for _ in range(self.ndim)]
     return tf.to_float(
         tf.reshape(
-            tf.transpose(tf.stack(tf.meshgrid(*mesh_args))), (self.n_cells,
-                                                              self.ndim)))
+            tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
+            (self.n_cells, self.ndim)))
 
 
 class Dropout(Layer):
@@ -3406,8 +3490,8 @@ class AtomicConvolution(Layer):
     example_tensors = tf.unstack(X, axis=0)
     example_nbrs = tf.unstack(nbr_indices, axis=0)
     all_nbr_coords = []
-    for example, (example_tensor,
-                  example_nbr) in enumerate(zip(example_tensors, example_nbrs)):
+    for example, (example_tensor, example_nbr) in enumerate(
+        zip(example_tensors, example_nbrs)):
       nbr_coords = tf.gather(example_tensor, example_nbr)
       all_nbr_coords.append(nbr_coords)
     neighbors = tf.stack(all_nbr_coords)
@@ -3973,13 +4057,13 @@ class GraphCNN(Layer):
     no_features = V.get_shape()[2].value
     W = tf.get_variable(
         '%s_weights' % self.name, [no_features * no_A, self.num_filters],
-        initializer=tf.truncated_normal_initializer(stddev=math.sqrt(
-            1.0 / (no_features * (no_A + 1) * 1.0))),
+        initializer=tf.truncated_normal_initializer(
+            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
         dtype=tf.float32)
     W_I = tf.get_variable(
         '%s_weights_I' % self.name, [no_features, self.num_filters],
-        initializer=tf.truncated_normal_initializer(stddev=math.sqrt(
-            1.0 / (no_features * (no_A + 1) * 1.0))),
+        initializer=tf.truncated_normal_initializer(
+            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
         dtype=tf.float32)
 
     b = tf.get_variable(

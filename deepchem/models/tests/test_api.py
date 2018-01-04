@@ -215,7 +215,7 @@ class TestAPI(unittest.TestCase):
         dc.metrics.Metric(dc.metrics.accuracy_score)
     ]
 
-    model = dc.models.TensorGraphMultiTaskClassifier(len(tasks), n_features)
+    model = dc.models.MultiTaskClassifier(len(tasks), n_features)
 
     # Test Parameter getting and setting
     param, value = 'weight_decay_penalty_type', 'l2'

@@ -10,7 +10,7 @@ import shutil
 import numpy as np
 import deepchem as dc
 import time
-from tox21_datasets import load_tox21
+from deepchem.molnet import load_tox21
 
 # Only for debug!
 np.random.seed(123)

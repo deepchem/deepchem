@@ -30,6 +30,7 @@ from deepchem.models.tensorgraph.layers import InputFifoQueue
 from deepchem.models.tensorgraph.layers import InteratomicL2Distances
 from deepchem.models.tensorgraph.layers import IterRefLSTMEmbedding
 from deepchem.models.tensorgraph.layers import L2Loss
+from deepchem.models.tensorgraph.layers import LSTM
 from deepchem.models.tensorgraph.layers import LSTMStep
 from deepchem.models.tensorgraph.layers import Log
 from deepchem.models.tensorgraph.layers import Multiply
@@ -172,6 +173,21 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size, n_steps, n_hidden)
 
+  def test_lstm(self):
+    """Test that LSTM can be invoked."""
+    batch_size = 10
+    n_hidden = 7
+    in_channels = 4
+    n_repeat = 2
+    n_steps = 6
+    in_tensor = np.random.rand(batch_size, n_steps, in_channels)
+    with self.test_session() as sess:
+      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
+      out_tensor = LSTM(n_hidden, batch_size)(in_tensor)
+      sess.run(tf.global_variables_initializer())
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size, n_steps, n_hidden)
+
   def test_time_series_dense(self):
     """Test that TimeSeriesDense can be invoked."""
     batch_size = 10
@@ -280,6 +296,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       result = Log()(value).eval()
       assert np.array_equal(np.log(value), result)
+      assert np.all(np.isclose(np.log(value), result, atol=0.001))
 
   def test_exp(self):
     """Test that Exp can be invoked."""
@@ -318,7 +335,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
       out_tensor = SoftMaxCrossEntropy()(logit_tensor, label_tensor)
       out_tensor = out_tensor.eval()
-      assert out_tensor.shape == (batch_size, 1)
+      assert out_tensor.shape == (batch_size,)
 
   def test_reduce_mean(self):
     """Test that ReduceMean can be invoked."""

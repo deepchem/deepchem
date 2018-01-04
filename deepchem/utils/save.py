@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 import joblib
 from sklearn.externals import joblib as old_joblib
 import gzip
+import json
 import pickle
 import pandas as pd
 import numpy as np
@@ -103,6 +104,28 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
         yield df
 
 
+def save_metadata(tasks, metadata_df, data_dir):
+  """
+  Saves the metadata for a DiskDataset
+  Parameters
+  ----------
+  tasks: list of str
+    Tasks of DiskDataset
+  metadata_df: pd.DataFrame
+  data_dir: str
+    Directory to store metadata
+  Returns
+  -------
+  """
+  if isinstance(tasks, np.ndarray):
+    tasks = tasks.tolist()
+  metadata_filename = os.path.join(data_dir, "metadata.csv.gzip")
+  tasks_filename = os.path.join(data_dir, "tasks.json")
+  with open(tasks_filename, 'w') as fout:
+    json.dump(tasks, fout)
+  metadata_df.to_csv(metadata_filename, index=False, compression='gzip')
+
+
 def load_from_disk(filename):
   """Load a dataset from file."""
   name = filename
@@ -142,7 +165,7 @@ def load_sharded_csv(filenames):
     else:
       raise ValueError("Unrecognized filetype for %s" % filename)
 
-  #combine dataframes
+  # combine dataframes
   combined_df = dataframes[0]
   for i in range(0, len(dataframes) - 1):
     combined_df = combined_df.append(dataframes[i + 1])
@@ -162,23 +185,36 @@ def load_pickle_from_disk(filename):
 
 
 def load_dataset_from_disk(save_dir):
+  """
+  Parameters
+  ----------
+  save_dir: str
+
+  Returns
+  -------
+  loaded: bool
+    Whether the load succeeded
+  all_dataset: (dc.data.Dataset, dc.data.Dataset, dc.data.Dataset)
+    The train, valid, test datasets
+  transformers: list of dc.trans.Transformer
+    The transformers used for this dataset
+
+  """
+
   train_dir = os.path.join(save_dir, "train_dir")
   valid_dir = os.path.join(save_dir, "valid_dir")
   test_dir = os.path.join(save_dir, "test_dir")
-  if os.path.exists(train_dir) and os.path.exists(valid_dir) and os.path.exists(
-      test_dir):
-    loaded = True
-    train = deepchem.data.DiskDataset(train_dir)
-    valid = deepchem.data.DiskDataset(valid_dir)
-    test = deepchem.data.DiskDataset(test_dir)
-    all_dataset = (train, valid, test)
-    with open(os.path.join(save_dir, "transformers.pkl"), 'rb') as f:
-      transformers = pickle.load(f)
-  else:
-    loaded = False
-    all_dataset = None
-    transformers = []
-  return loaded, all_dataset, transformers
+  if not os.path.exists(train_dir) or not os.path.exists(
+      valid_dir) or not os.path.exists(test_dir):
+    return False, None, list()
+  loaded = True
+  train = deepchem.data.DiskDataset(train_dir)
+  valid = deepchem.data.DiskDataset(valid_dir)
+  test = deepchem.data.DiskDataset(test_dir)
+  all_dataset = (train, valid, test)
+  with open(os.path.join(save_dir, "transformers.pkl"), 'rb') as f:
+    transformers = pickle.load(f)
+    return loaded, all_dataset, transformers
 
 
 def save_dataset_to_disk(save_dir, train, valid, test, transformers):

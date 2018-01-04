@@ -1,6 +1,6 @@
 package:
   name: {{ environ.get('package_name', 'deepchem') }}
-  version: "1.3.0"
+  version: "1.3.1"
 
 source:
     git_url: https://github.com/deepchem/deepchem.git
@@ -48,3 +48,9 @@ about:
   home: https://github.com/deepchem/deepchem
   license: MIT
   summary: 'Deep-learning models for Drug Discovery and Quantum Chemistry '
+  description: |
+    DeepChem aims to provide a high quality open-source toolchain that
+    democratizes the use of deep-learning in drug discovery, materials
+    science, quantum chemistry, and biology.
+  doc_url: https://deepchem.io/
+  dev_url: https:/github.com/deepchem/deepchem

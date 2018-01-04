@@ -6,6 +6,8 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+from nose.plugins.attrib import attr
+
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
@@ -189,7 +191,15 @@ class TestGeneralize(unittest.TestCase):
   #  for score in scores[classification_metric.name]:
   #    assert score > .5
 
+  @attr('slow')
   def test_xgboost_regression(self):
+    """
+    This test is not actually slow -- but cannot currently run
+    on Ubuntu 14.04 with Tensorflow 1.4.0
+
+    See Discussion Here
+    https://github.com/deepchem/deepchem/issues/960
+    """
     import xgboost
     np.random.seed(123)
 
@@ -218,8 +228,16 @@ class TestGeneralize(unittest.TestCase):
     scores = model.evaluate(test_dataset, [regression_metric])
     assert scores[regression_metric.name] < 50
 
+  @attr('slow')
   def test_xgboost_multitask_regression(self):
-    """Test that xgboost models can learn on simple multitask regression."""
+    """
+    Test that xgboost models can learn on simple multitask regression.
+    This test is not actually slow -- but cannot currently run
+    on Ubuntu 14.04 with Tensorflow 1.4.0
+
+    See Discussion Here
+    https://github.com/deepchem/deepchem/issues/960
+    """
     import xgboost
     np.random.seed(123)
     n_tasks = 4
@@ -255,6 +273,7 @@ class TestGeneralize(unittest.TestCase):
     for score in scores[regression_metric.name]:
       assert score < 50
 
+  @attr('slow')
   def test_xgboost_classification(self):
     """Test that sklearn models can learn on simple classification datasets."""
     import xgboost

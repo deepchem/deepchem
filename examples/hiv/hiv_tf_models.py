@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import deepchem as dc
-from hiv_datasets import load_hiv
+from deepchem.molnet import load_hiv
 
 # Only for debug!
 np.random.seed(123)
@@ -20,7 +20,7 @@ train_dataset, valid_dataset, test_dataset = hiv_datasets
 # Fit models
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 
-model = dc.models.TensorflowMultiTaskClassifier(
+model = dc.models.MultiTaskClassifier(
     len(hiv_tasks),
     n_features,
     layer_sizes=[1000],

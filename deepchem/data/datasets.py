@@ -4,16 +4,20 @@ Contains wrapper class for datasets.
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
+import json
 import os
+import math
 import numpy as np
 import pandas as pd
 import random
-from deepchem.utils.save import save_to_disk
+from deepchem.utils.save import save_to_disk, save_metadata
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import log
+from pandas import read_hdf
 import tempfile
 import time
 import shutil
+import json
 from multiprocessing.dummy import Pool
 
 __author__ = "Bharath Ramsundar"
@@ -89,15 +93,24 @@ def pad_batch(batch_size, X_b, y_b, w_b, ids_b):
   else:
     X_out = np.zeros((batch_size,), dtype=X_b.dtype)
 
-  num_tasks = y_b.shape[1]
-  y_out = np.zeros((batch_size, num_tasks), dtype=y_b.dtype)
-  w_out = np.zeros((batch_size, num_tasks), dtype=w_b.dtype)
+  if y_b is None:
+    y_out = None
+  else:
+    y_out = np.zeros((batch_size, y_b.shape[1]), dtype=y_b.dtype)
+
+  if w_b is None:
+    w_out = None
+  else:
+    w_out = np.zeros((batch_size, w_b.shape[1]), dtype=w_b.dtype)
+
   ids_out = np.zeros((batch_size,), dtype=ids_b.dtype)
 
   # Fill in batch arrays
   start = 0
   # Only the first set of copy will be counted in training loss
-  w_out[start:start + num_samples] = w_b[:]
+  if w_out is not None:
+    w_out[start:start + num_samples] = w_b[:]
+
   while start < batch_size:
     num_left = batch_size - start
     if num_left < num_samples:
@@ -105,7 +118,10 @@ def pad_batch(batch_size, X_b, y_b, w_b, ids_b):
     else:
       increment = num_samples
     X_out[start:start + increment] = X_b[:increment]
-    y_out[start:start + increment] = y_b[:increment]
+
+    if y_out is not None:
+      y_out[start:start + increment] = y_b[:increment]
+
     ids_out[start:start + increment] = ids_b[:increment]
     start += increment
 
@@ -417,6 +433,23 @@ class NumpyDataset(Dataset):
     """
     return NumpyDataset(ds.X, ds.y, ds.w, ds.ids)
 
+  @staticmethod
+  def to_json(self, fname):
+    d = {
+        'X': self.X.tolist(),
+        'y': self.y.tolist(),
+        'w': self.w.tolist(),
+        'ids': self.ids.tolist()
+    }
+    with open(fname, 'w') as fout:
+      json.dump(d, fout)
+
+  @staticmethod
+  def from_json(fname):
+    with open(fname) as fin:
+      d = json.load(fin)
+      return NumpyDataset(d['X'], d['y'], d['w'], d['ids'])
+
 
 class DiskDataset(Dataset):
   """
@@ -431,11 +464,7 @@ class DiskDataset(Dataset):
     self.verbose = verbose
 
     log("Loading dataset from disk.", self.verbose)
-    if os.path.exists(self._get_metadata_filename()):
-      (self.tasks,
-       self.metadata_df) = load_from_disk(self._get_metadata_filename())
-    else:
-      raise ValueError("No metadata found on disk.")
+    self.tasks, self.metadata_df = self.load_metadata()
 
   @staticmethod
   def create_dataset(shard_generator, data_dir=None, tasks=[], verbose=True):
@@ -464,11 +493,31 @@ class DiskDataset(Dataset):
           DiskDataset.write_data_to_disk(data_dir, basename, tasks, X, y, w,
                                          ids))
     metadata_df = DiskDataset._construct_metadata(metadata_rows)
-    metadata_filename = os.path.join(data_dir, "metadata.joblib")
-    save_to_disk((tasks, metadata_df), metadata_filename)
+    save_metadata(tasks, metadata_df, data_dir)
     time2 = time.time()
     log("TIMING: dataset construction took %0.3f s" % (time2 - time1), verbose)
     return DiskDataset(data_dir, verbose=verbose)
+
+  def load_metadata(self):
+    try:
+      tasks_filename, metadata_filename = self._get_metadata_filename()
+      with open(tasks_filename) as fin:
+        tasks = json.load(fin)
+      metadata_df = pd.read_csv(metadata_filename, compression='gzip')
+      metadata_df = metadata_df.where((pd.notnull(metadata_df)), None)
+      return tasks, metadata_df
+    except Exception as e:
+      pass
+
+    # Load obsolete format -> save in new format
+    metadata_filename = os.path.join(self.data_dir, "metadata.joblib")
+    if os.path.exists(metadata_filename):
+      tasks, metadata_df = load_from_disk(metadata_filename)
+      del metadata_df['task_names']
+      del metadata_df['basename']
+      save_metadata(tasks, metadata_df, self.data_dir)
+      return tasks, metadata_df
+    raise ValueError("No Metadata Found On Disk")
 
   @staticmethod
   def _construct_metadata(metadata_entries):
@@ -477,7 +526,7 @@ class DiskDataset(Dataset):
     metadata_entries should have elements returned by write_data_to_disk
     above.
     """
-    columns = ('basename', 'task_names', 'ids', 'X', 'y', 'w')
+    columns = ('ids', 'X', 'y', 'w')
     metadata_df = pd.DataFrame(metadata_entries, columns=columns)
     return metadata_df
 
@@ -514,11 +563,11 @@ class DiskDataset(Dataset):
       out_ids = None
 
     # note that this corresponds to the _construct_metadata column order
-    return [basename, tasks, out_ids, out_X, out_y, out_w]
+    return [out_ids, out_X, out_y, out_w]
 
   def save_to_disk(self):
     """Save dataset to disk."""
-    save_to_disk((self.tasks, self.metadata_df), self._get_metadata_filename())
+    save_metadata(self.tasks, self.metadata_df, self.data_dir)
 
   def move(self, new_data_dir):
     """Moves dataset to new directory."""
@@ -590,8 +639,9 @@ class DiskDataset(Dataset):
     """
     Get standard location for metadata file.
     """
-    metadata_filename = os.path.join(self.data_dir, "metadata.joblib")
-    return metadata_filename
+    metadata_filename = os.path.join(self.data_dir, "metadata.csv.gzip")
+    tasks_filename = os.path.join(self.data_dir, "tasks.json")
+    return tasks_filename, metadata_filename
 
   def get_number_shards(self):
     """
@@ -636,65 +686,130 @@ class DiskDataset(Dataset):
                   epoch=0,
                   deterministic=False,
                   pad_batches=False):
-    """Get an object that iterates over minibatches from the dataset.
+    """ Get an object that iterates over minibatches from the dataset. It is guaranteed
+    that the number of batches returned is math.ceil(len(dataset)/batch_size).
 
     Each minibatch is returned as a tuple of four numpy arrays: (X, y, w, ids).
+
+
+    Parameters:
+    -----------
+    batch_size: int
+      Number of elements in a batch. If None, then it yields batches with size equal to the size
+      of each individual shard.
+
+    epoch: int
+      Not used
+
+    deterministic: bool
+      Whether or not we should should shuffle each shard before generating the batches.
+      Note that this is only local in the sense that it does not ever mix between different
+      shards.
+
+    pad_batches: bool
+      Whether or not we should pad the last batch, globally, such that it has exactly batch_size
+      elements.
+
+
     """
 
-    def iterate(dataset):
+    def iterate(dataset, batch_size):
       num_shards = dataset.get_number_shards()
       if not deterministic:
         shard_perm = np.random.permutation(num_shards)
       else:
         shard_perm = np.arange(num_shards)
-      pool = Pool(1)
+
+      # (ytz): Depending on the application, thread-based pools may be faster
+      # than process based pools, since process based pools need to pickle/serialize
+      # objects as an extra overhead. Also, as hideously as un-thread safe this looks,
+      # we're actually protected by the GIL.
+      pool = Pool(1)  # mp.dummy aliases ThreadPool to Pool
       next_shard = pool.apply_async(dataset.get_shard, (shard_perm[0],))
-      for i in range(num_shards):
+
+      total_yield = 0
+
+      if batch_size is None:
+        num_global_batches = num_shards
+      else:
+        num_global_batches = math.ceil(dataset.get_shape()[0][0] / batch_size)
+
+      cur_global_batch = 0
+      cur_shard = 0
+      carry = None
+
+      while cur_global_batch < num_global_batches:
+
         X, y, w, ids = next_shard.get()
-        if i < num_shards - 1:
-          next_shard = pool.apply_async(dataset.get_shard, (shard_perm[i + 1],))
-        n_samples = X.shape[0]
-        # TODO(rbharath): This happens in tests sometimes, but don't understand why?
-        # Handle edge case.
-        if n_samples == 0:
-          continue
-        if not deterministic:
-          sample_perm = np.random.permutation(n_samples)
+        if cur_shard < num_shards - 1:
+          next_shard = pool.apply_async(dataset.get_shard,
+                                        (shard_perm[cur_shard + 1],))
         else:
-          sample_perm = np.arange(n_samples)
+          pool.close()
+
+        if carry is not None:
+          X = np.concatenate([carry[0], X], axis=0)
+          if y is not None:
+            y = np.concatenate([carry[1], y], axis=0)
+          if w is not None:
+            w = np.concatenate([carry[2], w], axis=0)
+          ids = np.concatenate([carry[3], ids], axis=0)
+          carry = None
+
+        n_shard_samples = X.shape[0]
+        cur_local_batch = 0
         if batch_size is None:
-          shard_batch_size = n_samples
+          shard_batch_size = n_shard_samples
         else:
           shard_batch_size = batch_size
 
-        batch_idx = 0
-        num_batches = np.math.ceil(n_samples / shard_batch_size)
-        while batch_idx < num_batches:
-          start = batch_idx * shard_batch_size
-          end = min(n_samples, (batch_idx + 1) * shard_batch_size)
+        num_local_batches = math.ceil(n_shard_samples / shard_batch_size)
+
+        if n_shard_samples == 0:
+          cur_shard += 1
+          continue
+        if not deterministic:
+          sample_perm = np.random.permutation(n_shard_samples)
+        else:
+          sample_perm = np.arange(n_shard_samples)
+
+        while cur_local_batch < num_local_batches:
+          start = cur_local_batch * shard_batch_size
+          end = min(n_shard_samples, (cur_local_batch + 1) * shard_batch_size)
+
           indices = range(start, end)
           perm_indices = sample_perm[indices]
-          X_batch = X[perm_indices]
+          X_b = X[perm_indices]
 
           if y is not None:
-            y_batch = y[perm_indices]
+            y_b = y[perm_indices]
           else:
-            y_batch = None
+            y_b = None
 
           if w is not None:
-            w_batch = w[perm_indices]
+            w_b = w[perm_indices]
           else:
-            w_batch = None
+            w_b = None
 
-          ids_batch = ids[perm_indices]
-          if pad_batches:
-            (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
-                shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
-          batch_idx += 1
-          yield (X_batch, y_batch, w_batch, ids_batch)
-      pool.close()
+          ids_b = ids[perm_indices]
 
-    return iterate(self)
+          assert len(X_b) <= shard_batch_size
+          if len(X_b) < shard_batch_size and cur_shard != num_shards - 1:
+            assert carry is None
+            carry = [X_b, y_b, w_b, ids_b]
+          else:
+
+            # (ytz): this skips everything except possibly the last shard
+            if pad_batches:
+              (X_b, y_b, w_b, ids_b) = pad_batch(shard_batch_size, X_b, y_b,
+                                                 w_b, ids_b)
+
+            yield X_b, y_b, w_b, ids_b
+            cur_global_batch += 1
+          cur_local_batch += 1
+        cur_shard += 1
+
+    return iterate(self, batch_size)
 
   def itersamples(self):
     """Get an object that iterates over the samples in the dataset.
@@ -860,6 +975,51 @@ class DiskDataset(Dataset):
     time2 = time.time()
     log("TIMING: sparse_shuffle took %0.3f s" % (time2 - time1), self.verbose)
 
+  def complete_shuffle(self, data_dir=None):
+    """
+    Completely shuffle across all data, across all shards.
+
+    Note: this loads all the data into ram, and can be prohibitively
+    expensive for larger datasets.
+
+    Parameters
+    ----------
+    shard_size: int
+      size of the resulting dataset's size. If None, then the first
+      shard's shard_size will be used.
+
+    Returns
+    -------
+    DiskDatasset
+      A DiskDataset with a single shard.
+
+    """
+    all_X = []
+    all_y = []
+    all_w = []
+    all_ids = []
+    for Xs, ys, ws, ids in self.itershards():
+      all_X.append(Xs)
+      if ys is not None:
+        all_y.append(ys)
+      if ws is not None:
+        all_w.append(ws)
+      all_ids.append(ids)
+
+    all_X = np.concatenate(all_X)
+    all_y = np.concatenate(all_y)
+    all_w = np.concatenate(all_w)
+    all_ids = np.concatenate(all_ids)
+
+    perm = np.random.permutation(all_X.shape[0])
+    all_X = all_X[perm]
+    all_y = all_y[perm]
+    all_w = all_w[perm]
+    all_ids = all_ids[perm]
+
+    return DiskDataset.from_numpy(
+        all_X, all_y, all_w, all_ids, data_dir=data_dir)
+
   def shuffle_each_shard(self):
     """Shuffles elements within each shard of the datset."""
     tasks = self.get_task_names()
@@ -868,14 +1028,12 @@ class DiskDataset(Dataset):
     n_rows = len(self.metadata_df.index)
     for i in range(n_rows):
       row = self.metadata_df.iloc[i]
-      basename = row["basename"]
       X, y, w, ids = self.get_shard(i)
       n = X.shape[0]
       permutation = np.random.permutation(n)
       X, y, w, ids = (X[permutation], y[permutation], w[permutation],
                       ids[permutation])
-      DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w,
-                                     ids)
+      DiskDataset.write_data_to_disk(self.data_dir, "", tasks, X, y, w, ids)
 
   def shuffle_shards(self):
     """Shuffles the order of the shards for this dataset."""

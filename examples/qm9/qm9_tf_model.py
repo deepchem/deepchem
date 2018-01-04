@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 import os
 import deepchem as dc
 import numpy as np
-from qm9_datasets import load_qm9
+from deepchem.molnet import load_qm9
 
 np.random.seed(123)
 qm9_tasks, datasets, transformers = load_qm9()
@@ -18,7 +18,7 @@ regression_metric = [
     dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
     dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
 ]
-model = dc.models.TensorflowMultiTaskFitTransformRegressor(
+model = dc.models.MultiTaskFitTransformRegressor(
     n_tasks=len(qm9_tasks),
     n_features=[29, 29],
     learning_rate=0.001,

@@ -80,7 +80,6 @@ def benchmark_classification(train_dataset,
   if hyper_parameters is None:
     hyper_parameters = hps[model]
   model_name = model
-  import xgboost
 
   if model_name == 'tf':
     # Loading hyper parameters
@@ -359,6 +358,7 @@ def benchmark_classification(train_dataset,
 
     # Building xgboost classification model
     def model_builder(model_dir_xgb):
+      import xgboost
       xgboost_model = xgboost.XGBClassifier(
           max_depth=max_depth,
           learning_rate=learning_rate,

@@ -34,7 +34,7 @@ for i in range(n_tasks):
 # Create the model to train.  We use a simple fully connected network with
 # one hidden layer.
 
-model = dc.models.TensorGraphMultiTaskClassifier(
+model = dc.models.MultiTaskClassifier(
     1, n_features, layer_sizes=[1000], dropouts=[0.0])
 model.build()
 

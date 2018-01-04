@@ -77,7 +77,7 @@ def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
   valid_inds = np.array(
       [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
-  return np.squeeze(np.array(features)), valid_inds
+  return np.squeeze(np.array(features), axis=1), valid_inds
 
 
 def featurize_smiles_np(arr, featurizer, log_every_N=1000, verbose=True):
@@ -101,8 +101,7 @@ def featurize_smiles_np(arr, featurizer, log_every_N=1000, verbose=True):
       [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
   features = np.squeeze(np.array(features))
-  return features.reshape(
-      -1,)
+  return features.reshape(-1,)
 
 
 def get_user_specified_features(df, featurizer, verbose=True):

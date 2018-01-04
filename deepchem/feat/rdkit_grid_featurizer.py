@@ -8,16 +8,18 @@ __license__ = "MIT"
 
 import os
 import shutil
+from warnings import warn
 import time
 import tempfile
 import hashlib
+from collections import Counter
 from rdkit import Chem
 from rdkit.Chem import AllChem
-import deepchem.utils.rdkit_util as rdkit_util
+from deepchem.utils.rdkit_util import load_molecule
 
 import numpy as np
+from scipy.spatial.distance import cdist
 from copy import deepcopy
-from functools import partial
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils.save import log
 """
@@ -39,19 +41,8 @@ def get_ligand_filetype(ligand_filename):
     raise ValueError("Unrecognized_filename")
 
 
-def load_molecule(molecule_file, add_hydrogens=True, calc_charges=False):
-  return rdkit_util.load_molecule(molecule_file, add_hydrogens, calc_charges)
-
-
-def merge_two_dicts(x, y):
-  """Given two dicts, merge them into a new dict as a shallow copy."""
-  z = x.copy()
-  z.update(y)
-  return z
-
-
 def compute_centroid(coordinates):
-  """Compute compute the x,y,z centroid of provided coordinates
+  """Compute the x,y,z centroid of provided coordinates
 
   coordinates: np.ndarray
     Shape (N, 3), where N is number atoms.
@@ -61,14 +52,13 @@ def compute_centroid(coordinates):
 
 
 def generate_random__unit_vector():
-  """generate a random unit vector on the 3-sphere
+  """Generate a random unit vector on the 3-sphere.
   citation:
   http://mathworld.wolfram.com/SpherePointPicking.html
 
   a. Choose random theta \element [0, 2*pi]
   b. Choose random z \element [-1, 1]
-  c. Compute output: (x,y,z) = (sqrt(1-z^2)*cos(theta), sqrt(1-z^2)*sin(theta),z)
-  d. output u
+  c. Compute output vector u: (x,y,z) = (sqrt(1-z^2)*cos(theta), sqrt(1-z^2)*sin(theta),z)
   """
 
   theta = np.random.uniform(low=0.0, high=2 * np.pi)
@@ -81,18 +71,17 @@ def generate_random__unit_vector():
 
 def generate_random_rotation_matrix():
   """
-   1. Generate a random unit vector, i.e., randomly sampled from the unit
-      3-sphere
-    a. see function _generate_random__unit_vector() for details
-    2. Generate a second random unit vector thru the algorithm in (1), output v
-    a. If absolute value of u \dot v > 0.99, repeat.
+    1. Generate a random unit vector u, randomly sampled from the unit
+      3-sphere (see function generate_random__unit_vector() for details)
+    2. Generate a second random unit vector v
+      a. If absolute value of u \dot v > 0.99, repeat.
        (This is important for numerical stability. Intuition: we want them to
         be as linearly independent as possible or else the orthogonalized
         version of v will be much shorter in magnitude compared to u. I assume
         in Stack they took this from Gram-Schmidt orthogonalization?)
-    b. v" = v - (u \dot v)*u, i.e. subtract out the component of v that's in
+      b. v" = v - (u \dot v)*u, i.e. subtract out the component of v that's in
        u's direction
-    c. normalize v" (this isn"t in Stack but I assume it must be done)
+      c. normalize v" (this isn"t in Stack but I assume it must be done)
     3. find w = u \cross v"
     4. u, v", and w will form the columns of a rotation matrix, R. The
        intuition is that u, v" and w are, respectively, what the standard basis
@@ -136,20 +125,13 @@ def rotate_molecules(mol_coordinates_list):
 
 
 def compute_pairwise_distances(protein_xyz, ligand_xyz):
-  """
-  Takes an input m x 3 and n x 3 np arrays of 3d coords of protein and ligand,
+  """Takes an input m x 3 and n x 3 np arrays of 3D coords of protein and ligand,
   respectively, and outputs an m x n np array of pairwise distances in Angstroms
   between protein and ligand atoms. entry (i,j) is dist between the i"th protein
-  atom and the j"th ligand atom
+  atom and the j"th ligand atom.
   """
 
-  pairwise_distances = np.zeros((np.shape(protein_xyz)[0],
-                                 np.shape(ligand_xyz)[0]))
-  for j in range(0, np.shape(ligand_xyz)[0]):
-    differences = protein_xyz - ligand_xyz[j, :]
-    squared_differences = np.square(differences)
-    pairwise_distances[:, j] = np.sqrt(np.sum(squared_differences, 1))
-
+  pairwise_distances = cdist(protein_xyz, ligand_xyz, metric='euclidean')
   return (pairwise_distances)
 
 
@@ -172,12 +154,15 @@ def angle_between(vector_i, vector_j):
   0.000000
   >>> print("%0.06f" % angle_between((1, 0, 0), (-1, 0, 0)))
   3.141593
+
+  Note that this function always returns the smaller of the two angles between
+  the vectors (value between 0 and pi).
   """
   vector_i_u = unit_vector(vector_i)
   vector_j_u = unit_vector(vector_j)
   angle = np.arccos(np.dot(vector_i_u, vector_j_u))
   if np.isnan(angle):
-    if (vector_i_u == vector_j_u).all():
+    if np.allclose(vector_i_u, vector_j_u):
       return 0.0
     else:
       return np.pi
@@ -202,9 +187,8 @@ def hash_ecfp(ecfp, power):
 
 
 def hash_ecfp_pair(ecfp_pair, power):
-  """
-  Returns an int of size 2^power representing that
-  ECFP pair. Input must be a tuple of strings.
+  """Returns an int of size 2^power representing that ECFP pair. Input must be
+  a tuple of strings.
   """
   ecfp = "%s,%s" % (ecfp_pair[0], ecfp_pair[1])
   ecfp = ecfp.encode('utf-8')
@@ -216,11 +200,9 @@ def hash_ecfp_pair(ecfp_pair, power):
 
 
 def compute_all_ecfp(mol, indices=None, degree=2):
-  """
-  For each atom:
-    Obtain molecular fragment for all atoms emanating outward to given degree.
-    For each fragment, compute SMILES string (for now) and hash to an int.
-    Return a dictionary mapping atom index to hashed SMILES.
+  """Obtain molecular fragment for all atoms emanating outward to given degree.
+  For each fragment, compute SMILES string (for now) and hash to an int.
+  Return a dictionary mapping atom index to hashed SMILES.
   """
 
   ecfp_dict = {}
@@ -235,7 +217,7 @@ def compute_all_ecfp(mol, indices=None, degree=2):
   return ecfp_dict
 
 
-def compute_ecfp_features(mol, ecfp_degree, ecfp_power):
+def compute_ecfp_features(mol, ecfp_degree=2, ecfp_power=11):
   """Computes ECFP features for provided rdkit molecule.
 
   Parameters:
@@ -254,8 +236,9 @@ def compute_ecfp_features(mol, ecfp_degree, ecfp_power):
       that ECFP fragment is found in the molecule and array at index j has a 0
       if ECFP fragment not in molecule.
   """
-  bv = AllChem.GetMorganFingerprint(mol, 2)
-  return [int(bv.GetBit(x)) for x in range(bv.GetNumBits())]
+  bv = AllChem.GetMorganFingerprintAsBitVect(
+      mol, ecfp_degree, nBits=2**ecfp_power)
+  return np.array(bv)
 
 
 def featurize_binding_pocket_ecfp(protein_xyz,
@@ -277,10 +260,12 @@ def featurize_binding_pocket_ecfp(protein_xyz,
     Of shape (N_ligand_atoms, 3)
   ligand: rdkit.rdchem.Mol
     Contains more metadata
-  pairwise_distances: np.ndarray 
-    Array of pairwise protein-ligand distances (Angstroms) 
+  pairwise_distances: np.ndarray
+    Array of pairwise protein-ligand distances (Angstroms)
   cutoff: float
-    Cutoff distance for contact consideration.
+    Cutoff distance for contact consideration
+  ecfp_degree: int
+    ECFP radius
   """
 
   if pairwise_distances is None:
@@ -297,7 +282,7 @@ def featurize_binding_pocket_ecfp(protein_xyz,
 
 def compute_all_sybyl(mol, indices=None):
   """Computes Sybyl atom types for atoms in molecule."""
-  raise ValueError("Not Yet Implemented")
+  raise NotImplementedError("This function is not implemented yet")
 
 
 def featurize_binding_pocket_sybyl(protein_xyz,
@@ -318,8 +303,8 @@ def featurize_binding_pocket_sybyl(protein_xyz,
     Of shape (N_ligand_atoms, 3)
   ligand: Rdkit Molecule
     Contains more metadata
-  pairwise_distances: np.ndarray 
-    Array of pairwise protein-ligand distances (Angstroms) 
+  pairwise_distances: np.ndarray
+    Array of pairwise protein-ligand distances (Angstroms)
   cutoff: float
     Cutoff distance for contact consideration.
   """
@@ -342,9 +327,9 @@ def compute_splif_features_in_range(protein,
                                     ecfp_degree=2):
   """Computes SPLIF features for protein atoms close to ligand atoms.
 
-  Find all protein atoms that are > contact_bin[0] and < contact_bin[1] away
-  from ligand atoms.  Then, finds the ECFP fingerprints for the contacting
-  atoms.  Returns a dictionary mapping (protein_index_i, ligand_index_j) -->
+  Finds all protein atoms that are > contact_bin[0] and < contact_bin[1] away
+  from ligand atoms. Then, finds the ECFP fingerprints for the contacting
+  atoms. Returns a dictionary mapping (protein_index_i, ligand_index_j) -->
   (protein_ecfp_i, ligand_ecfp_j)
   """
   contacts = np.nonzero((pairwise_distances > contact_bin[0]) &
@@ -368,11 +353,9 @@ def featurize_splif(protein_xyz, protein, ligand_xyz, ligand, contact_bins,
 
   For each contact range (i.e. 1 A to 2 A, 2 A to 3 A, etc.) compute a
   dictionary mapping (protein_index_i, ligand_index_j) tuples -->
-  (protein_ecfp_i, ligand_ecfp_j) tuples.  return a list of such splif
+  (protein_ecfp_i, ligand_ecfp_j) tuples. Return a list of such splif
   dictionaries.
   """
-  if pairwise_distances is None:
-    pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
   splif_dicts = []
   for i, contact_bin in enumerate(contact_bins):
     splif_dicts.append(
@@ -382,123 +365,338 @@ def featurize_splif(protein_xyz, protein, ligand_xyz, ligand, contact_bins,
   return (splif_dicts)
 
 
-def compute_ring_center(mol, ring):
-  ring_xyz = np.zeros((len(ring._path), 3))
-  for i, atom_idx in enumerate(ring._path):
-    atom = mol.GetAtom(int(atom_idx))
-    ring_xyz[i, :] = [atom.x(), atom.y(), atom.z()]
+def compute_ring_center(mol, ring_indices):
+  """Computes 3D coordinates of a center of a given ring.
+
+  Parameters:
+  -----------
+    mol: rdkit.rdchem.Mol
+      Molecule containing a ring
+    ring_indices: array-like
+      Indices of atoms forming a ring
+
+  Returns:
+  --------
+    ring_centroid: np.ndarray
+      Position of a ring center
+  """
+  conformer = mol.GetConformer()
+  ring_xyz = np.zeros((len(ring_indices), 3))
+  for i, atom_idx in enumerate(ring_indices):
+    atom_position = conformer.GetAtomPosition(atom_idx)
+    ring_xyz[i] = np.array(atom_position)
   ring_centroid = compute_centroid(ring_xyz)
   return ring_centroid
 
 
-def compute_ring_normal(mol, ring):
-  points = np.zeros((3, 3))
-  for i, atom_idx in enumerate(ring._path):
-    if i == 3: break
-    atom = mol.GetAtom(int(atom_idx))
-    points[i, :] = [atom.x(), atom.y(), atom.z()]
+def compute_ring_normal(mol, ring_indices):
+  """Computes normal to a plane determined by a given ring.
 
-  v1 = points[1, :] - points[0, :]
-  v2 = points[2, :] - points[0, :]
+  Parameters:
+  -----------
+    mol: rdkit.rdchem.Mol
+      Molecule containing a ring
+    ring_indices: array-like
+      Indices of atoms forming a ring
+
+  Returns:
+  --------
+    normal: np.ndarray
+      Normal vector
+  """
+  conformer = mol.GetConformer()
+  points = np.zeros((3, 3))
+  for i, atom_idx in enumerate(ring_indices[:3]):
+    atom_position = conformer.GetAtomPosition(atom_idx)
+    points[i] = np.array(atom_position)
+
+  v1 = points[1] - points[0]
+  v2 = points[2] - points[0]
   normal = np.cross(v1, v2)
   return normal
 
 
-def is_pi_parallel(protein_ring_center, protein_ring_normal, ligand_ring_center,
-                   ligand_ring_normal):
-  dist = np.linalg.norm(protein_ring_center - ligand_ring_center)
-  angle = angle_between(protein_ring_normal, ligand_ring_normal) * 180 / np.pi
-  if ((np.abs(angle) < 30.0) or
-      (np.abs(angle) > 150.0 and np.abs(angle) < 210.0) or
-      (np.abs(angle) > 330.0 and np.abs(angle) < 360.0)):
-    if dist < 8.0:
-      return True
+def is_pi_parallel(ring1_center,
+                   ring1_normal,
+                   ring2_center,
+                   ring2_normal,
+                   dist_cutoff=8.0,
+                   angle_cutoff=30.0):
+  """Check if two aromatic rings form a parallel pi-pi contact.
 
+  Parameters:
+  -----------
+    ring1_center, ring2_center: np.ndarray
+      Positions of centers of the two rings. Can be computed with the
+      compute_ring_center function.
+    ring1_normal, ring2_normal: np.ndarray
+      Normals of the two rings. Can be computed with the compute_ring_normal
+      function.
+    dist_cutoff: float
+      Distance cutoff. Max allowed distance between the ring center (Angstroms).
+    angle_cutoff: float
+      Angle cutoff. Max allowed deviation from the ideal (0deg) angle between
+      the rings (in degrees).
+  """
+
+  dist = np.linalg.norm(ring1_center - ring2_center)
+  angle = angle_between(ring1_normal, ring2_normal) * 180 / np.pi
+  if ((angle < angle_cutoff or angle > 180.0 - angle_cutoff) and
+      dist < dist_cutoff):
+    return True
   return False
 
 
-def is_pi_t(protein_ring_center, protein_ring_normal, ligand_ring_center,
-            ligand_ring_normal):
-  dist = np.linalg.norm(protein_ring_center - ligand_ring_center)
-  angle = angle_between(protein_ring_normal, ligand_ring_normal) * 180 / np.pi
-  if ((np.abs(angle) > 60.0 and np.abs(angle) < 120.0) or
-      (np.abs(angle) > 240.0 and np.abs(angle) < 300.0)):
-    if dist < 5.5:
-      return True
+def is_pi_t(ring1_center,
+            ring1_normal,
+            ring2_center,
+            ring2_normal,
+            dist_cutoff=5.5,
+            angle_cutoff=30.0):
+  """Check if two aromatic rings form a T-shaped pi-pi contact.
 
+  Parameters:
+  -----------
+    ring1_center, ring2_center: np.ndarray
+      Positions of centers of the two rings. Can be computed with the
+      compute_ring_center function.
+    ring1_normal, ring2_normal: np.ndarray
+      Normals of the two rings. Can be computed with the compute_ring_normal
+      function.
+    dist_cutoff: float
+      Distance cutoff. Max allowed distance between the ring center (Angstroms).
+    angle_cutoff: float
+      Angle cutoff. Max allowed deviation from the ideal (90deg) angle between
+      the rings (in degrees).
+  """
+  dist = np.linalg.norm(ring1_center - ring2_center)
+  angle = angle_between(ring1_normal, ring2_normal) * 180 / np.pi
+  if ((90.0 - angle_cutoff < angle < 90.0 + angle_cutoff) and
+      dist < dist_cutoff):
+    return True
   return False
 
 
-def update_feature_dict(feature_dict, idxs=None, indices=None):
-  if idxs is not None:
-    indices = []
-    for idx in idxs:
-      indices.append(idx - 1)
-
-  for index in indices:
-    if index not in feature_dict.keys():
-      feature_dict[index] = 1
-    else:
-      feature_dict[index] += 1
-
-  return feature_dict
-
-
-def compute_pi_stack(protein_xyz,
-                     protein,
-                     ligand_xyz,
+def compute_pi_stack(protein,
                      ligand,
                      pairwise_distances=None,
                      dist_cutoff=4.4,
                      angle_cutoff=30.):
-  """
+  """Find aromatic rings in protein and ligand that form pi-pi contacts.
+  For each atom in the contact, count number of atoms in the other molecule
+  that form this contact.
+
   Pseudocode:
 
-  for each ring in ligand:
-    if it is aromatic:
-      for each ring in protein:
-        if it is aromatic:
-          compute distance between centers
-          compute angle.
-          if it counts as parallel pi-pi:
-            for each atom in ligand and in protein,
-              add to list of atom indices
-          if it counts as pi-T:
-            for each atom in ligand and in protein:
-              add to list of atom indices
+  for each aromatic ring in protein:
+    for each aromatic ring in ligand:
+      compute distance between centers
+      compute angle between normals
+      if it counts as parallel pi-pi:
+        count interacting atoms
+      if it counts as pi-T:
+        count interacting atoms
+
+  Parameters:
+  -----------
+    protein, ligand: rdkit.rdchem.Mol
+      Two interacting molecules.
+    pairwise_distances: np.ndarray (optional)
+      Array of pairwise protein-ligand distances (Angstroms)
+    dist_cutoff: float
+      Distance cutoff. Max allowed distance between the ring center (Angstroms).
+    angle_cutoff: float
+      Angle cutoff. Max allowed deviation from the ideal angle between rings.
+
+  Returns:
+  --------
+    protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel: dict
+      Dictionaries mapping atom indices to number of atoms they interact with.
+      Separate dictionary is created for each type of pi stacking (parallel and
+      T-shaped) and each molecule (protein and ligand).
   """
-  raise ValueError("Not Yet Implemented")
+
+  protein_pi_parallel = Counter()
+  protein_pi_t = Counter()
+  ligand_pi_parallel = Counter()
+  ligand_pi_t = Counter()
+
+  protein_aromatic_rings = []
+  ligand_aromatic_rings = []
+  for mol, ring_list in ((protein, protein_aromatic_rings),
+                         (ligand, ligand_aromatic_rings)):
+    aromatic_atoms = {atom.GetIdx() for atom in mol.GetAromaticAtoms()}
+    for ring in Chem.GetSymmSSSR(mol):
+      # if ring is aromatic
+      if set(ring).issubset(aromatic_atoms):
+        # save its indices, center, and normal
+        ring_center = compute_ring_center(mol, ring)
+        ring_normal = compute_ring_normal(mol, ring)
+        ring_list.append((ring, ring_center, ring_normal))
+
+  # remember protein-ligand pairs we already counted
+  counted_pairs_parallel = set()
+  counted_pairs_t = set()
+  for prot_ring, prot_ring_center, prot_ring_normal in protein_aromatic_rings:
+    for lig_ring, lig_ring_center, lig_ring_normal in ligand_aromatic_rings:
+      if is_pi_parallel(
+          prot_ring_center,
+          prot_ring_normal,
+          lig_ring_center,
+          lig_ring_normal,
+          angle_cutoff=angle_cutoff,
+          dist_cutoff=dist_cutoff):
+        prot_to_update = set()
+        lig_to_update = set()
+        for prot_atom_idx in prot_ring:
+          for lig_atom_idx in lig_ring:
+            if (prot_atom_idx, lig_atom_idx) not in counted_pairs_parallel:
+              # if this pair is new, count atoms forming a contact
+              prot_to_update.add(prot_atom_idx)
+              lig_to_update.add(lig_atom_idx)
+              counted_pairs_parallel.add((prot_atom_idx, lig_atom_idx))
+
+        protein_pi_parallel.update(prot_to_update)
+        ligand_pi_parallel.update(lig_to_update)
+
+      if is_pi_t(
+          prot_ring_center,
+          prot_ring_normal,
+          lig_ring_center,
+          lig_ring_normal,
+          angle_cutoff=angle_cutoff,
+          dist_cutoff=dist_cutoff):
+        prot_to_update = set()
+        lig_to_update = set()
+        for prot_atom_idx in prot_ring:
+          for lig_atom_idx in lig_ring:
+            if (prot_atom_idx, lig_atom_idx) not in counted_pairs_t:
+              # if this pair is new, count atoms forming a contact
+              prot_to_update.add(prot_atom_idx)
+              lig_to_update.add(lig_atom_idx)
+              counted_pairs_t.add((prot_atom_idx, lig_atom_idx))
+
+        protein_pi_t.update(prot_to_update)
+        ligand_pi_t.update(lig_to_update)
+
+  return (protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel)
 
 
-def is_cation_pi(cation_position, ring_center, ring_normal):
+def is_cation_pi(cation_position,
+                 ring_center,
+                 ring_normal,
+                 dist_cutoff=6.5,
+                 angle_cutoff=30.0):
+  """Check if a cation and an aromatic ring form contact.
+
+  Parameters:
+  -----------
+    ring_center: np.ndarray
+      Positions of ring center. Can be computed with the compute_ring_center
+      function.
+    ring_normal: np.ndarray
+      Normal of ring. Can be computed with the compute_ring_normal function.
+    dist_cutoff: float
+      Distance cutoff. Max allowed distance between ring center and cation
+      (in Angstroms).
+    angle_cutoff: float
+      Angle cutoff. Max allowed deviation from the ideal (0deg) angle between
+      ring normal and vector pointing from ring center to cation (in degrees).
+  """
   cation_to_ring_vec = cation_position - ring_center
   dist = np.linalg.norm(cation_to_ring_vec)
   angle = angle_between(cation_to_ring_vec, ring_normal) * 180. / np.pi
-  if dist < 6.5:
-    if ((np.abs(angle) < 30.0) or
-        (np.abs(angle) > 150.0 and np.abs(angle) < 210.0) or
-        (np.abs(angle) > 330.0 and np.abs(angle) < 360.0)):
-      return True
-
+  if ((angle < angle_cutoff or angle > 180.0 - angle_cutoff) and
+      (dist < dist_cutoff)):
+    return True
   return False
 
 
-def compute_cation_pi(protein, ligand, protein_cation_pi, ligand_cation_pi):
-  raise ValueError("Not Yet Implemented")
+def compute_cation_pi(mol1, mol2, charge_tolerance=0.01, **kwargs):
+  """Finds aromatic rings in mo1 and cations in mol2 that interact with each
+  other.
+
+  Parameters:
+  -----------
+    mol1: rdkit.rdchem.Mol
+      Molecule to look for interacting rings
+    mol2: rdkit.rdchem.Mol
+      Molecule to look for interacting cations
+    charge_tolerance: float
+      Atom is considered a cation if its formal charge is greater than
+      1 - charge_tolerance
+    **kwargs:
+      Arguments that are passed to is_cation_pi function
+
+  Returns:
+  --------
+    mol1_pi: dict
+      Dictionary that maps atom indices (from mol1) to the number of cations
+      (in mol2) they interact with
+    mol2_cation: dict
+      Dictionary that maps atom indices (from mol2) to the number of aromatic
+      atoms (in mol1) they interact with
+  """
+  mol1_pi = Counter()
+  mol2_cation = Counter()
+  conformer = mol2.GetConformer()
+
+  aromatic_atoms = set(atom.GetIdx() for atom in mol1.GetAromaticAtoms())
+  rings = [list(r) for r in Chem.GetSymmSSSR(mol1)]
+
+  for ring in rings:
+    # if ring from mol1 is aromatic
+    if set(ring).issubset(aromatic_atoms):
+      ring_center = compute_ring_center(mol1, ring)
+      ring_normal = compute_ring_normal(mol1, ring)
+
+      for atom in mol2.GetAtoms():
+        # ...and atom from mol2 is a cation
+        if atom.GetFormalCharge() > 1.0 - charge_tolerance:
+          cation_position = np.array(conformer.GetAtomPosition(atom.GetIdx()))
+          # if angle and distance are correct
+          if is_cation_pi(cation_position, ring_center, ring_normal, **kwargs):
+            # count atoms forming a contact
+            mol1_pi.update(ring)
+            mol2_cation.update([atom.GetIndex()])
+  return mol1_pi, mol2_cation
 
 
-def compute_binding_pocket_cation_pi(protein_xyz, protein, ligand_xyz, ligand):
-  protein_cation_pi = {}
-  ligand_cation_pi = {}
+def compute_binding_pocket_cation_pi(protein, ligand, **kwargs):
+  """Finds cation-pi interactions between protein and ligand.
 
-  (protein_cation_pi, ligand_cation_pi) = compute_cation_pi(
-      protein, ligand, protein_cation_pi, ligand_cation_pi)
-  (ligand_cation_pi, protein_cation_pi) = compute_cation_pi(
-      ligand, protein, ligand_cation_pi, protein_cation_pi)
-  return (protein_cation_pi, ligand_cation_pi)
+  Parameters:
+  -----------
+    protein, ligand: rdkit.rdchem.Mol
+      Interacting molecules
+    **kwargs:
+      Arguments that are passed to compute_cation_pi function
+
+  Returns:
+  --------
+    protein_cation_pi, ligand_cation_pi: dict
+      Dictionaries that maps atom indices to the number of cations/aromatic
+      atoms they interact with
+  """
+  # find interacting rings from protein and cations from ligand
+  protein_pi, ligand_cation = compute_cation_pi(protein, ligand, **kwargs)
+  # find interacting cations from protein and rings from ligand
+  ligand_pi, protein_cation = compute_cation_pi(ligand, protein, **kwargs)
+
+  # merge counters
+  protein_cation_pi = Counter()
+  protein_cation_pi.update(protein_pi)
+  protein_cation_pi.update(protein_cation)
+
+  ligand_cation_pi = Counter()
+  ligand_cation_pi.update(ligand_pi)
+  ligand_cation_pi.update(ligand_cation)
+
+  return protein_cation_pi, ligand_cation_pi
 
 
-def get_formal_charge(atom):
+def get_partial_charge(atom):
+  """Get partial charge of a given atom (rdkit Atom object)"""
   try:
     value = atom.GetProp(str("_GasteigerCharge"))
     if value == '-nan':
@@ -508,19 +706,49 @@ def get_formal_charge(atom):
     return 0
 
 
+def get_formal_charge(atom):
+  warn('get_formal_charge function is deprecated and will be removed'
+       ' in version 1.4, use get_partial_charge instead', DeprecationWarning)
+  return get_partial_charge(atom)
+
+
 def is_salt_bridge(atom_i, atom_j):
-  if np.abs(2.0 - np.abs(get_formal_charge(atom_i) - get_formal_charge(atom_j))
-           ) < 0.01:
+  """Check if two atoms have correct charges to form a salt bridge"""
+  if np.abs(2.0 - np.abs(
+      get_partial_charge(atom_i) - get_partial_charge(atom_j))) < 0.01:
     return True
-  else:
-    return False
+  return False
 
 
-def compute_salt_bridges(protein_xyz, protein, ligand_xyz, ligand,
-                         pairwise_distances):
+def compute_salt_bridges(protein_xyz,
+                         protein,
+                         ligand_xyz,
+                         ligand,
+                         pairwise_distances,
+                         cutoff=5.0):
+  """Find salt bridge contacts between protein and lingand.
+
+  Parameters:
+  -----------
+  protein_xyz, ligand_xyz: np.ndarray
+    Arrays with atomic coordinates
+  protein, ligand: rdkit.rdchem.Mol
+    Interacting molecules
+  pairwise_distances: np.ndarray
+    Array of pairwise protein-ligand distances (Angstroms)
+  cutoff: float
+    Cutoff distance for contact consideration
+
+  Returns:
+  --------
+    salt_bridge_contacts: list of tuples
+      List of contacts. Tuple (i, j) indicates that atom i from protein
+      interacts with atom j from ligand.
+  """
+
   salt_bridge_contacts = []
 
-  contacts = np.nonzero(pairwise_distances < 5.0)
+  contacts = np.nonzero(pairwise_distances < cutoff)
   contacts = zip(contacts[0], contacts[1])
   for contact in contacts:
     protein_atom = protein.GetAtoms()[int(contact[0])]
@@ -549,7 +777,7 @@ def is_hydrogen_bond(protein_xyz, protein, ligand_xyz, ligand, contact,
 
 def compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
                             pairwise_distances, hbond_dist_bin,
-                            hbond_angle_cutoff, ecfp_degree):
+                            hbond_angle_cutoff):
   """
   Find all pairs of (protein_index_i, ligand_index_j) that hydrogen bond given
   a distance bin and an angle cutoff.
@@ -557,10 +785,6 @@ def compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
 
   contacts = np.nonzero((pairwise_distances > hbond_dist_bin[0]) &
                         (pairwise_distances < hbond_dist_bin[1]))
-  protein_atoms = set([int(c) for c in contacts[0].tolist()])
-  protein_ecfp_dict = compute_all_ecfp(
-      protein, indices=protein_atoms, degree=ecfp_degree)
-  ligand_ecfp_dict = compute_all_ecfp(ligand, degree=ecfp_degree)
   contacts = zip(contacts[0], contacts[1])
   hydrogen_bond_contacts = []
   for contact in contacts:
@@ -572,7 +796,7 @@ def compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
 
 def compute_hydrogen_bonds(protein_xyz, protein, ligand_xyz, ligand,
                            pairwise_distances, hbond_dist_bins,
-                           hbond_angle_cutoffs, ecfp_degree):
+                           hbond_angle_cutoffs):
   """Computes hydrogen bonds between proteins and ligands.
 
   Returns a list of sublists. Each sublist is a series of tuples of
@@ -586,7 +810,7 @@ def compute_hydrogen_bonds(protein_xyz, protein, ligand_xyz, ligand,
     hbond_contacts.append(
         compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
                                 pairwise_distances, hbond_dist_bin,
-                                hbond_angle_cutoff, ecfp_degree))
+                                hbond_angle_cutoff))
   return (hbond_contacts)
 
 
@@ -595,27 +819,37 @@ def convert_atom_to_voxel(molecule_xyz,
                           box_width,
                           voxel_width,
                           verbose=False):
+  """Converts atom coordinates to an i,j,k grid index.
+
+  Parameters:
+  -----------
+    molecule_xyz: np.ndarray
+      Array with coordinates of all atoms in the molecule, shape (N, 3)
+    atom_index: int
+      Index of an atom
+    box_width: float
+      Size of a box
+    voxel_width: float
+      Size of a voxel
+    verbose: bool
+      Print warnings when atom is outside of a box
   """
-  Converts an atom to an i,j,k grid index.
-  """
-  from warnings import warn
 
   indices = np.floor(
-      (molecule_xyz[atom_index, :] + np.array([box_width, box_width, box_width]
-                                             ) / 2.0) / voxel_width).astype(int)
+      (molecule_xyz[atom_index] + box_width / 2.0) / voxel_width).astype(int)
   if ((indices < 0) | (indices >= box_width / voxel_width)).any():
     if verbose:
-      warn(
-          'Coordinates are outside of the box (atom id = %s, coords xyz = %s, coords in box = %s'
-          % (atom_index, molecule_xyz[atom_index], indices))
+      warn('Coordinates are outside of the box (atom id = %s,'
+           ' coords xyz = %s, coords in box = %s' %
+           (atom_index, molecule_xyz[atom_index], indices))
+
   return ([indices])
 
 
 def convert_atom_pair_to_voxel(molecule_xyz_tuple, atom_index_pair, box_width,
                                voxel_width):
-  """
-  Converts a pair of atoms to a list of i,j,k tuples.
-  """
+  """Converts a pair of atoms to a list of i,j,k tuples."""
+
   indices_list = []
   indices_list.append(
       convert_atom_to_voxel(molecule_xyz_tuple[0], atom_index_pair[0],
@@ -635,7 +869,7 @@ def compute_charge_dictionary(molecule):
 
   charge_dictionary = {}
   for i, atom in enumerate(molecule.GetAtoms()):
-    charge_dictionary[i] = get_formal_charge(atom)
+    charge_dictionary[i] = get_partial_charge(atom)
   return charge_dictionary
 
 
@@ -651,55 +885,124 @@ def subtract_centroid(xyz, centroid):
 
 
 class RdkitGridFeaturizer(ComplexFeaturizer):
+  """Featurizes protein-ligand complex using flat features or a 3D grid (in which
+  each voxel is described with a vector of features).
+  """
 
   def __init__(self,
-               box_x=16.0,
-               box_y=16.0,
-               box_z=16.0,
                nb_rotations=0,
-               nb_reflections=0,
-               feature_types="ecfp",
+               feature_types=None,
                ecfp_degree=2,
                ecfp_power=3,
                splif_power=3,
-               save_intermediates=False,
-               ligand_only=False,
                box_width=16.0,
                voxel_width=1.0,
-               voxelize_features=True,
-               voxel_feature_types=[],
                flatten=False,
-               parallel=False,
                verbose=True,
+               sanitize=False,
                **kwargs):
-    self.verbose = verbose
-    self.parallel = parallel
-    self.flatten = flatten
+    """Parameters:
+    -----------
+    nb_rotations: int, optional (default 0)
+      Number of additional random rotations of a complex to generate.
+    feature_types: list, optional (default ['ecfp'])
+      Types of features to calculate. Available types are:
+        flat features: 'ecfp_ligand', 'ecfp_hashed', 'splif_hashed', 'hbond_count'
+        voxel features: 'ecfp', 'splif', 'sybyl', 'salt_bridge', 'charge', 'hbond',
+        'pi_stack, 'cation_pi'
+      There are also 3 predefined sets of features: 'flat_combined',
+      'voxel_combined', and 'all_combined'. Calculated features are concatenated
+      and their order is preserved (features in predefined sets are in
+      alphabetical order).
+    ecfp_degree: int, optional (default 2)
+      ECFP radius.
+    ecfp_power: int, optional (default 3)
+      Number of bits to store ECFP features (resulting vector will be
+      2^ecfp_power long)
+    splif_power: int, optional (default 3)
+      Number of bits to store SPLIF features (resulting vector will be
+      2^splif_power long)
+    box_width: float, optional (default 16.0)
+      Size of a box in which voxel features are calculated. Box is centered on a
+      ligand centroid.
+    voxel_width: float, optional (default 1.0)
+      Size of a 3D voxel in a grid.
+    flatten: bool, optional (defaul False)
+      Indicate whether calculated features should be flattened. Output is always
+      flattened if flat features are specified in feature_types.
+    verbose: bool, optional (defaul True)
+      Verbolity for logging
+    sanitize: bool, optional (defaul False)
+      If set to True molecules will be sanitized. Note that calculating some
+      features (e.g. aromatic interactions) require sanitized molecules.
+    **kwargs: dict, optional
+      Keyword arguments can be usaed to specify custom cutoffs and bins (see
+      default values below).
 
-    self.box_x = float(box_x) / 10.0
-    self.box_y = float(box_y) / 10.0
-    self.box_z = float(box_z) / 10.0
+    Default cutoffs and bins:
+    -------------------------
+      hbond_dist_bins: [(2.2, 2.5), (2.5, 3.2), (3.2, 4.0)]
+      hbond_angle_cutoffs: [5, 50, 90]
+      splif_contact_bins: [(0, 2.0), (2.0, 3.0), (3.0, 4.5)]
+      ecfp_cutoff: 4.5
+      sybyl_cutoff: 7.0
+      salt_bridges_cutoff: 5.0
+      pi_stack_dist_cutoff: 4.4
+      pi_stack_angle_cutoff: 30.0
+      cation_pi_dist_cutoff: 6.5
+      cation_pi_angle_cutoff: 30.0
+    """
+
+    # check if user tries to set removed arguments
+    deprecated_args = [
+        'box_x', 'box_y', 'box_z', 'save_intermediates', 'voxelize_features',
+        'parallel', 'voxel_feature_types'
+    ]
+
+    # list of features that require sanitized molecules
+    require_sanitized = ['pi_stack', 'cation_pi', 'ecfp_ligand']
+
+    # not implemented featurization types
+    not_implemented = ['sybyl']
+
+    for arg in deprecated_args:
+      if arg in kwargs and verbose:
+        warn('%s argument was removed and it is ignored,'
+             ' using it will result in error in version 1.4' % arg,
+             DeprecationWarning)
+
+    self.verbose = verbose
+    self.sanitize = sanitize
+    self.flatten = flatten
 
     self.ecfp_degree = ecfp_degree
     self.ecfp_power = ecfp_power
     self.splif_power = splif_power
 
     self.nb_rotations = nb_rotations
-    self.nb_reflections = nb_reflections
-    self.feature_types = feature_types
 
-    self.save_intermediates = save_intermediates
-    self.ligand_only = ligand_only
+    # default values
+    self.cutoffs = {
+        'hbond_dist_bins': [(2.2, 2.5), (2.5, 3.2), (3.2, 4.0)],
+        'hbond_angle_cutoffs': [5, 50, 90],
+        'splif_contact_bins': [(0, 2.0), (2.0, 3.0), (3.0, 4.5)],
+        'ecfp_cutoff': 4.5,
+        'sybyl_cutoff': 7.0,
+        'salt_bridges_cutoff': 5.0,
+        'pi_stack_dist_cutoff': 4.4,
+        'pi_stack_angle_cutoff': 30.0,
+        'cation_pi_dist_cutoff': 6.5,
+        'cation_pi_angle_cutoff': 30.0,
+    }
 
-    self.hbond_dist_bins = [(2.2, 2.5), (2.5, 3.2), (3.2, 4.0)]
-    self.hbond_angle_cutoffs = [5, 50, 90]
-    self.contact_bins = [(0, 2.0), (2.0, 3.0), (3.0, 4.5)]
+    # update with cutoffs specified by the user
+    for arg, value in kwargs.items():
+      if arg in self.cutoffs:
+        self.cutoffs[arg] = value
 
     self.box_width = float(box_width)
     self.voxel_width = float(voxel_width)
-    self.voxels_per_edge = self.box_width / self.voxel_width
-    self.voxelize_features = voxelize_features
-    self.voxel_feature_types = voxel_feature_types
+    self.voxels_per_edge = int(self.box_width / self.voxel_width)
 
     self.sybyl_types = [
         "C3", "C2", "C1", "Cac", "Car", "N3", "N3+", "Npl", "N2", "N1", "Ng+",
@@ -708,6 +1011,269 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         "Sac"
         "SO", "P3", "P", "P3+", "F", "Cl", "Br", "I"
     ]
+
+    # define methods to calculate available flat features
+    # all methods (flat and voxel) must have the same API:
+    # f(prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances) -> list of np.ndarrays
+    self.FLAT_FEATURES = {
+        'ecfp_ligand': lambda prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances:
+            [compute_ecfp_features(
+                lig_rdk,
+                self.ecfp_degree,
+                self.ecfp_power)],
+
+        'ecfp_hashed': lambda prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances:
+            [self._vectorize(
+                hash_ecfp,
+                feature_dict=ecfp_dict,
+                channel_power=self.ecfp_power
+            ) for ecfp_dict in featurize_binding_pocket_ecfp(
+                prot_xyz,
+                prot_rdk,
+                lig_xyz,
+                lig_rdk,
+                distances,
+                cutoff=self.cutoffs['ecfp_cutoff'],
+                ecfp_degree=self.ecfp_degree)],
+
+        'splif_hashed': lambda prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances:
+            [self._vectorize(
+                hash_ecfp_pair,
+                feature_dict=splif_dict,
+                channel_power=self.splif_power
+            ) for splif_dict in featurize_splif(
+                prot_xyz,
+                prot_rdk,
+                lig_xyz,
+                lig_rdk,
+                self.cutoffs['splif_contact_bins'],
+                distances,
+                self.ecfp_degree)],
+
+        'hbond_count': lambda prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances:
+            [self._vectorize(
+                hash_ecfp_pair,
+                feature_list=hbond_list,
+                channel_power=0
+            ) for hbond_list in compute_hydrogen_bonds(
+                prot_xyz,
+                prot_rdk,
+                lig_xyz,
+                lig_rdk,
+                distances,
+                self.cutoffs['hbond_dist_bins'],
+                self.cutoffs['hbond_angle_cutoffs'])]
+    }
+
+    def voxelize_pi_stack(prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances):
+      protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel = (
+          compute_pi_stack(
+              prot_rdk,
+              lig_rdk,
+              distances,
+              dist_cutoff=self.cutoffs['pi_stack_dist_cutoff'],
+              angle_cutoff=self.cutoffs['pi_stack_angle_cutoff']))
+      pi_parallel_tensor = self._voxelize(
+          convert_atom_to_voxel,
+          None,
+          prot_xyz,
+          feature_dict=protein_pi_parallel,
+          nb_channel=1)
+      pi_parallel_tensor += self._voxelize(
+          convert_atom_to_voxel,
+          None,
+          lig_xyz,
+          feature_dict=ligand_pi_parallel,
+          nb_channel=1)
+
+      pi_t_tensor = self._voxelize(
+          convert_atom_to_voxel,
+          None,
+          prot_xyz,
+          feature_dict=protein_pi_t,
+          nb_channel=1)
+      pi_t_tensor += self._voxelize(
+          convert_atom_to_voxel,
+          None,
+          lig_xyz,
+          feature_dict=ligand_pi_t,
+          nb_channel=1)
+      return [pi_parallel_tensor, pi_t_tensor]
+
+    # define methods to calculate available voxel features
+    self.VOXEL_FEATURES = {
+        'ecfp': lambda prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances:
+            [sum([self._voxelize(
+                convert_atom_to_voxel,
+                hash_ecfp,
+                xyz,
+                feature_dict=ecfp_dict,
+                channel_power=self.ecfp_power
+            ) for xyz, ecfp_dict in zip(
+                (prot_xyz, lig_xyz), featurize_binding_pocket_ecfp(
+                    prot_xyz,
+                    prot_rdk,
+                    lig_xyz,
+                    lig_rdk,
+                    distances,
+                    cutoff=self.cutoffs['ecfp_cutoff'],
+                    ecfp_degree=self.ecfp_degree
+                ))])],
+
+        'splif': lambda prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances:
+            [self._voxelize(
+                convert_atom_pair_to_voxel,
+                hash_ecfp_pair,
+                (prot_xyz, lig_xyz),
+                feature_dict=splif_dict,
+                channel_power=self.splif_power
+            ) for splif_dict in featurize_splif(
+                prot_xyz,
+                prot_rdk,
+                lig_xyz,
+                lig_rdk,
+                self.cutoffs['splif_contact_bins'],
+                distances,
+                self.ecfp_degree)],
+
+        'sybyl': lambda prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances:
+            [self._voxelize(
+                convert_atom_to_voxel,
+                lambda x: hash_sybyl(x, sybyl_types=self.sybyl_types),
+                xyz,
+                feature_dict=sybyl_dict,
+                nb_channel=len(self.sybyl_types)
+            ) for xyz, sybyl_dict in zip(
+                (prot_xyz, lig_xyz), featurize_binding_pocket_sybyl(
+                    prot_xyz,
+                    prot_rdk,
+                    lig_xyz,
+                    lig_rdk,
+                    distances,
+                    cutoff=self.cutoffs['sybyl_cutoff']
+                ))],
+
+        'salt_bridge': lambda prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances:
+            [self._voxelize(
+                convert_atom_pair_to_voxel,
+                None,
+                (prot_xyz, lig_xyz),
+                feature_list=compute_salt_bridges(
+                    prot_xyz,
+                    prot_rdk,
+                    lig_xyz,
+                    lig_rdk,
+                    distances,
+                    cutoff=self.cutoffs['salt_bridges_cutoff']),
+                nb_channel=1
+            )],
+
+        'charge': lambda prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances:
+            [sum([self._voxelize(
+                convert_atom_to_voxel,
+                None,
+                xyz,
+                feature_dict=compute_charge_dictionary(mol),
+                nb_channel=1,
+                dtype="np.float16"
+            ) for xyz, mol in ((prot_xyz, prot_rdk), (lig_xyz, lig_rdk))])],
+
+        'hbond': lambda prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances:
+            [self._voxelize(
+                convert_atom_pair_to_voxel,
+                None,
+                (prot_xyz, lig_xyz),
+                feature_list=hbond_list,
+                channel_power=0
+            ) for hbond_list in compute_hydrogen_bonds(
+                prot_xyz,
+                prot_rdk,
+                lig_xyz,
+                lig_rdk,
+                distances,
+                self.cutoffs['hbond_dist_bins'],
+                self.cutoffs['hbond_angle_cutoffs'])
+            ],
+        'pi_stack': voxelize_pi_stack,
+
+        'cation_pi': lambda prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances:
+            [sum([self._voxelize(
+                convert_atom_to_voxel,
+                None,
+                xyz,
+                feature_dict=cation_pi_dict,
+                nb_channel=1
+            ) for xyz, cation_pi_dict in zip(
+                (prot_xyz, lig_xyz), compute_binding_pocket_cation_pi(
+                    prot_rdk,
+                    lig_rdk,
+                    dist_cutoff=self.cutoffs['cation_pi_dist_cutoff'],
+                    angle_cutoff=self.cutoffs['cation_pi_angle_cutoff'],
+                ))])],
+    }
+
+    if feature_types is None:
+      feature_types = ['ecfp']
+
+    # each entry is a tuple (is_flat, feature_name)
+    self.feature_types = []
+
+    # list of features that cannot be calculated with specified parameters
+    # this list is used to define <flat/voxel/all>_combined subset
+    ignored_features = []
+    if self.sanitize is False:
+      ignored_features += require_sanitized
+    ignored_features += not_implemented
+
+    # parse provided feature types
+    for feature_type in feature_types:
+      if self.sanitize is False and feature_type in require_sanitized:
+        if self.verbose:
+          warn('sanitize is set to False, %s feature will be ignored' %
+               feature_type)
+        continue
+      if feature_type in not_implemented:
+        if self.verbose:
+          warn('%s feature is not implemented yet and will be ignored' %
+               feature_type)
+        continue
+
+      if feature_type in self.FLAT_FEATURES:
+        self.feature_types.append((True, feature_type))
+        if self.flatten is False:
+          if self.verbose:
+            warn('%s feature is used, output will be flattened' % feature_type)
+          self.flatten = True
+
+      elif feature_type in self.VOXEL_FEATURES:
+        self.feature_types.append((False, feature_type))
+
+      elif feature_type == 'flat_combined':
+        self.feature_types += [(True, ftype)
+                               for ftype in sorted(self.FLAT_FEATURES.keys())
+                               if ftype not in ignored_features]
+        if self.flatten is False:
+          if self.verbose:
+            warn('Flat features are used, output will be flattened')
+          self.flatten = True
+
+      elif feature_type == 'voxel_combined':
+        self.feature_types += [(False, ftype)
+                               for ftype in sorted(self.VOXEL_FEATURES.keys())
+                               if ftype not in ignored_features]
+      elif feature_type == 'all_combined':
+        self.feature_types += [(True, ftype)
+                               for ftype in sorted(self.FLAT_FEATURES.keys())
+                               if ftype not in ignored_features]
+        self.feature_types += [(False, ftype)
+                               for ftype in sorted(self.VOXEL_FEATURES.keys())
+                               if ftype not in ignored_features]
+        if self.flatten is False:
+          if self.verbose:
+            warn('Flat feature are used, output will be flattened')
+          self.flatten = True
+      elif self.verbose:
+        warn('Ignoring unknown feature %s' % feature_type)
 
   def _featurize_complex(self, ligand_ext, ligand_lines, protein_pdb_lines):
     tempdir = tempfile.mkdtemp()
@@ -779,12 +1345,9 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
-    protein_name = str(protein_pdb).split("/")[len(str(protein_pdb).split("/"))
-                                               - 2]
 
-    if not self.ligand_only:
-      protein_xyz, protein_ob = rdkit_util.load_molecule(
-          protein_pdb, calc_charges=True)
+    protein_xyz, protein_rdk = load_molecule(
+        protein_pdb, calc_charges=True, sanitize=self.sanitize)
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1),
@@ -793,308 +1356,58 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
-    ligand_xyz, ligand_ob = rdkit_util.load_molecule(
-        ligand_file, calc_charges=True)
+    ligand_xyz, ligand_rdk = load_molecule(
+        ligand_file, calc_charges=True, sanitize=self.sanitize)
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Loading ligand coordinates took %0.3f s" % (time2 - time1),
         self.verbose)
     ############################################################## TIMING
 
-    if "ecfp" in self.feature_types:
-      ecfp_array = compute_ecfp_features(ligand_ob, self.ecfp_degree,
-                                         self.ecfp_power)
-      return ({(0, 0): ecfp_array})
-
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
     centroid = compute_centroid(ligand_xyz)
     ligand_xyz = subtract_centroid(ligand_xyz, centroid)
-    if not self.ligand_only:
-      protein_xyz = subtract_centroid(protein_xyz, centroid)
+    protein_xyz = subtract_centroid(protein_xyz, centroid)
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Centroid processing took %0.3f s" % (time2 - time1),
         self.verbose)
     ############################################################## TIMING
 
-    if "splif" in self.feature_types:
-      splif_array = self._featurize_splif(protein_xyz, protein_ob, ligand_xyz,
-                                          ligand_ob)
-      return ({(0, 0): splif_array})
-
-    if "flat_combined" in self.feature_types:
-      return (self._compute_flat_features(protein_xyz, protein_ob, ligand_xyz,
-                                          ligand_ob))
-
     pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
-    if "ecfp" in self.voxel_feature_types:
-      ############################################################## TIMING
-      time1 = time.time()
-      ############################################################## TIMING
-      protein_ecfp_dict, ligand_ecfp_dict = (featurize_binding_pocket_ecfp(
-          protein_xyz,
-          protein_ob,
-          ligand_xyz,
-          ligand_ob,
-          pairwise_distances,
-          cutoff=4.5,
-          ecfp_degree=self.ecfp_degree))
-      ############################################################## TIMING
-      time2 = time.time()
-      log("TIMING: ecfp voxel computataion took %0.3f s" % (time2 - time1),
-          self.verbose)
-      ############################################################## TIMING
-    if "splif" in self.voxel_feature_types:
-      ############################################################## TIMING
-      time1 = time.time()
-      ############################################################## TIMING
-      splif_dicts = featurize_splif(protein_xyz, protein_ob, ligand_xyz,
-                                    ligand_ob, self.contact_bins,
-                                    pairwise_distances, self.ecfp_degree)
-      ############################################################## TIMING
-      time2 = time.time()
-      log("TIMING: splif voxel computataion took %0.3f s" % (time2 - time1),
-          self.verbose)
-      ############################################################## TIMING
-
-    if "hbond" in self.voxel_feature_types:
-      ############################################################## TIMING
-      time1 = time.time()
-      ############################################################## TIMING
-      hbond_list = compute_hydrogen_bonds(
-          protein_xyz, protein_ob, ligand_xyz, ligand_ob, pairwise_distances,
-          self.hbond_dist_bins, self.hbond_angle_cutoffs, self.ecfp_degree)
-      ############################################################## TIMING
-      time2 = time.time()
-      log("TIMING: hbond voxel computataion took %0.3f s" % (time2 - time1),
-          self.verbose)
-      ############################################################## TIMING
-
-    if "sybyl" in self.voxel_feature_types:
-      ############################################################## TIMING
-      time1 = time.time()
-      ############################################################## TIMING
-      protein_sybyl_dict, ligand_sybyl_dict = featurize_binding_pocket_sybyl(
-          protein_xyz,
-          protein_ob,
-          ligand_xyz,
-          ligand_ob,
-          pairwise_distances,
-          cutoff=7.0)
-      ############################################################## TIMING
-      time2 = time.time()
-      log("TIMING: sybyl voxel computataion took %0.3f s" % (time2 - time1),
-          self.verbose)
-      ############################################################## TIMING
-
-    if "pi_stack" in self.voxel_feature_types:
-      ############################################################## TIMING
-      time1 = time.time()
-      ############################################################## TIMING
-      protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel = (
-          compute_pi_stack(protein_xyz, protein_ob, ligand_xyz, ligand_ob,
-                           pairwise_distances))
-      ############################################################## TIMING
-      time2 = time.time()
-      log("TIMING: pi_stack voxel computataion took %0.3f s" % (time2 - time1),
-          self.verbose)
-      ############################################################## TIMING
-
-    if "cation_pi" in self.voxel_feature_types:
-      ############################################################## TIMING
-      time1 = time.time()
-      ############################################################## TIMING
-      protein_cation_pi, ligand_cation_pi = (compute_binding_pocket_cation_pi(
-          protein_xyz, protein_ob, ligand_xyz, ligand_ob))
-      ############################################################## TIMING
-      time2 = time.time()
-      log("TIMING: cation_pi voxel computataion took %0.3f s" % (time2 - time1),
-          self.verbose)
-      ############################################################## TIMING
-
-    if "salt_bridge" in self.voxel_feature_types:
-      ############################################################## TIMING
-      time1 = time.time()
-      ############################################################## TIMING
-      salt_bridge_list = compute_salt_bridges(
-          protein_xyz, protein_ob, ligand_xyz, ligand_ob, pairwise_distances)
-      ############################################################## TIMING
-      time2 = time.time()
-      log("TIMING: salt_bridge voxel computataion took %0.3f s" %
-          (time2 - time1), self.verbose)
-      ############################################################## TIMING
-
-    if "charge" in self.voxel_feature_types:
-      ############################################################## TIMING
-      time1 = time.time()
-      ############################################################## TIMING
-      protein_charge_dictionary = compute_charge_dictionary(protein_ob)
-      ligand_charge_dictionary = compute_charge_dictionary(ligand_ob)
-      ############################################################## TIMING
-      time2 = time.time()
-      log("TIMING: charge voxel computataion took %0.3f s" % (time2 - time1),
-          self.verbose)
-      ############################################################## TIMING
 
     transformed_systems = {}
     transformed_systems[(0, 0)] = [protein_xyz, ligand_xyz]
 
-    for i in range(0, int(self.nb_rotations)):
+    for i in range(self.nb_rotations):
       rotated_system = rotate_molecules([protein_xyz, ligand_xyz])
       transformed_systems[(i + 1, 0)] = rotated_system
-      for j in range(0, int(self.nb_reflections)):
-        reflected_system = self._reflect_molecule(rotated_system)
-        transformed_systems[(i + 1, j + 1)] = reflected_system
 
-    if "voxel_combined" in self.feature_types:
-      features = {}
-      for system_id, system in transformed_systems.items():
-        protein_xyz = system[0]
-        ligand_xyz = system[1]
-        feature_tensors = []
-        if "ecfp" in self.voxel_feature_types:
-          ecfp_tensor = self._voxelize(
-              convert_atom_to_voxel,
-              hash_ecfp,
-              protein_xyz,
-              feature_dict=protein_ecfp_dict,
-              channel_power=self.ecfp_power)
-          ecfp_tensor += self._voxelize(
-              convert_atom_to_voxel,
-              hash_ecfp,
-              ligand_xyz,
-              feature_dict=ligand_ecfp_dict,
-              channel_power=self.ecfp_power)
-          feature_tensors.append(ecfp_tensor)
-          print("Completed ecfp tensor")
-
-        if "splif" in self.voxel_feature_types:
-          feature_tensors += [
-              self._voxelize(
-                  convert_atom_pair_to_voxel,
-                  hash_ecfp_pair, (protein_xyz, ligand_xyz),
-                  feature_dict=splif_dict,
-                  channel_power=self.splif_power) for splif_dict in splif_dicts
-          ]
-          print("Completed splif tensor")
-
-        if "hbond" in self.voxel_feature_types:
-          feature_tensors += [
-              self._voxelize(
-                  convert_atom_pair_to_voxel,
-                  None, (protein_xyz, ligand_xyz),
-                  feature_list=hbond,
-                  channel_power=0) for hbond in hbond_list
-          ]
-          print("Completed hbond tensor")
-
-        if "sybyl" in self.voxel_feature_types:
-          sybyl_partial = partial(hash_sybyl, sybyl_types=self.sybyl_types)
-          sybyl_tensor = self._voxelize(
-              convert_atom_to_voxel,
-              hash_sybyl,
-              protein_xyz,
-              feature_dict=protein_sybyl_dict,
-              nb_channel=len(self.sybyl_types))
-          sybyl_tensor += self._voxelize(
-              convert_atom_to_voxel,
-              hash_sybyl,
-              ligand_xyz,
-              feature_dict=ligand_sybyl_dict,
-              nb_channel=len(self.sybyl_types))
-          feature_tensors.append(sybyl_tensor)
-          print("Completed sybyl tensor")
-
-        if "pi_stack" in self.voxel_feature_types:
-          pi_parallel_tensor = self._voxelize(
-              convert_atom_to_voxel,
-              None,
-              protein_xyz,
-              feature_dict=protein_pi_parallel,
-              nb_channel=1)
-          pi_parallel_tensor += self._voxelize(
-              convert_atom_to_voxel,
-              None,
-              ligand_xyz,
-              feature_dict=ligand_pi_parallel,
-              nb_channel=1)
-          feature_tensors.append(pi_parallel_tensor)
-
-          pi_t_tensor = self._voxelize(
-              convert_atom_to_voxel,
-              None,
-              protein_xyz,
-              feature_dict=protein_pi_t,
-              nb_channel=1)
-          pi_t_tensor += self._voxelize(
-              convert_atom_to_voxel,
-              None,
-              ligand_xyz,
-              feature_dict=ligand_pi_t,
-              nb_channel=1)
-          feature_tensors.append(pi_t_tensor)
-          print("Completed pi_stack tensor")
-
-        if "cation_pi" in self.voxel_feature_types:
-          cation_pi_tensor = self._voxelize(
-              convert_atom_to_voxel,
-              None,
-              protein_xyz,
-              feature_dict=protein_cation_pi,
-              nb_channel=1)
-          cation_pi_tensor += self._voxelize(
-              convert_atom_to_voxel,
-              None,
-              ligand_xyz,
-              feature_dict=ligand_cation_pi,
-              nb_channel=1)
-          feature_tensors.append(cation_pi_tensor)
-          print("Completed cation_pi tensor.")
-
-        if "salt_bridge" in self.voxel_feature_types:
-          salt_bridge_tensor = self._voxelize(
-              convert_atom_pair_to_voxel,
-              None, (protein_xyz, ligand_xyz),
-              feature_list=salt_bridge_list,
-              nb_channel=1)
-          feature_tensors.append(salt_bridge_tensor)
-
-          print("Completed salt_bridge tensor.")
-
-        if "charge" in self.voxel_feature_types:
-          charge_tensor = self._voxelize(
-              convert_atom_to_voxel,
-              None,
-              protein_xyz,
-              feature_dict=protein_charge_dictionary,
-              nb_channel=1,
-              dtype="np.float16")
-          charge_tensor += self._voxelize(
-              convert_atom_to_voxel,
-              None,
-              ligand_xyz,
-              feature_dict=ligand_charge_dictionary,
-              nb_channel=1,
-              dtype="np.float16")
-          feature_tensors.append(charge_tensor)
-
-          print("Completed salt_bridge tensor.")
-
-        if "charge" in self.voxel_feature_types:
-          feature_tensor = np.concatenate(
-              feature_tensors, axis=3).astype(np.float16)
+    features = {}
+    for system_id, (protein_xyz, ligand_xyz) in transformed_systems.items():
+      feature_arrays = []
+      for is_flat, function_name in self.feature_types:
+        if is_flat:
+          function = self.FLAT_FEATURES[function_name]
         else:
-          feature_tensor = np.concatenate(
-              feature_tensors, axis=3).astype(np.int8)
+          function = self.VOXEL_FEATURES[function_name]
+
+        feature_arrays += function(
+            protein_xyz,
+            protein_rdk,
+            ligand_xyz,
+            ligand_rdk,
+            pairwise_distances,)
 
         if self.flatten:
-          feature_tensor = np.squeeze(feature_tensor)
+          features[system_id] = np.concatenate(
+              [feature_array.flatten() for feature_array in feature_arrays])
+        else:
+          features[system_id] = np.concatenate(feature_arrays, axis=-1)
 
-        features[system_id] = feature_tensor
-
-      return (features)
+    return features
 
   def _voxelize(self,
                 get_voxels,
@@ -1130,7 +1443,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
               feature_tensor[voxel[0], voxel[1], voxel[2],
                              hash_function(features, channel_power)] += 1.0
             else:
-              feature_tensor[voxel[0], voxel[1], voxel[3], 0] += features
+              feature_tensor[voxel[0], voxel[1], voxel[2], 0] += features
     elif feature_list is not None:
       for key in feature_list:
         voxels = get_voxels(coordinates, key, self.box_width, self.voxel_width)
@@ -1156,68 +1469,3 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       feature_vector[0] += len(feature_list)
 
     return feature_vector
-
-  def _generate_box(self, mol):
-    """Removes atoms outside box.
-
-    Generate_box takes as input a molecule of class PDB and removes all atoms
-    outside of the given box dims
-    """
-
-    molecule = deepcopy(mol)
-    atoms_to_keep = []
-    all_atoms = [a for a in molecule.topology.atoms]
-    for atom in all_atoms:
-      coords = np.abs(molecule.xyz[0][atom.index, :])
-      if (coords[0] <= (self.box_x / 2.) and coords[1] <= (self.box_y / 2.) and
-          coords[2] <= (self.box_z / 2.)):
-        atoms_to_keep.append(atom.index)
-    return (molecule.atom_slice(atoms_to_keep))
-
-  def _compute_flat_features(self, protein_xyz, protein_ob, ligand_xyz,
-                             ligand_ob):
-    """Computes vectorial (as opposed to tensorial) featurization."""
-    pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
-    protein_ecfp_dict, ligand_ecfp_dict = featurize_binding_pocket_ecfp(
-        protein_xyz,
-        protein_ob,
-        ligand_xyz,
-        ligand_ob,
-        pairwise_distances,
-        cutoff=4.5,
-        ecfp_degree=self.ecfp_degree)
-    splif_dicts = featurize_splif(protein_xyz, protein_ob, ligand_xyz,
-                                  ligand_ob, self.contact_bins,
-                                  pairwise_distances, self.ecfp_degree)
-    hbond_list = compute_hydrogen_bonds(
-        protein_xyz, protein_ob, ligand_xyz, ligand_ob, pairwise_distances,
-        self.hbond_dist_bins, self.hbond_angle_cutoffs, self.ecfp_degree)
-
-    protein_ecfp_vector = [
-        self._vectorize(
-            hash_ecfp,
-            feature_dict=protein_ecfp_dict,
-            channel_power=self.ecfp_power)
-    ]
-    ligand_ecfp_vector = [
-        self._vectorize(
-            hash_ecfp,
-            feature_dict=ligand_ecfp_dict,
-            channel_power=self.ecfp_power)
-    ]
-    splif_vectors = [
-        self._vectorize(
-            hash_ecfp_pair,
-            feature_dict=splif_dict,
-            channel_power=self.splif_power) for splif_dict in splif_dicts
-    ]
-    hbond_vectors = [
-        self._vectorize(
-            hash_ecfp_pair, feature_list=hbond_list, channel_power=0)
-        for hbond_class in hbond_list
-    ]
-    feature_vectors = protein_ecfp_vector + \
-                      ligand_ecfp_vector + splif_vectors + hbond_vectors
-    feature_vector = np.concatenate(feature_vectors, axis=0)
-
-    return ({(0, 0): feature_vector})

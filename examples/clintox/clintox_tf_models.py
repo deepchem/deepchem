@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import deepchem as dc
-from clintox_datasets import load_clintox
+from deepchem.molnet import load_clintox
 
 # Only for debug!
 np.random.seed(123)
@@ -21,12 +21,13 @@ train_dataset, valid_dataset, test_dataset = clintox_datasets
 # Fit models
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 
-model = dc.models.TensorflowMultiTaskClassifier(len(clintox_tasks), 
-                                                n_features,
-                                                layer_sizes=[1000],
-                                                dropouts=[.25],
-                                                learning_rate=0.001,
-                                                batch_size=50)
+model = dc.models.MultiTaskClassifier(
+    len(clintox_tasks),
+    n_features,
+    layer_sizes=[1000],
+    dropouts=[.25],
+    learning_rate=0.001,
+    batch_size=50)
 
 # Fit trained model
 model.fit(train_dataset)

@@ -191,7 +191,6 @@ class TestTensorGraph(unittest.TestCase):
     prediction2 = np.squeeze(tg1.predict_on_batch(X))
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
 
-  @nottest
   def test_tensorboard(self):
     n_data_points = 20
     n_features = 2
@@ -208,6 +207,7 @@ class TestTensorGraph(unittest.TestCase):
         tensorboard=True,
         tensorboard_log_frequency=1,
         learning_rate=0.01,
+        use_queue=False,
         model_dir='/tmp/tensorgraph')
     tg.add_output(output)
     tg.set_loss(loss)
@@ -388,7 +388,7 @@ class TestTensorGraph(unittest.TestCase):
 
   def test_submodels(self):
     """Test optimizing submodels."""
-    tg = dc.models.TensorGraph(learning_rate=0.1, batch_size=1)
+    tg = dc.models.TensorGraph(learning_rate=0.1, batch_size=1, use_queue=False)
     features = Feature(shape=(None, 1))
     var1 = Variable([2.0])
     var2 = Variable([2.0])
