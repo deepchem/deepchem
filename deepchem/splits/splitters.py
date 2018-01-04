@@ -5,6 +5,8 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import random
+
 __author__ = "Bharath Ramsundar, Aneesh Pappu "
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
@@ -616,8 +618,9 @@ class MaxMinSplitter(Splitter):
     Splits internal compounds randomly into train/validation/test.
     """
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
-    if not seed is None:
-      np.random.seed(seed)
+    if seed is None:
+      seed = random.randint(0, 2**30)
+    np.random.seed(seed)
 
     num_datapoints = len(dataset)
 
