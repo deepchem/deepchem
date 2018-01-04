@@ -31,6 +31,8 @@ class TestANIRegression(unittest.TestCase):
 
     layer_structures = [128, 128, 64]
     atom_number_cases = [1, 6, 7, 8]
+    batch_norms = [False, False, False]
+    dropouts = [0.0, 0.0, 0.0, 0.0]
 
     self.model_dir = tempfile.mkdtemp()
 
@@ -43,7 +45,9 @@ class TestANIRegression(unittest.TestCase):
         "learning_rate": 0.001,
         "use_queue": False,
         "mode": "regression",
-        "model_dir": self.model_dir
+        "model_dir": self.model_dir,
+        "batch_norms": batch_norms,
+        "dropouts": dropouts,
     }
 
     model = ANIRegression(**self.kwargs)

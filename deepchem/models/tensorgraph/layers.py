@@ -1072,6 +1072,28 @@ class L2Loss(Layer):
     return out_tensor
 
 
+class Shifted_Exponential(Layer):
+
+  def __init__(self, t, in_layers=None, **kwargs):
+    self.t = t
+    super(Shifted_Exponential, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError("")
+    parent = inputs[0]
+    out_tensor = tf.exp(tf.multiply(parent, (1.0 / self.t)))
+    out_tensor = tf.multiply(self.t, out_tensor)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class SoftMax(Layer):
 
   def __init__(self, in_layers=None, **kwargs):
