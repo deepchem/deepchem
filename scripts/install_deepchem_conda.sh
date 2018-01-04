@@ -16,7 +16,8 @@ then
     echo "Using python 3.5 by default"
     export python_version=3.5
 fi
-
+source activate root
+conda install -y -q conda=4.3.25
 export envname=$1
 conda create -y --name $envname python=$python_version
 source activate $envname
