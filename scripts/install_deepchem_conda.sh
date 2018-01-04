@@ -17,8 +17,12 @@ then
     export python_version=3.5
 fi
 
-source activate root
-conda install -y -q conda=4.3.25
+unamestr=`uname`
+if [[ "$unamestr" == 'Darwin' ]]; then
+   source activate root
+   conda install -y -q conda=4.3.25
+fi
+
 export envname=$1
 conda create -y --name $envname python=$python_version
 source activate $envname
@@ -39,4 +43,4 @@ conda install -y -q -c conda-forge flaky=3.3.0
 conda install -y -q -c conda-forge zlib=1.2.11
 conda install -y -q -c conda-forge requests=2.18.4
 conda install -y -q -c conda-forge xgboost=0.6a2
-conda install -y -q -c rdkit rdkit=2017.09.1 || true
+conda install -y -q -c rdkit rdkit=2017.09.1
