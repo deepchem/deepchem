@@ -11,17 +11,45 @@ import gzip
 
 
 def load_pcba(featurizer='ECFP', split='random', reload=True):
-  """Load PCBA datasets. Does not do train/test split"""
+  return load_pcba_dataset(
+      featurizer=featurizer,
+      split=split,
+      reload=reload,
+      assay_file_name="pcba.csv.gz")
 
+
+def load_pcba_146(featurizer='ECFP', split='random', reload=True):
+  return load_pcba_dataset(
+      featurizer=featurizer,
+      split=split,
+      reload=reload,
+      assay_file_name="pcba_146.csv.gz")
+
+
+def load_pcba_2475(featurizer='ECFP', split='random', reload=True):
+  return load_pcba_dataset(
+      featurizer=featurizer,
+      split=split,
+      reload=reload,
+      assay_file_name="pcba_2475.csv.gz")
+
+
+def load_pcba_dataset(featurizer='ECFP',
+                      split='random',
+                      reload=True,
+                      assay_file_name="pcba.csv.gz"):
+  """Load PCBA datasets. Does not do train/test split"""
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "pcba/" + featurizer + "/" + split)
+    save_dir = os.path.join(
+        data_dir, assay_file_name.split(".")[0] + featurizer + "/" + split)
 
-  dataset_file = os.path.join(data_dir, "pcba.csv.gz")
+  dataset_file = os.path.join(data_dir, assay_file_name)
+
   if not os.path.exists(dataset_file):
     deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/pcba.csv.gz'
-    )
+        "http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/{0}".
+        format(assay_file_name))
 
   # Featurize PCBA dataset
   print("About to featurize PCBA dataset.")
