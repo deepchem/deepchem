@@ -40,7 +40,7 @@ conda install -y -q -c conda-forge xgboost=0.6a2
 conda install -y -q -c rdkit rdkit=2017.09.1
 pushd .
 cd $HOME
-git clone https://github.com/kundajelab/simdna
+git clone https://github.com/deepchem/simdna
 cd simdna
 python setup.py develop
 popd
