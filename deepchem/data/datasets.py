@@ -201,8 +201,8 @@ class Dataset(object):
     >>> dataset = NumpyDataset(np.ones((2,2)))
     >>> for x, y, w, id in dataset.itersamples():
     ...   print(x, y, w, id)
-    [ 1.  1.] [ 0.] [ 0.] 0
-    [ 1.  1.] [ 0.] [ 0.] 1
+    [1. 1.] [0.] [0.] 0
+    [1. 1.] [0.] [0.] 1
     """
     raise NotImplementedError()
 
@@ -367,8 +367,8 @@ class NumpyDataset(Dataset):
     >>> dataset = NumpyDataset(np.ones((2,2)))
     >>> for x, y, w, id in dataset.itersamples():
     ...   print(x, y, w, id)
-    [ 1.  1.] [ 0.] [ 0.] 0
-    [ 1.  1.] [ 0.] [ 0.] 1
+    [1. 1.] [0.] [0.] 0
+    [1. 1.] [0.] [0.] 1
     """
     n_samples = self._X.shape[0]
     return ((self._X[i], self._y[i], self._w[i], self._ids[i])
@@ -624,7 +624,8 @@ class DiskDataset(Dataset):
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
     sample_X = load_from_disk(
-        os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]['X']))
+        os.path.join(self.data_dir,
+                     next(self.metadata_df.iterrows())[1]['X']))
     return np.shape(sample_X)[1:]
 
   def get_shard_size(self):
@@ -632,7 +633,8 @@ class DiskDataset(Dataset):
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
     sample_y = load_from_disk(
-        os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]['y']))
+        os.path.join(self.data_dir,
+                     next(self.metadata_df.iterrows())[1]['y']))
     return len(sample_y)
 
   def _get_metadata_filename(self):
@@ -819,8 +821,8 @@ class DiskDataset(Dataset):
     >>> dataset = DiskDataset.from_numpy(np.ones((2,2)), np.ones((2,1)), verbose=False)
     >>> for x, y, w, id in dataset.itersamples():
     ...   print(x, y, w, id)
-    [ 1.  1.] [ 1.] [ 1.] 0
-    [ 1.  1.] [ 1.] [ 1.] 1
+    [1. 1.] [1.] [1.] 0
+    [1. 1.] [1.] [1.] 1
     """
 
     def iterate(dataset):

@@ -5,6 +5,8 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import random
+
 __author__ = "Bharath Ramsundar, Aneesh Pappu "
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
@@ -18,8 +20,8 @@ from rdkit import Chem
 from rdkit import DataStructs
 from rdkit.Chem import AllChem
 from rdkit.ML.Cluster import Butina
-from rdkit import DataStructs
 from rdkit.Chem.Fingerprints import FingerprintMols
+from rdkit.SimDivFilters.rdSimDivPickers import MaxMinPicker
 import deepchem as dc
 from deepchem.data import DiskDataset
 from deepchem.utils import ScaffoldGenerator
@@ -595,6 +597,75 @@ class MolecularWeightSplitter(Splitter):
 
     return (sortidx[:train_cutoff], sortidx[train_cutoff:valid_cutoff],
             sortidx[valid_cutoff:])
+
+
+class MaxMinSplitter(Splitter):
+  """
+  Class for doing splits based on the MaxMin diversity algorithm. Intuitively,
+  the test set is comprised of the most diverse compounds of the entire dataset.
+  Furthermore, the validation set is comprised of diverse compounds under
+  the test set.
+  """
+
+  def split(self,
+            dataset,
+            seed=None,
+            frac_train=.8,
+            frac_valid=.1,
+            frac_test=.1,
+            log_every_n=None):
+    """
+    Splits internal compounds randomly into train/validation/test.
+    """
+    np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
+    if seed is None:
+      seed = random.randint(0, 2**30)
+    np.random.seed(seed)
+
+    num_datapoints = len(dataset)
+
+    train_cutoff = int(frac_train * num_datapoints)
+    valid_cutoff = int((frac_train + frac_valid) * num_datapoints)
+
+    num_train = train_cutoff
+    num_valid = valid_cutoff - train_cutoff
+    num_test = num_datapoints - valid_cutoff
+
+    all_mols = []
+    for ind, smiles in enumerate(dataset.ids):
+      all_mols.append(Chem.MolFromSmiles(smiles))
+
+    fps = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in all_mols]
+
+    def distance(i, j):
+      return 1 - DataStructs.DiceSimilarity(fps[i], fps[j])
+
+    picker = MaxMinPicker()
+    testIndices = picker.LazyPick(
+        distFunc=distance,
+        poolSize=num_datapoints,
+        pickSize=num_test,
+        seed=seed)
+
+    validTestIndices = picker.LazyPick(
+        distFunc=distance,
+        poolSize=num_datapoints,
+        pickSize=num_valid + num_test,
+        firstPicks=testIndices,
+        seed=seed)
+
+    allSet = set(range(num_datapoints))
+    testSet = set(testIndices)
+    validSet = set(validTestIndices) - testSet
+
+    trainSet = allSet - testSet - validSet
+
+    assert len(testSet & validSet) == 0
+    assert len(testSet & trainSet) == 0
+    assert len(validSet & trainSet) == 0
+    assert (validSet | trainSet | testSet) == allSet
+
+    return sorted(list(trainSet)), sorted(list(validSet)), sorted(list(testSet))
 
 
 class RandomSplitter(Splitter):

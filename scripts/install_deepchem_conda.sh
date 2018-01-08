@@ -17,6 +17,12 @@ then
     export python_version=3.5
 fi
 
+unamestr=`uname`
+if [[ "$unamestr" == 'Darwin' ]]; then
+   source activate root
+   conda install -y -q conda=4.3.25
+fi
+
 export envname=$1
 conda create -y --name $envname python=$python_version
 source activate $envname

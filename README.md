@@ -1,6 +1,9 @@
 ﻿# DeepChem
 [![Build Status](https://travis-ci.org/deepchem/deepchem.svg?branch=master)](https://travis-ci.org/deepchem/deepchem)
 [![Coverage Status](https://coveralls.io/repos/github/deepchem/deepchem/badge.svg?branch=master)](https://coveralls.io/github/deepchem/deepchem?branch=master)
+[![Anaconda-Server Badge](https://anaconda.org/deepchem/deepchem/badges/version.svg)](https://anaconda.org/deepchem/deepchem)
+[![PyPI version](https://badge.fury.io/py/deepchem.svg)](https://badge.fury.io/py/deepchem)
+
 
 DeepChem aims to provide a high quality open-source toolchain that
 democratizes the use of deep-learning in drug discovery, materials science, quantum chemistry, and biology.
