@@ -201,8 +201,8 @@ class Dataset(object):
     >>> dataset = NumpyDataset(np.ones((2,2)))
     >>> for x, y, w, id in dataset.itersamples():
     ...   print(x, y, w, id)
-    [ 1.  1.] [ 0.] [ 0.] 0
-    [ 1.  1.] [ 0.] [ 0.] 1
+    [1. 1.] [0.] [0.] 0
+    [1. 1.] [0.] [0.] 1
     """
     raise NotImplementedError()
 
@@ -367,8 +367,8 @@ class NumpyDataset(Dataset):
     >>> dataset = NumpyDataset(np.ones((2,2)))
     >>> for x, y, w, id in dataset.itersamples():
     ...   print(x, y, w, id)
-    [ 1.  1.] [ 0.] [ 0.] 0
-    [ 1.  1.] [ 0.] [ 0.] 1
+    [1. 1.] [0.] [0.] 0
+    [1. 1.] [0.] [0.] 1
     """
     n_samples = self._X.shape[0]
     return ((self._X[i], self._y[i], self._w[i], self._ids[i])
@@ -819,8 +819,8 @@ class DiskDataset(Dataset):
     >>> dataset = DiskDataset.from_numpy(np.ones((2,2)), np.ones((2,1)), verbose=False)
     >>> for x, y, w, id in dataset.itersamples():
     ...   print(x, y, w, id)
-    [ 1.  1.] [ 1.] [ 1.] 0
-    [ 1.  1.] [ 1.] [ 1.] 1
+    [1. 1.] [1.] [1.] 0
+    [1. 1.] [1.] [1.] 1
     """
 
     def iterate(dataset):
