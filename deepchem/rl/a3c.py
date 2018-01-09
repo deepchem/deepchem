@@ -62,17 +62,22 @@ class A3C(object):
   Implements the Asynchronous Advantage Actor-Critic (A3C) algorithm for reinforcement learning.
 
   The algorithm is described in Mnih et al, "Asynchronous Methods for Deep Reinforcement Learning"
-  (https://arxiv.org/abs/1602.01783).  This class requires the policy to output two quantities:
-  a vector giving the probability of taking each action, and an estimate of the value function for
-  the current state.  It optimizes both outputs at once using a loss that is the sum of three terms:
+  (https://arxiv.org/abs/1602.01783).  This class supports environments with both discrete and
+  continuous action spaces.  For discrete action spaces, the "action" argument passed to the
+  environment is an integer giving the index of the action to perform.  The policy must output
+  a vector called "action_prob" giving the probability of taking each action.  For continous
+  action spaces, the action is an array where each element is chosen independently from a
+  normal distribution.  The policy must output two arrays of the same shape: "action_mean"
+  gives the mean value for each element, and "action_std" gives the standard deviation for
+  each element.  In either case, the policy must also output a scalar called "value" which
+  is an estimate of the value function for the current state.
+
+  The algorithm optimizes all outputs at once using a loss that is the sum of three terms:
 
   1. The policy loss, which seeks to maximize the discounted reward for each action.
   2. The value loss, which tries to make the value estimate match the actual discounted reward
      that was attained at each step.
   3. An entropy term to encourage exploration.
-
-  This class only supports environments with discrete action spaces, not continuous ones.  The
-  "action" argument passed to the environment is an integer, giving the index of the action to perform.
 
   This class supports Generalized Advantage Estimation as described in Schulman et al., "High-Dimensional
   Continuous Control Using Generalized Advantage Estimation" (https://arxiv.org/abs/1506.02438).
@@ -119,7 +124,8 @@ class A3C(object):
       the Environment to interact with
     policy: Policy
       the Policy to optimize.  Its create_layers() method must return a dict containing the
-      keys 'action_prob' and 'value', corresponding to the action probabilities and value estimate
+      keys 'action_prob' and 'value' (for discrete action spaces) or 'action_mean', 'action_std',
+      and 'value' (for continuous action spaces)
     max_rollout_length: int
       the maximum length of rollouts to generate
     discount_factor: float
@@ -153,7 +159,8 @@ class A3C(object):
     fields = self._build_graph(None, 'global', model_dir)
     if self.continuous:
       (self._graph, self._features, self._rewards, self._actions,
-       self._action_mean, self._action_std, self._value, self._advantages) = fields
+       self._action_mean, self._action_std, self._value,
+       self._advantages) = fields
     else:
       (self._graph, self._features, self._rewards, self._actions,
        self._action_prob, self._value, self._advantages) = fields
@@ -195,11 +202,13 @@ class A3C(object):
       self.continuous = True
       action_mean = policy_layers['action_mean']
       action_std = policy_layers['action_std']
-      actions = Label(shape=[None]+list(action_mean.shape))
+      actions = Label(shape=[None] + list(self._env.action_shape))
       loss = A3CLossContinuous(
           self.value_weight,
           self.entropy_weight,
-          in_layers=[rewards, actions, action_mean, action_std, value, advantages])
+          in_layers=[
+              rewards, actions, action_mean, action_std, value, advantages
+          ])
       graph.add_output(action_mean)
       graph.add_output(action_std)
     graph.add_output(value)
@@ -330,7 +339,8 @@ class A3C(object):
       tensors = [self._action_mean, self._action_std]
     else:
       tensors = [self._action_prob]
-    outputs = self._predict_outputs(tensors, state, use_saved_states, save_states)
+    outputs = self._predict_outputs(tensors, state, use_saved_states,
+                                    save_states)
     return self._select_action_from_outputs(outputs, deterministic)
 
   def restore(self):
@@ -376,9 +386,9 @@ class A3C(object):
     if self.continuous:
       action_mean, action_std = outputs
       if deterministic:
-        return action_mean
+        return action_mean[0]
       else:
-        return np.random.normal(action_mean, action_std)
+        return np.random.normal(action_mean[0], action_std[0])
     else:
       action_prob = outputs[0]
       if deterministic:
@@ -413,7 +423,7 @@ class _Worker(object):
       self.train_op = a3c._graph._get_tf('Optimizer').apply_gradients(
           grads_and_vars)
       self.update_local_variables = tf.group(
-          * [tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
+          *[tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
       self.global_step = self.graph.get_global_step()
 
   def run(self, step_count, total_steps):
@@ -451,11 +461,11 @@ class _Worker(object):
       else:
         tensors = [self.action_prob, self.value]
       results = session.run(
-          tensors + self.graph.rnn_final_states,
-          feed_dict=feed_dict)
-      value = results[len(tensors)-1]
+          tensors + self.graph.rnn_final_states, feed_dict=feed_dict)
+      value = results[len(tensors) - 1]
       self.rnn_states = results[len(tensors):]
-      action = self.a3c._select_action_from_outputs(results[:len(tensors)-1], False)
+      action = self.a3c._select_action_from_outputs(results[:len(tensors) - 1],
+                                                    False)
       actions.append(action)
       values.append(float(value))
       rewards.append(self.env.step(action))
@@ -551,8 +561,7 @@ class _Worker(object):
       feed_dict[f.out_tensor] = s
     values = self.a3c._session.run(self.value.out_tensor, feed_dict=feed_dict)
     values = np.append(values.flatten(), 0.0)
-    self.process_rollout(hindsight_states, actions,
-                         np.array(rewards),
+    self.process_rollout(hindsight_states, actions, np.array(rewards),
                          np.array(values), initial_rnn_states, step_count)
 
   def create_feed_dict(self, state):

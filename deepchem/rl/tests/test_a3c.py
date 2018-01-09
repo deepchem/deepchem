@@ -231,7 +231,6 @@ class TestA3C(unittest.TestCase):
         pass_count += 1
     assert pass_count >= 3
 
-
   def test_continuous(self):
     """Test A3C on an environment with a continous action space."""
 
@@ -242,7 +241,7 @@ class TestA3C(unittest.TestCase):
     class TestEnvironment(dc.rl.Environment):
 
       def __init__(self):
-        super(TestEnvironment, self).__init__((2,), 0)
+        super(TestEnvironment, self).__init__((2,), action_shape=(1,))
 
       def reset(self):
         target = np.random.uniform(-50, 50)
@@ -252,9 +251,9 @@ class TestA3C(unittest.TestCase):
 
       def step(self, action):
         target = self._state[1]
-        dist = np.abs(target - action[0][0])
+        dist = np.abs(target - action[0])
         old_dist = np.abs(target - self._state[0])
-        new_state = np.array([action[0][0], target])
+        new_state = np.array([action[0], target])
         self._state = new_state
         self.count += 1
         reward = old_dist - dist
@@ -266,10 +265,15 @@ class TestA3C(unittest.TestCase):
     class TestPolicy(dc.rl.Policy):
 
       def create_layers(self, state, **kwargs):
-        action_mean = Dense(1, in_layers=state, weights_initializer=tf.zeros_initializer)
-        action_std = Constant(10.0)
+        action_mean = Dense(
+            1, in_layers=state, weights_initializer=tf.zeros_initializer)
+        action_std = Constant([10.0])
         value = Dense(1, in_layers=state)
-        return {'action_mean': action_mean, 'action_std': action_std, 'value': value}
+        return {
+            'action_mean': action_mean,
+            'action_std': action_std,
+            'value': value
+        }
 
     # Optimize it.
 
@@ -278,7 +282,8 @@ class TestA3C(unittest.TestCase):
         initial_rate=0.005, final_rate=0.0005, decay_steps=25000)
     a3c = dc.rl.A3C(
         env,
-        TestPolicy(), discount_factor=0,
+        TestPolicy(),
+        discount_factor=0,
         optimizer=Adam(learning_rate=learning_rate))
     a3c.fit(25000)
 
@@ -287,6 +292,6 @@ class TestA3C(unittest.TestCase):
     env.reset()
     while not env.terminated:
       env.step(a3c.select_action(env.state, deterministic=True))
-    distance = np.abs(env.state[0]-env.state[1])
-    tolerance = max(1.0, 0.1*np.abs(env.state[1]))
+    distance = np.abs(env.state[0] - env.state[1])
+    tolerance = max(1.0, 0.1 * np.abs(env.state[1]))
     assert distance < tolerance

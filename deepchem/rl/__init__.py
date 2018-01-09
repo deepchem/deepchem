@@ -10,20 +10,47 @@ class Environment(object):
 
   An environment has a current state, which is represented as either a single NumPy
   array, or optionally a list of NumPy arrays.  When an action is taken, that causes
-  the state to be updated.  Exactly what is meant by an "action" is defined by each
-  subclass.  As far as this interface is concerned, it is simply an arbitrary object.
-  The environment also computes a reward for each action, and reports when the task
-  has been terminated (meaning that no more actions may be taken).
+  the state to be updated.  The environment also computes a reward for each action,
+  and reports when the task has been terminated (meaning that no more actions may
+  be taken).
+
+  Two types of actions are supported.  For environments with discrete action spaces,
+  the action is an integer specifying the index of the action to perform (out of a
+  fixed list of possible actions).  For environments with continuous action spaces,
+  the action is a NumPy array.
 
   Environment objects should be written to support pickle and deepcopy operations.
   Many algorithms involve creating multiple copies of the Environment, possibly
   running in different processes or even on different computers.
   """
 
-  def __init__(self, state_shape, n_actions, state_dtype=None):
-    """Subclasses should call the superclass constructor in addition to doing their own initialization."""
+  def __init__(self,
+               state_shape,
+               n_actions=None,
+               state_dtype=None,
+               action_shape=None):
+    """Subclasses should call the superclass constructor in addition to doing their own initialization.
+
+    A value should be provided for either n_actions (for discrete action spaces)
+    or action_shape (for continuous action spaces), but not both.
+
+    Parameters
+    ----------
+    state_shape: tuple or list of tuples
+      the shape(s) of the array(s) making up the state
+    n_actions: int
+      the number of discrete actions that can be performed.  If the action space
+      is continuous, this should be None.
+    state_dtype: dtype or list of dtypes
+      the type(s) of the array(s) making up the state.  If this is None, all
+      arrays are assumed to be float32.
+    action_shape: tuple
+      the shape of the array describing an action.  If the action space
+      is discrete, this should be none.
+    """
     self._state_shape = state_shape
     self._n_actions = n_actions
+    self._action_shape = action_shape
     self._state = None
     self._terminated = None
     if state_dtype is None:
@@ -74,8 +101,19 @@ class Environment(object):
 
   @property
   def n_actions(self):
-    """The number of possible actions that can be performed in this Environment."""
+    """The number of possible actions that can be performed in this Environment.
+
+    If the environment uses a continuous action space, this returns None.
+    """
     return self._n_actions
+
+  @property
+  def action_shape(self):
+    """The expected shape of NumPy arrays representing actions.
+
+    If the environment uses a discrete action space, this returns None.
+    """
+    return self._action_shape
 
   def reset(self):
     """Initialize the environment in preparation for doing calculations with it.
