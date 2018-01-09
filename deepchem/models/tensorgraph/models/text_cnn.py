@@ -104,6 +104,8 @@ class TextCNNTensorGraph(TensorGraph):
       Properties of filters used in the conv net
     num_filters: list of int, optional
       Properties of filters used in the conv net
+    dropout: float, optional
+      Dropout rate
     mode: str
       Either "classification" or "regression" for type of model.
     """
@@ -211,7 +213,7 @@ class TextCNNTensorGraph(TensorGraph):
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
     if self.mode == "classification":
-      all_cost = Concat(in_layers=costs, axis=1)
+      all_cost = Stack(in_layers=costs, axis=1)
     elif self.mode == "regression":
       all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))

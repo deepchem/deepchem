@@ -193,7 +193,7 @@ class DTNNTensorGraph(TensorGraph):
                distance_min=-1,
                distance_max=18,
                output_activation=True,
-               mode="classification",
+               mode="regression",
                **kwargs):
     """
             Parameters
