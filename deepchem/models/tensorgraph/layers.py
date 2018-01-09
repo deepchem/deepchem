@@ -643,7 +643,6 @@ class Reshape(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
-
 class Squeeze(Layer):
 
   def __init__(self, in_layers=None, squeeze_dims=None, **kwargs):
@@ -1469,6 +1468,35 @@ class ReduceMean(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+class ReduceMax(Layer):
+
+  def __init__(self, in_layers=None, axis=None, **kwargs):
+    if axis is not None and not isinstance(axis, Sequence):
+      axis = [axis]
+    self.axis = axis
+    super(ReduceMax, self).__init__(in_layers, **kwargs)
+    if axis is None:
+      self._shape = tuple()
+    else:
+      try:
+        parent_shape = self.in_layers[0].shape
+        self._shape = [
+            parent_shape[i] for i in range(len(parent_shape)) if i not in axis
+        ]
+      except:
+        pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) > 1:
+      self.out_tensor = tf.stack(inputs)
+    else:
+      self.out_tensor = inputs[0]
+
+    out_tensor = tf.reduce_max(self.out_tensor, axis=self.axis)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
 
 class ToFloat(Layer):
 

@@ -10,7 +10,7 @@ import copy
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
   SoftMaxCrossEntropy, BatchNorm, WeightedError, Dropout, BatchNormalization, \
-  Conv1D, MaxPool1D, Squeeze, Stack, Highway
+  Conv1D, ReduceMax, Squeeze, Stack, Highway
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
@@ -175,16 +175,12 @@ class TextCNNTensorGraph(TensorGraph):
               padding='VALID',
               in_layers=[self.Embedding]))
       # Max-over-time pooling
-      self.pooled_outputs.append(
-          MaxPool1D(
-              window_shape=self.seq_length - filter_size + 1,
-              strides=1,
-              padding='VALID',
-              in_layers=[self.conv_layers[-1]]))
+      self.pooled_outputs.append(ReduceMax(
+          axis=1, 
+          in_layers=[self.conv_layers[-1]]))
     # Concat features from all filters(one feature per filter)
-    concat_outputs = Concat(axis=2, in_layers=self.pooled_outputs)
-    outputs = Squeeze(squeeze_dims=1, in_layers=concat_outputs)
-    dropout = Dropout(dropout_prob=self.dropout, in_layers=[outputs])
+    concat_outputs = Concat(axis=1, in_layers=self.pooled_outputs)
+    dropout = Dropout(dropout_prob=self.dropout, in_layers=[concat_outputs])
     dense = Dense(
         out_channels=200, activation_fn=tf.nn.relu, in_layers=[dropout])
     # Highway layer from https://arxiv.org/pdf/1505.00387.pdf
