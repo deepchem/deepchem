@@ -52,7 +52,7 @@ hps['irv'] = {
 }
 hps['graphconv'] = {
     'batch_size': 64,
-    'nb_epoch': 100,
+    'nb_epoch': 40,
     'learning_rate': 0.0005,
     'n_filters': 64,
     'n_fully_connected_nodes': 128,
@@ -60,7 +60,7 @@ hps['graphconv'] = {
 }
 hps['dag'] = {
     'batch_size': 64,
-    'nb_epoch': 100,
+    'nb_epoch': 50,
     'learning_rate': 0.0005,
     'n_graph_feat': 30,
     'default_max_atoms': 60,
@@ -68,7 +68,7 @@ hps['dag'] = {
 }
 hps['weave'] = {
     'batch_size': 64,
-    'nb_epoch': 100,
+    'nb_epoch': 40,
     'learning_rate': 0.0005,
     'n_graph_feat': 128,
     'n_pair_feat': 14,
@@ -76,19 +76,11 @@ hps['weave'] = {
 }
 hps['textcnn'] = {
     'batch_size': 64,
-    'nb_epoch': 100,
+    'nb_epoch': 40,
     'learning_rate': 0.0005,
     'n_embedding': 75,
     'filter_sizes': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20],
     'num_filters': [100, 200, 200, 200, 200, 100, 100, 100, 100, 100, 160, 160],
-    'seed': 123
-}
-hps['mpnn'] = {
-    'batch_size': 16,
-    'nb_epoch': 50,
-    'learning_rate': 0.0005,
-    'T': 2,
-    'M': 5,
     'seed': 123
 }
 hps['rf'] = {'n_estimators': 500}
@@ -183,6 +175,14 @@ hps['ani'] = {
     'nb_epoch': 100,
     'learning_rate': 0.00005,
     'layer_structures': [20, 10, 10],
+    'seed': 123
+}
+hps['mpnn'] = {
+    'batch_size': 16,
+    'nb_epoch': 50,
+    'learning_rate': 0.001,
+    'T': 2,
+    'M': 5,
     'seed': 123
 }
 
