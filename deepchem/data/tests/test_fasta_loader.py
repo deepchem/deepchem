@@ -15,13 +15,13 @@ import shutil
 import deepchem as dc
 
 
-class TestDataLoader(unittest.TestCase):
+class TestFASTALoader(unittest.TestCase):
   """
-  Test DataLoader 
+  Test FASTALoader 
   """
 
   def setUp(self):
-    super(TestDataLoader, self).setUp()
+    super(TestFASTALoader, self).setUp()
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
   def test_fasta_load(self):
