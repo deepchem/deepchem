@@ -120,8 +120,7 @@ def seq_one_hot_encode(sequences):
   """
   sequence_length = len(sequences[0])
   # depends on Python version
-  # TODO(rbharath): Can this be removed?
-  integer_type = np.int8 if sys.version_info[0] == 2 else np.int32
+  integer_type = np.int32
   # The label encoder is given characters for ACGTN
   label_encoder = LabelEncoder().fit(np.array(('ACGTN',)).view(integer_type))
   # These are transformed in 0, 1, 2, 3, 4 in input sequence
