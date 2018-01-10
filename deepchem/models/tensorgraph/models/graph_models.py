@@ -187,7 +187,12 @@ class WeaveTensorGraph(TensorGraph):
           generator, 
           transformers=transformers, 
           outputs=outputs)
-      return np.stack(outputs, axis=1)
+      if outputs == None:
+        outputs = self.outputs
+      if len(outputs) == 1:
+        return outputs
+      else:
+        return np.stack(outputs, axis=1)
 
 class DTNNTensorGraph(TensorGraph):
 
@@ -508,7 +513,12 @@ class DAGTensorGraph(TensorGraph):
           generator, 
           transformers=transformers, 
           outputs=outputs)
-      return np.stack(outputs, axis=1)
+      if outputs == None:
+        outputs = self.outputs
+      if len(outputs) == 1:
+        return outputs
+      else:
+        return np.stack(outputs, axis=1)
 
 class PetroskiSuchTensorGraph(TensorGraph):
   """
