@@ -195,7 +195,7 @@ class DataLoader(object):
     Parameters
     ----------
     input_files: list
-      List of input files
+      List of input filenames.
     data_dir: str
       (Optional) Directory to store featurized dataset.
     shard_size: int

@@ -117,6 +117,15 @@ def seq_one_hot_encode(sequences):
   ----------
   sequences: np.ndarray 
     Array of genetic sequences 
+
+  Raises
+  ------
+  ValueError:
+    If sequences are of different lengths.
+
+  Returns
+  -------
+  np.ndarray: Shape (N_sequences, 4, sequence_length, 1).
   """
   sequence_length = len(sequences[0])
   # depends on Python version
@@ -130,6 +139,8 @@ def seq_one_hot_encode(sequences):
   # integers all at once. Had to do one at a time. Might be worth
   # figuring out what's going on under the hood.
   for sequence in sequences:
+    if len(sequence) != sequence_length:
+      raise ValueError("All sequences must be of same length")
     integer_seq = label_encoder.transform(
         np.array((sequence,)).view(integer_type))
     integer_array.append(integer_seq)
