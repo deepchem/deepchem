@@ -8,12 +8,14 @@ from __future__ import unicode_literals
 # TODO(rbharath): Use standard joblib once old-data has been regenerated.
 import joblib
 from sklearn.externals import joblib as old_joblib
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 import gzip
 import json
 import pickle
 import pandas as pd
 import numpy as np
 import os
+import sys
 import deepchem
 from rdkit import Chem
 
@@ -102,6 +104,68 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
         df = df.replace(np.nan, str(""), regex=True)
         shard_num += 1
         yield df
+
+
+def seq_one_hot_encode(sequences):
+  """One hot encodes list of genomic sequences.
+
+  Sequences encoded have shape (N_sequences, 1, 4, sequence_length).
+  Here 4 is for the 4 basepairs (ACGT) present in genomic sequences.
+
+  Parameters
+  ----------
+  sequences: np.ndarray 
+    Array of genetic sequences 
+  """
+  sequence_length = len(sequences[0])
+  # depends on Python version
+  # TODO(rbharath): Can this be removed?
+  integer_type = np.int8 if sys.version_info[0] == 2 else np.int32
+  ######################################################## DEBUG
+  print("sequences")
+  print(sequences)
+  print("sequences.view(integer_type)")
+  print(sequences.view(integer_type))
+  ######################################################## DEBUG
+  integer_array = LabelEncoder().fit(
+      np.array(('ACGTN',)).view(integer_type)).transform(
+          sequences.view(integer_type)).reshape(
+              len(sequences), sequence_length)
+  ################################################## DEBUG
+  print("integer_array")
+  print(integer_array)
+  ################################################## DEBUG
+  one_hot_encoding = OneHotEncoder(
+      sparse=False, n_values=5, dtype=integer_type).fit_transform(integer_array)
+
+  return one_hot_encoding.reshape(len(sequences), 1, sequence_length,
+                                  5).swapaxes(2, 3)[:, :, [0, 1, 2, 4], :]
+
+
+def encode_fasta_sequence(fname):
+  """
+  Loads fasta file and returns an array of one-hot sequences.
+
+  Parameters
+  ----------
+  fname: str
+    Filename of fasta file.
+  """
+  name, seq_chars = None, []
+  sequences = []
+  with open(fname) as fp:
+    for line in fp:
+      line = line.rstrip()
+      if line.startswith(">"):
+        if name:
+          sequences.append(''.join(seq_chars).upper())
+        name, seq_chars = line, []
+      else:
+        seq_chars.append(line)
+  if name is not None:
+    sequences.append(''.join(seq_chars).upper())
+
+  return seq_one_hot_encode(np.array(sequences))
 
 
 def save_metadata(tasks, metadata_df, data_dir):
