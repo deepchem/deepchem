@@ -270,3 +270,10 @@ class TextCNNTensorGraph(TensorGraph):
       # Padding with '_'
       seq.append(self.char_dict['_'])
     return np.array(seq)
+
+  def predict_on_generator(self, generator, transformers=[], outputs=None):
+      outputs = super(TextCNNTensorGraph, self).predict_on_generator(
+          generator, 
+          transformers=transformers, 
+          outputs=outputs)
+      return np.stack(outputs, axis=1)
