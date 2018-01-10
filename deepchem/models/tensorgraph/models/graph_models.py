@@ -1112,7 +1112,7 @@ class MPNNTensorGraph(TensorGraph):
       results = []
       for feed_dict in generator:
         # Extract number of unique samples in the batch from w_b
-        n_valid_samples = len(np.nonzero(feed_dict[self.weights][:, 0])[0])
+        n_valid_samples = len(np.nonzero(np.sum(feed_dict[self.weights], 1))[0])
         feed_dict = {
             self.layers[k.name].out_tensor: v
             for k, v in six.iteritems(feed_dict)

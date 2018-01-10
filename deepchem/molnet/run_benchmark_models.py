@@ -52,7 +52,7 @@ def benchmark_classification(train_dataset,
   model: string,  optional
       choice of model
       'rf', 'tf', 'tf_robust', 'logreg', 'irv', 'graphconv', 'dag', 'xgb',
-      'weave', 'kernelsvm', 'textcnn'
+      'weave', 'kernelsvm', 'textcnn', 'mpnn'
   test: boolean, optional
       whether to calculate test_set performance
   hyper_parameters: dict, optional (default=None)
@@ -76,7 +76,7 @@ def benchmark_classification(train_dataset,
 
   assert model in [
       'rf', 'tf', 'tf_robust', 'logreg', 'irv', 'graphconv', 'dag', 'xgb',
-      'weave', 'kernelsvm', 'textcnn'
+      'weave', 'kernelsvm', 'textcnn', 'mpnn'
   ]
   if hyper_parameters is None:
     hyper_parameters = hps[model]
@@ -277,7 +277,26 @@ def benchmark_classification(train_dataset,
         use_queue=False,
         random_seed=seed,
         mode='classification')
-    
+
+  elif model_name == 'mpnn':
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+    learning_rate = hyper_parameters['learning_rate']
+    T = hyper_parameters['T']
+    M = hyper_parameters['M']
+
+    model = deepchem.models.MPNNTensorGraph(
+        len(tasks),
+        n_atom_feat=n_features[0],
+        n_pair_feat=n_features[1],
+        n_hidden=n_features[0],
+        T=T,
+        M=M,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        use_queue=False,
+        mode="classification")
+
   elif model_name == 'rf':
     n_estimators = hyper_parameters['n_estimators']
     nb_epoch = None

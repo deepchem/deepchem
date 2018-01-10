@@ -83,6 +83,14 @@ hps['textcnn'] = {
     'num_filters': [100, 200, 200, 200, 200, 100, 100, 100, 100, 100, 160, 160],
     'seed': 123
 }
+hps['mpnn'] = {
+    'batch_size': 16,
+    'nb_epoch': 50,
+    'learning_rate': 0.0005,
+    'T': 2,
+    'M': 5,
+    'seed': 123
+}
 hps['rf'] = {'n_estimators': 500}
 hps['kernelsvm'] = {'C': 1.0, 'gamma': 0.05}
 hps['xgb'] = {
@@ -175,14 +183,6 @@ hps['ani'] = {
     'nb_epoch': 100,
     'learning_rate': 0.00005,
     'layer_structures': [20, 10, 10],
-    'seed': 123
-}
-hps['mpnn'] = {
-    'batch_size': 64,
-    'nb_epoch': 50,
-    'learning_rate': 0.001,
-    'T': 2,
-    'M': 5,
     'seed': 123
 }
 
