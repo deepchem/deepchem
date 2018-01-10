@@ -321,7 +321,8 @@ class FASTALoader(DataLoader):
     def shard_generator():
       for input_file in input_files:
         X = encode_fasta_sequence(input_file)
+        ids = np.ones(len(X))
         # (X, y, w, ids)
-        yield X, None, None, None
+        yield X, None, None, ids
 
     return DiskDataset.create_dataset(shard_generator(), data_dir)

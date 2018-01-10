@@ -28,5 +28,10 @@ class TestDataLoader(unittest.TestCase):
     input_file = os.path.join(self.current_dir,
                               "../../data/tests/example.fasta")
     loader = dc.data.FASTALoader()
-    loader.featurize(input_file)
-    assert 0 == 1
+    sequences = loader.featurize(input_file)
+    print("sequences.X.shape")
+    print(sequences.X.shape)
+    # example.fasta contains 3 sequences each of length 58.
+    # The one-hot encoding turns base-pairs into vectors of length 4.
+    # There is one "image channel")
+    assert sequences.X.shape == (3, 4, 58, 1)
