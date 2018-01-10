@@ -1,23 +1,19 @@
+import collections
+import os
 import pickle
 import threading
 import time
 
-import collections
 import numpy as np
-import os
-import six
 import tensorflow as tf
-from tensorflow.python.framework.errors_impl import OutOfRangeError
+from tensorflow.python.pywrap_tensorflow_internal import NewCheckpointReader
 
 from deepchem.data import NumpyDataset
-from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.models import Model
 from deepchem.models.tensorgraph.layers import InputFifoQueue, Label, Feature, Weights, Constant
 from deepchem.models.tensorgraph.optimizers import Adam
 from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
-from deepchem.feat.graph_features import ConvMolFeaturizer
-from deepchem.data.data_loader import featurize_smiles_np
 
 
 class TensorGraph(Model):
@@ -120,7 +116,8 @@ class TensorGraph(Model):
           checkpoint_interval=1000,
           deterministic=False,
           restore=False,
-          submodel=None):
+          submodel=None,
+          **kwargs):
     """Train this model on a dataset.
 
     Parameters
@@ -178,16 +175,6 @@ class TensorGraph(Model):
     -------
     the average loss over the most recent checkpoint interval
     """
-
-    def create_feed_dict():
-      if self.use_queue:
-        while True:
-          yield {self._training_placeholder: 1.0}
-      for d in feed_dict_generator:
-        feed_dict = dict(d)
-        feed_dict[self._training_placeholder] = 1.0
-        yield feed_dict
-
     if not self.built:
       self.build()
     with self._get_tf("Graph").as_default():
@@ -207,14 +194,14 @@ class TensorGraph(Model):
       n_samples = 0
       n_enqueued = [0]
       final_sample = [None]
-      if self.use_queue:
+      if self.queue_installed:
         enqueue_thread = threading.Thread(
             target=_enqueue_batch,
             args=(self, feed_dict_generator, self._get_tf("Graph"),
                   self.session, n_enqueued, final_sample))
         enqueue_thread.start()
-      for feed_dict in create_feed_dict():
-        if self.use_queue:
+      for feed_dict in self._create_feed_dicts(feed_dict_generator, True):
+        if self.queue_installed:
           # Don't let this thread get ahead of the enqueue thread, since if
           # we try to read more batches than the total number that get queued,
           # this thread will hang indefinitely.
@@ -232,7 +219,7 @@ class TensorGraph(Model):
           fetches.append(self._get_tf("summary_op"))
         fetched_values = self.session.run(fetches, feed_dict=feed_dict)
         if should_log:
-          self._log_tensorboard(fetches[2])
+          self._log_tensorboard(fetched_values[2])
         avg_loss += fetched_values[1]
         n_averaged_batches += 1
         self.global_step += 1
@@ -327,12 +314,27 @@ class TensorGraph(Model):
     with self._get_tf("Graph").as_default():
       # Gather results for each output
       results = [[] for out in outputs]
-      for feed_dict in generator:
-        feed_dict = {
-            self.layers[k.name].out_tensor: v
-            for k, v in six.iteritems(feed_dict)
-        }
-        feed_dict[self._training_placeholder] = 0.0
+      n_samples = 0
+      n_enqueued = [0]
+      final_sample = [None]
+      if self.queue_installed:
+        enqueue_thread = threading.Thread(
+            target=_enqueue_batch,
+            args=(self, generator, self._get_tf("Graph"), self.session,
+                  n_enqueued, final_sample))
+        enqueue_thread.start()
+      for feed_dict in self._create_feed_dicts(generator, False):
+        if self.queue_installed:
+          # Don't let this thread get ahead of the enqueue thread, since if
+          # we try to read more batches than the total number that get queued,
+          # this thread will hang indefinitely.
+          while n_enqueued[0] <= n_samples:
+            if n_samples == final_sample[0]:
+              break
+            time.sleep(0)
+          if n_samples == final_sample[0]:
+            break
+        n_samples += 1
         feed_results = self.session.run(outputs, feed_dict=feed_dict)
         if len(feed_results) > 1:
           if len(transformers):
@@ -519,14 +521,17 @@ class TensorGraph(Model):
       for layer in self.features + self.labels + self.task_weights:
         layer.pre_queue = True
       return
+    inputs = self.features + self.labels + self.task_weights
+    if len(inputs) == 0:
+      return
     names = []
     shapes = []
     pre_q_inputs = []
     q = InputFifoQueue(shapes, names, in_layers=pre_q_inputs)
     q.name = "%s_%s" % (q.__class__.__name__, len(self.layers) + 1)
 
-    for layer in self.features + self.labels + self.task_weights:
-      pre_q_input = layer.create_pre_q(self.batch_size)
+    for layer in inputs:
+      pre_q_input = layer.create_pre_q()
       shapes.append(pre_q_input.shape)
       names.append(pre_q_input.name)
       pre_q_inputs.append(pre_q_input)
@@ -757,16 +762,36 @@ class TensorGraph(Model):
     saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
     saver.save(self.session, self.save_file, global_step=self.global_step)
 
-  def restore(self):
-    """Reload the values of all variables from the most recent checkpoint file."""
+  def get_checkpoints(self):
+    """Get a list of all available checkpoint files."""
+    return tf.train.get_checkpoint_state(
+        self.model_dir).all_model_checkpoint_paths
+
+  def restore(self, checkpoint=None):
+    """Reload the values of all variables from a checkpoint file.
+
+    Parameters
+    ----------
+    checkpoint: str
+      the path to the checkpoint file to load.  If this is None, the most recent
+      checkpoint will be chosen automatically.  Call get_checkpoints() to get a
+      list of all available checkpoints.
+    """
     if not self.built:
       self.build()
-    last_checkpoint = tf.train.latest_checkpoint(self.model_dir)
-    if last_checkpoint is None:
+    if checkpoint is None:
+      checkpoint = tf.train.latest_checkpoint(self.model_dir)
+    if checkpoint is None:
       raise ValueError('No checkpoint found')
     with self._get_tf("Graph").as_default():
-      saver = tf.train.Saver()
-      saver.restore(self.session, last_checkpoint)
+      reader = NewCheckpointReader(checkpoint)
+      var_names = set([x for x in reader.get_variable_to_shape_map()])
+      var_map = {
+          x.op.name: x
+          for x in tf.global_variables() if x.op.name in var_names
+      }
+      saver = tf.train.Saver(var_list=var_map)
+      saver.restore(self.session, checkpoint)
 
   def get_num_tasks(self):
     return len(self.outputs)
@@ -777,20 +802,40 @@ class TensorGraph(Model):
     return self.layers[pre_q_name]
 
   @staticmethod
-  def load_from_dir(model_dir):
+  def load_from_dir(model_dir, restore=True):
     pickle_name = os.path.join(model_dir, "model.pickle")
     with open(pickle_name, 'rb') as fout:
       tensorgraph = pickle.load(fout)
       tensorgraph.built = False
       tensorgraph.model_dir = model_dir
-      try:
-        tensorgraph.restore()
-      except ValueError:
-        pass  # No checkpoint to load
+      if restore:
+        try:
+          tensorgraph.restore()
+        except ValueError:
+          pass  # No checkpoint to load
       return tensorgraph
 
   def __del__(self):
     pass
+
+  def _create_feed_dicts(self, generator, training):
+    """Create feed dicts for use in fitting or prediction.
+
+    Parameters
+    ----------
+    generator: Generator
+      the feed dict generator that was passed to fit_generator() or predict_on_generator()
+    training: bool
+      True during training, False during prediction
+    """
+    train_value = 1.0 if training else 0.0
+    if self.queue_installed:
+      while True:
+        yield {self._training_placeholder: train_value}
+    for d in generator:
+      feed_dict = dict(d)
+      feed_dict[self._training_placeholder] = train_value
+      yield feed_dict
 
 
 def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
@@ -813,7 +858,12 @@ def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
       enq = {}
       enq[tg._training_placeholder] = 1.0
       for layer in tg.features + tg.labels + tg.task_weights:
-        enq[tg.get_pre_q_input(layer).out_tensor] = feed_dict[layer]
+        if layer in feed_dict:
+          value = feed_dict[layer]
+        else:
+          value = np.zeros(
+              [0] + list(layer.shape[1:]), dtype=layer.dtype.as_numpy_dtype)
+        enq[tg.get_pre_q_input(layer).out_tensor] = value
       sess.run(tg.input_queue.out_tensor, feed_dict=enq)
       n_enqueued[0] += 1
     final_sample[0] = n_enqueued[0]

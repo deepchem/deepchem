@@ -1,9 +1,12 @@
 """
 Tests for transformer objects. 
 """
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
+
+from deepchem.molnet import load_delaney
+from deepchem.trans.transformers import FeaturizationTransformer
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
@@ -14,7 +17,6 @@ import unittest
 import numpy as np
 import pandas as pd
 import deepchem as dc
-import numpy.random as random
 
 
 class TestTransformers(unittest.TestCase):
@@ -123,7 +125,7 @@ class TestTransformers(unittest.TestCase):
     np.testing.assert_allclose(log_transformer.untransform(y_t), y)
 
   def test_X_log_transformer_select(self):
-    #Tests logarithmic data transformer with selection.
+    # Tests logarithmic data transformer with selection.
     multitask_dataset = dc.data.tests.load_feat_multitask_data()
     dfe = pd.read_csv(
         os.path.join(self.current_dir,
@@ -198,7 +200,7 @@ class TestTransformers(unittest.TestCase):
     # Check w is unchanged since this is a y transformer
     np.testing.assert_allclose(w, w_t)
     # Check that X_t has zero mean, unit std.
-    #np.set_printoptions(threshold='nan')
+    # np.set_printoptions(threshold='nan')
     mean = X_t.mean(axis=0)
     assert np.amax(np.abs(mean - np.zeros_like(mean))) < 1e-7
     orig_std_array = X.std(axis=0)
@@ -211,7 +213,7 @@ class TestTransformers(unittest.TestCase):
     # TODO(rbharath): Untransform doesn't work properly for binary feature
     # vectors. Need to figure out what's wrong here. (low priority)
     ## Check that untransform does the right thing.
-    #np.testing.assert_allclose(normalization_transformer.untransform(X_t), X)
+    # np.testing.assert_allclose(normalization_transformer.untransform(X_t), X)
 
   def test_cdf_X_transformer(self):
     """Test CDF transformer on Gaussian normal dataset."""
@@ -239,7 +241,7 @@ class TestTransformers(unittest.TestCase):
     np.testing.assert_allclose(sorted, target)
 
   def test_cdf_y_transformer(self):
-    #Test CDF transformer on Gaussian normal dataset.
+    # Test CDF transformer on Gaussian normal dataset.
     target = np.array(np.transpose(np.linspace(0., 1., 1001)))
     target = np.transpose(np.array(np.append([target], [target], axis=0)))
     gaussian_dataset = dc.data.tests.load_gaussian_cdf_data()
@@ -468,3 +470,16 @@ class TestTransformers(unittest.TestCase):
     assert np.allclose(test_dataset_trans.X[0, :10], sims[:10])
     assert np.allclose(test_dataset_trans.X[0, 10:20], [0] * 10)
     assert not np.isclose(dataset_trans.X[0, 0], 1.)
+
+  def test_featurization_transformer(self):
+    fp_size = 2048
+    tasks, all_dataset, transformers = load_delaney('Raw')
+    train = all_dataset[0]
+    transformer = FeaturizationTransformer(
+        transform_X=True,
+        dataset=train,
+        featurizer=dc.feat.CircularFingerprint(size=fp_size))
+    new_train = transformer.transform(train)
+
+    self.assertEqual(new_train.y.shape, train.y.shape)
+    self.assertEqual(new_train.X.shape[-1], fp_size)

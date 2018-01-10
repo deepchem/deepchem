@@ -17,6 +17,7 @@ from pandas import read_hdf
 import tempfile
 import time
 import shutil
+import json
 from multiprocessing.dummy import Pool
 
 __author__ = "Bharath Ramsundar"
@@ -432,6 +433,23 @@ class NumpyDataset(Dataset):
     """
     return NumpyDataset(ds.X, ds.y, ds.w, ds.ids)
 
+  @staticmethod
+  def to_json(self, fname):
+    d = {
+        'X': self.X.tolist(),
+        'y': self.y.tolist(),
+        'w': self.w.tolist(),
+        'ids': self.ids.tolist()
+    }
+    with open(fname, 'w') as fout:
+      json.dump(d, fout)
+
+  @staticmethod
+  def from_json(fname):
+    with open(fname) as fin:
+      d = json.load(fin)
+      return NumpyDataset(d['X'], d['y'], d['w'], d['ids'])
+
 
 class DiskDataset(Dataset):
   """
@@ -670,7 +688,7 @@ class DiskDataset(Dataset):
                   pad_batches=False):
     """ Get an object that iterates over minibatches from the dataset. It is guaranteed
     that the number of batches returned is math.ceil(len(dataset)/batch_size).
-    
+
     Each minibatch is returned as a tuple of four numpy arrays: (X, y, w, ids).
 
 
@@ -748,6 +766,7 @@ class DiskDataset(Dataset):
         num_local_batches = math.ceil(n_shard_samples / shard_batch_size)
 
         if n_shard_samples == 0:
+          cur_shard += 1
           continue
         if not deterministic:
           sample_perm = np.random.permutation(n_shard_samples)

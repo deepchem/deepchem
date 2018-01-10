@@ -3,85 +3,71 @@ import os
 from rdkit import Chem
 import time
 import gzip
-
-def main() :
-    print("Processing PubChem FTP Download")
-
-    sdf_root_path = "/media/data/pubchem/SDF"
-    results_path = "/media/data/pubchem/smiles"
-
-    try:
-        os.makedirs(results_path)
-    except :
-        print("Results directory already exists")
-
-    i = 0
-    max_smiles_len = 200
-
-    processed_files = os.listdir(results_path)
-    processed_files.append("Compound_102125001_102150000_smiles.csv")
-
-    for path, dirs, filenames in os.walk(sdf_root_path) :
-        for filename in filenames:
-
-            print("Processing: {0}".format(filename))
-
-            expected_file_name = filename.replace(".sdf.gz", "_smiles.csv")
-            new_file_name = os.path.join(results_path,expected_file_name)
+import pickle
+import deepchem
 
 
-            if expected_file_name in processed_files:
-                print("Skipping: {0}".format(new_file_name))
-                i = i + 1
-                continue
+def main():
+  print("Processing PubChem FTP Download")
 
-            keys = list()
-            values = list()
+  data_dir = deepchem.utils.get_data_dir()
+  sdf_dir = os.path.join(data_dir, "SDF")
 
-            start = time.time()
-            filepath = os.path.join(sdf_root_path,filename)
+  compound_read_count = 0
+  keys = list()
+  values = list()
+  overall_start = time.time()
 
-            with gzip.open(filepath,'rb') as myfile:
-                suppl = Chem.ForwardSDMolSupplier(myfile)
-                for mol in suppl:
-                    if mol is None: continue
-                    cid = mol.GetProp("PUBCHEM_COMPOUND_CID")
-                    smiles = mol.GetProp("PUBCHEM_OPENEYE_ISO_SMILES")
-                    if len(smiles) > max_smiles_len:
-                        i = i + 1
-                        print("Skipped compound: {0} due to large size".format(cid))
-                        continue
-                    keys.append(int(cid))
-                    values.append(smiles)
-                end = time.time()
+  all_paths = list()
 
-                print("Processed file number: {0} in {1} seconds".format(i, end - start))
-                i = i + 1
+  for path, dirs, filenames in os.walk(sdf_dir):
+    for filename in filenames:
 
-                df = pd.DataFrame({"PUBCHEM_CID" : keys, "SMILES" : values},index=keys)
-                df.to_csv(new_file_name,index=False)
+      # RDKit consistently hangs when trying to read this file
+      if "102125001_102150000" in filename:
+        continue
 
+      file_path = os.path.join(sdf_dir, filename)
+      all_paths.append(file_path)
 
+  all_paths.sort()
 
-    # Now parse all results smile files into one big file
-    df_list = list()
-    processed_files = os.listdir(results_path)
-    for filename in processed_files :
-        print("Processing: {} for summary CSV".format(filename))
-        df = pd.read_csv(os.path.join(results_path,filename))
-        df_list.append(df)
+  for filepath in all_paths:
 
-    df_full = pd.concat(df_list)
+    print("Processing: {0}".format(filepath))
+    start = time.time()
 
+    with gzip.open(filepath, 'rb') as myfile:
+      suppl = Chem.ForwardSDMolSupplier(myfile)
+      for mol in suppl:
+        if mol is None: continue
+        cid = mol.GetProp("PUBCHEM_COMPOUND_CID")
+        try:
+          smiles = Chem.MolToSmiles(mol)
+          keys.append(int(cid))
+          values.append(smiles)
+        except Exception:
 
-    print("Writing out summary CSV")
-    df_full.to_csv("/media/data/pubchem/summary.csv",index=False)
+          continue
+      end = time.time()
 
-    print("Stored data as CSV")
+    print("Processed file, processed thru compound number: {0} in {1} seconds".
+          format(compound_read_count, end - start))
+    compound_read_count = compound_read_count + 1
 
+  overall_end = time.time()
+  secs_elapsed = overall_end - overall_start
+  print("Parsed all smiles in: {0} seconds, or {1} minutes, or {2} hours".
+        format(secs_elapsed, secs_elapsed / 60, secs_elapsed / 3600))
+  print("Total length of: {}".format(len(keys)))
+  with open(os.path.join(data_dir, "/pubchemsmiles_tuple.pickle"), "wb") as f:
+    pickle.dump((keys, values), f)
+  print("Done")
+  overall_end = time.time()
+  secs_elapsed = overall_end - overall_start
+  print("Sorted and saved smiles in: {0} seconds, or {1} minutes, or {2} hours".
+        format(secs_elapsed, secs_elapsed / 60, secs_elapsed / 3600))
 
-
-    print("Done")
 
 if __name__ == '__main__':
-    main()
+  main()

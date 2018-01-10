@@ -62,8 +62,8 @@ parser.add_argument(
     dest='dataset_args',
     default=[],
     help='Choice of dataset: bace_c, bace_r, bbbp, chembl, clearance, ' +
-    'clintox, delaney, hiv, hopv, kaggle, lipo, muv, nci, pcba, ' +
-    'pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl, sider, tox21, toxcast')
+    'clintox, delaney, hiv, hopv, kaggle, lipo, muv, nci, pcba, pcba_146, pcba_2475 '
+    + 'pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl, sider, tox21, toxcast')
 parser.add_argument(
     '-t',
     action='store_true',

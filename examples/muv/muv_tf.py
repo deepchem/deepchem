@@ -9,22 +9,27 @@ import os
 import numpy as np
 import shutil
 import deepchem as dc
-from muv_datasets import load_muv
+from deepchem.molnet import load_muv
 
 np.random.seed(123)
 
 # Load MUV data
 muv_tasks, muv_datasets, transformers = load_muv()
-train_dataset, valid_dataset, test_dataset = muv_datasets 
+train_dataset, valid_dataset, test_dataset = muv_datasets
 
 # Build model
-metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean,
-                           mode="classification")
+metric = dc.metrics.Metric(
+    dc.metrics.roc_auc_score, np.mean, mode="classification")
 
-model = dc.models.TensorflowMultiTaskClassifier(
-    len(muv_tasks), n_features=1024, dropouts=[.25],
-    learning_rate=0.001, weight_init_stddevs=[.1],
-    batch_size=64, verbosity="high")
+rate = dc.models.tensorgraph.optimizers.ExponentialDecay(0.001, 0.8, 1000)
+model = dc.models.MultiTaskClassifier(
+    len(muv_tasks),
+    n_features=1024,
+    dropouts=[.25],
+    learning_rate=rate,
+    weight_init_stddevs=[.1],
+    batch_size=64,
+    verbosity="high")
 
 # Fit trained model
 model.fit(train_dataset)

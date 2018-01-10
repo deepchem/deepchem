@@ -22,10 +22,10 @@ from deepchem.models.tensorflow_models import TensorflowRegressor
 from deepchem.metrics import to_one_hot
 
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
-from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMaxCrossEntropy, L2Loss
+from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMaxCrossEntropy, L2Loss, ReduceSum
 
 
-class TensorGraphMultiTaskClassifier(TensorGraph):
+class MultiTaskClassifier(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -39,7 +39,7 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
                activation_fns=tf.nn.relu,
                n_classes=2,
                **kwargs):
-    """Create a TensorGraphMultiTaskClassifier.
+    """Create a MultiTaskClassifier.
 
     In addition to the following arguments, this class also accepts all the keywork arguments
     from TensorGraph.
@@ -73,7 +73,7 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
     n_classes: int
       the number of classes
     """
-    super(TensorGraphMultiTaskClassifier, self).__init__(**kwargs)
+    super(MultiTaskClassifier, self).__init__(**kwargs)
     self.n_tasks = n_tasks
     self.n_features = n_features
     self.n_classes = n_classes
@@ -152,8 +152,8 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
         yield feed_dict
 
   def predict_proba(self, dataset, transformers=[], outputs=None):
-    return super(TensorGraphMultiTaskClassifier, self).predict(
-        dataset, transformers, outputs)
+    return super(MultiTaskClassifier, self).predict(dataset, transformers,
+                                                    outputs)
 
   def predict(self, dataset, transformers=[], outputs=None):
     """
@@ -165,7 +165,7 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
       Dataset to make prediction on
     transformers: list
       List of dc.trans.Transformers.
-    outputs: object 
+    outputs: object
       If outputs is None, then will assume outputs = self.outputs[0] (single
       output). If outputs is a Layer/Tensor, then will evaluate and return as a
       single ndarray. If outputs is a list of Layers/Tensors, will return a list
@@ -176,13 +176,13 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
     y_pred: numpy ndarray or list of numpy ndarrays
     """
     # Results is of shape (n_samples, n_tasks, n_classes)
-    retval = super(TensorGraphMultiTaskClassifier, self).predict(
-        dataset, transformers, outputs)
+    retval = super(MultiTaskClassifier, self).predict(dataset, transformers,
+                                                      outputs)
     # retval is of shape (n_samples, n_tasks)
     return np.argmax(retval, axis=2)
 
 
-class TensorGraphMultiTaskRegressor(TensorGraph):
+class MultiTaskRegressor(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -195,7 +195,7 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
                dropouts=0.5,
                activation_fns=tf.nn.relu,
                **kwargs):
-    """Create a TensorGraphMultiTaskRegressor.
+    """Create a MultiTaskRegressor.
 
     In addition to the following arguments, this class also accepts all the keywork arguments
     from TensorGraph.
@@ -228,7 +228,7 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
       len(layer_sizes).  Alternatively this may be a single value instead of a list, in which case the
       same value is used for every layer.
     """
-    super(TensorGraphMultiTaskRegressor, self).__init__(**kwargs)
+    super(MultiTaskRegressor, self).__init__(**kwargs)
     self.n_tasks = n_tasks
     self.n_features = n_features
     n_layers = len(layer_sizes)
@@ -280,8 +280,7 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
     self.add_output(output)
     labels = Label(shape=(None, n_tasks, 1))
     weights = Weights(shape=(None, n_tasks))
-    loss = L2Loss(in_layers=[labels, output])
-    weighted_loss = WeightedError(in_layers=[loss, weights])
+    weighted_loss = ReduceSum(L2Loss(in_layers=[labels, output, weights]))
     if weight_decay_penalty != 0.0:
       weighted_loss = WeightDecay(
           weight_decay_penalty,
@@ -310,8 +309,8 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
         yield feed_dict
 
 
-class TensorGraphMultiTaskFitTransformRegressor(TensorGraphMultiTaskRegressor):
-  """Implements a TensorGraphMultiTaskRegressor that performs on-the-fly transformation during fit/predict.
+class MultiTaskFitTransformRegressor(MultiTaskRegressor):
+  """Implements a MultiTaskRegressor that performs on-the-fly transformation during fit/predict.
 
   Example:
 
@@ -337,10 +336,10 @@ class TensorGraphMultiTaskFitTransformRegressor(TensorGraphMultiTaskRegressor):
                n_evals=1,
                batch_size=50,
                **kwargs):
-    """Create a TensorGraphMultiTaskFitTransformRegressor.
+    """Create a MultiTaskFitTransformRegressor.
 
     In addition to the following arguments, this class also accepts all the keywork arguments
-    from TensorGraphMultiTaskRegressor.
+    from MultiTaskRegressor.
 
     Parameters
     ----------
@@ -368,7 +367,7 @@ class TensorGraphMultiTaskFitTransformRegressor(TensorGraphMultiTaskRegressor):
       X_b = transformer.X_transform(X_b)
     n_features = X_b.shape[1]
     print("n_features after fit_transform: %d" % int(n_features))
-    super(TensorGraphMultiTaskFitTransformRegressor, self).__init__(
+    super(MultiTaskFitTransformRegressor, self).__init__(
         n_tasks, n_features, batch_size=batch_size, **kwargs)
 
   def default_generator(self,
@@ -406,9 +405,8 @@ class TensorGraphMultiTaskFitTransformRegressor(TensorGraphMultiTaskRegressor):
         feed_dict[self.features[0]] = X_t
         yield feed_dict
 
-    return super(TensorGraphMultiTaskFitTransformRegressor,
-                 self).predict_on_generator(transform_generator(), transformers,
-                                            outputs)
+    return super(MultiTaskFitTransformRegressor, self).predict_on_generator(
+        transform_generator(), transformers, outputs)
 
 
 class TensorflowMultiTaskClassifier(TensorflowClassifier):
@@ -500,8 +498,8 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
         orig_dict["labels_%d" % task] = to_one_hot(y_b[:, task])
       else:
         # Dummy placeholders
-        orig_dict["labels_%d" %
-                  task] = np.squeeze(to_one_hot(np.zeros((self.batch_size,))))
+        orig_dict["labels_%d" % task] = np.squeeze(
+            to_one_hot(np.zeros((self.batch_size,))))
       if w_b is not None:
         orig_dict["weights_%d" % task] = w_b[:, task]
       else:
@@ -588,8 +586,8 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
                     weight_init=tf.truncated_normal(
                         shape=[prev_layer_size, 1],
                         stddev=weight_init_stddevs[i]),
-                    bias_init=tf.constant(value=bias_init_consts[i], shape=[1
-                                                                           ]))))
+                    bias_init=tf.constant(value=bias_init_consts[i],
+                                          shape=[1]))))
     return (output, labels, weights)
 
   def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
