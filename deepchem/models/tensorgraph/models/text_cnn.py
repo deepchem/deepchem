@@ -272,13 +272,13 @@ class TextCNNTensorGraph(TensorGraph):
     return np.array(seq)
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
-      outputs = super(TextCNNTensorGraph, self).predict_on_generator(
+      out = super(TextCNNTensorGraph, self).predict_on_generator(
           generator, 
           transformers=transformers, 
           outputs=outputs)
-      if outputs == None:
+      if outputs is None:
         outputs = self.outputs
       if len(outputs) == 1:
-        return outputs
+        return out
       else:
-        return np.stack(outputs, axis=1)
+        return np.stack(out, axis=1)

@@ -183,16 +183,16 @@ class WeaveTensorGraph(TensorGraph):
         yield feed_dict
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
-      outputs = super(WeaveTensorGraph, self).predict_on_generator(
+      out = super(WeaveTensorGraph, self).predict_on_generator(
           generator, 
           transformers=transformers, 
           outputs=outputs)
-      if outputs == None:
+      if outputs is None:
         outputs = self.outputs
       if len(outputs) == 1:
-        return outputs
+        return out
       else:
-        return np.stack(outputs, axis=1)
+        return np.stack(out, axis=1)
 
 class DTNNTensorGraph(TensorGraph):
 
@@ -509,16 +509,16 @@ class DAGTensorGraph(TensorGraph):
         yield feed_dict
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
-      outputs = super(DAGTensorGraph, self).predict_on_generator(
+      out = super(DAGTensorGraph, self).predict_on_generator(
           generator, 
           transformers=transformers, 
           outputs=outputs)
-      if outputs == None:
+      if outputs is None:
         outputs = self.outputs
       if len(outputs) == 1:
-        return outputs
+        return out
       else:
-        return np.stack(outputs, axis=1)
+        return np.stack(out, axis=1)
 
 class PetroskiSuchTensorGraph(TensorGraph):
   """
