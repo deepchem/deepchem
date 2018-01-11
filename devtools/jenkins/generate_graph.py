@@ -2,7 +2,7 @@ import csv
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import pickle
+import time
 
 TODO = {
   ('tox21', 'random'): ['weave', 'graphconv', 'tf', 'tf_robust', 'irv', 'xgb', 'logreg', 'textcnn'],
@@ -17,7 +17,7 @@ TODO = {
   ('lipo', 'random'): ['weave_regression', 'graphconvreg', 'tf_regression', 'xgb_regression', 'krr', 'textcnn_regression', 'dag_regression', 'mpnn'],
   ('qm7', 'stratified'): ['dtnn', 'graphconvreg', 'tf_regression_ft', 'krr_ft'],
   ('qm7b', 'random'): ['dtnn', 'tf_regression_ft', 'krr_ft'],
-  ('qm8', 'random'): ['dtnn', 'graphconvreg', 'mpnn', 'tf_regression', 'tf_regression_ft'],
+  ('qm8', 'random'): ['dtnn', 'graphconvreg', 'weave_regression', 'textcnn_regression', 'mpnn', 'tf_regression', 'tf_regression_ft'],
 }
 
 ORDER = [
@@ -111,7 +111,9 @@ def plot(dataset, split, path, out_path):
   else:
     ax.set_xlabel('ROC-AUC')
     ax.set_xlim(left=0.4, right=1.)
-  ax.set_title("Performance on %s (%s split)" % (dataset, split))
+  t = time.localtime(time.time())
+  
+  ax.set_title("Performance on %s (%s split), %i-%i-%i" % (dataset, split, t.tm_year, t.tm_mon, t.tm_mday))
   for i in range(len(colors)):
     ax.get_children()[i].set_color(colors[i])
     ax.text(values[i]-0.1, y_pos[i]+0.1, str("%.3f" % values[i]), color='white')

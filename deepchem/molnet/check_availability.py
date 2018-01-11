@@ -205,6 +205,7 @@ CheckFeaturizer = {
     ('qm7', 'krr_ft'): ['CoulombMatrix', 1024],
     ('qm7', 'textcnn_regression'): ['Raw', None],
     ('qm7', 'graphconvreg'): ['GraphConv', 75],
+    ('qm7', 'weave_regression'): ['Weave', 75],
     ('qm7', 'tf_regression_ft'): ['CoulombMatrix', [23, 23]],
     ('qm7', 'dtnn'): ['CoulombMatrix', [23, 23]],
     ('qm7', 'ani'): ['BPSymmetryFunction', [23, 4]],
@@ -220,6 +221,7 @@ CheckFeaturizer = {
     ('qm8', 'dtnn'): ['CoulombMatrix', [26, 26]],
     ('qm8', 'ani'): ['BPSymmetryFunction', [26, 4]],
     ('qm8', 'mpnn'): ['MP', [70, 8]],
+    ('qm8', 'weave_regression'): ['Weave', 75],
     ('qm8', 'textcnn_regression'): ['Raw', None],
     ('qm9', 'tf_regression'): ['ECFP', 1024],
     ('qm9', 'rf_regression'): ['ECFP', 1024],
@@ -230,6 +232,7 @@ CheckFeaturizer = {
     ('qm9', 'dtnn'): ['CoulombMatrix', [29, 29]],
     ('qm9', 'ani'): ['BPSymmetryFunction', [29, 4]],
     ('qm9', 'mpnn'): ['MP', [70, 8]],
+    ('qm9', 'weave_regression'): ['Weave', 75],   
     ('qm9', 'textcnn_regression'): ['Raw', None]
 }
 
