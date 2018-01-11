@@ -203,6 +203,7 @@ CheckFeaturizer = {
     ('qm7', 'rf_regression'): ['ECFP', 1024],
     ('qm7', 'krr'): ['ECFP', 1024],
     ('qm7', 'krr_ft'): ['CoulombMatrix', 1024],
+    ('qm7', 'textcnn_regression'): ['Raw', None],
     ('qm7', 'graphconvreg'): ['GraphConv', 75],
     ('qm7', 'tf_regression_ft'): ['CoulombMatrix', [23, 23]],
     ('qm7', 'dtnn'): ['CoulombMatrix', [23, 23]],
