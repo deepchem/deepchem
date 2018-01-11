@@ -67,12 +67,14 @@ def read_results(path):
       Results.add((line[0], line[1], line[3]))
   return Results
 
-def run_benchmark(path):
+def run_benchmark(path, deepchem_dir):
   finished = read_results(path)
+  os.chdir(deepchem_dir)
+  os.chdir('./examples')
   while len(TODO_list - finished) > 0:
     todo = TODO_list - finished
     for p in todo:
-      os.system('python benchmark.py -seed 123 -d '+p[0]+' -s '+p[1]+' -m '+p[2])
+      os.system('python benchmark.py --seed 123 -d '+p[0]+' -s '+p[1]+' -m '+p[2])
   
 
 def plot(dataset, split, path, out_path):
@@ -118,12 +120,14 @@ def plot(dataset, split, path, out_path):
     ax.get_children()[i].set_color(colors[i])
     ax.text(values[i]-0.1, y_pos[i]+0.1, str("%.3f" % values[i]), color='white')
   fig.savefig(os.path.join(out_path, dataset+'_'+split+'.png'))
-  plt.show()
+  #plt.show()
   
 
 if __name__ == '__main__':
-  FILE = '/home/zqwu/deepchem/examples/results.csv'
-  run_benchmark(FILE)
+  current_dir = os.path.dirname(os.path.realpath(__file__))
+  DEEPCHEM_DIR = os.path.split(os.path.split(current_dir)[0])[0]
+  FILE = os.path.join(os.path.join(DEEPCHEM_DIR, 'examples'), 'results.csv')
+  run_benchmark(FILE, DEEPCHEM_DIR)
   for pair in TODO.keys():
     plot(pair[0], pair[1], FILE, os.environ['DEEPCHEM_DATA_DIR'])
   
