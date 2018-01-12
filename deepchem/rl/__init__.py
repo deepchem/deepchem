@@ -149,8 +149,13 @@ class GymEnvironment(Environment):
     import gym
     self.env = gym.make(name)
     self.name = name
-    super(GymEnvironment, self).__init__(self.env.observation_space.shape,
-                                         self.env.action_space.n)
+    space = self.env.action_space
+    if 'n' in dir(space):
+      super(GymEnvironment, self).__init__(self.env.observation_space.shape,
+                                           space.n)
+    else:
+      super(GymEnvironment, self).__init__(
+          self.env.observation_space.shape, action_shape=space.shape)
 
   def reset(self):
     self._state = self.env.reset()
@@ -159,6 +164,9 @@ class GymEnvironment(Environment):
   def step(self, action):
     self._state, reward, self._terminated, info = self.env.step(action)
     return reward
+
+  def __deepcopy__(self, memo):
+    return GymEnvironment(self.name)
 
 
 class Policy(object):
