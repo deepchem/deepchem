@@ -532,7 +532,7 @@ def benchmark_regression(train_dataset,
         random_seed=seed,
         output_activation=False,
         use_queue=False,
-	mode='regression')
+        mode='regression')
 
   elif model_name == 'dag_regression':
     batch_size = hyper_parameters['batch_size']
