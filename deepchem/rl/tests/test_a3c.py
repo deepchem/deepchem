@@ -260,7 +260,7 @@ class TestA3C(unittest.TestCase):
         self._terminated = (self.count == 10)
         return reward
 
-    # A simple policy with two hidden layers.
+    # A simple policy with no hidden layers.
 
     class TestPolicy(dc.rl.Policy):
 

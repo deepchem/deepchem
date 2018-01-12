@@ -504,7 +504,7 @@ class _Worker(object):
           1] += self.a3c.discount_factor * self.a3c.advantage_lambda * advantages[
               j]
 
-    # Record the actions, computing to one-hot if necessary.
+    # Record the actions, converting to one-hot if necessary.
 
     actions_matrix = []
     if self.a3c.continuous:
