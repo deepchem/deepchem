@@ -644,6 +644,25 @@ class Reshape(Layer):
     return out_tensor
 
 
+class ToInt32(Layer):
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(ToInt32, self).__init__(in_layers, **kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = parent_shape
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    parent_tensor = inputs[0]
+    out_tensor = tf.to_int32(parent_tensor)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class Squeeze(Layer):
 
   def __init__(self, in_layers=None, squeeze_dims=None, **kwargs):
@@ -655,7 +674,8 @@ class Squeeze(Layer):
         self._shape = [i for i in parent_shape if i != 1]
       else:
         self._shape = [
-            parent_shape[i] for i in range(len(parent_shape))
+            parent_shape[i]
+            for i in range(len(parent_shape))
             if i not in squeeze_dims
         ]
     except:
@@ -2817,15 +2837,13 @@ class VinaFreeEnergy(Layer):
 
   def hydrophobic(self, d):
     """Computes Autodock Vina's hydrophobic interaction term."""
-    out_tensor = tf.where(d < 0.5,
-                          tf.ones_like(d),
+    out_tensor = tf.where(d < 0.5, tf.ones_like(d),
                           tf.where(d < 1.5, 1.5 - d, tf.zeros_like(d)))
     return out_tensor
 
   def hydrogen_bond(self, d):
     """Computes Autodock Vina's hydrogen bond interaction term."""
-    out_tensor = tf.where(d < -0.7,
-                          tf.ones_like(d),
+    out_tensor = tf.where(d < -0.7, tf.ones_like(d),
                           tf.where(d < 0, (1.0 / 0.7) * (0 - d),
                                    tf.zeros_like(d)))
     return out_tensor
@@ -3835,8 +3853,8 @@ class ANIFeat(Layer):
     f_R_ik = tf.stack([d_cutoff] * max_atoms, axis=2)
 
     # Define angle theta = arccos(R_ij(Vector) dot R_ik(Vector)/R_ij(distance)/R_ik(distance))
-    vector_mul = tf.reduce_sum(tf.stack([vector_distances]*max_atoms, axis=3) * \
-        tf.stack([vector_distances]*max_atoms, axis=2), axis=4)
+    vector_mul = tf.reduce_sum(tf.stack([vector_distances] * max_atoms, axis=3) * \
+                               tf.stack([vector_distances] * max_atoms, axis=2), axis=4)
     vector_mul = vector_mul * tf.sign(f_R_ij) * tf.sign(f_R_ik)
     theta = tf.acos(tf.div(vector_mul, R_ij * R_ik + 1e-5))
 
@@ -3846,8 +3864,8 @@ class ANIFeat(Layer):
     f_R_ik = tf.stack([f_R_ik] * length, axis=4)
     theta = tf.stack([theta] * length, axis=4)
 
-    out_tensor = tf.pow((1. + tf.cos(theta - thetas))/2., zeta) * \
-        tf.exp(-ita * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik * 2
+    out_tensor = tf.pow((1. + tf.cos(theta - thetas)) / 2., zeta) * \
+                 tf.exp(-ita * tf.square((R_ij + R_ik) / 2. - Rs)) * f_R_ij * f_R_ik * 2
 
     if self.atomic_number_differentiated:
       out_tensors = []
