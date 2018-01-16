@@ -644,10 +644,13 @@ class Reshape(Layer):
     return out_tensor
 
 
-class ToInt32(Layer):
+class Cast(Layer):
 
-  def __init__(self, in_layers=None, **kwargs):
-    super(ToInt32, self).__init__(in_layers, **kwargs)
+  def __init__(self, in_layers=None, dtype=None, **kwargs):
+    if dtype is None:
+      raise ValueError("Must cast to a dtype")
+    self.dtype = dtype
+    super(Cast, self).__init__(in_layers, **kwargs)
     try:
       parent_shape = self.in_layers[0].shape
       self._shape = parent_shape
@@ -657,7 +660,7 @@ class ToInt32(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
-    out_tensor = tf.to_int32(parent_tensor)
+    out_tensor = tf.cast(parent_tensor, self.dtype)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
