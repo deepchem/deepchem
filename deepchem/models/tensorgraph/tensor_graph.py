@@ -187,7 +187,8 @@ class TensorGraph(Model):
         if submodel.loss is not None:
           loss = submodel.loss
       if checkpoint_interval > 0:
-        saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
+        saver = tf.train.Saver(
+            max_to_keep=max_checkpoints_to_keep, save_relative_paths=True)
       if restore:
         self.restore()
       avg_loss, n_averaged_batches = 0.0, 0.0
@@ -788,7 +789,8 @@ class TensorGraph(Model):
       var_names = set([x for x in reader.get_variable_to_shape_map()])
       var_map = {
           x.op.name: x
-          for x in tf.global_variables() if x.op.name in var_names
+          for x in tf.global_variables()
+          if x.op.name in var_names
       }
       saver = tf.train.Saver(var_list=var_map)
       saver.restore(self.session, checkpoint)
