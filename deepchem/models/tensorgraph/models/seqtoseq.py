@@ -115,7 +115,7 @@ class SeqToSeq(TensorGraph):
       for KL cost annealing
     """
     super(SeqToSeq, self).__init__(
-        use_queue=False, **kwargs)  # TODO can we make it work with the queue?
+      use_queue=False, **kwargs)  # TODO can we make it work with the queue?
     if SeqToSeq.sequence_end not in input_tokens:
       input_tokens = input_tokens + [SeqToSeq.sequence_end]
     if SeqToSeq.sequence_end not in output_tokens:
@@ -131,7 +131,7 @@ class SeqToSeq(TensorGraph):
     self._features = layers.Feature(shape=(None, None, len(input_tokens)))
     self._labels = layers.Label(shape=(None, None, len(output_tokens)))
     self._gather_indices = layers.Feature(
-        shape=(self.batch_size, 2), dtype=tf.int32)
+      shape=(self.batch_size, 2), dtype=tf.int32)
     self._reverse_input = reverse_input
     self._variational = variational
     self.embedding = self._create_encoder(encoder_layers, dropout)
@@ -146,30 +146,30 @@ class SeqToSeq(TensorGraph):
       if dropout > 0.0:
         prev_layer = layers.Dropout(dropout, in_layers=prev_layer)
       prev_layer = layers.GRU(
-          self._embedding_dimension, self.batch_size, in_layers=prev_layer)
+        self._embedding_dimension, self.batch_size, in_layers=prev_layer)
     prev_layer = layers.Gather(in_layers=[prev_layer, self._gather_indices])
     if self._variational:
       self._embedding_mean = layers.Dense(
-          self._embedding_dimension, in_layers=prev_layer)
+        self._embedding_dimension, in_layers=prev_layer)
       self._embedding_stddev = layers.Dense(
-          self._embedding_dimension, in_layers=prev_layer)
+        self._embedding_dimension, in_layers=prev_layer)
       prev_layer = layers.CombineMeanStd(
-          [self._embedding_mean, self._embedding_stddev], training_only=True)
+        [self._embedding_mean, self._embedding_stddev], training_only=True)
     return prev_layer
 
   def _create_decoder(self, n_layers, dropout):
     """Create the decoder layers."""
     prev_layer = layers.Repeat(
-        self._max_output_length, in_layers=self.embedding)
+      self._max_output_length, in_layers=self.embedding)
     for i in range(n_layers):
       if dropout > 0.0:
         prev_layer = layers.Dropout(dropout, in_layers=prev_layer)
       prev_layer = layers.GRU(
-          self._embedding_dimension, self.batch_size, in_layers=prev_layer)
+        self._embedding_dimension, self.batch_size, in_layers=prev_layer)
     return layers.Dense(
-        len(self._output_tokens),
-        in_layers=prev_layer,
-        activation_fn=tf.nn.softmax)
+      len(self._output_tokens),
+      in_layers=prev_layer,
+      activation_fn=tf.nn.softmax)
 
   def _create_loss(self):
     """Create the loss function."""
@@ -184,10 +184,10 @@ class SeqToSeq(TensorGraph):
       anneal_steps = self._annealing_final_step - self._annealing_start_step
       if anneal_steps > 0:
         current_step = tf.to_float(
-            self.get_global_step()) - self._annealing_start_step
+          self.get_global_step()) - self._annealing_start_step
         anneal_frac = tf.maximum(0.0, current_step) / anneal_steps
         kl_scale = layers.TensorWrapper(
-            tf.minimum(1.0, anneal_frac * anneal_frac))
+          tf.minimum(1.0, anneal_frac * anneal_frac))
       else:
         kl_scale = 1.0
       loss += 0.5 * kl_scale * layers.ReduceMean(layers.ReduceSum(kl, axis=1))
@@ -214,10 +214,10 @@ class SeqToSeq(TensorGraph):
       from there.  If False, retrain the model from scratch.
     """
     self.fit_generator(
-        self._generate_batches(sequences),
-        max_checkpoints_to_keep=max_checkpoints_to_keep,
-        checkpoint_interval=checkpoint_interval,
-        restore=restore)
+      self._generate_batches(sequences),
+      max_checkpoints_to_keep=max_checkpoints_to_keep,
+      checkpoint_interval=checkpoint_interval,
+      restore=restore)
 
   def predict_from_sequences(self, sequences, beam_width=5):
     """Given a set of input sequences, predict the output sequences.
@@ -237,7 +237,7 @@ class SeqToSeq(TensorGraph):
         feed_dict = {}
         feed_dict[self._features] = self._create_input_array(batch)
         feed_dict[self._gather_indices] = [(i, len(batch[i])
-                                            if i < len(batch) else 0)
+        if i < len(batch) else 0)
                                            for i in range(self.batch_size)]
         feed_dict[self._training_placeholder] = 0.0
         for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
@@ -263,7 +263,7 @@ class SeqToSeq(TensorGraph):
     with self._get_tf("Graph").as_default():
       for batch in self._batch_elements(embeddings):
         embedding_array = np.zeros(
-            (self.batch_size, self._embedding_dimension), dtype=np.float32)
+          (self.batch_size, self._embedding_dimension), dtype=np.float32)
         for i, e in enumerate(batch):
           embedding_array[i] = e
         feed_dict = {}
@@ -290,7 +290,7 @@ class SeqToSeq(TensorGraph):
         feed_dict = {}
         feed_dict[self._features] = self._create_input_array(batch)
         feed_dict[self._gather_indices] = [(i, len(batch[i])
-                                            if i < len(batch) else 0)
+        if i < len(batch) else 0)
                                            for i in range(self.batch_size)]
         feed_dict[self._training_placeholder] = 0.0
         for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
@@ -346,21 +346,21 @@ class SeqToSeq(TensorGraph):
     if self._reverse_input:
       sequences = [reversed(s) for s in sequences]
     features = np.zeros(
-        (self.batch_size, max(lengths) + 1, len(self._input_tokens)),
-        dtype=np.float32)
+      (self.batch_size, max(lengths) + 1, len(self._input_tokens)),
+      dtype=np.float32)
     for i, sequence in enumerate(sequences):
       for j, token in enumerate(sequence):
         features[i, j, self._input_dict[token]] = 1
     features[np.arange(len(sequences)), lengths, self._input_dict[
-        SeqToSeq.sequence_end]] = 1
+      SeqToSeq.sequence_end]] = 1
     return features
 
   def _create_output_array(self, sequences):
     """Create the array describing the target sequences for a batch."""
     lengths = [len(x) for x in sequences]
     labels = np.zeros(
-        (self.batch_size, self._max_output_length, len(self._output_tokens)),
-        dtype=np.float32)
+      (self.batch_size, self._max_output_length, len(self._output_tokens)),
+      dtype=np.float32)
     end_marker_index = self._output_dict[SeqToSeq.sequence_end]
     for i, sequence in enumerate(sequences):
       for j, token in enumerate(sequence):
@@ -399,3 +399,76 @@ class SeqToSeq(TensorGraph):
       for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
         feed_dict[initial] = zero
       yield feed_dict
+
+
+class AspuruGuzikAutoEncoder(SeqToSeq):
+  def __init__(self,
+               input_tokens,
+               output_tokens,
+               max_output_length,
+               encoder_layers=4,
+               decoder_layers=4,
+               embedding_dimension=512,
+               dropout=0.0,
+               reverse_input=True,
+               variational=True,
+               annealing_start_step=5000,
+               annealing_final_step=10000,
+               **kwargs):
+    """
+    TODO(LESWING) have qm9/zinc hyper params and construct via static method
+    """
+    self.filter_sizes = [9, 9, 10]
+    self.kernel_sizes = [9, 9, 11]
+    super(AspuruGuzikAutoEncoder, self).__init__(
+      input_tokens,
+      output_tokens,
+      max_output_length,
+      encoder_layers,
+      decoder_layers,
+      embedding_dimension,
+      dropout,
+      reverse_input,
+      variational,
+      annealing_start_step,
+      annealing_final_step,
+      **kwargs
+    )
+
+
+  def _create_encoder(self, n_layers, dropout):
+    """Create the encoder layers."""
+    prev_layer = self._features
+    for i in range(len(self.filter_sizes)):
+      filter_size = self.filter_sizes[i]
+      kernel_size = self.kernel_sizes[i]
+      if dropout > 0.0:
+        prev_layer = layers.Dropout(dropout, in_layers=prev_layer)
+      prev_layer = layers.Conv1D(
+        kernel_size, filter_size, in_layers=prev_layer, activation_fn=tf.nn.relu)
+    prev_layer = layers.Gather(in_layers=[prev_layer, self._gather_indices])
+    if self._variational:
+      self._embedding_mean = layers.Dense(
+        self._embedding_dimension, in_layers=prev_layer)
+      self._embedding_stddev = layers.Dense(
+        self._embedding_dimension, in_layers=prev_layer)
+      prev_layer = layers.CombineMeanStd(
+        [self._embedding_mean, self._embedding_stddev], training_only=True)
+    return prev_layer
+
+  def _create_decoder(self, n_layers, dropout):
+    """
+    TODO(LESWING): Teacher forcing
+    """
+    """Create the decoder layers."""
+    prev_layer = layers.Repeat(
+      self._max_output_length, in_layers=self.embedding)
+    for i in range(3):
+      if dropout > 0.0:
+        prev_layer = layers.Dropout(dropout, in_layers=prev_layer)
+      prev_layer = layers.GRU(
+        488, self.batch_size, in_layers=prev_layer)
+    return layers.Dense(
+      len(self._output_tokens),
+      in_layers=prev_layer,
+      activation_fn=tf.nn.softmax)

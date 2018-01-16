@@ -91,7 +91,7 @@ class Layer(object):
     """Get the shape of this Layer's output."""
     if '_shape' not in dir(self):
       raise NotImplementedError(
-          "%s: shape is not known" % self.__class__.__name__)
+        "%s: shape is not known" % self.__class__.__name__)
     return self._shape
 
   def _get_input_tensors(self, in_layers, reshape=False):
@@ -168,7 +168,7 @@ class Layer(object):
     supported_ops = {'tensor_summary', 'scalar', 'histogram'}
     if summary_op not in supported_ops:
       raise ValueError(
-          "Invalid summary_op arg. Only 'tensor_summary', 'scalar', 'histogram' supported"
+        "Invalid summary_op arg. Only 'tensor_summary', 'scalar', 'histogram' supported"
       )
     self.summary_op = summary_op
     self.summary_description = summary_description
@@ -237,8 +237,8 @@ class Layer(object):
     if self in replacements:
       return replacements[self]
     copied_inputs = [
-        layer.copy(replacements, variables_graph, shared)
-        for layer in self.in_layers
+      layer.copy(replacements, variables_graph, shared)
+      for layer in self.in_layers
     ]
     if shared:
       copy = self.shared(copied_inputs)
@@ -372,8 +372,8 @@ class Conv1D(Layer):
   """
 
   def __init__(self,
-               width,
-               out_channels,
+               kernel_size,
+               filter_size,
                stride=1,
                padding='SAME',
                activation_fn=tf.nn.relu,
@@ -381,6 +381,7 @@ class Conv1D(Layer):
                weights_initializer=tf.random_normal_initializer,
                **kwargs):
     """Create a Conv1D layer.
+    TODO(LESWING) match function prototype to tf.keras.layers
 
     Parameters
     ----------
@@ -400,8 +401,8 @@ class Conv1D(Layer):
     weights_initializer: callable object
       the initializer for weight values
     """
-    self.width = width
-    self.out_channels = out_channels
+    self.kernel_size = kernel_size
+    self.filter_size = filter_size
     self.stride = stride
     self.padding = padding
     self.activation_fn = activation_fn
@@ -411,7 +412,7 @@ class Conv1D(Layer):
     super(Conv1D, self).__init__(**kwargs)
     try:
       parent_shape = self.in_layers[0].shape
-      self._shape = (parent_shape[0], parent_shape[1] // stride, out_channels)
+      self._shape = (parent_shape[0], parent_shape[1] // stride, filter_size)
     except:
       pass
 
@@ -424,18 +425,11 @@ class Conv1D(Layer):
       parent = tf.expand_dims(parent, 2)
     elif len(parent.get_shape()) != 3:
       raise ValueError("Parent tensor must be (batch, width, channel)")
-    parent_shape = parent.get_shape()
-    parent_channel_size = parent_shape[2].value
-    f = tf.Variable(self.weights_initializer()(
-        [self.width, parent_channel_size, self.out_channels]))
-    t = tf.nn.conv1d(parent, f, stride=self.stride, padding=self.padding)
-    if self.biases_initializer is not None:
-      b = tf.Variable(self.biases_initializer()([self.out_channels]))
-      t = tf.nn.bias_add(t, b)
-    if self.activation_fn is None:
-      out_tensor = t
-    else:
-      out_tensor = self.activation_fn(t)
+    out_tensor = tf.keras.layers.Conv1D(
+      filters=self.filter_size,
+      kernel_size=self.kernel_size,
+      activation=self.activation_fn,
+    )(parent)
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
@@ -562,22 +556,22 @@ class Highway(Layer):
     shape = parent.get_shape().as_list()[1]
     # H(x), with same number of input and output channels
     dense_H = tf.contrib.layers.fully_connected(
-        parent,
-        num_outputs=shape,
-        activation_fn=self.activation_fn,
-        biases_initializer=self.biases_initializer(),
-        weights_initializer=self.weights_initializer(),
-        trainable=True)
+      parent,
+      num_outputs=shape,
+      activation_fn=self.activation_fn,
+      biases_initializer=self.biases_initializer(),
+      weights_initializer=self.weights_initializer(),
+      trainable=True)
     # T(x), with same number of input and output channels
     dense_T = tf.contrib.layers.fully_connected(
-        parent,
-        num_outputs=shape,
-        activation_fn=tf.nn.sigmoid,
-        biases_initializer=tf.constant_initializer(-1),
-        weights_initializer=self.weights_initializer(),
-        trainable=True)
+      parent,
+      num_outputs=shape,
+      activation_fn=tf.nn.sigmoid,
+      biases_initializer=tf.constant_initializer(-1),
+      weights_initializer=self.weights_initializer(),
+      trainable=True)
     out_tensor = tf.multiply(dense_H, dense_T) + tf.multiply(
-        parent, 1 - dense_T)
+      parent, 1 - dense_T)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -644,6 +638,38 @@ class Reshape(Layer):
     return out_tensor
 
 
+class Cast(Layer):
+  """
+  Wrapper around tf.cast.  Changes the dtype of a single layer
+  """
+
+  def __init__(self, in_layers=None, dtype=None, **kwargs):
+    """
+    Parameters
+    ----------
+    dtype: tf.DType
+      the dtype to cast the in_layer to
+      e.x. tf.int32
+    """
+    if dtype is None:
+      raise ValueError("Must cast to a dtype")
+    self.dtype = dtype
+    super(Cast, self).__init__(in_layers, **kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = parent_shape
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    parent_tensor = inputs[0]
+    out_tensor = tf.cast(parent_tensor, self.dtype)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class Squeeze(Layer):
 
   def __init__(self, in_layers=None, squeeze_dims=None, **kwargs):
@@ -655,8 +681,9 @@ class Squeeze(Layer):
         self._shape = [i for i in parent_shape if i != 1]
       else:
         self._shape = [
-            parent_shape[i] for i in range(len(parent_shape))
-            if i not in squeeze_dims
+          parent_shape[i]
+          for i in range(len(parent_shape))
+          if i not in squeeze_dims
         ]
     except:
       pass
@@ -725,7 +752,7 @@ class CombineMeanStd(Layer):
       raise ValueError("Must have two in_layers")
     mean_parent, std_parent = inputs[0], inputs[1]
     sample_noise = tf.random_normal(
-        mean_parent.get_shape(), 0, 1, dtype=tf.float32)
+      mean_parent.get_shape(), 0, 1, dtype=tf.float32)
     if self.training_only:
       sample_noise *= kwargs['training']
     out_tensor = mean_parent + (std_parent * sample_noise)
@@ -855,7 +882,7 @@ class GRU(Layer):
     else:
       initial_state = zero_state
     out_tensor, final_state = tf.nn.dynamic_rnn(
-        gru_cell, parent_tensor, initial_state=initial_state, scope=self.name)
+      gru_cell, parent_tensor, initial_state=initial_state, scope=self.name)
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
@@ -866,8 +893,8 @@ class GRU(Layer):
 
   def none_tensors(self):
     saved_tensors = [
-        self.out_tensor, self.rnn_initial_states, self.rnn_final_states,
-        self.rnn_zero_states
+      self.out_tensor, self.rnn_initial_states, self.rnn_final_states,
+      self.rnn_zero_states
     ]
     self.out_tensor = None
     self.rnn_initial_states = []
@@ -915,12 +942,12 @@ class LSTM(Layer):
     zero_state = lstm_cell.zero_state(self.batch_size, tf.float32)
     if set_tensors:
       initial_state = tf.contrib.rnn.LSTMStateTuple(
-          tf.placeholder(tf.float32, zero_state.c.get_shape()),
-          tf.placeholder(tf.float32, zero_state.h.get_shape()))
+        tf.placeholder(tf.float32, zero_state.c.get_shape()),
+        tf.placeholder(tf.float32, zero_state.h.get_shape()))
     else:
       initial_state = zero_state
     out_tensor, final_state = tf.nn.dynamic_rnn(
-        lstm_cell, parent_tensor, initial_state=initial_state, scope=self.name)
+      lstm_cell, parent_tensor, initial_state=initial_state, scope=self.name)
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
@@ -929,15 +956,15 @@ class LSTM(Layer):
       self.rnn_final_states.append(final_state.c)
       self.rnn_final_states.append(final_state.h)
       self.rnn_zero_states.append(
-          np.zeros(zero_state.c.get_shape(), np.float32))
+        np.zeros(zero_state.c.get_shape(), np.float32))
       self.rnn_zero_states.append(
-          np.zeros(zero_state.h.get_shape(), np.float32))
+        np.zeros(zero_state.h.get_shape(), np.float32))
     return out_tensor
 
   def none_tensors(self):
     saved_tensors = [
-        self.out_tensor, self.rnn_initial_states, self.rnn_final_states,
-        self.rnn_zero_states
+      self.out_tensor, self.rnn_initial_states, self.rnn_final_states,
+      self.rnn_zero_states
     ]
     self.out_tensor = None
     self.rnn_initial_states = []
@@ -1388,9 +1415,9 @@ class InteratomicL2Distances(Layer):
     nbr_coords = tf.gather(coords, nbr_list)
     # Shape (N_atoms, M_nbrs, ndim)
     tiled_coords = tf.tile(
-        tf.reshape(coords, (N_atoms, 1, ndim)), (1, M_nbrs, 1))
+      tf.reshape(coords, (N_atoms, 1, ndim)), (1, M_nbrs, 1))
     # Shape (N_atoms, M_nbrs)
-    dists = tf.reduce_sum((tiled_coords - nbr_coords)**2, axis=2)
+    dists = tf.reduce_sum((tiled_coords - nbr_coords) ** 2, axis=2)
     out_tensor = dists
     if set_tensors:
       self.out_tensor = out_tensor
@@ -1412,7 +1439,7 @@ class SparseSoftMaxCrossEntropy(Layer):
       raise ValueError()
     labels, logits = inputs[0], inputs[1]
     out_tensor = tf.nn.sparse_softmax_cross_entropy_with_logits(
-        logits=logits, labels=labels)
+      logits=logits, labels=labels)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1433,7 +1460,7 @@ class SoftMaxCrossEntropy(Layer):
       raise ValueError()
     labels, logits = inputs[0], inputs[1]
     out_tensor = tf.nn.softmax_cross_entropy_with_logits(
-        logits=logits, labels=labels)
+      logits=logits, labels=labels)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1452,7 +1479,7 @@ class ReduceMean(Layer):
       try:
         parent_shape = self.in_layers[0].shape
         self._shape = [
-            parent_shape[i] for i in range(len(parent_shape)) if i not in axis
+          parent_shape[i] for i in range(len(parent_shape)) if i not in axis
         ]
       except:
         pass
@@ -1502,7 +1529,7 @@ class ReduceSum(Layer):
       try:
         parent_shape = self.in_layers[0].shape
         self._shape = [
-            parent_shape[i] for i in range(len(parent_shape)) if i not in axis
+          parent_shape[i] for i in range(len(parent_shape)) if i not in axis
         ]
       except:
         pass
@@ -1533,7 +1560,7 @@ class ReduceSquareDifference(Layer):
       try:
         parent_shape = self.in_layers[0].shape
         self._shape = [
-            parent_shape[i] for i in range(len(parent_shape)) if i not in axis
+          parent_shape[i] for i in range(len(parent_shape)) if i not in axis
         ]
       except:
         pass
@@ -1622,17 +1649,17 @@ class Conv2D(SharedVariableScope):
     for reuse in (self._reuse, False):
       try:
         out_tensor = tf.contrib.layers.conv2d(
-            parent_tensor,
-            num_outputs=self.num_outputs,
-            kernel_size=self.kernel_size,
-            stride=self.stride,
-            padding=self.padding,
-            activation_fn=self.activation_fn,
-            normalizer_fn=self.normalizer_fn,
-            biases_initializer=self.biases_initializer(),
-            weights_initializer=self.weights_initializer(),
-            scope=self._get_scope_name(),
-            reuse=reuse)
+          parent_tensor,
+          num_outputs=self.num_outputs,
+          kernel_size=self.kernel_size,
+          stride=self.stride,
+          padding=self.padding,
+          activation_fn=self.activation_fn,
+          normalizer_fn=self.normalizer_fn,
+          biases_initializer=self.biases_initializer(),
+          weights_initializer=self.weights_initializer(),
+          scope=self._get_scope_name(),
+          reuse=reuse)
         break
       except ValueError:
         if reuse:
@@ -1722,17 +1749,17 @@ class Conv3D(SharedVariableScope):
     for reuse in (self._reuse, False):
       try:
         out_tensor = tf.layers.conv3d(
-            parent_tensor,
-            filters=self.num_outputs,
-            kernel_size=self.kernel_size,
-            strides=self.stride,
-            padding=self.padding,
-            activation=self.activation_fn,
-            activity_regularizer=self.normalizer_fn,
-            bias_initializer=self.biases_initializer(),
-            kernel_initializer=self.weights_initializer(),
-            name=self._get_scope_name(),
-            reuse=reuse)
+          parent_tensor,
+          filters=self.num_outputs,
+          kernel_size=self.kernel_size,
+          strides=self.stride,
+          padding=self.padding,
+          activation=self.activation_fn,
+          activity_regularizer=self.normalizer_fn,
+          bias_initializer=self.biases_initializer(),
+          kernel_initializer=self.weights_initializer(),
+          name=self._get_scope_name(),
+          reuse=reuse)
         break
       except ValueError:
         if reuse:
@@ -1822,17 +1849,17 @@ class Conv2DTranspose(SharedVariableScope):
     for reuse in (self._reuse, False):
       try:
         out_tensor = tf.contrib.layers.conv2d_transpose(
-            parent_tensor,
-            num_outputs=self.num_outputs,
-            kernel_size=self.kernel_size,
-            stride=self.stride,
-            padding=self.padding,
-            activation_fn=self.activation_fn,
-            normalizer_fn=self.normalizer_fn,
-            biases_initializer=self.biases_initializer(),
-            weights_initializer=self.weights_initializer(),
-            scope=self._get_scope_name(),
-            reuse=reuse)
+          parent_tensor,
+          num_outputs=self.num_outputs,
+          kernel_size=self.kernel_size,
+          stride=self.stride,
+          padding=self.padding,
+          activation_fn=self.activation_fn,
+          normalizer_fn=self.normalizer_fn,
+          biases_initializer=self.biases_initializer(),
+          weights_initializer=self.weights_initializer(),
+          scope=self._get_scope_name(),
+          reuse=reuse)
         break
       except ValueError:
         if reuse:
@@ -1922,17 +1949,17 @@ class Conv3DTranspose(SharedVariableScope):
     for reuse in (self._reuse, False):
       try:
         out_tensor = tf.layers.conv3d_transpose(
-            parent_tensor,
-            filters=self.num_outputs,
-            kernel_size=self.kernel_size,
-            strides=self.stride,
-            padding=self.padding,
-            activation=self.activation_fn,
-            activity_regularizer=self.normalizer_fn,
-            bias_initializer=self.biases_initializer(),
-            kernel_initializer=self.weights_initializer(),
-            name=self._get_scope_name(),
-            reuse=reuse)
+          parent_tensor,
+          filters=self.num_outputs,
+          kernel_size=self.kernel_size,
+          strides=self.stride,
+          padding=self.padding,
+          activation=self.activation_fn,
+          activity_regularizer=self.normalizer_fn,
+          bias_initializer=self.biases_initializer(),
+          kernel_initializer=self.weights_initializer(),
+          name=self._get_scope_name(),
+          reuse=reuse)
         break
       except ValueError:
         if reuse:
@@ -1973,7 +2000,7 @@ class MaxPool1D(Layer):
     try:
       parent_shape = self.in_layers[0].shape
       self._shape = tuple(
-          None if p is None else p // s for p, s in zip(parent_shape, strides))
+        None if p is None else p // s for p, s in zip(parent_shape, strides))
     except:
       pass
 
@@ -1981,11 +2008,11 @@ class MaxPool1D(Layer):
     inputs = self._get_input_tensors(in_layers)
     in_tensor = inputs[0]
     out_tensor = tf.nn.pool(
-        in_tensor,
-        window_shape=[self.window_shape],
-        pooling_type=self.pooling_type,
-        padding=self.padding,
-        strides=[self.strides])
+      in_tensor,
+      window_shape=[self.window_shape],
+      pooling_type=self.pooling_type,
+      padding=self.padding,
+      strides=[self.strides])
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -2005,7 +2032,7 @@ class MaxPool2D(Layer):
     try:
       parent_shape = self.in_layers[0].shape
       self._shape = tuple(
-          None if p is None else p // s for p, s in zip(parent_shape, strides))
+        None if p is None else p // s for p, s in zip(parent_shape, strides))
     except:
       pass
 
@@ -2013,7 +2040,7 @@ class MaxPool2D(Layer):
     inputs = self._get_input_tensors(in_layers)
     in_tensor = inputs[0]
     out_tensor = tf.nn.max_pool(
-        in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
+      in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -2052,7 +2079,7 @@ class MaxPool3D(Layer):
     try:
       parent_shape = self.in_layers[0].shape
       self._shape = tuple(
-          None if p is None else p // s for p, s in zip(parent_shape, strides))
+        None if p is None else p // s for p, s in zip(parent_shape, strides))
     except:
       pass
 
@@ -2060,7 +2087,7 @@ class MaxPool3D(Layer):
     inputs = self._get_input_tensors(in_layers)
     in_tensor = inputs[0]
     out_tensor = tf.nn.max_pool3d(
-        in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
+      in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -2122,13 +2149,13 @@ class GraphConv(Layer):
 
     # Generate the nb_affine weights and biases
     self.W_list = [
-        initializations.glorot_uniform([in_channels, self.out_channel])
-        for k in range(self.num_deg)
+      initializations.glorot_uniform([in_channels, self.out_channel])
+      for k in range(self.num_deg)
     ]
     self.b_list = [
-        model_ops.zeros(shape=[
-            self.out_channel,
-        ]) for k in range(self.num_deg)
+      model_ops.zeros(shape=[
+        self.out_channel,
+      ]) for k in range(self.num_deg)
     ]
 
     # Extract atom_features
@@ -2290,12 +2317,12 @@ class GraphGather(Layer):
 
     # Sum over atoms for each molecule
     sparse_reps = [
-        tf.reduce_mean(activated, 0, keep_dims=True)
-        for activated in activated_par
+      tf.reduce_mean(activated, 0, keep_dims=True)
+      for activated in activated_par
     ]
     max_reps = [
-        tf.reduce_max(activated, 0, keep_dims=True)
-        for activated in activated_par
+      tf.reduce_max(activated, 0, keep_dims=True)
+      for activated in activated_par
     ]
 
     # Get the final sparse representations
@@ -2367,9 +2394,9 @@ class LSTMStep(Layer):
     self.U = inner_init((self.output_dim, 4 * self.output_dim))
 
     self.b = tf.Variable(
-        np.hstack((np.zeros(self.output_dim), np.ones(self.output_dim),
-                   np.zeros(self.output_dim), np.zeros(self.output_dim))),
-        dtype=tf.float32)
+      np.hstack((np.zeros(self.output_dim), np.ones(self.output_dim),
+                 np.zeros(self.output_dim), np.zeros(self.output_dim))),
+      dtype=tf.float32)
     self.trainable_weights = [self.W, self.U, self.b]
 
   def none_tensors(self):
@@ -2619,7 +2646,7 @@ class IterRefLSTMEmbedding(Layer):
     support_lstm = LSTMStep(n_feat, 2 * n_feat)
     self.q_init = model_ops.zeros([self.n_support, n_feat])
     self.support_states_init = support_lstm.get_initial_states(
-        [self.n_support, n_feat])
+      [self.n_support, n_feat])
 
     # Test lstm
     test_lstm = LSTMStep(n_feat, 2 * n_feat)
@@ -2632,7 +2659,7 @@ class IterRefLSTMEmbedding(Layer):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 2:
       raise ValueError(
-          "IterRefLSTMEmbedding layer must have exactly two parents")
+        "IterRefLSTMEmbedding layer must have exactly two parents")
     x, xp = inputs
 
     # Get initializations
@@ -2736,9 +2763,9 @@ class BatchNormalization(Layer):
   def build(self, input_shape):
     shape = (input_shape[self.axis],)
     self.gamma = self.add_weight(
-        shape, initializer=self.gamma_init, name='{}_gamma'.format(self.name))
+      shape, initializer=self.gamma_init, name='{}_gamma'.format(self.name))
     self.beta = self.add_weight(
-        shape, initializer=self.beta_init, name='{}_beta'.format(self.name))
+      shape, initializer=self.beta_init, name='{}_beta'.format(self.name))
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -2747,7 +2774,7 @@ class BatchNormalization(Layer):
     self.build(input_shape)
     m = model_ops.mean(x, axis=-1, keepdims=True)
     std = model_ops.sqrt(
-        model_ops.var(x, axis=-1, keepdims=True) + self.epsilon)
+      model_ops.var(x, axis=-1, keepdims=True) + self.epsilon)
     x_normed = (x - m) / (std + self.epsilon)
     x_normed = self.gamma * x_normed + self.beta
     out_tensor = x_normed
@@ -2812,32 +2839,30 @@ class VinaFreeEnergy(Layer):
 
   def repulsion(self, d):
     """Computes Autodock Vina's repulsion interaction term."""
-    out_tensor = tf.where(d < 0, d**2, tf.zeros_like(d))
+    out_tensor = tf.where(d < 0, d ** 2, tf.zeros_like(d))
     return out_tensor
 
   def hydrophobic(self, d):
     """Computes Autodock Vina's hydrophobic interaction term."""
-    out_tensor = tf.where(d < 0.5,
-                          tf.ones_like(d),
+    out_tensor = tf.where(d < 0.5, tf.ones_like(d),
                           tf.where(d < 1.5, 1.5 - d, tf.zeros_like(d)))
     return out_tensor
 
   def hydrogen_bond(self, d):
     """Computes Autodock Vina's hydrogen bond interaction term."""
-    out_tensor = tf.where(d < -0.7,
-                          tf.ones_like(d),
+    out_tensor = tf.where(d < -0.7, tf.ones_like(d),
                           tf.where(d < 0, (1.0 / 0.7) * (0 - d),
                                    tf.zeros_like(d)))
     return out_tensor
 
   def gaussian_first(self, d):
     """Computes Autodock Vina's first Gaussian interaction term."""
-    out_tensor = tf.exp(-(d / 0.5)**2)
+    out_tensor = tf.exp(-(d / 0.5) ** 2)
     return out_tensor
 
   def gaussian_second(self, d):
     """Computes Autodock Vina's second Gaussian interaction term."""
-    out_tensor = tf.exp(-((d - 3) / 2)**2)
+    out_tensor = tf.exp(-((d - 3) / 2) ** 2)
     return out_tensor
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
@@ -2908,7 +2933,7 @@ class WeightedLinearCombo(Layer):
     out_tensor = None
     for in_tensor in inputs:
       w = tf.Variable(tf.random_normal([
-          1,
+        1,
       ], stddev=self.std))
       if out_tensor is None:
         out_tensor = w * in_tensor
@@ -2947,7 +2972,7 @@ class NeighborList(Layer):
     self.M_nbrs = M_nbrs
     self.ndim = ndim
     # Number of grid cells
-    n_cells = int(((stop - start) / nbr_cutoff)**ndim)
+    n_cells = int(((stop - start) / nbr_cutoff) ** ndim)
     self.n_cells = n_cells
     self.nbr_cutoff = nbr_cutoff
     self.start = start
@@ -2999,9 +3024,9 @@ class NeighborList(Layer):
 
     # Add phantom atoms that exist far outside the box
     coord_padding = tf.to_float(
-        tf.fill((self.M_nbrs, self.ndim), 2 * self.stop))
+      tf.fill((self.M_nbrs, self.ndim), 2 * self.stop))
     padded_nbr_coords = [
-        tf.concat([nbr_coord, coord_padding], 0) for nbr_coord in nbr_coords
+      tf.concat([nbr_coord, coord_padding], 0) for nbr_coord in nbr_coords
     ]
 
     # List of length N_atoms, each of shape (1, ndim)
@@ -3010,21 +3035,21 @@ class NeighborList(Layer):
     # account for periodic boundary conditions?
     # List of length N_atoms each of shape (M_nbrs)
     padded_dists = [
-        tf.reduce_sum((atom_coord - padded_nbr_coord)**2, axis=1)
-        for (atom_coord,
-             padded_nbr_coord) in zip(atom_coords, padded_nbr_coords)
+      tf.reduce_sum((atom_coord - padded_nbr_coord) ** 2, axis=1)
+      for (atom_coord,
+           padded_nbr_coord) in zip(atom_coords, padded_nbr_coords)
     ]
 
     padded_closest_nbrs = [
-        tf.nn.top_k(-padded_dist, k=self.M_nbrs)[1]
-        for padded_dist in padded_dists
+      tf.nn.top_k(-padded_dist, k=self.M_nbrs)[1]
+      for padded_dist in padded_dists
     ]
 
     # N_atoms elts of size (M_nbrs,) each
     padded_neighbor_list = [
-        tf.gather(padded_atom_nbrs, padded_closest_nbr)
-        for (padded_atom_nbrs,
-             padded_closest_nbr) in zip(padded_nbrs, padded_closest_nbrs)
+      tf.gather(padded_atom_nbrs, padded_closest_nbr)
+      for (padded_atom_nbrs,
+           padded_closest_nbr) in zip(padded_nbrs, padded_closest_nbrs)
     ]
 
     neighbor_list = tf.stack(padded_neighbor_list)
@@ -3062,7 +3087,7 @@ class NeighborList(Layer):
     # List of length N_atoms, each element length uniques_i
     nbrs_per_atom = tf.split(atoms_in_nbrs, self.N_atoms)
     uniques = [
-        tf.unique(tf.squeeze(atom_nbrs))[0] for atom_nbrs in nbrs_per_atom
+      tf.unique(tf.squeeze(atom_nbrs))[0] for atom_nbrs in nbrs_per_atom
     ]
 
     # TODO(rbharath): FRAGILE! Uses fact that identity seems to be the first
@@ -3093,13 +3118,13 @@ class NeighborList(Layer):
                                       self.M_nbrs)
     # Tile both cells and coords to form arrays of size (N_atoms*n_cells, ndim)
     tiled_cells = tf.reshape(
-        tf.tile(cells, (1, N_atoms)), (N_atoms * n_cells, ndim))
+      tf.tile(cells, (1, N_atoms)), (N_atoms * n_cells, ndim))
 
     # Shape (N_atoms*n_cells, ndim) after tile
     tiled_coords = tf.tile(coords, (n_cells, 1))
 
     # Shape (N_atoms*n_cells)
-    coords_vec = tf.reduce_sum((tiled_coords - tiled_cells)**2, axis=1)
+    coords_vec = tf.reduce_sum((tiled_coords - tiled_cells) ** 2, axis=1)
     # Shape (n_cells, N_atoms)
     coords_norm = tf.reshape(coords_vec, (n_cells, N_atoms))
 
@@ -3131,8 +3156,8 @@ class NeighborList(Layer):
 
     # Shape (N_atoms*n_cells, 1) after tile
     tiled_coords = tf.reshape(
-        tf.tile(coords, (1, n_cells)), (n_cells * N_atoms, ndim))
-    coords_vec = tf.reduce_sum((tiled_coords - tiled_cells)**2, axis=1)
+      tf.tile(coords, (1, n_cells)), (n_cells * N_atoms, ndim))
+    coords_vec = tf.reduce_sum((tiled_coords - tiled_cells) ** 2, axis=1)
     coords_norm = tf.reshape(coords_vec, (N_atoms, n_cells))
 
     closest_inds = tf.nn.top_k(-coords_norm, k=1)[1]
@@ -3176,11 +3201,11 @@ class NeighborList(Layer):
     # Two tilings (a, b, c, a, b, c, ...) vs. (a, a, a, b, b, b, etc.)
     # Tile (a, a, a, b, b, b, etc.)
     tiled_centers = tf.reshape(
-        tf.tile(cells, (1, n_cells)), (n_cells * n_cells, ndim))
+      tf.tile(cells, (1, n_cells)), (n_cells * n_cells, ndim))
     # Tile (a, b, c, a, b, c, ...)
     tiled_cells = tf.tile(cells, (n_cells, 1))
 
-    coords_vec = tf.reduce_sum((tiled_centers - tiled_cells)**2, axis=1)
+    coords_vec = tf.reduce_sum((tiled_centers - tiled_cells) ** 2, axis=1)
     coords_norm = tf.reshape(coords_vec, (n_cells, n_cells))
     closest_inds = tf.nn.top_k(-coords_norm, k=n_nbr_cells)[1]
 
@@ -3201,9 +3226,9 @@ class NeighborList(Layer):
     start, stop, nbr_cutoff = self.start, self.stop, self.nbr_cutoff
     mesh_args = [tf.range(start, stop, nbr_cutoff) for _ in range(self.ndim)]
     return tf.to_float(
-        tf.reshape(
-            tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
-            (self.n_cells, self.ndim)))
+      tf.reshape(
+        tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
+        (self.n_cells, self.ndim)))
 
 
 class Dropout(Layer):
@@ -3423,7 +3448,7 @@ class AtomicConvolution(Layer):
 
     """
 
-    return tf.exp(-e * (R - rs)**2)
+    return tf.exp(-e * (R - rs) ** 2)
 
   def distance_tensor(self, X, Nbrs, boxsize, B, N, M, d):
     """Calculates distance tensor for batch of molecules.
@@ -3740,8 +3765,8 @@ class ANIFeat(Layer):
                                         coordinates)
 
     out_tensor = tf.concat(
-        [tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym, angular_sym],
-        axis=2)
+      [tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym, angular_sym],
+      axis=2)
 
     if set_tensors:
       self.out_tensor = out_tensor
@@ -3766,7 +3791,7 @@ class ANIFeat(Layer):
 
     # Calculate pairwise distance
     d = tf.sqrt(
-        tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3) + 1e-7)
+      tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3) + 1e-7)
 
     d = d * flags
     return d
@@ -3787,7 +3812,7 @@ class ANIFeat(Layer):
     atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
 
     Rs = np.linspace(0., self.radial_cutoff, self.radial_length)
-    ita = np.ones_like(Rs) * 3 / (Rs[1] - Rs[0])**2
+    ita = np.ones_like(Rs) * 3 / (Rs[1] - Rs[0]) ** 2
     Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, -1)))
     ita = tf.to_float(np.reshape(ita, (1, 1, 1, -1)))
     length = ita.get_shape().as_list()[-1]
@@ -3800,8 +3825,8 @@ class ANIFeat(Layer):
       out_tensors = []
       for atom_type in self.atom_cases:
         selected_atoms = tf.expand_dims(
-            tf.expand_dims(atom_numbers_embedded[:, :, atom_type], axis=1),
-            axis=3)
+          tf.expand_dims(atom_numbers_embedded[:, :, atom_type], axis=1),
+          axis=3)
         out_tensors.append(tf.reduce_sum(out * selected_atoms, axis=2))
       return tf.concat(out_tensors, axis=2)
     else:
@@ -3815,9 +3840,9 @@ class ANIFeat(Layer):
     atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
 
     Rs = np.linspace(0., self.angular_cutoff, self.angular_length)
-    ita = 3 / (Rs[1] - Rs[0])**2
+    ita = 3 / (Rs[1] - Rs[0]) ** 2
     thetas = np.linspace(0., np.pi, self.angular_length)
-    zeta = float(self.angular_length**2)
+    zeta = float(self.angular_length ** 2)
 
     ita, zeta, Rs, thetas = np.meshgrid(ita, zeta, Rs, thetas)
     zeta = tf.to_float(np.reshape(zeta, (1, 1, 1, 1, -1)))
@@ -3828,15 +3853,15 @@ class ANIFeat(Layer):
 
     # tf.stack issues again...
     vector_distances = tf.stack([coordinates] * max_atoms, 1) - tf.stack(
-        [coordinates] * max_atoms, 2)
+      [coordinates] * max_atoms, 2)
     R_ij = tf.stack([d] * max_atoms, axis=3)
     R_ik = tf.stack([d] * max_atoms, axis=2)
     f_R_ij = tf.stack([d_cutoff] * max_atoms, axis=3)
     f_R_ik = tf.stack([d_cutoff] * max_atoms, axis=2)
 
     # Define angle theta = arccos(R_ij(Vector) dot R_ik(Vector)/R_ij(distance)/R_ik(distance))
-    vector_mul = tf.reduce_sum(tf.stack([vector_distances]*max_atoms, axis=3) * \
-        tf.stack([vector_distances]*max_atoms, axis=2), axis=4)
+    vector_mul = tf.reduce_sum(tf.stack([vector_distances] * max_atoms, axis=3) * \
+                               tf.stack([vector_distances] * max_atoms, axis=2), axis=4)
     vector_mul = vector_mul * tf.sign(f_R_ij) * tf.sign(f_R_ik)
     theta = tf.acos(tf.div(vector_mul, R_ij * R_ik + 1e-5))
 
@@ -3846,8 +3871,8 @@ class ANIFeat(Layer):
     f_R_ik = tf.stack([f_R_ik] * length, axis=4)
     theta = tf.stack([theta] * length, axis=4)
 
-    out_tensor = tf.pow((1. + tf.cos(theta - thetas))/2., zeta) * \
-        tf.exp(-ita * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik * 2
+    out_tensor = tf.pow((1. + tf.cos(theta - thetas)) / 2., zeta) * \
+                 tf.exp(-ita * tf.square((R_ij + R_ik) / 2. - Rs)) * f_R_ij * f_R_ik * 2
 
     if self.atomic_number_differentiated:
       out_tensors = []
@@ -3856,9 +3881,9 @@ class ANIFeat(Layer):
           selected_atoms = tf.stack([atom_numbers_embedded[:, :, atom_type_j]] * max_atoms, axis=2) * \
                            tf.stack([atom_numbers_embedded[:, :, atom_type_k]] * max_atoms, axis=1)
           selected_atoms = tf.expand_dims(
-              tf.expand_dims(selected_atoms, axis=1), axis=4)
+            tf.expand_dims(selected_atoms, axis=1), axis=4)
           out_tensors.append(
-              tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
+            tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
       return tf.concat(out_tensors, axis=2)
     else:
       return tf.reduce_sum(out_tensor, axis=(2, 3))
@@ -3945,7 +3970,7 @@ class GraphEmbedPoolLayer(Layer):
       V, A = in_tensors
       mask = None
     factors = self.embedding_factors(
-        V, self.num_vertices, name='%s_Factors' % self.name)
+      V, self.num_vertices, name='%s_Factors' % self.name)
 
     if mask is not None:
       factors = tf.multiply(factors, mask)
@@ -3968,14 +3993,14 @@ class GraphEmbedPoolLayer(Layer):
   def embedding_factors(self, V, no_filters, name="default"):
     no_features = V.get_shape()[-1].value
     W = tf.get_variable(
-        '%s_weights' % name, [no_features, no_filters],
-        initializer=tf.truncated_normal_initializer(
-            stddev=1.0 / math.sqrt(no_features)),
-        dtype=tf.float32)
+      '%s_weights' % name, [no_features, no_filters],
+      initializer=tf.truncated_normal_initializer(
+        stddev=1.0 / math.sqrt(no_features)),
+      dtype=tf.float32)
     b = tf.get_variable(
-        '%s_bias' % self.name, [no_filters],
-        initializer=tf.constant_initializer(0.1),
-        dtype=tf.float32)
+      '%s_bias' % self.name, [no_filters],
+      initializer=tf.constant_initializer(0.1),
+      dtype=tf.float32)
     V_reshape = tf.reshape(V, (-1, no_features))
     s = tf.slice(tf.shape(V), [0], [len(V.get_shape()) - 1])
     s = tf.concat([s, tf.stack([no_filters])], 0)
@@ -4056,20 +4081,20 @@ class GraphCNN(Layer):
     no_A = A.get_shape()[2].value
     no_features = V.get_shape()[2].value
     W = tf.get_variable(
-        '%s_weights' % self.name, [no_features * no_A, self.num_filters],
-        initializer=tf.truncated_normal_initializer(
-            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
-        dtype=tf.float32)
+      '%s_weights' % self.name, [no_features * no_A, self.num_filters],
+      initializer=tf.truncated_normal_initializer(
+        stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
+      dtype=tf.float32)
     W_I = tf.get_variable(
-        '%s_weights_I' % self.name, [no_features, self.num_filters],
-        initializer=tf.truncated_normal_initializer(
-            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
-        dtype=tf.float32)
+      '%s_weights_I' % self.name, [no_features, self.num_filters],
+      initializer=tf.truncated_normal_initializer(
+        stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
+      dtype=tf.float32)
 
     b = tf.get_variable(
-        '%s_bias' % self.name, [self.num_filters],
-        initializer=tf.constant_initializer(0.1),
-        dtype=tf.float32)
+      '%s_bias' % self.name, [self.num_filters],
+      initializer=tf.constant_initializer(0.1),
+      dtype=tf.float32)
 
     n = self.graphConvolution(V, A)
     A_shape = tf.shape(A)
