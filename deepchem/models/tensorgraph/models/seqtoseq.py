@@ -115,7 +115,7 @@ class SeqToSeq(TensorGraph):
       for KL cost annealing
     """
     super(SeqToSeq, self).__init__(
-      use_queue=False, **kwargs)  # TODO can we make it work with the queue?
+        use_queue=False, **kwargs)  # TODO can we make it work with the queue?
     if SeqToSeq.sequence_end not in input_tokens:
       input_tokens = input_tokens + [SeqToSeq.sequence_end]
     if SeqToSeq.sequence_end not in output_tokens:
@@ -128,16 +128,19 @@ class SeqToSeq(TensorGraph):
     self._embedding_dimension = embedding_dimension
     self._annealing_final_step = annealing_final_step
     self._annealing_start_step = annealing_start_step
-    self._features = layers.Feature(shape=(None, None, len(input_tokens)))
+    self._features = self._create_features()
     self._labels = layers.Label(shape=(None, None, len(output_tokens)))
     self._gather_indices = layers.Feature(
-      shape=(self.batch_size, 2), dtype=tf.int32)
+        shape=(self.batch_size, 2), dtype=tf.int32)
     self._reverse_input = reverse_input
     self._variational = variational
     self.embedding = self._create_encoder(encoder_layers, dropout)
     self.output = self._create_decoder(decoder_layers, dropout)
     self.set_loss(self._create_loss())
     self.add_output(self.output)
+
+  def _create_features(self):
+    return layers.Feature(shape=(None, None, len(self._input_tokens)))
 
   def _create_encoder(self, n_layers, dropout):
     """Create the encoder layers."""
@@ -146,30 +149,30 @@ class SeqToSeq(TensorGraph):
       if dropout > 0.0:
         prev_layer = layers.Dropout(dropout, in_layers=prev_layer)
       prev_layer = layers.GRU(
-        self._embedding_dimension, self.batch_size, in_layers=prev_layer)
+          self._embedding_dimension, self.batch_size, in_layers=prev_layer)
     prev_layer = layers.Gather(in_layers=[prev_layer, self._gather_indices])
     if self._variational:
       self._embedding_mean = layers.Dense(
-        self._embedding_dimension, in_layers=prev_layer)
+          self._embedding_dimension, in_layers=prev_layer)
       self._embedding_stddev = layers.Dense(
-        self._embedding_dimension, in_layers=prev_layer)
+          self._embedding_dimension, in_layers=prev_layer)
       prev_layer = layers.CombineMeanStd(
-        [self._embedding_mean, self._embedding_stddev], training_only=True)
+          [self._embedding_mean, self._embedding_stddev], training_only=True)
     return prev_layer
 
   def _create_decoder(self, n_layers, dropout):
     """Create the decoder layers."""
     prev_layer = layers.Repeat(
-      self._max_output_length, in_layers=self.embedding)
+        self._max_output_length, in_layers=self.embedding)
     for i in range(n_layers):
       if dropout > 0.0:
         prev_layer = layers.Dropout(dropout, in_layers=prev_layer)
       prev_layer = layers.GRU(
-        self._embedding_dimension, self.batch_size, in_layers=prev_layer)
+          self._embedding_dimension, self.batch_size, in_layers=prev_layer)
     return layers.Dense(
-      len(self._output_tokens),
-      in_layers=prev_layer,
-      activation_fn=tf.nn.softmax)
+        len(self._output_tokens),
+        in_layers=prev_layer,
+        activation_fn=tf.nn.softmax)
 
   def _create_loss(self):
     """Create the loss function."""
@@ -184,10 +187,10 @@ class SeqToSeq(TensorGraph):
       anneal_steps = self._annealing_final_step - self._annealing_start_step
       if anneal_steps > 0:
         current_step = tf.to_float(
-          self.get_global_step()) - self._annealing_start_step
+            self.get_global_step()) - self._annealing_start_step
         anneal_frac = tf.maximum(0.0, current_step) / anneal_steps
         kl_scale = layers.TensorWrapper(
-          tf.minimum(1.0, anneal_frac * anneal_frac))
+            tf.minimum(1.0, anneal_frac * anneal_frac))
       else:
         kl_scale = 1.0
       loss += 0.5 * kl_scale * layers.ReduceMean(layers.ReduceSum(kl, axis=1))
@@ -214,10 +217,10 @@ class SeqToSeq(TensorGraph):
       from there.  If False, retrain the model from scratch.
     """
     self.fit_generator(
-      self._generate_batches(sequences),
-      max_checkpoints_to_keep=max_checkpoints_to_keep,
-      checkpoint_interval=checkpoint_interval,
-      restore=restore)
+        self._generate_batches(sequences),
+        max_checkpoints_to_keep=max_checkpoints_to_keep,
+        checkpoint_interval=checkpoint_interval,
+        restore=restore)
 
   def predict_from_sequences(self, sequences, beam_width=5):
     """Given a set of input sequences, predict the output sequences.
@@ -237,7 +240,7 @@ class SeqToSeq(TensorGraph):
         feed_dict = {}
         feed_dict[self._features] = self._create_input_array(batch)
         feed_dict[self._gather_indices] = [(i, len(batch[i])
-        if i < len(batch) else 0)
+                                            if i < len(batch) else 0)
                                            for i in range(self.batch_size)]
         feed_dict[self._training_placeholder] = 0.0
         for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
@@ -263,7 +266,7 @@ class SeqToSeq(TensorGraph):
     with self._get_tf("Graph").as_default():
       for batch in self._batch_elements(embeddings):
         embedding_array = np.zeros(
-          (self.batch_size, self._embedding_dimension), dtype=np.float32)
+            (self.batch_size, self._embedding_dimension), dtype=np.float32)
         for i, e in enumerate(batch):
           embedding_array[i] = e
         feed_dict = {}
@@ -290,7 +293,7 @@ class SeqToSeq(TensorGraph):
         feed_dict = {}
         feed_dict[self._features] = self._create_input_array(batch)
         feed_dict[self._gather_indices] = [(i, len(batch[i])
-        if i < len(batch) else 0)
+                                            if i < len(batch) else 0)
                                            for i in range(self.batch_size)]
         feed_dict[self._training_placeholder] = 0.0
         for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
@@ -346,21 +349,21 @@ class SeqToSeq(TensorGraph):
     if self._reverse_input:
       sequences = [reversed(s) for s in sequences]
     features = np.zeros(
-      (self.batch_size, max(lengths) + 1, len(self._input_tokens)),
-      dtype=np.float32)
+        (self.batch_size, max(lengths) + 1, len(self._input_tokens)),
+        dtype=np.float32)
     for i, sequence in enumerate(sequences):
       for j, token in enumerate(sequence):
         features[i, j, self._input_dict[token]] = 1
     features[np.arange(len(sequences)), lengths, self._input_dict[
-      SeqToSeq.sequence_end]] = 1
+        SeqToSeq.sequence_end]] = 1
     return features
 
   def _create_output_array(self, sequences):
     """Create the array describing the target sequences for a batch."""
     lengths = [len(x) for x in sequences]
     labels = np.zeros(
-      (self.batch_size, self._max_output_length, len(self._output_tokens)),
-      dtype=np.float32)
+        (self.batch_size, self._max_output_length, len(self._output_tokens)),
+        dtype=np.float32)
     end_marker_index = self._output_dict[SeqToSeq.sequence_end]
     for i, sequence in enumerate(sequences):
       for j, token in enumerate(sequence):
@@ -394,81 +397,183 @@ class SeqToSeq(TensorGraph):
       feed_dict = {}
       feed_dict[self._features] = self._create_input_array(inputs)
       feed_dict[self._labels] = self._create_output_array(outputs)
-      feed_dict[self._gather_indices] = [(i, len(x))
-                                         for i, x in enumerate(inputs)]
+      feed_dict[self._gather_indices] = [
+          (i, len(x)) for i, x in enumerate(inputs)
+      ]
       for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
         feed_dict[initial] = zero
       yield feed_dict
 
 
 class AspuruGuzikAutoEncoder(SeqToSeq):
+  """
+  This is an implementation of Automatic Chemical Design Using a Continuous Representation of Molecules
+  http://pubs.acs.org/doi/full/10.1021/acscentsci.7b00572
+
+  Abstract
+  --------
+  We report a method to convert discrete representations of molecules to and
+  from a multidimensional continuous representation. This model allows us to
+  generate new molecules for efficient exploration and optimization through
+  open-ended spaces of chemical compounds. A deep neural network was trained on
+  hundreds of thousands of existing chemical structures to construct three
+  coupled functions: an encoder, a decoder, and a predictor. The encoder
+  converts the discrete representation of a molecule into a real-valued
+  continuous vector, and the decoder converts these continuous vectors back to
+  discrete molecular representations. The predictor estimates chemical
+  properties from the latent continuous vector representation of the molecule.
+  Continuous representations of molecules allow us to automatically generate
+  novel chemical structures by performing simple operations in the latent space,
+  such as decoding random vectors, perturbing known chemical structures, or
+  interpolating between molecules. Continuous representations also allow the use
+  of powerful gradient-based optimization to efficiently guide the search for
+  optimized functional compounds. We demonstrate our method in the domain of
+  drug-like molecules and also in a set of molecules with fewer that nine heavy
+  atoms.
+  We report a method to convert discrete representations of molecules to and from a multidimensional continuous representation. This model allows us to generate new molecules for efficient exploration and optimization through open-ended spaces of chemical compounds. A deep neural network was trained on hundreds of thousands of existing chemical structures to construct three coupled functions: an encoder, a decoder, and a predictor. The encoder converts the discrete representation of a molecule into a real-valued continuous vector, and the decoder converts these continuous vectors back to discrete molecular representations. The predictor estimates chemical properties from the latent continuous vector representation of the molecule. Continuous representations of molecules allow us to automatically generate novel chemical structures by performing simple operations in the latent space, such as decoding random vectors, perturbing known chemical structures, or interpolating between molecules. Continuous representations also allow the use of powerful gradient-based optimization to efficiently guide the search for optimized functional compounds. We demonstrate our method in the domain of drug-like molecules and also in a set of molecules with fewer that nine heavy atoms.
+
+  Notes
+  -------
+  This is currently an imperfect reproduction of the paper.  One difference is
+  that teacher forcing in the decoder is not implemented.  The paper also
+  discusses co-learning molecular properties at the same time as training the
+  encoder/decoder.  This is not done here.  The hyperparameters chosen are from
+  ZINC dataset.
+
+  This network also currently suffers from exploding gradients.  Care has to be taken when training.
+
+  TODO(LESWING): Teacher Forcing
+  """
+
   def __init__(self,
                input_tokens,
                output_tokens,
                max_output_length,
-               encoder_layers=4,
-               decoder_layers=4,
-               embedding_dimension=512,
-               dropout=0.0,
-               reverse_input=True,
+               embedding_dimension=196,
                variational=True,
-               annealing_start_step=5000,
-               annealing_final_step=10000,
+               filter_sizes=[9, 9, 10],
+               kernel_sizes=[9, 9, 11],
+               decoder_dimension=488,
                **kwargs):
     """
-    TODO(LESWING) have qm9/zinc hyper params and construct via static method
+    Parameters
+    ----------
+    filter_sizes: list of int
+      Number of filters for each 1D convolution in the encoder
+    kernel_sizes: list of int
+      Kernel size for each 1D convolution in the encoder
+    decoder_dimension: int
+      Number of channels for the GRU Decoder
     """
-    self.filter_sizes = [9, 9, 10]
-    self.kernel_sizes = [9, 9, 11]
+    if len(filter_sizes) != len(kernel_sizes):
+      raise ValueError("Must have same number of layers and kernels")
+    self._filter_sizes = filter_sizes
+    self._kernel_sizes = kernel_sizes
+    self._decoder_dimension = decoder_dimension
     super(AspuruGuzikAutoEncoder, self).__init__(
-      input_tokens,
-      output_tokens,
-      max_output_length,
-      encoder_layers,
-      decoder_layers,
-      embedding_dimension,
-      dropout,
-      reverse_input,
-      variational,
-      annealing_start_step,
-      annealing_final_step,
-      **kwargs
-    )
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        max_output_length=max_output_length,
+        embedding_dimension=embedding_dimension,
+        variational=variational,
+        **kwargs)
 
+  def _create_features(self):
+    return layers.Feature(
+        shape=(self.batch_size, self._max_output_length + 1,
+               len(self._input_tokens)))
+
+  def _create_input_array(self, sequences):
+    lengths = [len(x) for x in sequences]
+    if self._reverse_input:
+      sequences = [reversed(s) for s in sequences]
+    features = np.zeros(
+        (self.batch_size, self._max_output_length + 1, len(self._input_tokens)),
+        dtype=np.float32)
+    for i, sequence in enumerate(sequences):
+      for j, token in enumerate(sequence):
+        features[i, j, self._input_dict[token]] = 1
+    features[np.arange(len(sequences)), lengths, self._input_dict[
+        SeqToSeq.sequence_end]] = 1
+    return features
 
   def _create_encoder(self, n_layers, dropout):
     """Create the encoder layers."""
     prev_layer = self._features
-    for i in range(len(self.filter_sizes)):
-      filter_size = self.filter_sizes[i]
-      kernel_size = self.kernel_sizes[i]
+    for i in range(len(self._filter_sizes)):
+      filter_size = self._filter_sizes[i]
+      kernel_size = self._kernel_sizes[i]
       if dropout > 0.0:
         prev_layer = layers.Dropout(dropout, in_layers=prev_layer)
       prev_layer = layers.Conv1D(
-        kernel_size, filter_size, in_layers=prev_layer, activation_fn=tf.nn.relu)
-    prev_layer = layers.Gather(in_layers=[prev_layer, self._gather_indices])
+          kernel_size,
+          filter_size,
+          in_layers=prev_layer,
+          activation_fn=tf.nn.relu)
+    prev_layer = layers.Flatten(prev_layer)
     if self._variational:
       self._embedding_mean = layers.Dense(
-        self._embedding_dimension, in_layers=prev_layer)
+          self._embedding_dimension, in_layers=prev_layer)
       self._embedding_stddev = layers.Dense(
-        self._embedding_dimension, in_layers=prev_layer)
+          self._embedding_dimension, in_layers=prev_layer)
       prev_layer = layers.CombineMeanStd(
-        [self._embedding_mean, self._embedding_stddev], training_only=True)
+          [self._embedding_mean, self._embedding_stddev], training_only=True)
     return prev_layer
 
   def _create_decoder(self, n_layers, dropout):
-    """
-    TODO(LESWING): Teacher forcing
-    """
     """Create the decoder layers."""
     prev_layer = layers.Repeat(
-      self._max_output_length, in_layers=self.embedding)
+        self._max_output_length, in_layers=self.embedding)
     for i in range(3):
       if dropout > 0.0:
         prev_layer = layers.Dropout(dropout, in_layers=prev_layer)
       prev_layer = layers.GRU(
-        488, self.batch_size, in_layers=prev_layer)
-    return layers.Dense(
-      len(self._output_tokens),
-      in_layers=prev_layer,
-      activation_fn=tf.nn.softmax)
+          self._decoder_dimension, self.batch_size, in_layers=prev_layer)
+    retval = layers.Dense(
+        len(self._output_tokens),
+        in_layers=prev_layer,
+        activation_fn=tf.nn.softmax)
+    return retval
+
+  def _generate_batches(self, sequences):
+    """Create feed_dicts for fitting."""
+    for batch in self._batch_elements(sequences):
+      inputs = []
+      outputs = []
+      for input, output in batch:
+        inputs.append(input)
+        outputs.append(output)
+      for i in range(len(inputs), self.batch_size):
+        inputs.append([])
+        outputs.append([])
+      feed_dict = {}
+      feed_dict[self._features] = self._create_input_array(inputs)
+      feed_dict[self._labels] = self._create_output_array(outputs)
+      for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
+        feed_dict[initial] = zero
+      yield feed_dict
+
+  def predict_from_sequences(self, sequences, beam_width=5):
+    """Given a set of input sequences, predict the output sequences.
+
+    The prediction is done using a beam search with length normalization.
+
+    Parameters
+    ----------
+    sequences: iterable
+      the input sequences to generate a prediction for
+    beam_width: int
+      the beam width to use for searching.  Set to 1 to use a simple greedy search.
+    """
+    result = []
+    with self._get_tf("Graph").as_default():
+      for batch in self._batch_elements(sequences):
+        feed_dict = {}
+        feed_dict[self._features] = self._create_input_array(batch)
+        feed_dict[self._training_placeholder] = 0.0
+        for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
+          feed_dict[initial] = zero
+        probs = self.session.run(self.output, feed_dict=feed_dict)
+        for i in range(len(batch)):
+          result.append(self._beam_search(probs[i], beam_width))
+    return result
