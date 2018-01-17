@@ -183,7 +183,7 @@ class SeqToSeq(TensorGraph):
     if self._variational:
       mean_sq = self._embedding_mean * self._embedding_mean
       stddev_sq = self._embedding_stddev * self._embedding_stddev
-      kl = mean_sq + stddev_sq - layers.Log(stddev_sq) - 1
+      kl = mean_sq + stddev_sq - layers.Log(stddev_sq + 1e-20) - 1
       anneal_steps = self._annealing_final_step - self._annealing_start_step
       if anneal_steps > 0:
         current_step = tf.to_float(
@@ -441,6 +441,7 @@ class AspuruGuzikAutoEncoder(SeqToSeq):
 
   This network also currently suffers from exploding gradients.  Care has to be taken when training.
 
+  NOTE(LESWING): Will need to play around with annealing schedule to not have exploding gradients
   TODO(LESWING): Teacher Forcing
   TODO(LESWING): Sigmoid variational loss annealing schedule
   The output GRU layer had one
