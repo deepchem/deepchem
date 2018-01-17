@@ -430,7 +430,6 @@ class AspuruGuzikAutoEncoder(SeqToSeq):
   optimized functional compounds. We demonstrate our method in the domain of
   drug-like molecules and also in a set of molecules with fewer that nine heavy
   atoms.
-  We report a method to convert discrete representations of molecules to and from a multidimensional continuous representation. This model allows us to generate new molecules for efficient exploration and optimization through open-ended spaces of chemical compounds. A deep neural network was trained on hundreds of thousands of existing chemical structures to construct three coupled functions: an encoder, a decoder, and a predictor. The encoder converts the discrete representation of a molecule into a real-valued continuous vector, and the decoder converts these continuous vectors back to discrete molecular representations. The predictor estimates chemical properties from the latent continuous vector representation of the molecule. Continuous representations of molecules allow us to automatically generate novel chemical structures by performing simple operations in the latent space, such as decoding random vectors, perturbing known chemical structures, or interpolating between molecules. Continuous representations also allow the use of powerful gradient-based optimization to efficiently guide the search for optimized functional compounds. We demonstrate our method in the domain of drug-like molecules and also in a set of molecules with fewer that nine heavy atoms.
 
   Notes
   -------
@@ -443,6 +442,15 @@ class AspuruGuzikAutoEncoder(SeqToSeq):
   This network also currently suffers from exploding gradients.  Care has to be taken when training.
 
   TODO(LESWING): Teacher Forcing
+  TODO(LESWING): Sigmoid variational loss annealing schedule
+  The output GRU layer had one
+  additional input, corresponding to the character sampled from the softmax output of the
+  previous time step and was trained using teacher forcing. 48 This increased the accuracy
+  of generated SMILES strings, which resulted in higher fractions of valid SMILES strings
+  for latent points outside the training data, but also made training more difficult, since the
+  decoder showed a tendency to ignore the (variational) encoding and rely solely on the input
+  sequence. The variational loss was annealed according to sigmoid schedule after 29 epochs,
+  running for a total 120 epochs
   """
 
   def __init__(self,
