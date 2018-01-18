@@ -514,7 +514,7 @@ class AspuruGuzikAutoEncoder(SeqToSeq):
     prev_layer = layers.Flatten(prev_layer)
     prev_layer = layers.Dense(
         self._decoder_dimension, in_layers=prev_layer, activation_fn=tf.nn.relu)
-    #prev_layer = layers.BatchNorm(prev_layer)
+    prev_layer = layers.BatchNorm(prev_layer)
     if self._variational:
       self._embedding_mean = layers.Dense(
           self._embedding_dimension,
