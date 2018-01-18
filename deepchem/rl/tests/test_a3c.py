@@ -1,7 +1,7 @@
 from flaky import flaky
 
 import deepchem as dc
-from deepchem.models.tensorgraph.layers import Reshape, Variable, SoftMax, GRU, Dense
+from deepchem.models.tensorgraph.layers import Reshape, Variable, SoftMax, GRU, Dense, Constant
 from deepchem.models.tensorgraph.optimizers import Adam, PolynomialDecay
 import numpy as np
 import tensorflow as tf
@@ -230,3 +230,68 @@ class TestA3C(unittest.TestCase):
       if np.array_equal(env.state[:2], env.state[2:]):
         pass_count += 1
     assert pass_count >= 3
+
+  def test_continuous(self):
+    """Test A3C on an environment with a continous action space."""
+
+    # The state consists of two numbers: a current value and a target value.
+    # The policy just needs to learn to output the target value (or at least
+    # move toward it).
+
+    class TestEnvironment(dc.rl.Environment):
+
+      def __init__(self):
+        super(TestEnvironment, self).__init__((2,), action_shape=(1,))
+
+      def reset(self):
+        target = np.random.uniform(-50, 50)
+        self._state = np.array([0, target])
+        self._terminated = False
+        self.count = 0
+
+      def step(self, action):
+        target = self._state[1]
+        dist = np.abs(target - action[0])
+        old_dist = np.abs(target - self._state[0])
+        new_state = np.array([action[0], target])
+        self._state = new_state
+        self.count += 1
+        reward = old_dist - dist
+        self._terminated = (self.count == 10)
+        return reward
+
+    # A simple policy with no hidden layers.
+
+    class TestPolicy(dc.rl.Policy):
+
+      def create_layers(self, state, **kwargs):
+        action_mean = Dense(
+            1, in_layers=state, weights_initializer=tf.zeros_initializer)
+        action_std = Constant([10.0])
+        value = Dense(1, in_layers=state)
+        return {
+            'action_mean': action_mean,
+            'action_std': action_std,
+            'value': value
+        }
+
+    # Optimize it.
+
+    env = TestEnvironment()
+    learning_rate = PolynomialDecay(
+        initial_rate=0.005, final_rate=0.0005, decay_steps=25000)
+    a3c = dc.rl.A3C(
+        env,
+        TestPolicy(),
+        discount_factor=0,
+        optimizer=Adam(learning_rate=learning_rate))
+    a3c.fit(25000)
+
+    # Try running it and see if it reaches the target
+
+    env.reset()
+    while not env.terminated:
+      env.step(a3c.select_action(env.state, deterministic=True))
+    distance = np.abs(env.state[0] - env.state[1])
+    tolerance = max(1.0, 0.1 * np.abs(env.state[1]))
+    assert distance < tolerance
