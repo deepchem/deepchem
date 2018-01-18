@@ -507,14 +507,14 @@ class AspuruGuzikAutoEncoder(SeqToSeq):
       if dropout > 0.0:
         prev_layer = layers.Dropout(dropout, in_layers=prev_layer)
       prev_layer = layers.Conv1D(
-          kernel_size,
-          filter_size,
+          filters=filter_size,
+          kernel_size=kernel_size,
           in_layers=prev_layer,
           activation_fn=tf.nn.relu)
     prev_layer = layers.Flatten(prev_layer)
     prev_layer = layers.Dense(
         self._decoder_dimension, in_layers=prev_layer, activation_fn=tf.nn.relu)
-    prev_layer = layers.BatchNorm(prev_layer)
+    #prev_layer = layers.BatchNorm(prev_layer)
     if self._variational:
       self._embedding_mean = layers.Dense(
           self._embedding_dimension,
@@ -587,3 +587,24 @@ class AspuruGuzikAutoEncoder(SeqToSeq):
         for i in range(len(batch)):
           result.append(self._beam_search(probs[i], beam_width))
     return result
+
+  def predict_embeddings(self, sequences):
+    """Given a set of input sequences, compute the embedding vectors.
+
+    Parameters
+    ----------
+    sequences: iterable
+      the input sequences to generate an embedding vector for
+    """
+    result = []
+    with self._get_tf("Graph").as_default():
+      for batch in self._batch_elements(sequences):
+        feed_dict = {}
+        feed_dict[self._features] = self._create_output_array(batch)
+        feed_dict[self._training_placeholder] = 0.0
+        for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
+          feed_dict[initial] = zero
+        embeddings = self.session.run(self.embedding, feed_dict=feed_dict)
+        for i in range(len(batch)):
+          result.append(embeddings[i])
+    return np.array(result, dtype=np.float32)
