@@ -179,7 +179,8 @@ class SeqToSeq(TensorGraph):
     prob = layers.ReduceSum(self.output * self._labels, axis=2)
     mask = layers.ReduceSum(self._labels, axis=2)
     log_prob = layers.Log(prob + 1e-20) * mask
-    loss = -layers.ReduceMean(layers.ReduceSum(log_prob, axis=1))
+    loss = -layers.ReduceMean(
+        layers.ReduceSum(log_prob, axis=1), name='cross_entropy_loss')
     if self._variational:
       mean_sq = self._embedding_mean * self._embedding_mean
       stddev_sq = self._embedding_stddev * self._embedding_stddev
@@ -190,7 +191,7 @@ class SeqToSeq(TensorGraph):
             self.get_global_step()) - self._annealing_start_step
         anneal_frac = tf.maximum(0.0, current_step) / anneal_steps
         kl_scale = layers.TensorWrapper(
-            tf.minimum(1.0, anneal_frac * anneal_frac))
+            tf.minimum(1.0, anneal_frac * anneal_frac), name='kl_scale')
       else:
         kl_scale = 1.0
       loss += 0.5 * kl_scale * layers.ReduceMean(layers.ReduceSum(kl, axis=1))
@@ -452,14 +453,18 @@ class AspuruGuzikAutoEncoder(SeqToSeq):
   decoder showed a tendency to ignore the (variational) encoding and rely solely on the input
   sequence. The variational loss was annealed according to sigmoid schedule after 29 epochs,
   running for a total 120 epochs
+
+  I also added a BatchNorm before the mean and std embedding layers.  This has empiracally
+  made training more stable, and is discussed in Ladder Variational Autoencoders.
+  https://arxiv.org/pdf/1602.02282.pdf
+  Maybe if Teacher Forcing and Sigmoid variational loss annealing schedule are used the
+  BatchNorm will no longer be neccessary.
   """
 
   def __init__(self,
-               input_tokens,
-               output_tokens,
+               num_tokens,
                max_output_length,
                embedding_dimension=196,
-               variational=True,
                filter_sizes=[9, 9, 10],
                kernel_sizes=[9, 9, 11],
                decoder_dimension=488,
@@ -480,31 +485,18 @@ class AspuruGuzikAutoEncoder(SeqToSeq):
     self._kernel_sizes = kernel_sizes
     self._decoder_dimension = decoder_dimension
     super(AspuruGuzikAutoEncoder, self).__init__(
-        input_tokens=input_tokens,
-        output_tokens=output_tokens,
+        input_tokens=num_tokens,
+        output_tokens=num_tokens,
         max_output_length=max_output_length,
         embedding_dimension=embedding_dimension,
-        variational=variational,
+        variational=True,
+        reverse_input=False,
         **kwargs)
 
   def _create_features(self):
     return layers.Feature(
-        shape=(self.batch_size, self._max_output_length + 1,
+        shape=(self.batch_size, self._max_output_length,
                len(self._input_tokens)))
-
-  def _create_input_array(self, sequences):
-    lengths = [len(x) for x in sequences]
-    if self._reverse_input:
-      sequences = [reversed(s) for s in sequences]
-    features = np.zeros(
-        (self.batch_size, self._max_output_length + 1, len(self._input_tokens)),
-        dtype=np.float32)
-    for i, sequence in enumerate(sequences):
-      for j, token in enumerate(sequence):
-        features[i, j, self._input_dict[token]] = 1
-    features[np.arange(len(sequences)), lengths, self._input_dict[
-        SeqToSeq.sequence_end]] = 1
-    return features
 
   def _create_encoder(self, n_layers, dropout):
     """Create the encoder layers."""
@@ -520,19 +512,27 @@ class AspuruGuzikAutoEncoder(SeqToSeq):
           in_layers=prev_layer,
           activation_fn=tf.nn.relu)
     prev_layer = layers.Flatten(prev_layer)
+    prev_layer = layers.Dense(
+        self._decoder_dimension, in_layers=prev_layer, activation_fn=tf.nn.relu)
+    prev_layer = layers.BatchNorm(prev_layer)
     if self._variational:
       self._embedding_mean = layers.Dense(
-          self._embedding_dimension, in_layers=prev_layer)
+          self._embedding_dimension,
+          in_layers=prev_layer,
+          name='embedding_mean')
       self._embedding_stddev = layers.Dense(
-          self._embedding_dimension, in_layers=prev_layer)
+          self._embedding_dimension, in_layers=prev_layer, name='embedding_std')
       prev_layer = layers.CombineMeanStd(
           [self._embedding_mean, self._embedding_stddev], training_only=True)
     return prev_layer
 
   def _create_decoder(self, n_layers, dropout):
     """Create the decoder layers."""
-    prev_layer = layers.Repeat(
-        self._max_output_length, in_layers=self.embedding)
+    prev_layer = layers.Dense(
+        self._embedding_dimension,
+        in_layers=self.embedding,
+        activation_fn=tf.nn.relu)
+    prev_layer = layers.Repeat(self._max_output_length, in_layers=prev_layer)
     for i in range(3):
       if dropout > 0.0:
         prev_layer = layers.Dropout(dropout, in_layers=prev_layer)
@@ -541,7 +541,8 @@ class AspuruGuzikAutoEncoder(SeqToSeq):
     retval = layers.Dense(
         len(self._output_tokens),
         in_layers=prev_layer,
-        activation_fn=tf.nn.softmax)
+        activation_fn=tf.nn.softmax,
+        name='output')
     return retval
 
   def _generate_batches(self, sequences):
@@ -556,7 +557,7 @@ class AspuruGuzikAutoEncoder(SeqToSeq):
         inputs.append([])
         outputs.append([])
       feed_dict = {}
-      feed_dict[self._features] = self._create_input_array(inputs)
+      feed_dict[self._features] = self._create_output_array(inputs)
       feed_dict[self._labels] = self._create_output_array(outputs)
       for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
         feed_dict[initial] = zero
@@ -578,7 +579,7 @@ class AspuruGuzikAutoEncoder(SeqToSeq):
     with self._get_tf("Graph").as_default():
       for batch in self._batch_elements(sequences):
         feed_dict = {}
-        feed_dict[self._features] = self._create_input_array(batch)
+        feed_dict[self._features] = self._create_output_array(batch)
         feed_dict[self._training_placeholder] = 0.0
         for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
           feed_dict[initial] = zero

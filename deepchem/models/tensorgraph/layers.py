@@ -775,7 +775,11 @@ class Transpose(Layer):
 class CombineMeanStd(Layer):
   """Generate Gaussian nose."""
 
-  def __init__(self, in_layers=None, training_only=False, **kwargs):
+  def __init__(self,
+               in_layers=None,
+               training_only=False,
+               noise_epsilon=0.01,
+               **kwargs):
     """Create a CombineMeanStd layer.
 
     This layer should have two inputs with the same shape, and its output also has the
@@ -792,9 +796,12 @@ class CombineMeanStd(Layer):
       if True, noise is only generated during training.  During prediction, the output
       is simply equal to the first input (that is, the mean of the distribution used
       during training).
+    noise_epsilon: float
+      The standard deviation of the random noise
     """
     super(CombineMeanStd, self).__init__(in_layers, **kwargs)
     self.training_only = training_only
+    self.noise_epsilon = noise_epsilon
     try:
       self._shape = self.in_layers[0].shape
     except:
@@ -806,10 +813,10 @@ class CombineMeanStd(Layer):
       raise ValueError("Must have two in_layers")
     mean_parent, std_parent = inputs[0], inputs[1]
     sample_noise = tf.random_normal(
-        mean_parent.get_shape(), 0, 1, dtype=tf.float32)
+        mean_parent.get_shape(), 0, self.noise_epsilon, dtype=tf.float32)
     if self.training_only:
       sample_noise *= kwargs['training']
-    out_tensor = mean_parent + (std_parent * sample_noise)
+    out_tensor = mean_parent + tf.exp(std_parent * 0.5) * sample_noise
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
