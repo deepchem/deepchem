@@ -372,48 +372,93 @@ class Conv1D(Layer):
   """
 
   def __init__(self,
-               width,
-               out_channels,
-               stride=1,
-               padding='SAME',
-               activation_fn=tf.nn.relu,
-               biases_initializer=tf.random_normal_initializer,
-               weights_initializer=tf.random_normal_initializer,
+               filters,
+               kernel_size,
+               strides=1,
+               padding='valid',
+               dilation_rate=1,
+               activation=None,
+               use_bias=True,
+               kernel_initializer='glorot_uniform',
+               bias_initializer='zeros',
+               kernel_regularizer=None,
+               bias_regularizer=None,
+               activity_regularizer=None,
+               kernel_constraint=None,
+               bias_constraint=None,
+               in_layers=None,
                **kwargs):
-    """Create a Conv1D layer.
+    """1D convolution layer (e.g. temporal convolution).
 
-    Parameters
-    ----------
-    width: int
-      the width of the convolutional kernel
-    out_channels: int
-      the number of outputs produced by the convolutional kernel
-    stride: int
-      the stride between applications of the convolutional kernel
-    padding: str
-      the padding method to use, either 'SAME' or 'VALID'
-    activation_fn: object
-      the Tensorflow activation function to apply to the output
-    biases_initializer: callable object
-      the initializer for bias values.  This may be None, in which case the layer
-      will not include biases.
-    weights_initializer: callable object
-      the initializer for weight values
+      This layer creates a convolution kernel that is convolved
+      with the layer input over a single spatial (or temporal) dimension
+      to produce a tensor of outputs.
+      If `use_bias` is True, a bias vector is created and added to the outputs.
+      Finally, if `activation` is not `None`,
+      it is applied to the outputs as well.
+
+      When using this layer as the first layer in a model,
+      provide an `input_shape` argument
+      (tuple of integers or `None`, e.g.
+      `(10, 128)` for sequences of 10 vectors of 128-dimensional vectors,
+      or `(None, 128)` for variable-length sequences of 128-dimensional vectors.
+
+      TODO(LESWING): Calculate output shape at construction time
+      Arguments:
+          filters: Integer, the dimensionality of the output space
+              (i.e. the number output of filters in the convolution).
+          kernel_size: An integer or tuple/list of a single integer,
+              specifying the length of the 1D convolution window.
+          strides: An integer or tuple/list of a single integer,
+              specifying the stride length of the convolution.
+              Specifying any stride value != 1 is incompatible with specifying
+              any `dilation_rate` value != 1.
+          padding: One of `"valid"`, `"causal"` or `"same"` (case-insensitive).
+              `"causal"` results in causal (dilated) convolutions, e.g. output[t]
+              does not depend on input[t+1:]. Useful when modeling temporal data
+              where the model should not violate the temporal order.
+              See [WaveNet: A Generative Model for Raw Audio, section
+                2.1](https://arxiv.org/abs/1609.03499).
+          dilation_rate: an integer or tuple/list of a single integer, specifying
+              the dilation rate to use for dilated convolution.
+              Currently, specifying any `dilation_rate` value != 1 is
+              incompatible with specifying any `strides` value != 1.
+          activation: Activation function to use.
+              If you don't specify anything, no activation is applied
+              (ie. "linear" activation: `a(x) = x`).
+          use_bias: Boolean, whether the layer uses a bias vector.
+          kernel_initializer: Initializer for the `kernel` weights matrix.
+          bias_initializer: Initializer for the bias vector.
+          kernel_regularizer: Regularizer function applied to
+              the `kernel` weights matrix.
+          bias_regularizer: Regularizer function applied to the bias vector.
+          activity_regularizer: Regularizer function applied to
+              the output of the layer (its "activation")..
+          kernel_constraint: Constraint function applied to the kernel matrix.
+          bias_constraint: Constraint function applied to the bias vector.
+
+      Input shape:
+          3D tensor with shape: `(batch_size, steps, input_dim)`
+
+      Output shape:
+          3D tensor with shape: `(batch_size, new_steps, filters)`
+          `steps` value might have changed due to padding or strides.
     """
-    self.width = width
-    self.out_channels = out_channels
-    self.stride = stride
+    self.filters = filters
+    self.kernel_size = kernel_size
+    self.strides = strides
     self.padding = padding
-    self.activation_fn = activation_fn
-    self.weights_initializer = weights_initializer
-    self.biases_initializer = biases_initializer
-    self.out_tensor = None
-    super(Conv1D, self).__init__(**kwargs)
-    try:
-      parent_shape = self.in_layers[0].shape
-      self._shape = (parent_shape[0], parent_shape[1] // stride, out_channels)
-    except:
-      pass
+    self.dilation_rate = dilation_rate
+    self.activation = activation
+    self.use_bias = use_bias
+    self.kernel_initializer = kernel_initializer
+    self.bias_initializer = bias_initializer
+    self.kernel_regularizer = kernel_regularizer
+    self.bias_regularizer = bias_regularizer
+    self.activity_regularizer = activity_regularizer
+    self.kernel_constraint = kernel_constraint
+    self.bias_constraint = bias_constraint
+    super(Conv1D, self).__init__(in_layers, **kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -424,18 +469,21 @@ class Conv1D(Layer):
       parent = tf.expand_dims(parent, 2)
     elif len(parent.get_shape()) != 3:
       raise ValueError("Parent tensor must be (batch, width, channel)")
-    parent_shape = parent.get_shape()
-    parent_channel_size = parent_shape[2].value
-    f = tf.Variable(self.weights_initializer()(
-        [self.width, parent_channel_size, self.out_channels]))
-    t = tf.nn.conv1d(parent, f, stride=self.stride, padding=self.padding)
-    if self.biases_initializer is not None:
-      b = tf.Variable(self.biases_initializer()([self.out_channels]))
-      t = tf.nn.bias_add(t, b)
-    if self.activation_fn is None:
-      out_tensor = t
-    else:
-      out_tensor = self.activation_fn(t)
+    out_tensor = tf.keras.layers.Conv1D(
+        filters=self.filters,
+        kernel_size=self.kernel_size,
+        strides=self.strides,
+        padding=self.padding,
+        dilation_rate=self.dilation_rate,
+        activation=self.activation,
+        use_bias=self.use_bias,
+        kernel_initializer=self.kernel_initializer,
+        bias_initializer=self.bias_initializer,
+        kernel_regularizer=self.kernel_regularizer,
+        bias_regularizer=self.bias_regularizer,
+        activity_regularizer=self.activity_regularizer,
+        kernel_constraint=self.kernel_constraint,
+        bias_constraint=self.bias_constraint)(parent)
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
@@ -727,7 +775,11 @@ class Transpose(Layer):
 class CombineMeanStd(Layer):
   """Generate Gaussian nose."""
 
-  def __init__(self, in_layers=None, training_only=False, **kwargs):
+  def __init__(self,
+               in_layers=None,
+               training_only=False,
+               noise_epsilon=0.01,
+               **kwargs):
     """Create a CombineMeanStd layer.
 
     This layer should have two inputs with the same shape, and its output also has the
@@ -744,9 +796,12 @@ class CombineMeanStd(Layer):
       if True, noise is only generated during training.  During prediction, the output
       is simply equal to the first input (that is, the mean of the distribution used
       during training).
+    noise_epsilon: float
+      The standard deviation of the random noise
     """
     super(CombineMeanStd, self).__init__(in_layers, **kwargs)
     self.training_only = training_only
+    self.noise_epsilon = noise_epsilon
     try:
       self._shape = self.in_layers[0].shape
     except:
@@ -758,10 +813,10 @@ class CombineMeanStd(Layer):
       raise ValueError("Must have two in_layers")
     mean_parent, std_parent = inputs[0], inputs[1]
     sample_noise = tf.random_normal(
-        mean_parent.get_shape(), 0, 1, dtype=tf.float32)
+        mean_parent.get_shape(), 0, self.noise_epsilon, dtype=tf.float32)
     if self.training_only:
       sample_noise *= kwargs['training']
-    out_tensor = mean_parent + (std_parent * sample_noise)
+    out_tensor = mean_parent + tf.exp(std_parent * 0.5) * sample_noise
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -895,21 +950,25 @@ class GRU(Layer):
       self.rnn_initial_states.append(initial_state)
       self.rnn_final_states.append(final_state)
       self.rnn_zero_states.append(np.zeros(zero_state.get_shape(), np.float32))
+      self.out_tensors = [
+          self.out_tensor, initial_state, final_state, zero_state
+      ]
     return out_tensor
 
   def none_tensors(self):
     saved_tensors = [
         self.out_tensor, self.rnn_initial_states, self.rnn_final_states,
-        self.rnn_zero_states
+        self.rnn_zero_states, self.out_tensors
     ]
     self.out_tensor = None
     self.rnn_initial_states = []
     self.rnn_final_states = []
     self.rnn_zero_states = []
+    self.out_tensors = []
     return saved_tensors
 
   def set_tensors(self, tensor):
-    self.out_tensor, self.rnn_initial_states, self.rnn_final_states, self.rnn_zero_states = tensor
+    self.out_tensor, self.rnn_initial_states, self.rnn_final_states, self.rnn_zero_states, self.out_tensors = tensor
 
 
 class LSTM(Layer):

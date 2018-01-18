@@ -62,16 +62,18 @@ class TestLayers(test_util.TensorFlowTestCase):
     """Test that Conv1D can be invoked."""
     width = 5
     in_channels = 2
-    out_channels = 3
+    filters = 3
+    kernel_size = 2
     batch_size = 10
     in_tensor = np.random.rand(batch_size, width, in_channels)
     with self.test_session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
-      out_tensor = Conv1D(width, out_channels)(in_tensor)
+      out_tensor = Conv1D(filters, kernel_size)(in_tensor)
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
 
-      assert out_tensor.shape == (batch_size, width, out_channels)
+      self.assertEqual(out_tensor.shape[0], batch_size)
+      self.assertEqual(out_tensor.shape[2], filters)
 
   def test_dense(self):
     """Test that Dense can be invoked."""
