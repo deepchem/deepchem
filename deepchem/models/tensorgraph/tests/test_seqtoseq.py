@@ -94,13 +94,7 @@ class TestSeqToSeq(unittest.TestCase):
     embeddings = s.predict_embeddings(train_smiles)
     pred1e = s.predict_from_embeddings(embeddings, beam_width=1)
     pred4e = s.predict_from_embeddings(embeddings, beam_width=4)
-    count1 = 0
-    count4 = 0
     for i in range(len(train_smiles)):
-      if pred1[i] == train_smiles[i]:
-        count1 += 1
-      if pred4[i] == train_smiles[i]:
-        count4 += 1
       assert pred1[i] == pred1e[i]
       assert pred4[i] == pred4e[i]
 
