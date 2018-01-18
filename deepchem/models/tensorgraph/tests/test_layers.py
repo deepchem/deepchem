@@ -5,7 +5,7 @@ from tensorflow.python.framework import test_util
 
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
-from deepchem.models.tensorgraph.layers import Add, MaxPool2D, MaxPool3D, GraphCNN, GraphEmbedPoolLayer
+from deepchem.models.tensorgraph.layers import Add, MaxPool2D, MaxPool3D, GraphCNN, GraphEmbedPoolLayer, Cast
 from deepchem.models.tensorgraph.layers import AlphaShareLayer
 from deepchem.models.tensorgraph.layers import AttnLSTMEmbedding
 from deepchem.models.tensorgraph.layers import BatchNorm
@@ -276,8 +276,9 @@ class TestLayers(test_util.TensorFlowTestCase):
     value2 = np.random.uniform(size=(2, 3)).astype(np.float32)
     value3 = np.random.uniform(size=(2, 3)).astype(np.float32)
     with self.test_session() as sess:
-      out_tensor = Add(weights=[1, 2, 1])(
-          tf.constant(value1), tf.constant(value2), tf.constant(value3))
+      out_tensor = Add(weights=[1, 2, 1])(tf.constant(value1),
+                                          tf.constant(value2),
+                                          tf.constant(value3))
       assert np.array_equal(value1 + 2 * value2 + value3, out_tensor.eval())
 
   def test_multiply(self):
@@ -708,6 +709,14 @@ class TestLayers(test_util.TensorFlowTestCase):
       diff = value1.reshape((1, 6, 1)) - value2
       loss = np.mean(diff**2)
       assert (loss - result) / loss < 1e-6
+
+  def test_cast(self):
+    """Test that layers can automatically reshape inconsistent inputs."""
+    value1 = np.random.uniform(size=(2, 1)).astype(np.float32)
+    with self.test_session() as sess:
+      out_tensor = Cast(dtype=tf.int32)(tf.constant(value1))
+      result = out_tensor.eval()
+      assert result.dtype == np.int32
 
   def test_squeeze_inputs(self):
     """Test that layers can automatically reshape inconsistent inputs."""
