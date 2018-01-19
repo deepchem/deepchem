@@ -8,10 +8,7 @@ import tensorflow as tf
 
 from deepchem.nn import model_ops
 from deepchem.models.tensorflow_models import TensorflowGraph
-from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
-from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
-
-
+'''
 class RobustMultitaskClassifier(MultiTaskClassifier):
   """Implements a neural network for robust multitasking.
   
@@ -369,3 +366,4 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
                         value=bias_init_consts[-1], shape=[1])),
                 axis=1))
       return (output, labels, weights)
+'''
