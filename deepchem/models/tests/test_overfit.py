@@ -359,6 +359,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
+  '''
   def test_tf_robust_multitask_classification_overfit(self):
     """Test tf robust multitask overfits tiny data."""
     n_tasks = 10
@@ -393,7 +394,8 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
-
+  '''
+  '''
   def test_tf_logreg_multitask_classification_overfit(self):
     """Test tf multitask overfits tiny data."""
     n_tasks = 10
@@ -425,6 +427,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
+  '''
 
   def test_IRV_multitask_classification_overfit(self):
     """Test IRV classifier overfits tiny data."""
@@ -522,6 +525,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .1
 
+  '''
   def test_tf_robust_multitask_regression_overfit(self):
     """Test tf robust multitask overfits tiny data."""
     np.random.seed(123)
@@ -559,6 +563,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .2
+  '''
 
   def test_tensorgraph_DTNN_multitask_regression_overfit(self):
     """Test deep tensor neural net overfits tiny data."""
@@ -905,6 +910,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .9
 
+  '''
   def test_tf_progressive_regression_overfit(self):
     """Test tf progressive multitask overfits tiny data."""
     np.random.seed(123)
@@ -943,3 +949,4 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [metric])
     y_pred = model.predict(dataset)
     assert scores[metric.name] < .2
+  '''

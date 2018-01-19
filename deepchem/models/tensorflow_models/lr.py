@@ -11,8 +11,6 @@ import os
 import time
 
 from deepchem.metrics import from_one_hot
-from deepchem.models.tensorflow_models import TensorflowGraph
-from deepchem.models.tensorflow_models import TensorflowGraphModel
 from deepchem.nn import model_ops
 from deepchem.utils.save import log
 from deepchem.data import pad_features
@@ -40,6 +38,7 @@ def weight_decay(penalty_type, penalty):
   return cost
 
 
+'''
 class TensorflowLogisticRegression(TensorflowGraphModel):
   """ A simple tensorflow based logistic regression model. """
 
@@ -246,3 +245,4 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         outputs = np.array(from_one_hot(np.concatenate(output), axis=-1))
 
     return np.copy(outputs)
+'''

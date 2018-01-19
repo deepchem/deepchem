@@ -7,7 +7,6 @@ import numpy as np
 import tensorflow as tf
 
 from deepchem.nn import model_ops
-from deepchem.models.tensorflow_models import TensorflowGraph
 '''
 class RobustMultitaskClassifier(MultiTaskClassifier):
   """Implements a neural network for robust multitasking.
