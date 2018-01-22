@@ -596,8 +596,8 @@ class TestDatasets(unittest.TestCase):
         test_ids.append(d)
 
       if batch_size is None:
-        for idx, (tx, ty, tw,
-                  tids) in enumerate(zip(test_Xs, test_ys, test_ws, test_ids)):
+        for idx, (tx, ty, tw, tids) in enumerate(
+            zip(test_Xs, test_ys, test_ws, test_ids)):
           assert len(tx) == shard_sizes[idx]
           assert len(ty) == shard_sizes[idx]
           assert len(tw) == shard_sizes[idx]
@@ -680,8 +680,8 @@ class TestDatasets(unittest.TestCase):
     new_data = dc.data.datasets.DiskDataset.merge(datasets)
 
     # Check that we have all the data in
-    assert new_data.X.shape == (num_datapoints*num_datasets, num_features)
-    assert new_data.y.shape == (num_datapoints*num_datasets, num_tasks)
+    assert new_data.X.shape == (num_datapoints * num_datasets, num_features)
+    assert new_data.y.shape == (num_datapoints * num_datasets, num_tasks)
     assert len(new_data.tasks) == len(datasets[0].tasks)
 
 
