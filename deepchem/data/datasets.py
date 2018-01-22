@@ -939,12 +939,29 @@ class DiskDataset(Dataset):
     else:
       merge_dir = tempfile.mkdtemp()
 
+    # Protect against generator exhaustion
+    datasets = list(datasets)
+
+    # This ensures tasks are consistent for all datasets
+    tasks = []
+    for dataset in datasets:
+      try:
+        tasks.append(dataset.tasks)
+      except AttributeError:
+        pass
+    if tasks:
+      if len(tasks) < len(datasets) or len(set(map(tuple, tasks))) > 1:
+        raise ValueError(
+            'Cannot merge datasets with different task specifications')
+      tasks = tasks[0]
+
     def generator():
       for ind, dataset in enumerate(datasets):
         X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
         yield (X, y, w, ids)
 
-    return DiskDataset.create_dataset(generator(), data_dir=merge_dir)
+    return DiskDataset.create_dataset(
+        generator(), data_dir=merge_dir, tasks=tasks)
 
   def subset(self, shard_nums, subset_dir=None):
     """Creates a subset of the original dataset on disk."""
