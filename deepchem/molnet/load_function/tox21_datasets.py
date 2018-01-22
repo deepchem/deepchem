@@ -13,8 +13,6 @@ def load_tox21(featurizer='ECFP', split='index', reload=True, K=4):
   """Load Tox21 datasets. Does not do train/test split"""
   # Featurize Tox21 dataset
   data_dir = deepchem.utils.get_data_dir()
-  if reload:
-    save_dir = os.path.join(data_dir, "tox21/" + featurizer + "/" + split)
 
   tox21_tasks = [
       'NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER', 'NR-ER-LBD',
@@ -22,6 +20,7 @@ def load_tox21(featurizer='ECFP', split='index', reload=True, K=4):
   ]
 
   if reload:
+    save_dir = os.path.join(data_dir, "tox21/" + featurizer + "/" + split)
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
         save_dir)
     if loaded:
