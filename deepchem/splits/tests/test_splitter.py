@@ -132,7 +132,7 @@ class TestSplitters(unittest.TestCase):
     assert len(valid_data) == 1
     assert len(test_data) == 1
 
-    merged_dataset = dc.data.DiskDataset.merge(
+    merged_dataset = dc.data.NumpyDataset.merge(
         [train_data, valid_data, test_data])
     assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
