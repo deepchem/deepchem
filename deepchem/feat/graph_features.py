@@ -12,8 +12,8 @@ from deepchem.feat.mol_graphs import ConvMol, WeaveMol
 
 def one_of_k_encoding(x, allowable_set):
   if x not in allowable_set:
-    raise Exception(
-        "input {0} not in allowable set{1}:".format(x, allowable_set))
+    raise Exception("input {0} not in allowable set{1}:".format(
+        x, allowable_set))
   return list(map(lambda s: x == s, allowable_set))
 
 
@@ -97,7 +97,7 @@ def id_to_features(id, intervals):
   id -= 1
 
   for k in range(0, 6 - 1):
-    #print(6-k-1, id)
+    # print(6-k-1, id)
     features[6 - k - 1] = id // intervals[6 - k - 1]
     id -= features[6 - k - 1] * intervals[6 - k - 1]
   # Correct for last one
@@ -116,61 +116,61 @@ def atom_features(atom, bool_id_feat=False, explicit_H=False):
     return np.array([atom_to_id(atom)])
   else:
     results = one_of_k_encoding_unk(
-        atom.GetSymbol(),
-        [
-            'C',
-            'N',
-            'O',
-            'S',
-            'F',
-            'Si',
-            'P',
-            'Cl',
-            'Br',
-            'Mg',
-            'Na',
-            'Ca',
-            'Fe',
-            'As',
-            'Al',
-            'I',
-            'B',
-            'V',
-            'K',
-            'Tl',
-            'Yb',
-            'Sb',
-            'Sn',
-            'Ag',
-            'Pd',
-            'Co',
-            'Se',
-            'Ti',
-            'Zn',
-            'H',  # H?
-            'Li',
-            'Ge',
-            'Cu',
-            'Au',
-            'Ni',
-            'Cd',
-            'In',
-            'Mn',
-            'Zr',
-            'Cr',
-            'Pt',
-            'Hg',
-            'Pb',
-            'Unknown'
-        ]) + one_of_k_encoding(atom.GetDegree(),
-                               [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) + \
-        one_of_k_encoding_unk(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5, 6]) + \
-        [atom.GetFormalCharge(), atom.GetNumRadicalElectrons()] + \
-        one_of_k_encoding_unk(atom.GetHybridization(), [
-            Chem.rdchem.HybridizationType.SP, Chem.rdchem.HybridizationType.SP2,
-            Chem.rdchem.HybridizationType.SP3, Chem.rdchem.HybridizationType.
-            SP3D, Chem.rdchem.HybridizationType.SP3D2
-        ]) + [atom.GetIsAromatic()]
+      atom.GetSymbol(),
+      [
+        'C',
+        'N',
+        'O',
+        'S',
+        'F',
+        'Si',
+        'P',
+        'Cl',
+        'Br',
+        'Mg',
+        'Na',
+        'Ca',
+        'Fe',
+        'As',
+        'Al',
+        'I',
+        'B',
+        'V',
+        'K',
+        'Tl',
+        'Yb',
+        'Sb',
+        'Sn',
+        'Ag',
+        'Pd',
+        'Co',
+        'Se',
+        'Ti',
+        'Zn',
+        'H',  # H?
+        'Li',
+        'Ge',
+        'Cu',
+        'Au',
+        'Ni',
+        'Cd',
+        'In',
+        'Mn',
+        'Zr',
+        'Cr',
+        'Pt',
+        'Hg',
+        'Pb',
+        'Unknown'
+      ]) + one_of_k_encoding(atom.GetDegree(),
+                             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) + \
+              one_of_k_encoding_unk(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5, 6]) + \
+              [atom.GetFormalCharge(), atom.GetNumRadicalElectrons()] + \
+              one_of_k_encoding_unk(atom.GetHybridization(), [
+                Chem.rdchem.HybridizationType.SP, Chem.rdchem.HybridizationType.SP2,
+                Chem.rdchem.HybridizationType.SP3, Chem.rdchem.HybridizationType.
+                                    SP3D, Chem.rdchem.HybridizationType.SP3D2
+              ]) + [atom.GetIsAromatic()]
     # In case of explicit hydrogen(QM8, QM9), avoid calling `GetTotalNumHs`
     if not explicit_H:
       results = results + one_of_k_encoding_unk(atom.GetTotalNumHs(),
@@ -220,9 +220,9 @@ def pair_features(mol, edge_list, canon_adj_list, bt_len=6,
     for atom in range(N):
       pos = mol.GetConformer(0).GetAtomPosition(atom)
       coords[atom, :] = [pos.x, pos.y, pos.z]
-    features[:,:,-1] = np.sqrt(np.sum(np.square(
-        np.stack([coords] * N, axis=1) - \
-        np.stack([coords] * N, axis=0)), axis=2))
+    features[:, :, -1] = np.sqrt(np.sum(np.square(
+      np.stack([coords] * N, axis=1) - \
+      np.stack([coords] * N, axis=0)), axis=2))
 
   return features
 
@@ -247,13 +247,25 @@ def find_distance(a1, num_atoms, canon_adj_list, max_distance=7):
 
 
 class ConvMolFeaturizer(Featurizer):
-
   name = ['conv_mol']
 
-  def __init__(self):
-    # Since ConvMol is an object and not a numpy array, need to set dtype to
-    # object.
+  def __init__(self, master_atom=False):
+    """
+    Parameters
+    ----------
+    master_atom: Boolean
+      if true create a fake atom with bonds to every other atom.
+      the initialization is the mean of the other atom features in
+      the molecule.  This technique is briefly discussed in
+      Neural Message Passing for Quantum Chemistry
+      https://arxiv.org/pdf/1704.01212.pdf
+
+
+    Since ConvMol is an object and not a numpy array, need to set dtype to
+    object.
+    """
     self.dtype = object
+    self.master_atom = master_atom
 
   def _featurize(self, mol):
     """Encodes mol as a ConvMol object."""
@@ -264,10 +276,14 @@ class ConvMolFeaturizer(Featurizer):
 
     # Stack nodes into an array
     nodes = np.vstack(nodes)
+    if self.master_atom:
+      master_atom_features = np.expand_dims(np.mean(nodes, axis=0), axis=0)
+      nodes = np.concatenate([nodes, master_atom_features], axis=0)
 
     # Get bond lists with reverse edges included
-    edge_list = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx())
-                 for b in mol.GetBonds()]
+    edge_list = [
+        (b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()
+    ]
 
     # Get canonical adjacency list
     canon_adj_list = [[] for mol_id in range(len(nodes))]
@@ -275,11 +291,15 @@ class ConvMolFeaturizer(Featurizer):
       canon_adj_list[edge[0]].append(edge[1])
       canon_adj_list[edge[1]].append(edge[0])
 
+    if self.master_atom:
+      fake_atom_index = len(nodes) - 1
+      for index in range(len(nodes) - 1):
+        canon_adj_list[index].append(fake_atom_index)
+
     return ConvMol(nodes, canon_adj_list)
 
 
 class WeaveFeaturizer(Featurizer):
-
   name = ['weave_mol']
 
   def __init__(self, graph_distance=True, explicit_H=False):
