@@ -279,11 +279,11 @@ class TensorGraph(Model):
           deterministic=deterministic,
           pad_batches=pad_batches):
         feed_dict = dict()
-        if len(self.labels) == 1 and y_b is not None and not predict:
+        if len(self.labels) == 1 and y_b is not None:
           feed_dict[self.labels[0]] = y_b
         if len(self.features) == 1 and X_b is not None:
           feed_dict[self.features[0]] = X_b
-        if len(self.task_weights) == 1 and w_b is not None and not predict:
+        if len(self.task_weights) == 1 and w_b is not None:
           feed_dict[self.task_weights[0]] = w_b
         for (initial_state, zero_state) in zip(self.rnn_initial_states,
                                                self.rnn_zero_states):
@@ -349,7 +349,11 @@ class TensorGraph(Model):
 
       final_results = []
       for result_list in results:
-        final_results.append(np.concatenate(result_list, axis=0))
+        try:
+          result_list = np.concatenate(result_list, axis=0)
+        except ValueError as e:
+          pass
+        final_results.append(result_list)
       # If only one output, just return array
       if len(final_results) == 1:
         return final_results[0]
