@@ -789,11 +789,13 @@ class DiskDataset(Dataset):
         else:
           shard_batch_size = batch_size
 
-        num_local_batches = math.ceil(n_shard_samples / shard_batch_size)
-
         if n_shard_samples == 0:
           cur_shard += 1
+          if batch_size is None:
+            cur_global_batch += 1
           continue
+
+        num_local_batches = math.ceil(n_shard_samples / shard_batch_size)
         if not deterministic:
           sample_perm = np.random.permutation(n_shard_samples)
         else:

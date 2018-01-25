@@ -10,7 +10,7 @@ import copy
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
   SoftMaxCrossEntropy, BatchNorm, WeightedError, Dropout, BatchNormalization, \
-  Conv1D, MaxPool1D, Squeeze, Stack, Highway
+  Conv1D, ReduceMax, Squeeze, Stack, Highway
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
@@ -104,6 +104,8 @@ class TextCNNTensorGraph(TensorGraph):
       Properties of filters used in the conv net
     num_filters: list of int, optional
       Properties of filters used in the conv net
+    dropout: float, optional
+      Dropout rate
     mode: str
       Either "classification" or "regression" for type of model.
     """
@@ -174,15 +176,10 @@ class TextCNNTensorGraph(TensorGraph):
               in_layers=[self.Embedding]))
       # Max-over-time pooling
       self.pooled_outputs.append(
-          MaxPool1D(
-              window_shape=self.seq_length - filter_size + 1,
-              strides=1,
-              padding='VALID',
-              in_layers=[self.conv_layers[-1]]))
+          ReduceMax(axis=1, in_layers=[self.conv_layers[-1]]))
     # Concat features from all filters(one feature per filter)
-    concat_outputs = Concat(axis=2, in_layers=self.pooled_outputs)
-    outputs = Squeeze(squeeze_dims=1, in_layers=concat_outputs)
-    dropout = Dropout(dropout_prob=self.dropout, in_layers=[outputs])
+    concat_outputs = Concat(axis=1, in_layers=self.pooled_outputs)
+    dropout = Dropout(dropout_prob=self.dropout, in_layers=[concat_outputs])
     dense = Dense(
         out_channels=200, activation_fn=tf.nn.relu, in_layers=[dropout])
     # Highway layer from https://arxiv.org/pdf/1505.00387.pdf
@@ -211,7 +208,7 @@ class TextCNNTensorGraph(TensorGraph):
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
     if self.mode == "classification":
-      all_cost = Concat(in_layers=costs, axis=1)
+      all_cost = Stack(in_layers=costs, axis=1)
     elif self.mode == "regression":
       all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
@@ -272,3 +269,14 @@ class TextCNNTensorGraph(TensorGraph):
       # Padding with '_'
       seq.append(self.char_dict['_'])
     return np.array(seq)
+
+  def predict_on_generator(self, generator, transformers=[], outputs=None):
+    out = super(TextCNNTensorGraph, self).predict_on_generator(
+        generator, transformers=[], outputs=outputs)
+    if outputs is None:
+      outputs = self.outputs
+    if len(outputs) > 1:
+      out = np.stack(out, axis=1)
+
+    out = undo_transforms(out, transformers)
+    return out
