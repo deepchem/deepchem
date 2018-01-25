@@ -274,11 +274,12 @@ class TextCNNTensorGraph(TensorGraph):
   def predict_on_generator(self, generator, transformers=[], outputs=None):
       out = super(TextCNNTensorGraph, self).predict_on_generator(
           generator, 
-          transformers=transformers, 
+          transformers=[], 
           outputs=outputs)
       if outputs is None:
         outputs = self.outputs
-      if len(outputs) == 1:
-        return out
-      else:
-        return np.stack(out, axis=1)
+      if len(outputs) > 1:
+        out = np.stack(out, axis=1)
+      
+      out = undo_transforms(out, transformers)
+      return out

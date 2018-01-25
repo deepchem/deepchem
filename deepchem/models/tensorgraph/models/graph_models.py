@@ -185,14 +185,17 @@ class WeaveTensorGraph(TensorGraph):
   def predict_on_generator(self, generator, transformers=[], outputs=None):
       out = super(WeaveTensorGraph, self).predict_on_generator(
           generator, 
-          transformers=transformers, 
+          transformers=[], 
           outputs=outputs)
       if outputs is None:
         outputs = self.outputs
-      if len(outputs) == 1:
-        return out
-      else:
-        return np.stack(out, axis=1)
+      if len(outputs) > 1:
+        out = np.stack(out, axis=1)
+      
+      out = undo_transforms(out, transformers)
+      return out
+      
+      
 
 class DTNNTensorGraph(TensorGraph):
 
@@ -345,7 +348,6 @@ class DTNNTensorGraph(TensorGraph):
 
         yield feed_dict
 
-  '''
   def predict(self, dataset, transformers=[], outputs=None):
     if outputs is None:
       outputs = self.outputs
@@ -357,7 +359,6 @@ class DTNNTensorGraph(TensorGraph):
       return retval
     retval = np.concatenate(retval, axis=-1)
     return undo_transforms(retval, transformers)
-  '''
 
 class DAGTensorGraph(TensorGraph):
 
@@ -511,14 +512,15 @@ class DAGTensorGraph(TensorGraph):
   def predict_on_generator(self, generator, transformers=[], outputs=None):
       out = super(DAGTensorGraph, self).predict_on_generator(
           generator, 
-          transformers=transformers, 
+          transformers=[], 
           outputs=outputs)
       if outputs is None:
         outputs = self.outputs
-      if len(outputs) == 1:
-        return out
-      else:
-        return np.stack(out, axis=1)
+      if len(outputs) > 1:
+        out = np.stack(out, axis=1)
+      
+      out = undo_transforms(out, transformers)
+      return out
 
 class PetroskiSuchTensorGraph(TensorGraph):
   """
