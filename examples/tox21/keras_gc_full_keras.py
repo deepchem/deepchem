@@ -10,7 +10,7 @@ import tensorflow as tf
 
 import deepchem as dc
 from deepchem.molnet import load_tox21
-from feat.mol_graphs import ConvMol
+from deepchem.feat.mol_graphs import ConvMol
 
 
 def reshape_y(y):
@@ -195,9 +195,6 @@ x = tf.keras.layers.BatchNormalization()(x, training=is_training)
 readout = GraphGather(
     batch_size=batch_size, activation_fn=tf.nn.tanh)([x, membership])
 
-labels = []
-weights = []
-losses = []
 outputs = []
 for i in range(len(tox21_tasks)):
   output = tf.keras.layers.Dense(2, activation=tf.nn.softmax)(readout)
