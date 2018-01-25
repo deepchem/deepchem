@@ -11,11 +11,6 @@ import tensorflow as tf
 import deepchem as dc
 from deepchem.molnet import load_tox21
 from feat.mol_graphs import ConvMol
-from tensorflow.python.keras import backend as K
-
-sess = tf.Session()
-K.set_session(sess)
-K.set_learning_phase(True)
 
 
 def reshape_y(y):
@@ -48,21 +43,21 @@ class GraphConv(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     self.W_list = [
-        self.add_weight(
-            name='w%s' % k,
-            shape=(input_shape[0][-1], self.out_channel),
-            initializer=tf.glorot_uniform_initializer(),
-            trainable=True,
-            dtype=tf.float32) for k in range(self.num_deg)
+      self.add_weight(
+        name='w%s' % k,
+        shape=(input_shape[0][-1], self.out_channel),
+        initializer=tf.glorot_uniform_initializer(),
+        trainable=True,
+        dtype=tf.float32) for k in range(self.num_deg)
     ]
 
     self.b_list = [
-        self.add_weight(
-            name='b%s' % k,
-            shape=(self.out_channel,),
-            initializer=tf.zeros_initializer(),
-            trainable=True,
-            dtype=tf.float32) for k in range(self.num_deg)
+      self.add_weight(
+        name='b%s' % k,
+        shape=(self.out_channel,),
+        initializer=tf.zeros_initializer(),
+        trainable=True,
+        dtype=tf.float32) for k in range(self.num_deg)
     ]
     super(GraphConv, self).build(input_shape)  # Be sure to call this somewhere!
 
@@ -157,12 +152,12 @@ class GraphGather(tf.keras.layers.Layer):
 
     # Sum over atoms for each molecule
     sparse_reps = [
-        tf.reduce_mean(activated, 0, keep_dims=True)
-        for activated in activated_par
+      tf.reduce_mean(activated, 0, keep_dims=True)
+      for activated in activated_par
     ]
     max_reps = [
-        tf.reduce_max(activated, 0, keep_dims=True)
-        for activated in activated_par
+      tf.reduce_max(activated, 0, keep_dims=True)
+      for activated in activated_par
     ]
 
     # Get the final sparse representations
@@ -180,32 +175,33 @@ class GraphGather(tf.keras.layers.Layer):
 
 
 batch_size = 64
+is_training = tf.Variable(True, name='training')
 atom_features = tf.placeholder(
-    tf.float32, shape=(
-        None,
-        75,
-    ))
+  tf.float32, shape=(
+    None,
+    75,
+  ))
 degree_slice = tf.placeholder(tf.int32, shape=(None, 2))
 membership = tf.placeholder(tf.int32, shape=(None,))
 
 deg_adjs = []
 for i in range(10):
   deg_adj = tf.placeholder(
-      tf.int32, shape=(
-          None,
-          i + 1,
-      ))
+    tf.int32, shape=(
+      None,
+      i + 1,
+    ))
   deg_adjs.append(deg_adj)
 
 inputs = [atom_features, degree_slice, membership] + deg_adjs
 
 x = GraphConv(
-    64, activation_fn=tf.nn.relu)([atom_features, degree_slice] + deg_adjs)
+  64, activation_fn=tf.nn.relu)([atom_features, degree_slice] + deg_adjs)
 # TODO(LESWING) GraphPool Conversion
 x = tf.keras.layers.Dense(128)(x)
-x = tf.keras.layers.BatchNormalization()(x)
+x = tf.keras.layers.BatchNormalization()(x, training=is_training)
 readout = GraphGather(
-    batch_size=batch_size, activation_fn=tf.nn.tanh)([x, membership])
+  batch_size=batch_size, activation_fn=tf.nn.tanh)([x, membership])
 
 labels = []
 weights = []
@@ -221,7 +217,7 @@ for i in range(len(tox21_tasks)):
   weights.append(weight)
 
   loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-      labels=label, logits=logit) * weight
+    labels=label, logits=logit) * weight
   losses.append(loss)
 
   output = tf.nn.softmax(logit)
@@ -231,13 +227,14 @@ final_loss = tf.reduce_mean(losses)
 train_step = tf.train.AdamOptimizer().minimize(final_loss)
 
 init_op = tf.global_variables_initializer()
+sess = tf.Session()
 sess.run(init_op)
 
 with sess.as_default():
   for epoch in range(10):
     for ind, (X_b, y_b, w_b, ids_b) in enumerate(
         train_dataset.iterbatches(
-            batch_size, pad_batches=True, deterministic=False)):
+          batch_size, pad_batches=True, deterministic=False)):
       multiConvMol = ConvMol.agglomerate_mols(X_b)
       X = []
       X.append(multiConvMol.get_atom_features())
