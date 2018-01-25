@@ -232,7 +232,7 @@ CheckFeaturizer = {
     ('qm9', 'dtnn'): ['CoulombMatrix', [29, 29]],
     ('qm9', 'ani'): ['BPSymmetryFunction', [29, 4]],
     ('qm9', 'mpnn'): ['MP', [70, 8]],
-    ('qm9', 'weave_regression'): ['Weave', 75],   
+    ('qm9', 'weave_regression'): ['Weave', 75],
     ('qm9', 'textcnn_regression'): ['Raw', None]
 }
 

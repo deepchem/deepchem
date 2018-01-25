@@ -175,9 +175,8 @@ class TextCNNTensorGraph(TensorGraph):
               padding='valid',
               in_layers=[self.Embedding]))
       # Max-over-time pooling
-      self.pooled_outputs.append(ReduceMax(
-          axis=1, 
-          in_layers=[self.conv_layers[-1]]))
+      self.pooled_outputs.append(
+          ReduceMax(axis=1, in_layers=[self.conv_layers[-1]]))
     # Concat features from all filters(one feature per filter)
     concat_outputs = Concat(axis=1, in_layers=self.pooled_outputs)
     dropout = Dropout(dropout_prob=self.dropout, in_layers=[concat_outputs])
@@ -272,14 +271,12 @@ class TextCNNTensorGraph(TensorGraph):
     return np.array(seq)
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
-      out = super(TextCNNTensorGraph, self).predict_on_generator(
-          generator, 
-          transformers=[], 
-          outputs=outputs)
-      if outputs is None:
-        outputs = self.outputs
-      if len(outputs) > 1:
-        out = np.stack(out, axis=1)
-      
-      out = undo_transforms(out, transformers)
-      return out
+    out = super(TextCNNTensorGraph, self).predict_on_generator(
+        generator, transformers=[], outputs=outputs)
+    if outputs is None:
+      outputs = self.outputs
+    if len(outputs) > 1:
+      out = np.stack(out, axis=1)
+
+    out = undo_transforms(out, transformers)
+    return out

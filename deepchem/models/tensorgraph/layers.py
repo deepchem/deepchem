@@ -735,8 +735,7 @@ class Squeeze(Layer):
         self._shape = [i for i in parent_shape if i != 1]
       else:
         self._shape = [
-            parent_shape[i]
-            for i in range(len(parent_shape))
+            parent_shape[i] for i in range(len(parent_shape))
             if i not in squeeze_dims
         ]
     except:
@@ -1561,6 +1560,7 @@ class ReduceMean(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+
 class ReduceMax(Layer):
 
   def __init__(self, in_layers=None, axis=None, **kwargs):
@@ -1590,6 +1590,7 @@ class ReduceMax(Layer):
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
+
 
 class ToFloat(Layer):
 
@@ -2093,8 +2094,8 @@ class MaxPool1D(Layer):
     super(MaxPool1D, self).__init__(**kwargs)
     try:
       parent_shape = self.in_layers[0].shape
-      self._shape = tuple(
-          None if p is None else p // s for p, s in zip(parent_shape, strides))
+      self._shape = tuple(None if p is None else p // s
+                          for p, s in zip(parent_shape, strides))
     except:
       pass
 
@@ -2125,8 +2126,8 @@ class MaxPool2D(Layer):
     super(MaxPool2D, self).__init__(**kwargs)
     try:
       parent_shape = self.in_layers[0].shape
-      self._shape = tuple(
-          None if p is None else p // s for p, s in zip(parent_shape, strides))
+      self._shape = tuple(None if p is None else p // s
+                          for p, s in zip(parent_shape, strides))
     except:
       pass
 
@@ -2172,8 +2173,8 @@ class MaxPool3D(Layer):
     super(MaxPool3D, self).__init__(**kwargs)
     try:
       parent_shape = self.in_layers[0].shape
-      self._shape = tuple(
-          None if p is None else p // s for p, s in zip(parent_shape, strides))
+      self._shape = tuple(None if p is None else p // s
+                          for p, s in zip(parent_shape, strides))
     except:
       pass
 
@@ -2938,13 +2939,15 @@ class VinaFreeEnergy(Layer):
 
   def hydrophobic(self, d):
     """Computes Autodock Vina's hydrophobic interaction term."""
-    out_tensor = tf.where(d < 0.5, tf.ones_like(d),
+    out_tensor = tf.where(d < 0.5,
+                          tf.ones_like(d),
                           tf.where(d < 1.5, 1.5 - d, tf.zeros_like(d)))
     return out_tensor
 
   def hydrogen_bond(self, d):
     """Computes Autodock Vina's hydrogen bond interaction term."""
-    out_tensor = tf.where(d < -0.7, tf.ones_like(d),
+    out_tensor = tf.where(d < -0.7,
+                          tf.ones_like(d),
                           tf.where(d < 0, (1.0 / 0.7) * (0 - d),
                                    tf.zeros_like(d)))
     return out_tensor
@@ -3321,8 +3324,8 @@ class NeighborList(Layer):
     mesh_args = [tf.range(start, stop, nbr_cutoff) for _ in range(self.ndim)]
     return tf.to_float(
         tf.reshape(
-            tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
-            (self.n_cells, self.ndim)))
+            tf.transpose(tf.stack(tf.meshgrid(*mesh_args))), (self.n_cells,
+                                                              self.ndim)))
 
 
 class Dropout(Layer):
@@ -3609,8 +3612,8 @@ class AtomicConvolution(Layer):
     example_tensors = tf.unstack(X, axis=0)
     example_nbrs = tf.unstack(nbr_indices, axis=0)
     all_nbr_coords = []
-    for example, (example_tensor, example_nbr) in enumerate(
-        zip(example_tensors, example_nbrs)):
+    for example, (example_tensor,
+                  example_nbr) in enumerate(zip(example_tensors, example_nbrs)):
       nbr_coords = tf.gather(example_tensor, example_nbr)
       all_nbr_coords.append(nbr_coords)
     neighbors = tf.stack(all_nbr_coords)
@@ -4176,13 +4179,13 @@ class GraphCNN(Layer):
     no_features = V.get_shape()[2].value
     W = tf.get_variable(
         '%s_weights' % self.name, [no_features * no_A, self.num_filters],
-        initializer=tf.truncated_normal_initializer(
-            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
+        initializer=tf.truncated_normal_initializer(stddev=math.sqrt(
+            1.0 / (no_features * (no_A + 1) * 1.0))),
         dtype=tf.float32)
     W_I = tf.get_variable(
         '%s_weights_I' % self.name, [no_features, self.num_filters],
-        initializer=tf.truncated_normal_initializer(
-            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
+        initializer=tf.truncated_normal_initializer(stddev=math.sqrt(
+            1.0 / (no_features * (no_A + 1) * 1.0))),
         dtype=tf.float32)
 
     b = tf.get_variable(

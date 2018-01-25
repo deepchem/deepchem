@@ -469,8 +469,7 @@ class NumpyDataset(Dataset):
       w = np.concatenate([w, dataset.w], axis=0)
       ids = np.concatenate(
           [ids, dataset.ids],
-          axis=0,
-      )
+          axis=0,)
 
     return NumpyDataset(X, y, w, ids, n_tasks=y.shape[1])
 
@@ -648,8 +647,7 @@ class DiskDataset(Dataset):
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
     sample_X = load_from_disk(
-        os.path.join(self.data_dir,
-                     next(self.metadata_df.iterrows())[1]['X']))
+        os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]['X']))
     return np.shape(sample_X)[1:]
 
   def get_shard_size(self):
@@ -657,8 +655,7 @@ class DiskDataset(Dataset):
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
     sample_y = load_from_disk(
-        os.path.join(self.data_dir,
-                     next(self.metadata_df.iterrows())[1]['y']))
+        os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]['y']))
     return len(sample_y)
 
   def _get_metadata_filename(self):
@@ -789,13 +786,12 @@ class DiskDataset(Dataset):
         else:
           shard_batch_size = batch_size
 
-
         if n_shard_samples == 0:
           cur_shard += 1
           if batch_size is None:
             cur_global_batch += 1
           continue
-        
+
         num_local_batches = math.ceil(n_shard_samples / shard_batch_size)
         if not deterministic:
           sample_perm = np.random.permutation(n_shard_samples)

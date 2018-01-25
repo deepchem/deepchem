@@ -193,7 +193,7 @@ def benchmark_classification(train_dataset,
 
     model = deepchem.models.GraphConvTensorGraph(
         len(tasks),
-        graph_conv_layers=[n_filters]*2,
+        graph_conv_layers=[n_filters] * 2,
         dense_layer_size=n_fully_connected_nodes,
         batch_size=batch_size,
         learning_rate=learning_rate,
@@ -222,7 +222,7 @@ def benchmark_classification(train_dataset,
     if test:
       test_dataset.reshard(reshard_size)
       test_dataset = transformer.transform(test_dataset)
-    
+
     model = deepchem.models.DAGTensorGraph(
         len(tasks),
         max_atoms=max_atoms,
@@ -262,9 +262,11 @@ def benchmark_classification(train_dataset,
     filter_sizes = hyper_parameters['filter_sizes']
     num_filters = hyper_parameters['num_filters']
 
-    all_data = deepchem.data.DiskDataset.merge([train_dataset, valid_dataset, test_dataset])
-    char_dict, length = deepchem.models.TextCNNTensorGraph.build_char_dict(all_data)
-    
+    all_data = deepchem.data.DiskDataset.merge(
+        [train_dataset, valid_dataset, test_dataset])
+    char_dict, length = deepchem.models.TextCNNTensorGraph.build_char_dict(
+        all_data)
+
     model = deepchem.models.TextCNNTensorGraph(
         len(tasks),
         char_dict,
@@ -439,7 +441,7 @@ def benchmark_regression(train_dataset,
 
   assert model in [
       'tf_regression', 'tf_regression_ft', 'rf_regression', 'graphconvreg',
-      'dtnn', 'dag_regression', 'xgb_regression', 'weave_regression', 
+      'dtnn', 'dag_regression', 'xgb_regression', 'weave_regression',
       'textcnn_regression', 'krr', 'ani', 'krr_ft', 'mpnn'
   ]
   import xgboost
@@ -505,10 +507,9 @@ def benchmark_regression(train_dataset,
     n_filters = hyper_parameters['n_filters']
     n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
 
-
     model = deepchem.models.GraphConvTensorGraph(
         len(tasks),
-        graph_conv_layers=[n_filters]*2,
+        graph_conv_layers=[n_filters] * 2,
         dense_layer_size=n_fully_connected_nodes,
         batch_size=batch_size,
         learning_rate=learning_rate,
@@ -556,7 +557,7 @@ def benchmark_regression(train_dataset,
     if test:
       test_dataset.reshard(reshard_size)
       test_dataset = transformer.transform(test_dataset)
-    
+
     model = deepchem.models.DAGTensorGraph(
         len(tasks),
         max_atoms=max_atoms,
@@ -596,8 +597,9 @@ def benchmark_regression(train_dataset,
     filter_sizes = hyper_parameters['filter_sizes']
     num_filters = hyper_parameters['num_filters']
 
-    char_dict, length = deepchem.models.TextCNNTensorGraph.build_char_dict(train_dataset)
-    
+    char_dict, length = deepchem.models.TextCNNTensorGraph.build_char_dict(
+        train_dataset)
+
     model = deepchem.models.TextCNNTensorGraph(
         len(tasks),
         char_dict,
@@ -610,7 +612,7 @@ def benchmark_regression(train_dataset,
         use_queue=False,
         random_seed=seed,
         mode='regression')
-    
+
   elif model_name == 'ani':
     batch_size = hyper_parameters['batch_size']
     nb_epoch = hyper_parameters['nb_epoch']
