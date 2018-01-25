@@ -84,7 +84,7 @@ class TextCNNTensorGraph(TensorGraph):
       char_dict,
       seq_length,
       n_embedding=75,
-      filter_sizes=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20],
+      kernel_sizes=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20],
       num_filters=[100, 200, 200, 200, 200, 100, 100, 100, 100, 100, 160, 160],
       dropout=0.25,
       mode="classification",
@@ -113,7 +113,7 @@ class TextCNNTensorGraph(TensorGraph):
     self.char_dict = char_dict
     self.seq_length = seq_length
     self.n_embedding = n_embedding
-    self.filter_sizes = filter_sizes
+    self.kernel_sizes = kernel_sizes
     self.num_filters = num_filters
     self.dropout = dropout
     self.mode = mode
@@ -166,13 +166,13 @@ class TextCNNTensorGraph(TensorGraph):
         in_layers=[self.smiles_seqs])
     self.pooled_outputs = []
     self.conv_layers = []
-    for filter_size, num_filter in zip(self.filter_sizes, self.num_filters):
+    for filter_size, num_filter in zip(self.kernel_sizes, self.num_filters):
       # Multiple convolutional layers with different filter widths
       self.conv_layers.append(
           Conv1D(
-              filter_size,
-              num_filter,
-              padding='VALID',
+              kernel_size=filter_size,
+              filters=num_filter,
+              padding='valid',
               in_layers=[self.Embedding]))
       # Max-over-time pooling
       self.pooled_outputs.append(ReduceMax(

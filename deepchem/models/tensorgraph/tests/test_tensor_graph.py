@@ -1,10 +1,12 @@
+import os
+import tempfile
 import unittest
 
 import numpy as np
-import os
-from nose.tools import assert_true, nottest
-from flaky import flaky
 import tensorflow as tf
+from flaky import flaky
+from nose.tools import assert_true
+import shutil
 
 import deepchem as dc
 from deepchem.data import NumpyDataset
@@ -238,7 +240,11 @@ class TestTensorGraph(unittest.TestCase):
     prediction = np.squeeze(tg.predict_on_batch(X))
     tg.save()
 
-    tg1 = TensorGraph.load_from_dir(tg.model_dir)
+    dirpath = tempfile.mkdtemp()
+    shutil.rmtree(dirpath)
+    shutil.move(tg.model_dir, dirpath)
+
+    tg1 = TensorGraph.load_from_dir(dirpath)
     prediction2 = np.squeeze(tg1.predict_on_batch(X))
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
 
