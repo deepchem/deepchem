@@ -31,5 +31,7 @@ cd ..
 nosetests -v devtools/jenkins/compare_results.py --with-xunit || true
 export retval2=$?
 
+python devtools/jenkins/generate_graph.py
+
 source deactivate
 conda remove --name $envname --all
