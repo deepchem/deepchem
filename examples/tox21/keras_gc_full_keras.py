@@ -209,18 +209,19 @@ model.compile(
 
 
 def generator(dataset):
-  for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-      dataset.iterbatches(batch_size, pad_batches=True, deterministic=False)):
-    multiConvMol = ConvMol.agglomerate_mols(X_b)
-    X = []
-    X.append(multiConvMol.get_atom_features())
-    X.append(multiConvMol.deg_slice)
-    X.append(np.array(multiConvMol.membership))
-    for i in range(1, len(multiConvMol.get_deg_adjacency_lists())):
-      X.append(multiConvMol.get_deg_adjacency_lists()[i])
-    y = reshape_y(y_b)
-    w = reshape_y(w_b)
-    yield (X, y, w)
+  while True:
+    for ind, (X_b, y_b, w_b, ids_b) in enumerate(
+        dataset.iterbatches(batch_size, pad_batches=True, deterministic=False)):
+      multiConvMol = ConvMol.agglomerate_mols(X_b)
+      X = []
+      X.append(multiConvMol.get_atom_features())
+      X.append(multiConvMol.deg_slice)
+      X.append(np.array(multiConvMol.membership))
+      for i in range(1, len(multiConvMol.get_deg_adjacency_lists())):
+        X.append(multiConvMol.get_deg_adjacency_lists()[i])
+      y = reshape_y(y_b)
+      w = reshape_y(w_b)
+      yield (X, y, w)
 
-
-model.fit_generator(generator(train_dataset), 10)
+steps_per_epoch = math.floor(len(train_dataset.X) / batch_size)
+model.fit_generator(generator(train_dataset), steps_per_epoch, epochs=10)
