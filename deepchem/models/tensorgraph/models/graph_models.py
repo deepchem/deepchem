@@ -172,8 +172,8 @@ class WeaveTensorGraph(TensorGraph):
           atom_feat.append(mol.get_atom_features())
           # pair features
           pair_feat.append(
-              np.reshape(mol.get_pair_features(), (n_atoms * n_atoms,
-                                                   self.n_pair_feat)))
+              np.reshape(mol.get_pair_features(),
+                         (n_atoms * n_atoms, self.n_pair_feat)))
 
         feed_dict[self.atom_features] = np.concatenate(atom_feat, axis=0)
         feed_dict[self.pair_features] = np.concatenate(pair_feat, axis=0)
@@ -317,8 +317,8 @@ class DTNNTensorGraph(TensorGraph):
         num_atoms = list(map(sum, X_b.astype(bool)[:, :, 0]))
         atom_number = [
             np.round(
-                np.power(2 * np.diag(X_b[i, :num_atoms[i], :num_atoms[i]]), 1 /
-                         2.4)).astype(int) for i in range(len(num_atoms))
+                np.power(2 * np.diag(X_b[i, :num_atoms[i], :num_atoms[i]]),
+                         1 / 2.4)).astype(int) for i in range(len(num_atoms))
         ]
         start = 0
         for im, molecule in enumerate(atom_number):
@@ -1090,8 +1090,8 @@ class MPNNTensorGraph(TensorGraph):
           atom_feat.append(mol.get_atom_features())
           # pair features
           pair_feat.append(
-              np.reshape(mol.get_pair_features(), (n_atoms * n_atoms,
-                                                   self.n_pair_feat)))
+              np.reshape(mol.get_pair_features(),
+                         (n_atoms * n_atoms, self.n_pair_feat)))
 
         feed_dict[self.atom_features] = np.concatenate(atom_feat, axis=0)
         feed_dict[self.pair_features] = np.concatenate(pair_feat, axis=0)

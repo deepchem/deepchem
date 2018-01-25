@@ -164,5 +164,5 @@ if __name__ == '__main__':
     os.mkdir(save_dir)
   for pair in TODO.keys():
     plot(pair[0], pair[1], FILE, save_dir)
-  os.system('aws s3 sync ' + save_dir +
-            ' s3://deepchem.io/trained_models/MolNet_pic')
+  os.system(
+      'aws s3 sync ' + save_dir + ' s3://deepchem.io/trained_models/MolNet_pic')
