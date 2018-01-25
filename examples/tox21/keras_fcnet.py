@@ -6,9 +6,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import numpy as np
-import keras
-from keras import Input, Model
-from keras.layers import Dense, Dropout, Multiply
 import tensorflow as tf
 
 import deepchem as dc
@@ -31,16 +28,16 @@ n_features = 1024
 tox21_tasks, tox21_datasets, transformers = dc.molnet.load_tox21()
 train_dataset, valid_dataset, test_dataset = tox21_datasets
 
-inputs = Input(shape=train_dataset.X[0].shape)
-x = Dense(1000, activation='relu')(inputs)
-x = Dropout(0.25)(x)
+inputs = tf.keras.layers.Input(shape=train_dataset.X[0].shape)
+x = tf.keras.layers.Dense(1000, activation='relu')(inputs)
+x = tf.keras.layers.Dropout(0.25)(x)
 outputs = []
 for i in range(len(tox21_tasks)):
-  predictions = Dense(2, activation='softmax')(x)
+  predictions = tf.keras.layers.Dense(2, activation='softmax')(x)
   outputs.append(predictions)
 
-optimizer = keras.optimizers.Adam(lr=0.001)
-model = Model(inputs=inputs, outputs=outputs)
+optimizer = tf.keras.optimizers.Adam(lr=0.001)
+model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
 model.compile(
     optimizer=optimizer,
     loss='sparse_categorical_crossentropy',
