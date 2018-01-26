@@ -44,4 +44,5 @@ conda install -y -q -c conda-forge zlib=1.2.11
 conda install -y -q -c conda-forge requests=2.18.4
 conda install -y -q -c conda-forge xgboost=0.6a2
 conda install -y -q -c conda-forge simdna=0.4.2
+conda install -y -q -c conda-forge jupyter=1.0.0
 conda install -y -q -c rdkit rdkit=2017.09.1
