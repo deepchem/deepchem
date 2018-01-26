@@ -132,20 +132,32 @@ class TestSplitters(unittest.TestCase):
     assert len(valid_data) == 1
     assert len(test_data) == 1
 
-    merged_dataset = dc.data.DiskDataset.merge(
+    merged_dataset = dc.data.NumpyDataset.merge(
         [train_data, valid_data, test_data])
     assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
-  def test_singletask_butina_split(self):
+  def test_singletask_maxmin_split(self):
     """
-    Test singletask ScaffoldSplitter class.
+    Test singletask MaxMinSplitter class.
     """
     solubility_dataset = dc.data.tests.load_butina_data()
-    scaffold_splitter = dc.splits.ButinaSplitter()
+    maxmin_splitter = dc.splits.MaxMinSplitter()
     train_data, valid_data, test_data = \
-      scaffold_splitter.train_valid_test_split(
+      maxmin_splitter.train_valid_test_split(
         solubility_dataset)
-    print(len(train_data), len(valid_data))
+    assert len(train_data) == 8
+    assert len(valid_data) == 1
+    assert len(test_data) == 1
+
+  def test_singletask_butina_split(self):
+    """
+    Test singletask ButinaSplitter class.
+    """
+    solubility_dataset = dc.data.tests.load_butina_data()
+    butina_splitter = dc.splits.ButinaSplitter()
+    train_data, valid_data, test_data = \
+      butina_splitter.train_valid_test_split(
+        solubility_dataset)
     assert len(train_data) == 7
     assert len(valid_data) == 3
     assert len(test_data) == 0

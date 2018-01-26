@@ -201,8 +201,8 @@ class Dataset(object):
     >>> dataset = NumpyDataset(np.ones((2,2)))
     >>> for x, y, w, id in dataset.itersamples():
     ...   print(x, y, w, id)
-    [ 1.  1.] [ 0.] [ 0.] 0
-    [ 1.  1.] [ 0.] [ 0.] 1
+    [1. 1.] [0.] [0.] 0
+    [1. 1.] [0.] [0.] 1
     """
     raise NotImplementedError()
 
@@ -367,8 +367,8 @@ class NumpyDataset(Dataset):
     >>> dataset = NumpyDataset(np.ones((2,2)))
     >>> for x, y, w, id in dataset.itersamples():
     ...   print(x, y, w, id)
-    [ 1.  1.] [ 0.] [ 0.] 0
-    [ 1.  1.] [ 0.] [ 0.] 1
+    [1. 1.] [0.] [0.] 0
+    [1. 1.] [0.] [0.] 1
     """
     n_samples = self._X.shape[0]
     return ((self._X[i], self._y[i], self._w[i], self._ids[i])
@@ -449,6 +449,30 @@ class NumpyDataset(Dataset):
     with open(fname) as fin:
       d = json.load(fin)
       return NumpyDataset(d['X'], d['y'], d['w'], d['ids'])
+
+  @staticmethod
+  def merge(datasets):
+    """
+    Parameters
+    ----------
+    datasets: list of deepchem.data.NumpyDataset
+      list of datasets to merge
+
+    Returns
+    -------
+    Single deepchem.data.NumpyDataset with data concatenated over axis 0
+    """
+    X, y, w, ids = datasets[0].X, datasets[0].y, datasets[0].w, datasets[0].ids
+    for dataset in datasets[1:]:
+      X = np.concatenate([X, dataset.X], axis=0)
+      y = np.concatenate([y, dataset.y], axis=0)
+      w = np.concatenate([w, dataset.w], axis=0)
+      ids = np.concatenate(
+          [ids, dataset.ids],
+          axis=0,
+      )
+
+    return NumpyDataset(X, y, w, ids, n_tasks=y.shape[1])
 
 
 class DiskDataset(Dataset):
@@ -624,7 +648,8 @@ class DiskDataset(Dataset):
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
     sample_X = load_from_disk(
-        os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]['X']))
+        os.path.join(self.data_dir,
+                     next(self.metadata_df.iterrows())[1]['X']))
     return np.shape(sample_X)[1:]
 
   def get_shard_size(self):
@@ -632,7 +657,8 @@ class DiskDataset(Dataset):
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
     sample_y = load_from_disk(
-        os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]['y']))
+        os.path.join(self.data_dir,
+                     next(self.metadata_df.iterrows())[1]['y']))
     return len(sample_y)
 
   def _get_metadata_filename(self):
@@ -763,11 +789,13 @@ class DiskDataset(Dataset):
         else:
           shard_batch_size = batch_size
 
-        num_local_batches = math.ceil(n_shard_samples / shard_batch_size)
-
         if n_shard_samples == 0:
           cur_shard += 1
+          if batch_size is None:
+            cur_global_batch += 1
           continue
+
+        num_local_batches = math.ceil(n_shard_samples / shard_batch_size)
         if not deterministic:
           sample_perm = np.random.permutation(n_shard_samples)
         else:
@@ -819,8 +847,8 @@ class DiskDataset(Dataset):
     >>> dataset = DiskDataset.from_numpy(np.ones((2,2)), np.ones((2,1)), verbose=False)
     >>> for x, y, w, id in dataset.itersamples():
     ...   print(x, y, w, id)
-    [ 1.  1.] [ 1.] [ 1.] 0
-    [ 1.  1.] [ 1.] [ 1.] 1
+    [1. 1.] [1.] [1.] 0
+    [1. 1.] [1.] [1.] 1
     """
 
     def iterate(dataset):
@@ -913,12 +941,29 @@ class DiskDataset(Dataset):
     else:
       merge_dir = tempfile.mkdtemp()
 
+    # Protect against generator exhaustion
+    datasets = list(datasets)
+
+    # This ensures tasks are consistent for all datasets
+    tasks = []
+    for dataset in datasets:
+      try:
+        tasks.append(dataset.tasks)
+      except AttributeError:
+        pass
+    if tasks:
+      if len(tasks) < len(datasets) or len(set(map(tuple, tasks))) > 1:
+        raise ValueError(
+            'Cannot merge datasets with different task specifications')
+      tasks = tasks[0]
+
     def generator():
       for ind, dataset in enumerate(datasets):
         X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
         yield (X, y, w, ids)
 
-    return DiskDataset.create_dataset(generator(), data_dir=merge_dir)
+    return DiskDataset.create_dataset(
+        generator(), data_dir=merge_dir, tasks=tasks)
 
   def subset(self, shard_nums, subset_dir=None):
     """Creates a subset of the original dataset on disk."""

@@ -139,7 +139,7 @@ class WeaveTensorGraph(TensorGraph):
           pad_batches=pad_batches):
 
         feed_dict = dict()
-        if y_b is not None and not predict:
+        if y_b is not None:
           for index, label in enumerate(self.labels_fd):
             if self.mode == "classification":
               feed_dict[label] = to_one_hot(y_b[:, index])
@@ -182,6 +182,17 @@ class WeaveTensorGraph(TensorGraph):
         feed_dict[self.atom_to_pair] = np.concatenate(atom_to_pair, axis=0)
         yield feed_dict
 
+  def predict_on_generator(self, generator, transformers=[], outputs=None):
+    out = super(WeaveTensorGraph, self).predict_on_generator(
+        generator, transformers=[], outputs=outputs)
+    if outputs is None:
+      outputs = self.outputs
+    if len(outputs) > 1:
+      out = np.stack(out, axis=1)
+
+    out = undo_transforms(out, transformers)
+    return out
+
 
 class DTNNTensorGraph(TensorGraph):
 
@@ -193,7 +204,7 @@ class DTNNTensorGraph(TensorGraph):
                distance_min=-1,
                distance_max=18,
                output_activation=True,
-               mode="classification",
+               mode="regression",
                **kwargs):
     """
             Parameters
@@ -294,7 +305,7 @@ class DTNNTensorGraph(TensorGraph):
           pad_batches=pad_batches):
 
         feed_dict = dict()
-        if y_b is not None and not predict:
+        if y_b is not None:
           for index, label in enumerate(self.labels_fd):
             feed_dict[label] = y_b[:, index:index + 1]
         if w_b is not None:
@@ -456,7 +467,7 @@ class DAGTensorGraph(TensorGraph):
           pad_batches=pad_batches):
 
         feed_dict = dict()
-        if y_b is not None and not predict:
+        if y_b is not None:
           for index, label in enumerate(self.labels_fd):
             if self.mode == "classification":
               feed_dict[label] = to_one_hot(y_b[:, index])
@@ -495,6 +506,17 @@ class DAGTensorGraph(TensorGraph):
         feed_dict[self.membership] = np.array(membership)
         feed_dict[self.n_atoms] = n_atoms
         yield feed_dict
+
+  def predict_on_generator(self, generator, transformers=[], outputs=None):
+    out = super(DAGTensorGraph, self).predict_on_generator(
+        generator, transformers=[], outputs=outputs)
+    if outputs is None:
+      outputs = self.outputs
+    if len(outputs) > 1:
+      out = np.stack(out, axis=1)
+
+    out = undo_transforms(out, transformers)
+    return out
 
 
 class PetroskiSuchTensorGraph(TensorGraph):
@@ -1034,7 +1056,7 @@ class MPNNTensorGraph(TensorGraph):
           pad_batches=pad_batches):
 
         feed_dict = dict()
-        if y_b is not None and not predict:
+        if y_b is not None:
           for index, label in enumerate(self.labels_fd):
             if self.mode == "classification":
               feed_dict[label] = to_one_hot(y_b[:, index])
@@ -1099,7 +1121,7 @@ class MPNNTensorGraph(TensorGraph):
       results = []
       for feed_dict in generator:
         # Extract number of unique samples in the batch from w_b
-        n_valid_samples = len(np.nonzero(feed_dict[self.weights][:, 0])[0])
+        n_valid_samples = len(np.nonzero(np.sum(feed_dict[self.weights], 1))[0])
         feed_dict = {
             self.layers[k.name].out_tensor: v
             for k, v in six.iteritems(feed_dict)
