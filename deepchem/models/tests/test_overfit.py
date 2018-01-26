@@ -429,6 +429,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     assert scores[classification_metric.name] > .9
   '''
 
+  '''
   def test_IRV_multitask_classification_overfit(self):
     """Test IRV classifier overfits tiny data."""
     n_tasks = 5
@@ -457,6 +458,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset_trans, [classification_metric])
     assert scores[classification_metric.name] > .9
+  '''
 
   def test_sklearn_multitask_regression_overfit(self):
     """Test SKLearn singletask-to-multitask overfits tiny regression data."""
