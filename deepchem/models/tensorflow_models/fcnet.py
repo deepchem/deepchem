@@ -451,8 +451,8 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
             capacity=5,
             dtypes=[tf.float32] *
             (len(label_placeholders) + len(weight_placeholders) + 1))
-        graph.enqueue = graph.queue.enqueue([mol_features] + label_placeholders
-                                            + weight_placeholders)
+        graph.enqueue = graph.queue.enqueue(
+            [mol_features] + label_placeholders + weight_placeholders)
         queue_outputs = graph.queue.dequeue()
         labels = queue_outputs[1:len(label_placeholders) + 1]
         weights = queue_outputs[len(label_placeholders) + 1:]
@@ -550,8 +550,8 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
             capacity=5,
             dtypes=[tf.float32] *
             (len(label_placeholders) + len(weight_placeholders) + 1))
-        graph.enqueue = graph.queue.enqueue([mol_features] + label_placeholders
-                                            + weight_placeholders)
+        graph.enqueue = graph.queue.enqueue(
+            [mol_features] + label_placeholders + weight_placeholders)
         queue_outputs = graph.queue.dequeue()
         labels = queue_outputs[1:len(label_placeholders) + 1]
         weights = queue_outputs[len(label_placeholders) + 1:]
