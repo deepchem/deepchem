@@ -328,7 +328,7 @@ class MultiTaskFitTransformRegressor(MultiTaskRegressor):
   >>> w = np.ones((n_samples, n_tasks))
   >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
   >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
-  >>> model = dc.models.TensorflowMultiTaskFitTransformRegressor(n_tasks, [n_features, n_features],
+  >>> model = dc.models.MultiTaskFitTransformRegressor(n_tasks, [n_features, n_features],
   ...     dropouts=[0.], learning_rate=0.003, weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
   ...     batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
   n_features after fit_transform: 12

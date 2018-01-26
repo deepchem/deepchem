@@ -14,7 +14,7 @@ import os
 import tempfile
 from deepchem.data import DiskDataset
 from deepchem.models import SklearnModel
-from deepchem.models import TensorflowMultiTaskRegressor
+from deepchem.models import MultiTaskRegressor
 from deepchem.dock.pose_scoring import GridPoseScorer
 from deepchem.dock.pose_generation import VinaPoseGenerator
 from sklearn.ensemble import RandomForestRegressor
@@ -88,10 +88,9 @@ class VinaGridDNNDocker(object):
     # Fit model on dataset
     pdbbind_tasks = ["-logKd/Ki"]
     n_features = 2052
-    model = TensorflowMultiTaskRegressor(
+    model = MultiTaskRegressor(
         len(pdbbind_tasks),
         n_features,
-        logdir=self.model_dir,
         dropouts=[.25],
         learning_rate=0.0003,
         weight_init_stddevs=[.1],
