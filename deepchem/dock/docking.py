@@ -71,6 +71,7 @@ class VinaGridRFDocker(Docker):
     return (score, (protein_docked, ligand_docked))
 
 
+'''
 class VinaGridDNNDocker(object):
   """Vina pose-generation, DNN-models on grid-featurization of complexes."""
 
@@ -94,7 +95,8 @@ class VinaGridDNNDocker(object):
         dropouts=[.25],
         learning_rate=0.0003,
         weight_init_stddevs=[.1],
-        batch_size=64)
+        batch_size=64,
+        model_dir=self.model_dir)
     model.reload()
 
     self.pose_scorer = GridPoseScorer(model, feat="grid")
@@ -115,3 +117,4 @@ class VinaGridDNNDocker(object):
     else:
       score = np.zeros((1,))
     return (score, (protein_docked, ligand_docked))
+'''
