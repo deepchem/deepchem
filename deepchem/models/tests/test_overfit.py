@@ -428,7 +428,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
   '''
-
   '''
   def test_IRV_multitask_classification_overfit(self):
     """Test IRV classifier overfits tiny data."""
