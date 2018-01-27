@@ -8,7 +8,6 @@ import numpy as np
 import tensorflow as tf
 
 from deepchem.utils.save import log
-
 '''
 class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
 
