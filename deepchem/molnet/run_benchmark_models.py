@@ -161,7 +161,6 @@ def benchmark_classification(train_dataset,
 
   elif model_name == 'irv':
     penalty = hyper_parameters['penalty']
-    penalty_type = hyper_parameters['penalty_type']
     batch_size = hyper_parameters['batch_size']
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
@@ -179,10 +178,10 @@ def benchmark_classification(train_dataset,
         len(tasks),
         K=n_K,
         penalty=penalty,
-        penalty_type=penalty_type,
         batch_size=batch_size,
         learning_rate=learning_rate,
-        seed=seed)
+        random_seed=seed,
+        mode='classification')
 
   elif model_name == 'graphconv':
     batch_size = hyper_parameters['batch_size']

@@ -34,12 +34,10 @@ model = dc.models.TensorflowMultiTaskIRVClassifier(
     K=K,
     learning_rate=0.001,
     penalty=0.05,
-    batch_size=32,
-    fit_transformers=[])
+    batch_size=32)
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=10)
-model.save()
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, [metric], transformers)

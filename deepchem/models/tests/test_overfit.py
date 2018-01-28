@@ -627,7 +627,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     # Fit trained model
     model.fit(dataset_trans)
-    model.save()
 
     # Eval model on train
     scores = model.evaluate(dataset_trans, [classification_metric])

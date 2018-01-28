@@ -79,6 +79,28 @@ class IRVLayer(Layer):
   def set_tensors(self, tensor):
     self.V, self.W, self.b, self.b2, self.out_tensor, self.trainable_weights, self.variables = tensor
 
+class IRVRegularize(Layer):
+  """ This Layer extracts the trainable weights in IRVLayer
+  and return the their L2-norm
+  """
+  def __init__(self,
+               IRVLayer,
+               penalty=0.0,
+               **kwargs):
+    self.IRVLayer = IRVLayer
+    self.penalty = penalty
+    super(IRVRegularize, self).__init__(**kwargs)
+    
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    assert self.IRVLayer.out_tensor is not None, "IRVLayer must be built first"
+    out_tensor = tf.nn.l2_loss(self.IRVLayer.W) + \
+        tf.nn.l2_loss(self.IRVLayer.V) + tf.nn.l2_loss(self.IRVLayer.b) + \
+        tf.nn.l2_loss(self.IRVLayer.b2)
+    out_tensor = out_tensor * self.penalty
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
 class Slice(Layer):
   """ Choose a slice of input given axis and order
   """
@@ -118,9 +140,7 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
   def __init__(self,
                n_tasks,
                K=10,
-               n_classes=2,
                penalty=0.0,
-               penalty_type="l2",
                mode="classification",
                **kwargs):
     """Initialize TensorflowMultiTaskIRVClassifier
@@ -131,12 +151,8 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
       Number of tasks
     K: int
       Number of nearest neighbours used in classification
-    n_classes: int
-      number of different labels
     penalty: float
       Amount of penalty (l2 or l1 applied)
-    penalty_type: str
-      Either "l2" or "l1"
       
     """
     self.n_tasks = n_tasks
@@ -144,7 +160,6 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
     self.n_features = 2 * self.K * self.n_tasks
     print("n_features after fit_transform: %d" % int(self.n_features))
     self.penalty = penalty
-    self.penalty_type = penalty_type
     super(TensorflowMultiTaskIRVClassifier, self).__init__(**kwargs)
     self.build_graph()
     
@@ -169,7 +184,8 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
       costs.append(cost)
     all_cost = Concat(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
-    loss = WeightedError(in_layers=[all_cost, self.weights])
+    loss = WeightedError(in_layers=[all_cost, self.weights]) + \
+        IRVRegularize(predictions, self.penalty, in_layers=[predictions])
     self.set_loss(loss)
 
   def default_generator(self,
@@ -197,12 +213,16 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
 
         yield feed_dict
 
-  def predict_on_generator(self, generator, transformers=[], outputs=None):
-    out = super(TensorflowMultiTaskIRVClassifier, self).predict_on_generator(
-        generator, transformers=[], outputs=outputs)
-    if outputs is None:
-      outputs = self.outputs
-    if len(outputs) > 1:
-      out = np.concatenate(out, axis=1)
-    out = undo_transforms(out, transformers)
+  def predict(self, dataset, transformers=[], outputs=None):
+    out = super(TensorflowMultiTaskIRVClassifier, self).predict(
+        dataset, transformers=transformers, outputs=outputs)
+    out = np.concatenate(out, axis=1)
+    out = np.round(out).astype(int)
+    return out
+
+  def predict_proba(self, dataset, transformers=[], outputs=None):
+    out = super(TensorflowMultiTaskIRVClassifier, self).predict_proba(
+        dataset, transformers=transformers, outputs=outputs)
+    out = np.concatenate(out, axis=1)
+    out = np.stack([1-out, out], axis=2)
     return out

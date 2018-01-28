@@ -41,7 +41,6 @@ hps['logreg'] = {
 }
 hps['irv'] = {
     'penalty': 0.,
-    'penalty_type': 'l2',
     'batch_size': 50,
     'nb_epoch': 10,
     'learning_rate': 0.001,
