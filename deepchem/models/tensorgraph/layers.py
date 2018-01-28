@@ -1183,6 +1183,7 @@ class SoftMax(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+
 class Sigmoid(Layer):
 
   def __init__(self, in_layers=None, **kwargs):
@@ -1201,7 +1202,8 @@ class Sigmoid(Layer):
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
-    
+
+
 class Concat(Layer):
 
   def __init__(self, in_layers=None, axis=1, **kwargs):
@@ -1548,6 +1550,7 @@ class SoftMaxCrossEntropy(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+
 class SigmoidCrossEntropy(Layer):
 
   def __init__(self, in_layers=None, **kwargs):
@@ -1567,7 +1570,8 @@ class SigmoidCrossEntropy(Layer):
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
-    
+
+
 class ReduceMean(Layer):
 
   def __init__(self, in_layers=None, axis=None, **kwargs):

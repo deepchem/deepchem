@@ -12,15 +12,13 @@ from deepchem.models.tensorgraph.layers import Layer, SigmoidCrossEntropy, \
 from deepchem.models.tensorgraph.layers import convert_to_layers
 from deepchem.trans import undo_transforms
 
+
 class IRVLayer(Layer):
   """ Core layer of IRV classifier, architecture described in:
        https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2750043/
   """
 
-  def __init__(self,
-               n_tasks,
-               K,
-               **kwargs):
+  def __init__(self, n_tasks, K, **kwargs):
     """
     Parameters
     ----------
@@ -40,7 +38,7 @@ class IRVLayer(Layer):
     self.b = tf.Variable(tf.constant([0.01]), name="b", dtype=tf.float32)
     self.b2 = tf.Variable(tf.constant([0.01]), name="b2", dtype=tf.float32)
     self.trainable_weights = [self.V, self.W, self.b, self.b2]
-    
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
@@ -55,14 +53,14 @@ class IRVLayer(Layer):
       similarity = inputs[:, 2 * K * count:(2 * K * count + K)]
       # Labels for all top K similar samples
       ys = tf.to_int32(inputs[:, (2 * K * count + K):2 * K * (count + 1)])
-      
+
       R = self.b + self.W[0] * similarity + self.W[1] * tf.constant(
           np.arange(K) + 1, dtype=tf.float32)
       R = tf.sigmoid(R)
       z = tf.reduce_sum(R * tf.gather(self.V, ys), axis=1) + self.b2
       outputs.append(tf.reshape(z, shape=[-1, 1]))
     out_tensor = tf.concat(outputs, axis=1)
-    
+
     if set_tensors:
       self.variables = self.trainable_weights
       self.out_tensor = out_tensor
@@ -79,18 +77,17 @@ class IRVLayer(Layer):
   def set_tensors(self, tensor):
     self.V, self.W, self.b, self.b2, self.out_tensor, self.trainable_weights, self.variables = tensor
 
+
 class IRVRegularize(Layer):
   """ This Layer extracts the trainable weights in IRVLayer
   and return the their L2-norm
   """
-  def __init__(self,
-               IRVLayer,
-               penalty=0.0,
-               **kwargs):
+
+  def __init__(self, IRVLayer, penalty=0.0, **kwargs):
     self.IRVLayer = IRVLayer
     self.penalty = penalty
     super(IRVRegularize, self).__init__(**kwargs)
-    
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     assert self.IRVLayer.out_tensor is not None, "IRVLayer must be built first"
     out_tensor = tf.nn.l2_loss(self.IRVLayer.W) + \
@@ -101,14 +98,12 @@ class IRVRegularize(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+
 class Slice(Layer):
   """ Choose a slice of input given axis and order
   """
 
-  def __init__(self,
-               slice_num,
-               axis=1,
-               **kwargs):
+  def __init__(self, slice_num, axis=1, **kwargs):
     """
     Parameters
     ----------
@@ -129,11 +124,12 @@ class Slice(Layer):
     slice_num = self.slice_num
     axis = self.axis
     inputs = in_layers[0].out_tensor
-    out_tensor = tf.slice(inputs, [0]*axis+[slice_num], [-1]*axis+[1])
-    
+    out_tensor = tf.slice(inputs, [0] * axis + [slice_num], [-1] * axis + [1])
+
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
+
 
 class TensorflowMultiTaskIRVClassifier(TensorGraph):
 
@@ -162,7 +158,6 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
     self.penalty = penalty
     super(TensorflowMultiTaskIRVClassifier, self).__init__(**kwargs)
     self.build_graph()
-    
 
   def build_graph(self):
     """Constructs the graph architecture of IRV as described in:
@@ -206,7 +201,7 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
         feed_dict = dict()
         if y_b is not None:
           for index, label in enumerate(self.labels_fd):
-            feed_dict[label] = y_b[:, index:index+1]
+            feed_dict[label] = y_b[:, index:index + 1]
         if w_b is not None:
           feed_dict[self.weights] = w_b
         feed_dict[self.mol_features] = X_b
@@ -224,5 +219,5 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
     out = super(TensorflowMultiTaskIRVClassifier, self).predict_proba(
         dataset, transformers=transformers, outputs=outputs)
     out = np.concatenate(out, axis=1)
-    out = np.stack([1-out, out], axis=2)
+    out = np.stack([1 - out, out], axis=2)
     return out

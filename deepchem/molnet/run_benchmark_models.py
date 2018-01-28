@@ -151,8 +151,10 @@ def benchmark_classification(train_dataset,
     # Building scikit logistic regression model
     def model_builder(model_dir_logreg):
       sklearn_model = LogisticRegression(
-          penalty=penalty_type, C=1./penalty, 
-          class_weight="balanced", n_jobs=-1)
+          penalty=penalty_type,
+          C=1. / penalty,
+          class_weight="balanced",
+          n_jobs=-1)
       return deepchem.models.sklearn_models.SklearnModel(
           sklearn_model, model_dir_logreg)
 
