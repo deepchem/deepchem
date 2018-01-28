@@ -1183,7 +1183,25 @@ class SoftMax(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+class Sigmoid(Layer):
 
+  def __init__(self, in_layers=None, **kwargs):
+    super(Sigmoid, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError("Sigmoid must have a single input layer.")
+    parent = inputs[0]
+    out_tensor = tf.nn.sigmoid(parent)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+    
 class Concat(Layer):
 
   def __init__(self, in_layers=None, axis=1, **kwargs):
@@ -1530,7 +1548,26 @@ class SoftMaxCrossEntropy(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+class SigmoidCrossEntropy(Layer):
 
+  def __init__(self, in_layers=None, **kwargs):
+    super(SigmoidCrossEntropy, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = self.in_layers[1].shape[:-1]
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers, True)
+    if len(inputs) != 2:
+      raise ValueError()
+    labels, logits = inputs[0], inputs[1]
+    out_tensor = tf.nn.sigmoid_cross_entropy_with_logits(
+        logits=logits, labels=labels)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+    
 class ReduceMean(Layer):
 
   def __init__(self, in_layers=None, axis=None, **kwargs):

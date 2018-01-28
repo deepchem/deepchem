@@ -604,38 +604,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
-  def test_tf_logreg_multitask_classification_overfit(self):
-    """Test tf multitask overfits tiny data."""
-    n_tasks = 10
-    n_samples = 10
-    n_features = 3
-    n_classes = 2
-
-    # Generate dummy dataset
-    np.random.seed(123)
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features)
-    y = np.zeros((n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-    classification_metric = dc.metrics.Metric(
-        dc.metrics.accuracy_score, task_averager=np.mean)
-    model = dc.models.TensorflowLogisticRegression(
-        n_tasks,
-        n_features,
-        learning_rate=0.5,
-        weight_init_stddevs=[.01],
-        batch_size=n_samples)
-
-    # Fit trained model
-    model.fit(dataset)
-    model.save()
-
-    # Eval model on train
-    scores = model.evaluate(dataset, [classification_metric])
-    assert scores[classification_metric.name] > .9
-
   def test_IRV_multitask_classification_overfit(self):
     """Test IRV classifier overfits tiny data."""
     n_tasks = 5

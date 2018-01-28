@@ -36,11 +36,8 @@ hps['tf_robust'] = {
     'learning_rate': 0.0005
 }
 hps['logreg'] = {
-    'penalty': 0.1,
+    'penalty': 1.,
     'penalty_type': 'l2',
-    'batch_size': 50,
-    'nb_epoch': 10,
-    'learning_rate': 0.005
 }
 hps['irv'] = {
     'penalty': 0.,
