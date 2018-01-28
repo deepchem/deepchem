@@ -23,16 +23,14 @@ train_dataset, valid_dataset, test_dataset = tox21_datasets
 # Fit models
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 
+
 def model_builder(model_dir_logreg):
   sklearn_model = LogisticRegression(
-      penalty="l2", C=1./0.05, 
-      class_weight="balanced", n_jobs=-1)
-  return dc.models.sklearn_models.SklearnModel(
-      sklearn_model, model_dir_logreg)
+      penalty="l2", C=1. / 0.05, class_weight="balanced", n_jobs=-1)
+  return dc.models.sklearn_models.SklearnModel(sklearn_model, model_dir_logreg)
 
-model = dc.models.multitask.SingletaskToMultitask(
-    tox21_tasks, model_builder)
 
+model = dc.models.multitask.SingletaskToMultitask(tox21_tasks, model_builder)
 
 # Fit trained model
 model.fit(train_dataset)
