@@ -27,6 +27,7 @@ after_success:
 - echo $TRAVIS_SECURE_ENV_VARS
 - coveralls
 deploy:
+  skip_cleanup: true
   provider: pypi
   user: "lilleswing"
   password:
