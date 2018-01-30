@@ -79,11 +79,20 @@ class IRVLayer(Layer):
 
 
 class IRVRegularize(Layer):
-  """ This Layer extracts the trainable weights in IRVLayer
-  and return the their L2-norm
+  """ Extracts the trainable weights in IRVLayer
+  and return their L2-norm
+  No in_layers is required, but should be built after target IRVLayer
   """
 
   def __init__(self, IRVLayer, penalty=0.0, **kwargs):
+    """
+    Parameters
+    ----------
+    IRVLayer: IRVLayer
+      Target layer for extracting weights and regularization
+    penalty: float
+      L2 Penalty strength
+    """
     self.IRVLayer = IRVLayer
     self.penalty = penalty
     super(IRVRegularize, self).__init__(**kwargs)
@@ -100,7 +109,9 @@ class IRVRegularize(Layer):
 
 
 class Slice(Layer):
-  """ Choose a slice of input given axis and order
+  """ Choose a slice of input on the last axis given order,
+  Suppose input x has two dimensions,
+  output f(x) = x[:, slice_num:slice_num+1]
   """
 
   def __init__(self, slice_num, axis=1, **kwargs):

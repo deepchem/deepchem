@@ -1185,6 +1185,9 @@ class SoftMax(Layer):
 
 
 class Sigmoid(Layer):
+  """ Compute the sigmoid of input: f(x) = sigmoid(x)
+  Only one input is allowed, output will have the same shape as input
+  """
 
   def __init__(self, in_layers=None, **kwargs):
     super(Sigmoid, self).__init__(in_layers, **kwargs)
@@ -1552,6 +1555,12 @@ class SoftMaxCrossEntropy(Layer):
 
 
 class SigmoidCrossEntropy(Layer):
+  """ Compute the sigmoid cross entropy of inputs: [labels, logits]
+  `labels` hold the binary labels(with no axis of n_classes),
+  `logits` hold the log probabilities for positive class(label=1),
+  `labels` and `logits` should have same shape and type.
+  Output will have the same shape as `logits`
+  """
 
   def __init__(self, in_layers=None, **kwargs):
     super(SigmoidCrossEntropy, self).__init__(in_layers, **kwargs)
