@@ -8,11 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from deepchem.utils.save import log
-from deepchem.models.tensorflow_models import TensorflowGraph
-from deepchem.models.tensorflow_models import TensorflowGraphModel
-from deepchem.models.tensorflow_models.lr import TensorflowLogisticRegression
-
-
+'''
 class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
 
   def __init__(self,
@@ -134,3 +130,4 @@ class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
         z = tf.reduce_sum(R * tf.gather(V, ys), axis=1) + b2
         output.append(tf.reshape(z, shape=[-1, 1]))
     return (output, labels, weights)
+'''

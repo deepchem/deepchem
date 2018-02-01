@@ -14,7 +14,7 @@ import os
 import tempfile
 from deepchem.data import DiskDataset
 from deepchem.models import SklearnModel
-from deepchem.models import TensorflowMultiTaskRegressor
+from deepchem.models import MultiTaskRegressor
 from deepchem.dock.pose_scoring import GridPoseScorer
 from deepchem.dock.pose_generation import VinaPoseGenerator
 from sklearn.ensemble import RandomForestRegressor
@@ -71,6 +71,7 @@ class VinaGridRFDocker(Docker):
     return (score, (protein_docked, ligand_docked))
 
 
+'''
 class VinaGridDNNDocker(object):
   """Vina pose-generation, DNN-models on grid-featurization of complexes."""
 
@@ -88,14 +89,14 @@ class VinaGridDNNDocker(object):
     # Fit model on dataset
     pdbbind_tasks = ["-logKd/Ki"]
     n_features = 2052
-    model = TensorflowMultiTaskRegressor(
+    model = MultiTaskRegressor(
         len(pdbbind_tasks),
         n_features,
-        logdir=self.model_dir,
         dropouts=[.25],
         learning_rate=0.0003,
         weight_init_stddevs=[.1],
-        batch_size=64)
+        batch_size=64,
+        model_dir=self.model_dir)
     model.reload()
 
     self.pose_scorer = GridPoseScorer(model, feat="grid")
@@ -116,3 +117,4 @@ class VinaGridDNNDocker(object):
     else:
       score = np.zeros((1,))
     return (score, (protein_docked, ligand_docked))
+'''

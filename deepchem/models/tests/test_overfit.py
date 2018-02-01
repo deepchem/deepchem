@@ -116,39 +116,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
-  def test_tf_regression_overfit(self):
-    """Test that TensorFlow models can overfit simple regression datasets."""
-    n_samples = 10
-    n_features = 3
-    n_tasks = 1
-
-    # Generate dummy dataset
-    np.random.seed(123)
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features)
-    y = np.zeros((n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-    regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
-    # TODO(rbharath): This breaks with optimizer="momentum". Why?
-    model = dc.models.TensorflowMultiTaskRegressor(
-        n_tasks,
-        n_features,
-        dropouts=[0.],
-        learning_rate=0.003,
-        weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
-        batch_size=n_samples)
-
-    # Fit trained model
-    model.fit(dataset, nb_epoch=100)
-    model.save()
-
-    # Eval model on train
-    scores = model.evaluate(dataset, [regression_metric])
-    assert scores[regression_metric.name] < .1
-
-  def test_tg_regression_overfit(self):
+  def test_regression_overfit(self):
     """Test that TensorGraph models can overfit simple regression datasets."""
     n_samples = 10
     n_features = 3
@@ -180,39 +148,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .1
 
-  def test_tf_classification_overfit(self):
-    """Test that tensorflow models can overfit simple classification datasets."""
-    n_samples = 10
-    n_features = 3
-    n_tasks = 1
-    n_classes = 2
-
-    # Generate dummy dataset
-    np.random.seed(123)
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features)
-    y = np.zeros((n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-    classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
-    model = dc.models.TensorflowMultiTaskClassifier(
-        n_tasks,
-        n_features,
-        dropouts=[0.],
-        learning_rate=0.0003,
-        weight_init_stddevs=[.1],
-        batch_size=n_samples)
-
-    # Fit trained model
-    model.fit(dataset, nb_epoch=100)
-    model.save()
-
-    # Eval model on train
-    scores = model.evaluate(dataset, [classification_metric])
-    assert scores[classification_metric.name] > .9
-
-  def test_tg_classification_overfit(self):
+  def test_classification_overfit(self):
     """Test that TensorGraph models can overfit simple classification datasets."""
     n_samples = 10
     n_features = 3
@@ -244,40 +180,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
-  def test_tf_fittransform_regression_overfit(self):
-    """Test that TensorFlow FitTransform models can overfit simple regression datasets."""
-    n_samples = 10
-    n_features = 3
-    n_tasks = 1
-
-    # Generate dummy dataset
-    np.random.seed(123)
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features, n_features)
-    y = np.zeros((n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-    fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
-    regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
-    model = dc.models.TensorflowMultiTaskFitTransformRegressor(
-        n_tasks, [n_features, n_features],
-        dropouts=[0.],
-        learning_rate=0.003,
-        weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
-        batch_size=n_samples,
-        fit_transformers=fit_transformers,
-        n_evals=1)
-
-    # Fit trained model
-    model.fit(dataset, nb_epoch=100)
-    model.save()
-
-    # Eval model on train
-    scores = model.evaluate(dataset, [regression_metric])
-    assert scores[regression_metric.name] < .1
-
-  def test_tg_fittransform_regression_overfit(self):
+  def test_fittransform_regression_overfit(self):
     """Test that TensorGraph FitTransform models can overfit simple regression datasets."""
     n_samples = 10
     n_features = 3
@@ -310,42 +213,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .1
 
-  def test_tf_skewed_classification_overfit(self):
-    """Test tensorflow models can overfit 0/1 datasets with few actives."""
-    #n_samples = 100
-    n_samples = 100
-    n_features = 3
-    n_tasks = 1
-    n_classes = 2
-
-    # Generate dummy dataset
-    np.random.seed(123)
-    p = .05
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features)
-    y = np.random.binomial(1, p, size=(n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-
-    dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-    classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
-    model = dc.models.TensorflowMultiTaskClassifier(
-        n_tasks,
-        n_features,
-        dropouts=[0.],
-        learning_rate=0.003,
-        weight_init_stddevs=[.1],
-        batch_size=n_samples)
-
-    # Fit trained model
-    model.fit(dataset, nb_epoch=100)
-    model.save()
-
-    # Eval model on train
-    scores = model.evaluate(dataset, [classification_metric])
-    assert scores[classification_metric.name] > .75
-
-  def test_tg_skewed_classification_overfit(self):
+  def test_skewed_classification_overfit(self):
     """Test TensorGraph models can overfit 0/1 datasets with few actives."""
     #n_samples = 100
     n_samples = 100
@@ -380,52 +248,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .75
 
-  def test_tf_skewed_missing_classification_overfit(self):
-    """TF, skewed data, few actives
-
-    Test tensorflow models overfit 0/1 datasets with missing data and few
-    actives. This is intended to be as close to singletask MUV datasets as
-    possible.
-    """
-    n_samples = 5120
-    n_features = 6
-    n_tasks = 1
-    n_classes = 2
-
-    # Generate dummy dataset
-    np.random.seed(123)
-    p = .002
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features)
-    y = np.random.binomial(1, p, size=(n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-    y_flat, w_flat = np.squeeze(y), np.squeeze(w)
-    y_nonzero = y_flat[w_flat != 0]
-    num_nonzero = np.count_nonzero(y_nonzero)
-    weight_nonzero = len(y_nonzero) / num_nonzero
-    w_flat[y_flat != 0] = weight_nonzero
-    w = np.reshape(w_flat, (n_samples, n_tasks))
-
-    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
-
-    classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
-    model = dc.models.TensorflowMultiTaskClassifier(
-        n_tasks,
-        n_features,
-        dropouts=[0.],
-        learning_rate=0.003,
-        weight_init_stddevs=[1.],
-        batch_size=n_samples)
-
-    # Fit trained model
-    model.fit(dataset, nb_epoch=50)
-    model.save()
-
-    # Eval model on train
-    scores = model.evaluate(dataset, [classification_metric])
-    assert scores[classification_metric.name] > .8
-
-  def test_tg_skewed_missing_classification_overfit(self):
+  def test_skewed_missing_classification_overfit(self):
     """TG, skewed data, few actives
 
     Test TensorGraph models overfit 0/1 datasets with missing data and few
@@ -502,41 +325,8 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
-  def test_tf_multitask_classification_overfit(self):
-    """Test tf multitask overfits tiny data."""
-    n_tasks = 10
-    n_samples = 10
-    n_features = 3
-    n_classes = 2
-
-    # Generate dummy dataset
-    np.random.seed(123)
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features)
-    y = np.zeros((n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-    classification_metric = dc.metrics.Metric(
-        dc.metrics.accuracy_score, task_averager=np.mean)
-    model = dc.models.TensorflowMultiTaskClassifier(
-        n_tasks,
-        n_features,
-        dropouts=[0.],
-        learning_rate=0.0003,
-        weight_init_stddevs=[.1],
-        batch_size=n_samples)
-
-    # Fit trained model
-    model.fit(dataset)
-    model.save()
-
-    # Eval model on train
-    scores = model.evaluate(dataset, [classification_metric])
-    assert scores[classification_metric.name] > .9
-
   @flaky
-  def test_tg_multitask_classification_overfit(self):
+  def test_multitask_classification_overfit(self):
     """Test TensorGraph multitask overfits tiny data."""
     n_tasks = 10
     n_samples = 10
@@ -569,6 +359,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
+  '''
   def test_tf_robust_multitask_classification_overfit(self):
     """Test tf robust multitask overfits tiny data."""
     n_tasks = 10
@@ -603,7 +394,8 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
-
+  '''
+  '''
   def test_tf_logreg_multitask_classification_overfit(self):
     """Test tf multitask overfits tiny data."""
     n_tasks = 10
@@ -635,7 +427,8 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
-
+  '''
+  '''
   def test_IRV_multitask_classification_overfit(self):
     """Test IRV classifier overfits tiny data."""
     n_tasks = 5
@@ -664,6 +457,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset_trans, [classification_metric])
     assert scores[classification_metric.name] > .9
+  '''
 
   def test_sklearn_multitask_regression_overfit(self):
     """Test SKLearn singletask-to-multitask overfits tiny regression data."""
@@ -698,42 +492,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] > .7
 
-  @flaky
-  def test_tf_multitask_regression_overfit(self):
-    """Test tf multitask overfits tiny data."""
-    n_tasks = 10
-    n_samples = 10
-    n_features = 3
-    n_classes = 2
-
-    # Generate dummy dataset
-    np.random.seed(123)
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features)
-    y = np.zeros((n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-
-    dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-    regression_metric = dc.metrics.Metric(
-        dc.metrics.mean_squared_error, task_averager=np.mean, mode="regression")
-    model = dc.models.TensorflowMultiTaskRegressor(
-        n_tasks,
-        n_features,
-        dropouts=[0.],
-        learning_rate=0.0003,
-        weight_init_stddevs=[.1],
-        batch_size=n_samples)
-
-    # Fit trained model
-    model.fit(dataset, nb_epoch=50)
-    model.save()
-
-    # Eval model on train
-    scores = model.evaluate(dataset, [regression_metric])
-    assert scores[regression_metric.name] < .1
-
-  def test_tg_multitask_regression_overfit(self):
+  def test_multitask_regression_overfit(self):
     """Test TensorGraph multitask overfits tiny data."""
     n_tasks = 10
     n_samples = 10
@@ -767,6 +526,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .1
 
+  '''
   def test_tf_robust_multitask_regression_overfit(self):
     """Test tf robust multitask overfits tiny data."""
     np.random.seed(123)
@@ -804,6 +564,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .2
+  '''
 
   def test_tensorgraph_DTNN_multitask_regression_overfit(self):
     """Test deep tensor neural net overfits tiny data."""
@@ -1150,6 +911,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .9
 
+  '''
   def test_tf_progressive_regression_overfit(self):
     """Test tf progressive multitask overfits tiny data."""
     np.random.seed(123)
@@ -1188,3 +950,4 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [metric])
     y_pred = model.predict(dataset)
     assert scores[metric.name] < .2
+  '''

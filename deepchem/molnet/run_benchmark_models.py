@@ -94,7 +94,7 @@ def benchmark_classification(train_dataset,
     learning_rate = hyper_parameters['learning_rate']
 
     # Building tensorflow MultiTaskDNN model
-    model = deepchem.models.TensorflowMultiTaskClassifier(
+    model = deepchem.models.MultiTaskClassifier(
         len(tasks),
         n_features,
         layer_sizes=layer_sizes,

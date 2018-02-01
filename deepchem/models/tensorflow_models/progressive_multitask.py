@@ -11,11 +11,7 @@ from deepchem.utils.save import log
 from deepchem.metrics import to_one_hot
 from deepchem.metrics import from_one_hot
 from deepchem.nn import model_ops
-from deepchem.models.tensorflow_models import TensorflowGraph
-from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
-from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
-
-
+'''
 class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
   """Implements a progressive multitask neural network.
   
@@ -615,3 +611,4 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     time2 = time.time()
     print("TIMING: model fitting took %0.3f s" % (time2 - time1), self.verbose)
     ############################################################## TIMING
+'''
