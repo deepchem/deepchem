@@ -36,7 +36,7 @@ conda install -y -q -c conda-forge keras=1.2.2
 conda install -y -q -c conda-forge networkx=1.11
 conda install -y -q -c conda-forge pillow=4.3.0
 conda install -y -q -c conda-forge pandas=0.22.0
-yes | pip install $tensorflow==1.4.0
+yes | pip install $tensorflow==1.5.0
 conda install -y -q -c conda-forge nose=1.3.7
 conda install -y -q -c conda-forge nose-timer=0.7.0
 conda install -y -q -c conda-forge flaky=3.3.0
