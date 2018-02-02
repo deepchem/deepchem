@@ -34,6 +34,7 @@ class TestDocking(unittest.TestCase):
       return
     docker = dc.dock.VinaGridRFDocker(exhaustiveness=1, detect_pockets=True)
 
+  '''
   @attr("slow")
   def test_vina_grid_dnn_docker_init(self):
     """Test that VinaGridDNNDocker can be initialized."""
@@ -44,6 +45,7 @@ class TestDocking(unittest.TestCase):
     if sys.version_info >= (3, 0):
       return
     docker = dc.dock.VinaGridDNNDocker(exhaustiveness=1, detect_pockets=True)
+  '''
 
   @attr("slow")
   def test_vina_grid_rf_docker_dock(self):
@@ -104,6 +106,7 @@ class TestDocking(unittest.TestCase):
 
     assert score.shape == (1,)
 
+  '''
   @attr("slow")
   def test_vina_grid_dnn_docker_dock(self):
     """Test that VinaGridDNNDocker can dock."""
@@ -136,3 +139,4 @@ class TestDocking(unittest.TestCase):
 
     # Check returned files exist
     assert score.shape == (1,)
+  '''

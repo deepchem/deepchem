@@ -511,7 +511,7 @@ class CoulombFitTransformer(Transformer):
      >>> w = np.ones((n_samples, n_tasks))
      >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
      >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
-     >>> model = dc.models.TensorflowMultiTaskFitTransformRegressor(n_tasks,
+     >>> model = dc.models.MultiTaskFitTransformRegressor(n_tasks,
      ...    [n_features, n_features], batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
      n_features after fit_transform: 12
   """
@@ -556,8 +556,8 @@ class CoulombFitTransformer(Transformer):
 
     def _realize_(x):
       assert (len(x.shape) == 2)
-      inds = np.argsort(-(x**2).sum(axis=0)**.5 + np.random.normal(
-          0, self.noise, x[0].shape))
+      inds = np.argsort(
+          -(x**2).sum(axis=0)**.5 + np.random.normal(0, self.noise, x[0].shape))
       x = x[inds, :][:, inds] * 1
       x = x.flatten()[self.triuind]
       return x
