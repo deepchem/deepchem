@@ -6,7 +6,6 @@ import numpy as np
 import tensorflow as tf
 
 from deepchem.utils.save import log
-<<<<<<< HEAD
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.layers import Layer, SigmoidCrossEntropy, \
     Sigmoid, Feature, Label, Weights, Concat, WeightedError

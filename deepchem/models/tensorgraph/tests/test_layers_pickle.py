@@ -5,7 +5,7 @@ from deepchem.models import TensorGraph
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
   DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
 from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, Reshape, Squeeze, Transpose, \
-  CombineMeanStd, Repeat, Gather, GRU, LSTM, L2Loss, Concat, SoftMax, Sigmoid, SigmoidCrossEntropy\
+  CombineMeanStd, Repeat, Gather, GRU, LSTM, L2Loss, Concat, SoftMax, Sigmoid, SigmoidCrossEntropy, \
   Constant, Variable, StopGradient, Add, Multiply, Log, Exp, InteratomicL2Distances, \
   SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
   GraphGather, BatchNorm, WeightedError, \
@@ -154,6 +154,7 @@ def test_Softmax_pickle():
   tg.build()
   tg.save()
 
+
 def test_Sigmoid_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 1))
@@ -162,6 +163,7 @@ def test_Sigmoid_pickle():
   tg.set_loss(layer)
   tg.build()
   tg.save()
+
 
 def test_Concat_pickle():
   tg = TensorGraph()
@@ -255,6 +257,7 @@ def test_SoftmaxCrossEntropy_pickle():
   tg.set_loss(layer)
   tg.build()
   tg.save()
+
 
 def test_SigmoidCrossEntropy_pickle():
   tg = TensorGraph()
@@ -669,5 +672,3 @@ def test_Slice_pickle():
   tg.set_loss(out)
   tg.build()
   tg.save()
-
-
