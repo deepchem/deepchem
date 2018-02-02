@@ -1565,7 +1565,7 @@ class SigmoidCrossEntropy(Layer):
   def __init__(self, in_layers=None, **kwargs):
     super(SigmoidCrossEntropy, self).__init__(in_layers, **kwargs)
     try:
-      self._shape = self.in_layers[1].shape[:-1]
+      self._shape = self.in_layers[1].shape
     except:
       pass
 
