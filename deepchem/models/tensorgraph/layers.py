@@ -1184,6 +1184,29 @@ class SoftMax(Layer):
     return out_tensor
 
 
+class Sigmoid(Layer):
+  """ Compute the sigmoid of input: f(x) = sigmoid(x)
+  Only one input is allowed, output will have the same shape as input
+  """
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(Sigmoid, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError("Sigmoid must have a single input layer.")
+    parent = inputs[0]
+    out_tensor = tf.nn.sigmoid(parent)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class Concat(Layer):
 
   def __init__(self, in_layers=None, axis=1, **kwargs):
@@ -1525,6 +1548,33 @@ class SoftMaxCrossEntropy(Layer):
       raise ValueError()
     labels, logits = inputs[0], inputs[1]
     out_tensor = tf.nn.softmax_cross_entropy_with_logits(
+        logits=logits, labels=labels)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class SigmoidCrossEntropy(Layer):
+  """ Compute the sigmoid cross entropy of inputs: [labels, logits]
+  `labels` hold the binary labels(with no axis of n_classes),
+  `logits` hold the log probabilities for positive class(label=1),
+  `labels` and `logits` should have same shape and type.
+  Output will have the same shape as `logits`
+  """
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(SigmoidCrossEntropy, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = self.in_layers[1].shape
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers, True)
+    if len(inputs) != 2:
+      raise ValueError()
+    labels, logits = inputs[0], inputs[1]
+    out_tensor = tf.nn.sigmoid_cross_entropy_with_logits(
         logits=logits, labels=labels)
     if set_tensors:
       self.out_tensor = out_tensor

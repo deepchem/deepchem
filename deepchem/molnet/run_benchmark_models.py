@@ -15,6 +15,7 @@ import deepchem
 from deepchem.molnet.preset_hyper_parameters import hps
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.kernel_ridge import KernelRidge
 
@@ -145,23 +146,23 @@ def benchmark_classification(train_dataset,
   elif model_name == 'logreg':
     penalty = hyper_parameters['penalty']
     penalty_type = hyper_parameters['penalty_type']
-    batch_size = hyper_parameters['batch_size']
-    nb_epoch = hyper_parameters['nb_epoch']
-    learning_rate = hyper_parameters['learning_rate']
+    nb_epoch = None
 
-    # Building tensorflow logistic regression model
-    model = deepchem.models.TensorflowLogisticRegression(
-        len(tasks),
-        n_features,
-        penalty=penalty,
-        penalty_type=penalty_type,
-        batch_size=batch_size,
-        learning_rate=learning_rate,
-        seed=seed)
+    # Building scikit logistic regression model
+    def model_builder(model_dir_logreg):
+      sklearn_model = LogisticRegression(
+          penalty=penalty_type,
+          C=1. / penalty,
+          class_weight="balanced",
+          n_jobs=-1)
+      return deepchem.models.sklearn_models.SklearnModel(
+          sklearn_model, model_dir_logreg)
+
+    model = deepchem.models.multitask.SingletaskToMultitask(
+        tasks, model_builder)
 
   elif model_name == 'irv':
     penalty = hyper_parameters['penalty']
-    penalty_type = hyper_parameters['penalty_type']
     batch_size = hyper_parameters['batch_size']
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
@@ -179,10 +180,10 @@ def benchmark_classification(train_dataset,
         len(tasks),
         K=n_K,
         penalty=penalty,
-        penalty_type=penalty_type,
         batch_size=batch_size,
         learning_rate=learning_rate,
-        seed=seed)
+        random_seed=seed,
+        mode='classification')
 
   elif model_name == 'graphconv':
     batch_size = hyper_parameters['batch_size']
