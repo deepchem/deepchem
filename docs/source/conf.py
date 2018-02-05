@@ -32,10 +32,9 @@ sys.path.insert(0, os.path.abspath("../sphinxext"))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-  'sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'sphinx.ext.doctest',
-  'sphinx.ext.intersphinx', 'sphinx.ext.coverage', 'sphinx.ext.mathjax',
-  'sphinx.ext.ifconfig', 'sphinx.ext.viewcode',
-  'sphinx.ext.napoleon'
+    'sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'sphinx.ext.doctest',
+    'sphinx.ext.intersphinx', 'sphinx.ext.coverage', 'sphinx.ext.mathjax',
+    'sphinx.ext.ifconfig', 'sphinx.ext.viewcode', 'sphinx.ext.napoleon'
 ]
 
 autosummary_generate = True
@@ -126,12 +125,12 @@ html_theme = 'bootstrap'
 # documentation.
 # html_theme_options = {}
 html_theme_options = {
-  'source_link_position': "footer",
-  'navbar_sidebarrel': False,
-  'navbar_fixed_top': "false",
-  'bootstrap_version': "3",
-  'navbar_class': "navbar navbar-inverse",
-  'navbar_links': [("Notebooks", "notebooks/index")],
+    'source_link_position': "footer",
+    'navbar_sidebarrel': False,
+    'navbar_fixed_top': "false",
+    'bootstrap_version': "3",
+    'navbar_class': "navbar navbar-inverse",
+    'navbar_links': [("Notebooks", "notebooks/index")],
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -224,25 +223,25 @@ htmlhelp_basename = 'deepchemdoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-  # The paper size ('letterpaper' or 'a4paper').
-  # 'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    # 'papersize': 'letterpaper',
 
-  # The font size ('10pt', '11pt' or '12pt').
-  # 'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    # 'pointsize': '10pt',
 
-  # Additional stuff for the LaTeX preamble.
-  # 'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    # 'preamble': '',
 
-  # Latex figure (float) alignment
-  # 'figure_align': 'htbp',
+    # Latex figure (float) alignment
+    # 'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'deepchem.tex', u'deepchem Documentation',
-   u'Bharath Ramsundar, Evan Feinberg', 'manual'),
+    (master_doc, 'deepchem.tex', u'deepchem Documentation',
+     u'Bharath Ramsundar, Evan Feinberg', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -281,8 +280,8 @@ man_pages = [(master_doc, 'deepchem', u'deepchem Documentation',
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'deepchem', u'deepchem Documentation', 'Stanford University',
-   'deepchem', 'Deep-learning models for drug discovery.', 'Scientific'),
+    (master_doc, 'deepchem', u'deepchem Documentation', 'Stanford University',
+     'deepchem', 'Deep-learning models for drug discovery.', 'Scientific'),
 ]
 
 # Documents to append as an appendix to all manuals.
