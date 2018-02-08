@@ -2445,43 +2445,44 @@ class GraphGather(Layer):
     super(GraphGather, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
+    with tf.device('/cpu'):
+      inputs = self._get_input_tensors(in_layers)
 
-    # x = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
-    atom_features = inputs[0]
+      # x = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
+      atom_features = inputs[0]
 
-    # Extract graph topology
-    membership = inputs[2]
+      # Extract graph topology
+      membership = inputs[2]
 
-    # Perform the mol gather
+      # Perform the mol gather
 
-    assert self.batch_size > 1, "graph_gather requires batches larger than 1"
+      assert self.batch_size > 1, "graph_gather requires batches larger than 1"
 
-    # Obtain the partitions for each of the molecules
-    activated_par = tf.dynamic_partition(atom_features, membership,
-                                         self.batch_size)
+      # Obtain the partitions for each of the molecules
+      activated_par = tf.dynamic_partition(atom_features, membership,
+                                           self.batch_size)
 
-    # Sum over atoms for each molecule
-    sparse_reps = [
-        tf.reduce_mean(activated, 0, keep_dims=True)
-        for activated in activated_par
-    ]
-    max_reps = [
-        tf.reduce_max(activated, 0, keep_dims=True)
-        for activated in activated_par
-    ]
+      # Sum over atoms for each molecule
+      sparse_reps = [
+          tf.reduce_mean(activated, 0, keep_dims=True)
+          for activated in activated_par
+      ]
+      max_reps = [
+          tf.reduce_max(activated, 0, keep_dims=True)
+          for activated in activated_par
+      ]
 
-    # Get the final sparse representations
-    sparse_reps = tf.concat(axis=0, values=sparse_reps)
-    max_reps = tf.concat(axis=0, values=max_reps)
-    mol_features = tf.concat(axis=1, values=[sparse_reps, max_reps])
+      # Get the final sparse representations
+      sparse_reps = tf.concat(axis=0, values=sparse_reps)
+      max_reps = tf.concat(axis=0, values=max_reps)
+      mol_features = tf.concat(axis=1, values=[sparse_reps, max_reps])
 
-    if self.activation_fn is not None:
-      mol_features = self.activation_fn(mol_features)
-    out_tensor = mol_features
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+      if self.activation_fn is not None:
+        mol_features = self.activation_fn(mol_features)
+      out_tensor = mol_features
+      if set_tensors:
+        self.out_tensor = out_tensor
+      return out_tensor
 
 
 class LSTMStep(Layer):
