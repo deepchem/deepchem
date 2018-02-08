@@ -166,6 +166,9 @@ def atom_features(atom, bool_id_feat=False, explicit_H=False):
                              [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) + \
               one_of_k_encoding_unk(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5, 6]) + \
               [atom.GetFormalCharge(), atom.GetNumRadicalElectrons()] + \
+              one_of_k_encoding_unk(atom.GetChiralTag(),
+                [Chem.ChiralType.CHI_TETRAHEDRAL_CW, Chem.ChiralType.CHI_TETRAHEDRAL_CCW,
+                 Chem.ChiralType.CHI_UNSPECIFIED]) + \
               one_of_k_encoding_unk(atom.GetHybridization(), [
                 Chem.rdchem.HybridizationType.SP, Chem.rdchem.HybridizationType.SP2,
                 Chem.rdchem.HybridizationType.SP3, Chem.rdchem.HybridizationType.
