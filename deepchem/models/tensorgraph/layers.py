@@ -1547,7 +1547,7 @@ class SoftMaxCrossEntropy(Layer):
     if len(inputs) != 2:
       raise ValueError()
     labels, logits = inputs[0], inputs[1]
-    out_tensor = tf.nn.softmax_cross_entropy_with_logits(
+    out_tensor = tf.nn.softmax_cross_entropy_with_logits_v2(
         logits=logits, labels=labels)
     if set_tensors:
       self.out_tensor = out_tensor
@@ -2464,11 +2464,11 @@ class GraphGather(Layer):
 
       # Sum over atoms for each molecule
       sparse_reps = [
-          tf.reduce_mean(activated, 0, keep_dims=True)
+          tf.reduce_mean(activated, 0, keepdims=True)
           for activated in activated_par
       ]
       max_reps = [
-          tf.reduce_max(activated, 0, keep_dims=True)
+          tf.reduce_max(activated, 0, keepdims=True)
           for activated in activated_par
       ]
 
