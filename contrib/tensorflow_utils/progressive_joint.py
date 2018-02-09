@@ -11,7 +11,7 @@ from deepchem.utils.save import log
 from deepchem.metrics import to_one_hot
 from deepchem.metrics import from_one_hot
 from deepchem.nn import model_ops
-'''
+
 class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
   """Implements a progressive multitask neural network.
   
@@ -426,4 +426,3 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
         config = tf.ConfigProto(allow_soft_placement=True)
         self.eval_graph.session = tf.Session(config=config)
       return self.eval_graph.session
-'''

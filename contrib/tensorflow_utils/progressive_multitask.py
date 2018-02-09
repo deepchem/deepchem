@@ -1,4 +1,3 @@
-'''
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
@@ -12,6 +11,7 @@ from deepchem.utils.save import log
 from deepchem.metrics import to_one_hot
 from deepchem.metrics import from_one_hot
 from deepchem.nn import model_ops
+
 class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
   """Implements a progressive multitask neural network.
   
@@ -611,4 +611,3 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     time2 = time.time()
     print("TIMING: model fitting took %0.3f s" % (time2 - time1), self.verbose)
     ############################################################## TIMING
-'''
