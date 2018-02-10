@@ -1185,6 +1185,9 @@ class SoftMax(Layer):
 
 
 class Sigmoid(Layer):
+  """ Compute the sigmoid of input: f(x) = sigmoid(x)
+  Only one input is allowed, output will have the same shape as input
+  """
 
   def __init__(self, in_layers=None, **kwargs):
     super(Sigmoid, self).__init__(in_layers, **kwargs)
@@ -1544,7 +1547,7 @@ class SoftMaxCrossEntropy(Layer):
     if len(inputs) != 2:
       raise ValueError()
     labels, logits = inputs[0], inputs[1]
-    out_tensor = tf.nn.softmax_cross_entropy_with_logits(
+    out_tensor = tf.nn.softmax_cross_entropy_with_logits_v2(
         logits=logits, labels=labels)
     if set_tensors:
       self.out_tensor = out_tensor
@@ -1552,11 +1555,17 @@ class SoftMaxCrossEntropy(Layer):
 
 
 class SigmoidCrossEntropy(Layer):
+  """ Compute the sigmoid cross entropy of inputs: [labels, logits]
+  `labels` hold the binary labels(with no axis of n_classes),
+  `logits` hold the log probabilities for positive class(label=1),
+  `labels` and `logits` should have same shape and type.
+  Output will have the same shape as `logits`
+  """
 
   def __init__(self, in_layers=None, **kwargs):
     super(SigmoidCrossEntropy, self).__init__(in_layers, **kwargs)
     try:
-      self._shape = self.in_layers[1].shape[:-1]
+      self._shape = self.in_layers[1].shape
     except:
       pass
 
@@ -2436,43 +2445,44 @@ class GraphGather(Layer):
     super(GraphGather, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
+    with tf.device('/cpu'):
+      inputs = self._get_input_tensors(in_layers)
 
-    # x = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
-    atom_features = inputs[0]
+      # x = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
+      atom_features = inputs[0]
 
-    # Extract graph topology
-    membership = inputs[2]
+      # Extract graph topology
+      membership = inputs[2]
 
-    # Perform the mol gather
+      # Perform the mol gather
 
-    assert self.batch_size > 1, "graph_gather requires batches larger than 1"
+      assert self.batch_size > 1, "graph_gather requires batches larger than 1"
 
-    # Obtain the partitions for each of the molecules
-    activated_par = tf.dynamic_partition(atom_features, membership,
-                                         self.batch_size)
+      # Obtain the partitions for each of the molecules
+      activated_par = tf.dynamic_partition(atom_features, membership,
+                                           self.batch_size)
 
-    # Sum over atoms for each molecule
-    sparse_reps = [
-        tf.reduce_mean(activated, 0, keep_dims=True)
-        for activated in activated_par
-    ]
-    max_reps = [
-        tf.reduce_max(activated, 0, keep_dims=True)
-        for activated in activated_par
-    ]
+      # Sum over atoms for each molecule
+      sparse_reps = [
+          tf.reduce_mean(activated, 0, keepdims=True)
+          for activated in activated_par
+      ]
+      max_reps = [
+          tf.reduce_max(activated, 0, keepdims=True)
+          for activated in activated_par
+      ]
 
-    # Get the final sparse representations
-    sparse_reps = tf.concat(axis=0, values=sparse_reps)
-    max_reps = tf.concat(axis=0, values=max_reps)
-    mol_features = tf.concat(axis=1, values=[sparse_reps, max_reps])
+      # Get the final sparse representations
+      sparse_reps = tf.concat(axis=0, values=sparse_reps)
+      max_reps = tf.concat(axis=0, values=max_reps)
+      mol_features = tf.concat(axis=1, values=[sparse_reps, max_reps])
 
-    if self.activation_fn is not None:
-      mol_features = self.activation_fn(mol_features)
-    out_tensor = mol_features
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+      if self.activation_fn is not None:
+        mol_features = self.activation_fn(mol_features)
+      out_tensor = mol_features
+      if set_tensors:
+        self.out_tensor = out_tensor
+      return out_tensor
 
 
 class LSTMStep(Layer):

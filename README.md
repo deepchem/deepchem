@@ -20,9 +20,9 @@ democratizes the use of deep-learning in drug discovery, materials science, quan
     * [Input Formats](#input-formats)
     * [Data Featurization](#data-featurization)
     * [Performances](#performances)
-* [Contributing to DeepChem](#contributing-to-deepchem)
-    * [Code Style Guidelines](#code-style-guidelines)
-    * [Documentation Style Guidelines](#documentation-style-guidelines)
+* [Contributing to DeepChem](/CONTRIBUTING.md)
+    * [Code Style Guidelines](/CONTRIBUTING.md#code-style-guidelines)
+    * [Documentation Style Guidelines](/CONTRIBUTING.md#documentation-style-guidelines)
     * [Gitter](#gitter)
 * [DeepChem Publications](#deepchem-publications)
 * [Corporate Supporters](#corporate-supporters)
@@ -44,7 +44,7 @@ democratizes the use of deep-learning in drug discovery, materials science, quan
 
 ## Installation
 
-Installation from source is the only currently supported format. ```deepchem``` currently supports both Python 2.7 and Python 3.5, but is not supported on any OS'es except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system versions of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below.
+```deepchem``` currently supports both Python 2.7 and Python 3.5, and is supported on 64 bit Linux and Mac OSX. Please make sure you follow the directions below precisely. While you may already have system versions of some of our dependencies, there is no guarantee that `deepchem` will work with alternate versions than those specified below.
 
 Note that when using Ubuntu 16.04 server or similar environments, you may need to ensure libxrender is provided via e.g.:
 ```bash
@@ -59,7 +59,7 @@ git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source 
 cd deepchem
 bash scripts/install_deepchem_conda.sh deepchem
 source activate deepchem
-yes | pip install tensorflow-gpu==1.4.0      # If you want GPU support
+yes | pip install tensorflow-gpu==1.5.0      # If you want GPU support
 python setup.py install                                # Manual install
 nosetests -a '!slow' -v deepchem --nologcapture        # Run tests
 ```

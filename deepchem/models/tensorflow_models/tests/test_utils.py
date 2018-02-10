@@ -16,7 +16,6 @@
 
 import tempfile
 
-
 import numpy as np
 import scipy.stats
 import tensorflow as tf
@@ -24,21 +23,19 @@ import tensorflow as tf
 from google.protobuf import text_format
 
 from tensorflow.python.framework import test_util
-from tensorflow.python.platform import flags
 from tensorflow.python.platform import googletest
 from tensorflow.python.training import checkpoint_state_pb2
 
 from deepchem.models.tensorflow_models import utils
 
-FLAGS = flags.FLAGS
-FLAGS.test_random_seed = 20151102
+test_random_seed = 20151102
 
 
 class UtilsTest(test_util.TensorFlowTestCase):
 
   def setUp(self):
     super(UtilsTest, self).setUp()
-    np.random.seed(FLAGS.test_random_seed)
+    np.random.seed(test_random_seed)
 
   def testParseCheckpoint(self):
     # parse CheckpointState proto
@@ -78,85 +75,56 @@ class UtilsTest(test_util.TensorFlowTestCase):
           expected)
 
   def testMean(self):
-    self.Check(utils.Mean,
-               features=[0, 1],
-               expected=0.5)
-    self.Check(utils.Mean,
-               features=[[0, 1],
-                         [2, 3]],
-               expected=[0.5, 2.5],
-               axis=1)
-    self.Check(utils.Mean,
-               features=[[[0, 1],
-                          [2, 3]],
-                         [[4, 5],
-                          [6, 7]]],
-               expected=[2.5, 4.5],
-               axis=[0, 2])
+    self.Check(utils.Mean, features=[0, 1], expected=0.5)
+    self.Check(
+        utils.Mean, features=[[0, 1], [2, 3]], expected=[0.5, 2.5], axis=1)
+    self.Check(
+        utils.Mean,
+        features=[[[0, 1], [2, 3]], [[4, 5], [6, 7]]],
+        expected=[2.5, 4.5],
+        axis=[0, 2])
 
   def testMeanWithMask(self):
-    self.Check(utils.Mean,
-               features=[[9999],
-                         [1],
-                         [2]],
-               expected=1.5,
-               mask=[0, 1, 1])
-    self.Check(utils.Mean,
-               features=[[0, 1],
-                         [9999, 9999]],
-               expected=[0, 1],
-               axis=0,
-               mask=[1, 0])
-    self.Check(utils.Mean,
-               features=[[[0, 1],
-                          [9999, 9999]],
-                         [[9999, 9999],
-                          [6, 7]]],
-               expected=[0.5, 6.5],
-               axis=[0, 2],
-               mask=[[1, 0],
-                     [0, 1]])
+    self.Check(
+        utils.Mean, features=[[9999], [1], [2]], expected=1.5, mask=[0, 1, 1])
+    self.Check(
+        utils.Mean,
+        features=[[0, 1], [9999, 9999]],
+        expected=[0, 1],
+        axis=0,
+        mask=[1, 0])
+    self.Check(
+        utils.Mean,
+        features=[[[0, 1], [9999, 9999]], [[9999, 9999], [6, 7]]],
+        expected=[0.5, 6.5],
+        axis=[0, 2],
+        mask=[[1, 0], [0, 1]])
 
   def testVariance(self):
-    self.Check(utils.Variance,
-               features=[0, 1],
-               expected=0.25)
-    self.Check(utils.Variance,
-               features=[[0, 2],
-                         [2, 3]],
-               expected=[1, 0.25],
-               axis=1)
-    self.Check(utils.Variance,
-               features=[[[0, 1],
-                          [2, 3]],
-                         [[4, 5],
-                          [6, 7]]],
-               expected=[4.25, 4.25],
-               axis=[0, 2])
+    self.Check(utils.Variance, features=[0, 1], expected=0.25)
+    self.Check(
+        utils.Variance, features=[[0, 2], [2, 3]], expected=[1, 0.25], axis=1)
+    self.Check(
+        utils.Variance,
+        features=[[[0, 1], [2, 3]], [[4, 5], [6, 7]]],
+        expected=[4.25, 4.25],
+        axis=[0, 2])
 
   def testVarianceWithMask(self):
-    self.Check(utils.Variance,
-               features=[[0],
-                         [1],
-                         [2]],
-               expected=0.25,
-               mask=[0, 1, 1])
-    self.Check(utils.Variance,
-               features=[[0, 2],
-                         [9999, 9999],
-                         [4, 4]],
-               expected=[4, 1],
-               axis=0,
-               mask=[1, 0, 1])
-    self.Check(utils.Variance,
-               features=[[[0, 1],
-                          [9999, 9999]],
-                         [[9999, 9999],
-                          [6, 8]]],
-               expected=[0.25, 1],
-               axis=[0, 2],
-               mask=[[1, 0],
-                     [0, 1]])
+    self.Check(
+        utils.Variance, features=[[0], [1], [2]], expected=0.25, mask=[0, 1, 1])
+    self.Check(
+        utils.Variance,
+        features=[[0, 2], [9999, 9999], [4, 4]],
+        expected=[4, 1],
+        axis=0,
+        mask=[1, 0, 1])
+    self.Check(
+        utils.Variance,
+        features=[[[0, 1], [9999, 9999]], [[9999, 9999], [6, 8]]],
+        expected=[0.25, 1],
+        axis=[0, 2],
+        mask=[[1, 0], [0, 1]])
 
   def testMoment(self):
     with self.test_session() as sess:
@@ -169,50 +137,66 @@ class UtilsTest(test_util.TensorFlowTestCase):
         self.assertAllClose(
             sess.run(utils.Moment(k, features_t)[1]),
             scipy.stats.moment(features, k, axis=None),
-            rtol=1e-5, atol=1e-5)
+            rtol=1e-5,
+            atol=1e-5)
 
         # standardized moments
         self.assertAllClose(
             sess.run(utils.Moment(k, features_t, standardize=True)[1]),
-            np.divide(scipy.stats.moment(features, k, axis=None),
-                      np.power(features.std(), k)),
-            rtol=1e-5, atol=1e-5)
+            np.divide(
+                scipy.stats.moment(features, k, axis=None),
+                np.power(features.std(), k)),
+            rtol=1e-5,
+            atol=1e-5)
 
         # central across one axis
         self.assertAllClose(
             sess.run(utils.Moment(k, features_t, reduction_indices=1)[1]),
             scipy.stats.moment(features, k, axis=1),
-            rtol=1e-5, atol=1e-5)
+            rtol=1e-5,
+            atol=1e-5)
 
         # standardized across one axis
         self.assertAllClose(
-            sess.run(utils.Moment(k, features_t, standardize=True,
-                                  reduction_indices=1)[1]),
-            np.divide(scipy.stats.moment(features, k, axis=1),
-                      np.power(features.std(axis=1), k)),
-            rtol=1e-5, atol=1e-5)
+            sess.run(
+                utils.Moment(
+                    k, features_t, standardize=True, reduction_indices=1)[1]),
+            np.divide(
+                scipy.stats.moment(features, k, axis=1),
+                np.power(features.std(axis=1), k)),
+            rtol=1e-5,
+            atol=1e-5)
 
   def testSkewness(self):
     with self.test_session() as sess:
       features = np.random.random((3, 4, 5))
       features_t = tf.constant(features, dtype=tf.float32)
-      self.assertAllClose(sess.run(utils.Skewness(features_t)),
-                          scipy.stats.skew(features, axis=None),
-                          rtol=1e-5, atol=1e-5)
-      self.assertAllClose(sess.run(utils.Skewness(features_t, 1)),
-                          scipy.stats.skew(features, axis=1),
-                          rtol=1e-5, atol=1e-5)
+      self.assertAllClose(
+          sess.run(utils.Skewness(features_t)),
+          scipy.stats.skew(features, axis=None),
+          rtol=1e-5,
+          atol=1e-5)
+      self.assertAllClose(
+          sess.run(utils.Skewness(features_t, 1)),
+          scipy.stats.skew(features, axis=1),
+          rtol=1e-5,
+          atol=1e-5)
 
   def testKurtosis(self):
     with self.test_session() as sess:
       features = np.random.random((3, 4, 5))
       features_t = tf.constant(features, dtype=tf.float32)
-      self.assertAllClose(sess.run(utils.Kurtosis(features_t)),
-                          scipy.stats.kurtosis(features, axis=None),
-                          rtol=1e-5, atol=1e-5)
-      self.assertAllClose(sess.run(utils.Kurtosis(features_t, 1)),
-                          scipy.stats.kurtosis(features, axis=1),
-                          rtol=1e-5, atol=1e-5)
+      self.assertAllClose(
+          sess.run(utils.Kurtosis(features_t)),
+          scipy.stats.kurtosis(features, axis=None),
+          rtol=1e-5,
+          atol=1e-5)
+      self.assertAllClose(
+          sess.run(utils.Kurtosis(features_t, 1)),
+          scipy.stats.kurtosis(features, axis=1),
+          rtol=1e-5,
+          atol=1e-5)
+
 
 if __name__ == '__main__':
   googletest.main()

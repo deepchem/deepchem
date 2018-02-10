@@ -18,8 +18,7 @@ import shutil
 import tensorflow as tf
 import deepchem as dc
 from tensorflow.python.framework import test_util
-
-
+'''
 class TestProgressive(test_util.TensorFlowTestCase):
   """
   Test that progressive models satisfy basic sanity checks. 
@@ -162,3 +161,4 @@ class TestProgressive(test_util.TensorFlowTestCase):
     # The predictions for task zero should not change after training
     # on task one. 
     np.testing.assert_allclose(y_pred_task_zero, y_pred_task_zero_after)
+'''

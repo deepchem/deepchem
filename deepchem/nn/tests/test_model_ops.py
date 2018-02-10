@@ -1,18 +1,15 @@
 """Test ops for graph construction."""
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
-import os
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.framework import test_util
 
 import deepchem as dc
-from tensorflow.python.framework import test_util
-from tensorflow.python.platform import flags
 
-FLAGS = flags.FLAGS
-FLAGS.test_random_seed = 20151102
+test_random_seed = 20151102
 
 
 class TestModelOps(test_util.TensorFlowTestCase):
@@ -37,15 +34,15 @@ class TestModelOps(test_util.TensorFlowTestCase):
       features_t = tf.constant(features, dtype=tf.float32)
       dense_t = dc.nn.fully_connected_layer(features_t, 50)
       sess.run(tf.global_variables_initializer())
-      features, dense, w, b = sess.run([features_t, dense_t] +
-                                       tf.trainable_variables())
+      features, dense, w, b = sess.run(
+          [features_t, dense_t] + tf.trainable_variables())
       expected = np.dot(features, w) + b
       self.assertAllClose(dense, expected)
 
   def test_multitask_logits(self):
     with self.test_session() as sess:
       num_tasks = 3
-      np.random.seed(FLAGS.test_random_seed)
+      np.random.seed(test_random_seed)
       features = np.random.random((5, 100))
       logits_t = dc.nn.multitask_logits(
           tf.constant(features, dtype=tf.float32), num_tasks)
