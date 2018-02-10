@@ -598,7 +598,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     # Fit trained model
     model.fit(dataset, nb_epoch=25)
-    model.save()
 
     # Eval model on train
     scores = model.evaluate(dataset, [classification_metric])
@@ -766,7 +765,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     # Fit trained model
     model.fit(dataset, nb_epoch=25)
-    model.save()
 
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])

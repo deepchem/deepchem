@@ -95,18 +95,18 @@ def benchmark_classification(train_dataset,
     learning_rate = hyper_parameters['learning_rate']
 
     # Building tensorflow MultiTaskDNN model
-    model = deepchem.models.TensorflowMultiTaskClassifier(
+    model = deepchem.models.MultiTaskClassifier(
         len(tasks),
         n_features,
         layer_sizes=layer_sizes,
         weight_init_stddevs=weight_init_stddevs,
         bias_init_consts=bias_init_consts,
         dropouts=dropouts,
-        penalty=penalty,
-        penalty_type=penalty_type,
+        weight_decay_penalty=penalty,
+        weight_decay_penalty_type=penalty_type,
         batch_size=batch_size,
         learning_rate=learning_rate,
-        seed=seed)
+        random_seed=seed)
 
   elif model_name == 'tf_robust':
     layer_sizes = hyper_parameters['layer_sizes']
@@ -137,11 +137,11 @@ def benchmark_classification(train_dataset,
         bypass_weight_init_stddevs=bypass_weight_init_stddevs,
         bypass_bias_init_consts=bypass_bias_init_consts,
         bypass_dropouts=bypass_dropouts,
-        penalty=penalty,
-        penalty_type=penalty_type,
+        weight_decay_penalty=penalty,
+        weight_decay_penalty_type=penalty_type,
         batch_size=batch_size,
         learning_rate=learning_rate,
-        seed=seed)
+        random_seed=seed)
 
   elif model_name == 'logreg':
     penalty = hyper_parameters['penalty']
@@ -461,15 +461,15 @@ def benchmark_regression(train_dataset,
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
 
-    model = deepchem.models.TensorflowMultiTaskRegressor(
+    model = deepchem.models.MultiTaskRegressor(
         len(tasks),
         n_features,
         layer_sizes=layer_sizes,
         weight_init_stddevs=weight_init_stddevs,
         bias_init_consts=bias_init_consts,
         dropouts=dropouts,
-        penalty=penalty,
-        penalty_type=penalty_type,
+        weight_decay_penalty=penalty,
+        weight_decay_penalty_type=penalty_type,
         batch_size=batch_size,
         learning_rate=learning_rate,
         seed=seed)
@@ -486,15 +486,15 @@ def benchmark_regression(train_dataset,
     learning_rate = hyper_parameters['learning_rate']
     fit_transformers = [hyper_parameters['fit_transformers'](train_dataset)]
 
-    model = deepchem.models.TensorflowMultiTaskFitTransformRegressor(
+    model = deepchem.models.MultiTaskFitTransformRegressor(
         n_tasks=len(tasks),
         n_features=n_features,
         layer_sizes=layer_sizes,
         weight_init_stddevs=weight_init_stddevs,
         bias_init_consts=bias_init_consts,
         dropouts=dropouts,
-        penalty=penalty,
-        penalty_type=penalty_type,
+        weight_decay_penalty=penalty,
+        weight_decay_penalty_type=penalty_type,
         batch_size=batch_size,
         learning_rate=learning_rate,
         fit_transformers=fit_transformers,
@@ -774,6 +774,7 @@ def benchmark_regression(train_dataset,
   return train_scores, valid_scores, test_scores
 
 
+'''
 def low_data_benchmark_classification(train_dataset,
                                       valid_dataset,
                                       n_features,
@@ -883,3 +884,4 @@ def low_data_benchmark_classification(train_dataset,
       valid_dataset, metric, n_pos, n_neg, n_trials=n_eval_trials)
 
   return valid_scores
+'''

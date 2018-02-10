@@ -37,14 +37,20 @@ metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)
 all_results = []
 for trial in range(num_trials):
   model = dc.models.RobustMultitaskRegressor(
-      len(UV_tasks), train_dataset.get_data_shape()[0],
-      layer_sizes=[500]*n_layers, bypass_layer_sizes=[40]*n_bypass_layers,
-      dropouts=[.25]*n_layers, bypass_dropouts=[.25]*n_bypass_layers, 
-      weight_init_stddevs=[.02]*n_layers, bias_init_consts=[.5]*n_layers,
-      bypass_weight_init_stddevs=[.02]*n_bypass_layers,
-      bypass_bias_init_consts=[.5]*n_bypass_layers,
-      learning_rate=.0003, penalty=.0001, penalty_type="l2",
-      optimizer="adam", batch_size=100, logdir="UV_tf_robust")
+      len(UV_tasks),
+      train_dataset.get_data_shape()[0],
+      layer_sizes=[500] * n_layers,
+      bypass_layer_sizes=[40] * n_bypass_layers,
+      dropouts=[.25] * n_layers,
+      bypass_dropouts=[.25] * n_bypass_layers,
+      weight_init_stddevs=[.02] * n_layers,
+      bias_init_consts=[.5] * n_layers,
+      bypass_weight_init_stddevs=[.02] * n_bypass_layers,
+      bypass_bias_init_consts=[.5] * n_bypass_layers,
+      learning_rate=.0003,
+      weight_decay_penalty=.0001,
+      weight_decay_penalty_type="l2",
+      batch_size=100)
 
   print("Fitting Model")
   model.fit(train_dataset, nb_epoch=nb_epoch)
@@ -57,9 +63,8 @@ for trial in range(num_trials):
   test_score, test_task_scores = model.evaluate(
       test_dataset, [metric], transformers, per_task_metrics=True)
 
-  all_results.append((train_score, train_task_scores,
-                      valid_score, valid_task_scores,
-                      test_score, test_task_scores))
+  all_results.append((train_score, train_task_scores, valid_score,
+                      valid_task_scores, test_score, test_task_scores))
 
   print("Scores for trial %d" % trial)
   print("----------------------------------------------------------------")
@@ -79,8 +84,8 @@ for trial in range(num_trials):
 print("####################################################################")
 
 for trial in range(num_trials):
-  (train_score, train_task_scores, valid_score, valid_task_scores,
-   test_score, test_task_scores) = all_results[trial]
+  (train_score, train_task_scores, valid_score, valid_task_scores, test_score,
+   test_task_scores) = all_results[trial]
 
   print("Scores for trial %d" % trial)
   print("----------------------------------------------------------------")

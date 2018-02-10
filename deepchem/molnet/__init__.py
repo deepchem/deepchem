@@ -33,4 +33,4 @@ from deepchem.molnet.dnasim import motif_density
 from deepchem.molnet.dnasim import simulate_single_motif_detection
 
 from deepchem.molnet.run_benchmark import run_benchmark
-from deepchem.molnet.run_benchmark_low_data import run_benchmark_low_data
+#from deepchem.molnet.run_benchmark_low_data import run_benchmark_low_data
