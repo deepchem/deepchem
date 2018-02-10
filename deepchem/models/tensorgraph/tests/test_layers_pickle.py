@@ -12,7 +12,7 @@ from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, 
   Conv3D, MaxPool3D, Conv2DTranspose, Conv3DTranspose, \
   LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN, Cast
 from deepchem.models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
-from deepchem.models.tensorflow_models.IRV import IRVLayer, IRVRegularize, Slice
+from deepchem.models.tensorgraph.IRV import IRVLayer, IRVRegularize, Slice
 
 
 def test_Conv1D_pickle():

@@ -15,10 +15,6 @@ import deepchem as dc
 from deepchem.nn import model_ops
 from deepchem.utils.save import log
 from deepchem.metrics import to_one_hot, from_one_hot
-from deepchem.models.tensorflow_models import TensorflowGraph
-from deepchem.models.tensorflow_models import TensorflowGraphModel
-from deepchem.models.tensorflow_models import TensorflowClassifier
-from deepchem.models.tensorflow_models import TensorflowRegressor
 from deepchem.metrics import to_one_hot
 
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper

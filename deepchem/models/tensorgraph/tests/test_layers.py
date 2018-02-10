@@ -53,10 +53,9 @@ from deepchem.models.tensorgraph.layers import Variable
 from deepchem.models.tensorgraph.layers import VinaFreeEnergy
 from deepchem.models.tensorgraph.layers import WeightedError
 from deepchem.models.tensorgraph.layers import WeightedLinearCombo
-
-from deepchem.models.tensorflow_models.IRV import IRVLayer
-from deepchem.models.tensorflow_models.IRV import IRVRegularize
-from deepchem.models.tensorflow_models.IRV import Slice
+from deepchem.models.tensorgraph.IRV import IRVLayer
+from deepchem.models.tensorgraph.IRV import IRVRegularize
+from deepchem.models.tensorgraph.IRV import Slice
 
 
 class TestLayers(test_util.TensorFlowTestCase):
