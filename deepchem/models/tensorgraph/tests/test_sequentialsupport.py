@@ -12,4 +12,5 @@ class TestSequentialSupport(unittest.TestCase):
   """
 
   def test_initialization(self):
-    seq_support = dc.models.SequentialSupport()
+    n_feat = 10
+    seq_support = dc.models.SequentialSupport(n_feat)

@@ -13,6 +13,7 @@ from deepchem.models.tensorgraph.layers import Label
 from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
 from deepchem.models.tensorgraph.layers import ReduceMean
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
+from deepchem.models.tensorgraph.support_layers import GraphTopology
 
 
 class Sequential(TensorGraph):
@@ -133,32 +134,29 @@ class SequentialSupport(TensorGraph):
 
   Technically, these models support two parallel towers. One tower is
   used for processing support sets. The second is used for processing
-  the test set. Adding a layer to SequentialSupportGraph adds it to
+  the test set. Adding a layer to SequentialSupport adds it to
   both the support tower and the test tower.
   """
 
   def __init__(self, n_feat, **kwargs):
-    """
+    """Initializes model with no layers.
+
     Parameters
     ----------
     n_feat: int
       Number of atomic features.
     """
-    warnings.warn("SequentialSupportWeaveGraph is deprecated. "
-                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
-    self.graph = tf.Graph()
-    with self.graph.as_default():
-      # Create graph topology and x
-      self.test_graph_topology = GraphTopology(n_feat, name='test')
-      self.support_graph_topology = GraphTopology(n_feat, name='support')
-      self.test = self.test_graph_topology.get_atom_features_placeholder()
-      self.support = self.support_graph_topology.get_atom_features_placeholder()
+    # Create graph topology and x
+    self.test_graph_topology = GraphTopology(n_feat, name='test')
+    self.support_graph_topology = GraphTopology(n_feat, name='support')
+    self.test = self.test_graph_topology.get_atom_features_placeholder()
+    self.support = self.support_graph_topology.get_atom_features_placeholder()
 
     # Keep track of the layers
     self.layers = []
     # Whether or not we have used the GraphGather layer yet
     self.bool_pre_gather = True
-    super(SequentialSupportGraph, self).__init__(**kwargs)
+    super(SequentialSupport, self).__init__(**kwargs)
 
   def add_placeholders(self):
     """Adds placeholders to graph."""
