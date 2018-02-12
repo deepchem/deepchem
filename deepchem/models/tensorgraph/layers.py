@@ -2929,6 +2929,14 @@ class BatchNormalization(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+  def none_tensors(self):
+    gamma, beta, out_tensor = self.gamma, self.beta, self.out_tensor
+    self.gamma, self.beta, self.out_tensor = None, None, None
+    return gamma, beta, out_tensor
+
+  def set_tensors(self, tensor):
+    self.gamma, self.beta, self.out_tensor = tensor
+
 
 class WeightedError(Layer):
 
