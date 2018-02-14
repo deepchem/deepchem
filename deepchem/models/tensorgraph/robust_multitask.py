@@ -20,46 +20,7 @@ class RobustMultitaskClassifier(TensorGraph):
   
   Key idea is to have bypass layers that feed directly from features to task
   output. Hopefully will allow tasks to route around bad multitasking.
-
-  Parameters
-  ----------
-  n_tasks: int
-    number of tasks
-  n_features: int
-    number of features
-  layer_sizes: list
-    the size of each dense layer in the network.  The length of this list determines the number of layers.
-  weight_init_stddevs: list or float
-    the standard deviation of the distribution to use for weight initialization of each layer.  The length
-    of this list should equal len(layer_sizes).  Alternatively this may be a single value instead of a list,
-    in which case the same value is used for every layer.
-  bias_init_consts: list or loat
-    the value to initialize the biases in each layer to.  The length of this list should equal len(layer_sizes).
-    Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
-  weight_decay_penalty: float
-    the magnitude of the weight decay penalty to use
-  weight_decay_penalty_type: str
-    the type of penalty to use for weight decay, either 'l1' or 'l2'
-  dropouts: list or float
-    the dropout probablity to use for each layer.  The length of this list should equal len(layer_sizes).
-    Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
-  activation_fns: list or object
-    the Tensorflow activation function to apply to each layer.  The length of this list should equal
-    len(layer_sizes).  Alternatively this may be a single value instead of a list, in which case the
-    same value is used for every layer.
-  n_classes: int
-    the number of classes
-  bypass_layer_sizes: list
-    the size of each dense layer in the bypass network. The length of this list determines the number of bypass layers.
-  bypass_weight_init_stddevs: list or float
-    the standard deviation of the distribution to use for weight initialization of bypass layers.
-    same requirements as weight_init_stddevs
-  bypass_bias_init_consts: list or float
-    the value to initialize the biases in bypass layers
-    same requirements as bias_init_consts
-  bypass_dropouts: list or float
-    the dropout probablity to use for bypass layers.
-    same requirements as dropouts
+  
   """
 
   def __init__(self,
@@ -78,6 +39,48 @@ class RobustMultitaskClassifier(TensorGraph):
                bypass_bias_init_consts=[1.],
                bypass_dropouts=[.5],
                **kwargs):
+    """  Create a RobustMultitaskClassifier.
+    
+    Parameters
+    ----------
+    n_tasks: int
+      number of tasks
+    n_features: int
+      number of features
+    layer_sizes: list
+      the size of each dense layer in the network.  The length of this list determines the number of layers.
+    weight_init_stddevs: list or float
+      the standard deviation of the distribution to use for weight initialization of each layer.  The length
+      of this list should equal len(layer_sizes).  Alternatively this may be a single value instead of a list,
+      in which case the same value is used for every layer.
+    bias_init_consts: list or loat
+      the value to initialize the biases in each layer to.  The length of this list should equal len(layer_sizes).
+      Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
+    weight_decay_penalty: float
+      the magnitude of the weight decay penalty to use
+    weight_decay_penalty_type: str
+      the type of penalty to use for weight decay, either 'l1' or 'l2'
+    dropouts: list or float
+      the dropout probablity to use for each layer.  The length of this list should equal len(layer_sizes).
+      Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
+    activation_fns: list or object
+      the Tensorflow activation function to apply to each layer.  The length of this list should equal
+      len(layer_sizes).  Alternatively this may be a single value instead of a list, in which case the
+      same value is used for every layer.
+    n_classes: int
+      the number of classes
+    bypass_layer_sizes: list
+      the size of each dense layer in the bypass network. The length of this list determines the number of bypass layers.
+    bypass_weight_init_stddevs: list or float
+      the standard deviation of the distribution to use for weight initialization of bypass layers.
+      same requirements as weight_init_stddevs
+    bypass_bias_init_consts: list or float
+      the value to initialize the biases in bypass layers
+      same requirements as bias_init_consts
+    bypass_dropouts: list or float
+      the dropout probablity to use for bypass layers.
+      same requirements as dropouts
+    """
     super(RobustMultitaskClassifier, self).__init__(**kwargs)
     self.n_tasks = n_tasks
     self.n_features = n_features
@@ -207,43 +210,6 @@ class RobustMultitaskRegressor(TensorGraph):
   Key idea is to have bypass layers that feed directly from features to task
   output. Hopefully will allow tasks to route around bad multitasking.
 
-  Parameters
-  ----------
-  n_tasks: int
-    number of tasks
-  n_features: int
-    number of features
-  layer_sizes: list
-    the size of each dense layer in the network.  The length of this list determines the number of layers.
-  weight_init_stddevs: list or float
-    the standard deviation of the distribution to use for weight initialization of each layer.  The length
-    of this list should equal len(layer_sizes).  Alternatively this may be a single value instead of a list,
-    in which case the same value is used for every layer.
-  bias_init_consts: list or loat
-    the value to initialize the biases in each layer to.  The length of this list should equal len(layer_sizes).
-    Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
-  weight_decay_penalty: float
-    the magnitude of the weight decay penalty to use
-  weight_decay_penalty_type: str
-    the type of penalty to use for weight decay, either 'l1' or 'l2'
-  dropouts: list or float
-    the dropout probablity to use for each layer.  The length of this list should equal len(layer_sizes).
-    Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
-  activation_fns: list or object
-    the Tensorflow activation function to apply to each layer.  The length of this list should equal
-    len(layer_sizes).  Alternatively this may be a single value instead of a list, in which case the
-    same value is used for every layer.
-  bypass_layer_sizes: list
-    the size of each dense layer in the bypass network. The length of this list determines the number of bypass layers.
-  bypass_weight_init_stddevs: list or float
-    the standard deviation of the distribution to use for weight initialization of bypass layers.
-    same requirements as weight_init_stddevs
-  bypass_bias_init_consts: list or float
-    the value to initialize the biases in bypass layers
-    same requirements as bias_init_consts
-  bypass_dropouts: list or float
-    the dropout probablity to use for bypass layers.
-    same requirements as dropouts
   """
 
   def __init__(self,
@@ -261,6 +227,46 @@ class RobustMultitaskRegressor(TensorGraph):
                bypass_bias_init_consts=[1.],
                bypass_dropouts=[.5],
                **kwargs):
+    """ Create a RobustMultitaskRegressor.
+    
+    Parameters
+    ----------
+    n_tasks: int
+      number of tasks
+    n_features: int
+      number of features
+    layer_sizes: list
+      the size of each dense layer in the network.  The length of this list determines the number of layers.
+    weight_init_stddevs: list or float
+      the standard deviation of the distribution to use for weight initialization of each layer.  The length
+      of this list should equal len(layer_sizes).  Alternatively this may be a single value instead of a list,
+      in which case the same value is used for every layer.
+    bias_init_consts: list or loat
+      the value to initialize the biases in each layer to.  The length of this list should equal len(layer_sizes).
+      Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
+    weight_decay_penalty: float
+      the magnitude of the weight decay penalty to use
+    weight_decay_penalty_type: str
+      the type of penalty to use for weight decay, either 'l1' or 'l2'
+    dropouts: list or float
+      the dropout probablity to use for each layer.  The length of this list should equal len(layer_sizes).
+      Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
+    activation_fns: list or object
+      the Tensorflow activation function to apply to each layer.  The length of this list should equal
+      len(layer_sizes).  Alternatively this may be a single value instead of a list, in which case the
+      same value is used for every layer.
+    bypass_layer_sizes: list
+      the size of each dense layer in the bypass network. The length of this list determines the number of bypass layers.
+    bypass_weight_init_stddevs: list or float
+      the standard deviation of the distribution to use for weight initialization of bypass layers.
+      same requirements as weight_init_stddevs
+    bypass_bias_init_consts: list or float
+      the value to initialize the biases in bypass layers
+      same requirements as bias_init_consts
+    bypass_dropouts: list or float
+      the dropout probablity to use for bypass layers.
+      same requirements as dropouts
+    """
     super(RobustMultitaskRegressor, self).__init__(**kwargs)
     self.n_tasks = n_tasks
     self.n_features = n_features
