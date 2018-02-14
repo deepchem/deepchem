@@ -27,8 +27,10 @@ class RobustMultitaskClassifier(MultiTaskClassifier):
                bypass_dropouts=[.5],
                **kwargs):
     """Create a MultiTaskClassifier.
+
     In addition to the following arguments, this class also accepts
     all the keyword arguments from MultiTaskClassifier.
+
     Parameters
     ----------
     n_tasks: int
@@ -231,6 +233,7 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
 
   def build(self, graph, name_scopes, training):
     """Constructs the graph architecture as specified in its config.
+
     This method creates the following Placeholders:
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
         batch_size x num_features.
