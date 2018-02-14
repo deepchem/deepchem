@@ -15,6 +15,7 @@ from deepchem.models.tensorgraph.layers import Feature, Label, Weights, \
 
 
 class RobustMultitaskClassifier(TensorGraph):
+
   """Implements a neural network for robust multitasking.
   
   Key idea is to have bypass layers that feed directly from features to task
