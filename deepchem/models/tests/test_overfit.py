@@ -488,7 +488,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .1
 
-  
   def test_tf_robust_multitask_regression_overfit(self):
     """Test tf robust multitask overfits tiny data."""
     np.random.seed(123)
@@ -525,7 +524,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .2
-  
 
   def test_tensorgraph_DTNN_multitask_regression_overfit(self):
     """Test deep tensor neural net overfits tiny data."""
