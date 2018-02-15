@@ -12,10 +12,9 @@ from __future__ import unicode_literals
 
 import numpy as np
 import tensorflow as tf
-from deepchem.nn import activations
-from deepchem.nn import initializations
-from deepchem.nn import model_ops
-
+from deepchem.models.tensorgraph import activations
+from deepchem.models.tensorgraph import initializations
+from deepchem.models.tensorgraph import model_ops
 from deepchem.models.tensorgraph.layers import Layer, LayerSplitter
 from deepchem.models.tensorgraph.layers import convert_to_layers
 

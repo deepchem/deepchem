@@ -11,10 +11,9 @@ from __future__ import unicode_literals
 
 import numpy as np
 import tensorflow as tf
-from deepchem.nn import activations
-from deepchem.nn import initializations
-from deepchem.nn import model_ops
-
+from deepchem.models.tensorgraph import activations
+from deepchem.models.tensorgraph import initializations
+from deepchem.models.tensorgraph import model_ops
 from deepchem.models.tensorgraph.layers import Layer
 from deepchem.models.tensorgraph.layers import convert_to_layers
 from deepchem.metrics import to_one_hot
@@ -445,8 +444,8 @@ class AtomicDifferentiatedDense(Layer):
           self.b[i, :])
 
       mask = 1 - tf.to_float(tf.cast(atom_numbers - atom_case, tf.bool))
-      output = tf.reshape(output * tf.expand_dims(mask, 2), (-1, self.max_atoms,
-                                                             self.out_channels))
+      output = tf.reshape(output * tf.expand_dims(mask, 2),
+                          (-1, self.max_atoms, self.out_channels))
       outputs.append(output)
     self.out_tensor = tf.add_n(outputs)
 
