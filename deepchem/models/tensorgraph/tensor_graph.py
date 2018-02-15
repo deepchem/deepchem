@@ -928,6 +928,7 @@ class Submodel(object):
         optimizer = self.graph.optimizer
       else:
         optimizer = self.optimizer
+      # Should we keep a separate global step count for each submodel?
       global_step = self.graph._get_tf('GlobalStep')
       tf_opt = optimizer._create_optimizer(global_step)
       self._train_op = tf_opt.minimize(loss.out_tensor, global_step, variables)

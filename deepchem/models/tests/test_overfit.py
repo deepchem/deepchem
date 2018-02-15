@@ -870,14 +870,12 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .9
 
-  '''
   def test_tf_progressive_regression_overfit(self):
     """Test tf progressive multitask overfits tiny data."""
     np.random.seed(123)
-    n_tasks = 9
+    n_tasks = 5
     n_samples = 10
     n_features = 3
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -897,16 +895,12 @@ class TestOverfit(test_util.TensorFlowTestCase):
         dropouts=[0.],
         learning_rate=0.003,
         weight_init_stddevs=[.1],
-        seed=123,
         alpha_init_stddevs=[.02],
         batch_size=n_samples)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=20)
-    model.save()
 
     # Eval model on train
     scores = model.evaluate(dataset, [metric])
-    y_pred = model.predict(dataset)
     assert scores[metric.name] < .2
-  '''

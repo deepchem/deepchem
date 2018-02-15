@@ -1207,6 +1207,29 @@ class Sigmoid(Layer):
     return out_tensor
 
 
+class ReLU(Layer):
+  """ Compute the relu activation of input: f(x) = relu(x)
+  Only one input is allowed, output will have the same shape as input
+  """
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(ReLU, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError("ReLU must have a single input layer.")
+    parent = inputs[0]
+    out_tensor = tf.nn.relu(parent)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class Concat(Layer):
 
   def __init__(self, in_layers=None, axis=1, **kwargs):
