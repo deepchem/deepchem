@@ -32,7 +32,6 @@ model = dc.models.ProgressiveMultitaskClassifier(
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=10)
-model.save()
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, [metric], transformers)
