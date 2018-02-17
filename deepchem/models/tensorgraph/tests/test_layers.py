@@ -37,6 +37,7 @@ from deepchem.models.tensorgraph.layers import Multiply
 from deepchem.models.tensorgraph.layers import ReduceMean
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 from deepchem.models.tensorgraph.layers import ReduceSum
+from deepchem.models.tensorgraph.layers import ReLU
 from deepchem.models.tensorgraph.layers import Repeat
 from deepchem.models.tensorgraph.layers import Reshape
 from deepchem.models.tensorgraph.layers import SluiceLoss
@@ -227,6 +228,17 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = L2Loss()(guess_tensor, label_tensor)
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size,)
+
+  def test_relu(self):
+    """Test that Sigmoid can be invoked."""
+    batch_size = 10
+    n_features = 5
+    in_tensor = np.random.rand(batch_size, n_features)
+    with self.test_session() as sess:
+      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
+      out_tensor = ReLU()(in_tensor)
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size, n_features)
 
   def test_sigmoid(self):
     """Test that Sigmoid can be invoked."""

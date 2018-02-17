@@ -15,6 +15,9 @@ from deepchem.models.tensorgraph.fcnet import MultiTaskRegressor
 from deepchem.models.tensorgraph.fcnet import MultiTaskClassifier
 from deepchem.models.tensorgraph.fcnet import MultiTaskFitTransformRegressor
 from deepchem.models.tensorgraph.IRV import TensorflowMultiTaskIRVClassifier
+from deepchem.models.tensorgraph.robust_multitask import RobustMultitaskClassifier
+from deepchem.models.tensorgraph.robust_multitask import RobustMultitaskRegressor
+from deepchem.models.tensorgraph.progressive_multitask import ProgressiveMultitaskRegressor
 from deepchem.models.tensorgraph.models.graph_models import WeaveTensorGraph, DTNNTensorGraph, DAGTensorGraph, GraphConvTensorGraph, MPNNTensorGraph
 from deepchem.models.tensorgraph.models.symmetry_function_regression import BPSymmetryFunctionRegression, ANIRegression
 
