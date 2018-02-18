@@ -48,11 +48,9 @@ for trial in range(num_trials):
       bypass_weight_init_stddevs=[.02] * n_bypass_layers,
       bypass_bias_init_consts=[1.] * n_bypass_layers,
       learning_rate=.00003,
-      penalty=.0004,
-      penalty_type="l2",
-      optimizer="adam",
-      batch_size=100,
-      logdir="KAGGLE_tf_bypass")
+      weight_decay_penalty=.0004,
+      weight_decay_penalty_type="l2",
+      batch_size=100)
 
   print("Fitting Model")
   model.fit(train_dataset, nb_epoch=nb_epoch)

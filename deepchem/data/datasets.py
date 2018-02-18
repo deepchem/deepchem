@@ -260,6 +260,49 @@ class Dataset(object):
     else:
       return None
 
+  def make_iterator(self,
+                    batch_size=100,
+                    epochs=1,
+                    deterministic=False,
+                    pad_batches=False):
+    """Create a tf.data.Iterator that iterates over the data in this Dataset.
+
+    The iterator's get_next() method returns a tuple of three tensors (X, y, w)
+    which can be used to retrieve the features, labels, and weights respectively.
+
+    Parameters
+    ----------
+    batch_size: int
+      the number of samples to include in each batch
+    epochs: int
+      the number of times to iterate over the Dataset
+    deterministic: bool
+      if True, the data is produced in order.  If False, a different random
+      permutation of the data is used for each epoch.
+    pad_batches: bool
+      if True, batches are padded as necessary to make the size of each batch
+      exactly equal batch_size.
+    """
+    # Retrieve the first sample so we can determine the dtypes.
+
+    import tensorflow as tf
+    X, y, w, ids = next(self.itersamples())
+    dtypes = (tf.as_dtype(X.dtype), tf.as_dtype(y.dtype), tf.as_dtype(w.dtype))
+    shapes = (tf.TensorShape([None] + list(X.shape)),
+              tf.TensorShape([None] + list(y.shape)),
+              tf.TensorShape([None] + list(w.shape)))
+
+    # Create a Tensorflow Dataset and have it create an Iterator.
+
+    def gen_data():
+      for epoch in range(epochs):
+        for X, y, w, ids in self.iterbatches(batch_size, epoch, deterministic,
+                                             pad_batches):
+          yield (X, y, w)
+
+    dataset = tf.data.Dataset.from_generator(gen_data, dtypes, shapes)
+    return dataset.make_one_shot_iterator()
+
 
 class NumpyDataset(Dataset):
   """A Dataset defined by in-memory numpy arrays."""

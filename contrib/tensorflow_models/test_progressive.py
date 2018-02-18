@@ -1,3 +1,4 @@
+'''
 """
 Sanity tests on progressive models.
 """
@@ -18,7 +19,6 @@ import shutil
 import tensorflow as tf
 import deepchem as dc
 from tensorflow.python.framework import test_util
-'''
 class TestProgressive(test_util.TensorFlowTestCase):
   """
   Test that progressive models satisfy basic sanity checks. 
