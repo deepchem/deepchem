@@ -7,7 +7,7 @@ from copy import deepcopy
 import tensorflow as tf
 import numpy as np
 
-from deepchem.nn import model_ops, initializations, regularizers, activations
+from deepchem.models.tensorgraph import model_ops, initializations, regularizers, activations
 import math
 
 

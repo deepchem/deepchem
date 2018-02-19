@@ -13,7 +13,6 @@ import deepchem.hyper
 import deepchem.metalearning
 import deepchem.metrics
 import deepchem.models
-import deepchem.nn
 import deepchem.splits
 import deepchem.trans
 import deepchem.utils

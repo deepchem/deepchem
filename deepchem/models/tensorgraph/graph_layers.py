@@ -12,19 +12,17 @@ from __future__ import unicode_literals
 
 import numpy as np
 import tensorflow as tf
-from deepchem.nn import activations
-from deepchem.nn import initializations
-from deepchem.nn import model_ops
-
+from deepchem.models.tensorgraph import activations
+from deepchem.models.tensorgraph import initializations
+from deepchem.models.tensorgraph import model_ops
 from deepchem.models.tensorgraph.layers import Layer, LayerSplitter
 from deepchem.models.tensorgraph.layers import convert_to_layers
 
 
 class WeaveLayer(Layer):
   """ TensorGraph style implementation
-    The same as deepchem.nn.WeaveLayer
-    Note: Use WeaveLayerFactory to construct this layer
-    """
+  Note: Use WeaveLayerFactory to construct this layer
+  """
 
   def __init__(self,
                n_atom_input_feat=75,
@@ -127,9 +125,10 @@ class WeaveLayer(Layer):
           [self.W_AP, self.b_AP, self.W_PP, self.b_PP, self.W_P, self.b_P])
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """ description and explanation refer to deepchem.nn.WeaveLayer
-        parent layers: [atom_features, pair_features], pair_split, atom_to_pair
-        """
+    """Creates weave tensors.
+
+    parent layers: [atom_features, pair_features], pair_split, atom_to_pair
+    """
     activation = activations.get(self.activation)  # Get activations
     if in_layers is None:
       in_layers = self.in_layers
@@ -204,8 +203,7 @@ def WeaveLayerFactory(**kwargs):
 
 class WeaveGather(Layer):
   """ TensorGraph style implementation
-    The same as deepchem.nn.WeaveGather
-    """
+  """
 
   def __init__(self,
                batch_size,
@@ -252,9 +250,9 @@ class WeaveGather(Layer):
       self.trainable_weights = None
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """ description and explanation refer to deepchem.nn.WeaveGather
-        parent layers: atom_features, atom_split
-        """
+    """ 
+    parent layers: atom_features, atom_split
+    """
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -308,8 +306,7 @@ class WeaveGather(Layer):
 
 class DTNNEmbedding(Layer):
   """ TensorGraph style implementation
-    The same as deepchem.nn.DTNNEmbedding
-    """
+  """
 
   def __init__(self,
                n_embedding=30,
@@ -338,9 +335,9 @@ class DTNNEmbedding(Layer):
     self.trainable_weights = [self.embedding_list]
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """description and explanation refer to deepchem.nn.DTNNEmbedding
-        parent layers: atom_number
-        """
+    """
+    parent layers: atom_number
+    """
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -365,8 +362,7 @@ class DTNNEmbedding(Layer):
 
 class DTNNStep(Layer):
   """ TensorGraph style implementation
-    The same as deepchem.nn.DTNNStep
-    """
+  """
 
   def __init__(self,
                n_embedding=30,
@@ -413,9 +409,9 @@ class DTNNStep(Layer):
     ]
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """description and explanation refer to deepchem.nn.DTNNStep
-        parent layers: atom_features, distance, distance_membership_i, distance_membership_j
-        """
+    """
+    parent layers: atom_features, distance, distance_membership_i, distance_membership_j
+    """
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -462,8 +458,7 @@ class DTNNStep(Layer):
 
 class DTNNGather(Layer):
   """ TensorGraph style implementation
-    The same as deepchem.nn.DTNNGather
-    """
+  """
 
   def __init__(self,
                n_embedding=30,
@@ -515,9 +510,9 @@ class DTNNGather(Layer):
     self.trainable_weights = self.W_list + self.b_list
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """description and explanation refer to deepchem.nn.DTNNGather
-        parent layers: atom_features, atom_membership
-        """
+    """
+    parent layers: atom_features, atom_membership
+    """
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -567,8 +562,7 @@ class DTNNExtract(Layer):
 
 class DAGLayer(Layer):
   """ TensorGraph style implementation
-    The same as deepchem.nn.DAGLayer
-    """
+  """
 
   def __init__(self,
                n_graph_feat=30,
@@ -635,9 +629,9 @@ class DAGLayer(Layer):
     self.trainable_weights = self.W_list + self.b_list
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """description and explanation refer to deepchem.nn.DAGLayer
-        parent layers: atom_features, parents, calculation_orders, calculation_masks, n_atoms
-        """
+    """
+    parent layers: atom_features, parents, calculation_orders, calculation_masks, n_atoms
+    """
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -726,8 +720,7 @@ class DAGLayer(Layer):
 
 class DAGGather(Layer):
   """ TensorGraph style implementation
-    The same as deepchem.nn.DAGGather
-    """
+  """
 
   def __init__(self,
                n_graph_feat=30,
@@ -787,9 +780,9 @@ class DAGGather(Layer):
     self.trainable_weights = self.W_list + self.b_list
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """description and explanation refer to deepchem.nn.DAGGather
-        parent layers: atom_features, membership
-        """
+    """
+    parent layers: atom_features, membership
+    """
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)

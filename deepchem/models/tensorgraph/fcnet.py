@@ -12,7 +12,7 @@ import threading
 import collections
 
 import deepchem as dc
-from deepchem.nn import model_ops
+from deepchem.models.tensorgraph import model_ops
 from deepchem.utils.save import log
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.metrics import to_one_hot

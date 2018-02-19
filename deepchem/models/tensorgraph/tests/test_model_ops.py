@@ -7,7 +7,10 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
 
-import deepchem as dc
+from deepchem.models.tensorgraph.model_ops import add_bias
+from deepchem.models.tensorgraph.model_ops import fully_connected_layer
+from deepchem.models.tensorgraph.model_ops import multitask_logits
+from deepchem.models.tensorgraph.model_ops import softmax_N
 
 test_random_seed = 20151102
 
@@ -21,7 +24,7 @@ class TestModelOps(test_util.TensorFlowTestCase):
   def test_add_bias(self):
     with self.test_session() as sess:
       w_t = tf.constant([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], shape=[2, 3])
-      w_biased_t = dc.nn.add_bias(w_t, init=tf.constant(5.0, shape=[3]))
+      w_biased_t = add_bias(w_t, init=tf.constant(5.0, shape=[3]))
       sess.run(tf.global_variables_initializer())
       w, w_biased, bias = sess.run([w_t, w_biased_t] + tf.trainable_variables())
       self.assertAllEqual(w, [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
@@ -32,7 +35,7 @@ class TestModelOps(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       features = np.random.random((128, 100))
       features_t = tf.constant(features, dtype=tf.float32)
-      dense_t = dc.nn.fully_connected_layer(features_t, 50)
+      dense_t = fully_connected_layer(features_t, 50)
       sess.run(tf.global_variables_initializer())
       features, dense, w, b = sess.run(
           [features_t, dense_t] + tf.trainable_variables())
@@ -44,7 +47,7 @@ class TestModelOps(test_util.TensorFlowTestCase):
       num_tasks = 3
       np.random.seed(test_random_seed)
       features = np.random.random((5, 100))
-      logits_t = dc.nn.multitask_logits(
+      logits_t = multitask_logits(
           tf.constant(features, dtype=tf.float32), num_tasks)
       sess.run(tf.global_variables_initializer())
       output = sess.run(tf.trainable_variables() + logits_t)
@@ -60,14 +63,12 @@ class TestModelOps(test_util.TensorFlowTestCase):
     expected = np.asarray(
         [[[0.5, 0.5], [0.45, 0.55]], [[0.27, 0.73], [0.5, 0.5]]], dtype=float)
     with self.test_session() as sess:
-      computed = sess.run(
-          dc.nn.softmax_N(tf.constant(features, dtype=tf.float32)))
+      computed = sess.run(softmax_N(tf.constant(features, dtype=tf.float32)))
     self.assertAllClose(np.around(computed, 2), expected)
 
   def test_softmax_N_with_numpy(self):
     features = np.random.random((2, 3, 4))
     expected = np.exp(features) / np.exp(features).sum(axis=-1, keepdims=True)
     with self.test_session() as sess:
-      computed = sess.run(
-          dc.nn.softmax_N(tf.constant(features, dtype=tf.float32)))
+      computed = sess.run(softmax_N(tf.constant(features, dtype=tf.float32)))
       self.assertAllClose(computed, expected)

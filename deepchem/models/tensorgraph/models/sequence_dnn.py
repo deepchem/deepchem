@@ -5,7 +5,6 @@ repository. The SequenceDNN class is useful for prediction
 tasks working with genomic data.
 """
 import tensorflow as tf
-from deepchem.nn.regularizers import l1
 from deepchem.models import Sequential
 from deepchem.models.tensorgraph import layers
 from deepchem.data import NumpyDataset
