@@ -13,7 +13,6 @@ democratizes the use of deep-learning in drug discovery, materials science, quan
 * [Requirements](#requirements)
 * [Installation](#installation)
     * [Conda Environment](#using-a-conda-environment)
-    * [Direct from Source](#installing-dependencies-manually)
     * [Docker](#using-a-docker-image)
 * [FAQ](#faq)
 * [Getting Started](#getting-started)
