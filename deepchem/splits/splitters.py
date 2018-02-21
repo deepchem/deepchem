@@ -753,7 +753,7 @@ class IndiceSplitter(Splitter):
       self.valid_indices = []
     if self.test_indices is None:
       self.test_indices = []
-    valid_test = self.valid_indices
+    valid_test = list(self.valid_indices)
     valid_test.extend(self.test_indices)
     for indice in indices:
       if not indice in valid_test:
