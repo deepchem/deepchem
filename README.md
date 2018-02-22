@@ -13,16 +13,15 @@ democratizes the use of deep-learning in drug discovery, materials science, quan
 * [Requirements](#requirements)
 * [Installation](#installation)
     * [Conda Environment](#using-a-conda-environment)
-    * [Direct from Source](#installing-dependencies-manually)
     * [Docker](#using-a-docker-image)
 * [FAQ](#faq)
 * [Getting Started](#getting-started)
     * [Input Formats](#input-formats)
     * [Data Featurization](#data-featurization)
     * [Performances](#performances)
-* [Contributing to DeepChem](#contributing-to-deepchem)
-    * [Code Style Guidelines](#code-style-guidelines)
-    * [Documentation Style Guidelines](#documentation-style-guidelines)
+* [Contributing to DeepChem](/CONTRIBUTING.md)
+    * [Code Style Guidelines](/CONTRIBUTING.md#code-style-guidelines)
+    * [Documentation Style Guidelines](/CONTRIBUTING.md#documentation-style-guidelines)
     * [Gitter](#gitter)
 * [DeepChem Publications](#deepchem-publications)
 * [Corporate Supporters](#corporate-supporters)
@@ -44,7 +43,7 @@ democratizes the use of deep-learning in drug discovery, materials science, quan
 
 ## Installation
 
-Installation from source is the only currently supported format. ```deepchem``` currently supports both Python 2.7 and Python 3.5, but is not supported on any OS'es except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system versions of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below.
+```deepchem``` currently supports both Python 2.7 and Python 3.5, and is supported on 64 bit Linux and Mac OSX. Please make sure you follow the directions below precisely. While you may already have system versions of some of our dependencies, there is no guarantee that `deepchem` will work with alternate versions than those specified below.
 
 Note that when using Ubuntu 16.04 server or similar environments, you may need to ensure libxrender is provided via e.g.:
 ```bash
@@ -59,7 +58,7 @@ git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source 
 cd deepchem
 bash scripts/install_deepchem_conda.sh deepchem
 source activate deepchem
-conda install -c conda-forge tensorflow-gpu=1.3.0      # If you want GPU support
+yes | pip install tensorflow-gpu==1.5.0      # If you want GPU support
 python setup.py install                                # Manual install
 nosetests -a '!slow' -v deepchem --nologcapture        # Run tests
 ```
@@ -71,82 +70,12 @@ via this installation procedure.
 
 ### Easy Install via Conda
 ```bash
-conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.3.0
+conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.3.1
 ```
 
-### Installing Dependencies Manually
-
-1. Download the **64-bit** Python 2.7 or Python 3.5 versions of Anaconda for linux [here](https://www.continuum.io/downloads#_unix).
-   Follow the [installation instructions](http://docs.continuum.io/anaconda/install#linux-install)
-
-2. `rdkit`
-   ```bash
-   conda install -c rdkit rdkit
-   ```
-
-3. `joblib`
-   ```bash
-   conda install joblib
-   ```
-
-4. `six`
-   ```bash
-   pip install six
-   ```
-5. `networkx`
-   ```bash
-   conda install -c anaconda networkx=1.11
-   ```
-
-6. `mdtraj`
-   ```bash
-   conda install -c omnia mdtraj
-   ```
-
-7. `pdbfixer`
-   ```bash
-   conda install -c omnia pdbfixer=1.4
-   ```
-
-8. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
-    have glibc < 2.17) can be very challenging. For these older Linux versions,
-    contact your local sysadmin to work out a custom installation. If your
-    version of Linux is recent, then the following command will work:
-    ```
-    pip install tensorflow-gpu==1.3.0
-    ```
-
-9. `deepchem`: Clone the `deepchem` github repo:
-   ```bash
-   git clone https://github.com/deepchem/deepchem.git
-   ```
-   `cd` into the `deepchem` directory and execute
-   ```bash
-   python setup.py install
-   ```
-
-10. To run test suite, install `nosetests`:
-   ```bash
-   pip install nose
-   ```
-   Make sure that the correct version of `nosetests` is active by running
-   ```bash
-   which nosetests
-   ```
-   You might need to uninstall a system install of `nosetests` if
-   there is a conflict.
-
-11. If installation has been successful, all tests in test suite should pass:
-    ```bash
-    nosetests -v deepchem --nologcapture
-    ```
-    Note that the full test-suite uses up a fair amount of memory.
-    Try running tests for one submodule at a time if memory proves an issue.
-
 ### Using a Docker Image
-For major releases we will create docker environments with everything pre-installed.
-In order to get GPU support you will have to use the 
-[nvidia-docker](https://github.com/NVIDIA/nvidia-docker) plugin.
+Using a docker image requires an NVIDIA GPU.  If you do not have a GPU please follow the directions for [using a conda environment](#using-a-conda-environment)
+In order to get GPU support you will have to use the [nvidia-docker](https://github.com/NVIDIA/nvidia-docker) plugin.
 ``` bash
 # This will the download the latest stable deepchem docker image into your images
 docker pull deepchemio/deepchem
@@ -176,7 +105,9 @@ import deepchem as dc
    ```
 
 ## Getting Started
-The first step to getting started is looking at the examples in the `examples/` directory. Try running some of these examples on your system and verify that the models train successfully. Afterwards, to apply `deepchem` to a new problem, try starting from one of the existing examples and modifying it step by step to work with your new use-case.
+Two good tutorials to get started are [Graph Convolutional Networks](https://deepchem.io/docs/notebooks/graph_convolutional_networks_for_tox21.html) and [Multitask_Networks_on_MUV](https://deepchem.io/docs/notebooks/Multitask_Networks_on_MUV.html). Follow along with the tutorials to see how to predict properties on molecules using neural networks.
+
+Afterwards you can go through other [tutorials](https://deepchem.io/docs/notebooks/index.html), and look through our examples in the `examples` directory. To apply `deepchem` to a new problem, try starting from one of the existing examples or tutorials and modifying it step by step to work with your new use-case. If you have questions or comments you can raise them on our [gitter](https://gitter.im/deepchem/Lobby).
 
 ### Input Formats
 Accepted input formats for deepchem include csv, pkl.gz, and sdf files. For

@@ -37,9 +37,12 @@ from deepchem.models.tensorgraph.layers import Multiply
 from deepchem.models.tensorgraph.layers import ReduceMean
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 from deepchem.models.tensorgraph.layers import ReduceSum
+from deepchem.models.tensorgraph.layers import ReLU
 from deepchem.models.tensorgraph.layers import Repeat
 from deepchem.models.tensorgraph.layers import Reshape
 from deepchem.models.tensorgraph.layers import SluiceLoss
+from deepchem.models.tensorgraph.layers import Sigmoid
+from deepchem.models.tensorgraph.layers import SigmoidCrossEntropy
 from deepchem.models.tensorgraph.layers import SoftMax
 from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
 from deepchem.models.tensorgraph.layers import StopGradient
@@ -51,6 +54,9 @@ from deepchem.models.tensorgraph.layers import Variable
 from deepchem.models.tensorgraph.layers import VinaFreeEnergy
 from deepchem.models.tensorgraph.layers import WeightedError
 from deepchem.models.tensorgraph.layers import WeightedLinearCombo
+from deepchem.models.tensorgraph.IRV import IRVLayer
+from deepchem.models.tensorgraph.IRV import IRVRegularize
+from deepchem.models.tensorgraph.IRV import Slice
 
 
 class TestLayers(test_util.TensorFlowTestCase):
@@ -223,6 +229,28 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size,)
 
+  def test_relu(self):
+    """Test that Sigmoid can be invoked."""
+    batch_size = 10
+    n_features = 5
+    in_tensor = np.random.rand(batch_size, n_features)
+    with self.test_session() as sess:
+      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
+      out_tensor = ReLU()(in_tensor)
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size, n_features)
+
+  def test_sigmoid(self):
+    """Test that Sigmoid can be invoked."""
+    batch_size = 10
+    n_features = 5
+    in_tensor = np.random.rand(batch_size, n_features)
+    with self.test_session() as sess:
+      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
+      out_tensor = Sigmoid()(in_tensor)
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size, n_features)
+
   def test_softmax(self):
     """Test that Softmax can be invoked."""
     batch_size = 10
@@ -326,6 +354,19 @@ class TestLayers(test_util.TensorFlowTestCase):
 
       dists = dist_tensor.eval()
       assert dists.shape == (N_atoms, M_nbrs)
+
+  def test_sigmoid_cross_entropy(self):
+    """Test that SigmoidCrossEntropy can be invoked."""
+    batch_size = 10
+    n_features = 5
+    logit_tensor = np.random.rand(batch_size, n_features)
+    label_tensor = np.random.randint(0, 2, (batch_size, n_features))
+    with self.test_session() as sess:
+      logit_tensor = tf.convert_to_tensor(logit_tensor, dtype=tf.float32)
+      label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
+      out_tensor = SigmoidCrossEntropy()(label_tensor, logit_tensor)
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size, n_features)
 
   def test_softmax_cross_entropy(self):
     """Test that SoftMaxCrossEntropy can be invoked."""
@@ -805,3 +846,32 @@ class TestLayers(test_util.TensorFlowTestCase):
       vertex_props, adjs = vertex_props.eval(), adjs.eval()
       assert vertex_props.shape == (10, 6, 50)
       assert adjs.shape == (10, 6, 5, 6)
+
+  def test_slice(self):
+    """Test that Slice can be invoked."""
+    batch_size = 10
+    n_features = 5
+    test_tensor_input = np.random.rand(batch_size, n_features)
+    with self.test_session() as sess:
+      test_tensor = tf.convert_to_tensor(test_tensor_input, dtype=tf.float32)
+      out_tensor = Slice(1)(test_tensor)
+      out_tensor = out_tensor.eval()
+      assert np.allclose(out_tensor, test_tensor_input[:, 1:2])
+
+  def test_IRV(self):
+    """Test that IRVLayer and IRVRegularize can be invoked."""
+    batch_size = 10
+    n_tasks = 5
+    K = 10
+    n_features = 2 * K * n_tasks
+    test_tensor_input = np.random.rand(batch_size, n_features)
+    with self.test_session() as sess:
+      test_tensor = tf.convert_to_tensor(test_tensor_input, dtype=tf.float32)
+      irv_layer = IRVLayer(n_tasks, K)
+      irv_layer.create_tensor(in_layers=[test_tensor])
+      out_tensor = irv_layer.out_tensor
+      sess.run(tf.global_variables_initializer())
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size, n_tasks)
+      irv_reg = IRVRegularize(irv_layer, 1.)()
+      assert irv_reg.eval() >= 0

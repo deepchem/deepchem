@@ -4,6 +4,7 @@ Created on Mon Mar 06 14:25:40 2017
 
 @author: Zhenqin Wu
 """
+'''
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
@@ -139,3 +140,4 @@ def run_benchmark_low_data(datasets,
           output_line.extend(
               ['time_for_running', time_finish_fitting - time_start_fitting])
           writer.writerow(output_line)
+'''

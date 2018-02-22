@@ -7,50 +7,87 @@ import numpy as np
 import tensorflow as tf
 
 from deepchem.nn import model_ops
-from deepchem.models.tensorflow_models import TensorflowGraph
-from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
-from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
 
-
-class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
+class RobustMultitaskClassifier(MultiTaskClassifier):
   """Implements a neural network for robust multitasking.
   
-  Key idea is to have bypass layers that feed directly from features to task
-  output. Hopefully will allow tasks to route around bad multitasking.
+  Key idea is to have bypass layers that feed directly from features
+  to task output. Hopefully will allow tasks to route around bad
+  multitasking.
   """
 
   def __init__(self,
                n_tasks,
                n_features,
-               logdir=None,
+               layer_sizes=[1000],
+               weight_init_stddevs=0.02,
                bypass_layer_sizes=[100],
                bypass_weight_init_stddevs=[.02],
                bypass_bias_init_consts=[1.],
                bypass_dropouts=[.5],
                **kwargs):
-    warnings.warn("RobustMultiTaskClassifier is deprecated. "
-                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
+    """Create a MultiTaskClassifier.
+
+    In addition to the following arguments, this class also accepts
+    all the keyword arguments from MultiTaskClassifier.
+
+    Parameters
+    ----------
+    n_tasks: int
+      number of tasks
+    n_features: int
+      number of features
+    layer_sizes: list
+      the size of each dense layer in the network.  The length of
+      this list determines the number of layers.
+    weight_init_stddevs: list or float
+      the standard deviation of the distribution to use for weight
+      initialization of each layer.  The length of this list should
+      equal len(layer_sizes).  Alternatively this may be a single
+      value instead of a list, in which case the same value is used
+      for every layer.
+    bypass_layer_sizes: list
+      the size of each dense bypass layer in the network. The length
+      of this list determines the number of layers.
+    bypass_weight_init_stddevs: list or float
+      the standard deviation of the distribution to use for weight
+      initialization of each layer.  The length of this list should
+      equal len(bypass_layer_sizes).  Alternatively this may be a
+      single value instead of a list, in which case the same value is
+      used for every layer.
+    bypass_bias_init_consts: list or loat
+      the value to initialize the biases in each layer to.  The
+      length of this list should equal len(bypass_layer_sizes).
+      Alternatively this may be a single value instead of a list, in
+      which case the same value is used for every layer.
+    bypass_dropouts: list or float
+      the dropout probablity to use for each layer.  The length of
+      this list should equal len(bypass_layer_sizes).  Alternatively
+      this may be a single value instead of a list, in which case the
+      same value is used for every layer.
+    """
     self.bypass_layer_sizes = bypass_layer_sizes
     self.bypass_weight_init_stddevs = bypass_weight_init_stddevs
     self.bypass_bias_init_consts = bypass_bias_init_consts
     self.bypass_dropouts = bypass_dropouts
-    super(RobustMultitaskClassifier, self).__init__(n_tasks, n_features, logdir,
-                                                    **kwargs)
 
-  def build(self, graph, name_scopes, training):
-    """Constructs the graph architecture as specified in its config.
+    n_layers = len(layer_sizes)
+    assert n_layers == len(bypass_layer_sizes)
+    if not isinstance(weight_init_stddevs, collections.Sequence):
+      weight_init_stddevs = [weight_init_stddevs] * n_layers
+    if not isinstance(bypass_weight_init_stddevs, collections.Sequence):
+      bypass_weight_init_stddevs = [bypass_weight_init_stddevs] * n_layers
+    if not isinstance(bias_init_consts, collections.Sequence):
+      bias_init_consts = [bias_init_consts] * n_layers
+    if not isinstance(dropouts, collections.Sequence):
+      dropouts = [dropouts] * n_layers
+    if not isinstance(activation_fns, collections.Sequence):
+      activation_fns = [activation_fns] * n_layers
 
-    This method creates the following Placeholders:
-      mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
-        batch_size x num_features.
-    """
-    num_features = self.n_features
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(
-        graph, name_scopes)
-    with graph.as_default():
-      with placeholder_scope:
-        mol_features = tf.placeholder(
-            tf.float32, shape=[None, num_features], name='mol_features')
+    # Add the input features.
+    mol_features = Feature(shape=(None, n_features))
+    prev_layer = mol_features
+
 
       layer_sizes = self.layer_sizes
       weight_init_stddevs = self.weight_init_stddevs
@@ -90,8 +127,8 @@ class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
             capacity=5,
             dtypes=[tf.float32] *
             (len(label_placeholders) + len(weight_placeholders) + 1))
-        graph.enqueue = graph.queue.enqueue([mol_features] + label_placeholders
-                                            + weight_placeholders)
+        graph.enqueue = graph.queue.enqueue(
+            [mol_features] + label_placeholders + weight_placeholders)
         queue_outputs = graph.queue.dequeue()
         labels = queue_outputs[1:len(label_placeholders) + 1]
         weights = queue_outputs[len(label_placeholders) + 1:]
@@ -247,8 +284,8 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
             capacity=5,
             dtypes=[tf.float32] *
             (len(label_placeholders) + len(weight_placeholders) + 1))
-        graph.enqueue = graph.queue.enqueue([mol_features] + label_placeholders
-                                            + weight_placeholders)
+        graph.enqueue = graph.queue.enqueue(
+            [mol_features] + label_placeholders + weight_placeholders)
         queue_outputs = graph.queue.dequeue()
         labels = queue_outputs[1:len(label_placeholders) + 1]
         weights = queue_outputs[len(label_placeholders) + 1:]

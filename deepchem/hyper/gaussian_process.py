@@ -225,8 +225,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         model.fit(train_dataset, **hyper_parameters)
         model.save()
         evaluator = Evaluator(model, valid_dataset, output_transformers)
-        multitask_scores = evaluator.compute_model_performance([metric])
-        score = multitask_scores[metric.name]
+        multitask_scores = evaluator.compute_model_performance(metric)
+        score = multitask_scores[metric[0].name]
 
       with open(log_file, 'a') as f:
         # Record performances

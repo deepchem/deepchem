@@ -10,6 +10,7 @@ import shutil
 import numpy as np
 import deepchem as dc
 from deepchem.molnet import load_tox21
+from sklearn.linear_model import LogisticRegression
 
 # Only for debug!
 np.random.seed(123)
@@ -22,16 +23,17 @@ train_dataset, valid_dataset, test_dataset = tox21_datasets
 # Fit models
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 
-model = dc.models.TensorflowLogisticRegression(
-    len(tox21_tasks),
-    n_features,
-    learning_rate=0.006,
-    penalty=0.05,
-    weight_init_stddevs=[0.002],
-    batch_size=32)
+
+def model_builder(model_dir_logreg):
+  sklearn_model = LogisticRegression(
+      penalty="l2", C=1. / 0.05, class_weight="balanced", n_jobs=-1)
+  return dc.models.sklearn_models.SklearnModel(sklearn_model, model_dir_logreg)
+
+
+model = dc.models.multitask.SingletaskToMultitask(tox21_tasks, model_builder)
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=50)
+model.fit(train_dataset)
 model.save()
 
 print("Evaluating model")

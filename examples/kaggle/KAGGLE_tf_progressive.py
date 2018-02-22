@@ -41,11 +41,7 @@ for trial in range(num_trials):
       weight_init_stddevs=[.02] * n_layers,
       bias_init_consts=[1.] * n_layers,
       learning_rate=.0003,
-      penalty=.0001,
-      penalty_type="l2",
-      optimizer="adam",
-      batch_size=100,
-      logdir="KAGGLE_tf_progressive")
+      batch_size=100)
 
   #Use R2 classification metric
   metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)

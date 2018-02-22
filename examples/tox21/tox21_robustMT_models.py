@@ -36,14 +36,12 @@ model = dc.models.RobustMultitaskClassifier(
     bypass_weight_init_stddevs=[.02] * n_bypass_layers,
     bypass_bias_init_consts=[.5] * n_bypass_layers,
     learning_rate=.0003,
-    penalty=.0001,
-    penalty_type="l2",
-    optimizer="adam",
+    weight_decay_penalty=.0001,
+    weight_decay_penalty_type="l2",
     batch_size=100)
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=nb_epoch)
-model.save()
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, [metric], transformers)

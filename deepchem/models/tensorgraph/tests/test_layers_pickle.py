@@ -5,13 +5,14 @@ from deepchem.models import TensorGraph
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
   DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
 from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, Reshape, Squeeze, Transpose, \
-  CombineMeanStd, Repeat, Gather, GRU, LSTM, L2Loss, Concat, SoftMax, \
+  CombineMeanStd, Repeat, Gather, GRU, LSTM, L2Loss, Concat, SoftMax, Sigmoid, SigmoidCrossEntropy, \
   Constant, Variable, StopGradient, Add, Multiply, Log, Exp, InteratomicL2Distances, \
   SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
-  GraphGather, BatchNorm, WeightedError, \
+  GraphGather, BatchNorm, WeightedError, ReLU, \
   Conv3D, MaxPool3D, Conv2DTranspose, Conv3DTranspose, \
   LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN, Cast
 from deepchem.models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
+from deepchem.models.tensorgraph.IRV import IRVLayer, IRVRegularize, Slice
 
 
 def test_Conv1D_pickle():
@@ -154,6 +155,26 @@ def test_Softmax_pickle():
   tg.save()
 
 
+def test_Sigmoid_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 1))
+  layer = Sigmoid(in_layers=feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
+def test_ReLU_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 1))
+  layer = ReLU(in_layers=feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
 def test_Concat_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 1))
@@ -242,6 +263,16 @@ def test_SoftmaxCrossEntropy_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 1))
   layer = SoftMaxCrossEntropy(in_layers=[feature, feature])
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
+def test_SigmoidCrossEntropy_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 1))
+  layer = SigmoidCrossEntropy(in_layers=[feature, feature])
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
@@ -625,5 +656,29 @@ def testGraphCNNPoolLayer_pickle():
   tg = TensorGraph()
   tg.add_output(gcnnpool)
   tg.set_loss(gcnnpool)
+  tg.build()
+  tg.save()
+
+
+def test_IRVLayer_pickle():
+  n_tasks = 10
+  K = 10
+  V = Feature(shape=(None, 200))
+  irv_layer = IRVLayer(n_tasks, K, in_layers=[V])
+  irv_reg = IRVRegularize(irv_layer, in_layers=[irv_layer])
+  tg = TensorGraph()
+  tg.add_output(irv_layer)
+  tg.add_output(irv_reg)
+  tg.set_loss(irv_reg)
+  tg.build()
+  tg.save()
+
+
+def test_Slice_pickle():
+  V = Feature(shape=(None, 10))
+  out = Slice(5, 1, in_layers=[V])
+  tg = TensorGraph()
+  tg.add_output(out)
+  tg.set_loss(out)
   tg.build()
   tg.save()

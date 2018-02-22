@@ -36,7 +36,7 @@ conda install -y -q -c conda-forge keras=1.2.2
 conda install -y -q -c conda-forge networkx=1.11
 conda install -y -q -c conda-forge pillow=4.3.0
 conda install -y -q -c conda-forge pandas=0.22.0
-yes | pip install $tensorflow==1.4.0
+yes | pip install $tensorflow==1.5.0
 conda install -y -q -c conda-forge nose=1.3.7
 conda install -y -q -c conda-forge nose-timer=0.7.0
 conda install -y -q -c conda-forge flaky=3.3.0
@@ -44,4 +44,6 @@ conda install -y -q -c conda-forge zlib=1.2.11
 conda install -y -q -c conda-forge requests=2.18.4
 conda install -y -q -c conda-forge xgboost=0.6a2
 conda install -y -q -c conda-forge simdna=0.4.2
+conda install -y -q -c conda-forge jupyter=1.0.0
+conda install -y -q -c conda-forge pbr=3.1.1
 conda install -y -q -c rdkit rdkit=2017.09.1
