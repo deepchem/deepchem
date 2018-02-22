@@ -2903,7 +2903,8 @@ class BatchNorm(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
-    out_tensor = tf.layers.batch_normalization(parent_tensor)
+    training_flag = tf.equal(tf.constant(1.0, dtype=tf.float32), kwargs['training'])
+    out_tensor = tf.layers.batch_normalization(parent_tensor, training=training_flag)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
