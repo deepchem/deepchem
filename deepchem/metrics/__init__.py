@@ -290,7 +290,11 @@ class Metric(object):
       y_pred = np.reshape(y_pred, (n_samples,))
 
     if self.threshold is not None:
-      y_pred = np.greater(y_pred, threshold)
+      # With threshold in effect, assume that only binary classification is concerned.
+      y_pred = np.greater(y_pred, self.threshold) * 1
+      y_true = np.greater(y_true, self.threshold) * 1
+      y_pred = to_one_hot(y_pred)*astype(int)
+      y_true = to_one_hot(y_true)*astype(int)
     try:
       metric_value = self.metric(y_true, y_pred)
     except (AssertionError, ValueError) as e:
