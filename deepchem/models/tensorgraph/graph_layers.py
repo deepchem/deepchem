@@ -211,7 +211,7 @@ class WeaveGather(Layer):
                gaussian_expand=False,
                init='glorot_uniform',
                activation='tanh',
-               epsilon=1e-3,
+               epsilon=1e-8,
                momentum=0.99,
                **kwargs):
     """
@@ -288,7 +288,8 @@ class WeaveGather(Layer):
     dist_max = [dist[i].prob(gaussian_memberships[i][0]) for i in range(11)]
     outputs = [dist[i].prob(x) / dist_max[i] for i in range(11)]
     outputs = tf.stack(outputs, axis=2)
-    outputs = outputs / tf.reduce_sum(outputs, axis=2, keep_dims=True)
+    outputs = (outputs + self.epsilon) / tf.add(tf.reduce_sum(outputs, axis=2, 
+                                                              keep_dims=True), self.epsilon)
     outputs = tf.reshape(outputs, [-1, self.n_input * 11])
     return outputs
 
