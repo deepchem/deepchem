@@ -12,6 +12,7 @@ __license__ = "MIT"
 import os
 import tempfile
 import numpy as np
+import logging
 from subprocess import call
 from scipy.spatial import ConvexHull
 from deepchem.feat.binding_pocket_features import BindingPocketFeaturizer

@@ -12,6 +12,7 @@ __license__ = "MIT"
 import numpy as np
 import os
 import tempfile
+import logging
 from deepchem.data import DiskDataset
 from deepchem.models import SklearnModel
 from deepchem.models import MultiTaskRegressor

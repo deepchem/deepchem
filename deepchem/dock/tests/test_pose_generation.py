@@ -1,5 +1,5 @@
 """
-Tests for Pose Generation 
+Tests for Pose Generation
 """
 from __future__ import division
 from __future__ import print_function
@@ -18,7 +18,7 @@ from nose.plugins.attrib import attr
 
 class TestPoseGeneration(unittest.TestCase):
   """
-  Does sanity checks on pose generation. 
+  Does sanity checks on pose generation.
   """
 
   def test_vina_initialization(self):

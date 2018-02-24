@@ -2,6 +2,7 @@ import os
 import shutil
 import unittest
 import tempfile
+import logging
 import deepchem as dc
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier

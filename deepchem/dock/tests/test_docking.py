@@ -1,5 +1,5 @@
 """
-Tests for Docking 
+Tests for Docking
 """
 from __future__ import division
 from __future__ import print_function
@@ -19,7 +19,7 @@ import deepchem as dc
 
 class TestDocking(unittest.TestCase):
   """
-  Does sanity checks on pose generation. 
+  Does sanity checks on pose generation.
   """
 
   def test_vina_grid_rf_docker_init(self):

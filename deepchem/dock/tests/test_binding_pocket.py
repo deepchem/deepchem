@@ -12,6 +12,7 @@ __license__ = "MIT"
 import sys
 import unittest
 import os
+import logging
 import numpy as np
 import deepchem as dc
 from nose.tools import nottest
@@ -88,7 +89,7 @@ class TestBindingPocket(unittest.TestCase):
     merged_boxes, _ = dc.dock.binding_pocket.merge_overlapping_boxes(
         mapping, boxes)
     logger.info("merged_boxes")
-    print(merged_boxes)
+    logger.info(merged_boxes)
     assert len(merged_boxes) == 1
     assert merged_boxes[0] == ((1, 3), (1, 3), (1, 3))
 

@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import time
+import logging
 import numpy as np
 from deepchem.data import NumpyDataset
 

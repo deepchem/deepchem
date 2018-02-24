@@ -11,6 +11,7 @@ __license__ = "MIT"
 
 import numpy as np
 import unittest
+import logging
 import tensorflow as tf
 import deepchem as dc
 

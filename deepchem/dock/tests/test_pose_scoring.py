@@ -16,6 +16,7 @@ import os
 import shutil
 import numpy as np
 import deepchem as dc
+import logging
 from sklearn.ensemble import RandomForestRegressor
 from subprocess import call
 from deepchem.utils import download_url

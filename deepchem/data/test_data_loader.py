@@ -2,6 +2,7 @@ import os
 from unittest import TestCase
 from io import StringIO
 import tempfile
+import logging
 
 import shutil
 
