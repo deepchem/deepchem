@@ -286,7 +286,7 @@ class EpisodeGenerator(object):
     self.trial_num = 0
     time_end = time.time()
     logger.info("Constructing EpisodeGenerator took %s seconds" %
-          str(time_end - time_start))
+                str(time_end - time_start))
 
   def __iter__(self):
     return self
