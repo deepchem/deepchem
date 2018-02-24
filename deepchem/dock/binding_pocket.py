@@ -100,7 +100,7 @@ def boxes_to_atoms(atom_coords, boxes):
   for box_ind, box in enumerate(boxes):
     box_atoms = []
     (x_min, x_max), (y_min, y_max), (z_min, z_max) = box
-    print("Handing box %d/%d" % (box_ind, len(boxes)))
+    logger.info("Handing box %d/%d" % (box_ind, len(boxes)))
     for atom_ind in range(len(atom_coords)):
       atom = atom_coords[atom_ind]
       x_cont = x_min <= atom[0] and atom[0] <= x_max
@@ -221,7 +221,7 @@ class RFConvexHullPocketFinder(BindingPocketFinder):
 
     # Load binding pocket model
     self.base_dir = tempfile.mkdtemp()
-    print("About to download trained model.")
+    logger.info("About to download trained model.")
     # TODO(rbharath): Shift refined to full once trained.
     call((
         "wget -nv -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/trained_models/pocket_random_refined_RF.tar.gz"

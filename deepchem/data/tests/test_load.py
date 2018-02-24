@@ -60,12 +60,12 @@ class TestLoad(unittest.TestCase):
     data_dir = tempfile.mkdtemp()
 
     # Load dataset
-    print("About to load dataset.")
+    logger.info("About to load dataset.")
     dataset_file = os.path.join(current_dir,
                                 "../../models/tests/multitask_example.csv")
 
     # Featurize tox21 dataset
-    print("About to featurize dataset.")
+    logger.info("About to featurize dataset.")
     featurizer = dc.feat.CircularFingerprint(size=1024)
     all_tasks = ["task%d" % i for i in range(17)]
 
@@ -82,7 +82,7 @@ class TestLoad(unittest.TestCase):
     y_tasks, w_tasks, = [], []
     dataset = dc.data.DiskDataset(data_dir)
     for ind, task in enumerate(all_tasks):
-      print("Processing task %s" % task)
+      logger.info("Processing task %s" % task)
 
       X_task, y_task, w_task, ids_task = (dataset.X, dataset.y, dataset.w,
                                           dataset.ids)
@@ -113,12 +113,12 @@ class TestLoad(unittest.TestCase):
     data_dir = tempfile.mkdtemp()
 
     # Load dataset
-    print("About to load dataset.")
+    logger.info("About to load dataset.")
     dataset_file = os.path.join(current_dir,
                                 "../../models/tests/multitask_example.csv")
 
     # Featurize tox21 dataset
-    print("About to featurize dataset.")
+    logger.info("About to featurize dataset.")
     featurizer = dc.feat.CircularFingerprint(size=1024)
     all_tasks = ["task%d" % i for i in range(17)]
     # For debugging purposes
@@ -137,7 +137,7 @@ class TestLoad(unittest.TestCase):
     ####### Do singletask load
     y_tasks, w_tasks, ids_tasks = [], [], []
     for task in tasks:
-      print("Processing task %s" % task)
+      logger.info("Processing task %s" % task)
       if os.path.exists(data_dir):
         shutil.rmtree(data_dir)
       loader = dc.data.CSVLoader(

@@ -14,7 +14,7 @@ class TestCSVLoader(TestCase):
     fin = tempfile.NamedTemporaryFile(mode='w', delete=False)
     fin.write("smiles,endpoint\nc1ccccc1,1")
     fin.close()
-    print(fin.name)
+    logger.info(fin.name)
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["endpoint"]
     loader = dc.data.CSVLoader(
