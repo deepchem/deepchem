@@ -2,10 +2,11 @@ import os
 from unittest import TestCase
 from io import StringIO
 import tempfile
+import logging
 
 import shutil
-
 import deepchem as dc
+logger = logging.getLogger(__name__)
 
 
 class TestCSVLoader(TestCase):
@@ -14,7 +15,7 @@ class TestCSVLoader(TestCase):
     fin = tempfile.NamedTemporaryFile(mode='w', delete=False)
     fin.write("smiles,endpoint\nc1ccccc1,1")
     fin.close()
-    print(fin.name)
+    logger.info(fin.name)
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["endpoint"]
     loader = dc.data.CSVLoader(

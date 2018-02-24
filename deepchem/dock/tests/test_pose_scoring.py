@@ -1,5 +1,5 @@
 """
-Tests for Pose Scoring 
+Tests for Pose Scoring
 """
 from __future__ import print_function
 from __future__ import division
@@ -16,15 +16,17 @@ import os
 import shutil
 import numpy as np
 import deepchem as dc
+import logging
 from sklearn.ensemble import RandomForestRegressor
 from subprocess import call
 from deepchem.utils import download_url
 from deepchem.utils import get_data_dir
+logger = logging.getLogger(__name__)
 
 
 class TestPoseScoring(unittest.TestCase):
   """
-  Does sanity checks on pose generation. 
+  Does sanity checks on pose generation.
   """
 
   def setUp(self):
@@ -39,7 +41,7 @@ class TestPoseScoring(unittest.TestCase):
     """Tests that pose-score works."""
     sklearn_model = RandomForestRegressor(n_estimators=10)
     model = dc.models.SklearnModel(sklearn_model)
-    print("About to fit model on core set")
+    logger.warn("About to fit model on core set")
     model.fit(self.core_dataset)
 
     pose_scorer = dc.dock.GridPoseScorer(model, feat="grid")
@@ -52,7 +54,7 @@ class TestPoseScoring(unittest.TestCase):
 
     sklearn_model = RandomForestRegressor(n_estimators=10)
     model = dc.models.SklearnModel(sklearn_model)
-    print("About to fit model on core set")
+    logger.warn("About to fit model on core set")
     model.fit(self.core_dataset)
 
     pose_scorer = dc.dock.GridPoseScorer(model, feat="grid")

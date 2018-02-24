@@ -57,8 +57,8 @@ def convert_df_to_numpy(df, tasks, verbose=False):
 def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
   """Featurize individual compounds in dataframe.
 
-  Given a featurizer that operates on individual chemical compounds 
-  or macromolecules, compute & add features for that compound to the 
+  Given a featurizer that operates on individual chemical compounds
+  or macromolecules, compute & add features for that compound to the
   features dataframe
   """
   sample_elems = df[field].tolist()
@@ -106,7 +106,7 @@ def featurize_smiles_np(arr, featurizer, log_every_N=1000, verbose=True):
 
 
 def get_user_specified_features(df, featurizer, verbose=True):
-  """Extract and merge user specified features. 
+  """Extract and merge user specified features.
 
   Merge features included in dataset provided by user
   into final features dataframe
@@ -188,7 +188,7 @@ class DataLoader(object):
 
   def featurize(self, input_files, data_dir=None, shard_size=8192):
     """Featurize provided files and write to specified location.
-    
+
     For large datasets, automatically shards into smaller chunks
     for convenience.
 

@@ -2,9 +2,11 @@ import os
 import shutil
 import unittest
 import tempfile
+import logging
 import deepchem as dc
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
+logger = logging.getLogger(__name__)
 
 
 class TestDrop(unittest.TestCase):
@@ -21,11 +23,11 @@ class TestDrop(unittest.TestCase):
     len_full = 25
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    print("About to load emols dataset.")
+    logger.warn("About to load emols dataset.")
     dataset_file = os.path.join(current_dir, "mini_emols.csv")
 
     # Featurize emols dataset
-    print("About to featurize datasets.")
+    logger.warn("About to featurize datasets.")
     featurizer = dc.feat.CircularFingerprint(size=1024)
     emols_tasks = ['activity']
 
