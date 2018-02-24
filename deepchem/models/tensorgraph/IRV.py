@@ -1,7 +1,7 @@
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import logging
 import numpy as np
 import tensorflow as tf
 
@@ -12,6 +12,7 @@ from deepchem.models.tensorgraph.layers import Layer, SigmoidCrossEntropy, \
 from deepchem.models.tensorgraph.layers import convert_to_layers
 from deepchem.trans import undo_transforms
 
+logger = logging.getLogger(__name__)
 
 class IRVLayer(Layer):
   """ Core layer of IRV classifier, architecture described in:
@@ -151,7 +152,7 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
                mode="classification",
                **kwargs):
     """Initialize TensorflowMultiTaskIRVClassifier
-    
+
     Parameters
     ----------
     n_tasks: int
@@ -160,19 +161,19 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
       Number of nearest neighbours used in classification
     penalty: float
       Amount of penalty (l2 or l1 applied)
-      
+
     """
     self.n_tasks = n_tasks
     self.K = K
     self.n_features = 2 * self.K * self.n_tasks
-    print("n_features after fit_transform: %d" % int(self.n_features))
+    logger.info("n_features after fit_transform: %d" % int(self.n_features))
     self.penalty = penalty
     super(TensorflowMultiTaskIRVClassifier, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
     """Constructs the graph architecture of IRV as described in:
-       
+
        https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2750043/
     """
     self.mol_features = Feature(shape=(None, self.n_features))
@@ -203,7 +204,7 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
     """TensorGraph style implementation """
     for epoch in range(epochs):
       if not predict:
-        print('Starting epoch %i' % epoch)
+        logger.info('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,

@@ -1,5 +1,4 @@
 from __future__ import division
-from __future__ import print_function
 from __future__ import unicode_literals
 
 __author__ = "Joseph Gomes"
@@ -28,13 +27,13 @@ def InitializeWeightsBiases(prev_layer_size,
   ----------
   prev_layer_size: int
     Number of features in previous layer.
-  size: int 
+  size: int
     Number of nodes in this layer.
   weights: tf.Tensor, optional (Default None)
     Weight tensor.
   biases: tf.Tensor, optional (Default None)
     Bias tensor.
-  name: str 
+  name: str
     Name for this op, optional (Defaults to 'fully_connected' if None)
 
   Returns

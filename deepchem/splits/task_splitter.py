@@ -1,7 +1,6 @@
 """
 Contains an abstract base class that supports chemically aware data splits.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 

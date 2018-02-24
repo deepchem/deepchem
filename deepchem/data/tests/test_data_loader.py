@@ -1,7 +1,6 @@
 """
 Tests for FeaturizedSamples class
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -15,10 +14,9 @@ import tempfile
 import shutil
 import deepchem as dc
 
-
 class TestDataLoader(unittest.TestCase):
   """
-  Test DataLoader 
+  Test DataLoader
   """
 
   def setUp(self):
