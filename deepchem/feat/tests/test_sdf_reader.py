@@ -14,6 +14,7 @@ import tempfile
 import shutil
 import deepchem as dc
 
+
 class TestFeaturizedSamples(unittest.TestCase):
   """
   Test Featurized Samples class.
@@ -33,8 +34,10 @@ class TestFeaturizedSamples(unittest.TestCase):
 
     featurizer = dc.feat.CoulombMatrixEig(6, remove_hydrogens=False)
     loader = dc.data.SDFLoader(
-        tasks=tasks, smiles_field="smiles",
-        mol_field="mol", featurizer=featurizer)
+        tasks=tasks,
+        smiles_field="smiles",
+        mol_field="mol",
+        featurizer=featurizer)
 
     dataset = loader.featurize(input_file)
 

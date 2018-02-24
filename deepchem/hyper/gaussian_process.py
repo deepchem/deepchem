@@ -14,6 +14,7 @@ from deepchem.molnet.run_benchmark_models import benchmark_classification, bench
 
 logger = logging.getLogger(__name__)
 
+
 class GaussianProcessHyperparamOpt(HyperparamOpt):
   """
   Gaussian Process Global Optimization(GPGO)

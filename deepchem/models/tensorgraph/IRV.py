@@ -14,6 +14,7 @@ from deepchem.trans import undo_transforms
 
 logger = logging.getLogger(__name__)
 
+
 class IRVLayer(Layer):
   """ Core layer of IRV classifier, architecture described in:
        https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2750043/

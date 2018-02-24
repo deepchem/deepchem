@@ -79,14 +79,14 @@ class TestConvMolFeaturizer(unittest.TestCase):
     mol_list = featurizer.featurize(mols)
     mol = mol_list[0]
 
-    # 3 carbonds in alkane 
+    # 3 carbonds in alkane
     assert mol.get_num_atoms() == 3
 
     deg_adj_lists = mol.get_deg_adjacency_lists()
     assert np.array_equal(deg_adj_lists[0], np.zeros([0, 0], dtype=np.int32))
     # Outer two carbonds are connected to central carbon
-    assert np.array_equal(deg_adj_lists[1],
-                          np.array([[2], [2]], dtype=np.int32))
+    assert np.array_equal(deg_adj_lists[1], np.array(
+        [[2], [2]], dtype=np.int32))
     # Central carbon connected to outer two
     assert np.array_equal(deg_adj_lists[2], np.array([[0, 1]], dtype=np.int32))
     assert np.array_equal(deg_adj_lists[3], np.zeros([0, 3], dtype=np.int32))

@@ -179,10 +179,10 @@ def atomic_conv_model(
   frag2_z = Feature(shape=(batch_size, frag2_num_atoms))
 
   complex_X = Feature(shape=(batch_size, complex_num_atoms, 3))
-  complex_nbrs = Feature(shape=(batch_size, complex_num_atoms,
-                                max_num_neighbors))
-  complex_nbrs_z = Feature(shape=(batch_size, complex_num_atoms,
-                                  max_num_neighbors))
+  complex_nbrs = Feature(
+      shape=(batch_size, complex_num_atoms, max_num_neighbors))
+  complex_nbrs_z = Feature(
+      shape=(batch_size, complex_num_atoms, max_num_neighbors))
   complex_z = Feature(shape=(batch_size, complex_num_atoms))
 
   frag1_conv = AtomicConvolution(

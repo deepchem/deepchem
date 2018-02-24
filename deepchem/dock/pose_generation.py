@@ -21,6 +21,7 @@ from deepchem.utils import rdkit_util
 
 logger = logging.getLogger(__name__)
 
+
 class PoseGenerator(object):
   """Abstract superclass for all pose-generation routines."""
 

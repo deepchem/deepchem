@@ -22,6 +22,7 @@ from subprocess import call
 
 logger = logging.getLogger(__name__)
 
+
 class Docker(object):
   """Abstract Class specifying API for Docking."""
 

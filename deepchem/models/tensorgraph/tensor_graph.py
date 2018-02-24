@@ -18,6 +18,7 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 
 logger = logging.getLogger(__name__)
 
+
 class TensorGraph(Model):
 
   def __init__(self,
@@ -229,15 +230,15 @@ class TensorGraph(Model):
         if checkpoint_interval > 0 and self.global_step % checkpoint_interval == checkpoint_interval - 1:
           saver.save(self.session, self.save_file, global_step=self.global_step)
           avg_loss = float(avg_loss) / n_averaged_batches
-          logger.info('Ending global_step %d: Average loss %g' % (self.global_step,
-                                                            avg_loss))
+          logger.info('Ending global_step %d: Average loss %g' %
+                      (self.global_step, avg_loss))
           avg_loss, n_averaged_batches = 0.0, 0.0
       if n_averaged_batches > 0:
         avg_loss = float(avg_loss) / n_averaged_batches
       if checkpoint_interval > 0:
         if n_averaged_batches > 0:
-          logger.info('Ending global_step %d: Average loss %g' % (self.global_step,
-                                                            avg_loss))
+          logger.info('Ending global_step %d: Average loss %g' %
+                      (self.global_step, avg_loss))
         saver.save(self.session, self.save_file, global_step=self.global_step)
         time2 = time.time()
         logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))

@@ -19,6 +19,7 @@ from deepchem.utils import rdkit_util
 
 logger = logging.getLogger(__name__)
 
+
 class TestBindingPocket(unittest.TestCase):
   """
   Does sanity checks on binding pocket generation.

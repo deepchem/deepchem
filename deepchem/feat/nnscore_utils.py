@@ -370,8 +370,11 @@ class Atom(object):
       # the PDB would have this line commented out
       self.atomname = self.atomname + " "
 
-    self.coordinates = Point(coords=np.array(
-        [float(line[30:38]), float(line[38:46]), float(line[46:54])]))
+    self.coordinates = Point(
+        coords=np.array(
+            [float(line[30:38]),
+             float(line[38:46]),
+             float(line[46:54])]))
 
     # now atom type (for pdbqt)
     if line[77:79].strip():

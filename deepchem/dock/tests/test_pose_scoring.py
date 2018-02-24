@@ -23,6 +23,7 @@ from deepchem.utils import get_data_dir
 
 logger = logging.getLogger(__name__)
 
+
 class TestPoseScoring(unittest.TestCase):
   """
   Does sanity checks on pose generation.

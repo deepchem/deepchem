@@ -18,6 +18,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class TestLoad(unittest.TestCase):
   """
   Test singletask/multitask data loading.

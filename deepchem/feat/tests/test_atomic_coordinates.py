@@ -14,6 +14,7 @@ from deepchem.feat.atomic_coordinates import NeighborListComplexAtomicCoordinate
 
 logger = logging.getLogger(__name__)
 
+
 class TestAtomicCoordinates(unittest.TestCase):
   """
   Test AtomicCoordinates.

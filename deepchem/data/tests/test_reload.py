@@ -18,6 +18,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class TestReload(unittest.TestCase):
   """
   Test reload for datasets.
