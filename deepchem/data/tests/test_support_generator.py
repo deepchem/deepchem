@@ -1,5 +1,5 @@
 """
-Simple Tests for Support Generation 
+Simple Tests for Support Generation
 """
 from __future__ import print_function
 from __future__ import division
@@ -379,6 +379,6 @@ class TestSupports(unittest.TestCase):
       task_w = dataset.w[:, task]
       task_y = task_y[task_w != 0]
       assert len(task_y) == len(support) + len(task_dataset)
-      print("Verifying that task_dataset doesn't overlap with support.")
+      logger.info("Verifying that task_dataset doesn't overlap with support.")
       for task_id in task_dataset.ids:
         assert task_id not in set(support.ids)
