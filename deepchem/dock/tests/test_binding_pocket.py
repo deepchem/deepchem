@@ -17,6 +17,7 @@ import numpy as np
 import deepchem as dc
 from nose.tools import nottest
 from deepchem.utils import rdkit_util
+logger = logging.getLogger(__name__)
 
 
 class TestBindingPocket(unittest.TestCase):

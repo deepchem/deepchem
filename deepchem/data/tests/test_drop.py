@@ -6,6 +6,7 @@ import logging
 import deepchem as dc
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
+logger = logging.getLogger(__name__)
 
 
 class TestDrop(unittest.TestCase):

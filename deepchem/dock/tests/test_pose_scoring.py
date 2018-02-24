@@ -21,6 +21,7 @@ from sklearn.ensemble import RandomForestRegressor
 from subprocess import call
 from deepchem.utils import download_url
 from deepchem.utils import get_data_dir
+logger = logging.getLogger(__name__)
 
 
 class TestPoseScoring(unittest.TestCase):

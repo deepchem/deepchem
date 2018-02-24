@@ -19,6 +19,7 @@ from subprocess import call
 from deepchem.feat import hydrogenate_and_compute_partial_charges
 from deepchem.dock.binding_pocket import RFConvexHullPocketFinder
 from deepchem.utils import rdkit_util
+logger = logging.getLogger(__name__)
 
 
 class PoseGenerator(object):

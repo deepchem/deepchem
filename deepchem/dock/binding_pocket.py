@@ -20,6 +20,8 @@ from deepchem.feat.fingerprints import CircularFingerprint
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils import rdkit_util
 
+logger = logging.getLogger(__name__)
+
 
 def extract_active_site(protein_file, ligand_file, cutoff=4):
   """Extracts a box for the active site."""

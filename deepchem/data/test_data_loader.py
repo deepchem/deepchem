@@ -5,8 +5,8 @@ import tempfile
 import logging
 
 import shutil
-
 import deepchem as dc
+logger = logging.getLogger(__name__)
 
 
 class TestCSVLoader(TestCase):

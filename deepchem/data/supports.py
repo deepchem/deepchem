@@ -9,6 +9,7 @@ import time
 import logging
 import numpy as np
 from deepchem.data import NumpyDataset
+logger = logging.getLogger(__name__)
 
 
 def remove_dead_examples(dataset):

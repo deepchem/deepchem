@@ -16,6 +16,7 @@ import tempfile
 import logging
 import deepchem as dc
 import numpy as np
+logger = logging.getLogger(__name__)
 
 
 class TestReload(unittest.TestCase):

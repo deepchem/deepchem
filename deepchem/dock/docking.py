@@ -20,6 +20,7 @@ from deepchem.dock.pose_scoring import GridPoseScorer
 from deepchem.dock.pose_generation import VinaPoseGenerator
 from sklearn.ensemble import RandomForestRegressor
 from subprocess import call
+logger = logging.getLogger(__name__)
 
 
 class Docker(object):
