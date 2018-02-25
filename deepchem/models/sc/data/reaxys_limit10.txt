@@ -1,0 +1,10 @@
+Cc1ccc(S(=O)(=O)OC[C@H]2OCO[C@H]3[C@@H]2OCO[C@H]3COS(=O)(=O)c2ccc(C)cc2)cc1>>Cc1ccc(S(=O)(=O)OC[C@@H]2OCO[C@H]3[C@@H]2OCO[C@@H]3CI)cc1 34 736
+Cc1ccc(S(=O)(=O)OC[C@H]2OCO[C@H]3[C@@H]2OCO[C@H]3COS(=O)(=O)c2ccc(C)cc2)cc1>>IC[C@@H]1OCO[C@@H]2[C@@H](CI)OCO[C@H]12 34 737
+Cc1ccc(S(=O)(=O)OC[C@@H]2OCO[C@H]3[C@@H]2OCO[C@H]3COS(=O)(=O)c2ccc(C)cc2)cc1>>IC[C@@H]1OCO[C@@H]2[C@H](CI)OCO[C@H]12 34 738
+Cc1ccc(S(=O)(=O)OC[C@@H]2OCO[C@H]3[C@@H]2OCO[C@H]3COS(=O)(=O)c2ccc(C)cc2)cc1>>OCCNC[C@@H]1OCO[C@H]2[C@@H]1OCO[C@H]2CNCCO 34 739
+[K+].CC(=O)[S-].Cc1ccc(S(=O)(=O)OC[C@H]2OCO[C@@H]3[C@@H](COS(=O)(=O)c4ccc(C)cc4)OCO[C@H]23)cc1>>CC(=O)SC[C@H]1OCO[C@@H]2[C@@H](CSC(C)=O)OCO[C@H]12 39 740
+Cc1ccc(S(=O)(=O)OC[C@H]2OCO[C@@H]3[C@@H](COS(=O)(=O)c4ccc(C)cc4)OCO[C@H]23)cc1>>IC[C@H]1OCO[C@@H]2[C@@H](CI)OCO[C@H]12 34 741
+Cc1ccc(S(=O)(=O)OC[C@H]2OCO[C@@H]3[C@@H](COS(=O)(=O)c4ccc(C)cc4)OCO[C@H]23)cc1>>OCCNC[C@H]1OCO[C@@H]2[C@@H](CNCCO)OCO[C@H]12 34 742
+COC[C@H]1O[C@@H](OC)[C@H](OC(=O)c2ccccc2)[C@@H](OC(=O)c2ccccc2)[C@@H]1OC(=O)c1ccccc1>>COC[C@H]1O[C@H](OC)[C@H](OC(=O)c2ccccc2)[C@@H](OC(=O)c2ccccc2)[C@@H]1OC(=O)c1ccccc1 38 743
+O=C(O)CC(=O)O.S=C(Nc1cccc2ccccc21)Nc1cccc2ccccc21>>O=C1CC(=O)N(c2cccc3ccccc32)C(=S)N1c1cccc2ccccc21 31 744
+S=C(Nc1cccc2ccccc21)Nc1cccc2ccccc21>>Nc1nc2c(ccc3ccccc23)s1 24 745
