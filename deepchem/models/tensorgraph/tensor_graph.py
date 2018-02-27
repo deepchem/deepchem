@@ -894,6 +894,7 @@ class TensorGraph(Model):
       inputs = [create_tensors(in_layer, tensors, training) for in_layer in layer.in_layers]
       tensor = layer.create_tensor(in_layers=inputs, set_tensors=False, training=training)
       tensors[layer] = tensor
+      layer.add_summary_to_tg(tensor)
       return tensor
 
     # Define the model function.
@@ -907,6 +908,8 @@ class TensorGraph(Model):
       if weight_column is not None:
         tensors[self.task_weights[0]] = tf.feature_column.input_layer(features, [weight_column])
       tensors[self.labels[0]] = labels
+      for layer, tensor in tensors.items():
+        layer.add_summary_to_tg(tensor)
 
       # Create the correct outputs, based on the mode.
 
@@ -936,7 +939,7 @@ class TensorGraph(Model):
 
     # Create the Estimator.
 
-    return tf.estimator.Estimator(model_fn=model_fn)
+    return tf.estimator.Estimator(model_fn=model_fn, model_dir=model_dir)
 
 def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
   """
