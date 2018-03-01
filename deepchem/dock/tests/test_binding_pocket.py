@@ -1,8 +1,7 @@
 """
-Tests for binding pocket detection. 
+Tests for binding pocket detection.
 """
 from __future__ import division
-from __future__ import print_function
 from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
@@ -10,6 +9,7 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
 import sys
+import logging
 import unittest
 import os
 import numpy as np
@@ -17,10 +17,12 @@ import deepchem as dc
 from nose.tools import nottest
 from deepchem.utils import rdkit_util
 
+logger = logging.getLogger(__name__)
+
 
 class TestBindingPocket(unittest.TestCase):
   """
-  Does sanity checks on binding pocket generation. 
+  Does sanity checks on binding pocket generation.
   """
 
   def test_convex_init(self):
@@ -87,8 +89,8 @@ class TestBindingPocket(unittest.TestCase):
     boxes = [box1, box2]
     merged_boxes, _ = dc.dock.binding_pocket.merge_overlapping_boxes(
         mapping, boxes)
-    print("merged_boxes")
-    print(merged_boxes)
+    logger.info("merged_boxes")
+    logger.info(merged_boxes)
     assert len(merged_boxes) == 1
     assert merged_boxes[0] == ((1, 3), (1, 3), (1, 3))
 
@@ -99,8 +101,8 @@ class TestBindingPocket(unittest.TestCase):
     boxes = [box1, box2]
     merged_boxes, _ = dc.dock.binding_pocket.merge_overlapping_boxes(
         mapping, boxes)
-    print("merged_boxes")
-    print(merged_boxes)
+    logger.info("merged_boxes")
+    logger.info(merged_boxes)
     assert len(merged_boxes) == 1
     assert merged_boxes[0] == ((1, 3), (1, 3), (1, 3))
 
@@ -115,8 +117,8 @@ class TestBindingPocket(unittest.TestCase):
     }
     merged_boxes, _ = dc.dock.binding_pocket.merge_overlapping_boxes(
         mapping, boxes)
-    print("merged_boxes")
-    print(merged_boxes)
+    logger.info("merged_boxes")
+    logger.info(merged_boxes)
     assert len(merged_boxes) == 1
     assert merged_boxes[0] == ((1, 3), (1, 3), (1, 3))
 
@@ -135,10 +137,10 @@ class TestBindingPocket(unittest.TestCase):
         protein_file, ligand_file)
     # Test that every atom in pocket maps exists
     n_protein_atoms = protein.xyz.shape[1]
-    print("protein.xyz.shape")
-    print(protein.xyz.shape)
-    print("n_protein_atoms")
-    print(n_protein_atoms)
+    logger.info("protein.xyz.shape")
+    logger.info(protein.xyz.shape)
+    logger.info("n_protein_atoms")
+    logger.info(n_protein_atoms)
     for pocket in pockets:
       pocket_atoms = pocket_atoms_map[pocket]
       for atom in pocket_atoms:
@@ -166,12 +168,12 @@ class TestBindingPocket(unittest.TestCase):
         protein_file, ligand_file)
     # Test that every atom in pocket maps exists
     n_protein_atoms = protein.xyz.shape[1]
-    print("protein.xyz.shape")
-    print(protein.xyz.shape)
-    print("n_protein_atoms")
-    print(n_protein_atoms)
-    print("len(pockets)")
-    print(len(pockets))
+    logger.info("protein.xyz.shape")
+    logger.info(protein.xyz.shape)
+    logger.info("n_protein_atoms")
+    logger.info(n_protein_atoms)
+    logger.info("len(pockets)")
+    logger.info(len(pockets))
     for pocket in pockets:
       pocket_atoms = pocket_atoms_map[pocket]
       for atom in pocket_atoms:
@@ -191,16 +193,16 @@ class TestBindingPocket(unittest.TestCase):
     pockets, pocket_atoms, _ = finder.find_pockets(protein_file, ligand_file)
 
     # Add active site to dict
-    print("active_site_box")
-    print(active_site_box)
+    logger.info("active_site_box")
+    logger.info(active_site_box)
     pocket_atoms[active_site_box] = active_site_atoms
     overlapping_pocket = False
     for pocket in pockets:
-      print("pocket")
-      print(pocket)
+      logger.info("pocket")
+      logger.info(pocket)
       overlap = dc.dock.binding_pocket.compute_overlap(pocket_atoms,
                                                        active_site_box, pocket)
       if overlap > .5:
         overlapping_pocket = True
-      print("Overlap for pocket is %f" % overlap)
+      logger.info("Overlap for pocket is %f" % overlap)
     assert overlapping_pocket

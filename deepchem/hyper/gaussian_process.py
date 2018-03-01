@@ -1,16 +1,18 @@
 """
 Contains class for gaussian process hyperparameter optimizations.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import logging
 import numpy as np
 import tempfile
 import os
 from deepchem.hyper.grid_search import HyperparamOpt
 from deepchem.utils.evaluate import Evaluator
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
+
+logger = logging.getLogger(__name__)
 
 
 class GaussianProcessHyperparamOpt(HyperparamOpt):
@@ -190,7 +192,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
           hyper_parameters[hp[0]] = map(int, hyper_parameters[hp[0]])
         i = i + hp[1]
 
-      print(hyper_parameters)
+      logger.info(hyper_parameters)
       # Run benchmark
       with open(log_file, 'a') as f:
         # Record hyperparameters
@@ -247,7 +249,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     gp = GaussianProcess(cov)
     acq = Acquisition(mode='ExpectedImprovement')
     gpgo = GPGO(gp, acq, f, param)
-    print("Max number of iteration: %i" % max_iter)
+    logger.info("Max number of iteration: %i" % max_iter)
     gpgo.run(max_iter=max_iter)
 
     hp_opt, valid_performance_opt = gpgo.getResult()

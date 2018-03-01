@@ -5,7 +5,6 @@ Created on Thu Jul  6 20:43:23 2017
 
 @author: zqwu
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 

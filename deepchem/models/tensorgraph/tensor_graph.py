@@ -4,6 +4,7 @@ import pickle
 import threading
 import time
 
+import logging
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.pywrap_tensorflow_internal import NewCheckpointReader
@@ -14,6 +15,8 @@ from deepchem.models.tensorgraph.layers import InputFifoQueue, Label, Feature, W
 from deepchem.models.tensorgraph.optimizers import Adam
 from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
+
+logger = logging.getLogger(__name__)
 
 
 class TensorGraph(Model):
@@ -227,18 +230,18 @@ class TensorGraph(Model):
         if checkpoint_interval > 0 and self.global_step % checkpoint_interval == checkpoint_interval - 1:
           saver.save(self.session, self.save_file, global_step=self.global_step)
           avg_loss = float(avg_loss) / n_averaged_batches
-          print('Ending global_step %d: Average loss %g' % (self.global_step,
-                                                            avg_loss))
+          logger.info('Ending global_step %d: Average loss %g' %
+                      (self.global_step, avg_loss))
           avg_loss, n_averaged_batches = 0.0, 0.0
       if n_averaged_batches > 0:
         avg_loss = float(avg_loss) / n_averaged_batches
       if checkpoint_interval > 0:
         if n_averaged_batches > 0:
-          print('Ending global_step %d: Average loss %g' % (self.global_step,
-                                                            avg_loss))
+          logger.info('Ending global_step %d: Average loss %g' %
+                      (self.global_step, avg_loss))
         saver.save(self.session, self.save_file, global_step=self.global_step)
         time2 = time.time()
-        print("TIMING: model fitting took %0.3f s" % (time2 - time1))
+        logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return avg_loss
 
   def _log_tensorboard(self, summary):
@@ -648,7 +651,7 @@ class TensorGraph(Model):
       try:
         pickle.dump(self, fout)
       except Exception as e:
-        print(self.get_pickling_errors(self))
+        logger.info(self.get_pickling_errors(self))
         raise e
 
     # add out_tensor back to everyone

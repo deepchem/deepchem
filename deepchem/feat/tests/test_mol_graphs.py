@@ -1,7 +1,6 @@
 """
 Tests for Molecular Graph data structures. 
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -57,8 +56,8 @@ class TestMolGraphs(unittest.TestCase):
   def test_get_atom_features(self):
     """Test that the atom features are computed properly."""
     atom_features = np.array([[40, 41, 42, 43], [44, 45, 46, 47],
-                              [48, 49, 50, 51], [52, 53, 54, 55],
-                              [56, 57, 58, 59]])
+                              [48, 49, 50, 51], [52, 53, 54,
+                                                 55], [56, 57, 58, 59]])
     canon_adj_list = [[1, 2], [0, 3], [0, 3], [1, 2, 4], [3]]
     mol = ConvMol(atom_features, canon_adj_list)
     # atom 4 has 0 neighbors
@@ -69,23 +68,23 @@ class TestMolGraphs(unittest.TestCase):
     # Verify that atom features have been sorted by atom degree.
     assert np.array_equal(mol.get_atom_features(),
                           np.array([[56, 57, 58, 59], [40, 41, 42, 43],
-                                    [44, 45, 46, 47], [48, 49, 50, 51],
-                                    [52, 53, 54, 55]]))
+                                    [44, 45, 46, 47], [48, 49, 50,
+                                                       51], [52, 53, 54, 55]]))
 
   def test_get_adjacency_list(self):
     """Tests that adj-list is canonicalized properly."""
     atom_features = np.array([[40, 41, 42, 43], [44, 45, 46, 47],
-                              [48, 49, 50, 51], [52, 53, 54, 55],
-                              [56, 57, 58, 59]])
+                              [48, 49, 50, 51], [52, 53, 54,
+                                                 55], [56, 57, 58, 59]])
     canon_adj_list = [[1, 2], [0, 3], [0, 3], [1, 2, 4], [3]]
     mol = ConvMol(atom_features, canon_adj_list)
     # Sorting is done by atom degree as before. So the ordering goes
     # 4, 0, 1, 2, 3 now in terms of the original ordering. The mapping
-    # from new position to old position is 
+    # from new position to old position is
     # {(4, 0), (0, 1), (1, 2), (2, 3), (3, 4)}. Check that adjacency
     # list respects this reordering and returns correct adjacency list.
-    assert (
-        mol.get_adjacency_list() == [[4], [2, 3], [1, 4], [1, 4], [2, 3, 0]])
+    assert (mol.get_adjacency_list() == [[4], [2, 3], [1, 4], [1, 4], [2, 3,
+                                                                       0]])
 
   def test_agglomerate_molecules(self):
     """Test AggrMol.agglomerate_mols."""
@@ -106,8 +105,8 @@ class TestMolGraphs(unittest.TestCase):
 
     ### Third example molecule
     atom_features = np.array([[40, 41, 42, 43], [44, 45, 46, 47],
-                              [48, 49, 50, 51], [52, 53, 54, 55],
-                              [56, 57, 58, 59]])
+                              [48, 49, 50, 51], [52, 53, 54,
+                                                 55], [56, 57, 58, 59]])
     adj_list = [[1, 2], [0, 3], [0, 3], [1, 2, 4], [3]]
     molecules.append(ConvMol(atom_features, adj_list))
 

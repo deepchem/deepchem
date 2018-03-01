@@ -21,7 +21,9 @@ install:
 script:
 - nosetests --with-flaky -a '!slow' --with-timer --with-coverage --cover-package=deepchem
   -v deepchem --nologcapture
-- find ./deepchem | grep .py$ |xargs python -m doctest -v
+- if [ $TRAVIS_PYTHON_VERSION == '3.5']; then
+      find ./deepchem | grep .py$ |xargs python -m doctest -v;
+  fi
 - bash devtools/travis-ci/test_format_code.sh
 after_success:
 - echo $TRAVIS_SECURE_ENV_VARS

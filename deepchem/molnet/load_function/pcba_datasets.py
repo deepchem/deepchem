@@ -1,7 +1,6 @@
 """
 PCBA dataset loader.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -42,7 +41,8 @@ def load_pcba_dataset(featurizer='ECFP',
   data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(
-        data_dir, assay_file_name.split(".")[0] + featurizer + "/" + split)
+        data_dir,
+        assay_file_name.split(".")[0] + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, assay_file_name)
 

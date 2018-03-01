@@ -1,7 +1,6 @@
 """
 Testing singletask-to-multitask.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -80,9 +79,10 @@ class TestSingletasktoMultitask(unittest.TestCase):
           dataset, task_dirs)
       for task in range(num_tasks):
         singletask_dataset = singletask_datasets[task]
-        X_task, y_task, w_task, ids_task = (
-            singletask_dataset.X, singletask_dataset.y, singletask_dataset.w,
-            singletask_dataset.ids)
+        X_task, y_task, w_task, ids_task = (singletask_dataset.X,
+                                            singletask_dataset.y,
+                                            singletask_dataset.w,
+                                            singletask_dataset.ids)
         w_nonzero = w[:, task] != 0
         np.testing.assert_array_equal(X_task, X[w_nonzero != 0])
         np.testing.assert_array_equal(y_task.flatten(),
