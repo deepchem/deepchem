@@ -4309,7 +4309,6 @@ class Hingeloss():
 
   def __init__(
       self,
-      in_layers=None,
       weights_initializer=tf.contrib.layers.variance_scaling_initializer,
       batch_size,
       labels,
