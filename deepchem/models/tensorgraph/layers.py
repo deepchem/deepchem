@@ -4305,33 +4305,26 @@ class GraphCNN(Layer):
     return result
 
 
+
 class Hingeloss():
+  def __init__(self,in_layers=None,weights_initializer=tf.contrib.layers.variance_scaling_initializer,batch_size,labels,reg,**kwargs):
+    
+    self.weights_initializer=weights_initializer
+    self.batch_size=batch_size
+    self.labels=labels
+    self.reg=reg
+    super(Hingeloss,self).__init__(in_layers,**kwargs)
 
-  def __init__(
-      self,
-      in_layers=None,
-      weights_initializer=tf.contrib.layers.variance_scaling_initializer,
-      batch_size,
-      labels,
-      reg,
-      **kwargs):
 
-    self.weights = weights
-    self.batch_size = batch_size
-    self.labels = labels
-    self.reg = reg
-    super(Hingeloss, self).__init__(in_layers, **kwargs)
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self.get_input_tensors(in_layers)
-    weights, batch_size, labels, reg = inputs[0], inputs[1], inputs[2], inputs[
-        3]
-    scores = tf.matmul(batch_size, weights)
-    labels_i = scores[np.arange(scores.shape[0]), labels]
-    loss_i = tf.maximum(0, scores - tf.transpose(labels_i) + 1)
-    loss = tf.reduce_mean(tf.sum(loss_i), axis=1)
-    loss = loss + 0.5 * reg * tf.sum(weights * weights)
-    out_tensor = loss
+  def create_tensor(self,in_layers=None,set_tensors=True,**kwargs):
+    inputs=self.get_input_tensors(in_layers)
+    weights,batch_size,labels,reg=inputs[0],inputs[1],inputs[2],inputs[3]
+    scores=tf.matmul(batch_size,weights)
+    labels_i=scores[np.arange(scores.shape[0]),labels]
+    loss_i=tf.maximum(0,scores-tf.transpose(labels_i)+1)
+    loss=tf.reduce_mean(tf.sum(loss_i),axis=1)
+    loss  = loss + 0.5*reg*tf.sum(weights*weights)
+    out_tensor=loss
     if set_tensors:
-      self.out_tensor = out_tensor
+      self.out_tensor=out_tensor
     return out_tensor
