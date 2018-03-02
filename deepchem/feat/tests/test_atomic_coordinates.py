@@ -2,6 +2,7 @@
 Test atomic coordinates and neighbor lists.
 """
 import os
+import logging
 import numpy as np
 import unittest
 from rdkit import Chem
@@ -10,6 +11,8 @@ from deepchem.feat.atomic_coordinates import get_coords
 from deepchem.feat.atomic_coordinates import AtomicCoordinates
 from deepchem.feat.atomic_coordinates import NeighborListAtomicCoordinates
 from deepchem.feat.atomic_coordinates import NeighborListComplexAtomicCoordinates
+
+logger = logging.getLogger(__name__)
 
 
 class TestAtomicCoordinates(unittest.TestCase):
@@ -60,7 +63,7 @@ class TestAtomicCoordinates(unittest.TestCase):
     for i in range(N):
       for j in range(N):
         dist = np.linalg.norm(coords[i] - coords[j])
-        print("Distance(%d, %d) = %f" % (i, j, dist))
+        logger.info("Distance(%d, %d) = %f" % (i, j, dist))
         if dist < nblist_featurizer.neighbor_cutoff and i != j:
           assert j in nblist[i]
         else:
@@ -107,12 +110,12 @@ class TestAtomicCoordinates(unittest.TestCase):
         if i == j:
           continue
         dist = np.linalg.norm(coords[i] - coords[j])
-        print("Distance(%d, %d) = %f" % (i, j, dist))
+        logger.info("Distance(%d, %d) = %f" % (i, j, dist))
         if dist < closest_dist:
           closest_dist = dist
           closest_nbr = j
-      print("Closest neighbor to %d is %d" % (i, closest_nbr))
-      print("Distance: %f" % closest_dist)
+      logger.info("Closest neighbor to %d is %d" % (i, closest_nbr))
+      logger.info("Distance: %f" % closest_dist)
       if closest_dist < nblist_featurizer.neighbor_cutoff:
         assert nblist[i] == [closest_nbr]
       else:

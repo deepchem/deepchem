@@ -5,7 +5,6 @@ Created on Mon Mar  6 23:41:26 2017
 
 @author: zqwu
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -418,8 +417,8 @@ def benchmark_regression(train_dataset,
   model: string, optional
       choice of model
       'tf_regression', 'tf_regression_ft', 'rf_regression', 'graphconvreg',
-      'dtnn', 'dag_regression', 'xgb_regression', 'weave_regression', 
-      'textcnn_regression', 'krr', 'ani', 'krr_ft', 'mpnn'      
+      'dtnn', 'dag_regression', 'xgb_regression', 'weave_regression',
+      'textcnn_regression', 'krr', 'ani', 'krr_ft', 'mpnn'
   test: boolean, optional
       whether to calculate test_set performance
   hyper_parameters: dict, optional (default=None)

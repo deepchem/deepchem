@@ -1,7 +1,6 @@
 """
 Tests that FASTA files can be loaded.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -15,7 +14,7 @@ import deepchem as dc
 
 class TestFASTALoader(unittest.TestCase):
   """
-  Test FASTALoader 
+  Test FASTALoader
   """
 
   def setUp(self):

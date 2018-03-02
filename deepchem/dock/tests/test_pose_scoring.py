@@ -1,7 +1,6 @@
 """
-Tests for Pose Scoring 
+Tests for Pose Scoring
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -10,6 +9,7 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
 import sys
+import logging
 import unittest
 import tempfile
 import os
@@ -21,10 +21,12 @@ from subprocess import call
 from deepchem.utils import download_url
 from deepchem.utils import get_data_dir
 
+logger = logging.getLogger(__name__)
+
 
 class TestPoseScoring(unittest.TestCase):
   """
-  Does sanity checks on pose generation. 
+  Does sanity checks on pose generation.
   """
 
   def setUp(self):
@@ -39,7 +41,7 @@ class TestPoseScoring(unittest.TestCase):
     """Tests that pose-score works."""
     sklearn_model = RandomForestRegressor(n_estimators=10)
     model = dc.models.SklearnModel(sklearn_model)
-    print("About to fit model on core set")
+    logger.info("About to fit model on core set")
     model.fit(self.core_dataset)
 
     pose_scorer = dc.dock.GridPoseScorer(model, feat="grid")
@@ -52,7 +54,7 @@ class TestPoseScoring(unittest.TestCase):
 
     sklearn_model = RandomForestRegressor(n_estimators=10)
     model = dc.models.SklearnModel(sklearn_model)
-    print("About to fit model on core set")
+    logger.info("About to fit model on core set")
     model.fit(self.core_dataset)
 
     pose_scorer = dc.dock.GridPoseScorer(model, feat="grid")

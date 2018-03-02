@@ -3,7 +3,6 @@ Clinical Toxicity (clintox) dataset loader.
 @author Caleb Geniesse
 """
 
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 

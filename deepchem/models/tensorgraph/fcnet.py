@@ -1,9 +1,9 @@
 """TensorFlow implementation of fully connected networks.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import logging
 import warnings
 import time
 import numpy as np
@@ -19,6 +19,8 @@ from deepchem.metrics import to_one_hot
 
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
 from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMaxCrossEntropy, L2Loss, ReduceSum
+
+logger = logging.getLogger(__name__)
 
 
 class MultiTaskClassifier(TensorGraph):
@@ -327,7 +329,8 @@ class MultiTaskFitTransformRegressor(MultiTaskRegressor):
   >>> model = dc.models.MultiTaskFitTransformRegressor(n_tasks, [n_features, n_features],
   ...     dropouts=[0.], learning_rate=0.003, weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
   ...     batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
-  n_features after fit_transform: 12
+  >>> model.n_features
+  12
   """
 
   def __init__(self,
@@ -367,7 +370,7 @@ class MultiTaskFitTransformRegressor(MultiTaskRegressor):
     for transformer in fit_transformers:
       X_b = transformer.X_transform(X_b)
     n_features = X_b.shape[1]
-    print("n_features after fit_transform: %d" % int(n_features))
+    logger.info("n_features after fit_transform: %d", int(n_features))
     super(MultiTaskFitTransformRegressor, self).__init__(
         n_tasks, n_features, batch_size=batch_size, **kwargs)
 
