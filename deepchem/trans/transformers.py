@@ -3,7 +3,6 @@
 Contains an abstract base class that supports data transformations.
 """
 from __future__ import division
-from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
@@ -513,7 +512,8 @@ class CoulombFitTransformer(Transformer):
      >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
      >>> model = dc.models.MultiTaskFitTransformRegressor(n_tasks,
      ...    [n_features, n_features], batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
-     n_features after fit_transform: 12
+     >>> print(model.n_features)
+     12
   """
 
   def __init__(self, dataset):

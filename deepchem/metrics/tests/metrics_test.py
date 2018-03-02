@@ -1,7 +1,6 @@
 """
 Tests for metricsT.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -31,10 +30,8 @@ class MetricsTest(googletest.TestCase):
     """Test that R^2 metric passes basic sanity tests"""
     np.random.seed(123)
     n_samples = 10
-    y_true = np.random.rand(
-        n_samples,)
-    y_pred = np.random.rand(
-        n_samples,)
+    y_true = np.random.rand(n_samples,)
+    y_pred = np.random.rand(n_samples,)
     regression_metric = dc.metrics.Metric(dc.metrics.r2_score)
     assert np.isclose(
         dc.metrics.r2_score(y_true, y_pred),

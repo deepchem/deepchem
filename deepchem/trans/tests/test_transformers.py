@@ -1,8 +1,7 @@
 """
-Tests for transformer objects. 
+Tests for transformer objects.
 """
 from __future__ import division
-from __future__ import print_function
 from __future__ import unicode_literals
 
 from deepchem.molnet import load_delaney

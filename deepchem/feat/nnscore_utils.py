@@ -1,13 +1,13 @@
 """
 Helper Classes and Functions for docking fingerprint computation.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar and Jacob Durrant"
 __license__ = "GNU General Public License"
 
+import logging
 import math
 import os
 import subprocess
@@ -36,7 +36,7 @@ def pdbqt_to_pdb(input_file, output_directory):
   output_directory: String
     Path to desired output directory.
   """
-  print(input_file, output_directory)
+  logging.info(input_file, output_directory)
   raise ValueError("Not yet implemented")
 
 
@@ -68,14 +68,14 @@ def hydrogenate_and_compute_partial_charges(input_file,
   mol = rdkit_util.load_molecule(
       input_file, add_hydrogens=True, calc_charges=True)[1]
   if verbose:
-    print("Create pdb with hydrogens added")
+    logging.info("Create pdb with hydrogens added")
   rdkit_util.write_molecule(mol, str(hyd_output), is_protein=protein)
   if verbose:
-    print("Create a pdbqt file from the hydrogenated pdb above.")
+    logging.info("Create a pdbqt file from the hydrogenated pdb above.")
   rdkit_util.write_molecule(mol, str(pdbqt_output), is_protein=protein)
 
   if protein:
-    print("Removing ROOT/ENDROOT/TORSDOF")
+    logging.info("Removing ROOT/ENDROOT/TORSDOF")
     with open(pdbqt_output) as f:
       pdbqt_lines = f.readlines()
     filtered_lines = []
@@ -370,8 +370,11 @@ class Atom(object):
       # the PDB would have this line commented out
       self.atomname = self.atomname + " "
 
-    self.coordinates = Point(coords=np.array(
-        [float(line[30:38]), float(line[38:46]), float(line[46:54])]))
+    self.coordinates = Point(
+        coords=np.array(
+            [float(line[30:38]),
+             float(line[38:46]),
+             float(line[46:54])]))
 
     # now atom type (for pdbqt)
     if line[77:79].strip():

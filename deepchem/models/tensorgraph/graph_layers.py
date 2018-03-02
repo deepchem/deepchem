@@ -5,8 +5,6 @@ Created on Thu Mar 30 14:02:04 2017
 
 @author: michael
 """
-
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 

@@ -1,7 +1,6 @@
 """
-Simple Tests for Support Generation 
+Simple Tests for Support Generation
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -9,10 +8,13 @@ __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
+import logging
 import numpy as np
 import unittest
 import tensorflow as tf
 import deepchem as dc
+
+logger = logging.getLogger(__name__)
 
 
 class TestSupports(unittest.TestCase):
@@ -379,6 +381,6 @@ class TestSupports(unittest.TestCase):
       task_w = dataset.w[:, task]
       task_y = task_y[task_w != 0]
       assert len(task_y) == len(support) + len(task_dataset)
-      print("Verifying that task_dataset doesn't overlap with support.")
+      logger.info("Verifying that task_dataset doesn't overlap with support.")
       for task_id in task_dataset.ids:
         assert task_id not in set(support.ids)
