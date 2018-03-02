@@ -902,12 +902,7 @@ class TensorGraph(Model):
     def model_fn(features, labels, mode):
       # Define the inputs.
 
-      tensors = {}
-      for layer, column in zip(self.features, feature_columns):
-        tensors[layer] = tf.feature_column.input_layer(features, [column])
-      if weight_column is not None:
-        tensors[self.task_weights[0]] = tf.feature_column.input_layer(features, [weight_column])
-      tensors[self.labels[0]] = labels
+      tensors = self.create_estimator_inputs(feature_columns, weight_column, features, labels, mode)
       for layer, tensor in tensors.items():
         layer.add_summary_to_tg(tensor)
 
@@ -927,7 +922,7 @@ class TensorGraph(Model):
           weights = tensors[self.task_weights[0]]
         eval_metric_ops = {}
         for name, function in metrics.items():
-          eval_metric_ops[name] = function(labels, predictions, weights)
+          eval_metric_ops[name] = function(tensors[self.labels[0]], predictions, weights)
         return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops=eval_metric_ops)
       if mode == tf.estimator.ModeKeys.TRAIN:
         loss = create_tensors(self.loss, tensors, 1)
@@ -940,6 +935,29 @@ class TensorGraph(Model):
     # Create the Estimator.
 
     return tf.estimator.Estimator(model_fn=model_fn, model_dir=model_dir)
+
+  def create_estimator_inputs(self, feature_columns, weight_column, features, labels, mode):
+    """This is called by make_estimator() to create tensors for the inputs.
+
+    feature_columns and weight_column are the arguments passed to
+    make_estimator().  features, labels, and mode are the arguments passed to
+    the estimator's model function.  This method creates and returns a dict with
+    one entry for every Feature, Label, or Weights layer in the graph.  The keys
+    are the layers, and the values are the tensors that correspond to them.
+
+    Any subclass that overrides default_generator() must also override this
+    method.
+    """
+    if self.__class__.default_generator is not TensorGraph.default_generator:
+      raise ValueError("Class overrides default_generator() but not create_estimator_inputs()")
+    tensors = {}
+    for layer, column in zip(self.features, feature_columns):
+      tensors[layer] = tf.feature_column.input_layer(features, [column])
+    if weight_column is not None:
+      tensors[self.task_weights[0]] = tf.feature_column.input_layer(features, [weight_column])
+    if labels is not None:
+      tensors[self.labels[0]] = tf.cast(labels, self.labels[0].dtype)
+    return tensors
 
 def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
   """
@@ -963,6 +981,15 @@ def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
       for layer in tg.features + tg.labels + tg.task_weights:
         if layer in feed_dict:
           value = feed_dict[layer]
+          # Add or remove dimensions of size 1 to match the shape of the layer.
+          value_dims = len(value.shape)
+          layer_dims = len(layer.shape)
+          if value_dims < layer_dims:
+            if all(i==1 for i in layer.shape[value_dims:]):
+              value = value.reshape(list(value.shape)+[1]*(layer_dims-value_dims))
+          if value_dims > layer_dims:
+            if all(i==1 for i in value.shape[layer_dims:]):
+              value = value.reshape(value.shape[:layer_dims])
         else:
           value = np.zeros(
               [0] + list(layer.shape[1:]), dtype=layer.dtype.as_numpy_dtype)
