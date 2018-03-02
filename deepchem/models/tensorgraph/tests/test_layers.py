@@ -53,7 +53,6 @@ from deepchem.models.tensorgraph.layers import Transpose
 from deepchem.models.tensorgraph.layers import Variable
 from deepchem.models.tensorgraph.layers import VinaFreeEnergy
 from deepchem.models.tensorgraph.layers import WeightedError
-from deepchem.models.tensorgraph.layers import Hingeloss
 from deepchem.models.tensorgraph.layers import WeightedLinearCombo
 from deepchem.models.tensorgraph.IRV import IRVLayer
 from deepchem.models.tensorgraph.IRV import IRVRegularize
@@ -879,13 +878,14 @@ class TestLayers(test_util.TensorFlowTestCase):
 
   def test_hingeloss(self):
 
-    batch_size = 10
-    reg = 0.00001
-    labels = np.array([0, 1])
-    weights = tf.Variable(10)
-    input_tensor = np.random.rand(weights, batch_size, labels, reg)
+    batch_size=10
+    reg=0.00001
+    labels=np.array([0,1])
+    weights= tf.Variable(10)
+    input_tensor=np.random.rand(weights,batch_size,labels,reg)
     with self.test_session() as sess:
-      input_tensor = tf.convert_to_tensor(input_tensor, dtype=tf.float32)
-      out_tensor = Hingeloss()(input_tensor)
-      out_tensor = out_tensor.eval()
+      input_tensor=tf.convert_to_tensor(input_tensor,dtype=tf.float32)
+      out_tensor=Hingeloss()(input_tensor)
+      out_tensor=out_tensor.eval()
       assert out_tensor.shape == (batch_size,)
+
