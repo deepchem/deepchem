@@ -153,14 +153,17 @@ class MultiTaskClassifier(TensorGraph):
           feed_dict[self.task_weights[0]] = w_b
         yield feed_dict
 
-  def create_estimator_inputs(self, feature_columns, weight_column, features, labels, mode):
+  def create_estimator_inputs(self, feature_columns, weight_column, features,
+                              labels, mode):
     tensors = {}
     for layer, column in zip(self.features, feature_columns):
       tensors[layer] = tf.feature_column.input_layer(features, [column])
     if weight_column is not None:
-      tensors[self.task_weights[0]] = tf.feature_column.input_layer(features, [weight_column])
+      tensors[self.task_weights[0]] = tf.feature_column.input_layer(
+          features, [weight_column])
     if labels is not None:
-      tensors[self.labels[0]] = tf.one_hot(tf.cast(labels, tf.int32), self.n_classes)
+      tensors[self.labels[0]] = tf.one_hot(
+          tf.cast(labels, tf.int32), self.n_classes)
     return tensors
 
   def predict_proba(self, dataset, transformers=[], outputs=None):

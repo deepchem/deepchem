@@ -839,7 +839,11 @@ class TensorGraph(Model):
       feed_dict[self._training_placeholder] = train_value
       yield feed_dict
 
-  def make_estimator(self, feature_columns, weight_column=None, model_dir=None, metrics={}):
+  def make_estimator(self,
+                     feature_columns,
+                     weight_column=None,
+                     model_dir=None,
+                     metrics={}):
     """Construct a Tensorflow Estimator from this model.
 
     tf.estimator.Estimator is the standard Tensorflow API for representing models.
@@ -872,17 +876,22 @@ class TensorGraph(Model):
     # Check the inputs.
 
     if len(feature_columns) != len(self.features):
-      raise ValueError('This model requires %d feature column(s)' % len(self.features))
+      raise ValueError(
+          'This model requires %d feature column(s)' % len(self.features))
     if len(self.labels) != 1:
-      raise ValueError('Can only create an Estimator from a model with exactly one Label input')
+      raise ValueError(
+          'Can only create an Estimator from a model with exactly one Label input'
+      )
     if len(self.task_weights) > 1:
-      raise ValueError('Cannot create an Estimator from a model with multiple Weight inputs')
+      raise ValueError(
+          'Cannot create an Estimator from a model with multiple Weight inputs')
     if weight_column is None:
       if len(self.task_weights) > 0:
         raise ValueError('This model requires a weight column')
     else:
       if len(self.task_weights) == 0:
-        raise ValueError('Cannot specify weight_column for a model with no Weight inputs')
+        raise ValueError(
+            'Cannot specify weight_column for a model with no Weight inputs')
     if model_dir is None:
       model_dir = self.model_dir
 
@@ -891,8 +900,12 @@ class TensorGraph(Model):
     def create_tensors(layer, tensors, training):
       if layer in tensors:
         return tensors[layer]
-      inputs = [create_tensors(in_layer, tensors, training) for in_layer in layer.in_layers]
-      tensor = layer.create_tensor(in_layers=inputs, set_tensors=False, training=training)
+      inputs = [
+          create_tensors(in_layer, tensors, training)
+          for in_layer in layer.in_layers
+      ]
+      tensor = layer.create_tensor(
+          in_layers=inputs, set_tensors=False, training=training)
       tensors[layer] = tensor
       layer.add_summary_to_tg(tensor)
       return tensor
@@ -902,7 +915,8 @@ class TensorGraph(Model):
     def model_fn(features, labels, mode):
       # Define the inputs.
 
-      tensors = self.create_estimator_inputs(feature_columns, weight_column, features, labels, mode)
+      tensors = self.create_estimator_inputs(feature_columns, weight_column,
+                                             features, labels, mode)
       for layer, tensor in tensors.items():
         layer.add_summary_to_tg(tensor)
 
@@ -922,8 +936,10 @@ class TensorGraph(Model):
           weights = tensors[self.task_weights[0]]
         eval_metric_ops = {}
         for name, function in metrics.items():
-          eval_metric_ops[name] = function(tensors[self.labels[0]], predictions, weights)
-        return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops=eval_metric_ops)
+          eval_metric_ops[name] = function(tensors[self.labels[0]], predictions,
+                                           weights)
+        return tf.estimator.EstimatorSpec(
+            mode, loss=loss, eval_metric_ops=eval_metric_ops)
       if mode == tf.estimator.ModeKeys.TRAIN:
         loss = create_tensors(self.loss, tensors, 1)
         global_step = tf.train.get_global_step()
@@ -936,7 +952,8 @@ class TensorGraph(Model):
 
     return tf.estimator.Estimator(model_fn=model_fn, model_dir=model_dir)
 
-  def create_estimator_inputs(self, feature_columns, weight_column, features, labels, mode):
+  def create_estimator_inputs(self, feature_columns, weight_column, features,
+                              labels, mode):
     """This is called by make_estimator() to create tensors for the inputs.
 
     feature_columns and weight_column are the arguments passed to
@@ -949,15 +966,19 @@ class TensorGraph(Model):
     method.
     """
     if self.__class__.default_generator is not TensorGraph.default_generator:
-      raise ValueError("Class overrides default_generator() but not create_estimator_inputs()")
+      raise ValueError(
+          "Class overrides default_generator() but not create_estimator_inputs()"
+      )
     tensors = {}
     for layer, column in zip(self.features, feature_columns):
       tensors[layer] = tf.feature_column.input_layer(features, [column])
     if weight_column is not None:
-      tensors[self.task_weights[0]] = tf.feature_column.input_layer(features, [weight_column])
+      tensors[self.task_weights[0]] = tf.feature_column.input_layer(
+          features, [weight_column])
     if labels is not None:
       tensors[self.labels[0]] = tf.cast(labels, self.labels[0].dtype)
     return tensors
+
 
 def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
   """
@@ -985,10 +1006,11 @@ def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
           value_dims = len(value.shape)
           layer_dims = len(layer.shape)
           if value_dims < layer_dims:
-            if all(i==1 for i in layer.shape[value_dims:]):
-              value = value.reshape(list(value.shape)+[1]*(layer_dims-value_dims))
+            if all(i == 1 for i in layer.shape[value_dims:]):
+              value = value.reshape(
+                  list(value.shape) + [1] * (layer_dims - value_dims))
           if value_dims > layer_dims:
-            if all(i==1 for i in value.shape[layer_dims:]):
+            if all(i == 1 for i in value.shape[layer_dims:]):
               value = value.reshape(value.shape[:layer_dims])
         else:
           value = np.zeros(
