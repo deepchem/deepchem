@@ -4322,7 +4322,7 @@ class Hingeloss():
     labels_i=scores[np.arange(scores.shape[0]),labels]
     loss_i=tf.maximum(0,scores-tf.transpose(labels_i)+1)
     loss=tf.reduce_mean(tf.sum(loss_i),axis=1)
-    loss + = 0.5*reg*tf.sum(weights*weights)
+    loss  = loss + 0.5*reg*tf.sum(weights*weights)
     out_tensor=loss
     if set_tensors:
       self.out_tensor=out_tensor
