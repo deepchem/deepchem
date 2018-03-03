@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2017, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import os
 import deepchem as dc
@@ -15,7 +15,7 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from binding_pocket_datasets import load_pdbbind_pockets
 
-# For stable runs 
+# For stable runs
 np.random.seed(123)
 
 split = "random"
