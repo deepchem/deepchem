@@ -512,7 +512,8 @@ class CoulombFitTransformer(Transformer):
      >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
      >>> model = dc.models.MultiTaskFitTransformRegressor(n_tasks,
      ...    [n_features, n_features], batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
-     n_features after fit_transform: 12
+     >>> print(model.n_features)
+     12
   """
 
   def __init__(self, dataset):

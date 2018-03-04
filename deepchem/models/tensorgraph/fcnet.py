@@ -330,6 +330,7 @@ class MultiTaskFitTransformRegressor(MultiTaskRegressor):
   ...     dropouts=[0.], learning_rate=0.003, weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
   ...     batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
   >>> model.n_features
+  12
   """
 
   def __init__(self,

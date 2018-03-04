@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 
 __author__ = "Joseph Gomes"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "LGPL"
+__license__ = "MIT"
 
 import os
 import unittest
