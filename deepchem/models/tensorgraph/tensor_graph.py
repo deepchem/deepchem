@@ -965,7 +965,7 @@ class TensorGraph(Model):
     Any subclass that overrides default_generator() must also override this
     method.
     """
-    if self.__class__.default_generator is not TensorGraph.default_generator:
+    if self.__class__.default_generator != TensorGraph.default_generator:
       raise ValueError(
           "Class overrides default_generator() but not create_estimator_inputs()"
       )
