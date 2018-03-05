@@ -4305,10 +4305,19 @@ class GraphCNN(Layer):
     return result
 
 
-class Hingeloss():
+class Hingeloss(Layer):
 
   def __init__(self, in_layers=None, weights, batch_size, labels, reg,
                **kwargs):
+    """
+      Inputs have dimension D, there are C classes, and we operate on minibatches
+      of N examples.
+      Inputs:
+      Weigths: A numpy array of shape (D, C) containing weights.
+      batch_size: A numpy array of shape (N, D) containing a minibatch of data.
+      labels: A numpy array of shape (N,)
+      reg: (float) regularization strength
+    """
 
     self.weights = weights
     self.batch_size = batch_size
