@@ -4316,7 +4316,7 @@ class Hingeloss(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self.get_input_tensors(in_layers)
     labels, logits = inputs[0], inputs[1]
-    out_tensor = tf.losses.hinge_loss(labels, logits)
+    out_tensor = tf.losses.hinge_loss(labels=labels, logits=logits)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
