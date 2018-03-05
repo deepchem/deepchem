@@ -25,6 +25,7 @@ from deepchem.models.tensorgraph.layers import GRU
 from deepchem.models.tensorgraph.layers import Gather
 from deepchem.models.tensorgraph.layers import GraphConv
 from deepchem.models.tensorgraph.layers import GraphGather
+from deepchem.models.tensorgraph.layers import Hingeloss
 from deepchem.models.tensorgraph.layers import Input
 from deepchem.models.tensorgraph.layers import InputFifoQueue
 from deepchem.models.tensorgraph.layers import InteratomicL2Distances
@@ -878,13 +879,11 @@ class TestLayers(test_util.TensorFlowTestCase):
 
   def test_hingeloss(self):
 
-    batch_size = 10
-    reg = 0.00001
-    labels = np.array([0, 1])
-    weights = tf.Variable(10)
-    input_tensor = np.random.rand(weights, batch_size, labels, reg)
+    labels = 2
+    logits = 0.0001
+    input_tensor = np.random.uniform(labels, logits, [1, 1])
     with self.test_session() as sess:
       input_tensor = tf.convert_to_tensor(input_tensor, dtype=tf.float32)
       out_tensor = Hingeloss()(input_tensor)
       out_tensor = out_tensor.eval()
-      assert out_tensor.shape == (batch_size,)
+      assert type(out_tensor) is FloatType
