@@ -4307,14 +4307,17 @@ class GraphCNN(Layer):
 
 class Hingeloss(Layer):
 
-  def __init__(self, in_layers=None, labels, logits, **kwargs):
-
-    self.labels = labels
-    self.logits = logits
+  def __init__(self, in_layers=None,**kwargs):
     super(Hingeloss, self).__init__(in_layers, **kwargs)
+    try :
+      self._shape = self.in_layers[1].shape
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self.get_input_tensors(in_layers)
+    if len(inputs) != 2:
+      raise ValueError()
     labels, logits = inputs[0], inputs[1]
     out_tensor = tf.losses.hinge_loss(labels=labels, logits=logits)
     if set_tensors:
