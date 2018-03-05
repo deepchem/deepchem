@@ -10,7 +10,7 @@ from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, 
   SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
   GraphGather, BatchNorm, WeightedError, ReLU, \
   Conv3D, MaxPool3D, Conv2DTranspose, Conv3DTranspose, \
-  LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN, Cast
+  LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN, Cast,Hingeloss
 from deepchem.models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
 from deepchem.models.tensorgraph.IRV import IRVLayer, IRVRegularize, Slice
 
