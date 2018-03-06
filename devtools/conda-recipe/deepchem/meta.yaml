@@ -4,7 +4,7 @@ package:
 
 source:
     git_url: https://github.com/lilleswing/deepchem.git
-    git_tag: version-bumps
+    git_tag: 2.0.0
 
 build:
   number: 0
