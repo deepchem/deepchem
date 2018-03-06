@@ -6,15 +6,19 @@
 export tensorflow=tensorflow
 
 
-if [ -z "$1" ]
-then
-    echo "Must Specify Conda Environment Name"
-fi
-
 if [ -z "$python_version" ]
 then
     echo "Using python 3.5 by default"
     export python_version=3.5
+fi
+
+if [ -z "$1" ];
+then
+    echo "Installing DeepChem in current env"
+else
+    export envname=$1
+    conda create -y --name $envname python=$python_version
+    source activate $envname
 fi
 
 unamestr=`uname`
@@ -23,9 +27,6 @@ if [[ "$unamestr" == 'Darwin' ]]; then
    conda install -y -q conda=4.3.25
 fi
 
-export envname=$1
-conda create -y --name $envname python=$python_version
-source activate $envname
 conda install -y -q -c omnia pdbfixer=1.4
 conda install -y -q -c conda-forge joblib=0.11
 conda install -y -q -c conda-forge six=1.10.0
