@@ -46,7 +46,7 @@ from deepchem.models.tensorgraph.layers import Sigmoid
 from deepchem.models.tensorgraph.layers import SigmoidCrossEntropy
 from deepchem.models.tensorgraph.layers import SoftMax
 from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
-from deepchem.models.tensorgraph.layers import SparseSoftmaxCrossEntropy
+from deepchem.models.tensorgraph.layers import SparseSoftMaxCrossEntropy
 from deepchem.models.tensorgraph.layers import StopGradient
 from deepchem.models.tensorgraph.layers import TensorWrapper
 from deepchem.models.tensorgraph.layers import TimeSeriesDense
@@ -391,7 +391,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       logit_tensor = tf.convert_to_tensor(logit_tensor, dtype=tf.float32)
       label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
-      out_tensor = SparseSoftmaxCrossEntropy()(logit_tensor, label_tensor)
+      out_tensor = SparseSoftMaxCrossEntropy()(logit_tensor, label_tensor)
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size,)
 
