@@ -685,9 +685,11 @@ def test_Slice_pickle():
 
 
 def test_hingeloss_pickle():
+  lables = 2
+  logits = 0.001
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 1))
-  layer = Hingeloss(in_layers=[feature, feature])
+  layer = Hingeloss(labels=labels, logits=logits, in_layers=[feature, feature])
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
