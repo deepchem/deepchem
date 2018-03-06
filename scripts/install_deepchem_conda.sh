@@ -32,7 +32,6 @@ conda install -y -q -c conda-forge six=1.10.0
 conda install -y -q -c deepchem mdtraj=1.9.1
 conda install -y -q -c conda-forge scikit-learn=0.19.1
 conda install -y -q -c conda-forge setuptools=36.2.2
-conda install -y -q -c conda-forge keras=1.2.2
 conda install -y -q -c conda-forge networkx=1.11
 conda install -y -q -c conda-forge pillow=4.3.0
 conda install -y -q -c conda-forge pandas=0.22.0
