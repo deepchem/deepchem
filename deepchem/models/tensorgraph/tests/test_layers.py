@@ -882,10 +882,10 @@ class TestLayers(test_util.TensorFlowTestCase):
     labels = 2
     logits = 0.0001
     logits_tensor = np.random.uniform(logits)
-    labesl_tensor = np.random.rand(labels)
+    labels_tensor = np.random.rand(labels)
     with self.test_session() as sess:
       logits_tensor = tf.convert_to_tensor(logits_tensor, dtype=tf.float32)
-      labels_tesnor = tf.convert_to_tensor(labels_tensor, dtype=tf.float32)
+      labels_tensor = tf.convert_to_tensor(labels_tensor, dtype=tf.float32)
       out_tensor = Hingeloss()(labels_tensor, logits_tensor)
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (labels,)

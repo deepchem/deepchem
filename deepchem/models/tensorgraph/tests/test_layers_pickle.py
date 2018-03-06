@@ -685,7 +685,7 @@ def test_Slice_pickle():
 
 
 def test_hingeloss_pickle():
-  lables = 2
+  labels = 2
   logits = 0.001
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 1))
