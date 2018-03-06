@@ -20,7 +20,8 @@ ENV PATH /miniconda/bin:$PATH
 # Install deepchem with GPU support from github using Tue 14 Mar 2017 git head
 # TODO: Get rid of this when there is a stable release of deepchem.
 RUN conda update -n base conda
-RUN git clone https://github.com/lilleswing/deepchem.git && \
+RUN export LANG=en_US.UTF-8 && \
+    git clone https://github.com/lilleswing/deepchem.git && \
     cd deepchem && \
     git checkout version-bumps && \
     sed -i -- 's/tensorflow$/tensorflow-gpu/g' scripts/install_deepchem_conda.sh && \
