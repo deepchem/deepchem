@@ -26,13 +26,11 @@ RUN export LANG=en_US.UTF-8 && \
     git checkout version-bumps && \
     sed -i -- 's/tensorflow$/tensorflow-gpu/g' scripts/install_deepchem_conda.sh && \
     bash scripts/install_deepchem_conda.sh && \
-    python setup.py develop && \
-    python -c 'import deepchem'
+    python setup.py develop
 
 # Clean up
 RUN cd deepchem && \
     git clean -fX
 
 # Check that we can import DeepChem
-RUN source activate deepchem
 #RUN pip install nose && \
