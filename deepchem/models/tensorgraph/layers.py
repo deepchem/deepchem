@@ -4319,7 +4319,9 @@ class Hingeloss(Layer):
     if len(inputs) != 2:
       raise ValueError()
     labels, logits = inputs[0], inputs[1]
-    out_tensor = tf.losses.hinge_loss(labels=labels, logits=logits)
+    reduction = tf.losses.Reduction
+    out_tensor = tf.losses.hinge_loss(
+        labels=labels, logits=logits, reduction=reduction.NONE)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor

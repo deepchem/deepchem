@@ -46,6 +46,7 @@ from deepchem.models.tensorgraph.layers import Sigmoid
 from deepchem.models.tensorgraph.layers import SigmoidCrossEntropy
 from deepchem.models.tensorgraph.layers import SoftMax
 from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
+from deepchem.models.tensorgraph.layers import SparseSoftmaxCrossEntropy
 from deepchem.models.tensorgraph.layers import StopGradient
 from deepchem.models.tensorgraph.layers import TensorWrapper
 from deepchem.models.tensorgraph.layers import TimeSeriesDense
@@ -379,6 +380,18 @@ class TestLayers(test_util.TensorFlowTestCase):
       logit_tensor = tf.convert_to_tensor(logit_tensor, dtype=tf.float32)
       label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
       out_tensor = SoftMaxCrossEntropy()(logit_tensor, label_tensor)
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size,)
+
+  def test_sparse_softmax_cross_entropy(self):
+    batch_size = 10
+    n_features = 5
+    logit_tensor = np.randon.rand(batch_size, n_features)
+    label_tensor = np.random.rand(batch_size)
+    with self.test_session() as sess:
+      logit_tensor = tf.convert_to_tensor(logit_tensor, dtype=tf.float32)
+      label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
+      out_tensor = SparseSoftmaxCrossEntropy()(logit_tensor, label_tensor)
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size,)
 
@@ -879,7 +892,7 @@ class TestLayers(test_util.TensorFlowTestCase):
 
   def test_hingeloss(self):
 
-    labels = 2
+    labels = 1
     logits = 0.0001
     logits_tensor = np.random.uniform(logits)
     labels_tensor = np.random.rand(labels)

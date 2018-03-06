@@ -10,7 +10,7 @@ from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, 
   SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
   GraphGather, BatchNorm, WeightedError, ReLU, \
   Conv3D, MaxPool3D, Conv2DTranspose, Conv3DTranspose, \
-  LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN, Cast,Hingeloss
+  LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN, Cast,Hingeloss,SparseSoftmaxCrossEntropy
 from deepchem.models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
 from deepchem.models.tensorgraph.IRV import IRVLayer, IRVRegularize, Slice
 
@@ -263,6 +263,17 @@ def test_SoftmaxCrossEntropy_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 1))
   layer = SoftMaxCrossEntropy(in_layers=[feature, feature])
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
+def test_SparseSoftmaxCrossEntropy_pickle():
+  tg = TensorGraph()
+  logits = Feature(shape=(tg.batch_size, 1))
+  labels = Feature(shape=(tg.batch_size))
+  layer = SparseSoftmaxCrossEntropy(in_layers=[logits, labels])
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
@@ -685,11 +696,9 @@ def test_Slice_pickle():
 
 
 def test_hingeloss_pickle():
-  labels = 2
-  logits = 0.001
   tg = TensorGraph()
-  feature = Feature(shape=(tg.batch_size, 1))
-  layer = Hingeloss(labels=labels, logits=logits, in_layers=[feature, feature])
+  feature = Feature(shape=(1))
+  layer = Hingeloss(in_layers=[feature, feature])
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
