@@ -8,7 +8,7 @@ source:
 
 build:
   number: 0
-  skip: True  # [osx or win]
+  skip: True  # [win]
 
 
 requirements:
