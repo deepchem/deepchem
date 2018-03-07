@@ -271,9 +271,9 @@ def test_SoftmaxCrossEntropy_pickle():
 
 def test_SparseSoftmaxCrossEntropy_pickle():
   tg = TensorGraph()
-  logits = Feature(shape=(tg.batch_size, 1))
-  labels = Feature(shape=(tg.batch_size))
-  layer = SparseSoftMaxCrossEntropy(in_layers=[logits, labels])
+  logits = Feature(shape=(tg.batch_size, 5))
+  labels = Feature(shape=(tg.batch_size,), dtype=tf.int32)
+  layer = SparseSoftMaxCrossEntropy(in_layers=[labels, logits])
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
@@ -697,7 +697,7 @@ def test_Slice_pickle():
 
 def test_hingeloss_pickle():
   tg = TensorGraph()
-  feature = Feature(shape=(1))
+  feature = Feature(shape=(1, None))
   layer = Hingeloss(in_layers=[feature, feature])
   tg.add_output(layer)
   tg.set_loss(layer)

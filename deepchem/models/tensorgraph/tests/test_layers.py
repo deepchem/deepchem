@@ -386,12 +386,12 @@ class TestLayers(test_util.TensorFlowTestCase):
   def test_sparse_softmax_cross_entropy(self):
     batch_size = 10
     n_features = 5
-    logit_tensor = np.randon.rand(batch_size, n_features)
+    logit_tensor = np.random.rand(batch_size, n_features)
     label_tensor = np.random.rand(batch_size)
     with self.test_session() as sess:
       logit_tensor = tf.convert_to_tensor(logit_tensor, dtype=tf.float32)
-      label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
-      out_tensor = SparseSoftMaxCrossEntropy()(logit_tensor, label_tensor)
+      label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.int32)
+      out_tensor = SparseSoftMaxCrossEntropy()(label_tensor, logit_tensor)
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size,)
 
@@ -893,8 +893,8 @@ class TestLayers(test_util.TensorFlowTestCase):
   def test_hingeloss(self):
 
     labels = 1
-    logits = 0.0001
-    logits_tensor = np.random.uniform(logits)
+    logits = 1
+    logits_tensor = np.random.rand(logits)
     labels_tensor = np.random.rand(labels)
     with self.test_session() as sess:
       logits_tensor = tf.convert_to_tensor(logits_tensor, dtype=tf.float32)
