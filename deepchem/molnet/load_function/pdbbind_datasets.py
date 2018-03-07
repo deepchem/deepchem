@@ -108,17 +108,21 @@ def load_pdbbind_grid(split="random",
     for transformer in transformers:
       dataset = transformer.transform(dataset)
     df = pd.read_csv(dataset_file)
-    splitters = {
-        'index': deepchem.splits.IndexSplitter(),
-        'random': deepchem.splits.RandomSplitter(),
-        'scaffold': deepchem.splits.ScaffoldSplitter(),
-        'time': deepchem.splits.TimeSplitterPDBbind(np.array(df['id']))
-    }
-    splitter = splitters[split]
-    train, valid, test = splitter.train_valid_test_split(dataset)
 
-    if reload:
-      deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
-                                               transformers)
+    if split == None:
+      return tasks, (dataset, None, None), transformers
+    else:
+      splitters = {
+          'index': deepchem.splits.IndexSplitter(),
+          'random': deepchem.splits.RandomSplitter(),
+          'scaffold': deepchem.splits.ScaffoldSplitter(),
+          'time': deepchem.splits.TimeSplitterPDBbind(np.array(df['id']))
+      }
+      splitter = splitters[split]
+      train, valid, test = splitter.train_valid_test_split(dataset)
 
-  return tasks, (train, valid, test), transformers
+      if reload:
+        deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                                 transformers)
+
+      return tasks, (train, valid, test), transformers

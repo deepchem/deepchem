@@ -54,15 +54,18 @@ def load_clearance(featurizer='ECFP', split='random', reload=True):
   for transformer in transformers:
     dataset = transformer.transform(dataset)
 
-  splitters = {
-      'index': deepchem.splits.IndexSplitter(),
-      'random': deepchem.splits.RandomSplitter(),
-      'scaffold': deepchem.splits.ScaffoldSplitter()
-  }
-  splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset)
+  if split == None:
+    return clearance_tasks, (dataset, None, None), transformers
+  else:
+    splitters = {
+        'index': deepchem.splits.IndexSplitter(),
+        'random': deepchem.splits.RandomSplitter(),
+        'scaffold': deepchem.splits.ScaffoldSplitter()
+    }
+    splitter = splitters[split]
+    train, valid, test = splitter.train_valid_test_split(dataset)
 
-  if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
-                                             transformers)
-  return clearance_tasks, (train, valid, test), transformers
+    if reload:
+      deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                               transformers)
+    return clearance_tasks, (train, valid, test), transformers

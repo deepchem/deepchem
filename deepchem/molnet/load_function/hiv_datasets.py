@@ -51,17 +51,19 @@ def load_hiv(featurizer='ECFP', split='index', reload=True):
   for transformer in transformers:
     dataset = transformer.transform(dataset)
 
-  splitters = {
-      'index': deepchem.splits.IndexSplitter(),
-      'random': deepchem.splits.RandomSplitter(),
-      'scaffold': deepchem.splits.ScaffoldSplitter(),
-      'butina': deepchem.splits.ButinaSplitter()
-  }
-  splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset)
+  if split == None:
+    return hiv_tasks, (dataset, None, None), transformers
+  else:
+    splitters = {
+        'index': deepchem.splits.IndexSplitter(),
+        'random': deepchem.splits.RandomSplitter(),
+        'scaffold': deepchem.splits.ScaffoldSplitter(),
+        'butina': deepchem.splits.ButinaSplitter()
+    }
+    splitter = splitters[split]
+    train, valid, test = splitter.train_valid_test_split(dataset)
 
-  if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
-                                             transformers)
-
-  return hiv_tasks, (train, valid, test), transformers
+    if reload:
+      deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                               transformers)
+    return hiv_tasks, (train, valid, test), transformers
