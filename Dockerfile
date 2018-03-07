@@ -12,13 +12,6 @@ RUN MINICONDA="Miniconda3-latest-Linux-x86_64.sh" && \
     rm -f $MINICONDA
 ENV PATH /miniconda/bin:$PATH
 
-# Install deepchem conda package from omnia
-# TODO: Uncomment this when there is a stable release of deepchem.
-#RUN conda config --add channels omnia
-#RUN conda install --yes deepchem
-
-# Install deepchem with GPU support from github using Tue 14 Mar 2017 git head
-# TODO: Get rid of this when there is a stable release of deepchem.
 RUN conda update -n base conda
 RUN export LANG=en_US.UTF-8 && \
     git clone https://github.com/deepchem/deepchem.git && \
@@ -31,6 +24,3 @@ RUN export LANG=en_US.UTF-8 && \
 # Clean up
 RUN cd deepchem && \
     git clean -fX
-
-# Check that we can import DeepChem
-#RUN pip install nose && \
