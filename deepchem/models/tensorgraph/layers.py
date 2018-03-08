@@ -1542,6 +1542,12 @@ class InteratomicL2Distances(Layer):
 
 
 class SparseSoftMaxCrossEntropy(Layer):
+  """Computes Sparse softmax cross entropy between logits and labels.
+  labels: Tensor of shape [d_0,d_1,....,d_{r-1}](where r is rank of logits) and must be of dtype int32 or int64.
+  logits: Unscaled log probabilities of shape [d_0,....d{r-1},num_classes] and of dtype float32 or float64.
+  Note: the rank of the logits should be 1 greater than that of labels.
+  The output will be a tensor of same shape as labels and of same type as logits with the loss.
+  """
 
   def __init__(self, in_layers=None, **kwargs):
     super(SparseSoftMaxCrossEntropy, self).__init__(in_layers, **kwargs)
@@ -4309,3 +4315,30 @@ class GraphCNN(Layer):
     result = tf.matmul(A_reshape, B)
     result = tf.reshape(result, tf.stack([A_shape[0], A_shape[1], axis_2]))
     return result
+
+
+class Hingeloss(Layer):
+  """This layer computes the hinge loss on inputs:[labels,logits] 
+  labels: The values of this tensor is expected to be 1.0 or 0.0. The shape should be the same as logits.
+  logits: Holds the log probabilities for labels, a float tensor.
+  The output is a weighted loss tensor of same shape as labels.
+  """
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(Hingeloss, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = self.in_layers[1].shape
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 2:
+      raise ValueError()
+    labels, logits = inputs[0], inputs[1]
+    reduction = tf.losses.Reduction
+    out_tensor = tf.losses.hinge_loss(
+        labels=labels, logits=logits, reduction=reduction.NONE)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
