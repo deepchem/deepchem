@@ -25,6 +25,7 @@ from deepchem.models.tensorgraph.layers import GRU
 from deepchem.models.tensorgraph.layers import Gather
 from deepchem.models.tensorgraph.layers import GraphConv
 from deepchem.models.tensorgraph.layers import GraphGather
+from deepchem.models.tensorgraph.layers import Hingeloss
 from deepchem.models.tensorgraph.layers import Input
 from deepchem.models.tensorgraph.layers import InputFifoQueue
 from deepchem.models.tensorgraph.layers import InteratomicL2Distances
@@ -45,6 +46,7 @@ from deepchem.models.tensorgraph.layers import Sigmoid
 from deepchem.models.tensorgraph.layers import SigmoidCrossEntropy
 from deepchem.models.tensorgraph.layers import SoftMax
 from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
+from deepchem.models.tensorgraph.layers import SparseSoftMaxCrossEntropy
 from deepchem.models.tensorgraph.layers import StopGradient
 from deepchem.models.tensorgraph.layers import TensorWrapper
 from deepchem.models.tensorgraph.layers import TimeSeriesDense
@@ -378,6 +380,18 @@ class TestLayers(test_util.TensorFlowTestCase):
       logit_tensor = tf.convert_to_tensor(logit_tensor, dtype=tf.float32)
       label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
       out_tensor = SoftMaxCrossEntropy()(logit_tensor, label_tensor)
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size,)
+
+  def test_sparse_softmax_cross_entropy(self):
+    batch_size = 10
+    n_features = 5
+    logit_tensor = np.random.rand(batch_size, n_features)
+    label_tensor = np.random.rand(batch_size)
+    with self.test_session() as sess:
+      logit_tensor = tf.convert_to_tensor(logit_tensor, dtype=tf.float32)
+      label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.int32)
+      out_tensor = SparseSoftMaxCrossEntropy()(label_tensor, logit_tensor)
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size,)
 
@@ -875,3 +889,16 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert out_tensor.shape == (batch_size, n_tasks)
       irv_reg = IRVRegularize(irv_layer, 1.)()
       assert irv_reg.eval() >= 0
+
+  def test_hingeloss(self):
+
+    labels = 1
+    logits = 1
+    logits_tensor = np.random.rand(logits)
+    labels_tensor = np.random.rand(labels)
+    with self.test_session() as sess:
+      logits_tensor = tf.convert_to_tensor(logits_tensor, dtype=tf.float32)
+      labels_tensor = tf.convert_to_tensor(labels_tensor, dtype=tf.float32)
+      out_tensor = Hingeloss()(labels_tensor, logits_tensor)
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (labels,)
