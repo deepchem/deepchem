@@ -5,13 +5,16 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import logging
 import deepchem
+
+logger = logging.getLogger(__name__)
 
 
 def load_bbbp(featurizer='ECFP', split='random', reload=True):
   """Load blood-brain barrier penetration datasets """
   # Featurize bbb dataset
-  print("About to featurize bbbp dataset.")
+  logger.info("About to featurize bbbp dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "bbbp/" + featurizer + "/" + split)
@@ -47,7 +50,7 @@ def load_bbbp(featurizer='ECFP', split='random', reload=True):
       deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]
 
-  print("About to transform data")
+  logger.info("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
 

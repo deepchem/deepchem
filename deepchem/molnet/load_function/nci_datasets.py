@@ -7,13 +7,16 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import logging
 import deepchem
+
+logging = logging.getLogger(__name__)
 
 
 def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
 
   # Load nci dataset
-  print("About to load NCI dataset.")
+  logger.info("About to load NCI dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "nci/" + featurizer + "/" + split)
@@ -44,7 +47,7 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
       return all_nci_tasks, all_dataset, transformers
 
   # Featurize nci dataset
-  print("About to featurize nci dataset.")
+  logger.info("About to featurize nci dataset.")
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
@@ -60,7 +63,7 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
   dataset = loader.featurize(dataset_file, shard_size=shard_size)
 
   # Initialize transformers
-  print("About to transform data")
+  logger.info("About to transform data")
   transformers = [
       deepchem.trans.NormalizationTransformer(
           transform_y=True, dataset=dataset)
@@ -77,7 +80,7 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
         'scaffold': deepchem.splits.ScaffoldSplitter()
     }
     splitter = splitters[split]
-    print("Performing new split.")
+    logger.info("Performing new split.")
     train, valid, test = splitter.train_valid_test_split(dataset)
 
     if reload:

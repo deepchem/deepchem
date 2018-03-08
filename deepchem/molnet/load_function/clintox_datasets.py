@@ -7,7 +7,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import logging
 import deepchem
+
+logger = logging.getLogger(__name__)
 
 
 def load_clintox(featurizer='ECFP', split='index', reload=True):
@@ -23,19 +26,19 @@ def load_clintox(featurizer='ECFP', split='index', reload=True):
         'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/clintox.csv.gz'
     )
 
-  print("About to load clintox dataset.")
+  logger.info("About to load clintox dataset.")
   dataset = deepchem.utils.save.load_from_disk(dataset_file)
   clintox_tasks = dataset.columns.values[1:].tolist()
-  print("Tasks in dataset: %s" % (clintox_tasks))
-  print("Number of tasks in dataset: %s" % str(len(clintox_tasks)))
-  print("Number of examples in dataset: %s" % str(dataset.shape[0]))
+  logger.info("Tasks in dataset: %s" % (clintox_tasks))
+  logger.info("Number of tasks in dataset: %s" % str(len(clintox_tasks)))
+  logger.info("Number of examples in dataset: %s" % str(dataset.shape[0]))
   if reload:
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
         save_dir)
     if loaded:
       return clintox_tasks, all_dataset, transformers
   # Featurize clintox dataset
-  print("About to featurize clintox dataset.")
+  logger.info("About to featurize clintox dataset.")
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
@@ -50,7 +53,7 @@ def load_clintox(featurizer='ECFP', split='index', reload=True):
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
   # Transform clintox dataset
-  print("About to transform clintox dataset.")
+  logger.info("About to transform clintox dataset.")
   transformers = [
       deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]
@@ -58,7 +61,7 @@ def load_clintox(featurizer='ECFP', split='index', reload=True):
     dataset = transformer.transform(dataset)
 
   # Split clintox dataset
-  print("About to split clintox dataset.")
+  logger.info("About to split clintox dataset.")
 
   if split == None:
     return clintox_tasks, (dataset, None, None), transformers

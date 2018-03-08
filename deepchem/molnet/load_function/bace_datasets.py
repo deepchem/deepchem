@@ -5,14 +5,17 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import logging
 import deepchem
 from deepchem.molnet.load_function.bace_features import bace_user_specified_features
+
+logger = logging.getLogger(__name__)
 
 
 def load_bace_regression(featurizer='ECFP', split='random', reload=True):
   """Load bace datasets."""
   # Featurize bace dataset
-  print("About to featurize bace dataset.")
+  logger.info("About to featurize bace dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "bace_r/" + featurizer + "/" + split)
@@ -53,7 +56,7 @@ def load_bace_regression(featurizer='ECFP', split='random', reload=True):
           transform_y=True, dataset=dataset)
   ]
 
-  print("About to transform data")
+  logger.info("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
 
@@ -77,7 +80,7 @@ def load_bace_regression(featurizer='ECFP', split='random', reload=True):
 def load_bace_classification(featurizer='ECFP', split='random', reload=True):
   """Load bace datasets."""
   # Featurize bace dataset
-  print("About to featurize bace dataset.")
+  logger.info("About to featurize bace dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "bace_c/" + featurizer + "/" + split)
@@ -117,7 +120,7 @@ def load_bace_classification(featurizer='ECFP', split='random', reload=True):
       deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]
 
-  print("About to transform data")
+  logger.info("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
 

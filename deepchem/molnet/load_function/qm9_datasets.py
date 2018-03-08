@@ -5,13 +5,16 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import logging
 import deepchem
+
+logger = logging.getLogger(__name__)
 
 
 def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
   """Load qm9 datasets."""
   # Featurize qm9 dataset
-  print("About to featurize qm9 dataset.")
+  logger.info("About to featurize qm9 dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "qm9/" + featurizer + "/" + split)
