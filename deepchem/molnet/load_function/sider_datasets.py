@@ -63,21 +63,21 @@ def load_sider(featurizer='ECFP', split='index', reload=True, K=4):
 
   if split == None:
     return SIDER_tasks, (dataset, None, None), transformers
+
+  splitters = {
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
+      'scaffold': deepchem.splits.ScaffoldSplitter(),
+      'task': deepchem.splits.TaskSplitter()
+  }
+  splitter = splitters[split]
+  if split == 'task':
+    fold_datasets = splitter.k_fold_split(dataset, K)
+    all_dataset = fold_datasets
   else:
-    splitters = {
-        'index': deepchem.splits.IndexSplitter(),
-        'random': deepchem.splits.RandomSplitter(),
-        'scaffold': deepchem.splits.ScaffoldSplitter(),
-        'task': deepchem.splits.TaskSplitter()
-    }
-    splitter = splitters[split]
-    if split == 'task':
-      fold_datasets = splitter.k_fold_split(dataset, K)
-      all_dataset = fold_datasets
-    else:
-      train, valid, test = splitter.train_valid_test_split(dataset)
-      if reload:
-        deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
-                                                 transformers)
-      all_dataset = (train, valid, test)
-    return SIDER_tasks, all_dataset, transformers
+    train, valid, test = splitter.train_valid_test_split(dataset)
+    if reload:
+      deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                               transformers)
+    all_dataset = (train, valid, test)
+  return SIDER_tasks, all_dataset, transformers

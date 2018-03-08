@@ -166,25 +166,24 @@ def load_qm7(featurizer='CoulombMatrix', split='random', reload=True):
 
   if split == None:
     raise ValueError()
-  else:
-    splitters = {
-        'index': deepchem.splits.IndexSplitter(),
-        'random': deepchem.splits.RandomSplitter(),
-        'stratified':
-        deepchem.splits.SingletaskStratifiedSplitter(task_number=0)
-    }
-    splitter = splitters[split]
-    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-        dataset)
 
-    transformers = [
-        deepchem.trans.NormalizationTransformer(
-            transform_y=True, dataset=train_dataset)
-    ]
+  splitters = {
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
+      'stratified': deepchem.splits.SingletaskStratifiedSplitter(task_number=0)
+  }
+  splitter = splitters[split]
+  train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+      dataset)
 
-    for transformer in transformers:
-      train_dataset = transformer.transform(train_dataset)
-      valid_dataset = transformer.transform(valid_dataset)
-      test_dataset = transformer.transform(test_dataset)
+  transformers = [
+      deepchem.trans.NormalizationTransformer(
+          transform_y=True, dataset=train_dataset)
+  ]
 
-    return qm7_tasks, (train_dataset, valid_dataset, test_dataset), transformers
+  for transformer in transformers:
+    train_dataset = transformer.transform(train_dataset)
+    valid_dataset = transformer.transform(valid_dataset)
+    test_dataset = transformer.transform(test_dataset)
+
+  return qm7_tasks, (train_dataset, valid_dataset, test_dataset), transformers
