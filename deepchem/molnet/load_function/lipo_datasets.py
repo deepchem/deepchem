@@ -5,14 +5,17 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import logging
 import deepchem
+
+logging = logging.getLogger(__name__)
 
 
 def load_lipo(featurizer='ECFP', split='index', reload=True):
   """Load Lipophilicity datasets."""
   # Featurize Lipophilicity dataset
-  print("About to featurize Lipophilicity dataset.")
-  print("About to load Lipophilicity dataset.")
+  logger.info("About to featurize Lipophilicity dataset.")
+  logger.info("About to load Lipophilicity dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "lipo/" + featurizer + "/" + split)
@@ -50,9 +53,12 @@ def load_lipo(featurizer='ECFP', split='index', reload=True):
           transform_y=True, dataset=dataset)
   ]
 
-  print("About to transform data")
+  logger.info("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
+
+  if split == None:
+    return Lipo_tasks, (dataset, None, None), transformers
 
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
