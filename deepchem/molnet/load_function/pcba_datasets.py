@@ -5,8 +5,11 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import logging
 import deepchem
 import gzip
+
+logging = logging.getLogger(__name__)
 
 
 def load_pcba(featurizer='ECFP', split='random', reload=True):
@@ -52,7 +55,7 @@ def load_pcba_dataset(featurizer='ECFP',
         format(assay_file_name))
 
   # Featurize PCBA dataset
-  print("About to featurize PCBA dataset.")
+  logger.info("About to featurize PCBA dataset.")
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
@@ -84,9 +87,12 @@ def load_pcba_dataset(featurizer='ECFP',
       deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]
 
-  print("About to transform data")
+  logger.info("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
+
+  if split == None:
+    return PCBA_tasks, (dataset, None, None), transformers
 
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
@@ -94,7 +100,7 @@ def load_pcba_dataset(featurizer='ECFP',
       'scaffold': deepchem.splits.ScaffoldSplitter()
   }
   splitter = splitters[split]
-  print("Performing new split.")
+  logger.info("Performing new split.")
   train, valid, test = splitter.train_valid_test_split(dataset)
 
   if reload:
