@@ -5,8 +5,11 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import logging
 import deepchem
 from deepchem.molnet.load_function.chembl_tasks import chembl_tasks
+
+logger = logging.getLogger(__name__)
 
 
 def load_chembl(shard_size=2000,
@@ -46,7 +49,7 @@ def load_chembl(shard_size=2000,
         'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_sparse_ts_valid.csv.gz'
     )
 
-  print("About to load ChEMBL dataset.")
+  logger.info("About to load ChEMBL dataset.")
   if reload:
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
         save_dir)
@@ -62,7 +65,7 @@ def load_chembl(shard_size=2000,
         data_dir, "./chembl_year_sets/chembl_%s_ts_test.csv.gz" % set)
 
   # Featurize ChEMBL dataset
-  print("About to featurize ChEMBL dataset.")
+  logger.info("About to featurize ChEMBL dataset.")
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
@@ -76,16 +79,16 @@ def load_chembl(shard_size=2000,
       tasks=chembl_tasks, smiles_field="smiles", featurizer=featurizer)
 
   if split == "year":
-    print("Featurizing train datasets")
+    logger.info("Featurizing train datasets")
     train_dataset = loader.featurize(train_files, shard_size=shard_size)
-    print("Featurizing valid datasets")
+    logger.info("Featurizing valid datasets")
     valid_dataset = loader.featurize(valid_files, shard_size=shard_size)
-    print("Featurizing test datasets")
+    logger.info("Featurizing test datasets")
     test_dataset = loader.featurize(test_files, shard_size=shard_size)
   else:
     dataset = loader.featurize(dataset_path, shard_size=shard_size)
   # Initialize transformers
-  print("About to transform data")
+  logger.info("About to transform data")
   if split == "year":
     transformers = [
         deepchem.trans.NormalizationTransformer(
@@ -103,16 +106,18 @@ def load_chembl(shard_size=2000,
     for transformer in transformers:
       dataset = transformer.transform(dataset)
 
+  if spit == None:
+    return chembl_tasks, (dataset, None, None), transformers
+
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),
       'scaffold': deepchem.splits.ScaffoldSplitter()
   }
 
-  if split in splitters:
-    splitter = splitters[split]
-    print("Performing new split.")
-    train, valid, test = splitter.train_valid_test_split(dataset)
+  splitter = splitters[split]
+  logger.info("Performing new split.")
+  train, valid, test = splitter.train_valid_test_split(dataset)
 
   if reload:
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
