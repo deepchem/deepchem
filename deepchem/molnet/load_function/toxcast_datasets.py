@@ -1,12 +1,14 @@
 """
 TOXCAST dataset loader.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import logging
 import deepchem
+
+logger = logging.getLogger(__name__)
 
 
 def load_toxcast(featurizer='ECFP', split='index', reload=True):
@@ -22,8 +24,8 @@ def load_toxcast(featurizer='ECFP', split='index', reload=True):
     )
 
   dataset = deepchem.utils.save.load_from_disk(dataset_file)
-  print("Columns of dataset: %s" % str(dataset.columns.values))
-  print("Number of examples in dataset: %s" % str(dataset.shape[0]))
+  logger.info("Columns of dataset: %s" % str(dataset.columns.values))
+  logger.info("Number of examples in dataset: %s" % str(dataset.shape[0]))
   TOXCAST_tasks = dataset.columns.values[1:].tolist()
 
   if reload:
@@ -33,7 +35,7 @@ def load_toxcast(featurizer='ECFP', split='index', reload=True):
       return TOXCAST_tasks, all_dataset, transformers
 
   # Featurize TOXCAST dataset
-  print("About to featurize TOXCAST dataset.")
+  logger.info("About to featurize TOXCAST dataset.")
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
@@ -52,9 +54,12 @@ def load_toxcast(featurizer='ECFP', split='index', reload=True):
   transformers = [
       deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]
-  print("About to transform data")
+  logger.info("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
+
+  if split == None:
+    return TOXCAST_tasks, (dataset, None, None), transformers
 
   splitters = {
       'index': deepchem.splits.IndexSplitter(),

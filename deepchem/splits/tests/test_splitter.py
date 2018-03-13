@@ -2,7 +2,6 @@
 Tests for splitter objects.
 """
 from __future__ import division
-from __future__ import print_function
 from __future__ import unicode_literals
 
 from rdkit.Chem.Fingerprints import FingerprintMols
@@ -503,6 +502,18 @@ class TestSplitters(unittest.TestCase):
       # verify that there are no rows (samples) in weights matrix w
       # that have no hits.
       assert len(np.where(~w.any(axis=1))[0]) == 0
+
+  def test_indice_split(self):
+
+    solubility_dataset = dc.data.tests.load_solubility_data()
+    random_splitter = dc.splits.IndiceSplitter(
+        valid_indices=[7], test_indices=[8])
+    train_data, valid_data, test_data = \
+      random_splitter.split(
+        solubility_dataset)
+    assert len(train_data) == 8
+    assert len(valid_data) == 1
+    assert len(test_data) == 1
 
 
 if __name__ == "__main__":

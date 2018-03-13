@@ -8,11 +8,11 @@ from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, 
   CombineMeanStd, Repeat, Gather, GRU, LSTM, L2Loss, Concat, SoftMax, Sigmoid, SigmoidCrossEntropy, \
   Constant, Variable, StopGradient, Add, Multiply, Log, Exp, InteratomicL2Distances, \
   SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
-  GraphGather, BatchNorm, WeightedError, \
+  GraphGather, BatchNorm, WeightedError, ReLU, \
   Conv3D, MaxPool3D, Conv2DTranspose, Conv3DTranspose, \
-  LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN, Cast
+  LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN, Cast,Hingeloss,SparseSoftMaxCrossEntropy
 from deepchem.models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
-from deepchem.models.tensorflow_models.IRV import IRVLayer, IRVRegularize, Slice
+from deepchem.models.tensorgraph.IRV import IRVLayer, IRVRegularize, Slice
 
 
 def test_Conv1D_pickle():
@@ -165,6 +165,16 @@ def test_Sigmoid_pickle():
   tg.save()
 
 
+def test_ReLU_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 1))
+  layer = ReLU(in_layers=feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
 def test_Concat_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 1))
@@ -253,6 +263,17 @@ def test_SoftmaxCrossEntropy_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 1))
   layer = SoftMaxCrossEntropy(in_layers=[feature, feature])
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
+def test_SparseSoftmaxCrossEntropy_pickle():
+  tg = TensorGraph()
+  logits = Feature(shape=(tg.batch_size, 5))
+  labels = Feature(shape=(tg.batch_size,), dtype=tf.int32)
+  layer = SparseSoftMaxCrossEntropy(in_layers=[labels, logits])
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
@@ -670,5 +691,15 @@ def test_Slice_pickle():
   tg = TensorGraph()
   tg.add_output(out)
   tg.set_loss(out)
+  tg.build()
+  tg.save()
+
+
+def test_hingeloss_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(1, None))
+  layer = Hingeloss(in_layers=[feature, feature])
+  tg.add_output(layer)
+  tg.set_loss(layer)
   tg.build()
   tg.save()

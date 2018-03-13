@@ -1,11 +1,10 @@
 """
-Imports all submodules 
+Imports all submodules
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-__version__ = '1.3.1'
+__version__ = '2.0.0'
 
 import deepchem.data
 import deepchem.feat
@@ -13,7 +12,6 @@ import deepchem.hyper
 import deepchem.metalearning
 import deepchem.metrics
 import deepchem.models
-import deepchem.nn
 import deepchem.splits
 import deepchem.trans
 import deepchem.utils

@@ -1,7 +1,6 @@
 """
 qm8 dataset loader.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -67,6 +66,10 @@ def load_qm8(featurizer='CoulombMatrix', split='random', reload=True):
         tasks=qm8_tasks, smiles_field="smiles", featurizer=featurizer)
 
   dataset = loader.featurize(dataset_file)
+
+  if split == None:
+    raise ValueError()
+
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),

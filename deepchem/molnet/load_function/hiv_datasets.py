@@ -1,18 +1,20 @@
 """
 hiv dataset loader.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import logging
 import deepchem
+
+logger = logging.getLogger(__name__)
 
 
 def load_hiv(featurizer='ECFP', split='index', reload=True):
   """Load hiv datasets. Does not do train/test split"""
   # Featurize hiv dataset
-  print("About to featurize hiv dataset.")
+  logger.info("About to featurize hiv dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "hiv/" + featurizer + "/" + split)
@@ -48,9 +50,12 @@ def load_hiv(featurizer='ECFP', split='index', reload=True):
       deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]
 
-  print("About to transform data")
+  logger.info("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
+
+  if split == None:
+    return hiv_tasks, (dataset, None, None), transformers
 
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
@@ -64,5 +69,4 @@ def load_hiv(featurizer='ECFP', split='index', reload=True):
   if reload:
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
                                              transformers)
-
   return hiv_tasks, (train, valid, test), transformers

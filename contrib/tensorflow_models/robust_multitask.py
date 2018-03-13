@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 
 from deepchem.nn import model_ops
-'''
+
 class RobustMultitaskClassifier(MultiTaskClassifier):
   """Implements a neural network for robust multitasking.
   
@@ -365,4 +365,3 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
                         value=bias_init_consts[-1], shape=[1])),
                 axis=1))
       return (output, labels, weights)
-'''

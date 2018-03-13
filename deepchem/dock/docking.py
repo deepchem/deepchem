@@ -1,7 +1,6 @@
 """
-Docks protein-ligand pairs 
+Docks protein-ligand pairs
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -9,6 +8,7 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
+import logging
 import numpy as np
 import os
 import tempfile
@@ -19,6 +19,8 @@ from deepchem.dock.pose_scoring import GridPoseScorer
 from deepchem.dock.pose_generation import VinaPoseGenerator
 from sklearn.ensemble import RandomForestRegressor
 from subprocess import call
+
+logger = logging.getLogger(__name__)
 
 
 class Docker(object):
@@ -39,7 +41,7 @@ class VinaGridRFDocker(Docker):
   def __init__(self, exhaustiveness=10, detect_pockets=False):
     """Builds model."""
     self.base_dir = tempfile.mkdtemp()
-    print("About to download trained model.")
+    logger.info("About to download trained model.")
     call((
         "wget -nv -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/trained_models/random_full_RF.tar.gz"
     ).split())
@@ -78,7 +80,7 @@ class VinaGridDNNDocker(object):
   def __init__(self, exhaustiveness=10, detect_pockets=False):
     """Builds model."""
     self.base_dir = tempfile.mkdtemp()
-    print("About to download trained model.")
+    logger.info("About to download trained model.")
     call((
         "wget -nv -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/trained_models/random_full_DNN.tar.gz"
     ).split())

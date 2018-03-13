@@ -2,7 +2,6 @@
 Tests for splitter objects.
 """
 from __future__ import division
-from __future__ import print_function
 from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar, Aneesh Pappu"
@@ -126,8 +125,8 @@ class TestTaskSplitters(unittest.TestCase):
 
       # Find the tasks that correspond to this test fold
       train_tasks = list(
-          set(range(10)) - set(
-              range(fold * n_per_fold, (fold + 1) * n_per_fold)))
+          set(range(10)) -
+          set(range(fold * n_per_fold, (fold + 1) * n_per_fold)))
 
       # Assert that all arrays look like they should
       np.testing.assert_array_equal(train_dataset.X, X)

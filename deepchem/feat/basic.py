@@ -1,13 +1,12 @@
 """
 Basic molecular features.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
 __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
-__license__ = "LGPL v2.1+"
+__license__ = "MIT"
 
 from rdkit.Chem import Descriptors
 from deepchem.feat import Featurizer

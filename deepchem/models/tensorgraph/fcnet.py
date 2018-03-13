@@ -1,9 +1,9 @@
 """TensorFlow implementation of fully connected networks.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import logging
 import warnings
 import time
 import numpy as np
@@ -12,17 +12,15 @@ import threading
 import collections
 
 import deepchem as dc
-from deepchem.nn import model_ops
+from deepchem.models.tensorgraph import model_ops
 from deepchem.utils.save import log
 from deepchem.metrics import to_one_hot, from_one_hot
-from deepchem.models.tensorflow_models import TensorflowGraph
-from deepchem.models.tensorflow_models import TensorflowGraphModel
-from deepchem.models.tensorflow_models import TensorflowClassifier
-from deepchem.models.tensorflow_models import TensorflowRegressor
 from deepchem.metrics import to_one_hot
 
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
-from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMaxCrossEntropy, L2Loss, ReduceSum
+from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMax, SoftMaxCrossEntropy, L2Loss, ReduceSum
+
+logger = logging.getLogger(__name__)
 
 
 class MultiTaskClassifier(TensorGraph):
@@ -116,15 +114,16 @@ class MultiTaskClassifier(TensorGraph):
 
     # Compute the loss function for each label.
 
-    output = Reshape(
+    logits = Reshape(
         shape=(-1, n_tasks, n_classes),
         in_layers=[
             Dense(in_layers=[prev_layer], out_channels=n_tasks * n_classes)
         ])
+    output = SoftMax(logits)
     self.add_output(output)
     labels = Label(shape=(None, n_tasks, n_classes))
     weights = Weights(shape=(None, n_tasks))
-    loss = SoftMaxCrossEntropy(in_layers=[labels, output])
+    loss = SoftMaxCrossEntropy(in_layers=[labels, logits])
     weighted_loss = WeightedError(in_layers=[loss, weights])
     if weight_decay_penalty != 0.0:
       weighted_loss = WeightDecay(
@@ -155,6 +154,19 @@ class MultiTaskClassifier(TensorGraph):
         if w_b is not None and not predict:
           feed_dict[self.task_weights[0]] = w_b
         yield feed_dict
+
+  def create_estimator_inputs(self, feature_columns, weight_column, features,
+                              labels, mode):
+    tensors = {}
+    for layer, column in zip(self.features, feature_columns):
+      tensors[layer] = tf.feature_column.input_layer(features, [column])
+    if weight_column is not None:
+      tensors[self.task_weights[0]] = tf.feature_column.input_layer(
+          features, [weight_column])
+    if labels is not None:
+      tensors[self.labels[0]] = tf.one_hot(
+          tf.cast(labels, tf.int32), self.n_classes)
+    return tensors
 
   def predict_proba(self, dataset, transformers=[], outputs=None):
     return super(MultiTaskClassifier, self).predict(dataset, transformers,
@@ -293,26 +305,6 @@ class MultiTaskRegressor(TensorGraph):
           in_layers=[weighted_loss])
     self.set_loss(weighted_loss)
 
-  def default_generator(self,
-                        dataset,
-                        epochs=1,
-                        predict=False,
-                        deterministic=True,
-                        pad_batches=True):
-    for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
-        feed_dict = dict()
-        if y_b is not None and not predict:
-          feed_dict[self.labels[0]] = y_b.reshape(-1, self.n_tasks, 1)
-        if X_b is not None:
-          feed_dict[self.features[0]] = X_b
-        if w_b is not None and not predict:
-          feed_dict[self.task_weights[0]] = w_b
-        yield feed_dict
-
 
 class MultiTaskFitTransformRegressor(MultiTaskRegressor):
   """Implements a MultiTaskRegressor that performs on-the-fly transformation during fit/predict.
@@ -331,7 +323,8 @@ class MultiTaskFitTransformRegressor(MultiTaskRegressor):
   >>> model = dc.models.MultiTaskFitTransformRegressor(n_tasks, [n_features, n_features],
   ...     dropouts=[0.], learning_rate=0.003, weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
   ...     batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
-  n_features after fit_transform: 12
+  >>> model.n_features
+  12
   """
 
   def __init__(self,
@@ -371,7 +364,7 @@ class MultiTaskFitTransformRegressor(MultiTaskRegressor):
     for transformer in fit_transformers:
       X_b = transformer.X_transform(X_b)
     n_features = X_b.shape[1]
-    print("n_features after fit_transform: %d" % int(n_features))
+    logger.info("n_features after fit_transform: %d", int(n_features))
     super(MultiTaskFitTransformRegressor, self).__init__(
         n_tasks, n_features, batch_size=batch_size, **kwargs)
 

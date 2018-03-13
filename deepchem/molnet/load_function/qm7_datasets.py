@@ -1,7 +1,6 @@
 """
 qm7 dataset loader.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -68,30 +67,34 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
         tasks=qm7_tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(dataset_file)
 
-  splitters = {
-      'index': deepchem.splits.IndexSplitter(),
-      'random': deepchem.splits.RandomSplitter(),
-      'stratified': deepchem.splits.SingletaskStratifiedSplitter(task_number=0)
-  }
+  if split == None:
+    raise ValueError()
+  else:
+    splitters = {
+        'index': deepchem.splits.IndexSplitter(),
+        'random': deepchem.splits.RandomSplitter(),
+        'stratified':
+        deepchem.splits.SingletaskStratifiedSplitter(task_number=0)
+    }
 
-  splitter = splitters[split]
-  train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-      dataset)
+    splitter = splitters[split]
+    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+        dataset)
 
-  transformers = [
-      deepchem.trans.NormalizationTransformer(
-          transform_y=True, dataset=train_dataset)
-  ]
+    transformers = [
+        deepchem.trans.NormalizationTransformer(
+            transform_y=True, dataset=train_dataset)
+    ]
 
-  for transformer in transformers:
-    train_dataset = transformer.transform(train_dataset)
-    valid_dataset = transformer.transform(valid_dataset)
-    test_dataset = transformer.transform(test_dataset)
-  if reload:
-    deepchem.utils.save.save_dataset_to_disk(
-        save_dir, train_dataset, valid_dataset, test_dataset, transformers)
+    for transformer in transformers:
+      train_dataset = transformer.transform(train_dataset)
+      valid_dataset = transformer.transform(valid_dataset)
+      test_dataset = transformer.transform(test_dataset)
+    if reload:
+      deepchem.utils.save.save_dataset_to_disk(
+          save_dir, train_dataset, valid_dataset, test_dataset, transformers)
 
-  return qm7_tasks, (train_dataset, valid_dataset, test_dataset), transformers
+    return qm7_tasks, (train_dataset, valid_dataset, test_dataset), transformers
 
 
 def load_qm7b_from_mat(featurizer='CoulombMatrix',
@@ -111,27 +114,31 @@ def load_qm7b_from_mat(featurizer='CoulombMatrix',
   w = np.ones_like(y)
   dataset = deepchem.data.DiskDataset.from_numpy(X, y, w, ids=None)
 
-  splitters = {
-      'index': deepchem.splits.IndexSplitter(),
-      'random': deepchem.splits.RandomSplitter(),
-      'stratified': deepchem.splits.SingletaskStratifiedSplitter(task_number=0)
-  }
-  splitter = splitters[split]
-  train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-      dataset)
+  if split == None:
+    raise ValueError()
+  else:
+    splitters = {
+        'index': deepchem.splits.IndexSplitter(),
+        'random': deepchem.splits.RandomSplitter(),
+        'stratified':
+        deepchem.splits.SingletaskStratifiedSplitter(task_number=0)
+    }
+    splitter = splitters[split]
+    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+        dataset)
 
-  transformers = [
-      deepchem.trans.NormalizationTransformer(
-          transform_y=True, dataset=train_dataset)
-  ]
+    transformers = [
+        deepchem.trans.NormalizationTransformer(
+            transform_y=True, dataset=train_dataset)
+    ]
 
-  for transformer in transformers:
-    train_dataset = transformer.transform(train_dataset)
-    valid_dataset = transformer.transform(valid_dataset)
-    test_dataset = transformer.transform(test_dataset)
+    for transformer in transformers:
+      train_dataset = transformer.transform(train_dataset)
+      valid_dataset = transformer.transform(valid_dataset)
+      test_dataset = transformer.transform(test_dataset)
 
-  qm7_tasks = np.arange(y.shape[1])
-  return qm7_tasks, (train_dataset, valid_dataset, test_dataset), transformers
+    qm7_tasks = np.arange(y.shape[1])
+    return qm7_tasks, (train_dataset, valid_dataset, test_dataset), transformers
 
 
 def load_qm7(featurizer='CoulombMatrix', split='random', reload=True):
@@ -156,6 +163,9 @@ def load_qm7(featurizer='CoulombMatrix', split='random', reload=True):
       mol_field="mol",
       featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
+
+  if split == None:
+    raise ValueError()
 
   splitters = {
       'index': deepchem.splits.IndexSplitter(),

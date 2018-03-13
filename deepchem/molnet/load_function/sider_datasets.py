@@ -1,16 +1,18 @@
 """
 SIDER dataset loader.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import logging
 import deepchem
+
+logger = logging.getLogger(__name__)
 
 
 def load_sider(featurizer='ECFP', split='index', reload=True, K=4):
-  print("About to load SIDER dataset.")
+  logger.info("About to load SIDER dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "sider/" + featurizer + "/" + split)
@@ -22,8 +24,8 @@ def load_sider(featurizer='ECFP', split='index', reload=True, K=4):
     )
 
   dataset = deepchem.utils.save.load_from_disk(dataset_file)
-  print("Columns of dataset: %s" % str(dataset.columns.values))
-  print("Number of examples in dataset: %s" % str(dataset.shape[0]))
+  logger.info("Columns of dataset: %s" % str(dataset.columns.values))
+  logger.info("Number of examples in dataset: %s" % str(dataset.shape[0]))
   SIDER_tasks = dataset.columns.values[1:].tolist()
 
   if reload:
@@ -33,7 +35,7 @@ def load_sider(featurizer='ECFP', split='index', reload=True, K=4):
       return SIDER_tasks, all_dataset, transformers
 
   # Featurize SIDER dataset
-  print("About to featurize SIDER dataset.")
+  logger.info("About to featurize SIDER dataset.")
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
@@ -43,21 +45,24 @@ def load_sider(featurizer='ECFP', split='index', reload=True, K=4):
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
 
-  print("SIDER tasks: %s" % str(SIDER_tasks))
-  print("%d tasks in total" % len(SIDER_tasks))
+  logger.info("SIDER tasks: %s" % str(SIDER_tasks))
+  logger.info("%d tasks in total" % len(SIDER_tasks))
 
   loader = deepchem.data.CSVLoader(
       tasks=SIDER_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
-  print("%d datapoints in SIDER dataset" % len(dataset))
+  logger.info("%d datapoints in SIDER dataset" % len(dataset))
 
   # Initialize transformers
   transformers = [
       deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]
-  print("About to transform data")
+  logger.info("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
+
+  if split == None:
+    return SIDER_tasks, (dataset, None, None), transformers
 
   splitters = {
       'index': deepchem.splits.IndexSplitter(),

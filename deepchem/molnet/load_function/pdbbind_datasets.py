@@ -3,7 +3,6 @@ PDBBind dataset loader.
 """
 
 from __future__ import division
-from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
@@ -109,6 +108,10 @@ def load_pdbbind_grid(split="random",
     for transformer in transformers:
       dataset = transformer.transform(dataset)
     df = pd.read_csv(dataset_file)
+
+    if split == None:
+      return tasks, (dataset, None, None), transformers
+
     splitters = {
         'index': deepchem.splits.IndexSplitter(),
         'random': deepchem.splits.RandomSplitter(),
@@ -122,4 +125,4 @@ def load_pdbbind_grid(split="random",
       deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
                                                transformers)
 
-  return tasks, (train, valid, test), transformers
+    return tasks, (train, valid, test), transformers

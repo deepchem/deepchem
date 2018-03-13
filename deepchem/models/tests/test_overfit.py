@@ -1,7 +1,6 @@
 """
 Tests to make sure deepchem models can overfit on tiny datasets.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -359,7 +358,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
-  '''
   def test_tf_robust_multitask_classification_overfit(self):
     """Test tf robust multitask overfits tiny data."""
     n_tasks = 10
@@ -389,45 +387,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     # Fit trained model
     model.fit(dataset, nb_epoch=25)
-    model.save()
 
     # Eval model on train
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
-  '''
-  '''
-  def test_tf_logreg_multitask_classification_overfit(self):
-    """Test tf multitask overfits tiny data."""
-    n_tasks = 10
-    n_samples = 10
-    n_features = 3
-    n_classes = 2
-
-    # Generate dummy dataset
-    np.random.seed(123)
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features)
-    y = np.zeros((n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-    classification_metric = dc.metrics.Metric(
-        dc.metrics.accuracy_score, task_averager=np.mean)
-    model = dc.models.TensorflowLogisticRegression(
-        n_tasks,
-        n_features,
-        learning_rate=0.5,
-        weight_init_stddevs=[.01],
-        batch_size=n_samples)
-
-    # Fit trained model
-    model.fit(dataset)
-    model.save()
-
-    # Eval model on train
-    scores = model.evaluate(dataset, [classification_metric])
-    assert scores[classification_metric.name] > .9
-  '''
 
   def test_IRV_multitask_classification_overfit(self):
     """Test IRV classifier overfits tiny data."""
@@ -524,7 +487,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .1
 
-  '''
   def test_tf_robust_multitask_regression_overfit(self):
     """Test tf robust multitask overfits tiny data."""
     np.random.seed(123)
@@ -557,12 +519,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     # Fit trained model
     model.fit(dataset, nb_epoch=25)
-    model.save()
 
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .2
-  '''
 
   def test_tensorgraph_DTNN_multitask_regression_overfit(self):
     """Test deep tensor neural net overfits tiny data."""
@@ -909,14 +869,12 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .9
 
-  '''
   def test_tf_progressive_regression_overfit(self):
     """Test tf progressive multitask overfits tiny data."""
     np.random.seed(123)
-    n_tasks = 9
+    n_tasks = 5
     n_samples = 10
     n_features = 3
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -936,16 +894,12 @@ class TestOverfit(test_util.TensorFlowTestCase):
         dropouts=[0.],
         learning_rate=0.003,
         weight_init_stddevs=[.1],
-        seed=123,
         alpha_init_stddevs=[.02],
         batch_size=n_samples)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=20)
-    model.save()
 
     # Eval model on train
     scores = model.evaluate(dataset, [metric])
-    y_pred = model.predict(dataset)
     assert scores[metric.name] < .2
-  '''

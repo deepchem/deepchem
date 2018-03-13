@@ -1,7 +1,6 @@
 """
 Convenience class that lets singletask models fit on multitask data.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -48,8 +47,9 @@ class SingletaskToMultitask(Model):
       task_data_dirs.append(task_data_dir)
     task_datasets = self._to_singletask(dataset, task_data_dirs)
     for task, task_dataset in zip(self.tasks, task_datasets):
-      log("Dataset for task %s has shape %s" %
-          (task, str(task_dataset.get_shape())), self.verbose)
+      log("Dataset for task %s has shape %s" % (task,
+                                                str(task_dataset.get_shape())),
+          self.verbose)
     return task_datasets
 
   @staticmethod

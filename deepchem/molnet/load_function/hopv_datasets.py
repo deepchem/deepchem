@@ -1,18 +1,20 @@
 """
 HOPV dataset loader.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import logging
 import deepchem
+
+logger = logging.getLogger(__name__)
 
 
 def load_hopv(featurizer='ECFP', split='index', reload=True):
   """Load HOPV datasets. Does not do train/test split"""
   # Featurize HOPV dataset
-  print("About to featurize HOPV dataset.")
+  logger.info("About to featurize HOPV dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "hopv/" + featurizer + "/" + split)
@@ -54,9 +56,12 @@ def load_hopv(featurizer='ECFP', split='index', reload=True):
           transform_y=True, dataset=dataset)
   ]
 
-  print("About to transform data")
+  logger.info("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
+
+  if split == None:
+    return hopv_tasks, (dataset, None, None), transformers
 
   splitters = {
       'index': deepchem.splits.IndexSplitter(),

@@ -1,13 +1,12 @@
 """
 Topological fingerprints.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
 __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
-__license__ = "LGPL v2.1+"
+__license__ = "MIT"
 
 from rdkit import Chem
 from rdkit.Chem import rdMolDescriptors
@@ -40,8 +39,14 @@ class CircularFingerprint(Featurizer):
   """
   name = 'circular'
 
-  def __init__(self, radius=2, size=2048, chiral=False, bonds=True,
-             features=False, sparse=False, smiles=False):
+  def __init__(self,
+               radius=2,
+               size=2048,
+               chiral=False,
+               bonds=True,
+               features=False,
+               sparse=False,
+               smiles=False):
     self.radius = radius
     self.size = size
     self.chiral = chiral
@@ -62,8 +67,11 @@ class CircularFingerprint(Featurizer):
     if self.sparse:
       info = {}
       fp = rdMolDescriptors.GetMorganFingerprint(
-          mol, self.radius, useChirality=self.chiral,
-          useBondTypes=self.bonds, useFeatures=self.features,
+          mol,
+          self.radius,
+          useChirality=self.chiral,
+          useBondTypes=self.bonds,
+          useFeatures=self.features,
           bitInfo=info)
       fp = fp.GetNonzeroElements()  # convert to a dict
 
@@ -79,6 +87,10 @@ class CircularFingerprint(Featurizer):
         fp = fp_smiles
     else:
       fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(
-          mol, self.radius, nBits=self.size, useChirality=self.chiral,
-          useBondTypes=self.bonds, useFeatures=self.features)
+          mol,
+          self.radius,
+          nBits=self.size,
+          useChirality=self.chiral,
+          useBondTypes=self.bonds,
+          useFeatures=self.features)
     return fp

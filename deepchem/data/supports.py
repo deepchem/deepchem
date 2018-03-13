@@ -1,13 +1,15 @@
 """
 Sample supports from datasets.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import logging
 import time
 import numpy as np
 from deepchem.data import NumpyDataset
+
+logger = logging.getLogger(__name__)
 
 
 def remove_dead_examples(dataset):
@@ -133,7 +135,7 @@ def get_task_test(dataset, n_episodes, n_test, task, log_every_n=50):
   tests = []
   for episode in range(n_episodes):
     if episode % log_every_n == 0:
-      print("Sampling test %d" % episode)
+      logger.info("Sampling test %d" % episode)
     inds = ids[episode]
     X_batch = X_task[inds]
     y_batch = np.squeeze(y_task[inds, task])
@@ -166,7 +168,7 @@ def get_single_task_test(dataset, batch_size, task, replace=True):
 
 def get_single_task_support(dataset, n_pos, n_neg, task, replace=True):
   """Generates one support set purely for specified task.
-  
+
   Parameters
   ----------
   datasets: dc.data.Dataset
@@ -190,7 +192,7 @@ def get_single_task_support(dataset, n_pos, n_neg, task, replace=True):
 
 def get_task_support(dataset, n_episodes, n_pos, n_neg, task, log_every_n=50):
   """Generates one support set purely for specified task.
-  
+
   Parameters
   ----------
   datasets: dc.data.Dataset
@@ -221,7 +223,7 @@ def get_task_support(dataset, n_episodes, n_pos, n_neg, task, log_every_n=50):
   supports = []
   for episode in range(n_episodes):
     if episode % log_every_n == 0:
-      print("Sampling support %d" % episode)
+      logger.info("Sampling support %d" % episode)
     # No replacement allowed for supports
     pos_ids = np.random.choice(len(pos_mols), (n_pos,), replace=False)
     neg_ids = np.random.choice(len(neg_mols), (n_neg,), replace=False)
@@ -285,8 +287,8 @@ class EpisodeGenerator(object):
     self.task_num = 0
     self.trial_num = 0
     time_end = time.time()
-    print("Constructing EpisodeGenerator took %s seconds" %
-          str(time_end - time_start))
+    logger.info("Constructing EpisodeGenerator took %s seconds" %
+                str(time_end - time_start))
 
   def __iter__(self):
     return self

@@ -1,5 +1,4 @@
 from __future__ import division
-from __future__ import print_function
 from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar, Evan Feinberg, and Karl Leswing"
@@ -1399,7 +1398,8 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
             protein_rdk,
             ligand_xyz,
             ligand_rdk,
-            pairwise_distances,)
+            pairwise_distances,
+        )
 
         if self.flatten:
           features[system_id] = np.concatenate(

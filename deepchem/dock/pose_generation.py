@@ -1,7 +1,6 @@
 """
 Generates protein-ligand docked poses using Autodock Vina.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -11,6 +10,7 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
+import logging
 import numpy as np
 import os
 import tempfile
@@ -18,6 +18,8 @@ from subprocess import call
 from deepchem.feat import hydrogenate_and_compute_partial_charges
 from deepchem.dock.binding_pocket import RFConvexHullPocketFinder
 from deepchem.utils import rdkit_util
+
+logger = logging.getLogger(__name__)
 
 
 class PoseGenerator(object):
@@ -63,18 +65,18 @@ class VinaPoseGenerator(PoseGenerator):
     if self.detect_pockets:
       self.pocket_finder = RFConvexHullPocketFinder()
     if not os.path.exists(self.vina_dir):
-      print("Vina not available. Downloading")
+      logger.info("Vina not available. Downloading")
       # TODO(rbharath): May want to move this file to S3 so we can ensure it's
       # always available.
       wget_cmd = "wget -nv -c http://vina.scripps.edu/download/autodock_vina_1_1_2_linux_x86.tgz"
       call(wget_cmd.split())
-      print("Downloaded Vina. Extracting")
+      logger.info("Downloaded Vina. Extracting")
       download_cmd = "tar xzvf autodock_vina_1_1_2_linux_x86.tgz"
       call(download_cmd.split())
-      print("Moving to final location")
+      logger.info("Moving to final location")
       mv_cmd = "mv autodock_vina_1_1_2_linux_x86 %s" % current_dir
       call(mv_cmd.split())
-      print("Cleanup: removing downloaded vina tar.gz")
+      logger.info("Cleanup: removing downloaded vina tar.gz")
       rm_cmd = "rm autodock_vina_1_1_2_linux_x86.tgz"
       call(rm_cmd.split())
     self.vina_cmd = os.path.join(self.vina_dir, "bin/vina")
@@ -113,12 +115,12 @@ class VinaPoseGenerator(PoseGenerator):
         protein_range = mol_xyz_util.get_molecule_range(receptor_mol[0])
         box_dims = protein_range + 5.0
       else:
-        print("About to find putative binding pockets")
+        logger.info("About to find putative binding pockets")
         pockets, pocket_atoms_maps, pocket_coords = self.pocket_finder.find_pockets(
             protein_file, ligand_file)
         # TODO(rbharath): Handle multiple pockets instead of arbitrarily selecting
         # first pocket.
-        print("Computing centroid and size of proposed pocket.")
+        logger.info("Computing centroid and size of proposed pocket.")
         pocket_coord = pocket_coords[0]
         protein_centroid = np.mean(pocket_coord, axis=1)
         pocket = pockets[0]
@@ -155,7 +157,7 @@ class VinaPoseGenerator(PoseGenerator):
     out_pdbqt = os.path.join(out_dir, "%s_docked.pdbqt" % ligand_name)
     # TODO(rbharath): Let user specify the number of poses required.
     if not dry_run:
-      print("About to call Vina")
+      logger.info("About to call Vina")
       call(
           "%s --config %s --log %s --out %s" % (self.vina_cmd, conf_file,
                                                 log_file, out_pdbqt),

@@ -1,13 +1,12 @@
 """
 Atomic coordinate featurizer.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
 __author__ = "Joseph Gomes and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "LGPL v2.1+"
+__license__ = "MIT"
 
 import numpy as np
 from deepchem.feat import Featurizer

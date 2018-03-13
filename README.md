@@ -13,7 +13,6 @@ democratizes the use of deep-learning in drug discovery, materials science, quan
 * [Requirements](#requirements)
 * [Installation](#installation)
     * [Conda Environment](#using-a-conda-environment)
-    * [Direct from Source](#installing-dependencies-manually)
     * [Docker](#using-a-docker-image)
 * [FAQ](#faq)
 * [Getting Started](#getting-started)
@@ -53,6 +52,7 @@ sudo apt-get install -y libxrender-dev
 
 ### Using a conda environment
 You can install deepchem in a new conda environment using the conda commands in scripts/install_deepchem_conda.sh
+Installing via this script will ensure that you are **installing from the source**.
 
 ```bash
 git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source code from GitHub
@@ -70,9 +70,11 @@ the benefits and usage of conda environments. **Warning**: Segmentation faults c
 via this installation procedure.
 
 ### Easy Install via Conda
+
 ```bash
-conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.3.1
+conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=2.0.0
 ```
+**Note:** `Easy Install` installs the latest stable version of `deepchem` and _does not install from source_. If you need to install from source make sure you follow the steps [here](#using-a-conda-environment).
 
 ### Using a Docker Image
 Using a docker image requires an NVIDIA GPU.  If you do not have a GPU please follow the directions for [using a conda environment](#using-a-conda-environment)
@@ -180,4 +182,4 @@ DeepChem is supported by a number of corporate partners who use DeepChem to solv
 
 
 ## Version
-1.3.1
+2.0.0

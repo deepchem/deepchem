@@ -7,7 +7,7 @@ from copy import deepcopy
 import tensorflow as tf
 import numpy as np
 
-from deepchem.nn import model_ops, initializations, regularizers, activations
+from deepchem.models.tensorgraph import model_ops, initializations, regularizers, activations
 import math
 
 
@@ -152,9 +152,8 @@ class Layer(object):
 
   def set_summary(self, summary_op, summary_description=None, collections=None):
     """Annotates a tensor with a tf.summary operation
-    Collects data from self.out_tensor by default but can be changed by setting
-    self.tb_input to another tensor in create_tensor
 
+    This causes self.out_tensor to be logged to Tensorboard.
 
     Parameters
     ----------
@@ -175,21 +174,28 @@ class Layer(object):
     self.collections = collections
     self.tensorboard = True
 
-  def add_summary_to_tg(self):
+  def add_summary_to_tg(self, tb_input=None):
     """
-    Can only be called after self.create_layer to gaurentee that name is not none
+    Create the summary operation for this layer, if set_summary() has been called on it.
+
+    Can only be called after self.create_layer to guarantee that name is not None.
+
+    Parameters
+    ----------
+    tb_input: tensor
+      the tensor to log to Tensorboard.  If None, self.out_tensor is used.
     """
     if self.tensorboard == False:
       return
-    if self.tb_input == None:
-      self.tb_input = self.out_tensor
+    if tb_input == None:
+      tb_input = self.out_tensor
     if self.summary_op == "tensor_summary":
-      tf.summary.tensor_summary(self.name, self.tb_input,
-                                self.summary_description, self.collections)
+      tf.summary.tensor_summary(self.name, tb_input, self.summary_description,
+                                self.collections)
     elif self.summary_op == 'scalar':
-      tf.summary.scalar(self.name, self.tb_input, self.collections)
+      tf.summary.scalar(self.name, tb_input, self.collections)
     elif self.summary_op == 'histogram':
-      tf.summary.histogram(self.name, self.tb_input, self.collections)
+      tf.summary.histogram(self.name, tb_input, self.collections)
 
   def copy(self, replacements={}, variables_graph=None, shared=False):
     """Duplicate this Layer and all its inputs.
@@ -1207,6 +1213,29 @@ class Sigmoid(Layer):
     return out_tensor
 
 
+class ReLU(Layer):
+  """ Compute the relu activation of input: f(x) = relu(x)
+  Only one input is allowed, output will have the same shape as input
+  """
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(ReLU, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError("ReLU must have a single input layer.")
+    parent = inputs[0]
+    out_tensor = tf.nn.relu(parent)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class Concat(Layer):
 
   def __init__(self, in_layers=None, axis=1, **kwargs):
@@ -1513,6 +1542,12 @@ class InteratomicL2Distances(Layer):
 
 
 class SparseSoftMaxCrossEntropy(Layer):
+  """Computes Sparse softmax cross entropy between logits and labels.
+  labels: Tensor of shape [d_0,d_1,....,d_{r-1}](where r is rank of logits) and must be of dtype int32 or int64.
+  logits: Unscaled log probabilities of shape [d_0,....d{r-1},num_classes] and of dtype float32 or float64.
+  Note: the rank of the logits should be 1 greater than that of labels.
+  The output will be a tensor of same shape as labels and of same type as logits with the loss.
+  """
 
   def __init__(self, in_layers=None, **kwargs):
     super(SparseSoftMaxCrossEntropy, self).__init__(in_layers, **kwargs)
@@ -2929,6 +2964,14 @@ class BatchNormalization(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+  def none_tensors(self):
+    gamma, beta, out_tensor = self.gamma, self.beta, self.out_tensor
+    self.gamma, self.beta, self.out_tensor = None, None, None
+    return gamma, beta, out_tensor
+
+  def set_tensors(self, tensor):
+    self.gamma, self.beta, self.out_tensor = tensor
+
 
 class WeightedError(Layer):
 
@@ -4272,3 +4315,30 @@ class GraphCNN(Layer):
     result = tf.matmul(A_reshape, B)
     result = tf.reshape(result, tf.stack([A_shape[0], A_shape[1], axis_2]))
     return result
+
+
+class Hingeloss(Layer):
+  """This layer computes the hinge loss on inputs:[labels,logits] 
+  labels: The values of this tensor is expected to be 1.0 or 0.0. The shape should be the same as logits.
+  logits: Holds the log probabilities for labels, a float tensor.
+  The output is a weighted loss tensor of same shape as labels.
+  """
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(Hingeloss, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = self.in_layers[1].shape
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 2:
+      raise ValueError()
+    labels, logits = inputs[0], inputs[1]
+    reduction = tf.losses.Reduction
+    out_tensor = tf.losses.hinge_loss(
+        labels=labels, logits=logits, reduction=reduction.NONE)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor

@@ -1,19 +1,19 @@
 """
 Tests for importing .sdf files
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
 __author__ = "Joseph Gomes"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "LGPL"
+__license__ = "MIT"
 
 import os
 import unittest
 import tempfile
 import shutil
 import deepchem as dc
+
 
 class TestFeaturizedSamples(unittest.TestCase):
   """
@@ -34,8 +34,10 @@ class TestFeaturizedSamples(unittest.TestCase):
 
     featurizer = dc.feat.CoulombMatrixEig(6, remove_hydrogens=False)
     loader = dc.data.SDFLoader(
-        tasks=tasks, smiles_field="smiles",
-        mol_field="mol", featurizer=featurizer)
+        tasks=tasks,
+        smiles_field="smiles",
+        mol_field="mol",
+        featurizer=featurizer)
 
     dataset = loader.featurize(input_file)
 

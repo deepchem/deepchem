@@ -1,14 +1,12 @@
 """Ops for tensor initialization"""
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
 import numpy as np
 import tensorflow as tf
-#from deepchem.nn.model_ops import variable
-from deepchem.nn.model_ops import random_uniform_variable
-from deepchem.nn.model_ops import random_normal_variable
-from deepchem.nn.activations import get_from_module
+from deepchem.models.tensorgraph.model_ops import random_uniform_variable
+from deepchem.models.tensorgraph.model_ops import random_normal_variable
+from deepchem.models.tensorgraph.activations import get_from_module
 
 
 def get_fans(shape):

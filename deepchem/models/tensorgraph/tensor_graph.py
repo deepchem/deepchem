@@ -4,6 +4,7 @@ import pickle
 import threading
 import time
 
+import logging
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.pywrap_tensorflow_internal import NewCheckpointReader
@@ -14,6 +15,8 @@ from deepchem.models.tensorgraph.layers import InputFifoQueue, Label, Feature, W
 from deepchem.models.tensorgraph.optimizers import Adam
 from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
+
+logger = logging.getLogger(__name__)
 
 
 class TensorGraph(Model):
@@ -227,18 +230,18 @@ class TensorGraph(Model):
         if checkpoint_interval > 0 and self.global_step % checkpoint_interval == checkpoint_interval - 1:
           saver.save(self.session, self.save_file, global_step=self.global_step)
           avg_loss = float(avg_loss) / n_averaged_batches
-          print('Ending global_step %d: Average loss %g' % (self.global_step,
-                                                            avg_loss))
+          logger.info('Ending global_step %d: Average loss %g' %
+                      (self.global_step, avg_loss))
           avg_loss, n_averaged_batches = 0.0, 0.0
       if n_averaged_batches > 0:
         avg_loss = float(avg_loss) / n_averaged_batches
       if checkpoint_interval > 0:
         if n_averaged_batches > 0:
-          print('Ending global_step %d: Average loss %g' % (self.global_step,
-                                                            avg_loss))
+          logger.info('Ending global_step %d: Average loss %g' %
+                      (self.global_step, avg_loss))
         saver.save(self.session, self.save_file, global_step=self.global_step)
         time2 = time.time()
-        print("TIMING: model fitting took %0.3f s" % (time2 - time1))
+        logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return avg_loss
 
   def _log_tensorboard(self, summary):
@@ -648,7 +651,7 @@ class TensorGraph(Model):
       try:
         pickle.dump(self, fout)
       except Exception as e:
-        print(self.get_pickling_errors(self))
+        logger.info(self.get_pickling_errors(self))
         raise e
 
     # add out_tensor back to everyone
@@ -839,6 +842,146 @@ class TensorGraph(Model):
       feed_dict[self._training_placeholder] = train_value
       yield feed_dict
 
+  def make_estimator(self,
+                     feature_columns,
+                     weight_column=None,
+                     model_dir=None,
+                     metrics={}):
+    """Construct a Tensorflow Estimator from this model.
+
+    tf.estimator.Estimator is the standard Tensorflow API for representing models.
+    This method provides interoperability between DeepChem and other Tensorflow
+    based tools by allowing any model to be used an Estimator.
+
+    Once this method returns, the Estimator it created is independent of the model
+    it was created from.  They do not share tensors, variables, save files, or any
+    other resources.  The Estimator is a self contained object with its own methods
+    for training, evaluation, prediction, checkpointing, etc.
+
+    Parameters
+    ----------
+    feature_columns: list of tf.feature_column objects
+      this describes the input features to the models.  There must be one entry
+      for each Feature layer in this model's features field.
+    weight_column: tf.feature_column or None
+      if this model includes a Weights layer, this describes the input weights.
+      Otherwise, this should be None.
+    metrics: map
+      metrics that should be computed in calls to evaluate().  For each entry,
+      the key is the name to report for the metric, and the value is a function
+      of the form f(labels, predictions, weights) that returns the tensors for
+      computing the metric.  Any of the functions in tf.metrics can be used, as
+      can other functions that satisfy the same interface.
+    model_dir: str
+      the directory in which the Estimator should save files.  If None, this
+      defaults to the model's model_dir.
+    """
+    # Check the inputs.
+
+    if len(feature_columns) != len(self.features):
+      raise ValueError(
+          'This model requires %d feature column(s)' % len(self.features))
+    if len(self.labels) != 1:
+      raise ValueError(
+          'Can only create an Estimator from a model with exactly one Label input'
+      )
+    if len(self.task_weights) > 1:
+      raise ValueError(
+          'Cannot create an Estimator from a model with multiple Weight inputs')
+    if weight_column is None:
+      if len(self.task_weights) > 0:
+        raise ValueError('This model requires a weight column')
+    else:
+      if len(self.task_weights) == 0:
+        raise ValueError(
+            'Cannot specify weight_column for a model with no Weight inputs')
+    if model_dir is None:
+      model_dir = self.model_dir
+
+    # Define a function that recursively creates tensors from layers.
+
+    def create_tensors(layer, tensors, training):
+      if layer in tensors:
+        return tensors[layer]
+      inputs = [
+          create_tensors(in_layer, tensors, training)
+          for in_layer in layer.in_layers
+      ]
+      tensor = layer.create_tensor(
+          in_layers=inputs, set_tensors=False, training=training)
+      tensors[layer] = tensor
+      layer.add_summary_to_tg(tensor)
+      return tensor
+
+    # Define the model function.
+
+    def model_fn(features, labels, mode):
+      # Define the inputs.
+
+      tensors = self.create_estimator_inputs(feature_columns, weight_column,
+                                             features, labels, mode)
+      for layer, tensor in tensors.items():
+        layer.add_summary_to_tg(tensor)
+
+      # Create the correct outputs, based on the mode.
+
+      if mode == tf.estimator.ModeKeys.PREDICT:
+        predictions = {}
+        for i, output in enumerate(self.outputs):
+          predictions[i] = create_tensors(output, tensors, 0)
+        return tf.estimator.EstimatorSpec(mode, predictions=predictions)
+      if mode == tf.estimator.ModeKeys.EVAL:
+        loss = create_tensors(self.loss, tensors, 0)
+        predictions = create_tensors(self.outputs[0], tensors, 0)
+        if len(self.task_weights) == 0:
+          weights = None
+        else:
+          weights = tensors[self.task_weights[0]]
+        eval_metric_ops = {}
+        for name, function in metrics.items():
+          eval_metric_ops[name] = function(tensors[self.labels[0]], predictions,
+                                           weights)
+        return tf.estimator.EstimatorSpec(
+            mode, loss=loss, eval_metric_ops=eval_metric_ops)
+      if mode == tf.estimator.ModeKeys.TRAIN:
+        loss = create_tensors(self.loss, tensors, 1)
+        global_step = tf.train.get_global_step()
+        optimizer = self.optimizer._create_optimizer(global_step)
+        train_op = optimizer.minimize(loss, global_step=global_step)
+        return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+      raise ValueError('Unknown mode')
+
+    # Create the Estimator.
+
+    return tf.estimator.Estimator(model_fn=model_fn, model_dir=model_dir)
+
+  def create_estimator_inputs(self, feature_columns, weight_column, features,
+                              labels, mode):
+    """This is called by make_estimator() to create tensors for the inputs.
+
+    feature_columns and weight_column are the arguments passed to
+    make_estimator().  features, labels, and mode are the arguments passed to
+    the estimator's model function.  This method creates and returns a dict with
+    one entry for every Feature, Label, or Weights layer in the graph.  The keys
+    are the layers, and the values are the tensors that correspond to them.
+
+    Any subclass that overrides default_generator() must also override this
+    method.
+    """
+    if self.__class__.default_generator != TensorGraph.default_generator:
+      raise ValueError(
+          "Class overrides default_generator() but not create_estimator_inputs()"
+      )
+    tensors = {}
+    for layer, column in zip(self.features, feature_columns):
+      tensors[layer] = tf.feature_column.input_layer(features, [column])
+    if weight_column is not None:
+      tensors[self.task_weights[0]] = tf.feature_column.input_layer(
+          features, [weight_column])
+    if labels is not None:
+      tensors[self.labels[0]] = tf.cast(labels, self.labels[0].dtype)
+    return tensors
+
 
 def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
   """
@@ -862,6 +1005,16 @@ def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
       for layer in tg.features + tg.labels + tg.task_weights:
         if layer in feed_dict:
           value = feed_dict[layer]
+          # Add or remove dimensions of size 1 to match the shape of the layer.
+          value_dims = len(value.shape)
+          layer_dims = len(layer.shape)
+          if value_dims < layer_dims:
+            if all(i == 1 for i in layer.shape[value_dims:]):
+              value = value.reshape(
+                  list(value.shape) + [1] * (layer_dims - value_dims))
+          if value_dims > layer_dims:
+            if all(i == 1 for i in value.shape[layer_dims:]):
+              value = value.reshape(value.shape[:layer_dims])
         else:
           value = np.zeros(
               [0] + list(layer.shape[1:]), dtype=layer.dtype.as_numpy_dtype)
@@ -928,6 +1081,7 @@ class Submodel(object):
         optimizer = self.graph.optimizer
       else:
         optimizer = self.optimizer
+      # Should we keep a separate global step count for each submodel?
       global_step = self.graph._get_tf('GlobalStep')
       tf_opt = optimizer._create_optimizer(global_step)
       self._train_op = tf_opt.minimize(loss.out_tensor, global_step, variables)

@@ -1,7 +1,6 @@
 """
 Data Structures used to represented molecules for convolutions.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -123,7 +122,7 @@ class ConvMol(object):
 
     num_atoms = self.get_num_atoms()
 
-    # Reorder old atom_features 
+    # Reorder old atom_features
     self.atom_features = self.atom_features[new_ind, :]
 
     # Reorder old deg lists
@@ -137,7 +136,8 @@ class ConvMol(object):
 
     # Reorder adjacency lists
     self.canon_adj_list = [self.canon_adj_list[i] for i in new_ind]
-    self.canon_adj_list = [[old_to_new[k] for k in self.canon_adj_list[i]]
+    self.canon_adj_list = [[old_to_new[k]
+                            for k in self.canon_adj_list[i]]
                            for i in range(len(new_ind))]
 
     # Get numpy version of degree list for indexing
@@ -269,15 +269,17 @@ class ConvMol(object):
     # Get atoms by degree
     atoms_by_deg = [
         mol.get_atoms_with_deg(deg)
-        for deg in range(min_deg, max_deg + 1) for mol in mols
+        for deg in range(min_deg, max_deg + 1)
+        for mol in mols
     ]
 
-    # stack the atoms 
+    # stack the atoms
     all_atoms = np.vstack(atoms_by_deg)
 
     # Sort all atoms by degree.
     # Get the size of each atom list separated by molecule id, then by degree
-    mol_deg_sz = [[mol.get_num_atoms_with_deg(deg) for mol in mols]
+    mol_deg_sz = [[mol.get_num_atoms_with_deg(deg)
+                   for mol in mols]
                   for deg in range(min_deg, max_deg + 1)]
 
     # Get the final size of each degree block
@@ -290,7 +292,7 @@ class ConvMol(object):
     # first column telling the start indices of each degree block and the
     # second colum telling the size of each degree block
 
-    # Input for tensorflow 
+    # Input for tensorflow
     deg_slice = np.array(list(zip(deg_start, deg_sizes)))
 
     # Determines the membership (atom i belongs to membership[i] molecule)
@@ -302,7 +304,7 @@ class ConvMol(object):
 
     # Get the index at which each deg starts, resetting after each degree
     # (deg x num_mols) matrix describing the start indices when you count up the atoms
-    # in the final representation, stopping at each molecule, 
+    # in the final representation, stopping at each molecule,
     # resetting every time the degree changes
     start_by_deg = np.vstack([cumulative_sum_minus_last(l) for l in mol_deg_sz])
 
@@ -328,8 +330,8 @@ class ConvMol(object):
       # degree block corresponding to degree id deg_id (second term), and then
       # calculate which index this degree block ends up in the final
       # representation (first term). The sum of the two is the final indexn
-      return start_per_mol[deg_id, mol_id] + deg_block_indices[mol_id][
-          mol_atom_id]
+      return start_per_mol[deg_id,
+                           mol_id] + deg_block_indices[mol_id][mol_atom_id]
 
     # Initialize the new degree separated adjacency lists
     deg_adj_lists = [
@@ -349,7 +351,7 @@ class ConvMol(object):
         nbr_list = mols[mol_id].deg_adj_lists[deg_id]
 
         # Correct all atom indices to the final indices, and then save the
-        # results into the new adjacency lists 
+        # results into the new adjacency lists
         for i in range(nbr_list.shape[0]):
           for j in range(nbr_list.shape[1]):
             deg_adj_lists[deg_id][row, j] = to_final_id(nbr_list[i, j], mol_id)

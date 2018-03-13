@@ -2,14 +2,13 @@
 
 Code borrowed from Keras.
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import warnings
-from deepchem.nn import model_ops
-from deepchem.nn.activations import get
+from deepchem.models.tensorgraph import model_ops
+from deepchem.models.tensorgraph.activations import get
 
 
 class Regularizer(object):

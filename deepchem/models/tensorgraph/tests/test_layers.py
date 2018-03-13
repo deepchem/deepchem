@@ -25,6 +25,7 @@ from deepchem.models.tensorgraph.layers import GRU
 from deepchem.models.tensorgraph.layers import Gather
 from deepchem.models.tensorgraph.layers import GraphConv
 from deepchem.models.tensorgraph.layers import GraphGather
+from deepchem.models.tensorgraph.layers import Hingeloss
 from deepchem.models.tensorgraph.layers import Input
 from deepchem.models.tensorgraph.layers import InputFifoQueue
 from deepchem.models.tensorgraph.layers import InteratomicL2Distances
@@ -37,6 +38,7 @@ from deepchem.models.tensorgraph.layers import Multiply
 from deepchem.models.tensorgraph.layers import ReduceMean
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 from deepchem.models.tensorgraph.layers import ReduceSum
+from deepchem.models.tensorgraph.layers import ReLU
 from deepchem.models.tensorgraph.layers import Repeat
 from deepchem.models.tensorgraph.layers import Reshape
 from deepchem.models.tensorgraph.layers import SluiceLoss
@@ -44,6 +46,7 @@ from deepchem.models.tensorgraph.layers import Sigmoid
 from deepchem.models.tensorgraph.layers import SigmoidCrossEntropy
 from deepchem.models.tensorgraph.layers import SoftMax
 from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
+from deepchem.models.tensorgraph.layers import SparseSoftMaxCrossEntropy
 from deepchem.models.tensorgraph.layers import StopGradient
 from deepchem.models.tensorgraph.layers import TensorWrapper
 from deepchem.models.tensorgraph.layers import TimeSeriesDense
@@ -53,10 +56,9 @@ from deepchem.models.tensorgraph.layers import Variable
 from deepchem.models.tensorgraph.layers import VinaFreeEnergy
 from deepchem.models.tensorgraph.layers import WeightedError
 from deepchem.models.tensorgraph.layers import WeightedLinearCombo
-
-from deepchem.models.tensorflow_models.IRV import IRVLayer
-from deepchem.models.tensorflow_models.IRV import IRVRegularize
-from deepchem.models.tensorflow_models.IRV import Slice
+from deepchem.models.tensorgraph.IRV import IRVLayer
+from deepchem.models.tensorgraph.IRV import IRVRegularize
+from deepchem.models.tensorgraph.IRV import Slice
 
 
 class TestLayers(test_util.TensorFlowTestCase):
@@ -229,6 +231,17 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size,)
 
+  def test_relu(self):
+    """Test that Sigmoid can be invoked."""
+    batch_size = 10
+    n_features = 5
+    in_tensor = np.random.rand(batch_size, n_features)
+    with self.test_session() as sess:
+      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
+      out_tensor = ReLU()(in_tensor)
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size, n_features)
+
   def test_sigmoid(self):
     """Test that Sigmoid can be invoked."""
     batch_size = 10
@@ -367,6 +380,18 @@ class TestLayers(test_util.TensorFlowTestCase):
       logit_tensor = tf.convert_to_tensor(logit_tensor, dtype=tf.float32)
       label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
       out_tensor = SoftMaxCrossEntropy()(logit_tensor, label_tensor)
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size,)
+
+  def test_sparse_softmax_cross_entropy(self):
+    batch_size = 10
+    n_features = 5
+    logit_tensor = np.random.rand(batch_size, n_features)
+    label_tensor = np.random.rand(batch_size)
+    with self.test_session() as sess:
+      logit_tensor = tf.convert_to_tensor(logit_tensor, dtype=tf.float32)
+      label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.int32)
+      out_tensor = SparseSoftMaxCrossEntropy()(label_tensor, logit_tensor)
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size,)
 
@@ -864,3 +889,16 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert out_tensor.shape == (batch_size, n_tasks)
       irv_reg = IRVRegularize(irv_layer, 1.)()
       assert irv_reg.eval() >= 0
+
+  def test_hingeloss(self):
+
+    labels = 1
+    logits = 1
+    logits_tensor = np.random.rand(logits)
+    labels_tensor = np.random.rand(labels)
+    with self.test_session() as sess:
+      logits_tensor = tf.convert_to_tensor(logits_tensor, dtype=tf.float32)
+      labels_tensor = tf.convert_to_tensor(labels_tensor, dtype=tf.float32)
+      out_tensor = Hingeloss()(labels_tensor, logits_tensor)
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (labels,)

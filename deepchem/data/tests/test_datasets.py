@@ -1,7 +1,6 @@
 """
 Tests for dataset creation
 """
-from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -17,9 +16,11 @@ import os
 import shutil
 import numpy as np
 import deepchem as dc
+import tensorflow as tf
+from tensorflow.python.framework import test_util
 
 
-class TestDatasets(unittest.TestCase):
+class TestDatasets(test_util.TensorFlowTestCase):
   """
   Test basic top-level API for dataset objects.
   """
@@ -683,6 +684,28 @@ class TestDatasets(unittest.TestCase):
     assert new_data.X.shape == (num_datapoints * num_datasets, num_features)
     assert new_data.y.shape == (num_datapoints * num_datasets, num_tasks)
     assert len(new_data.tasks) == len(datasets[0].tasks)
+
+  def test_make_iterator(self):
+    """Test creating a Tensorflow Iterator from a Dataset."""
+    X = np.random.random((100, 5))
+    y = np.random.random((100, 1))
+    dataset = dc.data.NumpyDataset(X, y)
+    iterator = dataset.make_iterator(
+        batch_size=10, epochs=2, deterministic=True)
+    next_element = iterator.get_next()
+    with self.test_session() as sess:
+      for i in range(20):
+        batch_X, batch_y, batch_w = sess.run(next_element)
+        offset = (i % 10) * 10
+        np.testing.assert_array_equal(X[offset:offset + 10, :], batch_X)
+        np.testing.assert_array_equal(y[offset:offset + 10, :], batch_y)
+        np.testing.assert_array_equal(np.ones((10, 1)), batch_w)
+      finished = False
+      try:
+        sess.run(next_element)
+      except tf.errors.OutOfRangeError:
+        finished = True
+    assert finished
 
 
 if __name__ == "__main__":
