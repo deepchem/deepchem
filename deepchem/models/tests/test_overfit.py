@@ -885,8 +885,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    metric = dc.metrics.Metric(
-        dc.metrics.accuracy_score, task_averager=np.mean)
+    metric = dc.metrics.Metric(dc.metrics.accuracy_score, task_averager=np.mean)
     model = dc.models.ProgressiveMultitaskClassifier(
         n_tasks,
         n_features,
@@ -905,7 +904,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [metric])
     assert scores[metric.name] > .9
-
 
   def test_tf_progressive_regression_overfit(self):
     """Test tf progressive multitask overfits tiny data."""
