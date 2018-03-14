@@ -228,4 +228,4 @@ class TestEstimators(unittest.TestCase):
 
     results = estimator.evaluate(input_fn=lambda: input_fn(1))
     assert results['loss'] < 1e-2
-    assert results['error'] < 1e-2
+    assert results['error'] < 0.1
