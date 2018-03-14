@@ -11,12 +11,12 @@ from deepchem.metrics import to_one_hot
 from deepchem.metrics import from_one_hot
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
 from deepchem.models.tensorgraph.layers import Layer, Feature, Label, Weights, \
-    WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMaxCrossEntropy, \
-    L2Loss, ReduceSum, Concat, Stack, TensorWrapper, ReLU
+    WeightedError, Dense, Dropout, WeightDecay, Reshape, SparseSoftMaxCrossEntropy, \
+    L2Loss, ReduceSum, Concat, Stack, TensorWrapper, ReLU, Squeeze, SoftMax
 
 
 class ProgressiveMultitaskRegressor(TensorGraph):
-  """Implements a progressive multitask neural network.
+  """Implements a progressive multitask neural network for regression.
   
   Progressive Networks: https://arxiv.org/pdf/1606.04671v3.pdf
 
@@ -37,6 +37,7 @@ class ProgressiveMultitaskRegressor(TensorGraph):
                weight_decay_penalty_type="l2",
                dropouts=0.5,
                activation_fns=tf.nn.relu,
+               n_outputs=1,
                **kwargs):
     """Creates a progressive network.
   
@@ -82,7 +83,8 @@ class ProgressiveMultitaskRegressor(TensorGraph):
     self.bias_init_consts = bias_init_consts
     self.dropouts = dropouts
     self.activation_fns = activation_fns
-
+    self.n_outputs = n_outputs
+    
     n_layers = len(layer_sizes)
     if not isinstance(weight_init_stddevs, collections.Sequence):
       self.weight_init_stddevs = [weight_init_stddevs] * n_layers
@@ -133,7 +135,7 @@ class ProgressiveMultitaskRegressor(TensorGraph):
       prev_layer = all_layers[(n_layers - 1, task)]
       layer = Dense(
           in_layers=[prev_layer],
-          out_channels=1,
+          out_channels=n_outputs,
           weights_initializer=TFWrapper(
               tf.truncated_normal_initializer,
               stddev=self.weight_init_stddevs[-1]),
@@ -146,14 +148,13 @@ class ProgressiveMultitaskRegressor(TensorGraph):
                                                        n_layers)
         task_layers.extend(trainables)
         layer = layer + lateral_contrib
-      outputs.append(layer)
-      self.add_output(layer)
-      task_label = Label(shape=(None, 1))
-      task_weight = Weights(shape=(None, 1))
-      weighted_loss = ReduceSum(
-          L2Loss(in_layers=[task_label, layer, task_weight]))
+      output_layer = self.create_output(layer)
+      outputs.append(output_layer)
+      self.add_output(output_layer)
+      
+      task_loss = self.create_loss(layer)
       self.create_submodel(
-          layers=task_layers, loss=weighted_loss, optimizer=None)
+          layers=task_layers, loss=task_loss, optimizer=None)
     # Weight decay not activated
     """
     if weight_decay_penalty != 0.0:
@@ -162,6 +163,16 @@ class ProgressiveMultitaskRegressor(TensorGraph):
           weight_decay_penalty_type,
           in_layers=[weighted_loss])
     """
+
+  def create_loss(self, layer):
+    task_label = Label(shape=(None, 1))
+    task_weight = Weights(shape=(None, 1))
+    weighted_loss = ReduceSum(
+        L2Loss(in_layers=[task_label, layer, task_weight]))
+    return weighted_loss
+  
+  def create_output(self, layer):
+    return layer
 
   def add_adapter(self, all_layers, task, layer_num):
     """Add an adapter connection for given task/layer combo"""
@@ -175,7 +186,7 @@ class ProgressiveMultitaskRegressor(TensorGraph):
       weight_init_stddev = self.weight_init_stddevs[i]
       bias_init_const = self.bias_init_consts[i]
     elif i == len(self.layer_sizes):
-      layer_sizes = self.layer_sizes + [1]
+      layer_sizes = self.layer_sizes + [self.n_outputs]
       alpha_init_stddev = self.alpha_init_stddevs[-1]
       weight_init_stddev = self.weight_init_stddevs[-1]
       bias_init_const = self.bias_init_consts[-1]
@@ -278,6 +289,59 @@ class ProgressiveMultitaskRegressor(TensorGraph):
   def predict(self, dataset, transformers=[], outputs=None):
     retval = super(ProgressiveMultitaskRegressor, self).predict(
         dataset, transformers, outputs)
-    # Results is of shape (n_samples, n_tasks, 1)
+    # Results is of shape (n_samples, n_tasks, n_outputs)
     out = np.stack(retval, axis=1)
     return out
+
+class ProgressiveMultitaskClassifier(ProgressiveMultitaskRegressor):
+  """Implements a progressive multitask neural network for classification.
+  
+  Progressive Networks: https://arxiv.org/pdf/1606.04671v3.pdf
+
+  Progressive networks allow for multitask learning where each task
+  gets a new column of weights. As a result, there is no exponential
+  forgetting where previous tasks are ignored.
+
+  """
+
+  def __init__(self,
+               n_tasks,
+               n_features,
+               alpha_init_stddevs=0.02,
+               layer_sizes=[1000],
+               weight_init_stddevs=0.02,
+               bias_init_consts=1.0,
+               weight_decay_penalty=0.0,
+               weight_decay_penalty_type="l2",
+               dropouts=0.5,
+               activation_fns=tf.nn.relu,
+               **kwargs):
+    n_outputs = 2
+    super(ProgressiveMultitaskClassifier, self).__init__(
+        n_tasks,
+        n_features,
+        alpha_init_stddevs=alpha_init_stddevs,
+        layer_sizes=layer_sizes,
+        weight_init_stddevs=weight_init_stddevs,
+        bias_init_consts=bias_init_consts,
+        weight_decay_penalty=weight_decay_penalty,
+        weight_decay_penalty_type=weight_decay_penalty_type,
+        dropouts=dropouts,
+        activation_fns=activation_fns,
+        n_outputs=n_outputs,
+        **kwargs)
+
+  def create_loss(self, layer):
+    task_label = Label(shape=(None, 1), dtype=tf.int32)
+    task_weight = Weights(shape=(None, 1))
+    
+    label = Squeeze(squeeze_dims=1, in_layers=[task_label])
+    weight = Squeeze(squeeze_dims=1, in_layers=[task_weight])
+    
+    loss = SparseSoftMaxCrossEntropy(in_layers=[label, layer])
+    weighted_loss = WeightedError(in_layers=[loss, weight])
+    return weighted_loss
+  
+  def create_output(self, layer):
+    output = SoftMax(in_layers=[layer])
+    return output
