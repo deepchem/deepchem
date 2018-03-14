@@ -14,7 +14,7 @@ from sklearn import svm
 import tensorflow as tf
 tf.set_random_seed(123)
 import deepchem as dc
-from deepchem.models.tensorgraph.models.graph_models import GraphConvTensorGraph
+from deepchem.models.tensorgraph.models.graph_models import GraphConv
 
 BATCH_SIZE = 128
 # Set to higher values to get better numbers
@@ -74,7 +74,7 @@ def experiment(dataset_file, method='GraphConv', split='scaffold'):
 
   model = None
   if method == 'GraphConv':
-    model = GraphConvTensorGraph(
+    model = GraphConv(
         len(tasks), batch_size=BATCH_SIZE, mode="regression")
   elif method == 'RF':
 

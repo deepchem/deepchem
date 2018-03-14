@@ -13,7 +13,7 @@ import tensorflow as tf
 tf.set_random_seed(123)
 import deepchem as dc
 from deepchem.molnet import load_tox21
-from deepchem.models.tensorgraph.models.graph_models import GraphConvTensorGraph
+from deepchem.models.tensorgraph.models.graph_models import GraphConv
 
 model_dir = "/tmp/graph_conv"
 
@@ -30,7 +30,7 @@ metric = dc.metrics.Metric(
 # Batch size of models
 batch_size = 50
 
-model = GraphConvTensorGraph(
+model = GraphConv(
     len(tox21_tasks), batch_size=batch_size, mode='classification')
 
 model.fit(train_dataset, nb_epoch=10)

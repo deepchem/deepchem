@@ -25,7 +25,7 @@ metric = [
 # Batch size of models
 batch_size = 64
 
-model = dc.models.GraphConvTensorGraph(
+model = dc.models.GraphConv(
     len(tasks), batch_size=batch_size, learning_rate=0.001, mode="regression")
 
 # Fit trained model

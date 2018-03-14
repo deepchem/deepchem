@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 
-from models import GraphConvTensorGraph
+from models import GraphConv
 
 np.random.seed(123)
 import tensorflow as tf
@@ -31,7 +31,7 @@ metric = dc.metrics.Metric(
 n_feat = 75
 # Batch size of models
 batch_size = 50
-model = GraphConvTensorGraph(
+model = GraphConv(
     len(clintox_tasks), batch_size=batch_size, mode='classification')
 
 # Fit trained model
