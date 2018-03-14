@@ -664,7 +664,7 @@ class PetroskiSuchTensorGraph(TensorGraph):
         per_task_metrics=per_task_metrics)
 
 
-class GraphConvTensorGraph(TensorGraph):
+class GraphConv(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -694,7 +694,7 @@ class GraphConvTensorGraph(TensorGraph):
     self.dropout = dropout
     self.graph_conv_layers = graph_conv_layers
     kwargs['use_queue'] = False
-    super(GraphConvTensorGraph, self).__init__(**kwargs)
+    super(GraphConv, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
@@ -818,7 +818,7 @@ class GraphConvTensorGraph(TensorGraph):
           result = undo_transforms(feed_results[0], transformers)
           feed_results = [result]
         for ind, result in enumerate(feed_results):
-          # GraphConvTensorGraph constantly outputs batch_size number of
+          # GraphConv constantly outputs batch_size number of
           # results, only valid samples should be appended to final results
           results[ind].append(result[:n_samples])
 
