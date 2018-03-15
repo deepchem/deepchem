@@ -264,10 +264,8 @@ def find_distance(a1, num_atoms, canon_adj_list, max_distance=7):
 class ConvMolFeaturizer(Featurizer):
   name = ['conv_mol']
 
-  def __init__(self,
-               master_atom=False,
-               use_chirality=False,
-               atom_properties=None):
+  def __init__(self, master_atom=False, use_chirality=False,
+               atom_properties=[]):
     """
     Parameters
     ----------
@@ -298,9 +296,9 @@ class ConvMolFeaturizer(Featurizer):
     self.dtype = object
     self.master_atom = master_atom
     self.use_chirality = use_chirality
-    self.atom_properties = atom_properties
+    self.atom_properties = list(atom_properties)
 
-  def get_atom_properties(self, atom):
+  def _get_atom_properties(self, atom):
     """
     For a given input RDKit atom return the values of the properties
     requested when initializing the featurize.  See the __init__ of the
@@ -328,7 +326,7 @@ class ConvMolFeaturizer(Featurizer):
     idx_nodes = [(a.GetIdx(),
                   np.concatenate((atom_features(
                       a, use_chirality=self.use_chirality),
-                                  self.get_atom_properties(a))))
+                                  self._get_atom_properties(a))))
                  for a in mol.GetAtoms()]
 
     idx_nodes.sort()  # Sort by ind to ensure same order as rd_kit
@@ -357,6 +355,9 @@ class ConvMolFeaturizer(Featurizer):
         canon_adj_list[index].append(fake_atom_index)
 
     return ConvMol(nodes, canon_adj_list)
+
+  def feature_length(self):
+    return 75 + len(self.atom_properties)
 
 
 class WeaveFeaturizer(Featurizer):
