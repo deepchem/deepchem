@@ -296,7 +296,7 @@ class ConvMolFeaturizer(Featurizer):
     self.dtype = object
     self.master_atom = master_atom
     self.use_chirality = use_chirality
-    self.atom_properties = list(atom_properties)
+    self.atom_properties = [str(x) for x in atom_properties]
 
   def _get_atom_properties(self, atom):
     """
