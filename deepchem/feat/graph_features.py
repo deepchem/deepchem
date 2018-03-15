@@ -2,7 +2,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import numpy as np
-import six
 from rdkit import Chem
 
 from deepchem.feat import Featurizer
@@ -296,7 +295,7 @@ class ConvMolFeaturizer(Featurizer):
     self.dtype = object
     self.master_atom = master_atom
     self.use_chirality = use_chirality
-    self.atom_properties = [six.text_type(x) for x in atom_properties]
+    self.atom_properties = list(atom_properties)
 
   def _get_atom_properties(self, atom):
     """
@@ -312,7 +311,7 @@ class ConvMolFeaturizer(Featurizer):
     """
     values = []
     for prop in self.atom_properties:
-      mol_prop_name = "atom %08d %s" % (atom.GetIdx(), prop)
+      mol_prop_name = str("atom %08d %s" % (atom.GetIdx(), prop))
       try:
         values.append(float(atom.GetOwningMol().GetProp(mol_prop_name)))
       except KeyError:
