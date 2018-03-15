@@ -2,8 +2,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import numpy as np
+import six
 from rdkit import Chem
-import itertools, operator
 
 from deepchem.feat import Featurizer
 from deepchem.feat.mol_graphs import ConvMol, WeaveMol
@@ -296,7 +296,7 @@ class ConvMolFeaturizer(Featurizer):
     self.dtype = object
     self.master_atom = master_atom
     self.use_chirality = use_chirality
-    self.atom_properties = [str(x) for x in atom_properties]
+    self.atom_properties = [six.text_type(x) for x in atom_properties]
 
   def _get_atom_properties(self, atom):
     """
