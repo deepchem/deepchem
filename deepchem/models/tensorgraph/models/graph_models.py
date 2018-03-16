@@ -672,6 +672,7 @@ class GraphConvTensorGraph(TensorGraph):
                dense_layer_size=128,
                dropout=0.0,
                mode="classification",
+               number_atom_features=75,
                **kwargs):
     """
             Parameters
@@ -686,6 +687,10 @@ class GraphConvTensorGraph(TensorGraph):
               Droupout dropout probability.  Dropout is applied after the per Atom Level Dense Layer
             mode: str
               Either "classification" or "regression"
+            number_atom_features: int
+                75 is the default number of atom features created, but
+                this can vary if various options are passed to the 
+                function atom_features in graph_features
             """
     self.n_tasks = n_tasks
     self.mode = mode
@@ -694,14 +699,15 @@ class GraphConvTensorGraph(TensorGraph):
     self.dropout = dropout
     self.graph_conv_layers = graph_conv_layers
     kwargs['use_queue'] = False
+    self.number_atom_features = number_atom_features
     super(GraphConvTensorGraph, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
     """
-            Building graph structures:
-            """
-    self.atom_features = Feature(shape=(None, 75))
+    Building graph structures:
+    """
+    self.atom_features = Feature(shape=(None, self.number_atom_features))
     self.degree_slice = Feature(shape=(None, 2), dtype=tf.int32)
     self.membership = Feature(shape=(None,), dtype=tf.int32)
 

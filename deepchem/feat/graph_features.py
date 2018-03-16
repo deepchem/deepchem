@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 import numpy as np
 from rdkit import Chem
-import itertools, operator
 
 from deepchem.feat import Featurizer
 from deepchem.feat.mol_graphs import ConvMol, WeaveMol
@@ -264,7 +263,8 @@ def find_distance(a1, num_atoms, canon_adj_list, max_distance=7):
 class ConvMolFeaturizer(Featurizer):
   name = ['conv_mol']
 
-  def __init__(self, master_atom=False, use_chirality=False):
+  def __init__(self, master_atom=False, use_chirality=False,
+               atom_properties=[]):
     """
     Parameters
     ----------
@@ -274,7 +274,20 @@ class ConvMolFeaturizer(Featurizer):
       the molecule.  This technique is briefly discussed in
       Neural Message Passing for Quantum Chemistry
       https://arxiv.org/pdf/1704.01212.pdf
-
+    use_chirality: Boolean
+      if true then make the resulting atom features aware of the 
+      chirality of the molecules in question
+    atom_properties: list of string or None
+      properties in the RDKit Mol object to use as additional
+      atom-level features in the larger molecular feature.  If None,
+      then no atom-level properties are used.  Properties should be in the 
+      RDKit mol object should be in the form 
+      atom XXXXXXXX NAME
+      where XXXXXXXX is a zero-padded 8 digit number coresponding to the
+      zero-indexed atom index of each atom and NAME is the name of the property
+      provided in atom_properties.  So "atom 00000000 sasa" would be the
+      name of the molecule level property in mol where the solvent 
+      accessible surface area of atom 0 would be stored. 
 
     Since ConvMol is an object and not a numpy array, need to set dtype to
     object.
@@ -282,12 +295,39 @@ class ConvMolFeaturizer(Featurizer):
     self.dtype = object
     self.master_atom = master_atom
     self.use_chirality = use_chirality
+    self.atom_properties = list(atom_properties)
+
+  def _get_atom_properties(self, atom):
+    """
+    For a given input RDKit atom return the values of the properties
+    requested when initializing the featurize.  See the __init__ of the
+    class for a full description of the names of the properties
+    
+    Parameters
+    ----------
+    atom: RDKit.rdchem.Atom
+      Atom to get the properties of
+    returns a numpy lists of floats of the same size as self.atom_properties
+    """
+    values = []
+    for prop in self.atom_properties:
+      mol_prop_name = str("atom %08d %s" % (atom.GetIdx(), prop))
+      try:
+        values.append(float(atom.GetOwningMol().GetProp(mol_prop_name)))
+      except KeyError:
+        raise KeyError("No property %s found in %s in %s" %
+                       (mol_prop_name, atom.GetOwningMol(), self))
+    return np.array(values)
 
   def _featurize(self, mol):
     """Encodes mol as a ConvMol object."""
     # Get the node features
-    idx_nodes = [(a.GetIdx(), atom_features(
-        a, use_chirality=self.use_chirality)) for a in mol.GetAtoms()]
+    idx_nodes = [(a.GetIdx(),
+                  np.concatenate((atom_features(
+                      a, use_chirality=self.use_chirality),
+                                  self._get_atom_properties(a))))
+                 for a in mol.GetAtoms()]
+
     idx_nodes.sort()  # Sort by ind to ensure same order as rd_kit
     idx, nodes = list(zip(*idx_nodes))
 
@@ -314,6 +354,9 @@ class ConvMolFeaturizer(Featurizer):
         canon_adj_list[index].append(fake_atom_index)
 
     return ConvMol(nodes, canon_adj_list)
+
+  def feature_length(self):
+    return 75 + len(self.atom_properties)
 
 
 class WeaveFeaturizer(Featurizer):
