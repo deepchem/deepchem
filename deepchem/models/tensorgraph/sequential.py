@@ -27,17 +27,23 @@ class Sequential(TensorGraph):
   >>> import numpy as np
   >>> from deepchem.models.tensorgraph import layers
   >>> # Define Data
-  >>> X = np.random.rand(20, 2)                     
+  >>> X = np.random.rand(20, 2)
   >>> y = [[0, 1] for x in range(20)]
-  >>> dataset = dc.data.NumpyDataset(X, y)                              
-  >>> model = dc.models.Sequential(learning_rate=0.01)                  
-  >>> model.add(layers.Dense(out_channels=2))                                  
+  >>> dataset = dc.data.NumpyDataset(X, y)
+  >>> model = dc.models.Sequential(loss='binary_crossentropy', learning_rate=0.01)
+  >>> model.add(layers.Dense(out_channels=2))
   >>> model.add(layers.SoftMax())
+
+  Parameters
+  ----------
+  loss: string
+    the loss function to use.  Supported values are 'binary_crossentropy' and 'mse'.
   """
 
-  def __init__(self, **kwargs):
+  def __init__(self, loss, **kwargs):
     """Initializes a sequential model
     """
+    self._loss_function = loss
     self.num_layers = 0
     self._prev_layer = None
     if "use_queue" in kwargs:
@@ -58,7 +64,7 @@ class Sequential(TensorGraph):
     """
     self._layer_list.append(layer)
 
-  def fit(self, dataset, loss, **kwargs):
+  def fit(self, dataset, **kwargs):
     """Fits on the specified dataset.
 
     If called for the first time, constructs the TensorFlow graph for this
@@ -69,44 +75,59 @@ class Sequential(TensorGraph):
     ----------
     dataset: dc.data.Dataset
       Dataset with data
-    loss: string
-      Only "binary_crossentropy" or "mse" for now.
     """
     X_shape, y_shape, _, _ = dataset.get_shape()
-    # Calling fit() for first time
-    if not self.built:
-      feature_shape = X_shape[1:]
-      label_shape = y_shape[1:]
-      # Add in features
-      features = Feature(shape=(None,) + feature_shape)
-      # Add in labels
-      labels = Label(shape=(None,) + label_shape)
-
-      # Add in all layers
-      prev_layer = features
-      if len(self._layer_list) == 0:
-        raise ValueError("No layers have been added to model.")
-      for ind, layer in enumerate(self._layer_list):
-        if len(layer.in_layers) > 1:
-          raise ValueError("Cannot specify more than one "
-                           "in_layer for Sequential.")
-        layer.in_layers += [prev_layer]
-        prev_layer = layer
-      # The last layer is the output of the model
-      self.outputs.append(prev_layer)
-
-      if loss == "binary_crossentropy":
-        smce = SoftMaxCrossEntropy(in_layers=[labels, prev_layer])
-        self.set_loss(ReduceMean(in_layers=[smce]))
-      elif loss == "mse":
-        mse = ReduceSquareDifference(in_layers=[prev_layer, labels])
-        self.set_loss(mse)
-      else:
-        # TODO(rbharath): Add in support for additional
-        # losses.
-        raise ValueError("Unsupported loss.")
-
+    self._create_graph((None,) + X_shape[1:], (None,) + y_shape[1:])
     super(Sequential, self).fit(dataset, **kwargs)
+
+  def _create_graph(self, feature_shape, label_shape):
+    """This is called to create the full TensorGraph from the added layers."""
+    if self.built:
+      return  # The graph has already been created.
+    # Add in features
+    features = Feature(shape=feature_shape)
+    # Add in labels
+    labels = Label(shape=label_shape)
+
+    # Add in all layers
+    prev_layer = features
+    if len(self._layer_list) == 0:
+      raise ValueError("No layers have been added to model.")
+    for ind, layer in enumerate(self._layer_list):
+      if len(layer.in_layers) > 1:
+        raise ValueError("Cannot specify more than one "
+                         "in_layer for Sequential.")
+      layer.in_layers += [prev_layer]
+      prev_layer = layer
+    # The last layer is the output of the model
+    self.outputs.append(prev_layer)
+
+    if self._loss_function == "binary_crossentropy":
+      smce = SoftMaxCrossEntropy(in_layers=[labels, prev_layer])
+      self.set_loss(ReduceMean(in_layers=[smce]))
+    elif self._loss_function == "mse":
+      mse = ReduceSquareDifference(in_layers=[prev_layer, labels])
+      self.set_loss(mse)
+    else:
+      # TODO(rbharath): Add in support for additional
+      # losses.
+      raise ValueError("Unsupported loss.")
+
+    self.build()
+
+  def make_estimator(self,
+                     feature_columns,
+                     weight_column=None,
+                     metrics={},
+                     model_dir=None,
+                     config=None):
+    self._create_graph((None,) + feature_columns[0].shape, None)
+    return super(Sequential, self).make_estimator(
+        feature_columns,
+        weight_column=weight_column,
+        metrics=metrics,
+        model_dir=model_dir,
+        config=config)
 
   def restore(self, checkpoint=None):
     """Not currently supported.

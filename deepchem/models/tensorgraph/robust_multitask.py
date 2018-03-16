@@ -9,16 +9,16 @@ from deepchem.metrics import to_one_hot
 
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
 from deepchem.models.tensorgraph.layers import Feature, Label, Weights, \
-    WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMaxCrossEntropy, \
+    WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMax, SoftMaxCrossEntropy, \
     L2Loss, ReduceSum, Concat, Stack
 
 
 class RobustMultitaskClassifier(TensorGraph):
   """Implements a neural network for robust multitasking.
-  
+
   Key idea is to have bypass layers that feed directly from features to task
   output. Hopefully will allow tasks to route around bad multitasking.
-  
+
   """
 
   def __init__(self,
@@ -38,7 +38,7 @@ class RobustMultitaskClassifier(TensorGraph):
                bypass_dropouts=[.5],
                **kwargs):
     """  Create a RobustMultitaskClassifier.
-    
+
     Parameters
     ----------
     n_tasks: int
@@ -153,12 +153,13 @@ class RobustMultitaskClassifier(TensorGraph):
       task_out = Dense(in_layers=[task_layer], out_channels=n_classes)
       task_outputs.append(task_out)
 
-    output = Stack(axis=1, in_layers=task_outputs)
+    logits = Stack(axis=1, in_layers=task_outputs)
 
+    output = SoftMax(logits)
     self.add_output(output)
     labels = Label(shape=(None, n_tasks, n_classes))
     weights = Weights(shape=(None, n_tasks))
-    loss = SoftMaxCrossEntropy(in_layers=[labels, output])
+    loss = SoftMaxCrossEntropy(in_layers=[labels, logits])
     weighted_loss = WeightedError(in_layers=[loss, weights])
     if weight_decay_penalty != 0.0:
       weighted_loss = WeightDecay(
@@ -190,6 +191,19 @@ class RobustMultitaskClassifier(TensorGraph):
           feed_dict[self.task_weights[0]] = w_b
         yield feed_dict
 
+  def create_estimator_inputs(self, feature_columns, weight_column, features,
+                              labels, mode):
+    tensors = {}
+    for layer, column in zip(self.features, feature_columns):
+      tensors[layer] = tf.feature_column.input_layer(features, [column])
+    if weight_column is not None:
+      tensors[self.task_weights[0]] = tf.feature_column.input_layer(
+          features, [weight_column])
+    if labels is not None:
+      tensors[self.labels[0]] = tf.one_hot(
+          tf.cast(labels, tf.int32), self.n_classes)
+    return tensors
+
   def predict_proba(self, dataset, transformers=[], outputs=None):
     # Results is of shape (n_samples, n_tasks, n_classes)
     return super(RobustMultitaskClassifier, self).predict(
@@ -204,7 +218,7 @@ class RobustMultitaskClassifier(TensorGraph):
 
 class RobustMultitaskRegressor(TensorGraph):
   """Implements a neural network for robust multitasking.
-  
+
   Key idea is to have bypass layers that feed directly from features to task
   output. Hopefully will allow tasks to route around bad multitasking.
 
@@ -226,7 +240,7 @@ class RobustMultitaskRegressor(TensorGraph):
                bypass_dropouts=[.5],
                **kwargs):
     """ Create a RobustMultitaskRegressor.
-    
+
     Parameters
     ----------
     n_tasks: int
@@ -350,23 +364,3 @@ class RobustMultitaskRegressor(TensorGraph):
           weight_decay_penalty_type,
           in_layers=[weighted_loss])
     self.set_loss(weighted_loss)
-
-  def default_generator(self,
-                        dataset,
-                        epochs=1,
-                        predict=False,
-                        deterministic=True,
-                        pad_batches=True):
-    for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
-        feed_dict = dict()
-        if y_b is not None and not predict:
-          feed_dict[self.labels[0]] = y_b
-        if X_b is not None:
-          feed_dict[self.features[0]] = X_b
-        if w_b is not None and not predict:
-          feed_dict[self.task_weights[0]] = w_b
-        yield feed_dict
