@@ -19,7 +19,7 @@ from deepchem.models.tensorgraph.models.graph_models import PetroskiSuchTensorGr
 model_dir = "/tmp/graph_conv"
 
 # Load Tox21 dataset
-tox21_tasks, tox21_datasets, transformers = load_tox21(featurizer='AdjMatrix')
+tox21_tasks, tox21_datasets, transformers = load_tox21(featurizer='AdjacencyConv')
 train_dataset, valid_dataset, test_dataset = tox21_datasets
 print(train_dataset.data_dir)
 print(valid_dataset.data_dir)
