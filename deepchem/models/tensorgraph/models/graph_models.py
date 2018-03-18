@@ -1151,10 +1151,9 @@ import warnings
 
 class GraphConvTensorGraph(GraphConvModel):
 
-  def __init__(self, *args, **kwargs):
+  warnings.warn("GraphConvTensorGraph is deprecated and has been renamed to GraphConvModel and will be removed in DeepChem 3.0.", FutureWarning)
 
-    warnings.warn("GraphConvTensorGraph is deprecated and has been renamed to GraphConvModel. "
-                    "Will be removed in DeepChem 3.0.", DeprecationWarning)
+  def __init__(self, *args, **kwargs):
 
     super(GraphConvTensorGraph, self).__init__(*args, **kwargs)
 
