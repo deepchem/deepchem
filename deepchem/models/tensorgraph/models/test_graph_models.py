@@ -4,7 +4,7 @@ import numpy as np
 
 import deepchem
 from deepchem.data import NumpyDataset
-from deepchem.models import GraphConvTensorGraph
+from deepchem.models import GraphConvModel
 from deepchem.models import TensorGraph
 from deepchem.molnet.load_function.delaney_datasets import load_delaney
 from deepchem.models.tensorgraph.layers import ReduceSum, L2Loss
@@ -43,7 +43,7 @@ class TestGraphModels(unittest.TestCase):
         'classification', 'GraphConv')
 
     batch_size = 50
-    model = GraphConvTensorGraph(
+    model = GraphConvModel(
         len(tasks), batch_size=batch_size, mode='classification')
 
     model.fit(dataset, nb_epoch=1)
@@ -58,7 +58,7 @@ class TestGraphModels(unittest.TestCase):
         'regression', 'GraphConv')
 
     batch_size = 50
-    model = GraphConvTensorGraph(
+    model = GraphConvModel(
         len(tasks), batch_size=batch_size, mode='regression')
 
     model.fit(dataset, nb_epoch=1)
@@ -73,7 +73,7 @@ class TestGraphModels(unittest.TestCase):
         'regression', 'GraphConv', num_tasks=1)
 
     batch_size = 50
-    model = GraphConvTensorGraph(
+    model = GraphConvModel(
         len(tasks), batch_size=batch_size, mode='regression')
 
     model.fit(dataset, nb_epoch=1)
@@ -102,7 +102,7 @@ class TestGraphModels(unittest.TestCase):
     X = featurizer.featurize(dataset.X)
     dataset = deepchem.data.NumpyDataset(X, np.array(y))
     batch_size = 50
-    model = GraphConvTensorGraph(
+    model = GraphConvModel(
         len(tasks),
         number_atom_features=featurizer.feature_length(),
         batch_size=batch_size,
@@ -121,7 +121,7 @@ class TestGraphModels(unittest.TestCase):
         'regression', 'GraphConv', num_tasks=1)
 
     batch_size = 50
-    model = GraphConvTensorGraph(
+    model = GraphConvModel(
         len(tasks), batch_size=batch_size, mode='regression')
 
     model.fit(dataset, nb_epoch=1)
