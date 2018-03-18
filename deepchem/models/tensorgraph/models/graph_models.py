@@ -1143,3 +1143,18 @@ class MPNNTensorGraph(TensorGraph):
 
   def predict_on_generator(self, generator, transformers=[]):
     return self.predict_proba_on_generator(generator, transformers)
+
+
+#################### Deprecation warnings for renamed TensorGraph models ####################
+
+import warnings
+
+class GraphConvTensorGraph(GraphConvModel):
+
+  def __init__(self, *args, **kwargs):
+
+    warnings.warn("GraphConvTensorGraph is deprecated and has been renamed to GraphConvModel. "
+                    "Will be removed in DeepChem 3.0.", DeprecationWarning)
+
+    super(GraphConvTensorGraph, self).__init__(*args, **kwargs)
+
