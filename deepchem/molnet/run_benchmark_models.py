@@ -191,7 +191,7 @@ def benchmark_classification(train_dataset,
     n_filters = hyper_parameters['n_filters']
     n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
 
-    model = deepchem.models.GraphConvTensorGraph(
+    model = deepchem.models.GraphConvModel(
         len(tasks),
         graph_conv_layers=[n_filters] * 2,
         dense_layer_size=n_fully_connected_nodes,
@@ -507,7 +507,7 @@ def benchmark_regression(train_dataset,
     n_filters = hyper_parameters['n_filters']
     n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
 
-    model = deepchem.models.GraphConvTensorGraph(
+    model = deepchem.models.GraphConvModel(
         len(tasks),
         graph_conv_layers=[n_filters] * 2,
         dense_layer_size=n_fully_connected_nodes,
