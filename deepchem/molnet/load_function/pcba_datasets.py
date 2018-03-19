@@ -9,7 +9,7 @@ import logging
 import deepchem
 import gzip
 
-logging = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def load_pcba(featurizer='ECFP', split='random', reload=True):
