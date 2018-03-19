@@ -198,8 +198,8 @@ def bond_features(bond, use_chirality=False):
   ]
   if use_chirality:
     bond_feats = bond_feats + one_of_k_encoding_unk(
-        str(bond.GetStereo(),
-            ["STEREONONE", "STEREOANY", "STEREOZ", "STEREOE"]))
+        str(bond.GetStereo()),
+        ["STEREONONE", "STEREOANY", "STEREOZ", "STEREOE"])
   return np.array(bond_feats)
 
 
