@@ -1,7 +1,8 @@
 import deepchem as dc
 import tensorflow as tensorflow
 from deepchem.models.tensorgraph.layers import Layer, Input, Dense, Hingeloss, Label, Feature
-from deepchem.models.tensorgraph.layers import ReduceMean, InputFifoQueue, ReLU
+from deepchem.models.tensorgraph.layers import ReduceMean, InputFifoQueue, ReLU, Add
+from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 
 
 class Scscore(TensorGraph):
@@ -28,12 +29,12 @@ class Scscore(TensorGraph):
       out_channels=300, in_layers=[dense_reactant_4], activation_fn=tf.nn.relu)
   dense_product_5 = dense_reactant_5.shared(in_layers=[dense_product_4])
 
-  output_dense = Add(in_layers=[dense_reactant_5, dense_product_5])
-
-  output = Sigmoid(in_layers=[output_dense])
+  output_reactant = Sigmoid(in_layers=[dense_reactant_5])
+  output_product = Sigmoid(in_layers=[dense_product_5])
+  output = tf.subtract(output_product, output_reactant)
   tg.add_output(output)
 
   label = Label(shape=(None, 1))
 
-  loss = Hingeloss(in_layers=[label, output])
+  loss = Hingeloss(in_layers=[output_product, output_reactant])
   tg.set_loss(loss)
