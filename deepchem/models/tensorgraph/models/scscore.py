@@ -5,24 +5,35 @@ from deepchem.models.tensorgraph.layers import ReduceMean, InputFifoQueue, ReLU
 
 
 class Scscore(TensorGraph):
+
   tg = dc.models.TensorGraph(
       tensorboard=True, model_dir='/tmp/scscore', use_queue=True)
 
-  Input1 = InputFifoQueue()
+  reactant_features = Feature()
+  product_features = Feature()
 
-  hidden_1 = Dense(out_channels=300, in_layer=Input1, activation_fn=tf.nn.relu)
-  hidden_2 = Dense(
-      out_channels=300, in_layer=hidden_1, activation_fn=tf.nn.relu)
-  hidden_3 = Dense(
-      out_channels=300, in_layer=hidden_2, activation_fn=tf.nn.relu)
-  hidden_4 = Dense(
-      out_channels=300, in_layer=hidden_3, activation_fn=tf.nn.relu)
-  hidden_5 = Dense(
-      out_channels=300, in_layer=hidden_4, activation_fn=tf.nn.relu)
+  dense_reactant_1 = Dense(
+      out_channels=300, in_layers=[reactant_features], activation_fn=tf.nn.relu)
+  dense_product_1 = dense_reactant_1.shared(in_layers=[product_features])
+  dense_reactant_2 = Dense(
+      out_channels=300, in_layers=[dense_reactant_1], activation_fn=tf.nn.relu)
+  dense_product_2 = dense_reactant_2.shared(in_layers=[dense_product_1])
+  dense_reactant_3 = Dense(
+      out_channels=300, in_layers=[dense_reactant_2], activation_fn=tf.nn.relu)
+  dense_product_3 = dense_reactant_3.shared(in_layers=[dense_product_2])
+  dense_reactant_4 = Dense(
+      out_channels=300, in_layers=[dense_reactant_3], activation_fn=tf.nn.relu)
+  dense_product_4 = dense_reactant_4.shared(in_layers=[dense_product_3])
+  dense_reactant_5 = Dense(
+      out_channels=300, in_layers=[dense_reactant_4], activation_fn=tf.nn.relu)
+  dense_product_5 = dense_reactant_5.shared(in_layers=[dense_product_4])
 
-  label = Label(shape=(300,))
+  output_dense = Add(in_layers=[dense_reactant_5, dense_product_5])
 
-  loss = Hingeloss(in_layers=[label, hidden_5])
-  tg.set_loss(loss)
-  output = Sigmoid(in_layers=[hidden_5])
+  output = Sigmoid(in_layers=[output_dense])
   tg.add_output(output)
+
+  label = Label(shape=(None, 1))
+
+  loss = Hingeloss(in_layers=[label, output])
+  tg.set_loss(loss)
