@@ -10,7 +10,7 @@ import os
 import logging
 import deepchem
 
-logging = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
