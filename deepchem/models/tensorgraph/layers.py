@@ -8,6 +8,7 @@ import tensorflow as tf
 import numpy as np
 
 from deepchem.models.tensorgraph import model_ops, initializations, regularizers, activations
+import tensorflow.contrib.eager as tfe
 import math
 
 
@@ -25,7 +26,6 @@ class Layer(object):
       in_layers = [in_layers]
     self.in_layers = in_layers
     self.op_type = "gpu"
-    self.variable_scope = ''
     self.variable_values = None
     self.out_tensor = None
     self.rnn_initial_states = []
@@ -33,6 +33,10 @@ class Layer(object):
     self.rnn_zero_states = []
     self.tensorboard = False
     self.tb_input = None
+    if tfe.in_eager_mode():
+      self.variables = []
+    else:
+      self.variable_scope = ''
 
   def _get_layer_number(self):
     class_name = self.__class__.__name__
@@ -83,8 +87,8 @@ class Layer(object):
       return self.clone(in_layers)
     raise ValueError('%s does not implement shared()' % self.__class__.__name__)
 
-  def __call__(self, *in_layers):
-    return self.create_tensor(in_layers=in_layers, set_tensors=False)
+  def __call__(self, *in_layers, training=False):
+    return self.create_tensor(in_layers=in_layers, set_tensors=False, training=training)
 
   @property
   def shape(self):
@@ -106,6 +110,8 @@ class Layer(object):
       if True, try to reshape the inputs to all have the same shape
     """
     if in_layers is None:
+      if tfe.in_eager_mode():
+        raise ValueError('in_layers must be specified in eager mode')
       in_layers = self.in_layers
     if not isinstance(in_layers, Sequence):
       in_layers = [in_layers]
@@ -241,6 +247,8 @@ class Layer(object):
       This means the newly created layers will share variables with the original
       ones.
     """
+    if tfe.in_eager_mode():
+      raise ValueError('copy() is not supported in eager mode')
     if self in replacements:
       return replacements[self]
     copied_inputs = [
@@ -328,7 +336,7 @@ class TensorWrapper(Layer):
 
   def create_tensor(self, in_layers=None, **kwargs):
     """Take no actions."""
-    pass
+    return self.out_tensor
 
 
 def convert_to_layers(in_layers):
@@ -466,17 +474,12 @@ class Conv1D(Layer):
     self.kernel_constraint = kernel_constraint
     self.bias_constraint = bias_constraint
     super(Conv1D, self).__init__(in_layers, **kwargs)
+    if tfe.in_eager_mode():
+      self._layer = self._build_layer()
+      self.variables = self._layer.variables
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-    if len(inputs) != 1:
-      raise ValueError("Conv1D layer must have exactly one parent")
-    parent = inputs[0]
-    if len(parent.get_shape()) == 2:
-      parent = tf.expand_dims(parent, 2)
-    elif len(parent.get_shape()) != 3:
-      raise ValueError("Parent tensor must be (batch, width, channel)")
-    out_tensor = tf.keras.layers.Conv1D(
+  def _build_layer(self):
+    return tf.keras.layers.Conv1D(
         filters=self.filters,
         kernel_size=self.kernel_size,
         strides=self.strides,
@@ -490,7 +493,22 @@ class Conv1D(Layer):
         bias_regularizer=self.bias_regularizer,
         activity_regularizer=self.activity_regularizer,
         kernel_constraint=self.kernel_constraint,
-        bias_constraint=self.bias_constraint)(parent)
+        bias_constraint=self.bias_constraint)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError("Conv1D layer must have exactly one parent")
+    parent = inputs[0]
+    if len(parent.get_shape()) == 2:
+      parent = tf.expand_dims(parent, 2)
+    elif len(parent.get_shape()) != 3:
+      raise ValueError("Parent tensor must be (batch, width, channel)")
+    if tfe.in_eager_mode():
+      layer = self._layer
+    else:
+      layer = self._build_layer()
+    out_tensor = layer(parent)
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
