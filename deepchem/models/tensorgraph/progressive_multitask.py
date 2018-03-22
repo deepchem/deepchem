@@ -99,6 +99,8 @@ class ProgressiveMultitaskRegressor(TensorGraph):
 
     # Add the input features.
     self.mol_features = Feature(shape=(None, n_features))
+    self.labels = Label(shape=(None, n_tasks))
+    self.weights = Weights(shape=(None, n_tasks))
 
     all_layers = {}
     outputs = []
@@ -152,7 +154,10 @@ class ProgressiveMultitaskRegressor(TensorGraph):
       outputs.append(output_layer)
       self.add_output(output_layer)
 
-      task_loss = self.create_loss(layer)
+
+      label = Slice(task, axis=1, in_layers=[self.labels])
+      weight = Slice(task, axis=1, in_layers=[self.weights])
+      task_loss = self.create_loss(layer, label, weight)
       self.create_submodel(layers=task_layers, loss=task_loss, optimizer=None)
     # Weight decay not activated
     """
@@ -163,11 +168,9 @@ class ProgressiveMultitaskRegressor(TensorGraph):
           in_layers=[weighted_loss])
     """
 
-  def create_loss(self, layer):
-    task_label = Label(shape=(None, 1))
-    task_weight = Weights(shape=(None, 1))
+  def create_loss(self, layer, label, weight):
     weighted_loss = ReduceSum(
-        L2Loss(in_layers=[task_label, layer, task_weight]))
+        L2Loss(in_layers=[label, layer, weight]))
     return weighted_loss
 
   def create_output(self, layer):
@@ -225,28 +228,6 @@ class ProgressiveMultitaskRegressor(TensorGraph):
     trainable_layers.append(dense2)
 
     return dense2, trainable_layers
-
-  def default_generator(self,
-                        dataset,
-                        epochs=1,
-                        predict=False,
-                        deterministic=True,
-                        pad_batches=True):
-    for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
-        feed_dict = dict()
-        if X_b is not None:
-          feed_dict[self.features[0]] = X_b
-        if y_b is not None and not predict:
-          for task in range(self.n_tasks):
-            feed_dict[self.labels[task]] = y_b[:, task:task + 1]
-        if w_b is not None and not predict:
-          for task in range(self.n_tasks):
-            feed_dict[self.task_weights[task]] = w_b[:, task:task + 1]
-        yield feed_dict
 
   def fit(self,
           dataset,
@@ -331,15 +312,12 @@ class ProgressiveMultitaskClassifier(ProgressiveMultitaskRegressor):
         n_outputs=n_outputs,
         **kwargs)
 
-  def create_loss(self, layer):
-    task_label = Label(shape=(None, 1), dtype=tf.int32)
-    task_weight = Weights(shape=(None, 1))
+  def create_loss(self, layer, label, weight):
+    task_label = Squeeze(squeeze_dims=1, in_layers=[label])
+    task_weight = Squeeze(squeeze_dims=1, in_layers=[weight])
 
-    label = Squeeze(squeeze_dims=1, in_layers=[task_label])
-    weight = Squeeze(squeeze_dims=1, in_layers=[task_weight])
-
-    loss = SparseSoftMaxCrossEntropy(in_layers=[label, layer])
-    weighted_loss = WeightedError(in_layers=[loss, weight])
+    loss = SparseSoftMaxCrossEntropy(in_layers=[task_label, layer])
+    weighted_loss = WeightedError(in_layers=[loss, task_weight])
     return weighted_loss
 
   def create_output(self, layer):

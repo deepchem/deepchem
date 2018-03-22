@@ -845,8 +845,9 @@ class TensorGraph(Model):
   def make_estimator(self,
                      feature_columns,
                      weight_column=None,
+                     metrics={},
                      model_dir=None,
-                     metrics={}):
+                     config=None):
     """Construct a Tensorflow Estimator from this model.
 
     tf.estimator.Estimator is the standard Tensorflow API for representing models.
@@ -875,6 +876,8 @@ class TensorGraph(Model):
     model_dir: str
       the directory in which the Estimator should save files.  If None, this
       defaults to the model's model_dir.
+    config: RunConfig
+      configuration options for the Estimator
     """
     # Check the inputs.
 
@@ -953,7 +956,8 @@ class TensorGraph(Model):
 
     # Create the Estimator.
 
-    return tf.estimator.Estimator(model_fn=model_fn, model_dir=model_dir)
+    return tf.estimator.Estimator(
+        model_fn=model_fn, model_dir=model_dir, config=config)
 
   def create_estimator_inputs(self, feature_columns, weight_column, features,
                               labels, mode):

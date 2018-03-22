@@ -27,7 +27,7 @@ delaney_tasks, delaney_datasets, transformers = dc.molnet.load_delaney(
 train_dataset, valid_dataset, test_dataset = delaney_datasets
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
 
-model = dc.models.GraphConvTensorGraph(
+model = dc.models.GraphConvModel(
     len(delaney_tasks),
     batch_size=BATCH_SIZE,
     learning_rate=LR,
