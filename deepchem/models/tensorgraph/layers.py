@@ -373,6 +373,8 @@ class SharedVariableScope(Layer):
     return copy
 
   def _get_scope_name(self):
+    if tfe.in_eager_mode():
+      return None
     if self._shared_with is None:
       return self.name
     else:
@@ -553,35 +555,45 @@ class Dense(SharedVariableScope):
     self.biases_initializer = biases_initializer
     self.weights_initializer = weights_initializer
     self.time_series = time_series
+    if tfe.in_eager_mode():
+      self._layer = self._build_layer(False)
+      self.variables = self._layer.variables
     try:
       parent_shape = self.in_layers[0].shape
       self._shape = tuple(parent_shape[:-1]) + (out_channels,)
     except:
       pass
 
+  def _build_layer(self, reuse):
+    if self.biases_initializer is None:
+      biases_initializer = None
+    else:
+      biases_initializer = self.biases_initializer()
+    return tf.layers.Dense(
+      self.out_channels,
+      activation=self.activation_fn,
+      use_bias=biases_initializer is not None,
+      kernel_initializer=self.weights_initializer(),
+      bias_initializer=biases_initializer,
+      _scope=self._get_scope_name(),
+      _reuse=reuse
+    )
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 1:
       raise ValueError("Dense layer can only have one input")
     parent = inputs[0]
-    if self.biases_initializer is None:
-      biases_initializer = None
-    else:
-      biases_initializer = self.biases_initializer()
     for reuse in (self._reuse, False):
-      dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
-                                                             num_outputs=self.out_channels,
-                                                             activation_fn=self.activation_fn,
-                                                             biases_initializer=biases_initializer,
-                                                             weights_initializer=self.weights_initializer(),
-                                                             scope=self._get_scope_name(),
-                                                             reuse=reuse,
-                                                             trainable=True)
+      if tfe.in_eager_mode():
+        layer = self._layer
+      else:
+        layer = self._build_layer(reuse)
       try:
         if self.time_series:
-          out_tensor = tf.map_fn(dense_fn, parent)
+          out_tensor = tf.map_fn(layer, parent)
         else:
-          out_tensor = dense_fn(parent)
+          out_tensor = layer(parent)
         break
       except ValueError:
         if reuse:
@@ -608,6 +620,7 @@ class Highway(Layer):
 
   def __init__(
       self,
+      out_channels,
       activation_fn=tf.nn.relu,
       biases_initializer=tf.zeros_initializer,
       weights_initializer=tf.contrib.layers.variance_scaling_initializer,
@@ -616,6 +629,8 @@ class Highway(Layer):
 
     Parameters
     ----------
+    out_channels: int
+      the number of output values
     activation_fn: object
       the Tensorflow activation function to apply to the output
     biases_initializer: callable object
@@ -625,30 +640,44 @@ class Highway(Layer):
       the initializer for weight values
     """
     super(Highway, self).__init__(**kwargs)
+    self.out_channels = out_channels
     self.activation_fn = activation_fn
     self.biases_initializer = biases_initializer
     self.weights_initializer = weights_initializer
+    if tfe.in_eager_mode():
+      self._layers = self._build_layers()
+      self.variables = self._layers[0].variables + self._layers[1].variables
+    try:
+      self._shape = self.in_layers[0].shape
+    except:
+      pass
+
+  def _build_layers(self):
+    if self.biases_initializer is None:
+      biases_initializer = None
+    else:
+      biases_initializer = self.biases_initializer()
+    dense_H = tf.layers.Dense(
+        self.out_channels,
+        activation=self.activation_fn,
+        bias_initializer=biases_initializer,
+        kernel_initializer=self.weights_initializer())
+    dense_T = tf.layers.Dense(
+        self.out_channels,
+        activation=tf.nn.sigmoid,
+        bias_initializer=tf.constant_initializer(-1),
+        kernel_initializer=self.weights_initializer())
+    return (dense_H, dense_T)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent = inputs[0]
-    shape = parent.get_shape().as_list()[1]
-    # H(x), with same number of input and output channels
-    dense_H = tf.contrib.layers.fully_connected(
-        parent,
-        num_outputs=shape,
-        activation_fn=self.activation_fn,
-        biases_initializer=self.biases_initializer(),
-        weights_initializer=self.weights_initializer(),
-        trainable=True)
-    # T(x), with same number of input and output channels
-    dense_T = tf.contrib.layers.fully_connected(
-        parent,
-        num_outputs=shape,
-        activation_fn=tf.nn.sigmoid,
-        biases_initializer=tf.constant_initializer(-1),
-        weights_initializer=self.weights_initializer(),
-        trainable=True)
+    if tfe.in_eager_mode():
+      layers = self._layers
+    else:
+      layers = self._build_layers()
+    dense_H = layers[0](parent)
+    dense_T = layers[1](parent)
     out_tensor = tf.multiply(dense_H, dense_T) + tf.multiply(
         parent, 1 - dense_T)
     if set_tensors:

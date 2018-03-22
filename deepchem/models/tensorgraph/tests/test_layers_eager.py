@@ -37,6 +37,123 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         result3 = layer(input)
         assert np.allclose(result, result3)
 
+  def test_dense(self):
+    """Test invoking Dense in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        in_dim = 2
+        out_dim = 3
+        batch_size = 10
+        input = np.random.rand(batch_size, in_dim).astype(np.float32)
+        layer = layers.Dense(out_dim)
+        result = layer(input)
+        assert result.shape == (batch_size, out_dim)
+
+        # Creating a second layer should produce different results, since it has
+        # different random weights.
+
+        layer2 = layers.Dense(out_dim)
+        result2 = layer2(input)
+        assert not np.allclose(result, result2)
+
+        # But evaluating the first layer again should produce the same result as before.
+
+        result3 = layer(input)
+        assert np.allclose(result, result3)
+
+  def test_highway(self):
+    """Test invoking Highway in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        width = 5
+        batch_size = 10
+        input = np.random.rand(batch_size, width).astype(np.float32)
+        layer = layers.Highway(width)
+        result = layer(input)
+        assert result.shape == (batch_size, width)
+
+        # Creating a second layer should produce different results, since it has
+        # different random weights.
+
+        layer2 = layers.Highway(width)
+        result2 = layer2(input)
+        assert not np.allclose(result, result2)
+
+        # But evaluating the first layer again should produce the same result as before.
+
+        result3 = layer(input)
+        assert np.allclose(result, result3)
+
+  def test_flatten(self):
+    """Test invoking Flatten in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input = np.random.rand(5, 10, 4).astype(np.float32)
+        result = layers.Flatten()(input)
+        assert result.shape == (5, 40)
+
+  def test_reshape(self):
+    """Test invoking Reshape in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input = np.random.rand(5, 10, 4).astype(np.float32)
+        result = layers.Reshape((100, 2))(input)
+        assert result.shape == (100, 2)
+
+  def test_cast(self):
+    """Test invoking Cast in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input = np.random.rand(5, 3)
+        result = layers.Cast(dtype=tf.float32)(input)
+        assert result.dtype == tf.float32
+
+  def test_squeeze(self):
+    """Test invoking Squeeze in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input = np.random.rand(5, 1, 4).astype(np.float32)
+        result = layers.Squeeze()(input)
+        assert result.shape == (5, 4)
+
+  def test_transpose(self):
+    """Test invoking Transpose in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input = np.random.rand(5, 10, 4).astype(np.float32)
+        result = layers.Transpose((1, 2, 0))(input)
+        assert result.shape == (10, 4, 5)
+
+  def test_combine_mean_std(self):
+    """Test invoking CombineMeanStd in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        mean = np.random.rand(5, 3).astype(np.float32)
+        std = np.random.rand(5, 3).astype(np.float32)
+        layer = layers.CombineMeanStd(training_only=True, noise_epsilon=0.01)
+        result1 = layer(mean, std)
+        assert np.array_equal(result1, mean) # No noise in test mode
+        result2 = layer(mean, std, training=True)
+        assert not np.array_equal(result2, mean)
+        assert np.allclose(result2, mean, atol=0.1)
+
+  def test_repeat(self):
+    """Test invoking Repeat in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input = np.random.rand(5, 4).astype(np.float32)
+        result = layers.Repeat(3)(input)
+        assert result.shape == (5, 3, 4)
+        assert np.array_equal(result[:,0,:], result[:,1,:])
+
+  def test_gather(self):
+    """Test invoking Gather in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input = np.random.rand(5).astype(np.float32)
+        indices = [[1], [3]]
+        result = layers.Gather()(input, indices)
+        assert np.array_equal(result, [input[1], input[3]])
 
   def test_add(self):
     """Test invoking Add in eager mode."""
