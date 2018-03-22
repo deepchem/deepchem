@@ -229,3 +229,51 @@ class TestEstimators(unittest.TestCase):
     results = estimator.evaluate(input_fn=lambda: input_fn(1))
     assert results['loss'] < 1e-2
     assert results['error'] < 0.1
+
+  def test_irv(self):
+    """Test creating an Estimator from a IRVClassifier."""
+    n_samples = 50
+    n_features = 3
+    n_tasks = 2
+
+    # Create a dataset and an input function for processing it.
+
+    np.random.seed(123)
+    X = np.random.rand(n_samples, n_features)
+    y = np.zeros((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y)
+    transformers = [dc.trans.IRVTransformer(10, n_tasks, dataset)]
+
+    for transformer in transformers:
+      dataset = transformer.transform(dataset)
+
+    def input_fn(epochs):
+      x, y, weights = dataset.make_iterator(
+          batch_size=n_samples, epochs=epochs).get_next()
+      return {'x': x, 'weights': weights}, y
+
+    # Create a TensorGraph model.
+
+    model = dc.models.TensorflowMultiTaskIRVClassifier(
+        n_tasks, K=10, learning_rate=0.001, penalty=0.05, batch_size=50)
+    model.build()
+    # Create an estimator from it.
+
+    x_col = tf.feature_column.numeric_column('x', shape=(2 * 10 * n_tasks,))
+    weight_col = tf.feature_column.numeric_column('weights', shape=(n_tasks,))
+
+    def accuracy(labels, predictions, weights):
+      return tf.metrics.accuracy(labels, tf.round(predictions), weights)
+
+    metrics = {'accuracy': accuracy}
+    estimator = model.make_estimator(
+        feature_columns=[x_col], weight_column=weight_col, metrics=metrics)
+
+    # Train the model.
+
+    estimator.train(input_fn=lambda: input_fn(500))
+
+    # Evaluate the model.
+
+    results = estimator.evaluate(input_fn=lambda: input_fn(1))
+    assert results['accuracy'] > 0.9
