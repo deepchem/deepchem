@@ -58,8 +58,7 @@ class TestGraphModels(unittest.TestCase):
         'regression', 'GraphConv')
 
     batch_size = 50
-    model = GraphConvModel(
-        len(tasks), batch_size=batch_size, mode='regression')
+    model = GraphConvModel(len(tasks), batch_size=batch_size, mode='regression')
 
     model.fit(dataset, nb_epoch=1)
     scores = model.evaluate(dataset, [metric], transformers)
@@ -73,8 +72,7 @@ class TestGraphModels(unittest.TestCase):
         'regression', 'GraphConv', num_tasks=1)
 
     batch_size = 50
-    model = GraphConvModel(
-        len(tasks), batch_size=batch_size, mode='regression')
+    model = GraphConvModel(len(tasks), batch_size=batch_size, mode='regression')
 
     model.fit(dataset, nb_epoch=1)
 
@@ -121,8 +119,7 @@ class TestGraphModels(unittest.TestCase):
         'regression', 'GraphConv', num_tasks=1)
 
     batch_size = 50
-    model = GraphConvModel(
-        len(tasks), batch_size=batch_size, mode='regression')
+    model = GraphConvModel(len(tasks), batch_size=batch_size, mode='regression')
 
     model.fit(dataset, nb_epoch=1)
     model.save()

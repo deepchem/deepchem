@@ -74,8 +74,7 @@ def experiment(dataset_file, method='GraphConv', split='scaffold'):
 
   model = None
   if method == 'GraphConv':
-    model = GraphConvModel(
-        len(tasks), batch_size=BATCH_SIZE, mode="regression")
+    model = GraphConvModel(len(tasks), batch_size=BATCH_SIZE, mode="regression")
   elif method == 'RF':
 
     def model_builder_rf(model_dir):
