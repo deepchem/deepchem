@@ -271,7 +271,7 @@ class TestEstimators(unittest.TestCase):
 
     # Train the model.
 
-    estimator.train(input_fn=lambda: input_fn(500))
+    estimator.train(input_fn=lambda: input_fn(100))
 
     # Evaluate the model.
 
