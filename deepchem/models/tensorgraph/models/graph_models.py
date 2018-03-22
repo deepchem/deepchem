@@ -664,7 +664,7 @@ class PetroskiSuchTensorGraph(TensorGraph):
         per_task_metrics=per_task_metrics)
 
 
-class GraphConvTensorGraph(TensorGraph):
+class GraphConvModel(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -700,7 +700,7 @@ class GraphConvTensorGraph(TensorGraph):
     self.graph_conv_layers = graph_conv_layers
     kwargs['use_queue'] = False
     self.number_atom_features = number_atom_features
-    super(GraphConvTensorGraph, self).__init__(**kwargs)
+    super(GraphConvModel, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
@@ -824,7 +824,7 @@ class GraphConvTensorGraph(TensorGraph):
           result = undo_transforms(feed_results[0], transformers)
           feed_results = [result]
         for ind, result in enumerate(feed_results):
-          # GraphConvTensorGraph constantly outputs batch_size number of
+          # GraphConvModel constantly outputs batch_size number of
           # results, only valid samples should be appended to final results
           results[ind].append(result[:n_samples])
 
@@ -1143,3 +1143,19 @@ class MPNNTensorGraph(TensorGraph):
 
   def predict_on_generator(self, generator, transformers=[]):
     return self.predict_proba_on_generator(generator, transformers)
+
+
+#################### Deprecation warnings for renamed TensorGraph models ####################
+
+import warnings
+
+
+class GraphConvTensorGraph(GraphConvModel):
+
+  warnings.warn(
+      "GraphConvTensorGraph is deprecated and has been renamed to GraphConvModel and will be removed in DeepChem 3.0.",
+      FutureWarning)
+
+  def __init__(self, *args, **kwargs):
+
+    super(GraphConvTensorGraph, self).__init__(*args, **kwargs)
