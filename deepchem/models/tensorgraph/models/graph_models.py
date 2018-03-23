@@ -20,7 +20,7 @@ from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
 
 
-class WeaveTensorModel(TensorGraph):
+class WeaveModel(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -52,7 +52,7 @@ class WeaveTensorModel(TensorGraph):
     self.n_hidden = n_hidden
     self.n_graph_feat = n_graph_feat
     self.mode = mode
-    super(WeaveTensorModel, self).__init__(**kwargs)
+    super(WeaveModel, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
@@ -183,7 +183,7 @@ class WeaveTensorModel(TensorGraph):
         yield feed_dict
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
-    out = super(WeaveTensorModel, self).predict_on_generator(
+    out = super(WeaveModel, self).predict_on_generator(
         generator, transformers=[], outputs=outputs)
     if outputs is None:
       outputs = self.outputs
@@ -1162,11 +1162,11 @@ class GraphConvTensorGraph(GraphConvModel):
     super(GraphConvTensorGraph, self).__init__(*args, **kwargs)
 
 
-class WeaveTensorGraph(WeaveTensorModel):
+class WeaveTensorGraph(WeaveModel):
 
   warnings.warn(
       TENSORGRAPH_DEPRECATION.format("WeaveTensorGraph"), FutureWarning)
 
   def __init__(self, *args, **kwargs):
 
-    super(WeaveTensorModel, self).__init__(*args, **kwargs)
+    super(WeaveModel, self).__init__(*args, **kwargs)

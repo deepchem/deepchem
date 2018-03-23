@@ -698,7 +698,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     n_feat = 128
     batch_size = 10
 
-    model = dc.models.WeaveTensorModel(
+    model = dc.models.WeaveModel(
         n_tasks,
         n_atom_feat=n_atom_feat,
         n_pair_feat=n_pair_feat,
@@ -738,7 +738,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     n_feat = 128
     batch_size = 10
 
-    model = dc.models.WeaveTensorModel(
+    model = dc.models.WeaveModel(
         n_tasks,
         n_atom_feat=n_atom_feat,
         n_pair_feat=n_pair_feat,
