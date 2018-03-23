@@ -17,7 +17,7 @@ from deepchem.models.tensorgraph.IRV import TensorflowMultiTaskIRVClassifier
 from deepchem.models.tensorgraph.robust_multitask import RobustMultitaskClassifier
 from deepchem.models.tensorgraph.robust_multitask import RobustMultitaskRegressor
 from deepchem.models.tensorgraph.progressive_multitask import ProgressiveMultitaskRegressor
-from deepchem.models.tensorgraph.models.graph_models import WeaveTensorGraph, DTNNTensorGraph, DAGTensorGraph, GraphConvModel, MPNNTensorGraph
+from deepchem.models.tensorgraph.models.graph_models import WeaveTensorModel, DTNNTensorGraph, DAGTensorGraph, GraphConvModel, MPNNTensorGraph
 from deepchem.models.tensorgraph.models.symmetry_function_regression import BPSymmetryFunctionRegression, ANIRegression
 
 from deepchem.models.tensorgraph.models.seqtoseq import SeqToSeq
@@ -28,4 +28,4 @@ from deepchem.models.tensorgraph.models.sequence_dnn import SequenceDNN
 
 #################### Compatibility imports for renamed TensorGraph models. Remove below with DeepChem 3.0. ####################
 
-from deepchem.models.tensorgraph.models.graph_models import GraphConvTensorGraph
+from deepchem.models.tensorgraph.models.graph_models import WeaveTensorGraph, GraphConvTensorGraph
