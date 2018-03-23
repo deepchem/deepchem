@@ -8,7 +8,7 @@ from deepchem.models import GraphConvModel
 from deepchem.models import TensorGraph
 from deepchem.molnet.load_function.delaney_datasets import load_delaney
 from deepchem.models.tensorgraph.layers import ReduceSum, L2Loss
-from deepchem.models import WeaveTensorGraph
+from deepchem.models import WeaveTensorModel
 from deepchem.feat import ConvMolFeaturizer
 
 
@@ -137,7 +137,7 @@ class TestGraphModels(unittest.TestCase):
         'regression', 'Weave', num_tasks=1)
 
     batch_size = 50
-    model = WeaveTensorGraph(
+    model = WeaveTensorModel(
         len(tasks), batch_size=batch_size, mode='regression', use_queue=False)
 
     model.fit(dataset, nb_epoch=1)

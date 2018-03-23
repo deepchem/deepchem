@@ -242,7 +242,7 @@ def benchmark_classification(train_dataset,
     n_graph_feat = hyper_parameters['n_graph_feat']
     n_pair_feat = hyper_parameters['n_pair_feat']
 
-    model = deepchem.models.WeaveTensorGraph(
+    model = deepchem.models.WeaveTensorModel(
         len(tasks),
         n_atom_feat=n_features,
         n_pair_feat=n_pair_feat,
@@ -577,7 +577,7 @@ def benchmark_regression(train_dataset,
     n_graph_feat = hyper_parameters['n_graph_feat']
     n_pair_feat = hyper_parameters['n_pair_feat']
 
-    model = deepchem.models.WeaveTensorGraph(
+    model = deepchem.models.WeaveTensorModel(
         len(tasks),
         n_atom_feat=n_features,
         n_pair_feat=n_pair_feat,
