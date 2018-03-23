@@ -87,8 +87,9 @@ class Layer(object):
       return self.clone(in_layers)
     raise ValueError('%s does not implement shared()' % self.__class__.__name__)
 
-  def __call__(self, *in_layers, training=False):
-    return self.create_tensor(in_layers=in_layers, set_tensors=False, training=training)
+  def __call__(self, *in_layers, training=False, **kwargs):
+    return self.create_tensor(
+        in_layers=in_layers, set_tensors=False, training=training, **kwargs)
 
   @property
   def shape(self):
@@ -570,14 +571,13 @@ class Dense(SharedVariableScope):
     else:
       biases_initializer = self.biases_initializer()
     return tf.layers.Dense(
-      self.out_channels,
-      activation=self.activation_fn,
-      use_bias=biases_initializer is not None,
-      kernel_initializer=self.weights_initializer(),
-      bias_initializer=biases_initializer,
-      _scope=self._get_scope_name(),
-      _reuse=reuse
-    )
+        self.out_channels,
+        activation=self.activation_fn,
+        use_bias=biases_initializer is not None,
+        kernel_initializer=self.weights_initializer(),
+        bias_initializer=biases_initializer,
+        _scope=self._get_scope_name(),
+        _reuse=reuse)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -964,6 +964,14 @@ class GRU(Layer):
   This layer expects its input to be of shape (batch_size, sequence_length, ...).
   It consists of a set of independent sequences (one for each element in the batch),
   that are each propagated independently through the GRU.
+
+  When this layer is called in eager execution mode, it behaves slightly differently.
+  It returns two tensors: the output of the recurrent layer, and the final state
+  of the recurrent cell.  In addition, you can specify the initial_state option
+  to tell it what to use as the initial state of the recurrent cell.  If that
+  option is omitted, it defaults to all zeros for the initial state:
+
+  outputs, final_state = gru_layer(input, initial_state=state)
   """
 
   def __init__(self, n_hidden, batch_size, **kwargs):
@@ -979,6 +987,10 @@ class GRU(Layer):
     self.n_hidden = n_hidden
     self.batch_size = batch_size
     super(GRU, self).__init__(**kwargs)
+    if tfe.in_eager_mode():
+      self._cell = tf.contrib.rnn.GRUCell(n_hidden)
+      self.variables = self._cell.variables
+      self._zero_state = self._cell.zero_state(batch_size, tf.float32)
     try:
       parent_shape = self.in_layers[0].shape
       self._shape = (batch_size, parent_shape[1], n_hidden)
@@ -990,10 +1002,16 @@ class GRU(Layer):
     if len(inputs) != 1:
       raise ValueError("Must have one parent")
     parent_tensor = inputs[0]
-    gru_cell = tf.contrib.rnn.GRUCell(self.n_hidden)
-    zero_state = gru_cell.zero_state(self.batch_size, tf.float32)
+    if tfe.in_eager_mode():
+      gru_cell = self._cell
+      zero_state = self._zero_state
+    else:
+      gru_cell = tf.contrib.rnn.GRUCell(self.n_hidden)
+      zero_state = gru_cell.zero_state(self.batch_size, tf.float32)
     if set_tensors:
       initial_state = tf.placeholder(tf.float32, zero_state.get_shape())
+    elif 'initial_state' in kwargs:
+      initial_state = kwargs['initial_state']
     else:
       initial_state = zero_state
     out_tensor, final_state = tf.nn.dynamic_rnn(
@@ -1007,7 +1025,10 @@ class GRU(Layer):
       self.out_tensors = [
           self.out_tensor, initial_state, final_state, zero_state
       ]
-    return out_tensor
+    if tfe.in_eager_mode():
+      return (out_tensor, final_state)
+    else:
+      return out_tensor
 
   def none_tensors(self):
     saved_tensors = [
@@ -1100,16 +1121,22 @@ class TimeSeriesDense(Layer):
   def __init__(self, out_channels, **kwargs):
     self.out_channels = out_channels
     super(TimeSeriesDense, self).__init__(**kwargs)
+    if tfe.in_eager_mode():
+      self._layer = self._build_layer()
+
+  def _build_layer(self):
+    return tf.layers.Dense(self.out_channels, activation=tf.nn.sigmoid)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 1:
       raise ValueError("Must have one parent")
     parent_tensor = inputs[0]
-    dense_fn = lambda x: tf.contrib.layers.fully_connected(
-      x, num_outputs=self.out_channels,
-      activation_fn=tf.nn.sigmoid)
-    out_tensor = tf.map_fn(dense_fn, parent_tensor)
+    if tfe.in_eager_mode():
+      layer = self._layer
+    else:
+      layer = self._build_layer()
+    out_tensor = tf.map_fn(layer, parent_tensor)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1386,9 +1413,14 @@ class Variable(Layer):
     self.dtype = dtype
     self._shape = tuple(initial_value.shape)
     super(Variable, self).__init__(**kwargs)
+    if tfe.in_eager_mode():
+      self.variables = [tfe.Variable(self.initial_value, dtype=self.dtype)]
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    out_tensor = tf.Variable(self.initial_value, dtype=self.dtype)
+    if tfe.in_eager_mode():
+      out_tensor = self.variables[0]
+    else:
+      out_tensor = tf.Variable(self.initial_value, dtype=self.dtype)
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
