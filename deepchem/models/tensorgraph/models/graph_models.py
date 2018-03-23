@@ -1159,3 +1159,13 @@ class GraphConvTensorGraph(GraphConvModel):
   def __init__(self, *args, **kwargs):
 
     super(GraphConvTensorGraph, self).__init__(*args, **kwargs)
+
+
+
+class WeaveTensorGraph(WeaveTensorModel):
+
+  warnings.warn(TENSORGRAPH_DEPRECATION.format("WeaveTensorGraph"), FutureWarning)
+
+  def __init__(self, *args, **kwargs):
+
+    super(WeaveTensorModel, self).__init__(*args, **kwargs)
