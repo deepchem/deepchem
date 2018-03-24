@@ -1155,7 +1155,8 @@ TENSORGRAPH_DEPRECATION = "{} is deprecated and has been renamed to {} and will 
 class GraphConvTensorGraph(GraphConvModel):
 
   warnings.warn(
-      TENSORGRAPH_DEPRECATION.format("GraphConvTensorGraph", "GraphConvModel"), FutureWarning)
+      TENSORGRAPH_DEPRECATION.format("GraphConvTensorGraph", "GraphConvModel"),
+      FutureWarning)
 
   def __init__(self, *args, **kwargs):
 
@@ -1165,7 +1166,8 @@ class GraphConvTensorGraph(GraphConvModel):
 class WeaveTensorGraph(WeaveModel):
 
   warnings.warn(
-      TENSORGRAPH_DEPRECATION.format("WeaveTensorGraph", "WeaveModel"), FutureWarning)
+      TENSORGRAPH_DEPRECATION.format("WeaveTensorGraph", "WeaveModel"),
+      FutureWarning)
 
   def __init__(self, *args, **kwargs):
 
