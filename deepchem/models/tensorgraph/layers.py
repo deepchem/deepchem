@@ -2489,7 +2489,6 @@ class GraphGather(Layer):
     super(GraphGather, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    with tf.device('/cpu'):
       inputs = self._get_input_tensors(in_layers)
 
       # x = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
