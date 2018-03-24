@@ -1149,13 +1149,13 @@ class MPNNTensorGraph(TensorGraph):
 
 import warnings
 
-TENSORGRAPH_DEPRECATION = "{} is deprecated and has been renamed to GraphConvModel and will be removed in DeepChem 3.0."
+TENSORGRAPH_DEPRECATION = "{} is deprecated and has been renamed to {} and will be removed in DeepChem 3.0."
 
 
 class GraphConvTensorGraph(GraphConvModel):
 
   warnings.warn(
-      TENSORGRAPH_DEPRECATION.format("GraphConvTensorGraph"), FutureWarning)
+      TENSORGRAPH_DEPRECATION.format("GraphConvTensorGraph", "GraphConvModel"), FutureWarning)
 
   def __init__(self, *args, **kwargs):
 
@@ -1165,7 +1165,7 @@ class GraphConvTensorGraph(GraphConvModel):
 class WeaveTensorGraph(WeaveModel):
 
   warnings.warn(
-      TENSORGRAPH_DEPRECATION.format("WeaveTensorGraph"), FutureWarning)
+      TENSORGRAPH_DEPRECATION.format("WeaveTensorGraph", "WeaveModel"), FutureWarning)
 
   def __init__(self, *args, **kwargs):
 
