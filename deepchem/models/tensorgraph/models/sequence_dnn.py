@@ -19,8 +19,10 @@ class SequenceDNN(Sequential):
 
   Parameters
   ----------
-  seq_length : int 
+  seq_length : int
       length of input sequence.
+  loss: string
+    the loss function to use.  Supported values are 'binary_crossentropy' and 'mse'.
   num_tasks : int, optional
       number of tasks. Default: 1.
   num_filters : list[int] | tuple[int]
@@ -33,12 +35,13 @@ class SequenceDNN(Sequential):
       strength of L1 penalty.
   dropout : float
       dropout probability in every convolutional layer. Default: 0.
-  verbose: bool 
-      Verbose print statements activated if true. 
+  verbose: bool
+      Verbose print statements activated if true.
   """
 
   def __init__(self,
                seq_length,
+               loss,
                use_RNN=False,
                num_tasks=1,
                num_filters=15,
@@ -48,7 +51,7 @@ class SequenceDNN(Sequential):
                dropout=0.0,
                verbose=True,
                **kwargs):
-    super(SequenceDNN, self).__init__(**kwargs)
+    super(SequenceDNN, self).__init__(loss, **kwargs)
     self.num_tasks = num_tasks
     self.verbose = verbose
     self.add(layers.Conv2D(num_filters, kernel_size=kernel_size))
