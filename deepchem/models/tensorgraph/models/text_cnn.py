@@ -280,3 +280,21 @@ class TextCNNModel(TensorGraph):
 
     out = undo_transforms(out, transformers)
     return out
+
+
+#################### Deprecation warnings for renamed TensorGraph models ####################
+
+import warnings
+
+TENSORGRAPH_DEPRECATION = "{} is deprecated and has been renamed to {} and will be removed in DeepChem 3.0."
+
+
+class TextCNNTensorGraph(TextCNNModel):
+
+  warnings.warn(
+      TENSORGRAPH_DEPRECATION.format("TextCNNTensorGraph", "TextCNNModel"),
+      FutureWarning)
+
+  def __init__(self, *args, **kwargs):
+
+    super(TextCNNTensorGraph, self).__init__(*args, **kwargs)
