@@ -540,7 +540,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     n_tasks = y.shape[1]
     batch_size = 10
 
-    model = dc.models.DTNNTensorGraph(
+    model = dc.models.DTNNModel(
         n_tasks,
         n_embedding=20,
         n_distance=100,

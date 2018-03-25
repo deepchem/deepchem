@@ -524,7 +524,7 @@ def benchmark_regression(train_dataset,
     n_distance = hyper_parameters['n_distance']
     assert len(n_features) == 2, 'DTNN is only applicable to qm datasets'
 
-    model = deepchem.models.DTNNTensorGraph(
+    model = deepchem.models.DTNNModel(
         len(tasks),
         n_embedding=n_embedding,
         n_distance=n_distance,

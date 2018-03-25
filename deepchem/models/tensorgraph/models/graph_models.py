@@ -194,7 +194,7 @@ class WeaveModel(TensorGraph):
     return out
 
 
-class DTNNTensorGraph(TensorGraph):
+class DTNNModel(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -237,7 +237,7 @@ class DTNNTensorGraph(TensorGraph):
     self.steps = np.expand_dims(self.steps, 0)
     self.output_activation = output_activation
     self.mode = mode
-    super(DTNNTensorGraph, self).__init__(**kwargs)
+    super(DTNNModel, self).__init__(**kwargs)
     assert self.mode == "regression"
     self.build_graph()
 
@@ -351,7 +351,7 @@ class DTNNTensorGraph(TensorGraph):
     if transformers != [] and not isinstance(outputs, collections.Sequence):
       raise ValueError(
           "DTNN does not support single tensor output with transformers")
-    retval = super(DTNNTensorGraph, self).predict(dataset, outputs=outputs)
+    retval = super(DTNNModel, self).predict(dataset, outputs=outputs)
     if not isinstance(outputs, collections.Sequence):
       return retval
     retval = np.concatenate(retval, axis=-1)
