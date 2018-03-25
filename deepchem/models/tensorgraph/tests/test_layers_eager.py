@@ -1,9 +1,11 @@
+import deepchem as dc
 import numpy as np
 import tensorflow as tf
 import deepchem.models.tensorgraph.layers as layers
 import tensorflow.contrib.eager as tfe
 from tensorflow.python.eager import context
 from tensorflow.python.framework import test_util
+import rdkit
 
 
 class TestLayersEager(test_util.TensorFlowTestCase):
@@ -50,6 +52,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         layer = layers.Dense(out_dim)
         result = layer(input)
         assert result.shape == (batch_size, out_dim)
+        assert len(layer.variables) == 2
 
         # Creating a second layer should produce different results, since it has
         # different random weights.
@@ -70,14 +73,15 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         width = 5
         batch_size = 10
         input = np.random.rand(batch_size, width).astype(np.float32)
-        layer = layers.Highway(width)
+        layer = layers.Highway()
         result = layer(input)
         assert result.shape == (batch_size, width)
+        assert len(layer.variables) == 4
 
         # Creating a second layer should produce different results, since it has
         # different random weights.
 
-        layer2 = layers.Highway(width)
+        layer2 = layers.Highway()
         result2 = layer2(input)
         assert not np.allclose(result, result2)
 
@@ -170,11 +174,45 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         layer = layers.GRU(n_hidden, batch_size)
         result, state = layer(input)
         assert result.shape == (batch_size, n_steps, n_hidden)
+        assert len(layer.variables) == 4
 
         # Creating a second layer should produce different results, since it has
         # different random weights.
 
         layer2 = layers.GRU(n_hidden, batch_size)
+        result2, state2 = layer2(input)
+        assert not np.allclose(result, result2)
+
+        # But evaluating the first layer again should produce the same result as before.
+
+        result3, state3 = layer(input)
+        assert np.allclose(result, result3)
+
+        # But if we specify a different starting state, that should produce a
+        # different result.
+
+        result4, state4 = layer(input, initial_state=state3)
+        assert not np.allclose(result, result4)
+
+  def test_lstm(self):
+    """Test invoking LSTM in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        batch_size = 10
+        n_hidden = 7
+        in_channels = 4
+        n_steps = 6
+        input = np.random.rand(batch_size, n_steps, in_channels).astype(
+            np.float32)
+        layer = layers.LSTM(n_hidden, batch_size)
+        result, state = layer(input)
+        assert result.shape == (batch_size, n_steps, n_hidden)
+        assert len(layer.variables) == 2
+
+        # Creating a second layer should produce different results, since it has
+        # different random weights.
+
+        layer2 = layers.LSTM(n_hidden, batch_size)
         result2, state2 = layer2(input)
         assert not np.allclose(result, result2)
 
@@ -201,6 +239,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         layer = layers.TimeSeriesDense(out_dim)
         result = layer(input)
         assert result.shape == (batch_size, n_steps, out_dim)
+        assert len(layer.variables) == 2
 
         # Creating a second layer should produce different results, since it has
         # different random weights.
@@ -296,8 +335,10 @@ class TestLayersEager(test_util.TensorFlowTestCase):
     with context.eager_mode():
       with tfe.IsolateTest():
         value = np.random.rand(5, 4).astype(np.float32)
-        result = layers.Variable(value)()
+        layer = layers.Variable(value)
+        result = layer()
         assert np.array_equal(result.numpy(), value)
+        assert len(layer.variables) == 1
 
   def test_add(self):
     """Test invoking Add in eager mode."""
@@ -390,3 +431,302 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         expected = tf.nn.sigmoid_cross_entropy_with_logits(
             labels=labels, logits=logits)
         assert np.allclose(result, expected)
+
+  def test_reduce_mean(self):
+    """Test invoking ReduceMean in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input = np.random.rand(5, 10).astype(np.float32)
+        result = layers.ReduceMean(axis=1)(input)
+        assert result.shape == (5,)
+        assert np.allclose(result, np.mean(input, axis=1))
+
+  def test_reduce_max(self):
+    """Test invoking ReduceMax in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input = np.random.rand(5, 10).astype(np.float32)
+        result = layers.ReduceMax(axis=1)(input)
+        assert result.shape == (5,)
+        assert np.allclose(result, np.max(input, axis=1))
+
+  def test_reduce_sum(self):
+    """Test invoking ReduceSum in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input = np.random.rand(5, 10).astype(np.float32)
+        result = layers.ReduceSum(axis=1)(input)
+        assert result.shape == (5,)
+        assert np.allclose(result, np.sum(input, axis=1))
+
+  def test_reduce_square_difference(self):
+    """Test invoking ReduceSquareDifference in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input1 = np.random.rand(5, 10).astype(np.float32)
+        input2 = np.random.rand(5, 10).astype(np.float32)
+        result = layers.ReduceSquareDifference(axis=1)(input1, input2)
+        assert result.shape == (5,)
+        assert np.allclose(result, np.mean((input1 - input2)**2, axis=1))
+
+  def test_conv_2d(self):
+    """Test invoking Conv2D in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        length = 4
+        width = 5
+        in_channels = 2
+        filters = 3
+        kernel_size = 2
+        batch_size = 10
+        input = np.random.rand(batch_size, length, width, in_channels).astype(
+            np.float32)
+        layer = layers.Conv2D(filters, kernel_size=kernel_size)
+        result = layer(input)
+        assert result.shape == (batch_size, length, width, filters)
+        assert len(layer.variables) == 2
+
+        # Creating a second layer should produce different results, since it has
+        # different random weights.
+
+        layer2 = layers.Conv2D(filters, kernel_size=kernel_size)
+        result2 = layer2(input)
+        assert not np.allclose(result, result2)
+
+        # But evaluating the first layer again should produce the same result as before.
+
+        result3 = layer(input)
+        assert np.allclose(result, result3)
+
+  def test_conv_3d(self):
+    """Test invoking Conv3D in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        length = 4
+        width = 5
+        depth = 6
+        in_channels = 2
+        filters = 3
+        kernel_size = 2
+        batch_size = 10
+        input = np.random.rand(batch_size, length, width, depth,
+                               in_channels).astype(np.float32)
+        layer = layers.Conv3D(filters, kernel_size=kernel_size)
+        result = layer(input)
+        assert result.shape == (batch_size, length, width, depth, filters)
+        assert len(layer.variables) == 2
+
+        # Creating a second layer should produce different results, since it has
+        # different random weights.
+
+        layer2 = layers.Conv3D(filters, kernel_size=kernel_size)
+        result2 = layer2(input)
+        assert not np.allclose(result, result2)
+
+        # But evaluating the first layer again should produce the same result as before.
+
+        result3 = layer(input)
+        assert np.allclose(result, result3)
+
+  def test_conv_2d_transpose(self):
+    """Test invoking Conv2DTranspose in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        length = 4
+        width = 5
+        in_channels = 2
+        filters = 3
+        kernel_size = 2
+        stride = 2
+        batch_size = 10
+        input = np.random.rand(batch_size, length, width, in_channels).astype(
+            np.float32)
+        layer = layers.Conv2DTranspose(
+            filters, kernel_size=kernel_size, stride=stride)
+        result = layer(input)
+        assert result.shape == (batch_size, length * stride, width * stride,
+                                filters)
+        assert len(layer.variables) == 2
+
+        # Creating a second layer should produce different results, since it has
+        # different random weights.
+
+        layer2 = layers.Conv2DTranspose(
+            filters, kernel_size=kernel_size, stride=stride)
+        result2 = layer2(input)
+        assert not np.allclose(result, result2)
+
+        # But evaluating the first layer again should produce the same result as before.
+
+        result3 = layer(input)
+        assert np.allclose(result, result3)
+
+  def test_conv_3d_transpose(self):
+    """Test invoking Conv3DTranspose in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        length = 4
+        width = 5
+        depth = 6
+        in_channels = 2
+        filters = 3
+        kernel_size = 2
+        stride = 2
+        batch_size = 10
+        input = np.random.rand(batch_size, length, width, depth,
+                               in_channels).astype(np.float32)
+        layer = layers.Conv3DTranspose(
+            filters, kernel_size=kernel_size, stride=stride)
+        result = layer(input)
+        assert result.shape == (batch_size, length * stride, width * stride,
+                                depth * stride, filters)
+        assert len(layer.variables) == 2
+
+        # Creating a second layer should produce different results, since it has
+        # different random weights.
+
+        layer2 = layers.Conv3DTranspose(
+            filters, kernel_size=kernel_size, stride=stride)
+        result2 = layer2(input)
+        assert not np.allclose(result, result2)
+
+        # But evaluating the first layer again should produce the same result as before.
+
+        result3 = layer(input)
+        assert np.allclose(result, result3)
+
+  def test_max_pool_1d(self):
+    """Test invoking MaxPool1D in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input = np.random.rand(4, 6, 8).astype(np.float32)
+        result = layers.MaxPool1D(strides=2)(input)
+        assert result.shape == (4, 3, 8)
+
+  def test_max_pool_2d(self):
+    """Test invoking MaxPool2D in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input = np.random.rand(2, 4, 6, 8).astype(np.float32)
+        result = layers.MaxPool2D()(input)
+        assert result.shape == (2, 2, 3, 8)
+
+  def test_max_pool_3d(self):
+    """Test invoking MaxPool3D in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input = np.random.rand(2, 4, 6, 8, 2).astype(np.float32)
+        result = layers.MaxPool3D()(input)
+        assert result.shape == (2, 2, 3, 4, 2)
+
+  def test_graph_conv(self):
+    """Test invoking GraphConv in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        out_channels = 2
+        n_atoms = 4  # In CCC and C, there are 4 atoms
+        raw_smiles = ['CCC', 'C']
+        mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
+        featurizer = dc.feat.graph_features.ConvMolFeaturizer()
+        mols = featurizer.featurize(mols)
+        multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
+        atom_features = multi_mol.get_atom_features().astype(np.float32)
+        degree_slice = multi_mol.deg_slice
+        membership = multi_mol.membership
+        deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
+        args = [atom_features, degree_slice, membership] + deg_adjs
+        layer = layers.GraphConv(out_channels)
+        result = layer(*args)
+        assert result.shape == (n_atoms, out_channels)
+        assert len(layer.variables) == 2 * layer.num_deg
+
+  def test_graph_pool(self):
+    """Test invoking GraphPool in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        n_atoms = 4  # In CCC and C, there are 4 atoms
+        raw_smiles = ['CCC', 'C']
+        mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
+        featurizer = dc.feat.graph_features.ConvMolFeaturizer()
+        mols = featurizer.featurize(mols)
+        multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
+        atom_features = multi_mol.get_atom_features().astype(np.float32)
+        degree_slice = multi_mol.deg_slice
+        membership = multi_mol.membership
+        deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
+        args = [atom_features, degree_slice, membership] + deg_adjs
+        result = layers.GraphPool()(*args)
+        assert result.shape[0] == n_atoms
+        # TODO What should shape[1] be?  It's not documented.
+
+  def test_graph_gather(self):
+    """Test invoking GraphGather in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        batch_size = 2
+        n_features = 75
+        n_atoms = 4  # In CCC and C, there are 4 atoms
+        raw_smiles = ['CCC', 'C']
+        mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
+        featurizer = dc.feat.graph_features.ConvMolFeaturizer()
+        mols = featurizer.featurize(mols)
+        multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
+        atom_features = multi_mol.get_atom_features().astype(np.float32)
+        degree_slice = multi_mol.deg_slice
+        membership = multi_mol.membership
+        deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
+        args = [atom_features, degree_slice, membership] + deg_adjs
+        result = layers.GraphGather(batch_size)(*args)
+        # TODO(rbharath): Why is it 2*n_features instead of n_features?
+        assert result.shape == (batch_size, 2 * n_features)
+
+  def test_lstm_step(self):
+    """Test invoking LSTMStep in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        max_depth = 5
+        n_test = 5
+        n_feat = 10
+        y = np.random.rand(n_test, 2 * n_feat).astype(np.float32)
+        state_zero = np.random.rand(n_test, n_feat).astype(np.float32)
+        state_one = np.random.rand(n_test, n_feat).astype(np.float32)
+        layer = layers.LSTMStep(n_feat, 2 * n_feat)
+        result = layer(y, state_zero, state_one)
+        h_out, h_copy_out, c_out = (result[0], result[1][0], result[1][1])
+        assert h_out.shape == (n_test, n_feat)
+        assert h_copy_out.shape == (n_test, n_feat)
+        assert c_out.shape == (n_test, n_feat)
+        assert len(layer.variables) == 3
+
+  def test_attn_lstm_embedding(self):
+    """Test invoking AttnLSTMEmbedding in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        max_depth = 5
+        n_test = 5
+        n_support = 11
+        n_feat = 10
+        test = np.random.rand(n_test, n_feat).astype(np.float32)
+        support = np.random.rand(n_support, n_feat).astype(np.float32)
+        layer = layers.AttnLSTMEmbedding(n_test, n_support, n_feat, max_depth)
+        test_out, support_out = layer(test, support)
+        assert test_out.shape == (n_test, n_feat)
+        assert support_out.shape == (n_support, n_feat)
+        assert len(layer.variables) == 5
+
+  def test_iter_ref_lstm_embedding(self):
+    """Test invoking AttnLSTMEmbedding in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        max_depth = 5
+        n_test = 5
+        n_support = 11
+        n_feat = 10
+        test = np.random.rand(n_test, n_feat).astype(np.float32)
+        support = np.random.rand(n_support, n_feat).astype(np.float32)
+        layer = layers.IterRefLSTMEmbedding(n_test, n_support, n_feat,
+                                            max_depth)
+        test_out, support_out = layer(test, support)
+        assert test_out.shape == (n_test, n_feat)
+        assert support_out.shape == (n_support, n_feat)
+        assert len(layer.variables) == 8
