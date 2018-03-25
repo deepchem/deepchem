@@ -223,7 +223,7 @@ def benchmark_classification(train_dataset,
       test_dataset.reshard(reshard_size)
       test_dataset = transformer.transform(test_dataset)
 
-    model = deepchem.models.DAGTensorGraph(
+    model = deepchem.models.DAGModel(
         len(tasks),
         max_atoms=max_atoms,
         n_atom_feat=n_features,
@@ -558,7 +558,7 @@ def benchmark_regression(train_dataset,
       test_dataset.reshard(reshard_size)
       test_dataset = transformer.transform(test_dataset)
 
-    model = deepchem.models.DAGTensorGraph(
+    model = deepchem.models.DAGModel(
         len(tasks),
         max_atoms=max_atoms,
         n_atom_feat=n_features,

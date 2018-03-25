@@ -661,7 +661,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     transformer = dc.trans.DAGTransformer(max_atoms=50)
     dataset = transformer.transform(dataset)
 
-    model = dc.models.DAGTensorGraph(
+    model = dc.models.DAGModel(
         n_tasks,
         max_atoms=50,
         n_atom_feat=n_feat,

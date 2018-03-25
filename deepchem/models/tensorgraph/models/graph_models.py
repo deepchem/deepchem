@@ -358,7 +358,7 @@ class DTNNModel(TensorGraph):
     return undo_transforms(retval, transformers)
 
 
-class DAGTensorGraph(TensorGraph):
+class DAGModel(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -390,7 +390,7 @@ class DAGTensorGraph(TensorGraph):
     self.n_graph_feat = n_graph_feat
     self.n_outputs = n_outputs
     self.mode = mode
-    super(DAGTensorGraph, self).__init__(**kwargs)
+    super(DAGModel, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
@@ -508,7 +508,7 @@ class DAGTensorGraph(TensorGraph):
         yield feed_dict
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
-    out = super(DAGTensorGraph, self).predict_on_generator(
+    out = super(DAGModel, self).predict_on_generator(
         generator, transformers=[], outputs=outputs)
     if outputs is None:
       outputs = self.outputs
