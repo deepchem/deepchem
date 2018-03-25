@@ -1172,3 +1172,14 @@ class WeaveTensorGraph(WeaveModel):
   def __init__(self, *args, **kwargs):
 
     super(WeaveModel, self).__init__(*args, **kwargs)
+
+
+class DTNNTensorGraph(DTNNModel):
+
+  warnings.warn(
+      TENSORGRAPH_DEPRECATION.format("DTNNTensorGraph", "DTNNModel"),
+      FutureWarning)
+
+  def __init__(self, *args, **kwargs):
+
+    super(DTNNModel, self).__init__(*args, **kwargs)

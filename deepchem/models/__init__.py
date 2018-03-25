@@ -28,4 +28,4 @@ from deepchem.models.tensorgraph.models.sequence_dnn import SequenceDNN
 
 #################### Compatibility imports for renamed TensorGraph models. Remove below with DeepChem 3.0. ####################
 
-from deepchem.models.tensorgraph.models.graph_models import WeaveTensorGraph, GraphConvTensorGraph
+from deepchem.models.tensorgraph.models.graph_models import WeaveTensorGraph, DTNNTensorGraph, GraphConvTensorGraph
