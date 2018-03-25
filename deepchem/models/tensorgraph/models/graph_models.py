@@ -519,7 +519,7 @@ class DAGTensorGraph(TensorGraph):
     return out
 
 
-class PetroskiSuchTensorGraph(TensorGraph):
+class PetroskiSuchModel(TensorGraph):
   """
       Model from Robust Spatial Filtering with Graph Convolutional Neural Networks
       https://arxiv.org/abs/1703.00792
@@ -545,7 +545,7 @@ class PetroskiSuchTensorGraph(TensorGraph):
     self.error_bars = True if 'error_bars' in kwargs and kwargs['error_bars'] else False
     self.dropout = dropout
     kwargs['use_queue'] = False
-    super(PetroskiSuchTensorGraph, self).__init__(**kwargs)
+    super(PetroskiSuchModel, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
