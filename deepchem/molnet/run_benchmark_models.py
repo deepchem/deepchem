@@ -264,10 +264,10 @@ def benchmark_classification(train_dataset,
 
     all_data = deepchem.data.DiskDataset.merge(
         [train_dataset, valid_dataset, test_dataset])
-    char_dict, length = deepchem.models.TextCNNTensorGraph.build_char_dict(
+    char_dict, length = deepchem.models.TextCNNModel.build_char_dict(
         all_data)
 
-    model = deepchem.models.TextCNNTensorGraph(
+    model = deepchem.models.TextCNNModel(
         len(tasks),
         char_dict,
         seq_length=length,
@@ -597,10 +597,10 @@ def benchmark_regression(train_dataset,
     filter_sizes = hyper_parameters['filter_sizes']
     num_filters = hyper_parameters['num_filters']
 
-    char_dict, length = deepchem.models.TextCNNTensorGraph.build_char_dict(
+    char_dict, length = deepchem.models.TextCNNModel.build_char_dict(
         train_dataset)
 
-    model = deepchem.models.TextCNNTensorGraph(
+    model = deepchem.models.TextCNNModel(
         len(tasks),
         char_dict,
         seq_length=length,

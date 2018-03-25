@@ -811,10 +811,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
 
-    char_dict, length = dc.models.TextCNNTensorGraph.build_char_dict(dataset)
+    char_dict, length = dc.models.TextCNNModel.build_char_dict(dataset)
     batch_size = 10
 
-    model = dc.models.TextCNNTensorGraph(
+    model = dc.models.TextCNNModel(
         n_tasks,
         char_dict,
         seq_length=length,
@@ -849,10 +849,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
     regression_metric = dc.metrics.Metric(
         dc.metrics.pearson_r2_score, task_averager=np.mean)
 
-    char_dict, length = dc.models.TextCNNTensorGraph.build_char_dict(dataset)
+    char_dict, length = dc.models.TextCNNModel.build_char_dict(dataset)
     batch_size = 10
 
-    model = dc.models.TextCNNTensorGraph(
+    model = dc.models.TextCNNModel(
         n_tasks,
         char_dict,
         seq_length=length,
