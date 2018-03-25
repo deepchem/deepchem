@@ -1185,6 +1185,17 @@ class DTNNTensorGraph(DTNNModel):
     super(DTNNModel, self).__init__(*args, **kwargs)
 
 
+class DAGTensorGraph(DAGModel):
+
+  warnings.warn(
+      TENSORGRAPH_DEPRECATION.format("DAGTensorGraph", "DAGModel"),
+      FutureWarning)
+
+  def __init__(self, *args, **kwargs):
+
+    super(DAGModel, self).__init__(*args, **kwargs)
+
+
 class PetroskiSuchTensorGraph(PetroskiSuchModel):
 
   warnings.warn(
