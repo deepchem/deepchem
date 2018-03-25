@@ -1194,3 +1194,14 @@ class PetroskiSuchTensorGraph(PetroskiSuchModel):
   def __init__(self, *args, **kwargs):
 
     super(PetroskiSuchModel, self).__init__(*args, **kwargs)
+
+
+class MPNNTensorGraph(MPNNModel):
+
+  warnings.warn(
+      TENSORGRAPH_DEPRECATION.format("MPNNTensorGraph", "MPNNModel"),
+      FutureWarning)
+
+  def __init__(self, *args, **kwargs):
+
+    super(MPNNModel, self).__init__(*args, **kwargs)
