@@ -777,7 +777,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     n_atom_feat = 75
     n_pair_feat = 14
     batch_size = 10
-    model = dc.models.MPNNTensorGraph(
+    model = dc.models.MPNNModel(
         n_tasks,
         n_atom_feat=n_atom_feat,
         n_pair_feat=n_pair_feat,

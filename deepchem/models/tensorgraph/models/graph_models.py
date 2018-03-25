@@ -952,7 +952,7 @@ class GraphConvModel(TensorGraph):
     return y_
 
 
-class MPNNTensorGraph(TensorGraph):
+class MPNNModel(TensorGraph):
   """ Message Passing Neural Network,
       default structures built according to https://arxiv.org/abs/1511.06391 """
 
@@ -987,7 +987,7 @@ class MPNNTensorGraph(TensorGraph):
     self.T = T
     self.M = M
     self.mode = mode
-    super(MPNNTensorGraph, self).__init__(**kwargs)
+    super(MPNNModel, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):

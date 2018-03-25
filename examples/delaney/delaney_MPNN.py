@@ -29,7 +29,7 @@ n_pair_feat = 14
 # Batch size of models
 batch_size = 64
 
-model = dc.models.MPNNTensorGraph(
+model = dc.models.MPNNModel(
     len(delaney_tasks),
     n_atom_feat=n_atom_feat,
     n_pair_feat=n_pair_feat,

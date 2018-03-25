@@ -287,7 +287,7 @@ def benchmark_classification(train_dataset,
     T = hyper_parameters['T']
     M = hyper_parameters['M']
 
-    model = deepchem.models.MPNNTensorGraph(
+    model = deepchem.models.MPNNModel(
         len(tasks),
         n_atom_feat=n_features[0],
         n_pair_feat=n_features[1],
@@ -660,7 +660,7 @@ def benchmark_regression(train_dataset,
     T = hyper_parameters['T']
     M = hyper_parameters['M']
 
-    model = deepchem.models.MPNNTensorGraph(
+    model = deepchem.models.MPNNModel(
         len(tasks),
         n_atom_feat=n_features[0],
         n_pair_feat=n_features[1],
