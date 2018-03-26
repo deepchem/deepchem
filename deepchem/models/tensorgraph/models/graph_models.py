@@ -1199,8 +1199,8 @@ class DAGTensorGraph(DAGModel):
 class PetroskiSuchTensorGraph(PetroskiSuchModel):
 
   warnings.warn(
-      TENSORGRAPH_DEPRECATION.format("PetroskiSuchTensorGraph", "PetroskiSuchModel"),
-      FutureWarning)
+      TENSORGRAPH_DEPRECATION.format("PetroskiSuchTensorGraph",
+                                     "PetroskiSuchModel"), FutureWarning)
 
   def __init__(self, *args, **kwargs):
 
