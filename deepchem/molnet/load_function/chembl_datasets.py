@@ -20,7 +20,7 @@ def load_chembl(shard_size=2000,
 
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "chembl/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir, "chembl/" + featurizer + "/" + str(split))
 
   dataset_path = os.path.join(data_dir, "chembl_%s.csv.gz" % set)
   if not os.path.exists(dataset_path):

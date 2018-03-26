@@ -17,7 +17,8 @@ def load_delaney(featurizer='ECFP', split='index', reload=True):
   logger.info("About to featurize Delaney dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "delaney/" + featurizer + "/" + str(split))
+    save_dir = os.path.join(data_dir,
+                            "delaney/" + featurizer + "/" + str(split))
 
   dataset_file = os.path.join(data_dir, "delaney-processed.csv")
 
