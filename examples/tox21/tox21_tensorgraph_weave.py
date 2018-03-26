@@ -25,7 +25,7 @@ n_pair_feat = 14
 batch_size = 64
 n_feat = 128
 
-model = dc.models.WeaveTensorGraph(
+model = dc.models.WeaveModel(
     len(tox21_tasks),
     batch_size=batch_size,
     learning_rate=1e-3,
