@@ -80,9 +80,9 @@ class ScScoreModel(TensorGraph):
     self.add_output(Sigmoid(readout_m1) * 4 + 1)
     self.add_output(Sigmoid(readout_m2) * 4 + 1)
 
-    difference = readout_m1 - readout_m2
+    self.difference = readout_m1 - readout_m2
     label = Label(shape=(None, 1))
-    loss = HingeLoss(in_layers=[label, difference])
+    loss = HingeLoss(in_layers=[label, self.difference])
     self.my_task_weights = Weights(shape=(None, 1))
     loss = WeightedError(in_layers=[loss, self.my_task_weights])
     self.set_loss(loss)

@@ -301,6 +301,12 @@ class TestEstimators(unittest.TestCase):
     # Create a TensorGraph model.
 
     model = dc.models.ScScoreModel(n_features, dropouts=0)
+    model.outputs.clear()
+    model.outputs.append(model.difference)
+
+    def accuracy(labels, predictions, weights):
+      predictions = tf.nn.relu(tf.sign(predictions))
+      return tf.metrics.accuracy(labels, predictions, weights)
 
     # Create an estimator from it.
 
@@ -309,7 +315,9 @@ class TestEstimators(unittest.TestCase):
     weight_col = tf.feature_column.numeric_column('weights', shape=(1,))
 
     estimator = model.make_estimator(
-        feature_columns=[x_col1, x_col2], metrics={}, weight_column=weight_col)
+        feature_columns=[x_col1, x_col2],
+        metrics={'accuracy': accuracy},
+        weight_column=weight_col)
 
     # Train the model.
 
@@ -318,4 +326,5 @@ class TestEstimators(unittest.TestCase):
     # Evaluate the model.
 
     results = estimator.evaluate(input_fn=lambda: input_fn(1))
-    assert results['loss'] < 1e-4
+    assert results['loss'] < 0.5
+    assert results['accuracy'] > 0.6
