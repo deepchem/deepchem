@@ -277,3 +277,53 @@ class TestEstimators(unittest.TestCase):
 
     results = estimator.evaluate(input_fn=lambda: input_fn(1))
     assert results['accuracy'] > 0.9
+
+  def test_scscore(self):
+    """Test creating an Estimator from a ScScoreModel."""
+    n_samples = 10
+    n_features = 3
+    n_tasks = 1
+
+    # Create a dataset and an input function for processing it.
+
+    np.random.seed(123)
+    X = np.random.rand(n_samples, 2, n_features)
+    y = np.zeros((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y)
+
+    def input_fn(epochs):
+      x, y, weights = dataset.make_iterator(
+          batch_size=n_samples, epochs=epochs).get_next()
+      x1 = x[:, 0]
+      x2 = x[:, 1]
+      return {'x1': x1, 'x2': x2, 'weights': weights}, y
+
+    # Create a TensorGraph model.
+
+    model = dc.models.ScScoreModel(n_features, dropouts=0)
+
+    # Create an estimator from it.
+
+    x_col1 = tf.feature_column.numeric_column('x1', shape=(n_features,))
+    x_col2 = tf.feature_column.numeric_column('x2', shape=(n_features,))
+
+    def accuracy(labels, predictions, weights):
+      return tf.metrics.accuracy(labels, tf.round(predictions), weights)
+
+    metrics = {'accuracy': accuracy}
+    estimator = model.make_estimator(
+        feature_columns=[x_col1, x_col2], metrics=metrics)
+
+    # Train the model.
+
+    estimator.train(input_fn=lambda: input_fn(100))
+
+    # Evaluate the model.
+
+    results = estimator.evaluate(input_fn=lambda: input_fn(1))
+    print(results)
+    assert results['loss'] < 1e-4
+    # TODO(LESWING) Discuss with peastman.
+    #  The output here is human readable
+    # score 1-5 per molecule not a probability of class
+    # assert results['accuracy'] > 0.9

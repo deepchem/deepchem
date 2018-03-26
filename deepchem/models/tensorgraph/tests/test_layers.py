@@ -25,7 +25,7 @@ from deepchem.models.tensorgraph.layers import GRU
 from deepchem.models.tensorgraph.layers import Gather
 from deepchem.models.tensorgraph.layers import GraphConv
 from deepchem.models.tensorgraph.layers import GraphGather
-from deepchem.models.tensorgraph.layers import Hingeloss
+from deepchem.models.tensorgraph.layers import HingeLoss
 from deepchem.models.tensorgraph.layers import Input
 from deepchem.models.tensorgraph.layers import InputFifoQueue
 from deepchem.models.tensorgraph.layers import InteratomicL2Distances
@@ -899,6 +899,6 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       logits_tensor = tf.convert_to_tensor(logits_tensor, dtype=tf.float32)
       labels_tensor = tf.convert_to_tensor(labels_tensor, dtype=tf.float32)
-      out_tensor = Hingeloss()(labels_tensor, logits_tensor)
+      out_tensor = HingeLoss()(labels_tensor, logits_tensor)
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (labels,)

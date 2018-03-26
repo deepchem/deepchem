@@ -22,7 +22,7 @@ def load_tox21(featurizer='ECFP', split='index', reload=True, K=4):
 
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "tox21/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir, "tox21/" + featurizer + "/" + str(split))
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
         save_dir)
     if loaded:

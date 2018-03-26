@@ -19,6 +19,7 @@ from deepchem.models.tensorgraph.robust_multitask import RobustMultitaskRegresso
 from deepchem.models.tensorgraph.progressive_multitask import ProgressiveMultitaskRegressor, ProgressiveMultitaskClassifier
 from deepchem.models.tensorgraph.models.graph_models import WeaveModel, DTNNTensorGraph, DAGTensorGraph, GraphConvModel, MPNNTensorGraph
 from deepchem.models.tensorgraph.models.symmetry_function_regression import BPSymmetryFunctionRegression, ANIRegression
+from deepchem.models.tensorgraph.models.scscore import ScScoreModel
 
 from deepchem.models.tensorgraph.models.seqtoseq import SeqToSeq
 from deepchem.models.tensorgraph.models.gan import GAN, WGAN
