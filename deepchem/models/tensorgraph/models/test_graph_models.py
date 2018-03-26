@@ -4,11 +4,12 @@ import numpy as np
 
 import deepchem
 from deepchem.data import NumpyDataset
-from deepchem.models import GraphConvTensorGraph
+from deepchem.models import GraphConvModel
 from deepchem.models import TensorGraph
 from deepchem.molnet.load_function.delaney_datasets import load_delaney
 from deepchem.models.tensorgraph.layers import ReduceSum, L2Loss
-from deepchem.models import WeaveTensorGraph
+from deepchem.models import WeaveModel
+from deepchem.feat import ConvMolFeaturizer
 
 
 class TestGraphModels(unittest.TestCase):
@@ -42,7 +43,7 @@ class TestGraphModels(unittest.TestCase):
         'classification', 'GraphConv')
 
     batch_size = 50
-    model = GraphConvTensorGraph(
+    model = GraphConvModel(
         len(tasks), batch_size=batch_size, mode='classification')
 
     model.fit(dataset, nb_epoch=1)
@@ -57,8 +58,7 @@ class TestGraphModels(unittest.TestCase):
         'regression', 'GraphConv')
 
     batch_size = 50
-    model = GraphConvTensorGraph(
-        len(tasks), batch_size=batch_size, mode='regression')
+    model = GraphConvModel(len(tasks), batch_size=batch_size, mode='regression')
 
     model.fit(dataset, nb_epoch=1)
     scores = model.evaluate(dataset, [metric], transformers)
@@ -72,8 +72,7 @@ class TestGraphModels(unittest.TestCase):
         'regression', 'GraphConv', num_tasks=1)
 
     batch_size = 50
-    model = GraphConvTensorGraph(
-        len(tasks), batch_size=batch_size, mode='regression')
+    model = GraphConvModel(len(tasks), batch_size=batch_size, mode='regression')
 
     model.fit(dataset, nb_epoch=1)
 
@@ -82,13 +81,45 @@ class TestGraphModels(unittest.TestCase):
     assert mu.shape == (len(dataset), len(tasks))
     assert sigma.shape == (len(dataset), len(tasks))
 
+  def test_graph_conv_atom_features(self):
+    tasks, dataset, transformers, metric = self.get_dataset(
+        'regression', 'Raw', num_tasks=1)
+
+    atom_feature_name = 'feature'
+    y = []
+    for mol in dataset.X:
+      atom_features = []
+      for atom in mol.GetAtoms():
+        val = np.random.normal()
+        mol.SetProp("atom %08d %s" % (atom.GetIdx(), atom_feature_name),
+                    str(val))
+        atom_features.append(np.random.normal())
+      y.append(np.sum(atom_features))
+
+    featurizer = ConvMolFeaturizer(atom_properties=[atom_feature_name])
+    X = featurizer.featurize(dataset.X)
+    dataset = deepchem.data.NumpyDataset(X, np.array(y))
+    batch_size = 50
+    model = GraphConvModel(
+        len(tasks),
+        number_atom_features=featurizer.feature_length(),
+        batch_size=batch_size,
+        mode='regression')
+
+    model.fit(dataset, nb_epoch=1)
+    y_pred1 = model.predict(dataset)
+    model.save()
+
+    model2 = TensorGraph.load_from_dir(model.model_dir)
+    y_pred2 = model2.predict(dataset)
+    self.assertTrue(np.all(y_pred1 == y_pred2))
+
   def test_change_loss_function(self):
     tasks, dataset, transformers, metric = self.get_dataset(
         'regression', 'GraphConv', num_tasks=1)
 
     batch_size = 50
-    model = GraphConvTensorGraph(
-        len(tasks), batch_size=batch_size, mode='regression')
+    model = GraphConvModel(len(tasks), batch_size=batch_size, mode='regression')
 
     model.fit(dataset, nb_epoch=1)
     model.save()
@@ -106,7 +137,7 @@ class TestGraphModels(unittest.TestCase):
         'regression', 'Weave', num_tasks=1)
 
     batch_size = 50
-    model = WeaveTensorGraph(
+    model = WeaveModel(
         len(tasks), batch_size=batch_size, mode='regression', use_queue=False)
 
     model.fit(dataset, nb_epoch=1)

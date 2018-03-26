@@ -191,7 +191,7 @@ def benchmark_classification(train_dataset,
     n_filters = hyper_parameters['n_filters']
     n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
 
-    model = deepchem.models.GraphConvTensorGraph(
+    model = deepchem.models.GraphConvModel(
         len(tasks),
         graph_conv_layers=[n_filters] * 2,
         dense_layer_size=n_fully_connected_nodes,
@@ -242,7 +242,7 @@ def benchmark_classification(train_dataset,
     n_graph_feat = hyper_parameters['n_graph_feat']
     n_pair_feat = hyper_parameters['n_pair_feat']
 
-    model = deepchem.models.WeaveTensorGraph(
+    model = deepchem.models.WeaveModel(
         len(tasks),
         n_atom_feat=n_features,
         n_pair_feat=n_pair_feat,
@@ -507,7 +507,7 @@ def benchmark_regression(train_dataset,
     n_filters = hyper_parameters['n_filters']
     n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
 
-    model = deepchem.models.GraphConvTensorGraph(
+    model = deepchem.models.GraphConvModel(
         len(tasks),
         graph_conv_layers=[n_filters] * 2,
         dense_layer_size=n_fully_connected_nodes,
@@ -577,7 +577,7 @@ def benchmark_regression(train_dataset,
     n_graph_feat = hyper_parameters['n_graph_feat']
     n_pair_feat = hyper_parameters['n_pair_feat']
 
-    model = deepchem.models.WeaveTensorGraph(
+    model = deepchem.models.WeaveModel(
         len(tasks),
         n_atom_feat=n_features,
         n_pair_feat=n_pair_feat,

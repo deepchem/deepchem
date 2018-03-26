@@ -112,7 +112,8 @@ class Layer(object):
     tensors = []
     for input in in_layers:
       tensors.append(tf.convert_to_tensor(input))
-    if reshape and len(tensors) > 1:
+    if reshape and len(tensors) > 1 and all(
+        '_shape' in dir(l) for l in in_layers):
       shapes = [t.get_shape() for t in tensors]
       if any(s != shapes[0] for s in shapes[1:]):
         # Reshape everything to match the input with the most dimensions.
@@ -1070,7 +1071,8 @@ class TimeSeriesDense(Layer):
 class Input(Layer):
 
   def __init__(self, shape, dtype=tf.float32, **kwargs):
-    self._shape = tuple(shape)
+    if shape is not None:
+      self._shape = tuple(shape)
     self.dtype = dtype
     super(Input, self).__init__(**kwargs)
     self.op_type = "cpu"
@@ -1079,18 +1081,25 @@ class Input(Layer):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
+    try:
+      shape = self.shape
+    except NotImplementedError:
+      shape = None
     if len(in_layers) > 0:
       queue = in_layers[0]
       placeholder = queue.out_tensors[self.get_pre_q_name()]
-      self.out_tensor = tf.placeholder_with_default(placeholder, self._shape)
+      self.out_tensor = tf.placeholder_with_default(placeholder, shape)
       return self.out_tensor
-    out_tensor = tf.placeholder(dtype=self.dtype, shape=self._shape)
+    out_tensor = tf.placeholder(dtype=self.dtype, shape=shape)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
 
   def create_pre_q(self):
-    q_shape = (None,) + self._shape[1:]
+    try:
+      q_shape = (None,) + self.shape[1:]
+    except NotImplementedError:
+      q_shape = None
     return Input(shape=q_shape, name="%s_pre_q" % self.name, dtype=self.dtype)
 
   def get_pre_q_name(self):
@@ -2480,44 +2489,43 @@ class GraphGather(Layer):
     super(GraphGather, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    with tf.device('/cpu'):
-      inputs = self._get_input_tensors(in_layers)
+    inputs = self._get_input_tensors(in_layers)
 
-      # x = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
-      atom_features = inputs[0]
+    # x = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
+    atom_features = inputs[0]
 
-      # Extract graph topology
-      membership = inputs[2]
+    # Extract graph topology
+    membership = inputs[2]
 
-      # Perform the mol gather
+    # Perform the mol gather
 
-      assert self.batch_size > 1, "graph_gather requires batches larger than 1"
+    assert self.batch_size > 1, "graph_gather requires batches larger than 1"
 
-      # Obtain the partitions for each of the molecules
-      activated_par = tf.dynamic_partition(atom_features, membership,
-                                           self.batch_size)
+    # Obtain the partitions for each of the molecules
+    activated_par = tf.dynamic_partition(atom_features, membership,
+                                         self.batch_size)
 
-      # Sum over atoms for each molecule
-      sparse_reps = [
-          tf.reduce_mean(activated, 0, keepdims=True)
-          for activated in activated_par
-      ]
-      max_reps = [
-          tf.reduce_max(activated, 0, keepdims=True)
-          for activated in activated_par
-      ]
+    # Sum over atoms for each molecule
+    sparse_reps = [
+        tf.reduce_mean(activated, 0, keepdims=True)
+        for activated in activated_par
+    ]
+    max_reps = [
+        tf.reduce_max(activated, 0, keepdims=True)
+        for activated in activated_par
+    ]
 
-      # Get the final sparse representations
-      sparse_reps = tf.concat(axis=0, values=sparse_reps)
-      max_reps = tf.concat(axis=0, values=max_reps)
-      mol_features = tf.concat(axis=1, values=[sparse_reps, max_reps])
+    # Get the final sparse representations
+    sparse_reps = tf.concat(axis=0, values=sparse_reps)
+    max_reps = tf.concat(axis=0, values=max_reps)
+    mol_features = tf.concat(axis=1, values=[sparse_reps, max_reps])
 
-      if self.activation_fn is not None:
-        mol_features = self.activation_fn(mol_features)
-      out_tensor = mol_features
-      if set_tensors:
-        self.out_tensor = out_tensor
-      return out_tensor
+    if self.activation_fn is not None:
+      mol_features = self.activation_fn(mol_features)
+    out_tensor = mol_features
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
 
 
 class LSTMStep(Layer):
@@ -4318,7 +4326,7 @@ class GraphCNN(Layer):
 
 
 class Hingeloss(Layer):
-  """This layer computes the hinge loss on inputs:[labels,logits] 
+  """This layer computes the hinge loss on inputs:[labels,logits]
   labels: The values of this tensor is expected to be 1.0 or 0.0. The shape should be the same as logits.
   logits: Holds the log probabilities for labels, a float tensor.
   The output is a weighted loss tensor of same shape as labels.

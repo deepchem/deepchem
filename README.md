@@ -59,7 +59,7 @@ git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source 
 cd deepchem
 bash scripts/install_deepchem_conda.sh deepchem
 source activate deepchem
-yes | pip install tensorflow-gpu==1.5.0      # If you want GPU support
+yes | pip install tensorflow-gpu==1.6.0      # If you want GPU support
 python setup.py install                                # Manual install
 nosetests -a '!slow' -v deepchem --nologcapture        # Run tests
 ```
@@ -72,7 +72,7 @@ via this installation procedure.
 ### Easy Install via Conda
 
 ```bash
-conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.3.1
+conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=2.0.0
 ```
 **Note:** `Easy Install` installs the latest stable version of `deepchem` and _does not install from source_. If you need to install from source make sure you follow the steps [here](#using-a-conda-environment).
 
@@ -182,4 +182,4 @@ DeepChem is supported by a number of corporate partners who use DeepChem to solv
 
 
 ## Version
-1.3.1
+2.0.0

@@ -20,7 +20,7 @@ from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
 
 
-class WeaveTensorGraph(TensorGraph):
+class WeaveModel(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -52,7 +52,7 @@ class WeaveTensorGraph(TensorGraph):
     self.n_hidden = n_hidden
     self.n_graph_feat = n_graph_feat
     self.mode = mode
-    super(WeaveTensorGraph, self).__init__(**kwargs)
+    super(WeaveModel, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
@@ -183,7 +183,7 @@ class WeaveTensorGraph(TensorGraph):
         yield feed_dict
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
-    out = super(WeaveTensorGraph, self).predict_on_generator(
+    out = super(WeaveModel, self).predict_on_generator(
         generator, transformers=[], outputs=outputs)
     if outputs is None:
       outputs = self.outputs
@@ -664,7 +664,7 @@ class PetroskiSuchTensorGraph(TensorGraph):
         per_task_metrics=per_task_metrics)
 
 
-class GraphConvTensorGraph(TensorGraph):
+class GraphConvModel(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -672,6 +672,7 @@ class GraphConvTensorGraph(TensorGraph):
                dense_layer_size=128,
                dropout=0.0,
                mode="classification",
+               number_atom_features=75,
                **kwargs):
     """
             Parameters
@@ -686,6 +687,10 @@ class GraphConvTensorGraph(TensorGraph):
               Droupout dropout probability.  Dropout is applied after the per Atom Level Dense Layer
             mode: str
               Either "classification" or "regression"
+            number_atom_features: int
+                75 is the default number of atom features created, but
+                this can vary if various options are passed to the 
+                function atom_features in graph_features
             """
     self.n_tasks = n_tasks
     self.mode = mode
@@ -694,14 +699,15 @@ class GraphConvTensorGraph(TensorGraph):
     self.dropout = dropout
     self.graph_conv_layers = graph_conv_layers
     kwargs['use_queue'] = False
-    super(GraphConvTensorGraph, self).__init__(**kwargs)
+    self.number_atom_features = number_atom_features
+    super(GraphConvModel, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
     """
-            Building graph structures:
-            """
-    self.atom_features = Feature(shape=(None, 75))
+    Building graph structures:
+    """
+    self.atom_features = Feature(shape=(None, self.number_atom_features))
     self.degree_slice = Feature(shape=(None, 2), dtype=tf.int32)
     self.membership = Feature(shape=(None,), dtype=tf.int32)
 
@@ -818,7 +824,7 @@ class GraphConvTensorGraph(TensorGraph):
           result = undo_transforms(feed_results[0], transformers)
           feed_results = [result]
         for ind, result in enumerate(feed_results):
-          # GraphConvTensorGraph constantly outputs batch_size number of
+          # GraphConvModel constantly outputs batch_size number of
           # results, only valid samples should be appended to final results
           results[ind].append(result[:n_samples])
 
@@ -1137,3 +1143,32 @@ class MPNNTensorGraph(TensorGraph):
 
   def predict_on_generator(self, generator, transformers=[]):
     return self.predict_proba_on_generator(generator, transformers)
+
+
+#################### Deprecation warnings for renamed TensorGraph models ####################
+
+import warnings
+
+TENSORGRAPH_DEPRECATION = "{} is deprecated and has been renamed to {} and will be removed in DeepChem 3.0."
+
+
+class GraphConvTensorGraph(GraphConvModel):
+
+  warnings.warn(
+      TENSORGRAPH_DEPRECATION.format("GraphConvTensorGraph", "GraphConvModel"),
+      FutureWarning)
+
+  def __init__(self, *args, **kwargs):
+
+    super(GraphConvTensorGraph, self).__init__(*args, **kwargs)
+
+
+class WeaveTensorGraph(WeaveModel):
+
+  warnings.warn(
+      TENSORGRAPH_DEPRECATION.format("WeaveTensorGraph", "WeaveModel"),
+      FutureWarning)
+
+  def __init__(self, *args, **kwargs):
+
+    super(WeaveModel, self).__init__(*args, **kwargs)
