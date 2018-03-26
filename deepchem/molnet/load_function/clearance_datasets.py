@@ -18,7 +18,8 @@ def load_clearance(featurizer='ECFP', split='random', reload=True):
   logger.info("About to load clearance dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "clearance/" + featurizer + "/" + str(split))
+    save_dir = os.path.join(data_dir,
+                            "clearance/" + featurizer + "/" + str(split))
 
   dataset_file = os.path.join(data_dir, "clearance.csv")
   if not os.path.exists(dataset_file):
