@@ -360,7 +360,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
     with context.eager_mode():
       with tfe.IsolateTest():
         result = layers.Divide()([1, 2], [2, 5])
-        assert np.array_equal(result, [0.5, 0.4])
+        assert np.allclose(result, [0.5, 0.4])
 
   def test_log(self):
     """Test invoking Log in eager mode."""

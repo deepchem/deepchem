@@ -1282,7 +1282,7 @@ class L2Loss(Layer):
     l2 = tf.square(guess - label)
     if len(inputs) > 2:
       l2 *= inputs[2]
-    out_tensor = tf.reduce_mean(l2, axis=list(range(1, len(label._shape))))
+    out_tensor = tf.reduce_mean(l2, axis=list(range(1, len(label.shape))))
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
