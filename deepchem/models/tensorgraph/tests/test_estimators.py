@@ -301,7 +301,7 @@ class TestEstimators(unittest.TestCase):
     # Create a TensorGraph model.
 
     model = dc.models.ScScoreModel(n_features, dropouts=0)
-    model.outputs.clear()
+    del model.outputs[:]
     model.outputs.append(model.difference)
 
     def accuracy(labels, predictions, weights):

@@ -8,7 +8,7 @@ from deepchem.models import TensorGraph
 class TestSaScoreModel(unittest.TestCase):
 
   def test_save_load(self):
-    """Test creating an Estimator from a ScScoreModel."""
+    """Test SaScoreModel anc be saved and loaded"""
     n_samples = 10
     n_features = 3
     n_tasks = 1
