@@ -18,7 +18,7 @@ def load_lipo(featurizer='ECFP', split='index', reload=True):
   logger.info("About to load Lipophilicity dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "lipo/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir, "lipo/" + featurizer + "/" + str(split))
 
   dataset_file = os.path.join(data_dir, "Lipophilicity.csv")
   if not os.path.exists(dataset_file):

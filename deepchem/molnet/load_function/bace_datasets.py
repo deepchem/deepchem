@@ -18,7 +18,7 @@ def load_bace_regression(featurizer='ECFP', split='random', reload=True):
   logger.info("About to featurize bace dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "bace_r/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir, "bace_r/" + featurizer + "/" + str(split))
 
   dataset_file = os.path.join(data_dir, "bace.csv")
 
@@ -83,7 +83,7 @@ def load_bace_classification(featurizer='ECFP', split='random', reload=True):
   logger.info("About to featurize bace dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "bace_c/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir, "bace_c/" + featurizer + "/" + str(split))
 
   dataset_file = os.path.join(data_dir, "bace.csv")
 
