@@ -109,7 +109,7 @@ class ScScoreModel(TensorGraph):
 
   def predict_mols(self, mols):
     featurizer = CircularFingerprint(
-        size=self.n_features, radius=3, chiral=True)
+        size=self.n_features, radius=2, chiral=True)
     features = np.expand_dims(featurizer.featurize(mols), axis=1)
     features = np.concatenate([features, features], axis=1)
     ds = NumpyDataset(features, None, None, None)
@@ -121,6 +121,9 @@ class ScScoreModel(TensorGraph):
     for layer, column in zip([self.m1_features, self.m2_features],
                              feature_columns):
       tensors[layer] = tf.feature_column.input_layer(features, [column])
+    if weight_column is not None:
+      tensors[self.task_weights[0]] = tf.feature_column.input_layer(
+          features, [weight_column])
     if labels is not None:
       tensors[self.labels[0]] = tf.cast(labels, tf.int32)
     return tensors

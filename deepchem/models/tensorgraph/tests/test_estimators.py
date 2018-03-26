@@ -306,13 +306,10 @@ class TestEstimators(unittest.TestCase):
 
     x_col1 = tf.feature_column.numeric_column('x1', shape=(n_features,))
     x_col2 = tf.feature_column.numeric_column('x2', shape=(n_features,))
+    weight_col = tf.feature_column.numeric_column('weights', shape=(1,))
 
-    def accuracy(labels, predictions, weights):
-      return tf.metrics.accuracy(labels, tf.round(predictions), weights)
-
-    metrics = {'accuracy': accuracy}
     estimator = model.make_estimator(
-        feature_columns=[x_col1, x_col2], metrics=metrics)
+        feature_columns=[x_col1, x_col2], metrics={}, weight_column=weight_col)
 
     # Train the model.
 
@@ -321,9 +318,4 @@ class TestEstimators(unittest.TestCase):
     # Evaluate the model.
 
     results = estimator.evaluate(input_fn=lambda: input_fn(1))
-    print(results)
     assert results['loss'] < 1e-4
-    # TODO(LESWING) Discuss with peastman.
-    #  The output here is human readable
-    # score 1-5 per molecule not a probability of class
-    # assert results['accuracy'] > 0.9
