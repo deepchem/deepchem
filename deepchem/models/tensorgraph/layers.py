@@ -1,4 +1,5 @@
 # -*- coding: UTF-8 -*-
+from __future__ import division
 import random
 import string
 from collections import Sequence
