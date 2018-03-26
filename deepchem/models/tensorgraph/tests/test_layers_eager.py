@@ -28,6 +28,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         result = layer(input)
         self.assertEqual(result.shape[0], batch_size)
         self.assertEqual(result.shape[2], filters)
+        assert len(layer.variables) == 2
 
         # Creating a second layer should produce different results, since it has
         # different random weights.
@@ -137,7 +138,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         mean = np.random.rand(5, 3).astype(np.float32)
         std = np.random.rand(5, 3).astype(np.float32)
         layer = layers.CombineMeanStd(training_only=True, noise_epsilon=0.01)
-        result1 = layer(mean, std)
+        result1 = layer(mean, std, training=False)
         assert np.array_equal(result1, mean)  # No noise in test mode
         result2 = layer(mean, std, training=True)
         assert not np.array_equal(result2, mean)
@@ -730,3 +731,250 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         assert test_out.shape == (n_test, n_feat)
         assert support_out.shape == (n_support, n_feat)
         assert len(layer.variables) == 8
+
+  def test_batch_norm(self):
+    """Test invoking BatchNorm in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        batch_size = 10
+        n_features = 5
+        input = np.random.rand(batch_size, n_features).astype(np.float32)
+        layer = layers.BatchNorm()
+        result = layer(input)
+        assert result.shape == (batch_size, n_features)
+        assert len(layer.variables) == 4
+
+  def test_weighted_error(self):
+    """Test invoking WeightedError in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input1 = np.random.rand(5, 10).astype(np.float32)
+        input2 = np.random.rand(5, 10).astype(np.float32)
+        result = layers.WeightedError()(input1, input2)
+        expected = np.sum(input1 * input2)
+        assert np.allclose(result, expected)
+
+  def test_vina_free_energy(self):
+    """Test invoking VinaFreeEnergy in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        n_atoms = 5
+        m_nbrs = 1
+        ndim = 3
+        nbr_cutoff = 1
+        start = 0
+        stop = 4
+        X = np.random.rand(n_atoms, ndim).astype(np.float32)
+        Z = np.random.randint(0, 2, (n_atoms)).astype(np.float32)
+        layer = layers.VinaFreeEnergy(n_atoms, m_nbrs, ndim, nbr_cutoff, start,
+                                      stop)
+        result = layer(X, Z)
+        assert len(layer.variables) == 6
+        assert result.shape == tuple()
+
+        # Creating a second layer should produce different results, since it has
+        # different random weights.
+
+        layer2 = layers.VinaFreeEnergy(n_atoms, m_nbrs, ndim, nbr_cutoff, start,
+                                       stop)
+        result2 = layer2(X, Z)
+        assert not np.allclose(result, result2)
+
+        # But evaluating the first layer again should produce the same result as before.
+
+        result3 = layer(X, Z)
+        assert np.allclose(result, result3)
+
+  def test_weighted_linear_combo(self):
+    """Test invoking WeightedLinearCombo in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input1 = np.random.rand(5, 10).astype(np.float32)
+        input2 = np.random.rand(5, 10).astype(np.float32)
+        layer = layers.WeightedLinearCombo()
+        result = layer(input1, input2)
+        assert len(layer.variables) == 2
+        expected = input1 * layer.variables[0] + input2 * layer.variables[1]
+        assert np.allclose(result, expected)
+
+  def test_neighbor_list(self):
+    """Test invoking NeighborList in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        N_atoms = 5
+        start = 0
+        stop = 12
+        nbr_cutoff = 3
+        ndim = 3
+        M_nbrs = 2
+        coords = start + np.random.rand(N_atoms, ndim) * (stop - start)
+        coords = tf.to_float(tf.stack(coords))
+        layer = layers.NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
+                                    stop)
+        result = layer(coords)
+        assert result.shape == (N_atoms, M_nbrs)
+
+  def test_dropout(self):
+    """Test invoking Dropout in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        rate = 0.5
+        input = np.random.rand(5, 10).astype(np.float32)
+        layer = layers.Dropout(rate)
+        result1 = layer(input, training=False)
+        assert np.allclose(result1, input)
+        result2 = layer(input, training=True)
+        assert not np.allclose(result2, input)
+        nonzero = result2.numpy() != 0
+        assert np.allclose(result2.numpy()[nonzero], input[nonzero] / rate)
+
+  def test_atomic_convolution(self):
+    """Test invoking AtomicConvolution in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        batch_size = 4
+        max_atoms = 5
+        max_neighbors = 2
+        dimensions = 3
+        params = [[5.0, 2.0, 0.5], [10.0, 2.0, 0.5]]
+        input1 = np.random.rand(batch_size, max_atoms, dimensions).astype(
+            np.float32)
+        input2 = np.random.randint(
+            max_atoms, size=(batch_size, max_atoms, max_neighbors))
+        input3 = np.random.randint(
+            1, 10, size=(batch_size, max_atoms, max_neighbors))
+        layer = layers.AtomicConvolution(radial_params=params)
+        result = layer(input1, input2, input3)
+        assert result.shape == (batch_size, max_atoms, len(params))
+        assert len(layer.variables) == 3 * len(params)
+
+  def test_alpha_share_layer(self):
+    """Test invoking AlphaShareLayer in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        batch_size = 10
+        length = 6
+        input1 = np.random.rand(batch_size, length).astype(np.float32)
+        input2 = np.random.rand(batch_size, length).astype(np.float32)
+        layer = layers.AlphaShareLayer()
+        result = layer(input1, input2)
+        assert input1.shape == result[0].shape
+        assert input2.shape == result[1].shape
+
+        # Creating a second layer should produce different results, since it has
+        # different random weights.
+
+        layer2 = layers.AlphaShareLayer()
+        result2 = layer2(input1, input2)
+        assert not np.allclose(result[0], result2[0])
+        assert not np.allclose(result[1], result2[1])
+
+        # But evaluating the first layer again should produce the same result as before.
+
+        result3 = layer(input1, input2)
+        assert np.allclose(result[0], result3[0])
+        assert np.allclose(result[1], result3[1])
+
+  def test_sluice_loss(self):
+    """Test invoking SluiceLoss in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        input1 = np.ones((3, 4)).astype(np.float32)
+        input2 = np.ones((2, 2)).astype(np.float32)
+        result = layers.SluiceLoss()(input1, input2)
+        assert np.allclose(result, 40.0)
+
+  def test_beta_share(self):
+    """Test invoking BetaShare in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        batch_size = 10
+        length = 6
+        input1 = np.random.rand(batch_size, length).astype(np.float32)
+        input2 = np.random.rand(batch_size, length).astype(np.float32)
+        layer = layers.BetaShare()
+        result = layer(input1, input2)
+        assert input1.shape == result.shape
+        assert input2.shape == result.shape
+
+        # Creating a second layer should produce different results, since it has
+        # different random weights.
+
+        layer2 = layers.BetaShare()
+        result2 = layer2(input1, input2)
+        assert not np.allclose(result, result2)
+
+        # But evaluating the first layer again should produce the same result as before.
+
+        result3 = layer(input1, input2)
+        assert np.allclose(result, result3)
+
+  def test_ani_feat(self):
+    """Test invoking ANIFeat in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        batch_size = 10
+        max_atoms = 5
+        input = np.random.rand(batch_size, max_atoms, 4).astype(np.float32)
+        layer = layers.ANIFeat(max_atoms=max_atoms)
+        result = layer(input)
+        # TODO What should the output shape be?  It's not documented, and there
+        # are no other test cases for it.
+
+  def test_graph_embed_pool_layer(self):
+    """Test invoking GraphEmbedPoolLayer in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        V = np.random.uniform(size=(10, 100, 50)).astype(np.float32)
+        adjs = np.random.uniform(size=(10, 100, 5, 100)).astype(np.float32)
+        layer = layers.GraphEmbedPoolLayer(num_vertices=6)
+        result = layer(V, adjs)
+        assert result[0].shape == (10, 6, 50)
+        assert result[1].shape == (10, 6, 5, 6)
+
+        # Creating a second layer should produce different results, since it has
+        # different random weights.
+
+        layer2 = layers.GraphEmbedPoolLayer(num_vertices=6)
+        result2 = layer2(V, adjs)
+        assert not np.allclose(result[0], result2[0])
+        assert not np.allclose(result[1], result2[1])
+
+        # But evaluating the first layer again should produce the same result as before.
+
+        result3 = layer(V, adjs)
+        assert np.allclose(result[0], result3[0])
+        assert np.allclose(result[1], result3[1])
+
+  def test_graph_cnn(self):
+    """Test invoking GraphCNN in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        V = np.random.uniform(size=(10, 100, 50)).astype(np.float32)
+        adjs = np.random.uniform(size=(10, 100, 5, 100)).astype(np.float32)
+        layer = layers.GraphCNN(num_filters=6)
+        result = layer(V, adjs)
+        assert result.shape == (10, 100, 6)
+
+        # Creating a second layer should produce different results, since it has
+        # different random weights.
+
+        layer2 = layers.GraphCNN(num_filters=6)
+        result2 = layer2(V, adjs)
+        assert not np.allclose(result, result2)
+
+        # But evaluating the first layer again should produce the same result as before.
+
+        result3 = layer(V, adjs)
+        assert np.allclose(result, result3)
+
+  def test_hinge_loss(self):
+    """Test invoking HingeLoss in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        n_labels = 1
+        n_logits = 1
+        logits = np.random.rand(n_logits).astype(np.float32)
+        labels = np.random.rand(n_labels).astype(np.float32)
+        result = layers.Hingeloss()(labels, logits)
+        assert result.shape == (n_labels,)

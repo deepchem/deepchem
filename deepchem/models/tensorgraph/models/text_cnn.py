@@ -9,7 +9,7 @@ import copy
 
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
-  SoftMaxCrossEntropy, BatchNorm, WeightedError, Dropout, BatchNormalization, \
+  SoftMaxCrossEntropy, BatchNorm, WeightedError, Dropout, \
   Conv1D, ReduceMax, Squeeze, Stack, Highway
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 
