@@ -1,33 +1,55 @@
-import collections
-
 import numpy as np
-import six
 import tensorflow as tf
-
 from deepchem.data import NumpyDataset
-from deepchem.feat.graph_features import ConvMolFeaturizer
-from deepchem.feat.mol_graphs import ConvMol
-from deepchem.metrics import to_one_hot
-from deepchem.models.tensorgraph.graph_layers import WeaveGather, \
-  DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
-  DAGGather, DTNNExtract, MessagePassing, SetGather
-from deepchem.models.tensorgraph.graph_layers import WeaveLayerFactory
-from deepchem.models.tensorgraph.layers import Dense, SoftMax, \
-  SoftMaxCrossEntropy, GraphConv, BatchNorm, HingeLoss, Sigmoid, \
-  GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack, Flatten, GraphCNN, GraphCNNPool, ReduceSum
-from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
-from deepchem.models.tensorgraph.tensor_graph import TensorGraph
-from deepchem.trans import undo_transforms
 from deepchem.feat import CircularFingerprint
+from deepchem.models.tensorgraph.layers import Dense, HingeLoss, Sigmoid, \
+  WeightedError, Dropout
+from deepchem.models.tensorgraph.layers import Label, Weights, Feature
+from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 
 
 class ScScoreModel(TensorGraph):
+  """
+  https://pubs.acs.org/doi/abs/10.1021/acs.jcim.7b00622
+  Several definitions of molecular complexity exist to facilitate prioritization
+  of lead compounds, to identify diversity-inducing and complexifying reactions,
+  and to guide retrosynthetic searches. In this work, we focus on synthetic
+  complexity and reformalize its definition to correlate with the expected number
+  of reaction steps required to produce a target molecule, with implicit knowledge
+  about what compounds are reasonable starting materials. We train a neural
+  network model on 12 million reactions from the Reaxys database to impose a
+  pairwise inequality constraint enforcing the premise of this definition: that on
+  average, the products of published chemical reactions should be more
+  synthetically complex than their corresponding reactants. The learned metric
+  (SCScore) exhibits highly desirable nonlinear behavior, particularly in
+  recognizing increases in synthetic complexity throughout a number of linear
+  synthetic routes.
+
+  Our model here actually uses hingeloss instead of the shifted relu loss in
+  https://github.com/connorcoley/scscore.
+
+  This could cause issues differentiation issues with compounds that are "close"
+  to each other in "complexity"
+
+  """
 
   def __init__(self,
                n_features,
                layer_sizes=[300, 300, 300],
                dropouts=0.0,
                **kwargs):
+    """
+    Parameters
+    ----------
+    n_features: int
+      number of features per molecule
+    layer_sizes: list of int
+      size of each hidden layer
+    dropouts: int
+      droupout to apply to each hidden layer
+    kwargs
+      This takes all kwards as TensorGraph
+    """
     self.n_features = n_features
     self.layer_sizes = layer_sizes
     self.dropout = dropouts

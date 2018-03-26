@@ -1,15 +1,8 @@
 import unittest
 
-import numpy as np
-
 import deepchem
-from deepchem.data import NumpyDataset
-from deepchem.models import GraphConvModel
+import numpy as np
 from deepchem.models import TensorGraph
-from deepchem.molnet.load_function.delaney_datasets import load_delaney
-from deepchem.models.tensorgraph.layers import ReduceSum, L2Loss
-from deepchem.models import WeaveModel
-from deepchem.feat import ConvMolFeaturizer
 
 
 class TestSaScoreModel(unittest.TestCase):
