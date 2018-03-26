@@ -55,7 +55,7 @@ default_dict = {
 }
 
 
-class TextCNNTensorGraph(TensorGraph):
+class TextCNNModel(TensorGraph):
   """ A Convolutional neural network on smiles strings
   Reimplementation of the discriminator module in ORGAN: https://arxiv.org/abs/1705.10843
   Originated from: http://emnlp2014.org/papers/pdf/EMNLP2014181.pdf
@@ -117,7 +117,7 @@ class TextCNNTensorGraph(TensorGraph):
     self.num_filters = num_filters
     self.dropout = dropout
     self.mode = mode
-    super(TextCNNTensorGraph, self).__init__(**kwargs)
+    super(TextCNNModel, self).__init__(**kwargs)
     self.build_graph()
 
   @staticmethod
@@ -271,7 +271,7 @@ class TextCNNTensorGraph(TensorGraph):
     return np.array(seq)
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
-    out = super(TextCNNTensorGraph, self).predict_on_generator(
+    out = super(TextCNNModel, self).predict_on_generator(
         generator, transformers=[], outputs=outputs)
     if outputs is None:
       outputs = self.outputs
@@ -280,3 +280,21 @@ class TextCNNTensorGraph(TensorGraph):
 
     out = undo_transforms(out, transformers)
     return out
+
+
+#################### Deprecation warnings for renamed TensorGraph models ####################
+
+import warnings
+
+TENSORGRAPH_DEPRECATION = "{} is deprecated and has been renamed to {} and will be removed in DeepChem 3.0."
+
+
+class TextCNNTensorGraph(TextCNNModel):
+
+  warnings.warn(
+      TENSORGRAPH_DEPRECATION.format("TextCNNTensorGraph", "TextCNNModel"),
+      FutureWarning)
+
+  def __init__(self, *args, **kwargs):
+
+    super(TextCNNTensorGraph, self).__init__(*args, **kwargs)

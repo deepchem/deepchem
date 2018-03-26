@@ -22,7 +22,7 @@ n_distance = 51
 distance_min = -1.
 distance_max = 9.2
 n_hidden = 15
-model = dc.models.DTNNTensorGraph(
+model = dc.models.DTNNModel(
     len(tasks),
     n_embedding=n_embedding,
     n_hidden=n_hidden,

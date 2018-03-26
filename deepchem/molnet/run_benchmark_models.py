@@ -223,7 +223,7 @@ def benchmark_classification(train_dataset,
       test_dataset.reshard(reshard_size)
       test_dataset = transformer.transform(test_dataset)
 
-    model = deepchem.models.DAGTensorGraph(
+    model = deepchem.models.DAGModel(
         len(tasks),
         max_atoms=max_atoms,
         n_atom_feat=n_features,
@@ -264,10 +264,9 @@ def benchmark_classification(train_dataset,
 
     all_data = deepchem.data.DiskDataset.merge(
         [train_dataset, valid_dataset, test_dataset])
-    char_dict, length = deepchem.models.TextCNNTensorGraph.build_char_dict(
-        all_data)
+    char_dict, length = deepchem.models.TextCNNModel.build_char_dict(all_data)
 
-    model = deepchem.models.TextCNNTensorGraph(
+    model = deepchem.models.TextCNNModel(
         len(tasks),
         char_dict,
         seq_length=length,
@@ -287,7 +286,7 @@ def benchmark_classification(train_dataset,
     T = hyper_parameters['T']
     M = hyper_parameters['M']
 
-    model = deepchem.models.MPNNTensorGraph(
+    model = deepchem.models.MPNNModel(
         len(tasks),
         n_atom_feat=n_features[0],
         n_pair_feat=n_features[1],
@@ -524,7 +523,7 @@ def benchmark_regression(train_dataset,
     n_distance = hyper_parameters['n_distance']
     assert len(n_features) == 2, 'DTNN is only applicable to qm datasets'
 
-    model = deepchem.models.DTNNTensorGraph(
+    model = deepchem.models.DTNNModel(
         len(tasks),
         n_embedding=n_embedding,
         n_distance=n_distance,
@@ -558,7 +557,7 @@ def benchmark_regression(train_dataset,
       test_dataset.reshard(reshard_size)
       test_dataset = transformer.transform(test_dataset)
 
-    model = deepchem.models.DAGTensorGraph(
+    model = deepchem.models.DAGModel(
         len(tasks),
         max_atoms=max_atoms,
         n_atom_feat=n_features,
@@ -597,10 +596,10 @@ def benchmark_regression(train_dataset,
     filter_sizes = hyper_parameters['filter_sizes']
     num_filters = hyper_parameters['num_filters']
 
-    char_dict, length = deepchem.models.TextCNNTensorGraph.build_char_dict(
+    char_dict, length = deepchem.models.TextCNNModel.build_char_dict(
         train_dataset)
 
-    model = deepchem.models.TextCNNTensorGraph(
+    model = deepchem.models.TextCNNModel(
         len(tasks),
         char_dict,
         seq_length=length,
@@ -660,7 +659,7 @@ def benchmark_regression(train_dataset,
     T = hyper_parameters['T']
     M = hyper_parameters['M']
 
-    model = deepchem.models.MPNNTensorGraph(
+    model = deepchem.models.MPNNModel(
         len(tasks),
         n_atom_feat=n_features[0],
         n_pair_feat=n_features[1],

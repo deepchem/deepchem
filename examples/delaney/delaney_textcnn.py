@@ -19,12 +19,12 @@ train_dataset, valid_dataset, test_dataset = delaney_datasets
 # Fit models
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
 
-char_dict, length = dc.models.TextCNNTensorGraph.build_char_dict(train_dataset)
+char_dict, length = dc.models.TextCNNModel.build_char_dict(train_dataset)
 
 # Batch size of models
 batch_size = 64
 
-model = dc.models.TextCNNTensorGraph(
+model = dc.models.TextCNNModel(
     len(delaney_tasks),
     char_dict,
     seq_length=length,

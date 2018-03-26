@@ -194,7 +194,7 @@ class WeaveModel(TensorGraph):
     return out
 
 
-class DTNNTensorGraph(TensorGraph):
+class DTNNModel(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -237,7 +237,7 @@ class DTNNTensorGraph(TensorGraph):
     self.steps = np.expand_dims(self.steps, 0)
     self.output_activation = output_activation
     self.mode = mode
-    super(DTNNTensorGraph, self).__init__(**kwargs)
+    super(DTNNModel, self).__init__(**kwargs)
     assert self.mode == "regression"
     self.build_graph()
 
@@ -351,14 +351,14 @@ class DTNNTensorGraph(TensorGraph):
     if transformers != [] and not isinstance(outputs, collections.Sequence):
       raise ValueError(
           "DTNN does not support single tensor output with transformers")
-    retval = super(DTNNTensorGraph, self).predict(dataset, outputs=outputs)
+    retval = super(DTNNModel, self).predict(dataset, outputs=outputs)
     if not isinstance(outputs, collections.Sequence):
       return retval
     retval = np.concatenate(retval, axis=-1)
     return undo_transforms(retval, transformers)
 
 
-class DAGTensorGraph(TensorGraph):
+class DAGModel(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -390,7 +390,7 @@ class DAGTensorGraph(TensorGraph):
     self.n_graph_feat = n_graph_feat
     self.n_outputs = n_outputs
     self.mode = mode
-    super(DAGTensorGraph, self).__init__(**kwargs)
+    super(DAGModel, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
@@ -508,7 +508,7 @@ class DAGTensorGraph(TensorGraph):
         yield feed_dict
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
-    out = super(DAGTensorGraph, self).predict_on_generator(
+    out = super(DAGModel, self).predict_on_generator(
         generator, transformers=[], outputs=outputs)
     if outputs is None:
       outputs = self.outputs
@@ -519,7 +519,7 @@ class DAGTensorGraph(TensorGraph):
     return out
 
 
-class PetroskiSuchTensorGraph(TensorGraph):
+class PetroskiSuchModel(TensorGraph):
   """
       Model from Robust Spatial Filtering with Graph Convolutional Neural Networks
       https://arxiv.org/abs/1703.00792
@@ -545,7 +545,7 @@ class PetroskiSuchTensorGraph(TensorGraph):
     self.error_bars = True if 'error_bars' in kwargs and kwargs['error_bars'] else False
     self.dropout = dropout
     kwargs['use_queue'] = False
-    super(PetroskiSuchTensorGraph, self).__init__(**kwargs)
+    super(PetroskiSuchModel, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
@@ -952,7 +952,7 @@ class GraphConvModel(TensorGraph):
     return y_
 
 
-class MPNNTensorGraph(TensorGraph):
+class MPNNModel(TensorGraph):
   """ Message Passing Neural Network,
       default structures built according to https://arxiv.org/abs/1511.06391 """
 
@@ -987,7 +987,7 @@ class MPNNTensorGraph(TensorGraph):
     self.T = T
     self.M = M
     self.mode = mode
-    super(MPNNTensorGraph, self).__init__(**kwargs)
+    super(MPNNModel, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
@@ -1172,3 +1172,47 @@ class WeaveTensorGraph(WeaveModel):
   def __init__(self, *args, **kwargs):
 
     super(WeaveModel, self).__init__(*args, **kwargs)
+
+
+class DTNNTensorGraph(DTNNModel):
+
+  warnings.warn(
+      TENSORGRAPH_DEPRECATION.format("DTNNTensorGraph", "DTNNModel"),
+      FutureWarning)
+
+  def __init__(self, *args, **kwargs):
+
+    super(DTNNModel, self).__init__(*args, **kwargs)
+
+
+class DAGTensorGraph(DAGModel):
+
+  warnings.warn(
+      TENSORGRAPH_DEPRECATION.format("DAGTensorGraph", "DAGModel"),
+      FutureWarning)
+
+  def __init__(self, *args, **kwargs):
+
+    super(DAGModel, self).__init__(*args, **kwargs)
+
+
+class PetroskiSuchTensorGraph(PetroskiSuchModel):
+
+  warnings.warn(
+      TENSORGRAPH_DEPRECATION.format("PetroskiSuchTensorGraph",
+                                     "PetroskiSuchModel"), FutureWarning)
+
+  def __init__(self, *args, **kwargs):
+
+    super(PetroskiSuchModel, self).__init__(*args, **kwargs)
+
+
+class MPNNTensorGraph(MPNNModel):
+
+  warnings.warn(
+      TENSORGRAPH_DEPRECATION.format("MPNNTensorGraph", "MPNNModel"),
+      FutureWarning)
+
+  def __init__(self, *args, **kwargs):
+
+    super(MPNNModel, self).__init__(*args, **kwargs)
