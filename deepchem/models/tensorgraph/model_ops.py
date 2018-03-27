@@ -23,12 +23,12 @@ def _to_tensor(x, dtype):
   return x
 
 
-def create_variable(value, dtype=None, name=None):
+def create_variable(value, dtype=None, name=None, trainable=True):
   """Create a tf.Variable or tfe.Variable, depending on the current mode."""
   if tfe.in_eager_mode():
-    return tfe.Variable(value, dtype=dtype, name=name)
+    return tfe.Variable(value, dtype=dtype, name=name, trainable=trainable)
   else:
-    return tf.Variable(value, dtype=dtype, name=name)
+    return tf.Variable(value, dtype=dtype, name=name, trainable=trainable)
 
 
 def ones(shape, dtype=None, name=None):

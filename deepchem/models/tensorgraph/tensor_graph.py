@@ -8,10 +8,12 @@ import logging
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.pywrap_tensorflow_internal import NewCheckpointReader
+import tensorflow.contrib.eager as tfe
 
 from deepchem.data import NumpyDataset
 from deepchem.models.models import Model
-from deepchem.models.tensorgraph.layers import InputFifoQueue, Label, Feature, Weights, Constant
+from deepchem.models.tensorgraph.layers import InputFifoQueue, Label, Feature, Weights, Constant, Input
+from deepchem.models.tensorgraph.model_ops import create_variable
 from deepchem.models.tensorgraph.optimizers import Adam
 from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
@@ -183,15 +185,30 @@ class TensorGraph(Model):
     with self._get_tf("Graph").as_default():
       time1 = time.time()
       loss = self.loss
-      if submodel is None:
-        train_op = self._get_tf('train_op')
+      if submodel is not None and submodel.loss is not None:
+        loss = submodel.loss
+      if tfe.in_eager_mode():
+        # In eager mode we want an optimizer and a function to compute the
+        # gradient of the loss.
+
+        if submodel is None:
+          optimizer = self._get_tf("Optimizer")
+        else:
+          optimizer = submodel.create_optimizer()
+        val_grad_fn = tfe.implicit_value_and_gradients(
+            lambda x: self._run_graph([loss], x, True)[0])
       else:
-        train_op = submodel.get_train_op()
-        if submodel.loss is not None:
-          loss = submodel.loss
+        # In graph mode we want a training operation.
+
+        if submodel is None:
+          train_op = self._get_tf('train_op')
+        else:
+          train_op = submodel.get_train_op()
       if checkpoint_interval > 0:
         saver = tf.train.Saver(
-            max_to_keep=max_checkpoints_to_keep, save_relative_paths=True)
+            self.get_variables(),
+            max_to_keep=max_checkpoints_to_keep,
+            save_relative_paths=True)
       if restore:
         self.restore()
       avg_loss, n_averaged_batches = 0.0, 0.0
@@ -218,13 +235,18 @@ class TensorGraph(Model):
         n_samples += 1
         should_log = (self.tensorboard and
                       n_samples % self.tensorboard_log_frequency == 0)
-        fetches = [train_op, loss.out_tensor]
-        if should_log:
-          fetches.append(self._get_tf("summary_op"))
-        fetched_values = self.session.run(fetches, feed_dict=feed_dict)
-        if should_log:
-          self._log_tensorboard(fetched_values[2])
-        avg_loss += fetched_values[1]
+        if tfe.in_eager_mode():
+          value, grads_and_vars = val_grad_fn(feed_dict)
+          optimizer.apply_gradients(grads_and_vars)
+          avg_loss += value
+        else:
+          fetches = [train_op, loss.out_tensor]
+          if should_log:
+            fetches.append(self._get_tf("summary_op"))
+          fetched_values = self.session.run(fetches, feed_dict=feed_dict)
+          if should_log:
+            self._log_tensorboard(fetched_values[2])
+          avg_loss += fetched_values[1]
         n_averaged_batches += 1
         self.global_step += 1
         if checkpoint_interval > 0 and self.global_step % checkpoint_interval == checkpoint_interval - 1:
@@ -339,7 +361,7 @@ class TensorGraph(Model):
           if n_samples == final_sample[0]:
             break
         n_samples += 1
-        feed_results = self.session.run(outputs, feed_dict=feed_dict)
+        feed_results = self._run_graph(outputs, feed_dict, False)
         if len(feed_results) > 1:
           if len(transformers):
             raise ValueError("Does not support transformations "
@@ -466,6 +488,39 @@ class TensorGraph(Model):
   def build(self):
     if self.built:
       return
+    if tfe.in_eager_mode():
+      # In eager mode, we need to execute every layer once to ensure its variables
+      # have been created.
+
+      def build_layers(layer, tensors):
+        if layer in tensors:
+          return tensors[layer]
+        inputs = [build_layers(input, tensors) for input in layer.in_layers]
+        if isinstance(layer, Input):
+          # We can't execute Input layers in eager mode, since they would try
+          # to create placeholders.  Instead create a tensor of the correct
+          # size and type.
+          shape = [1 if s is None else s for s in layer.shape]
+          tensor = tf.zeros(shape, layer.dtype)
+        else:
+          tensor = layer.create_tensor(in_layers=inputs, set_tensors=False)
+        tensors[layer] = tensor
+        return tensor
+
+      tensors = {}
+      with self._get_tf("Graph").as_default():
+        build_layers(self.loss, tensors)
+        for output in self.outputs:
+          build_layers(output, tensors)
+        for submodel in self.submodels:
+          build_layers(submodel.loss, tensors)
+      self.session = None
+      self._training_placeholder = None
+      self.built = True
+      return
+
+    # In graph mode we need to create the computation graph.
+
     with self._get_tf("Graph").as_default():
       self._training_placeholder = tf.placeholder(dtype=tf.float32, shape=())
       if self.random_seed is not None:
@@ -698,6 +753,8 @@ class TensorGraph(Model):
 
   def get_layer_variables(self, layer):
     """Get the list of trainable variables in a layer of the graph."""
+    if tfe.in_eager_mode():
+      return layer.variables
     if not self.built:
       self.build()
     with self._get_tf("Graph").as_default():
@@ -705,6 +762,19 @@ class TensorGraph(Model):
         return []
       return tf.get_collection(
           tf.GraphKeys.TRAINABLE_VARIABLES, scope=layer.variable_scope)
+
+  def get_variables(self):
+    """Get the list of all trainable variables in the graph."""
+    if not self.built:
+      self.build()
+    if tfe.in_eager_mode():
+      variables = []
+      for layer in self.layers.values():
+        variables += layer.variables
+      return variables
+    else:
+      with self._get_tf("Graph").as_default():
+        return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
 
   def get_global_step(self):
     return self._get_tf("GlobalStep")
@@ -748,7 +818,7 @@ class TensorGraph(Model):
           key=tf.GraphKeys.SUMMARIES)
     elif obj == 'GlobalStep':
       with self._get_tf("Graph").as_default():
-        self.tensor_objects['GlobalStep'] = tf.Variable(0, trainable=False)
+        self.tensor_objects['GlobalStep'] = create_variable(0, trainable=False)
     return self._get_tf(obj)
 
   def save_checkpoint(self, max_checkpoints_to_keep=5):
@@ -763,7 +833,8 @@ class TensorGraph(Model):
     max_checkpoints_to_keep: int
       the maximum number of checkpoints to keep.  Older checkpoints are discarded.
     """
-    saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
+    saver = tf.train.Saver(
+        self.get_variables(), max_to_keep=max_checkpoints_to_keep)
     saver.save(self.session, self.save_file, global_step=self.global_step)
 
   def get_checkpoints(self):
@@ -833,14 +904,54 @@ class TensorGraph(Model):
     training: bool
       True during training, False during prediction
     """
-    train_value = 1.0 if training else 0.0
-    if self.queue_installed:
-      while True:
-        yield {self._training_placeholder: train_value}
-    for d in generator:
-      feed_dict = dict(d)
-      feed_dict[self._training_placeholder] = train_value
-      yield feed_dict
+    if tfe.in_eager_mode():
+      for d in generator:
+        feed_dict = {}
+        for key, value in d.items():
+          if isinstance(key, Input):
+            feed_dict[key] = tf.cast(value, key.dtype)
+          else:
+            feed_dict[key] = value
+        yield feed_dict
+    else:
+      train_value = 1.0 if training else 0.0
+      if self.queue_installed:
+        while True:
+          yield {self._training_placeholder: train_value}
+      for d in generator:
+        feed_dict = dict(d)
+        feed_dict[self._training_placeholder] = train_value
+        yield feed_dict
+
+  def _run_graph(self, outputs, feed_dict, training):
+    """Run the calculations in the graph to compute some outputs.
+
+    In graph mode, this just calls session.run().  In eager mode, it executes
+    all required layers to compute the output.
+
+    Parameters
+    ----------
+    outputs: list of Layers
+      the output layers to compute
+    feed_dict: dict
+      maps input layers to values
+    training: bool
+      whether this is being executed in training mode
+    """
+    if not tfe.in_eager_mode():
+      return self.session.run(outputs, feed_dict)
+
+    def run_layers(layer, tensors):
+      if layer in tensors:
+        return tensors[layer]
+      inputs = [run_layers(input, tensors) for input in layer.in_layers]
+      tensor = layer.create_tensor(
+          in_layers=inputs, set_tensors=False, training=training)
+      tensors[layer] = tensor
+      return tensor
+
+    tensors = feed_dict.copy()
+    return [run_layers(o, tensors) for o in outputs]
 
   def make_estimator(self,
                      feature_columns,
@@ -1081,12 +1192,17 @@ class Submodel(object):
         loss = self.graph.loss
       else:
         loss = self.loss
-      if self.optimizer is None:
-        optimizer = self.graph.optimizer
-      else:
-        optimizer = self.optimizer
-      # Should we keep a separate global step count for each submodel?
+      tf_opt = self.create_optimizer()
       global_step = self.graph._get_tf('GlobalStep')
-      tf_opt = optimizer._create_optimizer(global_step)
       self._train_op = tf_opt.minimize(loss.out_tensor, global_step, variables)
     return self._train_op
+
+  def create_optimizer(self):
+    """Create the Tensorflow optimizer to use for training."""
+    if self.optimizer is None:
+      optimizer = self.graph.optimizer
+    else:
+      optimizer = self.optimizer
+    # Should we keep a separate global step count for each submodel?
+    global_step = self.graph._get_tf('GlobalStep')
+    return optimizer._create_optimizer(global_step)
