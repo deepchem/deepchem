@@ -4638,7 +4638,7 @@ class GraphCNN(Layer):
     return result
 
 
-class Hingeloss(Layer):
+class HingeLoss(Layer):
   """This layer computes the hinge loss on inputs:[labels,logits]
   labels: The values of this tensor is expected to be 1.0 or 0.0. The shape should be the same as logits.
   logits: Holds the log probabilities for labels, a float tensor.
@@ -4646,7 +4646,7 @@ class Hingeloss(Layer):
   """
 
   def __init__(self, in_layers=None, **kwargs):
-    super(Hingeloss, self).__init__(in_layers, **kwargs)
+    super(HingeLoss, self).__init__(in_layers, **kwargs)
     try:
       self._shape = self.in_layers[1].shape
     except:

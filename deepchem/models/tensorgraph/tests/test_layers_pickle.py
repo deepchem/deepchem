@@ -10,7 +10,7 @@ from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, 
   SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
   GraphGather, BatchNorm, WeightedError, ReLU, \
   Conv3D, MaxPool3D, Conv2DTranspose, Conv3DTranspose, \
-  LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN, Cast,Hingeloss,SparseSoftMaxCrossEntropy
+  LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN, Cast,HingeLoss,SparseSoftMaxCrossEntropy
 from deepchem.models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
 from deepchem.models.tensorgraph.IRV import IRVLayer, IRVRegularize, Slice
 
@@ -698,7 +698,7 @@ def test_Slice_pickle():
 def test_hingeloss_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(1, None))
-  layer = Hingeloss(in_layers=[feature, feature])
+  layer = HingeLoss(in_layers=[feature, feature])
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
