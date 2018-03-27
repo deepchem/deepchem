@@ -15,7 +15,7 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
                       reload=True):
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "qm7/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir, "qm7/" + featurizer + "/" + str(split))
 
   qm7_tasks = ["u0_atom"]
 

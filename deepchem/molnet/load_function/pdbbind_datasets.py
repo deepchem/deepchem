@@ -72,7 +72,7 @@ def load_pdbbind_grid(split="random",
     data_dir = deepchem.utils.get_data_dir()
     if reload:
       save_dir = os.path.join(
-          data_dir, "pdbbind_" + subset + "/" + featurizer + "/" + split)
+          data_dir, "pdbbind_" + subset + "/" + featurizer + "/" + str(split))
 
     dataset_file = os.path.join(data_dir, subset + "_smiles_labels.csv")
 

@@ -18,7 +18,7 @@ def load_sampl(featurizer='ECFP', split='index', reload=True):
   logger.info("About to load SAMPL dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "sampl/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir, "sampl/" + featurizer + "/" + str(split))
 
   dataset_file = os.path.join(data_dir, "SAMPL.csv")
   if not os.path.exists(dataset_file):
