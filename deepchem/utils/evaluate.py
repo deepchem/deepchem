@@ -155,7 +155,7 @@ class GeneratorEvaluator(object):
     generator: Generator
       Generator which yields {layer: numpyArray} to feed into model
     transformers:
-      Tranformers to "undo" when applied to the models outputs
+      Transformers to "undo" when applied to the models outputs
     labels: list of Layer
       layers which are keys in the generator to compare to outputs
     outputs: list of Layer
