@@ -976,5 +976,5 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         n_logits = 1
         logits = np.random.rand(n_logits).astype(np.float32)
         labels = np.random.rand(n_labels).astype(np.float32)
-        result = layers.Hingeloss()(labels, logits)
+        result = layers.HingeLoss()(labels, logits)
         assert result.shape == (n_labels,)
