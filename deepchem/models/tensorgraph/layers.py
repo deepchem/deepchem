@@ -1,4 +1,5 @@
 # -*- coding: UTF-8 -*-
+from __future__ import division
 import random
 import string
 from collections import Sequence
@@ -8,6 +9,8 @@ import tensorflow as tf
 import numpy as np
 
 from deepchem.models.tensorgraph import model_ops, initializations, regularizers, activations
+from deepchem.models.tensorgraph.model_ops import create_variable
+import tensorflow.contrib.eager as tfe
 import math
 
 
@@ -25,7 +28,6 @@ class Layer(object):
       in_layers = [in_layers]
     self.in_layers = in_layers
     self.op_type = "gpu"
-    self.variable_scope = ''
     self.variable_values = None
     self.out_tensor = None
     self.rnn_initial_states = []
@@ -33,6 +35,11 @@ class Layer(object):
     self.rnn_zero_states = []
     self.tensorboard = False
     self.tb_input = None
+    if tfe.in_eager_mode():
+      self.variables = []
+      self._built = False
+    else:
+      self.variable_scope = ''
 
   def _get_layer_number(self):
     class_name = self.__class__.__name__
@@ -83,8 +90,8 @@ class Layer(object):
       return self.clone(in_layers)
     raise ValueError('%s does not implement shared()' % self.__class__.__name__)
 
-  def __call__(self, *in_layers):
-    return self.create_tensor(in_layers=in_layers, set_tensors=False)
+  def __call__(self, *in_layers, **kwargs):
+    return self.create_tensor(in_layers=in_layers, set_tensors=False, **kwargs)
 
   @property
   def shape(self):
@@ -106,6 +113,8 @@ class Layer(object):
       if True, try to reshape the inputs to all have the same shape
     """
     if in_layers is None:
+      if tfe.in_eager_mode():
+        raise ValueError('in_layers must be specified in eager mode')
       in_layers = self.in_layers
     if not isinstance(in_layers, Sequence):
       in_layers = [in_layers]
@@ -241,6 +250,8 @@ class Layer(object):
       This means the newly created layers will share variables with the original
       ones.
     """
+    if tfe.in_eager_mode():
+      raise ValueError('copy() is not supported in eager mode')
     if self in replacements:
       return replacements[self]
     copied_inputs = [
@@ -328,7 +339,7 @@ class TensorWrapper(Layer):
 
   def create_tensor(self, in_layers=None, **kwargs):
     """Take no actions."""
-    pass
+    return self.out_tensor
 
 
 def convert_to_layers(in_layers):
@@ -365,6 +376,8 @@ class SharedVariableScope(Layer):
     return copy
 
   def _get_scope_name(self):
+    if tfe.in_eager_mode():
+      return None
     if self._shared_with is None:
       return self.name
     else:
@@ -467,16 +480,8 @@ class Conv1D(Layer):
     self.bias_constraint = bias_constraint
     super(Conv1D, self).__init__(in_layers, **kwargs)
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-    if len(inputs) != 1:
-      raise ValueError("Conv1D layer must have exactly one parent")
-    parent = inputs[0]
-    if len(parent.get_shape()) == 2:
-      parent = tf.expand_dims(parent, 2)
-    elif len(parent.get_shape()) != 3:
-      raise ValueError("Parent tensor must be (batch, width, channel)")
-    out_tensor = tf.keras.layers.Conv1D(
+  def _build_layer(self):
+    return tf.keras.layers.Conv1D(
         filters=self.filters,
         kernel_size=self.kernel_size,
         strides=self.strides,
@@ -490,10 +495,30 @@ class Conv1D(Layer):
         bias_regularizer=self.bias_regularizer,
         activity_regularizer=self.activity_regularizer,
         kernel_constraint=self.kernel_constraint,
-        bias_constraint=self.bias_constraint)(parent)
+        bias_constraint=self.bias_constraint)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError("Conv1D layer must have exactly one parent")
+    parent = inputs[0]
+    if len(parent.get_shape()) == 2:
+      parent = tf.expand_dims(parent, 2)
+    elif len(parent.get_shape()) != 3:
+      raise ValueError("Parent tensor must be (batch, width, channel)")
+    if tfe.in_eager_mode():
+      if not self._built:
+        self._layer = self._build_layer()
+      layer = self._layer
+    else:
+      layer = self._build_layer()
+    out_tensor = layer(parent)
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
+    if tfe.in_eager_mode() and not self._built:
+      self._built = True
+      self.variables = self._layer.variables
     return out_tensor
 
 
@@ -541,29 +566,37 @@ class Dense(SharedVariableScope):
     except:
       pass
 
+  def _build_layer(self, reuse):
+    if self.biases_initializer is None:
+      biases_initializer = None
+    else:
+      biases_initializer = self.biases_initializer()
+    return tf.layers.Dense(
+        self.out_channels,
+        activation=self.activation_fn,
+        use_bias=biases_initializer is not None,
+        kernel_initializer=self.weights_initializer(),
+        bias_initializer=biases_initializer,
+        _scope=self._get_scope_name(),
+        _reuse=reuse)
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 1:
       raise ValueError("Dense layer can only have one input")
     parent = inputs[0]
-    if self.biases_initializer is None:
-      biases_initializer = None
-    else:
-      biases_initializer = self.biases_initializer()
     for reuse in (self._reuse, False):
-      dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
-                                                             num_outputs=self.out_channels,
-                                                             activation_fn=self.activation_fn,
-                                                             biases_initializer=biases_initializer,
-                                                             weights_initializer=self.weights_initializer(),
-                                                             scope=self._get_scope_name(),
-                                                             reuse=reuse,
-                                                             trainable=True)
+      if tfe.in_eager_mode():
+        if not self._built:
+          self._layer = self._build_layer(False)
+        layer = self._layer
+      else:
+        layer = self._build_layer(reuse)
       try:
         if self.time_series:
-          out_tensor = tf.map_fn(dense_fn, parent)
+          out_tensor = tf.map_fn(layer, parent)
         else:
-          out_tensor = dense_fn(parent)
+          out_tensor = layer(parent)
         break
       except ValueError:
         if reuse:
@@ -574,6 +607,9 @@ class Dense(SharedVariableScope):
     if set_tensors:
       self._record_variable_scope(self._get_scope_name())
       self.out_tensor = out_tensor
+    if tfe.in_eager_mode() and not self._built:
+      self._built = True
+      self.variables = self._layer.variables
     return out_tensor
 
 
@@ -610,31 +646,47 @@ class Highway(Layer):
     self.activation_fn = activation_fn
     self.biases_initializer = biases_initializer
     self.weights_initializer = weights_initializer
+    try:
+      self._shape = self.in_layers[0].shape
+    except:
+      pass
+
+  def _build_layers(self, out_channels):
+    if self.biases_initializer is None:
+      biases_initializer = None
+    else:
+      biases_initializer = self.biases_initializer()
+    dense_H = tf.layers.Dense(
+        out_channels,
+        activation=self.activation_fn,
+        bias_initializer=biases_initializer,
+        kernel_initializer=self.weights_initializer())
+    dense_T = tf.layers.Dense(
+        out_channels,
+        activation=tf.nn.sigmoid,
+        bias_initializer=tf.constant_initializer(-1),
+        kernel_initializer=self.weights_initializer())
+    return (dense_H, dense_T)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent = inputs[0]
-    shape = parent.get_shape().as_list()[1]
-    # H(x), with same number of input and output channels
-    dense_H = tf.contrib.layers.fully_connected(
-        parent,
-        num_outputs=shape,
-        activation_fn=self.activation_fn,
-        biases_initializer=self.biases_initializer(),
-        weights_initializer=self.weights_initializer(),
-        trainable=True)
-    # T(x), with same number of input and output channels
-    dense_T = tf.contrib.layers.fully_connected(
-        parent,
-        num_outputs=shape,
-        activation_fn=tf.nn.sigmoid,
-        biases_initializer=tf.constant_initializer(-1),
-        weights_initializer=self.weights_initializer(),
-        trainable=True)
+    out_channels = parent.get_shape().as_list()[1]
+    if tfe.in_eager_mode():
+      if not self._built:
+        self._layers = self._build_layers(out_channels)
+      layers = self._layers
+    else:
+      layers = self._build_layers(out_channels)
+    dense_H = layers[0](parent)
+    dense_T = layers[1](parent)
     out_tensor = tf.multiply(dense_H, dense_T) + tf.multiply(
         parent, 1 - dense_T)
     if set_tensors:
       self.out_tensor = out_tensor
+    if tfe.in_eager_mode() and not self._built:
+      self._built = True
+      self.variables = self._layers[0].variables + self._layers[1].variables
     return out_tensor
 
 
@@ -821,7 +873,7 @@ class CombineMeanStd(Layer):
     mean_parent, std_parent = inputs[0], inputs[1]
     sample_noise = tf.random_normal(
         mean_parent.get_shape(), 0, self.noise_epsilon, dtype=tf.float32)
-    if self.training_only:
+    if self.training_only and 'training' in kwargs:
       sample_noise *= kwargs['training']
     out_tensor = mean_parent + tf.exp(std_parent * 0.5) * sample_noise
     if set_tensors:
@@ -917,6 +969,14 @@ class GRU(Layer):
   This layer expects its input to be of shape (batch_size, sequence_length, ...).
   It consists of a set of independent sequences (one for each element in the batch),
   that are each propagated independently through the GRU.
+
+  When this layer is called in eager execution mode, it behaves slightly differently.
+  It returns two tensors: the output of the recurrent layer, and the final state
+  of the recurrent cell.  In addition, you can specify the initial_state option
+  to tell it what to use as the initial state of the recurrent cell.  If that
+  option is omitted, it defaults to all zeros for the initial state:
+
+  outputs, final_state = gru_layer(input, initial_state=state)
   """
 
   def __init__(self, n_hidden, batch_size, **kwargs):
@@ -932,6 +992,9 @@ class GRU(Layer):
     self.n_hidden = n_hidden
     self.batch_size = batch_size
     super(GRU, self).__init__(**kwargs)
+    if tfe.in_eager_mode():
+      self._cell = tf.contrib.rnn.GRUCell(n_hidden)
+      self._zero_state = self._cell.zero_state(batch_size, tf.float32)
     try:
       parent_shape = self.in_layers[0].shape
       self._shape = (batch_size, parent_shape[1], n_hidden)
@@ -943,10 +1006,16 @@ class GRU(Layer):
     if len(inputs) != 1:
       raise ValueError("Must have one parent")
     parent_tensor = inputs[0]
-    gru_cell = tf.contrib.rnn.GRUCell(self.n_hidden)
-    zero_state = gru_cell.zero_state(self.batch_size, tf.float32)
+    if tfe.in_eager_mode():
+      gru_cell = self._cell
+      zero_state = self._zero_state
+    else:
+      gru_cell = tf.contrib.rnn.GRUCell(self.n_hidden)
+      zero_state = gru_cell.zero_state(self.batch_size, tf.float32)
     if set_tensors:
       initial_state = tf.placeholder(tf.float32, zero_state.get_shape())
+    elif 'initial_state' in kwargs:
+      initial_state = kwargs['initial_state']
     else:
       initial_state = zero_state
     out_tensor, final_state = tf.nn.dynamic_rnn(
@@ -960,7 +1029,13 @@ class GRU(Layer):
       self.out_tensors = [
           self.out_tensor, initial_state, final_state, zero_state
       ]
-    return out_tensor
+    if tfe.in_eager_mode() and not self._built:
+      self._built = True
+      self.variables = self._cell.variables
+    if tfe.in_eager_mode():
+      return (out_tensor, final_state)
+    else:
+      return out_tensor
 
   def none_tensors(self):
     saved_tensors = [
@@ -984,6 +1059,15 @@ class LSTM(Layer):
   This layer expects its input to be of shape (batch_size, sequence_length, ...).
   It consists of a set of independent sequences (one for each element in the batch),
   that are each propagated independently through the LSTM.
+
+  When this layer is called in eager execution mode, it behaves slightly differently.
+  It returns two values: the output of the recurrent layer, and the final state
+  of the recurrent cell.  The state is a tuple of two tensors.  In addition, you
+  can specify the initial_state option to tell it what to use as the initial
+  state of the recurrent cell.  If that option is omitted, it defaults to all
+  zeros for the initial state:
+
+  outputs, final_state = lstm_layer(input, initial_state=state)
   """
 
   def __init__(self, n_hidden, batch_size, **kwargs):
@@ -999,6 +1083,9 @@ class LSTM(Layer):
     self.n_hidden = n_hidden
     self.batch_size = batch_size
     super(LSTM, self).__init__(**kwargs)
+    if tfe.in_eager_mode():
+      self._cell = tf.contrib.rnn.LSTMCell(n_hidden)
+      self._zero_state = self._cell.zero_state(batch_size, tf.float32)
     try:
       parent_shape = self.in_layers[0].shape
       self._shape = (batch_size, parent_shape[1], n_hidden)
@@ -1010,12 +1097,18 @@ class LSTM(Layer):
     if len(inputs) != 1:
       raise ValueError("Must have one parent")
     parent_tensor = inputs[0]
-    lstm_cell = tf.contrib.rnn.LSTMCell(self.n_hidden)
-    zero_state = lstm_cell.zero_state(self.batch_size, tf.float32)
+    if tfe.in_eager_mode():
+      lstm_cell = self._cell
+      zero_state = self._zero_state
+    else:
+      lstm_cell = tf.contrib.rnn.LSTMCell(self.n_hidden)
+      zero_state = lstm_cell.zero_state(self.batch_size, tf.float32)
     if set_tensors:
       initial_state = tf.contrib.rnn.LSTMStateTuple(
           tf.placeholder(tf.float32, zero_state.c.get_shape()),
           tf.placeholder(tf.float32, zero_state.h.get_shape()))
+    elif 'initial_state' in kwargs:
+      initial_state = kwargs['initial_state']
     else:
       initial_state = zero_state
     out_tensor, final_state = tf.nn.dynamic_rnn(
@@ -1031,7 +1124,13 @@ class LSTM(Layer):
           np.zeros(zero_state.c.get_shape(), np.float32))
       self.rnn_zero_states.append(
           np.zeros(zero_state.h.get_shape(), np.float32))
-    return out_tensor
+    if tfe.in_eager_mode() and not self._built:
+      self._built = True
+      self.variables = self._cell.variables
+    if tfe.in_eager_mode():
+      return (out_tensor, final_state)
+    else:
+      return out_tensor
 
   def none_tensors(self):
     saved_tensors = [
@@ -1053,18 +1152,29 @@ class TimeSeriesDense(Layer):
   def __init__(self, out_channels, **kwargs):
     self.out_channels = out_channels
     super(TimeSeriesDense, self).__init__(**kwargs)
+    if tfe.in_eager_mode():
+      self._layer = self._build_layer()
+
+  def _build_layer(self):
+    return tf.layers.Dense(self.out_channels, activation=tf.nn.sigmoid)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 1:
       raise ValueError("Must have one parent")
     parent_tensor = inputs[0]
-    dense_fn = lambda x: tf.contrib.layers.fully_connected(
-      x, num_outputs=self.out_channels,
-      activation_fn=tf.nn.sigmoid)
-    out_tensor = tf.map_fn(dense_fn, parent_tensor)
+    if tfe.in_eager_mode():
+      if not self._built:
+        self._layer = self._build_layer()
+      layer = self._layer
+    else:
+      layer = self._build_layer()
+    out_tensor = tf.map_fn(layer, parent_tensor)
     if set_tensors:
       self.out_tensor = out_tensor
+    if tfe.in_eager_mode() and not self._built:
+      self._built = True
+      self.variables = self._layer.variables
     return out_tensor
 
 
@@ -1173,7 +1283,7 @@ class L2Loss(Layer):
     l2 = tf.square(guess - label)
     if len(inputs) > 2:
       l2 *= inputs[2]
-    out_tensor = tf.reduce_mean(l2, axis=list(range(1, len(label._shape))))
+    out_tensor = tf.reduce_mean(l2, axis=list(range(1, len(label.shape))))
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1341,7 +1451,13 @@ class Variable(Layer):
     super(Variable, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    out_tensor = tf.Variable(self.initial_value, dtype=self.dtype)
+    if tfe.in_eager_mode():
+      if not self._built:
+        self.variables = [tfe.Variable(self.initial_value, dtype=self.dtype)]
+        self._built = True
+      out_tensor = self.variables[0]
+    else:
+      out_tensor = tf.Variable(self.initial_value, dtype=self.dtype)
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
@@ -1831,6 +1947,23 @@ class Conv2D(SharedVariableScope):
     except:
       pass
 
+  def _build_layer(self, reuse):
+    if self.biases_initializer is None:
+      biases_initializer = None
+    else:
+      biases_initializer = self.biases_initializer()
+    return tf.layers.Conv2D(
+        self.num_outputs,
+        self.kernel_size,
+        strides=self.stride,
+        padding=self.padding,
+        activation=self.activation_fn,
+        use_bias=biases_initializer is not None,
+        bias_initializer=self.biases_initializer(),
+        kernel_initializer=self.weights_initializer(),
+        _scope=self._get_scope_name(),
+        _reuse=reuse)
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
@@ -1838,18 +1971,15 @@ class Conv2D(SharedVariableScope):
       parent_tensor = tf.expand_dims(parent_tensor, 3)
     for reuse in (self._reuse, False):
       try:
-        out_tensor = tf.contrib.layers.conv2d(
-            parent_tensor,
-            num_outputs=self.num_outputs,
-            kernel_size=self.kernel_size,
-            stride=self.stride,
-            padding=self.padding,
-            activation_fn=self.activation_fn,
-            normalizer_fn=self.normalizer_fn,
-            biases_initializer=self.biases_initializer(),
-            weights_initializer=self.weights_initializer(),
-            scope=self._get_scope_name(),
-            reuse=reuse)
+        if tfe.in_eager_mode():
+          if not self._built:
+            self._layer = self._build_layer(False)
+          layer = self._layer
+        else:
+          layer = self._build_layer(reuse)
+        out_tensor = layer(parent_tensor)
+        if self.normalizer_fn is not None:
+          out_tensor = self.normalizer_fn(out_tensor)
         break
       except ValueError:
         if reuse:
@@ -1860,6 +1990,9 @@ class Conv2D(SharedVariableScope):
     if set_tensors:
       self._record_variable_scope(self.scope_name)
       self.out_tensor = out_tensor
+    if tfe.in_eager_mode() and not self._built:
+      self._built = True
+      self.variables = self._layer.variables
     return out_tensor
 
 
@@ -1931,6 +2064,23 @@ class Conv3D(SharedVariableScope):
     except:
       pass
 
+  def _build_layer(self, reuse):
+    if self.biases_initializer is None:
+      biases_initializer = None
+    else:
+      biases_initializer = self.biases_initializer()
+    return tf.layers.Conv3D(
+        self.num_outputs,
+        self.kernel_size,
+        strides=self.stride,
+        padding=self.padding,
+        activation=self.activation_fn,
+        use_bias=biases_initializer is not None,
+        bias_initializer=self.biases_initializer(),
+        kernel_initializer=self.weights_initializer(),
+        _scope=self._get_scope_name(),
+        _reuse=reuse)
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
@@ -1938,18 +2088,15 @@ class Conv3D(SharedVariableScope):
       parent_tensor = tf.expand_dims(parent_tensor, 4)
     for reuse in (self._reuse, False):
       try:
-        out_tensor = tf.layers.conv3d(
-            parent_tensor,
-            filters=self.num_outputs,
-            kernel_size=self.kernel_size,
-            strides=self.stride,
-            padding=self.padding,
-            activation=self.activation_fn,
-            activity_regularizer=self.normalizer_fn,
-            bias_initializer=self.biases_initializer(),
-            kernel_initializer=self.weights_initializer(),
-            name=self._get_scope_name(),
-            reuse=reuse)
+        if tfe.in_eager_mode():
+          if not self._built:
+            self._layer = self._build_layer(False)
+          layer = self._layer
+        else:
+          layer = self._build_layer(reuse)
+        out_tensor = layer(parent_tensor)
+        if self.normalizer_fn is not None:
+          out_tensor = self.normalizer_fn(out_tensor)
         break
       except ValueError:
         if reuse:
@@ -1961,6 +2108,9 @@ class Conv3D(SharedVariableScope):
     if set_tensors:
       self._record_variable_scope(self.scope_name)
       self.out_tensor = out_tensor
+    if tfe.in_eager_mode() and not self._built:
+      self._built = True
+      self.variables = self._layer.variables
     return out_tensor
 
 
@@ -2031,6 +2181,23 @@ class Conv2DTranspose(SharedVariableScope):
     except:
       pass
 
+  def _build_layer(self, reuse):
+    if self.biases_initializer is None:
+      biases_initializer = None
+    else:
+      biases_initializer = self.biases_initializer()
+    return tf.layers.Conv2DTranspose(
+        self.num_outputs,
+        self.kernel_size,
+        strides=self.stride,
+        padding=self.padding,
+        activation=self.activation_fn,
+        use_bias=biases_initializer is not None,
+        bias_initializer=self.biases_initializer(),
+        kernel_initializer=self.weights_initializer(),
+        _scope=self._get_scope_name(),
+        _reuse=reuse)
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
@@ -2038,18 +2205,15 @@ class Conv2DTranspose(SharedVariableScope):
       parent_tensor = tf.expand_dims(parent_tensor, 3)
     for reuse in (self._reuse, False):
       try:
-        out_tensor = tf.contrib.layers.conv2d_transpose(
-            parent_tensor,
-            num_outputs=self.num_outputs,
-            kernel_size=self.kernel_size,
-            stride=self.stride,
-            padding=self.padding,
-            activation_fn=self.activation_fn,
-            normalizer_fn=self.normalizer_fn,
-            biases_initializer=self.biases_initializer(),
-            weights_initializer=self.weights_initializer(),
-            scope=self._get_scope_name(),
-            reuse=reuse)
+        if tfe.in_eager_mode():
+          if not self._built:
+            self._layer = self._build_layer(False)
+          layer = self._layer
+        else:
+          layer = self._build_layer(reuse)
+        out_tensor = layer(parent_tensor)
+        if self.normalizer_fn is not None:
+          out_tensor = self.normalizer_fn(out_tensor)
         break
       except ValueError:
         if reuse:
@@ -2060,6 +2224,9 @@ class Conv2DTranspose(SharedVariableScope):
     if set_tensors:
       self._record_variable_scope(self.scope_name)
       self.out_tensor = out_tensor
+    if tfe.in_eager_mode() and not self._built:
+      self._built = True
+      self.variables = self._layer.variables
     return out_tensor
 
 
@@ -2131,6 +2298,23 @@ class Conv3DTranspose(SharedVariableScope):
     except:
       pass
 
+  def _build_layer(self, reuse):
+    if self.biases_initializer is None:
+      biases_initializer = None
+    else:
+      biases_initializer = self.biases_initializer()
+    return tf.layers.Conv3DTranspose(
+        self.num_outputs,
+        self.kernel_size,
+        strides=self.stride,
+        padding=self.padding,
+        activation=self.activation_fn,
+        use_bias=biases_initializer is not None,
+        bias_initializer=self.biases_initializer(),
+        kernel_initializer=self.weights_initializer(),
+        _scope=self._get_scope_name(),
+        _reuse=reuse)
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
@@ -2138,18 +2322,15 @@ class Conv3DTranspose(SharedVariableScope):
       parent_tensor = tf.expand_dims(parent_tensor, 4)
     for reuse in (self._reuse, False):
       try:
-        out_tensor = tf.layers.conv3d_transpose(
-            parent_tensor,
-            filters=self.num_outputs,
-            kernel_size=self.kernel_size,
-            strides=self.stride,
-            padding=self.padding,
-            activation=self.activation_fn,
-            activity_regularizer=self.normalizer_fn,
-            bias_initializer=self.biases_initializer(),
-            kernel_initializer=self.weights_initializer(),
-            name=self._get_scope_name(),
-            reuse=reuse)
+        if tfe.in_eager_mode():
+          if not self._built:
+            self._layer = self._build_layer(False)
+          layer = self._layer
+        else:
+          layer = self._build_layer(reuse)
+        out_tensor = layer(parent_tensor)
+        if self.normalizer_fn is not None:
+          out_tensor = self.normalizer_fn(out_tensor)
         break
       except ValueError:
         if reuse:
@@ -2160,6 +2341,9 @@ class Conv3DTranspose(SharedVariableScope):
     if set_tensors:
       self._record_variable_scope(self.scope_name)
       self.out_tensor = out_tensor
+    if tfe.in_eager_mode() and not self._built:
+      self._built = True
+      self.variables = self._layer.variables
     return out_tensor
 
 
@@ -2189,8 +2373,8 @@ class MaxPool1D(Layer):
     super(MaxPool1D, self).__init__(**kwargs)
     try:
       parent_shape = self.in_layers[0].shape
-      self._shape = tuple(
-          None if p is None else p // s for p, s in zip(parent_shape, strides))
+      self._shape = (parent_shape[0], parent_shape[1] // strides,
+                     parent_shape[2])
     except:
       pass
 
@@ -2332,11 +2516,7 @@ class GraphConv(Layer):
     self.activation_fn = activation_fn
     super(GraphConv, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-    # in_layers = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
-    in_channels = inputs[0].get_shape()[-1].value
-
+  def _create_variables(self, in_channels):
     # Generate the nb_affine weights and biases
     self.W_list = [
         initializations.glorot_uniform([in_channels, self.out_channel])
@@ -2347,6 +2527,13 @@ class GraphConv(Layer):
             self.out_channel,
         ]) for k in range(self.num_deg)
     ]
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    # in_layers = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
+    in_channels = inputs[0].get_shape()[-1].value
+    if not tfe.in_eager_mode() or not self._built:
+      self._create_variables(in_channels)
 
     # Extract atom_features
     atom_features = inputs[0]
@@ -2408,6 +2595,9 @@ class GraphConv(Layer):
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
+    if tfe.in_eager_mode() and not self._built:
+      self._built = True
+      self.variables = self.W_list + self.b_list
     return out_tensor
 
   def sum_neigh(self, atoms, deg_adj_lists):
@@ -2576,18 +2766,17 @@ class LSTMStep(Layer):
   def get_initial_states(self, input_shape):
     return [model_ops.zeros(input_shape), model_ops.zeros(input_shape)]
 
-  def build(self):
+  def _create_variables(self):
     """Constructs learnable weights for this layer."""
     init = self.init
     inner_init = self.inner_init
     self.W = init((self.input_dim, 4 * self.output_dim))
     self.U = inner_init((self.output_dim, 4 * self.output_dim))
 
-    self.b = tf.Variable(
+    self.b = create_variable(
         np.hstack((np.zeros(self.output_dim), np.ones(self.output_dim),
                    np.zeros(self.output_dim), np.zeros(self.output_dim))),
         dtype=tf.float32)
-    self.trainable_weights = [self.W, self.U, self.b]
 
   def none_tensors(self):
     """Zeros out stored tensors for pickling."""
@@ -2620,7 +2809,13 @@ class LSTMStep(Layer):
     activation = self.activation
     inner_activation = self.inner_activation
 
-    self.build()
+    if tfe.in_eager_mode() and not self._built:
+      self._create_variables()
+      self.variables = [self.W, self.U, self.b]
+      self._built = True
+    if not tfe.in_eager_mode():
+      self._create_variables()
+      self.trainable_weights = [self.W, self.U, self.b]
     inputs = self._get_input_tensors(in_layers)
     x, h_tm1, c_tm1 = inputs
 
@@ -2703,6 +2898,14 @@ class AttnLSTMEmbedding(Layer):
     self.n_support = n_support
     self.n_feat = n_feat
 
+  def _create_variables(self):
+    n_feat = self.n_feat
+    lstm = LSTMStep(n_feat, 2 * n_feat)
+    self.q_init = model_ops.zeros([self.n_test, n_feat])
+    self.r_init = model_ops.zeros([self.n_test, n_feat])
+    self.states_init = lstm.get_initial_states([self.n_test, n_feat])
+    return lstm
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """Execute this layer on input tensors.
 
@@ -2726,15 +2929,13 @@ class AttnLSTMEmbedding(Layer):
     # x is test set, xp is support set.
     x, xp = inputs
 
-    ## Initializes trainable weights.
-    n_feat = self.n_feat
-
-    lstm = LSTMStep(n_feat, 2 * n_feat)
-    self.q_init = model_ops.zeros([self.n_test, n_feat])
-    self.r_init = model_ops.zeros([self.n_test, n_feat])
-    self.states_init = lstm.get_initial_states([self.n_test, n_feat])
-
-    self.trainable_weights = [self.q_init, self.r_init]
+    if tfe.in_eager_mode():
+      if not self._built:
+        self._lstm = self._create_variables()
+      lstm = self._lstm
+    else:
+      lstm = self._create_variables()
+      self.trainable_weights = [self.q_init, self.r_init]
 
     ### Performs computations
 
@@ -2757,6 +2958,9 @@ class AttnLSTMEmbedding(Layer):
       self.out_tensor = xp
       self.xq = x + q
       self.xp = xp
+    if tfe.in_eager_mode() and not self._built:
+      self._built = True
+      self.variables = self._lstm.variables + [self.q_init, self.r_init]
     return [x + q, xp]
 
   def none_tensors(self):
@@ -2813,6 +3017,21 @@ class IterRefLSTMEmbedding(Layer):
     self.n_support = n_support
     self.n_feat = n_feat
 
+  def _create_variables(self):
+    n_feat = self.n_feat
+
+    # Support set lstm
+    support_lstm = LSTMStep(n_feat, 2 * n_feat)
+    self.q_init = model_ops.zeros([self.n_support, n_feat])
+    self.support_states_init = support_lstm.get_initial_states(
+        [self.n_support, n_feat])
+
+    # Test lstm
+    test_lstm = LSTMStep(n_feat, 2 * n_feat)
+    self.p_init = model_ops.zeros([self.n_test, n_feat])
+    self.test_states_init = test_lstm.get_initial_states([self.n_test, n_feat])
+    return (support_lstm, test_lstm)
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """Execute this layer on input tensors.
 
@@ -2830,20 +3049,14 @@ class IterRefLSTMEmbedding(Layer):
       Returns two tensors of same shape as input. Namely the output shape will
       be [(n_test, n_feat), (n_support, n_feat)]
     """
-    n_feat = self.n_feat
-
-    # Support set lstm
-    support_lstm = LSTMStep(n_feat, 2 * n_feat)
-    self.q_init = model_ops.zeros([self.n_support, n_feat])
-    self.support_states_init = support_lstm.get_initial_states(
-        [self.n_support, n_feat])
-
-    # Test lstm
-    test_lstm = LSTMStep(n_feat, 2 * n_feat)
-    self.p_init = model_ops.zeros([self.n_test, n_feat])
-    self.test_states_init = test_lstm.get_initial_states([self.n_test, n_feat])
-
-    self.trainable_weights = []
+    if tfe.in_eager_mode():
+      if not self._built:
+        self._support_lstm, self._test_lstm = self._create_variables()
+      support_lstm = self._support_lstm
+      test_lstm = self._test_lstm
+    else:
+      support_lstm, test_lstm = self._create_variables()
+      self.trainable_weights = []
 
     # self.build()
     inputs = self._get_input_tensors(in_layers)
@@ -2887,6 +3100,11 @@ class IterRefLSTMEmbedding(Layer):
       self.xp = x + p
       self.xpq = xp + q
       self.out_tensor = self.xp
+    if tfe.in_eager_mode() and not self._built:
+      self.variables = self._support_lstm.variables + self._test_lstm.variables + [
+          self.q_init, self.p_init
+      ]
+      self._built = True
 
     return [x + p, xp + q]
 
@@ -2912,20 +3130,41 @@ class IterRefLSTMEmbedding(Layer):
 
 class BatchNorm(Layer):
 
-  def __init__(self, in_layers=None, **kwargs):
+  def __init__(self,
+               in_layers=None,
+               axis=-1,
+               momentum=0.99,
+               epsilon=1e-3,
+               **kwargs):
     super(BatchNorm, self).__init__(in_layers, **kwargs)
+    self.axis = axis
+    self.momentum = momentum
+    self.epsilon = epsilon
     try:
       parent_shape = self.in_layers[0].shape
       self._shape = tuple(self.in_layers[0].shape)
     except:
       pass
 
+  def _build_layer(self):
+    return tf.layers.BatchNormalization(
+        axis=self.axis, momentum=self.momentum, epsilon=self.epsilon)
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
-    out_tensor = tf.layers.batch_normalization(parent_tensor)
+    if tfe.in_eager_mode():
+      if not self._built:
+        self._layer = self._build_layer()
+      layer = self._layer
+    else:
+      layer = self._build_layer()
+    out_tensor = layer(parent_tensor)
     if set_tensors:
       self.out_tensor = out_tensor
+    if tfe.in_eager_mode() and not self._built:
+      self._built = True
+      self.variables = self._layer.variables
     return out_tensor
 
 
@@ -2938,6 +3177,9 @@ class BatchNormalization(Layer):
                beta_init='zero',
                gamma_init='one',
                **kwargs):
+    warnings.warn(
+        'BatchNormalization is deprecated and will be removed in a future release.  Use BatchNorm instead.',
+        DeprecationWarning)
     self.beta_init = initializations.get(beta_init)
     self.gamma_init = initializations.get(gamma_init)
     self.epsilon = epsilon
@@ -3025,13 +3267,17 @@ class VinaFreeEnergy(Layer):
     self.stop = stop
     super(VinaFreeEnergy, self).__init__(**kwargs)
 
+  def _build_layers(self):
+    weighted_combo = WeightedLinearCombo()
+    w = create_variable(tf.random_normal((1,), stddev=self.stddev))
+    return (weighted_combo, w)
+
   def cutoff(self, d, x):
     out_tensor = tf.where(d < 8, x, tf.zeros_like(x))
     return out_tensor
 
-  def nonlinearity(self, c):
+  def nonlinearity(self, c, w):
     """Computes non-linearity used in Vina."""
-    w = tf.Variable(tf.random_normal((1,), stddev=self.stddev))
     out_tensor = c / (1 + w * self.Nrot)
     return w, out_tensor
 
@@ -3081,6 +3327,14 @@ class VinaFreeEnergy(Layer):
     X = inputs[0]
     Z = inputs[1]
 
+    if tfe.in_eager_mode():
+      if not self._built:
+        self._weighted_combo, self._w = self._build_layers()
+      weighted_combo = self._weighted_combo
+      w = self._w
+    else:
+      weighted_combo, w = self._build_layers()
+
     # TODO(rbharath): This layer shouldn't be neighbor-listing. Make
     # neighbors lists an argument instead of a part of this layer.
     nbr_list = NeighborList(self.N_atoms, self.M_nbrs, self.ndim,
@@ -3097,20 +3351,22 @@ class VinaFreeEnergy(Layer):
     gauss_2 = self.gaussian_second(dists)
 
     # Shape (N, M)
-    weighted_combo = WeightedLinearCombo()
     interactions = weighted_combo(repulsion, hydrophobic, hbond, gauss_1,
                                   gauss_2)
 
     # Shape (N, M)
     thresholded = self.cutoff(dists, interactions)
 
-    weight, free_energies = self.nonlinearity(thresholded)
+    weight, free_energies = self.nonlinearity(thresholded, w)
     free_energy = ReduceSum()(free_energies)
 
     out_tensor = free_energy
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
+    if tfe.in_eager_mode() and not self._built:
+      self.variables = weighted_combo.variables + [w]
+      self._built = True
     return out_tensor
 
 
@@ -3125,14 +3381,23 @@ class WeightedLinearCombo(Layer):
     except:
       pass
 
+  def _create_variables(self, inputs):
+    return [
+        create_variable(tf.random_normal([1], stddev=self.std))
+        for i in range(len(inputs))
+    ]
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers, True)
-    weights = []
+    if tfe.in_eager_mode():
+      if not self._built:
+        self.variables = self._create_variables(inputs)
+        self._built = True
+      weights = self.variables
+    else:
+      weights = self._create_variables(inputs)
     out_tensor = None
-    for in_tensor in inputs:
-      w = tf.Variable(tf.random_normal([
-          1,
-      ], stddev=self.std))
+    for in_tensor, w in zip(inputs, weights):
       if out_tensor is None:
         out_tensor = w * in_tensor
       else:
@@ -3442,7 +3707,8 @@ class Dropout(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
-    keep_prob = 1.0 - self.dropout_prob * kwargs['training']
+    training = kwargs['training'] if 'training' in kwargs else 1.0
+    keep_prob = 1.0 - self.dropout_prob * training
     out_tensor = tf.nn.dropout(parent_tensor, keep_prob)
     if set_tensors:
       self.out_tensor = out_tensor
@@ -3546,11 +3812,18 @@ class AtomicConvolution(Layer):
     R = self.distance_matrix(D)
     sym = []
     rsf_zeros = tf.zeros((B, N, M))
-    for param in self.radial_params:
+    for i, param in enumerate(self.radial_params):
+
+      if tfe.in_eager_mode():
+        if not self._built:
+          self.variables += self._create_radial_variables(*param)
+        param_variables = self.variables[3 * i:3 * i + 3]
+      else:
+        param_variables = self._create_radial_variables(*param)
 
       # We apply the radial pooling filter before atom type conv
       # to reduce computation
-      param_variables, rsf = self.radial_symmetry_function(R, *param)
+      rsf = self.radial_symmetry_function(R, *param_variables)
 
       if not self.atom_types:
         cond = tf.not_equal(Nbrs_Z, 0.0)
@@ -3567,7 +3840,16 @@ class AtomicConvolution(Layer):
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
+    if tfe.in_eager_mode() and not self._built:
+      self._built = True
     return out_tensor
+
+  def _create_radial_variables(self, rc, rs, e):
+    with tf.name_scope(None, "NbrRadialSymmetryFunction", [rc, rs, e]):
+      rc = create_variable(rc)
+      rs = create_variable(rs)
+      e = create_variable(e)
+    return (rc, rs, e)
 
   def radial_symmetry_function(self, R, rc, rs, e):
     """Calculates radial symmetry function.
@@ -3592,13 +3874,9 @@ class AtomicConvolution(Layer):
 
     """
 
-    with tf.name_scope(None, "NbrRadialSymmetryFunction", [rc, rs, e]):
-      rc = tf.Variable(rc)
-      rs = tf.Variable(rs)
-      e = tf.Variable(e)
-      K = self.gaussian_distance_matrix(R, rs, e)
-      FC = self.radial_cutoff(R, rc)
-    return [rc, rs, e], tf.multiply(K, FC)
+    K = self.gaussian_distance_matrix(R, rs, e)
+    FC = self.radial_cutoff(R, rc)
+    return tf.multiply(K, FC)
 
   def radial_cutoff(self, R, rc):
     """Calculates radial cutoff matrix.
@@ -3804,7 +4082,17 @@ class AlphaShareLayer(Layer):
     subspaces = tf.reshape(tf.stack(subspaces), [n_alphas, -1])
 
     # create the alpha learnable parameters
-    alphas = tf.Variable(tf.random_normal([n_alphas, n_alphas]), name='alphas')
+    if tfe.in_eager_mode():
+      if not self._built:
+        self.variables = [
+            create_variable(
+                tf.random_normal([n_alphas, n_alphas]), name='alphas')
+        ]
+        self._built = True
+      alphas = self.variables[0]
+    else:
+      alphas = create_variable(
+          tf.random_normal([n_alphas, n_alphas]), name='alphas')
 
     subspaces = tf.matmul(alphas, subspaces)
 
@@ -3896,7 +4184,15 @@ class BetaShare(Layer):
     n_betas = len(inputs)
     subspaces = tf.reshape(tf.stack(subspaces), [n_betas, -1])
 
-    betas = tf.Variable(tf.random_normal([1, n_betas]), name='betas')
+    if tfe.in_eager_mode():
+      if not self._built:
+        self.variables = [
+            create_variable(tf.random_normal([1, n_betas]), name='betas')
+        ]
+        self._built = True
+      betas = self.variables[0]
+    else:
+      betas = create_variable(tf.random_normal([1, n_betas]), name='betas')
     out_tensor = tf.matmul(betas, subspaces)
     self.betas = betas
     self.out_tensor = tf.reshape(out_tensor, [-1, original_cols])
@@ -3917,7 +4213,7 @@ class ANIFeat(Layer):
   """
 
   def __init__(self,
-               in_layers,
+               in_layers=None,
                max_atoms=23,
                radial_cutoff=4.6,
                angular_cutoff=3.1,
@@ -4188,17 +4484,25 @@ class GraphEmbedPoolLayer(Layer):
     self.out_tensors = [result, result_A]
     return result, result_A
 
+  def _create_variables(self, no_features, no_filters, name):
+    W = create_variable(
+        tf.truncated_normal(
+            [no_features, no_filters], stddev=1.0 / math.sqrt(no_features)),
+        name='%s_weights' % name,
+        dtype=tf.float32)
+    b = create_variable(
+        tf.constant(0.1), name='%s_bias' % self.name, dtype=tf.float32)
+    return [W, b]
+
   def embedding_factors(self, V, no_filters, name="default"):
     no_features = V.get_shape()[-1].value
-    W = tf.get_variable(
-        '%s_weights' % name, [no_features, no_filters],
-        initializer=tf.truncated_normal_initializer(
-            stddev=1.0 / math.sqrt(no_features)),
-        dtype=tf.float32)
-    b = tf.get_variable(
-        '%s_bias' % self.name, [no_filters],
-        initializer=tf.constant_initializer(0.1),
-        dtype=tf.float32)
+    if tfe.in_eager_mode():
+      if not self._built:
+        self.variables = self._create_variables(no_features, no_filters, name)
+        self._built = True
+      W, b = self.variables
+    else:
+      W, b = self._create_variables(no_features, no_filters, name)
     V_reshape = tf.reshape(V, (-1, no_features))
     s = tf.slice(tf.shape(V), [0], [len(V.get_shape()) - 1])
     s = tf.concat([s, tf.stack([no_filters])], 0)
@@ -4270,6 +4574,23 @@ class GraphCNN(Layer):
     self.num_filters = num_filters
     super(GraphCNN, self).__init__(**kwargs)
 
+  def _create_variables(self, no_features, no_A):
+    W = create_variable(
+        tf.truncated_normal(
+            [no_features * no_A, self.num_filters],
+            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
+        name='%s_weights' % self.name,
+        dtype=tf.float32)
+    W_I = create_variable(
+        tf.truncated_normal(
+            [no_features, self.num_filters],
+            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
+        name='%s_weights_I' % self.name,
+        dtype=tf.float32)
+    b = create_variable(
+        tf.constant(0.1), name='%s_bias' % self.name, dtype=tf.float32)
+    return [W, W_I, b]
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) == 3:
@@ -4278,21 +4599,13 @@ class GraphCNN(Layer):
       V, A = inputs
     no_A = A.get_shape()[2].value
     no_features = V.get_shape()[2].value
-    W = tf.get_variable(
-        '%s_weights' % self.name, [no_features * no_A, self.num_filters],
-        initializer=tf.truncated_normal_initializer(
-            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
-        dtype=tf.float32)
-    W_I = tf.get_variable(
-        '%s_weights_I' % self.name, [no_features, self.num_filters],
-        initializer=tf.truncated_normal_initializer(
-            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
-        dtype=tf.float32)
-
-    b = tf.get_variable(
-        '%s_bias' % self.name, [self.num_filters],
-        initializer=tf.constant_initializer(0.1),
-        dtype=tf.float32)
+    if tfe.in_eager_mode():
+      if not self._built:
+        self.variables = self._create_variables(no_features, no_A)
+        self._built = True
+      W, W_I, b = self.variables
+    else:
+      W, W_I, b = self._create_variables(no_features, no_A)
 
     n = self.graphConvolution(V, A)
     A_shape = tf.shape(A)

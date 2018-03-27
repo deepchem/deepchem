@@ -9,7 +9,7 @@ import copy
 
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
-  SoftMaxCrossEntropy, BatchNorm, WeightedError, Dropout, BatchNormalization, \
+  SoftMaxCrossEntropy, BatchNorm, WeightedError, Dropout, \
   Conv1D, ReduceMax, Squeeze, Stack, Highway
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 
@@ -69,13 +69,13 @@ class TextCNNModel(TensorGraph):
   into characters and transformed to one-hot vectors in a similar way. The model can
   be used for general molecular-level classification or regression tasks. It is also
   used in the ORGAN model as discriminator.
-  
+
   Training of the model only requires SMILES strings input, all featurized datasets
-  that include SMILES in the `ids` attribute are accepted. PDBbind, QM7 and QM7b 
+  that include SMILES in the `ids` attribute are accepted. PDBbind, QM7 and QM7b
   are not supported. To use the model, `build_char_dict` should be called first
   before defining the model to build character dict of input dataset, example can
   be found in examples/delaney/delaney_textcnn.py
-  
+
   """
 
   def __init__(

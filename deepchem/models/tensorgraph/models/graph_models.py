@@ -14,7 +14,7 @@ from deepchem.models.tensorgraph.graph_layers import WeaveGather, \
 from deepchem.models.tensorgraph.graph_layers import WeaveLayerFactory
 from deepchem.models.tensorgraph.layers import Dense, SoftMax, \
     SoftMaxCrossEntropy, GraphConv, BatchNorm, \
-    GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack, Flatten, GraphCNN, GraphCNNPool
+    GraphPool, GraphGather, WeightedError, Dropout, BatchNorm, Stack, Flatten, GraphCNN, GraphCNNPool
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
@@ -86,7 +86,7 @@ class WeaveModel(TensorGraph):
         out_channels=self.n_graph_feat,
         activation_fn=tf.nn.tanh,
         in_layers=weave_layer2A)
-    batch_norm1 = BatchNormalization(epsilon=1e-5, mode=1, in_layers=[dense1])
+    batch_norm1 = BatchNorm(epsilon=1e-5, in_layers=[dense1])
     weave_gather = WeaveGather(
         self.batch_size,
         n_input=self.n_graph_feat,
@@ -689,7 +689,7 @@ class GraphConvModel(TensorGraph):
               Either "classification" or "regression"
             number_atom_features: int
                 75 is the default number of atom features created, but
-                this can vary if various options are passed to the 
+                this can vary if various options are passed to the
                 function atom_features in graph_features
             """
     self.n_tasks = n_tasks
