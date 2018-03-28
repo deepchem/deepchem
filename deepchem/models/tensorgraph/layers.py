@@ -38,7 +38,7 @@ class Layer(object):
     if tfe.in_eager_mode():
       self.variables = []
       self._built = False
-      self._non_pickle_fields = ['variables']
+      self._non_pickle_fields = ['variables', '_built']
     else:
       self.variable_scope = ''
       self._non_pickle_fields = [
@@ -98,6 +98,8 @@ class Layer(object):
     -------
     Layer
     """
+    if tfe.in_eager_mode():
+      raise ValueError('shared() is not supported in eager mode')
     if self.variable_scope == '':
       return self.clone(in_layers)
     raise ValueError('%s does not implement shared()' % self.__class__.__name__)
@@ -262,8 +264,6 @@ class Layer(object):
       This means the newly created layers will share variables with the original
       ones.
     """
-    if tfe.in_eager_mode():
-      raise ValueError('copy() is not supported in eager mode')
     if self in replacements:
       return replacements[self]
     copied_inputs = [
@@ -280,7 +280,10 @@ class Layer(object):
       variables = variables_graph.get_layer_variables(self)
       if len(variables) > 0:
         with variables_graph._get_tf("Graph").as_default():
-          values = variables_graph.session.run(variables)
+          if tfe.in_eager_mode():
+            values = [v.numpy() for v in variables]
+          else:
+            values = variables_graph.session.run(variables)
           copy.set_variable_initial_values(values)
     return copy
 
@@ -381,6 +384,8 @@ class SharedVariableScope(Layer):
     self._shared_with = None
 
   def shared(self, in_layers):
+    if tfe.in_eager_mode():
+      raise ValueError('shared() is not supported in eager mode')
     copy = self.clone(in_layers)
     self._reuse = True
     copy._reuse = True
@@ -1753,11 +1758,11 @@ class ReduceMean(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) > 1:
-      self.out_tensor = tf.stack(inputs)
+      out_tensor = tf.stack(inputs)
     else:
-      self.out_tensor = inputs[0]
+      out_tensor = inputs[0]
 
-    out_tensor = tf.reduce_mean(self.out_tensor, axis=self.axis)
+    out_tensor = tf.reduce_mean(out_tensor, axis=self.axis)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1784,11 +1789,11 @@ class ReduceMax(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) > 1:
-      self.out_tensor = tf.stack(inputs)
+      out_tensor = tf.stack(inputs)
     else:
-      self.out_tensor = inputs[0]
+      out_tensor = inputs[0]
 
-    out_tensor = tf.reduce_max(self.out_tensor, axis=self.axis)
+    out_tensor = tf.reduce_max(out_tensor, axis=self.axis)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1834,11 +1839,11 @@ class ReduceSum(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) > 1:
-      self.out_tensor = tf.stack(inputs)
+      out_tensor = tf.stack(inputs)
     else:
-      self.out_tensor = inputs[0]
+      out_tensor = inputs[0]
 
-    out_tensor = tf.reduce_sum(self.out_tensor, axis=self.axis)
+    out_tensor = tf.reduce_sum(out_tensor, axis=self.axis)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor

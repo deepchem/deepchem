@@ -191,10 +191,16 @@ class TensorGraph(Model):
         # In eager mode we want an optimizer and a function to compute the
         # gradient of the loss.
 
+        submodel_vars = None
         if submodel is None:
           optimizer = self._get_tf("Optimizer")
         else:
           optimizer = submodel.create_optimizer()
+          if submodel.layers is not None:
+            submodel_vars = set()
+            for layer in submodel.layers:
+              for var in layer.variables:
+                submodel_vars.add(var)
         val_grad_fn = tfe.implicit_value_and_gradients(
             lambda x: self._run_graph([loss], x, True)[0])
       else:
@@ -237,6 +243,10 @@ class TensorGraph(Model):
                       n_samples % self.tensorboard_log_frequency == 0)
         if tfe.in_eager_mode():
           value, grads_and_vars = val_grad_fn(feed_dict)
+          if submodel_vars is not None:
+            grads_and_vars = [
+                x for x in grads_and_vars if x[1] in submodel_vars
+            ]
           optimizer.apply_gradients(grads_and_vars)
           avg_loss += value
         else:
@@ -362,6 +372,8 @@ class TensorGraph(Model):
             break
         n_samples += 1
         feed_results = self._run_graph(outputs, feed_dict, False)
+        if tfe.in_eager_mode():
+          feed_results = [f.numpy() for f in feed_results]
         if len(feed_results) > 1:
           if len(transformers):
             raise ValueError("Does not support transformations "
@@ -503,17 +515,27 @@ class TensorGraph(Model):
           shape = [1 if s is None else s for s in layer.shape]
           tensor = tf.zeros(shape, layer.dtype)
         else:
-          tensor = layer.create_tensor(in_layers=inputs, set_tensors=False)
+          with tf.name_scope(layer.name):
+            tensor = layer.create_tensor(in_layers=inputs, set_tensors=False)
         tensors[layer] = tensor
         return tensor
 
       tensors = {}
       with self._get_tf("Graph").as_default():
+        # Build the layers.
+
         build_layers(self.loss, tensors)
         for output in self.outputs:
           build_layers(output, tensors)
         for submodel in self.submodels:
           build_layers(submodel.loss, tensors)
+
+        # Initialize variables.
+
+        for layer in self.layers.values():
+          if layer.variable_values is not None:
+            for var, val in zip(layer.variables, layer.variable_values):
+              var.assign(val)
       self.session = None
       self._training_placeholder = None
       self.built = True
@@ -861,12 +883,14 @@ class TensorGraph(Model):
     with self._get_tf("Graph").as_default():
       reader = NewCheckpointReader(checkpoint)
       var_names = set([x for x in reader.get_variable_to_shape_map()])
-      var_map = {
-          x.op.name: x
-          for x in tf.global_variables()
-          if x.op.name in var_names
-      }
-      saver = tf.train.Saver(var_list=var_map)
+      var_list = []
+      for var in self.get_variables():
+        name = var.name
+        if ':' in name:
+          name = name[:name.rfind(':')]
+        if name in var_names:
+          var_list.append(var)
+      saver = tf.train.Saver(var_list=var_list)
       saver.restore(self.session, checkpoint)
 
   def get_num_tasks(self):
@@ -992,6 +1016,8 @@ class TensorGraph(Model):
     """
     # Check the inputs.
 
+    if tfe.in_eager_mode():
+      raise ValueError('make_estimator() is not supported in eager mode')
     if len(feature_columns) != len(self.features):
       raise ValueError(
           'This model requires %d feature column(s)' % len(self.features))
