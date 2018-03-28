@@ -34,7 +34,7 @@ train_dataset = transformer.transform(train_dataset)
 valid_dataset.reshard(reshard_size)
 valid_dataset = transformer.transform(valid_dataset)
 
-model = dc.models.DAGTensorGraph(
+model = dc.models.DAGModel(
     len(permeability_tasks),
     max_atoms=max_atoms,
     n_atom_feat=n_atom_feat,

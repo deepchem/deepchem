@@ -277,3 +277,54 @@ class TestEstimators(unittest.TestCase):
 
     results = estimator.evaluate(input_fn=lambda: input_fn(1))
     assert results['accuracy'] > 0.9
+
+  def test_scscore(self):
+    """Test creating an Estimator from a ScScoreModel."""
+    n_samples = 10
+    n_features = 3
+    n_tasks = 1
+
+    # Create a dataset and an input function for processing it.
+
+    np.random.seed(123)
+    X = np.random.rand(n_samples, 2, n_features)
+    y = np.zeros((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y)
+
+    def input_fn(epochs):
+      x, y, weights = dataset.make_iterator(
+          batch_size=n_samples, epochs=epochs).get_next()
+      x1 = x[:, 0]
+      x2 = x[:, 1]
+      return {'x1': x1, 'x2': x2, 'weights': weights}, y
+
+    # Create a TensorGraph model.
+
+    model = dc.models.ScScoreModel(n_features, dropouts=0)
+    del model.outputs[:]
+    model.outputs.append(model.difference)
+
+    def accuracy(labels, predictions, weights):
+      predictions = tf.nn.relu(tf.sign(predictions))
+      return tf.metrics.accuracy(labels, predictions, weights)
+
+    # Create an estimator from it.
+
+    x_col1 = tf.feature_column.numeric_column('x1', shape=(n_features,))
+    x_col2 = tf.feature_column.numeric_column('x2', shape=(n_features,))
+    weight_col = tf.feature_column.numeric_column('weights', shape=(1,))
+
+    estimator = model.make_estimator(
+        feature_columns=[x_col1, x_col2],
+        metrics={'accuracy': accuracy},
+        weight_column=weight_col)
+
+    # Train the model.
+
+    estimator.train(input_fn=lambda: input_fn(100))
+
+    # Evaluate the model.
+
+    results = estimator.evaluate(input_fn=lambda: input_fn(1))
+    assert results['loss'] < 0.5
+    assert results['accuracy'] > 0.6

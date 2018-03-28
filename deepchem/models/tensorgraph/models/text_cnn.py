@@ -9,7 +9,7 @@ import copy
 
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
-  SoftMaxCrossEntropy, BatchNorm, WeightedError, Dropout, BatchNormalization, \
+  SoftMaxCrossEntropy, BatchNorm, WeightedError, Dropout, \
   Conv1D, ReduceMax, Squeeze, Stack, Highway
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 
@@ -55,7 +55,7 @@ default_dict = {
 }
 
 
-class TextCNNTensorGraph(TensorGraph):
+class TextCNNModel(TensorGraph):
   """ A Convolutional neural network on smiles strings
   Reimplementation of the discriminator module in ORGAN: https://arxiv.org/abs/1705.10843
   Originated from: http://emnlp2014.org/papers/pdf/EMNLP2014181.pdf
@@ -69,13 +69,13 @@ class TextCNNTensorGraph(TensorGraph):
   into characters and transformed to one-hot vectors in a similar way. The model can
   be used for general molecular-level classification or regression tasks. It is also
   used in the ORGAN model as discriminator.
-  
+
   Training of the model only requires SMILES strings input, all featurized datasets
-  that include SMILES in the `ids` attribute are accepted. PDBbind, QM7 and QM7b 
+  that include SMILES in the `ids` attribute are accepted. PDBbind, QM7 and QM7b
   are not supported. To use the model, `build_char_dict` should be called first
   before defining the model to build character dict of input dataset, example can
   be found in examples/delaney/delaney_textcnn.py
-  
+
   """
 
   def __init__(
@@ -117,7 +117,7 @@ class TextCNNTensorGraph(TensorGraph):
     self.num_filters = num_filters
     self.dropout = dropout
     self.mode = mode
-    super(TextCNNTensorGraph, self).__init__(**kwargs)
+    super(TextCNNModel, self).__init__(**kwargs)
     self.build_graph()
 
   @staticmethod
@@ -271,7 +271,7 @@ class TextCNNTensorGraph(TensorGraph):
     return np.array(seq)
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
-    out = super(TextCNNTensorGraph, self).predict_on_generator(
+    out = super(TextCNNModel, self).predict_on_generator(
         generator, transformers=[], outputs=outputs)
     if outputs is None:
       outputs = self.outputs
@@ -280,3 +280,21 @@ class TextCNNTensorGraph(TensorGraph):
 
     out = undo_transforms(out, transformers)
     return out
+
+
+#################### Deprecation warnings for renamed TensorGraph models ####################
+
+import warnings
+
+TENSORGRAPH_DEPRECATION = "{} is deprecated and has been renamed to {} and will be removed in DeepChem 3.0."
+
+
+class TextCNNTensorGraph(TextCNNModel):
+
+  warnings.warn(
+      TENSORGRAPH_DEPRECATION.format("TextCNNTensorGraph", "TextCNNModel"),
+      FutureWarning)
+
+  def __init__(self, *args, **kwargs):
+
+    super(TextCNNTensorGraph, self).__init__(*args, **kwargs)
