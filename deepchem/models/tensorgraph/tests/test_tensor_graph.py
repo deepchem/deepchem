@@ -13,7 +13,7 @@ from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
 from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, SoftMax, Constant, Variable
 from deepchem.models.tensorgraph.layers import Feature, Label
-from deepchem.models.tensorgraph.layers import ReduceSquareDifference, Add
+from deepchem.models.tensorgraph.layers import ReduceSquareDifference, Add, GRU
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.optimizers import GradientDescent, ExponentialDecay
 import tensorflow.contrib.eager as tfe
@@ -496,3 +496,51 @@ class TestTensorGraph(unittest.TestCase):
     with context.eager_mode():
       with tfe.IsolateTest():
         self.test_submodels()
+
+  def test_recurrent_layer(self):
+    """Test a model that includes a recurrent layer."""
+    batch_size = 5
+    tg = dc.models.TensorGraph(batch_size=batch_size, use_queue=False)
+    features = Feature(shape=(None, 10, 1))
+    gru = GRU(10, batch_size, in_layers=features)
+    loss = ReduceMean(in_layers=gru)
+    tg.add_output(gru)
+    tg.set_loss(loss)
+    input = np.random.rand(batch_size, 10, 1)
+
+    # If we don't specify the initial state, it should default to zeros.
+
+    predictions1 = tg.predict_on_batch(input)
+
+    # Explicitly specifying the zero state should give the same result.
+
+    initial_state = gru.rnn_initial_states[0]
+    zero_state = gru.rnn_zero_states[0]
+    generator = [{features: input, initial_state: zero_state}]
+    predictions2 = tg.predict_on_generator(generator)
+
+    # Specifying a different initial state should produce a different result.
+
+    generator = [{features: input, initial_state: np.ones(zero_state.shape)}]
+    predictions3 = tg.predict_on_generator(generator)
+    assert np.allclose(predictions1, predictions2)
+    assert not np.allclose(predictions1, predictions3)
+
+  def test_invoke_model_eager(self):
+    """Test invoking the model with __call__() in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        batch_size = 5
+        tg = dc.models.TensorGraph(batch_size=batch_size)
+        features = Feature(shape=(None, 10))
+        dense = Dense(10, in_layers=features)
+        loss = ReduceMean(in_layers=dense)
+        tg.add_output(dense)
+        tg.set_loss(loss)
+        input = np.random.rand(batch_size, 10).astype(np.float32)
+
+        # We should get the same result with either predict_on_batch() or __call__().
+
+        output1 = tg.predict_on_batch(input)
+        output2 = tg(input)
+        assert np.allclose(output1, output2.numpy())

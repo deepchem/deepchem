@@ -325,6 +325,40 @@ class TensorGraph(Model):
           feed_dict[initial_state] = zero_state
         yield feed_dict
 
+  def __call__(self, *inputs, outputs=None):
+    """Execute the model in eager mode to compute outputs as a function of inputs.
+
+    This is very similar to predict_on_batch(), except that it returns the outputs
+    as tensors rather than numpy arrays.  That means you can compute the graph's
+    outputs, then do additional calculations based on them, and gradients will
+    be tracked correctly through the whole process.
+
+    Parameters
+    ----------
+    inputs: tensors
+      the values to use for the model's features.  The number of inputs must
+      exactly match the length of the model's `features` property.  The values
+      may be tensors, numpy arrays, or anything else that can be converted to
+      tensors of the correct shape.
+    outputs: list of Layers
+      the output layers to compute.  If this is None, self.outputs is used
+      (that is, all outputs that have been added by calling add_output()).
+
+    Returns
+    -------
+    The output tensors, or a list of tensors if multiple outputs were requested.
+    """
+    if len(inputs) != len(self.features):
+      raise ValueError('Expected %d inputs, received %d' % len(self.features),
+                       len(inputs))
+    if outputs is None:
+      outputs = self.outputs
+    feed_dict = dict(zip(self.features, inputs))
+    results = self._run_graph(outputs, feed_dict, False)
+    if len(results) == 1:
+      return results[0]
+    return results
+
   def predict_on_generator(self, generator, transformers=[], outputs=None):
     """
     Parameters

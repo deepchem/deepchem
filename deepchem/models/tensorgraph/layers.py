@@ -104,8 +104,29 @@ class Layer(object):
       return self.clone(in_layers)
     raise ValueError('%s does not implement shared()' % self.__class__.__name__)
 
-  def __call__(self, *in_layers, **kwargs):
-    return self.create_tensor(in_layers=in_layers, set_tensors=False, **kwargs)
+  def __call__(self, *inputs, **kwargs):
+    """Execute the layer in eager mode to compute its output as a function of inputs.
+
+    If the layer defines any variables, they are created the first time it is invoked.
+
+    Arbitrary keyword arguments may be specified after the list of inputs.  Most
+    layers do not expect or use any additional arguments, but there are a few
+    significant cases.
+
+    - Recurrent layers usually accept an argument `initial_state` which can be
+      used to specify the initial state for the recurrent cell.  When this
+      argument is omitted, they use a default initial state, usually all zeros.
+    - A few layers behave differently during training than during inference,
+      such as Dropout and CombineMeanStd.  You can specify a boolean value with
+      the `training` argument to tell it which mode it is being called in.
+
+    Parameters
+    ----------
+    inputs: tensors
+      the inputs to pass to the layer.  The values may be tensors, numpy arrays,
+      or anything else that can be converted to tensors of the correct shape.
+    """
+    return self.create_tensor(in_layers=inputs, set_tensors=False, **kwargs)
 
   @property
   def shape(self):
