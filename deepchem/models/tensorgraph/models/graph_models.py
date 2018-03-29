@@ -1157,8 +1157,8 @@ class GraphConvTensorGraph(GraphConvModel):
   def __init__(self, *args, **kwargs):
 
     warnings.warn(
-        TENSORGRAPH_DEPRECATION.format("GraphConvTensorGraph", "GraphConvModel"),
-        FutureWarning)
+        TENSORGRAPH_DEPRECATION.format("GraphConvTensorGraph",
+                                       "GraphConvModel"), FutureWarning)
 
     super(GraphConvTensorGraph, self).__init__(*args, **kwargs)
 
