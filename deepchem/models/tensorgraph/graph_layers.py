@@ -925,7 +925,7 @@ class EdgeNetwork(object):
 
   def forward(self, atom_features, atom_to_pair):
     out = tf.expand_dims(tf.gather(atom_features, atom_to_pair[:, 1]), 2)
-    out = tf.reduce_sum(out * self.A, axis=1)
+    out = tf.squeeze(tf.matmul(self.A, out), axis=2)
     out = tf.segment_sum(out, atom_to_pair[:, 0])
     return out
 
