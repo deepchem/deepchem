@@ -1154,65 +1154,65 @@ TENSORGRAPH_DEPRECATION = "{} is deprecated and has been renamed to {} and will 
 
 class GraphConvTensorGraph(GraphConvModel):
 
-  warnings.warn(
-      TENSORGRAPH_DEPRECATION.format("GraphConvTensorGraph", "GraphConvModel"),
-      FutureWarning)
-
   def __init__(self, *args, **kwargs):
+
+    warnings.warn(
+        TENSORGRAPH_DEPRECATION.format("GraphConvTensorGraph", "GraphConvModel"),
+        FutureWarning)
 
     super(GraphConvTensorGraph, self).__init__(*args, **kwargs)
 
 
 class WeaveTensorGraph(WeaveModel):
 
-  warnings.warn(
-      TENSORGRAPH_DEPRECATION.format("WeaveTensorGraph", "WeaveModel"),
-      FutureWarning)
-
   def __init__(self, *args, **kwargs):
+
+    warnings.warn(
+        TENSORGRAPH_DEPRECATION.format("WeaveTensorGraph", "WeaveModel"),
+        FutureWarning)
 
     super(WeaveModel, self).__init__(*args, **kwargs)
 
 
 class DTNNTensorGraph(DTNNModel):
 
-  warnings.warn(
-      TENSORGRAPH_DEPRECATION.format("DTNNTensorGraph", "DTNNModel"),
-      FutureWarning)
-
   def __init__(self, *args, **kwargs):
+
+    warnings.warn(
+        TENSORGRAPH_DEPRECATION.format("DTNNTensorGraph", "DTNNModel"),
+        FutureWarning)
 
     super(DTNNModel, self).__init__(*args, **kwargs)
 
 
 class DAGTensorGraph(DAGModel):
 
-  warnings.warn(
-      TENSORGRAPH_DEPRECATION.format("DAGTensorGraph", "DAGModel"),
-      FutureWarning)
-
   def __init__(self, *args, **kwargs):
+
+    warnings.warn(
+        TENSORGRAPH_DEPRECATION.format("DAGTensorGraph", "DAGModel"),
+        FutureWarning)
 
     super(DAGModel, self).__init__(*args, **kwargs)
 
 
 class PetroskiSuchTensorGraph(PetroskiSuchModel):
 
-  warnings.warn(
-      TENSORGRAPH_DEPRECATION.format("PetroskiSuchTensorGraph",
-                                     "PetroskiSuchModel"), FutureWarning)
-
   def __init__(self, *args, **kwargs):
+
+    warnings.warn(
+        TENSORGRAPH_DEPRECATION.format("PetroskiSuchTensorGraph",
+                                       "PetroskiSuchModel"), FutureWarning)
 
     super(PetroskiSuchModel, self).__init__(*args, **kwargs)
 
 
 class MPNNTensorGraph(MPNNModel):
 
-  warnings.warn(
-      TENSORGRAPH_DEPRECATION.format("MPNNTensorGraph", "MPNNModel"),
-      FutureWarning)
-
   def __init__(self, *args, **kwargs):
+
+    warnings.warn(
+        TENSORGRAPH_DEPRECATION.format("MPNNTensorGraph", "MPNNModel"),
+        FutureWarning)
 
     super(MPNNModel, self).__init__(*args, **kwargs)
