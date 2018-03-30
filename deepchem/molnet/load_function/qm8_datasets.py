@@ -11,7 +11,7 @@ import deepchem
 def load_qm8(featurizer='CoulombMatrix', split='random', reload=True):
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "qm8/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir, "qm8/" + featurizer + "/" + str(split))
 
   if featurizer in ['CoulombMatrix', 'BPSymmetryFunction', 'MP', 'Raw']:
     dataset_file = os.path.join(data_dir, "qm8.sdf")

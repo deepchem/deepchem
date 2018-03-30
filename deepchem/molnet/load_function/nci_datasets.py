@@ -19,7 +19,7 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
   logger.info("About to load NCI dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "nci/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir, "nci/" + featurizer + "/" + str(split))
 
   dataset_file = os.path.join(data_dir, "nci_unique.csv")
   if not os.path.exists(dataset_file):
