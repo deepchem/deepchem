@@ -325,7 +325,7 @@ class TensorGraph(Model):
           feed_dict[initial_state] = zero_state
         yield feed_dict
 
-  def __call__(self, *inputs, outputs=None):
+  def __call__(self, *inputs, **kwargs):
     """Execute the model in eager mode to compute outputs as a function of inputs.
 
     This is very similar to predict_on_batch(), except that it returns the outputs
@@ -341,7 +341,7 @@ class TensorGraph(Model):
       may be tensors, numpy arrays, or anything else that can be converted to
       tensors of the correct shape.
     outputs: list of Layers
-      the output layers to compute.  If this is None, self.outputs is used
+      the output layers to compute.  If this is omitted, self.outputs is used
       (that is, all outputs that have been added by calling add_output()).
 
     Returns
@@ -351,7 +351,11 @@ class TensorGraph(Model):
     if len(inputs) != len(self.features):
       raise ValueError('Expected %d inputs, received %d' % len(self.features),
                        len(inputs))
-    if outputs is None:
+    # TODO Once we drop Python 2 support, turn outputs into a proper keyword arg
+    # instead of using the **kwargs hack.
+    if 'outputs' in kwargs:
+      outputs = kwargs['outputs']
+    else:
       outputs = self.outputs
     feed_dict = dict(zip(self.features, inputs))
     results = self._run_graph(outputs, feed_dict, False)
