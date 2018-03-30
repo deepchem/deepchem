@@ -540,7 +540,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     n_tasks = y.shape[1]
     batch_size = 10
 
-    model = dc.models.DTNNTensorGraph(
+    model = dc.models.DTNNModel(
         n_tasks,
         n_embedding=20,
         n_distance=100,
@@ -661,7 +661,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     transformer = dc.trans.DAGTransformer(max_atoms=50)
     dataset = transformer.transform(dataset)
 
-    model = dc.models.DAGTensorGraph(
+    model = dc.models.DAGModel(
         n_tasks,
         max_atoms=50,
         n_atom_feat=n_feat,
@@ -777,7 +777,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     n_atom_feat = 75
     n_pair_feat = 14
     batch_size = 10
-    model = dc.models.MPNNTensorGraph(
+    model = dc.models.MPNNModel(
         n_tasks,
         n_atom_feat=n_atom_feat,
         n_pair_feat=n_pair_feat,
@@ -811,10 +811,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
 
-    char_dict, length = dc.models.TextCNNTensorGraph.build_char_dict(dataset)
+    char_dict, length = dc.models.TextCNNModel.build_char_dict(dataset)
     batch_size = 10
 
-    model = dc.models.TextCNNTensorGraph(
+    model = dc.models.TextCNNModel(
         n_tasks,
         char_dict,
         seq_length=length,
@@ -849,10 +849,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
     regression_metric = dc.metrics.Metric(
         dc.metrics.pearson_r2_score, task_averager=np.mean)
 
-    char_dict, length = dc.models.TextCNNTensorGraph.build_char_dict(dataset)
+    char_dict, length = dc.models.TextCNNModel.build_char_dict(dataset)
     batch_size = 10
 
-    model = dc.models.TextCNNTensorGraph(
+    model = dc.models.TextCNNModel(
         n_tasks,
         char_dict,
         seq_length=length,

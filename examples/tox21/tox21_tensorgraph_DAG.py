@@ -34,7 +34,7 @@ valid_dataset = transformer.transform(valid_dataset)
 n_atom_feat = 75
 batch_size = 64
 
-model = dc.models.DAGTensorGraph(
+model = dc.models.DAGModel(
     len(tox21_tasks),
     max_atoms=max_atoms,
     n_atom_feat=n_atom_feat,
