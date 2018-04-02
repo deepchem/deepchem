@@ -713,7 +713,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         test_out, support_out = layer(test, support)
         assert test_out.shape == (n_test, n_feat)
         assert support_out.shape == (n_support, n_feat)
-        assert len(layer.variables) == 5
+        assert len(layer.variables) == 7
 
   def test_iter_ref_lstm_embedding(self):
     """Test invoking AttnLSTMEmbedding in eager mode."""
@@ -730,7 +730,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         test_out, support_out = layer(test, support)
         assert test_out.shape == (n_test, n_feat)
         assert support_out.shape == (n_support, n_feat)
-        assert len(layer.variables) == 8
+        assert len(layer.variables) == 12
 
   def test_batch_norm(self):
     """Test invoking BatchNorm in eager mode."""
