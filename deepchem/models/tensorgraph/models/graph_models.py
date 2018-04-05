@@ -797,6 +797,21 @@ class GraphConvModel(TensorGraph):
           d[self.deg_adjs[i - 1]] = multiConvMol.get_deg_adjacency_lists()[i]
         yield d
 
+  def create_estimator_inputs(self, feature_columns, weight_column, features,
+                              labels, mode):
+    tensors = {}
+    for layer, columm in zip(
+        [self.atom_features, self.degree_slice, self.membership,self.deg_adjs],
+        feature_columns):
+      tensors[layer] = tf.feature_column.input_layer(features, [column])
+    if weight_column is not None:
+      tensor[self.my_task_weights[0]] = tf.feature_column.input_layer(
+          features, [weight_column])
+    if labels is not None:
+      tensors[self.labels[0]] = tf.cast(labels, tf.int32)
+
+    return tensors
+
   def predict_on_generator(self, generator, transformers=[], outputs=None):
     if not self.built:
       self.build()
