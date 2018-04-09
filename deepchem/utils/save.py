@@ -69,7 +69,7 @@ def load_data(input_files, shard_size=None, verbose=True):
     for input_file in input_files:
       yield load_pickle_from_disk(input_file)
 
-
+# MLG: the function to fix
 def load_sdf_files(input_files, clean_mols):
   """Load SDF file into dataframe."""
   dataframes = []
