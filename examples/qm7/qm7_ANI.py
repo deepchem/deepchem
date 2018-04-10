@@ -11,6 +11,7 @@ import tensorflow as tf
 tf.set_random_seed(123)
 import deepchem as dc
 import os
+import tempfile
 
 HARTREE_TO_KCAL_PER_MOL = 627.509
 
@@ -53,7 +54,7 @@ metric = [
     dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
 ]
 
-model_dir = '/home/zqwu/deepchem/examples/qm7/ANI1_model'
+model_dir = tempfile.mkdtemp()
 
 lr_scedule = [1e-3, 1e-4, 1e-5, 3e-6, 1e-6, 3e-7, 1e-7, 3e-8, 1e-8, 3e-9, 1e-9]
 
@@ -72,7 +73,8 @@ for lr in lr_scedule:
       use_queue=False,
       mode="regression",
       model_dir=model_dir)
-  model.restore()
+  if lr < 1e-3:
+    model.restore()
   model.fit(train, nb_epoch=10)
   local_ct = 0
   while local_ct < 100:
