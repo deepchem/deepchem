@@ -43,7 +43,8 @@ class TestANIRegression(unittest.TestCase):
         "learning_rate": 0.001,
         "use_queue": False,
         "mode": "regression",
-        "model_dir": self.model_dir
+        "model_dir": self.model_dir,
+        "activation_fn": "relu"
     }
 
     model = ANIRegression(**self.kwargs)
