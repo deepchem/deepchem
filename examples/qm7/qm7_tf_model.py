@@ -9,19 +9,22 @@ import os
 import deepchem as dc
 import numpy as np
 from deepchem.molnet import load_qm7_from_mat
+from deepchem.models.tensorgraph.optimizers import ExponentialDecay
 
 np.random.seed(123)
 qm7_tasks, datasets, transformers = load_qm7_from_mat(split='stratified')
 train_dataset, valid_dataset, test_dataset = datasets
 fit_transformers = [dc.trans.CoulombFitTransformer(train_dataset)]
-regression_metric = [
+metric = [
     dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
     dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
 ]
+
+rate = ExponentialDecay(0.001, 0.95, 1000)
 model = dc.models.MultiTaskFitTransformRegressor(
     n_tasks=1,
     n_features=[23, 23],
-    learning_rate=0.001,
+    learning_rate=rate,
     momentum=.8,
     batch_size=25,
     weight_init_stddevs=[1 / np.sqrt(400), 1 / np.sqrt(100), 1 / np.sqrt(100)],
@@ -31,19 +34,19 @@ model = dc.models.MultiTaskFitTransformRegressor(
     fit_transformers=fit_transformers,
     n_evals=10,
     seed=123)
+#model.restore()
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=50)
-model.save()
+model.fit(train_dataset, nb_epoch=3000)
 
-train_scores = model.evaluate(train_dataset, regression_metric, transformers)
+train_scores = model.evaluate(train_dataset, metric, transformers)
 print("Train scores [kcal/mol]")
 print(train_scores)
 
-valid_scores = model.evaluate(valid_dataset, regression_metric, transformers)
+valid_scores = model.evaluate(valid_dataset, metric, transformers)
 print("Valid scores [kcal/mol]")
 print(valid_scores)
 
-test_scores = model.evaluate(test_dataset, regression_metric, transformers)
+test_scores = model.evaluate(test_dataset, metric, transformers)
 print("Test scores [kcal/mol]")
 print(test_scores)
