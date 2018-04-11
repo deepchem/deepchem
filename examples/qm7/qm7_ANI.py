@@ -66,8 +66,6 @@ for lr in lr_scedule:
       exp_loss=False,
       layer_structures=layer_structures,
       atom_number_cases=atom_number_cases,
-      dropout=0.,
-      penalty=0.,
       batch_size=batch_size,
       learning_rate=lr,
       use_queue=False,

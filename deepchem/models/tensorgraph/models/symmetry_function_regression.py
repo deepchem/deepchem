@@ -119,8 +119,6 @@ class ANIRegression(TensorGraph):
                activation_fn='ani',
                layer_structures=[128, 64],
                atom_number_cases=[1, 6, 7, 8, 16],
-               dropout_prob=0.,
-               penalty=0.,
                **kwargs):
     """
     Parameters
@@ -138,8 +136,6 @@ class ANIRegression(TensorGraph):
     self.activation_fn = activation_fn
     self.layer_structures = layer_structures
     self.atom_number_cases = atom_number_cases
-    self.dropout_prob = dropout_prob
-    self.penalty = penalty
     super(ANIRegression, self).__init__(**kwargs)
 
     # (ytz): this is really dirty but needed for restoring models
@@ -324,8 +320,7 @@ class ANIRegression(TensorGraph):
           self.atom_number_cases,
           activation=self.activation_fn,
           in_layers=[previous_layer, self.atom_numbers])
-      dropout = Dropout(self.dropout_prob, in_layers=[Hidden])
-      Hiddens.append(dropout)
+      Hiddens.append(Hidden)
       previous_layer = Hiddens[-1]
 
     costs = []
@@ -346,7 +341,6 @@ class ANIRegression(TensorGraph):
     loss = WeightedError(in_layers=[all_cost, self.weights])
     if self.exp_loss:
       loss = Exp(in_layers=[loss])
-    loss = WeightDecay(self.penalty, 'l2', in_layers=[loss])
     self.set_loss(loss)
 
   def default_generator(self,
