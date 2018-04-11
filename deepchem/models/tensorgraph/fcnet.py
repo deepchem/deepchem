@@ -263,7 +263,8 @@ class MultiTaskRegressor(TensorGraph):
       activation_fns = [activation_fns] * n_layers
     if uncertainty:
       if any(d == 0.0 for d in dropouts):
-        raise ValueError('Dropout must be included in every layer to predict uncertainty')
+        raise ValueError(
+            'Dropout must be included in every layer to predict uncertainty')
 
     # Add the input features.
 
@@ -320,7 +321,7 @@ class MultiTaskRegressor(TensorGraph):
       var = Exp(log_var)
       self.add_variance(var)
       diff = labels - output
-      weighted_loss = weights*(diff*diff/var + log_var)
+      weighted_loss = weights * (diff * diff / var + log_var)
       weighted_loss = ReduceSum(ReduceMean(weighted_loss, axis=[1, 2]))
     else:
       weighted_loss = ReduceSum(L2Loss(in_layers=[labels, output, weights]))

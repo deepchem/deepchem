@@ -949,7 +949,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     # Generate dummy dataset
     X = np.random.rand(n_samples, n_features, 1)
-    y = 10*X + np.random.normal(scale=noise, size=(n_samples, n_tasks, 1))
+    y = 10 * X + np.random.normal(scale=noise, size=(n_samples, n_tasks, 1))
     dataset = dc.data.NumpyDataset(X, y)
 
     model = dc.models.MultiTaskRegressor(
@@ -967,5 +967,5 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     # Predict the output and uncertainty.
     pred, std = model.predict_uncertainty(dataset)
-    assert np.mean(np.abs(y-pred)) < 1.0
+    assert np.mean(np.abs(y - pred)) < 1.0
     assert noise < np.mean(std) < 1.0

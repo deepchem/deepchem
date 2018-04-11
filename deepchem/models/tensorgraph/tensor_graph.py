@@ -399,7 +399,8 @@ class TensorGraph(Model):
       if len(self.variances) == 0:
         raise ValueError('This model cannot compute uncertainties')
       if len(self.variances) != len(outputs):
-        raise ValueError('The number of variances must exactly match the number of outputs')
+        raise ValueError(
+            'The number of variances must exactly match the number of outputs')
       tensors = outputs + self.variances
     else:
       tensors = outputs
@@ -589,24 +590,25 @@ class TensorGraph(Model):
     sum_sq_pred = []
     sum_var = []
     for i in range(masks):
-      generator = self.default_generator(dataset, predict=True, pad_batches=False)
+      generator = self.default_generator(
+          dataset, predict=True, pad_batches=False)
       results = self._predict(generator, [], self.outputs, True)
       if len(sum_pred) == 0:
         for p, v in results:
           sum_pred.append(p)
-          sum_sq_pred.append(p*p)
+          sum_sq_pred.append(p * p)
           sum_var.append(v)
       else:
         for j, (p, v) in enumerate(results):
           sum_pred[j] += p
-          sum_sq_pred[j] += p*p
+          sum_sq_pred[j] += p * p
           sum_var[j] += v
     output = []
     std = []
     for i in range(len(sum_pred)):
-      p = sum_pred[i]/masks
+      p = sum_pred[i] / masks
       output.append(p)
-      std.append(np.sqrt(sum_sq_pred[i]/masks - p*p + sum_var[i]/masks))
+      std.append(np.sqrt(sum_sq_pred[i] / masks - p * p + sum_var[i] / masks))
     if len(output) == 1:
       return (output[0], std[0])
     else:
@@ -783,10 +785,21 @@ class TensorGraph(Model):
     self.loss = layer
 
   def add_output(self, layer):
+    """Add an output layer that can be computed by predict()"""
     self._add_layer(layer)
     self.outputs.append(layer)
 
   def add_variance(self, layer):
+    """Add a layer that computes the variance in an output.
+
+    If a model supports uncertainty, it must call add_variance() once for every
+    output.  Each variance layer has the same shape as the corresponding output,
+    and each element computes an estimate of the variance from aleatoric
+    uncertainty in the corresponding element of the output.
+
+    In addition, if a model supports uncertainty it MUST use dropout on every
+    layer.  Otherwise, the uncertainties it computes will be inaccurate.
+    """
     self._add_layer(layer)
     self.variances.append(layer)
 
@@ -1098,7 +1111,8 @@ class TensorGraph(Model):
             if value_dims < layer_dims:
               if all(i == 1 for i in key.shape[value_dims:]):
                 value = tf.reshape(value,
-                    list(value.shape) + [1] * (layer_dims - value_dims))
+                                   list(value.shape) + [1] *
+                                   (layer_dims - value_dims))
             if value_dims > layer_dims:
               if all(i == 1 for i in value.shape[layer_dims:]):
                 value = tf.reshape(value, value.shape[:layer_dims])
