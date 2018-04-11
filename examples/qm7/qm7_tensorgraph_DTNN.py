@@ -10,8 +10,9 @@ np.random.seed(123)
 import tensorflow as tf
 tf.set_random_seed(123)
 import deepchem as dc
+from deepchem.models.tensorgraph.optimizers import ExponentialDecay
 
-# Load Tox21 dataset
+# Load QM7 dataset
 tasks, datasets, transformers = dc.molnet.load_qm7_from_mat()
 train_dataset, valid_dataset, test_dataset = datasets
 
@@ -29,6 +30,7 @@ distance_min = -1.
 distance_max = 9.2
 n_hidden = 15
 
+rate = ExponentialDecay(0.0001, 0.97, 5000)
 model = dc.models.DTNNModel(
     len(tasks),
     n_embedding=n_embedding,
@@ -38,19 +40,22 @@ model = dc.models.DTNNModel(
     distance_max=distance_max,
     output_activation=False,
     batch_size=batch_size,
-    learning_rate=0.0001,
+    learning_rate=rate,
     use_queue=False,
     mode="regression")
+#model.restore()
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=1000)
+model.fit(train_dataset, nb_epoch=3000)
 
-print("Evaluating model")
 train_scores = model.evaluate(train_dataset, metric, transformers)
-valid_scores = model.evaluate(valid_dataset, metric, transformers)
-
-print("Train scores")
+print("Train scores [kcal/mol]")
 print(train_scores)
 
-print("Validation scores")
+valid_scores = model.evaluate(valid_dataset, metric, transformers)
+print("Valid scores [kcal/mol]")
 print(valid_scores)
+
+test_scores = model.evaluate(test_dataset, metric, transformers)
+print("Test scores [kcal/mol]")
+print(test_scores)

@@ -15,8 +15,8 @@ import tensorflow as tf
 
 import deepchem as dc
 
-from deepchem.models.tensorgraph.layers import Dense, Concat, WeightedError, Stack, Layer, ANIFeat
-from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
+from deepchem.models.tensorgraph.layers import Dense, Concat, WeightedError, Stack, Layer, ANIFeat, Exp
+from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature, Dropout, WeightDecay
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 from deepchem.models.tensorgraph.symmetry_functions import DistanceMatrix, \
@@ -115,6 +115,8 @@ class ANIRegression(TensorGraph):
   def __init__(self,
                n_tasks,
                max_atoms,
+               exp_loss=False,
+               activation_fn='ani',
                layer_structures=[128, 64],
                atom_number_cases=[1, 6, 7, 8, 16],
                **kwargs):
@@ -130,6 +132,8 @@ class ANIRegression(TensorGraph):
     """
     self.n_tasks = n_tasks
     self.max_atoms = max_atoms
+    self.exp_loss = exp_loss
+    self.activation_fn = activation_fn
     self.layer_structures = layer_structures
     self.atom_number_cases = atom_number_cases
     super(ANIRegression, self).__init__(**kwargs)
@@ -291,7 +295,9 @@ class ANIRegression(TensorGraph):
         jac=self.grad_one,
         method="BFGS",
         tol=1e-6,
-        options={'disp': True})
+        options={
+            'disp': True
+        })
 
     return res.x.reshape((num_atoms, 3))
 
@@ -312,7 +318,7 @@ class ANIRegression(TensorGraph):
           self.max_atoms,
           n_hidden,
           self.atom_number_cases,
-          activation='tanh',
+          activation=self.activation_fn,
           in_layers=[previous_layer, self.atom_numbers])
       Hiddens.append(Hidden)
       previous_layer = Hiddens[-1]
@@ -333,6 +339,8 @@ class ANIRegression(TensorGraph):
     all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
+    if self.exp_loss:
+      loss = Exp(in_layers=[loss])
     self.set_loss(loss)
 
   def default_generator(self,
