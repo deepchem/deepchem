@@ -61,6 +61,7 @@ class TensorGraph(Model):
     self.features = list()
     self.labels = list()
     self.outputs = list()
+    self.variances = list()
     self.task_weights = list()
     self.submodels = list()
     self.loss = Constant(0)
@@ -363,8 +364,13 @@ class TensorGraph(Model):
       return results[0]
     return results
 
-  def predict_on_generator(self, generator, transformers=[], outputs=None):
+  def _predict(self, generator, transformers, outputs, uncertainty):
     """
+    Predict outputs for data provided by a generator.
+
+    This is the private implementation of prediction.  Do not call it directly.
+    Instead call one of the public prediction methods.
+
     Parameters
     ----------
     generator: Generator
@@ -376,6 +382,10 @@ class TensorGraph(Model):
       If outputs is a Layer/Tensor, then will evaluate and return as a
       single ndarray. If outputs is a list of Layers/Tensors, will return a list
       of ndarrays.
+    uncertainty: bool
+      specifies whether this is being called as part of estimating uncertainty.
+      If True, it sets the training flag so that dropout will be enabled, and
+      returns the values of the uncertainty outputs.
     Returns:
       y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
     """
@@ -385,9 +395,18 @@ class TensorGraph(Model):
       outputs = self.outputs
     elif not isinstance(outputs, collections.Sequence):
       outputs = [outputs]
+    if uncertainty:
+      if len(self.variances) == 0:
+        raise ValueError('This model cannot compute uncertainties')
+      if len(self.variances) != len(outputs):
+        raise ValueError('The number of variances must exactly match the number of outputs')
+      tensors = outputs + self.variances
+    else:
+      tensors = outputs
+
     with self._get_tf("Graph").as_default():
       # Gather results for each output
-      results = [[] for out in outputs]
+      results = [[] for out in tensors]
       n_samples = 0
       n_enqueued = [0]
       final_sample = [None]
@@ -397,7 +416,7 @@ class TensorGraph(Model):
             args=(self, generator, self._get_tf("Graph"), self.session,
                   n_enqueued, final_sample))
         enqueue_thread.start()
-      for feed_dict in self._create_feed_dicts(generator, False):
+      for feed_dict in self._create_feed_dicts(generator, uncertainty):
         if self.queue_installed:
           # Don't let this thread get ahead of the enqueue thread, since if
           # we try to read more batches than the total number that get queued,
@@ -409,7 +428,7 @@ class TensorGraph(Model):
           if n_samples == final_sample[0]:
             break
         n_samples += 1
-        feed_results = self._run_graph(outputs, feed_dict, False)
+        feed_results = self._run_graph(tensors, feed_dict, uncertainty)
         if tfe.in_eager_mode():
           feed_results = [f.numpy() for f in feed_results]
         if len(feed_results) > 1:
@@ -428,8 +447,28 @@ class TensorGraph(Model):
       # If only one output, just return array
       if len(final_results) == 1:
         return final_results[0]
+      elif uncertainty:
+        return zip(final_results[:len(outputs)], final_results[len(outputs):])
       else:
         return final_results
+
+  def predict_on_generator(self, generator, transformers=[], outputs=None):
+    """
+    Parameters
+    ----------
+    generator: Generator
+      Generator that constructs feed dictionaries for TensorGraph.
+    transformers: list
+      List of dc.trans.Transformers.
+    outputs: object
+      If outputs is None, then will assume outputs = self.outputs.
+      If outputs is a Layer/Tensor, then will evaluate and return as a
+      single ndarray. If outputs is a list of Layers/Tensors, will return a list
+      of ndarrays.
+    Returns:
+      y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
+    """
+    return self._predict(generator, transformers, outputs, False)
 
   def predict_proba_on_generator(self, generator, transformers=[],
                                  outputs=None):
@@ -456,6 +495,33 @@ class TensorGraph(Model):
     dataset = NumpyDataset(X=X, y=None)
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
     return self.predict_on_generator(generator, transformers, outputs)
+
+  def predict_uncertainty_on_batch(self, X, masks=50):
+    """
+    Predict the model's outputs, along with the uncertainty in each one.
+
+    The uncertainty is computed as described in https://arxiv.org/abs/1703.04977.
+    It involves repeating the prediction many times with different dropout masks.
+    The prediction is computed as the average over all the predictions.  The
+    uncertainty includes both the variation among the predicted values (epistemic
+    uncertainty) and the model's own estimates for how well it fits the data
+    (aleatoric uncertainty).  Not all models support uncertainty prediction.
+
+    Parameters
+    ----------
+    X: ndarray
+      the input data, as a Numpy array.
+    masks: int
+      the number of dropout masks to average over
+
+    Returns
+    -------
+    for each output, a tuple (y_pred, y_std) where y_pred is the predicted
+    value of the output, and each element of y_std estimates the standard
+    deviation of the corresponding element of y_pred
+    """
+    dataset = NumpyDataset(X=X, y=None)
+    return self.predict_uncertainty(dataset, masks)
 
   def predict_proba_on_batch(self, X, transformers=[], outputs=None):
     """Generates predictions for input samples, processing samples in a batch.
@@ -484,10 +550,9 @@ class TensorGraph(Model):
     transformers: list
       List of dc.trans.Transformers.
     outputs: object
-      If outputs is None, then will assume outputs = self.outputs[0] (single
-      output). If outputs is a Layer/Tensor, then will evaluate and return as a
-      single ndarray. If outputs is a list of Layers/Tensors, will return a list
-      of ndarrays.
+      If outputs is None, then will assume outputs=self.outputs. If outputs is
+      a Layer/Tensor, then will evaluate and return as a single ndarray. If
+      outputs is a list of Layers/Tensors, will return a list of ndarrays.
 
     Returns
     -------
@@ -495,6 +560,57 @@ class TensorGraph(Model):
     """
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
     return self.predict_on_generator(generator, transformers, outputs)
+
+  def predict_uncertainty(self, dataset, masks=50):
+    """
+    Predict the model's outputs, along with the uncertainty in each one.
+
+    The uncertainty is computed as described in https://arxiv.org/abs/1703.04977.
+    It involves repeating the prediction many times with different dropout masks.
+    The prediction is computed as the average over all the predictions.  The
+    uncertainty includes both the variation among the predicted values (epistemic
+    uncertainty) and the model's own estimates for how well it fits the data
+    (aleatoric uncertainty).  Not all models support uncertainty prediction.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset to make prediction on
+    masks: int
+      the number of dropout masks to average over
+
+    Returns
+    -------
+    for each output, a tuple (y_pred, y_std) where y_pred is the predicted
+    value of the output, and each element of y_std estimates the standard
+    deviation of the corresponding element of y_pred
+    """
+    sum_pred = []
+    sum_sq_pred = []
+    sum_var = []
+    for i in range(masks):
+      generator = self.default_generator(dataset, predict=True, pad_batches=False)
+      results = self._predict(generator, [], self.outputs, True)
+      if len(sum_pred) == 0:
+        for p, v in results:
+          sum_pred.append(p)
+          sum_sq_pred.append(p*p)
+          sum_var.append(v)
+      else:
+        for j, (p, v) in enumerate(results):
+          sum_pred[j] += p
+          sum_sq_pred[j] += p*p
+          sum_var[j] += v
+    output = []
+    std = []
+    for i in range(len(sum_pred)):
+      p = sum_pred[i]/masks
+      output.append(p)
+      std.append(np.sqrt(sum_sq_pred[i]/masks - p*p + sum_var[i]/masks))
+    if len(output) == 1:
+      return (output[0], std[0])
+    else:
+      return zip(output, std)
 
   def predict_proba(self, dataset, transformers=[], outputs=None):
     """
@@ -505,10 +621,9 @@ class TensorGraph(Model):
     transformers: list
       List of dc.trans.Transformers.
     outputs: object
-      If outputs is None, then will assume outputs = self.outputs[0] (single
-      output). If outputs is a Layer/Tensor, then will evaluate and return as a
-      single ndarray. If outputs is a list of Layers/Tensors, will return a list
-      of ndarrays.
+      If outputs is None, then will assume outputs=self.outputs. If outputs is
+      a Layer/Tensor, then will evaluate and return as a single ndarray. If
+      outputs is a list of Layers/Tensors, will return a list of ndarrays.
 
     Returns
     -------
@@ -527,7 +642,7 @@ class TensorGraph(Model):
       sorted_layers.append(layer)
 
     sorted_layers = []
-    for l in self.features + self.labels + self.task_weights + self.outputs:
+    for l in self.features + self.labels + self.task_weights + self.outputs + self.variances:
       add_layers_to_list(l, sorted_layers)
     add_layers_to_list(self.loss, sorted_layers)
     for submodel in self.submodels:
@@ -565,6 +680,8 @@ class TensorGraph(Model):
         build_layers(self.loss, tensors)
         for output in self.outputs:
           build_layers(output, tensors)
+        for variance in self.variances:
+          build_layers(variance, tensors)
         for submodel in self.submodels:
           build_layers(submodel.loss, tensors)
 
@@ -668,6 +785,10 @@ class TensorGraph(Model):
   def add_output(self, layer):
     self._add_layer(layer)
     self.outputs.append(layer)
+
+  def add_variance(self, layer):
+    self._add_layer(layer)
+    self.variances.append(layer)
 
   def set_optimizer(self, optimizer):
     """Set the optimizer to use for fitting."""
@@ -971,6 +1092,16 @@ class TensorGraph(Model):
         feed_dict = {}
         for key, value in d.items():
           if isinstance(key, Input):
+            # Add or remove dimensions of size 1 to match the shape of the layer.
+            value_dims = len(value.shape)
+            layer_dims = len(key.shape)
+            if value_dims < layer_dims:
+              if all(i == 1 for i in key.shape[value_dims:]):
+                value = tf.reshape(value,
+                    list(value.shape) + [1] * (layer_dims - value_dims))
+            if value_dims > layer_dims:
+              if all(i == 1 for i in value.shape[layer_dims:]):
+                value = tf.reshape(value, value.shape[:layer_dims])
             feed_dict[key] = tf.cast(value, key.dtype)
           else:
             feed_dict[key] = value

@@ -939,3 +939,33 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [metric])
     assert scores[metric.name] < .2
+
+  def test_multitask_regressor_uncertainty(self):
+    """Test computing uncertainty for a MultitaskRegressor."""
+    n_tasks = 1
+    n_samples = 30
+    n_features = 1
+    noise = 0.1
+
+    # Generate dummy dataset
+    X = np.random.rand(n_samples, n_features, 1)
+    y = 10*X + np.random.normal(scale=noise, size=(n_samples, n_tasks, 1))
+    dataset = dc.data.NumpyDataset(X, y)
+
+    model = dc.models.MultiTaskRegressor(
+        n_tasks,
+        n_features,
+        layer_sizes=[200],
+        weight_init_stddevs=[.1],
+        batch_size=n_samples,
+        dropouts=0.1,
+        learning_rate=0.003,
+        uncertainty=True)
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=2500)
+
+    # Predict the output and uncertainty.
+    pred, std = model.predict_uncertainty(dataset)
+    assert np.mean(np.abs(y-pred)) < 1.0
+    assert noise < np.mean(std) < 1.0
