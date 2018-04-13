@@ -64,7 +64,8 @@ python setup.py install                                # Manual install
 nosetests -a '!slow' -v deepchem --nologcapture        # Run tests
 ```
 This creates a new conda environment `deepchem` and installs in it the dependencies that
-are needed. To access it, use the `source activate deepchem` command.
+are needed. To access it, use the `conda activate deepchem` command (if your conda version >= 4.4) and use `source activate deepchem` command (if your conda version < 4.4).
+
 Check [this link](https://conda.io/docs/using/envs.html) for more information about
 the benefits and usage of conda environments. **Warning**: Segmentation faults can [still happen](https://github.com/deepchem/deepchem/pull/379#issuecomment-277013514)
 via this installation procedure.
