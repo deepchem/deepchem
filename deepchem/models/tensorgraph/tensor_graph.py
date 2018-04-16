@@ -792,8 +792,7 @@ class TensorGraph(Model):
       var_names = set([x for x in reader.get_variable_to_shape_map()])
       var_map = {
           x.op.name: x
-          for x in tf.global_variables()
-          if x.op.name in var_names
+          for x in tf.global_variables() if x.op.name in var_names
       }
       saver = tf.train.Saver(var_list=var_map)
       saver.restore(self.session, checkpoint)
