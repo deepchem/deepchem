@@ -32,6 +32,7 @@ class TensorGraph(Model):
                graph=None,
                learning_rate=0.001,
                configproto=None,
+               optimizer=Adam,
                **kwargs):
     """
     Parameters
@@ -67,8 +68,7 @@ class TensorGraph(Model):
     self.loss = Constant(0)
     self.built = False
     self.queue_installed = False
-    self.optimizer = Adam(
-        learning_rate=learning_rate, beta1=0.9, beta2=0.999, epsilon=1e-7)
+    self.optimizer = optimizer
     self.configproto = configproto
 
     # Singular place to hold Tensor objects which don't serialize
