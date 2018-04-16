@@ -172,8 +172,8 @@ class WeaveModel(TensorGraph):
           atom_feat.append(mol.get_atom_features())
           # pair features
           pair_feat.append(
-              np.reshape(mol.get_pair_features(),
-                         (n_atoms * n_atoms, self.n_pair_feat)))
+              np.reshape(mol.get_pair_features(), (n_atoms * n_atoms,
+                                                   self.n_pair_feat)))
 
         feed_dict[self.atom_features] = np.concatenate(atom_feat, axis=0)
         feed_dict[self.pair_features] = np.concatenate(pair_feat, axis=0)
@@ -317,8 +317,8 @@ class DTNNModel(TensorGraph):
         num_atoms = list(map(sum, X_b.astype(bool)[:, :, 0]))
         atom_number = [
             np.round(
-                np.power(2 * np.diag(X_b[i, :num_atoms[i], :num_atoms[i]]),
-                         1 / 2.4)).astype(int) for i in range(len(num_atoms))
+                np.power(2 * np.diag(X_b[i, :num_atoms[i], :num_atoms[i]]), 1 /
+                         2.4)).astype(int) for i in range(len(num_atoms))
         ]
         start = 0
         for im, molecule in enumerate(atom_number):
@@ -797,21 +797,6 @@ class GraphConvModel(TensorGraph):
           d[self.deg_adjs[i - 1]] = multiConvMol.get_deg_adjacency_lists()[i]
         yield d
 
-  def create_estimator_inputs(self, feature_columns, weight_column, features,
-                              labels, mode):
-    tensors = {}
-    for layer, columm in zip(
-        [self.atom_features, self.degree_slice, self.membership,self.deg_adjs],
-        feature_columns):
-      tensors[layer] = tf.feature_column.input_layer(features, [column])
-    if weight_column is not None:
-      tensor[self.my_task_weights[0]] = tf.feature_column.input_layer(
-          features, [weight_column])
-    if labels is not None:
-      tensors[self.labels[0]] = tf.cast(labels, tf.int32)
-
-    return tensors
-
   def predict_on_generator(self, generator, transformers=[], outputs=None):
     if not self.built:
       self.build()
@@ -1111,8 +1096,8 @@ class MPNNModel(TensorGraph):
           atom_feat.append(mol.get_atom_features())
           # pair features
           pair_feat.append(
-              np.reshape(mol.get_pair_features(),
-                         (n_atoms * n_atoms, self.n_pair_feat)))
+              np.reshape(mol.get_pair_features(), (n_atoms * n_atoms,
+                                                   self.n_pair_feat)))
 
         feed_dict[self.atom_features] = np.concatenate(atom_feat, axis=0)
         feed_dict[self.pair_features] = np.concatenate(pair_feat, axis=0)
