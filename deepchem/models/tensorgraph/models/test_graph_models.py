@@ -19,7 +19,11 @@ class TestGraphModels(unittest.TestCase):
                   featurizer='GraphConv',
                   num_tasks=2):
     data_points = 10
-    tasks, all_dataset, transformers = load_delaney(featurizer)
+    if mode == 'classification':
+      tasks, all_dataset, transformers = load_bace(featurizer)
+    else:
+      tasks, all_dataset, transformers = load_delaney(featurizer)
+
     train, valid, test = all_dataset
     for i in range(1, num_tasks):
       tasks.append("random_task")
