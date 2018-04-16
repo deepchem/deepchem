@@ -6,7 +6,7 @@ import deepchem
 from deepchem.data import NumpyDataset
 from deepchem.models import GraphConvModel
 from deepchem.models import TensorGraph
-from deepchem.molnet.load_function.delaney_datasets import load_delaney, load_bace
+from deepchem.molnet.load_function.delaney_datasets import load_delaney, load_bace_classification
 from deepchem.models.tensorgraph.layers import ReduceSum, L2Loss
 from deepchem.models import WeaveModel
 from deepchem.feat import ConvMolFeaturizer
