@@ -12,12 +12,37 @@ from deepchem.models.tensorgraph.graph_layers import WeaveGather, \
     DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
     DAGGather, DTNNExtract, MessagePassing, SetGather
 from deepchem.models.tensorgraph.graph_layers import WeaveLayerFactory
-from deepchem.models.tensorgraph.layers import Dense, SoftMax, \
-    SoftMaxCrossEntropy, GraphConv, BatchNorm, \
+from deepchem.models.tensorgraph.layers import Layer, Dense, SoftMax, Reshape, \
+    SoftMaxCrossEntropy, GraphConv, BatchNorm, Exp, ReduceMean, ReduceSum, \
     GraphPool, GraphGather, WeightedError, Dropout, BatchNorm, Stack, Flatten, GraphCNN, GraphCNNPool
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
+
+
+class TrimGraphOutput(Layer):
+  """Trim the output to the correct number of samples.
+
+  GraphGather always outputs fixed size batches.  This layer trims the output
+  to the number of samples that were in the actual input tensors.
+  """
+
+  def __init__(self, in_layers, **kwargs):
+    super(TrimGraphOutput, self).__init__(in_layers, **kwargs)
+    try:
+      s = list(self.in_layers[0].shape)
+      s[0] = None
+      self._shape = tuple(s)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    n_samples = tf.shape(inputs[1])[0]
+    out_tensor = inputs[0][0:n_samples]
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
 
 
 class WeaveModel(TensorGraph):
@@ -542,7 +567,6 @@ class PetroskiSuchModel(TensorGraph):
     self.n_tasks = n_tasks
     self.mode = mode
     self.max_atoms = max_atoms
-    self.error_bars = True if 'error_bars' in kwargs and kwargs['error_bars'] else False
     self.dropout = dropout
     kwargs['use_queue'] = False
     super(PetroskiSuchModel, self).__init__(**kwargs)
@@ -673,33 +697,48 @@ class GraphConvModel(TensorGraph):
                dropout=0.0,
                mode="classification",
                number_atom_features=75,
+               n_classes=2,
+               uncertainty=False,
                **kwargs):
     """
-            Parameters
-            ----------
-            n_tasks: int
-              Number of tasks
-            graph_conv_layers: list of int
-              Width of channels for the Graph Convolution Layers
-            dense_layer_size: int
-              Width of channels for Atom Level Dense Layer before GraphPool
-            dropout: float
-              Droupout dropout probability.  Dropout is applied after the per Atom Level Dense Layer
-            mode: str
-              Either "classification" or "regression"
-            number_atom_features: int
-                75 is the default number of atom features created, but
-                this can vary if various options are passed to the
-                function atom_features in graph_features
-            """
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks
+    graph_conv_layers: list of int
+      Width of channels for the Graph Convolution Layers
+    dense_layer_size: int
+      Width of channels for Atom Level Dense Layer before GraphPool
+    dropout: float
+      Droupout dropout probability.  Dropout is applied after the per Atom Level Dense Layer
+    mode: str
+      Either "classification" or "regression"
+    number_atom_features: int
+        75 is the default number of atom features created, but
+        this can vary if various options are passed to the
+        function atom_features in graph_features
+    n_classes: int
+      the number of classes to predict (only used in classification mode)
+    uncertainty: bool
+      if True, include extra outputs and loss terms to enable the uncertainty
+      in outputs to be predicted
+    """
+    if mode not in ['classification', 'regression']:
+      raise ValueError("mode must be either 'classification' or 'regression'")
     self.n_tasks = n_tasks
     self.mode = mode
-    self.error_bars = True if 'error_bars' in kwargs and kwargs['error_bars'] else False
     self.dense_layer_size = dense_layer_size
     self.dropout = dropout
     self.graph_conv_layers = graph_conv_layers
     kwargs['use_queue'] = False
     self.number_atom_features = number_atom_features
+    self.n_classes = n_classes
+    self.uncertainty = uncertainty
+    if uncertainty:
+      if mode != "regression":
+        raise ValueError("Uncertainty is only supported in regression mode")
+      if dropout == 0.0:
+        raise ValueError('Dropout must be included to predict uncertainty')
     super(GraphConvModel, self).__init__(**kwargs)
     self.build_graph()
 
@@ -720,6 +759,8 @@ class GraphConvModel(TensorGraph):
       gc1_in = [in_layer, self.degree_slice, self.membership] + self.deg_adjs
       gc1 = GraphConv(layer_size, activation_fn=tf.nn.relu, in_layers=gc1_in)
       batch_norm1 = BatchNorm(in_layers=[gc1])
+      if self.dropout > 0.0:
+        batch_norm1 = Dropout(self.dropout, in_layers=batch_norm1)
       gp_in = [batch_norm1, self.degree_slice, self.membership] + self.deg_adjs
       in_layer = GraphPool(in_layers=gp_in)
     dense = Dense(
@@ -727,46 +768,51 @@ class GraphConvModel(TensorGraph):
         activation_fn=tf.nn.relu,
         in_layers=[in_layer])
     batch_norm3 = BatchNorm(in_layers=[dense])
-    batch_norm3 = Dropout(self.dropout, in_layers=[batch_norm3])
+    if self.dropout > 0.0:
+      batch_norm3 = Dropout(self.dropout, in_layers=batch_norm3)
     readout = GraphGather(
         batch_size=self.batch_size,
         activation_fn=tf.nn.tanh,
         in_layers=[batch_norm3, self.degree_slice, self.membership] +
         self.deg_adjs)
 
-    if self.error_bars == True:
-      readout = Dropout(in_layers=[readout], dropout_prob=0.2)
-
-    costs = []
-    self.my_labels = []
-    for task in range(self.n_tasks):
-      if self.mode == 'classification':
-        classification = Dense(
-            out_channels=2, activation_fn=None, in_layers=[readout])
-
-        softmax = SoftMax(in_layers=[classification])
-        self.add_output(softmax)
-
-        label = Label(shape=(None, 2))
-        self.my_labels.append(label)
-        cost = SoftMaxCrossEntropy(in_layers=[label, classification])
-        costs.append(cost)
-      if self.mode == 'regression':
-        regression = Dense(
-            out_channels=1, activation_fn=None, in_layers=[readout])
-        self.add_output(regression)
-
-        label = Label(shape=(None, 1))
-        self.my_labels.append(label)
-        cost = L2Loss(in_layers=[label, regression])
-        costs.append(cost)
-    if self.mode == "classification":
-      entropy = Stack(in_layers=costs, axis=1)
-    elif self.mode == "regression":
-      entropy = Stack(in_layers=costs, axis=1)
-    self.my_task_weights = Weights(shape=(None, self.n_tasks))
-    loss = WeightedError(in_layers=[entropy, self.my_task_weights])
-    self.set_loss(loss)
+    n_tasks = self.n_tasks
+    if self.mode == 'classification':
+      n_classes = self.n_classes
+      labels = Label(shape=(None, n_tasks, n_classes))
+      weights = Weights(shape=(None, n_tasks))
+      logits = Reshape(
+          shape=(None, n_tasks, n_classes),
+          in_layers=[
+              Dense(in_layers=readout, out_channels=n_tasks * n_classes)
+          ])
+      logits = TrimGraphOutput([logits, labels])
+      output = SoftMax(logits)
+      self.add_output(output)
+      loss = SoftMaxCrossEntropy(in_layers=[labels, logits])
+      weighted_loss = WeightedError(in_layers=[loss, weights])
+      self.set_loss(weighted_loss)
+    else:
+      labels = Label(shape=(None, n_tasks))
+      weights = Weights(shape=(None, n_tasks))
+      output = Reshape(
+          shape=(None, n_tasks),
+          in_layers=[Dense(in_layers=readout, out_channels=n_tasks)])
+      output = TrimGraphOutput([output, labels])
+      self.add_output(output)
+      if self.uncertainty:
+        log_var = Reshape(
+            shape=(None, n_tasks),
+            in_layers=[Dense(in_layers=readout, out_channels=n_tasks)])
+        log_var = TrimGraphOutput([log_var, labels])
+        var = Exp(log_var)
+        self.add_variance(var)
+        diff = labels - output
+        weighted_loss = weights * (diff * diff / var + log_var)
+        weighted_loss = ReduceSum(ReduceMean(weighted_loss, axis=[1]))
+      else:
+        weighted_loss = ReduceSum(L2Loss(in_layers=[labels, output, weights]))
+      self.set_loss(weighted_loss)
 
   def default_generator(self,
                         dataset,
@@ -775,20 +821,18 @@ class GraphConvModel(TensorGraph):
                         deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
-      if not predict:
-        print('Starting epoch %i' % epoch)
       for ind, (X_b, y_b, w_b, ids_b) in enumerate(
           dataset.iterbatches(
               self.batch_size,
               pad_batches=pad_batches,
               deterministic=deterministic)):
         d = {}
-        for index, label in enumerate(self.my_labels):
-          if self.mode == 'classification':
-            d[label] = to_one_hot(y_b[:, index])
-          if self.mode == 'regression':
-            d[label] = np.expand_dims(y_b[:, index], -1)
-        d[self.my_task_weights] = w_b
+        if self.mode == 'classification':
+          d[self.labels[0]] = to_one_hot(y_b.flatten(), self.n_classes).reshape(
+              -1, self.n_tasks, self.n_classes)
+        else:
+          d[self.labels[0]] = y_b
+        d[self.task_weights[0]] = w_b
         multiConvMol = ConvMol.agglomerate_mols(X_b)
         d[self.atom_features] = multiConvMol.get_atom_features()
         d[self.degree_slice] = multiConvMol.deg_slice
@@ -796,134 +840,6 @@ class GraphConvModel(TensorGraph):
         for i in range(1, len(multiConvMol.get_deg_adjacency_lists())):
           d[self.deg_adjs[i - 1]] = multiConvMol.get_deg_adjacency_lists()[i]
         yield d
-
-  def predict_on_generator(self, generator, transformers=[], outputs=None):
-    if not self.built:
-      self.build()
-    if outputs is None:
-      outputs = self.outputs
-    elif not isinstance(outputs, collections.Sequence):
-      outputs = [outputs]
-    with self._get_tf("Graph").as_default():
-      # Gather results for each output
-      results = [[] for out in outputs]
-      for feed_dict in generator:
-        feed_dict = {
-            self.layers[k.name].out_tensor: v
-            for k, v in six.iteritems(feed_dict)
-        }
-        # Recording the number of samples in the input batch
-        n_samples = max(feed_dict[self.membership.out_tensor]) + 1
-        feed_dict[self._training_placeholder] = 0.0
-        feed_results = self.session.run(outputs, feed_dict=feed_dict)
-        if len(feed_results) > 1:
-          if len(transformers):
-            raise ValueError("Does not support transformations "
-                             "for multiple outputs.")
-        elif len(feed_results) == 1:
-          result = undo_transforms(feed_results[0], transformers)
-          feed_results = [result]
-        for ind, result in enumerate(feed_results):
-          # GraphConvModel constantly outputs batch_size number of
-          # results, only valid samples should be appended to final results
-          results[ind].append(result[:n_samples])
-
-      final_results = []
-      for result_list in results:
-        final_results.append(np.concatenate(result_list, axis=0))
-      # If only one output, just return array
-      if len(final_results) == 1:
-        return final_results[0]
-      else:
-        return final_results
-
-  def predict_proba_on_generator(self, generator, transformers=[],
-                                 outputs=None):
-    if not self.built:
-      self.build()
-    with self._get_tf("Graph").as_default():
-      out_tensors = [x.out_tensor for x in self.outputs]
-      results = []
-      for feed_dict in generator:
-        feed_dict = {
-            self.layers[k.name].out_tensor: v
-            for k, v in six.iteritems(feed_dict)
-        }
-        n_samples = max(feed_dict[self.membership.out_tensor]) + 1
-        feed_dict[self._training_placeholder] = 1.0  ##
-        result = np.array(self.session.run(out_tensors, feed_dict=feed_dict))
-        if len(result.shape) == 3:
-          result = np.transpose(result, axes=[1, 0, 2])
-        if len(transformers) > 0:
-          result = undo_transforms(result, transformers)
-        results.append(result[:n_samples])
-      return np.concatenate(results, axis=0)
-
-  def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):
-    if not self.built:
-      self.build()
-    return self.evaluate_generator(
-        self.default_generator(dataset, predict=True),
-        metrics,
-        labels=self.my_labels,
-        weights=[self.my_task_weights],
-        per_task_metrics=per_task_metrics)
-
-  def bayesian_predict(self,
-                       dataset,
-                       transformers=[],
-                       n_passes=4,
-                       untransform=False):
-    """Generates predictions and confidences on a dataset object
-             https://arxiv.org/pdf/1506.02142.pdf
-
-            # Returns:
-              mu: numpy ndarray of shape (n_samples, n_tasks)
-              sigma: numpy ndarray of shape (n_samples, n_tasks)
-            """
-    X = dataset.X
-    max_index = X.shape[0] - 1
-    num_batches = (max_index // self.batch_size) + 1
-
-    mus = []
-    sigmas = []
-    for i in range(num_batches):
-      start = i * self.batch_size
-      end = min((i + 1) * self.batch_size, max_index + 1)
-      batch = X[start:end]
-      mu, sigma = self.bayesian_predict_on_batch(
-          batch, transformers=[], n_passes=n_passes)
-      mus.append(mu)
-      sigmas.append(sigma)
-    mu = np.concatenate(mus, axis=0)
-    sigma = np.concatenate(sigmas, axis=0) + 0.55
-
-    if untransform:
-      mu = undo_transforms(mu, transformers)
-      for i in range(sigma.shape[1]):
-        sigma[:, i] = sigma[:, i] * transformers[0].y_stds[i]
-
-    return mu[:max_index + 1], sigma[:max_index + 1]
-
-  def bayesian_predict_on_batch(self, X, transformers=[], n_passes=4):
-    """
-            Returns:
-              mu: numpy ndarray of shape (n_samples, n_tasks)
-              sigma: numpy ndarray of shape (n_samples, n_tasks)
-            """
-    dataset = NumpyDataset(X=X, y=None, n_tasks=len(self.outputs))
-    y_ = []
-    for i in range(n_passes):
-      generator = self.default_generator(
-          dataset, predict=True, pad_batches=True)
-      y_.append(self.predict_on_generator(generator, transformers))
-
-    # Concatenates along 0-th dimension
-    y_ = np.array(y_)
-    mu = np.mean(y_, axis=0)
-    sigma = np.std(y_, axis=0)
-
-    return mu, sigma
 
   def predict_on_smiles(self, smiles, transformers=[], untransform=False):
     """Generates predictions on a numpy array of smile strings

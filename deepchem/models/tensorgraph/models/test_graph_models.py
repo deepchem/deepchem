@@ -29,6 +29,7 @@ class TestGraphModels(unittest.TestCase):
       y = np.random.randint(0, 2, size=(data_points, len(tasks)))
       metric = deepchem.metrics.Metric(
           deepchem.metrics.roc_auc_score, np.mean, mode="classification")
+      transformers = []
     else:
       y = np.random.normal(size=(data_points, len(tasks)))
       metric = deepchem.metrics.Metric(
@@ -46,12 +47,15 @@ class TestGraphModels(unittest.TestCase):
     model = GraphConvModel(
         len(tasks), batch_size=batch_size, mode='classification')
 
-    model.fit(dataset, nb_epoch=1)
+    model.fit(dataset, nb_epoch=10)
     scores = model.evaluate(dataset, [metric], transformers)
+    assert scores['mean-roc_auc_score'] > 0.95
 
     model.save()
     model = TensorGraph.load_from_dir(model.model_dir)
-    scores = model.evaluate(dataset, [metric], transformers)
+    scores2 = model.evaluate(dataset, [metric], transformers)
+    assert np.allclose(scores['mean-roc_auc_score'],
+                       scores2['mean-roc_auc_score'])
 
   def test_graph_conv_regression_model(self):
     tasks, dataset, transformers, metric = self.get_dataset(
@@ -60,26 +64,41 @@ class TestGraphModels(unittest.TestCase):
     batch_size = 50
     model = GraphConvModel(len(tasks), batch_size=batch_size, mode='regression')
 
-    model.fit(dataset, nb_epoch=1)
+    model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric], transformers)
+    assert all(s < 0.1 for s in scores['mean_absolute_error'])
 
     model.save()
     model = TensorGraph.load_from_dir(model.model_dir)
-    scores = model.evaluate(dataset, [metric], transformers)
+    scores2 = model.evaluate(dataset, [metric], transformers)
+    assert np.allclose(scores['mean_absolute_error'],
+                       scores2['mean_absolute_error'])
 
-  def test_graph_conv_error_bars(self):
+  def test_graph_conv_regression_uncertainty(self):
     tasks, dataset, transformers, metric = self.get_dataset(
-        'regression', 'GraphConv', num_tasks=1)
+        'regression', 'GraphConv')
 
     batch_size = 50
-    model = GraphConvModel(len(tasks), batch_size=batch_size, mode='regression')
+    model = GraphConvModel(
+        len(tasks),
+        batch_size=batch_size,
+        mode='regression',
+        dropout=0.1,
+        uncertainty=True)
 
-    model.fit(dataset, nb_epoch=1)
+    model.fit(dataset, nb_epoch=100)
+    scores = model.evaluate(dataset, [metric], transformers)
+    print(scores)
 
-    mu, sigma = model.bayesian_predict(
-        dataset, transformers, untransform=True, n_passes=24)
-    assert mu.shape == (len(dataset), len(tasks))
-    assert sigma.shape == (len(dataset), len(tasks))
+    # Predict the output and uncertainty.
+    pred, std = model.predict_uncertainty(dataset)
+    mean_error = np.mean(np.abs(dataset.y - pred))
+    mean_value = np.mean(np.abs(dataset.y))
+    mean_std = np.mean(std)
+    print(mean_error, mean_value, mean_std)
+    assert mean_error < 0.5 * mean_value
+    assert mean_std > 0.5 * mean_error
+    assert mean_std < mean_value
 
   def test_graph_conv_atom_features(self):
     tasks, dataset, transformers, metric = self.get_dataset(

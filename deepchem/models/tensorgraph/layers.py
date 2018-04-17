@@ -371,7 +371,7 @@ class TensorWrapper(Layer):
   def __init__(self, out_tensor, **kwargs):
     super(TensorWrapper, self).__init__(**kwargs)
     self.out_tensor = out_tensor
-    self._shape = out_tensor.get_shape().as_list()
+    self._shape = tuple(out_tensor.get_shape().as_list())
 
   def create_tensor(self, in_layers=None, **kwargs):
     """Take no actions."""
@@ -2529,6 +2529,11 @@ class GraphConv(Layer):
     self.num_deg = 2 * max_deg + (1 - min_deg)
     self.activation_fn = activation_fn
     super(GraphConv, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = (parent_shape[0], out_channel)
+    except:
+      pass
 
   def _create_variables(self, in_channels):
     # Generate the nb_affine weights and biases
@@ -2640,6 +2645,10 @@ class GraphPool(Layer):
     self.min_degree = min_degree
     self.max_degree = max_degree
     super(GraphPool, self).__init__(**kwargs)
+    try:
+      self._shape = self.in_layers[0].shape
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -2689,6 +2698,11 @@ class GraphGather(Layer):
     self.batch_size = batch_size
     self.activation_fn = activation_fn
     super(GraphGather, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = (batch_size, 2 * parent_shape[1])
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
