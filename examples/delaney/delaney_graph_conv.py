@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 
-from models import GraphConvModel
+from deepchem.models import GraphConvModel
 
 np.random.seed(123)
 import tensorflow as tf
