@@ -25,6 +25,7 @@ unamestr=`uname`
 if [[ "$unamestr" == 'Darwin' ]]; then
    source activate root
    conda install -y -q conda=4.3.25
+   source activate $envname
 fi
 
 conda install -y -q -c omnia pdbfixer=1.4
