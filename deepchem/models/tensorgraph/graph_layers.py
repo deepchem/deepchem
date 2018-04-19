@@ -248,7 +248,7 @@ class WeaveGather(Layer):
       self.trainable_weights = None
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """ 
+    """
     parent layers: atom_features, atom_split
     """
     if in_layers is None:
@@ -582,8 +582,8 @@ class DAGLayer(Layer):
         max_atoms: int, optional
           Maximum number of atoms in molecules.
         layer_sizes: list of int, optional(default=[100])
-          List of hidden layer size(s): 
-          length of this list represents the number of hidden layers, 
+          List of hidden layer size(s):
+          length of this list represents the number of hidden layers,
           and each element is the width of corresponding hidden layer.
         init: str, optional
           Weight initialization for filters.
@@ -745,8 +745,8 @@ class DAGGather(Layer):
         max_atoms: int, optional
           Maximum number of atoms in molecules.
         layer_sizes: list of int, optional
-          List of hidden layer size(s): 
-          length of this list represents the number of hidden layers, 
+          List of hidden layer size(s):
+          length of this list represents the number of hidden layers,
           and each element is the width of corresponding hidden layer.
         init: str, optional
           Weight initialization for filters.

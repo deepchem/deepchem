@@ -395,31 +395,38 @@ class DAGModel(TensorGraph):
                layer_sizes_gather=[100],
                dropout=None,
                mode="classification",
+               n_classes=2,
+               uncertainty=False,
                **kwargs):
     """
-            Parameters
-            ----------
-            n_tasks: int
-              Number of tasks.
-            max_atoms: int, optional
-              Maximum number of atoms in a molecule, should be defined based on dataset.
-            n_atom_feat: int, optional
-              Number of features per atom.
-            n_graph_feat: int, optional
-              Number of features for atom in the graph.
-            n_outputs: int, optional
-              Number of features for each molecule.
-            layer_sizes: list of int, optional
-              List of hidden layer size(s) in the propagation step:
-              length of this list represents the number of hidden layers,
-              and each element is the width of corresponding hidden layer.
-            layer_sizes_gather: list of int, optional
-              List of hidden layer size(s) in the gather step.
-            dropout: None or float, optional
-              Dropout probability, applied after each propagation step and gather step.
-            mode: str, optional
-              Either "classification" or "regression" for type of model.
-            """
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks.
+    max_atoms: int, optional
+      Maximum number of atoms in a molecule, should be defined based on dataset.
+    n_atom_feat: int, optional
+      Number of features per atom.
+    n_graph_feat: int, optional
+      Number of features for atom in the graph.
+    n_outputs: int, optional
+      Number of features for each molecule.
+    layer_sizes: list of int, optional
+      List of hidden layer size(s) in the propagation step:
+      length of this list represents the number of hidden layers,
+      and each element is the width of corresponding hidden layer.
+    layer_sizes_gather: list of int, optional
+      List of hidden layer size(s) in the gather step.
+    dropout: None or float, optional
+      Dropout probability, applied after each propagation step and gather step.
+    mode: str, optional
+      Either "classification" or "regression" for type of model.
+    n_classes: int
+      the number of classes to predict (only used in classification mode)
+    uncertainty: bool
+      if True, include extra outputs and loss terms to enable the uncertainty
+      in outputs to be predicted
+    """
     self.n_tasks = n_tasks
     self.max_atoms = max_atoms
     self.n_atom_feat = n_atom_feat
@@ -429,6 +436,13 @@ class DAGModel(TensorGraph):
     self.layer_sizes_gather = layer_sizes_gather
     self.dropout = dropout
     self.mode = mode
+    self.n_classes = n_classes
+    self.uncertainty = uncertainty
+    if uncertainty:
+      if mode != "regression":
+        raise ValueError("Uncertainty is only supported in regression mode")
+      if dropout == 0.0:
+        raise ValueError('Dropout must be included to predict uncertainty')
     super(DAGModel, self).__init__(**kwargs)
     self.build_graph()
 
@@ -464,35 +478,39 @@ class DAGModel(TensorGraph):
         dropout=self.dropout,
         in_layers=[dag_layer1, self.membership])
 
-    costs = []
-    self.labels_fd = []
-    for task in range(self.n_tasks):
-      if self.mode == "classification":
-        classification = Dense(
-            out_channels=2, activation_fn=None, in_layers=[dag_gather])
-        softmax = SoftMax(in_layers=[classification])
-        self.add_output(softmax)
-
-        label = Label(shape=(None, 2))
-        self.labels_fd.append(label)
-        cost = SoftMaxCrossEntropy(in_layers=[label, classification])
-        costs.append(cost)
-      if self.mode == "regression":
-        regression = Dense(
-            out_channels=1, activation_fn=None, in_layers=[dag_gather])
-        self.add_output(regression)
-
-        label = Label(shape=(None, 1))
-        self.labels_fd.append(label)
-        cost = L2Loss(in_layers=[label, regression])
-        costs.append(cost)
-    if self.mode == "classification":
-      all_cost = Stack(in_layers=costs, axis=1)
-    elif self.mode == "regression":
-      all_cost = Stack(in_layers=costs, axis=1)
-    self.weights = Weights(shape=(None, self.n_tasks))
-    loss = WeightedError(in_layers=[all_cost, self.weights])
-    self.set_loss(loss)
+    n_tasks = self.n_tasks
+    weights = Weights(shape=(None, n_tasks))
+    if self.mode == 'classification':
+      n_classes = self.n_classes
+      labels = Label(shape=(None, n_tasks, n_classes))
+      logits = Reshape(
+          shape=(None, n_tasks, n_classes),
+          in_layers=[
+              Dense(in_layers=dag_gather, out_channels=n_tasks * n_classes)
+          ])
+      output = SoftMax(logits)
+      self.add_output(output)
+      loss = SoftMaxCrossEntropy(in_layers=[labels, logits])
+      weighted_loss = WeightedError(in_layers=[loss, weights])
+      self.set_loss(weighted_loss)
+    else:
+      labels = Label(shape=(None, n_tasks))
+      output = Reshape(
+          shape=(None, n_tasks),
+          in_layers=[Dense(in_layers=dag_gather, out_channels=n_tasks)])
+      self.add_output(output)
+      if self.uncertainty:
+        log_var = Reshape(
+            shape=(None, n_tasks),
+            in_layers=[Dense(in_layers=dag_gather, out_channels=n_tasks)])
+        var = Exp(log_var)
+        self.add_variance(var)
+        diff = labels - output
+        weighted_loss = weights * (diff * diff / var + log_var)
+        weighted_loss = ReduceSum(ReduceMean(weighted_loss, axis=[1]))
+      else:
+        weighted_loss = ReduceSum(L2Loss(in_layers=[labels, output, weights]))
+      self.set_loss(weighted_loss)
 
   def default_generator(self,
                         dataset,
@@ -502,8 +520,6 @@ class DAGModel(TensorGraph):
                         pad_batches=True):
     """TensorGraph style implementation"""
     for epoch in range(epochs):
-      if not predict:
-        print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,
@@ -511,13 +527,15 @@ class DAGModel(TensorGraph):
 
         feed_dict = dict()
         if y_b is not None:
-          for index, label in enumerate(self.labels_fd):
-            if self.mode == "classification":
-              feed_dict[label] = to_one_hot(y_b[:, index])
-            if self.mode == "regression":
-              feed_dict[label] = y_b[:, index:index + 1]
+          if self.mode == 'classification':
+            feed_dict[self.labels[0]] = to_one_hot(y_b.flatten(),
+                                                   self.n_classes).reshape(
+                                                       -1, self.n_tasks,
+                                                       self.n_classes)
+          else:
+            feed_dict[self.labels[0]] = y_b
         if w_b is not None:
-          feed_dict[self.weights] = w_b
+          feed_dict[self.task_weights[0]] = w_b
 
         atoms_per_mol = [mol.get_num_atoms() for mol in X_b]
         n_atoms = sum(atoms_per_mol)
@@ -568,7 +586,7 @@ class GraphConvModel(TensorGraph):
                n_tasks,
                graph_conv_layers=[64, 64],
                dense_layer_size=128,
-               dropout=0.0,
+               dropouts=0.0,
                mode="classification",
                number_atom_features=75,
                n_classes=2,
@@ -583,8 +601,11 @@ class GraphConvModel(TensorGraph):
       Width of channels for the Graph Convolution Layers
     dense_layer_size: int
       Width of channels for Atom Level Dense Layer before GraphPool
-    dropout: float
-      Droupout dropout probability.  Dropout is applied after the per Atom Level Dense Layer
+    dropouts: list or float
+      the dropout probablity to use for each layer.  The length of this list should equal
+      len(graph_conv_layers)+1 (one value for each convolution layer, and one for the
+      dense layer).  Alternatively this may be a single value instead of a list, in which
+      case the same value is used for every layer.
     mode: str
       Either "classification" or "regression"
     number_atom_features: int
@@ -602,17 +623,22 @@ class GraphConvModel(TensorGraph):
     self.n_tasks = n_tasks
     self.mode = mode
     self.dense_layer_size = dense_layer_size
-    self.dropout = dropout
     self.graph_conv_layers = graph_conv_layers
     kwargs['use_queue'] = False
     self.number_atom_features = number_atom_features
     self.n_classes = n_classes
     self.uncertainty = uncertainty
+    if not isinstance(dropouts, collections.Sequence):
+      dropouts = [dropouts] * (len(graph_conv_layers) + 1)
+    if len(dropouts) != len(graph_conv_layers) + 1:
+      raise ValueError('Wrong number of dropout probabilities provided')
+    self.dropouts = dropouts
     if uncertainty:
       if mode != "regression":
         raise ValueError("Uncertainty is only supported in regression mode")
-      if dropout == 0.0:
-        raise ValueError('Dropout must be included to predict uncertainty')
+      if any(d == 0.0 for d in dropouts):
+        raise ValueError(
+            'Dropout must be included in every layer to predict uncertainty')
     super(GraphConvModel, self).__init__(**kwargs)
     self.build_graph()
 
@@ -629,12 +655,12 @@ class GraphConvModel(TensorGraph):
       deg_adj = Feature(shape=(None, i + 1), dtype=tf.int32)
       self.deg_adjs.append(deg_adj)
     in_layer = self.atom_features
-    for layer_size in self.graph_conv_layers:
+    for layer_size, dropout in zip(self.graph_conv_layers, self.dropouts):
       gc1_in = [in_layer, self.degree_slice, self.membership] + self.deg_adjs
       gc1 = GraphConv(layer_size, activation_fn=tf.nn.relu, in_layers=gc1_in)
       batch_norm1 = BatchNorm(in_layers=[gc1])
-      if self.dropout > 0.0:
-        batch_norm1 = Dropout(self.dropout, in_layers=batch_norm1)
+      if dropout > 0.0:
+        batch_norm1 = Dropout(dropout, in_layers=batch_norm1)
       gp_in = [batch_norm1, self.degree_slice, self.membership] + self.deg_adjs
       in_layer = GraphPool(in_layers=gp_in)
     dense = Dense(
@@ -642,8 +668,8 @@ class GraphConvModel(TensorGraph):
         activation_fn=tf.nn.relu,
         in_layers=[in_layer])
     batch_norm3 = BatchNorm(in_layers=[dense])
-    if self.dropout > 0.0:
-      batch_norm3 = Dropout(self.dropout, in_layers=batch_norm3)
+    if self.dropouts[-1] > 0.0:
+      batch_norm3 = Dropout(self.dropouts[-1], in_layers=batch_norm3)
     readout = GraphGather(
         batch_size=self.batch_size,
         activation_fn=tf.nn.tanh,
