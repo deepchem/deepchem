@@ -581,16 +581,18 @@ class DAGLayer(Layer):
           Number of features listed per atom.
         max_atoms: int, optional
           Maximum number of atoms in molecules.
-        layer_sizes: list of int, optional(default=[1000])
-          Structure of hidden layer(s)
+        layer_sizes: list of int, optional(default=[100])
+          List of hidden layer size(s): 
+          length of this list represents the number of hidden layers, 
+          and each element is the width of corresponding hidden layer.
         init: str, optional
           Weight initialization for filters.
         activation: str, optional
-          Activation function applied
+          Activation function applied.
         dropout: float, optional
-          Dropout probability, not supported here
+          Dropout probability in hidden layer(s).
         batch_size: int, optional
-          number of molecules in a batch
+          number of molecules in a batch.
         """
     super(DAGLayer, self).__init__(**kwargs)
 
@@ -683,7 +685,8 @@ class DAGLayer(Layer):
       # DAGgraph_step maps from batch_inputs to a batch of graph_features
       # of shape: (batch_size*max_atoms) * n_graph_features
       # representing the graph features of target atoms in each graph
-      batch_outputs = self.DAGgraph_step(batch_inputs, self.W_list, self.b_list)
+      batch_outputs = self.DAGgraph_step(batch_inputs, self.W_list, self.b_list,
+                                         **kwargs)
 
       # index for targe atoms
       target_index = tf.stack([tf.range(n_atoms), parents[:, count, 0]], axis=1)
@@ -698,11 +701,14 @@ class DAGLayer(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
-  def DAGgraph_step(self, batch_inputs, W_list, b_list):
+  def DAGgraph_step(self, batch_inputs, W_list, b_list, **kwargs):
     outputs = batch_inputs
     for idw, W in enumerate(W_list):
       outputs = tf.nn.xw_plus_b(outputs, W, b_list[idw])
       outputs = self.activation(outputs)
+      training = kwargs['training'] if 'training' in kwargs else 1.0
+      if not self.dropout is None:
+        outputs = tf.nn.dropout(outputs, 1.0 - self.dropout * training)
     return outputs
 
   def none_tensors(self):
@@ -733,19 +739,21 @@ class DAGGather(Layer):
         Parameters
         ----------
         n_graph_feat: int, optional
-          Number of features for each atom
+          Number of features for each atom.
         n_outputs: int, optional
           Number of features for each molecule.
         max_atoms: int, optional
           Maximum number of atoms in molecules.
         layer_sizes: list of int, optional
-          Structure of hidden layer(s)
+          List of hidden layer size(s): 
+          length of this list represents the number of hidden layers, 
+          and each element is the width of corresponding hidden layer.
         init: str, optional
           Weight initialization for filters.
         activation: str, optional
-          Activation function applied
+          Activation function applied.
         dropout: float, optional
-          Dropout probability, not supported
+          Dropout probability in the hidden layer(s).
         """
     super(DAGGather, self).__init__(**kwargs)
 
@@ -794,18 +802,22 @@ class DAGGather(Layer):
     # Extract atom_features
     graph_features = tf.segment_sum(atom_features, membership)
     # sum all graph outputs
-    outputs = self.DAGgraph_step(graph_features, self.W_list, self.b_list)
+    outputs = self.DAGgraph_step(graph_features, self.W_list, self.b_list,
+                                 **kwargs)
     out_tensor = outputs
     if set_tensors:
       self.variables = self.trainable_weights
       self.out_tensor = out_tensor
     return out_tensor
 
-  def DAGgraph_step(self, batch_inputs, W_list, b_list):
+  def DAGgraph_step(self, batch_inputs, W_list, b_list, **kwargs):
     outputs = batch_inputs
     for idw, W in enumerate(W_list):
       outputs = tf.nn.xw_plus_b(outputs, W, b_list[idw])
       outputs = self.activation(outputs)
+      training = kwargs['training'] if 'training' in kwargs else 1.0
+      if not self.dropout is None:
+        outputs = tf.nn.dropout(outputs, 1.0 - self.dropout * training)
     return outputs
 
   def none_tensors(self):

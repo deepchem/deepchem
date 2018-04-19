@@ -366,22 +366,33 @@ class DAGModel(TensorGraph):
                n_atom_feat=75,
                n_graph_feat=30,
                n_outputs=30,
+               layer_sizes=[100],
+               layer_sizes_gather=[100],
+               dropout=None,
                mode="classification",
                **kwargs):
     """
             Parameters
             ----------
             n_tasks: int
-              Number of tasks
+              Number of tasks.
             max_atoms: int, optional
-              Maximum number of atoms in a molecule, should be defined based on dataset
+              Maximum number of atoms in a molecule, should be defined based on dataset.
             n_atom_feat: int, optional
               Number of features per atom.
             n_graph_feat: int, optional
-              Number of features for atom in the graph
+              Number of features for atom in the graph.
             n_outputs: int, optional
-              Number of features for each molecule
-            mode: str
+              Number of features for each molecule.
+            layer_sizes: list of int, optional
+              List of hidden layer size(s) in the propagation step: 
+              length of this list represents the number of hidden layers, 
+              and each element is the width of corresponding hidden layer.
+            layer_sizes_gather: list of int, optional
+              List of hidden layer size(s) in the gather step. 
+            dropout: None or float, optional
+              Dropout probability, applied after each propagation step and gather step.
+            mode: str, optional
               Either "classification" or "regression" for type of model.
             """
     self.n_tasks = n_tasks
@@ -389,6 +400,9 @@ class DAGModel(TensorGraph):
     self.n_atom_feat = n_atom_feat
     self.n_graph_feat = n_graph_feat
     self.n_outputs = n_outputs
+    self.layer_sizes = layer_sizes
+    self.layer_sizes_gather = layer_sizes_gather
+    self.dropout = dropout
     self.mode = mode
     super(DAGModel, self).__init__(**kwargs)
     self.build_graph()
@@ -410,6 +424,8 @@ class DAGModel(TensorGraph):
         n_graph_feat=self.n_graph_feat,
         n_atom_feat=self.n_atom_feat,
         max_atoms=self.max_atoms,
+        layer_sizes=self.layer_sizes,
+        dropout=self.dropout,
         batch_size=self.batch_size,
         in_layers=[
             self.atom_features, self.parents, self.calculation_orders,
@@ -419,6 +435,8 @@ class DAGModel(TensorGraph):
         n_graph_feat=self.n_graph_feat,
         n_outputs=self.n_outputs,
         max_atoms=self.max_atoms,
+        layer_sizes=self.layer_sizes_gather,
+        dropout=self.dropout,
         in_layers=[dag_layer1, self.membership])
 
     costs = []
