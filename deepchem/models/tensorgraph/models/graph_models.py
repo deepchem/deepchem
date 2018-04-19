@@ -375,22 +375,24 @@ class DAGModel(TensorGraph):
             Parameters
             ----------
             n_tasks: int
-              Number of tasks
+              Number of tasks.
             max_atoms: int, optional
-              Maximum number of atoms in a molecule, should be defined based on dataset
+              Maximum number of atoms in a molecule, should be defined based on dataset.
             n_atom_feat: int, optional
               Number of features per atom.
             n_graph_feat: int, optional
-              Number of features for atom in the graph
+              Number of features for atom in the graph.
             n_outputs: int, optional
-              Number of features for each molecule
+              Number of features for each molecule.
             layer_sizes: list of int, optional
-              Structure of hidden layer(s) in DAG propagation step
+              List of hidden layer size(s) in the propagation step: 
+              length of this list represents the number of hidden layers, 
+              and each element is the width of corresponding hidden layer.
             layer_sizes_gather: list of int, optional
-              Structure of hidden layer(s) in DAG gather step
-            dropout: None or float
-              Dropout probability, applied after each propagation step and gather step
-            mode: str
+              List of hidden layer size(s) in the gather step. 
+            dropout: None or float, optional
+              Dropout probability, applied after each propagation step and gather step.
+            mode: str, optional
               Either "classification" or "regression" for type of model.
             """
     self.n_tasks = n_tasks

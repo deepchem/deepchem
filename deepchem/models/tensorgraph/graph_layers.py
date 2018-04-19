@@ -582,15 +582,17 @@ class DAGLayer(Layer):
         max_atoms: int, optional
           Maximum number of atoms in molecules.
         layer_sizes: list of int, optional(default=[100])
-          Structure of hidden layer(s)
+          List of hidden layer size(s): 
+          length of this list represents the number of hidden layers, 
+          and each element is the width of corresponding hidden layer.
         init: str, optional
           Weight initialization for filters.
         activation: str, optional
-          Activation function applied
+          Activation function applied.
         dropout: float, optional
-          Dropout probability, not supported here
+          Dropout probability in hidden layer(s).
         batch_size: int, optional
-          number of molecules in a batch
+          number of molecules in a batch.
         """
     super(DAGLayer, self).__init__(**kwargs)
 
@@ -704,8 +706,9 @@ class DAGLayer(Layer):
     for idw, W in enumerate(W_list):
       outputs = tf.nn.xw_plus_b(outputs, W, b_list[idw])
       outputs = self.activation(outputs)
-      if 'training' in kwargs and kwargs['training'] == 1.0 and not self.dropout is None:
-        outputs = tf.nn.dropout(outputs, 1.0 - self.dropout)
+      training = kwargs['training'] if 'training' in kwargs else 1.0
+      if not self.dropout is None:
+        outputs = tf.nn.dropout(outputs, 1.0 - self.dropout * training)
     return outputs
 
   def none_tensors(self):
@@ -736,19 +739,21 @@ class DAGGather(Layer):
         Parameters
         ----------
         n_graph_feat: int, optional
-          Number of features for each atom
+          Number of features for each atom.
         n_outputs: int, optional
           Number of features for each molecule.
         max_atoms: int, optional
           Maximum number of atoms in molecules.
         layer_sizes: list of int, optional
-          Structure of hidden layer(s)
+          List of hidden layer size(s): 
+          length of this list represents the number of hidden layers, 
+          and each element is the width of corresponding hidden layer.
         init: str, optional
           Weight initialization for filters.
         activation: str, optional
-          Activation function applied
+          Activation function applied.
         dropout: float, optional
-          Dropout probability, not supported
+          Dropout probability in the hidden layer(s).
         """
     super(DAGGather, self).__init__(**kwargs)
 
@@ -810,8 +815,9 @@ class DAGGather(Layer):
     for idw, W in enumerate(W_list):
       outputs = tf.nn.xw_plus_b(outputs, W, b_list[idw])
       outputs = self.activation(outputs)
-      if 'training' in kwargs and kwargs['training'] == 1.0 and not self.dropout is None:
-        outputs = tf.nn.dropout(outputs, 1.0 - self.dropout)
+      training = kwargs['training'] if 'training' in kwargs else 1.0
+      if not self.dropout is None:
+        outputs = tf.nn.dropout(outputs, 1.0 - self.dropout * training)
     return outputs
 
   def none_tensors(self):
