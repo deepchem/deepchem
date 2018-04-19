@@ -6,7 +6,7 @@ import deepchem
 from deepchem.data import NumpyDataset
 from deepchem.models import GraphConvModel
 from deepchem.models import TensorGraph
-from deepchem.molnet.load_function.delaney_datasets import load_delaney
+from deepchem.molnet import load_bace_classification, load_delaney
 from deepchem.models.tensorgraph.layers import ReduceSum, L2Loss
 from deepchem.models import WeaveModel
 from deepchem.feat import ConvMolFeaturizer
@@ -19,7 +19,11 @@ class TestGraphModels(unittest.TestCase):
                   featurizer='GraphConv',
                   num_tasks=2):
     data_points = 10
-    tasks, all_dataset, transformers = load_delaney(featurizer)
+    if mode == 'classification':
+      tasks, all_dataset, transformers = load_bace_classification(featurizer)
+    else:
+      tasks, all_dataset, transformers = load_delaney(featurizer)
+
     train, valid, test = all_dataset
     for i in range(1, num_tasks):
       tasks.append("random_task")
