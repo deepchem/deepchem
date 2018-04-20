@@ -90,7 +90,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
     assert len(metric) == 1, 'Only use one metric'
     hyper_parameters = params_dict
-    hp_list = hyper_parameters.keys()
+    hp_list = list(hyper_parameters.keys())
     for hp in hp_invalid_list:
       if hp in hp_list:
         hp_list.remove(hp)
