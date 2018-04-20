@@ -101,6 +101,29 @@ class GradientDescent(Optimizer):
     return tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
 
 
+class PowerSignOptimizer(Optimizer):
+  """The new powersign optimization algorithm"""
+
+  def __init__(self, learning_rate=0.1, beta=0.9):
+    """construct a powerSign optimizer
+    Parameters
+    ----------
+    learning_rate : float or LearningRateSchedule 
+    the learning rate to use for optimization
+    beta : A float Parameter for the PowerSign algorithm
+    """
+    self.learning_rate = learning_rate
+    self.beta = beta
+
+  def _create_optimizer(self, global_step):
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      learning_rate = self.learning_rate._create_tensor(global_step)
+    else:
+      learning_rate = self.learning_rate
+    return tf.contrib.opt.PowerSignOptimizer(
+        learning_rate=learning_rate, beta=self.beta)
+
+
 class ExponentialDecay(LearningRateSchedule):
   """A learning rate that decreases exponentially with the number of training steps."""
 
