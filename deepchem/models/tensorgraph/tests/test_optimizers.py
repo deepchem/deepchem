@@ -22,6 +22,14 @@ class TestLayers(test_util.TensorFlowTestCase):
       tfopt = opt._create_optimizer(global_step)
       assert isinstance(tfopt, tf.train.GradientDescentOptimizer)
 
+  def test_power_sign(self):
+    """Test creating a power sign optimizer."""
+    opt = optimizers.PowerSignOptimizer(learning_rate=0.01)
+    with self.test_session() as sess:
+      global_step = tf.Variable(0)
+      tfopt = opt._create_optimizer(global_step)
+      assert isinstance(tfopt, tf.contrib.opt.PowerSignOptimizer)
+
   def test_exponential_decay(self):
     """Test creating an optimizer with an exponentially decaying learning rate."""
     rate = optimizers.ExponentialDecay(
