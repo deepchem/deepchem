@@ -24,7 +24,7 @@ class TestLayers(test_util.TensorFlowTestCase):
 
   def test_power_sign(self):
     """Test creating a power sign optimizer."""
-    opt = optimizers.PowerSignOptimizer(learning_rate=0.01)
+    opt = optimizers.PowerSign(learning_rate=0.01)
     with self.test_session() as sess:
       global_step = tf.Variable(0)
       tfopt = opt._create_optimizer(global_step)
