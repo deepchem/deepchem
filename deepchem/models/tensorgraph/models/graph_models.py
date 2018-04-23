@@ -763,7 +763,9 @@ class MPNNModel(TensorGraph):
                T=5,
                M=10,
                mode="regression",
+               dropout=0.0,
                n_classes=2,
+               uncertainty=False,
                **kwargs):
     """
     Parameters
@@ -778,9 +780,13 @@ class MPNNModel(TensorGraph):
       Number of units(convolution depths) in corresponding hidden layer
     n_graph_feat: int, optional
       Number of output features for each molecule(graph)
+    dropout: float
+      the dropout probablity to use.
     n_classes: int
       the number of classes to predict (only used in classification mode)
-
+    uncertainty: bool
+      if True, include extra outputs and loss terms to enable the uncertainty
+      in outputs to be predicted
     """
     if mode not in ['classification', 'regression']:
       raise ValueError("mode must be either 'classification' or 'regression'")
@@ -792,6 +798,12 @@ class MPNNModel(TensorGraph):
     self.M = M
     self.mode = mode
     self.n_classes = n_classes
+    self.uncertainty = uncertainty
+    if uncertainty:
+      if mode != "regression":
+        raise ValueError("Uncertainty is only supported in regression mode")
+      if dropout == 0.0:
+        raise ValueError('Dropout must be included to predict uncertainty')
     super(MPNNModel, self).__init__(**kwargs)
     self.build_graph()
 
@@ -829,9 +841,7 @@ class MPNNModel(TensorGraph):
       labels = Label(shape=(None, n_tasks, n_classes))
       logits = Reshape(
           shape=(None, n_tasks, n_classes),
-          in_layers=[
-              Dense(in_layers=dense1, out_channels=n_tasks * n_classes)
-          ])
+          in_layers=[Dense(in_layers=dense1, out_channels=n_tasks * n_classes)])
       logits = TrimGraphOutput([logits, weights])
       output = SoftMax(logits)
       self.add_output(output)
@@ -845,7 +855,18 @@ class MPNNModel(TensorGraph):
           in_layers=[Dense(in_layers=dense1, out_channels=n_tasks)])
       output = TrimGraphOutput([output, weights])
       self.add_output(output)
-      weighted_loss = ReduceSum(L2Loss(in_layers=[labels, output, weights]))
+      if self.uncertainty:
+        log_var = Reshape(
+            shape=(None, n_tasks),
+            in_layers=[Dense(in_layers=dense1, out_channels=n_tasks)])
+        log_var = TrimGraphOutput([log_var, weights])
+        var = Exp(log_var)
+        self.add_variance(var)
+        diff = labels - output
+        weighted_loss = weights * (diff * diff / var + log_var)
+        weighted_loss = ReduceSum(ReduceMean(weighted_loss, axis=[1]))
+      else:
+        weighted_loss = ReduceSum(L2Loss(in_layers=[labels, output, weights]))
       self.set_loss(weighted_loss)
 
   def default_generator(self,

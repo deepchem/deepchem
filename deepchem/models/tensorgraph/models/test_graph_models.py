@@ -284,7 +284,14 @@ class TestGraphModels(unittest.TestCase):
     tasks, dataset, transformers, metric = self.get_dataset(
         'classification', 'Weave')
 
-    model = MPNNModel(len(tasks), mode='classification', n_hidden=75, n_atom_feat=75, n_pair_feat=14, T=1, M=1)
+    model = MPNNModel(
+        len(tasks),
+        mode='classification',
+        n_hidden=75,
+        n_atom_feat=75,
+        n_pair_feat=14,
+        T=1,
+        M=1)
 
     model.fit(dataset, nb_epoch=20)
     scores = model.evaluate(dataset, [metric], transformers)
@@ -301,7 +308,14 @@ class TestGraphModels(unittest.TestCase):
     tasks, dataset, transformers, metric = self.get_dataset(
         'regression', 'Weave')
 
-    model = MPNNModel(len(tasks), mode='regression', n_hidden=75, n_atom_feat=75, n_pair_feat=14, T=1, M=1)
+    model = MPNNModel(
+        len(tasks),
+        mode='regression',
+        n_hidden=75,
+        n_atom_feat=75,
+        n_pair_feat=14,
+        T=1,
+        M=1)
 
     model.fit(dataset, nb_epoch=50)
     scores = model.evaluate(dataset, [metric], transformers)
@@ -312,3 +326,30 @@ class TestGraphModels(unittest.TestCase):
     scores2 = model.evaluate(dataset, [metric], transformers)
     assert np.allclose(scores['mean_absolute_error'],
                        scores2['mean_absolute_error'])
+
+  @attr("slow")
+  def test_mpnn_regression_uncertainty(self):
+    tasks, dataset, transformers, metric = self.get_dataset(
+        'regression', 'Weave')
+
+    model = MPNNModel(
+        len(tasks),
+        mode='regression',
+        n_hidden=75,
+        n_atom_feat=75,
+        n_pair_feat=14,
+        T=1,
+        M=1,
+        dropout=0.1,
+        uncertainty=True)
+
+    model.fit(dataset, nb_epoch=40)
+
+    # Predict the output and uncertainty.
+    pred, std = model.predict_uncertainty(dataset)
+    mean_error = np.mean(np.abs(dataset.y - pred))
+    mean_value = np.mean(np.abs(dataset.y))
+    mean_std = np.mean(std)
+    assert mean_error < 0.5 * mean_value
+    assert mean_std > 0.5 * mean_error
+    assert mean_std < mean_value
