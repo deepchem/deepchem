@@ -4,11 +4,10 @@ import numpy as np
 
 import deepchem as dc
 from deepchem.data import NumpyDataset
-from deepchem.models import GraphConvModel, DAGModel
+from deepchem.models import GraphConvModel, DAGModel, WeaveModel, MPNNModel
 from deepchem.models import TensorGraph
 from deepchem.molnet import load_bace_classification, load_delaney
 from deepchem.models.tensorgraph.layers import ReduceSum, L2Loss
-from deepchem.models import WeaveModel
 from deepchem.feat import ConvMolFeaturizer
 from nose.plugins.attrib import attr
 
@@ -39,7 +38,7 @@ class TestGraphModels(unittest.TestCase):
       metric = dc.metrics.Metric(
           dc.metrics.mean_absolute_error, mode="regression")
 
-    ds = NumpyDataset(train.X[:10], y, w, train.ids[:10])
+    ds = NumpyDataset(train.X[:data_points], y, w, train.ids[:data_points])
 
     return tasks, ds, transformers, metric
 
@@ -53,7 +52,7 @@ class TestGraphModels(unittest.TestCase):
 
     model.fit(dataset, nb_epoch=10)
     scores = model.evaluate(dataset, [metric], transformers)
-    assert scores['mean-roc_auc_score'] > 0.95
+    assert scores['mean-roc_auc_score'] >= 0.9
 
     model.save()
     model = TensorGraph.load_from_dir(model.model_dir)
@@ -87,7 +86,7 @@ class TestGraphModels(unittest.TestCase):
         len(tasks),
         batch_size=batch_size,
         mode='regression',
-        dropouts=0.1,
+        dropout=0.1,
         uncertainty=True)
 
     model.fit(dataset, nb_epoch=100)
@@ -171,6 +170,39 @@ class TestGraphModels(unittest.TestCase):
     model2.restore()
     model2.fit(dataset, nb_epoch=1, submodel=module)
 
+  @attr("slow")
+  def test_weave_model(self):
+    tasks, dataset, transformers, metric = self.get_dataset(
+        'classification', 'Weave')
+
+    model = WeaveModel(len(tasks), mode='classification')
+
+    model.fit(dataset, nb_epoch=50)
+    scores = model.evaluate(dataset, [metric], transformers)
+    assert scores['mean-roc_auc_score'] >= 0.9
+
+    model.save()
+    model = TensorGraph.load_from_dir(model.model_dir)
+    scores2 = model.evaluate(dataset, [metric], transformers)
+    assert np.allclose(scores['mean-roc_auc_score'],
+                       scores2['mean-roc_auc_score'])
+
+  def test_weave_regression_model(self):
+    tasks, dataset, transformers, metric = self.get_dataset(
+        'regression', 'Weave')
+
+    model = WeaveModel(len(tasks), mode='regression')
+
+    model.fit(dataset, nb_epoch=70)
+    scores = model.evaluate(dataset, [metric], transformers)
+    assert all(s < 0.1 for s in scores['mean_absolute_error'])
+
+    model.save()
+    model = TensorGraph.load_from_dir(model.model_dir)
+    scores2 = model.evaluate(dataset, [metric], transformers)
+    assert np.allclose(scores['mean_absolute_error'],
+                       scores2['mean_absolute_error'])
+
   def test_dag_model(self):
     tasks, dataset, transformers, metric = self.get_dataset(
         'classification', 'GraphConv')
@@ -246,3 +278,37 @@ class TestGraphModels(unittest.TestCase):
     assert mean_error < 0.5 * mean_value
     assert mean_std > 0.5 * mean_error
     assert mean_std < mean_value
+
+  @attr("slow")
+  def test_mpnn_model(self):
+    tasks, dataset, transformers, metric = self.get_dataset(
+        'classification', 'Weave')
+
+    model = MPNNModel(len(tasks), mode='classification', n_hidden=75, n_atom_feat=75, n_pair_feat=14, T=1, M=1)
+
+    model.fit(dataset, nb_epoch=20)
+    scores = model.evaluate(dataset, [metric], transformers)
+    assert scores['mean-roc_auc_score'] >= 0.9
+
+    model.save()
+    model = TensorGraph.load_from_dir(model.model_dir)
+    scores2 = model.evaluate(dataset, [metric], transformers)
+    assert np.allclose(scores['mean-roc_auc_score'],
+                       scores2['mean-roc_auc_score'])
+
+  @attr("slow")
+  def test_mpnn_regression_model(self):
+    tasks, dataset, transformers, metric = self.get_dataset(
+        'regression', 'Weave')
+
+    model = MPNNModel(len(tasks), mode='regression', n_hidden=75, n_atom_feat=75, n_pair_feat=14, T=1, M=1)
+
+    model.fit(dataset, nb_epoch=50)
+    scores = model.evaluate(dataset, [metric], transformers)
+    assert all(s < 0.1 for s in scores['mean_absolute_error'])
+
+    model.save()
+    model = TensorGraph.load_from_dir(model.model_dir)
+    scores2 = model.evaluate(dataset, [metric], transformers)
+    assert np.allclose(scores['mean_absolute_error'],
+                       scores2['mean_absolute_error'])
