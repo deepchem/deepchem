@@ -101,8 +101,8 @@ class GradientDescent(Optimizer):
     return tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
 
 
-class PowerSignOptimizer(Optimizer):
-  """The new powersign optimization algorithm"""
+class PowerSign(Optimizer):
+  """The powersign optimization algorithm"""
 
   def __init__(self, learning_rate=0.1, beta=0.9):
     """construct a powerSign optimizer
