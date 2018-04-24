@@ -34,7 +34,6 @@ class WeaveLayer(Layer):
                update_pair=True,
                init='glorot_uniform',
                activation='relu',
-               dropout=None,
                **kwargs):
     """
     Parameters
@@ -56,9 +55,6 @@ class WeaveLayer(Layer):
       Weight initialization for filters.
     activation: str, optional
       Activation function applied
-    dropout: float, optional
-      Dropout probability, not supported here
-
     """
     super(WeaveLayer, self).__init__(**kwargs)
     self.init = init  # Set weight initialization
