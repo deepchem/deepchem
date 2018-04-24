@@ -156,8 +156,6 @@ class WeaveModel(TensorGraph):
                         pad_batches=True):
     """TensorGraph style implementation """
     for epoch in range(epochs):
-      if not predict:
-        print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,
@@ -221,26 +219,29 @@ class DTNNModel(TensorGraph):
                distance_max=18,
                output_activation=True,
                mode="regression",
+               dropout=0.0,
                **kwargs):
     """
-            Parameters
-            ----------
-            n_tasks: int
-              Number of tasks
-            n_embedding: int, optional
-              Number of features per atom.
-            n_hidden: int, optional
-              Number of features for each molecule after DTNNStep
-            n_distance: int, optional
-              granularity of distance matrix
-              step size will be (distance_max-distance_min)/n_distance
-            distance_min: float, optional
-              minimum distance of atom pairs, default = -1 Angstorm
-            distance_max: float, optional
-              maximum distance of atom pairs, default = 18 Angstorm
-            mode: str
-              Either "classification" or "regression" for type of model.
-            """
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks
+    n_embedding: int, optional
+      Number of features per atom.
+    n_hidden: int, optional
+      Number of features for each molecule after DTNNStep
+    n_distance: int, optional
+      granularity of distance matrix
+      step size will be (distance_max-distance_min)/n_distance
+    distance_min: float, optional
+      minimum distance of atom pairs, default = -1 Angstorm
+    distance_max: float, optional
+      maximum distance of atom pairs, default = 18 Angstorm
+    mode: str
+      Either "classification" or "regression" for type of model.
+    dropout: float
+      the dropout probablity to use.
+    """
     if mode not in ['classification', 'regression']:
       raise ValueError("mode must be either 'classification' or 'regression'")
     self.n_tasks = n_tasks
@@ -255,6 +256,7 @@ class DTNNModel(TensorGraph):
     self.steps = np.expand_dims(self.steps, 0)
     self.output_activation = output_activation
     self.mode = mode
+    self.dropout = dropout
     super(DTNNModel, self).__init__(**kwargs)
     assert self.mode == "regression"
     self.build_graph()
@@ -271,6 +273,8 @@ class DTNNModel(TensorGraph):
 
     dtnn_embedding = DTNNEmbedding(
         n_embedding=self.n_embedding, in_layers=[self.atom_number])
+    if self.dropout > 0.0:
+      dtnn_embedding = Dropout(self.dropout, in_layers=dtnn_embedding)
     dtnn_layer1 = DTNNStep(
         n_embedding=self.n_embedding,
         n_distance=self.n_distance,
@@ -278,6 +282,8 @@ class DTNNModel(TensorGraph):
             dtnn_embedding, self.distance, self.distance_membership_i,
             self.distance_membership_j
         ])
+    if self.dropout > 0.0:
+      dtnn_layer1 = Dropout(self.dropout, in_layers=dtnn_layer1)
     dtnn_layer2 = DTNNStep(
         n_embedding=self.n_embedding,
         n_distance=self.n_distance,
@@ -285,27 +291,26 @@ class DTNNModel(TensorGraph):
             dtnn_layer1, self.distance, self.distance_membership_i,
             self.distance_membership_j
         ])
+    if self.dropout > 0.0:
+      dtnn_layer2 = Dropout(self.dropout, in_layers=dtnn_layer2)
     dtnn_gather = DTNNGather(
         n_embedding=self.n_embedding,
         layer_sizes=[self.n_hidden],
         n_outputs=self.n_tasks,
         output_activation=self.output_activation,
         in_layers=[dtnn_layer2, self.atom_membership])
+    if self.dropout > 0.0:
+      dtnn_gather = Dropout(self.dropout, in_layers=dtnn_gather)
 
-    costs = []
-    self.labels_fd = []
-    for task in range(self.n_tasks):
-      regression = DTNNExtract(task, in_layers=[dtnn_gather])
-      self.add_output(regression)
-      label = Label(shape=(None, 1))
-      self.labels_fd.append(label)
-      cost = L2Loss(in_layers=[label, regression])
-      costs.append(cost)
-
-    all_cost = Stack(in_layers=costs, axis=1)
-    self.weights = Weights(shape=(None, self.n_tasks))
-    loss = WeightedError(in_layers=[all_cost, self.weights])
-    self.set_loss(loss)
+    n_tasks = self.n_tasks
+    weights = Weights(shape=(None, n_tasks))
+    labels = Label(shape=(None, n_tasks))
+    output = Reshape(
+        shape=(None, n_tasks),
+        in_layers=[Dense(in_layers=dtnn_gather, out_channels=n_tasks)])
+    self.add_output(output)
+    weighted_loss = ReduceSum(L2Loss(in_layers=[labels, output, weights]))
+    self.set_loss(weighted_loss)
 
   def default_generator(self,
                         dataset,
@@ -315,8 +320,6 @@ class DTNNModel(TensorGraph):
                         pad_batches=True):
     """TensorGraph style implementation"""
     for epoch in range(epochs):
-      if not predict:
-        print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,
@@ -324,10 +327,9 @@ class DTNNModel(TensorGraph):
 
         feed_dict = dict()
         if y_b is not None:
-          for index, label in enumerate(self.labels_fd):
-            feed_dict[label] = y_b[:, index:index + 1]
+          feed_dict[self.labels[0]] = y_b
         if w_b is not None:
-          feed_dict[self.weights] = w_b
+          feed_dict[self.task_weights[0]] = w_b
         distance = []
         atom_membership = []
         distance_membership_i = []
@@ -362,18 +364,6 @@ class DTNNModel(TensorGraph):
         feed_dict[self.atom_membership] = np.concatenate(atom_membership)
 
         yield feed_dict
-
-  def predict(self, dataset, transformers=[], outputs=None):
-    if outputs is None:
-      outputs = self.outputs
-    if transformers != [] and not isinstance(outputs, collections.Sequence):
-      raise ValueError(
-          "DTNN does not support single tensor output with transformers")
-    retval = super(DTNNModel, self).predict(dataset, outputs=outputs)
-    if not isinstance(outputs, collections.Sequence):
-      return retval
-    retval = np.concatenate(retval, axis=-1)
-    return undo_transforms(retval, transformers)
 
 
 class DAGModel(TensorGraph):
@@ -877,8 +867,6 @@ class MPNNModel(TensorGraph):
                         pad_batches=True):
     """ Same generator as Weave models """
     for epoch in range(epochs):
-      if not predict:
-        print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,

@@ -524,39 +524,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .2
 
-  def test_tensorgraph_DTNN_multitask_regression_overfit(self):
-    """Test deep tensor neural net overfits tiny data."""
-    np.random.seed(123)
-    tf.set_random_seed(123)
-
-    input_file = os.path.join(self.current_dir, "example_DTNN.mat")
-    dataset = scipy.io.loadmat(input_file)
-    X = dataset['X']
-    y = dataset['T']
-    w = np.ones_like(y)
-    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids=None)
-    regression_metric = dc.metrics.Metric(
-        dc.metrics.pearson_r2_score, task_averager=np.mean)
-    n_tasks = y.shape[1]
-    batch_size = 10
-
-    model = dc.models.DTNNModel(
-        n_tasks,
-        n_embedding=20,
-        n_distance=100,
-        batch_size=batch_size,
-        learning_rate=0.001,
-        use_queue=False,
-        mode="regression")
-
-    # Fit trained model
-    model.fit(dataset, nb_epoch=20)
-
-    # Eval model on train
-    scores = model.evaluate(dataset, [regression_metric])
-
-    assert scores[regression_metric.name] > .9
-
   @attr('slow')
   def test_ANI_multitask_regression_overfit(self):
     """Test ANI-1 regression overfits tiny data."""

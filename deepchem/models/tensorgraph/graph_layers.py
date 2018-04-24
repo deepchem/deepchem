@@ -286,7 +286,7 @@ class WeaveGather(Layer):
     dist_max = [dist[i].prob(gaussian_memberships[i][0]) for i in range(11)]
     outputs = [dist[i].prob(x) / dist_max[i] for i in range(11)]
     outputs = tf.stack(outputs, axis=2)
-    outputs = outputs / tf.reduce_sum(outputs, axis=2, keep_dims=True)
+    outputs = outputs / tf.reduce_sum(outputs, axis=2, keepdims=True)
     outputs = tf.reshape(outputs, [-1, self.n_input * 11])
     return outputs
 
