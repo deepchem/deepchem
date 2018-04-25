@@ -34,7 +34,6 @@ class WeaveLayer(Layer):
                update_pair=True,
                init='glorot_uniform',
                activation='relu',
-               dropout=None,
                **kwargs):
     """
     Parameters
@@ -56,9 +55,6 @@ class WeaveLayer(Layer):
       Weight initialization for filters.
     activation: str, optional
       Activation function applied
-    dropout: float, optional
-      Dropout probability, not supported here
-
     """
     super(WeaveLayer, self).__init__(**kwargs)
     self.init = init  # Set weight initialization
@@ -248,7 +244,7 @@ class WeaveGather(Layer):
       self.trainable_weights = None
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """ 
+    """
     parent layers: atom_features, atom_split
     """
     if in_layers is None:
@@ -286,7 +282,7 @@ class WeaveGather(Layer):
     dist_max = [dist[i].prob(gaussian_memberships[i][0]) for i in range(11)]
     outputs = [dist[i].prob(x) / dist_max[i] for i in range(11)]
     outputs = tf.stack(outputs, axis=2)
-    outputs = outputs / tf.reduce_sum(outputs, axis=2, keep_dims=True)
+    outputs = outputs / tf.reduce_sum(outputs, axis=2, keepdims=True)
     outputs = tf.reshape(outputs, [-1, self.n_input * 11])
     return outputs
 
@@ -582,8 +578,8 @@ class DAGLayer(Layer):
         max_atoms: int, optional
           Maximum number of atoms in molecules.
         layer_sizes: list of int, optional(default=[100])
-          List of hidden layer size(s): 
-          length of this list represents the number of hidden layers, 
+          List of hidden layer size(s):
+          length of this list represents the number of hidden layers,
           and each element is the width of corresponding hidden layer.
         init: str, optional
           Weight initialization for filters.
@@ -745,8 +741,8 @@ class DAGGather(Layer):
         max_atoms: int, optional
           Maximum number of atoms in molecules.
         layer_sizes: list of int, optional
-          List of hidden layer size(s): 
-          length of this list represents the number of hidden layers, 
+          List of hidden layer size(s):
+          length of this list represents the number of hidden layers,
           and each element is the width of corresponding hidden layer.
         init: str, optional
           Weight initialization for filters.

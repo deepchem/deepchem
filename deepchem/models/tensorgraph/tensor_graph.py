@@ -1106,16 +1106,19 @@ class TensorGraph(Model):
         for key, value in d.items():
           if isinstance(key, Input):
             # Add or remove dimensions of size 1 to match the shape of the layer.
-            value_dims = len(value.shape)
-            layer_dims = len(key.shape)
-            if value_dims < layer_dims:
-              if all(i == 1 for i in key.shape[value_dims:]):
-                value = tf.reshape(value,
-                                   list(value.shape) + [1] *
-                                   (layer_dims - value_dims))
-            if value_dims > layer_dims:
-              if all(i == 1 for i in value.shape[layer_dims:]):
-                value = tf.reshape(value, value.shape[:layer_dims])
+            try:
+              value_dims = len(value.shape)
+              layer_dims = len(key.shape)
+              if value_dims < layer_dims:
+                if all(i == 1 for i in key.shape[value_dims:]):
+                  value = tf.reshape(value,
+                                     list(value.shape) + [1] *
+                                     (layer_dims - value_dims))
+              if value_dims > layer_dims:
+                if all(i == 1 for i in value.shape[layer_dims:]):
+                  value = tf.reshape(value, value.shape[:layer_dims])
+            except:
+              pass
             feed_dict[key] = tf.cast(value, key.dtype)
           else:
             feed_dict[key] = value
@@ -1330,15 +1333,18 @@ def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
         if layer in feed_dict:
           value = feed_dict[layer]
           # Add or remove dimensions of size 1 to match the shape of the layer.
-          value_dims = len(value.shape)
-          layer_dims = len(layer.shape)
-          if value_dims < layer_dims:
-            if all(i == 1 for i in layer.shape[value_dims:]):
-              value = value.reshape(
-                  list(value.shape) + [1] * (layer_dims - value_dims))
-          if value_dims > layer_dims:
-            if all(i == 1 for i in value.shape[layer_dims:]):
-              value = value.reshape(value.shape[:layer_dims])
+          try:
+            value_dims = len(value.shape)
+            layer_dims = len(layer.shape)
+            if value_dims < layer_dims:
+              if all(i == 1 for i in layer.shape[value_dims:]):
+                value = value.reshape(
+                    list(value.shape) + [1] * (layer_dims - value_dims))
+            if value_dims > layer_dims:
+              if all(i == 1 for i in value.shape[layer_dims:]):
+                value = value.reshape(value.shape[:layer_dims])
+          except:
+            pass
         else:
           value = np.zeros(
               [0] + list(layer.shape[1:]), dtype=layer.dtype.as_numpy_dtype)
