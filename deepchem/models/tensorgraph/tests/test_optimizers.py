@@ -47,3 +47,11 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       global_step = tf.Variable(0)
       tfopt = opt._create_optimizer(global_step)
+
+  def test_linearCosine_decay(self):
+    """test creating an optimizer with a linear cosine decay to the learning rate"""
+    rate = optimizers.LinearCosineDecay(initial_rate=0.1, decay_steps=10000)
+    opt = optimizers.Adam(learning_rate=rate)
+    with self.test_session() as sess:
+      global_step = tf.Variable(0)
+      tfopt = opt._create_optimizer(global_step)

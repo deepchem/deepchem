@@ -191,3 +191,38 @@ class PolynomialDecay(LearningRateSchedule):
         global_step=global_step,
         decay_steps=self.decay_steps,
         power=self.power)
+
+
+class LinearCosineDecay(LearningRateSchedule):
+  """Applies linear cosine decay to the learning rate"""
+
+  def __init__(self,
+               initial_rate,
+               decay_steps,
+               alpha=0.0,
+               beta=0.001,
+               num_periods=0.5):
+    """
+    Parameters
+    ----------
+    learning_rate : float 
+    initial learning rate
+    decay_steps : int 
+    number of steps to decay over
+    num_periods : number of periods in the cosine part of the decay
+    """
+
+    self.initial_rate = initial_rate
+    self.decay_steps = decay_steps
+    self.alpha = alpha
+    self.beta = beta
+    self.num_periods = num_periods
+
+  def _create_tensor(self, global_step):
+    return tf.train.linear_cosine_decay(
+        learning_rate=self.initial_rate,
+        global_step=global_step,
+        decay_steps=self.decay_steps,
+        alpha=self.alpha,
+        beta=self.beta,
+        num_periods=self.num_periods)
