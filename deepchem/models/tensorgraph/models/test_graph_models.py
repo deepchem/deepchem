@@ -11,6 +11,7 @@ from deepchem.molnet import load_bace_classification, load_delaney
 from deepchem.models.tensorgraph.layers import ReduceSum, L2Loss
 from deepchem.feat import ConvMolFeaturizer
 from nose.plugins.attrib import attr
+from flaky import flaky
 
 
 class TestGraphModels(unittest.TestCase):
@@ -188,6 +189,7 @@ class TestGraphModels(unittest.TestCase):
     assert np.allclose(scores['mean-roc_auc_score'],
                        scores2['mean-roc_auc_score'])
 
+  @flaky
   def test_weave_regression_model(self):
     tasks, dataset, transformers, metric = self.get_dataset(
         'regression', 'Weave')
@@ -356,6 +358,7 @@ class TestGraphModels(unittest.TestCase):
     assert mean_std > 0.5 * mean_error
     assert mean_std < mean_value
 
+  @flaky
   def test_dtnn_regression_model(self):
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "example_DTNN.mat")
