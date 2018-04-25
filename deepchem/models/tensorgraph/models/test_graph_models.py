@@ -374,7 +374,7 @@ class TestGraphModels(unittest.TestCase):
         mode="regression")
 
     # Fit trained model
-    model.fit(dataset, nb_epoch=200)
+    model.fit(dataset, nb_epoch=250)
 
     # Eval model on train
     pred = model.predict(dataset)
