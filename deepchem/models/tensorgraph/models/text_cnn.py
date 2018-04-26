@@ -291,10 +291,9 @@ TENSORGRAPH_DEPRECATION = "{} is deprecated and has been renamed to {} and will 
 
 class TextCNNTensorGraph(TextCNNModel):
 
-  warnings.warn(
-      TENSORGRAPH_DEPRECATION.format("TextCNNTensorGraph", "TextCNNModel"),
-      FutureWarning)
-
   def __init__(self, *args, **kwargs):
+    warnings.warn(
+        TENSORGRAPH_DEPRECATION.format("TextCNNTensorGraph", "TextCNNModel"),
+        FutureWarning)
 
     super(TextCNNTensorGraph, self).__init__(*args, **kwargs)

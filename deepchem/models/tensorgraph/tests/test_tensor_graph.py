@@ -13,9 +13,11 @@ from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
 from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, SoftMax, Constant, Variable
 from deepchem.models.tensorgraph.layers import Feature, Label
-from deepchem.models.tensorgraph.layers import ReduceSquareDifference, Add
+from deepchem.models.tensorgraph.layers import ReduceSquareDifference, Add, GRU
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.optimizers import GradientDescent, ExponentialDecay
+import tensorflow.contrib.eager as tfe
+from tensorflow.python.eager import context
 
 
 class TestTensorGraph(unittest.TestCase):
@@ -41,6 +43,11 @@ class TestTensorGraph(unittest.TestCase):
     tg.fit(dataset, nb_epoch=1000)
     prediction = np.squeeze(tg.predict_on_batch(X))
     assert_true(np.all(np.isclose(prediction, y, atol=0.4)))
+
+  def test_single_task_classifier_eager(self):
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        self.test_single_task_classifier()
 
   @flaky
   def test_multi_task_classifier(self):
@@ -86,6 +93,12 @@ class TestTensorGraph(unittest.TestCase):
       y_pred = predictions[i]
       assert_true(np.all(np.isclose(y_pred, y_real, atol=0.6)))
 
+  @flaky
+  def test_multi_task_classifier_eager(self):
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        self.test_multi_task_classifier()
+
   def test_single_task_regressor(self):
     n_data_points = 20
     n_features = 2
@@ -102,6 +115,11 @@ class TestTensorGraph(unittest.TestCase):
     tg.fit(dataset, nb_epoch=1000)
     prediction = np.squeeze(tg.predict_on_batch(X))
     assert_true(np.all(np.isclose(prediction, y, atol=3.0)))
+
+  def test_single_task_regressor_eager(self):
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        self.test_single_task_regressor()
 
   def test_multi_task_regressor(self):
     n_data_points = 20
@@ -144,6 +162,11 @@ class TestTensorGraph(unittest.TestCase):
       y_real = ys[i].X
       y_pred = predictions[i]
       assert_true(np.all(np.isclose(y_pred, y_real, atol=1.5)))
+
+  def test_multi_task_regressor_eager(self):
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        self.test_multi_task_regressor()
 
   @flaky
   def test_no_queue(self):
@@ -193,6 +216,12 @@ class TestTensorGraph(unittest.TestCase):
     prediction2 = np.squeeze(tg1.predict_on_batch(X))
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
 
+  @flaky
+  def test_set_optimizer_eager(self):
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        self.test_set_optimizer()
+
   def test_tensorboard(self):
     n_data_points = 20
     n_features = 2
@@ -221,6 +250,11 @@ class TestTensorGraph(unittest.TestCase):
     file_size = os.stat(event_file).st_size
     assert_true(file_size > 0)
 
+  def test_tensorboard_eager(self):
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        self.test_tensorboard()
+
   def test_save_load(self):
     n_data_points = 20
     n_features = 2
@@ -247,6 +281,11 @@ class TestTensorGraph(unittest.TestCase):
     tg1 = TensorGraph.load_from_dir(dirpath)
     prediction2 = np.squeeze(tg1.predict_on_batch(X))
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
+
+  def test_save_load_eager(self):
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        self.test_save_load()
 
   def test_shared_layer(self):
     n_data_points = 20
@@ -325,6 +364,11 @@ class TestTensorGraph(unittest.TestCase):
       value = tg.predict_on_batch(np.array([0]), outputs=o)
       assert np.array_equal(e, value)
 
+  def test_operators_eager(self):
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        self.test_operators()
+
   def test_initialize_variable(self):
     """Test methods for initializing a variable."""
     # Set by variable constructor.
@@ -339,10 +383,17 @@ class TestTensorGraph(unittest.TestCase):
     # Set by set_variable_initial_values().
 
     tg = dc.models.TensorGraph(use_queue=False)
+    features = Feature(shape=(None, 1))
     tg.set_loss(Dense(1, in_layers=features))
+    var = Variable([10.0])
     var.set_variable_initial_values([[15.0]])
     tg.add_output(var)
     assert tg.predict_on_batch(np.zeros((1, 1))) == [15.0]
+
+  def test_initialize_variable_eager(self):
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        self.test_initialize_variable()
 
   def test_copy_layers(self):
     """Test copying layers."""
@@ -363,9 +414,17 @@ class TestTensorGraph(unittest.TestCase):
     assert copy.in_layers[1] == replacements[constant]
     variables = tg.get_layer_variables(dense)
     with tg._get_tf("Graph").as_default():
-      values = tg.session.run(variables)
+      if tfe.in_eager_mode():
+        values = [v.numpy() for v in variables]
+      else:
+        values = tg.session.run(variables)
     for v1, v2 in zip(values, copy.in_layers[0].variable_values):
       assert np.array_equal(v1, v2)
+
+  def test_copy_layers_eager(self):
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        self.test_copy_layers()
 
   def test_copy_layers_shared(self):
     """Test copying layers with shared variables."""
@@ -432,3 +491,56 @@ class TestTensorGraph(unittest.TestCase):
         1.0, tg.predict_on_batch(data, outputs=var1)[0], places=4)
     self.assertAlmostEqual(
         0.0, tg.predict_on_batch(data, outputs=var2)[0], places=4)
+
+  def test_submodels_eager(self):
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        self.test_submodels()
+
+  def test_recurrent_layer(self):
+    """Test a model that includes a recurrent layer."""
+    batch_size = 5
+    tg = dc.models.TensorGraph(batch_size=batch_size, use_queue=False)
+    features = Feature(shape=(None, 10, 1))
+    gru = GRU(10, batch_size, in_layers=features)
+    loss = ReduceMean(in_layers=gru)
+    tg.add_output(gru)
+    tg.set_loss(loss)
+    input = np.random.rand(batch_size, 10, 1)
+
+    # If we don't specify the initial state, it should default to zeros.
+
+    predictions1 = tg.predict_on_batch(input)
+
+    # Explicitly specifying the zero state should give the same result.
+
+    initial_state = gru.rnn_initial_states[0]
+    zero_state = gru.rnn_zero_states[0]
+    generator = [{features: input, initial_state: zero_state}]
+    predictions2 = tg.predict_on_generator(generator)
+
+    # Specifying a different initial state should produce a different result.
+
+    generator = [{features: input, initial_state: np.ones(zero_state.shape)}]
+    predictions3 = tg.predict_on_generator(generator)
+    assert np.allclose(predictions1, predictions2)
+    assert not np.allclose(predictions1, predictions3)
+
+  def test_invoke_model_eager(self):
+    """Test invoking the model with __call__() in eager mode."""
+    with context.eager_mode():
+      with tfe.IsolateTest():
+        batch_size = 5
+        tg = dc.models.TensorGraph(batch_size=batch_size)
+        features = Feature(shape=(None, 10))
+        dense = Dense(10, in_layers=features)
+        loss = ReduceMean(in_layers=dense)
+        tg.add_output(dense)
+        tg.set_loss(loss)
+        input = np.random.rand(batch_size, 10).astype(np.float32)
+
+        # We should get the same result with either predict_on_batch() or __call__().
+
+        output1 = tg.predict_on_batch(input)
+        output2 = tg(input)
+        assert np.allclose(output1, output2.numpy())

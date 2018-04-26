@@ -524,39 +524,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .2
 
-  def test_tensorgraph_DTNN_multitask_regression_overfit(self):
-    """Test deep tensor neural net overfits tiny data."""
-    np.random.seed(123)
-    tf.set_random_seed(123)
-
-    input_file = os.path.join(self.current_dir, "example_DTNN.mat")
-    dataset = scipy.io.loadmat(input_file)
-    X = dataset['X']
-    y = dataset['T']
-    w = np.ones_like(y)
-    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids=None)
-    regression_metric = dc.metrics.Metric(
-        dc.metrics.pearson_r2_score, task_averager=np.mean)
-    n_tasks = y.shape[1]
-    batch_size = 10
-
-    model = dc.models.DTNNModel(
-        n_tasks,
-        n_embedding=20,
-        n_distance=100,
-        batch_size=batch_size,
-        learning_rate=0.001,
-        use_queue=False,
-        mode="regression")
-
-    # Fit trained model
-    model.fit(dataset, nb_epoch=20)
-
-    # Eval model on train
-    scores = model.evaluate(dataset, [regression_metric])
-
-    assert scores[regression_metric.name] > .9
-
   @attr('slow')
   def test_ANI_multitask_regression_overfit(self):
     """Test ANI-1 regression overfits tiny data."""
@@ -939,3 +906,33 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [metric])
     assert scores[metric.name] < .2
+
+  def test_multitask_regressor_uncertainty(self):
+    """Test computing uncertainty for a MultitaskRegressor."""
+    n_tasks = 1
+    n_samples = 30
+    n_features = 1
+    noise = 0.1
+
+    # Generate dummy dataset
+    X = np.random.rand(n_samples, n_features, 1)
+    y = 10 * X + np.random.normal(scale=noise, size=(n_samples, n_tasks, 1))
+    dataset = dc.data.NumpyDataset(X, y)
+
+    model = dc.models.MultiTaskRegressor(
+        n_tasks,
+        n_features,
+        layer_sizes=[200],
+        weight_init_stddevs=[.1],
+        batch_size=n_samples,
+        dropouts=0.1,
+        learning_rate=0.003,
+        uncertainty=True)
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=2500)
+
+    # Predict the output and uncertainty.
+    pred, std = model.predict_uncertainty(dataset)
+    assert np.mean(np.abs(y - pred)) < 1.0
+    assert noise < np.mean(std) < 1.0

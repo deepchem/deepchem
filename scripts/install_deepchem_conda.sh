@@ -25,18 +25,17 @@ unamestr=`uname`
 if [[ "$unamestr" == 'Darwin' ]]; then
    source activate root
    conda install -y -q conda=4.3.25
+   source activate $envname
 fi
 
 conda install -y -q -c omnia pdbfixer=1.4
 conda install -y -q -c conda-forge joblib=0.11
-conda install -y -q -c conda-forge six=1.10.0
+conda install -y -q -c conda-forge six=1.11.0
 conda install -y -q -c deepchem mdtraj=1.9.1
 conda install -y -q -c conda-forge scikit-learn=0.19.1
-conda install -y -q -c conda-forge setuptools=36.2.2
-conda install -y -q -c conda-forge networkx=1.11
-conda install -y -q -c conda-forge pillow=4.3.0
+conda install -y -q -c conda-forge networkx=2.1
+conda install -y -q -c conda-forge pillow=5.0.0
 conda install -y -q -c conda-forge pandas=0.22.0
-yes | pip install $tensorflow==1.6.0
 conda install -y -q -c conda-forge nose=1.3.7
 conda install -y -q -c conda-forge nose-timer=0.7.0
 conda install -y -q -c conda-forge flaky=3.3.0
@@ -47,3 +46,5 @@ conda install -y -q -c conda-forge simdna=0.4.2
 conda install -y -q -c conda-forge jupyter=1.0.0
 conda install -y -q -c conda-forge pbr=3.1.1
 conda install -y -q -c rdkit rdkit=2017.09.1
+conda install -y -q -c conda-forge setuptools=39.0.1
+yes | pip install $tensorflow==1.6.0

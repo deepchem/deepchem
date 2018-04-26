@@ -18,7 +18,7 @@ from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.metrics import to_one_hot
 
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
-from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMax, SoftMaxCrossEntropy, L2Loss, ReduceSum
+from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMax, SoftMaxCrossEntropy, L2Loss, ReduceSum, ReduceMean, Exp
 
 logger = logging.getLogger(__name__)
 
@@ -211,6 +211,7 @@ class MultiTaskRegressor(TensorGraph):
                weight_decay_penalty_type="l2",
                dropouts=0.5,
                activation_fns=tf.nn.relu,
+               uncertainty=False,
                **kwargs):
     """Create a MultiTaskRegressor.
 
@@ -244,6 +245,9 @@ class MultiTaskRegressor(TensorGraph):
       the Tensorflow activation function to apply to each layer.  The length of this list should equal
       len(layer_sizes).  Alternatively this may be a single value instead of a list, in which case the
       same value is used for every layer.
+    uncertainty: bool
+      if True, include extra outputs and loss terms to enable the uncertainty
+      in outputs to be predicted
     """
     super(MultiTaskRegressor, self).__init__(**kwargs)
     self.n_tasks = n_tasks
@@ -257,6 +261,10 @@ class MultiTaskRegressor(TensorGraph):
       dropouts = [dropouts] * n_layers
     if not isinstance(activation_fns, collections.Sequence):
       activation_fns = [activation_fns] * n_layers
+    if uncertainty:
+      if any(d == 0.0 for d in dropouts):
+        raise ValueError(
+            'Dropout must be included in every layer to predict uncertainty')
 
     # Add the input features.
 
@@ -296,8 +304,27 @@ class MultiTaskRegressor(TensorGraph):
         ])
     self.add_output(output)
     labels = Label(shape=(None, n_tasks, 1))
-    weights = Weights(shape=(None, n_tasks))
-    weighted_loss = ReduceSum(L2Loss(in_layers=[labels, output, weights]))
+    weights = Weights(shape=(None, n_tasks, 1))
+    if uncertainty:
+      log_var = Reshape(
+          shape=(-1, n_tasks, 1),
+          in_layers=[
+              Dense(
+                  in_layers=[prev_layer],
+                  out_channels=n_tasks,
+                  weights_initializer=TFWrapper(
+                      tf.truncated_normal_initializer,
+                      stddev=weight_init_stddevs[-1]),
+                  biases_initializer=TFWrapper(
+                      tf.constant_initializer, value=0.0))
+          ])
+      var = Exp(log_var)
+      self.add_variance(var)
+      diff = labels - output
+      weighted_loss = weights * (diff * diff / var + log_var)
+      weighted_loss = ReduceSum(ReduceMean(weighted_loss, axis=[1, 2]))
+    else:
+      weighted_loss = ReduceSum(L2Loss(in_layers=[labels, output, weights]))
     if weight_decay_penalty != 0.0:
       weighted_loss = WeightDecay(
           weight_decay_penalty,
