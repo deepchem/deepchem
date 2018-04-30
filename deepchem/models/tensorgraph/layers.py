@@ -4636,8 +4636,9 @@ class HingeLoss(Layer):
     labels, logits = inputs[0], inputs[1]
 
     all_ones = array_ops.ones_like(labels)
-    labels = math_ops.subtract(2 * labels, all_ones)
-    seperation = all_ones * self.separation
+    labels = tf.cast(math_ops.subtract(2 * labels, all_ones), dtype=tf.float32)
+    seperation = tf.multiply(
+        tf.cast(all_ones, dtype=tf.float32), self.separation)
     out_tensor = nn_ops.relu(
         math_ops.subtract(seperation, math_ops.multiply(labels, logits)))
     if set_tensors:
