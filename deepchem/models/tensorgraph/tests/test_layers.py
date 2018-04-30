@@ -891,14 +891,16 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert irv_reg.eval() >= 0
 
   def test_hingeloss(self):
+    separation = 0.25
+    labels = [1, 1, 0, 0]
+    logits = [.3, .1, -0.3, -0.1]
+    losses = np.array([0, 0.15, 0, 0.15], dtype=np.float32)
 
-    labels = 1
-    logits = 1
-    logits_tensor = np.random.rand(logits)
-    labels_tensor = np.random.rand(labels)
     with self.test_session() as sess:
-      logits_tensor = tf.convert_to_tensor(logits_tensor, dtype=tf.float32)
-      labels_tensor = tf.convert_to_tensor(labels_tensor, dtype=tf.float32)
-      out_tensor = HingeLoss()(labels_tensor, logits_tensor)
+      logits_tensor = tf.convert_to_tensor(logits, dtype=tf.float32)
+      labels_tensor = tf.convert_to_tensor(labels, dtype=tf.float32)
+      out_tensor = HingeLoss(separation=separation)(labels_tensor,
+                                                    logits_tensor)
       out_tensor = out_tensor.eval()
-      assert out_tensor.shape == (labels,)
+      retval = np.all(losses == np.array(out_tensor))
+      self.assertTrue(retval)
