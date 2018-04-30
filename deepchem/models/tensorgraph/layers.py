@@ -13,6 +13,10 @@ from deepchem.models.tensorgraph.model_ops import create_variable
 import tensorflow.contrib.eager as tfe
 import math
 
+from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import nn_ops
+
 
 class Layer(object):
   layer_number_dict = {}
@@ -4610,7 +4614,15 @@ class HingeLoss(Layer):
   The output is a weighted loss tensor of same shape as labels.
   """
 
-  def __init__(self, in_layers=None, **kwargs):
+  def __init__(self, in_layers=None, separation=1.0, **kwargs):
+    """
+    Parameters
+    ----------
+    separation: float
+      The absolute minimum value of logits to not incur a sample loss
+    kwargs
+    """
+    self.separation = separation
     super(HingeLoss, self).__init__(in_layers, **kwargs)
     try:
       self._shape = self.in_layers[1].shape
@@ -4622,9 +4634,13 @@ class HingeLoss(Layer):
     if len(inputs) != 2:
       raise ValueError()
     labels, logits = inputs[0], inputs[1]
-    reduction = tf.losses.Reduction
-    out_tensor = tf.losses.hinge_loss(
-        labels=labels, logits=logits, reduction=reduction.NONE)
+
+    all_ones = array_ops.ones_like(labels)
+    labels = tf.cast(math_ops.subtract(2 * labels, all_ones), dtype=tf.float32)
+    seperation = tf.multiply(
+        tf.cast(all_ones, dtype=tf.float32), self.separation)
+    out_tensor = nn_ops.relu(
+        math_ops.subtract(seperation, math_ops.multiply(labels, logits)))
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
