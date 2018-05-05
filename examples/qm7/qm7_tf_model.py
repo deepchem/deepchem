@@ -21,7 +21,7 @@ metric = [
 ]
 
 rate = ExponentialDecay(0.001, 0.95, 1000)
-model = dc.models.MultiTaskFitTransformRegressor(
+model = dc.models.MultitaskFitTransformRegressor(
     n_tasks=1,
     n_features=[23, 23],
     learning_rate=rate,

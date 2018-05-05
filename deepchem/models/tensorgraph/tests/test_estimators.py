@@ -12,7 +12,7 @@ class TestEstimators(unittest.TestCase):
   """
 
   def test_multi_task_classifier(self):
-    """Test creating an Estimator from a MultiTaskClassifier."""
+    """Test creating an Estimator from a MultitaskClassifier."""
     n_samples = 10
     n_features = 3
     n_tasks = 2
@@ -31,7 +31,7 @@ class TestEstimators(unittest.TestCase):
 
     # Create a TensorGraph model.
 
-    model = dc.models.MultiTaskClassifier(n_tasks, n_features, dropouts=0)
+    model = dc.models.MultitaskClassifier(n_tasks, n_features, dropouts=0)
 
     # Create an estimator from it.
 
@@ -56,7 +56,7 @@ class TestEstimators(unittest.TestCase):
     assert results['accuracy'] > 0.9
 
   def test_multi_task_regressor(self):
-    """Test creating an Estimator from a MultiTaskRegressor."""
+    """Test creating an Estimator from a MultitaskRegressor."""
     n_samples = 10
     n_features = 3
     n_tasks = 2
@@ -75,7 +75,7 @@ class TestEstimators(unittest.TestCase):
 
     # Create a TensorGraph model.
 
-    model = dc.models.MultiTaskRegressor(n_tasks, n_features, dropouts=0)
+    model = dc.models.MultitaskRegressor(n_tasks, n_features, dropouts=0)
 
     # Create an estimator from it.
 
@@ -96,7 +96,7 @@ class TestEstimators(unittest.TestCase):
     assert results['error'] < 0.1
 
   def test_robust_multi_task_classifier(self):
-    """Test creating an Estimator from a MultiTaskClassifier."""
+    """Test creating an Estimator from a MultitaskClassifier."""
     n_samples = 10
     n_features = 3
     n_tasks = 2
@@ -147,7 +147,7 @@ class TestEstimators(unittest.TestCase):
     assert results['accuracy'] > 0.9
 
   def test_robust_multi_task_regressor(self):
-    """Test creating an Estimator from a MultiTaskRegressor."""
+    """Test creating an Estimator from a MultitaskRegressor."""
     n_samples = 10
     n_features = 3
     n_tasks = 2
@@ -254,7 +254,7 @@ class TestEstimators(unittest.TestCase):
 
     # Create a TensorGraph model.
 
-    model = dc.models.TensorflowMultiTaskIRVClassifier(
+    model = dc.models.TensorflowMultitaskIRVClassifier(
         n_tasks, K=10, learning_rate=0.001, penalty=0.05, batch_size=50)
     model.build()
     # Create an estimator from it.

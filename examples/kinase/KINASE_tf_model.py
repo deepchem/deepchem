@@ -35,7 +35,7 @@ for trial in range(num_trials):
   ###Create model###
   n_layers = 3
   nb_epoch = 50
-  model = dc.models.TensorflowMultiTaskRegressor(
+  model = dc.models.TensorflowMultitaskRegressor(
       len(KINASE_tasks), train_dataset.get_data_shape()[0],
       layer_sizes=[1000]*n_layers, dropouts=[.25]*n_layers,
       weight_init_stddevs=[.02]*n_layers,

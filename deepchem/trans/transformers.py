@@ -510,7 +510,7 @@ class CoulombFitTransformer(Transformer):
      >>> w = np.ones((n_samples, n_tasks))
      >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
      >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
-     >>> model = dc.models.MultiTaskFitTransformRegressor(n_tasks,
+     >>> model = dc.models.MultitaskFitTransformRegressor(n_tasks,
      ...    [n_features, n_features], batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
      >>> print(model.n_features)
      12

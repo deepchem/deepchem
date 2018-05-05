@@ -34,7 +34,7 @@ n_layers = 3
 nb_epoch = 50
 n_features = train_dataset.get_data_shape()[0]
 def task_model_builder(m_dir):
-  return dc.models.TensorflowMultiTaskRegressor(
+  return dc.models.TensorflowMultitaskRegressor(
       n_tasks=1, n_features=n_features, logdir=m_dir,
       layer_sizes=[1000]*n_layers, dropouts=[.25]*n_layers,
       weight_init_stddevs=[.02]*n_layers, bias_init_consts=[1.]*n_layers,
