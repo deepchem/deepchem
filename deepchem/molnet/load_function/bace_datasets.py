@@ -12,7 +12,10 @@ from deepchem.molnet.load_function.bace_features import bace_user_specified_feat
 logger = logging.getLogger(__name__)
 
 
-def load_bace_regression(featurizer='ECFP', split='random', reload=True):
+def load_bace_regression(featurizer='ECFP',
+                         split='random',
+                         reload=True,
+                         move_mean=True):
   """Load bace datasets."""
   # Featurize bace dataset
   logger.info("About to featurize bace dataset.")
@@ -53,7 +56,7 @@ def load_bace_regression(featurizer='ECFP', split='random', reload=True):
   # Initialize transformers
   transformers = [
       deepchem.trans.NormalizationTransformer(
-          transform_y=True, dataset=dataset)
+          transform_y=True, dataset=dataset, move_mean=move_mean)
   ]
 
   logger.info("About to transform data")

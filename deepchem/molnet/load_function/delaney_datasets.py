@@ -11,7 +11,7 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 
-def load_delaney(featurizer='ECFP', split='index', reload=True):
+def load_delaney(featurizer='ECFP', split='index', reload=True, move_mean=True):
   """Load delaney datasets."""
   # Featurize Delaney dataset
   logger.info("About to featurize Delaney dataset.")
@@ -50,7 +50,7 @@ def load_delaney(featurizer='ECFP', split='index', reload=True):
   # Initialize transformers
   transformers = [
       deepchem.trans.NormalizationTransformer(
-          transform_y=True, dataset=dataset)
+          transform_y=True, dataset=dataset, move_mean=move_mean)
   ]
 
   logger.info("About to transform data")

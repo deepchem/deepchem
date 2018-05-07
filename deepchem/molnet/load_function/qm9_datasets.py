@@ -11,7 +11,10 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 
-def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
+def load_qm9(featurizer='CoulombMatrix',
+             split='random',
+             reload=True,
+             move_mean=True):
   """Load qm9 datasets."""
   # Featurize qm9 dataset
   logger.info("About to featurize qm9 dataset.")
@@ -86,7 +89,7 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
       dataset)
   transformers = [
       deepchem.trans.NormalizationTransformer(
-          transform_y=True, dataset=train_dataset)
+          transform_y=True, dataset=train_dataset, move_mean=move_mean)
   ]
   for transformer in transformers:
     train_dataset = transformer.transform(train_dataset)
