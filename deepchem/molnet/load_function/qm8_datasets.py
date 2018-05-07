@@ -14,7 +14,11 @@ def load_qm8(featurizer='CoulombMatrix',
              move_mean=True):
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "qm8/" + featurizer + "/" + str(split))
+    if move_mean:
+      dir_name = "qm8/" + featurizer + "/" + str(split)
+    else:
+      dir_name = "qm8/" + featurizer + "_mean_unmoved/" + str(split)
+    save_dir = os.path.join(data_dir, dir_name)
 
   if featurizer in ['CoulombMatrix', 'BPSymmetryFunction', 'MP', 'Raw']:
     dataset_file = os.path.join(data_dir, "qm8.sdf")

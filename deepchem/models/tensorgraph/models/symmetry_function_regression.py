@@ -116,7 +116,7 @@ class ANIRegression(TensorGraph):
                n_tasks,
                max_atoms,
                exp_loss=False,
-               activation_fn='ani',
+               activation_fn='relu',
                layer_structures=[128, 64],
                atom_number_cases=[1, 6, 7, 8, 16],
                **kwargs):

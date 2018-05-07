@@ -20,7 +20,11 @@ def load_qm9(featurizer='CoulombMatrix',
   logger.info("About to featurize qm9 dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "qm9/" + featurizer + "/" + str(split))
+    if move_mean:
+      dir_name = "qm9/" + featurizer + "/" + str(split)
+    else:
+      dir_name = "qm9/" + featurizer + "_mean_unmoved/" + str(split)
+    save_dir = os.path.join(data_dir, dir_name)
 
   if featurizer in ['CoulombMatrix', 'BPSymmetryFunction', 'MP', 'Raw']:
     dataset_file = os.path.join(data_dir, "gdb9.sdf")

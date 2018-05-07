@@ -18,7 +18,11 @@ def load_sampl(featurizer='ECFP', split='index', reload=True, move_mean=True):
   logger.info("About to load SAMPL dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "sampl/" + featurizer + "/" + str(split))
+    if move_mean:
+      dir_name = "sampl/" + featurizer + "/" + str(split)
+    else:
+      dir_name = "sampl/" + featurizer + "_mean_unmoved/" + str(split)
+    save_dir = os.path.join(data_dir, dir_name)
 
   dataset_file = os.path.join(data_dir, "SAMPL.csv")
   if not os.path.exists(dataset_file):
