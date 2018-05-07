@@ -17,7 +17,7 @@ def test_notebook():
   #
   # Let's start by loading the data.  We will use the MUV dataset.  It includes 74,501 molecules in the training set, and 9313 molecules in the validation set, so it gives us plenty of SMILES strings to work with.
   
-  # In[1]:
+  # In[ ]:
   
   
   import deepchem as dc
@@ -29,7 +29,21 @@ def test_notebook():
   
   # We need to define the "alphabet" for our `SeqToSeq` model, the list of all tokens that can appear in sequences.  (It's also possible for input and output sequences to have different alphabets, but since we're training it as an autoencoder, they're identical in this case.)  Make a list of every character that appears in any training sequence.
   
-  # In[2]:
+  # In[ ]:
+  
+  
+  def to_canon(s):
+  try:
+  m = Chem.MolFromSmiles(s)
+  return Chem.MolToSmiles(m)
+  except Exception as e:
+  print(e)
+  return None
+  canon_train_smiles = [to_canon(x) for x in train_smiles]
+  canon_train_smiles = list(filter(lambda x: x is not None, canon_train_smiles))
+  
+  
+  # In[ ]:
   
   
   tokens = set()
@@ -40,43 +54,62 @@ def test_notebook():
   
   # Create the model and define the optimization method to use.  In this case, learning works much better if we gradually decrease the learning rate.  We use an `ExponentialDecay` to multiply the learning rate by 0.9 after each epoch.
   
-  # In[3]:
+  # In[ ]:
   
   
   from deepchem.models.tensorgraph.optimizers import Adam, ExponentialDecay
   max_length = max(len(s) for s in train_smiles)
-  model = dc.models.SeqToSeq(tokens,
-  tokens,
+  model = dc.models.tensorgraph.models.seqtoseq.AspuruGuzikAutoEncoder(tokens,
   max_length,
-  encoder_layers=2,
-  decoder_layers=2,
-  embedding_dimension=256,
-  model_dir='fingerprint')
+  tensorboard=True,
+  model_dir='aspuru_guzik_vae',
+  anneal_start_step=40000,
+  anneal_stop_step=60000)
+  model.build()
   batches_per_epoch = len(train_smiles)/model.batch_size
-  model.set_optimizer(Adam(learning_rate=ExponentialDecay(0.004, 0.9, batches_per_epoch)))
+  model.set_optimizer(Adam(learning_rate=ExponentialDecay(0.004, 0.95, batches_per_epoch)))
   
   
   # Let's train it!  The input to `fit_sequences()` is a generator that produces input/output pairs.  On a good GPU, this should take a few hours or less.
   
-  # In[4]:
+  # In[ ]:
+  
+  
+  batches_per_epoch
+  
+  
+  # In[ ]:
   
   
   def generate_sequences(epochs):
   for i in range(epochs):
-  for s in train_smiles:
+  for s in canon_train_smiles:
   yield (s, s)
   
-  model.fit_sequences(generate_sequences(40))
+  model.fit_sequences(generate_sequences(1000000))
+  
+  
+  # In[ ]:
+  
+  
+  #model.set_optimizer(Adam())
+  #model.tensor_objects['Optimizer'] = model.optimizer._create_optimizer(model._get_tf('GlobalStep'))
+  def generate_sequences(epochs):
+  for i in range(epochs):
+  for s in canon_train_smiles:
+  yield (s, s)
+  model.fit_sequences(generate_sequences(1000000))
   
   
   # Let's see how well it works as an autoencoder.  We'll run the first 500 molecules from the validation set through it, and see how many of them are exactly reproduced.
   
-  # In[5]:
+  # In[ ]:
   
   
-  predicted = model.predict_from_sequences(valid_smiles[:500])
+  predicted = model.predict_from_sequences(train_smiles[:500])
   count = 0
-  for s,p in zip(valid_smiles[:500], predicted):
+  for s,p in zip(train_smiles[:500], predicted):
+  print("%s\t%s" % (s, "".join(p)))
   if ''.join(p) == s:
   count += 1
   print('reproduced', count, 'of 500 validation SMILES strings')
@@ -84,7 +117,18 @@ def test_notebook():
   
   # Now we'll trying using the encoder as a way to generate molecular fingerprints.  We compute the embedding vectors for all molecules in the training and validation datasets, and create new datasets that have those as their feature vectors.  The amount of data is small enough that we can just store everything in memory.
   
-  # In[6]:
+  # In[ ]:
+  
+  
+  from rdkit import Chem
+  def is_canon(s):
+  m = Chem.MolFromSmiles(s)
+  return s == Chem.MolToSmiles(m)
+  is_canon('NC(=O)c1ccccc1NC(=O)/C=C/c1cccc(Cl)c1')
+  "NC(=O)c1ccccc1NC(=O)/C=C/c1cccc(Cl)c1"=="NC(=O)c1ccccc1NC(=O)/C=C/c1cccc(Cl)c1"
+  
+  
+  # In[ ]:
   
   
   train_embeddings = model.predict_embeddings(train_smiles)
@@ -102,7 +146,7 @@ def test_notebook():
   
   # For classification, we'll use a simple fully connected network with one hidden layer.
   
-  # In[7]:
+  # In[ ]:
   
   
   classifier = dc.models.MultiTaskClassifier(n_tasks=len(tasks),
@@ -113,7 +157,7 @@ def test_notebook():
   
   # Find out how well it worked.  Compute the ROC AUC for the training and validation datasets.
   
-  # In[8]:
+  # In[ ]:
   
   
   import numpy as np
