@@ -144,12 +144,12 @@ class NormalizationTransformer(Transformer):
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
     if self.transform_X:
-      if self.move_mean:
+      if not hasattr(self, 'move_mean') or self.move_mean:
         X = np.nan_to_num((X - self.X_means) / self.X_stds)
       else:
         X = np.nan_to_num(X / self.X_stds)
     if self.transform_y:
-      if self.move_mean:
+      if not hasattr(self, 'move_mean') or self.move_mean:
         y = np.nan_to_num((y - self.y_means) / self.y_stds)
       else:
         y = np.nan_to_num(y / self.y_stds)
@@ -160,7 +160,7 @@ class NormalizationTransformer(Transformer):
     Undo transformation on provided data.
     """
     if self.transform_X:
-      if self.move_mean:
+      if not hasattr(self, 'move_mean') or self.move_mean:
         return z * self.X_stds + self.X_means
       else:
         return z * self.X_stds
@@ -177,7 +177,7 @@ class NormalizationTransformer(Transformer):
           # Prevent broadcasting on wrong dimension
           y_stds = np.expand_dims(y_stds, -1)
           y_means = np.expand_dims(y_means, -1)
-      if self.move_mean:
+      if not hasattr(self, 'move_mean') or self.move_mean:
         return z * y_stds + y_means
       else:
         return z * y_stds
