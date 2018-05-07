@@ -6,8 +6,8 @@ def test_notebook():
   
   # # Using Tensorboard in DeepChem
   
-  # DeepChem Neural Networks models are built on top of [tensorflow](https://www.tensorflow.org).  [Tensorboard](https://www.tensorflow.org/get_started/summaries_and_tensorboard) is a powerful visualization tool in tensorflow for viewing your model architecture and performance.
-  #
+  # DeepChem Neural Networks models are built on top of [tensorflow](https://www.tensorflow.org).  [Tensorboard](https://www.tensorflow.org/get_started/summaries_and_tensorboard) is a powerful visualization tool in tensorflow for viewing your model architecture and performance. 
+  # 
   # In this tutorial we will show how to turn on tensorboard logging for our models, and go show the network architecture for some of our more popular models.
   
   # The first thing we have to do is load a dataset that we will monitor model performance over.
@@ -43,9 +43,9 @@ def test_notebook():
   # ```bash
   # tensorboard --logdir=model.model_dir
   # ```
-  #
+  # 
   # This will launch the tensorboard web server on your local computer on port 6006.  Go to http://localhost:6006 in your web browser to look through tensorboard's UI.
-  #
+  # 
   # The first thing you will see is a graph of the loss vs mini-batches.  You can use this data to determine if your model is still improving it's loss function over time or to find out if your gradients are exploding!.
   
   # In[3]:
@@ -63,5 +63,5 @@ def test_notebook():
   
   
   # The "GraphGather" box is the "Neural Fingerprint" developed by learning features of the molecule via graph convolutions.
-  #
+  # 
   # Using tensorboard to visualize the model is a fast way to get a high level understanding of what a model is made of and how it works!

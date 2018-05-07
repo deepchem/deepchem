@@ -5,81 +5,81 @@ def test_notebook():
   # coding: utf-8
   
   # Hi Karl!
-  #
-  # Last Monday you gave me an interesting task, which was to deploy Generative Adversarial Networks to predict molecular properties. I would like to give you a brief summary of my recent study of the model and its application.
-  #
+  # 
+  # Last Monday you gave me an interesting task, which was to deploy Generative Adversarial Networks to predict molecular properties. I would like to give you a brief summary of my recent study of the model and its application. 
+  # 
   # #### Literature Survey on DeepChem, GANs, MoleculeNet in drug discovery
-  #
+  # 
   # Papers I have read so far on GANs:
-  #
-  # [1] Goodfellow, Ian et al.(2014). Generative Adversarial Nets. In Neutral information processing systems.
-  #
-  # [2] Goodfellow, Ian (2016). NIPS 2016 Tutorial: Generative Adversarial Networks. arXiv Preprint arXiv:1701.00160.
-  #
+  # 
+  # [1] Goodfellow, Ian et al.(2014). Generative Adversarial Nets. In Neutral information processing systems. 
+  # 
+  # [2] Goodfellow, Ian (2016). NIPS 2016 Tutorial: Generative Adversarial Networks. arXiv Preprint arXiv:1701.00160. 
+  # 
   # [3] Wu, Zhenqin et al. (2017). MoleculeNet: A Benchmark for Molecular Machine Learning. arxiv.org:1703.00564.
-  #
-  # [4] Killoran, Nathan et al.(2017). Generating and designing DNA with deep generative models.
-  #
+  # 
+  # [4] Killoran, Nathan et al.(2017). Generating and designing DNA with deep generative models. 
+  # 
   # [5] Benhenda, Mostapha (2017). ChemGAN challenge for drug discovery: can AI reproduce natural chemical diversity?
-  #
-  # [6] Chen, Hongming et al.(2018). The rise of deep learning in drug discovery. In ScienceDirect.
-  #
+  # 
+  # [6] Chen, Hongming et al.(2018). The rise of deep learning in drug discovery. In ScienceDirect. 
+  # 
   # [7] This site has a list of many applications of Deep Learning in biology https://github.com/hussius/deeplearning-biology
-  #
-  # [8] Recent articles and discussions on AI in drug discovery, BenevolentAI and Insilico Medicine.
-  #
-  # I also look at the notebook for the class CS231n offered at Stanford and skimmed through Wiki articles on key terms such as feed-forward neural networks, backpropagation, Simplified molecular-input line-entry system (SMILES) to review basic understanding of Neural Networks, and Leaky ReLU.
-  #
+  # 
+  # [8] Recent articles and discussions on AI in drug discovery, BenevolentAI and Insilico Medicine. 
+  # 
+  # I also look at the notebook for the class CS231n offered at Stanford and skimmed through Wiki articles on key terms such as feed-forward neural networks, backpropagation, Simplified molecular-input line-entry system (SMILES) to review basic understanding of Neural Networks, and Leaky ReLU. 
+  # 
   # #### Installed DeepChem on my local machine and Ran DeepChem tutorials
-  #
-  # I downloaded DeepChem using easy install and look into the following tutorials carefully:
-  #
+  # 
+  # I downloaded DeepChem using easy install and look into the following tutorials carefully: 
+  # 
   # [1] Graph Convolutions For Tox21
-  #
-  # [2] Multitask Networks on MUV
-  #
-  # [3] Conditional Generative Adversarial Network
-  #
-  # I found a little bug with the tutorial MNIST using GAN so I opened a new issue thread on github of the group :)
-  #
-  # For each tutorial, I dedicated a separate notebook, copied code snippets one by one from the tutorial to my notebook and ran cells sequentially. Sometimes I modified parameters such as epoch size, batches, etc to see the affect on validation scores and output results. Functional calls from DeepChem and TensorFlow are a bit new to me so I cltr-F through the source code on github to locate where functions are defined. I familiarized myself with methods declared in GAN inherited from TensorGraph in tensorgraph/models/gan.py and Layer in tensorgraph/layers.py.
-  #
-  # #### Brainstormed ideas and future directions
-  #
-  # I chose the tutorial "Conditional GAN" as a starting point to build a simple application to predict properties of small molecules and to generate new molecular fingerprints. The idea is to feed the Discriminator with real data obtained from experiments of small molecules with some desired properties, give the Generator latent samples and train the model to produce new molecule fingerprints that carry a similar of desired properties. This idea does sound like a stripped down version of the paper "The rise of deep learning in drug discovery"(Chen et.al 2018) and "ChemGAN challenge for drug discovery: can AI reproduce natural chemical diversity?" (Benhenda 2017). If I have a chance to contribute to the DeepChem project, I would be interested in developing popular GANs model such as Objective-Reinforced Generative Adversarial Network (ORGAN), Deep Convolutional Generative Adversarial Networks (DC-GAN), and graph-GANN in the application of drug discovery (I saw your implementation of Wasserstein Generative Adversarial Networks in GAN class).
-  #
-  # Given the structure of a conditional GAN model, I asked myself which molecular properties I am interested in predicting, which datasets are available to train the model, how probability distribution of some interested variables is extracted from a chosen dataset, and how the model is evaluated and compared against to assess its validity. These question lead me to read some more application tutorials from github such as Predicting Binding Affinity K_i of Ligands to a Protein, Modeling Solubility, and Basic Protein-Ligand Affinity Models to search for the appropriate dataset.
-  #
-  # Regarding possible directions for a summer project, I am thinking about building some GAN submodels that provide the tools for researchers to implement deep learning algoorithm without the hassle. I think this goal aligns with the grand philosophy of the project DeepChem and the company. Possible tasks include adding more functions to help parse and process data into convenients forms of intput for GAN model, implementing state-of-the-art GAN models, designing more molecular-oriented API, and examining accuracy and efficiency of models. I hope to facilitate scientsits and researchers in performing GAN models to reproduce results of using Deep Learning and GAN models from journal papers.
-  #
-  # ####  Planning the code
-  #
-  # The goal of a GAN model is to learn to generate new data that carries the same interal structure as the real input data. The model is an interplay where the Discriminator learns the boundaries between classes and the Generator learns the distribution of classes. The algorithm stops iterating when the probability that a discriminator can distinguish between a real and generative data is 1/2.
-  #
-  # Mathematically speaking, the Discriminator tries to increase the likelihood of giving a high probability to the real data and a low probability to the generated data. Meanwhile, the Generator is optimized to increase the probability of the generated data being rated as real. By alternating the method if gradient optimization between these two networks, the GAN model will produce the data that is as realistic as the input.
-  #
+  # 
+  # [2] Multitask Networks on MUV 
+  # 
+  # [3] Conditional Generative Adversarial Network 
+  # 
+  # I found a little bug with the tutorial MNIST using GAN so I opened a new issue thread on github of the group :) 
+  # 
+  # For each tutorial, I dedicated a separate notebook, copied code snippets one by one from the tutorial to my notebook and ran cells sequentially. Sometimes I modified parameters such as epoch size, batches, etc to see the affect on validation scores and output results. Functional calls from DeepChem and TensorFlow are a bit new to me so I cltr-F through the source code on github to locate where functions are defined. I familiarized myself with methods declared in GAN inherited from TensorGraph in tensorgraph/models/gan.py and Layer in tensorgraph/layers.py. 
+  # 
+  # #### Brainstormed ideas and future directions 
+  # 
+  # I chose the tutorial "Conditional GAN" as a starting point to build a simple application to predict properties of small molecules and to generate new molecular fingerprints. The idea is to feed the Discriminator with real data obtained from experiments of small molecules with some desired properties, give the Generator latent samples and train the model to produce new molecule fingerprints that carry a similar of desired properties. This idea does sound like a stripped down version of the paper "The rise of deep learning in drug discovery"(Chen et.al 2018) and "ChemGAN challenge for drug discovery: can AI reproduce natural chemical diversity?" (Benhenda 2017). If I have a chance to contribute to the DeepChem project, I would be interested in developing popular GANs model such as Objective-Reinforced Generative Adversarial Network (ORGAN), Deep Convolutional Generative Adversarial Networks (DC-GAN), and graph-GANN in the application of drug discovery (I saw your implementation of Wasserstein Generative Adversarial Networks in GAN class). 
+  # 
+  # Given the structure of a conditional GAN model, I asked myself which molecular properties I am interested in predicting, which datasets are available to train the model, how probability distribution of some interested variables is extracted from a chosen dataset, and how the model is evaluated and compared against to assess its validity. These question lead me to read some more application tutorials from github such as Predicting Binding Affinity K_i of Ligands to a Protein, Modeling Solubility, and Basic Protein-Ligand Affinity Models to search for the appropriate dataset. 
+  # 
+  # Regarding possible directions for a summer project, I am thinking about building some GAN submodels that provide the tools for researchers to implement deep learning algoorithm without the hassle. I think this goal aligns with the grand philosophy of the project DeepChem and the company. Possible tasks include adding more functions to help parse and process data into convenients forms of intput for GAN model, implementing state-of-the-art GAN models, designing more molecular-oriented API, and examining accuracy and efficiency of models. I hope to facilitate scientsits and researchers in performing GAN models to reproduce results of using Deep Learning and GAN models from journal papers.  
+  # 
+  # ####  Planning the code  
+  # 
+  # The goal of a GAN model is to learn to generate new data that carries the same interal structure as the real input data. The model is an interplay where the Discriminator learns the boundaries between classes and the Generator learns the distribution of classes. The algorithm stops iterating when the probability that a discriminator can distinguish between a real and generative data is 1/2. 
+  # 
+  # Mathematically speaking, the Discriminator tries to increase the likelihood of giving a high probability to the real data and a low probability to the generated data. Meanwhile, the Generator is optimized to increase the probability of the generated data being rated as real. By alternating the method if gradient optimization between these two networks, the GAN model will produce the data that is as realistic as the input.  
+  # 
   # [1] Defining the problem:
-  #
-  # The goal is to synthesize new molecules that have desired properties using GANs. If this task is done, the model can be improved to train the generator to sample drug candidates from a database and predict drug responses and molecules which are good at treating a certain type of disease. The desired feature is the observed R^2 that suggests the ability to make ligands "drug-like". After training, it can generate molecules from a desired distribution and use the measure R^2 as refiner of output compounds. As a result, the train model predicts new compounds that should be validated with experiments on treating a certain type of disease.
-  #
-  # [2] Regarding the architecture of GAN, I am deploying convolutional neural networks instead of multiple layer perceptrons.
-  #
-  # [3] I decided to use the data from the Tutorial Basic Protein-Ligand Affinity Models and used the standard features made available with deepchem, which are are ECFP4 fingerprints, RDKit descriptors, NNScore-style bdescriptors, and hybrid binding pocket descriptors. I am currently stuck on parsing data to the get the probability distribution
-  #
-  # [3] Which functions should I use to generate random noise to train the discriminator on real data for n epochs? I am thinking about implementing a LeakyReLU and test the implementation with expect errors to be small
-  #
-  # [4] Finally, after training model, I will use the methods from mdtraj to display newly generated molecules that possess similar properties like in the data input.
-  #
-  #
-  # I hope that you can give me more time to implement the idea, especially I find the step of parsing data and transforming real data into appropriate data for the conditional GAN model can take more time than I expected. I have three midterms on Tue, Wed, and Thurs this week but my spring break starts this Friday and I will have more time next week. I hope to showcase you my passion and willing to learn new models and write clean code.
-  #
-  # Best regards,
-  # Lan
+  # 
+  # The goal is to synthesize new molecules that have desired properties using GANs. If this task is done, the model can be improved to train the generator to sample drug candidates from a database and predict drug responses and molecules which are good at treating a certain type of disease. The desired feature is the observed R^2 that suggests the ability to make ligands "drug-like". After training, it can generate molecules from a desired distribution and use the measure R^2 as refiner of output compounds. As a result, the train model predicts new compounds that should be validated with experiments on treating a certain type of disease. 
+  # 
+  # [2] Regarding the architecture of GAN, I am deploying convolutional neural networks instead of multiple layer perceptrons. 
+  # 
+  # [3] I decided to use the data from the Tutorial Basic Protein-Ligand Affinity Models and used the standard features made available with deepchem, which are are ECFP4 fingerprints, RDKit descriptors, NNScore-style bdescriptors, and hybrid binding pocket descriptors. I am currently stuck on parsing data to the get the probability distribution 
+  # 
+  # [3] Which functions should I use to generate random noise to train the discriminator on real data for n epochs? I am thinking about implementing a LeakyReLU and test the implementation with expect errors to be small 
+  # 
+  # [4] Finally, after training model, I will use the methods from mdtraj to display newly generated molecules that possess similar properties like in the data input. 
+  # 
+  # 
+  # I hope that you can give me more time to implement the idea, especially I find the step of parsing data and transforming real data into appropriate data for the conditional GAN model can take more time than I expected. I have three midterms on Tue, Wed, and Thurs this week but my spring break starts this Friday and I will have more time next week. I hope to showcase you my passion and willing to learn new models and write clean code. 
+  # 
+  # Best regards, 
+  # Lan 
   
   # In[2]:
   
   
-  # Obtaining dataset similarly as in the tutorial Basic
+  # Obtaining dataset similarly as in the tutorial Basic 
   # Protein-Ligand Affinity Models
   
   get_ipython().run_line_magic('load_ext', 'autoreload')
@@ -107,9 +107,9 @@ def test_notebook():
   #print("Shape of dataset is: %s" % str(raw_dataset.shape))
   
   grid_featurizer = dc.feat.RdkitGridFeaturizer(
-  voxel_width=16.0, feature_types="voxel_combined",
-  voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi", "salt_bridge"],
-  ecfp_power=5, splif_power=5, parallel=True, flatten=True)
+      voxel_width=16.0, feature_types="voxel_combined",
+      voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi", "salt_bridge"],
+      ecfp_power=5, splif_power=5, parallel=True, flatten=True)
   compound_featurizer = dc.feat.CircularFingerprint(size=128)
   PDBBIND_tasks, (train_dataset, valid_dataset, test_dataset), transformers = dc.molnet.load_pdbbind_grid()
   
@@ -148,22 +148,22 @@ def test_notebook():
   class_centers = np.random.uniform(-4, 4, (n_classes, 2))
   class_transforms = []
   for i in range(n_classes):
-  xscale = np.random.uniform(0.5, 2)
-  yscale = np.random.uniform(0.5, 2)
-  angle = np.random.uniform(0, np.pi)
-  m = [[xscale*np.cos(angle), -yscale*np.sin(angle)],
-  [xscale*np.sin(angle), yscale*np.cos(angle)]]
-  class_transforms.append(m)
+      xscale = np.random.uniform(0.5, 2)
+      yscale = np.random.uniform(0.5, 2)
+      angle = np.random.uniform(0, np.pi)
+      m = [[xscale*np.cos(angle), -yscale*np.sin(angle)],
+           [xscale*np.sin(angle), yscale*np.cos(angle)]]
+      class_transforms.append(m)
   class_transforms = np.array(class_transforms)
   
   def generate_data(n_points):
-  classes = np.random.randint(n_classes, size=n_points)
-  r = np.random.random(n_points)
-  angle = 2*np.pi*np.random.random(n_points)
-  points = (r*np.array([np.cos(angle), np.sin(angle)])).T
-  points = np.einsum('ijk,ik->ij', class_transforms[classes], points)
-  points += class_centers[classes]
-  return classes, points
+      classes = np.random.randint(n_classes, size=n_points)
+      r = np.random.random(n_points)
+      angle = 2*np.pi*np.random.random(n_points)
+      points = (r*np.array([np.cos(angle), np.sin(angle)])).T
+      points = np.einsum('ijk,ik->ij', class_transforms[classes], points)
+      points += class_centers[classes]
+      return classes, points
   
   get_ipython().run_line_magic('matplotlib', 'inline')
   import matplotlib.pyplot as plot
@@ -215,24 +215,24 @@ def test_notebook():
   discrim_error = []
   gen_error = []
   for step in range(20000):
-  classes, points = generate_data(batch_size)
-  class_flags = dc.metrics.to_one_hot(classes, n_classes)
-  feed_dict={random_in: np.random.random((batch_size, 10)),
-  generator_classes: class_flags,
-  real_data_points: points,
-  real_data_classes: class_flags,
-  is_real: np.concatenate([np.zeros((batch_size,1)), np.ones((batch_size,1))])}
-  discrim_error.append(model.fit_generator([feed_dict],
-  submodel=discrim_submodel,
-  checkpoint_interval=0))
-  if step%2 == 0:
-  gen_error.append(model.fit_generator([feed_dict],
-  submodel=gen_submodel,
-  checkpoint_interval=0))
-  if step%1000 == 999:
-  print(step, np.mean(discrim_error), np.mean(gen_error))
-  discrim_error = []
-  gen_error = []
-  
+      classes, points = generate_data(batch_size)
+      class_flags = dc.metrics.to_one_hot(classes, n_classes)
+      feed_dict={random_in: np.random.random((batch_size, 10)),
+                 generator_classes: class_flags,
+                 real_data_points: points,
+                 real_data_classes: class_flags,
+                 is_real: np.concatenate([np.zeros((batch_size,1)), np.ones((batch_size,1))])}
+      discrim_error.append(model.fit_generator([feed_dict],
+                                               submodel=discrim_submodel,
+                                               checkpoint_interval=0))
+      if step%2 == 0:
+          gen_error.append(model.fit_generator([feed_dict],
+                                               submodel=gen_submodel,
+                                               checkpoint_interval=0))
+      if step%1000 == 999:
+          print(step, np.mean(discrim_error), np.mean(gen_error))
+          discrim_error = []
+          gen_error = []
+          
   
   

@@ -6,24 +6,24 @@ def test_notebook():
   
   # # Modeling Solubility
   # Written by Bharath Ramsundar and Evan Feinberg
-  #
+  # 
   # Copyright 2016, Stanford University
-  #
+  # 
   
   # Computationally predicting molecular solubility through is useful for drug-discovery. In this tutorial, we will use the `deepchem` library to fit a simple statistical model that predicts the solubility of drug-like compounds. The process of fitting this model involves four steps:
-  #
+  # 
   # 1. Loading a chemical dataset, consisting of a series of compounds along with aqueous solubility measurements.
   # 2. Transforming each compound into a feature vector $v \in \mathbb{R}^n$ comprehensible to statistical learning methods.
   # 3. Fitting a simple model that maps feature vectors to estimates of aqueous solubility.
   # 4. Visualizing the results.
   
   # We need to load a dataset of estimated aqueous solubility measurements [1] into deepchem. The data is in CSV format and contains SMILES strings, predicted aqueaous solubilities, and a number of extraneous (for our purposes) molecular properties. Here is an example line from the dataset:
-  #
+  # 
   # |Compound ID|ESOL predicted log solubility in mols per litre|Minimum Degree|Molecular Weight|Number of H-Bond Donors|Number of Rings|Number of Rotatable Bonds|Polar Surface Area|measured log solubility in mols per litre|smiles|
   # |-----------|-----------------------------------------------|--------------|----------------|----------------------------|---------------|-------------------------|-----------------------------------------------------------------------|------|
   # |benzothiazole|-2.733|2|135.191|0|2|0|12.89|-1.5|c2ccc1scnc1c2|
-  #
-  # Most of these fields are not useful for our purposes. The two fields that we will need are the "smiles" field and the "measured log solubility in mols per litre". The "smiles" field holds a SMILES string [2] that specifies the compound in question. Before we load this data into deepchem, we will load the data into python and do some simple preliminary analysis to gain some intuition for the dataset.
+  # 
+  # Most of these fields are not useful for our purposes. The two fields that we will need are the "smiles" field and the "measured log solubility in mols per litre". The "smiles" field holds a SMILES string [2] that specifies the compound in question. Before we load this data into deepchem, we will load the data into python and do some simple preliminary analysis to gain some intuition for the dataset. 
   
   # In[1]:
   
@@ -53,20 +53,20 @@ def test_notebook():
   from IPython.display import Image, HTML, display
   
   def display_images(filenames):
-  """Helper to pretty-print images."""
-  imagesList=''.join(
-  ["<img style='width: 140px; margin: 0px; float: left; border: 1px solid black;' src='%s' />"
-  % str(s) for s in sorted(filenames)])
-  display(HTML(imagesList))
+      """Helper to pretty-print images."""
+      imagesList=''.join(
+          ["<img style='width: 140px; margin: 0px; float: left; border: 1px solid black;' src='%s' />"
+           % str(s) for s in sorted(filenames)])
+      display(HTML(imagesList))
   
   def mols_to_pngs(mols, basename="test"):
-  """Helper to write RDKit mols to png files."""
-  filenames = []
-  for i, mol in enumerate(mols):
-  filename = "%s%d.png" % (basename, i)
-  Draw.MolToFile(mol, filename)
-  filenames.append(filename)
-  return filenames
+      """Helper to write RDKit mols to png files."""
+      filenames = []
+      for i, mol in enumerate(mols):
+          filename = "%s%d.png" % (basename, i)
+          Draw.MolToFile(mol, filename)
+          filenames.append(filename)
+      return filenames
   
   
   # Now, we display some compounds from the dataset:
@@ -77,7 +77,7 @@ def test_notebook():
   num_to_display = 14
   molecules = []
   for _, data in islice(dataset.iterrows(), num_to_display):
-  molecules.append(Chem.MolFromSmiles(data["smiles"]))
+      molecules.append(Chem.MolFromSmiles(data["smiles"]))
   display_images(mols_to_pngs(molecules))
   
   
@@ -101,9 +101,9 @@ def test_notebook():
   
   
   # With our preliminary analysis completed, we return to the original goal of constructing a predictive statistical model of molecular solubility using `deepchem`. The first step in creating such a molecule is translating each compound into a vectorial format that can be understood by statistical learning techniques. This process is commonly called featurization. `deepchem` packages a number of commonly used featurization for user convenience. In this tutorial, we will use ECPF4 fingeprints [3].
-  #
+  # 
   # `deepchem` offers an object-oriented API for featurization. To get started with featurization, we first construct a ```Featurizer``` object. `deepchem` provides the ```CircularFingeprint``` class (a subclass of ```Featurizer``` that performs ECFP4 featurization).
-  #
+  # 
   
   # In[5]:
   
@@ -113,30 +113,30 @@ def test_notebook():
   featurizer = dc.feat.CircularFingerprint(size=1024)
   
   
-  # Now, let's perform the actual featurization. `deepchem` provides the ```CSVLoader``` class for this purpose. The ```featurize()``` method for this class loads data from disk and uses provided ```Featurizer```instances to transform the provided data into feature vectors.
-  #
-  # To perform machine learning upon these datasets, we need to convert the samples into datasets suitable for machine-learning (that is, into data matrix $X \in \mathbb{R}^{n\times d}$ where $n$ is the number of samples and $d$ the dimensionality of the feature vector, and into label vector $y \in \mathbb{R}^n$). `deepchem` provides the `Dataset` class to facilitate this transformation. This style lends itself easily to validation-set hyperparameter searches, which we illustate below.
+  # Now, let's perform the actual featurization. `deepchem` provides the ```CSVLoader``` class for this purpose. The ```featurize()``` method for this class loads data from disk and uses provided ```Featurizer```instances to transform the provided data into feature vectors. 
+  # 
+  # To perform machine learning upon these datasets, we need to convert the samples into datasets suitable for machine-learning (that is, into data matrix $X \in \mathbb{R}^{n\times d}$ where $n$ is the number of samples and $d$ the dimensionality of the feature vector, and into label vector $y \in \mathbb{R}^n$). `deepchem` provides the `Dataset` class to facilitate this transformation. This style lends itself easily to validation-set hyperparameter searches, which we illustate below. 
   
   # In[6]:
   
   
   loader = dc.data.CSVLoader(
-  tasks=["measured log solubility in mols per litre"], smiles_field="smiles",
-  featurizer=featurizer)
+        tasks=["measured log solubility in mols per litre"], smiles_field="smiles",
+        featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
   
   
   # When constructing statistical models, it's necessary to separate the provided data into train/test subsets. The train subset is used to learn the statistical model, while the test subset is used to evaluate the learned model. In practice, it's often useful to elaborate this split further and perform a train/validation/test split. The validation set is used to perform model selection. Proposed models are evaluated on the validation-set, and the best performed model is at the end tested on the test-set.
-  #
+  # 
   # Choosing the proper method of performing a train/validation/test split can be challenging. Standard machine learning practice is to perform a random split of the data into train/validation/test, but random splits are not well suited for the purposes of chemical informatics. For our predictive models to be useful, we require them to have predictive power in portions of chemical space beyond the set of molecules in the training data. Consequently, our models should use splits of the data that separate compounds in the training set from those in the validation and test-sets. We use Bemis-Murcko scaffolds [5] to perform this separation (all compounds that share an underlying molecular scaffold will be placed into the same split in the train/test/validation split).
-  #
+  # 
   
   # In[7]:
   
   
   splitter = dc.splits.ScaffoldSplitter(dataset_file)
   train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-  dataset)
+      dataset)
   
   
   # Let's visually inspect some of the molecules in the separate splits to verify that they appear structurally dissimilar. The `FeaturizedSamples` class provides an `itersamples` method that lets us obtain the underlying compounds in each split.
@@ -145,7 +145,7 @@ def test_notebook():
   
   
   train_mols = [Chem.MolFromSmiles(compound)
-  for compound in train_dataset.ids]
+                for compound in train_dataset.ids]
   display_images(mols_to_pngs(train_mols, basename="train"))
   
   
@@ -153,7 +153,7 @@ def test_notebook():
   
   
   valid_mols = [Chem.MolFromSmiles(compound)
-  for compound in valid_dataset.ids]
+                for compound in valid_dataset.ids]
   display_images(mols_to_pngs(valid_mols, basename="valid"))
   
   
@@ -165,15 +165,15 @@ def test_notebook():
   
   
   transformers = [
-  dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+      dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)]
   
   for dataset in [train_dataset, valid_dataset, test_dataset]:
-  for transformer in transformers:
-  dataset = transformer.transform(dataset)
+    for transformer in transformers:
+        dataset = transformer.transform(dataset)
   
   
   # The next step after processing the data is to start fitting simple learning models to our data. `deepchem` provides a number of machine-learning model classes.
-  #
+  # 
   # In particular, `deepchem` provides a convenience class, ```SklearnModel``` that wraps any machine-learning model available in scikit-learn [6]. Consequently, we will start by building a simple random-forest regressor that attempts to predict the log-solubility from our computed ECFP4 features. To train the model, we instantiate the ```SklearnModel``` object, then call the ```fit()``` method on the ```train_dataset``` we constructed above. We then save the model to disk.
   
   # In[11]:
@@ -205,18 +205,18 @@ def test_notebook():
   
   
   def rf_model_builder(model_params, model_dir):
-  sklearn_model = RandomForestRegressor(**model_params)
-  return dc.models.SklearnModel(sklearn_model, model_dir)
+    sklearn_model = RandomForestRegressor(**model_params)
+    return dc.models.SklearnModel(sklearn_model, model_dir)
   params_dict = {
-  "n_estimators": [10, 100],
-  "max_features": ["auto", "sqrt", "log2", None],
+      "n_estimators": [10, 100],
+      "max_features": ["auto", "sqrt", "log2", None],
   }
   
   metric = dc.metrics.Metric(dc.metrics.r2_score)
   optimizer = dc.hyper.HyperparamOpt(rf_model_builder)
   best_rf, best_rf_hyperparams, all_rf_results = optimizer.hyperparam_search(
-  params_dict, train_dataset, valid_dataset, transformers,
-  metric=metric)
+      params_dict, train_dataset, valid_dataset, transformers,
+      metric=metric)
   
   
   # The best model achieves significantly higher $R^2$ on the validation set than the first model we constructed. Now, let's perform the same sort of hyperparameter search, but with a simple deep-network instead.
@@ -227,19 +227,19 @@ def test_notebook():
   import numpy.random
   
   params_dict = {"learning_rate": np.power(10., np.random.uniform(-5, -3, size=1)),
-  "decay": np.power(10, np.random.uniform(-6, -4, size=1)),
-  "nb_epoch": [20] }
+                 "decay": np.power(10, np.random.uniform(-6, -4, size=1)),
+                 "nb_epoch": [20] }
   n_features = train_dataset.get_data_shape()[0]
   def model_builder(model_params, model_dir):
-  model = dc.models.TensorflowMultiTaskRegressor(
-  1, n_features, layer_sizes=[1000], dropouts=[.25],
-  batch_size=50, **model_params)
-  return model
+    model = dc.models.TensorflowMultiTaskRegressor(
+      1, n_features, layer_sizes=[1000], dropouts=[.25],
+      batch_size=50, **model_params)
+    return model
   
   optimizer = dc.hyper.HyperparamOpt(model_builder)
   best_dnn, best_dnn_hyperparams, all_dnn_results = optimizer.hyperparam_search(
-  params_dict, train_dataset, valid_dataset, transformers,
-  metric=metric)
+      params_dict, train_dataset, valid_dataset, transformers,
+      metric=metric)
   
   
   # Now that we have a reasonable choice of hyperparameters, let's evaluate the performance of our best models on the test-set.
@@ -290,17 +290,17 @@ def test_notebook():
   
   # [1] John S. Delaney. ESOL: Estimating aqueous solubility directly from molecular structure. Journal
   # of Chemical Information and Computer Sciences, 44(3):1000–1005, 2004.
-  #
+  # 
   # [2] Anderson, Eric, Gilman D. Veith, and David Weininger. SMILES, a line notation and computerized
   # interpreter for chemical structures. US Environmental Protection Agency, Environmental Research Laboratory, 1987.
-  #
+  # 
   # [3] Rogers, David, and Mathew Hahn. "Extended-connectivity fingerprints." Journal of chemical information
   # and modeling 50.5 (2010): 742-754.
-  #
+  #     
   # [4] Van Der Walt, Stefan, S. Chris Colbert, and Gael Varoquaux.
   # "The NumPy array:a structure for efficient numerical computation." Computing in Science & Engineering 13.2 (2011): 22-30.
-  #
+  #     
   # [5] Bemis, Guy W., and Mark A. Murcko. "The properties of known drugs. 1. Molecular frameworks."
   # Journal of medicinal chemistry 39.15 (1996): 2887-2893.
-  #
+  # 
   # [6] Pedregosa, Fabian, et al. "Scikit-learn: Machine learning in Python." The Journal of Machine Learning Research 12 (2011): 2825-2830.

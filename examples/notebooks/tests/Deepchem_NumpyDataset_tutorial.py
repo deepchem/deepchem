@@ -15,7 +15,7 @@ def test_notebook():
   import random
   
   
-  # # Using NumpyDatasets
+  # # Using NumpyDatasets 
   # This is used when you have your data in numpy arrays.
   
   # In[2]:
@@ -39,7 +39,7 @@ def test_notebook():
   
   
   # ## Extracting X, y from NumpyDataset Object
-  # Extracting the data and labels from the NumpyDataset is very easy.
+  # Extracting the data and labels from the NumpyDataset is very easy. 
   
   # In[5]:
   
@@ -55,8 +55,8 @@ def test_notebook():
   
   # ## Weights of a dataset - w
   # So apart from `X` and `y` which are the data and the labels, you can also assign weights `w` to each data instance. The dimension of `w` is same as that of `y`(which is Nx1 where N is the number of data instances).
-  #
-  # **NOTE:** By default `w` is a vector initialized with equal weights (all being 1).
+  # 
+  # **NOTE:** By default `w` is a vector initialized with equal weights (all being 1). 
   
   # In[7]:
   
@@ -84,7 +84,7 @@ def test_notebook():
   
   
   for x, y, w, id in dataset.itersamples():
-  print(x, y, w, id)
+      print(x, y, w, id)
   
   
   # You can also extract the ids by `dataset.ids`. This would return a numpy array consisting of the ids of the data instances.
@@ -96,7 +96,7 @@ def test_notebook():
   
   
   # ## MNIST Example
-  # Just to get a better understanding, lets take read MNIST data and use `NumpyDataset` to store the data.
+  # Just to get a better understanding, lets take read MNIST data and use `NumpyDataset` to store the data. 
   
   # In[12]:
   
@@ -127,7 +127,7 @@ def test_notebook():
   # In[16]:
   
   
-  # Visualize one sample
+  # Visualize one sample 
   sample = np.reshape(train.X[5], (28, 28))
   plt.imshow(sample)
   plt.show()
@@ -159,12 +159,12 @@ def test_notebook():
   next_element = iterator.get_next()
   numpy_data = np.zeros((4, 5))
   numpy_label = np.zeros((4,))
-  sess = tf.Session() # tensorflow session
+  sess = tf.Session() # tensorflow session 
   for i in range(4):
-  data_, label_ = sess.run(next_element) # data_ contains the data and label_ contains the labels that we fed in the previous step
-  numpy_data[i, :] = data_
-  numpy_label[i] = label_
-  
+      data_, label_ = sess.run(next_element) # data_ contains the data and label_ contains the labels that we fed in the previous step
+      numpy_data[i, :] = data_
+      numpy_label[i] = label_
+      
   print ("Numpy Data")
   print(numpy_data)
   print ("\n Numpy Label")
@@ -189,12 +189,12 @@ def test_notebook():
   iterator_ = dataset_.make_iterator() # Using make_iterator for converting NumpyDataset to tf.data
   next_element_ = iterator_.get_next()
   
-  sess = tf.Session() # tensorflow session
+  sess = tf.Session() # tensorflow session 
   data_and_labels = sess.run(next_element_) # data_ contains the data and label_ contains the labels that we fed in the previous step
   
   
   print ("Numpy Data")
-  print(data_and_labels[0])  # Data in the first index
+  print(data_and_labels[0])  # Data in the first index 
   print ("\n Numpy Label")
   print(data_and_labels[1])  # Labels in the second index
   

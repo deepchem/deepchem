@@ -7,15 +7,15 @@ def test_notebook():
   # # Model Interpretability
   
   # Often times when modeling we are asked the question -- How does the model work?  Why should we trust this model?  My response as a data scientist is usually "because we have rigorously proved model performance on a holdout testset with splits that are realistic to the real world". Oftentimes that is not enough to convince domain experts.
-  #
-  # [LIME](https://homes.cs.washington.edu/~marcotcr/blog/lime/) is a tool which can help with this problem.  It uses local perturbations of featurespace to determine feature importance.
-  #
+  # 
+  # [LIME](https://homes.cs.washington.edu/~marcotcr/blog/lime/) is a tool which can help with this problem.  It uses local perturbations of featurespace to determine feature importance.  
+  # 
   # ![Selection_110.png](assets/lime_dog.png)
-  #
+  # 
   # So if this tool can work in human understandable ways for images can it work on molecules?  In this tutorial I will show how to use LIME for model interpretability for any of our fixed-length featurization models.
   
   # ## Making of the Model
-  #
+  # 
   # The first thing we have to do is train a model.  Here we are going to train a toxicity model using Circular fingerprints
   
   # In[1]:
@@ -43,12 +43,12 @@ def test_notebook():
   
   # Fit models
   metric = dc.metrics.Metric(
-  dc.metrics.roc_auc_score, np.mean, mode="classification")
+      dc.metrics.roc_auc_score, np.mean, mode="classification")
   
   nb_epoch = 10
   model = dc.models.tensorgraph.fcnet.MultiTaskClassifier(
-  len(tox21_tasks),
-  train_dataset.get_data_shape()[0])
+      len(tox21_tasks),
+      train_dataset.get_data_shape()[0])
   
   # Fit trained model
   model.fit(train_dataset, nb_epoch=nb_epoch)
@@ -66,9 +66,9 @@ def test_notebook():
   
   
   # ## Using LIME
-  #
+  # 
   # So LIME as is can work on any problem with a fixed size input vector.  It works by computing probability distributions for the individual features and covariance between the features.
-  #
+  # 
   # We are going to create an explainer for our data
   
   # In[2]:
@@ -76,11 +76,11 @@ def test_notebook():
   
   from lime import lime_tabular
   feature_names = ["fp_%s"  % x for x in range(1024)]
-  explainer = lime_tabular.LimeTabularExplainer(train_dataset.X,
-  feature_names=feature_names,
-  categorical_features=feature_names,
-  class_names=['not toxic', 'toxic'],
-  discretize_continuous=True)
+  explainer = lime_tabular.LimeTabularExplainer(train_dataset.X, 
+                                                feature_names=feature_names, 
+                                                categorical_features=feature_names,
+                                                class_names=['not toxic', 'toxic'], 
+                                                discretize_continuous=True)
   
   
   # We are going to attempt to explain why the model predicts a molecule to be toxic for NR-AR
@@ -91,12 +91,12 @@ def test_notebook():
   
   # We need a function which takes a 2d numpy array (samples, features) and returns predictions (samples,)
   def eval_model(my_model, transformers):
-  def eval_closure(x):
-  ds = dc.data.NumpyDataset(x, None, None, None)
-  # The 0th task is NR-AR
-  predictions = model.predict_proba(ds)[:,0]
-  return predictions
-  return eval_closure
+      def eval_closure(x):
+          ds = dc.data.NumpyDataset(x, None, None, None)
+          # The 0th task is NR-AR
+          predictions = model.predict_proba(ds)[:,0]
+          return predictions
+      return eval_closure
   model_fn = eval_model(model, transformers)
   
   
@@ -134,20 +134,20 @@ def test_notebook():
   from rdkit import Chem
   
   def fp_mol(mol, fp_length=1024):
-  """
-  returns: dict of <int:list of string>
-  dictionary mapping fingerprint index
-  to list of smile string that activated that fingerprint
-  """
-  d = {}
-  feat = dc.feat.CircularFingerprint(sparse=True, smiles=True, size=1024)
-  retval = feat._featurize(mol)
-  for k, v in retval.items():
-  index = k % 1024
-  if index not in d:
-  d[index] = set()
-  d[index].add(v['smiles'])
-  return d
+      """
+      returns: dict of <int:list of string>
+          dictionary mapping fingerprint index
+          to list of smile string that activated that fingerprint
+      """
+      d = {}
+      feat = dc.feat.CircularFingerprint(sparse=True, smiles=True, size=1024)
+      retval = feat._featurize(mol)
+      for k, v in retval.items():
+          index = k % 1024
+          if index not in d:
+              d[index] = set()
+          d[index].add(v['smiles'])
+      return d
   # What fragments activated what fingerprints in our active molecule?
   my_fp = fp_mol(Chem.MolFromSmiles(test_dataset.ids[active_id]))
   
@@ -157,11 +157,11 @@ def test_notebook():
   X = train_dataset.X
   ids = train_dataset.ids
   for i in range(len(X)):
-  d = fp_mol(Chem.MolFromSmiles(ids[i]))
-  for k, v in d.items():
-  if k not in all_train_fps:
-  all_train_fps[k] = set()
-  all_train_fps[k].update(v)
+      d = fp_mol(Chem.MolFromSmiles(ids[i]))
+      for k, v in d.items():
+          if k not in all_train_fps:
+              all_train_fps[k] = set()
+          all_train_fps[k].update(v)
   
   
   # In[8]:
@@ -187,7 +187,7 @@ def test_notebook():
   # In[11]:
   
   
-  # We can also see what fragments are missing by investigating the training set
+  # We can also see what fragments are missing by investigating the training set 
   # According to our explanation having one of these fragments would make our molecule more
   # likely to be toxic
   Chem.MolFromSmiles(list(all_train_fps[381])[0])

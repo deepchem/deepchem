@@ -25,16 +25,16 @@ def test_notebook():
   
   current_dir = os.path.dirname(os.path.realpath("__file__"))
   dc.utils.download_url("https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/desc_canvas_aug30.csv",
-  current_dir)
+                        current_dir)
   dataset_file = "desc_canvas_aug30.csv"
   dataset = load_from_disk(dataset_file)
   num_display=10
   pretty_columns = (
-  "[" + ",".join(["'%s'" % column for column in dataset.columns.values[:num_display]])
-  + ",...]")
+      "[" + ",".join(["'%s'" % column for column in dataset.columns.values[:num_display]])
+      + ",...]")
   
   dc.utils.download_url("https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/crystal_desc_canvas_aug30.csv",
-  current_dir)
+                        current_dir)
   crystal_dataset_file = "crystal_desc_canvas_aug30.csv"
   crystal_dataset = load_from_disk(crystal_dataset_file)
   
@@ -55,18 +55,18 @@ def test_notebook():
   from IPython.display import Image, display, HTML
   
   def display_images(filenames):
-  """Helper to pretty-print images."""
-  for filename in filenames:
-  display(Image(filename))
+      """Helper to pretty-print images."""
+      for filename in filenames:
+          display(Image(filename))
   
   def mols_to_pngs(mols, basename="test"):
-  """Helper to write RDKit mols to png files."""
-  filenames = []
-  for i, mol in enumerate(mols):
-  filename = "BACE_%s%d.png" % (basename, i)
-  Draw.MolToFile(mol, filename)
-  filenames.append(filename)
-  return filenames
+      """Helper to write RDKit mols to png files."""
+      filenames = []
+      for i, mol in enumerate(mols):
+          filename = "BACE_%s%d.png" % (basename, i)
+          Draw.MolToFile(mol, filename)
+          filenames.append(filename)
+      return filenames
   
   
   # Now, we display a compound from the dataset. Note the complex ring structures and polar structures.
@@ -77,7 +77,7 @@ def test_notebook():
   num_to_display = 12
   molecules = []
   for _, data in islice(dataset.iterrows(), num_to_display):
-  molecules.append(Chem.MolFromSmiles(data["mol"]))
+      molecules.append(Chem.MolFromSmiles(data["mol"]))
   display_images(mols_to_pngs(molecules, basename="dataset"))
   
   
@@ -89,7 +89,7 @@ def test_notebook():
   num_to_display = 12
   molecules = []
   for _, data in islice(crystal_dataset.iterrows(), num_to_display):
-  molecules.append(Chem.MolFromSmiles(data["mol"]))
+      molecules.append(Chem.MolFromSmiles(data["mol"]))
   display_images(mols_to_pngs(molecules, basename="crystal_dataset"))
   
   
@@ -130,8 +130,8 @@ def test_notebook():
   
   featurizer = dc.feat.UserDefinedFeaturizer(user_specified_features)
   loader = dc.data.UserCSVLoader(
-  tasks=["Class"], smiles_field="mol", id_field="mol",
-  featurizer=featurizer)
+        tasks=["Class"], smiles_field="mol", id_field="mol",
+        featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
   crystal_dataset = loader.featurize(crystal_dataset_file)
   
@@ -143,7 +143,7 @@ def test_notebook():
   
   splitter = dc.splits.SpecifiedSplitter(dataset_file, "Model")
   train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-  dataset)
+      dataset)
   #NOTE THE RENAMING:
   valid_dataset, test_dataset = test_dataset, valid_dataset
   
@@ -155,7 +155,7 @@ def test_notebook():
   
   print(valid_dataset.ids)
   valid_mols = [Chem.MolFromSmiles(compound)
-  for compound in islice(valid_dataset.ids, num_to_display)]
+                for compound in islice(valid_dataset.ids, num_to_display)]
   display_images(mols_to_pngs(valid_mols, basename="valid_set"))
   
   
@@ -180,13 +180,13 @@ def test_notebook():
   
   
   transformers = [
-  dc.trans.NormalizationTransformer(transform_X=True, dataset=train_dataset),
-  dc.trans.ClippingTransformer(transform_X=True, dataset=train_dataset)]
+      dc.trans.NormalizationTransformer(transform_X=True, dataset=train_dataset),
+      dc.trans.ClippingTransformer(transform_X=True, dataset=train_dataset)]
   
   datasets = [train_dataset, valid_dataset, test_dataset, crystal_dataset]
   for i, dataset in enumerate(datasets):
-  for transformer in transformers:
-  datasets[i] = transformer.transform(dataset)
+    for transformer in transformers:
+        datasets[i] = transformer.transform(dataset)
   train_dataset, valid_dataset, test_dataset, crystal_dataset = datasets
   
   
@@ -198,18 +198,18 @@ def test_notebook():
   from sklearn.ensemble import RandomForestClassifier
   
   def rf_model_builder(model_params, model_dir):
-  sklearn_model = RandomForestClassifier(**model_params)
-  return dc.models.SklearnModel(sklearn_model, model_dir)
+    sklearn_model = RandomForestClassifier(**model_params)
+    return dc.models.SklearnModel(sklearn_model, model_dir)
   params_dict = {
-  "n_estimators": [10, 100],
-  "max_features": ["auto", "sqrt", "log2", None],
+      "n_estimators": [10, 100],
+      "max_features": ["auto", "sqrt", "log2", None],
   }
   
   metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
   optimizer = dc.hyper.HyperparamOpt(rf_model_builder)
   best_rf, best_rf_hyperparams, all_rf_results = optimizer.hyperparam_search(
-  params_dict, train_dataset, valid_dataset, transformers,
-  metric=metric)
+      params_dict, train_dataset, valid_dataset, transformers,
+      metric=metric)
   
   
   # In[14]:
@@ -218,19 +218,19 @@ def test_notebook():
   import numpy.random
   
   params_dict = {"learning_rate": np.power(10., np.random.uniform(-5, -3, size=1)),
-  "weight_decay_penalty": np.power(10, np.random.uniform(-6, -4, size=1)),
-  "nb_epoch": [40] }
+                 "weight_decay_penalty": np.power(10, np.random.uniform(-6, -4, size=1)),
+                 "nb_epoch": [40] }
   n_features = train_dataset.get_data_shape()[0]
   def model_builder(model_params, model_dir):
-  model = dc.models.MultiTaskClassifier(
-  1, n_features, layer_sizes=[1000], dropouts=.25,
-  batch_size=50, **model_params)
-  return model
+    model = dc.models.MultiTaskClassifier(
+      1, n_features, layer_sizes=[1000], dropouts=.25,
+      batch_size=50, **model_params)
+    return model
   
   optimizer = dc.hyper.HyperparamOpt(model_builder)
   best_dnn, best_dnn_hyperparams, all_dnn_results = optimizer.hyperparam_search(
-  params_dict, train_dataset, valid_dataset, transformers,
-  metric=metric)
+      params_dict, train_dataset, valid_dataset, transformers,
+      metric=metric)
   
   
   # Now let's evaluate the best model on the validation and test sets and save the results to csv.
@@ -244,28 +244,28 @@ def test_notebook():
   rf_train_stats_out = "rf_train_stats_regressor.txt"
   rf_train_evaluator = Evaluator(best_rf, train_dataset, transformers)
   rf_train_score = rf_train_evaluator.compute_model_performance(
-  [metric], rf_train_csv_out, rf_train_stats_out)
+      [metric], rf_train_csv_out, rf_train_stats_out)
   print("RF Train set AUC %f" % (rf_train_score["roc_auc_score"]))
   
   rf_valid_csv_out = "rf_valid_regressor.csv"
   rf_valid_stats_out = "rf_valid_stats_regressor.txt"
   rf_valid_evaluator = Evaluator(best_rf, valid_dataset, transformers)
   rf_valid_score = rf_valid_evaluator.compute_model_performance(
-  [metric], rf_valid_csv_out, rf_valid_stats_out)
+      [metric], rf_valid_csv_out, rf_valid_stats_out)
   print("RF Valid set AUC %f" % (rf_valid_score["roc_auc_score"]))
   
   rf_test_csv_out = "rf_test_regressor.csv"
   rf_test_stats_out = "rf_test_stats_regressor.txt"
   rf_test_evaluator = Evaluator(best_rf, test_dataset, transformers)
   rf_test_score = rf_test_evaluator.compute_model_performance(
-  [metric], rf_test_csv_out, rf_test_stats_out)
+      [metric], rf_test_csv_out, rf_test_stats_out)
   print("RF Test set AUC %f" % (rf_test_score["roc_auc_score"]))
   
   rf_crystal_csv_out = "rf_crystal_regressor.csv"
   rf_crystal_stats_out = "rf_crystal_stats_regressor.txt"
   rf_crystal_evaluator = Evaluator(best_rf, crystal_dataset, transformers)
   rf_crystal_score = rf_crystal_evaluator.compute_model_performance(
-  [metric], rf_crystal_csv_out, rf_crystal_stats_out)
+      [metric], rf_crystal_csv_out, rf_crystal_stats_out)
   print("RF Crystal set R^2 %f" % (rf_crystal_score["roc_auc_score"]))
   
   
@@ -276,28 +276,28 @@ def test_notebook():
   dnn_train_stats_out = "dnn_train_classifier_stats.txt"
   dnn_train_evaluator = Evaluator(best_dnn, train_dataset, transformers)
   dnn_train_score = dnn_train_evaluator.compute_model_performance(
-  [metric], dnn_train_csv_out, dnn_train_stats_out)
+      [metric], dnn_train_csv_out, dnn_train_stats_out)
   print("DNN Train set AUC %f" % (dnn_train_score["roc_auc_score"]))
   
   dnn_valid_csv_out = "dnn_valid_classifier.csv"
   dnn_valid_stats_out = "dnn_valid_classifier_stats.txt"
   dnn_valid_evaluator = Evaluator(best_dnn, valid_dataset, transformers)
   dnn_valid_score = dnn_valid_evaluator.compute_model_performance(
-  [metric], dnn_valid_csv_out, dnn_valid_stats_out)
+      [metric], dnn_valid_csv_out, dnn_valid_stats_out)
   print("DNN Valid set AUC %f" % (dnn_valid_score["roc_auc_score"]))
   
   dnn_test_csv_out = "dnn_test_classifier.csv"
   dnn_test_stats_out = "dnn_test_classifier_stats.txt"
   dnn_test_evaluator = Evaluator(best_dnn, test_dataset, transformers)
   dnn_test_score = dnn_test_evaluator.compute_model_performance(
-  [metric], dnn_test_csv_out, dnn_test_stats_out)
+      [metric], dnn_test_csv_out, dnn_test_stats_out)
   print("DNN Test set AUC %f" % (dnn_test_score["roc_auc_score"]))
   
   dnn_crystal_csv_out = "dnn_crystal_classifier.csv"
   dnn_crystal_stats_out = "dnn_crystal_stats_classifier.txt"
   dnn_crystal_evaluator = Evaluator(best_dnn, crystal_dataset, transformers)
   dnn_crystal_score = dnn_crystal_evaluator.compute_model_performance(
-  [metric], dnn_crystal_csv_out, dnn_crystal_stats_out)
+      [metric], dnn_crystal_csv_out, dnn_crystal_stats_out)
   print("DNN Crystal set AUC %f" % (dnn_crystal_score["roc_auc_score"]))
   
   
@@ -309,8 +309,8 @@ def test_notebook():
   #Make directories to store the raw and featurized datasets.
   featurizer = dc.feat.UserDefinedFeaturizer(user_specified_features)
   loader = dc.data.UserCSVLoader(
-  tasks=["pIC50"], smiles_field="mol", id_field="CID",
-  featurizer=featurizer)
+      tasks=["pIC50"], smiles_field="mol", id_field="CID",
+      featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
   crystal_dataset = loader.featurize(crystal_dataset_file)
   
@@ -320,7 +320,7 @@ def test_notebook():
   
   splitter = dc.splits.SpecifiedSplitter(dataset_file, "Model")
   train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-  dataset)
+      dataset)
   #NOTE THE RENAMING:
   valid_dataset, test_dataset = test_dataset, valid_dataset
   
@@ -342,13 +342,13 @@ def test_notebook():
   
   
   transformers = [
-  dc.trans.NormalizationTransformer(transform_X=True, dataset=train_dataset),
-  dc.trans.ClippingTransformer(transform_X=True, dataset=train_dataset)]
+      dc.trans.NormalizationTransformer(transform_X=True, dataset=train_dataset),
+      dc.trans.ClippingTransformer(transform_X=True, dataset=train_dataset)]
   
   datasets = [train_dataset, valid_dataset, test_dataset, crystal_dataset]
   for i, dataset in enumerate(datasets):
-  for transformer in transformers:
-  datasets[i] = transformer.transform(dataset)
+    for transformer in transformers:
+        datasets[i] = transformer.transform(dataset)
   train_dataset, valid_dataset, test_dataset, crystal_dataset = datasets
   
   
@@ -358,18 +358,18 @@ def test_notebook():
   from sklearn.ensemble import RandomForestRegressor
   
   def rf_model_builder(model_params, model_dir):
-  sklearn_model = RandomForestRegressor(**model_params)
-  return dc.models.SklearnModel(sklearn_model, model_dir)
+    sklearn_model = RandomForestRegressor(**model_params)
+    return dc.models.SklearnModel(sklearn_model, model_dir)
   params_dict = {
-  "n_estimators": [10, 100],
-  "max_features": ["auto", "sqrt", "log2", None],
+      "n_estimators": [10, 100],
+      "max_features": ["auto", "sqrt", "log2", None],
   }
   
   metric = dc.metrics.Metric(dc.metrics.r2_score)
   optimizer = dc.hyper.HyperparamOpt(rf_model_builder)
   best_rf, best_rf_hyperparams, all_rf_results = optimizer.hyperparam_search(
-  params_dict, train_dataset, valid_dataset, transformers,
-  metric=metric)
+      params_dict, train_dataset, valid_dataset, transformers,
+      metric=metric)
   
   
   # In[22]:
@@ -378,19 +378,19 @@ def test_notebook():
   import numpy.random
   
   params_dict = {"learning_rate": np.power(10., np.random.uniform(-5, -3, size=2)),
-  "weight_decay_penalty": np.power(10, np.random.uniform(-6, -4, size=2)),
-  "nb_epoch": [20] }
+                 "weight_decay_penalty": np.power(10, np.random.uniform(-6, -4, size=2)),
+                 "nb_epoch": [20] }
   n_features = train_dataset.get_data_shape()[0]
   def model_builder(model_params, model_dir):
-  model = dc.models.MultiTaskRegressor(
-  1, n_features, layer_sizes=[1000], dropouts=[.25],
-  batch_size=50, **model_params)
-  return model
+    model = dc.models.MultiTaskRegressor(
+      1, n_features, layer_sizes=[1000], dropouts=[.25],
+      batch_size=50, **model_params)
+    return model
   
   optimizer = dc.hyper.HyperparamOpt(model_builder)
   best_dnn, best_dnn_hyperparams, all_dnn_results = optimizer.hyperparam_search(
-  params_dict, train_dataset, valid_dataset, transformers,
-  metric=metric)
+      params_dict, train_dataset, valid_dataset, transformers,
+      metric=metric)
   
   
   # In[23]:
@@ -402,28 +402,28 @@ def test_notebook():
   rf_train_stats_out = "rf_train_stats_regressor.txt"
   rf_train_evaluator = Evaluator(best_rf, train_dataset, transformers)
   rf_train_score = rf_train_evaluator.compute_model_performance(
-  [metric], rf_train_csv_out, rf_train_stats_out)
+      [metric], rf_train_csv_out, rf_train_stats_out)
   print("RF Train set R^2 %f" % (rf_train_score["r2_score"]))
   
   rf_valid_csv_out = "rf_valid_regressor.csv"
   rf_valid_stats_out = "rf_valid_stats_regressor.txt"
   rf_valid_evaluator = Evaluator(best_rf, valid_dataset, transformers)
   rf_valid_score = rf_valid_evaluator.compute_model_performance(
-  [metric], rf_valid_csv_out, rf_valid_stats_out)
+      [metric], rf_valid_csv_out, rf_valid_stats_out)
   print("RF Valid set R^2 %f" % (rf_valid_score["r2_score"]))
   
   rf_test_csv_out = "rf_test_regressor.csv"
   rf_test_stats_out = "rf_test_stats_regressor.txt"
   rf_test_evaluator = Evaluator(best_rf, test_dataset, transformers)
   rf_test_score = rf_test_evaluator.compute_model_performance(
-  [metric], rf_test_csv_out, rf_test_stats_out)
+      [metric], rf_test_csv_out, rf_test_stats_out)
   print("RF Test set R^2 %f" % (rf_test_score["r2_score"]))
   
   rf_crystal_csv_out = "rf_crystal_regressor.csv"
   rf_crystal_stats_out = "rf_crystal_stats_regressor.txt"
   rf_crystal_evaluator = Evaluator(best_rf, crystal_dataset, transformers)
   rf_crystal_score = rf_crystal_evaluator.compute_model_performance(
-  [metric], rf_crystal_csv_out, rf_crystal_stats_out)
+      [metric], rf_crystal_csv_out, rf_crystal_stats_out)
   print("RF Crystal set R^2 %f" % (rf_crystal_score["r2_score"]))
   
   
@@ -434,28 +434,28 @@ def test_notebook():
   dnn_train_stats_out = "dnn_train_regressor_stats.txt"
   dnn_train_evaluator = Evaluator(best_dnn, train_dataset, transformers)
   dnn_train_score = dnn_train_evaluator.compute_model_performance(
-  [metric], dnn_train_csv_out, dnn_train_stats_out)
+      [metric], dnn_train_csv_out, dnn_train_stats_out)
   print("DNN Train set R^2 %f" % (dnn_train_score["r2_score"]))
   
   dnn_valid_csv_out = "dnn_valid_regressor.csv"
   dnn_valid_stats_out = "dnn_valid_regressor_stats.txt"
   dnn_valid_evaluator = Evaluator(best_dnn, valid_dataset, transformers)
   dnn_valid_score = dnn_valid_evaluator.compute_model_performance(
-  [metric], dnn_valid_csv_out, dnn_valid_stats_out)
+      [metric], dnn_valid_csv_out, dnn_valid_stats_out)
   print("DNN Valid set R^2 %f" % (dnn_valid_score["r2_score"]))
   
   dnn_test_csv_out = "dnn_test_regressor.csv"
   dnn_test_stats_out = "dnn_test_regressor_stats.txt"
   dnn_test_evaluator = Evaluator(best_dnn, test_dataset, transformers)
   dnn_test_score = dnn_test_evaluator.compute_model_performance(
-  [metric], dnn_test_csv_out, dnn_test_stats_out)
+      [metric], dnn_test_csv_out, dnn_test_stats_out)
   print("DNN Test set R^2 %f" % (dnn_test_score["r2_score"]))
   
   dnn_crystal_csv_out = "dnn_crystal_regressor.csv"
   dnn_crystal_stats_out = "dnn_crystal_stats_regressor.txt"
   dnn_crystal_evaluator = Evaluator(best_dnn, crystal_dataset, transformers)
   dnn_crystal_score = dnn_crystal_evaluator.compute_model_performance(
-  [metric], dnn_crystal_csv_out, dnn_crystal_stats_out)
+      [metric], dnn_crystal_csv_out, dnn_crystal_stats_out)
   print("DNN Crystal set R^2 %f" % (dnn_crystal_score["r2_score"]))
   
   

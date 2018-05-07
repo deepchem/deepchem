@@ -85,7 +85,7 @@ def test_notebook():
   tpr = dict()
   roc_auc = dict()
   for i in range(10):
-  fpr[i], tpr[i], thresh = roc_curve(valid.y[:, i], prediction[:, i])
-  roc_auc[i] = auc(fpr[i], tpr[i])
-  print("class %s:auc=%s" % (i, roc_auc[i]))
+      fpr[i], tpr[i], thresh = roc_curve(valid.y[:, i], prediction[:, i])
+      roc_auc[i] = auc(fpr[i], tpr[i])
+      print("class %s:auc=%s" % (i, roc_auc[i]))
   

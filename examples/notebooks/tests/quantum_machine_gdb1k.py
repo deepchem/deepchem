@@ -45,9 +45,9 @@ def test_notebook():
   
   
   loader = dc.data.SDFLoader(
-  tasks=["atomization_energy"], smiles_field="smiles",
-  featurizer=featurizer,
-  mol_field="mol")
+        tasks=["atomization_energy"], smiles_field="smiles",
+        featurizer=featurizer,
+        mol_field="mol")
   dataset = loader.featurize(dataset_file)
   
   
@@ -66,12 +66,12 @@ def test_notebook():
   
   
   transformers = [
-  dc.trans.NormalizationTransformer(transform_X=True, dataset=train_dataset),
-  dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+      dc.trans.NormalizationTransformer(transform_X=True, dataset=train_dataset),
+      dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)]
   
   for dataset in [train_dataset, valid_dataset, test_dataset]:
-  for transformer in transformers:
-  dataset = transformer.transform(dataset)
+    for transformer in transformers:
+        dataset = transformer.transform(dataset)
   
   
   # Fit Random Forest with hyperparameter search
@@ -80,36 +80,36 @@ def test_notebook():
   
   
   def rf_model_builder(model_params, model_dir):
-  sklearn_model = RandomForestRegressor(**model_params)
-  return dc.models.SklearnModel(sklearn_model, model_dir)
+    sklearn_model = RandomForestRegressor(**model_params)
+    return dc.models.SklearnModel(sklearn_model, model_dir)
   params_dict = {
-  "n_estimators": [10, 100],
-  "max_features": ["auto", "sqrt", "log2", None],
+      "n_estimators": [10, 100],
+      "max_features": ["auto", "sqrt", "log2", None],
   }
   
   metric = dc.metrics.Metric(dc.metrics.mean_absolute_error)
   optimizer = dc.hyper.HyperparamOpt(rf_model_builder)
   best_rf, best_rf_hyperparams, all_rf_results = optimizer.hyperparam_search(
-  params_dict, train_dataset, valid_dataset, transformers,
-  metric=metric)
+      params_dict, train_dataset, valid_dataset, transformers,
+      metric=metric)
   
   
   # In[ ]:
   
   
   def krr_model_builder(model_params, model_dir):
-  sklearn_model = KernelRidge(**model_params)
-  return dc.models.SklearnModel(sklearn_model, model_dir)
+    sklearn_model = KernelRidge(**model_params)
+    return dc.models.SklearnModel(sklearn_model, model_dir)
   
   params_dict = {
-  "kernel": ["laplacian"],
-  "alpha": [0.0001],
-  "gamma": [0.0001]
+      "kernel": ["laplacian"],
+      "alpha": [0.0001],
+      "gamma": [0.0001]
   }
   
   metric = dc.metrics.Metric(dc.metrics.mean_absolute_error)
   optimizer = dc.hyper.HyperparamOpt(krr_model_builder)
   best_krr, best_krr_hyperparams, all_krr_results = optimizer.hyperparam_search(
-  params_dict, train_dataset, valid_dataset, transformers,
-  metric=metric)
+      params_dict, train_dataset, valid_dataset, transformers,
+      metric=metric)
   

@@ -6,7 +6,7 @@ def test_notebook():
   
   # # TensorGraph Mechanics
   # In this IPython notebook, we will cover more advanced aspects of the `TensorGraph` framework. In particular, we will demonstrate how to share weights between layers and show how to use `DataBag` to reduce the amount of overhead needed to train complex `TensorGraph` models.
-  #
+  # 
   # Let's start by defining a `TensorGraph` object.
   
   # In[1]:
@@ -76,7 +76,7 @@ def test_notebook():
   
   
   # How can we train `TensorGraph` networks with multiple `Feature` inputs? One option is to manually construct a python generator that provides inputs. The tutorial notebook on graph convolutions does this explicitly. For simpler cases, we can use the convenience object `DataBag` which makes it easier to construct generators. A `DataBag` holds multiple datasets (added via `DataBag.add_dataset`). The method `DataBag.iterbatches()` will construct a generator that peels off batches of the desired size from each dataset and return a dictionary mapping inputs (`Feature`, `Label`, and `Weight` objects) to data for that minibatch. Let's see `DataBag` in action.
-  #
+  # 
   # Note that we will need to wrap our sampled Numpy arrays with `NumpyDataset` objects for our call to work.
   
   # In[6]:
@@ -97,7 +97,7 @@ def test_notebook():
   
   
   tg.fit_generator(
-  databag.iterbatches(epochs=100, batch_size=50, pad_batches=True))
+      databag.iterbatches(epochs=100, batch_size=50, pad_batches=True))
   
   
   # You should now be able to construct more sophisticated `TensorGraph` architectures with relative ease!

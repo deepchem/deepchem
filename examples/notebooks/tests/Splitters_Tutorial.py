@@ -4,7 +4,7 @@ def test_notebook():
   
   # coding: utf-8
   
-  # # Using Splitters
+  # # Using Splitters 
   
   # In this tutorial we will have a look at the various splitters that are present in deepchem library and how each of them can be used.
   
@@ -19,10 +19,10 @@ def test_notebook():
   # ## Index Splitter
   
   # We start with the IndexSplitter. This splitter returns a range object which contains the split according to the fractions provided by the user. The three range objects can then be used to iterate over the dataset as test,valid and Train.
-  #
-  #
+  # 
+  # 
   # Each of the splitters that will be used has two functions inherited from the main class that are `train_test_split` which can be used to split the data into training and tesing data and the other fucnction is `train_valid_test_split` which is used to split the data to train, validation and test split.
-  #
+  # 
   # Note: All the splitters have a default percentage of 80,10,10 as train, valid and test respectively. But can be changed by specifying the `frac_train`,`frac_test` and `frac_valid` in the ratio we want to split the data.
   
   # In[3]:
@@ -71,7 +71,7 @@ def test_notebook():
   
   
   # As we can see that without providing the user specifications on how to split the data, the data was split into a default of 80,10,10.
-  #
+  # 
   # But when we specify the parameters the dataset can be split according to our specificaitons.
   
   # In[78]:
@@ -150,14 +150,14 @@ def test_notebook():
   
   # ## RandomGroupSplitter
   
-  # The splitter which can be used to split the data on the basis of groupings is the `RandomGroupSplitter`. This splitter that splits on groupings.
-  #
+  # The splitter which can be used to split the data on the basis of groupings is the `RandomGroupSplitter`. This splitter that splits on groupings. 
+  # 
   # An example use case is when there are multiple conformations of the same molecule that share the same topology.This splitter subsequently guarantees that resulting splits preserve groupings.
-  #
+  # 
   # Note that it doesn't do any dynamic programming or something fancy to try to maximize the choice such that `frac_train`, `frac_valid`, or `frac_test` is maximized.It simply permutes the groups themselves. As such, use with caution if the number of elements per group varies significantly.
-  #
+  # 
   # The parameter that needs to be provided with the splitter is `groups`. This is an array like list of hashables which is the same as the size of the dataset.
-  #
+  # 
   
   # In[130]:
   
@@ -172,7 +172,7 @@ def test_notebook():
   
   
   train_idxs, valid_idxs, test_idxs = splitter.split(
-  solubility_dataset)
+          solubility_dataset)
   
   
   # In[131]:
@@ -186,15 +186,15 @@ def test_notebook():
   
   train_data=[]
   for i in range(len(train_idxs)):
-  train_data.append(groups[train_idxs[i]])
+      train_data.append(groups[train_idxs[i]])
   
   valid_data=[]
   for i in range(len(valid_idxs)):
-  valid_data.append(groups[valid_idxs[i]])
+      valid_data.append(groups[valid_idxs[i]])
   
   test_data=[]
   for i in range(len(test_idxs)):
-  test_data.append(groups[test_idxs[i]])
+      test_data.append(groups[test_idxs[i]])
   
   
   # In[147]:
