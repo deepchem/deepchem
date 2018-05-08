@@ -104,9 +104,7 @@ def test_notebook():
   
   
   import matplotlib.pyplot as plt
-  get_ipython().run_line_magic('matplotlib', 'inline')
-  
-  
+
   # In[5]:
   
   
@@ -117,12 +115,12 @@ def test_notebook():
   # In[6]:
   
   
-  plt.figure(figsize=(20,16))
-  plt.scatter(smiles_lengths, mol_scores)
-  plt.xlim(0,80)
-  plt.xlabel("SMILES length")
-  plt.ylabel("ScScore")
-  plt.show()
+  # plt.figure(figsize=(20,16))
+  # plt.scatter(smiles_lengths, mol_scores)
+  # plt.xlim(0,80)
+  # plt.xlabel("SMILES length")
+  # plt.ylabel("ScScore")
+  # plt.show()
   
   
   # As we can see the model generally tracks SMILES length.  It has good enrichment between 8 and 30 characters and gets both small and large SMILES strings extremes dead on.
