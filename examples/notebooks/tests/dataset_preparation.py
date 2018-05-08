@@ -53,8 +53,7 @@ def test_notebook():
   
   
   data_screenshot = os.path.join(current_dir, 'assets/dataset_preparation_gui.png')
-  display(Image(filename=data_screenshot))
-  
+
   
   # We see the data of interest is on the second sheet, and contained in columns "TA ID", "N #1 (%)", and "N #2 (%)".
   # 

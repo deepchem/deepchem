@@ -213,7 +213,7 @@ def test_notebook():
   
   params_dict = {"learning_rate": np.power(10., np.random.uniform(-5, -3, size=1)),
                  "weight_decay_penalty": np.power(10, np.random.uniform(-6, -4, size=1)),
-                 "nb_epoch": [40] }
+                 "nb_epoch": [1] }
   n_features = train_dataset.get_data_shape()[0]
   def model_builder(model_params, model_dir):
     model = dc.models.MultiTaskClassifier(
@@ -373,7 +373,7 @@ def test_notebook():
   
   params_dict = {"learning_rate": np.power(10., np.random.uniform(-5, -3, size=2)),
                  "weight_decay_penalty": np.power(10, np.random.uniform(-6, -4, size=2)),
-                 "nb_epoch": [20] }
+                 "nb_epoch": [1] }
   n_features = train_dataset.get_data_shape()[0]
   def model_builder(model_params, model_dir):
     model = dc.models.MultiTaskRegressor(

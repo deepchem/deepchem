@@ -43,7 +43,7 @@ def test_notebook():
   metric = dc.metrics.Metric(
       dc.metrics.roc_auc_score, np.mean, mode="classification")
   
-  nb_epoch = 10
+  nb_epoch = 1
   model = dc.models.tensorgraph.fcnet.MultiTaskClassifier(
       len(tox21_tasks),
       train_dataset.get_data_shape()[0])

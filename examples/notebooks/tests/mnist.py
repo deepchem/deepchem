@@ -66,7 +66,7 @@ def test_notebook():
   
   # nb_epoch set to 0 to permit rendering of tutorials online.
   # Set nb_epoch=10 for better results
-  tg.fit(train, nb_epoch=0)
+  tg.fit(train, nb_epoch=1)
   
   
   # In[7]:

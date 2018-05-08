@@ -83,7 +83,7 @@ def test_notebook():
       for batch in dataset.iterbatches(batch_size=gan.batch_size):
         yield {gan.data_inputs[0]: batch[0]}
   
-  gan.fit_gan(iterbatches(50), generator_steps=1.5, checkpoint_interval=5000)
+  gan.fit_gan(iterbatches(1), generator_steps=1.5, checkpoint_interval=5000)
   
   
   # Let's generate some data and see how the results look.

@@ -82,7 +82,7 @@ def test_notebook():
   # In[ ]:
   
   
-  a3c.fit(1000)
+  a3c.fit(1)
   # Change this for how long you have the patience
   million = 1
   num_rounds = 0
