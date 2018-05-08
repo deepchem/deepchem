@@ -40,11 +40,11 @@ def test_notebook():
   
   x = np.linspace(0, 5, 10)
   y = 0.15*x + np.random.random(10)
-  plot.scatter(x, y)
+  # plot.scatter(x, y)
   fit = np.polyfit(x, y, 1)
   line_x = np.linspace(-1, 6, 2)
-  plot.plot(line_x, np.poly1d(fit)(line_x))
-  plot.show()
+  # plot.plot(line_x, np.poly1d(fit)(line_x))
+  # plot.show()
   
   
   # The line clearly does not do a great job of fitting the data.  There are many possible reasons for this.  Perhaps the measuring device used to capture the data was not very accurate.  Perhaps `y` depends on some other factor in addition to `x`, and if we knew the value of that factor for each data point we could predict `y` more accurately.  Maybe the relationship between `x` and `y` simply isn't linear, and we need a more complicated model to capture it.  Regardless of the cause, the model clearly does a poor job of predicting the training data, and we need to keep that in mind.  We cannot expect it to be any more accurate on test data than on training data.  This is known as *aleatoric uncertainty*.
@@ -58,14 +58,14 @@ def test_notebook():
   # In[3]:
   
   
-  plot.figure(figsize=(12, 3))
+  # plot.figure(figsize=(12, 3))
   line_x = np.linspace(0, 5, 50)
   for i in range(3):
-      plot.subplot(1, 3, i+1)
-      plot.scatter(x, y)
+      # plot.subplot(1, 3, i+1)
+      # plot.scatter(x, y)
       fit = np.polyfit(np.concatenate([x, [3]]), np.concatenate([y, [i]]), 10)
-      plot.plot(line_x, np.poly1d(fit)(line_x))
-  plot.show()
+      # plot.plot(line_x, np.poly1d(fit)(line_x))
+  # plot.show()
   
   
   # Each of them perfectly interpolates the data points, yet they clearly are different models.  (In fact, there are infinitely many 10th degree polynomials that exactly interpolate any ten data points.)  They make identical predictions for the data we fit them to, but for any other value of `x` they produce different predictions.  This is called *epistemic uncertainty*.  It means the data does not fully constrain the model.  Given the training data, there are many different models we could have found, and those models make different predictions.
@@ -88,10 +88,10 @@ def test_notebook():
   
   
   abs_error = np.abs(y_pred.flatten()-test_dataset.y.flatten())
-  plot.scatter(y_std.flatten(), abs_error)
-  plot.xlabel('Standard Deviation')
-  plot.ylabel('Absolute Error')
-  plot.show()
+  # plot.scatter(y_std.flatten(), abs_error)
+  # plot.xlabel('Standard Deviation')
+  # plot.ylabel('Absolute Error')
+  # plot.show()
   
   
   # The first thing we notice is that the axes have similar ranges.  The model clearly has learned the overall magnitude of errors in the predictions.  There also is clearly a correlation between the axes.  Values with larger uncertainties tend on average to have larger errors.
@@ -101,8 +101,8 @@ def test_notebook():
   # In[5]:
   
   
-  plot.hist(abs_error/y_std.flatten(), 20)
-  plot.show()
+  # plot.hist(abs_error/y_std.flatten(), 20)
+  # plot.show()
   
   
   # Most of the values are in the expected range, but there are a handful of outliers at much larger values.  Perhaps this indicates the errors are not normally distributed, but it may also mean a few of the uncertainties are too low.  This is an important reminder: the uncertainties are just estimates, not rigorous measurements.  Most of them are pretty good, but you should not put too much confidence in any single value.

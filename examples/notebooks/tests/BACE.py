@@ -92,7 +92,7 @@ def test_notebook():
   # In[6]:
   
   
-  get_ipython().run_line_magic('matplotlib', 'inline')
+  #get_ipython().run_line_magic('matplotlib', 'inline')
   import matplotlib
   import numpy as np
   import matplotlib.pyplot as plt

@@ -55,7 +55,7 @@ def test_notebook():
   
   import matplotlib.pyplot as plot
   classes, points = generate_data(1000)
-  plot.scatter(x=points[:,0], y=points[:,1], c=classes)
+  #plot.scatter(x=points[:,0], y=points[:,1], c=classes)
   
   
   # Now let's create the model for our CGAN.
@@ -154,5 +154,5 @@ def test_notebook():
   feed_dict = {random_in: np.random.random((1000, 10)),
                generator_classes: dc.metrics.to_one_hot(classes, n_classes)}
   gen_points = model.predict_on_generator([feed_dict])
-  plot.scatter(x=gen_points[:,0], y=gen_points[:,1], c=classes)
+  #plot.scatter(x=gen_points[:,0], y=gen_points[:,1], c=classes)
   
