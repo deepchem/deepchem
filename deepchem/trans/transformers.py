@@ -110,7 +110,8 @@ class NormalizationTransformer(Transformer):
                transform_y=False,
                transform_w=False,
                dataset=None,
-               transform_gradients=False):
+               transform_gradients=False,
+               move_mean=True):
     """Initialize normalization transformation."""
     if transform_X:
       X_means, X_stds = dataset.get_statistics(X_stats=True, y_stats=False)
@@ -124,6 +125,7 @@ class NormalizationTransformer(Transformer):
       y_stds[y_stds == 0] = 1.
       self.y_stds = y_stds
     self.transform_gradients = transform_gradients
+    self.move_mean = move_mean
     if self.transform_gradients:
       true_grad, ydely_means = get_grad_statistics(dataset)
       self.grad = np.reshape(true_grad, (true_grad.shape[0], -1, 3))
@@ -142,9 +144,15 @@ class NormalizationTransformer(Transformer):
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
     if self.transform_X:
-      X = np.nan_to_num((X - self.X_means) / self.X_stds)
+      if not hasattr(self, 'move_mean') or self.move_mean:
+        X = np.nan_to_num((X - self.X_means) / self.X_stds)
+      else:
+        X = np.nan_to_num(X / self.X_stds)
     if self.transform_y:
-      y = np.nan_to_num((y - self.y_means) / self.y_stds)
+      if not hasattr(self, 'move_mean') or self.move_mean:
+        y = np.nan_to_num((y - self.y_means) / self.y_stds)
+      else:
+        y = np.nan_to_num(y / self.y_stds)
     return (X, y, w)
 
   def untransform(self, z):
@@ -152,7 +160,10 @@ class NormalizationTransformer(Transformer):
     Undo transformation on provided data.
     """
     if self.transform_X:
-      return z * self.X_stds + self.X_means
+      if not hasattr(self, 'move_mean') or self.move_mean:
+        return z * self.X_stds + self.X_means
+      else:
+        return z * self.X_stds
     elif self.transform_y:
       y_stds = self.y_stds
       y_means = self.y_means
@@ -166,7 +177,10 @@ class NormalizationTransformer(Transformer):
           # Prevent broadcasting on wrong dimension
           y_stds = np.expand_dims(y_stds, -1)
           y_means = np.expand_dims(y_means, -1)
-      return z * y_stds + y_means
+      if not hasattr(self, 'move_mean') or self.move_mean:
+        return z * y_stds + y_means
+      else:
+        return z * y_stds
 
   def untransform_grad(self, grad, tasks):
     """

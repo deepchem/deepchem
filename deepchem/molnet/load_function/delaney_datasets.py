@@ -11,14 +11,17 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 
-def load_delaney(featurizer='ECFP', split='index', reload=True):
+def load_delaney(featurizer='ECFP', split='index', reload=True, move_mean=True):
   """Load delaney datasets."""
   # Featurize Delaney dataset
   logger.info("About to featurize Delaney dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir,
-                            "delaney/" + featurizer + "/" + str(split))
+    if move_mean:
+      dir_name = "delaney/" + featurizer + "/" + str(split)
+    else:
+      dir_name = "delaney/" + featurizer + "_mean_unmoved/" + str(split)
+    save_dir = os.path.join(data_dir, dir_name)
 
   dataset_file = os.path.join(data_dir, "delaney-processed.csv")
 
@@ -50,7 +53,7 @@ def load_delaney(featurizer='ECFP', split='index', reload=True):
   # Initialize transformers
   transformers = [
       deepchem.trans.NormalizationTransformer(
-          transform_y=True, dataset=dataset)
+          transform_y=True, dataset=dataset, move_mean=move_mean)
   ]
 
   logger.info("About to transform data")
