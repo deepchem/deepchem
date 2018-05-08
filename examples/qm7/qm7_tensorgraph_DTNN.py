@@ -28,7 +28,7 @@ n_distance = 51
 distance_min = -1.
 distance_max = 9.2
 n_hidden = 15
-rate = 0.0005
+rate = 0.001
 
 model = dc.models.DTNNModel(
     len(tasks),
