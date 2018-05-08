@@ -49,7 +49,7 @@ E = nn.Linear(6, 6)
 def adjust_learning_rate(optimizer, epoch):
   """Sets the learning rate to the initial LR decayed by .8 every 5 epochs"""
   lr = LR * (0.9 ** (epoch // 10))
-  print('new lr [%.5f]' % lr)
+  print(('new lr [%.5f]' % lr))
   for param_group in optimizer.param_groups:
     param_group['lr'] = lr
 
@@ -66,15 +66,15 @@ def load_dataset():
   return train_features, train_labels, val_features, val_labels
 
 def readout(h, h2):
-  catted_reads = map(lambda x: torch.cat([h[x[0]], h2[x[1]]], 1), zip(h2.keys(), h.keys()))
-  activated_reads = map(lambda x: F.selu( R(x) ), catted_reads)
+  catted_reads = [torch.cat([h[x[0]], h2[x[1]]], 1) for x in zip(list(h2.keys()), list(h.keys()))]
+  activated_reads = [F.selu( R(x) ) for x in catted_reads]
   readout = Variable(torch.zeros(1, 128))
   for read in activated_reads:
     readout = readout + read
   return F.tanh( readout )
 
 def message_pass(g, h, k):
-  for v in g.keys():
+  for v in list(g.keys()):
     neighbors = g[v]
     for neighbor in neighbors:
       e_vw = neighbor[0] # feature variable
@@ -90,13 +90,13 @@ def construct_multigraph(smile):
   h = OrderedDict({})
 
   molecule = Chem.MolFromSmiles(smile)
-  for i in xrange(0, molecule.GetNumAtoms()):
+  for i in range(0, molecule.GetNumAtoms()):
     atom_i = molecule.GetAtomWithIdx(i)
     h[i] = Variable(torch.FloatTensor(dc.feat.graph_features.atom_features(atom_i))).view(1, 75)
-    for j in xrange(0, molecule.GetNumAtoms()):
+    for j in range(0, molecule.GetNumAtoms()):
       e_ij = molecule.GetBondBetweenAtoms(i, j)
       if e_ij != None:
-        e_ij =  map(lambda x: 1 if x == True else 0, dc.feat.graph_features.bond_features(e_ij)) # ADDED edge feat
+        e_ij =  [1 if x == True else 0 for x in dc.feat.graph_features.bond_features(e_ij)] # ADDED edge feat
         e_ij = Variable(torch.FloatTensor(e_ij).view(1, 6))
         atom_j = molecule.GetAtomWithIdx(j)
         if i not in g:
@@ -120,18 +120,18 @@ params = [{'params': R.parameters()},
 
 num_epoch = 0
 optimizer = optim.Adam(params, lr=LR, weight_decay=1e-4)
-for i in xrange(0, MAXITER):
+for i in range(0, MAXITER):
   optimizer.zero_grad()
   train_loss = Variable(torch.zeros(1, 1))
   y_hats_train = []
-  for j in xrange(0, BATCH_SIZE):
+  for j in range(0, BATCH_SIZE):
     sample_index = random.randint(0, len(train_smiles) - 2)
     smile = train_smiles[sample_index]
     g, h = construct_multigraph(smile) # TODO: cache this
 
     g2, h2 = construct_multigraph(smile)
     
-    for k in xrange(0, T):
+    for k in range(0, T):
       message_pass(g, h, k)
 
     x = readout(h, h2)
@@ -150,11 +150,11 @@ for i in xrange(0, MAXITER):
   if i % int(len(train_smiles) / BATCH_SIZE) == 0:
     val_loss = Variable(torch.zeros(1, 1), requires_grad=False)
     y_hats_val = []
-    for j in xrange(0, len(val_smiles)):
+    for j in range(0, len(val_smiles)):
       g, h = construct_multigraph(val_smiles[j])
       g2, h2 = construct_multigraph(val_smiles[j])
 
-      for k in xrange(0, T):
+      for k in range(0, T):
         message_pass(g, h, k)
 
       x = readout(h, h2)
@@ -167,8 +167,8 @@ for i in xrange(0, MAXITER):
       error = (y_hat - y)*(y_hat - y) / Variable(torch.FloatTensor([len(val_smiles)])).view(1, 1)
       val_loss = val_loss + error
 
-    y_hats_val = np.array(map(lambda x: x.data.numpy(), y_hats_val))
-    y_val = np.array(map(lambda x: x.data.numpy(), val_labels))
+    y_hats_val = np.array([x.data.numpy() for x in y_hats_val])
+    y_val = np.array([x.data.numpy() for x in val_labels])
     y_hats_val = y_hats_val.reshape(-1, 1)
     y_val = y_val.reshape(-1, 1)
     
@@ -177,6 +177,6 @@ for i in xrange(0, MAXITER):
   
     train_loss_ = train_loss.data.numpy()[0]
     val_loss_ = val_loss.data.numpy()[0]
-    print 'epoch [%i/%i] train_loss [%f] val_loss [%f] r2_val_old [%.4f], r2_val_new [%.4f]' \
-                  % (num_epoch, 100, train_loss_, val_loss_, r2_val_old, r2_val_new)
+    print('epoch [%i/%i] train_loss [%f] val_loss [%f] r2_val_old [%.4f], r2_val_new [%.4f]' \
+                  % (num_epoch, 100, train_loss_, val_loss_, r2_val_old, r2_val_new))
     num_epoch += 1
