@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 envname=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1`
-sed -i -- 's/tensorflow$/tensorflow-gpu/g' scripts/install_deepchem_conda.sh
 bash scripts/install_deepchem_conda.sh $envname
 source activate $envname
 python setup.py install
