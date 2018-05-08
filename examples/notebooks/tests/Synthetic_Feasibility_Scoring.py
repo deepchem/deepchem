@@ -93,7 +93,7 @@ def test_notebook():
   from deepchem.models import ScScoreModel
   # Now to create the model and train it
   model = ScScoreModel(n_features=n_features)
-  model.fit(train_dataset, nb_epoch=20)
+  model.fit(train_dataset, nb_epoch=1)
   
   
   # # Model Performance
