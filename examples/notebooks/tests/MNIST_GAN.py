@@ -20,8 +20,7 @@ def test_notebook():
   from tensorflow.examples.tutorials.mnist import input_data
   import matplotlib.pyplot as plot
   import matplotlib.gridspec as gridspec
-  get_ipython().run_line_magic('matplotlib', 'inline')
-  
+
   mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
   images = mnist.train.images.reshape((-1, 28, 28, 1))
   dataset = dc.data.NumpyDataset(images)

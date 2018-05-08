@@ -1,5 +1,3 @@
-from nose.tools import timed
-@timed(180)
 def test_notebook():
   
   # coding: utf-8
@@ -55,7 +53,6 @@ def test_notebook():
   # In[3]:
   
   
-  get_ipython().run_line_magic('matplotlib', 'inline')
   import matplotlib.pyplot as plot
   classes, points = generate_data(1000)
   plot.scatter(x=points[:,0], y=points[:,1], c=classes)

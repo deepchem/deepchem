@@ -1,5 +1,4 @@
 from nose.tools import timed
-@timed(180)
 def test_notebook():
   
   # coding: utf-8
@@ -8,11 +7,6 @@ def test_notebook():
   # In this notebook, we analyze the BACE enyzme and build machine learning models for predicting the Ki of ligands to the protein. We will use the `deepchem` library to load this data into memory, split into train/test/validation folds, build and cross-validate models, and report statistics.
   
   # In[1]:
-  
-  
-  get_ipython().run_line_magic('load_ext', 'autoreload')
-  get_ipython().run_line_magic('autoreload', '2')
-  get_ipython().run_line_magic('pdb', 'off')
   
   
   # In[2]:

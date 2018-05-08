@@ -1,5 +1,3 @@
-from nose.tools import timed
-@timed(180)
 def test_notebook():
   
   # coding: utf-8
@@ -15,7 +13,6 @@ def test_notebook():
   # In[1]:
   
   
-  from IPython.display import Image, display
   import deepchem as dc
   from deepchem.molnet import load_tox21
   from deepchem.models.tensorgraph.models.graph_models import GraphConvModel
@@ -35,7 +32,7 @@ def test_notebook():
   model = GraphConvModel(len(tox21_tasks),  mode='classification', tensorboard=True)
   
   # Fit the model
-  model.fit(train_dataset, nb_epoch=10)
+  model.fit(train_dataset, nb_epoch=1)
   
   
   # ### Viewing the Tensorboard output
@@ -50,18 +47,3 @@ def test_notebook():
   
   # In[3]:
   
-  
-  display(Image(filename='assets/tensorboard_landing.png'))
-  
-  
-  # If you click "GRAPHS" at the top you can see a visual layout of the model.  Here is what our GraphConvModel Model looks like
-  
-  # In[4]:
-  
-  
-  display(Image(filename='assets/GraphConvArch.png'))
-  
-  
-  # The "GraphGather" box is the "Neural Fingerprint" developed by learning features of the molecule via graph convolutions.
-  # 
-  # Using tensorboard to visualize the model is a fast way to get a high level understanding of what a model is made of and how it works!

@@ -1,5 +1,3 @@
-from nose.tools import timed
-@timed(180)
 def test_notebook():
   
   # coding: utf-8
@@ -12,9 +10,7 @@ def test_notebook():
   # In[1]:
   
   
-  from __future__ import division
-  from __future__ import print_function
-  from __future__ import unicode_literals
+
   
   import numpy as np 
   import tensorflow as tf

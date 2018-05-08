@@ -129,8 +129,8 @@ def test_notebook():
   
   # Visualize one sample 
   sample = np.reshape(train.X[5], (28, 28))
-  plt.imshow(sample)
-  plt.show()
+  #plt.imshow(sample)
+  #plt.show()
   
   
   # ## Numpy Array to tf.data.dataset()
