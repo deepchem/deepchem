@@ -10,9 +10,6 @@ def test_notebook():
   # In[1]:
   
   
-  get_ipython().run_line_magic('reload_ext', 'autoreload')
-  get_ipython().run_line_magic('autoreload', '2')
-  get_ipython().run_line_magic('pdb', 'off')
   reload = True
   
   

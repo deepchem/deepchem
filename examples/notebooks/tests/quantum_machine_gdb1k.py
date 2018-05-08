@@ -9,9 +9,6 @@ def test_notebook():
   # In[ ]:
   
   
-  get_ipython().run_line_magic('load_ext', 'autoreload')
-  get_ipython().run_line_magic('autoreload', '2')
-  get_ipython().run_line_magic('pdb', 'off')
   __author__ = "Joseph Gomes and Bharath Ramsundar"
   __copyright__ = "Copyright 2016, Stanford University"
   __license__ = "LGPL"

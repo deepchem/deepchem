@@ -66,7 +66,7 @@ def test_notebook():
       for s in train_smiles:
         yield (s, s)
   
-  model.fit_sequences(generate_sequences(40))
+  model.fit_sequences(generate_sequences(1))
   
   
   # Let's see how well it works as an autoencoder.  We'll run the first 500 molecules from the validation set through it, and see how many of them are exactly reproduced.
@@ -108,7 +108,7 @@ def test_notebook():
   classifier = dc.models.MultiTaskClassifier(n_tasks=len(tasks),
                                                         n_features=256,
                                                         layer_sizes=[512])
-  classifier.fit(train_embeddings_dataset, nb_epoch=10)
+  classifier.fit(train_embeddings_dataset, nb_epoch=1)
   
   
   # Find out how well it worked.  Compute the ROC AUC for the training and validation datasets.

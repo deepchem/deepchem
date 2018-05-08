@@ -21,7 +21,7 @@ def test_notebook():
   train_dataset, valid_dataset, test_dataset = datasets
   
   model = dc.models.MultiTaskRegressor(len(tasks), 1024, uncertainty=True)
-  model.fit(train_dataset, nb_epoch=200)
+  model.fit(train_dataset, nb_epoch=1)
   y_pred, y_std = model.predict_uncertainty(test_dataset)
   
   

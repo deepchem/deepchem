@@ -86,7 +86,7 @@ def test_notebook():
   
   a3c.fit(1000)
   # Change this for how long you have the patience
-  million = 10e6
+  million = 1
   num_rounds = 0
   for round in range(num_rounds):
       a3c.fit(million, restore=True)
@@ -97,17 +97,17 @@ def test_notebook():
   # In[ ]:
   
   
-  from datetime import datetime
-  def render_env(env):
-      try:
-          env.env.render()
-      except Exception as e:
-          print(e)
-  
-  a3c.restore()
-  env.reset()
-  start = datetime.now()
-  while (datetime.now() - start).total_seconds() < 120:
-      render_env(env)
-      env.step(a3c.select_action(env.state))
+  # from datetime import datetime
+  # def render_env(env):
+  #     try:
+  #         env.env.render()
+  #     except Exception as e:
+  #         print(e)
+  #
+  # a3c.restore()
+  # env.reset()
+  # start = datetime.now()
+  # while (datetime.now() - start).total_seconds() < 120:
+  #     render_env(env)
+  #     env.step(a3c.select_action(env.state))
   

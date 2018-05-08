@@ -31,7 +31,7 @@ def test_notebook():
   # In[2]:
   
   
-  model.fit(train_dataset, nb_epoch=100)
+  model.fit(train_dataset, nb_epoch=1)
   metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
   print(model.evaluate(test_dataset, [metric]))
   
