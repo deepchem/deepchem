@@ -18,15 +18,16 @@ def _notebook_read(path):
   errors: list of Exceptions
   """
 
-  with tempfile.NamedTemporaryFile(suffix=".ipynb") as fout:
-    args = [
-        "jupyter-nbconvert", "--to", "notebook", "--execute",
-        "--ExecutePreprocessor.timeout=600", "--output", fout.name, path
-    ]
-    subprocess.check_call(args)
+  fout = tempfile.NamedTemporaryFile(suffix=".ipynb", delete=False)
+  args = [
+    "jupyter-nbconvert", "--to", "notebook", "--execute",
+    "--ExecutePreprocessor.timeout=600", "--output", fout.name, path
+  ]
+  subprocess.check_call(args)
+  fout.close()
 
-    fout.seek(0)
-    nb = nbformat.read(fout, nbformat.current_nbformat)
+  fout = open(fout.name, 'r')
+  nb = nbformat.read(fout, nbformat.current_nbformat)
 
   errors = [output for cell in nb.cells if "outputs" in cell
             for output in cell["outputs"] \
