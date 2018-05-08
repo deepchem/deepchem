@@ -40,7 +40,7 @@ def test_notebook():
       ax.set_yticks([])
       ax.imshow(im[i,:,:,0], cmap='gray')
   
-  plot_digits(images)
+  #plot_digits(images)
   
   
   # Now we can create our GAN.  It consists of two parts:
@@ -91,7 +91,7 @@ def test_notebook():
   # In[5]:
   
   
-  plot_digits(gan.predict_gan_generator(batch_size=16))
+  #plot_digits(gan.predict_gan_generator(batch_size=16))
   
   
   # Not too bad.  Most of the generated images look convincingly like handwritten digits, but only a few digits are represented.  This is a common problem in GANs called "mode collapse".  The generator learns to produce output that closely resembles training data, but the range of its output only covers a subset of the training distribution.  Finding ways to prevent mode collapse is an active area of research for GANs.
