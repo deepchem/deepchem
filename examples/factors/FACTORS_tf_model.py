@@ -31,14 +31,20 @@ all_results = []
 for trial in range(num_trials):
   ###Create model###
   n_layers = 3
-  nb_epoch = 125 
+  nb_epoch = 125
   model = dc.models.TensorflowMultitaskRegressor(
-      len(FACTORS_tasks), train_dataset.get_data_shape()[0],
-      layer_sizes=[1000]*n_layers, dropouts=[.25]*n_layers,
-      weight_init_stddevs=[.02]*n_layers,
-      bias_init_consts=[1.]*n_layers, learning_rate=.0003,
-      penalty=.0001, penalty_type="l2", optimizer="adam", batch_size=100,
-      logdir="FACTORS_tf_model" )
+      len(FACTORS_tasks),
+      train_dataset.get_data_shape()[0],
+      layer_sizes=[1000] * n_layers,
+      dropouts=[.25] * n_layers,
+      weight_init_stddevs=[.02] * n_layers,
+      bias_init_consts=[1.] * n_layers,
+      learning_rate=.0003,
+      penalty=.0001,
+      penalty_type="l2",
+      optimizer="adam",
+      batch_size=100,
+      logdir="FACTORS_tf_model")
 
   #Use R2 classification metric
   metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)
@@ -54,9 +60,8 @@ for trial in range(num_trials):
   test_score, test_task_scores = model.evaluate(
       test_dataset, [metric], transformers, per_task_metrics=True)
 
-  all_results.append((train_score, train_task_scores,
-                      valid_score, valid_task_scores,
-                      test_score, test_task_scores))
+  all_results.append((train_score, train_task_scores, valid_score,
+                      valid_task_scores, test_score, test_task_scores))
 
   print("Scores for trial %d" % trial)
   print("----------------------------------------------------------------")
@@ -76,8 +81,8 @@ for trial in range(num_trials):
 print("####################################################################")
 
 for trial in range(num_trials):
-  (train_score, train_task_scores, valid_score, valid_task_scores,
-   test_score, test_task_scores) = all_results[trial]
+  (train_score, train_task_scores, valid_score, valid_task_scores, test_score,
+   test_task_scores) = all_results[trial]
 
   print("Scores for trial %d" % trial)
   print("----------------------------------------------------------------")
