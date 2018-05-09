@@ -13,11 +13,12 @@ conda install -y ipywidgets
 conda install -y zlib
 conda install -y cmake
 yes | pip install gym[atari]
-conda install -y -c auto pubchempy
+pip install pubchempy
 conda install -y xlrd
 conda install -y seaborn
 conda install -y lime
 
+python devtools/jenkins/set_notebook_epochs.py
 cd examples/notebooks
 nosetests --with-timer tests.py --with-xunit --xunit-file=notebook_tests.xml|| true
 
