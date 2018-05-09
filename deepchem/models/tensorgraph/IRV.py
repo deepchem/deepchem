@@ -144,7 +144,7 @@ class Slice(Layer):
     return out_tensor
 
 
-class TensorflowMultiTaskIRVClassifier(TensorGraph):
+class TensorflowMultitaskIRVClassifier(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -152,7 +152,7 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
                penalty=0.0,
                mode="classification",
                **kwargs):
-    """Initialize TensorflowMultiTaskIRVClassifier
+    """Initialize TensorflowMultitaskIRVClassifier
 
     Parameters
     ----------
@@ -169,7 +169,7 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
     self.n_features = 2 * self.K * self.n_tasks
     logger.info("n_features after fit_transform: %d" % int(self.n_features))
     self.penalty = penalty
-    super(TensorflowMultiTaskIRVClassifier, self).__init__(**kwargs)
+    super(TensorflowMultitaskIRVClassifier, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
@@ -199,12 +199,12 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
     self.add_output(outputs)
 
   def predict(self, dataset, transformers=[], outputs=None):
-    out = super(TensorflowMultiTaskIRVClassifier, self).predict(
+    out = super(TensorflowMultitaskIRVClassifier, self).predict(
         dataset, transformers=transformers, outputs=outputs)
     out = np.round(out).astype(int)
     return out
 
   def predict_proba(self, dataset, transformers=[], outputs=None):
-    out = super(TensorflowMultiTaskIRVClassifier, self).predict_proba(
+    out = super(TensorflowMultitaskIRVClassifier, self).predict_proba(
         dataset, transformers=transformers, outputs=outputs)
     return np.concatenate([1 - out, out], axis=2)

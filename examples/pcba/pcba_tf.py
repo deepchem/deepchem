@@ -15,7 +15,7 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.metrics import to_one_hot
 from deepchem.utils.evaluate import Evaluator
-from deepchem.models import MultiTaskClassifier
+from deepchem.models import MultitaskClassifier
 from deepchem.models.tensorgraph.optimizers import ExponentialDecay
 
 np.random.seed(123)
@@ -27,7 +27,7 @@ metric = Metric(metrics.roc_auc_score, np.mean, mode="classification")
 
 n_features = train_dataset.get_data_shape()[0]
 rate = ExponentialDecay(0.001, 0.8, 1000)
-model = MultiTaskClassifier(
+model = MultitaskClassifier(
     len(pcba_tasks),
     n_features,
     dropouts=[.25],
