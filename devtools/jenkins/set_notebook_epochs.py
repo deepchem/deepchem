@@ -10,6 +10,10 @@ def replace_epochs(fname):
         if line.find('"NB_EPOCH = ') != -1:
             new_lines.append('"NB_EPOCH = 1\\n",')
             continue
+
+        if line.find('"TESTING = ') != -1:
+          new_lines.append('"TESTING = True\\n",')
+          continue
         new_lines.append(line)
     with open(fname, 'w') as fout:
         for line in new_lines:
