@@ -93,8 +93,8 @@ def benchmark_classification(train_dataset,
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
 
-    # Building tensorflow MultiTaskDNN model
-    model = deepchem.models.MultiTaskClassifier(
+    # Building tensorflow MultitaskDNN model
+    model = deepchem.models.MultitaskClassifier(
         len(tasks),
         n_features,
         layer_sizes=layer_sizes,
@@ -124,7 +124,7 @@ def benchmark_classification(train_dataset,
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
 
-    # Building tensorflow robust MultiTaskDNN model
+    # Building tensorflow robust MultitaskDNN model
     model = deepchem.models.RobustMultitaskClassifier(
         len(tasks),
         n_features,
@@ -175,7 +175,7 @@ def benchmark_classification(train_dataset,
       test_dataset = transformer.transform(test_dataset)
 
     # Building tensorflow IRV model
-    model = deepchem.models.TensorflowMultiTaskIRVClassifier(
+    model = deepchem.models.TensorflowMultitaskIRVClassifier(
         len(tasks),
         K=n_K,
         penalty=penalty,
@@ -459,7 +459,7 @@ def benchmark_regression(train_dataset,
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
 
-    model = deepchem.models.MultiTaskRegressor(
+    model = deepchem.models.MultitaskRegressor(
         len(tasks),
         n_features,
         layer_sizes=layer_sizes,
@@ -484,7 +484,7 @@ def benchmark_regression(train_dataset,
     learning_rate = hyper_parameters['learning_rate']
     fit_transformers = [hyper_parameters['fit_transformers'](train_dataset)]
 
-    model = deepchem.models.MultiTaskFitTransformRegressor(
+    model = deepchem.models.MultitaskFitTransformRegressor(
         n_tasks=len(tasks),
         n_features=n_features,
         layer_sizes=layer_sizes,

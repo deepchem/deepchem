@@ -35,7 +35,7 @@ print(len(test_dataset))
 ###Create model###
 n_layers = 3
 nb_epoch = 10
-model = dc.models.MultiTaskRegressor(
+model = dc.models.MultitaskRegressor(
     len(chembl_tasks),
     train_dataset.get_data_shape()[0],
     layer_sizes=[1000] * n_layers,

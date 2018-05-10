@@ -10,10 +10,10 @@ from deepchem.models.xgboost_models import XGBoostModel
 from deepchem.models.multitask import SingletaskToMultitask
 
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
-from deepchem.models.tensorgraph.fcnet import MultiTaskRegressor
-from deepchem.models.tensorgraph.fcnet import MultiTaskClassifier
-from deepchem.models.tensorgraph.fcnet import MultiTaskFitTransformRegressor
-from deepchem.models.tensorgraph.IRV import TensorflowMultiTaskIRVClassifier
+from deepchem.models.tensorgraph.fcnet import MultitaskRegressor
+from deepchem.models.tensorgraph.fcnet import MultitaskClassifier
+from deepchem.models.tensorgraph.fcnet import MultitaskFitTransformRegressor
+from deepchem.models.tensorgraph.IRV import TensorflowMultitaskIRVClassifier
 from deepchem.models.tensorgraph.robust_multitask import RobustMultitaskClassifier
 from deepchem.models.tensorgraph.robust_multitask import RobustMultitaskRegressor
 from deepchem.models.tensorgraph.progressive_multitask import ProgressiveMultitaskRegressor, ProgressiveMultitaskClassifier

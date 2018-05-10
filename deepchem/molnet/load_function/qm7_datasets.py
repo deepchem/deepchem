@@ -12,10 +12,15 @@ import scipy.io
 
 def load_qm7_from_mat(featurizer='CoulombMatrix',
                       split='stratified',
-                      reload=True):
+                      reload=True,
+                      move_mean=True):
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "qm7/" + featurizer + "/" + str(split))
+    if move_mean:
+      dir_name = "qm7/" + featurizer + "/" + str(split)
+    else:
+      dir_name = "qm7/" + featurizer + "_mean_unmoved/" + str(split)
+    save_dir = os.path.join(data_dir, dir_name)
 
   qm7_tasks = ["u0_atom"]
 
@@ -83,7 +88,7 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
 
     transformers = [
         deepchem.trans.NormalizationTransformer(
-            transform_y=True, dataset=train_dataset)
+            transform_y=True, dataset=train_dataset, move_mean=move_mean)
     ]
 
     for transformer in transformers:
@@ -99,7 +104,8 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
 
 def load_qm7b_from_mat(featurizer='CoulombMatrix',
                        split='stratified',
-                       reload=True):
+                       reload=True,
+                       move_mean=True):
   data_dir = deepchem.utils.get_data_dir()
   dataset_file = os.path.join(data_dir, "qm7b.mat")
 
@@ -129,7 +135,7 @@ def load_qm7b_from_mat(featurizer='CoulombMatrix',
 
     transformers = [
         deepchem.trans.NormalizationTransformer(
-            transform_y=True, dataset=train_dataset)
+            transform_y=True, dataset=train_dataset, move_mean=move_mean)
     ]
 
     for transformer in transformers:
@@ -141,7 +147,10 @@ def load_qm7b_from_mat(featurizer='CoulombMatrix',
     return qm7_tasks, (train_dataset, valid_dataset, test_dataset), transformers
 
 
-def load_qm7(featurizer='CoulombMatrix', split='random', reload=True):
+def load_qm7(featurizer='CoulombMatrix',
+             split='random',
+             reload=True,
+             move_mean=True):
   """Load qm7 datasets."""
   # Featurize qm7 dataset
   print("About to featurize qm7 dataset.")
@@ -178,7 +187,7 @@ def load_qm7(featurizer='CoulombMatrix', split='random', reload=True):
 
   transformers = [
       deepchem.trans.NormalizationTransformer(
-          transform_y=True, dataset=train_dataset)
+          transform_y=True, dataset=train_dataset, move_mean=move_mean)
   ]
 
   for transformer in transformers:

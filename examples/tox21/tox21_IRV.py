@@ -29,7 +29,7 @@ for transformer in transformers:
   valid_dataset = transformer.transform(valid_dataset)
   test_dataset = transformer.transform(test_dataset)
 
-model = dc.models.TensorflowMultiTaskIRVClassifier(
+model = dc.models.TensorflowMultitaskIRVClassifier(
     len(tox21_tasks), K=K, learning_rate=0.001, penalty=0.05, batch_size=32)
 
 # Fit trained model

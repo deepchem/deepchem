@@ -18,7 +18,7 @@ regression_metric = [
     dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
     dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
 ]
-model = dc.models.MultiTaskFitTransformRegressor(
+model = dc.models.MultitaskFitTransformRegressor(
     n_tasks=len(qm8_tasks),
     n_features=[26, 26],
     learning_rate=0.001,
