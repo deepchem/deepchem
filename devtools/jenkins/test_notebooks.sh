@@ -16,7 +16,7 @@ yes | pip install gym[atari]
 pip install pubchempy
 conda install -y xlrd
 conda install -y seaborn
-conda install -y lime
+yes | pip install lime
 
 python devtools/jenkins/set_notebook_epochs.py
 cd examples/notebooks
