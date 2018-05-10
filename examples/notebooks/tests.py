@@ -94,3 +94,32 @@ def test_dataset_preparation():
 def test_uncertainty():
   nb, errors = _notebook_read("Uncertainty.ipynb")
   assert errors == []
+
+
+def test_explanations():
+  nb, errors = _notebook_read("Explaining_Tox21.ipynb")
+  assert errors == []
+
+
+def test_scscore():
+  nb, errors = _notebook_read("Synthetic_Feasibility_Scoring.ipynb")
+  assert errors == []
+
+
+def test_conditional_gan():
+  nb, errors = _notebook_read("Conditional_GAN.ipynb")
+  assert errors == []
+
+
+def test_splitters_tutorial():
+  nb, errors = _notebook_read("Deepchem_NumpyDataset_tutorial.ipynb")
+  assert errors == []
+
+
+def test_estimators():
+  nb, errors = _notebook_read("Estimators.ipynb")
+  assert errors == []
+
+def test_tensorboard():
+  nb, errors = _notebook_read("Using_Tensorboard.ipynb")
+  assert errors == []
