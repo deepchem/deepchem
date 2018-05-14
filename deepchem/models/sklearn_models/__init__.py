@@ -77,21 +77,10 @@ class SklearnModel(Model):
       Ignored for Sklearn Model. Only used for Tensorflow models
       with rigid batch-size requirements.
     """
-    return self.model_instance.predict(X)
-
-  def predict_proba_on_batch(self, X, pad_batch=False):
-    """
-    Makes per-class predictions on batch of data.
-
-    Parameters
-    ----------
-    X: np.ndarray
-      Features
-    pad_batch: bool, optional
-      Ignored for Sklearn Model. Only used for Tensorflow models
-      with rigid batch-size requirements.
-    """
-    return self.model_instance.predict_proba(X)
+    try:
+      return self.model_instance.predict_proba(X)
+    except AttributeError:
+      return self.model_instance.predict(X)
 
   def predict(self, X, transformers=[]):
     """

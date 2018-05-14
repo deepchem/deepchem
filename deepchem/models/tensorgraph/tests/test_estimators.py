@@ -263,7 +263,8 @@ class TestEstimators(unittest.TestCase):
     weight_col = tf.feature_column.numeric_column('weights', shape=(n_tasks,))
 
     def accuracy(labels, predictions, weights):
-      return tf.metrics.accuracy(labels, tf.round(predictions), weights)
+      return tf.metrics.accuracy(labels, tf.round(predictions[:, :, 1]),
+                                 weights)
 
     metrics = {'accuracy': accuracy}
     estimator = model.make_estimator(

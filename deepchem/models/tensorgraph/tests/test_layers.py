@@ -54,6 +54,7 @@ from deepchem.models.tensorgraph.layers import ToFloat
 from deepchem.models.tensorgraph.layers import Transpose
 from deepchem.models.tensorgraph.layers import Variable
 from deepchem.models.tensorgraph.layers import VinaFreeEnergy
+from deepchem.models.tensorgraph.layers import WeightDecay
 from deepchem.models.tensorgraph.layers import WeightedError
 from deepchem.models.tensorgraph.layers import WeightedLinearCombo
 from deepchem.models.tensorgraph.IRV import IRVLayer
@@ -904,3 +905,12 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = out_tensor.eval()
       retval = np.all(losses == np.array(out_tensor))
       self.assertTrue(retval)
+
+  def test_weight_decay(self):
+    """Test that WeightDecay can be invoked."""
+    values = np.random.rand(5, 5).astype(np.float32)
+    variable = tf.Variable(values)
+    with self.test_session() as sess:
+      sess.run(tf.global_variables_initializer())
+      cost = WeightDecay(3.0, 'l2')(0.0)
+      assert np.allclose(3.0 * np.sum(values * values) / 2, cost.eval())

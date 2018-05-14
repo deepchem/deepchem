@@ -204,17 +204,6 @@ class RobustMultitaskClassifier(TensorGraph):
           tf.cast(labels, tf.int32), self.n_classes)
     return tensors
 
-  def predict_proba(self, dataset, transformers=[], outputs=None):
-    # Results is of shape (n_samples, n_tasks, n_classes)
-    return super(RobustMultitaskClassifier, self).predict(
-        dataset, transformers, outputs)
-
-  def predict(self, dataset, transformers=[], outputs=None):
-    retval = super(RobustMultitaskClassifier, self).predict(
-        dataset, transformers, outputs)
-    # Results is of shape (n_samples, n_tasks)
-    return np.argmax(retval, axis=2)
-
 
 class RobustMultitaskRegressor(TensorGraph):
   """Implements a neural network for robust multitasking.
