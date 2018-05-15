@@ -203,7 +203,7 @@ class ANIRegression(TensorGraph):
       numpy array of shape (a, 3) where a <= max_atoms and
       dtype is float-like
     atomic_nums: np.array
-      numpy array of shape (a,) where a is the same as that of X. 
+      numpy array of shape (a,) where a is the same as that of X.
     constraints: unused
       This parameter is mainly for compatibility purposes for scipy optimize
 
@@ -223,7 +223,8 @@ class ANIRegression(TensorGraph):
     Z[:A.shape[0], :A.shape[1]] = A
     X = Z
     dd = dc.data.NumpyDataset(
-        np.array(X).reshape((1, self.max_atoms, 4)), np.array(0), np.array(1))
+        np.array(X).reshape((1, self.max_atoms, 4)), np.zeros((1, 1)),
+        np.ones((1, 1)))
     return self.predict(dd)[0]
 
   def grad_one(self, X, atomic_nums, constraints=None):
@@ -236,7 +237,7 @@ class ANIRegression(TensorGraph):
       numpy array of shape (a, 3) where a <= max_atoms and
       dtype is float-like
     atomic_nums: np.array
-      numpy array of shape (a,) where a is the same as that of X. 
+      numpy array of shape (a,) where a is the same as that of X.
     constraints: np.array
       numpy array of indices of X used for constraining a subset
       of the atoms of the molecule.
@@ -278,7 +279,7 @@ class ANIRegression(TensorGraph):
       numpy array of shape (a, 3) where a <= max_atoms and
       dtype is float-like
     atomic_nums: np.array
-      numpy array of shape (a,) where a is the same as that of X. 
+      numpy array of shape (a,) where a is the same as that of X.
 
     Returns
     -------
@@ -295,9 +296,7 @@ class ANIRegression(TensorGraph):
         jac=self.grad_one,
         method="BFGS",
         tol=1e-6,
-        options={
-            'disp': True
-        })
+        options={'disp': True})
 
     return res.x.reshape((num_atoms, 3))
 

@@ -201,7 +201,7 @@ class TestEstimators(unittest.TestCase):
     # Create a dataset and an input function for processing it.
 
     X = np.random.rand(n_samples, n_features)
-    y = [0.5 for x in range(n_samples)]
+    y = np.array([[0.5] for x in range(n_samples)])
     dataset = dc.data.NumpyDataset(X, y)
 
     def input_fn(epochs):
