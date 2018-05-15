@@ -296,7 +296,9 @@ class ANIRegression(TensorGraph):
         jac=self.grad_one,
         method="BFGS",
         tol=1e-6,
-        options={'disp': True})
+        options={
+            'disp': True
+        })
 
     return res.x.reshape((num_atoms, 3))
 
