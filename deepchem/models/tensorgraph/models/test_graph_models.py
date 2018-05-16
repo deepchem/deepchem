@@ -115,7 +115,7 @@ class TestGraphModels(unittest.TestCase):
         mol.SetProp("atom %08d %s" % (atom.GetIdx(), atom_feature_name),
                     str(val))
         atom_features.append(np.random.normal())
-      y.append(np.sum(atom_features))
+      y.append([np.sum(atom_features)])
 
     featurizer = ConvMolFeaturizer(atom_properties=[atom_feature_name])
     X = featurizer.featurize(dataset.X)

@@ -103,7 +103,7 @@ class TestTensorGraph(unittest.TestCase):
     n_data_points = 20
     n_features = 2
     X = np.random.rand(n_data_points, n_features)
-    y = [0.5 for x in range(n_data_points)]
+    y = [[0.5] for x in range(n_data_points)]
     dataset = NumpyDataset(X, y)
     features = Feature(shape=(None, n_features))
     dense = Dense(out_channels=1, in_layers=[features])
