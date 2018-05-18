@@ -196,15 +196,5 @@ class TensorflowMultitaskIRVClassifier(TensorGraph):
         IRVRegularize(predictions, self.penalty, in_layers=[predictions])
     self.set_loss(loss)
     outputs = Stack(axis=1, in_layers=outputs)
+    outputs = Concat(axis=2, in_layers=[1 - outputs, outputs])
     self.add_output(outputs)
-
-  def predict(self, dataset, transformers=[], outputs=None):
-    out = super(TensorflowMultitaskIRVClassifier, self).predict(
-        dataset, transformers=transformers, outputs=outputs)
-    out = np.round(out).astype(int)
-    return out
-
-  def predict_proba(self, dataset, transformers=[], outputs=None):
-    out = super(TensorflowMultitaskIRVClassifier, self).predict_proba(
-        dataset, transformers=transformers, outputs=outputs)
-    return np.concatenate([1 - out, out], axis=2)

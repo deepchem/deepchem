@@ -471,14 +471,6 @@ class TensorGraph(Model):
     """
     return self._predict(generator, transformers, outputs, False)
 
-  def predict_proba_on_generator(self, generator, transformers=[],
-                                 outputs=None):
-    """
-    Returns:
-      y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
-    """
-    return self.predict_on_generator(generator, transformers, outputs)
-
   def predict_on_batch(self, X, transformers=[], outputs=None):
     """Generates predictions for input samples, processing samples in a batch.
 
@@ -523,22 +515,6 @@ class TensorGraph(Model):
     """
     dataset = NumpyDataset(X=X, y=None)
     return self.predict_uncertainty(dataset, masks)
-
-  def predict_proba_on_batch(self, X, transformers=[], outputs=None):
-    """Generates predictions for input samples, processing samples in a batch.
-
-    Parameters
-    ----------
-    X: ndarray
-      the input data, as a Numpy array.
-    transformers: List
-      List of dc.trans.Transformers
-
-    Returns
-    -------
-    A Numpy array of predictions.
-    """
-    return self.predict_on_batch(X, transformers, outputs)
 
   def predict(self, dataset, transformers=[], outputs=None):
     """
@@ -613,26 +589,6 @@ class TensorGraph(Model):
       return (output[0], std[0])
     else:
       return zip(output, std)
-
-  def predict_proba(self, dataset, transformers=[], outputs=None):
-    """
-    Parameters
-    ----------
-    dataset: dc.data.Dataset
-      Dataset to make prediction on
-    transformers: list
-      List of dc.trans.Transformers.
-    outputs: object
-      If outputs is None, then will assume outputs=self.outputs. If outputs is
-      a Layer/Tensor, then will evaluate and return as a single ndarray. If
-      outputs is a list of Layers/Tensors, will return a list of ndarrays.
-
-    Returns
-    -------
-    y_pred: numpy ndarray or list of numpy ndarrays
-    """
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator, transformers, outputs)
 
   def topsort(self):
 

@@ -97,12 +97,10 @@ class Evaluator(object):
       return {}
     else:
       mode = metrics[0].mode
+    y_pred = self.model.predict(self.dataset, self.output_transformers)
     if mode == "classification":
-      y_pred = self.model.predict_proba(self.dataset, self.output_transformers)
-      y_pred_print = self.model.predict(self.dataset,
-                                        self.output_transformers).astype(int)
+      y_pred_print = np.argmax(y_pred, -1)
     else:
-      y_pred = self.model.predict(self.dataset, self.output_transformers)
       y_pred_print = y_pred
     multitask_scores = {}
     all_task_scores = {}
@@ -213,12 +211,12 @@ class GeneratorEvaluator(object):
     else:
       mode = metrics[0].mode
     if mode == "classification":
-      y_pred = self.model.predict_proba_on_generator(generator_closure())
+      y_pred = self.model.predict_on_generator(generator_closure())
       y = np.transpose(np.array(y), axes=[0, 2, 1, 3])
       y = np.reshape(y, newshape=(-1, self.n_tasks, self.n_classes))
       y = from_one_hot(y, axis=-1)
     else:
-      y_pred = self.model.predict_proba_on_generator(generator_closure())
+      y_pred = self.model.predict_on_generator(generator_closure())
       y = np.transpose(np.array(y), axes=[0, 2, 1, 3])
       y = np.reshape(y, newshape=(-1, self.n_tasks))
       y_pred = np.reshape(y_pred, newshape=(-1, self.n_tasks))
