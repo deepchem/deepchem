@@ -841,10 +841,14 @@ class TensorGraph(Model):
     self.rnn_zero_states = []
     self.session = None
     out_tensors = []
+    submodel_ops = []
     if self.built:
       must_restore = True
       for layer in self.topsort():
         out_tensors.append(layer.none_tensors())
+      for submodel in self.submodels:
+        submodel_ops.append(submodel._train_op)
+        submodel._train_op = None
       training_placeholder = self._training_placeholder
       self._training_placeholder = None
       self.built = False
@@ -863,6 +867,8 @@ class TensorGraph(Model):
     if must_restore:
       for index, layer in enumerate(self.topsort()):
         layer.set_tensors(out_tensors[index])
+      for submodel, op in zip(self.submodels, submodel_ops):
+        submodel._train_op = op
       self._training_placeholder = training_placeholder
       self.built = True
     self.tensor_objects = tensor_objects
