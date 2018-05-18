@@ -23,7 +23,7 @@ from deepchem.models.tensorgraph.layers import Feature, Label, Weights, Weighted
 logger = logging.getLogger(__name__)
 
 
-class MultiTaskClassifier(TensorGraph):
+class MultitaskClassifier(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -37,7 +37,7 @@ class MultiTaskClassifier(TensorGraph):
                activation_fns=tf.nn.relu,
                n_classes=2,
                **kwargs):
-    """Create a MultiTaskClassifier.
+    """Create a MultitaskClassifier.
 
     In addition to the following arguments, this class also accepts
     all the keyword arguments from TensorGraph.
@@ -76,7 +76,7 @@ class MultiTaskClassifier(TensorGraph):
     n_classes: int
       the number of classes
     """
-    super(MultiTaskClassifier, self).__init__(**kwargs)
+    super(MultitaskClassifier, self).__init__(**kwargs)
     self.n_tasks = n_tasks
     self.n_features = n_features
     self.n_classes = n_classes
@@ -169,7 +169,7 @@ class MultiTaskClassifier(TensorGraph):
     return tensors
 
   def predict_proba(self, dataset, transformers=[], outputs=None):
-    return super(MultiTaskClassifier, self).predict(dataset, transformers,
+    return super(MultitaskClassifier, self).predict(dataset, transformers,
                                                     outputs)
 
   def predict(self, dataset, transformers=[], outputs=None):
@@ -193,13 +193,13 @@ class MultiTaskClassifier(TensorGraph):
     y_pred: numpy ndarray or list of numpy ndarrays
     """
     # Results is of shape (n_samples, n_tasks, n_classes)
-    retval = super(MultiTaskClassifier, self).predict(dataset, transformers,
+    retval = super(MultitaskClassifier, self).predict(dataset, transformers,
                                                       outputs)
     # retval is of shape (n_samples, n_tasks)
     return np.argmax(retval, axis=2)
 
 
-class MultiTaskRegressor(TensorGraph):
+class MultitaskRegressor(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -213,7 +213,7 @@ class MultiTaskRegressor(TensorGraph):
                activation_fns=tf.nn.relu,
                uncertainty=False,
                **kwargs):
-    """Create a MultiTaskRegressor.
+    """Create a MultitaskRegressor.
 
     In addition to the following arguments, this class also accepts all the keywork arguments
     from TensorGraph.
@@ -249,7 +249,7 @@ class MultiTaskRegressor(TensorGraph):
       if True, include extra outputs and loss terms to enable the uncertainty
       in outputs to be predicted
     """
-    super(MultiTaskRegressor, self).__init__(**kwargs)
+    super(MultitaskRegressor, self).__init__(**kwargs)
     self.n_tasks = n_tasks
     self.n_features = n_features
     n_layers = len(layer_sizes)
@@ -333,8 +333,8 @@ class MultiTaskRegressor(TensorGraph):
     self.set_loss(weighted_loss)
 
 
-class MultiTaskFitTransformRegressor(MultiTaskRegressor):
-  """Implements a MultiTaskRegressor that performs on-the-fly transformation during fit/predict.
+class MultitaskFitTransformRegressor(MultitaskRegressor):
+  """Implements a MultitaskRegressor that performs on-the-fly transformation during fit/predict.
 
   Example:
 
@@ -347,7 +347,7 @@ class MultiTaskFitTransformRegressor(MultiTaskRegressor):
   >>> w = np.ones((n_samples, n_tasks))
   >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
   >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
-  >>> model = dc.models.MultiTaskFitTransformRegressor(n_tasks, [n_features, n_features],
+  >>> model = dc.models.MultitaskFitTransformRegressor(n_tasks, [n_features, n_features],
   ...     dropouts=[0.], learning_rate=0.003, weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
   ...     batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
   >>> model.n_features
@@ -361,10 +361,10 @@ class MultiTaskFitTransformRegressor(MultiTaskRegressor):
                n_evals=1,
                batch_size=50,
                **kwargs):
-    """Create a MultiTaskFitTransformRegressor.
+    """Create a MultitaskFitTransformRegressor.
 
     In addition to the following arguments, this class also accepts all the keywork arguments
-    from MultiTaskRegressor.
+    from MultitaskRegressor.
 
     Parameters
     ----------
@@ -392,7 +392,7 @@ class MultiTaskFitTransformRegressor(MultiTaskRegressor):
       X_b = transformer.X_transform(X_b)
     n_features = X_b.shape[1]
     logger.info("n_features after fit_transform: %d", int(n_features))
-    super(MultiTaskFitTransformRegressor, self).__init__(
+    super(MultitaskFitTransformRegressor, self).__init__(
         n_tasks, n_features, batch_size=batch_size, **kwargs)
 
   def default_generator(self,
@@ -430,5 +430,5 @@ class MultiTaskFitTransformRegressor(MultiTaskRegressor):
         feed_dict[self.features[0]] = X_t
         yield feed_dict
 
-    return super(MultiTaskFitTransformRegressor, self).predict_on_generator(
+    return super(MultitaskFitTransformRegressor, self).predict_on_generator(
         transform_generator(), transformers, outputs)

@@ -10,7 +10,7 @@ import deepchem as dc
 
 # Load Tox21 dataset
 tasks, datasets, transformers = dc.molnet.load_qm7_from_mat(
-    featurizer='BPSymmetryFunction')
+    featurizer='BPSymmetryFunction', move_mean=False)
 train_dataset, valid_dataset, test_dataset = datasets
 
 # Batch size of models

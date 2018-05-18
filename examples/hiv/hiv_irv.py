@@ -24,7 +24,7 @@ transformer = dc.trans.IRVTransformer(10, len(hiv_tasks), train_dataset)
 train_dataset = transformer.transform(train_dataset)
 valid_dataset = transformer.transform(valid_dataset)
 
-model = dc.models.TensorflowMultiTaskIRVClassifier(
+model = dc.models.TensorflowMultitaskIRVClassifier(
     len(hiv_tasks), K=10, batch_size=50, learning_rate=0.001)
 
 # Fit trained model

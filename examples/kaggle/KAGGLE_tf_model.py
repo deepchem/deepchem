@@ -32,7 +32,7 @@ for trial in range(num_trials):
   ###Create model###
   n_layers = 3
   nb_epoch = 100
-  model = dc.models.MultiTaskRegressor(
+  model = dc.models.MultitaskRegressor(
       len(KAGGLE_tasks),
       train_dataset.get_data_shape()[0],
       layer_sizes=[2000, 1000, 1000],

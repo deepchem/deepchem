@@ -24,7 +24,7 @@ metric = [
         dc.metrics.mean_absolute_error, np.mean, mode="regression")
 ]
 
-model = dc.models.MultiTaskRegressor(
+model = dc.models.MultitaskRegressor(
     len(hopv_tasks),
     n_features,
     layer_sizes=[1000],

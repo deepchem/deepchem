@@ -27,7 +27,7 @@ class TestANIRegression(unittest.TestCase):
         [0, 0, 0, 0],
     ]])
 
-    y = np.array([2.0, 1.1])
+    y = np.array([[2.0], [1.1]])
 
     layer_structures = [128, 128, 64]
     atom_number_cases = [1, 6, 7, 8]

@@ -1,5 +1,5 @@
 #import tensorflow as tf
-#from deepchem.models.tensorgraph.tensor_graph import MultiTaskTensorGraph
+#from deepchem.models.tensorgraph.tensor_graph import MultitaskTensorGraph
 #from deepchem.models.tensorgraph.layers import Input, Dense, Concat, SoftMax, SoftMaxCrossEntropy, Layer
 #
 #
@@ -11,7 +11,7 @@
 #    return self.out_tensor
 #
 #
-#def MultiTaskClassifier(n_tasks,
+#def MultitaskClassifier(n_tasks,
 #                                   n_features,
 #                                   layer_sizes=[500],
 #                                   bypass_layer_sizes=[100],
@@ -31,7 +31,7 @@
 #  -------
 #
 #  """
-#  g = MultiTaskTensorGraph(model_dir=model_dir)
+#  g = MultitaskTensorGraph(model_dir=model_dir)
 #  in_layer = Input(shape=(None, n_features), name="FEATURE")
 #  g.add_layer(in_layer)
 #  g.add_feature(in_layer)
