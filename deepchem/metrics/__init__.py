@@ -112,13 +112,14 @@ def kappa_score(y_true, y_pred):
   yt = np.asarray(y_true, dtype=int)
   yp = np.asarray(y_pred, dtype=int)
   assert np.array_equal(
-      np.unique(yt), [0,
-                      1]), ('Class labels must be binary: %s' % np.unique(yt))
+      np.unique(yt),
+      [0, 1]), ('Class labels must be binary: %s' % np.unique(yt))
   observed_agreement = np.true_divide(
       np.count_nonzero(np.equal(yt, yp)), len(yt))
   expected_agreement = np.true_divide(
       np.count_nonzero(yt == 1) * np.count_nonzero(yp == 1) +
-      np.count_nonzero(yt == 0) * np.count_nonzero(yp == 0), len(yt)**2)
+      np.count_nonzero(yt == 0) * np.count_nonzero(yp == 0),
+      len(yt)**2)
   kappa = np.true_divide(observed_agreement - expected_agreement,
                          1.0 - expected_agreement)
   return kappa
@@ -205,15 +206,14 @@ class Metric(object):
     -------
     A numpy nd.array containing metric values for each task.
     """
-    if len(y_true.shape) > 1:
-      n_samples, n_tasks = y_true.shape[0], y_true.shape[1]
+    n_samples = y_true.shape[0]
+    expected_dims = (3 if self.mode == "classification" else 2)
+    if len(y_pred.shape) < expected_dims:
+      n_tasks = 1
+      y_true = np.expand_dims(y_true, 1)
+      y_pred = np.expand_dims(y_pred, 1)
     else:
-      n_samples, n_tasks = y_true.shape[0], 1
-    if self.mode == "classification":
-      y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
-    else:
-      y_pred = np.reshape(y_pred, (n_samples, n_tasks))
-    y_true = np.reshape(y_true, (n_samples, n_tasks))
+      n_tasks = y_pred.shape[1]
     if w is None or len(w) == 0:
       w = np.ones_like(y_true)
     assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
@@ -223,7 +223,7 @@ class Metric(object):
       if self.mode == "regression":
         y_pred_task = y_pred[:, task]
       else:
-        y_pred_task = y_pred[:, task, :]
+        y_pred_task = y_pred[:, task]
       w_task = w[:, task]
 
       metric_value = self.compute_singletask_metric(y_task, y_pred_task, w_task)
@@ -272,7 +272,6 @@ class Metric(object):
     if not y_true.size:
       return np.nan
 
-    y_true = np.reshape(y_true, (n_samples,))
     if self.mode == "classification":
       n_classes = y_pred.shape[-1]
       # TODO(rbharath): This has been a major source of bugs. Is there a more
