@@ -655,6 +655,12 @@ class Dense(SharedVariableScope):
       self._built = True
       self.variables = self._layer.variables
     return out_tensor
+  
+  def add_summary_to_tg(self):
+    dense_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.name)
+    tf.summary.histogram('weights', dense_vars[0])
+    tf.summary.histogram('bias', dense_vars[1])
+    tf.summary.histogram('act', self.out_tensor)
 
 
 class Highway(Layer):
@@ -2541,15 +2547,17 @@ class GraphConv(Layer):
 
   def _create_variables(self, in_channels):
     # Generate the nb_affine weights and biases
-    W_list = [
-        initializations.glorot_uniform([in_channels, self.out_channel])
-        for k in range(self.num_deg)
-    ]
-    b_list = [
-        model_ops.zeros(shape=[
-            self.out_channel,
-        ]) for k in range(self.num_deg)
-    ]
+    with tf.name_scope('weights'):
+      W_list = [
+          initializations.glorot_uniform([in_channels, self.out_channel])
+          for k in range(self.num_deg)
+      ]
+    with tf.name_scope('biases'):
+      b_list = [
+          model_ops.zeros(shape=[
+              self.out_channel,
+          ]) for k in range(self.num_deg)
+      ]
     return (W_list, b_list)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
@@ -2642,6 +2650,14 @@ class GraphConv(Layer):
 
     return deg_summed
 
+  def add_summary_to_tg(self):
+    graphconv_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.name + '/weights')
+    graphconv_biases = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.name + '/biases')
+    for weights in graphconv_weights:
+      tf.summary.histogram('weights', weights)
+    for biases in graphconv_biases:
+      tf.summary.histogram('biases', biases)
+    tf.summary.histogram('activation', self.out_tensor)
 
 class GraphPool(Layer):
 
