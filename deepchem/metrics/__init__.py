@@ -222,15 +222,11 @@ class Metric(object):
     else:
       n_tasks = y_pred.shape[1]
     if w is None or len(w) == 0:
-      w = np.ones_like(y_true)
-    assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
+      w = np.ones((n_samples, n_tasks))
     computed_metrics = []
     for task in range(n_tasks):
       y_task = y_true[:, task]
-      if self.mode == "regression":
-        y_pred_task = y_pred[:, task]
-      else:
-        y_pred_task = y_pred[:, task]
+      y_pred_task = y_pred[:, task]
       w_task = w[:, task]
 
       metric_value = self.compute_singletask_metric(y_task, y_pred_task, w_task)
@@ -280,6 +276,10 @@ class Metric(object):
       return np.nan
     if self.threshold is not None:
       y_pred = np.greater(y_pred, threshold)
+    if len(y_true.shape) == 0:
+      y_true = np.expand_dims(y_true, 0)
+    if len(y_pred.shape) == 0:
+      y_pred = np.expand_dims(y_pred, 0)
     try:
       metric_value = self.metric(y_true, y_pred)
     except (AssertionError, ValueError) as e:
