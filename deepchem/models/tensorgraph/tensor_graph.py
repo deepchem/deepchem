@@ -667,7 +667,8 @@ class TensorGraph(Model):
           self.rnn_initial_states += layer.rnn_initial_states
           self.rnn_final_states += layer.rnn_final_states
           self.rnn_zero_states += layer.rnn_zero_states
-          layer.add_summary_to_tg()
+          if layer.tensorboard is True:
+            layer.add_summary_to_tg()
       self.session = tf.Session(config=self.configproto)
       self.built = True
 
