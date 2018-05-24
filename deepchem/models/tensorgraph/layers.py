@@ -199,7 +199,7 @@ class Layer(object):
     layer, complete with trained values for its variables."""
     self.variable_values = values
 
-  def set_summary(self, summary_op, summary_description=None, collections=None):
+  def set_summary(self, vars_to_summarize='all', summary_description=None, collections=None):
     """Annotates a tensor with a tf.summary operation
 
     This causes self.out_tensor to be logged to Tensorboard.
@@ -208,8 +208,8 @@ class Layer(object):
     ----------
     summary_op: str
       summary operation to annotate node
-    summary_description: object, optional
-      Optional summary_pb2.SummaryDescription()
+    vars_to_summarize: list of strings, optional
+      Optional list of variables to summarize. Defaults to ['all']
     collections: list of graph collections keys, optional
       New summary op is added to these collections. Defaults to [GraphKeys.SUMMARIES]
     """
@@ -218,7 +218,7 @@ class Layer(object):
       raise ValueError(
           "Invalid summary_op arg. Only 'tensor_summary', 'scalar', 'histogram' supported"
       )
-    self.summary_op = summary_op
+    self.vars_to_summarize = vars_to_summarize
     self.summary_description = summary_description
     self.collections = collections
     self.tensorboard = True
@@ -227,7 +227,9 @@ class Layer(object):
     """
     Create the summary operation for this layer, if set_summary() has been called on it.
 
-    Can only be called after self.create_layer to guarantee that name is not None.
+    Can only be called after self.create_layer to guarantee that name is not None. Should
+    be overwritten by custom function for each layer; if not default to summarizing histogram 
+    of output tensor.
 
     Parameters
     ----------
@@ -238,13 +240,8 @@ class Layer(object):
       return
     if tb_input == None:
       tb_input = self.out_tensor
-    if self.summary_op == "tensor_summary":
-      tf.summary.tensor_summary(self.name, tb_input, self.summary_description,
-                                self.collections)
-    elif self.summary_op == 'scalar':
-      tf.summary.scalar(self.name, tb_input, self.collections)
-    elif self.summary_op == 'histogram':
-      tf.summary.histogram(self.name, tb_input, self.collections)
+    tf.summary.histogram(self.name, tb_input, self.collections)
+
 
   def copy(self, replacements={}, variables_graph=None, shared=False):
     """Duplicate this Layer and all its inputs.
@@ -657,10 +654,18 @@ class Dense(SharedVariableScope):
     return out_tensor
   
   def add_summary_to_tg(self):
+    if self.vars_to_summarize == 'all':
+      self.vars_to_summarize = ['weights', 'bias', 'activation']
+    if not isinstance(self.vars_to_summarize, list):
+      self.vars_to_summarize = [self.vars_to_summarize]
+      
     dense_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.name)
-    tf.summary.histogram('weights', dense_vars[0])
-    tf.summary.histogram('bias', dense_vars[1])
-    tf.summary.histogram('act', self.out_tensor)
+    if 'weights' in self.vars_to_summarize:
+      tf.summary.histogram('weights', dense_vars[0])
+    if 'bias' in self.vars_to_summarize:
+      tf.summary.histogram('bias', dense_vars[1])
+    if 'activation' in self.vars_to_summarize:
+      tf.summary.histogram('activation', self.out_tensor)
 
 
 class Highway(Layer):
@@ -2552,7 +2557,7 @@ class GraphConv(Layer):
           initializations.glorot_uniform([in_channels, self.out_channel])
           for k in range(self.num_deg)
       ]
-    with tf.name_scope('biases'):
+    with tf.name_scope('bias'):
       b_list = [
           model_ops.zeros(shape=[
               self.out_channel,
@@ -2651,13 +2656,21 @@ class GraphConv(Layer):
     return deg_summed
 
   def add_summary_to_tg(self):
+    if self.vars_to_summarize == 'all':
+      self.vars_to_summarize = ['weights', 'bias', 'activation']
+    if not isinstance(self.vars_to_summarize, list):
+      self.vars_to_summarize = [self.vars_to_summarize]
+      
     graphconv_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.name + '/weights')
-    graphconv_biases = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.name + '/biases')
-    for weights in graphconv_weights:
-      tf.summary.histogram('weights', weights)
-    for biases in graphconv_biases:
-      tf.summary.histogram('biases', biases)
-    tf.summary.histogram('activation', self.out_tensor)
+    graphconv_bias = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.name + '/bias')
+    if 'weights' in self.vars_to_summarize:
+      for weights in graphconv_weights:
+        tf.summary.histogram('weights', weights)
+    if 'bias' in self.vars_to_summarize:
+      for biases in graphconv_bias:
+        tf.summary.histogram('bias', biases)
+    if 'activation' in self.vars_to_summarize:
+      tf.summary.histogram('activation', self.out_tensor)
 
 class GraphPool(Layer):
 
