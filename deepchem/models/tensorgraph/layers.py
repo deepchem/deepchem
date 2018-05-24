@@ -209,7 +209,7 @@ class Layer(object):
     summary_op: str
       summary operation to annotate node
     vars_to_summarize: list of strings, optional
-      Optional list of variables to summarize. Defaults to ['all']
+      Optional list of variables to summarize. Defaults to 'all'
     collections: list of graph collections keys, optional
       New summary op is added to these collections. Defaults to [GraphKeys.SUMMARIES]
     """
