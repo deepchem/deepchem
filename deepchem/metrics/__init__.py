@@ -14,6 +14,7 @@ from sklearn.metrics import precision_score
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import auc
 from sklearn.metrics import jaccard_similarity_score
+from sklearn.metrics import f1_score
 from scipy.stats import pearsonr
 
 
@@ -82,6 +83,17 @@ def jaccard_index(y, y_pred):
     y_pred: predicted array
   """
   return jaccard_similarity_score(y, y_pred)
+
+def pixel_error(y, y_pred):
+  """defined as 1 - the maximal F-score of pixel similarity,
+     or squared Euclidean distance between the original and the result labels.
+
+    Parameters
+    ----------
+    y: ground truth array
+    y_pred: predicted array
+  """
+  return 1-f1_score(y, y_pred)
 
 def prc_auc_score(y, y_pred):
   """Compute area under precision-recall curve"""
