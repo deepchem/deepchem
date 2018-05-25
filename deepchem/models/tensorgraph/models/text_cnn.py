@@ -111,7 +111,7 @@ class TextCNNModel(TensorGraph):
     """
     self.n_tasks = n_tasks
     self.char_dict = char_dict
-    self.seq_length = seq_length
+    self.seq_length = max(seq_length, max(kernel_sizes))
     self.n_embedding = n_embedding
     self.kernel_sizes = kernel_sizes
     self.num_filters = num_filters
