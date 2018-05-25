@@ -358,6 +358,17 @@ class ConvMolFeaturizer(Featurizer):
   def feature_length(self):
     return 75 + len(self.atom_properties)
 
+  def __hash__(self):
+    atom_properties = tuple(self.atom_properties)
+    return hash((self.master_atom, self.use_chirality, atom_properties))
+
+  def __eq__(self, other):
+    if not isinstance(self, other.__class__):
+      return False
+    return self.master_atom == other.master_atom and \
+           self.use_chirality == other.use_chirality and \
+           tuple(self.atom_properties) == tuple(other.atom_properties)
+
 
 class WeaveFeaturizer(Featurizer):
   name = ['weave_mol']
