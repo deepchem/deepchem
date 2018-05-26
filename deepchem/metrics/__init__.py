@@ -73,6 +73,7 @@ def pearson_r2_score(y, y_pred):
   """Computes Pearson R^2 (square of Pearson correlation)."""
   return pearsonr(y, y_pred)[0]**2
 
+
 def jaccard_index(y, y_pred):
   """Computes Jaccard Index which is the Intersection Over Union metric
      which is commonly used in image segmentation tasks
@@ -84,6 +85,7 @@ def jaccard_index(y, y_pred):
   """
   return jaccard_similarity_score(y, y_pred)
 
+
 def pixel_error(y, y_pred):
   """defined as 1 - the maximal F-score of pixel similarity,
      or squared Euclidean distance between the original and the result labels.
@@ -93,7 +95,8 @@ def pixel_error(y, y_pred):
     y: ground truth array
     y_pred: predicted array
   """
-  return 1-f1_score(y, y_pred)
+  return 1 - f1_score(y, y_pred)
+
 
 def prc_auc_score(y, y_pred):
   """Compute area under precision-recall curve"""
@@ -135,13 +138,14 @@ def kappa_score(y_true, y_pred):
   yt = np.asarray(y_true, dtype=int)
   yp = np.asarray(y_pred, dtype=int)
   assert np.array_equal(
-      np.unique(yt), [0,
-                      1]), ('Class labels must be binary: %s' % np.unique(yt))
+      np.unique(yt),
+      [0, 1]), ('Class labels must be binary: %s' % np.unique(yt))
   observed_agreement = np.true_divide(
       np.count_nonzero(np.equal(yt, yp)), len(yt))
   expected_agreement = np.true_divide(
       np.count_nonzero(yt == 1) * np.count_nonzero(yp == 1) +
-      np.count_nonzero(yt == 0) * np.count_nonzero(yp == 0), len(yt)**2)
+      np.count_nonzero(yt == 0) * np.count_nonzero(yp == 0),
+      len(yt)**2)
   kappa = np.true_divide(observed_agreement - expected_agreement,
                          1.0 - expected_agreement)
   return kappa
