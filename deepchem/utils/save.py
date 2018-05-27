@@ -187,6 +187,15 @@ def encode_fasta_sequence(fname, letters='ATCGN'):
 
   return seq_one_hot_encode(np.array(sequences), letters)
 
+def encode_sequence(fname, letters='ATCGN', file_type="fasta"):
+
+    # TODO: if None, then get from the filename
+    sequences = []
+    for seq in SeqIO.parse(fname, file_type):
+        sequences.append(str(seq.seq).upper())
+
+    return seq_one_hot_encode(np.array(sequences), letters)
+
 # This could just be ambiguous_dna_letters, but that would be much higher dim.
 class IUPACUnambiguousDNAWithN(Alphabet):
     letters = unambiguous_dna_letters + "N"
