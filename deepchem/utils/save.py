@@ -15,9 +15,11 @@ import pickle
 import pandas as pd
 import numpy as np
 import os
-import sys
 import deepchem
 from rdkit import Chem
+from Bio.Data.IUPACData import unambiguous_dna_letters
+from Bio.Alphabet import Alphabet
+from Bio import SeqIO
 
 
 def log(string, verbose=True):
@@ -177,6 +179,44 @@ def encode_fasta_sequence(fname):
     sequences.append(''.join(seq_chars).upper())
 
   return seq_one_hot_encode(np.array(sequences))
+
+# This could just be ambiguous_dna_letters, but that would be much higher dim.
+class IUPACUnambiguousDNAWithN(Alphabet):
+    letters = unambiguous_dna_letters + "N"
+
+def encode_sequence_with_biopython(fname, file_type="fasta", alphabet=None):
+    # np.ndarray: Shape (N_sequences, 4, sequence_length, 1).
+
+    if alphabet is None:
+        alphabet = IUPACUnambiguousDNAWithN()
+
+    # TODO: if None, then get from the filename
+    sequences = SeqIO.parse(fname, file_type, alphabet)
+
+    # The label encoder is given characters for ACGTN
+    letter_encoder = {l: i for i, l in enumerate(alphabet.letters)}
+    alphabet_length = len(letter_encoder)
+
+    # Peak at the first sequence to get the length of the sequence.
+    first_seq = next(sequences)
+    sequence_length = len(first_seq.seq)
+
+    seqs = []
+
+    seqs.append(_seq_to_encoded(first_seq, letter_encoder, alphabet_length, sequence_length))
+
+    for other_seq in sequences:
+      seqs.append(_seq_to_encoded(other_seq, letter_encoder, alphabet_length, sequence_length))
+
+    # return np.expand_dims(np.array(seqs), -1)
+    return np.array(seqs)
+
+def _seq_to_encoded(seq, letter_encoder, alphabet_length, sequence_length):
+    b = np.zeros((alphabet_length, sequence_length))
+    seq_ints = [letter_encoder[s] for s in seq]
+    b[seq_ints, np.arange(sequence_length)] = 1
+
+    return b
 
 
 def save_metadata(tasks, metadata_df, data_dir):

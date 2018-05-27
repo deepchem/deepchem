@@ -32,3 +32,14 @@ class TestSeq(unittest.TestCase):
     except ValueError:
       thrown = True
     assert thrown
+
+  def test_encode_sequence_with_biopython(self):
+      fname = "./data/example.fasta"
+
+      encoded_seqs = dc.utils.save.encode_sequence_with_biopython(fname)
+      expected = np.array([
+        [[0, 0], [1, 0], [0, 0], [0, 1], [0, 0]],
+        [[1, 0], [0, 1], [0, 0], [0, 0], [0, 0]],
+      ])
+
+      np.testing.assert_array_equal(expected, encoded_seqs)
