@@ -20,26 +20,24 @@ class TestSeq(unittest.TestCase):
   def test_one_hot_simple(self):
     sequences = np.array(["ACGT", "GATA", "CGCG"])
     sequences = dc.utils.save.seq_one_hot_encode(sequences)
-    assert sequences.shape == (3, 4, 4, 1)
+    self.assertEqual(sequences.shape, (3, 5, 4, 1))
 
   def test_one_hot_mismatch(self):
     # One sequence has length longer than others. This should throw a
-    # value error.
-    thrown = False
-    try:
+    # ValueError.
+
+    with self.assertRaises(ValueError):
       sequences = np.array(["ACGTA", "GATA", "CGCG"])
       sequences = dc.utils.save.seq_one_hot_encode(sequences)
-    except ValueError:
-      thrown = True
-    assert thrown
 
-  def test_encode_sequence_with_biopython(self):
-      fname = "./data/example.fasta"
+  def test_encode_fasta_sequence(self):
+    fname = "./data/example.fasta"
 
-      encoded_seqs = dc.utils.save.encode_sequence_with_biopython(fname)
-      expected = np.array([
-        [[0, 0], [1, 0], [0, 0], [0, 1], [0, 0]],
-        [[1, 0], [0, 1], [0, 0], [0, 0], [0, 0]],
-      ])
+    encoded_seqs = dc.utils.save.encode_fasta_sequence(fname)
+    expected = np.expand_dims(
+        np.array([
+            [[0, 0], [1, 0], [0, 0], [0, 1], [0, 0]],
+            [[1, 0], [0, 1], [0, 0], [0, 0], [0, 0]],
+        ]), -1)
 
-      np.testing.assert_array_equal(expected, encoded_seqs)
+    np.testing.assert_array_equal(expected, encoded_seqs)

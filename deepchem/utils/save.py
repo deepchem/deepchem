@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 # TODO(rbharath): Use standard joblib once old-data has been regenerated.
 import joblib
 from sklearn.externals import joblib as old_joblib
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 import gzip
 import json
 import pickle
@@ -53,7 +52,7 @@ def get_input_type(input_file):
 
 def load_data(input_files, shard_size=None, verbose=True):
   """Loads data from disk.
-     
+
   For CSV files, supports sharded loading for large files.
   """
   if not len(input_files):
@@ -108,7 +107,6 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
         yield df
 
 
-
 def seq_one_hot_encode(sequences, letters='ATCGN'):
   """One hot encodes list of genomic sequences.
 
@@ -131,38 +129,51 @@ def seq_one_hot_encode(sequences, letters='ATCGN'):
   np.ndarray: Shape (N_sequences, 4, sequence_length, 1).
   """
 
-  sequence_length = len(sequences[0])
-  letters_length = len(letters)
-
-  # depends on Python version
-  integer_type = np.int32
-
   # The label encoder is given characters for ACGTN
-  letters_array = np.array((letters,))
-  label_encoder = LabelEncoder().fit(letters).view(integer_type))
+  letter_encoder = {l: i for i, l in enumerate(letters)}
+  alphabet_length = len(letter_encoder)
 
-  integer_array = []
+  # Peak at the first sequence to get the length of the sequence.
+  try:
+    first_seq = next(sequences)
+    tail_seq = sequences
+  except TypeError:
+    first_seq = sequences[0]
+    tail_seq = sequences[1:]
 
-  # TODO(rbharath): Unlike the DRAGONN implementation from which this
-  # was ported, I couldn't transform the "ACGT..." strings into
-  # integers all at once. Had to do one at a time. Might be worth
-  # figuring out what's going on under the hood.
+  sequence_length = len(first_seq)
 
-  for sequence in sequences:
-    if len(sequence) != sequence_length:
-      raise ValueError("All sequences must be of same length")
-    integer_seq = label_encoder.transform(
-        np.array((sequence,)).view(integer_type))
-    integer_array.append(integer_seq)
+  seqs = []
 
-  integer_array = np.concatenate(integer_array)
-  integer_array = integer_array.reshape(len(sequences), sequence_length)
-  one_hot_encoding = OneHotEncoder(
-      sparse=False, n_values=5, dtype=integer_type).fit_transform(integer_array)
+  seqs.append(
+      _seq_to_encoded(first_seq, letter_encoder, alphabet_length,
+                      sequence_length))
 
-  return one_hot_encoding.reshape(len(sequences), sequence_length, letters_length, 1).swapaxes(1, 2)
+  for other_seq in tail_seq:
+    if len(other_seq) != sequence_length:
+      raise ValueError
 
-def encode_fasta_sequence(fname, letters='ATCGN'):
+    seqs.append(
+        _seq_to_encoded(other_seq, letter_encoder, alphabet_length,
+                        sequence_length))
+
+  return np.expand_dims(np.array(seqs), -1)
+
+
+def _seq_to_encoded(seq, letter_encoder, alphabet_length, sequence_length):
+  b = np.zeros((alphabet_length, sequence_length))
+  seq_ints = [letter_encoder[s] for s in seq]
+  b[seq_ints, np.arange(sequence_length)] = 1
+
+  return b
+
+
+# This could just be ambiguous_dna_letters, but that would be much higher dim.
+class IUPACUnambiguousDNAWithN(Alphabet):
+  letters = unambiguous_dna_letters + "N"
+
+
+def encode_fasta_sequence(fname):
   """
   Loads fasta file and returns an array of one-hot sequences.
 
@@ -171,68 +182,20 @@ def encode_fasta_sequence(fname, letters='ATCGN'):
   fname: str
     Filename of fasta file.
   """
-  name, seq_chars = None, []
-  sequences = []
-  with open(fname) as fp:
-    for line in fp:
-      line = line.rstrip()
-      if line.startswith(">"):
-        if name:
-          sequences.append(''.join(seq_chars).upper())
-        name, seq_chars = line, []
-      else:
-        seq_chars.append(line)
-  if name is not None:
-    sequences.append(''.join(seq_chars).upper())
 
-  return seq_one_hot_encode(np.array(sequences), letters)
+  dna_alphabet = IUPACUnambiguousDNAWithN()
+  return encode_bio_sequence(fname, "fasta", dna_alphabet)
 
-def encode_sequence(fname, letters='ATCGN', file_type="fasta"):
 
-    # TODO: if None, then get from the filename
-    sequences = []
-    for seq in SeqIO.parse(fname, file_type):
-        sequences.append(str(seq.seq).upper())
+def encode_bio_sequence(fname, file_type="fasta", alphabet=None):
+  # np.ndarray: Shape (N_sequences, 4, sequence_length, 1).
 
-    return seq_one_hot_encode(np.array(sequences), letters)
+  if alphabet is None:
+    alphabet = IUPACUnambiguousDNAWithN()
 
-# This could just be ambiguous_dna_letters, but that would be much higher dim.
-class IUPACUnambiguousDNAWithN(Alphabet):
-    letters = unambiguous_dna_letters + "N"
-
-def encode_sequence_with_biopython(fname, file_type="fasta", alphabet=None):
-    # np.ndarray: Shape (N_sequences, 4, sequence_length, 1).
-
-    if alphabet is None:
-        alphabet = IUPACUnambiguousDNAWithN()
-
-    # TODO: if None, then get from the filename
-    sequences = SeqIO.parse(fname, file_type, alphabet)
-
-    # The label encoder is given characters for ACGTN
-    letter_encoder = {l: i for i, l in enumerate(alphabet.letters)}
-    alphabet_length = len(letter_encoder)
-
-    # Peak at the first sequence to get the length of the sequence.
-    first_seq = next(sequences)
-    sequence_length = len(first_seq.seq)
-
-    seqs = []
-
-    seqs.append(_seq_to_encoded(first_seq, letter_encoder, alphabet_length, sequence_length))
-
-    for other_seq in sequences:
-      seqs.append(_seq_to_encoded(other_seq, letter_encoder, alphabet_length, sequence_length))
-
-    # return np.expand_dims(np.array(seqs), -1)
-    return np.array(seqs)
-
-def _seq_to_encoded(seq, letter_encoder, alphabet_length, sequence_length):
-    b = np.zeros((alphabet_length, sequence_length))
-    seq_ints = [letter_encoder[s] for s in seq]
-    b[seq_ints, np.arange(sequence_length)] = 1
-
-    return b
+  # TODO: if None, then get from the filename
+  sequences = SeqIO.parse(fname, file_type, alphabet)
+  return seq_one_hot_encode(sequences, alphabet.letters)
 
 
 def save_metadata(tasks, metadata_df, data_dir):
