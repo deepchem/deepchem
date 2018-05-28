@@ -110,14 +110,15 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
 def seq_one_hot_encode(sequences, letters='ATCGN'):
   """One hot encodes list of genomic sequences.
 
-  Sequences encoded have shape (N_sequences, 4, sequence_length, 1).
-  Here 4 is for the 4 basepairs (ACGT) present in genomic sequences.
+  Sequences encoded have shape (N_sequences, N_letters, sequence_length, 1).
   These sequences will be processed as images with one color channel.
 
   Parameters
   ----------
   sequences: np.ndarray
     Array of genetic sequences
+  letters: str
+    String with the set of possible letters in the sequences.
 
   Raises
   ------
@@ -126,7 +127,7 @@ def seq_one_hot_encode(sequences, letters='ATCGN'):
 
   Returns
   -------
-  np.ndarray: Shape (N_sequences, 4, sequence_length, 1).
+  np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
   """
 
   # The label encoder is given characters for ACGTN
@@ -168,9 +169,11 @@ def _seq_to_encoded(seq, letter_encoder, alphabet_length, sequence_length):
   return b
 
 
-# This could just be ambiguous_dna_letters, but that would be much higher dim.
 class IUPACUnambiguousDNAWithN(Alphabet):
-  letters = unambiguous_dna_letters + "N"
+  """
+  A deepchem specific DNA Alphabet with the 4 main letters and N.
+  """
+  letters = "ACGTN"
 
 
 def encode_fasta_sequence(fname):
@@ -181,6 +184,10 @@ def encode_fasta_sequence(fname):
   ----------
   fname: str
     Filename of fasta file.
+
+  Returns
+  -------
+  np.ndarray: Shape (N_sequences, 4, sequence_length, 1).
   """
 
   dna_alphabet = IUPACUnambiguousDNAWithN()
@@ -188,12 +195,27 @@ def encode_fasta_sequence(fname):
 
 
 def encode_bio_sequence(fname, file_type="fasta", alphabet=None):
-  # np.ndarray: Shape (N_sequences, 4, sequence_length, 1).
+  """
+  Loads a sequence file and returns an array of one-hot sequences.
+
+  Parameters
+  ----------
+  fname: str
+    Filename of fasta file.
+  file_type: str
+    The type of file encoding to process, e.g. fasta or fastq, this
+    is passed to Biopython.SeqIO.parse.
+  alphabet: Bio.Alphabet.Alphabet
+    A Biopython Alphabet, which should have a letter class property.
+
+  Returns
+  -------
+  np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
+  """
 
   if alphabet is None:
     alphabet = IUPACUnambiguousDNAWithN()
 
-  # TODO: if None, then get from the filename
   sequences = SeqIO.parse(fname, file_type, alphabet)
   return seq_one_hot_encode(sequences, alphabet.letters)
 
