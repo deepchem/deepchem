@@ -642,20 +642,6 @@ class Dense(SharedVariableScope):
       self.variables = self._layer.variables
     return out_tensor
   
-  def add_summary_to_tg(self):
-    if self.vars_to_summarize == 'all':
-      self.vars_to_summarize = ['weights', 'bias', 'activation']
-    if not isinstance(self.vars_to_summarize, list):
-      self.vars_to_summarize = [self.vars_to_summarize]
-      
-    dense_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.name)
-    if 'weights' in self.vars_to_summarize:
-      tf.summary.histogram('weights', dense_vars[0])
-    if 'bias' in self.vars_to_summarize:
-      tf.summary.histogram('bias', dense_vars[1])
-    if 'activation' in self.vars_to_summarize:
-      tf.summary.histogram('activation', self.out_tensor)
-
 
 class Highway(Layer):
   """ Create a highway layer. y = H(x) * T(x) + x * (1 - T(x))
@@ -2541,17 +2527,15 @@ class GraphConv(Layer):
 
   def _create_variables(self, in_channels):
     # Generate the nb_affine weights and biases
-    with tf.name_scope('weights'):
-      W_list = [
-          initializations.glorot_uniform([in_channels, self.out_channel])
-          for k in range(self.num_deg)
-      ]
-    with tf.name_scope('bias'):
-      b_list = [
-          model_ops.zeros(shape=[
-              self.out_channel,
-          ]) for k in range(self.num_deg)
-      ]
+    W_list = [
+        initializations.glorot_uniform([in_channels, self.out_channel], name='kernel')
+        for k in range(self.num_deg)
+    ]
+    b_list = [
+        model_ops.zeros(shape=[
+            self.out_channel,
+        ], name='bias') for k in range(self.num_deg)
+    ]
     return (W_list, b_list)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
@@ -2644,23 +2628,7 @@ class GraphConv(Layer):
 
     return deg_summed
 
-  def add_summary_to_tg(self):
-    if self.vars_to_summarize == 'all':
-      self.vars_to_summarize = ['weights', 'bias', 'activation']
-    if not isinstance(self.vars_to_summarize, list):
-      self.vars_to_summarize = [self.vars_to_summarize]
-      
-    graphconv_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.name + '/weights')
-    graphconv_bias = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.name + '/bias')
-    if 'weights' in self.vars_to_summarize:
-      for weights in graphconv_weights:
-        tf.summary.histogram('weights', weights)
-    if 'bias' in self.vars_to_summarize:
-      for biases in graphconv_bias:
-        tf.summary.histogram('bias', biases)
-    if 'activation' in self.vars_to_summarize:
-      tf.summary.histogram('activation', self.out_tensor)
-
+  
 class GraphPool(Layer):
 
   def __init__(self, min_degree=0, max_degree=10, **kwargs):
