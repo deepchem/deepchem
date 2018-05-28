@@ -199,49 +199,38 @@ class Layer(object):
     layer, complete with trained values for its variables."""
     self.variable_values = values
 
-  def set_summary(self, vars_to_summarize='all', summary_description=None, collections=None):
+  def set_summary(self, summary_description=None, collections=None):
     """Annotates a tensor with a tf.summary operation
 
     This causes self.out_tensor to be logged to Tensorboard.
 
     Parameters
     ----------
-    summary_op: str
-      summary operation to annotate node
-    vars_to_summarize: list of strings, optional
-      Optional list of variables to summarize. Defaults to 'all'
+    summary_description: object, optional
+      Optional summary_pb2.SummaryDescription()
     collections: list of graph collections keys, optional
       New summary op is added to these collections. Defaults to [GraphKeys.SUMMARIES]
     """
-    supported_ops = {'tensor_summary', 'scalar', 'histogram'}
-    if summary_op not in supported_ops:
-      raise ValueError(
-          "Invalid summary_op arg. Only 'tensor_summary', 'scalar', 'histogram' supported"
-      )
-    self.vars_to_summarize = vars_to_summarize
     self.summary_description = summary_description
     self.collections = collections
     self.tensorboard = True
 
-  def add_summary_to_tg(self, tb_input=None):
+  def add_summary_to_tg(self, layer_vars):
     """
     Create the summary operation for this layer, if set_summary() has been called on it.
 
-    Can only be called after self.create_layer to guarantee that name is not None. Should
-    be overwritten by custom function for each layer; if not default to summarizing histogram 
-    of output tensor.
+    Can only be called after self.create_layer to guarantee that name is not None.
 
     Parameters
     ----------
-    tb_input: tensor
-      the tensor to log to Tensorboard.  If None, self.out_tensor is used.
+    layer_vars: list of variables
+      the list of variables to log to Tensorboard.
     """
     if self.tensorboard == False:
       return
-    if tb_input == None:
-      tb_input = self.out_tensor
-    tf.summary.histogram(self.name, tb_input, self.collections)
-
+    for var in layer_vars:
+        tf.summary.histogram(var.name, var)
+    tf.summary.histogram(self.name + '/activation', self.out_tensor)
 
   def copy(self, replacements={}, variables_graph=None, shared=False):
     """Duplicate this Layer and all its inputs.
