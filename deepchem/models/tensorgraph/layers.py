@@ -199,18 +199,23 @@ class Layer(object):
     layer, complete with trained values for its variables."""
     self.variable_values = values
 
-  def set_summary(self, summary_description=None, collections=None):
+  def set_summary(self, vars_to_summarize='all', summary_description=None, collections=None):
     """Annotates a tensor with a tf.summary operation
 
     This causes self.out_tensor to be logged to Tensorboard.
 
     Parameters
     ----------
+    vars_to_summarize: string or list of strings, optional
+      Optional choice of which variables to save for tensorboard
     summary_description: object, optional
       Optional summary_pb2.SummaryDescription()
     collections: list of graph collections keys, optional
       New summary op is added to these collections. Defaults to [GraphKeys.SUMMARIES]
     """
+    self.vars_to_summarize = vars_to_summarize
+    if not isinstance(self.vars_to_summarize, list):
+      self.vars_to_summarize = [self.vars_to_summarize]
     self.summary_description = summary_description
     self.collections = collections
     self.tensorboard = True
@@ -228,9 +233,19 @@ class Layer(object):
     """
     if self.tensorboard == False:
       return
-    for var in layer_vars:
+    if self.vars_to_summarize[0] == 'all':
+      tf.summary.histogram(self.name + '/activation', self.out_tensor)
+      for var in layer_vars:
         tf.summary.histogram(var.name, var)
-    tf.summary.histogram(self.name + '/activation', self.out_tensor)
+    else:
+      for var in layer_vars:
+        for var_type in self.vars_to_summarize:
+          if var_type in var.name:
+            tf.summary.histogram(var.name, var)
+            break
+          elif var_type  is 'activation':
+            tf.summary.histogram(self.name + '/activation', self.out_tensor)
+            break
 
   def copy(self, replacements={}, variables_graph=None, shared=False):
     """Duplicate this Layer and all its inputs.
