@@ -907,11 +907,11 @@ class TensorGraph(Model):
           metrics, per_task_metrics=per_task_metrics)
       return scores, per_task_scores
 
-  def get_layer_variables(self, layer):
+  def get_layer_variables(self, layer, build=True):
     """Get the list of trainable variables in a layer of the graph."""
     if tfe.in_eager_mode():
       return layer.variables
-    if not self.built:
+    if build is True and not self.built:
       self.build()
     with self._get_tf("Graph").as_default():
       if layer.variable_scope == '':
