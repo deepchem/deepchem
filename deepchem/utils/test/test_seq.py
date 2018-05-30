@@ -11,7 +11,6 @@ import unittest
 import os
 
 import numpy as np
-from Bio.Alphabet import Alphabet
 
 import deepchem as dc
 
