@@ -16,9 +16,6 @@ import numpy as np
 import os
 import deepchem
 from rdkit import Chem
-from Bio.Data.IUPACData import unambiguous_dna_letters
-from Bio.Alphabet import Alphabet
-from Bio import SeqIO
 
 
 def log(string, verbose=True):
@@ -169,13 +166,6 @@ def _seq_to_encoded(seq, letter_encoder, alphabet_length, sequence_length):
   return b
 
 
-class IUPACUnambiguousDNAWithN(Alphabet):
-  """
-  A deepchem specific DNA Alphabet with the 4 main letters and N.
-  """
-  letters = "ACGTN"
-
-
 def encode_fasta_sequence(fname):
   """
   Loads fasta file and returns an array of one-hot sequences.
@@ -187,14 +177,13 @@ def encode_fasta_sequence(fname):
 
   Returns
   -------
-  np.ndarray: Shape (N_sequences, 4, sequence_length, 1).
+  np.ndarray: Shape (N_sequences, 5, sequence_length, 1).
   """
 
-  dna_alphabet = IUPACUnambiguousDNAWithN()
-  return encode_bio_sequence(fname, "fasta", dna_alphabet)
+  return encode_bio_sequence(fname)
 
 
-def encode_bio_sequence(fname, file_type="fasta", alphabet=None):
+def encode_bio_sequence(fname, file_type="fasta", letters="ATCGN"):
   """
   Loads a sequence file and returns an array of one-hot sequences.
 
@@ -205,19 +194,18 @@ def encode_bio_sequence(fname, file_type="fasta", alphabet=None):
   file_type: str
     The type of file encoding to process, e.g. fasta or fastq, this
     is passed to Biopython.SeqIO.parse.
-  alphabet: Bio.Alphabet.Alphabet
-    A Biopython Alphabet, which should have a letter class property.
+  letters: str
+    The set of letters that the sequences consist of, e.g. ATCG.
 
   Returns
   -------
   np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
   """
 
-  if alphabet is None:
-    alphabet = IUPACUnambiguousDNAWithN()
+  from Bio import SeqIO
 
-  sequences = SeqIO.parse(fname, file_type, alphabet)
-  return seq_one_hot_encode(sequences, alphabet.letters)
+  sequences = SeqIO.parse(fname, file_type)
+  return seq_one_hot_encode(sequences, letters)
 
 
 def save_metadata(tasks, metadata_df, data_dir):

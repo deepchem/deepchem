@@ -15,9 +15,7 @@ from Bio.Alphabet import Alphabet
 
 import deepchem as dc
 
-
-class MockAlphabet(Alphabet):
-  letters = "XYZ"
+LETTERS = "XYZ"
 
 
 class TestSeq(unittest.TestCase):
@@ -46,8 +44,7 @@ class TestSeq(unittest.TestCase):
     # Test it's possible to load a sequence with an aribrary alphabet from a fasta file.
     fname = os.path.join(self.current_dir, "./data/example.fasta")
 
-    encoded_seqs = dc.utils.save.encode_bio_sequence(
-        fname, alphabet=MockAlphabet())
+    encoded_seqs = dc.utils.save.encode_bio_sequence(fname, letters=LETTERS)
     expected = np.expand_dims(
         np.array([
             [[1, 0], [0, 1], [0, 0]],
@@ -60,7 +57,7 @@ class TestSeq(unittest.TestCase):
     fname = os.path.join(self.current_dir, "./data/example.fastq")
 
     encoded_seqs = dc.utils.save.encode_bio_sequence(
-        fname, file_type="fastq", alphabet=MockAlphabet())
+        fname, file_type="fastq", letters=LETTERS)
 
     expected = np.expand_dims(
         np.array([
