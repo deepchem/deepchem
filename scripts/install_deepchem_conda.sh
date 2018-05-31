@@ -47,4 +47,5 @@ conda install -y -q -c conda-forge jupyter=1.0.0
 conda install -y -q -c conda-forge pbr=3.1.1
 conda install -y -q -c rdkit rdkit=2017.09.1
 conda install -y -q -c conda-forge setuptools=39.0.1
+conda install -y -q -c conda-forge biopython=1.71
 yes | pip install $tensorflow==1.6.0
