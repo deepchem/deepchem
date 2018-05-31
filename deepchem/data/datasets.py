@@ -323,6 +323,13 @@ class NumpyDataset(Dataset):
       y = np.array(y)
     if not isinstance(w, np.ndarray):
       w = np.array(w)
+
+    if len(y.shape) == 1:
+      y = np.reshape(y, (n_samples, -1))
+
+    if len(w.shape) == 1:
+      w = np.reshape(w, (n_samples, -1))
+
     self._X = X
     self._y = y
     self._w = w
