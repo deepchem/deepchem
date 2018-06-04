@@ -214,7 +214,7 @@ class Layer(object):
       New summary op is added to these collections. Defaults to [GraphKeys.SUMMARIES]
     """
     self.vars_to_summarize = vars_to_summarize
-    if not isinstance(self.vars_to_summarize, list):
+    if isinstance(self.vars_to_summarize, str):
       self.vars_to_summarize = [self.vars_to_summarize]
     self.summary_description = summary_description
     self.collections = collections
@@ -233,7 +233,10 @@ class Layer(object):
     """
     if self.tensorboard == False:
       return
-    if self.vars_to_summarize[0] == 'all':
+    if 'all' in self.vars_to_summarize:
+      if len(self.vars_to_summarize) > 1:
+        print("If 'all' in vars_to_summarize, no other strings should be provided. Also \
+        found {}. Defaulting to 'all'".format([item in self.vars_to_summarize if item != 'all']))
       tf.summary.histogram(self.name + '/activation', self.out_tensor)
       for var in layer_vars:
         tf.summary.histogram(var.name, var)
