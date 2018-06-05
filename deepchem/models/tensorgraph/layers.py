@@ -206,8 +206,10 @@ class Layer(object):
 
     Parameters
     ----------
-    vars_to_summarize: string or list of strings, optional
-      Optional choice of which variables to save for tensorboard
+    summary_op: str
+      summary operation to annotate node
+    include_variables: bool
+      Optional bool to include layer variables to summary
     summary_description: object, optional
       Optional summary_pb2.SummaryDescription()
     collections: list of graph collections keys, optional
