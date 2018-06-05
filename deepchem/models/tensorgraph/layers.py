@@ -669,7 +669,7 @@ class Dense(SharedVariableScope):
       self._built = True
       self.variables = self._layer.variables
     return out_tensor
-  
+
 
 class Highway(Layer):
   """ Create a highway layer. y = H(x) * T(x) + x * (1 - T(x))
@@ -2656,7 +2656,7 @@ class GraphConv(Layer):
 
     return deg_summed
 
-  
+
 class GraphPool(Layer):
 
   def __init__(self, min_degree=0, max_degree=10, **kwargs):
