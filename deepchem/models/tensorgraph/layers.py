@@ -199,7 +199,7 @@ class Layer(object):
     layer, complete with trained values for its variables."""
     self.variable_values = values
 
-  def set_summary(self, vars_to_summarize='all', summary_description=None, collections=None):
+  def set_summary(self, summary_op, include_variables=True, summary_description=None, collections=None):
     """Annotates a tensor with a tf.summary operation
 
     This causes self.out_tensor to be logged to Tensorboard.
@@ -213,9 +213,13 @@ class Layer(object):
     collections: list of graph collections keys, optional
       New summary op is added to these collections. Defaults to [GraphKeys.SUMMARIES]
     """
-    self.vars_to_summarize = vars_to_summarize
-    if isinstance(self.vars_to_summarize, str):
-      self.vars_to_summarize = [self.vars_to_summarize]
+    supported_ops = {'tensor_summary', 'scalar', 'histogram'}
+    if summary_op not in supported_ops:
+      raise ValueError(
+          "Invalid summary_op arg. Only 'tensor_summary', 'scalar', 'histogram' supported"
+      )
+    self.summary_op = summary_op
+    self.include_variables = include_variables
     self.summary_description = summary_description
     self.collections = collections
     self.tensorboard = True
@@ -233,22 +237,26 @@ class Layer(object):
     """
     if self.tensorboard == False:
       return
-    if 'all' in self.vars_to_summarize:
-      if len(self.vars_to_summarize) > 1:
-        print("If 'all' in vars_to_summarize, no other strings should be provided. Also \
-        found {}. Defaulting to 'all'".format([item in self.vars_to_summarize if item != 'all']))
-      tf.summary.histogram(self.name + '/activation', self.out_tensor)
-      for var in layer_vars:
-        tf.summary.histogram(var.name, var)
-    else:
-      for var in layer_vars:
-        for var_type in self.vars_to_summarize:
-          if var_type in var.name:
-            tf.summary.histogram(var.name, var)
-            break
-          elif var_type  is 'activation':
-            tf.summary.histogram(self.name + '/activation', self.out_tensor)
-            break
+    
+    if self.summary_op == "tensor_summary":
+      tf.summary.tensor_summary(self.name, self.out_tensor, self.summary_description,
+                                self.collections)
+      if self.include_variables:
+        for var in layer_vars:
+          tf.summary.tensor_summary(var.name, var, self.summary_description,
+                                   self.collections)
+          
+    elif self.summary_op == 'scalar':
+      tf.summary.scalar(self.name, self.out_tensor, self.collections)
+      if self.include_variables:
+        for var in layer_vars:
+          tf.summary.scalar(var.name, var, self.collections)
+          
+    elif self.summary_op == 'histogram':
+      tf.summary.histogram(self.name, self.out_tensor, self.collections)
+      if self.include_variables:
+        for var in layer_vars:
+          tf.summary.histogram(var.name, var, self.collections)
 
   def copy(self, replacements={}, variables_graph=None, shared=False):
     """Duplicate this Layer and all its inputs.
