@@ -661,15 +661,15 @@ class TensorGraph(Model):
       if self.random_seed is not None:
         tf.set_random_seed(self.random_seed)
       self._install_queue()
+      self.built = True
       for layer in self.topsort():
         with tf.name_scope(layer.name):
           layer.create_tensor(training=self._training_placeholder)
           self.rnn_initial_states += layer.rnn_initial_states
           self.rnn_final_states += layer.rnn_final_states
           self.rnn_zero_states += layer.rnn_zero_states
-          layer.add_summary_to_tg()
+          layer.add_summary_to_tg(self.get_layer_variables(layer))
       self.session = tf.Session(config=self.configproto)
-      self.built = True
 
       # Ensure all training operators have been created.
 
