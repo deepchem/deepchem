@@ -12,6 +12,8 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import precision_score
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import auc
+from sklearn.metrics import jaccard_similarity_score
+from sklearn.metrics import f1_score
 from scipy.stats import pearsonr
 
 
@@ -76,6 +78,30 @@ def balanced_accuracy_score(y, y_pred):
 def pearson_r2_score(y, y_pred):
   """Computes Pearson R^2 (square of Pearson correlation)."""
   return pearsonr(y, y_pred)[0]**2
+
+
+def jaccard_index(y, y_pred):
+  """Computes Jaccard Index which is the Intersection Over Union metric
+     which is commonly used in image segmentation tasks
+
+    Parameters
+    ----------
+    y: ground truth array
+    y_pred: predicted array
+  """
+  return jaccard_similarity_score(y, y_pred)
+
+
+def pixel_error(y, y_pred):
+  """defined as 1 - the maximal F-score of pixel similarity,
+     or squared Euclidean distance between the original and the result labels.
+
+    Parameters
+    ----------
+    y: ground truth array
+    y_pred: predicted array
+  """
+  return 1 - f1_score(y, y_pred)
 
 
 def prc_auc_score(y, y_pred):
