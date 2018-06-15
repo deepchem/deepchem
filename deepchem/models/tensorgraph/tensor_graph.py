@@ -668,7 +668,8 @@ class TensorGraph(Model):
           self.rnn_initial_states += layer.rnn_initial_states
           self.rnn_final_states += layer.rnn_final_states
           self.rnn_zero_states += layer.rnn_zero_states
-          layer.add_summary_to_tg(self.get_layer_variables(layer))
+          layer.add_summary_to_tg(layer.out_tensor,
+                                  self.get_layer_variables(layer))
       self.session = tf.Session(config=self.configproto)
 
       # Ensure all training operators have been created.
@@ -1184,7 +1185,9 @@ class TensorGraph(Model):
       tensor = layer.create_tensor(
           in_layers=inputs, set_tensors=False, training=training)
       tensors[layer] = tensor
-      layer.add_summary_to_tg(tensor)
+      vars = tf.get_collection(
+          tf.GraphKeys.TRAINABLE_VARIABLES, scope=layer.name)
+      layer.add_summary_to_tg(tensor, vars)
       return tensor
 
     # Define the model function.
@@ -1195,7 +1198,7 @@ class TensorGraph(Model):
       tensors = self.create_estimator_inputs(feature_columns, weight_column,
                                              features, labels, mode)
       for layer, tensor in tensors.items():
-        layer.add_summary_to_tg(tensor)
+        layer.add_summary_to_tg(tensor, [])
 
       # Create the correct outputs, based on the mode.
 
