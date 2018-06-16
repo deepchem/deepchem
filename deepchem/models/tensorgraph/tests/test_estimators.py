@@ -2,8 +2,8 @@ import unittest
 import numpy as np
 import tensorflow as tf
 import deepchem as dc
+import deepchem.models.tensorgraph.layers as layers
 from deepchem.data import NumpyDataset
-from deepchem.models.tensorgraph.layers import Dense
 
 
 class TestEstimators(unittest.TestCase):
@@ -212,7 +212,7 @@ class TestEstimators(unittest.TestCase):
     # Create the model.
 
     model = dc.models.Sequential(loss="mse", learning_rate=0.01)
-    model.add(Dense(out_channels=1))
+    model.add(layers.Dense(out_channels=1))
 
     # Create an estimator from it.
 
@@ -329,3 +329,41 @@ class TestEstimators(unittest.TestCase):
     results = estimator.evaluate(input_fn=lambda: input_fn(1))
     assert results['loss'] < 0.5
     assert results['accuracy'] > 0.6
+
+  def test_tensorboard(self):
+    """Test creating an Estimator from a TensorGraph that logs information to TensorBoard."""
+    n_samples = 10
+    n_features = 3
+    n_tasks = 2
+
+    # Create a dataset and an input function for processing it.
+
+    np.random.seed(123)
+    X = np.random.rand(n_samples, n_features)
+    y = np.zeros((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y)
+
+    def input_fn(epochs):
+      x, y, weights = dataset.make_iterator(
+          batch_size=n_samples, epochs=epochs).get_next()
+      return {'x': x, 'weights': weights}, y
+
+    # Create a TensorGraph model.
+
+    model = dc.models.TensorGraph()
+    features = layers.Feature(shape=(None, n_features))
+    dense = layers.Dense(out_channels=n_tasks, in_layers=features)
+    dense.set_summary('histogram')
+    model.add_output(dense)
+    labels = layers.Label(shape=(None, n_tasks))
+    loss = layers.ReduceMean(layers.L2Loss(in_layers=[labels, dense]))
+    model.set_loss(loss)
+
+    # Create an estimator from it.
+
+    x_col = tf.feature_column.numeric_column('x', shape=(n_features,))
+    estimator = model.make_estimator(feature_columns=[x_col])
+
+    # Train the model.
+
+    estimator.train(input_fn=lambda: input_fn(100))

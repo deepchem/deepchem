@@ -230,7 +230,7 @@ class Layer(object):
     self.collections = collections
     self.tensorboard = True
 
-  def add_summary_to_tg(self, layer_vars):
+  def add_summary_to_tg(self, layer_output, layer_vars):
     """
     Create the summary operation for this layer, if set_summary() has been called on it.
 
@@ -238,6 +238,8 @@ class Layer(object):
 
     Parameters
     ----------
+    layer_output: tensor
+      the output tensor to log to Tensorboard
     layer_vars: list of variables
       the list of variables to log to Tensorboard
     """
@@ -245,20 +247,20 @@ class Layer(object):
       return
 
     if self.summary_op == "tensor_summary":
-      tf.summary.tensor_summary(self.name, self.out_tensor,
+      tf.summary.tensor_summary(self.name, layer_output,
                                 self.summary_description, self.collections)
       if self.include_variables:
         for var in layer_vars:
           tf.summary.tensor_summary(var.name, var, self.summary_description,
                                     self.collections)
     elif self.summary_op == 'scalar':
-      tf.summary.scalar(self.name, self.out_tensor, self.collections)
+      tf.summary.scalar(self.name, layer_output, self.collections)
       if self.include_variables:
         for var in layer_vars:
           tf.summary.tensor_summary(var.name, var, self.collections,
                                     self.collections)
     elif self.summary_op == 'histogram':
-      tf.summary.histogram(self.name, self.out_tensor, self.collections)
+      tf.summary.histogram(self.name, layer_output, self.collections)
       if self.include_variables:
         for var in layer_vars:
           tf.summary.histogram(var.name, var, self.collections)
