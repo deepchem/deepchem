@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 
-from trans import undo_transforms
+from deepchem.trans import undo_transforms
 
 np.random.seed(123)
 import tensorflow as tf

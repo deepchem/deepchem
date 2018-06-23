@@ -106,7 +106,7 @@ def load_chembl(shard_size=2000,
     for transformer in transformers:
       dataset = transformer.transform(dataset)
 
-  if spit == None:
+  if split == None:
     return chembl_tasks, (dataset, None, None), transformers
 
   splitters = {

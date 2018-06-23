@@ -10,7 +10,7 @@ np.random.seed(123)
 import tensorflow as tf
 tf.set_random_seed(123)
 import deepchem as dc
-from membrain_permeability_datasets import load_permeability
+from membrane_permeability_datasets import load_permeability
 
 # Load Tox21 dataset
 permeability_tasks, permeability_datasets, transformers = load_permeability(
