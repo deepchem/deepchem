@@ -1182,3 +1182,38 @@ class FeaturizationTransformer(Transformer):
   def transform_array(self, X, y, w):
     X = self.featurizer.featurize(X)
     return X, y, w
+
+class DataTransforms():
+    """Applies different data transforms to images."""
+    def __init__(self, Image):
+        self.Image = Image
+    """ Scales the image
+        Parameters:
+            h - height of the images
+            w - width of the images
+    """
+    def scale(self, h, w):
+        return scipy.misc.imresize(self.Image, (h ,w))
+
+    """ Flips the image
+        Parameters:
+            direction - "lr" denotes left-right fliplr
+                        "ud" denotes up-down flip
+    """
+    def flip(self, direction="lr"):
+        if direction == "lr":
+            return np.fliplr(self.Image)
+        elif direction == "ud":
+            return np.flipud(self.Image)
+        else:
+            raise ValueError("Invalid flip command : Enter either lr (for left to right flip) or ud (for up to down flip)")
+
+    """ Rotates the image
+        Parameters:
+            angle (default = 0 i.e no rotation) - Denotes angle by which the image should be rotated (in Degrees)
+    """
+    def rotate(self, angle=0):
+        return scipy.ndimage.rotate(self.Image, angle)
+
+    def gaussian_blur(self, sigma=0.2):
+        return scipy.ndimage.gaussian_filter(self.Image, sigma)
