@@ -17,12 +17,15 @@ tasks, datasets, transformers = dc.molnet.load_qm7(
 
 train, valid, test = datasets
 
-regression_metric = dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression")
+regression_metric = dc.metrics.Metric(
+    dc.metrics.mean_absolute_error, mode="regression")
+
 
 def model_builder(model_dir):
-  sklearn_model = KernelRidge(
-      kernel="rbf", alpha=5e-4, gamma=0.008)
+  sklearn_model = KernelRidge(kernel="rbf", alpha=5e-4, gamma=0.008)
   return dc.models.SklearnModel(sklearn_model, model_dir)
+
+
 model = dc.models.SingletaskToMultitask(tasks, model_builder)
 
 # Fit trained model
