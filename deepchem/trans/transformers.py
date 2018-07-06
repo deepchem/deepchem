@@ -1189,22 +1189,20 @@ class DataTransforms():
   def __init__(self, Image):
     self.Image = Image
 
-  """ Scales the image
-        Parameters:
-            h - height of the images
-            w - width of the images
-    """
-
   def scale(self, h, w):
+    """ Scales the image
+            Parameters:
+                h - height of the images
+                w - width of the images
+    """
     return scipy.misc.imresize(self.Image, (h, w))
 
-  """ Flips the image
-        Parameters:
-            direction - "lr" denotes left-right fliplr
-                        "ud" denotes up-down flip
-    """
-
   def flip(self, direction="lr"):
+    """ Flips the image
+          Parameters:
+              direction - "lr" denotes left-right fliplr
+                          "ud" denotes up-down flip
+    """
     if direction == "lr":
       return np.fliplr(self.Image)
     elif direction == "ud":
@@ -1214,13 +1212,16 @@ class DataTransforms():
           "Invalid flip command : Enter either lr (for left to right flip) or ud (for up to down flip)"
       )
 
-  """ Rotates the image
-        Parameters:
-            angle (default = 0 i.e no rotation) - Denotes angle by which the image should be rotated (in Degrees)
-    """
-
   def rotate(self, angle=0):
+    """ Rotates the image
+          Parameters:
+              angle (default = 0 i.e no rotation) - Denotes angle by which the image should be rotated (in Degrees)
+    """
     return scipy.ndimage.rotate(self.Image, angle)
 
   def gaussian_blur(self, sigma=0.2):
+    """ Adds gaussian noise to the image
+          Parameters:
+            sigma - std dev. of the gaussian distribution
+    """
     return scipy.ndimage.gaussian_filter(self.Image, sigma)
