@@ -6,6 +6,8 @@ from __future__ import unicode_literals
 
 from deepchem.molnet import load_delaney
 from deepchem.trans.transformers import FeaturizationTransformer
+from deepchem.trans.transformers import DataTransforms
+from tensorflow.examples.tutorials.mnist import input_data
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
@@ -16,7 +18,7 @@ import unittest
 import numpy as np
 import pandas as pd
 import deepchem as dc
-
+import scipy.ndimage
 
 class TestTransformers(unittest.TestCase):
   """
@@ -482,3 +484,17 @@ class TestTransformers(unittest.TestCase):
 
     self.assertEqual(new_train.y.shape, train.y.shape)
     self.assertEqual(new_train.X.shape[-1], fp_size)
+
+  def test_data_transformers(self):
+      mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+      # extracting validation set of MNIST for testing the DataTransforms
+      valid = dc.data.NumpyDataset(mnist.validation.images, mnist.validation.labels)
+      # extract only the images (no need of the labels)
+      data = (valid.X)[0]
+      # reshaping the vector to image
+      data = np.reshape(data, (28, 28))
+
+      dt = DataTransforms(data)
+      blurred = dt.gaussian_blur(sigma=1.5)
+      check = scipy.ndimage.gaussian_filter(data, 1.5)
+      assert np,allclose(check, blurred)
