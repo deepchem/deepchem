@@ -497,4 +497,4 @@ class TestTransformers(unittest.TestCase):
       dt = DataTransforms(data)
       blurred = dt.gaussian_blur(sigma=1.5)
       check = scipy.ndimage.gaussian_filter(data, 1.5)
-      assert np,allclose(check, blurred)
+      assert np.allclose(check, blurred)
