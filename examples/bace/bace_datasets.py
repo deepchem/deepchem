@@ -11,6 +11,7 @@ import tempfile
 import deepchem as dc
 from deepchem.molnet.load_function.bace_features import bace_user_specified_features
 
+
 def load_bace(mode="regression", transform=True, split="20-80"):
   """Load BACE-1 dataset as regression/classification problem."""
   assert split in ["20-80", "80-20"]
@@ -18,11 +19,11 @@ def load_bace(mode="regression", transform=True, split="20-80"):
 
   current_dir = os.path.dirname(os.path.realpath(__file__))
   if split == "20-80":
-    dataset_file = os.path.join(
-        current_dir, "../../datasets/desc_canvas_aug30.csv")
+    dataset_file = os.path.join(current_dir,
+                                "../../datasets/desc_canvas_aug30.csv")
   elif split == "80-20":
-    dataset_file = os.path.join(
-        current_dir, "../../datasets/rev8020split_desc.csv")
+    dataset_file = os.path.join(current_dir,
+                                "../../datasets/rev8020split_desc.csv")
 
   crystal_dataset_file = os.path.join(
       current_dir, "../../datasets/crystal_desc_canvas_aug30.csv")
@@ -33,7 +34,9 @@ def load_bace(mode="regression", transform=True, split="20-80"):
     bace_tasks = ["Class"]
   featurizer = dc.feat.UserDefinedFeaturizer(bace_user_specified_features)
   loader = dc.data.UserCSVLoader(
-      tasks=bace_tasks, smiles_field="mol", id_field="CID",
+      tasks=bace_tasks,
+      smiles_field="mol",
+      id_field="CID",
       featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
   crystal_dataset = loader.featurize(crystal_dataset_file)
@@ -55,16 +58,20 @@ def load_bace(mode="regression", transform=True, split="20-80"):
   print(len(crystal_dataset))
 
   transformers = [
-      dc.trans.NormalizationTransformer(transform_X=True, dataset=train_dataset),
-      dc.trans.ClippingTransformer(transform_X=True, dataset=train_dataset)]
+      dc.trans.NormalizationTransformer(
+          transform_X=True, dataset=train_dataset),
+      dc.trans.ClippingTransformer(transform_X=True, dataset=train_dataset)
+  ]
   if mode == "regression":
     transformers += [
-      dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)]
-  
+        dc.trans.NormalizationTransformer(
+            transform_y=True, dataset=train_dataset)
+    ]
+
   for dataset in [train_dataset, valid_dataset, test_dataset, crystal_dataset]:
     if len(dataset) > 0:
       for transformer in transformers:
-          dataset = transformer.transform(dataset)
+        dataset = transformer.transform(dataset)
 
   return (bace_tasks, (train_dataset, valid_dataset, test_dataset,
-          crystal_dataset), transformers)
+                       crystal_dataset), transformers)

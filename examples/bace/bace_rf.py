@@ -13,10 +13,11 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.utils.evaluate import Evaluator
 
+
 def bace_rf_model(mode="classification", split="20-80"):
   """Train random forests on BACE dataset."""
-  (bace_tasks, (train, valid, test, crystal),
-   transformers) = load_bace(mode=mode, transform=False, split=split)
+  (bace_tasks, (train, valid, test, crystal), transformers) = load_bace(
+      mode=mode, transform=False, split=split)
 
   if mode == "regression":
     r2_metric = Metric(metrics.r2_score)
@@ -25,6 +26,7 @@ def bace_rf_model(mode="classification", split="20-80"):
     all_metrics = [r2_metric, rms_metric, mae_metric]
     metric = r2_metric
     model_class = RandomForestRegressor
+
     def rf_model_builder(model_params, model_dir):
       sklearn_model = RandomForestRegressor(**model_params)
       return SklearnModel(sklearn_model, model_dir)
@@ -36,7 +38,8 @@ def bace_rf_model(mode="classification", split="20-80"):
     recall_metric = Metric(metrics.recall_score)
     model_class = RandomForestClassifier
     all_metrics = [accuracy_metric, mcc_metric, recall_metric, roc_auc_metric]
-    metric = roc_auc_metric 
+    metric = roc_auc_metric
+
     def rf_model_builder(model_params, model_dir):
       sklearn_model = RandomForestClassifier(**model_params)
       return SklearnModel(sklearn_model, model_dir)
@@ -46,12 +49,11 @@ def bace_rf_model(mode="classification", split="20-80"):
   params_dict = {
       "n_estimators": [10, 100],
       "max_features": ["auto", "sqrt", "log2", None],
-      }
+  }
 
   optimizer = HyperparamOpt(rf_model_builder)
   best_rf, best_rf_hyperparams, all_rf_results = optimizer.hyperparam_search(
-      params_dict, train, valid, transformers,
-      metric=metric)
+      params_dict, train, valid, transformers, metric=metric)
 
   if len(train) > 0:
     rf_train_evaluator = Evaluator(best_rf, train, transformers)
@@ -84,6 +86,7 @@ def bace_rf_model(mode="classification", split="20-80"):
     rf_crystal_score = rf_crystal_evaluator.compute_model_performance(
         all_metrics, csv_out=csv_out, stats_out=stats_out)
     print("RF Crystal set: %s" % (str(rf_crystal_score)))
+
 
 if __name__ == "__main__":
   print("Classifier RF 20-80:")
