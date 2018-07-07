@@ -510,6 +510,11 @@ class TestTransformers(unittest.TestCase):
       check_rotate = scipy.ndimage.rotate(data, ang)
       assert np.allclose(rotate, check_rotate)
 
+    # Some more test cases for flip
+    rotate = dt.rotate(-90)
+    check_rotate = scipy.ndimage.rotate(data, 270)
+    assert np.allclose(rotate, check_rotate)
+
     # Check flip
     flip_lr = dt.flip(direction="lr")
     flip_ud = dt.flip(direction="ud")
