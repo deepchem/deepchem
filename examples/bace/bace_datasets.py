@@ -9,6 +9,7 @@ import os
 import deepchem
 import tempfile
 import deepchem as dc
+from deepchem.molnet.load_function.bace_features import bace_user_specified_features
 
 def load_bace(mode="regression", transform=True, split="20-80"):
   """Load BACE-1 dataset as regression/classification problem."""
@@ -30,7 +31,7 @@ def load_bace(mode="regression", transform=True, split="20-80"):
     bace_tasks = ["pIC50"]
   elif mode == "classification":
     bace_tasks = ["Class"]
-  featurizer = dc.feat.UserDefinedFeaturizer(user_specified_features)
+  featurizer = dc.feat.UserDefinedFeaturizer(bace_user_specified_features)
   loader = dc.data.UserCSVLoader(
       tasks=bace_tasks, smiles_field="mol", id_field="CID",
       featurizer=featurizer)
@@ -54,15 +55,16 @@ def load_bace(mode="regression", transform=True, split="20-80"):
   print(len(crystal_dataset))
 
   transformers = [
-      NormalizationTransformer(transform_X=True, dataset=train_dataset),
-      ClippingTransformer(transform_X=True, dataset=train_dataset)]
+      dc.trans.NormalizationTransformer(transform_X=True, dataset=train_dataset),
+      dc.trans.ClippingTransformer(transform_X=True, dataset=train_dataset)]
   if mode == "regression":
     transformers += [
-      NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+      dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)]
   
   for dataset in [train_dataset, valid_dataset, test_dataset, crystal_dataset]:
-    for transformer in transformers:
-        dataset = transformer.transform(dataset)
+    if len(dataset) > 0:
+      for transformer in transformers:
+          dataset = transformer.transform(dataset)
 
   return (bace_tasks, (train_dataset, valid_dataset, test_dataset,
           crystal_dataset), transformers)
