@@ -17,48 +17,45 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.splits import StratifiedSplitter, RandomSplitter
-from sweetlead_datasets import load_sweet
+#from sweetlead_datasets import load_sweet
 
-sys.path.append('./../toxcast')
-sys.path.append('./../sider')
+#sys.path.append('./../toxcast')
+#sys.path.append('./../sider')
+#
+#from tox_datasets import load_tox
+#from sider_datasets import load_sider
 
-from tox_datasets import load_tox
-from sider_datasets import load_sider
+#"""
+#Load toxicity models now
+#"""
 
-"""
-Load toxicity models now
-"""
+## Set some global variables up top
+#reload = False
+#verbosity = "high"
+#
+#base_tox_data_dir = "/home/apappu/deepchem-models/toxcast_models/toxcast/toxcast_data"
 
-# Set some global variables up top
-reload = False
-verbosity = "high"
-
-base_tox_data_dir = "/home/apappu/deepchem-models/toxcast_models/toxcast/toxcast_data"
-
-tox_tasks, tox_dataset, tox_transformers = load_tox(
-    base_tox_data_dir, reload=reload)
+tox_tasks, tox_dataset, tox_transformers = dc.molnet.load_toxcast()
 
 #removes directory if present -- warning
-base_tox_dir = "/home/apappu/deepchem-models/toxcast_models/toxcast/toxcast_analysis"
+#base_tox_dir = "/home/apappu/deepchem-models/toxcast_models/toxcast/toxcast_analysis"
 
-tox_train_dir = os.path.join(base_tox_dir, "train_dataset")
-tox_valid_dir = os.path.join(base_tox_dir, "valid_dataset")
-tox_test_dir = os.path.join(base_tox_dir, "test_dataset")
-tox_model_dir = os.path.join(base_tox_dir, "model")
+#tox_train_dir = os.path.join(base_tox_dir, "train_dataset")
+#tox_valid_dir = os.path.join(base_tox_dir, "valid_dataset")
+#tox_test_dir = os.path.join(base_tox_dir, "test_dataset")
+#tox_model_dir = os.path.join(base_tox_dir, "model")
 
-tox_splitter = StratifiedSplitter()
+#tox_splitter = StratifiedSplitter()
 
 #default split is 80-10-10 train-valid-test split
 tox_train_dataset, tox_valid_dataset, tox_test_dataset = tox_splitter.train_valid_test_split(
   tox_dataset, tox_train_dir, tox_valid_dir, tox_test_dir)
 
-# Fit Logistic Regression models
-tox_task_types = {task: "classification" for task in tox_tasks}
+## Fit Logistic Regression models
+#tox_task_types = {task: "classification" for task in tox_tasks}
 
 
-classification_metric = Metric(metrics.roc_auc_score, np.mean,
-                               verbosity=verbosity,
-                               mode="classification")
+classification_metric = Metric(metrics.roc_auc_score, np.mean, mode="classification")
 params_dict = {
     "batch_size": None,
     "data_shape": tox_train_dataset.get_data_shape(),
@@ -113,7 +110,7 @@ Load sweetlead dataset now. Pass in dataset object and appropriate transformers 
 
 base_sweet_data_dir = "/home/apappu/deepchem-models/toxcast_models/sweetlead/sweet_data"
 
-sweet_dataset, sweet_transformers = load_sweet(
+sweet_dataset, sweet_transformers = dc.molnet.load_sweet(
     base_sweet_data_dir, reload=reload)
 
 sider_predictions = sider_model.predict(sweet_dataset, sweet_transformers)
