@@ -19,16 +19,18 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 
-tox_tasks, (tox_train, tox_valid, tox_test), tox_transformers = dc.molnet.load_tox21()
+tox_tasks, (tox_train, tox_valid,
+            tox_test), tox_transformers = dc.molnet.load_tox21()
 
-classification_metric = Metric(metrics.roc_auc_score, np.mean, mode="classification")
+classification_metric = Metric(
+    metrics.roc_auc_score, np.mean, mode="classification")
+
 
 def model_builder(model_dir):
   sklearn_model = RandomForestClassifier(
-                          class_weight="balanced",
-                          n_estimators=500,
-                          n_jobs=-1)
+      class_weight="balanced", n_estimators=500, n_jobs=-1)
   return dc.models.SklearnModel(sklearn_model, model_dir)
+
 
 print(tox_train.get_task_names())
 print(tox_tasks)
@@ -37,7 +39,9 @@ tox_model.fit(tox_train)
 
 # Load sider models now
 
-sider_tasks, (sider_train, sider_valid, sider_test), sider_transformers = dc.molnet.load_sider(split="random")
+sider_tasks, (
+    sider_train, sider_valid,
+    sider_test), sider_transformers = dc.molnet.load_sider(split="random")
 
 sider_model = SingletaskToMultitask(sider_tasks, model_builder)
 sider_model.fit(sider_train)
@@ -60,9 +64,8 @@ for i in range(tox_predictions.shape[0]):
   nonzero_sider = np.nonzero(sider_predictions[i, :])
   for j in nonzero_tox[0]:
     for k in nonzero_sider[0]:
-      confusion_matrix[j,k] +=1
- 
+      confusion_matrix[j, k] += 1
+
 df = pd.DataFrame(confusion_matrix)
 
 df.to_csv("./tox_sider_matrix.csv")
-
