@@ -12,16 +12,16 @@ tf.set_random_seed(123)
 import deepchem as dc
 
 # Load SAMPL(FreeSolv) dataset
-SAMPL_tasks, SAMPL_datasets, transformers = dc.molnet.load_sampl(featurizer='GraphConv')
+SAMPL_tasks, SAMPL_datasets, transformers = dc.molnet.load_sampl(
+    featurizer='GraphConv')
 train_dataset, valid_dataset, test_dataset = SAMPL_datasets
 
-# Define metric 
+# Define metric
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
 
 # Batch size of models
 batch_size = 50
-model = dc.models.GraphConvModel(
-    len(SAMPL_tasks), mode='regression')
+model = dc.models.GraphConvModel(len(SAMPL_tasks), mode='regression')
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=20)
