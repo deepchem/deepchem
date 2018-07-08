@@ -47,6 +47,9 @@ def load_sweet(featurizer='ECFP', split='index', reload=True, frac_train=.8):
   for transformer in transformers:
       dataset = transformer.transform(dataset)
 
+  if split == None:
+    return SWEET_tasks, (dataset, None, None), transformers
+
   splitters = {
       'index': dc.splits.IndexSplitter(),
       'random': dc.splits.RandomSplitter(),
