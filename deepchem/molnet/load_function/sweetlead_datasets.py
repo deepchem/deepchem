@@ -8,19 +8,22 @@ from __future__ import unicode_literals
 import os
 import numpy as np
 import shutil
+import logging
 import deepchem as dc
+
+logger = logging.getLogger(__name__)
 
 def load_sweet(featurizer='ECFP', split='index', reload=True, frac_train=.8):
   """Load sweet datasets."""
   # Load Sweetlead dataset
   logger.info("About to load Sweetlead dataset.")
-  data_dir = deepchem.utils.get_data_dir()
+  data_dir = dc.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "sweetlead/" + featurizer + "/" + str(split))
 
   dataset_file = os.path.join(data_dir, "sweet.csv.gz")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(
+    dc.utils.download_url(
         'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/sweet.csv.gz'
     )
 
@@ -45,17 +48,17 @@ def load_sweet(featurizer='ECFP', split='index', reload=True, frac_train=.8):
       dataset = transformer.transform(dataset)
 
   splitters = {
-      'index': deepchem.splits.IndexSplitter(),
-      'random': deepchem.splits.RandomSplitter(),
-      'scaffold': deepchem.splits.ScaffoldSplitter(),
-      'task': deepchem.splits.TaskSplitter()
+      'index': dc.splits.IndexSplitter(),
+      'random': dc.splits.RandomSplitter(),
+      'scaffold': dc.splits.ScaffoldSplitter(),
+      'task': dc.splits.TaskSplitter()
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
-                                             transformers)
+    dc.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                       transformers)
     all_dataset = (train, valid, test)
 
   return SWEET_tasks, (train, valid, test), transformers
