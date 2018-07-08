@@ -11,12 +11,13 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+import deepchem as dc
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
-from deepchem.splits import StratifiedSplitter, RandomSplitter
+#from deepchem.splits import StratifiedSplitter, RandomSplitter
 #from sweetlead_datasets import load_sweet
 
 #sys.path.append('./../toxcast')
@@ -35,7 +36,7 @@ from deepchem.splits import StratifiedSplitter, RandomSplitter
 #
 #base_tox_data_dir = "/home/apappu/deepchem-models/toxcast_models/toxcast/toxcast_data"
 
-tox_tasks, tox_dataset, tox_transformers = dc.molnet.load_toxcast()
+tox_tasks, (tox_train, tox_valid, tox_test), tox_transformers = dc.molnet.load_toxcast()
 
 #removes directory if present -- warning
 #base_tox_dir = "/home/apappu/deepchem-models/toxcast_models/toxcast/toxcast_analysis"
@@ -48,28 +49,35 @@ tox_tasks, tox_dataset, tox_transformers = dc.molnet.load_toxcast()
 #tox_splitter = StratifiedSplitter()
 
 #default split is 80-10-10 train-valid-test split
-tox_train_dataset, tox_valid_dataset, tox_test_dataset = tox_splitter.train_valid_test_split(
-  tox_dataset, tox_train_dir, tox_valid_dir, tox_test_dir)
+#tox_train_dataset, tox_valid_dataset, tox_test_dataset = tox_splitter.train_valid_test_split(
+#  tox_dataset, tox_train_dir, tox_valid_dir, tox_test_dir)
 
 ## Fit Logistic Regression models
 #tox_task_types = {task: "classification" for task in tox_tasks}
 
 
 classification_metric = Metric(metrics.roc_auc_score, np.mean, mode="classification")
-params_dict = {
-    "batch_size": None,
-    "data_shape": tox_train_dataset.get_data_shape(),
-}
 
-def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
-  return SklearnModel(tasks, task_types, model_params, model_dir,
-                      model_instance=RandomForestClassifier(
+#params_dict = {
+#    "batch_size": None,
+#    "data_shape": tox_train_dataset.get_data_shape(),
+#}
+
+#def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
+#  return SklearnModel(tasks, task_types, model_params, model_dir,
+#                      model_instance=RandomForestClassifier(
+#                          class_weight="balanced",
+#                          n_estimators=500,
+#                          n_jobs=-1),
+#                      verbosity=verbosity)
+def model_builder(model_dir):
+  sklearn_model = RandomForestClassifier(
                           class_weight="balanced",
                           n_estimators=500,
-                          n_jobs=-1),
-                      verbosity=verbosity)
-tox_model = SingletaskToMultitask(tox_tasks, tox_task_types, params_dict, tox_model_dir,
-                              model_builder, verbosity=verbosity)
+                          n_jobs=-1)
+  return dc.models.SklearnModel(sklearn_model, model_dir)
+
+tox_model = SingletaskToMultitask(tox_tasks, model_builder)
 tox_model.reload()
 
 """
