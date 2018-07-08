@@ -1,6 +1,7 @@
 """
-Script that loads random forest models trained on the sider and toxcast datasets, predicts on sweetlead,
-creates covariance matrix
+Script that loads random forest models trained on the sider and tox21 datasets,
+predicts on sweetlead, creates covariance matrix
+
 @Author Aneesh Pappu
 """
 from __future__ import print_function
@@ -38,7 +39,7 @@ tox_model.fit(tox_train)
 
 sider_tasks, (sider_train, sider_valid, sider_test), sider_transformers = dc.molnet.load_sider(split="random")
 
-sider_model = SingletaskToMultitask(tox_tasks, model_builder)
+sider_model = SingletaskToMultitask(sider_tasks, model_builder)
 sider_model.fit(sider_train)
 
 # Load sweetlead dataset now. Pass in dataset object and appropriate
