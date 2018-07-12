@@ -500,14 +500,14 @@ class TestTransformers(unittest.TestCase):
     data = np.reshape(data, (28, 28))
     self.d = data
 
-  def blurring():
+  def test_blurring():
     # Check Blurring
     dt = DataTransforms(self.d)
     blurred = dt.gaussian_blur(sigma=1.5)
     check_blur = scipy.ndimage.gaussian_filter(data, 1.5)
     assert np.allclose(check_blur, blurred)
 
-  def rotation():
+  def test_rotation():
     # Check rotation
     dt = DataTransforms(self.d)
     angles = [0, 5, 10, 90]
@@ -521,7 +521,7 @@ class TestTransformers(unittest.TestCase):
     check_rotate = scipy.ndimage.rotate(data, 270)
     assert np.allclose(rotate, check_rotate)
 
-  def flipping():
+  def test_flipping():
     # Check flip
     dt = DataTransforms(self.d)
     flip_lr = dt.flip(direction="lr")
@@ -531,7 +531,7 @@ class TestTransformers(unittest.TestCase):
     assert np.allclose(flip_ud, check_ud)
     assert np.allclose(flip_lr, check_lr)
 
-  def scaling():
+  def test_scaling():
     # Check Scales
     dt = DataTransforms(self.d)
     h = 150
