@@ -1183,7 +1183,7 @@ class FeaturizationTransformer(Transformer):
     return X, y, w
 
 
-class DataTransforms():
+class DataTransforms(Transformer):
   """Applies different data transforms to images."""
 
   def __init__(self, Image):
