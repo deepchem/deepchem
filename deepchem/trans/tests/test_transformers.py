@@ -29,6 +29,18 @@ class TestTransformers(unittest.TestCase):
   def setUp(self):
     super(TestTransformers, self).setUp()
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
+    '''
+       init to load the MNIST data for DataTransforms Tests
+      '''
+    mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+    # extracting validation set of MNIST for testing the DataTransforms
+    valid = dc.data.NumpyDataset(mnist.validation.images,
+                                 mnist.validation.labels)
+    # extract only the images (no need of the labels)
+    data = (valid.X)[0]
+    # reshaping the vector to image
+    data = np.reshape(data, (28, 28))
+    self.d = data
 
   def test_y_log_transformer(self):
     """Tests logarithmic data transformer."""
@@ -486,56 +498,42 @@ class TestTransformers(unittest.TestCase):
     self.assertEqual(new_train.y.shape, train.y.shape)
     self.assertEqual(new_train.X.shape[-1], fp_size)
 
-  def __init__(self, d):
-    '''
-       init to load the MNIST data for DataTransforms Tests
-      '''
-    mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
-    # extracting validation set of MNIST for testing the DataTransforms
-    valid = dc.data.NumpyDataset(mnist.validation.images,
-                                 mnist.validation.labels)
-    # extract only the images (no need of the labels)
-    data = (valid.X)[0]
-    # reshaping the vector to image
-    data = np.reshape(data, (28, 28))
-    self.d = data
-
-  def test_blurring():
+  def test_blurring(self):
     # Check Blurring
     dt = DataTransforms(self.d)
     blurred = dt.gaussian_blur(sigma=1.5)
-    check_blur = scipy.ndimage.gaussian_filter(data, 1.5)
+    check_blur = scipy.ndimage.gaussian_filter(self.d, 1.5)
     assert np.allclose(check_blur, blurred)
 
-  def test_rotation():
+  def test_rotation(self):
     # Check rotation
     dt = DataTransforms(self.d)
     angles = [0, 5, 10, 90]
     for ang in angles:
       rotate = dt.rotate(ang)
-      check_rotate = scipy.ndimage.rotate(data, ang)
+      check_rotate = scipy.ndimage.rotate(self.d, ang)
       assert np.allclose(rotate, check_rotate)
 
     # Some more test cases for flip
     rotate = dt.rotate(-90)
-    check_rotate = scipy.ndimage.rotate(data, 270)
+    check_rotate = scipy.ndimage.rotate(self.d, 270)
     assert np.allclose(rotate, check_rotate)
 
-  def test_flipping():
+  def test_flipping(self):
     # Check flip
     dt = DataTransforms(self.d)
     flip_lr = dt.flip(direction="lr")
     flip_ud = dt.flip(direction="ud")
-    check_lr = np.fliplr(data)
-    check_ud = np.flipud(data)
+    check_lr = np.fliplr(self.d)
+    check_ud = np.flipud(self.d)
     assert np.allclose(flip_ud, check_ud)
     assert np.allclose(flip_lr, check_lr)
 
-  def test_scaling():
+  def test_scaling(self):
     # Check Scales
     dt = DataTransforms(self.d)
     h = 150
     w = 150
-    scale = scipy.misc.imresize(data, (h, w))
+    scale = scipy.misc.imresize(self.d, (h, w))
     check_scale = dt.scale(h, w)
     np.allclose(scale, check_scale)
