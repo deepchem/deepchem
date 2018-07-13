@@ -26,6 +26,7 @@ from deepchem.models.tensorgraph.models.gan import GAN, WGAN
 from deepchem.models.tensorgraph.models.text_cnn import TextCNNModel
 from deepchem.models.tensorgraph.sequential import Sequential
 from deepchem.models.tensorgraph.models.sequence_dnn import SequenceDNN
+from deepchem.models.tensorgraph.models.ontology import OntologyModel, OntologyNode
 
 #################### Compatibility imports for renamed TensorGraph models. Remove below with DeepChem 3.0. ####################
 
