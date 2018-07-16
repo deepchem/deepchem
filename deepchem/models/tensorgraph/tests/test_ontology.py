@@ -105,3 +105,32 @@ class TestOntology(test_util.TensorFlowTestCase):
     assert leaf2_error[1] == 0
     assert np.mean(
         [leaf1_error[1], leaf1_error[2], leaf2_error[0], leaf2_error[2]]) > 0.01
+
+  def test_create_gene_ontology(self):
+    """Test creating OntologyNodes for the Gene Ontology classification."""
+
+    # Here are mappings for just a few yeast genes.
+
+    mapping = {}
+    mapping['STE7'] = ['GO:0000187']
+    mapping['PBS2'] = ['GO:0000187']
+    mapping['NOP8'] = [
+        'GO:0003676', 'GO:0003723', 'GO:0042254', 'GO:0005634', 'GO:0005730'
+    ]
+
+    # Build the ontology, then see if it looks correct.
+
+    root = dc.models.tensorgraph.models.ontology.create_gene_ontology(
+        mapping, min_node_features=1)
+    assert len(root.feature_ids) == 0
+
+    def find_features(node, features):
+      features.update(node.feature_ids)
+      for child in node.children:
+        find_features(child, features)
+
+    all_features = set()
+    find_features(root, all_features)
+    assert len(all_features) == 3
+    for key in mapping:
+      assert key in all_features
