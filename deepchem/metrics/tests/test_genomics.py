@@ -21,6 +21,7 @@ class TestGenomicMetrics(unittest.TestCase):
   """
 
   def test_get_motif_scores(self):
+    """Check that motif_scores have correct shape."""
     # Encode motif
     motif_name = "TAL1_known4"
     sequences = np.array(["ACGTA", "GATAG", "CGCGC"])
@@ -28,13 +29,18 @@ class TestGenomicMetrics(unittest.TestCase):
     # sequences now has shape (3, 4, 5, 1)
     self.assertEqual(sequences.shape, (3, 4, 5, 1))
 
-    get_motif_scores(sequences, [motif_name])
+    motif_scores = get_motif_scores(sequences, [motif_name])
+    self.assertEqual(motif_scores.shape, (3, 1, 5))
+
 
   def test_get_pssm_scores(self):
+    """Test get_pssm_scores returns correct shape."""
     motif_name = "TAL1_known4"
     sequences = np.array(["ACGTA", "GATAG", "CGCGC"])
     sequences = dc.utils.save.seq_one_hot_encode(sequences, letters=LETTERS)
     # sequences now has shape (3, 4, 5, 1)
     self.assertEqual(sequences.shape, (3, 4, 5, 1))
+    pssm = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
 
-    get_pssm_scores(sequences, [motif_name])
+    pssm_scores = get_pssm_scores(sequences, pssm)
+    self.assertEqual(pssm_scores.shape, (3, 5))
