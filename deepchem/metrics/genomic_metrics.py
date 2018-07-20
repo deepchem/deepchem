@@ -100,14 +100,13 @@ def in_silico_mutagenesis(model, X):
     Parameters
     ----------
     model: TensorGraph
-      SequenceDNN?
-    X: array...
-      What shape?
+      Currently only SequenceDNN will work, but other models may be added.
+    X: ndarray
+      Shape (N_sequences, 1, N_letters, sequence_length) 
 
     Returns
     -------
-    #(num_task, N_sequences, 1, N_letters, sequence_length) ISM score array.
-    (num_task, N_sequences, N_letters, sequence_length) ISM score array.
+    (num_task, N_sequences, 1, N_letters, sequence_length) ISM score array.
     """
   mutagenesis_scores = np.empty(X.shape + (model.num_tasks,), dtype=np.float32)
   wild_type_predictions = model.predict(NumpyDataset(X))
@@ -133,4 +132,5 @@ def in_silico_mutagenesis(model, X):
                                                       (model.num_tasks,))
     mutagenesis_scores[
         sequence_index] = wild_type_prediction - mutated_predictions
-  return np.rollaxis(mutagenesis_scores, -1)
+  rolled_scores = np.rollaxis(mutagenesis_scores, -1)
+  return rolled_scores

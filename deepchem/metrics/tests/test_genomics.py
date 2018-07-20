@@ -58,8 +58,4 @@ class TestGenomicMetrics(unittest.TestCase):
 
     # Call in-silico mutagenesis
     mutagenesis_scores = in_silico_mutagenesis(model, X)
-    print("mutagenesis_scores.shape")
-    print(mutagenesis_scores.shape)
-
-
-
+    self.assertEqual(mutagenesis_scores.shape, (1, 10, 1, 4, 50))
