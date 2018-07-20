@@ -46,7 +46,7 @@ class TestGenomicMetrics(unittest.TestCase):
     pssm_scores = get_pssm_scores(sequences, pssm)
     self.assertEqual(pssm_scores.shape, (3, 5))
 
-  def test_in_silico_mutagenesis(self):
+  def test_in_silico_mutagenesis_shape(self):
     """Test in-silico mutagenesis returns correct shape."""
     # Construct and train SequenceDNN model
     sequences = np.array(["ACGTA", "GATAG", "CGCGC"])
@@ -66,3 +66,27 @@ class TestGenomicMetrics(unittest.TestCase):
     # Call in-silico mutagenesis
     mutagenesis_scores = in_silico_mutagenesis(model, sequences)
     self.assertEqual(mutagenesis_scores.shape, (1, 3, 4, 5, 1))
+
+  def test_in_silico_mutagenesis_nonzero(self):
+    """Test in-silico mutagenesis returns nonzero output."""
+    # Construct and train SequenceDNN model
+    sequences = np.array(["ACGTA", "GATAG", "CGCGC"])
+    sequences = dc.utils.save.seq_one_hot_encode(sequences, letters=LETTERS)
+    labels = np.array([1, 0, 0])
+    labels = np.reshape(labels, (3, 1))
+    self.assertEqual(sequences.shape, (3, 4, 5, 1))
+
+    #X = np.random.rand(10, 1, 4, 50)
+    #y = np.random.randint(0, 2, size=(10, 1))
+    #dataset = dc.data.NumpyDataset(X, y)
+    dataset = dc.data.NumpyDataset(sequences, labels)
+    model = dc.models.SequenceDNN(
+        5, "binary_crossentropy", num_filters=[1, 1], kernel_size=[15, 15])
+    model.fit(dataset, nb_epoch=1)
+
+    # Call in-silico mutagenesis
+    mutagenesis_scores = in_silico_mutagenesis(model, sequences)
+    self.assertEqual(mutagenesis_scores.shape, (1, 3, 4, 5, 1))
+
+    # Check nonzero elements exist
+    assert np.count_nonzero(mutagenesis_scores) > 0
