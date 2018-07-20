@@ -19,4 +19,5 @@ from deepchem.data.data_loader import CSVLoader
 from deepchem.data.data_loader import UserCSVLoader
 from deepchem.data.data_loader import SDFLoader
 from deepchem.data.data_loader import FASTALoader
+from deepchem.data.data_loader import ImageLoader
 import deepchem.data.tests
