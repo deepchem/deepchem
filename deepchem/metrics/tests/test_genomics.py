@@ -14,6 +14,7 @@ LETTERS = "ACGT"
 
 from deepchem.metrics.genomic_metrics import get_motif_scores
 from deepchem.metrics.genomic_metrics import get_pssm_scores
+from deepchem.metrics.genomic_metrics import in_silico_mutagenesis
 
 
 class TestGenomicMetrics(unittest.TestCase):
@@ -44,3 +45,21 @@ class TestGenomicMetrics(unittest.TestCase):
 
     pssm_scores = get_pssm_scores(sequences, pssm)
     self.assertEqual(pssm_scores.shape, (3, 5))
+
+  def test_in_silico_mutagenesis(self):
+    """Test in-silico mutagenesis returns correct shape."""
+    # Construct and train SequenceDNN model
+    X = np.random.rand(10, 1, 4, 50)
+    y = np.random.randint(0, 2, size=(10, 1))
+    dataset = dc.data.NumpyDataset(X, y)
+    model = dc.models.SequenceDNN(
+        50, "binary_crossentropy", num_filters=[1, 1], kernel_size=[15, 15])
+    model.fit(dataset, nb_epoch=1)
+
+    # Call in-silico mutagenesis
+    mutagenesis_scores = in_silico_mutagenesis(model, X)
+    print("mutagenesis_scores.shape")
+    print(mutagenesis_scores.shape)
+
+
+

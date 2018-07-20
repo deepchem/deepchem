@@ -1,6 +1,7 @@
 """Evaluation Metrics for Genomics Datasets."""
 
 import numpy as np
+from deepchem.data import NumpyDataset
 from deepchem.utils.genomics import loaded_motifs
 from scipy.signal import correlate2d
 
@@ -91,3 +92,45 @@ def get_pssm_scores(encoded_sequences, pssm):
   # take max of fwd and reverse scores at each position
   scores = np.maximum(fwd_scores, rc_scores)
   return scores
+
+
+def in_silico_mutagenesis(model, X):
+  """Computes in-silico-mutagenesis scores
+
+    Parameters
+    ----------
+    model: TensorGraph
+      SequenceDNN?
+    X: array...
+      What shape?
+
+    Returns
+    -------
+    #(num_task, N_sequences, 1, N_letters, sequence_length) ISM score array.
+    (num_task, N_sequences, N_letters, sequence_length) ISM score array.
+    """
+  mutagenesis_scores = np.empty(X.shape + (model.num_tasks,), dtype=np.float32)
+  wild_type_predictions = model.predict(NumpyDataset(X))
+  wild_type_predictions = wild_type_predictions[:, np.newaxis, np.newaxis,
+                                                np.newaxis]
+  for sequence_index, (
+      sequence,
+      wild_type_prediction) in enumerate(zip(X, wild_type_predictions)):
+    mutated_sequences = np.repeat(
+        sequence[np.newaxis], np.prod(sequence.shape), axis=0)
+    # remove wild-type
+    arange = np.arange(len(mutated_sequences))
+    horizontal_cycle = np.tile(
+        np.arange(sequence.shape[-1]), sequence.shape[-2])
+    mutated_sequences[arange, :, :, horizontal_cycle] = 0
+    # add mutant
+    vertical_repeat = np.repeat(
+        np.arange(sequence.shape[-2]), sequence.shape[-1])
+    mutated_sequences[arange, :, vertical_repeat, horizontal_cycle] = 1
+    # make mutant predictions
+    mutated_predictions = model.predict(NumpyDataset(mutated_sequences))
+    mutated_predictions = mutated_predictions.reshape(sequence.shape +
+                                                      (model.num_tasks,))
+    mutagenesis_scores[
+        sequence_index] = wild_type_prediction - mutated_predictions
+  return np.rollaxis(mutagenesis_scores, -1)
