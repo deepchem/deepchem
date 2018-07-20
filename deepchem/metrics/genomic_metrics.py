@@ -37,8 +37,7 @@ def get_motif_scores(encoded_sequences,
         [[1 - GC_fraction, GC_fraction, GC_fraction, 1 - GC_fraction]] * len(
             pwm[0])).T
     gc_log_pwm = np.log(gc_pwm)
-    log_scores = get_pssm_scores(encoded_sequences,
-                                      log_pwm)
+    log_scores = get_pssm_scores(encoded_sequences, log_pwm)
     gc_log_scores = get_pssm_scores(encoded_sequences, gc_log_pwm)
     scores[:, j, :] = log_scores - gc_log_scores
   if max_scores is not None:
