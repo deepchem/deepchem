@@ -49,13 +49,20 @@ class TestGenomicMetrics(unittest.TestCase):
   def test_in_silico_mutagenesis(self):
     """Test in-silico mutagenesis returns correct shape."""
     # Construct and train SequenceDNN model
-    X = np.random.rand(10, 1, 4, 50)
-    y = np.random.randint(0, 2, size=(10, 1))
-    dataset = dc.data.NumpyDataset(X, y)
+    sequences = np.array(["ACGTA", "GATAG", "CGCGC"])
+    sequences = dc.utils.save.seq_one_hot_encode(sequences, letters=LETTERS)
+    labels = np.array([1, 0, 0])
+    labels = np.reshape(labels, (3, 1))
+    self.assertEqual(sequences.shape, (3, 4, 5, 1))
+
+    #X = np.random.rand(10, 1, 4, 50)
+    #y = np.random.randint(0, 2, size=(10, 1))
+    #dataset = dc.data.NumpyDataset(X, y)
+    dataset = dc.data.NumpyDataset(sequences, labels)
     model = dc.models.SequenceDNN(
-        50, "binary_crossentropy", num_filters=[1, 1], kernel_size=[15, 15])
+        5, "binary_crossentropy", num_filters=[1, 1], kernel_size=[15, 15])
     model.fit(dataset, nb_epoch=1)
 
     # Call in-silico mutagenesis
-    mutagenesis_scores = in_silico_mutagenesis(model, X)
-    self.assertEqual(mutagenesis_scores.shape, (1, 10, 1, 4, 50))
+    mutagenesis_scores = in_silico_mutagenesis(model, sequences)
+    self.assertEqual(mutagenesis_scores.shape, (1, 3, 4, 5, 1))

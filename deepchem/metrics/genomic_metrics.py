@@ -96,36 +96,46 @@ def get_pssm_scores(encoded_sequences, pssm):
 
 def in_silico_mutagenesis(model, X):
   """Computes in-silico-mutagenesis scores
+   
+  Parameters
+  ----------
+  model: TensorGraph
+    Currently only SequenceDNN will work, but other models may be added.
+  X: ndarray
+    Shape (N_sequences, N_letters, sequence_length, 1) 
 
-    Parameters
-    ----------
-    model: TensorGraph
-      Currently only SequenceDNN will work, but other models may be added.
-    X: ndarray
-      Shape (N_sequences, 1, N_letters, sequence_length) 
-
-    Returns
-    -------
-    (num_task, N_sequences, 1, N_letters, sequence_length) ISM score array.
-    """
+  Returns
+  -------
+  (num_task, N_sequences, N_letters, sequence_length, 1) ISM score array.
+  """
+  #Shape (N_sequences, N_letters, sequence_length, 1, num_tasks)
   mutagenesis_scores = np.empty(X.shape + (model.num_tasks,), dtype=np.float32)
+  # Shape (N_sequences, num_tasks)
   wild_type_predictions = model.predict(NumpyDataset(X))
+  # Shape (N_sequences, num_tasks, 1, 1, 1)
   wild_type_predictions = wild_type_predictions[:, np.newaxis, np.newaxis,
                                                 np.newaxis]
   for sequence_index, (
       sequence,
       wild_type_prediction) in enumerate(zip(X, wild_type_predictions)):
+
+    # Mutates every position of the sequence to every letter
+    # Shape (N_letters * sequence_length, N_letters, sequence_length, 1)
+    # Breakdown:
+    #  Shape of sequence[np.newaxis] (1, N_letters, sequence_length, 1)
     mutated_sequences = np.repeat(
         sequence[np.newaxis], np.prod(sequence.shape), axis=0)
+
     # remove wild-type
+    # len(arange) = N_letters * sequence_length
     arange = np.arange(len(mutated_sequences))
-    horizontal_cycle = np.tile(
-        np.arange(sequence.shape[-1]), sequence.shape[-2])
-    mutated_sequences[arange, :, :, horizontal_cycle] = 0
+    # len(horizontal cycle) = N_letters * sequence_length
+    horizontal_cycle = np.tile(np.arange(sequence.shape[1]), sequence.shape[0])
+    mutated_sequences[arange, :, horizontal_cycle, :] = 0
+
     # add mutant
-    vertical_repeat = np.repeat(
-        np.arange(sequence.shape[-2]), sequence.shape[-1])
-    mutated_sequences[arange, :, vertical_repeat, horizontal_cycle] = 1
+    vertical_repeat = np.repeat(np.arange(sequence.shape[0]), sequence.shape[1])
+    mutated_sequences[arange, vertical_repeat, horizontal_cycle, :] = 1
     # make mutant predictions
     mutated_predictions = model.predict(NumpyDataset(mutated_sequences))
     mutated_predictions = mutated_predictions.reshape(sequence.shape +
