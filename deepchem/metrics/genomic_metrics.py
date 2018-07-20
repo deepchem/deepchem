@@ -2,6 +2,7 @@
 
 import numpy as np
 from deepchem.utils.genomics import loaded_motifs
+from scipy.signal import correlate2d
 
 
 def get_motif_scores(encoded_sequences,
@@ -14,6 +15,7 @@ def get_motif_scores(encoded_sequences,
   Parameters
   ----------
   encoded_sequences : 4darray
+       (N_sequences, N_letters, sequence_length, 1) array
   motif_names : list of strings
   max_scores : int, optional
   return_positions : boolean, optional
@@ -21,12 +23,12 @@ def get_motif_scores(encoded_sequences,
 
   Returns
   -------
-  (num_samples, num_motifs, seq_length) complete score array by default.
-  If max_scores, (num_samples, num_motifs*max_scores) max score array.
-  If max_scores and return_positions, (num_samples, 2*num_motifs*max_scores)
+  (N_sequences, num_motifs, seq_length) complete score array by default.
+  If max_scores, (N_sequences, num_motifs*max_scores) max score array.
+  If max_scores and return_positions, (N_sequences, 2*num_motifs*max_scores)
   array with max scores and their positions.
   """
-  num_samples, _, _, seq_length = encoded_sequences.shape
+  num_samples, _, seq_length, _ = encoded_sequences.shape
   scores = np.ones((num_samples, len(motif_names), seq_length))
   for j, motif_name in enumerate(motif_names):
     pwm = loaded_motifs.getPwm(motif_name).getRows().T
@@ -35,9 +37,10 @@ def get_motif_scores(encoded_sequences,
         [[1 - GC_fraction, GC_fraction, GC_fraction, 1 - GC_fraction]] * len(
             pwm[0])).T
     gc_log_pwm = np.log(gc_pwm)
-    scores[:, j, :] = get_pssm_scores(encoded_sequences,
-                                      log_pwm) - get_pssm_scores(
-                                          encoded_sequences, gc_log_pwm)
+    log_scores = get_pssm_scores(encoded_sequences,
+                                      log_pwm)
+    gc_log_scores = get_pssm_scores(encoded_sequences, gc_log_pwm)
+    scores[:, j, :] = log_scores - gc_log_scores
   if max_scores is not None:
     sorted_scores = np.sort(scores)[:, :, ::-1][:, :, :max_scores]
     if return_positions:
@@ -54,45 +57,6 @@ def get_motif_scores(encoded_sequences,
 
 
 def get_pssm_scores(encoded_sequences, pssm):
-  """Maximum PSSM scores.
-
-  Convolves pssm and its reverse complement with encoded sequences
-  and returns the maximum score at each position of each sequence.
-
-  Parameters
-  ----------
-  encoded_sequences: 3darray
-       (num_examples, 1, 4, seq_length) array
-  pssm: 2darray
-      (4, pssm_length) array
-
-  Returns
-  -------
-  scores: 2darray
-      (num_examples, seq_length) array
-  """
-  encoded_sequences = encoded_sequences.squeeze(axis=1)
-  # initialize fwd and reverse scores to -infinity
-  fwd_scores = np.full_like(encoded_sequences, -np.inf, float)
-  rc_scores = np.full_like(encoded_sequences, -np.inf, float)
-  # cross-correlate separately for each base,
-  # for both the PSSM and its reverse complement
-  for base_indx in range(encoded_sequences.shape[1]):
-    base_pssm = pssm[base_indx][None]
-    base_pssm_rc = base_pssm[:, ::-1]
-    fwd_scores[:, base_indx, :] = correlate2d(
-        encoded_sequences[:, base_indx, :], base_pssm, mode='same')
-    rc_scores[:, base_indx, :] = correlate2d(
-        encoded_sequences[:, -(base_indx + 1), :], base_pssm_rc, mode='same')
-  # sum over the bases
-  fwd_scores = fwd_scores.sum(axis=1)
-  rc_scores = rc_scores.sum(axis=1)
-  # take max of fwd and reverse scores at each position
-  scores = np.maximum(fwd_scores, rc_scores)
-  return scores
-
-
-def get_pssm_scores(encoded_sequences, pssm):
   """
   Convolves pssm and its reverse complement with encoded sequences
   and returns the maximum score at each position of each sequence.
@@ -100,7 +64,6 @@ def get_pssm_scores(encoded_sequences, pssm):
   Parameters
   ----------
   encoded_sequences: 3darray
-       #(num_examples, 1, 4, seq_length) array
        (N_sequences, N_letters, sequence_length, 1) array
   pssm: 2darray
       (4, pssm_length) array
@@ -108,7 +71,7 @@ def get_pssm_scores(encoded_sequences, pssm):
   Returns
   -------
   scores: 2darray
-      (num_examples, seq_length) array
+      (N_sequences, sequence_length)
   """
   encoded_sequences = encoded_sequences.squeeze(axis=3)
   # initialize fwd and reverse scores to -infinity
