@@ -47,8 +47,8 @@ def get_motif_scores(encoded_sequences,
       sorted_positions = scores.argsort()[:, :, ::-1][:, :, :max_scores]
       return np.concatenate(
           (sorted_scores.reshape((num_samples, len(motif_names) * max_scores)),
-           sorted_positions.reshape((num_samples,
-                                     len(motif_names) * max_scores))),
+           sorted_positions.reshape(
+               (num_samples, len(motif_names) * max_scores))),
           axis=1)
     else:
       return sorted_scores.reshape((num_samples, len(motif_names) * max_scores))
@@ -115,9 +115,8 @@ def in_silico_mutagenesis(model, X):
   # Shape (N_sequences, num_tasks, 1, 1, 1)
   wild_type_predictions = wild_type_predictions[:, np.newaxis, np.newaxis,
                                                 np.newaxis]
-  for sequence_index, (
-      sequence,
-      wild_type_prediction) in enumerate(zip(X, wild_type_predictions)):
+  for sequence_index, (sequence, wild_type_prediction) in enumerate(
+      zip(X, wild_type_predictions)):
 
     # Mutates every position of the sequence to every letter
     # Shape (N_letters * sequence_length, N_letters, sequence_length, 1)
