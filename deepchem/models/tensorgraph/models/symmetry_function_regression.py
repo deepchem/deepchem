@@ -15,8 +15,8 @@ import tensorflow as tf
 
 import deepchem as dc
 
-from deepchem.models.tensorgraph.layers import Dense, Concat, WeightedError, Stack, Layer, ANIFeat
-from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
+from deepchem.models.tensorgraph.layers import Dense, Concat, WeightedError, Stack, Layer, ANIFeat, Exp
+from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature, Dropout, WeightDecay
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 from deepchem.models.tensorgraph.symmetry_functions import DistanceMatrix, \
@@ -87,13 +87,14 @@ class BPSymmetryFunctionRegression(TensorGraph):
                         dataset,
                         epochs=1,
                         predict=False,
+                        deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
       if not predict:
         print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
-          deterministic=True,
+          deterministic=deterministic,
           pad_batches=pad_batches):
 
         feed_dict = dict()
@@ -115,6 +116,8 @@ class ANIRegression(TensorGraph):
   def __init__(self,
                n_tasks,
                max_atoms,
+               exp_loss=False,
+               activation_fn='ani',
                layer_structures=[128, 64],
                atom_number_cases=[1, 6, 7, 8, 16],
                **kwargs):
@@ -130,6 +133,8 @@ class ANIRegression(TensorGraph):
     """
     self.n_tasks = n_tasks
     self.max_atoms = max_atoms
+    self.exp_loss = exp_loss
+    self.activation_fn = activation_fn
     self.layer_structures = layer_structures
     self.atom_number_cases = atom_number_cases
     super(ANIRegression, self).__init__(**kwargs)
@@ -199,7 +204,7 @@ class ANIRegression(TensorGraph):
       numpy array of shape (a, 3) where a <= max_atoms and
       dtype is float-like
     atomic_nums: np.array
-      numpy array of shape (a,) where a is the same as that of X. 
+      numpy array of shape (a,) where a is the same as that of X.
     constraints: unused
       This parameter is mainly for compatibility purposes for scipy optimize
 
@@ -219,7 +224,8 @@ class ANIRegression(TensorGraph):
     Z[:A.shape[0], :A.shape[1]] = A
     X = Z
     dd = dc.data.NumpyDataset(
-        np.array(X).reshape((1, self.max_atoms, 4)), np.array(0), np.array(1))
+        np.array(X).reshape((1, self.max_atoms, 4)), np.zeros((1, 1)),
+        np.ones((1, 1)))
     return self.predict(dd)[0]
 
   def grad_one(self, X, atomic_nums, constraints=None):
@@ -232,7 +238,7 @@ class ANIRegression(TensorGraph):
       numpy array of shape (a, 3) where a <= max_atoms and
       dtype is float-like
     atomic_nums: np.array
-      numpy array of shape (a,) where a is the same as that of X. 
+      numpy array of shape (a,) where a is the same as that of X.
     constraints: np.array
       numpy array of indices of X used for constraining a subset
       of the atoms of the molecule.
@@ -274,7 +280,7 @@ class ANIRegression(TensorGraph):
       numpy array of shape (a, 3) where a <= max_atoms and
       dtype is float-like
     atomic_nums: np.array
-      numpy array of shape (a,) where a is the same as that of X. 
+      numpy array of shape (a,) where a is the same as that of X.
 
     Returns
     -------
@@ -312,7 +318,7 @@ class ANIRegression(TensorGraph):
           self.max_atoms,
           n_hidden,
           self.atom_number_cases,
-          activation='tanh',
+          activation=self.activation_fn,
           in_layers=[previous_layer, self.atom_numbers])
       Hiddens.append(Hidden)
       previous_layer = Hiddens[-1]
@@ -333,6 +339,8 @@ class ANIRegression(TensorGraph):
     all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
+    if self.exp_loss:
+      loss = Exp(in_layers=[loss])
     self.set_loss(loss)
 
   def default_generator(self,

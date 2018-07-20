@@ -88,3 +88,8 @@ def test_seqtoseq_fingerprint():
 def test_dataset_preparation():
   nb, errors = _notebook_read("dataset_preparation.ipynb")
   assert errors == []
+
+
+def test_uncertainty():
+  nb, errors = _notebook_read("Uncertainty.ipynb")
+  assert errors == []

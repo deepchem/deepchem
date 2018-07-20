@@ -33,6 +33,7 @@ class TestGeneralize(unittest.TestCase):
 
     dataset = sklearn.datasets.load_diabetes()
     X, y = dataset.data, dataset.target
+    y = np.expand_dims(y, 1)
     frac_train = .7
     n_samples = len(X)
     n_train = int(frac_train * n_samples)
@@ -59,6 +60,7 @@ class TestGeneralize(unittest.TestCase):
     np.random.seed(123)
     dataset = sklearn.datasets.load_diabetes()
     X, y = dataset.data, dataset.target
+    y = np.expand_dims(y, 1)
 
     frac_train = .7
     n_samples = len(X)

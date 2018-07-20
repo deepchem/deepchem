@@ -18,7 +18,8 @@ def load_clintox(featurizer='ECFP', split='index', reload=True):
 
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "clintox/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir,
+                            "clintox/" + featurizer + "/" + str(split))
 
   dataset_file = os.path.join(data_dir, "clintox.csv.gz")
   if not os.path.exists(dataset_file):

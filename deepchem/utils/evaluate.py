@@ -97,12 +97,10 @@ class Evaluator(object):
       return {}
     else:
       mode = metrics[0].mode
+    y_pred = self.model.predict(self.dataset, self.output_transformers)
     if mode == "classification":
-      y_pred = self.model.predict_proba(self.dataset, self.output_transformers)
-      y_pred_print = self.model.predict(self.dataset,
-                                        self.output_transformers).astype(int)
+      y_pred_print = np.argmax(y_pred, -1)
     else:
-      y_pred = self.model.predict(self.dataset, self.output_transformers)
       y_pred_print = y_pred
     multitask_scores = {}
     all_task_scores = {}
@@ -180,6 +178,8 @@ class GeneratorEvaluator(object):
     self.weights = weights
     if len(self.label_keys) != len(self.output_keys):
       raise ValueError("Must have same number of labels and outputs")
+    if len(self.label_keys) != 1:
+      raise ValueError("GeneratorEvaluator currently only supports one label")
 
   def compute_model_performance(self, metrics, per_task_metrics=False):
     """
@@ -198,30 +198,17 @@ class GeneratorEvaluator(object):
 
     def generator_closure():
       for feed_dict in self.generator:
-        labels = []
-        for layer in self.label_keys:
-          labels.append(feed_dict[layer])
-          del feed_dict[layer]
-        for weight in self.weights:
-          w.append(feed_dict[weight])
-          del feed_dict[weight]
-        y.append(np.array(labels))
+        y.append(feed_dict[self.label_keys[0]])
+        if len(self.weights) > 0:
+          w.append(feed_dict[self.weights[0]])
         yield feed_dict
 
     if not len(metrics):
       return {}
     else:
       mode = metrics[0].mode
-    if mode == "classification":
-      y_pred = self.model.predict_proba_on_generator(generator_closure())
-      y = np.transpose(np.array(y), axes=[0, 2, 1, 3])
-      y = np.reshape(y, newshape=(-1, self.n_tasks, self.n_classes))
-      y = from_one_hot(y, axis=-1)
-    else:
-      y_pred = self.model.predict_proba_on_generator(generator_closure())
-      y = np.transpose(np.array(y), axes=[0, 2, 1, 3])
-      y = np.reshape(y, newshape=(-1, self.n_tasks))
-      y_pred = np.reshape(y_pred, newshape=(-1, self.n_tasks))
+    y_pred = self.model.predict_on_generator(generator_closure())
+    y = np.concatenate(y, axis=0)
     multitask_scores = {}
     all_task_scores = {}
 

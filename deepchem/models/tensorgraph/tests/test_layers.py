@@ -25,7 +25,7 @@ from deepchem.models.tensorgraph.layers import GRU
 from deepchem.models.tensorgraph.layers import Gather
 from deepchem.models.tensorgraph.layers import GraphConv
 from deepchem.models.tensorgraph.layers import GraphGather
-from deepchem.models.tensorgraph.layers import Hingeloss
+from deepchem.models.tensorgraph.layers import HingeLoss
 from deepchem.models.tensorgraph.layers import Input
 from deepchem.models.tensorgraph.layers import InputFifoQueue
 from deepchem.models.tensorgraph.layers import InteratomicL2Distances
@@ -54,6 +54,7 @@ from deepchem.models.tensorgraph.layers import ToFloat
 from deepchem.models.tensorgraph.layers import Transpose
 from deepchem.models.tensorgraph.layers import Variable
 from deepchem.models.tensorgraph.layers import VinaFreeEnergy
+from deepchem.models.tensorgraph.layers import WeightDecay
 from deepchem.models.tensorgraph.layers import WeightedError
 from deepchem.models.tensorgraph.layers import WeightedLinearCombo
 from deepchem.models.tensorgraph.IRV import IRVLayer
@@ -891,14 +892,25 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert irv_reg.eval() >= 0
 
   def test_hingeloss(self):
+    separation = 0.25
+    labels = [1, 1, 0, 0]
+    logits = [.3, .1, -0.3, -0.1]
+    losses = np.array([0, 0.15, 0, 0.15], dtype=np.float32)
 
-    labels = 1
-    logits = 1
-    logits_tensor = np.random.rand(logits)
-    labels_tensor = np.random.rand(labels)
     with self.test_session() as sess:
-      logits_tensor = tf.convert_to_tensor(logits_tensor, dtype=tf.float32)
-      labels_tensor = tf.convert_to_tensor(labels_tensor, dtype=tf.float32)
-      out_tensor = Hingeloss()(labels_tensor, logits_tensor)
+      logits_tensor = tf.convert_to_tensor(logits, dtype=tf.float32)
+      labels_tensor = tf.convert_to_tensor(labels, dtype=tf.float32)
+      out_tensor = HingeLoss(separation=separation)(labels_tensor,
+                                                    logits_tensor)
       out_tensor = out_tensor.eval()
-      assert out_tensor.shape == (labels,)
+      retval = np.all(losses == np.array(out_tensor))
+      self.assertTrue(retval)
+
+  def test_weight_decay(self):
+    """Test that WeightDecay can be invoked."""
+    values = np.random.rand(5, 5).astype(np.float32)
+    variable = tf.Variable(values)
+    with self.test_session() as sess:
+      sess.run(tf.global_variables_initializer())
+      cost = WeightDecay(3.0, 'l2')(0.0)
+      assert np.allclose(3.0 * np.sum(values * values) / 2, cost.eval())

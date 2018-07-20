@@ -131,7 +131,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
     # TODO(rbharath): This breaks with optimizer="momentum". Why?
-    model = dc.models.MultiTaskRegressor(
+    model = dc.models.MultitaskRegressor(
         n_tasks,
         n_features,
         dropouts=[0.],
@@ -163,7 +163,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
-    model = dc.models.MultiTaskClassifier(
+    model = dc.models.MultitaskClassifier(
         n_tasks,
         n_features,
         dropouts=[0.],
@@ -195,7 +195,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
     regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
-    model = dc.models.MultiTaskFitTransformRegressor(
+    model = dc.models.MultitaskFitTransformRegressor(
         n_tasks, [n_features, n_features],
         dropouts=[0.],
         weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
@@ -231,7 +231,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
-    model = dc.models.MultiTaskClassifier(
+    model = dc.models.MultitaskClassifier(
         n_tasks,
         n_features,
         dropouts=[0.],
@@ -276,7 +276,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
 
     classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
-    model = dc.models.MultiTaskClassifier(
+    model = dc.models.MultitaskClassifier(
         n_tasks,
         n_features,
         dropouts=[0.],
@@ -342,7 +342,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     classification_metric = dc.metrics.Metric(
         dc.metrics.accuracy_score, task_averager=np.mean)
-    model = dc.models.MultiTaskClassifier(
+    model = dc.models.MultitaskClassifier(
         n_tasks,
         n_features,
         dropouts=[0.],
@@ -410,7 +410,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     dataset_trans = IRV_transformer.transform(dataset)
     classification_metric = dc.metrics.Metric(
         dc.metrics.accuracy_score, task_averager=np.mean)
-    model = dc.models.TensorflowMultiTaskIRVClassifier(
+    model = dc.models.TensorflowMultitaskIRVClassifier(
         n_tasks, K=5, learning_rate=0.01, batch_size=n_samples)
 
     # Fit trained model
@@ -471,7 +471,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     regression_metric = dc.metrics.Metric(
         dc.metrics.mean_squared_error, task_averager=np.mean, mode="regression")
-    model = dc.models.MultiTaskRegressor(
+    model = dc.models.MultitaskRegressor(
         n_tasks,
         n_features,
         dropouts=[0.],
@@ -523,39 +523,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .2
-
-  def test_tensorgraph_DTNN_multitask_regression_overfit(self):
-    """Test deep tensor neural net overfits tiny data."""
-    np.random.seed(123)
-    tf.set_random_seed(123)
-
-    input_file = os.path.join(self.current_dir, "example_DTNN.mat")
-    dataset = scipy.io.loadmat(input_file)
-    X = dataset['X']
-    y = dataset['T']
-    w = np.ones_like(y)
-    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids=None)
-    regression_metric = dc.metrics.Metric(
-        dc.metrics.pearson_r2_score, task_averager=np.mean)
-    n_tasks = y.shape[1]
-    batch_size = 10
-
-    model = dc.models.DTNNTensorGraph(
-        n_tasks,
-        n_embedding=20,
-        n_distance=100,
-        batch_size=batch_size,
-        learning_rate=0.001,
-        use_queue=False,
-        mode="regression")
-
-    # Fit trained model
-    model.fit(dataset, nb_epoch=20)
-
-    # Eval model on train
-    scores = model.evaluate(dataset, [regression_metric])
-
-    assert scores[regression_metric.name] > .9
 
   @attr('slow')
   def test_ANI_multitask_regression_overfit(self):
@@ -661,7 +628,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     transformer = dc.trans.DAGTransformer(max_atoms=50)
     dataset = transformer.transform(dataset)
 
-    model = dc.models.DAGTensorGraph(
+    model = dc.models.DAGModel(
         n_tasks,
         max_atoms=50,
         n_atom_feat=n_feat,
@@ -777,7 +744,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     n_atom_feat = 75
     n_pair_feat = 14
     batch_size = 10
-    model = dc.models.MPNNTensorGraph(
+    model = dc.models.MPNNModel(
         n_tasks,
         n_atom_feat=n_atom_feat,
         n_pair_feat=n_pair_feat,
@@ -811,10 +778,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
 
-    char_dict, length = dc.models.TextCNNTensorGraph.build_char_dict(dataset)
+    char_dict, length = dc.models.TextCNNModel.build_char_dict(dataset)
     batch_size = 10
 
-    model = dc.models.TextCNNTensorGraph(
+    model = dc.models.TextCNNModel(
         n_tasks,
         char_dict,
         seq_length=length,
@@ -849,10 +816,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
     regression_metric = dc.metrics.Metric(
         dc.metrics.pearson_r2_score, task_averager=np.mean)
 
-    char_dict, length = dc.models.TextCNNTensorGraph.build_char_dict(dataset)
+    char_dict, length = dc.models.TextCNNModel.build_char_dict(dataset)
     batch_size = 10
 
-    model = dc.models.TextCNNTensorGraph(
+    model = dc.models.TextCNNModel(
         n_tasks,
         char_dict,
         seq_length=length,
@@ -939,3 +906,33 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [metric])
     assert scores[metric.name] < .2
+
+  def test_multitask_regressor_uncertainty(self):
+    """Test computing uncertainty for a MultitaskRegressor."""
+    n_tasks = 1
+    n_samples = 30
+    n_features = 1
+    noise = 0.1
+
+    # Generate dummy dataset
+    X = np.random.rand(n_samples, n_features, 1)
+    y = 10 * X + np.random.normal(scale=noise, size=(n_samples, n_tasks, 1))
+    dataset = dc.data.NumpyDataset(X, y)
+
+    model = dc.models.MultitaskRegressor(
+        n_tasks,
+        n_features,
+        layer_sizes=[200],
+        weight_init_stddevs=[.1],
+        batch_size=n_samples,
+        dropouts=0.1,
+        learning_rate=0.003,
+        uncertainty=True)
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=2500)
+
+    # Predict the output and uncertainty.
+    pred, std = model.predict_uncertainty(dataset)
+    assert np.mean(np.abs(y - pred)) < 1.0
+    assert noise < np.mean(std) < 1.0

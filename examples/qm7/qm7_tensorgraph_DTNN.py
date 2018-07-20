@@ -11,8 +11,8 @@ import tensorflow as tf
 tf.set_random_seed(123)
 import deepchem as dc
 
-# Load Tox21 dataset
-tasks, datasets, transformers = dc.molnet.load_qm7_from_mat()
+# Load QM7 dataset
+tasks, datasets, transformers = dc.molnet.load_qm7_from_mat(move_mean=False)
 train_dataset, valid_dataset, test_dataset = datasets
 
 # Fit models
@@ -28,8 +28,9 @@ n_distance = 51
 distance_min = -1.
 distance_max = 9.2
 n_hidden = 15
+rate = 0.001
 
-model = dc.models.DTNNTensorGraph(
+model = dc.models.DTNNModel(
     len(tasks),
     n_embedding=n_embedding,
     n_hidden=n_hidden,
@@ -38,19 +39,12 @@ model = dc.models.DTNNTensorGraph(
     distance_max=distance_max,
     output_activation=False,
     batch_size=batch_size,
-    learning_rate=0.0001,
+    learning_rate=rate,
     use_queue=False,
     mode="regression")
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=1000)
+model.fit(train_dataset, nb_epoch=50)
 
-print("Evaluating model")
 train_scores = model.evaluate(train_dataset, metric, transformers)
 valid_scores = model.evaluate(valid_dataset, metric, transformers)
-
-print("Train scores")
-print(train_scores)
-
-print("Validation scores")
-print(valid_scores)

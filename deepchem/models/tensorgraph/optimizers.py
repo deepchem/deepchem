@@ -101,6 +101,29 @@ class GradientDescent(Optimizer):
     return tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
 
 
+class PowerSign(Optimizer):
+  """The powersign optimization algorithm"""
+
+  def __init__(self, learning_rate=0.1, beta=0.9):
+    """construct a powerSign optimizer
+    Parameters
+    ----------
+    learning_rate : float or LearningRateSchedule 
+    the learning rate to use for optimization
+    beta : A float Parameter for the PowerSign algorithm
+    """
+    self.learning_rate = learning_rate
+    self.beta = beta
+
+  def _create_optimizer(self, global_step):
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      learning_rate = self.learning_rate._create_tensor(global_step)
+    else:
+      learning_rate = self.learning_rate
+    return tf.contrib.opt.PowerSignOptimizer(
+        learning_rate=learning_rate, beta=self.beta)
+
+
 class ExponentialDecay(LearningRateSchedule):
   """A learning rate that decreases exponentially with the number of training steps."""
 
@@ -168,3 +191,38 @@ class PolynomialDecay(LearningRateSchedule):
         global_step=global_step,
         decay_steps=self.decay_steps,
         power=self.power)
+
+
+class LinearCosineDecay(LearningRateSchedule):
+  """Applies linear cosine decay to the learning rate"""
+
+  def __init__(self,
+               initial_rate,
+               decay_steps,
+               alpha=0.0,
+               beta=0.001,
+               num_periods=0.5):
+    """
+    Parameters
+    ----------
+    learning_rate : float 
+    initial learning rate
+    decay_steps : int 
+    number of steps to decay over
+    num_periods : number of periods in the cosine part of the decay
+    """
+
+    self.initial_rate = initial_rate
+    self.decay_steps = decay_steps
+    self.alpha = alpha
+    self.beta = beta
+    self.num_periods = num_periods
+
+  def _create_tensor(self, global_step):
+    return tf.train.linear_cosine_decay(
+        learning_rate=self.initial_rate,
+        global_step=global_step,
+        decay_steps=self.decay_steps,
+        alpha=self.alpha,
+        beta=self.beta,
+        num_periods=self.num_periods)

@@ -85,10 +85,10 @@ def get_task_dataset_minus_support(dataset, support, task):
   # Get task specific entries
   w_task = w[:, task]
   X_task = X[w_task != 0]
-  y_task = y[w_task != 0, task]
+  y_task = np.expand_dims(y[w_task != 0, task], 1)
   ids_task = ids[w_task != 0]
   # Now just get weights for this task
-  w_task = w[w_task != 0, task]
+  w_task = np.expand_dims(w[w_task != 0, task], 1)
 
   return NumpyDataset(X_task, y_task, w_task, ids_task)
 
@@ -99,10 +99,10 @@ def get_task_dataset(dataset, task):
   # Get task specific entries
   w_task = w[:, task]
   X_task = X[w_task != 0]
-  y_task = y[w_task != 0, task]
+  y_task = np.expand_dims(y[w_task != 0, task], 1)
   ids_task = ids[w_task != 0]
   # Now just get weights for this task
-  w_task = w[w_task != 0, task]
+  w_task = np.expand_dims(w[w_task != 0, task], 1)
 
   return NumpyDataset(X_task, y_task, w_task, ids_task)
 
@@ -234,8 +234,12 @@ def get_task_support(dataset, n_episodes, n_pos, n_neg, task, log_every_n=50):
       X = np.vstack([dataset.X[pos_inds], dataset.X[neg_inds]])
     else:
       X = np.concatenate([dataset.X[pos_inds], dataset.X[neg_inds]])
-    y = np.concatenate([dataset.y[pos_inds, task], dataset.y[neg_inds, task]])
-    w = np.concatenate([dataset.w[pos_inds, task], dataset.w[neg_inds, task]])
+    y = np.expand_dims(
+        np.concatenate([dataset.y[pos_inds, task], dataset.y[neg_inds, task]]),
+        1)
+    w = np.expand_dims(
+        np.concatenate([dataset.w[pos_inds, task], dataset.w[neg_inds, task]]),
+        1)
     ids = np.concatenate([dataset.ids[pos_inds], dataset.ids[neg_inds]])
     supports.append(NumpyDataset(X, y, w, ids))
   return supports

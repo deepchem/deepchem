@@ -399,7 +399,7 @@ class AtomicDifferentiatedDense(Layer):
                out_channels,
                atom_number_cases=[1, 6, 7, 8],
                init='glorot_uniform',
-               activation='relu',
+               activation='ani',
                **kwargs):
     self.init = init  # Set weight initialization
     self.activation = activation  # Get activations
@@ -409,10 +409,17 @@ class AtomicDifferentiatedDense(Layer):
 
     super(AtomicDifferentiatedDense, self).__init__(**kwargs)
 
+  @staticmethod
+  def ani_activate(X):
+    return tf.exp(-1 * tf.pow(X, 2))
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Generate Radial Symmetry Function """
     init_fn = initializations.get(self.init)  # Set weight initialization
-    activation_fn = activations.get(self.activation)
+    if self.activation == 'ani':
+      activation_fn = self.ani_activate
+    else:
+      activation_fn = activations.get(self.activation)
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)

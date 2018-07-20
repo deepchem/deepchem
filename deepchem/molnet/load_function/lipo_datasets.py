@@ -11,14 +11,18 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 
-def load_lipo(featurizer='ECFP', split='index', reload=True):
+def load_lipo(featurizer='ECFP', split='index', reload=True, move_mean=True):
   """Load Lipophilicity datasets."""
   # Featurize Lipophilicity dataset
   logger.info("About to featurize Lipophilicity dataset.")
   logger.info("About to load Lipophilicity dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "lipo/" + featurizer + "/" + split)
+    if move_mean:
+      dir_name = "lipo/" + featurizer + "/" + str(split)
+    else:
+      dir_name = "lipo/" + featurizer + "_mean_unmoved/" + str(split)
+    save_dir = os.path.join(data_dir, dir_name)
 
   dataset_file = os.path.join(data_dir, "Lipophilicity.csv")
   if not os.path.exists(dataset_file):
@@ -50,7 +54,7 @@ def load_lipo(featurizer='ECFP', split='index', reload=True):
   # Initialize transformers
   transformers = [
       deepchem.trans.NormalizationTransformer(
-          transform_y=True, dataset=dataset)
+          transform_y=True, dataset=dataset, move_mean=move_mean)
   ]
 
   logger.info("About to transform data")

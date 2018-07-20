@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 
-from trans import undo_transforms
+from deepchem.trans import undo_transforms
 
 np.random.seed(123)
 import tensorflow as tf
@@ -27,7 +27,7 @@ distance_min = -1.
 distance_max = 9.2
 n_hidden = 15
 
-model = dc.models.DTNNTensorGraph(
+model = dc.models.DTNNModel(
     len(tasks),
     n_embedding=n_embedding,
     n_hidden=n_hidden,

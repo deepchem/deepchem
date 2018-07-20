@@ -41,7 +41,7 @@ class TestSequential(unittest.TestCase):
     n_data_points = 20
     n_features = 2
     X = np.random.rand(n_data_points, n_features)
-    y = [0.5 for x in range(n_data_points)]
+    y = [[0.5] for x in range(n_data_points)]
     dataset = dc.data.NumpyDataset(X, y)
     model = dc.models.Sequential(loss="mse", learning_rate=0.01)
     model.add(Dense(out_channels=1))

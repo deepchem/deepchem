@@ -34,7 +34,7 @@ for i in range(n_tasks):
 # Create the model to train.  We use a simple fully connected network with
 # one hidden layer.
 
-model = dc.models.MultiTaskClassifier(
+model = dc.models.MultitaskClassifier(
     1, n_features, layer_sizes=[1000], dropouts=[0.0])
 model.build()
 
@@ -108,7 +108,7 @@ def compute_scores(optimize):
   print()
   print('Cross entropy loss:', np.mean(losses))
   print('Prediction accuracy:', accuracy_score(y_true, y_pred > 0.5))
-  print('ROC AUC:', dc.metrics.compute_roc_auc_scores(y_true, y_pred))
+  print('ROC AUC:', dc.metrics.roc_auc_score(y_true, y_pred))
   print()
 
 
