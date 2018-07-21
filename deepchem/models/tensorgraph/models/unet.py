@@ -55,7 +55,7 @@ class UNet(TensorGraph):
         activation='relu',
         padding='same',
         in_layers=[conv1])
-    pool1 = MaxPool2D(ksize=[1,2,2,3], in_layers=[conv1])
+    pool1 = MaxPool2D(ksize=[1, 2, 2, 3], in_layers=[conv1])
 
     conv2 = Conv2D(
         num_outputs=self.filters[1],
@@ -69,7 +69,7 @@ class UNet(TensorGraph):
         activation='relu',
         padding='same',
         in_layers=[conv2])
-    pool2 = MaxPool2D(ksize=[1,2,2,3], in_layers=[conv2])
+    pool2 = MaxPool2D(ksize=[1, 2, 2, 3], in_layers=[conv2])
 
     conv3 = Conv2D(
         num_outputs=self.filters[2],
@@ -83,7 +83,7 @@ class UNet(TensorGraph):
         activation='relu',
         padding='same',
         in_layers=[conv3])
-    pool3 = MaxPool2D(ksize=[1,2,2,3], in_layers=[conv3])
+    pool3 = MaxPool2D(ksize=[1, 2, 2, 3], in_layers=[conv3])
 
     conv4 = Conv2D(
         num_outputs=self.filters[3],
@@ -97,7 +97,7 @@ class UNet(TensorGraph):
         activation='relu',
         padding='same',
         in_layers=[conv4])
-    pool4 = MaxPool2D(ksize=[1,2,2,3], in_layers=[conv4])
+    pool4 = MaxPool2D(ksize=[1, 2, 2, 3], in_layers=[conv4])
 
     conv5 = Conv2D(
         num_outputs=self.filters[4],
