@@ -229,7 +229,8 @@ class DataLoader(object):
           assert len(X) == len(ids)
 
         time2 = time.time()
-        log("TIMING: featurizing shard %d took %0.3f s" %
+        log(
+            "TIMING: featurizing shard %d took %0.3f s" %
             (shard_num, time2 - time1), self.verbose)
         yield X, y, w, ids
 
@@ -293,7 +294,8 @@ class SDFLoader(DataLoader):
 
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
-    log("Currently featurizing feature_type: %s" %
+    log(
+        "Currently featurizing feature_type: %s" %
         self.featurizer.__class__.__name__, self.verbose)
     return featurize_mol_df(shard, self.featurizer, field=self.mol_field)
 
@@ -329,10 +331,12 @@ class FASTALoader(DataLoader):
 
     return DiskDataset.create_dataset(shard_generator(), data_dir)
 
+
 class ImageLoader(DataLoader):
   """
   Handles loading of image files.
   """
+
   def __init__(self, tasks=None):
     """Initialize image loader."""
     if tasks is None:
@@ -345,40 +349,31 @@ class ImageLoader(DataLoader):
     Parameters
     ----------
     input_files: list
-      Each file in this list should either be of a supported image format (.png only for now) or of a compressed folder of image files.
+      Each file in this list should either be of a supported image format (.png
+      only for now) or of a compressed folder of image files (only .zip for now).
     """
     if not isinstance(input_files, list):
       input_files = [input_files]
 
     images = []
     image_files = []
-    print("input_files")
-    print(input_files)
     for input_file in input_files:
-      print("input_file")
-      print(input_file)
       filename, extension = os.path.splitext(input_file)
-      print("filename, extension")
-      print(filename, extension)
       # TODO(rbharath): Add support for more extensions
       if extension == ".zip":
         zip_dir = tempfile.mkdtemp()
-        print("zip_dir")
-        print(zip_dir)
         zip_ref = zipfile.ZipFile(input_file, 'r')
         zip_ref.extractall(path=zip_dir)
         zip_ref.close()
-        print("os.listdir(zip_dir)")
-        print(os.listdir(zip_dir))
-        image_files += os.listdir(zip_dir)
+        image_files += [
+            os.path.join(zip_dir, name) for name in zip_ref.namelist()
+        ]
       elif extension == ".png":
         image_files.append(input_file)
-    print("image_files")
-    print(image_files)
+      else:
+        raise ValueError("Unsupported file format")
 
     for image_file in image_files:
-      print("image_file")
-      print(image_file)
       image = misc.imread(image_file)
       images.append(image)
     images = np.array(images)
