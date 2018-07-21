@@ -14,12 +14,13 @@ import tensorflow as tf
 tf.set_random_seed(123)
 import deepchem as dc
 from deepchem.molnet import load_tox21
-from deepchem.models.tensorgraph.models.graph_models import PetroskiSuchTensorGraph
+from deepchem.models.tensorgraph.models.graph_models import PetroskiSuchModel
 
 model_dir = "/tmp/graph_conv"
 
 # Load Tox21 dataset
-tox21_tasks, tox21_datasets, transformers = load_tox21(featurizer='AdjMatrix')
+tox21_tasks, tox21_datasets, transformers = load_tox21(
+    featurizer='AdjacencyConv')
 train_dataset, valid_dataset, test_dataset = tox21_datasets
 print(train_dataset.data_dir)
 print(valid_dataset.data_dir)
@@ -31,7 +32,7 @@ metric = dc.metrics.Metric(
 # Batch size of models
 batch_size = 128
 
-model = PetroskiSuchTensorGraph(
+model = PetroskiSuchModel(
     len(tox21_tasks), batch_size=batch_size, mode='classification')
 
 model.fit(train_dataset, nb_epoch=10)

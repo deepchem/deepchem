@@ -94,3 +94,18 @@ class CircularFingerprint(Featurizer):
           useBondTypes=self.bonds,
           useFeatures=self.features)
     return fp
+
+  def __hash__(self):
+    return hash((self.radius, self.size, self.chiral, self.bonds, self.features,
+                 self.sparse, self.smiles))
+
+  def __eq__(self, other):
+    if not isinstance(self, other.__class__):
+      return False
+    return self.radius == other.radius and \
+           self.size == other.size and \
+           self.chiral == other.chiral and \
+           self.bonds == other.bonds and \
+           self.features == other.features and \
+           self.sparse == other.sparse and \
+           self.smiles == other.smiles

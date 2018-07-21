@@ -20,7 +20,7 @@ def load_chembl(shard_size=2000,
 
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "chembl/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir, "chembl/" + featurizer + "/" + str(split))
 
   dataset_path = os.path.join(data_dir, "chembl_%s.csv.gz" % set)
   if not os.path.exists(dataset_path):
@@ -106,7 +106,7 @@ def load_chembl(shard_size=2000,
     for transformer in transformers:
       dataset = transformer.transform(dataset)
 
-  if spit == None:
+  if split == None:
     return chembl_tasks, (dataset, None, None), transformers
 
   splitters = {

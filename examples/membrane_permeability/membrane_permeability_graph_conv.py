@@ -10,7 +10,7 @@ np.random.seed(123)
 import tensorflow as tf
 tf.set_random_seed(123)
 import deepchem as dc
-from membrain_permeability_datasets import load_permeability
+from membrane_permeability_datasets import load_permeability
 
 # Load Tox21 dataset
 permeability_tasks, permeability_datasets, transformers = load_permeability(
@@ -34,7 +34,7 @@ train_dataset = transformer.transform(train_dataset)
 valid_dataset.reshard(reshard_size)
 valid_dataset = transformer.transform(valid_dataset)
 
-model = dc.models.DAGTensorGraph(
+model = dc.models.DAGModel(
     len(permeability_tasks),
     max_atoms=max_atoms,
     n_atom_feat=n_atom_feat,

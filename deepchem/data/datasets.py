@@ -200,8 +200,8 @@ class Dataset(object):
     >>> dataset = NumpyDataset(np.ones((2,2)))
     >>> for x, y, w, id in dataset.itersamples():
     ...   print(x.tolist(), y.tolist(), w.tolist(), id)
-    [1.0 1.0] [0.0] [0.0] 0
-    [1.0 1.0] [0.0] [0.0] 1
+    [1.0, 1.0] [0.0] [0.0] 0
+    [1.0, 1.0] [0.0] [0.0] 1
     """
     raise NotImplementedError()
 
@@ -308,13 +308,8 @@ class NumpyDataset(Dataset):
 
   def __init__(self, X, y=None, w=None, ids=None, n_tasks=1):
     n_samples = len(X)
-    # The -1 indicates that y will be reshaped to have length -1
     if n_samples > 0:
-      if y is not None:
-        y = np.reshape(y, (n_samples, -1))
-        if w is not None:
-          w = np.reshape(w, (n_samples, -1))
-      else:
+      if y is None:
         # Set labels to be zero, with zero weights
         y = np.zeros((n_samples, n_tasks))
         w = np.zeros_like(y)
@@ -322,6 +317,12 @@ class NumpyDataset(Dataset):
       ids = np.arange(n_samples)
     if w is None:
       w = np.ones_like(y)
+    if not isinstance(X, np.ndarray):
+      X = np.array(X)
+    if not isinstance(y, np.ndarray):
+      y = np.array(y)
+    if not isinstance(w, np.ndarray):
+      w = np.array(w)
     self._X = X
     self._y = y
     self._w = w
@@ -409,8 +410,8 @@ class NumpyDataset(Dataset):
     >>> dataset = NumpyDataset(np.ones((2,2)))
     >>> for x, y, w, id in dataset.itersamples():
     ...   print(x.tolist(), y.tolist(), w.tolist(), id)
-    [1.0 1.0] [0.0] [0.0] 0
-    [1.0 1.0] [0.0] [0.0] 1
+    [1.0, 1.0] [0.0] [0.0] 0
+    [1.0, 1.0] [0.0] [0.0] 1
     """
     n_samples = self._X.shape[0]
     return ((self._X[i], self._y[i], self._w[i], self._ids[i])
@@ -889,8 +890,8 @@ class DiskDataset(Dataset):
     >>> dataset = DiskDataset.from_numpy(np.ones((2,2)), np.ones((2,1)), verbose=False)
     >>> for x, y, w, id in dataset.itersamples():
     ...   print(x.tolist(), y.tolist(), w.tolist(), id)
-    [1.0 1.0] [0.0] [0.0] 0
-    [1.0 1.0] [0.0] [0.0] 1
+    [1.0, 1.0] [1.0] [1.0] 0
+    [1.0, 1.0] [1.0] [1.0] 1
     """
 
     def iterate(dataset):

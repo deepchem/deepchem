@@ -144,7 +144,7 @@ class TestHyperparamOpt(unittest.TestCase):
     params_dict = {"layer_sizes": [(10,), (100,)]}
 
     def model_builder(model_params, model_dir):
-      return dc.models.MultiTaskClassifier(
+      return dc.models.MultitaskClassifier(
           len(tasks), n_features, model_dir=model_dir, **model_params)
 
     optimizer = dc.hyper.HyperparamOpt(model_builder)

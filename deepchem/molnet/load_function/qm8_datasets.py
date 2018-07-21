@@ -8,10 +8,17 @@ import os
 import deepchem
 
 
-def load_qm8(featurizer='CoulombMatrix', split='random', reload=True):
+def load_qm8(featurizer='CoulombMatrix',
+             split='random',
+             reload=True,
+             move_mean=True):
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "qm8/" + featurizer + "/" + split)
+    if move_mean:
+      dir_name = "qm8/" + featurizer + "/" + str(split)
+    else:
+      dir_name = "qm8/" + featurizer + "_mean_unmoved/" + str(split)
+    save_dir = os.path.join(data_dir, dir_name)
 
   if featurizer in ['CoulombMatrix', 'BPSymmetryFunction', 'MP', 'Raw']:
     dataset_file = os.path.join(data_dir, "qm8.sdf")
@@ -80,7 +87,7 @@ def load_qm8(featurizer='CoulombMatrix', split='random', reload=True):
       dataset)
   transformers = [
       deepchem.trans.NormalizationTransformer(
-          transform_y=True, dataset=train_dataset)
+          transform_y=True, dataset=train_dataset, move_mean=move_mean)
   ]
   for transformer in transformers:
     train_dataset = transformer.transform(train_dataset)

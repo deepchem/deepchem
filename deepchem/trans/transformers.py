@@ -110,7 +110,8 @@ class NormalizationTransformer(Transformer):
                transform_y=False,
                transform_w=False,
                dataset=None,
-               transform_gradients=False):
+               transform_gradients=False,
+               move_mean=True):
     """Initialize normalization transformation."""
     if transform_X:
       X_means, X_stds = dataset.get_statistics(X_stats=True, y_stats=False)
@@ -124,6 +125,7 @@ class NormalizationTransformer(Transformer):
       y_stds[y_stds == 0] = 1.
       self.y_stds = y_stds
     self.transform_gradients = transform_gradients
+    self.move_mean = move_mean
     if self.transform_gradients:
       true_grad, ydely_means = get_grad_statistics(dataset)
       self.grad = np.reshape(true_grad, (true_grad.shape[0], -1, 3))
@@ -142,9 +144,15 @@ class NormalizationTransformer(Transformer):
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
     if self.transform_X:
-      X = np.nan_to_num((X - self.X_means) / self.X_stds)
+      if not hasattr(self, 'move_mean') or self.move_mean:
+        X = np.nan_to_num((X - self.X_means) / self.X_stds)
+      else:
+        X = np.nan_to_num(X / self.X_stds)
     if self.transform_y:
-      y = np.nan_to_num((y - self.y_means) / self.y_stds)
+      if not hasattr(self, 'move_mean') or self.move_mean:
+        y = np.nan_to_num((y - self.y_means) / self.y_stds)
+      else:
+        y = np.nan_to_num(y / self.y_stds)
     return (X, y, w)
 
   def untransform(self, z):
@@ -152,7 +160,10 @@ class NormalizationTransformer(Transformer):
     Undo transformation on provided data.
     """
     if self.transform_X:
-      return z * self.X_stds + self.X_means
+      if not hasattr(self, 'move_mean') or self.move_mean:
+        return z * self.X_stds + self.X_means
+      else:
+        return z * self.X_stds
     elif self.transform_y:
       y_stds = self.y_stds
       y_means = self.y_means
@@ -166,7 +177,10 @@ class NormalizationTransformer(Transformer):
           # Prevent broadcasting on wrong dimension
           y_stds = np.expand_dims(y_stds, -1)
           y_means = np.expand_dims(y_means, -1)
-      return z * y_stds + y_means
+      if not hasattr(self, 'move_mean') or self.move_mean:
+        return z * y_stds + y_means
+      else:
+        return z * y_stds
 
   def untransform_grad(self, grad, tasks):
     """
@@ -510,7 +524,7 @@ class CoulombFitTransformer(Transformer):
      >>> w = np.ones((n_samples, n_tasks))
      >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
      >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
-     >>> model = dc.models.MultiTaskFitTransformRegressor(n_tasks,
+     >>> model = dc.models.MultitaskFitTransformRegressor(n_tasks,
      ...    [n_features, n_features], batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
      >>> print(model.n_features)
      12
@@ -556,8 +570,8 @@ class CoulombFitTransformer(Transformer):
 
     def _realize_(x):
       assert (len(x.shape) == 2)
-      inds = np.argsort(
-          -(x**2).sum(axis=0)**.5 + np.random.normal(0, self.noise, x[0].shape))
+      inds = np.argsort(-(x**2).sum(axis=0)**.5 +
+                        np.random.normal(0, self.noise, x[0].shape))
       x = x[inds, :][:, inds] * 1
       x = x.flatten()[self.triuind]
       return x
@@ -690,8 +704,8 @@ class IRVTransformer():
       feed_dict = {}
       with tf.Session() as sess:
         for count in range(target_len // 100 + 1):
-          feed_dict[similarity_placeholder] = similarity_xs[count * 100:min((
-              count + 1) * 100, target_len), :]
+          feed_dict[similarity_placeholder] = similarity_xs[count * 100:min(
+              (count + 1) * 100, target_len), :]
           # generating batch of data by slicing similarity matrix
           # into 100*reference_dataset_length
           fetched_values = sess.run([value, top_label], feed_dict=feed_dict)
@@ -735,9 +749,9 @@ class IRVTransformer():
     n_features = X_target.shape[1]
     print('start similarity calculation')
     time1 = time.time()
-    similarity = IRVTransformer.matrix_mul(X_target, np.transpose(self.X)) / (
-        n_features -
-        IRVTransformer.matrix_mul(1 - X_target, np.transpose(1 - self.X)))
+    similarity = IRVTransformer.matrix_mul(X_target, np.transpose(
+        self.X)) / (n_features - IRVTransformer.matrix_mul(
+            1 - X_target, np.transpose(1 - self.X)))
     time2 = time.time()
     print('similarity calculation takes %i s' % (time2 - time1))
     for i in range(self.n_tasks):
@@ -761,10 +775,11 @@ class IRVTransformer():
     for X1_id in range(X1_iter):
       result = np.zeros((1,))
       for X2_id in range(X2_iter):
-        partial_result = np.matmul(X1[X1_id * shard_size:min((
-            X1_id + 1) * shard_size, X1_shape[0]), :],
-                                   X2[:, X2_id * shard_size:min((
-                                       X2_id + 1) * shard_size, X2_shape[1])])
+        partial_result = np.matmul(
+            X1[X1_id * shard_size:min((X1_id + 1) *
+                                      shard_size, X1_shape[0]), :],
+            X2[:, X2_id * shard_size:min((X2_id + 1) *
+                                         shard_size, X2_shape[1])])
         # calculate matrix multiplicatin on slices
         if result.size == 1:
           result = partial_result
@@ -993,9 +1008,7 @@ class ANITransformer(Transformer):
         end = min((start + 1) * batch_size, X.shape[0])
         X_batch = X[(start * batch_size):end]
         output = self.sess.run(
-            [self.outputs], feed_dict={
-                self.inputs: X_batch
-            })[0]
+            [self.outputs], feed_dict={self.inputs: X_batch})[0]
         X_out.append(output)
         num_transformed = num_transformed + X_batch.shape[0]
         print('%i samples transformed' % num_transformed)
@@ -1168,3 +1181,47 @@ class FeaturizationTransformer(Transformer):
   def transform_array(self, X, y, w):
     X = self.featurizer.featurize(X)
     return X, y, w
+
+
+class DataTransforms(Transformer):
+  """Applies different data transforms to images."""
+
+  def __init__(self, Image):
+    self.Image = Image
+
+  def scale(self, h, w):
+    """ Scales the image
+            Parameters:
+                h - height of the images
+                w - width of the images
+    """
+    return scipy.misc.imresize(self.Image, (h, w))
+
+  def flip(self, direction="lr"):
+    """ Flips the image
+          Parameters:
+              direction - "lr" denotes left-right fliplr
+                          "ud" denotes up-down flip
+    """
+    if direction == "lr":
+      return np.fliplr(self.Image)
+    elif direction == "ud":
+      return np.flipud(self.Image)
+    else:
+      raise ValueError(
+          "Invalid flip command : Enter either lr (for left to right flip) or ud (for up to down flip)"
+      )
+
+  def rotate(self, angle=0):
+    """ Rotates the image
+          Parameters:
+              angle (default = 0 i.e no rotation) - Denotes angle by which the image should be rotated (in Degrees)
+    """
+    return scipy.ndimage.rotate(self.Image, angle)
+
+  def gaussian_blur(self, sigma=0.2):
+    """ Adds gaussian noise to the image
+          Parameters:
+            sigma - std dev. of the gaussian distribution
+    """
+    return scipy.ndimage.gaussian_filter(self.Image, sigma)

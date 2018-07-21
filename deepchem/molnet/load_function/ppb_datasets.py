@@ -8,7 +8,7 @@ import os
 import logging
 import deepchem
 
-logging = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def load_ppb(featurizer='ECFP', split='index', reload=True):
@@ -18,7 +18,7 @@ def load_ppb(featurizer='ECFP', split='index', reload=True):
   logger.info("About to load PPB dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "ppb/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir, "ppb/" + featurizer + "/" + str(split))
 
   dataset_file = os.path.join(data_dir, "PPB.csv")
   if not os.path.exists(dataset_file):

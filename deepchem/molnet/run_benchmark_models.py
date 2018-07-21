@@ -93,8 +93,8 @@ def benchmark_classification(train_dataset,
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
 
-    # Building tensorflow MultiTaskDNN model
-    model = deepchem.models.MultiTaskClassifier(
+    # Building tensorflow MultitaskDNN model
+    model = deepchem.models.MultitaskClassifier(
         len(tasks),
         n_features,
         layer_sizes=layer_sizes,
@@ -124,7 +124,7 @@ def benchmark_classification(train_dataset,
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
 
-    # Building tensorflow robust MultiTaskDNN model
+    # Building tensorflow robust MultitaskDNN model
     model = deepchem.models.RobustMultitaskClassifier(
         len(tasks),
         n_features,
@@ -175,7 +175,7 @@ def benchmark_classification(train_dataset,
       test_dataset = transformer.transform(test_dataset)
 
     # Building tensorflow IRV model
-    model = deepchem.models.TensorflowMultiTaskIRVClassifier(
+    model = deepchem.models.TensorflowMultitaskIRVClassifier(
         len(tasks),
         K=n_K,
         penalty=penalty,
@@ -191,7 +191,7 @@ def benchmark_classification(train_dataset,
     n_filters = hyper_parameters['n_filters']
     n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
 
-    model = deepchem.models.GraphConvTensorGraph(
+    model = deepchem.models.GraphConvModel(
         len(tasks),
         graph_conv_layers=[n_filters] * 2,
         dense_layer_size=n_fully_connected_nodes,
@@ -223,7 +223,7 @@ def benchmark_classification(train_dataset,
       test_dataset.reshard(reshard_size)
       test_dataset = transformer.transform(test_dataset)
 
-    model = deepchem.models.DAGTensorGraph(
+    model = deepchem.models.DAGModel(
         len(tasks),
         max_atoms=max_atoms,
         n_atom_feat=n_features,
@@ -242,7 +242,7 @@ def benchmark_classification(train_dataset,
     n_graph_feat = hyper_parameters['n_graph_feat']
     n_pair_feat = hyper_parameters['n_pair_feat']
 
-    model = deepchem.models.WeaveTensorGraph(
+    model = deepchem.models.WeaveModel(
         len(tasks),
         n_atom_feat=n_features,
         n_pair_feat=n_pair_feat,
@@ -264,10 +264,9 @@ def benchmark_classification(train_dataset,
 
     all_data = deepchem.data.DiskDataset.merge(
         [train_dataset, valid_dataset, test_dataset])
-    char_dict, length = deepchem.models.TextCNNTensorGraph.build_char_dict(
-        all_data)
+    char_dict, length = deepchem.models.TextCNNModel.build_char_dict(all_data)
 
-    model = deepchem.models.TextCNNTensorGraph(
+    model = deepchem.models.TextCNNModel(
         len(tasks),
         char_dict,
         seq_length=length,
@@ -287,7 +286,7 @@ def benchmark_classification(train_dataset,
     T = hyper_parameters['T']
     M = hyper_parameters['M']
 
-    model = deepchem.models.MPNNTensorGraph(
+    model = deepchem.models.MPNNModel(
         len(tasks),
         n_atom_feat=n_features[0],
         n_pair_feat=n_features[1],
@@ -460,7 +459,7 @@ def benchmark_regression(train_dataset,
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
 
-    model = deepchem.models.MultiTaskRegressor(
+    model = deepchem.models.MultitaskRegressor(
         len(tasks),
         n_features,
         layer_sizes=layer_sizes,
@@ -485,7 +484,7 @@ def benchmark_regression(train_dataset,
     learning_rate = hyper_parameters['learning_rate']
     fit_transformers = [hyper_parameters['fit_transformers'](train_dataset)]
 
-    model = deepchem.models.MultiTaskFitTransformRegressor(
+    model = deepchem.models.MultitaskFitTransformRegressor(
         n_tasks=len(tasks),
         n_features=n_features,
         layer_sizes=layer_sizes,
@@ -507,7 +506,7 @@ def benchmark_regression(train_dataset,
     n_filters = hyper_parameters['n_filters']
     n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
 
-    model = deepchem.models.GraphConvTensorGraph(
+    model = deepchem.models.GraphConvModel(
         len(tasks),
         graph_conv_layers=[n_filters] * 2,
         dense_layer_size=n_fully_connected_nodes,
@@ -524,7 +523,7 @@ def benchmark_regression(train_dataset,
     n_distance = hyper_parameters['n_distance']
     assert len(n_features) == 2, 'DTNN is only applicable to qm datasets'
 
-    model = deepchem.models.DTNNTensorGraph(
+    model = deepchem.models.DTNNModel(
         len(tasks),
         n_embedding=n_embedding,
         n_distance=n_distance,
@@ -558,7 +557,7 @@ def benchmark_regression(train_dataset,
       test_dataset.reshard(reshard_size)
       test_dataset = transformer.transform(test_dataset)
 
-    model = deepchem.models.DAGTensorGraph(
+    model = deepchem.models.DAGModel(
         len(tasks),
         max_atoms=max_atoms,
         n_atom_feat=n_features,
@@ -577,7 +576,7 @@ def benchmark_regression(train_dataset,
     n_graph_feat = hyper_parameters['n_graph_feat']
     n_pair_feat = hyper_parameters['n_pair_feat']
 
-    model = deepchem.models.WeaveTensorGraph(
+    model = deepchem.models.WeaveModel(
         len(tasks),
         n_atom_feat=n_features,
         n_pair_feat=n_pair_feat,
@@ -597,10 +596,10 @@ def benchmark_regression(train_dataset,
     filter_sizes = hyper_parameters['filter_sizes']
     num_filters = hyper_parameters['num_filters']
 
-    char_dict, length = deepchem.models.TextCNNTensorGraph.build_char_dict(
+    char_dict, length = deepchem.models.TextCNNModel.build_char_dict(
         train_dataset)
 
-    model = deepchem.models.TextCNNTensorGraph(
+    model = deepchem.models.TextCNNModel(
         len(tasks),
         char_dict,
         seq_length=length,
@@ -660,7 +659,7 @@ def benchmark_regression(train_dataset,
     T = hyper_parameters['T']
     M = hyper_parameters['M']
 
-    model = deepchem.models.MPNNTensorGraph(
+    model = deepchem.models.MPNNModel(
         len(tasks),
         n_atom_feat=n_features[0],
         n_pair_feat=n_features[1],

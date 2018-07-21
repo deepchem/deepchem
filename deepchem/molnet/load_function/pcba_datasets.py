@@ -9,7 +9,7 @@ import logging
 import deepchem
 import gzip
 
-logging = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def load_pcba(featurizer='ECFP', split='random', reload=True):
@@ -45,7 +45,7 @@ def load_pcba_dataset(featurizer='ECFP',
   if reload:
     save_dir = os.path.join(
         data_dir,
-        assay_file_name.split(".")[0] + featurizer + "/" + split)
+        assay_file_name.split(".")[0] + featurizer + "/" + str(split))
 
   dataset_file = os.path.join(data_dir, assay_file_name)
 

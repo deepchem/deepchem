@@ -17,7 +17,7 @@ def load_hiv(featurizer='ECFP', split='index', reload=True):
   logger.info("About to featurize hiv dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "hiv/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir, "hiv/" + featurizer + "/" + str(split))
 
   dataset_file = os.path.join(data_dir, "HIV.csv")
   if not os.path.exists(dataset_file):

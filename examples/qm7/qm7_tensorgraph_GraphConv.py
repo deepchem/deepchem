@@ -13,7 +13,7 @@ import deepchem as dc
 
 # Load Tox21 dataset
 tasks, datasets, transformers = dc.molnet.load_qm7_from_mat(
-    featurizer='GraphConv')
+    featurizer='GraphConv', move_mean=True)
 train_dataset, valid_dataset, test_dataset = datasets
 
 # Fit models
@@ -25,7 +25,7 @@ metric = [
 # Batch size of models
 batch_size = 64
 
-model = dc.models.GraphConvTensorGraph(
+model = dc.models.GraphConvModel(
     len(tasks), batch_size=batch_size, learning_rate=0.001, mode="regression")
 
 # Fit trained model
@@ -34,9 +34,3 @@ model.fit(train_dataset, nb_epoch=50)
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, metric, transformers)
 valid_scores = model.evaluate(valid_dataset, metric, transformers)
-
-print("Train scores")
-print(train_scores)
-
-print("Validation scores")
-print(valid_scores)

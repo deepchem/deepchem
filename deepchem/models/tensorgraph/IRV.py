@@ -8,7 +8,7 @@ import tensorflow as tf
 from deepchem.utils.save import log
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.layers import Layer, SigmoidCrossEntropy, \
-    Sigmoid, Feature, Label, Weights, Concat, WeightedError
+    Sigmoid, Feature, Label, Weights, Concat, WeightedError, Stack
 from deepchem.models.tensorgraph.layers import convert_to_layers
 from deepchem.trans import undo_transforms
 
@@ -144,7 +144,7 @@ class Slice(Layer):
     return out_tensor
 
 
-class TensorflowMultiTaskIRVClassifier(TensorGraph):
+class TensorflowMultitaskIRVClassifier(TensorGraph):
 
   def __init__(self,
                n_tasks,
@@ -152,7 +152,7 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
                penalty=0.0,
                mode="classification",
                **kwargs):
-    """Initialize TensorflowMultiTaskIRVClassifier
+    """Initialize TensorflowMultitaskIRVClassifier
 
     Parameters
     ----------
@@ -169,7 +169,7 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
     self.n_features = 2 * self.K * self.n_tasks
     logger.info("n_features after fit_transform: %d" % int(self.n_features))
     self.penalty = penalty
-    super(TensorflowMultiTaskIRVClassifier, self).__init__(**kwargs)
+    super(TensorflowMultitaskIRVClassifier, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
@@ -178,59 +178,23 @@ class TensorflowMultiTaskIRVClassifier(TensorGraph):
        https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2750043/
     """
     self.mol_features = Feature(shape=(None, self.n_features))
+    self._labels = Label(shape=(None, self.n_tasks))
+    self._weights = Weights(shape=(None, self.n_tasks))
     predictions = IRVLayer(self.n_tasks, self.K, in_layers=[self.mol_features])
     costs = []
-    self.labels_fd = []
+    outputs = []
     for task in range(self.n_tasks):
       task_output = Slice(task, 1, in_layers=[predictions])
       sigmoid = Sigmoid(in_layers=[task_output])
-      self.add_output(sigmoid)
+      outputs.append(sigmoid)
 
-      label = Label(shape=(None, 1))
-      self.labels_fd.append(label)
+      label = Slice(task, axis=1, in_layers=[self._labels])
       cost = SigmoidCrossEntropy(in_layers=[label, task_output])
       costs.append(cost)
     all_cost = Concat(in_layers=costs, axis=1)
-    self.weights = Weights(shape=(None, self.n_tasks))
-    loss = WeightedError(in_layers=[all_cost, self.weights]) + \
+    loss = WeightedError(in_layers=[all_cost, self._weights]) + \
         IRVRegularize(predictions, self.penalty, in_layers=[predictions])
     self.set_loss(loss)
-
-  def default_generator(self,
-                        dataset,
-                        epochs=1,
-                        predict=False,
-                        deterministic=True,
-                        pad_batches=True):
-    """TensorGraph style implementation """
-    for epoch in range(epochs):
-      if not predict:
-        logger.info('Starting epoch %i' % epoch)
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
-
-        feed_dict = dict()
-        if y_b is not None:
-          for index, label in enumerate(self.labels_fd):
-            feed_dict[label] = y_b[:, index:index + 1]
-        if w_b is not None:
-          feed_dict[self.weights] = w_b
-        feed_dict[self.mol_features] = X_b
-
-        yield feed_dict
-
-  def predict(self, dataset, transformers=[], outputs=None):
-    out = super(TensorflowMultiTaskIRVClassifier, self).predict(
-        dataset, transformers=transformers, outputs=outputs)
-    out = np.concatenate(out, axis=1)
-    out = np.round(out).astype(int)
-    return out
-
-  def predict_proba(self, dataset, transformers=[], outputs=None):
-    out = super(TensorflowMultiTaskIRVClassifier, self).predict_proba(
-        dataset, transformers=transformers, outputs=outputs)
-    out = np.concatenate(out, axis=1)
-    out = np.stack([1 - out, out], axis=2)
-    return out
+    outputs = Stack(axis=1, in_layers=outputs)
+    outputs = Concat(axis=2, in_layers=[1 - outputs, outputs])
+    self.add_output(outputs)

@@ -8,7 +8,7 @@ import os
 import logging
 import deepchem
 
-logging = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def load_muv(featurizer='ECFP', split='index', reload=True, K=4):
@@ -17,7 +17,7 @@ def load_muv(featurizer='ECFP', split='index', reload=True, K=4):
   logger.info("About to load MUV dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "muv/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir, "muv/" + featurizer + "/" + str(split))
 
   dataset_file = os.path.join(data_dir, "muv.csv.gz")
   if not os.path.exists(dataset_file):

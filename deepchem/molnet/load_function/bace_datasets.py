@@ -12,13 +12,20 @@ from deepchem.molnet.load_function.bace_features import bace_user_specified_feat
 logger = logging.getLogger(__name__)
 
 
-def load_bace_regression(featurizer='ECFP', split='random', reload=True):
+def load_bace_regression(featurizer='ECFP',
+                         split='random',
+                         reload=True,
+                         move_mean=True):
   """Load bace datasets."""
   # Featurize bace dataset
   logger.info("About to featurize bace dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "bace_r/" + featurizer + "/" + split)
+    if move_mean:
+      dir_name = "bace_r/" + featurizer + "/" + str(split)
+    else:
+      dir_name = "bace_r/" + featurizer + "_mean_unmoved/" + str(split)
+    save_dir = os.path.join(data_dir, dir_name)
 
   dataset_file = os.path.join(data_dir, "bace.csv")
 
@@ -53,7 +60,7 @@ def load_bace_regression(featurizer='ECFP', split='random', reload=True):
   # Initialize transformers
   transformers = [
       deepchem.trans.NormalizationTransformer(
-          transform_y=True, dataset=dataset)
+          transform_y=True, dataset=dataset, move_mean=move_mean)
   ]
 
   logger.info("About to transform data")
@@ -83,7 +90,7 @@ def load_bace_classification(featurizer='ECFP', split='random', reload=True):
   logger.info("About to featurize bace dataset.")
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "bace_c/" + featurizer + "/" + split)
+    save_dir = os.path.join(data_dir, "bace_c/" + featurizer + "/" + str(split))
 
   dataset_file = os.path.join(data_dir, "bace.csv")
 
