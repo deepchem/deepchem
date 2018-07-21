@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from deepchem.molnet.load_function.bace_datasets import load_bace_classification, load_bace_regression
 from deepchem.molnet.load_function.bbbp_datasets import load_bbbp
+from deepchem.molnet.load_function.cell_counting_datasets import load_cell_counting
 from deepchem.molnet.load_function.chembl_datasets import load_chembl
 from deepchem.molnet.load_function.clearance_datasets import load_clearance
 from deepchem.molnet.load_function.clintox_datasets import load_clintox

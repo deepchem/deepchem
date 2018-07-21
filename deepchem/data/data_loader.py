@@ -21,6 +21,9 @@ from deepchem.utils.save import load_sdf_files
 from deepchem.utils.save import encode_fasta_sequence
 from deepchem.feat import UserDefinedFeaturizer
 from deepchem.data import DiskDataset
+from deepchem.data import NumpyDataset
+from scipy import misc
+import zipfile
 
 
 def convert_df_to_numpy(df, tasks, verbose=False):
@@ -226,7 +229,8 @@ class DataLoader(object):
           assert len(X) == len(ids)
 
         time2 = time.time()
-        log("TIMING: featurizing shard %d took %0.3f s" %
+        log(
+            "TIMING: featurizing shard %d took %0.3f s" %
             (shard_num, time2 - time1), self.verbose)
         yield X, y, w, ids
 
@@ -290,7 +294,8 @@ class SDFLoader(DataLoader):
 
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
-    log("Currently featurizing feature_type: %s" %
+    log(
+        "Currently featurizing feature_type: %s" %
         self.featurizer.__class__.__name__, self.verbose)
     return featurize_mol_df(shard, self.featurizer, field=self.mol_field)
 
@@ -325,3 +330,51 @@ class FASTALoader(DataLoader):
         yield X, None, None, ids
 
     return DiskDataset.create_dataset(shard_generator(), data_dir)
+
+
+class ImageLoader(DataLoader):
+  """
+  Handles loading of image files.
+  """
+
+  def __init__(self, tasks=None):
+    """Initialize image loader."""
+    if tasks is None:
+      tasks = []
+    self.tasks = tasks
+
+  def featurize(self, input_files):
+    """Featurizes image files.
+
+    Parameters
+    ----------
+    input_files: list
+      Each file in this list should either be of a supported image format (.png
+      only for now) or of a compressed folder of image files (only .zip for now).
+    """
+    if not isinstance(input_files, list):
+      input_files = [input_files]
+
+    images = []
+    image_files = []
+    for input_file in input_files:
+      filename, extension = os.path.splitext(input_file)
+      # TODO(rbharath): Add support for more extensions
+      if extension == ".zip":
+        zip_dir = tempfile.mkdtemp()
+        zip_ref = zipfile.ZipFile(input_file, 'r')
+        zip_ref.extractall(path=zip_dir)
+        zip_ref.close()
+        image_files += [
+            os.path.join(zip_dir, name) for name in zip_ref.namelist()
+        ]
+      elif extension == ".png":
+        image_files.append(input_file)
+      else:
+        raise ValueError("Unsupported file format")
+
+    for image_file in image_files:
+      image = misc.imread(image_file)
+      images.append(image)
+    images = np.array(images)
+    return NumpyDataset(images)
