@@ -10,6 +10,7 @@ import tensorflow as tf
 import deepchem as dc
 from deepchem.models import Sequential
 from deepchem.models.tensorgraph.layers import Conv2D, MaxPool2D, Conv2DTranspose, Concat, Feature
+from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy, ReduceMean, SoftMax
 from deepchem.models import TensorGraph
 
 
@@ -40,6 +41,7 @@ class UNet(TensorGraph):
     self.model = dc.models.TensorGraph()
 
     input = Feature(shape=(None, self.img_rows, self.img_cols, 3))
+    labels = Feature(shape=(None, self.img_rows, self.img_cols))
 
     conv1 = Conv2D(
         num_outputs=self.filters[0],
@@ -177,4 +179,7 @@ class UNet(TensorGraph):
     conv10 = Conv2D(
         num_outputs=1, kernel_size=1, activation='sigmoid', in_layers=[conv9])
 
+    loss = SoftMaxCrossEntropy(in_layers=[labels, conv10])
+    loss = ReduceMean(in_layers=[loss])
+    model.set_loss(loss)
     model.add_output(conv10)
