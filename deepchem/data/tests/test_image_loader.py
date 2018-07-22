@@ -19,6 +19,8 @@ class TestImageLoader(unittest.TestCase):
 
   def setUp(self):
     super(TestImageLoader, self).setUp()
+    self.current_dir = os.path.dirname(os.path.abspath(__file__))
+    self.tif_image_path = os.path.join(self.current_dir, "a_image.tif")
 
     # Create image file
     self.data_dir = tempfile.mkdtemp()
@@ -42,23 +44,44 @@ class TestImageLoader(unittest.TestCase):
     zipf.write(self.face_copy_path)
     zipf.close()
 
-  def test_simple_load(self):
+    # Create zip of multiple image files, multiple_types
+    self.multitype_zip_path = os.path.join(self.data_dir, "multitype_face.zip")
+    zipf = zipfile.ZipFile(self.multitype_zip_path, "w", zipfile.ZIP_DEFLATED)
+    zipf.write(self.face_path)
+    zipf.write(self.tif_image_path)
+    zipf.close()
+
+  def test_png_simple_load(self):
     loader = dc.data.ImageLoader()
     dataset = loader.featurize(self.face_path)
     # These are the known dimensions of face.png
     assert dataset.X.shape == (1, 768, 1024, 3)
 
-  def test_multi_load(self):
+  def test_tif_simple_load(self):
+    loader = dc.data.ImageLoader()
+    dataset = loader.featurize(self.tif_image_path)
+    # TODO(rbharath): Where are the color channels?
+    assert dataset.X.shape == (1, 44, 330)
+
+  def test_png_multi_load(self):
     loader = dc.data.ImageLoader()
     dataset = loader.featurize([self.face_path, self.face_copy_path])
     assert dataset.X.shape == (2, 768, 1024, 3)
 
-  def test_zip_load(self):
+  def test_png_zip_load(self):
     loader = dc.data.ImageLoader()
     dataset = loader.featurize(self.zip_path)
     assert dataset.X.shape == (1, 768, 1024, 3)
 
-  def test_multi_zip_load(self):
+  def test_png_multi_zip_load(self):
     loader = dc.data.ImageLoader()
     dataset = loader.featurize(self.multi_zip_path)
+    print("dataset.X.shape")
+    print(dataset.X.shape)
     assert dataset.X.shape == (2, 768, 1024, 3)
+
+  def test_multitype_zip_load(self):
+    loader = dc.data.ImageLoader()
+    dataset = loader.featurize(self.multitype_zip_path)
+    # Since the different files have different shapes, makes an object array
+    assert dataset.X.shape == (2,)

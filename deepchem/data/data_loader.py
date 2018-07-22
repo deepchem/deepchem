@@ -24,6 +24,7 @@ from deepchem.data import DiskDataset
 from deepchem.data import NumpyDataset
 from scipy import misc
 import zipfile
+from PIL import Image
 
 
 def convert_df_to_numpy(df, tasks, verbose=False):
@@ -335,6 +336,11 @@ class FASTALoader(DataLoader):
 class ImageLoader(DataLoader):
   """
   Handles loading of image files.
+
+  This class allows for loading of images in various formats. For user
+  convenience, also accepts zip-files and directories of images and uses some
+  limited intelligence to attempt to traverse subdirectories which contain
+  images.
   """
 
   def __init__(self, tasks=None):
@@ -343,38 +349,72 @@ class ImageLoader(DataLoader):
       tasks = []
     self.tasks = tasks
 
-  def featurize(self, input_files):
+  def featurize(self, input_files, in_memory=True):
     """Featurizes image files.
 
     Parameters
     ----------
     input_files: list
-      Each file in this list should either be of a supported image format (.png
-      only for now) or of a compressed folder of image files (only .zip for now).
+      Each file in this list should either be of a supported image format
+      (.png, .tif only for now) or of a compressed folder of image files
+      (only .zip for now).
+    in_memory: bool
+      If true, return in-memory NumpyDataset. Else return DiskDataset.
     """
     if not isinstance(input_files, list):
       input_files = [input_files]
 
-    images = []
     image_files = []
-    for input_file in input_files:
-      filename, extension = os.path.splitext(input_file)
-      # TODO(rbharath): Add support for more extensions
-      if extension == ".zip":
-        zip_dir = tempfile.mkdtemp()
-        zip_ref = zipfile.ZipFile(input_file, 'r')
-        zip_ref.extractall(path=zip_dir)
-        zip_ref.close()
-        image_files += [
-            os.path.join(zip_dir, name) for name in zip_ref.namelist()
-        ]
-      elif extension == ".png":
-        image_files.append(input_file)
-      else:
-        raise ValueError("Unsupported file format")
+    # Sometimes zip files contain directories within. Traverse directories
+    while len(input_files) > 0:
+      print("ITERATION!!")
+      remainder = []
+      for input_file in input_files:
+        filename, extension = os.path.splitext(input_file)
+        # TODO(rbharath): Add support for more extensions
+        if os.path.isdir(input_file):
+          print("DIRECTORY!")
+          dirfiles = [os.path.join(input_file, subfile) for subfile in os.listdir(input_file)]
+          remainder += dirfiles
+        elif extension == ".zip":
+          zip_dir = tempfile.mkdtemp()
+          zip_ref = zipfile.ZipFile(input_file, 'r')
+          zip_ref.extractall(path=zip_dir)
+          zip_ref.close()
+          zip_files = [os.path.join(zip_dir, name) for name in zip_ref.namelist()]
+          for zip_file in zip_files:
+            if os.path.isdir(zip_file):
+              remainder.append(zip_file)
+            else:
+              image_files.append(zip_file)
+        elif extension in [".png", ".tif"]:
+          image_files.append(input_file)
+        else:
+          raise ValueError("Unsupported file format")
+      input_files = remainder
+      print("remainder")
+      print(remainder)
 
+    images = []
+    print("image_files")
+    print(image_files)
+    print("len(image_files)")
+    print(len(image_files))
     for image_file in image_files:
-      image = misc.imread(image_file)
-      images.append(image)
+      _, extension = os.path.splitext(image_file) 
+      if extension == ".png":
+        image = misc.imread(image_file)
+        images.append(image)
+      elif extension == ".tif":
+        im = Image.open(image_file)
+        imarray = np.array(im)
+        images.append(imarray)
+      else:
+        raise ValueError("Unsupported image filetype for %s" % image_file)
     images = np.array(images)
-    return NumpyDataset(images)
+    if in_memory:
+      return NumpyDataset(images)
+    else:
+      # from_numpy currently requires labels. Make dummy labels
+      labels = np.zeros(len(images))
+      return DiskDataset.from_numpy(images, labels)
