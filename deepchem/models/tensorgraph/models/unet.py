@@ -113,14 +113,15 @@ class UNet(TensorGraph):
         in_layers=[conv5])
 
     up6 = Conv2DTranspose(
-        num_outputs=self.filters[3], kernel_size=2, in_layers=[conv5])
-    concat6 = Concat(in_layers=[conv4, up6], axis=1)
+        num_outputs=self.filters[3], kernel_size=2, stride=2, in_layers=[conv5])
+    concat6 = Concat(in_layers=[conv4, up6], axis=3)
     conv6 = Conv2D(
         num_outputs=self.filters[3],
         kernel_size=3,
         activation='relu',
         padding='same',
         in_layers=[concat6])
+
     conv6 = Conv2D(
         num_outputs=self.filters[3],
         kernel_size=3,
@@ -129,8 +130,8 @@ class UNet(TensorGraph):
         in_layers=[conv6])
 
     up7 = Conv2DTranspose(
-        num_outputs=self.filters[2], kernel_size=2, in_layers=[conv6])
-    concat7 = Concat(in_layers=[conv3, up7], axis=1)
+        num_outputs=self.filters[2], kernel_size=2, stride=2, in_layers=[conv6])
+    concat7 = Concat(in_layers=[conv3, up7], axis=3)
     conv7 = Conv2D(
         num_outputs=self.filters[2],
         kernel_size=3,
@@ -145,8 +146,8 @@ class UNet(TensorGraph):
         in_layers=[conv7])
 
     up8 = Conv2DTranspose(
-        num_outputs=self.filters[1], kernel_size=2, in_layers=[conv7])
-    concat8 = Concat(in_layers=[conv2, up8], axis=1)
+        num_outputs=self.filters[1], kernel_size=2, stride=2, in_layers=[conv7])
+    concat8 = Concat(in_layers=[conv2, up8], axis=3)
     conv8 = Conv2D(
         num_outputs=self.filters[1],
         kernel_size=3,
@@ -161,8 +162,8 @@ class UNet(TensorGraph):
         in_layers=[conv8])
 
     up9 = Conv2DTranspose(
-        num_outputs=self.filters[0], kernel_size=2, in_layers=[conv8])
-    concat9 = Concat(in_layers=[conv1, up9], axis=1)
+        num_outputs=self.filters[0], kernel_size=2, stride=2, in_layers=[conv8])
+    concat9 = Concat(in_layers=[conv1, up9], axis=3)
     conv9 = Conv2D(
         num_outputs=self.filters[0],
         kernel_size=3,
@@ -180,6 +181,7 @@ class UNet(TensorGraph):
         num_outputs=1, kernel_size=1, activation='sigmoid', in_layers=[conv9])
 
     loss = SoftMaxCrossEntropy(in_layers=[labels, conv10])
-    loss = ReduceMean(in_layers=[loss])
+    # loss = ReduceMean(in_layers=[loss])
     model.set_loss(loss)
     model.add_output(conv10)
+    self.model = model
