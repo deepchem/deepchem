@@ -51,7 +51,7 @@ class TestImageLoader(unittest.TestCase):
     zipf.write(self.tif_image_path)
     zipf.close()
 
-    # Create image directory 
+    # Create image directory
     self.image_dir = tempfile.mkdtemp()
     face_path = os.path.join(self.image_dir, "face.png")
     misc.imsave(face_path, self.face)

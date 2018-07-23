@@ -31,15 +31,14 @@ def load_bbbc001(split='index', reload=True):
       return bbbc001_tasks, all_dataset, transformers
   dataset_file = os.path.join(data_dir, "BBBC001_v1_images_tif.zip")
   labels_file = os.path.join(data_dir, "BBBC001_v1_counts.txt")
-  
+
   if not os.path.exists(dataset_file):
     deepchem.utils.download_url(
         'https://data.broadinstitute.org/bbbc/BBBC001/BBBC001_v1_images_tif.zip'
     )
   if not os.path.exists(labels_file):
     deepchem.utils.download_url(
-        'https://data.broadinstitute.org/bbbc/BBBC001/BBBC001_v1_counts.txt'
-    )
+        'https://data.broadinstitute.org/bbbc/BBBC001/BBBC001_v1_counts.txt')
   # Featurize Images into NumpyArrays
   loader = deepchem.data.ImageLoader()
   dataset = loader.featurize(dataset_file, in_memory=False)
@@ -49,9 +48,9 @@ def load_bbbc001(split='index', reload=True):
     content = f.readlines()
   # Strip the first line which holds field labels
   lines = [x.strip() for x in content][1:]
-  # Format is: Image_name count1 count2 
+  # Format is: Image_name count1 count2
   lines = [x.split("\t") for x in lines]
-  counts = [(float(x[1]) + float(x[2]))/2.0 for x in lines]
+  counts = [(float(x[1]) + float(x[2])) / 2.0 for x in lines]
   y = np.array(counts)
 
   # This is kludgy way to add y to dataset. Can be done better?
