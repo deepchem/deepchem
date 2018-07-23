@@ -32,13 +32,11 @@ class UNet(TensorGraph):
                img_rows=512,
                img_cols=512,
                filters=[64, 128, 256, 512, 1024],
-               model=dc.models.TensorGraph(),
                **kwargs):
     super(UNet, self).__init__(use_queue=False, **kwargs)
     self.img_cols = img_cols
     self.img_rows = img_rows
     self.filters = filters
-    self.model = dc.models.TensorGraph()
 
     input = Feature(shape=(None, self.img_rows, self.img_cols, 3))
     labels = Feature(shape=(None, self.img_rows, self.img_cols))
@@ -181,7 +179,6 @@ class UNet(TensorGraph):
         num_outputs=1, kernel_size=1, activation='sigmoid', in_layers=[conv9])
 
     loss = SoftMaxCrossEntropy(in_layers=[labels, conv10])
-    # loss = ReduceMean(in_layers=[loss])
-    model.set_loss(loss)
-    model.add_output(conv10)
-    self.model = model
+    loss = ReduceMean(in_layers=[loss])
+    self.set_loss(loss)
+    self.add_output(conv10)
