@@ -367,13 +367,11 @@ class ImageLoader(DataLoader):
     image_files = []
     # Sometimes zip files contain directories within. Traverse directories
     while len(input_files) > 0:
-      print("ITERATION!!")
       remainder = []
       for input_file in input_files:
         filename, extension = os.path.splitext(input_file)
         # TODO(rbharath): Add support for more extensions
         if os.path.isdir(input_file):
-          print("DIRECTORY!")
           dirfiles = [os.path.join(input_file, subfile) for subfile in os.listdir(input_file)]
           remainder += dirfiles
         elif extension == ".zip":
@@ -383,23 +381,16 @@ class ImageLoader(DataLoader):
           zip_ref.close()
           zip_files = [os.path.join(zip_dir, name) for name in zip_ref.namelist()]
           for zip_file in zip_files:
-            if os.path.isdir(zip_file):
-              remainder.append(zip_file)
-            else:
+            _, extension = os.path.splitext(zip_file)
+            if extension in [".png", ".tif"]:
               image_files.append(zip_file)
         elif extension in [".png", ".tif"]:
           image_files.append(input_file)
         else:
           raise ValueError("Unsupported file format")
       input_files = remainder
-      print("remainder")
-      print(remainder)
 
     images = []
-    print("image_files")
-    print(image_files)
-    print("len(image_files)")
-    print(len(image_files))
     for image_file in image_files:
       _, extension = os.path.splitext(image_file) 
       if extension == ".png":
