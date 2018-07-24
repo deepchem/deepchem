@@ -51,6 +51,7 @@ def load_cell_counting(split=None, reload=True):
   }
   if split not in splitters:
     raise ValueError("Only index and random splits supported.")
+  splitter = splitters[split]
 
   train, valid, test = splitter.train_valid_test_split(dataset)
   all_dataset = (train, valid, test)
