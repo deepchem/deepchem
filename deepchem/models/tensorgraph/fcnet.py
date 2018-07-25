@@ -168,36 +168,6 @@ class MultitaskClassifier(TensorGraph):
           tf.cast(labels, tf.int32), self.n_classes)
     return tensors
 
-  def predict_proba(self, dataset, transformers=[], outputs=None):
-    return super(MultitaskClassifier, self).predict(dataset, transformers,
-                                                    outputs)
-
-  def predict(self, dataset, transformers=[], outputs=None):
-    """
-    Uses self to make predictions on provided Dataset object.
-
-    Parameters
-    ----------
-    dataset: dc.data.Dataset
-      Dataset to make prediction on
-    transformers: list
-      List of dc.trans.Transformers.
-    outputs: object
-      If outputs is None, then will assume outputs = self.outputs[0] (single
-      output). If outputs is a Layer/Tensor, then will evaluate and return as a
-      single ndarray. If outputs is a list of Layers/Tensors, will return a list
-      of ndarrays.
-
-    Returns
-    -------
-    y_pred: numpy ndarray or list of numpy ndarrays
-    """
-    # Results is of shape (n_samples, n_tasks, n_classes)
-    retval = super(MultitaskClassifier, self).predict(dataset, transformers,
-                                                      outputs)
-    # retval is of shape (n_samples, n_tasks)
-    return np.argmax(retval, axis=2)
-
 
 class MultitaskRegressor(TensorGraph):
 

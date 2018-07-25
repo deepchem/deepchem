@@ -87,13 +87,14 @@ class BPSymmetryFunctionRegression(TensorGraph):
                         dataset,
                         epochs=1,
                         predict=False,
+                        deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
       if not predict:
         print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
-          deterministic=True,
+          deterministic=deterministic,
           pad_batches=pad_batches):
 
         feed_dict = dict()
@@ -296,9 +297,7 @@ class ANIRegression(TensorGraph):
         jac=self.grad_one,
         method="BFGS",
         tol=1e-6,
-        options={
-            'disp': True
-        })
+        options={'disp': True})
 
     return res.x.reshape((num_atoms, 3))
 

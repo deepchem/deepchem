@@ -8,14 +8,12 @@ from __future__ import unicode_literals
 # TODO(rbharath): Use standard joblib once old-data has been regenerated.
 import joblib
 from sklearn.externals import joblib as old_joblib
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 import gzip
 import json
 import pickle
 import pandas as pd
 import numpy as np
 import os
-import sys
 import deepchem
 from rdkit import Chem
 
@@ -51,7 +49,7 @@ def get_input_type(input_file):
 
 def load_data(input_files, shard_size=None, verbose=True):
   """Loads data from disk.
-     
+
   For CSV files, supports sharded loading for large files.
   """
   if not len(input_files):
@@ -106,17 +104,18 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
         yield df
 
 
-def seq_one_hot_encode(sequences):
+def seq_one_hot_encode(sequences, letters='ATCGN'):
   """One hot encodes list of genomic sequences.
 
-  Sequences encoded have shape (N_sequences, 4, sequence_length, 1).
-  Here 4 is for the 4 basepairs (ACGT) present in genomic sequences.
+  Sequences encoded have shape (N_sequences, N_letters, sequence_length, 1).
   These sequences will be processed as images with one color channel.
 
   Parameters
   ----------
-  sequences: np.ndarray 
-    Array of genetic sequences 
+  sequences: np.ndarray
+    Array of genetic sequences
+  letters: str
+    String with the set of possible letters in the sequences.
 
   Raises
   ------
@@ -125,32 +124,46 @@ def seq_one_hot_encode(sequences):
 
   Returns
   -------
-  np.ndarray: Shape (N_sequences, 4, sequence_length, 1).
+  np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
   """
-  sequence_length = len(sequences[0])
-  # depends on Python version
-  integer_type = np.int32
-  # The label encoder is given characters for ACGTN
-  label_encoder = LabelEncoder().fit(np.array(('ACGTN',)).view(integer_type))
-  # These are transformed in 0, 1, 2, 3, 4 in input sequence
-  integer_array = []
-  # TODO(rbharath): Unlike the DRAGONN implementation from which this
-  # was ported, I couldn't transform the "ACGT..." strings into
-  # integers all at once. Had to do one at a time. Might be worth
-  # figuring out what's going on under the hood.
-  for sequence in sequences:
-    if len(sequence) != sequence_length:
-      raise ValueError("All sequences must be of same length")
-    integer_seq = label_encoder.transform(
-        np.array((sequence,)).view(integer_type))
-    integer_array.append(integer_seq)
-  integer_array = np.concatenate(integer_array)
-  integer_array = integer_array.reshape(len(sequences), sequence_length)
-  one_hot_encoding = OneHotEncoder(
-      sparse=False, n_values=5, dtype=integer_type).fit_transform(integer_array)
 
-  return one_hot_encoding.reshape(len(sequences), sequence_length, 5,
-                                  1).swapaxes(1, 2)[:, [0, 1, 2, 4], :, :]
+  # The label encoder is given characters for ACGTN
+  letter_encoder = {l: i for i, l in enumerate(letters)}
+  alphabet_length = len(letter_encoder)
+
+  # Peak at the first sequence to get the length of the sequence.
+  try:
+    first_seq = next(sequences)
+    tail_seq = sequences
+  except TypeError:
+    first_seq = sequences[0]
+    tail_seq = sequences[1:]
+
+  sequence_length = len(first_seq)
+
+  seqs = []
+
+  seqs.append(
+      _seq_to_encoded(first_seq, letter_encoder, alphabet_length,
+                      sequence_length))
+
+  for other_seq in tail_seq:
+    if len(other_seq) != sequence_length:
+      raise ValueError
+
+    seqs.append(
+        _seq_to_encoded(other_seq, letter_encoder, alphabet_length,
+                        sequence_length))
+
+  return np.expand_dims(np.array(seqs), -1)
+
+
+def _seq_to_encoded(seq, letter_encoder, alphabet_length, sequence_length):
+  b = np.zeros((alphabet_length, sequence_length))
+  seq_ints = [letter_encoder[s] for s in seq]
+  b[seq_ints, np.arange(sequence_length)] = 1
+
+  return b
 
 
 def encode_fasta_sequence(fname):
@@ -161,22 +174,38 @@ def encode_fasta_sequence(fname):
   ----------
   fname: str
     Filename of fasta file.
-  """
-  name, seq_chars = None, []
-  sequences = []
-  with open(fname) as fp:
-    for line in fp:
-      line = line.rstrip()
-      if line.startswith(">"):
-        if name:
-          sequences.append(''.join(seq_chars).upper())
-        name, seq_chars = line, []
-      else:
-        seq_chars.append(line)
-  if name is not None:
-    sequences.append(''.join(seq_chars).upper())
 
-  return seq_one_hot_encode(np.array(sequences))
+  Returns
+  -------
+  np.ndarray: Shape (N_sequences, 5, sequence_length, 1).
+  """
+
+  return encode_bio_sequence(fname)
+
+
+def encode_bio_sequence(fname, file_type="fasta", letters="ATCGN"):
+  """
+  Loads a sequence file and returns an array of one-hot sequences.
+
+  Parameters
+  ----------
+  fname: str
+    Filename of fasta file.
+  file_type: str
+    The type of file encoding to process, e.g. fasta or fastq, this
+    is passed to Biopython.SeqIO.parse.
+  letters: str
+    The set of letters that the sequences consist of, e.g. ATCG.
+
+  Returns
+  -------
+  np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
+  """
+
+  from Bio import SeqIO
+
+  sequences = SeqIO.parse(fname, file_type)
+  return seq_one_hot_encode(sequences, letters)
 
 
 def save_metadata(tasks, metadata_df, data_dir):

@@ -72,7 +72,7 @@ for trial_num, (task, support) in enumerate(support_generator):
   # Test model
   task_dataset = dc.data.get_task_dataset_minus_support(test_dataset, support,
                                                         task)
-  y_pred = model.predict_proba(task_dataset)
+  y_pred = model.predict(task_dataset)
   score = metric.compute_metric(task_dataset.y, y_pred, task_dataset.w)
   print("Score on task %s is %s" % (str(task), str(score)))
   task_scores[task].append(score)

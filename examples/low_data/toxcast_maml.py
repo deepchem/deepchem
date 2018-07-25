@@ -108,7 +108,7 @@ def compute_scores(optimize):
   print()
   print('Cross entropy loss:', np.mean(losses))
   print('Prediction accuracy:', accuracy_score(y_true, y_pred > 0.5))
-  print('ROC AUC:', dc.metrics.compute_roc_auc_scores(y_true, y_pred))
+  print('ROC AUC:', dc.metrics.roc_auc_score(y_true, y_pred))
   print()
 
 

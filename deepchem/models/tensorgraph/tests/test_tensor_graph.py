@@ -11,11 +11,11 @@ import shutil
 import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
-from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, SoftMax, Constant, Variable
+from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, ReduceSum, SoftMax, Constant, Variable
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference, Add, GRU
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
-from deepchem.models.tensorgraph.optimizers import GradientDescent, ExponentialDecay
+from deepchem.models.tensorgraph.optimizers import GradientDescent, ExponentialDecay, Adam
 import tensorflow.contrib.eager as tfe
 from tensorflow.python.eager import context
 
@@ -270,6 +270,10 @@ class TestTensorGraph(unittest.TestCase):
     tg = dc.models.TensorGraph(learning_rate=0.01)
     tg.add_output(output)
     tg.set_loss(loss)
+    submodel_loss = ReduceSum(in_layers=smce)
+    submodel_opt = Adam(learning_rate=0.002)
+    submodel = tg.create_submodel(
+        layers=[dense], loss=submodel_loss, optimizer=submodel_opt)
     tg.fit(dataset, nb_epoch=1)
     prediction = np.squeeze(tg.predict_on_batch(X))
     tg.save()

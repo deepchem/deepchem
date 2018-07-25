@@ -80,18 +80,6 @@ class Model(BaseEstimator):
     raise NotImplementedError(
         "Each model is responsible for its own predict_on_batch method.")
 
-  def predict_proba_on_batch(self, X):
-    """
-    Makes predictions of class probabilities on given batch of new data.
-
-    Parameters
-    ----------
-    X: np.ndarray
-      Features
-    """
-    raise NotImplementedError(
-        "Each model is responsible for its own predict_on_batch method.")
-
   def reload(self):
     """
     Reload trained model from disk.
@@ -152,18 +140,9 @@ class Model(BaseEstimator):
       y_pred_batch = self.predict_on_batch(X_batch)
       # Discard any padded predictions
       y_pred_batch = y_pred_batch[:n_samples]
-      y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
-    y_pred = np.vstack(y_preds)
-
-    # The iterbatches does padding with zero-weight examples on the last batch.
-    # Remove padded examples.
-    n_samples = len(dataset)
-    y_pred = np.reshape(y_pred, (n_samples, n_tasks))
-    # Special case to handle singletasks.
-    if n_tasks == 1:
-      y_pred = np.reshape(y_pred, (n_samples,))
+    y_pred = np.concatenate(y_preds)
     return y_pred
 
   def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):
@@ -194,35 +173,6 @@ class Model(BaseEstimator):
       scores, per_task_scores = evaluator.compute_model_performance(
           metrics, per_task_metrics=per_task_metrics)
       return scores, per_task_scores
-
-  def predict_proba(self,
-                    dataset,
-                    transformers=[],
-                    batch_size=None,
-                    n_classes=2):
-    """
-    TODO: Do transformers even make sense here?
-
-    Returns:
-      y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
-    """
-    y_preds = []
-    n_tasks = self.get_num_tasks()
-    for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
-        batch_size, deterministic=True):
-      n_samples = len(X_batch)
-      y_pred_batch = self.predict_proba_on_batch(X_batch)
-      y_pred_batch = y_pred_batch[:n_samples]
-      y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks, n_classes))
-      y_pred_batch = undo_transforms(y_pred_batch, transformers)
-      y_preds.append(y_pred_batch)
-    y_pred = np.vstack(y_preds)
-    # The iterbatches does padding with zero-weight examples on the last batch.
-    # Remove padded examples.
-    n_samples = len(dataset)
-    y_pred = y_pred[:n_samples]
-    y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
-    return y_pred
 
   def get_task_type(self):
     """

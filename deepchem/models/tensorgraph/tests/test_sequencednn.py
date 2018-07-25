@@ -19,7 +19,7 @@ class TestSequenceDNN(unittest.TestCase):
     #  #    False: num_sequences / num_negatives
     #  #} if not multitask else None,
     dataset = dc.data.NumpyDataset(X, y)
-    model = dc.models.SequenceDNN(50, "binary_crossentropy", num_filters=1)
+    model = dc.models.SequenceDNN(50, "binary_crossentropy", num_filters=[1])
     model.fit(dataset, nb_epoch=1)
 
   def test_seq_dnn_multifilter_train(self):
@@ -32,5 +32,14 @@ class TestSequenceDNN(unittest.TestCase):
     #  #    False: num_sequences / num_negatives
     #  #} if not multitask else None,
     dataset = dc.data.NumpyDataset(X, y)
-    model = dc.models.SequenceDNN(50, "binary_crossentropy", num_filters=15)
+    model = dc.models.SequenceDNN(50, "binary_crossentropy", num_filters=[15])
+    model.fit(dataset, nb_epoch=1)
+
+  def test_seq_dnn_multilayer_train(self):
+    """Test SequenceDNN with multiple layers works."""
+    X = np.random.rand(10, 1, 4, 50)
+    y = np.random.randint(0, 2, size=(10, 1))
+    dataset = dc.data.NumpyDataset(X, y)
+    model = dc.models.SequenceDNN(
+        50, "binary_crossentropy", num_filters=[1, 1], kernel_size=[15, 15])
     model.fit(dataset, nb_epoch=1)

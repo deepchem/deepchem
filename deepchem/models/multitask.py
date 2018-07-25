@@ -105,12 +105,13 @@ class SingletaskToMultitask(Model):
     """
     n_tasks = len(self.tasks)
     n_samples = X.shape[0]
-    y_pred = np.zeros((n_samples, n_tasks))
+    y_preds = []
     for ind, task in enumerate(self.tasks):
       task_model = self.model_builder(self.task_model_dirs[task])
       task_model.reload()
 
-      y_pred[:, ind] = task_model.predict_on_batch(X)
+      y_preds.append(task_model.predict_on_batch(X))
+    y_pred = np.stack(y_preds, axis=1)
     return y_pred
 
   def predict(self, dataset, transformers=[]):
@@ -119,42 +120,14 @@ class SingletaskToMultitask(Model):
     """
     n_tasks = len(self.tasks)
     n_samples = len(dataset)
-    y_pred = np.zeros((n_samples, n_tasks))
+    y_preds = []
     for ind, task in enumerate(self.tasks):
       task_model = self.model_builder(self.task_model_dirs[task])
       task_model.reload()
 
-      y_pred[:, ind] = task_model.predict(dataset, [])
+      y_preds.append(task_model.predict(dataset, []))
+    y_pred = np.stack(y_preds, axis=1)
     y_pred = undo_transforms(y_pred, transformers)
-    return y_pred
-
-  def predict_proba_on_batch(self, X, n_classes=2):
-    """
-    Concatenates results from all singletask models.
-    """
-    n_tasks = len(self.tasks)
-    n_samples = X.shape[0]
-    y_pred = np.zeros((n_samples, n_tasks, n_classes))
-    for ind, task in enumerate(self.tasks):
-      task_model = self.model_builder(self.task_model_dirs[task])
-      task_model.reload()
-
-      y_pred[:, ind] = task_model.predict_proba_on_batch(X)
-    return y_pred
-
-  def predict_proba(self, dataset, transformers=[], n_classes=2):
-    """
-    Concatenates results from all singletask models.
-    """
-    n_tasks = len(self.tasks)
-    n_samples = len(dataset)
-    y_pred = np.zeros((n_samples, n_tasks, n_classes))
-    for ind, task in enumerate(self.tasks):
-      task_model = self.model_builder(self.task_model_dirs[task])
-      task_model.reload()
-
-      y_pred[:, ind] = np.squeeze(
-          task_model.predict_proba(dataset, transformers, n_classes))
     return y_pred
 
   def save(self):

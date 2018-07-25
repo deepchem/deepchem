@@ -471,14 +471,6 @@ class TensorGraph(Model):
     """
     return self._predict(generator, transformers, outputs, False)
 
-  def predict_proba_on_generator(self, generator, transformers=[],
-                                 outputs=None):
-    """
-    Returns:
-      y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
-    """
-    return self.predict_on_generator(generator, transformers, outputs)
-
   def predict_on_batch(self, X, transformers=[], outputs=None):
     """Generates predictions for input samples, processing samples in a batch.
 
@@ -523,22 +515,6 @@ class TensorGraph(Model):
     """
     dataset = NumpyDataset(X=X, y=None)
     return self.predict_uncertainty(dataset, masks)
-
-  def predict_proba_on_batch(self, X, transformers=[], outputs=None):
-    """Generates predictions for input samples, processing samples in a batch.
-
-    Parameters
-    ----------
-    X: ndarray
-      the input data, as a Numpy array.
-    transformers: List
-      List of dc.trans.Transformers
-
-    Returns
-    -------
-    A Numpy array of predictions.
-    """
-    return self.predict_on_batch(X, transformers, outputs)
 
   def predict(self, dataset, transformers=[], outputs=None):
     """
@@ -614,26 +590,6 @@ class TensorGraph(Model):
     else:
       return zip(output, std)
 
-  def predict_proba(self, dataset, transformers=[], outputs=None):
-    """
-    Parameters
-    ----------
-    dataset: dc.data.Dataset
-      Dataset to make prediction on
-    transformers: list
-      List of dc.trans.Transformers.
-    outputs: object
-      If outputs is None, then will assume outputs=self.outputs. If outputs is
-      a Layer/Tensor, then will evaluate and return as a single ndarray. If
-      outputs is a list of Layers/Tensors, will return a list of ndarrays.
-
-    Returns
-    -------
-    y_pred: numpy ndarray or list of numpy ndarrays
-    """
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator, transformers, outputs)
-
   def topsort(self):
 
     def add_layers_to_list(layer, sorted_layers):
@@ -705,15 +661,16 @@ class TensorGraph(Model):
       if self.random_seed is not None:
         tf.set_random_seed(self.random_seed)
       self._install_queue()
+      self.built = True
       for layer in self.topsort():
         with tf.name_scope(layer.name):
           layer.create_tensor(training=self._training_placeholder)
           self.rnn_initial_states += layer.rnn_initial_states
           self.rnn_final_states += layer.rnn_final_states
           self.rnn_zero_states += layer.rnn_zero_states
-          layer.add_summary_to_tg()
+          layer.add_summary_to_tg(layer.out_tensor,
+                                  self.get_layer_variables(layer))
       self.session = tf.Session(config=self.configproto)
-      self.built = True
 
       # Ensure all training operators have been created.
 
@@ -885,10 +842,14 @@ class TensorGraph(Model):
     self.rnn_zero_states = []
     self.session = None
     out_tensors = []
+    submodel_ops = []
     if self.built:
       must_restore = True
       for layer in self.topsort():
         out_tensors.append(layer.none_tensors())
+      for submodel in self.submodels:
+        submodel_ops.append(submodel._train_op)
+        submodel._train_op = None
       training_placeholder = self._training_placeholder
       self._training_placeholder = None
       self.built = False
@@ -907,6 +868,8 @@ class TensorGraph(Model):
     if must_restore:
       for index, layer in enumerate(self.topsort()):
         layer.set_tensors(out_tensors[index])
+      for submodel, op in zip(self.submodels, submodel_ops):
+        submodel._train_op = op
       self._training_placeholder = training_placeholder
       self.built = True
     self.tensor_objects = tensor_objects
@@ -1100,37 +1063,23 @@ class TensorGraph(Model):
     training: bool
       True during training, False during prediction
     """
-    if tfe.in_eager_mode():
+    train_value = 1.0 if training else 0.0
+    if self.queue_installed:
+      while True:
+        yield {self._training_placeholder: train_value}
+    else:
       for d in generator:
         feed_dict = {}
         for key, value in d.items():
           if isinstance(key, Input):
-            # Add or remove dimensions of size 1 to match the shape of the layer.
-            try:
-              value_dims = len(value.shape)
-              layer_dims = len(key.shape)
-              if value_dims < layer_dims:
-                if all(i == 1 for i in key.shape[value_dims:]):
-                  value = tf.reshape(value,
-                                     list(value.shape) + [1] *
-                                     (layer_dims - value_dims))
-              if value_dims > layer_dims:
-                if all(i == 1 for i in value.shape[layer_dims:]):
-                  value = tf.reshape(value, value.shape[:layer_dims])
-            except:
-              pass
-            feed_dict[key] = tf.cast(value, key.dtype)
+            value = _ensure_value_shape(value, key)
+            if tfe.in_eager_mode():
+              value = tf.cast(value, key.dtype)
+            feed_dict[key] = value
           else:
             feed_dict[key] = value
-        yield feed_dict
-    else:
-      train_value = 1.0 if training else 0.0
-      if self.queue_installed:
-        while True:
-          yield {self._training_placeholder: train_value}
-      for d in generator:
-        feed_dict = dict(d)
-        feed_dict[self._training_placeholder] = train_value
+        if not tfe.in_eager_mode():
+          feed_dict[self._training_placeholder] = train_value
         yield feed_dict
 
   def _run_graph(self, outputs, feed_dict, training):
@@ -1236,7 +1185,9 @@ class TensorGraph(Model):
       tensor = layer.create_tensor(
           in_layers=inputs, set_tensors=False, training=training)
       tensors[layer] = tensor
-      layer.add_summary_to_tg(tensor)
+      vars = tf.get_collection(
+          tf.GraphKeys.TRAINABLE_VARIABLES, scope=layer.name)
+      layer.add_summary_to_tg(tensor, vars)
       return tensor
 
     # Define the model function.
@@ -1247,7 +1198,7 @@ class TensorGraph(Model):
       tensors = self.create_estimator_inputs(feature_columns, weight_column,
                                              features, labels, mode)
       for layer, tensor in tensors.items():
-        layer.add_summary_to_tg(tensor)
+        layer.add_summary_to_tg(tensor, [])
 
       # Create the correct outputs, based on the mode.
 
@@ -1310,6 +1261,24 @@ class TensorGraph(Model):
     return tensors
 
 
+def _ensure_value_shape(value, layer):
+  """Ensure that a value has the right shape for an input layer."""
+  # Add or remove dimensions of size 1 to match the shape of the layer.
+  try:
+    value_dims = len(value.shape)
+    layer_dims = len(layer.shape)
+    if value_dims < layer_dims:
+      if all(i == 1 for i in layer.shape[value_dims:]):
+        value = value.reshape(
+            list(value.shape) + [1] * (layer_dims - value_dims))
+    if value_dims > layer_dims:
+      if all(i == 1 for i in value.shape[layer_dims:]):
+        value = value.reshape(value.shape[:layer_dims])
+  except:
+    pass
+  return value
+
+
 def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
   """
   Function to load data into
@@ -1332,19 +1301,7 @@ def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
       for layer in tg.features + tg.labels + tg.task_weights:
         if layer in feed_dict:
           value = feed_dict[layer]
-          # Add or remove dimensions of size 1 to match the shape of the layer.
-          try:
-            value_dims = len(value.shape)
-            layer_dims = len(layer.shape)
-            if value_dims < layer_dims:
-              if all(i == 1 for i in layer.shape[value_dims:]):
-                value = value.reshape(
-                    list(value.shape) + [1] * (layer_dims - value_dims))
-            if value_dims > layer_dims:
-              if all(i == 1 for i in value.shape[layer_dims:]):
-                value = value.reshape(value.shape[:layer_dims])
-          except:
-            pass
+          value = _ensure_value_shape(value, layer)
         else:
           value = np.zeros(
               [0] + list(layer.shape[1:]), dtype=layer.dtype.as_numpy_dtype)
