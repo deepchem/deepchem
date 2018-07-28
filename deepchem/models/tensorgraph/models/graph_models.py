@@ -598,7 +598,6 @@ class GraphConvModel(TensorGraph):
     self.mode = mode
     self.dense_layer_size = dense_layer_size
     self.graph_conv_layers = graph_conv_layers
-    kwargs['use_queue'] = False
     self.number_atom_features = number_atom_features
     self.n_classes = n_classes
     self.uncertainty = uncertainty
