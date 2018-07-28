@@ -9,13 +9,14 @@ class TestDeepchemBuild(unittest.TestCase):
   def tearDown(self):
     import deepchem
     import os
+    import shutil
     data_dir = deepchem.utils.get_data_dir()
     bace_dir = os.path.join(data_dir, "bace_c")
-    if os.path.exists(bace_dir):
-      os.rmdir(bace_dir)
     delaney_dir = os.path.join(data_dir, "delaney")
-    if os.path.exists(delaney_dir):
-      os.rmdir(bace_dir)
+    try:
+      shutil.rmtree(bace_dir, ignore_errors=True)
+    except:
+      pass
 
   def test_dc_import(self):
     import deepchem
