@@ -4,7 +4,7 @@ package:
 
 source:
     git_url: https://github.com/deepchem/deepchem.git
-    git_tag: 2.0.0
+    git_tag: 2.1.0
 
 build:
   number: 0
@@ -28,7 +28,7 @@ requirements:
     - xgboost ==0.6a2
     - pillow ==5.0.0
     - pandas ==0.22.0
-    - {{ environ.get('tensorflow_enabled','tensorflow') }} ==1.5.0
+    - {{ environ.get('tensorflow_enabled','tensorflow') }} ==1.6.0
     - zlib ==1.2.11
     - requests ==2.18.4
     - simdna ==0.4.2
