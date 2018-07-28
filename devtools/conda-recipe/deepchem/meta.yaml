@@ -13,13 +13,13 @@ build:
 
 requirements:
   build:
-    - python {{ environ.get('python_version', '3.5') }}
+    - python {{ python }}
     - setuptools
     - pbr
     - numpy
 
   run:
-    - python {{ environ.get('python_version', '3.5') }}
+    - python {{ python }}
     - pdbfixer ==1.4
     - mdtraj ==1.9.1
     - joblib ==0.11
