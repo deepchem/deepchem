@@ -2,6 +2,7 @@
 cd devtools/conda-recipe
 source activate base
 conda upgrade conda -y
+conda install conda-build -y
 conda upgrade conda-build -y
 conda build purge
 export python_version=2.7
