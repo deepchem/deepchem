@@ -355,8 +355,8 @@ class DTNNModel(TensorGraph):
           start = start + num_atoms[im]
         feed_dict[self.atom_number] = np.concatenate(atom_number)
         distance = np.concatenate(distance, 0)
-        feed_dict[self.distance] = np.exp(-np.square(distance - self.steps) /
-                                          (2 * self.step_size**2))
+        feed_dict[self.distance] = np.exp(
+            -np.square(distance - self.steps) / (2 * self.step_size**2))
         feed_dict[self.distance_membership_i] = np.concatenate(
             distance_membership_i)
         feed_dict[self.distance_membership_j] = np.concatenate(
