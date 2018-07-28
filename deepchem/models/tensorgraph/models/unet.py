@@ -9,7 +9,7 @@ U-Net implementation
 import tensorflow as tf
 import deepchem as dc
 from deepchem.models import Sequential
-from deepchem.models.tensorgraph.layers import Conv2D, MaxPool2D, Conv2DTranspose, Concat, Feature
+from deepchem.models.tensorgraph.layers import Conv2D, MaxPool2D, Conv2DTranspose, Concat, Feature, Label
 from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy, ReduceMean, SoftMax
 from deepchem.models import TensorGraph
 
@@ -39,7 +39,7 @@ class UNet(TensorGraph):
     self.filters = filters
 
     input = Feature(shape=(None, self.img_rows, self.img_cols, 3))
-    labels = Feature(shape=(None, self.img_rows, self.img_cols))
+    labels = Label(shape=(None, self.img_rows * self.img_cols))
 
     conv1 = Conv2D(
         num_outputs=self.filters[0],
