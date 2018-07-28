@@ -5,6 +5,17 @@ class TestDeepchemBuild(unittest.TestCase):
   def setUp(self):
     pass
 
+  def tearDown(self):
+    import deepchem
+    import os
+    data_dir = deepchem.utils.get_data_dir()
+    bace_dir = os.path.join(data_dir, "bace_c")
+    if os.path.exists(bace_dir):
+      os.rmdir(bace_dir)
+    delaney_dir = os.path.join(data_dir, "delaney")
+    if os.path.exists(delaney_dir):
+      os.rmdir(bace_dir)
+
   def test_dc_import(self):
     import deepchem
     print(deepchem.__version__)
