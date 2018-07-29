@@ -24,7 +24,7 @@ class TestUNet(unittest.TestCase):
     # predict
     predictions = unet2D.predict(test)
     # check output shape
-    assert predictions.shape == (2, 32, 32, 1)
+    self.assertEqual(predictions.shape, (2, 32, 32, 1))
 
     # new object of UNet to test if loading the model results in same predictions
     unet2D_new = deepchem.models.tensorgraph.models.unet.UNet(
@@ -33,4 +33,4 @@ class TestUNet(unittest.TestCase):
     unet2D_new.restore()
     predictions_new = unet2D_new.predict(test)
 
-    assert np.all(predictions == predictions_new)
+    self.assertTrue(np.all(predictions == predictions_new))
