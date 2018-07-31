@@ -1,14 +1,15 @@
 import collections
+import logging
 import os
 import pickle
 import threading
 import time
 
-import logging
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.pywrap_tensorflow_internal import NewCheckpointReader
 import tensorflow.contrib.eager as tfe
+from tensorflow.python.eager import context
+from tensorflow.python.pywrap_tensorflow_internal import NewCheckpointReader
 
 from deepchem.data import NumpyDataset
 from deepchem.models.models import Model
@@ -19,6 +20,15 @@ from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 logger = logging.getLogger(__name__)
+
+
+class DummyContext(object):
+
+  def __enter__(self):
+    return None
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    return False
 
 
 class TensorGraph(Model):
@@ -116,6 +126,11 @@ class TensorGraph(Model):
     for in_layer in layer.in_layers:
       self._add_layer(in_layer)
 
+  def _get_context(self):
+    if tfe.in_eager_mode():
+      return DummyContext()
+    return self._get_tf("Graph").as_default()
+
   def fit(self,
           dataset,
           nb_epoch=10,
@@ -184,7 +199,7 @@ class TensorGraph(Model):
     """
     if not self.built:
       self.build()
-    with self._get_tf("Graph").as_default():
+    with self._get_context():
       time1 = time.time()
       loss = self.loss
       if submodel is not None and submodel.loss is not None:
@@ -406,7 +421,7 @@ class TensorGraph(Model):
     else:
       tensors = outputs
 
-    with self._get_tf("Graph").as_default():
+    with self._get_context():
       # Gather results for each output
       results = [[] for out in tensors]
       n_samples = 0
@@ -633,23 +648,22 @@ class TensorGraph(Model):
         return tensor
 
       tensors = {}
-      with self._get_tf("Graph").as_default():
-        # Build the layers.
+      # Build the layers.
 
-        build_layers(self.loss, tensors)
-        for output in self.outputs:
-          build_layers(output, tensors)
-        for variance in self.variances:
-          build_layers(variance, tensors)
-        for submodel in self.submodels:
-          build_layers(submodel.loss, tensors)
+      build_layers(self.loss, tensors)
+      for output in self.outputs:
+        build_layers(output, tensors)
+      for variance in self.variances:
+        build_layers(variance, tensors)
+      for submodel in self.submodels:
+        build_layers(submodel.loss, tensors)
 
-        # Initialize variables.
+      # Initialize variables.
 
-        for layer in self.layers.values():
-          if layer.variable_values is not None:
-            for var, val in zip(layer.variables, layer.variable_values):
-              var.assign(val)
+      for layer in self.layers.values():
+        if layer.variable_values is not None:
+          for var, val in zip(layer.variables, layer.variable_values):
+            var.assign(val)
       self.session = None
       self._training_placeholder = None
       self.built = True
@@ -837,6 +851,8 @@ class TensorGraph(Model):
     return result
 
   def save(self):
+    if tfe.in_eager_mode():
+      raise ValueError("Saving Not Supported In Eager Mode")
     # Remove out_tensor from the object to be pickled
     must_restore = False
     tensor_objects = self.tensor_objects
@@ -982,7 +998,7 @@ class TensorGraph(Model):
       self.tensor_objects['summary_op'] = tf.summary.merge_all(
           key=tf.GraphKeys.SUMMARIES)
     elif obj == 'GlobalStep':
-      with self._get_tf("Graph").as_default():
+      with self._get_context():
         self.tensor_objects['GlobalStep'] = create_variable(0, trainable=False)
     return self._get_tf(obj)
 

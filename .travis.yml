@@ -2,8 +2,10 @@ language: python
 python:
 - '2.7'
 - '3.5'
-sudo: required
+- '3.6'
 dist: trusty
+sudo: required
+
 install:
 - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O anaconda.sh;
 - export python_version=$TRAVIS_PYTHON_VERSION

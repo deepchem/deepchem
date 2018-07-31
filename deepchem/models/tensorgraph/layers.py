@@ -323,7 +323,7 @@ class Layer(object):
         raise ValueError('Cannot specify variables_graph when shared==True')
       variables = variables_graph.get_layer_variables(self)
       if len(variables) > 0:
-        with variables_graph._get_tf("Graph").as_default():
+        with variables_graph._get_context():
           if tfe.in_eager_mode():
             values = [v.numpy() for v in variables]
           else:

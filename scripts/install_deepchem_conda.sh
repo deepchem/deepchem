@@ -8,8 +8,8 @@ export tensorflow=tensorflow
 
 if [ -z "$python_version" ]
 then
-    echo "Using python 3.5 by default"
-    export python_version=3.5
+    echo "Using python 3.6 by default"
+    export python_version=3.6
 fi
 
 if [ -z "$1" ];
@@ -21,32 +21,22 @@ else
     source activate $envname
 fi
 
-unamestr=`uname`
-if [[ "$unamestr" == 'Darwin' ]]; then
-   source activate root
-   conda install -y -q conda=4.3.25
-   source activate $envname
-fi
-
 conda install -y -q -c omnia pdbfixer=1.4
 conda install -y -q -c deepchem mdtraj=1.9.1
-conda install -y -q -c rdkit rdkit=2017.09.1
-conda install -y -q -c conda-forge joblib=0.11 \
+conda install -y -q -c rdkit rdkit=2018.03.3.0
+conda install -y -q -c conda-forge joblib=0.12 \
     six=1.11.0 \
     scikit-learn=0.19.1 \
     networkx=2.1 \
-    pillow=5.0.0 \
-    pandas=0.22.0 \
+    pillow=5.1.0 \
+    pandas=0.23.3 \
     nose=1.3.7 \
-    nose-timer=0.7.0 \
-    flaky=3.3.0 \
-    zlib=1.2.11 \
+    nose-timer=0.7.3 \
+    flaky=3.4.0 \
     requests=2.18.4 \
-    xgboost=0.6a2 \
+    xgboost=0.72.1 \
     simdna=0.4.2 \
     jupyter=1.0.0 \
-    pbr=3.1.1 \
-    setuptools=39.0.1 \
-    biopython=1.71 \
-    numpy=1.14
-yes | pip install $tensorflow==1.6.0
+    pbr=4.2.0 \
+    biopython=1.72
+yes | pip install $tensorflow==1.9.0
