@@ -86,6 +86,10 @@ class ConvMol(object):
         for deg in range(self.min_deg, self.max_deg + 1)
     ]
 
+    self.degree_list = []
+    for i, deg in enumerate(range(self.min_deg, self.max_deg + 1)):
+      self.degree_list.extend([deg] * deg_size[i])
+
     # Get the the start indices for items in each block
     self.deg_start = cumulative_sum(deg_size)
 
@@ -267,14 +271,9 @@ class ConvMol(object):
     atoms_per_mol = [mol.get_num_atoms() for mol in mols]
 
     # Get atoms by degree
-    atoms_by_deg = [
-        mol.get_atoms_with_deg(deg)
-        for deg in range(min_deg, max_deg + 1)
-        for mol in mols
-    ]
-
-    # stack the atoms
-    all_atoms = np.vstack(atoms_by_deg)
+    atoms_by_deg = np.concatenate([x.atom_features for x in mols])
+    degree_vector = np.concatenate([x.degree_list for x in mols], axis=0)
+    all_atoms = atoms_by_deg[degree_vector.argsort(kind='mergesort')]
 
     # Sort all atoms by degree.
     # Get the size of each atom list separated by molecule id, then by degree
@@ -297,8 +296,7 @@ class ConvMol(object):
 
     # Determines the membership (atom i belongs to membership[i] molecule)
     membership = [
-        k
-        for deg in range(min_deg, max_deg + 1) for k in range(num_mols)
+        k for deg in range(min_deg, max_deg + 1) for k in range(num_mols)
         for i in range(mol_deg_sz[deg][k])
     ]
 
@@ -371,7 +369,6 @@ class MultiConvMol(object):
   """
 
   def __init__(self, nodes, deg_adj_lists, deg_slice, membership, num_mols):
-
     self.nodes = nodes
     self.deg_adj_lists = deg_adj_lists
     self.deg_slice = deg_slice
@@ -398,7 +395,6 @@ class WeaveMol(object):
   """
 
   def __init__(self, nodes, pairs):
-
     self.nodes = nodes
     self.pairs = pairs
     self.num_atoms = self.nodes.shape[0]
