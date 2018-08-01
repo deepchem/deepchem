@@ -268,11 +268,10 @@ class ConvMol(object):
 
     num_mols = len(mols)
 
-    atoms_per_mol = [mol.get_num_atoms() for mol in mols]
-
-    # Get atoms by degree
+    # Results should be sorted by (atom_degree, mol_index)
     atoms_by_deg = np.concatenate([x.atom_features for x in mols])
     degree_vector = np.concatenate([x.degree_list for x in mols], axis=0)
+    # Mergesort is a "stable" sort, so the array maintains it's secondary sort of mol_index
     all_atoms = atoms_by_deg[degree_vector.argsort(kind='mergesort')]
 
     # Sort all atoms by degree.
