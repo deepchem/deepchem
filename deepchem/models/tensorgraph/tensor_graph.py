@@ -1,5 +1,6 @@
 import collections
 import os
+import shutil
 import pickle
 import threading
 import time
@@ -836,7 +837,7 @@ class TensorGraph(Model):
           result[i] = self.get_pickling_errors(state[i], seen)
     return result
 
-  def save(self):
+  def save(self, save_dir=None):
     # Remove out_tensor from the object to be pickled
     must_restore = False
     tensor_objects = self.tensor_objects
@@ -885,6 +886,8 @@ class TensorGraph(Model):
     self.rnn_final_states = rnn_final_states
     self.rnn_zero_states = rnn_zero_states
     self.session = session
+    if save_dir is not None:
+      shutil.copytree(self.model_dir, save_dir)
 
   def evaluate_generator(self,
                          feed_dict_generator,

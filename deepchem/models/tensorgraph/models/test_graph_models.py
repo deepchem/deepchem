@@ -1,3 +1,4 @@
+import tempfile
 import unittest
 import os
 import numpy as np
@@ -58,6 +59,28 @@ class TestGraphModels(unittest.TestCase):
 
     model.save()
     model = TensorGraph.load_from_dir(model.model_dir)
+    scores2 = model.evaluate(dataset, [metric], transformers)
+    assert np.allclose(scores['mean-roc_auc_score'],
+                       scores2['mean-roc_auc_score'])
+
+  def test_move_saved_model(self):
+    tasks, dataset, transformers, metric = self.get_dataset(
+        'classification', 'GraphConv')
+
+    batch_size = 50
+    model = GraphConvModel(
+        len(tasks), batch_size=batch_size, mode='classification')
+
+    model.fit(dataset, nb_epoch=10)
+    scores = model.evaluate(dataset, [metric], transformers)
+    assert scores['mean-roc_auc_score'] >= 0.9
+
+    tfile = tempfile.NamedTemporaryFile()
+    fname = tfile.name
+    tfile.close()
+
+    model.save(save_dir=fname)
+    model = TensorGraph.load_from_dir(fname)
     scores2 = model.evaluate(dataset, [metric], transformers)
     assert np.allclose(scores['mean-roc_auc_score'],
                        scores2['mean-roc_auc_score'])
