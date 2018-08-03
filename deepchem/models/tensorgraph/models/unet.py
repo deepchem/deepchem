@@ -33,7 +33,7 @@ class UNet(TensorGraph):
                img_cols=512,
                filters=[64, 128, 256, 512, 1024],
                **kwargs):
-    super(UNet, self).__init__(use_queue=False, **kwargs)
+    super(UNet, self).__init__(**kwargs)
     self.img_cols = img_cols
     self.img_rows = img_rows
     self.filters = filters

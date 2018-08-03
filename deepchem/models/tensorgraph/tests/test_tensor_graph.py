@@ -195,24 +195,34 @@ class TestTensorGraph(unittest.TestCase):
     X = np.random.rand(n_data_points, n_features)
     y = [[0, 1] for x in range(n_data_points)]
     dataset = NumpyDataset(X, y)
-    features = Feature(shape=(None, n_features))
-    dense = Dense(out_channels=2, in_layers=[features])
-    output = SoftMax(in_layers=[dense])
-    label = Label(shape=(None, 2))
-    smce = SoftMaxCrossEntropy(in_layers=[label, dense])
-    loss = ReduceMean(in_layers=[smce])
-    tg = dc.models.TensorGraph(learning_rate=0.01, use_queue=False)
-    tg.add_output(output)
-    tg.set_loss(loss)
-    global_step = tg.get_global_step()
+
+    class MyModel(TensorGraph):
+
+      def build_graph(self):
+        features = Feature(shape=(None, n_features))
+        self.dense = Dense(out_channels=2, in_layers=[features])
+        output = SoftMax(in_layers=[tg.dense])
+        label = Label(shape=(None, 2))
+        self.smce = SoftMaxCrossEntropy(in_layers=[label, tg.dense])
+        loss = ReduceMean(in_layers=[self.smce])
+        self.add_output(output)
+        self.set_loss(loss)
+        tg.add_output(output)
+        tg.set_loss(loss)
+
+    tg = MyModel(learning_rate=0.01, use_queue=False)
+    tg.build_graph()
     learning_rate = ExponentialDecay(
         initial_rate=0.1, decay_rate=0.96, decay_steps=100000)
     tg.set_optimizer(GradientDescent(learning_rate=learning_rate))
-    tg.fit(dataset, nb_epoch=1000)
+    tg.fit(dataset, nb_epoch=1)
     prediction = np.squeeze(tg.predict_on_batch(X))
     tg.save()
 
-    tg1 = TensorGraph.load_from_dir(tg.model_dir)
+    tg1 = MyModel.load_from_dir(tg.model_dir, restore=False)
+    tg1.build_graph()
+    tg1.restore()
+
     prediction2 = np.squeeze(tg1.predict_on_batch(X))
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
 
@@ -261,19 +271,25 @@ class TestTensorGraph(unittest.TestCase):
     X = np.random.rand(n_data_points, n_features)
     y = [[0, 1] for x in range(n_data_points)]
     dataset = NumpyDataset(X, y)
-    features = Feature(shape=(None, n_features))
-    dense = Dense(out_channels=2, in_layers=[features])
-    output = SoftMax(in_layers=[dense])
-    label = Label(shape=(None, 2))
-    smce = SoftMaxCrossEntropy(in_layers=[label, dense])
-    loss = ReduceMean(in_layers=[smce])
-    tg = dc.models.TensorGraph(learning_rate=0.01)
-    tg.add_output(output)
-    tg.set_loss(loss)
-    submodel_loss = ReduceSum(in_layers=smce)
+
+    class MyModel(TensorGraph):
+
+      def build_graph(self):
+        features = Feature(shape=(None, n_features))
+        self.dense = Dense(out_channels=2, in_layers=[features])
+        output = SoftMax(in_layers=[tg.dense])
+        label = Label(shape=(None, 2))
+        self.smce = SoftMaxCrossEntropy(in_layers=[label, tg.dense])
+        loss = ReduceMean(in_layers=[self.smce])
+        self.add_output(output)
+        self.set_loss(loss)
+
+    tg = MyModel(learning_rate=0.01, use_queue=False)
+    tg.build_graph()
+    submodel_loss = ReduceSum(in_layers=tg.smce)
     submodel_opt = Adam(learning_rate=0.002)
     submodel = tg.create_submodel(
-        layers=[dense], loss=submodel_loss, optimizer=submodel_opt)
+        layers=[tg.dense], loss=submodel_loss, optimizer=submodel_opt)
     tg.fit(dataset, nb_epoch=1)
     prediction = np.squeeze(tg.predict_on_batch(X))
     tg.save()
@@ -282,7 +298,9 @@ class TestTensorGraph(unittest.TestCase):
     shutil.rmtree(dirpath)
     shutil.move(tg.model_dir, dirpath)
 
-    tg1 = TensorGraph.load_from_dir(dirpath)
+    tg1 = MyModel.load_from_dir(dirpath, restore=False)
+    tg1.build_graph()
+    tg1.restore()
     prediction2 = np.squeeze(tg1.predict_on_batch(X))
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
 

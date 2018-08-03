@@ -840,55 +840,6 @@ class TensorGraph(Model):
     return result
 
   def save(self):
-    # Remove out_tensor from the object to be pickled
-    must_restore = False
-    tensor_objects = self.tensor_objects
-    rnn_initial_states = self.rnn_initial_states
-    rnn_final_states = self.rnn_final_states
-    rnn_zero_states = self.rnn_zero_states
-    session = self.session
-    self.tensor_objects = {}
-    self.rnn_initial_states = []
-    self.rnn_final_states = []
-    self.rnn_zero_states = []
-    self.session = None
-    out_tensors = []
-    submodel_ops = []
-    if self.built:
-      must_restore = True
-      for layer in self.topsort():
-        out_tensors.append(layer.none_tensors())
-      for submodel in self.submodels:
-        submodel_ops.append(submodel._train_op)
-        submodel._train_op = None
-      training_placeholder = self._training_placeholder
-      self._training_placeholder = None
-      self.built = False
-
-    # Pickle itself
-    pickle_name = os.path.join(self.model_dir, "model.pickle")
-
-    with open(pickle_name, 'wb') as fout:
-      try:
-        pickle.dump(self, fout)
-      except Exception as e:
-        logger.info(self.get_pickling_errors(self))
-        raise e
-
-    # add out_tensor back to everyone
-    if must_restore:
-      for index, layer in enumerate(self.topsort()):
-        layer.set_tensors(out_tensors[index])
-      for submodel, op in zip(self.submodels, submodel_ops):
-        submodel._train_op = op
-      self._training_placeholder = training_placeholder
-      self.built = True
-    self.tensor_objects = tensor_objects
-    self.rnn_initial_states = rnn_initial_states
-    self.rnn_final_states = rnn_final_states
-    self.rnn_zero_states = rnn_zero_states
-    self.session = session
-
     d = {
         "tensorboard": self.tensorboard,
         "tensorboard_log_frequency": self.tensorboard_log_frequency,
