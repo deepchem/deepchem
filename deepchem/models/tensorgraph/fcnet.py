@@ -18,7 +18,9 @@ from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.metrics import to_one_hot
 
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
-from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMax, SoftMaxCrossEntropy, L2Loss, ReduceSum, ReduceMean, Exp
+from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, WeightDecay, \
+  Reshape, SoftMax, SoftMaxCrossEntropy, L2Loss, ReduceSum, ReduceMean, Exp
+from deepchem.models.tensorgraph import activations
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +82,12 @@ class MultitaskClassifier(TensorGraph):
     self.n_tasks = n_tasks
     self.n_features = n_features
     self.n_classes = n_classes
+    self.layer_sizes = layer_sizes
+    self.weight_init_stddevs = weight_init_stddevs
+    self.bias_init_consts = bias_init_consts
+    self.weight_decay_penalty = weight_decay_penalty
+    self.weight_decay_penalty_type = weight_decay_penalty_type
+    self.dropout = dropouts
     n_layers = len(layer_sizes)
     if not isinstance(weight_init_stddevs, collections.Sequence):
       weight_init_stddevs = [weight_init_stddevs] * n_layers
@@ -89,6 +97,7 @@ class MultitaskClassifier(TensorGraph):
       dropouts = [dropouts] * n_layers
     if not isinstance(activation_fns, collections.Sequence):
       activation_fns = [activation_fns] * n_layers
+    self.activation_fns = [activations.get(x) for x in activation_fns]
 
     # Add the input features.
 
@@ -99,7 +108,7 @@ class MultitaskClassifier(TensorGraph):
 
     for size, weight_stddev, bias_const, dropout, activation_fn in zip(
         layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
-        activation_fns):
+        self.activation_fns):
       layer = Dense(
           in_layers=[prev_layer],
           out_channels=size,
@@ -131,6 +140,21 @@ class MultitaskClassifier(TensorGraph):
           weight_decay_penalty_type,
           in_layers=[weighted_loss])
     self.set_loss(weighted_loss)
+
+  def save_kwargs(self):
+    activations = [x.__name__ for x in self.activation_fns]
+    return {
+        "n_tasks": self.n_tasks,
+        "n_features": self.n_features,
+        "layer_sizes": self.layer_sizes,
+        "weight_init_stddevs": self.weight_init_stddevs,
+        "bias_init_consts": self.bias_init_consts,
+        "weight_decay_penalty": self.weight_decay_penalty,
+        "weight_decay_penalty_type": self.weight_decay_penalty_type,
+        "dropouts": self.dropout,
+        "activation_fns": activations,
+        "n_classes": self.n_classes,
+    }
 
   def default_generator(self,
                         dataset,
@@ -222,6 +246,12 @@ class MultitaskRegressor(TensorGraph):
     super(MultitaskRegressor, self).__init__(**kwargs)
     self.n_tasks = n_tasks
     self.n_features = n_features
+    self.layer_sizes = layer_sizes
+    self.weight_init_stddevs = weight_init_stddevs
+    self.bias_init_consts = bias_init_consts
+    self.weight_decay_penalty = weight_decay_penalty
+    self.weight_decay_penalty_type = weight_decay_penalty_type
+    self.dropout = dropouts
     n_layers = len(layer_sizes)
     if not isinstance(weight_init_stddevs, collections.Sequence):
       weight_init_stddevs = [weight_init_stddevs] * (n_layers + 1)
@@ -231,6 +261,7 @@ class MultitaskRegressor(TensorGraph):
       dropouts = [dropouts] * n_layers
     if not isinstance(activation_fns, collections.Sequence):
       activation_fns = [activation_fns] * n_layers
+    self.activation_fns = [activations.get(x) for x in activation_fns]
     if uncertainty:
       if any(d == 0.0 for d in dropouts):
         raise ValueError(
@@ -245,7 +276,7 @@ class MultitaskRegressor(TensorGraph):
 
     for size, weight_stddev, bias_const, dropout, activation_fn in zip(
         layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
-        activation_fns):
+        self.activation_fns):
       layer = Dense(
           in_layers=[prev_layer],
           out_channels=size,
@@ -301,6 +332,20 @@ class MultitaskRegressor(TensorGraph):
           weight_decay_penalty_type,
           in_layers=[weighted_loss])
     self.set_loss(weighted_loss)
+
+  def save_kwargs(self):
+    activations = [x.__name__ for x in self.activation_fns]
+    return {
+        "n_tasks": self.n_tasks,
+        "n_features": self.n_features,
+        "layer_sizes": self.layer_sizes,
+        "weight_init_stddevs": self.weight_init_stddevs,
+        "bias_init_consts": self.bias_init_consts,
+        "weight_decay_penalty": self.weight_decay_penalty,
+        "weight_decay_penalty_type": self.weight_decay_penalty_type,
+        "dropouts": self.dropout,
+        "activation_fns": activations,
+    }
 
 
 class MultitaskFitTransformRegressor(MultitaskRegressor):

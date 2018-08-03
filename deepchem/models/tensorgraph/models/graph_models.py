@@ -9,12 +9,12 @@ from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
 from deepchem.metrics import to_one_hot
 from deepchem.models.tensorgraph.graph_layers import WeaveGather, \
-    DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
-    DAGGather, DTNNExtract, MessagePassing, SetGather
+  DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
+  DAGGather, DTNNExtract, MessagePassing, SetGather
 from deepchem.models.tensorgraph.graph_layers import WeaveLayerFactory
 from deepchem.models.tensorgraph.layers import Layer, Dense, SoftMax, Reshape, \
-    SoftMaxCrossEntropy, GraphConv, BatchNorm, Exp, ReduceMean, ReduceSum, \
-    GraphPool, GraphGather, WeightedError, Dropout, BatchNorm, Stack, Flatten, GraphCNN, GraphCNNPool
+  SoftMaxCrossEntropy, GraphConv, BatchNorm, Exp, ReduceMean, ReduceSum, \
+  GraphPool, GraphGather, WeightedError, Dropout, BatchNorm, Stack, Flatten, GraphCNN, GraphCNNPool
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
@@ -85,6 +85,17 @@ class WeaveModel(TensorGraph):
     self.n_classes = n_classes
     super(WeaveModel, self).__init__(**kwargs)
     self.build_graph()
+
+  def save_kwargs(self):
+    return {
+        "n_tasks": self.n_tasks,
+        "n_atom_feat": self.n_atom_feat,
+        "n_pair_feat": self.n_pair_feat,
+        "n_hidden": self.n_hidden,
+        "n_graph_feat": self.n_graph_feat,
+        "mode": self.mode,
+        "n_classes": self.n_classes,
+    }
 
   def build_graph(self):
     """Building graph structures:
@@ -431,6 +442,21 @@ class DAGModel(TensorGraph):
     super(DAGModel, self).__init__(**kwargs)
     self.build_graph()
 
+  def save_kwargs(self):
+    return {
+        "n_task": self.n_tasks,
+        "max_atoms": self.max_atoms,
+        "n_atom_feat": self.n_atom_feat,
+        "n_graph_feat": self.n_graph_feat,
+        "n_outputs": self.n_outputs,
+        "layer_sizes": self.layer_sizes,
+        "layer_sizes_gather": self.layer_sizes_gather,
+        "dropout": self.dropout,
+        "mode": self.mode,
+        "n_classes": self.n_classes,
+        "uncertainty": self.uncertainty,
+    }
+
   def build_graph(self):
     """Building graph structures:
                 Features => DAGLayer => DAGGather => Classification or Regression
@@ -615,6 +641,18 @@ class GraphConvModel(TensorGraph):
     super(GraphConvModel, self).__init__(**kwargs)
     self.build_graph()
 
+  def save_kwargs(self):
+    return {
+        "n_tasks": self.n_tasks,
+        "graph_conv_layers": self.graph_conv_layers,
+        "dense_layer_size": self.dense_layer_size,
+        "dropout": self.dropout,
+        "mode": self.mode,
+        "number_atom_features": self.number_atom_features,
+        "n_classes": self.n_classes,
+        "uncertainty": self.uncertainty,
+    }
+
   def build_graph(self):
     """
     Building graph structures:
@@ -796,6 +834,19 @@ class MPNNModel(TensorGraph):
     super(MPNNModel, self).__init__(**kwargs)
     self.build_graph()
 
+  def save_kwargs(self):
+    return {
+        "n_tasks": self.n_tasks,
+        "n_atom_feat": self.n_atom_feat,
+        "n_pair_feat": self.n_pair_feat,
+        "n_hidden": self.n_hidden,
+        "T": self.T,
+        "M": self.M,
+        "mode": self.mode,
+        "n_classes": self.n_classes,
+        "uncertainty": self.uncertainty,
+    }
+
   def build_graph(self):
     # Build placeholders
     self.atom_features = Feature(shape=(None, self.n_atom_feat))
@@ -928,7 +979,6 @@ TENSORGRAPH_DEPRECATION = "{} is deprecated and has been renamed to {} and will 
 class GraphConvTensorGraph(GraphConvModel):
 
   def __init__(self, *args, **kwargs):
-
     warnings.warn(
         TENSORGRAPH_DEPRECATION.format("GraphConvTensorGraph",
                                        "GraphConvModel"), FutureWarning)
@@ -939,7 +989,6 @@ class GraphConvTensorGraph(GraphConvModel):
 class WeaveTensorGraph(WeaveModel):
 
   def __init__(self, *args, **kwargs):
-
     warnings.warn(
         TENSORGRAPH_DEPRECATION.format("WeaveTensorGraph", "WeaveModel"),
         FutureWarning)
@@ -950,7 +999,6 @@ class WeaveTensorGraph(WeaveModel):
 class DTNNTensorGraph(DTNNModel):
 
   def __init__(self, *args, **kwargs):
-
     warnings.warn(
         TENSORGRAPH_DEPRECATION.format("DTNNTensorGraph", "DTNNModel"),
         FutureWarning)
@@ -961,7 +1009,6 @@ class DTNNTensorGraph(DTNNModel):
 class DAGTensorGraph(DAGModel):
 
   def __init__(self, *args, **kwargs):
-
     warnings.warn(
         TENSORGRAPH_DEPRECATION.format("DAGTensorGraph", "DAGModel"),
         FutureWarning)
@@ -972,7 +1019,6 @@ class DAGTensorGraph(DAGModel):
 class MPNNTensorGraph(MPNNModel):
 
   def __init__(self, *args, **kwargs):
-
     warnings.warn(
         TENSORGRAPH_DEPRECATION.format("MPNNTensorGraph", "MPNNModel"),
         FutureWarning)

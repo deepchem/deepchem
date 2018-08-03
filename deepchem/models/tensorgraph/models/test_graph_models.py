@@ -57,7 +57,7 @@ class TestGraphModels(unittest.TestCase):
     assert scores['mean-roc_auc_score'] >= 0.9
 
     model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
+    model = GraphConvModel.load_from_dir(model.model_dir)
     scores2 = model.evaluate(dataset, [metric], transformers)
     assert np.allclose(scores['mean-roc_auc_score'],
                        scores2['mean-roc_auc_score'])
@@ -74,7 +74,7 @@ class TestGraphModels(unittest.TestCase):
     assert all(s < 0.1 for s in scores['mean_absolute_error'])
 
     model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
+    model = GraphConvModel.load_from_dir(model.model_dir)
     scores2 = model.evaluate(dataset, [metric], transformers)
     assert np.allclose(scores['mean_absolute_error'],
                        scores2['mean_absolute_error'])
@@ -131,7 +131,7 @@ class TestGraphModels(unittest.TestCase):
     y_pred1 = model.predict(dataset)
     model.save()
 
-    model2 = TensorGraph.load_from_dir(model.model_dir)
+    model2 = GraphConvModel.load_from_dir(model.model_dir)
     y_pred2 = model2.predict(dataset)
     self.assertTrue(np.all(y_pred1 == y_pred2))
 
@@ -145,7 +145,7 @@ class TestGraphModels(unittest.TestCase):
     model.fit(dataset, nb_epoch=1)
     model.save()
 
-    model2 = TensorGraph.load_from_dir(model.model_dir, restore=False)
+    model2 = GraphConvModel.load_from_dir(model.model_dir, restore=False)
     dummy_label = model2.labels[-1]
     dummy_ouput = model2.outputs[-1]
     loss = ReduceSum(L2Loss(in_layers=[dummy_label, dummy_ouput]))
@@ -164,7 +164,7 @@ class TestGraphModels(unittest.TestCase):
     model.fit(dataset, nb_epoch=1)
     model.save()
 
-    model2 = TensorGraph.load_from_dir(model.model_dir, restore=False)
+    model2 = GraphConvModel.load_from_dir(model.model_dir, restore=False)
     dummy_label = model2.labels[-1]
     dummy_ouput = model2.outputs[-1]
     loss = ReduceSum(L2Loss(in_layers=[dummy_label, dummy_ouput]))
@@ -184,7 +184,7 @@ class TestGraphModels(unittest.TestCase):
     assert scores['mean-roc_auc_score'] >= 0.9
 
     model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
+    model = GraphConvModel.load_from_dir(model.model_dir)
     scores2 = model.evaluate(dataset, [metric], transformers)
     assert np.allclose(scores['mean-roc_auc_score'],
                        scores2['mean-roc_auc_score'])
@@ -201,10 +201,25 @@ class TestGraphModels(unittest.TestCase):
     assert all(s < 0.1 for s in scores['mean_absolute_error'])
 
     model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
+    model = GraphConvModel.load_from_dir(model.model_dir)
     scores2 = model.evaluate(dataset, [metric], transformers)
     assert np.allclose(scores['mean_absolute_error'],
                        scores2['mean_absolute_error'])
+
+  def test_weave_save_load(self):
+    tasks, dataset, transformers, metric = self.get_dataset(
+        'classification', 'Weave')
+
+    model = WeaveModel(len(tasks), mode='classification')
+
+    model.fit(dataset, nb_epoch=1)
+    scores = model.evaluate(dataset, [metric], transformers)
+    model.save()
+
+    model = WeaveModel.load_from_dir(model.model_dir)
+    scores2 = model.evaluate(dataset, [metric], transformers)
+
+    self.assertTrue(np.all(scores == scores2))
 
   @attr("slow")
   def test_dag_model(self):
@@ -223,7 +238,7 @@ class TestGraphModels(unittest.TestCase):
     assert scores['mean-roc_auc_score'] >= 0.9
 
     model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
+    model = DAGModel.load_from_dir(model.model_dir)
     scores2 = model.evaluate(dataset, [metric], transformers)
     assert np.allclose(scores['mean-roc_auc_score'],
                        scores2['mean-roc_auc_score'])
@@ -249,7 +264,7 @@ class TestGraphModels(unittest.TestCase):
     assert all(s < 0.15 for s in scores['mean_absolute_error'])
 
     model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
+    model = DAGModel.load_from_dir(model.model_dir)
     scores2 = model.evaluate(dataset, [metric], transformers)
     assert np.allclose(scores['mean_absolute_error'],
                        scores2['mean_absolute_error'])
@@ -302,7 +317,7 @@ class TestGraphModels(unittest.TestCase):
     assert scores['mean-roc_auc_score'] >= 0.9
 
     model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
+    model = MPNNModel.load_from_dir(model.model_dir)
     scores2 = model.evaluate(dataset, [metric], transformers)
     assert np.allclose(scores['mean-roc_auc_score'],
                        scores2['mean-roc_auc_score'])
@@ -326,7 +341,7 @@ class TestGraphModels(unittest.TestCase):
     assert all(s < 0.1 for s in scores['mean_absolute_error'])
 
     model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
+    model = MPNNModel.load_from_dir(model.model_dir)
     scores2 = model.evaluate(dataset, [metric], transformers)
     assert np.allclose(scores['mean_absolute_error'],
                        scores2['mean_absolute_error'])

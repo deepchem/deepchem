@@ -3,6 +3,7 @@ import os
 import pickle
 import threading
 import time
+import json
 
 import logging
 import numpy as np
@@ -100,6 +101,9 @@ class TensorGraph(Model):
       raise ValueError(
           "Currently TensorGraph cannot both use_queue and tensorboard at the same time"
       )
+
+  def save_kwargs(self):
+    return {}
 
   def _add_layer(self, layer):
     if layer.name is None:
@@ -699,7 +703,6 @@ class TensorGraph(Model):
       writer = self._get_tf("FileWriter")
       writer.add_graph(self._get_tf("Graph"))
       writer.close()
-
     # As a sanity check, make sure all tensors have the correct shape.
 
     for layer in self.layers.values():
@@ -886,6 +889,19 @@ class TensorGraph(Model):
     self.rnn_zero_states = rnn_zero_states
     self.session = session
 
+    d = {
+        "tensorboard": self.tensorboard,
+        "tensorboard_log_frequency": self.tensorboard_log_frequency,
+        "batch_size": self.batch_size,
+        "random_seed": self.random_seed,
+        "use_queue": self.use_queue,
+        "model_dir": self.model_dir
+    }
+    d.update(self.save_kwargs())
+    kwargs_path = os.path.join(self.model_dir, 'kwargs.json')
+    with open(kwargs_path, 'w') as fout:
+      fout.write(json.dumps(d))
+
   def evaluate_generator(self,
                          feed_dict_generator,
                          metrics,
@@ -1044,8 +1060,20 @@ class TensorGraph(Model):
     pre_q_name = "%s_pre_q" % layer_name
     return self.layers[pre_q_name]
 
+  @classmethod
+  def load_from_dir(cls, model_dir):
+    kwargs_file = os.path.join(model_dir, 'kwargs.json')
+    if not os.path.exists(kwargs_file):
+      return TensorGraph.load_from_dir(model_dir)
+    with open(kwargs_file) as fin:
+      kwargs = json.loads(fin.read())
+    kwargs['model_dir'] = model_dir
+    model = cls(**kwargs)
+    model.restore()
+    return model
+
   @staticmethod
-  def load_from_dir(model_dir, restore=True):
+  def load_from_dir_depr(model_dir, restore=True):
     pickle_name = os.path.join(model_dir, "model.pickle")
     with open(pickle_name, 'rb') as fout:
       tensorgraph = pickle.load(fout)
