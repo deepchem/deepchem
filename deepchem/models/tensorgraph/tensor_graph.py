@@ -1061,7 +1061,7 @@ class TensorGraph(Model):
     return self.layers[pre_q_name]
 
   @classmethod
-  def load_from_dir(cls, model_dir):
+  def load_from_dir(cls, model_dir, restore=True):
     kwargs_file = os.path.join(model_dir, 'kwargs.json')
     if not os.path.exists(kwargs_file):
       return TensorGraph.load_from_dir(model_dir)
@@ -1069,7 +1069,8 @@ class TensorGraph(Model):
       kwargs = json.loads(fin.read())
     kwargs['model_dir'] = model_dir
     model = cls(**kwargs)
-    model.restore()
+    if restore:
+      model.restore()
     return model
 
   @staticmethod
