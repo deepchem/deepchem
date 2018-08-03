@@ -838,6 +838,17 @@ class TensorGraph(Model):
     return result
 
   def save(self, save_dir=None):
+    """
+    Parameters
+    ----------
+    save_dir: str
+    filepath to save model to
+    all subfolders must exist
+
+    Returns
+    -------
+
+    """
     # Remove out_tensor from the object to be pickled
     must_restore = False
     tensor_objects = self.tensor_objects
