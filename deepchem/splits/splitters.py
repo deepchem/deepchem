@@ -103,10 +103,10 @@ class Splitter(object):
       frac_fold = 1. / (k - fold)
       train_dir, cv_dir = directories[2 * fold], directories[2 * fold + 1]
       fold_inds, rem_inds, _ = self.split(
-        rem_dataset,
-        frac_train=frac_fold,
-        frac_valid=1 - frac_fold,
-        frac_test=0)
+          rem_dataset,
+          frac_train=frac_fold,
+          frac_valid=1 - frac_fold,
+          frac_test=0)
       cv_dataset = rem_dataset.select(fold_inds, select_dir=cv_dir)
       cv_datasets.append(cv_dataset)
       rem_dataset = rem_dataset.select(rem_inds)
@@ -140,11 +140,11 @@ class Splitter(object):
         """
     log("Computing train/valid/test indices", self.verbose)
     train_inds, valid_inds, test_inds = self.split(
-      dataset,
-      frac_train=frac_train,
-      frac_test=frac_test,
-      frac_valid=frac_valid,
-      log_every_n=log_every_n)
+        dataset,
+        frac_train=frac_train,
+        frac_test=frac_test,
+        frac_valid=frac_valid,
+        log_every_n=log_every_n)
     if train_dir is None:
       train_dir = tempfile.mkdtemp()
     if valid_dir is None:
@@ -173,14 +173,14 @@ class Splitter(object):
         """
     valid_dir = tempfile.mkdtemp()
     train_dataset, _, test_dataset = self.train_valid_test_split(
-      dataset,
-      train_dir,
-      valid_dir,
-      test_dir,
-      frac_train=frac_train,
-      frac_test=1 - frac_train,
-      frac_valid=0.,
-      verbose=verbose)
+        dataset,
+        train_dir,
+        valid_dir,
+        test_dir,
+        frac_train=frac_train,
+        frac_test=1 - frac_train,
+        frac_valid=0.,
+        verbose=verbose)
     return train_dataset, test_dataset
 
   def split(self,
@@ -551,7 +551,7 @@ class SingletaskStratifiedSplitter(Splitter):
       shuffled = np.random.permutation(range(split_cd))
       train_idx = np.hstack([train_idx, sortidx_split[shuffled[:train_cutoff]]])
       valid_idx = np.hstack(
-        [valid_idx, sortidx_split[shuffled[train_cutoff:valid_cutoff]]])
+          [valid_idx, sortidx_split[shuffled[train_cutoff:valid_cutoff]]])
       test_idx = np.hstack([test_idx, sortidx_split[shuffled[valid_cutoff:]]])
 
     # Append remaining examples to train
@@ -618,7 +618,7 @@ class MaxMinSplitter(Splitter):
     """
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     if seed is None:
-      seed = random.randint(0, 2 ** 30)
+      seed = random.randint(0, 2**30)
     np.random.seed(seed)
 
     num_datapoints = len(dataset)
@@ -641,17 +641,17 @@ class MaxMinSplitter(Splitter):
 
     picker = MaxMinPicker()
     testIndices = picker.LazyPick(
-      distFunc=distance,
-      poolSize=num_datapoints,
-      pickSize=num_test,
-      seed=seed)
+        distFunc=distance,
+        poolSize=num_datapoints,
+        pickSize=num_test,
+        seed=seed)
 
     validTestIndices = picker.LazyPick(
-      distFunc=distance,
-      poolSize=num_datapoints,
-      pickSize=num_valid + num_test,
-      firstPicks=testIndices,
-      seed=seed)
+        distFunc=distance,
+        poolSize=num_datapoints,
+        pickSize=num_valid + num_test,
+        firstPicks=testIndices,
+        seed=seed)
 
     allSet = set(range(num_datapoints))
     testSet = set(testIndices)
@@ -859,9 +859,8 @@ class ScaffoldSplitter(Splitter):
     # Sort from largest to smallest scaffold sets
     scaffolds = {key: sorted(value) for key, value in scaffolds.items()}
     scaffold_sets = [
-      scaffold_set
-      for (scaffold, scaffold_set) in sorted(
-        scaffolds.items(), key=lambda x: (len(x[1]), x[1][0]), reverse=True)
+        scaffold_set for (scaffold, scaffold_set) in sorted(
+            scaffolds.items(), key=lambda x: (len(x[1]), x[1][0]), reverse=True)
     ]
     train_cutoff = frac_train * len(dataset)
     valid_cutoff = (frac_train + frac_valid) * len(dataset)
@@ -907,7 +906,7 @@ class FingerprintSplitter(Splitter):
     for i in range(data_len):
       for j in range(data_len):
         distances[i][j] = 1 - DataStructs.FingerprintSimilarity(
-          fingerprints[i], fingerprints[j])
+            fingerprints[i], fingerprints[j])
 
     train_cutoff = int(frac_train * len(dataset))
     valid_cutoff = int(frac_valid * len(dataset))
@@ -1044,8 +1043,8 @@ class TimeSplitterPDBbind(Splitter):
         self.year_file = os.path.join(data_dir, 'pdbbind_year.csv')
         if not os.path.exists(self.year_file):
           dc.utils.download_url(
-            'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/pdbbind_year.csv',
-            dest_dir=data_dir)
+              'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/pdbbind_year.csv',
+              dest_dir=data_dir)
       except:
         raise ValueError("Time description file should be specified")
     df = pd.read_csv(self.year_file, header=None)
@@ -1060,7 +1059,7 @@ class TimeSplitterPDBbind(Splitter):
     indices = range(num_datapoints)
     data_year = [self.years[self.ids[i]] for i in indices]
     new_indices = [
-      pair[0] for pair in sorted(zip(indices, data_year), key=lambda x: x[1])
+        pair[0] for pair in sorted(zip(indices, data_year), key=lambda x: x[1])
     ]
 
     return (new_indices[:train_cutoff], new_indices[train_cutoff:valid_cutoff],
