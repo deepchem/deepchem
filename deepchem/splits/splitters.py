@@ -859,8 +859,7 @@ class ScaffoldSplitter(Splitter):
     # Sort from largest to smallest scaffold sets
     scaffolds = {key: sorted(value) for key, value in scaffolds.items()}
     scaffold_sets = [
-        scaffold_set
-        for (scaffold, scaffold_set) in sorted(
+        scaffold_set for (scaffold, scaffold_set) in sorted(
             scaffolds.items(), key=lambda x: (len(x[1]), x[1][0]), reverse=True)
     ]
     train_cutoff = frac_train * len(dataset)
@@ -993,6 +992,32 @@ class SpecifiedSplitter(Splitter):
       else:
         raise ValueError("Missing required split information.")
     return train_inds, valid_inds, test_inds
+
+
+class SpecifiedIndexSplitter(Splitter):
+  """
+  Class that splits data according to user index specification
+  """
+
+  def __init__(self, train_inds, valid_inds, test_inds, verbose=False):
+    """Provide input information for splits."""
+    self.train_inds = train_inds
+    self.valid_inds = valid_inds
+    self.test_inds = test_inds
+    self.verbose = verbose
+    super(SpecifiedIndexSplitter, self).__init__(verbose)
+
+  def split(self,
+            dataset,
+            frac_train=.8,
+            frac_valid=.1,
+            frac_test=.1,
+            log_every_n=1000,
+            verbose=False):
+    """
+    Splits internal compounds into train/validation/test by user-specification.
+    """
+    return self.train_inds, self.valid_inds, self.test_inds
 
 
 class TimeSplitterPDBbind(Splitter):
