@@ -398,6 +398,33 @@ class TestSplitters(unittest.TestCase):
     y_2 = dataset_2.y
     assert np.count_nonzero(y_2) == n_positives / 2
 
+  def test_singletask_stratified_train_valid_test_split(self):
+    """
+    Test RandomStratifiedSplitter on a singletask train/valid/test split.
+    """
+    np.random.seed(2314)
+    # Test singletask case.
+    n_samples = 100
+    n_positives = 10
+    n_features = 10
+    n_tasks = 1
+
+    X = np.random.rand(n_samples, n_features)
+    y = np.zeros((n_samples, n_tasks))
+    y[:n_positives] = 1
+    w = np.ones((n_samples, n_tasks))
+    ids = np.arange(n_samples)
+    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
+
+    stratified_splitter = dc.splits.RandomStratifiedSplitter()
+    train, valid, test = stratified_splitter.train_valid_test_split(
+        dataset, frac_train=.8, frac_valid=.1, frac_test=.1)
+
+    # Should have made an 80/10/10 train/valid/test split of actives.
+    self.assertEqual(np.count_nonzero(train.y), 8)
+    self.assertEqual(np.count_nonzero(valid.y), 1)
+    self.assertEqual(np.count_nonzero(test.y), 1)
+
   def test_singletask_stratified_k_fold_split(self):
     """
     Test RandomStratifiedSplitter k-fold class.

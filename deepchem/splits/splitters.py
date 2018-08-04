@@ -191,8 +191,8 @@ class Splitter(object):
             log_every_n=None,
             verbose=False):
     """
-        Stub to be filled in by child classes.
-        """
+    Stub to be filled in by child classes.
+    """
     raise NotImplementedError
 
 
@@ -272,21 +272,21 @@ class RandomGroupSplitter(Splitter):
 
 class RandomStratifiedSplitter(Splitter):
   """
-    RandomStratified Splitter class.
+  RandomStratified Splitter class.
 
-    For sparse multitask datasets, a standard split offers no guarantees that the
-    splits will have any activate compounds. This class guarantees that each task
-    will have a proportional split of the activates in a split. TO do this, a
-    ragged split is performed with different numbers of compounds taken from each
-    task. Thus, the length of the split arrays may exceed the split of the
-    original array. That said, no datapoint is copied to more than one split, so
-    correctness is still ensured.
+  For sparse multitask datasets, a standard split offers no guarantees
+  that the splits will have any activate compounds. This class guarantees
+  that each task will have a proportional split of the activates in a
+  split. TO do this, a ragged split is performed with different numbers
+  of compounds taken from each task. Thus, the length of the split arrays
+  may exceed the split of the original array. That said, no datapoint is
+  copied to more than one split, so correctness is still ensured.
 
-    Note that this splitter is only valid for boolean label data.
+  Note that this splitter is only valid for boolean label data.
 
-    TODO(rbharath): This splitter should be refactored to match style of other
-    splitter classes.
-    """
+  TODO(rbharath): This splitter should be refactored to match style of
+  other splitter classes.
+  """
 
   def __generate_required_hits(self, w, frac_split):
     # returns list of per column sum of non zero elements
@@ -319,14 +319,12 @@ class RandomStratifiedSplitter(Splitter):
       split_indices.append(split_index + 1)
     return split_indices
 
-    # TODO(rbharath): Refactor this split method to match API of other splits (or
-
-  # potentially refactor those to match this.
-
+  # TODO(rbharath): Refactor this split method to match API of other
+  # splits (or potentially refactor those to match this).
   def split(self, dataset, frac_split, split_dirs=None):
     """
-        Method that does bulk of splitting dataset.
-        """
+    Method that does bulk of splitting dataset.
+    """
     if split_dirs is not None:
       assert len(split_dirs) == 2
     else:
@@ -334,7 +332,8 @@ class RandomStratifiedSplitter(Splitter):
 
     # Handle edge case where frac_split is 1
     if frac_split == 1:
-      dataset_1 = NumpyDataset(dataset.X, dataset.y, dataset.w, dataset.ids)
+      dataset_1 = DiskDataset.from_numpy(dataset.X, dataset.y, dataset.w,
+                                         dataset.ids)
       dataset_2 = None
       return dataset_1, dataset_2
     X, y, w, ids = randomize_arrays((dataset.X, dataset.y, dataset.w,
@@ -351,11 +350,11 @@ class RandomStratifiedSplitter(Splitter):
     # check out if any rows in either w_1 or w_2 are just zeros
     rows_1 = w_1.any(axis=1)
     X_1, y_1, w_1, ids_1 = X[rows_1], y[rows_1], w_1[rows_1], ids[rows_1]
-    dataset_1 = NumpyDataset(X_1, y_1, w_1, ids_1)
+    dataset_1 = DiskDataset.from_numpy(X_1, y_1, w_1, ids_1)
 
     rows_2 = w_2.any(axis=1)
     X_2, y_2, w_2, ids_2 = X[rows_2], y[rows_2], w_2[rows_2], ids[rows_2]
-    dataset_2 = NumpyDataset(X_2, y_2, w_2, ids_2)
+    dataset_2 = DiskDataset.from_numpy(X_2, y_2, w_2, ids_2)
 
     return dataset_1, dataset_2
 
@@ -377,9 +376,6 @@ class RandomStratifiedSplitter(Splitter):
       valid_dir = tempfile.mkdtemp()
     if test_dir is None:
       test_dir = tempfile.mkdtemp()
-    # Obtain original x, y, and w arrays and shuffle
-    X, y, w, ids = randomize_arrays((dataset.X, dataset.y, dataset.w,
-                                     dataset.ids))
     rem_dir = tempfile.mkdtemp()
     train_dataset, rem_dataset = self.split(dataset, frac_train,
                                             [train_dir, rem_dir])
@@ -389,8 +385,8 @@ class RandomStratifiedSplitter(Splitter):
       valid_percentage = frac_valid / (frac_valid + frac_test)
     else:
       return train_dataset, None, None
-    # split test data into valid and test, treating sub test set also as sparse
-    valid_dataset, test_dataset = self.split(dataset, valid_percentage,
+    # split remaining data into valid and test, treating sub test set also as sparse
+    valid_dataset, test_dataset = self.split(rem_dataset, valid_percentage,
                                              [valid_dir, test_dir])
 
     return train_dataset, valid_dataset, test_dataset
@@ -859,8 +855,7 @@ class ScaffoldSplitter(Splitter):
     # Sort from largest to smallest scaffold sets
     scaffolds = {key: sorted(value) for key, value in scaffolds.items()}
     scaffold_sets = [
-        scaffold_set
-        for (scaffold, scaffold_set) in sorted(
+        scaffold_set for (scaffold, scaffold_set) in sorted(
             scaffolds.items(), key=lambda x: (len(x[1]), x[1][0]), reverse=True)
     ]
     train_cutoff = frac_train * len(dataset)
