@@ -10,9 +10,10 @@ import gzip
 import numpy as np
 import os
 import pandas as pd
+import sys
 import tempfile
 import tarfile
-import sys
+import zipfile
 
 from rdkit import Chem
 from rdkit.Chem.Scaffolds import MurckoScaffold
@@ -102,6 +103,27 @@ def untargz_file(file, dest_dir=get_data_dir(), name=None):
   tar = tarfile.open(name)
   tar.extractall(path=dest_dir)
   tar.close()
+
+
+def unzip_file(file, dest_dir=None, name=None):
+  """Unzip a .zip file to disk.
+  
+  Parameters
+  ----------
+  file: str
+    the filepath to decompress
+  dest_dir: str
+    the directory to save the file in
+  name: str
+    the directory name to unzip it to.  If omitted, it will use the file
+    name 
+  """
+  if name is None:
+    name = file
+  if dest_dir is None:
+    dest_dir = os.path.join(get_data_dir, name)
+  with zipfile.ZipFile(file, "r") as zip_ref:
+    zip_ref.extractall(dest_dir)
 
 
 class ScaffoldGenerator(object):

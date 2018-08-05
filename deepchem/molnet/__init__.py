@@ -27,6 +27,7 @@ from deepchem.molnet.load_function.sider_datasets import load_sider
 from deepchem.molnet.load_function.sweetlead_datasets import load_sweet
 from deepchem.molnet.load_function.tox21_datasets import load_tox21
 from deepchem.molnet.load_function.toxcast_datasets import load_toxcast
+from deepchem.molnet.load_function.uspto_datasets import load_uspto
 
 from deepchem.molnet.dnasim import simulate_motif_density_localization
 from deepchem.molnet.dnasim import simulate_motif_counting
