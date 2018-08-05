@@ -74,6 +74,7 @@ def load_bbbc001(split='index', reload=True):
                                              transformers)
   return bbbc001_tasks, all_dataset, transformers
 
+
 def load_bbbc002(split='index', reload=True):
   """Load BBBC002 dataset
   
@@ -97,8 +98,7 @@ def load_bbbc002(split='index', reload=True):
 
   if not os.path.exists(dataset_file):
     deepchem.utils.download_url(
-        'https://data.broadinstitute.org/bbbc/BBBC002/BBBC002_v1_images.zip'
-    )
+        'https://data.broadinstitute.org/bbbc/BBBC002/BBBC002_v1_images.zip')
   if not os.path.exists(labels_file):
     deepchem.utils.download_url(
         'https://data.broadinstitute.org/bbbc/BBBC002/BBBC002_v1_counts.txt')
@@ -114,7 +114,7 @@ def load_bbbc002(split='index', reload=True):
   # Format is: Image_name count1 count2
   lines = [x.split("\t") for x in lines]
   counts = [(float(x[1]) + float(x[2])) / 2.0 for x in lines]
-  y = np.reshape(np.array(counts), (len(counts),1))
+  y = np.reshape(np.array(counts), (len(counts), 1))
   ids = [x[0] for x in lines]
 
   # This is kludgy way to add y to dataset. Can be done better?
