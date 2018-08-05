@@ -412,5 +412,5 @@ class ImageLoader(DataLoader):
       return NumpyDataset(images)
     else:
       # from_numpy currently requires labels. Make dummy labels
-      labels = np.zeros(len(images))
+      labels = np.zeros((len(images), 1))
       return DiskDataset.from_numpy(images, labels)
