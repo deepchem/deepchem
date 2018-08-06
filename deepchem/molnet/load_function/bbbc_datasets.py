@@ -73,3 +73,65 @@ def load_bbbc001(split='index', reload=True):
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
                                              transformers)
   return bbbc001_tasks, all_dataset, transformers
+
+def load_bbbc004(split='index', reload=True):
+  """Load BBBC004 dataset
+  
+  This dataset contains synthetic images of cells. Each synthetic image
+  contains 300 synthetic cells, and the learning challenge is to learn to
+  segment the cells into foreground/background. For full details, see
+  https://data.broadinstitute.org/bbbc/BBBC004/
+  """
+  # Featurize BBBC004 dataset
+  bbbc004_tasks = ["foreground"]
+  data_dir = deepchem.utils.get_data_dir()
+  if reload:
+    save_dir = os.path.join(data_dir, "bbbc004/" + str(split))
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
+      return bbbc001_tasks, all_dataset, transformers
+  dataset_file = os.path.join(data_dir, "BBBC001_v1_images_tif.zip")
+  labels_file = os.path.join(data_dir, "BBBC001_v1_counts.txt")
+
+  if not os.path.exists(dataset_file):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC001/BBBC001_v1_images_tif.zip'
+    )
+  if not os.path.exists(labels_file):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC001/BBBC001_v1_counts.txt')
+  # Featurize Images into NumpyArrays
+  loader = deepchem.data.ImageLoader()
+  dataset = loader.featurize(dataset_file, in_memory=False)
+
+  # Load text file with labels
+  with open(labels_file) as f:
+    content = f.readlines()
+  # Strip the first line which holds field labels
+  lines = [x.strip() for x in content][1:]
+  # Format is: Image_name count1 count2
+  lines = [x.split("\t") for x in lines]
+  counts = [(float(x[1]) + float(x[2])) / 2.0 for x in lines]
+  y = np.array(counts)
+
+  # This is kludgy way to add y to dataset. Can be done better?
+  dataset = deepchem.data.DiskDataset.from_numpy(dataset.X, y)
+
+  if split == None:
+    return bbbc001_tasks, (dataset, None, None), transformers
+
+  splitters = {
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
+  }
+  if split not in splitters:
+    raise ValueError("Only index and random splits supported.")
+  splitter = splitters[split]
+
+  train, valid, test = splitter.train_valid_test_split(dataset)
+  all_dataset = (train, valid, test)
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                             transformers)
+  return bbbc001_tasks, all_dataset, transformers
