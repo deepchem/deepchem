@@ -8,10 +8,8 @@ source activate $envname
 python setup.py install
 
 echo "About to install numpydoc, s3cmd"
-pip install -I sphinx==1.3.5 sphinx_bootstrap_theme
-pip install numpydoc s3cmd msmb_theme sphinx_rtd_theme nbsphinx delegator.py
-conda install -y -q jupyter
-conda install -y -q matplotlib
+yes | pip install -I sphinx==1.3.5 sphinx_bootstrap_theme
+yes | pip install numpydoc s3cmd msmb_theme sphinx_rtd_theme nbsphinx delegator.py
 
 cd examples/notebooks
 python ../../devtools/jenkins/convert_to_rst.py

@@ -2737,27 +2737,12 @@ class GraphGather(Layer):
     # Extract graph topology
     membership = inputs[2]
 
-    # Perform the mol gather
-
     assert self.batch_size > 1, "graph_gather requires batches larger than 1"
 
-    # Obtain the partitions for each of the molecules
-    activated_par = tf.dynamic_partition(atom_features, membership,
-                                         self.batch_size)
-
-    # Sum over atoms for each molecule
-    sparse_reps = [
-        tf.reduce_mean(activated, 0, keepdims=True)
-        for activated in activated_par
-    ]
-    max_reps = [
-        tf.reduce_max(activated, 0, keepdims=True)
-        for activated in activated_par
-    ]
-
-    # Get the final sparse representations
-    sparse_reps = tf.concat(axis=0, values=sparse_reps)
-    max_reps = tf.concat(axis=0, values=max_reps)
+    sparse_reps = tf.unsorted_segment_sum(atom_features, membership,
+                                          self.batch_size)
+    max_reps = tf.unsorted_segment_max(atom_features, membership,
+                                       self.batch_size)
     mol_features = tf.concat(axis=1, values=[sparse_reps, max_reps])
 
     if self.activation_fn is not None:

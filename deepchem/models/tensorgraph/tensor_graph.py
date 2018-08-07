@@ -61,6 +61,7 @@ class TensorGraph(Model):
     self.features = list()
     self.labels = list()
     self.outputs = list()
+    self.default_outputs = self.outputs
     self.variances = list()
     self.task_weights = list()
     self.submodels = list()
@@ -342,7 +343,7 @@ class TensorGraph(Model):
       may be tensors, numpy arrays, or anything else that can be converted to
       tensors of the correct shape.
     outputs: list of Layers
-      the output layers to compute.  If this is omitted, self.outputs is used
+      the output layers to compute.  If this is omitted, self.default_outputs is used
       (that is, all outputs that have been added by calling add_output()).
 
     Returns
@@ -357,7 +358,7 @@ class TensorGraph(Model):
     if 'outputs' in kwargs:
       outputs = kwargs['outputs']
     else:
-      outputs = self.outputs
+      outputs = self.default_outputs
     feed_dict = dict(zip(self.features, inputs))
     results = self._run_graph(outputs, feed_dict, False)
     if len(results) == 1:
@@ -378,7 +379,7 @@ class TensorGraph(Model):
     transformers: list
       List of dc.trans.Transformers.
     outputs: object
-      If outputs is None, then will assume outputs = self.outputs.
+      If outputs is None, then will assume outputs = self.default_outputs.
       If outputs is a Layer/Tensor, then will evaluate and return as a
       single ndarray. If outputs is a list of Layers/Tensors, will return a list
       of ndarrays.
@@ -392,7 +393,7 @@ class TensorGraph(Model):
     if not self.built:
       self.build()
     if outputs is None:
-      outputs = self.outputs
+      outputs = self.default_outputs
     elif not isinstance(outputs, collections.Sequence):
       outputs = [outputs]
     if uncertainty:
@@ -462,7 +463,7 @@ class TensorGraph(Model):
     transformers: list
       List of dc.trans.Transformers.
     outputs: object
-      If outputs is None, then will assume outputs = self.outputs.
+      If outputs is None, then will assume outputs = self.default_outputs.
       If outputs is a Layer/Tensor, then will evaluate and return as a
       single ndarray. If outputs is a list of Layers/Tensors, will return a list
       of ndarrays.
@@ -527,7 +528,7 @@ class TensorGraph(Model):
     transformers: list
       List of dc.trans.Transformers.
     outputs: object
-      If outputs is None, then will assume outputs=self.outputs. If outputs is
+      If outputs is None, then will assume outputs=self.default_outputs. If outputs is
       a Layer/Tensor, then will evaluate and return as a single ndarray. If
       outputs is a list of Layers/Tensors, will return a list of ndarrays.
 
@@ -568,7 +569,7 @@ class TensorGraph(Model):
     for i in range(masks):
       generator = self.default_generator(
           dataset, predict=True, pad_batches=False)
-      results = self._predict(generator, [], self.outputs, True)
+      results = self._predict(generator, [], self.default_outputs, True)
       if len(sum_pred) == 0:
         for p, v in results:
           sum_pred.append(p)
@@ -746,6 +747,13 @@ class TensorGraph(Model):
     self._add_layer(layer)
     self.outputs.append(layer)
 
+  def set_default_outputs(self, outputs):
+    """Set the default outputs to be computed by predict() and evaluate().
+
+    If this has not been called, all outputs are computed by default.
+    """
+    self.default_outputs = outputs
+
   def add_variance(self, layer):
     """Add a layer that computes the variance in an output.
 
@@ -889,8 +897,8 @@ class TensorGraph(Model):
 
     if labels is None:
       raise ValueError
-    n_tasks = len(self.outputs)
-    n_classes = self.outputs[0].out_tensor.get_shape()[-1].value
+    n_tasks = len(self.default_outputs)
+    n_classes = self.default_outputs[0].out_tensor.get_shape()[-1].value
     evaluator = GeneratorEvaluator(
         self,
         feed_dict_generator,
@@ -1029,7 +1037,7 @@ class TensorGraph(Model):
       saver.restore(self.session, checkpoint)
 
   def get_num_tasks(self):
-    return len(self.outputs)
+    return len(self.default_outputs)
 
   def get_pre_q_input(self, input_layer):
     layer_name = input_layer.name
@@ -1204,12 +1212,12 @@ class TensorGraph(Model):
 
       if mode == tf.estimator.ModeKeys.PREDICT:
         predictions = {}
-        for i, output in enumerate(self.outputs):
+        for i, output in enumerate(self.default_outputs):
           predictions[i] = create_tensors(output, tensors, 0)
         return tf.estimator.EstimatorSpec(mode, predictions=predictions)
       if mode == tf.estimator.ModeKeys.EVAL:
         loss = create_tensors(self.loss, tensors, 0)
-        predictions = create_tensors(self.outputs[0], tensors, 0)
+        predictions = create_tensors(self.default_outputs[0], tensors, 0)
         if len(self.task_weights) == 0:
           weights = None
         else:

@@ -9,7 +9,8 @@ U-Net implementation
 import tensorflow as tf
 import deepchem as dc
 from deepchem.models import Sequential
-from deepchem.models.tensorgraph.layers import Conv2D, MaxPool2D, Conv2DTranspose, Concat, Feature
+from deepchem.models.tensorgraph.layers import Conv2D, MaxPool2D, Conv2DTranspose, Concat, Feature, Label
+from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy, ReduceMean, SoftMax
 from deepchem.models import TensorGraph
 
 
@@ -31,15 +32,14 @@ class UNet(TensorGraph):
                img_rows=512,
                img_cols=512,
                filters=[64, 128, 256, 512, 1024],
-               model=dc.models.TensorGraph(),
                **kwargs):
     super(UNet, self).__init__(use_queue=False, **kwargs)
     self.img_cols = img_cols
     self.img_rows = img_rows
     self.filters = filters
-    self.model = dc.models.TensorGraph()
 
-    input = Feature(shape=(None, self.img_rows, self.img_cols))
+    input = Feature(shape=(None, self.img_rows, self.img_cols, 3))
+    labels = Label(shape=(None, self.img_rows * self.img_cols))
 
     conv1 = Conv2D(
         num_outputs=self.filters[0],
@@ -53,7 +53,7 @@ class UNet(TensorGraph):
         activation='relu',
         padding='same',
         in_layers=[conv1])
-    pool1 = MaxPool2D(ksize=2, in_layers=[conv1])
+    pool1 = MaxPool2D(ksize=[1, 2, 2, 1], in_layers=[conv1])
 
     conv2 = Conv2D(
         num_outputs=self.filters[1],
@@ -67,7 +67,7 @@ class UNet(TensorGraph):
         activation='relu',
         padding='same',
         in_layers=[conv2])
-    pool2 = MaxPool2D(ksize=2, in_layers=[conv2])
+    pool2 = MaxPool2D(ksize=[1, 2, 2, 1], in_layers=[conv2])
 
     conv3 = Conv2D(
         num_outputs=self.filters[2],
@@ -81,7 +81,7 @@ class UNet(TensorGraph):
         activation='relu',
         padding='same',
         in_layers=[conv3])
-    pool3 = MaxPool2D(ksize=2, in_layers=[conv3])
+    pool3 = MaxPool2D(ksize=[1, 2, 2, 1], in_layers=[conv3])
 
     conv4 = Conv2D(
         num_outputs=self.filters[3],
@@ -95,7 +95,7 @@ class UNet(TensorGraph):
         activation='relu',
         padding='same',
         in_layers=[conv4])
-    pool4 = MaxPool2D(ksize=2, in_layers=[conv4])
+    pool4 = MaxPool2D(ksize=[1, 2, 2, 1], in_layers=[conv4])
 
     conv5 = Conv2D(
         num_outputs=self.filters[4],
@@ -111,14 +111,15 @@ class UNet(TensorGraph):
         in_layers=[conv5])
 
     up6 = Conv2DTranspose(
-        num_outputs=self.filters[3], kernel_size=2, in_layers=[conv5])
-    concat6 = Concat(in_layers=[conv4, up6], axis=1)
+        num_outputs=self.filters[3], kernel_size=2, stride=2, in_layers=[conv5])
+    concat6 = Concat(in_layers=[conv4, up6], axis=3)
     conv6 = Conv2D(
         num_outputs=self.filters[3],
         kernel_size=3,
         activation='relu',
         padding='same',
         in_layers=[concat6])
+
     conv6 = Conv2D(
         num_outputs=self.filters[3],
         kernel_size=3,
@@ -127,8 +128,8 @@ class UNet(TensorGraph):
         in_layers=[conv6])
 
     up7 = Conv2DTranspose(
-        num_outputs=self.filters[2], kernel_size=2, in_layers=[conv6])
-    concat7 = Concat(in_layers=[conv3, up7], axis=1)
+        num_outputs=self.filters[2], kernel_size=2, stride=2, in_layers=[conv6])
+    concat7 = Concat(in_layers=[conv3, up7], axis=3)
     conv7 = Conv2D(
         num_outputs=self.filters[2],
         kernel_size=3,
@@ -143,8 +144,8 @@ class UNet(TensorGraph):
         in_layers=[conv7])
 
     up8 = Conv2DTranspose(
-        num_outputs=self.filters[1], kernel_size=2, in_layers=[conv7])
-    concat8 = Concat(in_layers=[conv2, up8], axis=1)
+        num_outputs=self.filters[1], kernel_size=2, stride=2, in_layers=[conv7])
+    concat8 = Concat(in_layers=[conv2, up8], axis=3)
     conv8 = Conv2D(
         num_outputs=self.filters[1],
         kernel_size=3,
@@ -159,8 +160,8 @@ class UNet(TensorGraph):
         in_layers=[conv8])
 
     up9 = Conv2DTranspose(
-        num_outputs=self.filters[0], kernel_size=2, in_layers=[conv8])
-    concat9 = Concat(in_layers=[conv1, up9], axis=1)
+        num_outputs=self.filters[0], kernel_size=2, stride=2, in_layers=[conv8])
+    concat9 = Concat(in_layers=[conv1, up9], axis=3)
     conv9 = Conv2D(
         num_outputs=self.filters[0],
         kernel_size=3,
@@ -177,4 +178,7 @@ class UNet(TensorGraph):
     conv10 = Conv2D(
         num_outputs=1, kernel_size=1, activation='sigmoid', in_layers=[conv9])
 
-    model.add_output(conv10)
+    loss = SoftMaxCrossEntropy(in_layers=[labels, conv10])
+    loss = ReduceMean(in_layers=[loss])
+    self.set_loss(loss)
+    self.add_output(conv10)
