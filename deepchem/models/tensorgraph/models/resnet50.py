@@ -10,7 +10,7 @@ import tensorflow as tf
 import deepchem as dc
 from deepchem.models import Sequential
 from deepchem.models.tensorgraph.layers import Conv2D, MaxPool2D, Conv2DTranspose, Concat, Feature, Label, BatchNorm
-from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy, ReduceMean, SoftMax, ReLU, Add
+from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy, ReduceMean, SoftMax, ReLU, Add, Flatten, Dense
 from deepchem.models import TensorGraph
 
 
@@ -28,6 +28,43 @@ class ResNet50(TensorGraph):
         classes: int
          specifies number of classes
     """
+
+  def identity_block(input, kernel_size, filters):
+    filters1, filters2, filters3 = filters
+
+    output = Conv2D(
+        num_outputs=filters1,
+        kernel_size=1,
+        stride=strides,
+        activation='linear',
+        padding='same',
+        in_layers=[input])
+    output = BatchNorm(in_layers=[output])
+    output = ReLU(output)
+
+    output = Conv2D(
+        num_outputs=filters2,
+        kernel_size=kernel_size,
+        stride=strides,
+        activation='linear',
+        padding='same',
+        in_layers=[input])
+    output = BatchNorm(in_layers=[output])
+    output = ReLU(output)
+
+    output = Conv2D(
+        num_outputs=filters3,
+        kernel_size=1,
+        stride=strides,
+        activation='linear',
+        padding='same',
+        in_layers=[input])
+    output = BatchNorm(in_layers=[output])
+
+    output = Add(in_layers=[output, input])
+    output = ReLU(output)
+
+    return output
 
   def conv_block(input, kernel_size, filters, strides=2):
     filters1, filters2, filters3 = filters
@@ -54,7 +91,6 @@ class ResNet50(TensorGraph):
     output = Conv2D(
         num_outputs=filters3,
         kernel_size=1,
-        stride=2,
         activation='linear',
         padding='same',
         in_layers=[output])
@@ -63,7 +99,6 @@ class ResNet50(TensorGraph):
     shortcut = Conv2D(
         num_outputs=filters3,
         kernel_size=1,
-        stride=2,
         activation='linear',
         padding='same',
         in_layers=[input])
@@ -100,3 +135,31 @@ class ResNet50(TensorGraph):
     pool1 = MaxPool2D(ksize=[1, 2, 2, 1], in_layers=[bn1])
 
     cb1 = conv_block(pool1, 3, [64, 64, 256], 1)
+    id1 = identity_block(cb1, 3, [64, 64, 256])
+    id1 = identity_block(id1, 3, [64, 64, 256])
+
+    cb2 = conv_block(id1, 3, [128, 128, 512])
+    id2 = identity_block(cb2, 3, [128, 128, 512])
+    id2 = identity_block(id2, 3, [128, 128, 512])
+    id2 = identity_block(id2, 3, [128, 128, 512])
+
+    cb3 = conv_block(id2, 3, [256, 256, 1024])
+    id3 = identity_block(cb3, 3, [256, 256, 1024])
+    id3 = identity_block(id3, 3, [256, 256, 1024])
+    id3 = identity_block(id3, 3, [256, 256, 1024])
+    id3 = identity_block(cb3, 3, [256, 256, 1024])
+    id3 = identity_block(id3, 3, [256, 256, 1024])
+
+    cb4 = conv_block(id3, 3, [512, 512, 2048])
+    id4 = identity_block(cb4, 3, [512, 512, 2048])
+    id4 = identity_block(id4, 3, [512, 512, 2048])
+
+    pool2 = MaxPool2D(ksize=[1, 7, 7, 1], in_layers=[id4])
+
+    flatten = Flatten(in_layers=pool2)
+    dense = Dense(classes, in_layers=flatten)
+
+    loss = SoftMaxCrossEntropy(in_layers=[labels, dense])
+    loss = ReduceMean(in_layers=[loss])
+    self.set_loss(loss)
+    self.add_output(dense)
