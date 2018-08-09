@@ -6,7 +6,7 @@ from deepchem.models.tensorgraph.models import resnet50
 from deepchem.models.tensorgraph import layers
 
 
-class TestUNet(unittest.TestCase):
+class TestResNet50(unittest.TestCase):
 
   def test_resnet50(self):
     resnet = deepchem.models.tensorgraph.models.resnet50.ResNet50(
@@ -32,9 +32,12 @@ class TestUNet(unittest.TestCase):
     # check output shape
     self.assertEqual(predictions.shape, (2, 1000))
 
-    # new object of UNet to test if loading the model results in same predictions
-    resnet_new = deepchem.models.tensorgraph.models.unet.UNet(
-        learning_rate=0.003, img_rows=128, img_cols=128, model_dir='./unet/')
+    # new object of ResNet to test if loading the model results in same predictions
+    resnet_new = deepchem.models.tensorgraph.models.resnet50.ResNet50(
+        learning_rate=0.003,
+        img_rows=128,
+        img_cols=128,
+        model_dir='./resnet50/')
     resnet_new.load_from_dir('./resnet50/')
     resnet_new.restore()
     predictions_new = resnet_new.predict(test)
