@@ -29,13 +29,12 @@ class ResNet50(TensorGraph):
          specifies number of classes
     """
 
-  def identity_block(input, kernel_size, filters):
+  def identity_block(self, input, kernel_size, filters):
     filters1, filters2, filters3 = filters
 
     output = Conv2D(
         num_outputs=filters1,
         kernel_size=1,
-        stride=strides,
         activation='linear',
         padding='same',
         in_layers=[input])
@@ -45,7 +44,6 @@ class ResNet50(TensorGraph):
     output = Conv2D(
         num_outputs=filters2,
         kernel_size=kernel_size,
-        stride=strides,
         activation='linear',
         padding='same',
         in_layers=[input])
@@ -55,7 +53,6 @@ class ResNet50(TensorGraph):
     output = Conv2D(
         num_outputs=filters3,
         kernel_size=1,
-        stride=strides,
         activation='linear',
         padding='same',
         in_layers=[input])
@@ -66,8 +63,9 @@ class ResNet50(TensorGraph):
 
     return output
 
-  def conv_block(input, kernel_size, filters, strides=2):
+  def conv_block(self, input, kernel_size, filters, strides=2):
     filters1, filters2, filters3 = filters
+
     output = Conv2D(
         num_outputs=filters1,
         kernel_size=1,
@@ -81,7 +79,6 @@ class ResNet50(TensorGraph):
     output = Conv2D(
         num_outputs=filters2,
         kernel_size=kernel_size,
-        stride=strides,
         activation='linear',
         padding='same',
         in_layers=[output])
@@ -99,12 +96,12 @@ class ResNet50(TensorGraph):
     shortcut = Conv2D(
         num_outputs=filters3,
         kernel_size=1,
+        stride=strides,
         activation='linear',
         padding='same',
         in_layers=[input])
     shortcut = BatchNorm(in_layers=[shortcut])
-
-    output = Add(in_layers[shortcut, output])
+    output = Add(in_layers=[shortcut, output])
     output = ReLU(output)
 
     return output
@@ -119,6 +116,7 @@ class ResNet50(TensorGraph):
     self.img_cols = img_cols
     self.img_rows = img_rows
     self.weights = weights
+    self.classes = classes
 
     input = Feature(shape=(None, self.img_rows, self.img_cols, 3))
     labels = Label(shape=(None, self.classes))
@@ -132,32 +130,32 @@ class ResNet50(TensorGraph):
         in_layers=[input])
     bn1 = BatchNorm(in_layers=[conv1])
     ac1 = ReLU(bn1)
-    pool1 = MaxPool2D(ksize=[1, 2, 2, 1], in_layers=[bn1])
+    pool1 = MaxPool2D(ksize=[1, 3, 3, 1], in_layers=[bn1])
 
-    cb1 = conv_block(pool1, 3, [64, 64, 256], 1)
-    id1 = identity_block(cb1, 3, [64, 64, 256])
-    id1 = identity_block(id1, 3, [64, 64, 256])
+    cb1 = self.conv_block(pool1, 3, [64, 64, 256], 1)
+    id1 = self.identity_block(cb1, 3, [64, 64, 256])
+    id1 = self.identity_block(id1, 3, [64, 64, 256])
 
-    cb2 = conv_block(id1, 3, [128, 128, 512])
-    id2 = identity_block(cb2, 3, [128, 128, 512])
-    id2 = identity_block(id2, 3, [128, 128, 512])
-    id2 = identity_block(id2, 3, [128, 128, 512])
+    cb2 = self.conv_block(id1, 3, [128, 128, 512])
+    id2 = self.identity_block(cb2, 3, [128, 128, 512])
+    id2 = self.identity_block(id2, 3, [128, 128, 512])
+    id2 = self.identity_block(id2, 3, [128, 128, 512])
 
-    cb3 = conv_block(id2, 3, [256, 256, 1024])
-    id3 = identity_block(cb3, 3, [256, 256, 1024])
-    id3 = identity_block(id3, 3, [256, 256, 1024])
-    id3 = identity_block(id3, 3, [256, 256, 1024])
-    id3 = identity_block(cb3, 3, [256, 256, 1024])
-    id3 = identity_block(id3, 3, [256, 256, 1024])
+    cb3 = self.conv_block(id2, 3, [256, 256, 1024])
+    id3 = self.identity_block(cb3, 3, [256, 256, 1024])
+    id3 = self.identity_block(id3, 3, [256, 256, 1024])
+    id3 = self.identity_block(id3, 3, [256, 256, 1024])
+    id3 = self.identity_block(cb3, 3, [256, 256, 1024])
+    id3 = self.identity_block(id3, 3, [256, 256, 1024])
 
-    cb4 = conv_block(id3, 3, [512, 512, 2048])
-    id4 = identity_block(cb4, 3, [512, 512, 2048])
-    id4 = identity_block(id4, 3, [512, 512, 2048])
+    cb4 = self.conv_block(id3, 3, [512, 512, 2048])
+    id4 = self.identity_block(cb4, 3, [512, 512, 2048])
+    id4 = self.identity_block(id4, 3, [512, 512, 2048])
 
     pool2 = MaxPool2D(ksize=[1, 7, 7, 1], in_layers=[id4])
 
-    flatten = Flatten(in_layers=pool2)
-    dense = Dense(classes, in_layers=flatten)
+    flatten = Flatten(in_layers=[pool2])
+    dense = Dense(classes, in_layers=[flatten])
 
     loss = SoftMaxCrossEntropy(in_layers=[labels, dense])
     loss = ReduceMean(in_layers=[loss])
