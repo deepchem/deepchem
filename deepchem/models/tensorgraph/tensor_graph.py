@@ -837,12 +837,14 @@ class TensorGraph(Model):
           result[i] = self.get_pickling_errors(state[i], seen)
     return result
 
-  def save(self, save_dir=None):
+  def save(self, snapshot_dir=None):
     """
     Parameters
     ----------
-    save_dir: str
-    filepath to save model to
+    snapshot_dir: str
+    This will create a snapshot of the model, with all weights being set
+    The current model_dir will not move and all future saves will continue
+    to happen on self.model_dir
     all subfolders must exist
 
     Returns
@@ -897,8 +899,8 @@ class TensorGraph(Model):
     self.rnn_final_states = rnn_final_states
     self.rnn_zero_states = rnn_zero_states
     self.session = session
-    if save_dir is not None:
-      shutil.copytree(self.model_dir, save_dir)
+    if snapshot_dir is not None:
+      shutil.copytree(self.model_dir, snapshot_dir)
 
   def evaluate_generator(self,
                          feed_dict_generator,
