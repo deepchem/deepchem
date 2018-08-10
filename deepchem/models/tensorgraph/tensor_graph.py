@@ -22,6 +22,15 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 logger = logging.getLogger(__name__)
 
 
+class DummyContext(object):
+
+  def __enter__(self):
+    return None
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    return False
+
+
 class TensorGraph(Model):
 
   def __init__(self,
@@ -101,6 +110,11 @@ class TensorGraph(Model):
       raise ValueError(
           "Currently TensorGraph cannot both use_queue and tensorboard at the same time"
       )
+
+  def _get_context(self):
+    if tfe.in_eager_mode():
+      return DummyContext()
+    return self._get_tf("Graph").as_default()
 
   def save_kwargs(self):
     return {}
@@ -188,7 +202,7 @@ class TensorGraph(Model):
     """
     if not self.built:
       self.build()
-    with self._get_tf("Graph").as_default():
+    with self._get_context() as A:
       time1 = time.time()
       loss = self.loss
       if submodel is not None and submodel.loss is not None:
@@ -216,11 +230,13 @@ class TensorGraph(Model):
           train_op = self._get_tf('train_op')
         else:
           train_op = submodel.get_train_op()
-      if checkpoint_interval > 0:
+      if checkpoint_interval > 0 and not tfe.in_eager_mode():
         saver = tf.train.Saver(
             self.get_variables(),
             max_to_keep=max_checkpoints_to_keep,
             save_relative_paths=True)
+      if checkpoint_interval > 0 and tfe.in_eager_mode():
+        saver = tfe.Saver(self.get_variables())
       if restore:
         self.restore()
       avg_loss, n_averaged_batches = 0.0, 0.0
@@ -277,7 +293,15 @@ class TensorGraph(Model):
         if n_averaged_batches > 0:
           logger.info('Ending global_step %d: Average loss %g' %
                       (self.global_step, avg_loss))
-        saver.save(self.session, self.save_file, global_step=self.global_step)
+        if tfe.in_eager_mode():
+          kwargs = {"file_prefix": self.save_file}
+        else:
+          kwargs = {
+              "sess": self.session,
+              "save_path": self.save_file,
+              "global_step": self.global_step
+          }
+        saver.save(**kwargs)
         time2 = time.time()
         logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return avg_loss
@@ -410,7 +434,7 @@ class TensorGraph(Model):
     else:
       tensors = outputs
 
-    with self._get_tf("Graph").as_default():
+    with self._get_context():
       # Gather results for each output
       results = [[] for out in tensors]
       n_samples = 0
@@ -637,7 +661,7 @@ class TensorGraph(Model):
         return tensor
 
       tensors = {}
-      with self._get_tf("Graph").as_default():
+      with self._get_context():
         # Build the layers.
 
         build_layers(self.loss, tensors)
@@ -949,7 +973,7 @@ class TensorGraph(Model):
       self.tensor_objects['summary_op'] = tf.summary.merge_all(
           key=tf.GraphKeys.SUMMARIES)
     elif obj == 'GlobalStep':
-      with self._get_tf("Graph").as_default():
+      with self._get_context():
         self.tensor_objects['GlobalStep'] = create_variable(0, trainable=False)
     return self._get_tf(obj)
 
@@ -986,11 +1010,15 @@ class TensorGraph(Model):
     """
     if not self.built:
       self.build()
+    if tfe.in_eager_mode():
+      saver = tfe.Saver(var_list=self.get_variables())
+      saver.restore(self.save_file)
+      return
     if checkpoint is None:
       checkpoint = tf.train.latest_checkpoint(self.model_dir)
     if checkpoint is None:
       raise ValueError('No checkpoint found')
-    with self._get_tf("Graph").as_default():
+    with self._get_context():
       reader = NewCheckpointReader(checkpoint)
       var_names = set([x for x in reader.get_variable_to_shape_map()])
       var_list = []

@@ -11,7 +11,8 @@ import shutil
 import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
-from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, ReduceSum, SoftMax, Constant, Variable
+from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, ReduceSum, SoftMax, Constant, \
+  Variable
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference, Add, GRU
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
@@ -305,9 +306,42 @@ class TestTensorGraph(unittest.TestCase):
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
 
   def test_save_load_eager(self):
-    with context.eager_mode():
-      with tfe.IsolateTest():
-        self.test_save_load()
+
+    class MyModel(TensorGraph):
+
+      def build_graph(self):
+        features = Feature(shape=(None, n_features))
+        self.dense = Dense(out_channels=2, in_layers=[features])
+        output = SoftMax(in_layers=[tg.dense])
+        label = Label(shape=(None, 2))
+        self.smce = SoftMaxCrossEntropy(in_layers=[label, tg.dense])
+        loss = ReduceMean(in_layers=[self.smce])
+        self.add_output(output)
+        self.set_loss(loss)
+
+    with context.eager_mode() as _:
+      with tfe.IsolateTest() as _:
+        n_data_points = 20
+        n_features = 2
+        X = np.random.rand(n_data_points, n_features)
+        y = [[0, 1] for x in range(n_data_points)]
+        dataset = NumpyDataset(X, y)
+
+        tg = MyModel(learning_rate=0.01, use_queue=False)
+        tg.build_graph()
+        tg.fit(dataset, nb_epoch=1)
+        prediction = np.squeeze(tg.predict_on_batch(X))
+        tg.save()
+
+        dirpath = tempfile.mkdtemp()
+        shutil.rmtree(dirpath)
+        shutil.move(tg.model_dir, dirpath)
+
+        tg1 = MyModel.load_from_dir(dirpath, restore=False)
+        tg1.build_graph()
+        tg1.restore()
+        prediction2 = np.squeeze(tg1.predict_on_batch(X))
+        assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
 
   def test_shared_layer(self):
     n_data_points = 20

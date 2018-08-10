@@ -21,12 +21,12 @@ class TestSaScoreModel(unittest.TestCase):
     dataset = deepchem.data.NumpyDataset(X, y)
 
     model = deepchem.models.ScScoreModel(n_features, dropouts=0)
-
     model.fit(dataset, nb_epoch=1)
+    print(model.get_variables())
     pred1 = model.predict(dataset)
 
     model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
+    model = deepchem.models.ScScoreModel.load_from_dir(model.model_dir)
 
     pred2 = model.predict(dataset)
     for m1, m2 in zip(pred1, pred2):

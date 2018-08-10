@@ -164,7 +164,7 @@ class TestGraphModels(unittest.TestCase):
     model.fit(dataset, nb_epoch=1)
     model.save()
 
-    model2 = GraphConvModel.load_from_dir(model.model_dir, restore=False)
+    model2 = WeaveModel.load_from_dir(model.model_dir, restore=False)
     dummy_label = model2.labels[-1]
     dummy_ouput = model2.outputs[-1]
     loss = ReduceSum(L2Loss(in_layers=[dummy_label, dummy_ouput]))
@@ -201,7 +201,7 @@ class TestGraphModels(unittest.TestCase):
     assert all(s < 0.1 for s in scores['mean_absolute_error'])
 
     model.save()
-    model = GraphConvModel.load_from_dir(model.model_dir)
+    model = WeaveModel.load_from_dir(model.model_dir)
     scores2 = model.evaluate(dataset, [metric], transformers)
     assert np.allclose(scores['mean_absolute_error'],
                        scores2['mean_absolute_error'])
@@ -398,3 +398,23 @@ class TestGraphModels(unittest.TestCase):
     pred = model.predict(dataset)
     mean_rel_error = np.mean(np.abs(1 - pred / y))
     assert mean_rel_error < 0.1
+
+  def test_layer_name_equality(self):
+    tasks, dataset, transformers, metric = self.get_dataset(
+        'classification', 'GraphConv')
+
+    batch_size = 50
+    model1 = GraphConvModel(
+        len(tasks), batch_size=batch_size, mode='classification')
+
+    model1.fit(dataset, nb_epoch=10)
+    model1.save()
+    model2 = GraphConvModel.load_from_dir(model1.model_dir)
+    model3 = GraphConvModel.load_from_dir(model1.model_dir)
+
+    layer1_names = set([x for x in model1.layers.keys()])
+    layer2_names = set([x for x in model2.layers.keys()])
+    layer3_names = set([x for x in model3.layers.keys()])
+
+    self.assertEqual(layer1_names, layer2_names)
+    self.assertEqual(layer1_names, layer3_names)

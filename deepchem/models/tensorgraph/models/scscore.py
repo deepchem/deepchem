@@ -56,6 +56,13 @@ class ScScoreModel(TensorGraph):
     super(ScScoreModel, self).__init__(**kwargs)
     self.build_graph()
 
+  def save_kwargs(self):
+    return {
+        "n_features": self.n_features,
+        "layer_sizes": self.layer_sizes,
+        "dropouts": self.dropout
+    }
+
   def build_graph(self):
     """
     Building graph structures:
