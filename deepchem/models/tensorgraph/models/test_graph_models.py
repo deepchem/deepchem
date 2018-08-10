@@ -79,7 +79,7 @@ class TestGraphModels(unittest.TestCase):
     fname = tfile.name
     tfile.close()
 
-    model.save(save_dir=fname)
+    model.save(snapshot_dir=fname)
     model = TensorGraph.load_from_dir(fname)
     scores2 = model.evaluate(dataset, [metric], transformers)
     assert np.allclose(scores['mean-roc_auc_score'],
