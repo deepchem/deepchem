@@ -4,6 +4,7 @@ import pickle
 import threading
 import time
 import json
+import sys
 
 import logging
 import numpy as np
@@ -870,7 +871,9 @@ class TensorGraph(Model):
         "batch_size": self.batch_size,
         "random_seed": self.random_seed,
         "use_queue": self.use_queue,
-        "model_dir": self.model_dir
+        "model_dir": self.model_dir,
+        "cls.__module__": self.__class__.__module__,
+        "cls.__name__": self.__class__.__name__
     }
     d.update(self.save_kwargs())
     kwargs_path = os.path.join(self.model_dir, 'kwargs.json')
@@ -1046,8 +1049,15 @@ class TensorGraph(Model):
       return TensorGraph.load_from_dir(model_dir)
     with open(kwargs_file) as fin:
       kwargs = json.loads(fin.read())
+    cls_module = kwargs['cls.__module__']
+    cls_name = kwargs['cls.__name__']
+    del kwargs['cls.__module__']
+    del kwargs['cls.__name__']
     kwargs['model_dir'] = model_dir
-    model = cls(**kwargs)
+    try:
+      model = getattr(sys.modules[cls_module], cls_name)(**kwargs)
+    except:
+      model = cls(**kwargs)
     if restore:
       model.restore()
     return model
