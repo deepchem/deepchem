@@ -49,8 +49,10 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
 
   return deepchem.data.DiskDataset(dataset_dir), tasks
 
+
 def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
   """Loads and featurizes PDBBind dataset."""
+
 
 def load_pdbbind_grid(split="random",
                       featurizer="grid",
@@ -134,12 +136,14 @@ def load_pdbbind_grid(split="random",
 
     return tasks, (train, valid, test), transformers
 
+
 def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
   """Load and featurize raw PDBBind dataset."""
   pdbbind_tasks = ["-logKd/Ki"]
   data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "pdbbind/" + featurizer + "/" + str(split))
+    save_dir = os.path.join(data_dir,
+                            "pdbbind/" + featurizer + "/" + str(split))
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
         save_dir)
     if loaded:
@@ -173,11 +177,13 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
       pdb = line[0]
       if len(pdb) == 4:
         pdbs.append(pdb)
-  protein_files = [os.path.join(data_folder, pdb, "%s_protein.pdb" % pdb)
-               for pdb in pdbs]
-  ligand_files = [os.path.join(data_folder, pdb, "%s_ligand.sdf" % pdb)
-               for pdb in pdbs]
-  # Extract labels 
+  protein_files = [
+      os.path.join(data_folder, pdb, "%s_protein.pdb" % pdb) for pdb in pdbs
+  ]
+  ligand_files = [
+      os.path.join(data_folder, pdb, "%s_ligand.sdf" % pdb) for pdb in pdbs
+  ]
+  # Extract labels
   labels = []
   with open(labels_file, "r") as f:
     lines = f.readlines()
@@ -193,7 +199,7 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
       labels.append(log_label)
   # Featurize Data
   if featurizer == "grid":
-    # TODO: This is not the correct setting. Set hyperparameters correctly 
+    # TODO: This is not the correct setting. Set hyperparameters correctly
     ecfp_power = 5
     splif_power = 5
     featurizer = rgf.RdkitGridFeaturizer(
@@ -205,15 +211,16 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
   else:
     raise ValueError("Featurizer not supported")
   print("Featurizing Complexes")
-  features = featurizer.featurize_complexes(ligand_files, protein_files, log_every_n=1)
+  features = featurizer.featurize_complexes(
+      ligand_files, protein_files, log_every_n=1)
   dataset = deepchem.data.DiskDataset.from_numpy(features, labels)
   # No transformations of data
   transformers = []
   # TODO(rbharath): This should be modified to contain a cluster split so
   # structures of the same protein aren't in both train/test
   splitters = {
-    'index': deepchem.splits.IndexSplitter(),
-    'random': deepchem.splits.RandomSplitter(),
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
