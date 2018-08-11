@@ -62,6 +62,25 @@ class TestGraphModels(unittest.TestCase):
     assert np.allclose(scores['mean-roc_auc_score'],
                        scores2['mean-roc_auc_score'])
 
+  def test_neural_fingerprint_retrieval(self):
+    tasks, dataset, transformers, metric = self.get_dataset(
+        'classification', 'GraphConv')
+
+    fp_size = 3
+
+    batch_size = 50
+    model = GraphConvModel(
+        len(tasks),
+        batch_size=batch_size,
+        dense_layer_size=3,
+        mode='classification')
+
+    model.fit(dataset, nb_epoch=1)
+    neural_fingerprints = model.predict(
+        dataset, outputs=model.neural_fingerprint)
+    neural_fingerprints = np.array(neural_fingerprints)[:len(dataset)]
+    self.assertEqual((len(dataset), fp_size * 2), neural_fingerprints.shape)
+
   def test_graph_conv_regression_model(self):
     tasks, dataset, transformers, metric = self.get_dataset(
         'regression', 'GraphConv')
