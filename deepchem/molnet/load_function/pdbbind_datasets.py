@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 import logging
 import tarfile
+from deepchem.feat import rdkit_grid_featurizer as rgf
 
 logger = logging.getLogger(__name__)
 
@@ -48,12 +49,14 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
 
   return deepchem.data.DiskDataset(dataset_dir), tasks
 
+def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
+  """Loads and featurizes PDBBind dataset."""
 
 def load_pdbbind_grid(split="random",
                       featurizer="grid",
                       subset="core",
                       reload=True):
-  """Load PDBBind datasets."""
+  """Load PDBBind datasets. Does not do train/test split"""
   if featurizer == 'grid':
     dataset, tasks = featurize_pdbbind(feat=featurizer, subset=subset)
 
@@ -131,90 +134,91 @@ def load_pdbbind_grid(split="random",
 
     return tasks, (train, valid, test), transformers
 
-
-def extract_pdbbind(featurizer, split="random", subset="core", reload=True):
+def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
   """Load and featurize raw PDBBind dataset."""
-  # TODO(rbharath): This should contain a cluster split so structures of the
-  # same protein aren't in both train/test
-  tasks = ["-logKd/Ki"]
+  pdbbind_tasks = ["-logKd/Ki"]
   data_dir = deepchem.utils.get_data_dir()
+  if reload:
+    save_dir = os.path.join(data_dir, "pdbbind/" + featurizer + "/" + str(split))
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
+      return pdbbind_tasks, all_dataset, transformers
   dataset_file = os.path.join(data_dir, "pdbbind_v2015.tar.gz")
-  if subset == "core":
-    data_folder = os.path.join(data_dir, "pdbbind_core")
-  elif subset == "refined":
-    data_folder = os.path.join(data_dir, "pdbbind_refined")
-  else:
-    raise ValueError("Unsupported subset %s." % subset)
-  if os.path.exists(data_folder):
-    logger.info("Data directory for %s already exists" % subset)
-  print("dataset_file")
-  print(dataset_file)
-  print("os.path.exists(dataset_file)")
-  print(os.path.exists(dataset_file))
+  data_folder = os.path.join(data_dir, "v2015")
   if not os.path.exists(dataset_file):
     logger.warning("About to download PDBBind full dataset. Large file, 2GB")
     deepchem.utils.download_url(
         'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/' +
         "pdbbind_v2015.tar.gz")
-  tar = tarfile.open(dataset_file, "r:gz")
-  pdbs = []
-  if subset == "core":
-    f = tar.extractfile("v2015/INDEX_core_name.2013")
-    contentlines = f.readlines()
-    for line in contentlines:
-      line = line.decode("utf-8")
-      line = line.split(" ")
-      pdb = line[0]
-      print("pdb")
-      print(pdb)
-      print("len(pdb)")
-      print(len(pdb))
-      # TODO(rbharath): Why 6 instead of 4?
-      if len(pdb) == 4:
-        pdbs.append(pdb)
-  elif subset == "refined":
-    f = tar.extractfile("v2015/INDEX_refined_name.2015")
-    contentlines = f.readlines()
-    for line in contentlines:
-      line = str(line)
-      line = line.split(" ")
-      pdb = line[0]
-      if len(pdb) == 4:
-        pdbs.append(pdb)
+  if os.path.exists(data_folder):
+    logger.info("Data directory for %s already exists" % subset)
   else:
-    raise ValueError("Other subsets not supported.")
-  print("pdbs")
-  print(pdbs)
-  # Make dir
-  if not os.path.exists(data_folder):
-    os.makedirs(data_folder)
-  for ind, pdb in enumerate(pdbs):
-    protein_filename = "v2015/" + pdb + "/" + pdb + "_protein.pdb"
-    ligand_filename = "v2015/" + pdb + "/" + pdb + "_ligand.sdf"
-    print("ind")
-    print(ind)
-    print("protein_filename, ligand_filename")
-    print(protein_filename, ligand_filename)
-    protein_f = tar.extractfile(protein_filename)
-    protein_lines = protein_f.readlines()
-    ligand_f = tar.extractfile(ligand_filename)
-    ligand_lines = ligand_f.readlines()
-    print("read lines")
-    protein_out = os.path.join(data_folder, pdb + "_protein.pdb")
-    with open(protein_out, "w") as f:
-      print("type(protein_lines)")
-      print(type(protein_lines))
-      f.writelines(protein_lines)
-    ligand_out = os.path.join(data_folder, pdb + "_ligand.sdf")
-    with open(ligand_out, "w") as f:
-      f.writelines(ligand_lines)
-    return pdbs
-#  for member in tar.getmembers():
-#    print("member.name")
-#    print(member.name)
-#    if member.name == "v2015/INDEX_core_name.2013":
-#      f = tar.extractfile(member)
-#      contentlines = f.read()
-#      print("content")
-#      print(content)
-#      break
+    print("Untarring full dataset")
+    deepchem.utils.untargz_file(dataset_file, dest_dir=data_dir)
+  if subset == "core":
+    index_file = os.path.join(data_folder, "INDEX_core_name.2013")
+    labels_file = os.path.join(data_folder, "INDEX_core_data.2013")
+  elif subset == "refined":
+    index_file = os.path.join(data_folder, "INDEX_refined_name.2013")
+    labels_file = os.path.join(data_folder, "INDEX_refined_data.2013")
+  else:
+    raise ValueError("Other subsets not supported")
+  # Extract locations of data
+  pdbs = []
+  with open(index_file, "r") as g:
+    lines = g.readlines()
+    for line in lines:
+      line = line.split(" ")
+      pdb = line[0]
+      if len(pdb) == 4:
+        pdbs.append(pdb)
+  protein_files = [os.path.join(data_folder, pdb, "%s_protein.pdb" % pdb)
+               for pdb in pdbs]
+  ligand_files = [os.path.join(data_folder, pdb, "%s_ligand.sdf" % pdb)
+               for pdb in pdbs]
+  # Extract labels 
+  labels = []
+  with open(labels_file, "r") as f:
+    lines = f.readlines()
+    for line in lines:
+      # Skip comment lines
+      if line[0] == "#":
+        continue
+      # Lines have format
+      # PDB code, resolution, release year, -logKd/Ki, Kd/Ki, reference, ligand name
+      line = line.split()
+      # The base-10 logarithm, -log kd/pk
+      log_label = line[3]
+      labels.append(log_label)
+  # Featurize Data
+  if featurizer == "grid":
+    # TODO: This is not the correct setting. Set hyperparameters correctly 
+    ecfp_power = 5
+    splif_power = 5
+    featurizer = rgf.RdkitGridFeaturizer(
+        voxel_width=16.0,
+        feature_types=['ecfp', 'splif', 'hbond', 'salt_bridge'],
+        ecfp_power=ecfp_power,
+        splif_power=splif_power,
+        flatten=True)
+  else:
+    raise ValueError("Featurizer not supported")
+  print("Featurizing Complexes")
+  features = featurizer.featurize_complexes(ligand_files, protein_files, log_every_n=1)
+  dataset = deepchem.data.DiskDataset.from_numpy(features, labels)
+  # No transformations of data
+  transformers = []
+  # TODO(rbharath): This should be modified to contain a cluster split so
+  # structures of the same protein aren't in both train/test
+  splitters = {
+    'index': deepchem.splits.IndexSplitter(),
+    'random': deepchem.splits.RandomSplitter(),
+  }
+  splitter = splitters[split]
+  train, valid, test = splitter.train_valid_test_split(dataset)
+  all_dataset = (train, valid, test)
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                             transformers)
+  return pdbbind_tasks, all_dataset, transformers
