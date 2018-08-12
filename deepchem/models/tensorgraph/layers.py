@@ -2511,6 +2511,47 @@ class MaxPool3D(Layer):
     return out_tensor
 
 
+class AvgPool2D(Layer):
+
+  def __init__(self,
+               ksize=[1, 2, 2, 1],
+               strides=[1, 2, 2, 1],
+               padding="SAME",
+               **kwargs):
+    """Create a AvgPool2D layer.
+
+    Parameters
+    ----------
+    ksize: list
+      size of the window for each dimension of the input tensor. Must have
+      length of 4 and ksize[0] = ksize[3] = 1.
+    strides: list
+      stride of the sliding window for each dimension of input. Must have
+      length of 4 and strides[0] = strides[3] = 1.
+    padding: str
+      the padding method to use, either 'SAME' or 'VALID'
+    """
+    self.ksize = ksize
+    self.strides = strides
+    self.padding = padding
+    super(AvgPool2D, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = tuple(
+          None if p is None else p // s for p, s in zip(parent_shape, strides))
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    in_tensor = inputs[0]
+    out_tensor = tf.nn.avg_pool(
+        in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class InputFifoQueue(Layer):
   """
   This Queue Is used to allow asynchronous batching of inputs
