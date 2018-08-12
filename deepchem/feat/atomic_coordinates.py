@@ -188,6 +188,9 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
 
 
 class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
+  """This class computes the featurization that corresponds to AtomicConvModel.
+
+  This class computes featurizations needed for AtomicConvModel. Given a two molecular structures, it computes a number of useful geometric features.
 
   def __init__(self,
                frag1_num_atoms,
@@ -228,6 +231,12 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
            system_coords, system_neighbor_list, system_z
 
   def get_Z_matrix(self, mol, max_atoms):
+    ################################################### DEBUG
+    print("len(mol.GetAtoms())")
+    print(len(mol.GetAtoms()))
+    print("max_atoms")
+    print(max_atoms)
+    ################################################### DEBUG
     return pad_array(
         np.array([atom.GetAtomicNum() for atom in mol.GetAtoms()]), max_atoms)
 
