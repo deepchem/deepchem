@@ -191,6 +191,7 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
   """This class computes the featurization that corresponds to AtomicConvModel.
 
   This class computes featurizations needed for AtomicConvModel. Given a two molecular structures, it computes a number of useful geometric features.
+  """
 
   def __init__(self,
                frag1_num_atoms,
