@@ -174,7 +174,7 @@ class AtomicConvModel(TensorGraph):
                **kwargs):
     """Implements an Atomic Convolution Model.
 
-    Implements the atomic convolutional networks aas introduced in
+    Implements the atomic convolutional networks as introduced in
     https://arxiv.org/abs/1703.10603. The atomic convolutional networks
     function as a variant of graph convolutions. The difference is that the
     "graph" here is the nearest neighbors graph in 3D space. The
