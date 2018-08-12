@@ -16,18 +16,18 @@ from deepchem.models import TensorGraph
 
 class ResNet50(TensorGraph):
   """
-        ResNet50 architecture implementation.
-        Parameters
-        ----------
-        img_rows : int
-         number of rows of the image.
-        img_cols: int
-         number of columns of the image
-        weights: string
-         if "imagenet" - weights are initialized with the pretrained values.
-        classes: int
-         specifies number of classes
-    """
+  ResNet50 architecture implementation.
+  Parameters
+  ----------
+  img_rows : int
+   number of rows of the image.
+  img_cols: int
+   number of columns of the image
+  weights: string
+   if "imagenet" - weights are initialized with the pretrained values.
+  classes: int
+   specifies number of classes
+  """
 
   def identity_block(self, input, kernel_size, filters):
     filters1, filters2, filters3 = filters

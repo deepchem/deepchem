@@ -16,17 +16,17 @@ from deepchem.models import TensorGraph
 
 class UNet(TensorGraph):
   """
-        U-Net architecture implementation.
-        Parameters
-        ----------
-        img_rows : int
-         number of rows of the image.
-        img_cols: int
-         number of columns of the image
-        filters: list of input
-         List of 5 integers to be given which will be the size of the filters in
-         each conv layer.
-    """
+  U-Net architecture implementation.
+  Parameters
+  ----------
+  img_rows : int
+   number of rows of the image.
+  img_cols: int
+   number of columns of the image
+  filters: list of input
+   List of 5 integers to be given which will be the size of the filters in
+   each conv layer.
+  """
 
   def __init__(self,
                img_rows=512,
