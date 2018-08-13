@@ -643,7 +643,7 @@ class GraphConvModel(TensorGraph):
     batch_norm3 = BatchNorm(in_layers=[dense])
     if self.dropout[-1] > 0.0:
       batch_norm3 = Dropout(self.dropout[-1], in_layers=batch_norm3)
-    readout = GraphGather(
+    self.neural_fingerprint = GraphGather(
         batch_size=self.batch_size,
         activation_fn=tf.nn.tanh,
         in_layers=[batch_norm3, self.degree_slice, self.membership] +
@@ -657,7 +657,9 @@ class GraphConvModel(TensorGraph):
       logits = Reshape(
           shape=(None, n_tasks, n_classes),
           in_layers=[
-              Dense(in_layers=readout, out_channels=n_tasks * n_classes)
+              Dense(
+                  in_layers=self.neural_fingerprint,
+                  out_channels=n_tasks * n_classes)
           ])
       logits = TrimGraphOutput([logits, weights])
       output = SoftMax(logits)
@@ -669,13 +671,17 @@ class GraphConvModel(TensorGraph):
       labels = Label(shape=(None, n_tasks))
       output = Reshape(
           shape=(None, n_tasks),
-          in_layers=[Dense(in_layers=readout, out_channels=n_tasks)])
+          in_layers=[
+              Dense(in_layers=self.neural_fingerprint, out_channels=n_tasks)
+          ])
       output = TrimGraphOutput([output, weights])
       self.add_output(output)
       if self.uncertainty:
         log_var = Reshape(
             shape=(None, n_tasks),
-            in_layers=[Dense(in_layers=readout, out_channels=n_tasks)])
+            in_layers=[
+                Dense(in_layers=self.neural_fingerprint, out_channels=n_tasks)
+            ])
         log_var = TrimGraphOutput([log_var, weights])
         var = Exp(log_var)
         self.add_variance(var)
