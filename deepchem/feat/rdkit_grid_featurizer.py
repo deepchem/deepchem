@@ -1281,7 +1281,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         protein_pdb_lines = protein_file.readlines()
       results.append(
           pool.apply_async(
-              RdkitGridFeaturizer._featurize_complex,
+              _featurize_complex,
               (self, ligand_ext, mol_lines, protein_pdb_lines, log_message)))
     pool.close()
     features = []
@@ -1464,3 +1464,9 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       feature_vector[0] += len(feature_list)
 
     return feature_vector
+
+
+def _featurize_complex(featurizer, ligand_ext, ligand_lines, protein_pdb_lines,
+                       log_message):
+  return featurizer._featurize_complex(ligand_ext, ligand_lines,
+                                       protein_pdb_lines, log_message)
