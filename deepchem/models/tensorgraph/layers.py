@@ -3839,32 +3839,32 @@ class AtomicConvolution(Layer):
     M = Nbrs.get_shape()[-1].value
     B = X.get_shape()[0].value
 
+    # Create the variables.
+    if tfe.in_eager_mode():
+      if not self._built:
+        self.variables += self._create_radial_variables()
+      rc, rs, re = self.variables
+    else:
+      rc, rs, re = self._create_radial_variables()
+
+    # Compute the distances and radial symmetry functions.
     D = self.distance_tensor(X, Nbrs, self.boxsize, B, N, M, d)
     R = self.distance_matrix(D)
-    sym = []
-    rsf_zeros = tf.zeros((B, N, M))
-    for i, param in enumerate(self.radial_params):
+    R = tf.reshape(R, [1] + R.shape.as_list())
+    rsf = self.radial_symmetry_function(R, rc, rs, re)
 
-      if tfe.in_eager_mode():
-        if not self._built:
-          self.variables += self._create_radial_variables(*param)
-        param_variables = self.variables[3 * i:3 * i + 3]
-      else:
-        param_variables = self._create_radial_variables(*param)
+    if not self.atom_types:
+      cond = tf.to_float(tf.not_equal(Nbrs_Z, 0.0))
+      cond = tf.reshape(cond, R.shape)
+      layer = tf.reduce_sum(cond * rsf, 3)
+    else:
+      sym = []
+      for j in range(len(self.atom_types)):
+        cond = tf.to_float(tf.equal(Nbrs_Z, self.atom_types[j]))
+        cond = tf.reshape(cond, R.shape)
+        sym.append(tf.reduce_sum(cond * rsf, 3))
+      layer = tf.concat(sym, 0)
 
-      # We apply the radial pooling filter before atom type conv
-      # to reduce computation
-      rsf = self.radial_symmetry_function(R, *param_variables)
-
-      if not self.atom_types:
-        cond = tf.not_equal(Nbrs_Z, 0.0)
-        sym.append(tf.reduce_sum(tf.where(cond, rsf, rsf_zeros), 2))
-      else:
-        for j in range(len(self.atom_types)):
-          cond = tf.equal(Nbrs_Z, self.atom_types[j])
-          sym.append(tf.reduce_sum(tf.where(cond, rsf, rsf_zeros), 2))
-
-    layer = tf.stack(sym)
     layer = tf.transpose(layer, [1, 2, 0])  # (l, B, N) -> (B, N, l)
     m, v = tf.nn.moments(layer, axes=[0])
     out_tensor = tf.nn.batch_normalization(layer, m, v, None, None, 1e-3)
@@ -3875,12 +3875,12 @@ class AtomicConvolution(Layer):
       self._built = True
     return out_tensor
 
-  def _create_radial_variables(self, rc, rs, e):
-    with tf.name_scope(None, "NbrRadialSymmetryFunction", [rc, rs, e]):
-      rc = create_variable(rc)
-      rs = create_variable(rs)
-      e = create_variable(e)
-    return (rc, rs, e)
+  def _create_radial_variables(self):
+    vars = []
+    for i in range(3):
+      val = np.array([p[i] for p in self.radial_params]).reshape((-1, 1, 1, 1))
+      vars.append(create_variable(val, dtype=tf.float32))
+    return vars
 
   def radial_symmetry_function(self, R, rc, rs, e):
     """Calculates radial symmetry function.

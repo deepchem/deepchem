@@ -846,7 +846,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         layer = layers.AtomicConvolution(radial_params=params)
         result = layer(input1, input2, input3)
         assert result.shape == (batch_size, max_atoms, len(params))
-        assert len(layer.variables) == 3 * len(params)
+        assert len(layer.variables) == 3
 
   def test_alpha_share_layer(self):
     """Test invoking AlphaShareLayer in eager mode."""
