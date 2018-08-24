@@ -571,7 +571,8 @@ class MolecularWeightSplitter(Splitter):
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
-            log_every_n=None):
+            log_every_n=None,
+            smiles_arr=None):
     """
         Splits internal compounds into train/validation/test using the MW calculated
         by SMILES string.
@@ -582,7 +583,10 @@ class MolecularWeightSplitter(Splitter):
       np.random.seed(seed)
 
     mws = []
-    for smiles in dataset.ids:
+    # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
+    if not smiles_arr:
+      smiles_arr = dataset.ids
+    for smiles in smiles_arr:
       mol = Chem.MolFromSmiles(smiles)
       mw = Chem.rdMolDescriptors.CalcExactMolWt(mol)
       mws.append(mw)
@@ -612,7 +616,8 @@ class MaxMinSplitter(Splitter):
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
-            log_every_n=None):
+            log_every_n=None,
+            smiles_arr=None):
     """
     Splits internal compounds randomly into train/validation/test.
     """
@@ -631,7 +636,10 @@ class MaxMinSplitter(Splitter):
     num_test = num_datapoints - valid_cutoff
 
     all_mols = []
-    for ind, smiles in enumerate(dataset.ids):
+    # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
+    if not smiles_arr:
+      smiles_arr = dataset.ids
+    for ind, smiles in enumerate(smiles_arr):
       all_mols.append(Chem.MolFromSmiles(smiles))
 
     fps = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in all_mols]
@@ -784,7 +792,8 @@ class ButinaSplitter(Splitter):
             frac_valid=None,
             frac_test=None,
             log_every_n=1000,
-            cutoff=0.18):
+            cutoff=0.18,
+            smiles_arr=None):
     """
         Splits internal compounds into train and validation based on the butina
         clustering algorithm. This splitting algorithm has an O(N^2) run time, where N
@@ -801,7 +810,10 @@ class ButinaSplitter(Splitter):
         """
     print("Performing butina clustering with cutoff of", cutoff)
     mols = []
-    for ind, smiles in enumerate(dataset.ids):
+    # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
+    if not smiles_arr:
+      smiles_arr = dataset.ids
+    for ind, smiles in enumerate(smiles_arr):
       mols.append(Chem.MolFromSmiles(smiles))
     n_mols = len(mols)
     fps = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in mols]
@@ -840,7 +852,8 @@ class ScaffoldSplitter(Splitter):
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
-            log_every_n=1000):
+            log_every_n=1000,
+            smiles_arr=None):
     """
         Splits internal compounds into train/validation/test by scaffold.
         """
@@ -848,7 +861,10 @@ class ScaffoldSplitter(Splitter):
     scaffolds = {}
     log("About to generate scaffolds", self.verbose)
     data_len = len(dataset)
-    for ind, smiles in enumerate(dataset.ids):
+    # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
+    if not smiles_arr:
+      smiles_arr = dataset.ids
+    for ind, smiles in enumerate(smiles_arr):
       if ind % log_every_n == 0:
         log("Generating scaffold %d/%d" % (ind, data_len), self.verbose)
       scaffold = generate_scaffold(smiles)
@@ -889,7 +905,8 @@ class FingerprintSplitter(Splitter):
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
-            log_every_n=1000):
+            log_every_n=1000,
+            smiles_arr=None):
     """
         Splits internal compounds into train/validation/test by fingerprint.
     """
@@ -897,7 +914,10 @@ class FingerprintSplitter(Splitter):
     data_len = len(dataset)
     mols, fingerprints = [], []
     train_inds, valid_inds, test_inds = [], [], []
-    for ind, smiles in enumerate(dataset.ids):
+    # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
+    if not smiles_arr:
+      smiles_arr = dataset.ids
+    for ind, smiles in enumerate(smiles_arr):
       mol = Chem.MolFromSmiles(smiles, sanitize=False)
       mols.append(mol)
       fp = FingerprintMols.FingerprintMol(mol)
