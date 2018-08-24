@@ -584,7 +584,7 @@ class MolecularWeightSplitter(Splitter):
 
     mws = []
     # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
-    if not smiles_arr:
+    if smiles_arr is None:
       smiles_arr = dataset.ids
     for smiles in smiles_arr:
       mol = Chem.MolFromSmiles(smiles)
@@ -637,7 +637,7 @@ class MaxMinSplitter(Splitter):
 
     all_mols = []
     # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
-    if not smiles_arr:
+    if smiles_arr is None:
       smiles_arr = dataset.ids
     for ind, smiles in enumerate(smiles_arr):
       all_mols.append(Chem.MolFromSmiles(smiles))
@@ -811,7 +811,7 @@ class ButinaSplitter(Splitter):
     print("Performing butina clustering with cutoff of", cutoff)
     mols = []
     # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
-    if not smiles_arr:
+    if smiles_arr is None:
       smiles_arr = dataset.ids
     for ind, smiles in enumerate(smiles_arr):
       mols.append(Chem.MolFromSmiles(smiles))
@@ -862,7 +862,7 @@ class ScaffoldSplitter(Splitter):
     log("About to generate scaffolds", self.verbose)
     data_len = len(dataset)
     # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
-    if not smiles_arr:
+    if smiles_arr is None:
       smiles_arr = dataset.ids
     for ind, smiles in enumerate(smiles_arr):
       if ind % log_every_n == 0:
@@ -915,7 +915,7 @@ class FingerprintSplitter(Splitter):
     mols, fingerprints = [], []
     train_inds, valid_inds, test_inds = [], [], []
     # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
-    if not smiles_arr:
+    if smiles_arr is None:
       smiles_arr = dataset.ids
     for ind, smiles in enumerate(smiles_arr):
       mol = Chem.MolFromSmiles(smiles, sanitize=False)
