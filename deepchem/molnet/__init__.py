@@ -2,7 +2,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from deepchem.molnet.load_function.bace_datasets import load_bace_classification, load_bace_regression
-from deepchem.molnet.load_function.bbbc_datasets import load_bbbc001, load_bbbc002
+from deepchem.molnet.load_function.bbbc_datasets import load_bbbc001, load_bbbc002, load_bbbc004
 from deepchem.molnet.load_function.bbbp_datasets import load_bbbp
 from deepchem.molnet.load_function.cell_counting_datasets import load_cell_counting
 from deepchem.molnet.load_function.chembl_datasets import load_chembl

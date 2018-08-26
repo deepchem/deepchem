@@ -157,8 +157,12 @@ def load_bbbc004(split='index', reload=True):
         save_dir)
     if loaded:
       return bbbc001_tasks, all_dataset, transformers
-  dataset_file = os.path.join(data_dir, "BBBC001_v1_images_tif.zip")
-  labels_file = os.path.join(data_dir, "BBBC001_v1_counts.txt")
+  image_files_file = [os.path.join(data_dir, "BBBC004_v1_000_images.zip"),
+                      os.path.join(data_dir, "BBBC004_v1_015_images.zip"),
+                      os.path.join(data_dir, "BBBC004_v1_030_images.zip"),
+                      os.path.join(data_dir, "BBBC004_v1_045_images.zip"),
+                      os.path.join(data_dir, "BBBC004_v1_060_images.zip")]
+  labels_file = [os.path.join(data_dir, "BBBC001_v1_counts.txt")
 
   if not os.path.exists(dataset_file):
     deepchem.utils.download_url(
