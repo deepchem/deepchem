@@ -548,3 +548,31 @@ class TestTensorGraph(unittest.TestCase):
         output1 = tg.predict_on_batch(input)
         output2 = tg(input)
         assert np.allclose(output1, output2.numpy())
+
+  def test_saliency_mapping(self):
+    """Test computing a saliency map."""
+    n_tasks = 3
+    n_features = 5
+    model = dc.models.MultitaskRegressor(
+        n_tasks,
+        n_features, [20],
+        activation_fns=tf.tanh,
+        weight_init_stddevs=1.0)
+    x = np.random.random(n_features)
+    s = model.compute_saliency(x)
+    assert s.shape[0] == n_tasks
+    assert s.shape[1] == n_features
+
+    # Take a tiny step in the direction of s and see if the output changes by
+    # the expected amount.
+
+    delta = 0.01
+    for task in range(n_tasks):
+      norm = np.sqrt(np.sum(s[task]**2))
+      step = 0.5 * delta / norm
+      pred1 = model.predict_on_batch((x + s[task] * step).reshape(
+          (1, n_features))).flatten()
+      pred2 = model.predict_on_batch((x - s[task] * step).reshape(
+          (1, n_features))).flatten()
+      self.assertAlmostEqual(
+          pred1[task], (pred2 + norm * delta)[task], places=4)
