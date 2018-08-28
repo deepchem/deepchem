@@ -591,6 +591,61 @@ class TensorGraph(Model):
     else:
       return zip(output, std)
 
+  def compute_saliency(self, X):
+    """Compute the saliency map for an input sample.
+
+    This computes the Jacobian matrix with the derivative of each output element
+    with respect to each input element.  More precisely,
+
+    - If this model has a single Feature layer and a single output, this returns
+      a matrix of shape (output_size, feature_size) with the derivatives.
+    - If this model has multiple Features or outputs, this returns a list of
+      matrices, where element i*n_features+j contains the derivatives of the
+      i'th output with respect to the j'th Feature layer.
+
+    If an output or Feature has more than one dimension per sample, the matrix
+    corresponds to its elements in flattened order.
+
+    Parameters
+    ----------
+    X: ndarray
+      the input data for a single sample
+
+    Returns
+    -------
+    the Jacobian matrix, or a list of matrices
+    """
+
+    def jacobian(y, x):
+      # Adapted from https://github.com/tensorflow/tensorflow/issues/675#issuecomment-319891923.
+      # The next release of Tensorflow will add a proper jacobian() function, so
+      # we can remove this then.
+      y = tf.reshape(tf.convert_to_tensor(y)[0], [-1])
+      n = y.shape[0]
+      loop_vars = [tf.constant(0, tf.int32), tf.TensorArray(tf.float32, size=n)]
+      _, jacobian = tf.while_loop(
+          lambda j, _: j < n,
+          lambda j, result: (j + 1, result.write(j, tf.gradients(y[j], x))),
+          loop_vars)
+      return jacobian.stack()
+
+    if not self.built:
+      self.build()
+    grads = []
+    with self._get_tf("Graph").as_default():
+      for output in self.default_outputs:
+        for feature in self.features:
+          grads.append(jacobian(output, feature))
+    X = np.reshape(X, [1] + list(X.shape))
+    result = self.predict_on_batch(X, outputs=grads)
+    # Remove extra dimensions, because I couldn't figure out how to get the
+    # jacobian() function to not produce them.
+    if isinstance(result, list):
+      result = [np.squeeze(x, (1, 2)) for x in result]
+    else:
+      result = np.squeeze(result, (1, 2))
+    return result
+
   def topsort(self):
 
     def add_layers_to_list(layer, sorted_layers):
