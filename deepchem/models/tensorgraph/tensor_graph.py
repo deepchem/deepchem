@@ -629,6 +629,8 @@ class TensorGraph(Model):
           loop_vars)
       return jacobian.stack()
 
+    if not self.built:
+      self.build()
     grads = []
     with self._get_tf("Graph").as_default():
       for output in self.default_outputs:
