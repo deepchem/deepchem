@@ -222,7 +222,7 @@ class DTNNModel(TensorGraph):
                dropout=0.0,
                **kwargs):
     """
-    Parameters
+    Parametersstep
     ----------
     n_tasks: int
       Number of tasks
