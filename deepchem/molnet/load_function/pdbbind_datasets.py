@@ -234,13 +234,16 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
   else:
     raise ValueError("Featurizer not supported")
   print("Featurizing Complexes")
-  features, failures = featurizer.featurize_complexes(
-      ligand_files, protein_files, log_every_n=1)
+  features, failures = featurizer.featurize_complexes(ligand_files,
+                                                      protein_files)
   # Delete labels for failing elements
   labels = np.delete(labels, failures)
   dataset = deepchem.data.DiskDataset.from_numpy(features, labels)
   # No transformations of data
   transformers = []
+  if split == None:
+    return tasks, (dataset, None, None), transformers
+
   # TODO(rbharath): This should be modified to contain a cluster split so
   # structures of the same protein aren't in both train/test
   splitters = {

@@ -175,10 +175,10 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
 
     Parameters
     ----------
-    mol_pdb: list
-      Should be a list of lines of the PDB file.
-    complex_pdb: list
-      Should be a list of lines of the PDB file.
+    mol_pdb_file: Str 
+      Filename for ligand pdb file. 
+    protein_pdb_file: Str 
+      Filename for protein pdb file. 
     """
     mol_coords, ob_mol = rdkit_util.load_molecule(mol_pdb_file)
     protein_coords, protein_mol = rdkit_util.load_molecule(protein_pdb_file)

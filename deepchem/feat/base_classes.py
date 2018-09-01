@@ -1,6 +1,7 @@
 """
 Feature calculations.
 """
+import logging
 import types
 import numpy as np
 from rdkit import Chem
@@ -12,7 +13,8 @@ __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "BSD 3-clause"
 
 
-def _featurize_complex(featurizer, mol_pdb_file, protein_pdb_file):
+def _featurize_complex(featurizer, mol_pdb_file, protein_pdb_file, log_message):
+  logging.info(log_message)
   return featurizer._featurize_complex(mol_pdb_file, protein_pdb_file)
 
 
@@ -21,7 +23,7 @@ class ComplexFeaturizer(object):
   Abstract class for calculating features for mol/protein complexes.
   """
 
-  def featurize_complexes(self, mol_files, protein_pdbs, log_every_n=1000):
+  def featurize_complexes(self, mol_files, protein_pdbs):
     """
     Calculate features for mol/protein complexes.
 
@@ -42,10 +44,10 @@ class ComplexFeaturizer(object):
     pool = multiprocessing.Pool()
     results = []
     for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_pdbs)):
-      log_message = "Featurizing %d / %d" % (
-          i, len(mol_files)) if i % log_every_n == 0 else None
+      log_message = "Featurizing %d / %d" % (i, len(mol_files))
       results.append(
-          pool.apply_async(_featurize_complex, (self, mol_file, protein_pdb)))
+          pool.apply_async(_featurize_complex,
+                           (self, mol_file, protein_pdb, log_message)))
     pool.close()
     features = []
     failures = []
