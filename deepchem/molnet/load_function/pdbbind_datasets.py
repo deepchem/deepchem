@@ -206,6 +206,7 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
       # The base-10 logarithm, -log kd/pk
       log_label = line[3]
       labels.append(log_label)
+  labels = np.array(labels)
   # Featurize Data
   if featurizer == "grid":
     # TODO: This is not the correct setting. Set hyperparameters correctly
@@ -220,7 +221,7 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
   elif featurizer == "atomic":
     # Pulled from PDB files. For larger datasets with more PDBs, would use
     # max num atoms instead of exact.
-    frag1_num_atoms = 60  # for ligand atoms
+    frag1_num_atoms = 70  # for ligand atoms
     frag2_num_atoms = 24000  # for protein atoms
     complex_num_atoms = 24060  # in total
     max_num_neighbors = 4
@@ -233,8 +234,16 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
   else:
     raise ValueError("Featurizer not supported")
   print("Featurizing Complexes")
-  features = featurizer.featurize_complexes(
+  features, failures = featurizer.featurize_complexes(
       ligand_files, protein_files, log_every_n=1)
+  # Delete labels for failing elements
+  print("np.shape(features)")
+  print(np.shape(features))
+  print("failures")
+  print(failures)
+  print("np.shape(labels)")
+  print(np.shape(labels))
+  labels = np.delete(labels, failures)
   dataset = deepchem.data.DiskDataset.from_numpy(features, labels)
   # No transformations of data
   transformers = []

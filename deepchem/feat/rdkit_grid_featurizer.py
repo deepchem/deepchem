@@ -5,6 +5,7 @@ __author__ = "Bharath Ramsundar, Evan Feinberg, and Karl Leswing"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
+import logging
 import os
 import shutil
 from warnings import warn
@@ -16,6 +17,7 @@ from collections import Counter
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from deepchem.utils.rdkit_util import load_molecule
+from deepchem.utils.rdkit_util import MoleculeLoadException
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -1256,7 +1258,11 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
 
     features_dict = self._transform(protein_pdb_file, ligand_file)
     shutil.rmtree(tempdir)
-    return list(features_dict.values())
+    # Handle case the transform failed
+    if features_dict is not None:
+      return list(features_dict.values())
+    else:
+      return None
 
   def featurize_complexes(self, mol_files, protein_pdbs, log_every_n=1000):
     """
@@ -1285,10 +1291,16 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
               (self, ligand_ext, mol_lines, protein_pdb_lines, log_message)))
     pool.close()
     features = []
-    for result in results:
-      features += result.get()
+    failures = []
+    for ind, result in enumerate(results):
+      new_features = result.get()
+      # Handle loading failures which return None
+      if new_features is not None:
+        features.append(new_features)
+      else:
+        failures.append(ind)
     features = np.asarray(features)
-    return features
+    return features, failures
 
   def _transform(self, protein_pdb, ligand_file):
     """Computes featurization of protein/ligand complex.
@@ -1303,27 +1315,31 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
 
     This function then computes a featurization with scheme specified by the user.
     """
-    ############################################################## TIMING
-    time1 = time.time()
-    ############################################################## TIMING
+    try:
+      ############################################################## TIMING
+      time1 = time.time()
+      ############################################################## TIMING
 
-    protein_xyz, protein_rdk = load_molecule(
-        protein_pdb, calc_charges=True, sanitize=self.sanitize)
-    ############################################################## TIMING
-    time2 = time.time()
-    log("TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1),
-        self.verbose)
-    ############################################################## TIMING
-    ############################################################## TIMING
-    time1 = time.time()
-    ############################################################## TIMING
-    ligand_xyz, ligand_rdk = load_molecule(
-        ligand_file, calc_charges=True, sanitize=self.sanitize)
-    ############################################################## TIMING
-    time2 = time.time()
-    log("TIMING: Loading ligand coordinates took %0.3f s" % (time2 - time1),
-        self.verbose)
-    ############################################################## TIMING
+      protein_xyz, protein_rdk = load_molecule(
+          protein_pdb, calc_charges=True, sanitize=self.sanitize)
+      ############################################################## TIMING
+      time2 = time.time()
+      log("TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1),
+          self.verbose)
+      ############################################################## TIMING
+      ############################################################## TIMING
+      time1 = time.time()
+      ############################################################## TIMING
+      ligand_xyz, ligand_rdk = load_molecule(
+          ligand_file, calc_charges=True, sanitize=self.sanitize)
+      ############################################################## TIMING
+      time2 = time.time()
+      log("TIMING: Loading ligand coordinates took %0.3f s" % (time2 - time1),
+          self.verbose)
+      ############################################################## TIMING
+    except MoleculeLoadException:
+      logging.warning("Some molecules cannot be loaded by Rdkit. Skipping")
+      return None
 
     ############################################################## TIMING
     time1 = time.time()
