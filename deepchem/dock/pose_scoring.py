@@ -46,8 +46,8 @@ class GridPoseScorer(object):
 
   def score(self, protein_file, ligand_file):
     """Returns a score for a protein/ligand pair."""
-    features = self.featurizer.featurize_complexes([ligand_file],
-                                                   [protein_file])
+    features, _ = self.featurizer.featurize_complexes([ligand_file],
+                                                      [protein_file])
     dataset = NumpyDataset(X=features, y=None, w=None, ids=None)
     score = self.model.predict(dataset)
     return score
