@@ -33,20 +33,6 @@ class TestHelperFunctions(unittest.TestCase):
                                      '3ws9_protein_fixer_rdkit.pdb')
     self.ligand_file = os.path.join(current_dir, '3ws9_ligand.sdf')
 
-  #def test_get_ligand_filetype(self):
-
-  #  supported_extensions = ['mol2', 'sdf', 'pdb', 'pdbqt']
-  #  # some users might try to read smiles with this function
-  #  unsupported_extensions = ['smi', 'ism']
-
-  #  for extension in supported_extensions:
-  #    fname = 'molecule.%s' % extension
-  #    self.assertEqual(rgf.get_ligand_filetype(fname), extension)
-
-  #  for extension in unsupported_extensions:
-  #    fname = 'molecule.%s' % extension
-  #    self.assertRaises(ValueError, rgf.get_ligand_filetype, fname)
-
   def test_load_molecule(self):
     # adding hydrogens and charges is tested in dc.utils
     for add_hydrogens in (True, False):
