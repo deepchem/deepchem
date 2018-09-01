@@ -17,6 +17,7 @@ import pandas as pd
 import logging
 import tarfile
 from deepchem.feat import rdkit_grid_featurizer as rgf
+from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
 
 logger = logging.getLogger(__name__)
 
@@ -48,10 +49,6 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
         os.path.join(data_dir, 'refined_grid.tar.gz'), pdbbind_dir)
 
   return deepchem.data.DiskDataset(dataset_dir), tasks
-
-
-def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
-  """Loads and featurizes PDBBind dataset."""
 
 
 def load_pdbbind_grid(split="random",
@@ -138,7 +135,19 @@ def load_pdbbind_grid(split="random",
 
 
 def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
-  """Load and featurize raw PDBBind dataset."""
+  """Load and featurize raw PDBBind dataset.
+  
+  Parameters
+  ----------
+  data_dir: String, optional
+    Specifies the data directory to store the featurized dataset.
+  split: Str
+    Either "random" or "index"
+  feat: Str
+    Either "grid" or "atomic" for grid and atomic featurizations.
+  subset: Str
+    Only "core" or "refined" for now.
+  """
   pdbbind_tasks = ["-logKd/Ki"]
   data_dir = deepchem.utils.get_data_dir()
   if reload:
@@ -208,6 +217,19 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
         ecfp_power=ecfp_power,
         splif_power=splif_power,
         flatten=True)
+  elif featurizer == "atomic":
+    # Pulled from PDB files. For larger datasets with more PDBs, would use
+    # max num atoms instead of exact.
+    frag1_num_atoms = 60  # for ligand atoms
+    frag2_num_atoms = 24000  # for protein atoms
+    complex_num_atoms = 24060  # in total
+    max_num_neighbors = 4
+    # Cutoff in angstroms
+    neighbor_cutoff = 4
+    featurizer = ComplexNeighborListFragmentAtomicCoordinates(
+        frag1_num_atoms, frag2_num_atoms, complex_num_atoms, max_num_neighbors,
+        neighbor_cutoff)
+
   else:
     raise ValueError("Featurizer not supported")
   print("Featurizing Complexes")

@@ -245,6 +245,10 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
            system_coords, system_neighbor_list, system_z
 
   def get_Z_matrix(self, mol, max_atoms):
+    ######################################### DEBUG
+    print("len(mol.GetAtoms())")
+    print(len(mol.GetAtoms()))
+    ######################################### DEBUG
     return pad_array(
         np.array([atom.GetAtomicNum() for atom in mol.GetAtoms()]), max_atoms)
 
