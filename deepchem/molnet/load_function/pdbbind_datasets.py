@@ -237,12 +237,6 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
   features, failures = featurizer.featurize_complexes(
       ligand_files, protein_files, log_every_n=1)
   # Delete labels for failing elements
-  print("np.shape(features)")
-  print(np.shape(features))
-  print("failures")
-  print(failures)
-  print("np.shape(labels)")
-  print(np.shape(labels))
   labels = np.delete(labels, failures)
   dataset = deepchem.data.DiskDataset.from_numpy(features, labels)
   # No transformations of data
