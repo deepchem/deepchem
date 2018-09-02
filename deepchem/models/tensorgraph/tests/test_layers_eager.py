@@ -22,8 +22,8 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         filters = 3
         kernel_size = 2
         batch_size = 10
-        input = np.random.rand(batch_size, width, in_channels).astype(
-            np.float32)
+        input = np.random.rand(batch_size, width,
+                               in_channels).astype(np.float32)
         layer = layers.Conv1D(filters, kernel_size)
         result = layer(input)
         self.assertEqual(result.shape[0], batch_size)
@@ -170,8 +170,8 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         n_hidden = 7
         in_channels = 4
         n_steps = 6
-        input = np.random.rand(batch_size, n_steps, in_channels).astype(
-            np.float32)
+        input = np.random.rand(batch_size, n_steps,
+                               in_channels).astype(np.float32)
         layer = layers.GRU(n_hidden, batch_size)
         result, state = layer(input)
         assert result.shape == (batch_size, n_steps, n_hidden)
@@ -203,8 +203,8 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         n_hidden = 7
         in_channels = 4
         n_steps = 6
-        input = np.random.rand(batch_size, n_steps, in_channels).astype(
-            np.float32)
+        input = np.random.rand(batch_size, n_steps,
+                               in_channels).astype(np.float32)
         layer = layers.LSTM(n_hidden, batch_size)
         result, state = layer(input)
         assert result.shape == (batch_size, n_steps, n_hidden)
@@ -426,8 +426,8 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         batch_size = 10
         n_features = 5
         logits = np.random.rand(batch_size, n_features).astype(np.float32)
-        labels = np.random.randint(0, 2, (batch_size, n_features)).astype(
-            np.float32)
+        labels = np.random.randint(0, 2,
+                                   (batch_size, n_features)).astype(np.float32)
         result = layers.SigmoidCrossEntropy()(labels, logits)
         expected = tf.nn.sigmoid_cross_entropy_with_logits(
             labels=labels, logits=logits)
@@ -480,8 +480,8 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         filters = 3
         kernel_size = 2
         batch_size = 10
-        input = np.random.rand(batch_size, length, width, in_channels).astype(
-            np.float32)
+        input = np.random.rand(batch_size, length, width,
+                               in_channels).astype(np.float32)
         layer = layers.Conv2D(filters, kernel_size=kernel_size)
         result = layer(input)
         assert result.shape == (batch_size, length, width, filters)
@@ -540,8 +540,8 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         kernel_size = 2
         stride = 2
         batch_size = 10
-        input = np.random.rand(batch_size, length, width, in_channels).astype(
-            np.float32)
+        input = np.random.rand(batch_size, length, width,
+                               in_channels).astype(np.float32)
         layer = layers.Conv2DTranspose(
             filters, kernel_size=kernel_size, stride=stride)
         result = layer(input)
@@ -837,8 +837,8 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         max_neighbors = 2
         dimensions = 3
         params = [[5.0, 2.0, 0.5], [10.0, 2.0, 0.5]]
-        input1 = np.random.rand(batch_size, max_atoms, dimensions).astype(
-            np.float32)
+        input1 = np.random.rand(batch_size, max_atoms,
+                                dimensions).astype(np.float32)
         input2 = np.random.randint(
             max_atoms, size=(batch_size, max_atoms, max_neighbors))
         input3 = np.random.randint(
@@ -846,7 +846,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         layer = layers.AtomicConvolution(radial_params=params)
         result = layer(input1, input2, input3)
         assert result.shape == (batch_size, max_atoms, len(params))
-        assert len(layer.variables) == 3 * len(params)
+        assert len(layer.variables) == 3
 
   def test_alpha_share_layer(self):
     """Test invoking AlphaShareLayer in eager mode."""

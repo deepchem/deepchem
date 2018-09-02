@@ -9,25 +9,25 @@ https://arxiv.org/abs/1512.03385
 import tensorflow as tf
 import deepchem as dc
 from deepchem.models import Sequential
-from deepchem.models.tensorgraph.layers import Conv2D, MaxPool2D, Conv2DTranspose, Concat, Feature, Label, BatchNorm
+from deepchem.models.tensorgraph.layers import Conv2D, MaxPool2D, AvgPool2D, Conv2DTranspose, Concat, Feature, Label, BatchNorm
 from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy, ReduceMean, SoftMax, ReLU, Add, Flatten, Dense
 from deepchem.models import TensorGraph
 
 
 class ResNet50(TensorGraph):
   """
-        ResNet50 architecture implementation.
-        Parameters
-        ----------
-        img_rows : int
-         number of rows of the image.
-        img_cols: int
-         number of columns of the image
-        weights: string
-         if "imagenet" - weights are initialized with the pretrained values.
-        classes: int
-         specifies number of classes
-    """
+  ResNet50 architecture implementation.
+  Parameters
+  ----------
+  img_rows : int
+   number of rows of the image.
+  img_cols: int
+   number of columns of the image
+  weights: string
+   if "imagenet" - weights are initialized with the pretrained values.
+  classes: int
+   specifies number of classes
+  """
 
   def identity_block(self, input, kernel_size, filters):
     filters1, filters2, filters3 = filters
@@ -152,7 +152,7 @@ class ResNet50(TensorGraph):
     id4 = self.identity_block(cb4, 3, [512, 512, 2048])
     id4 = self.identity_block(id4, 3, [512, 512, 2048])
 
-    pool2 = MaxPool2D(ksize=[1, 7, 7, 1], in_layers=[id4])
+    pool2 = AvgPool2D(ksize=[1, 7, 7, 1], in_layers=[id4])
 
     flatten = Flatten(in_layers=[pool2])
     dense = Dense(classes, in_layers=[flatten])

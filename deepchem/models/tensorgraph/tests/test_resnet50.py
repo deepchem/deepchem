@@ -2,12 +2,14 @@ import deepchem
 import numpy as np
 import tensorflow as tf
 import unittest
+from nose.plugins.attrib import attr
 from deepchem.models.tensorgraph.models import resnet50
 from deepchem.models.tensorgraph import layers
 
 
 class TestResNet50(unittest.TestCase):
 
+  @attr('slow')
   def test_resnet50(self):
     resnet = deepchem.models.tensorgraph.models.resnet50.ResNet50(
         learning_rate=0.003,
