@@ -130,6 +130,7 @@ class Splitter(object):
                              frac_train=.8,
                              frac_valid=.1,
                              frac_test=.1,
+                             smiles_arr=None,
                              seed=None,
                              log_every_n=1000,
                              verbose=True):
@@ -144,6 +145,7 @@ class Splitter(object):
         frac_train=frac_train,
         frac_test=frac_test,
         frac_valid=frac_valid,
+        smiles_arr=None,
         log_every_n=log_every_n)
     if train_dir is None:
       train_dir = tempfile.mkdtemp()
@@ -166,6 +168,7 @@ class Splitter(object):
                        test_dir=None,
                        seed=None,
                        frac_train=.8,
+                       smiles_arr=None,
                        verbose=True):
     """
         Splits self into train/test sets.
@@ -180,6 +183,7 @@ class Splitter(object):
         frac_train=frac_train,
         frac_test=1 - frac_train,
         frac_valid=0.,
+        smiles_arr=None,
         verbose=verbose)
     return train_dataset, test_dataset
 
@@ -188,6 +192,7 @@ class Splitter(object):
             frac_train=None,
             frac_valid=None,
             frac_test=None,
+            smiles_arr=None,
             log_every_n=None,
             verbose=False):
     """
@@ -571,8 +576,8 @@ class MolecularWeightSplitter(Splitter):
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
-            log_every_n=None,
-            smiles_arr=None):
+            smiles_arr=None,
+            log_every_n=None):
     """
         Splits internal compounds into train/validation/test using the MW calculated
         by SMILES string.
@@ -616,8 +621,8 @@ class MaxMinSplitter(Splitter):
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
-            log_every_n=None,
-            smiles_arr=None):
+            smiles_arr=None,
+            log_every_n=None):
     """
     Splits internal compounds randomly into train/validation/test.
     """
@@ -791,9 +796,9 @@ class ButinaSplitter(Splitter):
             frac_train=None,
             frac_valid=None,
             frac_test=None,
+            smiles_arr=None,
             log_every_n=1000,
-            cutoff=0.18,
-            smiles_arr=None):
+            cutoff=0.18):
     """
         Splits internal compounds into train and validation based on the butina
         clustering algorithm. This splitting algorithm has an O(N^2) run time, where N
@@ -852,8 +857,8 @@ class ScaffoldSplitter(Splitter):
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
-            log_every_n=1000,
-            smiles_arr=None):
+            smiles_arr=None,
+            log_every_n=1000):
     """
         Splits internal compounds into train/validation/test by scaffold.
         """
@@ -905,8 +910,8 @@ class FingerprintSplitter(Splitter):
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
-            log_every_n=1000,
-            smiles_arr=None):
+            smiles_arr=None,
+            log_every_n=1000):
     """
         Splits internal compounds into train/validation/test by fingerprint.
     """
