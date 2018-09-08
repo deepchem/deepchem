@@ -157,17 +157,59 @@ def load_bbbc004(split='index', reload=True):
         save_dir)
     if loaded:
       return bbbc001_tasks, all_dataset, transformers
-  image_files_file = [os.path.join(data_dir, "BBBC004_v1_000_images.zip"),
-                      os.path.join(data_dir, "BBBC004_v1_015_images.zip"),
-                      os.path.join(data_dir, "BBBC004_v1_030_images.zip"),
-                      os.path.join(data_dir, "BBBC004_v1_045_images.zip"),
-                      os.path.join(data_dir, "BBBC004_v1_060_images.zip")]
-  labels_file = [os.path.join(data_dir, "BBBC001_v1_counts.txt")
+  image_files = [os.path.join(data_dir, "BBBC004_v1_000_images.zip"),
+                 os.path.join(data_dir, "BBBC004_v1_015_images.zip"),
+                 os.path.join(data_dir, "BBBC004_v1_030_images.zip"),
+                 os.path.join(data_dir, "BBBC004_v1_045_images.zip"),
+                 os.path.join(data_dir, "BBBC004_v1_060_images.zip")]
+  segmentation_files = [os.path.join(data_dir, "BBBC004_v1_000_foreground.zip"),
+                        os.path.join(data_dir, "BBBC004_v1_015_foreground.zip"),
+                        os.path.join(data_dir, "BBBC004_v1_030_foreground.zip"),
+                        os.path.join(data_dir, "BBBC004_v1_045_foreground.zip"),
+                        os.path.join(data_dir, "BBBC004_v1_060_foreground.zip")]
 
-  if not os.path.exists(dataset_file):
+  # TODO: Make this a little slicker
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_000_images.zip")):
     deepchem.utils.download_url(
-        'https://data.broadinstitute.org/bbbc/BBBC001/BBBC001_v1_images_tif.zip'
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_000_images.zip'
     )
-  if not os.path.exists(labels_file):
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_015_images.zip")):
     deepchem.utils.download_url(
-        'https://data.broadinstitute.org/bbbc/BBBC001/BBBC001_v1_counts.txt')
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_015_images.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_030_images.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_030_images.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_045_images.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_045_images.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_060_images.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_060_images.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_000_foreground.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_000_foreground.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_015_foreground.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_015_foreground.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_030_foreground.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_030_foreground.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_045_foreground.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_045_foreground.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_060_foreground.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_060_foreground.zip'
+    )
+
+  # Featurize Images into NumpyArrays
+  loader = deepchem.data.ImageLoader()
+  dataset = loader.featurize(dataset_file, in_memory=False)
