@@ -8,10 +8,13 @@ __author__ = "Joseph Gomes and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
+import logging
 import numpy as np
+from deepchem.utils.save import log
 from deepchem.feat import Featurizer
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils import rdkit_util, pad_array
+from deepchem.utils.rdkit_util import MoleculeLoadException
 
 
 class AtomicCoordinates(Featurizer):
@@ -172,10 +175,10 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
 
     Parameters
     ----------
-    mol_pdb: list
-      Should be a list of lines of the PDB file.
-    complex_pdb: list
-      Should be a list of lines of the PDB file.
+    mol_pdb_file: Str 
+      Filename for ligand pdb file. 
+    protein_pdb_file: Str 
+      Filename for protein pdb file. 
     """
     mol_coords, ob_mol = rdkit_util.load_molecule(mol_pdb_file)
     protein_coords, protein_mol = rdkit_util.load_molecule(protein_pdb_file)
@@ -223,8 +226,14 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
         self.max_num_neighbors, self.neighbor_cutoff)
 
   def _featurize_complex(self, mol_pdb_file, protein_pdb_file):
-    frag1_coords, frag1_mol = rdkit_util.load_molecule(mol_pdb_file)
-    frag2_coords, frag2_mol = rdkit_util.load_molecule(protein_pdb_file)
+    try:
+      frag1_coords, frag1_mol = rdkit_util.load_molecule(mol_pdb_file)
+      frag2_coords, frag2_mol = rdkit_util.load_molecule(protein_pdb_file)
+    except MoleculeLoadException:
+      # Currently handles loading failures by returning None
+      # TODO: Is there a better handling procedure?
+      logging.warning("Some molecules cannot be loaded by Rdkit. Skipping")
+      return None
     system_mol = rdkit_util.merge_molecules(frag1_mol, frag2_mol)
     system_coords = rdkit_util.get_xyz_from_mol(system_mol)
 
@@ -232,23 +241,32 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
     frag2_coords, frag2_mol = self._strip_hydrogens(frag2_coords, frag2_mol)
     system_coords, system_mol = self._strip_hydrogens(system_coords, system_mol)
 
-    frag1_coords, frag1_neighbor_list, frag1_z = self.featurize_mol(
-        frag1_coords, frag1_mol, self.frag1_num_atoms)
+    try:
+      frag1_coords, frag1_neighbor_list, frag1_z = self.featurize_mol(
+          frag1_coords, frag1_mol, self.frag1_num_atoms)
 
-    frag2_coords, frag2_neighbor_list, frag2_z = self.featurize_mol(
-        frag2_coords, frag2_mol, self.frag2_num_atoms)
+      frag2_coords, frag2_neighbor_list, frag2_z = self.featurize_mol(
+          frag2_coords, frag2_mol, self.frag2_num_atoms)
 
-    system_coords, system_neighbor_list, system_z = self.featurize_mol(
-        system_coords, system_mol, self.complex_num_atoms)
+      system_coords, system_neighbor_list, system_z = self.featurize_mol(
+          system_coords, system_mol, self.complex_num_atoms)
+    except ValueError as e:
+      logging.warning(
+          "max_atoms was set too low. Some complexes too large and skipped")
+      return None
 
     return frag1_coords, frag1_neighbor_list, frag1_z, frag2_coords, frag2_neighbor_list, frag2_z, \
            system_coords, system_neighbor_list, system_z
 
   def get_Z_matrix(self, mol, max_atoms):
+    if len(mol.GetAtoms()) > max_atoms:
+      raise ValueError("A molecule is larger than permitted by max_atoms. "
+                       "Increase max_atoms and try again.")
     return pad_array(
         np.array([atom.GetAtomicNum() for atom in mol.GetAtoms()]), max_atoms)
 
   def featurize_mol(self, coords, mol, max_num_atoms):
+    logging.info("Featurizing molecule of size: %d", len(mol.GetAtoms()))
     neighbor_list = compute_neighbor_list(coords, self.neighbor_cutoff,
                                           self.max_num_neighbors, None)
     z = self.get_Z_matrix(mol, max_num_atoms)

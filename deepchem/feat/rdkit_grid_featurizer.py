@@ -5,6 +5,7 @@ __author__ = "Bharath Ramsundar, Evan Feinberg, and Karl Leswing"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
+import logging
 import os
 import shutil
 from warnings import warn
@@ -16,6 +17,7 @@ from collections import Counter
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from deepchem.utils.rdkit_util import load_molecule
+from deepchem.utils.rdkit_util import MoleculeLoadException
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -25,20 +27,6 @@ from deepchem.utils.save import log
 """
 TODO(LESWING) add sanitization with rdkit upgrade to 2017.*
 """
-
-
-def get_ligand_filetype(ligand_filename):
-  """Returns the filetype of ligand."""
-  if ".mol2" in ligand_filename:
-    return "mol2"
-  elif ".sdf" in ligand_filename:
-    return "sdf"
-  elif ".pdbqt" in ligand_filename:
-    return "pdbqt"
-  elif ".pdb" in ligand_filename:
-    return "pdb"
-  else:
-    raise ValueError("Unrecognized_filename")
 
 
 def compute_centroid(coordinates):
@@ -1226,75 +1214,10 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       ]
     raise ValueError('Unknown feature type "%s"' % feature_name)
 
-  def _featurize_complex(self, ligand_ext, ligand_lines, protein_pdb_lines,
-                         log_message):
-    tempdir = tempfile.mkdtemp()
-    if log_message is not None:
-      log(log_message)
+  def _featurize_complex(self, mol_pdb_file, protein_pdb_file):
+    """Computes grid featurization of protein/ligand complex.
 
-    ############################################################## TIMING
-    time1 = time.time()
-    ############################################################## TIMING
-    ligand_file = os.path.join(tempdir, "ligand.%s" % ligand_ext)
-    with open(ligand_file, "w") as mol_f:
-      mol_f.writelines(ligand_lines)
-    ############################################################## TIMING
-    time2 = time.time()
-    log("TIMING: Writing ligand took %0.3f s" % (time2 - time1), self.verbose)
-    ############################################################## TIMING
-
-    ############################################################## TIMING
-    time1 = time.time()
-    ############################################################## TIMING
-    protein_pdb_file = os.path.join(tempdir, "protein.pdb")
-    with open(protein_pdb_file, "w") as protein_f:
-      protein_f.writelines(protein_pdb_lines)
-    ############################################################## TIMING
-    time2 = time.time()
-    log("TIMING: Writing protein took %0.3f s" % (time2 - time1), self.verbose)
-    ############################################################## TIMING
-
-    features_dict = self._transform(protein_pdb_file, ligand_file)
-    shutil.rmtree(tempdir)
-    return list(features_dict.values())
-
-  def featurize_complexes(self, mol_files, protein_pdbs, log_every_n=1000):
-    """
-    Calculate features for mol/protein complexes.
-
-    Parameters
-    ----------
-    mols: list
-      List of PDB filenames for molecules.
-    protein_pdbs: list
-      List of PDB filenames for proteins.
-    """
-    pool = multiprocessing.Pool()
-    results = []
-    for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_pdbs)):
-      log_message = "Featurizing %d / %d" % (
-          i, len(mol_files)) if i % log_every_n == 0 else None
-      ligand_ext = get_ligand_filetype(mol_file)
-      with open(mol_file) as mol_f:
-        mol_lines = mol_f.readlines()
-      with open(protein_pdb) as protein_file:
-        protein_pdb_lines = protein_file.readlines()
-      results.append(
-          pool.apply_async(
-              _featurize_complex,
-              (self, ligand_ext, mol_lines, protein_pdb_lines, log_message)))
-    pool.close()
-    features = []
-    for result in results:
-      features += result.get()
-    features = np.asarray(features)
-    return features
-
-  def _transform(self, protein_pdb, ligand_file):
-    """Computes featurization of protein/ligand complex.
-
-    Takes as input files (strings) for pdb of the protein, pdb of the ligand,
-    and a directory to save intermediate files.
+    Takes as input filenames pdb of the protein, pdb of the ligand.
 
     This function then computes the centroid of the ligand; decrements this
     centroid from the atomic coordinates of protein and ligand atoms, and then
@@ -1302,28 +1225,38 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     saved.
 
     This function then computes a featurization with scheme specified by the user.
+    Parameters
+    ----------
+    mol_pdb_file: Str 
+      Filename for ligand pdb file. 
+    protein_pdb_file: Str 
+      Filename for protein pdb file. 
     """
-    ############################################################## TIMING
-    time1 = time.time()
-    ############################################################## TIMING
+    try:
+      ############################################################## TIMING
+      time1 = time.time()
+      ############################################################## TIMING
 
-    protein_xyz, protein_rdk = load_molecule(
-        protein_pdb, calc_charges=True, sanitize=self.sanitize)
-    ############################################################## TIMING
-    time2 = time.time()
-    log("TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1),
-        self.verbose)
-    ############################################################## TIMING
-    ############################################################## TIMING
-    time1 = time.time()
-    ############################################################## TIMING
-    ligand_xyz, ligand_rdk = load_molecule(
-        ligand_file, calc_charges=True, sanitize=self.sanitize)
-    ############################################################## TIMING
-    time2 = time.time()
-    log("TIMING: Loading ligand coordinates took %0.3f s" % (time2 - time1),
-        self.verbose)
-    ############################################################## TIMING
+      protein_xyz, protein_rdk = load_molecule(
+          protein_pdb_file, calc_charges=True, sanitize=self.sanitize)
+      ############################################################## TIMING
+      time2 = time.time()
+      log("TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1),
+          self.verbose)
+      ############################################################## TIMING
+      ############################################################## TIMING
+      time1 = time.time()
+      ############################################################## TIMING
+      ligand_xyz, ligand_rdk = load_molecule(
+          mol_pdb_file, calc_charges=True, sanitize=self.sanitize)
+      ############################################################## TIMING
+      time2 = time.time()
+      log("TIMING: Loading ligand coordinates took %0.3f s" % (time2 - time1),
+          self.verbose)
+      ############################################################## TIMING
+    except MoleculeLoadException:
+      logging.warning("Some molecules cannot be loaded by Rdkit. Skipping")
+      return None
 
     ############################################################## TIMING
     time1 = time.time()
@@ -1346,7 +1279,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       rotated_system = rotate_molecules([protein_xyz, ligand_xyz])
       transformed_systems[(i + 1, 0)] = rotated_system
 
-    features = {}
+    features_dict = {}
     for system_id, (protein_xyz, ligand_xyz) in transformed_systems.items():
       feature_arrays = []
       for is_flat, function_name in self.feature_types:
@@ -1362,11 +1295,13 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         feature_arrays += result
 
         if self.flatten:
-          features[system_id] = np.concatenate(
+          features_dict[system_id] = np.concatenate(
               [feature_array.flatten() for feature_array in feature_arrays])
         else:
-          features[system_id] = np.concatenate(feature_arrays, axis=-1)
+          features_dict[system_id] = np.concatenate(feature_arrays, axis=-1)
 
+    # TODO(rbharath): Is this squeeze OK?
+    features = np.squeeze(np.array(list(features_dict.values())))
     return features
 
   def _voxelize(self,
@@ -1464,9 +1399,3 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       feature_vector[0] += len(feature_list)
 
     return feature_vector
-
-
-def _featurize_complex(featurizer, ligand_ext, ligand_lines, protein_pdb_lines,
-                       log_message):
-  return featurizer._featurize_complex(ligand_ext, ligand_lines,
-                                       protein_pdb_lines, log_message)
