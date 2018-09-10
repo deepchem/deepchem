@@ -349,7 +349,7 @@ class ImageLoader(DataLoader):
       tasks = []
     self.tasks = tasks
 
-  def featurize(self, input_files, in_memory=True):
+  def featurize(self, input_files, labels=None, in_memory=True):
     """Featurizes image files.
 
     Parameters
@@ -409,8 +409,9 @@ class ImageLoader(DataLoader):
         raise ValueError("Unsupported image filetype for %s" % image_file)
     images = np.array(images)
     if in_memory:
-      return NumpyDataset(images)
+      return NumpyDataset(images, y=labels)
     else:
       # from_numpy currently requires labels. Make dummy labels
-      labels = np.zeros((len(images), 1))
+      if labels is None:
+        labels = np.zeros((len(images), 1))
       return DiskDataset.from_numpy(images, labels)
