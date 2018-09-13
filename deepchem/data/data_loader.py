@@ -351,7 +351,8 @@ class ImageLoader(DataLoader):
 
   def featurize(self, 
                 input_files, 
-                labels=None, 
+                labels=None,
+                weights=None,
                 read_img=True,
                 in_memory=True):
     """Featurizes image files.
@@ -404,13 +405,15 @@ class ImageLoader(DataLoader):
     else:
       X = [None] * len(image_files)
     if in_memory:
-      return NumpyDataset(X, y=labels, ids=image_files)
+      return NumpyDataset(X, y=labels, w=weights, ids=image_files)
       
     else:
       # from_numpy currently requires labels. Make dummy labels
       if labels is None:
         labels = np.zeros((len(image_files), 1))
-      return DiskDataset.from_numpy(X, labels, ids=image_files)
+      if weights is None:
+        weights = np.zeros((len(image_files), 1))
+      return DiskDataset.from_numpy(X, labels, w=weights, ids=image_files)
   
   @staticmethod
   def load_img(image_files):
