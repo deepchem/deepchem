@@ -209,21 +209,16 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
   labels = np.array(labels)
   # Featurize Data
   if featurizer == "grid":
-    # TODO: This is not the correct setting. Set hyperparameters correctly
-    ecfp_power = 5
-    splif_power = 5
     featurizer = rgf.RdkitGridFeaturizer(
-        voxel_width=16.0,
-        feature_types=['ecfp', 'splif', 'hbond', 'salt_bridge'],
-        ecfp_power=ecfp_power,
-        splif_power=splif_power,
+        voxel_width=2.0,
+        feature_types=['ecfp', 'splif', 'hbond', 'salt_bridge', 'pi_stack', 'cation_pi', 'charge'],
         flatten=True)
   elif featurizer == "atomic":
     # Pulled from PDB files. For larger datasets with more PDBs, would use
     # max num atoms instead of exact.
     frag1_num_atoms = 70  # for ligand atoms
     frag2_num_atoms = 24000  # for protein atoms
-    complex_num_atoms = 24060  # in total
+    complex_num_atoms = 24070  # in total
     max_num_neighbors = 4
     # Cutoff in angstroms
     neighbor_cutoff = 4
