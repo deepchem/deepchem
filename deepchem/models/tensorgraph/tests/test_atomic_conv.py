@@ -65,14 +65,14 @@ class TestAtomicConv(unittest.TestCase):
     labels = np.zeros(batch_size)
     train = NumpyDataset(features, labels)
     atomic_convnet.fit(train, nb_epoch=1)
-    
+
   @attr("slow")
   def test_atomic_conv_variable(self):
     """A simple test that initializes and fits an AtomicConvModel on variable input size."""
     # For simplicity, let's assume both molecules have same number of
     # atoms.
-    frag1_num_atoms = 1000 
-    frag2_num_atoms = 1200 
+    frag1_num_atoms = 1000
+    frag2_num_atoms = 1200
     complex_num_atoms = frag1_num_atoms + frag2_num_atoms
     batch_size = 1
     atomic_convnet = atomic_conv.AtomicConvModel(
@@ -106,8 +106,10 @@ class TestAtomicConv(unittest.TestCase):
   def test_atomic_conv_with_feat(self):
     """A simple test for running an atomic convolution on featurized data."""
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    ligand_file = os.path.join(dir_path, "../../../feat/tests/data/3zso_ligand_hyd.pdb")
-    protein_file = os.path.join(dir_path, "../../../feat/tests/data/3zso_protein.pdb")
+    ligand_file = os.path.join(dir_path,
+                               "../../../feat/tests/data/3zso_ligand_hyd.pdb")
+    protein_file = os.path.join(dir_path,
+                                "../../../feat/tests/data/3zso_protein.pdb")
     # Pulled from PDB files. For larger datasets with more PDBs, would use
     # max num atoms instead of exact.
     frag1_num_atoms = 44  # for ligand atoms
@@ -121,8 +123,8 @@ class TestAtomicConv(unittest.TestCase):
         neighbor_cutoff)
     # arbitrary label
     labels = np.array([0])
-    features, _ = complex_featurizer.featurize_complexes(
-         [ligand_file], [protein_file])
+    features, _ = complex_featurizer.featurize_complexes([ligand_file],
+                                                         [protein_file])
     dataset = deepchem.data.DiskDataset.from_numpy(features, labels)
 
     batch_size = 1

@@ -211,7 +211,10 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
   if featurizer == "grid":
     featurizer = rgf.RdkitGridFeaturizer(
         voxel_width=2.0,
-        feature_types=['ecfp', 'splif', 'hbond', 'salt_bridge', 'pi_stack', 'cation_pi', 'charge'],
+        feature_types=[
+            'ecfp', 'splif', 'hbond', 'salt_bridge', 'pi_stack', 'cation_pi',
+            'charge'
+        ],
         flatten=True)
   elif featurizer == "atomic":
     # Pulled from PDB files. For larger datasets with more PDBs, would use
