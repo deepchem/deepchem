@@ -101,7 +101,7 @@ def construct_multigraph(smile):
         atom_j = molecule.GetAtomWithIdx(j)
         if i not in g:
           g[i] = []
-          g[i].append( (e_ij, j) )
+        g[i].append( (e_ij, j) )
 
   return g, h
 
