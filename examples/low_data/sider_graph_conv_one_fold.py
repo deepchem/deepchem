@@ -9,7 +9,8 @@ import tempfile
 import numpy as np
 import tensorflow as tf
 import deepchem as dc
-from datasets import load_sider_convmol
+from deepchem.models.tensorgraph.models.graph_models import GraphConvModel
+
 
 # 4-fold splits
 K = 4
@@ -19,18 +20,17 @@ n_neg = 10
 # 10 trials on test-set
 n_trials = 20
 
-sider_tasks, dataset, transformers = load_sider_convmol()
+sider_tasks, fold_datasets, transformers = dc.molnet.load_sider(
+    featurizer='GraphConv', split="task")
 
 # Define metric
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, mode="classification")
 
-task_splitter = dc.splits.TaskSplitter()
-fold_datasets = task_splitter.k_fold_split(dataset, K)
+
 
 train_folds = fold_datasets[:-1]
 train_dataset = dc.splits.merge_fold_datasets(train_folds)
 test_dataset = fold_datasets[-1]
-
 # Get supports on test-set
 support_generator = dc.data.SupportGenerator(test_dataset, n_pos, n_neg,
                                              n_trials)
@@ -45,27 +45,9 @@ for trial_num, (task, support) in enumerate(support_generator):
   n_feat = 75
   # Batch size of models
   batch_size = 50
-  graph_model = dc.nn.SequentialGraph(n_feat)
-  graph_model.add(dc.nn.GraphConv(64, n_feat, activation='relu'))
-  graph_model.add(dc.nn.GraphPool())
-  graph_model.add(dc.nn.GraphConv(128, 64, activation='relu'))
-  graph_model.add(dc.nn.GraphPool())
-  graph_model.add(dc.nn.GraphConv(64, 128, activation='relu'))
-  graph_model.add(dc.nn.GraphPool())
-  graph_model.add(dc.nn.Dense(128, 64, activation='tanh'))
-  graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
-
-  model = dc.models.MultitaskGraphClassifier(
-      graph_model,
-      1,
-      n_feat,
-      batch_size=batch_size,
-      learning_rate=1e-3,
-      learning_rate_decay_time=1000,
-      optimizer_type="adam",
-      beta1=.9,
-      beta2=.999)
-
+  #graph_model = dc.nn.SequentialGraph(n_feat)
+  model = GraphConvModel(len(sider_tasks), graph_conv_layers=[
+                         64, 128, 64], batch_size=batch_size)
   # Fit trained model
   model.fit(support, nb_epoch=10)
 
