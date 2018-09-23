@@ -1313,6 +1313,28 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                 channel_power=None,
                 nb_channel=16,
                 dtype="np.int8"):
+    """Private helper function to voxelize inputs.
+
+    Parameters
+    ----------
+    get_voxels: function
+      Function that voxelizes inputs
+    hash_function: function
+      Used to map feature choices to voxel channels.  
+    coordinates: np.ndarray
+      Contains the 3D coordinates of a molecular system.
+    feature_dict: Dictionary
+      Keys are atom indices.  
+    feature_list: list
+      List of available features. 
+    channel_power: int
+      If specified, nb_channel is set to 2**channel_power.
+      TODO: This feels like a redundant parameter.
+    nb_channel: int
+      The number of feature channels computed per voxel 
+    dtype: type
+      The dtype of the numpy ndarray created to hold features.
+    """
 
     if channel_power is not None:
       if channel_power == 0:
