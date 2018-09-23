@@ -57,9 +57,18 @@ Installing via this script will ensure that you are **installing from the source
 ```bash
 git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source code from GitHub
 cd deepchem
-bash scripts/install_deepchem_conda.sh deepchem
+```
+If you don't want GPU support:
+```
+bash scripts/install_deepchem_conda.sh deepchem         # If you don't want GPU support
+```
+If you want GPU support:
+```
+gpu=1 bash scripts/install_deepchem_conda.sh deepchem         # If you want GPU support
+```
+Note : `gpu=0 bash scripts/install_deepchem_conda.sh deepchem` will also install CPU supported `deepchem`.
+```
 source activate deepchem
-yes | pip install tensorflow-gpu==1.6.0      # If you want GPU support
 python setup.py install                                # Manual install
 nosetests -a '!slow' -v deepchem --nologcapture        # Run tests
 ```

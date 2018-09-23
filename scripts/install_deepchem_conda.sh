@@ -5,11 +5,24 @@
 #export tensorflow=tensorflow-gpu
 export tensorflow=tensorflow
 
+if [ -z "$gpu" ]
+then
+    export tensorflow=tensorflow
+    echo "Using Tensorflow (CPU MODE) by default."
+elif [ "$gpu" == 1 ]
+then
+    export tensorflow=tensorflow-gpu
+    echo "Using Tensorflow (GPU MODE)."
+else
+    echo "Using Tensorflow (CPU MODE) by default."
+fi
 
 if [ -z "$python_version" ]
 then
     echo "Using python 3.5 by default"
     export python_version=3.5
+else
+    echo "Using python "$python_version". But recommended to use python 3.5."
 fi
 
 if [ -z "$1" ];
