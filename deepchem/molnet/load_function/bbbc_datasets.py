@@ -156,7 +156,7 @@ def load_bbbc004(split='index', reload=True):
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
         save_dir)
     if loaded:
-      return bbbc001_tasks, all_dataset, transformers
+      return bbbc004_tasks, all_dataset, transformers
   image_files = [os.path.join(data_dir, "BBBC004_v1_000_images.zip"),
                  os.path.join(data_dir, "BBBC004_v1_015_images.zip"),
                  os.path.join(data_dir, "BBBC004_v1_030_images.zip"),
@@ -212,4 +212,28 @@ def load_bbbc004(split='index', reload=True):
 
   # Featurize Images into NumpyArrays
   loader = deepchem.data.ImageLoader()
-  dataset = loader.featurize(dataset_file, in_memory=False)
+  # Shape (100, 950, 950)
+  images = loader.featurize(image_files, in_memory=False)
+  # Foregrounds are colored while originals are greyscale
+  # Shape (100, 950, 950, 3)
+  foregrounds = loader.featurize(segmentation_files, in_memory=False)
+
+  dataset = deepchem.data.DiskDataset.from_numpy(images.X, foregrounds.X)
+
+  if split == None:
+    return bbbc004_tasks, (dataset, None, None), transformers
+
+  splitters = {
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
+  }
+  if split not in splitters:
+    raise ValueError("Only index and random splits supported.")
+  splitter = splitters[split]
+
+  train, valid, test = splitter.train_valid_test_split(dataset)
+  all_dataset = (train, valid, test)
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                             transformers)
+  return bbbc004_tasks, all_dataset, transformers
