@@ -3977,57 +3977,17 @@ class AtomicConvolution(Layer):
       Coordinates/features distance tensor.
 
     """
-    atom_tensors = tf.unstack(X, axis=1)
-    nbr_tensors = tf.unstack(Nbrs, axis=1)
     D = []
-    if boxsize is not None:
-      for atom, atom_tensor in enumerate(atom_tensors):
-        nbrs = self.gather_neighbors(X, nbr_tensors[atom], B, N, M, d)
-        nbrs_tensors = tf.unstack(nbrs, axis=1)
-        for nbr, nbr_tensor in enumerate(nbrs_tensors):
-          _D = tf.subtract(nbr_tensor, atom_tensor)
-          _D = tf.subtract(_D, boxsize * tf.round(tf.div(_D, boxsize)))
-          D.append(_D)
-    else:
-      for atom, atom_tensor in enumerate(atom_tensors):
-        nbrs = self.gather_neighbors(X, nbr_tensors[atom], B, N, M, d)
-        nbrs_tensors = tf.unstack(nbrs, axis=1)
-        for nbr, nbr_tensor in enumerate(nbrs_tensors):
-          _D = tf.subtract(nbr_tensor, atom_tensor)
-          D.append(_D)
+    for coords, neighbors in zip(tf.unstack(X), tf.unstack(Nbrs)):
+      flat_neighbors = tf.reshape(neighbors, [-1])
+      neighbor_coords = tf.gather(coords, flat_neighbors)
+      neighbor_coords = tf.reshape(neighbor_coords, [N, M, d])
+      D.append(neighbor_coords - tf.expand_dims(coords, 1))
     D = tf.stack(D)
-    D = tf.transpose(D, perm=[1, 0, 2])
-    D = tf.reshape(D, [B, N, M, d])
+    if boxsize is not None:
+      boxsize = tf.reshape(boxsize, [1, 1, 1, d])
+      D -= tf.round(D / boxsize) * boxsize
     return D
-
-  def gather_neighbors(self, X, nbr_indices, B, N, M, d):
-    """Gathers the neighbor subsets of the atoms in X.
-
-    B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_features
-
-    Parameters
-    ----------
-    X: tf.Tensor of shape (B, N, d)
-      Coordinates/features tensor.
-    atom_indices: tf.Tensor of shape (B, M)
-      Neighbor list for single atom.
-
-    Returns
-    -------
-    neighbors: tf.Tensor of shape (B, M, d)
-      Neighbor coordinates/features tensor for single atom.
-
-    """
-
-    example_tensors = tf.unstack(X, axis=0)
-    example_nbrs = tf.unstack(nbr_indices, axis=0)
-    all_nbr_coords = []
-    for example, (example_tensor, example_nbr) in enumerate(
-        zip(example_tensors, example_nbrs)):
-      nbr_coords = tf.gather(example_tensor, example_nbr)
-      all_nbr_coords.append(nbr_coords)
-    neighbors = tf.stack(all_nbr_coords)
-    return neighbors
 
   def distance_matrix(self, D):
     """Calcuates the distance matrix from the distance tensor
