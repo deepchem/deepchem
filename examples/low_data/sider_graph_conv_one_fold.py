@@ -36,17 +36,18 @@ support_generator = dc.data.SupportGenerator(test_dataset, n_pos, n_neg,
                                              n_trials)
 
 # Compute accuracies
+
 task_scores = {task: [] for task in range(len(test_dataset.get_task_names()))}
 
 for trial_num, (task, support) in enumerate(support_generator):
   print("Starting trial %d" % trial_num)
-
+  
   # Number of features on conv-mols
   n_feat = 75
   # Batch size of models
   batch_size = 50
   #graph_model = dc.nn.SequentialGraph(n_feat)
-  model = GraphConvModel(len(sider_tasks), graph_conv_layers=[
+  model = GraphConvModel(1, graph_conv_layers=[
                          64, 128, 64], batch_size=batch_size)
   # Fit trained model
   model.fit(support, nb_epoch=10)
@@ -71,4 +72,13 @@ print(mean_task_scores)
 print("Standard Deviations")
 print(std_task_scores)
 print("Median of Mean Scores")
-print(np.median(np.array(mean_task_scores.values())))
+"""
+To support both python 3.x and 2.7
+dict.values() returns an object of type dict_values
+and np.median shouts loudly if this is the case so 
+converted it to list before passing it to np.array()
+"""
+try:
+  print(np.median(np.array(mean_task_scores.values())))
+except TypeError as e:
+  print(np.median(np.array(list(mean_task_scores.values()))))
