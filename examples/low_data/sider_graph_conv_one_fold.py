@@ -11,7 +11,6 @@ import tensorflow as tf
 import deepchem as dc
 from deepchem.models.tensorgraph.models.graph_models import GraphConvModel
 
-
 # 4-fold splits
 K = 4
 # num positive/negative ligands
@@ -26,8 +25,6 @@ sider_tasks, fold_datasets, transformers = dc.molnet.load_sider(
 # Define metric
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, mode="classification")
 
-
-
 train_folds = fold_datasets[:-1]
 train_dataset = dc.splits.merge_fold_datasets(train_folds)
 test_dataset = fold_datasets[-1]
@@ -41,14 +38,14 @@ task_scores = {task: [] for task in range(len(test_dataset.get_task_names()))}
 
 for trial_num, (task, support) in enumerate(support_generator):
   print("Starting trial %d" % trial_num)
-  
+
   # Number of features on conv-mols
   n_feat = 75
   # Batch size of models
   batch_size = 50
   #graph_model = dc.nn.SequentialGraph(n_feat)
-  model = GraphConvModel(1, graph_conv_layers=[
-                         64, 128, 64], batch_size=batch_size)
+  model = GraphConvModel(
+      1, graph_conv_layers=[64, 128, 64], batch_size=batch_size)
   # Fit trained model
   model.fit(support, nb_epoch=10)
 
