@@ -12,6 +12,7 @@ import time
 import numpy as np
 import deepchem
 from deepchem.molnet.load_function.kaggle_features import merck_descriptors
+from deepchem.molnet.load_function.uv_tasks import UV_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -143,8 +144,6 @@ def load_uv(shard_size=2000, featurizer=None, split=None, reload=True):
 
   data_dir = deepchem.utils.get_data_dir()
   data_dir = os.path.join(data_dir, "UV")
-
-  UV_tasks = None
 
   if not os.path.exists(data_dir):
     os.mkdir(data_dir)
