@@ -119,9 +119,11 @@ def run_benchmark(datasets,
         'clearance': deepchem.molnet.load_clearance,
         'clintox': deepchem.molnet.load_clintox,
         'delaney': deepchem.molnet.load_delaney,
+        'factors': deepchem.molnet.load_factors,
         'hiv': deepchem.molnet.load_hiv,
         'hopv': deepchem.molnet.load_hopv,
         'kaggle': deepchem.molnet.load_kaggle,
+        'kinase': deepchem.molnet.load_kinase,
         'lipo': deepchem.molnet.load_lipo,
         'muv': deepchem.molnet.load_muv,
         'nci': deepchem.molnet.load_nci,
@@ -137,7 +139,8 @@ def run_benchmark(datasets,
         'sampl': deepchem.molnet.load_sampl,
         'sider': deepchem.molnet.load_sider,
         'tox21': deepchem.molnet.load_tox21,
-        'toxcast': deepchem.molnet.load_toxcast
+        'toxcast': deepchem.molnet.load_toxcast,
+        'uv': deepchem.molnet.load_uv,
     }
 
     print('-------------------------------------')
