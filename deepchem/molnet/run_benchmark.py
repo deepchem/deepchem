@@ -42,7 +42,8 @@ def run_benchmark(datasets,
   datasets: list of string
       choice of which datasets to use, should be: bace_c, bace_r, bbbp, chembl,
       clearance, clintox, delaney, hiv, hopv, kaggle, lipo, muv, nci, pcba,
-      pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl, sider, tox21, toxcast
+      pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl, sider, tox21, toxcast, uv, factors,
+      kinase
   model: string or user-defined model stucture
       choice of which model to use, deepchem provides implementation of
       logistic regression, random forest, multitask network,
@@ -252,8 +253,9 @@ def load_dataset(dataset, featurizer, split='random'):
   ----------
   dataset: string
       choice of which datasets to use, should be: tox21, muv, sider,
-      toxcast, pcba, delaney, kaggle, nci, clintox, hiv, pcba_128, pcba_146, pdbbind, chembl,
-      qm7, qm7b, qm9, sampl
+      toxcast, pcba, delaney, factors, hiv, hopv, kaggle, kinase, nci,
+      clintox, hiv, pcba_128, pcba_146, pdbbind, chembl, qm7, qm7b, qm9,
+      sampl, uv
   featurizer: string or dc.feat.Featurizer.
       choice of featurization.
   split: string,  optional (default=None)
@@ -267,9 +269,11 @@ def load_dataset(dataset, featurizer, split='random'):
       'clearance': deepchem.molnet.load_clearance,
       'clintox': deepchem.molnet.load_clintox,
       'delaney': deepchem.molnet.load_delaney,
+      'factors': deepchem.molnet.load_factors,
       'hiv': deepchem.molnet.load_hiv,
       'hopv': deepchem.molnet.load_hopv,
       'kaggle': deepchem.molnet.load_kaggle,
+      'kinase': deepchem.molnet.load_kinase,
       'lipo': deepchem.molnet.load_lipo,
       'muv': deepchem.molnet.load_muv,
       'nci': deepchem.molnet.load_nci,
@@ -286,7 +290,8 @@ def load_dataset(dataset, featurizer, split='random'):
       'sampl': deepchem.molnet.load_sampl,
       'sider': deepchem.molnet.load_sider,
       'tox21': deepchem.molnet.load_tox21,
-      'toxcast': deepchem.molnet.load_toxcast
+      'toxcast': deepchem.molnet.load_toxcast,
+      'uv': deepchem.molnet.load_uv
   }
   print('-------------------------------------')
   print('Loading dataset: %s' % dataset)
