@@ -11,6 +11,7 @@ import time
 
 import numpy as np
 import deepchem
+from deepchem.molnet.load_function.kaggle_features import merck_descriptors
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,24 @@ TEST_URL = 'https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/FACTORS_test
 TRAIN_FILENAME = "FACTORS_training_disguised_combined_full.csv.gz"
 VALID_FILENAME = "FACTORS_test1_disguised_combined_full.csv.gz"
 TEST_FILENAME = "FACTORS_test2_disguised_combined_full.csv.gz"
+
+
+def remove_missing_entries(dataset):
+
+  """Remove missing entries.
+
+  Some of the datasets have missing entries that sneak in as zero'd out
+  feature vectors. Get rid of them.
+  """
+  for i, (X, y, w, ids) in enumerate(dataset.itershards()):
+    available_rows = X.any(axis=1)
+    logger.info("Shard %d has %d missing entries." %
+                (i, np.count_nonzero(~available_rows)))
+    X = X[available_rows]
+    y = y[available_rows]
+    w = w[available_rows]
+    ids = ids[available_rows]
+    dataset.set_shard(i, X, y, w, ids)
 
 
 def get_transformers(train_dataset):
@@ -57,26 +76,23 @@ def gen_factors(FACTORS_tasks, data_dir, train_dir, valid_dir, test_dir, shard_s
     logger.info("Test file download complete")
 
   # Featurize the FACTORS dataset
-  featurizer = None
-  loader = deepchem.data.UserCSVLoader(tasks=FACTORS_tasks, featurizer=featurizer)
+  logger.info("About to featurize the FACTORS dataset")
+  featurizer = deepchem.feat.UserDefinedFeaturizer(merck_descriptors)
+  loader = deepchem.data.UserCSVLoader(tasks=FACTORS_tasks, id_field="Molecule", featurizer=featurizer)
 
   logger.info("Featurizing the train dataset...")
   train_dataset = loader.featurize(train_files, shard_size=shard_size)
-  logger.info("Train dataset featurization complete.")
 
   logger.info("Featurizing the validation dataset...")
   valid_dataset = loader.featurize(valid_files, shard_size=shard_size)
-  logger.info("Validation file download complete.")
 
   logger.info("Featurizing the test dataset...")
   test_dataset = loader.featurize(test_files, shard_size=shard_size)
-  logger.info("Test file download complete")
 
   logger.info("Remove missing entries from dataset")
-  # TODO: Add missing entry removal
-
-  logger.info("Shuffling order of train dataset.")
-  train_dataset.sparse_shuffle()
+  remove_missing_entries(train_dataset)
+  remove_missing_entries(valid_dataset)
+  remove_missing_entries(test_dataset)
 
   # Shuffle the training data
   logger.info("Shuffling the training dataset")
@@ -91,15 +107,12 @@ def gen_factors(FACTORS_tasks, data_dir, train_dir, valid_dir, test_dir, shard_s
 
     logger.info("Transforming the training dataset...")
     train_dataset = transformer.transform(train_dataset)
-    logger.info("Training dataset transformation complete.")
 
     logger.info("Transforming the validation dataset...")
     valid_dataset = transformer.transform(valid_dataset)
-    logger.info("Validation dataset transformation complete.")
 
     logger.info("Transforming the test dataset...")
     test_dataset = transformer.transform(test_dataset)
-    logger.info("Test dataset transformation complete.")
 
   logger.info("Transformations complete.")
   logger.info("Moving datasets to corresponding directories")
@@ -125,7 +138,8 @@ def load_factors(shard_size=2000, featurizer=None, split=None, reload=True):
 
   """Loads FACTOR dataset; does not do train/test split"""
 
-  FACTORS_tasks = None
+  FACTORS_tasks = ['T_00001', 'T_00002', 'T_00003', 'T_00004', 'T_00005', 'T_00006',
+                   'T_00007', 'T_00008', 'T_00009', 'T_00010', 'T_00011', 'T_00012']
 
   data_dir = deepchem.utils.get_data_dir()
   data_dir = os.path.join(data_dir, "factors")

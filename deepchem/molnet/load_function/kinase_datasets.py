@@ -11,6 +11,7 @@ import time
 
 import numpy as np
 import deepchem
+from deepchem.molnet.load_function.kaggle_features import merck_descriptors
 
 TRAIN_URL = 'https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/KINASE_training_disguised_combined_full.csv.gz'
 VALID_URL = 'https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/KINASE_test1_disguised_combined_full.csv.gz'
@@ -22,6 +23,24 @@ TEST_FILENAME = "KINASE_test2_disguised_combined_full.csv.gz"
 
 
 logger = logging.getLogger(__name__)
+
+
+def remove_missing_entries(dataset):
+
+  """Remove missing entries.
+
+  Some of the datasets have missing entries that sneak in as zero'd out
+  feature vectors. Get rid of them.
+  """
+  for i, (X, y, w, ids) in enumerate(dataset.itershards()):
+    available_rows = X.any(axis=1)
+    logger.info("Shard %d has %d missing entries." %
+                (i, np.count_nonzero(~available_rows)))
+    X = X[available_rows]
+    y = y[available_rows]
+    w = w[available_rows]
+    ids = ids[available_rows]
+    dataset.set_shard(i, X, y, w, ids)
 
 
 def get_transformers(train_dataset):
@@ -59,26 +78,25 @@ def gen_kinase(KINASE_tasks, train_dir, valid_dir, test_dir, data_dir, shard_siz
     logger.info("Test file download complete")
 
   # Featurize the KINASE dataset
-  featurizer = None
-  # TODO: Add featurizer based on paper, check if id_field is needed
+  logger.info("About to featurize KINASE dataset.")
+  featurizer = deepchem.feat.UserDefinedFeaturizer(merck_descriptors)
 
   loader = deepchem.data.UserCSVLoader(
     tasks=KINASE_tasks, id_field="Molecule", featurizer=featurizer)
 
   logger.info("Featurizing train datasets...")
   train_dataset = loader.featurize(input_files=train_files, shard_size=shard_size)
-  logger.info("Train dataset featurization complete.")
 
   logger.info("Featurizing validation datasets...")
   valid_dataset = loader.featurize(input_files=valid_files, shard_size=shard_size)
-  logger.info("Validation dataset featurization complete.")
 
   logger.info("Featurizing test datasets....")
   test_dataset = loader.featurize(input_files=test_files, shard_size=shard_size)
-  logger.info("Test dataset featurization complete.")
 
   logger.info("Remove missing entries from dataset")
-  # TODO: Add missing entry removal
+  remove_missing_entries(train_dataset)
+  remove_missing_entries(valid_dataset)
+  remove_missing_entries(test_dataset)
 
   # Shuffle the training data
   logger.info("Shuffling the training dataset")
@@ -93,15 +111,12 @@ def gen_kinase(KINASE_tasks, train_dir, valid_dir, test_dir, data_dir, shard_siz
 
     logger.info("Transforming the training dataset...")
     train_dataset = transformer.transform(train_dataset)
-    logger.info("Training dataset transformation complete.")
 
     logger.info("Transforming the validation dataset...")
     valid_dataset = transformer.transform(valid_dataset)
-    logger.info("Validation dataset transformation complete.")
 
     logger.info("Transforming the test dataset...")
     test_dataset = transformer.transform(test_dataset)
-    logger.info("Test dataset transformation complete.")
 
   logger.info("Transformations complete.")
   logger.info("Moving datasets to corresponding directories")
@@ -128,8 +143,23 @@ def load_kinase(shard_size=2000, featurizer=None, split=None, reload=True):
 
   "Loads kinase datasets, does not do train/test split"
 
-  #TODO: Add kinase tasks
-  KINASE_tasks = None
+  KINASE_tasks = ['T_00013', 'T_00014', 'T_00015', 'T_00016', 'T_00017', 'T_00018',
+                  'T_00019', 'T_00020', 'T_00021', 'T_00022', 'T_00023', 'T_00024',
+                  'T_00025', 'T_00026', 'T_00027', 'T_00028', 'T_00029', 'T_00030',
+                  'T_00031', 'T_00032', 'T_00033', 'T_00034', 'T_00035', 'T_00036',
+                  'T_00037', 'T_00038', 'T_00039', 'T_00040', 'T_00041', 'T_00042',
+                  'T_00043', 'T_00044', 'T_00045', 'T_00046', 'T_00047', 'T_00048',
+                  'T_00049', 'T_00050', 'T_00051', 'T_00052', 'T_00053', 'T_00054',
+                  'T_00055', 'T_00056', 'T_00057', 'T_00058', 'T_00059', 'T_00060',
+                  'T_00061', 'T_00062', 'T_00063', 'T_00064', 'T_00065', 'T_00066',
+                  'T_00067', 'T_00068', 'T_00069', 'T_00070', 'T_00071', 'T_00072',
+                  'T_00073', 'T_00074', 'T_00075', 'T_00076', 'T_00077', 'T_00078',
+                  'T_00079', 'T_00080', 'T_00081', 'T_00082', 'T_00083', 'T_00084',
+                  'T_00085', 'T_00086', 'T_00087', 'T_00088', 'T_00089', 'T_00090',
+                  'T_00091', 'T_00092', 'T_00093', 'T_00094', 'T_00095', 'T_00096',
+                  'T_00097', 'T_00098', 'T_00099', 'T_00100', 'T_00101', 'T_00102',
+                  'T_00103', 'T_00104', 'T_00105', 'T_00106', 'T_00107', 'T_00108',
+                  'T_00109', 'T_00110', 'T_00111']
 
   data_dir = deepchem.utils.get_data_dir()
   data_dir = os.path.join(data_dir, "kinase")

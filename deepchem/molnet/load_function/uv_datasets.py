@@ -11,6 +11,7 @@ import time
 
 import numpy as np
 import deepchem
+from deepchem.molnet.load_function.kaggle_features import merck_descriptors
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,23 @@ TEST_URL = 'https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/UV_test2_dis
 TRAIN_FILENAME = "UV_training_disguised_combined_full.csv.gz"
 VALID_FILENAME = "UV_test1_disguised_combined_full.csv.gz"
 TEST_FILENAME = "UV_test2_disguised_combined_full.csv.gz"
+
+
+def remove_missing_entries(dataset):
+  """Remove missing entries.
+
+  Some of the datasets have missing entries that sneak in as zero'd out
+  feature vectors. Get rid of them.
+  """
+  for i, (X, y, w, ids) in enumerate(dataset.itershards()):
+    available_rows = X.any(axis=1)
+    logger.info("Shard %d has %d missing entries." %
+                (i, np.count_nonzero(~available_rows)))
+    X = X[available_rows]
+    y = y[available_rows]
+    w = w[available_rows]
+    ids = ids[available_rows]
+    dataset.set_shard(i, X, y, w, ids)
 
 
 def get_transformers(train_dataset):
@@ -59,23 +77,25 @@ def gen_uv(UV_tasks, data_dir, train_dir, valid_dir, test_dir, shard_size=2000):
     logger.info("Test file download complete")
 
   # Featurizing datasets
-
-  featurizer = None
-  loader = deepchem.data.UserCSVLoader(tasks=UV_tasks, featurizer=featurizer)
+  logger.info("About to featurize UV dataset.")
+  featurizer = deepchem.feat.UserDefinedFeaturizer(merck_descriptors)
+  loader = deepchem.data.UserCSVLoader(
+    tasks=UV_tasks, id_field="Molecule", featurizer=featurizer)
 
   logger.info("Featurizing train datasets...")
   train_dataset = loader.featurize(input_files=train_files, shard_size=shard_size)
-  logger.info("Train dataset featurization complete.")
 
   logger.info("Featurizing validation datasets...")
   valid_dataset = loader.featurize(input_files=valid_files, shard_size=shard_size)
-  logger.info("Validation dataset featurization complete.")
 
   logger.info("Featurizing test datasets....")
   test_dataset = loader.featurize(input_files=test_files, shard_size=shard_size)
-  logger.info("Test dataset featurization complete.")
 
-  # TODO: Add missing entries removal
+  # Missing entry removal
+  logger.info("Removing missing entries from dataset.")
+  remove_missing_entries(train_dataset)
+  remove_missing_entries(valid_dataset)
+  remove_missing_entries(test_dataset)
 
   # Shuffle the training data
   logger.info("Shuffling the training dataset")
@@ -90,15 +110,12 @@ def gen_uv(UV_tasks, data_dir, train_dir, valid_dir, test_dir, shard_size=2000):
 
     logger.info("Transforming the training dataset...")
     train_dataset = transformer.transform(train_dataset)
-    logger.info("Training dataset transformation complete.")
 
     logger.info("Transforming the validation dataset...")
     valid_dataset = transformer.transform(valid_dataset)
-    logger.info("Validation dataset transformation complete.")
 
     logger.info("Transforming the test dataset...")
     test_dataset = transformer.transform(test_dataset)
-    logger.info("Test dataset transformation complete.")
 
   logger.info("Transformations complete.")
   logger.info("Moving datasets to corresponding directories")
