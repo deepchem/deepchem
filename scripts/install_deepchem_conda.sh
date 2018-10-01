@@ -5,11 +5,24 @@
 #export tensorflow=tensorflow-gpu
 export tensorflow=tensorflow
 
+if [ -z "$gpu" ]
+then
+    export tensorflow=tensorflow
+    echo "Using Tensorflow (CPU MODE) by default."
+elif [ "$gpu" == 1 ]
+then
+    export tensorflow=tensorflow-gpu
+    echo "Using Tensorflow (GPU MODE)."
+else
+    echo "Using Tensorflow (CPU MODE) by default."
+fi
 
 if [ -z "$python_version" ]
 then
     echo "Using python 3.5 by default"
     export python_version=3.5
+else
+    echo "Using python "$python_version". But recommended to use python 3.5."
 fi
 
 if [ -z "$1" ];
@@ -29,6 +42,7 @@ if [[ "$unamestr" == 'Darwin' ]]; then
 fi
 
 conda install -y -q -c omnia pdbfixer=1.4
+yes | pip install --upgrade pip
 conda install -y -q -c deepchem mdtraj=1.9.1
 conda install -y -q -c rdkit rdkit=2017.09.1
 conda install -y -q -c conda-forge joblib=0.11 \
@@ -44,7 +58,6 @@ conda install -y -q -c conda-forge joblib=0.11 \
     requests=2.18.4 \
     xgboost=0.6a2 \
     simdna=0.4.2 \
-    jupyter=1.0.0 \
     pbr=3.1.1 \
     setuptools=39.0.1 \
     biopython=1.71 \

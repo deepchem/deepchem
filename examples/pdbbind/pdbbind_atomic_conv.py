@@ -1,5 +1,5 @@
 """
-Script that trains Sklearn RF models on PDBbind dataset.
+Script that trains Atomic Conv models on PDBbind dataset.
 """
 from __future__ import print_function
 from __future__ import division
@@ -19,16 +19,19 @@ from deepchem.molnet import load_pdbbind
 np.random.seed(123)
 
 pdbbind_tasks, pdbbind_datasets, transformers = load_pdbbind(
-    featurizer="grid", split="random", subset="core")
+    featurizer="atomic", split="random", subset="core")
 train_dataset, valid_dataset, test_dataset = pdbbind_datasets
 
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
 
-current_dir = os.path.dirname(os.path.realpath(__file__))
-model_dir = os.path.join(current_dir, "%s_%s_RF" % (split, subset))
-
-sklearn_model = RandomForestRegressor(n_estimators=500)
-model = dc.models.SklearnModel(sklearn_model, model_dir=model_dir)
+frag1_num_atoms = 70  # for ligand atoms
+frag2_num_atoms = 24000  # for protein atoms
+complex_num_atoms = frag1_num_atoms + frag2_num_atoms
+atomic_convnet = atomic_conv.AtomicConvModel(
+    batch_size=batch_size,
+    frag1_num_atoms=frag1_num_atoms,
+    frag2_num_atoms=frag2_num_atoms,
+    complex_num_atoms=complex_num_atoms)
 
 # Fit trained model
 print("Fitting model on train dataset")

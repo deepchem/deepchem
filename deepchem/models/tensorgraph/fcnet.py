@@ -113,6 +113,7 @@ class MultitaskClassifier(TensorGraph):
       prev_layer = layer
 
     # Compute the loss function for each label.
+    self.neural_fingerprint = prev_layer
 
     logits = Reshape(
         shape=(-1, n_tasks, n_classes),
@@ -257,6 +258,7 @@ class MultitaskRegressor(TensorGraph):
       if dropout > 0.0:
         layer = Dropout(dropout, in_layers=[layer])
       prev_layer = layer
+    self.neural_fingerprint = prev_layer
 
     # Compute the loss function for each label.
 

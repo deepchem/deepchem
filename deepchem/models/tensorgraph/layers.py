@@ -2511,6 +2511,47 @@ class MaxPool3D(Layer):
     return out_tensor
 
 
+class AvgPool2D(Layer):
+
+  def __init__(self,
+               ksize=[1, 2, 2, 1],
+               strides=[1, 2, 2, 1],
+               padding="SAME",
+               **kwargs):
+    """Create a AvgPool2D layer.
+
+    Parameters
+    ----------
+    ksize: list
+      size of the window for each dimension of the input tensor. Must have
+      length of 4 and ksize[0] = ksize[3] = 1.
+    strides: list
+      stride of the sliding window for each dimension of input. Must have
+      length of 4 and strides[0] = strides[3] = 1.
+    padding: str
+      the padding method to use, either 'SAME' or 'VALID'
+    """
+    self.ksize = ksize
+    self.strides = strides
+    self.padding = padding
+    super(AvgPool2D, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = tuple(
+          None if p is None else p // s for p, s in zip(parent_shape, strides))
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    in_tensor = inputs[0]
+    out_tensor = tf.nn.avg_pool(
+        in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class InputFifoQueue(Layer):
   """
   This Queue Is used to allow asynchronous batching of inputs
@@ -3798,32 +3839,32 @@ class AtomicConvolution(Layer):
     M = Nbrs.get_shape()[-1].value
     B = X.get_shape()[0].value
 
+    # Create the variables.
+    if tfe.in_eager_mode():
+      if not self._built:
+        self.variables += self._create_radial_variables()
+      rc, rs, re = self.variables
+    else:
+      rc, rs, re = self._create_radial_variables()
+
+    # Compute the distances and radial symmetry functions.
     D = self.distance_tensor(X, Nbrs, self.boxsize, B, N, M, d)
     R = self.distance_matrix(D)
-    sym = []
-    rsf_zeros = tf.zeros((B, N, M))
-    for i, param in enumerate(self.radial_params):
+    R = tf.reshape(R, [1] + R.shape.as_list())
+    rsf = self.radial_symmetry_function(R, rc, rs, re)
 
-      if tfe.in_eager_mode():
-        if not self._built:
-          self.variables += self._create_radial_variables(*param)
-        param_variables = self.variables[3 * i:3 * i + 3]
-      else:
-        param_variables = self._create_radial_variables(*param)
+    if not self.atom_types:
+      cond = tf.to_float(tf.not_equal(Nbrs_Z, 0.0))
+      cond = tf.reshape(cond, R.shape)
+      layer = tf.reduce_sum(cond * rsf, 3)
+    else:
+      sym = []
+      for j in range(len(self.atom_types)):
+        cond = tf.to_float(tf.equal(Nbrs_Z, self.atom_types[j]))
+        cond = tf.reshape(cond, R.shape)
+        sym.append(tf.reduce_sum(cond * rsf, 3))
+      layer = tf.concat(sym, 0)
 
-      # We apply the radial pooling filter before atom type conv
-      # to reduce computation
-      rsf = self.radial_symmetry_function(R, *param_variables)
-
-      if not self.atom_types:
-        cond = tf.not_equal(Nbrs_Z, 0.0)
-        sym.append(tf.reduce_sum(tf.where(cond, rsf, rsf_zeros), 2))
-      else:
-        for j in range(len(self.atom_types)):
-          cond = tf.equal(Nbrs_Z, self.atom_types[j])
-          sym.append(tf.reduce_sum(tf.where(cond, rsf, rsf_zeros), 2))
-
-    layer = tf.stack(sym)
     layer = tf.transpose(layer, [1, 2, 0])  # (l, B, N) -> (B, N, l)
     m, v = tf.nn.moments(layer, axes=[0])
     out_tensor = tf.nn.batch_normalization(layer, m, v, None, None, 1e-3)
@@ -3834,12 +3875,12 @@ class AtomicConvolution(Layer):
       self._built = True
     return out_tensor
 
-  def _create_radial_variables(self, rc, rs, e):
-    with tf.name_scope(None, "NbrRadialSymmetryFunction", [rc, rs, e]):
-      rc = create_variable(rc)
-      rs = create_variable(rs)
-      e = create_variable(e)
-    return (rc, rs, e)
+  def _create_radial_variables(self):
+    vars = []
+    for i in range(3):
+      val = np.array([p[i] for p in self.radial_params]).reshape((-1, 1, 1, 1))
+      vars.append(create_variable(val, dtype=tf.float32))
+    return vars
 
   def radial_symmetry_function(self, R, rc, rs, e):
     """Calculates radial symmetry function.
@@ -3936,57 +3977,17 @@ class AtomicConvolution(Layer):
       Coordinates/features distance tensor.
 
     """
-    atom_tensors = tf.unstack(X, axis=1)
-    nbr_tensors = tf.unstack(Nbrs, axis=1)
     D = []
-    if boxsize is not None:
-      for atom, atom_tensor in enumerate(atom_tensors):
-        nbrs = self.gather_neighbors(X, nbr_tensors[atom], B, N, M, d)
-        nbrs_tensors = tf.unstack(nbrs, axis=1)
-        for nbr, nbr_tensor in enumerate(nbrs_tensors):
-          _D = tf.subtract(nbr_tensor, atom_tensor)
-          _D = tf.subtract(_D, boxsize * tf.round(tf.div(_D, boxsize)))
-          D.append(_D)
-    else:
-      for atom, atom_tensor in enumerate(atom_tensors):
-        nbrs = self.gather_neighbors(X, nbr_tensors[atom], B, N, M, d)
-        nbrs_tensors = tf.unstack(nbrs, axis=1)
-        for nbr, nbr_tensor in enumerate(nbrs_tensors):
-          _D = tf.subtract(nbr_tensor, atom_tensor)
-          D.append(_D)
+    for coords, neighbors in zip(tf.unstack(X), tf.unstack(Nbrs)):
+      flat_neighbors = tf.reshape(neighbors, [-1])
+      neighbor_coords = tf.gather(coords, flat_neighbors)
+      neighbor_coords = tf.reshape(neighbor_coords, [N, M, d])
+      D.append(neighbor_coords - tf.expand_dims(coords, 1))
     D = tf.stack(D)
-    D = tf.transpose(D, perm=[1, 0, 2])
-    D = tf.reshape(D, [B, N, M, d])
+    if boxsize is not None:
+      boxsize = tf.reshape(boxsize, [1, 1, 1, d])
+      D -= tf.round(D / boxsize) * boxsize
     return D
-
-  def gather_neighbors(self, X, nbr_indices, B, N, M, d):
-    """Gathers the neighbor subsets of the atoms in X.
-
-    B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_features
-
-    Parameters
-    ----------
-    X: tf.Tensor of shape (B, N, d)
-      Coordinates/features tensor.
-    atom_indices: tf.Tensor of shape (B, M)
-      Neighbor list for single atom.
-
-    Returns
-    -------
-    neighbors: tf.Tensor of shape (B, M, d)
-      Neighbor coordinates/features tensor for single atom.
-
-    """
-
-    example_tensors = tf.unstack(X, axis=0)
-    example_nbrs = tf.unstack(nbr_indices, axis=0)
-    all_nbr_coords = []
-    for example, (example_tensor, example_nbr) in enumerate(
-        zip(example_tensors, example_nbrs)):
-      nbr_coords = tf.gather(example_tensor, example_nbr)
-      all_nbr_coords.append(nbr_coords)
-    neighbors = tf.stack(all_nbr_coords)
-    return neighbors
 
   def distance_matrix(self, D):
     """Calcuates the distance matrix from the distance tensor

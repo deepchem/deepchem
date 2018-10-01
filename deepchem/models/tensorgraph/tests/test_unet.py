@@ -2,12 +2,14 @@ import deepchem
 import numpy as np
 import tensorflow as tf
 import unittest
+from nose.plugins.attrib import attr
 from deepchem.models.tensorgraph.models import unet
 from deepchem.models.tensorgraph import layers
 
 
 class TestUNet(unittest.TestCase):
 
+  @attr('slow')
   def test_unet(self):
     unet2D = deepchem.models.tensorgraph.models.unet.UNet(
         learning_rate=0.003, img_rows=32, img_cols=32, model_dir='./unet/')

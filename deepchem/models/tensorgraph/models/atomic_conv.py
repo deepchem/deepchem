@@ -7,7 +7,6 @@ __license__ = "MIT"
 
 import sys
 
-sys.path.append("../../models")
 from deepchem.models.tensorgraph.layers import Layer, Feature, Label, AtomicConvolution, L2Loss, ReduceMean
 from deepchem.models import TensorGraph
 
@@ -154,71 +153,132 @@ class AtomicConvScore(Layer):
     return self.out_tensor
 
 
-def atomic_conv_model(
-    frag1_num_atoms=70,
-    frag2_num_atoms=634,
-    complex_num_atoms=701,
-    max_num_neighbors=12,
-    batch_size=24,
-    at=[6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35., 53., -1.],
-    radial=[[
-        1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0,
-        8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0
-    ], [0.0, 4.0, 8.0], [0.4]],
-    layer_sizes=[32, 32, 16],
-    learning_rate=0.001):
-  rp = [x for x in itertools.product(*radial)]
-  frag1_X = Feature(shape=(batch_size, frag1_num_atoms, 3))
-  frag1_nbrs = Feature(shape=(batch_size, frag1_num_atoms, max_num_neighbors))
-  frag1_nbrs_z = Feature(shape=(batch_size, frag1_num_atoms, max_num_neighbors))
-  frag1_z = Feature(shape=(batch_size, frag1_num_atoms))
+class AtomicConvModel(TensorGraph):
 
-  frag2_X = Feature(shape=(batch_size, frag2_num_atoms, 3))
-  frag2_nbrs = Feature(shape=(batch_size, frag2_num_atoms, max_num_neighbors))
-  frag2_nbrs_z = Feature(shape=(batch_size, frag2_num_atoms, max_num_neighbors))
-  frag2_z = Feature(shape=(batch_size, frag2_num_atoms))
+  def __init__(self,
+               frag1_num_atoms=70,
+               frag2_num_atoms=634,
+               complex_num_atoms=701,
+               max_num_neighbors=12,
+               batch_size=24,
+               atom_types=[
+                   6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35.,
+                   53., -1.
+               ],
+               radial=[[
+                   1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0,
+                   7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0
+               ], [0.0, 4.0, 8.0], [0.4]],
+               layer_sizes=[32, 32, 16],
+               learning_rate=0.001,
+               **kwargs):
+    """Implements an Atomic Convolution Model.
 
-  complex_X = Feature(shape=(batch_size, complex_num_atoms, 3))
-  complex_nbrs = Feature(
-      shape=(batch_size, complex_num_atoms, max_num_neighbors))
-  complex_nbrs_z = Feature(
-      shape=(batch_size, complex_num_atoms, max_num_neighbors))
-  complex_z = Feature(shape=(batch_size, complex_num_atoms))
+    Implements the atomic convolutional networks as introduced in
+    https://arxiv.org/abs/1703.10603. The atomic convolutional networks
+    function as a variant of graph convolutions. The difference is that the
+    "graph" here is the nearest neighbors graph in 3D space. The
+    AtomicConvModel leverages these connections in 3D space to train models
+    that learn to predict energetic state starting from the spatial
+    geometry of the model.
 
-  frag1_conv = AtomicConvolution(
-      atom_types=at,
-      radial_params=rp,
-      boxsize=None,
-      in_layers=[frag1_X, frag1_nbrs, frag1_nbrs_z])
+    Params
+    ------
+    frag1_num_atoms: int
+      Number of atoms in first fragment
+    frag2_num_atoms: int
+      Number of atoms in sec
+    max_num_neighbors: int
+      Maximum number of neighbors possible for an atom. Recall neighbors
+      are spatial neighbors.  
+    atom_types: list
+      List of atoms recognized by model. Atoms are indicated by their
+      nuclear numbers.
+    radial: list
+      TODO: add description
+    layer_sizes: list
+      TODO: add description
+    learning_rate: float
+      Learning rate for the model.
+    """
+    # TODO: Turning off queue for now. Safe to re-activate?
+    super(AtomicConvModel, self).__init__(use_queue=False, **kwargs)
+    self.complex_num_atoms = complex_num_atoms
+    self.frag1_num_atoms = frag1_num_atoms
+    self.frag2_num_atoms = frag2_num_atoms
+    self.max_num_neighbors = max_num_neighbors
+    self.batch_size = batch_size
+    self.atom_types = atom_types
 
-  frag2_conv = AtomicConvolution(
-      atom_types=at,
-      radial_params=rp,
-      boxsize=None,
-      in_layers=[frag2_X, frag2_nbrs, frag2_nbrs_z])
+    rp = [x for x in itertools.product(*radial)]
+    self.frag1_X = Feature(shape=(batch_size, frag1_num_atoms, 3))
+    self.frag1_nbrs = Feature(
+        shape=(batch_size, frag1_num_atoms, max_num_neighbors))
+    self.frag1_nbrs_z = Feature(
+        shape=(batch_size, frag1_num_atoms, max_num_neighbors))
+    self.frag1_z = Feature(shape=(batch_size, frag1_num_atoms))
 
-  complex_conv = AtomicConvolution(
-      atom_types=at,
-      radial_params=rp,
-      boxsize=None,
-      in_layers=[complex_X, complex_nbrs, complex_nbrs_z])
+    self.frag2_X = Feature(shape=(batch_size, frag2_num_atoms, 3))
+    self.frag2_nbrs = Feature(
+        shape=(batch_size, frag2_num_atoms, max_num_neighbors))
+    self.frag2_nbrs_z = Feature(
+        shape=(batch_size, frag2_num_atoms, max_num_neighbors))
+    self.frag2_z = Feature(shape=(batch_size, frag2_num_atoms))
 
-  score = AtomicConvScore(
-      at,
-      layer_sizes,
-      in_layers=[
-          frag1_conv, frag2_conv, complex_conv, frag1_z, frag2_z, complex_z
-      ])
+    self.complex_X = Feature(shape=(batch_size, complex_num_atoms, 3))
+    self.complex_nbrs = Feature(
+        shape=(batch_size, complex_num_atoms, max_num_neighbors))
+    self.complex_nbrs_z = Feature(
+        shape=(batch_size, complex_num_atoms, max_num_neighbors))
+    self.complex_z = Feature(shape=(batch_size, complex_num_atoms))
 
-  label = Label(shape=(None, 1))
-  loss = ReduceMean(in_layers=L2Loss(in_layers=[score, label]))
+    frag1_conv = AtomicConvolution(
+        atom_types=self.atom_types,
+        radial_params=rp,
+        boxsize=None,
+        in_layers=[self.frag1_X, self.frag1_nbrs, self.frag1_nbrs_z])
 
-  def feed_dict_generator(dataset, batch_size, epochs=1, pad_batches=True):
+    frag2_conv = AtomicConvolution(
+        atom_types=self.atom_types,
+        radial_params=rp,
+        boxsize=None,
+        in_layers=[self.frag2_X, self.frag2_nbrs, self.frag2_nbrs_z])
+
+    complex_conv = AtomicConvolution(
+        atom_types=self.atom_types,
+        radial_params=rp,
+        boxsize=None,
+        in_layers=[self.complex_X, self.complex_nbrs, self.complex_nbrs_z])
+
+    score = AtomicConvScore(
+        self.atom_types,
+        layer_sizes,
+        in_layers=[
+            frag1_conv, frag2_conv, complex_conv, self.frag1_z, self.frag2_z,
+            self.complex_z
+        ])
+
+    self.label = Label(shape=(None, 1))
+    loss = ReduceMean(in_layers=L2Loss(in_layers=[score, self.label]))
+    self.add_output(score)
+    self.set_loss(loss)
+
+  def default_generator(self,
+                        dataset,
+                        epochs=1,
+                        predict=False,
+                        deterministic=True,
+                        pad_batches=True):
+    complex_num_atoms = self.complex_num_atoms
+    frag1_num_atoms = self.frag1_num_atoms
+    frag2_num_atoms = self.frag2_num_atoms
+    max_num_neighbors = self.max_num_neighbors
+    batch_size = self.batch_size
 
     def replace_atom_types(z):
 
       def place_holder(i):
-        if i in at:
+        if i in self.atom_types:
           return i
         return -1
 
@@ -239,17 +299,17 @@ def atomic_conv_model(
         frag1_X_b = np.zeros((batch_size, N_1, num_features))
         for i in range(batch_size):
           frag1_X_b[i] = F_b[i][0]
-        orig_dict[frag1_X] = frag1_X_b
+        orig_dict[self.frag1_X] = frag1_X_b
 
         frag2_X_b = np.zeros((batch_size, N_2, num_features))
         for i in range(batch_size):
           frag2_X_b[i] = F_b[i][3]
-        orig_dict[frag2_X] = frag2_X_b
+        orig_dict[self.frag2_X] = frag2_X_b
 
         complex_X_b = np.zeros((batch_size, N, num_features))
         for i in range(batch_size):
           complex_X_b[i] = F_b[i][6]
-        orig_dict[complex_X] = complex_X_b
+        orig_dict[self.complex_X] = complex_X_b
 
         frag1_Nbrs = np.zeros((batch_size, N_1, M))
         frag1_Z_b = np.zeros((batch_size, N_1))
@@ -263,9 +323,9 @@ def atomic_conv_model(
             frag1_Nbrs[i, atom, :len(atom_nbrs)] = np.array(atom_nbrs)
             for j, atom_j in enumerate(atom_nbrs):
               frag1_Nbrs_Z[i, atom, j] = frag1_Z_b[i, atom_j]
-        orig_dict[frag1_nbrs] = frag1_Nbrs
-        orig_dict[frag1_nbrs_z] = frag1_Nbrs_Z
-        orig_dict[frag1_z] = frag1_Z_b
+        orig_dict[self.frag1_nbrs] = frag1_Nbrs
+        orig_dict[self.frag1_nbrs_z] = frag1_Nbrs_Z
+        orig_dict[self.frag1_z] = frag1_Z_b
 
         frag2_Nbrs = np.zeros((batch_size, N_2, M))
         frag2_Z_b = np.zeros((batch_size, N_2))
@@ -279,9 +339,9 @@ def atomic_conv_model(
             frag2_Nbrs[i, atom, :len(atom_nbrs)] = np.array(atom_nbrs)
             for j, atom_j in enumerate(atom_nbrs):
               frag2_Nbrs_Z[i, atom, j] = frag2_Z_b[i, atom_j]
-        orig_dict[frag2_nbrs] = frag2_Nbrs
-        orig_dict[frag2_nbrs_z] = frag2_Nbrs_Z
-        orig_dict[frag2_z] = frag2_Z_b
+        orig_dict[self.frag2_nbrs] = frag2_Nbrs
+        orig_dict[self.frag2_nbrs_z] = frag2_Nbrs_Z
+        orig_dict[self.frag2_z] = frag2_Z_b
 
         complex_Nbrs = np.zeros((batch_size, N, M))
         complex_Z_b = np.zeros((batch_size, N))
@@ -296,17 +356,8 @@ def atomic_conv_model(
             for j, atom_j in enumerate(atom_nbrs):
               complex_Nbrs_Z[i, atom, j] = complex_Z_b[i, atom_j]
 
-        orig_dict[complex_nbrs] = complex_Nbrs
-        orig_dict[complex_nbrs_z] = complex_Nbrs_Z
-        orig_dict[complex_z] = complex_Z_b
-        orig_dict[label] = np.reshape(y_b, newshape=(batch_size, 1))
+        orig_dict[self.complex_nbrs] = complex_Nbrs
+        orig_dict[self.complex_nbrs_z] = complex_Nbrs_Z
+        orig_dict[self.complex_z] = complex_Z_b
+        orig_dict[self.label] = np.reshape(y_b, newshape=(batch_size, 1))
         yield orig_dict
-
-  tg = TensorGraph(
-      batch_size=batch_size,
-      mode=str("regression"),
-      model_dir=str("/tmp/atom_conv"),
-      learning_rate=learning_rate)
-  tg.add_output(score)
-  tg.set_loss(loss)
-  return tg, feed_dict_generator, label

@@ -68,7 +68,7 @@ class VinaPoseGenerator(PoseGenerator):
       logger.info("Vina not available. Downloading")
       # TODO(rbharath): May want to move this file to S3 so we can ensure it's
       # always available.
-      wget_cmd = "wget -nv -c http://vina.scripps.edu/download/autodock_vina_1_1_2_linux_x86.tgz"
+      wget_cmd = "wget -nv -c -T 15 http://vina.scripps.edu/download/autodock_vina_1_1_2_linux_x86.tgz"
       call(wget_cmd.split())
       logger.info("Downloaded Vina. Extracting")
       download_cmd = "tar xzvf autodock_vina_1_1_2_linux_x86.tgz"

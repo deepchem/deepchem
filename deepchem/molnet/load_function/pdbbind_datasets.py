@@ -14,6 +14,12 @@ import time
 import deepchem
 import numpy as np
 import pandas as pd
+import logging
+import tarfile
+from deepchem.feat import rdkit_grid_featurizer as rgf
+from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
+
+logger = logging.getLogger(__name__)
 
 
 def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
@@ -126,3 +132,126 @@ def load_pdbbind_grid(split="random",
                                                transformers)
 
     return tasks, (train, valid, test), transformers
+
+
+def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
+  """Load and featurize raw PDBBind dataset.
+  
+  Parameters
+  ----------
+  data_dir: String, optional
+    Specifies the data directory to store the featurized dataset.
+  split: Str
+    Either "random" or "index"
+  feat: Str
+    Either "grid" or "atomic" for grid and atomic featurizations.
+  subset: Str
+    Only "core" or "refined" for now.
+  """
+  pdbbind_tasks = ["-logKd/Ki"]
+  data_dir = deepchem.utils.get_data_dir()
+  if reload:
+    save_dir = os.path.join(data_dir,
+                            "pdbbind/" + featurizer + "/" + str(split))
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
+      return pdbbind_tasks, all_dataset, transformers
+  dataset_file = os.path.join(data_dir, "pdbbind_v2015.tar.gz")
+  data_folder = os.path.join(data_dir, "v2015")
+  if not os.path.exists(dataset_file):
+    logger.warning("About to download PDBBind full dataset. Large file, 2GB")
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/' +
+        "pdbbind_v2015.tar.gz")
+  if os.path.exists(data_folder):
+    logger.info("Data directory for %s already exists" % subset)
+  else:
+    print("Untarring full dataset")
+    deepchem.utils.untargz_file(dataset_file, dest_dir=data_dir)
+  if subset == "core":
+    index_file = os.path.join(data_folder, "INDEX_core_name.2013")
+    labels_file = os.path.join(data_folder, "INDEX_core_data.2013")
+  elif subset == "refined":
+    index_file = os.path.join(data_folder, "INDEX_refined_name.2013")
+    labels_file = os.path.join(data_folder, "INDEX_refined_data.2013")
+  else:
+    raise ValueError("Other subsets not supported")
+  # Extract locations of data
+  pdbs = []
+  with open(index_file, "r") as g:
+    lines = g.readlines()
+    for line in lines:
+      line = line.split(" ")
+      pdb = line[0]
+      if len(pdb) == 4:
+        pdbs.append(pdb)
+  protein_files = [
+      os.path.join(data_folder, pdb, "%s_protein.pdb" % pdb) for pdb in pdbs
+  ]
+  ligand_files = [
+      os.path.join(data_folder, pdb, "%s_ligand.sdf" % pdb) for pdb in pdbs
+  ]
+  # Extract labels
+  labels = []
+  with open(labels_file, "r") as f:
+    lines = f.readlines()
+    for line in lines:
+      # Skip comment lines
+      if line[0] == "#":
+        continue
+      # Lines have format
+      # PDB code, resolution, release year, -logKd/Ki, Kd/Ki, reference, ligand name
+      line = line.split()
+      # The base-10 logarithm, -log kd/pk
+      log_label = line[3]
+      labels.append(log_label)
+  labels = np.array(labels)
+  # Featurize Data
+  if featurizer == "grid":
+    featurizer = rgf.RdkitGridFeaturizer(
+        voxel_width=2.0,
+        feature_types=[
+            'ecfp', 'splif', 'hbond', 'salt_bridge', 'pi_stack', 'cation_pi',
+            'charge'
+        ],
+        flatten=True)
+  elif featurizer == "atomic":
+    # Pulled from PDB files. For larger datasets with more PDBs, would use
+    # max num atoms instead of exact.
+    frag1_num_atoms = 70  # for ligand atoms
+    frag2_num_atoms = 24000  # for protein atoms
+    complex_num_atoms = 24070  # in total
+    max_num_neighbors = 4
+    # Cutoff in angstroms
+    neighbor_cutoff = 4
+    featurizer = ComplexNeighborListFragmentAtomicCoordinates(
+        frag1_num_atoms, frag2_num_atoms, complex_num_atoms, max_num_neighbors,
+        neighbor_cutoff)
+
+  else:
+    raise ValueError("Featurizer not supported")
+  print("Featurizing Complexes")
+  features, failures = featurizer.featurize_complexes(ligand_files,
+                                                      protein_files)
+  # Delete labels for failing elements
+  labels = np.delete(labels, failures)
+  dataset = deepchem.data.DiskDataset.from_numpy(features, labels)
+  # No transformations of data
+  transformers = []
+  if split == None:
+    return tasks, (dataset, None, None), transformers
+
+  # TODO(rbharath): This should be modified to contain a cluster split so
+  # structures of the same protein aren't in both train/test
+  splitters = {
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
+  }
+  splitter = splitters[split]
+  train, valid, test = splitter.train_valid_test_split(dataset)
+  all_dataset = (train, valid, test)
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                             transformers)
+  return pdbbind_tasks, all_dataset, transformers
