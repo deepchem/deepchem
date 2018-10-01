@@ -20,11 +20,13 @@ class TestPoseGeneration(unittest.TestCase):
   Does sanity checks on pose generation.
   """
 
+  @attr("slow")
   def test_vina_initialization(self):
     """Test that VinaPoseGenerator can be initialized."""
     # Note this may download autodock Vina...
     vpg = dc.dock.VinaPoseGenerator(detect_pockets=False, exhaustiveness=1)
 
+  @attr("slow")
   def test_pocket_vina_initialization(self):
     """Test that VinaPoseGenerator can be initialized."""
     # Note this may download autodock Vina...
