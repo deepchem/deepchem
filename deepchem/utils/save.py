@@ -16,6 +16,7 @@ import numpy as np
 import os
 import deepchem
 from rdkit import Chem
+import warnings
 
 
 def log(string, verbose=True):
@@ -126,7 +127,8 @@ def seq_one_hot_encode(sequences, letters='ATCGN'):
   -------
   np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
   """
-
+  warnings.warn("This Function has been moved to Save",
+                "This will be removed in the future releases", FutureWarning)
   # The label encoder is given characters for ACGTN
   letter_encoder = {l: i for i, l in enumerate(letters)}
   alphabet_length = len(letter_encoder)
@@ -179,7 +181,8 @@ def encode_fasta_sequence(fname):
   -------
   np.ndarray: Shape (N_sequences, 5, sequence_length, 1).
   """
-
+  warnings.warn("This Function has been moved to Save",
+                "This will be removed in the future releases", FutureWarning)
   return encode_bio_sequence(fname)
 
 
@@ -201,7 +204,8 @@ def encode_bio_sequence(fname, file_type="fasta", letters="ATCGN"):
   -------
   np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
   """
-
+  warnings.warn("This Function has been moved to Save",
+                "This will be removed in the future releases", FutureWarning)
   from Bio import SeqIO
 
   sequences = SeqIO.parse(fname, file_type)
