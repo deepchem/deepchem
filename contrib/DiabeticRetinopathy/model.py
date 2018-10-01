@@ -20,6 +20,7 @@ from deepchem.trans import undo_transforms
 from deepchem.data.data_loader import ImageLoader
 from sklearn.metrics import confusion_matrix, accuracy_score
 
+
 class DRModel(TensorGraph):
 
   def __init__(self,
@@ -61,84 +62,86 @@ class DRModel(TensorGraph):
 
   def build_graph(self):
     # inputs placeholder
-    self.inputs = Feature(shape=(None, self.image_size, self.image_size, 3), dtype=tf.uint8)
+    self.inputs = Feature(
+        shape=(None, self.image_size, self.image_size, 3), dtype=tf.uint8)
     # data preprocessing and augmentation
-    in_layer = DRAugment(self.augment,
-                         self.batch_size,
-                         size=(self.image_size, self.image_size),
-                         in_layers=[self.inputs])
+    in_layer = DRAugment(
+        self.augment,
+        self.batch_size,
+        size=(self.image_size, self.image_size),
+        in_layers=[self.inputs])
     # first conv layer
-    in_layer = Conv2D(self.n_init_kernel,
-                      kernel_size=7,
-                      activation_fn=None,
-                      in_layers=[in_layer])
+    in_layer = Conv2D(
+        self.n_init_kernel,
+        kernel_size=7,
+        activation_fn=None,
+        in_layers=[in_layer])
     in_layer = BatchNorm(in_layers=[in_layer])
     in_layer = ReLU(in_layers=[in_layer])
-    
+
     # downsample by max pooling
-    res_in = MaxPool2D(ksize=[1, 3, 3, 1],
-                       strides=[1, 2, 2, 1],
-                       in_layers=[in_layer])
-    
+    res_in = MaxPool2D(
+        ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], in_layers=[in_layer])
+
     for ct_module in range(self.n_downsample - 1):
       # each module is a residual convolutional block
       # followed by a convolutional downsample layer
-      in_layer = Conv2D(self.n_init_kernel * 2 ** (ct_module - 1),
-                        kernel_size=1,
-                        activation_fn=None,
-                        in_layers=[res_in])
+      in_layer = Conv2D(
+          self.n_init_kernel * 2**(ct_module - 1),
+          kernel_size=1,
+          activation_fn=None,
+          in_layers=[res_in])
       in_layer = BatchNorm(in_layers=[in_layer])
       in_layer = ReLU(in_layers=[in_layer])
-      in_layer = Conv2D(self.n_init_kernel * 2 ** (ct_module - 1),
-                         kernel_size=3,
-                         activation_fn=None,
-                         in_layers=[in_layer])
+      in_layer = Conv2D(
+          self.n_init_kernel * 2**(ct_module - 1),
+          kernel_size=3,
+          activation_fn=None,
+          in_layers=[in_layer])
       in_layer = BatchNorm(in_layers=[in_layer])
       in_layer = ReLU(in_layers=[in_layer])
-      in_layer = Conv2D(self.n_init_kernel * 2 ** ct_module,
-                         kernel_size=1,
-                         activation_fn=None,
-                         in_layers=[in_layer])
+      in_layer = Conv2D(
+          self.n_init_kernel * 2**ct_module,
+          kernel_size=1,
+          activation_fn=None,
+          in_layers=[in_layer])
       res_a = BatchNorm(in_layers=[in_layer])
-      
-      
+
       res_out = res_in + res_a
-      res_in = Conv2D(self.n_init_kernel * 2 ** (ct_module + 1),
-                      kernel_size=3,
-                      stride=2,
-                      in_layers=[res_out])
+      res_in = Conv2D(
+          self.n_init_kernel * 2**(ct_module + 1),
+          kernel_size=3,
+          stride=2,
+          in_layers=[res_out])
       res_in = BatchNorm(in_layers=[res_in])
-    
+
     # max pooling over the final outcome
-    in_layer = ReduceMax(axis=(1, 2),
-                         in_layers=[res_in])
-    
+    in_layer = ReduceMax(axis=(1, 2), in_layers=[res_in])
+
     for layer_size in self.n_fully_connected:
       # fully connected layers
-      in_layer = Dense(layer_size,
-                       activation_fn=tf.nn.relu,
-                       in_layers=[in_layer])
+      in_layer = Dense(
+          layer_size, activation_fn=tf.nn.relu, in_layers=[in_layer])
       # dropout for dense layers
       #in_layer = Dropout(0.25, in_layers=[in_layer])
-      
-    logit_pred = Dense(self.n_tasks * self.n_classes,
-                       activation_fn=None,
-                       in_layers=[in_layer])
-    logit_pred = Reshape(shape=(None, self.n_tasks, self.n_classes),
-                         in_layers=[logit_pred])
-    
+
+    logit_pred = Dense(
+        self.n_tasks * self.n_classes, activation_fn=None, in_layers=[in_layer])
+    logit_pred = Reshape(
+        shape=(None, self.n_tasks, self.n_classes), in_layers=[logit_pred])
+
     weights = Weights(shape=(None, self.n_tasks))
     labels = Label(shape=(None, self.n_tasks), dtype=tf.int32)
-    
+
     output = SoftMax(logit_pred)
     self.add_output(output)
     loss = SparseSoftMaxCrossEntropy(in_layers=[labels, logit_pred])
     weighted_loss = WeightedError(in_layers=[loss, weights])
-    
+
     # weight decay regularizer
     # weighted_loss = WeightDecay(0.1, 'l2', in_layers=[weighted_loss])
     self.set_loss(weighted_loss)
-  
+
   def default_generator(self,
                         dataset,
                         epochs=1,
@@ -151,45 +154,67 @@ class DRModel(TensorGraph):
           deterministic=deterministic,
           pad_batches=pad_batches):
         feed_dict = dict()
-        
+
         if None in X_b:
           # load images on the fly
           feed_dict[self.features[0]] = ImageLoader.load_img(ids_b)
         else:
           feed_dict[self.features[0]] = X_b
-        
+
         if y_b is not None and not predict:
           feed_dict[self.labels[0]] = y_b
         if w_b is not None and not predict:
           feed_dict[self.task_weights[0]] = w_b
-        
-          
+
         yield feed_dict
+
 
 def DRAccuracy(y, y_pred):
   y_pred = np.argmax(y_pred, 1)
   return accuracy_score(y, y_pred)
 
+
 def DRSpecificity(y, y_pred):
-  y_pred = (np.argmax(y_pred, 1)>0)*1
-  y = (y>0)*1
+  y_pred = (np.argmax(y_pred, 1) > 0) * 1
+  y = (y > 0) * 1
   TN = sum((1 - y_pred) * (1 - y))
-  N = sum(1-y)
-  return float(TN)/N
+  N = sum(1 - y)
+  return float(TN) / N
+
 
 def DRSensitivity(y, y_pred):
-  y_pred = (np.argmax(y_pred, 1)>0)*1
-  y = (y>0)*1
+  y_pred = (np.argmax(y_pred, 1) > 0) * 1
+  y = (y > 0) * 1
   TP = sum(y_pred * y)
   P = sum(y)
-  return float(TP)/P
+  return float(TP) / P
+
 
 def ConfusionMatrix(y, y_pred):
   y_pred = np.argmax(y_pred, 1)
   return confusion_matrix(y, y_pred)
 
+
+def QuadWeightedKappa(y, y_pred):
+  y_pred = np.argmax(y_pred, 1)
+  cm = confusion_matrix(y, y_pred)
+  classes_y, counts_y = np.unique(y, return_counts=True)
+  classes_y_pred, counts_y_pred = np.unique(y_pred, return_counts=True)
+  E = np.zeros((classes_y.shape[0], classes_y.shape[0]))
+  for i, c1 in enumerate(classes_y):
+    for j, c2 in enumerate(classes_y_pred):
+      E[c1, c2] = counts_y[i] * counts_y_pred[j]
+  E = E / np.sum(E) * np.sum(cm)
+  w = np.zeros((classes_y.shape[0], classes_y.shape[0]))
+  for i in range(classes_y.shape[0]):
+    for j in range(classes_y.shape[0]):
+      w[i, j] = float((i - j)**2) / (classes_y.shape[0] - 1)**2
+  re = 1 - np.sum(w * cm) / np.sum(w * E)
+  return re
+
+
 class DRAugment(Layer):
-  
+
   def __init__(self,
                augment,
                batch_size,
@@ -217,16 +242,17 @@ class DRAugment(Layer):
     self.central_crop = central_crop
     self.size = size
     super(DRAugment, self).__init__(**kwargs)
-    
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
     training = kwargs['training'] if 'training' in kwargs else 1.0
-    
+
     parent_tensor = tf.image.convert_image_dtype(parent_tensor, tf.float32)
     if not self.augment:
       out_tensor = parent_tensor
     else:
+
       def preprocess(img):
         img = tf.image.random_flip_left_right(img)
         img = tf.image.random_flip_up_down(img)
@@ -237,9 +263,13 @@ class DRAugment(Layer):
           img = tf.clip_by_value(img, 0.0, 1.0)
         if self.central_crop:
           # sample cut ratio from a clipped gaussian
-          img = tf.image.central_crop(img, np.clip(np.random.normal(1., 0.06), 0.8, 1.))
-          img = tf.image.resize_bilinear(tf.expand_dims(img, 0), tf.convert_to_tensor(self.size))[0]
+          img = tf.image.central_crop(img,
+                                      np.clip(
+                                          np.random.normal(1., 0.06), 0.8, 1.))
+          img = tf.image.resize_bilinear(
+              tf.expand_dims(img, 0), tf.convert_to_tensor(self.size))[0]
         return img
+
       outs = tf.map_fn(preprocess, parent_tensor)
       # train/valid differences
       out_tensor = training * outs + (1 - training) * parent_tensor
