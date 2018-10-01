@@ -18,7 +18,7 @@ import sys
 from deepchem.utils.save import log
 from deepchem.utils.save import load_csv_files
 from deepchem.utils.save import load_sdf_files
-from deepchem.utils.save import encode_fasta_sequence
+from deepchem.utils.genomics import encode_fasta_sequence
 from deepchem.feat import UserDefinedFeaturizer
 from deepchem.data import DiskDataset
 from deepchem.data import NumpyDataset
@@ -78,8 +78,8 @@ def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
     if ind % log_every_N == 0:
       log("Featurizing sample %d" % ind, verbose)
     features.append(featurizer.featurize([mol]))
-  valid_inds = np.array(
-      [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
+  valid_inds = np.array([1 if elt.size > 0 else 0 for elt in features],
+                        dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
   return np.squeeze(np.array(features), axis=1), valid_inds
 
@@ -101,8 +101,8 @@ def featurize_smiles_np(arr, featurizer, log_every_N=1000, verbose=True):
       log("Featurizing sample %d" % ind, verbose)
     features.append(featurizer.featurize([mol]))
 
-  valid_inds = np.array(
-      [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
+  valid_inds = np.array([1 if elt.size > 0 else 0 for elt in features],
+                        dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
   features = np.squeeze(np.array(features))
   return features.reshape(-1,)
@@ -150,8 +150,8 @@ def featurize_mol_df(df, featurizer, field, verbose=True, log_every_N=1000):
     if ind % log_every_N == 0:
       log("Featurizing sample %d" % ind, verbose)
     features.append(featurizer.featurize([mol]))
-  valid_inds = np.array(
-      [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
+  valid_inds = np.array([1 if elt.size > 0 else 0 for elt in features],
+                        dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
   return np.squeeze(np.array(features)), valid_inds
 
