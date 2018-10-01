@@ -49,4 +49,5 @@ conda install -y -q -c conda-forge joblib=0.11 \
     setuptools=39.0.1 \
     biopython=1.71 \
     numpy=1.14
+yes | pip install -- upgrade pip
 yes | pip install $tensorflow==1.6.0
