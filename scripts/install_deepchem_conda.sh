@@ -29,6 +29,7 @@ if [[ "$unamestr" == 'Darwin' ]]; then
 fi
 
 conda install -y -q -c omnia pdbfixer=1.4
+yes | pip install --upgrade pip
 conda install -y -q -c deepchem mdtraj=1.9.1
 conda install -y -q -c rdkit rdkit=2017.09.1
 conda install -y -q -c conda-forge joblib=0.11 \
@@ -44,10 +45,8 @@ conda install -y -q -c conda-forge joblib=0.11 \
     requests=2.18.4 \
     xgboost=0.6a2 \
     simdna=0.4.2 \
-    jupyter=1.0.0 \
     pbr=3.1.1 \
     setuptools=39.0.1 \
     biopython=1.71 \
     numpy=1.14
-yes | pip install -- upgrade pip
 yes | pip install $tensorflow==1.6.0
