@@ -21,12 +21,14 @@ class TestDocking(unittest.TestCase):
   Does sanity checks on pose generation. 
   """
 
+  @nottest
   def test_vina_grid_rf_docker_init(self):
     """Test that VinaGridRFDocker can be initialized."""
     if sys.version_info >= (3, 0):
       return
     docker = dc.dock.VinaGridRFDocker(exhaustiveness=1, detect_pockets=False)
 
+  @nottest
   def test_pocket_vina_grid_rf_docker_init(self):
     """Test that VinaGridRFDocker w/pockets can be initialized."""
     if sys.version_info >= (3, 0):
@@ -65,6 +67,7 @@ class TestDocking(unittest.TestCase):
     assert os.path.exists(protein_docked)
     assert os.path.exists(ligand_docked)
 
+  @nottest
   def test_vina_grid_rf_docker_specified_pocket(self):
     """Test that VinaGridRFDocker can dock into spec. pocket."""
     if sys.version_info >= (3, 0):
