@@ -16,6 +16,8 @@ import numpy as np
 import os
 import deepchem
 from rdkit import Chem
+import warnings
+from deepchem.utils.genomics import encode_bio_sequence as encode_sequence, encode_fasta_sequence as fasta_sequence, seq_one_hot_encode as seq_one_hotencode
 
 
 def log(string, verbose=True):
@@ -126,44 +128,10 @@ def seq_one_hot_encode(sequences, letters='ATCGN'):
   -------
   np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
   """
-
-  # The label encoder is given characters for ACGTN
-  letter_encoder = {l: i for i, l in enumerate(letters)}
-  alphabet_length = len(letter_encoder)
-
-  # Peak at the first sequence to get the length of the sequence.
-  try:
-    first_seq = next(sequences)
-    tail_seq = sequences
-  except TypeError:
-    first_seq = sequences[0]
-    tail_seq = sequences[1:]
-
-  sequence_length = len(first_seq)
-
-  seqs = []
-
-  seqs.append(
-      _seq_to_encoded(first_seq, letter_encoder, alphabet_length,
-                      sequence_length))
-
-  for other_seq in tail_seq:
-    if len(other_seq) != sequence_length:
-      raise ValueError
-
-    seqs.append(
-        _seq_to_encoded(other_seq, letter_encoder, alphabet_length,
-                        sequence_length))
-
-  return np.expand_dims(np.array(seqs), -1)
-
-
-def _seq_to_encoded(seq, letter_encoder, alphabet_length, sequence_length):
-  b = np.zeros((alphabet_length, sequence_length))
-  seq_ints = [letter_encoder[s] for s in seq]
-  b[seq_ints, np.arange(sequence_length)] = 1
-
-  return b
+  warnings.warn(
+      "This Function has been deprecated and now resides in deepchem.utils.genomics ",
+      DeprecationWarning)
+  return seq_one_hotencode(sequences, letters=letters)
 
 
 def encode_fasta_sequence(fname):
@@ -179,8 +147,11 @@ def encode_fasta_sequence(fname):
   -------
   np.ndarray: Shape (N_sequences, 5, sequence_length, 1).
   """
+  warnings.warn(
+      "This Function has been deprecated and now resides in deepchem.utils.genomics",
+      DeprecationWarning)
 
-  return encode_bio_sequence(fname)
+  return fasta_sequence(fname)
 
 
 def encode_bio_sequence(fname, file_type="fasta", letters="ATCGN"):
@@ -201,11 +172,10 @@ def encode_bio_sequence(fname, file_type="fasta", letters="ATCGN"):
   -------
   np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
   """
-
-  from Bio import SeqIO
-
-  sequences = SeqIO.parse(fname, file_type)
-  return seq_one_hot_encode(sequences, letters)
+  warnings.warn(
+      "This Function has been deprecated and now resides in deepchem.utils.genomics ",
+      DeprecationWarning)
+  return encode_sequence(fname, file_type=file_type, letters=letters)
 
 
 def save_metadata(tasks, metadata_df, data_dir):

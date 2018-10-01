@@ -18,7 +18,7 @@ import sys
 from deepchem.utils.save import log
 from deepchem.utils.save import load_csv_files
 from deepchem.utils.save import load_sdf_files
-from deepchem.utils.save import encode_fasta_sequence
+from deepchem.utils.genomics import encode_fasta_sequence
 from deepchem.feat import UserDefinedFeaturizer
 from deepchem.data import DiskDataset
 from deepchem.data import NumpyDataset
