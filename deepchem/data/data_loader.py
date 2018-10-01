@@ -18,7 +18,7 @@ import sys
 from deepchem.utils.save import log
 from deepchem.utils.save import load_csv_files
 from deepchem.utils.save import load_sdf_files
-from deepchem.utils.save import encode_fasta_sequence
+from deepchem.utils.genomics import encode_fasta_sequence
 from deepchem.feat import UserDefinedFeaturizer
 from deepchem.data import DiskDataset
 from deepchem.data import NumpyDataset
@@ -230,8 +230,7 @@ class DataLoader(object):
           assert len(X) == len(ids)
 
         time2 = time.time()
-        log(
-            "TIMING: featurizing shard %d took %0.3f s" %
+        log("TIMING: featurizing shard %d took %0.3f s" %
             (shard_num, time2 - time1), self.verbose)
         yield X, y, w, ids
 
@@ -295,8 +294,7 @@ class SDFLoader(DataLoader):
 
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
-    log(
-        "Currently featurizing feature_type: %s" %
+    log("Currently featurizing feature_type: %s" %
         self.featurizer.__class__.__name__, self.verbose)
     return featurize_mol_df(shard, self.featurizer, field=self.mol_field)
 
