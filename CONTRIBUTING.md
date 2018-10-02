@@ -43,7 +43,7 @@ On successful merge the author will be added as a member of the DeepChem organiz
 DeepChem uses [yapf](https://github.com/google/yapf) to autoformat code.
 
 ``` bash
-pip install yapf==0.20.0
+pip install yapf==0.22.0
 cd <git_root>
 yapf -i <python_files changed>
 ```
