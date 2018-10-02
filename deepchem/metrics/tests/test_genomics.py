@@ -27,7 +27,7 @@ class TestGenomicMetrics(unittest.TestCase):
     # Encode motif
     motif_name = "TAL1_known4"
     sequences = np.array(["ACGTA", "GATAG", "CGCGC"])
-    sequences = dc.utils.save.seq_one_hot_encode(sequences, letters=LETTERS)
+    sequences = dc.utils.genomics.seq_one_hot_encode(sequences, letters=LETTERS)
     # sequences now has shape (3, 4, 5, 1)
     self.assertEqual(sequences.shape, (3, 4, 5, 1))
 
@@ -38,7 +38,7 @@ class TestGenomicMetrics(unittest.TestCase):
     """Test get_pssm_scores returns correct shape."""
     motif_name = "TAL1_known4"
     sequences = np.array(["ACGTA", "GATAG", "CGCGC"])
-    sequences = dc.utils.save.seq_one_hot_encode(sequences, letters=LETTERS)
+    sequences = dc.utils.genomics.seq_one_hot_encode(sequences, letters=LETTERS)
     # sequences now has shape (3, 4, 5, 1)
     self.assertEqual(sequences.shape, (3, 4, 5, 1))
     pssm = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
@@ -50,7 +50,7 @@ class TestGenomicMetrics(unittest.TestCase):
     """Test in-silico mutagenesis returns correct shape."""
     # Construct and train SequenceDNN model
     sequences = np.array(["ACGTA", "GATAG", "CGCGC"])
-    sequences = dc.utils.save.seq_one_hot_encode(sequences, letters=LETTERS)
+    sequences = dc.utils.genomics.seq_one_hot_encode(sequences, letters=LETTERS)
     labels = np.array([1, 0, 0])
     labels = np.reshape(labels, (3, 1))
     self.assertEqual(sequences.shape, (3, 4, 5, 1))
@@ -71,7 +71,7 @@ class TestGenomicMetrics(unittest.TestCase):
     """Test in-silico mutagenesis returns nonzero output."""
     # Construct and train SequenceDNN model
     sequences = np.array(["ACGTA", "GATAG", "CGCGC"])
-    sequences = dc.utils.save.seq_one_hot_encode(sequences, letters=LETTERS)
+    sequences = dc.utils.genomics.seq_one_hot_encode(sequences, letters=LETTERS)
     labels = np.array([1, 0, 0])
     labels = np.reshape(labels, (3, 1))
     self.assertEqual(sequences.shape, (3, 4, 5, 1))
