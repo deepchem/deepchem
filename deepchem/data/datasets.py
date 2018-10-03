@@ -980,16 +980,20 @@ class DiskDataset(Dataset):
 
     else:
       if w is not None:
-        warnings.warn('y is None but w is not None. Setting w to None', UserWarning)
+        warnings.warn('y is None but w is not None. Setting w to None',
+                      UserWarning)
         w = None
 
       if tasks is not None:
-        warnings.warn('y is None but tasks is not None. Setting tasks to None', UserWarning)
+        warnings.warn('y is None but tasks is not None. Setting tasks to None',
+                      UserWarning)
         tasks = None
 
     # raw_data = (X, y, w, ids)
-    return DiskDataset.create_dataset(
-        [(X, y, w, ids)], data_dir=data_dir, tasks=tasks, verbose=verbose)
+    return DiskDataset.create_dataset([(X, y, w, ids)],
+                                      data_dir=data_dir,
+                                      tasks=tasks,
+                                      verbose=verbose)
 
   @staticmethod
   def merge(datasets, merge_dir=None):
@@ -1205,8 +1209,9 @@ class DiskDataset(Dataset):
       select_dir = tempfile.mkdtemp()
     # Handle edge case with empty indices
     if not len(indices):
-      return DiskDataset.create_dataset(
-          [], data_dir=select_dir, verbose=self.verbose)
+      return DiskDataset.create_dataset([],
+                                        data_dir=select_dir,
+                                        verbose=self.verbose)
     indices = np.array(sorted(indices)).astype(int)
     tasks = self.get_task_names()
 
