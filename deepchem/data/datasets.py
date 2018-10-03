@@ -990,10 +990,8 @@ class DiskDataset(Dataset):
         tasks = None
 
     # raw_data = (X, y, w, ids)
-    return DiskDataset.create_dataset([(X, y, w, ids)],
-                                      data_dir=data_dir,
-                                      tasks=tasks,
-                                      verbose=verbose)
+    return DiskDataset.create_dataset(
+        [(X, y, w, ids)], data_dir=data_dir, tasks=tasks, verbose=verbose)
 
   @staticmethod
   def merge(datasets, merge_dir=None):
@@ -1209,9 +1207,8 @@ class DiskDataset(Dataset):
       select_dir = tempfile.mkdtemp()
     # Handle edge case with empty indices
     if not len(indices):
-      return DiskDataset.create_dataset([],
-                                        data_dir=select_dir,
-                                        verbose=self.verbose)
+      return DiskDataset.create_dataset(
+          [], data_dir=select_dir, verbose=self.verbose)
     indices = np.array(sorted(indices)).astype(int)
     tasks = self.get_task_names()
 
