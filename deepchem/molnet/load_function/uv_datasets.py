@@ -52,7 +52,6 @@ def get_transformers(train_dataset):
 
 
 def gen_uv(UV_tasks, data_dir, train_dir, valid_dir, test_dir, shard_size=2000):
-
   """Loading the UV dataset; does not do train/test split"""
 
   time1 = time.time()
@@ -81,13 +80,15 @@ def gen_uv(UV_tasks, data_dir, train_dir, valid_dir, test_dir, shard_size=2000):
   logger.info("About to featurize UV dataset.")
   featurizer = deepchem.feat.UserDefinedFeaturizer(merck_descriptors)
   loader = deepchem.data.UserCSVLoader(
-    tasks=UV_tasks, id_field="Molecule", featurizer=featurizer)
+      tasks=UV_tasks, id_field="Molecule", featurizer=featurizer)
 
   logger.info("Featurizing train datasets...")
-  train_dataset = loader.featurize(input_files=train_files, shard_size=shard_size)
+  train_dataset = loader.featurize(
+      input_files=train_files, shard_size=shard_size)
 
   logger.info("Featurizing validation datasets...")
-  valid_dataset = loader.featurize(input_files=valid_files, shard_size=shard_size)
+  valid_dataset = loader.featurize(
+      input_files=valid_files, shard_size=shard_size)
 
   logger.info("Featurizing test datasets....")
   test_dataset = loader.featurize(input_files=test_files, shard_size=shard_size)
@@ -107,7 +108,8 @@ def gen_uv(UV_tasks, data_dir, train_dir, valid_dir, test_dir, shard_size=2000):
   transformers = get_transformers(train_dataset)
 
   for transformer in transformers:
-    logger.info("Performing transformations with {}".format(transformer.__class__.__name__))
+    logger.info("Performing transformations with {}".format(
+        transformer.__class__.__name__))
 
     logger.info("Transforming the training dataset...")
     train_dataset = transformer.transform(train_dataset)
@@ -133,13 +135,12 @@ def gen_uv(UV_tasks, data_dir, train_dir, valid_dir, test_dir, shard_size=2000):
   time2 = time.time()
 
   ##### TIMING ###########
-  logger.info("TIMING: UV fitting took %0.3f s" %(time2-time1))
+  logger.info("TIMING: UV fitting took %0.3f s" % (time2 - time1))
 
   return train_dataset, valid_dataset, test_dataset
 
 
 def load_uv(shard_size=2000, featurizer=None, split=None, reload=True):
-
   """Load UV dataset; does not do train/test split"""
 
   data_dir = deepchem.utils.get_data_dir()
@@ -153,7 +154,7 @@ def load_uv(shard_size=2000, featurizer=None, split=None, reload=True):
   test_dir = os.path.join(data_dir, "test_dir")
 
   if (os.path.exists(train_dir) and os.path.exists(valid_dir) and
-    os.path.exists(test_dir)):
+      os.path.exists(test_dir)):
 
     logger.info("Reloading existing datasets")
     train_dataset = deepchem.data.DiskDataset(train_dir)
@@ -168,5 +169,4 @@ def load_uv(shard_size=2000, featurizer=None, split=None, reload=True):
 
   transformers = get_transformers(train_dataset)
 
-  return UV_tasks, (train_dataset, valid_dataset,
-                    test_dataset), transformers
+  return UV_tasks, (train_dataset, valid_dataset, test_dataset), transformers

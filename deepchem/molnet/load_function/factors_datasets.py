@@ -25,7 +25,6 @@ TEST_FILENAME = "FACTORS_test2_disguised_combined_full.csv.gz"
 
 
 def remove_missing_entries(dataset):
-
   """Remove missing entries.
 
   Some of the datasets have missing entries that sneak in as zero'd out
@@ -43,7 +42,6 @@ def remove_missing_entries(dataset):
 
 
 def get_transformers(train_dataset):
-
   """Gets transformers applied to the dataset"""
 
   transformers = list()
@@ -52,8 +50,12 @@ def get_transformers(train_dataset):
   return transformers
 
 
-def gen_factors(FACTORS_tasks, data_dir, train_dir, valid_dir, test_dir, shard_size=2000):
-
+def gen_factors(FACTORS_tasks,
+                data_dir,
+                train_dir,
+                valid_dir,
+                test_dir,
+                shard_size=2000):
   """Loads the FACTORS dataset; does not do train/test split"""
 
   time1 = time.time()
@@ -78,7 +80,8 @@ def gen_factors(FACTORS_tasks, data_dir, train_dir, valid_dir, test_dir, shard_s
   # Featurize the FACTORS dataset
   logger.info("About to featurize the FACTORS dataset")
   featurizer = deepchem.feat.UserDefinedFeaturizer(merck_descriptors)
-  loader = deepchem.data.UserCSVLoader(tasks=FACTORS_tasks, id_field="Molecule", featurizer=featurizer)
+  loader = deepchem.data.UserCSVLoader(
+      tasks=FACTORS_tasks, id_field="Molecule", featurizer=featurizer)
 
   logger.info("Featurizing the train dataset...")
   train_dataset = loader.featurize(train_files, shard_size=shard_size)
@@ -103,7 +106,8 @@ def gen_factors(FACTORS_tasks, data_dir, train_dir, valid_dir, test_dir, shard_s
   transformers = get_transformers(train_dataset)
 
   for transformer in transformers:
-    logger.info("Performing transformations with {}".format(transformer.__class__.__name__))
+    logger.info("Performing transformations with {}".format(
+        transformer.__class__.__name__))
 
     logger.info("Transforming the training dataset...")
     train_dataset = transformer.transform(train_dataset)
@@ -135,11 +139,12 @@ def gen_factors(FACTORS_tasks, data_dir, train_dir, valid_dir, test_dir, shard_s
 
 
 def load_factors(shard_size=2000, featurizer=None, split=None, reload=True):
-
   """Loads FACTOR dataset; does not do train/test split"""
 
-  FACTORS_tasks = ['T_00001', 'T_00002', 'T_00003', 'T_00004', 'T_00005', 'T_00006',
-                   'T_00007', 'T_00008', 'T_00009', 'T_00010', 'T_00011', 'T_00012']
+  FACTORS_tasks = [
+      'T_00001', 'T_00002', 'T_00003', 'T_00004', 'T_00005', 'T_00006',
+      'T_00007', 'T_00008', 'T_00009', 'T_00010', 'T_00011', 'T_00012'
+  ]
 
   data_dir = deepchem.utils.get_data_dir()
   data_dir = os.path.join(data_dir, "factors")
@@ -152,7 +157,7 @@ def load_factors(shard_size=2000, featurizer=None, split=None, reload=True):
   test_dir = os.path.join(data_dir, "test_dir")
 
   if (os.path.exists(train_dir) and os.path.exists(valid_dir) and
-    os.path.exists(test_dir)):
+      os.path.exists(test_dir)):
 
     logger.info("Reloading existing datasets")
     train_dataset = deepchem.data.DiskDataset(train_dir)
