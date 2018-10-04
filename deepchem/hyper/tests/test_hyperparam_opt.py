@@ -140,7 +140,7 @@ class TestHyperparamOpt(unittest.TestCase):
 
     transformers = []
     metric = dc.metrics.Metric(
-        dc.metrics.matthews_corrcoef, np.mean, mode="classification")
+        dc.metrics.roc_auc_score, np.mean, mode="classification")
     params_dict = {"layer_sizes": [(10,), (100,)]}
 
     def model_builder(model_params, model_dir):
