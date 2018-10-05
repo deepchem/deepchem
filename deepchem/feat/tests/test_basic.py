@@ -18,15 +18,19 @@ class TestMolecularWeight(unittest.TestCase):
     """
     Set up tests.
     """
-    smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
-    self.mol = Chem.MolFromSmiles(smiles)
+    self.smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
+    self.mol = Chem.MolFromSmiles(self.smiles)
     self.engine = MolecularWeight()
 
   def testMW(self):
     """
     Test MW.
     """
+    # mols as input argument
     assert np.allclose(self.engine([self.mol]), 180, atol=0.1)
+
+    # smiles as input argument
+    assert np.allclose(self.engine(smiles=[self.smiles]), 180, atol=0.1)
 
 
 class TestRDKitDescriptors(unittest.TestCase):
@@ -38,16 +42,24 @@ class TestRDKitDescriptors(unittest.TestCase):
     """
     Set up tests.
     """
-    smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
-    self.mol = Chem.MolFromSmiles(smiles)
+    self.smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
+    self.mol = Chem.MolFromSmiles(self.smiles)
     self.engine = RDKitDescriptors()
 
   def testRDKitDescriptors(self):
     """
     Test simple descriptors.
     """
-    descriptors = self.engine([self.mol])
+    # mols as input argument
+    descriptors_from_mols = self.engine([self.mol])
     assert np.allclose(
-        descriptors[0, self.engine.descriptors.index('ExactMolWt')],
+        descriptors_from_mols[0, self.engine.descriptors.index('ExactMolWt')],
+        180,
+        atol=0.1)
+
+    # smiles as input argument
+    descriptors_from_smiles = self.engine(smiles=[self.smiles])
+    assert np.allclose(
+        descriptors_from_smiles[0, self.engine.descriptors.index('ExactMolWt')],
         180,
         atol=0.1)

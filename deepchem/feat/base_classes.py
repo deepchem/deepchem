@@ -6,7 +6,9 @@ import types
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import rdGeometry, rdMolTransforms
+from rdkit.Chem import MolFromSmiles
 import multiprocessing
+import warnings
 
 __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
@@ -83,7 +85,7 @@ class Featurizer(object):
   for a single molecule.
   """
 
-  def featurize(self, mols, verbose=True, log_every_n=1000):
+  def featurize(self, mols=None, smiles=None, verbose=True, log_every_n=1000):
     """
     Calculate features for molecules.
 
@@ -91,7 +93,29 @@ class Featurizer(object):
     ----------
     mols : iterable
         RDKit Mol objects.
+
+    smiles : iterable, set to None
+        SMILE strings
+
     """
+
+    if mols is None and smiles is None:
+      raise ValueError('mols and smiles both cannot be None')
+
+    if mols is not None and smiles is not None:
+      raise ValueError('mols and smiles both cannot be not None')
+
+    if type(mols[0]) is str:
+      raise TypeError('mols should an iterable of RDKit Mol objects. '
+                      'Maybe you wanted to assign the input to smiles. '
+                      'Use the smiles argument to assign SMILE strings')
+
+    if mols is None:
+      mols = list()
+
+      for smile in smiles:
+        mols.append(MolFromSmiles(smile))
+
     mols = list(mols)
     features = []
     for i, mol in enumerate(mols):
@@ -114,7 +138,7 @@ class Featurizer(object):
     """
     raise NotImplementedError('Featurizer is not defined.')
 
-  def __call__(self, mols):
+  def __call__(self, mols=None, smiles=None):
     """
     Calculate features for molecules.
 
@@ -123,6 +147,25 @@ class Featurizer(object):
     mols : iterable
         RDKit Mol objects.
     """
+
+    if mols is None and smiles is None:
+      raise ValueError('mols and smiles both cannot be None')
+
+    if mols is not None and smiles is not None:
+      raise ValueError('mols and smiles both cannot be not None')
+
+    if type(mols[0]) is str:
+      raise TypeError('mols should an iterable of RDKit Mol objects. '
+                      'Maybe you wanted to assign the input to smiles. '
+                      'Use smiles argument to assign SMILE strings')
+
+    # Only smiles are given
+    if mols is None:
+      mols = list()
+
+      for smile in smiles:
+        mols.append(MolFromSmiles(smile))
+
     return self.featurize(mols)
 
 
