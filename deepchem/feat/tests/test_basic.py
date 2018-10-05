@@ -60,6 +60,7 @@ class TestRDKitDescriptors(unittest.TestCase):
     # smiles as input argument
     descriptors_from_smiles = self.engine(smiles=[self.smiles])
     assert np.allclose(
-        descriptors_from_smiles[0, self.engine.descriptors.index('ExactMolWt')],
+        descriptors_from_smiles[0,
+                                self.engine.descriptors.index('ExactMolWt')],
         180,
         atol=0.1)

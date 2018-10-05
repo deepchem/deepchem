@@ -105,7 +105,6 @@ class TestConvMolFeaturizer(unittest.TestCase):
     assert np.array_equal(deg_adj_lists[6], np.zeros([0, 6], dtype=np.int32))
 
   def test_single_carbon_using_smiles(self):
-
     """Test that single carbon atom is featurized properly."""
     raw_smiles = ['C']
     mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
@@ -169,7 +168,7 @@ class TestConvMolFeaturizer(unittest.TestCase):
     assert np.array_equal(deg_adj_lists[0], np.zeros([0, 0], dtype=np.int32))
     # Outer two carbonds are connected to central carbon
     assert np.array_equal(deg_adj_lists[1], np.array(
-      [[2], [2]], dtype=np.int32))
+        [[2], [2]], dtype=np.int32))
     # Central carbon connected to outer two
     assert np.array_equal(deg_adj_lists[2], np.array([[0, 1]], dtype=np.int32))
     assert np.array_equal(deg_adj_lists[3], np.zeros([0, 3], dtype=np.int32))

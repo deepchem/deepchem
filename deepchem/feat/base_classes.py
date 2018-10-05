@@ -105,11 +105,6 @@ class Featurizer(object):
     if mols is not None and smiles is not None:
       raise ValueError('mols and smiles both cannot be not None')
 
-    if type(mols[0]) is str:
-      raise TypeError('mols should an iterable of RDKit Mol objects. '
-                      'Maybe you wanted to assign the input to smiles. '
-                      'Use the smiles argument to assign SMILE strings')
-
     if mols is None:
       mols = list()
 
@@ -153,11 +148,6 @@ class Featurizer(object):
 
     if mols is not None and smiles is not None:
       raise ValueError('mols and smiles both cannot be not None')
-
-    if type(mols[0]) is str:
-      raise TypeError('mols should an iterable of RDKit Mol objects. '
-                      'Maybe you wanted to assign the input to smiles. '
-                      'Use smiles argument to assign SMILE strings')
 
     # Only smiles are given
     if mols is None:
