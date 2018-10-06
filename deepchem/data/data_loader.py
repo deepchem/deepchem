@@ -230,8 +230,7 @@ class DataLoader(object):
           assert len(X) == len(ids)
 
         time2 = time.time()
-        log(
-            "TIMING: featurizing shard %d took %0.3f s" %
+        log("TIMING: featurizing shard %d took %0.3f s" %
             (shard_num, time2 - time1), self.verbose)
         yield X, y, w, ids
 
@@ -295,8 +294,7 @@ class SDFLoader(DataLoader):
 
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
-    log(
-        "Currently featurizing feature_type: %s" %
+    log("Currently featurizing feature_type: %s" %
         self.featurizer.__class__.__name__, self.verbose)
     return featurize_mol_df(shard, self.featurizer, field=self.mol_field)
 
@@ -349,7 +347,12 @@ class ImageLoader(DataLoader):
       tasks = []
     self.tasks = tasks
 
-  def featurize(self, input_files, in_memory=True):
+  def featurize(self,
+                input_files,
+                labels=None,
+                weights=None,
+                read_img=True,
+                in_memory=True):
     """Featurizes image files.
 
     Parameters
@@ -395,6 +398,23 @@ class ImageLoader(DataLoader):
           raise ValueError("Unsupported file format")
       input_files = remainder
 
+    if read_img:
+      X = self.load_img(image_files)
+    else:
+      X = [None] * len(image_files)
+    if in_memory:
+      return NumpyDataset(X, y=labels, w=weights, ids=image_files)
+
+    else:
+      # from_numpy currently requires labels. Make dummy labels
+      if labels is None:
+        labels = np.zeros((len(image_files), 1))
+      if weights is None:
+        weights = np.zeros((len(image_files), 1))
+      return DiskDataset.from_numpy(X, labels, w=weights, ids=image_files)
+
+  @staticmethod
+  def load_img(image_files):
     images = []
     for image_file in image_files:
       _, extension = os.path.splitext(image_file)
@@ -407,10 +427,4 @@ class ImageLoader(DataLoader):
         images.append(imarray)
       else:
         raise ValueError("Unsupported image filetype for %s" % image_file)
-    images = np.array(images)
-    if in_memory:
-      return NumpyDataset(images)
-    else:
-      # from_numpy currently requires labels. Make dummy labels
-      labels = np.zeros((len(images), 1))
-      return DiskDataset.from_numpy(images, labels)
+    return np.array(images)

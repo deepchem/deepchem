@@ -18,6 +18,7 @@ from deepchem.models.tensorgraph.optimizers import Adam
 from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
+logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 
