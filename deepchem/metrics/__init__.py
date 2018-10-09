@@ -188,30 +188,18 @@ def bedroc_score(y_true, y_pred, alpha=20.0):
       np.unique(y_true).astype(int),
       [0, 1]), ('Class labels must be binary: %s' % np.unique(y_true))
 
-  # Calculate ratio of actives to inactives
-  N = len(y_true)
-  n = sum(y_true == 1)
-  R_a = n / N
+  from rdkit.ML.Scoring.Scoring import CalcBEDROC
 
-  # The expression for the rie_denominator
-  rie_denom = R_a * (1 - np.exp(-alpha)) / (np.exp(alpha / N) - 1)
+  yt = np.asarray(y_true)
+  yp = np.asarray(y_pred)
 
-  # Rank orders and rie_numerator
-  order = np.argsort(y_pred)
-  r_i = (y_true[order] == 1).nonzero()[0]
-  rie_numerator = np.sum(np.exp(-alpha * r_i / N))
+  yt = yt.flatten()
+  yp = yp[:, 1].flatten()  # Index 1 because one_hot predictions
 
-  # Rie_score
-  rie_score = rie_numerator / rie_denom
+  scores = list(zip(yt, yp))
+  scores = sorted(scores, key=lambda pair: pair[1], reverse=True)
 
-  # Factor to be multipled
-  factor = R_a * np.sinh(
-      alpha / 2) / (np.cosh(alpha / 2) - np.cosh(alpha / 2 - (alpha * R_a)))
-
-  bedroc_score = rie_score * factor
-  bedroc_score += 1 / (1 - np.exp(alpha * (1 - R_a)))
-
-  return bedroc_score
+  return CalcBEDROC(scores, 0, alpha)
 
 
 class Metric(object):
