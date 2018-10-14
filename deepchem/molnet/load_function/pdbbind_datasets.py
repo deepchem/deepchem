@@ -74,6 +74,10 @@ def load_pdbbind_grid(split="random",
       valid = transformer.transform(valid)
     for transformer in transformers:
       test = transformer.transform(test)
+
+    all_dataset = (train, valid, test)
+    return tasks, all_dataset, transformers
+
   else:
     data_dir = deepchem.utils.get_data_dir()
     if reload:
