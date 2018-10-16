@@ -12,7 +12,7 @@ import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
 from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, ReduceSum, SoftMax, Constant, Variable
-from deepchem.models.tensorgraph.layers import Feature, Label
+from deepchem.models.tensorgraph.layers import Feature, Label, Input
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference, Add, GRU
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.optimizers import GradientDescent, ExponentialDecay, Adam
@@ -576,3 +576,42 @@ class TestTensorGraph(unittest.TestCase):
           (1, n_features))).flatten()
       self.assertAlmostEqual(
           pred1[task], (pred2 + norm * delta)[task], places=4)
+
+  def test_get_layer_variable_values(self):
+    """Test to get the variable values associated with a layer"""
+    # Test for correct value return (normal mode)
+    tg = dc.models.TensorGraph()
+    var = Variable([10.0, 12.0])
+    tg.add_output(var)
+    expected = [10.0, 12.0]
+    obtained = tg.get_layer_variable_values(var)[0]
+    np.testing.assert_array_almost_equal(expected, obtained)
+
+    # Test for shapes (normal mode)
+    tg = dc.models.TensorGraph()
+    input_tensor = Input(shape=(10, 100))
+    output = Dense(out_channels=20, in_layers=[input_tensor])
+    tg.add_output(output)
+    expected_shape = (100, 20)
+    obtained_shape = tg.get_layer_variable_values(output)[0].shape
+    assert expected_shape == obtained_shape
+
+    with context.eager_mode():
+      # Test for correct value return (eager mode)
+      tg = dc.models.TensorGraph()
+      var = Variable([10.0, 12.0])
+      tg.add_output(var)
+      tg.build()
+      expected = [10.0, 12.0]
+      obtained = tg.get_layer_variable_values(var)[0]
+      np.testing.assert_array_almost_equal(expected, obtained)
+
+      # Test for shape (eager mode)
+      tg = dc.models.TensorGraph()
+      input_tensor = Input(shape=(10, 100))
+      output = Dense(out_channels=20, in_layers=[input_tensor])
+      tg.add_output(output)
+      tg.build()
+      expected_shape = (100, 20)
+      obtained_shape = tg.get_layer_variable_values(output)[0].shape
+      assert expected_shape == obtained_shape

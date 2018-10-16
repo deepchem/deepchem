@@ -984,15 +984,15 @@ class TensorGraph(Model):
       return tf.get_collection(
           tf.GraphKeys.TRAINABLE_VARIABLES, scope=layer.variable_scope)
 
-  def get_layer_weights(self, layer):
+  def get_layer_variable_values(self, layer):
+    """Get the variable values associated with a given layer """
 
     layer_variables = self.get_layer_variables(layer)
     if tfe.in_eager_mode():
-      return layer_variables
+      return [v.numpy() for v in layer_variables]
     if len(layer_variables) == 0:
       return []
-    layer_weights = self.session.run(layer_variables)
-    return layer_weights
+    return self.session.run(layer_variables)
 
   def get_variables(self):
     """Get the list of all trainable variables in the graph."""
