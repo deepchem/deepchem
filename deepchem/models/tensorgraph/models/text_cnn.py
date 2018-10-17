@@ -54,6 +54,7 @@ default_dict = {
     's': 33
 }
 
+# TODO: VIGS25: (Add make_estimator support)
 
 class TextCNNModel(TensorGraph):
   """ A Convolutional neural network on smiles strings
