@@ -585,7 +585,7 @@ class TestTensorGraph(unittest.TestCase):
     tg.add_output(var)
     expected = [10.0, 12.0]
     obtained = tg.get_layer_variable_values(var)[0]
-    np.testing.assert_array_almost_equal(expected, obtained)
+    np.testing.assert_array_equal(expected, obtained)
 
     # Test for shapes (normal mode)
     tg = dc.models.TensorGraph()
@@ -596,22 +596,23 @@ class TestTensorGraph(unittest.TestCase):
     obtained_shape = tg.get_layer_variable_values(output)[0].shape
     assert expected_shape == obtained_shape
 
+  def test_get_layer_variable_values_eager(self):
+    """Tests to get variable values associated with a layer in eager mode"""
+
     with context.eager_mode():
       # Test for correct value return (eager mode)
       tg = dc.models.TensorGraph()
       var = Variable([10.0, 12.0])
       tg.add_output(var)
-      tg.build()
       expected = [10.0, 12.0]
       obtained = tg.get_layer_variable_values(var)[0]
-      np.testing.assert_array_almost_equal(expected, obtained)
+      np.testing.assert_array_equal(expected, obtained)
 
       # Test for shape (eager mode)
       tg = dc.models.TensorGraph()
       input_tensor = Input(shape=(10, 100))
       output = Dense(out_channels=20, in_layers=[input_tensor])
       tg.add_output(output)
-      tg.build()
       expected_shape = (100, 20)
       obtained_shape = tg.get_layer_variable_values(output)[0].shape
       assert expected_shape == obtained_shape
