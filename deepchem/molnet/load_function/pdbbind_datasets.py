@@ -244,7 +244,7 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
   # No transformations of data
   transformers = []
   if split == None:
-    return tasks, (dataset, None, None), transformers
+    return pdbbind_tasks, (dataset, None, None), transformers
 
   # TODO(rbharath): This should be modified to contain a cluster split so
   # structures of the same protein aren't in both train/test
