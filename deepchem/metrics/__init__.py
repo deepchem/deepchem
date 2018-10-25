@@ -161,6 +161,47 @@ def kappa_score(y_true, y_pred):
   return kappa
 
 
+def bedroc_score(y_true, y_pred, alpha=20.0):
+  """BEDROC metric implemented according to Truchon and Bayley that modifies
+  the ROC score by allowing for a factor of early recognition
+
+    References:
+      The original paper by Truchon et al. is located at
+      https://pubs.acs.org/doi/pdf/10.1021/ci600426e
+
+    Args:
+      y_true (array_like):
+        Binary class labels. 1 for positive class, 0 otherwise
+      y_pred (array_like):
+        Predicted labels
+      alpha (float), default 20.0:
+        Early recognition parameter
+
+    Returns:
+      float: Value in [0, 1] that indicates the degree of early recognition
+
+  """
+
+  assert len(y_true) == len(y_pred), 'Number of examples do not match'
+
+  assert np.array_equal(
+      np.unique(y_true).astype(int),
+      [0, 1]), ('Class labels must be binary: %s' % np.unique(y_true))
+
+  from rdkit.ML.Scoring.Scoring import CalcBEDROC
+
+  yt = np.asarray(y_true)
+  yp = np.asarray(y_pred)
+
+  yt = yt.flatten()
+  yp = yp[:, 1].flatten()  # Index 1 because one_hot predictions
+
+  scores = list(zip(yt, yp))
+  scores = sorted(scores, key=lambda pair: pair[1], reverse=True)
+
+  return CalcBEDROC(scores, 0, alpha)
+
+
 class Metric(object):
   """Wrapper class for computing user-defined metrics."""
 

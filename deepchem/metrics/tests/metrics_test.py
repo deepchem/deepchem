@@ -24,7 +24,7 @@ class MetricsTest(googletest.TestCase):
     expected_agreement = ((2 * 1) + (2 * 3)) / 4.0**2
     expected_kappa = np.true_divide(observed_agreement - expected_agreement,
                                     1.0 - expected_agreement)
-    self.assertAlmostEquals(kappa, expected_kappa)
+    self.assertAlmostEqual(kappa, expected_kappa)
 
   def test_r2_score(self):
     """Test that R^2 metric passes basic sanity tests"""
@@ -45,6 +45,29 @@ class MetricsTest(googletest.TestCase):
     yp = metrics.from_one_hot(y_hot)
     assert np.array_equal(expected, y_hot)
     assert np.array_equal(y, yp)
+
+  def test_bedroc_score(self):
+
+    num_actives = 20
+    num_total = 400
+
+    y_true_actives = np.ones(num_actives)
+    y_true_inactives = np.zeros(num_total - num_actives)
+    y_true = np.concatenate([y_true_actives, y_true_inactives])
+
+    # Best score case
+    y_pred_best = dc.metrics.to_one_hot(
+        np.concatenate([y_true_actives, y_true_inactives]))
+    best_score = dc.metrics.bedroc_score(y_true, y_pred_best)
+    self.assertAlmostEqual(best_score, 1.0)
+
+    # Worst score case
+    worst_pred_actives = np.zeros(num_actives)
+    worst_pred_inactives = np.ones(num_total - num_actives)
+    y_pred_worst = dc.metrics.to_one_hot(
+        np.concatenate([worst_pred_actives, worst_pred_inactives]))
+    worst_score = dc.metrics.bedroc_score(y_true, y_pred_worst)
+    self.assertAlmostEqual(worst_score, 0.0, 4)
 
 
 if __name__ == '__main__':
