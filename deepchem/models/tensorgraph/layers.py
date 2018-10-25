@@ -2,6 +2,7 @@
 from __future__ import division
 import random
 import string
+import warnings
 from collections import Sequence
 from copy import deepcopy
 

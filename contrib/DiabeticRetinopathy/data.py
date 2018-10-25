@@ -46,7 +46,7 @@ def load_images_DR(split='random', seed=None):
           (-1, 1))
   image_full_paths = [os.path.join(images_path, n) for n in image_names]
 
-  classes, cts = np.unique(all_labels.values(), return_counts=True)
+  classes, cts = np.unique(list(all_labels.values()), return_counts=True)
   weight_ratio = dict(zip(classes, np.max(cts) / cts.astype(float)))
   weights = np.array([weight_ratio[l[0]] for l in labels]).reshape((-1, 1))
 

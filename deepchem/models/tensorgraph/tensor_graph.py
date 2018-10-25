@@ -974,15 +974,26 @@ class TensorGraph(Model):
 
   def get_layer_variables(self, layer):
     """Get the list of trainable variables in a layer of the graph."""
-    if tfe.in_eager_mode():
-      return layer.variables
     if not self.built:
       self.build()
     with self._get_tf("Graph").as_default():
+      if tfe.in_eager_mode():
+        return layer.variables
       if layer.variable_scope == '':
         return []
       return tf.get_collection(
           tf.GraphKeys.TRAINABLE_VARIABLES, scope=layer.variable_scope)
+
+  def get_layer_variable_values(self, layer):
+    """Get the variable values associated with a given layer """
+
+    layer_variables = self.get_layer_variables(layer)
+    with self._get_tf("Graph").as_default():
+      if tfe.in_eager_mode():
+        return [v.numpy() for v in layer_variables]
+      if len(layer_variables) == 0:
+        return []
+      return self.session.run(layer_variables)
 
   def get_variables(self):
     """Get the list of all trainable variables in the graph."""
