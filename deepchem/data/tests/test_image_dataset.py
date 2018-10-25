@@ -23,7 +23,8 @@ class TestImageDataset(test_util.TensorFlowTestCase):
   def test_load_images(self):
     """Test that ImageDataset loads images."""
 
-    files = [os.path.join('images', f) for f in os.listdir('images')]
+    path = os.path.join(os.path.dirname(__file__), 'images')
+    files = [os.path.join(path, f) for f in os.listdir(path)]
 
     # First try using images for X.
 
@@ -55,7 +56,8 @@ class TestImageDataset(test_util.TensorFlowTestCase):
   def test_itersamples(self):
     """Test iterating samples of an ImageDataset."""
 
-    files = [os.path.join('images', f) for f in os.listdir('images')]
+    path = os.path.join(os.path.dirname(__file__), 'images')
+    files = [os.path.join(path, f) for f in os.listdir(path)]
     ds = dc.data.ImageDataset(files, np.random.random(10))
     X = ds.X
     i = 0
@@ -70,7 +72,8 @@ class TestImageDataset(test_util.TensorFlowTestCase):
   def test_iterbatches(self):
     """Test iterating batches of an ImageDataset."""
 
-    files = [os.path.join('images', f) for f in os.listdir('images')]
+    path = os.path.join(os.path.dirname(__file__), 'images')
+    files = [os.path.join(path, f) for f in os.listdir(path)]
     ds = dc.data.ImageDataset(files, np.random.random(10))
     X = ds.X
     iterated_ids = set()

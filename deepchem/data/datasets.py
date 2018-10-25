@@ -1359,9 +1359,11 @@ class ImageDataset(Dataset):
     ids: ndarray
       the sample IDs
     """
+    n_samples = len(X)
+    if y is None:
+      y = np.zeros((n_samples,))
     self._X_shape = self._find_array_shape(X)
     self._y_shape = self._find_array_shape(y)
-    n_samples = len(X)
     if w is None:
       w = np.ones(self._y_shape[:2])
     if ids is None:
