@@ -52,7 +52,7 @@ def load_images_DR(split='random', seed=None):
 
   loader = deepchem.data.ImageLoader()
   dat = loader.featurize(
-      image_full_paths, labels=labels, weights=weights, read_img=False)
+      image_full_paths, labels=labels, weights=weights)
   if split == None:
     return dat
 

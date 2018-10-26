@@ -1529,11 +1529,17 @@ class ImageDataset(Dataset):
     select_dir: string
       Ignored.
     """
-    X = self.X[indices]
-    y = self.y[indices]
-    w = self.w[indices]
-    ids = self.ids[indices]
-    return NumpyDataset(X, y, w, ids)
+    if isinstance(self._X, np.ndarray):
+      X = self._X[indices]
+    else:
+      X = [self._X[i] for i in indices]
+    if isinstance(self._y, np.ndarray):
+      y = self._y[indices]
+    else:
+      y = [self._y[i] for i in indices]
+    w = self._w[indices]
+    ids = self._ids[indices]
+    return ImageDataset(X, y, w, ids)
 
 
 class Databag(object):
