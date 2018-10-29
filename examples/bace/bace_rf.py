@@ -102,13 +102,10 @@ if __name__ == "__main__":
   print("Classifier RF 20-80:")
   print("--------------------------------")
   bace_rf_model(mode="classification", split="20-80")
-  """ stopping function calls for research
-  
-
   print("Classifier RF 80-20:")
   print("--------------------------------")
   bace_rf_model(mode="classification", split="80-20")
-
+  """"
   print("Regressor RF 20-80:")
   print("--------------------------------")
   bace_rf_model(mode="regression", split="20-80")
