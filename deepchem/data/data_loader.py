@@ -20,8 +20,7 @@ from deepchem.utils.save import load_csv_files
 from deepchem.utils.save import load_sdf_files
 from deepchem.utils.genomics import encode_fasta_sequence
 from deepchem.feat import UserDefinedFeaturizer
-from deepchem.data import DiskDataset
-from deepchem.data import NumpyDataset
+from deepchem.data import DiskDataset, NumpyDataset, ImageDataset
 from scipy import misc
 import zipfile
 from PIL import Image
@@ -60,8 +59,8 @@ def convert_df_to_numpy(df, tasks, verbose=False):
 def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
   """Featurize individual compounds in dataframe.
 
-  Given a featurizer that operates on individual chemical compounds 
-  or macromolecules, compute & add features for that compound to the 
+  Given a featurizer that operates on individual chemical compounds
+  or macromolecules, compute & add features for that compound to the
   features dataframe
   """
   sample_elems = df[field].tolist()
@@ -109,7 +108,7 @@ def featurize_smiles_np(arr, featurizer, log_every_N=1000, verbose=True):
 
 
 def get_user_specified_features(df, featurizer, verbose=True):
-  """Extract and merge user specified features. 
+  """Extract and merge user specified features.
 
   Merge features included in dataset provided by user
   into final features dataframe
@@ -191,7 +190,7 @@ class DataLoader(object):
 
   def featurize(self, input_files, data_dir=None, shard_size=8192):
     """Featurize provided files and write to specified location.
-    
+
     For large datasets, automatically shards into smaller chunks
     for convenience.
 
@@ -230,7 +229,8 @@ class DataLoader(object):
           assert len(X) == len(ids)
 
         time2 = time.time()
-        log("TIMING: featurizing shard %d took %0.3f s" %
+        log(
+            "TIMING: featurizing shard %d took %0.3f s" %
             (shard_num, time2 - time1), self.verbose)
         yield X, y, w, ids
 
@@ -294,7 +294,8 @@ class SDFLoader(DataLoader):
 
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
-    log("Currently featurizing feature_type: %s" %
+    log(
+        "Currently featurizing feature_type: %s" %
         self.featurizer.__class__.__name__, self.verbose)
     return featurize_mol_df(shard, self.featurizer, field=self.mol_field)
 
@@ -347,12 +348,7 @@ class ImageLoader(DataLoader):
       tasks = []
     self.tasks = tasks
 
-  def featurize(self,
-                input_files,
-                labels=None,
-                weights=None,
-                read_img=True,
-                in_memory=True):
+  def featurize(self, input_files, labels=None, weights=None, in_memory=False):
     """Featurizes image files.
 
     Parameters
@@ -362,7 +358,7 @@ class ImageLoader(DataLoader):
       (.png, .tif only for now) or of a compressed folder of image files
       (only .zip for now).
     in_memory: bool
-      If true, return in-memory NumpyDataset. Else return DiskDataset.
+      If true, return in-memory NumpyDataset. Else return ImageDataset.
     """
     if not isinstance(input_files, list):
       input_files = [input_files]
@@ -398,20 +394,11 @@ class ImageLoader(DataLoader):
           raise ValueError("Unsupported file format")
       input_files = remainder
 
-    if read_img:
-      X = self.load_img(image_files)
-    else:
-      X = [None] * len(image_files)
     if in_memory:
-      return NumpyDataset(X, y=labels, w=weights, ids=image_files)
-
+      return NumpyDataset(
+          self.load_img(image_files), y=labels, w=weights, ids=image_files)
     else:
-      # from_numpy currently requires labels. Make dummy labels
-      if labels is None:
-        labels = np.zeros((len(image_files), 1))
-      if weights is None:
-        weights = np.zeros((len(image_files), 1))
-      return DiskDataset.from_numpy(X, labels, w=weights, ids=image_files)
+      return ImageDataset(image_files, y=labels, w=weights, ids=image_files)
 
   @staticmethod
   def load_img(image_files):
