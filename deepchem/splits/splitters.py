@@ -130,6 +130,7 @@ class Splitter(object):
                              frac_train=.8,
                              frac_valid=.1,
                              frac_test=.1,
+                             smiles_arr=None,
                              seed=None,
                              log_every_n=1000,
                              verbose=True):
@@ -144,6 +145,7 @@ class Splitter(object):
         frac_train=frac_train,
         frac_test=frac_test,
         frac_valid=frac_valid,
+        smiles_arr=None,
         log_every_n=log_every_n)
     if train_dir is None:
       train_dir = tempfile.mkdtemp()
@@ -166,6 +168,7 @@ class Splitter(object):
                        test_dir=None,
                        seed=None,
                        frac_train=.8,
+                       smiles_arr=None,
                        verbose=True):
     """
         Splits self into train/test sets.
@@ -180,6 +183,7 @@ class Splitter(object):
         frac_train=frac_train,
         frac_test=1 - frac_train,
         frac_valid=0.,
+        smiles_arr=None,
         verbose=verbose)
     return train_dataset, test_dataset
 
@@ -188,6 +192,7 @@ class Splitter(object):
             frac_train=None,
             frac_valid=None,
             frac_test=None,
+            smiles_arr=None,
             log_every_n=None,
             verbose=False):
     """
@@ -571,6 +576,7 @@ class MolecularWeightSplitter(Splitter):
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
+            smiles_arr=None,
             log_every_n=None):
     """
         Splits internal compounds into train/validation/test using the MW calculated
@@ -582,7 +588,10 @@ class MolecularWeightSplitter(Splitter):
       np.random.seed(seed)
 
     mws = []
-    for smiles in dataset.ids:
+    # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
+    if smiles_arr is None:
+      smiles_arr = dataset.ids
+    for smiles in smiles_arr:
       mol = Chem.MolFromSmiles(smiles)
       mw = Chem.rdMolDescriptors.CalcExactMolWt(mol)
       mws.append(mw)
@@ -612,6 +621,7 @@ class MaxMinSplitter(Splitter):
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
+            smiles_arr=None,
             log_every_n=None):
     """
     Splits internal compounds randomly into train/validation/test.
@@ -631,7 +641,10 @@ class MaxMinSplitter(Splitter):
     num_test = num_datapoints - valid_cutoff
 
     all_mols = []
-    for ind, smiles in enumerate(dataset.ids):
+    # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
+    if smiles_arr is None:
+      smiles_arr = dataset.ids
+    for ind, smiles in enumerate(smiles_arr):
       all_mols.append(Chem.MolFromSmiles(smiles))
 
     fps = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in all_mols]
@@ -783,6 +796,7 @@ class ButinaSplitter(Splitter):
             frac_train=None,
             frac_valid=None,
             frac_test=None,
+            smiles_arr=None,
             log_every_n=1000,
             cutoff=0.18):
     """
@@ -801,7 +815,10 @@ class ButinaSplitter(Splitter):
         """
     print("Performing butina clustering with cutoff of", cutoff)
     mols = []
-    for ind, smiles in enumerate(dataset.ids):
+    # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
+    if smiles_arr is None:
+      smiles_arr = dataset.ids
+    for ind, smiles in enumerate(smiles_arr):
       mols.append(Chem.MolFromSmiles(smiles))
     n_mols = len(mols)
     fps = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in mols]
@@ -840,6 +857,7 @@ class ScaffoldSplitter(Splitter):
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
+            smiles_arr=None,
             log_every_n=1000):
     """
         Splits internal compounds into train/validation/test by scaffold.
@@ -848,7 +866,10 @@ class ScaffoldSplitter(Splitter):
     scaffolds = {}
     log("About to generate scaffolds", self.verbose)
     data_len = len(dataset)
-    for ind, smiles in enumerate(dataset.ids):
+    # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
+    if smiles_arr is None:
+      smiles_arr = dataset.ids
+    for ind, smiles in enumerate(smiles_arr):
       if ind % log_every_n == 0:
         log("Generating scaffold %d/%d" % (ind, data_len), self.verbose)
       scaffold = generate_scaffold(smiles)
@@ -888,6 +909,7 @@ class FingerprintSplitter(Splitter):
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
+            smiles_arr=None,
             log_every_n=1000):
     """
         Splits internal compounds into train/validation/test by fingerprint.
@@ -896,7 +918,10 @@ class FingerprintSplitter(Splitter):
     data_len = len(dataset)
     mols, fingerprints = [], []
     train_inds, valid_inds, test_inds = [], [], []
-    for ind, smiles in enumerate(dataset.ids):
+    # If the user did not pass in an array of SMILES strings, assume that dataset.ids contains SMILES strings
+    if smiles_arr is None:
+      smiles_arr = dataset.ids
+    for ind, smiles in enumerate(smiles_arr):
       mol = Chem.MolFromSmiles(smiles, sanitize=False)
       mols.append(mol)
       fp = FingerprintMols.FingerprintMol(mol)
