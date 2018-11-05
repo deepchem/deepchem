@@ -63,7 +63,7 @@ class DRModel(TensorGraph):
   def build_graph(self):
     # inputs placeholder
     self.inputs = Feature(
-        shape=(None, self.image_size, self.image_size, 3), dtype=tf.uint8)
+        shape=(None, self.image_size, self.image_size, 3), dtype=tf.float32)
     # data preprocessing and augmentation
     in_layer = DRAugment(
         self.augment,
@@ -222,7 +222,7 @@ class DRAugment(Layer):
     parent_tensor = inputs[0]
     training = kwargs['training'] if 'training' in kwargs else 1.0
 
-    parent_tensor = tf.image.convert_image_dtype(parent_tensor, tf.float32)
+    parent_tensor = parent_tensor / 255.0
     if not self.augment:
       out_tensor = parent_tensor
     else:
