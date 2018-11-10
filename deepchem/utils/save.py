@@ -70,12 +70,12 @@ def load_data(input_files, shard_size=None, verbose=True):
       yield load_pickle_from_disk(input_file)
 
 
-def load_sdf_files(input_files, clean_mols):
+def load_sdf_files(input_files, clean_mols, tasks=[]):
   """Load SDF file into dataframe."""
   dataframes = []
   for input_file in input_files:
-    # Tasks are stored in .sdf.csv file
-    raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
+    # Tasks are either in .sdf.csv file or in the .sdf file itself
+    has_csv = os.path.isfile(input_file + ".csv")
     # Structures are stored in .sdf file
     print("Reading structures from %s." % input_file)
     suppl = Chem.SDMolSupplier(str(input_file), clean_mols, False, False)
@@ -83,9 +83,18 @@ def load_sdf_files(input_files, clean_mols):
     for ind, mol in enumerate(suppl):
       if mol is not None:
         smiles = Chem.MolToSmiles(mol)
-        df_rows.append([ind, smiles, mol])
-    mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
-    dataframes.append(pd.concat([mol_df, raw_df], axis=1, join='inner'))
+        df_row = [ind, smiles, mol]
+        for task in tasks:
+          df_row.append(mol.GetProp(str(task)))
+        df_rows.append(df_row)
+    mol_df = pd.DataFrame(
+        df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks))
+    # Tasks are stored either in .sdf.csv file
+    if has_csv:
+      raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
+      dataframes.append(pd.concat([mol_df, raw_df], axis=1, join='inner'))
+    else:
+      dataframes.append(mol_df)
   return dataframes
 
 
