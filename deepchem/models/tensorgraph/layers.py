@@ -485,7 +485,6 @@ class Conv1D(Layer):
       `(10, 128)` for sequences of 10 vectors of 128-dimensional vectors,
       or `(None, 128)` for variable-length sequences of 128-dimensional vectors.
 
-      TODO(LESWING): Calculate output shape at construction time
       Arguments:
           filters: Integer, the dimensionality of the output space
               (i.e. the number output of filters in the convolution).
@@ -541,6 +540,17 @@ class Conv1D(Layer):
     self.kernel_constraint = kernel_constraint
     self.bias_constraint = bias_constraint
     super(Conv1D, self).__init__(in_layers, **kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      if isinstance(strides, int):
+        strides = (strides,)
+      if padding.lower() == 'same':
+        self._shape = (parent_shape[0],
+                       int(np.ceil(parent_shape[1] / strides[0])), filters)
+      else:
+        self._shape = (parent_shape[0], parent_shape[1] // strides[0], filters)
+    except:
+      pass
 
   def _build_layer(self):
     return tf.keras.layers.Conv1D(
@@ -1983,8 +1993,13 @@ class Conv2D(SharedVariableScope):
       strides = stride
       if isinstance(stride, int):
         strides = (stride, stride)
-      self._shape = (parent_shape[0], parent_shape[1] // strides[0],
-                     parent_shape[2] // strides[1], num_outputs)
+      if padding.lower() == 'same':
+        self._shape = (parent_shape[0],
+                       int(np.ceil(parent_shape[1] / strides[0])),
+                       int(np.ceil(parent_shape[2] / strides[1])), num_outputs)
+      else:
+        self._shape = (parent_shape[0], parent_shape[1] // strides[0],
+                       parent_shape[2] // strides[1], num_outputs)
     except:
       pass
 
@@ -2100,9 +2115,15 @@ class Conv3D(SharedVariableScope):
       strides = stride
       if isinstance(stride, int):
         strides = (stride, stride, stride)
-      self._shape = (parent_shape[0], parent_shape[1] // strides[0],
-                     parent_shape[2] // strides[1],
-                     parent_shape[3] // strides[2], num_outputs)
+      if padding.lower() == 'same':
+        self._shape = (parent_shape[0],
+                       int(np.ceil(parent_shape[1] / strides[0])),
+                       int(np.ceil(parent_shape[2] / strides[1])),
+                       int(np.ceil(parent_shape[3] / strides[2])), num_outputs)
+      else:
+        self._shape = (parent_shape[0], parent_shape[1] // strides[0],
+                       parent_shape[2] // strides[1],
+                       parent_shape[3] // strides[2], num_outputs)
     except:
       pass
 
