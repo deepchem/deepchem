@@ -369,6 +369,7 @@ class ImageLoader(DataLoader):
       remainder = []
       for input_file in input_files:
         filename, extension = os.path.splitext(input_file)
+        extension = extension.lower()
         # TODO(rbharath): Add support for more extensions
         if os.path.isdir(input_file):
           dirfiles = [
@@ -386,6 +387,7 @@ class ImageLoader(DataLoader):
           ]
           for zip_file in zip_files:
             _, extension = os.path.splitext(zip_file)
+            extension = extension.lower()
             if extension in [".png", ".tif"]:
               image_files.append(zip_file)
         elif extension in [".png", ".tif"]:
@@ -405,6 +407,7 @@ class ImageLoader(DataLoader):
     images = []
     for image_file in image_files:
       _, extension = os.path.splitext(image_file)
+      extension = extension.lower()
       if extension == ".png":
         image = misc.imread(image_file)
         images.append(image)
