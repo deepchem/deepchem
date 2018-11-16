@@ -291,7 +291,7 @@ class SDFLoader(DataLoader):
 
   def get_shards(self, input_files, shard_size):
     """Defines a generator which returns data for each shard"""
-    return load_sdf_files(input_files, self.clean_mols, self.tasks)
+    return load_sdf_files(input_files, self.clean_mols, tasks=self.tasks)
 
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
