@@ -95,7 +95,7 @@ def load_sdf_files(input_files, clean_mols, tasks=[]):
       dataframes.append(pd.concat([mol_df, raw_df], axis=1, join='inner'))
     else:
       mol_df = pd.DataFrame(
-        df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks))
+          df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks))
       dataframes.append(mol_df)
   return dataframes
 
