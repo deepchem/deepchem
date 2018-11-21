@@ -4,8 +4,6 @@ Feature calculations.
 import logging
 import types
 import numpy as np
-from rdkit import Chem
-from rdkit.Chem import rdGeometry, rdMolTransforms
 import multiprocessing
 
 __author__ = "Steven Kearnes"

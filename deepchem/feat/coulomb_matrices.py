@@ -12,7 +12,6 @@ __license__ = "MIT"
 
 import numpy as np
 import deepchem as dc
-from rdkit import Chem
 from deepchem.feat import Featurizer
 from deepchem.utils import pad_array
 from deepchem.feat.atomic_coordinates import AtomicCoordinates
@@ -118,6 +117,7 @@ class CoulombMatrix(Featurizer):
     mol : RDKit Mol
         Molecule.
     """
+    from rdkit import Chem
     if self.remove_hydrogens:
       mol = Chem.RemoveHs(mol)
     n_atoms = mol.GetNumAtoms()
