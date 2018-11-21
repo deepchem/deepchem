@@ -15,8 +15,6 @@ import tempfile
 import tarfile
 import zipfile
 
-from rdkit import Chem
-from rdkit.Chem.Scaffolds import MurckoScaffold
 
 try:
   from urllib.request import urlretrieve  # Python 3
@@ -152,5 +150,6 @@ class ScaffoldGenerator(object):
     mols : array_like
         Molecules.
     """
+    from rdkit.Chem.Scaffolds import MurckoScaffold
     return MurckoScaffold.MurckoScaffoldSmiles(
         mol=mol, includeChirality=self.include_chirality)

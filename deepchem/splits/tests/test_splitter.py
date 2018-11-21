@@ -4,8 +4,6 @@ Tests for splitter objects.
 from __future__ import division
 from __future__ import unicode_literals
 
-from rdkit.Chem.Fingerprints import FingerprintMols
-
 __author__ = "Bharath Ramsundar, Aneesh Pappu"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
@@ -16,7 +14,6 @@ import numpy as np
 import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.splits import IndexSplitter
-from rdkit import Chem, DataStructs
 
 
 class TestSplitters(unittest.TestCase):
