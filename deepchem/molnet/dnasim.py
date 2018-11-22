@@ -1,31 +1,10 @@
 from __future__ import absolute_import, division, print_function
 from collections import OrderedDict
 import numpy as np
-import simdna
-from simdna.synthetic import (
-    RepeatedEmbedder,
-    SubstringEmbedder,
-    ReverseComplementWrapper,
-    UniformPositionGenerator,
-    InsideCentralBp,
-    LoadedEncodeMotifs,
-    PwmSamplerFromLoadedMotifs,
-    UniformIntegerGenerator,
-    ZeroOrderBackgroundGenerator,
-    EmbedInABackground,
-    GenerateSequenceNTimes,
-    RandomSubsetOfEmbedders,
-    IsInTraceLabelGenerator,
-    EmbeddableEmbedder,
-    PairEmbeddableGenerator,
-)
-from simdna.util import DiscreteDistribution
-
-loaded_motifs = LoadedEncodeMotifs(
-    simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
 
 
 def get_distribution(GC_fraction):
+  from simdna.util import DiscreteDistribution
   return DiscreteDistribution({
       'A': (1 - GC_fraction) / 2,
       'C': GC_fraction / 2,
@@ -56,19 +35,25 @@ def simple_motif_embedding(motif_name, seq_length, num_seqs, GC_fraction):
   embedding_arr: 1darray
       Array of embedding objects.
   """
+  from simdna import synthetic
   if motif_name is None:
     embedders = []
   else:
-    substring_generator = PwmSamplerFromLoadedMotifs(loaded_motifs, motif_name)
+    loaded_motifs = synthetic.LoadedEncodeMotifs(
+        simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
+    substring_generator = synthetic.PwmSamplerFromLoadedMotifs(
+        loaded_motifs, motif_name)
     embedders = [
-        SubstringEmbedder(ReverseComplementWrapper(substring_generator))
+        synthetic.SubstringEmbedder(
+            synthetic.ReverseComplementWrapper(substring_generator))
     ]
-  embed_in_background = EmbedInABackground(
-      ZeroOrderBackgroundGenerator(
+  embed_in_background = synthetic.EmbedInABackground(
+      synthetic.ZeroOrderBackgroundGenerator(
           seq_length, discreteDistribution=get_distribution(GC_fraction)),
       embedders)
   generated_sequences = tuple(
-      GenerateSequenceNTimes(embed_in_background, num_seqs).generateSequences())
+      synthetic.GenerateSequenceNTimes(embed_in_background,
+                                       num_seqs).generateSequences())
   sequence_arr = np.array(
       [generated_seq.seq for generated_seq in generated_sequences])
   embedding_arr = [
@@ -87,24 +72,29 @@ def motif_density(motif_name,
   """
   Returns sequences with motif density, along with embeddings array.
   """
-  substring_generator = PwmSamplerFromLoadedMotifs(loaded_motifs, motif_name)
+  from simdna import synthetic
+  loaded_motifs = synthetic.LoadedEncodeMotifs(
+      simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
+  substring_generator = synthetic.PwmSamplerFromLoadedMotifs(
+      loaded_motifs, motif_name)
   if central_bp is not None:
-    position_generator = InsideCentralBp(central_bp)
+    position_generator = synthetic.InsideCentralBp(central_bp)
   else:
-    position_generator = UniformPositionGenerator()
-  quantity_generator = UniformIntegerGenerator(min_counts, max_counts)
+    position_generator = synthetic.UniformPositionGenerator()
+  quantity_generator = synthetic.UniformIntegerGenerator(min_counts, max_counts)
   embedders = [
-      RepeatedEmbedder(
-          SubstringEmbedder(
-              ReverseComplementWrapper(substring_generator),
+      synthetic.RepeatedEmbedder(
+          synthetic.SubstringEmbedder(
+              synthetic.ReverseComplementWrapper(substring_generator),
               position_generator), quantity_generator)
   ]
-  embed_in_background = EmbedInABackground(
-      ZeroOrderBackgroundGenerator(
+  embed_in_background = synthetic.EmbedInABackground(
+      synthetic.ZeroOrderBackgroundGenerator(
           seq_length, discreteDistribution=get_distribution(GC_fraction)),
       embedders)
   generated_sequences = tuple(
-      GenerateSequenceNTimes(embed_in_background, num_seqs).generateSequences())
+      synthetic.GenerateSequenceNTimes(embed_in_background,
+                                       num_seqs).generateSequences())
   sequence_arr = np.array(
       [generated_seq.seq for generated_seq in generated_sequences])
   embedding_arr = [
@@ -270,23 +260,33 @@ def simulate_multi_motif_embedding(motif_names, seq_length, min_num_motifs,
         Array of embedding objects.
     """
 
+  from simdna import synthetic
+  loaded_motifs = synthetic.LoadedEncodeMotifs(
+      simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
+
   def get_embedder(motif_name):
-    substring_generator = PwmSamplerFromLoadedMotifs(loaded_motifs, motif_name)
-    return SubstringEmbedder(
-        ReverseComplementWrapper(substring_generator), name=motif_name)
+    substring_generator = synthetic.PwmSamplerFromLoadedMotifs(
+        loaded_motifs, motif_name)
+    return synthetic.SubstringEmbedder(
+        synthetic.ReverseComplementWrapper(substring_generator),
+        name=motif_name)
 
   embedders = [get_embedder(motif_name) for motif_name in motif_names]
-  quantity_generator = UniformIntegerGenerator(min_num_motifs, max_num_motifs)
-  combined_embedder = [RandomSubsetOfEmbedders(quantity_generator, embedders)]
-  embed_in_background = EmbedInABackground(
-      ZeroOrderBackgroundGenerator(
+  quantity_generator = synthetic.UniformIntegerGenerator(
+      min_num_motifs, max_num_motifs)
+  combined_embedder = [
+      synthetic.RandomSubsetOfEmbedders(quantity_generator, embedders)
+  ]
+  embed_in_background = synthetic.EmbedInABackground(
+      synthetic.ZeroOrderBackgroundGenerator(
           seq_length, discreteDistribution=get_distribution(GC_fraction)),
       combined_embedder)
   generated_sequences = tuple(
-      GenerateSequenceNTimes(embed_in_background, num_seqs).generateSequences())
+      synthetic.GenerateSequenceNTimes(embed_in_background,
+                                       num_seqs).generateSequences())
   sequence_arr = np.array(
       [generated_seq.seq for generated_seq in generated_sequences])
-  label_generator = IsInTraceLabelGenerator(np.asarray(motif_names))
+  label_generator = synthetic.IsInTraceLabelGenerator(np.asarray(motif_names))
   y = np.array(
       [
           label_generator.generateLabels(generated_seq)
@@ -369,21 +369,25 @@ def simulate_heterodimer_grammar(motif1, motif2, seq_length, min_spacing,
     embedding_arr: list
         List of embedding objects.
     """
-
-  motif1_generator = ReverseComplementWrapper(
-      PwmSamplerFromLoadedMotifs(loaded_motifs, motif1))
-  motif2_generator = ReverseComplementWrapper(
-      PwmSamplerFromLoadedMotifs(loaded_motifs, motif2))
-  separation_generator = UniformIntegerGenerator(min_spacing, max_spacing)
-  embedder = EmbeddableEmbedder(
-      PairEmbeddableGenerator(motif1_generator, motif2_generator,
-                              separation_generator))
-  embed_in_background = EmbedInABackground(
-      ZeroOrderBackgroundGenerator(
+  from simdna import synthetic
+  loaded_motifs = synthetic.LoadedEncodeMotifs(
+      simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
+  motif1_generator = synthetic.ReverseComplementWrapper(
+      synthetic.PwmSamplerFromLoadedMotifs(loaded_motifs, motif1))
+  motif2_generator = synthetic.ReverseComplementWrapper(
+      synthetic.PwmSamplerFromLoadedMotifs(loaded_motifs, motif2))
+  separation_generator = synthetic.UniformIntegerGenerator(
+      min_spacing, max_spacing)
+  embedder = synthetic.EmbeddableEmbedder(
+      synthetic.PairEmbeddableGenerator(motif1_generator, motif2_generator,
+                                        separation_generator))
+  embed_in_background = synthetic.EmbedInABackground(
+      synthetic.ZeroOrderBackgroundGenerator(
           seq_length, discreteDistribution=get_distribution(GC_fraction)),
       [embedder])
   generated_sequences = tuple(
-      GenerateSequenceNTimes(embed_in_background, num_pos).generateSequences())
+      synthetic.GenerateSequenceNTimes(embed_in_background,
+                                       num_pos).generateSequences())
   grammar_sequence_arr = np.array(
       [generated_seq.seq for generated_seq in generated_sequences])
   positive_embedding_arr = [
