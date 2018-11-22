@@ -2,7 +2,6 @@
 
 import numpy as np
 from deepchem.data import NumpyDataset
-from deepchem.utils.genomics import loaded_motifs
 from scipy.signal import correlate2d
 
 
@@ -29,6 +28,10 @@ def get_motif_scores(encoded_sequences,
   If max_scores and return_positions, (N_sequences, 2*num_motifs*max_scores)
   array with max scores and their positions.
   """
+  import simdna
+  from simdna import synthetic
+  loaded_motifs = synthetic.LoadedEncodeMotifs(
+      simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
   num_samples, _, seq_length, _ = encoded_sequences.shape
   scores = np.ones((num_samples, len(motif_names), seq_length))
   for j, motif_name in enumerate(motif_names):

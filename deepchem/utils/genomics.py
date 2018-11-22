@@ -1,12 +1,7 @@
 """
 Genomic data handling utilities.
 """
-import simdna
-from simdna.synthetic import LoadedEncodeMotifs
 import numpy as np
-
-loaded_motifs = LoadedEncodeMotifs(
-    simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
 
 
 def seq_one_hot_encode(sequences, letters='ATCGN'):
