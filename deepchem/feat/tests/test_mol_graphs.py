@@ -12,7 +12,6 @@ import unittest
 import os
 import sys
 import numpy as np
-import rdkit
 from deepchem.feat.mol_graphs import ConvMol
 from deepchem.feat.mol_graphs import MultiConvMol
 
@@ -66,10 +65,10 @@ class TestMolGraphs(unittest.TestCase):
     # atom 2 has 2 neighbors
     # atom 3 has 3 neighbors.
     # Verify that atom features have been sorted by atom degree.
-    assert np.array_equal(mol.get_atom_features(),
-                          np.array([[56, 57, 58, 59], [40, 41, 42, 43],
-                                    [44, 45, 46, 47], [48, 49, 50,
-                                                       51], [52, 53, 54, 55]]))
+    assert np.array_equal(
+        mol.get_atom_features(),
+        np.array([[56, 57, 58, 59], [40, 41, 42, 43], [44, 45, 46, 47],
+                  [48, 49, 50, 51], [52, 53, 54, 55]]))
 
   def test_get_adjacency_list(self):
     """Tests that adj-list is canonicalized properly."""
