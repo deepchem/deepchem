@@ -1,7 +1,6 @@
 import collections
 
 import numpy as np
-import six
 import tensorflow as tf
 
 from deepchem.data import NumpyDataset, pad_features
