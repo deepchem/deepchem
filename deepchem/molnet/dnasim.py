@@ -35,6 +35,7 @@ def simple_motif_embedding(motif_name, seq_length, num_seqs, GC_fraction):
   embedding_arr: 1darray
       Array of embedding objects.
   """
+  import simdna
   from simdna import synthetic
   if motif_name is None:
     embedders = []
@@ -72,6 +73,7 @@ def motif_density(motif_name,
   """
   Returns sequences with motif density, along with embeddings array.
   """
+  import simdna
   from simdna import synthetic
   loaded_motifs = synthetic.LoadedEncodeMotifs(
       simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
@@ -238,28 +240,29 @@ def simulate_motif_density_localization(motif_name, seq_length, center_size,
 def simulate_multi_motif_embedding(motif_names, seq_length, min_num_motifs,
                                    max_num_motifs, num_seqs, GC_fraction):
   """
-    Generates data for multi motif recognition task.
+  Generates data for multi motif recognition task.
 
-    Parameters
-    ----------
-    motif_names : list
-        List of strings.
-    seq_length : int
-    min_num_motifs : int
-    max_num_motifs : int
-    num_seqs : int
-    GC_fraction : float
+  Parameters
+  ----------
+  motif_names : list
+      List of strings.
+  seq_length : int
+  min_num_motifs : int
+  max_num_motifs : int
+  num_seqs : int
+  GC_fraction : float
 
-    Returns
-    -------
-    sequence_arr : 1darray
-        Contains sequence strings.
-    y : ndarray
-        Contains labels for each motif.
-    embedding_arr: 1darray
-        Array of embedding objects.
-    """
+  Returns
+  -------
+  sequence_arr : 1darray
+      Contains sequence strings.
+  y : ndarray
+      Contains labels for each motif.
+  embedding_arr: 1darray
+      Array of embedding objects.
+  """
 
+  import simdna
   from simdna import synthetic
   loaded_motifs = synthetic.LoadedEncodeMotifs(
       simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
@@ -369,6 +372,7 @@ def simulate_heterodimer_grammar(motif1, motif2, seq_length, min_spacing,
     embedding_arr: list
         List of embedding objects.
     """
+  import simdna
   from simdna import synthetic
   loaded_motifs = synthetic.LoadedEncodeMotifs(
       simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
