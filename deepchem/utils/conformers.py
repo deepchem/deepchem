@@ -8,6 +8,7 @@ __license__ = "3-clause BSD"
 
 import numpy as np
 
+
 class ConformerGenerator(object):
   """
   Generate molecule conformers.
@@ -43,11 +44,15 @@ class ConformerGenerator(object):
       minimization, increasing the size of the pool increases the chance
       of identifying max_conformers unique conformers.
   """
-  def __init__(self, max_conformers=1, rmsd_threshold=0.5, force_field='uff',
-             pool_multiplier=10):
+
+  def __init__(self,
+               max_conformers=1,
+               rmsd_threshold=0.5,
+               force_field='uff',
+               pool_multiplier=10):
     self.max_conformers = max_conformers
     if rmsd_threshold is None or rmsd_threshold < 0:
-        rmsd_threshold = -1.
+      rmsd_threshold = -1.
     self.rmsd_threshold = rmsd_threshold
     self.force_field = force_field
     self.pool_multiplier = pool_multiplier
@@ -124,8 +129,7 @@ class ConformerGenerator(object):
     """
     from rdkit.Chem import AllChem
     if self.force_field == 'uff':
-      ff = AllChem.UFFGetMoleculeForceField(
-          mol, confId=conf_id, **kwargs)
+      ff = AllChem.UFFGetMoleculeForceField(mol, confId=conf_id, **kwargs)
     elif self.force_field.startswith('mmff'):
       AllChem.MMFFSanitizeMolecule(mol)
       mmff_props = AllChem.MMFFGetMoleculeProperties(
@@ -237,8 +241,8 @@ class ConformerGenerator(object):
         Molecule.
     """
     from rdkit.Chem import AllChem
-    rmsd = np.zeros((mol.GetNumConformers(), mol.GetNumConformers()),
-                    dtype=float)
+    rmsd = np.zeros(
+        (mol.GetNumConformers(), mol.GetNumConformers()), dtype=float)
     for i, ref_conf in enumerate(mol.GetConformers()):
       for j, fit_conf in enumerate(mol.GetConformers()):
         if i >= j:

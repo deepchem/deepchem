@@ -3,7 +3,6 @@ import logging
 import numpy as np
 import os
 
-
 try:
   from StringIO import StringIO
 except ImportError:
@@ -217,7 +216,7 @@ def merge_molecules_xyz(protein_xyz, ligand_xyz):
 def merge_molecules(ligand, protein):
   """Helper method to merge ligand and protein molecules."""
   from rdkit.Chem import rdmolops
-  return Chem.rdmolops.CombineMols(ligand, protein)
+  return rdmolops.CombineMols(ligand, protein)
 
 
 class PdbqtLigandWriter(object):

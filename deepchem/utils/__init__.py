@@ -15,7 +15,6 @@ import tempfile
 import tarfile
 import zipfile
 
-
 try:
   from urllib.request import urlretrieve  # Python 3
 except:

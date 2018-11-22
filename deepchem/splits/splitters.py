@@ -766,6 +766,7 @@ def ClusterFps(fps, cutoff=0.2):
   # (ytz): this is directly copypasta'd from Greg Landrum's clustering example.
   dists = []
   nfps = len(fps)
+  from rdkit import DataStructs
   for i in range(1, nfps):
     sims = DataStructs.BulkTanimotoSimilarity(fps[i], fps[:i])
     dists.extend([1 - x for x in sims])
@@ -909,6 +910,7 @@ class FingerprintSplitter(Splitter):
       fingerprints.append(fp)
 
     distances = np.ones(shape=(data_len, data_len))
+    from rdkit import DataStructs
     for i in range(data_len):
       for j in range(data_len):
         distances[i][j] = 1 - DataStructs.FingerprintSimilarity(
