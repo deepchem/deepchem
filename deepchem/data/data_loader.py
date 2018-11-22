@@ -10,9 +10,6 @@ import numpy as np
 import csv
 import numbers
 import tempfile
-from rdkit.Chem import rdmolfiles
-from rdkit.Chem import rdmolops
-from rdkit import Chem
 import time
 import sys
 from deepchem.utils.save import log
@@ -66,6 +63,9 @@ def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
   sample_elems = df[field].tolist()
 
   features = []
+  from rdkit import Chem
+  from rdkit.Chem import rdmolfiles
+  from rdkit.Chem import rdmolops
   for ind, elem in enumerate(sample_elems):
     mol = Chem.MolFromSmiles(elem)
     # TODO (ytz) this is a bandage solution to reorder the atoms so
@@ -91,6 +91,9 @@ def featurize_smiles_np(arr, featurizer, log_every_N=1000, verbose=True):
   features array
   """
   features = []
+  from rdkit import Chem
+  from rdkit.Chem import rdmolfiles
+  from rdkit.Chem import rdmolops
   for ind, elem in enumerate(arr.tolist()):
     mol = Chem.MolFromSmiles(elem)
     if mol:

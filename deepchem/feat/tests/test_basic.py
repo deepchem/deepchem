@@ -4,8 +4,6 @@ Test basic molecular features.
 import numpy as np
 import unittest
 
-from rdkit import Chem
-
 from deepchem.feat.basic import MolecularWeight, RDKitDescriptors
 
 
@@ -19,6 +17,7 @@ class TestMolecularWeight(unittest.TestCase):
     Set up tests.
     """
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
+    from rdkit import Chem
     self.mol = Chem.MolFromSmiles(smiles)
     self.engine = MolecularWeight()
 
@@ -39,6 +38,7 @@ class TestRDKitDescriptors(unittest.TestCase):
     Set up tests.
     """
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
+    from rdkit import Chem
     self.mol = Chem.MolFromSmiles(smiles)
     self.engine = RDKitDescriptors()
 

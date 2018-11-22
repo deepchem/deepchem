@@ -7,10 +7,6 @@ import unittest
 
 import numpy as np
 np.random.seed(123)
-
-from rdkit.Chem import MolFromSmiles
-from rdkit.Chem.AllChem import Mol, ComputeGasteigerCharges
-
 from deepchem.feat import rdkit_grid_featurizer as rgf
 
 
@@ -35,6 +31,7 @@ class TestHelperFunctions(unittest.TestCase):
 
   def test_load_molecule(self):
     # adding hydrogens and charges is tested in dc.utils
+    from rdkit.Chem.AllChem import Mol
     for add_hydrogens in (True, False):
       for calc_charges in (True, False):
         mol_xyz, mol_rdk = rgf.load_molecule(self.ligand_file, add_hydrogens,
@@ -173,6 +170,7 @@ class TestHelperFunctions(unittest.TestCase):
           self.assertTrue((v2 == v_pair[1]).all())
 
   def test_compute_charge_dictionary(self):
+    from rdkit.Chem.AllChem import ComputeGasteigerCharges
     for fname in (self.ligand_file, self.protein_file):
       _, mol = rgf.load_molecule(fname)
       ComputeGasteigerCharges(mol)
@@ -189,6 +187,7 @@ class TestPiInteractions(unittest.TestCase):
     current_dir = os.path.dirname(os.path.realpath(__file__))
 
     # simple flat ring
+    from rdkit.Chem import MolFromSmiles
     self.cycle4 = MolFromSmiles('C1CCC1')
     self.cycle4.Compute2DCoords()
 

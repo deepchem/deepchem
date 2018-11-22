@@ -9,7 +9,6 @@ from nose.tools import assert_false
 from nose.tools import assert_true
 
 from deepchem.utils import rdkit_util
-from rdkit import Chem
 
 
 class TestRdkitUtil(unittest.TestCase):
@@ -99,6 +98,7 @@ class TestRdkitUtil(unittest.TestCase):
     rdkit_util.write_molecule(mol, out_pdbqt, is_protein=True)
 
     pdb_block = rdkit_util.pdbqt_to_pdb(out_pdbqt)
+    from rdkit import Chem
     pdb_mol = Chem.MolFromPDBBlock(pdb_block, sanitize=False, removeHs=False)
 
     xyz, pdbqt_mol = rdkit_util.load_molecule(
