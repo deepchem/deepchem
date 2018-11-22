@@ -2,7 +2,6 @@
 Test rdkit_grid_featurizer module.
 """
 import os
-from six import integer_types
 import unittest
 
 import numpy as np
@@ -102,6 +101,7 @@ class TestHelperFunctions(unittest.TestCase):
       self.assertAlmostEqual(rgf.angle_between(v1, -v1), np.pi)
 
   def test_hash_ecfp(self):
+    from six import integer_types
     for power in (2, 16, 64):
       for _ in range(10):
         string = random_string(10)
@@ -111,6 +111,7 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertGreaterEqual(string_hash, 0)
 
   def test_hash_ecfp_pair(self):
+    from six import integer_types
     for power in (2, 16, 64):
       for _ in range(10):
         string1 = random_string(10)
