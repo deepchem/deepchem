@@ -28,6 +28,7 @@ def get_motif_scores(encoded_sequences,
   If max_scores and return_positions, (N_sequences, 2*num_motifs*max_scores)
   array with max scores and their positions.
   """
+  import simdna
   from simdna import synthetic
   loaded_motifs = synthetic.LoadedEncodeMotifs(
       simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
