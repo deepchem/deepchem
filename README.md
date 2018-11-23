@@ -132,7 +132,7 @@ DeepChem started as a [Pande group](https://pande.stanford.edu/) project at Stan
 
 ## Citing DeepChem
 
-If you have used DeepChem in the course of your research, we ask that you cite "Deep Learning for the Life Sciences" book by the DeepChem core team.
+If you have used DeepChem in the course of your research, we ask that you cite the "Deep Learning for the Life Sciences" book by the DeepChem core team.
 
 To cite this book, please use this bibtex entry:
 
