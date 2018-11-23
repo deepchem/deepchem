@@ -24,6 +24,7 @@ democratizes the use of deep-learning in drug discovery, materials science, quan
 * [DeepChem Publications](#deepchem-publications)
 * [Examples](/examples)
 * [About Us](#about-us)
+* [Citing DeepChem](#citing-deepchem)
 
 ## Requirements
 * [pandas](http://pandas.pydata.org/)
@@ -128,6 +129,19 @@ Join us on gitter at [https://gitter.im/deepchem/Lobby](https://gitter.im/deepch
 DeepChem is possible due to notable contributions from many people including Peter Eastman, Evan Feinberg, Joe Gomes, Karl Leswing, Vijay Pande, Aneesh Pappu, Bharath Ramsundar and Michael Wu (alphabetical ordering).  DeepChem was originally created by [Bharath Ramsundar](http://rbharath.github.io/) with encouragement and guidance from [Vijay Pande](https://pande.stanford.edu/).
 
 DeepChem started as a [Pande group](https://pande.stanford.edu/) project at Stanford, and is now developed by many academic and industrial collaborators. DeepChem actively encourages new academic and industrial groups to contribute!
+
+## Citing DeepChem
+
+If you have used DeepChem in the course of your research, we ask that you cite "Deep Learning for the Life Sciences" book by the DeepChem core team.
+
+To cite this book, please use this bibtex entry:
+@book{Ramsundar-et-al-2019,
+    title={Deep Learning for the Life Sciences},
+    author={Bharath Ramsundar and Peter Eastman and Karl Leswing and Patrick Walters and Vijay Pande},
+    publisher={O'Reilly Media},
+    note={\url{https://www.amazon.com/Deep-Learning-Life-Sciences-Microscopy/dp/1492039837}},
+    year={2019}
+}
 
 ## Version
 2.1.0
