@@ -135,6 +135,8 @@ DeepChem started as a [Pande group](https://pande.stanford.edu/) project at Stan
 If you have used DeepChem in the course of your research, we ask that you cite "Deep Learning for the Life Sciences" book by the DeepChem core team.
 
 To cite this book, please use this bibtex entry:
+
+```
 @book{Ramsundar-et-al-2019,
     title={Deep Learning for the Life Sciences},
     author={Bharath Ramsundar and Peter Eastman and Karl Leswing and Patrick Walters and Vijay Pande},
@@ -142,6 +144,7 @@ To cite this book, please use this bibtex entry:
     note={\url{https://www.amazon.com/Deep-Learning-Life-Sciences-Microscopy/dp/1492039837}},
     year={2019}
 }
+```
 
 ## Version
 2.1.0
