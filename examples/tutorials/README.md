@@ -28,5 +28,8 @@ you can help democratize these skills and open up drug discovery to more
 competition. Increased competition can help drive down the cost of medicine.
 
 ## You Will Learn
-* [Part 1: The Basic Tools of the Deep Life Sciences](The\ Basic\ Tools\ of\ the\ Deep\ Life\ Sciences.ipynb)
-* [Part 10: Uncertainty Modeling in Deep Learning](Uncertainty.ipynb)
+* [Part 1: The Basic Tools of the Deep Life Sciences](The_Basic_Tools_of_the_Deep_Life_Sciences.ipynb)
+* [Part 2: Learning MNIST Digit Classifiers](mnist.ipynb)
+* [Part 3: Introduction to Graph Convolutions](graph_convolutional_networks_for_tox21.ipynb)
+* [Part 4: Uncertainty Modeling in Deep Learning](Uncertainty.ipynb)
+* [Part 5: Model Interpretability](Explaining_Tox21.ipynb)
