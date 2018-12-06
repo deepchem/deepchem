@@ -5,7 +5,6 @@ import deepchem.models.tensorgraph.layers as layers
 import tensorflow.contrib.eager as tfe
 from tensorflow.python.eager import context
 from tensorflow.python.framework import test_util
-import rdkit
 
 
 class TestLayersEager(test_util.TensorFlowTestCase):
@@ -627,6 +626,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         out_channels = 2
         n_atoms = 4  # In CCC and C, there are 4 atoms
         raw_smiles = ['CCC', 'C']
+        import rdkit
         mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
         featurizer = dc.feat.graph_features.ConvMolFeaturizer()
         mols = featurizer.featurize(mols)
@@ -647,6 +647,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       with tfe.IsolateTest():
         n_atoms = 4  # In CCC and C, there are 4 atoms
         raw_smiles = ['CCC', 'C']
+        import rdkit
         mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
         featurizer = dc.feat.graph_features.ConvMolFeaturizer()
         mols = featurizer.featurize(mols)
@@ -668,6 +669,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
         n_features = 75
         n_atoms = 4  # In CCC and C, there are 4 atoms
         raw_smiles = ['CCC', 'C']
+        import rdkit
         mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
         featurizer = dc.feat.graph_features.ConvMolFeaturizer()
         mols = featurizer.featurize(mols)

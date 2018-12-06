@@ -12,8 +12,6 @@ import csv
 import logging
 import deepchem
 import numpy as np
-from rdkit import Chem
-from rdkit.Chem import rdChemReactions
 from deepchem.data import DiskDataset
 
 logger = logging.getLogger(__name__)
@@ -63,6 +61,7 @@ def load_uspto(featurizer="plain",
   filename = os.path.join(unzip_dir,
                           "2008-2011_USPTO_reactionSmiles_filtered.txt")
   rxns = []
+  from rdkit.Chem import rdChemReactions
   with open(filename) as tsvfile:
     reader = csv.reader(tsvfile, delimiter="\t")
     for ind, row in enumerate(reader):

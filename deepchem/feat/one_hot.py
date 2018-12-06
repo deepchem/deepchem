@@ -1,6 +1,5 @@
 import numpy as np
 from deepchem.feat import Featurizer
-from rdkit import Chem
 
 zinc_charset = [
     ' ', '#', ')', '(', '+', '-', '/', '1', '3', '2', '5', '4', '7', '6', '8',
@@ -42,6 +41,7 @@ class OneHotFeaturizer(Featurizer):
     obj
       numpy array of features
     """
+    from rdkit import Chem
     smiles = [Chem.MolToSmiles(mol) for mol in mols]
     if self.charset is None:
       self.charset = self._create_charset(smiles)

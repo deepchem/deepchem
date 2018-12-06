@@ -3,10 +3,6 @@ import logging
 import numpy as np
 import os
 
-from rdkit import Chem
-from rdkit.Chem import AllChem
-from rdkit.Chem import rdmolops
-
 try:
   from StringIO import StringIO
 except ImportError:
@@ -43,6 +39,7 @@ def add_hydrogens_to_mol(mol):
   """
   molecule_file = None
   try:
+    from rdkit import Chem
     pdbblock = Chem.MolToPDBBlock(mol)
     pdb_stringio = StringIO()
     pdb_stringio.write(pdbblock)
@@ -76,9 +73,16 @@ def compute_charges(mol):
   Attempt to compute Gasteiger Charges on Mol
   This also has the side effect of calculating charges on mol.
   The mol passed into this function has to already have been sanitized
-  :param mol: rdkit molecule
-  :return: molecule with charges
+
+  Params
+  ------
+  mol: rdkit molecule
+
+  Returns
+  -------
+  molecule with charges
   """
+  from rdkit.Chem import AllChem
   try:
     AllChem.ComputeGasteigerCharges(mol)
   except Exception as e:
@@ -101,6 +105,7 @@ def load_molecule(molecule_file,
   :param calc_charges: should add charges vis rdkit
   :return: (xyz, mol)
   """
+  from rdkit import Chem
   if ".mol2" in molecule_file:
     my_mol = Chem.MolFromMol2File(molecule_file, sanitize=False, removeHs=False)
   elif ".sdf" in molecule_file:
@@ -173,6 +178,7 @@ def write_molecule(mol, outfile, is_protein=False):
   :param outfile: filename to write mol to
   :param is_protein: is this molecule a protein?
   """
+  from rdkit import Chem
   if ".pdbqt" in outfile:
     writer = Chem.PDBWriter(outfile)
     writer.write(mol)
@@ -208,7 +214,9 @@ def merge_molecules_xyz(protein_xyz, ligand_xyz):
 
 
 def merge_molecules(ligand, protein):
-  return Chem.rdmolops.CombineMols(ligand, protein)
+  """Helper method to merge ligand and protein molecules."""
+  from rdkit.Chem import rdmolops
+  return rdmolops.CombineMols(ligand, protein)
 
 
 class PdbqtLigandWriter(object):
@@ -370,6 +378,7 @@ class PdbqtLigandWriter(object):
     Taken from rdkit source to find which bonds are rotatable
     store rotatable bonds in (from_atom, to_atom)
     """
+    from rdkit import Chem
     pattern = Chem.MolFromSmarts(
         "[!$(*#*)&!D1&!$(C(F)(F)F)&!$(C(Cl)(Cl)Cl)&!$(C(Br)(Br)Br)&!$(C([CH3])("
         "[CH3])[CH3])&!$([CD3](=[N,O,S])-!@[#7,O,S!D1])&!$([#7,O,S!D1]-!@[CD3]="

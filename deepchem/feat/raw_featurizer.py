@@ -3,7 +3,6 @@
 from __future__ import division
 from __future__ import unicode_literals
 
-from rdkit import Chem
 from deepchem.feat import Featurizer
 
 
@@ -13,6 +12,7 @@ class RawFeaturizer(Featurizer):
     self.smiles = smiles
 
   def _featurize(self, mol):
+    from rdkit import Chem
     if self.smiles:
       return Chem.MolToSmiles(mol)
     else:

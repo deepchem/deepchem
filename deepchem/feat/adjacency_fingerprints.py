@@ -1,7 +1,5 @@
 from collections import deque
 
-from rdkit import Chem
-
 import sys
 import tensorflow as tf
 import pickle
@@ -160,6 +158,7 @@ class AdjacencyFingerprint(Featurizer):
   def featurize(self, rdkit_mols):
     featurized_mols = np.empty((len(rdkit_mols)), dtype=object)
 
+    from rdkit import Chem
     for idx, mol in enumerate(rdkit_mols):
       if self.add_hydrogens:
         mol = Chem.AddHs(mol)
