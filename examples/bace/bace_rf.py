@@ -1,3 +1,5 @@
+# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+
 """This example implements RF experiments from https://pubs.acs.org/doi/abs/10.1021/acs.jcim.6b00290"""
 import sys
 import os
@@ -19,7 +21,7 @@ def bace_rf_model(mode="classification", split="20-80"):
   (bace_tasks, (train, valid, test, crystal), transformers) = load_bace(
     mode=mode, transform=False, split=split)
 
-
+  """
   if mode == "regression":
     # insert own metrics like ....   
     r2_metric = Metric(metrics.r2_score)
@@ -32,6 +34,7 @@ def bace_rf_model(mode="classification", split="20-80"):
     def rf_model_builder(model_params, model_dir):
       sklearn_model = RandomForestRegressor(**model_params)
       return SklearnModel(sklearn_model, model_dir)
+
   elif mode == "classification":
     # insert modified recall according to Vish
     roc_auc_metric = Metric(metrics.roc_auc_score)
@@ -42,8 +45,7 @@ def bace_rf_model(mode="classification", split="20-80"):
     model_class = RandomForestClassifier
     all_metrics = [accuracy_metric, mcc_metric, recall_metric, roc_auc_metric]
     metric = roc_auc_metric
-
-
+    
     def rf_model_builder(model_params, model_dir):
       sklearn_model = RandomForestClassifier(**model_params)
       return SklearnModel(sklearn_model, model_dir)
@@ -96,16 +98,17 @@ def bace_rf_model(mode="classification", split="20-80"):
     rf_crystal_score = rf_crystal_evaluator.compute_model_performance(
         all_metrics, csv_out=csv_out, stats_out=stats_out)
     print("RF Crystal set: %s" % (str(rf_crystal_score)))
-
+    #EOFUN
+  """
 
 if __name__ == "__main__":
   print("Classifier RF 20-80:")
   print("--------------------------------")
   bace_rf_model(mode="classification", split="20-80")
+  """
   print("Classifier RF 80-20:")
   print("--------------------------------")
   bace_rf_model(mode="classification", split="80-20")
-  """"
   print("Regressor RF 20-80:")
   print("--------------------------------")
   bace_rf_model(mode="regression", split="20-80")

@@ -10,7 +10,7 @@ import deepchem
 import tempfile
 import deepchem as dc
 from deepchem.molnet.load_function.bace_features import bace_user_specified_features
-
+import logging
 
 def load_bace(mode="regression", transform=True, split="20-80"):
   """Load BACE-1 dataset as regression/classification problem."""
@@ -28,19 +28,39 @@ def load_bace(mode="regression", transform=True, split="20-80"):
   crystal_dataset_file = os.path.join(
       current_dir, "../../datasets/crystal_desc_canvas_aug30.csv")
 
+  # Determines variables according to classification or regression
   if mode == "regression":
     bace_tasks = ["pIC50"]
   elif mode == "classification":
     bace_tasks = ["Class"]
+
+  """
+  A triple nesting with the specific feature list as argument for features in dc.molnet.
+  This needs to be customized with other molecule data.
+  """ 
   featurizer = dc.feat.UserDefinedFeaturizer(bace_user_specified_features)
+  attributes = vars(featurizer)
+  # print(', '.join("%s: %s" % item for item in attributes.items()))
+  # logging.info("featurizer length is: ", sys.getsizeof(featurizer)) 
+  # print("size of featurizer is", sys.getsizeof(featurizer))
+  # print(dir(featurizer))
+  print(attributes['feature_fields'][0])
+
+  """
+  This loader is a child class of parent class DataLoader. Calls a user defined featurizer in 
+  addition. Writes a dataframe object to disk
+  """
   loader = dc.data.UserCSVLoader(
       tasks=bace_tasks,
       smiles_field="mol",
       id_field="CID",
       featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
+
+  # another featurizer for the crystal dataset
   crystal_dataset = loader.featurize(crystal_dataset_file)
 
+  
   splitter = dc.splits.SpecifiedSplitter(dataset_file, "Model")
   train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
       dataset)
