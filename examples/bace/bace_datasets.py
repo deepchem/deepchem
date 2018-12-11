@@ -1,4 +1,5 @@
 """
+/examples/bace_datasets.py
 Contains BACE data loading utilities. 
 """
 from __future__ import print_function
@@ -9,7 +10,8 @@ import os
 import deepchem
 import tempfile
 import deepchem as dc
-from deepchem.molnet.load_function.bace_features import bace_user_specified_features
+# from deepchem.molnet.load_function.bace_features import bace_user_specified_features
+from bace_features import bace_user_specified_features
 import logging
 
 def load_bace(mode="regression", transform=True, split="20-80"):

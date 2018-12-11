@@ -1,4 +1,6 @@
 """
+/molnet/load_functions/bace_datasets.py
+PS! duplicate file and functionality. Deprecated. Use file in 
 bace dataset loader.
 """
 from __future__ import division
