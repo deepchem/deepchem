@@ -213,8 +213,13 @@ class DataLoader(object):
       input_files = [input_files]
 
     def shard_generator():
+            # NESTED FUNCTION, I.E CLOSURE.
+            # THIS FUNCTION CAN BE "PASSED AROUND"
+            # HAS ACCESS TO ALL LOCAL VARIABLES OF DEF FEATURIZE
       for shard_num, shard in enumerate(
           self.get_shards(input_files, shard_size)):
+              # enumerate() creates (a, x) pair with a integer
+              # this enumeration is looped over
         time1 = time.time()
         X, valid_inds = self.featurize_shard(shard)
         ids = shard[self.id_field].values
