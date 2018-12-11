@@ -241,9 +241,12 @@ class DataLoader(object):
             "TIMING: featurizing shard %d took %0.3f s" %
             (shard_num, time2 - time1), self.verbose)
         yield X, y, w, ids
-
-    return DiskDataset.create_dataset(
+    
+    # output of Dataloader class. Calling a child class in /data/datasets.py
+    diskData = DiskDataset.create_dataset(
         shard_generator(), data_dir, self.tasks, verbose=self.verbose)
+    print("type of diskData", type(diskData))
+    return diskData
 
   def get_shards(self, input_files, shard_size):
     """Stub for children classes."""
@@ -274,11 +277,17 @@ class UserCSVLoader(DataLoader):
   """
 
   def get_shards(self, input_files, shard_size):
-    """Defines a generator which returns data for each shard"""
+    """
+    Defines a generator which returns data for each shard
+    load_csv basically loads data as pandas dataframe
+    """
     return load_csv_files(input_files, shard_size)
 
   def featurize_shard(self, shard):
-    """Featurizes a shard of an input dataframe."""
+    """
+    Featurizes a shard of an input dataframe.
+    get_user... is a function in this file
+    """
     assert isinstance(self.featurizer, UserDefinedFeaturizer)
     X = get_user_specified_features(shard, self.featurizer)
     return (X, np.ones(len(X), dtype=bool))

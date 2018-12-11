@@ -41,16 +41,12 @@ def load_bace(mode="regression", transform=True, split="20-80"):
   This needs to be customized with other molecule data.
   """ 
   featurizer = dc.feat.UserDefinedFeaturizer(bace_user_specified_features)
-  attributes = vars(featurizer)
-  # print(', '.join("%s: %s" % item for item in attributes.items()))
-  # logging.info("featurizer length is: ", sys.getsizeof(featurizer)) 
-  # print("size of featurizer is", sys.getsizeof(featurizer))
-  # print(dir(featurizer))
-  print(attributes['feature_fields'][0])
+  # attributes = vars(featurizer)
+  # print(attributes['feature_fields'][0])
 
   """
-  This loader is a child class of parent class DataLoader. Calls a user defined featurizer in 
-  addition. Writes a dataframe object to disk
+  This loader is a child class of parent class DataLoader. Calls a user 
+  defined featurizer in addition. Writes a dataframe object to disk
   """
   loader = dc.data.UserCSVLoader(
       tasks=bace_tasks,
