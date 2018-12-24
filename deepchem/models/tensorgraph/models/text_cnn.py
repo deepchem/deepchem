@@ -207,10 +207,7 @@ class TextCNNModel(TensorGraph):
         self.labels_fd.append(label)
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
-    if self.mode == "classification":
-      all_cost = Stack(in_layers=costs, axis=1)
-    elif self.mode == "regression":
-      all_cost = Stack(in_layers=costs, axis=1)
+    all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)
@@ -245,6 +242,23 @@ class TextCNNModel(TensorGraph):
         feed_dict[self.smiles_seqs] = np.stack(smiles_seqs, axis=0)
         yield feed_dict
 
+  def create_estimator_inputs(self, feature_columns, weight_column, features,
+                              labels, mode):
+    """Creates tensors for inputs."""
+    tensors = dict()
+    for layer, column in zip(self.features, feature_columns):
+      tensors[layer] = tf.feature_column.input_layer(features, [column])
+
+    if weight_column is not None:
+      tensors[self.task_weights[0]] = tf.feature_column.input_layer(
+          features, [weight_column])
+    if labels is not None:
+      if self.mode == "classification":
+        tensors[self.labels[0]] = tf.one_hot(tf.cast(labels, tf.int32), 2)
+      else:
+        tensors[self.labels[0]] = labels
+    return tensors
+
   def smiles_to_seq(self, smiles):
     """ Tokenize characters in smiles to integers
     """
@@ -268,7 +282,7 @@ class TextCNNModel(TensorGraph):
     for i in range(self.seq_length - len(seq)):
       # Padding with '_'
       seq.append(self.char_dict['_'])
-    return np.array(seq)
+    return np.array(seq, dtype=np.int32)
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
     out = super(TextCNNModel, self).predict_on_generator(

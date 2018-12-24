@@ -4,6 +4,7 @@ import tensorflow as tf
 import deepchem as dc
 import deepchem.models.tensorgraph.layers as layers
 from deepchem.data import NumpyDataset
+from deepchem.models.tensorgraph.models.text_cnn import default_dict
 
 
 class TestEstimators(unittest.TestCase):
@@ -278,6 +279,97 @@ class TestEstimators(unittest.TestCase):
 
     results = estimator.evaluate(input_fn=lambda: input_fn(1))
     assert results['accuracy'] > 0.9
+
+  def test_textcnn_classification(self):
+    """Test creating an Estimator from TextCNN for classification."""
+
+    n_tasks = 1
+    n_samples = 5
+
+    # Create a TensorGraph model.
+    seq_length = 20
+    model = dc.models.TextCNNModel(
+        n_tasks=n_tasks,
+        char_dict=default_dict,
+        seq_length=seq_length,
+        kernel_sizes=[5, 5],
+        num_filters=[20, 20])
+
+    np.random.seed(123)
+    smile_ids = ["CCCCC", "CCC(=O)O", "CCC", "CC(=O)O", "O=C=O"]
+    X = [model.smiles_to_seq(smile) for smile in smile_ids]
+    y = np.zeros((n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+    dataset = NumpyDataset(X, y, w, smile_ids)
+
+    def accuracy(labels, predictions, weights):
+      labels = tf.argmax(labels, axis=2)
+      predictions = tf.argmax(predictions, axis=1)
+      predictions = tf.expand_dims(predictions, axis=1)
+      return tf.metrics.accuracy(labels, predictions, weights)
+
+    def input_fn(epochs):
+      x, y, weights = dataset.make_iterator(
+          batch_size=n_samples, epochs=epochs).get_next()
+      return {'x': x, 'weights': weights}, y
+
+    # Create an estimator from it.
+    x_col = tf.feature_column.numeric_column(
+        'x', shape=(seq_length,), dtype=tf.int32)
+    weight_col = tf.feature_column.numeric_column('weights', shape=(n_tasks,))
+    metrics = {'accuracy': accuracy}
+    estimator = model.make_estimator(
+        feature_columns=[x_col], weight_column=weight_col, metrics=metrics)
+
+    # Train the model.
+    estimator.train(input_fn=lambda: input_fn(100))
+
+    # Evaluate results
+    results = estimator.evaluate(input_fn=lambda: input_fn(1))
+    assert results['loss'] < 1e-2
+    assert results['accuracy'] > 0.9
+
+  def test_textcnn_regression(self):
+    """Test creating an Estimator from TextCNN for regression."""
+
+    n_tasks = 1
+    n_samples = 10
+
+    # Create a TensorGraph model.
+    seq_length = 20
+    model = dc.models.TextCNNModel(
+        n_tasks=n_tasks,
+        char_dict=default_dict,
+        seq_length=seq_length,
+        kernel_sizes=[5, 5],
+        num_filters=[20, 20],
+        mode="regression")
+
+    np.random.seed(123)
+    smile_ids = ["CCCCC", "CCC(=O)O", "CCC", "CC(=O)O", "O=C=O"]
+    X = [model.smiles_to_seq(smile) for smile in smile_ids]
+    y = np.zeros((n_samples, n_tasks), dtype=np.float32)
+    w = np.ones((n_samples, n_tasks))
+    dataset = NumpyDataset(X, y, w, smile_ids)
+
+    def input_fn(epochs):
+      x, y, weights = dataset.make_iterator(
+          batch_size=n_samples, epochs=epochs).get_next()
+      return {'x': x, 'weights': weights}, y
+
+    print(next(dataset.itersamples()))
+    # Create an estimator from it.
+    x_col = tf.feature_column.numeric_column('x', shape=(seq_length,))
+    weight_col = tf.feature_column.numeric_column('weights', shape=(n_tasks,))
+    metrics = {'error': tf.metrics.mean_absolute_error}
+    estimator = model.make_estimator(
+        feature_columns=[x_col], weight_column=weight_col, metrics=metrics)
+
+    # Train the model.
+    estimator.train(input_fn=lambda: input_fn(100))
+    results = estimator.evaluate(input_fn=lambda: input_fn(1))
+    assert results['loss'] < 1e-2
+    assert results['error'] < 0.1
 
   def test_scscore(self):
     """Test creating an Estimator from a ScScoreModel."""
