@@ -282,7 +282,6 @@ class TestEstimators(unittest.TestCase):
 
   def test_textcnn_classification(self):
     """Test creating an Estimator from TextCNN for classification."""
-
     n_tasks = 1
     n_samples = 5
 
@@ -331,7 +330,6 @@ class TestEstimators(unittest.TestCase):
 
   def test_textcnn_regression(self):
     """Test creating an Estimator from TextCNN for regression."""
-
     n_tasks = 1
     n_samples = 10
 
@@ -357,7 +355,6 @@ class TestEstimators(unittest.TestCase):
           batch_size=n_samples, epochs=epochs).get_next()
       return {'x': x, 'weights': weights}, y
 
-    print(next(dataset.itersamples()))
     # Create an estimator from it.
     x_col = tf.feature_column.numeric_column('x', shape=(seq_length,))
     weight_col = tf.feature_column.numeric_column('weights', shape=(n_tasks,))

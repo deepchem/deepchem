@@ -248,7 +248,6 @@ class TextCNNModel(TensorGraph):
     tensors = dict()
     for layer, column in zip(self.features, feature_columns):
       tensors[layer] = tf.feature_column.input_layer(features, [column])
-
     if weight_column is not None:
       tensors[self.task_weights[0]] = tf.feature_column.input_layer(
           features, [weight_column])
