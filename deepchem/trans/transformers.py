@@ -1225,3 +1225,11 @@ class DataTransforms(Transformer):
             sigma - std dev. of the gaussian distribution
     """
     return scipy.ndimage.gaussian_filter(self.Image, sigma)
+
+  def crop(self, x_crop, y_crop):
+    """ Crops the image
+          Parameters:
+            x_crop - Interpreted as (top_crop, bottom_crop)
+            y_crop - Interpreted as (left_crop, right_crop)
+    """
+    return self.Image[x_crop[0]:x_crop[1], y_crop[0]:y_crop[1]]        
