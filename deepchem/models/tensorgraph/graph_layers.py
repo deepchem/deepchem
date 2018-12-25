@@ -420,9 +420,8 @@ class DTNNStep(Layer):
     distance_membership_j = in_layers[3].out_tensor
     distance_hidden = tf.matmul(distance, self.W_df) + self.b_df
     atom_features_hidden = tf.matmul(atom_features, self.W_cf) + self.b_cf
-    outputs = tf.multiply(distance_hidden,
-                          tf.gather(atom_features_hidden,
-                                    distance_membership_j))
+    outputs = tf.multiply(
+        distance_hidden, tf.gather(atom_features_hidden, distance_membership_j))
 
     # for atom i in a molecule m, this step multiplies together distance info of atom pair(i,j)
     # and embeddings of atom j(both gone through a hidden layer)

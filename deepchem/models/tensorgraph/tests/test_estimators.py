@@ -282,7 +282,7 @@ class TestEstimators(unittest.TestCase):
 
   def test_textcnn_classification(self):
     """Test creating an Estimator from TextCNN for classification."""
-    n_tasks = 1
+    n_tasks = 2
     n_samples = 5
 
     # Create a TensorGraph model.
@@ -302,10 +302,7 @@ class TestEstimators(unittest.TestCase):
     dataset = NumpyDataset(X, y, w, smile_ids)
 
     def accuracy(labels, predictions, weights):
-      labels = tf.argmax(labels, axis=2)
-      predictions = tf.argmax(predictions, axis=1)
-      predictions = tf.expand_dims(predictions, axis=1)
-      return tf.metrics.accuracy(labels, predictions, weights)
+      return tf.metrics.accuracy(labels, tf.round(predictions), weights)
 
     def input_fn(epochs):
       x, y, weights = dataset.make_iterator(
@@ -330,7 +327,7 @@ class TestEstimators(unittest.TestCase):
 
   def test_textcnn_regression(self):
     """Test creating an Estimator from TextCNN for regression."""
-    n_tasks = 1
+    n_tasks = 2
     n_samples = 10
 
     # Create a TensorGraph model.
@@ -346,7 +343,7 @@ class TestEstimators(unittest.TestCase):
     np.random.seed(123)
     smile_ids = ["CCCCC", "CCC(=O)O", "CCC", "CC(=O)O", "O=C=O"]
     X = [model.smiles_to_seq(smile) for smile in smile_ids]
-    y = np.zeros((n_samples, n_tasks), dtype=np.float32)
+    y = np.zeros((n_samples, n_tasks, 1), dtype=np.float32)
     w = np.ones((n_samples, n_tasks))
     dataset = NumpyDataset(X, y, w, smile_ids)
 
@@ -365,7 +362,7 @@ class TestEstimators(unittest.TestCase):
     # Train the model.
     estimator.train(input_fn=lambda: input_fn(100))
     results = estimator.evaluate(input_fn=lambda: input_fn(1))
-    assert results['loss'] < 1e-2
+    assert results['loss'] < 1e-1
     assert results['error'] < 0.1
 
   def test_scscore(self):

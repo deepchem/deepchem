@@ -13,7 +13,7 @@ from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
   Conv1D, ReduceMax, Squeeze, Stack, Highway
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 
-from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
+from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature, Reshape, ReduceSum
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
 
@@ -118,7 +118,7 @@ class TextCNNModel(TensorGraph):
     self.dropout = dropout
     self.mode = mode
     super(TextCNNModel, self).__init__(**kwargs)
-    self.build_graph()
+    self._build_graph()
 
   @staticmethod
   def build_char_dict(dataset, default_dict=default_dict):
@@ -157,60 +157,53 @@ class TextCNNModel(TensorGraph):
       current_key_val += 1
     return out_dict, seq_length
 
-  def build_graph(self):
+  def _build_graph(self):
     self.smiles_seqs = Feature(shape=(None, self.seq_length), dtype=tf.int32)
     # Character embedding
-    self.Embedding = DTNNEmbedding(
+    Embedding = DTNNEmbedding(
         n_embedding=self.n_embedding,
         periodic_table_length=len(self.char_dict.keys()) + 1,
         in_layers=[self.smiles_seqs])
-    self.pooled_outputs = []
-    self.conv_layers = []
+    pooled_outputs = []
+    conv_layers = []
     for filter_size, num_filter in zip(self.kernel_sizes, self.num_filters):
       # Multiple convolutional layers with different filter widths
-      self.conv_layers.append(
+      conv_layers.append(
           Conv1D(
               kernel_size=filter_size,
               filters=num_filter,
               padding='valid',
-              in_layers=[self.Embedding]))
+              in_layers=[Embedding]))
       # Max-over-time pooling
-      self.pooled_outputs.append(
-          ReduceMax(axis=1, in_layers=[self.conv_layers[-1]]))
+      pooled_outputs.append(ReduceMax(axis=1, in_layers=[conv_layers[-1]]))
     # Concat features from all filters(one feature per filter)
-    concat_outputs = Concat(axis=1, in_layers=self.pooled_outputs)
+    concat_outputs = Concat(axis=1, in_layers=pooled_outputs)
     dropout = Dropout(dropout_prob=self.dropout, in_layers=[concat_outputs])
     dense = Dense(
         out_channels=200, activation_fn=tf.nn.relu, in_layers=[dropout])
     # Highway layer from https://arxiv.org/pdf/1505.00387.pdf
-    self.gather = Highway(in_layers=[dense])
+    gather = Highway(in_layers=[dense])
 
-    costs = []
-    self.labels_fd = []
-    for task in range(self.n_tasks):
-      if self.mode == "classification":
-        classification = Dense(
-            out_channels=2, activation_fn=None, in_layers=[self.gather])
-        softmax = SoftMax(in_layers=[classification])
-        self.add_output(softmax)
+    if self.mode == "classification":
+      logits = Dense(
+          out_channels=self.n_tasks * 2, activation_fn=None, in_layers=[gather])
+      logits = Reshape(shape=(-1, self.n_tasks, 2), in_layers=[logits])
+      output = SoftMax(in_layers=[logits])
+      self.add_output(output)
+      labels = Label(shape=(None, self.n_tasks, 2))
+      loss = SoftMaxCrossEntropy(in_layers=[labels, logits])
 
-        label = Label(shape=(None, 2))
-        self.labels_fd.append(label)
-        cost = SoftMaxCrossEntropy(in_layers=[label, classification])
-        costs.append(cost)
-      if self.mode == "regression":
-        regression = Dense(
-            out_channels=1, activation_fn=None, in_layers=[self.gather])
-        self.add_output(regression)
+    else:
+      vals = Dense(
+          out_channels=self.n_tasks * 1, activation_fn=None, in_layers=[gather])
+      vals = Reshape(shape=(-1, self.n_tasks, 1), in_layers=[vals])
+      self.add_output(vals)
+      labels = Label(shape=(None, self.n_tasks, 1))
+      loss = ReduceSum(L2Loss(in_layers=[labels, vals]))
 
-        label = Label(shape=(None, 1))
-        self.labels_fd.append(label)
-        cost = L2Loss(in_layers=[label, regression])
-        costs.append(cost)
-    all_cost = Stack(in_layers=costs, axis=1)
-    self.weights = Weights(shape=(None, self.n_tasks))
-    loss = WeightedError(in_layers=[all_cost, self.weights])
-    self.set_loss(loss)
+    weights = Weights(shape=(None, self.n_tasks))
+    weighted_loss = WeightedError(in_layers=[loss, weights])
+    self.set_loss(weighted_loss)
 
   def default_generator(self,
                         dataset,
@@ -221,8 +214,6 @@ class TextCNNModel(TensorGraph):
     """ Transfer smiles strings to fixed length integer vectors
     """
     for epoch in range(epochs):
-      if not predict:
-        print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,
@@ -230,16 +221,17 @@ class TextCNNModel(TensorGraph):
 
         feed_dict = dict()
         if y_b is not None and not predict:
-          for index, label in enumerate(self.labels_fd):
-            if self.mode == "classification":
-              feed_dict[label] = to_one_hot(y_b[:, index])
-            if self.mode == "regression":
-              feed_dict[label] = y_b[:, index:index + 1]
-        if w_b is not None:
-          feed_dict[self.weights] = w_b
-        # Transform SMILES string to integer vectors
+          if self.mode == "classification":
+            feed_dict[self.labels[0]] = to_one_hot(y_b.flatten(), 2).reshape(
+                -1, self.n_tasks, 2)
+          else:
+            feed_dict[self.labels[0]] = y_b
+        if w_b is not None and not predict:
+          feed_dict[self.task_weights[0]] = w_b
+
+        # Transform SMILES sequence to integers
         smiles_seqs = [self.smiles_to_seq(smiles) for smiles in ids_b]
-        feed_dict[self.smiles_seqs] = np.stack(smiles_seqs, axis=0)
+        feed_dict[self.smiles_seqs] = np.vstack(smiles_seqs)
         yield feed_dict
 
   def create_estimator_inputs(self, feature_columns, weight_column, features,
