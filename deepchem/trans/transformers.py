@@ -1256,3 +1256,4 @@ class DataTransforms(Transformer):
             else:
                 output[i][j] = self.Image[i][j]
     return output
+  
