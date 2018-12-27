@@ -4,7 +4,6 @@ Activations for models.
 from __future__ import division
 from __future__ import unicode_literals
 
-import six
 import tensorflow as tf
 from deepchem.models.tensorgraph import model_ops
 from deepchem.models.tensorgraph.model_ops import get_ndim
@@ -38,7 +37,8 @@ def get_from_module(identifier,
   Raises
   ------
   ValueError: if the identifier cannot be found.
- """
+  """
+  import six
   if isinstance(identifier, six.string_types):
     res = module_params.get(identifier)
     if not res:

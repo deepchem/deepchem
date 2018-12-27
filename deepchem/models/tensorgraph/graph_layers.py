@@ -335,13 +335,16 @@ class DTNNEmbedding(Layer):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
-
     self.build()
+
     atom_number = in_layers[0].out_tensor
+    atom_number = tf.cast(atom_number, dtype=tf.int32)
     atom_features = tf.nn.embedding_lookup(self.embedding_list, atom_number)
+    out_tensor = atom_features
     if set_tensors:
       self.variables = self.trainable_weights
       self.out_tensor = atom_features
+    return out_tensor
 
   def none_tensors(self):
     embedding_list = self.embedding_list
@@ -417,9 +420,8 @@ class DTNNStep(Layer):
     distance_membership_j = in_layers[3].out_tensor
     distance_hidden = tf.matmul(distance, self.W_df) + self.b_df
     atom_features_hidden = tf.matmul(atom_features, self.W_cf) + self.b_cf
-    outputs = tf.multiply(distance_hidden,
-                          tf.gather(atom_features_hidden,
-                                    distance_membership_j))
+    outputs = tf.multiply(
+        distance_hidden, tf.gather(atom_features_hidden, distance_membership_j))
 
     # for atom i in a molecule m, this step multiplies together distance info of atom pair(i,j)
     # and embeddings of atom j(both gone through a hidden layer)

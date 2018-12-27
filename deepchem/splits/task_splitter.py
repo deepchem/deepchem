@@ -10,7 +10,6 @@ __license__ = "MIT"
 
 import tempfile
 import numpy as np
-from rdkit import Chem
 from deepchem.utils import ScaffoldGenerator
 from deepchem.utils.save import log
 from deepchem.data import NumpyDataset

@@ -15,12 +15,6 @@ import numpy as np
 import pandas as pd
 import itertools
 import os
-from rdkit import Chem
-from rdkit import DataStructs
-from rdkit.Chem import AllChem
-from rdkit.ML.Cluster import Butina
-from rdkit.Chem.Fingerprints import FingerprintMols
-from rdkit.SimDivFilters.rdSimDivPickers import MaxMinPicker
 import deepchem as dc
 from deepchem.data import DiskDataset
 from deepchem.utils import ScaffoldGenerator
@@ -31,6 +25,7 @@ from deepchem.utils.save import load_data
 
 def generate_scaffold(smiles, include_chirality=False):
   """Compute the Bemis-Murcko scaffold for a SMILES string."""
+  from rdkit import Chem
   mol = Chem.MolFromSmiles(smiles)
   engine = ScaffoldGenerator(include_chirality=include_chirality)
   scaffold = engine.get_scaffold(mol)
@@ -582,6 +577,7 @@ class MolecularWeightSplitter(Splitter):
       np.random.seed(seed)
 
     mws = []
+    from rdkit import Chem
     for smiles in dataset.ids:
       mol = Chem.MolFromSmiles(smiles)
       mw = Chem.rdMolDescriptors.CalcExactMolWt(mol)
@@ -631,14 +627,19 @@ class MaxMinSplitter(Splitter):
     num_test = num_datapoints - valid_cutoff
 
     all_mols = []
+    from rdkit import Chem
     for ind, smiles in enumerate(dataset.ids):
       all_mols.append(Chem.MolFromSmiles(smiles))
 
+    from rdkit.Chem import AllChem
     fps = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in all_mols]
+
+    from rdkit import DataStructs
 
     def distance(i, j):
       return 1 - DataStructs.DiceSimilarity(fps[i], fps[j])
 
+    from rdkit.SimDivFilters.rdSimDivPickers import MaxMinPicker
     picker = MaxMinPicker()
     testIndices = picker.LazyPick(
         distFunc=distance,
@@ -765,9 +766,11 @@ def ClusterFps(fps, cutoff=0.2):
   # (ytz): this is directly copypasta'd from Greg Landrum's clustering example.
   dists = []
   nfps = len(fps)
+  from rdkit import DataStructs
   for i in range(1, nfps):
     sims = DataStructs.BulkTanimotoSimilarity(fps[i], fps[:i])
     dists.extend([1 - x for x in sims])
+  from rdkit.ML.Cluster import Butina
   cs = Butina.ClusterData(dists, nfps, cutoff, isDistData=True)
   return cs
 
@@ -801,9 +804,11 @@ class ButinaSplitter(Splitter):
         """
     print("Performing butina clustering with cutoff of", cutoff)
     mols = []
+    from rdkit import Chem
     for ind, smiles in enumerate(dataset.ids):
       mols.append(Chem.MolFromSmiles(smiles))
     n_mols = len(mols)
+    from rdkit.Chem import AllChem
     fps = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in mols]
 
     scaffold_sets = ClusterFps(fps, cutoff=cutoff)
@@ -896,6 +901,8 @@ class FingerprintSplitter(Splitter):
     data_len = len(dataset)
     mols, fingerprints = [], []
     train_inds, valid_inds, test_inds = [], [], []
+    from rdkit import Chem
+    from rdkit.Chem.Fingerprints import FingerprintMols
     for ind, smiles in enumerate(dataset.ids):
       mol = Chem.MolFromSmiles(smiles, sanitize=False)
       mols.append(mol)
@@ -903,6 +910,7 @@ class FingerprintSplitter(Splitter):
       fingerprints.append(fp)
 
     distances = np.ones(shape=(data_len, data_len))
+    from rdkit import DataStructs
     for i in range(data_len):
       for j in range(data_len):
         distances[i][j] = 1 - DataStructs.FingerprintSimilarity(

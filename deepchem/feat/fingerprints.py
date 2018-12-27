@@ -8,8 +8,6 @@ __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "MIT"
 
-from rdkit import Chem
-from rdkit.Chem import rdMolDescriptors
 from deepchem.feat import Featurizer
 
 
@@ -64,6 +62,8 @@ class CircularFingerprint(Featurizer):
     mol : RDKit Mol
         Molecule.
     """
+    from rdkit import Chem
+    from rdkit.Chem import rdMolDescriptors
     if self.sparse:
       info = {}
       fp = rdMolDescriptors.GetMorganFingerprint(

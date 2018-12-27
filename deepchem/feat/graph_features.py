@@ -116,6 +116,7 @@ def atom_features(atom,
   if bool_id_feat:
     return np.array([atom_to_id(atom)])
   else:
+    from rdkit import Chem
     results = one_of_k_encoding_unk(
       atom.GetSymbol(),
       [
@@ -189,6 +190,7 @@ def atom_features(atom,
 
 
 def bond_features(bond, use_chirality=False):
+  from rdkit import Chem
   bt = bond.GetBondType()
   bond_feats = [
       bt == Chem.rdchem.BondType.SINGLE, bt == Chem.rdchem.BondType.DOUBLE,

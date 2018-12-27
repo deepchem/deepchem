@@ -8,7 +8,6 @@ __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "MIT"
 
-from rdkit.Chem import Descriptors
 from deepchem.feat import Featurizer
 
 
@@ -27,6 +26,7 @@ class MolecularWeight(Featurizer):
     mol : RDKit Mol
         Molecule.
     """
+    from rdkit.Chem import Descriptors
     wt = Descriptors.ExactMolWt(mol)
     wt = [wt]
     return wt
@@ -74,6 +74,7 @@ class RDKitDescriptors(Featurizer):
   def __init__(self):
     self.descriptors = []
     self.descList = []
+    from rdkit.Chem import Descriptors
     for descriptor, function in Descriptors.descList:
       if descriptor in self.allowedDescriptors:
         self.descriptors.append(descriptor)

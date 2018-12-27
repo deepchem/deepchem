@@ -5,7 +5,6 @@ import os
 import logging
 import numpy as np
 import unittest
-from rdkit import Chem
 from deepchem.utils import conformers
 from deepchem.feat.atomic_coordinates import get_coords
 from deepchem.feat.atomic_coordinates import AtomicCoordinates
@@ -26,6 +25,7 @@ class TestAtomicCoordinates(unittest.TestCase):
     Set up tests.
     """
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
+    from rdkit import Chem
     mol = Chem.MolFromSmiles(smiles)
     engine = conformers.ConformerGenerator(max_conformers=1)
     self.mol = engine.generate_conformers(mol)

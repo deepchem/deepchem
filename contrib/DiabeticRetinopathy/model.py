@@ -48,7 +48,7 @@ class DRModel(TensorGraph):
     n_classes: int
       Number of classes to predict (only used in classification mode)
     augment: bool
-      If to use data augmentation 
+      If to use data augmentation
     """
     self.n_tasks = n_tasks
     self.image_size = image_size
@@ -63,7 +63,7 @@ class DRModel(TensorGraph):
   def build_graph(self):
     # inputs placeholder
     self.inputs = Feature(
-        shape=(None, self.image_size, self.image_size, 3), dtype=tf.uint8)
+        shape=(None, self.image_size, self.image_size, 3), dtype=tf.float32)
     # data preprocessing and augmentation
     in_layer = DRAugment(
         self.augment,
@@ -142,32 +142,6 @@ class DRModel(TensorGraph):
     # weighted_loss = WeightDecay(0.1, 'l2', in_layers=[weighted_loss])
     self.set_loss(weighted_loss)
 
-  def default_generator(self,
-                        dataset,
-                        epochs=1,
-                        predict=False,
-                        deterministic=True,
-                        pad_batches=True):
-    for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
-        feed_dict = dict()
-
-        if None in X_b:
-          # load images on the fly
-          feed_dict[self.features[0]] = ImageLoader.load_img(ids_b)
-        else:
-          feed_dict[self.features[0]] = X_b
-
-        if y_b is not None and not predict:
-          feed_dict[self.labels[0]] = y_b
-        if w_b is not None and not predict:
-          feed_dict[self.task_weights[0]] = w_b
-
-        yield feed_dict
-
 
 def DRAccuracy(y, y_pred):
   y_pred = np.argmax(y_pred, 1)
@@ -226,7 +200,7 @@ class DRAugment(Layer):
     Parameters
     ----------
     augment: bool
-      If to use data augmentation 
+      If to use data augmentation
     batch_size: int
       Number of images in the batch
     distort_color: bool
@@ -248,7 +222,7 @@ class DRAugment(Layer):
     parent_tensor = inputs[0]
     training = kwargs['training'] if 'training' in kwargs else 1.0
 
-    parent_tensor = tf.image.convert_image_dtype(parent_tensor, tf.float32)
+    parent_tensor = parent_tensor / 255.0
     if not self.augment:
       out_tensor = parent_tensor
     else:
