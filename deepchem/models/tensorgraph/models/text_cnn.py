@@ -239,7 +239,12 @@ class TextCNNModel(TensorGraph):
     """Creates tensors for inputs."""
     tensors = dict()
     for layer, column in zip(self.features, feature_columns):
-      tensors[layer] = tf.feature_column.input_layer(features, [column])
+      feature_col = tf.feature_column.input_layer(features, [column])
+      if column.dtype != feature_col.dtype:
+        feature_col = tf.cast(feature_col, column.dtype)
+      if len(column.shape) < 1:
+        feature_col = tf.reshape(feature_col, shape=[tf.shape(feature_col)[0]])
+      tensors[layer] = feature_col
     if weight_column is not None:
       tensors[self.task_weights[0]] = tf.feature_column.input_layer(
           features, [weight_column])
