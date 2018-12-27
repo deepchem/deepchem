@@ -311,6 +311,50 @@ class DTNNModel(TensorGraph):
     weighted_loss = ReduceSum(L2Loss(in_layers=[labels, output, weights]))
     self.set_loss(weighted_loss)
 
+  def compute_features_on_batch(self, X_b):
+    """Computes the values for different Feature Layers on given batch
+
+    A tf.py_func wrapper is written around this when creating the
+    input_fn for tf.Estimator
+
+    """
+    distance = []
+    atom_membership = []
+    distance_membership_i = []
+    distance_membership_j = []
+    num_atoms = list(map(sum, X_b.astype(bool)[:, :, 0]))
+    atom_number = [
+        np.round(
+            np.power(2 * np.diag(X_b[i, :num_atoms[i], :num_atoms[i]]),
+                     1 / 2.4)).astype(int) for i in range(len(num_atoms))
+    ]
+    start = 0
+    for im, molecule in enumerate(atom_number):
+      distance_matrix = np.outer(
+          molecule, molecule) / X_b[im, :num_atoms[im], :num_atoms[im]]
+      np.fill_diagonal(distance_matrix, -100)
+      distance.append(np.expand_dims(distance_matrix.flatten(), 1))
+      atom_membership.append([im] * num_atoms[im])
+      membership = np.array([np.arange(num_atoms[im])] * num_atoms[im])
+      membership_i = membership.flatten(order='F')
+      membership_j = membership.flatten()
+      distance_membership_i.append(membership_i + start)
+      distance_membership_j.append(membership_j + start)
+      start = start + num_atoms[im]
+
+    atom_number = np.concatenate(atom_number).astype(np.int32)
+    distance = np.concatenate(distance, axis=0)
+    gaussian_dist = np.exp(
+        -np.square(distance - self.steps) / (2 * self.step_size**2))
+    gaussian_dist = gaussian_dist.astype(np.float32)
+    atom_mem = np.concatenate(atom_membership).astype(np.int32)
+    dist_mem_i = np.concatenate(distance_membership_i).astype(np.int32)
+    dist_mem_j = np.concatenate(distance_membership_j).astype(np.int32)
+
+    features = [atom_number, gaussian_dist, dist_mem_i, dist_mem_j, atom_mem]
+
+    return features
+
   def default_generator(self,
                         dataset,
                         epochs=1,
@@ -329,40 +373,33 @@ class DTNNModel(TensorGraph):
           feed_dict[self.labels[0]] = y_b
         if w_b is not None:
           feed_dict[self.task_weights[0]] = w_b
-        distance = []
-        atom_membership = []
-        distance_membership_i = []
-        distance_membership_j = []
-        num_atoms = list(map(sum, X_b.astype(bool)[:, :, 0]))
-        atom_number = [
-            np.round(
-                np.power(2 * np.diag(X_b[i, :num_atoms[i], :num_atoms[i]]),
-                         1 / 2.4)).astype(int) for i in range(len(num_atoms))
-        ]
-        start = 0
-        for im, molecule in enumerate(atom_number):
-          distance_matrix = np.outer(
-              molecule, molecule) / X_b[im, :num_atoms[im], :num_atoms[im]]
-          np.fill_diagonal(distance_matrix, -100)
-          distance.append(np.expand_dims(distance_matrix.flatten(), 1))
-          atom_membership.append([im] * num_atoms[im])
-          membership = np.array([np.arange(num_atoms[im])] * num_atoms[im])
-          membership_i = membership.flatten(order='F')
-          membership_j = membership.flatten()
-          distance_membership_i.append(membership_i + start)
-          distance_membership_j.append(membership_j + start)
-          start = start + num_atoms[im]
-        feed_dict[self.atom_number] = np.concatenate(atom_number)
-        distance = np.concatenate(distance, 0)
-        feed_dict[self.distance] = np.exp(
-            -np.square(distance - self.steps) / (2 * self.step_size**2))
-        feed_dict[self.distance_membership_i] = np.concatenate(
-            distance_membership_i)
-        feed_dict[self.distance_membership_j] = np.concatenate(
-            distance_membership_j)
-        feed_dict[self.atom_membership] = np.concatenate(atom_membership)
+
+        features = self.compute_features_on_batch(X_b)
+        feed_dict[self.atom_number] = features[0]
+        feed_dict[self.distance] = features[1]
+        feed_dict[self.distance_membership_i] = features[2]
+        feed_dict[self.distance_membership_j] = features[3]
+        feed_dict[self.atom_membership] = features[4]
 
         yield feed_dict
+
+  def create_estimator_inputs(self, feature_columns, weight_column, features,
+                              labels, mode):
+    tensors = dict()
+    for layer, column in zip(self.features, feature_columns):
+      feature_col = tf.feature_column.input_layer(features, [column])
+      if column.dtype != feature_col.dtype:
+        feature_col = tf.cast(feature_col, column.dtype)
+      if len(column.shape) < 1:
+        feature_col = tf.reshape(feature_col, shape=[tf.shape(feature_col)[0]])
+      tensors[layer] = feature_col
+    if weight_column is not None:
+      tensors[self.task_weights[0]] = tf.feature_column.input_layer(
+          features, [weight_column])
+    if labels is not None:
+      tensors[self.labels[0]] = labels
+
+    return tensors
 
 
 class DAGModel(TensorGraph):
