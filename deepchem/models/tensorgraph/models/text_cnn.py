@@ -205,6 +205,22 @@ class TextCNNModel(TensorGraph):
     weighted_loss = WeightedError(in_layers=[loss, weights])
     self.set_loss(weighted_loss)
 
+  @staticmethod
+  def convert_bytes_to_char(s):
+    s = ''.join(chr(b) for b in s)
+    return s
+
+  def smiles_to_seq_batch(self, ids_b):
+    """Converts SMILES strings to np.array sequence.
+
+    A tf.py_func wrapper is written around this when creating the input_fn for make_estimator
+    """
+    if isinstance(ids_b[0], bytes):
+      ids_b = [TextCNNModel.convert_bytes_to_char(smiles) for smiles in ids_b]
+    smiles_seqs = [self.smiles_to_seq(smiles) for smiles in ids_b]
+    smiles_seqs = np.vstack(smiles_seqs)
+    return smiles_seqs
+
   def default_generator(self,
                         dataset,
                         epochs=1,
@@ -230,8 +246,7 @@ class TextCNNModel(TensorGraph):
           feed_dict[self.task_weights[0]] = w_b
 
         # Transform SMILES sequence to integers
-        smiles_seqs = [self.smiles_to_seq(smiles) for smiles in ids_b]
-        feed_dict[self.smiles_seqs] = np.vstack(smiles_seqs)
+        feed_dict[self.smiles_seqs] = self.smiles_to_seq_batch(ids_b)
         yield feed_dict
 
   def create_estimator_inputs(self, feature_columns, weight_column, features,
