@@ -18,6 +18,7 @@ import logging
 import tarfile
 from deepchem.feat import rdkit_grid_featurizer as rgf
 from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
+from deepchem.feat.graph_features import AtomicConvFeaturizer
 
 logger = logging.getLogger(__name__)
 
@@ -232,6 +233,22 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
     featurizer = ComplexNeighborListFragmentAtomicCoordinates(
         frag1_num_atoms, frag2_num_atoms, complex_num_atoms, max_num_neighbors,
         neighbor_cutoff)
+
+  elif featurizer == "atomic_conv":
+    frag1_num_atoms = 70  # for ligand atoms
+    frag2_num_atoms = 24000  # for protein atoms
+    complex_num_atoms = 24070  # in total
+    max_num_neighbors = 4
+    # Cutoff in angstroms
+    neighbor_cutoff = 4
+    featurizer = AtomicConvFeaturizer(
+      labels=labels,
+      frag1_num_atoms=frag1_num_atoms,
+      frag2_num_atoms=frag2_num_atoms,
+      complex_num_atoms=complex_num_atoms,
+      neighbor_cutoff=neighbor_cutoff,
+      max_num_neighbors=max_num_neighbors,
+    )
 
   else:
     raise ValueError("Featurizer not supported")
