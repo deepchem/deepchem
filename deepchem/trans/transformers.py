@@ -1007,8 +1007,8 @@ class ANITransformer(Transformer):
       while True:
         end = min((start + 1) * batch_size, X.shape[0])
         X_batch = X[(start * batch_size):end]
-        output = self.sess.run(
-            [self.outputs], feed_dict={self.inputs: X_batch})[0]
+        output = self.sess.run([self.outputs], feed_dict={self.inputs:
+                                                          X_batch})[0]
         X_out.append(output)
         num_transformed = num_transformed + X_batch.shape[0]
         print('%i samples transformed' % num_transformed)
@@ -1041,12 +1041,10 @@ class ANITransformer(Transformer):
       radial_sym = self.radial_symmetry(d_radial_cutoff, d, atom_numbers)
       angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
                                           coordinates)
-      self.outputs = tf.concat(
-          [
-              tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym,
-              angular_sym
-          ],
-          axis=2)
+      self.outputs = tf.concat([
+          tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym, angular_sym
+      ],
+                               axis=2)
     return graph
 
   def distance_matrix(self, coordinates, flags):
@@ -1232,28 +1230,27 @@ class DataTransforms(Transformer):
             x_crop - Interpreted as (top_crop, bottom_crop), the top left corner of the cropped image
             y_crop - Interpreted as (left_crop, right_crop), the bottom right corner of the cropped image
     """
-    return self.Image[x_crop[0]:x_crop[1], y_crop[0]:y_crop[1]]        
+    return self.Image[x_crop[0]:x_crop[1], y_crop[0]:y_crop[1]]
 
   def convert2gray(self):
     """ Converts the image to grayscale 
     """
     return scipy.ndimage.imread(self.Image, mode='L')
 
-  def sp_noise(self,prob=0.05):
+  def sp_noise(self, prob=0.05):
     '''
     Add salt and pepper noise to image
     prob: Probability of the noise
     '''
-    output = np.zeros(self.Image.shape,np.uint8)
-    thres = 1 - prob 
+    output = np.zeros(self.Image.shape, np.uint8)
+    thres = 1 - prob
     for i in range(self.Image.shape[0]):
-        for j in range(self.Image.shape[1]):
-            rdn = np.random.random()
-            if rdn < prob:
-                output[i][j] = 0
-            elif rdn > thres:
-                output[i][j] = 255
-            else:
-                output[i][j] = self.Image[i][j]
+      for j in range(self.Image.shape[1]):
+        rdn = np.random.random()
+        if rdn < prob:
+          output[i][j] = 0
+        elif rdn > thres:
+          output[i][j] = 255
+        else:
+          output[i][j] = self.Image[i][j]
     return output
-  
