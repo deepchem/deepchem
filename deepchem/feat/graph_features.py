@@ -4,12 +4,18 @@ from __future__ import unicode_literals
 import numpy as np
 from rdkit import Chem
 
+import deepchem as dc
 from deepchem.feat import Featurizer
 from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
 from deepchem.feat.mol_graphs import ConvMol, WeaveMol
-from deepchem.models.tensorgraph.models.atomic_conv import AtomicConvModel, AtomicConvScore, AtomicConvolution
 from deepchem.data import DiskDataset
 import multiprocessing
+import logging
+
+
+def _featurize_complex(featurizer, mol_pdb_file, protein_pdb_file, log_message):
+  logging.info(log_message)
+  return featurizer._featurize_complex(mol_pdb_file, protein_pdb_file)
 
 
 def one_of_k_encoding(x, allowable_set):
@@ -431,6 +437,10 @@ class WeaveFeaturizer(Featurizer):
 
 
 class AtomicConvFeaturizer(ComplexNeighborListFragmentAtomicCoordinates):
+  """This class computes the Atomic Convolution features"""
+
+  # TODO (VIGS25): Complete the description
+
   name = ['atomic_conv']
 
   def __init__(self,
@@ -453,39 +463,68 @@ class AtomicConvFeaturizer(ComplexNeighborListFragmentAtomicCoordinates):
                strip_hydrogens=True,
                learning_rate=0.001,
                epochs=10):
+    """
+    Parameters
 
-    self.atomic_conv_model = AtomicConvModel(
-      frag1_num_atoms=frag1_num_atoms,
-      frag2_num_atoms=frag2_num_atoms,
-      complex_num_atoms=complex_num_atoms,
-      max_num_neighbors=max_num_neighbors,
-      batch_size=batch_size,
-      atom_types=atom_types,
-      radial=radial,
-      layer_sizes=layer_sizes,
-      learning_rate=learning_rate)
+    labels: numpy.ndarray
+      Labels which we want to predict using the model
+    neighbor_cutoff: int
+      TODO (VIGS25): Add description
+    frag1_num_atoms: int
+      Number of atoms in first fragment
+    frag2_num_atoms: int
+      Number of atoms in second fragment
+    complex_num_atoms: int
+      TODO (VIGS25) : Add description
+    max_num_neighbors: int
+      Maximum number of neighbors possible for an atom
+    batch_size: int
+      Batch size used for training and evaluation
+    atom_types: list
+      List of atoms recognized by model. Atoms are indicated by their
+      nuclear numbers.
+    radial: list
+      TODO (VIGS25): Add description
+    layer_sizes: list
+      List of layer sizes for the AtomicConvolutional Network
+    strip_hydrogens: bool
+      Whether to remove hydrogens while computing neighbor features
+    learning_rate: float
+      Learning rate for training the model
+    epochs: int
+      Number of epochs to train the model for
+    """
+
+    self.atomic_conv_model = dc.models.tensorgraph.models.atomic_conv.AtomicConvModel(
+        frag1_num_atoms=frag1_num_atoms,
+        frag2_num_atoms=frag2_num_atoms,
+        complex_num_atoms=complex_num_atoms,
+        max_num_neighbors=max_num_neighbors,
+        batch_size=batch_size,
+        atom_types=atom_types,
+        radial=radial,
+        layer_sizes=layer_sizes,
+        learning_rate=learning_rate)
 
     super(AtomicConvFeaturizer, self).__init__(
-      frag1_num_atoms=frag1_num_atoms,
-      frag2_num_atoms=frag2_num_atoms,
-      complex_num_atoms=complex_num_atoms,
-      max_num_neighbors=max_num_neighbors,
-      neighbor_cutoff=neighbor_cutoff,
-      strip_hydrogens=strip_hydrogens
-    )
+        frag1_num_atoms=frag1_num_atoms,
+        frag2_num_atoms=frag2_num_atoms,
+        complex_num_atoms=complex_num_atoms,
+        max_num_neighbors=max_num_neighbors,
+        neighbor_cutoff=neighbor_cutoff,
+        strip_hydrogens=strip_hydrogens)
 
     self.epochs = epochs
     self.labels = labels
 
   def featurize_complexes(self, mol_files, protein_files):
-
     pool = multiprocessing.Pool()
     results = []
     for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_files)):
       log_message = "Featurizing %d / %d" % (i, len(mol_files))
       results.append(
-        pool.apply_async(self._featurize_complex,
-                         (self, mol_file, protein_pdb, log_message)))
+          pool.apply_async(_featurize_complex,
+                           (self, mol_file, protein_pdb, log_message)))
     pool.close()
     features = []
     failures = []
@@ -501,12 +540,39 @@ class AtomicConvFeaturizer(ComplexNeighborListFragmentAtomicCoordinates):
     labels = np.delete(self.labels, failures)
     dataset = DiskDataset.from_numpy(features, labels)
 
+    # Fit atomic conv model
     self.atomic_conv_model.fit(dataset, nb_epoch=self.epochs)
+
+    # Add the Atomic Convolution layers to fetches
     layers_to_fetch = list()
     for layer in self.atomic_conv_model.layers.values():
-      if isinstance(layer, AtomicConvolution) or isinstance(layer, AtomicConvScore):
+      if isinstance(layer,
+                    dc.models.tensorgraph.models.atomic_conv.AtomicConvolution):
         layers_to_fetch.append(layer)
 
+    # Extract the atomic convolution features
     atomic_conv_features = list()
-    # TODO (VIGS25): Setup feed_dict and compute the Convolution and score values
+    feed_dict_generator = self.atomic_conv_model.default_generator(
+        dataset=dataset, epochs=1)
+
+    for feed_dict in self.atomic_conv_model._create_feed_dicts(
+        feed_dict_generator, training=False):
+      frag1_conv, frag2_conv, complex_conv = self.atomic_conv_model._run_graph(
+          outputs=layers_to_fetch, feed_dict=feed_dict, training=False)
+      concatenated = np.concatenate(
+          [frag1_conv, frag2_conv, complex_conv], axis=1)
+      atomic_conv_features.append(concatenated)
+
+    batch_size = self.atomic_conv_model.batch_size
+
+    if len(features) % batch_size != 0:
+      num_batches = (len(features) // batch_size) + 1
+      num_to_skip = num_batches * batch_size - len(features)
+    else:
+      num_to_skip = 0
+
+    atomic_conv_features = np.asarray(atomic_conv_features)
+    atomic_conv_features = atomic_conv_features[-num_to_skip:]
+    atomic_conv_features = np.squeeze(atomic_conv_features)
+
     return atomic_conv_features, failures

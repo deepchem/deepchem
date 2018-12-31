@@ -10,11 +10,8 @@ __license__ = "MIT"
 
 import unittest
 import os
-import sys
 import numpy as np
-from deepchem.feat.mol_graphs import ConvMol
-from deepchem.feat.mol_graphs import MultiConvMol
-from deepchem.feat.graph_features import ConvMolFeaturizer
+from deepchem.feat.graph_features import ConvMolFeaturizer, AtomicConvFeaturizer
 
 
 class TestConvMolFeaturizer(unittest.TestCase):
@@ -95,3 +92,36 @@ class TestConvMolFeaturizer(unittest.TestCase):
     assert np.array_equal(deg_adj_lists[4], np.zeros([0, 4], dtype=np.int32))
     assert np.array_equal(deg_adj_lists[5], np.zeros([0, 5], dtype=np.int32))
     assert np.array_equal(deg_adj_lists[6], np.zeros([0, 6], dtype=np.int32))
+
+
+class TestAtomicConvFeaturizer(unittest.TestCase):
+
+  def test_feature_generation(self):
+    """Test if featurization works using AtomicConvFeaturizer."""
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    ligand_file = os.path.join(dir_path, "data/3zso_ligand_hyd.pdb")
+    protein_file = os.path.join(dir_path, "data/3zso_protein.pdb")
+    # Pulled from PDB files. For larger datasets with more PDBs, would use
+    # max num atoms instead of exact.
+
+    frag1_num_atoms = 44  # for ligand atoms
+    frag2_num_atoms = 2336  # for protein atoms
+    complex_num_atoms = 2380  # in total
+    max_num_neighbors = 4
+    # Cutoff in angstroms
+    neighbor_cutoff = 4
+
+    labels = np.array([0, 0])
+
+    featurizer = AtomicConvFeaturizer(
+        labels=labels,
+        batch_size=1,
+        epochs=1,
+        frag1_num_atoms=frag1_num_atoms,
+        frag2_num_atoms=frag2_num_atoms,
+        complex_num_atoms=complex_num_atoms,
+        max_num_neighbors=max_num_neighbors,
+        neighbor_cutoff=neighbor_cutoff)
+
+    features, _ = featurizer.featurize_complexes([ligand_file, ligand_file],
+                                                 [protein_file, protein_file])

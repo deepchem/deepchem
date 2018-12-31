@@ -242,13 +242,13 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
     # Cutoff in angstroms
     neighbor_cutoff = 4
     featurizer = AtomicConvFeaturizer(
-      labels=labels,
-      frag1_num_atoms=frag1_num_atoms,
-      frag2_num_atoms=frag2_num_atoms,
-      complex_num_atoms=complex_num_atoms,
-      neighbor_cutoff=neighbor_cutoff,
-      max_num_neighbors=max_num_neighbors,
-    )
+        labels=labels,
+        frag1_num_atoms=frag1_num_atoms,
+        frag2_num_atoms=frag2_num_atoms,
+        complex_num_atoms=complex_num_atoms,
+        neighbor_cutoff=neighbor_cutoff,
+        max_num_neighbors=max_num_neighbors,
+        batch_size=64)
 
   else:
     raise ValueError("Featurizer not supported")
@@ -258,6 +258,7 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
   # Delete labels for failing elements
   labels = np.delete(labels, failures)
   dataset = deepchem.data.DiskDataset.from_numpy(features, labels)
+  print('Featurization complete.')
   # No transformations of data
   transformers = []
   if split == None:
