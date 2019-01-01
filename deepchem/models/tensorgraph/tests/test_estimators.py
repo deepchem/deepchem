@@ -460,8 +460,8 @@ class TestEstimators(unittest.TestCase):
   @flaky
   def test_dtnn_regression_model(self):
     """Test creating an estimator for DTNNGraphModel for regression"""
-    data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../")
-    input_file = os.path.join(data_dir, "models", "example_DTNN.mat")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    input_file = os.path.join(current_dir, "example_DTNN.mat")
     dataset = loadmat(input_file)
 
     np.random.seed(123)
