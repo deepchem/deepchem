@@ -299,7 +299,7 @@ class TestEstimators(unittest.TestCase):
 
     np.random.seed(123)
     smile_ids = ["CCCCC", "CCC(=O)O", "CCC", "CC(=O)O", "O=C=O"]
-    X = [model.smiles_to_seq(smile) for smile in smile_ids]
+    X = smile_ids
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
     dataset = NumpyDataset(X, y, w, smile_ids)
@@ -310,7 +310,8 @@ class TestEstimators(unittest.TestCase):
     def input_fn(epochs):
       x, y, weights = dataset.make_iterator(
           batch_size=n_samples, epochs=epochs).get_next()
-      return {'x': x, 'weights': weights}, y
+      smiles_seq = tf.py_func(model.smiles_to_seq_batch, inp=[x], Tout=tf.int32)
+      return {'x': smiles_seq, 'weights': weights}, y
 
     # Create an estimator from it.
     x_col = tf.feature_column.numeric_column(
@@ -345,7 +346,7 @@ class TestEstimators(unittest.TestCase):
 
     np.random.seed(123)
     smile_ids = ["CCCCC", "CCC(=O)O", "CCC", "CC(=O)O", "O=C=O"]
-    X = [model.smiles_to_seq(smile) for smile in smile_ids]
+    X = smile_ids
     y = np.zeros((n_samples, n_tasks, 1), dtype=np.float32)
     w = np.ones((n_samples, n_tasks))
     dataset = NumpyDataset(X, y, w, smile_ids)
@@ -353,10 +354,12 @@ class TestEstimators(unittest.TestCase):
     def input_fn(epochs):
       x, y, weights = dataset.make_iterator(
           batch_size=n_samples, epochs=epochs).get_next()
-      return {'x': x, 'weights': weights}, y
+      smiles_seq = tf.py_func(model.smiles_to_seq_batch, inp=[x], Tout=tf.int32)
+      return {'x': smiles_seq, 'weights': weights}, y
 
     # Create an estimator from it.
-    x_col = tf.feature_column.numeric_column('x', shape=(seq_length,))
+    x_col = tf.feature_column.numeric_column(
+        'x', shape=(seq_length,), dtype=tf.int32)
     weight_col = tf.feature_column.numeric_column('weights', shape=(n_tasks,))
     metrics = {'error': tf.metrics.mean_absolute_error}
     estimator = model.make_estimator(

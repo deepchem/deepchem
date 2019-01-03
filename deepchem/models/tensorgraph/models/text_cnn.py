@@ -6,6 +6,7 @@ Created on Thu Sep 28 15:17:50 2017
 import numpy as np
 import tensorflow as tf
 import copy
+import six
 
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
@@ -205,6 +206,24 @@ class TextCNNModel(TensorGraph):
     weighted_loss = WeightedError(in_layers=[loss, weights])
     self.set_loss(weighted_loss)
 
+  @staticmethod
+  def convert_bytes_to_char(s):
+    s = ''.join(chr(b) for b in s)
+    return s
+
+  def smiles_to_seq_batch(self, ids_b):
+    """Converts SMILES strings to np.array sequence.
+
+    A tf.py_func wrapper is written around this when creating the input_fn for make_estimator
+    """
+    if isinstance(
+        ids_b[0],
+        bytes) and not six.PY2:  # Python 2.7 bytes and string are analogous
+      ids_b = [TextCNNModel.convert_bytes_to_char(smiles) for smiles in ids_b]
+    smiles_seqs = [self.smiles_to_seq(smiles) for smiles in ids_b]
+    smiles_seqs = np.vstack(smiles_seqs)
+    return smiles_seqs
+
   def default_generator(self,
                         dataset,
                         epochs=1,
@@ -230,8 +249,7 @@ class TextCNNModel(TensorGraph):
           feed_dict[self.task_weights[0]] = w_b
 
         # Transform SMILES sequence to integers
-        smiles_seqs = [self.smiles_to_seq(smiles) for smiles in ids_b]
-        feed_dict[self.smiles_seqs] = np.vstack(smiles_seqs)
+        feed_dict[self.smiles_seqs] = self.smiles_to_seq_batch(ids_b)
         yield feed_dict
 
   def create_estimator_inputs(self, feature_columns, weight_column, features,
@@ -239,7 +257,12 @@ class TextCNNModel(TensorGraph):
     """Creates tensors for inputs."""
     tensors = dict()
     for layer, column in zip(self.features, feature_columns):
-      tensors[layer] = tf.feature_column.input_layer(features, [column])
+      feature_col = tf.feature_column.input_layer(features, [column])
+      if column.dtype != feature_col.dtype:
+        feature_col = tf.cast(feature_col, column.dtype)
+      if len(column.shape) < 1:
+        feature_col = tf.reshape(feature_col, shape=[tf.shape(feature_col)[0]])
+      tensors[layer] = feature_col
     if weight_column is not None:
       tensors[self.task_weights[0]] = tf.feature_column.input_layer(
           features, [weight_column])

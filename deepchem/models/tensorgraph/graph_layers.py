@@ -338,7 +338,6 @@ class DTNNEmbedding(Layer):
     self.build()
 
     atom_number = in_layers[0].out_tensor
-    atom_number = tf.cast(atom_number, dtype=tf.int32)
     atom_features = tf.nn.embedding_lookup(self.embedding_list, atom_number)
     out_tensor = atom_features
     if set_tensors:
