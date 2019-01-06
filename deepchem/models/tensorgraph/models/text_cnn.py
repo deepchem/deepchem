@@ -6,7 +6,7 @@ Created on Thu Sep 28 15:17:50 2017
 import numpy as np
 import tensorflow as tf
 import copy
-import six
+import sys
 
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
@@ -217,8 +217,8 @@ class TextCNNModel(TensorGraph):
     A tf.py_func wrapper is written around this when creating the input_fn for make_estimator
     """
     if isinstance(
-        ids_b[0],
-        bytes) and not six.PY2:  # Python 2.7 bytes and string are analogous
+        ids_b[0], bytes
+    ) and sys.version_info[0] != '2':  # Python 2.7 bytes and string are analogous
       ids_b = [TextCNNModel.convert_bytes_to_char(smiles) for smiles in ids_b]
     smiles_seqs = [self.smiles_to_seq(smiles) for smiles in ids_b]
     smiles_seqs = np.vstack(smiles_seqs)
