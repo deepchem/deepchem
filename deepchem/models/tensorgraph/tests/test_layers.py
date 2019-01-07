@@ -951,7 +951,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       expected_output = embedding_val[test_tensor_input]
       self.assertAllClose(out_tensor, expected_output)
       self.assertAllClose(out_tensor.shape,
-                          (periodic_table_length - 5, n_embedding))
+                          (periodic_table_length // 2, n_embedding))
 
   def test_dtnn_extract(self):
     """Test that DTNNExtract can be invoked."""
