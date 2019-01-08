@@ -63,6 +63,10 @@ from deepchem.models.tensorgraph.IRV import Slice
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 from deepchem.models.tensorgraph.graph_layers import DTNNExtract
 from deepchem.models.tensorgraph.graph_layers import WeaveGather
+from deepchem.models.tensorgraph.graph_layers import GatedRecurrentUnit
+from deepchem.models.tensorgraph.graph_layers import EdgeNetwork
+from deepchem.models.tensorgraph.graph_layers import DTNNGather
+from deepchem.models.tensorgraph.graph_layers import DAGGather
 
 
 class TestLayers(test_util.TensorFlowTestCase):
@@ -1006,3 +1010,114 @@ class TestLayers(test_util.TensorFlowTestCase):
 
       self.assertAllClose(expected_output, out_tensor)
       self.assertEqual(expected_output.shape, out_tensor.shape)
+
+  def test_gated_recurrent_unit(self):
+    """Test that Gated Recurrent Unit can be invoked."""
+    n_hidden = 2
+    init_method = 'one'
+
+    messages_np = np.array([[1, -1]])
+    inputs_np = np.array([[1, -1]])
+    expected_output = np.array([[0.5, -0.5]])
+
+    with self.test_session() as sess:
+      messages_tf = tf.convert_to_tensor(messages_np, dtype=tf.float32)
+      inputs_tf = tf.convert_to_tensor(inputs_np, dtype=tf.float32)
+      gru = GatedRecurrentUnit(n_hidden=n_hidden, init=init_method)
+      h = gru.forward(inputs_tf, messages_tf)
+
+      sess.run(tf.global_variables_initializer())
+      h = h.eval()
+      self.assertAllClose(h, expected_output)
+      self.assertEqual(h.shape, expected_output.shape)
+
+  def test_edge_network(self):
+    """Test that Edge Network can be invoked."""
+    n_pair_features = 2
+    n_hidden = 2
+    init_method = 'one'
+
+    pair_features_np = np.array([[0.25, 0.25], [0.25, 0.25], [0.25, 0.25]])
+    atom_features_np = np.array([[1, 1], [2, 2], [3, 3]])
+    atom_to_pair_np = np.array([[0, 0], [0, 1], [1, 1]])
+    expected_output = np.array([[3, 3], [2, 2]])
+
+    with self.test_session() as sess:
+      pair_features_tf = tf.convert_to_tensor(
+          pair_features_np, dtype=tf.float32)
+      atom_features_tf = tf.convert_to_tensor(
+          atom_features_np, dtype=tf.float32)
+      atom_to_pair_tf = tf.convert_to_tensor(atom_to_pair_np, dtype=tf.int32)
+      edge_network = EdgeNetwork(
+          pair_features=pair_features_tf,
+          n_pair_features=n_pair_features,
+          n_hidden=n_hidden,
+          init=init_method)
+
+      sess.run(tf.global_variables_initializer())
+      output = edge_network.forward(atom_features_tf, atom_to_pair_tf).eval()
+      self.assertAllClose(output, expected_output)
+      self.assertEqual(output.shape, expected_output.shape)
+
+  def test_dtnn_gather(self):
+    """Test that DTNNGather can be invoked."""
+    n_embedding = 2
+    n_outputs = 2
+    layer_sizes = [2]
+    output_activation = False
+    init_method = 'one'
+    activation = 'sigmoid'
+
+    inputs_np = np.array([[1, -1], [1, -1], [1, -1]])
+    atom_membership_np = np.array([0, 0, 1])
+    expected_output = np.array([[2, 2], [1, 1]])
+
+    with self.test_session() as sess:
+      inputs_tf = tf.convert_to_tensor(inputs_np, dtype=tf.float32)
+      atom_membership_tf = tf.convert_to_tensor(
+          atom_membership_np, dtype=tf.int32)
+      dtnn_gather = DTNNGather(
+          n_embedding=n_embedding,
+          n_outputs=n_outputs,
+          layer_sizes=layer_sizes,
+          output_activation=output_activation,
+          init=init_method,
+          activation=activation)
+      dtnn_gather.create_tensor(in_layers=[inputs_tf, atom_membership_tf])
+
+      sess.run(tf.global_variables_initializer())
+      output = dtnn_gather.out_tensor.eval()
+      self.assertAllClose(expected_output, output)
+      self.assertEqual(expected_output.shape, output.shape)
+
+  def test_dag_gather(self):
+    """Test that DAGGather can be invoked."""
+    n_graph_feat = 2
+    n_outputs = 2
+    layer_sizes = [2]
+    init_method = 'one'
+    activation = 'sigmoid'
+
+    def sigmoid(x):
+      return 1 / (1 + np.exp(-x))
+
+    atom_features_np = np.array([[1, -1], [1, -1], [1, -1]])
+    membership_np = np.array([0, 0, 1])
+    expected_output = sigmoid(np.array([[1, 1], [1, 1]]))
+
+    with self.test_session() as sess:
+      atom_features_tf = tf.convert_to_tensor(
+          atom_features_np, dtype=tf.float32)
+      membership_tf = tf.convert_to_tensor(membership_np, dtype=tf.int32)
+      dag_gather = DAGGather(
+          n_graph_feat=n_graph_feat,
+          n_outputs=n_outputs,
+          activation=activation,
+          init=init_method,
+          layer_sizes=layer_sizes)
+      dag_gather.create_tensor(in_layers=[atom_features_tf, membership_tf])
+
+      sess.run(tf.global_variables_initializer())
+      output = dag_gather.out_tensor.eval()
+      self.assertAllClose(output, expected_output)
+      self.assertEqual(output.shape, expected_output.shape)
