@@ -27,6 +27,24 @@ class AdaptiveFilter(Layer):
                init='glorot_uniform',
                combine_method='linear',
                **kwargs):
+    """
+      Parameters
+      ----------
+      num_nodes: int
+        Number of nodes in the graph
+      num_node_features: int
+        Number of features per node in the graph
+      batch_size: int, optional
+        Batch size used for training
+      k: int, optional
+        k-hop neighborhood to look at
+      init: str, optional
+        Initialization method for the weights
+      combine_method: str, optional
+        How to combine adjacency matrix and node features
+
+    """
+
     if combine_method not in ['linear', 'prod']:
       raise ValueError('Combine method needs to be one of linear or product')
     self.k = k
@@ -111,6 +129,24 @@ class KOrderGraphConv(Layer):
                k=1,
                init='glorot_uniform',
                **kwargs):
+    """
+      Parameters
+      ----------
+      num_nodes: int
+        Number of nodes in the graph
+      num_node_features: int
+        Number of features per node in the graph
+      batch_size: int, optional
+        Batch size used for training
+      k: int, optional
+        k-hop neighborhood to look at
+      init: str, optional
+        Initialization method for the weights
+      combine_method: str, optional
+        How to combine adjacency matrix and node features
+
+    """
+
     self.num_nodes = num_nodes
     self.num_node_features = num_node_features
     self.k = k
