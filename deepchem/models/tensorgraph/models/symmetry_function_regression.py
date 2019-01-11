@@ -16,7 +16,7 @@ import tensorflow as tf
 import deepchem as dc
 
 from deepchem.models.tensorgraph.layers import Dense, Concat, WeightedError, Stack, Layer, ANIFeat, Exp
-from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature, Dropout, WeightDecay
+from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature, Dropout, WeightDecay, ReduceSum, Reshape
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 from deepchem.models.tensorgraph.symmetry_functions import DistanceMatrix, \
@@ -49,12 +49,18 @@ class BPSymmetryFunctionRegression(TensorGraph):
 
     super(BPSymmetryFunctionRegression, self).__init__(**kwargs)
 
-    self.build_graph()
+    self._build_graph()
 
-  def build_graph(self):
-    self.atom_flags = Feature(shape=(None, self.max_atoms, self.max_atoms))
-    self.atom_feats = Feature(shape=(None, self.max_atoms, self.n_feat))
-    previous_layer = self.atom_feats
+  def _build_graph(self):
+    self.atom_flags = Feature(shape=(None, self.max_atoms * self.max_atoms))
+    self.atom_feats = Feature(shape=(None, self.max_atoms * self.n_feat))
+
+    reshaped_atom_feats = Reshape(
+        in_layers=[self.atom_feats], shape=(-1, self.max_atoms, self.n_feat))
+    reshaped_atom_flags = Reshape(
+        in_layers=[self.atom_flags], shape=(-1, self.max_atoms, self.max_atoms))
+
+    previous_layer = reshaped_atom_feats
 
     Hiddens = []
     for n_hidden in self.layer_structures:
@@ -65,23 +71,27 @@ class BPSymmetryFunctionRegression(TensorGraph):
       Hiddens.append(Hidden)
       previous_layer = Hiddens[-1]
 
-    costs = []
-    self.labels_fd = []
-    for task in range(self.n_tasks):
-      regression = Dense(
-          out_channels=1, activation_fn=None, in_layers=[Hiddens[-1]])
-      output = BPGather(self.max_atoms, in_layers=[regression, self.atom_flags])
-      self.add_output(output)
+    regression = Dense(
+        out_channels=1 * self.n_tasks,
+        activation_fn=None,
+        in_layers=[Hiddens[-1]])
+    output = BPGather(
+        self.max_atoms, in_layers=[regression, reshaped_atom_flags])
+    self.add_output(output)
 
-      label = Label(shape=(None, 1))
-      self.labels_fd.append(label)
-      cost = L2Loss(in_layers=[label, output])
-      costs.append(cost)
+    label = Label(shape=(None, self.n_tasks, 1))
+    loss = ReduceSum(L2Loss(in_layers=[label, output]))
+    weights = Weights(shape=(None, self.n_tasks))
 
-    all_cost = Stack(in_layers=costs, axis=1)
-    self.weights = Weights(shape=(None, self.n_tasks))
-    loss = WeightedError(in_layers=[all_cost, self.weights])
-    self.set_loss(loss)
+    weighted_loss = WeightedError(in_layers=[loss, weights])
+    self.set_loss(weighted_loss)
+
+  def compute_features_on_batch(self, X_b):
+    flags = np.sign(np.array(X_b[:, :, 0]))
+    atom_flags = np.stack([flags] * self.max_atoms, axis=2) * \
+                 np.stack([flags] * self.max_atoms, axis=1)
+    atom_feats = np.array(X_b[:, :, 1:], dtype=np.float32)
+    return [atom_feats, atom_flags]
 
   def default_generator(self,
                         dataset,
@@ -99,16 +109,32 @@ class BPSymmetryFunctionRegression(TensorGraph):
 
         feed_dict = dict()
         if y_b is not None and not predict:
-          for index, label in enumerate(self.labels_fd):
-            feed_dict[label] = y_b[:, index:index + 1]
+          feed_dict[self.labels[0]] = y_b
         if w_b is not None and not predict:
-          feed_dict[self.weights] = w_b
+          feed_dict[self.task_weights[0]] = w_b
 
-        flags = np.sign(np.array(X_b[:, :, 0]))
-        feed_dict[self.atom_flags] = np.stack([flags]*self.max_atoms, axis=2)*\
-            np.stack([flags]*self.max_atoms, axis=1)
-        feed_dict[self.atom_feats] = np.array(X_b[:, :, 1:], dtype=float)
+        atom_feats, atom_flags = self.compute_features_on_batch(X_b)
+        feed_dict[self.atom_feats] = atom_feats
+        feed_dict[self.atom_flags] = atom_flags
+
         yield feed_dict
+
+  def create_estimator_inputs(self, feature_columns, weight_column, features,
+                              labels, mode):
+    tensors = dict()
+    for layer, column in zip(self.features, feature_columns):
+      feature_col = tf.feature_column.input_layer(features, [column])
+      if feature_col.dtype != column.dtype:
+        feature_col = tf.cast(feature_col, column.dtype)
+      tensors[layer] = feature_col
+
+      if weight_column is not None:
+        tensors[self.task_weights[0]] = tf.feature_column.input_layer(
+            features, [weight_column])
+      if labels is not None:
+        tensors[self.labels[0]] = labels
+
+    return tensors
 
 
 class ANIRegression(TensorGraph):
@@ -304,11 +330,16 @@ class ANIRegression(TensorGraph):
   def build_graph(self):
 
     self.atom_numbers = Feature(shape=(None, self.max_atoms), dtype=tf.int32)
-    self.atom_flags = Feature(shape=(None, self.max_atoms, self.max_atoms))
-    self.atom_feats = Feature(shape=(None, self.max_atoms, 4))
+    self.atom_flags = Feature(shape=(None, self.max_atoms * self.max_atoms))
+    self.atom_feats = Feature(shape=(None, self.max_atoms * 4))
+
+    reshaped_atom_flags = Reshape(
+        in_layers=[self.atom_flags], shape=(-1, self.max_atoms, self.max_atoms))
+    reshaped_atom_feats = Reshape(
+        in_layers=[self.atom_feats], shape=(-1, self.max_atoms, 4))
 
     previous_layer = ANIFeat(
-        in_layers=self.atom_feats, max_atoms=self.max_atoms)
+        in_layers=reshaped_atom_feats, max_atoms=self.max_atoms)
 
     self.featurized = previous_layer
 
@@ -323,25 +354,31 @@ class ANIRegression(TensorGraph):
       Hiddens.append(Hidden)
       previous_layer = Hiddens[-1]
 
-    costs = []
-    self.labels_fd = []
-    for task in range(self.n_tasks):
-      regression = Dense(
-          out_channels=1, activation_fn=None, in_layers=[Hiddens[-1]])
-      output = BPGather(self.max_atoms, in_layers=[regression, self.atom_flags])
-      self.add_output(output)
+    regression = Dense(
+        out_channels=1 * self.n_tasks,
+        activation_fn=None,
+        in_layers=[Hiddens[-1]])
+    output = BPGather(
+        self.max_atoms, in_layers=[regression, reshaped_atom_flags])
+    self.add_output(output)
 
-      label = Label(shape=(None, 1))
-      self.labels_fd.append(label)
-      cost = L2Loss(in_layers=[label, output])
-      costs.append(cost)
+    label = Label(shape=(None, self.n_tasks, 1))
+    loss = ReduceSum(L2Loss(in_layers=[label, output]))
+    weights = Weights(shape=(None, self.n_tasks))
 
-    all_cost = Stack(in_layers=costs, axis=1)
-    self.weights = Weights(shape=(None, self.n_tasks))
-    loss = WeightedError(in_layers=[all_cost, self.weights])
+    weighted_loss = WeightedError(in_layers=[loss, weights])
     if self.exp_loss:
-      loss = Exp(in_layers=[loss])
-    self.set_loss(loss)
+      weighted_loss = Exp(in_layers=[weighted_loss])
+    self.set_loss(weighted_loss)
+
+  def compute_features_on_batch(self, X_b):
+    flags = np.sign(np.array(X_b[:, :, 0]))
+    atom_flags = np.stack([flags]*self.max_atoms, axis=2)*\
+            np.stack([flags]*self.max_atoms, axis=1)
+    atom_numbers = np.array(X_b[:, :, 0], dtype=np.int32)
+    atom_feats = np.array(X_b[:, :, :], dtype=np.float32)
+
+    return [atom_feats, atom_numbers, atom_flags]
 
   def default_generator(self,
                         dataset,
@@ -359,17 +396,33 @@ class ANIRegression(TensorGraph):
 
         feed_dict = dict()
         if y_b is not None and not predict:
-          for index, label in enumerate(self.labels_fd):
-            feed_dict[label] = y_b[:, index:index + 1]
+          feed_dict[self.labels[0]] = y_b
         if w_b is not None and not predict:
-          feed_dict[self.weights] = w_b
+          feed_dict[self.task_weights[0]] = w_b
 
-        flags = np.sign(np.array(X_b[:, :, 0]))
-        feed_dict[self.atom_flags] = np.stack([flags]*self.max_atoms, axis=2)*\
-            np.stack([flags]*self.max_atoms, axis=1)
-        feed_dict[self.atom_numbers] = np.array(X_b[:, :, 0], dtype=int)
-        feed_dict[self.atom_feats] = np.array(X_b[:, :, :], dtype=float)
+        atom_feats, atom_numbers, atom_flags = self.compute_features_on_batch(
+            X_b)
+        feed_dict[self.atom_feats] = atom_feats
+        feed_dict[self.atom_numbers] = atom_numbers
+        feed_dict[self.atom_flags] = atom_flags
         yield feed_dict
+
+  def create_estimator_inputs(self, feature_columns, weight_column, features,
+                              labels, mode):
+    tensors = dict()
+    for layer, column in zip(self.features, feature_columns):
+      feature_col = tf.feature_column.input_layer(features, [column])
+      if feature_col.dtype != column.dtype:
+        feature_col = tf.cast(feature_col, column.dtype)
+      tensors[layer] = feature_col
+
+      if weight_column is not None:
+        tensors[self.task_weights[0]] = tf.feature_column.input_layer(
+            features, [weight_column])
+      if labels is not None:
+        tensors[self.labels[0]] = labels
+
+    return tensors
 
   def save_numpy(self):
     """
