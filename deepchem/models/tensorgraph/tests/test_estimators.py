@@ -467,7 +467,7 @@ class TestEstimators(unittest.TestCase):
     input_file = os.path.join(current_dir, "example_DTNN.mat")
     dataset = loadmat(input_file)
 
-    num_vals_to_use = 5
+    num_vals_to_use = 20
 
     np.random.seed(123)
     X = dataset['X'][:num_vals_to_use]

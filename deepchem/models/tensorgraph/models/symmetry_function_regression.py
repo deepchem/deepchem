@@ -218,7 +218,8 @@ class ANIRegression(TensorGraph):
       flags = np.sign(np.array(X[:upper_lim, :, 0]))
       atom_flags = np.stack([flags]*self.max_atoms, axis=2)*\
           np.stack([flags]*self.max_atoms, axis=1)
-      feed_dict[self.atom_flags] = atom_flags.reshape(-1, self.max_atoms * self.max_atoms)
+      feed_dict[self.atom_flags] = atom_flags.reshape(
+          -1, self.max_atoms * self.max_atoms)
       atom_numbers = np.array(X[:upper_lim, :, 0], dtype=int)
       feed_dict[self.atom_numbers] = atom_numbers
       atom_feats = np.array(X[:upper_lim, :, :], dtype=float)
