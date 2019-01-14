@@ -19,7 +19,7 @@ num_amino_acids = len(aa_charset)
 mhc_allele = "HLA-A*02:01"
 dropout_p = 0.5
 batch_size = 64
-nb_epochs = 10
+nb_epochs = 100
 
 tasks, datasets, transformers = load_bd2013_human(
     mhc_allele=mhc_allele, seq_len=9, pad_len=pad_len)
@@ -35,7 +35,7 @@ train_scores = model.evaluate(train_dataset, [metric], transformers)
 test_scores = model.evaluate(test_dataset, [metric], transformers)
 
 print("Train scores")
-print(train_scores[0]['pearsonr'])
+print(train_scores['pearsonr'])
 
 print("Test scores")
-print(test_scores[0]['pearsonr'])
+print(test_scores['pearsonr'])
