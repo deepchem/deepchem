@@ -23,7 +23,6 @@ class AdaptiveFilter(Layer):
                num_nodes,
                num_node_features,
                batch_size=64,
-               k=1,
                init='glorot_uniform',
                combine_method='linear',
                **kwargs):
@@ -36,8 +35,6 @@ class AdaptiveFilter(Layer):
         Number of features per node in the graph
       batch_size: int, optional
         Batch size used for training
-      k: int, optional
-        k-hop neighborhood to look at
       init: str, optional
         Initialization method for the weights
       combine_method: str, optional
@@ -47,7 +44,6 @@ class AdaptiveFilter(Layer):
 
     if combine_method not in ['linear', 'prod']:
       raise ValueError('Combine method needs to be one of linear or product')
-    self.k = k
     self.num_nodes = num_nodes
     self.num_node_features = num_node_features
     self.batch_size = batch_size
@@ -66,21 +62,6 @@ class AdaptiveFilter(Layer):
 
     self.trainable_weights = [self.Q]
 
-  @staticmethod
-  def pow_k(inputs, k=1):
-    """Computes the kth power of inputs, used for adjacency matrix"""
-    if k == 1:
-      return inputs
-    if k == 0:
-      return tf.ones(inputs.shape)
-
-    if k % 2 == 0:
-      first_half = AdaptiveFilter.pow_k(inputs, int(k / 2))
-      second_half = AdaptiveFilter.pow_k(inputs, int(k / 2))
-      return tf.matmul(first_half, second_half)
-    else:
-      return tf.matmul(inputs, AdaptiveFilter.pow_k(inputs, int((k - 1) / 2)))
-
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     act_fn = activations.get('sigmoid')
     if in_layers is None:
@@ -88,11 +69,8 @@ class AdaptiveFilter(Layer):
     in_layers = convert_to_layers(in_layers)
     self._build()
 
-    A = in_layers[0].out_tensor
+    A_tilda_k = in_layers[0].out_tensor
     X = in_layers[1].out_tensor
-    A_k = AdaptiveFilter.pow_k(A, k=self.k)
-    I = tf.eye(num_rows=self.num_nodes, batch_shape=[self.batch_size])
-    A_tilda_k = tf.minimum(A_k + I, 1)
 
     if self.combine_method == "linear":
       concatenated = tf.concat([A_tilda_k, X], axis=2)
@@ -126,7 +104,6 @@ class KOrderGraphConv(Layer):
                num_nodes,
                num_node_features,
                batch_size=64,
-               k=1,
                init='glorot_uniform',
                **kwargs):
     """
@@ -138,8 +115,6 @@ class KOrderGraphConv(Layer):
         Number of features per node in the graph
       batch_size: int, optional
         Batch size used for training
-      k: int, optional
-        k-hop neighborhood to look at
       init: str, optional
         Initialization method for the weights
       combine_method: str, optional
@@ -149,7 +124,6 @@ class KOrderGraphConv(Layer):
 
     self.num_nodes = num_nodes
     self.num_node_features = num_node_features
-    self.k = k
     self.batch_size = batch_size
     self.init = initializations.get(init)
 
@@ -163,40 +137,21 @@ class KOrderGraphConv(Layer):
 
     self.trainable_weights = [self.W, self.b]
 
-  @staticmethod
-  def pow_k(inputs, k=1):
-    """Computes the kth power of inputs, used for adjacency matrix"""
-    if k == 1:
-      return inputs
-    if k == 0:
-      return tf.ones(inputs.shape)
-
-    if k % 2 == 0:
-      first_half = KOrderGraphConv.pow_k(inputs, int(k / 2))
-      second_half = KOrderGraphConv.pow_k(inputs, int(k / 2))
-      return tf.matmul(first_half, second_half)
-    else:
-      return tf.matmul(inputs, KOrderGraphConv.pow_k(inputs, int((k - 1) / 2)))
-
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
     self._build()
 
-    A = in_layers[0].out_tensor
+    A_tilda_k = in_layers[0].out_tensor
     X = in_layers[1].out_tensor
     adp_fn_val = in_layers[2].out_tensor
 
-    A_k = KOrderGraphConv.pow_k(A, k=self.k)
-    I = tf.eye(num_rows=self.num_nodes, batch_shape=[self.batch_size])
-    A_tilda_k = tf.minimum(A_k + I, 1)
-
     attn_weights = tf.multiply(adp_fn_val, self.W)
     wt_adjacency = attn_weights * A_tilda_k
-    out = tf.matmul(wt_adjacency, X) + self.b
-    out_tensor = out
+    out = tf.matmul(wt_adjacency, X) + tf.expand_dims(self.b, axis=1)
 
+    out_tensor = out
     if set_tensors:
       self.variables = self.trainable_weights
       self.out_tensor = out_tensor
