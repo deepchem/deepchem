@@ -101,7 +101,8 @@ class Splitter(object):
           rem_dataset,
           frac_train=frac_fold,
           frac_valid=1 - frac_fold,
-          frac_test=0)
+          frac_test=0,
+          **kwargs)
       cv_dataset = rem_dataset.select(fold_inds, select_dir=cv_dir)
       cv_datasets.append(cv_dataset)
       rem_dataset = rem_dataset.select(rem_inds)
@@ -127,7 +128,8 @@ class Splitter(object):
                              frac_test=.1,
                              seed=None,
                              log_every_n=1000,
-                             verbose=True):
+                             verbose=True,
+                             **kwargs):
     """
         Splits self into train/validation/test sets.
 
@@ -139,7 +141,8 @@ class Splitter(object):
         frac_train=frac_train,
         frac_test=frac_test,
         frac_valid=frac_valid,
-        log_every_n=log_every_n)
+        log_every_n=log_every_n,
+        **kwargs)
     if train_dir is None:
       train_dir = tempfile.mkdtemp()
     if valid_dir is None:
@@ -161,7 +164,8 @@ class Splitter(object):
                        test_dir=None,
                        seed=None,
                        frac_train=.8,
-                       verbose=True):
+                       verbose=True,
+                       **kwargs):
     """
         Splits self into train/test sets.
         Returns Dataset objects.
@@ -175,7 +179,8 @@ class Splitter(object):
         frac_train=frac_train,
         frac_test=1 - frac_train,
         frac_valid=0.,
-        verbose=verbose)
+        verbose=verbose,
+        **kwargs)
     return train_dataset, test_dataset
 
   def split(self,
@@ -184,7 +189,8 @@ class Splitter(object):
             frac_valid=None,
             frac_test=None,
             log_every_n=None,
-            verbose=False):
+            verbose=False,
+            **kwargs):
     """
     Stub to be filled in by child classes.
     """
