@@ -194,34 +194,3 @@ class HAGCN(TensorGraph):
         feed_dict[self.X] = atom_features
 
         yield feed_dict
-
-  # def predict(self, dataset, transformers=[], outputs=None):
-  #   """
-  #   Uses self to make predictions on provided Dataset object.
-  #
-  #   Parameters
-  #   ----------
-  #   dataset: dc.data.Dataset
-  #     Dataset to make prediction on
-  #   transformers: list
-  #     List of dc.trans.Transformers.
-  #   outputs: object
-  #     If outputs is None, then will assume outputs=self.default_outputs. If outputs is
-  #     a Layer/Tensor, then will evaluate and return as a single ndarray. If
-  #     outputs is a list of Layers/Tensors, will return a list of ndarrays.
-  #
-  #   Returns
-  #   -------
-  #   results: numpy ndarray or list of numpy ndarrays
-  #   """
-  #   generator = self.default_generator(dataset, predict=True, pad_batches=True)
-  #   preds = self.predict_on_generator(generator, transformers, outputs)
-  #   if len(dataset.y) % self.batch_size == 0:
-  #     return preds
-  #   else:
-  #     after_pad = (len(dataset.y) // self.batch_size + 1) * self.batch_size
-  #     closest = (len(dataset.y) // self.batch_size) * self.batch_size
-  #     remainder = len(dataset.y) % self.batch_size
-  #     num_added = after_pad - remainder - closest
-  #     preds = preds[:-num_added]
-  #     return preds
