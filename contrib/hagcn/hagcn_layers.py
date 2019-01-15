@@ -54,11 +54,9 @@ class AdaptiveFilter(Layer):
   def _build(self):
     if self.combine_method == "linear":
       self.Q = self.init(
-          shape=(self.batch_size, self.num_nodes,
-                 self.num_nodes + self.num_node_features))
+          shape=(self.num_nodes + self.num_node_features, self.num_nodes))
     else:
-      self.Q = self.init(
-          shape=(self.batch_size, self.num_node_features, self.num_nodes))
+      self.Q = self.init(shape=(self.num_node_features, self.num_nodes))
 
     self.trainable_weights = [self.Q]
 
@@ -74,10 +72,10 @@ class AdaptiveFilter(Layer):
 
     if self.combine_method == "linear":
       concatenated = tf.concat([A_tilda_k, X], axis=2)
-      transposed = tf.transpose(concatenated, perm=[0, 2, 1])
-      adp_fn_val = act_fn(tf.matmul(self.trainable_weights[0], transposed))
+      adp_fn_val = act_fn(
+          tf.tensordot(concatenated, self.trainable_weights[0], axes=1))
     else:
-      adp_fn_val = act_fn(tf.matmul(A_tilda_k, tf.matmul(X, self.Q)))
+      adp_fn_val = act_fn(tf.matmul(A_tilda_k, tf.tensordot(X, self.Q, axes=1)))
     out_tensor = adp_fn_val
     if set_tensors:
       self.variables = self.trainable_weights
