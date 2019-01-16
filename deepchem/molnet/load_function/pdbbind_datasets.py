@@ -139,7 +139,11 @@ def load_pdbbind_grid(split="random",
     return tasks, (train, valid, test), transformers
 
 
-def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
+def load_pdbbind(featurizer="grid",
+                 load_binding_pocket=False,
+                 split="random",
+                 subset="core",
+                 reload=True):
   """Load and featurize raw PDBBind dataset.
   
   Parameters
@@ -191,9 +195,16 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
       pdb = line[0]
       if len(pdb) == 4:
         pdbs.append(pdb)
-  protein_files = [
-      os.path.join(data_folder, pdb, "%s_protein.pdb" % pdb) for pdb in pdbs
-  ]
+
+  if load_binding_pocket:
+    protein_files = [
+        os.path.join(data_folder, pdb, "%s_pocket.pdb" % pdb) for pdb in pdbs
+    ]
+  else:
+    protein_files = [
+        os.path.join(data_folder, pdb, "%s_protein.pdb" % pdb) for pdb in pdbs
+    ]
+
   ligand_files = [
       os.path.join(data_folder, pdb, "%s_ligand.sdf" % pdb) for pdb in pdbs
   ]
@@ -224,9 +235,15 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
   elif featurizer == "atomic":
     # Pulled from PDB files. For larger datasets with more PDBs, would use
     # max num atoms instead of exact.
+
     frag1_num_atoms = 70  # for ligand atoms
-    frag2_num_atoms = 24000  # for protein atoms
-    complex_num_atoms = 24070  # in total
+
+    if load_binding_pocket:
+      frag2_num_atoms = 1000
+      complex_num_atoms = 1070
+    else:
+      frag2_num_atoms = 24000  # for protein atoms
+      complex_num_atoms = 24070  # in total
     max_num_neighbors = 4
     # Cutoff in angstroms
     neighbor_cutoff = 4
@@ -236,8 +253,12 @@ def load_pdbbind(featurizer="grid", split="random", subset="core", reload=True):
 
   elif featurizer == "atomic_conv":
     frag1_num_atoms = 70  # for ligand atoms
-    frag2_num_atoms = 24000  # for protein atoms
-    complex_num_atoms = 24070  # in total
+    if load_binding_pocket:
+      frag2_num_atoms = 1000  # for protein atoms
+      complex_num_atoms = 1070  # in total
+    else:
+      frag2_num_atoms = 24000  # for protein atoms
+      complex_num_atoms = 24070  # in total
     max_num_neighbors = 4
     # Cutoff in angstroms
     neighbor_cutoff = 4
