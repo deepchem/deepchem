@@ -17,7 +17,7 @@ class TestSeqToSeq(unittest.TestCase):
   def test_int_sequence(self):
     """Test learning to reproduce short sequences of integers."""
 
-    sequence_length = 10
+    sequence_length = 8
     tokens = list(range(10))
     s = dc.models.SeqToSeq(
         tokens,
