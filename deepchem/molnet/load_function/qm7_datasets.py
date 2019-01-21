@@ -51,7 +51,7 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
       )
     dataset = scipy.io.loadmat(dataset_file)
     X = np.concatenate([np.expand_dims(dataset['Z'], 2), dataset['R']], axis=2)
-    y = dataset['T']
+    y = dataset['T'].reshape(-1, 1)  # scipy.io.loadmat puts samples on axis 1
     w = np.ones_like(y)
     dataset = deepchem.data.DiskDataset.from_numpy(X, y, w, ids=None)
   else:

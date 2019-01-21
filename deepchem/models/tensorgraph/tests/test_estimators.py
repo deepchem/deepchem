@@ -467,9 +467,11 @@ class TestEstimators(unittest.TestCase):
     input_file = os.path.join(current_dir, "example_DTNN.mat")
     dataset = loadmat(input_file)
 
+    num_vals_to_use = 20
+
     np.random.seed(123)
-    X = dataset['X']
-    y = dataset['T'].astype(np.float32)
+    X = dataset['X'][:num_vals_to_use]
+    y = dataset['T'][:num_vals_to_use].astype(np.float32)
     w = np.ones_like(y)
     dataset = dc.data.NumpyDataset(X, y, w, ids=None)
     n_tasks = y.shape[1]
@@ -526,4 +528,151 @@ class TestEstimators(unittest.TestCase):
     estimator.train(input_fn=lambda: input_fn(100, 250))
 
     results = estimator.evaluate(input_fn=lambda: input_fn(n_samples, 1))
+    assert results['error'] < 0.1
+
+  def test_bpsymm_regression_model(self):
+    """Test creating an estimator for BPSymmetry Regression model."""
+    tasks, dataset, transformers = dc.molnet.load_qm7_from_mat(
+        featurizer='BPSymmetryFunction', move_mean=False)
+
+    num_samples_to_use = 5
+    train, _, _ = dataset
+    X = train.X[:num_samples_to_use]
+    y = train.y[:num_samples_to_use]
+    w = train.w[:num_samples_to_use]
+    ids = train.ids[:num_samples_to_use]
+
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+
+    max_atoms = 23
+    batch_size = 16
+    layer_structures = [128, 128, 64]
+
+    ANItransformer = dc.trans.ANITransformer(
+        max_atoms=max_atoms, atomic_number_differentiated=False)
+    dataset = ANItransformer.transform(dataset)
+    n_feat = ANItransformer.get_num_feats() - 1
+
+    model = dc.models.BPSymmetryFunctionRegression(
+        len(tasks),
+        max_atoms,
+        n_feat,
+        layer_structures=layer_structures,
+        batch_size=batch_size,
+        learning_rate=0.001,
+        use_queue=False,
+        mode="regression")
+
+    metrics = {'error': tf.metrics.mean_absolute_error}
+
+    def input_fn(epochs):
+      X, y, w = dataset.make_iterator(
+          batch_size=batch_size, epochs=epochs).get_next()
+      atom_feats, atom_flags = tf.py_func(
+          model.compute_features_on_batch, [X], Tout=[tf.float32, tf.float32])
+      atom_feats = tf.reshape(
+          atom_feats,
+          shape=(tf.shape(atom_feats)[0], model.max_atoms * model.n_feat))
+      atom_flags = tf.reshape(
+          atom_flags,
+          shape=(tf.shape(atom_flags)[0], model.max_atoms * model.max_atoms))
+
+      features = dict()
+      features['atom_feats'] = atom_feats
+      features['atom_flags'] = atom_flags
+      features['weights'] = w
+      return features, y
+
+    atom_feats = tf.feature_column.numeric_column(
+        'atom_feats', shape=(max_atoms * n_feat,), dtype=tf.float32)
+    atom_flags = tf.feature_column.numeric_column(
+        'atom_flags', shape=(max_atoms * max_atoms), dtype=tf.float32)
+    weight_col = tf.feature_column.numeric_column(
+        'weights', shape=(len(tasks),), dtype=tf.float32)
+
+    estimator = model.make_estimator(
+        feature_columns=[atom_feats, atom_flags],
+        weight_column=weight_col,
+        metrics=metrics)
+    estimator.train(input_fn=lambda: input_fn(100))
+    results = estimator.evaluate(input_fn=lambda: input_fn(1))
+
+    assert results['error'] < 0.1
+
+  def test_ani_regression(self):
+    """Test creating an estimator for ANI Regression."""
+
+    max_atoms = 4
+
+    X = np.array(
+        [[
+            [1, 5.0, 3.2, 1.1],
+            [6, 1.0, 3.4, -1.1],
+            [1, 2.3, 3.4, 2.2],
+            [0, 0, 0, 0],
+        ], [
+            [8, 2.0, -1.4, -1.1],
+            [7, 6.3, 2.4, 3.2],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+        ]],
+        dtype=np.float32)
+
+    y = np.array([[2.0], [1.1]], dtype=np.float32)
+
+    layer_structures = [128, 128, 64]
+    atom_number_cases = [1, 6, 7, 8]
+
+    kwargs = {
+        "n_tasks": 1,
+        "max_atoms": max_atoms,
+        "layer_structures": layer_structures,
+        "atom_number_cases": atom_number_cases,
+        "batch_size": 2,
+        "learning_rate": 0.001,
+        "use_queue": False,
+        "mode": "regression"
+    }
+
+    model = dc.models.ANIRegression(**kwargs)
+    dataset = dc.data.NumpyDataset(X, y, n_tasks=1)
+
+    metrics = {'error': tf.metrics.mean_absolute_error}
+
+    def input_fn(epochs):
+      X, y, w = dataset.make_iterator(batch_size=2, epochs=epochs).get_next()
+      atom_feats, atom_numbers, atom_flags = tf.py_func(
+          model.compute_features_on_batch, [X],
+          Tout=[tf.float32, tf.int32, tf.float32])
+      atom_feats = tf.reshape(
+          atom_feats, shape=(tf.shape(atom_feats)[0], model.max_atoms * 4))
+      atom_numbers = tf.reshape(
+          atom_numbers, shape=(tf.shape(atom_numbers)[0], model.max_atoms))
+      atom_flags = tf.reshape(
+          atom_flags,
+          shape=(tf.shape(atom_flags)[0], model.max_atoms * model.max_atoms))
+
+      features = dict()
+      features['atom_feats'] = atom_feats
+      features['atom_numbers'] = atom_numbers
+      features['atom_flags'] = atom_flags
+      features['weights'] = w
+      return features, y
+
+    atom_feats = tf.feature_column.numeric_column(
+        'atom_feats', shape=(max_atoms * 4,), dtype=tf.float32)
+    atom_numbers = tf.feature_column.numeric_column(
+        'atom_numbers', shape=(max_atoms,), dtype=tf.int32)
+    atom_flags = tf.feature_column.numeric_column(
+        'atom_flags', shape=(max_atoms * max_atoms), dtype=tf.float32)
+    weight_col = tf.feature_column.numeric_column(
+        'weights', shape=(kwargs["n_tasks"],), dtype=tf.float32)
+
+    estimator = model.make_estimator(
+        feature_columns=[atom_feats, atom_numbers, atom_flags],
+        weight_column=weight_col,
+        metrics=metrics)
+    estimator.train(input_fn=lambda: input_fn(100))
+
+    results = estimator.evaluate(input_fn=lambda: input_fn(1))
     assert results['error'] < 0.1
