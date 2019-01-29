@@ -54,6 +54,18 @@ def _ensure_class_labels(y):
   return y
 
 
+def _ensure_output_shape(y, expected_dims):
+  """Ensure an output array has the right number of dimensions."""
+  dims = len(y.shape)
+  if dims < expected_dims:
+    if all(i == 1 for i in y.shape[dims:]):
+      y = y.reshape(list(y.shape) + [1] * (expected_dims - dims))
+  if dims > expected_dims:
+    if all(i == 1 for i in y.shape[expected_dims:]):
+      y = y.reshape(y.shape[:expected_dims])
+  return y
+
+
 def roc_auc_score(y, y_pred):
   """Area under the receiver operating characteristic curve."""
   if y.shape != y_pred.shape:
@@ -292,17 +304,20 @@ class Metric(object):
     expected_dims = (3 if self.mode == "classification" else 2)
     if len(y_pred.shape) < expected_dims:
       n_tasks = 1
-      y_true = np.expand_dims(y_true, 1)
-      y_pred = np.expand_dims(y_pred, 1)
     else:
       n_tasks = y_pred.shape[1]
+    y_true = _ensure_output_shape(y_true, expected_dims)
+    y_pred = _ensure_output_shape(y_pred, expected_dims)
     if w is None or len(w) == 0:
       w = np.ones((n_samples, n_tasks))
     computed_metrics = []
     for task in range(n_tasks):
       y_task = y_true[:, task]
       y_pred_task = y_pred[:, task]
-      w_task = w[:, task]
+      if len(w.shape) == 1:
+        w_task = w
+      else:
+        w_task = w[:, task]
 
       metric_value = self.compute_singletask_metric(y_task, y_pred_task, w_task)
       computed_metrics.append(metric_value)

@@ -220,7 +220,7 @@ def load_pdbbind(featurizer="grid",
       # PDB code, resolution, release year, -logKd/Ki, Kd/Ki, reference, ligand name
       line = line.split()
       # The base-10 logarithm, -log kd/pk
-      log_label = line[3]
+      log_label = float(line[3])
       labels.append(log_label)
   labels = np.array(labels)
   # Featurize Data
