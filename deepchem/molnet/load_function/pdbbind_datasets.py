@@ -220,7 +220,7 @@ def load_pdbbind(featurizer="grid",
       # PDB code, resolution, release year, -logKd/Ki, Kd/Ki, reference, ligand name
       line = line.split()
       # The base-10 logarithm, -log kd/pk
-      log_label = line[3]
+      log_label = float(line[3])
       labels.append(log_label)
   labels = np.array(labels)
   # Featurize Data
@@ -278,6 +278,7 @@ def load_pdbbind(featurizer="grid",
                                                       protein_files)
   # Delete labels for failing elements
   labels = np.delete(labels, failures)
+  labels = labels.reshape((len(labels), 1))
   dataset = deepchem.data.DiskDataset.from_numpy(features, labels)
   print('Featurization complete.')
   # No transformations of data

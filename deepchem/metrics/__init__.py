@@ -302,7 +302,10 @@ class Metric(object):
     for task in range(n_tasks):
       y_task = y_true[:, task]
       y_pred_task = y_pred[:, task]
-      w_task = w[:, task]
+      if len(w.shape) == 1:
+        w_task = w
+      else:
+        w_task = w[:, task]
 
       metric_value = self.compute_singletask_metric(y_task, y_pred_task, w_task)
       computed_metrics.append(metric_value)
