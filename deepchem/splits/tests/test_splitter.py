@@ -16,7 +16,7 @@ from deepchem.data import NumpyDataset
 from deepchem.splits import IndexSplitter
 
 
-class TestSplitters(unittest.TestCase):
+class TestSplitter(unittest.TestCase):
   """
   Test some basic splitters.
   """
@@ -538,6 +538,20 @@ class TestSplitters(unittest.TestCase):
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
+
+  def test_random_seed(self):
+    """Test that splitters use the random seed correctly."""
+    dataset = dc.data.tests.load_solubility_data()
+    splitter = dc.splits.RandomSplitter()
+    train1, valid1, test1 = splitter.train_valid_test_split(dataset, seed=1)
+    train2, valid2, test2 = splitter.train_valid_test_split(dataset, seed=2)
+    train3, valid3, test3 = splitter.train_valid_test_split(dataset, seed=1)
+    assert np.array_equal(train1.X, train3.X)
+    assert np.array_equal(valid1.X, valid3.X)
+    assert np.array_equal(test1.X, test3.X)
+    assert not np.array_equal(train1.X, train2.X)
+    assert not np.array_equal(valid1.X, valid2.X)
+    assert not np.array_equal(test1.X, test2.X)
 
 
 if __name__ == "__main__":

@@ -138,6 +138,7 @@ class Splitter(object):
     log("Computing train/valid/test indices", self.verbose)
     train_inds, valid_inds, test_inds = self.split(
         dataset,
+        seed=seed,
         frac_train=frac_train,
         frac_test=frac_test,
         frac_valid=frac_valid,
@@ -179,12 +180,14 @@ class Splitter(object):
         frac_train=frac_train,
         frac_test=1 - frac_train,
         frac_valid=0.,
+        seed=seed,
         verbose=verbose,
         **kwargs)
     return train_dataset, test_dataset
 
   def split(self,
             dataset,
+            seed=None,
             frac_train=None,
             frac_valid=None,
             frac_test=None,
@@ -789,6 +792,7 @@ class ButinaSplitter(Splitter):
 
   def split(self,
             dataset,
+            seed=None,
             frac_train=None,
             frac_valid=None,
             frac_test=None,
@@ -848,6 +852,7 @@ class ScaffoldSplitter(Splitter):
 
   def split(self,
             dataset,
+            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
@@ -896,6 +901,7 @@ class FingerprintSplitter(Splitter):
 
   def split(self,
             dataset,
+            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
@@ -987,6 +993,7 @@ class SpecifiedSplitter(Splitter):
 
   def split(self,
             dataset,
+            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
@@ -1023,6 +1030,7 @@ class SpecifiedIndexSplitter(Splitter):
 
   def split(self,
             dataset,
+            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
