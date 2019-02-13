@@ -299,3 +299,109 @@ def load_pdbbind(featurizer="grid",
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
                                              transformers)
   return pdbbind_tasks, all_dataset, transformers
+
+def load_pdbbind_from_dir(data_folder, index_files, featurizer="grid", split="random", ex_ids=[], save_dir=None):
+    """Load and featurize raw PDBBind dataset from a local directory with the option to avoid certain IDs.
+
+    Parameters
+    ----------
+    data_dir: String,
+      Specifies the data directory to store the featurized dataset.
+    index_files: List
+      List of data and labels index file paths relative to the path in data_dir
+    split: Str
+      Either "random" or "index"
+    feat: Str
+      Either "grid" or "atomic" for grid and atomic featurizations.
+    subset: Str
+      Only "core" or "refined" for now.
+    ex_ids: List
+      List of PDB IDs to avoid loading if present
+    save_dir: String
+      Path to store featurized datasets
+    """
+    pdbbind_tasks = ["-logKd/Ki"]
+
+    index_file = os.path.join(data_folder, index_files[0])
+    labels_file = os.path.join(data_folder, index_files[1])
+
+    # Extract locations of data
+    pdbs = []
+
+    with open(index_file, "r") as g:
+        lines = g.readlines()
+        for line in lines:
+            line = line.split(" ")
+            pdb = line[0]
+            if len(pdb) == 4:
+                pdbs.append(pdb)
+    protein_files = [
+        os.path.join(data_folder, pdb, "%s_protein.pdb" % pdb) for pdb in pdbs if pdb not in ex_ids
+    ]
+    ligand_files = [
+        os.path.join(data_folder, pdb, "%s_ligand.sdf" % pdb) for pdb in pdbs if pdb not in ex_ids
+    ]
+    # Extract labels
+    labels_tmp = {}
+    with open(labels_file, "r") as f:
+        lines = f.readlines()
+        for line in lines:
+            # Skip comment lines
+            if line[0] == "#":
+                continue
+            # Lines have format
+            # PDB code, resolution, release year, -logKd/Ki, Kd/Ki, reference, ligand name
+            line = line.split()
+            # The base-10 logarithm, -log kd/pk
+            log_label = line[3]
+            labels_tmp[line[0]] = log_label
+
+    labels = np.array([labels_tmp[pdb] for pdb in pdbs])
+    print(labels)
+    # Featurize Data
+    if featurizer == "grid":
+        featurizer = rgf.RdkitGridFeaturizer(
+            voxel_width=2.0,
+            feature_types=[
+                'ecfp', 'splif', 'hbond', 'salt_bridge', 'pi_stack', 'cation_pi',
+                'charge'
+            ],
+            flatten=True)
+    elif featurizer == "atomic":
+        # Pulled from PDB files. For larger datasets with more PDBs, would use
+        # max num atoms instead of exact.
+        frag1_num_atoms = 70  # for ligand atoms
+        frag2_num_atoms = 24000  # for protein atoms
+        complex_num_atoms = 24070  # in total
+        max_num_neighbors = 4
+        # Cutoff in angstroms
+        neighbor_cutoff = 4
+        featurizer = ComplexNeighborListFragmentAtomicCoordinates(
+            frag1_num_atoms, frag2_num_atoms, complex_num_atoms, max_num_neighbors,
+            neighbor_cutoff)
+
+    else:
+        raise ValueError("Featurizer not supported")
+    print("Featurizing Complexes")
+    features, failures = featurizer.featurize_complexes(ligand_files, protein_files)
+    # Delete labels for failing elements
+    labels = np.delete(labels, failures)
+    dataset = deepchem.data.DiskDataset.from_numpy(features, labels)
+    # No transformations of data
+    transformers = []
+    if split == None:
+        return pdbbind_tasks, (dataset, None, None), transformers
+
+    # TODO(rbharath): This should be modified to contain a cluster split so
+    # structures of the same protein aren't in both train/test
+    splitters = {
+        'index': deepchem.splits.IndexSplitter(),
+        'random': deepchem.splits.RandomSplitter(),
+    }
+    splitter = splitters[split]
+    train, valid, test = splitter.train_valid_test_split(dataset)
+    all_dataset = (train, valid, test)
+    if save_dir:
+        deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                                 transformers)
+    return pdbbind_tasks, all_dataset, transformers
