@@ -12,7 +12,7 @@ tf.set_random_seed(123)
 import deepchem as dc
 
 tasks, datasets, transformers = dc.molnet.load_qm7_from_mat(
-    featurizer='BPSymmetryFunction', split='stratified', move_mean=False)
+    featurizer='BPSymmetryFunctionInput', split='stratified', move_mean=False)
 
 train, valid, test = datasets
 
