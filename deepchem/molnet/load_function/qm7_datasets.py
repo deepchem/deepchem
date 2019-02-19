@@ -42,7 +42,7 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
     y = dataset['T']
     w = np.ones_like(y)
     dataset = deepchem.data.DiskDataset.from_numpy(X, y, w, ids=None)
-  elif featurizer == 'BPSymmetryFunction':
+  elif featurizer == 'BPSymmetryFunctionInput':
     dataset_file = os.path.join(data_dir, "qm7.mat")
 
     if not os.path.exists(dataset_file):

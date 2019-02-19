@@ -20,7 +20,7 @@ def load_qm8(featurizer='CoulombMatrix',
       dir_name = "qm8/" + featurizer + "_mean_unmoved/" + str(split)
     save_dir = os.path.join(data_dir, dir_name)
 
-  if featurizer in ['CoulombMatrix', 'BPSymmetryFunction', 'MP', 'Raw']:
+  if featurizer in ['CoulombMatrix', 'BPSymmetryFunctionInput', 'MP', 'Raw']:
     dataset_file = os.path.join(data_dir, "qm8.sdf")
     if not os.path.exists(dataset_file):
       deepchem.utils.download_url(
@@ -47,11 +47,11 @@ def load_qm8(featurizer='CoulombMatrix',
     if loaded:
       return qm8_tasks, all_dataset, transformers
 
-  if featurizer in ['CoulombMatrix', 'BPSymmetryFunction', 'MP', 'Raw']:
+  if featurizer in ['CoulombMatrix', 'BPSymmetryFunctionInput', 'MP', 'Raw']:
     if featurizer == 'CoulombMatrix':
       featurizer = deepchem.feat.CoulombMatrix(26)
-    elif featurizer == 'BPSymmetryFunction':
-      featurizer = deepchem.feat.BPSymmetryFunction(26)
+    elif featurizer == 'BPSymmetryFunctionInput':
+      featurizer = deepchem.feat.BPSymmetryFunctionInput(26)
     elif featurizer == 'Raw':
       featurizer = deepchem.feat.RawFeaturizer()
     elif featurizer == 'MP':

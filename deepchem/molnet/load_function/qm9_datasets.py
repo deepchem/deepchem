@@ -26,7 +26,7 @@ def load_qm9(featurizer='CoulombMatrix',
       dir_name = "qm9/" + featurizer + "_mean_unmoved/" + str(split)
     save_dir = os.path.join(data_dir, dir_name)
 
-  if featurizer in ['CoulombMatrix', 'BPSymmetryFunction', 'MP', 'Raw']:
+  if featurizer in ['CoulombMatrix', 'BPSymmetryFunctionInput', 'MP', 'Raw']:
     dataset_file = os.path.join(data_dir, "gdb9.sdf")
 
     if not os.path.exists(dataset_file):
@@ -53,11 +53,11 @@ def load_qm9(featurizer='CoulombMatrix',
     if loaded:
       return qm9_tasks, all_dataset, transformers
 
-  if featurizer in ['CoulombMatrix', 'BPSymmetryFunction', 'MP', 'Raw']:
+  if featurizer in ['CoulombMatrix', 'BPSymmetryFunctionInput', 'MP', 'Raw']:
     if featurizer == 'CoulombMatrix':
       featurizer = deepchem.feat.CoulombMatrix(29)
-    elif featurizer == 'BPSymmetryFunction':
-      featurizer = deepchem.feat.BPSymmetryFunction(29)
+    elif featurizer == 'BPSymmetryFunctionInput':
+      featurizer = deepchem.feat.BPSymmetryFunctionInput(29)
     elif featurizer == 'Raw':
       featurizer = deepchem.feat.RawFeaturizer()
     elif featurizer == 'MP':
