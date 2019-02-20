@@ -439,7 +439,7 @@ class SharedVariableScope(Layer):
 
   def _get_scope_name(self):
     if tfe.in_eager_mode():
-      return None
+      return self.name
     if self._shared_with is None:
       return self.name
     else:

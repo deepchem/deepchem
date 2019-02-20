@@ -46,8 +46,7 @@ class TestTensorGraph(unittest.TestCase):
 
   def test_single_task_classifier_eager(self):
     with context.eager_mode():
-      with tfe.IsolateTest():
-        self.test_single_task_classifier()
+      self.test_single_task_classifier()
 
   @flaky
   def test_multi_task_classifier(self):
@@ -96,8 +95,7 @@ class TestTensorGraph(unittest.TestCase):
   @flaky
   def test_multi_task_classifier_eager(self):
     with context.eager_mode():
-      with tfe.IsolateTest():
-        self.test_multi_task_classifier()
+      self.test_multi_task_classifier()
 
   def test_single_task_regressor(self):
     n_data_points = 20
@@ -118,8 +116,7 @@ class TestTensorGraph(unittest.TestCase):
 
   def test_single_task_regressor_eager(self):
     with context.eager_mode():
-      with tfe.IsolateTest():
-        self.test_single_task_regressor()
+      self.test_single_task_regressor()
 
   def test_multi_task_regressor(self):
     n_data_points = 20
@@ -165,8 +162,7 @@ class TestTensorGraph(unittest.TestCase):
 
   def test_multi_task_regressor_eager(self):
     with context.eager_mode():
-      with tfe.IsolateTest():
-        self.test_multi_task_regressor()
+      self.test_multi_task_regressor()
 
   @flaky
   def test_no_queue(self):
@@ -219,8 +215,7 @@ class TestTensorGraph(unittest.TestCase):
   @flaky
   def test_set_optimizer_eager(self):
     with context.eager_mode():
-      with tfe.IsolateTest():
-        self.test_set_optimizer()
+      self.test_set_optimizer()
 
   def test_tensorboard(self):
     n_data_points = 20
@@ -252,8 +247,7 @@ class TestTensorGraph(unittest.TestCase):
 
   def test_tensorboard_eager(self):
     with context.eager_mode():
-      with tfe.IsolateTest():
-        self.test_tensorboard()
+      self.test_tensorboard()
 
   def test_save_load(self):
     n_data_points = 20
@@ -288,8 +282,7 @@ class TestTensorGraph(unittest.TestCase):
 
   def test_save_load_eager(self):
     with context.eager_mode():
-      with tfe.IsolateTest():
-        self.test_save_load()
+      self.test_save_load()
 
   def test_shared_layer(self):
     n_data_points = 20
@@ -370,8 +363,7 @@ class TestTensorGraph(unittest.TestCase):
 
   def test_operators_eager(self):
     with context.eager_mode():
-      with tfe.IsolateTest():
-        self.test_operators()
+      self.test_operators()
 
   def test_initialize_variable(self):
     """Test methods for initializing a variable."""
@@ -396,8 +388,7 @@ class TestTensorGraph(unittest.TestCase):
 
   def test_initialize_variable_eager(self):
     with context.eager_mode():
-      with tfe.IsolateTest():
-        self.test_initialize_variable()
+      self.test_initialize_variable()
 
   def test_copy_layers(self):
     """Test copying layers."""
@@ -427,8 +418,7 @@ class TestTensorGraph(unittest.TestCase):
 
   def test_copy_layers_eager(self):
     with context.eager_mode():
-      with tfe.IsolateTest():
-        self.test_copy_layers()
+      self.test_copy_layers()
 
   def test_copy_layers_shared(self):
     """Test copying layers with shared variables."""
@@ -498,8 +488,7 @@ class TestTensorGraph(unittest.TestCase):
 
   def test_submodels_eager(self):
     with context.eager_mode():
-      with tfe.IsolateTest():
-        self.test_submodels()
+      self.test_submodels()
 
   def test_recurrent_layer(self):
     """Test a model that includes a recurrent layer."""
@@ -533,21 +522,20 @@ class TestTensorGraph(unittest.TestCase):
   def test_invoke_model_eager(self):
     """Test invoking the model with __call__() in eager mode."""
     with context.eager_mode():
-      with tfe.IsolateTest():
-        batch_size = 5
-        tg = dc.models.TensorGraph(batch_size=batch_size)
-        features = Feature(shape=(None, 10))
-        dense = Dense(10, in_layers=features)
-        loss = ReduceMean(in_layers=dense)
-        tg.add_output(dense)
-        tg.set_loss(loss)
-        input = np.random.rand(batch_size, 10).astype(np.float32)
+      batch_size = 5
+      tg = dc.models.TensorGraph(batch_size=batch_size)
+      features = Feature(shape=(None, 10))
+      dense = Dense(10, in_layers=features)
+      loss = ReduceMean(in_layers=dense)
+      tg.add_output(dense)
+      tg.set_loss(loss)
+      input = np.random.rand(batch_size, 10).astype(np.float32)
 
-        # We should get the same result with either predict_on_batch() or __call__().
+      # We should get the same result with either predict_on_batch() or __call__().
 
-        output1 = tg.predict_on_batch(input)
-        output2 = tg(input)
-        assert np.allclose(output1, output2.numpy())
+      output1 = tg.predict_on_batch(input)
+      output2 = tg(input)
+      assert np.allclose(output1, output2.numpy())
 
   def test_saliency_mapping(self):
     """Test computing a saliency map."""
