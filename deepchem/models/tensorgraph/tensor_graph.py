@@ -1030,7 +1030,10 @@ class TensorGraph(Model):
     if obj in self.tensor_objects and self.tensor_objects[obj] is not None:
       return self.tensor_objects[obj]
     if obj == "Graph":
-      self.tensor_objects['Graph'] = tf.Graph()
+      if tfe.in_eager_mode():
+        self.tensor_objects['Graph'] = _DummyGraph()
+      else:
+        self.tensor_objects['Graph'] = tf.Graph()
     elif obj == "FileWriter":
       self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
     elif obj == 'Optimizer':
@@ -1410,6 +1413,19 @@ class TFWrapper(object):
 
   def __call__(self):
     return self.tf_class(**self.kwargs)
+
+
+class _DummyGraph(object):
+  """This is used in eager mode as the "graph" object for the model.  It does nothing."""
+
+  def as_default(self):
+    return self
+
+  def __enter__(self):
+    pass
+
+  def __exit__(self, type, value, traceback):
+    pass
 
 
 class Submodel(object):
