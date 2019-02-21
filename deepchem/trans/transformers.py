@@ -14,6 +14,8 @@ import time
 import deepchem as dc
 import tensorflow as tf
 from deepchem.data import NumpyDataset
+import skimage
+import skimage.util
 
 
 def undo_transforms(y, transformers):
@@ -1007,8 +1009,8 @@ class ANITransformer(Transformer):
       while True:
         end = min((start + 1) * batch_size, X.shape[0])
         X_batch = X[(start * batch_size):end]
-        output = self.sess.run(
-            [self.outputs], feed_dict={self.inputs: X_batch})[0]
+        output = self.sess.run([self.outputs], feed_dict={self.inputs:
+                                                          X_batch})[0]
         X_out.append(output)
         num_transformed = num_transformed + X_batch.shape[0]
         print('%i samples transformed' % num_transformed)
@@ -1041,12 +1043,10 @@ class ANITransformer(Transformer):
       radial_sym = self.radial_symmetry(d_radial_cutoff, d, atom_numbers)
       angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
                                           coordinates)
-      self.outputs = tf.concat(
-          [
-              tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym,
-              angular_sym
-          ],
-          axis=2)
+      self.outputs = tf.concat([
+          tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym, angular_sym
+      ],
+                               axis=2)
     return graph
 
   def distance_matrix(self, coordinates, flags):
@@ -1225,3 +1225,59 @@ class DataTransforms(Transformer):
             sigma - std dev. of the gaussian distribution
     """
     return scipy.ndimage.gaussian_filter(self.Image, sigma)
+
+  def shift(self, width, height, mode='constant', order=3):
+    """Shifts the image
+        Parameters:
+          width - amount of width shift(positive values shift image right )
+          height - amount of height shift(positive values shift image lower)
+          mode - Points outside the boundaries of the input are filled according to the given mode
+          (‘constant’, ‘nearest’, ‘reflect’ or ‘wrap’). Default is ‘constant’
+          order - The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
+          """
+    return scipy.ndimage.shift(
+        self.Image, [height, width, 0], order=order, mode=mode)
+
+  def zoom(self, zoom_x=1, zoom_y=1, mode='constant', order=3):
+    """Shifts the image
+        Parameters:
+          zoom_x - amount of zoom along x axis
+          zoom_y - amount of zoom along y axis
+          mode - Points outside the boundaries of the input are filled according to the given mode
+          (‘constant’, ‘nearest’, ‘reflect’ or ‘wrap’). Default is ‘constant’
+          order - The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
+          """
+    h, w = self.Image.shape[0], self.Image.shape[1]
+    o_x = float(h) / 2 + 0.5
+    o_y = float(w) / 2 + 0.5
+    transform_matrix = np.array([[zoom_x, 0, 0], [0, zoom_y, 0], [0, 0, 1]])
+    offset_matrix = np.array([[1, 0, o_x], [0, 1, o_y], [0, 0, 1]])
+    reset_matrix = np.array([[1, 0, -o_x], [0, 1, -o_y], [0, 0, 1]])
+    transform_matrix = np.dot(
+        np.dot(offset_matrix, transform_matrix), reset_matrix)
+    final_affine_matrix = np.linalg.inv(transform_matrix[:2, :2])
+    final_offset = transform_matrix[:2, 2]
+    x = np.rollaxis(self.Image, 2, 0)
+    channel_images = [
+        scipy.ndimage.interpolation.affine_transform(
+            x_channel,
+            final_affine_matrix,
+            final_offset,
+            order=order,
+            mode=mode) for x_channel in x
+    ]
+    x = np.stack(channel_images, axis=0)
+    x = np.rollaxis(x, 0, 3)
+    return x
+
+  def random_noise(self, mode='gaussian', seed=None):
+    '''
+      mode: the type of noise to add (gaussian,localvar,poisson,salt,pepper,s&p,speckle
+      seed: random seed
+        '''
+
+    x = (self.Image - np.min(self.Image)) / (
+        np.max(self.Image) - np.min(self.Image))
+    x = skimage.util.random_noise(x, mode=mode, seed=seed)
+    x = x * (np.max(self.Image) - np.min(self.Image)) + np.min(self.Image)
+    return x
