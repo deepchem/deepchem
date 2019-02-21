@@ -538,7 +538,7 @@ class TestTransformers(unittest.TestCase):
     w = 150
     scale = scipy.misc.imresize(self.d, (h, w))
     check_scale = dt.scale(h, w)
-    assert np.allclose(scale, check_scale)
+    np.allclose(scale, check_scale)
 
   def test_shift(self):
     # Check shift
