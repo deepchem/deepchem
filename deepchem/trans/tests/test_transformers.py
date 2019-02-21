@@ -19,6 +19,8 @@ import numpy as np
 import pandas as pd
 import deepchem as dc
 import scipy.ndimage
+import skimage
+import skimage.util
 
 
 class TestTransformers(unittest.TestCase):
@@ -536,4 +538,52 @@ class TestTransformers(unittest.TestCase):
     w = 150
     scale = scipy.misc.imresize(self.d, (h, w))
     check_scale = dt.scale(h, w)
-    np.allclose(scale, check_scale)
+    assert np.allclose(scale, check_scale)
+
+  def test_shift(self):
+    # Check shift
+    dt = DataTransforms(self.d)
+    height = 5
+    width = 5
+    shift = scipy.ndimage.shift(self.d, [height, width, 0])
+    check_shift = dt.shift(width, height)
+    assert np.allclose(shift, check_shift)
+
+  def test_zoom(self):
+    # Check zoom
+    dt = DataTransforms(self.d)
+    zx = 2
+    zy = 2
+    h, w = self.d.shape[0], self.d.shape[1]
+    o_x = float(h) / 2 + 0.5
+    o_y = float(w) / 2 + 0.5
+    transform_matrix = np.array([[zx, 0, 0], [0, zy, 0], [0, 0, 1]])
+    offset_matrix = np.array([[1, 0, o_x], [0, 1, o_y], [0, 0, 1]])
+    reset_matrix = np.array([[1, 0, -o_x], [0, 1, -o_y], [0, 0, 1]])
+    transform_matrix = np.dot(
+        np.dot(offset_matrix, transform_matrix), reset_matrix)
+    final_affine_matrix = np.linalg.inv(transform_matrix[:2, :2])
+    final_offset = transform_matrix[:2, 2]
+    x = np.rollaxis(self.d, 2, 0)
+    channel_images = [
+        scipy.ndimage.interpolation.affine_transform(
+            x_channel,
+            final_affine_matrix,
+            final_offset,
+            order=3,
+            mode='constant') for x_channel in x
+    ]
+    x = np.stack(channel_images, axis=0)
+    zoom = np.rollaxis(x, 0, 3)
+    check_zoom = dt.zoom(zx, zy)
+    assert np.allclose(zoom, check_zoom)
+
+  def test_random_noise(self):
+    # check random noise
+    dt = DataTransforms(self.d)
+    seed = 0
+    x = (self.d - np.min(self.d)) / (np.max(self.d) - np.min(self.d))
+    x = skimage.util.random_noise(x, seed=seed)
+    random_noise = x * (np.max(self.d) - np.min(self.d)) + np.min(self.d)
+    check_random_noise = dt.random_noise(seed=seed)
+    assert np.allclose(random_noise, check_random_noise)
