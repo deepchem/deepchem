@@ -533,7 +533,7 @@ class TestEstimators(unittest.TestCase):
   def test_bpsymm_regression_model(self):
     """Test creating an estimator for BPSymmetry Regression model."""
     tasks, dataset, transformers = dc.molnet.load_qm7_from_mat(
-        featurizer='BPSymmetryFunction', move_mean=False)
+        featurizer='BPSymmetryFunctionInput', move_mean=False)
 
     num_samples_to_use = 5
     train, _, _ = dataset

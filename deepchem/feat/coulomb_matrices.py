@@ -17,7 +17,7 @@ from deepchem.utils import pad_array
 from deepchem.feat.atomic_coordinates import AtomicCoordinates
 
 
-class BPSymmetryFunction(Featurizer):
+class BPSymmetryFunctionInput(Featurizer):
   """
   Calculate Symmetry Function for each atom in the molecules
   Methods described in https://journals.aps.org/prl/pdf/10.1103/PhysRevLett.98.146401
