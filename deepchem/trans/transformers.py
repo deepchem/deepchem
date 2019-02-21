@@ -1009,8 +1009,8 @@ class ANITransformer(Transformer):
       while True:
         end = min((start + 1) * batch_size, X.shape[0])
         X_batch = X[(start * batch_size):end]
-        output = self.sess.run([self.outputs], feed_dict={self.inputs:
-                                                          X_batch})[0]
+        output = self.sess.run(
+            [self.outputs], feed_dict={self.inputs: X_batch})[0]
         X_out.append(output)
         num_transformed = num_transformed + X_batch.shape[0]
         print('%i samples transformed' % num_transformed)
@@ -1043,10 +1043,12 @@ class ANITransformer(Transformer):
       radial_sym = self.radial_symmetry(d_radial_cutoff, d, atom_numbers)
       angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
                                           coordinates)
-      self.outputs = tf.concat([
-          tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym, angular_sym
-      ],
-                               axis=2)
+      self.outputs = tf.concat(
+          [
+              tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym,
+              angular_sym
+          ],
+          axis=2)
     return graph
 
   def distance_matrix(self, coordinates, flags):
@@ -1244,7 +1246,7 @@ class DataTransforms(Transformer):
           zoom_x - amount of zoom along x axis
           zoom_y - amount of zoom along y axis
           mode - Points outside the boundaries of the input are filled according to the given mode
-          (‘constant’, ‘nearest’, ‘reflect’ or ‘wrap’). Default is ‘constant’
+          (‘constant’, ‘nearest’, ‘reflect’ or ‘wrap’). Default is ‘constant’.
           order - The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
           """
     h, w = self.Image.shape[0], self.Image.shape[1]
@@ -1271,9 +1273,10 @@ class DataTransforms(Transformer):
     return x
 
   def random_noise(self, mode='gaussian', seed=None):
-    '''
-      mode: the type of noise to add (gaussian,localvar,poisson,salt,pepper,s&p,speckle
-      seed: random seed
+    '''Adds random noise to the image
+    Parameters:
+      mode - the type of noise to add (gaussian,localvar,poisson,salt,pepper,s&p,speckle
+      seed - seed for the random generator.
         '''
 
     x = (self.Image - np.min(self.Image)) / (
