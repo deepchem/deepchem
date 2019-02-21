@@ -946,6 +946,11 @@ class DiskDataset(Dataset):
       out_dir = tempfile.mkdtemp()
     tasks = self.get_task_names()
 
+    if 'verbose' in args:
+      verbose = args['verbose']
+    else:
+      verbose = True
+
     def generator():
       for shard_num, row in self.metadata_df.iterrows():
         X, y, w, ids = self.get_shard(shard_num)
@@ -953,7 +958,7 @@ class DiskDataset(Dataset):
         yield (newx, newy, neww, ids)
 
     return DiskDataset.create_dataset(
-        generator(), data_dir=out_dir, tasks=tasks)
+        generator(), data_dir=out_dir, tasks=tasks, verbose=verbose)
 
   @staticmethod
   def from_numpy(X,
