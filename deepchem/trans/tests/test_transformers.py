@@ -19,8 +19,6 @@ import numpy as np
 import pandas as pd
 import deepchem as dc
 import scipy.ndimage
-import skimage
-import skimage.util
 
 
 class TestTransformers(unittest.TestCase):
