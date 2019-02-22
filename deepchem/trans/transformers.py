@@ -14,8 +14,6 @@ import time
 import deepchem as dc
 import tensorflow as tf
 from deepchem.data import NumpyDataset
-import skimage
-import skimage.util
 
 
 def undo_transforms(y, transformers):
