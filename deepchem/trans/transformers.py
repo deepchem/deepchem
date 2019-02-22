@@ -1272,15 +1272,27 @@ class DataTransforms(Transformer):
     x = np.rollaxis(x, 0, 3)
     return x
 
-  def random_noise(self, mode='gaussian', seed=None):
-    '''Adds random noise to the image
-    Parameters:
-      mode - the type of noise to add (gaussian,localvar,poisson,salt,pepper,s&p,speckle
-      seed - seed for the random generator.
+  def gaussian_noise(self):
+    '''Adds gaussian noise to the image
         '''
 
     x = (self.Image - np.min(self.Image)) / (
         np.max(self.Image) - np.min(self.Image))
-    x = skimage.util.random_noise(x, mode=mode, seed=seed)
+    x = x + np.random.normal(loc=0, scale=0.1, size=self.Image.shape)
+    x[x > 1] = 1
+    x = x * (np.max(self.Image) - np.min(self.Image)) + np.min(self.Image)
+    return x
+
+  def salt_pepper_noise(self, prob=0.05):
+    '''Adds salt and pepper noise to the image
+    Parameters:
+      prob - probability of the noise.
+        '''
+
+    x = (self.Image - np.min(self.Image)) / (
+        np.max(self.Image) - np.min(self.Image))
+    noise = np.random.random(size=self.Image.shape)
+    x[noise < (prob / 2)] = 0
+    x[noise > (1 - prob / 2)] = 1
     x = x * (np.max(self.Image) - np.min(self.Image)) + np.min(self.Image)
     return x
