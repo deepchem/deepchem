@@ -538,7 +538,7 @@ class TestTransformers(unittest.TestCase):
     w = 150
     scale = scipy.misc.imresize(self.d, (h, w))
     check_scale = dt.scale(h, w)
-    np.allclose(scale, check_scale)
+    assert np.allclose(scale, check_scale)
 
   def test_shift(self):
     # Check shift
@@ -578,12 +578,29 @@ class TestTransformers(unittest.TestCase):
     check_zoom = dt.zoom(zx, zy)
     assert np.allclose(zoom, check_zoom)
 
-  def test_random_noise(self):
-    # check random noise
+  def test_gaussian_noise(self):
+    # check gaussian noise
     dt = DataTransforms(self.d)
-    seed = 0
+    np.random.seed(0)
     x = (self.d - np.min(self.d)) / (np.max(self.d) - np.min(self.d))
-    x = skimage.util.random_noise(x, seed=seed)
+    random_noise = x + np.random.normal(loc=0, scale=0.1, size=self.d.shape)
+    random_noise[random_noise > 1] = 1
+    random_noise = random_noise * (np.max(self.d) - np.min(self.d)) + np.min(
+        self.d)
+    np.random.seed(0)
+    check_random_noise = dt.gaussian_noise()
+    assert np.allclose(random_noise, check_random_noise)
+
+  def test_salt_pepper_noise(self):
+    # check salt and pepper noise
+    dt = DataTransforms(self.d)
+    np.random.seed(0)
+    prob = 0.05
+    x = (self.d - np.min(self.d)) / (np.max(self.d) - np.min(self.d))
+    noise = np.random.random(size=self.d.shape)
+    x[noise < (prob / 2)] = 0
+    x[noise > (1 - prob / 2)] = 1
     random_noise = x * (np.max(self.d) - np.min(self.d)) + np.min(self.d)
-    check_random_noise = dt.random_noise(seed=seed)
+    np.random.seed(0)
+    check_random_noise = dt.salt_pepper_noise(prob)
     assert np.allclose(random_noise, check_random_noise)
