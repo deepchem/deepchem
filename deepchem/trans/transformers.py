@@ -1235,40 +1235,12 @@ class DataTransforms(Transformer):
           (‘constant’, ‘nearest’, ‘reflect’ or ‘wrap’). Default is ‘constant’
           order - The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
           """
-    return scipy.ndimage.shift(
-        self.Image, [height, width, 0], order=order, mode=mode)
-
-  def zoom(self, zoom_x=1, zoom_y=1, mode='constant', order=3):
-    """Shifts the image
-        Parameters:
-          zoom_x - amount of zoom along x axis
-          zoom_y - amount of zoom along y axis
-          mode - Points outside the boundaries of the input are filled according to the given mode
-          (‘constant’, ‘nearest’, ‘reflect’ or ‘wrap’). Default is ‘constant’.
-          order - The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
-          """
-    h, w = self.Image.shape[0], self.Image.shape[1]
-    o_x = float(h) / 2 + 0.5
-    o_y = float(w) / 2 + 0.5
-    transform_matrix = np.array([[zoom_x, 0, 0], [0, zoom_y, 0], [0, 0, 1]])
-    offset_matrix = np.array([[1, 0, o_x], [0, 1, o_y], [0, 0, 1]])
-    reset_matrix = np.array([[1, 0, -o_x], [0, 1, -o_y], [0, 0, 1]])
-    transform_matrix = np.dot(
-        np.dot(offset_matrix, transform_matrix), reset_matrix)
-    final_affine_matrix = np.linalg.inv(transform_matrix[:2, :2])
-    final_offset = transform_matrix[:2, 2]
-    x = np.rollaxis(self.Image, 2, 0)
-    channel_images = [
-        scipy.ndimage.interpolation.affine_transform(
-            x_channel,
-            final_affine_matrix,
-            final_offset,
-            order=order,
-            mode=mode) for x_channel in x
-    ]
-    x = np.stack(channel_images, axis=0)
-    x = np.rollaxis(x, 0, 3)
-    return x
+    if len(self.Image.shape) == 2:
+      return scipy.ndimage.shift(
+          self.Image, [height, width], order=order, mode=mode)
+    if len(self.Image.shape == 3):
+      return scipy.ndimage.shift(
+          self.Image, [height, width, 0], order=order, mode=mode)
 
   def gaussian_noise(self):
     '''Adds gaussian noise to the image
