@@ -554,13 +554,11 @@ class TestTransformers(unittest.TestCase):
     # check gaussian noise
     dt = DataTransforms(self.d)
     np.random.seed(0)
-    x = (self.d - np.min(self.d)) / (np.max(self.d) - np.min(self.d))
-    random_noise = x + np.random.normal(loc=0, scale=0.1, size=self.d.shape)
-    random_noise[random_noise > 1] = 1
-    random_noise = random_noise * (np.max(self.d) - np.min(self.d)) + np.min(
-        self.d)
+    random_noise = self.d
+    random_noise = random_noise + np.random.normal(
+        loc=0, scale=25.5, size=self.d.shape)
     np.random.seed(0)
-    check_random_noise = dt.gaussian_noise()
+    check_random_noise = dt.gaussian_noise(mean=0, std=25.5)
     assert np.allclose(random_noise, check_random_noise)
 
   def test_salt_pepper_noise(self):
@@ -568,11 +566,10 @@ class TestTransformers(unittest.TestCase):
     dt = DataTransforms(self.d)
     np.random.seed(0)
     prob = 0.05
-    x = (self.d - np.min(self.d)) / (np.max(self.d) - np.min(self.d))
+    random_noise = self.d
     noise = np.random.random(size=self.d.shape)
-    x[noise < (prob / 2)] = 0
-    x[noise > (1 - prob / 2)] = 1
-    random_noise = x * (np.max(self.d) - np.min(self.d)) + np.min(self.d)
+    random_noise[noise < (prob / 2)] = 0
+    random_noise[noise > (1 - prob / 2)] = 255
     np.random.seed(0)
-    check_random_noise = dt.salt_pepper_noise(prob)
+    check_random_noise = dt.salt_pepper_noise(prob, salt=255, pepper=0)
     assert np.allclose(random_noise, check_random_noise)
