@@ -1242,27 +1242,27 @@ class DataTransforms(Transformer):
       return scipy.ndimage.shift(
           self.Image, [height, width, 0], order=order, mode=mode)
 
-  def gaussian_noise(self):
+  def gaussian_noise(self, mean=0, std=25.5):
     '''Adds gaussian noise to the image
+    Parameters:
+      mean - mean of gaussian.
+      std - standard deviation of gaussian.
         '''
 
-    x = (self.Image - np.min(self.Image)) / (
-        np.max(self.Image) - np.min(self.Image))
-    x = x + np.random.normal(loc=0, scale=0.1, size=self.Image.shape)
-    x[x > 1] = 1
-    x = x * (np.max(self.Image) - np.min(self.Image)) + np.min(self.Image)
+    x = self.Image
+    x = x + np.random.normal(loc=mean, scale=std, size=self.Image.shape)
     return x
 
-  def salt_pepper_noise(self, prob=0.05):
+  def salt_pepper_noise(self, prob=0.05, salt=255, pepper=0):
     '''Adds salt and pepper noise to the image
     Parameters:
       prob - probability of the noise.
+      salt - value of salt noise.
+      pepper - value of pepper noise.
         '''
 
-    x = (self.Image - np.min(self.Image)) / (
-        np.max(self.Image) - np.min(self.Image))
     noise = np.random.random(size=self.Image.shape)
-    x[noise < (prob / 2)] = 0
-    x[noise > (1 - prob / 2)] = 1
-    x = x * (np.max(self.Image) - np.min(self.Image)) + np.min(self.Image)
+    x = self.Image
+    x[noise < (prob / 2)] = pepper
+    x[noise > (1 - prob / 2)] = salt
     return x
