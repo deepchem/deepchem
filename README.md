@@ -1,11 +1,11 @@
-﻿# DeepChem
+# DeepChem
 [![Build Status](https://travis-ci.org/deepchem/deepchem.svg?branch=master)](https://travis-ci.org/deepchem/deepchem)
 [![Coverage Status](https://coveralls.io/repos/github/deepchem/deepchem/badge.svg?branch=master)](https://coveralls.io/github/deepchem/deepchem?branch=master)
 [![Anaconda-Server Badge](https://anaconda.org/deepchem/deepchem/badges/version.svg)](https://anaconda.org/deepchem/deepchem)
 [![PyPI version](https://badge.fury.io/py/deepchem.svg)](https://badge.fury.io/py/deepchem)
 
 
-DeepChem aims to provide a high quality open-source toolchain that
+DeepChem aims to provide a high-quality open-source toolchain that
 democratizes the use of deep-learning in drug discovery, materials science, quantum chemistry, and biology.
 
 ### Table of contents:
@@ -48,17 +48,17 @@ conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=2.1.0
 **Note:** `Easy Install` installs the latest stable version of `deepchem` and _does not install from source_. If you need to install from source make sure you follow the steps [here](#using-a-conda-environment).
 
 ### Using a Docker Image
-Using a docker image requires an NVIDIA GPU.  If you do not have a GPU please follow the directions for [using a conda environment](#using-a-conda-environment)
-In order to get GPU support you will have to use the [nvidia-docker](https://github.com/NVIDIA/nvidia-docker) plugin.
+Using a docker image requires an NVIDIA GPU.  If you do not have a GPU, please follow the directions for [using a conda environment](#using-a-conda-environment)
+To get GPU support you will have to use the [nvidia-docker](https://github.com/NVIDIA/nvidia-docker) plugin.
 ``` bash
-# This will the download the latest stable deepchem docker image into your images
+# This will allow the download the latest stable deepchem docker image into your images
 docker pull deepchemio/deepchem
 
 # This will create a container out of our latest image with GPU support
 nvidia-docker run -i -t deepchemio/deepchem
 
 # You are now in a docker container whose python has deepchem installed
-# For example you can run our tox21 benchmark
+# For example, you can run our tox21 benchmark
 cd deepchem/examples
 python benchmark.py -d tox21
 
@@ -101,15 +101,15 @@ via this installation procedure.
 ## FAQ and Troubleshooting
 
 1. ```deepchem``` currently supports both Python 2.7 and Python 3.5, and is supported on 64 bit Linux and Mac OSX. Note that DeepChem is not currently maintained for Python 3.6 or with other operating systems. 
-2. Question: I'm seeing some failures in my test suite having to do with MKL
+2. Question: I see some failures in my test suite having to do with MKL
    ```Intel MKL FATAL ERROR: Cannot load libmkl_avx.so or libmkl_def.so.```
 
-   Answer: This is a general issue with the newest version of `scikit-learn` enabling MKL by default. This doesn't play well with many linux systems. See [BVLC/caffe#3884](https://github.com/BVLC/caffe/issues/3884) for discussions. The following seems to fix the issue
+   Answer: This is a general issue with the newest version of `scikit-learn` enabling MKL by default. This doesn't play well with many Linux systems. See [BVLC/caffe#3884](https://github.com/BVLC/caffe/issues/3884) for discussions. The following seems to fix the issue
    ```bash
    conda install nomkl numpy scipy scikit-learn numexpr
    conda remove mkl mkl-service
    ```
-3.  Note that when using Ubuntu 16.04 server or similar environments, you may need to ensure libxrender is provided via e.g.:
+3.  Note that when using Ubuntu 16.04 server or similar environments, you may need to ensure libxrender is provided via, e.g.:
    ```bash
    sudo apt-get install -y libxrender-dev
    ```
@@ -117,10 +117,10 @@ via this installation procedure.
 ## Getting Started
 Two good tutorials to get started are [Graph Convolutional Networks](https://deepchem.io/docs/notebooks/graph_convolutional_networks_for_tox21.html) and [Multitask_Networks_on_MUV](https://deepchem.io/docs/notebooks/Multitask_Networks_on_MUV.html). Follow along with the tutorials to see how to predict properties on molecules using neural networks.
 
-Afterwards you can go through other [tutorials](https://deepchem.io/docs/notebooks/index.html), and look through our examples in the `examples` directory. To apply `deepchem` to a new problem, try starting from one of the existing examples or tutorials and modifying it step by step to work with your new use-case. If you have questions or comments you can raise them on our [gitter](https://gitter.im/deepchem/Lobby).
+Afterwards, you can go through other [tutorials](https://deepchem.io/docs/notebooks/index.html), and look through our examples in the `examples` directory. To apply `deepchem` to a new problem, try starting from one of the existing examples or tutorials and modifying it step by step to work with your new use-case. If you have questions or comments you can raise them on our [gitter](https://gitter.im/deepchem/Lobby).
 
 ### Benchmarks
-In depth benchrmarking tables for DeepChem models are available on [MoleculeNet.ai](https://moleculenet.ai)
+In-depth benchmarking tables for DeepChem models are available on [MoleculeNet.ai](https://moleculenet.ai)
 
 ### Gitter
 Join us on gitter at [https://gitter.im/deepchem/Lobby](https://gitter.im/deepchem/Lobby). Probably the easiest place to ask simple questions or float requests for new features.
@@ -128,7 +128,7 @@ Join us on gitter at [https://gitter.im/deepchem/Lobby](https://gitter.im/deepch
 ## About Us
 DeepChem is possible due to notable contributions from many people including Peter Eastman, Evan Feinberg, Joe Gomes, Karl Leswing, Vijay Pande, Aneesh Pappu, Bharath Ramsundar and Michael Wu (alphabetical ordering).  DeepChem was originally created by [Bharath Ramsundar](http://rbharath.github.io/) with encouragement and guidance from [Vijay Pande](https://pande.stanford.edu/).
 
-DeepChem started as a [Pande group](https://pande.stanford.edu/) project at Stanford, and is now developed by many academic and industrial collaborators. DeepChem actively encourages new academic and industrial groups to contribute!
+DeepChem started as a [Pande group](https://pande.stanford.edu/) project at Stanford and is now developed by many academic and industrial collaborators. DeepChem actively encourages new academic and industrial groups to contribute!
 
 ## Citing DeepChem
 
