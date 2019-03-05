@@ -18,7 +18,10 @@ logger = logging.getLogger(__name__)
 def load_bbbc001(split='index', reload=True):
   """Load BBBC001 dataset
   
-  This dataset contains 6 images of human HT29 colon cancer cells. The task is to learn to predict the cell counts in these images. This dataset is too small to serve to train algorithms, but might serve as a good test dataset. https://data.broadinstitute.org/bbbc/BBBC001/
+  This dataset contains 6 images of human HT29 colon cancer cells. The task is
+  to learn to predict the cell counts in these images. This dataset is too
+  small to serve to train algorithms, but might serve as a good test dataset.
+  https://data.broadinstitute.org/bbbc/BBBC001/
   """
   # Featurize BBBC001 dataset
   bbbc001_tasks = ["cell-count"]
@@ -73,7 +76,6 @@ def load_bbbc001(split='index', reload=True):
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
                                              transformers)
   return bbbc001_tasks, all_dataset, transformers
-
 
 def load_bbbc002(split='index', reload=True):
   """Load BBBC002 dataset
@@ -137,3 +139,101 @@ def load_bbbc002(split='index', reload=True):
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
                                              transformers)
   return bbbc002_tasks, all_dataset, transformers
+
+def load_bbbc004(split='index', reload=True):
+  """Load BBBC004 dataset
+  
+  This dataset contains synthetic images of cells. Each synthetic image
+  contains 300 synthetic cells, and the learning challenge is to learn to
+  segment the cells into foreground/background. For full details, see
+  https://data.broadinstitute.org/bbbc/BBBC004/
+  """
+  # Featurize BBBC004 dataset
+  bbbc004_tasks = ["foreground"]
+  data_dir = deepchem.utils.get_data_dir()
+  if reload:
+    save_dir = os.path.join(data_dir, "bbbc004/" + str(split))
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
+      return bbbc004_tasks, all_dataset, transformers
+  image_files = [os.path.join(data_dir, "BBBC004_v1_000_images.zip"),
+                 os.path.join(data_dir, "BBBC004_v1_015_images.zip"),
+                 os.path.join(data_dir, "BBBC004_v1_030_images.zip"),
+                 os.path.join(data_dir, "BBBC004_v1_045_images.zip"),
+                 os.path.join(data_dir, "BBBC004_v1_060_images.zip")]
+  segmentation_files = [os.path.join(data_dir, "BBBC004_v1_000_foreground.zip"),
+                        os.path.join(data_dir, "BBBC004_v1_015_foreground.zip"),
+                        os.path.join(data_dir, "BBBC004_v1_030_foreground.zip"),
+                        os.path.join(data_dir, "BBBC004_v1_045_foreground.zip"),
+                        os.path.join(data_dir, "BBBC004_v1_060_foreground.zip")]
+
+  # TODO: Make this a little slicker
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_000_images.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_000_images.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_015_images.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_015_images.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_030_images.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_030_images.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_045_images.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_045_images.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_060_images.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_060_images.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_000_foreground.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_000_foreground.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_015_foreground.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_015_foreground.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_030_foreground.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_030_foreground.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_045_foreground.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_045_foreground.zip'
+    )
+  if not os.path.exists(os.path.join(data_dir, "BBBC004_v1_060_foreground.zip")):
+    deepchem.utils.download_url(
+        'https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_060_foreground.zip'
+    )
+
+  # Featurize Images into NumpyArrays
+  loader = deepchem.data.ImageLoader()
+  # Shape (100, 950, 950)
+  images = loader.featurize(image_files, in_memory=False)
+  # Foregrounds are colored while originals are greyscale
+  # Shape (100, 950, 950, 3)
+  foregrounds = loader.featurize(segmentation_files, in_memory=False)
+
+  dataset = deepchem.data.DiskDataset.from_numpy(images.X, foregrounds.X)
+
+  if split == None:
+    return bbbc004_tasks, (dataset, None, None), transformers
+
+  splitters = {
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
+  }
+  if split not in splitters:
+    raise ValueError("Only index and random splits supported.")
+  splitter = splitters[split]
+
+  train, valid, test = splitter.train_valid_test_split(dataset)
+  all_dataset = (train, valid, test)
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                             transformers)
+  return bbbc004_tasks, all_dataset, transformers
