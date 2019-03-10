@@ -43,8 +43,8 @@ class CircularFingerprint(Featurizer):
   """
   name = 'circular'
 
-  def __init__(self, radius=2, size=2048, chiral=False, counts=False, bonds=True,
-             features=False, sparse=False, smiles=False):
+  def __init__(self, radius=2, size=2048, chiral=False, bonds=True,
+             features=False, sparse=False, smiles=False, counts = False):
     self.radius = radius
     self.size = size
     self.chiral = chiral
