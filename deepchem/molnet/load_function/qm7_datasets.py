@@ -39,7 +39,7 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
       )
     dataset = scipy.io.loadmat(dataset_file)
     X = dataset['X']
-    y = dataset['T']
+    y = dataset['T'].T
     w = np.ones_like(y)
     dataset = deepchem.data.DiskDataset.from_numpy(X, y, w, ids=None)
   elif featurizer == 'BPSymmetryFunctionInput':
