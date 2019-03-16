@@ -95,8 +95,10 @@ class TestGraphModels(unittest.TestCase):
     model.save()
     model = TensorGraph.load_from_dir(model.model_dir)
     scores2 = model.evaluate(dataset, [metric], transformers)
-    assert np.allclose(scores['mean_absolute_error'],
-                       scores2['mean_absolute_error'])
+    assert np.allclose(
+        scores['mean_absolute_error'],
+        scores2['mean_absolute_error'],
+        rtol=1e-4)
 
   def test_graph_conv_regression_uncertainty(self):
     tasks, dataset, transformers, metric = self.get_dataset(
@@ -152,7 +154,7 @@ class TestGraphModels(unittest.TestCase):
 
     model2 = TensorGraph.load_from_dir(model.model_dir)
     y_pred2 = model2.predict(dataset)
-    self.assertTrue(np.all(y_pred1 == y_pred2))
+    self.assertTrue(np.allclose(y_pred1, y_pred2))
 
   def test_change_loss_function(self):
     tasks, dataset, transformers, metric = self.get_dataset(

@@ -43,6 +43,7 @@ class ExampleGAN(dc.models.GAN):
 
 class TestGAN(unittest.TestCase):
 
+  @flaky
   def test_cgan(self):
     """Test fitting a conditional GAN."""
 
@@ -60,6 +61,7 @@ class TestGAN(unittest.TestCase):
     assert abs(np.mean(deltas)) < 1.0
     assert np.std(deltas) > 1.0
 
+  @flaky
   def test_mix_gan(self):
     """Test a GAN with multiple generators and discriminators."""
 

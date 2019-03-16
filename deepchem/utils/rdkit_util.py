@@ -379,6 +379,7 @@ class PdbqtLigandWriter(object):
     store rotatable bonds in (from_atom, to_atom)
     """
     from rdkit import Chem
+    from rdkit.Chem import rdmolops
     pattern = Chem.MolFromSmarts(
         "[!$(*#*)&!D1&!$(C(F)(F)F)&!$(C(Cl)(Cl)Cl)&!$(C(Br)(Br)Br)&!$(C([CH3])("
         "[CH3])[CH3])&!$([CD3](=[N,O,S])-!@[#7,O,S!D1])&!$([#7,O,S!D1]-!@[CD3]="
