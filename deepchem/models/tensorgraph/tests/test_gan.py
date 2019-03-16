@@ -43,6 +43,7 @@ class ExampleGAN(dc.models.GAN):
 
 class TestGAN(unittest.TestCase):
 
+  @flaky
   def test_cgan(self):
     """Test fitting a conditional GAN."""
 
