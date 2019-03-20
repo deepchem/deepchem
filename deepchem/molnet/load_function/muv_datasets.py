@@ -76,8 +76,8 @@ def load_muv(featurizer='ECFP', split='index', reload=True, K=4):
     all_dataset = fold_datasets
   else:
     train, valid, test = splitter.train_valid_test_split(dataset)
-  if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
-                                             transformers)
     all_dataset = (train, valid, test)
+    if reload:
+      deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                               transformers)
   return MUV_tasks, all_dataset, transformers
