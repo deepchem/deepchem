@@ -16,7 +16,7 @@ from deepchem.feat import Featurizer
 
 
 class CircularFingerprint(Featurizer):
-    """
+  """
   Circular (Morgan) fingerprints.
 
   Parameters
@@ -41,7 +41,7 @@ class CircularFingerprint(Featurizer):
       Whether to calculate SMILES strings for fragment IDs (only applicable
       when calculating sparse fingerprints).
   """
-    name = 'circular'
+  name = 'circular'
 
     def __init__(self,
                  radius=2,
@@ -61,8 +61,8 @@ class CircularFingerprint(Featurizer):
         self.sparse = sparse
         self.smiles = smiles
 
-    def _featurize(self, mol):
-        """
+  def _featurize(self, mol):
+    """
     Calculate circular fingerprint.
 
     Parameters
@@ -115,17 +115,18 @@ class CircularFingerprint(Featurizer):
                 useFeatures=self.features)
         return fp
 
-    def __hash__(self):
-        return hash((self.radius, self.size, self.chiral, self.bonds,
-                     self.features, self.sparse, self.smiles))
+  def __hash__(self):
+    return hash((self.radius, self.size, self.chiral, self.bonds,
+                    self.features, self.sparse, self.smiles))
 
-    def __eq__(self, other):
-        if not isinstance(self, other.__class__):
-            return False
-        return self.radius == other.radius and \
-               self.size == other.size and \
-               self.chiral == other.chiral and \
-               self.bonds == other.bonds and \
-               self.features == other.features and \
-               self.sparse == other.sparse and \
-               self.smiles == other.smiles
+  def __eq__(self, other):
+    if not isinstance(self, other.__class__):
+      return False
+    return self.radius == other.radius and \
+              self.size == other.size and \
+              self.chiral == other.chiral and \
+              self.bonds == other.bonds and \
+              self.features == other.features and \
+              self.sparse == other.sparse and \
+              self.smiles == other.smiles
+               
