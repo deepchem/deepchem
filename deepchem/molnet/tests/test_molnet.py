@@ -42,7 +42,7 @@ class TestMolnet(unittest.TestCase):
     with open(os.path.join(out_path, 'results.csv'), 'r') as f:
       reader = csv.reader(f)
       for lastrow in reader:
-        pass
+        break
       assert lastrow[-4] == 'valid'
       assert float(lastrow[-3]) > 0.75
     os.remove(os.path.join(out_path, 'results.csv'))
@@ -65,7 +65,7 @@ class TestMolnet(unittest.TestCase):
     with open(os.path.join(out_path, 'results.csv'), 'r') as f:
       reader = csv.reader(f)
       for lastrow in reader:
-        pass
+        break
       assert lastrow[-4] == 'valid'
       assert float(lastrow[-3]) > 0.95
     os.remove(os.path.join(out_path, 'results.csv'))
@@ -88,7 +88,7 @@ class TestMolnet(unittest.TestCase):
     with open(os.path.join(out_path, 'results.csv'), 'r') as f:
       reader = csv.reader(f)
       for lastrow in reader:
-        pass
+        break
       assert lastrow[-4] == 'test'
       assert float(lastrow[-3]) > 0.7
     os.remove(os.path.join(out_path, 'results.csv'))
