@@ -1,0 +1,11 @@
+"""
+Example of using Tfdata class which is a tf.data.datasets interface
+"""
+from deepchem.molnet import load_tox21
+from deepchem.molnet import Tfdata
+
+tox21_tasks, tox21_datasets, transformers = load_tox21()
+(train_dataset, valid_dataset, test_dataset) = tox21_datasets
+
+tfd = Tfdata(dataset=test_dataset)
+X_result, y_result, w_result, ibs_result = tfd.make_one_shot_iterator()  # get X, y, w, ibs with tf.data.datasets type, respectivly
