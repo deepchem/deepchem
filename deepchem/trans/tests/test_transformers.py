@@ -537,3 +537,39 @@ class TestTransformers(unittest.TestCase):
     scale = scipy.misc.imresize(self.d, (h, w))
     check_scale = dt.scale(h, w)
     np.allclose(scale, check_scale)
+
+  def test_shift(self):
+    # Check shift
+    dt = DataTransforms(self.d)
+    height = 5
+    width = 5
+    if len(self.d.shape) == 2:
+      shift = scipy.ndimage.shift(self.d, [height, width])
+    if len(self.d.shape) == 3:
+      shift = scipy.ndimage.shift(self.d, [height, width, 0])
+    check_shift = dt.shift(width, height)
+    assert np.allclose(shift, check_shift)
+
+  def test_gaussian_noise(self):
+    # check gaussian noise
+    dt = DataTransforms(self.d)
+    np.random.seed(0)
+    random_noise = self.d
+    random_noise = random_noise + np.random.normal(
+        loc=0, scale=25.5, size=self.d.shape)
+    np.random.seed(0)
+    check_random_noise = dt.gaussian_noise(mean=0, std=25.5)
+    assert np.allclose(random_noise, check_random_noise)
+
+  def test_salt_pepper_noise(self):
+    # check salt and pepper noise
+    dt = DataTransforms(self.d)
+    np.random.seed(0)
+    prob = 0.05
+    random_noise = self.d
+    noise = np.random.random(size=self.d.shape)
+    random_noise[noise < (prob / 2)] = 0
+    random_noise[noise > (1 - prob / 2)] = 255
+    np.random.seed(0)
+    check_random_noise = dt.salt_pepper_noise(prob, salt=255, pepper=0)
+    assert np.allclose(random_noise, check_random_noise)

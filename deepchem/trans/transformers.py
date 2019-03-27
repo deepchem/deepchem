@@ -1225,3 +1225,44 @@ class DataTransforms(Transformer):
             sigma - std dev. of the gaussian distribution
     """
     return scipy.ndimage.gaussian_filter(self.Image, sigma)
+
+  def shift(self, width, height, mode='constant', order=3):
+    """Shifts the image
+        Parameters:
+          width - amount of width shift(positive values shift image right )
+          height - amount of height shift(positive values shift image lower)
+          mode - Points outside the boundaries of the input are filled according to the given mode
+          (‘constant’, ‘nearest’, ‘reflect’ or ‘wrap’). Default is ‘constant’
+          order - The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
+          """
+    if len(self.Image.shape) == 2:
+      return scipy.ndimage.shift(
+          self.Image, [height, width], order=order, mode=mode)
+    if len(self.Image.shape == 3):
+      return scipy.ndimage.shift(
+          self.Image, [height, width, 0], order=order, mode=mode)
+
+  def gaussian_noise(self, mean=0, std=25.5):
+    '''Adds gaussian noise to the image
+    Parameters:
+      mean - mean of gaussian.
+      std - standard deviation of gaussian.
+        '''
+
+    x = self.Image
+    x = x + np.random.normal(loc=mean, scale=std, size=self.Image.shape)
+    return x
+
+  def salt_pepper_noise(self, prob=0.05, salt=255, pepper=0):
+    '''Adds salt and pepper noise to the image
+    Parameters:
+      prob - probability of the noise.
+      salt - value of salt noise.
+      pepper - value of pepper noise.
+        '''
+
+    noise = np.random.random(size=self.Image.shape)
+    x = self.Image
+    x[noise < (prob / 2)] = pepper
+    x[noise > (1 - prob / 2)] = salt
+    return x
