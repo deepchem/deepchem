@@ -22,7 +22,7 @@ class TestModelOps(test_util.TensorFlowTestCase):
     self.root = '/tmp'
 
   def test_add_bias(self):
-    with self.test_session() as sess:
+    with self.session() as sess:
       w_t = tf.constant([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], shape=[2, 3])
       w_biased_t = add_bias(w_t, init=tf.constant(5.0, shape=[3]))
       sess.run(tf.global_variables_initializer())
@@ -32,18 +32,18 @@ class TestModelOps(test_util.TensorFlowTestCase):
       self.assertAllEqual(bias, [5.0, 5.0, 5.0])
 
   def test_fully_connected_layer(self):
-    with self.test_session() as sess:
+    with self.session() as sess:
       features = np.random.random((128, 100))
       features_t = tf.constant(features, dtype=tf.float32)
       dense_t = fully_connected_layer(features_t, 50)
       sess.run(tf.global_variables_initializer())
-      features, dense, w, b = sess.run(
-          [features_t, dense_t] + tf.trainable_variables())
+      features, dense, w, b = sess.run([features_t, dense_t] +
+                                       tf.trainable_variables())
       expected = np.dot(features, w) + b
       self.assertAllClose(dense, expected)
 
   def test_multitask_logits(self):
-    with self.test_session() as sess:
+    with self.session() as sess:
       num_tasks = 3
       np.random.seed(test_random_seed)
       features = np.random.random((5, 100))
@@ -62,13 +62,13 @@ class TestModelOps(test_util.TensorFlowTestCase):
     features = np.asarray([[[1, 1], [0.1, 0.3]], [[0, 1], [2, 2]]], dtype=float)
     expected = np.asarray(
         [[[0.5, 0.5], [0.45, 0.55]], [[0.27, 0.73], [0.5, 0.5]]], dtype=float)
-    with self.test_session() as sess:
+    with self.session() as sess:
       computed = sess.run(softmax_N(tf.constant(features, dtype=tf.float32)))
     self.assertAllClose(np.around(computed, 2), expected)
 
   def test_softmax_N_with_numpy(self):
     features = np.random.random((2, 3, 4))
     expected = np.exp(features) / np.exp(features).sum(axis=-1, keepdims=True)
-    with self.test_session() as sess:
+    with self.session() as sess:
       computed = sess.run(softmax_N(tf.constant(features, dtype=tf.float32)))
       self.assertAllClose(computed, expected)

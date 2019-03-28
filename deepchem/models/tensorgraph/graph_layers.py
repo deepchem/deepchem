@@ -660,16 +660,15 @@ class DAGLayer(Layer):
       batch_atom_features = tf.gather(atom_features, current_round)
 
       # generating index for graph features used in the inputs
-      index = tf.stack(
-          [
-              tf.reshape(
-                  tf.stack(
-                      [tf.boolean_mask(tf.range(n_atoms), mask)] *
-                      (self.max_atoms - 1),
-                      axis=1), [-1]),
-              tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
-          ],
-          axis=1)
+      index = tf.stack([
+          tf.reshape(
+              tf.stack(
+                  [tf.boolean_mask(tf.range(n_atoms), mask)] *
+                  (self.max_atoms - 1),
+                  axis=1), [-1]),
+          tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
+      ],
+                       axis=1)
       # extracting graph features for parents of the target atoms, then flatten
       # shape: (batch_size*max_atoms) * [(max_atoms-1)*n_graph_features]
       batch_graph_features = tf.reshape(
@@ -705,7 +704,7 @@ class DAGLayer(Layer):
       outputs = self.activation(outputs)
       training = kwargs['training'] if 'training' in kwargs else 1.0
       if not self.dropout is None:
-        outputs = tf.nn.dropout(outputs, 1.0 - self.dropout * training)
+        outputs = tf.nn.dropout(outputs, rate=self.dropout * training)
     return outputs
 
   def none_tensors(self):
@@ -814,7 +813,7 @@ class DAGGather(Layer):
       outputs = self.activation(outputs)
       training = kwargs['training'] if 'training' in kwargs else 1.0
       if not self.dropout is None:
-        outputs = tf.nn.dropout(outputs, 1.0 - self.dropout * training)
+        outputs = tf.nn.dropout(outputs, rate=self.dropout * training)
     return outputs
 
   def none_tensors(self):

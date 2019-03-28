@@ -85,8 +85,9 @@ class MultitaskGraphClassifier(Model):
                pad_batches=True,
                verbose=True):
 
-    warnings.warn("MultitaskGraphClassifier is deprecated. "
-                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
+    warnings.warn(
+        "MultitaskGraphClassifier is deprecated. "
+        "Will be removed in DeepChem 1.4.", DeprecationWarning)
     super(MultitaskGraphClassifier, self).__init__(
         model_dir=logdir, verbose=verbose)
     self.n_tasks = n_tasks
@@ -191,8 +192,9 @@ class MultitaskGraphClassifier(Model):
       task_label_vector = task_labels[task]
       task_weight_vector = task_weights[task]
       # Convert the labels into one-hot vector encodings.
-      one_hot_labels = tf.to_float(
-          tf.one_hot(tf.to_int32(tf.squeeze(task_label_vector)), 2))
+      one_hot_labels = tf.cast(
+          tf.one_hot(tf.cast(tf.squeeze(task_label_vector), tf.int32), 2),
+          tf.float32)
       # Since we use tf.nn.softmax_cross_entropy_with_logits note that we pass in
       # un-softmaxed logits rather than softmax outputs.
       task_loss = loss_fn(logits[task], one_hot_labels, task_weight_vector)
@@ -200,7 +202,7 @@ class MultitaskGraphClassifier(Model):
     # It's ok to divide by just the batch_size rather than the number of nonzero
     # examples (effect averages out)
     total_loss = tf.add_n(task_losses)
-    total_loss = tf.div(total_loss, self.batch_size)
+    total_loss = tf.math.divide(total_loss, self.batch_size)
     return total_loss
 
   def add_softmax(self, outputs):

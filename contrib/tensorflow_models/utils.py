@@ -36,8 +36,9 @@ def ParseCheckpoint(checkpoint):
   Returns:
     The path to an actual checkpoint file.
   """
-  warnings.warn("ParseCheckpoint is deprecated. "
-                "Will be removed in DeepChem 1.4.", DeprecationWarning)
+  warnings.warn(
+      "ParseCheckpoint is deprecated. "
+      "Will be removed in DeepChem 1.4.", DeprecationWarning)
   with open(checkpoint) as f:
     try:
       cp = checkpoint_state_pb2.CheckpointState()
@@ -67,8 +68,8 @@ def Mask(t, mask):
   if mask is None:
     return t
   if not t.get_shape()[:-1].is_compatible_with(mask.get_shape()):
-    raise ValueError('Shapes do not match: %s vs. %s' % (t.get_shape(),
-                                                         mask.get_shape()))
+    raise ValueError(
+        'Shapes do not match: %s vs. %s' % (t.get_shape(), mask.get_shape()))
   return tf.multiply(t, tf.expand_dims(mask, -1))
 
 
@@ -184,12 +185,12 @@ def Moment(k, tensor, standardize=False, reduction_indices=None, mask=None):
 
   # compute the requested central moment
   # note that mean is a raw moment, not a central moment
-  mean = tf.div(
+  mean = tf.math.divide(
       tf.reduce_sum(tensor, axis=reduction_indices, keep_dims=True), divisor)
   delta = tensor - mean
   if mask is not None:
     delta = Mask(delta, mask)
-  moment = tf.div(
+  moment = tf.math.divide(
       tf.reduce_sum(
           math_ops.pow(delta, k), axis=reduction_indices, keep_dims=True),
       divisor)

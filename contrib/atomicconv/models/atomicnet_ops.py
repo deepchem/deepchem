@@ -80,8 +80,8 @@ def AtomicNNLayer(tensor, size, weights, biases, name=None):
   """
 
   if len(tensor.get_shape()) != 2:
-    raise ValueError('Dense layer input must be 2D, not %dD' %
-                     len(tensor.get_shape()))
+    raise ValueError(
+        'Dense layer input must be 2D, not %dD' % len(tensor.get_shape()))
   with tf.name_scope(name, 'fully_connected', [tensor, weights, biases]):
     return tf.nn.xw_plus_b(tensor, weights, biases)
 
@@ -111,8 +111,8 @@ def gather_neighbors(X, nbr_indices, B, N, M, d):
   example_tensors = tf.unstack(X, axis=0)
   example_nbrs = tf.unstack(nbr_indices, axis=0)
   all_nbr_coords = []
-  for example, (example_tensor,
-                example_nbr) in enumerate(zip(example_tensors, example_nbrs)):
+  for example, (example_tensor, example_nbr) in enumerate(
+      zip(example_tensors, example_nbrs)):
     nbr_coords = tf.gather(example_tensor, example_nbr)
     all_nbr_coords.append(nbr_coords)
   neighbors = tf.stack(all_nbr_coords)
@@ -149,7 +149,7 @@ def DistanceTensor(X, Nbrs, boxsize, B, N, M, d):
       nbrs_tensors = tf.unstack(nbrs, axis=1)
       for nbr, nbr_tensor in enumerate(nbrs_tensors):
         _D = tf.subtract(nbr_tensor, atom_tensor)
-        _D = tf.subtract(_D, boxsize * tf.round(tf.div(_D, boxsize)))
+        _D = tf.subtract(_D, boxsize * tf.round(tf.math.divide(_D, boxsize)))
         D.append(_D)
   else:
     for atom, atom_tensor in enumerate(atom_tensors):

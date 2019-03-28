@@ -10,8 +10,6 @@ import tensorflow as tf
 import numpy as np
 
 from deepchem.models.tensorgraph import model_ops, initializations, regularizers, activations
-from deepchem.models.tensorgraph.model_ops import create_variable
-import tensorflow.contrib.eager as tfe
 import math
 
 from tensorflow.python.ops import math_ops
@@ -40,7 +38,7 @@ class Layer(object):
     self.rnn_zero_states = []
     self.tensorboard = False
     self.tb_input = None
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       self.variables = []
       self._built = False
       self._non_pickle_fields = ['variables', '_built']
@@ -103,7 +101,7 @@ class Layer(object):
     -------
     Layer
     """
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       raise ValueError('shared() is not supported in eager mode')
     if self.variable_scope == '':
       return self.clone(in_layers)
@@ -153,7 +151,7 @@ class Layer(object):
       if True, try to reshape the inputs to all have the same shape
     """
     if in_layers is None:
-      if tfe.in_eager_mode():
+      if tf.executing_eagerly():
         raise ValueError('in_layers must be specified in eager mode')
       in_layers = self.in_layers
     if not isinstance(in_layers, Sequence):
@@ -325,7 +323,7 @@ class Layer(object):
       variables = variables_graph.get_layer_variables(self)
       if len(variables) > 0:
         with variables_graph._get_tf("Graph").as_default():
-          if tfe.in_eager_mode():
+          if tf.executing_eagerly():
             values = [v.numpy() for v in variables]
           else:
             values = variables_graph.session.run(variables)
@@ -429,7 +427,7 @@ class SharedVariableScope(Layer):
     self._shared_with = None
 
   def shared(self, in_layers):
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       raise ValueError('shared() is not supported in eager mode')
     copy = self.clone(in_layers)
     self._reuse = True
@@ -438,7 +436,7 @@ class SharedVariableScope(Layer):
     return copy
 
   def _get_scope_name(self):
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       return self.name
     if self._shared_with is None:
       return self.name
@@ -588,7 +586,7 @@ class Conv1D(Layer):
       parent = tf.expand_dims(parent, 2)
     elif len(parent.get_shape()) != 3:
       raise ValueError("Parent tensor must be (batch, width, channel)")
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         self._layer = self._build_layer()
         self._non_pickle_fields.append('_layer')
@@ -599,7 +597,7 @@ class Conv1D(Layer):
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self._built = True
       self.variables = self._layer.variables
     return out_tensor
@@ -607,14 +605,13 @@ class Conv1D(Layer):
 
 class Dense(SharedVariableScope):
 
-  def __init__(
-      self,
-      out_channels,
-      activation_fn=None,
-      biases_initializer=tf.zeros_initializer,
-      weights_initializer=tf.contrib.layers.variance_scaling_initializer,
-      time_series=False,
-      **kwargs):
+  def __init__(self,
+               out_channels,
+               activation_fn=None,
+               biases_initializer=tf.zeros_initializer,
+               weights_initializer=tf.keras.initializers.VarianceScaling,
+               time_series=False,
+               **kwargs):
     """Create a dense layer.
 
     The weight and bias initializers are specified by callable objects that construct
@@ -669,7 +666,7 @@ class Dense(SharedVariableScope):
       raise ValueError("Dense layer can only have one input")
     parent = inputs[0]
     for reuse in (self._reuse, False):
-      if tfe.in_eager_mode():
+      if tf.executing_eagerly():
         if not self._built:
           self._layer = self._build_layer(False)
           self._non_pickle_fields.append('_layer')
@@ -691,7 +688,7 @@ class Dense(SharedVariableScope):
     if set_tensors:
       self._record_variable_scope(self._get_scope_name())
       self.out_tensor = out_tensor
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self._built = True
       self.variables = self._layer.variables
     return out_tensor
@@ -708,12 +705,11 @@ class Highway(Layer):
   Outputs will be in the same shape.
   """
 
-  def __init__(
-      self,
-      activation_fn=tf.nn.relu,
-      biases_initializer=tf.zeros_initializer,
-      weights_initializer=tf.contrib.layers.variance_scaling_initializer,
-      **kwargs):
+  def __init__(self,
+               activation_fn=tf.nn.relu,
+               biases_initializer=tf.zeros_initializer,
+               weights_initializer=tf.keras.initializers.VarianceScaling,
+               **kwargs):
     """
 
     Parameters
@@ -756,7 +752,7 @@ class Highway(Layer):
     inputs = self._get_input_tensors(in_layers)
     parent = inputs[0]
     out_channels = parent.get_shape().as_list()[1]
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         self._layers = self._build_layers(out_channels)
         self._non_pickle_fields.append('_layers')
@@ -769,7 +765,7 @@ class Highway(Layer):
         parent, 1 - dense_T)
     if set_tensors:
       self.out_tensor = out_tensor
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self._built = True
       self.variables = self._layers[0].variables + self._layers[1].variables
     return out_tensor
@@ -889,7 +885,7 @@ class Squeeze(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
-    out_tensor = tf.squeeze(parent_tensor, squeeze_dims=self.squeeze_dims)
+    out_tensor = tf.squeeze(parent_tensor, axis=self.squeeze_dims)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1077,9 +1073,11 @@ class GRU(Layer):
     self.n_hidden = n_hidden
     self.batch_size = batch_size
     super(GRU, self).__init__(**kwargs)
-    if tfe.in_eager_mode():
-      self._cell = tf.contrib.rnn.GRUCell(n_hidden)
-      self._zero_state = self._cell.zero_state(batch_size, tf.float32)
+    if tf.executing_eagerly():
+      self._cell = tf.keras.layers.GRUCell(n_hidden)
+      self._rnn = tf.keras.layers.RNN(
+          self._cell, return_state=True, return_sequences=True)
+      self._zero_state = tf.zeros((batch_size, n_hidden), tf.float32)
       self._non_pickle_fields += ['_cell', '_zero_state']
     else:
       self._non_pickle_fields.append('out_tensors')
@@ -1094,20 +1092,26 @@ class GRU(Layer):
     if len(inputs) != 1:
       raise ValueError("Must have one parent")
     parent_tensor = inputs[0]
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       gru_cell = self._cell
       zero_state = self._zero_state
     else:
-      gru_cell = tf.contrib.rnn.GRUCell(self.n_hidden)
-      zero_state = gru_cell.zero_state(self.batch_size, tf.float32)
+      gru_cell = tf.keras.layers.GRUCell(self.n_hidden)
+      zero_state = tf.zeros((self.batch_size, self.n_hidden), tf.float32)
     if set_tensors:
       initial_state = tf.placeholder(tf.float32, zero_state.get_shape())
     elif 'initial_state' in kwargs:
       initial_state = kwargs['initial_state']
     else:
       initial_state = zero_state
-    out_tensor, final_state = tf.nn.dynamic_rnn(
-        gru_cell, parent_tensor, initial_state=initial_state, scope=self.name)
+    if tf.executing_eagerly():
+      out_tensor, final_state = self._rnn(
+          parent_tensor, initial_state=initial_state)
+    else:
+      with tf.variable_scope(self.name or 'rnn'):
+        out_tensor, final_state = tf.keras.layers.RNN(
+            gru_cell, return_state=True, return_sequences=True)(
+                parent_tensor, initial_state=initial_state)
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
@@ -1117,10 +1121,10 @@ class GRU(Layer):
       self.out_tensors = [
           self.out_tensor, initial_state, final_state, zero_state
       ]
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self._built = True
       self.variables = self._cell.variables
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       return (out_tensor, final_state)
     else:
       return out_tensor
@@ -1156,9 +1160,11 @@ class LSTM(Layer):
     self.n_hidden = n_hidden
     self.batch_size = batch_size
     super(LSTM, self).__init__(**kwargs)
-    if tfe.in_eager_mode():
-      self._cell = tf.contrib.rnn.LSTMCell(n_hidden)
-      self._zero_state = self._cell.zero_state(batch_size, tf.float32)
+    if tf.executing_eagerly():
+      self._cell = tf.keras.layers.LSTMCell(n_hidden)
+      self._rnn = tf.keras.layers.RNN(
+          self._cell, return_state=True, return_sequences=True)
+      self._zero_state = [tf.zeros((batch_size, n_hidden), tf.float32)] * 2
       self._non_pickle_fields += ['_cell', '_zero_state']
     try:
       parent_shape = self.in_layers[0].shape
@@ -1171,22 +1177,30 @@ class LSTM(Layer):
     if len(inputs) != 1:
       raise ValueError("Must have one parent")
     parent_tensor = inputs[0]
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       lstm_cell = self._cell
       zero_state = self._zero_state
     else:
-      lstm_cell = tf.contrib.rnn.LSTMCell(self.n_hidden)
-      zero_state = lstm_cell.zero_state(self.batch_size, tf.float32)
+      lstm_cell = tf.keras.layers.LSTMCell(self.n_hidden)
+      zero_state = [tf.zeros((self.batch_size, self.n_hidden), tf.float32)] * 2
     if set_tensors:
-      initial_state = tf.contrib.rnn.LSTMStateTuple(
-          tf.placeholder(tf.float32, zero_state.c.get_shape()),
-          tf.placeholder(tf.float32, zero_state.h.get_shape()))
+      initial_state = [
+          tf.placeholder(tf.float32, zero_state[0].get_shape()),
+          tf.placeholder(tf.float32, zero_state[1].get_shape())
+      ]
     elif 'initial_state' in kwargs:
       initial_state = kwargs['initial_state']
     else:
       initial_state = zero_state
-    out_tensor, final_state = tf.nn.dynamic_rnn(
-        lstm_cell, parent_tensor, initial_state=initial_state, scope=self.name)
+    if tf.executing_eagerly():
+      out_tensor, final_state1, final_state2 = self._rnn(
+          parent_tensor, initial_state=initial_state)
+    else:
+      with tf.variable_scope(self.name or 'rnn'):
+        out_tensor, final_state1, final_state2 = tf.keras.layers.RNN(
+            lstm_cell, return_state=True, return_sequences=True)(
+                parent_tensor, initial_state=initial_state)
+    final_state = [final_state1, final_state2]
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
@@ -1198,10 +1212,10 @@ class LSTM(Layer):
           np.zeros(zero_state.c.get_shape(), np.float32))
       self.rnn_zero_states.append(
           np.zeros(zero_state.h.get_shape(), np.float32))
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self._built = True
       self.variables = self._cell.variables
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       return (out_tensor, final_state)
     else:
       return out_tensor
@@ -1212,7 +1226,7 @@ class TimeSeriesDense(Layer):
   def __init__(self, out_channels, **kwargs):
     self.out_channels = out_channels
     super(TimeSeriesDense, self).__init__(**kwargs)
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       self._layer = self._build_layer()
 
   def _build_layer(self):
@@ -1223,7 +1237,7 @@ class TimeSeriesDense(Layer):
     if len(inputs) != 1:
       raise ValueError("Must have one parent")
     parent_tensor = inputs[0]
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         self._layer = self._build_layer()
         self._non_pickle_fields.append('_layer')
@@ -1233,7 +1247,7 @@ class TimeSeriesDense(Layer):
     out_tensor = tf.map_fn(layer, parent_tensor)
     if set_tensors:
       self.out_tensor = out_tensor
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self._built = True
       self.variables = self._layer.variables
     return out_tensor
@@ -1364,7 +1378,7 @@ class SoftMax(Layer):
     if len(inputs) != 1:
       raise ValueError("Softmax must have a single input layer.")
     parent = inputs[0]
-    out_tensor = tf.contrib.layers.softmax(parent)
+    out_tensor = tf.nn.softmax(parent)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1512,9 +1526,9 @@ class Variable(Layer):
     super(Variable, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
-        self.variables = [tfe.Variable(self.initial_value, dtype=self.dtype)]
+        self.variables = [tf.Variable(self.initial_value, dtype=self.dtype)]
         self._built = True
       out_tensor = self.variables[0]
     else:
@@ -1877,7 +1891,7 @@ class ToFloat(Layer):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) > 1:
       raise ValueError("Only one layer supported.")
-    out_tensor = tf.to_float(inputs[0])
+    out_tensor = tf.cast(inputs[0], tf.float32)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1957,7 +1971,7 @@ class Conv2D(SharedVariableScope):
                activation_fn=tf.nn.relu,
                normalizer_fn=None,
                biases_initializer=tf.zeros_initializer,
-               weights_initializer=tf.contrib.layers.xavier_initializer,
+               weights_initializer=tf.keras.initializers.glorot_normal,
                scope_name=None,
                **kwargs):
     """Create a Conv2D layer.
@@ -2037,7 +2051,7 @@ class Conv2D(SharedVariableScope):
       parent_tensor = tf.expand_dims(parent_tensor, 3)
     for reuse in (self._reuse, False):
       try:
-        if tfe.in_eager_mode():
+        if tf.executing_eagerly():
           if not self._built:
             self._layer = self._build_layer(False)
             self._non_pickle_fields.append('_layer')
@@ -2057,7 +2071,7 @@ class Conv2D(SharedVariableScope):
     if set_tensors:
       self._record_variable_scope(self.scope_name)
       self.out_tensor = out_tensor
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self._built = True
       self.variables = self._layer.variables
     return out_tensor
@@ -2079,7 +2093,7 @@ class Conv3D(SharedVariableScope):
                activation_fn=tf.nn.relu,
                normalizer_fn=None,
                biases_initializer=tf.zeros_initializer,
-               weights_initializer=tf.contrib.layers.xavier_initializer,
+               weights_initializer=tf.keras.initializers.glorot_normal,
                scope_name=None,
                **kwargs):
     """Create a Conv3D layer.
@@ -2161,7 +2175,7 @@ class Conv3D(SharedVariableScope):
       parent_tensor = tf.expand_dims(parent_tensor, 4)
     for reuse in (self._reuse, False):
       try:
-        if tfe.in_eager_mode():
+        if tf.executing_eagerly():
           if not self._built:
             self._layer = self._build_layer(False)
             self._non_pickle_fields.append('_layer')
@@ -2182,7 +2196,7 @@ class Conv3D(SharedVariableScope):
     if set_tensors:
       self._record_variable_scope(self.scope_name)
       self.out_tensor = out_tensor
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self._built = True
       self.variables = self._layer.variables
     return out_tensor
@@ -2204,7 +2218,7 @@ class Conv2DTranspose(SharedVariableScope):
                activation_fn=tf.nn.relu,
                normalizer_fn=None,
                biases_initializer=tf.zeros_initializer,
-               weights_initializer=tf.contrib.layers.xavier_initializer,
+               weights_initializer=tf.keras.initializers.glorot_normal,
                scope_name=None,
                **kwargs):
     """Create a Conv2DTranspose layer.
@@ -2279,7 +2293,7 @@ class Conv2DTranspose(SharedVariableScope):
       parent_tensor = tf.expand_dims(parent_tensor, 3)
     for reuse in (self._reuse, False):
       try:
-        if tfe.in_eager_mode():
+        if tf.executing_eagerly():
           if not self._built:
             self._layer = self._build_layer(False)
             self._non_pickle_fields.append('_layer')
@@ -2299,7 +2313,7 @@ class Conv2DTranspose(SharedVariableScope):
     if set_tensors:
       self._record_variable_scope(self.scope_name)
       self.out_tensor = out_tensor
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self._built = True
       self.variables = self._layer.variables
     return out_tensor
@@ -2321,7 +2335,7 @@ class Conv3DTranspose(SharedVariableScope):
                activation_fn=tf.nn.relu,
                normalizer_fn=None,
                biases_initializer=tf.zeros_initializer,
-               weights_initializer=tf.contrib.layers.xavier_initializer,
+               weights_initializer=tf.keras.initializers.glorot_normal,
                scope_name=None,
                **kwargs):
     """Create a Conv3DTranspose layer.
@@ -2397,7 +2411,7 @@ class Conv3DTranspose(SharedVariableScope):
       parent_tensor = tf.expand_dims(parent_tensor, 4)
     for reuse in (self._reuse, False):
       try:
-        if tfe.in_eager_mode():
+        if tf.executing_eagerly():
           if not self._built:
             self._layer = self._build_layer(False)
             self._non_pickle_fields.append('_layer')
@@ -2417,7 +2431,7 @@ class Conv3DTranspose(SharedVariableScope):
     if set_tensors:
       self._record_variable_scope(self.scope_name)
       self.out_tensor = out_tensor
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self._built = True
       self.variables = self._layer.variables
     return out_tensor
@@ -2634,8 +2648,8 @@ class GraphConv(Layer):
   def _create_variables(self, in_channels):
     # Generate the nb_affine weights and biases
     W_list = [
-        initializations.glorot_uniform(
-            [in_channels, self.out_channel], name='kernel')
+        initializations.glorot_uniform([in_channels, self.out_channel],
+                                       name='kernel')
         for k in range(self.num_deg)
     ]
     b_list = [
@@ -2649,7 +2663,7 @@ class GraphConv(Layer):
     inputs = self._get_input_tensors(in_layers)
     # in_layers = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
     in_channels = inputs[0].get_shape()[-1].value
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         W_list, b_list = self._create_variables(in_channels)
         self.variables = W_list + b_list
@@ -2881,7 +2895,7 @@ class LSTMStep(Layer):
     W = init((self.input_dim, 4 * self.output_dim))
     U = inner_init((self.output_dim, 4 * self.output_dim))
 
-    b = create_variable(
+    b = tf.Variable(
         np.hstack((np.zeros(self.output_dim), np.ones(self.output_dim),
                    np.zeros(self.output_dim), np.zeros(self.output_dim))),
         dtype=tf.float32)
@@ -2903,7 +2917,7 @@ class LSTMStep(Layer):
     activation = self.activation
     inner_activation = self.inner_activation
 
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         self.variables = self._create_variables()
         self._built = True
@@ -3021,7 +3035,7 @@ class AttnLSTMEmbedding(Layer):
     # x is test set, xp is support set.
     x, xp = inputs
 
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         self._lstm, self.q_init, self.r_init, self.states_init = self._create_variables(
         )
@@ -3052,7 +3066,7 @@ class AttnLSTMEmbedding(Layer):
 
     if set_tensors:
       self.out_tensor = xp
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self._built = True
       self.variables = lstm.variables + [q_init, r_init] + states_init
     return [x + q, xp]
@@ -3129,7 +3143,7 @@ class IterRefLSTMEmbedding(Layer):
       Returns two tensors of same shape as input. Namely the output shape will
       be [(n_test, n_feat), (n_support, n_feat)]
     """
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         self._support_lstm, self.q_init, self.support_states_init, self._test_lstm, self.p_init, self.test_states_init = self._create_variables(
         )
@@ -3187,7 +3201,7 @@ class IterRefLSTMEmbedding(Layer):
 
     if set_tensors:
       self.out_tensor = xp
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self.variables = support_lstm.variables + test_lstm.variables + [
           q_init, p_init
       ] + support_states_init + test_states_init
@@ -3221,7 +3235,7 @@ class BatchNorm(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         self._layer = self._build_layer()
         self._non_pickle_fields.append('_layer')
@@ -3231,7 +3245,7 @@ class BatchNorm(Layer):
     out_tensor = layer(parent_tensor)
     if set_tensors:
       self.out_tensor = out_tensor
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self._built = True
       self.variables = self._layer.variables
     return out_tensor
@@ -3331,7 +3345,7 @@ class VinaFreeEnergy(Layer):
 
   def _build_layers(self):
     weighted_combo = WeightedLinearCombo()
-    w = create_variable(tf.random_normal((1,), stddev=self.stddev))
+    w = tf.Variable(tf.random_normal((1,), stddev=self.stddev))
     return (weighted_combo, w)
 
   def cutoff(self, d, x):
@@ -3389,7 +3403,7 @@ class VinaFreeEnergy(Layer):
     X = inputs[0]
     Z = inputs[1]
 
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         self._weighted_combo, self._w = self._build_layers()
         self._non_pickle_fields += ['_weighted_combo', '_w']
@@ -3427,7 +3441,7 @@ class VinaFreeEnergy(Layer):
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self.variables = weighted_combo.variables + [w]
       self._built = True
     return out_tensor
@@ -3446,13 +3460,13 @@ class WeightedLinearCombo(Layer):
 
   def _create_variables(self, inputs):
     return [
-        create_variable(tf.random_normal([1], stddev=self.std))
+        tf.Variable(tf.random_normal([1], stddev=self.std))
         for i in range(len(inputs))
     ]
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers, True)
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         self.variables = self._create_variables(inputs)
         self._built = True
@@ -3549,8 +3563,8 @@ class NeighborList(Layer):
     nbr_coords = [tf.gather(coords, atom_nbrs) for atom_nbrs in nbrs]
 
     # Add phantom atoms that exist far outside the box
-    coord_padding = tf.to_float(
-        tf.fill((self.M_nbrs, self.ndim), 2 * self.stop))
+    coord_padding = tf.cast(
+        tf.fill((self.M_nbrs, self.ndim), 2 * self.stop), tf.float32)
     padded_nbr_coords = [
         tf.concat([nbr_coord, coord_padding], 0) for nbr_coord in nbr_coords
     ]
@@ -3751,10 +3765,10 @@ class NeighborList(Layer):
     """
     start, stop, nbr_cutoff = self.start, self.stop, self.nbr_cutoff
     mesh_args = [tf.range(start, stop, nbr_cutoff) for _ in range(self.ndim)]
-    return tf.to_float(
+    return tf.cast(
         tf.reshape(
             tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
-            (self.n_cells, self.ndim)))
+            (self.n_cells, self.ndim)), tf.float32)
 
 
 class Dropout(Layer):
@@ -3772,7 +3786,7 @@ class Dropout(Layer):
     parent_tensor = inputs[0]
     training = kwargs['training'] if 'training' in kwargs else 1.0
     keep_prob = 1.0 - self.dropout_prob * training
-    out_tensor = tf.nn.dropout(parent_tensor, keep_prob)
+    out_tensor = tf.nn.dropout(parent_tensor, rate=1 - keep_prob)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -3859,7 +3873,7 @@ class AtomicConvolution(Layer):
     """
     inputs = self._get_input_tensors(in_layers)
     X = inputs[0]
-    Nbrs = tf.to_int32(inputs[1])
+    Nbrs = tf.cast(inputs[1], tf.int32)
     Nbrs_Z = inputs[2]
 
     # N: Maximum number of atoms
@@ -3872,7 +3886,7 @@ class AtomicConvolution(Layer):
     B = X.get_shape()[0].value
 
     # Create the variables.
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         self.variables += self._create_radial_variables()
       rc, rs, re = self.variables
@@ -3886,13 +3900,13 @@ class AtomicConvolution(Layer):
     rsf = self.radial_symmetry_function(R, rc, rs, re)
 
     if not self.atom_types:
-      cond = tf.to_float(tf.not_equal(Nbrs_Z, 0.0))
+      cond = tf.cast(tf.not_equal(Nbrs_Z, 0), tf.float32)
       cond = tf.reshape(cond, R.shape)
       layer = tf.reduce_sum(cond * rsf, 3)
     else:
       sym = []
       for j in range(len(self.atom_types)):
-        cond = tf.to_float(tf.equal(Nbrs_Z, self.atom_types[j]))
+        cond = tf.cast(tf.equal(Nbrs_Z, self.atom_types[j]), tf.float32)
         cond = tf.reshape(cond, R.shape)
         sym.append(tf.reduce_sum(cond * rsf, 3))
       layer = tf.concat(sym, 0)
@@ -3903,7 +3917,7 @@ class AtomicConvolution(Layer):
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
-    if tfe.in_eager_mode() and not self._built:
+    if tf.executing_eagerly() and not self._built:
       self._built = True
     return out_tensor
 
@@ -3911,7 +3925,7 @@ class AtomicConvolution(Layer):
     vars = []
     for i in range(3):
       val = np.array([p[i] for p in self.radial_params]).reshape((-1, 1, 1, 1))
-      vars.append(create_variable(val, dtype=tf.float32))
+      vars.append(tf.Variable(val, dtype=tf.float32))
     return vars
 
   def radial_symmetry_function(self, R, rc, rs, e):
@@ -4105,16 +4119,15 @@ class AlphaShareLayer(Layer):
     subspaces = tf.reshape(tf.stack(subspaces), [n_alphas, -1])
 
     # create the alpha learnable parameters
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         self.variables = [
-            create_variable(
-                tf.random_normal([n_alphas, n_alphas]), name='alphas')
+            tf.Variable(tf.random_normal([n_alphas, n_alphas]), name='alphas')
         ]
         self._built = True
       alphas = self.variables[0]
     else:
-      alphas = create_variable(
+      alphas = tf.Variable(
           tf.random_normal([n_alphas, n_alphas]), name='alphas')
 
     subspaces = tf.matmul(alphas, subspaces)
@@ -4198,15 +4211,15 @@ class BetaShare(Layer):
     n_betas = len(inputs)
     subspaces = tf.reshape(tf.stack(subspaces), [n_betas, -1])
 
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         self.variables = [
-            create_variable(tf.random_normal([1, n_betas]), name='betas')
+            tf.Variable(tf.random_normal([1, n_betas]), name='betas')
         ]
         self._built = True
       betas = self.variables[0]
     else:
-      betas = create_variable(tf.random_normal([1, n_betas]), name='betas')
+      betas = tf.Variable(tf.random_normal([1, n_betas]), name='betas')
     out_tensor = tf.matmul(betas, subspaces)
     out_tensor = tf.reshape(out_tensor, [-1, original_cols])
     if set_tensors:
@@ -4250,7 +4263,8 @@ class ANIFeat(Layer):
     inputs = self._get_input_tensors(in_layers)[0]
     atom_numbers = tf.cast(inputs[:, :, 0], tf.int32)
     flags = tf.sign(atom_numbers)
-    flags = tf.to_float(tf.expand_dims(flags, 1) * tf.expand_dims(flags, 2))
+    flags = tf.cast(
+        tf.expand_dims(flags, 1) * tf.expand_dims(flags, 2), tf.float32)
     coordinates = inputs[:, :, 1:]
     if self.coordinates_in_bohr:
       coordinates = coordinates * 0.52917721092
@@ -4264,9 +4278,11 @@ class ANIFeat(Layer):
     angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
                                         coordinates)
 
-    out_tensor = tf.concat(
-        [tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym, angular_sym],
-        axis=2)
+    out_tensor = tf.concat([
+        tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
+        angular_sym
+    ],
+                           axis=2)
 
     if set_tensors:
       self.out_tensor = out_tensor
@@ -4313,8 +4329,8 @@ class ANIFeat(Layer):
 
     Rs = np.linspace(0., self.radial_cutoff, self.radial_length)
     ita = np.ones_like(Rs) * 3 / (Rs[1] - Rs[0])**2
-    Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, -1)))
-    ita = tf.to_float(np.reshape(ita, (1, 1, 1, -1)))
+    Rs = tf.cast(np.reshape(Rs, (1, 1, 1, -1)), tf.float32)
+    ita = tf.cast(np.reshape(ita, (1, 1, 1, -1)), tf.float32)
     length = ita.get_shape().as_list()[-1]
 
     d_cutoff = tf.stack([d_cutoff] * length, axis=3)
@@ -4345,10 +4361,10 @@ class ANIFeat(Layer):
     zeta = float(self.angular_length**2)
 
     ita, zeta, Rs, thetas = np.meshgrid(ita, zeta, Rs, thetas)
-    zeta = tf.to_float(np.reshape(zeta, (1, 1, 1, 1, -1)))
-    ita = tf.to_float(np.reshape(ita, (1, 1, 1, 1, -1)))
-    Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, 1, -1)))
-    thetas = tf.to_float(np.reshape(thetas, (1, 1, 1, 1, -1)))
+    zeta = tf.cast(np.reshape(zeta, (1, 1, 1, 1, -1)), tf.float32)
+    ita = tf.cast(np.reshape(ita, (1, 1, 1, 1, -1)), tf.float32)
+    Rs = tf.cast(np.reshape(Rs, (1, 1, 1, 1, -1)), tf.float32)
+    thetas = tf.cast(np.reshape(thetas, (1, 1, 1, 1, -1)), tf.float32)
     length = zeta.get_shape().as_list()[-1]
 
     # tf.stack issues again...
@@ -4363,7 +4379,7 @@ class ANIFeat(Layer):
     vector_mul = tf.reduce_sum(tf.stack([vector_distances] * max_atoms, axis=3) * \
                                tf.stack([vector_distances] * max_atoms, axis=2), axis=4)
     vector_mul = vector_mul * tf.sign(f_R_ij) * tf.sign(f_R_ik)
-    theta = tf.acos(tf.div(vector_mul, R_ij * R_ik + 1e-5))
+    theta = tf.acos(tf.math.divide(vector_mul, R_ij * R_ik + 1e-5))
 
     R_ij = tf.stack([R_ij] * length, axis=4)
     R_ik = tf.stack([R_ik] * length, axis=4)
@@ -4492,18 +4508,18 @@ class GraphEmbedPoolLayer(Layer):
     return result, result_A
 
   def _create_variables(self, no_features, no_filters, name):
-    W = create_variable(
-        tf.truncated_normal(
-            [no_features, no_filters], stddev=1.0 / math.sqrt(no_features)),
+    W = tf.Variable(
+        tf.truncated_normal([no_features, no_filters],
+                            stddev=1.0 / math.sqrt(no_features)),
         name='%s_weights' % name,
         dtype=tf.float32)
-    b = create_variable(
+    b = tf.Variable(
         tf.constant(0.1), name='%s_bias' % self.name, dtype=tf.float32)
     return [W, b]
 
   def embedding_factors(self, V, no_filters, name="default"):
     no_features = V.get_shape()[-1].value
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         self.variables = self._create_variables(no_features, no_filters, name)
         self._built = True
@@ -4517,9 +4533,9 @@ class GraphEmbedPoolLayer(Layer):
     return result
 
   def softmax_factors(self, V, axis=1, name=None):
-    max_value = tf.reduce_max(V, axis=axis, keep_dims=True)
+    max_value = tf.reduce_max(V, axis=axis, keepdims=True)
     exp = tf.exp(tf.subtract(V, max_value))
-    prob = tf.div(exp, tf.reduce_sum(exp, axis=axis, keep_dims=True))
+    prob = tf.math.divide(exp, tf.reduce_sum(exp, axis=axis, keepdims=True))
     return prob
 
   def none_tensors(self):
@@ -4582,19 +4598,19 @@ class GraphCNN(Layer):
     super(GraphCNN, self).__init__(**kwargs)
 
   def _create_variables(self, no_features, no_A):
-    W = create_variable(
-        tf.truncated_normal(
-            [no_features * no_A, self.num_filters],
-            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
+    W = tf.Variable(
+        tf.truncated_normal([no_features * no_A, self.num_filters],
+                            stddev=math.sqrt(
+                                1.0 / (no_features * (no_A + 1) * 1.0))),
         name='%s_weights' % self.name,
         dtype=tf.float32)
-    W_I = create_variable(
-        tf.truncated_normal(
-            [no_features, self.num_filters],
-            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
+    W_I = tf.Variable(
+        tf.truncated_normal([no_features, self.num_filters],
+                            stddev=math.sqrt(
+                                1.0 / (no_features * (no_A + 1) * 1.0))),
         name='%s_weights_I' % self.name,
         dtype=tf.float32)
-    b = create_variable(
+    b = tf.Variable(
         tf.constant(0.1), name='%s_bias' % self.name, dtype=tf.float32)
     return [W, W_I, b]
 
@@ -4606,7 +4622,7 @@ class GraphCNN(Layer):
       V, A = inputs
     no_A = A.get_shape()[2].value
     no_features = V.get_shape()[2].value
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       if not self._built:
         self.variables = self._create_variables(no_features, no_A)
         self._built = True

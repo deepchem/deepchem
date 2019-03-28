@@ -487,7 +487,7 @@ class TestEstimators(unittest.TestCase):
         mode="regression")
 
     def mean_relative_error(labels, predictions, weights):
-      error = tf.abs(1 - tf.div(labels, predictions))
+      error = tf.abs(1 - tf.math.divide(labels, predictions))
       error_val, update_op = tf.metrics.mean(error)
       return error_val, update_op
 
@@ -604,19 +604,18 @@ class TestEstimators(unittest.TestCase):
 
     max_atoms = 4
 
-    X = np.array(
-        [[
-            [1, 5.0, 3.2, 1.1],
-            [6, 1.0, 3.4, -1.1],
-            [1, 2.3, 3.4, 2.2],
-            [0, 0, 0, 0],
-        ], [
-            [8, 2.0, -1.4, -1.1],
-            [7, 6.3, 2.4, 3.2],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0],
-        ]],
-        dtype=np.float32)
+    X = np.array([[
+        [1, 5.0, 3.2, 1.1],
+        [6, 1.0, 3.4, -1.1],
+        [1, 2.3, 3.4, 2.2],
+        [0, 0, 0, 0],
+    ], [
+        [8, 2.0, -1.4, -1.1],
+        [7, 6.3, 2.4, 3.2],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+    ]],
+                 dtype=np.float32)
 
     y = np.array([[2.0], [1.1]], dtype=np.float32)
 

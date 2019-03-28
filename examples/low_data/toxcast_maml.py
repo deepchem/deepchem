@@ -94,7 +94,7 @@ def compute_scores(optimize):
   y_pred = []
   losses = []
   with model._get_tf("Graph").as_default():
-    prediction = tf.contrib.layers.softmax(model.outputs[0].out_tensor)
+    prediction = tf.nn.softmax(model.outputs[0].out_tensor)
     for task in range(learner.n_training_tasks, n_tasks):
       learner.set_task_index(task)
       if optimize:

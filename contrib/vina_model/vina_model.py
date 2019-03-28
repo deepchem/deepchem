@@ -38,8 +38,8 @@ def compute_neighbor_list(coords, nbr_cutoff, N, M, n_cells, ndim=3, k=5):
   nbr_list: tf.Tensor
     Shape (N, M) of atom indices
   """
-  start = tf.to_int32(tf.reduce_min(coords))
-  stop = tf.to_int32(tf.reduce_max(coords))
+  start = tf.cast(tf.reduce_min(coords), tf.int32)
+  stop = tf.cast(tf.reduce_max(coords), tf.int32)
   cells = get_cells(start, stop, nbr_cutoff, ndim=ndim)
   # Associate each atom with cell it belongs to. O(N*n_cells)
   # Shape (n_cells, k)
@@ -135,7 +135,7 @@ def get_cells_for_atoms(coords, cells, N, n_cells, ndim=3):
 
   # Lists of length N
   coords_rel = [
-      tf.to_float(coords) - tf.to_float(cells)
+      tf.cast(coords, tf.float32) - tf.cast(cells, tf.float32)
       for (coords, cells) in zip(tiled_coords, tiled_cells)
   ]
   coords_norm = [tf.reduce_sum(rel**2, axis=1) for rel in coords_rel]
@@ -164,7 +164,7 @@ def compute_closest_neighbors(coords,
   ---------
   atoms_in_cells: list
     Of length n_cells. Each entry tensor of shape (k, ndim)
-  neighbor_cells: tf.Tensor 
+  neighbor_cells: tf.Tensor
     Of shape (n_cells, 26).
   N: int
     Number atoms
@@ -178,7 +178,7 @@ def compute_closest_neighbors(coords,
   for atom in range(N):
     atom_vec = coords[atom]
     cell = cells_for_atoms[atom]
-    nbr_inds = tf.gather(neighbor_cells, tf.to_int32(cell))
+    nbr_inds = tf.gather(neighbor_cells, tf.cast(cell, tf.int32))
     # Tensor of shape (26, k, ndim)
     nbr_atoms = tf.gather(atoms_in_cells, nbr_inds)
     # Reshape to (26*k, ndim)
@@ -210,13 +210,13 @@ def get_cells(start, stop, nbr_cutoff, ndim=3):
 
 
 def put_atoms_in_cells(coords, cells, N, n_cells, ndim, k=5):
-  """Place each atom into cells. O(N) runtime.    
-  
+  """Place each atom into cells. O(N) runtime.
+
   Let N be the number of atoms.
-      
-  Parameters    
-  ----------    
-  coords: tf.Tensor 
+
+  Parameters
+  ----------
+  coords: tf.Tensor
     (N, 3) shape.
   cells: tf.Tensor
     (n_cells, ndim) shape.
@@ -229,7 +229,7 @@ def put_atoms_in_cells(coords, cells, N, n_cells, ndim, k=5):
 
   Returns
   -------
-  closest_atoms: tf.Tensor 
+  closest_atoms: tf.Tensor
     Of shape (n_cells, k, ndim)
   """
   n_cells = int(n_cells)
@@ -246,7 +246,7 @@ def put_atoms_in_cells(coords, cells, N, n_cells, ndim, k=5):
 
   # Lists of length n_cells
   coords_rel = [
-      tf.to_float(coords) - tf.to_float(cells)
+      tf.cast(coords, tf.float32) - tf.cast(cells, tf.float32)
       for (coords, cells) in zip(tiled_coords, tiled_cells)
   ]
   coords_norm = [tf.reduce_sum(rel**2, axis=1) for rel in coords_rel]
@@ -269,19 +269,19 @@ def put_atoms_in_cells(coords, cells, N, n_cells, ndim, k=5):
 
 
 def compute_neighbor_cells(cells, ndim, n_cells):
-  """Compute neighbors of cells in grid.    
+  """Compute neighbors of cells in grid.
 
   # TODO(rbharath): Do we need to handle periodic boundary conditions
   properly here?
   # TODO(rbharath): This doesn't handle boundaries well. We hard-code
   # looking for 26 neighbors, which isn't right for boundary cells in
   # the cube.
-      
+
   Note n_cells is box_size**ndim. 26 is the number of neighbors of a cube in
   a grid (including diagonals).
 
-  Parameters    
-  ----------    
+  Parameters
+  ----------
   cells: tf.Tensor
     (n_cells, 26) shape.
   """
@@ -307,7 +307,7 @@ def compute_neighbor_cells(cells, ndim, n_cells):
 
   # Lists of length n_cells
   coords_rel = [
-      tf.to_float(cells) - tf.to_float(centers)
+      tf.cast(cells, tf.float32) - tf.cast(centers, tf.float32)
       for (cells, centers) in zip(tiled_centers, tiled_cells)
   ]
   coords_norm = [tf.reduce_sum(rel**2, axis=1) for rel in coords_rel]
@@ -416,7 +416,7 @@ class VinaModel(Model):
     .. math:: f_{t_i,t_j}(r_{ij}) = \textrm{cutoff}(d_{ij}, h_{t_i,t_j}(d_{ij}))
 
     where
-  
+
     .. math:: \textrm{cutoff}(d, x) = \begin{cases} x & d < 8 \textrm{ Angstrom} \\ 0 & \textrm{otherwise} \end{cases}
 
     The inner function can be further broken down into a sum of terms
@@ -425,7 +425,7 @@ class VinaModel(Model):
 
     these terms are defined as follows (all constants are in Angstroms):
 
-    .. math:: 
+    .. math::
          \textrm{gauss}_1(d) = \exp(-(d/(0.5))^2)
          \textrm{gauss}_2(d) = \exp(-((d-3)/(2))^2)
          \textrm{repulsion}(d) = \begin{cases} d^2 & d < 0 \\ 0 & d \geq 0 \end{cases}
@@ -476,8 +476,9 @@ class VinaModel(Model):
     pass
 
   def __init__(self, max_local_steps=10, max_mutations=10):
-    warnings.warn("VinaModel is deprecated. "
-                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
+    warnings.warn(
+        "VinaModel is deprecated. "
+        "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.max_local_steps = max_local_steps
     self.max_mutations = max_mutations
     self.graph, self.input_placeholders, self.output_placeholder = self.construct_graph(

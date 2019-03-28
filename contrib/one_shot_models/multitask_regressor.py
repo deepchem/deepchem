@@ -44,8 +44,9 @@ class MultitaskGraphRegressor(Model):
                pad_batches=True,
                verbose=True):
 
-    warnings.warn("MultitaskGraphRegressor is deprecated. "
-                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
+    warnings.warn(
+        "MultitaskGraphRegressor is deprecated. "
+        "Will be removed in DeepChem 1.4.", DeprecationWarning)
 
     super(MultitaskGraphRegressor, self).__init__(
         model_dir=logdir, verbose=verbose)
@@ -154,14 +155,13 @@ class MultitaskGraphRegressor(Model):
     for task in range(self.n_tasks):
       task_label_vector = task_labels[task]
       task_weight_vector = task_weights[task]
-      task_loss = loss_fn(outputs[task],
-                          tf.squeeze(task_label_vector),
+      task_loss = loss_fn(outputs[task], tf.squeeze(task_label_vector),
                           tf.squeeze(task_weight_vector))
       task_losses.append(task_loss)
     # It's ok to divide by just the batch_size rather than the number of nonzero
     # examples (effect averages out)
     total_loss = tf.add_n(task_losses)
-    total_loss = tf.div(total_loss, self.batch_size)
+    total_loss = tf.math.divide(total_loss, self.batch_size)
     return total_loss
 
   def fit(self,
@@ -222,8 +222,9 @@ class DTNNMultitaskGraphRegressor(MultitaskGraphRegressor):
 
   def build(self):
     # Create target inputs
-    warnings.warn("DTNNMultitaskGraphRegressor is deprecated. "
-                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
+    warnings.warn(
+        "DTNNMultitaskGraphRegressor is deprecated. "
+        "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.label_placeholder = tf.placeholder(
         dtype='float32', shape=(None, self.n_tasks), name="label_placeholder")
     self.weight_placeholder = tf.placeholder(

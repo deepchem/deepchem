@@ -23,7 +23,7 @@ from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 
 class TestNbrList(test_util.TensorFlowTestCase):
   """
-  Test that tensorgraph neighbor-list works. 
+  Test that tensorgraph neighbor-list works.
   """
 
   def test_neighbor_list_simple(self):
@@ -85,9 +85,9 @@ class TestNbrList(test_util.TensorFlowTestCase):
     ndim = 3
     M_nbrs = 2
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       coords = start + np.random.rand(N_atoms, ndim) * (stop - start)
-      coords = tf.to_float(tf.stack(coords))
+      coords = tf.cast(tf.stack(coords), tf.float32)
       nbr_list = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
                               stop)(coords)
       nbr_list = nbr_list.eval()
@@ -105,7 +105,7 @@ class TestNbrList(test_util.TensorFlowTestCase):
     coords = np.array([1.0, 2.0, 8.0, 9.0])
     coords = np.reshape(coords, (N_atoms, ndim))
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       coords = tf.convert_to_tensor(coords)
       nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
                                     stop)
@@ -126,7 +126,7 @@ class TestNbrList(test_util.TensorFlowTestCase):
     # 1 and 2 are nbrs. 8 and 9 are nbrs
     coords = np.array([1.0, 2.0, 8.0, 9.0])
     coords = np.reshape(coords, (N_atoms, ndim))
-    with self.test_session() as sess:
+    with self.session() as sess:
       coords = tf.convert_to_tensor(coords, dtype=tf.float32)
       nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
                                     stop)
@@ -150,7 +150,7 @@ class TestNbrList(test_util.TensorFlowTestCase):
     coords = np.array([1.0, 2.0, 8.0, 9.0])
     coords = np.reshape(coords, (N_atoms, ndim))
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       coords = tf.convert_to_tensor(coords)
       nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
                                     stop)
@@ -174,7 +174,7 @@ class TestNbrList(test_util.TensorFlowTestCase):
     coords = np.array([1.0, 2.0, 8.0, 9.0])
     coords = np.reshape(coords, (N_atoms, ndim))
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       coords = tf.convert_to_tensor(coords, dtype=tf.float32)
       nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
                                     stop)
@@ -197,7 +197,7 @@ class TestNbrList(test_util.TensorFlowTestCase):
     coords = np.array([1.0, 2.0, 8.0, 9.0])
     coords = np.reshape(coords, (N_atoms, ndim))
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       coords = tf.convert_to_tensor(coords, dtype=tf.float32)
       nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
                                     stop)
@@ -222,7 +222,7 @@ class TestNbrList(test_util.TensorFlowTestCase):
     coords = np.array([1.0, 2.0, 8.0, 9.0])
     coords = np.reshape(coords, (N_atoms, ndim))
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       coords = tf.convert_to_tensor(coords, dtype=tf.float32)
       nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
                                     stop)
@@ -242,7 +242,7 @@ class TestNbrList(test_util.TensorFlowTestCase):
     coords = np.array([[1.0, 1.0], [2.0, 2.0], [8.0, 8.0], [9.0, 9.0]])
     coords = np.reshape(coords, (N_atoms, ndim))
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       coords = tf.convert_to_tensor(coords, dtype=tf.float32)
       nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
                                     stop)
@@ -263,7 +263,7 @@ class TestNbrList(test_util.TensorFlowTestCase):
                        [9.0, 9.0, 9.0]])
     coords = np.reshape(coords, (N_atoms, ndim))
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       coords = tf.convert_to_tensor(coords, dtype=tf.float32)
       nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
                                     stop)
@@ -288,7 +288,7 @@ class TestNbrList(test_util.TensorFlowTestCase):
                        [9.0, 9.0, 9.0]])
     coords = np.reshape(coords, (N_atoms, ndim))
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       coords = tf.convert_to_tensor(coords, dtype=tf.float32)
       nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
                                     stop)

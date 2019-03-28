@@ -2,7 +2,6 @@ import deepchem as dc
 import numpy as np
 import tensorflow as tf
 import deepchem.models.tensorgraph.layers as layers
-import tensorflow.contrib.eager as tfe
 from tensorflow.python.eager import context
 from tensorflow.python.framework import test_util
 
@@ -161,7 +160,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.GRU(n_hidden, batch_size)
       result, state = layer(input)
       assert result.shape == (batch_size, n_steps, n_hidden)
-      assert len(layer.variables) == 4
+      assert len(layer.variables) == 3
 
       # Creating a second layer should produce different results, since it has
       # different random weights.
@@ -193,7 +192,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.LSTM(n_hidden, batch_size)
       result, state = layer(input)
       assert result.shape == (batch_size, n_steps, n_hidden)
-      assert len(layer.variables) == 2
+      assert len(layer.variables) == 3
 
       # Creating a second layer should produce different results, since it has
       # different random weights.
@@ -754,7 +753,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       ndim = 3
       M_nbrs = 2
       coords = start + np.random.rand(N_atoms, ndim) * (stop - start)
-      coords = tf.to_float(tf.stack(coords))
+      coords = tf.cast(tf.stack(coords), tf.float32)
       layer = layers.NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
                                   stop)
       result = layer(coords)

@@ -187,8 +187,8 @@ class SeqToSeq(TensorGraph):
       kl = mean_sq + stddev_sq - layers.Log(stddev_sq + 1e-20) - 1
       anneal_steps = self._annealing_final_step - self._annealing_start_step
       if anneal_steps > 0:
-        current_step = tf.to_float(
-            self.get_global_step()) - self._annealing_start_step
+        current_step = tf.cast(self.get_global_step(),
+                               tf.float32) - self._annealing_start_step
         anneal_frac = tf.maximum(0.0, current_step) / anneal_steps
         kl_scale = layers.TensorWrapper(
             tf.minimum(1.0, anneal_frac * anneal_frac), name='kl_scale')
@@ -240,9 +240,10 @@ class SeqToSeq(TensorGraph):
       for batch in self._batch_elements(sequences):
         feed_dict = {}
         feed_dict[self._features] = self._create_input_array(batch)
-        feed_dict[self._gather_indices] = [(i, len(batch[i])
-                                            if i < len(batch) else 0)
-                                           for i in range(self.batch_size)]
+        feed_dict[self._gather_indices] = [
+            (i, len(batch[i]) if i < len(batch) else 0)
+            for i in range(self.batch_size)
+        ]
         feed_dict[self._training_placeholder] = 0.0
         for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
           feed_dict[initial] = zero
@@ -266,8 +267,8 @@ class SeqToSeq(TensorGraph):
     result = []
     with self._get_tf("Graph").as_default():
       for batch in self._batch_elements(embeddings):
-        embedding_array = np.zeros(
-            (self.batch_size, self._embedding_dimension), dtype=np.float32)
+        embedding_array = np.zeros((self.batch_size, self._embedding_dimension),
+                                   dtype=np.float32)
         for i, e in enumerate(batch):
           embedding_array[i] = e
         feed_dict = {}
@@ -293,9 +294,10 @@ class SeqToSeq(TensorGraph):
       for batch in self._batch_elements(sequences):
         feed_dict = {}
         feed_dict[self._features] = self._create_input_array(batch)
-        feed_dict[self._gather_indices] = [(i, len(batch[i])
-                                            if i < len(batch) else 0)
-                                           for i in range(self.batch_size)]
+        feed_dict[self._gather_indices] = [
+            (i, len(batch[i]) if i < len(batch) else 0)
+            for i in range(self.batch_size)
+        ]
         feed_dict[self._training_placeholder] = 0.0
         for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
           feed_dict[initial] = zero
@@ -355,8 +357,8 @@ class SeqToSeq(TensorGraph):
     for i, sequence in enumerate(sequences):
       for j, token in enumerate(sequence):
         features[i, j, self._input_dict[token]] = 1
-    features[np.arange(len(sequences)), lengths, self._input_dict[
-        SeqToSeq.sequence_end]] = 1
+    features[np.arange(len(sequences)), lengths, self.
+             _input_dict[SeqToSeq.sequence_end]] = 1
     return features
 
   def _create_output_array(self, sequences):

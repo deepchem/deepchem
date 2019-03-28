@@ -82,7 +82,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     kernel_size = 2
     batch_size = 10
     in_tensor = np.random.rand(batch_size, width, in_channels)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = Conv1D(filters, kernel_size)(in_tensor)
       sess.run(tf.global_variables_initializer())
@@ -97,7 +97,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     out_dim = 3
     batch_size = 10
     in_tensor = np.random.rand(batch_size, in_dim)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = Dense(out_dim)(in_tensor)
       sess.run(tf.global_variables_initializer())
@@ -111,7 +111,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     out_dim = 4
     batch_size = 10
     in_tensor = np.random.rand(batch_size, in_dim_1, in_dim_2)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = Flatten()(in_tensor)
       out_tensor = out_tensor.eval()
@@ -124,7 +124,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     out_dim = 4
     batch_size = 10
     in_tensor = np.random.rand(batch_size, in_dim_1, in_dim_2)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = Reshape((batch_size, out_dim))(in_tensor)
       out_tensor = out_tensor.eval()
@@ -136,7 +136,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     in_dim_2 = 7
     batch_size = 10
     in_tensor = np.random.rand(batch_size, in_dim_1, in_dim_2)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = Transpose((0, 2, 1))(in_tensor)
       out_tensor = out_tensor.eval()
@@ -148,7 +148,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     batch_size = 10
     mean_tensor = np.random.rand(dim)
     std_tensor = np.random.rand(1,)
-    with self.test_session() as sess:
+    with self.session() as sess:
       mean_tensor = tf.convert_to_tensor(mean_tensor, dtype=tf.float32)
       std_tensor = tf.convert_to_tensor(std_tensor, dtype=tf.float32)
       out_tensor = CombineMeanStd()(mean_tensor, std_tensor)
@@ -161,7 +161,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     batch_size = 10
     n_repeat = 2
     in_tensor = np.random.rand(batch_size, in_dim)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = Repeat(n_repeat)(in_tensor)
       out_tensor = out_tensor.eval()
@@ -170,7 +170,7 @@ class TestLayers(test_util.TensorFlowTestCase):
   def test_gather(self):
     """Test that Gather can be invoked."""
     in_tensor = np.random.uniform(size=(5, 4)).astype(np.float32)
-    with self.test_session() as sess:
+    with self.session() as sess:
       out_tensor = Gather(indices=[[2], [3]])(in_tensor).eval()
       assert np.array_equal([in_tensor[2], in_tensor[3]], out_tensor)
       out_tensor = Gather()(in_tensor, np.array([[1, 1], [0, 3]])).eval()
@@ -184,7 +184,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_repeat = 2
     n_steps = 6
     in_tensor = np.random.rand(batch_size, n_steps, in_channels)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = GRU(n_hidden, batch_size)(in_tensor)
       sess.run(tf.global_variables_initializer())
@@ -199,7 +199,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_repeat = 2
     n_steps = 6
     in_tensor = np.random.rand(batch_size, n_steps, in_channels)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = LSTM(n_hidden, batch_size)(in_tensor)
       sess.run(tf.global_variables_initializer())
@@ -215,7 +215,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_repeat = 2
     n_steps = 6
     in_tensor = np.random.rand(batch_size, n_steps, in_channels)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = TimeSeriesDense(out_channels)(in_tensor)
       assert out_tensor.shape == (batch_size, n_steps, out_channels)
@@ -223,7 +223,7 @@ class TestLayers(test_util.TensorFlowTestCase):
   def test_input(self):
     """Test that Input can be invoked."""
     in_shape = (4, 3)
-    with self.test_session() as sess:
+    with self.session() as sess:
       out_tensor = Input(in_shape)()
 
   def test_l2_loss(self):
@@ -232,7 +232,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_features = 5
     guess_tensor = np.random.rand(batch_size, n_features)
     label_tensor = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       guess_tensor = tf.convert_to_tensor(guess_tensor, dtype=tf.float32)
       label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
       out_tensor = L2Loss()(guess_tensor, label_tensor)
@@ -244,7 +244,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     batch_size = 10
     n_features = 5
     in_tensor = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = ReLU()(in_tensor)
       out_tensor = out_tensor.eval()
@@ -255,7 +255,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     batch_size = 10
     n_features = 5
     in_tensor = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = Sigmoid()(in_tensor)
       out_tensor = out_tensor.eval()
@@ -266,7 +266,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     batch_size = 10
     n_features = 5
     in_tensor = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = SoftMax()(in_tensor)
       out_tensor = out_tensor.eval()
@@ -278,7 +278,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_features = 5
     in_tensor_1 = np.random.rand(batch_size, n_features)
     in_tensor_2 = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor_1 = tf.convert_to_tensor(in_tensor_1, dtype=tf.float32)
       in_tensor_2 = tf.convert_to_tensor(in_tensor_2, dtype=tf.float32)
       out_tensor = Concat(axis=1)(in_tensor_1, in_tensor_2)
@@ -288,14 +288,14 @@ class TestLayers(test_util.TensorFlowTestCase):
   def test_constant(self):
     """Test that Constant can be invoked."""
     value = np.random.uniform(size=(2, 3)).astype(np.float32)
-    with self.test_session() as sess:
+    with self.session() as sess:
       out_tensor = Constant(value)()
       assert np.array_equal(value, out_tensor.eval())
 
   def test_variable(self):
     """Test that Variable can be invoked."""
     value = np.random.uniform(size=(2, 3)).astype(np.float32)
-    with self.test_session() as sess:
+    with self.session() as sess:
       out_tensor = Variable(value)()
       sess.run(tf.global_variables_initializer())
       assert np.array_equal(value, out_tensor.eval())
@@ -305,7 +305,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     batch_size = 10
     n_features = 5
     in_tensor = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = StopGradient()(in_tensor)
       assert np.array_equal(in_tensor.eval(), out_tensor.eval())
@@ -315,7 +315,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     value1 = np.random.uniform(size=(2, 3)).astype(np.float32)
     value2 = np.random.uniform(size=(2, 3)).astype(np.float32)
     value3 = np.random.uniform(size=(2, 3)).astype(np.float32)
-    with self.test_session() as sess:
+    with self.session() as sess:
       out_tensor = Add(weights=[1, 2, 1])(tf.constant(value1),
                                           tf.constant(value2),
                                           tf.constant(value3))
@@ -326,7 +326,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     value1 = np.random.uniform(size=(2, 3)).astype(np.float32)
     value2 = np.random.uniform(size=(2, 3)).astype(np.float32)
     value3 = np.random.uniform(size=(2, 3)).astype(np.float32)
-    with self.test_session() as sess:
+    with self.session() as sess:
       out_tensor = Multiply()(tf.constant(value1), tf.constant(value2),
                               tf.constant(value3))
       assert np.array_equal(value1 * value2 * value3, out_tensor.eval())
@@ -334,7 +334,7 @@ class TestLayers(test_util.TensorFlowTestCase):
   def test_log(self):
     """Test that Log can be invoked."""
     value = np.random.uniform(size=(2, 3)).astype(np.float32)
-    with self.test_session() as sess:
+    with self.session() as sess:
       result = Log()(value).eval()
       assert np.array_equal(np.log(value), result)
       assert np.all(np.isclose(np.log(value), result, atol=0.001))
@@ -342,7 +342,7 @@ class TestLayers(test_util.TensorFlowTestCase):
   def test_exp(self):
     """Test that Exp can be invoked."""
     value = np.random.uniform(size=(2, 3)).astype(np.float32)
-    with self.test_session() as sess:
+    with self.session() as sess:
       result = Exp()(value).eval()
       assert np.array_equal(np.exp(value), result)
 
@@ -352,7 +352,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     M_nbrs = 2
     ndim = 3
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       coords = np.random.rand(N_atoms, ndim)
       nbr_list = np.random.randint(0, N_atoms, size=(N_atoms, M_nbrs))
 
@@ -371,7 +371,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_features = 5
     logit_tensor = np.random.rand(batch_size, n_features)
     label_tensor = np.random.randint(0, 2, (batch_size, n_features))
-    with self.test_session() as sess:
+    with self.session() as sess:
       logit_tensor = tf.convert_to_tensor(logit_tensor, dtype=tf.float32)
       label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
       out_tensor = SigmoidCrossEntropy()(label_tensor, logit_tensor)
@@ -384,7 +384,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_features = 5
     logit_tensor = np.random.rand(batch_size, n_features)
     label_tensor = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       logit_tensor = tf.convert_to_tensor(logit_tensor, dtype=tf.float32)
       label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
       out_tensor = SoftMaxCrossEntropy()(logit_tensor, label_tensor)
@@ -396,7 +396,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_features = 5
     logit_tensor = np.random.rand(batch_size, n_features)
     label_tensor = np.random.rand(batch_size)
-    with self.test_session() as sess:
+    with self.session() as sess:
       logit_tensor = tf.convert_to_tensor(logit_tensor, dtype=tf.float32)
       label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.int32)
       out_tensor = SparseSoftMaxCrossEntropy()(label_tensor, logit_tensor)
@@ -408,7 +408,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     batch_size = 10
     n_features = 5
     in_tensor = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = ReduceMean()(in_tensor)
       out_tensor = out_tensor.eval()
@@ -419,7 +419,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     batch_size = 10
     n_features = 5
     in_tensor = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = ToFloat()(in_tensor)
       out_tensor = out_tensor.eval()
@@ -430,7 +430,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     batch_size = 10
     n_features = 5
     in_tensor = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = ReduceSum()(in_tensor)
       out_tensor = out_tensor.eval()
@@ -442,7 +442,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_features = 5
     in_tensor_1 = np.random.rand(batch_size, n_features)
     in_tensor_2 = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor_1 = tf.convert_to_tensor(in_tensor_1, dtype=tf.float32)
       in_tensor_2 = tf.convert_to_tensor(in_tensor_2, dtype=tf.float32)
       out_tensor = ReduceSquareDifference()(in_tensor_1, in_tensor_2)
@@ -457,7 +457,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     out_channels = 3
     batch_size = 20
     in_tensor = np.random.rand(batch_size, length, width, in_channels)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = Conv2D(out_channels, kernel_size=1)(in_tensor)
       sess.run(tf.global_variables_initializer())
@@ -473,7 +473,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     out_channels = 3
     batch_size = 20
     in_tensor = np.random.rand(batch_size, length, width, depth, in_channels)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = Conv3D(out_channels, kernel_size=1)(in_tensor)
       sess.run(tf.global_variables_initializer())
@@ -489,7 +489,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     out_channels = 3
     batch_size = 20
     in_tensor = np.random.rand(batch_size, length, width, in_channels)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = Conv2DTranspose(
           out_channels, kernel_size=1, stride=2)(in_tensor)
@@ -507,7 +507,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     out_channels = 3
     batch_size = 20
     in_tensor = np.random.rand(batch_size, length, width, depth, in_channels)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = Conv3DTranspose(
           out_channels, kernel_size=1, stride=(2, 3, 1))(in_tensor)
@@ -523,7 +523,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     in_channels = 2
     batch_size = 20
     in_tensor = np.random.rand(batch_size, length, width, in_channels)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = MaxPool2D()(in_tensor)
       sess.run(tf.global_variables_initializer())
@@ -538,7 +538,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     in_channels = 2
     batch_size = 20
     in_tensor = np.random.rand(batch_size, length, width, depth, in_channels)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = MaxPool3D()(in_tensor)
       sess.run(tf.global_variables_initializer())
@@ -552,7 +552,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     in_channels = 5
     batch_size = 10
     in_tensor = np.random.rand(batch_size, length, width, in_channels)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = AvgPool2D()(in_tensor)
       sess.run(tf.global_variables_initializer())
@@ -565,7 +565,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_features = 5
     in_tensor = np.random.rand(batch_size, n_features)
     tf.reset_default_graph()
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = TensorWrapper(
           tf.convert_to_tensor(in_tensor, dtype=tf.float32), name="input")
       InputFifoQueue([(batch_size, n_features)], ["input"])(in_tensor)
@@ -584,7 +584,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     membership = multi_mol.membership
     deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       atom_features = tf.convert_to_tensor(atom_features, dtype=tf.float32)
       degree_slice = tf.convert_to_tensor(degree_slice, dtype=tf.int32)
       membership = tf.convert_to_tensor(membership, dtype=tf.int32)
@@ -606,7 +606,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     y = np.random.rand(n_test, 2 * n_feat)
     state_zero = np.random.rand(n_test, n_feat)
     state_one = np.random.rand(n_test, n_feat)
-    with self.test_session() as sess:
+    with self.session() as sess:
       y = tf.convert_to_tensor(y, dtype=tf.float32)
       state_zero = tf.convert_to_tensor(state_zero, dtype=tf.float32)
       state_one = tf.convert_to_tensor(state_one, dtype=tf.float32)
@@ -629,7 +629,7 @@ class TestLayers(test_util.TensorFlowTestCase):
 
     test = np.random.rand(n_test, n_feat)
     support = np.random.rand(n_support, n_feat)
-    with self.test_session() as sess:
+    with self.session() as sess:
       test = tf.convert_to_tensor(test, dtype=tf.float32)
       support = tf.convert_to_tensor(support, dtype=tf.float32)
 
@@ -650,7 +650,7 @@ class TestLayers(test_util.TensorFlowTestCase):
 
     test = np.random.rand(n_test, n_feat)
     support = np.random.rand(n_support, n_feat)
-    with self.test_session() as sess:
+    with self.session() as sess:
       test = tf.convert_to_tensor(test, dtype=tf.float32)
       support = tf.convert_to_tensor(support, dtype=tf.float32)
 
@@ -677,7 +677,7 @@ class TestLayers(test_util.TensorFlowTestCase):
   #  membership = multi_mol.membership
   #  deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
 
-  #  with self.test_session() as sess:
+  #  with self.session() as sess:
   #    atom_features = tf.convert_to_tensor(atom_features, dtype=tf.float32)
   #    degree_slice = tf.convert_to_tensor(degree_slice, dtype=tf.int32)
   #    membership = tf.convert_to_tensor(membership, dtype=tf.int32)
@@ -705,7 +705,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     membership = multi_mol.membership
     deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       atom_features = tf.convert_to_tensor(atom_features, dtype=tf.float32)
       degree_slice = tf.convert_to_tensor(degree_slice, dtype=tf.int32)
       membership = tf.convert_to_tensor(membership, dtype=tf.int32)
@@ -724,7 +724,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     batch_size = 10
     n_features = 5
     in_tensor = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = BatchNorm()(in_tensor)
       sess.run(tf.global_variables_initializer())
@@ -737,7 +737,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_features = 5
     guess_tensor = np.random.rand(batch_size, n_features)
     label_tensor = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       guess_tensor = tf.convert_to_tensor(guess_tensor, dtype=tf.float32)
       label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
       out_tensor = WeightedError()(guess_tensor, label_tensor)
@@ -754,7 +754,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     stop = 4
     X_tensor = np.random.rand(n_atoms, ndim)
     Z_tensor = np.random.randint(0, 2, (n_atoms))
-    with self.test_session() as sess:
+    with self.session() as sess:
       X_tensor = tf.convert_to_tensor(X_tensor, dtype=tf.float32)
       Z_tensor = tf.convert_to_tensor(Z_tensor, dtype=tf.float32)
       out_tensor = VinaFreeEnergy(n_atoms, m_nbrs, ndim, nbr_cutoff, start,
@@ -769,7 +769,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_features = 5
     in_tensor_1 = np.random.rand(batch_size, n_features)
     in_tensor_2 = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       in_tensor_1 = tf.convert_to_tensor(in_tensor_1, dtype=tf.float32)
       in_tensor_2 = tf.convert_to_tensor(in_tensor_2, dtype=tf.float32)
       out_tensor = WeightedLinearCombo()(in_tensor_1, in_tensor_2)
@@ -781,7 +781,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     """Test that layers can automatically reshape inconsistent inputs."""
     value1 = np.random.uniform(size=(2, 3)).astype(np.float32)
     value2 = np.random.uniform(size=(1, 6, 1)).astype(np.float32)
-    with self.test_session() as sess:
+    with self.session() as sess:
       out_tensor = ReduceSquareDifference()(tf.constant(value1),
                                             tf.constant(value2))
       result = out_tensor.eval()
@@ -792,7 +792,7 @@ class TestLayers(test_util.TensorFlowTestCase):
   def test_cast(self):
     """Test that layers can automatically reshape inconsistent inputs."""
     value1 = np.random.uniform(size=(2, 1)).astype(np.float32)
-    with self.test_session() as sess:
+    with self.session() as sess:
       out_tensor = Cast(dtype=tf.int32)(tf.constant(value1))
       result = out_tensor.eval()
       assert result.dtype == np.int32
@@ -800,7 +800,7 @@ class TestLayers(test_util.TensorFlowTestCase):
   def test_squeeze_inputs(self):
     """Test that layers can automatically reshape inconsistent inputs."""
     value1 = np.random.uniform(size=(2, 1)).astype(np.float32)
-    with self.test_session() as sess:
+    with self.session() as sess:
       out_tensor = Squeeze(squeeze_dims=1)(tf.constant(value1))
       result = out_tensor.eval()
       assert result.shape == (2,)
@@ -809,7 +809,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     """Test implicit conversion of Layers to Tensors."""
     v = Variable(np.array([1.5]))
     v.create_tensor()
-    with self.test_session() as sess:
+    with self.session() as sess:
       sess.run(tf.global_variables_initializer())
       result = sess.run(v)
       assert result == 1.5
@@ -823,7 +823,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     test_1 = np.random.rand(batch_size, length)
     test_2 = np.random.rand(batch_size, length)
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       test_1 = tf.convert_to_tensor(test_1, dtype=tf.float32)
       test_2 = tf.convert_to_tensor(test_2, dtype=tf.float32)
 
@@ -841,7 +841,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     test_1 = np.random.rand(batch_size, length)
     test_2 = np.random.rand(batch_size, length)
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       test_1 = tf.convert_to_tensor(test_1, dtype=tf.float32)
       test_2 = tf.convert_to_tensor(test_2, dtype=tf.float32)
 
@@ -855,7 +855,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     """Test the sluice loss function"""
     input1 = np.ones((3, 4))
     input2 = np.ones((2, 2))
-    with self.test_session() as sess:
+    with self.session() as sess:
       input1 = tf.convert_to_tensor(input1, dtype=tf.float32)
       input2 = tf.convert_to_tensor(input2, dtype=tf.float32)
       output_tensor = SluiceLoss()(input1, input2)
@@ -866,7 +866,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     """ Test GraphCNN Layer From https://arxiv.org/abs/1703.00792"""
     V = np.random.uniform(size=(10, 100, 50)).astype(np.float32)
     adjs = np.random.uniform(size=(10, 100, 5, 100)).astype(np.float32)
-    with self.test_session() as sess:
+    with self.session() as sess:
       out_tensor = GraphCNN(num_filters=6)(V, adjs)
       sess.run(tf.global_variables_initializer())
       result = out_tensor.eval()
@@ -876,7 +876,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     """ Test GraphCNNPool Layer From https://arxiv.org/abs/1703.00792"""
     V = np.random.uniform(size=(10, 100, 50)).astype(np.float32)
     adjs = np.random.uniform(size=(10, 100, 5, 100)).astype(np.float32)
-    with self.test_session() as sess:
+    with self.session() as sess:
       vertex_props, adjs = GraphEmbedPoolLayer(num_vertices=6)(V, adjs)
       sess.run(tf.global_variables_initializer())
       vertex_props, adjs = vertex_props.eval(), adjs.eval()
@@ -888,7 +888,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     batch_size = 10
     n_features = 5
     test_tensor_input = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       test_tensor = tf.convert_to_tensor(test_tensor_input, dtype=tf.float32)
       out_tensor = Slice(1)(test_tensor)
       out_tensor = out_tensor.eval()
@@ -901,7 +901,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     K = 10
     n_features = 2 * K * n_tasks
     test_tensor_input = np.random.rand(batch_size, n_features)
-    with self.test_session() as sess:
+    with self.session() as sess:
       test_tensor = tf.convert_to_tensor(test_tensor_input, dtype=tf.float32)
       irv_layer = IRVLayer(n_tasks, K)
       irv_layer.create_tensor(in_layers=[test_tensor])
@@ -918,7 +918,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     logits = [.3, .1, -0.3, -0.1]
     losses = np.array([0, 0.15, 0, 0.15], dtype=np.float32)
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       logits_tensor = tf.convert_to_tensor(logits, dtype=tf.float32)
       labels_tensor = tf.convert_to_tensor(labels, dtype=tf.float32)
       out_tensor = HingeLoss(separation=separation)(labels_tensor,
@@ -931,7 +931,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     """Test that WeightDecay can be invoked."""
     values = np.random.rand(5, 5).astype(np.float32)
     variable = tf.Variable(values)
-    with self.test_session() as sess:
+    with self.session() as sess:
       sess.run(tf.global_variables_initializer())
       cost = WeightDecay(3.0, 'l2')(0.0)
       assert np.allclose(3.0 * np.sum(values * values) / 2, cost.eval())
@@ -942,7 +942,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     periodic_table_length = 20
     test_tensor_input = np.random.permutation(
         np.arange(0, periodic_table_length // 2, dtype=np.int32))
-    with self.test_session() as sess:
+    with self.session() as sess:
       test_tensor = tf.convert_to_tensor(test_tensor_input, dtype=tf.int32)
       dtnn_embedding = DTNNEmbedding(
           n_embedding=n_embedding, periodic_table_length=periodic_table_length)
@@ -964,7 +964,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     task_id = 15
     test_tensor_input = np.random.randn(num_samples, num_features)
     test_output = test_tensor_input[:, task_id:task_id + 1]
-    with self.test_session() as sess:
+    with self.session() as sess:
       test_tensor = tf.convert_to_tensor(test_tensor_input)
       dtnn_extract = DTNNExtract(task_id=task_id)
       dtnn_extract.create_tensor(in_layers=[test_tensor])
@@ -998,7 +998,7 @@ class TestLayers(test_util.TensorFlowTestCase):
               axis=0))
     expected_output = np.array(expected_output)
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       tensor_input_tf = tf.convert_to_tensor(tensor_input_np)
       atom_split_tf = tf.convert_to_tensor(atom_split_np)
       weave_gather = WeaveGather(
@@ -1020,7 +1020,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     inputs_np = np.array([[1, -1]])
     expected_output = np.array([[0.5, -0.5]])
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       messages_tf = tf.convert_to_tensor(messages_np, dtype=tf.float32)
       inputs_tf = tf.convert_to_tensor(inputs_np, dtype=tf.float32)
       gru = GatedRecurrentUnit(n_hidden=n_hidden, init=init_method)
@@ -1042,7 +1042,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     atom_to_pair_np = np.array([[0, 0], [0, 1], [1, 1]])
     expected_output = np.array([[3, 3], [2, 2]])
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       pair_features_tf = tf.convert_to_tensor(
           pair_features_np, dtype=tf.float32)
       atom_features_tf = tf.convert_to_tensor(
@@ -1072,7 +1072,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     atom_membership_np = np.array([0, 0, 1])
     expected_output = np.array([[2, 2], [1, 1]])
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       inputs_tf = tf.convert_to_tensor(inputs_np, dtype=tf.float32)
       atom_membership_tf = tf.convert_to_tensor(
           atom_membership_np, dtype=tf.int32)
@@ -1105,7 +1105,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     membership_np = np.array([0, 0, 1])
     expected_output = sigmoid(np.array([[1, 1], [1, 1]]))
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       atom_features_tf = tf.convert_to_tensor(
           atom_features_np, dtype=tf.float32)
       membership_tf = tf.convert_to_tensor(membership_np, dtype=tf.int32)
