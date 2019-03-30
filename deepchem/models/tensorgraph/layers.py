@@ -3886,7 +3886,7 @@ class AtomicConvolution(Layer):
     rsf = self.radial_symmetry_function(R, rc, rs, re)
 
     if not self.atom_types:
-      cond = tf.to_float(tf.not_equal(Nbrs_Z, 0.0))
+      cond = tf.cast(tf.not_equal(Nbrs_Z, 0), tf.float32)
       cond = tf.reshape(cond, R.shape)
       layer = tf.reduce_sum(cond * rsf, 3)
     else:
