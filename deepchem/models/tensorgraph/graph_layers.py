@@ -660,15 +660,16 @@ class DAGLayer(Layer):
       batch_atom_features = tf.gather(atom_features, current_round)
 
       # generating index for graph features used in the inputs
-      index = tf.stack([
-          tf.reshape(
-              tf.stack(
-                  [tf.boolean_mask(tf.range(n_atoms), mask)] *
-                  (self.max_atoms - 1),
-                  axis=1), [-1]),
-          tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
-      ],
-                       axis=1)
+      index = tf.stack(
+          [
+              tf.reshape(
+                  tf.stack(
+                      [tf.boolean_mask(tf.range(n_atoms), mask)] *
+                      (self.max_atoms - 1),
+                      axis=1), [-1]),
+              tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
+          ],
+          axis=1)
       # extracting graph features for parents of the target atoms, then flatten
       # shape: (batch_size*max_atoms) * [(max_atoms-1)*n_graph_features]
       batch_graph_features = tf.reshape(

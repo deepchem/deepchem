@@ -390,8 +390,8 @@ class BPFeatureMerge(Layer):
     angular_symmetry = in_layers[2].out_tensor
     atom_flags = in_layers[3].out_tensor
 
-    out_tensor = tf.concat([atom_embedding, radial_symmetry, angular_symmetry],
-                           axis=2)
+    out_tensor = tf.concat(
+        [atom_embedding, radial_symmetry, angular_symmetry], axis=2)
     out_tensor = out_tensor * atom_flags[:, :, 0:1]
 
     if set_tensors:

@@ -1007,8 +1007,8 @@ class ANITransformer(Transformer):
       while True:
         end = min((start + 1) * batch_size, X.shape[0])
         X_batch = X[(start * batch_size):end]
-        output = self.sess.run([self.outputs], feed_dict={self.inputs:
-                                                          X_batch})[0]
+        output = self.sess.run(
+            [self.outputs], feed_dict={self.inputs: X_batch})[0]
         X_out.append(output)
         num_transformed = num_transformed + X_batch.shape[0]
         print('%i samples transformed' % num_transformed)
@@ -1042,11 +1042,12 @@ class ANITransformer(Transformer):
       radial_sym = self.radial_symmetry(d_radial_cutoff, d, atom_numbers)
       angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
                                           coordinates)
-      self.outputs = tf.concat([
-          tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
-          angular_sym
-      ],
-                               axis=2)
+      self.outputs = tf.concat(
+          [
+              tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
+              angular_sym
+          ],
+          axis=2)
     return graph
 
   def distance_matrix(self, coordinates, flags):

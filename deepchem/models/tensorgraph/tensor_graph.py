@@ -624,8 +624,9 @@ class TensorGraph(Model):
       n = y.shape[0]
       loop_vars = [tf.constant(0, tf.int32), tf.TensorArray(tf.float32, size=n)]
       _, jacobian = tf.while_loop(
-          lambda j, _: j < n, lambda j, result: (
-              j + 1, result.write(j, tf.gradients(y[j], x))), loop_vars)
+          lambda j, _: j < n,
+          lambda j, result: (j + 1, result.write(j, tf.gradients(y[j], x))),
+          loop_vars)
       return jacobian.stack()
 
     if not self.built:

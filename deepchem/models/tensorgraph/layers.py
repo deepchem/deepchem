@@ -2648,8 +2648,8 @@ class GraphConv(Layer):
   def _create_variables(self, in_channels):
     # Generate the nb_affine weights and biases
     W_list = [
-        initializations.glorot_uniform([in_channels, self.out_channel],
-                                       name='kernel')
+        initializations.glorot_uniform(
+            [in_channels, self.out_channel], name='kernel')
         for k in range(self.num_deg)
     ]
     b_list = [
@@ -4278,11 +4278,12 @@ class ANIFeat(Layer):
     angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
                                         coordinates)
 
-    out_tensor = tf.concat([
-        tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
-        angular_sym
-    ],
-                           axis=2)
+    out_tensor = tf.concat(
+        [
+            tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
+            angular_sym
+        ],
+        axis=2)
 
     if set_tensors:
       self.out_tensor = out_tensor
@@ -4509,8 +4510,8 @@ class GraphEmbedPoolLayer(Layer):
 
   def _create_variables(self, no_features, no_filters, name):
     W = tf.Variable(
-        tf.truncated_normal([no_features, no_filters],
-                            stddev=1.0 / math.sqrt(no_features)),
+        tf.truncated_normal(
+            [no_features, no_filters], stddev=1.0 / math.sqrt(no_features)),
         name='%s_weights' % name,
         dtype=tf.float32)
     b = tf.Variable(
@@ -4599,15 +4600,15 @@ class GraphCNN(Layer):
 
   def _create_variables(self, no_features, no_A):
     W = tf.Variable(
-        tf.truncated_normal([no_features * no_A, self.num_filters],
-                            stddev=math.sqrt(
-                                1.0 / (no_features * (no_A + 1) * 1.0))),
+        tf.truncated_normal(
+            [no_features * no_A, self.num_filters],
+            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
         name='%s_weights' % self.name,
         dtype=tf.float32)
     W_I = tf.Variable(
-        tf.truncated_normal([no_features, self.num_filters],
-                            stddev=math.sqrt(
-                                1.0 / (no_features * (no_A + 1) * 1.0))),
+        tf.truncated_normal(
+            [no_features, self.num_filters],
+            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
         name='%s_weights_I' % self.name,
         dtype=tf.float32)
     b = tf.Variable(
