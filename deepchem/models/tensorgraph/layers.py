@@ -1204,14 +1204,12 @@ class LSTM(Layer):
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
-      self.rnn_initial_states.append(initial_state.c)
-      self.rnn_initial_states.append(initial_state.h)
-      self.rnn_final_states.append(final_state.c)
-      self.rnn_final_states.append(final_state.h)
+      self.rnn_initial_states += initial_state
+      self.rnn_final_states += final_state
       self.rnn_zero_states.append(
-          np.zeros(zero_state.c.get_shape(), np.float32))
+          np.zeros(zero_state[0].get_shape(), np.float32))
       self.rnn_zero_states.append(
-          np.zeros(zero_state.h.get_shape(), np.float32))
+          np.zeros(zero_state[1].get_shape(), np.float32))
     if tf.executing_eagerly() and not self._built:
       self._built = True
       self.variables = self._cell.variables
