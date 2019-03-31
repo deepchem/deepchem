@@ -562,6 +562,7 @@ class DiskDataset(Dataset):
 
     metadata_rows = []
     time1 = time.time()
+    print("Writing just created dataset to temp files of disk...")
     for shard_num, (X, y, w, ids) in enumerate(shard_generator):
       basename = "shard-%d" % shard_num
       metadata_rows.append(
@@ -646,7 +647,14 @@ class DiskDataset(Dataset):
 
   def move(self, new_data_dir):
     """Moves dataset to new directory."""
-    shutil.move(self.data_dir, new_data_dir)
+    files = [os.path.join(self.data_dir, i) for i in os.listdir(self.data_dir)]
+    new_files = [os.path.join(new_data_dir, i) for i in os.listdir(self.data_dir)]
+    if not os.path.exists(new_data_dir):
+      os.makedirs(new_data_dir)
+    for i in range(len(files)):
+      if not os.path.exists(new_files[i]):
+        os.mknod(new_files[i])
+      shutil.move(files[i], new_files[i])
     self.data_dir = new_data_dir
 
   def get_task_names(self):
