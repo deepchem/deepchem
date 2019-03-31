@@ -11,17 +11,19 @@ democratizes the use of deep-learning in drug discovery, materials science, quan
 ### Table of contents:
 
 * [Requirements](#requirements)
+    * [Soft Requirements](#soft-requirements)
 * [Installation](#installation)
-    * [Easy Install with Conda](#easy-install-with-conda)
-    * [Conda Environment](#using-a-conda-environment)
-    * [Docker](#using-a-docker-image)
+    * [Easy Install via Conda](#easy-install-via-conda)
+    * [Using a Docker Image](#using-a-docker-image)
+    * [Installing from source in a conda environment](#installing-from-source-in-a-conda-environment)
 * [FAQ and Troubleshooting](#faq-and-troubleshooting)
-* [Getting Started](#getting-started)
 * [Contributing to DeepChem](/CONTRIBUTING.md)
     * [Code Style Guidelines](/CONTRIBUTING.md#code-style-guidelines)
     * [Documentation Style Guidelines](/CONTRIBUTING.md#documentation-style-guidelines)
     * [Gitter](#gitter)
-* [DeepChem Publications](#deepchem-publications)
+* [Getting Started](#getting-started)
+    * [Benchmarks](#benchmarks)
+    * [Gitter](#gitter)
 * [Examples](/examples)
 * [About Us](#about-us)
 * [Citing DeepChem](#citing-deepchem)
@@ -40,6 +42,7 @@ DeepChem has a number of "soft" requirements. These are packages which are neede
 * [six](https://pypi.python.org/pypi/six)
 * [mdtraj](http://mdtraj.org/)
 
+## Installation
 ### Easy Install via Conda
 
 ```bash
@@ -100,7 +103,7 @@ via this installation procedure.
 
 ## FAQ and Troubleshooting
 
-1. ```deepchem``` currently supports both Python 2.7 and Python 3.5, and is supported on 64 bit Linux and Mac OSX. Note that DeepChem is not currently maintained for Python 3.6 or with other operating systems. 
+1. ```deepchem``` currently supports both Python 2.7 and Python 3.5, and is supported on 64 bit Linux and Mac OSX. Note that DeepChem is not currently maintained for Python 3.6 or with other operating systems.
 2. Question: I'm seeing some failures in my test suite having to do with MKL
    ```Intel MKL FATAL ERROR: Cannot load libmkl_avx.so or libmkl_def.so.```
 
