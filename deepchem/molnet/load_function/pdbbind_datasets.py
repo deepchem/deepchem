@@ -214,51 +214,41 @@ def load_pdbbind(reload=True,
     print("\nRaw dataset:\n%s" % data_folder)
     print("\nFeaturized and splitted dataset:\n%s" % save_folder)
 
-  if subset == "core":
-    index_file = os.path.join(data_folder, "INDEX_core_name.2013")
-    labels_file = os.path.join(data_folder, "INDEX_core_data.2013")
-  elif subset == "refined":
-    index_file = os.path.join(data_folder, "INDEX_refined_name.2013")
-    labels_file = os.path.join(data_folder, "INDEX_refined_data.2013")
-  else:
-    raise ValueError("Other subsets not supported")
-  # Extract locations of data
-  pdbs = []
-  with open(index_file, "r") as g:
-    lines = g.readlines()
-    for line in lines:
-      line = line.split(" ")
-      pdb = line[0]
-      if len(pdb) == 4:
-        pdbs.append(pdb)
+    if subset == "core":
+        index_labels_file = os.path.join(data_folder,
+                                         "INDEX_core_data.2013")
+    elif subset == "refined":
+        index_labels_file = os.path.join(data_folder,
+                                         "INDEX_refined_data.2015")
+    else:
+        raise ValueError("Other subsets not supported")
 
-  if load_binding_pocket:
-    protein_files = [
-        os.path.join(data_folder, pdb, "%s_pocket.pdb" % pdb) for pdb in pdbs
-    ]
-  else:
-    protein_files = [
-        os.path.join(data_folder, pdb, "%s_protein.pdb" % pdb) for pdb in pdbs
+    # Extract locations of data
+    with open(index_labels_file, "r") as g:
+        pdbs = [line[:4] for line in g.readlines() if line[0] != "#"]
+    if load_binding_pocket:
+        protein_files = [
+            os.path.join(data_folder, pdb, "%s_pocket.pdb" % pdb)
+            for pdb in pdbs
+        ]
+    else:
+        protein_files = [
+            os.path.join(data_folder, pdb, "%s_protein.pdb" % pdb)
+            for pdb in pdbs
+        ]
+    ligand_files = [
+        os.path.join(data_folder, pdb, "%s_ligand.sdf" % pdb) for pdb in pdbs
     ]
 
-  ligand_files = [
-      os.path.join(data_folder, pdb, "%s_ligand.sdf" % pdb) for pdb in pdbs
-  ]
-  # Extract labels
-  labels = []
-  with open(labels_file, "r") as f:
-    lines = f.readlines()
-    for line in lines:
-      # Skip comment lines
-      if line[0] == "#":
-        continue
-      # Lines have format
-      # PDB code, resolution, release year, -logKd/Ki, Kd/Ki, reference, ligand name
-      line = line.split()
-      # The base-10 logarithm, -log kd/pk
-      log_label = float(line[3])
-      labels.append(log_label)
-  labels = np.array(labels)
+    # Extract labels
+    with open(index_labels_file, "r") as g:
+        labels = np.array([
+            # Lines have format
+            # PDB code, resolution, release year, -logKd/Ki, Kd/Ki, reference, ligand name
+            # The base-10 logarithm, -log kd/pk
+            float(line.split()[3]) for line in g.readlines() if line[0] != "#"
+        ])
+
   # Featurize Data
   if featurizer == "grid":
     featurizer = rgf.RdkitGridFeaturizer(
