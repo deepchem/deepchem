@@ -138,11 +138,13 @@ def load_pdbbind_grid(split="random",
     return tasks, (train, valid, test), transformers
 
 
-def load_pdbbind(featurizer="grid",
-                 load_binding_pocket=False,
-                 split="random",
+def load_pdbbind(reload=True,
+                 data_dir=None,
                  subset="core",
-                 reload=True):
+                 load_binding_pocket=False,
+                 featurizer="grid",
+                 split="random",
+                 save_dir=None):
   """Load and featurize raw PDBBind dataset.
   
   Parameters
@@ -157,26 +159,54 @@ def load_pdbbind(featurizer="grid",
     Only "core" or "refined" for now.
   """
   pdbbind_tasks = ["-logKd/Ki"]
-  data_dir = deepchem.utils.get_data_dir()
-  if reload:
-    save_dir = os.path.join(data_dir,
-                            "pdbbind/" + featurizer + "/" + str(split))
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
-        save_dir)
-    if loaded:
-      return pdbbind_tasks, all_dataset, transformers
-  dataset_file = os.path.join(data_dir, "pdbbind_v2015.tar.gz")
-  data_folder = os.path.join(data_dir, "v2015")
-  if not os.path.exists(dataset_file):
-    logger.warning("About to download PDBBind full dataset. Large file, 2GB")
-    deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/' +
-        "pdbbind_v2015.tar.gz")
-  if os.path.exists(data_folder):
-    logger.info("Data directory for %s already exists" % subset)
-  else:
-    print("Untarring full dataset")
-    deepchem.utils.untargz_file(dataset_file, dest_dir=data_dir)
+
+    deepchem_dir = deepchem.utils.get_data_dir()
+
+    if data_dir == None:
+        data_dir = deepchem_dir
+    data_folder = os.path.join(data_dir, "pdbbind", "v2015")
+
+    if save_dir == None:
+        save_dir = os.path.join(deepchem_dir, "from-pdbbind")
+    if load_binding_pocket:
+        save_folder = os.path.join(
+            save_dir, "protein_pocket-%s-%s-%s" % (subset, featurizer, split))
+    else:
+        save_folder = os.path.join(
+            save_dir, "full_protein-%s-%s-%s" % (subset, featurizer, split))
+
+    if reload:
+        if not os.path.exists(save_folder):
+            raise IOError("Cannot find saved dataset from %s!" % save_folder)
+        print("\nLoading featurized and splitted dataset from:\n%s\n" %
+              save_folder)
+        loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+            save_folder)
+        if loaded:
+            return pdbbind_tasks, all_dataset, transformers
+        else:
+            raise IOError(
+                "Failed to load featurized and splitted dataset from:\n%s\n" %
+                save_folder)
+
+    dataset_file = os.path.join(data_dir, "pdbbind_v2015.tar.gz")
+    if not os.path.exists(dataset_file):
+        logger.warning(
+            "About to download PDBBind full dataset. Large file, 2GB")
+        deepchem.utils.download_url(
+            'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/' +
+            "pdbbind_v2015.tar.gz",
+            dest_dir=data_dir)
+    if os.path.exists(data_folder):
+        logger.info("PDBBind full dataset already exists.")
+    else:
+        print("Untarring full dataset...")
+        deepchem.utils.untargz_file(
+            dataset_file, dest_dir=os.path.join(data_dir, "pdbbind"))
+
+    print("\nRaw dataset:\n%s" % data_folder)
+    print("\nFeaturized and splitted dataset:\n%s" % save_folder)
+
   if subset == "core":
     index_file = os.path.join(data_folder, "INDEX_core_name.2013")
     labels_file = os.path.join(data_folder, "INDEX_core_data.2013")
@@ -294,7 +324,7 @@ def load_pdbbind(featurizer="grid",
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
   all_dataset = (train, valid, test)
-  if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+  print("\nSaving dataset to \"%s\" ..." % save_folder)
+  deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
                                              transformers)
   return pdbbind_tasks, all_dataset, transformers
