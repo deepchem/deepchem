@@ -145,7 +145,8 @@ def load_pdbbind(reload=True,
                  featurizer="grid",
                  split="random",
                  split_seed=None,
-                 save_dir=None):
+                 save_dir=None,
+                 save_timestamp=False):
   """Load and featurize raw PDBBind dataset.
   
   Parameters
@@ -175,6 +176,11 @@ def load_pdbbind(reload=True,
     else:
         save_folder = os.path.join(
             save_dir, "full_protein-%s-%s-%s" % (subset, featurizer, split))
+
+    if save_timestamp:
+        save_folder = "%s-%s-%s" % (
+            save_folder, time.strftime("%Y%m%d", time.localtime()),
+            re.search("\.(.*)", str(time.time())).group(1))
 
     if reload:
         if not os.path.exists(save_folder):
