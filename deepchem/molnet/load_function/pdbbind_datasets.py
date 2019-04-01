@@ -305,8 +305,11 @@ def load_pdbbind(reload=True,
   # Delete labels for failing elements
   labels = np.delete(labels, failures)
   labels = labels.reshape((len(labels), 1))
-  dataset = deepchem.data.DiskDataset.from_numpy(features, labels)
-  print('Featurization complete.')
+  ids = np.delete(pdbs, failures)
+
+  print("\nConstruct dataset excluding failing featurization elements...")
+  dataset = deepchem.data.DiskDataset.from_numpy(features, y=labels, ids=ids)
+
   # No transformations of data
   transformers = []
 
