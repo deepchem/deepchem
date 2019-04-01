@@ -147,19 +147,32 @@ def load_pdbbind(reload=True,
                  split_seed=None,
                  save_dir=None,
                  save_timestamp=False):
-  """Load and featurize raw PDBBind dataset.
-  
-  Parameters
-  ----------
-  data_dir: String, optional
-    Specifies the data directory to store the featurized dataset.
-  split: Str
-    Either "random" or "index"
-  feat: Str
-    Either "grid" or "atomic" for grid and atomic featurizations.
-  subset: Str
-    Only "core" or "refined" for now.
-  """
+    """Load raw PDBBind dataset by featurization and split.
+
+    Parameters
+    ----------
+    reload: Bool, optional
+        Reload saved featurized and splitted dataset or not.
+    data_dir: Str, optional
+        Specifies the directory storing the raw dataset.
+    load_binding_pocket: Bool, optional
+        Load binding pocket or full protein.
+    subset: Str
+        Specifies which subset of PDBBind, only "core" or "refined" for now.
+    featurizer: Str
+        Either "grid" or "atomic" for grid and atomic featurizations.
+    split: Str
+        Either "random" or "index".
+    split_seed: Int, optional
+        Specifies the random seed for splitter.
+    save_dir: Str, optional
+        Specifies the directory to store the featurized and splitted dataset when
+        reload is False. If reload is True, it will load saved dataset inside save_dir. 
+    save_timestamp: Bool, optional
+        Save featurized and splitted dataset with timestamp or not. Set it as True
+        when running similar or same jobs simultaneously on multiple compute nodes.
+    """
+
   pdbbind_tasks = ["-logKd/Ki"]
 
     deepchem_dir = deepchem.utils.get_data_dir()
