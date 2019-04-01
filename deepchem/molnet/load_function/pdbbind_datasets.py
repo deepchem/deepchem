@@ -14,7 +14,6 @@ import time
 import deepchem
 import numpy as np
 import pandas as pd
-import logging
 import tarfile
 from deepchem.feat import rdkit_grid_featurizer as rgf
 from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
