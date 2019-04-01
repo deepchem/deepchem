@@ -262,56 +262,47 @@ def load_pdbbind(reload=True,
             float(line.split()[3]) for line in g.readlines() if line[0] != "#"
         ])
 
-  # Featurize Data
-  if featurizer == "grid":
-    featurizer = rgf.RdkitGridFeaturizer(
-        voxel_width=2.0,
-        feature_types=[
-            'ecfp', 'splif', 'hbond', 'salt_bridge', 'pi_stack', 'cation_pi',
-            'charge'
-        ],
-        flatten=True)
-  elif featurizer == "atomic":
-    # Pulled from PDB files. For larger datasets with more PDBs, would use
-    # max num atoms instead of exact.
-
-    frag1_num_atoms = 70  # for ligand atoms
-
-    if load_binding_pocket:
-      frag2_num_atoms = 1000
-      complex_num_atoms = 1070
+    # Featurize Data
+    if featurizer == "grid":
+        featurizer = rgf.RdkitGridFeaturizer(
+            voxel_width=2.0,
+            feature_types=[
+                'ecfp', 'splif', 'hbond', 'salt_bridge', 'pi_stack',
+                'cation_pi', 'charge'
+            ],
+            flatten=True)
+    elif featurizer == "atomic" or featurizer == "atomic_conv":
+        # Pulled from PDB files. For larger datasets with more PDBs, would use
+        # max num atoms instead of exact.
+        frag1_num_atoms = 70  # for ligand atoms
+        if load_binding_pocket:
+            frag2_num_atoms = 1000
+            complex_num_atoms = 1070
+        else:
+            frag2_num_atoms = 24000  # for protein atoms
+            complex_num_atoms = 24070  # in total
+        max_num_neighbors = 4
+        # Cutoff in angstroms
+        neighbor_cutoff = 4
+        if featurizer == "atomic":
+            featurizer = ComplexNeighborListFragmentAtomicCoordinates(
+                frag1_num_atoms=frag1_num_atoms,
+                frag2_num_atoms=frag2_num_atoms,
+                complex_num_atoms=complex_num_atoms,
+                max_num_neighbors=max_num_neighbors,
+                neighbor_cutoff=neighbor_cutoff)
+        if featurizer == "atomic_conv":
+            featurizer = AtomicConvFeaturizer(
+                labels=labels,
+                frag1_num_atoms=frag1_num_atoms,
+                frag2_num_atoms=frag2_num_atoms,
+                complex_num_atoms=complex_num_atoms,
+                neighbor_cutoff=neighbor_cutoff,
+                max_num_neighbors=max_num_neighbors,
+                batch_size=64)
     else:
-      frag2_num_atoms = 24000  # for protein atoms
-      complex_num_atoms = 24070  # in total
-    max_num_neighbors = 4
-    # Cutoff in angstroms
-    neighbor_cutoff = 4
-    featurizer = ComplexNeighborListFragmentAtomicCoordinates(
-        frag1_num_atoms, frag2_num_atoms, complex_num_atoms, max_num_neighbors,
-        neighbor_cutoff)
+        raise ValueError("Featurizer not supported")
 
-  elif featurizer == "atomic_conv":
-    frag1_num_atoms = 70  # for ligand atoms
-    if load_binding_pocket:
-      frag2_num_atoms = 1000  # for protein atoms
-      complex_num_atoms = 1070  # in total
-    else:
-      frag2_num_atoms = 24000  # for protein atoms
-      complex_num_atoms = 24070  # in total
-    max_num_neighbors = 4
-    # Cutoff in angstroms
-    neighbor_cutoff = 4
-    featurizer = AtomicConvFeaturizer(
-        labels=labels,
-        frag1_num_atoms=frag1_num_atoms,
-        frag2_num_atoms=frag2_num_atoms,
-        complex_num_atoms=complex_num_atoms,
-        neighbor_cutoff=neighbor_cutoff,
-        max_num_neighbors=max_num_neighbors,
-        batch_size=64)
-
-  else:
-    raise ValueError("Featurizer not supported")
   print("Featurizing Complexes")
   features, failures = featurizer.featurize_complexes(ligand_files,
                                                       protein_files)
