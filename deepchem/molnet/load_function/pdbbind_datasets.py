@@ -144,6 +144,7 @@ def load_pdbbind(reload=True,
                  load_binding_pocket=False,
                  featurizer="grid",
                  split="random",
+                 split_seed=None,
                  save_dir=None):
   """Load and featurize raw PDBBind dataset.
   
@@ -312,6 +313,9 @@ def load_pdbbind(reload=True,
   print('Featurization complete.')
   # No transformations of data
   transformers = []
+
+    # Split dataset
+    print("\nSplit dataset...\n")
   if split == None:
     return pdbbind_tasks, (dataset, None, None), transformers
 
@@ -322,7 +326,9 @@ def load_pdbbind(reload=True,
       'random': deepchem.splits.RandomSplitter(),
   }
   splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset)
+    train, valid, test = splitter.train_valid_test_split(
+        dataset, seed=split_seed)
+
   all_dataset = (train, valid, test)
   print("\nSaving dataset to \"%s\" ..." % save_folder)
   deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
