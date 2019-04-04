@@ -66,7 +66,7 @@ class UtilsTest(test_util.TensorFlowTestCase):
     return masked_features, mask_t
 
   def Check(self, func, features, expected, axis=None, mask=None):
-    with self.test_session() as sess:
+    with self.session() as sess:
       features, features_t = self.PrepareFeatures(features)
       if mask is not None:
         features, mask = self.PrepareMask(features, mask)
@@ -127,7 +127,7 @@ class UtilsTest(test_util.TensorFlowTestCase):
         mask=[[1, 0], [0, 1]])
 
   def testMoment(self):
-    with self.test_session() as sess:
+    with self.session() as sess:
       features = np.random.random((3, 4, 5))
       features_t = tf.constant(features, dtype=tf.float32)
 
@@ -168,7 +168,7 @@ class UtilsTest(test_util.TensorFlowTestCase):
             atol=1e-5)
 
   def testSkewness(self):
-    with self.test_session() as sess:
+    with self.session() as sess:
       features = np.random.random((3, 4, 5))
       features_t = tf.constant(features, dtype=tf.float32)
       self.assertAllClose(
@@ -183,7 +183,7 @@ class UtilsTest(test_util.TensorFlowTestCase):
           atol=1e-5)
 
   def testKurtosis(self):
-    with self.test_session() as sess:
+    with self.session() as sess:
       features = np.random.random((3, 4, 5))
       features_t = tf.constant(features, dtype=tf.float32)
       self.assertAllClose(

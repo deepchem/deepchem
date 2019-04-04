@@ -12,6 +12,7 @@ from deepchem.metrics import to_one_hot
 from deepchem.metrics import from_one_hot
 from deepchem.nn import model_ops
 
+
 class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
   """Implements a progressive multitask neural network.
   
@@ -39,8 +40,9 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
     alpha_init_stddevs: list
       List of standard-deviations for alpha in adapter layers.
     """
-    warnings.warn("ProgressiveJointRegressor is deprecated. "
-                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
+    warnings.warn(
+        "ProgressiveJointRegressor is deprecated. "
+        "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.alpha_init_stddevs = alpha_init_stddevs
     super(ProgressiveJointRegressor, self).__init__(n_tasks, n_features,
                                                     **kwargs)
@@ -312,7 +314,7 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
               # non-zero weight examples in the batch.  Also, instead of using
               # tf.reduce_mean (which can put ops on the CPU) we explicitly
               # calculate with div/sum so it stays on the GPU.
-              gradient_cost = tf.div(
+              gradient_cost = tf.math.divide(
                   tf.reduce_sum(weighted_cost), self.batch_size)
               gradient_costs.append(gradient_cost)
 

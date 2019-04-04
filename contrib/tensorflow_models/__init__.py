@@ -51,8 +51,9 @@ class TensorflowGraph(object):
 
   def __init__(self, graph, session, name_scopes, output, labels, weights,
                loss):
-    warnings.warn("TensorflowGraph is deprecated. "
-                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
+    warnings.warn(
+        "TensorflowGraph is deprecated. "
+        "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.graph = graph
     self.session = session
     self.name_scopes = name_scopes
@@ -178,8 +179,9 @@ class TensorflowGraphModel(Model):
     seed: int
       If not none, is used as random seed for tensorflow.
     """
-    warnings.warn("TensorflowGraphModel is deprecated. "
-                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
+    warnings.warn(
+        "TensorflowGraphModel is deprecated. "
+        "Will be removed in DeepChem 1.4.", DeprecationWarning)
 
     # Save hyperparameters
     self.n_tasks = n_tasks
@@ -278,7 +280,7 @@ class TensorflowGraphModel(Model):
               # non-zero weight examples in the batch.  Also, instead of using
               # tf.reduce_mean (which can put ops on the CPU) we explicitly
               # calculate with div/sum so it stays on the GPU.
-              gradient_cost = tf.div(
+              gradient_cost = tf.math.divide(
                   tf.reduce_sum(weighted_cost), self.batch_size)
               gradient_costs.append(gradient_cost)
 

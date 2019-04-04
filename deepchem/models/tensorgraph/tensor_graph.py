@@ -13,7 +13,6 @@ import tensorflow.contrib.eager as tfe
 from deepchem.data import NumpyDataset
 from deepchem.models.models import Model
 from deepchem.models.tensorgraph.layers import InputFifoQueue, Label, Feature, Weights, Constant, Input
-from deepchem.models.tensorgraph.model_ops import create_variable
 from deepchem.models.tensorgraph.optimizers import Adam
 from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
@@ -190,7 +189,7 @@ class TensorGraph(Model):
       loss = self.loss
       if submodel is not None and submodel.loss is not None:
         loss = submodel.loss
-      if tfe.in_eager_mode():
+      if tf.executing_eagerly():
         # In eager mode we want an optimizer and a function to compute the
         # gradient of the loss.
 
@@ -244,7 +243,7 @@ class TensorGraph(Model):
         n_samples += 1
         should_log = (self.tensorboard and
                       n_samples % self.tensorboard_log_frequency == 0)
-        if tfe.in_eager_mode():
+        if tf.executing_eagerly():
           value, grads_and_vars = val_grad_fn(feed_dict)
           if submodel_vars is not None:
             grads_and_vars = [
@@ -432,7 +431,7 @@ class TensorGraph(Model):
             break
         n_samples += 1
         feed_results = self._run_graph(tensors, feed_dict, uncertainty)
-        if tfe.in_eager_mode():
+        if tf.executing_eagerly():
           feed_results = [f.numpy() for f in feed_results]
         if len(feed_results) > 1:
           if len(transformers):
@@ -668,7 +667,7 @@ class TensorGraph(Model):
   def build(self):
     if self.built:
       return
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       # In eager mode, we need to execute every layer once to ensure its variables
       # have been created.
 
@@ -977,7 +976,7 @@ class TensorGraph(Model):
     if not self.built:
       self.build()
     with self._get_tf("Graph").as_default():
-      if tfe.in_eager_mode():
+      if tf.executing_eagerly():
         return layer.variables
       if layer.variable_scope == '':
         return []
@@ -989,7 +988,7 @@ class TensorGraph(Model):
 
     layer_variables = self.get_layer_variables(layer)
     with self._get_tf("Graph").as_default():
-      if tfe.in_eager_mode():
+      if tf.executing_eagerly():
         return [v.numpy() for v in layer_variables]
       if len(layer_variables) == 0:
         return []
@@ -999,7 +998,7 @@ class TensorGraph(Model):
     """Get the list of all trainable variables in the graph."""
     if not self.built:
       self.build()
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       variables = []
       for layer in self.layers.values():
         variables += layer.variables
@@ -1030,7 +1029,7 @@ class TensorGraph(Model):
     if obj in self.tensor_objects and self.tensor_objects[obj] is not None:
       return self.tensor_objects[obj]
     if obj == "Graph":
-      if tfe.in_eager_mode():
+      if tf.executing_eagerly():
         self.tensor_objects['Graph'] = _DummyGraph()
       else:
         self.tensor_objects['Graph'] = tf.Graph()
@@ -1053,7 +1052,7 @@ class TensorGraph(Model):
           key=tf.GraphKeys.SUMMARIES)
     elif obj == 'GlobalStep':
       with self._get_tf("Graph").as_default():
-        self.tensor_objects['GlobalStep'] = create_variable(0, trainable=False)
+        self.tensor_objects['GlobalStep'] = tf.Variable(0, trainable=False)
     return self._get_tf(obj)
 
   def save_checkpoint(self, max_checkpoints_to_keep=5):
@@ -1151,12 +1150,12 @@ class TensorGraph(Model):
         for key, value in d.items():
           if isinstance(key, Input):
             value = _ensure_value_shape(value, key)
-            if tfe.in_eager_mode():
+            if tf.executing_eagerly():
               value = tf.cast(value, key.dtype)
             feed_dict[key] = value
           else:
             feed_dict[key] = value
-        if not tfe.in_eager_mode():
+        if not tf.executing_eagerly():
           feed_dict[self._training_placeholder] = train_value
         yield feed_dict
 
@@ -1175,7 +1174,7 @@ class TensorGraph(Model):
     training: bool
       whether this is being executed in training mode
     """
-    if not tfe.in_eager_mode():
+    if not tf.executing_eagerly():
       return self.session.run(outputs, feed_dict)
 
     def run_layers(layer, tensors):
@@ -1229,7 +1228,7 @@ class TensorGraph(Model):
     """
     # Check the inputs.
 
-    if tfe.in_eager_mode():
+    if tf.executing_eagerly():
       raise ValueError('make_estimator() is not supported in eager mode')
     if len(feature_columns) != len(self.features):
       raise ValueError(

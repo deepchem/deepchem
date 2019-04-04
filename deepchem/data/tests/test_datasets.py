@@ -693,7 +693,7 @@ class TestDatasets(test_util.TensorFlowTestCase):
     iterator = dataset.make_iterator(
         batch_size=10, epochs=2, deterministic=True)
     next_element = iterator.get_next()
-    with self.test_session() as sess:
+    with self.session() as sess:
       for i in range(20):
         batch_X, batch_y, batch_w = sess.run(next_element)
         offset = (i % 10) * 10

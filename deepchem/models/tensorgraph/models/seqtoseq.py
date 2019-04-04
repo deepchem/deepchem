@@ -187,8 +187,8 @@ class SeqToSeq(TensorGraph):
       kl = mean_sq + stddev_sq - layers.Log(stddev_sq + 1e-20) - 1
       anneal_steps = self._annealing_final_step - self._annealing_start_step
       if anneal_steps > 0:
-        current_step = tf.to_float(
-            self.get_global_step()) - self._annealing_start_step
+        current_step = tf.cast(self.get_global_step(),
+                               tf.float32) - self._annealing_start_step
         anneal_frac = tf.maximum(0.0, current_step) / anneal_steps
         kl_scale = layers.TensorWrapper(
             tf.minimum(1.0, anneal_frac * anneal_frac), name='kl_scale')

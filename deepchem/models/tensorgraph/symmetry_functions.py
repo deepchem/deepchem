@@ -46,7 +46,7 @@ class DistanceMatrix(Layer):
     # Calculate pairwise distance
     d = tf.sqrt(tf.reduce_sum(tf.square(tensor1 - tensor2), axis=3))
     # Masking for valid atom index
-    out_tensor = d * tf.to_float(atom_flags)
+    out_tensor = d * tf.cast(atom_flags, tf.float32)
     if set_tensors:
       self.out_tensor = out_tensor
 
@@ -223,7 +223,7 @@ class AngularSymmetry(Layer):
     theta = tf.reduce_sum(tf.tile(tf.expand_dims(vector_distances, axis=3), (1, 1, 1, max_atoms, 1)) * \
                           tf.tile(tf.expand_dims(vector_distances, axis=2), (1, 1, max_atoms, 1, 1)), axis=4)
 
-    theta = tf.div(theta, R_ij * R_ik + 1e-5)
+    theta = tf.math.divide(theta, R_ij * R_ik + 1e-5)
 
     R_ij = tf.stack([R_ij] * self.length, axis=4)
     R_ik = tf.stack([R_ik] * self.length, axis=4)
@@ -336,7 +336,7 @@ class AngularSymmetryMod(Layer):
     theta = tf.reduce_sum(tf.tile(tf.expand_dims(vector_distances, axis=3), (1, 1, 1, max_atoms, 1)) * \
                           tf.tile(tf.expand_dims(vector_distances, axis=2), (1, 1, max_atoms, 1, 1)), axis=4)
 
-    theta = tf.div(theta, R_ij * R_ik + 1e-5)
+    theta = tf.math.divide(theta, R_ij * R_ik + 1e-5)
 
     R_ij = tf.stack([R_ij] * self.length, axis=4)
     R_ik = tf.stack([R_ik] * self.length, axis=4)
@@ -479,7 +479,7 @@ class AtomicDifferentiatedDense(Layer):
           tf.reshape(tf.matmul(tf.reshape(a, [ai * aj, ak]), b), [ai, aj, bl]) +
           self.b[i, :])
 
-      mask = 1 - tf.to_float(tf.cast(atom_numbers - atom_case, tf.bool))
+      mask = 1 - tf.cast(tf.cast(atom_numbers - atom_case, tf.bool), tf.float32)
       output = tf.reshape(output * tf.expand_dims(mask, 2),
                           (-1, self.max_atoms, self.out_channels))
       outputs.append(output)

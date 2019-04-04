@@ -46,7 +46,7 @@ class TestVinaModel(test_util.TensorFlowTestCase):
     start = 0
     stop = 4
     nbr_cutoff = 1
-    with self.test_session() as sess:
+    with self.session() as sess:
       ndim = 3
       cells = get_cells(start, stop, nbr_cutoff, ndim=ndim).eval()
       assert len(cells.shape) == 2
@@ -71,7 +71,7 @@ class TestVinaModel(test_util.TensorFlowTestCase):
     # The number of cells which we should theoretically have
     n_cells = int(((stop - start) / nbr_cutoff)**ndim)
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       coords = start + np.random.rand(N, ndim) * (stop - start)
       coords = tf.stack(coords)
       nbr_list = compute_neighbor_list(
@@ -90,7 +90,7 @@ class TestVinaModel(test_util.TensorFlowTestCase):
     # The number of cells which we should theoretically have
     n_cells = ((stop - start) / nbr_cutoff)**ndim
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       cells = get_cells(start, stop, nbr_cutoff, ndim=ndim)
       coords = np.random.rand(N, ndim)
       _, atoms_in_cells = put_atoms_in_cells(coords, cells, N, n_cells, ndim, k)
@@ -113,7 +113,7 @@ class TestVinaModel(test_util.TensorFlowTestCase):
     # TODO(rbharath): The test below only checks that shapes work out.
     # Need to do a correctness implementation vs. a simple CPU impl.
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       cells = get_cells(start, stop, nbr_cutoff, ndim=ndim)
       nbr_cells = compute_neighbor_cells(cells, ndim, n_cells)
       nbr_cells = nbr_cells.eval()
@@ -136,7 +136,7 @@ class TestVinaModel(test_util.TensorFlowTestCase):
     # TODO(rbharath): The test below only checks that shapes work out.
     # Need to do a correctness implementation vs. a simple CPU impl.
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       cells = get_cells(start, stop, nbr_cutoff, ndim=ndim)
       nbr_cells = compute_neighbor_cells(cells, ndim, n_cells)
       coords = np.random.rand(N, ndim)
@@ -158,7 +158,7 @@ class TestVinaModel(test_util.TensorFlowTestCase):
     # TODO(rbharath): The test below only checks that shapes work out.
     # Need to do a correctness implementation vs. a simple CPU impl.
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       cells = get_cells(start, stop, nbr_cutoff, ndim=ndim)
       coords = np.random.rand(N, ndim)
       cells_for_atoms = get_cells_for_atoms(coords, cells, N, n_cells, ndim)

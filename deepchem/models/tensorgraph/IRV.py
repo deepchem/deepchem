@@ -54,7 +54,7 @@ class IRVLayer(Layer):
       # Similarity values
       similarity = inputs[:, 2 * K * count:(2 * K * count + K)]
       # Labels for all top K similar samples
-      ys = tf.to_int32(inputs[:, (2 * K * count + K):2 * K * (count + 1)])
+      ys = tf.cast(inputs[:, (2 * K * count + K):2 * K * (count + 1)], tf.int32)
 
       R = self.b + self.W[0] * similarity + self.W[1] * tf.constant(
           np.arange(K) + 1, dtype=tf.float32)

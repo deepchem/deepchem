@@ -11,7 +11,6 @@ import sys
 import traceback
 import numpy as np
 import tensorflow as tf
-import tensorflow.contrib.eager as tfe
 from tensorflow.python.training import moving_averages
 from collections import defaultdict
 
@@ -21,14 +20,6 @@ def _to_tensor(x, dtype):
   if x.dtype != dtype:
     x = tf.cast(x, dtype)
   return x
-
-
-def create_variable(value, dtype=None, name=None, trainable=True):
-  """Create a tf.Variable or tfe.Variable, depending on the current mode."""
-  if tfe.in_eager_mode():
-    return tfe.Variable(value, dtype=dtype, name=name, trainable=trainable)
-  else:
-    return tf.Variable(value, dtype=dtype, name=name, trainable=trainable)
 
 
 def ones(shape, dtype=None, name=None):
@@ -47,7 +38,7 @@ def ones(shape, dtype=None, name=None):
   if dtype is None:
     dtype = tf.float32
   shape = tuple(map(int, shape))
-  return create_variable(
+  return tf.Variable(
       tf.constant_initializer(1., dtype=dtype)(shape), dtype, name)
 
 
@@ -131,7 +122,7 @@ def mean(x, axis=None, keepdims=False):
   axis: A list of integer. Axes to compute the mean.
   keepdims: A boolean, whether to keep the dimensions or not.
     If keepdims is False, the rank of the tensor is reduced
-    by 1 for each entry in axis. If keep_dims is True,
+    by 1 for each entry in axis. If keepdims is True,
     the reduced dimensions are retained with length 1.
 
   Returns
@@ -141,7 +132,7 @@ def mean(x, axis=None, keepdims=False):
   axis = _normalize_axis(axis, get_ndim(x))
   if x.dtype.base_dtype == tf.bool:
     x = tf.cast(x, tf.float32)
-  return tf.reduce_mean(x, axis=axis, keep_dims=keepdims)
+  return tf.reduce_mean(x, axis=axis, keepdims=keepdims)
 
 
 def dot(x, y):
@@ -268,7 +259,7 @@ def random_uniform_variable(shape,
     seed = np.random.randint(10e8)
   value = tf.random_uniform_initializer(
       low, high, dtype=dtype, seed=seed)(shape)
-  return create_variable(value, dtype=dtype, name=name)
+  return tf.Variable(value, dtype=dtype, name=name)
 
 
 def random_normal_variable(shape,
@@ -299,7 +290,7 @@ def random_normal_variable(shape,
     seed = np.random.randint(10e8)
   value = tf.random_normal_initializer(
       mean, scale, dtype=dtype, seed=seed)(shape)
-  return create_variable(value, dtype=dtype, name=name)
+  return tf.Variable(value, dtype=dtype, name=name)
 
 
 def max(x, axis=None, keepdims=False):
@@ -319,7 +310,7 @@ def max(x, axis=None, keepdims=False):
   A tensor with maximum values of `x`.
   """
   axis = _normalize_axis(axis, get_ndim(x))
-  return tf.reduce_max(x, axis=axis, keep_dims=keepdims)
+  return tf.reduce_max(x, axis=axis, keepdims=keepdims)
 
 
 def l2_normalize(x, axis):
@@ -351,7 +342,7 @@ def categorical_crossentropy(output, target, from_logits=False):
   if not from_logits:
     # scale preds so that the class probas of each sample sum to 1
     output /= tf.reduce_sum(
-        output, axis=len(output.get_shape()) - 1, keep_dims=True)
+        output, axis=len(output.get_shape()) - 1, keepdims=True)
     # manual computation of crossentropy
     epsilon = _to_tensor(_EPSILON, output.dtype.base_dtype)
     output = tf.clip_by_value(output, epsilon, 1. - epsilon)
@@ -436,7 +427,7 @@ def sum(x, axis=None, keepdims=False):
   A tensor with sum of x.
   """
   axis = _normalize_axis(axis, get_ndim(x))
-  return tf.reduce_sum(x, axis=axis, keep_dims=keepdims)
+  return tf.reduce_sum(x, axis=axis, keepdims=keepdims)
 
 
 # TODO(rbharath): Need to rename this. This makes a variable, not just creates
@@ -455,8 +446,8 @@ def zeros(shape, dtype=tf.float32, name=None):
   A variable (including Tensorflow metadata), filled with `0.0`.
   """
   shape = tuple(map(int, shape))
-  return create_variable(
-      tf.constant_initializer(0., dtype=dtype)(shape), dtype, name)
+  return tf.Variable(
+      tf.constant_initializer(0., dtype=dtype)(shape), dtype=dtype, name=name)
 
 
 def cosine_distances(test, support):
@@ -474,10 +465,9 @@ def cosine_distances(test, support):
   tf.Tensor:
     Of shape (n_test, n_support)
   """
-  rnorm_test = tf.rsqrt(tf.reduce_sum(tf.square(test), 1,
-                                      keep_dims=True)) + 1e-7
-  rnorm_support = tf.rsqrt(
-      tf.reduce_sum(tf.square(support), 1, keep_dims=True)) + 1e-7
+  rnorm_test = tf.rsqrt(tf.reduce_sum(tf.square(test), 1, keepdims=True)) + 1e-7
+  rnorm_support = tf.rsqrt(tf.reduce_sum(tf.square(support), 1,
+                                         keepdims=True)) + 1e-7
   test_normalized = test * rnorm_test
   support_normalized = support * rnorm_support
 
@@ -633,9 +623,9 @@ def var(x, axis=None, keepdims=False):
   axis = _normalize_axis(axis, get_ndim(x))
   if x.dtype.base_dtype == tf.bool:
     x = tf.cast(x, tf.float32)
-  m = tf.reduce_mean(x, axis=axis, keep_dims=True)
+  m = tf.reduce_mean(x, axis=axis, keepdims=True)
   devs_squared = tf.square(x - m)
-  return tf.reduce_mean(devs_squared, axis=axis, keep_dims=keepdims)
+  return tf.reduce_mean(devs_squared, axis=axis, keepdims=keepdims)
 
 
 def euclidean_distance(test, support, max_dist_sq=20):
@@ -683,7 +673,7 @@ def add_bias(tensor, init=None, name=None):
   if init is None:
     init = tf.zeros([tensor.get_shape()[-1].value])
   with tf.name_scope(name, tensor.op.name, [tensor]):
-    b = create_variable(init, name='b')
+    b = tf.Variable(init, name='b')
     return tf.nn.bias_add(tensor, b)
 
 
@@ -761,8 +751,8 @@ def fully_connected_layer(tensor,
     bias_init = tf.zeros([size])
 
   with tf.name_scope(name, 'fully_connected', [tensor]):
-    w = create_variable(weight_init, name='w', dtype=tf.float32)
-    b = create_variable(bias_init, name='b', dtype=tf.float32)
+    w = tf.Variable(weight_init, name='w', dtype=tf.float32)
+    b = tf.Variable(bias_init, name='b', dtype=tf.float32)
     return tf.nn.xw_plus_b(tensor, w, b)
 
 
@@ -880,9 +870,9 @@ def softmax_N(tensor, name=None):
   with tf.name_scope(name, 'softmax_N', [tensor]):
     exp_tensor = tf.exp(tensor)
     reduction_indices = [tensor.get_shape().ndims - 1]
-    return tf.div(exp_tensor,
-                  tf.reduce_sum(
-                      exp_tensor, axis=reduction_indices, keep_dims=True))
+    return tf.math.divide(
+        exp_tensor,
+        tf.reduce_sum(exp_tensor, axis=reduction_indices, keepdims=True))
 
 
 def optimizer(optimizer="adam", learning_rate=.001, momentum=.9):

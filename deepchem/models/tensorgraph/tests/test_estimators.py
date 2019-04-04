@@ -487,7 +487,7 @@ class TestEstimators(unittest.TestCase):
         mode="regression")
 
     def mean_relative_error(labels, predictions, weights):
-      error = tf.abs(1 - tf.div(labels, predictions))
+      error = tf.abs(1 - tf.math.divide(labels, predictions))
       error_val, update_op = tf.metrics.mean(error)
       return error_val, update_op
 

@@ -1031,7 +1031,8 @@ class ANITransformer(Transformer):
       self.inputs = tf.placeholder(tf.float32, shape=(None, self.max_atoms, 4))
       atom_numbers = tf.cast(self.inputs[:, :, 0], tf.int32)
       flags = tf.sign(atom_numbers)
-      flags = tf.to_float(tf.expand_dims(flags, 1) * tf.expand_dims(flags, 2))
+      flags = tf.cast(
+          tf.expand_dims(flags, 1) * tf.expand_dims(flags, 2), tf.float32)
       coordinates = self.inputs[:, :, 1:]
       if self.coordinates_in_bohr:
         coordinates = coordinates * 0.52917721092
@@ -1043,7 +1044,7 @@ class ANITransformer(Transformer):
                                           coordinates)
       self.outputs = tf.concat(
           [
-              tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym,
+              tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
               angular_sym
           ],
           axis=2)
@@ -1077,8 +1078,8 @@ class ANITransformer(Transformer):
 
     Rs = np.linspace(0., self.radial_cutoff, self.radial_length)
     ita = np.ones_like(Rs) * 3 / (Rs[1] - Rs[0])**2
-    Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, -1)))
-    ita = tf.to_float(np.reshape(ita, (1, 1, 1, -1)))
+    Rs = tf.cast(np.reshape(Rs, (1, 1, 1, -1)), tf.float32)
+    ita = tf.cast(np.reshape(ita, (1, 1, 1, -1)), tf.float32)
     length = ita.get_shape().as_list()[-1]
 
     d_cutoff = tf.stack([d_cutoff] * length, axis=3)
@@ -1109,10 +1110,10 @@ class ANITransformer(Transformer):
     zeta = float(self.angular_length**2)
 
     ita, zeta, Rs, thetas = np.meshgrid(ita, zeta, Rs, thetas)
-    zeta = tf.to_float(np.reshape(zeta, (1, 1, 1, 1, -1)))
-    ita = tf.to_float(np.reshape(ita, (1, 1, 1, 1, -1)))
-    Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, 1, -1)))
-    thetas = tf.to_float(np.reshape(thetas, (1, 1, 1, 1, -1)))
+    zeta = tf.cast(np.reshape(zeta, (1, 1, 1, 1, -1)), tf.float32)
+    ita = tf.cast(np.reshape(ita, (1, 1, 1, 1, -1)), tf.float32)
+    Rs = tf.cast(np.reshape(Rs, (1, 1, 1, 1, -1)), tf.float32)
+    thetas = tf.cast(np.reshape(thetas, (1, 1, 1, 1, -1)), tf.float32)
     length = zeta.get_shape().as_list()[-1]
 
     vector_distances = tf.stack([coordinates] * max_atoms, 1) - tf.stack(
@@ -1126,7 +1127,7 @@ class ANITransformer(Transformer):
     vector_mul = tf.reduce_sum(tf.stack([vector_distances] * max_atoms, axis=3) * \
                                tf.stack([vector_distances] * max_atoms, axis=2), axis=4)
     vector_mul = vector_mul * tf.sign(f_R_ij) * tf.sign(f_R_ik)
-    theta = tf.acos(tf.div(vector_mul, R_ij * R_ik + 1e-5))
+    theta = tf.acos(tf.math.divide(vector_mul, R_ij * R_ik + 1e-5))
 
     R_ij = tf.stack([R_ij] * length, axis=4)
     R_ik = tf.stack([R_ik] * length, axis=4)

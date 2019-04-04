@@ -16,7 +16,6 @@ from deepchem.models.tensorgraph.layers import Feature, Label, Input
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference, Add, GRU
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.optimizers import GradientDescent, ExponentialDecay, Adam
-import tensorflow.contrib.eager as tfe
 from tensorflow.python.eager import context
 
 
@@ -409,7 +408,7 @@ class TestTensorGraph(unittest.TestCase):
     assert copy.in_layers[1] == replacements[constant]
     variables = tg.get_layer_variables(dense)
     with tg._get_tf("Graph").as_default():
-      if tfe.in_eager_mode():
+      if tf.executing_eagerly():
         values = [v.numpy() for v in variables]
       else:
         values = tg.session.run(variables)

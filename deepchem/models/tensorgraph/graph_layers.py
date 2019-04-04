@@ -705,7 +705,7 @@ class DAGLayer(Layer):
       outputs = self.activation(outputs)
       training = kwargs['training'] if 'training' in kwargs else 1.0
       if not self.dropout is None:
-        outputs = tf.nn.dropout(outputs, 1.0 - self.dropout * training)
+        outputs = tf.nn.dropout(outputs, rate=self.dropout * training)
     return outputs
 
   def none_tensors(self):
@@ -814,7 +814,7 @@ class DAGGather(Layer):
       outputs = self.activation(outputs)
       training = kwargs['training'] if 'training' in kwargs else 1.0
       if not self.dropout is None:
-        outputs = tf.nn.dropout(outputs, 1.0 - self.dropout * training)
+        outputs = tf.nn.dropout(outputs, rate=self.dropout * training)
     return outputs
 
   def none_tensors(self):

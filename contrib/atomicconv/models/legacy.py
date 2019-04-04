@@ -278,7 +278,7 @@ class TensorflowGraphModel(Model):
               # non-zero weight examples in the batch.  Also, instead of using
               # tf.reduce_mean (which can put ops on the CPU) we explicitly
               # calculate with div/sum so it stays on the GPU.
-              gradient_cost = tf.div(
+              gradient_cost = tf.math.divide(
                   tf.reduce_sum(weighted_cost), self.batch_size)
               gradient_costs.append(gradient_cost)
 
@@ -416,8 +416,8 @@ class TensorflowGraphModel(Model):
     feeding and fetching the same tensor.
     """
     weights = []
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with placeholder_scope:
       for task in range(self.n_tasks):
         weights.append(
@@ -617,8 +617,8 @@ class TensorflowClassifier(TensorflowGraphModel):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with graph.as_default():
       batch_size = self.batch_size
       n_classes = self.n_classes
@@ -770,8 +770,8 @@ class TensorflowRegressor(TensorflowGraphModel):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with graph.as_default():
       batch_size = self.batch_size
       labels = []
@@ -859,8 +859,8 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
         batch_size x n_features.
     """
     n_features = self.n_features
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with graph.as_default():
       with placeholder_scope:
         self.mol_features = tf.placeholder(
@@ -906,8 +906,8 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
                     weight_init=tf.truncated_normal(
                         shape=[prev_layer_size, 1],
                         stddev=weight_init_stddevs[i]),
-                    bias_init=tf.constant(value=bias_init_consts[i], shape=[1
-                                                                           ]))))
+                    bias_init=tf.constant(value=bias_init_consts[i],
+                                          shape=[1]))))
       return output
 
   def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
