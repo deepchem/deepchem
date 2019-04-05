@@ -336,7 +336,6 @@ class TestLayers(test_util.TensorFlowTestCase):
     value = np.random.uniform(size=(2, 3)).astype(np.float32)
     with self.session() as sess:
       result = Log()(value).eval()
-      assert np.array_equal(np.log(value), result)
       assert np.all(np.isclose(np.log(value), result, atol=0.001))
 
   def test_exp(self):

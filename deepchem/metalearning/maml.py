@@ -11,7 +11,7 @@ import time
 
 class MetaLearner(object):
   """Model and data to which the MAML algorithm can be applied.
-  
+
   To use MAML, create a subclass of this defining the learning problem to solve.
   It consists of a model that can be trained to perform many different tasks, and
   data for training it on a large (possibly infinite) set of different tasks.
@@ -159,26 +159,36 @@ class MAML(object):
 
       # Create variables for accumulating the gradients.
 
-      gradients = tf.gradients(self._meta_loss, learner.variables)
+      variables = list(learner.variables)
+      gradients = tf.gradients(self._meta_loss, variables)
+      for i in reversed(range(len(variables))):
+        if gradients[i] is None:
+          del variables[i]
+          del gradients[i]
       zero_gradients = [tf.zeros(g.shape, g.dtype) for g in gradients]
       summed_gradients = [
           tf.Variable(z, trainable=False) for z in zero_gradients
       ]
       self._clear_gradients = tf.group(
-          * [s.assign(z) for s, z in zip(summed_gradients, zero_gradients)])
+          *[s.assign(z) for s, z in zip(summed_gradients, zero_gradients)])
       self._add_gradients = tf.group(
-          * [s.assign_add(g) for s, g in zip(summed_gradients, gradients)])
+          *[s.assign_add(g) for s, g in zip(summed_gradients, gradients)])
 
       # Create the optimizers for meta-optimization and task optimization.
 
       self._global_step = tf.placeholder(tf.int32, [])
-      grads_and_vars = list(zip(summed_gradients, learner.variables))
+      grads_and_vars = list(zip(summed_gradients, variables))
       self._meta_train_op = optimizer._create_optimizer(
           self._global_step).apply_gradients(grads_and_vars)
       task_optimizer = GradientDescent(learning_rate=self._learning_rate)
       self._task_train_op = task_optimizer._create_optimizer(
           self._global_step).minimize(self._loss)
       self._session = tf.Session()
+
+      # Create a Checkpoint for saving.
+
+      self._checkpoint = tf.train.Checkpoint()
+      self._checkpoint.listed = learner.variables
 
   def __del__(self):
     if '_model_dir_is_temp' in dir(self) and self._model_dir_is_temp:
@@ -208,9 +218,8 @@ class MAML(object):
       self._session.run(tf.global_variables_initializer())
       if restore:
         self.restore()
-      saver = tf.train.Saver(
-          self.learner.variables, max_to_keep=max_checkpoints_to_keep)
-      checkpoint_index = 0
+      manager = tf.train.CheckpointManager(self._checkpoint, self.model_dir,
+                                           max_checkpoints_to_keep)
       checkpoint_time = time.time()
 
       # Main optimization loop.
@@ -230,9 +239,8 @@ class MAML(object):
 
         if i == steps - 1 or time.time(
         ) >= checkpoint_time + checkpoint_interval:
-          saver.save(
-              self._session, self.save_file, global_step=checkpoint_index)
-          checkpoint_index += 1
+          with self._session.as_default():
+            manager.save()
           checkpoint_time = time.time()
 
   def restore(self):
@@ -241,8 +249,7 @@ class MAML(object):
     if last_checkpoint is None:
       raise ValueError('No checkpoint found')
     with self._graph.as_default():
-      saver = tf.train.Saver(self.learner.variables)
-      saver.restore(self._session, last_checkpoint)
+      self._checkpoint.restore(last_checkpoint).run_restore_ops(self._session)
 
   def train_on_current_task(self, optimization_steps=1, restore=True):
     """Perform a few steps of gradient descent to fine tune the model on the current task.

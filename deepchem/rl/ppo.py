@@ -165,6 +165,13 @@ class PPO(object):
       raise ValueError(
           'Cannot batch rollouts when the policy contains a recurrent layer.  Set batch_size to 0.'
       )
+    with self._graph._get_tf("Graph").as_default():
+      with tf.variable_scope('global'):
+        self._checkpoint = tf.train.Checkpoint()
+        self._checkpoint.save_counter  # Ensure the variable has been created
+      self._checkpoint.listed = tf.get_collection(
+          tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
+      self._session.run(self._checkpoint.save_counter.initializer)
 
   def _build_graph(self, tf_graph, scope, model_dir):
     """Construct a TensorGraph containing the policy and loss calculations."""
@@ -239,8 +246,8 @@ class PPO(object):
       pool = Pool()
       variables = tf.get_collection(
           tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
-      saver = tf.train.Saver(variables, max_to_keep=max_checkpoints_to_keep)
-      checkpoint_index = 0
+      manager = tf.train.CheckpointManager(
+          self._checkpoint, self._graph.model_dir, max_checkpoints_to_keep)
       checkpoint_time = time.time()
       while step_count < total_steps:
         # Have the worker threads generate the rollouts for this iteration.
@@ -281,11 +288,8 @@ class PPO(object):
         step_count += new_steps
         if step_count >= total_steps or time.time(
         ) >= checkpoint_time + checkpoint_interval:
-          saver.save(
-              self._session,
-              self._graph.save_file,
-              global_step=checkpoint_index)
-          checkpoint_index += 1
+          with self._session.as_default():
+            manager.save()
           checkpoint_time = time.time()
 
   def _iter_batches(self, rollouts):
@@ -408,10 +412,7 @@ class PPO(object):
     if last_checkpoint is None:
       raise ValueError('No checkpoint found')
     with self._graph._get_tf("Graph").as_default():
-      variables = tf.get_collection(
-          tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
-      saver = tf.train.Saver(variables)
-      saver.restore(self._session, last_checkpoint)
+      self._checkpoint.restore(last_checkpoint).run_restore_ops(self._session)
 
   def _create_feed_dict(self, state, use_saved_states):
     """Create a feed dict for use by predict() or select_action()."""
@@ -523,8 +524,7 @@ class _Worker(object):
                          1] += self.ppo.discount_factor * discounted_rewards[j]
       advantages[
           j -
-          1] += self.ppo.discount_factor * self.ppo.advantage_lambda * advantages[
-              j]
+          1] += self.ppo.discount_factor * self.ppo.advantage_lambda * advantages[j]
 
     # Convert the actions to one-hot.
 
@@ -573,8 +573,8 @@ class _Worker(object):
     values = np.append(values.flatten(), 0.0)
     action_prob = probabilities[np.arange(len(actions)), actions]
     return self.process_rollout(hindsight_states, actions, action_prob,
-                                np.array(rewards),
-                                np.array(values), initial_rnn_states)
+                                np.array(rewards), np.array(values),
+                                initial_rnn_states)
 
   def create_feed_dict(self, state):
     """Create a feed dict for use during a rollout."""

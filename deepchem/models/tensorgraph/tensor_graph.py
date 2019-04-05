@@ -213,10 +213,8 @@ class TensorGraph(Model):
         else:
           train_op = submodel.get_train_op()
       if checkpoint_interval > 0:
-        saver = tf.train.Saver(
-            self.get_variables(),
-            max_to_keep=max_checkpoints_to_keep,
-            save_relative_paths=True)
+        manager = tf.train.CheckpointManager(
+            self._get_tf('Checkpoint'), self.model_dir, max_checkpoints_to_keep)
       if restore:
         self.restore()
       avg_loss, n_averaged_batches = 0.0, 0.0
@@ -262,7 +260,7 @@ class TensorGraph(Model):
         n_averaged_batches += 1
         self.global_step += 1
         if checkpoint_interval > 0 and self.global_step % checkpoint_interval == checkpoint_interval - 1:
-          saver.save(self.session, self.save_file, global_step=self.global_step)
+          self._exec_with_session(lambda: manager.save())
           avg_loss = float(avg_loss) / n_averaged_batches
           logger.info('Ending global_step %d: Average loss %g' %
                       (self.global_step, avg_loss))
@@ -273,7 +271,7 @@ class TensorGraph(Model):
         if n_averaged_batches > 0:
           logger.info('Ending global_step %d: Average loss %g' %
                       (self.global_step, avg_loss))
-        saver.save(self.session, self.save_file, global_step=self.global_step)
+        self._exec_with_session(lambda: manager.save())
         time2 = time.time()
         logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return avg_loss
@@ -733,6 +731,7 @@ class TensorGraph(Model):
       self._get_tf('train_op')
       for submodel in self.submodels:
         train_op = submodel.get_train_op()
+      self._get_tf('Checkpoint').save_counter
 
       # Initialize variables.
 
@@ -1053,6 +1052,10 @@ class TensorGraph(Model):
     elif obj == 'GlobalStep':
       with self._get_tf("Graph").as_default():
         self.tensor_objects['GlobalStep'] = tf.Variable(0, trainable=False)
+    elif obj == 'Checkpoint':
+      checkpoint = tf.train.Checkpoint()
+      checkpoint.listed = self.get_variables()
+      self.tensor_objects['Checkpoint'] = checkpoint
     return self._get_tf(obj)
 
   def save_checkpoint(self, max_checkpoints_to_keep=5):
@@ -1067,9 +1070,16 @@ class TensorGraph(Model):
     max_checkpoints_to_keep: int
       the maximum number of checkpoints to keep.  Older checkpoints are discarded.
     """
-    saver = tf.train.Saver(
-        self.get_variables(), max_to_keep=max_checkpoints_to_keep)
-    saver.save(self.session, self.save_file, global_step=self.global_step)
+    manager = tf.train.CheckpointManager(
+        self._get_tf('Checkpoint'), self.model_dir, max_checkpoints_to_keep)
+    self._exec_with_session(lambda: manager.save())
+
+  def _exec_with_session(self, f):
+    if tf.executing_eagerly():
+      f()
+    else:
+      with self.session.as_default():
+        f()
 
   def get_checkpoints(self):
     """Get a list of all available checkpoint files."""
@@ -1093,17 +1103,8 @@ class TensorGraph(Model):
     if checkpoint is None:
       raise ValueError('No checkpoint found')
     with self._get_tf("Graph").as_default():
-      reader = NewCheckpointReader(checkpoint)
-      var_names = set([x for x in reader.get_variable_to_shape_map()])
-      var_list = []
-      for var in self.get_variables():
-        name = var.name
-        if ':' in name:
-          name = name[:name.rfind(':')]
-        if name in var_names:
-          var_list.append(var)
-      saver = tf.train.Saver(var_list=var_list)
-      saver.restore(self.session, checkpoint)
+      self._get_tf('Checkpoint').restore(checkpoint).run_restore_ops(
+          self.session)
 
   def get_num_tasks(self):
     return len(self.default_outputs)
