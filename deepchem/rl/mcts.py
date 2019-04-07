@@ -117,6 +117,13 @@ class MCTS(object):
     (self._graph, self._features, self._pred_prob, self._pred_value,
      self._search_prob, self._search_value) = self._build_graph(
          None, 'global', model_dir)
+    with self._graph._get_tf("Graph").as_default():
+      with tf.variable_scope('global'):
+        self._checkpoint = tf.train.Checkpoint()
+        self._checkpoint.save_counter  # Ensure the variable has been created
+      self._checkpoint.listed = tf.get_collection(
+          tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
+      self._graph.session.run(self._checkpoint.save_counter.initializer)
 
   def _build_graph(self, tf_graph, scope, model_dir):
     """Construct a TensorGraph containing the policy and loss calculations."""
@@ -211,24 +218,21 @@ class MCTS(object):
         self.restore()
       variables = tf.get_collection(
           tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
-      saver = tf.train.Saver(variables, max_to_keep=max_checkpoints_to_keep)
-      self._checkpoint_index = 0
+      manager = tf.train.CheckpointManager(
+          self._checkpoint, self._graph.model_dir, max_checkpoints_to_keep)
       self._checkpoint_time = time.time() + checkpoint_interval
 
       # Run the algorithm.
 
       for iteration in range(iterations):
-        buffer = self._run_episodes(steps_per_iteration, temperature, saver,
+        buffer = self._run_episodes(steps_per_iteration, temperature, manager,
                                     adapt_puct)
         self._optimize_policy(buffer, epochs_per_iteration)
 
       # Save a file checkpoint.
 
-      self._checkpoint_index += 1
-      saver.save(
-          self._graph.session,
-          self._graph.save_file,
-          global_step=self._checkpoint_index)
+      with self._graph.session.as_default():
+        manager.save()
 
   def predict(self, state):
     """Compute the policy's output predictions for a state.
@@ -283,10 +287,8 @@ class MCTS(object):
     if last_checkpoint is None:
       raise ValueError('No checkpoint found')
     with self._graph._get_tf("Graph").as_default():
-      variables = tf.get_collection(
-          tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
-      saver = tf.train.Saver(variables)
-      saver.restore(self._graph.session, last_checkpoint)
+      self._checkpoint.restore(last_checkpoint).run_restore_ops(
+          self._graph.session)
 
   def _create_feed_dict(self, state):
     """Create a feed dict for use by predict() or select_action()."""
@@ -294,7 +296,7 @@ class MCTS(object):
                      for f, s in zip(self._features, state))
     return feed_dict
 
-  def _run_episodes(self, steps, temperature, saver, adapt_puct):
+  def _run_episodes(self, steps, temperature, manager, adapt_puct):
     """Simulate the episodes for one iteration."""
     buffer = []
     self._env.reset()
@@ -313,11 +315,8 @@ class MCTS(object):
       else:
         root = root.children[action]
       if time.time() > self._checkpoint_time:
-        self._checkpoint_index += 1
-        saver.save(
-            self._graph.session,
-            self._graph.save_file,
-            global_step=self._checkpoint_index)
+        with self._graph.session.as_default():
+          manager.save()
         self._checkpoint_time = time.time()
     return buffer
 

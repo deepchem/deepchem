@@ -167,6 +167,13 @@ class A3C(object):
     with self._graph._get_tf("Graph").as_default():
       self._session = tf.Session()
     self._rnn_states = self._graph.rnn_zero_states
+    with self._graph._get_tf("Graph").as_default():
+      with tf.variable_scope('global'):
+        self._checkpoint = tf.train.Checkpoint()
+        self._checkpoint.save_counter  # Ensure the variable has been created
+      self._checkpoint.listed = tf.get_collection(
+          tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
+      self._session.run(self._checkpoint.save_counter.initializer)
 
   def _build_graph(self, tf_graph, scope, model_dir):
     """Construct a TensorGraph containing the policy and loss calculations."""
@@ -260,15 +267,14 @@ class A3C(object):
         thread.start()
       variables = tf.get_collection(
           tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
-      saver = tf.train.Saver(variables, max_to_keep=max_checkpoints_to_keep)
-      checkpoint_index = 0
+      manager = tf.train.CheckpointManager(
+          self._checkpoint, self._graph.model_dir, max_checkpoints_to_keep)
       while True:
         threads = [t for t in threads if t.isAlive()]
         if len(threads) > 0:
           threads[0].join(checkpoint_interval)
-        checkpoint_index += 1
-        saver.save(
-            self._session, self._graph.save_file, global_step=checkpoint_index)
+        with self._session.as_default():
+          manager.save()
         if len(threads) == 0:
           break
 
@@ -349,10 +355,7 @@ class A3C(object):
     if last_checkpoint is None:
       raise ValueError('No checkpoint found')
     with self._graph._get_tf("Graph").as_default():
-      variables = tf.get_collection(
-          tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
-      saver = tf.train.Saver(variables)
-      saver.restore(self._session, last_checkpoint)
+      self._checkpoint.restore(last_checkpoint).run_restore_ops(self._session)
 
   def _create_feed_dict(self, state, use_saved_states):
     """Create a feed dict for use by predict() or select_action()."""
@@ -501,8 +504,7 @@ class _Worker(object):
                          1] += self.a3c.discount_factor * discounted_rewards[j]
       advantages[
           j -
-          1] += self.a3c.discount_factor * self.a3c.advantage_lambda * advantages[
-              j]
+          1] += self.a3c.discount_factor * self.a3c.advantage_lambda * advantages[j]
 
     # Record the actions, converting to one-hot if necessary.
 

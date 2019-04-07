@@ -487,7 +487,8 @@ class ANIRegression(TensorGraph):
 
         val = npo[k]
         tensor = g.get_tensor_by_name(k)
-        all_ops.append(tf.assign(tensor, val))
+        if tensor.dtype != tf.resource:  # workaround for save_counter incorrectly being marked as a trainable variable
+          all_ops.append(tf.assign(tensor, val))
 
       obj.session.run(all_ops)
 

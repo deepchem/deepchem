@@ -172,9 +172,8 @@ class GAN(TensorGraph):
       weight_products = layers.Reshape(
           (n_generators * n_discriminators,),
           in_layers=layers.Reshape(
-              (n_discriminators,
-               1), in_layers=discrim_weights) * layers.Reshape(
-                   (1, n_generators), in_layers=gen_weights))
+              (n_discriminators, 1), in_layers=discrim_weights) *
+          layers.Reshape((1, n_generators), in_layers=gen_weights))
       total_gen_loss = layers.WeightedError((layers.Stack(gen_losses, axis=0),
                                              weight_products))
       total_discrim_loss = layers.WeightedError((layers.Stack(
@@ -376,7 +375,8 @@ class GAN(TensorGraph):
     time1 = time.time()
     with self._get_tf("Graph").as_default():
       if checkpoint_interval > 0:
-        saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
+        manager = tf.train.CheckpointManager(
+            self._get_tf('Checkpoint'), self.model_dir, max_checkpoints_to_keep)
       for feed_dict in batches:
         # Every call to fit_generator() will increment global_step, but we only
         # want it to get incremented once for the entire batch, so record the
@@ -413,7 +413,7 @@ class GAN(TensorGraph):
         # Write checkpoints and report progress.
 
         if discrim_average_steps == checkpoint_interval:
-          saver.save(self.session, self.save_file, global_step=self.global_step)
+          self._exec_with_session(lambda: manager.save())
           discrim_loss = discrim_error / max(1, discrim_average_steps)
           gen_loss = gen_error / max(1, gen_average_steps)
           print(
@@ -433,7 +433,7 @@ class GAN(TensorGraph):
           print(
               'Ending global_step %d: generator average loss %g, discriminator average loss %g'
               % (self.global_step, gen_loss, discrim_loss))
-        saver.save(self.session, self.save_file, global_step=self.global_step)
+        self._exec_with_session(lambda: manager.save())
         time2 = time.time()
         print("TIMING: model fitting took %0.3f s" % (time2 - time1))
 
