@@ -24,7 +24,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       result = layer(input)
       self.assertEqual(result.shape[0], batch_size)
       self.assertEqual(result.shape[2], filters)
-      assert len(layer.variables) == 2
+      assert len(layer.trainable_variables) == 2
 
       # Creating a second layer should produce different results, since it has
       # different random weights.
@@ -48,7 +48,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.Dense(out_dim)
       result = layer(input)
       assert result.shape == (batch_size, out_dim)
-      assert len(layer.variables) == 2
+      assert len(layer.trainable_variables) == 2
 
       # Creating a second layer should produce different results, since it has
       # different random weights.
@@ -71,7 +71,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.Highway()
       result = layer(input)
       assert result.shape == (batch_size, width)
-      assert len(layer.variables) == 4
+      assert len(layer.trainable_variables) == 4
 
       # Creating a second layer should produce different results, since it has
       # different random weights.
@@ -160,7 +160,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.GRU(n_hidden, batch_size)
       result, state = layer(input)
       assert result.shape == (batch_size, n_steps, n_hidden)
-      assert len(layer.variables) == 3
+      assert len(layer.trainable_variables) == 3
 
       # Creating a second layer should produce different results, since it has
       # different random weights.
@@ -192,7 +192,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.LSTM(n_hidden, batch_size)
       result, state = layer(input)
       assert result.shape == (batch_size, n_steps, n_hidden)
-      assert len(layer.variables) == 3
+      assert len(layer.trainable_variables) == 3
 
       # Creating a second layer should produce different results, since it has
       # different random weights.
@@ -223,7 +223,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.TimeSeriesDense(out_dim)
       result = layer(input)
       assert result.shape == (batch_size, n_steps, out_dim)
-      assert len(layer.variables) == 2
+      assert len(layer.trainable_variables) == 2
 
       # Creating a second layer should produce different results, since it has
       # different random weights.
@@ -313,7 +313,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.Variable(value)
       result = layer()
       assert np.array_equal(result.numpy(), value)
-      assert len(layer.variables) == 1
+      assert len(layer.trainable_variables) == 1
 
   def test_add(self):
     """Test invoking Add in eager mode."""
@@ -445,7 +445,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.Conv2D(filters, kernel_size=kernel_size)
       result = layer(input)
       assert result.shape == (batch_size, length, width, filters)
-      assert len(layer.variables) == 2
+      assert len(layer.trainable_variables) == 2
 
       # Creating a second layer should produce different results, since it has
       # different random weights.
@@ -474,7 +474,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.Conv3D(filters, kernel_size=kernel_size)
       result = layer(input)
       assert result.shape == (batch_size, length, width, depth, filters)
-      assert len(layer.variables) == 2
+      assert len(layer.trainable_variables) == 2
 
       # Creating a second layer should produce different results, since it has
       # different random weights.
@@ -505,7 +505,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       result = layer(input)
       assert result.shape == (batch_size, length * stride, width * stride,
                               filters)
-      assert len(layer.variables) == 2
+      assert len(layer.trainable_variables) == 2
 
       # Creating a second layer should produce different results, since it has
       # different random weights.
@@ -538,7 +538,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       result = layer(input)
       assert result.shape == (batch_size, length * stride, width * stride,
                               depth * stride, filters)
-      assert len(layer.variables) == 2
+      assert len(layer.trainable_variables) == 2
 
       # Creating a second layer should produce different results, since it has
       # different random weights.
@@ -593,7 +593,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.GraphConv(out_channels)
       result = layer(*args)
       assert result.shape == (n_atoms, out_channels)
-      assert len(layer.variables) == 2 * layer.num_deg
+      assert len(layer.trainable_variables) == 2 * layer.num_deg
 
   def test_graph_pool(self):
     """Test invoking GraphPool in eager mode."""
@@ -650,7 +650,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       assert h_out.shape == (n_test, n_feat)
       assert h_copy_out.shape == (n_test, n_feat)
       assert c_out.shape == (n_test, n_feat)
-      assert len(layer.variables) == 3
+      assert len(layer.trainable_variables) == 3
 
   def test_attn_lstm_embedding(self):
     """Test invoking AttnLSTMEmbedding in eager mode."""
@@ -665,7 +665,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       test_out, support_out = layer(test, support)
       assert test_out.shape == (n_test, n_feat)
       assert support_out.shape == (n_support, n_feat)
-      assert len(layer.variables) == 7
+      assert len(layer.trainable_variables) == 7
 
   def test_iter_ref_lstm_embedding(self):
     """Test invoking AttnLSTMEmbedding in eager mode."""
@@ -680,7 +680,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       test_out, support_out = layer(test, support)
       assert test_out.shape == (n_test, n_feat)
       assert support_out.shape == (n_support, n_feat)
-      assert len(layer.variables) == 12
+      assert len(layer.trainable_variables) == 12
 
   def test_batch_norm(self):
     """Test invoking BatchNorm in eager mode."""
@@ -691,7 +691,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.BatchNorm()
       result = layer(input)
       assert result.shape == (batch_size, n_features)
-      assert len(layer.variables) == 4
+      assert len(layer.trainable_variables) == 2
 
   def test_weighted_error(self):
     """Test invoking WeightedError in eager mode."""
@@ -716,7 +716,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.VinaFreeEnergy(n_atoms, m_nbrs, ndim, nbr_cutoff, start,
                                     stop)
       result = layer(X, Z)
-      assert len(layer.variables) == 6
+      assert len(layer.trainable_variables) == 6
       assert result.shape == tuple()
 
       # Creating a second layer should produce different results, since it has
@@ -739,8 +739,8 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       input2 = np.random.rand(5, 10).astype(np.float32)
       layer = layers.WeightedLinearCombo()
       result = layer(input1, input2)
-      assert len(layer.variables) == 2
-      expected = input1 * layer.variables[0] + input2 * layer.variables[1]
+      assert len(layer.trainable_variables) == 2
+      expected = input1 * layer.trainable_variables[0] + input2 * layer.trainable_variables[1]
       assert np.allclose(result, expected)
 
   def test_neighbor_list(self):
@@ -789,7 +789,7 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.AtomicConvolution(radial_params=params)
       result = layer(input1, input2, input3)
       assert result.shape == (batch_size, max_atoms, len(params))
-      assert len(layer.variables) == 3
+      assert len(layer.trainable_variables) == 3
 
   def test_alpha_share_layer(self):
     """Test invoking AlphaShareLayer in eager mode."""

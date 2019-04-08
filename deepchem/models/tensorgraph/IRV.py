@@ -64,7 +64,7 @@ class IRVLayer(Layer):
     out_tensor = tf.concat(outputs, axis=1)
 
     if set_tensors:
-      self.variables = self.trainable_weights
+      self.trainable_variables = self.trainable_weights
       self.out_tensor = out_tensor
     return out_tensor
 
@@ -72,12 +72,12 @@ class IRVLayer(Layer):
     V, W, b, b2 = self.V, self.W, self.b, self.b2
     self.V, self.W, self.b, self.b2 = None, None, None, None
 
-    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
-    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.trainable_variables
+    self.out_tensor, self.trainable_weights, self.trainable_variables = None, [], []
     return V, W, b, b2, out_tensor, trainable_weights, variables
 
   def set_tensors(self, tensor):
-    self.V, self.W, self.b, self.b2, self.out_tensor, self.trainable_weights, self.variables = tensor
+    self.V, self.W, self.b, self.b2, self.out_tensor, self.trainable_weights, self.trainable_variables = tensor
 
 
 class IRVRegularize(Layer):
