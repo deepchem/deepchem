@@ -122,37 +122,6 @@ class TestANIRegression(unittest.TestCase):
     assert min_coords[2][1] == new_x[7]
     assert min_coords[2][2] == new_x[8]
 
-  def test_numpy_save_load(self):
-
-    self.model.save_numpy()
-    restored_model = ANIRegression.load_numpy(self.model_dir)
-
-    new_x = np.array([
-        -2.0,
-        1.2,
-        2.1,
-        1.3,
-        -6.4,
-        3.1,
-        -2.5,
-        2.4,
-        5.6,
-    ])
-
-    new_atomic_nums = np.array([1, 1, 6])
-
-    expected = self.model.pred_one(new_x, new_atomic_nums)
-    predicted = restored_model.pred_one(new_x, new_atomic_nums)
-
-    assert self.model.n_tasks == restored_model.n_tasks
-    assert self.model.max_atoms == restored_model.max_atoms
-    assert self.model.layer_structures == restored_model.layer_structures
-    assert self.model.atom_number_cases == restored_model.atom_number_cases
-    assert self.model.batch_size == restored_model.batch_size
-    assert self.model.use_queue == restored_model.use_queue
-
-    assert expected == predicted
-
 
 if __name__ == '__main__':
   unittest.main()
