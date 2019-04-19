@@ -201,7 +201,7 @@ class TensorGraph(Model):
           if submodel.layers is not None:
             submodel_vars = set()
             for layer in submodel.layers:
-              for var in layer.variables:
+              for var in layer.trainable_variables:
                 submodel_vars.add(var)
         val_grad_fn = tfe.implicit_value_and_gradients(
             lambda x: self._run_graph([loss], x, True)[0])
@@ -701,7 +701,8 @@ class TensorGraph(Model):
 
         for layer in self.layers.values():
           if layer.variable_values is not None:
-            for var, val in zip(layer.variables, layer.variable_values):
+            for var, val in zip(layer.trainable_variables,
+                                layer.variable_values):
               var.assign(val)
       self.session = None
       self._training_placeholder = None
@@ -975,12 +976,9 @@ class TensorGraph(Model):
     if not self.built:
       self.build()
     with self._get_tf("Graph").as_default():
-      if tf.executing_eagerly():
-        return layer.variables
-      if layer.variable_scope == '':
-        return []
-      return tf.get_collection(
-          tf.GraphKeys.TRAINABLE_VARIABLES, scope=layer.variable_scope)
+      if layer.trainable_variables is not None:
+        return layer.trainable_variables
+      return []
 
   def get_layer_variable_values(self, layer):
     """Get the variable values associated with a given layer """
@@ -1000,7 +998,7 @@ class TensorGraph(Model):
     if tf.executing_eagerly():
       variables = []
       for layer in self.layers.values():
-        variables += layer.variables
+        variables += layer.trainable_variables
       return variables
     else:
       with self._get_tf("Graph").as_default():

@@ -44,7 +44,7 @@ def load_roiterberg_ANI(mode="atomization"):
   -------
   tuples
     Elements returned are 3-tuple (a,b,c) where and b are the train and test datasets, respectively,
-    and c is an array of indices denoting the group of each 
+    and c is an array of indices denoting the group of each
 
   """
   if "ROITBERG_ANI" not in os.environ:
@@ -202,66 +202,58 @@ if __name__ == "__main__":
       dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
   ]
 
-  if os.path.exists(model_dir):
-    print("Restoring existing model...")
-    model = dc.models.ANIRegression.load_numpy(model_dir=model_dir)
-  else:
-    print("Fitting new model...")
+  print("Fitting new model...")
 
-    train_valid_dataset, test_dataset, all_groups = load_roiterberg_ANI(
-        mode="atomization")
+  train_valid_dataset, test_dataset, all_groups = load_roiterberg_ANI(
+      mode="atomization")
 
-    splitter = dc.splits.RandomGroupSplitter(
-        broadcast(train_valid_dataset, all_groups))
+  splitter = dc.splits.RandomGroupSplitter(
+      broadcast(train_valid_dataset, all_groups))
 
-    print("Performing 1-fold split...")
-    train_dataset, valid_dataset = splitter.train_test_split(
-        train_valid_dataset, train_dir=train_dir, test_dir=valid_dir)
+  print("Performing 1-fold split...")
+  train_dataset, valid_dataset = splitter.train_test_split(
+      train_valid_dataset, train_dir=train_dir, test_dir=valid_dir)
 
-    transformers = [
-        dc.trans.NormalizationTransformer(
-            transform_y=True, dataset=train_dataset)
-    ]
+  transformers = [
+      dc.trans.NormalizationTransformer(
+          transform_y=True, dataset=train_dataset)
+  ]
 
-    print("Total training set shape: ", train_dataset.get_shape())
+  print("Total training set shape: ", train_dataset.get_shape())
 
-    for transformer in transformers:
-      train_dataset = transformer.transform(train_dataset)
-      valid_dataset = transformer.transform(valid_dataset)
-      test_dataset = transformer.transform(test_dataset)
+  for transformer in transformers:
+    train_dataset = transformer.transform(train_dataset)
+    valid_dataset = transformer.transform(valid_dataset)
+    test_dataset = transformer.transform(test_dataset)
 
-    model = dc.models.ANIRegression(
-        1,
-        max_atoms,
-        layer_structures=layer_structures,
-        atom_number_cases=atom_number_cases,
-        batch_size=batch_size,
-        learning_rate=0.001,
-        use_queue=True,
-        model_dir=model_dir,
-        mode="regression")
+  model = dc.models.ANIRegression(
+      1,
+      max_atoms,
+      layer_structures=layer_structures,
+      atom_number_cases=atom_number_cases,
+      batch_size=batch_size,
+      learning_rate=0.001,
+      use_queue=True,
+      model_dir=model_dir,
+      mode="regression")
 
-    #   # For production, set nb_epoch to 100+
-    for i in range(10):
-      model.fit(train_dataset, nb_epoch=1, checkpoint_interval=100)
+  #   # For production, set nb_epoch to 100+
+  for i in range(10):
+    model.fit(train_dataset, nb_epoch=1, checkpoint_interval=100)
 
-      print("Saving model...")
-      model.save_numpy()
-      print("Done.")
+  print("Evaluating model")
+  train_scores = model.evaluate(train_dataset, metric, transformers)
+  valid_scores = model.evaluate(valid_dataset, metric, transformers)
+  test_scores = model.evaluate(test_dataset, metric, transformers)
 
-    print("Evaluating model")
-    train_scores = model.evaluate(train_dataset, metric, transformers)
-    valid_scores = model.evaluate(valid_dataset, metric, transformers)
-    test_scores = model.evaluate(test_dataset, metric, transformers)
+  # print("Train scores")
+  # print(train_scores)
 
-    # print("Train scores")
-    # print(train_scores)
+  print("Validation scores")
+  print(valid_scores)
 
-    print("Validation scores")
-    print(valid_scores)
-
-    print("Test scores")
-    print(test_scores)
+  print("Test scores")
+  print(test_scores)
 
   coords = np.array([
       [0.3, 0.4, 0.5],

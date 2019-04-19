@@ -166,7 +166,7 @@ class WeaveLayer(Layer):
 
     self.out_tensors = [A, P]
     if set_tensors:
-      self.variables = self.trainable_weights
+      self.trainable_variables = self.trainable_weights
       self.out_tensor = A
     return self.out_tensors
 
@@ -177,8 +177,8 @@ class WeaveLayer(Layer):
     W_AA, b_AA, W_PA, b_PA, W_A, b_A = self.W_AA, self.b_AA, self.W_PA, self.b_PA, self.W_A, self.b_A
     self.W_AA, self.b_AA, self.W_PA, self.b_PA, self.W_A, self.b_A = None, None, None, None, None, None
 
-    out_tensor, out_tensors, trainable_weights, variables = self.out_tensor, self.out_tensors, self.trainable_weights, self.variables
-    self.out_tensor, self.out_tensors, self.trainable_weights, self.variables = None, [], [], []
+    out_tensor, out_tensors, trainable_weights, variables = self.out_tensor, self.out_tensors, self.trainable_weights, self.trainable_variables
+    self.out_tensor, self.out_tensors, self.trainable_weights, self.trainable_variables = None, [], [], []
 
     return W_AP, b_AP, W_PP, W_PP, W_P, b_P, \
            W_AA, b_AA, W_PA, b_PA, W_A, b_A, \
@@ -187,7 +187,7 @@ class WeaveLayer(Layer):
   def set_tensors(self, tensor):
     self.W_AP, self.b_AP, self.W_PP, self.W_PP, self.W_P, self.b_P, \
     self.W_AA, self.b_AA, self.W_PA, self.b_PA, self.W_A, self.b_A, \
-    self.out_tensor, self.out_tensors, self.trainable_weights, self.variables = tensor
+    self.out_tensor, self.out_tensors, self.trainable_weights, self.trainable_variables = tensor
 
 
 def WeaveLayerFactory(**kwargs):
@@ -266,7 +266,7 @@ class WeaveGather(Layer):
 
     out_tensor = output_molecules
     if set_tensors:
-      self.variables = self.trainable_weights
+      self.trainable_variables = self.trainable_weights
       self.out_tensor = out_tensor
     return out_tensor
 
@@ -290,12 +290,12 @@ class WeaveGather(Layer):
     W, b = self.W, self.b
     self.W, self.b = None, None
 
-    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
-    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.trainable_variables
+    self.out_tensor, self.trainable_weights, self.trainable_variables = None, [], []
     return W, b, out_tensor, trainable_weights, variables
 
   def set_tensors(self, tensor):
-    self.W, self.b, self.out_tensor, self.trainable_weights, self.variables = tensor
+    self.W, self.b, self.out_tensor, self.trainable_weights, self.trainable_variables = tensor
 
 
 class DTNNEmbedding(Layer):
@@ -341,19 +341,19 @@ class DTNNEmbedding(Layer):
     atom_features = tf.nn.embedding_lookup(self.embedding_list, atom_number)
     out_tensor = atom_features
     if set_tensors:
-      self.variables = self.trainable_weights
+      self.trainable_variables = self.trainable_weights
       self.out_tensor = atom_features
     return out_tensor
 
   def none_tensors(self):
     embedding_list = self.embedding_list
     self.embedding_list = None
-    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
-    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.trainable_variables
+    self.out_tensor, self.trainable_weights, self.trainable_variables = None, [], []
     return embedding_list, out_tensor, trainable_weights, variables
 
   def set_tensors(self, tensor):
-    self.embedding_list, self.out_tensor, self.trainable_weights, self.variables = tensor
+    self.embedding_list, self.out_tensor, self.trainable_weights, self.trainable_variables = tensor
 
 
 class DTNNStep(Layer):
@@ -436,19 +436,19 @@ class DTNNStep(Layer):
                              distance_membership_i) - output_ii + atom_features
     out_tensor = outputs
     if set_tensors:
-      self.variables = self.trainable_weights
+      self.trainable_variables = self.trainable_weights
       self.out_tensor = out_tensor
     return out_tensor
 
   def none_tensors(self):
     W_cf, W_df, W_fc, b_cf, b_df = self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df
     self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df = None, None, None, None, None
-    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
-    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.trainable_variables
+    self.out_tensor, self.trainable_weights, self.trainable_variables = None, [], []
     return W_cf, W_df, W_fc, b_cf, b_df, out_tensor, trainable_weights, variables
 
   def set_tensors(self, tensor):
-    self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df, self.out_tensor, self.trainable_weights, self.variables = tensor
+    self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df, self.out_tensor, self.trainable_weights, self.trainable_variables = tensor
 
 
 class DTNNGather(Layer):
@@ -524,19 +524,19 @@ class DTNNGather(Layer):
     output = tf.segment_sum(output, atom_membership)
     out_tensor = output
     if set_tensors:
-      self.variables = self.trainable_weights
+      self.trainable_variables = self.trainable_weights
       self.out_tensor = out_tensor
     return out_tensor
 
   def none_tensors(self):
     W_list, b_list = self.W_list, self.b_list
     self.W_list, self.b_list = [], []
-    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
-    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.trainable_variables
+    self.out_tensor, self.trainable_weights, self.trainable_variables = None, [], []
     return W_list, b_list, out_tensor, trainable_weights, variables
 
   def set_tensors(self, tensor):
-    self.W_list, self.b_list, self.out_tensor, self.trainable_weights, self.variables = tensor
+    self.W_list, self.b_list, self.out_tensor, self.trainable_weights, self.trainable_variables = tensor
 
 
 class DTNNExtract(Layer):
@@ -694,7 +694,7 @@ class DAGLayer(Layer):
 
     out_tensor = batch_outputs
     if set_tensors:
-      self.variables = self.trainable_weights
+      self.trainable_variables = self.trainable_weights
       self.out_tensor = out_tensor
     return out_tensor
 
@@ -711,12 +711,12 @@ class DAGLayer(Layer):
   def none_tensors(self):
     W_list, b_list = self.W_list, self.b_list
     self.W_list, self.b_list = [], []
-    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
-    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.trainable_variables
+    self.out_tensor, self.trainable_weights, self.trainable_variables = None, [], []
     return W_list, b_list, out_tensor, trainable_weights, variables
 
   def set_tensors(self, tensor):
-    self.W_list, self.b_list, self.out_tensor, self.trainable_weights, self.variables = tensor
+    self.W_list, self.b_list, self.out_tensor, self.trainable_weights, self.trainable_variables = tensor
 
 
 class DAGGather(Layer):
@@ -803,7 +803,7 @@ class DAGGather(Layer):
                                  **kwargs)
     out_tensor = outputs
     if set_tensors:
-      self.variables = self.trainable_weights
+      self.trainable_variables = self.trainable_weights
       self.out_tensor = out_tensor
     return out_tensor
 
@@ -820,12 +820,12 @@ class DAGGather(Layer):
   def none_tensors(self):
     W_list, b_list = self.W_list, self.b_list
     self.W_list, self.b_list = [], []
-    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
-    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.trainable_variables
+    self.out_tensor, self.trainable_weights, self.trainable_variables = None, [], []
     return W_list, b_list, out_tensor, trainable_weights, variables
 
   def set_tensors(self, tensor):
-    self.W_list, self.b_list, self.out_tensor, self.trainable_weights, self.variables = tensor
+    self.W_list, self.b_list, self.out_tensor, self.trainable_weights, self.trainable_variables = tensor
 
 
 class MessagePassing(Layer):
@@ -898,19 +898,19 @@ class MessagePassing(Layer):
     out_tensor = out
 
     if set_tensors:
-      self.variables = self.trainable_weights
+      self.trainable_variables = self.trainable_weights
       self.out_tensor = out_tensor
     return out_tensor
 
   def none_tensors(self):
     message_tensors = self.message_function.none_tensors()
     update_tensors = self.update_function.none_tensors()
-    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
-    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.trainable_variables
+    self.out_tensor, self.trainable_weights, self.trainable_variables = None, [], []
     return message_tensors, update_tensors, out_tensor, trainable_weights, variables
 
   def set_tensors(self, tensor):
-    message_tensors, update_tensors, self.out_tensor, self.trainable_weights, self.variables = tensor
+    message_tensors, update_tensors, self.out_tensor, self.trainable_weights, self.trainable_variables = tensor
     self.message_function.set_tensors(message_tensors)
     self.update_function.set_tensors(update_tensors)
 
@@ -1048,7 +1048,7 @@ class SetGather(Layer):
 
     out_tensor = q_star
     if set_tensors:
-      self.variables = self.trainable_weights
+      self.trainable_variables = self.trainable_weights
       self.out_tensor = out_tensor
     return out_tensor
 
@@ -1067,9 +1067,9 @@ class SetGather(Layer):
   def none_tensors(self):
     U, b, c, h = self.U, self.b, self.c, self.h
     self.U, self.b, self.c, self.h = None, None, None, None
-    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
-    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.trainable_variables
+    self.out_tensor, self.trainable_weights, self.trainable_variables = None, [], []
     return U, b, c, h, out_tensor, trainable_weights, variables
 
   def set_tensors(self, tensor):
-    self.U, self.b, self.c, self.h, self.out_tensor, self.trainable_weights, self.variables = tensor
+    self.U, self.b, self.c, self.h, self.out_tensor, self.trainable_weights, self.trainable_variables = tensor
