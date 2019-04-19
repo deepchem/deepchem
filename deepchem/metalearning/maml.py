@@ -101,6 +101,7 @@ class MAML(object):
     """
     # Record inputs.
 
+    raise Exception('MAML does not currently work correctly.  It needs to be rewritten to be compatible with modern TensorFlow')
     self.learner = learner
     if isinstance(learner.loss, Layer):
       self._loss = learner.loss.out_tensor
