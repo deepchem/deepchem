@@ -670,7 +670,7 @@ class Dense(KerasLayer):
     return out_tensor
 
 
-class Highway(Layer):
+class Highway(KerasLayer):
   """ Create a highway layer. y = H(x) * T(x) + x * (1 - T(x))
   H(x) = activation_fn(matmul(W_H, x) + b_H) is the non-linear transformed output
   T(x) = sigmoid(matmul(W_T, x) + b_T) is the transform gate
@@ -707,45 +707,9 @@ class Highway(Layer):
     except:
       pass
 
-  def _build_layers(self, out_channels):
-    if self.biases_initializer is None:
-      biases_initializer = None
-    else:
-      biases_initializer = self.biases_initializer()
-    dense_H = tf.keras.layers.Dense(
-        out_channels,
-        activation=self.activation_fn,
-        bias_initializer=biases_initializer,
-        kernel_initializer=self.weights_initializer())
-    dense_T = tf.keras.layers.Dense(
-        out_channels,
-        activation=tf.nn.sigmoid,
-        bias_initializer=tf.constant_initializer(-1),
-        kernel_initializer=self.weights_initializer())
-    return (dense_H, dense_T)
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-    parent = inputs[0]
-    out_channels = parent.get_shape().as_list()[1]
-    if tf.executing_eagerly():
-      if not self._built:
-        self._layers = self._build_layers(out_channels)
-        self._non_pickle_fields.append('_layers')
-      layers = self._layers
-    else:
-      layers = self._build_layers(out_channels)
-    dense_H = layers[0](parent)
-    dense_T = layers[1](parent)
-    out_tensor = tf.multiply(dense_H, dense_T) + tf.multiply(
-        parent, 1 - dense_T)
-    if set_tensors:
-      self.out_tensor = out_tensor
-      self.trainable_variables = layers[0].trainable_variables + layers[1].trainable_variables
-    if tf.executing_eagerly() and not self._built:
-      self._built = True
-      self.trainable_variables = layers[0].trainable_variables + layers[1].trainable_variables
-    return out_tensor
+  def _build_layer(self):
+    return deepchem.models.layers.Highway(
+        self.activation_fn, self.biases_initializer, self.weights_initializer)
 
 
 class Flatten(Layer):

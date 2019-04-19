@@ -63,10 +63,10 @@ from deepchem.models.tensorgraph.IRV import Slice
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 from deepchem.models.tensorgraph.graph_layers import DTNNExtract
 from deepchem.models.tensorgraph.graph_layers import WeaveGather
-from deepchem.models.tensorgraph.graph_layers import GatedRecurrentUnit
-from deepchem.models.tensorgraph.graph_layers import EdgeNetwork
 from deepchem.models.tensorgraph.graph_layers import DTNNGather
 from deepchem.models.tensorgraph.graph_layers import DAGGather
+from deepchem.models.layers import GatedRecurrentUnit
+from deepchem.models.layers import EdgeNetwork
 
 
 class TestLayers(test_util.TensorFlowTestCase):
@@ -950,7 +950,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       # Layer is wrapper around embedding lookup, tested that then
       sess.run(tf.global_variables_initializer())
       out_tensor = dtnn_embedding.out_tensor.eval()
-      embedding_val = dtnn_embedding.embedding_list.eval()
+      embedding_val = dtnn_embedding.trainable_variables[0].eval()
       expected_output = embedding_val[test_tensor_input]
       self.assertAllClose(out_tensor, expected_output)
       self.assertAllClose(out_tensor.shape,
@@ -1023,7 +1023,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       messages_tf = tf.convert_to_tensor(messages_np, dtype=tf.float32)
       inputs_tf = tf.convert_to_tensor(inputs_np, dtype=tf.float32)
       gru = GatedRecurrentUnit(n_hidden=n_hidden, init=init_method)
-      h = gru.forward(inputs_tf, messages_tf)
+      h = gru([inputs_tf, messages_tf])
 
       sess.run(tf.global_variables_initializer())
       h = h.eval()
@@ -1048,13 +1048,11 @@ class TestLayers(test_util.TensorFlowTestCase):
           atom_features_np, dtype=tf.float32)
       atom_to_pair_tf = tf.convert_to_tensor(atom_to_pair_np, dtype=tf.int32)
       edge_network = EdgeNetwork(
-          pair_features=pair_features_tf,
-          n_pair_features=n_pair_features,
-          n_hidden=n_hidden,
-          init=init_method)
-
+          n_pair_features=n_pair_features, n_hidden=n_hidden, init=init_method)
+      edge_network.build([])
       sess.run(tf.global_variables_initializer())
-      output = edge_network.forward(atom_features_tf, atom_to_pair_tf).eval()
+      output = edge_network(
+          [pair_features_tf, atom_features_tf, atom_to_pair_tf]).eval()
       self.assertAllClose(output, expected_output)
       self.assertEqual(output.shape, expected_output.shape)
 
