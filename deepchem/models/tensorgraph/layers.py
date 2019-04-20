@@ -2841,7 +2841,7 @@ class WeightedLinearCombo(KerasLayer):
 
   def __init__(self, in_layers=None, std=.3, **kwargs):
     self.std = std
-    super(WeightedLinearCombo, self).__init__(int_layers=in_layers, **kwargs)
+    super(WeightedLinearCombo, self).__init__(in_layers=in_layers, **kwargs)
     try:
       self._shape = tuple(self.in_layers[0].shape)
     except:
