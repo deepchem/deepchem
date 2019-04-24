@@ -12,19 +12,18 @@ class TestKerasModel(unittest.TestCase):
     n_data_points = 10
     n_features = 2
     X = np.random.rand(n_data_points, n_features).astype(np.float32)
-    y = np.expand_dims(X[:, 0] > X[:, 1], 1).astype(np.float32)
+    y = (X[:, 0] > X[:, 1]).astype(np.float32)
     dataset = dc.data.NumpyDataset(X, y)
     inputs = tf.keras.Input(shape=(n_features,))
     hidden = tf.keras.layers.Dense(10, activation='relu')(inputs)
-    outputs = tf.keras.layers.Dense(1, activation='sigmoid')(hidden)
-    keras_model = tf.keras.Model(inputs=inputs, outputs=outputs)
-
-    def loss_fn(inputs, labels, weights):
-      return tf.reduce_mean(
-          tf.keras.metrics.binary_crossentropy(labels[0],
-                                               keras_model(inputs[0])))
-
-    model = dc.models.KerasModel(keras_model, loss_fn, learning_rate=0.005)
+    logits = tf.keras.layers.Dense(1)(hidden)
+    outputs = tf.keras.layers.Activation('sigmoid')(logits)
+    keras_model = tf.keras.Model(inputs=inputs, outputs=[outputs, logits])
+    model = dc.models.KerasModel(
+        keras_model,
+        dc.models.losses.SigmoidCrossEntropy(),
+        output_types=['prediction', 'loss'],
+        learning_rate=0.005)
     model.fit(dataset, nb_epoch=1000)
     prediction = np.squeeze(model.predict_on_batch(X))
     assert np.all(np.isclose(prediction, y.flatten(), atol=0.4))
@@ -42,19 +41,14 @@ class TestKerasModel(unittest.TestCase):
     n_data_points = 10
     n_features = 2
     X = np.random.rand(n_data_points, n_features).astype(np.float32)
-    y = np.expand_dims(X[:, 0] > X[:, 1], 1).astype(np.float32)
+    y = (X[:, 0] > X[:, 1]).astype(np.float32)
     dataset = dc.data.NumpyDataset(X, y)
     keras_model = tf.keras.Sequential([
         tf.keras.layers.Dense(10, activation='relu'),
         tf.keras.layers.Dense(1, activation='sigmoid')
     ])
-
-    def loss_fn(inputs, labels, weights):
-      return tf.reduce_mean(
-          tf.keras.metrics.binary_crossentropy(labels[0],
-                                               keras_model(inputs[0])))
-
-    model = dc.models.KerasModel(keras_model, loss_fn, learning_rate=0.005)
+    model = dc.models.KerasModel(
+        keras_model, dc.models.losses.BinaryCrossEntropy(), learning_rate=0.005)
     model.fit(dataset, nb_epoch=1000)
     prediction = np.squeeze(model.predict_on_batch(X))
     assert np.all(np.isclose(prediction, y.flatten(), atol=0.4))
