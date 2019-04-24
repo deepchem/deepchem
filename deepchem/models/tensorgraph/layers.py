@@ -6,10 +6,11 @@ import warnings
 from collections import Sequence
 from copy import deepcopy
 
+import deepchem.models.layers
 import tensorflow as tf
 import numpy as np
 
-from deepchem.models.tensorgraph import model_ops, initializations, regularizers, activations
+from deepchem.models.tensorgraph import model_ops, initializations, activations
 import math
 
 from tensorflow.python.ops import math_ops
@@ -402,15 +403,11 @@ def convert_to_layers(in_layers):
   return layers
 
 
-class SharedLayer(Layer):
-  """A Layer that can share variables with another layer via a common internal Keras layer.
-
-  This abstract class can be used as a parent for any layer that implements
-  shared() by this mechanism.  It exists to avoid duplicated code.
-  """
+class KerasLayer(Layer):
+  """A Layer that is implemented internally by Keras layer."""
 
   def __init__(self, **kwargs):
-    super(SharedLayer, self).__init__(**kwargs)
+    super(KerasLayer, self).__init__(**kwargs)
     self._layer = None
     self._shared_with = None
 
@@ -433,6 +430,18 @@ class SharedLayer(Layer):
   def _build_layer(self):
     raise NotImplementedError("Subclasses must implement this")
 
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    layer = self._get_layer(set_tensors)
+    out_tensor = layer(inputs)
+    if set_tensors:
+      self.out_tensor = out_tensor
+      self.trainable_variables = layer.trainable_variables
+    if tf.executing_eagerly() and not self._built:
+      self._built = True
+      self.trainable_variables = layer.trainable_variables
+    return out_tensor
+
 
 def _conv_size(width, size, stride, padding):
   """Compute the output size of a convolutional layer."""
@@ -444,7 +453,7 @@ def _conv_size(width, size, stride, padding):
     raise ValueError('Unknown padding type: %s' % padding)
 
 
-class Conv1D(SharedLayer):
+class Conv1D(KerasLayer):
   """A 1D convolution on the input.
 
   This layer expects its input to be a three dimensional tensor of shape (batch size, width, # channels).
@@ -587,7 +596,7 @@ class Conv1D(SharedLayer):
     return out_tensor
 
 
-class Dense(SharedLayer):
+class Dense(KerasLayer):
 
   def __init__(self,
                out_channels,
@@ -661,7 +670,7 @@ class Dense(SharedLayer):
     return out_tensor
 
 
-class Highway(Layer):
+class Highway(KerasLayer):
   """ Create a highway layer. y = H(x) * T(x) + x * (1 - T(x))
   H(x) = activation_fn(matmul(W_H, x) + b_H) is the non-linear transformed output
   T(x) = sigmoid(matmul(W_T, x) + b_T) is the transform gate
@@ -698,45 +707,9 @@ class Highway(Layer):
     except:
       pass
 
-  def _build_layers(self, out_channels):
-    if self.biases_initializer is None:
-      biases_initializer = None
-    else:
-      biases_initializer = self.biases_initializer()
-    dense_H = tf.keras.layers.Dense(
-        out_channels,
-        activation=self.activation_fn,
-        bias_initializer=biases_initializer,
-        kernel_initializer=self.weights_initializer())
-    dense_T = tf.keras.layers.Dense(
-        out_channels,
-        activation=tf.nn.sigmoid,
-        bias_initializer=tf.constant_initializer(-1),
-        kernel_initializer=self.weights_initializer())
-    return (dense_H, dense_T)
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-    parent = inputs[0]
-    out_channels = parent.get_shape().as_list()[1]
-    if tf.executing_eagerly():
-      if not self._built:
-        self._layers = self._build_layers(out_channels)
-        self._non_pickle_fields.append('_layers')
-      layers = self._layers
-    else:
-      layers = self._build_layers(out_channels)
-    dense_H = layers[0](parent)
-    dense_T = layers[1](parent)
-    out_tensor = tf.multiply(dense_H, dense_T) + tf.multiply(
-        parent, 1 - dense_T)
-    if set_tensors:
-      self.out_tensor = out_tensor
-      self.trainable_variables = layers[0].trainable_variables + layers[1].trainable_variables
-    if tf.executing_eagerly() and not self._built:
-      self._built = True
-      self.trainable_variables = layers[0].trainable_variables + layers[1].trainable_variables
-    return out_tensor
+  def _build_layer(self):
+    return deepchem.models.layers.Highway(
+        self.activation_fn, self.biases_initializer, self.weights_initializer)
 
 
 class Flatten(Layer):
@@ -1682,7 +1655,7 @@ class Exp(Layer):
     return out_tensor
 
 
-class InteratomicL2Distances(Layer):
+class InteratomicL2Distances(KerasLayer):
   """Compute (squared) L2 Distances between atoms given neighbors."""
 
   def __init__(self, N_atoms, M_nbrs, ndim, **kwargs):
@@ -1691,23 +1664,9 @@ class InteratomicL2Distances(Layer):
     self.ndim = ndim
     super(InteratomicL2Distances, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-    if len(inputs) != 2:
-      raise ValueError("InteratomicDistances requires coords,nbr_list")
-    coords, nbr_list = (inputs[0], inputs[1])
-    N_atoms, M_nbrs, ndim = self.N_atoms, self.M_nbrs, self.ndim
-    # Shape (N_atoms, M_nbrs, ndim)
-    nbr_coords = tf.gather(coords, nbr_list)
-    # Shape (N_atoms, M_nbrs, ndim)
-    tiled_coords = tf.tile(
-        tf.reshape(coords, (N_atoms, 1, ndim)), (1, M_nbrs, 1))
-    # Shape (N_atoms, M_nbrs)
-    dists = tf.reduce_sum((tiled_coords - nbr_coords)**2, axis=2)
-    out_tensor = dists
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+  def _build_layer(self):
+    return deepchem.models.layers.InteratomicL2Distances(
+        self.N_atoms, self.M_nbrs, self.ndim)
 
 
 class SparseSoftMaxCrossEntropy(Layer):
@@ -1925,7 +1884,7 @@ class ReduceSquareDifference(Layer):
     return out_tensor
 
 
-class Conv2D(SharedLayer):
+class Conv2D(KerasLayer):
   """A 2D convolution on the input.
 
   This layer expects its input to be a four dimensional tensor of shape (batch size, height, width, # channels).
@@ -2025,7 +1984,7 @@ class Conv2D(SharedLayer):
     return out_tensor
 
 
-class Conv3D(SharedLayer):
+class Conv3D(KerasLayer):
   """A 3D convolution on the input.
 
   This layer expects its input to be a five dimensional tensor of shape
@@ -2129,7 +2088,7 @@ class Conv3D(SharedLayer):
     return out_tensor
 
 
-class Conv2DTranspose(SharedLayer):
+class Conv2DTranspose(KerasLayer):
   """A transposed 2D convolution on the input.
 
   This layer is typically used for upsampling in a deconvolutional network.  It
@@ -2225,7 +2184,7 @@ class Conv2DTranspose(SharedLayer):
     return out_tensor
 
 
-class Conv3DTranspose(SharedLayer):
+class Conv3DTranspose(KerasLayer):
   """A transposed 3D convolution on the input.
 
   This layer is typically used for upsampling in a deconvolutional network.  It
@@ -2510,7 +2469,7 @@ class InputFifoQueue(Layer):
     self._non_pickle_fields += ['queue', 'out_tensors', 'close_op']
 
 
-class GraphConv(Layer):
+class GraphConv(KerasLayer):
 
   def __init__(self,
                out_channel,
@@ -2521,7 +2480,6 @@ class GraphConv(Layer):
     self.out_channel = out_channel
     self.min_degree = min_deg
     self.max_degree = max_deg
-    self.num_deg = 2 * max_deg + (1 - min_deg)
     self.activation_fn = activation_fn
     super(GraphConv, self).__init__(**kwargs)
     try:
@@ -2530,112 +2488,12 @@ class GraphConv(Layer):
     except:
       pass
 
-  def _create_variables(self, in_channels):
-    # Generate the nb_affine weights and biases
-    W_list = [
-        initializations.glorot_uniform(
-            [in_channels, self.out_channel], name='kernel')
-        for k in range(self.num_deg)
-    ]
-    b_list = [
-        model_ops.zeros(shape=[
-            self.out_channel,
-        ], name='bias') for k in range(self.num_deg)
-    ]
-    return (W_list, b_list)
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-    # in_layers = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
-    in_channels = inputs[0].get_shape()[-1].value
-    if tf.executing_eagerly():
-      if not self._built:
-        W_list, b_list = self._create_variables(in_channels)
-        self.trainable_variables = W_list + b_list
-        self._built = True
-      else:
-        W_list = self.trainable_variables[:self.num_deg]
-        b_list = self.trainable_variables[self.num_deg:]
-    else:
-      W_list, b_list = self._create_variables(in_channels)
-
-    # Extract atom_features
-    atom_features = inputs[0]
-
-    # Extract graph topology
-    deg_slice = inputs[1]
-    deg_adj_lists = inputs[3:]
-
-    # Perform the mol conv
-    # atom_features = graph_conv(atom_features, deg_adj_lists, deg_slice,
-    #                            self.max_deg, self.min_deg, W_list,
-    #                            b_list)
-
-    W = iter(W_list)
-    b = iter(b_list)
-
-    # Sum all neighbors using adjacency matrix
-    deg_summed = self.sum_neigh(atom_features, deg_adj_lists)
-
-    # Get collection of modified atom features
-    new_rel_atoms_collection = (self.max_degree + 1 - self.min_degree) * [None]
-
-    for deg in range(1, self.max_degree + 1):
-      # Obtain relevant atoms for this degree
-      rel_atoms = deg_summed[deg - 1]
-
-      # Get self atoms
-      begin = tf.stack([deg_slice[deg - self.min_degree, 0], 0])
-      size = tf.stack([deg_slice[deg - self.min_degree, 1], -1])
-      self_atoms = tf.slice(atom_features, begin, size)
-
-      # Apply hidden affine to relevant atoms and append
-      rel_out = tf.matmul(rel_atoms, next(W)) + next(b)
-      self_out = tf.matmul(self_atoms, next(W)) + next(b)
-      out = rel_out + self_out
-
-      new_rel_atoms_collection[deg - self.min_degree] = out
-
-    # Determine the min_deg=0 case
-    if self.min_degree == 0:
-      deg = 0
-
-      begin = tf.stack([deg_slice[deg - self.min_degree, 0], 0])
-      size = tf.stack([deg_slice[deg - self.min_degree, 1], -1])
-      self_atoms = tf.slice(atom_features, begin, size)
-
-      # Only use the self layer
-      out = tf.matmul(self_atoms, next(W)) + next(b)
-
-      new_rel_atoms_collection[deg - self.min_degree] = out
-
-    # Combine all atoms back into the list
-    atom_features = tf.concat(axis=0, values=new_rel_atoms_collection)
-
-    if self.activation_fn is not None:
-      atom_features = self.activation_fn(atom_features)
-
-    out_tensor = atom_features
-    if set_tensors:
-      self.out_tensor = out_tensor
-      self.trainable_variables = W_list + b_list
-    return out_tensor
-
-  def sum_neigh(self, atoms, deg_adj_lists):
-    """Store the summed atoms by degree"""
-    deg_summed = self.max_degree * [None]
-
-    # Tensorflow correctly processes empty lists when using concat
-    for deg in range(1, self.max_degree + 1):
-      gathered_atoms = tf.gather(atoms, deg_adj_lists[deg - 1])
-      # Sum along neighbors as well as self, and store
-      summed_atoms = tf.reduce_sum(gathered_atoms, 1)
-      deg_summed[deg - 1] = summed_atoms
-
-    return deg_summed
+  def _build_layer(self):
+    return deepchem.models.layers.GraphConv(self.out_channel, self.min_degree,
+                                            self.max_degree, self.activation_fn)
 
 
-class GraphPool(Layer):
+class GraphPool(KerasLayer):
 
   def __init__(self, min_degree=0, max_degree=10, **kwargs):
     self.min_degree = min_degree
@@ -2646,49 +2504,11 @@ class GraphPool(Layer):
     except:
       pass
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-    atom_features = inputs[0]
-    deg_slice = inputs[1]
-    deg_adj_lists = inputs[3:]
-
-    # Perform the mol gather
-    # atom_features = graph_pool(atom_features, deg_adj_lists, deg_slice,
-    #                            self.max_degree, self.min_degree)
-
-    deg_maxed = (self.max_degree + 1 - self.min_degree) * [None]
-
-    # Tensorflow correctly processes empty lists when using concat
-
-    for deg in range(1, self.max_degree + 1):
-      # Get self atoms
-      begin = tf.stack([deg_slice[deg - self.min_degree, 0], 0])
-      size = tf.stack([deg_slice[deg - self.min_degree, 1], -1])
-      self_atoms = tf.slice(atom_features, begin, size)
-
-      # Expand dims
-      self_atoms = tf.expand_dims(self_atoms, 1)
-
-      # always deg-1 for deg_adj_lists
-      gathered_atoms = tf.gather(atom_features, deg_adj_lists[deg - 1])
-      gathered_atoms = tf.concat(axis=1, values=[self_atoms, gathered_atoms])
-
-      maxed_atoms = tf.reduce_max(gathered_atoms, 1)
-      deg_maxed[deg - self.min_degree] = maxed_atoms
-
-    if self.min_degree == 0:
-      begin = tf.stack([deg_slice[0, 0], 0])
-      size = tf.stack([deg_slice[0, 1], -1])
-      self_atoms = tf.slice(atom_features, begin, size)
-      deg_maxed[0] = self_atoms
-
-    out_tensor = tf.concat(axis=0, values=deg_maxed)
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+  def _build_layer(self):
+    return deepchem.models.layers.GraphPool(self.min_degree, self.max_degree)
 
 
-class GraphGather(Layer):
+class GraphGather(KerasLayer):
 
   def __init__(self, batch_size, activation_fn=None, **kwargs):
     self.batch_size = batch_size
@@ -2700,32 +2520,12 @@ class GraphGather(Layer):
     except:
       pass
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-
-    # x = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
-    atom_features = inputs[0]
-
-    # Extract graph topology
-    membership = inputs[2]
-
-    assert self.batch_size > 1, "graph_gather requires batches larger than 1"
-
-    sparse_reps = tf.unsorted_segment_sum(atom_features, membership,
-                                          self.batch_size)
-    max_reps = tf.unsorted_segment_max(atom_features, membership,
-                                       self.batch_size)
-    mol_features = tf.concat(axis=1, values=[sparse_reps, max_reps])
-
-    if self.activation_fn is not None:
-      mol_features = self.activation_fn(mol_features)
-    out_tensor = mol_features
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+  def _build_layer(self):
+    return deepchem.models.layers.GraphGather(self.batch_size,
+                                              self.activation_fn)
 
 
-class LSTMStep(Layer):
+class LSTMStep(KerasLayer):
   """Layer that performs a single step LSTM update.
 
   This layer performs a single step LSTM update. Note that it is *not*
@@ -2770,85 +2570,20 @@ class LSTMStep(Layer):
     self.inner_activation = inner_activation_fn
     self.input_dim = input_dim
 
-  def get_initial_states(self, input_shape):
-    return [model_ops.zeros(input_shape), model_ops.zeros(input_shape)]
-
-  def _create_variables(self):
-    """Constructs learnable weights for this layer."""
-    init = self.init
-    inner_init = self.inner_init
-    W = init((self.input_dim, 4 * self.output_dim))
-    U = inner_init((self.output_dim, 4 * self.output_dim))
-
-    b = tf.Variable(
-        np.hstack((np.zeros(self.output_dim), np.ones(self.output_dim),
-                   np.zeros(self.output_dim), np.zeros(self.output_dim))),
-        dtype=tf.float32)
-    return [W, U, b]
+  def _build_layer(self):
+    return deepchem.models.layers.LSTMStep(
+        self.output_dim, self.input_dim, self.init, self.inner_init,
+        self.activation, self.inner_activation)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """Execute this layer on input tensors.
-
-    Parameters
-    ----------
-    in_layers: list
-      List of three tensors (x, h_tm1, c_tm1). h_tm1 means "h, t-1".
-
-    Returns
-    -------
-    list
-      Returns h, [h + c]
-    """
-    activation = self.activation
-    inner_activation = self.inner_activation
-
-    if tf.executing_eagerly():
-      if not self._built:
-        self.trainable_variables = self._create_variables()
-        self._built = True
-      W, U, b = self.trainable_variables
-    else:
-      W, U, b = self._create_variables()
-    inputs = self._get_input_tensors(in_layers)
-    x, h_tm1, c_tm1 = inputs
-
-    # Taken from Keras code [citation needed]
-    z = model_ops.dot(x, W) + model_ops.dot(h_tm1, U) + b
-
-    z0 = z[:, :self.output_dim]
-    z1 = z[:, self.output_dim:2 * self.output_dim]
-    z2 = z[:, 2 * self.output_dim:3 * self.output_dim]
-    z3 = z[:, 3 * self.output_dim:]
-
-    i = inner_activation(z0)
-    f = inner_activation(z1)
-    c = f * c_tm1 + i * activation(z2)
-    o = inner_activation(z3)
-
-    h = o * activation(c)
-
+    result = super(LSTMStep, self).create_tensor(in_layers, set_tensors,
+                                                 **kwargs)
     if set_tensors:
-      self.out_tensor = h
-    return h, [h, c]
+      self.out_tensor = result[0]
+    return result
 
 
-def _cosine_dist(x, y):
-  """Computes the inner product (cosine distance) between two tensors.
-
-  Parameters
-  ----------
-  x: tf.Tensor
-    Input Tensor
-  y: tf.Tensor
-    Input Tensor
-  """
-  denom = (
-      model_ops.sqrt(model_ops.sum(tf.square(x)) * model_ops.sum(tf.square(y)))
-      + model_ops.epsilon())
-  return model_ops.dot(x, tf.transpose(y)) / denom
-
-
-class AttnLSTMEmbedding(Layer):
+class AttnLSTMEmbedding(KerasLayer):
   """Implements AttnLSTM as in matching networks paper.
 
   The AttnLSTM embedding adjusts two sets of vectors, the "test" and
@@ -2889,76 +2624,24 @@ class AttnLSTMEmbedding(Layer):
     self.n_support = n_support
     self.n_feat = n_feat
 
-  def _create_variables(self):
-    n_feat = self.n_feat
-    lstm = LSTMStep(n_feat, 2 * n_feat)
-    q_init = model_ops.zeros([self.n_test, n_feat])
-    r_init = model_ops.zeros([self.n_test, n_feat])
-    states_init = lstm.get_initial_states([self.n_test, n_feat])
-    return (lstm, q_init, r_init, states_init)
+  def _build_layer(self):
+    return deepchem.models.layers.AttnLSTMEmbedding(self.n_test, self.n_support,
+                                                    self.n_feat, self.max_depth)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """Execute this layer on input tensors.
-
-    Parameters
-    ----------
-    in_layers: list
-      List of two tensors (X, Xp). X should be of shape (n_test,
-      n_feat) and Xp should be of shape (n_support, n_feat) where
-      n_test is the size of the test set, n_support that of the support
-      set, and n_feat is the number of per-atom features.
-
-    Returns
-    -------
-    list
-      Returns two tensors of same shape as input. Namely the output
-      shape will be [(n_test, n_feat), (n_support, n_feat)]
-    """
     inputs = self._get_input_tensors(in_layers)
-    if len(inputs) != 2:
-      raise ValueError("AttnLSTMEmbedding layer must have exactly two parents")
-    # x is test set, xp is support set.
-    x, xp = inputs
-
-    if tf.executing_eagerly():
-      if not self._built:
-        self._lstm, self.q_init, self.r_init, self.states_init = self._create_variables(
-        )
-        self._non_pickle_fields += ['_lstm', 'q_init', 'r_init', 'states_init']
-      lstm = self._lstm
-      q_init = self.q_init
-      r_init = self.r_init
-      states_init = self.states_init
-    else:
-      lstm, q_init, r_init, states_init = self._create_variables()
-
-    ### Performs computations
-
-    # Get initializations
-    q = q_init
-    states = states_init
-
-    for d in range(self.max_depth):
-      # Process using attention
-      # Eqn (4), appendix A.1 of Matching Networks paper
-      e = _cosine_dist(x + q, xp)
-      a = tf.nn.softmax(e)
-      r = model_ops.dot(a, xp)
-
-      # Generate new attention states
-      y = model_ops.concatenate([q, r], axis=1)
-      q, states = lstm(y, *states)
-
+    layer = self._get_layer(set_tensors)
+    result = layer(inputs)
     if set_tensors:
-      self.out_tensor = xp
+      self.out_tensor = result[1]
+      self.trainable_variables = layer.trainable_variables + layer.states_init
     if tf.executing_eagerly() and not self._built:
       self._built = True
-      self.trainable_variables = lstm.trainable_variables + [q_init, r_init
-                                                            ] + states_init
-    return [x + q, xp]
+      self.trainable_variables = layer.trainable_variables + layer.states_init
+    return result
 
 
-class IterRefLSTMEmbedding(Layer):
+class IterRefLSTMEmbedding(KerasLayer):
   """Implements the Iterative Refinement LSTM.
 
   Much like AttnLSTMEmbedding, the IterRefLSTMEmbedding is another type
@@ -2996,104 +2679,21 @@ class IterRefLSTMEmbedding(Layer):
     self.n_support = n_support
     self.n_feat = n_feat
 
-  def _create_variables(self):
-    n_feat = self.n_feat
-
-    # Support set lstm
-    support_lstm = LSTMStep(n_feat, 2 * n_feat)
-    q_init = model_ops.zeros([self.n_support, n_feat])
-    support_states_init = support_lstm.get_initial_states(
-        [self.n_support, n_feat])
-
-    # Test lstm
-    test_lstm = LSTMStep(n_feat, 2 * n_feat)
-    p_init = model_ops.zeros([self.n_test, n_feat])
-    test_states_init = test_lstm.get_initial_states([self.n_test, n_feat])
-    return (support_lstm, q_init, support_states_init, test_lstm, p_init,
-            test_states_init)
+  def _build_layer(self):
+    return deepchem.models.layers.IterRefLSTMEmbedding(
+        self.n_test, self.n_support, self.n_feat, self.max_depth)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """Execute this layer on input tensors.
-
-    Parameters
-    ----------
-    in_layers: list
-      List of two tensors (X, Xp). X should be of shape (n_test, n_feat) and
-      Xp should be of shape (n_support, n_feat) where n_test is the size of
-      the test set, n_support that of the support set, and n_feat is the number
-      of per-atom features.
-
-    Returns
-    -------
-    list
-      Returns two tensors of same shape as input. Namely the output shape will
-      be [(n_test, n_feat), (n_support, n_feat)]
-    """
-    if tf.executing_eagerly():
-      if not self._built:
-        self._support_lstm, self.q_init, self.support_states_init, self._test_lstm, self.p_init, self.test_states_init = self._create_variables(
-        )
-        self._non_pickle_fields += [
-            '_support_lstm', 'q_init', 'support_states_init', '_test_lstm',
-            'p_init', 'test_states_init'
-        ]
-      support_lstm = self._support_lstm
-      q_init = self.q_init
-      support_states_init = self.support_states_init
-      test_lstm = self._test_lstm
-      p_init = self.p_init
-      test_states_init = self.test_states_init
-    else:
-      support_lstm, q_init, support_states_init, test_lstm, p_init, test_states_init = self._create_variables(
-      )
-
-    # self.build()
     inputs = self._get_input_tensors(in_layers)
-    if len(inputs) != 2:
-      raise ValueError(
-          "IterRefLSTMEmbedding layer must have exactly two parents")
-    x, xp = inputs
-
-    # Get initializations
-    p = p_init
-    q = q_init
-    # Rename support
-    z = xp
-    states = support_states_init
-    x_states = test_states_init
-
-    for d in range(self.max_depth):
-      # Process support xp using attention
-      e = _cosine_dist(z + q, xp)
-      a = tf.nn.softmax(e)
-      # Get linear combination of support set
-      r = model_ops.dot(a, xp)
-
-      # Process test x using attention
-      x_e = _cosine_dist(x + p, z)
-      x_a = tf.nn.softmax(x_e)
-      s = model_ops.dot(x_a, z)
-
-      # Generate new support attention states
-      qr = model_ops.concatenate([q, r], axis=1)
-      q, states = support_lstm(qr, *states)
-
-      # Generate new test attention states
-      ps = model_ops.concatenate([p, s], axis=1)
-      p, x_states = test_lstm(ps, *x_states)
-
-      # Redefine
-      z = r
-
+    layer = self._get_layer(set_tensors)
+    result = layer(inputs)
     if set_tensors:
-      self.out_tensor = xp
+      self.out_tensor = result[1]
+      self.trainable_variables = layer.trainable_variables + layer.support_states_init + layer.test_states_init
     if tf.executing_eagerly() and not self._built:
-      self.trainable_variables = support_lstm.trainable_variables + test_lstm.trainable_variables + [
-          q_init, p_init
-      ] + support_states_init + test_states_init
       self._built = True
-
-    return [x + p, xp + q]
+      self.trainable_variables = layer.trainable_variables + layer.support_states_init + layer.test_states_init
+    return result
 
 
 class BatchNorm(Layer):
@@ -3201,7 +2801,7 @@ class WeightedError(Layer):
     return out_tensor
 
 
-class VinaFreeEnergy(Layer):
+class VinaFreeEnergy(KerasLayer):
   """Computes free-energy as defined by Autodock Vina.
 
   TODO(rbharath): Make this layer support batching.
@@ -3230,149 +2830,28 @@ class VinaFreeEnergy(Layer):
     self.stop = stop
     super(VinaFreeEnergy, self).__init__(**kwargs)
 
-  def _build_layers(self):
-    weighted_combo = WeightedLinearCombo()
-    w = tf.Variable(tf.random_normal((1,), stddev=self.stddev))
-    return (weighted_combo, w)
-
-  def cutoff(self, d, x):
-    out_tensor = tf.where(d < 8, x, tf.zeros_like(x))
-    return out_tensor
-
-  def nonlinearity(self, c, w):
-    """Computes non-linearity used in Vina."""
-    out_tensor = c / (1 + w * self.Nrot)
-    return w, out_tensor
-
-  def repulsion(self, d):
-    """Computes Autodock Vina's repulsion interaction term."""
-    out_tensor = tf.where(d < 0, d**2, tf.zeros_like(d))
-    return out_tensor
-
-  def hydrophobic(self, d):
-    """Computes Autodock Vina's hydrophobic interaction term."""
-    out_tensor = tf.where(d < 0.5, tf.ones_like(d),
-                          tf.where(d < 1.5, 1.5 - d, tf.zeros_like(d)))
-    return out_tensor
-
-  def hydrogen_bond(self, d):
-    """Computes Autodock Vina's hydrogen bond interaction term."""
-    out_tensor = tf.where(
-        d < -0.7, tf.ones_like(d),
-        tf.where(d < 0, (1.0 / 0.7) * (0 - d), tf.zeros_like(d)))
-    return out_tensor
-
-  def gaussian_first(self, d):
-    """Computes Autodock Vina's first Gaussian interaction term."""
-    out_tensor = tf.exp(-(d / 0.5)**2)
-    return out_tensor
-
-  def gaussian_second(self, d):
-    """Computes Autodock Vina's second Gaussian interaction term."""
-    out_tensor = tf.exp(-((d - 3) / 2)**2)
-    return out_tensor
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """
-    Parameters
-    ----------
-    X: tf.Tensor of shape (N, d)
-      Coordinates/features.
-    Z: tf.Tensor of shape (N)
-      Atomic numbers of neighbor atoms.
-
-    Returns
-    -------
-    layer: tf.Tensor of shape (B)
-      The free energy of each complex in batch
-    """
-    inputs = self._get_input_tensors(in_layers)
-    X = inputs[0]
-    Z = inputs[1]
-
-    if tf.executing_eagerly():
-      if not self._built:
-        self._weighted_combo, self._w = self._build_layers()
-        self._non_pickle_fields += ['_weighted_combo', '_w']
-      weighted_combo = self._weighted_combo
-      w = self._w
-    else:
-      weighted_combo, w = self._build_layers()
-
-    # TODO(rbharath): This layer shouldn't be neighbor-listing. Make
-    # neighbors lists an argument instead of a part of this layer.
-    nbr_list = NeighborList(self.N_atoms, self.M_nbrs, self.ndim,
-                            self.nbr_cutoff, self.start, self.stop)(X)
-
-    # Shape (N, M)
-    dists = InteratomicL2Distances(self.N_atoms, self.M_nbrs,
-                                   self.ndim)(X, nbr_list)
-
-    repulsion = self.repulsion(dists)
-    hydrophobic = self.hydrophobic(dists)
-    hbond = self.hydrogen_bond(dists)
-    gauss_1 = self.gaussian_first(dists)
-    gauss_2 = self.gaussian_second(dists)
-
-    # Shape (N, M)
-    interactions = weighted_combo(repulsion, hydrophobic, hbond, gauss_1,
-                                  gauss_2)
-
-    # Shape (N, M)
-    thresholded = self.cutoff(dists, interactions)
-
-    weight, free_energies = self.nonlinearity(thresholded, w)
-    free_energy = ReduceSum()(free_energies)
-
-    out_tensor = free_energy
-    if set_tensors:
-      self.out_tensor = out_tensor
-      self.trainable_variables = weighted_combo.trainable_variables + [w]
-    if tf.executing_eagerly() and not self._built:
-      self.trainable_variables = weighted_combo.trainable_variables + [w]
-      self._built = True
-    return out_tensor
+  def _build_layer(self):
+    return deepchem.models.layers.VinaFreeEnergy(
+        self.N_atoms, self.M_nbrs, self.ndim, self.nbr_cutoff, self.start,
+        self.stop, self.stddev, self.Nrot)
 
 
-class WeightedLinearCombo(Layer):
+class WeightedLinearCombo(KerasLayer):
   """Computes a weighted linear combination of input layers, with the weights defined by trainable variables."""
 
   def __init__(self, in_layers=None, std=.3, **kwargs):
     self.std = std
-    super(WeightedLinearCombo, self).__init__(in_layers, **kwargs)
+    super(WeightedLinearCombo, self).__init__(in_layers=in_layers, **kwargs)
     try:
       self._shape = tuple(self.in_layers[0].shape)
     except:
       pass
 
-  def _create_variables(self, inputs):
-    return [
-        tf.Variable(tf.random_normal([1], stddev=self.std))
-        for i in range(len(inputs))
-    ]
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers, True)
-    if tf.executing_eagerly():
-      if not self._built:
-        self.trainable_variables = self._create_variables(inputs)
-        self._built = True
-      weights = self.trainable_variables
-    else:
-      weights = self._create_variables(inputs)
-    out_tensor = None
-    for in_tensor, w in zip(inputs, weights):
-      if out_tensor is None:
-        out_tensor = w * in_tensor
-      else:
-        out_tensor += w * in_tensor
-    if set_tensors:
-      self.out_tensor = out_tensor
-      self.trainable_variables = weights
-    return out_tensor
+  def _build_layer(self):
+    return deepchem.models.layers.WeightedLinearCombo(self.std)
 
 
-class NeighborList(Layer):
+class NeighborList(KerasLayer):
   """Computes a neighbor-list in Tensorflow.
 
   Neighbor-lists (also called Verlet Lists) are a tool for grouping atoms which
@@ -3406,20 +2885,10 @@ class NeighborList(Layer):
     self.stop = stop
     super(NeighborList, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """Creates tensors associated with neighbor-listing."""
-    inputs = self._get_input_tensors(in_layers)
-    if len(inputs) != 1:
-      raise ValueError("NeighborList can only have one input")
-    parent = inputs[0]
-    if len(parent.get_shape()) != 2:
-      # TODO(rbharath): Support batching
-      raise ValueError("Parent tensor must be (num_atoms, ndum)")
-    coords = parent
-    out_tensor = self.compute_nbr_list(coords)
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+  def _build_layer(self):
+    return deepchem.models.layers.NeighborList(self.N_atoms, self.M_nbrs,
+                                               self.ndim, self.nbr_cutoff,
+                                               self.start, self.stop)
 
   def compute_nbr_list(self, coords):
     """Get closest neighbors for atoms.
@@ -3436,52 +2905,7 @@ class NeighborList(Layer):
     nbr_list: tf.Tensor
       Shape (N_atoms, M_nbrs) of atom indices
     """
-    # Shape (n_cells, ndim)
-    cells = self.get_cells()
-
-    # List of length N_atoms, each element of different length uniques_i
-    nbrs = self.get_atoms_in_nbrs(coords, cells)
-    padding = tf.fill((self.M_nbrs,), -1)
-    padded_nbrs = [tf.concat([unique_nbrs, padding], 0) for unique_nbrs in nbrs]
-
-    # List of length N_atoms, each element of different length uniques_i
-    # List of length N_atoms, each a tensor of shape
-    # (uniques_i, ndim)
-    nbr_coords = [tf.gather(coords, atom_nbrs) for atom_nbrs in nbrs]
-
-    # Add phantom atoms that exist far outside the box
-    coord_padding = tf.cast(
-        tf.fill((self.M_nbrs, self.ndim), 2 * self.stop), tf.float32)
-    padded_nbr_coords = [
-        tf.concat([nbr_coord, coord_padding], 0) for nbr_coord in nbr_coords
-    ]
-
-    # List of length N_atoms, each of shape (1, ndim)
-    atom_coords = tf.split(coords, self.N_atoms)
-    # TODO(rbharath): How does distance need to be modified here to
-    # account for periodic boundary conditions?
-    # List of length N_atoms each of shape (M_nbrs)
-    padded_dists = [
-        tf.reduce_sum((atom_coord - padded_nbr_coord)**2, axis=1)
-        for (atom_coord,
-             padded_nbr_coord) in zip(atom_coords, padded_nbr_coords)
-    ]
-
-    padded_closest_nbrs = [
-        tf.nn.top_k(-padded_dist, k=self.M_nbrs)[1]
-        for padded_dist in padded_dists
-    ]
-
-    # N_atoms elts of size (M_nbrs,) each
-    padded_neighbor_list = [
-        tf.gather(padded_atom_nbrs, padded_closest_nbr)
-        for (padded_atom_nbrs,
-             padded_closest_nbr) in zip(padded_nbrs, padded_closest_nbrs)
-    ]
-
-    neighbor_list = tf.stack(padded_neighbor_list)
-
-    return neighbor_list
+    return self._get_layer(False).compute_nbr_list(coords)
 
   def get_atoms_in_nbrs(self, coords, cells):
     """Get the atoms in neighboring cells for each cells.
@@ -3490,39 +2914,7 @@ class NeighborList(Layer):
     -------
     atoms_in_nbrs = (N_atoms, n_nbr_cells, M_nbrs)
     """
-    # Shape (N_atoms, 1)
-    cells_for_atoms = self.get_cells_for_atoms(coords, cells)
-
-    # Find M_nbrs atoms closest to each cell
-    # Shape (n_cells, M_nbrs)
-    closest_atoms = self.get_closest_atoms(coords, cells)
-
-    # Associate each cell with its neighbor cells. Assumes periodic boundary
-    # conditions, so does wrapround. O(constant)
-    # Shape (n_cells, n_nbr_cells)
-    neighbor_cells = self.get_neighbor_cells(cells)
-
-    # Shape (N_atoms, n_nbr_cells)
-    neighbor_cells = tf.squeeze(tf.gather(neighbor_cells, cells_for_atoms))
-
-    # Shape (N_atoms, n_nbr_cells, M_nbrs)
-    atoms_in_nbrs = tf.gather(closest_atoms, neighbor_cells)
-
-    # Shape (N_atoms, n_nbr_cells*M_nbrs)
-    atoms_in_nbrs = tf.reshape(atoms_in_nbrs, [self.N_atoms, -1])
-
-    # List of length N_atoms, each element length uniques_i
-    nbrs_per_atom = tf.split(atoms_in_nbrs, self.N_atoms)
-    uniques = [
-        tf.unique(tf.squeeze(atom_nbrs))[0] for atom_nbrs in nbrs_per_atom
-    ]
-
-    # TODO(rbharath): FRAGILE! Uses fact that identity seems to be the first
-    # element removed to remove self from list of neighbors. Need to verify
-    # this holds more broadly or come up with robust alternative.
-    uniques = [unique[1:] for unique in uniques]
-
-    return uniques
+    return self._get_layer(False).get_atoms_in_nbrs(coords, cells)
 
   def get_closest_atoms(self, coords, cells):
     """For each cell, find M_nbrs closest atoms.
@@ -3541,26 +2933,7 @@ class NeighborList(Layer):
     closest_inds: tf.Tensor
       Of shape (n_cells, M_nbrs)
     """
-    N_atoms, n_cells, ndim, M_nbrs = (self.N_atoms, self.n_cells, self.ndim,
-                                      self.M_nbrs)
-    # Tile both cells and coords to form arrays of size (N_atoms*n_cells, ndim)
-    tiled_cells = tf.reshape(
-        tf.tile(cells, (1, N_atoms)), (N_atoms * n_cells, ndim))
-
-    # Shape (N_atoms*n_cells, ndim) after tile
-    tiled_coords = tf.tile(coords, (n_cells, 1))
-
-    # Shape (N_atoms*n_cells)
-    coords_vec = tf.reduce_sum((tiled_coords - tiled_cells)**2, axis=1)
-    # Shape (n_cells, N_atoms)
-    coords_norm = tf.reshape(coords_vec, (n_cells, N_atoms))
-
-    # Find k atoms closest to this cell. Notice negative sign since
-    # tf.nn.top_k returns *largest* not smallest.
-    # Tensor of shape (n_cells, M_nbrs)
-    closest_inds = tf.nn.top_k(-coords_norm, k=M_nbrs)[1]
-
-    return closest_inds
+    return self._get_layer(False).get_closest_atoms(coords, cells)
 
   def get_cells_for_atoms(self, coords, cells):
     """Compute the cells each atom belongs to.
@@ -3576,33 +2949,7 @@ class NeighborList(Layer):
     cells_for_atoms: tf.Tensor
       Shape (N_atoms, 1)
     """
-    N_atoms, n_cells, ndim = self.N_atoms, self.n_cells, self.ndim
-    n_cells = int(n_cells)
-    # Tile both cells and coords to form arrays of size (N_atoms*n_cells, ndim)
-    tiled_cells = tf.tile(cells, (N_atoms, 1))
-
-    # Shape (N_atoms*n_cells, 1) after tile
-    tiled_coords = tf.reshape(
-        tf.tile(coords, (1, n_cells)), (n_cells * N_atoms, ndim))
-    coords_vec = tf.reduce_sum((tiled_coords - tiled_cells)**2, axis=1)
-    coords_norm = tf.reshape(coords_vec, (N_atoms, n_cells))
-
-    closest_inds = tf.nn.top_k(-coords_norm, k=1)[1]
-    return closest_inds
-
-  def _get_num_nbrs(self):
-    """Get number of neighbors in current dimensionality space."""
-    ndim = self.ndim
-    if ndim == 1:
-      n_nbr_cells = 3
-    elif ndim == 2:
-      # 9 neighbors in 2-space
-      n_nbr_cells = 9
-    # TODO(rbharath): Shoddy handling of higher dimensions...
-    elif ndim >= 3:
-      # Number of cells for cube in 3-space is
-      n_nbr_cells = 27  # (26 faces on Rubik's cube for example)
-    return n_nbr_cells
+    return self._get_layer(False).get_cells_for_atoms(coords, cells)
 
   def get_neighbor_cells(self, cells):
     """Compute neighbors of cells in grid.
@@ -3622,21 +2969,7 @@ class NeighborList(Layer):
     nbr_cells: tf.Tensor
       (n_cells, n_nbr_cells)
     """
-    ndim, n_cells = self.ndim, self.n_cells
-    n_nbr_cells = self._get_num_nbrs()
-    # Tile cells to form arrays of size (n_cells*n_cells, ndim)
-    # Two tilings (a, b, c, a, b, c, ...) vs. (a, a, a, b, b, b, etc.)
-    # Tile (a, a, a, b, b, b, etc.)
-    tiled_centers = tf.reshape(
-        tf.tile(cells, (1, n_cells)), (n_cells * n_cells, ndim))
-    # Tile (a, b, c, a, b, c, ...)
-    tiled_cells = tf.tile(cells, (n_cells, 1))
-
-    coords_vec = tf.reduce_sum((tiled_centers - tiled_cells)**2, axis=1)
-    coords_norm = tf.reshape(coords_vec, (n_cells, n_cells))
-    closest_inds = tf.nn.top_k(-coords_norm, k=n_nbr_cells)[1]
-
-    return closest_inds
+    return self._get_layer(False).get_neighbor_cells(cells)
 
   def get_cells(self):
     """Returns the locations of all grid points in box.
@@ -3650,12 +2983,7 @@ class NeighborList(Layer):
     cells: tf.Tensor
       (n_cells, ndim) shape.
     """
-    start, stop, nbr_cutoff = self.start, self.stop, self.nbr_cutoff
-    mesh_args = [tf.range(start, stop, nbr_cutoff) for _ in range(self.ndim)]
-    return tf.cast(
-        tf.reshape(
-            tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
-            (self.n_cells, self.ndim)), tf.float32)
+    return self._get_layer(False).get_cells()
 
 
 class Dropout(Layer):
@@ -3714,7 +3042,7 @@ class WeightDecay(Layer):
     return out_tensor
 
 
-class AtomicConvolution(Layer):
+class AtomicConvolution(KerasLayer):
 
   def __init__(self,
                atom_types=None,
@@ -3742,206 +3070,9 @@ class AtomicConvolution(Layer):
     self.atom_types = atom_types
     super(AtomicConvolution, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """
-    Parameters
-    ----------
-    X: tf.Tensor of shape (B, N, d)
-      Coordinates/features.
-    Nbrs: tf.Tensor of shape (B, N, M)
-      Neighbor list.
-    Nbrs_Z: tf.Tensor of shape (B, N, M)
-      Atomic numbers of neighbor atoms.
-
-    Returns
-    -------
-    layer: tf.Tensor of shape (B, N, l)
-      A new tensor representing the output of the atomic conv layer
-    """
-    inputs = self._get_input_tensors(in_layers)
-    X = inputs[0]
-    Nbrs = tf.cast(inputs[1], tf.int32)
-    Nbrs_Z = inputs[2]
-
-    # N: Maximum number of atoms
-    # M: Maximum number of neighbors
-    # d: Number of coordinates/features/filters
-    # B: Batch Size
-    N = X.get_shape()[-2].value
-    d = X.get_shape()[-1].value
-    M = Nbrs.get_shape()[-1].value
-    B = X.get_shape()[0].value
-
-    # Create the variables.
-    if tf.executing_eagerly():
-      if not self._built:
-        self.trainable_variables += self._create_radial_variables()
-      rc, rs, re = self.trainable_variables
-    else:
-      rc, rs, re = self._create_radial_variables()
-
-    # Compute the distances and radial symmetry functions.
-    D = self.distance_tensor(X, Nbrs, self.boxsize, B, N, M, d)
-    R = self.distance_matrix(D)
-    R = tf.reshape(R, [1] + R.shape.as_list())
-    rsf = self.radial_symmetry_function(R, rc, rs, re)
-
-    if not self.atom_types:
-      cond = tf.cast(tf.not_equal(Nbrs_Z, 0), tf.float32)
-      cond = tf.reshape(cond, R.shape)
-      layer = tf.reduce_sum(cond * rsf, 3)
-    else:
-      sym = []
-      for j in range(len(self.atom_types)):
-        cond = tf.cast(tf.equal(Nbrs_Z, self.atom_types[j]), tf.float32)
-        cond = tf.reshape(cond, R.shape)
-        sym.append(tf.reduce_sum(cond * rsf, 3))
-      layer = tf.concat(sym, 0)
-
-    layer = tf.transpose(layer, [1, 2, 0])  # (l, B, N) -> (B, N, l)
-    m, v = tf.nn.moments(layer, axes=[0])
-    out_tensor = tf.nn.batch_normalization(layer, m, v, None, None, 1e-3)
-    if set_tensors:
-      self.out_tensor = out_tensor
-      self.trainable_variables = [rc, rs, re]
-    if tf.executing_eagerly() and not self._built:
-      self._built = True
-    return out_tensor
-
-  def _create_radial_variables(self):
-    vars = []
-    for i in range(3):
-      val = np.array([p[i] for p in self.radial_params]).reshape((-1, 1, 1, 1))
-      vars.append(tf.Variable(val, dtype=tf.float32))
-    return vars
-
-  def radial_symmetry_function(self, R, rc, rs, e):
-    """Calculates radial symmetry function.
-
-    B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_filters
-
-    Parameters
-    ----------
-    R: tf.Tensor of shape (B, N, M)
-      Distance matrix.
-    rc: float
-      Interaction cutoff [Angstrom].
-    rs: float
-      Gaussian distance matrix mean.
-    e: float
-      Gaussian distance matrix width.
-
-    Returns
-    -------
-    retval: tf.Tensor of shape (B, N, M)
-      Radial symmetry function (before summation)
-
-    """
-
-    K = self.gaussian_distance_matrix(R, rs, e)
-    FC = self.radial_cutoff(R, rc)
-    return tf.multiply(K, FC)
-
-  def radial_cutoff(self, R, rc):
-    """Calculates radial cutoff matrix.
-
-    B = batch_size, N = max_num_atoms, M = max_num_neighbors
-
-    Parameters
-    ----------
-      R [B, N, M]: tf.Tensor
-        Distance matrix.
-      rc: tf.Variable
-        Interaction cutoff [Angstrom].
-
-    Returns
-    -------
-      FC [B, N, M]: tf.Tensor
-        Radial cutoff matrix.
-
-    """
-
-    T = 0.5 * (tf.cos(np.pi * R / (rc)) + 1)
-    E = tf.zeros_like(T)
-    cond = tf.less_equal(R, rc)
-    FC = tf.where(cond, T, E)
-    return FC
-
-  def gaussian_distance_matrix(self, R, rs, e):
-    """Calculates gaussian distance matrix.
-
-    B = batch_size, N = max_num_atoms, M = max_num_neighbors
-
-    Parameters
-    ----------
-      R [B, N, M]: tf.Tensor
-        Distance matrix.
-      rs: tf.Variable
-        Gaussian distance matrix mean.
-      e: tf.Variable
-        Gaussian distance matrix width (e = .5/std**2).
-
-    Returns
-    -------
-      retval [B, N, M]: tf.Tensor
-        Gaussian distance matrix.
-
-    """
-
-    return tf.exp(-e * (R - rs)**2)
-
-  def distance_tensor(self, X, Nbrs, boxsize, B, N, M, d):
-    """Calculates distance tensor for batch of molecules.
-
-    B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_features
-
-    Parameters
-    ----------
-    X: tf.Tensor of shape (B, N, d)
-      Coordinates/features tensor.
-    Nbrs: tf.Tensor of shape (B, N, M)
-      Neighbor list tensor.
-    boxsize: float or None
-      Simulation box length [Angstrom].
-
-    Returns
-    -------
-    D: tf.Tensor of shape (B, N, M, d)
-      Coordinates/features distance tensor.
-
-    """
-    D = []
-    for coords, neighbors in zip(tf.unstack(X), tf.unstack(Nbrs)):
-      flat_neighbors = tf.reshape(neighbors, [-1])
-      neighbor_coords = tf.gather(coords, flat_neighbors)
-      neighbor_coords = tf.reshape(neighbor_coords, [N, M, d])
-      D.append(neighbor_coords - tf.expand_dims(coords, 1))
-    D = tf.stack(D)
-    if boxsize is not None:
-      boxsize = tf.reshape(boxsize, [1, 1, 1, d])
-      D -= tf.round(D / boxsize) * boxsize
-    return D
-
-  def distance_matrix(self, D):
-    """Calcuates the distance matrix from the distance tensor
-
-    B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_features
-
-    Parameters
-    ----------
-    D: tf.Tensor of shape (B, N, M, d)
-      Distance tensor.
-
-    Returns
-    -------
-    R: tf.Tensor of shape (B, N, M)
-       Distance matrix.
-
-    """
-
-    R = tf.reduce_sum(tf.multiply(D, D), 3)
-    R = tf.sqrt(R)
-    return R
+  def _build_layer(self):
+    return deepchem.models.layers.AtomicConvolution(
+        self.atom_types, self.radial_params, self.boxsize)
 
 
 def AlphaShare(in_layers=None, **kwargs):
@@ -3968,7 +3099,7 @@ def AlphaShare(in_layers=None, **kwargs):
   return [LayerSplitter(x, in_layers=alpha_share) for x in range(num_outputs)]
 
 
-class AlphaShareLayer(Layer):
+class AlphaShareLayer(KerasLayer):
   """
   Part of a sluice network. Adds alpha parameters to control
   sharing between the main and auxillary tasks
@@ -3989,58 +3120,20 @@ class AlphaShareLayer(Layer):
   def __init__(self, **kwargs):
     super(AlphaShareLayer, self).__init__(**kwargs)
 
+  def _build_layer(self):
+    return deepchem.models.layers.AlphaShareLayer()
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-    # check that there isnt just one or zero inputs
-    if len(inputs) <= 1:
-      raise ValueError("AlphaShare must have more than one input")
-    self.num_outputs = len(inputs)
-    # create subspaces
-    subspaces = []
-    original_cols = int(inputs[0].get_shape()[-1].value)
-    subspace_size = int(original_cols / 2)
-    for input_tensor in inputs:
-      subspaces.append(tf.reshape(input_tensor[:, :subspace_size], [-1]))
-      subspaces.append(tf.reshape(input_tensor[:, subspace_size:], [-1]))
-    n_alphas = len(subspaces)
-    subspaces = tf.reshape(tf.stack(subspaces), [n_alphas, -1])
-
-    # create the alpha learnable parameters
-    if tf.executing_eagerly():
-      if not self._built:
-        self.trainable_variables = [
-            tf.Variable(tf.random_normal([n_alphas, n_alphas]), name='alphas')
-        ]
-        self._built = True
-      alphas = self.trainable_variables[0]
-    else:
-      alphas = tf.Variable(
-          tf.random_normal([n_alphas, n_alphas]), name='alphas')
-
-    subspaces = tf.matmul(alphas, subspaces)
-
-    # concatenate subspaces, reshape to size of original input, then stack
-    # such that out_tensor has shape (2,?,original_cols)
-    count = 0
-    out_tensors = []
-    tmp_tensor = []
-    for row in range(n_alphas):
-      tmp_tensor.append(tf.reshape(subspaces[row,], [-1, subspace_size]))
-      count += 1
-      if (count == 2):
-        out_tensors.append(tf.concat(tmp_tensor, 1))
-        tmp_tensor = []
-        count = 0
-
+    outputs = super(AlphaShareLayer, self).create_tensor(
+        in_layers, set_tensors, **kwargs)
     if set_tensors:
-      self.out_tensor = out_tensors[0]
-      self.out_tensors = out_tensors
-      self.alphas = alphas
-      self._non_pickle_fields += ['out_tensors', 'alphas']
-    return out_tensors
+      self.out_tensor = outputs[0]
+      self.out_tensors = outputs
+      self._non_pickle_fields.append('out_tensors')
+    return outputs
 
 
-class SluiceLoss(Layer):
+class SluiceLoss(KerasLayer):
   """
   Calculates the loss in a Sluice Network
   Every input into an AlphaShare should be used in SluiceLoss
@@ -4049,25 +3142,11 @@ class SluiceLoss(Layer):
   def __init__(self, **kwargs):
     super(SluiceLoss, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-    temp = []
-    subspaces = []
-    # creates subspaces the same way it was done in AlphaShare
-    for input_tensor in inputs:
-      subspace_size = int(input_tensor.get_shape()[-1].value / 2)
-      subspaces.append(input_tensor[:, :subspace_size])
-      subspaces.append(input_tensor[:, subspace_size:])
-      product = tf.matmul(tf.transpose(subspaces[0]), subspaces[1])
-      subspaces = []
-      # calculate squared Frobenius norm
-      temp.append(tf.reduce_sum(tf.pow(product, 2)))
-    out_tensor = tf.reduce_sum(temp)
-    self.out_tensor = out_tensor
-    return out_tensor
+  def _build_layer(self):
+    return deepchem.models.layers.SluiceLoss()
 
 
-class BetaShare(Layer):
+class BetaShare(KerasLayer):
   """
   Part of a sluice network. Adds beta params to control which layer
   outputs are used for prediction
@@ -4086,35 +3165,11 @@ class BetaShare(Layer):
   def __init__(self, **kwargs):
     super(BetaShare, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """
-        Size of input layers must all be the same
-        """
-    inputs = self._get_input_tensors(in_layers)
-    subspaces = []
-    original_cols = int(inputs[0].get_shape()[-1].value)
-    for input_tensor in inputs:
-      subspaces.append(tf.reshape(input_tensor, [-1]))
-    n_betas = len(inputs)
-    subspaces = tf.reshape(tf.stack(subspaces), [n_betas, -1])
-
-    if tf.executing_eagerly():
-      if not self._built:
-        self.trainable_variables = [
-            tf.Variable(tf.random_normal([1, n_betas]), name='betas')
-        ]
-        self._built = True
-      betas = self.trainable_variables[0]
-    else:
-      betas = tf.Variable(tf.random_normal([1, n_betas]), name='betas')
-    out_tensor = tf.matmul(betas, subspaces)
-    out_tensor = tf.reshape(out_tensor, [-1, original_cols])
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+  def _build_layer(self):
+    return deepchem.models.layers.BetaShare()
 
 
-class ANIFeat(Layer):
+class ANIFeat(KerasLayer):
   """Performs transform from 3D coordinates to ANI symmetry functions
   """
 
@@ -4140,161 +3195,13 @@ class ANIFeat(Layer):
     self.atom_cases = atom_cases
     self.atomic_number_differentiated = atomic_number_differentiated
     self.coordinates_in_bohr = coordinates_in_bohr
-    super(ANIFeat, self).__init__(in_layers, **kwargs)
+    super(ANIFeat, self).__init__(in_layers=in_layers, **kwargs)
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """
-    In layers should be of shape dtype tf.float32, (None, self.max_atoms, 4)
-
-    """
-    inputs = self._get_input_tensors(in_layers)[0]
-    atom_numbers = tf.cast(inputs[:, :, 0], tf.int32)
-    flags = tf.sign(atom_numbers)
-    flags = tf.cast(
-        tf.expand_dims(flags, 1) * tf.expand_dims(flags, 2), tf.float32)
-    coordinates = inputs[:, :, 1:]
-    if self.coordinates_in_bohr:
-      coordinates = coordinates * 0.52917721092
-
-    d = self.distance_matrix(coordinates, flags)
-
-    d_radial_cutoff = self.distance_cutoff(d, self.radial_cutoff, flags)
-    d_angular_cutoff = self.distance_cutoff(d, self.angular_cutoff, flags)
-
-    radial_sym = self.radial_symmetry(d_radial_cutoff, d, atom_numbers)
-    angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
-                                        coordinates)
-
-    out_tensor = tf.concat(
-        [
-            tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
-            angular_sym
-        ],
-        axis=2)
-
-    if set_tensors:
-      self.out_tensor = out_tensor
-
-    return out_tensor
-
-  def distance_matrix(self, coordinates, flags):
-    """ Generate distance matrix """
-    # (TODO YTZ:) faster, less memory intensive way
-    # r = tf.reduce_sum(tf.square(coordinates), 2)
-    # r = tf.expand_dims(r, -1)
-    # inner = 2*tf.matmul(coordinates, tf.transpose(coordinates, perm=[0,2,1]))
-    # # inner = 2*tf.matmul(coordinates, coordinates, transpose_b=True)
-
-    # d = r - inner + tf.transpose(r, perm=[0,2,1])
-    # d = tf.nn.relu(d) # fix numerical instabilities about diagonal
-    # d = tf.sqrt(d) # does this have negative elements? may be unstable for diagonals
-
-    max_atoms = self.max_atoms
-    tensor1 = tf.stack([coordinates] * max_atoms, axis=1)
-    tensor2 = tf.stack([coordinates] * max_atoms, axis=2)
-
-    # Calculate pairwise distance
-    d = tf.sqrt(
-        tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3) + 1e-7)
-
-    d = d * flags
-    return d
-
-  def distance_cutoff(self, d, cutoff, flags):
-    """ Generate distance matrix with trainable cutoff """
-    # Cutoff with threshold Rc
-    d_flag = flags * tf.sign(cutoff - d)
-    d_flag = tf.nn.relu(d_flag)
-    d_flag = d_flag * tf.expand_dims((1 - tf.eye(self.max_atoms)), 0)
-    d = 0.5 * (tf.cos(np.pi * d / cutoff) + 1)
-    return d * d_flag
-    # return d
-
-  def radial_symmetry(self, d_cutoff, d, atom_numbers):
-    """ Radial Symmetry Function """
-    embedding = tf.eye(np.max(self.atom_cases) + 1)
-    atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
-
-    Rs = np.linspace(0., self.radial_cutoff, self.radial_length)
-    ita = np.ones_like(Rs) * 3 / (Rs[1] - Rs[0])**2
-    Rs = tf.cast(np.reshape(Rs, (1, 1, 1, -1)), tf.float32)
-    ita = tf.cast(np.reshape(ita, (1, 1, 1, -1)), tf.float32)
-    length = ita.get_shape().as_list()[-1]
-
-    d_cutoff = tf.stack([d_cutoff] * length, axis=3)
-    d = tf.stack([d] * length, axis=3)
-
-    out = tf.exp(-ita * tf.square(d - Rs)) * d_cutoff
-    if self.atomic_number_differentiated:
-      out_tensors = []
-      for atom_type in self.atom_cases:
-        selected_atoms = tf.expand_dims(
-            tf.expand_dims(atom_numbers_embedded[:, :, atom_type], axis=1),
-            axis=3)
-        out_tensors.append(tf.reduce_sum(out * selected_atoms, axis=2))
-      return tf.concat(out_tensors, axis=2)
-    else:
-      return tf.reduce_sum(out, axis=2)
-
-  def angular_symmetry(self, d_cutoff, d, atom_numbers, coordinates):
-    """ Angular Symmetry Function """
-
-    max_atoms = self.max_atoms
-    embedding = tf.eye(np.max(self.atom_cases) + 1)
-    atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
-
-    Rs = np.linspace(0., self.angular_cutoff, self.angular_length)
-    ita = 3 / (Rs[1] - Rs[0])**2
-    thetas = np.linspace(0., np.pi, self.angular_length)
-    zeta = float(self.angular_length**2)
-
-    ita, zeta, Rs, thetas = np.meshgrid(ita, zeta, Rs, thetas)
-    zeta = tf.cast(np.reshape(zeta, (1, 1, 1, 1, -1)), tf.float32)
-    ita = tf.cast(np.reshape(ita, (1, 1, 1, 1, -1)), tf.float32)
-    Rs = tf.cast(np.reshape(Rs, (1, 1, 1, 1, -1)), tf.float32)
-    thetas = tf.cast(np.reshape(thetas, (1, 1, 1, 1, -1)), tf.float32)
-    length = zeta.get_shape().as_list()[-1]
-
-    # tf.stack issues again...
-    vector_distances = tf.stack([coordinates] * max_atoms, 1) - tf.stack(
-        [coordinates] * max_atoms, 2)
-    R_ij = tf.stack([d] * max_atoms, axis=3)
-    R_ik = tf.stack([d] * max_atoms, axis=2)
-    f_R_ij = tf.stack([d_cutoff] * max_atoms, axis=3)
-    f_R_ik = tf.stack([d_cutoff] * max_atoms, axis=2)
-
-    # Define angle theta = arccos(R_ij(Vector) dot R_ik(Vector)/R_ij(distance)/R_ik(distance))
-    vector_mul = tf.reduce_sum(tf.stack([vector_distances] * max_atoms, axis=3) * \
-                               tf.stack([vector_distances] * max_atoms, axis=2), axis=4)
-    vector_mul = vector_mul * tf.sign(f_R_ij) * tf.sign(f_R_ik)
-    theta = tf.acos(tf.math.divide(vector_mul, R_ij * R_ik + 1e-5))
-
-    R_ij = tf.stack([R_ij] * length, axis=4)
-    R_ik = tf.stack([R_ik] * length, axis=4)
-    f_R_ij = tf.stack([f_R_ij] * length, axis=4)
-    f_R_ik = tf.stack([f_R_ik] * length, axis=4)
-    theta = tf.stack([theta] * length, axis=4)
-
-    out_tensor = tf.pow((1. + tf.cos(theta - thetas)) / 2., zeta) * \
-                 tf.exp(-ita * tf.square((R_ij + R_ik) / 2. - Rs)) * f_R_ij * f_R_ik * 2
-
-    if self.atomic_number_differentiated:
-      out_tensors = []
-      for id_j, atom_type_j in enumerate(self.atom_cases):
-        for atom_type_k in self.atom_cases[id_j:]:
-          selected_atoms = tf.stack([atom_numbers_embedded[:, :, atom_type_j]] * max_atoms, axis=2) * \
-                           tf.stack([atom_numbers_embedded[:, :, atom_type_k]] * max_atoms, axis=1)
-          selected_atoms = tf.expand_dims(
-              tf.expand_dims(selected_atoms, axis=1), axis=4)
-          out_tensors.append(
-              tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
-      return tf.concat(out_tensors, axis=2)
-    else:
-      return tf.reduce_sum(out_tensor, axis=(2, 3))
-
-  def get_num_feats(self):
-    n_feat = self.outputs.get_shape().as_list()[-1]
-    return n_feat
+  def _build_layer(self):
+    return deepchem.models.layers.ANIFeat(
+        self.max_atoms, self.radial_cutoff, self.angular_cutoff,
+        self.radial_length, self.angular_length, self.atom_cases,
+        self.atomic_number_differentiated, self.coordinates_in_bohr)
 
 
 class LayerSplitter(Layer):
@@ -4324,7 +3231,7 @@ class LayerSplitter(Layer):
     return out_tensor
 
 
-class GraphEmbedPoolLayer(Layer):
+class GraphEmbedPoolLayer(KerasLayer):
   """
   GraphCNNPool Layer from Robust Spatial Filtering with Graph Convolutional Neural Networks
   https://arxiv.org/abs/1703.00792
@@ -4338,103 +3245,23 @@ class GraphEmbedPoolLayer(Layer):
   $V_{emb} = SpatialGraphCNN({V_{in}})$\\
   $V_{out} = \sigma(V_{emb})^{T} * V_{in}$
   $A_{out} = V_{emb}^{T} * A_{in} * V_{emb}$
-
   """
 
   def __init__(self, num_vertices, **kwargs):
     self.num_vertices = num_vertices
     super(GraphEmbedPoolLayer, self).__init__(**kwargs)
 
+  def _build_layer(self):
+    return deepchem.models.layers.GraphEmbedPoolLayer(self.num_vertices)
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """
-
-    Parameters
-    ----------
-    num_filters: int
-      Number of filters to have in the output
-
-    in_layers: list of Layers or tensors
-      [V, A, mask]
-      V are the vertex features must be of shape (batch, vertex, channel)
-
-      A are the adjacency matrixes for each graph
-        Shape (batch, from_vertex, adj_matrix, to_vertex)
-
-      mask is optional, to be used when not every graph has the
-      same number of vertices
-
-    Returns: tf.tensor
-    Returns a tf.tensor with a graph convolution applied
-    The shape will be (batch, vertex, self.num_filters)
-    """
-    in_tensors = self._get_input_tensors(in_layers)
-    if len(in_tensors) == 3:
-      V, A, mask = in_tensors
-    else:
-      V, A = in_tensors
-      mask = None
-    factors = self.embedding_factors(
-        V, self.num_vertices, name='%s_Factors' % self.name)
-
-    if mask is not None:
-      factors = tf.multiply(factors, mask)
-    factors = self.softmax_factors(factors)
-
-    result = tf.matmul(factors, V, transpose_a=True)
-
-    result_A = tf.reshape(A, (tf.shape(A)[0], -1, tf.shape(A)[-1]))
-    result_A = tf.matmul(result_A, factors)
-    result_A = tf.reshape(result_A, (tf.shape(A)[0], tf.shape(A)[-1], -1))
-    result_A = tf.matmul(factors, result_A, transpose_a=True)
-    result_A = tf.reshape(result_A, (tf.shape(A)[0], self.num_vertices,
-                                     A.get_shape()[2].value, self.num_vertices))
-    # We do not need the mask because every graph has self.num_vertices vertices now
+    outputs = super(GraphEmbedPoolLayer, self).create_tensor(
+        in_layers, set_tensors, **kwargs)
     if set_tensors:
-      self.out_tensor = result[0]
-      self.out_tensors = [result, result_A]
+      self.out_tensor = outputs[0]
+      self.out_tensors = outputs
       self._non_pickle_fields.append('out_tensors')
-    return result, result_A
-
-  def _create_variables(self, no_features, no_filters, name):
-    W = tf.Variable(
-        tf.truncated_normal(
-            [no_features, no_filters], stddev=1.0 / math.sqrt(no_features)),
-        name='%s_weights' % name,
-        dtype=tf.float32)
-    b = tf.Variable(
-        tf.constant(0.1), name='%s_bias' % self.name, dtype=tf.float32)
-    return [W, b]
-
-  def embedding_factors(self, V, no_filters, name="default"):
-    no_features = V.get_shape()[-1].value
-    if tf.executing_eagerly():
-      if not self._built:
-        self.trainable_variables = self._create_variables(
-            no_features, no_filters, name)
-        self._built = True
-      W, b = self.trainable_variables
-    else:
-      W, b = self._create_variables(no_features, no_filters, name)
-    V_reshape = tf.reshape(V, (-1, no_features))
-    s = tf.slice(tf.shape(V), [0], [len(V.get_shape()) - 1])
-    s = tf.concat([s, tf.stack([no_filters])], 0)
-    result = tf.reshape(tf.matmul(V_reshape, W) + b, s)
-    return result
-
-  def softmax_factors(self, V, axis=1, name=None):
-    max_value = tf.reduce_max(V, axis=axis, keepdims=True)
-    exp = tf.exp(tf.subtract(V, max_value))
-    prob = tf.math.divide(exp, tf.reduce_sum(exp, axis=axis, keepdims=True))
-    return prob
-
-  def none_tensors(self):
-    out_tensors, out_tensor = self.out_tensors, self.out_tensor
-    self.out_tensors = None
-    self.out_tensor = None
-    return out_tensors, out_tensor
-
-  def set_tensors(self, tensor):
-    self.out_tensors, self.out_tensor = tensor
+    return outputs
 
 
 def GraphCNNPool(num_vertices, **kwargs):
@@ -4442,7 +3269,7 @@ def GraphCNNPool(num_vertices, **kwargs):
   return [LayerSplitter(x, in_layers=gcnnpool_layer) for x in range(2)]
 
 
-class GraphCNN(Layer):
+class GraphCNN(KerasLayer):
   """
   GraphCNN Layer from Robust Spatial Filtering with Graph Convolutional Neural Networks
   https://arxiv.org/abs/1703.00792
@@ -4486,68 +3313,8 @@ class GraphCNN(Layer):
     self.num_filters = num_filters
     super(GraphCNN, self).__init__(**kwargs)
 
-  def _create_variables(self, no_features, no_A):
-    W = tf.Variable(
-        tf.truncated_normal(
-            [no_features * no_A, self.num_filters],
-            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
-        name='%s_weights' % self.name,
-        dtype=tf.float32)
-    W_I = tf.Variable(
-        tf.truncated_normal(
-            [no_features, self.num_filters],
-            stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
-        name='%s_weights_I' % self.name,
-        dtype=tf.float32)
-    b = tf.Variable(
-        tf.constant(0.1), name='%s_bias' % self.name, dtype=tf.float32)
-    return [W, W_I, b]
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-    if len(inputs) == 3:
-      V, A, mask = inputs
-    else:
-      V, A = inputs
-    no_A = A.get_shape()[2].value
-    no_features = V.get_shape()[2].value
-    if tf.executing_eagerly():
-      if not self._built:
-        self.trainable_variables = self._create_variables(no_features, no_A)
-        self._built = True
-      W, W_I, b = self.trainable_variables
-    else:
-      W, W_I, b = self._create_variables(no_features, no_A)
-
-    n = self.graphConvolution(V, A)
-    A_shape = tf.shape(A)
-    n = tf.reshape(n, [-1, A_shape[1], no_A * no_features])
-    result = self.batch_mat_mult(n, W) + self.batch_mat_mult(V, W_I) + b
-    if set_tensors:
-      self.out_tensor = result
-    return result
-
-  def graphConvolution(self, V, A):
-    no_A = A.get_shape()[2].value
-    no_features = V.get_shape()[2].value
-
-    A_shape = tf.shape(A)
-    A_reshape = tf.reshape(A, tf.stack([-1, A_shape[1] * no_A, A_shape[1]]))
-    n = tf.matmul(A_reshape, V)
-    return tf.reshape(n, [-1, A_shape[1], no_A, no_features])
-
-  def batch_mat_mult(self, A, B):
-    A_shape = tf.shape(A)
-    A_reshape = tf.reshape(A, [-1, A_shape[-1]])
-
-    # So the Tensor has known dimensions
-    if B.get_shape()[1] == None:
-      axis_2 = -1
-    else:
-      axis_2 = B.get_shape()[1]
-    result = tf.matmul(A_reshape, B)
-    result = tf.reshape(result, tf.stack([A_shape[0], A_shape[1], axis_2]))
-    return result
+  def _build_layer(self):
+    return deepchem.models.layers.GraphCNN(self.num_filters)
 
 
 class HingeLoss(Layer):

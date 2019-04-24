@@ -593,7 +593,8 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       layer = layers.GraphConv(out_channels)
       result = layer(*args)
       assert result.shape == (n_atoms, out_channels)
-      assert len(layer.trainable_variables) == 2 * layer.num_deg
+      num_deg = 2 * layer.max_degree + (1 - layer.min_degree)
+      assert len(layer.trainable_variables) == 2 * num_deg
 
   def test_graph_pool(self):
     """Test invoking GraphPool in eager mode."""
@@ -665,10 +666,10 @@ class TestLayersEager(test_util.TensorFlowTestCase):
       test_out, support_out = layer(test, support)
       assert test_out.shape == (n_test, n_feat)
       assert support_out.shape == (n_support, n_feat)
-      assert len(layer.trainable_variables) == 7
+      assert len(layer.trainable_variables) == 6
 
   def test_iter_ref_lstm_embedding(self):
-    """Test invoking AttnLSTMEmbedding in eager mode."""
+    """Test invoking IterRefLSTMEmbedding in eager mode."""
     with context.eager_mode():
       max_depth = 5
       n_test = 5
