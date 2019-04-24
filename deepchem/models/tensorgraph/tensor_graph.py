@@ -293,7 +293,7 @@ class TensorGraph(Model):
   def fit_on_batch(self, X, y, w, submodel=None):
     if not self.built:
       self.build()
-    dataset = NumpyDataset(X, y)
+    dataset = NumpyDataset(X, y, w)
     return self.fit(dataset, nb_epoch=1, submodel=submodel)
 
   def default_generator(self,
