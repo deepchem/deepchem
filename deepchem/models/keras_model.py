@@ -6,6 +6,7 @@ from deepchem.data import NumpyDataset
 from deepchem.models.losses import Loss
 from deepchem.models.models import Model
 from deepchem.models.tensorgraph.optimizers import Adam
+from deepchem.utils.evaluate import GeneratorEvaluator
 
 
 class KerasModel(Model):
@@ -152,6 +153,13 @@ class KerasModel(Model):
       return
     self._ensure_built()
     self._inputs_built = True
+    if len(self.model.inputs) > 0:
+      self._input_dtypes = [t.dtype.as_numpy_dtype for t in self.model.inputs]
+    else:
+      self._input_dtypes = [
+          np.float32 if x.dtype == np.float64 else x.dtype
+          for x in example_inputs
+      ]
     if tf.executing_eagerly():
       return
     if len(self.model.inputs) > 0:
@@ -161,7 +169,8 @@ class KerasModel(Model):
       # example batch.
       input_shapes = [(None,) + i.shape[1:] for i in example_inputs]
       self._input_placeholders = [
-          tf.placeholder(dtype=tf.float32, shape=s) for s in input_shapes
+          tf.placeholder(dtype=tf.as_dtype(t), shape=s)
+          for s, t in zip(input_shapes, self._input_dtypes)
       ]
       if len(input_shapes) == 1:
         self.model.build(input_shapes[0])
@@ -190,15 +199,23 @@ class KerasModel(Model):
       return
     self._create_inputs(example_batch[0])
     self._training_ops_built = True
+    self._label_dtypes = [
+        np.float32 if x.dtype == np.float64 else x.dtype
+        for x in example_batch[1]
+    ]
+    self._weights_dtypes = [
+        np.float32 if x.dtype == np.float64 else x.dtype
+        for x in example_batch[2]
+    ]
     if tf.executing_eagerly():
       return
     self._label_placeholders = [
-        tf.placeholder(dtype=tf.float32, shape=t.shape)
-        for t in example_batch[1]
+        tf.placeholder(dtype=tf.as_dtype(t), shape=x.shape)
+        for x, t in zip(example_batch[1], self._label_dtypes)
     ]
     self._weights_placeholders = [
-        tf.placeholder(dtype=tf.float32, shape=t.shape)
-        for t in example_batch[2]
+        tf.placeholder(dtype=tf.as_dtype(t), shape=x.shape)
+        for x, t in zip(example_batch[2], self._weights_dtypes)
     ]
     self._loss_tensor = self._loss_fn(
         [self._output_tensors[i] for i in self._loss_outputs],
@@ -290,7 +307,7 @@ class KerasModel(Model):
 
     for batch in generator:
       self._create_training_ops(batch)
-      inputs, labels, weights = batch
+      inputs, labels, weights = self._prepare_batch(batch)
       if tf.executing_eagerly():
 
         # In eager mode we execute the loss function, accumulating the gradients.
@@ -371,8 +388,9 @@ class KerasModel(Model):
     generator: generator
       this should generate batches, each represented as a tuple of the form
       (inputs, labels, weights).
-    transformers: list
-      List of dc.trans.Transformers.
+    transformers: list of dc.trans.Transformers
+      Transformers that the input data has been transformed by.  The output
+      is passed through these transformers to undo the transformations.
     uncertainty: bool
       specifies whether this is being called as part of estimating uncertainty.
       If True, it sets the training flag so that dropout will be enabled, and
@@ -392,6 +410,7 @@ class KerasModel(Model):
     for batch in generator:
       inputs, labels, weights = batch
       self._create_inputs(inputs)
+      inputs, _, _ = self._prepare_batch((inputs, None, None))
       if tf.executing_eagerly():
 
         # In eager mode we invoke the model directly.
@@ -458,8 +477,9 @@ class KerasModel(Model):
     generator: generator
       this should generate batches, each represented as a tuple of the form
       (inputs, labels, weights).
-    transformers: list
-      List of dc.trans.Transformers.
+    transformers: list of dc.trans.Transformers
+      Transformers that the input data has been transformed by.  The output
+      is passed through these transformers to undo the transformations.
     Returns:
       a NumPy array of the model produces a single output, or a list of arrays
       if it produces multiple outputs
@@ -473,8 +493,9 @@ class KerasModel(Model):
     ----------
     X: ndarray
       the input data, as a Numpy array.
-    transformers: List
-      List of dc.trans.Transformers
+    transformers: list of dc.trans.Transformers
+      Transformers that the input data has been transformed by.  The output
+      is passed through these transformers to undo the transformations.
 
     Returns
     -------
@@ -519,8 +540,9 @@ class KerasModel(Model):
     ----------
     dataset: dc.data.Dataset
       Dataset to make prediction on
-    transformers: list
-      List of dc.trans.Transformers.
+    transformers: list of dc.trans.Transformers
+      Transformers that the input data has been transformed by.  The output
+      is passed through these transformers to undo the transformations.
 
     Returns
     -------
@@ -582,6 +604,34 @@ class KerasModel(Model):
     else:
       return zip(output, std)
 
+  def evaluate_generator(self,
+                         generator,
+                         metrics,
+                         transformers=[],
+                         per_task_metrics=False):
+    """Evaluate the performance of this model on the data produced by a generator.
+
+    Parameters
+    ----------
+    generator: generator
+      this should generate batches, each represented as a tuple of the form
+      (inputs, labels, weights).
+    metric: deepchem.metrics.Metric
+      Evaluation metric
+    transformers: list of dc.trans.Transformers
+      Transformers that the input data has been transformed by.  The output
+      is passed through these transformers to undo the transformations.
+    per_task_metrics: bool
+      If True, return per-task scores.
+
+    Returns
+    -------
+    dict
+      Maps tasks to scores under metric.
+    """
+    evaluator = GeneratorEvaluator(self, generator, transformers, labels=None)
+    return evaluator.compute_model_performance(metrics, per_task_metrics)
+
   def compute_saliency(self, X):
     """Compute the saliency map for an input sample.
 
@@ -607,6 +657,7 @@ class KerasModel(Model):
     input_shape = X.shape
     X = np.reshape(X, [1] + list(X.shape))
     self._create_inputs([X])
+    X, _, _ = self._prepare_batch((X, None, None))
     if tf.executing_eagerly():
       # In eager mode we use a GradientTape to compute gradients.
 
@@ -658,6 +709,24 @@ class KerasModel(Model):
     if len(final_result) == 1:
       return final_result[0]
     return final_result
+
+  def _prepare_batch(self, batch):
+    inputs, labels, weights = batch
+    inputs = [
+        x if x.dtype == t else x.astype(t)
+        for x, t in zip(inputs, self._input_dtypes)
+    ]
+    if labels is not None:
+      labels = [
+          x if x.dtype == t else x.astype(t)
+          for x, t in zip(labels, self._label_dtypes)
+      ]
+    if weights is not None:
+      weights = [
+          x if x.dtype == t else x.astype(t)
+          for x, t in zip(weights, self._weights_dtypes)
+      ]
+    return (inputs, labels, weights)
 
   def default_generator(self,
                         dataset,

@@ -136,15 +136,7 @@ class GeneratorEvaluator(object):
   Evaluate a Metric over a model and Generator.
   """
 
-  def __init__(self,
-               model,
-               generator,
-               transformers,
-               labels,
-               outputs=None,
-               n_tasks=1,
-               n_classes=2,
-               weights=list()):
+  def __init__(self, model, generator, transformers, labels, weights=list()):
     """
     Parameters
     ----------
@@ -156,29 +148,17 @@ class GeneratorEvaluator(object):
       Tranformers to "undo" when applied to the models outputs
     labels: list of Layer
       layers which are keys in the generator to compare to outputs
-    outputs: list of Layer
-      if None will use the outputs of the model
-    weights: np.array
-      Must be of the shape (n_samples, n_tasks)
-      if weights[sample][task] is 0 that sample will not be used
-      for computing the task metric
+    weights: list of Layer
+      layers which are keys in the generator for weight matrices
     """
     self.model = model
     self.generator = generator
-    self.n_tasks = n_tasks
-    self.n_classes = n_classes
     self.output_transformers = [
         transformer for transformer in transformers if transformer.transform_y
     ]
-    if outputs is None:
-      self.output_keys = model.outputs
-    else:
-      self.output_keys = outputs
     self.label_keys = labels
     self.weights = weights
-    if len(self.label_keys) != len(self.output_keys):
-      raise ValueError("Must have same number of labels and outputs")
-    if len(self.label_keys) != 1:
+    if labels is not None and len(labels) != 1:
       raise ValueError("GeneratorEvaluator currently only supports one label")
 
   def compute_model_performance(self, metrics, per_task_metrics=False):
@@ -192,16 +172,25 @@ class GeneratorEvaluator(object):
     per_task_metrics: bool, optional
       If true, return computed metric for each task on multitask dataset.
     """
-    self.model.build()
     y = []
     w = []
 
     def generator_closure():
-      for feed_dict in self.generator:
-        y.append(feed_dict[self.label_keys[0]])
-        if len(self.weights) > 0:
-          w.append(feed_dict[self.weights[0]])
-        yield feed_dict
+      if self.label_keys is None:
+        # This is a KerasModel.
+        for batch in self.generator:
+          inputs, labels, weights = batch
+          y.append(labels[0])
+          if len(weights) > 0:
+            w.append(weights[0])
+          yield batch
+      else:
+        # This is a TensorGraph.
+        for feed_dict in self.generator:
+          y.append(feed_dict[self.label_keys[0]])
+          if len(self.weights) > 0:
+            w.append(feed_dict[self.weights[0]])
+          yield feed_dict
 
     if not len(metrics):
       return {}
@@ -219,14 +208,15 @@ class GeneratorEvaluator(object):
       w = np.reshape(w, newshape=y.shape)
 
     # Compute multitask metrics
+    n_classes = y.shape[-1]
     for metric in metrics:
       if per_task_metrics:
         multitask_scores[metric.name], computed_metrics = metric.compute_metric(
-            y, y_pred, w, per_task_metrics=True, n_classes=self.n_classes)
+            y, y_pred, w, per_task_metrics=True, n_classes=n_classes)
         all_task_scores[metric.name] = computed_metrics
       else:
         multitask_scores[metric.name] = metric.compute_metric(
-            y, y_pred, w, per_task_metrics=False, n_classes=self.n_classes)
+            y, y_pred, w, per_task_metrics=False, n_classes=n_classes)
 
     if not per_task_metrics:
       return multitask_scores

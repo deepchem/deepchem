@@ -11,7 +11,7 @@ class TestKerasModel(unittest.TestCase):
     """Test fitting a KerasModel defined as a graph."""
     n_data_points = 10
     n_features = 2
-    X = np.random.rand(n_data_points, n_features).astype(np.float32)
+    X = np.random.rand(n_data_points, n_features)
     y = (X[:, 0] > X[:, 1]).astype(np.float32)
     dataset = dc.data.NumpyDataset(X, y)
     inputs = tf.keras.Input(shape=(n_features,))
@@ -29,7 +29,7 @@ class TestKerasModel(unittest.TestCase):
     assert np.all(np.isclose(prediction, y.flatten(), atol=0.4))
     metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
     scores = model.evaluate(dataset, [metric])
-    assert scores[metric.name] > .9
+    assert scores[metric.name] > 0.9
 
   def test_overfit_graph_model_eager(self):
     """Test fitting a KerasModel defined as a graph, in eager mode."""
@@ -40,7 +40,7 @@ class TestKerasModel(unittest.TestCase):
     """Test fitting a KerasModel defined as a sequential model."""
     n_data_points = 10
     n_features = 2
-    X = np.random.rand(n_data_points, n_features).astype(np.float32)
+    X = np.random.rand(n_data_points, n_features)
     y = (X[:, 0] > X[:, 1]).astype(np.float32)
     dataset = dc.data.NumpyDataset(X, y)
     keras_model = tf.keras.Sequential([
@@ -53,8 +53,9 @@ class TestKerasModel(unittest.TestCase):
     prediction = np.squeeze(model.predict_on_batch(X))
     assert np.all(np.isclose(prediction, y.flatten(), atol=0.4))
     metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
-    scores = model.evaluate(dataset, [metric])
-    assert scores[metric.name] > .9
+    generator = model.default_generator(dataset)
+    scores = model.evaluate_generator(generator, [metric])
+    assert scores[metric.name] > 0.9
 
   def test_overfit_sequential_model_eager(self):
     """Test fitting a KerasModel defined as a sequential model, in eager mode."""
@@ -98,9 +99,8 @@ class TestKerasModel(unittest.TestCase):
     n_samples = 30
     n_features = 1
     noise = 0.1
-    X = np.random.rand(n_samples, n_features).astype(np.float32)
-    y = (10 * X + np.random.normal(
-        scale=noise, size=(n_samples, n_features))).astype(np.float32)
+    X = np.random.rand(n_samples, n_features)
+    y = (10 * X + np.random.normal(scale=noise, size=(n_samples, n_features)))
     dataset = dc.data.NumpyDataset(X, y)
 
     # Build a model that predicts uncertainty.
@@ -147,7 +147,7 @@ class TestKerasModel(unittest.TestCase):
         tf.keras.layers.Dense(n_tasks)
     ])
     model = dc.models.KerasModel(keras_model, dc.models.losses.L2Loss())
-    x = np.random.random(n_features).astype(np.float32)
+    x = np.random.random(n_features)
     s = model.compute_saliency(x)
     assert s.shape[0] == n_tasks
     assert s.shape[1] == n_features
@@ -179,7 +179,7 @@ class TestKerasModel(unittest.TestCase):
     output2 = tf.keras.layers.Reshape((1, 5))(tf.keras.layers.Dense(5)(flatten))
     keras_model = tf.keras.Model(inputs=inputs, outputs=[output1, output2])
     model = dc.models.KerasModel(keras_model, dc.models.losses.L2Loss())
-    x = np.random.random((2, 3)).astype(np.float32)
+    x = np.random.random((2, 3))
     s = model.compute_saliency(x)
     assert len(s) == 2
     assert s[0].shape == (4, 1, 2, 3)
