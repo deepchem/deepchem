@@ -1,10 +1,10 @@
 package:
   name: {{ environ.get('package_name', 'deepchem') }}
-  version: "2.1.0"
+  version: "2.2.0"
 
 source:
     git_url: https://github.com/deepchem/deepchem.git
-    git_tag: 2.1.0
+    git_tag: 2.2.0
 
 build:
   number: 0
@@ -20,20 +20,20 @@ requirements:
 
   run:
     - python {{ python }}
-    - pdbfixer ==1.4
-    - mdtraj ==1.9.1
+    - pdbfixer
+    - mdtraj
     - joblib ==0.11
     - scikit-learn ==0.19.1
     - networkx ==2.1
     - xgboost ==0.6a2
     - pillow ==5.0.0
     - pandas ==0.22.0
-    - {{ environ.get('tensorflow_enabled','tensorflow') }} ==1.6.0
+    - {{ environ.get('tensorflow_enabled','tensorflow') }} ==1.13.1
     - zlib ==1.2.11
     - requests ==2.18.4
     - simdna ==0.4.2
     - jupyter=1.0.0
-    - rdkit ==2017.09.1
+    - rdkit ==2019.03.1.0
 
 
 about:
