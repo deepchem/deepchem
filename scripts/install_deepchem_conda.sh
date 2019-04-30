@@ -41,11 +41,12 @@ if [[ "$unamestr" == 'Darwin' ]]; then
    source activate $envname
 fi
 
-conda install -y -q -c omnia pdbfixer
 yes | pip install --upgrade pip
-conda install -y -q -c deepchem mdtraj
-conda install -y -q -c rdkit rdkit=2019.03.1.0
-conda install -y -q -c conda-forge joblib=0.11 \
+conda install -y -q -c deepchem -c omnia -c rdkit -c conda-forge \
+    mdtraj=1.9.1 \
+    pdbfixer \
+    rdkit \
+    joblib=0.11 \
     six=1.11.0 \
     scikit-learn=0.19.1 \
     networkx=2.1 \
