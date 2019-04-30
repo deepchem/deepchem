@@ -49,7 +49,7 @@ conda install -y -q -c conda-forge joblib=0.11 \
     six=1.11.0 \
     scikit-learn=0.19.1 \
     networkx=2.1 \
-    pillow=5.0.0 \
+    pillow \
     pandas=0.22.0 \
     nose=1.3.7 \
     nose-timer=0.7.0 \
