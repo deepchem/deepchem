@@ -1,3 +1,4 @@
+import os
 import unittest
 import deepchem as dc
 import numpy as np
@@ -189,3 +190,25 @@ class TestKerasModel(unittest.TestCase):
     """Test computing saliency maps for multiple outputs with multiple dimensions, in eager mode."""
     with context.eager_mode():
       self.test_saliency_shapes()
+
+  def test_tensorboard(self):
+    n_data_points = 20
+    n_features = 2
+    X = np.random.rand(n_data_points, n_features)
+    y = [[0.0, 1.0] for x in range(n_data_points)]
+    dataset = dc.data.NumpyDataset(X, y)
+    keras_model = tf.keras.Sequential([
+        tf.keras.layers.Dense(2, activation='softmax'),
+    ])
+    model = dc.models.KerasModel(
+        keras_model,
+        dc.models.losses.CategoricalCrossEntropy(),
+        tensorboard=True,
+        tensorboard_log_frequency=1)
+    model.fit(dataset, nb_epoch=10)
+    files_in_dir = os.listdir(model.model_dir)
+    event_file = list(filter(lambda x: x.startswith("events"), files_in_dir))
+    assert len(event_file) > 0
+    event_file = os.path.join(model.model_dir, event_file[0])
+    file_size = os.stat(event_file).st_size
+    assert file_size > 0

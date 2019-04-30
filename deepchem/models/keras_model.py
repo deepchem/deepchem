@@ -76,6 +76,8 @@ class KerasModel(Model):
                model_dir=None,
                learning_rate=0.001,
                optimizer=None,
+               tensorboard=False,
+               tensorboard_log_frequency=100,
                **kwargs):
     """Create a new KerasModel.
 
@@ -99,6 +101,10 @@ class KerasModel(Model):
     optimizer: Optimizer
       the optimizer to use for fitting.  If this is specified, learning_rate is
       ignored.
+    tensorboard: bool
+      whether to log progress to TensorBoard during training
+    tensorboard_log_frequency: int
+      the frequency at which to log data to TensorBoard, measured in batches
     """
     super(KerasModel, self).__init__(
         model_instance=model, model_dir=model_dir, **kwargs)
@@ -112,6 +118,12 @@ class KerasModel(Model):
       self.optimizer = Adam(learning_rate=learning_rate)
     else:
       self.optimizer = optimizer
+    self.tensorboard = tensorboard
+    self.tensorboard_log_frequency = tensorboard_log_frequency
+    self._tensorboard_step = 0
+    if tensorboard and tf.executing_eagerly():
+      raise ValueError(
+          "Logging to TensorBoard is not currently supported in eager mode")
     if output_types is None:
       self._prediction_outputs = None
       self._loss_outputs = None
@@ -226,6 +238,9 @@ class KerasModel(Model):
     except ValueError:
       # The loss doesn't depend on any variables.
       self._train_op = 0
+    if self.tensorboard:
+      self._summary_ops = tf.summary.scalar('loss', self._loss_tensor)
+      self._summary_writer = tf.summary.FileWriter(self.model_dir)
     self._init_new_vars()
 
   def _init_new_vars(self):
@@ -308,6 +323,10 @@ class KerasModel(Model):
     for batch in generator:
       self._create_training_ops(batch)
       inputs, labels, weights = self._prepare_batch(batch)
+      self._tensorboard_step += 1
+      should_log = (
+          self.tensorboard and
+          self._tensorboard_step % self.tensorboard_log_frequency == 0)
       if tf.executing_eagerly():
 
         # In eager mode we execute the loss function, accumulating the gradients.
@@ -329,12 +348,19 @@ class KerasModel(Model):
         # In graph mode we execute the training op.
 
         fetches = [self._train_op, self._loss_tensor, self._global_step]
+        if should_log:
+          fetches.append(self._summary_ops)
         feed_dict = dict(zip(self._input_placeholders, inputs))
         feed_dict.update(dict(zip(self._label_placeholders, labels)))
         feed_dict.update(dict(zip(self._weights_placeholders, weights)))
         fetched_values = self.session.run(fetches, feed_dict=feed_dict)
         avg_loss += fetched_values[1]
         current_step = fetched_values[2]
+        if should_log:
+          self._summary_writer.reopen()
+          self._summary_writer.add_summary(
+              fetched_values[3], global_step=current_step)
+          self._summary_writer.close()
 
       # Report progress and write checkpoints.
 
@@ -629,7 +655,7 @@ class KerasModel(Model):
     dict
       Maps tasks to scores under metric.
     """
-    evaluator = GeneratorEvaluator(self, generator, transformers, labels=None)
+    evaluator = GeneratorEvaluator(self, generator, transformers)
     return evaluator.compute_model_performance(metrics, per_task_metrics)
 
   def compute_saliency(self, X):

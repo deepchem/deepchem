@@ -136,14 +136,16 @@ class GeneratorEvaluator(object):
   Evaluate a Metric over a model and Generator.
   """
 
-  def __init__(self, model, generator, transformers, labels, weights=list()):
+  def __init__(self, model, generator, transformers, labels=None, weights=None):
     """
     Parameters
     ----------
     model: Model
       Model to evaluate
     generator: Generator
-      Generator which yields {layer: numpyArray} to feed into model
+      Generator which yields batches to feed into the model.  For a TensorGraph,
+      each batch should be a dict mapping Layers to NumPy arrays.  For a
+      KerasModel, it should be a tuple of the form (inputs, labels, weights).
     transformers:
       Tranformers to "undo" when applied to the models outputs
     labels: list of Layer
