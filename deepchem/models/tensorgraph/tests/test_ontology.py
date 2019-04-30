@@ -20,7 +20,8 @@ class TestOntology(test_util.TensorFlowTestCase):
     y[:, 0] = np.sum(x[:, :(n_features // 2)], axis=1)
     y[:, 1] = np.sum(x[:, (n_features // 2):], axis=1)
     y[:, 2] = 0.5 * np.sum(x, axis=1)
-    dataset = dc.data.NumpyDataset(x, y)
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(x, y, w)
 
     # Create an OntologyModel.  Two leaf nodes contain half the features.
 
@@ -69,7 +70,8 @@ class TestOntology(test_util.TensorFlowTestCase):
     y[:, 0] = np.sum(x[:, :(n_features // 2)], axis=1) < n_features / 4
     y[:, 1] = np.sum(x[:, (n_features // 2):], axis=1) < n_features / 4
     y[:, 2] = np.sum(x, axis=1) < n_features / 2
-    dataset = dc.data.NumpyDataset(x, y)
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(x, y, w)
 
     # Create an OntologyModel.  Two leaf nodes contain half the features.
 
