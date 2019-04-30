@@ -42,7 +42,7 @@ if [[ "$unamestr" == 'Darwin' ]]; then
 fi
 
 yes | pip install --upgrade pip
-conda install -y -q -c deepchem -c omnia -c rdkit -c conda-forge \
+conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     mdtraj=1.9.1 \
     pdbfixer \
     rdkit \
