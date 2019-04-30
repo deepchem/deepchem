@@ -304,6 +304,8 @@ class Metric(object):
       y_pred_task = y_pred[:, task]
       if len(w.shape) == 1:
         w_task = w
+      elif w.shape[1] == 1:
+        w_task = w[:, 0]
       else:
         w_task = w[:, task]
 
