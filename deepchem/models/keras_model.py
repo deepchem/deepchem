@@ -342,6 +342,7 @@ class KerasModel(Model):
           grads = tape.gradient(loss, self.model.trainable_variables)
           self._tf_optimizer.apply_gradients(
               zip(grads, self.model.trainable_variables))
+          tf.assign_add(self._global_step, 1)
           current_step = self._global_step.numpy()
       else:
 
