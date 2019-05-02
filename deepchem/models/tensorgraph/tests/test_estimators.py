@@ -26,7 +26,8 @@ class TestEstimators(unittest.TestCase):
     np.random.seed(123)
     X = np.random.rand(n_samples, n_features)
     y = np.zeros((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y)
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w)
 
     def input_fn(epochs):
       x, y, weights = dataset.make_iterator(
@@ -70,7 +71,8 @@ class TestEstimators(unittest.TestCase):
     np.random.seed(123)
     X = np.random.rand(n_samples, n_features)
     y = np.zeros((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y)
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w)
 
     def input_fn(epochs):
       x, y, weights = dataset.make_iterator(
@@ -110,7 +112,8 @@ class TestEstimators(unittest.TestCase):
     np.random.seed(123)
     X = np.random.rand(n_samples, n_features)
     y = np.zeros((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y)
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w)
 
     def input_fn(epochs):
       x, y, weights = dataset.make_iterator(
@@ -161,7 +164,8 @@ class TestEstimators(unittest.TestCase):
     np.random.seed(123)
     X = np.random.rand(n_samples, n_features)
     y = np.zeros((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y)
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w)
 
     def input_fn(epochs):
       x, y, weights = dataset.make_iterator(
@@ -245,7 +249,8 @@ class TestEstimators(unittest.TestCase):
     np.random.seed(123)
     X = np.random.rand(n_samples, n_features)
     y = np.zeros((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y)
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w)
     transformers = [dc.trans.IRVTransformer(10, n_tasks, dataset)]
 
     for transformer in transformers:

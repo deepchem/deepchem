@@ -317,16 +317,19 @@ class NumpyDataset(Dataset):
     if n_samples > 0:
       if y is None:
         # Set labels to be zero, with zero weights
-        y = np.zeros((n_samples, n_tasks))
-        w = np.zeros_like(y)
+        y = np.zeros((n_samples, n_tasks), np.float32)
+        w = np.zeros((n_samples, 1), np.float32)
     if ids is None:
       ids = np.arange(n_samples)
-    if w is None:
-      w = np.ones_like(y)
     if not isinstance(X, np.ndarray):
       X = np.array(X)
     if not isinstance(y, np.ndarray):
       y = np.array(y)
+    if w is None:
+      if len(y.shape) == 1:
+        w = np.ones(y.shape[0], np.float32)
+      else:
+        w = np.ones((y.shape[0], 1), np.float32)
     if not isinstance(w, np.ndarray):
       w = np.array(w)
     self._X = X
@@ -751,7 +754,10 @@ class DiskDataset(Dataset):
           if os.path.exists(w_filename):
             w = np.array(load_from_disk(w_filename))
           else:
-            w = np.ones(y.shape)
+            if len(y.shape) == 1:
+              w = np.ones(y.shape[0], np.float32)
+            else:
+              w = np.ones((y.shape[0], 1), np.float32)
         else:
           w = None
         yield (X, y, w, ids)
@@ -975,7 +981,10 @@ class DiskDataset(Dataset):
 
     if y is not None:
       if w is None:
-        w = np.ones_like(y)
+        if len(y.shape) == 1:
+          w = np.ones(y.shape[0], np.float32)
+        else:
+          w = np.ones((y.shape[0], 1), np.float32)
 
       if tasks is None:
         if len(y.shape) > 1:
@@ -1170,7 +1179,10 @@ class DiskDataset(Dataset):
       if os.path.exists(w_filename):
         w = np.array(load_from_disk(w_filename))
       else:
-        w = np.ones(y.shape)
+        if len(y.shape) == 1:
+          w = np.ones(y.shape[0], np.float32)
+        else:
+          w = np.ones((y.shape[0], 1), np.float32)
     else:
       w = None
 
@@ -1370,7 +1382,10 @@ class ImageDataset(Dataset):
     self._X_shape = self._find_array_shape(X)
     self._y_shape = self._find_array_shape(y)
     if w is None:
-      w = np.ones(self._y_shape[:2])
+      if len(self._y_shape) == 1:
+        w = np.ones(self._y_shape[0], np.float32)
+      else:
+        w = np.ones((self._y_shape[0], 1), np.float32)
     if ids is None:
       if not isinstance(X, np.ndarray):
         ids = X

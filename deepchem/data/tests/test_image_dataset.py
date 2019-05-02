@@ -45,7 +45,7 @@ class TestImageDataset(test_util.TensorFlowTestCase):
     x_shape, y_shape, w_shape, ids_shape = ds2.get_shape()
     np.testing.assert_array_equal([10], x_shape)
     np.testing.assert_array_equal([10, 28, 28], y_shape)
-    np.testing.assert_array_equal([10, 28], w_shape)
+    np.testing.assert_array_equal([10, 1], w_shape)
     np.testing.assert_array_equal([10], ids_shape)
     np.testing.assert_array_equal(ds2.X.shape, x_shape)
     np.testing.assert_array_equal(ds2.y.shape, y_shape)

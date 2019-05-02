@@ -293,7 +293,7 @@ class TensorGraph(Model):
   def fit_on_batch(self, X, y, w, submodel=None):
     if not self.built:
       self.build()
-    dataset = NumpyDataset(X, y)
+    dataset = NumpyDataset(X, y, w)
     return self.fit(dataset, nb_epoch=1, submodel=submodel)
 
   def default_generator(self,
@@ -942,27 +942,35 @@ class TensorGraph(Model):
     self.session = session
 
   def evaluate_generator(self,
-                         feed_dict_generator,
+                         generator,
                          metrics,
                          transformers=[],
                          labels=None,
                          outputs=None,
                          weights=[],
                          per_task_metrics=False):
+    """Evaluate the performance of this model on the data produced by a generator.
 
+    Parameters
+    ----------
+    generator: Generator
+      Generator that constructs feed dicts for TensorGraph.
+    metric: deepchem.metrics.Metric
+      Evaluation metric
+    transformers: list
+      List of deepchem.transformers.Transformer
+    per_task_metrics: bool
+      If True, return per-task scores.
+
+    Returns
+    -------
+    dict
+      Maps tasks to scores under metric.
+    """
     if labels is None:
       raise ValueError
-    n_tasks = len(self.default_outputs)
-    n_classes = self.default_outputs[0].out_tensor.get_shape()[-1].value
     evaluator = GeneratorEvaluator(
-        self,
-        feed_dict_generator,
-        transformers,
-        labels=labels,
-        outputs=outputs,
-        weights=weights,
-        n_tasks=n_tasks,
-        n_classes=n_classes)
+        self, generator, transformers, labels=labels, weights=weights)
     if not per_task_metrics:
       scores = evaluator.compute_model_performance(metrics)
       return scores

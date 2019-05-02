@@ -47,7 +47,8 @@ class SingletaskToMultitask(Model):
       task_data_dirs.append(task_data_dir)
     task_datasets = self._to_singletask(dataset, task_data_dirs)
     for task, task_dataset in zip(self.tasks, task_datasets):
-      log("Dataset for task %s has shape %s" % (task,
+      log(
+          "Dataset for task %s has shape %s" % (task,
                                                 str(task_dataset.get_shape())),
           self.verbose)
     return task_datasets
@@ -68,7 +69,12 @@ class SingletaskToMultitask(Model):
       basename = "dataset-%d" % shard_num
       for task_num, task in enumerate(tasks):
         log("\tTask %s" % task, dataset.verbose)
-        w_task = w[:, task_num]
+        if len(w.shape) == 1:
+          w_task = w
+        elif w.shape[1] == 1:
+          w_task = w[:, 0]
+        else:
+          w_task = w[:, task_num]
         y_task = y[:, task_num]
 
         # Extract those datapoints which are present for this task
