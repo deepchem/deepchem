@@ -136,12 +136,11 @@ class TestOverfit(test_util.TensorFlowTestCase):
         n_features,
         dropouts=[0.],
         weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
-        batch_size=n_samples)
-    model.set_optimizer(Adam(learning_rate=0.003, beta1=0.9, beta2=0.999))
+        batch_size=n_samples,
+        learning_rate=0.003)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
-    model.save()
 
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
@@ -168,12 +167,11 @@ class TestOverfit(test_util.TensorFlowTestCase):
         n_features,
         dropouts=[0.],
         weight_init_stddevs=[.1],
-        batch_size=n_samples)
-    model.set_optimizer(Adam(learning_rate=0.0003, beta1=0.9, beta2=0.999))
+        batch_size=n_samples,
+        optimizer=Adam(learning_rate=0.0003, beta1=0.9, beta2=0.999))
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
-    model.save()
 
     # Eval model on train
     scores = model.evaluate(dataset, [classification_metric])
@@ -201,12 +199,11 @@ class TestOverfit(test_util.TensorFlowTestCase):
         weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
         batch_size=n_samples,
         fit_transformers=fit_transformers,
-        n_evals=1)
-    model.set_optimizer(Adam(learning_rate=0.003, beta1=0.9, beta2=0.999))
+        n_evals=1,
+        optimizer=Adam(learning_rate=0.003, beta1=0.9, beta2=0.999))
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
-    model.save()
 
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
@@ -236,12 +233,11 @@ class TestOverfit(test_util.TensorFlowTestCase):
         n_features,
         dropouts=[0.],
         weight_init_stddevs=[.1],
-        batch_size=n_samples)
-    model.set_optimizer(Adam(learning_rate=0.003, beta1=0.9, beta2=0.999))
+        batch_size=n_samples,
+        learning_rate=0.003)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
-    model.save()
 
     # Eval model on train
     scores = model.evaluate(dataset, [classification_metric])
@@ -281,12 +277,11 @@ class TestOverfit(test_util.TensorFlowTestCase):
         n_features,
         dropouts=[0.],
         weight_init_stddevs=[1.],
-        batch_size=n_samples)
-    model.set_optimizer(Adam(learning_rate=0.003, beta1=0.9, beta2=0.999))
+        batch_size=n_samples,
+        learning_rate=0.003)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
-    model.save()
 
     # Eval model on train
     scores = model.evaluate(dataset, [classification_metric])
@@ -347,12 +342,11 @@ class TestOverfit(test_util.TensorFlowTestCase):
         n_features,
         dropouts=[0.],
         weight_init_stddevs=[.1],
-        batch_size=n_samples)
-    model.set_optimizer(Adam(learning_rate=0.0003, beta1=0.9, beta2=0.999))
+        batch_size=n_samples,
+        optimizer=Adam(learning_rate=0.0003, beta1=0.9, beta2=0.999))
 
     # Fit trained model
     model.fit(dataset)
-    model.save()
 
     # Eval model on train
     scores = model.evaluate(dataset, [classification_metric])
@@ -476,12 +470,11 @@ class TestOverfit(test_util.TensorFlowTestCase):
         n_features,
         dropouts=[0.],
         weight_init_stddevs=[.1],
-        batch_size=n_samples)
-    model.set_optimizer(Adam(learning_rate=0.0003, beta1=0.9, beta2=0.999))
+        batch_size=n_samples,
+        optimizer=Adam(learning_rate=0.0003, beta1=0.9, beta2=0.999))
 
     # Fit trained model
     model.fit(dataset, nb_epoch=50)
-    model.save()
 
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])

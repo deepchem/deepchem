@@ -12,18 +12,14 @@ import threading
 import collections
 
 import deepchem as dc
-from deepchem.models.tensorgraph import model_ops
+from deepchem.models import KerasModel
 from deepchem.utils.save import log
 from deepchem.metrics import to_one_hot, from_one_hot
-from deepchem.metrics import to_one_hot
-
-from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
-from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMax, SoftMaxCrossEntropy, L2Loss, ReduceSum, ReduceMean, Exp
 
 logger = logging.getLogger(__name__)
 
 
-class MultitaskClassifier(TensorGraph):
+class MultitaskClassifier(KerasModel):
 
   def __init__(self,
                n_tasks,
@@ -76,7 +72,6 @@ class MultitaskClassifier(TensorGraph):
     n_classes: int
       the number of classes
     """
-    super(MultitaskClassifier, self).__init__(**kwargs)
     self.n_tasks = n_tasks
     self.n_features = n_features
     self.n_classes = n_classes
@@ -89,10 +84,17 @@ class MultitaskClassifier(TensorGraph):
       dropouts = [dropouts] * n_layers
     if not isinstance(activation_fns, collections.Sequence):
       activation_fns = [activation_fns] * n_layers
+    if weight_decay_penalty != 0.0:
+      if weight_decay_penalty_type == 'l1':
+        regularizer = tf.keras.regularizers.l1(weight_decay_penalty)
+      else:
+        regularizer = tf.keras.regularizers.l2(weight_decay_penalty)
+    else:
+      regularizer = None
 
     # Add the input features.
 
-    mol_features = Feature(shape=(None, n_features))
+    mol_features = tf.keras.Input(shape=(n_features,))
     prev_layer = mol_features
 
     # Add the dense layers
@@ -100,38 +102,26 @@ class MultitaskClassifier(TensorGraph):
     for size, weight_stddev, bias_const, dropout, activation_fn in zip(
         layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
         activation_fns):
-      layer = Dense(
-          in_layers=[prev_layer],
-          out_channels=size,
-          activation_fn=activation_fn,
-          weights_initializer=TFWrapper(
-              tf.truncated_normal_initializer, stddev=weight_stddev),
-          biases_initializer=TFWrapper(
-              tf.constant_initializer, value=bias_const))
+      layer = tf.keras.layers.Dense(
+          size,
+          activation=activation_fn,
+          kernel_initializer=tf.truncated_normal_initializer(
+              stddev=weight_stddev),
+          bias_initializer=tf.constant_initializer(value=bias_const),
+          kernel_regularizer=regularizer)(prev_layer)
       if dropout > 0.0:
-        layer = Dropout(dropout, in_layers=[layer])
+        layer = tf.keras.layers.Dropout(rate=dropout)(layer)
       prev_layer = layer
-
-    # Compute the loss function for each label.
     self.neural_fingerprint = prev_layer
-
-    logits = Reshape(
-        shape=(-1, n_tasks, n_classes),
-        in_layers=[
-            Dense(in_layers=[prev_layer], out_channels=n_tasks * n_classes)
-        ])
-    output = SoftMax(logits)
-    self.add_output(output)
-    labels = Label(shape=(None, n_tasks, n_classes))
-    weights = Weights(shape=(None, n_tasks))
-    loss = SoftMaxCrossEntropy(in_layers=[labels, logits])
-    weighted_loss = WeightedError(in_layers=[loss, weights])
-    if weight_decay_penalty != 0.0:
-      weighted_loss = WeightDecay(
-          weight_decay_penalty,
-          weight_decay_penalty_type,
-          in_layers=[weighted_loss])
-    self.set_loss(weighted_loss)
+    logits = tf.keras.layers.Reshape((n_tasks, n_classes))(
+        tf.keras.layers.Dense(n_tasks * n_classes)(prev_layer))
+    output = tf.keras.layers.Softmax()(logits)
+    model = tf.keras.Model(inputs=mol_features, outputs=[output, logits])
+    super(MultitaskClassifier, self).__init__(
+        model,
+        dc.models.losses.SoftmaxCrossEntropy(),
+        output_types=['prediction', 'loss'],
+        **kwargs)
 
   def default_generator(self,
                         dataset,
@@ -144,33 +134,13 @@ class MultitaskClassifier(TensorGraph):
           batch_size=self.batch_size,
           deterministic=deterministic,
           pad_batches=pad_batches):
-        feed_dict = dict()
-        if y_b is not None and not predict:
-          feed_dict[self.labels[0]] = to_one_hot(y_b.flatten(),
-                                                 self.n_classes).reshape(
-                                                     -1, self.n_tasks,
-                                                     self.n_classes)
-        if X_b is not None:
-          feed_dict[self.features[0]] = X_b
-        if w_b is not None and not predict:
-          feed_dict[self.task_weights[0]] = w_b
-        yield feed_dict
-
-  def create_estimator_inputs(self, feature_columns, weight_column, features,
-                              labels, mode):
-    tensors = {}
-    for layer, column in zip(self.features, feature_columns):
-      tensors[layer] = tf.feature_column.input_layer(features, [column])
-    if weight_column is not None:
-      tensors[self.task_weights[0]] = tf.feature_column.input_layer(
-          features, [weight_column])
-    if labels is not None:
-      tensors[self.labels[0]] = tf.one_hot(
-          tf.cast(labels, tf.int32), self.n_classes)
-    return tensors
+        if y_b is not None:
+          y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
+              -1, self.n_tasks, self.n_classes)
+        yield ([X_b], [y_b], [w_b])
 
 
-class MultitaskRegressor(TensorGraph):
+class MultitaskRegressor(KerasModel):
 
   def __init__(self,
                n_tasks,
@@ -220,7 +190,6 @@ class MultitaskRegressor(TensorGraph):
       if True, include extra outputs and loss terms to enable the uncertainty
       in outputs to be predicted
     """
-    super(MultitaskRegressor, self).__init__(**kwargs)
     self.n_tasks = n_tasks
     self.n_features = n_features
     n_layers = len(layer_sizes)
@@ -232,6 +201,13 @@ class MultitaskRegressor(TensorGraph):
       dropouts = [dropouts] * n_layers
     if not isinstance(activation_fns, collections.Sequence):
       activation_fns = [activation_fns] * n_layers
+    if weight_decay_penalty != 0.0:
+      if weight_decay_penalty_type == 'l1':
+        regularizer = tf.keras.regularizers.l1(weight_decay_penalty)
+      else:
+        regularizer = tf.keras.regularizers.l2(weight_decay_penalty)
+    else:
+      regularizer = None
     if uncertainty:
       if any(d == 0.0 for d in dropouts):
         raise ValueError(
@@ -239,7 +215,7 @@ class MultitaskRegressor(TensorGraph):
 
     # Add the input features.
 
-    mol_features = Feature(shape=(None, n_features))
+    mol_features = tf.keras.Input(shape=(n_features,))
     prev_layer = mol_features
 
     # Add the dense layers
@@ -247,62 +223,43 @@ class MultitaskRegressor(TensorGraph):
     for size, weight_stddev, bias_const, dropout, activation_fn in zip(
         layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
         activation_fns):
-      layer = Dense(
-          in_layers=[prev_layer],
-          out_channels=size,
-          activation_fn=activation_fn,
-          weights_initializer=TFWrapper(
-              tf.truncated_normal_initializer, stddev=weight_stddev),
-          biases_initializer=TFWrapper(
-              tf.constant_initializer, value=bias_const))
+      layer = tf.keras.layers.Dense(
+          size,
+          activation=activation_fn,
+          kernel_initializer=tf.truncated_normal_initializer(
+              stddev=weight_stddev),
+          bias_initializer=tf.constant_initializer(value=bias_const),
+          kernel_regularizer=regularizer)(prev_layer)
       if dropout > 0.0:
-        layer = Dropout(dropout, in_layers=[layer])
+        layer = tf.keras.layers.Dropout(rate=dropout)(layer)
       prev_layer = layer
     self.neural_fingerprint = prev_layer
-
-    # Compute the loss function for each label.
-
-    output = Reshape(
-        shape=(-1, n_tasks, 1),
-        in_layers=[
-            Dense(
-                in_layers=[prev_layer],
-                out_channels=n_tasks,
-                weights_initializer=TFWrapper(
-                    tf.truncated_normal_initializer,
-                    stddev=weight_init_stddevs[-1]),
-                biases_initializer=TFWrapper(
-                    tf.constant_initializer, value=bias_init_consts[-1]))
-        ])
-    self.add_output(output)
-    labels = Label(shape=(None, n_tasks, 1))
-    weights = Weights(shape=(None, n_tasks, 1))
+    output = tf.keras.layers.Reshape((n_tasks, 1))(tf.keras.layers.Dense(
+        n_tasks,
+        kernel_initializer=tf.truncated_normal_initializer(
+            stddev=weight_init_stddevs[-1]),
+        bias_initializer=tf.constant_initializer(
+            value=bias_init_consts[-1]))(prev_layer))
     if uncertainty:
-      log_var = Reshape(
-          shape=(-1, n_tasks, 1),
-          in_layers=[
-              Dense(
-                  in_layers=[prev_layer],
-                  out_channels=n_tasks,
-                  weights_initializer=TFWrapper(
-                      tf.truncated_normal_initializer,
-                      stddev=weight_init_stddevs[-1]),
-                  biases_initializer=TFWrapper(
-                      tf.constant_initializer, value=0.0))
-          ])
-      var = Exp(log_var)
-      self.add_variance(var)
-      diff = labels - output
-      weighted_loss = weights * (diff * diff / var + log_var)
-      weighted_loss = ReduceSum(ReduceMean(weighted_loss, axis=[1, 2]))
+      log_var = tf.keras.layers.Reshape((n_tasks, 1))(tf.keras.layers.Dense(
+          n_tasks,
+          kernel_initializer=tf.truncated_normal_initializer(
+              stddev=weight_init_stddevs[-1]),
+          bias_initializer=tf.constant_initializer(value=0.0))(prev_layer))
+      var = tf.keras.layers.Activation(tf.exp)(log_var)
+      outputs = [output, var, output, log_var]
+      output_types = ['prediction', 'variance', 'loss', 'loss']
+
+      def loss(outputs, labels, weights):
+        diff = labels[0] - outputs[0]
+        return tf.reduce_mean(diff * diff / tf.exp(outputs[1]) + outputs[1])
     else:
-      weighted_loss = ReduceSum(L2Loss(in_layers=[labels, output, weights]))
-    if weight_decay_penalty != 0.0:
-      weighted_loss = WeightDecay(
-          weight_decay_penalty,
-          weight_decay_penalty_type,
-          in_layers=[weighted_loss])
-    self.set_loss(weighted_loss)
+      outputs = [output]
+      output_types = ['prediction']
+      loss = dc.models.losses.L2Loss()
+    model = tf.keras.Model(inputs=mol_features, outputs=outputs)
+    super(MultitaskRegressor, self).__init__(
+        model, loss, output_types=output_types, **kwargs)
 
 
 class MultitaskFitTransformRegressor(MultitaskRegressor):
@@ -378,29 +335,23 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
           batch_size=self.batch_size,
           deterministic=deterministic,
           pad_batches=pad_batches):
-        feed_dict = dict()
-        if y_b is not None and not predict:
-          feed_dict[self.labels[0]] = y_b.reshape(-1, self.n_tasks, 1)
+        if y_b is not None:
+          y_b = y_b.reshape(-1, self.n_tasks, 1)
         if X_b is not None:
           if not predict:
             for transformer in self.fit_transformers:
               X_b = transformer.X_transform(X_b)
-          feed_dict[self.features[0]] = X_b
-        if w_b is not None and not predict:
-          feed_dict[self.task_weights[0]] = w_b
-        yield feed_dict
+        yield ([X_b], [y_b], [w_b])
 
-  def predict_on_generator(self, generator, transformers=[], outputs=None):
+  def predict_on_generator(self, generator, transformers=[]):
 
     def transform_generator():
-      for feed_dict in generator:
-        X = feed_dict[self.features[0]]
+      for inputs, labels, weights in generator:
         for i in range(self.n_evals):
-          X_t = X
-        for transformer in self.fit_transformers:
-          X_t = transformer.X_transform(X_t)
-        feed_dict[self.features[0]] = X_t
-        yield feed_dict
+          X_t = inputs[0]
+          for transformer in self.fit_transformers:
+            X_t = transformer.X_transform(X_t)
+          yield ([X_t], labels, weights)
 
     return super(MultitaskFitTransformRegressor, self).predict_on_generator(
-        transform_generator(), transformers, outputs)
+        transform_generator(), transformers)
