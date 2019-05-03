@@ -25,7 +25,7 @@ requirements:
     - joblib ==0.13.2
     - scikit-learn ==0.19.1
     - networkx ==2.1
-    - xgboost ==0.6a2
+    - xgboost ==0.82
     - pillow
     - pandas ==0.22.0
     - {{ environ.get('tensorflow_enabled','tensorflow') }} ==1.13.1

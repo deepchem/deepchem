@@ -57,7 +57,7 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     flaky=3.3.0 \
     zlib=1.2.11 \
     requests=2.18.4 \
-    xgboost=0.6a2 \
+    xgboost=0.82 \
     simdna=0.4.2 \
     pbr=3.1.1 \
     setuptools=39.0.1 \
