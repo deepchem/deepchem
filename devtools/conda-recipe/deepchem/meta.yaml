@@ -30,7 +30,7 @@ requirements:
     - pandas ==0.22.0
     - {{ environ.get('tensorflow_enabled','tensorflow') }} ==1.13.1
     - zlib ==1.2.11
-    - requests ==2.18.4
+    - requests ==2.21.0
     - simdna ==0.4.2
     - jupyter=1.0.0
     - rdkit

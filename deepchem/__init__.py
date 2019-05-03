@@ -3,9 +3,10 @@ Imports all submodules
 """
 from __future__ import division
 from __future__ import unicode_literals
+import os
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 __version__ = '2.2.0'
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 import deepchem.data
 import deepchem.feat
