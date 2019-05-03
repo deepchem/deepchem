@@ -16,7 +16,7 @@ RUN conda update -n base conda
 RUN export LANG=en_US.UTF-8 && \
     git clone https://github.com/deepchem/deepchem.git && \
     cd deepchem && \
-    git checkout 2.1.0 && \
+    git checkout 2.2.0 && \
     sed -i -- 's/tensorflow$/tensorflow-gpu/g' scripts/install_deepchem_conda.sh && \
     bash scripts/install_deepchem_conda.sh && \
     python setup.py develop
