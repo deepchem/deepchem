@@ -13,5 +13,5 @@ if [[ "$unamestr" != 'Darwin' ]];
 then
    export package_name=deepchem-gpu
    export tensorflow_enabled=tensorflow-gpu
-   conda build deepchem -c defaults -c rdkit -c anaconda -c conda-forge >> log.txt
+   conda build deepchem -c defaults -c rdkit -c anaconda -c omnia -c conda-forge >> log.txt
 fi
