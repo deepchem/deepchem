@@ -3,7 +3,7 @@
 
 # Change commented out line For gpu tensorflow
 #export tensorflow=tensorflow-gpu
-export tensorflow=tensorflow-gpu
+export tensorflow=tensorflow
 
 if [ -z "$gpu" ]
 then
@@ -51,12 +51,12 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     scikit-learn=0.19.1 \
     networkx=2.1 \
     pillow \
-    pandas=0.22.0 \
+    pandas=0.24.2 \
     nose=1.3.7 \
     nose-timer=0.7.0 \
     flaky=3.3.0 \
     zlib=1.2.11 \
-    requests=2.18.4 \
+    requests=2.21.0 \
     xgboost=0.82 \
     simdna=0.4.2 \
     pbr=3.1.1 \
