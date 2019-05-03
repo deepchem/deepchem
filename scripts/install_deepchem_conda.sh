@@ -43,7 +43,7 @@ fi
 
 yes | pip install --upgrade pip
 conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
-    mdtraj=1.9.1 \
+    mdtraj=1.9.2 \
     pdbfixer \
     rdkit \
     joblib=0.13.2 \
