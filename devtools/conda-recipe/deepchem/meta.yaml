@@ -27,7 +27,7 @@ requirements:
     - networkx ==2.1
     - xgboost ==0.82
     - pillow
-    - pandas ==0.22.0
+    - pandas ==0.24.2
     - {{ environ.get('tensorflow_enabled','tensorflow') }} ==1.13.1
     - zlib ==1.2.11
     - requests ==2.21.0
