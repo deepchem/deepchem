@@ -688,11 +688,11 @@ class KerasModel(Model):
     input_shape = X.shape
     X = np.reshape(X, [1] + list(X.shape))
     self._create_inputs([X])
-    X, _, _ = self._prepare_batch((X, None, None))
+    X, _, _ = self._prepare_batch(([X], None, None))
     if tf.executing_eagerly():
       # In eager mode we use a GradientTape to compute gradients.
 
-      X = tf.constant(X)
+      X = tf.constant(X[0])
       with tf.GradientTape(
           persistent=True, watch_accessed_variables=False) as tape:
         tape.watch(X)
@@ -729,7 +729,7 @@ class KerasModel(Model):
           jacobian(self._output_tensors[i], self._input_placeholders[0])
           for i in self._prediction_outputs
       ]
-      feed_dict = {self._input_placeholders[0]: X}
+      feed_dict = {self._input_placeholders[0]: X[0]}
       result = self.session.run(grads, feed_dict=feed_dict)
       output_shapes = [
           tuple(o.shape.as_list()[1:]) for o in self._output_tensors
@@ -844,7 +844,10 @@ class _StandardLoss(object):
     losses = self.loss(outputs[0], labels[0])
     w = weights[0]
     if len(w.shape) < len(losses.shape):
-      shape = tuple(w.shape.as_list())
+      if isinstance(w, tf.Tensor):
+        shape = tuple(w.shape.as_list())
+      else:
+        shape = w.shape
       w = tf.reshape(w, shape + (1,) * (len(losses.shape) - len(w.shape)))
     loss = losses * w
     return tf.reduce_mean(loss) + sum(self.model.losses)
