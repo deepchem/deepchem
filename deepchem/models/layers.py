@@ -1912,7 +1912,7 @@ class DTNNEmbedding(tf.keras.layers.Layer):
     """
     parent layers: atom_number
     """
-    atom_number = inputs[0]
+    atom_number = inputs
     return tf.nn.embedding_lookup(self.embedding_list, atom_number)
 
 
@@ -2135,7 +2135,7 @@ class DAGLayer(tf.keras.layers.Layer):
     calculation_orders = inputs[2]
     calculation_masks = inputs[3]
 
-    n_atoms = inputs[4]
+    n_atoms = tf.squeeze(inputs[4])
     # initialize graph features for each graph
     graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
                                        self.max_atoms + 1, self.n_graph_feat))

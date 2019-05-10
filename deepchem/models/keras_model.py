@@ -148,6 +148,7 @@ class KerasModel(Model):
     self._inputs_built = False
     self._training_ops_built = False
     self._initialized_vars = set()
+    self._output_functions = {}
 
   def _ensure_built(self):
     """The first time this is called, create internal data structures."""
@@ -407,7 +408,7 @@ class KerasModel(Model):
     dataset = NumpyDataset(X, y, w)
     return self.fit(dataset, nb_epoch=1)
 
-  def _predict(self, generator, transformers, uncertainty):
+  def _predict(self, generator, transformers, outputs, uncertainty):
     """
     Predict outputs for data provided by a generator.
 
@@ -422,6 +423,11 @@ class KerasModel(Model):
     transformers: list of dc.trans.Transformers
       Transformers that the input data has been transformed by.  The output
       is passed through these transformers to undo the transformations.
+    outputs: Tensor or list of Tensors
+      The outputs to return.  If this is None, the model's standard prediction
+      outputs will be returned.  Alternatively one or more Tensors within the
+      model may be specified, in which case the output of those Tensors will be
+      returned.
     uncertainty: bool
       specifies whether this is being called as part of estimating uncertainty.
       If True, it sets the training flag so that dropout will be enabled, and
@@ -433,11 +439,19 @@ class KerasModel(Model):
     results = None
     variances = None
     if uncertainty:
+      assert outputs is None
       if self._variance_outputs is None or len(self._variance_outputs) == 0:
         raise ValueError('This model cannot compute uncertainties')
       if len(self._variance_outputs) != len(self._prediction_outputs):
         raise ValueError(
             'The number of variances must exactly match the number of outputs')
+    if tf.executing_eagerly() and outputs is not None and len(
+        self.model.inputs) == 0:
+      raise ValueError(
+          "Cannot use 'outputs' argument in eager mode with a model that does not specify its inputs"
+      )
+    if isinstance(outputs, tf.Tensor):
+      outputs = [outputs]
     for batch in generator:
       inputs, labels, weights = batch
       self._create_inputs(inputs)
@@ -448,41 +462,50 @@ class KerasModel(Model):
 
         if len(inputs) == 1:
           inputs = inputs[0]
-        outputs = self.model(inputs, training=uncertainty)
-        outputs = [t.numpy() for t in outputs]
+        if outputs is not None:
+          outputs = tuple(outputs)
+          if outputs not in self._output_functions:
+            self._output_functions[outputs] = tf.keras.backend.function(
+                self.model.inputs, outputs)
+          output_values = self._output_functions[outputs](inputs)
+        else:
+          output_values = self.model(inputs, training=uncertainty)
+          output_values = [t.numpy() for t in output_values]
       else:
 
         # In graph mode we execute the output tensors.
 
         if uncertainty:
           fetches = self._uncertainty_tensors
+        elif outputs is not None:
+          fetches = outputs
         else:
           fetches = self._output_tensors
         feed_dict = dict(zip(self._input_placeholders, inputs))
-        outputs = self.session.run(fetches, feed_dict=feed_dict)
+        output_values = self.session.run(fetches, feed_dict=feed_dict)
 
       # Apply tranformers and record results.
 
       if uncertainty:
-        var = [outputs[i] for i in self._variance_outputs]
+        var = [output_values[i] for i in self._variance_outputs]
         if variances is None:
-          variances = var
+          variances = [var]
         else:
           for i, t in enumerate(var):
             variances[i].append(t)
       if self._prediction_outputs is not None:
-        outputs = [outputs[i] for i in self._prediction_outputs]
+        output_values = [output_values[i] for i in self._prediction_outputs]
       if len(transformers) > 0:
-        if len(outputs) > 1:
+        if len(output_values) > 1:
           raise ValueError(
               "predict() does not support Transformers for models with multiple outputs."
           )
-        elif len(outputs) == 1:
-          outputs = [undo_transforms(outputs[0], transformers)]
+        elif len(output_values) == 1:
+          output_values = [undo_transforms(output_values[0], transformers)]
       if results is None:
-        results = [outputs]
+        results = [output_values]
       else:
-        for i, t in enumerate(outputs):
+        for i, t in enumerate(output_values):
           results[i].append(t)
 
     # Concatenate arrays to create the final results.
@@ -501,7 +524,7 @@ class KerasModel(Model):
     else:
       return final_results
 
-  def predict_on_generator(self, generator, transformers=[]):
+  def predict_on_generator(self, generator, transformers=[], outputs=None):
     """
     Parameters
     ----------
@@ -511,13 +534,18 @@ class KerasModel(Model):
     transformers: list of dc.trans.Transformers
       Transformers that the input data has been transformed by.  The output
       is passed through these transformers to undo the transformations.
+    outputs: Tensor or list of Tensors
+      The outputs to return.  If this is None, the model's standard prediction
+      outputs will be returned.  Alternatively one or more Tensors within the
+      model may be specified, in which case the output of those Tensors will be
+      returned.
     Returns:
       a NumPy array of the model produces a single output, or a list of arrays
       if it produces multiple outputs
     """
-    return self._predict(generator, transformers, False)
+    return self._predict(generator, transformers, outputs, False)
 
-  def predict_on_batch(self, X, transformers=[]):
+  def predict_on_batch(self, X, transformers=[], outputs=None):
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
@@ -527,6 +555,11 @@ class KerasModel(Model):
     transformers: list of dc.trans.Transformers
       Transformers that the input data has been transformed by.  The output
       is passed through these transformers to undo the transformations.
+    outputs: Tensor or list of Tensors
+      The outputs to return.  If this is None, the model's standard prediction
+      outputs will be returned.  Alternatively one or more Tensors within the
+      model may be specified, in which case the output of those Tensors will be
+      returned.
 
     Returns
     -------
@@ -534,7 +567,7 @@ class KerasModel(Model):
     if it produces multiple outputs
     """
     dataset = NumpyDataset(X=X, y=None)
-    return self.predict(dataset, transformers)
+    return self.predict(dataset, transformers, outputs)
 
   def predict_uncertainty_on_batch(self, X, masks=50):
     """
@@ -563,7 +596,7 @@ class KerasModel(Model):
     dataset = NumpyDataset(X=X, y=None)
     return self.predict_uncertainty(dataset, masks)
 
-  def predict(self, dataset, transformers=[]):
+  def predict(self, dataset, transformers=[], outputs=None):
     """
     Uses self to make predictions on provided Dataset object.
 
@@ -574,6 +607,11 @@ class KerasModel(Model):
     transformers: list of dc.trans.Transformers
       Transformers that the input data has been transformed by.  The output
       is passed through these transformers to undo the transformations.
+    outputs: Tensor or list of Tensors
+      The outputs to return.  If this is None, the model's standard prediction
+      outputs will be returned.  Alternatively one or more Tensors within the
+      model may be specified, in which case the output of those Tensors will be
+      returned.
 
     Returns
     -------
@@ -581,7 +619,7 @@ class KerasModel(Model):
     if it produces multiple outputs
     """
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator, transformers)
+    return self.predict_on_generator(generator, transformers, outputs)
 
   def predict_uncertainty(self, dataset, masks=50):
     """
@@ -613,7 +651,7 @@ class KerasModel(Model):
     for i in range(masks):
       generator = self.default_generator(
           dataset, predict=True, pad_batches=False)
-      results = self._predict(generator, [], True)
+      results = self._predict(generator, [], None, True)
       if len(sum_pred) == 0:
         for p, v in results:
           sum_pred.append(p)

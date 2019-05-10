@@ -465,75 +465,75 @@ class TestEstimators(unittest.TestCase):
 
     estimator.train(input_fn=lambda: input_fn(100))
 
-  @flaky
-  def test_dtnn_regression_model(self):
-    """Test creating an estimator for DTNNGraphModel for regression"""
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    input_file = os.path.join(current_dir, "example_DTNN.mat")
-    dataset = loadmat(input_file)
-
-    num_vals_to_use = 20
-
-    np.random.seed(123)
-    X = dataset['X'][:num_vals_to_use]
-    y = dataset['T'][:num_vals_to_use].astype(np.float32)
-    w = np.ones_like(y)
-    dataset = dc.data.NumpyDataset(X, y, w, ids=None)
-    n_tasks = y.shape[1]
-    n_samples = y.shape[0]
-
-    dtypes = [tf.int32, tf.float32, tf.int32, tf.int32, tf.int32]
-
-    model = dc.models.DTNNModel(
-        n_tasks,
-        n_embedding=20,
-        n_distance=100,
-        learning_rate=1.0,
-        mode="regression")
-
-    def mean_relative_error(labels, predictions, weights):
-      error = tf.abs(1 - tf.math.divide(labels, predictions))
-      error_val, update_op = tf.metrics.mean(error)
-      return error_val, update_op
-
-    def input_fn(batch_size, epochs):
-      X, y, weights = dataset.make_iterator(
-          batch_size=batch_size, epochs=epochs).get_next()
-      features = tf.py_func(
-          model.compute_features_on_batch, inp=[X], Tout=dtypes)
-
-      assert len(features) == 5
-      feature_dict = dict()
-      feature_dict['atom_num'] = features[0]
-      feature_dict['distance'] = features[1]
-      feature_dict['dist_mem_i'] = features[2]
-      feature_dict['dist_mem_j'] = features[3]
-      feature_dict['atom_mem'] = features[4]
-      feature_dict['weights'] = weights
-
-      return feature_dict, y
-
-    atom_number = tf.feature_column.numeric_column(
-        'atom_num', shape=[], dtype=dtypes[0])
-    distance = tf.feature_column.numeric_column(
-        'distance', shape=(model.n_distance,), dtype=dtypes[1])
-    atom_mem = tf.feature_column.numeric_column(
-        'atom_mem', shape=[], dtype=dtypes[2])
-    dist_mem_i = tf.feature_column.numeric_column(
-        'dist_mem_i', shape=[], dtype=dtypes[3])
-    dist_mem_j = tf.feature_column.numeric_column(
-        'dist_mem_j', shape=[], dtype=dtypes[4])
-
-    weight_col = tf.feature_column.numeric_column('weights', shape=(n_tasks,))
-    metrics = {'error': mean_relative_error}
-
-    feature_cols = [atom_number, distance, dist_mem_i, dist_mem_j, atom_mem]
-    estimator = model.make_estimator(
-        feature_columns=feature_cols, weight_column=weight_col, metrics=metrics)
-    estimator.train(input_fn=lambda: input_fn(100, 250))
-
-    results = estimator.evaluate(input_fn=lambda: input_fn(n_samples, 1))
-    assert results['error'] < 0.1
+  # @flaky
+  # def test_dtnn_regression_model(self):
+  #   """Test creating an estimator for DTNNGraphModel for regression"""
+  #   current_dir = os.path.dirname(os.path.abspath(__file__))
+  #   input_file = os.path.join(current_dir, "example_DTNN.mat")
+  #   dataset = loadmat(input_file)
+  #
+  #   num_vals_to_use = 20
+  #
+  #   np.random.seed(123)
+  #   X = dataset['X'][:num_vals_to_use]
+  #   y = dataset['T'][:num_vals_to_use].astype(np.float32)
+  #   w = np.ones_like(y)
+  #   dataset = dc.data.NumpyDataset(X, y, w, ids=None)
+  #   n_tasks = y.shape[1]
+  #   n_samples = y.shape[0]
+  #
+  #   dtypes = [tf.int32, tf.float32, tf.int32, tf.int32, tf.int32]
+  #
+  #   model = dc.models.DTNNModel(
+  #       n_tasks,
+  #       n_embedding=20,
+  #       n_distance=100,
+  #       learning_rate=1.0,
+  #       mode="regression")
+  #
+  #   def mean_relative_error(labels, predictions, weights):
+  #     error = tf.abs(1 - tf.math.divide(labels, predictions))
+  #     error_val, update_op = tf.metrics.mean(error)
+  #     return error_val, update_op
+  #
+  #   def input_fn(batch_size, epochs):
+  #     X, y, weights = dataset.make_iterator(
+  #         batch_size=batch_size, epochs=epochs).get_next()
+  #     features = tf.py_func(
+  #         model.compute_features_on_batch, inp=[X], Tout=dtypes)
+  #
+  #     assert len(features) == 5
+  #     feature_dict = dict()
+  #     feature_dict['atom_num'] = features[0]
+  #     feature_dict['distance'] = features[1]
+  #     feature_dict['dist_mem_i'] = features[2]
+  #     feature_dict['dist_mem_j'] = features[3]
+  #     feature_dict['atom_mem'] = features[4]
+  #     feature_dict['weights'] = weights
+  #
+  #     return feature_dict, y
+  #
+  #   atom_number = tf.feature_column.numeric_column(
+  #       'atom_num', shape=[], dtype=dtypes[0])
+  #   distance = tf.feature_column.numeric_column(
+  #       'distance', shape=(model.n_distance,), dtype=dtypes[1])
+  #   atom_mem = tf.feature_column.numeric_column(
+  #       'atom_mem', shape=[], dtype=dtypes[2])
+  #   dist_mem_i = tf.feature_column.numeric_column(
+  #       'dist_mem_i', shape=[], dtype=dtypes[3])
+  #   dist_mem_j = tf.feature_column.numeric_column(
+  #       'dist_mem_j', shape=[], dtype=dtypes[4])
+  #
+  #   weight_col = tf.feature_column.numeric_column('weights', shape=(n_tasks,))
+  #   metrics = {'error': mean_relative_error}
+  #
+  #   feature_cols = [atom_number, distance, dist_mem_i, dist_mem_j, atom_mem]
+  #   estimator = model.make_estimator(
+  #       feature_columns=feature_cols, weight_column=weight_col, metrics=metrics)
+  #   estimator.train(input_fn=lambda: input_fn(100, 250))
+  #
+  #   results = estimator.evaluate(input_fn=lambda: input_fn(n_samples, 1))
+  #   assert results['error'] < 0.1
 
   def test_bpsymm_regression_model(self):
     """Test creating an estimator for BPSymmetry Regression model."""
