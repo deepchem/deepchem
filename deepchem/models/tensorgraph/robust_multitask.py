@@ -6,14 +6,12 @@ import tensorflow as tf
 import collections
 
 from deepchem.metrics import to_one_hot
-
-from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
-from deepchem.models.tensorgraph.layers import Feature, Label, Weights, \
-    WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMax, SoftMaxCrossEntropy, \
-    L2Loss, ReduceSum, Concat, Stack
+from deepchem.models import KerasModel
+from deepchem.models.layers import Stack
+from deepchem.models.losses import SoftmaxCrossEntropy, L2Loss
 
 
-class RobustMultitaskClassifier(TensorGraph):
+class RobustMultitaskClassifier(KerasModel):
   """Implements a neural network for robust multitasking.
 
   Key idea is to have bypass layers that feed directly from features to task
@@ -79,7 +77,6 @@ class RobustMultitaskClassifier(TensorGraph):
       the dropout probablity to use for bypass layers.
       same requirements as dropouts
     """
-    super(RobustMultitaskClassifier, self).__init__(**kwargs)
     self.n_tasks = n_tasks
     self.n_features = n_features
     self.n_classes = n_classes
@@ -92,6 +89,13 @@ class RobustMultitaskClassifier(TensorGraph):
       dropouts = [dropouts] * n_layers
     if not isinstance(activation_fns, collections.Sequence):
       activation_fns = [activation_fns] * n_layers
+    if weight_decay_penalty != 0.0:
+      if weight_decay_penalty_type == 'l1':
+        regularizer = tf.keras.regularizers.l1(weight_decay_penalty)
+      else:
+        regularizer = tf.keras.regularizers.l2(weight_decay_penalty)
+    else:
+      regularizer = None
 
     n_bypass_layers = len(bypass_layer_sizes)
     if not isinstance(bypass_weight_init_stddevs, collections.Sequence):
@@ -104,23 +108,22 @@ class RobustMultitaskClassifier(TensorGraph):
     bypass_activation_fns = [activation_fns[0]] * n_bypass_layers
 
     # Add the input features.
-    mol_features = Feature(shape=(None, n_features))
+    mol_features = tf.keras.Input(shape=(n_features,))
     prev_layer = mol_features
 
     # Add the shared dense layers
     for size, weight_stddev, bias_const, dropout, activation_fn in zip(
         layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
         activation_fns):
-      layer = Dense(
-          in_layers=[prev_layer],
-          out_channels=size,
-          activation_fn=activation_fn,
-          weights_initializer=TFWrapper(
-              tf.truncated_normal_initializer, stddev=weight_stddev),
-          biases_initializer=TFWrapper(
-              tf.constant_initializer, value=bias_const))
+      layer = tf.keras.layers.Dense(
+          size,
+          activation=activation_fn,
+          kernel_initializer=tf.truncated_normal_initializer(
+              stddev=weight_stddev),
+          bias_initializer=tf.constant_initializer(value=bias_const),
+          kernel_regularizer=regularizer)(prev_layer)
       if dropout > 0.0:
-        layer = Dropout(dropout, in_layers=[layer])
+        layer = tf.keras.layers.Dropout(rate=dropout)(layer)
       prev_layer = layer
     top_multitask_layer = prev_layer
 
@@ -131,42 +134,35 @@ class RobustMultitaskClassifier(TensorGraph):
       for size, weight_stddev, bias_const, dropout, activation_fn in zip(
           bypass_layer_sizes, bypass_weight_init_stddevs,
           bypass_bias_init_consts, bypass_dropouts, bypass_activation_fns):
-        layer = Dense(
-            in_layers=[prev_layer],
-            out_channels=size,
-            activation_fn=activation_fn,
-            weights_initializer=TFWrapper(
-                tf.truncated_normal_initializer, stddev=weight_stddev),
-            biases_initializer=TFWrapper(
-                tf.constant_initializer, value=bias_const))
+        layer = tf.keras.layers.Dense(
+            size,
+            activation=activation_fn,
+            kernel_initializer=tf.truncated_normal_initializer(
+                stddev=weight_stddev),
+            bias_initializer=tf.constant_initializer(value=bias_const),
+            kernel_regularizer=regularizer)(prev_layer)
         if dropout > 0.0:
-          layer = Dropout(dropout, in_layers=[layer])
+          layer = tf.keras.layers.Dropout(rate=dropout)(layer)
         prev_layer = layer
       top_bypass_layer = prev_layer
 
       if n_bypass_layers > 0:
-        task_layer = Concat(
-            axis=1, in_layers=[top_multitask_layer, top_bypass_layer])
+        task_layer = tf.keras.layers.Concatenate(axis=1)(
+            [top_multitask_layer, top_bypass_layer])
       else:
         task_layer = top_multitask_layer
 
-      task_out = Dense(in_layers=[task_layer], out_channels=n_classes)
+      task_out = tf.keras.layers.Dense(n_classes)(task_layer)
       task_outputs.append(task_out)
 
-    logits = Stack(axis=1, in_layers=task_outputs)
-
-    output = SoftMax(logits)
-    self.add_output(output)
-    labels = Label(shape=(None, n_tasks, n_classes))
-    weights = Weights(shape=(None, n_tasks))
-    loss = SoftMaxCrossEntropy(in_layers=[labels, logits])
-    weighted_loss = WeightedError(in_layers=[loss, weights])
-    if weight_decay_penalty != 0.0:
-      weighted_loss = WeightDecay(
-          weight_decay_penalty,
-          weight_decay_penalty_type,
-          in_layers=[weighted_loss])
-    self.set_loss(weighted_loss)
+    logits = Stack(axis=1)(task_outputs)
+    output = tf.keras.layers.Softmax()(logits)
+    model = tf.keras.Model(inputs=mol_features, outputs=[output, logits])
+    super(RobustMultitaskClassifier, self).__init__(
+        model,
+        SoftmaxCrossEntropy(),
+        output_types=['prediction', 'loss'],
+        **kwargs)
 
   def default_generator(self,
                         dataset,
@@ -179,17 +175,10 @@ class RobustMultitaskClassifier(TensorGraph):
           batch_size=self.batch_size,
           deterministic=deterministic,
           pad_batches=pad_batches):
-        feed_dict = dict()
-        if y_b is not None and not predict:
-          feed_dict[self.labels[0]] = to_one_hot(y_b.flatten(),
-                                                 self.n_classes).reshape(
-                                                     -1, self.n_tasks,
-                                                     self.n_classes)
-        if X_b is not None:
-          feed_dict[self.features[0]] = X_b
-        if w_b is not None and not predict:
-          feed_dict[self.task_weights[0]] = w_b
-        yield feed_dict
+        if y_b is not None:
+          y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
+              -1, self.n_tasks, self.n_classes)
+        yield ([X_b], [y_b], [w_b])
 
   def create_estimator_inputs(self, feature_columns, weight_column, features,
                               labels, mode):
@@ -205,7 +194,7 @@ class RobustMultitaskClassifier(TensorGraph):
     return tensors
 
 
-class RobustMultitaskRegressor(TensorGraph):
+class RobustMultitaskRegressor(KerasModel):
   """Implements a neural network for robust multitasking.
 
   Key idea is to have bypass layers that feed directly from features to task
@@ -268,7 +257,6 @@ class RobustMultitaskRegressor(TensorGraph):
       the dropout probablity to use for bypass layers.
       same requirements as dropouts
     """
-    super(RobustMultitaskRegressor, self).__init__(**kwargs)
     self.n_tasks = n_tasks
     self.n_features = n_features
     n_layers = len(layer_sizes)
@@ -280,6 +268,13 @@ class RobustMultitaskRegressor(TensorGraph):
       dropouts = [dropouts] * n_layers
     if not isinstance(activation_fns, collections.Sequence):
       activation_fns = [activation_fns] * n_layers
+    if weight_decay_penalty != 0.0:
+      if weight_decay_penalty_type == 'l1':
+        regularizer = tf.keras.regularizers.l1(weight_decay_penalty)
+      else:
+        regularizer = tf.keras.regularizers.l2(weight_decay_penalty)
+    else:
+      regularizer = None
 
     n_bypass_layers = len(bypass_layer_sizes)
     if not isinstance(bypass_weight_init_stddevs, collections.Sequence):
@@ -292,23 +287,22 @@ class RobustMultitaskRegressor(TensorGraph):
     bypass_activation_fns = [activation_fns[0]] * n_bypass_layers
 
     # Add the input features.
-    mol_features = Feature(shape=(None, n_features))
+    mol_features = tf.keras.Input(shape=(n_features,))
     prev_layer = mol_features
 
     # Add the shared dense layers
     for size, weight_stddev, bias_const, dropout, activation_fn in zip(
         layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
         activation_fns):
-      layer = Dense(
-          in_layers=[prev_layer],
-          out_channels=size,
-          activation_fn=activation_fn,
-          weights_initializer=TFWrapper(
-              tf.truncated_normal_initializer, stddev=weight_stddev),
-          biases_initializer=TFWrapper(
-              tf.constant_initializer, value=bias_const))
+      layer = tf.keras.layers.Dense(
+          size,
+          activation=activation_fn,
+          kernel_initializer=tf.truncated_normal_initializer(
+              stddev=weight_stddev),
+          bias_initializer=tf.constant_initializer(value=bias_const),
+          kernel_regularizer=regularizer)(prev_layer)
       if dropout > 0.0:
-        layer = Dropout(dropout, in_layers=[layer])
+        layer = tf.keras.layers.Dropout(rate=dropout)(layer)
       prev_layer = layer
     top_multitask_layer = prev_layer
 
@@ -319,37 +313,27 @@ class RobustMultitaskRegressor(TensorGraph):
       for size, weight_stddev, bias_const, dropout, activation_fn in zip(
           bypass_layer_sizes, bypass_weight_init_stddevs,
           bypass_bias_init_consts, bypass_dropouts, bypass_activation_fns):
-        layer = Dense(
-            in_layers=[prev_layer],
-            out_channels=size,
-            activation_fn=activation_fn,
-            weights_initializer=TFWrapper(
-                tf.truncated_normal_initializer, stddev=weight_stddev),
-            biases_initializer=TFWrapper(
-                tf.constant_initializer, value=bias_const))
+        layer = tf.keras.layers.Dense(
+            size,
+            activation=activation_fn,
+            kernel_initializer=tf.truncated_normal_initializer(
+                stddev=weight_stddev),
+            bias_initializer=tf.constant_initializer(value=bias_const),
+            kernel_regularizer=regularizer)(prev_layer)
         if dropout > 0.0:
-          layer = Dropout(dropout, in_layers=[layer])
+          layer = tf.keras.layers.Dropout(rate=dropout)(layer)
         prev_layer = layer
       top_bypass_layer = prev_layer
 
       if n_bypass_layers > 0:
-        task_layer = Concat(
-            axis=1, in_layers=[top_multitask_layer, top_bypass_layer])
+        task_layer = tf.keras.layers.Concatenate(axis=1)(
+            [top_multitask_layer, top_bypass_layer])
       else:
         task_layer = top_multitask_layer
 
-      task_out = Dense(in_layers=[task_layer], out_channels=1)
+      task_out = tf.keras.layers.Dense(1)(task_layer)
       task_outputs.append(task_out)
 
-    output = Concat(axis=1, in_layers=task_outputs)
-
-    self.add_output(output)
-    labels = Label(shape=(None, n_tasks))
-    weights = Weights(shape=(None, n_tasks))
-    weighted_loss = ReduceSum(L2Loss(in_layers=[labels, output, weights]))
-    if weight_decay_penalty != 0.0:
-      weighted_loss = WeightDecay(
-          weight_decay_penalty,
-          weight_decay_penalty_type,
-          in_layers=[weighted_loss])
-    self.set_loss(weighted_loss)
+    outputs = tf.keras.layers.Concatenate(axis=1)(task_outputs)
+    model = tf.keras.Model(inputs=mol_features, outputs=outputs)
+    super(RobustMultitaskRegressor, self).__init__(model, L2Loss(), **kwargs)

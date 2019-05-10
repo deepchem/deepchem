@@ -77,8 +77,7 @@ class HyperparamOpt(object):
         model_dir = tempfile.mkdtemp()
 
       model = self.model_class(model_params, model_dir)
-      model.fit(train_dataset, **model_params)
-      model.save()
+      model.fit(train_dataset)
 
       evaluator = Evaluator(model, valid_dataset, output_transformers)
       multitask_scores = evaluator.compute_model_performance([metric])
@@ -96,9 +95,10 @@ class HyperparamOpt(object):
       else:
         shutil.rmtree(model_dir)
 
-      log("Model %d/%d, Metric %s, Validation set %s: %f" %
-          (ind + 1, number_combinations, metric.name, ind,
-           valid_score), self.verbose)
+      log(
+          "Model %d/%d, Metric %s, Validation set %s: %f" %
+          (ind + 1, number_combinations, metric.name, ind, valid_score),
+          self.verbose)
       log("\tbest_validation_score so far: %f" % best_validation_score,
           self.verbose)
     if best_model is None:

@@ -6,6 +6,7 @@ from deepchem.data import NumpyDataset
 from deepchem.models.losses import Loss
 from deepchem.models.models import Model
 from deepchem.models.tensorgraph.optimizers import Adam
+from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 
@@ -141,6 +142,8 @@ class KerasModel(Model):
           self._variance_outputs.append(i)
         else:
           raise ValueError('Unknown output type "%s"' % type)
+      if len(self._loss_outputs) == 0:
+        self._loss_outputs = self._prediction_outputs
     self._built = False
     self._inputs_built = False
     self._training_ops_built = False
@@ -166,8 +169,10 @@ class KerasModel(Model):
     self._ensure_built()
     self._inputs_built = True
     if len(self.model.inputs) > 0:
+      self._input_shapes = [t.shape for t in self.model.inputs]
       self._input_dtypes = [t.dtype.as_numpy_dtype for t in self.model.inputs]
     else:
+      self._input_shapes = [(None,) + i.shape[1:] for i in example_inputs]
       self._input_dtypes = [
           np.float32 if x.dtype == np.float64 else x.dtype
           for x in example_inputs
@@ -179,15 +184,14 @@ class KerasModel(Model):
     else:
       # The model doesn't specify inputs, so guess the input shapes based on the
       # example batch.
-      input_shapes = [(None,) + i.shape[1:] for i in example_inputs]
       self._input_placeholders = [
           tf.placeholder(dtype=tf.as_dtype(t), shape=s)
-          for s, t in zip(input_shapes, self._input_dtypes)
+          for s, t in zip(self._input_shapes, self._input_dtypes)
       ]
-      if len(input_shapes) == 1:
-        self.model.build(input_shapes[0])
+      if len(self._input_shapes) == 1:
+        self.model.build(self._input_shapes[0])
       else:
-        self.model.build(input_shapes)
+        self.model.build(self._input_shapes)
     if len(self._input_placeholders) == 1:
       self._output_tensors = self.model(
           self._input_placeholders[0], training=False)
@@ -684,11 +688,11 @@ class KerasModel(Model):
     input_shape = X.shape
     X = np.reshape(X, [1] + list(X.shape))
     self._create_inputs([X])
-    X, _, _ = self._prepare_batch((X, None, None))
+    X, _, _ = self._prepare_batch(([X], None, None))
     if tf.executing_eagerly():
       # In eager mode we use a GradientTape to compute gradients.
 
-      X = tf.constant(X)
+      X = tf.constant(X[0])
       with tf.GradientTape(
           persistent=True, watch_accessed_variables=False) as tape:
         tape.watch(X)
@@ -725,7 +729,7 @@ class KerasModel(Model):
           jacobian(self._output_tensors[i], self._input_placeholders[0])
           for i in self._prediction_outputs
       ]
-      feed_dict = {self._input_placeholders[0]: X}
+      feed_dict = {self._input_placeholders[0]: X[0]}
       result = self.session.run(grads, feed_dict=feed_dict)
       output_shapes = [
           tuple(o.shape.as_list()[1:]) for o in self._output_tensors
@@ -753,6 +757,14 @@ class KerasModel(Model):
           x if x.dtype == t else x.astype(t)
           for x, t in zip(weights, self._weights_dtypes)
       ]
+    for i in range(len(inputs)):
+      shape = inputs[i].shape
+      dims = len(shape)
+      expected_dims = len(self._input_shapes[i])
+      if dims < expected_dims:
+        inputs[i] = inputs[i].reshape(shape + (1,) * (expected_dims - dims))
+      elif dims > expected_dims and all(d == 1 for d in shape[expected_dims:]):
+        inputs[i] = inputs[i].reshape(shape[:expected_dims])
     return (inputs, labels, weights)
 
   def default_generator(self,
@@ -829,5 +841,13 @@ class _StandardLoss(object):
       raise ValueError(
           "Loss functions expects exactly one each of outputs, labels, and weights"
       )
-    loss = self.loss(outputs[0], labels[0]) * weights[0]
+    losses = self.loss(outputs[0], labels[0])
+    w = weights[0]
+    if len(w.shape) < len(losses.shape):
+      if isinstance(w, tf.Tensor):
+        shape = tuple(w.shape.as_list())
+      else:
+        shape = w.shape
+      w = tf.reshape(w, shape + (1,) * (len(losses.shape) - len(w.shape)))
+    loss = losses * w
     return tf.reduce_mean(loss) + sum(self.model.losses)

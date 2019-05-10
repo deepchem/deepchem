@@ -533,6 +533,17 @@ class WeightedLinearCombo(tf.keras.layers.Layer):
     return out_tensor
 
 
+class Stack(tf.keras.layers.Layer):
+  """Stack the inputs along a new axis."""
+
+  def __init__(self, axis=1, **kwargs):
+    super(Stack, self).__init__(**kwargs)
+    self.axis = axis
+
+  def call(self, inputs):
+    return tf.stack(inputs, axis=self.axis)
+
+
 class VinaFreeEnergy(tf.keras.layers.Layer):
   """Computes free-energy as defined by Autodock Vina.
 

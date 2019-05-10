@@ -34,7 +34,6 @@ model = dc.models.MultitaskRegressor(
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=25)
-model.save()
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, metric, transformers)

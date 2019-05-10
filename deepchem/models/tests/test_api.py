@@ -182,7 +182,6 @@ class TestAPI(unittest.TestCase):
 
     # Fit trained model
     model.fit(train_dataset)
-    model.save()
 
     # Eval model on train/test
     _ = model.evaluate(train_dataset, classification_metrics, transformers)

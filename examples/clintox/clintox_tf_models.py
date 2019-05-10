@@ -31,7 +31,6 @@ model = dc.models.MultitaskClassifier(
 
 # Fit trained model
 model.fit(train_dataset)
-model.save()
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, [metric], transformers)
