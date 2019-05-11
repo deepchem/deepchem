@@ -238,12 +238,6 @@ class TestGraphModels(unittest.TestCase):
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
 
-    model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
-    scores2 = model.evaluate(dataset, [metric], transformers)
-    assert np.allclose(scores['mean-roc_auc_score'],
-                       scores2['mean-roc_auc_score'])
-
   @attr("slow")
   def test_mpnn_regression_model(self):
     tasks, dataset, transformers, metric = self.get_dataset(
@@ -261,12 +255,6 @@ class TestGraphModels(unittest.TestCase):
     model.fit(dataset, nb_epoch=50)
     scores = model.evaluate(dataset, [metric], transformers)
     assert all(s < 0.1 for s in scores['mean_absolute_error'])
-
-    model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
-    scores2 = model.evaluate(dataset, [metric], transformers)
-    assert np.allclose(scores['mean_absolute_error'],
-                       scores2['mean_absolute_error'])
 
   @attr("slow")
   def test_mpnn_regression_uncertainty(self):
