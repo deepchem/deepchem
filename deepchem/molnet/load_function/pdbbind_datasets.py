@@ -20,6 +20,7 @@ from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCo
 from deepchem.feat.graph_features import AtomicConvFeaturizer
 
 logger = logging.getLogger(__name__)
+DEFAULT_DATA_DIR = deepchem.utils.get_data_dir()
 
 
 def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
@@ -167,7 +168,7 @@ def load_pdbbind(reload=True,
     Specifies the random seed for splitter.
   save_dir: Str, optional
     Specifies the directory to store the featurized and splitted dataset when
-    reload is False. If reload is True, it will load saved dataset inside save_dir. 
+    reload is False. If reload is True, it will load saved dataset inside save_dir.
   save_timestamp: Bool, optional
     Save featurized and splitted dataset with timestamp or not. Set it as True
     when running similar or same jobs simultaneously on multiple compute nodes.
@@ -178,11 +179,11 @@ def load_pdbbind(reload=True,
   deepchem_dir = deepchem.utils.get_data_dir()
 
   if data_dir == None:
-    data_dir = deepchem_dir
+    data_dir = DEFAULT_DATA_DIR
   data_folder = os.path.join(data_dir, "pdbbind", "v2015")
 
   if save_dir == None:
-    save_dir = os.path.join(deepchem_dir, "from-pdbbind")
+    save_dir = os.path.join(DEFAULT_DATA_DIR, "from-pdbbind")
   if load_binding_pocket:
     save_folder = os.path.join(
         save_dir, "protein_pocket-%s-%s-%s" % (subset, featurizer, split))
@@ -197,15 +198,15 @@ def load_pdbbind(reload=True,
 
   if reload:
     if not os.path.exists(save_folder):
-      raise IOError("Cannot find saved dataset from %s!" % save_folder)
-    print("\nLoading featurized and splitted dataset from:\n%s\n" % save_folder)
+      print(
+          "Dataset does not exist at {}. Reconstructing...".format(save_folder))
+    else:
+      print(
+          "\nLoading featurized and splitted dataset from:\n%s\n" % save_folder)
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
         save_folder)
     if loaded:
       return pdbbind_tasks, all_dataset, transformers
-    else:
-      raise IOError("Failed to load featurized and splitted dataset from:\n%s\n"
-                    % save_folder)
 
   dataset_file = os.path.join(data_dir, "pdbbind_v2015.tar.gz")
   if not os.path.exists(dataset_file):
