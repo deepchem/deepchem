@@ -90,7 +90,8 @@ def run_benchmark(datasets,
         ]
     elif dataset in [
         'bace_r', 'chembl', 'clearance', 'delaney', 'hopv', 'kaggle', 'lipo',
-        'nci', 'pdbbind', 'ppb', 'qm7', 'qm7b', 'qm8', 'qm9', 'sampl'
+        'nci', 'pdbbind', 'ppb', 'qm7', 'qm7b', 'qm8', 'qm9', 'sampl',
+        'thermosol'
     ]:
       mode = 'regression'
       if metric == None:
@@ -123,6 +124,7 @@ def run_benchmark(datasets,
         'factors': deepchem.molnet.load_factors,
         'hiv': deepchem.molnet.load_hiv,
         'hopv': deepchem.molnet.load_hopv,
+        'hppb': deepchem.molnet.load_hppb,
         'kaggle': deepchem.molnet.load_kaggle,
         'kinase': deepchem.molnet.load_kinase,
         'lipo': deepchem.molnet.load_lipo,
@@ -139,6 +141,7 @@ def run_benchmark(datasets,
         'qm9': deepchem.molnet.load_qm9,
         'sampl': deepchem.molnet.load_sampl,
         'sider': deepchem.molnet.load_sider,
+        'thermosol': deepchem.molnet.load_thermosol,
         'tox21': deepchem.molnet.load_tox21,
         'toxcast': deepchem.molnet.load_toxcast,
         'uv': deepchem.molnet.load_uv,
@@ -272,6 +275,7 @@ def load_dataset(dataset, featurizer, split='random'):
       'factors': deepchem.molnet.load_factors,
       'hiv': deepchem.molnet.load_hiv,
       'hopv': deepchem.molnet.load_hopv,
+      'hppb': deepchem.molnet.load_hppb,
       'kaggle': deepchem.molnet.load_kaggle,
       'kinase': deepchem.molnet.load_kinase,
       'lipo': deepchem.molnet.load_lipo,
@@ -289,6 +293,7 @@ def load_dataset(dataset, featurizer, split='random'):
       'qm9': deepchem.molnet.load_qm9,
       'sampl': deepchem.molnet.load_sampl,
       'sider': deepchem.molnet.load_sider,
+      'thermosol': deepchem.molnet.load_thermosol,
       'tox21': deepchem.molnet.load_tox21,
       'toxcast': deepchem.molnet.load_toxcast,
       'uv': deepchem.molnet.load_uv
