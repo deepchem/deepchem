@@ -8,9 +8,8 @@ from deepchem.data import NumpyDataset, pad_features
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
 from deepchem.metrics import to_one_hot
-from deepchem.models import KerasModel
+from deepchem.models import KerasModel, layers
 from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy
-import deepchem.models.layers as layers
 from deepchem.trans import undo_transforms
 from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Activation, BatchNormalization
 
