@@ -113,13 +113,14 @@ class TestKerasModel(unittest.TestCase):
     # Build a model that predicts uncertainty.
 
     inputs = tf.keras.Input(shape=(n_features,))
+    switch = tf.keras.Input(shape=tuple())
     hidden = tf.keras.layers.Dense(200, activation='relu')(inputs)
-    dropout = tf.keras.layers.Dropout(rate=0.1)(hidden)
+    dropout = dc.models.layers.SwitchedDropout(rate=0.1)([hidden, switch])
     output = tf.keras.layers.Dense(n_features)(dropout)
     log_var = tf.keras.layers.Dense(n_features)(dropout)
     var = tf.keras.layers.Activation(tf.exp)(log_var)
     keras_model = tf.keras.Model(
-        inputs=inputs, outputs=[output, var, output, log_var])
+        inputs=[inputs, switch], outputs=[output, var, output, log_var])
 
     def loss(outputs, labels, weights):
       diff = labels[0] - outputs[0]
@@ -127,7 +128,26 @@ class TestKerasModel(unittest.TestCase):
       var = tf.exp(log_var)
       return tf.reduce_mean(diff * diff / var + log_var)
 
-    model = dc.models.KerasModel(
+    class UncertaintyModel(dc.models.KerasModel):
+
+      def default_generator(self,
+                            dataset,
+                            epochs=1,
+                            mode='fit',
+                            deterministic=True,
+                            pad_batches=True):
+        for epoch in range(epochs):
+          for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+              batch_size=self.batch_size,
+              deterministic=deterministic,
+              pad_batches=pad_batches):
+            if mode == 'predict':
+              dropout = np.array(0.0)
+            else:
+              dropout = np.array(1.0)
+            yield ([X_b, dropout], [y_b], [w_b])
+
+    model = UncertaintyModel(
         keras_model,
         loss,
         output_types=['prediction', 'variance', 'loss', 'loss'],

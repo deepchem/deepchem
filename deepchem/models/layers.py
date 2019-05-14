@@ -507,6 +507,24 @@ class IterRefLSTMEmbedding(tf.keras.layers.Layer):
     return [x + p, xp + q]
 
 
+class SwitchedDropout(tf.keras.layers.Layer):
+  """Apply dropout based on an input.
+
+  This is required for uncertainty prediction.  The standard Keras Dropout
+  layer only performs dropout during training, but we sometimes need to do it
+  during prediction.  The second input to this layer should be a scalar equal to
+  0 or 1, indicating whether to perform dropout.
+  """
+
+  def __init__(self, rate, **kwargs):
+    self.rate = rate
+    super(SwitchedDropout, self).__init__(**kwargs)
+
+  def call(self, inputs):
+    rate = self.rate * tf.squeeze(inputs[1])
+    return tf.nn.dropout(inputs[0], rate=rate)
+
+
 class WeightedLinearCombo(tf.keras.layers.Layer):
   """Computes a weighted linear combination of input layers, with the weights defined by trainable variables."""
 
@@ -2048,14 +2066,14 @@ class DTNNGather(tf.keras.layers.Layer):
     return tf.segment_sum(output, atom_membership)
 
 
-def _DAGgraph_step(batch_inputs, W_list, b_list, activation, dropout, training):
+def _DAGgraph_step(batch_inputs, W_list, b_list, activation, dropout,
+                   dropout_switch):
   outputs = batch_inputs
   for idw, W in enumerate(W_list):
     outputs = tf.nn.xw_plus_b(outputs, W, b_list[idw])
     outputs = activation(outputs)
-    rate_scale = 1.0 if training else 0.0
     if not dropout is None:
-      outputs = tf.nn.dropout(outputs, rate=dropout * rate_scale)
+      outputs = tf.nn.dropout(outputs, rate=dropout * dropout_switch)
   return outputs
 
 
@@ -2123,7 +2141,7 @@ class DAGLayer(tf.keras.layers.Layer):
     ]))
     self.built = True
 
-  def call(self, inputs, training=None):
+  def call(self, inputs):
     """
     parent layers: atom_features, parents, calculation_orders, calculation_masks, n_atoms
     """
@@ -2136,6 +2154,7 @@ class DAGLayer(tf.keras.layers.Layer):
     calculation_masks = inputs[3]
 
     n_atoms = tf.squeeze(inputs[4])
+    dropout_switch = tf.squeeze(inputs[5])
     # initialize graph features for each graph
     graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
                                        self.max_atoms + 1, self.n_graph_feat))
@@ -2174,7 +2193,8 @@ class DAGLayer(tf.keras.layers.Layer):
       # of shape: (batch_size*max_atoms) * n_graph_features
       # representing the graph features of target atoms in each graph
       batch_outputs = _DAGgraph_step(batch_inputs, self.W_list, self.b_list,
-                                     self.activation, self.dropout, training)
+                                     self.activation, self.dropout,
+                                     dropout_switch)
 
       # index for targe atoms
       target_index = tf.stack([tf.range(n_atoms), parents[:, count, 0]], axis=1)
@@ -2241,17 +2261,18 @@ class DAGGather(tf.keras.layers.Layer):
     ]))
     self.built = True
 
-  def call(self, inputs, training=None):
+  def call(self, inputs):
     """
     parent layers: atom_features, membership
     """
     atom_features = inputs[0]
     membership = inputs[1]
+    dropout_switch = tf.squeeze(inputs[2])
     # Extract atom_features
     graph_features = tf.segment_sum(atom_features, membership)
     # sum all graph outputs
     return _DAGgraph_step(graph_features, self.W_list, self.b_list,
-                          self.activation, self.dropout, training)
+                          self.activation, self.dropout, dropout_switch)
 
 
 class MessagePassing(tf.keras.layers.Layer):

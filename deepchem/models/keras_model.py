@@ -66,7 +66,8 @@ class KerasModel(Model):
     must have the same shape as the corresponding prediction output, and each
     element is an estimate of the variance in the corresponding prediction.
     Also be aware that if a model supports uncertainty, it MUST use dropout on
-    every layer.  Otherwise, the uncertainties it computes will be inaccurate.
+    every layer, and dropout most be enabled during uncertainty prediction.
+    Otherwise, the uncertainties it computes will be inaccurate.
   """
 
   def __init__(self,
@@ -196,13 +197,9 @@ class KerasModel(Model):
     if len(self._input_placeholders) == 1:
       self._output_tensors = self.model(
           self._input_placeholders[0], training=False)
-      self._uncertainty_tensors = self.model(
-          self._input_placeholders[0], training=True)
     else:
       self._output_tensors = self.model(
           self._input_placeholders, training=False)
-      self._uncertainty_tensors = self.model(
-          self._input_placeholders, training=True)
     if isinstance(self._output_tensors, tf.Tensor):
       self._output_tensors = [self._output_tensors]
     if self._prediction_outputs is None:
@@ -337,7 +334,9 @@ class KerasModel(Model):
         # In eager mode we execute the loss function, accumulating the gradients.
 
         with tf.GradientTape() as tape:
-          outputs = self.model(inputs[0])
+          if len(inputs) == 1:
+            inputs = inputs[0]
+          outputs = self.model(inputs)
           if isinstance(outputs, tf.Tensor):
             outputs = [outputs]
           if self._loss_outputs is not None:
@@ -469,15 +468,13 @@ class KerasModel(Model):
                 self.model.inputs, outputs)
           output_values = self._output_functions[outputs](inputs)
         else:
-          output_values = self.model(inputs, training=uncertainty)
+          output_values = self.model(inputs, training=False)
           output_values = [t.numpy() for t in output_values]
       else:
 
         # In graph mode we execute the output tensors.
 
-        if uncertainty:
-          fetches = self._uncertainty_tensors
-        elif outputs is not None:
+        if outputs is not None:
           fetches = outputs
         else:
           fetches = self._output_tensors
@@ -618,7 +615,8 @@ class KerasModel(Model):
     a NumPy array of the model produces a single output, or a list of arrays
     if it produces multiple outputs
     """
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
+    generator = self.default_generator(
+        dataset, mode='predict', pad_batches=False)
     return self.predict_on_generator(generator, transformers, outputs)
 
   def predict_uncertainty(self, dataset, masks=50):
@@ -650,7 +648,7 @@ class KerasModel(Model):
     sum_var = []
     for i in range(masks):
       generator = self.default_generator(
-          dataset, predict=True, pad_batches=False)
+          dataset, mode='uncertainty', pad_batches=False)
       results = self._predict(generator, [], None, True)
       if len(sum_pred) == 0:
         for p, v in results:
@@ -808,9 +806,35 @@ class KerasModel(Model):
   def default_generator(self,
                         dataset,
                         epochs=1,
-                        predict=False,
+                        mode='fit',
                         deterministic=True,
                         pad_batches=True):
+    """Create a generator that iterates batches for a dataset.
+
+    Subclasses may override this method to customize how model inputs are
+    generated from the data.
+
+    Parameters
+    ----------
+    dataset: Dataset
+      the data to iterate
+    epochs: int
+      the number of times to iterate over the full dataset
+    mode: str
+      allowed values are 'fit' (called during training), 'predict' (called
+      during prediction), and 'uncertainty' (called during uncertainty
+      prediction)
+    deterministic: bool
+      whether to iterate over the dataset in order, or randomly shuffle the
+      data for each epoch
+    pad_batches: bool
+      whether to pad each batch up to this model's preferred batch size
+
+    Returns
+    -------
+    a generator that iterates batches, each represented as a tuple of lists:
+    ([inputs], [outputs], [weights])
+    """
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
