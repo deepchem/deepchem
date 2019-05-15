@@ -1312,11 +1312,11 @@ class ANIFeat(tf.keras.layers.Layer):
 
   def call(self, inputs):
     """In layers should be of shape dtype tf.float32, (None, self.max_atoms, 4)"""
-    atom_numbers = tf.cast(inputs[0][:, :, 0], tf.int32)
+    atom_numbers = tf.cast(inputs[:, :, 0], tf.int32)
     flags = tf.sign(atom_numbers)
     flags = tf.cast(
         tf.expand_dims(flags, 1) * tf.expand_dims(flags, 2), tf.float32)
-    coordinates = inputs[0][:, :, 1:]
+    coordinates = inputs[:, :, 1:]
     if self.coordinates_in_bohr:
       coordinates = coordinates * 0.52917721092
 
@@ -1670,7 +1670,9 @@ class Highway(tf.keras.layers.Layer):
     self.weights_initializer = weights_initializer
 
   def build(self, input_shape):
-    out_channels = input_shape[0][1]
+    if isinstance(input_shape, collections.Sequence):
+      input_shape = input_shape[0]
+    out_channels = input_shape[1]
     if self.biases_initializer is None:
       biases_initializer = None
     else:
@@ -1688,7 +1690,10 @@ class Highway(tf.keras.layers.Layer):
     self.built = True
 
   def call(self, inputs):
-    parent = inputs[0]
+    if isinstance(inputs, collections.Sequence):
+      parent = inputs[0]
+    else:
+      parent = inputs
     dense_H = self.dense_H(parent)
     dense_T = self.dense_T(parent)
     return tf.multiply(dense_H, dense_T) + tf.multiply(parent, 1 - dense_T)

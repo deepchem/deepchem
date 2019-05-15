@@ -949,7 +949,7 @@ class TestLayers(test_util.TensorFlowTestCase):
 
       # Layer is wrapper around embedding lookup, tested that then
       sess.run(tf.global_variables_initializer())
-      out_tensor = dtnn_embedding.out_tensor.eval()[0]
+      out_tensor = dtnn_embedding.out_tensor.eval()
       embedding_val = dtnn_embedding.trainable_variables[0].eval()
       expected_output = embedding_val[test_tensor_input]
       self.assertAllClose(out_tensor, expected_output)
