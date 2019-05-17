@@ -433,6 +433,8 @@ class KerasLayer(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     layer = self._get_layer(set_tensors)
+    if len(inputs) == 1:
+      inputs = inputs[0]
     out_tensor = layer(inputs)
     if set_tensors:
       self.out_tensor = out_tensor

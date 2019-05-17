@@ -9,14 +9,10 @@ import copy
 import sys
 
 from deepchem.metrics import to_one_hot, from_one_hot
-from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
-  SoftMaxCrossEntropy, BatchNorm, WeightedError, Dropout, \
-  Conv1D, ReduceMax, Squeeze, Stack, Highway
-from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
-
-from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature, Reshape, ReduceSum
-from deepchem.models.tensorgraph.tensor_graph import TensorGraph
+from deepchem.models import KerasModel, layers
+from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy
 from deepchem.trans import undo_transforms
+from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Conv1D, Concatenate, Lambda
 
 # Common symbols in SMILES, note that Cl and Br are regarded as single symbol
 default_dict = {
@@ -56,7 +52,7 @@ default_dict = {
 }
 
 
-class TextCNNModel(TensorGraph):
+class TextCNNModel(KerasModel):
   """ A Convolutional neural network on smiles strings
   Reimplementation of the discriminator module in ORGAN: https://arxiv.org/abs/1705.10843
   Originated from: http://emnlp2014.org/papers/pdf/EMNLP2014181.pdf
@@ -118,8 +114,49 @@ class TextCNNModel(TensorGraph):
     self.num_filters = num_filters
     self.dropout = dropout
     self.mode = mode
-    super(TextCNNModel, self).__init__(**kwargs)
-    self._build_graph()
+
+    # Build the model.
+
+    smiles_seqs = Input(shape=(self.seq_length,), dtype=tf.int32)
+    # Character embedding
+    embedding = layers.DTNNEmbedding(
+        n_embedding=self.n_embedding,
+        periodic_table_length=len(self.char_dict.keys()) + 1)(smiles_seqs)
+    pooled_outputs = []
+    conv_layers = []
+    for filter_size, num_filter in zip(self.kernel_sizes, self.num_filters):
+      # Multiple convolutional layers with different filter widths
+      conv_layers.append(
+          Conv1D(kernel_size=filter_size, filters=num_filter,
+                 padding='valid')(embedding))
+      # Max-over-time pooling
+      reduced = Lambda(lambda x: tf.reduce_max(x, axis=1))(conv_layers[-1])
+      pooled_outputs.append(reduced)
+    # Concat features from all filters(one feature per filter)
+    concat_outputs = Concatenate(axis=1)(pooled_outputs)
+    dropout = Dropout(rate=self.dropout)(concat_outputs)
+    dense = Dense(200, activation=tf.nn.relu)(dropout)
+    # Highway layer from https://arxiv.org/pdf/1505.00387.pdf
+    gather = layers.Highway()(dense)
+
+    if self.mode == "classification":
+      logits = Dense(self.n_tasks * 2)(gather)
+      logits = Reshape((self.n_tasks, 2))(logits)
+      output = Softmax()(logits)
+      outputs = [output, logits]
+      output_types = ['prediction', 'loss']
+      loss = SoftmaxCrossEntropy()
+
+    else:
+      output = Dense(self.n_tasks * 1)(gather)
+      output = Reshape((self.n_tasks, 1))(output)
+      outputs = [output]
+      output_types = ['prediction']
+      loss = L2Loss()
+
+    model = tf.keras.Model(inputs=[smiles_seqs], outputs=outputs)
+    super(TextCNNModel, self).__init__(
+        model, loss, output_types=output_types, **kwargs)
 
   @staticmethod
   def build_char_dict(dataset, default_dict=default_dict):
@@ -158,54 +195,6 @@ class TextCNNModel(TensorGraph):
       current_key_val += 1
     return out_dict, seq_length
 
-  def _build_graph(self):
-    self.smiles_seqs = Feature(shape=(None, self.seq_length), dtype=tf.int32)
-    # Character embedding
-    Embedding = DTNNEmbedding(
-        n_embedding=self.n_embedding,
-        periodic_table_length=len(self.char_dict.keys()) + 1,
-        in_layers=[self.smiles_seqs])
-    pooled_outputs = []
-    conv_layers = []
-    for filter_size, num_filter in zip(self.kernel_sizes, self.num_filters):
-      # Multiple convolutional layers with different filter widths
-      conv_layers.append(
-          Conv1D(
-              kernel_size=filter_size,
-              filters=num_filter,
-              padding='valid',
-              in_layers=[Embedding]))
-      # Max-over-time pooling
-      pooled_outputs.append(ReduceMax(axis=1, in_layers=[conv_layers[-1]]))
-    # Concat features from all filters(one feature per filter)
-    concat_outputs = Concat(axis=1, in_layers=pooled_outputs)
-    dropout = Dropout(dropout_prob=self.dropout, in_layers=[concat_outputs])
-    dense = Dense(
-        out_channels=200, activation_fn=tf.nn.relu, in_layers=[dropout])
-    # Highway layer from https://arxiv.org/pdf/1505.00387.pdf
-    gather = Highway(in_layers=[dense])
-
-    if self.mode == "classification":
-      logits = Dense(
-          out_channels=self.n_tasks * 2, activation_fn=None, in_layers=[gather])
-      logits = Reshape(shape=(-1, self.n_tasks, 2), in_layers=[logits])
-      output = SoftMax(in_layers=[logits])
-      self.add_output(output)
-      labels = Label(shape=(None, self.n_tasks, 2))
-      loss = SoftMaxCrossEntropy(in_layers=[labels, logits])
-
-    else:
-      vals = Dense(
-          out_channels=self.n_tasks * 1, activation_fn=None, in_layers=[gather])
-      vals = Reshape(shape=(-1, self.n_tasks, 1), in_layers=[vals])
-      self.add_output(vals)
-      labels = Label(shape=(None, self.n_tasks, 1))
-      loss = ReduceSum(L2Loss(in_layers=[labels, vals]))
-
-    weights = Weights(shape=(None, self.n_tasks))
-    weighted_loss = WeightedError(in_layers=[loss, weights])
-    self.set_loss(weighted_loss)
-
   @staticmethod
   def convert_bytes_to_char(s):
     s = ''.join(chr(b) for b in s)
@@ -227,51 +216,21 @@ class TextCNNModel(TensorGraph):
   def default_generator(self,
                         dataset,
                         epochs=1,
-                        predict=False,
+                        mode='fit',
                         deterministic=True,
                         pad_batches=True):
-    """ Transfer smiles strings to fixed length integer vectors
-    """
+    """Transfer smiles strings to fixed length integer vectors"""
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,
           pad_batches=pad_batches):
-
-        feed_dict = dict()
-        if y_b is not None and not predict:
-          if self.mode == "classification":
-            feed_dict[self.labels[0]] = to_one_hot(y_b.flatten(), 2).reshape(
-                -1, self.n_tasks, 2)
-          else:
-            feed_dict[self.labels[0]] = y_b
-        if w_b is not None and not predict:
-          feed_dict[self.task_weights[0]] = w_b
-
+        if y_b is not None:
+          if self.mode == 'classification':
+            y_b = to_one_hot(y_b.flatten(), 2).reshape(-1, self.n_tasks, 2)
         # Transform SMILES sequence to integers
-        feed_dict[self.smiles_seqs] = self.smiles_to_seq_batch(ids_b)
-        yield feed_dict
-
-  def create_estimator_inputs(self, feature_columns, weight_column, features,
-                              labels, mode):
-    """Creates tensors for inputs."""
-    tensors = dict()
-    for layer, column in zip(self.features, feature_columns):
-      feature_col = tf.feature_column.input_layer(features, [column])
-      if column.dtype != feature_col.dtype:
-        feature_col = tf.cast(feature_col, column.dtype)
-      if len(column.shape) < 1:
-        feature_col = tf.reshape(feature_col, shape=[tf.shape(feature_col)[0]])
-      tensors[layer] = feature_col
-    if weight_column is not None:
-      tensors[self.task_weights[0]] = tf.feature_column.input_layer(
-          features, [weight_column])
-    if labels is not None:
-      if self.mode == "classification":
-        tensors[self.labels[0]] = tf.one_hot(tf.cast(labels, tf.int32), 2)
-      else:
-        tensors[self.labels[0]] = labels
-    return tensors
+        X_b = self.smiles_to_seq_batch(ids_b)
+        yield ([X_b], [y_b], [w_b])
 
   def smiles_to_seq(self, smiles):
     """ Tokenize characters in smiles to integers
@@ -297,17 +256,6 @@ class TextCNNModel(TensorGraph):
       # Padding with '_'
       seq.append(self.char_dict['_'])
     return np.array(seq, dtype=np.int32)
-
-  def predict_on_generator(self, generator, transformers=[], outputs=None):
-    out = super(TextCNNModel, self).predict_on_generator(
-        generator, transformers=[], outputs=outputs)
-    if outputs is None:
-      outputs = self.outputs
-    if len(outputs) > 1:
-      out = np.stack(out, axis=1)
-
-    out = undo_transforms(out, transformers)
-    return out
 
 
 #################### Deprecation warnings for renamed TensorGraph models ####################

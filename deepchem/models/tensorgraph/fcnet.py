@@ -13,8 +13,10 @@ import collections
 
 import deepchem as dc
 from deepchem.models import KerasModel
+from deepchem.models.layers import SwitchedDropout
 from deepchem.utils.save import log
 from deepchem.metrics import to_one_hot, from_one_hot
+from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Activation
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +96,7 @@ class MultitaskClassifier(KerasModel):
 
     # Add the input features.
 
-    mol_features = tf.keras.Input(shape=(n_features,))
+    mol_features = Input(shape=(n_features,))
     prev_layer = mol_features
 
     # Add the dense layers
@@ -102,7 +104,7 @@ class MultitaskClassifier(KerasModel):
     for size, weight_stddev, bias_const, dropout, activation_fn in zip(
         layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
         activation_fns):
-      layer = tf.keras.layers.Dense(
+      layer = Dense(
           size,
           activation=activation_fn,
           kernel_initializer=tf.truncated_normal_initializer(
@@ -110,12 +112,12 @@ class MultitaskClassifier(KerasModel):
           bias_initializer=tf.constant_initializer(value=bias_const),
           kernel_regularizer=regularizer)(prev_layer)
       if dropout > 0.0:
-        layer = tf.keras.layers.Dropout(rate=dropout)(layer)
+        layer = Dropout(rate=dropout)(layer)
       prev_layer = layer
     self.neural_fingerprint = prev_layer
-    logits = tf.keras.layers.Reshape((n_tasks, n_classes))(
-        tf.keras.layers.Dense(n_tasks * n_classes)(prev_layer))
-    output = tf.keras.layers.Softmax()(logits)
+    logits = Reshape((n_tasks,
+                      n_classes))(Dense(n_tasks * n_classes)(prev_layer))
+    output = Softmax()(logits)
     model = tf.keras.Model(inputs=mol_features, outputs=[output, logits])
     super(MultitaskClassifier, self).__init__(
         model,
@@ -126,7 +128,7 @@ class MultitaskClassifier(KerasModel):
   def default_generator(self,
                         dataset,
                         epochs=1,
-                        predict=False,
+                        mode='fit',
                         deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
@@ -215,7 +217,8 @@ class MultitaskRegressor(KerasModel):
 
     # Add the input features.
 
-    mol_features = tf.keras.Input(shape=(n_features,))
+    mol_features = Input(shape=(n_features,))
+    dropout_switch = Input(shape=tuple())
     prev_layer = mol_features
 
     # Add the dense layers
@@ -223,7 +226,7 @@ class MultitaskRegressor(KerasModel):
     for size, weight_stddev, bias_const, dropout, activation_fn in zip(
         layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
         activation_fns):
-      layer = tf.keras.layers.Dense(
+      layer = Dense(
           size,
           activation=activation_fn,
           kernel_initializer=tf.truncated_normal_initializer(
@@ -231,22 +234,22 @@ class MultitaskRegressor(KerasModel):
           bias_initializer=tf.constant_initializer(value=bias_const),
           kernel_regularizer=regularizer)(prev_layer)
       if dropout > 0.0:
-        layer = tf.keras.layers.Dropout(rate=dropout)(layer)
+        layer = SwitchedDropout(rate=dropout)([layer, dropout_switch])
       prev_layer = layer
     self.neural_fingerprint = prev_layer
-    output = tf.keras.layers.Reshape((n_tasks, 1))(tf.keras.layers.Dense(
+    output = Reshape((n_tasks, 1))(Dense(
         n_tasks,
         kernel_initializer=tf.truncated_normal_initializer(
             stddev=weight_init_stddevs[-1]),
         bias_initializer=tf.constant_initializer(
             value=bias_init_consts[-1]))(prev_layer))
     if uncertainty:
-      log_var = tf.keras.layers.Reshape((n_tasks, 1))(tf.keras.layers.Dense(
+      log_var = Reshape((n_tasks, 1))(Dense(
           n_tasks,
           kernel_initializer=tf.truncated_normal_initializer(
               stddev=weight_init_stddevs[-1]),
           bias_initializer=tf.constant_initializer(value=0.0))(prev_layer))
-      var = tf.keras.layers.Activation(tf.exp)(log_var)
+      var = Activation(tf.exp)(log_var)
       outputs = [output, var, output, log_var]
       output_types = ['prediction', 'variance', 'loss', 'loss']
 
@@ -257,9 +260,27 @@ class MultitaskRegressor(KerasModel):
       outputs = [output]
       output_types = ['prediction']
       loss = dc.models.losses.L2Loss()
-    model = tf.keras.Model(inputs=mol_features, outputs=outputs)
+    model = tf.keras.Model(
+        inputs=[mol_features, dropout_switch], outputs=outputs)
     super(MultitaskRegressor, self).__init__(
         model, loss, output_types=output_types, **kwargs)
+
+  def default_generator(self,
+                        dataset,
+                        epochs=1,
+                        mode='fit',
+                        deterministic=True,
+                        pad_batches=True):
+    for epoch in range(epochs):
+      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+          batch_size=self.batch_size,
+          deterministic=deterministic,
+          pad_batches=pad_batches):
+        if mode == 'predict':
+          dropout = np.array(0.0)
+        else:
+          dropout = np.array(1.0)
+        yield ([X_b, dropout], [y_b], [w_b])
 
 
 class MultitaskFitTransformRegressor(MultitaskRegressor):
@@ -327,7 +348,7 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
   def default_generator(self,
                         dataset,
                         epochs=1,
-                        predict=False,
+                        mode='fit',
                         deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
@@ -338,12 +359,12 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
         if y_b is not None:
           y_b = y_b.reshape(-1, self.n_tasks, 1)
         if X_b is not None:
-          if not predict:
+          if mode == 'fit':
             for transformer in self.fit_transformers:
               X_b = transformer.X_transform(X_b)
         yield ([X_b], [y_b], [w_b])
 
-  def predict_on_generator(self, generator, transformers=[]):
+  def predict_on_generator(self, generator, transformers=[], outputs=None):
 
     def transform_generator():
       for inputs, labels, weights in generator:
@@ -354,4 +375,4 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
           yield ([X_t], labels, weights)
 
     return super(MultitaskFitTransformRegressor, self).predict_on_generator(
-        transform_generator(), transformers)
+        transform_generator(), transformers, outputs)

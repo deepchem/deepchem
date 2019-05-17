@@ -56,12 +56,6 @@ class TestGraphModels(unittest.TestCase):
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
 
-    model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
-    scores2 = model.evaluate(dataset, [metric], transformers)
-    assert np.allclose(scores['mean-roc_auc_score'],
-                       scores2['mean-roc_auc_score'])
-
   def test_neural_fingerprint_retrieval(self):
     tasks, dataset, transformers, metric = self.get_dataset(
         'classification', 'GraphConv')
@@ -91,14 +85,6 @@ class TestGraphModels(unittest.TestCase):
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric], transformers)
     assert all(s < 0.1 for s in scores['mean_absolute_error'])
-
-    model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
-    scores2 = model.evaluate(dataset, [metric], transformers)
-    assert np.allclose(
-        scores['mean_absolute_error'],
-        scores2['mean_absolute_error'],
-        rtol=1e-4)
 
   def test_graph_conv_regression_uncertainty(self):
     tasks, dataset, transformers, metric = self.get_dataset(
@@ -150,82 +136,24 @@ class TestGraphModels(unittest.TestCase):
 
     model.fit(dataset, nb_epoch=1)
     y_pred1 = model.predict(dataset)
-    model.save()
-
-    model2 = TensorGraph.load_from_dir(model.model_dir)
-    y_pred2 = model2.predict(dataset)
-    self.assertTrue(np.allclose(y_pred1, y_pred2))
-
-  def test_change_loss_function(self):
-    tasks, dataset, transformers, metric = self.get_dataset(
-        'regression', 'GraphConv', num_tasks=1)
-
-    batch_size = 50
-    model = GraphConvModel(len(tasks), batch_size=batch_size, mode='regression')
-
-    model.fit(dataset, nb_epoch=1)
-    model.save()
-
-    model2 = TensorGraph.load_from_dir(model.model_dir, restore=False)
-    dummy_label = model2.labels[-1]
-    dummy_ouput = model2.outputs[-1]
-    loss = ReduceSum(L2Loss(in_layers=[dummy_label, dummy_ouput]))
-    module = model2.create_submodel(loss=loss)
-    model2.restore()
-    model2.fit(dataset, nb_epoch=1, submodel=module)
-
-  def test_change_loss_function_weave(self):
-    tasks, dataset, transformers, metric = self.get_dataset(
-        'regression', 'Weave', num_tasks=1)
-
-    batch_size = 50
-    model = WeaveModel(
-        len(tasks), batch_size=batch_size, mode='regression', use_queue=False)
-
-    model.fit(dataset, nb_epoch=1)
-    model.save()
-
-    model2 = TensorGraph.load_from_dir(model.model_dir, restore=False)
-    dummy_label = model2.labels[-1]
-    dummy_ouput = model2.outputs[-1]
-    loss = ReduceSum(L2Loss(in_layers=[dummy_label, dummy_ouput]))
-    module = model2.create_submodel(loss=loss)
-    model2.restore()
-    model2.fit(dataset, nb_epoch=1, submodel=module)
 
   @attr("slow")
   def test_weave_model(self):
     tasks, dataset, transformers, metric = self.get_dataset(
         'classification', 'Weave')
-
     model = WeaveModel(len(tasks), mode='classification')
-
     model.fit(dataset, nb_epoch=50)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
-
-    model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
-    scores2 = model.evaluate(dataset, [metric], transformers)
-    assert np.allclose(scores['mean-roc_auc_score'],
-                       scores2['mean-roc_auc_score'])
 
   @flaky
   def test_weave_regression_model(self):
     tasks, dataset, transformers, metric = self.get_dataset(
         'regression', 'Weave')
-
     model = WeaveModel(len(tasks), mode='regression')
-
     model.fit(dataset, nb_epoch=80)
     scores = model.evaluate(dataset, [metric], transformers)
     assert all(s < 0.1 for s in scores['mean_absolute_error'])
-
-    model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
-    scores2 = model.evaluate(dataset, [metric], transformers)
-    assert np.allclose(scores['mean_absolute_error'],
-                       scores2['mean_absolute_error'])
 
   @attr("slow")
   def test_dag_model(self):
@@ -242,12 +170,6 @@ class TestGraphModels(unittest.TestCase):
     model.fit(dataset, nb_epoch=10)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
-
-    model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
-    scores2 = model.evaluate(dataset, [metric], transformers)
-    assert np.allclose(scores['mean-roc_auc_score'],
-                       scores2['mean-roc_auc_score'])
 
   @attr("slow")
   def test_dag_regression_model(self):
@@ -268,12 +190,6 @@ class TestGraphModels(unittest.TestCase):
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric], transformers)
     assert all(s < 0.15 for s in scores['mean_absolute_error'])
-
-    model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
-    scores2 = model.evaluate(dataset, [metric], transformers)
-    assert np.allclose(scores['mean_absolute_error'],
-                       scores2['mean_absolute_error'])
 
   @attr("slow")
   def test_dag_regression_uncertainty(self):
@@ -322,12 +238,6 @@ class TestGraphModels(unittest.TestCase):
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
 
-    model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
-    scores2 = model.evaluate(dataset, [metric], transformers)
-    assert np.allclose(scores['mean-roc_auc_score'],
-                       scores2['mean-roc_auc_score'])
-
   @attr("slow")
   def test_mpnn_regression_model(self):
     tasks, dataset, transformers, metric = self.get_dataset(
@@ -345,12 +255,6 @@ class TestGraphModels(unittest.TestCase):
     model.fit(dataset, nb_epoch=50)
     scores = model.evaluate(dataset, [metric], transformers)
     assert all(s < 0.1 for s in scores['mean_absolute_error'])
-
-    model.save()
-    model = TensorGraph.load_from_dir(model.model_dir)
-    scores2 = model.evaluate(dataset, [metric], transformers)
-    assert np.allclose(scores['mean_absolute_error'],
-                       scores2['mean_absolute_error'])
 
   @attr("slow")
   def test_mpnn_regression_uncertainty(self):

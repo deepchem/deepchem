@@ -167,7 +167,7 @@ class RobustMultitaskClassifier(KerasModel):
   def default_generator(self,
                         dataset,
                         epochs=1,
-                        predict=False,
+                        mode='fit',
                         deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):

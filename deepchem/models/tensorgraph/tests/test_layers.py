@@ -1112,7 +1112,7 @@ class TestLayers(test_util.TensorFlowTestCase):
           activation=activation,
           init=init_method,
           layer_sizes=layer_sizes)
-      dag_gather.create_tensor(in_layers=[atom_features_tf, membership_tf])
+      dag_gather.create_tensor(in_layers=[atom_features_tf, membership_tf, 0])
 
       sess.run(tf.global_variables_initializer())
       output = dag_gather.out_tensor.eval()

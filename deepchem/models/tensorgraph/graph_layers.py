@@ -320,6 +320,12 @@ class DAGLayer(KerasLayer):
         self.n_graph_feat, self.n_atom_feat, self.max_atoms, self.layer_sizes,
         self.init, self.activation, self.dropout, self.batch_size)
 
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    training = kwargs['training'] if 'training' in kwargs else 1.0
+    inputs.append(training)
+    return super(DAGLayer, self).create_tensor(inputs, set_tensors, **kwargs)
+
 
 class DAGGather(KerasLayer):
   """ TensorGraph style implementation
@@ -367,6 +373,12 @@ class DAGGather(KerasLayer):
     return deepchem.models.layers.DAGGather(
         self.n_graph_feat, self.n_outputs, self.max_atoms, self.layer_sizes,
         self.init, self.activation, self.dropout)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    training = kwargs['training'] if 'training' in kwargs else 1.0
+    inputs.append(training)
+    return super(DAGGather, self).create_tensor(inputs, set_tensors, **kwargs)
 
 
 class MessagePassing(KerasLayer):
