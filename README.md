@@ -40,6 +40,12 @@ DeepChem has a number of "soft" requirements. These are packages which are neede
 * [six](https://pypi.python.org/pypi/six)
 * [mdtraj](http://mdtraj.org/)
 
+### Super easy install via pip3
+
+```bash
+pip3 install joblib pandas sklearn tensorflow pillow deepchem
+```
+
 ### Easy Install via Conda
 
 ```bash
