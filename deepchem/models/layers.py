@@ -551,6 +551,39 @@ class WeightedLinearCombo(tf.keras.layers.Layer):
     return out_tensor
 
 
+class CombineMeanStd(tf.keras.layers.Layer):
+  """Generate Gaussian nose."""
+
+  def __init__(self, training_only=False, noise_epsilon=0.01, **kwargs):
+    """Create a CombineMeanStd layer.
+
+    This layer should have two inputs with the same shape, and its output also has the
+    same shape.  Each element of the output is a Gaussian distributed random number
+    whose mean is the corresponding element of the first input, and whose standard
+    deviation is the corresponding element of the second input.
+
+    Parameters
+    ----------
+    training_only: bool
+      if True, noise is only generated during training.  During prediction, the output
+      is simply equal to the first input (that is, the mean of the distribution used
+      during training).
+    """
+    super(CombineMeanStd, self).__init__(**kwargs)
+    self.training_only = training_only
+
+  def call(self, inputs, training=True):
+    if len(inputs) != 2:
+      raise ValueError("Must have two in_layers")
+    mean_parent, std_parent = inputs[0], inputs[1]
+    if self.training_only and not training:
+      return mean_parent
+    from tensorflow.python.ops import array_ops
+    sample_noise = tf.random_normal(
+        array_ops.shape(mean_parent), 0, 1, dtype=tf.float32)
+    return mean_parent + std_parent * sample_noise
+
+
 class Stack(tf.keras.layers.Layer):
   """Stack the inputs along a new axis."""
 
@@ -1025,18 +1058,18 @@ class AtomicConvolution(tf.keras.layers.Layer):
     # Compute the distances and radial symmetry functions.
     D = self.distance_tensor(X, Nbrs, self.boxsize, B, N, M, d)
     R = self.distance_matrix(D)
-    R = tf.reshape(R, [1] + R.shape.as_list())
+    R = tf.expand_dims(R, 0)
     rsf = self.radial_symmetry_function(R, self.rc, self.rs, self.re)
 
     if not self.atom_types:
       cond = tf.cast(tf.not_equal(Nbrs_Z, 0), tf.float32)
-      cond = tf.reshape(cond, R.shape)
+      cond = tf.reshape(cond, (1, -1, N, M))
       layer = tf.reduce_sum(cond * rsf, 3)
     else:
       sym = []
       for j in range(len(self.atom_types)):
         cond = tf.cast(tf.equal(Nbrs_Z, self.atom_types[j]), tf.float32)
-        cond = tf.reshape(cond, R.shape)
+        cond = tf.reshape(cond, (1, -1, N, M))
         sym.append(tf.reduce_sum(cond * rsf, 3))
       layer = tf.concat(sym, 0)
 
@@ -1132,13 +1165,10 @@ class AtomicConvolution(tf.keras.layers.Layer):
     D: tf.Tensor of shape (B, N, M, d)
       Coordinates/features distance tensor.
     """
-    D = []
-    for coords, neighbors in zip(tf.unstack(X), tf.unstack(Nbrs)):
-      flat_neighbors = tf.reshape(neighbors, [-1])
-      neighbor_coords = tf.gather(coords, flat_neighbors)
-      neighbor_coords = tf.reshape(neighbor_coords, [N, M, d])
-      D.append(neighbor_coords - tf.expand_dims(coords, 1))
-    D = tf.stack(D)
+    flat_neighbors = tf.reshape(Nbrs, [-1, N * M])
+    neighbor_coords = tf.batch_gather(X, flat_neighbors)
+    neighbor_coords = tf.reshape(neighbor_coords, [-1, N, M, d])
+    D = neighbor_coords - tf.expand_dims(X, 2)
     if boxsize is not None:
       boxsize = tf.reshape(boxsize, [1, 1, 1, d])
       D -= tf.round(D / boxsize) * boxsize

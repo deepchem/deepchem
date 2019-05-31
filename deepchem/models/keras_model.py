@@ -500,10 +500,9 @@ class KerasModel(Model):
         elif len(output_values) == 1:
           output_values = [undo_transforms(output_values[0], transformers)]
       if results is None:
-        results = [output_values]
-      else:
-        for i, t in enumerate(output_values):
-          results[i].append(t)
+        results = [[] for i in range(len(output_values))]
+      for i, t in enumerate(output_values):
+        results[i].append(t)
 
     # Concatenate arrays to create the final results.
 
@@ -889,6 +888,12 @@ class KerasModel(Model):
       self._checkpoint.restore(checkpoint)
     else:
       self._checkpoint.restore(checkpoint).run_restore_ops(self.session)
+
+  def get_global_step(self):
+    """Get the number of steps of fitting that have been performed."""
+    if tf.executing_eagerly():
+      return int(self._global_step)
+    return self._global_step.eval(session=self.session)
 
 
 class _StandardLoss(object):
