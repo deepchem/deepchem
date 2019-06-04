@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import time
+import os
 
 from deepchem.data import NumpyDataset
 from deepchem.models.losses import Loss
@@ -247,9 +248,17 @@ class KerasModel(Model):
 
   def _init_new_vars(self):
     """Initialize any new variables created since the last call to this method."""
+    print("Initialized_vars")
+    for var in self._initialized_vars:
+        print(var)
+    print()
     if not tf.executing_eagerly():
       vars = set(tf.global_variables())
       new_vars = vars.difference(self._initialized_vars)
+      print("Vars to initialize.")
+      for new_var in new_vars:
+          print(new_var)
+      print()
       self.session.run(tf.variables_initializer(new_vars))
       self._initialized_vars = vars
 
@@ -372,6 +381,9 @@ class KerasModel(Model):
       averaged_batches += 1
       if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
         self._exec_with_session(lambda: manager.save())
+        model_name = "model-" + str(current_step) + ".h5"
+        path = os.path.join(self.model_dir, model_name)
+        tf.keras.models.save_model(model=self.model, filepath=path)
         avg_loss = float(avg_loss) / averaged_batches
         print(
             'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
@@ -386,6 +398,9 @@ class KerasModel(Model):
         print(
             'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
       self._exec_with_session(lambda: manager.save())
+      model_name = "model-" + str(current_step) + ".h5"
+      path = os.path.join(self.model_dir, model_name)
+      tf.keras.models.save_model(model=self.model, filepath=path)
     time2 = time.time()
     print("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return avg_loss
@@ -890,6 +905,37 @@ class KerasModel(Model):
     else:
       self._checkpoint.restore(checkpoint).run_restore_ops(self.session)
 
+  def load_pretrained(self, path, layers_to_exclude=None):
+      """Loads a pretrained model.
+
+       Parameters
+       ----------
+       path: str,
+         Path to .h5 file, containing a saved tf.keras.model
+       layers_to_exclude: list
+         List of layer names to exclude from the restore.
+       """
+      vars = set(self.model.trainable_variables)
+
+       # Initialize all models variables first
+       # When you run fit for the first time on new model,
+       # these set of variables are not initialized.
+      self._ensure_built()
+      if not tf.executing_eagerly():
+          new_vars = vars.difference(self._initialized_vars)
+          self.session.run(tf.variables_initializer(new_vars))
+          self._initialized_vars = vars
+
+      if layers_to_exclude is None:
+          layers_to_exclude = list()
+
+       # Compile set to False, as we want TF to take care of it.
+      pretrained_model = tf.keras.models.load_model(path, compile=False)
+      for idx, layer in enumerate(pretrained_model.layers):
+          if layer.name not in layers_to_exclude:
+              self.model.layers[idx].set_weights(layer.get_weights())
+
+      del pretrained_model
 
 class _StandardLoss(object):
   """The implements the loss function for models that use a dc.models.losses.Loss."""

@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 from deepchem.models.models import Model
 from deepchem.models.keras_model import KerasModel
-from deepchem.models.keras_model_with_pretrained import PretrainedKerasModel
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.models.xgboost_models import XGBoostModel
 from deepchem.models.multitask import SingletaskToMultitask
