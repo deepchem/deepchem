@@ -248,17 +248,9 @@ class KerasModel(Model):
 
   def _init_new_vars(self):
     """Initialize any new variables created since the last call to this method."""
-    print("Initialized_vars")
-    for var in self._initialized_vars:
-        print(var)
-    print()
     if not tf.executing_eagerly():
       vars = set(tf.global_variables())
       new_vars = vars.difference(self._initialized_vars)
-      print("Vars to initialize.")
-      for new_var in new_vars:
-          print(new_var)
-      print()
       self.session.run(tf.variables_initializer(new_vars))
       self._initialized_vars = vars
 
@@ -906,7 +898,7 @@ class KerasModel(Model):
       self._checkpoint.restore(checkpoint).run_restore_ops(self.session)
 
   def load_pretrained(self, path, layers_to_exclude=None):
-      """Loads a pretrained model.
+    """Loads a pretrained model.
 
        Parameters
        ----------
@@ -915,27 +907,28 @@ class KerasModel(Model):
        layers_to_exclude: list
          List of layer names to exclude from the restore.
        """
-      vars = set(self.model.trainable_variables)
+    vars = set(self.model.trainable_variables)
 
-       # Initialize all models variables first
-       # When you run fit for the first time on new model,
-       # these set of variables are not initialized.
-      self._ensure_built()
-      if not tf.executing_eagerly():
-          new_vars = vars.difference(self._initialized_vars)
-          self.session.run(tf.variables_initializer(new_vars))
-          self._initialized_vars = vars
+    # Initialize all models variables first
+    # When you run fit for the first time on new model,
+    # these set of variables are not initialized.
+    self._ensure_built()
+    if not tf.executing_eagerly():
+      new_vars = vars.difference(self._initialized_vars)
+      self.session.run(tf.variables_initializer(new_vars))
+      self._initialized_vars = vars
 
-      if layers_to_exclude is None:
-          layers_to_exclude = list()
+    if layers_to_exclude is None:
+      layers_to_exclude = list()
 
-       # Compile set to False, as we want TF to take care of it.
-      pretrained_model = tf.keras.models.load_model(path, compile=False)
-      for idx, layer in enumerate(pretrained_model.layers):
-          if layer.name not in layers_to_exclude:
-              self.model.layers[idx].set_weights(layer.get_weights())
+    # Compile set to False, as we want TF to take care of it.
+    pretrained_model = tf.keras.models.load_model(path, compile=False)
+    for idx, layer in enumerate(pretrained_model.layers):
+      if layer.name not in layers_to_exclude:
+        self.model.layers[idx].set_weights(layer.get_weights())
 
-      del pretrained_model
+    del pretrained_model
+
 
 class _StandardLoss(object):
   """The implements the loss function for models that use a dc.models.losses.Loss."""
