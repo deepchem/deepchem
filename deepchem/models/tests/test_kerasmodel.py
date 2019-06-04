@@ -60,7 +60,7 @@ class TestKerasModel(unittest.TestCase):
     prediction = np.squeeze(model.predict_on_batch(X))
     assert np.array_equal(y, np.round(prediction))
     metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
-    generator = model.default_generator(dataset)
+    generator = model.default_generator(dataset, pad_batches=False)
     scores = model.evaluate_generator(generator, [metric])
     assert scores[metric.name] > 0.9
 
@@ -100,6 +100,46 @@ class TestKerasModel(unittest.TestCase):
     """Test loading and saving checkpoints with KerasModel, in eager mode."""
     with context.eager_mode():
       self.test_checkpointing()
+
+  def test_fit_restore(self):
+    """Test specifying restore=True when calling fit()."""
+    n_data_points = 10
+    n_features = 2
+    X = np.random.rand(n_data_points, n_features)
+    y = (X[:, 0] > X[:, 1]).astype(np.float32)
+    dataset = dc.data.NumpyDataset(X, y)
+
+    # Train a model to overfit the dataset.
+
+    keras_model = tf.keras.Sequential([
+        tf.keras.layers.Dense(10, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+    model = dc.models.KerasModel(
+        keras_model, dc.models.losses.BinaryCrossEntropy(), learning_rate=0.005)
+    model.fit(dataset, nb_epoch=1000)
+    prediction = np.squeeze(model.predict_on_batch(X))
+    assert np.array_equal(y, np.round(prediction))
+
+    # Create an identical model, do a single step of fitting with restore=True,
+    # and make sure it got restored correctly.
+
+    keras_model2 = tf.keras.Sequential([
+        tf.keras.layers.Dense(10, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+    model2 = dc.models.KerasModel(
+        keras_model2,
+        dc.models.losses.BinaryCrossEntropy(),
+        model_dir=model.model_dir)
+    model2.fit(dataset, nb_epoch=1, restore=True)
+    prediction = np.squeeze(model2.predict_on_batch(X))
+    assert np.array_equal(y, np.round(prediction))
+
+  def test_fit_restore_eager(self):
+    """Test specifying restore=True when calling fit(), in eager mode."""
+    with context.eager_mode():
+      self.test_fit_restore()
 
   def test_uncertainty(self):
     """Test estimating uncertainty a KerasModel."""

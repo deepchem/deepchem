@@ -311,8 +311,6 @@ class KerasModel(Model):
     the average loss over the most recent checkpoint interval
     """
     self._ensure_built()
-    if restore:
-      self.restore()
     if checkpoint_interval > 0:
       manager = tf.train.CheckpointManager(self._checkpoint, self.model_dir,
                                            max_checkpoints_to_keep)
@@ -324,6 +322,9 @@ class KerasModel(Model):
 
     for batch in generator:
       self._create_training_ops(batch)
+      if restore:
+        self.restore()
+        restore = False
       inputs, labels, weights = self._prepare_batch(batch)
       self._tensorboard_step += 1
       should_log = (
@@ -342,12 +343,12 @@ class KerasModel(Model):
           if self._loss_outputs is not None:
             outputs = [outputs[i] for i in self._loss_outputs]
           loss = self._loss_fn(outputs, labels, weights)
-          avg_loss += loss
-          grads = tape.gradient(loss, self.model.trainable_variables)
-          self._tf_optimizer.apply_gradients(
-              zip(grads, self.model.trainable_variables))
-          tf.assign_add(self._global_step, 1)
-          current_step = self._global_step.numpy()
+        avg_loss += loss
+        grads = tape.gradient(loss, self.model.trainable_variables)
+        self._tf_optimizer.apply_gradients(
+            zip(grads, self.model.trainable_variables))
+        tf.assign_add(self._global_step, 1)
+        current_step = self._global_step.numpy()
       else:
 
         # In graph mode we execute the training op.
@@ -469,6 +470,8 @@ class KerasModel(Model):
           output_values = self._output_functions[outputs](inputs)
         else:
           output_values = self.model(inputs, training=False)
+          if isinstance(output_values, tf.Tensor):
+            output_values = [output_values]
           output_values = [t.numpy() for t in output_values]
       else:
 
