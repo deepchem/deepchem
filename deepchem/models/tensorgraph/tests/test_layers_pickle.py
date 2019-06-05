@@ -418,8 +418,8 @@ def test_GraphPool_Pickle():
   for i in range(0, 10 + 1):
     deg_adj = Feature(shape=(None, i + 1), dtype=tf.int32)
     deg_adjs.append(deg_adj)
-  layer = GraphPool(
-      in_layers=[atom_features, degree_slice, membership] + deg_adjs)
+  layer = GraphPool(in_layers=[atom_features, degree_slice, membership] +
+                    deg_adjs)
   tg.set_loss(layer)
   tg.build()
   tg.save()
