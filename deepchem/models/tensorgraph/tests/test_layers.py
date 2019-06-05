@@ -57,9 +57,6 @@ from deepchem.models.tensorgraph.layers import VinaFreeEnergy
 from deepchem.models.tensorgraph.layers import WeightDecay
 from deepchem.models.tensorgraph.layers import WeightedError
 from deepchem.models.tensorgraph.layers import WeightedLinearCombo
-from deepchem.models.tensorgraph.IRV import IRVLayer
-from deepchem.models.tensorgraph.IRV import IRVRegularize
-from deepchem.models.tensorgraph.IRV import Slice
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 from deepchem.models.tensorgraph.graph_layers import DTNNExtract
 from deepchem.models.tensorgraph.graph_layers import WeaveGather
@@ -881,35 +878,6 @@ class TestLayers(test_util.TensorFlowTestCase):
       vertex_props, adjs = vertex_props.eval(), adjs.eval()
       assert vertex_props.shape == (10, 6, 50)
       assert adjs.shape == (10, 6, 5, 6)
-
-  def test_slice(self):
-    """Test that Slice can be invoked."""
-    batch_size = 10
-    n_features = 5
-    test_tensor_input = np.random.rand(batch_size, n_features)
-    with self.session() as sess:
-      test_tensor = tf.convert_to_tensor(test_tensor_input, dtype=tf.float32)
-      out_tensor = Slice(1)(test_tensor)
-      out_tensor = out_tensor.eval()
-      assert np.allclose(out_tensor, test_tensor_input[:, 1:2])
-
-  def test_IRV(self):
-    """Test that IRVLayer and IRVRegularize can be invoked."""
-    batch_size = 10
-    n_tasks = 5
-    K = 10
-    n_features = 2 * K * n_tasks
-    test_tensor_input = np.random.rand(batch_size, n_features)
-    with self.session() as sess:
-      test_tensor = tf.convert_to_tensor(test_tensor_input, dtype=tf.float32)
-      irv_layer = IRVLayer(n_tasks, K)
-      irv_layer.create_tensor(in_layers=[test_tensor])
-      out_tensor = irv_layer.out_tensor
-      sess.run(tf.global_variables_initializer())
-      out_tensor = out_tensor.eval()
-      assert out_tensor.shape == (batch_size, n_tasks)
-      irv_reg = IRVRegularize(irv_layer, 1.)()
-      assert irv_reg.eval() >= 0
 
   def test_hingeloss(self):
     separation = 0.25
