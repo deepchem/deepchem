@@ -2,13 +2,12 @@ import numpy as np
 import tensorflow as tf
 from deepchem.data import NumpyDataset
 from deepchem.feat import CircularFingerprint
-from deepchem.models.tensorgraph.layers import Dense, HingeLoss, Sigmoid, \
-  WeightedError, Dropout
-from deepchem.models.tensorgraph.layers import Label, Weights, Feature
-from deepchem.models.tensorgraph.tensor_graph import TensorGraph
+from deepchem.models import KerasModel
+from deepchem.models.losses import HingeLoss
+from tensorflow.keras.layers import Input, Dense, Dropout, Activation, Lambda
 
 
-class ScScoreModel(TensorGraph):
+class ScScoreModel(KerasModel):
   """
   https://pubs.acs.org/doi/abs/10.1021/acs.jcim.7b00622
   Several definitions of molecular complexity exist to facilitate prioritization
@@ -53,44 +52,36 @@ class ScScoreModel(TensorGraph):
     self.n_features = n_features
     self.layer_sizes = layer_sizes
     self.dropout = dropouts
-    super(ScScoreModel, self).__init__(**kwargs)
-    self.build_graph()
 
-  def build_graph(self):
-    """
-    Building graph structures:
-    """
-    self.m1_features = Feature(shape=(None, self.n_features))
-    self.m2_features = Feature(shape=(None, self.n_features))
-    prev_layer1 = self.m1_features
-    prev_layer2 = self.m2_features
+    m1_features = Input(shape=(self.n_features,))
+    m2_features = Input(shape=(self.n_features,))
+    prev_layer1 = m1_features
+    prev_layer2 = m2_features
     for layer_size in self.layer_sizes:
-      prev_layer1 = Dense(
-          out_channels=layer_size,
-          in_layers=[prev_layer1],
-          activation_fn=tf.nn.relu)
-      prev_layer2 = prev_layer1.shared([prev_layer2])
+      layer = Dense(layer_size, activation=tf.nn.relu)
+      prev_layer1 = layer(prev_layer1)
+      prev_layer2 = layer(prev_layer2)
       if self.dropout > 0.0:
-        prev_layer1 = Dropout(self.dropout, in_layers=prev_layer1)
-        prev_layer2 = Dropout(self.dropout, in_layers=prev_layer2)
+        prev_layer1 = Dropout(rate=self.dropout)(prev_layer1)
+        prev_layer2 = Dropout(rate=self.dropout)(prev_layer2)
 
-    readout_m1 = Dense(
-        out_channels=1, in_layers=[prev_layer1], activation_fn=None)
-    readout_m2 = readout_m1.shared([prev_layer2])
-    self.add_output(Sigmoid(readout_m1) * 4 + 1)
-    self.add_output(Sigmoid(readout_m2) * 4 + 1)
-
-    self.difference = readout_m1 - readout_m2
-    label = Label(shape=(None, 1))
-    loss = HingeLoss(in_layers=[label, self.difference])
-    self.my_task_weights = Weights(shape=(None, 1))
-    loss = WeightedError(in_layers=[loss, self.my_task_weights])
-    self.set_loss(loss)
+    readout_layer = Dense(1)
+    readout_m1 = readout_layer(prev_layer1)
+    readout_m2 = readout_layer(prev_layer2)
+    outputs = [
+        Lambda(lambda x: tf.sigmoid(x) * 4 + 1)(readout_m1),
+        Lambda(lambda x: tf.sigmoid(x) * 4 + 1)(readout_m2),
+        Lambda(lambda x: x[0] - x[1])([readout_m1, readout_m2])
+    ]
+    output_types = ['prediction', 'prediction', 'loss']
+    model = tf.keras.Model(inputs=[m1_features, m2_features], outputs=outputs)
+    super(ScScoreModel, self).__init__(
+        model, HingeLoss(), output_types=output_types, **kwargs)
 
   def default_generator(self,
                         dataset,
                         epochs=1,
-                        predict=False,
+                        mode='fit',
                         deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
@@ -98,14 +89,7 @@ class ScScoreModel(TensorGraph):
           batch_size=self.batch_size,
           deterministic=deterministic,
           pad_batches=pad_batches):
-        feed_dict = dict()
-        feed_dict[self.m1_features] = X_b[:, 0]
-        feed_dict[self.m2_features] = X_b[:, 1]
-        if y_b is not None and not predict:
-          feed_dict[self.labels[0]] = y_b
-        if w_b is not None and not predict:
-          feed_dict[self.my_task_weights] = w_b
-        yield feed_dict
+        yield ([X_b[:, 0], X_b[:, 1]], [y_b], [w_b])
 
   def predict_mols(self, mols):
     featurizer = CircularFingerprint(
@@ -114,16 +98,3 @@ class ScScoreModel(TensorGraph):
     features = np.concatenate([features, features], axis=1)
     ds = NumpyDataset(features, None, None, None)
     return self.predict(ds)[0][:, 0]
-
-  def create_estimator_inputs(self, feature_columns, weight_column, features,
-                              labels, mode):
-    tensors = {}
-    for layer, column in zip([self.m1_features, self.m2_features],
-                             feature_columns):
-      tensors[layer] = tf.feature_column.input_layer(features, [column])
-    if weight_column is not None:
-      tensors[self.task_weights[0]] = tf.feature_column.input_layer(
-          features, [weight_column])
-    if labels is not None:
-      tensors[self.labels[0]] = tf.cast(labels, tf.int32)
-    return tensors

@@ -31,7 +31,8 @@ class TestAtomicConv(unittest.TestCase):
         batch_size=batch_size,
         frag1_num_atoms=5,
         frag2_num_atoms=5,
-        complex_num_atoms=10)
+        complex_num_atoms=10,
+        learning_rate=0.003)
 
     # Creates a set of dummy features that contain the coordinate and
     # neighbor-list features required by the AtomicConvModel.
@@ -62,9 +63,10 @@ class TestAtomicConv(unittest.TestCase):
         (frag1_coords, frag1_nbr_list, frag1_z, frag2_coords, frag2_nbr_list,
          frag2_z, system_coords, system_nbr_list, system_z))
     features = np.asarray(features)
-    labels = np.zeros(batch_size)
+    labels = np.random.rand(batch_size)
     train = NumpyDataset(features, labels)
-    atomic_convnet.fit(train, nb_epoch=1)
+    atomic_convnet.fit(train, nb_epoch=300)
+    assert np.allclose(labels, atomic_convnet.predict(train), atol=0.01)
 
   @attr("slow")
   def test_atomic_conv_variable(self):

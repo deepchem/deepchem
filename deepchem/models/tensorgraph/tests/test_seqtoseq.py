@@ -94,6 +94,7 @@ class TestSeqToSeq(unittest.TestCase):
     embeddings = s.predict_embeddings(train_smiles)
     pred1e = s.predict_from_embeddings(embeddings, beam_width=1)
     pred4e = s.predict_from_embeddings(embeddings, beam_width=4)
+
     for i in range(len(train_smiles)):
       assert pred1[i] == pred1e[i]
       assert pred4[i] == pred4e[i]
@@ -110,7 +111,8 @@ class TestSeqToSeq(unittest.TestCase):
         encoder_layers=2,
         decoder_layers=2,
         embedding_dimension=128,
-        learning_rate=0.01)
+        learning_rate=0.01,
+        variational=True)
 
     # Actually training a VAE takes far too long for a unit test.  Just run a
     # few steps of training to make sure nothing crashes, then check that the

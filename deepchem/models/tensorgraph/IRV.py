@@ -6,13 +6,10 @@ import numpy as np
 import tensorflow as tf
 
 from deepchem.utils.save import log
-from deepchem.models.tensorgraph.tensor_graph import TensorGraph
-from deepchem.models.tensorgraph.layers import Layer, SigmoidCrossEntropy, \
-    Sigmoid, Feature, Label, Weights, Concat, WeightedError, Stack
-from deepchem.models.tensorgraph.layers import convert_to_layers
+from deepchem.models import KerasModel, layers
+from deepchem.models.losses import SigmoidCrossEntropy
 from deepchem.trans import undo_transforms
-
-logger = logging.getLogger(__name__)
+from tensorflow.keras.layers import Input, Layer, Activation, Concatenate, Lambda
 
 
 class IRVLayer(Layer):
@@ -20,7 +17,7 @@ class IRVLayer(Layer):
        https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2750043/
   """
 
-  def __init__(self, n_tasks, K, **kwargs):
+  def __init__(self, n_tasks, K, penalty, **kwargs):
     """
     Parameters
     ----------
@@ -31,23 +28,16 @@ class IRVLayer(Layer):
     """
     self.n_tasks = n_tasks
     self.K = K
-    self.V, self.W, self.b, self.b2 = None, None, None, None
+    self.penalty = penalty
     super(IRVLayer, self).__init__(**kwargs)
 
-  def build(self):
+  def build(self, input_shape):
     self.V = tf.Variable(tf.constant([0.01, 1.]), name="vote", dtype=tf.float32)
     self.W = tf.Variable(tf.constant([1., 1.]), name="w", dtype=tf.float32)
     self.b = tf.Variable(tf.constant([0.01]), name="b", dtype=tf.float32)
     self.b2 = tf.Variable(tf.constant([0.01]), name="b2", dtype=tf.float32)
-    self.trainable_weights = [self.V, self.W, self.b, self.b2]
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    if in_layers is None:
-      in_layers = self.in_layers
-    in_layers = convert_to_layers(in_layers)
-
-    self.build()
-    inputs = in_layers[0].out_tensor
+  def call(self, inputs):
     K = self.K
     outputs = []
     for count in range(self.n_tasks):
@@ -61,53 +51,10 @@ class IRVLayer(Layer):
       R = tf.sigmoid(R)
       z = tf.reduce_sum(R * tf.gather(self.V, ys), axis=1) + self.b2
       outputs.append(tf.reshape(z, shape=[-1, 1]))
-    out_tensor = tf.concat(outputs, axis=1)
-
-    if set_tensors:
-      self.trainable_variables = self.trainable_weights
-      self.out_tensor = out_tensor
-    return out_tensor
-
-  def none_tensors(self):
-    V, W, b, b2 = self.V, self.W, self.b, self.b2
-    self.V, self.W, self.b, self.b2 = None, None, None, None
-
-    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.trainable_variables
-    self.out_tensor, self.trainable_weights, self.trainable_variables = None, [], []
-    return V, W, b, b2, out_tensor, trainable_weights, variables
-
-  def set_tensors(self, tensor):
-    self.V, self.W, self.b, self.b2, self.out_tensor, self.trainable_weights, self.trainable_variables = tensor
-
-
-class IRVRegularize(Layer):
-  """ Extracts the trainable weights in IRVLayer
-  and return their L2-norm
-  No in_layers is required, but should be built after target IRVLayer
-  """
-
-  def __init__(self, IRVLayer, penalty=0.0, **kwargs):
-    """
-    Parameters
-    ----------
-    IRVLayer: IRVLayer
-      Target layer for extracting weights and regularization
-    penalty: float
-      L2 Penalty strength
-    """
-    self.IRVLayer = IRVLayer
-    self.penalty = penalty
-    super(IRVRegularize, self).__init__(**kwargs)
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    assert self.IRVLayer.out_tensor is not None, "IRVLayer must be built first"
-    out_tensor = tf.nn.l2_loss(self.IRVLayer.W) + \
-        tf.nn.l2_loss(self.IRVLayer.V) + tf.nn.l2_loss(self.IRVLayer.b) + \
-        tf.nn.l2_loss(self.IRVLayer.b2)
-    out_tensor = out_tensor * self.penalty
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+    loss = (tf.nn.l2_loss(self.W) + tf.nn.l2_loss(self.V) + tf.nn.l2_loss(
+        self.b) + tf.nn.l2_loss(self.b2)) * self.penalty
+    self.add_loss(loss)
+    return tf.concat(outputs, axis=1)
 
 
 class Slice(Layer):
@@ -129,22 +76,13 @@ class Slice(Layer):
     self.axis = axis
     super(Slice, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    if in_layers is None:
-      in_layers = self.in_layers
-    in_layers = convert_to_layers(in_layers)
-
+  def call(self, inputs):
     slice_num = self.slice_num
     axis = self.axis
-    inputs = in_layers[0].out_tensor
-    out_tensor = tf.slice(inputs, [0] * axis + [slice_num], [-1] * axis + [1])
-
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+    return tf.slice(inputs, [0] * axis + [slice_num], [-1] * axis + [1])
 
 
-class TensorflowMultitaskIRVClassifier(TensorGraph):
+class TensorflowMultitaskIRVClassifier(KerasModel):
 
   def __init__(self,
                n_tasks,
@@ -167,34 +105,25 @@ class TensorflowMultitaskIRVClassifier(TensorGraph):
     self.n_tasks = n_tasks
     self.K = K
     self.n_features = 2 * self.K * self.n_tasks
-    logger.info("n_features after fit_transform: %d" % int(self.n_features))
     self.penalty = penalty
-    super(TensorflowMultitaskIRVClassifier, self).__init__(**kwargs)
-    self.build_graph()
-
-  def build_graph(self):
-    """Constructs the graph architecture of IRV as described in:
-
-       https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2750043/
-    """
-    self.mol_features = Feature(shape=(None, self.n_features))
-    self._labels = Label(shape=(None, self.n_tasks))
-    self._weights = Weights(shape=(None, self.n_tasks))
-    predictions = IRVLayer(self.n_tasks, self.K, in_layers=[self.mol_features])
-    costs = []
+    mol_features = Input(shape=(self.n_features,))
+    predictions = IRVLayer(self.n_tasks, self.K, self.penalty)(mol_features)
+    logits = []
     outputs = []
     for task in range(self.n_tasks):
-      task_output = Slice(task, 1, in_layers=[predictions])
-      sigmoid = Sigmoid(in_layers=[task_output])
+      task_output = Slice(task, 1)(predictions)
+      sigmoid = Activation(tf.sigmoid)(task_output)
+      logits.append(task_output)
       outputs.append(sigmoid)
-
-      label = Slice(task, axis=1, in_layers=[self._labels])
-      cost = SigmoidCrossEntropy(in_layers=[label, task_output])
-      costs.append(cost)
-    all_cost = Concat(in_layers=costs, axis=1)
-    loss = WeightedError(in_layers=[all_cost, self._weights]) + \
-        IRVRegularize(predictions, self.penalty, in_layers=[predictions])
-    self.set_loss(loss)
-    outputs = Stack(axis=1, in_layers=outputs)
-    outputs = Concat(axis=2, in_layers=[1 - outputs, outputs])
-    self.add_output(outputs)
+    outputs = layers.Stack(axis=1)(outputs)
+    outputs2 = Lambda(lambda x: 1 - x)(outputs)
+    outputs = [
+        Concatenate(axis=2)([outputs2, outputs]),
+        Concatenate(axis=1)(logits)
+    ]
+    model = tf.keras.Model(inputs=[mol_features], outputs=outputs)
+    super(TensorflowMultitaskIRVClassifier, self).__init__(
+        model,
+        SigmoidCrossEntropy(),
+        output_types=['prediction', 'loss'],
+        **kwargs)

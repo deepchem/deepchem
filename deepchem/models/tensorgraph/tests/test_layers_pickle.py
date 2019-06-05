@@ -12,7 +12,6 @@ from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, 
   Conv3D, MaxPool3D, Conv2DTranspose, Conv3DTranspose, \
   LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN, Cast,HingeLoss,SparseSoftMaxCrossEntropy
 from deepchem.models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
-from deepchem.models.tensorgraph.IRV import IRVLayer, IRVRegularize, Slice
 
 
 def test_Conv1D_pickle():
@@ -419,8 +418,8 @@ def test_GraphPool_Pickle():
   for i in range(0, 10 + 1):
     deg_adj = Feature(shape=(None, i + 1), dtype=tf.int32)
     deg_adjs.append(deg_adj)
-  layer = GraphPool(
-      in_layers=[atom_features, degree_slice, membership] + deg_adjs)
+  layer = GraphPool(in_layers=[atom_features, degree_slice, membership] +
+                    deg_adjs)
   tg.set_loss(layer)
   tg.build()
   tg.save()
@@ -667,30 +666,6 @@ def testGraphCNNPoolLayer_pickle():
   tg = TensorGraph()
   tg.add_output(gcnnpool)
   tg.set_loss(gcnnpool)
-  tg.build()
-  tg.save()
-
-
-def test_IRVLayer_pickle():
-  n_tasks = 10
-  K = 10
-  V = Feature(shape=(None, 200))
-  irv_layer = IRVLayer(n_tasks, K, in_layers=[V])
-  irv_reg = IRVRegularize(irv_layer, in_layers=[irv_layer])
-  tg = TensorGraph()
-  tg.add_output(irv_layer)
-  tg.add_output(irv_reg)
-  tg.set_loss(irv_reg)
-  tg.build()
-  tg.save()
-
-
-def test_Slice_pickle():
-  V = Feature(shape=(None, 10))
-  out = Slice(5, 1, in_layers=[V])
-  tg = TensorGraph()
-  tg.add_output(out)
-  tg.set_loss(out)
   tg.build()
   tg.save()
 
