@@ -52,6 +52,18 @@ def create_char_to_idx(filename,
 
 
 class SmilesToSeq(Featurizer):
+  """
+  SmilesToSeq Featurizer takes a SMILES string, and turns it into a sequence.
+  Details taken from https://arxiv.org/abs/1712.02734.
+
+  SMILES strings smaller than a specified max length (max_len) are padded using
+  the PAD token while those larger than the max length are not considered. Based
+  on the paper, there is also the option to add extra padding (pad_len) on both
+  sides of the string after length normalization. Using a character to index (char_to_idx)
+  mapping, the SMILES characters are turned into indices and the
+  resulting sequence of indices serves as the input for an embedding layer.
+
+  """
 
   def __init__(self, char_to_idx, max_len=250, pad_len=10, **kwargs):
     """
@@ -72,7 +84,10 @@ class SmilesToSeq(Featurizer):
 
   def to_seq(self, smile):
     """Turns list of smiles characters into array of indices"""
-    seq = [self.char_to_idx[character] for character in smile]
+    out_of_vocab_idx = self.char_to_idx[OUT_OF_VOCAB_TOKEN]
+    seq = [
+        self.char_to_idx.get(character, out_of_vocab_idx) for character in smile
+    ]
     return np.array(seq)
 
   def remove_pad(self, characters):
@@ -115,13 +130,27 @@ class SmilesToSeq(Featurizer):
 
 
 class SmilesToImage(Featurizer):
+  """
+  SmilesToImage Featurizer takes a SMILES string, and turns it into an image.
+  Details taken from https://arxiv.org/abs/1712.02734.
+
+  The default size of for the image is 80 x 80. Two image modes are currently
+  supported - std & engd. std is the gray scale specification,
+  with atomic numbers as pixel values for atom positions and a constant value of
+  2 for bond positions. engd is a 4-channel specification, which uses atom
+  properties like hybridization, valency, charges in addition to atomic number.
+  Bond type is also used for the bonds.
+
+  The coordinates of all atoms are computed, and lines are drawn between atoms
+  to indicate bonds. For the respective channels, the atom and bond positions are
+  set to the property values as mentioned in the paper.
+  """
 
   def __init__(self,
                img_size=80,
                res=0.5,
-               embed=20,
                max_len=250,
-               img_mode="std",
+               img_spec="std",
                **kwargs):
     """
     Parameters
@@ -130,22 +159,20 @@ class SmilesToImage(Featurizer):
         Size of the image tensor
     res: float, default 0.5
         Displays the resolution of each pixel in Angstrom
-    embded: int, default 20
-        #TODO
     max_len: int, default 250
         Maximum allowed length of SMILES string
-    img_mode: str, default std
+    img_spec: str, default std
         Indicates the channel organization of the image tensor
     """
-    if img_mode not in ["std", "engd"]:
+    if img_spec not in ["std", "engd"]:
       raise ValueError(
           "Image mode must be one of std or engd. {} is not supported".format(
-              img_mode))
+              img_spec))
     self.img_size = img_size
     self.max_len = max_len
     self.res = res
-    self.img_mode = img_mode
-    self.embed = embed
+    self.img_spec = img_spec
+    self.embed = int(dims * res / 2)
     super(SmilesToImage, self).__init__(**kwargs)
 
   def _featurize(self, mol):
@@ -162,7 +189,7 @@ class SmilesToImage(Featurizer):
     AllChem.Compute2DCoords(cmol)
     atom_coords = cmol.GetConformer(0).GetPositions()
 
-    if self.img_mode == "std":
+    if self.img_spec == "std":
       # Setup image
       img = np.zeros((self.img_size, self.img_size, 1))
       # Compute bond properties

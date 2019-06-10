@@ -32,10 +32,10 @@ class TestSmilesFeaturizers(TestCase):
 
   def test_reconstruct_from_seq(self):
     """Test SMILES reconstruction from features."""
-    smiles = "Cn1c(=O)c2c(ncn2C)n(C)c1=O"
+    smiles = ["Cn1c(=O)c2c(ncn2C)n(C)c1=O"]
     from rdkit import Chem
-    mol = Chem.MolFromSmiles(smiles)
-    features = self.feat._featurize(mol)
+    mols = [Chem.MolFromSmiles(smile) for smile in smiles]
+    features = self.feat.featurize(mols)
 
-    reconstructed_smile = self.feat.smiles_from_seq(features)
-    assert_equals(smiles, reconstructed_smile)
+    reconstructed_smile = self.feat.smiles_from_seq(features[0])
+    assert_equals(smiles[0], reconstructed_smile)
