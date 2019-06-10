@@ -9,48 +9,13 @@ import collections
 from deepchem.utils.save import log
 from deepchem.metrics import to_one_hot
 from deepchem.metrics import from_one_hot
-from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
-from deepchem.models.tensorgraph.layers import Layer, Feature, Label, Weights, \
-    WeightedError, Dense, Dropout, WeightDecay, Reshape, SparseSoftMaxCrossEntropy, \
-    L2Loss, ReduceSum, Concat, Stack, TensorWrapper, ReLU, Squeeze, SoftMax, Cast
-from deepchem.models.tensorgraph.layers import convert_to_layers
+from deepchem.models import KerasModel, layers
+from deepchem.models.losses import L2Loss, SparseSoftmaxCrossEntropy
+from deepchem.models.keras_model import _StandardLoss
+from tensorflow.keras.layers import Input, Dense, Dropout, ReLU, Concatenate, Add, Multiply, Softmax
 
 
-class Slice(Layer):
-  """ Choose a slice of input on the last axis given order,
-  Suppose input x has two dimensions,
-  output f(x) = x[:, slice_num:slice_num+1]
-  """
-
-  def __init__(self, slice_num, axis=1, **kwargs):
-    """
-    Parameters
-    ----------
-    slice_num: int
-      index of slice number
-    axis: int
-      axis id
-    """
-    self.slice_num = slice_num
-    self.axis = axis
-    super(Slice, self).__init__(**kwargs)
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    if in_layers is None:
-      in_layers = self.in_layers
-    in_layers = convert_to_layers(in_layers)
-
-    slice_num = self.slice_num
-    axis = self.axis
-    inputs = in_layers[0].out_tensor
-    out_tensor = tf.slice(inputs, [0] * axis + [slice_num], [-1] * axis + [1])
-
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
-
-
-class ProgressiveMultitaskRegressor(TensorGraph):
+class ProgressiveMultitaskRegressor(KerasModel):
   """Implements a progressive multitask neural network for regression.
 
   Progressive Networks: https://arxiv.org/pdf/1606.04671v3.pdf
@@ -109,7 +74,8 @@ class ProgressiveMultitaskRegressor(TensorGraph):
       same value is used for every layer.
     """
 
-    super(ProgressiveMultitaskRegressor, self).__init__(**kwargs)
+    if weight_decay_penalty != 0.0:
+      raise ValueError('Weight decay is not currently supported')
     self.n_tasks = n_tasks
     self.n_features = n_features
     self.layer_sizes = layer_sizes
@@ -133,81 +99,65 @@ class ProgressiveMultitaskRegressor(TensorGraph):
       self.activation_fns = [activation_fns] * n_layers
 
     # Add the input features.
-    self.mol_features = Feature(shape=(None, n_features))
-    self._task_labels = Label(shape=(None, n_tasks))
-    self._task_weights = Weights(shape=(None, n_tasks))
+    mol_features = Input(shape=(n_features,))
 
     all_layers = {}
     outputs = []
+    self._task_layers = []
     for task in range(self.n_tasks):
       task_layers = []
       for i in range(n_layers):
         if i == 0:
-          prev_layer = self.mol_features
+          prev_layer = mol_features
         else:
           prev_layer = all_layers[(i - 1, task)]
           if task > 0:
             lateral_contrib, trainables = self.add_adapter(all_layers, task, i)
             task_layers.extend(trainables)
 
-        layer = Dense(
-            in_layers=[prev_layer],
-            out_channels=layer_sizes[i],
-            activation_fn=None,
-            weights_initializer=TFWrapper(
-                tf.truncated_normal_initializer,
+        dense = Dense(
+            layer_sizes[i],
+            kernel_initializer=tf.truncated_normal_initializer(
                 stddev=self.weight_init_stddevs[i]),
-            biases_initializer=TFWrapper(
-                tf.constant_initializer, value=self.bias_init_consts[i]))
-        task_layers.append(layer)
+            bias_initializer=tf.constant_initializer(
+                value=self.bias_init_consts[i]))
+        layer = dense(prev_layer)
+        task_layers.append(dense)
 
         if i > 0 and task > 0:
-          layer = layer + lateral_contrib
+          layer = Add()([layer, lateral_contrib])
         assert self.activation_fns[i] is tf.nn.relu, "Only ReLU is supported"
-        layer = ReLU(in_layers=[layer])
+        layer = ReLU()(layer)
         if self.dropouts[i] > 0.0:
-          layer = Dropout(self.dropouts[i], in_layers=[layer])
+          layer = Dropout(self.dropouts[i])(layer)
         all_layers[(i, task)] = layer
 
       prev_layer = all_layers[(n_layers - 1, task)]
-      layer = Dense(
-          in_layers=[prev_layer],
-          out_channels=n_outputs,
-          weights_initializer=TFWrapper(
-              tf.truncated_normal_initializer,
+      dense = Dense(
+          n_outputs,
+          kernel_initializer=tf.truncated_normal_initializer(
               stddev=self.weight_init_stddevs[-1]),
-          biases_initializer=TFWrapper(
-              tf.constant_initializer, value=self.bias_init_consts[-1]))
-      task_layers.append(layer)
+          bias_initializer=tf.constant_initializer(
+              value=self.bias_init_consts[-1]))
+      layer = dense(prev_layer)
+      task_layers.append(dense)
 
       if task > 0:
         lateral_contrib, trainables = self.add_adapter(all_layers, task,
                                                        n_layers)
         task_layers.extend(trainables)
-        layer = layer + lateral_contrib
+        layer = Add()([layer, lateral_contrib])
       output_layer = self.create_output(layer)
       outputs.append(output_layer)
+      self._task_layers.append(task_layers)
 
-      label = Slice(task, axis=1, in_layers=[self._task_labels])
-      weight = Slice(task, axis=1, in_layers=[self._task_weights])
-      task_loss = self.create_loss(layer, label, weight)
-      self.create_submodel(layers=task_layers, loss=task_loss, optimizer=None)
+    outputs = layers.Stack(axis=1)(outputs)
+    model = tf.keras.Model(inputs=mol_features, outputs=outputs)
+    super(ProgressiveMultitaskRegressor,
+          self).__init__(model, self.create_loss(), **kwargs)
 
-    outputs = Stack(axis=1, in_layers=outputs)
-    self.add_output(outputs)
-
-    # Weight decay not activated
-    """
-    if weight_decay_penalty != 0.0:
-      weighted_loss = WeightDecay(
-          weight_decay_penalty,
-          weight_decay_penalty_type,
-          in_layers=[weighted_loss])
-    """
-
-  def create_loss(self, layer, label, weight):
-    weighted_loss = ReduceSum(L2Loss(in_layers=[label, layer, weight]))
-    return weighted_loss
+  def create_loss(self):
+    return L2Loss()
 
   def create_output(self, layer):
     return layer
@@ -235,35 +185,31 @@ class ProgressiveMultitaskRegressor(TensorGraph):
       prev_layers.append(all_layers[(i - 1, prev_task)])
     # prev_layers is a list with elements of size
     # (batch_size, layer_sizes[i-1])
-    prev_layer = Concat(axis=1, in_layers=prev_layers)
-    with self._get_tf("Graph").as_default():
-      alpha = TensorWrapper(
-          tf.Variable(
-              tf.truncated_normal((1,), stddev=alpha_init_stddev),
-              name="alpha_layer_%d_task%d" % (i, task)))
-      trainable_layers.append(alpha)
+    if len(prev_layers) == 1:
+      prev_layer = prev_layers[0]
+    else:
+      prev_layer = Concatenate(axis=1)(prev_layers)
+    alpha = layers.Variable(tf.truncated_normal((1,), stddev=alpha_init_stddev))
+    trainable_layers.append(alpha)
 
-    prev_layer = prev_layer * alpha
+    prev_layer = Multiply()([prev_layer, alpha([])])
     dense1 = Dense(
-        in_layers=[prev_layer],
-        out_channels=layer_sizes[i - 1],
-        activation_fn=None,
-        weights_initializer=TFWrapper(
-            tf.truncated_normal_initializer, stddev=weight_init_stddev),
-        biases_initializer=TFWrapper(
-            tf.constant_initializer, value=bias_init_const))
+        layer_sizes[i - 1],
+        kernel_initializer=tf.truncated_normal_initializer(
+            stddev=weight_init_stddev),
+        bias_initializer=tf.constant_initializer(value=bias_init_const))
+    prev_layer = dense1(prev_layer)
     trainable_layers.append(dense1)
 
     dense2 = Dense(
-        in_layers=[dense1],
-        out_channels=layer_sizes[i],
-        activation_fn=None,
-        weights_initializer=TFWrapper(
-            tf.truncated_normal_initializer, stddev=weight_init_stddev),
-        biases_initializer=None)
+        layer_sizes[i],
+        kernel_initializer=tf.truncated_normal_initializer(
+            stddev=weight_init_stddev),
+        use_bias=False)
+    prev_layer = dense2(prev_layer)
     trainable_layers.append(dense2)
 
-    return dense2, trainable_layers
+    return prev_layer, trainable_layers
 
   def fit(self,
           dataset,
@@ -276,28 +222,40 @@ class ProgressiveMultitaskRegressor(TensorGraph):
     for task in range(self.n_tasks):
       self.fit_task(
           dataset,
+          task,
           nb_epoch=nb_epoch,
           max_checkpoints_to_keep=max_checkpoints_to_keep,
           checkpoint_interval=checkpoint_interval,
           deterministic=deterministic,
           restore=restore,
-          submodel=task,
           **kwargs)
 
   def fit_task(self,
                dataset,
+               task,
                nb_epoch=10,
                max_checkpoints_to_keep=5,
                checkpoint_interval=1000,
                deterministic=False,
                restore=False,
-               submodel=None,
                **kwargs):
     """Fit one task."""
+    shape = dataset.get_shape()
+    batch = [[np.zeros((self.batch_size,) + s[1:])] for s in shape]
+    self._create_training_ops(batch)
     generator = self.default_generator(
         dataset, epochs=nb_epoch, deterministic=deterministic)
-    self.fit_generator(generator, max_checkpoints_to_keep, checkpoint_interval,
-                       restore, self.submodels[submodel])
+    variables = []
+    for layer in self._task_layers[task]:
+      variables.append(layer.trainable_variables)
+    loss = TaskLoss(self.model, self.create_loss(), task)
+    self.fit_generator(
+        generator,
+        max_checkpoints_to_keep,
+        checkpoint_interval,
+        restore,
+        variables=variables,
+        loss=loss)
 
 
 class ProgressiveMultitaskClassifier(ProgressiveMultitaskRegressor):
@@ -338,15 +296,21 @@ class ProgressiveMultitaskClassifier(ProgressiveMultitaskRegressor):
         n_outputs=n_outputs,
         **kwargs)
 
-  def create_loss(self, layer, label, weight):
-    task_label = Squeeze(squeeze_dims=1, in_layers=[label])
-    task_label = Cast(dtype=tf.int32, in_layers=[task_label])
-    task_weight = Squeeze(squeeze_dims=1, in_layers=[weight])
-
-    loss = SparseSoftMaxCrossEntropy(in_layers=[task_label, layer])
-    weighted_loss = WeightedError(in_layers=[loss, task_weight])
-    return weighted_loss
+  def create_loss(self):
+    return SparseSoftmaxCrossEntropy()
 
   def create_output(self, layer):
-    output = SoftMax(in_layers=[layer])
-    return output
+    return Softmax()(layer)
+
+
+class TaskLoss(_StandardLoss):
+
+  def __init__(self, model, loss, task):
+    super(TaskLoss, self).__init__(model, loss)
+    self.task = task
+
+  def __call__(self, outputs, labels, weights):
+    outputs = [t[:, self.task] for t in outputs]
+    labels = [t[:, self.task] for t in labels]
+    weights = [t[:, self.task] for t in weights]
+    return super(TaskLoss, self).__call__(outputs, labels, weights)

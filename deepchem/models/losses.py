@@ -109,6 +109,21 @@ class SoftmaxCrossEntropy(Loss):
         labels, output, reduction=tf.losses.Reduction.NONE)
 
 
+class SparseSoftmaxCrossEntropy(Loss):
+  """The cross entropy between two probability distributions.
+
+  The labels should have shape (batch_size) or (batch_size, tasks), and be
+  integer class labels.  The outputs have shape (batch_size, classes) or
+  (batch_size, tasks, classes) and be logits that are converted to probabilities
+  using a softmax function.
+  """
+
+  def __call__(self, output, labels):
+    labels = tf.cast(labels, tf.int32)
+    return tf.losses.sparse_softmax_cross_entropy(
+        labels, output, reduction=tf.losses.Reduction.NONE)
+
+
 def _make_shapes_consistent(output, labels):
   """Try to make inputs have the same shape by adding dimensions of size 1."""
   shape1 = output.shape

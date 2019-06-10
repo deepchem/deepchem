@@ -787,18 +787,18 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .9
 
-  def test_tf_progressive_classification_overfit(self):
-    """Test tf progressive multitask overfits tiny data."""
+  def test_progressive_classification_overfit(self):
+    """Test progressive multitask overfits tiny data."""
     np.random.seed(123)
     n_tasks = 5
     n_samples = 10
-    n_features = 3
+    n_features = 6
 
     # Generate dummy dataset
     np.random.seed(123)
     ids = np.arange(n_samples)
     X = np.random.rand(n_samples, n_features)
-    y = np.ones((n_samples, n_tasks))
+    y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
 
     dataset = dc.data.NumpyDataset(X, y, w, ids)
@@ -810,31 +810,30 @@ class TestOverfit(test_util.TensorFlowTestCase):
         layer_sizes=[50],
         bypass_layer_sizes=[10],
         dropouts=[0.],
-        learning_rate=0.003,
+        learning_rate=0.002,
         weight_init_stddevs=[.1],
         alpha_init_stddevs=[.02],
-        batch_size=n_samples,
-        use_queue=False)
+        batch_size=n_samples)
 
     # Fit trained model
-    model.fit(dataset, nb_epoch=20)
+    model.fit(dataset, nb_epoch=200)
 
     # Eval model on train
     scores = model.evaluate(dataset, [metric])
     assert scores[metric.name] > .9
 
-  def test_tf_progressive_regression_overfit(self):
-    """Test tf progressive multitask overfits tiny data."""
+  def test_progressive_regression_overfit(self):
+    """Test progressive multitask overfits tiny data."""
     np.random.seed(123)
     n_tasks = 5
     n_samples = 10
-    n_features = 3
+    n_features = 6
 
     # Generate dummy dataset
     np.random.seed(123)
     ids = np.arange(n_samples)
     X = np.random.rand(n_samples, n_features)
-    y = np.ones((n_samples, n_tasks))
+    y = np.random.rand(n_samples, n_tasks)
     w = np.ones((n_samples, n_tasks))
 
     dataset = dc.data.NumpyDataset(X, y, w, ids)
@@ -846,13 +845,13 @@ class TestOverfit(test_util.TensorFlowTestCase):
         layer_sizes=[50],
         bypass_layer_sizes=[10],
         dropouts=[0.],
-        learning_rate=0.003,
+        learning_rate=0.002,
         weight_init_stddevs=[.1],
         alpha_init_stddevs=[.02],
         batch_size=n_samples)
 
     # Fit trained model
-    model.fit(dataset, nb_epoch=20)
+    model.fit(dataset, nb_epoch=200)
 
     # Eval model on train
     scores = model.evaluate(dataset, [metric])

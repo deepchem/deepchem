@@ -240,6 +240,7 @@ class KerasModel(Model):
     except ValueError:
       # The loss doesn't depend on any variables.
       self._train_op = 0
+    self._train_op_for_vars = {}
     if self.tensorboard:
       self._summary_ops = tf.summary.scalar('loss', self._loss_tensor)
       self._summary_writer = tf.summary.FileWriter(self.model_dir)
@@ -259,7 +260,9 @@ class KerasModel(Model):
           max_checkpoints_to_keep=5,
           checkpoint_interval=1000,
           deterministic=False,
-          restore=False):
+          restore=False,
+          variables=None,
+          loss=None):
     """Train this model on a dataset.
 
     Parameters
@@ -279,17 +282,26 @@ class KerasModel(Model):
     restore: bool
       if True, restore the model from the most recent checkpoint and continue training
       from there.  If False, retrain the model from scratch.
+    variables: list of tf.Variable
+      the variables to train.  If None (the default), all trainable variables in
+      the model are used.
+    loss: function
+      a function of the form f(outputs, labels, weights) that computes the loss
+      for each batch.  If None (the default), the model's standard loss function
+      is used.
    """
     return self.fit_generator(
         self.default_generator(
             dataset, epochs=nb_epoch, deterministic=deterministic),
-        max_checkpoints_to_keep, checkpoint_interval, restore)
+        max_checkpoints_to_keep, checkpoint_interval, restore, variables, loss)
 
   def fit_generator(self,
                     generator,
                     max_checkpoints_to_keep=5,
                     checkpoint_interval=1000,
-                    restore=False):
+                    restore=False,
+                    variables=None,
+                    loss=None):
     """Train this model on data from a generator.
 
     Parameters
@@ -305,6 +317,13 @@ class KerasModel(Model):
     restore: bool
       if True, restore the model from the most recent checkpoint and continue training
       from there.  If False, retrain the model from scratch.
+    variables: list of tf.Variable
+      the variables to train.  If None (the default), all trainable variables in
+      the model are used.
+    loss: function
+      a function of the form f(outputs, labels, weights) that computes the loss
+      for each batch.  If None (the default), the model's standard loss function
+      is used.
 
     Returns
     -------
@@ -316,6 +335,7 @@ class KerasModel(Model):
                                            max_checkpoints_to_keep)
     avg_loss = 0.0
     averaged_batches = 0
+    train_op = None
     time1 = time.time()
 
     # Main training loop.
@@ -334,6 +354,8 @@ class KerasModel(Model):
 
         # In eager mode we execute the loss function, accumulating the gradients.
 
+        if loss is None:
+          loss = self._loss_fn
         with tf.GradientTape() as tape:
           if len(inputs) == 1:
             inputs = inputs[0]
@@ -342,18 +364,38 @@ class KerasModel(Model):
             outputs = [outputs]
           if self._loss_outputs is not None:
             outputs = [outputs[i] for i in self._loss_outputs]
-          loss = self._loss_fn(outputs, labels, weights)
-        avg_loss += loss
-        grads = tape.gradient(loss, self.model.trainable_variables)
-        self._tf_optimizer.apply_gradients(
-            zip(grads, self.model.trainable_variables))
+          batch_loss = loss(outputs, labels, weights)
+        avg_loss += batch_loss
+        if variables is None:
+          vars = self.model.trainable_variables
+        else:
+          vars = variables
+        grads = tape.gradient(batch_loss, vars)
+        self._tf_optimizer.apply_gradients(zip(grads, vars))
         tf.assign_add(self._global_step, 1)
         current_step = self._global_step.numpy()
       else:
 
         # In graph mode we execute the training op.
 
-        fetches = [self._train_op, self._loss_tensor, self._global_step]
+        if train_op is None:
+          if loss is not None:
+            loss_tensor = loss(
+                [self._output_tensors[i] for i in self._loss_outputs],
+                self._label_placeholders, self._weights_placeholders)
+            train_op = self._tf_optimizer.minimize(
+                loss_tensor, global_step=self._global_step, var_list=variables)
+          elif variables is None:
+            train_op = self._train_op
+          else:
+            var_key = tuple(variables)
+            if var_key not in self._train_op_for_vars:
+              self._train_op_for_vars[var_key] = self._tf_optimizer.minimize(
+                  self._loss_tensor,
+                  global_step=self._global_step,
+                  var_list=variables)
+            train_op = self._train_op_for_vars[var_key]
+        fetches = [train_op, self._loss_tensor, self._global_step]
         if should_log:
           fetches.append(self._summary_ops)
         feed_dict = dict(zip(self._input_placeholders, inputs))
@@ -391,7 +433,7 @@ class KerasModel(Model):
     print("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return avg_loss
 
-  def fit_on_batch(self, X, y, w):
+  def fit_on_batch(self, X, y, w, variables=None, loss=None):
     """Perform a single step of training.
 
     Parameters
@@ -402,11 +444,18 @@ class KerasModel(Model):
       the labels for the batch
     w: ndarray
       the weights for the batch
+    variables: list of tf.Variable
+      the variables to train.  If None (the default), all trainable variables in
+      the model are used.
+    loss: function
+      a function of the form f(outputs, labels, weights) that computes the loss
+      for each batch.  If None (the default), the model's standard loss function
+      is used.
    """
     if not self.built:
       self.build()
     dataset = NumpyDataset(X, y, w)
-    return self.fit(dataset, nb_epoch=1)
+    return self.fit(dataset, nb_epoch=1, variables=variables, loss=loss)
 
   def _predict(self, generator, transformers, outputs, uncertainty):
     """
