@@ -278,3 +278,81 @@ class TestKerasModel(unittest.TestCase):
     event_file = os.path.join(model.model_dir, event_file[0])
     file_size = os.stat(event_file).st_size
     assert file_size > 0
+
+  def test_fit_variables(self):
+    """Test training a subset of the variables in a model."""
+
+    class VarModel(tf.keras.Model):
+
+      def __init__(self, **kwargs):
+        super(VarModel, self).__init__(**kwargs)
+        self.var1 = tf.Variable([0.5])
+        self.var2 = tf.Variable([0.5])
+
+      def call(self, inputs, training=False):
+        return [self.var1, self.var2]
+
+    def loss(outputs, labels, weights):
+      return (outputs[0] * outputs[1] - labels[0])**2
+
+    keras_model = VarModel()
+    model = dc.models.KerasModel(keras_model, loss, learning_rate=0.01)
+    x = np.ones((1, 1))
+    vars = model.predict_on_batch(x)
+    assert np.allclose(vars[0], 0.5)
+    assert np.allclose(vars[1], 0.5)
+    model.fit_generator([(x, x, x)] * 300)
+    vars = model.predict_on_batch(x)
+    assert np.allclose(vars[0], 1.0)
+    assert np.allclose(vars[1], 1.0)
+    model.fit_generator([(x, 2 * x, x)] * 300, variables=[keras_model.var1])
+    vars = model.predict_on_batch(x)
+    assert np.allclose(vars[0], 2.0)
+    assert np.allclose(vars[1], 1.0)
+    model.fit_generator([(x, x, x)] * 300, variables=[keras_model.var2])
+    vars = model.predict_on_batch(x)
+    assert np.allclose(vars[0], 2.0)
+    assert np.allclose(vars[1], 0.5)
+
+  def test_fit_variables_eager(self):
+    """Test training a subset of the variables in a model, in eager mode."""
+    with context.eager_mode():
+      self.test_fit_variables()
+
+  def test_fit_loss(self):
+    """Test specifying a different loss function when calling fit()."""
+
+    class VarModel(tf.keras.Model):
+
+      def __init__(self, **kwargs):
+        super(VarModel, self).__init__(**kwargs)
+        self.var1 = tf.Variable([0.5])
+        self.var2 = tf.Variable([0.5])
+
+      def call(self, inputs, training=False):
+        return [self.var1, self.var2]
+
+    def loss1(outputs, labels, weights):
+      return (outputs[0] * outputs[1] - labels[0])**2
+
+    def loss2(outputs, labels, weights):
+      return (outputs[0] + outputs[1] - labels[0])**2
+
+    keras_model = VarModel()
+    model = dc.models.KerasModel(keras_model, loss1, learning_rate=0.01)
+    x = np.ones((1, 1))
+    vars = model.predict_on_batch(x)
+    assert np.allclose(vars[0], 0.5)
+    assert np.allclose(vars[1], 0.5)
+    model.fit_generator([(x, x, x)] * 300)
+    vars = model.predict_on_batch(x)
+    assert np.allclose(vars[0], 1.0)
+    assert np.allclose(vars[1], 1.0)
+    model.fit_generator([(x, 3 * x, x)] * 300, loss=loss2)
+    vars = model.predict_on_batch(x)
+    assert np.allclose(vars[0] + vars[1], 3.0)
+
+  def test_fit_loss_eager(self):
+    """Test specifying a different loss function when calling fit(), in eager mode."""
+    with context.eager_mode():
+      self.test_fit_loss()

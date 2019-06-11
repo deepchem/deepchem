@@ -595,6 +595,28 @@ class Stack(tf.keras.layers.Layer):
     return tf.stack(inputs, axis=self.axis)
 
 
+class Variable(tf.keras.layers.Layer):
+  """Output a trainable value."""
+
+  def __init__(self, initial_value, **kwargs):
+    """Construct a variable layer.
+
+    Parameters
+    ----------
+    initial_value: array or Tensor
+      the initial value the layer should output
+    """
+    super(Variable, self).__init__(**kwargs)
+    self.initial_value = initial_value
+
+  def build(self, input_shape):
+    self.var = tf.Variable(self.initial_value, dtype=self.dtype)
+    self.built = True
+
+  def call(self, inputs):
+    return self.var
+
+
 class VinaFreeEnergy(tf.keras.layers.Layer):
   """Computes free-energy as defined by Autodock Vina.
 
