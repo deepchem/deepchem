@@ -33,6 +33,7 @@ from deepchem.molnet.load_function.factors_datasets import load_factors
 from deepchem.molnet.load_function.kinase_datasets import load_kinase
 from deepchem.molnet.load_function.thermosol_datasets import load_thermosol
 from deepchem.molnet.load_function.hppb_datasets import load_hppb
+from deepchem.molnet.load_function.chembl25_datasets import load_chembl25
 
 from deepchem.molnet.dnasim import simulate_motif_density_localization
 from deepchem.molnet.dnasim import simulate_motif_counting
