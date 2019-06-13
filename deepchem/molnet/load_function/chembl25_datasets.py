@@ -83,9 +83,9 @@ def load_chembl25(featurizer="smiles2seq",
     else:
       logger.info("{} exists. Restoring dataset.".format(save_folder))
       loaded, dataset, transformers = dc.utils.save.load_dataset_from_disk(
-            save_folder)
+          save_folder)
       if loaded:
-          return chembl25_tasks, dataset, transformers
+        return chembl25_tasks, dataset, transformers
 
   dataset_file = os.path.join(data_dir, "chembl_25.csv.gz")
 
@@ -132,11 +132,10 @@ def load_chembl25(featurizer="smiles2seq",
   logger.info("About to split data.")
   splitter = splitters[split]
 
-  train, valid, test = splitter.train_valid_test_split(
-      dataset, seed=split_seed)
+  train, valid, test = splitter.train_valid_test_split(dataset, seed=split_seed)
   transformers = [
       dc.trans.NormalizationTransformer(
-        transform_X=False, transform_y=True, dataset=train)
+          transform_X=False, transform_y=True, dataset=train)
   ]
   for transformer in transformers:
     train = transformer.transform(train)
