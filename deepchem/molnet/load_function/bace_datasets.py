@@ -147,6 +147,12 @@ def load_bace_classification(featurizer='ECFP', split='random', reload=True):
 
     return bace_tasks, (dataset, None, None), transformers
 
+  splitters = {
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
+      'scaffold': deepchem.splits.ScaffoldSplitter()
+  }
+
   splitter = splitters[split]
   logger.info("About to split data using {} splitter".format(split))
   train, valid, test = splitter.train_valid_test_split(dataset)

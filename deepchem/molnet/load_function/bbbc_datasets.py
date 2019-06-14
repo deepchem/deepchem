@@ -139,6 +139,7 @@ def load_bbbc002(split='index', reload=True):
 
   logger.info("About to split dataset with {} splitter.".format(split))
   train, valid, test = splitter.train_valid_test_split(dataset)
+  all_dataset = (train, valid, test)
   transformers = []
   if reload:
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
