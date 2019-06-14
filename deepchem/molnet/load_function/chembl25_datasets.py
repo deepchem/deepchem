@@ -118,9 +118,13 @@ def load_chembl25(featurizer="smiles2seq",
       input_files=[dataset_file], shard_size=10000, data_dir=save_folder)
 
   if split is None:
-    transformer = dc.trans.NormalizationTransformer(
-        transform_X=False, transform_y=True, dataset=dataset)
-    dataset = transformer.transform(dataset)
+    transformer = [
+        dc.trans.NormalizationTransformer(
+            transform_X=False, transform_y=True, dataset=dataset)
+    ]
+    logger.info("Split is None, about to transform dataset.")
+    for transformer in transformers:
+      dataset = transformer.transform(dataset)
     return chembl25_tasks, (dataset, None, None), transformers
 
   splitters = {
@@ -129,7 +133,7 @@ def load_chembl25(featurizer="smiles2seq",
       'scaffold': dc.splits.ScaffoldSplitter(),
   }
 
-  logger.info("About to split data.")
+  logger.info("About to split data with {} splitter.".format(split))
   splitter = splitters[split]
 
   train, valid, test = splitter.train_valid_test_split(dataset, seed=split_seed)
