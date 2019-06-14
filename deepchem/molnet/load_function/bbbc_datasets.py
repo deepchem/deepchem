@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def load_bbbc001(split='index', reload=True):
   """Load BBBC001 dataset
-  
+
   This dataset contains 6 images of human HT29 colon cancer cells. The task is to learn to predict the cell counts in these images. This dataset is too small to serve to train algorithms, but might serve as a good test dataset. https://data.broadinstitute.org/bbbc/BBBC001/
   """
   # Featurize BBBC001 dataset
@@ -57,6 +57,8 @@ def load_bbbc001(split='index', reload=True):
   dataset = deepchem.data.DiskDataset.from_numpy(dataset.X, y)
 
   if split == None:
+    transformers = []
+    logger.info("Split is None, no transformers used for the dataset.")
     return bbbc001_tasks, (dataset, None, None), transformers
 
   splitters = {
@@ -67,7 +69,9 @@ def load_bbbc001(split='index', reload=True):
     raise ValueError("Only index and random splits supported.")
   splitter = splitters[split]
 
+  logger.info("About to split dataset with {} splitter.".format(split))
   train, valid, test = splitter.train_valid_test_split(dataset)
+  transformers = []
   all_dataset = (train, valid, test)
   if reload:
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
@@ -77,7 +81,7 @@ def load_bbbc001(split='index', reload=True):
 
 def load_bbbc002(split='index', reload=True):
   """Load BBBC002 dataset
-  
+
   This dataset contains data corresponding to 5 samples of Drosophilia Kc167
   cells. There are 10 fields of view for each sample, each an image of size
   512x512. Ground truth labels contain cell counts for this dataset. Full
@@ -121,6 +125,8 @@ def load_bbbc002(split='index', reload=True):
   dataset = deepchem.data.DiskDataset.from_numpy(dataset.X, y, ids=ids)
 
   if split == None:
+    transformers = []
+    logger.info("Split is None, no transformers used for the dataset.")
     return bbbc002_tasks, (dataset, None, None), transformers
 
   splitters = {
@@ -131,8 +137,9 @@ def load_bbbc002(split='index', reload=True):
     raise ValueError("Only index and random splits supported.")
   splitter = splitters[split]
 
+  logger.info("About to split dataset with {} splitter.".format(split))
   train, valid, test = splitter.train_valid_test_split(dataset)
-  all_dataset = (train, valid, test)
+  transformers = []
   if reload:
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
                                              transformers)
