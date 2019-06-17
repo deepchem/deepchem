@@ -1,5 +1,7 @@
 """
 Featurizer implementations used in ChemCeption and Smiles2Vec models.
+SmilesToSeq featurizer for Smiles2Vec models taken from https://arxiv.org/abs/1712.02734
+SmilesToImage featurizer for ChemCeption models taken from https://arxiv.org/abs/1710.02238
 """
 
 from __future__ import division
