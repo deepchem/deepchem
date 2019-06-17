@@ -87,6 +87,7 @@ def load_thermosol(featurizer="ECFP",
 
   if split == None:
     logger.info("About to transform the data...")
+    transformers = []
     for transformer in transformers:
       logger.info("Transforming the dataset with transformer ",
                   transformer.__class__.__name__)

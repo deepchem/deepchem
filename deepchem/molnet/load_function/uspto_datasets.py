@@ -26,7 +26,7 @@ def load_uspto(featurizer="plain",
 
   For now, only loads the subset of data for 2008-2011 reactions. See https://figshare.com/articles/Chemical_reactions_from_US_patents_1976-Sep2016_/5104873 for more details.
 
-  The full dataset contains some 400K reactions. This causes an out-of-memory error on development laptop if full dataset is featurized. For now, return a truncated subset of dataset. 
+  The full dataset contains some 400K reactions. This causes an out-of-memory error on development laptop if full dataset is featurized. For now, return a truncated subset of dataset.
 
   Reloading is not entirely supported for this dataset.
   """
@@ -34,8 +34,6 @@ def load_uspto(featurizer="plain",
   # ractants. Both of these are contained in the rxn object that is output,
   # so there is no "tasks" field.
   uspto_tasks = []
-  # DeepChem currently has no transformers for reaction data
-  uspto_transformers = []
   if split is not None:
     raise ValueError("Train/valid/test not yet supported.")
   # Download USPTO dataset
@@ -83,4 +81,5 @@ def load_uspto(featurizer="plain",
   y = np.ones(len(rxn_array))
   # TODO: This dataset isn't saved to disk so reload doesn't happen.
   rxn_dataset = DiskDataset.from_numpy(rxn_array, y)
-  return uspto_tasks, (rxn_dataset, None, None), uspto_transformers
+  transformers = []
+  return uspto_tasks, (rxn_dataset, None, None), transformers

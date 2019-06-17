@@ -82,16 +82,16 @@ def load_pcba_dataset(featurizer='ECFP',
       tasks=PCBA_tasks, smiles_field="smiles", featurizer=featurizer)
 
   dataset = loader.featurize(dataset_file)
-  # Initialize transformers
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-  ]
-
-  logger.info("About to transform data")
-  for transformer in transformers:
-    dataset = transformer.transform(dataset)
 
   if split == None:
+    transformers = [
+        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
+    ]
+
+    logger.info("Split is None, about to transform data")
+    for transformer in transformers:
+      dataset = transformer.transform(dataset)
+
     return PCBA_tasks, (dataset, None, None), transformers
 
   splitters = {
@@ -100,8 +100,18 @@ def load_pcba_dataset(featurizer='ECFP',
       'scaffold': deepchem.splits.ScaffoldSplitter()
   }
   splitter = splitters[split]
-  logger.info("Performing new split.")
+  logger.info("About to split dataset using {} splitter.".format(split))
   train, valid, test = splitter.train_valid_test_split(dataset)
+
+  transformers = [
+      deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
+  ]
+
+  logger.info("About to transform dataset.")
+  for transformer in transformers:
+    train = transformer.transform(train)
+    valid = transformer.transform(valid)
+    test = transformer.transform(test)
 
   if reload:
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
