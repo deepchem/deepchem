@@ -29,6 +29,7 @@ from deepchem.models.tensorgraph.sequential import Sequential
 from deepchem.models.tensorgraph.models.sequence_dnn import SequenceDNN
 from deepchem.models.tensorgraph.models.ontology import OntologyModel, OntologyNode, create_gene_ontology
 from deepchem.models.tensorgraph.models.atomic_conv import AtomicConvModel
+from deepchem.models.tensorgraph.models.chemnet_models import Smiles2Vec, ChemCeption
 
 #################### Compatibility imports for renamed TensorGraph models. Remove below with DeepChem 3.0. ####################
 

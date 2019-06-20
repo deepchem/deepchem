@@ -174,8 +174,8 @@ class SmilesToImage(Featurizer):
     self.max_len = max_len
     self.res = res
     self.img_spec = img_spec
-    self.embed = int(dims * res / 2)
-    super(SmilesToImage, self).__init__(**kwargs)
+    self.embed = int(img_size * res / 2)
+    super(SmilesToImage, self).__init__()
 
   def _featurize(self, mol):
     """Featurizes a single SMILE sequence."""
