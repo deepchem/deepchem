@@ -128,7 +128,7 @@ class Smiles2Vec(KerasModel):
     smiles_seqs = Input(dtype=tf.int32, shape=(self.max_seq_len,), name='Input')
     rnn_input = tf.keras.layers.Embedding(
         input_dim=len(self.char_to_idx),
-        output_dim=self.embedding_dim)(smile_seqs)
+        output_dim=self.embedding_dim)(smiles_seqs)
 
     if self.use_conv:
       rnn_input = Conv1D(
