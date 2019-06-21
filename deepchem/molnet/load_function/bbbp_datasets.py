@@ -45,16 +45,17 @@ def load_bbbp(featurizer='ECFP', split='random', reload=True):
   loader = deepchem.data.CSVLoader(
       tasks=bbbp_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
-  # Initialize transformers
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-  ]
 
-  logger.info("About to transform data")
-  for transformer in transformers:
-    dataset = transformer.transform(dataset)
+  if split is None:
+    # Initialize transformers
+    transformers = [
+        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
+    ]
 
-  if split == None:
+    logger.info("Split is None, about to transform data")
+    for transformer in transformers:
+      dataset = transformer.transform(dataset)
+
     return bbbp_tasks, (dataset, None, None), transformers
 
   splitters = {
@@ -63,7 +64,18 @@ def load_bbbp(featurizer='ECFP', split='random', reload=True):
       'scaffold': deepchem.splits.ScaffoldSplitter()
   }
   splitter = splitters[split]
+  logger.info("About to split data with {} splitter.".format(split))
   train, valid, test = splitter.train_valid_test_split(dataset)
+
+  # Initialize transformers
+  transformers = [
+      deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
+  ]
+
+  for transformer in transformers:
+    train = transformer.transform(train)
+    valid = transformer.transform(valid)
+    test = transformer.transform(test)
 
   if reload:
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,

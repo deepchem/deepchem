@@ -53,15 +53,15 @@ def load_muv(featurizer='ECFP', split='index', reload=True, K=4):
       tasks=MUV_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
 
-  # Initialize transformers
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-  ]
-  logger.info("About to transform data")
-  for transformer in transformers:
-    dataset = transformer.transform(dataset)
-
   if split == None:
+    transformers = [
+        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
+    ]
+
+    logger.info("Split is None, about to transform data")
+    for transformer in transformers:
+      dataset = transformer.transform(dataset)
+
     return MUV_tasks, (dataset, None, None), transformers
 
   splitters = {
@@ -74,10 +74,15 @@ def load_muv(featurizer='ECFP', split='index', reload=True, K=4):
   if split == 'task':
     fold_datasets = splitter.k_fold_split(dataset, K)
     all_dataset = fold_datasets
+    logger.info(
+        "K-Fold split complete. Use the transformers for this dataset on the returned folds."
+    )
+    return MUV_tasks, all_dataset, []
+
   else:
     train, valid, test = splitter.train_valid_test_split(dataset)
     all_dataset = (train, valid, test)
     if reload:
       deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
                                                transformers)
-  return MUV_tasks, all_dataset, transformers
+    return MUV_tasks, all_dataset, transformers

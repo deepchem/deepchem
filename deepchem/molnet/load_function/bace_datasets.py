@@ -57,17 +57,17 @@ def load_bace_regression(featurizer='ECFP',
       tasks=bace_tasks, smiles_field="mol", featurizer=featurizer)
 
   dataset = loader.featurize(dataset_file, shard_size=8192)
-  # Initialize transformers
-  transformers = [
-      deepchem.trans.NormalizationTransformer(
-          transform_y=True, dataset=dataset, move_mean=move_mean)
-  ]
+  if split is None:
+    # Initialize transformers
+    transformers = [
+        deepchem.trans.NormalizationTransformer(
+            transform_y=True, dataset=dataset, move_mean=move_mean)
+    ]
 
-  logger.info("About to transform data")
-  for transformer in transformers:
-    dataset = transformer.transform(dataset)
+    logger.info("Split is None, about to transform data")
+    for transformer in transformers:
+      dataset = transformer.transform(dataset)
 
-  if split == None:
     return bace_tasks, (dataset, None, None), transformers
 
   splitters = {
@@ -76,7 +76,19 @@ def load_bace_regression(featurizer='ECFP',
       'scaffold': deepchem.splits.ScaffoldSplitter()
   }
   splitter = splitters[split]
+  logger.info("About to split data using {} splitter".format(split))
   train, valid, test = splitter.train_valid_test_split(dataset)
+
+  transformers = [
+      deepchem.trans.NormalizationTransformer(
+          transform_y=True, dataset=train, move_mean=move_mean)
+  ]
+
+  logger.info("About to transform data.")
+  for transformer in transformers:
+    train = transformer.transform(train)
+    valid = transformer.transform(valid)
+    test = transformer.transform(test)
 
   if reload:
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
@@ -122,16 +134,17 @@ def load_bace_classification(featurizer='ECFP', split='random', reload=True):
       tasks=bace_tasks, smiles_field="mol", featurizer=featurizer)
 
   dataset = loader.featurize(dataset_file, shard_size=8192)
-  # Initialize transformers
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-  ]
 
-  logger.info("About to transform data")
-  for transformer in transformers:
-    dataset = transformer.transform(dataset)
+  if split is None:
+    # Initialize transformers
+    transformers = [
+        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
+    ]
 
-  if split == None:
+    logger.info("Split is None, about to transform data")
+    for transformer in transformers:
+      dataset = transformer.transform(dataset)
+
     return bace_tasks, (dataset, None, None), transformers
 
   splitters = {
@@ -139,8 +152,20 @@ def load_bace_classification(featurizer='ECFP', split='random', reload=True):
       'random': deepchem.splits.RandomSplitter(),
       'scaffold': deepchem.splits.ScaffoldSplitter()
   }
+
   splitter = splitters[split]
+  logger.info("About to split data using {} splitter".format(split))
   train, valid, test = splitter.train_valid_test_split(dataset)
+
+  transformers = [
+      deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
+  ]
+
+  logger.info("About to transform data.")
+  for transformer in transformers:
+    train = transformer.transform(train)
+    valid = transformer.transform(valid)
+    test = transformer.transform(test)
 
   if reload:
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,

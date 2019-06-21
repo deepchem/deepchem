@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def load_cell_counting(split=None, reload=True):
   """Load Cell Counting dataset.
-  
+
   Loads the cell counting dataset from http://www.robots.ox.ac.uk/~vgg/research/counting/index_org.html.
   """
   data_dir = deepchem.utils.get_data_dir()
@@ -43,6 +43,7 @@ def load_cell_counting(split=None, reload=True):
   transformers = []
 
   if split == None:
+    logger.info("Split is None, no transformers used.")
     return cell_counting_tasks, (dataset, None, None), transformers
 
   splitters = {
@@ -53,7 +54,9 @@ def load_cell_counting(split=None, reload=True):
     raise ValueError("Only index and random splits supported.")
   splitter = splitters[split]
 
+  logger.info("About to split dataset with {} splitter.".format(split))
   train, valid, test = splitter.train_valid_test_split(dataset)
+  transformers = []
   all_dataset = (train, valid, test)
   if reload:
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,

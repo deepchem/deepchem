@@ -80,44 +80,46 @@ def load_chembl(shard_size=2000,
 
   if split == "year":
     logger.info("Featurizing train datasets")
-    train_dataset = loader.featurize(train_files, shard_size=shard_size)
+    train = loader.featurize(train_files, shard_size=shard_size)
     logger.info("Featurizing valid datasets")
-    valid_dataset = loader.featurize(valid_files, shard_size=shard_size)
+    valid = loader.featurize(valid_files, shard_size=shard_size)
     logger.info("Featurizing test datasets")
-    test_dataset = loader.featurize(test_files, shard_size=shard_size)
+    test = loader.featurize(test_files, shard_size=shard_size)
   else:
     dataset = loader.featurize(dataset_path, shard_size=shard_size)
-  # Initialize transformers
-  logger.info("About to transform data")
-  if split == "year":
-    transformers = [
-        deepchem.trans.NormalizationTransformer(
-            transform_y=True, dataset=train_dataset)
-    ]
-    for transformer in transformers:
-      train = transformer.transform(train_dataset)
-      valid = transformer.transform(valid_dataset)
-      test = transformer.transform(test_dataset)
-  else:
+
+  if split is None:
     transformers = [
         deepchem.trans.NormalizationTransformer(
             transform_y=True, dataset=dataset)
     ]
+
+    logger.info("Split is None, about to transform data.")
     for transformer in transformers:
       dataset = transformer.transform(dataset)
 
-  if split == None:
     return chembl_tasks, (dataset, None, None), transformers
 
-  splitters = {
-      'index': deepchem.splits.IndexSplitter(),
-      'random': deepchem.splits.RandomSplitter(),
-      'scaffold': deepchem.splits.ScaffoldSplitter()
-  }
+  if split != "year":
+    splitters = {
+        'index': deepchem.splits.IndexSplitter(),
+        'random': deepchem.splits.RandomSplitter(),
+        'scaffold': deepchem.splits.ScaffoldSplitter()
+    }
 
-  splitter = splitters[split]
-  logger.info("Performing new split.")
-  train, valid, test = splitter.train_valid_test_split(dataset)
+    splitter = splitters[split]
+    logger.info("Performing new split.")
+    train, valid, test = splitter.train_valid_test_split(dataset)
+
+  transformers = [
+      deepchem.trans.NormalizationTransformer(transform_y=True, dataset=train)
+  ]
+
+  logger.info("About to transform data.")
+  for transformer in transformers:
+    train = transformer.transform(train)
+    valid = transformer.transform(valid)
+    test = transformer.transform(test)
 
   if reload:
     deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
