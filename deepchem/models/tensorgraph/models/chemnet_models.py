@@ -1,6 +1,6 @@
 """
-Smiles2Vec model, described in https://arxiv.org/pdf/1712.02034.pdf
-ChemCeption model, described in https://arxiv.org/pdf/1706.06689.pdf
+Implementation of Smiles2Vec and ChemCeption models as part of the ChemNet
+transfer learning protocol.
 """
 
 from __future__ import division
@@ -38,16 +38,35 @@ RNN_DICT = {"GRU": GRU, "LSTM": LSTM}
 
 class Smiles2Vec(KerasModel):
   """
-  Smiles2Vec is a RNN basel model that ingests SMILES characters,
-  get their embeddings. These embeddings are fed through a series of RNN
-  (and optionally Conv) layers, with the representations from the final layer
-  as input for classification or regression tasks.
+  Implements the Smiles2Vec model, that learns neural representations of SMILES
+  strings which can be used for downstream tasks.
+
+  The model is based on the description in Goh et al., "SMILES2vec: An
+  Interpretable General-Purpose Deep Neural Network for Predicting Chemical
+  Properties" (https://arxiv.org/pdf/1712.02034.pdf). The goal here is to take
+  SMILES strings as inputs, turn them into vector representations which can then
+  be used in predicting molecular properties.
+
+  The model consists of an Embedding layer that retrieves embeddings for each
+  character in the SMILES string. These embeddings are learnt jointly with the
+  rest of the model. The output from the embedding layer is a tensor of shape
+  (batch_size, seq_len, embedding_dim). This tensor can optionally be fed
+  through a 1D convolutional layer, before being passed to a series of RNN cells
+  (optionally bidirectional). The final output from the RNN cells aims
+  to have learnt the temporal dependencies in the SMILES string, and in turn
+  information about the structure of the molecule, which is then used for
+  molecular property prediction.
+
+  In the paper, the authors also train an explanation mask to endow the model
+  with interpretability and gain insights into its decision making. This segment
+  is currently not a part of this implementation as this was
+  developed for the purpose of investigating a transfer learning protocol,
+  ChemNet (which can be found at https://arxiv.org/abs/1712.02734).
   """
 
   def __init__(self,
                char_to_idx,
                n_tasks=10,
-               batch_size=64,
                max_seq_len=270,
                embedding_dim=50,
                n_classes=2,
@@ -58,13 +77,7 @@ class Smiles2Vec(KerasModel):
                strides=1,
                rnn_sizes=[224, 384],
                rnn_types=["GRU", "GRU"],
-               learning_rate=0.0001,
-               model_dir=None,
-               tensorboard=True,
-               optimizer=None,
                mode="regression",
-               tensorboard_log_frequency=5,
-               restore_from=None,
                **kwargs):
     """
     Parameters
@@ -85,20 +98,8 @@ class Smiles2Vec(KerasModel):
         Strides used in convolution
     rnn_sizes: list[int], default [224, 384]
         Number of hidden units in the RNN cells
-    learning_rate: floatm default 0.0001,
-        Default learning rate used for the model
-    model_dir: str, default None
-        Directory to save model to
-    tensorboard: bool, default True
-        Whether to use TensorBoard
-    optimizer: tf.train.Optimizer, default None
-        Optimizer used.
     mode: str, default regression
         Whether to use model for regression or classification
-    tensorboard_log_frequency: int, default 5
-        How often to log to TensorBoard
-    restore_from: str, default None
-        Where to restore model from
     """
 
     self.char_to_idx = char_to_idx
@@ -117,28 +118,17 @@ class Smiles2Vec(KerasModel):
         rnn_types), "Should have same number of hidden units as RNNs"
     self.n_tasks = n_tasks
     self.mode = mode
-    self.batch_size = batch_size
 
     model, loss, output_types = self._build_graph()
     super(Smiles2Vec, self).__init__(
-        model=model,
-        loss=loss,
-        output_types=output_types,
-        model_dir=model_dir,
-        tensorboard=tensorboard,
-        batch_size=batch_size,
-        optimizer=optimizer,
-        tensorboard_log_frequency=tensorboard_log_frequency,
-        learning_rate=learning_rate,
-        **kwargs)
+        model=model, loss=loss, output_types=output_types, **kwargs)
 
   def _build_graph(self):
     """Build the model."""
     smiles_seqs = Input(dtype=tf.int32, shape=(self.max_seq_len,), name='Input')
-    rnn_input = chemnet_layers.SmilesEmbedding(
-        charset_size=len(self.char_to_idx),
-        embedding_dim=self.embedding_dim,
-        name='Embedding')(smiles_seqs)
+    rnn_input = tf.keras.layers.Embedding(
+        input_dim=len(self.char_to_idx),
+        output_dim=self.embedding_dim)(smile_seqs)
 
     if self.use_conv:
       rnn_input = Conv1D(
@@ -200,10 +190,30 @@ class Smiles2Vec(KerasModel):
 
 class ChemCeption(KerasModel):
   """
-  ChemCeption is a CNN based model composed of a series of Inception-ResNet and
-  Reduction layers. The representations from the final layer serve as input for
-  classification or regression tasks. The input for the ChemCeption model is an
-  image representation of the molecule, described in SmilesToImage featurizer.
+  Implements the ChemCeption model that leverages the representational capacties
+  of convolutional neural networks (CNNs) to predict molecular properties.
+
+  The model is based on the description in Goh et al., "Chemception: A Deep
+  Neural Network with Minimal Chemistry Knowledge Matches the Performance of
+  Expert-developed QSAR/QSPR Models" (https://arxiv.org/pdf/1706.06689.pdf).
+  The authors use an image based representation of the molecule, where pixels
+  encode different atomic and bond properties. More details on the image repres-
+  entations can be found at https://arxiv.org/abs/1710.02238
+
+  The model consists of a Stem Layer, that reduces the image resolution for the
+  layers to follow. The output of the Stem Layer is followed by a series of
+  Inception-Resnet blocks & a Reduction layer. Layers in the Inception-Resnet
+  blocks process image tensors as multiple resolutions, and use a ResNet style
+  skip-connections, combining features from different resolutions. The Reduction
+  layers reduce the spatial extent of the image by max-pooling and 2-strided
+  convolutions. More details of these layers can be found in the ChemCeption
+  paper referenced above. The output of the final Reduction layer is subject to
+  a Global Average Pooling, and a fully-connected layer maps the features to
+  downstream outputs.
+
+  In the ChemCeption paper, the authors perform real-time image augmentation by
+  rotating images between 0 to 180 degrees. This can be done during model
+  training by setting the augment argument to True.
   """
 
   def __init__(self,
@@ -212,13 +222,7 @@ class ChemCeption(KerasModel):
                inception_blocks=DEFAULT_INCEPTION_BLOCKS,
                n_tasks=10,
                n_classes=2,
-               batch_size=100,
-               learning_rate=0.001,
                augment=False,
-               tensorboard=True,
-               tensorboard_log_frequency=5,
-               model_dir=None,
-               optimizer=None,
                mode="regression",
                **kwargs):
     """
@@ -234,20 +238,8 @@ class ChemCeption(KerasModel):
         Number of classification or regression tasks
     n_classes: int, default 2
         Number of classes (used only for classification)
-    batch_size: int, default 100
-        Minibatch size used for model fitting
-    learning_rate: float, default 0.0001
-        Learning rate used for training
     augment: bool, default False
         Whether to augment images
-    tensorboard: bool, default True
-        Whether to log to TensorBoard (does not work in eager mode.)
-    tensorboard_log_frequency: int, default 5
-        Frequency to log to TensorBoard
-    model_dir: str, default None,
-        Directory to save the model in
-    optimizer: tf.train.Optimizer, default None
-        Optimizer used for training
     mode: str, default regression
         Whether the model is used for regression or classification
     """
@@ -264,16 +256,7 @@ class ChemCeption(KerasModel):
 
     model, loss, output_types = self._build_graph()
     super(ChemCeption, self).__init__(
-        model=model,
-        loss=loss,
-        output_types=output_types,
-        model_dir=model_dir,
-        tensorboard=tensorboard,
-        batch_size=batch_size,
-        optimizer=optimizer,
-        tensorboard_log_frequency=tensorboard_log_frequency,
-        learning_rate=learning_rate,
-        **kwargs)
+        model=model, loss=loss, output_types=output_types, **kwargs)
 
   def _build_graph(self):
     smile_images = Input(shape=self.input_shape)

@@ -10,40 +10,18 @@ __license__ = "MIT"
 
 import numpy as np
 import tensorflow as tf
-
-from deepchem.models.tensorgraph.layers import KerasLayer
 from tensorflow.keras.layers import Conv2D, Concatenate, ReLU, Add, MaxPool2D
-
-
-class SmilesEmbedding(KerasLayer):
-
-  def __init__(self, charset_size, embedding_dim, **kwargs):
-    """
-    Parameters
-    ----------
-    charset_size: int,
-        Number of elements in the character to index dictionary
-    embedding_dim: int,
-        Dimensionality of the embedding
-    """
-    super(SmilesEmbedding, self).__init__(**kwargs)
-    self.charset_size = charset_size
-    self.embedding_dim = embedding_dim
-
-  def _build_layer(self):
-    return tf.keras.layers.Embedding(
-        input_dim=self.charset_size, output_dim=self.embedding_dim)
 
 
 class Stem(tf.keras.layers.Layer):
 
   def __init__(self, num_filters, **kwargs):
     """
-        Parameters
-        ----------
-        num_filters: int,
-            Number of convolutional filters
-        """
+    Parameters
+    ----------
+    num_filters: int,
+        Number of convolutional filters
+    """
     self.num_filters = num_filters
     self._build_layer_components()
     super(Stem, self).__init__(**kwargs)
@@ -68,13 +46,13 @@ class InceptionResnetA(tf.keras.layers.Layer):
 
   def __init__(self, num_filters, input_dim, **kwargs):
     """
-        Parameters
-        ----------
-        num_filters: int,
-            Number of convolutional filters
-        input_dim: int,
-            Number of channels in the input.
-        """
+    Parameters
+    ----------
+    num_filters: int,
+        Number of convolutional filters
+    input_dim: int,
+        Number of channels in the input.
+    """
     self.num_filters = num_filters
     self.input_dim = input_dim
     self._build_layer_components()
@@ -174,13 +152,13 @@ class InceptionResnetB(tf.keras.layers.Layer):
 
   def __init__(self, num_filters, input_dim, **kwargs):
     """
-        Parameters
-        ----------
-        num_filters: int,
-            Number of convolutional filters
-        input_dim: int,
-            Number of channels in the input.
-        """
+    Parameters
+    ----------
+    num_filters: int,
+        Number of convolutional filters
+    input_dim: int,
+        Number of channels in the input.
+    """
     self.num_filters = num_filters
     self.input_dim = input_dim
     self._build_layer_components()
@@ -257,13 +235,13 @@ class InceptionResnetC(tf.keras.layers.Layer):
 
   def __init__(self, num_filters, input_dim, **kwargs):
     """
-        Parameters
-        ----------
-        num_filters: int,
-            Number of convolutional filters
-        input_dim: int,
-            Number of channels in the input.
-        """
+    Parameters
+    ----------
+    num_filters: int,
+        Number of convolutional filters
+    input_dim: int,
+        Number of channels in the input.
+    """
     self.num_filters = num_filters
     self.input_dim = input_dim
     self._build_layer_components()
@@ -343,11 +321,11 @@ class ReductionA(tf.keras.layers.Layer):
 
   def __init__(self, num_filters, **kwargs):
     """
-        Parameters
-        ----------
-        num_filters: int,
-            Number of convolutional filters
-        """
+    Parameters
+    ----------
+    num_filters: int,
+        Number of convolutional filters
+    """
     self.num_filters = num_filters
     self._build_layer_components()
     super(ReductionA, self).__init__(**kwargs)
@@ -414,11 +392,11 @@ class ReductionB(tf.keras.layers.Layer):
 
   def __init__(self, num_filters, **kwargs):
     """
-        Parameters
-        ----------
-        num_filters: int,
-            Number of convolutional filters
-        """
+    Parameters
+    ----------
+    num_filters: int,
+        Number of convolutional filters
+    """
     self.num_filters = num_filters
     self._build_layer_components()
     super(ReductionB, self).__init__(**kwargs)
