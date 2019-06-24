@@ -247,7 +247,7 @@ class ProgressiveMultitaskRegressor(KerasModel):
         dataset, epochs=nb_epoch, deterministic=deterministic)
     variables = []
     for layer in self._task_layers[task]:
-      variables.append(layer.trainable_variables)
+      variables += layer.trainable_variables
     loss = TaskLoss(self.model, self.create_loss(), task)
     self.fit_generator(
         generator,

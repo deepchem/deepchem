@@ -1,14 +1,14 @@
 """Generative Adversarial Networks."""
 
-from deepchem.models import TensorGraph
-from deepchem.models.tensorgraph import layers
+from deepchem.models import KerasModel, layers, losses
+from tensorflow.keras.layers import Input, Lambda, Layer, Softmax, Reshape, Multiply
 from collections import Sequence
 import numpy as np
 import tensorflow as tf
 import time
 
 
-class GAN(TensorGraph):
+class GAN(KerasModel):
   """Implements Generative Adversarial Networks.
 
   A Generative Adversarial Network (GAN) is a type of generative model.  It
@@ -65,7 +65,7 @@ class GAN(TensorGraph):
     """Construct a GAN.
 
     In addition to the parameters listed below, this class accepts all the
-    keyword arguments from TensorGraph.
+    keyword arguments from KerasModel.
 
     Parameters
     ----------
@@ -74,134 +74,112 @@ class GAN(TensorGraph):
     n_discriminators: int
       the number of discriminators to include
     """
-    super(GAN, self).__init__(use_queue=False, **kwargs)
     self.n_generators = n_generators
     self.n_discriminators = n_discriminators
 
     # Create the inputs.
 
-    self.noise_input = layers.Feature(shape=self.get_noise_input_shape())
+    self.noise_input = Input(shape=self.get_noise_input_shape())
     self.data_inputs = []
     for shape in self.get_data_input_shapes():
-      self.data_inputs.append(layers.Feature(shape=shape))
+      self.data_inputs.append(Input(shape=shape))
     self.conditional_inputs = []
     for shape in self.get_conditional_input_shapes():
-      self.conditional_inputs.append(layers.Feature(shape=shape))
+      self.conditional_inputs.append(Input(shape=shape))
 
     # Create the generators.
 
     self.generators = []
+    self.gen_variables = []
+    generator_outputs = []
     for i in range(n_generators):
-      generator = self.create_generator(self.noise_input,
-                                        self.conditional_inputs)
-      if not isinstance(generator, Sequence):
-        raise ValueError('create_generator() must return a list of Layers')
-      if len(generator) != len(self.data_inputs):
-        raise ValueError(
-            'The number of generator outputs must match the number of data inputs'
-        )
-      for g, d in zip(generator, self.data_inputs):
-        if g.shape != d.shape:
-          raise ValueError(
-              'The shapes of the generator outputs must match the shapes of the data inputs'
-          )
-      for g in generator:
-        self.add_output(g)
+      generator = self.create_generator()
       self.generators.append(generator)
+      generator_outputs.append(
+          generator(
+              _list_or_tensor([self.noise_input] + self.conditional_inputs)))
+      self.gen_variables += generator.trainable_variables
 
     # Create the discriminators.
 
-    self.discrim_train = []
-    self.discrim_gen = []
+    self.discriminators = []
+    self.discrim_variables = []
+    discrim_train_outputs = []
+    discrim_gen_outputs = []
     for i in range(n_discriminators):
-      discrim_train = self.create_discriminator(self.data_inputs,
-                                                self.conditional_inputs)
-      self.discrim_train.append(discrim_train)
-
-      # Make a copy of the discriminator that takes each generator's output as
-      # its input.
-
-      for generator in self.generators:
-        replacements = {}
-        for g, d in zip(generator, self.data_inputs):
-          replacements[d] = g
-        for c in self.conditional_inputs:
-          replacements[c] = c
-        discrim_gen = discrim_train.copy(replacements, shared=True)
-        self.discrim_gen.append(discrim_gen)
-
-    # Make a list of all layers in the generators and discriminators.
-
-    def add_layers_to_set(layer, layers):
-      if layer not in layers:
-        layers.add(layer)
-        for i in layer.in_layers:
-          add_layers_to_set(i, layers)
-
-    gen_layers = set()
-    for generator in self.generators:
-      for layer in generator:
-        add_layers_to_set(layer, gen_layers)
-    discrim_layers = set()
-    for discriminator in self.discrim_train:
-      add_layers_to_set(discriminator, discrim_layers)
-    discrim_layers -= gen_layers
+      discriminator = self.create_discriminator()
+      self.discriminators.append(discriminator)
+      discrim_train_outputs.append(
+          discriminator(
+              _list_or_tensor(self.data_inputs + self.conditional_inputs)))
+      for gen_output in generator_outputs:
+        if isinstance(gen_output, tf.Tensor):
+          gen_output = [gen_output]
+        discrim_gen_outputs.append(
+            discriminator(
+                _list_or_tensor(gen_output + self.conditional_inputs)))
+      self.discrim_variables += discriminator.trainable_variables
 
     # Compute the loss functions.
 
-    gen_losses = [self.create_generator_loss(d) for d in self.discrim_gen]
+    gen_losses = [self.create_generator_loss(d) for d in discrim_gen_outputs]
     discrim_losses = []
     for i in range(n_discriminators):
       for j in range(n_generators):
         discrim_losses.append(
             self.create_discriminator_loss(
-                self.discrim_train[i], self.discrim_gen[i * n_generators + j]))
+                discrim_train_outputs[i],
+                discrim_gen_outputs[i * n_generators + j]))
     if n_generators == 1 and n_discriminators == 1:
       total_gen_loss = gen_losses[0]
       total_discrim_loss = discrim_losses[0]
     else:
       # Create learnable weights for the generators and discriminators.
 
-      gen_alpha = layers.Variable(np.ones((1, n_generators)))
-      gen_weights = layers.SoftMax(gen_alpha)
-      discrim_alpha = layers.Variable(np.ones((1, n_discriminators)))
-      discrim_weights = layers.SoftMax(discrim_alpha)
+      gen_alpha = layers.Variable(np.ones((1, n_generators)), dtype=tf.float32)
+      gen_weights = Softmax()(gen_alpha([]))
+      discrim_alpha = layers.Variable(
+          np.ones((1, n_discriminators)), dtype=tf.float32)
+      discrim_weights = Softmax()(discrim_alpha([]))
 
       # Compute the weighted errors
 
-      weight_products = layers.Reshape(
-          (n_generators * n_discriminators,),
-          in_layers=layers.Reshape(
-              (n_discriminators, 1), in_layers=discrim_weights) *
-          layers.Reshape((1, n_generators), in_layers=gen_weights))
-      total_gen_loss = layers.WeightedError((layers.Stack(gen_losses, axis=0),
-                                             weight_products))
-      total_discrim_loss = layers.WeightedError((layers.Stack(
-          discrim_losses, axis=0), weight_products))
-      gen_layers.add(gen_alpha)
-      discrim_layers.add(gen_alpha)
-      discrim_layers.add(discrim_alpha)
+      weight_products = Reshape((n_generators * n_discriminators,))(Multiply()([
+          Reshape((n_discriminators, 1))(discrim_weights),
+          Reshape((1, n_generators))(gen_weights)
+      ]))
+      stacked_gen_loss = layers.Stack(axis=0)(gen_losses)
+      stacked_discrim_loss = layers.Stack(axis=0)(discrim_losses)
+      total_gen_loss = Lambda(lambda x: tf.reduce_sum(x[0] * x[1]))(
+          [stacked_gen_loss, weight_products])
+      total_discrim_loss = Lambda(lambda x: tf.reduce_sum(x[0] * x[1]))(
+          [stacked_discrim_loss, weight_products])
+      self.gen_variables += gen_alpha.trainable_variables
+      self.discrim_variables += gen_alpha.trainable_variables
+      self.discrim_variables += discrim_alpha.trainable_variables
 
       # Add an entropy term to the loss.
 
-      entropy = -(
-          layers.ReduceSum(layers.Log(gen_weights)) / n_generators +
-          layers.ReduceSum(layers.Log(discrim_weights)) / n_discriminators)
-      total_discrim_loss += entropy
+      entropy = Lambda(lambda x: -(tf.reduce_sum(tf.log(x[0]))/n_generators +
+          tf.reduce_sum(tf.log(x[1]))/n_discriminators))([gen_weights, discrim_weights])
+      total_discrim_loss = Lambda(lambda x: x[0] + x[1])(
+          [total_discrim_loss, entropy])
 
-    # Create submodels for training the generators and discriminators.
+    # Create the Keras model.
 
-    self.generator_submodel = self.create_submodel(
-        layers=gen_layers, loss=total_gen_loss)
-    self.discriminator_submodel = self.create_submodel(
-        layers=discrim_layers, loss=total_discrim_loss)
+    inputs = [self.noise_input] + self.data_inputs + self.conditional_inputs
+    outputs = [total_gen_loss, total_discrim_loss]
+    self.gen_loss_fn = lambda outputs, labels, weights: outputs[0]
+    self.discrim_loss_fn = lambda outputs, labels, weights: outputs[1]
+    model = tf.keras.Model(inputs=inputs, outputs=outputs)
+    super(GAN, self).__init__(model, self.gen_loss_fn, **kwargs)
 
   def get_noise_input_shape(self):
     """Get the shape of the generator's noise input layer.
 
     Subclasses must override this to return a tuple giving the shape of the
     noise input.  The actual Input layer will be created automatically.  The
-    first dimension must be None, since it will correspond to the batch size.
+    dimension corresponding to the batch size should be omitted.
     """
     raise NotImplementedError("Subclasses must implement this.")
 
@@ -211,8 +189,8 @@ class GAN(TensorGraph):
     Subclasses must override this to return a list of tuples, each giving the
     shape of one of the inputs.  The actual Input layers will be created
     automatically.  This list of shapes must also match the shapes of the
-    generator's outputs.  The first dimension of each shape must be None, since
-    it will correspond to the batch size.
+    generator's outputs.  The dimension corresponding to the batch size should
+    be omitted.
     """
     raise NotImplementedError("Subclasses must implement this.")
 
@@ -221,8 +199,8 @@ class GAN(TensorGraph):
 
     Subclasses may override this to return a list of tuples, each giving the
     shape of one of the conditional inputs.  The actual Input layers will be
-    created automatically.  The first dimension of each shape must be None,
-    since it will correspond to the batch size.
+    created automatically.  The dimension corresponding to the batch size should
+    be omitted.
 
     The default implementation returns an empty list, meaning there are no
     conditional inputs.
@@ -238,56 +216,27 @@ class GAN(TensorGraph):
     distribution.
     """
     size = list(self.get_noise_input_shape())
-    size[0] = batch_size
+    size = [batch_size] + size
     return np.random.normal(size=size)
 
-  def create_generator(self, noise_input, conditional_inputs):
-    """Create the generator.
+  def create_generator(self):
+    """Create and return a generator.
 
-    Subclasses must override this to construct the generator and return its
-    output layers.
-
-    Parameters
-    ----------
-    noise_input: Input
-      the Input layer from which the generator can read random noise.  The shape
-      will match the return value from get_noise_input_shape().
-    conditional_inputs: list
-      the Input layers for any conditional inputs to the network.  The number
-      and shapes of these inputs will match the return value from
-      get_conditional_input_shapes().
-
-    Returns
-    -------
-    A list of Layer objects that produce the generator's outputs.  The number and
-    shapes of these layers must match the return value from get_data_input_shapes(),
-    since generated data must have the same form as training data.
+    Subclasses must override this to construct the generator.  The returned
+    value should be a tf.keras.Model whose inputs are a batch of noise, followed
+    by any conditional inputs.  The number and shapes of its outputs must match
+    the return value from get_data_input_shapes(), since generated data must
+    have the same form as training data.
     """
     raise NotImplementedError("Subclasses must implement this.")
 
-  def create_discriminator(self, data_inputs, conditional_inputs):
-    """Create the discriminator.
+  def create_discriminator(self):
+    """Create and return a discriminator.
 
-    Subclasses must override this to construct the discriminator and return its
-    output layer.
-
-    Parameters
-    ----------
-    data_inputs: list
-      the Input layers from which the discriminator can read the input data.
-      The number and shapes of these inputs will match the return value from
-      get_data_input_shapes().  The samples read from these layers may be either
-      training data or generated data.
-    conditional_inputs: list
-      the Input layers for any conditional inputs to the network.  The number
-      and shapes of these inputs will match the return value from
-      get_conditional_input_shapes().
-
-    Returns
-    -------
-    A Layer object that outputs the probability of each sample being a training
-    sample.  The shape of this layer must be [None].  That is, it must output a
-    one dimensional tensor whose length equals the batch size.
+    Subclasses must override this to construct the discriminator.  The returned
+    value should be a tf.keras.Model whose inputs are all data inputs, followed
+    by any conditional inputs.  Its output should be a one dimensional tensor
+    containing the probability of each sample being a training sample.
     """
     raise NotImplementedError("Subclasses must implement this.")
 
@@ -299,16 +248,15 @@ class GAN(TensorGraph):
 
     Parameters
     ----------
-    discrim_output: Layer
+    discrim_output: Tensor
       the output from the discriminator on a batch of generated data.  This is
       its estimate of the probability that each sample is training data.
 
     Returns
     -------
-    A Layer object that outputs the loss function to use for optimizing the
-    generator.
+    A Tensor equal to the loss function to use for optimizing the generator.
     """
-    return -layers.ReduceMean(layers.Log(discrim_output + 1e-10))
+    return Lambda(lambda x: -tf.reduce_mean(tf.log(x + 1e-10)))(discrim_output)
 
   def create_discriminator_loss(self, discrim_output_train, discrim_output_gen):
     """Create the loss function for the discriminator.
@@ -318,21 +266,18 @@ class GAN(TensorGraph):
 
     Parameters
     ----------
-    discrim_output_train: Layer
-      the output from the discriminator on a batch of generated data.  This is
-      its estimate of the probability that each sample is training data.
-    discrim_output_gen: Layer
+    discrim_output_train: Tensor
       the output from the discriminator on a batch of training data.  This is
+      its estimate of the probability that each sample is training data.
+    discrim_output_gen: Tensor
+      the output from the discriminator on a batch of generated data.  This is
       its estimate of the probability that each sample is training data.
 
     Returns
     -------
-    A Layer object that outputs the loss function to use for optimizing the
-    discriminator.
+    A Tensor equal to the loss function to use for optimizing the discriminator.
     """
-    training_data_loss = layers.Log(discrim_output_train + 1e-10)
-    gen_data_loss = layers.Log(1 - discrim_output_gen + 1e-10)
-    return -layers.ReduceMean(training_data_loss + gen_data_loss)
+    return Lambda(lambda x: -tf.reduce_mean(tf.log(x[0]+1e-10) + tf.log(1-x[1]+1e-10)))([discrim_output_train, discrim_output_gen])
 
   def fit_gan(self,
               batches,
@@ -346,7 +291,7 @@ class GAN(TensorGraph):
     ----------
     batches: iterable
       batches of data to train the discriminator on, each represented as a dict
-      that maps Layers to values.  It should specify values for all members of
+      that maps Inputs to values.  It should specify values for all members of
       data_inputs and conditional_inputs.
     generator_steps: float
       the number of training steps to perform for the generator for each batch.
@@ -363,79 +308,86 @@ class GAN(TensorGraph):
       if True, restore the model from the most recent checkpoint before training
       it.
     """
-    if not self.built:
-      self.build()
-    if restore:
-      self.restore()
+    self._ensure_built()
+    if not tf.executing_eagerly():
+      global_step_placeholder = tf.placeholder(tf.int32, tuple())
+      update_global_step = tf.assign(self._global_step, global_step_placeholder)
     gen_train_fraction = 0.0
     discrim_error = 0.0
     gen_error = 0.0
     discrim_average_steps = 0
     gen_average_steps = 0
     time1 = time.time()
-    with self._get_tf("Graph").as_default():
-      if checkpoint_interval > 0:
-        manager = tf.train.CheckpointManager(
-            self._get_tf('Checkpoint'), self.model_dir, max_checkpoints_to_keep)
-      for feed_dict in batches:
-        # Every call to fit_generator() will increment global_step, but we only
-        # want it to get incremented once for the entire batch, so record the
-        # value and keep resetting it.
+    if checkpoint_interval > 0:
+      manager = tf.train.CheckpointManager(self._checkpoint, self.model_dir,
+                                           max_checkpoints_to_keep)
+    for feed_dict in batches:
+      # Every call to fit_generator() will increment global_step, but we only
+      # want it to get incremented once for the entire batch, so record the
+      # value and keep resetting it.
 
-        global_step = self.global_step
+      global_step = self.get_global_step()
 
-        # Train the discriminator.
+      # Train the discriminator.
 
-        feed_dict = dict(feed_dict)
-        feed_dict[self.noise_input] = self.get_noise_batch(self.batch_size)
-        discrim_error += self.fit_generator(
-            [feed_dict],
-            submodel=self.discriminator_submodel,
-            checkpoint_interval=0)
-        self.global_step = global_step
-        discrim_average_steps += 1
+      inputs = [self.get_noise_batch(self.batch_size)]
+      for input in self.data_inputs:
+        inputs.append(feed_dict[input])
+      for input in self.conditional_inputs:
+        inputs.append(feed_dict[input])
+      discrim_error += self.fit_generator(
+          [(inputs, [], [])],
+          variables=self.discrim_variables,
+          loss=self.discrim_loss_fn,
+          checkpoint_interval=0,
+          restore=restore)
+      restore = False
+      discrim_average_steps += 1
 
-        # Train the generator.
+      # Train the generator.
 
-        if generator_steps > 0.0:
-          gen_train_fraction += generator_steps
-          while gen_train_fraction >= 1.0:
-            feed_dict[self.noise_input] = self.get_noise_batch(self.batch_size)
-            gen_error += self.fit_generator(
-                [feed_dict],
-                submodel=self.generator_submodel,
-                checkpoint_interval=0)
-            self.global_step = global_step
-            gen_average_steps += 1
-            gen_train_fraction -= 1.0
-        self.global_step = global_step + 1
+      if generator_steps > 0.0:
+        gen_train_fraction += generator_steps
+        while gen_train_fraction >= 1.0:
+          inputs = [self.get_noise_batch(self.batch_size)] + inputs[1:]
+          gen_error += self.fit_generator(
+              [(inputs, [], [])],
+              variables=self.gen_variables,
+              checkpoint_interval=0)
+          gen_average_steps += 1
+          gen_train_fraction -= 1.0
+      if tf.executing_eagerly():
+        tf.assign(self._global_step, global_step + 1)
+      else:
+        self.session.run(update_global_step,
+                         {global_step_placeholder: global_step + 1})
 
-        # Write checkpoints and report progress.
+      # Write checkpoints and report progress.
 
-        if discrim_average_steps == checkpoint_interval:
-          self._exec_with_session(lambda: manager.save())
-          discrim_loss = discrim_error / max(1, discrim_average_steps)
-          gen_loss = gen_error / max(1, gen_average_steps)
-          print(
-              'Ending global_step %d: generator average loss %g, discriminator average loss %g'
-              % (self.global_step, gen_loss, discrim_loss))
-          discrim_error = 0.0
-          gen_error = 0.0
-          discrim_average_steps = 0
-          gen_average_steps = 0
-
-      # Write out final results.
-
-      if checkpoint_interval > 0:
-        if discrim_average_steps > 0 and gen_average_steps > 0:
-          discrim_loss = discrim_error / discrim_average_steps
-          gen_loss = gen_error / gen_average_steps
-          print(
-              'Ending global_step %d: generator average loss %g, discriminator average loss %g'
-              % (self.global_step, gen_loss, discrim_loss))
+      if discrim_average_steps == checkpoint_interval:
         self._exec_with_session(lambda: manager.save())
-        time2 = time.time()
-        print("TIMING: model fitting took %0.3f s" % (time2 - time1))
+        discrim_loss = discrim_error / max(1, discrim_average_steps)
+        gen_loss = gen_error / max(1, gen_average_steps)
+        print(
+            'Ending global_step %d: generator average loss %g, discriminator average loss %g'
+            % (global_step, gen_loss, discrim_loss))
+        discrim_error = 0.0
+        gen_error = 0.0
+        discrim_average_steps = 0
+        gen_average_steps = 0
+
+    # Write out final results.
+
+    if checkpoint_interval > 0:
+      if discrim_average_steps > 0 and gen_average_steps > 0:
+        discrim_loss = discrim_error / discrim_average_steps
+        gen_loss = gen_error / gen_average_steps
+        print(
+            'Ending global_step %d: generator average loss %g, discriminator average loss %g'
+            % (global_step, gen_loss, discrim_loss))
+      self._exec_with_session(lambda: manager.save())
+      time2 = time.time()
+      print("TIMING: model fitting took %0.3f s" % (time2 - time1))
 
   def predict_gan_generator(self,
                             batch_size=1,
@@ -472,19 +424,22 @@ class GAN(TensorGraph):
       batch_size = len(conditional_inputs[0])
     if noise_input is None:
       noise_input = self.get_noise_batch(batch_size)
-    batch = {}
-    batch[self.noise_input] = noise_input
-    for layer, value in zip(self.conditional_inputs, conditional_inputs):
-      batch[layer] = value
-    return self.predict_on_generator(
-        [batch], outputs=self.generators[generator_index])
+    inputs = [noise_input]
+    inputs += conditional_inputs
+    inputs = [i.astype(np.float32) for i in inputs]
+    pred = self.generators[generator_index](
+        _list_or_tensor(inputs), training=False)
+    if tf.executing_eagerly():
+      pred = pred.numpy()
+    else:
+      pred = pred.eval(session=self.session)
+    return pred
 
-  def _set_empty_inputs(self, feed_dict, layers):
-    """Set entries in a feed dict corresponding to a batch size of 0."""
-    for layer in layers:
-      shape = list(layer.shape)
-      shape[0] = 0
-      feed_dict[layer] = np.zeros(shape)
+
+def _list_or_tensor(inputs):
+  if len(inputs) == 1:
+    return inputs[0]
+  return inputs
 
 
 class WGAN(GAN):
@@ -530,34 +485,34 @@ class WGAN(GAN):
     """Construct a WGAN.
 
     In addition to the following, this class accepts all the keyword arguments
-    from TensorGraph.
+    from GAN and KerasModel.
 
     Parameters
     ----------
     gradient_penalty: float
       the magnitude of the gradient penalty loss
     """
-    super(WGAN, self).__init__(**kwargs)
     self.gradient_penalty = gradient_penalty
+    super(WGAN, self).__init__(**kwargs)
 
   def create_generator_loss(self, discrim_output):
-    return layers.ReduceMean(discrim_output)
+    return Lambda(lambda x: tf.reduce_mean(x))(discrim_output)
 
   def create_discriminator_loss(self, discrim_output_train, discrim_output_gen):
-    gradient_penalty = GradientPenaltyLayer(discrim_output_train, self)
-    return gradient_penalty + layers.ReduceMean(discrim_output_train -
-                                                discrim_output_gen)
+    gradient_penalty = GradientPenaltyLayer(self)(discrim_output_train)
+    return Lambda(lambda x: x[0] + tf.reduce_mean(x[1] - x[2]))(
+        [gradient_penalty, discrim_output_train, discrim_output_gen])
 
 
-class GradientPenaltyLayer(layers.Layer):
+class GradientPenaltyLayer(Layer):
   """Implements the gradient penalty loss term for WGANs."""
 
-  def __init__(self, discrim_output_train, gan):
-    super(GradientPenaltyLayer, self).__init__([discrim_output_train])
+  def __init__(self, gan, **kwargs):
+    super(GradientPenaltyLayer, self).__init__(**kwargs)
     self.gan = gan
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    gradients = tf.gradients(self.in_layers[0], self.gan.data_inputs)
+  def call(self, inputs):
+    gradients = tf.gradients(inputs, self.gan.data_inputs)
     norm2 = 0.0
     for g in gradients:
       g2 = tf.square(g)
@@ -566,5 +521,4 @@ class GradientPenaltyLayer(layers.Layer):
         g2 = tf.reduce_sum(g2, axis=list(range(1, dims)))
       norm2 += g2
     penalty = tf.square(tf.sqrt(norm2) - 1.0)
-    self.out_tensor = self.gan.gradient_penalty * tf.reduce_mean(penalty)
-    return self.out_tensor
+    return self.gan.gradient_penalty * tf.reduce_mean(penalty)
