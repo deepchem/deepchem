@@ -14,6 +14,14 @@ class TestLayers(test_util.TensorFlowTestCase):
       tfopt = opt._create_optimizer(global_step)
       assert isinstance(tfopt, tf.train.AdamOptimizer)
 
+  def test_rmsprop(self):
+    """Test creating an RMSProp Optimizer."""
+    opt = optimizers.RMSProp(learning_rate=0.01)
+    with self.session() as sess:
+      global_step = tf.Variable(0)
+      tfopt = opt._create_optimizer(global_step)
+      assert isinstance(tfopt, tf.train.RMSPropOptimizer)
+
   def test_gradient_descent(self):
     """Test creating a Gradient Descent optimizer."""
     opt = optimizers.GradientDescent(learning_rate=0.01)

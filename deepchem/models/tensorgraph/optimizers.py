@@ -80,6 +80,44 @@ class Adam(Optimizer):
         epsilon=self.epsilon)
 
 
+class RMSProp(Optimizer):
+  """RMSProp Optimization algorithm."""
+
+  def __init__(self,
+               learning_rate=0.001,
+               momentum=0.0,
+               decay=0.9,
+               epsilon=1e-10):
+    """Construct an RMSProp Optimizer.
+
+        Parameters
+        ----------
+        learning_rate: float or LearningRateSchedule
+            the learning_rate used for optimization
+        momentum: float, default 0.0
+            a parameter of the RMSProp algorithm
+        decay: float, default 0.9
+            a parameter of the RMSProp algorithm
+        epsilon: float, default 1e-10
+            a parameter of the RMSProp algorithm
+        """
+    self.learning_rate = learning_rate
+    self.momentum = momentum
+    self.decay = decay
+    self.epsilon = epsilon
+
+  def _create_optimizer(self, global_step):
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      learning_rate = self.learning_rate._create_tensor(global_step)
+    else:
+      learning_rate = self.learning_rate
+    return tf.train.RMSPropOptimizer(
+        learning_rate=learning_rate,
+        momentum=self.momentum,
+        decay=self.decay,
+        epsilon=self.epsilon)
+
+
 class GradientDescent(Optimizer):
   """The gradient descent optimization algorithm."""
 
@@ -108,7 +146,7 @@ class PowerSign(Optimizer):
     """construct a powerSign optimizer
     Parameters
     ----------
-    learning_rate : float or LearningRateSchedule 
+    learning_rate : float or LearningRateSchedule
     the learning rate to use for optimization
     beta : A float Parameter for the PowerSign algorithm
     """
@@ -205,9 +243,9 @@ class LinearCosineDecay(LearningRateSchedule):
     """
     Parameters
     ----------
-    learning_rate : float 
+    learning_rate : float
     initial learning rate
-    decay_steps : int 
+    decay_steps : int
     number of steps to decay over
     num_periods : number of periods in the cosine part of the decay
     """

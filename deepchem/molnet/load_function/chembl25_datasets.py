@@ -75,6 +75,9 @@ def load_chembl25(featurizer="smiles2seq",
     save_dir = DEFAULT_DIR
 
   save_folder = os.path.join(save_dir, "chembl_25-featurized", str(featurizer))
+  if featurizer == "smiles2img":
+    img_spec = kwargs.get("img_spec", "engd")
+    save_folder = os.path.join(save_folder, img_spec)
 
   if reload:
     if not os.path.exists(save_folder):
@@ -104,9 +107,9 @@ def load_chembl25(featurizer="smiles2seq",
 
   elif featurizer == "smiles2img":
     img_size = kwargs.get("img_size", 80)
-    img_mode = kwargs.get("img_mode", "engd")
+    img_spec = kwargs.get("img_spec", "engd")
     res = kwargs.get("res", 0.5)
-    featurizer = SmilesToImage(img_size=img_size, img_mode=img_mode, res=res)
+    featurizer = SmilesToImage(img_size=img_size, img_spec=img_spec, res=res)
 
   else:
     raise ValueError(
