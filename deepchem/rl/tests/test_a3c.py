@@ -48,12 +48,22 @@ class TestA3C(unittest.TestCase):
 
     class TestPolicy(dc.rl.Policy):
 
-      def create_layers(self, state, **kwargs):
-        action = Variable(np.ones(env.n_actions))
-        output = SoftMax(
-            in_layers=[Reshape(in_layers=[action], shape=(-1, env.n_actions))])
-        value = Variable([0.0])
-        return {'action_prob': output, 'value': value}
+      def create_model(self, **kwargs):
+
+        class TestModel(tf.keras.Model):
+          def __init__(self):
+            super(TestModel, self).__init__(**kwargs)
+            self.action = tf.Variable(np.ones(env.n_actions, np.float32))
+            self.value = tf.Variable([0.0], tf.float32)
+          def call(self, inputs, **kwargs):
+            prob = tf.nn.softmax(tf.reshape(self.action, (-1, env.n_actions)))
+            return (prob, self.value)
+
+        return TestModel()
+
+      @property
+      def output_names(self):
+        return ['action_prob', 'value']
 
     # Optimize it.
 
@@ -75,14 +85,14 @@ class TestA3C(unittest.TestCase):
     # Verify that we can create a new A3C object, reload the parameters from the first one, and
     # get the same result.
 
-    new_a3c = dc.rl.A3C(env, TestPolicy(), model_dir=a3c._graph.model_dir)
+    new_a3c = dc.rl.A3C(env, TestPolicy(), model_dir=a3c._model.model_dir)
     new_a3c.restore()
     action_prob2, value2 = new_a3c.predict([[0]])
     assert value2 == value
 
     # Do the same thing, only using the "restore" argument to fit().
 
-    new_a3c = dc.rl.A3C(env, TestPolicy(), model_dir=a3c._graph.model_dir)
+    new_a3c = dc.rl.A3C(env, TestPolicy(), model_dir=a3c._model.model_dir)
     new_a3c.fit(0, restore=True)
     action_prob2, value2 = new_a3c.predict([[0]])
     assert value2 == value
@@ -196,6 +206,21 @@ class TestA3C(unittest.TestCase):
 
     class TestPolicy(dc.rl.Policy):
 
+      def create_model(self, **kwargs):
+        state = tf.keras.layers.Input(shape=(4,))
+        dense1 = tf.keras.layers.Dense(6, activation=tf.nn.relu)(state)
+        dense2 = tf.keras.layers.Dense(6, activation=tf.nn.relu)(dense1)
+        output = tf.keras.layers.Dense(
+            4,
+            activation=tf.nn.softmax,
+            use_bias=False)(dense2)
+        value = tf.keras.layers.Dense(1)(dense2)
+        return tf.keras.Model(inputs=state, outputs=[output, value])
+
+      @property
+      def output_names(self):
+        return ['action_prob', 'value']
+
       def create_layers(self, state, **kwargs):
 
         dense1 = Dense(6, activation_fn=tf.nn.relu, in_layers=state)
@@ -264,16 +289,22 @@ class TestA3C(unittest.TestCase):
 
     class TestPolicy(dc.rl.Policy):
 
-      def create_layers(self, state, **kwargs):
-        action_mean = Dense(
-            1, in_layers=state, weights_initializer=tf.zeros_initializer)
-        action_std = Constant([10.0])
-        value = Dense(1, in_layers=state)
-        return {
-            'action_mean': action_mean,
-            'action_std': action_std,
-            'value': value
-        }
+      def create_model(self, **kwargs):
+
+        class TestModel(tf.keras.Model):
+          def __init__(self):
+            super(TestModel, self).__init__(**kwargs)
+            self.mean = tf.keras.layers.Dense(1, kernel_initializer='zeros')
+            self.std = tf.constant([10.0])
+            self.value = tf.keras.layers.Dense(1)
+          def call(self, inputs, **kwargs):
+            return (self.mean(inputs), self.std, self.value(inputs))
+
+        return TestModel()
+
+      @property
+      def output_names(self):
+        return ['action_mean', 'action_std', 'value']
 
     # Optimize it.
 

@@ -63,6 +63,7 @@ class Environment(object):
         self._state_dtype = numpy.float32
     else:
       self._state_dtype = state_dtype
+    print(self._state_dtype)
 
   @property
   def state(self):
@@ -184,6 +185,13 @@ class Policy(object):
   creating multiple copies of the Policy, possibly running in different processes
   or even on different computers.
   """
+
+  def create_model(self, **kwargs):
+    raise NotImplemented("Subclasses must implement this")
+
+  @property
+  def output_names(self):
+    raise NotImplemented("Subclasses must implement this")
 
   def create_layers(self, state, **kwargs):
     """Create the TensorGraph Layers that define the policy.
