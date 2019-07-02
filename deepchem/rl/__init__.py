@@ -63,7 +63,6 @@ class Environment(object):
         self._state_dtype = numpy.float32
     else:
       self._state_dtype = state_dtype
-    print(self._state_dtype)
 
   @property
   def state(self):
@@ -186,11 +185,11 @@ class Policy(object):
   or even on different computers.
   """
 
-  def create_model(self, **kwargs):
-    raise NotImplemented("Subclasses must implement this")
+  def __init__(self, output_names, rnn_initial_states=[]):
+    self.output_names = output_names
+    self.rnn_initial_states = rnn_initial_states
 
-  @property
-  def output_names(self):
+  def create_model(self, **kwargs):
     raise NotImplemented("Subclasses must implement this")
 
   def create_layers(self, state, **kwargs):

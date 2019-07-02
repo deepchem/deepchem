@@ -2,7 +2,6 @@
 
 from deepchem.models import KerasModel
 from deepchem.models.tensorgraph.optimizers import Adam
-#from deepchem.models.tensorgraph.layers import Feature, Weights, Label, Layer
 import numpy as np
 import tensorflow as tf
 import collections
@@ -16,7 +15,8 @@ import threading
 class A3CLossDiscrete(object):
   """This layer computes the loss function for A3C with discrete action spaces."""
 
-  def __init__(self, value_weight, entropy_weight, action_prob_index, value_index, **kwargs):
+  def __init__(self, value_weight, entropy_weight, action_prob_index,
+               value_index, **kwargs):
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
     self.action_prob_index = action_prob_index
@@ -27,7 +27,7 @@ class A3CLossDiscrete(object):
     value = outputs[self.value_index]
     reward, advantage = weights
     action = labels[0]
-    # reward, action, prob, value, advantage = inputs
+    advantage = tf.expand_dims(advantage, axis=1)
     prob = prob + np.finfo(np.float32).eps
     log_prob = tf.log(prob)
     policy_loss = -tf.reduce_mean(
@@ -40,7 +40,8 @@ class A3CLossDiscrete(object):
 class A3CLossContinuous(object):
   """This layer computes the loss function for A3C with continuous action spaces."""
 
-  def __init__(self, value_weight, entropy_weight, mean_index, std_index, value_index, **kwargs):
+  def __init__(self, value_weight, entropy_weight, mean_index, std_index,
+               value_index, **kwargs):
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
     self.mean_index = mean_index
@@ -53,7 +54,6 @@ class A3CLossContinuous(object):
     value = outputs[self.value_index]
     reward, advantage = weights
     action = labels[0]
-    # reward, action, mean, std, value, advantage = inputs
     distrib = tf.distributions.Normal(mean, std)
     reduce_axes = list(range(1, len(action.shape)))
     log_prob = tf.reduce_sum(distrib.log_prob(action), reduce_axes)
@@ -166,19 +166,19 @@ class A3C(object):
     output_names = policy.output_names
     self._value = self._model._output_tensors[output_names.index('value')]
     if self.continuous:
-      self._action_mean = self._model._output_tensors[output_names.index('action_mean')]
-      self._action_std = self._model._output_tensors[output_names.index('action_std')]
+      self._action_mean = self._model._output_tensors[output_names.index(
+          'action_mean')]
+      self._action_std = self._model._output_tensors[output_names.index(
+          'action_std')]
     else:
-      self._action_prob = self._model._output_tensors[output_names.index('action_prob')]
-    # if self.continuous:
-    #   (self._graph, self._features, self._rewards, self._actions,
-    #    self._action_mean, self._action_std, self._value,
-    #    self._advantages) = fields
-    # else:
-    #   (self._graph, self._features, self._rewards, self._actions,
-    #    self._action_prob, self._value, self._advantages) = fields
+      self._action_prob = self._model._output_tensors[output_names.index(
+          'action_prob')]
+    rnn_outputs = [i for i, n in enumerate(output_names) if n == 'rnn_state']
+    self._rnn_final_states = [
+        self._model._output_tensors[i] for i in rnn_outputs
+    ]
     self._session = self._model.session
-    # self._rnn_states = self._graph.rnn_zero_states
+    self._rnn_states = policy.rnn_initial_states
     with tf.variable_scope('global'):
       self._checkpoint = tf.train.Checkpoint()
       self._checkpoint.save_counter  # Ensure the variable has been created
@@ -194,57 +194,41 @@ class A3C(object):
       state_dtype = [state_dtype]
     features = []
     for s, d in zip(state_shape, state_dtype):
-      features.append(tf.keras.layers.Input(shape=list(s), dtype=tf.as_dtype(d)))
-    # policy_layers = self._policy.create_layers(features)
-    # value = policy_layers['value']
-    # rewards = Weights(shape=(None,))
-    # advantages = Weights(shape=(None,))
+      features.append(
+          tf.keras.layers.Input(shape=list(s), dtype=tf.as_dtype(d)))
     policy_model = self._policy.create_model()
-    # graph = TensorGraph(
-    #     batch_size=self.max_rollout_length,
-    #     use_queue=False,
-    #     graph=tf_graph,
-    #     model_dir=model_dir)
-    # for f in features:
-    #   graph._add_layer(f)
     output_names = self._policy.output_names
     if 'action_prob' in output_names:
       self.continuous = False
-      # action_prob = policy_layers['action_prob']
-      # actions = Label(shape=(None, self._env.n_actions))
-      loss = A3CLossDiscrete(
-          self.value_weight,
-          self.entropy_weight,
-          output_names.index('action_prob'),
-          output_names.index('value'))
-      # graph.add_output(action_prob)
+      loss = A3CLossDiscrete(self.value_weight, self.entropy_weight,
+                             output_names.index('action_prob'),
+                             output_names.index('value'))
     else:
       self.continuous = True
-      # action_mean = policy_layers['action_mean']
-      # action_std = policy_layers['action_std']
-      # actions = Label(shape=[None] + list(self._env.action_shape))
-      loss = A3CLossContinuous(
-          self.value_weight,
-          self.entropy_weight,
-          output_names.index('action_mean'),
-          output_names.index('action_std'),
-          output_names.index('value'))
-    # graph.set_optimizer(self._optimizer)
-    # with tf.variable_scope(scope):
-    #   graph.build()
-    model = KerasModel(policy_model, loss, batch_size=self.max_rollout_length, model_dir=model_dir, optimize=self._optimizer)
-    # if self.continuous:
-    #   return graph, features, rewards, actions, action_mean, action_std, value, advantages
-    # else:
-    #   return graph, features, rewards, actions, action_prob, value, advantages
+      loss = A3CLossContinuous(self.value_weight, self.entropy_weight,
+                               output_names.index('action_mean'),
+                               output_names.index('action_std'),
+                               output_names.index('value'))
+    model = KerasModel(
+        policy_model,
+        loss,
+        batch_size=self.max_rollout_length,
+        model_dir=model_dir,
+        optimize=self._optimizer)
     env = self._env
-    example_inputs = [np.zeros([model.batch_size]+list(shape), dtype) for shape,dtype in zip(state_shape, state_dtype)]
+    example_inputs = [
+        np.zeros([model.batch_size] + list(shape), dtype)
+        for shape, dtype in zip(state_shape, state_dtype)
+    ]
     if self.continuous:
-      example_labels = [np.zeros([model.batch_size]+list(env.action_shape), np.float32)]
+      example_labels = [
+          np.zeros([model.batch_size] + list(env.action_shape), np.float32)
+      ]
     else:
       example_labels = [np.zeros((model.batch_size, env.n_actions), np.float32)]
-    example_weights = [np.zeros(model.batch_size, np.float32)]*2
-    model._create_training_ops((example_inputs, example_labels, example_weights))
+    example_weights = [np.zeros(model.batch_size, np.float32)] * 2
+    model._create_training_ops((example_inputs, example_labels,
+                                example_weights))
     return model
 
   def fit(self,
@@ -278,8 +262,7 @@ class A3C(object):
       self.restore()
     for worker in workers:
       thread = threading.Thread(
-          name=worker.scope,
-          target=lambda: worker.run(step_count, total_steps))
+          name=worker.scope, target=lambda: worker.run(step_count, total_steps))
       threads.append(thread)
       thread.start()
     manager = tf.train.CheckpointManager(
@@ -371,31 +354,24 @@ class A3C(object):
       raise ValueError('No checkpoint found')
     self._checkpoint.restore(last_checkpoint).run_restore_ops(self._session)
 
-  def _create_feed_dict(self, state, use_saved_states):
-    """Create a feed dict for use by predict() or select_action()."""
-    feed_dict = dict((f, np.expand_dims(s, axis=0))
-                     for f, s in zip(self._model._input_placeholders, state))
-    # if use_saved_states:
-    #   rnn_states = self._rnn_states
-    # else:
-    #   rnn_states = self._graph.rnn_zero_states
-    # for (placeholder, value) in zip(self._graph.rnn_initial_states, rnn_states):
-    #   feed_dict[placeholder] = value
-    return feed_dict
-
   def _predict_outputs(self, outputs, state, use_saved_states, save_states):
     """Compute a set of outputs for a state. """
     if not self._state_is_list:
       state = [state]
-    feed_dict = self._create_feed_dict(state, use_saved_states)
+    if use_saved_states:
+      state = state + list(self._rnn_states)
+    else:
+      state = state + list(self._policy.rnn_initial_states)
+    feed_dict = dict((f, np.expand_dims(s, axis=0))
+                     for f, s in zip(self._model._input_placeholders, state))
     tensors = outputs
-    # if save_states:
-    #   tensors = outputs + self._model.rnn_final_states
-    # else:
-    #   tensors = outputs
+    if save_states:
+      tensors = outputs + self._rnn_final_states
+    else:
+      tensors = outputs
     results = self._session.run(tensors, feed_dict=feed_dict)
-    # if save_states:
-    #   self._rnn_states = results[len(outputs):]
+    if save_states:
+      self._rnn_states = [np.squeeze(r, 0) for r in results[len(outputs):]]
     return results[:len(outputs)]
 
   def _select_action_from_outputs(self, outputs, deterministic):
@@ -428,23 +404,21 @@ class _Worker(object):
     output_names = a3c._policy.output_names
     self.value = self.model._output_tensors[output_names.index('value')]
     if a3c.continuous:
-      self.action_mean = self.model._output_tensors[output_names.index('action_mean')]
-      self.action_std = self.model._output_tensors[output_names.index('action_std')]
-    #   self.graph, self.features, self.rewards, self.actions, self.action_mean, self.action_std, self.value, self.advantages = fields
+      self.action_mean = self.model._output_tensors[output_names.index(
+          'action_mean')]
+      self.action_std = self.model._output_tensors[output_names.index(
+          'action_std')]
     else:
-      self.action_prob = self.model._output_tensors[output_names.index('action_prob')]
-    #   self.graph, self.features, self.rewards, self.actions, self.action_prob, self.value, self.advantages = fields
-    # self.rnn_states = self.graph.rnn_zero_states
+      self.action_prob = self.model._output_tensors[output_names.index(
+          'action_prob')]
+    rnn_outputs = [i for i, n in enumerate(output_names) if n == 'rnn_state']
+    self.rnn_final_states = [self.model._output_tensors[i] for i in rnn_outputs]
+    self.rnn_states = a3c._policy.rnn_initial_states
     local_vars = self.model.model.trainable_variables
     global_vars = a3c._model.model.trainable_variables
-    # local_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
-    #                                self.scope)
-    # global_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
-    #                                 'global')
     gradients = tf.gradients(self.model._loss_tensor, local_vars)
     grads_and_vars = list(zip(gradients, global_vars))
-    self.train_op = a3c._model._tf_optimizer.apply_gradients(
-        grads_and_vars)
+    self.train_op = a3c._model._tf_optimizer.apply_gradients(grads_and_vars)
     self.update_local_variables = tf.group(
         *[tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
     self.global_step = self.model.get_global_step()
@@ -452,13 +426,13 @@ class _Worker(object):
   def run(self, step_count, total_steps):
     while step_count[0] < total_steps:
       self.a3c._session.run(self.update_local_variables)
-      initial_rnn_states = None#self.rnn_states
+      initial_rnn_states = self.rnn_states
       states, actions, rewards, values = self.create_rollout()
-      self.process_rollout(states, actions, rewards, values,
-                           initial_rnn_states, step_count[0])
+      self.process_rollout(states, actions, rewards, values, initial_rnn_states,
+                           step_count[0])
       if self.a3c.use_hindsight:
-        self.process_rollout_with_hindsight(states, actions,
-                                            initial_rnn_states, step_count[0])
+        self.process_rollout_with_hindsight(states, actions, initial_rnn_states,
+                                            step_count[0])
       step_count[0] += len(actions)
 
   def create_rollout(self):
@@ -482,10 +456,10 @@ class _Worker(object):
         tensors = [self.action_mean, self.action_std, self.value]
       else:
         tensors = [self.action_prob, self.value]
-      # results = session.run(tensors + self.graph.rnn_final_states, feed_dict=feed_dict)
-      results = session.run(tensors, feed_dict=feed_dict)
+      results = session.run(
+          tensors + self.rnn_final_states, feed_dict=feed_dict)
       value = results[len(tensors) - 1]
-      # self.rnn_states = results[len(tensors):]
+      self.rnn_states = [np.squeeze(r, 0) for r in results[len(tensors):]]
       action = self.a3c._select_action_from_outputs(results[:len(tensors) - 1],
                                                     False)
       actions.append(action)
@@ -503,7 +477,7 @@ class _Worker(object):
     values.append(final_value)
     if self.env.terminated:
       self.env.reset()
-      # self.rnn_states = self.graph.rnn_zero_states
+      self.rnn_states = self.a3c._policy.rnn_initial_states
     return states, actions, np.array(
         rewards, dtype=np.float32), np.array(
             values, dtype=np.float32)
@@ -551,11 +525,11 @@ class _Worker(object):
     # Build the feed dict and apply gradients.
 
     feed_dict = {}
-    # for placeholder, value in zip(self.graph.rnn_initial_states,
-    #                               initial_rnn_states):
-    #   feed_dict[placeholder] = value
     for f, s in zip(self.model._input_placeholders, state_arrays):
       feed_dict[f] = s
+    for f, s in zip(self.model._input_placeholders[len(state_arrays):],
+                    initial_rnn_states):
+      feed_dict[f] = np.expand_dims(s, axis=0)
     feed_dict[self.model._weights_placeholders[0]] = discounted_rewards
     feed_dict[self.model._label_placeholders[0]] = actions_matrix
     feed_dict[self.model._weights_placeholders[1]] = advantages
@@ -574,10 +548,8 @@ class _Worker(object):
           state_arrays[j].append(state[j])
     else:
       state_arrays = [hindsight_states]
+    state_arrays += initial_rnn_states
     feed_dict = {}
-    # for placeholder, value in zip(self.graph.rnn_initial_states,
-    #                               initial_rnn_states):
-    #   feed_dict[placeholder] = value
     for f, s in zip(self.model._input_placeholders, state_arrays):
       feed_dict[f] = s
     values = self.a3c._session.run(self.value, feed_dict=feed_dict)
@@ -589,9 +561,7 @@ class _Worker(object):
     """Create a feed dict for use during a rollout."""
     if not self.a3c._state_is_list:
       state = [state]
+    state = state + self.rnn_states
     feed_dict = dict((f, np.expand_dims(s, axis=0))
                      for f, s in zip(self.model._input_placeholders, state))
-    # for (placeholder, value) in zip(self.graph.rnn_initial_states,
-    #                                 self.rnn_states):
-    #   feed_dict[placeholder] = value
     return feed_dict
