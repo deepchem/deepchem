@@ -13,7 +13,7 @@ import threading
 
 
 class A3CLossDiscrete(object):
-  """This layer computes the loss function for A3C with discrete action spaces."""
+  """This class computes the loss function for A3C with discrete action spaces."""
 
   def __init__(self, value_weight, entropy_weight, action_prob_index,
                value_index, **kwargs):
@@ -38,7 +38,7 @@ class A3CLossDiscrete(object):
 
 
 class A3CLossContinuous(object):
-  """This layer computes the loss function for A3C with continuous action spaces."""
+  """This class computes the loss function for A3C with continuous action spaces."""
 
   def __init__(self, value_weight, entropy_weight, mean_index, std_index,
                value_index, **kwargs):
@@ -71,7 +71,7 @@ class A3C(object):
   (https://arxiv.org/abs/1602.01783).  This class supports environments with both discrete and
   continuous action spaces.  For discrete action spaces, the "action" argument passed to the
   environment is an integer giving the index of the action to perform.  The policy must output
-  a vector called "action_prob" giving the probability of taking each action.  For continous
+  a vector called "action_prob" giving the probability of taking each action.  For continuous
   action spaces, the action is an array where each element is chosen independently from a
   normal distribution.  The policy must output two arrays of the same shape: "action_mean"
   gives the mean value for each element, and "action_std" gives the standard deviation for
@@ -129,8 +129,8 @@ class A3C(object):
     env: Environment
       the Environment to interact with
     policy: Policy
-      the Policy to optimize.  Its create_layers() method must return a dict containing the
-      keys 'action_prob' and 'value' (for discrete action spaces) or 'action_mean', 'action_std',
+      the Policy to optimize.  It must have outputs with the names 'action_prob'
+      and 'value' (for discrete action spaces) or 'action_mean', 'action_std',
       and 'value' (for continuous action spaces)
     max_rollout_length: int
       the maximum length of rollouts to generate
@@ -162,30 +162,25 @@ class A3C(object):
       self._optimizer = Adam(learning_rate=0.001, beta1=0.9, beta2=0.999)
     else:
       self._optimizer = optimizer
-    self._model = self._build_graph('global', model_dir)
+    self._model = self._build_model(model_dir)
     output_names = policy.output_names
-    self._value = self._model._output_tensors[output_names.index('value')]
+    output_tensors = self._model._output_tensors
+    self._value = output_tensors[output_names.index('value')]
     if self.continuous:
-      self._action_mean = self._model._output_tensors[output_names.index(
-          'action_mean')]
-      self._action_std = self._model._output_tensors[output_names.index(
-          'action_std')]
+      self._action_mean = output_tensors[output_names.index('action_mean')]
+      self._action_std = output_tensors[output_names.index('action_std')]
     else:
-      self._action_prob = self._model._output_tensors[output_names.index(
-          'action_prob')]
+      self._action_prob = output_tensors[output_names.index('action_prob')]
     rnn_outputs = [i for i, n in enumerate(output_names) if n == 'rnn_state']
-    self._rnn_final_states = [
-        self._model._output_tensors[i] for i in rnn_outputs
-    ]
+    self._rnn_final_states = [output_tensors[i] for i in rnn_outputs]
     self._session = self._model.session
     self._rnn_states = policy.rnn_initial_states
-    with tf.variable_scope('global'):
-      self._checkpoint = tf.train.Checkpoint()
-      self._checkpoint.save_counter  # Ensure the variable has been created
+    self._checkpoint = tf.train.Checkpoint()
+    self._checkpoint.save_counter  # Ensure the variable has been created
     self._checkpoint.listed = self._model.model.trainable_variables
     self._session.run(self._checkpoint.save_counter.initializer)
 
-  def _build_graph(self, scope, model_dir):
+  def _build_model(self, model_dir):
     """Construct a KerasModel containing the policy and loss calculations."""
     state_shape = self._env.state_shape
     state_dtype = self._env.state_dtype
@@ -285,12 +280,12 @@ class A3C(object):
 
     Parameters
     ----------
-    state: array
+    state: array or list of arrays
       the state of the environment for which to generate predictions
     use_saved_states: bool
       if True, the states most recently saved by a previous call to predict() or select_action()
       will be used as the initial states.  If False, the internal states of all recurrent layers
-      will be set to all zeros before computing the predictions.
+      will be set to the initial values defined by the policy before computing the predictions.
     save_states: bool
       if True, the internal states of all recurrent layers at the end of the calculation
       will be saved, and any previously saved states will be discarded.  If False, the
@@ -320,7 +315,7 @@ class A3C(object):
 
     Parameters
     ----------
-    state: array
+    state: array or list of arrays
       the state of the environment for which to select an action
     deterministic: bool
       if True, always return the best action (that is, the one with highest probability).
@@ -328,7 +323,7 @@ class A3C(object):
     use_saved_states: bool
       if True, the states most recently saved by a previous call to predict() or select_action()
       will be used as the initial states.  If False, the internal states of all recurrent layers
-      will be set to all zeros before computing the predictions.
+      will be set to the initial values defined by the policy before computing the predictions.
     save_states: bool
       if True, the internal states of all recurrent layers at the end of the calculation
       will be saved, and any previously saved states will be discarded.  If False, the
@@ -400,19 +395,17 @@ class _Worker(object):
     self.scope = 'worker%d' % index
     self.env = copy.deepcopy(a3c._env)
     self.env.reset()
-    self.model = a3c._build_graph(self.scope, None)
+    self.model = a3c._build_model(None)
     output_names = a3c._policy.output_names
-    self.value = self.model._output_tensors[output_names.index('value')]
+    output_tensors = self.model._output_tensors
+    self.value = output_tensors[output_names.index('value')]
     if a3c.continuous:
-      self.action_mean = self.model._output_tensors[output_names.index(
-          'action_mean')]
-      self.action_std = self.model._output_tensors[output_names.index(
-          'action_std')]
+      self.action_mean = output_tensors[output_names.index('action_mean')]
+      self.action_std = output_tensors[output_names.index('action_std')]
     else:
-      self.action_prob = self.model._output_tensors[output_names.index(
-          'action_prob')]
+      self.action_prob = output_tensors[output_names.index('action_prob')]
     rnn_outputs = [i for i, n in enumerate(output_names) if n == 'rnn_state']
-    self.rnn_final_states = [self.model._output_tensors[i] for i in rnn_outputs]
+    self.rnn_final_states = [output_tensors[i] for i in rnn_outputs]
     self.rnn_states = a3c._policy.rnn_initial_states
     local_vars = self.model.model.trainable_variables
     global_vars = a3c._model.model.trainable_variables
