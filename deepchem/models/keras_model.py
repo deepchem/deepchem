@@ -207,7 +207,7 @@ class KerasModel(Model):
       self._loss_outputs = list(range(len(self._output_tensors)))
     self._init_new_vars()
 
-  def _create_training_ops(self, example_batch):
+  def _create_training_ops(self, example_batch, variables=None, loss=None):
     """The first time this is called, create tensors used in optimization."""
     if self._training_ops_built:
       return
@@ -221,7 +221,18 @@ class KerasModel(Model):
         np.float32 if x.dtype == np.float64 else x.dtype
         for x in example_batch[2]
     ]
+
+    if loss is None:
+      loss = self._loss_fn
+    if variables is None:
+      op_key = (None, loss)
+      self._trainable_vars = self.model.trainable_variables
+    else:
+      op_key = tuple(variables) + (loss,)
+      self._trainable_vars = variables
+
     if tf.executing_eagerly():
+      self._loss_fn_eager = loss
       return
     self._label_placeholders = [
         tf.placeholder(dtype=tf.as_dtype(t), shape=x.shape)
@@ -231,18 +242,28 @@ class KerasModel(Model):
         tf.placeholder(dtype=tf.as_dtype(t), shape=x.shape)
         for x, t in zip(example_batch[2], self._weights_dtypes)
     ]
-    self._loss_tensor = self._loss_fn(
+
+    self._loss_tensor = loss(
         [self._output_tensors[i] for i in self._loss_outputs],
         self._label_placeholders, self._weights_placeholders)
+
+    self._custom_train_op = {}
     try:
       self._train_op = self._tf_optimizer.minimize(
-          self._loss_tensor, global_step=self._global_step)
+          self._loss_tensor,
+          global_step=self._global_step,
+          var_list=self._trainable_vars)
     except ValueError:
       # The loss doesn't depend on any variables.
       self._train_op = 0
-    self._custom_train_op = {}
+    self._custom_train_op[op_key] = self._train_op
+
     if self.tensorboard:
-      self._summary_ops = tf.summary.scalar('loss', self._loss_tensor)
+      self._train_summary_ops = tf.summary.scalar('train/loss',
+                                                  self._loss_tensor)
+      self._eval_loss_ph = tf.placeholder(tf.float32)
+      self._eval_summary_ops = tf.summary.scalar('eval/loss',
+                                                 self._eval_loss_ph)
       self._summary_writer = tf.summary.FileWriter(self.model_dir)
     self._init_new_vars()
 
@@ -255,14 +276,19 @@ class KerasModel(Model):
       self._initialized_vars = vars
 
   def fit(self,
-          dataset,
+          teain_dataset,
           nb_epoch=10,
           max_checkpoints_to_keep=5,
           checkpoint_interval=1000,
           deterministic=False,
           restore=False,
           variables=None,
-          loss=None):
+          loss=None,
+          eval_dataset=None,
+          eval_interval=1000,
+          metrics=None,
+          transformers=[],
+          per_task_metrics=False):
     """Train this model on a dataset.
 
     Parameters
@@ -289,24 +315,130 @@ class KerasModel(Model):
       a function of the form f(outputs, labels, weights) that computes the loss
       for each batch.  If None (the default), the model's standard loss function
       is used.
+    eval_dataset: deepchem.Dataset, default None
+      a validation dataset to compute loss and metrics on
    """
-    return self.fit_generator(
-        self.default_generator(
-            dataset, epochs=nb_epoch, deterministic=deterministic),
-        max_checkpoints_to_keep, checkpoint_interval, restore, variables, loss)
+    train_generator = self.default_generator(
+        dataset, epochs=nb_epoch, deterministic=deterministic)
+    return self.fit_generator(train_generator, max_checkpoints_to_keep,
+                              checkpoint_interval, restore, variables, loss,
+                              eval_dataset, eval_interval, metrics,
+                              transformers, per_task_metrics)
+
+  def _add_summary(self, summary, current_step):
+    """Add summary for current step to the setup."""
+    self._summary_writer.reopen()
+    self._summary_writer.add_summary(summary, global_step=current_step)
+    self._summary_writer.close()
+
+  def _run_loss_and_grad_ops_eager(self, batch, training=True,
+                                   should_log=False):
+    """Computes loss and gradients in eager mode."""
+    # In eager mode we execute the loss function, accumulating the gradients.
+    inputs, labels, weights = self._prepare_batch(batch)
+    if training:
+      with tf.GradientTape() as tape:
+        if len(inputs) == 1:
+          inputs = inputs[0]
+        outputs = self.model(inputs)
+        if isinstance(outputs, tf.Tensor):
+          outputs = [outputs]
+        if self._loss_outputs is not None:
+          outputs = [outputs[i] for i in self._loss_outputs]
+        batch_loss = self._loss_fn_eager(outputs, labels, weights)
+      grads = tape.gradient(batch_loss, self._trainable_vars)
+      self._tf_optimizer.apply_gradients(zip(grads, self._trainable_vars))
+      tf.assign_add(self._global_step, 1)
+
+    else:
+      if len(inputs) == 1:
+        inputs = inputs[0]
+      outputs = self.model(inputs)
+      if isinstance(outputs, tf.Tensor):
+        outputs = [outputs]
+      if self._loss_outputs is not None:
+        outputs = [outputs[i] for i in self._loss_outputs]
+      batch_loss = self._loss_fn_eager(outputs, labels, weights)
+
+    current_step = self._global_step.numpy()
+    return batch_loss, current_step
+
+  def _run_loss_and_grad_ops_graph(self, batch, training=True,
+                                   should_log=False):
+    """Computes loss and gradients in graph model."""
+    # In graph mode we execute the training op.
+    inputs, labels, weights = self._prepare_batch(batch)
+    fetches = [self._loss_tensor, self._global_step]
+    if training:
+      fetches = [self._train_op] + fetches
+      if should_log:
+        fetches.append(self._train_summary_ops)
+    else:
+      fetches.append(self._eval_summary_ops)
+    feed_dict = dict(zip(self._input_placeholders, inputs))
+    feed_dict.update(dict(zip(self._label_placeholders, labels)))
+    feed_dict.update(dict(zip(self._weights_placeholders, weights)))
+    fetched_values = self.session.run(fetches, feed_dict=feed_dict)
+    current_step = fetched_values[2]
+    if training and should_log:
+      self._add_train_summary(
+          summary=fetched_values[3], current_step=current_step)
+
+    return fetched_values
+
+  def compute_eval_loss_and_metrics(self,
+                                    eval_dataset,
+                                    metrics=None,
+                                    transformers=[],
+                                    per_task_metrics=False):
+    eval_generator = self.default_generator(
+        eval_dataset, epochs=1, deterministic=True, pad_batches=True)
+    avg_eval_loss = 0.0
+    averaged_eval_batches = 0
+    for eval_batch in eval_generator:
+      if tf.executing_eagerly():
+        eval_batch_loss, _ = self._run_loss_and_grad_ops_eager(
+            batch=eval_batch, training=False)
+      else:
+        fetched_values = self._run_loss_and_grad_ops_graph(
+            batch=eval_batch, training=False)
+        eval_batch_loss = fetched_values[0]
+      avg_eval_loss += eval_batch_loss
+      averaged_eval_batches += 1
+
+    if metrics is not None:
+      eval_generator = self.default_generator(
+          eval_dataset, epochs=1, deterministic=True, pad_batches=True)
+      eval_metrics = self.evaluate_generator(eval_generator, metrics,
+                                             transformers, per_task_metrics)
+
+    if not tf.executing_eagerly():
+      # TODO (VIGS25): Extend summaries for metrics as well
+      fetches = self._eval_summary_ops
+      avg_eval_loss = float(avg_eval_loss) / averaged_eval_batches
+      feed_dict = {self._eval_loss_ph: avg_eval_loss}
+      eval_summary = self.session.run(fetches=fetches, feed_dict=feed_dict)
+      self._add_summary(summary=eval_summary, current_step=current_step)
+
+    return avg_eval_loss, current_step
 
   def fit_generator(self,
-                    generator,
+                    train_generator,
                     max_checkpoints_to_keep=5,
                     checkpoint_interval=1000,
                     restore=False,
                     variables=None,
-                    loss=None):
+                    loss=None,
+                    eval_dataset=None,
+                    eval_interval=1000,
+                    metrics=None,
+                    transformers=[],
+                    per_task_metrics=False):
     """Train this model on data from a generator.
 
     Parameters
     ----------
-    generator: generator
+    train_generator: generator
       this should generate batches, each represented as a tuple of the form
       (inputs, labels, weights).
     max_checkpoints_to_keep: int
@@ -324,6 +456,11 @@ class KerasModel(Model):
       a function of the form f(outputs, labels, weights) that computes the loss
       for each batch.  If None (the default), the model's standard loss function
       is used.
+    eval_dataset: generator, default None
+      this should generate batches on eval data, each represented as a tuple of
+      the form (inputs, labels, weights)
+    eval_interval: int, default 1000
+      Frequency of computing eval losses and statistics
 
     Returns
     -------
@@ -333,110 +470,71 @@ class KerasModel(Model):
     if checkpoint_interval > 0:
       manager = tf.train.CheckpointManager(self._checkpoint, self.model_dir,
                                            max_checkpoints_to_keep)
-    avg_loss = 0.0
-    averaged_batches = 0
-    train_op = None
+    avg_train_loss = 0.0
+    averaged_train_batches = 0
     time1 = time.time()
 
     # Main training loop.
-
-    for batch in generator:
-      self._create_training_ops(batch)
+    for train_batch in train_generator:
+      self._create_training_ops(train_batch, variables=variables, loss=loss)
       if restore:
         self.restore()
         restore = False
-      inputs, labels, weights = self._prepare_batch(batch)
       self._tensorboard_step += 1
       should_log = (
           self.tensorboard and
           self._tensorboard_step % self.tensorboard_log_frequency == 0)
       if tf.executing_eagerly():
-
         # In eager mode we execute the loss function, accumulating the gradients.
-
-        if loss is None:
-          loss = self._loss_fn
-        with tf.GradientTape() as tape:
-          if len(inputs) == 1:
-            inputs = inputs[0]
-          outputs = self.model(inputs)
-          if isinstance(outputs, tf.Tensor):
-            outputs = [outputs]
-          if self._loss_outputs is not None:
-            outputs = [outputs[i] for i in self._loss_outputs]
-          batch_loss = loss(outputs, labels, weights)
-        avg_loss += batch_loss
-        if variables is None:
-          vars = self.model.trainable_variables
-        else:
-          vars = variables
-        grads = tape.gradient(batch_loss, vars)
-        self._tf_optimizer.apply_gradients(zip(grads, vars))
-        tf.assign_add(self._global_step, 1)
-        current_step = self._global_step.numpy()
+        batch_loss, current_step = self._run_loss_and_grad_ops_eager(
+            batch=train_batch, training=True, should_log=should_log)
+        avg_train_loss += batch_loss
       else:
-
-        # In graph mode we execute the training op.
-
-        if train_op is None:
-          if loss is None and variables is None:
-            train_op = self._train_op
-          else:
-            if variables is None:
-              op_key = (None, loss)
-            else:
-              op_key = tuple(variables) + (loss,)
-            if op_key not in self._custom_train_op:
-              if loss is None:
-                loss_tensor = self._loss_tensor
-              else:
-                loss_tensor = loss(
-                    [self._output_tensors[i] for i in self._loss_outputs],
-                    self._label_placeholders, self._weights_placeholders)
-              if variables is None:
-                vars = self.model.trainable_variables
-              else:
-                vars = variables
-              self._custom_train_op[op_key] = self._tf_optimizer.minimize(
-                  loss_tensor, global_step=self._global_step, var_list=vars)
-            train_op = self._custom_train_op[op_key]
-        fetches = [train_op, self._loss_tensor, self._global_step]
-        if should_log:
-          fetches.append(self._summary_ops)
-        feed_dict = dict(zip(self._input_placeholders, inputs))
-        feed_dict.update(dict(zip(self._label_placeholders, labels)))
-        feed_dict.update(dict(zip(self._weights_placeholders, weights)))
-        fetched_values = self.session.run(fetches, feed_dict=feed_dict)
-        avg_loss += fetched_values[1]
+        fetched_values = self._run_loss_and_grad_ops_graph(
+            batch=train_batch, training=True, should_log=should_log)
+        batch_loss = fetched_values[1]
         current_step = fetched_values[2]
-        if should_log:
-          self._summary_writer.reopen()
-          self._summary_writer.add_summary(
-              fetched_values[3], global_step=current_step)
-          self._summary_writer.close()
+        avg_train_loss += batch_loss
 
-      # Report progress and write checkpoints.
+      # Report progress on eval dataset.
+      if eval_interval > 0 and current_step % eval_interval == eval_interval - 1 and eval_dataset is not None:
+        avg_eval_loss, current_step = self.compute_eval_loss_and_metrics(
+            eval_dataset=eval_dataset,
+            metrics=metrics,
+            transformers=transformers,
+            per_task_metrics=per_task_metrics)
+        logger.info("Ending global_step {}: Average Eval loss {}".format(
+            current_step, avg_eval_loss))
 
-      averaged_batches += 1
+      averaged_train_batches += 1
       if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
         self._exec_with_session(lambda: manager.save())
-        avg_loss = float(avg_loss) / averaged_batches
-        print(
-            'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
-        avg_loss = 0.0
-        averaged_batches = 0
+        avg_train_loss = float(avg_train_loss) / averaged_train_batches
+        logger.info("Ending global_step {}: Average Train loss {}".format(
+            current_step, avg_train_loss))
+        avg_train_loss = 0.0
+        averaged_train_batches = 0
+
+    if eval_interval > 0:
+      avg_eval_loss, current_step = self.compute_eval_loss_and_metrics(
+          eval_dataset=eval_dataset,
+          metrics=metrics,
+          transformers=transformers,
+          per_task_metrics=per_task_metrics)
+      logger.info("Ending global_step {}: Average Eval loss {}".format(
+          current_step, avg_eval_loss))
 
     # Report final results.
-
     if checkpoint_interval > 0:
-      if averaged_batches > 0:
-        avg_loss = float(avg_loss) / averaged_batches
-        print(
-            'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
+      if averaged_train_batches > 0:
+        avg_train_loss = float(avg_train_loss) / averaged_train_batches
+        logger.info('Ending global_step %d: Average Train loss %g' %
+                    (current_step, avg_train_loss))
       self._exec_with_session(lambda: manager.save())
       time2 = time.time()
-      print("TIMING: model fitting took %0.3f s" % (time2 - time1))
-    return avg_loss
+      logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
+
+    return avg_train_loss
 
   def fit_on_batch(self, X, y, w, variables=None, loss=None):
     """Perform a single step of training.
