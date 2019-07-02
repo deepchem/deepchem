@@ -276,7 +276,7 @@ class KerasModel(Model):
       self._initialized_vars = vars
 
   def fit(self,
-          teain_dataset,
+          train_dataset,
           nb_epoch=10,
           max_checkpoints_to_keep=5,
           checkpoint_interval=1000,
@@ -319,7 +319,7 @@ class KerasModel(Model):
       a validation dataset to compute loss and metrics on
    """
     train_generator = self.default_generator(
-        dataset, epochs=nb_epoch, deterministic=deterministic)
+        train_dataset, epochs=nb_epoch, deterministic=deterministic)
     return self.fit_generator(train_generator, max_checkpoints_to_keep,
                               checkpoint_interval, restore, variables, loss,
                               eval_dataset, eval_interval, metrics,
@@ -515,7 +515,7 @@ class KerasModel(Model):
         avg_train_loss = 0.0
         averaged_train_batches = 0
 
-    if eval_interval > 0:
+    if eval_interval > 0 and eval_dataset is not None:
       avg_eval_loss, current_step = self.compute_eval_loss_and_metrics(
           eval_dataset=eval_dataset,
           metrics=metrics,
