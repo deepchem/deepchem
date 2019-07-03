@@ -16,7 +16,7 @@ class A3CLossDiscrete(object):
   """This class computes the loss function for A3C with discrete action spaces."""
 
   def __init__(self, value_weight, entropy_weight, action_prob_index,
-               value_index, **kwargs):
+               value_index):
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
     self.action_prob_index = action_prob_index
@@ -41,7 +41,7 @@ class A3CLossContinuous(object):
   """This class computes the loss function for A3C with continuous action spaces."""
 
   def __init__(self, value_weight, entropy_weight, mean_index, std_index,
-               value_index, **kwargs):
+               value_index):
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
     self.mean_index = mean_index
@@ -216,12 +216,10 @@ class A3C(object):
         for shape, dtype in zip(state_shape, state_dtype)
     ]
     if self.continuous:
-      example_labels = [
-          np.zeros([model.batch_size] + list(env.action_shape), np.float32)
-      ]
+      example_labels = [np.zeros([model.batch_size] + list(env.action_shape))]
     else:
-      example_labels = [np.zeros((model.batch_size, env.n_actions), np.float32)]
-    example_weights = [np.zeros(model.batch_size, np.float32)] * 2
+      example_labels = [np.zeros((model.batch_size, env.n_actions))]
+    example_weights = [np.zeros(model.batch_size)] * 2
     model._create_training_ops((example_inputs, example_labels,
                                 example_weights))
     return model
@@ -361,9 +359,7 @@ class A3C(object):
                      for f, s in zip(self._model._input_placeholders, state))
     tensors = outputs
     if save_states:
-      tensors = outputs + self._rnn_final_states
-    else:
-      tensors = outputs
+      tensors = tensors + self._rnn_final_states
     results = self._session.run(tensors, feed_dict=feed_dict)
     if save_states:
       self._rnn_states = [np.squeeze(r, 0) for r in results[len(outputs):]]
@@ -535,7 +531,7 @@ class _Worker(object):
     hindsight_states, rewards = self.env.apply_hindsight(
         states, actions, states[-1])
     if self.a3c._state_is_list:
-      state_arrays = [[] for i in range(len(self.features))]
+      state_arrays = [[] for i in range(len(self.model._input_shapes))]
       for state in hindsight_states:
         for j in range(len(state)):
           state_arrays[j].append(state[j])

@@ -1,7 +1,6 @@
 from flaky import flaky
 
 import deepchem as dc
-#from deepchem.models.tensorgraph.layers import Reshape, Variable, SoftMax, GRU, Dense, Constant
 from deepchem.models.tensorgraph.optimizers import Adam, PolynomialDecay
 from tensorflow.keras.layers import Input, Dense, GRU, Reshape, Softmax
 import numpy as np
@@ -132,7 +131,7 @@ class TestA3C(unittest.TestCase):
         gru, rnn_final_state = GRU(
             10, return_state=True, return_sequences=True)(
                 reshaped, initial_state=rnn_state)
-        output = Softmax()(gru)
+        output = Softmax()(Reshape((10,))(gru))
         value = dc.models.layers.Variable([0.0])([])
         return tf.keras.Model(
             inputs=[state, rnn_state], outputs=[output, value, rnn_final_state])

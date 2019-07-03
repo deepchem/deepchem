@@ -1,8 +1,7 @@
 """Proximal Policy Optimization (PPO) algorithm for reinforcement learning."""
 
-from deepchem.models import TensorGraph
+from deepchem.models import KerasModel
 from deepchem.models.tensorgraph.optimizers import Adam
-from deepchem.models.tensorgraph.layers import Feature, Weights, Label, Layer
 import numpy as np
 import tensorflow as tf
 import collections
@@ -14,19 +13,23 @@ import re
 import time
 
 
-class PPOLoss(Layer):
-  """This layer computes the loss function for PPO."""
+class PPOLoss(object):
+  """This class computes the loss function for PPO."""
 
-  def __init__(self, value_weight, entropy_weight, clipping_width, **kwargs):
-    super(PPOLoss, self).__init__(**kwargs)
+  def __init__(self, value_weight, entropy_weight, clipping_width,
+               action_prob_index, value_index):
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
     self.clipping_width = clipping_width
+    self.action_prob_index = action_prob_index
+    self.value_index = value_index
 
-  def create_tensor(self, **kwargs):
-    reward, action, prob, value, advantage, old_prob = [
-        layer.out_tensor for layer in self.in_layers
-    ]
+  def __call__(self, outputs, labels, weights):
+    prob = outputs[self.action_prob_index]
+    value = outputs[self.value_index]
+    reward, advantage, old_prob = weights
+    action = labels[0]
+    advantage = tf.expand_dims(advantage, axis=1)
     machine_eps = np.finfo(np.float32).eps
     prob += machine_eps
     old_prob += machine_eps
@@ -37,8 +40,7 @@ class PPOLoss(Layer):
         tf.minimum(ratio * advantage, clipped_ratio * advantage))
     value_loss = tf.reduce_mean(tf.square(reward - value))
     entropy = -tf.reduce_mean(tf.reduce_sum(prob * tf.log(prob), axis=1))
-    self.out_tensor = policy_loss + self.value_weight * value_loss - self.entropy_weight * entropy
-    return self.out_tensor
+    return policy_loss + self.value_weight * value_loss - self.entropy_weight * entropy
 
 
 class PPO(object):
@@ -107,8 +109,8 @@ class PPO(object):
     env: Environment
       the Environment to interact with
     policy: Policy
-      the Policy to optimize.  Its create_layers() method must return a dict containing the
-      keys 'action_prob' and 'value', corresponding to the action probabilities and value estimate
+      the Policy to optimize.  It must have outputs with the names 'action_prob'
+      and 'value', corresponding to the action probabilities and value estimate
     max_rollout_length: int
       the maximum length of rollouts to generate
     optimization_rollouts: int
@@ -153,28 +155,28 @@ class PPO(object):
       self._optimizer = Adam(learning_rate=0.001, beta1=0.9, beta2=0.999)
     else:
       self._optimizer = optimizer
-    (self._graph, self._features, self._rewards, self._actions,
-     self._action_prob, self._value, self._advantages,
-     self._old_action_prob) = self._build_graph(None, 'global', model_dir)
-    with self._graph._get_tf("Graph").as_default():
-      self._session = tf.Session()
-      self._train_op = self._graph._get_tf('Optimizer').minimize(
-          self._graph.loss.out_tensor)
-    self._rnn_states = self._graph.rnn_zero_states
+    self._model = self._build_model(model_dir)
+    output_names = policy.output_names
+    output_tensors = self._model._output_tensors
+    self._value = output_tensors[output_names.index('value')]
+    self._action_prob = output_tensors[output_names.index('action_prob')]
+    rnn_outputs = [i for i, n in enumerate(output_names) if n == 'rnn_state']
+    self._rnn_final_states = [output_tensors[i] for i in rnn_outputs]
+    self._session = tf.Session()
+    self._train_op = self._model._tf_optimizer.minimize(
+        self._model._loss_tensor)
+    self._rnn_states = policy.rnn_initial_states
     if len(self._rnn_states) > 0 and batch_size != 0:
       raise ValueError(
           'Cannot batch rollouts when the policy contains a recurrent layer.  Set batch_size to 0.'
       )
-    with self._graph._get_tf("Graph").as_default():
-      with tf.variable_scope('global'):
-        self._checkpoint = tf.train.Checkpoint()
-        self._checkpoint.save_counter  # Ensure the variable has been created
-      self._checkpoint.listed = tf.get_collection(
-          tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
-      self._session.run(self._checkpoint.save_counter.initializer)
+    self._checkpoint = tf.train.Checkpoint()
+    self._checkpoint.save_counter  # Ensure the variable has been created
+    self._checkpoint.listed = self._model.model.trainable_variables
+    self._session.run(self._checkpoint.save_counter.initializer)
 
-  def _build_graph(self, tf_graph, scope, model_dir):
-    """Construct a TensorGraph containing the policy and loss calculations."""
+  def _build_model(self, model_dir):
+    """Construct a KerasModel containing the policy and loss calculations."""
     state_shape = self._env.state_shape
     state_dtype = self._env.state_dtype
     if not self._state_is_list:
@@ -182,36 +184,29 @@ class PPO(object):
       state_dtype = [state_dtype]
     features = []
     for s, d in zip(state_shape, state_dtype):
-      features.append(Feature(shape=[None] + list(s), dtype=tf.as_dtype(d)))
-    policy_layers = self._policy.create_layers(features)
-    action_prob = policy_layers['action_prob']
-    value = policy_layers['value']
-    rewards = Weights(shape=(None,))
-    advantages = Weights(shape=(None,))
-    old_action_prob = Weights(shape=(None,))
-    actions = Label(shape=(None, self._env.n_actions))
-    loss = PPOLoss(
-        self.value_weight,
-        self.entropy_weight,
-        self.clipping_width,
-        in_layers=[
-            rewards, actions, action_prob, value, advantages, old_action_prob
-        ])
-    graph = TensorGraph(
+      features.append(
+          tf.keras.layers.Input(shape=list(s), dtype=tf.as_dtype(d)))
+    policy_model = self._policy.create_model()
+    output_names = self._policy.output_names
+    loss = PPOLoss(self.value_weight, self.entropy_weight, self.clipping_width,
+                   output_names.index('action_prob'),
+                   output_names.index('value'))
+    model = KerasModel(
+        policy_model,
+        loss,
         batch_size=self.max_rollout_length,
-        use_queue=False,
-        graph=tf_graph,
-        model_dir=model_dir)
-    for f in features:
-      graph._add_layer(f)
-    graph.add_output(action_prob)
-    graph.add_output(value)
-    graph.set_loss(loss)
-    graph.set_optimizer(self._optimizer)
-    with graph._get_tf("Graph").as_default():
-      with tf.variable_scope(scope):
-        graph.build()
-    return graph, features, rewards, actions, action_prob, value, advantages, old_action_prob
+        model_dir=model_dir,
+        optimize=self._optimizer)
+    env = self._env
+    example_inputs = [
+        np.zeros([model.batch_size] + list(shape), dtype)
+        for shape, dtype in zip(state_shape, state_dtype)
+    ]
+    example_labels = [np.zeros((model.batch_size, env.n_actions))]
+    example_weights = [np.zeros(model.batch_size)] * 3
+    model._create_training_ops((example_inputs, example_labels,
+                                example_weights))
+    return model
 
   def fit(self,
           total_steps,
@@ -234,63 +229,60 @@ class PPO(object):
       if True, restore the model from the most recent checkpoint and continue training
       from there.  If False, retrain the model from scratch.
     """
-    with self._graph._get_tf("Graph").as_default():
-      step_count = 0
-      workers = []
-      threads = []
-      for i in range(self.optimization_rollouts):
-        workers.append(_Worker(self, i))
-      self._session.run(tf.global_variables_initializer())
-      if restore:
-        self.restore()
-      pool = Pool()
-      variables = tf.get_collection(
-          tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
-      manager = tf.train.CheckpointManager(
-          self._checkpoint, self._graph.model_dir, max_checkpoints_to_keep)
-      checkpoint_time = time.time()
-      while step_count < total_steps:
-        # Have the worker threads generate the rollouts for this iteration.
+    step_count = 0
+    workers = []
+    threads = []
+    for i in range(self.optimization_rollouts):
+      workers.append(_Worker(self, i))
+    self._session.run(tf.global_variables_initializer())
+    if restore:
+      self.restore()
+    pool = Pool()
+    manager = tf.train.CheckpointManager(
+        self._checkpoint, self._model.model_dir, max_checkpoints_to_keep)
+    checkpoint_time = time.time()
+    while step_count < total_steps:
+      # Have the worker threads generate the rollouts for this iteration.
 
-        rollouts = []
-        pool.map(lambda x: rollouts.extend(x.run()), workers)
+      rollouts = []
+      pool.map(lambda x: rollouts.extend(x.run()), workers)
 
-        # Perform optimization.
+      # Perform optimization.
 
-        for epoch in range(self.optimization_epochs):
-          if self.batch_size == 0:
-            batches = rollouts
-          else:
-            batches = self._iter_batches(rollouts)
-          for batch in batches:
-            initial_rnn_states, state_arrays, discounted_rewards, actions_matrix, action_prob, advantages = batch
+      for epoch in range(self.optimization_epochs):
+        if self.batch_size == 0:
+          batches = rollouts
+        else:
+          batches = self._iter_batches(rollouts)
+        for batch in batches:
+          initial_rnn_states, state_arrays, discounted_rewards, actions_matrix, action_prob, advantages = batch
 
-            # Build the feed dict and run the optimizer.
+          # Build the feed dict and run the optimizer.
 
-            feed_dict = {}
-            for placeholder, value in zip(self._graph.rnn_initial_states,
-                                          initial_rnn_states):
-              feed_dict[placeholder] = value
-            for f, s in zip(self._features, state_arrays):
-              feed_dict[f.out_tensor] = s
-            feed_dict[self._rewards.out_tensor] = discounted_rewards
-            feed_dict[self._actions.out_tensor] = actions_matrix
-            feed_dict[self._advantages.out_tensor] = advantages
-            feed_dict[self._old_action_prob.out_tensor] = action_prob
-            feed_dict[self._graph.get_global_step()] = step_count
-            self._session.run(self._train_op, feed_dict=feed_dict)
+          feed_dict = {}
+          for f, s in zip(self._model._input_placeholders, state_arrays):
+            feed_dict[f] = s
+          for f, s in zip(self._model._input_placeholders[len(state_arrays):],
+                          initial_rnn_states):
+            feed_dict[f] = np.expand_dims(s, axis=0)
+          feed_dict[self._model._weights_placeholders[0]] = discounted_rewards
+          feed_dict[self._model._label_placeholders[0]] = actions_matrix
+          feed_dict[self._model._weights_placeholders[1]] = advantages
+          feed_dict[self._model._weights_placeholders[2]] = action_prob
+          feed_dict[self._model._global_step] = step_count
+          self._session.run(self._train_op, feed_dict=feed_dict)
 
-        # Update the number of steps taken so far and perform checkpointing.
+      # Update the number of steps taken so far and perform checkpointing.
 
-        new_steps = sum(len(r[3]) for r in rollouts)
-        if self.use_hindsight:
-          new_steps /= 2
-        step_count += new_steps
-        if step_count >= total_steps or time.time(
-        ) >= checkpoint_time + checkpoint_interval:
-          with self._session.as_default():
-            manager.save()
-          checkpoint_time = time.time()
+      new_steps = sum(len(r[3]) for r in rollouts)
+      if self.use_hindsight:
+        new_steps /= 2
+      step_count += new_steps
+      if step_count >= total_steps or time.time(
+      ) >= checkpoint_time + checkpoint_interval:
+        with self._session.as_default():
+          manager.save()
+        checkpoint_time = time.time()
 
   def _iter_batches(self, rollouts):
     """Given a set of rollouts, merge them into batches for optimization."""
@@ -329,12 +321,12 @@ class PPO(object):
 
     Parameters
     ----------
-    state: array
+    state: array or list of arrays
       the state of the environment for which to generate predictions
     use_saved_states: bool
       if True, the states most recently saved by a previous call to predict() or select_action()
       will be used as the initial states.  If False, the internal states of all recurrent layers
-      will be set to all zeros before computing the predictions.
+      will be set to the initial values defined by the policy before computing the predictions.
     save_states: bool
       if True, the internal states of all recurrent layers at the end of the calculation
       will be saved, and any previously saved states will be discarded.  If False, the
@@ -347,15 +339,14 @@ class PPO(object):
     """
     if not self._state_is_list:
       state = [state]
-    with self._graph._get_tf("Graph").as_default():
-      feed_dict = self._create_feed_dict(state, use_saved_states)
-      tensors = [self._action_prob.out_tensor, self._value.out_tensor]
-      if save_states:
-        tensors += self._graph.rnn_final_states
-      results = self._session.run(tensors, feed_dict=feed_dict)
-      if save_states:
-        self._rnn_states = results[2:]
-      return results[:2]
+    feed_dict = self._create_feed_dict(state, use_saved_states)
+    tensors = [self._action_prob, self._value]
+    if save_states:
+      tensors += self._rnn_final_states
+    results = self._session.run(tensors, feed_dict=feed_dict)
+    if save_states:
+      self._rnn_states = [np.squeeze(r, 0) for r in results[2:]]
+    return results[:2]
 
   def select_action(self,
                     state,
@@ -370,7 +361,7 @@ class PPO(object):
 
     Parameters
     ----------
-    state: array
+    state: array or list of arrays
       the state of the environment for which to select an action
     deterministic: bool
       if True, always return the best action (that is, the one with highest probability).
@@ -378,7 +369,7 @@ class PPO(object):
     use_saved_states: bool
       if True, the states most recently saved by a previous call to predict() or select_action()
       will be used as the initial states.  If False, the internal states of all recurrent layers
-      will be set to all zeros before computing the predictions.
+      will be set to the initial values defined by the policy before computing the predictions.
     save_states: bool
       if True, the internal states of all recurrent layers at the end of the calculation
       will be saved, and any previously saved states will be discarded.  If False, the
@@ -391,40 +382,35 @@ class PPO(object):
     """
     if not self._state_is_list:
       state = [state]
-    with self._graph._get_tf("Graph").as_default():
-      feed_dict = self._create_feed_dict(state, use_saved_states)
-      tensors = [self._action_prob.out_tensor]
-      if save_states:
-        tensors += self._graph.rnn_final_states
-      results = self._session.run(tensors, feed_dict=feed_dict)
-      probabilities = results[0]
-      if save_states:
-        self._rnn_states = results[1:]
-      if deterministic:
-        return probabilities.argmax()
-      else:
-        return np.random.choice(
-            np.arange(self._env.n_actions), p=probabilities[0])
+    feed_dict = self._create_feed_dict(state, use_saved_states)
+    tensors = [self._action_prob]
+    if save_states:
+      tensors += self._rnn_final_states
+    results = self._session.run(tensors, feed_dict=feed_dict)
+    probabilities = results[0]
+    if save_states:
+      self._rnn_states = [np.squeeze(r, 0) for r in results[1:]]
+    if deterministic:
+      return probabilities.argmax()
+    else:
+      return np.random.choice(
+          np.arange(self._env.n_actions), p=probabilities[0])
 
   def restore(self):
     """Reload the model parameters from the most recent checkpoint file."""
-    last_checkpoint = tf.train.latest_checkpoint(self._graph.model_dir)
+    last_checkpoint = tf.train.latest_checkpoint(self._model.model_dir)
     if last_checkpoint is None:
       raise ValueError('No checkpoint found')
-    with self._graph._get_tf("Graph").as_default():
-      self._checkpoint.restore(last_checkpoint).run_restore_ops(self._session)
+    self._checkpoint.restore(last_checkpoint).run_restore_ops(self._session)
 
   def _create_feed_dict(self, state, use_saved_states):
     """Create a feed dict for use by predict() or select_action()."""
-    feed_dict = dict((f.out_tensor, np.expand_dims(s, axis=0))
-                     for f, s in zip(self._features, state))
     if use_saved_states:
-      rnn_states = self._rnn_states
+      state = state + list(self._rnn_states)
     else:
-      rnn_states = self._graph.rnn_zero_states
-    for (placeholder, value) in zip(self._graph.rnn_initial_states, rnn_states):
-      feed_dict[placeholder] = value
-    return feed_dict
+      state = state + list(self._policy.rnn_initial_states)
+    return dict((f, np.expand_dims(s, axis=0))
+                for f, s in zip(self._model._input_placeholders, state))
 
 
 class _Worker(object):
@@ -436,30 +422,31 @@ class _Worker(object):
     self.scope = 'worker%d' % index
     self.env = copy.deepcopy(ppo._env)
     self.env.reset()
-    self.graph, self.features, self.rewards, self.actions, self.action_prob, self.value, self.advantages, self.old_action_prob = ppo._build_graph(
-        ppo._graph._get_tf('Graph'), self.scope, None)
-    self.rnn_states = self.graph.rnn_zero_states
-    with ppo._graph._get_tf("Graph").as_default():
-      local_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
-                                     self.scope)
-      global_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
-                                      'global')
-      self.update_local_variables = tf.group(
-          *[tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
+    self.model = ppo._build_model(None)
+    output_names = ppo._policy.output_names
+    output_tensors = self.model._output_tensors
+    self.value = output_tensors[output_names.index('value')]
+    self.action_prob = output_tensors[output_names.index('action_prob')]
+    rnn_outputs = [i for i, n in enumerate(output_names) if n == 'rnn_state']
+    self.rnn_final_states = [output_tensors[i] for i in rnn_outputs]
+    self.rnn_states = ppo._policy.rnn_initial_states
+    local_vars = self.model.model.trainable_variables
+    global_vars = ppo._model.model.trainable_variables
+    self.update_local_variables = tf.group(
+        *[tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
 
   def run(self):
     rollouts = []
-    with self.graph._get_tf("Graph").as_default():
-      self.ppo._session.run(self.update_local_variables)
-      initial_rnn_states = self.rnn_states
-      states, actions, action_prob, rewards, values = self.create_rollout()
+    self.ppo._session.run(self.update_local_variables)
+    initial_rnn_states = self.rnn_states
+    states, actions, action_prob, rewards, values = self.create_rollout()
+    rollouts.append(
+        self.process_rollout(states, actions, action_prob, rewards, values,
+                             initial_rnn_states))
+    if self.ppo.use_hindsight:
       rollouts.append(
-          self.process_rollout(states, actions, action_prob, rewards, values,
-                               initial_rnn_states))
-      if self.ppo.use_hindsight:
-        rollouts.append(
-            self.process_rollout_with_hindsight(states, actions,
-                                                initial_rnn_states))
+          self.process_rollout_with_hindsight(states, actions,
+                                              initial_rnn_states))
     return rollouts
 
   def create_rollout(self):
@@ -481,15 +468,14 @@ class _Worker(object):
       states.append(state)
       feed_dict = self.create_feed_dict(state)
       results = session.run(
-          [self.action_prob.out_tensor, self.value.out_tensor] +
-          self.graph.rnn_final_states,
+          [self.action_prob, self.value] + self.rnn_final_states,
           feed_dict=feed_dict)
       probabilities, value = results[:2]
-
-      self.rnn_states = results[2:]
-      action = np.random.choice(np.arange(n_actions), p=probabilities[0])
+      probabilities = np.squeeze(probabilities)
+      self.rnn_states = [np.squeeze(r, 0) for r in results[2:]]
+      action = np.random.choice(np.arange(n_actions), p=probabilities)
       actions.append(action)
-      action_prob.append(probabilities[0][action])
+      action_prob.append(probabilities[action])
       values.append(float(value))
       rewards.append(self.env.step(action))
 
@@ -498,13 +484,13 @@ class _Worker(object):
     if not self.env.terminated:
       feed_dict = self.create_feed_dict(self.env.state)
       final_value = self.ppo.discount_factor * float(
-          session.run(self.value.out_tensor, feed_dict))
+          session.run(self.value, feed_dict))
     else:
       final_value = 0.0
     values.append(final_value)
     if self.env.terminated:
       self.env.reset()
-      self.rnn_states = self.graph.rnn_zero_states
+      self.rnn_states = self.ppo._policy.rnn_initial_states
     return states, np.array(
         actions, dtype=np.int32), np.array(action_prob), np.array(
             rewards), np.array(values)
@@ -538,7 +524,7 @@ class _Worker(object):
     # Rearrange the states into the proper set of arrays.
 
     if self.ppo._state_is_list:
-      state_arrays = [[] for i in range(len(self.features))]
+      state_arrays = [[] for i in range(len(self.model._input_shapes))]
       for state in states:
         for j in range(len(state)):
           state_arrays[j].append(state[j])
@@ -555,21 +541,18 @@ class _Worker(object):
     hindsight_states, rewards = self.env.apply_hindsight(
         states, actions, states[-1])
     if self.ppo._state_is_list:
-      state_arrays = [[] for i in range(len(self.features))]
+      state_arrays = [[] for i in range(len(self.model._input_shapes))]
       for state in hindsight_states:
         for j in range(len(state)):
           state_arrays[j].append(state[j])
     else:
       state_arrays = [hindsight_states]
+    state_arrays += initial_rnn_states
     feed_dict = {}
-    for placeholder, value in zip(self.graph.rnn_initial_states,
-                                  initial_rnn_states):
-      feed_dict[placeholder] = value
-    for f, s in zip(self.features, state_arrays):
-      feed_dict[f.out_tensor] = s
+    for f, s in zip(self.model._input_placeholders, state_arrays):
+      feed_dict[f] = s
     values, probabilities = self.ppo._session.run(
-        [self.value.out_tensor, self.action_prob.out_tensor],
-        feed_dict=feed_dict)
+        [self.value, self.action_prob], feed_dict=feed_dict)
     values = np.append(values.flatten(), 0.0)
     action_prob = probabilities[np.arange(len(actions)), actions]
     return self.process_rollout(hindsight_states, actions, action_prob,
@@ -580,9 +563,7 @@ class _Worker(object):
     """Create a feed dict for use during a rollout."""
     if not self.ppo._state_is_list:
       state = [state]
-    feed_dict = dict((f.out_tensor, np.expand_dims(s, axis=0))
-                     for f, s in zip(self.features, state))
-    for (placeholder, value) in zip(self.graph.rnn_initial_states,
-                                    self.rnn_states):
-      feed_dict[placeholder] = value
+    state = state + self.rnn_states
+    feed_dict = dict((f, np.expand_dims(s, axis=0))
+                     for f, s in zip(self.model._input_placeholders, state))
     return feed_dict
