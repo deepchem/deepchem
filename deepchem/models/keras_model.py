@@ -224,11 +224,11 @@ class KerasModel(Model):
     if tf.executing_eagerly():
       return
     self._label_placeholders = [
-        tf.placeholder(dtype=tf.as_dtype(t), shape=x.shape)
+        tf.placeholder(dtype=tf.as_dtype(t), shape=(None,) + x.shape[1:])
         for x, t in zip(example_batch[1], self._label_dtypes)
     ]
     self._weights_placeholders = [
-        tf.placeholder(dtype=tf.as_dtype(t), shape=x.shape)
+        tf.placeholder(dtype=tf.as_dtype(t), shape=(None,) + x.shape[1:])
         for x, t in zip(example_batch[2], self._weights_dtypes)
     ]
     self._loss_tensor = self._loss_fn(
@@ -937,6 +937,7 @@ class KerasModel(Model):
       checkpoint will be chosen automatically.  Call get_checkpoints() to get a
       list of all available checkpoints.
     """
+    self._ensure_built()
     if checkpoint is None:
       checkpoint = tf.train.latest_checkpoint(self.model_dir)
     if checkpoint is None:
@@ -972,6 +973,7 @@ class _StandardLoss(object):
         shape = tuple(w.shape.as_list())
       else:
         shape = w.shape
+      shape = tuple(-1 if x is None else x for x in shape)
       w = tf.reshape(w, shape + (1,) * (len(losses.shape) - len(w.shape)))
     loss = losses * w
     return tf.reduce_mean(loss) + sum(self.model.losses)

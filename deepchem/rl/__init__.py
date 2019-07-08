@@ -1,7 +1,6 @@
 """Interface for reinforcement learning."""
 
 from deepchem.rl.a3c import A3C
-from deepchem.rl.mcts import MCTS
 from deepchem.rl.ppo import PPO
 
 
@@ -172,30 +171,58 @@ class GymEnvironment(Environment):
 class Policy(object):
   """A policy for taking actions within an environment.
 
-  A policy is defined by a set of TensorGraph Layer objects that perform the
-  necessary calculations.  There are many algorithms for reinforcement learning,
-  and they differ in what values they require a policy to compute.  That makes
-  it impossible to define a single interface allowing any policy to be optimized
-  with any algorithm.  Instead, this interface just tries to be as flexible and
-  generic as possible.  Each algorithm must document what values it expects
-  create_layers() to return.
+  A policy is defined by a tf.keras.Model that takes the current state as input
+  and performs the necessary calculations.  There are many algorithms for
+  reinforcement learning, and they differ in what values they require a policy to
+  compute.  That makes it impossible to define a single interface allowing any
+  policy to be optimized with any algorithm.  Instead, this interface just tries
+  to be as flexible and generic as possible.  Each algorithm must document what
+  values it expects the model to output.
+
+  Special handling is needed for models that include recurrent layers.  In that
+  case, the model has its own internal state which the learning algorithm must
+  be able to specify and query.  To support this, the Policy must do three things:
+
+  1. The Model must take additional inputs that specify the initial states of
+     all its recurrent layers.  These will be appended to the list of arrays
+     specifying the environment state.
+
+  2. The Model must also return the final states of all its recurrent layers as
+     outputs.
+
+  3. The constructor argument rnn_initial_states must be specified to define
+     the states to use for the Model's recurrent layers at the start of a new
+     rollout.
 
   Policy objects should be written to support pickling.  Many algorithms involve
   creating multiple copies of the Policy, possibly running in different processes
   or even on different computers.
   """
 
-  def create_layers(self, state, **kwargs):
-    """Create the TensorGraph Layers that define the policy.
+  def __init__(self, output_names, rnn_initial_states=[]):
+    """Subclasses should call the superclass constructor in addition to doing
+    their own initialization.
 
-    The arguments always include a list of Feature layers representing the current
-    state of the environment (one layer for each array in the state).  Depending on
-    the algorithm being used, other arguments might get passed as well.  It is up
-    to each algorithm to document that.
+    Parameters
+    ----------
+    output_names: list of strings
+      the names of the Model's outputs, in order.  It is up to each reinforcement
+      learning algorithm to document what outputs it expects policies to compute.
+      Outputs that return the final states of recurrent layers should have the
+      name 'rnn_state'.
+    rnn_initial_states: list of NumPy arrays
+      the initial states of the Model's recurrent layers at the start of a new
+      rollout
+    """
+    self.output_names = output_names
+    self.rnn_initial_states = rnn_initial_states
 
-    This method should construct and return a dict that maps strings to Layer
-    objects.  Each algorithm must document what Layers it expects the policy to
-    create.  If this method is called multiple times, it should create a new set
-    of Layers every time.
+  def create_model(self, **kwargs):
+    """Construct and return a tf.keras.Model that computes the policy.
+
+    The inputs to the model consist of the arrays representing the current state
+    of the environment, followed by the initial states for all recurrent layers.
+    Depending on the algorithm being used, other inputs might get passed as
+    well.  It is up to each algorithm to document that.
     """
     raise NotImplemented("Subclasses must implement this")
