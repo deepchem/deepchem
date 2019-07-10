@@ -93,22 +93,12 @@ class TestMAML(unittest.TestCase):
 
     new_maml = dc.metalearning.MAML(learner, model_dir=maml.model_dir)
     new_maml.restore()
-    feed_dict = {}
-    for j in range(len(batch)):
-      feed_dict[new_maml._input_placeholders[j]] = batch[j]
-      feed_dict[new_maml._meta_placeholders[j]] = batch[j]
-    new_loss = np.average(
-        np.sqrt(new_maml._session.run(new_maml._loss, feed_dict=feed_dict)))
-    assert new_loss == loss1[-1]
+    loss, outputs = new_maml.predict_on_batch(batch)
+    assert np.sqrt(loss) == loss1[-1]
 
     # Do the same thing, only using the "restore" argument to fit().
 
     new_maml = dc.metalearning.MAML(learner, model_dir=maml.model_dir)
     new_maml.fit(0, restore=True)
-    feed_dict = {}
-    for j in range(len(batch)):
-      feed_dict[new_maml._input_placeholders[j]] = batch[j]
-      feed_dict[new_maml._meta_placeholders[j]] = batch[j]
-    new_loss = np.average(
-        np.sqrt(new_maml._session.run(new_maml._loss, feed_dict=feed_dict)))
-    assert new_loss == loss1[-1]
+    loss, outputs = new_maml.predict_on_batch(batch)
+    assert np.sqrt(loss) == loss1[-1]

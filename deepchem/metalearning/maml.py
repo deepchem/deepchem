@@ -140,8 +140,8 @@ class MAML(object):
         for s, t in zip(self._input_shapes, self._input_dtypes)
     ]
     variables = learner.variables
-    self._loss, _ = learner.compute_model(self._input_placeholders, variables,
-                                          False)
+    self._loss, self._outputs = learner.compute_model(self._input_placeholders,
+                                                      variables, False)
     loss, _ = learner.compute_model(self._input_placeholders, variables, True)
 
     # Build the meta-learning model.
@@ -272,3 +272,21 @@ class MAML(object):
       feed_dict[p] = v
     for i in range(optimization_steps):
       self._session.run(self._task_train_op, feed_dict=feed_dict)
+
+  def predict_on_batch(self, inputs):
+    """Compute the model's outputs for a batch of inputs.
+
+    Parameters
+    ----------
+    inputs: list of arrays
+      the inputs to the model
+
+    Returns
+    -------
+    (loss, outputs) where loss is the value of the model's loss function, and
+    outputs is a list of the model's outputs
+    """
+    feed_dict = {}
+    for p, v in zip(self._input_placeholders, inputs):
+      feed_dict[p] = v
+    return self._session.run([self._loss, self._outputs], feed_dict=feed_dict)
