@@ -11,7 +11,7 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 
-def load_hiv(featurizer='ECFP', split='index', reload=True):
+def load_hiv(featurizer='ECFP', split='index', reload=True, **kwargs):
   """Load hiv datasets. Does not do train/test split"""
   # Featurize hiv dataset
   logger.info("About to featurize hiv dataset.")
@@ -41,6 +41,9 @@ def load_hiv(featurizer='ECFP', split='index', reload=True):
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
+  elif featurizer == "smiles2img":
+    img_spec = kwargs.get("img_spec", "std")
+    featurizer = deepchem.feat.SmilesToImage(img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
       tasks=hiv_tasks, smiles_field="smiles", featurizer=featurizer)
