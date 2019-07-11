@@ -43,7 +43,6 @@ def load_hiv(featurizer='ECFP', split='index', reload=True, **kwargs):
     featurizer = deepchem.feat.RawFeaturizer()
   elif featurizer == "smiles2img":
     img_spec = kwargs.get("img_spec", "std")
-    logger.info(img_spec)
     featurizer = deepchem.feat.SmilesToImage(img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(

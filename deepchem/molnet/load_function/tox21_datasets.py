@@ -46,9 +46,8 @@ def load_tox21(featurizer='ECFP', split='index', reload=True, K=4, **kwargs):
     featurizer = deepchem.feat.AdjacencyFingerprint(
         max_n_atoms=150, max_valence=6)
   elif featurizer == "smiles2img":
-      img_spec = kwargs.get("img_spec", "std")
-      logger.info(img_spec)
-      featurizer = deepchem.feat.SmilesToImage(img_spec=img_spec)
+    img_spec = kwargs.get("img_spec", "std")
+    featurizer = deepchem.feat.SmilesToImage(img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer)
