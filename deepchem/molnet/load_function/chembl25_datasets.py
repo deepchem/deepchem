@@ -52,6 +52,7 @@ def load_chembl25(featurizer="smiles2seq",
                   save_dir=None,
                   split_seed=None,
                   reload=True,
+                  transformer_type='minmax',
                   **kwargs):
   """Loads the ChEMBL25 dataset, featurizes it, and does a split.
   Parameters
@@ -68,6 +69,8 @@ def load_chembl25(featurizer="smiles2seq",
     Seed to be used for splitting the dataset
   reload: bool, default True
     Whether to reload saved dataset
+  transformer_type: str, default minmax:
+    Transformer to use
   """
   if data_dir is None:
     data_dir = DEFAULT_DIR
@@ -121,10 +124,17 @@ def load_chembl25(featurizer="smiles2seq",
       input_files=[dataset_file], shard_size=10000, data_dir=save_folder)
 
   if split is None:
-    transformer = [
-        dc.trans.NormalizationTransformer(
-            transform_X=False, transform_y=True, dataset=dataset)
-    ]
+    if transformer_type == "minmax":
+      transformers = [
+          dc.trans.MinMaxTransformer(
+              transform_X=False, transform_y=True, dataset=dataset)
+      ]
+    else:
+      transformers = [
+          dc.trans.NormalizationTransformer(
+              transform_X=False, transform_y=True, dataset=dataset)
+      ]
+
     logger.info("Split is None, about to transform dataset.")
     for transformer in transformers:
       dataset = transformer.transform(dataset)
@@ -140,10 +150,17 @@ def load_chembl25(featurizer="smiles2seq",
   splitter = splitters[split]
 
   train, valid, test = splitter.train_valid_test_split(dataset, seed=split_seed)
-  transformers = [
-      dc.trans.NormalizationTransformer(
-          transform_X=False, transform_y=True, dataset=train)
-  ]
+  if transformer_type == "minmax":
+    transformers = [
+        dc.trans.MinMaxTransformer(
+            transform_X=False, transform_y=True, dataset=train)
+    ]
+  else:
+    transformers = [
+        dc.trans.NormalizationTransformer(
+            transform_X=False, transform_y=True, dataset=train)
+    ]
+
   for transformer in transformers:
     train = transformer.transform(train)
     valid = transformer.transform(valid)

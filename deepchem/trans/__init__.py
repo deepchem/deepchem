@@ -16,3 +16,4 @@ from deepchem.trans.transformers import CoulombFitTransformer
 from deepchem.trans.transformers import IRVTransformer
 from deepchem.trans.transformers import DAGTransformer
 from deepchem.trans.transformers import ANITransformer
+from deepchem.trans.transformers import MinMaxTransformer

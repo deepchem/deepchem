@@ -103,6 +103,53 @@ class Transformer(object):
     return X, y, w
 
 
+class MinMaxTransformer(Transformer):
+
+  def __init__(self,
+               transform_X=False,
+               transform_y=False,
+               transform_w=False,
+               dataset=None):
+    if transform_X:
+      raise NotImplementedError("MinMax transformer does not work for X yet.")
+    if transform_y:
+      self.y_min = np.min(dataset.y, axis=0)
+      self.y_max = np.max(dataset.y, axis=0)
+
+      if len(dataset.y.shape) > 1:
+        assert len(self.y_min) == dataset.y.shape[1]
+
+    super(MinMaxTransformer, self).__init__(
+        transform_X=transform_X,
+        transform_y=transform_y,
+        transform_w=transform_w,
+        dataset=dataset)
+
+  def transform(self, dataset, parallel=False):
+    return super(MinMaxTransformer, self).transform(dataset, parallel=parallel)
+
+  def transform_array(self, X, y, w):
+    """Transform the data in a set of (X, y, w) arrays."""
+    if self.transform_X:
+      raise NotImplementedError("MinMax transformer does not work for X yet")
+    if self.transform_y:
+      y = np.nan_to_num((y - self.y_min) / (self.y_max - self.y_min))
+    return (X, y, w)
+
+  def untransform(self, z):
+    """
+    Undo transformation on provided data.
+    """
+    if self.transform_X:
+      raise NotImplementedError("MinMax does not work for X yet.")
+    if self.transform_y:
+      y_min = self.y_min
+      y_max = self.y_max
+
+      y = z * (y_max - y_min) + y_min
+      return y
+
+
 class NormalizationTransformer(Transformer):
 
   def __init__(self,
