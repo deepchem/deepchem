@@ -11,7 +11,7 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 
-def load_tox21(featurizer='ECFP', split='index', reload=True, K=4):
+def load_tox21(featurizer='ECFP', split='index', reload=True, K=4, **kwargs):
   """Load Tox21 datasets. Does not do train/test split"""
   # Featurize Tox21 dataset
 
@@ -45,6 +45,10 @@ def load_tox21(featurizer='ECFP', split='index', reload=True, K=4):
   elif featurizer == 'AdjacencyConv':
     featurizer = deepchem.feat.AdjacencyFingerprint(
         max_n_atoms=150, max_valence=6)
+  elif featurizer == "smiles2img":
+      img_spec = kwargs.get("img_spec", "std")
+      logger.info(img_spec)
+      featurizer = deepchem.feat.SmilesToImage(img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer)

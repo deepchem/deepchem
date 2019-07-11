@@ -11,7 +11,7 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 
-def load_sampl(featurizer='ECFP', split='index', reload=True, move_mean=True):
+def load_sampl(featurizer='ECFP', split='index', reload=True, move_mean=True, **kwargs):
   """Load SAMPL datasets."""
   # Featurize SAMPL dataset
   logger.info("About to featurize SAMPL dataset.")
@@ -46,6 +46,10 @@ def load_sampl(featurizer='ECFP', split='index', reload=True, move_mean=True):
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
+  elif featurizer == 'smiles2img':
+    img_spec = kwargs.get("img_spec", "std")
+    logger.info(img_spec)
+    featurizer = deepchem.feat.SmilesToImage(img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
       tasks=SAMPL_tasks, smiles_field="smiles", featurizer=featurizer)
