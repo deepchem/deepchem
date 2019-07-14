@@ -28,6 +28,8 @@ def load_hiv(featurizer='ECFP',
   if save_dir is None:
     save_dir = DEFAULT_DIR
 
+  hiv_tasks = ["HIV_active"]
+
   save_folder = os.path.join(save_dir, "hiv-featurized", str(featurizer),
                              str(split))
   if featurizer == "smiles2img":
@@ -43,8 +45,6 @@ def load_hiv(featurizer='ECFP',
   dataset_file = os.path.join(data_dir, "HIV.csv")
   if not os.path.exists(dataset_file):
     deepchem.utils.download_url(url=HIV_URL, dest_dir=data_dir)
-
-  hiv_tasks = ["HIV_active"]
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
