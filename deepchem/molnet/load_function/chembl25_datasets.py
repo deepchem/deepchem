@@ -149,7 +149,16 @@ def load_chembl25(featurizer="smiles2seq",
   logger.info("About to split data with {} splitter.".format(split))
   splitter = splitters[split]
 
-  train, valid, test = splitter.train_valid_test_split(dataset, seed=split_seed)
+  frac_train = kwargs.get('frac_train', 4 / 6)
+  frac_valid = kwargs.get('frac_valid', 1 / 6)
+  frac_test = kwargs.get('frac_test', 1 / 6)
+
+  train, valid, test = splitter.train_valid_test_split(
+      dataset,
+      seed=split_seed,
+      frac_train=frac_train,
+      frac_test=frac_test,
+      frac_valid=frac_valid)
   if transformer_type == "minmax":
     transformers = [
         dc.trans.MinMaxTransformer(
