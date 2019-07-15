@@ -125,7 +125,7 @@ class MinMaxTransformer(Transformer):
   >>> y = np.zeros((n_samples, n_tasks))
   >>> w = np.ones((n_samples, n_tasks))
   >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
-  >>> transformer = dc.trans.MinMaxTransformer(transform_y=True)
+  >>> transformer = dc.trans.MinMaxTransformer(transform_y=True, dataset=dataset)
   >>> dataset = transformer.transform(dataset)
   """
 
