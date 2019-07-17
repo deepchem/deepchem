@@ -947,7 +947,7 @@ class KerasModel(Model):
       model_dir = self.model_dir
     return tf.train.get_checkpoint_state(model_dir).all_model_checkpoint_paths
 
-  def restore(self, checkpoint=None, restore_from=None):
+  def restore(self, checkpoint=None, model_dir=None):
     """Reload the values of all variables from a checkpoint file.
 
     Parameters
@@ -960,10 +960,10 @@ class KerasModel(Model):
       Directory to restore checkpoint from. If None, use self.model_dir.
     """
     self._ensure_built()
-    if restore_from is None:
-      restore_from = self.model_dir
+    if model_dir is None:
+      model_dir = self.model_dir
     if checkpoint is None:
-      checkpoint = tf.train.latest_checkpoint(restore_from)
+      checkpoint = tf.train.latest_checkpoint(model_dir)
     if checkpoint is None:
       raise ValueError('No checkpoint found')
     if tf.executing_eagerly():
