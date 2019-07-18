@@ -953,6 +953,37 @@ class KerasModel(Model):
       return int(self._global_step)
     return self._global_step.eval(session=self.session)
 
+  def load_pretrained(self,
+                      assignment_map=None,
+                      checkpoint=None,
+                      model_dir=None):
+    """Load from a pretrained model.
+
+    Parameters
+    ----------
+    assignment_map: Dict, default None
+      Dictionary containing variable mapping between source and current model
+      variables
+    """
+    self._ensure_built()
+    if assignment_map is None:
+      self.restore(checkpoint=checkpoint, model_dir=model_dir)
+    else:
+      if tf.executing_eagerly():
+        for source_var, dest_var in assignment_map.items():
+          dest_var.assign(source_var)
+      else:
+        self._assign_ops = []
+        for source_var, dest_var in assignment_map.items():
+          assign_op = dest_var.assign(source_var)
+          self._assign_ops.append(assign_op)
+          self.session.run(assign_op)
+
+        if hasattr(self, '_initialized_vars'):
+          self._initialized_vars.update(set(assignment_map.values()))
+        else:
+          self._initialized_vars = set(assignment_map.values())
+
 
 class _StandardLoss(object):
   """The implements the loss function for models that use a dc.models.losses.Loss."""
