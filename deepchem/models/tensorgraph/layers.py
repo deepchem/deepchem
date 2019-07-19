@@ -2636,10 +2636,10 @@ class AttnLSTMEmbedding(KerasLayer):
     result = layer(inputs)
     if set_tensors:
       self.out_tensor = result[1]
-      self.trainable_variables = layer.trainable_variables + layer.states_init
+      self.trainable_variables = layer.trainable_variables
     if tf.executing_eagerly() and not self._built:
       self._built = True
-      self.trainable_variables = layer.trainable_variables + layer.states_init
+      self.trainable_variables = layer.trainable_variables
     return result
 
 
@@ -2691,10 +2691,10 @@ class IterRefLSTMEmbedding(KerasLayer):
     result = layer(inputs)
     if set_tensors:
       self.out_tensor = result[1]
-      self.trainable_variables = layer.trainable_variables + layer.support_states_init + layer.test_states_init
+      self.trainable_variables = layer.trainable_variables
     if tf.executing_eagerly() and not self._built:
       self._built = True
-      self.trainable_variables = layer.trainable_variables + layer.support_states_init + layer.test_states_init
+      self.trainable_variables = layer.trainable_variables
     return result
 
 

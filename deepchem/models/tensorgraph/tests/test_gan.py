@@ -4,6 +4,7 @@ import tensorflow as tf
 import unittest
 from tensorflow.keras.layers import Input, Concatenate, Dense
 from flaky import flaky
+from nose.plugins.attrib import attr
 
 
 def generate_batch(batch_size):
@@ -70,7 +71,7 @@ class TestGAN(unittest.TestCase):
     assert np.std(deltas) > 1.0
     assert gan.get_global_step() == 500
 
-  @flaky
+  @attr("slow")
   def test_mix_gan(self):
     """Test a GAN with multiple generators and discriminators."""
 

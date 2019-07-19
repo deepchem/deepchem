@@ -63,4 +63,4 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     setuptools=39.0.1 \
     biopython=1.71 \
     numpy=1.14
-yes | pip install $tensorflow==1.13.1
+yes | pip install $tensorflow==1.14
