@@ -956,7 +956,7 @@ class KerasModel(Model):
       the path to the checkpoint file to load.  If this is None, the most recent
       checkpoint will be chosen automatically.  Call get_checkpoints() to get a
       list of all available checkpoints.
-    restore_from: str, default None
+    model_dir: str, default None
       Directory to restore checkpoint from. If None, use self.model_dir.
     """
     self._ensure_built()
