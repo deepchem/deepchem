@@ -8,25 +8,46 @@ import os
 import numpy as np
 import deepchem
 import scipy.io
+import logging
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_DIR = deepchem.utils.get_data_dir()
+QM7_MAT_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.mat'
+QM7_CSV_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.csv'
+QM7B_MAT_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7b.mat'
+GDB7_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb7.tar.gz'
 
 
 def load_qm7_from_mat(featurizer='CoulombMatrix',
                       split='stratified',
                       reload=True,
-                      move_mean=True):
-  data_dir = deepchem.utils.get_data_dir()
-  if reload:
-    if move_mean:
-      dir_name = "qm7/" + featurizer + "/" + str(split)
-    else:
-      dir_name = "qm7/" + featurizer + "_mean_unmoved/" + str(split)
-    save_dir = os.path.join(data_dir, dir_name)
+                      move_mean=True,
+                      data_dir=None,
+                      save_dir=None,
+                      **kwargs):
 
   qm7_tasks = ["u0_atom"]
 
+  if data_dir is None:
+    data_dir = DEFAULT_DIR
+  if save_dir is None:
+    data_dir = DEFAULT_DIR
+
   if reload:
+    save_folder = os.path.join(save_dir, "qm7-featurized")
+    if not move_mean:
+      save_folder = os.path.join(save_folder, str(featurizer) + "_mean_unmoved")
+    else:
+      save_folder = os.path.join(save_folder, str(featurizer))
+
+    if featurizer == "smiles2img":
+      img_spec = kwargs.get("img_spec", "std")
+      save_folder = os.path.join(save_folder, img_spec)
+    save_folder = os.path.join(save_folder, str(split))
+
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
-        save_dir)
+        save_folder)
     if loaded:
       return qm7_tasks, all_dataset, transformers
 
@@ -34,9 +55,8 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
     dataset_file = os.path.join(data_dir, "qm7.mat")
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(
-          'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.mat'
-      )
+      deepchem.utils.download_url(url=QM7_MAT_URL, dest_dir=data_dir)
+
     dataset = scipy.io.loadmat(dataset_file)
     X = dataset['X']
     y = dataset['T'].T
@@ -46,9 +66,7 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
     dataset_file = os.path.join(data_dir, "qm7.mat")
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(
-          'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.mat'
-      )
+      deepchem.utils.download_url(url=QM7_MAT_URL, dest_dir=data_dir)
     dataset = scipy.io.loadmat(dataset_file)
     X = np.concatenate([np.expand_dims(dataset['Z'], 2), dataset['R']], axis=2)
     y = dataset['T'].reshape(-1, 1)  # scipy.io.loadmat puts samples on axis 1
@@ -57,9 +75,7 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
   else:
     dataset_file = os.path.join(data_dir, "qm7.csv")
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(
-          'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.csv'
-      )
+      deepchem.utils.download_url(url=QM7_CSV_URL, dest_dir=data_dir)
     if featurizer == 'ECFP':
       featurizer = deepchem.feat.CircularFingerprint(size=1024)
     elif featurizer == 'GraphConv':
@@ -68,6 +84,11 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
       featurizer = deepchem.feat.WeaveFeaturizer()
     elif featurizer == 'Raw':
       featurizer = deepchem.feat.RawFeaturizer()
+    elif featurizer == "smiles2img":
+      img_spec = kwargs.get("img_spec", "std")
+      img_size = kwargs.get("img_size", 80)
+      featurizer = deepchem.feat.SmilesToImage(
+          img_size=img_size, img_spec=img_spec)
     loader = deepchem.data.CSVLoader(
         tasks=qm7_tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(dataset_file)
@@ -97,7 +118,7 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
       test_dataset = transformer.transform(test_dataset)
     if reload:
       deepchem.utils.save.save_dataset_to_disk(
-          save_dir, train_dataset, valid_dataset, test_dataset, transformers)
+          save_folder, train_dataset, valid_dataset, test_dataset, transformers)
 
     return qm7_tasks, (train_dataset, valid_dataset, test_dataset), transformers
 
@@ -105,14 +126,18 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
 def load_qm7b_from_mat(featurizer='CoulombMatrix',
                        split='stratified',
                        reload=True,
-                       move_mean=True):
-  data_dir = deepchem.utils.get_data_dir()
+                       move_mean=True,
+                       data_dir=None,
+                       save_dir=None,
+                       **kwargs):
+  if data_dir is None:
+    data_dir = DEFAULT_DIR
+  if save_dir is None:
+    save_dir = DEFAULT_DIR
   dataset_file = os.path.join(data_dir, "qm7b.mat")
 
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7b.mat'
-    )
+    deepchem.utils.download_url(url=QM7B_MAT_URL, dest_dir=data_dir)
   dataset = scipy.io.loadmat(dataset_file)
 
   X = dataset['X']
@@ -150,17 +175,21 @@ def load_qm7b_from_mat(featurizer='CoulombMatrix',
 def load_qm7(featurizer='CoulombMatrix',
              split='random',
              reload=True,
-             move_mean=True):
+             move_mean=True,
+             data_dir=None,
+             save_dir=None,
+             **kwargs):
   """Load qm7 datasets."""
   # Featurize qm7 dataset
-  print("About to featurize qm7 dataset.")
-  data_dir = deepchem.utils.get_data_dir()
+  logger.info("About to featurize qm7 dataset.")
+  if data_dir is None:
+    data_dir = DEFAULT_DIR
+  if save_dir is None:
+    save_dir = DEFAULT_DIR
   dataset_file = os.path.join(data_dir, "gdb7.sdf")
 
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb7.tar.gz'
-    )
+    deepchem.utils.download_url(url=GDB7_URL, dest_dir=data_dir)
     deepchem.utils.untargz_file(os.path.join(data_dir, 'gdb7.tar.gz'), data_dir)
 
   qm7_tasks = ["u0_atom"]

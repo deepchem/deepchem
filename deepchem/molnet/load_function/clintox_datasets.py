@@ -12,20 +12,32 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_DIR = deepchem.utils.get_data_dir()
+CLINTOX_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/clintox.csv.gz'
 
-def load_clintox(featurizer='ECFP', split='index', reload=True):
+
+def load_clintox(featurizer='ECFP',
+                 split='index',
+                 reload=True,
+                 data_dir=None,
+                 save_dir=None,
+                 **kwargs):
   """Load clintox datasets."""
+  if data_dir is None:
+    data_dir = DEFAULT_DIR
+  else:
+    save_dir = DEFAULT_DIR
 
-  data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir,
-                            "clintox/" + featurizer + "/" + str(split))
+    save_folder = os.path.join(save_dir, "clintox-featurized", featurizer)
+    if featurizer == "smiles2img":
+      img_spec = kwargs.get("img_spec", "std")
+      save_folder = os.path.join(save_folder, img_spec)
+    save_folder = os.path.join(save_folder, str(split))
 
   dataset_file = os.path.join(data_dir, "clintox.csv.gz")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/clintox.csv.gz'
-    )
+    deepchem.utils.download_url(url=CLINTOX_URL, dest_dir=data_dir)
 
   logger.info("About to load clintox dataset.")
   dataset = deepchem.utils.save.load_from_disk(dataset_file)
@@ -35,7 +47,7 @@ def load_clintox(featurizer='ECFP', split='index', reload=True):
   logger.info("Number of examples in dataset: %s" % str(dataset.shape[0]))
   if reload:
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
-        save_dir)
+        save_folder)
     if loaded:
       return clintox_tasks, all_dataset, transformers
   # Featurize clintox dataset
@@ -48,6 +60,11 @@ def load_clintox(featurizer='ECFP', split='index', reload=True):
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
+  elif featurizer == "smiles2img":
+    img_spec = kwargs.get("img_spec", "std")
+    img_size = kwargs.get("img_size", 80)
+    featurizer = deepchem.feat.SmilesToImage(
+        img_size=img_size, img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
       tasks=clintox_tasks, smiles_field="smiles", featurizer=featurizer)
@@ -85,7 +102,7 @@ def load_clintox(featurizer='ECFP', split='index', reload=True):
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
                                              transformers)
 
   return clintox_tasks, (train, valid, test), transformers

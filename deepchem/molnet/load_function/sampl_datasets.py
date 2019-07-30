@@ -31,16 +31,17 @@ def load_sampl(featurizer='ECFP',
   if save_dir is None:
     save_dir = DEFAULT_DIR
 
-  if move_mean:
-    save_folder = os.path.join(data_dir, "sampl-featurized", str(featurizer),
-                               str(split))
-  else:
-    save_folder = os.path.join(data_dir, "sampl-featurized",
-                               str(featurizer) + "_mean_unmoved", str(split))
+  if reload:
+    save_folder = os.path.join(save_dir, "sampl-featurized")
+    if not move_mean:
+      save_folder = os.path.join(save_folder, str(featurizer) + "_mean_unmoved")
+    else:
+      save_folder = os.path.join(save_folder, str(featurizer))
 
-  if featurizer == "smiles2img":
-    img_spec = kwargs.get("img_spec", "std")
-    save_folder = os.path.join(save_folder, img_spec)
+    if featurizer == "smiles2img":
+      img_spec = kwargs.get("img_spec", "std")
+      save_folder = os.path.join(save_folder, img_spec)
+    save_folder = os.path.join(save_folder, str(split))
 
   dataset_file = os.path.join(data_dir, "SAMPL.csv")
   if not os.path.exists(dataset_file):
@@ -63,8 +64,10 @@ def load_sampl(featurizer='ECFP',
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
   elif featurizer == 'smiles2img':
+    img_size = kwargs.get("img_size", 80)
     img_spec = kwargs.get("img_spec", "std")
-    featurizer = deepchem.feat.SmilesToImage(img_spec=img_spec)
+    featurizer = deepchem.feat.SmilesToImage(
+        img_size=img_size, img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
       tasks=SAMPL_tasks, smiles_field="smiles", featurizer=featurizer)

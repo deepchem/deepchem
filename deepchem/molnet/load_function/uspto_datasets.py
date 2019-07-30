@@ -16,20 +16,32 @@ from deepchem.data import DiskDataset
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_DIR = deepchem.utils.get_data_dir()
+USPTO_URL = "https://bitbucket.org/dan2097/patent-reaction-extraction/downloads/2008-2011_USPTO_reactionSmiles_filtered.zip"
+
 
 def load_uspto(featurizer="plain",
                split=None,
                num_to_load=10000,
                reload=True,
-               verbose=False):
+               verbose=False,
+               data_dir=None,
+               save_dir=None,
+               **kwargs):
   """Load USPTO dataset.
 
-  For now, only loads the subset of data for 2008-2011 reactions. See https://figshare.com/articles/Chemical_reactions_from_US_patents_1976-Sep2016_/5104873 for more details.
-
-  The full dataset contains some 400K reactions. This causes an out-of-memory error on development laptop if full dataset is featurized. For now, return a truncated subset of dataset.
-
+  For now, only loads the subset of data for 2008-2011 reactions.
+  See https://figshare.com/articles/Chemical_reactions_from_US_patents_1976-Sep2016_/5104873
+  for more details. The full dataset contains some 400K reactions. This causes
+  an out-of-memory error on development laptop if full dataset is featurized.
+  For now, return a truncated subset of dataset.
   Reloading is not entirely supported for this dataset.
   """
+  if data_dir is None:
+    data_dir = DEFAULT_DIR
+  if save_dir is None:
+    save_dir = DEFAULT_DIR
+
   # Most reaction dataset ML tasks train the prediction of products from
   # ractants. Both of these are contained in the rxn object that is output,
   # so there is no "tasks" field.
@@ -37,20 +49,23 @@ def load_uspto(featurizer="plain",
   if split is not None:
     raise ValueError("Train/valid/test not yet supported.")
   # Download USPTO dataset
-  data_dir = deepchem.utils.get_data_dir()
   if reload:
-    save_dir = os.path.join(data_dir, "uspto/" + featurizer + "/")
+    save_folder = os.path.join(save_dir, "uspto-featurized", str(featurizer))
+    if featurizer == "smiles2img":
+      img_spec = kwargs.get("img_spec", "std")
+      save_folder = os.path.join(save_folder, img_spec)
+    save_folder = os.path.join(save_folder, str(split))
+
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
-        save_dir)
+        save_folder)
     if loaded:
       return uspto_tasks, all_dataset, transformers
 
   dataset_file = os.path.join(data_dir,
                               "2008-2011_USPTO_reactionSmiles_filtered.zip")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(
-        "https://bitbucket.org/dan2097/patent-reaction-extraction/downloads/2008-2011_USPTO_reactionSmiles_filtered.zip"
-    )
+    deepchem.utils.download_url(url=USPTO_URL, dest_dir=data_dir)
+
   # Unzip
   unzip_dir = os.path.join(data_dir, "2008-2011_USPTO_reactionSmiles_filtered")
   if not os.path.exists(unzip_dir):
