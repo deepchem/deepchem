@@ -32,7 +32,7 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
   if data_dir is None:
     data_dir = DEFAULT_DIR
   if save_dir is None:
-    data_dir = DEFAULT_DIR
+    save_dir = DEFAULT_DIR
 
   if reload:
     save_folder = os.path.join(save_dir, "qm7-featurized")

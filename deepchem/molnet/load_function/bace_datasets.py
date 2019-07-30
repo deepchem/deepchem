@@ -130,12 +130,7 @@ def load_bace_classification(featurizer='ECFP',
   bace_tasks = ["Class"]
 
   if reload:
-    save_folder = os.path.join(save_dir, "bace_c-featurized")
-    if not move_mean:
-      save_folder = os.path.join(save_folder, str(featurizer) + "_mean_unmoved")
-    else:
-      save_folder = os.path.join(save_folder, str(featurizer))
-
+    save_folder = os.path.join(save_dir, "bace_c-featurized", str(featurizer))
     if featurizer == "smiles2img":
       img_spec = kwargs.get("img_spec", "std")
       save_folder = os.path.join(save_folder, img_spec)

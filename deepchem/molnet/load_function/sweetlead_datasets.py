@@ -13,7 +13,7 @@ import deepchem as dc
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = dc.utils.get_data_dir()
 SWEETLEAD_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/sweet.csv.gz'
 
 
