@@ -131,7 +131,4 @@ class TestPretrained(unittest.TestCase):
     dest_model.fit(self.dataset, nb_epoch=1)
     predictions = np.squeeze(dest_model.predict_on_batch(self.dataset.X))
 
-    # print(tf.train.load_variable("./MLP", 'model/layer_with_weights-0/kernel/.ATTRIBUTES/VARIABLE_VALUE'))
-    # print(tf.train.load_variable("./MLP", 'model/layer_with_weights-1/kernel/.ATTRIBUTES/VARIABLE_VALUE'))
-
     np.testing.assert_array_almost_equal(self.dataset.y, np.round(predictions))
