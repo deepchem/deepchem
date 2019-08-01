@@ -22,12 +22,12 @@ class MLP(dc.models.KerasModel):
 
   def _build_graph(self):
     inputs = Input(dtype=tf.float32, shape=(self.feature_dim,), name="Input")
-    out1 = Dense(units=self.hidden_layer_size, activation=tf.nn.relu)(inputs)
+    out1 = Dense(units=self.hidden_layer_size, activation='relu')(inputs)
 
-    final = Dense(units=self.n_tasks)(out1)
+    final = Dense(units=self.n_tasks, activation='sigmoid')(out1)
     outputs = [final]
     output_types = ['prediction']
-    loss = L2Loss()
+    loss = dc.models.losses.BinaryCrossEntropy()
 
     model = tf.keras.Model(inputs=[inputs], outputs=outputs)
     return model, loss, output_types
@@ -38,27 +38,29 @@ class TestPretrained(unittest.TestCase):
   def setUp(self):
     model_dir = "./MLP/"
     self.feature_dim = 2
-    self.hidden_layer_size = 2
-    data_points = 100
+    self.hidden_layer_size = 10
+    data_points = 10
 
     X = np.random.randn(data_points, self.feature_dim)
-    y = np.random.randn(data_points)
+    y = (X[:, 0] > X[:, 1]).astype(np.float32)
 
-    dataset = dc.data.NumpyDataset(X, y)
+    self.dataset = dc.data.NumpyDataset(X, y)
 
     model = MLP(
         hidden_layer_size=self.hidden_layer_size,
         feature_dim=self.feature_dim,
         model_dir=model_dir,
         batch_size=10)
-    model.fit(dataset, nb_epoch=100)
+    model.fit(self.dataset, nb_epoch=1000)
+    predictions = np.squeeze(model.predict_on_batch(self.dataset.X))
+    np.testing.assert_array_almost_equal(self.dataset.y, np.round(predictions))
 
-  def test_load_pretrained(self):
+  def test_load_from_pretrained_graph_mode(self):
+    """Tests loading pretrained model in graph mode."""
     source_model = MLP(
         model_dir="./MLP/",
         feature_dim=self.feature_dim,
         hidden_layer_size=self.hidden_layer_size)
-    source_model.restore()
 
     dest_model = MLP(
         feature_dim=self.feature_dim,
@@ -66,17 +68,70 @@ class TestPretrained(unittest.TestCase):
         n_tasks=10)
 
     assignment_map = dict()
-    dest_variables = dest_model.model.trainable_variables[:
-                                                          -2]  #Excluding the last weight and bias
+    dest_layers = dest_model.model.layers[:-1]
 
-    for idx, variable in enumerate(dest_variables):
-      source_variable = source_model.model.trainable_variables[idx]
-      assignment_map[source_variable] = variable
+    for idx, dest_layer in enumerate(dest_layers):
+      source_layer = source_model.model.layers[idx]
+      assignment_map[source_layer] = dest_layer
 
-    dest_model.load_pretrained(assignment_map=assignment_map)
+    dest_model.load_from_pretrained(
+        source_model=source_model,
+        assignment_map=assignment_map,
+        include_top=False)
 
-    for var_old, var_new in assignment_map.items():
-      val_old = dest_model.session.run(var_old)
-      val_new = dest_model.session.run(var_new)
+    for source_layer, dest_layer in assignment_map.items():
+      for var_old, var_new in zip(source_layer.trainable_variables,
+                                  dest_layer.trainable_variables):
+        # Need to fix this by running session ops everytime
 
-      np.testing.assert_array_almost_equal(val_old, val_new)
+        np.testing.assert_array_almost_equal(
+            var_old.eval(session=dest_model.session),
+            var_new.eval(session=dest_model.session))
+
+  def test_load_from_pretrained_eager(self):
+    """Tests loading pretrained model in eager execution mode."""
+    with context.eager_mode():
+      source_model = MLP(
+          model_dir="./MLP/",
+          feature_dim=self.feature_dim,
+          hidden_layer_size=self.hidden_layer_size)
+
+      dest_model = MLP(
+          feature_dim=self.feature_dim,
+          hidden_layer_size=self.hidden_layer_size,
+          n_tasks=10)
+
+      assignment_map = dict()
+      dest_layers = dest_model.model.layers[:-1]
+
+      for idx, dest_layer in enumerate(dest_layers):
+        source_layer = source_model.model.layers[idx]
+        assignment_map[source_layer] = dest_layer
+
+      dest_model.load_from_pretrained(
+          source_model=source_model, assignment_map=assignment_map)
+
+      for source_layer, dest_layer in assignment_map.items():
+        for var_old, var_new in zip(source_layer.trainable_variables,
+                                    dest_layer.trainable_variables):
+          np.testing.assert_array_almost_equal(var_old.numpy(), var_new.numpy())
+
+  def test_restore_equivalency(self):
+    source_model = MLP(
+        model_dir="./MLP/",
+        feature_dim=self.feature_dim,
+        hidden_layer_size=self.hidden_layer_size)
+
+    dest_model = MLP(
+        feature_dim=self.feature_dim, hidden_layer_size=self.hidden_layer_size)
+
+    dest_model.load_from_pretrained(
+        source_model=source_model, assignment_map=None, include_top=True)
+
+    dest_model.fit(self.dataset, nb_epoch=1)
+    predictions = np.squeeze(dest_model.predict_on_batch(self.dataset.X))
+
+    # print(tf.train.load_variable("./MLP", 'model/layer_with_weights-0/kernel/.ATTRIBUTES/VARIABLE_VALUE'))
+    # print(tf.train.load_variable("./MLP", 'model/layer_with_weights-1/kernel/.ATTRIBUTES/VARIABLE_VALUE'))
+
+    np.testing.assert_array_almost_equal(self.dataset.y, np.round(predictions))

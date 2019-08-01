@@ -927,7 +927,7 @@ class KerasModel(Model):
     return tf.train.get_checkpoint_state(
         self.model_dir).all_model_checkpoint_paths
 
-  def restore(self, checkpoint=None):
+  def restore(self, checkpoint=None, model_dir=None, session=None):
     """Reload the values of all variables from a checkpoint file.
 
     Parameters
@@ -938,14 +938,18 @@ class KerasModel(Model):
       list of all available checkpoints.
     """
     self._ensure_built()
+    if model_dir is None:
+      model_dir = self.model_dir
     if checkpoint is None:
-      checkpoint = tf.train.latest_checkpoint(self.model_dir)
+      checkpoint = tf.train.latest_checkpoint(model_dir)
     if checkpoint is None:
       raise ValueError('No checkpoint found')
     if tf.executing_eagerly():
       self._checkpoint.restore(checkpoint)
     else:
-      self._checkpoint.restore(checkpoint).run_restore_ops(self.session)
+      if session is None:
+        session = self.session
+      self._checkpoint.restore(checkpoint).run_restore_ops(session)
 
   def get_global_step(self):
     """Get the number of steps of fitting that have been performed."""
@@ -953,36 +957,78 @@ class KerasModel(Model):
       return int(self._global_step)
     return self._global_step.eval(session=self.session)
 
-  def load_pretrained(self,
-                      assignment_map=None,
-                      checkpoint=None,
-                      model_dir=None):
-    """Load from a pretrained model.
+  def default_assignment_map(self, source_model, include_top=True, **kwargs):
+    """
+    Creates a default assignment map between layers of source and current model.
+    This is used only when a custom assignment map is missing.
+
+    Parameters
+    ----------
+    source_model: dc.models.KerasModel
+        Source model to copy variable values from.
+    include_top: bool, default True
+        if true, copies the last dense layer
+    """
+    assignment_map = {}
+
+    for idx, layer in enumerate(source_model.model.layers[:-1]):
+      assignment_map[layer] = self.model.layers[idx]
+    if include_top:
+      assignment_map[source_model.model.layers[-1]] = self.model.layers[-1]
+
+    return assignment_map
+
+  def load_from_pretrained(self,
+                           source_model,
+                           assignment_map=None,
+                           checkpoint=None,
+                           model_dir=None,
+                           include_top=True,
+                           **kwargs):
+    """Loads a set of layer weights from a pretrained model. The method takes in
+    a source model and an assignment map, and several other optional arguments.
+    The assignment map is a dictionary between the layers of the source model
+    and the layers in the current model, whose weights we want to copy over. If
+    an assignment map is not supplied, a default assignment map is generated,
+    which assumes the architecture has a Dense layer as its last layer and can be
+    included by setting include_top to True. The default assignment map allows
+    applying an existing trained model to a different multi-task setting involving
+    the same model or to a different task like classification from regression or
+    vice-versa.
 
     Parameters
     ----------
     assignment_map: Dict, default None
-      Dictionary containing variable mapping between source and current model
-      variables
+      Dictionary containing layer mapping between source and current model layers
+    checkpoint: str, default None
+      the path to the checkpoint file to load.  If this is None, the most recent
+      checkpoint will be chosen automatically.  Call get_checkpoints() to get a
+      list of all available checkpoints.
+    model_dir: str, default None
+      Restore model from custom model directory if needed
+    include_top: bool, default True
+        if true, copies the last dense layer. Used only when assignment map is None
     """
     self._ensure_built()
     if assignment_map is None:
-      self.restore(checkpoint=checkpoint, model_dir=model_dir)
-    else:
-      if tf.executing_eagerly():
-        for source_var, dest_var in assignment_map.items():
-          dest_var.assign(source_var)
-      else:
-        self._assign_ops = []
-        for source_var, dest_var in assignment_map.items():
-          assign_op = dest_var.assign(source_var)
-          self._assign_ops.append(assign_op)
-          self.session.run(assign_op)
+      assignment_map = self.default_assignment_map(
+          source_model=source_model, include_top=include_top)
 
-        if hasattr(self, '_initialized_vars'):
-          self._initialized_vars.update(set(assignment_map.values()))
-        else:
-          self._initialized_vars = set(assignment_map.values())
+    self._assign_ops = []
+    if tf.executing_eagerly():
+      source_model.restore(model_dir=model_dir, checkpoint=checkpoint)
+      for source_layer, dest_layer in assignment_map.items():
+        dest_vars = dest_layer.trainable_variables
+        dest_layer.set_weights(source_layer.get_weights())
+    else:
+      source_model.restore(
+          model_dir=model_dir, checkpoint=checkpoint, session=self.session)
+      with self.session.as_default():
+        for source_layer, dest_layer in assignment_map.items():
+          dest_vars = dest_layer.trainable_variables
+          dest_layer.set_weights(source_layer.get_weights())
+
+    self._initialized_vars.update(set(dest_vars))
 
 
 class _StandardLoss(object):
