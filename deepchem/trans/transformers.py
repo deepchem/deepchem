@@ -103,6 +103,111 @@ class Transformer(object):
     return X, y, w
 
 
+class MinMaxTransformer(Transformer):
+  """MinMax transformer transforms the dataset by shifting each axis of X or y
+  (depending on whether transform_X or transform_y is True), except the first one
+  by the minimum value along the axis and dividing the result by the range
+  (maximum value - minimum value) along the axis. This ensures each axis is
+  between 0 and 1. In case of multi-task learning, it ensures each task is given
+  equal importance.
+
+  Given original array A, the transformed array can be written as:
+  A_min = np.min(A, axis=0)
+  A_max = np.max(A, axis=0)
+  A_t = np.nan_to_num((A - A_min)/(A_max - A_min))
+
+  Example:
+  >>> n_samples = 10
+  >>> n_features = 3
+  >>> n_tasks = 1
+  >>> ids = np.arange(n_samples)
+  >>> X = np.random.rand(n_samples, n_features)
+  >>> y = np.zeros((n_samples, n_tasks))
+  >>> w = np.ones((n_samples, n_tasks))
+  >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+  >>> transformer = dc.trans.MinMaxTransformer(transform_y=True, dataset=dataset)
+  >>> dataset = transformer.transform(dataset)
+  """
+
+  def __init__(self,
+               transform_X=False,
+               transform_y=False,
+               transform_w=False,
+               dataset=None):
+    """Initialization of MinMax transformer.
+
+    Parameters
+    ----------
+    transform_X: bool, optional (default False)
+      Whether to transform X
+    transform_y: bool, optional (default False)
+      Whether to transform y
+    transform_w: bool, optional (default False)
+      Whether to transform w
+    dataset: dc.data.Dataset object, optional
+      Dataset to be transformed
+    """
+    if transform_X:
+      self.X_min = np.min(dataset.X, axis=0)
+      self.X_max = np.max(dataset.X, axis=0)
+
+    elif transform_y:
+      self.y_min = np.min(dataset.y, axis=0)
+      self.y_max = np.max(dataset.y, axis=0)
+
+      if len(dataset.y.shape) > 1:
+        assert len(self.y_min) == dataset.y.shape[1]
+
+    super(MinMaxTransformer, self).__init__(
+        transform_X=transform_X,
+        transform_y=transform_y,
+        transform_w=transform_w,
+        dataset=dataset)
+
+  def transform(self, dataset, parallel=False):
+    """Transforms the dataset."""
+    return super(MinMaxTransformer, self).transform(dataset, parallel=parallel)
+
+  def transform_array(self, X, y, w):
+    """Transform the data in a set of (X, y, w) arrays."""
+    if self.transform_X:
+      X = np.nan_to_num((X - self.X_min) / (self.X_max - self.X_min))
+    elif self.transform_y:
+      y = np.nan_to_num((y - self.y_min) / (self.y_max - self.y_min))
+    return (X, y, w)
+
+  def untransform(self, z):
+    """
+    Undo transformation on provided data.
+
+    Parameters
+    ----------
+    z: np.ndarray,
+      Transformed X or y array
+    """
+    if self.transform_X:
+      X_max = self.X_max
+      X_min = self.X_min
+
+      return z * (X_max - X_min) + X_min
+
+    elif self.transform_y:
+      y_min = self.y_min
+      y_max = self.y_max
+
+      n_tasks = len(y_min)
+      z_shape = list(z.shape)
+      z_shape.reverse()
+
+      for dim in z_shape:
+        if dim != n_tasks and dim == 1:
+          y_min = np.expand_dims(y_min, -1)
+          y_max = np.expand_dims(y_max, -1)
+
+      y = z * (y_max - y_min) + y_min
+      return y
+
+
 class NormalizationTransformer(Transformer):
 
   def __init__(self,
