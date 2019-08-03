@@ -10,28 +10,41 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
+HIV_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/HIV.csv'
+DEFAULT_DIR = deepchem.utils.get_data_dir()
 
-def load_hiv(featurizer='ECFP', split='index', reload=True, **kwargs):
+
+def load_hiv(featurizer='ECFP',
+             split='index',
+             reload=True,
+             data_dir=None,
+             save_dir=None,
+             **kwargs):
   """Load hiv datasets. Does not do train/test split"""
   # Featurize hiv dataset
   logger.info("About to featurize hiv dataset.")
-  data_dir = deepchem.utils.get_data_dir()
-  if reload:
-    save_dir = os.path.join(data_dir, "hiv/" + featurizer + "/" + str(split))
-
-  dataset_file = os.path.join(data_dir, "HIV.csv")
-  if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/HIV.csv'
-    )
+  if data_dir is None:
+    data_dir = DEFAULT_DIR
+  if save_dir is None:
+    save_dir = DEFAULT_DIR
 
   hiv_tasks = ["HIV_active"]
 
+  save_folder = os.path.join(save_dir, "hiv-featurized", str(featurizer),
+                             str(split))
+  if featurizer == "smiles2img":
+    img_spec = kwargs.get("img_spec", "std")
+    save_folder = os.path.join(save_folder, img_spec)
+
   if reload:
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
-        save_dir)
+        save_folder)
     if loaded:
       return hiv_tasks, all_dataset, transformers
+
+  dataset_file = os.path.join(data_dir, "HIV.csv")
+  if not os.path.exists(dataset_file):
+    deepchem.utils.download_url(url=HIV_URL, dest_dir=data_dir)
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
@@ -64,10 +77,20 @@ def load_hiv(featurizer='ECFP', split='index', reload=True, **kwargs):
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),
       'scaffold': deepchem.splits.ScaffoldSplitter(),
-      'butina': deepchem.splits.ButinaSplitter()
+      'butina': deepchem.splits.ButinaSplitter(),
+      'stratified': deepchem.splits.RandomStratifiedSplitter()
   }
   splitter = splitters[split]
   logger.info("About to split dataset with {} splitter.".format(split))
+  frac_train = kwargs.get("frac_train", 0.8)
+  frac_valid = kwargs.get('frac_valid', 0.1)
+  frac_test = kwargs.get('frac_test', 0.1)
+
+  train, valid, test = splitter.train_valid_test_split(
+      dataset,
+      frac_train=frac_train,
+      frac_valid=frac_valid,
+      frac_test=frac_test)
   train, valid, test = splitter.train_valid_test_split(dataset)
 
   transformers = [
@@ -81,6 +104,6 @@ def load_hiv(featurizer='ECFP', split='index', reload=True, **kwargs):
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
                                              transformers)
   return hiv_tasks, (train, valid, test), transformers
