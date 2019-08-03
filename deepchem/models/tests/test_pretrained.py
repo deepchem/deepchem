@@ -68,25 +68,21 @@ class TestPretrained(unittest.TestCase):
         n_tasks=10)
 
     assignment_map = dict()
-    dest_layers = dest_model.model.layers[:-1]
+    dest_vars = dest_model.model.trainable_variables[:-2]
 
-    for idx, dest_layer in enumerate(dest_layers):
-      source_layer = source_model.model.layers[idx]
-      assignment_map[source_layer] = dest_layer
+    for idx, dest_var in enumerate(dest_vars):
+      source_var = source_model.model.trainable_variables[idx]
+      assignment_map[source_var] = dest_var
 
     dest_model.load_from_pretrained(
         source_model=source_model,
         assignment_map=assignment_map,
         include_top=False)
 
-    for source_layer, dest_layer in assignment_map.items():
-      for var_old, var_new in zip(source_layer.trainable_variables,
-                                  dest_layer.trainable_variables):
-        # Need to fix this by running session ops everytime
-
-        np.testing.assert_array_almost_equal(
-            var_old.eval(session=dest_model.session),
-            var_new.eval(session=dest_model.session))
+    for source_var, dest_var in assignment_map.items():
+      np.testing.assert_array_almost_equal(
+          source_var.eval(session=dest_model.session),
+          dest_var.eval(session=dest_model.session))
 
   def test_load_from_pretrained_eager(self):
     """Tests loading pretrained model in eager execution mode."""
@@ -102,19 +98,18 @@ class TestPretrained(unittest.TestCase):
           n_tasks=10)
 
       assignment_map = dict()
-      dest_layers = dest_model.model.layers[:-1]
+      dest_vars = dest_model.model.trainable_variables[:-2]
 
-      for idx, dest_layer in enumerate(dest_layers):
-        source_layer = source_model.model.layers[idx]
-        assignment_map[source_layer] = dest_layer
+      for idx, dest_var in enumerate(dest_vars):
+        source_var = source_model.model.trainable_variables[idx]
+        assignment_map[source_var] = dest_var
 
       dest_model.load_from_pretrained(
           source_model=source_model, assignment_map=assignment_map)
 
-      for source_layer, dest_layer in assignment_map.items():
-        for var_old, var_new in zip(source_layer.trainable_variables,
-                                    dest_layer.trainable_variables):
-          np.testing.assert_array_almost_equal(var_old.numpy(), var_new.numpy())
+      for source_var, dest_var in assignment_map.items():
+        np.testing.assert_array_almost_equal(source_var.numpy(),
+                                             dest_var.numpy())
 
   def test_restore_equivalency(self):
     source_model = MLP(
@@ -128,7 +123,6 @@ class TestPretrained(unittest.TestCase):
     dest_model.load_from_pretrained(
         source_model=source_model, assignment_map=None, include_top=True)
 
-    dest_model.fit(self.dataset, nb_epoch=1)
     predictions = np.squeeze(dest_model.predict_on_batch(self.dataset.X))
 
     np.testing.assert_array_almost_equal(self.dataset.y, np.round(predictions))
