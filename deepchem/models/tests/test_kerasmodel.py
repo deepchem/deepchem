@@ -258,6 +258,7 @@ class TestKerasModel(unittest.TestCase):
       self.test_saliency_shapes()
 
   def test_tensorboard(self):
+    """Test logging to Tensorboard."""
     n_data_points = 20
     n_features = 2
     X = np.random.rand(n_data_points, n_features)
