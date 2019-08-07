@@ -24,7 +24,7 @@ class TestKerasModel(unittest.TestCase):
         keras_model,
         dc.models.losses.SigmoidCrossEntropy(),
         output_types=['prediction', 'loss'],
-        learning_rate=0.005)
+        learning_rate=0.004)
     model.fit(dataset, nb_epoch=1000)
     prediction = np.squeeze(model.predict_on_batch(X))
     print(y)
