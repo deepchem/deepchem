@@ -12,6 +12,7 @@ class TestKerasModel(unittest.TestCase):
     """Test fitting a KerasModel defined as a graph."""
     n_data_points = 10
     n_features = 2
+    np.random.seed(1234)
     X = np.random.rand(n_data_points, n_features)
     y = (X[:, 0] > X[:, 1]).astype(np.float32)
     dataset = dc.data.NumpyDataset(X, y)
@@ -24,7 +25,7 @@ class TestKerasModel(unittest.TestCase):
         keras_model,
         dc.models.losses.SigmoidCrossEntropy(),
         output_types=['prediction', 'loss'],
-        learning_rate=0.004)
+        learning_rate=0.005)
     model.fit(dataset, nb_epoch=1000)
     prediction = np.squeeze(model.predict_on_batch(X))
     print(y)
