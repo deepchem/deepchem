@@ -51,6 +51,7 @@ class TestPretrained(unittest.TestCase):
         feature_dim=self.feature_dim,
         model_dir=model_dir,
         batch_size=10)
+
     model.fit(self.dataset, nb_epoch=1000)
     predictions = np.squeeze(model.predict_on_batch(self.dataset.X))
     np.testing.assert_array_almost_equal(self.dataset.y, np.round(predictions))
@@ -58,9 +59,12 @@ class TestPretrained(unittest.TestCase):
   def test_load_from_pretrained_graph_mode(self):
     """Tests loading pretrained model in graph mode."""
     source_model = MLP(
-        model_dir="./MLP/",
+        hidden_layer_size=self.hidden_layer_size,
         feature_dim=self.feature_dim,
-        hidden_layer_size=self.hidden_layer_size)
+        model_dir=None,
+        batch_size=10)
+
+    source_model.fit(self.dataset, nb_epoch=1000, checkpoint_interval=0)
 
     dest_model = MLP(
         feature_dim=self.feature_dim,
@@ -68,29 +72,34 @@ class TestPretrained(unittest.TestCase):
         n_tasks=10)
 
     assignment_map = dict()
+    value_map = dict()
     dest_vars = dest_model.model.trainable_variables[:-2]
 
     for idx, dest_var in enumerate(dest_vars):
       source_var = source_model.model.trainable_variables[idx]
       assignment_map[source_var] = dest_var
+      value_map[source_var] = source_var.eval(session=source_model.session)
 
     dest_model.load_from_pretrained(
         source_model=source_model,
         assignment_map=assignment_map,
-        include_top=False)
+        value_map=value_map)
 
     for source_var, dest_var in assignment_map.items():
       np.testing.assert_array_almost_equal(
-          source_var.eval(session=dest_model.session),
+          source_var.eval(session=source_model.session),
           dest_var.eval(session=dest_model.session))
 
-  def test_load_from_pretrained_eager(self):
+  def test_load_from_pretrained_eager_mode(self):
     """Tests loading pretrained model in eager execution mode."""
     with context.eager_mode():
       source_model = MLP(
-          model_dir="./MLP/",
+          hidden_layer_size=self.hidden_layer_size,
           feature_dim=self.feature_dim,
-          hidden_layer_size=self.hidden_layer_size)
+          model_dir=None,
+          batch_size=10)
+
+      source_model.fit(self.dataset, nb_epoch=1000, checkpoint_interval=0)
 
       dest_model = MLP(
           feature_dim=self.feature_dim,
@@ -98,20 +107,25 @@ class TestPretrained(unittest.TestCase):
           n_tasks=10)
 
       assignment_map = dict()
+      value_map = dict()
       dest_vars = dest_model.model.trainable_variables[:-2]
 
       for idx, dest_var in enumerate(dest_vars):
         source_var = source_model.model.trainable_variables[idx]
         assignment_map[source_var] = dest_var
+        value_map[source_var] = source_var.numpy()
 
       dest_model.load_from_pretrained(
-          source_model=source_model, assignment_map=assignment_map)
+          source_model=source_model,
+          value_map=value_map,
+          assignment_map=assignment_map)
 
       for source_var, dest_var in assignment_map.items():
         np.testing.assert_array_almost_equal(source_var.numpy(),
                                              dest_var.numpy())
 
-  def test_restore_equivalency(self):
+  def test_restore_equivalency_graph_mode(self):
+    """Test for restore based pretrained model loading in graph mode."""
     source_model = MLP(
         model_dir="./MLP/",
         feature_dim=self.feature_dim,
@@ -121,8 +135,32 @@ class TestPretrained(unittest.TestCase):
         feature_dim=self.feature_dim, hidden_layer_size=self.hidden_layer_size)
 
     dest_model.load_from_pretrained(
-        source_model=source_model, assignment_map=None, include_top=True)
+        source_model=source_model,
+        assignment_map=None,
+        value_map=None,
+        include_top=True)
 
     predictions = np.squeeze(dest_model.predict_on_batch(self.dataset.X))
-
     np.testing.assert_array_almost_equal(self.dataset.y, np.round(predictions))
+
+  def test_restore_equivalency_eager_mode(self):
+    """Test for restore based pretrained model loading in eager mode."""
+    with context.eager_mode():
+      source_model = MLP(
+          model_dir="./MLP/",
+          feature_dim=self.feature_dim,
+          hidden_layer_size=self.hidden_layer_size)
+
+      dest_model = MLP(
+          feature_dim=self.feature_dim,
+          hidden_layer_size=self.hidden_layer_size)
+
+      dest_model.load_from_pretrained(
+          source_model=source_model,
+          assignment_map=None,
+          value_map=None,
+          include_top=True)
+
+      predictions = np.squeeze(dest_model.predict_on_batch(self.dataset.X))
+      np.testing.assert_array_almost_equal(self.dataset.y,
+                                           np.round(predictions))

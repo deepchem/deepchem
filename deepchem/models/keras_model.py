@@ -1010,9 +1010,34 @@ class KerasModel(Model):
 
     return assignment_map
 
+  def _create_value_map(self, source_model, **kwargs):
+    """
+    Creates a value map between variables in the source model and their
+    current values. This is used only when a custom value map is missing.
+
+    Parameters
+    ----------
+    source_model: dc.models.KerasModel
+        Source model to create value map from
+    include_top: bool, default True
+        if true, copies the last dense layer
+    """
+    value_map = {}
+    source_vars = source_model.model.trainable_variables
+
+    if tf.executing_eagerly():
+      for source_var in source_vars:
+        value_map[source_var] = source_var.numpy()
+    else:
+      for source_var in source_vars:
+        value_map[source_var] = source_var.eval(session=self.session)
+
+    return value_map
+
   def load_from_pretrained(self,
                            source_model,
                            assignment_map=None,
+                           value_map=None,
                            checkpoint=None,
                            model_dir=None,
                            include_top=True,
@@ -1036,6 +1061,9 @@ class KerasModel(Model):
       model.
     assignment_map: Dict, default None
       Dictionary containing layer mapping between source and current model layers
+    value_map: Dict, default None
+      Dictionary containing source model trainable variables mapped to numpy
+      arrays
     checkpoint: str, default None
       the path to the checkpoint file to load.  If this is None, the most recent
       checkpoint will be chosen automatically.  Call get_checkpoints() to get a
@@ -1046,25 +1074,35 @@ class KerasModel(Model):
         if True, copies the weights and bias associated with the final dense layer.
         Used only when assignment map is None.
     """
+
     self._ensure_built()
+    if value_map is None:
+      logger.info(
+          "No value map provided. Creating default value map from restored model."
+      )
+      if tf.executing_eagerly():
+        source_model.restore(model_dir=model_dir, checkpoint=checkpoint)
+      else:
+        source_model.restore(
+            model_dir=model_dir, checkpoint=checkpoint, session=self.session)
+      value_map = self._create_value_map(source_model=source_model)
+
     if assignment_map is None:
+      logger.info("No assignment map provided. Creating custom assignment map.")
       assignment_map = self._create_assignment_map(
           source_model=source_model, include_top=include_top)
 
     if tf.executing_eagerly():
-      source_model.restore(model_dir=model_dir, checkpoint=checkpoint)
       for source_var, dest_var in assignment_map.items():
         assert source_var.shape == dest_var.shape
-        dest_var.assign(source_var)
+        dest_var.assign(value_map[source_var])
 
     else:
-      source_model.restore(
-          model_dir=model_dir, checkpoint=checkpoint, session=self.session)
       self._assign_ops = []
       with self.session.as_default():
         for source_var, dest_var in assignment_map.items():
           assert source_var.shape == dest_var.shape
-          assign_op = dest_var.assign(source_var)
+          assign_op = dest_var.assign(value_map[source_var])
           self._assign_ops.append(assign_op)
           self.session.run(assign_op)
 
