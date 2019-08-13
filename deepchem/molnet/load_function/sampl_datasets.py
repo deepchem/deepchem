@@ -85,8 +85,10 @@ def load_sampl(featurizer='ECFP',
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),
-      'scaffold': deepchem.splits.ScaffoldSplitter()
+      'scaffold': deepchem.splits.ScaffoldSplitter(),
+      'stratified': deepchem.splits.SingletaskStratifiedSplitter(task_number=0)
   }
+
   splitter = splitters[split]
   logger.info("About to split dataset with {} splitter.".format(split))
   frac_train = kwargs.get("frac_train", 0.8)

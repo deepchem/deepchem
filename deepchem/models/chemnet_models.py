@@ -17,10 +17,10 @@ import logging
 
 from deepchem.data.datasets import pad_batch
 from deepchem.models import KerasModel, layers
-from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy
+from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy, SigmoidCrossEntropy
 from deepchem.metrics import to_one_hot
 from deepchem.models import chemnet_layers
-from tensorflow.keras.layers import Input, Dense, Reshape, Softmax
+from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Activation
 from tensorflow.keras.layers import Dropout, Conv1D, Concatenate, Lambda, GRU, LSTM, Bidirectional
 from tensorflow.keras.layers import Conv2D, ReLU, Add, GlobalAveragePooling2D
 
@@ -153,12 +153,16 @@ class Smiles2Vec(KerasModel):
     rnn_embeddings = layer(rnn_embeddings)
 
     if self.mode == "classification":
-      logits = Dense(self.n_tasks * 2)(rnn_embeddings)
-      logits = Reshape((self.n_tasks, 2))(logits)
-      output = Softmax()(logits)
+      logits = Dense(self.n_tasks * self.n_classes)(rnn_embeddings)
+      logits = Reshape((self.n_tasks, self.n_classes))(logits)
+      if self.n_classes == 2:
+        output = Activation(activation='sigmoid')(logits)
+        loss = SigmoidCrossEntropy()
+      else:
+        output = Softmax()(logits)
+        loss = SoftmaxCrossEntropy()
       outputs = [output, logits]
       output_types = ['prediction', 'loss']
-      loss = SoftmaxCrossEntropy()
 
     else:
       output = Dense(self.n_tasks * 1, name='Dense')(rnn_embeddings)
@@ -275,12 +279,16 @@ class ChemCeption(KerasModel):
     avg_pooling_out = GlobalAveragePooling2D()(inceptionC_out)
 
     if self.mode == "classification":
-      logits = Dense(self.n_tasks * 2)(avg_pooling_out)
-      logits = Reshape((self.n_tasks, 2))(logits)
-      output = Softmax()(logits)
+      logits = Dense(self.n_tasks * self.n_classes)(rnn_embeddings)
+      logits = Reshape((self.n_tasks, self.n_classes))(logits)
+      if self.n_classes == 2:
+        output = Activation(activation='sigmoid')(logits)
+        loss = SigmoidCrossEntropy()
+      else:
+        output = Softmax()(logits)
+        loss = SoftmaxCrossEntropy()
       outputs = [output, logits]
       output_types = ['prediction', 'loss']
-      loss = SoftmaxCrossEntropy()
 
     else:
       output = Dense(self.n_tasks * 1)(avg_pooling_out)
