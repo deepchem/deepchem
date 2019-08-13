@@ -14,28 +14,37 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_DIR = deepchem.utils.get_data_dir()
+DATASET_URL = 'http://www.robots.ox.ac.uk/~vgg/research/counting/cells.zip'
 
-def load_cell_counting(split=None, reload=True):
+
+def load_cell_counting(split=None,
+                       reload=True,
+                       data_dir=None,
+                       save_dir=None,
+                       **kwargs):
   """Load Cell Counting dataset.
 
   Loads the cell counting dataset from http://www.robots.ox.ac.uk/~vgg/research/counting/index_org.html.
   """
-  data_dir = deepchem.utils.get_data_dir()
+  if data_dir is None:
+    data_dir = DEFAULT_DIR
+  if save_dir is None:
+    save_dir = DEFAULT_DIR
   # No tasks since no labels provided.
   cell_counting_tasks = []
   # For now images are loaded directly by ImageLoader
   featurizer = ""
   if reload:
-    save_dir = os.path.join(data_dir,
-                            "cell_counting/" + featurizer + "/" + str(split))
+    save_folder = os.path.join(save_dir,
+                               "cell_counting-featurized/" + str(split))
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
-        save_dir)
+        save_folder)
     if loaded:
       return cell_counting_tasks, all_dataset, transformers
   dataset_file = os.path.join(data_dir, "cells.zip")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(
-        'http://www.robots.ox.ac.uk/~vgg/research/counting/cells.zip')
+    deepchem.utils.download_url(url=DATASET_URL, dest_dir=data_dir)
 
   loader = deepchem.data.ImageLoader()
   dataset = loader.featurize(dataset_file)
@@ -59,6 +68,6 @@ def load_cell_counting(split=None, reload=True):
   transformers = []
   all_dataset = (train, valid, test)
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
                                              transformers)
   return cell_counting_tasks, all_dataset, transformers

@@ -10,18 +10,33 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_DIR = deepchem.utils.get_data_dir()
+SIDER_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/sider.csv.gz'
 
-def load_sider(featurizer='ECFP', split='index', reload=True, K=4):
+
+def load_sider(featurizer='ECFP',
+               split='index',
+               reload=True,
+               K=4,
+               data_dir=None,
+               save_dir=None,
+               **kwargs):
   logger.info("About to load SIDER dataset.")
-  data_dir = deepchem.utils.get_data_dir()
+  if data_dir is None:
+    data_dir = DEFAULT_DIR
+  if save_dir is None:
+    save_dir = DEFAULT_DIR
+
   if reload:
-    save_dir = os.path.join(data_dir, "sider/" + featurizer + "/" + str(split))
+    save_folder = os.path.join(save_dir, "sider-featurized", str(featurizer))
+    if featurizer == "smiles2img":
+      img_spec = kwargs.get("img_spec", "std")
+      save_folder = os.path.join(save_folder, img_spec)
+    save_folder = os.path.join(save_folder, str(split))
 
   dataset_file = os.path.join(data_dir, "sider.csv.gz")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/sider.csv.gz'
-    )
+    deepchem.utils.download_url(url=url, dest_dir=data_dir)
 
   dataset = deepchem.utils.save.load_from_disk(dataset_file)
   logger.info("Columns of dataset: %s" % str(dataset.columns.values))
@@ -30,7 +45,7 @@ def load_sider(featurizer='ECFP', split='index', reload=True, K=4):
 
   if reload:
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
-        save_dir)
+        save_folder)
     if loaded:
       return SIDER_tasks, all_dataset, transformers
 
@@ -44,6 +59,11 @@ def load_sider(featurizer='ECFP', split='index', reload=True, K=4):
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
+  elif featurizer == "smiles2img":
+    img_spec = kwargs.get("img_spec", "std")
+    img_size = kwargs.get("img_size", 80)
+    featurizer = deepchem.feat.SmilesToImage(
+        img_size=img_size, img_spec=img_spec)
 
   logger.info("SIDER tasks: %s" % str(SIDER_tasks))
   logger.info("%d tasks in total" % len(SIDER_tasks))
@@ -77,7 +97,7 @@ def load_sider(featurizer='ECFP', split='index', reload=True, K=4):
   else:
     train, valid, test = splitter.train_valid_test_split(dataset)
     if reload:
-      deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+      deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
                                                transformers)
     all_dataset = (train, valid, test)
   return SIDER_tasks, all_dataset, transformers

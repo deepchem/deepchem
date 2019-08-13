@@ -34,13 +34,13 @@ def load_tox21(featurizer='ECFP',
   if save_dir is None:
     save_dir = DEFAULT_DIR
 
-  save_folder = os.path.join(save_dir, "tox21-featurized", str(featurizer),
-                             str(split))
-  if featurizer == "smiles2img":
-    img_spec = kwargs.get("img_spec", "std")
-    save_folder = os.path.join(save_folder, img_spec)
-
   if reload:
+    save_folder = os.path.join(save_dir, "tox21-featurized", str(featurizer))
+    if featurizer == "smiles2img":
+      img_spec = kwargs.get("img_spec", "std")
+      save_folder = os.path.join(save_folder, img_spec)
+    save_folder = os.path.join(save_folder, str(split))
+
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
         save_folder)
     if loaded:
@@ -62,8 +62,10 @@ def load_tox21(featurizer='ECFP',
     featurizer = deepchem.feat.AdjacencyFingerprint(
         max_n_atoms=150, max_valence=6)
   elif featurizer == "smiles2img":
+    img_size = kwargs.get("img_size", 80)
     img_spec = kwargs.get("img_spec", "std")
-    featurizer = deepchem.feat.SmilesToImage(img_spec=img_spec)
+    featurizer = deepchem.feat.SmilesToImage(
+        img_size=img_size, img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer)
