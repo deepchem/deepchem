@@ -2,7 +2,7 @@ from flaky import flaky
 
 import deepchem as dc
 from deepchem.models.tensorgraph.layers import Reshape, Variable, SoftMax, GRU, Dense
-from deepchem.models.tensorgraph.optimizers import Adam, PolynomialDecay
+from deepchem.models.optimizers import Adam, PolynomialDecay
 import numpy as np
 import tensorflow as tf
 import unittest

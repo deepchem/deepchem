@@ -21,7 +21,7 @@ train_dataset, valid_dataset, test_dataset = muv_datasets
 metric = dc.metrics.Metric(
     dc.metrics.roc_auc_score, np.mean, mode="classification")
 
-rate = dc.models.tensorgraph.optimizers.ExponentialDecay(0.001, 0.8, 1000)
+rate = dc.models.optimizers.ExponentialDecay(0.001, 0.8, 1000)
 model = dc.models.MultitaskClassifier(
     len(muv_tasks),
     n_features=1024,

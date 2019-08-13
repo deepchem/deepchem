@@ -4,7 +4,7 @@ import tensorflow as tf
 import deepchem as dc
 import deepchem.models.tensorgraph.layers as layers
 from deepchem.data import NumpyDataset
-from deepchem.models.tensorgraph.models.text_cnn import default_dict
+from deepchem.models.text_cnn import default_dict
 from scipy.io import loadmat
 from flaky import flaky
 import os

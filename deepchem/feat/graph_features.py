@@ -287,19 +287,19 @@ class ConvMolFeaturizer(Featurizer):
       Neural Message Passing for Quantum Chemistry
       https://arxiv.org/pdf/1704.01212.pdf
     use_chirality: Boolean
-      if true then make the resulting atom features aware of the 
+      if true then make the resulting atom features aware of the
       chirality of the molecules in question
     atom_properties: list of string or None
       properties in the RDKit Mol object to use as additional
       atom-level features in the larger molecular feature.  If None,
-      then no atom-level properties are used.  Properties should be in the 
-      RDKit mol object should be in the form 
+      then no atom-level properties are used.  Properties should be in the
+      RDKit mol object should be in the form
       atom XXXXXXXX NAME
       where XXXXXXXX is a zero-padded 8 digit number coresponding to the
       zero-indexed atom index of each atom and NAME is the name of the property
       provided in atom_properties.  So "atom 00000000 sasa" would be the
-      name of the molecule level property in mol where the solvent 
-      accessible surface area of atom 0 would be stored. 
+      name of the molecule level property in mol where the solvent
+      accessible surface area of atom 0 would be stored.
 
     Since ConvMol is an object and not a numpy array, need to set dtype to
     object.
@@ -314,7 +314,7 @@ class ConvMolFeaturizer(Featurizer):
     For a given input RDKit atom return the values of the properties
     requested when initializing the featurize.  See the __init__ of the
     class for a full description of the names of the properties
-    
+
     Parameters
     ----------
     atom: RDKit.rdchem.Atom
@@ -495,7 +495,7 @@ class AtomicConvFeaturizer(ComplexNeighborListFragmentAtomicCoordinates):
       Number of epochs to train the model for
     """
 
-    self.atomic_conv_model = dc.models.tensorgraph.models.atomic_conv.AtomicConvModel(
+    self.atomic_conv_model = dc.models.atomic_conv.AtomicConvModel(
         frag1_num_atoms=frag1_num_atoms,
         frag2_num_atoms=frag2_num_atoms,
         complex_num_atoms=complex_num_atoms,
@@ -547,7 +547,7 @@ class AtomicConvFeaturizer(ComplexNeighborListFragmentAtomicCoordinates):
     layers_to_fetch = list()
     for layer in self.atomic_conv_model.layers.values():
       if isinstance(layer,
-                    dc.models.tensorgraph.models.atomic_conv.AtomicConvolution):
+                    dc.models.atomic_conv.AtomicConvolution):
         layers_to_fetch.append(layer)
 
     # Extract the atomic convolution features

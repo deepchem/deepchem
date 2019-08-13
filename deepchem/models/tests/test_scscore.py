@@ -2,7 +2,6 @@ import unittest
 
 import deepchem
 import numpy as np
-from deepchem.models import TensorGraph
 
 
 class TestScScoreModel(unittest.TestCase):

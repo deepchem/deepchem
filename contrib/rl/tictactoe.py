@@ -9,7 +9,7 @@ import deepchem as dc
 import deepchem.rl.envs.tictactoe
 from deepchem.models.tensorgraph.layers import Flatten, Dense, SoftMax, \
     BatchNorm, Squeeze
-from deepchem.models.tensorgraph.optimizers import Adam
+from deepchem.models.optimizers import Adam
 
 
 class TicTacToePolicy(dc.rl.Policy):

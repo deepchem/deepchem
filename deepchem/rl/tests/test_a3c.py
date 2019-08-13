@@ -1,7 +1,7 @@
 from flaky import flaky
 
 import deepchem as dc
-from deepchem.models.tensorgraph.optimizers import Adam, PolynomialDecay
+from deepchem.models.optimizers import Adam, PolynomialDecay
 from tensorflow.keras.layers import Input, Dense, GRU, Reshape, Softmax
 import numpy as np
 import tensorflow as tf
