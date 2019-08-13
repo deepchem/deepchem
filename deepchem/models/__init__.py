@@ -9,6 +9,7 @@ from deepchem.models.keras_model import KerasModel
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.models.xgboost_models import XGBoostModel
 from deepchem.models.multitask import SingletaskToMultitask
+from deepchem.models.callbacks import ValidationCallback
 
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.fcnet import MultitaskRegressor

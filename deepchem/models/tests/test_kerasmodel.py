@@ -12,6 +12,7 @@ class TestKerasModel(unittest.TestCase):
     """Test fitting a KerasModel defined as a graph."""
     n_data_points = 10
     n_features = 2
+    np.random.seed(1234)
     X = np.random.rand(n_data_points, n_features)
     y = (X[:, 0] > X[:, 1]).astype(np.float32)
     dataset = dc.data.NumpyDataset(X, y)
@@ -258,6 +259,7 @@ class TestKerasModel(unittest.TestCase):
       self.test_saliency_shapes()
 
   def test_tensorboard(self):
+    """Test logging to Tensorboard."""
     n_data_points = 20
     n_features = 2
     X = np.random.rand(n_data_points, n_features)
