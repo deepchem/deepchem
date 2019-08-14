@@ -546,8 +546,7 @@ class AtomicConvFeaturizer(ComplexNeighborListFragmentAtomicCoordinates):
     # Add the Atomic Convolution layers to fetches
     layers_to_fetch = list()
     for layer in self.atomic_conv_model.layers.values():
-      if isinstance(layer,
-                    dc.models.atomic_conv.AtomicConvolution):
+      if isinstance(layer, dc.models.atomic_conv.AtomicConvolution):
         layers_to_fetch.append(layer)
 
     # Extract the atomic convolution features
