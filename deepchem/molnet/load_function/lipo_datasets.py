@@ -10,33 +10,49 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_DIR = deepchem.utils.get_data_dir()
+LIPO_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/Lipophilicity.csv'
 
-def load_lipo(featurizer='ECFP', split='index', reload=True, move_mean=True):
+
+def load_lipo(featurizer='ECFP',
+              split='index',
+              reload=True,
+              move_mean=True,
+              data_dir=None,
+              save_dir=None,
+              **kwargs):
   """Load Lipophilicity datasets."""
   # Featurize Lipophilicity dataset
   logger.info("About to featurize Lipophilicity dataset.")
   logger.info("About to load Lipophilicity dataset.")
-  data_dir = deepchem.utils.get_data_dir()
-  if reload:
-    if move_mean:
-      dir_name = "lipo/" + featurizer + "/" + str(split)
-    else:
-      dir_name = "lipo/" + featurizer + "_mean_unmoved/" + str(split)
-    save_dir = os.path.join(data_dir, dir_name)
-
-  dataset_file = os.path.join(data_dir, "Lipophilicity.csv")
-  if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/Lipophilicity.csv'
-    )
 
   Lipo_tasks = ['exp']
 
+  if data_dir is None:
+    data_dir = DEFAULT_DIR
+  if save_dir is None:
+    save_dir = DEFAULT_DIR
+
   if reload:
+    save_folder = os.path.join(save_dir, "lipo-featurized")
+    if not move_mean:
+      save_folder = os.path.join(save_folder, str(featurizer) + "_mean_unmoved")
+    else:
+      save_folder = os.path.join(save_folder, str(featurizer))
+
+    if featurizer == "smiles2img":
+      img_spec = kwargs.get("img_spec", "std")
+      save_folder = os.path.join(save_folder, img_spec)
+    save_folder = os.path.join(save_folder, str(split))
+
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
-        save_dir)
+        save_folder)
     if loaded:
       return Lipo_tasks, all_dataset, transformers
+
+  dataset_file = os.path.join(data_dir, "Lipophilicity.csv")
+  if not os.path.exists(dataset_file):
+    deepchem.utils.download_url(url=LIPO_URL, dest_dir=data_dir)
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
@@ -46,6 +62,11 @@ def load_lipo(featurizer='ECFP', split='index', reload=True, move_mean=True):
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
+  elif featurizer == "smiles2img":
+    img_spec = kwargs.get("img_spec", "std")
+    img_size = kwargs.get("img_size", 80)
+    featurizer = deepchem.feat.SmilesToImage(
+        img_size=img_size, img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
       tasks=Lipo_tasks, smiles_field="smiles", featurizer=featurizer)
@@ -84,6 +105,6 @@ def load_lipo(featurizer='ECFP', split='index', reload=True, move_mean=True):
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
                                              transformers)
   return Lipo_tasks, (train, valid, test), transformers

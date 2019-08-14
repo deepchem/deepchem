@@ -30,11 +30,12 @@ def load_hiv(featurizer='ECFP',
 
   hiv_tasks = ["HIV_active"]
 
-  save_folder = os.path.join(save_dir, "hiv-featurized", str(featurizer),
-                             str(split))
-  if featurizer == "smiles2img":
-    img_spec = kwargs.get("img_spec", "std")
-    save_folder = os.path.join(save_folder, img_spec)
+  if reload:
+    save_folder = os.path.join(save_dir, "hiv-featurized", str(featurizer))
+    if featurizer == "smiles2img":
+      img_spec = kwargs.get("img_spec", "std")
+      save_folder = os.path.join(save_folder, img_spec)
+    save_folder = os.path.join(save_folder, str(split))
 
   if reload:
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
@@ -56,7 +57,9 @@ def load_hiv(featurizer='ECFP',
     featurizer = deepchem.feat.RawFeaturizer()
   elif featurizer == "smiles2img":
     img_spec = kwargs.get("img_spec", "std")
-    featurizer = deepchem.feat.SmilesToImage(img_spec=img_spec)
+    img_size = kwargs.get("img_size", 80)
+    featurizer = deepchem.feat.SmilesToImage(
+        img_size=img_size, img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
       tasks=hiv_tasks, smiles_field="smiles", featurizer=featurizer)
