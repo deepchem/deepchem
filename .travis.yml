@@ -3,7 +3,7 @@ python:
 - '3.5'
 - '3.7'
 sudo: required
-dist: trusty
+dist: xenial
 install:
 - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O anaconda.sh;
 - export python_version=$TRAVIS_PYTHON_VERSION
