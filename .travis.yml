@@ -1,7 +1,7 @@
 language: python
 python:
-- '2.7'
 - '3.5'
+- '3.7'
 sudo: required
 dist: trusty
 install:
@@ -21,7 +21,7 @@ install:
 script:
 - nosetests -q --with-flaky -a '!slow' --with-coverage --cover-package=deepchem
   -v deepchem --nologcapture
-- if [ $TRAVIS_PYTHON_VERSION == '3.5' ]; then
+- if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
       find ./deepchem | grep .py$ |xargs python -m doctest -v;
   fi
 - bash devtools/travis-ci/test_format_code.sh
