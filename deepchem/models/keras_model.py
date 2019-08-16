@@ -11,6 +11,7 @@ from deepchem.models.losses import Loss
 from deepchem.models.models import Model
 from deepchem.models.tensorgraph.optimizers import Adam
 from deepchem.trans import undo_transforms
+from deepchem.metrics import to_one_hot
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 
@@ -981,6 +982,21 @@ class KerasModel(Model):
       return int(self._global_step)
     return self._global_step.eval(session=self.session)
 
+  def compute_loss(self, dataset, transformers):
+    if self.mode == "regression":
+      y = undo_transforms(dataset.y, transformers=transformers)
+    else:
+      y = to_one_hot(dataset.y.flatten(), self.n_classes).reshape(
+          -1, len(self.n_tasks), self.n_classes)
+    loss_fn = model._loss_fn
+
+    y_pred = self.predict(dataset, transformers=transformers)
+    loss_tensor = loss_fn([y_pred], [y], [dataset.w])
+    if tf.executing_eagerly():
+      return loss_tensor.numpy()
+    else:
+      return self.session.run(loss_tensor)
+
   def _create_assignment_map(self, source_model, include_top=True, **kwargs):
     """
     Creates a default assignment map between variables of source and current model.
@@ -1098,12 +1114,10 @@ class KerasModel(Model):
         dest_var.assign(value_map[source_var])
 
     else:
-      self._assign_ops = []
       with self.session.as_default():
         for source_var, dest_var in assignment_map.items():
           assert source_var.shape == dest_var.shape
           assign_op = dest_var.assign(value_map[source_var])
-          self._assign_ops.append(assign_op)
           self.session.run(assign_op)
 
     dest_vars = list(assignment_map.values())
