@@ -18,7 +18,6 @@ from deepchem.utils.save import load_sdf_files
 from deepchem.utils.genomics import encode_fasta_sequence
 from deepchem.feat import UserDefinedFeaturizer
 from deepchem.data import DiskDataset, NumpyDataset, ImageDataset
-from scipy import misc
 import zipfile
 from PIL import Image
 
@@ -413,7 +412,7 @@ class ImageLoader(DataLoader):
       _, extension = os.path.splitext(image_file)
       extension = extension.lower()
       if extension == ".png":
-        image = misc.imread(image_file)
+        image = np.array(Image.open(image_file))
         images.append(image)
       elif extension == ".tif":
         im = Image.open(image_file)
