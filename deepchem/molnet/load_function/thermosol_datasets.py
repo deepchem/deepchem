@@ -105,9 +105,19 @@ def load_thermosol(featurizer="ECFP",
       'random': deepchem.splits.RandomSplitter(),
       'scaffold': deepchem.splits.ScaffoldSplitter(),
       'butina': deepchem.splits.ButinaSplitter(),
+      'stratified': deepchem.splits.SingletaskStratifiedSplitter()
   }
   splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset, seed=split_seed)
+  frac_train = kwargs.get("frac_train", 0.8)
+  frac_valid = kwargs.get('frac_valid', 0.1)
+  frac_test = kwargs.get('frac_test', 0.1)
+
+  train, valid, test = splitter.train_valid_test_split(
+      dataset,
+      frac_train=frac_train,
+      frac_valid=frac_valid,
+      frac_test=frac_test,
+      seed=split_seed)
   transformers = []
 
   logger.info("About to transform the data...")

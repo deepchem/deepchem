@@ -79,7 +79,7 @@ def load_chembl25(featurizer="smiles2seq",
 
   save_folder = os.path.join(save_dir, "chembl_25-featurized", str(featurizer))
   if featurizer == "smiles2img":
-    img_spec = kwargs.get("img_spec", "engd")
+    img_spec = kwargs.get("img_spec", "std")
     save_folder = os.path.join(save_folder, img_spec)
 
   if reload:
@@ -100,14 +100,21 @@ def load_chembl25(featurizer="smiles2seq",
         dataset_file))
     dc.utils.download_url(url=CHEMBL_URL, dest_dir=data_dir)
 
-  if featurizer == "smiles2seq":
+  if featurizer == 'ECFP':
+    featurizer = deepchem.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+    featurizer = deepchem.feat.ConvMolFeaturizer()
+  elif featurizer == 'Weave':
+    featurizer = deepchem.feat.WeaveFeaturizer()
+  elif featurizer == 'Raw':
+    featurizer = deepchem.feat.RawFeaturizer()
+  elif featurizer == "smiles2seq":
     max_len = kwargs.get('max_len', 250)
     pad_len = kwargs.get('pad_len', 10)
     char_to_idx = create_char_to_idx(
         dataset_file, max_len=max_len, smiles_field="smiles")
     featurizer = SmilesToSeq(
         char_to_idx=char_to_idx, max_len=max_len, pad_len=pad_len)
-
   elif featurizer == "smiles2img":
     img_size = kwargs.get("img_size", 80)
     img_spec = kwargs.get("img_spec", "engd")

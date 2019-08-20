@@ -71,16 +71,16 @@ def load_tox21(featurizer='ECFP',
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
-  # Initialize transformers
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-  ]
-
-  logger.info("About to transform data")
-  for transformer in transformers:
-    dataset = transformer.transform(dataset)
-
   if split == None:
+    # Initialize transformers
+    transformers = [
+        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
+    ]
+
+    logger.info("About to transform data")
+    for transformer in transformers:
+      dataset = transformer.transform(dataset)
+
     return tox21_tasks, (dataset, None, None), transformers
 
   splitters = {
@@ -106,6 +106,17 @@ def load_tox21(featurizer='ECFP',
         frac_valid=frac_valid,
         frac_test=frac_test)
     all_dataset = (train, valid, test)
+
+    transformers = [
+        deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
+    ]
+
+    logger.info("About to transform data")
+    for transformer in transformers:
+      train = transformer.transform(train)
+      valid = transformer.transform(valid)
+      test = transformer.transform(test)
+
     if reload:
       deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
                                                transformers)

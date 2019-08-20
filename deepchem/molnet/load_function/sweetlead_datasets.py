@@ -77,10 +77,19 @@ def load_sweet(featurizer='ECFP',
       'index': dc.splits.IndexSplitter(),
       'random': dc.splits.RandomSplitter(),
       'scaffold': dc.splits.ScaffoldSplitter(),
-      'task': dc.splits.TaskSplitter()
+      'task': dc.splits.TaskSplitter(),
+      'stratified': dc.splits.RandomStratifiedSplitter()
   }
   splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset)
+  frac_train = kwargs.get("frac_train", 0.8)
+  frac_valid = kwargs.get('frac_valid', 0.1)
+  frac_test = kwargs.get('frac_test', 0.1)
+
+  train, valid, test = splitter.train_valid_test_split(
+      dataset,
+      frac_train=frac_train,
+      frac_valid=frac_valid,
+      frac_test=frac_test)
 
   if reload:
     dc.utils.save.save_dataset_to_disk(save_folder, train, valid, test,

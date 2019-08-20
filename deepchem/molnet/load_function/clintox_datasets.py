@@ -25,7 +25,7 @@ def load_clintox(featurizer='ECFP',
   """Load clintox datasets."""
   if data_dir is None:
     data_dir = DEFAULT_DIR
-  else:
+  if save_dir is None:
     save_dir = DEFAULT_DIR
 
   if reload:
@@ -85,7 +85,8 @@ def load_clintox(featurizer='ECFP',
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),
-      'scaffold': deepchem.splits.ScaffoldSplitter()
+      'scaffold': deepchem.splits.ScaffoldSplitter(),
+      'stratified': deepchem.splits.RandomStratifiedSplitter()
   }
   splitter = splitters[split]
   logger.info("About to split data with {} splitter.".format(split))
