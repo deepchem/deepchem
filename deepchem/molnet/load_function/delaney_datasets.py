@@ -85,7 +85,8 @@ def load_delaney(featurizer='ECFP',
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),
-      'scaffold': deepchem.splits.ScaffoldSplitter()
+      'scaffold': deepchem.splits.ScaffoldSplitter(),
+      'stratified': deepchem.splits.SingletaskStratifiedSplitter()
   }
   splitter = splitters[split]
   logger.info("About to split dataset with {} splitter.".format(split))

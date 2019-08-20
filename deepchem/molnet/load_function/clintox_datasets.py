@@ -85,7 +85,8 @@ def load_clintox(featurizer='ECFP',
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),
-      'scaffold': deepchem.splits.ScaffoldSplitter()
+      'scaffold': deepchem.splits.ScaffoldSplitter(),
+      'stratified': deepchem.splits.RandomStratifiedSplitter()
   }
   splitter = splitters[split]
   logger.info("About to split data with {} splitter.".format(split))
