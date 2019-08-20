@@ -36,7 +36,6 @@ class MLP(dc.models.KerasModel):
 class TestPretrained(unittest.TestCase):
 
   def setUp(self):
-    model_dir = "./MLP/"
     self.feature_dim = 2
     self.hidden_layer_size = 10
     data_points = 10
@@ -46,22 +45,11 @@ class TestPretrained(unittest.TestCase):
 
     self.dataset = dc.data.NumpyDataset(X, y)
 
-    model = MLP(
-        hidden_layer_size=self.hidden_layer_size,
-        feature_dim=self.feature_dim,
-        model_dir=model_dir,
-        batch_size=10)
-
-    model.fit(self.dataset, nb_epoch=1000)
-    predictions = np.squeeze(model.predict_on_batch(self.dataset.X))
-    np.testing.assert_array_almost_equal(self.dataset.y, np.round(predictions))
-
   def test_load_from_pretrained_graph_mode(self):
     """Tests loading pretrained model in graph mode."""
     source_model = MLP(
         hidden_layer_size=self.hidden_layer_size,
         feature_dim=self.feature_dim,
-        model_dir=None,
         batch_size=10)
 
     source_model.fit(self.dataset, nb_epoch=1000, checkpoint_interval=0)
@@ -78,7 +66,10 @@ class TestPretrained(unittest.TestCase):
     for idx, dest_var in enumerate(dest_vars):
       source_var = source_model.model.trainable_variables[idx]
       assignment_map[source_var] = dest_var
-      value_map[source_var] = source_var.eval(session=source_model.session)
+      if tf.executing_eagerly():
+        value_map[source_var] = source_var.numpy()
+      else:
+        value_map[source_var] = source_var.eval(session=source_model.session)
 
     dest_model.load_from_pretrained(
         source_model=source_model,
@@ -86,50 +77,25 @@ class TestPretrained(unittest.TestCase):
         value_map=value_map)
 
     for source_var, dest_var in assignment_map.items():
-      np.testing.assert_array_almost_equal(
-          source_var.eval(session=source_model.session),
-          dest_var.eval(session=dest_model.session))
+      if tf.executing_eagerly():
+        source_val = source_var.numpy()
+        dest_val = dest_var.numpy()
+      else:
+        source_val = source_var.eval(session=source_model.session)
+        dest_val = dest_var.eval(session=dest_model.session)
+      np.testing.assert_array_almost_equal(source_val, dest_val)
 
   def test_load_from_pretrained_eager_mode(self):
     """Tests loading pretrained model in eager execution mode."""
     with context.eager_mode():
-      source_model = MLP(
-          hidden_layer_size=self.hidden_layer_size,
-          feature_dim=self.feature_dim,
-          model_dir=None,
-          batch_size=10)
-
-      source_model.fit(self.dataset, nb_epoch=1000, checkpoint_interval=0)
-
-      dest_model = MLP(
-          feature_dim=self.feature_dim,
-          hidden_layer_size=self.hidden_layer_size,
-          n_tasks=10)
-
-      assignment_map = dict()
-      value_map = dict()
-      dest_vars = dest_model.model.trainable_variables[:-2]
-
-      for idx, dest_var in enumerate(dest_vars):
-        source_var = source_model.model.trainable_variables[idx]
-        assignment_map[source_var] = dest_var
-        value_map[source_var] = source_var.numpy()
-
-      dest_model.load_from_pretrained(
-          source_model=source_model,
-          value_map=value_map,
-          assignment_map=assignment_map)
-
-      for source_var, dest_var in assignment_map.items():
-        np.testing.assert_array_almost_equal(source_var.numpy(),
-                                             dest_var.numpy())
+      self.test_load_from_pretrained_graph_mode()
 
   def test_restore_equivalency_graph_mode(self):
     """Test for restore based pretrained model loading in graph mode."""
     source_model = MLP(
-        model_dir="./MLP/",
-        feature_dim=self.feature_dim,
-        hidden_layer_size=self.hidden_layer_size)
+        feature_dim=self.feature_dim, hidden_layer_size=self.hidden_layer_size)
+
+    source_model.fit(self.dataset, nb_epoch=1000)
 
     dest_model = MLP(
         feature_dim=self.feature_dim, hidden_layer_size=self.hidden_layer_size)
@@ -138,6 +104,7 @@ class TestPretrained(unittest.TestCase):
         source_model=source_model,
         assignment_map=None,
         value_map=None,
+        model_dir=None,
         include_top=True)
 
     predictions = np.squeeze(dest_model.predict_on_batch(self.dataset.X))
@@ -146,21 +113,4 @@ class TestPretrained(unittest.TestCase):
   def test_restore_equivalency_eager_mode(self):
     """Test for restore based pretrained model loading in eager mode."""
     with context.eager_mode():
-      source_model = MLP(
-          model_dir="./MLP/",
-          feature_dim=self.feature_dim,
-          hidden_layer_size=self.hidden_layer_size)
-
-      dest_model = MLP(
-          feature_dim=self.feature_dim,
-          hidden_layer_size=self.hidden_layer_size)
-
-      dest_model.load_from_pretrained(
-          source_model=source_model,
-          assignment_map=None,
-          value_map=None,
-          include_top=True)
-
-      predictions = np.squeeze(dest_model.predict_on_batch(self.dataset.X))
-      np.testing.assert_array_almost_equal(self.dataset.y,
-                                           np.round(predictions))
+      self.test_restore_equivalency_graph_mode()
