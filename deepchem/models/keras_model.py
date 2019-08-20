@@ -11,7 +11,6 @@ from deepchem.models.losses import Loss
 from deepchem.models.models import Model
 from deepchem.models.tensorgraph.optimizers import Adam
 from deepchem.trans import undo_transforms
-from deepchem.metrics import to_one_hot
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 
@@ -1014,7 +1013,8 @@ class KerasModel(Model):
   def _create_value_map(self, source_model, **kwargs):
     """
     Creates a value map between variables in the source model and their
-    current values. This is used only when a custom value map is missing.
+    current values. This is used only when a custom value map is missing, and
+    assumes the restore method has been called under self.session.
 
     Parameters
     ----------
@@ -1031,6 +1031,7 @@ class KerasModel(Model):
         value_map[source_var] = source_var.numpy()
     else:
       for source_var in source_vars:
+        # self.session is used because restore was called in the same session
         value_map[source_var] = source_var.eval(session=self.session)
 
     return value_map
