@@ -104,8 +104,15 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
     }
 
     splitter = splitters[split]
+    frac_train = kwargs.get("frac_train", 0.8)
+    frac_valid = kwargs.get('frac_valid', 0.1)
+    frac_test = kwargs.get('frac_test', 0.1)
+
     train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-        dataset)
+        dataset,
+        frac_train=frac_train,
+        frac_valid=frac_valid,
+        frac_test=frac_test)
 
     transformers = [
         deepchem.trans.NormalizationTransformer(
@@ -155,8 +162,15 @@ def load_qm7b_from_mat(featurizer='CoulombMatrix',
         deepchem.splits.SingletaskStratifiedSplitter(task_number=0)
     }
     splitter = splitters[split]
+    frac_train = kwargs.get("frac_train", 0.8)
+    frac_valid = kwargs.get('frac_valid', 0.1)
+    frac_test = kwargs.get('frac_test', 0.1)
+
     train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-        dataset)
+        dataset,
+        frac_train=frac_train,
+        frac_valid=frac_valid,
+        frac_test=frac_test)
 
     transformers = [
         deepchem.trans.NormalizationTransformer(
@@ -211,8 +225,15 @@ def load_qm7(featurizer='CoulombMatrix',
       'stratified': deepchem.splits.SingletaskStratifiedSplitter(task_number=0)
   }
   splitter = splitters[split]
+  frac_train = kwargs.get("frac_train", 0.8)
+  frac_valid = kwargs.get('frac_valid', 0.1)
+  frac_test = kwargs.get('frac_test', 0.1)
+
   train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-      dataset)
+      dataset,
+      frac_train=frac_train,
+      frac_valid=frac_valid,
+      frac_test=frac_test)
 
   transformers = [
       deepchem.trans.NormalizationTransformer(

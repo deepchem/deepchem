@@ -104,8 +104,15 @@ def load_qm9(featurizer='CoulombMatrix',
       'stratified': deepchem.splits.SingletaskStratifiedSplitter(task_number=11)
   }
   splitter = splitters[split]
+  frac_train = kwargs.get("frac_train", 0.8)
+  frac_valid = kwargs.get('frac_valid', 0.1)
+  frac_test = kwargs.get('frac_test', 0.1)
+
   train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-      dataset)
+      dataset,
+      frac_train=frac_train,
+      frac_valid=frac_valid,
+      frac_test=frac_test)
   transformers = [
       deepchem.trans.NormalizationTransformer(
           transform_y=True, dataset=train_dataset, move_mean=move_mean)

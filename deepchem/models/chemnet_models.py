@@ -279,7 +279,7 @@ class ChemCeption(KerasModel):
     avg_pooling_out = GlobalAveragePooling2D()(inceptionC_out)
 
     if self.mode == "classification":
-      logits = Dense(self.n_tasks * self.n_classes)(rnn_embeddings)
+      logits = Dense(self.n_tasks * self.n_classes)(avg_pooling_out)
       logits = Reshape((self.n_tasks, self.n_classes))(logits)
       if self.n_classes == 2:
         output = Activation(activation='sigmoid')(logits)

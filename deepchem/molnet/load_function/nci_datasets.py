@@ -99,7 +99,15 @@ def load_nci(featurizer='ECFP',
   }
   splitter = splitters[split]
   logger.info("About to split data with {} splitter.".format(splitter))
-  train, valid, test = splitter.train_valid_test_split(dataset)
+  frac_train = kwargs.get("frac_train", 0.8)
+  frac_valid = kwargs.get('frac_valid', 0.1)
+  frac_test = kwargs.get('frac_test', 0.1)
+
+  train, valid, test = splitter.train_valid_test_split(
+      dataset,
+      frac_train=frac_train,
+      frac_valid=frac_valid,
+      frac_test=frac_test)
 
   transformers = [
       deepchem.trans.NormalizationTransformer(transform_y=True, dataset=train)

@@ -36,8 +36,7 @@ def load_cell_counting(split=None,
   # For now images are loaded directly by ImageLoader
   featurizer = ""
   if reload:
-    save_folder = os.path.join(save_dir,
-                               "cell_counting-featurized/" + str(split))
+    save_folder = os.path.join(save_dir, "cell_counting-featurized", str(split))
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
         save_folder)
     if loaded:
@@ -64,7 +63,15 @@ def load_cell_counting(split=None,
   splitter = splitters[split]
 
   logger.info("About to split dataset with {} splitter.".format(split))
-  train, valid, test = splitter.train_valid_test_split(dataset)
+  frac_train = kwargs.get("frac_train", 0.8)
+  frac_valid = kwargs.get('frac_valid', 0.1)
+  frac_test = kwargs.get('frac_test', 0.1)
+
+  train, valid, test = splitter.train_valid_test_split(
+      dataset,
+      frac_train=frac_train,
+      frac_valid=frac_valid,
+      frac_test=frac_test)
   transformers = []
   all_dataset = (train, valid, test)
   if reload:

@@ -88,7 +88,8 @@ def load_muv(featurizer='ECFP',
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),
       'scaffold': deepchem.splits.ScaffoldSplitter(),
-      'task': deepchem.splits.TaskSplitter()
+      'task': deepchem.splits.TaskSplitter(),
+      'stratified': deepchem.splits.RandomStratifiedSplitter()
   }
   splitter = splitters[split]
   if split == 'task':
@@ -100,7 +101,15 @@ def load_muv(featurizer='ECFP',
     return MUV_tasks, all_dataset, []
 
   else:
-    train, valid, test = splitter.train_valid_test_split(dataset)
+    frac_train = kwargs.get("frac_train", 0.8)
+    frac_valid = kwargs.get('frac_valid', 0.1)
+    frac_test = kwargs.get('frac_test', 0.1)
+
+    train, valid, test = splitter.train_valid_test_split(
+        dataset,
+        frac_train=frac_train,
+        frac_valid=frac_valid,
+        frac_test=frac_test)
     all_dataset = (train, valid, test)
     if reload:
       deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,

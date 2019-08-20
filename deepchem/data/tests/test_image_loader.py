@@ -8,6 +8,7 @@ import os
 import unittest
 import tempfile
 from scipy import misc
+from PIL import Image
 import deepchem as dc
 import zipfile
 
@@ -26,9 +27,9 @@ class TestImageLoader(unittest.TestCase):
     self.data_dir = tempfile.mkdtemp()
     self.face = misc.face()
     self.face_path = os.path.join(self.data_dir, "face.png")
-    misc.imsave(self.face_path, self.face)
+    Image.fromarray(self.face).save(self.face_path)
     self.face_copy_path = os.path.join(self.data_dir, "face_copy.png")
-    misc.imsave(self.face_copy_path, self.face)
+    Image.fromarray(self.face).save(self.face_copy_path)
 
     # Create zip of image file
     #self.zip_path = "/home/rbharath/misc/cells.zip"
@@ -54,9 +55,9 @@ class TestImageLoader(unittest.TestCase):
     # Create image directory
     self.image_dir = tempfile.mkdtemp()
     face_path = os.path.join(self.image_dir, "face.png")
-    misc.imsave(face_path, self.face)
+    Image.fromarray(self.face).save(face_path)
     face_copy_path = os.path.join(self.image_dir, "face_copy.png")
-    misc.imsave(face_copy_path, self.face)
+    Image.fromarray(self.face).save(face_copy_path)
 
   def test_png_simple_load(self):
     loader = dc.data.ImageLoader()
