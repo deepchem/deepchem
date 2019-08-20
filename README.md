@@ -108,7 +108,7 @@ via this installation procedure.
 
 ## FAQ and Troubleshooting
 
-1. ```deepchem``` currently supports Python 3.5 and later, and is supported on 64 bit Linux and Mac OSX. Note that DeepChem is not currently maintained for Python 3.6 or with other operating systems.
+1. DeepChem currently supports Python 3.5 through 3.7, and is supported on 64 bit Linux and Mac OSX. Note that DeepChem is not currently maintained for older versions of Python or with other operating systems.
 2. Question: I'm seeing some failures in my test suite having to do with MKL
    ```Intel MKL FATAL ERROR: Cannot load libmkl_avx.so or libmkl_def.so.```
 
