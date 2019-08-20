@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 import deepchem as dc
 import scipy.ndimage
+from PIL import Image
 
 
 class TestTransformers(unittest.TestCase):
@@ -621,7 +622,7 @@ class TestTransformers(unittest.TestCase):
     dt = DataTransforms(self.d)
     h = 150
     w = 150
-    scale = scipy.misc.imresize(self.d, (h, w))
+    scale = Image.fromarray(self.d).resize((h, w))
     check_scale = dt.scale(h, w)
     np.allclose(scale, check_scale)
 

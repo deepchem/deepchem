@@ -43,24 +43,24 @@ fi
 
 yes | pip install --upgrade pip
 conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
-    mdtraj=1.9.1 \
+    mdtraj \
     pdbfixer \
     rdkit \
-    joblib=0.11 \
-    six=1.11.0 \
-    scikit-learn=0.19.1 \
-    networkx=2.1 \
+    joblib \
+    six \
+    scikit-learn \
+    networkx \
     pillow \
-    pandas=0.22.0 \
-    nose=1.3.7 \
-    nose-timer=0.7.0 \
-    flaky=3.3.0 \
-    zlib=1.2.11 \
-    requests=2.18.4 \
-    xgboost=0.6a2 \
-    simdna=0.4.2 \
-    pbr=3.1.1 \
-    setuptools=39.0.1 \
-    biopython=1.71 \
-    numpy=1.14
+    pandas \
+    nose \
+    nose-timer \
+    flaky \
+    zlib \
+    requests \
+    xgboost \
+    simdna \
+    pbr \
+    setuptools \
+    biopython \
+    numpy
 yes | pip install $tensorflow==1.13.1
