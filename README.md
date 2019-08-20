@@ -36,9 +36,11 @@ democratizes the use of deep-learning in drug discovery, materials science, quan
 ### Soft Requirements
 DeepChem has a number of "soft" requirements. These are packages which are needed for various submodules of DeepChem but not for the package as a whole.
 
-* [rdkit](http://www.rdkit.org/docs/Install.html)
+* [RDKit](http://www.rdkit.org/docs/Install.html)
 * [six](https://pypi.python.org/pypi/six)
-* [mdtraj](http://mdtraj.org/)
+* [MDTraj](http://mdtraj.org/)
+* [PDBFixer](https://github.com/pandegroup/pdbfixer)
+* [Pillow](https://pillow.readthedocs.io/en/stable/)
 
 ### Super easy install via pip3
 
@@ -49,9 +51,9 @@ pip3 install joblib pandas sklearn tensorflow pillow deepchem
 ### Easy Install via Conda
 
 ```bash
-conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=2.1.0
+conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=2.2.0
 ```
-**Note:** `Easy Install` installs the latest stable version of `deepchem` and _does not install from source_. If you need to install from source make sure you follow the steps [here](#using-a-conda-environment).
+**Note:** The above commands install the latest stable version of `deepchem` and _do not install from source_. If you need to install from source make sure you follow the steps [here](#using-a-conda-environment).
 
 ### Using a Docker Image
 Using a docker image requires an NVIDIA GPU.  If you do not have a GPU please follow the directions for [using a conda environment](#using-a-conda-environment)
@@ -106,7 +108,7 @@ via this installation procedure.
 
 ## FAQ and Troubleshooting
 
-1. ```deepchem``` currently supports both Python 2.7 and Python 3.5, and is supported on 64 bit Linux and Mac OSX. Note that DeepChem is not currently maintained for Python 3.6 or with other operating systems. 
+1. DeepChem currently supports Python 3.5 through 3.7, and is supported on 64 bit Linux and Mac OSX. Note that DeepChem is not currently maintained for older versions of Python or with other operating systems.
 2. Question: I'm seeing some failures in my test suite having to do with MKL
    ```Intel MKL FATAL ERROR: Cannot load libmkl_avx.so or libmkl_def.so.```
 
