@@ -71,7 +71,7 @@ class TestGAN(unittest.TestCase):
     assert np.std(deltas) > 1.0
     assert gan.get_global_step() == 500
 
-  @attr("slow")
+  @flaky
   def test_mix_gan(self):
     """Test a GAN with multiple generators and discriminators."""
 
