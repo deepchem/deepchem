@@ -12,22 +12,27 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_DIR = deepchem.utils.get_data_dir()
+NCI_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/nci_unique.csv'
 
-def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
+
+def load_nci(featurizer='ECFP',
+             shard_size=1000,
+             split='random',
+             reload=True,
+             data_dir=None,
+             save_dir=None,
+             **kwargs):
 
   # Load nci dataset
   logger.info("About to load NCI dataset.")
-  data_dir = deepchem.utils.get_data_dir()
-  if reload:
-    save_dir = os.path.join(data_dir, "nci/" + featurizer + "/" + str(split))
 
-  dataset_file = os.path.join(data_dir, "nci_unique.csv")
-  if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/nci_unique.csv'
-    )
+  if data_dir is None:
+    data_dir = DEFAULT_DIR
+  if save_dir is None:
+    save_dir = DEFAULT_DIR
 
-  all_nci_tasks = ([
+  all_nci_tasks = [
       'CCRF-CEM', 'HL-60(TB)', 'K-562', 'MOLT-4', 'RPMI-8226', 'SR',
       'A549/ATCC', 'EKVX', 'HOP-62', 'HOP-92', 'NCI-H226', 'NCI-H23',
       'NCI-H322M', 'NCI-H460', 'NCI-H522', 'COLO 205', 'HCC-2998', 'HCT-116',
@@ -38,13 +43,23 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
       '786-0', 'A498', 'ACHN', 'CAKI-1', 'RXF 393', 'SN12C', 'TK-10', 'UO-31',
       'PC-3', 'DU-145', 'MCF7', 'MDA-MB-231/ATCC', 'MDA-MB-468', 'HS 578T',
       'BT-549', 'T-47D'
-  ])
+  ]
 
   if reload:
+    save_folder = os.path.join(save_dir, "nci-featurized", featurizer)
+    if featurizer == "smiles2img":
+      img_spec = kwargs.get("img_spec", "std")
+      save_folder = os.path.join(save_folder, img_spec)
+    save_folder = os.path.join(save_folder, str(split))
+
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
-        save_dir)
+        save_folder)
     if loaded:
       return all_nci_tasks, all_dataset, transformers
+
+  dataset_file = os.path.join(data_dir, "nci_unique.csv")
+  if not os.path.exists(dataset_file):
+    deepchem.utils.download_url(url=NCI_URL, dest_dir=data_dir)
 
   # Featurize nci dataset
   logger.info("About to featurize nci dataset.")
@@ -56,6 +71,11 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
+  elif featurizer == "smiles2img":
+    img_spec = kwargs.get("img_spec", "std")
+    img_size = kwargs.get("img_size", 80)
+    featurizer = deepchem.feat.SmilesToImage(
+        img_size=img_size, img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
       tasks=all_nci_tasks, smiles_field="smiles", featurizer=featurizer)
@@ -79,7 +99,15 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
   }
   splitter = splitters[split]
   logger.info("About to split data with {} splitter.".format(splitter))
-  train, valid, test = splitter.train_valid_test_split(dataset)
+  frac_train = kwargs.get("frac_train", 0.8)
+  frac_valid = kwargs.get('frac_valid', 0.1)
+  frac_test = kwargs.get('frac_test', 0.1)
+
+  train, valid, test = splitter.train_valid_test_split(
+      dataset,
+      frac_train=frac_train,
+      frac_valid=frac_valid,
+      frac_test=frac_test)
 
   transformers = [
       deepchem.trans.NormalizationTransformer(transform_y=True, dataset=train)
@@ -92,6 +120,6 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
                                              transformers)
   return all_nci_tasks, (train, valid, test), transformers

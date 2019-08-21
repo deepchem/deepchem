@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 import deepchem as dc
 import scipy.ndimage
+from PIL import Image
 
 
 class TestTransformers(unittest.TestCase):
@@ -171,6 +172,93 @@ class TestTransformers(unittest.TestCase):
 
     # Check that untransform does the right thing.
     np.testing.assert_allclose(log_transformer.untransform(X_t), X)
+
+  def test_y_minmax_transformer(self):
+    """Tests MinMax transformer. """
+    solubility_dataset = dc.data.tests.load_solubility_data()
+    minmax_transformer = dc.trans.MinMaxTransformer(
+        transform_y=True, dataset=solubility_dataset)
+    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
+                    solubility_dataset.w, solubility_dataset.ids)
+    solubility_dataset = minmax_transformer.transform(solubility_dataset)
+    X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y,
+                            solubility_dataset.w, solubility_dataset.ids)
+
+    # Check ids are unchanged before and after transformation
+    for id_elt, id_t_elt in zip(ids, ids_t):
+      assert id_elt == id_t_elt
+
+    # Check X is unchanged since transform_y is true
+    np.testing.assert_allclose(X, X_t)
+    # Check w is unchanged since transform_y is true
+    np.testing.assert_allclose(w, w_t)
+
+    # Check minimum and maximum values of transformed y are 0 and 1
+    np.testing.assert_allclose(y_t.min(), 0.)
+    np.testing.assert_allclose(y_t.max(), 1.)
+
+    # Check untransform works correctly
+    np.testing.assert_allclose(minmax_transformer.untransform(y_t), y)
+
+    # Test on random example
+    n_samples = 100
+    n_features = 10
+    n_tasks = 10
+
+    X = np.random.randn(n_samples, n_features)
+    y = np.random.randn(n_samples, n_tasks)
+    dataset = dc.data.NumpyDataset(X, y)
+
+    minmax_transformer = dc.trans.MinMaxTransformer(
+        transform_y=True, dataset=dataset)
+    w, ids = dataset.w, dataset.ids
+
+    dataset = minmax_transformer.transform(dataset)
+    X_t, y_t, w_t, ids_t = (dataset.X, dataset.y, dataset.w, dataset.ids)
+    # Check ids are unchanged before and after transformation
+    for id_elt, id_t_elt in zip(ids, ids_t):
+      assert id_elt == id_t_elt
+
+    # Check X is unchanged since transform_y is true
+    np.testing.assert_allclose(X, X_t)
+    # Check w is unchanged since transform_y is true
+    np.testing.assert_allclose(w, w_t)
+
+    # Check minimum and maximum values of transformed y are 0 and 1
+    np.testing.assert_allclose(y_t.min(), 0.)
+    np.testing.assert_allclose(y_t.max(), 1.)
+
+    # Test if dimensionality expansion is handled correctly by untransform
+    y_t = np.expand_dims(y_t, axis=-1)
+    y_restored = minmax_transformer.untransform(y_t)
+    assert y_restored.shape == y.shape + (1,)
+    np.testing.assert_allclose(np.squeeze(y_restored, axis=-1), y)
+
+  def test_X_minmax_transformer(self):
+    solubility_dataset = dc.data.tests.load_solubility_data()
+    minmax_transformer = dc.trans.MinMaxTransformer(
+        transform_X=True, dataset=solubility_dataset)
+    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
+                    solubility_dataset.w, solubility_dataset.ids)
+    solubility_dataset = minmax_transformer.transform(solubility_dataset)
+    X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y,
+                            solubility_dataset.w, solubility_dataset.ids)
+
+    # Check ids are unchanged before and after transformation
+    for id_elt, id_t_elt in zip(ids, ids_t):
+      assert id_elt == id_t_elt
+
+    # Check X is unchanged since transform_y is true
+    np.testing.assert_allclose(y, y_t)
+    # Check w is unchanged since transform_y is true
+    np.testing.assert_allclose(w, w_t)
+
+    # Check minimum and maximum values of transformed y are 0 and 1
+    np.testing.assert_allclose(X_t.min(), 0.)
+    np.testing.assert_allclose(X_t.max(), 1.)
+
+    # Check untransform works correctly
+    np.testing.assert_allclose(minmax_transformer.untransform(X_t), X)
 
   def test_y_normalization_transformer(self):
     """Tests normalization transformer."""
@@ -534,7 +622,7 @@ class TestTransformers(unittest.TestCase):
     dt = DataTransforms(self.d)
     h = 150
     w = 150
-    scale = scipy.misc.imresize(self.d, (h, w))
+    scale = Image.fromarray(self.d).resize((h, w))
     check_scale = dt.scale(h, w)
     np.allclose(scale, check_scale)
 

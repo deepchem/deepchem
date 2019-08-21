@@ -340,7 +340,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     value = np.random.uniform(size=(2, 3)).astype(np.float32)
     with self.session() as sess:
       result = Exp()(value).eval()
-      assert np.array_equal(np.exp(value), result)
+      assert np.allclose(np.exp(value), result)
 
   def test_interatomic_distances(self):
     """Test that the interatomic distance calculation works."""

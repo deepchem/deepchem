@@ -10,30 +10,45 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_DIR = deepchem.utils.get_data_dir()
+DELANEY_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/delaney-processed.csv'
 
-def load_delaney(featurizer='ECFP', split='index', reload=True, move_mean=True):
+
+def load_delaney(featurizer='ECFP',
+                 split='index',
+                 reload=True,
+                 move_mean=True,
+                 data_dir=None,
+                 save_dir=None,
+                 **kwargs):
   """Load delaney datasets."""
   # Featurize Delaney dataset
   logger.info("About to featurize Delaney dataset.")
-  data_dir = deepchem.utils.get_data_dir()
+  if data_dir is None:
+    data_dir = DEFAULT_DIR
+  if save_dir is None:
+    save_dir = DEFAULT_DIR
   if reload:
-    if move_mean:
-      dir_name = "delaney/" + featurizer + "/" + str(split)
+    save_folder = os.path.join(save_dir, "delaney-featurized")
+    if not move_mean:
+      save_folder = os.path.join(save_folder, str(featurizer) + "_mean_unmoved")
     else:
-      dir_name = "delaney/" + featurizer + "_mean_unmoved/" + str(split)
-    save_dir = os.path.join(data_dir, dir_name)
+      save_folder = os.path.join(save_folder, str(featurizer))
+
+    if featurizer == "smiles2img":
+      img_spec = kwargs.get("img_spec", "std")
+      save_folder = os.path.join(save_folder, img_spec)
+    save_folder = os.path.join(save_folder, str(split))
 
   dataset_file = os.path.join(data_dir, "delaney-processed.csv")
 
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/delaney-processed.csv'
-    )
+    deepchem.utils.download_url(url=DELANEY_URL, dest_dir=data_dir)
 
   delaney_tasks = ['measured log solubility in mols per litre']
   if reload:
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
-        save_dir)
+        save_folder)
     if loaded:
       return delaney_tasks, all_dataset, transformers
 
@@ -45,6 +60,11 @@ def load_delaney(featurizer='ECFP', split='index', reload=True, move_mean=True):
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
+  elif featurizer == "smiles2img":
+    img_spec = kwargs.get("img_spec", "std")
+    img_size = kwargs.get("img_size", 80)
+    featurizer = deepchem.feat.SmilesToImage(
+        img_size=img_size, img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
       tasks=delaney_tasks, smiles_field="smiles", featurizer=featurizer)
@@ -65,7 +85,8 @@ def load_delaney(featurizer='ECFP', split='index', reload=True, move_mean=True):
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),
-      'scaffold': deepchem.splits.ScaffoldSplitter()
+      'scaffold': deepchem.splits.ScaffoldSplitter(),
+      'stratified': deepchem.splits.SingletaskStratifiedSplitter()
   }
   splitter = splitters[split]
   logger.info("About to split dataset with {} splitter.".format(split))
@@ -83,6 +104,6 @@ def load_delaney(featurizer='ECFP', split='index', reload=True, move_mean=True):
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
                                              transformers)
   return delaney_tasks, (train, valid, test), transformers

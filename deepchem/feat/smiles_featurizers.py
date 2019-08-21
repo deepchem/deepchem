@@ -201,6 +201,9 @@ class SmilesToImage(Featurizer):
       # Compute atom properties
       atom_props = np.array([[atom.GetAtomicNum()] for atom in cmol.GetAtoms()])
 
+      bond_props = bond_props.astype(np.float32)
+      atom_props = atom_props.astype(np.float32)
+
     else:
       # Setup image
       img = np.zeros((self.img_size, self.img_size, 4))
@@ -217,6 +220,13 @@ class SmilesToImage(Featurizer):
           atom.GetExplicitValence(),
           atom.GetHybridization().real,
       ] for atom in cmol.GetAtoms()])
+
+      bond_props = bond_props.astype(np.float32)
+      atom_props = atom_props.astype(np.float32)
+
+      partial_charges = atom_props[:, 1]
+      if np.any(np.isnan(partial_charges)):
+        return []
 
     frac = np.linspace(0, 1, int(1 / self.res * 2))
     # Reshape done for proper broadcast

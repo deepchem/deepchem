@@ -47,16 +47,17 @@ def load_thermosol(featurizer="ECFP",
   if data_dir is None:
     data_dir = DEFAULT_DATA_DIR
   if save_dir is None:
-    save_dir = os.path.join(DEFAULT_DATA_DIR, "thermosol", featurizer,
-                            str(split))
+    save_dir = DEFAULT_DATA_DIR
 
   if reload:
-    if not os.path.exists(save_dir):
-      logger.warning("{} does not exist. Creating one.".format(save_dir))
-    else:
-      logger.info("{} exists. Loading featurized datasets.".format(save_dir))
+    save_folder = os.path.join(save_dir, "thermosol-featurized", featurizer)
+    if featurizer == "smiles2img":
+      img_spec = kwargs.get("img_spec", "std")
+      save_folder = os.path.join(save_folder, img_spec)
+    save_folder = os.path.join(save_folder, str(split))
+
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
-        save_dir)
+        save_folder)
     if loaded:
       return thermosol_tasks, all_dataset, transformers
 
@@ -76,6 +77,11 @@ def load_thermosol(featurizer="ECFP",
   elif featurizer == 'AdjacencyConv':
     featurizer = deepchem.feat.AdjacencyFingerprint(
         max_n_atoms=150, max_valence=6)
+  elif featurizer == "smiles2img":
+    img_spec = kwargs.get("img_spec", "std")
+    img_size = kwargs.get("img_size", 80)
+    featurizer = deepchem.feat.SmilesToImage(
+        img_size=img_size, img_spec=img_spec)
 
   logger.info("Featurizing datasets.")
   loader = deepchem.data.CSVLoader(
@@ -99,9 +105,19 @@ def load_thermosol(featurizer="ECFP",
       'random': deepchem.splits.RandomSplitter(),
       'scaffold': deepchem.splits.ScaffoldSplitter(),
       'butina': deepchem.splits.ButinaSplitter(),
+      'stratified': deepchem.splits.SingletaskStratifiedSplitter()
   }
   splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset, seed=split_seed)
+  frac_train = kwargs.get("frac_train", 0.8)
+  frac_valid = kwargs.get('frac_valid', 0.1)
+  frac_test = kwargs.get('frac_test', 0.1)
+
+  train, valid, test = splitter.train_valid_test_split(
+      dataset,
+      frac_train=frac_train,
+      frac_valid=frac_valid,
+      frac_test=frac_test,
+      seed=split_seed)
   transformers = []
 
   logger.info("About to transform the data...")
@@ -113,7 +129,7 @@ def load_thermosol(featurizer="ECFP",
     test = transformer.transform(test)
 
   if reload:
-    logger.info("Saving file to {}.".format(save_dir))
-    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+    logger.info("Saving file to {}.".format(save_folder))
+    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
                                              transformers)
   return thermosol_tasks, (train, valid, test), transformers

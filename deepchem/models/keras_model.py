@@ -1,6 +1,14 @@
 import numpy as np
 import tensorflow as tf
 import time
+import logging
+import os
+try:
+  from collections.abc import Sequence
+except:
+  from collections import Sequence
+
+logger = logging.getLogger(__name__)
 
 from deepchem.data import NumpyDataset
 from deepchem.models.losses import Loss
@@ -122,10 +130,11 @@ class KerasModel(Model):
       self.optimizer = optimizer
     self.tensorboard = tensorboard
     self.tensorboard_log_frequency = tensorboard_log_frequency
-    self._tensorboard_step = 0
-    if tensorboard and tf.executing_eagerly():
-      raise ValueError(
-          "Logging to TensorBoard is not currently supported in eager mode")
+    if self.tensorboard:
+      if tf.executing_eagerly():
+        raise ValueError(
+            "Logging to TensorBoard is not currently supported in eager mode")
+      self._summary_writer = tf.summary.FileWriter(self.model_dir)
     if output_types is None:
       self._prediction_outputs = None
       self._loss_outputs = None
@@ -241,9 +250,6 @@ class KerasModel(Model):
       # The loss doesn't depend on any variables.
       self._train_op = 0
     self._custom_train_op = {}
-    if self.tensorboard:
-      self._summary_ops = tf.summary.scalar('loss', self._loss_tensor)
-      self._summary_writer = tf.summary.FileWriter(self.model_dir)
     self._init_new_vars()
 
   def _init_new_vars(self):
@@ -262,7 +268,8 @@ class KerasModel(Model):
           deterministic=False,
           restore=False,
           variables=None,
-          loss=None):
+          loss=None,
+          callbacks=[]):
     """Train this model on a dataset.
 
     Parameters
@@ -289,11 +296,15 @@ class KerasModel(Model):
       a function of the form f(outputs, labels, weights) that computes the loss
       for each batch.  If None (the default), the model's standard loss function
       is used.
+    callbacks: function or list of functions
+      one or more functions of the form f(model, step) that will be invoked after
+      every step.  This can be used to perform validation, logging, etc.
    """
     return self.fit_generator(
         self.default_generator(
-            dataset, epochs=nb_epoch, deterministic=deterministic),
-        max_checkpoints_to_keep, checkpoint_interval, restore, variables, loss)
+            dataset, epochs=nb_epoch,
+            deterministic=deterministic), max_checkpoints_to_keep,
+        checkpoint_interval, restore, variables, loss, callbacks)
 
   def fit_generator(self,
                     generator,
@@ -301,7 +312,8 @@ class KerasModel(Model):
                     checkpoint_interval=1000,
                     restore=False,
                     variables=None,
-                    loss=None):
+                    loss=None,
+                    callbacks=[]):
     """Train this model on data from a generator.
 
     Parameters
@@ -324,11 +336,16 @@ class KerasModel(Model):
       a function of the form f(outputs, labels, weights) that computes the loss
       for each batch.  If None (the default), the model's standard loss function
       is used.
+    callbacks: function or list of functions
+      one or more functions of the form f(model, step) that will be invoked after
+      every step.  This can be used to perform validation, logging, etc.
 
     Returns
     -------
     the average loss over the most recent checkpoint interval
     """
+    if not isinstance(callbacks, Sequence):
+      callbacks = [callbacks]
     self._ensure_built()
     if checkpoint_interval > 0:
       manager = tf.train.CheckpointManager(self._checkpoint, self.model_dir,
@@ -346,10 +363,7 @@ class KerasModel(Model):
         self.restore()
         restore = False
       inputs, labels, weights = self._prepare_batch(batch)
-      self._tensorboard_step += 1
-      should_log = (
-          self.tensorboard and
-          self._tensorboard_step % self.tensorboard_log_frequency == 0)
+      self._current_summary = None
       if tf.executing_eagerly():
 
         # In eager mode we execute the loss function, accumulating the gradients.
@@ -365,7 +379,6 @@ class KerasModel(Model):
           if self._loss_outputs is not None:
             outputs = [outputs[i] for i in self._loss_outputs]
           batch_loss = loss(outputs, labels, weights)
-        avg_loss += batch_loss
         if variables is None:
           vars = self.model.trainable_variables
         else:
@@ -401,44 +414,58 @@ class KerasModel(Model):
                   loss_tensor, global_step=self._global_step, var_list=vars)
             train_op = self._custom_train_op[op_key]
         fetches = [train_op, self._loss_tensor, self._global_step]
-        if should_log:
-          fetches.append(self._summary_ops)
         feed_dict = dict(zip(self._input_placeholders, inputs))
         feed_dict.update(dict(zip(self._label_placeholders, labels)))
         feed_dict.update(dict(zip(self._weights_placeholders, weights)))
         fetched_values = self.session.run(fetches, feed_dict=feed_dict)
-        avg_loss += fetched_values[1]
+        batch_loss = fetched_values[1]
         current_step = fetched_values[2]
-        if should_log:
-          self._summary_writer.reopen()
-          self._summary_writer.add_summary(
-              fetched_values[3], global_step=current_step)
-          self._summary_writer.close()
+
+      avg_loss += batch_loss
 
       # Report progress and write checkpoints.
-
       averaged_batches += 1
-      if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
-        self._exec_with_session(lambda: manager.save())
+      should_log = (current_step % self.tensorboard_log_frequency == 0)
+      if should_log:
         avg_loss = float(avg_loss) / averaged_batches
-        print(
+        logger.info(
             'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
         avg_loss = 0.0
         averaged_batches = 0
 
+      if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
+        self._exec_with_session(lambda: manager.save())
+      for c in callbacks:
+        c(self, current_step)
+      if self.tensorboard and should_log:
+        self._log_value_to_tensorboard(tag='loss', simple_value=batch_loss)
+        self._summary_writer.reopen()
+        self._summary_writer.add_summary(self._current_summary, current_step)
+        self._summary_writer.close()
+
     # Report final results.
+    if averaged_batches > 0:
+      avg_loss = float(avg_loss) / averaged_batches
+      logger.info(
+          'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
 
     if checkpoint_interval > 0:
-      if averaged_batches > 0:
-        avg_loss = float(avg_loss) / averaged_batches
-        print(
-            'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
       self._exec_with_session(lambda: manager.save())
-      time2 = time.time()
-      print("TIMING: model fitting took %0.3f s" % (time2 - time1))
+
+    time2 = time.time()
+    logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return avg_loss
 
-  def fit_on_batch(self, X, y, w, variables=None, loss=None):
+  def _log_value_to_tensorboard(self, **kwargs):
+    """This can be called during fitting to log a value to Tensorboard.
+
+    Any keyword arguments passed to this method are passed on to summary.value.add().
+    """
+    if self._current_summary is None:
+      self._current_summary = tf.Summary()
+    self._current_summary.value.add(**kwargs)
+
+  def fit_on_batch(self, X, y, w, variables=None, loss=None, callbacks=[]):
     """Perform a single step of training.
 
     Parameters
@@ -456,11 +483,19 @@ class KerasModel(Model):
       a function of the form f(outputs, labels, weights) that computes the loss
       for each batch.  If None (the default), the model's standard loss function
       is used.
+    callbacks: function or list of functions
+      one or more functions of the form f(model, step) that will be invoked after
+      every step.  This can be used to perform validation, logging, etc.
    """
     if not self.built:
       self.build()
     dataset = NumpyDataset(X, y, w)
-    return self.fit(dataset, nb_epoch=1, variables=variables, loss=loss)
+    return self.fit(
+        dataset,
+        nb_epoch=1,
+        variables=variables,
+        loss=loss,
+        callbacks=callbacks)
 
   def _predict(self, generator, transformers, outputs, uncertainty):
     """
@@ -898,7 +933,7 @@ class KerasModel(Model):
           pad_batches=pad_batches):
         yield ([X_b], [y_b], [w_b])
 
-  def save_checkpoint(self, max_checkpoints_to_keep=5):
+  def save_checkpoint(self, max_checkpoints_to_keep=5, model_dir=None):
     """Save a checkpoint to disk.
 
     Usually you do not need to call this method, since fit() saves checkpoints
@@ -909,9 +944,15 @@ class KerasModel(Model):
     ----------
     max_checkpoints_to_keep: int
       the maximum number of checkpoints to keep.  Older checkpoints are discarded.
+    model_dir: str, default None
+      Model directory to save checkpoint to. If None, revert to self.model_dir
     """
     self._ensure_built()
-    manager = tf.train.CheckpointManager(self._checkpoint, self.model_dir,
+    if model_dir is None:
+      model_dir = self.model_dir
+    if not os.path.exists(model_dir):
+      os.makedirs(model_dir)
+    manager = tf.train.CheckpointManager(self._checkpoint, model_dir,
                                          max_checkpoints_to_keep)
     self._exec_with_session(lambda: manager.save())
 
@@ -922,12 +963,20 @@ class KerasModel(Model):
       with self.session.as_default():
         f()
 
-  def get_checkpoints(self):
-    """Get a list of all available checkpoint files."""
-    return tf.train.get_checkpoint_state(
-        self.model_dir).all_model_checkpoint_paths
+  def get_checkpoints(self, model_dir=None):
+    """Get a list of all available checkpoint files.
 
-  def restore(self, checkpoint=None):
+    Parameters
+    ----------
+    model_dir: str, default None
+      Directory to get list of checkpoints from. Reverts to self.model_dir if None
+
+    """
+    if model_dir is None:
+      model_dir = self.model_dir
+    return tf.train.get_checkpoint_state(model_dir).all_model_checkpoint_paths
+
+  def restore(self, checkpoint=None, model_dir=None):
     """Reload the values of all variables from a checkpoint file.
 
     Parameters
@@ -936,10 +985,14 @@ class KerasModel(Model):
       the path to the checkpoint file to load.  If this is None, the most recent
       checkpoint will be chosen automatically.  Call get_checkpoints() to get a
       list of all available checkpoints.
+    model_dir: str, default None
+      Directory to restore checkpoint from. If None, use self.model_dir.
     """
     self._ensure_built()
+    if model_dir is None:
+      model_dir = self.model_dir
     if checkpoint is None:
-      checkpoint = tf.train.latest_checkpoint(self.model_dir)
+      checkpoint = tf.train.latest_checkpoint(model_dir)
     if checkpoint is None:
       raise ValueError('No checkpoint found')
     if tf.executing_eagerly():
@@ -975,5 +1028,6 @@ class _StandardLoss(object):
         shape = w.shape
       shape = tuple(-1 if x is None else x for x in shape)
       w = tf.reshape(w, shape + (1,) * (len(losses.shape) - len(w.shape)))
+
     loss = losses * w
     return tf.reduce_mean(loss) + sum(self.model.losses)
