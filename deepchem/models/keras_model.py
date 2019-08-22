@@ -976,7 +976,7 @@ class KerasModel(Model):
       model_dir = self.model_dir
     return tf.train.get_checkpoint_state(model_dir).all_model_checkpoint_paths
 
-  def restore(self, checkpoint=None, model_dir=None):
+  def restore(self, checkpoint=None, model_dir=None, session=None):
     """Reload the values of all variables from a checkpoint file.
 
     Parameters
@@ -987,6 +987,8 @@ class KerasModel(Model):
       list of all available checkpoints.
     model_dir: str, default None
       Directory to restore checkpoint from. If None, use self.model_dir.
+    session: tf.Session(), default None
+      Session to run restore ops under. If None, self.session is used.
     """
     self._ensure_built()
     if model_dir is None:
@@ -998,13 +1000,144 @@ class KerasModel(Model):
     if tf.executing_eagerly():
       self._checkpoint.restore(checkpoint)
     else:
-      self._checkpoint.restore(checkpoint).run_restore_ops(self.session)
+      if session is None:
+        session = self.session
+      self._checkpoint.restore(checkpoint).run_restore_ops(session)
 
   def get_global_step(self):
     """Get the number of steps of fitting that have been performed."""
     if tf.executing_eagerly():
       return int(self._global_step)
     return self._global_step.eval(session=self.session)
+
+  def _create_assignment_map(self, source_model, include_top=True, **kwargs):
+    """
+    Creates a default assignment map between variables of source and current model.
+    This is used only when a custom assignment map is missing. This assumes the
+    model is made of different layers followed by a dense layer for mapping to
+    output tasks. include_top is used to control whether or not the final dense
+    layer is used. The default assignment map is useful in cases where the type
+    of task is different (classification vs regression) and/or number of tasks.
+
+    Parameters
+    ----------
+    source_model: dc.models.KerasModel
+        Source model to copy variable values from.
+    include_top: bool, default True
+        if true, copies the last dense layer
+    """
+    assignment_map = {}
+    source_vars = source_model.model.trainable_variables
+    dest_vars = self.model.trainable_variables
+
+    if not include_top:
+      source_vars = source_vars[:-2]
+      dest_vars = dest_vars[:-2]
+
+    for source_var, dest_var in zip(source_vars, dest_vars):
+      assignment_map[source_var] = dest_var
+
+    return assignment_map
+
+  def _create_value_map(self, source_model, **kwargs):
+    """
+    Creates a value map between variables in the source model and their
+    current values. This is used only when a custom value map is missing, and
+    assumes the restore method has been called under self.session.
+
+    Parameters
+    ----------
+    source_model: dc.models.KerasModel
+        Source model to create value map from
+    """
+    value_map = {}
+    source_vars = source_model.model.trainable_variables
+
+    if tf.executing_eagerly():
+      for source_var in source_vars:
+        value_map[source_var] = source_var.numpy()
+    else:
+      for source_var in source_vars:
+        # self.session is used because restore was called in the same session
+        value_map[source_var] = source_var.eval(session=self.session)
+
+    return value_map
+
+  def load_from_pretrained(self,
+                           source_model,
+                           assignment_map=None,
+                           value_map=None,
+                           checkpoint=None,
+                           model_dir=None,
+                           include_top=True,
+                           **kwargs):
+    """Copies variable values from a pretrained model. `source_model` can either
+    be a pretrained model or a model with the same architecture. `value_map`
+    is a variable-value dictionary. If no `value_map` is provided, the variable
+    values are restored to the `source_model` from a checkpoint and a default
+    `value_map` is created. `assignment_map` is a dictionary mapping variables
+    from the `source_model` to the current model. If no `assignment_map` is
+    provided, one is made from scratch and assumes the model is composed of
+    several different layers, with the final one being a dense layer. include_top
+    is used to control whether or not the final dense layer is used. The default
+    assignment map is useful in cases where the type of task is different
+    (classification vs regression) and/or number of tasks in the setting.
+
+    Parameters
+    ----------
+    source_model: dc.KerasModel, required
+      source_model can either be the pretrained model or a dc.KerasModel with
+      the same architecture as the pretrained model. It is used to restore from
+      a checkpoint, if value_map is None and to create a default assignment map
+      if assignment_map is None
+    assignment_map: Dict, default None
+      Dictionary mapping the source_model variables and current model variables
+    value_map: Dict, default None
+      Dictionary containing source_model trainable variables mapped to numpy
+      arrays. If value_map is None, the values are restored and a default
+      variable map is created using the restored values
+    checkpoint: str, default None
+      the path to the checkpoint file to load.  If this is None, the most recent
+      checkpoint will be chosen automatically.  Call get_checkpoints() to get a
+      list of all available checkpoints
+    model_dir: str, default None
+      Restore model from custom model directory if needed
+    include_top: bool, default True
+        if True, copies the weights and bias associated with the final dense
+        layer. Used only when assignment map is None
+    """
+
+    self._ensure_built()
+    if value_map is None:
+      logger.info(
+          "No value map provided. Creating default value map from restored model."
+      )
+      if tf.executing_eagerly():
+        source_model.restore(model_dir=model_dir, checkpoint=checkpoint)
+      else:
+        source_model.restore(
+            model_dir=model_dir, checkpoint=checkpoint, session=self.session)
+      value_map = self._create_value_map(source_model=source_model)
+
+    if assignment_map is None:
+      logger.info("No assignment map provided. Creating custom assignment map.")
+      assignment_map = self._create_assignment_map(
+          source_model=source_model, include_top=include_top)
+
+    if tf.executing_eagerly():
+      for source_var, dest_var in assignment_map.items():
+        assert source_var.shape == dest_var.shape
+        dest_var.assign(value_map[source_var])
+
+    else:
+      with self.session.as_default():
+        for source_var, dest_var in assignment_map.items():
+          assert source_var.shape == dest_var.shape
+          assign_op = dest_var.assign(value_map[source_var])
+          self.session.run(assign_op)
+
+    dest_vars = list(assignment_map.values())
+    self._initialized_vars.update(set(dest_vars))
 
 
 class _StandardLoss(object):
