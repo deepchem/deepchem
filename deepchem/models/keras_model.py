@@ -1010,6 +1010,30 @@ class KerasModel(Model):
       return int(self._global_step)
     return self._global_step.eval(session=self.session)
 
+  def compute_loss(self, dataset, transformers):
+    """Computes loss on a given dataset.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset instance
+        Dataset to compute loss on
+    transformers: list
+        List of transformers applied on the dataset
+    """
+    if self.mode == "regression":
+      y = undo_transforms(dataset.y, transformers=transformers)
+    else:
+      y = to_one_hot(dataset.y.flatten(), self.n_classes).reshape(
+          -1, len(self.n_tasks), self.n_classes)
+    loss_fn = self._loss_fn
+
+    y_pred = self.predict(dataset, transformers=transformers)
+    loss_tensor = loss_fn([y_pred], [y], [dataset.w])
+    if tf.executing_eagerly():
+      return loss_tensor.numpy()
+    else:
+      return self.session.run(loss_tensor)
+
   def _create_assignment_map(self, source_model, include_top=True, **kwargs):
     """
     Creates a default assignment map between variables of source and current model.

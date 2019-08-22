@@ -117,7 +117,7 @@ def load_chembl25(featurizer="smiles2seq",
         char_to_idx=char_to_idx, max_len=max_len, pad_len=pad_len)
   elif featurizer == "smiles2img":
     img_size = kwargs.get("img_size", 80)
-    img_spec = kwargs.get("img_spec", "engd")
+    img_spec = kwargs.get("img_spec", "std")
     res = kwargs.get("res", 0.5)
     featurizer = SmilesToImage(img_size=img_size, img_spec=img_spec, res=res)
 
