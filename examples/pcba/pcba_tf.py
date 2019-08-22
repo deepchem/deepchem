@@ -16,7 +16,7 @@ from deepchem.metrics import Metric
 from deepchem.metrics import to_one_hot
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models import MultitaskClassifier
-from deepchem.models.tensorgraph.optimizers import ExponentialDecay
+from deepchem.models.optimizers import ExponentialDecay
 
 np.random.seed(123)
 

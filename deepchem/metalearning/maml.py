@@ -1,6 +1,6 @@
 """Model-Agnostic Meta-Learning (MAML) algorithm for low data learning."""
 
-from deepchem.models.tensorgraph.optimizers import Adam, GradientDescent
+from deepchem.models.optimizers import Adam, GradientDescent
 import numpy as np
 import os
 import shutil

@@ -9,7 +9,7 @@ import os
 import deepchem as dc
 import numpy as np
 from deepchem.molnet import load_qm7_from_mat
-from deepchem.models.tensorgraph.optimizers import ExponentialDecay
+from deepchem.models.optimizers import ExponentialDecay
 
 np.random.seed(123)
 qm7_tasks, datasets, transformers = load_qm7_from_mat(

@@ -1,7 +1,7 @@
 """Monte Carlo tree search algorithm for reinforcement learning."""
 
 from deepchem.models import TensorGraph
-from deepchem.models.tensorgraph.optimizers import Adam
+from deepchem.models.optimizers import Adam
 from deepchem.models.tensorgraph.layers import Feature, Weights, Label, Layer
 import numpy as np
 import tensorflow as tf
