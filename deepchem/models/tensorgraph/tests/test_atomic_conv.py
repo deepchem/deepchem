@@ -12,7 +12,7 @@ import numpy as np
 import tensorflow as tf
 import unittest
 import numpy as np
-from deepchem.models.tensorgraph.models import atomic_conv
+from deepchem.models import atomic_conv
 from deepchem.models.tensorgraph import layers
 from deepchem.data import NumpyDataset
 from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates

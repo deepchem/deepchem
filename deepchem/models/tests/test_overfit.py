@@ -19,7 +19,7 @@ import shutil
 import tensorflow as tf
 import deepchem as dc
 import scipy.io
-from deepchem.models.tensorgraph.optimizers import Adam, ExponentialDecay
+from deepchem.models.optimizers import Adam, ExponentialDecay
 from tensorflow.python.framework import test_util
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor

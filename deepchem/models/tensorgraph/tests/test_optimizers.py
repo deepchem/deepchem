@@ -1,4 +1,4 @@
-import deepchem.models.tensorgraph.optimizers as optimizers
+import deepchem.models.optimizers as optimizers
 import tensorflow as tf
 from tensorflow.python.framework import test_util
 

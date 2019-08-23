@@ -1,7 +1,7 @@
 """Asynchronous Advantage Actor-Critic (A3C) algorithm for reinforcement learning."""
 
 from deepchem.models import KerasModel
-from deepchem.models.tensorgraph.optimizers import Adam
+from deepchem.models.optimizers import Adam
 import numpy as np
 import tensorflow as tf
 import collections

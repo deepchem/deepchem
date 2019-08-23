@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 from deepchem.data import NumpyDataset
 from deepchem.models.losses import Loss
 from deepchem.models.models import Model
-from deepchem.models.tensorgraph.optimizers import Adam
+from deepchem.models.optimizers import Adam
 from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 

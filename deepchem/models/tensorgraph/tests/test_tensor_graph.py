@@ -15,7 +15,7 @@ from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, Reduc
 from deepchem.models.tensorgraph.layers import Feature, Label, Input
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference, Add, GRU
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
-from deepchem.models.tensorgraph.optimizers import GradientDescent, ExponentialDecay, Adam
+from deepchem.models.optimizers import GradientDescent, ExponentialDecay, Adam
 from tensorflow.python.eager import context
 
 

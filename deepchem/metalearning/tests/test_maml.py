@@ -52,7 +52,7 @@ class TestMAML(unittest.TestCase):
     # Optimize it.
 
     learner = SineLearner()
-    optimizer = dc.models.tensorgraph.optimizers.Adam(learning_rate=5e-3)
+    optimizer = dc.models.optimizers.Adam(learning_rate=5e-3)
     maml = dc.metalearning.MAML(learner, meta_batch_size=4, optimizer=optimizer)
     maml.fit(9000)
 
