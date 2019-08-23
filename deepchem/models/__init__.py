@@ -15,13 +15,13 @@ from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.fcnet import MultitaskRegressor
 from deepchem.models.fcnet import MultitaskClassifier
 from deepchem.models.fcnet import MultitaskFitTransformRegressor
-from deepchem.models.tensorgraph.IRV import TensorflowMultitaskIRVClassifier
+from deepchem.models.IRV import TensorflowMultitaskIRVClassifier
 from deepchem.models.robust_multitask import RobustMultitaskClassifier
 from deepchem.models.robust_multitask import RobustMultitaskRegressor
 from deepchem.models.progressive_multitask import ProgressiveMultitaskRegressor, ProgressiveMultitaskClassifier
-from deepchem.models.tensorgraph.models.graph_models import WeaveModel, DTNNModel, DAGModel, GraphConvModel, MPNNModel
+from deepchem.models.graph_models import WeaveModel, DTNNModel, DAGModel, GraphConvModel, MPNNModel
 from deepchem.models.tensorgraph.models.symmetry_function_regression import BPSymmetryFunctionRegression, ANIRegression
-from deepchem.models.tensorgraph.models.scscore import ScScoreModel
+from deepchem.models.scscore import ScScoreModel
 
 from deepchem.models.tensorgraph.models.seqtoseq import SeqToSeq
 from deepchem.models.tensorgraph.models.gan import GAN, WGAN
