@@ -78,7 +78,7 @@ class TestSeqToSeq(unittest.TestCase):
       tokens = tokens.union(set(c for c in s))
     tokens = sorted(list(tokens))
     max_length = max(len(s) for s in train_smiles) + 1
-    s = dc.models.tensorgraph.models.seqtoseq.AspuruGuzikAutoEncoder(
+    s = dc.models.seqtoseq.AspuruGuzikAutoEncoder(
         tokens, max_length)
 
     def generate_sequences(smiles, epochs):

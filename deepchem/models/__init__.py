@@ -23,9 +23,9 @@ from deepchem.models.graph_models import WeaveModel, DTNNModel, DAGModel, GraphC
 from deepchem.models.tensorgraph.models.symmetry_function_regression import BPSymmetryFunctionRegression, ANIRegression
 from deepchem.models.scscore import ScScoreModel
 
-from deepchem.models.tensorgraph.models.seqtoseq import SeqToSeq
-from deepchem.models.tensorgraph.models.gan import GAN, WGAN
-from deepchem.models.tensorgraph.models.text_cnn import TextCNNModel
+from deepchem.models.seqtoseq import SeqToSeq
+from deepchem.models.gan import GAN, WGAN
+from deepchem.models.text_cnn import TextCNNModel
 from deepchem.models.tensorgraph.sequential import Sequential
 from deepchem.models.tensorgraph.models.sequence_dnn import SequenceDNN
 from deepchem.models.tensorgraph.models.ontology import OntologyModel, OntologyNode, create_gene_ontology
@@ -34,5 +34,5 @@ from deepchem.models.tensorgraph.models.chemnet_models import Smiles2Vec, ChemCe
 
 #################### Compatibility imports for renamed TensorGraph models. Remove below with DeepChem 3.0. ####################
 
-from deepchem.models.tensorgraph.models.text_cnn import TextCNNTensorGraph
+from deepchem.models.text_cnn import TextCNNTensorGraph
 from deepchem.models.graph_models import WeaveTensorGraph, DTNNTensorGraph, DAGTensorGraph, GraphConvTensorGraph, MPNNTensorGraph

@@ -1,6 +1,6 @@
 import unittest
 from deepchem.models import TextCNNModel
-from deepchem.models.tensorgraph.models.text_cnn import default_dict
+from deepchem.models.text_cnn import default_dict
 
 
 class TestTextCNNModel(unittest.TestCase):
