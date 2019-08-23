@@ -35,4 +35,4 @@ from deepchem.models.tensorgraph.models.chemnet_models import Smiles2Vec, ChemCe
 #################### Compatibility imports for renamed TensorGraph models. Remove below with DeepChem 3.0. ####################
 
 from deepchem.models.tensorgraph.models.text_cnn import TextCNNTensorGraph
-from deepchem.models.tensorgraph.models.graph_models import WeaveTensorGraph, DTNNTensorGraph, DAGTensorGraph, GraphConvTensorGraph, MPNNTensorGraph
+from deepchem.models.graph_models import WeaveTensorGraph, DTNNTensorGraph, DAGTensorGraph, GraphConvTensorGraph, MPNNTensorGraph
