@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 import os
 import numpy as np
 import shutil
-from nci_datasets import load_nci
+from deepchem.molnet import load_nci
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestRegressor
 from deepchem.data import Dataset
@@ -23,28 +23,19 @@ np.random.seed(123)
 # Set some global variables up top
 verbosity = "high"
 
-base_dir = "/tmp/nci_rf"
-model_dir = os.path.join(base_dir, "model")
-if os.path.exists(base_dir):
-  shutil.rmtree(base_dir)
-os.makedirs(base_dir)
-
-nci_tasks, nci_dataset, transformers = load_nci(
-    base_dir)
+nci_tasks, nci_dataset, transformers = load_nci()
 
 (train_dataset, valid_dataset, test_dataset) = nci_dataset
 
 classification_metric = Metric(metrics.roc_auc_score, np.mean,
-                               verbosity=verbosity,
                                mode="classification")
 def model_builder(model_dir):
   sklearn_model = RandomForestRegressor(n_estimators=500)
   return SklearnModel(sklearn_model, model_dir)
-model = SingletaskToMultitask(nci_tasks, model_builder, model_dir)
+model = SingletaskToMultitask(nci_tasks, model_builder)
 
 # Fit trained model
 model.fit(train_dataset)
-model.save()
 
 train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=verbosity)
 train_scores = train_evaluator.compute_model_performance([classification_metric])
