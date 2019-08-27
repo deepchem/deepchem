@@ -41,7 +41,7 @@ def load_sweet(featurizer='ECFP',
       save_folder = os.path.join(save_folder, img_spec)
     save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = dc.utils.save.load_dataset_from_disk(
         save_folder)
     if loaded:
       return SWEET_tasks, all_dataset, transformers
@@ -58,6 +58,9 @@ def load_sweet(featurizer='ECFP',
   else:
     raise ValueError("Other featurizations not supported")
 
+  dataset_file = os.path.join(data_dir, "sweet.csv.gz")
+  if not os.path.exists(dataset_file):
+    dc.utils.download_url(SWEETLEAD_URL)
   loader = dc.data.CSVLoader(
       tasks=SWEET_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
