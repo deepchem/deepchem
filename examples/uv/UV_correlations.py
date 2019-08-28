@@ -16,13 +16,12 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
-from UV_datasets import load_uv
 
 ###Load data###
 np.random.seed(123)
 shard_size = 2000
 print("About to load UV data.")
-UV_tasks, datasets, transformers = load_uv(shard_size=shard_size)
+UV_tasks, datasets, transformers = dc.molnet.load_uv(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
 
 y_train = train_dataset.y
@@ -40,8 +39,13 @@ for task in range(n_tasks):
     all_results.append(r2)
 
 # the histogram of the data
-n, bins, patches = plt.hist(np.array(all_results), 50, normed=True, stacked=True,
-                            facecolor='green', alpha=0.75)
+n, bins, patches = plt.hist(
+    np.array(all_results),
+    50,
+    normed=True,
+    stacked=True,
+    facecolor='green',
+    alpha=0.75)
 plt.xlabel('Cross-task Correlations')
 plt.ylabel('Probability Density')
 plt.title('Histogram of UV Intertask Correlations')
