@@ -195,7 +195,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
     model = dc.models.MultitaskFitTransformRegressor(
         n_tasks, [n_features, n_features],
-        dropouts=[0.],
+        dropouts=[0.01],
         weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
         batch_size=n_samples,
         fit_transformers=fit_transformers,

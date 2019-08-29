@@ -33,7 +33,6 @@ model = dc.models.MultitaskFitTransformRegressor(
     layer_sizes=[400, 100, 100],
     dropouts=[0.01, 0.01, 0.01],
     fit_transformers=fit_transformers,
-    n_evals=10,
     seed=123)
 
 # Fit trained model

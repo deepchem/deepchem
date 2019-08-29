@@ -29,12 +29,10 @@ model = dc.models.MultitaskFitTransformRegressor(
     layer_sizes=[400, 100, 100],
     dropouts=[0.01, 0.01, 0.01],
     fit_transformers=fit_transformers,
-    n_evals=10,
     seed=123)
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=50)
-model.save()
 
 train_scores = model.evaluate(train_dataset, regression_metric, transformers)
 print("Train scores [kcal/mol]")
