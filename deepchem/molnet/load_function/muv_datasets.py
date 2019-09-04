@@ -46,7 +46,7 @@ def load_muv(featurizer='ECFP',
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
         save_folder)
     if loaded:
-      return muv_tasks, all_dataset, transformers
+      return MUV_tasks, all_dataset, transformers
 
   dataset_file = os.path.join(data_dir, "muv.csv.gz")
   if not os.path.exists(dataset_file):

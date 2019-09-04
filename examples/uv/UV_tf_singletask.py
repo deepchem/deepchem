@@ -10,14 +10,13 @@ import numpy as np
 import tempfile
 import shutil
 import deepchem as dc
-from UV_datasets import load_uv
 
 ###Load data###
 shard_size = 2000
 num_trials = 1
 
 print("About to load UV data.")
-UV_tasks, datasets, transformers = load_uv(shard_size=shard_size)
+UV_tasks, datasets, transformers = dc.molnet.load_uv(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
 
 print("Number of compounds in train set")

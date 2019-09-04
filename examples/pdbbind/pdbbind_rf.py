@@ -24,16 +24,12 @@ train_dataset, valid_dataset, test_dataset = pdbbind_datasets
 
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
 
-current_dir = os.path.dirname(os.path.realpath(__file__))
-model_dir = os.path.join(current_dir, "%s_%s_RF" % (split, subset))
-
 sklearn_model = RandomForestRegressor(n_estimators=500)
-model = dc.models.SklearnModel(sklearn_model, model_dir=model_dir)
+model = dc.models.SklearnModel(sklearn_model)
 
 # Fit trained model
 print("Fitting model on train dataset")
 model.fit(train_dataset)
-model.save()
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, [metric], transformers)

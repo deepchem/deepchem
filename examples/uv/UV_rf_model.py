@@ -11,14 +11,13 @@ import tempfile
 import shutil
 import deepchem as dc
 from sklearn.ensemble import RandomForestRegressor
-from UV_datasets import load_uv
 
 ###Load data###
 np.random.seed(123)
 shard_size = 2000
 num_trials = 5
 print("About to load UV data.")
-UV_tasks, datasets, transformers = load_uv(shard_size=shard_size)
+UV_tasks, datasets, transformers = dc.molnet.load_uv(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
 ####################################################### DEBUG
 print("np.amin(train_dataset.y)")
@@ -39,11 +38,15 @@ print("Num features: %d" % num_features)
 
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)
 
+
 def task_model_builder(model_dir):
   sklearn_model = RandomForestRegressor(
-      n_estimators=100, max_features=int(num_features/3),
-      min_samples_split=5, n_jobs=-1)
+      n_estimators=100,
+      max_features=int(num_features / 3),
+      min_samples_split=5,
+      n_jobs=-1)
   return dc.models.SklearnModel(sklearn_model, model_dir)
+
 
 all_results = []
 for trial in range(num_trials):
@@ -61,9 +64,8 @@ for trial in range(num_trials):
   test_score, test_task_scores = model.evaluate(
       test_dataset, [metric], transformers, per_task_metrics=True)
 
-  all_results.append((train_score, train_task_scores,
-                      valid_score, valid_task_scores,
-                      test_score, test_task_scores))
+  all_results.append((train_score, train_task_scores, valid_score,
+                      valid_task_scores, test_score, test_task_scores))
 
   print("----------------------------------------------------------------")
   print("Scores for trial %d" % trial)
@@ -84,8 +86,8 @@ for trial in range(num_trials):
 print("####################################################################")
 
 for trial in range(num_trials):
-  (train_score, train_task_scores, valid_score, valid_task_scores,
-   test_score, test_task_scores) = all_results[trial]
+  (train_score, train_task_scores, valid_score, valid_task_scores, test_score,
+   test_task_scores) = all_results[trial]
   print("----------------------------------------------------------------")
   print("Scores for trial %d" % trial)
   print("----------------------------------------------------------------")

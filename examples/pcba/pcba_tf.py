@@ -37,7 +37,6 @@ model = MultitaskClassifier(
 
 # Fit trained model
 model.fit(train_dataset)
-model.save()
 
 train_evaluator = Evaluator(model, train_dataset, transformers)
 train_scores = train_evaluator.compute_model_performance([metric])

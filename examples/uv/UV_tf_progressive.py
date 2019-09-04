@@ -11,17 +11,14 @@ import tempfile
 import shutil
 import numpy as np
 import deepchem as dc
-from MERCK_datasets import load_uv
 
 # Set numpy seed
 np.random.seed(123)
 
 ###Load data###
 shard_size = 2000
-num_shards_per_batch = 4
 print("About to load MERCK data.")
-UV_tasks, datasets, transformers = load_uv(
-    shard_size=shard_size, num_shards_per_batch=num_shards_per_batch)
+UV_tasks, datasets, transformers = dc.molnet.load_uv(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
 
 print("Number of compounds in train set")

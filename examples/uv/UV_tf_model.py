@@ -11,13 +11,12 @@ import tempfile
 import shutil
 import numpy as np
 import deepchem as dc
-from UV_datasets import load_uv
 
 ###Load data###
 shard_size = 2000
 num_trials = 2
 print("About to load UV data.")
-UV_tasks, datasets, transformers = load_uv(shard_size=shard_size)
+UV_tasks, datasets, transformers = dc.molnet.load_uv(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
 
 print("Number of compounds in train set")
@@ -32,7 +31,7 @@ for trial in range(num_trials):
   ###Create model###
   n_layers = 3
   nb_epoch = 50
-  model = dc.models.TensorflowMultitaskRegressor(
+  model = dc.models.MultitaskRegressor(
       len(UV_tasks),
       train_dataset.get_data_shape()[0],
       layer_sizes=[1000] * n_layers,
@@ -42,7 +41,6 @@ for trial in range(num_trials):
       learning_rate=.0003,
       penalty=.0001,
       penalty_type="l2",
-      optimizer="adam",
       batch_size=100,
       logdir="UV_tf_model")
 

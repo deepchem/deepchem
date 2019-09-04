@@ -299,7 +299,7 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
   >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
   >>> model = dc.models.MultitaskFitTransformRegressor(n_tasks, [n_features, n_features],
   ...     dropouts=[0.], learning_rate=0.003, weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
-  ...     batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
+  ...     batch_size=n_samples, fit_transformers=fit_transformers)
   >>> model.n_features
   12
   """
@@ -308,7 +308,6 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
                n_tasks,
                n_features,
                fit_transformers=[],
-               n_evals=1,
                batch_size=50,
                **kwargs):
     """Create a MultitaskFitTransformRegressor.
@@ -324,11 +323,8 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
       number of features
     fit_transformers: list
       List of dc.trans.FitTransformer objects
-    n_evals: int
-      Number of evalations per example at predict time
     """
     self.fit_transformers = fit_transformers
-    self.n_evals = n_evals
 
     # Run fit transformers on dummy dataset to determine n_features after transformation
 
@@ -362,17 +358,20 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
           if mode == 'fit':
             for transformer in self.fit_transformers:
               X_b = transformer.X_transform(X_b)
-        yield ([X_b], [y_b], [w_b])
+        if mode == 'predict':
+          dropout = np.array(0.0)
+        else:
+          dropout = np.array(1.0)
+        yield ([X_b, dropout], [y_b], [w_b])
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
 
     def transform_generator():
       for inputs, labels, weights in generator:
-        for i in range(self.n_evals):
-          X_t = inputs[0]
-          for transformer in self.fit_transformers:
-            X_t = transformer.X_transform(X_t)
-          yield ([X_t], labels, weights)
+        X_t = inputs[0]
+        for transformer in self.fit_transformers:
+          X_t = transformer.X_transform(X_t)
+        yield ([X_t] + inputs[1:], labels, weights)
 
     return super(MultitaskFitTransformRegressor, self).predict_on_generator(
         transform_generator(), transformers, outputs)

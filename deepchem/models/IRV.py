@@ -118,8 +118,8 @@ class TensorflowMultitaskIRVClassifier(KerasModel):
     outputs = layers.Stack(axis=1)(outputs)
     outputs2 = Lambda(lambda x: 1 - x)(outputs)
     outputs = [
-        Concatenate(axis=2)([outputs2, outputs]),
-        Concatenate(axis=1)(logits)
+        Concatenate(axis=2)([outputs2, outputs]), logits[0]
+        if len(logits) == 1 else Concatenate(axis=1)(logits)
     ]
     model = tf.keras.Model(inputs=[mol_features], outputs=outputs)
     super(TensorflowMultitaskIRVClassifier, self).__init__(
