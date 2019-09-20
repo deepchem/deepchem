@@ -649,6 +649,8 @@ class DiskDataset(Dataset):
 
   def move(self, new_data_dir):
     """Moves dataset to new directory."""
+    if os.path.isdir(new_data_dir):
+      shutil.rmtree(new_data_dir)
     shutil.move(self.data_dir, new_data_dir)
     self.data_dir = new_data_dir
 
