@@ -80,11 +80,6 @@ class TestDeepchemBuild(unittest.TestCase):
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
 
-    model = TensorGraph.load_from_dir(model.model_dir)
-    scores2 = model.evaluate(dataset, [metric], transformers)
-    assert np.allclose(scores['mean-roc_auc_score'],
-                       scores2['mean-roc_auc_score'])
-
 
 if __name__ == '__main__':
   unittest.main()
