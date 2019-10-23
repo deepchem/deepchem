@@ -51,11 +51,11 @@ pip3 install joblib pandas sklearn tensorflow pillow deepchem
 ### Easy Install via Conda
 
 ```bash
-conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=2.2.0
+conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=2.3.0
 ```
 If you want GPU support:
 ```bash
-conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu=2.2.0
+conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu=2.3.0
 ```
 
 **Note:** The above commands install the latest stable version of `deepchem` and _do not install from source_. If you need to install from source make sure you follow the steps [here](#using-a-conda-environment).
