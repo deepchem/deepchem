@@ -765,9 +765,9 @@ class VinaFreeEnergy(tf.keras.layers.Layer):
 
   def hydrogen_bond(self, d):
     """Computes Autodock Vina's hydrogen bond interaction term."""
-    out_tensor = tf.where(d < -0.7, tf.ones_like(d),
-                          tf.where(d < 0, (1.0 / 0.7) * (0 - d),
-                                   tf.zeros_like(d)))
+    out_tensor = tf.where(
+        d < -0.7, tf.ones_like(d),
+        tf.where(d < 0, (1.0 / 0.7) * (0 - d), tf.zeros_like(d)))
     return out_tensor
 
   def gaussian_first(self, d):
@@ -2233,9 +2233,8 @@ class DTNNStep(tf.keras.layers.Layer):
     distance_membership_j = inputs[3]
     distance_hidden = tf.matmul(distance, self.W_df) + self.b_df
     atom_features_hidden = tf.matmul(atom_features, self.W_cf) + self.b_cf
-    outputs = tf.multiply(distance_hidden,
-                          tf.gather(atom_features_hidden,
-                                    distance_membership_j))
+    outputs = tf.multiply(
+        distance_hidden, tf.gather(atom_features_hidden, distance_membership_j))
 
     # for atom i in a molecule m, this step multiplies together distance info of atom pair(i,j)
     # and embeddings of atom j(both gone through a hidden layer)
