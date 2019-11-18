@@ -14,6 +14,13 @@ class InteratomicL2Distances(tf.keras.layers.Layer):
     self.M_nbrs = M_nbrs
     self.ndim = ndim
 
+  def get_config(self):
+    config = super(InteratomicL2Distances, self).get_config()
+    config['N_atoms'] = self.N_atoms
+    config['M_nbrs'] = self.M_nbrs
+    config['ndim'] = self.ndim
+    return config
+
   def call(self, inputs):
     if len(inputs) != 2:
       raise ValueError("InteratomicDistances requires coords,nbr_list")
@@ -60,6 +67,14 @@ class GraphConv(tf.keras.layers.Layer):
             trainable=True) for k in range(num_deg)
     ]
     self.built = True
+
+  def get_config(self):
+    config = super(GraphConv, self).get_config()
+    config['out_channel'] = self.out_channel
+    config['min_deg'] = self.min_degree
+    config['max_deg'] = self.max_degree
+    config['activation_fn'] = self.activation_fn
+    return config
 
   def call(self, inputs):
 
@@ -137,6 +152,12 @@ class GraphPool(tf.keras.layers.Layer):
     self.min_degree = min_degree
     self.max_degree = max_degree
 
+  def get_config(self):
+    config = super(GraphPool, self).get_config()
+    config['min_degree'] = self.min_degree
+    config['max_degree'] = self.max_degree
+    return config
+
   def call(self, inputs):
     atom_features = inputs[0]
     deg_slice = inputs[1]
@@ -181,6 +202,12 @@ class GraphGather(tf.keras.layers.Layer):
     super(GraphGather, self).__init__(**kwargs)
     self.batch_size = batch_size
     self.activation_fn = activation_fn
+
+  def get_config(self):
+    config = super(GraphGather, self).get_config()
+    config['batch_size'] = self.batch_size
+    config['activation_fn'] = self.activation_fn
+    return config
 
   def call(self, inputs):
     # x = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
@@ -244,6 +271,16 @@ class LSTMStep(tf.keras.layers.Layer):
     self.activation = activation_fn
     self.inner_activation = inner_activation_fn
     self.input_dim = input_dim
+
+  def get_config(self):
+    config = super(LSTMStep, self).get_config()
+    config['output_dim'] = self.output_dim
+    config['input_dim'] = self.input_dim
+    config['init_fn'] = self.init
+    config['inner_init_fn'] = self.inner_init
+    config['activation_fn'] = self.activation
+    config['inner_activation_fn'] = self.inner_activation
+    return config
 
   def get_initial_states(self, input_shape):
     return [model_ops.zeros(input_shape), model_ops.zeros(input_shape)]
@@ -352,6 +389,14 @@ class AttnLSTMEmbedding(tf.keras.layers.Layer):
     self.n_support = n_support
     self.n_feat = n_feat
 
+  def get_config(self):
+    config = super(AttnLSTMEmbdding, self).get_config()
+    config['n_test'] = self.n_test
+    config['n_support'] = self.n_support
+    config['n_feat'] = self.n_feat
+    config['max_depth'] = self.max_depth
+    return config
+
   def build(self, input_shape):
     n_feat = self.n_feat
     self.lstm = LSTMStep(n_feat, 2 * n_feat)
@@ -434,6 +479,14 @@ class IterRefLSTMEmbedding(tf.keras.layers.Layer):
     self.n_test = n_test
     self.n_support = n_support
     self.n_feat = n_feat
+
+  def get_config(self):
+    config = super(IterRefLSTMEmbedding, self).get_config()
+    config['n_test'] = self.n_test
+    config['n_support'] = self.n_support
+    config['n_feat'] = self.n_feat
+    config['max_depth'] = self.max_depth
+    return config
 
   def build(self, input_shape):
     n_feat = self.n_feat
@@ -520,6 +573,11 @@ class SwitchedDropout(tf.keras.layers.Layer):
     self.rate = rate
     super(SwitchedDropout, self).__init__(**kwargs)
 
+  def get_config(self):
+    config = super(SwitchedDropout, self).get_config()
+    config['rate'] = self.rate
+    return config
+
   def call(self, inputs):
     rate = self.rate * tf.squeeze(inputs[1])
     return tf.nn.dropout(inputs[0], rate=rate)
@@ -531,6 +589,11 @@ class WeightedLinearCombo(tf.keras.layers.Layer):
   def __init__(self, std=0.3, **kwargs):
     super(WeightedLinearCombo, self).__init__(**kwargs)
     self.std = std
+
+  def get_config(self):
+    config = super(WeightedLinearCombo, self).get_config()
+    config['std'] = self.std
+    return config
 
   def build(self, input_shape):
     init = tf.keras.initializers.RandomNormal(stddev=self.std)
@@ -571,6 +634,13 @@ class CombineMeanStd(tf.keras.layers.Layer):
     """
     super(CombineMeanStd, self).__init__(**kwargs)
     self.training_only = training_only
+    self.noise_epsilon = noise_epsilon
+
+  def get_config(self):
+    config = super(CombineMeanStd, self).get_config()
+    config['training_only'] = self.training_only
+    config['noise_epsilon'] = self.noise_epsilon
+    return config
 
   def call(self, inputs, training=True):
     if len(inputs) != 2:
@@ -591,6 +661,11 @@ class Stack(tf.keras.layers.Layer):
     super(Stack, self).__init__(**kwargs)
     self.axis = axis
 
+  def get_config(self):
+    config = super(Stack, self).get_config()
+    config['axis'] = self.axis
+    return config
+
   def call(self, inputs):
     return tf.stack(inputs, axis=self.axis)
 
@@ -608,6 +683,11 @@ class Variable(tf.keras.layers.Layer):
     """
     super(Variable, self).__init__(**kwargs)
     self.initial_value = initial_value
+
+  def get_config(self):
+    config = super(Variable, self).get_config()
+    config['initial_value'] = self.initial_value
+    return config
 
   def build(self, input_shape):
     self.var = tf.Variable(self.initial_value, dtype=self.dtype)
@@ -646,6 +726,18 @@ class VinaFreeEnergy(tf.keras.layers.Layer):
     self.start = start
     self.stop = stop
 
+  def get_config(self):
+    config = super(VinaFreeEnergy, self).get_config()
+    config['N_atoms'] = self.N_atoms
+    config['M_nbrs'] = self.M_nbrs
+    config['ndim'] = self.ndim
+    config['nbr_cutoff'] = self.nbf_cutoff
+    config['start'] = self.start
+    config['stop'] = self.stop
+    config['stddev'] = self.stddev
+    config['Nrot'] = self.Nrot
+    return config
+
   def build(self, input_shape):
     self.weighted_combo = WeightedLinearCombo()
     self.w = tf.Variable(tf.random_normal((1,), stddev=self.stddev))
@@ -673,9 +765,9 @@ class VinaFreeEnergy(tf.keras.layers.Layer):
 
   def hydrogen_bond(self, d):
     """Computes Autodock Vina's hydrogen bond interaction term."""
-    out_tensor = tf.where(
-        d < -0.7, tf.ones_like(d),
-        tf.where(d < 0, (1.0 / 0.7) * (0 - d), tf.zeros_like(d)))
+    out_tensor = tf.where(d < -0.7, tf.ones_like(d),
+                          tf.where(d < 0, (1.0 / 0.7) * (0 - d),
+                                   tf.zeros_like(d)))
     return out_tensor
 
   def gaussian_first(self, d):
@@ -764,6 +856,16 @@ class NeighborList(tf.keras.layers.Layer):
     self.nbr_cutoff = nbr_cutoff
     self.start = start
     self.stop = stop
+
+  def get_config(self):
+    config = super(NeighborList, self).get_config()
+    config['N_atoms'] = self.N_atoms
+    config['M_nbrs'] = self.M_nbrs
+    config['ndim'] = self.ndim
+    config['nbr_cutoff'] = self.nbf_cutoff
+    config['start'] = self.start
+    config['stop'] = self.stop
+    return config
 
   def call(self, inputs):
     if isinstance(inputs, collections.Sequence):
@@ -1038,6 +1140,13 @@ class AtomicConvolution(tf.keras.layers.Layer):
     self.radial_params = radial_params
     self.atom_types = atom_types
 
+  def get_config(self):
+    config = super(AtomicConvolution, self).get_config()
+    config['atom_types'] = self.atom_types
+    config['radial_params'] = self.radial_params
+    config['boxsize'] = self.boxsize
+    return config
+
   def build(self, input_shape):
     vars = []
     for i in range(3):
@@ -1237,6 +1346,10 @@ class AlphaShareLayer(tf.keras.layers.Layer):
   def __init__(self, **kwargs):
     super(AlphaShareLayer, self).__init__(**kwargs)
 
+  def get_config(self):
+    config = super(AlphaShareLayer, self).get_config()
+    return config
+
   def build(self, input_shape):
     n_alphas = 2 * len(input_shape)
     self.alphas = tf.Variable(
@@ -1283,6 +1396,10 @@ class SluiceLoss(tf.keras.layers.Layer):
   def __init__(self, **kwargs):
     super(SluiceLoss, self).__init__(**kwargs)
 
+  def get_config(self):
+    config = super(SluiceLoss, self).get_config()
+    return config
+
   def call(self, inputs):
     temp = []
     subspaces = []
@@ -1316,6 +1433,10 @@ class BetaShare(tf.keras.layers.Layer):
 
   def __init__(self, **kwargs):
     super(BetaShare, self).__init__(**kwargs)
+
+  def get_config(self):
+    config = super(BetaShare, self).get_config()
+    return config
 
   def build(self, input_shape):
     n_betas = len(input_shape)
@@ -1361,6 +1482,18 @@ class ANIFeat(tf.keras.layers.Layer):
     self.atom_cases = atom_cases
     self.atomic_number_differentiated = atomic_number_differentiated
     self.coordinates_in_bohr = coordinates_in_bohr
+
+  def get_config(self):
+    config = super(ANIFeat, self).get_config()
+    config['max_atoms'] = self.max_atoms
+    config['radial_cutoff'] = self.radial_cutoff
+    config['angular_cutoff'] = self.angular_cutoff
+    config['radial_length'] = self.radial_length
+    config['angular_length'] = self.angular_length
+    config['atom_cases'] = self.atom_cases
+    config['atomic_number_differentiated'] = self.atomic_number_differentiated
+    config['coordinates_in_bohr'] = self.coordinates_in_bohr
+    return config
 
   def call(self, inputs):
     """In layers should be of shape dtype tf.float32, (None, self.max_atoms, 4)"""
@@ -1527,6 +1660,11 @@ class GraphEmbedPoolLayer(tf.keras.layers.Layer):
     self.num_vertices = num_vertices
     super(GraphEmbedPoolLayer, self).__init__(**kwargs)
 
+  def get_config(self):
+    config = super(GraphEmbedPoolLayer, self).get_config()
+    config['num_vertices'] = self.num_vertices
+    return config
+
   def build(self, input_shape):
     no_features = int(input_shape[0][-1])
     self.W = tf.Variable(
@@ -1638,6 +1776,11 @@ class GraphCNN(tf.keras.layers.Layer):
     super(GraphCNN, self).__init__(**kwargs)
     self.num_filters = num_filters
 
+  def get_config(self):
+    config = super(GraphCNN, self).get_config()
+    config['num_filters'] = self.num_filters
+    return config
+
   def build(self, input_shape):
     no_features = int(input_shape[0][2])
     no_A = int(input_shape[1][2])
@@ -1721,6 +1864,13 @@ class Highway(tf.keras.layers.Layer):
     self.biases_initializer = biases_initializer
     self.weights_initializer = weights_initializer
 
+  def get_config(self):
+    config = super(Highway, self).get_config()
+    config['activation_fn'] = self.activation_fn
+    config['biases_initializer'] = self.biases_initializer
+    config['weights_initializer'] = self.weights_initializer
+    return config
+
   def build(self, input_shape):
     if isinstance(input_shape, collections.Sequence):
       input_shape = input_shape[0]
@@ -1803,6 +1953,21 @@ class WeaveLayer(tf.keras.layers.Layer):
     self.n_atom_output_feat = n_atom_output_feat
     self.n_pair_output_feat = n_pair_output_feat
     self.W_AP, self.b_AP, self.W_PP, self.b_PP, self.W_P, self.b_P = None, None, None, None, None, None
+
+  def get_config(self):
+    config = super(WeaveLayer, self).get_config()
+    config['n_atom_input_feat'] = self.n_atom_input_feat
+    config['n_pair_input_feat'] = self.n_pair_input_feat
+    config['n_atom_output_feat'] = self.n_atom_output_feat
+    config['n_pair_output_feat'] = self.n_pair_output_feat
+    config['n_hidden_AA'] = self.n_hidden_AA
+    config['n_hidden_PA'] = self.n_hidden_PA
+    config['n_hidden_AP'] = self.n_hidden_AP
+    config['n_hidden_PP'] = self.n_hidden_PP
+    config['update_pair'] = self.update_pair
+    config['init'] = self.init
+    config['activation'] = self.activation.__name__.lower()
+    return config
 
   def build(self, input_shape):
     """ Construct internal trainable weights."""
@@ -1916,6 +2081,17 @@ class WeaveGather(tf.keras.layers.Layer):
     self.epsilon = epsilon
     self.momentum = momentum
 
+  def get_config(self):
+    config = super(WeaveGather, self).get_config()
+    config['batch_size'] = self.batch_size
+    config['n_input'] = self.n_input
+    config['gaussian_expand'] = self.gaussian_expand
+    config['init'] = self.init.__name__.lower()
+    config['activation'] = self.activation.__name__.lower()
+    config['epsilon'] = self.epsilon
+    config['momentum'] = self.momentum
+    return config
+
   def build(self, input_shape):
     if self.gaussian_expand:
       self.W = self.init([self.n_input * 11, self.n_input])
@@ -1976,6 +2152,13 @@ class DTNNEmbedding(tf.keras.layers.Layer):
     self.periodic_table_length = periodic_table_length
     self.init = initializations.get(init)  # Set weight initialization
 
+  def get_config(self):
+    config = super(DTNNEmbedding, self).get_config()
+    config['n_embedding'] = self.n_embedding
+    config['periodic_table_length'] = self.periodic_table_length
+    config['init'] = self.init
+    return config
+
   def build(self, input_shape):
     self.embedding_list = self.init(
         [self.periodic_table_length, self.n_embedding])
@@ -2019,6 +2202,15 @@ class DTNNStep(tf.keras.layers.Layer):
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
 
+  def get_config(self):
+    config = super(DTNNStep, self).get_config()
+    config['n_embedding'] = self.n_embedding
+    config['n_distance'] = self.n_distance
+    config['n_hidden'] = self.n_hidden
+    config['activation'] = self.activation.__name__.lower()
+    config['init'] = self.init.__name__.lower()
+    return config
+
   def build(self, input_shape):
     self.W_cf = self.init([self.n_embedding, self.n_hidden])
     self.W_df = self.init([self.n_distance, self.n_hidden])
@@ -2041,8 +2233,9 @@ class DTNNStep(tf.keras.layers.Layer):
     distance_membership_j = inputs[3]
     distance_hidden = tf.matmul(distance, self.W_df) + self.b_df
     atom_features_hidden = tf.matmul(atom_features, self.W_cf) + self.b_cf
-    outputs = tf.multiply(
-        distance_hidden, tf.gather(atom_features_hidden, distance_membership_j))
+    outputs = tf.multiply(distance_hidden,
+                          tf.gather(atom_features_hidden,
+                                    distance_membership_j))
 
     # for atom i in a molecule m, this step multiplies together distance info of atom pair(i,j)
     # and embeddings of atom j(both gone through a hidden layer)
@@ -2089,6 +2282,16 @@ class DTNNGather(tf.keras.layers.Layer):
     self.output_activation = output_activation
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
+
+  def get_config(self):
+    config = super(DTNNGather, self).get_config()
+    config['n_embedding'] = self.n_embedding
+    config['n_outputs'] = self.n_outputs
+    config['layer_sizes'] = self.layer_sizes
+    config['output_activation'] = self.output_activation
+    config['init'] = self.init.__name__.lower()
+    config['activation'] = self.activation.__name__.lower()
+    return config
 
   def build(self, input_shape):
     self.W_list = []
@@ -2178,6 +2381,18 @@ class DAGLayer(tf.keras.layers.Layer):
     self.n_graph_feat = n_graph_feat
     self.n_outputs = n_graph_feat
     self.n_atom_feat = n_atom_feat
+
+  def get_config(self):
+    config = super(DAGLayer, self).get_config()
+    config['n_graph_feat'] = self.n_graph_feat
+    config['n_atom_feat'] = self.n_atom_feat
+    config['max_atoms'] = self.max_atoms
+    config['layer_sizes'] = self.layer_sizes
+    config['init'] = self.init.__name__.lower()
+    config['activation'] = self.activation.__name__.lower()
+    config['dropout'] = self.dropout
+    config['batch_size'] = self.batch_size
+    return config
 
   def build(self, input_shape):
     """"Construct internal trainable weights."""
@@ -2300,6 +2515,17 @@ class DAGGather(tf.keras.layers.Layer):
     self.n_graph_feat = n_graph_feat
     self.n_outputs = n_outputs
 
+  def get_config(self):
+    config = super(DAGGather, self).get_config()
+    config['n_graph_feat'] = self.n_graph_feat
+    config['n_outputs'] = self.n_outputs
+    config['max_atoms'] = self.max_atoms
+    config['layer_sizes'] = self.layer_sizes
+    config['init'] = self.init.__name__.lower()
+    config['activation'] = self.activation.__name__.lower()
+    config['dropout'] = self.dropout
+    return config
+
   def build(self, input_shape):
     self.W_list = []
     self.b_list = []
@@ -2358,6 +2584,14 @@ class MessagePassing(tf.keras.layers.Layer):
     self.update_fn = update_fn
     self.n_hidden = n_hidden
 
+  def get_config(self):
+    config = super(MessagePassing, self).get_config()
+    config['T'] = self.T
+    config['message_fn'] = self.message_fn
+    config['update_fn'] = self.update_fn
+    config['n_hidden'] = self.n_hidden
+    return config
+
   def build(self, input_shape):
     n_pair_features = int(input_shape[1][-1])
     if self.message_fn == 'enn':
@@ -2398,6 +2632,13 @@ class EdgeNetwork(tf.keras.layers.Layer):
     self.n_hidden = n_hidden
     self.init = initializations.get(init)
 
+  def get_config(self):
+    config = super(EdgeNetwork, self).get_config()
+    config['n_pair_features'] = self.n_pair_features
+    config['n_hidden'] = self.n_hidden
+    config['init'] = self.init.__name__.lower()
+    return config
+
   def build(self, input_shape):
     n_pair_features = self.n_pair_features
     n_hidden = self.n_hidden
@@ -2421,6 +2662,12 @@ class GatedRecurrentUnit(tf.keras.layers.Layer):
     super(GatedRecurrentUnit, self).__init__(**kwargs)
     self.n_hidden = n_hidden
     self.init = initializations.get(init)
+
+  def get_config(self):
+    config = super(GatedRecurrentUnit, self).get_config()
+    config['n_hidden'] = self.n_hidden
+    config['init'] = self.init.__name__.lower()
+    return config
 
   def build(self, input_shape):
     n_hidden = self.n_hidden
@@ -2466,6 +2713,14 @@ class SetGather(tf.keras.layers.Layer):
     self.batch_size = batch_size
     self.n_hidden = n_hidden
     self.init = initializations.get(init)
+
+  def get_config(self):
+    config = super(SetGather, self).get_config()
+    config['M'] = self.M
+    config['batch_size'] = self.batch_size
+    config['n_hidden'] = self.n_hidden
+    config['init'] = self.init.__name__.lower()
+    return config
 
   def build(self, input_shape):
     self.U = self.init((2 * self.n_hidden, 4 * self.n_hidden))
