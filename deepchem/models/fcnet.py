@@ -16,12 +16,25 @@ from deepchem.models import KerasModel
 from deepchem.models.layers import SwitchedDropout
 from deepchem.utils.save import log
 from deepchem.metrics import to_one_hot, from_one_hot
-from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Activation
+from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Activation, Lambda
 
 logger = logging.getLogger(__name__)
 
 
 class MultitaskClassifier(KerasModel):
+  """A fully connected network for multitask classification.
+
+  This class provides lots of options for customizing aspects of the model: the
+  number and widths of layers, the activation functions, regularization methods,
+  etc.
+
+  It optionally can compose the model from pre-activation residual blocks, as
+  described in https://arxiv.org/abs/1603.05027, rather than a simple stack of
+  dense layers.  This often leads to easier training, especially when using a
+  large number of layers.  Note that residual blocks can only be used when
+  successive layers have the same width.  Wherever the layer width changes, a
+  simple dense layer will be used even if residual=True.
+  """
 
   def __init__(self,
                n_tasks,
@@ -34,6 +47,7 @@ class MultitaskClassifier(KerasModel):
                dropouts=0.5,
                activation_fns=tf.nn.relu,
                n_classes=2,
+               residual=False,
                **kwargs):
     """Create a MultitaskClassifier.
 
@@ -73,6 +87,9 @@ class MultitaskClassifier(KerasModel):
       same value is used for every layer.
     n_classes: int
       the number of classes
+    residual: bool
+      if True, the model will be composed of pre-activation residual blocks instead
+      of a simple stack of dense layers.
     """
     self.n_tasks = n_tasks
     self.n_features = n_features
@@ -98,22 +115,33 @@ class MultitaskClassifier(KerasModel):
 
     mol_features = Input(shape=(n_features,))
     prev_layer = mol_features
+    prev_size = n_features
+    next_activation = None
 
     # Add the dense layers
 
     for size, weight_stddev, bias_const, dropout, activation_fn in zip(
         layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
         activation_fns):
+      layer = prev_layer
+      if next_activation is not None:
+        layer = Activation(activation_fn)(layer)
       layer = Dense(
           size,
-          activation=activation_fn,
           kernel_initializer=tf.truncated_normal_initializer(
               stddev=weight_stddev),
           bias_initializer=tf.constant_initializer(value=bias_const),
-          kernel_regularizer=regularizer)(prev_layer)
+          kernel_regularizer=regularizer)(layer)
       if dropout > 0.0:
         layer = Dropout(rate=dropout)(layer)
-      prev_layer = layer
+      if residual and prev_size == size:
+        prev_layer = Lambda(lambda x: x[0] + x[1])([prev_layer, layer])
+      else:
+        prev_layer = layer
+      prev_size = size
+      next_activation = activation_fn
+    if next_activation is not None:
+      prev_layer = Activation(activation_fn)(prev_layer)
     self.neural_fingerprint = prev_layer
     logits = Reshape((n_tasks,
                       n_classes))(Dense(n_tasks * n_classes)(prev_layer))
@@ -143,6 +171,19 @@ class MultitaskClassifier(KerasModel):
 
 
 class MultitaskRegressor(KerasModel):
+  """A fully connected network for multitask regression.
+
+  This class provides lots of options for customizing aspects of the model: the
+  number and widths of layers, the activation functions, regularization methods,
+  etc.
+
+  It optionally can compose the model from pre-activation residual blocks, as
+  described in https://arxiv.org/abs/1603.05027, rather than a simple stack of
+  dense layers.  This often leads to easier training, especially when using a
+  large number of layers.  Note that residual blocks can only be used when
+  successive layers have the same width.  Wherever the layer width changes, a
+  simple dense layer will be used even if residual=True.
+  """
 
   def __init__(self,
                n_tasks,
@@ -155,6 +196,7 @@ class MultitaskRegressor(KerasModel):
                dropouts=0.5,
                activation_fns=tf.nn.relu,
                uncertainty=False,
+               residual=False,
                **kwargs):
     """Create a MultitaskRegressor.
 
@@ -191,6 +233,9 @@ class MultitaskRegressor(KerasModel):
     uncertainty: bool
       if True, include extra outputs and loss terms to enable the uncertainty
       in outputs to be predicted
+    residual: bool
+      if True, the model will be composed of pre-activation residual blocks instead
+      of a simple stack of dense layers.
     """
     self.n_tasks = n_tasks
     self.n_features = n_features
@@ -220,22 +265,33 @@ class MultitaskRegressor(KerasModel):
     mol_features = Input(shape=(n_features,))
     dropout_switch = Input(shape=tuple())
     prev_layer = mol_features
+    prev_size = n_features
+    next_activation = None
 
     # Add the dense layers
 
     for size, weight_stddev, bias_const, dropout, activation_fn in zip(
         layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
         activation_fns):
+      layer = prev_layer
+      if next_activation is not None:
+        layer = Activation(activation_fn)(layer)
       layer = Dense(
           size,
-          activation=activation_fn,
           kernel_initializer=tf.truncated_normal_initializer(
               stddev=weight_stddev),
           bias_initializer=tf.constant_initializer(value=bias_const),
-          kernel_regularizer=regularizer)(prev_layer)
+          kernel_regularizer=regularizer)(layer)
       if dropout > 0.0:
         layer = SwitchedDropout(rate=dropout)([layer, dropout_switch])
-      prev_layer = layer
+      if residual and prev_size == size:
+        prev_layer = Lambda(lambda x: x[0] + x[1])([prev_layer, layer])
+      else:
+        prev_layer = layer
+      prev_size = size
+      next_activation = activation_fn
+    if next_activation is not None:
+      prev_layer = Activation(activation_fn)(prev_layer)
     self.neural_fingerprint = prev_layer
     output = Reshape((n_tasks, 1))(Dense(
         n_tasks,

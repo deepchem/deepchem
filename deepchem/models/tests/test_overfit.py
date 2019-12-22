@@ -177,6 +177,37 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
+  def test_residual_classification_overfit(self):
+    """Test that a residual network can overfit simple classification datasets."""
+    n_samples = 10
+    n_features = 5
+    n_tasks = 1
+    n_classes = 2
+
+    # Generate dummy dataset
+    np.random.seed(123)
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.randint(2, size=(n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+
+    classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
+    model = dc.models.MultitaskClassifier(
+        n_tasks,
+        n_features,
+        layer_sizes=[20] * 10,
+        dropouts=0.0,
+        batch_size=n_samples,
+        residual=True)
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=500)
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [classification_metric])
+    assert scores[classification_metric.name] > .9
+
   def test_fittransform_regression_overfit(self):
     """Test that TensorGraph FitTransform models can overfit simple regression datasets."""
     n_samples = 10
@@ -451,14 +482,42 @@ class TestOverfit(test_util.TensorFlowTestCase):
     """Test TensorGraph multitask overfits tiny data."""
     n_tasks = 10
     n_samples = 10
-    n_features = 3
+    n_features = 10
     n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
     ids = np.arange(n_samples)
     X = np.random.rand(n_samples, n_features)
-    y = np.zeros((n_samples, n_tasks))
+    y = np.random.rand(n_samples, n_tasks)
+    w = np.ones((n_samples, n_tasks))
+
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+
+    regression_metric = dc.metrics.Metric(
+        dc.metrics.mean_squared_error, task_averager=np.mean, mode="regression")
+    model = dc.models.MultitaskRegressor(
+        n_tasks, n_features, dropouts=0.0, batch_size=n_samples)
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=1000)
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [regression_metric])
+    assert scores[regression_metric.name] < .02
+
+  def test_residual_regression_overfit(self):
+    """Test that a residual multitask network can overfit tiny data."""
+    n_tasks = 10
+    n_samples = 10
+    n_features = 10
+    n_classes = 2
+
+    # Generate dummy dataset
+    np.random.seed(123)
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.rand(n_samples, n_tasks)
     w = np.ones((n_samples, n_tasks))
 
     dataset = dc.data.NumpyDataset(X, y, w, ids)
@@ -468,17 +527,17 @@ class TestOverfit(test_util.TensorFlowTestCase):
     model = dc.models.MultitaskRegressor(
         n_tasks,
         n_features,
-        dropouts=[0.],
-        weight_init_stddevs=[.1],
+        layer_sizes=[20] * 10,
+        dropouts=0.0,
         batch_size=n_samples,
-        optimizer=Adam(learning_rate=0.0003, beta1=0.9, beta2=0.999))
+        residual=True)
 
     # Fit trained model
-    model.fit(dataset, nb_epoch=50)
+    model.fit(dataset, nb_epoch=1000)
 
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
-    assert scores[regression_metric.name] < .1
+    assert scores[regression_metric.name] < .02
 
   def test_tf_robust_multitask_regression_overfit(self):
     """Test tf robust multitask overfits tiny data."""
