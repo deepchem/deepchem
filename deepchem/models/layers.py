@@ -392,7 +392,7 @@ class AttnLSTMEmbedding(tf.keras.layers.Layer):
     self.n_feat = n_feat
 
   def get_config(self):
-    config = super(AttnLSTMEmbdding, self).get_config()
+    config = super(AttnLSTMEmbedding, self).get_config()
     config['n_test'] = self.n_test
     config['n_support'] = self.n_support
     config['n_feat'] = self.n_feat
@@ -733,7 +733,7 @@ class VinaFreeEnergy(tf.keras.layers.Layer):
     config['N_atoms'] = self.N_atoms
     config['M_nbrs'] = self.M_nbrs
     config['ndim'] = self.ndim
-    config['nbr_cutoff'] = self.nbf_cutoff
+    config['nbr_cutoff'] = self.nbr_cutoff
     config['start'] = self.start
     config['stop'] = self.stop
     config['stddev'] = self.stddev
@@ -864,7 +864,7 @@ class NeighborList(tf.keras.layers.Layer):
     config['N_atoms'] = self.N_atoms
     config['M_nbrs'] = self.M_nbrs
     config['ndim'] = self.ndim
-    config['nbr_cutoff'] = self.nbf_cutoff
+    config['nbr_cutoff'] = self.nbr_cutoff
     config['start'] = self.start
     config['stop'] = self.stop
     return config
@@ -1970,7 +1970,7 @@ class WeaveLayer(tf.keras.layers.Layer):
     config['n_hidden_PP'] = self.n_hidden_PP
     config['update_pair'] = self.update_pair
     config['init'] = self.init
-    config['activation'] = self.activation.__name__.lower()
+    config['activation'] = self.activation
     return config
 
   def build(self, input_shape):
@@ -2092,8 +2092,8 @@ class WeaveGather(tf.keras.layers.Layer):
     config['batch_size'] = self.batch_size
     config['n_input'] = self.n_input
     config['gaussian_expand'] = self.gaussian_expand
-    config['init'] = self.init.__name__.lower()
-    config['activation'] = self.activation.__name__.lower()
+    config['init'] = self.init
+    config['activation'] = self.activation
     config['epsilon'] = self.epsilon
     config['momentum'] = self.momentum
     return config
@@ -2215,8 +2215,8 @@ class DTNNStep(tf.keras.layers.Layer):
     config['n_embedding'] = self.n_embedding
     config['n_distance'] = self.n_distance
     config['n_hidden'] = self.n_hidden
-    config['activation'] = self.activation.__name__.lower()
-    config['init'] = self.init.__name__.lower()
+    config['activation'] = self.activation
+    config['init'] = self.init
     return config
 
   def build(self, input_shape):
@@ -2298,8 +2298,8 @@ class DTNNGather(tf.keras.layers.Layer):
     config['n_outputs'] = self.n_outputs
     config['layer_sizes'] = self.layer_sizes
     config['output_activation'] = self.output_activation
-    config['init'] = self.init.__name__.lower()
-    config['activation'] = self.activation.__name__.lower()
+    config['init'] = self.init
+    config['activation'] = self.activation
     return config
 
   def build(self, input_shape):
@@ -2401,8 +2401,8 @@ class DAGLayer(tf.keras.layers.Layer):
     config['n_atom_feat'] = self.n_atom_feat
     config['max_atoms'] = self.max_atoms
     config['layer_sizes'] = self.layer_sizes
-    config['init'] = self.init.__name__.lower()
-    config['activation'] = self.activation.__name__.lower()
+    config['init'] = self.init
+    config['activation'] = self.activation
     config['dropout'] = self.dropout
     config['batch_size'] = self.batch_size
     return config
@@ -2535,8 +2535,8 @@ class DAGGather(tf.keras.layers.Layer):
     config['n_outputs'] = self.n_outputs
     config['max_atoms'] = self.max_atoms
     config['layer_sizes'] = self.layer_sizes
-    config['init'] = self.init.__name__.lower()
-    config['activation'] = self.activation.__name__.lower()
+    config['init'] = self.init
+    config['activation'] = self.activation
     config['dropout'] = self.dropout
     return config
 
@@ -2651,7 +2651,7 @@ class EdgeNetwork(tf.keras.layers.Layer):
     config = super(EdgeNetwork, self).get_config()
     config['n_pair_features'] = self.n_pair_features
     config['n_hidden'] = self.n_hidden
-    config['init'] = self.init.__name__.lower()
+    config['init'] = self.init
     return config
 
   def build(self, input_shape):
@@ -2682,7 +2682,7 @@ class GatedRecurrentUnit(tf.keras.layers.Layer):
   def get_config(self):
     config = super(GatedRecurrentUnit, self).get_config()
     config['n_hidden'] = self.n_hidden
-    config['init'] = self.init.__name__.lower()
+    config['init'] = self.init
     return config
 
   def build(self, input_shape):
@@ -2736,7 +2736,7 @@ class SetGather(tf.keras.layers.Layer):
     config['M'] = self.M
     config['batch_size'] = self.batch_size
     config['n_hidden'] = self.n_hidden
-    config['init'] = self.init.__name__.lower()
+    config['init'] = self.init
     return config
 
   def build(self, input_shape):
