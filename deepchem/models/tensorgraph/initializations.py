@@ -106,11 +106,11 @@ def identity(shape, scale=1, name=None):
         scale * np.identity(shape[0]), dtype=tf.float32, name=name)
 
 
-def zero(shape, name=None):
+def zeros(shape, name=None):
   return tf.Variable(tf.zeros(shape), dtype=tf.float32, name=name)
 
 
-def one(shape, name=None):
+def ones(shape, name=None):
   return tf.Variable(tf.ones(shape), dtype=tf.float32, name=name)
 
 

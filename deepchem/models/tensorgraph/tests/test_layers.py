@@ -981,7 +981,7 @@ class TestLayers(test_util.TensorFlowTestCase):
   def test_gated_recurrent_unit(self):
     """Test that Gated Recurrent Unit can be invoked."""
     n_hidden = 2
-    init_method = 'one'
+    init_method = 'ones'
 
     messages_np = np.array([[1, -1]])
     inputs_np = np.array([[1, -1]])
@@ -1002,7 +1002,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     """Test that Edge Network can be invoked."""
     n_pair_features = 2
     n_hidden = 2
-    init_method = 'one'
+    init_method = 'ones'
 
     pair_features_np = np.array([[0.25, 0.25], [0.25, 0.25], [0.25, 0.25]])
     atom_features_np = np.array([[1, 1], [2, 2], [3, 3]])
@@ -1030,7 +1030,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_outputs = 2
     layer_sizes = [2]
     output_activation = False
-    init_method = 'one'
+    init_method = 'ones'
     activation = 'sigmoid'
 
     inputs_np = np.array([[1, -1], [1, -1], [1, -1]])
@@ -1060,7 +1060,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_graph_feat = 2
     n_outputs = 2
     layer_sizes = [2]
-    init_method = 'one'
+    init_method = 'ones'
     activation = 'sigmoid'
 
     def sigmoid(x):
