@@ -1712,7 +1712,7 @@ class SoftMaxCrossEntropy(Layer):
     if len(inputs) != 2:
       raise ValueError()
     labels, logits = inputs[0], inputs[1]
-    out_tensor = tf.nn.softmax_cross_entropy_with_logits_v2(
+    out_tensor = tf.nn.softmax_cross_entropy_with_logits(
         logits=logits, labels=labels)
     if set_tensors:
       self.out_tensor = out_tensor

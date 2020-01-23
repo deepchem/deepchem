@@ -8,7 +8,7 @@ import logging
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.pywrap_tensorflow_internal import NewCheckpointReader
-import tensorflow.contrib.eager as tfe
+#import tensorflow.contrib.eager as tfe
 
 from deepchem.data import NumpyDataset
 from deepchem.models.models import Model
@@ -713,7 +713,7 @@ class TensorGraph(Model):
     with self._get_tf("Graph").as_default():
       self._training_placeholder = tf.placeholder(dtype=tf.float32, shape=())
       if self.random_seed is not None:
-        tf.set_random_seed(self.random_seed)
+        tf.random.set_seed(self.random_seed)
       self._install_queue()
       self.built = True
       for layer in self.topsort():

@@ -12,7 +12,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.session() as sess:
       global_step = tf.Variable(0)
       tfopt = opt._create_optimizer(global_step)
-      assert isinstance(tfopt, tf.train.AdamOptimizer)
+      assert isinstance(tfopt, tf.keras.optimizers.Adam)
 
   def test_rmsprop(self):
     """Test creating an RMSProp Optimizer."""
@@ -20,7 +20,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.session() as sess:
       global_step = tf.Variable(0)
       tfopt = opt._create_optimizer(global_step)
-      assert isinstance(tfopt, tf.train.RMSPropOptimizer)
+      assert isinstance(tfopt, tf.keras.optimizers.RMSprop)
 
   def test_gradient_descent(self):
     """Test creating a Gradient Descent optimizer."""
@@ -28,15 +28,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.session() as sess:
       global_step = tf.Variable(0)
       tfopt = opt._create_optimizer(global_step)
-      assert isinstance(tfopt, tf.train.GradientDescentOptimizer)
-
-  def test_power_sign(self):
-    """Test creating a power sign optimizer."""
-    opt = optimizers.PowerSign(learning_rate=0.01)
-    with self.session() as sess:
-      global_step = tf.Variable(0)
-      tfopt = opt._create_optimizer(global_step)
-      assert isinstance(tfopt, tf.contrib.opt.PowerSignOptimizer)
+      assert isinstance(tfopt, tf.keras.optimizers.SGD)
 
   def test_exponential_decay(self):
     """Test creating an optimizer with an exponentially decaying learning rate."""

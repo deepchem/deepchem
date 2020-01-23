@@ -3,7 +3,6 @@ import unittest
 import deepchem as dc
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.eager import context
 
 
 class TestKerasModel(unittest.TestCase):
@@ -39,11 +38,6 @@ class TestKerasModel(unittest.TestCase):
     pred_from_logits = 1.0 / (1.0 + np.exp(-pred_logits))
     assert np.allclose(prediction, pred_from_logits, atol=1e-4)
 
-  def test_overfit_graph_model_eager(self):
-    """Test fitting a KerasModel defined as a graph, in eager mode."""
-    with context.eager_mode():
-      self.test_overfit_graph_model()
-
   def test_overfit_sequential_model(self):
     """Test fitting a KerasModel defined as a sequential model."""
     n_data_points = 10
@@ -64,11 +58,6 @@ class TestKerasModel(unittest.TestCase):
     generator = model.default_generator(dataset, pad_batches=False)
     scores = model.evaluate_generator(generator, [metric])
     assert scores[metric.name] > 0.9
-
-  def test_overfit_sequential_model_eager(self):
-    """Test fitting a KerasModel defined as a sequential model, in eager mode."""
-    with context.eager_mode():
-      self.test_overfit_sequential_model()
 
   def test_checkpointing(self):
     """Test loading and saving checkpoints with KerasModel."""
@@ -96,11 +85,6 @@ class TestKerasModel(unittest.TestCase):
     y4 = model2.predict_on_batch(X)
     assert np.array_equal(y1, y3)
     assert np.array_equal(y1, y4)
-
-  def test_checkpointing_eager(self):
-    """Test loading and saving checkpoints with KerasModel, in eager mode."""
-    with context.eager_mode():
-      self.test_checkpointing()
 
   def test_fit_restore(self):
     """Test specifying restore=True when calling fit()."""
@@ -136,11 +120,6 @@ class TestKerasModel(unittest.TestCase):
     model2.fit(dataset, nb_epoch=1, restore=True)
     prediction = np.squeeze(model2.predict_on_batch(X))
     assert np.array_equal(y, np.round(prediction))
-
-  def test_fit_restore_eager(self):
-    """Test specifying restore=True when calling fit(), in eager mode."""
-    with context.eager_mode():
-      self.test_fit_restore()
 
   def test_uncertainty(self):
     """Test estimating uncertainty a KerasModel."""
@@ -201,11 +180,6 @@ class TestKerasModel(unittest.TestCase):
     assert np.mean(np.abs(y - pred)) < 1.0
     assert noise < np.mean(std) < 1.0
 
-  def test_uncertainty_eager(self):
-    """Test estimating uncertainty a KerasModel, in eager mode."""
-    with context.eager_mode():
-      self.test_uncertainty()
-
   def test_saliency_mapping(self):
     """Test computing a saliency map."""
     n_tasks = 3
@@ -234,11 +208,6 @@ class TestKerasModel(unittest.TestCase):
       self.assertAlmostEqual(
           pred1[task], (pred2 + norm * delta)[task], places=4)
 
-  def test_saliency_mapping_eager(self):
-    """Test computing a saliency map, in eager mode."""
-    with context.eager_mode():
-      self.test_saliency_mapping()
-
   def test_saliency_shapes(self):
     """Test computing saliency maps for multiple outputs with multiple dimensions."""
     inputs = tf.keras.Input(shape=(2, 3))
@@ -252,11 +221,6 @@ class TestKerasModel(unittest.TestCase):
     assert len(s) == 2
     assert s[0].shape == (4, 1, 2, 3)
     assert s[1].shape == (1, 5, 2, 3)
-
-  def test_saliency_shapes_eager(self):
-    """Test computing saliency maps for multiple outputs with multiple dimensions, in eager mode."""
-    with context.eager_mode():
-      self.test_saliency_shapes()
 
   def test_tensorboard(self):
     """Test logging to Tensorboard."""
@@ -316,11 +280,6 @@ class TestKerasModel(unittest.TestCase):
     assert np.allclose(vars[0], 2.0)
     assert np.allclose(vars[1], 0.5)
 
-  def test_fit_variables_eager(self):
-    """Test training a subset of the variables in a model, in eager mode."""
-    with context.eager_mode():
-      self.test_fit_variables()
-
   def test_fit_loss(self):
     """Test specifying a different loss function when calling fit()."""
 
@@ -353,8 +312,3 @@ class TestKerasModel(unittest.TestCase):
     model.fit_generator([(x, 3 * x, x)] * 300, loss=loss2)
     vars = model.predict_on_batch(x)
     assert np.allclose(vars[0] + vars[1], 3.0)
-
-  def test_fit_loss_eager(self):
-    """Test specifying a different loss function when calling fit(), in eager mode."""
-    with context.eager_mode():
-      self.test_fit_loss()

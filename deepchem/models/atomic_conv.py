@@ -47,13 +47,12 @@ def initializeWeightsBiases(prev_layer_size,
   """
 
   if weights is None:
-    weights = tf.truncated_normal([prev_layer_size, size], stddev=0.01)
+    weights = tf.random.truncated_normal([prev_layer_size, size], stddev=0.01)
   if biases is None:
     biases = tf.zeros([size])
 
-  with tf.name_scope(name, 'fully_connected', [weights, biases]):
-    w = tf.Variable(weights, name='w')
-    b = tf.Variable(biases, name='b')
+  w = tf.Variable(weights, name='w')
+  b = tf.Variable(biases, name='b')
   return w, b
 
 
@@ -84,7 +83,7 @@ class AtomicConvScore(Layer):
         weight, bias = initializeWeightsBiases(
             prev_layer_size=prev_layer_size,
             size=layer_sizes[i],
-            weights=tf.truncated_normal(
+            weights=tf.random.truncated_normal(
                 shape=[prev_layer_size, layer_sizes[i]],
                 stddev=weight_init_stddevs[i]),
             biases=tf.constant(
@@ -104,14 +103,16 @@ class AtomicConvScore(Layer):
     def atomnet(current_input, atomtype):
       prev_layer = current_input
       for i in range(num_layers):
-        layer = tf.nn.xw_plus_b(prev_layer, self.type_weights[atomtype][i],
-                                self.type_biases[atomtype][i])
+        layer = tf.nn.bias_add(
+            tf.matmul(prev_layer, self.type_weights[atomtype][i]),
+            self.type_biases[atomtype][i])
         layer = tf.nn.relu(layer)
         prev_layer = layer
 
       output_layer = tf.squeeze(
-          tf.nn.xw_plus_b(prev_layer, self.output_weights[atomtype][0],
-                          self.output_biases[atomtype][0]))
+          tf.nn.bias_add(
+              tf.matmul(prev_layer, self.output_weights[atomtype][0]),
+              self.output_biases[atomtype][0]))
       return output_layer
 
     frag1_zeros = tf.zeros_like(frag1_z, dtype=tf.float32)

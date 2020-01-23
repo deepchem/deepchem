@@ -542,7 +542,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
   def test_tf_robust_multitask_regression_overfit(self):
     """Test tf robust multitask overfits tiny data."""
     np.random.seed(123)
-    tf.set_random_seed(123)
+    tf.random.set_seed(123)
     n_tasks = 10
     n_samples = 10
     n_features = 3
@@ -581,7 +581,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     """Test ANI-1 regression overfits tiny data."""
     input_file = os.path.join(self.current_dir, "example_DTNN.mat")
     np.random.seed(123)
-    tf.set_random_seed(123)
+    tf.random.set_seed(123)
     dataset = scipy.io.loadmat(input_file)
     X = np.concatenate([np.expand_dims(dataset['Z'], 2), dataset['R']], axis=2)
     X = X[:, :13, :]
@@ -619,7 +619,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
   def test_tensorgraph_DAG_singletask_regression_overfit(self):
     """Test DAG regressor multitask overfits tiny data."""
     np.random.seed(123)
-    tf.set_random_seed(123)
+    tf.random.set_seed(123)
     n_tasks = 1
 
     # Load mini log-solubility dataset.
@@ -657,7 +657,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
   def test_tensorgraph_weave_singletask_classification_overfit(self):
     """Test weave model overfits tiny data."""
     np.random.seed(123)
-    tf.set_random_seed(123)
+    tf.random.set_seed(123)
     n_tasks = 1
 
     # Load mini log-solubility dataset.
@@ -696,7 +696,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
   def test_tensorgraph_weave_singletask_regression_overfit(self):
     """Test weave model overfits tiny data."""
     np.random.seed(123)
-    tf.set_random_seed(123)
+    tf.random.set_seed(123)
     n_tasks = 1
 
     # Load mini log-solubility dataset.
@@ -737,7 +737,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
   def test_MPNN_singletask_regression_overfit(self):
     """Test MPNN overfits tiny data."""
     np.random.seed(123)
-    tf.set_random_seed(123)
+    tf.random.set_seed(123)
     n_tasks = 1
 
     # Load mini log-solubility dataset.
@@ -776,7 +776,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
   def test_textCNN_singletask_classification_overfit(self):
     """Test textCNN model overfits tiny data."""
     np.random.seed(123)
-    tf.set_random_seed(123)
+    tf.random.set_seed(123)
     n_tasks = 1
 
     featurizer = dc.feat.RawFeaturizer()
@@ -812,7 +812,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
   def test_textCNN_singletask_regression_overfit(self):
     """Test textCNN model overfits tiny data."""
     np.random.seed(123)
-    tf.set_random_seed(123)
+    tf.random.set_seed(123)
     n_tasks = 1
 
     # Load mini log-solubility dataset.

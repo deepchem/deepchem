@@ -125,7 +125,7 @@ def sigmoid(x):
 def hard_sigmoid(x):
   """The hard sigmoidal activation function
 
-  Piecewise-linear approximation to sigmoid. 
+  Piecewise-linear approximation to sigmoid.
 
   Parameters
   ----------

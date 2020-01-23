@@ -117,7 +117,7 @@ class ProgressiveMultitaskRegressor(KerasModel):
 
         dense = Dense(
             layer_sizes[i],
-            kernel_initializer=tf.truncated_normal_initializer(
+            kernel_initializer=tf.keras.initializers.TruncatedNormal(
                 stddev=self.weight_init_stddevs[i]),
             bias_initializer=tf.constant_initializer(
                 value=self.bias_init_consts[i]))
@@ -135,7 +135,7 @@ class ProgressiveMultitaskRegressor(KerasModel):
       prev_layer = all_layers[(n_layers - 1, task)]
       dense = Dense(
           n_outputs,
-          kernel_initializer=tf.truncated_normal_initializer(
+          kernel_initializer=tf.keras.initializers.TruncatedNormal(
               stddev=self.weight_init_stddevs[-1]),
           bias_initializer=tf.constant_initializer(
               value=self.bias_init_consts[-1]))
@@ -189,13 +189,14 @@ class ProgressiveMultitaskRegressor(KerasModel):
       prev_layer = prev_layers[0]
     else:
       prev_layer = Concatenate(axis=1)(prev_layers)
-    alpha = layers.Variable(tf.truncated_normal((1,), stddev=alpha_init_stddev))
+    alpha = layers.Variable(
+        tf.random.truncated_normal((1,), stddev=alpha_init_stddev))
     trainable_layers.append(alpha)
 
     prev_layer = Multiply()([prev_layer, alpha([])])
     dense1 = Dense(
         layer_sizes[i - 1],
-        kernel_initializer=tf.truncated_normal_initializer(
+        kernel_initializer=tf.keras.initializers.TruncatedNormal(
             stddev=weight_init_stddev),
         bias_initializer=tf.constant_initializer(value=bias_init_const))
     prev_layer = dense1(prev_layer)
@@ -203,7 +204,7 @@ class ProgressiveMultitaskRegressor(KerasModel):
 
     dense2 = Dense(
         layer_sizes[i],
-        kernel_initializer=tf.truncated_normal_initializer(
+        kernel_initializer=tf.keras.initializers.TruncatedNormal(
             stddev=weight_init_stddev),
         use_bias=False)
     prev_layer = dense2(prev_layer)

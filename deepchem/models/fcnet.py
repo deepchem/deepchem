@@ -125,10 +125,10 @@ class MultitaskClassifier(KerasModel):
         activation_fns):
       layer = prev_layer
       if next_activation is not None:
-        layer = Activation(activation_fn)(layer)
+        layer = Activation(next_activation)(layer)
       layer = Dense(
           size,
-          kernel_initializer=tf.truncated_normal_initializer(
+          kernel_initializer=tf.keras.initializers.TruncatedNormal(
               stddev=weight_stddev),
           bias_initializer=tf.constant_initializer(value=bias_const),
           kernel_regularizer=regularizer)(layer)
@@ -275,10 +275,10 @@ class MultitaskRegressor(KerasModel):
         activation_fns):
       layer = prev_layer
       if next_activation is not None:
-        layer = Activation(activation_fn)(layer)
+        layer = Activation(next_activation)(layer)
       layer = Dense(
           size,
-          kernel_initializer=tf.truncated_normal_initializer(
+          kernel_initializer=tf.keras.initializers.TruncatedNormal(
               stddev=weight_stddev),
           bias_initializer=tf.constant_initializer(value=bias_const),
           kernel_regularizer=regularizer)(layer)
@@ -295,14 +295,14 @@ class MultitaskRegressor(KerasModel):
     self.neural_fingerprint = prev_layer
     output = Reshape((n_tasks, 1))(Dense(
         n_tasks,
-        kernel_initializer=tf.truncated_normal_initializer(
+        kernel_initializer=tf.keras.initializers.TruncatedNormal(
             stddev=weight_init_stddevs[-1]),
         bias_initializer=tf.constant_initializer(
             value=bias_init_consts[-1]))(prev_layer))
     if uncertainty:
       log_var = Reshape((n_tasks, 1))(Dense(
           n_tasks,
-          kernel_initializer=tf.truncated_normal_initializer(
+          kernel_initializer=tf.keras.initializers.TruncatedNormal(
               stddev=weight_init_stddevs[-1]),
           bias_initializer=tf.constant_initializer(value=0.0))(prev_layer))
       var = Activation(tf.exp)(log_var)

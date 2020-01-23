@@ -118,7 +118,7 @@ class RobustMultitaskClassifier(KerasModel):
       layer = tf.keras.layers.Dense(
           size,
           activation=activation_fn,
-          kernel_initializer=tf.truncated_normal_initializer(
+          kernel_initializer=tf.keras.initializers.TruncatedNormal(
               stddev=weight_stddev),
           bias_initializer=tf.constant_initializer(value=bias_const),
           kernel_regularizer=regularizer)(prev_layer)
@@ -137,7 +137,7 @@ class RobustMultitaskClassifier(KerasModel):
         layer = tf.keras.layers.Dense(
             size,
             activation=activation_fn,
-            kernel_initializer=tf.truncated_normal_initializer(
+            kernel_initializer=tf.keras.initializers.TruncatedNormal(
                 stddev=weight_stddev),
             bias_initializer=tf.constant_initializer(value=bias_const),
             kernel_regularizer=regularizer)(prev_layer)
@@ -297,7 +297,7 @@ class RobustMultitaskRegressor(KerasModel):
       layer = tf.keras.layers.Dense(
           size,
           activation=activation_fn,
-          kernel_initializer=tf.truncated_normal_initializer(
+          kernel_initializer=tf.keras.initializers.TruncatedNormal(
               stddev=weight_stddev),
           bias_initializer=tf.constant_initializer(value=bias_const),
           kernel_regularizer=regularizer)(prev_layer)
@@ -316,7 +316,7 @@ class RobustMultitaskRegressor(KerasModel):
         layer = tf.keras.layers.Dense(
             size,
             activation=activation_fn,
-            kernel_initializer=tf.truncated_normal_initializer(
+            kernel_initializer=tf.keras.initializers.TruncatedNormal(
                 stddev=weight_stddev),
             bias_initializer=tf.constant_initializer(value=bias_const),
             kernel_regularizer=regularizer)(prev_layer)

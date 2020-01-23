@@ -38,8 +38,7 @@ def ones(shape, dtype=None, name=None):
   if dtype is None:
     dtype = tf.float32
   shape = tuple(map(int, shape))
-  return tf.Variable(
-      tf.constant_initializer(1., dtype=dtype)(shape), dtype, name)
+  return tf.Variable(tf.constant_initializer(1.)(shape), dtype, name)
 
 
 def cast_to_floatx(x):
@@ -257,8 +256,7 @@ def random_uniform_variable(shape,
   if seed is None:
     # ensure that randomness is conditioned by the Numpy RNG
     seed = np.random.randint(10e8)
-  value = tf.random_uniform_initializer(
-      low, high, dtype=dtype, seed=seed)(shape)
+  value = tf.random_uniform_initializer(low, high, seed=seed)(shape)
   return tf.Variable(value, dtype=dtype, name=name)
 
 
@@ -288,8 +286,7 @@ def random_normal_variable(shape,
   if seed is None:
     # ensure that randomness is conditioned by the Numpy RNG
     seed = np.random.randint(10e8)
-  value = tf.random_normal_initializer(
-      mean, scale, dtype=dtype, seed=seed)(shape)
+  value = tf.random_normal_initializer(mean, scale, seed=seed)(shape)
   return tf.Variable(value, dtype=dtype, name=name)
 
 
@@ -446,8 +443,7 @@ def zeros(shape, dtype=tf.float32, name=None):
   A variable (including Tensorflow metadata), filled with `0.0`.
   """
   shape = tuple(map(int, shape))
-  return tf.Variable(
-      tf.constant_initializer(0., dtype=dtype)(shape), dtype=dtype, name=name)
+  return tf.Variable(tf.constant_initializer(0.)(shape), dtype=dtype, name=name)
 
 
 def cosine_distances(test, support):

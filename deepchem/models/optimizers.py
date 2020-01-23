@@ -73,10 +73,10 @@ class Adam(Optimizer):
       learning_rate = self.learning_rate._create_tensor(global_step)
     else:
       learning_rate = self.learning_rate
-    return tf.train.AdamOptimizer(
+    return tf.keras.optimizers.Adam(
         learning_rate=learning_rate,
-        beta1=self.beta1,
-        beta2=self.beta2,
+        beta_1=self.beta1,
+        beta_2=self.beta2,
         epsilon=self.epsilon)
 
 
@@ -111,10 +111,10 @@ class RMSProp(Optimizer):
       learning_rate = self.learning_rate._create_tensor(global_step)
     else:
       learning_rate = self.learning_rate
-    return tf.train.RMSPropOptimizer(
+    return tf.keras.optimizers.RMSprop(
         learning_rate=learning_rate,
         momentum=self.momentum,
-        decay=self.decay,
+        rho=self.decay,
         epsilon=self.epsilon)
 
 
@@ -136,30 +136,7 @@ class GradientDescent(Optimizer):
       learning_rate = self.learning_rate._create_tensor(global_step)
     else:
       learning_rate = self.learning_rate
-    return tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
-
-
-class PowerSign(Optimizer):
-  """The powersign optimization algorithm"""
-
-  def __init__(self, learning_rate=0.1, beta=0.9):
-    """construct a powerSign optimizer
-    Parameters
-    ----------
-    learning_rate : float or LearningRateSchedule
-    the learning rate to use for optimization
-    beta : A float Parameter for the PowerSign algorithm
-    """
-    self.learning_rate = learning_rate
-    self.beta = beta
-
-  def _create_optimizer(self, global_step):
-    if isinstance(self.learning_rate, LearningRateSchedule):
-      learning_rate = self.learning_rate._create_tensor(global_step)
-    else:
-      learning_rate = self.learning_rate
-    return tf.contrib.opt.PowerSignOptimizer(
-        learning_rate=learning_rate, beta=self.beta)
+    return tf.keras.optimizers.SGD(learning_rate=learning_rate)
 
 
 class ExponentialDecay(LearningRateSchedule):
@@ -188,12 +165,11 @@ class ExponentialDecay(LearningRateSchedule):
     self.staircase = staircase
 
   def _create_tensor(self, global_step):
-    return tf.train.exponential_decay(
-        learning_rate=self.initial_rate,
-        global_step=global_step,
+    return tf.keras.optimizers.schedules.ExponentialDecay(
+        initial_learning_rate=self.initial_rate,
         decay_rate=self.decay_rate,
         decay_steps=self.decay_steps,
-        staircase=self.staircase)
+        staircase=self.staircase)(global_step)
 
 
 class PolynomialDecay(LearningRateSchedule):
@@ -223,12 +199,11 @@ class PolynomialDecay(LearningRateSchedule):
     self.power = power
 
   def _create_tensor(self, global_step):
-    return tf.train.polynomial_decay(
-        learning_rate=self.initial_rate,
+    return tf.keras.optimizers.schedules.PolynomialDecay(
+        initial_learning_rate=self.initial_rate,
         end_learning_rate=self.final_rate,
-        global_step=global_step,
         decay_steps=self.decay_steps,
-        power=self.power)
+        power=self.power)(global_step)
 
 
 class LinearCosineDecay(LearningRateSchedule):
@@ -257,7 +232,7 @@ class LinearCosineDecay(LearningRateSchedule):
     self.num_periods = num_periods
 
   def _create_tensor(self, global_step):
-    return tf.train.linear_cosine_decay(
+    return tf.compat.v1.train.linear_cosine_decay(
         learning_rate=self.initial_rate,
         global_step=global_step,
         decay_steps=self.decay_steps,

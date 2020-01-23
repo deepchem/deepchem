@@ -385,7 +385,7 @@ class KerasModel(Model):
           vars = variables
         grads = tape.gradient(batch_loss, vars)
         self._tf_optimizer.apply_gradients(zip(grads, vars))
-        tf.assign_add(self._global_step, 1)
+        self._global_step.assign_add(1)
         current_step = self._global_step.numpy()
       else:
 
@@ -553,10 +553,11 @@ class KerasModel(Model):
           inputs = inputs[0]
         if outputs is not None:
           outputs = tuple(outputs)
-          if outputs not in self._output_functions:
-            self._output_functions[outputs] = tf.keras.backend.function(
+          key = tuple(t.experimental_ref() for t in outputs)
+          if key not in self._output_functions:
+            self._output_functions[key] = tf.keras.backend.function(
                 self.model.inputs, outputs)
-          output_values = self._output_functions[outputs](inputs)
+          output_values = self._output_functions[key](inputs)
         else:
           output_values = self.model(inputs, training=False)
           if isinstance(output_values, tf.Tensor):

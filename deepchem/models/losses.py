@@ -51,8 +51,7 @@ class HingeLoss(Loss):
 
   def __call__(self, output, labels):
     output, labels = _make_shapes_consistent(output, labels)
-    return tf.losses.hinge_loss(
-        labels, output, reduction=tf.losses.Reduction.NONE)
+    return tf.keras.losses.hinge(labels, output)
 
 
 class BinaryCrossEntropy(Loss):
@@ -90,8 +89,7 @@ class SigmoidCrossEntropy(Loss):
 
   def __call__(self, output, labels):
     output, labels = _make_shapes_consistent(output, labels)
-    return tf.losses.sigmoid_cross_entropy(
-        labels, output, reduction=tf.losses.Reduction.NONE)
+    return tf.nn.sigmoid_cross_entropy_with_logits(labels, output)
 
 
 class SoftmaxCrossEntropy(Loss):
@@ -105,8 +103,7 @@ class SoftmaxCrossEntropy(Loss):
 
   def __call__(self, output, labels):
     output, labels = _make_shapes_consistent(output, labels)
-    return tf.losses.softmax_cross_entropy(
-        labels, output, reduction=tf.losses.Reduction.NONE)
+    return tf.nn.softmax_cross_entropy_with_logits(labels, output)
 
 
 class SparseSoftmaxCrossEntropy(Loss):
@@ -120,8 +117,7 @@ class SparseSoftmaxCrossEntropy(Loss):
 
   def __call__(self, output, labels):
     labels = tf.cast(labels, tf.int32)
-    return tf.losses.sparse_softmax_cross_entropy(
-        labels, output, reduction=tf.losses.Reduction.NONE)
+    return tf.nn.sparse_softmax_cross_entropy_with_logits(labels, output)
 
 
 def _make_shapes_consistent(output, labels):
