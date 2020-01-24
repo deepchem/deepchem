@@ -7,7 +7,6 @@ import time
 import logging
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.pywrap_tensorflow_internal import NewCheckpointReader
 #import tensorflow.contrib.eager as tfe
 
 from deepchem.data import NumpyDataset
