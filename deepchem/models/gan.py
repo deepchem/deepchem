@@ -318,9 +318,6 @@ class GAN(KerasModel):
       it.
     """
     self._ensure_built()
-    if not tf.executing_eagerly():
-      global_step_placeholder = tf.placeholder(tf.int32, tuple())
-      update_global_step = self._global_step.assign(global_step_placeholder)
     gen_train_fraction = 0.0
     discrim_error = 0.0
     gen_error = 0.0
@@ -365,11 +362,7 @@ class GAN(KerasModel):
               checkpoint_interval=0)
           gen_average_steps += 1
           gen_train_fraction -= 1.0
-      if tf.executing_eagerly():
-        self._global_step.assign(global_step + 1)
-      else:
-        self.session.run(update_global_step,
-                         {global_step_placeholder: global_step + 1})
+      self._global_step.assign(global_step + 1)
 
       # Write checkpoints and report progress.
 
@@ -438,10 +431,7 @@ class GAN(KerasModel):
     inputs = [i.astype(np.float32) for i in inputs]
     pred = self.generators[generator_index](
         _list_or_tensor(inputs), training=False)
-    if tf.executing_eagerly():
-      pred = pred.numpy()
-    else:
-      pred = pred.eval(session=self.session)
+    pred = pred.numpy()
     return pred
 
 

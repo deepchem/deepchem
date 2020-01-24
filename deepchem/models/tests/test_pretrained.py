@@ -3,7 +3,6 @@ import unittest
 import deepchem as dc
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.eager import context
 from tensorflow.keras.layers import Input, Dense
 from deepchem.models.losses import L2Loss
 
@@ -45,8 +44,8 @@ class TestPretrained(unittest.TestCase):
 
     self.dataset = dc.data.NumpyDataset(X, y)
 
-  def test_load_from_pretrained_graph_mode(self):
-    """Tests loading pretrained model in graph mode."""
+  def test_load_from_pretrained(self):
+    """Tests loading pretrained model."""
     source_model = MLP(
         hidden_layer_size=self.hidden_layer_size,
         feature_dim=self.feature_dim,
@@ -65,11 +64,8 @@ class TestPretrained(unittest.TestCase):
 
     for idx, dest_var in enumerate(dest_vars):
       source_var = source_model.model.trainable_variables[idx]
-      assignment_map[source_var] = dest_var
-      if tf.executing_eagerly():
-        value_map[source_var] = source_var.numpy()
-      else:
-        value_map[source_var] = source_var.eval(session=source_model.session)
+      assignment_map[source_var.experimental_ref()] = dest_var
+      value_map[source_var.experimental_ref()] = source_var.numpy()
 
     dest_model.load_from_pretrained(
         source_model=source_model,
@@ -77,21 +73,12 @@ class TestPretrained(unittest.TestCase):
         value_map=value_map)
 
     for source_var, dest_var in assignment_map.items():
-      if tf.executing_eagerly():
-        source_val = source_var.numpy()
-        dest_val = dest_var.numpy()
-      else:
-        source_val = source_var.eval(session=source_model.session)
-        dest_val = dest_var.eval(session=dest_model.session)
+      source_val = source_var.deref().numpy()
+      dest_val = dest_var.numpy()
       np.testing.assert_array_almost_equal(source_val, dest_val)
 
-  def test_load_from_pretrained_eager_mode(self):
-    """Tests loading pretrained model in eager execution mode."""
-    with context.eager_mode():
-      self.test_load_from_pretrained_graph_mode()
-
-  def test_restore_equivalency_graph_mode(self):
-    """Test for restore based pretrained model loading in graph mode."""
+  def test_restore_equivalency(self):
+    """Test for restore based pretrained model loading."""
     source_model = MLP(
         feature_dim=self.feature_dim, hidden_layer_size=self.hidden_layer_size)
 
@@ -109,8 +96,3 @@ class TestPretrained(unittest.TestCase):
 
     predictions = np.squeeze(dest_model.predict_on_batch(self.dataset.X))
     np.testing.assert_array_almost_equal(self.dataset.y, np.round(predictions))
-
-  def test_restore_equivalency_eager_mode(self):
-    """Test for restore based pretrained model loading in eager mode."""
-    with context.eager_mode():
-      self.test_restore_equivalency_graph_mode()

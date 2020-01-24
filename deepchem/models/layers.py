@@ -647,12 +647,11 @@ class CombineMeanStd(tf.keras.layers.Layer):
     if len(inputs) != 2:
       raise ValueError("Must have two in_layers")
     mean_parent, std_parent = inputs[0], inputs[1]
-    if self.training_only and not training:
-      return mean_parent
+    noise_scale = tf.cast(training or not self.training_only, tf.float32)
     from tensorflow.python.ops import array_ops
-    sample_noise = tf.random_normal(
+    sample_noise = tf.random.normal(
         array_ops.shape(mean_parent), 0, 1, dtype=tf.float32)
-    return mean_parent + std_parent * sample_noise
+    return mean_parent + noise_scale * std_parent * sample_noise
 
 
 class Stack(tf.keras.layers.Layer):
@@ -741,7 +740,7 @@ class VinaFreeEnergy(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     self.weighted_combo = WeightedLinearCombo()
-    self.w = tf.Variable(tf.random_normal((1,), stddev=self.stddev))
+    self.w = tf.Variable(tf.random.normal((1,), stddev=self.stddev))
     self.built = True
 
   def cutoff(self, d, x):
@@ -1354,7 +1353,7 @@ class AlphaShareLayer(tf.keras.layers.Layer):
   def build(self, input_shape):
     n_alphas = 2 * len(input_shape)
     self.alphas = tf.Variable(
-        tf.random_normal([n_alphas, n_alphas]), name='alphas')
+        tf.random.normal([n_alphas, n_alphas]), name='alphas')
     self.built = True
 
   def call(self, inputs):
@@ -1441,7 +1440,7 @@ class BetaShare(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     n_betas = len(input_shape)
-    self.betas = tf.Variable(tf.random_normal([1, n_betas]), name='betas')
+    self.betas = tf.Variable(tf.random.normal([1, n_betas]), name='betas')
     self.built = True
 
   def call(self, inputs):
