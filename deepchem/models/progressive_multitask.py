@@ -193,7 +193,7 @@ class ProgressiveMultitaskRegressor(KerasModel):
         tf.random.truncated_normal((1,), stddev=alpha_init_stddev))
     trainable_layers.append(alpha)
 
-    prev_layer = Multiply()([prev_layer, alpha([])])
+    prev_layer = Multiply()([prev_layer, alpha([prev_layer])])
     dense1 = Dense(
         layer_sizes[i - 1],
         kernel_initializer=tf.keras.initializers.TruncatedNormal(

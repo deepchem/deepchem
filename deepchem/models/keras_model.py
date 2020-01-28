@@ -131,10 +131,7 @@ class KerasModel(Model):
     self.tensorboard = tensorboard
     self.tensorboard_log_frequency = tensorboard_log_frequency
     if self.tensorboard:
-      if tf.executing_eagerly():
-        raise ValueError(
-            "Logging to TensorBoard is not currently supported in eager mode")
-      self._summary_writer = tf.summary.FileWriter(self.model_dir)
+      self._summary_writer = tf.summary.create_file_writer(self.model_dir)
     if output_types is None:
       self._prediction_outputs = None
       self._loss_outputs = None
@@ -303,7 +300,6 @@ class KerasModel(Model):
         self.restore()
         restore = False
       inputs, labels, weights = self._prepare_batch(batch)
-      self._current_summary = None
 
       # Execute the loss function, accumulating the gradients.
 
@@ -344,10 +340,8 @@ class KerasModel(Model):
       for c in callbacks:
         c(self, current_step)
       if self.tensorboard and should_log:
-        self._log_value_to_tensorboard(tag='loss', simple_value=batch_loss)
-        self._summary_writer.reopen()
-        self._summary_writer.add_summary(self._current_summary, current_step)
-        self._summary_writer.close()
+        with self._summary_writer.as_default():
+          tf.summary.scalar('loss', batch_loss, current_step)
 
     # Report final results.
     if averaged_batches > 0:
@@ -361,15 +355,6 @@ class KerasModel(Model):
     time2 = time.time()
     logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return avg_loss
-
-  def _log_value_to_tensorboard(self, **kwargs):
-    """This can be called during fitting to log a value to Tensorboard.
-
-    Any keyword arguments passed to this method are passed on to summary.value.add().
-    """
-    if self._current_summary is None:
-      self._current_summary = tf.Summary()
-    self._current_summary.value.add(**kwargs)
 
   def fit_on_batch(self, X, y, w, variables=None, loss=None, callbacks=[]):
     """Perform a single step of training.

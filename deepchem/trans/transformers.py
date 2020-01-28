@@ -793,30 +793,18 @@ class IRVTransformer():
     features = []
     similarity_xs = similarity * np.sign(w)
     [target_len, reference_len] = similarity_xs.shape
-    g_temp = tf.Graph()
     values = []
     top_labels = []
-    with g_temp.as_default():
-      with tf.device('/cpu:0'):
-        labels_tf = tf.constant(y)
-        similarity_placeholder = tf.placeholder(
-            dtype=tf.float64, shape=(None, reference_len))
-        value, indice = tf.nn.top_k(
-            similarity_placeholder, k=self.K + 1, sorted=True)
-        # the tf graph here pick up the (K+1) highest similarity values
-        # and their indices
-        top_label = tf.gather(labels_tf, indice)
-      # map the indices to labels
-      feed_dict = {}
-      with tf.Session() as sess:
-        for count in range(target_len // 100 + 1):
-          feed_dict[similarity_placeholder] = similarity_xs[count * 100:min(
-              (count + 1) * 100, target_len), :]
-          # generating batch of data by slicing similarity matrix
-          # into 100*reference_dataset_length
-          fetched_values = sess.run([value, top_label], feed_dict=feed_dict)
-          values.append(fetched_values[0])
-          top_labels.append(fetched_values[1])
+    # map the indices to labels
+    for count in range(target_len // 100 + 1):
+      similarity = similarity_xs[count * 100:min((count + 1) *
+                                                 100, target_len), :]
+      # generating batch of data by slicing similarity matrix
+      # into 100*reference_dataset_length
+      value, indice = tf.nn.top_k(similarity, k=self.K + 1, sorted=True)
+      top_label = tf.gather(y, indice)
+      values.append(value)
+      top_labels.append(top_label)
     values = np.concatenate(values, axis=0)
     top_labels = np.concatenate(top_labels, axis=0)
     # concatenate batches of data together

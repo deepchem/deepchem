@@ -618,7 +618,7 @@ class WeightedLinearCombo(tf.keras.layers.Layer):
 class CombineMeanStd(tf.keras.layers.Layer):
   """Generate Gaussian nose."""
 
-  def __init__(self, training_only=False, noise_epsilon=0.01, **kwargs):
+  def __init__(self, training_only=False, noise_epsilon=1.0, **kwargs):
     """Create a CombineMeanStd layer.
 
     This layer should have two inputs with the same shape, and its output also has the
@@ -632,6 +632,8 @@ class CombineMeanStd(tf.keras.layers.Layer):
       if True, noise is only generated during training.  During prediction, the output
       is simply equal to the first input (that is, the mean of the distribution used
       during training).
+    noise_epsilon: float
+      The noise is scaled by this factor
     """
     super(CombineMeanStd, self).__init__(**kwargs)
     self.training_only = training_only
@@ -650,7 +652,7 @@ class CombineMeanStd(tf.keras.layers.Layer):
     noise_scale = tf.cast(training or not self.training_only, tf.float32)
     from tensorflow.python.ops import array_ops
     sample_noise = tf.random.normal(
-        array_ops.shape(mean_parent), 0, 1, dtype=tf.float32)
+        array_ops.shape(mean_parent), 0, self.noise_epsilon, dtype=tf.float32)
     return mean_parent + noise_scale * std_parent * sample_noise
 
 
@@ -671,7 +673,13 @@ class Stack(tf.keras.layers.Layer):
 
 
 class Variable(tf.keras.layers.Layer):
-  """Output a trainable value."""
+  """Output a trainable value.
+
+  Due to a quirk of Keras, you must pass an input value when invoking this layer.
+  It doesn't matter what value you pass.  Keras assumes every layer that is not
+  an Input will have at least one parent, and violating this assumption causes
+  errors during evaluation.
+  """
 
   def __init__(self, initial_value, **kwargs):
     """Construct a variable layer.
@@ -1363,7 +1371,7 @@ class AlphaShareLayer(tf.keras.layers.Layer):
     self.num_outputs = len(inputs)
     # create subspaces
     subspaces = []
-    original_cols = int(inputs[0].get_shape()[-1].value)
+    original_cols = int(inputs[0].get_shape()[-1])
     subspace_size = int(original_cols / 2)
     for input_tensor in inputs:
       subspaces.append(tf.reshape(input_tensor[:, :subspace_size], [-1]))
@@ -1405,7 +1413,7 @@ class SluiceLoss(tf.keras.layers.Layer):
     subspaces = []
     # creates subspaces the same way it was done in AlphaShare
     for input_tensor in inputs:
-      subspace_size = int(input_tensor.get_shape()[-1].value / 2)
+      subspace_size = int(input_tensor.get_shape()[-1] / 2)
       subspaces.append(input_tensor[:, :subspace_size])
       subspaces.append(input_tensor[:, subspace_size:])
       product = tf.matmul(tf.transpose(subspaces[0]), subspaces[1])
@@ -1448,7 +1456,7 @@ class BetaShare(tf.keras.layers.Layer):
     Size of input layers must all be the same
     """
     subspaces = []
-    original_cols = int(inputs[0].get_shape()[-1].value)
+    original_cols = int(inputs[0].get_shape()[-1])
     for input_tensor in inputs:
       subspaces.append(tf.reshape(input_tensor, [-1]))
     n_betas = len(inputs)
@@ -1538,7 +1546,8 @@ class ANIFeat(tf.keras.layers.Layer):
 
     # Calculate pairwise distance
     d = tf.sqrt(
-        tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3) + 1e-7)
+        tf.reduce_sum(tf.math.squared_difference(tensor1, tensor2), axis=3) +
+        1e-7)
 
     d = d * flags
     return d
@@ -1668,7 +1677,7 @@ class GraphEmbedPoolLayer(tf.keras.layers.Layer):
   def build(self, input_shape):
     no_features = int(input_shape[0][-1])
     self.W = tf.Variable(
-        tf.truncated_normal(
+        tf.random.truncated_normal(
             [no_features, self.num_vertices],
             stddev=1.0 / np.sqrt(no_features)),
         name='weights',
@@ -1715,11 +1724,11 @@ class GraphEmbedPoolLayer(tf.keras.layers.Layer):
     result_A = tf.reshape(result_A, (tf.shape(A)[0], tf.shape(A)[-1], -1))
     result_A = tf.matmul(factors, result_A, transpose_a=True)
     result_A = tf.reshape(result_A, (tf.shape(A)[0], self.num_vertices,
-                                     A.get_shape()[2].value, self.num_vertices))
+                                     A.get_shape()[2], self.num_vertices))
     return result, result_A
 
   def embedding_factors(self, V):
-    no_features = V.get_shape()[-1].value
+    no_features = V.get_shape()[-1]
     V_reshape = tf.reshape(V, (-1, no_features))
     s = tf.slice(tf.shape(V), [0], [len(V.get_shape()) - 1])
     s = tf.concat([s, tf.stack([self.num_vertices])], 0)
@@ -1785,13 +1794,13 @@ class GraphCNN(tf.keras.layers.Layer):
     no_features = int(input_shape[0][2])
     no_A = int(input_shape[1][2])
     self.W = tf.Variable(
-        tf.truncated_normal(
+        tf.random.truncated_normal(
             [no_features * no_A, self.num_filters],
             stddev=np.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
         name='weights',
         dtype=tf.float32)
     self.W_I = tf.Variable(
-        tf.truncated_normal(
+        tf.random.truncated_normal(
             [no_features, self.num_filters],
             stddev=np.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
         name='weights_I',
@@ -1804,8 +1813,8 @@ class GraphCNN(tf.keras.layers.Layer):
       V, A, mask = inputs
     else:
       V, A = inputs
-    no_A = A.get_shape()[2].value
-    no_features = V.get_shape()[2].value
+    no_A = A.get_shape()[2]
+    no_features = V.get_shape()[2]
     n = self.graphConvolution(V, A)
     A_shape = tf.shape(A)
     n = tf.reshape(n, [-1, A_shape[1], no_A * no_features])
@@ -1813,8 +1822,8 @@ class GraphCNN(tf.keras.layers.Layer):
         V, self.W_I) + self.b
 
   def graphConvolution(self, V, A):
-    no_A = A.get_shape()[2].value
-    no_features = V.get_shape()[2].value
+    no_A = A.get_shape()[2]
+    no_features = V.get_shape()[2]
     A_shape = tf.shape(A)
     A_reshape = tf.reshape(A, tf.stack([-1, A_shape[1] * no_A, A_shape[1]]))
     n = tf.matmul(A_reshape, V)
