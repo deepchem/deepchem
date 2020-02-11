@@ -1,19 +1,21 @@
-"""Asynchronous Advantage Actor-Critic (A3C) algorithm for reinforcement learning."""
+"""Advantage Actor-Critic (A2C) algorithm for reinforcement learning."""
 
 from deepchem.models import KerasModel
 from deepchem.models.optimizers import Adam
 import numpy as np
 import tensorflow as tf
+import tensorflow_probability as tfp
 import collections
 import copy
 import multiprocessing
 import os
 import re
 import threading
+import time
 
 
-class A3CLossDiscrete(object):
-  """This class computes the loss function for A3C with discrete action spaces."""
+class A2CLossDiscrete(object):
+  """This class computes the loss function for A2C with discrete action spaces."""
 
   def __init__(self, value_weight, entropy_weight, action_prob_index,
                value_index):
@@ -29,7 +31,7 @@ class A3CLossDiscrete(object):
     action = labels[0]
     advantage = tf.expand_dims(advantage, axis=1)
     prob = prob + np.finfo(np.float32).eps
-    log_prob = tf.log(prob)
+    log_prob = tf.math.log(prob)
     policy_loss = -tf.reduce_mean(
         advantage * tf.reduce_sum(action * log_prob, axis=1))
     value_loss = tf.reduce_mean(tf.square(reward - value))
@@ -37,8 +39,8 @@ class A3CLossDiscrete(object):
     return policy_loss + self.value_weight * value_loss - self.entropy_weight * entropy
 
 
-class A3CLossContinuous(object):
-  """This class computes the loss function for A3C with continuous action spaces."""
+class A2CLossContinuous(object):
+  """This class computes the loss function for A2C with continuous action spaces."""
 
   def __init__(self, value_weight, entropy_weight, mean_index, std_index,
                value_index):
@@ -54,7 +56,7 @@ class A3CLossContinuous(object):
     value = outputs[self.value_index]
     reward, advantage = weights
     action = labels[0]
-    distrib = tf.distributions.Normal(mean, std)
+    distrib = tfp.distributions.Normal(mean, std)
     reduce_axes = list(range(1, len(action.shape)))
     log_prob = tf.reduce_sum(distrib.log_prob(action), reduce_axes)
     policy_loss = -tf.reduce_mean(advantage * log_prob)
@@ -63,9 +65,9 @@ class A3CLossContinuous(object):
     return policy_loss + self.value_weight * value_loss - self.entropy_weight * entropy
 
 
-class A3C(object):
+class A2C(object):
   """
-  Implements the Asynchronous Advantage Actor-Critic (A3C) algorithm for reinforcement learning.
+  Implements the Advantage Actor-Critic (A2C) algorithm for reinforcement learning.
 
   The algorithm is described in Mnih et al, "Asynchronous Methods for Deep Reinforcement Learning"
   (https://arxiv.org/abs/1602.01783).  This class supports environments with both discrete and
@@ -162,66 +164,41 @@ class A3C(object):
       self._optimizer = Adam(learning_rate=0.001, beta1=0.9, beta2=0.999)
     else:
       self._optimizer = optimizer
-    self._model = self._build_model(model_dir)
     output_names = policy.output_names
-    output_tensors = self._model._output_tensors
-    self._value = output_tensors[output_names.index('value')]
+    self.continuous = ('action_mean' in output_names)
+    self._value_index = output_names.index('value')
     if self.continuous:
-      self._action_mean = output_tensors[output_names.index('action_mean')]
-      self._action_std = output_tensors[output_names.index('action_std')]
+      self._action_mean_index = output_names.index('action_mean')
+      self._action_std_index = output_names.index('action_std')
     else:
-      self._action_prob = output_tensors[output_names.index('action_prob')]
-    rnn_outputs = [i for i, n in enumerate(output_names) if n == 'rnn_state']
-    self._rnn_final_states = [output_tensors[i] for i in rnn_outputs]
-    self._session = self._model.session
+      self._action_prob_index = output_names.index('action_prob')
+    self._rnn_final_state_indices = [
+        i for i, n in enumerate(output_names) if n == 'rnn_state'
+    ]
     self._rnn_states = policy.rnn_initial_states
+    self._model = self._build_model(model_dir)
     self._checkpoint = tf.train.Checkpoint()
     self._checkpoint.save_counter  # Ensure the variable has been created
     self._checkpoint.listed = self._model.model.trainable_variables
-    self._session.run(self._checkpoint.save_counter.initializer)
 
   def _build_model(self, model_dir):
     """Construct a KerasModel containing the policy and loss calculations."""
-    state_shape = self._env.state_shape
-    state_dtype = self._env.state_dtype
-    if not self._state_is_list:
-      state_shape = [state_shape]
-      state_dtype = [state_dtype]
-    features = []
-    for s, d in zip(state_shape, state_dtype):
-      features.append(
-          tf.keras.layers.Input(shape=list(s), dtype=tf.as_dtype(d)))
     policy_model = self._policy.create_model()
-    output_names = self._policy.output_names
-    if 'action_prob' in output_names:
-      self.continuous = False
-      loss = A3CLossDiscrete(self.value_weight, self.entropy_weight,
-                             output_names.index('action_prob'),
-                             output_names.index('value'))
+    if self.continuous:
+      loss = A2CLossContinuous(self.value_weight, self.entropy_weight,
+                               self._action_mean_index, self._action_std_index,
+                               self._value_index)
     else:
-      self.continuous = True
-      loss = A3CLossContinuous(self.value_weight, self.entropy_weight,
-                               output_names.index('action_mean'),
-                               output_names.index('action_std'),
-                               output_names.index('value'))
+      loss = A2CLossDiscrete(self.value_weight, self.entropy_weight,
+                             self._action_prob_index, self._value_index)
     model = KerasModel(
         policy_model,
         loss,
         batch_size=self.max_rollout_length,
         model_dir=model_dir,
         optimize=self._optimizer)
-    env = self._env
-    example_inputs = [
-        np.zeros([model.batch_size] + list(shape), dtype)
-        for shape, dtype in zip(state_shape, state_dtype)
-    ]
-    if self.continuous:
-      example_labels = [np.zeros([model.batch_size] + list(env.action_shape))]
-    else:
-      example_labels = [np.zeros((model.batch_size, env.n_actions))]
-    example_weights = [np.zeros(model.batch_size)] * 2
-    model._create_training_ops((example_inputs, example_labels,
-                                example_weights))
+    model._ensure_built()
+
     return model
 
   def fit(self,
@@ -245,29 +222,35 @@ class A3C(object):
       if True, restore the model from the most recent checkpoint and continue training
       from there.  If False, retrain the model from scratch.
     """
-    step_count = [0]
-    workers = []
-    threads = []
-    for i in range(multiprocessing.cpu_count()):
-      workers.append(_Worker(self, i))
-    self._session.run(tf.global_variables_initializer())
     if restore:
       self.restore()
-    for worker in workers:
-      thread = threading.Thread(
-          name=worker.scope, target=lambda: worker.run(step_count, total_steps))
-      threads.append(thread)
-      thread.start()
     manager = tf.train.CheckpointManager(
         self._checkpoint, self._model.model_dir, max_checkpoints_to_keep)
-    while True:
-      threads = [t for t in threads if t.isAlive()]
-      if len(threads) > 0:
-        threads[0].join(checkpoint_interval)
-      with self._session.as_default():
+    checkpoint_time = time.time()
+    self._env.reset()
+    rnn_states = self._policy.rnn_initial_states
+
+    # Training loop.
+
+    step_count = 0
+    while step_count < total_steps:
+      initial_rnn_states = rnn_states
+      states, actions, rewards, values, rnn_states = self._create_rollout(
+          rnn_states)
+      self._process_rollout(states, actions, rewards, values,
+                            initial_rnn_states)
+      if self.use_hindsight:
+        self._process_rollout_with_hindsight(states, actions,
+                                             initial_rnn_states)
+      step_count += len(actions)
+      self._model._global_step.assign_add(len(actions))
+
+      # Do checkpointing.
+
+      if step_count >= total_steps or time.time(
+      ) >= checkpoint_time + checkpoint_interval:
         manager.save()
-      if len(threads) == 0:
-        break
+        checkpoint_time = time.time()
 
   def predict(self, state, use_saved_states=True, save_states=True):
     """Compute the policy's output predictions for a state.
@@ -294,11 +277,14 @@ class A3C(object):
     -------
     the array of action probabilities, and the estimated value function
     """
+    results = self._predict_outputs(state, use_saved_states, save_states)
     if self.continuous:
-      outputs = [self._action_mean, self._action_std, self._value]
+      return [
+          results[i] for i in (self._action_mean_index, self._action_std_index,
+                               self._value_index)
+      ]
     else:
-      outputs = [self._action_prob, self._value]
-    return self._predict_outputs(outputs, state, use_saved_states, save_states)
+      return [results[i] for i in (self._action_prob_index, self._value_index)]
 
   def select_action(self,
                     state,
@@ -332,12 +318,7 @@ class A3C(object):
     -------
     the index of the selected action
     """
-    if self.continuous:
-      tensors = [self._action_mean, self._action_std]
-    else:
-      tensors = [self._action_prob]
-    outputs = self._predict_outputs(tensors, state, use_saved_states,
-                                    save_states)
+    outputs = self._predict_outputs(state, use_saved_states, save_states)
     return self._select_action_from_outputs(outputs, deterministic)
 
   def restore(self):
@@ -345,9 +326,9 @@ class A3C(object):
     last_checkpoint = tf.train.latest_checkpoint(self._model.model_dir)
     if last_checkpoint is None:
       raise ValueError('No checkpoint found')
-    self._checkpoint.restore(last_checkpoint).run_restore_ops(self._session)
+    self._checkpoint.restore(last_checkpoint)
 
-  def _predict_outputs(self, outputs, state, use_saved_states, save_states):
+  def _predict_outputs(self, state, use_saved_states, save_states):
     """Compute a set of outputs for a state. """
     if not self._state_is_list:
       state = [state]
@@ -355,79 +336,39 @@ class A3C(object):
       state = state + list(self._rnn_states)
     else:
       state = state + list(self._policy.rnn_initial_states)
-    feed_dict = dict((f, np.expand_dims(s, axis=0))
-                     for f, s in zip(self._model._input_placeholders, state))
-    tensors = outputs
+    inputs = [np.expand_dims(s, axis=0) for s in state]
+    results = self._compute_model(inputs)
+    results = [r.numpy() for r in results]
     if save_states:
-      tensors = tensors + self._rnn_final_states
-    results = self._session.run(tensors, feed_dict=feed_dict)
-    if save_states:
-      self._rnn_states = [np.squeeze(r, 0) for r in results[len(outputs):]]
-    return results[:len(outputs)]
+      self._rnn_states = [
+          np.squeeze(results[i], 0) for i in self._rnn_final_state_indices
+      ]
+    return results
+
+  @tf.function(experimental_relax_shapes=True)
+  def _compute_model(self, inputs):
+    return self._model.model(inputs)
 
   def _select_action_from_outputs(self, outputs, deterministic):
     """Given the policy outputs, select an action to perform."""
     if self.continuous:
-      action_mean, action_std = outputs
+      action_mean = outputs[self._action_mean_index]
+      action_std = outputs[self._action_std_index]
       if deterministic:
         return action_mean[0]
       else:
         return np.random.normal(action_mean[0], action_std[0])
     else:
-      action_prob = outputs[0]
+      action_prob = outputs[self._action_prob_index]
       if deterministic:
         return action_prob.argmax()
       else:
         action_prob = action_prob.flatten()
         return np.random.choice(np.arange(len(action_prob)), p=action_prob)
 
-
-class _Worker(object):
-  """A Worker object is created for each training thread."""
-
-  def __init__(self, a3c, index):
-    self.a3c = a3c
-    self.index = index
-    self.scope = 'worker%d' % index
-    self.env = copy.deepcopy(a3c._env)
-    self.env.reset()
-    self.model = a3c._build_model(None)
-    output_names = a3c._policy.output_names
-    output_tensors = self.model._output_tensors
-    self.value = output_tensors[output_names.index('value')]
-    if a3c.continuous:
-      self.action_mean = output_tensors[output_names.index('action_mean')]
-      self.action_std = output_tensors[output_names.index('action_std')]
-    else:
-      self.action_prob = output_tensors[output_names.index('action_prob')]
-    rnn_outputs = [i for i, n in enumerate(output_names) if n == 'rnn_state']
-    self.rnn_final_states = [output_tensors[i] for i in rnn_outputs]
-    self.rnn_states = a3c._policy.rnn_initial_states
-    local_vars = self.model.model.trainable_variables
-    global_vars = a3c._model.model.trainable_variables
-    gradients = tf.gradients(self.model._loss_tensor, local_vars)
-    grads_and_vars = list(zip(gradients, global_vars))
-    self.train_op = a3c._model._tf_optimizer.apply_gradients(grads_and_vars)
-    self.update_local_variables = tf.group(
-        *[tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
-    self.global_step = self.model.get_global_step()
-
-  def run(self, step_count, total_steps):
-    while step_count[0] < total_steps:
-      self.a3c._session.run(self.update_local_variables)
-      initial_rnn_states = self.rnn_states
-      states, actions, rewards, values = self.create_rollout()
-      self.process_rollout(states, actions, rewards, values, initial_rnn_states,
-                           step_count[0])
-      if self.a3c.use_hindsight:
-        self.process_rollout_with_hindsight(states, actions, initial_rnn_states,
-                                            step_count[0])
-      step_count[0] += len(actions)
-
-  def create_rollout(self):
+  def _create_rollout(self, rnn_states):
     """Generate a rollout."""
-    n_actions = self.env.n_actions
-    session = self.a3c._session
+    n_actions = self._env.n_actions
     states = []
     actions = []
     rewards = []
@@ -435,122 +376,126 @@ class _Worker(object):
 
     # Generate the rollout.
 
-    for i in range(self.a3c.max_rollout_length):
-      if self.env.terminated:
+    for i in range(self.max_rollout_length):
+      if self._env.terminated:
         break
-      state = self.env.state
+      state = self._env.state
       states.append(state)
-      feed_dict = self.create_feed_dict(state)
-      if self.a3c.continuous:
-        tensors = [self.action_mean, self.action_std, self.value]
-      else:
-        tensors = [self.action_prob, self.value]
-      results = session.run(
-          tensors + self.rnn_final_states, feed_dict=feed_dict)
-      value = results[len(tensors) - 1]
-      self.rnn_states = [np.squeeze(r, 0) for r in results[len(tensors):]]
-      action = self.a3c._select_action_from_outputs(results[:len(tensors) - 1],
-                                                    False)
+      results = self._compute_model(
+          self._create_model_inputs(state, rnn_states))
+      results = [r.numpy() for r in results]
+      value = results[self._value_index]
+      rnn_states = [
+          np.squeeze(results[i], 0) for i in self._rnn_final_state_indices
+      ]
+      action = self._select_action_from_outputs(results, False)
       actions.append(action)
       values.append(float(value))
-      rewards.append(self.env.step(action))
+      rewards.append(self._env.step(action))
 
     # Compute an estimate of the reward for the rest of the episode.
 
-    if not self.env.terminated:
-      feed_dict = self.create_feed_dict(self.env.state)
-      final_value = self.a3c.discount_factor * float(
-          session.run(self.value, feed_dict))
+    if not self._env.terminated:
+      results = self._compute_model(
+          self._create_model_inputs(self._env.state, rnn_states))
+      final_value = self.discount_factor * results[self._value_index].numpy()[0]
     else:
       final_value = 0.0
     values.append(final_value)
-    if self.env.terminated:
-      self.env.reset()
-      self.rnn_states = self.a3c._policy.rnn_initial_states
+    if self._env.terminated:
+      self._env.reset()
+      rnn_states = self._policy.rnn_initial_states
     return states, actions, np.array(
         rewards, dtype=np.float32), np.array(
-            values, dtype=np.float32)
+            values, dtype=np.float32), rnn_states
 
-  def process_rollout(self, states, actions, rewards, values,
-                      initial_rnn_states, step_count):
+  def _process_rollout(self, states, actions, rewards, values,
+                       initial_rnn_states):
     """Train the network based on a rollout."""
 
     # Compute the discounted rewards and advantages.
 
     discounted_rewards = rewards.copy()
     discounted_rewards[-1] += values[-1]
-    advantages = rewards - values[:-1] + self.a3c.discount_factor * np.array(
+    advantages = rewards - values[:-1] + self.discount_factor * np.array(
         values[1:])
     for j in range(len(rewards) - 1, 0, -1):
-      discounted_rewards[j -
-                         1] += self.a3c.discount_factor * discounted_rewards[j]
+      discounted_rewards[j - 1] += self.discount_factor * discounted_rewards[j]
       advantages[
-          j -
-          1] += self.a3c.discount_factor * self.a3c.advantage_lambda * advantages[j]
+          j - 1] += self.discount_factor * self.advantage_lambda * advantages[j]
 
     # Record the actions, converting to one-hot if necessary.
 
     actions_matrix = []
-    if self.a3c.continuous:
+    if self.continuous:
       for action in actions:
         actions_matrix.append(action)
     else:
-      n_actions = self.env.n_actions
+      n_actions = self._env.n_actions
       for action in actions:
-        a = np.zeros(n_actions)
+        a = np.zeros(n_actions, np.float32)
         a[action] = 1.0
         actions_matrix.append(a)
+    actions_matrix = np.array(actions_matrix, dtype=np.float32)
 
     # Rearrange the states into the proper set of arrays.
 
-    if self.a3c._state_is_list:
-      state_arrays = [[] for i in range(len(self.model._input_shapes))]
+    if self._state_is_list:
+      state_arrays = [[] for i in range(len(self._env.state_shape))]
       for state in states:
         for j in range(len(state)):
           state_arrays[j].append(state[j])
     else:
       state_arrays = [states]
+    state_arrays = [np.stack(s) for s in state_arrays]
 
-    # Build the feed dict and apply gradients.
+    # Build the inputs and apply gradients.
 
-    feed_dict = {}
-    for f, s in zip(self.model._input_placeholders, state_arrays):
-      feed_dict[f] = s
-    for f, s in zip(self.model._input_placeholders[len(state_arrays):],
-                    initial_rnn_states):
-      feed_dict[f] = np.expand_dims(s, axis=0)
-    feed_dict[self.model._weights_placeholders[0]] = discounted_rewards
-    feed_dict[self.model._label_placeholders[0]] = actions_matrix
-    feed_dict[self.model._weights_placeholders[1]] = advantages
-    feed_dict[self.model._global_step] = step_count
-    self.a3c._session.run(self.train_op, feed_dict=feed_dict)
+    inputs = state_arrays + [
+        np.expand_dims(s, axis=0) for s in initial_rnn_states
+    ]
+    self._apply_gradients(inputs, actions_matrix, discounted_rewards,
+                          advantages)
 
-  def process_rollout_with_hindsight(self, states, actions, initial_rnn_states,
-                                     step_count):
+  @tf.function(experimental_relax_shapes=True)
+  def _apply_gradients(self, inputs, actions_matrix, discounted_rewards,
+                       advantages):
+    """Compute the gradient of the loss function for a rollout and update the model."""
+    vars = self._model.model.trainable_variables
+    with tf.GradientTape() as tape:
+      outputs = self._model.model(inputs)
+      loss = self._model._loss_fn(outputs, [actions_matrix],
+                                  [discounted_rewards, advantages])
+    gradients = tape.gradient(loss, vars)
+    self._model._tf_optimizer.apply_gradients(zip(gradients, vars))
+
+  def _process_rollout_with_hindsight(self, states, actions,
+                                      initial_rnn_states):
     """Create a new rollout by applying hindsight to an existing one, then train the network."""
-    hindsight_states, rewards = self.env.apply_hindsight(
+    hindsight_states, rewards = self._env.apply_hindsight(
         states, actions, states[-1])
-    if self.a3c._state_is_list:
-      state_arrays = [[] for i in range(len(self.model._input_shapes))]
+    if self._state_is_list:
+      state_arrays = [[] for i in range(len(self._env.state_shape))]
       for state in hindsight_states:
         for j in range(len(state)):
           state_arrays[j].append(state[j])
     else:
       state_arrays = [hindsight_states]
-    state_arrays += initial_rnn_states
-    feed_dict = {}
-    for f, s in zip(self.model._input_placeholders, state_arrays):
-      feed_dict[f] = s
-    values = self.a3c._session.run(self.value, feed_dict=feed_dict)
+    state_arrays = [np.stack(s) for s in state_arrays]
+    inputs = state_arrays + [
+        np.expand_dims(s, axis=0) for s in initial_rnn_states
+    ]
+    outputs = self._compute_model(inputs)
+    values = outputs[self._value_index].numpy()
     values = np.append(values.flatten(), 0.0)
-    self.process_rollout(hindsight_states, actions, np.array(rewards),
-                         np.array(values), initial_rnn_states, step_count)
+    self._process_rollout(hindsight_states, actions,
+                          np.array(rewards, dtype=np.float32),
+                          np.array(values, dtype=np.float32),
+                          initial_rnn_states)
 
-  def create_feed_dict(self, state):
-    """Create a feed dict for use during a rollout."""
-    if not self.a3c._state_is_list:
+  def _create_model_inputs(self, state, rnn_states):
+    """Create the inputs to the model for use during a rollout."""
+    if not self._state_is_list:
       state = [state]
-    state = state + self.rnn_states
-    feed_dict = dict((f, np.expand_dims(s, axis=0))
-                     for f, s in zip(self.model._input_placeholders, state))
-    return feed_dict
+    state = state + rnn_states
+    return [np.expand_dims(s, axis=0) for s in state]

@@ -1,6 +1,6 @@
 """Interface for reinforcement learning."""
 
-from deepchem.rl.a3c import A3C
+from deepchem.rl.a2c import A2C
 from deepchem.rl.ppo import PPO
 
 
