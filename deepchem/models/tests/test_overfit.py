@@ -869,13 +869,13 @@ class TestOverfit(test_util.TensorFlowTestCase):
         layer_sizes=[50],
         bypass_layer_sizes=[10],
         dropouts=[0.],
-        learning_rate=0.002,
+        learning_rate=0.001,
         weight_init_stddevs=[.1],
         alpha_init_stddevs=[.02],
         batch_size=n_samples)
 
     # Fit trained model
-    model.fit(dataset, nb_epoch=200)
+    model.fit(dataset, nb_epoch=300)
 
     # Eval model on train
     scores = model.evaluate(dataset, [metric])

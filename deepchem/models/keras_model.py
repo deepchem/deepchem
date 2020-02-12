@@ -155,6 +155,7 @@ class KerasModel(Model):
     self._inputs_built = False
     self._training_ops_built = False
     self._output_functions = {}
+    self._gradient_fn_for_vars = {}
 
   def _ensure_built(self):
     """The first time this is called, create internal data structures."""
@@ -290,6 +291,21 @@ class KerasModel(Model):
     avg_loss = 0.0
     averaged_batches = 0
     train_op = None
+    if loss is None:
+      loss = self._loss_fn
+    var_key = None
+    if variables is not None:
+      var_key = tuple(v.experimental_ref() for v in variables)
+
+      # The optimizer creates internal variables the first time apply_gradients()
+      # is called for a new set of variables.  If that happens inside a function
+      # annotated with tf.function it throws an exception, so call it once here.
+
+      zero_grads = [tf.zeros(v.shape) for v in variables]
+      self._tf_optimizer.apply_gradients(zip(zero_grads, variables))
+    if var_key not in self._gradient_fn_for_vars:
+      self._gradient_fn_for_vars[var_key] = self._create_gradient_fn(variables)
+    apply_gradient_for_batch = self._gradient_fn_for_vars[var_key]
     time1 = time.time()
 
     # Main training loop.
@@ -303,24 +319,9 @@ class KerasModel(Model):
 
       # Execute the loss function, accumulating the gradients.
 
-      if loss is None:
-        loss = self._loss_fn
-      with tf.GradientTape() as tape:
-        if len(inputs) == 1:
-          inputs = inputs[0]
-        outputs = self.model(inputs)
-        if isinstance(outputs, tf.Tensor):
-          outputs = [outputs]
-        if self._loss_outputs is not None:
-          outputs = [outputs[i] for i in self._loss_outputs]
-        batch_loss = loss(outputs, labels, weights)
-      if variables is None:
-        vars = self.model.trainable_variables
-      else:
-        vars = variables
-      grads = tape.gradient(batch_loss, vars)
-      self._tf_optimizer.apply_gradients(zip(grads, vars))
-      self._global_step.assign_add(1)
+      if len(inputs) == 1:
+        inputs = inputs[0]
+      batch_loss = apply_gradient_for_batch(inputs, labels, weights, loss)
       current_step = self._global_step.numpy()
 
       avg_loss += batch_loss
@@ -355,6 +356,32 @@ class KerasModel(Model):
     time2 = time.time()
     logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return avg_loss
+
+  def _create_gradient_fn(self, variables):
+    """Create a function that computes gradients and applies them to the model.
+    Because of the way TensorFlow function tracing works, we need to create a
+    separate function for each new set of variables.
+    """
+
+    @tf.function(experimental_relax_shapes=True)
+    def apply_gradient_for_batch(inputs, labels, weights, loss):
+      with tf.GradientTape() as tape:
+        outputs = self.model(inputs)
+        if isinstance(outputs, tf.Tensor):
+          outputs = [outputs]
+        if self._loss_outputs is not None:
+          outputs = [outputs[i] for i in self._loss_outputs]
+        batch_loss = loss(outputs, labels, weights)
+      if variables is None:
+        vars = self.model.trainable_variables
+      else:
+        vars = variables
+      grads = tape.gradient(batch_loss, vars)
+      self._tf_optimizer.apply_gradients(zip(grads, vars))
+      self._global_step.assign_add(1)
+      return batch_loss
+
+    return apply_gradient_for_batch
 
   def fit_on_batch(self, X, y, w, variables=None, loss=None, callbacks=[]):
     """Perform a single step of training.
@@ -448,7 +475,7 @@ class KerasModel(Model):
               self.model.inputs, outputs)
         output_values = self._output_functions[key](inputs)
       else:
-        output_values = self.model(inputs, training=False)
+        output_values = self._compute_model(inputs)
         if isinstance(output_values, tf.Tensor):
           output_values = [output_values]
         output_values = [t.numpy() for t in output_values]
@@ -491,6 +518,11 @@ class KerasModel(Model):
       return final_results[0]
     else:
       return final_results
+
+  @tf.function(experimental_relax_shapes=True)
+  def _compute_model(self, inputs):
+    """Evaluate the model for a set of inputs."""
+    return self.model(inputs, training=False)
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
     """
@@ -703,7 +735,7 @@ class KerasModel(Model):
     with tf.GradientTape(
         persistent=True, watch_accessed_variables=False) as tape:
       tape.watch(X)
-      outputs = self.model(X)
+      outputs = self._compute_model(X)
       if isinstance(outputs, tf.Tensor):
         outputs = [outputs]
       final_result = []
