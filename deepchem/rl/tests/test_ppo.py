@@ -107,10 +107,10 @@ class TestPPO(unittest.TestCase):
 
       def __init__(self):
         super(TestEnvironment, self).__init__((10,), 10)
-        self._state = np.random.random(10)
+        self._state = np.random.random(10).astype(np.float32)
 
       def step(self, action):
-        self._state = np.random.random(10)
+        self._state = np.random.random(10).astype(np.float32)
         return 0.0
 
       def reset(self):
@@ -129,10 +129,10 @@ class TestPPO(unittest.TestCase):
         rnn_state = Input(shape=(10,))
         reshaped = Reshape((1, 10))(state)
         gru, rnn_final_state = GRU(
-            10, return_state=True, return_sequences=True)(
+            10, return_state=True, return_sequences=True, time_major=True)(
                 reshaped, initial_state=rnn_state)
         output = Softmax()(Reshape((10,))(gru))
-        value = dc.models.layers.Variable([0.0])([])
+        value = dc.models.layers.Variable([0.0])([state])
         return tf.keras.Model(
             inputs=[state, rnn_state], outputs=[output, value, rnn_final_state])
 
@@ -219,8 +219,8 @@ class TestPPO(unittest.TestCase):
 
       def create_model(self, **kwargs):
         state = Input(shape=(4,))
-        dense1 = Dense(6, activation=tf.nn.relu)(state)
-        dense2 = Dense(6, activation=tf.nn.relu)(dense1)
+        dense1 = Dense(8, activation=tf.nn.relu)(state)
+        dense2 = Dense(8, activation=tf.nn.relu)(dense1)
         output = Dense(4, activation=tf.nn.softmax, use_bias=False)(dense2)
         value = Dense(1)(dense2)
         return tf.keras.Model(inputs=state, outputs=[output, value])
