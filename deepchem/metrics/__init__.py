@@ -237,12 +237,12 @@ class Metric(object):
       if self.metric.__name__ in [
           "roc_auc_score", "matthews_corrcoef", "recall_score",
           "accuracy_score", "kappa_score", "precision_score",
-          "balanced_accuracy_score", "prc_auc_score"
+          "balanced_accuracy_score", "prc_auc_score", "f1_score"
       ]:
         mode = "classification"
       elif self.metric.__name__ in [
           "pearson_r2_score", "r2_score", "mean_squared_error",
-          "mean_absolute_error", "rms_score", "mae_score"
+          "mean_absolute_error", "rms_score", "mae_score", "pearsonr"
       ]:
         mode = "regression"
       else:
@@ -250,7 +250,7 @@ class Metric(object):
     assert mode in ["classification", "regression"]
     if self.metric.__name__ in [
         "accuracy_score", "balanced_accuracy_score", "recall_score",
-        "matthews_corrcoef"
+        "matthews_corrcoef", "precision_score", "f1_score"
     ] and threshold is None:
       self.threshold = 0.5
     self.mode = mode
