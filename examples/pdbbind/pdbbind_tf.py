@@ -34,7 +34,7 @@ n_features = train_dataset.X.shape[1]
 model = dc.models.MultitaskRegressor(
     len(pdbbind_tasks),
     n_features,
-    logdir=model_dir,
+    model_dir=model_dir,
     dropouts=[.25],
     learning_rate=0.0003,
     weight_init_stddevs=[.1],
