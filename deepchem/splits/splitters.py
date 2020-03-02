@@ -784,7 +784,7 @@ def ClusterFps(fps, cutoff=0.2):
   return cs
 
 
-class ButinaSplitterNew(Splitter):
+class ButinaSplitter(Splitter):
   """
   Class for doing data splits based on the butina clustering of a bulk tanimoto
   fingerprint matrix.
