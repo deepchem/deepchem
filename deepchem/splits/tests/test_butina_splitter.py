@@ -6,7 +6,7 @@ import deepchem as dc
 from deepchem.splits.splitters import ButinaSplitter
 
 
-class TestScaffoldSplitter(TestCase):
+class TestButinaSplitter(TestCase):
 
   def test_scaffolds(self):
     raise NotImplementedError
