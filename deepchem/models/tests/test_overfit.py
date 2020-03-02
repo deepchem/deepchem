@@ -116,7 +116,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     assert scores[classification_metric.name] > .9
 
   def test_regression_overfit(self):
-    """Test that TensorGraph models can overfit simple regression datasets."""
+    """Test that MultitaskRegressor can overfit simple regression datasets."""
     n_samples = 10
     n_features = 3
     n_tasks = 1
@@ -147,7 +147,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     assert scores[regression_metric.name] < .1
 
   def test_classification_overfit(self):
-    """Test that TensorGraph models can overfit simple classification datasets."""
+    """Test that MultitaskClassifier can overfit simple classification datasets."""
     n_samples = 10
     n_features = 3
     n_tasks = 1
@@ -209,7 +209,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     assert scores[classification_metric.name] > .9
 
   def test_fittransform_regression_overfit(self):
-    """Test that TensorGraph FitTransform models can overfit simple regression datasets."""
+    """Test that MultitaskFitTransformRegressor can overfit simple regression datasets."""
     n_samples = 10
     n_features = 3
     n_tasks = 1
@@ -241,7 +241,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     assert scores[regression_metric.name] < .1
 
   def test_skewed_classification_overfit(self):
-    """Test TensorGraph models can overfit 0/1 datasets with few actives."""
+    """Test MultitaskClassifier can overfit 0/1 datasets with few actives."""
     #n_samples = 100
     n_samples = 100
     n_features = 3
@@ -277,7 +277,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
   def test_skewed_missing_classification_overfit(self):
     """TG, skewed data, few actives
 
-    Test TensorGraph models overfit 0/1 datasets with missing data and few
+    Test MultitaskClassifier overfit 0/1 datasets with missing data and few
     actives. This is intended to be as close to singletask MUV datasets as
     possible.
     """
@@ -352,7 +352,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
   @flaky
   def test_multitask_classification_overfit(self):
-    """Test TensorGraph multitask overfits tiny data."""
+    """Test MultitaskClassifier overfits tiny data."""
     n_tasks = 10
     n_samples = 10
     n_features = 3
@@ -479,7 +479,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     assert scores[regression_metric.name] > .7
 
   def test_multitask_regression_overfit(self):
-    """Test TensorGraph multitask overfits tiny data."""
+    """Test MultitaskRegressor overfits tiny data."""
     n_tasks = 10
     n_samples = 10
     n_features = 10
@@ -616,7 +616,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .7
 
-  def test_tensorgraph_DAG_singletask_regression_overfit(self):
+  def test_DAG_singletask_regression_overfit(self):
     """Test DAG regressor multitask overfits tiny data."""
     np.random.seed(123)
     tf.random.set_seed(123)
@@ -654,7 +654,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .8
 
-  def test_tensorgraph_weave_singletask_classification_overfit(self):
+  def test_weave_singletask_classification_overfit(self):
     """Test weave model overfits tiny data."""
     np.random.seed(123)
     tf.random.set_seed(123)
@@ -693,7 +693,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[classification_metric.name] > .65
 
-  def test_tensorgraph_weave_singletask_regression_overfit(self):
+  def test_weave_singletask_regression_overfit(self):
     """Test weave model overfits tiny data."""
     np.random.seed(123)
     tf.random.set_seed(123)

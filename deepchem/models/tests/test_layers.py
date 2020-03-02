@@ -146,7 +146,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     assert h_out.shape == (n_test, n_feat)
     assert h_copy_out.shape == (n_test, n_feat)
     assert c_out.shape == (n_test, n_feat)
-    assert len(layer.trainable_variables) == 3
+    assert len(layer.trainable_variables) == 1
 
   def test_attn_lstm_embedding(self):
     """Test invoking AttnLSTMEmbedding."""
@@ -160,7 +160,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     test_out, support_out = layer([test, support])
     assert test_out.shape == (n_test, n_feat)
     assert support_out.shape == (n_support, n_feat)
-    assert len(layer.trainable_variables) == 6
+    assert len(layer.trainable_variables) == 4
 
   def test_iter_ref_lstm_embedding(self):
     """Test invoking IterRefLSTMEmbedding."""
@@ -174,7 +174,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     test_out, support_out = layer([test, support])
     assert test_out.shape == (n_test, n_feat)
     assert support_out.shape == (n_support, n_feat)
-    assert len(layer.trainable_variables) == 12
+    assert len(layer.trainable_variables) == 8
 
   def test_vina_free_energy(self):
     """Test invoking VinaFreeEnergy."""
@@ -225,8 +225,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     M_nbrs = 2
     coords = start + np.random.rand(N_atoms, ndim) * (stop - start)
     coords = tf.cast(tf.stack(coords), tf.float32)
-    layer = layers.NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
-                                stop)
+    layer = layers.NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop)
     result = layer(coords)
     assert result.shape == (N_atoms, M_nbrs)
 

@@ -3,7 +3,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import numpy as np
 import collections
-from deepchem.models.tensorgraph import model_ops, initializations, activations
+from tensorflow.keras import activations, initializers, backend
 
 
 class InteratomicL2Distances(tf.keras.layers.Layer):
@@ -286,12 +286,12 @@ class LSTMStep(tf.keras.layers.Layer):
     return config
 
   def get_initial_states(self, input_shape):
-    return [model_ops.zeros(input_shape), model_ops.zeros(input_shape)]
+    return [backend.zeros(input_shape), backend.zeros(input_shape)]
 
   def build(self, input_shape):
     """Constructs learnable weights for this layer."""
-    init = initializations.get(self.init)
-    inner_init = initializations.get(self.inner_init)
+    init = initializers.get(self.init)
+    inner_init = initializers.get(self.inner_init)
     self.W = init((self.input_dim, 4 * self.output_dim))
     self.U = inner_init((self.output_dim, 4 * self.output_dim))
 
@@ -317,7 +317,7 @@ class LSTMStep(tf.keras.layers.Layer):
     x, h_tm1, c_tm1 = inputs
 
     # Taken from Keras code [citation needed]
-    z = model_ops.dot(x, self.W) + model_ops.dot(h_tm1, self.U) + self.b
+    z = backend.dot(x, self.W) + backend.dot(h_tm1, self.U) + self.b
 
     z0 = z[:, :self.output_dim]
     z1 = z[:, self.output_dim:2 * self.output_dim]
@@ -343,10 +343,9 @@ def _cosine_dist(x, y):
   y: tf.Tensor
     Input Tensor
   """
-  denom = (
-      model_ops.sqrt(model_ops.sum(tf.square(x)) * model_ops.sum(tf.square(y)))
-      + model_ops.epsilon())
-  return model_ops.dot(x, tf.transpose(y)) / denom
+  denom = (backend.sqrt(backend.sum(tf.square(x)) * backend.sum(tf.square(y))) +
+           backend.epsilon())
+  return backend.dot(x, tf.transpose(y)) / denom
 
 
 class AttnLSTMEmbedding(tf.keras.layers.Layer):
@@ -401,7 +400,7 @@ class AttnLSTMEmbedding(tf.keras.layers.Layer):
   def build(self, input_shape):
     n_feat = self.n_feat
     self.lstm = LSTMStep(n_feat, 2 * n_feat)
-    self.q_init = model_ops.zeros([self.n_test, n_feat])
+    self.q_init = backend.zeros([self.n_test, n_feat])
     self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
     self.built = True
 
@@ -436,10 +435,10 @@ class AttnLSTMEmbedding(tf.keras.layers.Layer):
       # Eqn (4), appendix A.1 of Matching Networks paper
       e = _cosine_dist(x + q, xp)
       a = tf.nn.softmax(e)
-      r = model_ops.dot(a, xp)
+      r = backend.dot(a, xp)
 
       # Generate new attention states
-      y = model_ops.concatenate([q, r], axis=1)
+      y = backend.concatenate([q, r], axis=1)
       q, states = self.lstm([y] + states)
     return [x + q, xp]
 
@@ -494,13 +493,13 @@ class IterRefLSTMEmbedding(tf.keras.layers.Layer):
 
     # Support set lstm
     self.support_lstm = LSTMStep(n_feat, 2 * n_feat)
-    self.q_init = model_ops.zeros([self.n_support, n_feat])
+    self.q_init = backend.zeros([self.n_support, n_feat])
     self.support_states_init = self.support_lstm.get_initial_states(
         [self.n_support, n_feat])
 
     # Test lstm
     self.test_lstm = LSTMStep(n_feat, 2 * n_feat)
-    self.p_init = model_ops.zeros([self.n_test, n_feat])
+    self.p_init = backend.zeros([self.n_test, n_feat])
     self.test_states_init = self.test_lstm.get_initial_states(
         [self.n_test, n_feat])
     self.built = True
@@ -540,19 +539,19 @@ class IterRefLSTMEmbedding(tf.keras.layers.Layer):
       e = _cosine_dist(z + q, xp)
       a = tf.nn.softmax(e)
       # Get linear combination of support set
-      r = model_ops.dot(a, xp)
+      r = backend.dot(a, xp)
 
       # Process test x using attention
       x_e = _cosine_dist(x + p, z)
       x_a = tf.nn.softmax(x_e)
-      s = model_ops.dot(x_a, z)
+      s = backend.dot(x_a, z)
 
       # Generate new support attention states
-      qr = model_ops.concatenate([q, r], axis=1)
+      qr = backend.concatenate([q, r], axis=1)
       q, states = self.support_lstm([qr] + states)
 
       # Generate new test attention states
-      ps = model_ops.concatenate([p, s], axis=1)
+      ps = backend.concatenate([p, s], axis=1)
       p, x_states = self.test_lstm([ps] + x_states)
 
       # Redefine
@@ -1983,36 +1982,36 @@ class WeaveLayer(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     """ Construct internal trainable weights."""
-    init = initializations.get(self.init)  # Set weight initialization
+    init = initializers.get(self.init)  # Set weight initialization
 
     self.W_AA = init([self.n_atom_input_feat, self.n_hidden_AA])
-    self.b_AA = model_ops.zeros(shape=[
+    self.b_AA = backend.zeros(shape=[
         self.n_hidden_AA,
     ])
 
     self.W_PA = init([self.n_pair_input_feat, self.n_hidden_PA])
-    self.b_PA = model_ops.zeros(shape=[
+    self.b_PA = backend.zeros(shape=[
         self.n_hidden_PA,
     ])
 
     self.W_A = init([self.n_hidden_A, self.n_atom_output_feat])
-    self.b_A = model_ops.zeros(shape=[
+    self.b_A = backend.zeros(shape=[
         self.n_atom_output_feat,
     ])
 
     if self.update_pair:
       self.W_AP = init([self.n_atom_input_feat * 2, self.n_hidden_AP])
-      self.b_AP = model_ops.zeros(shape=[
+      self.b_AP = backend.zeros(shape=[
           self.n_hidden_AP,
       ])
 
       self.W_PP = init([self.n_pair_input_feat, self.n_hidden_PP])
-      self.b_PP = model_ops.zeros(shape=[
+      self.b_PP = backend.zeros(shape=[
           self.n_hidden_PP,
       ])
 
       self.W_P = init([self.n_hidden_P, self.n_pair_output_feat])
-      self.b_P = model_ops.zeros(shape=[
+      self.b_P = backend.zeros(shape=[
           self.n_pair_output_feat,
       ])
     self.built = True
@@ -2109,9 +2108,9 @@ class WeaveGather(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     if self.gaussian_expand:
-      init = initializations.get(self.init)
+      init = initializers.get(self.init)
       self.W = init([self.n_input * 11, self.n_input])
-      self.b = model_ops.zeros(shape=[self.n_input])
+      self.b = backend.zeros(shape=[self.n_input])
     self.built = True
 
   def call(self, inputs):
@@ -2173,7 +2172,7 @@ class DTNNEmbedding(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     self.embedding_list = init([self.periodic_table_length, self.n_embedding])
     self.built = True
 
@@ -2226,14 +2225,14 @@ class DTNNStep(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     self.W_cf = init([self.n_embedding, self.n_hidden])
     self.W_df = init([self.n_distance, self.n_hidden])
     self.W_fc = init([self.n_hidden, self.n_embedding])
-    self.b_cf = model_ops.zeros(shape=[
+    self.b_cf = backend.zeros(shape=[
         self.n_hidden,
     ])
-    self.b_df = model_ops.zeros(shape=[
+    self.b_df = backend.zeros(shape=[
         self.n_hidden,
     ])
     self.built = True
@@ -2311,16 +2310,16 @@ class DTNNGather(tf.keras.layers.Layer):
   def build(self, input_shape):
     self.W_list = []
     self.b_list = []
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     prev_layer_size = self.n_embedding
     for i, layer_size in enumerate(self.layer_sizes):
       self.W_list.append(init([prev_layer_size, layer_size]))
-      self.b_list.append(model_ops.zeros(shape=[
+      self.b_list.append(backend.zeros(shape=[
           layer_size,
       ]))
       prev_layer_size = layer_size
     self.W_list.append(init([prev_layer_size, self.n_outputs]))
-    self.b_list.append(model_ops.zeros(shape=[
+    self.b_list.append(backend.zeros(shape=[
         self.n_outputs,
     ]))
     self.built = True
@@ -2416,16 +2415,16 @@ class DAGLayer(tf.keras.layers.Layer):
     """"Construct internal trainable weights."""
     self.W_list = []
     self.b_list = []
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     prev_layer_size = self.n_inputs
     for layer_size in self.layer_sizes:
       self.W_list.append(init([prev_layer_size, layer_size]))
-      self.b_list.append(model_ops.zeros(shape=[
+      self.b_list.append(backend.zeros(shape=[
           layer_size,
       ]))
       prev_layer_size = layer_size
     self.W_list.append(init([prev_layer_size, self.n_outputs]))
-    self.b_list.append(model_ops.zeros(shape=[
+    self.b_list.append(backend.zeros(shape=[
         self.n_outputs,
     ]))
     self.built = True
@@ -2550,16 +2549,16 @@ class DAGGather(tf.keras.layers.Layer):
   def build(self, input_shape):
     self.W_list = []
     self.b_list = []
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     prev_layer_size = self.n_graph_feat
     for layer_size in self.layer_sizes:
       self.W_list.append(init([prev_layer_size, layer_size]))
-      self.b_list.append(model_ops.zeros(shape=[
+      self.b_list.append(backend.zeros(shape=[
           layer_size,
       ]))
       prev_layer_size = layer_size
     self.W_list.append(init([prev_layer_size, self.n_outputs]))
-    self.b_list.append(model_ops.zeros(shape=[
+    self.b_list.append(backend.zeros(shape=[
         self.n_outputs,
     ]))
     self.built = True
@@ -2664,9 +2663,9 @@ class EdgeNetwork(tf.keras.layers.Layer):
   def build(self, input_shape):
     n_pair_features = self.n_pair_features
     n_hidden = self.n_hidden
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     self.W = init([n_pair_features, n_hidden * n_hidden])
-    self.b = model_ops.zeros(shape=(n_hidden * n_hidden,))
+    self.b = backend.zeros(shape=(n_hidden * n_hidden,))
     self.built = True
 
   def call(self, inputs):
@@ -2694,16 +2693,16 @@ class GatedRecurrentUnit(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     n_hidden = self.n_hidden
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     self.Wz = init([n_hidden, n_hidden])
     self.Wr = init([n_hidden, n_hidden])
     self.Wh = init([n_hidden, n_hidden])
     self.Uz = init([n_hidden, n_hidden])
     self.Ur = init([n_hidden, n_hidden])
     self.Uh = init([n_hidden, n_hidden])
-    self.bz = model_ops.zeros(shape=(n_hidden,))
-    self.br = model_ops.zeros(shape=(n_hidden,))
-    self.bh = model_ops.zeros(shape=(n_hidden,))
+    self.bz = backend.zeros(shape=(n_hidden,))
+    self.br = backend.zeros(shape=(n_hidden,))
+    self.bh = backend.zeros(shape=(n_hidden,))
     self.built = True
 
   def call(self, inputs):
@@ -2747,7 +2746,7 @@ class SetGather(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     self.U = init((2 * self.n_hidden, 4 * self.n_hidden))
     self.b = tf.Variable(
         np.concatenate((np.zeros(self.n_hidden), np.ones(self.n_hidden),
