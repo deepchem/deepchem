@@ -128,7 +128,7 @@ def get_user_specified_features(df, featurizer, verbose=True):
   time1 = time.time()
   df[featurizer.feature_fields] = df[featurizer.feature_fields].apply(
       pd.to_numeric)
-  X_shard = df.as_matrix(columns=featurizer.feature_fields)
+  X_shard = df[featurizer.feature_fields].to_numpy()
   time2 = time.time()
   log("TIMING: user specified processing took %0.3f s" % (time2 - time1),
       verbose)
