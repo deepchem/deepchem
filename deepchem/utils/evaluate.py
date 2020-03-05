@@ -207,7 +207,10 @@ class GeneratorEvaluator(object):
     y_pred = undo_transforms(y_pred, self.output_transformers)
     if len(w) != 0:
       w = np.array(w)
-      w = np.reshape(w, newshape=y.shape)
+      if np.prod(w.shape) == y.shape[0]:
+        w = np.reshape(w, newshape=(y.shape[0], 1))
+      else:
+        w = np.reshape(w, newshape=y.shape)
 
     # Compute multitask metrics
     n_classes = y.shape[-1]
