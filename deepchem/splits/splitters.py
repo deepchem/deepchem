@@ -852,6 +852,7 @@ class ScaffoldSplitter(Splitter):
 
   def split(self,
             dataset,
+            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
@@ -887,7 +888,7 @@ class ScaffoldSplitter(Splitter):
     log("About to generate scaffolds", self.verbose)
     for ind, smiles in enumerate(dataset.ids):
       if ind % log_every_n == 0:
-        log(f"Generating scaffold {ind} {data_len}", self.verbose)
+        log("Generating scaffold %d/%d" % (ind, data_len), self.verbose)
       scaffold = generate_scaffold(smiles)
       if scaffold not in scaffolds:
         scaffolds[scaffold] = [ind]
