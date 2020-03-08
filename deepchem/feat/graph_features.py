@@ -73,6 +73,8 @@ reference_lists = [
 ]
 
 intervals = get_intervals(reference_lists)
+possible_bond_stereo = ["STEREONONE", "STEREOANY", "STEREOZ", "STEREOE"]
+bond_fdim_base = 6
 
 
 def get_feature_list(atom):
@@ -210,8 +212,7 @@ def bond_features(bond, use_chirality=False):
   ]
   if use_chirality:
     bond_feats = bond_feats + one_of_k_encoding_unk(
-        str(bond.GetStereo()),
-        ["STEREONONE", "STEREOANY", "STEREOZ", "STEREOE"])
+        str(bond.GetStereo()), possible_bond_stereo)
   return np.array(bond_feats)
 
 
@@ -287,19 +288,19 @@ class ConvMolFeaturizer(Featurizer):
       Neural Message Passing for Quantum Chemistry
       https://arxiv.org/pdf/1704.01212.pdf
     use_chirality: Boolean
-      if true then make the resulting atom features aware of the 
+      if true then make the resulting atom features aware of the
       chirality of the molecules in question
     atom_properties: list of string or None
       properties in the RDKit Mol object to use as additional
       atom-level features in the larger molecular feature.  If None,
-      then no atom-level properties are used.  Properties should be in the 
-      RDKit mol object should be in the form 
+      then no atom-level properties are used.  Properties should be in the
+      RDKit mol object should be in the form
       atom XXXXXXXX NAME
       where XXXXXXXX is a zero-padded 8 digit number coresponding to the
       zero-indexed atom index of each atom and NAME is the name of the property
       provided in atom_properties.  So "atom 00000000 sasa" would be the
-      name of the molecule level property in mol where the solvent 
-      accessible surface area of atom 0 would be stored. 
+      name of the molecule level property in mol where the solvent
+      accessible surface area of atom 0 would be stored.
 
     Since ConvMol is an object and not a numpy array, need to set dtype to
     object.
@@ -314,7 +315,7 @@ class ConvMolFeaturizer(Featurizer):
     For a given input RDKit atom return the values of the properties
     requested when initializing the featurize.  See the __init__ of the
     class for a full description of the names of the properties
-    
+
     Parameters
     ----------
     atom: RDKit.rdchem.Atom
@@ -396,6 +397,10 @@ class WeaveFeaturizer(Featurizer):
     self.explicit_H = explicit_H
     # If uses use_chirality
     self.use_chirality = use_chirality
+    if self.use_chirality:
+      self.bt_len = bond_fdim_base + len(possible_bond_stereo)
+    else:
+      self.bt_len = bond_fdim_base
 
   def _featurize(self, mol):
     """Encodes mol as a WeaveMol object."""
@@ -425,14 +430,12 @@ class WeaveFeaturizer(Featurizer):
       canon_adj_list[edge[0]].append(edge[1])
       canon_adj_list[edge[1]].append(edge[0])
 
-    bt_len = len(list(edge_list.values())[0])
-
     # Calculate pair features
     pairs = pair_features(
         mol,
         edge_list,
         canon_adj_list,
-        bt_len=bt_len,
+        bt_len=self.bt_len,
         graph_distance=self.graph_distance)
 
     return WeaveMol(nodes, pairs)
