@@ -425,12 +425,14 @@ class WeaveFeaturizer(Featurizer):
       canon_adj_list[edge[0]].append(edge[1])
       canon_adj_list[edge[1]].append(edge[0])
 
+    bt_len = len(list(edge_list.values())[0])
+
     # Calculate pair features
     pairs = pair_features(
         mol,
         edge_list,
         canon_adj_list,
-        bt_len=6,
+        bt_len=bt_len,
         graph_distance=self.graph_distance)
 
     return WeaveMol(nodes, pairs)
