@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 from deepchem.molnet import load_delaney
 from deepchem.trans.transformers import FeaturizationTransformer
 from deepchem.trans.transformers import DataTransforms
-from tensorflow.examples.tutorials.mnist import input_data
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
@@ -18,6 +17,7 @@ import unittest
 import numpy as np
 import pandas as pd
 import deepchem as dc
+import tensorflow as tf
 import scipy.ndimage
 from PIL import Image
 
@@ -33,12 +33,14 @@ class TestTransformers(unittest.TestCase):
     '''
        init to load the MNIST data for DataTransforms Tests
       '''
-    mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+    #mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
     # extracting validation set of MNIST for testing the DataTransforms
-    valid = dc.data.NumpyDataset(mnist.validation.images,
-                                 mnist.validation.labels)
+    #valid = dc.data.NumpyDataset(mnist.validation.images,
+    #                             mnist.validation.labels)
+    train = dc.data.NumpyDataset(x_train, y_train)
     # extract only the images (no need of the labels)
-    data = (valid.X)[0]
+    data = (train.X)[0]
     # reshaping the vector to image
     data = np.reshape(data, (28, 28))
     self.d = data
