@@ -9,6 +9,7 @@ import os
 
 import numpy as np
 import deepchem as dc
+import tensorflow as tf
 
 LETTERS = "ACGT"
 
@@ -19,7 +20,7 @@ from deepchem.metrics.genomic_metrics import in_silico_mutagenesis
 
 class TestGenomicMetrics(unittest.TestCase):
   """
-  Tests that genomic metrics work as expected. 
+  Tests that genomic metrics work as expected.
   """
 
   def test_get_motif_scores(self):
@@ -46,6 +47,16 @@ class TestGenomicMetrics(unittest.TestCase):
     pssm_scores = get_pssm_scores(sequences, pssm)
     self.assertEqual(pssm_scores.shape, (3, 5))
 
+  def create_model_for_mutagenesis(self):
+    keras_model = tf.keras.Sequential([
+        tf.keras.layers.Conv2D(1, 15, activation='relu', padding='same'),
+        tf.keras.layers.Conv2D(1, 15, activation='relu', padding='same'),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(1, activation='relu')
+    ])
+    return dc.models.KerasModel(keras_model,
+                                dc.models.losses.BinaryCrossEntropy())
+
   def test_in_silico_mutagenesis_shape(self):
     """Test in-silico mutagenesis returns correct shape."""
     # Construct and train SequenceDNN model
@@ -59,8 +70,7 @@ class TestGenomicMetrics(unittest.TestCase):
     #y = np.random.randint(0, 2, size=(10, 1))
     #dataset = dc.data.NumpyDataset(X, y)
     dataset = dc.data.NumpyDataset(sequences, labels)
-    model = dc.models.SequenceDNN(
-        5, "binary_crossentropy", num_filters=[1, 1], kernel_size=[15, 15])
+    model = self.create_model_for_mutagenesis()
     model.fit(dataset, nb_epoch=1)
 
     # Call in-silico mutagenesis
@@ -80,8 +90,7 @@ class TestGenomicMetrics(unittest.TestCase):
     #y = np.random.randint(0, 2, size=(10, 1))
     #dataset = dc.data.NumpyDataset(X, y)
     dataset = dc.data.NumpyDataset(sequences, labels)
-    model = dc.models.SequenceDNN(
-        5, "binary_crossentropy", num_filters=[1, 1], kernel_size=[15, 15])
+    model = self.create_model_for_mutagenesis()
     model.fit(dataset, nb_epoch=1)
 
     # Call in-silico mutagenesis

@@ -99,22 +99,23 @@ def get_pssm_scores(encoded_sequences, pssm):
 
 def in_silico_mutagenesis(model, X):
   """Computes in-silico-mutagenesis scores
-   
+
   Parameters
   ----------
-  model: TensorGraph
-    Currently only SequenceDNN will work, but other models may be added.
+  model: Model
+    This can be any model that accepts inputs of the required shape.
   X: ndarray
-    Shape (N_sequences, N_letters, sequence_length, 1) 
+    Shape (N_sequences, N_letters, sequence_length, 1)
 
   Returns
   -------
   (num_task, N_sequences, N_letters, sequence_length, 1) ISM score array.
   """
-  #Shape (N_sequences, N_letters, sequence_length, 1, num_tasks)
-  mutagenesis_scores = np.empty(X.shape + (model.num_tasks,), dtype=np.float32)
   # Shape (N_sequences, num_tasks)
   wild_type_predictions = model.predict(NumpyDataset(X))
+  num_tasks = wild_type_predictions.shape[1]
+  #Shape (N_sequences, N_letters, sequence_length, 1, num_tasks)
+  mutagenesis_scores = np.empty(X.shape + (num_tasks,), dtype=np.float32)
   # Shape (N_sequences, num_tasks, 1, 1, 1)
   wild_type_predictions = wild_type_predictions[:, np.newaxis, np.newaxis,
                                                 np.newaxis]
@@ -141,7 +142,7 @@ def in_silico_mutagenesis(model, X):
     # make mutant predictions
     mutated_predictions = model.predict(NumpyDataset(mutated_sequences))
     mutated_predictions = mutated_predictions.reshape(sequence.shape +
-                                                      (model.num_tasks,))
+                                                      (num_tasks,))
     mutagenesis_scores[
         sequence_index] = wild_type_prediction - mutated_predictions
   rolled_scores = np.rollaxis(mutagenesis_scores, -1)
