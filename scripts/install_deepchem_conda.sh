@@ -49,7 +49,6 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     joblib \
     scikit-learn \
     networkx \
-    pillow \
     pandas \
     nose \
     nose-timer \
@@ -57,9 +56,6 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     zlib \
     requests \
     xgboost \
-    simdna \
-    pbr \
     setuptools \
-    biopython \
     numpy
 yes | pip install $tensorflow==2.1.0 tensorflow-probability
