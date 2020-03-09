@@ -33,11 +33,7 @@ class TestTransformers(unittest.TestCase):
     '''
        init to load the MNIST data for DataTransforms Tests
       '''
-    #mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-    # extracting validation set of MNIST for testing the DataTransforms
-    #valid = dc.data.NumpyDataset(mnist.validation.images,
-    #                             mnist.validation.labels)
     train = dc.data.NumpyDataset(x_train, y_train)
     # extract only the images (no need of the labels)
     data = (train.X)[0]
