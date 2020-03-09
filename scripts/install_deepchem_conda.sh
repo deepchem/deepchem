@@ -47,7 +47,6 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     pdbfixer \
     rdkit \
     joblib \
-    six \
     scikit-learn \
     networkx \
     pillow \

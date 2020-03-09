@@ -101,23 +101,21 @@ class TestHelperFunctions(unittest.TestCase):
       self.assertAlmostEqual(rgf.angle_between(v1, -v1), np.pi)
 
   def test_hash_ecfp(self):
-    from six import integer_types
     for power in (2, 16, 64):
       for _ in range(10):
         string = random_string(10)
         string_hash = rgf.hash_ecfp(string, power)
-        self.assertIsInstance(string_hash, integer_types)
+        self.assertIsInstance(string_hash, int)
         self.assertLess(string_hash, 2**power)
         self.assertGreaterEqual(string_hash, 0)
 
   def test_hash_ecfp_pair(self):
-    from six import integer_types
     for power in (2, 16, 64):
       for _ in range(10):
         string1 = random_string(10)
         string2 = random_string(10)
         pair_hash = rgf.hash_ecfp_pair((string1, string2), power)
-        self.assertIsInstance(pair_hash, integer_types)
+        self.assertIsInstance(pair_hash, int)
         self.assertLess(pair_hash, 2**power)
         self.assertGreaterEqual(pair_hash, 0)
 
