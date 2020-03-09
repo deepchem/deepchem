@@ -19,7 +19,7 @@ from deepchem.models.tensorgraph.layers import Input, GraphConv, BatchNorm, Grap
 np.random.seed(123)
 import tensorflow as tf
 
-tf.set_random_seed(123)
+tf.random.set_seed(123)
 import deepchem as dc
 from deepchem.molnet import load_tox21
 
@@ -51,10 +51,10 @@ def sluice_model(batch_size, tasks):
   batch_norm1a = BatchNorm(in_layers=[as1[0]])
   batch_norm1b = BatchNorm(in_layers=[as1[1]])
 
-  gp1a = GraphPool(
-      in_layers=[batch_norm1a, degree_slice, membership] + deg_adjs)
-  gp1b = GraphPool(
-      in_layers=[batch_norm1b, degree_slice, membership] + deg_adjs)
+  gp1a = GraphPool(in_layers=[batch_norm1a, degree_slice, membership] +
+                   deg_adjs)
+  gp1b = GraphPool(in_layers=[batch_norm1b, degree_slice, membership] +
+                   deg_adjs)
 
   gc2a = GraphConv(
       64,
@@ -72,10 +72,10 @@ def sluice_model(batch_size, tasks):
   batch_norm2a = BatchNorm(in_layers=[as2[0]])
   batch_norm2b = BatchNorm(in_layers=[as2[1]])
 
-  gp2a = GraphPool(
-      in_layers=[batch_norm2a, degree_slice, membership] + deg_adjs)
-  gp2b = GraphPool(
-      in_layers=[batch_norm2b, degree_slice, membership] + deg_adjs)
+  gp2a = GraphPool(in_layers=[batch_norm2a, degree_slice, membership] +
+                   deg_adjs)
+  gp2b = GraphPool(in_layers=[batch_norm2b, degree_slice, membership] +
+                   deg_adjs)
 
   densea = Dense(out_channels=128, activation_fn=None, in_layers=[gp2a])
   denseb = Dense(out_channels=128, activation_fn=None, in_layers=[gp2b])

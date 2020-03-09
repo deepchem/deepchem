@@ -12,7 +12,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn import svm
 
 import tensorflow as tf
-tf.set_random_seed(123)
+tf.random.set_seed(123)
 import deepchem as dc
 from deepchem.models.graph_models import GraphConvModel
 
