@@ -58,7 +58,7 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     requests \
     xgboost \
     simdna \
-    biopython \
     setuptools \
+    biopython \
     numpy
 yes | pip install $tensorflow==2.1.0 tensorflow-probability
