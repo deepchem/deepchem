@@ -131,10 +131,7 @@ class KerasModel(Model):
     self.tensorboard = tensorboard
     self.tensorboard_log_frequency = tensorboard_log_frequency
     if self.tensorboard:
-      if tf.executing_eagerly():
-        raise ValueError(
-            "Logging to TensorBoard is not currently supported in eager mode")
-      self._summary_writer = tf.summary.FileWriter(self.model_dir)
+      self._summary_writer = tf.summary.create_file_writer(self.model_dir)
     if output_types is None:
       self._prediction_outputs = None
       self._loss_outputs = None
@@ -157,21 +154,18 @@ class KerasModel(Model):
     self._built = False
     self._inputs_built = False
     self._training_ops_built = False
-    self._initialized_vars = set()
     self._output_functions = {}
+    self._gradient_fn_for_vars = {}
 
   def _ensure_built(self):
     """The first time this is called, create internal data structures."""
     if self._built:
       return
     self._built = True
-    if not tf.executing_eagerly():
-      self.session = tf.Session()
     self._global_step = tf.Variable(0, trainable=False)
     self._tf_optimizer = self.optimizer._create_optimizer(self._global_step)
     self._checkpoint = tf.train.Checkpoint(
         optimizer=self._tf_optimizer, model=self.model)
-    self._init_new_vars()
 
   def _create_inputs(self, example_inputs):
     """The first time this is called, create tensors representing the inputs and outputs."""
@@ -188,33 +182,6 @@ class KerasModel(Model):
           np.float32 if x.dtype == np.float64 else x.dtype
           for x in example_inputs
       ]
-    if tf.executing_eagerly():
-      return
-    if len(self.model.inputs) > 0:
-      self._input_placeholders = self.model.inputs
-    else:
-      # The model doesn't specify inputs, so guess the input shapes based on the
-      # example batch.
-      self._input_placeholders = [
-          tf.placeholder(dtype=tf.as_dtype(t), shape=s)
-          for s, t in zip(self._input_shapes, self._input_dtypes)
-      ]
-      if len(self._input_shapes) == 1:
-        self.model.build(self._input_shapes[0])
-      else:
-        self.model.build(self._input_shapes)
-    if len(self._input_placeholders) == 1:
-      self._output_tensors = self.model(
-          self._input_placeholders[0], training=False)
-    else:
-      self._output_tensors = self.model(
-          self._input_placeholders, training=False)
-    if isinstance(self._output_tensors, tf.Tensor):
-      self._output_tensors = [self._output_tensors]
-    if self._prediction_outputs is None:
-      self._prediction_outputs = list(range(len(self._output_tensors)))
-      self._loss_outputs = list(range(len(self._output_tensors)))
-    self._init_new_vars()
 
   def _create_training_ops(self, example_batch):
     """The first time this is called, create tensors used in optimization."""
@@ -230,35 +197,6 @@ class KerasModel(Model):
         np.float32 if x.dtype == np.float64 else x.dtype
         for x in example_batch[2]
     ]
-    if tf.executing_eagerly():
-      return
-    self._label_placeholders = [
-        tf.placeholder(dtype=tf.as_dtype(t), shape=(None,) + x.shape[1:])
-        for x, t in zip(example_batch[1], self._label_dtypes)
-    ]
-    self._weights_placeholders = [
-        tf.placeholder(dtype=tf.as_dtype(t), shape=(None,) + x.shape[1:])
-        for x, t in zip(example_batch[2], self._weights_dtypes)
-    ]
-    self._loss_tensor = self._loss_fn(
-        [self._output_tensors[i] for i in self._loss_outputs],
-        self._label_placeholders, self._weights_placeholders)
-    try:
-      self._train_op = self._tf_optimizer.minimize(
-          self._loss_tensor, global_step=self._global_step)
-    except ValueError:
-      # The loss doesn't depend on any variables.
-      self._train_op = 0
-    self._custom_train_op = {}
-    self._init_new_vars()
-
-  def _init_new_vars(self):
-    """Initialize any new variables created since the last call to this method."""
-    if not tf.executing_eagerly():
-      vars = set(tf.global_variables())
-      new_vars = vars.difference(self._initialized_vars)
-      self.session.run(tf.variables_initializer(new_vars))
-      self._initialized_vars = vars
 
   def fit(self,
           dataset,
@@ -353,6 +291,21 @@ class KerasModel(Model):
     avg_loss = 0.0
     averaged_batches = 0
     train_op = None
+    if loss is None:
+      loss = self._loss_fn
+    var_key = None
+    if variables is not None:
+      var_key = tuple(v.experimental_ref() for v in variables)
+
+      # The optimizer creates internal variables the first time apply_gradients()
+      # is called for a new set of variables.  If that happens inside a function
+      # annotated with tf.function it throws an exception, so call it once here.
+
+      zero_grads = [tf.zeros(v.shape) for v in variables]
+      self._tf_optimizer.apply_gradients(zip(zero_grads, variables))
+    if var_key not in self._gradient_fn_for_vars:
+      self._gradient_fn_for_vars[var_key] = self._create_gradient_fn(variables)
+    apply_gradient_for_batch = self._gradient_fn_for_vars[var_key]
     time1 = time.time()
 
     # Main training loop.
@@ -363,63 +316,13 @@ class KerasModel(Model):
         self.restore()
         restore = False
       inputs, labels, weights = self._prepare_batch(batch)
-      self._current_summary = None
-      if tf.executing_eagerly():
 
-        # In eager mode we execute the loss function, accumulating the gradients.
+      # Execute the loss function, accumulating the gradients.
 
-        if loss is None:
-          loss = self._loss_fn
-        with tf.GradientTape() as tape:
-          if len(inputs) == 1:
-            inputs = inputs[0]
-          outputs = self.model(inputs)
-          if isinstance(outputs, tf.Tensor):
-            outputs = [outputs]
-          if self._loss_outputs is not None:
-            outputs = [outputs[i] for i in self._loss_outputs]
-          batch_loss = loss(outputs, labels, weights)
-        if variables is None:
-          vars = self.model.trainable_variables
-        else:
-          vars = variables
-        grads = tape.gradient(batch_loss, vars)
-        self._tf_optimizer.apply_gradients(zip(grads, vars))
-        tf.assign_add(self._global_step, 1)
-        current_step = self._global_step.numpy()
-      else:
-
-        # In graph mode we execute the training op.
-
-        if train_op is None:
-          if loss is None and variables is None:
-            train_op = self._train_op
-          else:
-            if variables is None:
-              op_key = (None, loss)
-            else:
-              op_key = tuple(variables) + (loss,)
-            if op_key not in self._custom_train_op:
-              if loss is None:
-                loss_tensor = self._loss_tensor
-              else:
-                loss_tensor = loss(
-                    [self._output_tensors[i] for i in self._loss_outputs],
-                    self._label_placeholders, self._weights_placeholders)
-              if variables is None:
-                vars = self.model.trainable_variables
-              else:
-                vars = variables
-              self._custom_train_op[op_key] = self._tf_optimizer.minimize(
-                  loss_tensor, global_step=self._global_step, var_list=vars)
-            train_op = self._custom_train_op[op_key]
-        fetches = [train_op, self._loss_tensor, self._global_step]
-        feed_dict = dict(zip(self._input_placeholders, inputs))
-        feed_dict.update(dict(zip(self._label_placeholders, labels)))
-        feed_dict.update(dict(zip(self._weights_placeholders, weights)))
-        fetched_values = self.session.run(fetches, feed_dict=feed_dict)
-        batch_loss = fetched_values[1]
-        current_step = fetched_values[2]
+      if len(inputs) == 1:
+        inputs = inputs[0]
+      batch_loss = apply_gradient_for_batch(inputs, labels, weights, loss)
+      current_step = self._global_step.numpy()
 
       avg_loss += batch_loss
 
@@ -434,14 +337,12 @@ class KerasModel(Model):
         averaged_batches = 0
 
       if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
-        self._exec_with_session(lambda: manager.save())
+        manager.save()
       for c in callbacks:
         c(self, current_step)
       if self.tensorboard and should_log:
-        self._log_value_to_tensorboard(tag='loss', simple_value=batch_loss)
-        self._summary_writer.reopen()
-        self._summary_writer.add_summary(self._current_summary, current_step)
-        self._summary_writer.close()
+        with self._summary_writer.as_default():
+          tf.summary.scalar('loss', batch_loss, current_step)
 
     # Report final results.
     if averaged_batches > 0:
@@ -450,20 +351,37 @@ class KerasModel(Model):
           'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
 
     if checkpoint_interval > 0:
-      self._exec_with_session(lambda: manager.save())
+      manager.save()
 
     time2 = time.time()
     logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return avg_loss
 
-  def _log_value_to_tensorboard(self, **kwargs):
-    """This can be called during fitting to log a value to Tensorboard.
-
-    Any keyword arguments passed to this method are passed on to summary.value.add().
+  def _create_gradient_fn(self, variables):
+    """Create a function that computes gradients and applies them to the model.
+    Because of the way TensorFlow function tracing works, we need to create a
+    separate function for each new set of variables.
     """
-    if self._current_summary is None:
-      self._current_summary = tf.Summary()
-    self._current_summary.value.add(**kwargs)
+
+    @tf.function(experimental_relax_shapes=True)
+    def apply_gradient_for_batch(inputs, labels, weights, loss):
+      with tf.GradientTape() as tape:
+        outputs = self.model(inputs)
+        if isinstance(outputs, tf.Tensor):
+          outputs = [outputs]
+        if self._loss_outputs is not None:
+          outputs = [outputs[i] for i in self._loss_outputs]
+        batch_loss = loss(outputs, labels, weights)
+      if variables is None:
+        vars = self.model.trainable_variables
+      else:
+        vars = variables
+      grads = tape.gradient(batch_loss, vars)
+      self._tf_optimizer.apply_gradients(zip(grads, vars))
+      self._global_step.assign_add(1)
+      return batch_loss
+
+    return apply_gradient_for_batch
 
   def fit_on_batch(self, X, y, w, variables=None, loss=None, callbacks=[]):
     """Perform a single step of training.
@@ -534,10 +452,9 @@ class KerasModel(Model):
       if len(self._variance_outputs) != len(self._prediction_outputs):
         raise ValueError(
             'The number of variances must exactly match the number of outputs')
-    if tf.executing_eagerly() and outputs is not None and len(
-        self.model.inputs) == 0:
+    if outputs is not None and len(self.model.inputs) == 0:
       raise ValueError(
-          "Cannot use 'outputs' argument in eager mode with a model that does not specify its inputs"
+          "Cannot use 'outputs' argument with a model that does not specify its inputs"
       )
     if isinstance(outputs, tf.Tensor):
       outputs = [outputs]
@@ -545,33 +462,23 @@ class KerasModel(Model):
       inputs, labels, weights = batch
       self._create_inputs(inputs)
       inputs, _, _ = self._prepare_batch((inputs, None, None))
-      if tf.executing_eagerly():
 
-        # In eager mode we invoke the model directly.
+      # Invoke the model.
 
-        if len(inputs) == 1:
-          inputs = inputs[0]
-        if outputs is not None:
-          outputs = tuple(outputs)
-          if outputs not in self._output_functions:
-            self._output_functions[outputs] = tf.keras.backend.function(
-                self.model.inputs, outputs)
-          output_values = self._output_functions[outputs](inputs)
-        else:
-          output_values = self.model(inputs, training=False)
-          if isinstance(output_values, tf.Tensor):
-            output_values = [output_values]
-          output_values = [t.numpy() for t in output_values]
+      if len(inputs) == 1:
+        inputs = inputs[0]
+      if outputs is not None:
+        outputs = tuple(outputs)
+        key = tuple(t.experimental_ref() for t in outputs)
+        if key not in self._output_functions:
+          self._output_functions[key] = tf.keras.backend.function(
+              self.model.inputs, outputs)
+        output_values = self._output_functions[key](inputs)
       else:
-
-        # In graph mode we execute the output tensors.
-
-        if outputs is not None:
-          fetches = outputs
-        else:
-          fetches = self._output_tensors
-        feed_dict = dict(zip(self._input_placeholders, inputs))
-        output_values = self.session.run(fetches, feed_dict=feed_dict)
+        output_values = self._compute_model(inputs)
+        if isinstance(output_values, tf.Tensor):
+          output_values = [output_values]
+        output_values = [t.numpy() for t in output_values]
 
       # Apply tranformers and record results.
 
@@ -611,6 +518,11 @@ class KerasModel(Model):
       return final_results[0]
     else:
       return final_results
+
+  @tf.function(experimental_relax_shapes=True)
+  def _compute_model(self, inputs):
+    """Evaluate the model for a set of inputs."""
+    return self.model(inputs, training=False)
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
     """
@@ -816,54 +728,25 @@ class KerasModel(Model):
     X = np.reshape(X, [1] + list(X.shape))
     self._create_inputs([X])
     X, _, _ = self._prepare_batch(([X], None, None))
-    if tf.executing_eagerly():
-      # In eager mode we use a GradientTape to compute gradients.
 
-      X = tf.constant(X[0])
-      with tf.GradientTape(
-          persistent=True, watch_accessed_variables=False) as tape:
-        tape.watch(X)
-        outputs = self.model(X)
-        if isinstance(outputs, tf.Tensor):
-          outputs = [outputs]
-        final_result = []
-        for output in outputs:
-          output_shape = tuple(output.shape.as_list()[1:])
-          output = tf.reshape(output, [-1])
-          result = []
-          for i in range(output.shape[0]):
-            result.append(tape.gradient(output[i], X))
-          final_result.append(
-              tf.reshape(tf.stack(result), output_shape + input_shape).numpy())
-    else:
-      # In graph mode we use tf.gradients().
+    # Use a GradientTape to compute gradients.
 
-      def jacobian(y, x):
-        # Adapted from https://github.com/tensorflow/tensorflow/issues/675#issuecomment-319891923.
-        y = tf.reshape(tf.convert_to_tensor(y)[0], [-1])
-        n = y.shape[0]
-        loop_vars = [
-            tf.constant(0, tf.int32),
-            tf.TensorArray(tf.float32, size=n)
-        ]
-        _, jacobian = tf.while_loop(
-            lambda j, _: j < n,
-            lambda j, result: (j + 1, result.write(j, tf.gradients(y[j], x))),
-            loop_vars)
-        return jacobian.stack()
-
-      grads = [
-          jacobian(self._output_tensors[i], self._input_placeholders[0])
-          for i in self._prediction_outputs
-      ]
-      feed_dict = {self._input_placeholders[0]: X[0]}
-      result = self.session.run(grads, feed_dict=feed_dict)
-      output_shapes = [
-          tuple(o.shape.as_list()[1:]) for o in self._output_tensors
-      ]
-      final_result = [
-          x.reshape(s + input_shape) for x, s in zip(result, output_shapes)
-      ]
+    X = tf.constant(X[0])
+    with tf.GradientTape(
+        persistent=True, watch_accessed_variables=False) as tape:
+      tape.watch(X)
+      outputs = self._compute_model(X)
+      if isinstance(outputs, tf.Tensor):
+        outputs = [outputs]
+      final_result = []
+      for output in outputs:
+        output_shape = tuple(output.shape.as_list()[1:])
+        output = tf.reshape(output, [-1])
+        result = []
+        for i in range(output.shape[0]):
+          result.append(tape.gradient(output[i], X))
+        final_result.append(
+            tf.reshape(tf.stack(result), output_shape + input_shape).numpy())
     if len(final_result) == 1:
       return final_result[0]
     return final_result
@@ -954,14 +837,7 @@ class KerasModel(Model):
       os.makedirs(model_dir)
     manager = tf.train.CheckpointManager(self._checkpoint, model_dir,
                                          max_checkpoints_to_keep)
-    self._exec_with_session(lambda: manager.save())
-
-  def _exec_with_session(self, f):
-    if tf.executing_eagerly():
-      f()
-    else:
-      with self.session.as_default():
-        f()
+    manager.save()
 
   def get_checkpoints(self, model_dir=None):
     """Get a list of all available checkpoint files.
@@ -997,18 +873,11 @@ class KerasModel(Model):
       checkpoint = tf.train.latest_checkpoint(model_dir)
     if checkpoint is None:
       raise ValueError('No checkpoint found')
-    if tf.executing_eagerly():
-      self._checkpoint.restore(checkpoint)
-    else:
-      if session is None:
-        session = self.session
-      self._checkpoint.restore(checkpoint).run_restore_ops(session)
+    self._checkpoint.restore(checkpoint)
 
   def get_global_step(self):
     """Get the number of steps of fitting that have been performed."""
-    if tf.executing_eagerly():
-      return int(self._global_step)
-    return self._global_step.eval(session=self.session)
+    return int(self._global_step)
 
   def _create_assignment_map(self, source_model, include_top=True, **kwargs):
     """
@@ -1035,7 +904,7 @@ class KerasModel(Model):
       dest_vars = dest_vars[:-2]
 
     for source_var, dest_var in zip(source_vars, dest_vars):
-      assignment_map[source_var] = dest_var
+      assignment_map[source_var.experimental_ref()] = dest_var
 
     return assignment_map
 
@@ -1053,13 +922,8 @@ class KerasModel(Model):
     value_map = {}
     source_vars = source_model.model.trainable_variables
 
-    if tf.executing_eagerly():
-      for source_var in source_vars:
-        value_map[source_var] = source_var.numpy()
-    else:
-      for source_var in source_vars:
-        # self.session is used because restore was called in the same session
-        value_map[source_var] = source_var.eval(session=self.session)
+    for source_var in source_vars:
+      value_map[source_var.experimental_ref()] = source_var.numpy()
 
     return value_map
 
@@ -1112,11 +976,7 @@ class KerasModel(Model):
       logger.info(
           "No value map provided. Creating default value map from restored model."
       )
-      if tf.executing_eagerly():
-        source_model.restore(model_dir=model_dir, checkpoint=checkpoint)
-      else:
-        source_model.restore(
-            model_dir=model_dir, checkpoint=checkpoint, session=self.session)
+      source_model.restore(model_dir=model_dir, checkpoint=checkpoint)
       value_map = self._create_value_map(source_model=source_model)
 
     if assignment_map is None:
@@ -1124,20 +984,9 @@ class KerasModel(Model):
       assignment_map = self._create_assignment_map(
           source_model=source_model, include_top=include_top)
 
-    if tf.executing_eagerly():
-      for source_var, dest_var in assignment_map.items():
-        assert source_var.shape == dest_var.shape
-        dest_var.assign(value_map[source_var])
-
-    else:
-      with self.session.as_default():
-        for source_var, dest_var in assignment_map.items():
-          assert source_var.shape == dest_var.shape
-          assign_op = dest_var.assign(value_map[source_var])
-          self.session.run(assign_op)
-
-    dest_vars = list(assignment_map.values())
-    self._initialized_vars.update(set(dest_vars))
+    for source_var, dest_var in assignment_map.items():
+      assert source_var.deref().shape == dest_var.shape
+      dest_var.assign(value_map[source_var])
 
 
 class _StandardLoss(object):

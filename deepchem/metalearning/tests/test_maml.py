@@ -62,17 +62,13 @@ class TestMAML(unittest.TestCase):
     loss2 = []
     for i in range(50):
       learner.select_task()
+      maml.restore()
       batch = learner.get_batch()
-      feed_dict = {}
-      for j in range(len(batch)):
-        feed_dict[maml._input_placeholders[j]] = batch[j]
-        feed_dict[maml._meta_placeholders[j]] = batch[j]
-      loss1.append(
-          np.average(
-              np.sqrt(maml._session.run(maml._loss, feed_dict=feed_dict))))
-      loss2.append(
-          np.average(
-              np.sqrt(maml._session.run(maml._meta_loss, feed_dict=feed_dict))))
+      loss, outputs = maml.predict_on_batch(batch)
+      loss1.append(np.sqrt(loss))
+      maml.train_on_current_task()
+      loss, outputs = maml.predict_on_batch(batch)
+      loss2.append(np.sqrt(loss))
 
     # Initially the model should do a bad job of fitting the sine function.
 
@@ -82,23 +78,17 @@ class TestMAML(unittest.TestCase):
 
     assert np.average(loss2) < 1.0
 
-    # If we train on the current task, the loss should go down.
-
-    maml.train_on_current_task()
-    assert np.average(
-        np.sqrt(maml._session.run(maml._loss, feed_dict=feed_dict))) < loss1[-1]
-
     # Verify that we can create a new MAML object, reload the parameters from the first one, and
     # get the same result.
 
-    new_maml = dc.metalearning.MAML(learner, model_dir=maml.model_dir)
+    new_maml = dc.metalearning.MAML(SineLearner(), model_dir=maml.model_dir)
     new_maml.restore()
     loss, outputs = new_maml.predict_on_batch(batch)
     assert np.sqrt(loss) == loss1[-1]
 
     # Do the same thing, only using the "restore" argument to fit().
 
-    new_maml = dc.metalearning.MAML(learner, model_dir=maml.model_dir)
+    new_maml = dc.metalearning.MAML(SineLearner(), model_dir=maml.model_dir)
     new_maml.fit(0, restore=True)
     loss, outputs = new_maml.predict_on_batch(batch)
     assert np.sqrt(loss) == loss1[-1]

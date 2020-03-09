@@ -685,27 +685,19 @@ class TestDatasets(test_util.TensorFlowTestCase):
     assert new_data.y.shape == (num_datapoints * num_datasets, num_tasks)
     assert len(new_data.tasks) == len(datasets[0].tasks)
 
-  def test_make_iterator(self):
+  def test_make_tf_dataset(self):
     """Test creating a Tensorflow Iterator from a Dataset."""
     X = np.random.random((100, 5))
     y = np.random.random((100, 1))
     dataset = dc.data.NumpyDataset(X, y)
-    iterator = dataset.make_iterator(
+    iterator = dataset.make_tf_dataset(
         batch_size=10, epochs=2, deterministic=True)
-    next_element = iterator.get_next()
-    with self.session() as sess:
-      for i in range(20):
-        batch_X, batch_y, batch_w = sess.run(next_element)
-        offset = (i % 10) * 10
-        np.testing.assert_array_equal(X[offset:offset + 10, :], batch_X)
-        np.testing.assert_array_equal(y[offset:offset + 10, :], batch_y)
-        np.testing.assert_array_equal(np.ones((10, 1)), batch_w)
-      finished = False
-      try:
-        sess.run(next_element)
-      except tf.errors.OutOfRangeError:
-        finished = True
-    assert finished
+    for i, (batch_X, batch_y, batch_w) in enumerate(iterator):
+      offset = (i % 10) * 10
+      np.testing.assert_array_equal(X[offset:offset + 10, :], batch_X)
+      np.testing.assert_array_equal(y[offset:offset + 10, :], batch_y)
+      np.testing.assert_array_equal(np.ones((10, 1)), batch_w)
+    assert i == 19
 
 
 if __name__ == "__main__":

@@ -3,14 +3,13 @@ import tempfile
 import deepchem as dc
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.eager import context
 try:
   from StringIO import StringIO
 except ImportError:
   from io import StringIO
 
 
-class TestKerasModel(unittest.TestCase):
+class TestCallbacks(unittest.TestCase):
 
   def test_validation(self):
     """Test ValidationCallback."""
@@ -52,8 +51,3 @@ class TestKerasModel(unittest.TestCase):
     valid_score = model.evaluate(valid_dataset, [metric], transformers)
     self.assertAlmostEqual(
         valid_score['mean-roc_auc_score'], max(scores), places=5)
-
-  def test_validation_eager(self):
-    """Test ValidationCallback, in eager mode."""
-    with context.eager_mode():
-      self.test_validation()

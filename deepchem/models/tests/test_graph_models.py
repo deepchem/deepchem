@@ -6,9 +6,7 @@ import scipy
 import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.models import GraphConvModel, DAGModel, WeaveModel, MPNNModel
-from deepchem.models import TensorGraph
 from deepchem.molnet import load_bace_classification, load_delaney
-from deepchem.models.tensorgraph.layers import ReduceSum, L2Loss
 from deepchem.feat import ConvMolFeaturizer
 from nose.plugins.attrib import attr
 from flaky import flaky

@@ -9,7 +9,7 @@ import unittest
 from nose.plugins.attrib import attr
 
 
-class TestA3C(unittest.TestCase):
+class TestA2C(unittest.TestCase):
 
   @flaky
   def test_roulette(self):
@@ -68,34 +68,34 @@ class TestA3C(unittest.TestCase):
 
     # Optimize it.
 
-    a3c = dc.rl.A3C(
+    a2c = dc.rl.A2C(
         env,
         TestPolicy(),
         max_rollout_length=20,
         optimizer=Adam(learning_rate=0.001))
-    a3c.fit(100000)
+    a2c.fit(100000)
 
     # It should have learned that the expected value is very close to zero, and that the best
     # action is to walk away.
 
-    action_prob, value = a3c.predict([[0]])
+    action_prob, value = a2c.predict([[0]])
     assert -0.5 < value[0] < 0.5
     assert action_prob.argmax() == 37
-    assert a3c.select_action([[0]], deterministic=True) == 37
+    assert a2c.select_action([[0]], deterministic=True) == 37
 
-    # Verify that we can create a new A3C object, reload the parameters from the first one, and
+    # Verify that we can create a new A2C object, reload the parameters from the first one, and
     # get the same result.
 
-    new_a3c = dc.rl.A3C(env, TestPolicy(), model_dir=a3c._model.model_dir)
-    new_a3c.restore()
-    action_prob2, value2 = new_a3c.predict([[0]])
+    new_a2c = dc.rl.A2C(env, TestPolicy(), model_dir=a2c._model.model_dir)
+    new_a2c.restore()
+    action_prob2, value2 = new_a2c.predict([[0]])
     assert value2 == value
 
     # Do the same thing, only using the "restore" argument to fit().
 
-    new_a3c = dc.rl.A3C(env, TestPolicy(), model_dir=a3c._model.model_dir)
-    new_a3c.fit(0, restore=True)
-    action_prob2, value2 = new_a3c.predict([[0]])
+    new_a2c = dc.rl.A2C(env, TestPolicy(), model_dir=a2c._model.model_dir)
+    new_a2c.fit(0, restore=True)
+    action_prob2, value2 = new_a2c.predict([[0]])
     assert value2 == value
 
   def test_recurrent_states(self):
@@ -107,10 +107,10 @@ class TestA3C(unittest.TestCase):
 
       def __init__(self):
         super(TestEnvironment, self).__init__((10,), 10)
-        self._state = np.random.random(10)
+        self._state = np.random.random(10).astype(np.float32)
 
       def step(self, action):
-        self._state = np.random.random(10)
+        self._state = np.random.random(10).astype(np.float32)
         return 0.0
 
       def reset(self):
@@ -129,10 +129,10 @@ class TestA3C(unittest.TestCase):
         rnn_state = Input(shape=(10,))
         reshaped = Reshape((1, 10))(state)
         gru, rnn_final_state = GRU(
-            10, return_state=True, return_sequences=True)(
+            10, return_state=True, return_sequences=True, time_major=True)(
                 reshaped, initial_state=rnn_state)
         output = Softmax()(Reshape((10,))(gru))
-        value = dc.models.layers.Variable([0.0])([])
+        value = dc.models.layers.Variable([0.0])([state])
         return tf.keras.Model(
             inputs=[state, rnn_state], outputs=[output, value, rnn_final_state])
 
@@ -140,22 +140,22 @@ class TestA3C(unittest.TestCase):
     # sure fit() doesn't crash, then check the behavior of the GRU state.
 
     env = TestEnvironment()
-    a3c = dc.rl.A3C(env, TestPolicy())
-    a3c.fit(100)
+    a2c = dc.rl.A2C(env, TestPolicy())
+    a2c.fit(100)
     # On the first call, the initial state should be all zeros.
-    prob1, value1 = a3c.predict(
+    prob1, value1 = a2c.predict(
         env.state, use_saved_states=True, save_states=False)
     # It should still be zeros since we didn't save it last time.
-    prob2, value2 = a3c.predict(
+    prob2, value2 = a2c.predict(
         env.state, use_saved_states=True, save_states=True)
     # It should be different now.
-    prob3, value3 = a3c.predict(
+    prob3, value3 = a2c.predict(
         env.state, use_saved_states=True, save_states=False)
     # This should be the same as the previous one.
-    prob4, value4 = a3c.predict(
+    prob4, value4 = a2c.predict(
         env.state, use_saved_states=True, save_states=False)
     # Now we reset it, so we should get the same result as initially.
-    prob5, value5 = a3c.predict(
+    prob5, value5 = a2c.predict(
         env.state, use_saved_states=False, save_states=True)
     assert np.array_equal(prob1, prob2)
     assert np.array_equal(prob1, prob5)
@@ -230,12 +230,12 @@ class TestA3C(unittest.TestCase):
     env = TestEnvironment()
     learning_rate = PolynomialDecay(
         initial_rate=0.0005, final_rate=0.0002, decay_steps=2000000)
-    a3c = dc.rl.A3C(
+    a2c = dc.rl.A2C(
         env,
         TestPolicy(),
         use_hindsight=True,
         optimizer=Adam(learning_rate=learning_rate))
-    a3c.fit(2000000)
+    a2c.fit(2000000)
 
     # Try running it a few times and see if it succeeds.
 
@@ -243,13 +243,13 @@ class TestA3C(unittest.TestCase):
     for i in range(5):
       env.reset()
       while not env.terminated:
-        env.step(a3c.select_action(env.state))
+        env.step(a2c.select_action(env.state))
       if np.array_equal(env.state[:2], env.state[2:]):
         pass_count += 1
     assert pass_count >= 3
 
   def test_continuous(self):
-    """Test A3C on an environment with a continous action space."""
+    """Test A2C on an environment with a continous action space."""
 
     # The state consists of two numbers: a current value and a target value.
     # The policy just needs to learn to output the target value (or at least
@@ -262,7 +262,7 @@ class TestA3C(unittest.TestCase):
 
       def reset(self):
         target = np.random.uniform(-50, 50)
-        self._state = np.array([0, target])
+        self._state = np.array([0, target], dtype=np.float32)
         self._terminated = False
         self.count = 0
 
@@ -270,7 +270,7 @@ class TestA3C(unittest.TestCase):
         target = self._state[1]
         dist = np.abs(target - action[0])
         old_dist = np.abs(target - self._state[0])
-        new_state = np.array([action[0], target])
+        new_state = np.array([action[0], target], dtype=np.float32)
         self._state = new_state
         self.count += 1
         reward = old_dist - dist
@@ -295,7 +295,7 @@ class TestA3C(unittest.TestCase):
             self.value = Dense(1)
 
           def call(self, inputs, **kwargs):
-            return (self.mean(inputs), self.std, self.value(inputs))
+            return (self.mean(inputs[0]), self.std, self.value(inputs[0]))
 
         return TestModel()
 
@@ -304,18 +304,18 @@ class TestA3C(unittest.TestCase):
     env = TestEnvironment()
     learning_rate = PolynomialDecay(
         initial_rate=0.005, final_rate=0.0005, decay_steps=25000)
-    a3c = dc.rl.A3C(
+    a2c = dc.rl.A2C(
         env,
         TestPolicy(),
         discount_factor=0,
         optimizer=Adam(learning_rate=learning_rate))
-    a3c.fit(25000)
+    a2c.fit(25000)
 
     # Try running it and see if it reaches the target
 
     env.reset()
     while not env.terminated:
-      env.step(a3c.select_action(env.state, deterministic=True))
+      env.step(a2c.select_action(env.state, deterministic=True))
     distance = np.abs(env.state[0] - env.state[1])
     tolerance = max(1.0, 0.1 * np.abs(env.state[1]))
     assert distance < tolerance

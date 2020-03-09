@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
+import tensorflow_probability as tfp
 import numpy as np
 import collections
-from deepchem.models.tensorgraph import model_ops, initializations, activations
+from tensorflow.keras import activations, initializers, backend
 
 
 class InteratomicL2Distances(tf.keras.layers.Layer):
@@ -127,8 +128,7 @@ class GraphConv(tf.keras.layers.Layer):
     atom_features = tf.concat(axis=0, values=new_rel_atoms_collection)
 
     if self.activation_fn is not None:
-      activation = activations.get(self.activation_fn)
-      atom_features = activation(atom_features)
+      atom_features = self.activation_fn(atom_features)
 
     return atom_features
 
@@ -219,15 +219,14 @@ class GraphGather(tf.keras.layers.Layer):
 
     assert self.batch_size > 1, "graph_gather requires batches larger than 1"
 
-    sparse_reps = tf.unsorted_segment_sum(atom_features, membership,
-                                          self.batch_size)
-    max_reps = tf.unsorted_segment_max(atom_features, membership,
-                                       self.batch_size)
+    sparse_reps = tf.math.unsorted_segment_sum(atom_features, membership,
+                                               self.batch_size)
+    max_reps = tf.math.unsorted_segment_max(atom_features, membership,
+                                            self.batch_size)
     mol_features = tf.concat(axis=1, values=[sparse_reps, max_reps])
 
     if self.activation_fn is not None:
-      activation = activations.get(self.activation_fn)
-      mol_features = activation(mol_features)
+      mol_features = self.activation_fn(mol_features)
     return mol_features
 
 
@@ -272,6 +271,8 @@ class LSTMStep(tf.keras.layers.Layer):
     # No other forget biases supported right now.
     self.activation = activation_fn
     self.inner_activation = inner_activation_fn
+    self.activation_fn = activations.get(activation_fn)
+    self.inner_activation_fn = activations.get(inner_activation_fn)
     self.input_dim = input_dim
 
   def get_config(self):
@@ -285,12 +286,12 @@ class LSTMStep(tf.keras.layers.Layer):
     return config
 
   def get_initial_states(self, input_shape):
-    return [model_ops.zeros(input_shape), model_ops.zeros(input_shape)]
+    return [backend.zeros(input_shape), backend.zeros(input_shape)]
 
   def build(self, input_shape):
     """Constructs learnable weights for this layer."""
-    init = initializations.get(self.init)
-    inner_init = initializations.get(self.inner_init)
+    init = initializers.get(self.init)
+    inner_init = initializers.get(self.inner_init)
     self.W = init((self.input_dim, 4 * self.output_dim))
     self.U = inner_init((self.output_dim, 4 * self.output_dim))
 
@@ -313,24 +314,22 @@ class LSTMStep(tf.keras.layers.Layer):
     list
       Returns h, [h, c]
     """
-    activation = activations.get(self.activation)
-    inner_activation = activations.get(self.inner_activation)
     x, h_tm1, c_tm1 = inputs
 
     # Taken from Keras code [citation needed]
-    z = model_ops.dot(x, self.W) + model_ops.dot(h_tm1, self.U) + self.b
+    z = backend.dot(x, self.W) + backend.dot(h_tm1, self.U) + self.b
 
     z0 = z[:, :self.output_dim]
     z1 = z[:, self.output_dim:2 * self.output_dim]
     z2 = z[:, 2 * self.output_dim:3 * self.output_dim]
     z3 = z[:, 3 * self.output_dim:]
 
-    i = inner_activation(z0)
-    f = inner_activation(z1)
-    c = f * c_tm1 + i * activation(z2)
-    o = inner_activation(z3)
+    i = self.inner_activation_fn(z0)
+    f = self.inner_activation_fn(z1)
+    c = f * c_tm1 + i * self.activation_fn(z2)
+    o = self.inner_activation_fn(z3)
 
-    h = o * activation(c)
+    h = o * self.activation_fn(c)
     return h, [h, c]
 
 
@@ -344,10 +343,9 @@ def _cosine_dist(x, y):
   y: tf.Tensor
     Input Tensor
   """
-  denom = (
-      model_ops.sqrt(model_ops.sum(tf.square(x)) * model_ops.sum(tf.square(y)))
-      + model_ops.epsilon())
-  return model_ops.dot(x, tf.transpose(y)) / denom
+  denom = (backend.sqrt(backend.sum(tf.square(x)) * backend.sum(tf.square(y))) +
+           backend.epsilon())
+  return backend.dot(x, tf.transpose(y)) / denom
 
 
 class AttnLSTMEmbedding(tf.keras.layers.Layer):
@@ -402,7 +400,7 @@ class AttnLSTMEmbedding(tf.keras.layers.Layer):
   def build(self, input_shape):
     n_feat = self.n_feat
     self.lstm = LSTMStep(n_feat, 2 * n_feat)
-    self.q_init = model_ops.zeros([self.n_test, n_feat])
+    self.q_init = backend.zeros([self.n_test, n_feat])
     self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
     self.built = True
 
@@ -437,10 +435,10 @@ class AttnLSTMEmbedding(tf.keras.layers.Layer):
       # Eqn (4), appendix A.1 of Matching Networks paper
       e = _cosine_dist(x + q, xp)
       a = tf.nn.softmax(e)
-      r = model_ops.dot(a, xp)
+      r = backend.dot(a, xp)
 
       # Generate new attention states
-      y = model_ops.concatenate([q, r], axis=1)
+      y = backend.concatenate([q, r], axis=1)
       q, states = self.lstm([y] + states)
     return [x + q, xp]
 
@@ -495,13 +493,13 @@ class IterRefLSTMEmbedding(tf.keras.layers.Layer):
 
     # Support set lstm
     self.support_lstm = LSTMStep(n_feat, 2 * n_feat)
-    self.q_init = model_ops.zeros([self.n_support, n_feat])
+    self.q_init = backend.zeros([self.n_support, n_feat])
     self.support_states_init = self.support_lstm.get_initial_states(
         [self.n_support, n_feat])
 
     # Test lstm
     self.test_lstm = LSTMStep(n_feat, 2 * n_feat)
-    self.p_init = model_ops.zeros([self.n_test, n_feat])
+    self.p_init = backend.zeros([self.n_test, n_feat])
     self.test_states_init = self.test_lstm.get_initial_states(
         [self.n_test, n_feat])
     self.built = True
@@ -541,19 +539,19 @@ class IterRefLSTMEmbedding(tf.keras.layers.Layer):
       e = _cosine_dist(z + q, xp)
       a = tf.nn.softmax(e)
       # Get linear combination of support set
-      r = model_ops.dot(a, xp)
+      r = backend.dot(a, xp)
 
       # Process test x using attention
       x_e = _cosine_dist(x + p, z)
       x_a = tf.nn.softmax(x_e)
-      s = model_ops.dot(x_a, z)
+      s = backend.dot(x_a, z)
 
       # Generate new support attention states
-      qr = model_ops.concatenate([q, r], axis=1)
+      qr = backend.concatenate([q, r], axis=1)
       q, states = self.support_lstm([qr] + states)
 
       # Generate new test attention states
-      ps = model_ops.concatenate([p, s], axis=1)
+      ps = backend.concatenate([p, s], axis=1)
       p, x_states = self.test_lstm([ps] + x_states)
 
       # Redefine
@@ -619,7 +617,7 @@ class WeightedLinearCombo(tf.keras.layers.Layer):
 class CombineMeanStd(tf.keras.layers.Layer):
   """Generate Gaussian nose."""
 
-  def __init__(self, training_only=False, noise_epsilon=0.01, **kwargs):
+  def __init__(self, training_only=False, noise_epsilon=1.0, **kwargs):
     """Create a CombineMeanStd layer.
 
     This layer should have two inputs with the same shape, and its output also has the
@@ -633,6 +631,8 @@ class CombineMeanStd(tf.keras.layers.Layer):
       if True, noise is only generated during training.  During prediction, the output
       is simply equal to the first input (that is, the mean of the distribution used
       during training).
+    noise_epsilon: float
+      The noise is scaled by this factor
     """
     super(CombineMeanStd, self).__init__(**kwargs)
     self.training_only = training_only
@@ -648,12 +648,11 @@ class CombineMeanStd(tf.keras.layers.Layer):
     if len(inputs) != 2:
       raise ValueError("Must have two in_layers")
     mean_parent, std_parent = inputs[0], inputs[1]
-    if self.training_only and not training:
-      return mean_parent
+    noise_scale = tf.cast(training or not self.training_only, tf.float32)
     from tensorflow.python.ops import array_ops
-    sample_noise = tf.random_normal(
-        array_ops.shape(mean_parent), 0, 1, dtype=tf.float32)
-    return mean_parent + std_parent * sample_noise
+    sample_noise = tf.random.normal(
+        array_ops.shape(mean_parent), 0, self.noise_epsilon, dtype=tf.float32)
+    return mean_parent + noise_scale * std_parent * sample_noise
 
 
 class Stack(tf.keras.layers.Layer):
@@ -673,7 +672,13 @@ class Stack(tf.keras.layers.Layer):
 
 
 class Variable(tf.keras.layers.Layer):
-  """Output a trainable value."""
+  """Output a trainable value.
+
+  Due to a quirk of Keras, you must pass an input value when invoking this layer.
+  It doesn't matter what value you pass.  Keras assumes every layer that is not
+  an Input will have at least one parent, and violating this assumption causes
+  errors during evaluation.
+  """
 
   def __init__(self, initial_value, **kwargs):
     """Construct a variable layer.
@@ -742,7 +747,7 @@ class VinaFreeEnergy(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     self.weighted_combo = WeightedLinearCombo()
-    self.w = tf.Variable(tf.random_normal((1,), stddev=self.stddev))
+    self.w = tf.Variable(tf.random.normal((1,), stddev=self.stddev))
     self.built = True
 
   def cutoff(self, d, x):
@@ -1183,10 +1188,10 @@ class AtomicConvolution(tf.keras.layers.Layer):
     # M: Maximum number of neighbors
     # d: Number of coordinates/features/filters
     # B: Batch Size
-    N = X.get_shape()[-2].value
-    d = X.get_shape()[-1].value
-    M = Nbrs.get_shape()[-1].value
-    B = X.get_shape()[0].value
+    N = X.get_shape()[-2]
+    d = X.get_shape()[-1]
+    M = Nbrs.get_shape()[-1]
+    B = X.get_shape()[0]
 
     # Compute the distances and radial symmetry functions.
     D = self.distance_tensor(X, Nbrs, self.boxsize, B, N, M, d)
@@ -1299,7 +1304,7 @@ class AtomicConvolution(tf.keras.layers.Layer):
       Coordinates/features distance tensor.
     """
     flat_neighbors = tf.reshape(Nbrs, [-1, N * M])
-    neighbor_coords = tf.batch_gather(X, flat_neighbors)
+    neighbor_coords = tf.gather(X, flat_neighbors, batch_dims=-1)
     neighbor_coords = tf.reshape(neighbor_coords, [-1, N, M, d])
     D = neighbor_coords - tf.expand_dims(X, 2)
     if boxsize is not None:
@@ -1355,7 +1360,7 @@ class AlphaShareLayer(tf.keras.layers.Layer):
   def build(self, input_shape):
     n_alphas = 2 * len(input_shape)
     self.alphas = tf.Variable(
-        tf.random_normal([n_alphas, n_alphas]), name='alphas')
+        tf.random.normal([n_alphas, n_alphas]), name='alphas')
     self.built = True
 
   def call(self, inputs):
@@ -1365,7 +1370,7 @@ class AlphaShareLayer(tf.keras.layers.Layer):
     self.num_outputs = len(inputs)
     # create subspaces
     subspaces = []
-    original_cols = int(inputs[0].get_shape()[-1].value)
+    original_cols = int(inputs[0].get_shape()[-1])
     subspace_size = int(original_cols / 2)
     for input_tensor in inputs:
       subspaces.append(tf.reshape(input_tensor[:, :subspace_size], [-1]))
@@ -1407,7 +1412,7 @@ class SluiceLoss(tf.keras.layers.Layer):
     subspaces = []
     # creates subspaces the same way it was done in AlphaShare
     for input_tensor in inputs:
-      subspace_size = int(input_tensor.get_shape()[-1].value / 2)
+      subspace_size = int(input_tensor.get_shape()[-1] / 2)
       subspaces.append(input_tensor[:, :subspace_size])
       subspaces.append(input_tensor[:, subspace_size:])
       product = tf.matmul(tf.transpose(subspaces[0]), subspaces[1])
@@ -1442,7 +1447,7 @@ class BetaShare(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     n_betas = len(input_shape)
-    self.betas = tf.Variable(tf.random_normal([1, n_betas]), name='betas')
+    self.betas = tf.Variable(tf.random.normal([1, n_betas]), name='betas')
     self.built = True
 
   def call(self, inputs):
@@ -1450,7 +1455,7 @@ class BetaShare(tf.keras.layers.Layer):
     Size of input layers must all be the same
     """
     subspaces = []
-    original_cols = int(inputs[0].get_shape()[-1].value)
+    original_cols = int(inputs[0].get_shape()[-1])
     for input_tensor in inputs:
       subspaces.append(tf.reshape(input_tensor, [-1]))
     n_betas = len(inputs)
@@ -1540,7 +1545,8 @@ class ANIFeat(tf.keras.layers.Layer):
 
     # Calculate pairwise distance
     d = tf.sqrt(
-        tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3) + 1e-7)
+        tf.reduce_sum(tf.math.squared_difference(tensor1, tensor2), axis=3) +
+        1e-7)
 
     d = d * flags
     return d
@@ -1670,7 +1676,7 @@ class GraphEmbedPoolLayer(tf.keras.layers.Layer):
   def build(self, input_shape):
     no_features = int(input_shape[0][-1])
     self.W = tf.Variable(
-        tf.truncated_normal(
+        tf.random.truncated_normal(
             [no_features, self.num_vertices],
             stddev=1.0 / np.sqrt(no_features)),
         name='weights',
@@ -1717,11 +1723,11 @@ class GraphEmbedPoolLayer(tf.keras.layers.Layer):
     result_A = tf.reshape(result_A, (tf.shape(A)[0], tf.shape(A)[-1], -1))
     result_A = tf.matmul(factors, result_A, transpose_a=True)
     result_A = tf.reshape(result_A, (tf.shape(A)[0], self.num_vertices,
-                                     A.get_shape()[2].value, self.num_vertices))
+                                     A.get_shape()[2], self.num_vertices))
     return result, result_A
 
   def embedding_factors(self, V):
-    no_features = V.get_shape()[-1].value
+    no_features = V.get_shape()[-1]
     V_reshape = tf.reshape(V, (-1, no_features))
     s = tf.slice(tf.shape(V), [0], [len(V.get_shape()) - 1])
     s = tf.concat([s, tf.stack([self.num_vertices])], 0)
@@ -1787,13 +1793,13 @@ class GraphCNN(tf.keras.layers.Layer):
     no_features = int(input_shape[0][2])
     no_A = int(input_shape[1][2])
     self.W = tf.Variable(
-        tf.truncated_normal(
+        tf.random.truncated_normal(
             [no_features * no_A, self.num_filters],
             stddev=np.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
         name='weights',
         dtype=tf.float32)
     self.W_I = tf.Variable(
-        tf.truncated_normal(
+        tf.random.truncated_normal(
             [no_features, self.num_filters],
             stddev=np.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
         name='weights_I',
@@ -1806,8 +1812,8 @@ class GraphCNN(tf.keras.layers.Layer):
       V, A, mask = inputs
     else:
       V, A = inputs
-    no_A = A.get_shape()[2].value
-    no_features = V.get_shape()[2].value
+    no_A = A.get_shape()[2]
+    no_features = V.get_shape()[2]
     n = self.graphConvolution(V, A)
     A_shape = tf.shape(A)
     n = tf.reshape(n, [-1, A_shape[1], no_A * no_features])
@@ -1815,8 +1821,8 @@ class GraphCNN(tf.keras.layers.Layer):
         V, self.W_I) + self.b
 
   def graphConvolution(self, V, A):
-    no_A = A.get_shape()[2].value
-    no_features = V.get_shape()[2].value
+    no_A = A.get_shape()[2]
+    no_features = V.get_shape()[2]
     A_shape = tf.shape(A)
     A_reshape = tf.reshape(A, tf.stack([-1, A_shape[1] * no_A, A_shape[1]]))
     n = tf.matmul(A_reshape, V)
@@ -1944,6 +1950,7 @@ class WeaveLayer(tf.keras.layers.Layer):
     super(WeaveLayer, self).__init__(**kwargs)
     self.init = init  # Set weight initialization
     self.activation = activation  # Get activations
+    self.activation_fn = activations.get(activation)
     self.update_pair = update_pair  # last weave layer does not need to update
     self.n_hidden_AA = n_hidden_AA
     self.n_hidden_PA = n_hidden_PA
@@ -1975,36 +1982,36 @@ class WeaveLayer(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     """ Construct internal trainable weights."""
-    init = initializations.get(self.init)  # Set weight initialization
+    init = initializers.get(self.init)  # Set weight initialization
 
     self.W_AA = init([self.n_atom_input_feat, self.n_hidden_AA])
-    self.b_AA = model_ops.zeros(shape=[
+    self.b_AA = backend.zeros(shape=[
         self.n_hidden_AA,
     ])
 
     self.W_PA = init([self.n_pair_input_feat, self.n_hidden_PA])
-    self.b_PA = model_ops.zeros(shape=[
+    self.b_PA = backend.zeros(shape=[
         self.n_hidden_PA,
     ])
 
     self.W_A = init([self.n_hidden_A, self.n_atom_output_feat])
-    self.b_A = model_ops.zeros(shape=[
+    self.b_A = backend.zeros(shape=[
         self.n_atom_output_feat,
     ])
 
     if self.update_pair:
       self.W_AP = init([self.n_atom_input_feat * 2, self.n_hidden_AP])
-      self.b_AP = model_ops.zeros(shape=[
+      self.b_AP = backend.zeros(shape=[
           self.n_hidden_AP,
       ])
 
       self.W_PP = init([self.n_pair_input_feat, self.n_hidden_PP])
-      self.b_PP = model_ops.zeros(shape=[
+      self.b_PP = backend.zeros(shape=[
           self.n_hidden_PP,
       ])
 
       self.W_P = init([self.n_hidden_P, self.n_pair_output_feat])
-      self.b_P = model_ops.zeros(shape=[
+      self.b_P = backend.zeros(shape=[
           self.n_pair_output_feat,
       ])
     self.built = True
@@ -2020,13 +2027,13 @@ class WeaveLayer(tf.keras.layers.Layer):
     pair_split = inputs[2]
     atom_to_pair = inputs[3]
 
-    activation = activations.get(self.activation)
+    activation = self.activation_fn
 
     AA = tf.matmul(atom_features, self.W_AA) + self.b_AA
     AA = activation(AA)
     PA = tf.matmul(pair_features, self.W_PA) + self.b_PA
     PA = activation(PA)
-    PA = tf.segment_sum(PA, pair_split)
+    PA = tf.math.segment_sum(PA, pair_split)
 
     A = tf.matmul(tf.concat([AA, PA], 1), self.W_A) + self.b_A
     A = activation(A)
@@ -2084,6 +2091,7 @@ class WeaveGather(tf.keras.layers.Layer):
     self.gaussian_expand = gaussian_expand
     self.init = init  # Set weight initialization
     self.activation = activation  # Get activations
+    self.activation_fn = activations.get(activation)
     self.epsilon = epsilon
     self.momentum = momentum
 
@@ -2100,24 +2108,23 @@ class WeaveGather(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     if self.gaussian_expand:
-      init = initializations.get(self.init)
+      init = initializers.get(self.init)
       self.W = init([self.n_input * 11, self.n_input])
-      self.b = model_ops.zeros(shape=[self.n_input])
+      self.b = backend.zeros(shape=[self.n_input])
     self.built = True
 
   def call(self, inputs):
     outputs = inputs[0]
     atom_split = inputs[1]
-    activation = activations.get(self.activation)
 
     if self.gaussian_expand:
       outputs = self.gaussian_histogram(outputs)
 
-    output_molecules = tf.segment_sum(outputs, atom_split)
+    output_molecules = tf.math.segment_sum(outputs, atom_split)
 
     if self.gaussian_expand:
       output_molecules = tf.matmul(output_molecules, self.W) + self.b
-      output_molecules = activation(output_molecules)
+      output_molecules = self.activation_fn(output_molecules)
 
     return output_molecules
 
@@ -2126,10 +2133,7 @@ class WeaveGather(tf.keras.layers.Layer):
                             (-0.468, 0.118), (-0.228, 0.114), (0., 0.114),
                             (0.228, 0.114), (0.468, 0.118), (0.739, 0.134),
                             (1.080, 0.170), (1.645, 0.283)]
-    dist = [
-        tf.contrib.distributions.Normal(p[0], p[1])
-        for p in gaussian_memberships
-    ]
+    dist = [tfp.distributions.Normal(p[0], p[1]) for p in gaussian_memberships]
     dist_max = [dist[i].prob(gaussian_memberships[i][0]) for i in range(11)]
     outputs = [dist[i].prob(x) / dist_max[i] for i in range(11)]
     outputs = tf.stack(outputs, axis=2)
@@ -2168,7 +2172,7 @@ class DTNNEmbedding(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     self.embedding_list = init([self.periodic_table_length, self.n_embedding])
     self.built = True
 
@@ -2209,6 +2213,7 @@ class DTNNStep(tf.keras.layers.Layer):
     self.n_hidden = n_hidden
     self.init = init  # Set weight initialization
     self.activation = activation  # Get activations
+    self.activation_fn = activations.get(activation)
 
   def get_config(self):
     config = super(DTNNStep, self).get_config()
@@ -2220,14 +2225,14 @@ class DTNNStep(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     self.W_cf = init([self.n_embedding, self.n_hidden])
     self.W_df = init([self.n_distance, self.n_hidden])
     self.W_fc = init([self.n_hidden, self.n_embedding])
-    self.b_cf = model_ops.zeros(shape=[
+    self.b_cf = backend.zeros(shape=[
         self.n_hidden,
     ])
-    self.b_df = model_ops.zeros(shape=[
+    self.b_df = backend.zeros(shape=[
         self.n_hidden,
     ])
     self.built = True
@@ -2240,7 +2245,6 @@ class DTNNStep(tf.keras.layers.Layer):
     distance = inputs[1]
     distance_membership_i = inputs[2]
     distance_membership_j = inputs[3]
-    activation = activations.get(self.activation)
     distance_hidden = tf.matmul(distance, self.W_df) + self.b_df
     atom_features_hidden = tf.matmul(atom_features, self.W_cf) + self.b_cf
     outputs = tf.multiply(
@@ -2249,15 +2253,15 @@ class DTNNStep(tf.keras.layers.Layer):
     # for atom i in a molecule m, this step multiplies together distance info of atom pair(i,j)
     # and embeddings of atom j(both gone through a hidden layer)
     outputs = tf.matmul(outputs, self.W_fc)
-    outputs = activation(outputs)
+    outputs = self.activation_fn(outputs)
 
     output_ii = tf.multiply(self.b_df, atom_features_hidden)
     output_ii = tf.matmul(output_ii, self.W_fc)
-    output_ii = activation(output_ii)
+    output_ii = self.activation_fn(output_ii)
 
     # for atom i, sum the influence from all other atom j in the molecule
-    return tf.segment_sum(outputs,
-                          distance_membership_i) - output_ii + atom_features
+    return tf.math.segment_sum(
+        outputs, distance_membership_i) - output_ii + atom_features
 
 
 class DTNNGather(tf.keras.layers.Layer):
@@ -2291,6 +2295,7 @@ class DTNNGather(tf.keras.layers.Layer):
     self.output_activation = output_activation
     self.init = init  # Set weight initialization
     self.activation = activation  # Get activations
+    self.activation_fn = activations.get(activation)
 
   def get_config(self):
     config = super(DTNNGather, self).get_config()
@@ -2305,16 +2310,16 @@ class DTNNGather(tf.keras.layers.Layer):
   def build(self, input_shape):
     self.W_list = []
     self.b_list = []
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     prev_layer_size = self.n_embedding
     for i, layer_size in enumerate(self.layer_sizes):
       self.W_list.append(init([prev_layer_size, layer_size]))
-      self.b_list.append(model_ops.zeros(shape=[
+      self.b_list.append(backend.zeros(shape=[
           layer_size,
       ]))
       prev_layer_size = layer_size
     self.W_list.append(init([prev_layer_size, self.n_outputs]))
-    self.b_list.append(model_ops.zeros(shape=[
+    self.b_list.append(backend.zeros(shape=[
         self.n_outputs,
     ]))
     self.built = True
@@ -2325,23 +2330,21 @@ class DTNNGather(tf.keras.layers.Layer):
     """
     output = inputs[0]
     atom_membership = inputs[1]
-    activation = activations.get(self.activation)
 
     for i, W in enumerate(self.W_list[:-1]):
       output = tf.matmul(output, W) + self.b_list[i]
-      output = activation(output)
+      output = self.activation_fn(output)
     output = tf.matmul(output, self.W_list[-1]) + self.b_list[-1]
     if self.output_activation:
-      output = activation(output)
-    return tf.segment_sum(output, atom_membership)
+      output = self.activation_fn(output)
+    return tf.math.segment_sum(output, atom_membership)
 
 
-def _DAGgraph_step(batch_inputs, W_list, b_list, activation, dropout,
+def _DAGgraph_step(batch_inputs, W_list, b_list, activation_fn, dropout,
                    dropout_switch):
   outputs = batch_inputs
-  activation_fn = activations.get(activation)
   for idw, W in enumerate(W_list):
-    outputs = tf.nn.xw_plus_b(outputs, W, b_list[idw])
+    outputs = tf.nn.bias_add(tf.matmul(outputs, W), b_list[idw])
     outputs = activation_fn(outputs)
     if not dropout is None:
       outputs = tf.nn.dropout(outputs, rate=dropout * dropout_switch)
@@ -2385,6 +2388,7 @@ class DAGLayer(tf.keras.layers.Layer):
     super(DAGLayer, self).__init__(**kwargs)
     self.init = init  # Set weight initialization
     self.activation = activation  # Get activations
+    self.activation_fn = activations.get(activation)
     self.layer_sizes = layer_sizes
     self.dropout = dropout
     self.max_atoms = max_atoms
@@ -2411,16 +2415,16 @@ class DAGLayer(tf.keras.layers.Layer):
     """"Construct internal trainable weights."""
     self.W_list = []
     self.b_list = []
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     prev_layer_size = self.n_inputs
     for layer_size in self.layer_sizes:
       self.W_list.append(init([prev_layer_size, layer_size]))
-      self.b_list.append(model_ops.zeros(shape=[
+      self.b_list.append(backend.zeros(shape=[
           layer_size,
       ]))
       prev_layer_size = layer_size
     self.W_list.append(init([prev_layer_size, self.n_outputs]))
-    self.b_list.append(model_ops.zeros(shape=[
+    self.b_list.append(backend.zeros(shape=[
         self.n_outputs,
     ]))
     self.built = True
@@ -2439,14 +2443,14 @@ class DAGLayer(tf.keras.layers.Layer):
 
     n_atoms = tf.squeeze(inputs[4])
     dropout_switch = tf.squeeze(inputs[5])
-    # initialize graph features for each graph
-    graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
-                                       self.max_atoms + 1, self.n_graph_feat))
-    # initialize graph features for each graph
-    # another row of zeros is generated for padded dummy atoms
-    graph_features = tf.Variable(graph_features_initial, trainable=False)
+    with tf.init_scope():
+      # initialize graph features for each graph
+      graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
+                                         self.max_atoms + 1, self.n_graph_feat))
+      # initialize graph features for each graph
+      # another row of zeros is generated for padded dummy atoms
+      graph_features = tf.Variable(graph_features_initial, trainable=False)
 
-    activation = activations.get(self.activation)
     for count in range(self.max_atoms):
       # `count`-th step
       # extracting atom features of target atoms: (batch_size*max_atoms) * n_atom_features
@@ -2478,14 +2482,15 @@ class DAGLayer(tf.keras.layers.Layer):
       # of shape: (batch_size*max_atoms) * n_graph_features
       # representing the graph features of target atoms in each graph
       batch_outputs = _DAGgraph_step(batch_inputs, self.W_list, self.b_list,
-                                     activation, self.dropout, dropout_switch)
+                                     self.activation_fn, self.dropout,
+                                     dropout_switch)
 
       # index for targe atoms
       target_index = tf.stack([tf.range(n_atoms), parents[:, count, 0]], axis=1)
       target_index = tf.boolean_mask(target_index, mask)
       # update the graph features for target atoms
-      graph_features = tf.scatter_nd_update(graph_features, target_index,
-                                            batch_outputs)
+      graph_features = tf.compat.v1.scatter_nd_update(
+          graph_features, target_index, batch_outputs)
     return batch_outputs
 
 
@@ -2523,6 +2528,7 @@ class DAGGather(tf.keras.layers.Layer):
     super(DAGGather, self).__init__(**kwargs)
     self.init = init  # Set weight initialization
     self.activation = activation  # Get activations
+    self.activation_fn = activations.get(activation)
     self.layer_sizes = layer_sizes
     self.dropout = dropout
     self.max_atoms = max_atoms
@@ -2543,16 +2549,16 @@ class DAGGather(tf.keras.layers.Layer):
   def build(self, input_shape):
     self.W_list = []
     self.b_list = []
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     prev_layer_size = self.n_graph_feat
     for layer_size in self.layer_sizes:
       self.W_list.append(init([prev_layer_size, layer_size]))
-      self.b_list.append(model_ops.zeros(shape=[
+      self.b_list.append(backend.zeros(shape=[
           layer_size,
       ]))
       prev_layer_size = layer_size
     self.W_list.append(init([prev_layer_size, self.n_outputs]))
-    self.b_list.append(model_ops.zeros(shape=[
+    self.b_list.append(backend.zeros(shape=[
         self.n_outputs,
     ]))
     self.built = True
@@ -2565,10 +2571,10 @@ class DAGGather(tf.keras.layers.Layer):
     membership = inputs[1]
     dropout_switch = tf.squeeze(inputs[2])
     # Extract atom_features
-    graph_features = tf.segment_sum(atom_features, membership)
+    graph_features = tf.math.segment_sum(atom_features, membership)
     # sum all graph outputs
     return _DAGgraph_step(graph_features, self.W_list, self.b_list,
-                          self.activation, self.dropout, dropout_switch)
+                          self.activation_fn, self.dropout, dropout_switch)
 
 
 class MessagePassing(tf.keras.layers.Layer):
@@ -2657,18 +2663,18 @@ class EdgeNetwork(tf.keras.layers.Layer):
   def build(self, input_shape):
     n_pair_features = self.n_pair_features
     n_hidden = self.n_hidden
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     self.W = init([n_pair_features, n_hidden * n_hidden])
-    self.b = model_ops.zeros(shape=(n_hidden * n_hidden,))
+    self.b = backend.zeros(shape=(n_hidden * n_hidden,))
     self.built = True
 
   def call(self, inputs):
     pair_features, atom_features, atom_to_pair = inputs
-    A = tf.nn.xw_plus_b(pair_features, self.W, self.b)
+    A = tf.nn.bias_add(tf.matmul(pair_features, self.W), self.b)
     A = tf.reshape(A, (-1, self.n_hidden, self.n_hidden))
     out = tf.expand_dims(tf.gather(atom_features, atom_to_pair[:, 1]), 2)
     out = tf.squeeze(tf.matmul(A, out), axis=2)
-    return tf.segment_sum(out, atom_to_pair[:, 0])
+    return tf.math.segment_sum(out, atom_to_pair[:, 0])
 
 
 class GatedRecurrentUnit(tf.keras.layers.Layer):
@@ -2687,16 +2693,16 @@ class GatedRecurrentUnit(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     n_hidden = self.n_hidden
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     self.Wz = init([n_hidden, n_hidden])
     self.Wr = init([n_hidden, n_hidden])
     self.Wh = init([n_hidden, n_hidden])
     self.Uz = init([n_hidden, n_hidden])
     self.Ur = init([n_hidden, n_hidden])
     self.Uh = init([n_hidden, n_hidden])
-    self.bz = model_ops.zeros(shape=(n_hidden,))
-    self.br = model_ops.zeros(shape=(n_hidden,))
-    self.bh = model_ops.zeros(shape=(n_hidden,))
+    self.bz = backend.zeros(shape=(n_hidden,))
+    self.br = backend.zeros(shape=(n_hidden,))
+    self.bh = backend.zeros(shape=(n_hidden,))
     self.built = True
 
   def call(self, inputs):
@@ -2740,7 +2746,7 @@ class SetGather(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    init = initializations.get(self.init)
+    init = initializers.get(self.init)
     self.U = init((2 * self.n_hidden, 4 * self.n_hidden))
     self.b = tf.Variable(
         np.concatenate((np.zeros(self.n_hidden), np.ones(self.n_hidden),
@@ -2764,7 +2770,8 @@ class SetGather(tf.keras.layers.Layer):
           tf.concat([e_mol, tf.constant([-1000.])], 0) for e_mol in e_mols
       ]
       a = tf.concat([tf.nn.softmax(e_mol)[:-1] for e_mol in e_mols], 0)
-      r = tf.segment_sum(tf.reshape(a, [-1, 1]) * atom_features, atom_split)
+      r = tf.math.segment_sum(
+          tf.reshape(a, [-1, 1]) * atom_features, atom_split)
       # Model using this layer must set pad_batches=True
       q_star = tf.concat([h, r], axis=1)
       h, c = self.LSTMStep(q_star, c)
@@ -2772,7 +2779,7 @@ class SetGather(tf.keras.layers.Layer):
 
   def LSTMStep(self, h, c, x=None):
     # Perform one step of LSTM
-    z = tf.nn.xw_plus_b(h, self.U, self.b)
+    z = tf.nn.bias_add(tf.matmul(h, self.U), self.b)
     i = tf.nn.sigmoid(z[:, :self.n_hidden])
     f = tf.nn.sigmoid(z[:, self.n_hidden:2 * self.n_hidden])
     o = tf.nn.sigmoid(z[:, 2 * self.n_hidden:3 * self.n_hidden])

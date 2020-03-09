@@ -80,12 +80,16 @@ class GAN(KerasModel):
     # Create the inputs.
 
     self.noise_input = Input(shape=self.get_noise_input_shape())
-    self.data_inputs = []
+    self.data_input_layers = []
     for shape in self.get_data_input_shapes():
-      self.data_inputs.append(Input(shape=shape))
-    self.conditional_inputs = []
+      self.data_input_layers.append(Input(shape=shape))
+    self.data_inputs = [i.experimental_ref() for i in self.data_input_layers]
+    self.conditional_input_layers = []
     for shape in self.get_conditional_input_shapes():
-      self.conditional_inputs.append(Input(shape=shape))
+      self.conditional_input_layers.append(Input(shape=shape))
+    self.conditional_inputs = [
+        i.experimental_ref() for i in self.conditional_input_layers
+    ]
 
     # Create the generators.
 
@@ -97,7 +101,8 @@ class GAN(KerasModel):
       self.generators.append(generator)
       generator_outputs.append(
           generator(
-              _list_or_tensor([self.noise_input] + self.conditional_inputs)))
+              _list_or_tensor([self.noise_input] +
+                              self.conditional_input_layers)))
       self.gen_variables += generator.trainable_variables
 
     # Create the discriminators.
@@ -110,14 +115,12 @@ class GAN(KerasModel):
       discriminator = self.create_discriminator()
       self.discriminators.append(discriminator)
       discrim_train_outputs.append(
-          discriminator(
-              _list_or_tensor(self.data_inputs + self.conditional_inputs)))
+          self._call_discriminator(discriminator, self.data_input_layers, True))
       for gen_output in generator_outputs:
         if isinstance(gen_output, tf.Tensor):
           gen_output = [gen_output]
         discrim_gen_outputs.append(
-            discriminator(
-                _list_or_tensor(gen_output + self.conditional_inputs)))
+            self._call_discriminator(discriminator, gen_output, False))
       self.discrim_variables += discriminator.trainable_variables
 
     # Compute the loss functions.
@@ -161,19 +164,29 @@ class GAN(KerasModel):
 
       # Add an entropy term to the loss.
 
-      entropy = Lambda(lambda x: -(tf.reduce_sum(tf.log(x[0]))/n_generators +
-          tf.reduce_sum(tf.log(x[1]))/n_discriminators))([gen_weights, discrim_weights])
+      entropy = Lambda(lambda x: -(tf.reduce_sum(tf.math.log(x[0]))/n_generators +
+          tf.reduce_sum(tf.math.log(x[1]))/n_discriminators))([gen_weights, discrim_weights])
       total_discrim_loss = Lambda(lambda x: x[0] + x[1])(
           [total_discrim_loss, entropy])
 
     # Create the Keras model.
 
-    inputs = [self.noise_input] + self.data_inputs + self.conditional_inputs
+    inputs = [self.noise_input
+             ] + self.data_input_layers + self.conditional_input_layers
     outputs = [total_gen_loss, total_discrim_loss]
     self.gen_loss_fn = lambda outputs, labels, weights: outputs[0]
     self.discrim_loss_fn = lambda outputs, labels, weights: outputs[1]
     model = tf.keras.Model(inputs=inputs, outputs=outputs)
     super(GAN, self).__init__(model, self.gen_loss_fn, **kwargs)
+
+  def _call_discriminator(self, discriminator, inputs, train):
+    """Invoke the discriminator on a set of inputs.
+
+    This is a separate method so WGAN can override it and also return the
+    gradient penalty.
+    """
+    return discriminator(
+        _list_or_tensor(inputs + self.conditional_input_layers))
 
   def get_noise_input_shape(self):
     """Get the shape of the generator's noise input layer.
@@ -257,7 +270,8 @@ class GAN(KerasModel):
     -------
     A Tensor equal to the loss function to use for optimizing the generator.
     """
-    return Lambda(lambda x: -tf.reduce_mean(tf.log(x + 1e-10)))(discrim_output)
+    return Lambda(lambda x: -tf.reduce_mean(tf.math.log(x + 1e-10)))(
+        discrim_output)
 
   def create_discriminator_loss(self, discrim_output_train, discrim_output_gen):
     """Create the loss function for the discriminator.
@@ -278,7 +292,7 @@ class GAN(KerasModel):
     -------
     A Tensor equal to the loss function to use for optimizing the discriminator.
     """
-    return Lambda(lambda x: -tf.reduce_mean(tf.log(x[0]+1e-10) + tf.log(1-x[1]+1e-10)))([discrim_output_train, discrim_output_gen])
+    return Lambda(lambda x: -tf.reduce_mean(tf.math.log(x[0]+1e-10) + tf.math.log(1-x[1]+1e-10)))([discrim_output_train, discrim_output_gen])
 
   def fit_gan(self,
               batches,
@@ -310,9 +324,6 @@ class GAN(KerasModel):
       it.
     """
     self._ensure_built()
-    if not tf.executing_eagerly():
-      global_step_placeholder = tf.placeholder(tf.int32, tuple())
-      update_global_step = tf.assign(self._global_step, global_step_placeholder)
     gen_train_fraction = 0.0
     discrim_error = 0.0
     gen_error = 0.0
@@ -332,10 +343,10 @@ class GAN(KerasModel):
       # Train the discriminator.
 
       inputs = [self.get_noise_batch(self.batch_size)]
-      for input in self.data_inputs:
-        inputs.append(feed_dict[input])
-      for input in self.conditional_inputs:
-        inputs.append(feed_dict[input])
+      for input in self.data_input_layers:
+        inputs.append(feed_dict[input.experimental_ref()])
+      for input in self.conditional_input_layers:
+        inputs.append(feed_dict[input.experimental_ref()])
       discrim_error += self.fit_generator(
           [(inputs, [], [])],
           variables=self.discrim_variables,
@@ -357,11 +368,7 @@ class GAN(KerasModel):
               checkpoint_interval=0)
           gen_average_steps += 1
           gen_train_fraction -= 1.0
-      if tf.executing_eagerly():
-        tf.assign(self._global_step, global_step + 1)
-      else:
-        self.session.run(update_global_step,
-                         {global_step_placeholder: global_step + 1})
+      self._global_step.assign(global_step + 1)
 
       # Write checkpoints and report progress.
 
@@ -430,10 +437,7 @@ class GAN(KerasModel):
     inputs = [i.astype(np.float32) for i in inputs]
     pred = self.generators[generator_index](
         _list_or_tensor(inputs), training=False)
-    if tf.executing_eagerly():
-      pred = pred.numpy()
-    else:
-      pred = pred.eval(session=self.session)
+    pred = pred.numpy()
     return pred
 
 
@@ -496,30 +500,46 @@ class WGAN(GAN):
     self.gradient_penalty = gradient_penalty
     super(WGAN, self).__init__(**kwargs)
 
+  def _call_discriminator(self, discriminator, inputs, train):
+    if train:
+      penalty = GradientPenaltyLayer(self, discriminator)
+      return penalty(inputs, self.conditional_input_layers)
+    return discriminator(
+        _list_or_tensor(inputs + self.conditional_input_layers))
+
   def create_generator_loss(self, discrim_output):
     return Lambda(lambda x: tf.reduce_mean(x))(discrim_output)
 
   def create_discriminator_loss(self, discrim_output_train, discrim_output_gen):
-    gradient_penalty = GradientPenaltyLayer(self)(discrim_output_train)
-    return Lambda(lambda x: x[0] + tf.reduce_mean(x[1] - x[2]))(
-        [gradient_penalty, discrim_output_train, discrim_output_gen])
+    return Lambda(lambda x: tf.reduce_mean(x[0] - x[1]))(
+        [discrim_output_train[0], discrim_output_gen]) + discrim_output_train[1]
 
 
 class GradientPenaltyLayer(Layer):
   """Implements the gradient penalty loss term for WGANs."""
 
-  def __init__(self, gan, **kwargs):
+  def __init__(self, gan, discriminator, **kwargs):
     super(GradientPenaltyLayer, self).__init__(**kwargs)
     self.gan = gan
+    self.discriminator = discriminator
 
-  def call(self, inputs):
-    gradients = tf.gradients(inputs, self.gan.data_inputs)
-    norm2 = 0.0
-    for g in gradients:
-      g2 = tf.square(g)
-      dims = len(g.shape)
-      if dims > 1:
-        g2 = tf.reduce_sum(g2, axis=list(range(1, dims)))
-      norm2 += g2
-    penalty = tf.square(tf.sqrt(norm2) - 1.0)
-    return self.gan.gradient_penalty * tf.reduce_mean(penalty)
+  def call(self, inputs, conditional_inputs):
+    with tf.GradientTape() as tape:
+      for layer in inputs:
+        tape.watch(layer)
+      output = self.discriminator(_list_or_tensor(inputs + conditional_inputs))
+    gradients = tape.gradient(output, inputs)
+    gradients = [g for g in gradients if g is not None]
+    if len(gradients) > 0:
+      norm2 = 0.0
+      for g in gradients:
+        g2 = tf.square(g)
+        dims = len(g.shape)
+        if dims > 1:
+          g2 = tf.reduce_sum(g2, axis=list(range(1, dims)))
+        norm2 += g2
+      penalty = tf.square(tf.sqrt(norm2) - 1.0)
+      penalty = self.gan.gradient_penalty * tf.reduce_mean(penalty)
+    else:
+      penalty = 0.0
+    return [output, penalty]

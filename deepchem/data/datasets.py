@@ -265,15 +265,15 @@ class Dataset(object):
     else:
       return None
 
-  def make_iterator(self,
-                    batch_size=100,
-                    epochs=1,
-                    deterministic=False,
-                    pad_batches=False):
-    """Create a tf.data.Iterator that iterates over the data in this Dataset.
+  def make_tf_dataset(self,
+                      batch_size=100,
+                      epochs=1,
+                      deterministic=False,
+                      pad_batches=False):
+    """Create a tf.data.Dataset that iterates over the data in this Dataset.
 
-    The iterator's get_next() method returns a tuple of three tensors (X, y, w)
-    which can be used to retrieve the features, labels, and weights respectively.
+    Each value returned by the Dataset's iterator is a tuple of (X, y, w) for
+    one batch.
 
     Parameters
     ----------
@@ -297,7 +297,7 @@ class Dataset(object):
               tf.TensorShape([None] + list(y.shape)),
               tf.TensorShape([None] + list(w.shape)))
 
-    # Create a Tensorflow Dataset and have it create an Iterator.
+    # Create a Tensorflow Dataset.
 
     def gen_data():
       for epoch in range(epochs):
@@ -305,8 +305,7 @@ class Dataset(object):
                                              pad_batches):
           yield (X, y, w)
 
-    dataset = tf.data.Dataset.from_generator(gen_data, dtypes, shapes)
-    return dataset.make_one_shot_iterator()
+    return tf.data.Dataset.from_generator(gen_data, dtypes, shapes)
 
 
 class NumpyDataset(Dataset):

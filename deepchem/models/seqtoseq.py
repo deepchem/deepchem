@@ -28,7 +28,7 @@ class VariationalRandomizer(Layer):
         [embedding_mean, embedding_stddev], training=training)
     mean_sq = embedding_mean * embedding_mean
     stddev_sq = embedding_stddev * embedding_stddev
-    kl = mean_sq + stddev_sq - tf.log(stddev_sq + 1e-20) - 1
+    kl = mean_sq + stddev_sq - tf.math.log(stddev_sq + 1e-20) - 1
     anneal_steps = self._annealing_final_step - self._annealing_start_step
     if anneal_steps > 0:
       current_step = tf.cast(global_step,
@@ -213,7 +213,7 @@ class SeqToSeq(KerasModel):
     def loss_fn(outputs, labels, weights):
       prob = tf.reduce_sum(outputs[0] * labels[0], axis=2)
       mask = tf.reduce_sum(labels[0], axis=2)
-      log_prob = tf.log(prob + 1e-20) * mask
+      log_prob = tf.math.log(prob + 1e-20) * mask
       loss = -tf.reduce_mean(tf.reduce_sum(log_prob, axis=1))
       return loss + sum(self.model.losses)
 
@@ -263,8 +263,8 @@ class SeqToSeq(KerasModel):
       indices = np.array([(i, len(batch[i]) if i < len(batch) else 0)
                           for i in range(self.batch_size)])
       probs = self.predict_on_generator([[(features, indices,
-                                           self.get_global_step()), None,
-                                          None]])
+                                           np.array(self.get_global_step())),
+                                          None, None]])
       for i in range(len(batch)):
         result.append(self._beam_search(probs[i], beam_width))
     return result
@@ -288,10 +288,7 @@ class SeqToSeq(KerasModel):
       for i, e in enumerate(batch):
         embedding_array[i] = e
       probs = self.decoder(embedding_array, training=False)
-      if tf.executing_eagerly():
-        probs = probs.numpy()
-      else:
-        probs = probs.eval(session=self.session)
+      probs = probs.numpy()
       for i in range(len(batch)):
         result.append(self._beam_search(probs[i], beam_width))
     return result
@@ -310,7 +307,7 @@ class SeqToSeq(KerasModel):
       indices = np.array([(i, len(batch[i]) if i < len(batch) else 0)
                           for i in range(self.batch_size)])
       embeddings = self.predict_on_generator(
-          [[(features, indices, self.get_global_step()), None, None]],
+          [[(features, indices, np.array(self.get_global_step())), None, None]],
           outputs=self._embedding)
       for i in range(len(batch)):
         result.append(embeddings[i])
@@ -410,7 +407,8 @@ class SeqToSeq(KerasModel):
       features = self._create_input_array(inputs)
       labels = self._create_output_array(outputs)
       gather_indices = np.array([(i, len(x)) for i, x in enumerate(inputs)])
-      yield ([features, gather_indices, self.get_global_step()], [labels], [])
+      yield ([features, gather_indices,
+              np.array(self.get_global_step())], [labels], [])
 
 
 class AspuruGuzikAutoEncoder(SeqToSeq):
