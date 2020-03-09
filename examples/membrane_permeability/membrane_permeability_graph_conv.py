@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 import numpy as np
 np.random.seed(123)
 import tensorflow as tf
-tf.set_random_seed(123)
+tf.random.set_seed(123)
 import deepchem as dc
 from membrane_permeability_datasets import load_permeability
 

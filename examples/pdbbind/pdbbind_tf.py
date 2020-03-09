@@ -14,7 +14,7 @@ import numpy as np
 import tensorflow as tf
 # For stable runs
 np.random.seed(123)
-tf.set_random_seed(123)
+tf.random.set_seed(123)
 
 import deepchem as dc
 from deepchem.molnet import load_pdbbind_grid

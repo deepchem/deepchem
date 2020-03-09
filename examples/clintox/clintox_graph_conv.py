@@ -13,7 +13,7 @@ from deepchem.models import GraphConvModel
 np.random.seed(123)
 import tensorflow as tf
 
-tf.set_random_seed(123)
+tf.random.set_seed(123)
 import deepchem as dc
 from deepchem.molnet import load_clintox
 
