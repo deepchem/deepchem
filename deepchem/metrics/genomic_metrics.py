@@ -103,7 +103,8 @@ def in_silico_mutagenesis(model, X):
   Parameters
   ----------
   model: Model
-    This can be any model that accepts inputs of the required shape.
+    This can be any model that accepts inputs of the required shape and produces
+    an output of shape (N_sequences, N_tasks).
   X: ndarray
     Shape (N_sequences, N_letters, sequence_length, 1)
 
