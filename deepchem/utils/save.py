@@ -5,9 +5,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-# TODO(rbharath): Use standard joblib once old-data has been regenerated.
 import joblib
-from sklearn.externals import joblib as old_joblib
 import gzip
 import json
 import pickle
@@ -219,13 +217,7 @@ def load_from_disk(filename):
   if os.path.splitext(name)[1] == ".pkl":
     return load_pickle_from_disk(filename)
   elif os.path.splitext(name)[1] == ".joblib":
-    try:
-      return joblib.load(filename)
-    except KeyError:
-      # Try older joblib version for legacy files.
-      return old_joblib.load(filename)
-    except ValueError:
-      return old_joblib.load(filename)
+    return joblib.load(filename)
   elif os.path.splitext(name)[1] == ".csv":
     # First line of user-specified CSV *must* be header.
     df = pd.read_csv(filename, header=0)
