@@ -1,10 +1,6 @@
 """
 Utility functions to evaluate models on datasets.
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import csv
 import numpy as np
 import warnings

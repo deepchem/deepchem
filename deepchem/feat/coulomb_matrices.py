@@ -3,9 +3,6 @@ Generate coulomb matrices for molecules.
 
 See Montavon et al., _New Journal of Physics_ __15__ (2013) 095003.
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "MIT"

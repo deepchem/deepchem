@@ -1,9 +1,6 @@
 """
 Contains an abstract base class that supports chemically aware data splits.
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 import random
 
 __author__ = "Bharath Ramsundar, Aneesh Pappu "

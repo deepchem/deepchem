@@ -1,8 +1,6 @@
 """
 Process an input dataset into a format suitable for machine learning.
 """
-from __future__ import division
-from __future__ import unicode_literals
 import os
 import gzip
 import pandas as pd

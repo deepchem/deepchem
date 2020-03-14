@@ -3,9 +3,6 @@ NCI dataset loader.
 Original Author - Bharath Ramsundar
 Author - Aneesh Pappu
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import logging
 import deepchem

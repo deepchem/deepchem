@@ -1,9 +1,6 @@
 """
 Contains an abstract base class that supports different ML models.
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 __author__ = "Bharath Ramsundar and Joseph Gomes"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"

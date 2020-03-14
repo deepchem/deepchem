@@ -2,9 +2,6 @@
 Tests to make sure deepchem models can fit models on easy datasets.
 """
 
-from __future__ import division
-from __future__ import unicode_literals
-
 from nose.plugins.attrib import attr
 
 __author__ = "Bharath Ramsundar"

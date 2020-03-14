@@ -1,9 +1,6 @@
 """
 Tests for molnet function
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 import csv
 import tempfile
 import unittest

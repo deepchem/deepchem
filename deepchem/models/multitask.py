@@ -1,9 +1,6 @@
 """
 Convenience class that lets singletask models fit on multitask data.
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import sklearn
 import tempfile

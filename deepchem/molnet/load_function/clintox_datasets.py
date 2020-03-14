@@ -2,10 +2,6 @@
 Clinical Toxicity (clintox) dataset loader.
 @author Caleb Geniesse
 """
-
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import logging
 import deepchem

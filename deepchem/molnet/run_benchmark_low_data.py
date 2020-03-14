@@ -5,10 +5,6 @@ Created on Mon Mar 06 14:25:40 2017
 @author: Zhenqin Wu
 """
 '''
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import time
 import csv

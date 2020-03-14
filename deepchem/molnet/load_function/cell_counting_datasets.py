@@ -5,9 +5,6 @@ Loads the cell counting dataset from
 http://www.robots.ox.ac.uk/~vgg/research/counting/index_org.html. Labels aren't
 available for this dataset, so only raw images are provided.
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import logging
 import deepchem

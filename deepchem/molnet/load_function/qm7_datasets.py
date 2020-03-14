@@ -1,9 +1,6 @@
 """
 qm7 dataset loader.
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import numpy as np
 import deepchem

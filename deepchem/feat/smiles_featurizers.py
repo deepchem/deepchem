@@ -4,9 +4,6 @@ SmilesToSeq featurizer for Smiles2Vec models taken from https://arxiv.org/abs/17
 SmilesToImage featurizer for ChemCeption models taken from https://arxiv.org/abs/1710.02238
 """
 
-from __future__ import division
-from __future__ import unicode_literals
-
 __author__ = "Vignesh Ram Somnath"
 __license__ = "MIT"
 
