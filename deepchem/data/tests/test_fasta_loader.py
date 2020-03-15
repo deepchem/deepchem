@@ -1,9 +1,6 @@
 """
 Tests that FASTA files can be loaded.
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 __author__ = "Bharath Ramsundar"
 __license__ = "MIT"
 

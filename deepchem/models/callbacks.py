@@ -2,8 +2,6 @@
 Callback functions that can be invoked while fitting a KerasModel.
 """
 
-from __future__ import print_function
-
 import tensorflow as tf
 import sys
 

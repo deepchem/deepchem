@@ -3,9 +3,6 @@ Implementation of Smiles2Vec and ChemCeption models as part of the ChemNet
 transfer learning protocol.
 """
 
-from __future__ import division
-from __future__ import unicode_literals
-
 __author__ = "Vignesh Ram Somnath"
 __license__ = "MIT"
 

@@ -1,9 +1,6 @@
 """
 Generates protein-ligand docked poses using Autodock Vina.
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 from deepchem.utils import mol_xyz_util
 
 __author__ = "Bharath Ramsundar"

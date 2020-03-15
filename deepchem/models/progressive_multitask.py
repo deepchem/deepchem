@@ -1,6 +1,3 @@
-from __future__ import division
-from __future__ import unicode_literals
-
 import time
 import numpy as np
 import tensorflow as tf

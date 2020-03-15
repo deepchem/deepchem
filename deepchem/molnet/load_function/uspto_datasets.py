@@ -3,10 +3,6 @@ Loads synthetic reaction datasets from USPTO.
 
 This file contains loaders for synthetic reaction datasets from the US Patenent Office. http://nextmovesoftware.com/blog/2014/02/27/unleashing-over-a-million-reactions-into-the-wild/.
 """
-
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import csv
 import logging

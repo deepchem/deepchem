@@ -1,9 +1,6 @@
 """
 Gathers all models in one place for convenient imports
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 from deepchem.models.models import Model
 from deepchem.models.keras_model import KerasModel
 from deepchem.models.sklearn_models import SklearnModel

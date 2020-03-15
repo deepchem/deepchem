@@ -5,9 +5,6 @@ Created on Mon Mar  6 23:41:26 2017
 
 @author: zqwu
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 import numpy as np
 import tensorflow as tf
 import deepchem

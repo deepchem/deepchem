@@ -2,9 +2,6 @@
 Contains implementations of layers used in ChemCeption and Smiles2Vec models.
 """
 
-from __future__ import division
-from __future__ import unicode_literals
-
 __author__ = "Vignesh Ram Somnath"
 __license__ = "MIT"
 

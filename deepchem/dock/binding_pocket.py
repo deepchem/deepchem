@@ -1,9 +1,6 @@
 """
 Computes putative binding pockets on protein.
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2017, Stanford University"
 __license__ = "MIT"

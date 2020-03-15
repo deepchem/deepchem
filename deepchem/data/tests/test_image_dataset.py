@@ -1,9 +1,6 @@
 """
 Tests for ImageDataset class
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"

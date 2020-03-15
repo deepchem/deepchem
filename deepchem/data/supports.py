@@ -1,9 +1,6 @@
 """
 Sample supports from datasets.
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 import logging
 import time
 import numpy as np

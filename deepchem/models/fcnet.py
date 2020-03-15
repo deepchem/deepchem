@@ -1,8 +1,5 @@
 """TensorFlow implementation of fully connected networks.
 """
-from __future__ import division
-from __future__ import unicode_literals
-
 import logging
 import warnings
 import time

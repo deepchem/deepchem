@@ -3,10 +3,6 @@ BBBC Dataset loader.
 
 This file contains image loaders for the BBBC dataset collection (https://data.broadinstitute.org/bbbc/image_sets.html).
 """
-
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import numpy as np
 import logging

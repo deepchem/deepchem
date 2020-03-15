@@ -1,8 +1,6 @@
 """
 Contains wrapper class for datasets.
 """
-from __future__ import division
-from __future__ import unicode_literals
 import json
 import os
 import math

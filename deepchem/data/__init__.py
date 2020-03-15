@@ -1,10 +1,6 @@
 """
 Gathers all datasets in one place for convenient imports
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 # TODO(rbharath): Get rid of * import
 from deepchem.data.datasets import pad_features
 from deepchem.data.datasets import pad_batch
