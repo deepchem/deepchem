@@ -20,6 +20,7 @@ from deepchem.models.scscore import ScScoreModel
 
 from deepchem.models.seqtoseq import SeqToSeq
 from deepchem.models.gan import GAN, WGAN
+from deepchem.models.cnn import CNN
 from deepchem.models.text_cnn import TextCNNModel
 from deepchem.models.atomic_conv import AtomicConvModel
 from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
