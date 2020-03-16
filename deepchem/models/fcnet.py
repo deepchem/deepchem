@@ -12,7 +12,7 @@ import deepchem as dc
 from deepchem.models import KerasModel
 from deepchem.models.layers import SwitchedDropout
 from deepchem.utils.save import log
-from deepchem.metrics import to_one_hot, from_one_hot
+from deepchem.metrics import to_one_hot
 from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Activation, Lambda
 
 logger = logging.getLogger(__name__)
