@@ -5,8 +5,9 @@
 [![PyPI version](https://badge.fury.io/py/deepchem.svg)](https://badge.fury.io/py/deepchem)
 
 
-DeepChem aims to provide a high quality open-source toolchain that
-democratizes the use of deep-learning in drug discovery, materials science, quantum chemistry, and biology.
+DeepChem aims to provide a high quality open-source toolchain
+that democratizes the use of deep-learning in drug discovery,
+materials science, quantum chemistry, and biology.
 
 ### Table of contents:
 
@@ -128,20 +129,15 @@ via this installation procedure.
    ```
 
 ## Getting Started
-Two good tutorials to get started are [Graph Convolutional Networks](https://deepchem.io/docs/notebooks/graph_convolutional_networks_for_tox21.html) and [Multitask_Networks_on_MUV](https://deepchem.io/docs/notebooks/Multitask_Networks_on_MUV.html). Follow along with the tutorials to see how to predict properties on molecules using neural networks.
+The DeepChem project maintains an extensive colelction of [tutorials](https://github.com/deepchem/deepchem/tree/master/examples/tutorials). All tutorials are designed to be run on Google colab (or locally if you prefer). Tutorials are arranged in a suggested learning sequence which will take you from beginner to proficient at molecular machine learning and computational biology more broadly.
 
-Afterwards you can go through other [tutorials](https://deepchem.io/docs/notebooks/index.html), and look through our examples in the `examples` directory. To apply `deepchem` to a new problem, try starting from one of the existing examples or tutorials and modifying it step by step to work with your new use-case. If you have questions or comments you can raise them on our [gitter](https://gitter.im/deepchem/Lobby).
-
-### Benchmarks
-In depth benchrmarking tables for DeepChem models are available on [MoleculeNet.ai](https://moleculenet.ai)
+After working through the tutorials, you can also go through other [examples](https://github.com/deepchem/deepchem/tree/master/examples). To apply `deepchem` to a new problem, try starting from one of the existing examples or tutorials and modifying it step by step to work with your new use-case. If you have questions or comments you can raise them on our [gitter](https://gitter.im/deepchem/Lobby).
 
 ### Gitter
 Join us on gitter at [https://gitter.im/deepchem/Lobby](https://gitter.im/deepchem/Lobby). Probably the easiest place to ask simple questions or float requests for new features.
 
 ## About Us
-DeepChem is possible due to notable contributions from many people including Peter Eastman, Evan Feinberg, Joe Gomes, Karl Leswing, Vijay Pande, Aneesh Pappu, Bharath Ramsundar and Michael Wu (alphabetical ordering).  DeepChem was originally created by [Bharath Ramsundar](http://rbharath.github.io/) with encouragement and guidance from [Vijay Pande](https://pande.stanford.edu/).
-
-DeepChem started as a [Pande group](https://pande.stanford.edu/) project at Stanford, and is now developed by many academic and industrial collaborators. DeepChem actively encourages new academic and industrial groups to contribute!
+DeepChem is managed by a team of open source contributors. Anyone is free to join and contribute!
 
 ## Citing DeepChem
 
