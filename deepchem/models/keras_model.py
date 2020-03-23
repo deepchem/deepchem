@@ -173,7 +173,7 @@ class KerasModel(Model):
       return
     self._ensure_built()
     self._inputs_built = True
-    if len(self.model.inputs) > 0:
+    if (self.model.inputs is not None) and len(self.model.inputs) > 0:
       self._input_shapes = [t.shape for t in self.model.inputs]
       self._input_dtypes = [t.dtype.as_numpy_dtype for t in self.model.inputs]
     else:
@@ -295,7 +295,7 @@ class KerasModel(Model):
       loss = self._loss_fn
     var_key = None
     if variables is not None:
-      var_key = tuple(v.experimental_ref() for v in variables)
+      var_key = tuple(v.ref() for v in variables)
 
       # The optimizer creates internal variables the first time apply_gradients()
       # is called for a new set of variables.  If that happens inside a function
@@ -469,7 +469,7 @@ class KerasModel(Model):
         inputs = inputs[0]
       if outputs is not None:
         outputs = tuple(outputs)
-        key = tuple(t.experimental_ref() for t in outputs)
+        key = tuple(t.ref() for t in outputs)
         if key not in self._output_functions:
           self._output_functions[key] = tf.keras.backend.function(
               self.model.inputs, outputs)
@@ -904,7 +904,7 @@ class KerasModel(Model):
       dest_vars = dest_vars[:-2]
 
     for source_var, dest_var in zip(source_vars, dest_vars):
-      assignment_map[source_var.experimental_ref()] = dest_var
+      assignment_map[source_var.ref()] = dest_var
 
     return assignment_map
 
@@ -923,7 +923,7 @@ class KerasModel(Model):
     source_vars = source_model.model.trainable_variables
 
     for source_var in source_vars:
-      value_map[source_var.experimental_ref()] = source_var.numpy()
+      value_map[source_var.ref()] = source_var.numpy()
 
     return value_map
 
