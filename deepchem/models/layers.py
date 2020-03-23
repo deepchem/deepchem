@@ -1304,7 +1304,7 @@ class AtomicConvolution(tf.keras.layers.Layer):
       Coordinates/features distance tensor.
     """
     flat_neighbors = tf.reshape(Nbrs, [-1, N * M])
-    neighbor_coords = tf.gather(X, flat_neighbors, batch_dims=-1)
+    neighbor_coords = tf.gather(X, flat_neighbors, batch_dims=-1, axis=1)
     neighbor_coords = tf.reshape(neighbor_coords, [-1, N, M, d])
     D = neighbor_coords - tf.expand_dims(X, 2)
     if boxsize is not None:
