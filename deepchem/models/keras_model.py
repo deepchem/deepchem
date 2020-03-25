@@ -510,15 +510,7 @@ class KerasModel(Model):
           for i, t in enumerate(var):
             variances[i].append(t)
       if embedding:
-        ##################################
-        print("len(self._embedding_outputs)")
-        print(len(self._embedding_outputs))
-        ##################################
         embeddings = [output_values[i] for i in self._embedding_outputs]
-        ##################################
-        print("embeddings[0].shape")
-        print(embeddings[0].shape)
-        ##################################
       if self._prediction_outputs is not None:
         output_values = [output_values[i] for i in self._prediction_outputs]
       if len(transformers) > 0:

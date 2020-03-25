@@ -88,10 +88,6 @@ class TestLayers(test_util.TensorFlowTestCase):
     membership = multi_mol.membership
     deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
     args = [atom_features, degree_slice, membership] + deg_adjs
-    print("HIIIIII")
-    print("deg_adjs")
-    print(deg_adjs)
-    assert 0 == 1
     layer = layers.GraphConv(out_channels)
     result = layer(args)
     assert result.shape == (n_atoms, out_channels)
