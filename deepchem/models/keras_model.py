@@ -76,6 +76,8 @@ class KerasModel(Model):
     Also be aware that if a model supports uncertainty, it MUST use dropout on
     every layer, and dropout most be enabled during uncertainty prediction.
     Otherwise, the uncertainties it computes will be inaccurate.
+  - 'embedding': This output is an embedding that the model
+  generates internally which should be returned to users.
   """
 
   def __init__(self,
@@ -136,10 +138,12 @@ class KerasModel(Model):
       self._prediction_outputs = None
       self._loss_outputs = None
       self._variance_outputs = None
+      self._embedding_outputs = None
     else:
       self._prediction_outputs = []
       self._loss_outputs = []
       self._variance_outputs = []
+      self._embedding_outputs = []
       for i, type in enumerate(output_types):
         if type == 'prediction':
           self._prediction_outputs.append(i)
@@ -147,6 +151,8 @@ class KerasModel(Model):
           self._loss_outputs.append(i)
         elif type == 'variance':
           self._variance_outputs.append(i)
+        elif type == 'embedding':
+          self._embedding_outputs.append(i)
         else:
           raise ValueError('Unknown output type "%s"' % type)
       if len(self._loss_outputs) == 0:
@@ -321,6 +327,7 @@ class KerasModel(Model):
 
       if len(inputs) == 1:
         inputs = inputs[0]
+
       batch_loss = apply_gradient_for_batch(inputs, labels, weights, loss)
       current_step = self._global_step.numpy()
 
@@ -415,7 +422,7 @@ class KerasModel(Model):
         loss=loss,
         callbacks=callbacks)
 
-  def _predict(self, generator, transformers, outputs, uncertainty):
+  def _predict(self, generator, transformers, outputs, uncertainty, embedding):
     """
     Predict outputs for data provided by a generator.
 
@@ -439,12 +446,19 @@ class KerasModel(Model):
       specifies whether this is being called as part of estimating uncertainty.
       If True, it sets the training flag so that dropout will be enabled, and
       returns the values of the uncertainty outputs.
+    embedding: bool
+      specifies whether this is being called as part of generating embeddings.
     Returns:
       a NumPy array of the model produces a single output, or a list of arrays
       if it produces multiple outputs
     """
     results = None
     variances = None
+    embeddings = None
+    if uncertainty and embedding:
+      raise ValueError(
+          'This model cannot compute uncertainties and embeddings simultaneously. Please invoke one at a time.'
+      )
     if uncertainty:
       assert outputs is None
       if self._variance_outputs is None or len(self._variance_outputs) == 0:
@@ -452,9 +466,14 @@ class KerasModel(Model):
       if len(self._variance_outputs) != len(self._prediction_outputs):
         raise ValueError(
             'The number of variances must exactly match the number of outputs')
-    if outputs is not None and len(self.model.inputs) == 0:
+    if embedding:
+      assert outputs is None
+      if self._embedding_outputs is None or len(self._embedding_outputs) == 0:
+        raise ValueError('This model cannot compute embneddings.')
+    if (outputs is not None and self.model.inputs is not None and
+        len(self.model.inputs) == 0):
       raise ValueError(
-          "Cannot use 'outputs' argument with a model that does not specify its inputs"
+          "Cannot use 'outputs' argument with a model that does not specify its inputs. Note models defined in imperative subclassing style cannot specify outputs"
       )
     if isinstance(outputs, tf.Tensor):
       outputs = [outputs]
@@ -474,6 +493,7 @@ class KerasModel(Model):
           self._output_functions[key] = tf.keras.backend.function(
               self.model.inputs, outputs)
         output_values = self._output_functions[key](inputs)
+        output_values = self._compute_model(inputs)
       else:
         output_values = self._compute_model(inputs)
         if isinstance(output_values, tf.Tensor):
@@ -489,6 +509,16 @@ class KerasModel(Model):
         else:
           for i, t in enumerate(var):
             variances[i].append(t)
+      if embedding:
+        ##################################
+        print("len(self._embedding_outputs)")
+        print(len(self._embedding_outputs))
+        ##################################
+        embeddings = [output_values[i] for i in self._embedding_outputs]
+        ##################################
+        print("embeddings[0].shape")
+        print(embeddings[0].shape)
+        ##################################
       if self._prediction_outputs is not None:
         output_values = [output_values[i] for i in self._prediction_outputs]
       if len(transformers) > 0:
@@ -507,12 +537,19 @@ class KerasModel(Model):
 
     final_results = []
     final_variances = []
+    final_embeddings = []
     for r in results:
       final_results.append(np.concatenate(r, axis=0))
     if uncertainty:
       for v in variances:
         final_variances.append(np.concatenate(v, axis=0))
       return zip(final_results, final_variances)
+    if embedding:
+      final_embeddings = embeddings
+      if len(final_embeddings) == 1:
+        return final_embeddings[0]
+      else:
+        return final_embeddings
     # If only one output, just return array
     if len(final_results) == 1:
       return final_results[0]
@@ -543,7 +580,7 @@ class KerasModel(Model):
       a NumPy array of the model produces a single output, or a list of arrays
       if it produces multiple outputs
     """
-    return self._predict(generator, transformers, outputs, False)
+    return self._predict(generator, transformers, outputs, False, False)
 
   def predict_on_batch(self, X, transformers=[], outputs=None):
     """Generates predictions for input samples, processing samples in a batch.
@@ -622,6 +659,24 @@ class KerasModel(Model):
         dataset, mode='predict', pad_batches=False)
     return self.predict_on_generator(generator, transformers, outputs)
 
+  def predict_embedding(self, dataset):
+    """
+    Predicts embeddings created by underlying model 
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset to make prediction on
+
+    Returns
+    -------
+    a NumPy array of the embeddings model produces, or a list
+    of arrays if it produces multiple embeddings
+    """
+    generator = self.default_generator(
+        dataset, mode='predict', pad_batches=False)
+    return self._predict(generator, [], None, False, True)
+
   def predict_uncertainty(self, dataset, masks=50):
     """
     Predict the model's outputs, along with the uncertainty in each one.
@@ -652,7 +707,7 @@ class KerasModel(Model):
     for i in range(masks):
       generator = self.default_generator(
           dataset, mode='uncertainty', pad_batches=False)
-      results = self._predict(generator, [], None, True)
+      results = self._predict(generator, [], None, True, False)
       if len(sum_pred) == 0:
         for p, v in results:
           sum_pred.append(p)

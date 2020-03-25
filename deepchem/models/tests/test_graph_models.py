@@ -68,8 +68,7 @@ class TestGraphModels(unittest.TestCase):
         mode='classification')
 
     model.fit(dataset, nb_epoch=1)
-    neural_fingerprints = model.predict(
-        dataset, outputs=model.neural_fingerprint)
+    neural_fingerprints = model.predict_embedding(dataset)
     neural_fingerprints = np.array(neural_fingerprints)[:len(dataset)]
     self.assertEqual((len(dataset), fp_size * 2), neural_fingerprints.shape)
 
