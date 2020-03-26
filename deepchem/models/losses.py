@@ -31,6 +31,7 @@ class L1Loss(Loss):
 
   def __call__(self, output, labels):
     output, labels = _make_shapes_consistent(output, labels)
+    output, labels = _ensure_float(output, labels)
     return tf.abs(output - labels)
 
 
@@ -39,6 +40,7 @@ class L2Loss(Loss):
 
   def __call__(self, output, labels):
     output, labels = _make_shapes_consistent(output, labels)
+    output, labels = _ensure_float(output, labels)
     return tf.square(output - labels)
 
 
