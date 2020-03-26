@@ -366,7 +366,7 @@ class KerasModel(Model):
     @tf.function(experimental_relax_shapes=True)
     def apply_gradient_for_batch(inputs, labels, weights, loss):
       with tf.GradientTape() as tape:
-        outputs = self.model(inputs)
+        outputs = self.model(inputs, training=True)
         if isinstance(outputs, tf.Tensor):
           outputs = [outputs]
         if self._loss_outputs is not None:

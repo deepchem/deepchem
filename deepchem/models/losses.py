@@ -149,6 +149,7 @@ def _make_shapes_consistent(output, labels):
   raise ValueError("Incompatible shapes for outputs and labels: %s versus %s" %
                    (str(shape1), str(shape2)))
 
+
 def _ensure_float(output, labels):
   """Make sure the outputs and labels are both floating point types."""
   if output.dtype not in (tf.float32, tf.float64):
