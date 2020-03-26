@@ -483,7 +483,6 @@ class KerasModel(Model):
       inputs, _, _ = self._prepare_batch((inputs, None, None))
 
       # Invoke the model.
-
       if len(inputs) == 1:
         inputs = inputs[0]
       if outputs is not None:
@@ -493,7 +492,6 @@ class KerasModel(Model):
           self._output_functions[key] = tf.keras.backend.function(
               self.model.inputs, outputs)
         output_values = self._output_functions[key](inputs)
-        output_values = self._compute_model(inputs)
       else:
         output_values = self._compute_model(inputs)
         if isinstance(output_values, tf.Tensor):
@@ -501,7 +499,6 @@ class KerasModel(Model):
         output_values = [t.numpy() for t in output_values]
 
       # Apply tranformers and record results.
-
       if uncertainty:
         var = [output_values[i] for i in self._variance_outputs]
         if variances is None:
@@ -526,7 +523,6 @@ class KerasModel(Model):
         results[i].append(t)
 
     # Concatenate arrays to create the final results.
-
     final_results = []
     final_variances = []
     final_embeddings = []
