@@ -656,3 +656,24 @@ class TestTransformers(unittest.TestCase):
     np.random.seed(0)
     check_random_noise = dt.salt_pepper_noise(prob, salt=255, pepper=0)
     assert np.allclose(random_noise, check_random_noise)
+
+  def test_DAG_transformer(self):
+    """Tests the DAG transformer."""
+    np.random.seed(123)
+    tf.random.set_seed(123)
+    n_tasks = 1
+
+    # Load mini log-solubility dataset.
+    featurizer = dc.feat.ConvMolFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(self.current_dir,
+                              "../../models/tests/example_regression.csv")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
+    transformer = dc.trans.DAGTransformer(max_atoms=50)
+    dataset = transformer.transform(dataset)
+    # The transformer generates n DAGs for a molecule with n
+    # atoms. These are denoted the "parents"
+    for idm, mol in enumerate(dataset.X):
+      assert dataset.X[idm].get_num_atoms() == len(dataset.X[idm].parents)

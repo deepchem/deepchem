@@ -337,7 +337,16 @@ class DAGModel(KerasModel):
                uncertainty=False,
                batch_size=100,
                **kwargs):
-    """
+    """Directed Acyclic Graph models for molecular property prediction.
+
+    This model is based on the following paper: 
+
+    Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575.
+
+   The basic idea for this paper is that a molecule is usually viewed as an undirected graph. However, you can convert it to a series of directed graphs. The idea is that for each atom, you make a DAG using that atom as the vertex of the DAG and edges pointing "inwards" to it. This transformation is implemented in dc.trans.transformers.DAGTransformer.UG_to_DAG.
+
+   This model accepts ConvMols as input, just as GraphConvModel does, but these ConvMol objects must be transformed by dc.trans.DAGTransformer. 
+
     Parameters
     ----------
     n_tasks: int

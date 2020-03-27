@@ -2363,7 +2363,15 @@ class DAGLayer(tf.keras.layers.Layer):
                dropout=None,
                batch_size=64,
                **kwargs):
-    """
+    """DAG computation layer.
+
+    This layer generates a directed acyclic graph for each atom
+    in a molecule. This layer is based on the algorithm from the
+    following paper: 
+
+    Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575.
+
+  
     Parameters
     ----------
     n_graph_feat: int, optional
@@ -2427,6 +2435,10 @@ class DAGLayer(tf.keras.layers.Layer):
     self.b_list.append(backend.zeros(shape=[
         self.n_outputs,
     ]))
+    with tf.init_scope():
+      graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
+                                         self.max_atoms + 1, self.n_graph_feat))
+      self.graph_features = tf.Variable(graph_features_initial, trainable=False)
     self.built = True
 
   def call(self, inputs):
@@ -2436,20 +2448,21 @@ class DAGLayer(tf.keras.layers.Layer):
     atom_features = inputs[0]
     # each atom corresponds to a graph, which is represented by the `max_atoms*max_atoms` int32 matrix of index
     # each gragh include `max_atoms` of steps(corresponding to rows) of calculating graph features
-    parents = inputs[1]
+    parents = tf.cast(inputs[1], dtype=tf.int32)
     # target atoms for each step: (batch_size*max_atoms) * max_atoms
     calculation_orders = inputs[2]
     calculation_masks = inputs[3]
 
     n_atoms = tf.squeeze(inputs[4])
     dropout_switch = tf.squeeze(inputs[5])
-    with tf.init_scope():
-      # initialize graph features for each graph
-      graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
-                                         self.max_atoms + 1, self.n_graph_feat))
-      # initialize graph features for each graph
-      # another row of zeros is generated for padded dummy atoms
-      graph_features = tf.Variable(graph_features_initial, trainable=False)
+    #with tf.init_scope():
+    #  # initialize graph features for each graph
+    #  graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
+    #                                     self.max_atoms + 1, self.n_graph_feat))
+    #  # initialize graph features for each graph
+    #  # another row of zeros is generated for padded dummy atoms
+    #  #graph_features = tf.Variable(graph_features_initial, trainable=False)
+    #  self.graph_features.assign(graph_features_initial)
 
     for count in range(self.max_atoms):
       # `count`-th step
@@ -2459,20 +2472,16 @@ class DAGLayer(tf.keras.layers.Layer):
       batch_atom_features = tf.gather(atom_features, current_round)
 
       # generating index for graph features used in the inputs
-      index = tf.stack(
-          [
-              tf.reshape(
-                  tf.stack(
-                      [tf.boolean_mask(tf.range(n_atoms), mask)] *
-                      (self.max_atoms - 1),
-                      axis=1), [-1]),
-              tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
-          ],
-          axis=1)
+      stack1 = tf.reshape(
+          tf.stack(
+              [tf.boolean_mask(tf.range(n_atoms), mask)] * (self.max_atoms - 1),
+              axis=1), [-1])
+      stack2 = tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
+      index = tf.stack([stack1, stack2], axis=1)
       # extracting graph features for parents of the target atoms, then flatten
       # shape: (batch_size*max_atoms) * [(max_atoms-1)*n_graph_features]
       batch_graph_features = tf.reshape(
-          tf.gather_nd(graph_features, index),
+          tf.gather_nd(self.graph_features, index),
           [-1, (self.max_atoms - 1) * self.n_graph_feat])
 
       # concat into the input tensor: (batch_size*max_atoms) * n_inputs
@@ -2489,8 +2498,11 @@ class DAGLayer(tf.keras.layers.Layer):
       target_index = tf.stack([tf.range(n_atoms), parents[:, count, 0]], axis=1)
       target_index = tf.boolean_mask(target_index, mask)
       # update the graph features for target atoms
-      graph_features = tf.compat.v1.scatter_nd_update(
-          graph_features, target_index, batch_outputs)
+      #self.graph_features = tf.compat.v1.scatter_nd_update(
+      #    self.graph_features, target_index, batch_outputs)
+      self.graph_features.assign_add(
+          tf.compat.v1.scatter_nd_update(self.graph_features, target_index,
+                                         batch_outputs))
     return batch_outputs
 
 
@@ -2505,7 +2517,8 @@ class DAGGather(tf.keras.layers.Layer):
                activation='relu',
                dropout=None,
                **kwargs):
-    """
+    """DAG vector gathering layer
+
     Parameters
     ----------
     n_graph_feat: int, optional

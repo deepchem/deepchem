@@ -645,9 +645,11 @@ class TestOverfit(test_util.TensorFlowTestCase):
         mode="regression")
 
     # Fit trained model
-    model.fit(dataset, nb_epoch=50)
+    model.fit(dataset, nb_epoch=100)
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
+    print("scores")
+    print(scores)
 
     assert scores[regression_metric.name] > .8
 

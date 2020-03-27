@@ -354,3 +354,56 @@ class TestLayers(test_util.TensorFlowTestCase):
 
     result3 = layer([V, adjs])
     assert np.allclose(result, result3)
+
+  def test_DAG_layer(self):
+    """Test invoking DAGLayer."""
+    batch_size = 10
+    n_graph_feat = 30
+    n_atom_feat = 75
+    max_atoms = 50
+    layer_sizes = [100]
+    atom_features = np.random.rand(batch_size, n_atom_feat)
+    parents = np.random.randint(
+        0, max_atoms, size=(batch_size, max_atoms, max_atoms))
+    calculation_orders = np.random.randint(
+        0, batch_size, size=(batch_size, max_atoms))
+    calculation_masks = np.random.randint(0, 2, size=(batch_size, max_atoms))
+    # Recall that the DAG layer expects a MultiConvMol as input,
+    # so the "batch" is a pooled set of atoms from all the
+    # molecules in the batch, just as it is for the graph conv.
+    # This means that n_atoms is the batch-size
+    n_atoms = batch_size
+    dropout_switch = False
+    layer = layers.DAGLayer(
+        n_graph_feat=n_graph_feat,
+        n_atom_feat=n_atom_feat,
+        max_atoms=max_atoms,
+        layer_sizes=layer_sizes)
+    outputs = layer([
+        atom_features, parents, calculation_orders, calculation_masks, n_atoms,
+        dropout_switch
+    ])
+    # TODO(rbharath): What is the shape of outputs supposed to be?
+    # I'm getting (7, 30) here. Where does 7 come from??
+    print("outputs.shape")
+    print(outputs.shape)
+
+  def test_DAG_gather(self):
+    """Test invoking DAGGather."""
+    # TODO(rbharath): We need more documentation about why
+    # these numbers work.
+    batch_size = 10
+    n_graph_feat = 30
+    n_atom_feat = 30
+    n_outputs = 75
+    max_atoms = 50
+    layer_sizes = [100]
+    layer = layers.DAGGather(
+        n_graph_feat=n_graph_feat,
+        n_outputs=n_outputs,
+        max_atoms=max_atoms,
+        layer_sizes=layer_sizes)
+    atom_features = np.random.rand(batch_size, n_atom_feat)
+    membership = np.sort(np.random.randint(0, batch_size, size=(batch_size)))
+    dropout_switch = False
+    outputs = layer([atom_features, membership, dropout_switch])

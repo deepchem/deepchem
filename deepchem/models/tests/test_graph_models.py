@@ -305,3 +305,31 @@ class TestGraphModels(unittest.TestCase):
     pred = model.predict(dataset)
     mean_rel_error = np.mean(np.abs(1 - pred / y))
     assert mean_rel_error < 0.1
+
+  def test_dag_model(self):
+    tasks, dataset, transformers, metric = self.get_dataset(
+        'regression', 'GraphConv')
+    dag_transformer = dc.trans.DAGTransformer(max_atoms=50)
+    dataset = dag_transformer.transform(dataset)
+
+    n_tasks = len(tasks)
+    n_feat = 75
+    batch_size = 10
+    model = dc.models.DAGModel(
+        n_tasks,
+        max_atoms=50,
+        n_atom_feat=n_feat,
+        batch_size=batch_size,
+        learning_rate=0.001,
+        use_queue=False,
+        mode="regression")
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=1)
+    #batch_size = 50
+    #model = GraphConvModel(
+    #    len(tasks), batch_size=batch_size, mode='classification')
+
+    #model.fit(dataset, nb_epoch=10)
+    #scores = model.evaluate(dataset, [metric], transformers)
+    #assert scores['mean-roc_auc_score'] >= 0.9
