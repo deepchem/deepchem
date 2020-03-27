@@ -613,6 +613,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .7
 
+  @attr('slow')
   def test_DAG_singletask_regression_overfit(self):
     """Test DAG regressor multitask overfits tiny data."""
     np.random.seed(123)
@@ -645,11 +646,9 @@ class TestOverfit(test_util.TensorFlowTestCase):
         mode="regression")
 
     # Fit trained model
-    model.fit(dataset, nb_epoch=100)
+    model.fit(dataset, nb_epoch=1200)
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
-    print("scores")
-    print(scores)
 
     assert scores[regression_metric.name] > .8
 

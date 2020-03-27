@@ -2372,6 +2372,13 @@ class DAGLayer(tf.keras.layers.Layer):
     Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575.
 
   
+    This layer performs a sort of inward sweep. Recall that for each atom, a
+    DAG is generated that "points inward" to that atom from the undirected
+    molecule graph. Picture this as "picking up" the atom as the vertex and
+    using the natural tree structure that forms from gravity. The layer "sweeps
+    inwards" from the leaf nodes of the DAG upwards to the atom. This is
+    batched so the transformation is done for each atom.
+
     Parameters
     ----------
     n_graph_feat: int, optional
@@ -2435,10 +2442,10 @@ class DAGLayer(tf.keras.layers.Layer):
     self.b_list.append(backend.zeros(shape=[
         self.n_outputs,
     ]))
-    with tf.init_scope():
-      graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
-                                         self.max_atoms + 1, self.n_graph_feat))
-      self.graph_features = tf.Variable(graph_features_initial, trainable=False)
+    #with tf.init_scope():
+    #  graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
+    #                                     self.max_atoms + 1, self.n_graph_feat))
+    #  self.graph_features = tf.Variable(graph_features_initial, trainable=False)
     self.built = True
 
   def call(self, inputs):
@@ -2463,6 +2470,8 @@ class DAGLayer(tf.keras.layers.Layer):
     #  # another row of zeros is generated for padded dummy atoms
     #  #graph_features = tf.Variable(graph_features_initial, trainable=False)
     #  self.graph_features.assign(graph_features_initial)
+    graph_features = tf.zeros((self.max_atoms * self.batch_size,
+                               self.max_atoms + 1, self.n_graph_feat))
 
     for count in range(self.max_atoms):
       # `count`-th step
@@ -2481,7 +2490,8 @@ class DAGLayer(tf.keras.layers.Layer):
       # extracting graph features for parents of the target atoms, then flatten
       # shape: (batch_size*max_atoms) * [(max_atoms-1)*n_graph_features]
       batch_graph_features = tf.reshape(
-          tf.gather_nd(self.graph_features, index),
+          #tf.gather_nd(self.graph_features, index),
+          tf.gather_nd(graph_features, index),
           [-1, (self.max_atoms - 1) * self.n_graph_feat])
 
       # concat into the input tensor: (batch_size*max_atoms) * n_inputs
@@ -2500,9 +2510,11 @@ class DAGLayer(tf.keras.layers.Layer):
       # update the graph features for target atoms
       #self.graph_features = tf.compat.v1.scatter_nd_update(
       #    self.graph_features, target_index, batch_outputs)
-      self.graph_features.assign_add(
-          tf.compat.v1.scatter_nd_update(self.graph_features, target_index,
-                                         batch_outputs))
+      #self.graph_features.assign_add(
+      #    tf.compat.v1.scatter_nd_update(self.graph_features, target_index,
+      #                                   batch_outputs))
+      graph_features = tf.tensor_scatter_nd_update(graph_features, target_index,
+                                                   batch_outputs)
     return batch_outputs
 
 
