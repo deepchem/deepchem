@@ -326,10 +326,3 @@ class TestGraphModels(unittest.TestCase):
 
     # Fit trained model
     model.fit(dataset, nb_epoch=1)
-    #batch_size = 50
-    #model = GraphConvModel(
-    #    len(tasks), batch_size=batch_size, mode='classification')
-
-    #model.fit(dataset, nb_epoch=10)
-    #scores = model.evaluate(dataset, [metric], transformers)
-    #assert scores['mean-roc_auc_score'] >= 0.9

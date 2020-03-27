@@ -2442,10 +2442,6 @@ class DAGLayer(tf.keras.layers.Layer):
     self.b_list.append(backend.zeros(shape=[
         self.n_outputs,
     ]))
-    #with tf.init_scope():
-    #  graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
-    #                                     self.max_atoms + 1, self.n_graph_feat))
-    #  self.graph_features = tf.Variable(graph_features_initial, trainable=False)
     self.built = True
 
   def call(self, inputs):
@@ -2462,14 +2458,6 @@ class DAGLayer(tf.keras.layers.Layer):
 
     n_atoms = tf.squeeze(inputs[4])
     dropout_switch = tf.squeeze(inputs[5])
-    #with tf.init_scope():
-    #  # initialize graph features for each graph
-    #  graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
-    #                                     self.max_atoms + 1, self.n_graph_feat))
-    #  # initialize graph features for each graph
-    #  # another row of zeros is generated for padded dummy atoms
-    #  #graph_features = tf.Variable(graph_features_initial, trainable=False)
-    #  self.graph_features.assign(graph_features_initial)
     graph_features = tf.zeros((self.max_atoms * self.batch_size,
                                self.max_atoms + 1, self.n_graph_feat))
 
@@ -2507,12 +2495,6 @@ class DAGLayer(tf.keras.layers.Layer):
       # index for targe atoms
       target_index = tf.stack([tf.range(n_atoms), parents[:, count, 0]], axis=1)
       target_index = tf.boolean_mask(target_index, mask)
-      # update the graph features for target atoms
-      #self.graph_features = tf.compat.v1.scatter_nd_update(
-      #    self.graph_features, target_index, batch_outputs)
-      #self.graph_features.assign_add(
-      #    tf.compat.v1.scatter_nd_update(self.graph_features, target_index,
-      #                                   batch_outputs))
       graph_features = tf.tensor_scatter_nd_update(graph_features, target_index,
                                                    batch_outputs)
     return batch_outputs

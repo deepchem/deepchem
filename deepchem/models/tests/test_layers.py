@@ -385,8 +385,6 @@ class TestLayers(test_util.TensorFlowTestCase):
     ])
     ## TODO(rbharath): What is the shape of outputs supposed to be?
     ## I'm getting (7, 30) here. Where does 7 come from??
-    #print("outputs.shape")
-    #print(outputs.shape)
 
   def test_DAG_gather(self):
     """Test invoking DAGGather."""
