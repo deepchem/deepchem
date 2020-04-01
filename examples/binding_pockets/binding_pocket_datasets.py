@@ -153,16 +153,6 @@ def load_pdbbind_pockets(split="index", subset="core"):
   splitters = {'index': dc.splits.IndexSplitter(),
                'random': dc.splits.RandomSplitter()}
   splitter = splitters[split]
-  ########################################################### DEBUG
-  print("dataset.X.shape")
-  print(dataset.X.shape)
-  print("dataset.y.shape")
-  print(dataset.y.shape)
-  print("dataset.w.shape")
-  print(dataset.w.shape)
-  print("dataset.ids.shape")
-  print(dataset.ids.shape)
-  ########################################################### DEBUG
   train, valid, test = splitter.train_valid_test_split(dataset)
 
   transformers = []
