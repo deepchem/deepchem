@@ -504,7 +504,7 @@ class DAGModel(KerasModel):
         ], [y_b], [w_b])
 
 
-class GraphConvKerasModel(tf.keras.Model):
+class _GraphConvKerasModel(tf.keras.Model):
 
   def __init__(self,
                n_tasks,
@@ -525,7 +525,7 @@ class GraphConvKerasModel(tf.keras.Model):
 
     All arguments have the same meaning as in GraphConvModel.
     """
-    super(GraphConvKerasModel, self).__init__()
+    super(_GraphConvKerasModel, self).__init__()
     if mode not in ['classification', 'regression']:
       raise ValueError("mode must be either 'classification' or 'regression'")
 
@@ -628,7 +628,7 @@ class GraphConvModel(KerasModel):
                **kwargs):
     """The wrapper class for graph convolutions.
 
-    Note that since the underlying GraphConvKerasModel class is
+    Note that since the underlying _GraphConvKerasModel class is
     specified using imperative subclassing style, this model
     cannout make predictions for arbitrary outputs. 
 
@@ -662,7 +662,7 @@ class GraphConvModel(KerasModel):
     self.n_classes = n_classes
     self.batch_size = batch_size
     self.uncertainty = uncertainty
-    model = GraphConvKerasModel(
+    model = _GraphConvKerasModel(
         n_tasks,
         graph_conv_layers=graph_conv_layers,
         dense_layer_size=dense_layer_size,

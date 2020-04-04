@@ -50,7 +50,7 @@ class TestGraphModels(unittest.TestCase):
     model = GraphConvModel(
         len(tasks), batch_size=batch_size, mode='classification')
 
-    model.fit(dataset, nb_epoch=10)
+    model.fit(dataset, nb_epoch=50)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
 
@@ -79,7 +79,7 @@ class TestGraphModels(unittest.TestCase):
     batch_size = 50
     model = GraphConvModel(len(tasks), batch_size=batch_size, mode='regression')
 
-    model.fit(dataset, nb_epoch=100)
+    model.fit(dataset, nb_epoch=800)
     scores = model.evaluate(dataset, [metric], transformers)
     assert all(s < 0.1 for s in scores['mean_absolute_error'])
 
@@ -95,7 +95,7 @@ class TestGraphModels(unittest.TestCase):
         dropout=0.1,
         uncertainty=True)
 
-    model.fit(dataset, nb_epoch=100)
+    model.fit(dataset, nb_epoch=500)
 
     # Predict the output and uncertainty.
     pred, std = model.predict_uncertainty(dataset)
