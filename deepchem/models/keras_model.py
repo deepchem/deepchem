@@ -21,63 +21,76 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 class KerasModel(Model):
   """This is a DeepChem model implemented by a Keras model.
 
-  This class provides several advantages over using the Keras model's fitting
-  and prediction methods directly.
+  This class provides several advantages over using the Keras
+  model's fitting and prediction methods directly.
 
-  1. It provides better integration with the rest of DeepChem, such as direct
-     support for Datasets and Transformers.
+  1. It provides better integration with the rest of DeepChem,
+     such as direct support for Datasets and Transformers.
 
-  2. It defines the loss in a more flexible way.  In particular, Keras does not
-     support multidimensional weight matrices, which makes it impossible to
-     implement most multitask models with Keras.
+  2. It defines the loss in a more flexible way.  In particular,
+     Keras does not support multidimensional weight matrices,
+     which makes it impossible to implement most multitask
+     models with Keras.
 
-  3. It provides various additional features not found in the Keras Model class,
-     such as uncertainty prediction and saliency mapping.
+  3. It provides various additional features not found in the
+     Keras Model class, such as uncertainty prediction and
+     saliency mapping.
 
-  The loss function for a model can be defined in two different ways.  For
-  models that have only a single output and use a standard loss function, you
-  can simply provide a dc.models.losses.Loss object.  This defines the loss for
-  each sample or sample/task pair.  The result is automatically multiplied by
-  the weights and averaged over the batch.  Any additional losses computed by
-  model layers, such as weight decay penalties, are also added.
+  The loss function for a model can be defined in two different
+  ways.  For models that have only a single output and use a
+  standard loss function, you can simply provide a
+  dc.models.losses.Loss object.  This defines the loss for each
+  sample or sample/task pair.  The result is automatically
+  multiplied by the weights and averaged over the batch.  Any
+  additional losses computed by model layers, such as weight
+  decay penalties, are also added.
 
-  For more complicated cases, you can instead provide a function that directly
-  computes the total loss.  It must be of the form f(outputs, labels, weights),
-  taking the list of outputs from the model, the expected values, and any weight
-  matrices.  It should return a scalar equal to the value of the loss function
-  for the batch.  No additional processing is done to the result; it is up to
-  you to do any weighting, averaging, adding of penalty terms, etc.
+  For more complicated cases, you can instead provide a function
+  that directly computes the total loss.  It must be of the form
+  f(outputs, labels, weights), taking the list of outputs from
+  the model, the expected values, and any weight matrices.  It
+  should return a scalar equal to the value of the loss function
+  for the batch.  No additional processing is done to the
+  result; it is up to you to do any weighting, averaging, adding
+  of penalty terms, etc.
 
-  You can optionally provide an output_types argument, which describes how to
-  interpret the model's outputs.  This should be a list of strings, one for each
-  output.  Each entry must have one of the following values:
+  You can optionally provide an output_types argument, which
+  describes how to interpret the model's outputs.  This should
+  be a list of strings, one for each output.  Each entry must
+  have one of the following values:
 
   - 'prediction': This is a normal output, and will be returned by predict().
-    If output types are not specified, all outputs are assumed to be of this
-    type.
+    If output types are not specified, all outputs are assumed
+    to be of this type.
 
-  - 'loss': This output will be used in place of the normal outputs for
-    computing the loss function.  For example, models that output probability
-    distributions usually do it by computing unbounded numbers (the logits),
-    then passing them through a softmax function to turn them into
-    probabilities.  When computing the cross entropy, it is more numerically
-    stable to use the logits directly rather than the probabilities.  You can
-    do this by having the model produce both probabilities and logits as
-    outputs, then specifying output_types=['prediction', 'loss'].  When
-    predict() is called, only the first output (the probabilities) will be
-    returned.  But during training, it is the second output (the logits) that
-    will be passed to the loss function.
+  - 'loss': This output will be used in place of the normal
+    outputs for computing the loss function.  For example,
+    models that output probability distributions usually do it
+    by computing unbounded numbers (the logits), then passing
+    them through a softmax function to turn them into
+    probabilities.  When computing the cross entropy, it is more
+    numerically stable to use the logits directly rather than
+    the probabilities.  You can do this by having the model
+    produce both probabilities and logits as outputs, then
+    specifying output_types=['prediction', 'loss'].  When
+    predict() is called, only the first output (the
+    probabilities) will be returned.  But during training, it is
+    the second output (the logits) that will be passed to the
+    loss function.
 
-  - 'variance': This output is used for estimating the uncertainty in another
-    output.  To create a model that can estimate uncertainty, there must be the
-    same number of 'prediction' and 'variance' outputs.  Each variance output
-    must have the same shape as the corresponding prediction output, and each
-    element is an estimate of the variance in the corresponding prediction.
-    Also be aware that if a model supports uncertainty, it MUST use dropout on
-    every layer, and dropout most be enabled during uncertainty prediction.
+  - 'variance': This output is used for estimating the
+    uncertainty in another output.  To create a model that can
+    estimate uncertainty, there must be the same number of
+    'prediction' and 'variance' outputs.  Each variance output
+    must have the same shape as the corresponding prediction
+    output, and each element is an estimate of the variance in
+    the corresponding prediction.  Also be aware that if a model
+    supports uncertainty, it MUST use dropout on every layer,
+    and dropout most be enabled during uncertainty prediction.
     Otherwise, the uncertainties it computes will be inaccurate.
+    
   - 'embedding': This output is an embedding that the model
-  generates internally which should be returned to users.
+    generates internally which should be returned to users.
   """
 
   def __init__(self,
@@ -374,6 +387,7 @@ class KerasModel(Model):
     def apply_gradient_for_batch(inputs, labels, weights, loss):
       with tf.GradientTape() as tape:
         outputs = self.model(inputs, training=True)
+        #outputs = self.model(inputs)
         if isinstance(outputs, tf.Tensor):
           outputs = [outputs]
         if self._loss_outputs is not None:
@@ -469,7 +483,7 @@ class KerasModel(Model):
     if embedding:
       assert outputs is None
       if self._embedding_outputs is None or len(self._embedding_outputs) == 0:
-        raise ValueError('This model cannot compute embneddings.')
+        raise ValueError('This model cannot compute embeddings.')
     if (outputs is not None and self.model.inputs is not None and
         len(self.model.inputs) == 0):
       raise ValueError(

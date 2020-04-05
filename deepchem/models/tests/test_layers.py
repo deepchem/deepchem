@@ -73,6 +73,48 @@ class TestLayers(test_util.TensorFlowTestCase):
         dist2 = np.dot(delta, delta)
         assert np.allclose(dist2, result[atom, neighbor])
 
+  def test_weave_layer(self):
+    """Test invoking WeaveLayer."""
+    out_channels = 2
+    n_atoms = 4  # In CCC and C, there are 4 atoms
+    raw_smiles = ['CCC', 'C']
+    import rdkit
+    mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
+    featurizer = dc.feat.WeaveFeaturizer()
+    mols = featurizer.featurize(mols)
+    weave = layers.WeaveLayer()
+    atom_feat = []
+    pair_feat = []
+    atom_to_pair = []
+    pair_split = []
+    start = 0
+    n_pair_feat = 14
+    for im, mol in enumerate(mols):
+      n_atoms = mol.get_num_atoms()
+      # index of pair features
+      C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
+      atom_to_pair.append(
+          np.transpose(np.array([C1.flatten() + start,
+                                 C0.flatten() + start])))
+      # number of pairs for each atom
+      pair_split.extend(C1.flatten() + start)
+      start = start + n_atoms
+
+      # atom features
+      atom_feat.append(mol.get_atom_features())
+      # pair features
+      pair_feat.append(
+          np.reshape(mol.get_pair_features(), (n_atoms * n_atoms, n_pair_feat)))
+    inputs = [
+        np.array(np.concatenate(atom_feat, axis=0), dtype=np.float32),
+        np.concatenate(pair_feat, axis=0),
+        np.array(pair_split),
+        np.concatenate(atom_to_pair, axis=0)
+    ]
+    # Outputs should be [A, P]
+    outputs = weave(inputs)
+    assert len(outputs) == 2
+
   def test_graph_conv(self):
     """Test invoking GraphConv."""
     out_channels = 2

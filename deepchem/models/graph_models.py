@@ -30,6 +30,21 @@ class TrimGraphOutput(tf.keras.layers.Layer):
 
 
 class WeaveModel(KerasModel):
+  """Implements Google-style Weave Graph Convolutions
+
+  This model implements the Weave style graph convolutions
+  from the following paper.
+
+  Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints." Journal of computer-aided molecular design 30.8 (2016): 595-608.
+
+  The biggest difference between WeaveModel style convolutions
+  and GraphConvModel style convolutions is that Weave
+  convolutions model bond features explicitly. This has the
+  side effect that it needs to construct a NxN matrix
+  explicitly to model bond interactions. This may cause
+  scaling issues, but may possibly allow for better modeling
+  of subtle bond effects.
+  """
 
   def __init__(self,
                n_tasks,
@@ -90,7 +105,9 @@ class WeaveModel(KerasModel):
         update_pair=False)(
             [weave_layer1A, weave_layer1P, pair_split, atom_to_pair])
     dense1 = Dense(self.n_graph_feat, activation=tf.nn.tanh)(weave_layer2A)
-    batch_norm1 = BatchNormalization(epsilon=1e-5)(dense1)
+    # Batch normalization causes issues, spitting out NaNs if
+    # allowed to train
+    batch_norm1 = BatchNormalization(epsilon=1e-5, trainable=False)(dense1)
     weave_gather = layers.WeaveGather(
         batch_size, n_input=self.n_graph_feat,
         gaussian_expand=True)([batch_norm1, atom_split])
@@ -170,6 +187,12 @@ class WeaveModel(KerasModel):
 
 
 class DTNNModel(KerasModel):
+  """Deep Tensor Neural Networks
+
+  This class implements deep tensor neural networks as first defined in
+
+  Schütt, Kristof T., et al. "Quantum-chemical insights from deep tensor neural networks." Nature communications 8.1 (2017): 1-8.
+  """
 
   def __init__(self,
                n_tasks,
@@ -322,6 +345,16 @@ class DTNNModel(KerasModel):
 
 
 class DAGModel(KerasModel):
+  """Directed Acyclic Graph models for molecular property prediction.
+
+    This model is based on the following paper: 
+
+    Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575.
+
+   The basic idea for this paper is that a molecule is usually viewed as an undirected graph. However, you can convert it to a series of directed graphs. The idea is that for each atom, you make a DAG using that atom as the vertex of the DAG and edges pointing "inwards" to it. This transformation is implemented in dc.trans.transformers.DAGTransformer.UG_to_DAG.
+
+   This model accepts ConvMols as input, just as GraphConvModel does, but these ConvMol objects must be transformed by dc.trans.DAGTransformer. 
+   """
 
   def __init__(self,
                n_tasks,
@@ -337,16 +370,7 @@ class DAGModel(KerasModel):
                uncertainty=False,
                batch_size=100,
                **kwargs):
-    """Directed Acyclic Graph models for molecular property prediction.
-
-    This model is based on the following paper: 
-
-    Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575.
-
-   The basic idea for this paper is that a molecule is usually viewed as an undirected graph. However, you can convert it to a series of directed graphs. The idea is that for each atom, you make a DAG using that atom as the vertex of the DAG and edges pointing "inwards" to it. This transformation is implemented in dc.trans.transformers.DAGTransformer.UG_to_DAG.
-
-   This model accepts ConvMols as input, just as GraphConvModel does, but these ConvMol objects must be transformed by dc.trans.DAGTransformer. 
-
+    """   
     Parameters
     ----------
     n_tasks: int
@@ -429,7 +453,12 @@ class DAGModel(KerasModel):
       output_types = ['prediction', 'loss']
       loss = SoftmaxCrossEntropy()
     else:
-      output = Dense(n_tasks)(dag_gather)
+      fc_layer_size = 50
+      inter = Dense(fc_layer_size)(dag_gather)
+      if self.dropout is not None and self.dropout > 0.0:
+        inter = Dropout(rate=self.dropout)(inter)
+      #output = Dense(n_tasks)(dag_gather)
+      output = Dense(n_tasks)(inter)
       if self.uncertainty:
         log_var = Dense(n_tasks)(dag_gather)
         var = Activation(tf.exp)(log_var)
@@ -514,6 +543,7 @@ class _GraphConvKerasModel(tf.keras.Model):
                mode="classification",
                number_atom_features=75,
                n_classes=2,
+               batch_normalize=True,
                uncertainty=False,
                batch_size=100):
     """An internal keras model class.
@@ -548,12 +578,11 @@ class _GraphConvKerasModel(tf.keras.Model):
         for layer_size in graph_conv_layers
     ]
     self.batch_norms = [
-        BatchNormalization(fused=False)
+        BatchNormalization(fused=False) if batch_normalize else None
         for _ in range(len(graph_conv_layers) + 1)
     ]
     self.dropouts = [
-        layers.SwitchedDropout(rate=rate) if rate > 0.0 else None
-        for rate in dropout
+        Dropout(rate=rate) if rate > 0.0 else None for rate in dropout
     ]
     self.graph_pools = [layers.GraphPool() for _ in graph_conv_layers]
     self.dense = Dense(dense_layer_size, activation=tf.nn.relu)
@@ -571,29 +600,30 @@ class _GraphConvKerasModel(tf.keras.Model):
         self.uncertainty_trim = TrimGraphOutput()
         self.uncertainty_activation = Activation(tf.exp)
 
-  def call(self, inputs):
+  def call(self, inputs, training=False):
     atom_features = inputs[0]
     degree_slice = tf.cast(inputs[1], dtype=tf.int32)
     membership = tf.cast(inputs[2], dtype=tf.int32)
     n_samples = tf.cast(inputs[3], dtype=tf.int32)
-    dropout_switch = inputs[4]
-    deg_adjs = [tf.cast(deg_adj, dtype=tf.int32) for deg_adj in inputs[5:]]
+    deg_adjs = [tf.cast(deg_adj, dtype=tf.int32) for deg_adj in inputs[4:]]
 
     in_layer = atom_features
     for i in range(len(self.graph_convs)):
       gc_in = [in_layer, degree_slice, membership] + deg_adjs
       gc1 = self.graph_convs[i](gc_in)
-      batch_norm1 = self.batch_norms[i](gc1)
-      if self.dropouts[i] is not None:
-        batch_norm1 = self.dropouts[i]([batch_norm1, dropout_switch])
-      gp_in = [batch_norm1, degree_slice, membership] + deg_adjs
+      if self.batch_norms[i] is not None:
+        gc1 = self.batch_norms[i](gc1, training=training)
+      if training and self.dropouts[i] is not None:
+        gc1 = self.dropouts[i](gc1, training=training)
+      gp_in = [gc1, degree_slice, membership] + deg_adjs
       in_layer = self.graph_pools[i](gp_in)
     dense = self.dense(in_layer)
-    batch_norm3 = self.batch_norms[-1](dense)
-    if self.dropouts[-1] is not None:
-      batch_norm3 = self.dropouts[1]([batch_norm3, dropout_switch])
-    neural_fingerprint = self.graph_gather(
-        [batch_norm3, degree_slice, membership] + deg_adjs)
+    if self.batch_norms[-1] is not None:
+      dense = self.batch_norms[-1](dense, training=training)
+    if training and self.dropouts[-1] is not None:
+      dense = self.dropouts[1](dense, training=training)
+    neural_fingerprint = self.graph_gather([dense, degree_slice, membership] +
+                                           deg_adjs)
     if self.mode == 'classification':
       logits = self.reshape(self.reshape_dense(neural_fingerprint))
       logits = self.trim([logits, n_samples])
@@ -614,6 +644,15 @@ class _GraphConvKerasModel(tf.keras.Model):
 
 
 class GraphConvModel(KerasModel):
+  """Graph Convolutional Models.
+
+  This class implements the graph convolutional model from the
+  following paper:
+
+
+  Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints." Advances in neural information processing systems. 2015.
+
+  """
 
   def __init__(self,
                n_tasks,
@@ -624,6 +663,7 @@ class GraphConvModel(KerasModel):
                number_atom_features=75,
                n_classes=2,
                batch_size=100,
+               batch_normalize=True,
                uncertainty=False,
                **kwargs):
     """The wrapper class for graph convolutions.
@@ -653,6 +693,8 @@ class GraphConvModel(KerasModel):
         function atom_features in graph_features
     n_classes: int
       the number of classes to predict (only used in classification mode)
+    batch_normalize: True
+      if True, apply batch normalization to model
     uncertainty: bool
       if True, include extra outputs and loss terms to enable the uncertainty
       in outputs to be predicted
@@ -670,6 +712,7 @@ class GraphConvModel(KerasModel):
         mode=mode,
         number_atom_features=number_atom_features,
         n_classes=n_classes,
+        batch_normalize=batch_normalize,
         uncertainty=uncertainty,
         batch_size=batch_size)
     if mode == "classification":
@@ -707,13 +750,16 @@ class GraphConvModel(KerasModel):
               -1, self.n_tasks, self.n_classes)
         multiConvMol = ConvMol.agglomerate_mols(X_b)
         n_samples = np.array(X_b.shape[0])
-        if mode == 'predict':
-          dropout = np.array(0.0)
-        else:
-          dropout = np.array(1.0)
+        #if mode == 'predict':
+        #  dropout = np.array(0.0)
+        #else:
+        #  dropout = np.array(1.0)
         inputs = [
-            multiConvMol.get_atom_features(), multiConvMol.deg_slice,
-            np.array(multiConvMol.membership), n_samples, dropout
+            multiConvMol.get_atom_features(),
+            multiConvMol.deg_slice,
+            #np.array(multiConvMol.membership), n_samples, dropout
+            np.array(multiConvMol.membership),
+            n_samples
         ]
         for i in range(1, len(multiConvMol.get_deg_adjacency_lists())):
           inputs.append(multiConvMol.get_deg_adjacency_lists()[i])
@@ -722,7 +768,19 @@ class GraphConvModel(KerasModel):
 
 class MPNNModel(KerasModel):
   """ Message Passing Neural Network,
-      default structures built according to https://arxiv.org/abs/1511.06391 """
+
+  Message Passing Neural Networks treat graph convolutional
+  operations as an instantiation of a more general message
+  passing schem. Recall that message passing in a graph is when
+  nodes in a graph send each other "messages" and update their
+  internal state as a consequence of these messages.
+
+  Ordering structures in this model are built according to
+
+
+Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters: Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
+
+  """
 
   def __init__(self,
                n_tasks,

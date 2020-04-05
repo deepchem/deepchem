@@ -1122,13 +1122,19 @@ class NeighborList(tf.keras.layers.Layer):
 
 
 class AtomicConvolution(tf.keras.layers.Layer):
+  """Implements the atomic convolutional transform introduced in
+
+  Gomes, Joseph, et al. "Atomic convolutional networks for predicting protein-ligand binding affinity." arXiv preprint arXiv:1703.10603 (2017).
+
+  At a high level, this transform performs a sort of graph convolution on the nearest neighbors graph in 3D space.
+  """
 
   def __init__(self,
                atom_types=None,
                radial_params=list(),
                boxsize=None,
                **kwargs):
-    """Atomic convoluation layer
+    """Atomic convolution layer
 
     N = max_num_atoms, M = max_num_neighbors, B = batch_size, d = num_features
     l = num_radial_filters * num_atom_types
@@ -1842,13 +1848,18 @@ class GraphCNN(tf.keras.layers.Layer):
 
 class Highway(tf.keras.layers.Layer):
   """ Create a highway layer. y = H(x) * T(x) + x * (1 - T(x))
+
   H(x) = activation_fn(matmul(W_H, x) + b_H) is the non-linear transformed output
   T(x) = sigmoid(matmul(W_T, x) + b_T) is the transform gate
 
-  reference: https://arxiv.org/pdf/1505.00387.pdf
+  Implementation based on paper
 
-  This layer expects its input to be a two dimensional tensor of shape (batch size, # input features).
-  Outputs will be in the same shape.
+  Srivastava, Rupesh Kumar, Klaus Greff, and Jürgen Schmidhuber. "Highway networks." arXiv preprint arXiv:1505.00387 (2015).
+
+
+  This layer expects its input to be a two dimensional tensor
+  of shape (batch size, # input features).  Outputs will be in
+  the same shape.
   """
 
   def __init__(self,
@@ -1912,6 +1923,16 @@ class Highway(tf.keras.layers.Layer):
 
 
 class WeaveLayer(tf.keras.layers.Layer):
+  """This class implements the core Weave convolution from the
+  Google graph convolution paper.
+
+  Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints." Journal of computer-aided molecular design 30.8 (2016): 595-608.
+
+  This model contains atom features and bond features
+  separately.Here, bond features are also called pair features.
+  There are 2 types of transformation, atom->atom, atom->pair,
+  pair->atom, pair->pair that this model implements.
+  """
 
   def __init__(self,
                n_atom_input_feat=75,
@@ -2019,7 +2040,7 @@ class WeaveLayer(tf.keras.layers.Layer):
   def call(self, inputs):
     """Creates weave tensors.
 
-    inputs: [atom_features, pair_features], pair_split, atom_to_pair
+    inputs: [atom_features, pair_features, pair_split, atom_to_pair]
     """
     atom_features = inputs[0]
     pair_features = inputs[1]
@@ -2352,6 +2373,24 @@ def _DAGgraph_step(batch_inputs, W_list, b_list, activation_fn, dropout,
 
 
 class DAGLayer(tf.keras.layers.Layer):
+  """DAG computation layer.
+
+  This layer generates a directed acyclic graph for each atom
+  in a molecule. This layer is based on the algorithm from the
+  following paper: 
+
+  Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575.
+
+
+  This layer performs a sort of inward sweep. Recall that for
+  each atom, a DAG is generated that "points inward" to that
+  atom from the undirected molecule graph. Picture this as
+  "picking up" the atom as the vertex and using the natural
+  tree structure that forms from gravity. The layer "sweeps
+  inwards" from the leaf nodes of the DAG upwards to the
+  atom. This is batched so the transformation is done for
+    each atom.
+  """
 
   def __init__(self,
                n_graph_feat=30,
@@ -2363,22 +2402,7 @@ class DAGLayer(tf.keras.layers.Layer):
                dropout=None,
                batch_size=64,
                **kwargs):
-    """DAG computation layer.
-
-    This layer generates a directed acyclic graph for each atom
-    in a molecule. This layer is based on the algorithm from the
-    following paper: 
-
-    Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575.
-
-  
-    This layer performs a sort of inward sweep. Recall that for each atom, a
-    DAG is generated that "points inward" to that atom from the undirected
-    molecule graph. Picture this as "picking up" the atom as the vertex and
-    using the natural tree structure that forms from gravity. The layer "sweeps
-    inwards" from the leaf nodes of the DAG upwards to the atom. This is
-    batched so the transformation is done for each atom.
-
+    """   
     Parameters
     ----------
     n_graph_feat: int, optional
