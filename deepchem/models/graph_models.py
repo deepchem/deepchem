@@ -351,9 +351,21 @@ class DAGModel(KerasModel):
 
     Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575.
 
-   The basic idea for this paper is that a molecule is usually viewed as an undirected graph. However, you can convert it to a series of directed graphs. The idea is that for each atom, you make a DAG using that atom as the vertex of the DAG and edges pointing "inwards" to it. This transformation is implemented in dc.trans.transformers.DAGTransformer.UG_to_DAG.
+   The basic idea for this paper is that a molecule is usually
+   viewed as an undirected graph. However, you can convert it to
+   a series of directed graphs. The idea is that for each atom,
+   you make a DAG using that atom as the vertex of the DAG and
+   edges pointing "inwards" to it. This transformation is
+   implemented in
+   `dc.trans.transformers.DAGTransformer.UG_to_DAG`.
 
-   This model accepts ConvMols as input, just as GraphConvModel does, but these ConvMol objects must be transformed by dc.trans.DAGTransformer. 
+   This model accepts ConvMols as input, just as GraphConvModel
+   does, but these ConvMol objects must be transformed by
+   dc.trans.DAGTransformer. 
+
+   As a note, performance of this model can be a little
+   sensitive to initialization. It might be worth training a few
+   different instantiations to get a stable set of parameters.
    """
 
   def __init__(self,
@@ -415,9 +427,13 @@ class DAGModel(KerasModel):
     if uncertainty:
       if mode != "regression":
         raise ValueError("Uncertainty is only supported in regression mode")
-      if dropout == 0.0:
+      if dropout is None or dropout == 0.0:
         raise ValueError('Dropout must be included to predict uncertainty')
 
+    ############################################
+    print("self.dropout")
+    print(self.dropout)
+    ############################################
     # Build the model.
 
     atom_features = Input(shape=(self.n_atom_feat,))
@@ -426,7 +442,6 @@ class DAGModel(KerasModel):
     calculation_masks = Input(shape=(self.max_atoms,), dtype=tf.bool)
     membership = Input(shape=tuple(), dtype=tf.int32)
     n_atoms = Input(shape=tuple(), dtype=tf.int32)
-    dropout_switch = tf.keras.Input(shape=tuple())
     dag_layer1 = layers.DAGLayer(
         n_graph_feat=self.n_graph_feat,
         n_atom_feat=self.n_atom_feat,
@@ -435,14 +450,14 @@ class DAGModel(KerasModel):
         dropout=self.dropout,
         batch_size=batch_size)([
             atom_features, parents, calculation_orders, calculation_masks,
-            n_atoms, dropout_switch
+            n_atoms
         ])
     dag_gather = layers.DAGGather(
         n_graph_feat=self.n_graph_feat,
         n_outputs=self.n_outputs,
         max_atoms=self.max_atoms,
         layer_sizes=self.layer_sizes_gather,
-        dropout=self.dropout)([dag_layer1, membership, dropout_switch])
+        dropout=self.dropout)([dag_layer1, membership])
     n_tasks = self.n_tasks
     if self.mode == 'classification':
       n_classes = self.n_classes
@@ -453,12 +468,7 @@ class DAGModel(KerasModel):
       output_types = ['prediction', 'loss']
       loss = SoftmaxCrossEntropy()
     else:
-      fc_layer_size = 50
-      inter = Dense(fc_layer_size)(dag_gather)
-      if self.dropout is not None and self.dropout > 0.0:
-        inter = Dropout(rate=self.dropout)(inter)
-      #output = Dense(n_tasks)(dag_gather)
-      output = Dense(n_tasks)(inter)
+      output = Dense(n_tasks)(dag_gather)
       if self.uncertainty:
         log_var = Dense(n_tasks)(dag_gather)
         var = Activation(tf.exp)(log_var)
@@ -474,8 +484,12 @@ class DAGModel(KerasModel):
         loss = L2Loss()
     model = tf.keras.Model(
         inputs=[
-            atom_features, parents, calculation_orders, calculation_masks,
-            membership, n_atoms, dropout_switch
+            atom_features,
+            parents,
+            calculation_orders,
+            calculation_masks,
+            membership,
+            n_atoms  #, dropout_switch
         ],
         outputs=outputs)
     super(DAGModel, self).__init__(

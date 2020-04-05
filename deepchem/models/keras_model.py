@@ -56,8 +56,9 @@ class KerasModel(Model):
 
   You can optionally provide an output_types argument, which
   describes how to interpret the model's outputs.  This should
-  be a list of strings, one for each output.  Each entry must
-  have one of the following values:
+  be a list of strings, one for each output. You can use an
+  arbitrary output_type for a output, but some output_types are
+  special and will undergo extra processing:
 
   - 'prediction': This is a normal output, and will be returned by predict().
     If output types are not specified, all outputs are assumed
@@ -89,8 +90,9 @@ class KerasModel(Model):
     and dropout most be enabled during uncertainty prediction.
     Otherwise, the uncertainties it computes will be inaccurate.
     
-  - 'embedding': This output is an embedding that the model
-    generates internally which should be returned to users.
+  - other: Arbitrary output_types can be used to extract outputs
+    produced by the model, but will have no additional
+    processing performed.
   """
 
   def __init__(self,
@@ -151,12 +153,12 @@ class KerasModel(Model):
       self._prediction_outputs = None
       self._loss_outputs = None
       self._variance_outputs = None
-      self._embedding_outputs = None
+      self._other_outputs = None
     else:
       self._prediction_outputs = []
       self._loss_outputs = []
       self._variance_outputs = []
-      self._embedding_outputs = []
+      self._other_outputs = []
       for i, type in enumerate(output_types):
         if type == 'prediction':
           self._prediction_outputs.append(i)
@@ -164,10 +166,8 @@ class KerasModel(Model):
           self._loss_outputs.append(i)
         elif type == 'variance':
           self._variance_outputs.append(i)
-        elif type == 'embedding':
-          self._embedding_outputs.append(i)
         else:
-          raise ValueError('Unknown output type "%s"' % type)
+          self._other_outputs.append(i)
       if len(self._loss_outputs) == 0:
         self._loss_outputs = self._prediction_outputs
     self._built = False
@@ -436,12 +436,14 @@ class KerasModel(Model):
         loss=loss,
         callbacks=callbacks)
 
-  def _predict(self, generator, transformers, outputs, uncertainty, embedding):
+  def _predict(self, generator, transformers, outputs, uncertainty,
+               other_output_types):
     """
     Predict outputs for data provided by a generator.
 
-    This is the private implementation of prediction.  Do not call it directly.
-    Instead call one of the public prediction methods.
+    This is the private implementation of prediction.  Do not
+    call it directly.  Instead call one of the public prediction
+    methods.
 
     Parameters
     ----------
@@ -460,18 +462,19 @@ class KerasModel(Model):
       specifies whether this is being called as part of estimating uncertainty.
       If True, it sets the training flag so that dropout will be enabled, and
       returns the values of the uncertainty outputs.
-    embedding: bool
-      specifies whether this is being called as part of generating embeddings.
+    other_output_types: list, optional
+      Provides a list of other outputs to predict from model.
+      Each such output should have a unique output_type so it
+      can be retrieved from the model.
     Returns:
       a NumPy array of the model produces a single output, or a list of arrays
       if it produces multiple outputs
     """
     results = None
     variances = None
-    embeddings = None
-    if uncertainty and embedding:
+    if uncertainty and other_output_types:
       raise ValueError(
-          'This model cannot compute uncertainties and embeddings simultaneously. Please invoke one at a time.'
+          'This model cannot compute uncertainties and other output types simultaneously. Please invoke one at a time.'
       )
     if uncertainty:
       assert outputs is None
@@ -480,10 +483,10 @@ class KerasModel(Model):
       if len(self._variance_outputs) != len(self._prediction_outputs):
         raise ValueError(
             'The number of variances must exactly match the number of outputs')
-    if embedding:
+    if other_output_types:
       assert outputs is None
-      if self._embedding_outputs is None or len(self._embedding_outputs) == 0:
-        raise ValueError('This model cannot compute embeddings.')
+      if self._other_outputs is None or len(self._other_outputs) == 0:
+        raise ValueError('This model cannot compute other outputs.')
     if (outputs is not None and self.model.inputs is not None and
         len(self.model.inputs) == 0):
       raise ValueError(
@@ -520,8 +523,9 @@ class KerasModel(Model):
         else:
           for i, t in enumerate(var):
             variances[i].append(t)
-      if embedding:
-        embeddings = [output_values[i] for i in self._embedding_outputs]
+      # TODO(rbharath): You should be able to invoke both of these simulataneously...
+      if self._other_outputs is not None:
+        output_values = [output_values[i] for i in self._other_outputs]
       if self._prediction_outputs is not None:
         output_values = [output_values[i] for i in self._prediction_outputs]
       if len(transformers) > 0:
@@ -539,19 +543,18 @@ class KerasModel(Model):
     # Concatenate arrays to create the final results.
     final_results = []
     final_variances = []
-    final_embeddings = []
     for r in results:
       final_results.append(np.concatenate(r, axis=0))
     if uncertainty:
       for v in variances:
         final_variances.append(np.concatenate(v, axis=0))
       return zip(final_results, final_variances)
-    if embedding:
-      final_embeddings = embeddings
-      if len(final_embeddings) == 1:
-        return final_embeddings[0]
-      else:
-        return final_embeddings
+    #if other_output_types:
+    #  final_other_outputs = embeddings
+    #  if len(final_embeddings) == 1:
+    #    return final_embeddings[0]
+    #  else:
+    #    return final_embeddings
     # If only one output, just return array
     if len(final_results) == 1:
       return final_results[0]
@@ -563,7 +566,11 @@ class KerasModel(Model):
     """Evaluate the model for a set of inputs."""
     return self.model(inputs, training=False)
 
-  def predict_on_generator(self, generator, transformers=[], outputs=None):
+  def predict_on_generator(self,
+                           generator,
+                           transformers=[],
+                           outputs=None,
+                           output_types=None):
     """
     Parameters
     ----------
@@ -574,10 +581,13 @@ class KerasModel(Model):
       Transformers that the input data has been transformed by.  The output
       is passed through these transformers to undo the transformations.
     outputs: Tensor or list of Tensors
-      The outputs to return.  If this is None, the model's standard prediction
-      outputs will be returned.  Alternatively one or more Tensors within the
-      model may be specified, in which case the output of those Tensors will be
-      returned.
+      The outputs to return.  If this is None, the model's
+      standard prediction outputs will be returned.
+      Alternatively one or more Tensors within the model may be
+      specified, in which case the output of those Tensors will
+      be returned.
+    output_types: String or list of Strings
+      
     Returns:
       a NumPy array of the model produces a single output, or a list of arrays
       if it produces multiple outputs
@@ -635,7 +645,7 @@ class KerasModel(Model):
     dataset = NumpyDataset(X=X, y=None)
     return self.predict_uncertainty(dataset, masks)
 
-  def predict(self, dataset, transformers=[], outputs=None):
+  def predict(self, dataset, transformers=[], outputs=None, output_types=None):
     """
     Uses self to make predictions on provided Dataset object.
 
@@ -651,6 +661,8 @@ class KerasModel(Model):
       outputs will be returned.  Alternatively one or more Tensors within the
       model may be specified, in which case the output of those Tensors will be
       returned.
+    output_types: list of Strings
+      The output types to return. Will retrieve all outputs of these types from the model.
 
     Returns
     -------
@@ -659,25 +671,27 @@ class KerasModel(Model):
     """
     generator = self.default_generator(
         dataset, mode='predict', pad_batches=False)
-    return self.predict_on_generator(generator, transformers, outputs)
+    return self.predict_on_generator(generator, transformers, outputs,
+                                     output_types)
 
-  def predict_embedding(self, dataset):
-    """
-    Predicts embeddings created by underlying model 
 
-    Parameters
-    ----------
-    dataset: dc.data.Dataset
-      Dataset to make prediction on
-
-    Returns
-    -------
-    a NumPy array of the embeddings model produces, or a list
-    of arrays if it produces multiple embeddings
-    """
-    generator = self.default_generator(
-        dataset, mode='predict', pad_batches=False)
-    return self._predict(generator, [], None, False, True)
+#  def predict_embedding(self, dataset):
+#    """
+#    Predicts embeddings created by underlying model
+#
+#    Parameters
+#    ----------
+#    dataset: dc.data.Dataset
+#      Dataset to make prediction on
+#
+#    Returns
+#    -------
+#    a NumPy array of the embeddings model produces, or a list
+#    of arrays if it produces multiple embeddings
+#    """
+#    generator = self.default_generator(
+#        dataset, mode='predict', pad_batches=False)
+#    return self._predict(generator, [], None, False, True)
 
   def predict_uncertainty(self, dataset, masks=50):
     """

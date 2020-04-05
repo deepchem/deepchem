@@ -4,6 +4,7 @@ import tensorflow_probability as tfp
 import numpy as np
 import collections
 from tensorflow.keras import activations, initializers, backend
+from tensorflow.keras.layers import Dropout
 
 
 class InteratomicL2Distances(tf.keras.layers.Layer):
@@ -2361,14 +2362,23 @@ class DTNNGather(tf.keras.layers.Layer):
     return tf.math.segment_sum(output, atom_membership)
 
 
-def _DAGgraph_step(batch_inputs, W_list, b_list, activation_fn, dropout,
-                   dropout_switch):
+def _DAGgraph_step(
+    batch_inputs,
+    W_list,
+    b_list,
+    activation_fn,
+    #dropout,
+    dropouts,
+    #dropout_switch):
+    training):
   outputs = batch_inputs
-  for idw, W in enumerate(W_list):
+  #for idw, W in enumerate(W_list):
+  for idw, (dropout, W) in enumerate(zip(dropouts, W_list)):
     outputs = tf.nn.bias_add(tf.matmul(outputs, W), b_list[idw])
     outputs = activation_fn(outputs)
-    if not dropout is None:
-      outputs = tf.nn.dropout(outputs, rate=dropout * dropout_switch)
+    if dropout is not None:
+      #outputs = tf.nn.dropout(outputs, rate=dropout * dropout_switch)
+      outputs = dropout(outputs, training=training)
   return outputs
 
 
@@ -2389,7 +2399,7 @@ class DAGLayer(tf.keras.layers.Layer):
   tree structure that forms from gravity. The layer "sweeps
   inwards" from the leaf nodes of the DAG upwards to the
   atom. This is batched so the transformation is done for
-    each atom.
+  each atom.
   """
 
   def __init__(self,
@@ -2454,6 +2464,7 @@ class DAGLayer(tf.keras.layers.Layer):
     """"Construct internal trainable weights."""
     self.W_list = []
     self.b_list = []
+    self.dropouts = []
     init = initializers.get(self.init)
     prev_layer_size = self.n_inputs
     for layer_size in self.layer_sizes:
@@ -2461,14 +2472,22 @@ class DAGLayer(tf.keras.layers.Layer):
       self.b_list.append(backend.zeros(shape=[
           layer_size,
       ]))
+      if self.dropout is not None and self.dropout > 0.0:
+        self.dropouts.append(Dropout(rate=self.dropout))
+      else:
+        self.dropouts.append(None)
       prev_layer_size = layer_size
     self.W_list.append(init([prev_layer_size, self.n_outputs]))
     self.b_list.append(backend.zeros(shape=[
         self.n_outputs,
     ]))
+    if self.dropout is not None and self.dropout > 0.0:
+      self.dropouts.append(Dropout(rate=self.dropout))
+    else:
+      self.dropouts.append(None)
     self.built = True
 
-  def call(self, inputs):
+  def call(self, inputs, training=True):
     """
     parent layers: atom_features, parents, calculation_orders, calculation_masks, n_atoms
     """
@@ -2481,7 +2500,7 @@ class DAGLayer(tf.keras.layers.Layer):
     calculation_masks = inputs[3]
 
     n_atoms = tf.squeeze(inputs[4])
-    dropout_switch = tf.squeeze(inputs[5])
+    #dropout_switch = tf.squeeze(inputs[5])
     graph_features = tf.zeros((self.max_atoms * self.batch_size,
                                self.max_atoms + 1, self.n_graph_feat))
 
@@ -2513,8 +2532,8 @@ class DAGLayer(tf.keras.layers.Layer):
       # of shape: (batch_size*max_atoms) * n_graph_features
       # representing the graph features of target atoms in each graph
       batch_outputs = _DAGgraph_step(batch_inputs, self.W_list, self.b_list,
-                                     self.activation_fn, self.dropout,
-                                     dropout_switch)
+                                     self.activation_fn, self.dropouts,
+                                     training)
 
       # index for targe atoms
       target_index = tf.stack([tf.range(n_atoms), parents[:, count, 0]], axis=1)
@@ -2580,6 +2599,7 @@ class DAGGather(tf.keras.layers.Layer):
   def build(self, input_shape):
     self.W_list = []
     self.b_list = []
+    self.dropouts = []
     init = initializers.get(self.init)
     prev_layer_size = self.n_graph_feat
     for layer_size in self.layer_sizes:
@@ -2587,25 +2607,42 @@ class DAGGather(tf.keras.layers.Layer):
       self.b_list.append(backend.zeros(shape=[
           layer_size,
       ]))
+      if self.dropout is not None and self.dropout > 0.0:
+        self.dropouts.append(Dropout(rate=self.dropout))
+      else:
+        self.dropouts.append(None)
       prev_layer_size = layer_size
     self.W_list.append(init([prev_layer_size, self.n_outputs]))
     self.b_list.append(backend.zeros(shape=[
         self.n_outputs,
     ]))
+    if self.dropout is not None and self.dropout > 0.0:
+      self.dropouts.append(Dropout(rate=self.dropout))
+    else:
+      self.dropouts.append(None)
     self.built = True
 
-  def call(self, inputs):
+  def call(self, inputs, training=True):
     """
     parent layers: atom_features, membership
     """
     atom_features = inputs[0]
     membership = inputs[1]
-    dropout_switch = tf.squeeze(inputs[2])
+    #dropout_switch = tf.squeeze(inputs[2])
     # Extract atom_features
     graph_features = tf.math.segment_sum(atom_features, membership)
     # sum all graph outputs
-    return _DAGgraph_step(graph_features, self.W_list, self.b_list,
-                          self.activation_fn, self.dropout, dropout_switch)
+    #return _DAGgraph_step(graph_features, self.W_list, self.b_list,
+    #                      self.activation_fn, self.dropout, dropout_switch)
+    return _DAGgraph_step(
+        graph_features,
+        self.W_list,
+        self.b_list,
+        self.activation_fn,
+        #self.dropout,
+        self.dropouts,
+        #dropout_switch)
+        training)
 
 
 class MessagePassing(tf.keras.layers.Layer):

@@ -4,6 +4,7 @@ import numpy as np
 import scipy
 
 import deepchem as dc
+import tensorflow as tf
 from deepchem.data import NumpyDataset
 from deepchem.models import GraphConvModel, DAGModel, WeaveModel, MPNNModel
 from deepchem.molnet import load_bace_classification, load_delaney
@@ -69,6 +70,7 @@ class TestGraphModels(unittest.TestCase):
         batch_size=batch_size,
         dense_layer_size=3,
         mode='classification')
+    assert 0 == 1
 
     model.fit(dataset, nb_epoch=1)
     neural_fingerprints = model.predict_embedding(dataset)
@@ -182,12 +184,14 @@ class TestGraphModels(unittest.TestCase):
         batch_size=batch_size,
         use_queue=False)
 
-    model.fit(dataset, nb_epoch=30)
+    model.fit(dataset, nb_epoch=40)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
 
   @attr("slow")
   def test_dag_regression_model(self):
+    np.random.seed(1234)
+    tf.random.set_seed(1234)
     tasks, dataset, transformers, metric = self.get_dataset(
         'regression', 'GraphConv')
 
@@ -204,12 +208,14 @@ class TestGraphModels(unittest.TestCase):
         batch_size=batch_size,
         use_queue=False)
 
-    model.fit(dataset, nb_epoch=400)
+    model.fit(dataset, nb_epoch=1200)
     scores = model.evaluate(dataset, [metric], transformers)
     assert all(s < 0.15 for s in scores['mean_absolute_error'])
 
   @attr("slow")
   def test_dag_regression_uncertainty(self):
+    np.random.seed(1234)
+    tf.random.set_seed(1234)
     tasks, dataset, transformers, metric = self.get_dataset(
         'regression', 'GraphConv')
 
@@ -222,13 +228,13 @@ class TestGraphModels(unittest.TestCase):
         len(tasks),
         max_atoms=max_atoms,
         mode='regression',
-        learning_rate=0.03,
+        learning_rate=0.003,
         batch_size=batch_size,
         use_queue=False,
-        dropout=0.1,
+        dropout=0.05,
         uncertainty=True)
 
-    model.fit(dataset, nb_epoch=1000)
+    model.fit(dataset, nb_epoch=750)
 
     # Predict the output and uncertainty.
     pred, std = model.predict_uncertainty(dataset)
@@ -236,8 +242,10 @@ class TestGraphModels(unittest.TestCase):
     mean_value = np.mean(np.abs(dataset.y))
     mean_std = np.mean(std)
     # The DAG models have high error with dropout
+    # Despite a lot of effort tweaking it , there appears to be
+    # a limit to how low the error can go with dropout.
     #assert mean_error < 0.5 * mean_value
-    assert mean_error < mean_value
+    assert mean_error < .7 * mean_value
     assert mean_std > 0.5 * mean_error
     assert mean_std < mean_value
 
@@ -257,7 +265,7 @@ class TestGraphModels(unittest.TestCase):
         M=1,
         batch_size=batch_size)
 
-    model.fit(dataset, nb_epoch=60)
+    model.fit(dataset, nb_epoch=30)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
 
@@ -277,7 +285,7 @@ class TestGraphModels(unittest.TestCase):
         M=1,
         batch_size=batch_size)
 
-    model.fit(dataset, nb_epoch=70)
+    model.fit(dataset, nb_epoch=50)
     scores = model.evaluate(dataset, [metric], transformers)
     assert all(s < 0.1 for s in scores['mean_absolute_error'])
 

@@ -415,15 +415,19 @@ class TestLayers(test_util.TensorFlowTestCase):
     # molecules in the batch, just as it is for the graph conv.
     # This means that n_atoms is the batch-size
     n_atoms = batch_size
-    dropout_switch = False
+    #dropout_switch = False
     layer = layers.DAGLayer(
         n_graph_feat=n_graph_feat,
         n_atom_feat=n_atom_feat,
         max_atoms=max_atoms,
         layer_sizes=layer_sizes)
     outputs = layer([
-        atom_features, parents, calculation_orders, calculation_masks, n_atoms,
-        dropout_switch
+        atom_features,
+        parents,
+        calculation_orders,
+        calculation_masks,
+        n_atoms,
+        #dropout_switch
     ])
     ## TODO(rbharath): What is the shape of outputs supposed to be?
     ## I'm getting (7, 30) here. Where does 7 come from??
@@ -445,5 +449,6 @@ class TestLayers(test_util.TensorFlowTestCase):
         layer_sizes=layer_sizes)
     atom_features = np.random.rand(batch_size, n_atom_feat)
     membership = np.sort(np.random.randint(0, batch_size, size=(batch_size)))
-    dropout_switch = False
-    outputs = layer([atom_features, membership, dropout_switch])
+    #dropout_switch = False
+    #outputs = layer([atom_features, membership, dropout_switch])
+    outputs = layer([atom_features, membership])
