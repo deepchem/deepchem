@@ -70,7 +70,6 @@ class TestGraphModels(unittest.TestCase):
         batch_size=batch_size,
         dense_layer_size=3,
         mode='classification')
-    assert 0 == 1
 
     model.fit(dataset, nb_epoch=1)
     neural_fingerprints = model.predict_embedding(dataset)
@@ -265,7 +264,7 @@ class TestGraphModels(unittest.TestCase):
         M=1,
         batch_size=batch_size)
 
-    model.fit(dataset, nb_epoch=30)
+    model.fit(dataset, nb_epoch=40)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
 
@@ -285,7 +284,7 @@ class TestGraphModels(unittest.TestCase):
         M=1,
         batch_size=batch_size)
 
-    model.fit(dataset, nb_epoch=50)
+    model.fit(dataset, nb_epoch=60)
     scores = model.evaluate(dataset, [metric], transformers)
     assert all(s < 0.1 for s in scores['mean_absolute_error'])
 

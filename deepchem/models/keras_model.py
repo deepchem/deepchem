@@ -472,6 +472,10 @@ class KerasModel(Model):
     """
     results = None
     variances = None
+    if outputs and other_output_type:
+      raise ValueError(
+          'This model cannot compute outputs and other output_types simultaneously. Please invoke one at a time.'
+      )
     if uncertainty and other_output_types:
       raise ValueError(
           'This model cannot compute uncertainties and other output types simultaneously. Please invoke one at a time.'
@@ -486,7 +490,9 @@ class KerasModel(Model):
     if other_output_types:
       assert outputs is None
       if self._other_outputs is None or len(self._other_outputs) == 0:
-        raise ValueError('This model cannot compute other outputs.')
+        raise ValueError(
+            'This model cannot compute other outputs since no other output_types were specified.'
+        )
     if (outputs is not None and self.model.inputs is not None and
         len(self.model.inputs) == 0):
       raise ValueError(
@@ -523,11 +529,15 @@ class KerasModel(Model):
         else:
           for i, t in enumerate(var):
             variances[i].append(t)
-      # TODO(rbharath): You should be able to invoke both of these simulataneously...
-      if self._other_outputs is not None:
-        output_values = [output_values[i] for i in self._other_outputs]
-      if self._prediction_outputs is not None:
-        output_values = [output_values[i] for i in self._prediction_outputs]
+      access_values = []
+      if other_output_types:
+        access_values += self._other_outputs
+      elif self._prediction_outputs is not None:
+        access_values += self._prediction_outputs
+
+      if len(access_values) > 0:
+        output_values = [output_values[i] for i in access_values]
+
       if len(transformers) > 0:
         if len(output_values) > 1:
           raise ValueError(
@@ -549,13 +559,6 @@ class KerasModel(Model):
       for v in variances:
         final_variances.append(np.concatenate(v, axis=0))
       return zip(final_results, final_variances)
-    #if other_output_types:
-    #  final_other_outputs = embeddings
-    #  if len(final_embeddings) == 1:
-    #    return final_embeddings[0]
-    #  else:
-    #    return final_embeddings
-    # If only one output, just return array
     if len(final_results) == 1:
       return final_results[0]
     else:
@@ -585,14 +588,17 @@ class KerasModel(Model):
       standard prediction outputs will be returned.
       Alternatively one or more Tensors within the model may be
       specified, in which case the output of those Tensors will
-      be returned.
+      be returned. If outputs is specified, output_types must be
+      None.
     output_types: String or list of Strings
-      
+      If specified, all outputs of this type will be retrieved
+      from the model. If output_types is specified, outputs must
+      be None.
     Returns:
       a NumPy array of the model produces a single output, or a list of arrays
       if it produces multiple outputs
     """
-    return self._predict(generator, transformers, outputs, False, False)
+    return self._predict(generator, transformers, outputs, False, output_types)
 
   def predict_on_batch(self, X, transformers=[], outputs=None):
     """Generates predictions for input samples, processing samples in a batch.
@@ -674,24 +680,25 @@ class KerasModel(Model):
     return self.predict_on_generator(generator, transformers, outputs,
                                      output_types)
 
+  def predict_embedding(self, dataset):
+    """
+    Predicts embeddings created by underlying model if any exist.
+    An embedding must be specified to have `output_type` of
+    `'embedding'` in the model definition.
 
-#  def predict_embedding(self, dataset):
-#    """
-#    Predicts embeddings created by underlying model
-#
-#    Parameters
-#    ----------
-#    dataset: dc.data.Dataset
-#      Dataset to make prediction on
-#
-#    Returns
-#    -------
-#    a NumPy array of the embeddings model produces, or a list
-#    of arrays if it produces multiple embeddings
-#    """
-#    generator = self.default_generator(
-#        dataset, mode='predict', pad_batches=False)
-#    return self._predict(generator, [], None, False, True)
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset to make prediction on
+
+    Returns
+    -------
+    a NumPy array of the embeddings model produces, or a list
+    of arrays if it produces multiple embeddings
+    """
+    generator = self.default_generator(
+        dataset, mode='predict', pad_batches=False)
+    return self._predict(generator, [], None, False, ['embedding'])
 
   def predict_uncertainty(self, dataset, masks=50):
     """
