@@ -417,7 +417,11 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
           dropout = np.array(1.0)
         yield ([X_b, dropout], [y_b], [w_b])
 
-  def predict_on_generator(self, generator, transformers=[], outputs=None):
+  def predict_on_generator(self,
+                           generator,
+                           transformers=[],
+                           outputs=None,
+                           output_types=None):
 
     def transform_generator():
       for inputs, labels, weights in generator:
@@ -427,4 +431,4 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
         yield ([X_t] + inputs[1:], labels, weights)
 
     return super(MultitaskFitTransformRegressor, self).predict_on_generator(
-        transform_generator(), transformers, outputs)
+        transform_generator(), transformers, outputs, output_types)

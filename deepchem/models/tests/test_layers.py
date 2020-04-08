@@ -449,6 +449,4 @@ class TestLayers(test_util.TensorFlowTestCase):
         layer_sizes=layer_sizes)
     atom_features = np.random.rand(batch_size, n_atom_feat)
     membership = np.sort(np.random.randint(0, batch_size, size=(batch_size)))
-    #dropout_switch = False
-    #outputs = layer([atom_features, membership, dropout_switch])
     outputs = layer([atom_features, membership])

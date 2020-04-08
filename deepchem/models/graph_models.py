@@ -764,16 +764,9 @@ class GraphConvModel(KerasModel):
               -1, self.n_tasks, self.n_classes)
         multiConvMol = ConvMol.agglomerate_mols(X_b)
         n_samples = np.array(X_b.shape[0])
-        #if mode == 'predict':
-        #  dropout = np.array(0.0)
-        #else:
-        #  dropout = np.array(1.0)
         inputs = [
-            multiConvMol.get_atom_features(),
-            multiConvMol.deg_slice,
-            #np.array(multiConvMol.membership), n_samples, dropout
-            np.array(multiConvMol.membership),
-            n_samples
+            multiConvMol.get_atom_features(), multiConvMol.deg_slice,
+            np.array(multiConvMol.membership), n_samples
         ]
         for i in range(1, len(multiConvMol.get_deg_adjacency_lists())):
           inputs.append(multiConvMol.get_deg_adjacency_lists()[i])

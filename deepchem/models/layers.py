@@ -2362,22 +2362,13 @@ class DTNNGather(tf.keras.layers.Layer):
     return tf.math.segment_sum(output, atom_membership)
 
 
-def _DAGgraph_step(
-    batch_inputs,
-    W_list,
-    b_list,
-    activation_fn,
-    #dropout,
-    dropouts,
-    #dropout_switch):
-    training):
+def _DAGgraph_step(batch_inputs, W_list, b_list, activation_fn, dropouts,
+                   training):
   outputs = batch_inputs
-  #for idw, W in enumerate(W_list):
   for idw, (dropout, W) in enumerate(zip(dropouts, W_list)):
     outputs = tf.nn.bias_add(tf.matmul(outputs, W), b_list[idw])
     outputs = activation_fn(outputs)
     if dropout is not None:
-      #outputs = tf.nn.dropout(outputs, rate=dropout * dropout_switch)
       outputs = dropout(outputs, training=training)
   return outputs
 
@@ -2500,7 +2491,6 @@ class DAGLayer(tf.keras.layers.Layer):
     calculation_masks = inputs[3]
 
     n_atoms = tf.squeeze(inputs[4])
-    #dropout_switch = tf.squeeze(inputs[5])
     graph_features = tf.zeros((self.max_atoms * self.batch_size,
                                self.max_atoms + 1, self.n_graph_feat))
 
@@ -2521,7 +2511,6 @@ class DAGLayer(tf.keras.layers.Layer):
       # extracting graph features for parents of the target atoms, then flatten
       # shape: (batch_size*max_atoms) * [(max_atoms-1)*n_graph_features]
       batch_graph_features = tf.reshape(
-          #tf.gather_nd(self.graph_features, index),
           tf.gather_nd(graph_features, index),
           [-1, (self.max_atoms - 1) * self.n_graph_feat])
 
@@ -2628,21 +2617,11 @@ class DAGGather(tf.keras.layers.Layer):
     """
     atom_features = inputs[0]
     membership = inputs[1]
-    #dropout_switch = tf.squeeze(inputs[2])
     # Extract atom_features
     graph_features = tf.math.segment_sum(atom_features, membership)
     # sum all graph outputs
-    #return _DAGgraph_step(graph_features, self.W_list, self.b_list,
-    #                      self.activation_fn, self.dropout, dropout_switch)
-    return _DAGgraph_step(
-        graph_features,
-        self.W_list,
-        self.b_list,
-        self.activation_fn,
-        #self.dropout,
-        self.dropouts,
-        #dropout_switch)
-        training)
+    return _DAGgraph_step(graph_features, self.W_list, self.b_list,
+                          self.activation_fn, self.dropouts, training)
 
 
 class MessagePassing(tf.keras.layers.Layer):

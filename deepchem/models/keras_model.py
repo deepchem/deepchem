@@ -387,7 +387,6 @@ class KerasModel(Model):
     def apply_gradient_for_batch(inputs, labels, weights, loss):
       with tf.GradientTape() as tape:
         outputs = self.model(inputs, training=True)
-        #outputs = self.model(inputs)
         if isinstance(outputs, tf.Tensor):
           outputs = [outputs]
         if self._loss_outputs is not None:
@@ -463,20 +462,18 @@ class KerasModel(Model):
       If True, it sets the training flag so that dropout will be enabled, and
       returns the values of the uncertainty outputs.
     other_output_types: list, optional
-      Provides a list of other outputs to predict from model.
-      Each such output should have a unique output_type so it
-      can be retrieved from the model.
+      Provides a list of other output_types (strings) to predict from model.
     Returns:
       a NumPy array of the model produces a single output, or a list of arrays
       if it produces multiple outputs
     """
     results = None
     variances = None
-    if outputs and other_output_type:
+    if (outputs is not None) and (other_output_types is not None):
       raise ValueError(
           'This model cannot compute outputs and other output_types simultaneously. Please invoke one at a time.'
       )
-    if uncertainty and other_output_types:
+    if uncertainty and (other_output_types is not None):
       raise ValueError(
           'This model cannot compute uncertainties and other output types simultaneously. Please invoke one at a time.'
       )
@@ -677,8 +674,11 @@ class KerasModel(Model):
     """
     generator = self.default_generator(
         dataset, mode='predict', pad_batches=False)
-    return self.predict_on_generator(generator, transformers, outputs,
-                                     output_types)
+    return self.predict_on_generator(
+        generator,
+        transformers=transformers,
+        outputs=outputs,
+        output_types=output_types)
 
   def predict_embedding(self, dataset):
     """
