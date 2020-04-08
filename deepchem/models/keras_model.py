@@ -730,7 +730,7 @@ class KerasModel(Model):
     for i in range(masks):
       generator = self.default_generator(
           dataset, mode='uncertainty', pad_batches=False)
-      results = self._predict(generator, [], None, True, False)
+      results = self._predict(generator, [], None, True, None)
       if len(sum_pred) == 0:
         for p, v in results:
           sum_pred.append(p)
