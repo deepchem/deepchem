@@ -1,9 +1,9 @@
 # ADME Dataset Examples
 
-ADME (Absorption, Distribution, Metabolism, Excretion) is a core
-part of the drug discovery process. In-silico models for ADME
-tasks span a wide variety of pharmacokinetics endpoints across
-multiple species.
+ADME (Absorption, Distribution, Metabolism, Excretion) is a
+core part of the drug discovery process. In-silico models for
+ADME tasks span a wide variety of pharmacokinetics endpoints
+across multiple species.
 
 The ADME benchmark contains three of the larger datasets that
 were released by AstraZeneca on ChEMBL: human plasma protein

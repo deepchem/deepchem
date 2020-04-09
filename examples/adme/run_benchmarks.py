@@ -10,56 +10,21 @@ from deepchem.models import GraphConvModel
 
 MODEL = "GraphConv"
 SPLIT = "scaffold"
-DATASET_NAME = "hppb"
+DATASET_NAME = "clearance"
 
 
 BATCH_SIZE = 128
 # Set to higher values to get better numbers
-MAX_EPOCH = 1
-
-#def retrieve_datasets():
-#  os.system(
-#      'wget -c %s' %
-#      'https://s3-us-west-1.amazonaws.com/deep-crystal-california/az_logd.csv')
-#  os.system(
-#      'wget -c %s' %
-#      'https://s3-us-west-1.amazonaws.com/deep-crystal-california/az_hppb.csv')
-#  os.system(
-#      'wget -c %s' %
-#      'https://s3-us-west-1.amazonaws.com/deep-crystal-california/az_clearance.csv'
-#  )
+MAX_EPOCH = 10
 
 
 def load_dataset(dataset_name, featurizer='ECFP', split='index'):
-  #tasks = ['exp']
-
-  #if featurizer == 'ECFP':
-  #  featurizer = dc.feat.CircularFingerprint(size=1024)
-  #elif featurizer == 'GraphConv':
-  #  featurizer = dc.feat.ConvMolFeaturizer()
-
-  #loader = dc.data.CSVLoader(
-  #    tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  #dataset = loader.featurize(dataset_file, shard_size=8192)
   if dataset_name.lower() == "clearance":
-    dataset = dc.molnet.load_clearance(featurizer=featurizer, split=split)
+    return dc.molnet.load_clearance(featurizer=featurizer, split=split)
   elif dataset_name.lower() == "hppb":
-    dataset = dc.molnet.load_hppb(featurizer=featurizer, split=split)
-
-  #transformers = [
-  #    dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset)
-  #]
-  #for transformer in transformers:
-  #  dataset = transformer.transform(dataset)
-
-  #splitters = {
-  #    'index': dc.splits.IndexSplitter(),
-  #    'random': dc.splits.RandomSplitter(),
-  #    'scaffold': dc.splits.ScaffoldSplitter()
-  #}
-  #splitter = splitters[split]
-  #train, valid, test = splitter.train_valid_test_split(dataset)
-  #return tasks, (train, valid, test), transformers
+    return dc.molnet.load_hppb(featurizer=featurizer, split=split)
+  elif dataset_name.lower() == "lipo":
+    return dc.molnet.load_lipo(featurizer=featurizer, split=split)
 
 
 def experiment(dataset_name, method='GraphConv', split='scaffold'):
@@ -94,9 +59,6 @@ def experiment(dataset_name, method='GraphConv', split='scaffold'):
 #======================================================================
 # Run Benchmarks {GC-DNN, SVR, RF}
 def main():
-  #print("About to retrieve datasets")
-  #retrieve_datasets()
-
   metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
 
   print("About to build model")

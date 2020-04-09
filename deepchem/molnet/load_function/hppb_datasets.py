@@ -11,42 +11,6 @@ logger = logging.getLogger(__name__)
 HPPB_URL = "http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/hppb.csv"
 DEFAULT_DATA_DIR = deepchem.utils.get_data_dir()
 
-
-def remove_missing_entries(dataset):
-  """Remove missing entries.
-
-  Some of the datasets have missing entries that sneak in as zero'd out
-  feature vectors. Get rid of them.
-  """
-  for i, (X, y, w, ids) in enumerate(dataset.itershards()):
-    ###########################################
-    print("X.shape")
-    print(X.shape)
-    print("X[:10]")
-    print(X[:10])
-    print("type(X)")
-    print(type(X))
-    ###########################################
-    #available_rows = X.any(axis=1)
-    available_rows = np.any(X)
-    ###########################################
-    print("type(available_rows)")
-    print(type(available_rows))
-    ###########################################
-    logger.info("Shard %d has %d missing entries." %
-                #(i, np.count_nonzero(~available_rows)))
-                (i, len(X) - len(available_rows)))
-    ##################################################
-    print("type(available_rows)")
-    print(type(available_rows))
-    ##################################################
-    X = X[available_rows]
-    y = y[available_rows]
-    w = w[available_rows]
-    ids = ids[available_rows]
-    dataset.set_shard(i, X, y, w, ids)
-
-
 def load_hppb(featurizer="ECFP",
               data_dir=None,
               save_dir=None,
@@ -79,10 +43,6 @@ def load_hppb(featurizer="ECFP",
   dataset_file = os.path.join(data_dir, "hppb.csv")
   if not os.path.exists(dataset_file):
     logger.info("{} does not exist. Downloading it.".format(dataset_file))
-    ################################################
-    print("data_dir")
-    print(data_dir)
-    ################################################
     deepchem.utils.download_url(url=HPPB_URL, dest_dir=data_dir)
 
   if featurizer == 'ECFP':
@@ -108,7 +68,6 @@ def load_hppb(featurizer="ECFP",
   dataset = loader.featurize(input_files=[dataset_file], shard_size=2000)
 
   logger.info("Removing missing entries...")
-  remove_missing_entries(dataset)
 
   if split == None:
     logger.info("About to transform the data...")
