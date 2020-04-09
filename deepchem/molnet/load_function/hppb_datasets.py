@@ -19,9 +19,27 @@ def remove_missing_entries(dataset):
   feature vectors. Get rid of them.
   """
   for i, (X, y, w, ids) in enumerate(dataset.itershards()):
-    available_rows = X.any(axis=1)
+    ###########################################
+    print("X.shape")
+    print(X.shape)
+    print("X[:10]")
+    print(X[:10])
+    print("type(X)")
+    print(type(X))
+    ###########################################
+    #available_rows = X.any(axis=1)
+    available_rows = np.any(X)
+    ###########################################
+    print("type(available_rows)")
+    print(type(available_rows))
+    ###########################################
     logger.info("Shard %d has %d missing entries." %
-                (i, np.count_nonzero(~available_rows)))
+                #(i, np.count_nonzero(~available_rows)))
+                (i, len(X) - len(available_rows)))
+    ##################################################
+    print("type(available_rows)")
+    print(type(available_rows))
+    ##################################################
     X = X[available_rows]
     y = y[available_rows]
     w = w[available_rows]
@@ -61,7 +79,11 @@ def load_hppb(featurizer="ECFP",
   dataset_file = os.path.join(data_dir, "hppb.csv")
   if not os.path.exists(dataset_file):
     logger.info("{} does not exist. Downloading it.".format(dataset_file))
-    deepchem.utils.download_url(url=hppb_URL, dest_dir=data_dir)
+    ################################################
+    print("data_dir")
+    print(data_dir)
+    ################################################
+    deepchem.utils.download_url(url=HPPB_URL, dest_dir=data_dir)
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)

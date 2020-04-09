@@ -21,12 +21,14 @@ Note that PPB dataset labels are transformed using %bound -> log(1 - %bound).
 
 # Running Benchmark
 ```sh
-$ python run_benchmark.py model split dataset
+$ python run_benchmark.py
 ```
 
-- models: {GraphConv, PDNN, RF, SVR}
-- splits: {scaffold, random, index}
-- dataset: {az_clearance.csv, az_hppb.csv, az_logd.csv}
+You can manually edit variables within `run_benchmarks.py` to the following values and fun
+
+- `MODEL`: {GraphConv, RF, SVR}
+- `SPLIT`: {scaffold, random, index}
+- `DATASET_NAME`: {clearance, hppb}
 
 License
 ----
