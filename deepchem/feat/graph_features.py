@@ -70,11 +70,20 @@ reference_lists = [
 ]
 
 intervals = get_intervals(reference_lists)
+# We use E-Z notation for stereochemistry
+# https://en.wikipedia.org/wiki/E%E2%80%93Z_notation
 possible_bond_stereo = ["STEREONONE", "STEREOANY", "STEREOZ", "STEREOE"]
 bond_fdim_base = 6
 
 
 def get_feature_list(atom):
+  """Returns a list of possible features for this atom.
+
+  Parameters
+  ----------
+  atom: RDKit.rdchem.Atom
+    Atom to get features for 
+  """
   features = 6 * [0]
   features[0] = safe_index(possible_atom_list, atom.GetSymbol())
   features[1] = safe_index(possible_numH_list, atom.GetTotalNumHs())
@@ -113,7 +122,13 @@ def id_to_features(id, intervals):
 
 
 def atom_to_id(atom):
-  """Return a unique id corresponding to the atom type"""
+  """Return a unique id corresponding to the atom type
+
+  Parameters
+  ----------
+  atom: RDKit.rdchem.Atom
+    Atom to convert to ids.
+  """
   features = get_feature_list(atom)
   return features_to_id(features, intervals)
 
@@ -122,6 +137,19 @@ def atom_features(atom,
                   bool_id_feat=False,
                   explicit_H=False,
                   use_chirality=False):
+  """Helper method used to compute per-atom feature vectors.
+
+  Many different featurization methods compute per-atom features such as ConvMolFeaturizer, WeaveFeaturizer. This method computes such features.
+
+  Parameters
+  ----------
+  bool_id_feat: bool, optional
+    Return an array of unique identifiers corresponding to atom type.
+  explicit_H: bool, optional
+    If true, model hydrogens explicitly
+  use_chirality: bool, optional
+    If true, use chirality information.
+  """
   if bool_id_feat:
     return np.array([atom_to_id(atom)])
   else:
@@ -199,6 +227,16 @@ def atom_features(atom,
 
 
 def bond_features(bond, use_chirality=False):
+  """Helper method used to compute bond feature vectors.
+
+  Many different featurization methods compute bond features
+  such as WeaveFeaturizer. This method computes such features.
+
+  Parameters
+  ----------
+  use_chirality: bool, optional
+    If true, use chirality information.
+  """
   from rdkit import Chem
   bt = bond.GetBondType()
   bond_feats = [
@@ -215,6 +253,26 @@ def bond_features(bond, use_chirality=False):
 
 def pair_features(mol, edge_list, canon_adj_list, bt_len=6,
                   graph_distance=True):
+  """Helper method used to compute atom pair feature vectors.
+
+  Many different featurization methods compute atom pair features
+  such as WeaveFeaturizer. Note that atom pair features could be
+  for pairs of atoms which aren't necessarily bonded to one
+  another. 
+
+  Parameters
+  ----------
+  mol: TODO
+    TODO
+  edge_list: list
+    List of edges t oconsider
+  canon_adj_list: list
+    TODO
+  bt_len: int, optional
+    TODO
+  graph_distance: bool, optional
+    TODO
+  """
   if graph_distance:
     max_distance = 7
   else:
@@ -271,6 +329,10 @@ def find_distance(a1, num_atoms, canon_adj_list, max_distance=7):
 
 
 class ConvMolFeaturizer(Featurizer):
+  """This class implements the featurization to implement graph convolutions from the Duvenaud graph convolution paper
+
+Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints." Advances in neural information processing systems. 2015.
+  """
   name = ['conv_mol']
 
   def __init__(self, master_atom=False, use_chirality=False,
@@ -381,10 +443,26 @@ class ConvMolFeaturizer(Featurizer):
 
 
 class WeaveFeaturizer(Featurizer):
+  """This class implements the featurization to implement Weave convolutions from the Google graph convolution paper.
+
+  Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints." Journal of computer-aided molecular design 30.8 (2016): 595-608.
+  """
+
   name = ['weave_mol']
 
   def __init__(self, graph_distance=True, explicit_H=False,
                use_chirality=False):
+    """
+    Parameters
+    ----------
+    graph_distance: bool, optional
+      If true, use graph distance. Otherwise, use Euclidean
+      distance.
+    explicit_H: bool, optional
+      If true, model hydrogens in the molecule.
+    use_chirality: bool, optional
+      If true, use chiral information in the featurization
+    """
     # Distance is either graph distance(True) or Euclidean distance(False,
     # only support datasets providing Cartesian coordinates)
     self.graph_distance = graph_distance

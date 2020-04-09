@@ -4,6 +4,7 @@ import tensorflow_probability as tfp
 import numpy as np
 import collections
 from tensorflow.keras import activations, initializers, backend
+from tensorflow.keras.layers import Dropout
 
 
 class InteratomicL2Distances(tf.keras.layers.Layer):
@@ -1122,13 +1123,19 @@ class NeighborList(tf.keras.layers.Layer):
 
 
 class AtomicConvolution(tf.keras.layers.Layer):
+  """Implements the atomic convolutional transform introduced in
+
+  Gomes, Joseph, et al. "Atomic convolutional networks for predicting protein-ligand binding affinity." arXiv preprint arXiv:1703.10603 (2017).
+
+  At a high level, this transform performs a sort of graph convolution on the nearest neighbors graph in 3D space.
+  """
 
   def __init__(self,
                atom_types=None,
                radial_params=list(),
                boxsize=None,
                **kwargs):
-    """Atomic convoluation layer
+    """Atomic convolution layer
 
     N = max_num_atoms, M = max_num_neighbors, B = batch_size, d = num_features
     l = num_radial_filters * num_atom_types
@@ -1304,7 +1311,7 @@ class AtomicConvolution(tf.keras.layers.Layer):
       Coordinates/features distance tensor.
     """
     flat_neighbors = tf.reshape(Nbrs, [-1, N * M])
-    neighbor_coords = tf.gather(X, flat_neighbors, batch_dims=-1)
+    neighbor_coords = tf.gather(X, flat_neighbors, batch_dims=-1, axis=1)
     neighbor_coords = tf.reshape(neighbor_coords, [-1, N, M, d])
     D = neighbor_coords - tf.expand_dims(X, 2)
     if boxsize is not None:
@@ -1842,13 +1849,18 @@ class GraphCNN(tf.keras.layers.Layer):
 
 class Highway(tf.keras.layers.Layer):
   """ Create a highway layer. y = H(x) * T(x) + x * (1 - T(x))
+
   H(x) = activation_fn(matmul(W_H, x) + b_H) is the non-linear transformed output
   T(x) = sigmoid(matmul(W_T, x) + b_T) is the transform gate
 
-  reference: https://arxiv.org/pdf/1505.00387.pdf
+  Implementation based on paper
 
-  This layer expects its input to be a two dimensional tensor of shape (batch size, # input features).
-  Outputs will be in the same shape.
+  Srivastava, Rupesh Kumar, Klaus Greff, and Jürgen Schmidhuber. "Highway networks." arXiv preprint arXiv:1505.00387 (2015).
+
+
+  This layer expects its input to be a two dimensional tensor
+  of shape (batch size, # input features).  Outputs will be in
+  the same shape.
   """
 
   def __init__(self,
@@ -1912,6 +1924,16 @@ class Highway(tf.keras.layers.Layer):
 
 
 class WeaveLayer(tf.keras.layers.Layer):
+  """This class implements the core Weave convolution from the
+  Google graph convolution paper.
+
+  Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints." Journal of computer-aided molecular design 30.8 (2016): 595-608.
+
+  This model contains atom features and bond features
+  separately.Here, bond features are also called pair features.
+  There are 2 types of transformation, atom->atom, atom->pair,
+  pair->atom, pair->pair that this model implements.
+  """
 
   def __init__(self,
                n_atom_input_feat=75,
@@ -2019,7 +2041,7 @@ class WeaveLayer(tf.keras.layers.Layer):
   def call(self, inputs):
     """Creates weave tensors.
 
-    inputs: [atom_features, pair_features], pair_split, atom_to_pair
+    inputs: [atom_features, pair_features, pair_split, atom_to_pair]
     """
     atom_features = inputs[0]
     pair_features = inputs[1]
@@ -2340,18 +2362,36 @@ class DTNNGather(tf.keras.layers.Layer):
     return tf.math.segment_sum(output, atom_membership)
 
 
-def _DAGgraph_step(batch_inputs, W_list, b_list, activation_fn, dropout,
-                   dropout_switch):
+def _DAGgraph_step(batch_inputs, W_list, b_list, activation_fn, dropouts,
+                   training):
   outputs = batch_inputs
-  for idw, W in enumerate(W_list):
+  for idw, (dropout, W) in enumerate(zip(dropouts, W_list)):
     outputs = tf.nn.bias_add(tf.matmul(outputs, W), b_list[idw])
     outputs = activation_fn(outputs)
-    if not dropout is None:
-      outputs = tf.nn.dropout(outputs, rate=dropout * dropout_switch)
+    if dropout is not None:
+      outputs = dropout(outputs, training=training)
   return outputs
 
 
 class DAGLayer(tf.keras.layers.Layer):
+  """DAG computation layer.
+
+  This layer generates a directed acyclic graph for each atom
+  in a molecule. This layer is based on the algorithm from the
+  following paper: 
+
+  Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575.
+
+
+  This layer performs a sort of inward sweep. Recall that for
+  each atom, a DAG is generated that "points inward" to that
+  atom from the undirected molecule graph. Picture this as
+  "picking up" the atom as the vertex and using the natural
+  tree structure that forms from gravity. The layer "sweeps
+  inwards" from the leaf nodes of the DAG upwards to the
+  atom. This is batched so the transformation is done for
+  each atom.
+  """
 
   def __init__(self,
                n_graph_feat=30,
@@ -2363,7 +2403,7 @@ class DAGLayer(tf.keras.layers.Layer):
                dropout=None,
                batch_size=64,
                **kwargs):
-    """
+    """   
     Parameters
     ----------
     n_graph_feat: int, optional
@@ -2415,6 +2455,7 @@ class DAGLayer(tf.keras.layers.Layer):
     """"Construct internal trainable weights."""
     self.W_list = []
     self.b_list = []
+    self.dropouts = []
     init = initializers.get(self.init)
     prev_layer_size = self.n_inputs
     for layer_size in self.layer_sizes:
@@ -2422,34 +2463,36 @@ class DAGLayer(tf.keras.layers.Layer):
       self.b_list.append(backend.zeros(shape=[
           layer_size,
       ]))
+      if self.dropout is not None and self.dropout > 0.0:
+        self.dropouts.append(Dropout(rate=self.dropout))
+      else:
+        self.dropouts.append(None)
       prev_layer_size = layer_size
     self.W_list.append(init([prev_layer_size, self.n_outputs]))
     self.b_list.append(backend.zeros(shape=[
         self.n_outputs,
     ]))
+    if self.dropout is not None and self.dropout > 0.0:
+      self.dropouts.append(Dropout(rate=self.dropout))
+    else:
+      self.dropouts.append(None)
     self.built = True
 
-  def call(self, inputs):
+  def call(self, inputs, training=True):
     """
     parent layers: atom_features, parents, calculation_orders, calculation_masks, n_atoms
     """
     atom_features = inputs[0]
     # each atom corresponds to a graph, which is represented by the `max_atoms*max_atoms` int32 matrix of index
     # each gragh include `max_atoms` of steps(corresponding to rows) of calculating graph features
-    parents = inputs[1]
+    parents = tf.cast(inputs[1], dtype=tf.int32)
     # target atoms for each step: (batch_size*max_atoms) * max_atoms
     calculation_orders = inputs[2]
     calculation_masks = inputs[3]
 
     n_atoms = tf.squeeze(inputs[4])
-    dropout_switch = tf.squeeze(inputs[5])
-    with tf.init_scope():
-      # initialize graph features for each graph
-      graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
-                                         self.max_atoms + 1, self.n_graph_feat))
-      # initialize graph features for each graph
-      # another row of zeros is generated for padded dummy atoms
-      graph_features = tf.Variable(graph_features_initial, trainable=False)
+    graph_features = tf.zeros((self.max_atoms * self.batch_size,
+                               self.max_atoms + 1, self.n_graph_feat))
 
     for count in range(self.max_atoms):
       # `count`-th step
@@ -2459,16 +2502,12 @@ class DAGLayer(tf.keras.layers.Layer):
       batch_atom_features = tf.gather(atom_features, current_round)
 
       # generating index for graph features used in the inputs
-      index = tf.stack(
-          [
-              tf.reshape(
-                  tf.stack(
-                      [tf.boolean_mask(tf.range(n_atoms), mask)] *
-                      (self.max_atoms - 1),
-                      axis=1), [-1]),
-              tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
-          ],
-          axis=1)
+      stack1 = tf.reshape(
+          tf.stack(
+              [tf.boolean_mask(tf.range(n_atoms), mask)] * (self.max_atoms - 1),
+              axis=1), [-1])
+      stack2 = tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
+      index = tf.stack([stack1, stack2], axis=1)
       # extracting graph features for parents of the target atoms, then flatten
       # shape: (batch_size*max_atoms) * [(max_atoms-1)*n_graph_features]
       batch_graph_features = tf.reshape(
@@ -2482,15 +2521,14 @@ class DAGLayer(tf.keras.layers.Layer):
       # of shape: (batch_size*max_atoms) * n_graph_features
       # representing the graph features of target atoms in each graph
       batch_outputs = _DAGgraph_step(batch_inputs, self.W_list, self.b_list,
-                                     self.activation_fn, self.dropout,
-                                     dropout_switch)
+                                     self.activation_fn, self.dropouts,
+                                     training)
 
       # index for targe atoms
       target_index = tf.stack([tf.range(n_atoms), parents[:, count, 0]], axis=1)
       target_index = tf.boolean_mask(target_index, mask)
-      # update the graph features for target atoms
-      graph_features = tf.compat.v1.scatter_nd_update(
-          graph_features, target_index, batch_outputs)
+      graph_features = tf.tensor_scatter_nd_update(graph_features, target_index,
+                                                   batch_outputs)
     return batch_outputs
 
 
@@ -2505,7 +2543,8 @@ class DAGGather(tf.keras.layers.Layer):
                activation='relu',
                dropout=None,
                **kwargs):
-    """
+    """DAG vector gathering layer
+
     Parameters
     ----------
     n_graph_feat: int, optional
@@ -2549,6 +2588,7 @@ class DAGGather(tf.keras.layers.Layer):
   def build(self, input_shape):
     self.W_list = []
     self.b_list = []
+    self.dropouts = []
     init = initializers.get(self.init)
     prev_layer_size = self.n_graph_feat
     for layer_size in self.layer_sizes:
@@ -2556,25 +2596,32 @@ class DAGGather(tf.keras.layers.Layer):
       self.b_list.append(backend.zeros(shape=[
           layer_size,
       ]))
+      if self.dropout is not None and self.dropout > 0.0:
+        self.dropouts.append(Dropout(rate=self.dropout))
+      else:
+        self.dropouts.append(None)
       prev_layer_size = layer_size
     self.W_list.append(init([prev_layer_size, self.n_outputs]))
     self.b_list.append(backend.zeros(shape=[
         self.n_outputs,
     ]))
+    if self.dropout is not None and self.dropout > 0.0:
+      self.dropouts.append(Dropout(rate=self.dropout))
+    else:
+      self.dropouts.append(None)
     self.built = True
 
-  def call(self, inputs):
+  def call(self, inputs, training=True):
     """
     parent layers: atom_features, membership
     """
     atom_features = inputs[0]
     membership = inputs[1]
-    dropout_switch = tf.squeeze(inputs[2])
     # Extract atom_features
     graph_features = tf.math.segment_sum(atom_features, membership)
     # sum all graph outputs
     return _DAGgraph_step(graph_features, self.W_list, self.b_list,
-                          self.activation_fn, self.dropout, dropout_switch)
+                          self.activation_fn, self.dropouts, training)
 
 
 class MessagePassing(tf.keras.layers.Layer):

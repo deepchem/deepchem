@@ -54,6 +54,7 @@ def initializeWeightsBiases(prev_layer_size,
 
 
 class AtomicConvScore(Layer):
+  """The scoring function used by the atomic convolution models."""
 
   def __init__(self, atom_types, layer_sizes, **kwargs):
     super(AtomicConvScore, self).__init__(**kwargs)
@@ -145,6 +146,19 @@ class AtomicConvScore(Layer):
 
 
 class AtomicConvModel(KerasModel):
+  """Implements an Atomic Convolution Model.
+
+  Implements the atomic convolutional networks as introduced in
+
+  Gomes, Joseph, et al. "Atomic convolutional networks for predicting protein-ligand binding affinity." arXiv preprint arXiv:1703.10603 (2017).
+
+  The atomic convolutional networks function as a variant of
+  graph convolutions. The difference is that the "graph" here is
+  the nearest neighbors graph in 3D space. The AtomicConvModel
+  leverages these connections in 3D space to train models that
+  learn to predict energetic state starting from the spatial
+  geometry of the model.
+  """
 
   def __init__(self,
                frag1_num_atoms=70,
@@ -163,16 +177,7 @@ class AtomicConvModel(KerasModel):
                layer_sizes=[32, 32, 16],
                learning_rate=0.001,
                **kwargs):
-    """Implements an Atomic Convolution Model.
-
-    Implements the atomic convolutional networks as introduced in
-    https://arxiv.org/abs/1703.10603. The atomic convolutional networks
-    function as a variant of graph convolutions. The difference is that the
-    "graph" here is the nearest neighbors graph in 3D space. The
-    AtomicConvModel leverages these connections in 3D space to train models
-    that learn to predict energetic state starting from the spatial
-    geometry of the model.
-
+    """   
     Params
     ------
     frag1_num_atoms: int

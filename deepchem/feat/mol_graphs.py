@@ -386,8 +386,12 @@ class MultiConvMol(object):
 
 
 class WeaveMol(object):
-  """Holds information about a molecule
-  Molecule struct used in weave models
+  """Molecular featurization object for weave convolutions.
+
+  These objects are produced by WeaveFeaturizer, and feed into
+  WeaveModel. The underlying implementation is inspired by:
+
+  Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints." Journal of computer-aided molecular design 30.8 (2016): 595-608.
   """
 
   def __init__(self, nodes, pairs):

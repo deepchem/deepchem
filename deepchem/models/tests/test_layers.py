@@ -73,6 +73,48 @@ class TestLayers(test_util.TensorFlowTestCase):
         dist2 = np.dot(delta, delta)
         assert np.allclose(dist2, result[atom, neighbor])
 
+  def test_weave_layer(self):
+    """Test invoking WeaveLayer."""
+    out_channels = 2
+    n_atoms = 4  # In CCC and C, there are 4 atoms
+    raw_smiles = ['CCC', 'C']
+    import rdkit
+    mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
+    featurizer = dc.feat.WeaveFeaturizer()
+    mols = featurizer.featurize(mols)
+    weave = layers.WeaveLayer()
+    atom_feat = []
+    pair_feat = []
+    atom_to_pair = []
+    pair_split = []
+    start = 0
+    n_pair_feat = 14
+    for im, mol in enumerate(mols):
+      n_atoms = mol.get_num_atoms()
+      # index of pair features
+      C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
+      atom_to_pair.append(
+          np.transpose(np.array([C1.flatten() + start,
+                                 C0.flatten() + start])))
+      # number of pairs for each atom
+      pair_split.extend(C1.flatten() + start)
+      start = start + n_atoms
+
+      # atom features
+      atom_feat.append(mol.get_atom_features())
+      # pair features
+      pair_feat.append(
+          np.reshape(mol.get_pair_features(), (n_atoms * n_atoms, n_pair_feat)))
+    inputs = [
+        np.array(np.concatenate(atom_feat, axis=0), dtype=np.float32),
+        np.concatenate(pair_feat, axis=0),
+        np.array(pair_split),
+        np.concatenate(atom_to_pair, axis=0)
+    ]
+    # Outputs should be [A, P]
+    outputs = weave(inputs)
+    assert len(outputs) == 2
+
   def test_graph_conv(self):
     """Test invoking GraphConv."""
     out_channels = 2
@@ -354,3 +396,57 @@ class TestLayers(test_util.TensorFlowTestCase):
 
     result3 = layer([V, adjs])
     assert np.allclose(result, result3)
+
+  def test_DAG_layer(self):
+    """Test invoking DAGLayer."""
+    batch_size = 10
+    n_graph_feat = 30
+    n_atom_feat = 75
+    max_atoms = 50
+    layer_sizes = [100]
+    atom_features = np.random.rand(batch_size, n_atom_feat)
+    parents = np.random.randint(
+        0, max_atoms, size=(batch_size, max_atoms, max_atoms))
+    calculation_orders = np.random.randint(
+        0, batch_size, size=(batch_size, max_atoms))
+    calculation_masks = np.random.randint(0, 2, size=(batch_size, max_atoms))
+    # Recall that the DAG layer expects a MultiConvMol as input,
+    # so the "batch" is a pooled set of atoms from all the
+    # molecules in the batch, just as it is for the graph conv.
+    # This means that n_atoms is the batch-size
+    n_atoms = batch_size
+    #dropout_switch = False
+    layer = layers.DAGLayer(
+        n_graph_feat=n_graph_feat,
+        n_atom_feat=n_atom_feat,
+        max_atoms=max_atoms,
+        layer_sizes=layer_sizes)
+    outputs = layer([
+        atom_features,
+        parents,
+        calculation_orders,
+        calculation_masks,
+        n_atoms,
+        #dropout_switch
+    ])
+    ## TODO(rbharath): What is the shape of outputs supposed to be?
+    ## I'm getting (7, 30) here. Where does 7 come from??
+
+  def test_DAG_gather(self):
+    """Test invoking DAGGather."""
+    # TODO(rbharath): We need more documentation about why
+    # these numbers work.
+    batch_size = 10
+    n_graph_feat = 30
+    n_atom_feat = 30
+    n_outputs = 75
+    max_atoms = 50
+    layer_sizes = [100]
+    layer = layers.DAGGather(
+        n_graph_feat=n_graph_feat,
+        n_outputs=n_outputs,
+        max_atoms=max_atoms,
+        layer_sizes=layer_sizes)
+    atom_features = np.random.rand(batch_size, n_atom_feat)
+    membership = np.sort(np.random.randint(0, batch_size, size=(batch_size)))
+    outputs = layer([atom_features, membership])

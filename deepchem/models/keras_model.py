@@ -21,61 +21,78 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 class KerasModel(Model):
   """This is a DeepChem model implemented by a Keras model.
 
-  This class provides several advantages over using the Keras model's fitting
-  and prediction methods directly.
+  This class provides several advantages over using the Keras
+  model's fitting and prediction methods directly.
 
-  1. It provides better integration with the rest of DeepChem, such as direct
-     support for Datasets and Transformers.
+  1. It provides better integration with the rest of DeepChem,
+     such as direct support for Datasets and Transformers.
 
-  2. It defines the loss in a more flexible way.  In particular, Keras does not
-     support multidimensional weight matrices, which makes it impossible to
-     implement most multitask models with Keras.
+  2. It defines the loss in a more flexible way.  In particular,
+     Keras does not support multidimensional weight matrices,
+     which makes it impossible to implement most multitask
+     models with Keras.
 
-  3. It provides various additional features not found in the Keras Model class,
-     such as uncertainty prediction and saliency mapping.
+  3. It provides various additional features not found in the
+     Keras Model class, such as uncertainty prediction and
+     saliency mapping.
 
-  The loss function for a model can be defined in two different ways.  For
-  models that have only a single output and use a standard loss function, you
-  can simply provide a dc.models.losses.Loss object.  This defines the loss for
-  each sample or sample/task pair.  The result is automatically multiplied by
-  the weights and averaged over the batch.  Any additional losses computed by
-  model layers, such as weight decay penalties, are also added.
+  The loss function for a model can be defined in two different
+  ways.  For models that have only a single output and use a
+  standard loss function, you can simply provide a
+  dc.models.losses.Loss object.  This defines the loss for each
+  sample or sample/task pair.  The result is automatically
+  multiplied by the weights and averaged over the batch.  Any
+  additional losses computed by model layers, such as weight
+  decay penalties, are also added.
 
-  For more complicated cases, you can instead provide a function that directly
-  computes the total loss.  It must be of the form f(outputs, labels, weights),
-  taking the list of outputs from the model, the expected values, and any weight
-  matrices.  It should return a scalar equal to the value of the loss function
-  for the batch.  No additional processing is done to the result; it is up to
-  you to do any weighting, averaging, adding of penalty terms, etc.
+  For more complicated cases, you can instead provide a function
+  that directly computes the total loss.  It must be of the form
+  f(outputs, labels, weights), taking the list of outputs from
+  the model, the expected values, and any weight matrices.  It
+  should return a scalar equal to the value of the loss function
+  for the batch.  No additional processing is done to the
+  result; it is up to you to do any weighting, averaging, adding
+  of penalty terms, etc.
 
-  You can optionally provide an output_types argument, which describes how to
-  interpret the model's outputs.  This should be a list of strings, one for each
-  output.  Each entry must have one of the following values:
+  You can optionally provide an output_types argument, which
+  describes how to interpret the model's outputs.  This should
+  be a list of strings, one for each output. You can use an
+  arbitrary output_type for a output, but some output_types are
+  special and will undergo extra processing:
 
   - 'prediction': This is a normal output, and will be returned by predict().
-    If output types are not specified, all outputs are assumed to be of this
-    type.
+    If output types are not specified, all outputs are assumed
+    to be of this type.
 
-  - 'loss': This output will be used in place of the normal outputs for
-    computing the loss function.  For example, models that output probability
-    distributions usually do it by computing unbounded numbers (the logits),
-    then passing them through a softmax function to turn them into
-    probabilities.  When computing the cross entropy, it is more numerically
-    stable to use the logits directly rather than the probabilities.  You can
-    do this by having the model produce both probabilities and logits as
-    outputs, then specifying output_types=['prediction', 'loss'].  When
-    predict() is called, only the first output (the probabilities) will be
-    returned.  But during training, it is the second output (the logits) that
-    will be passed to the loss function.
+  - 'loss': This output will be used in place of the normal
+    outputs for computing the loss function.  For example,
+    models that output probability distributions usually do it
+    by computing unbounded numbers (the logits), then passing
+    them through a softmax function to turn them into
+    probabilities.  When computing the cross entropy, it is more
+    numerically stable to use the logits directly rather than
+    the probabilities.  You can do this by having the model
+    produce both probabilities and logits as outputs, then
+    specifying output_types=['prediction', 'loss'].  When
+    predict() is called, only the first output (the
+    probabilities) will be returned.  But during training, it is
+    the second output (the logits) that will be passed to the
+    loss function.
 
-  - 'variance': This output is used for estimating the uncertainty in another
-    output.  To create a model that can estimate uncertainty, there must be the
-    same number of 'prediction' and 'variance' outputs.  Each variance output
-    must have the same shape as the corresponding prediction output, and each
-    element is an estimate of the variance in the corresponding prediction.
-    Also be aware that if a model supports uncertainty, it MUST use dropout on
-    every layer, and dropout most be enabled during uncertainty prediction.
+  - 'variance': This output is used for estimating the
+    uncertainty in another output.  To create a model that can
+    estimate uncertainty, there must be the same number of
+    'prediction' and 'variance' outputs.  Each variance output
+    must have the same shape as the corresponding prediction
+    output, and each element is an estimate of the variance in
+    the corresponding prediction.  Also be aware that if a model
+    supports uncertainty, it MUST use dropout on every layer,
+    and dropout most be enabled during uncertainty prediction.
     Otherwise, the uncertainties it computes will be inaccurate.
+    
+  - other: Arbitrary output_types can be used to extract outputs
+    produced by the model, but will have no additional
+    processing performed.
   """
 
   def __init__(self,
@@ -136,10 +153,12 @@ class KerasModel(Model):
       self._prediction_outputs = None
       self._loss_outputs = None
       self._variance_outputs = None
+      self._other_outputs = None
     else:
       self._prediction_outputs = []
       self._loss_outputs = []
       self._variance_outputs = []
+      self._other_outputs = []
       for i, type in enumerate(output_types):
         if type == 'prediction':
           self._prediction_outputs.append(i)
@@ -148,7 +167,7 @@ class KerasModel(Model):
         elif type == 'variance':
           self._variance_outputs.append(i)
         else:
-          raise ValueError('Unknown output type "%s"' % type)
+          self._other_outputs.append(i)
       if len(self._loss_outputs) == 0:
         self._loss_outputs = self._prediction_outputs
     self._built = False
@@ -173,7 +192,7 @@ class KerasModel(Model):
       return
     self._ensure_built()
     self._inputs_built = True
-    if len(self.model.inputs) > 0:
+    if (self.model.inputs is not None) and len(self.model.inputs) > 0:
       self._input_shapes = [t.shape for t in self.model.inputs]
       self._input_dtypes = [t.dtype.as_numpy_dtype for t in self.model.inputs]
     else:
@@ -295,7 +314,7 @@ class KerasModel(Model):
       loss = self._loss_fn
     var_key = None
     if variables is not None:
-      var_key = tuple(v.experimental_ref() for v in variables)
+      var_key = tuple(v.ref() for v in variables)
 
       # The optimizer creates internal variables the first time apply_gradients()
       # is called for a new set of variables.  If that happens inside a function
@@ -321,6 +340,7 @@ class KerasModel(Model):
 
       if len(inputs) == 1:
         inputs = inputs[0]
+
       batch_loss = apply_gradient_for_batch(inputs, labels, weights, loss)
       current_step = self._global_step.numpy()
 
@@ -415,12 +435,14 @@ class KerasModel(Model):
         loss=loss,
         callbacks=callbacks)
 
-  def _predict(self, generator, transformers, outputs, uncertainty):
+  def _predict(self, generator, transformers, outputs, uncertainty,
+               other_output_types):
     """
     Predict outputs for data provided by a generator.
 
-    This is the private implementation of prediction.  Do not call it directly.
-    Instead call one of the public prediction methods.
+    This is the private implementation of prediction.  Do not
+    call it directly.  Instead call one of the public prediction
+    methods.
 
     Parameters
     ----------
@@ -439,12 +461,22 @@ class KerasModel(Model):
       specifies whether this is being called as part of estimating uncertainty.
       If True, it sets the training flag so that dropout will be enabled, and
       returns the values of the uncertainty outputs.
+    other_output_types: list, optional
+      Provides a list of other output_types (strings) to predict from model.
     Returns:
       a NumPy array of the model produces a single output, or a list of arrays
       if it produces multiple outputs
     """
     results = None
     variances = None
+    if (outputs is not None) and (other_output_types is not None):
+      raise ValueError(
+          'This model cannot compute outputs and other output_types simultaneously. Please invoke one at a time.'
+      )
+    if uncertainty and (other_output_types is not None):
+      raise ValueError(
+          'This model cannot compute uncertainties and other output types simultaneously. Please invoke one at a time.'
+      )
     if uncertainty:
       assert outputs is None
       if self._variance_outputs is None or len(self._variance_outputs) == 0:
@@ -452,9 +484,16 @@ class KerasModel(Model):
       if len(self._variance_outputs) != len(self._prediction_outputs):
         raise ValueError(
             'The number of variances must exactly match the number of outputs')
-    if outputs is not None and len(self.model.inputs) == 0:
+    if other_output_types:
+      assert outputs is None
+      if self._other_outputs is None or len(self._other_outputs) == 0:
+        raise ValueError(
+            'This model cannot compute other outputs since no other output_types were specified.'
+        )
+    if (outputs is not None and self.model.inputs is not None and
+        len(self.model.inputs) == 0):
       raise ValueError(
-          "Cannot use 'outputs' argument with a model that does not specify its inputs"
+          "Cannot use 'outputs' argument with a model that does not specify its inputs. Note models defined in imperative subclassing style cannot specify outputs"
       )
     if isinstance(outputs, tf.Tensor):
       outputs = [outputs]
@@ -464,12 +503,11 @@ class KerasModel(Model):
       inputs, _, _ = self._prepare_batch((inputs, None, None))
 
       # Invoke the model.
-
       if len(inputs) == 1:
         inputs = inputs[0]
       if outputs is not None:
         outputs = tuple(outputs)
-        key = tuple(t.experimental_ref() for t in outputs)
+        key = tuple(t.ref() for t in outputs)
         if key not in self._output_functions:
           self._output_functions[key] = tf.keras.backend.function(
               self.model.inputs, outputs)
@@ -481,7 +519,6 @@ class KerasModel(Model):
         output_values = [t.numpy() for t in output_values]
 
       # Apply tranformers and record results.
-
       if uncertainty:
         var = [output_values[i] for i in self._variance_outputs]
         if variances is None:
@@ -489,8 +526,15 @@ class KerasModel(Model):
         else:
           for i, t in enumerate(var):
             variances[i].append(t)
-      if self._prediction_outputs is not None:
-        output_values = [output_values[i] for i in self._prediction_outputs]
+      access_values = []
+      if other_output_types:
+        access_values += self._other_outputs
+      elif self._prediction_outputs is not None:
+        access_values += self._prediction_outputs
+
+      if len(access_values) > 0:
+        output_values = [output_values[i] for i in access_values]
+
       if len(transformers) > 0:
         if len(output_values) > 1:
           raise ValueError(
@@ -504,7 +548,6 @@ class KerasModel(Model):
         results[i].append(t)
 
     # Concatenate arrays to create the final results.
-
     final_results = []
     final_variances = []
     for r in results:
@@ -513,7 +556,6 @@ class KerasModel(Model):
       for v in variances:
         final_variances.append(np.concatenate(v, axis=0))
       return zip(final_results, final_variances)
-    # If only one output, just return array
     if len(final_results) == 1:
       return final_results[0]
     else:
@@ -524,7 +566,11 @@ class KerasModel(Model):
     """Evaluate the model for a set of inputs."""
     return self.model(inputs, training=False)
 
-  def predict_on_generator(self, generator, transformers=[], outputs=None):
+  def predict_on_generator(self,
+                           generator,
+                           transformers=[],
+                           outputs=None,
+                           output_types=None):
     """
     Parameters
     ----------
@@ -535,15 +581,21 @@ class KerasModel(Model):
       Transformers that the input data has been transformed by.  The output
       is passed through these transformers to undo the transformations.
     outputs: Tensor or list of Tensors
-      The outputs to return.  If this is None, the model's standard prediction
-      outputs will be returned.  Alternatively one or more Tensors within the
-      model may be specified, in which case the output of those Tensors will be
-      returned.
+      The outputs to return.  If this is None, the model's
+      standard prediction outputs will be returned.
+      Alternatively one or more Tensors within the model may be
+      specified, in which case the output of those Tensors will
+      be returned. If outputs is specified, output_types must be
+      None.
+    output_types: String or list of Strings
+      If specified, all outputs of this type will be retrieved
+      from the model. If output_types is specified, outputs must
+      be None.
     Returns:
       a NumPy array of the model produces a single output, or a list of arrays
       if it produces multiple outputs
     """
-    return self._predict(generator, transformers, outputs, False)
+    return self._predict(generator, transformers, outputs, False, output_types)
 
   def predict_on_batch(self, X, transformers=[], outputs=None):
     """Generates predictions for input samples, processing samples in a batch.
@@ -596,7 +648,7 @@ class KerasModel(Model):
     dataset = NumpyDataset(X=X, y=None)
     return self.predict_uncertainty(dataset, masks)
 
-  def predict(self, dataset, transformers=[], outputs=None):
+  def predict(self, dataset, transformers=[], outputs=None, output_types=None):
     """
     Uses self to make predictions on provided Dataset object.
 
@@ -612,6 +664,8 @@ class KerasModel(Model):
       outputs will be returned.  Alternatively one or more Tensors within the
       model may be specified, in which case the output of those Tensors will be
       returned.
+    output_types: list of Strings
+      The output types to return. Will retrieve all outputs of these types from the model.
 
     Returns
     -------
@@ -620,7 +674,31 @@ class KerasModel(Model):
     """
     generator = self.default_generator(
         dataset, mode='predict', pad_batches=False)
-    return self.predict_on_generator(generator, transformers, outputs)
+    return self.predict_on_generator(
+        generator,
+        transformers=transformers,
+        outputs=outputs,
+        output_types=output_types)
+
+  def predict_embedding(self, dataset):
+    """
+    Predicts embeddings created by underlying model if any exist.
+    An embedding must be specified to have `output_type` of
+    `'embedding'` in the model definition.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset to make prediction on
+
+    Returns
+    -------
+    a NumPy array of the embeddings model produces, or a list
+    of arrays if it produces multiple embeddings
+    """
+    generator = self.default_generator(
+        dataset, mode='predict', pad_batches=False)
+    return self._predict(generator, [], None, False, ['embedding'])
 
   def predict_uncertainty(self, dataset, masks=50):
     """
@@ -652,7 +730,7 @@ class KerasModel(Model):
     for i in range(masks):
       generator = self.default_generator(
           dataset, mode='uncertainty', pad_batches=False)
-      results = self._predict(generator, [], None, True)
+      results = self._predict(generator, [], None, True, None)
       if len(sum_pred) == 0:
         for p, v in results:
           sum_pred.append(p)
@@ -904,7 +982,7 @@ class KerasModel(Model):
       dest_vars = dest_vars[:-2]
 
     for source_var, dest_var in zip(source_vars, dest_vars):
-      assignment_map[source_var.experimental_ref()] = dest_var
+      assignment_map[source_var.ref()] = dest_var
 
     return assignment_map
 
@@ -923,7 +1001,7 @@ class KerasModel(Model):
     source_vars = source_model.model.trainable_variables
 
     for source_var in source_vars:
-      value_map[source_var.experimental_ref()] = source_var.numpy()
+      value_map[source_var.ref()] = source_var.numpy()
 
     return value_map
 

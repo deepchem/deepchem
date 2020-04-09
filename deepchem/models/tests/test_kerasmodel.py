@@ -33,7 +33,6 @@ class TestKerasModel(unittest.TestCase):
     assert scores[metric.name] > 0.9
 
     # Check that predicting internal layers works.
-
     pred_logits = np.squeeze(model.predict_on_batch(X, outputs=logits))
     pred_from_logits = 1.0 / (1.0 + np.exp(-pred_logits))
     assert np.allclose(prediction, pred_from_logits, atol=1e-4)
