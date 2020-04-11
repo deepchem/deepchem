@@ -1,10 +1,6 @@
 """
 Script that trains Sklearn RF models on PDBbind Pockets dataset.
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import deepchem as dc
 import numpy as np
@@ -15,7 +11,7 @@ from binding_pocket_datasets import load_pdbbind_pockets
 np.random.seed(123)
 
 split = "random"
-subset = "full"
+subset = "core"
 pdbbind_tasks, pdbbind_datasets, transformers = load_pdbbind_pockets(
     split=split, subset=subset)
 train_dataset, valid_dataset, test_dataset = pdbbind_datasets
