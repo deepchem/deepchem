@@ -5,10 +5,6 @@ Created on Sun Jul 23 15:04:19 2017
 
 @author: zqwu
 """
-
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
 from sklearn.kernel_ridge import KernelRidge
 
 import numpy as np

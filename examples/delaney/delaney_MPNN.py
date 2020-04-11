@@ -1,15 +1,8 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
 """
 Created on Sat Jul 29 23:49:02 2017
 
 @author: zqwu
 """
-
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import numpy as np
 np.random.seed(123)
 import tensorflow as tf
