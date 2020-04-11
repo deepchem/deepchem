@@ -366,7 +366,7 @@ class Dataset(object):
     if len(X_val.shape) == 1:
       X_val = np.expand_dims(X_val, 1)
 
-    # Find the X values.
+    # Find the y values.
 
     if y is not None:
       y_val = df[y]
