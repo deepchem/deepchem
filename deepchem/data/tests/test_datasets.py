@@ -14,6 +14,7 @@ import shutil
 import numpy as np
 import deepchem as dc
 import tensorflow as tf
+import pandas as pd
 from tensorflow.python.framework import test_util
 
 
@@ -695,6 +696,28 @@ class TestDatasets(test_util.TensorFlowTestCase):
       np.testing.assert_array_equal(y[offset:offset + 10, :], batch_y)
       np.testing.assert_array_equal(np.ones((10, 1)), batch_w)
     assert i == 19
+
+  def test_dataframe(self):
+    """Test converting between Datasets and DataFrames."""
+    dataset = dc.data.tests.load_solubility_data()
+
+    # A round trip from Dataset to DataFrame to Dataset should produce identical arrays.
+
+    df = dataset.to_dataframe()
+    dataset2 = dc.data.Dataset.from_dataframe(df)
+    np.testing.assert_array_equal(dataset.X, dataset2.X)
+    np.testing.assert_array_equal(dataset.y, dataset2.y)
+    np.testing.assert_array_equal(dataset.w, dataset2.w)
+    np.testing.assert_array_equal(dataset.ids, dataset2.ids)
+
+    # Try specifying particular columns.
+
+    dataset3 = dc.data.Dataset.from_dataframe(
+        df, X=['X2', 'X4'], y='w', w=['y', 'X1'])
+    np.testing.assert_array_equal(dataset.X[:, (1, 3)], dataset3.X)
+    np.testing.assert_array_equal(dataset.w, dataset3.y)
+    np.testing.assert_array_equal(
+        np.stack([dataset.y[:, 0], dataset.X[:, 0]], axis=1), dataset3.w)
 
 
 if __name__ == "__main__":
