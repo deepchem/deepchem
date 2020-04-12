@@ -5,6 +5,9 @@ import os
 import deepchem as dc
 import numpy as np
 from deepchem.molnet import load_pdbbind
+# You'll want to see some of the logging statements to track progress
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 # For stable runs
 np.random.seed(123)
@@ -23,7 +26,8 @@ complex_num_atoms = frag1_num_atoms + frag2_num_atoms
 model = dc.models.AtomicConvModel(
     frag1_num_atoms=frag1_num_atoms,
     frag2_num_atoms=frag2_num_atoms,
-    complex_num_atoms=complex_num_atoms)
+    complex_num_atoms=complex_num_atoms,
+    tensorboard_log_frequence=1)
 
 # Fit trained model
 print("Fitting model on train dataset")
