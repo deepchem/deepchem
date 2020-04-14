@@ -17,6 +17,12 @@ import tensorflow as tf
 import pandas as pd
 from tensorflow.python.framework import test_util
 
+try:
+  import torch
+  PYTORCH_IMPORT_FAILED = False
+except ImportError:
+  PYTORCH_IMPORT_FAILED = True
+
 
 class TestDatasets(test_util.TensorFlowTestCase):
   """
@@ -696,6 +702,75 @@ class TestDatasets(test_util.TensorFlowTestCase):
       np.testing.assert_array_equal(y[offset:offset + 10, :], batch_y)
       np.testing.assert_array_equal(np.ones((10, 1)), batch_w)
     assert i == 19
+
+  def _validate_pytorch_dataset(self, dataset):
+    X = dataset.X
+    y = dataset.y
+    w = dataset.w
+    ids = dataset.ids
+    n_samples = X.shape[0]
+
+    # Test iterating in order.
+
+    ds = dataset.make_pytorch_dataset(epochs=2, deterministic=True)
+    for i, (iter_X, iter_y, iter_w, iter_id) in enumerate(ds):
+      j = i % n_samples
+      np.testing.assert_array_equal(X[j, :], iter_X)
+      np.testing.assert_array_equal(y[j, :], iter_y)
+      np.testing.assert_array_equal(w[j, :], iter_w)
+      assert ids[j] == iter_id
+    assert i == 2 * n_samples - 1
+
+    # Test iterating out of order.
+
+    ds = dataset.make_pytorch_dataset(epochs=2, deterministic=False)
+    id_to_index = dict((id, i) for i, id in enumerate(ids))
+    id_count = dict((id, 0) for id in ids)
+    for iter_X, iter_y, iter_w, iter_id in ds:
+      j = id_to_index[iter_id]
+      np.testing.assert_array_equal(X[j, :], iter_X)
+      np.testing.assert_array_equal(y[j, :], iter_y)
+      np.testing.assert_array_equal(w[j, :], iter_w)
+      id_count[iter_id] += 1
+    assert all(id_count[id] == 2 for id in ids)
+
+    # Test iterating with multiple workers.
+
+    import torch
+    loader = torch.utils.data.DataLoader(ds, num_workers=3)
+    id_count = dict((id, 0) for id in ids)
+    for iter_X, iter_y, iter_w, iter_id in loader:
+      j = id_to_index[iter_id[0]]
+      np.testing.assert_array_equal(X[j, :], iter_X[0])
+      np.testing.assert_array_equal(y[j, :], iter_y[0])
+      np.testing.assert_array_equal(w[j, :], iter_w[0])
+      id_count[iter_id[0]] += 1
+    assert all(id_count[id] == 2 for id in ids)
+
+  @unittest.skipIf(PYTORCH_IMPORT_FAILED, 'PyTorch is not installed')
+  def test_make_pytorch_dataset_from_numpy(self):
+    """Test creating a PyTorch Dataset from a NumpyDataset."""
+    X = np.random.random((100, 5))
+    y = np.random.random((100, 1))
+    ids = [str(i) for i in range(100)]
+    dataset = dc.data.NumpyDataset(X, y, ids=ids)
+    self._validate_pytorch_dataset(dataset)
+
+  @unittest.skipIf(PYTORCH_IMPORT_FAILED, 'PyTorch is not installed')
+  def test_make_pytorch_dataset_from_images(self):
+    """Test creating a PyTorch Dataset from an ImageDataset."""
+    path = os.path.join(os.path.dirname(__file__), 'images')
+    files = [os.path.join(path, f) for f in os.listdir(path)]
+    y = np.random.random((10, 1))
+    ids = [str(i) for i in range(len(files))]
+    dataset = dc.data.ImageDataset(files, y, ids=ids)
+    self._validate_pytorch_dataset(dataset)
+
+  @unittest.skipIf(PYTORCH_IMPORT_FAILED, 'PyTorch is not installed')
+  def test_make_pytorch_dataset_from_disk(self):
+    """Test creating a PyTorch Dataset from a DiskDataset."""
+    dataset = dc.data.tests.load_solubility_data()
+    self._validate_pytorch_dataset(dataset)
 
   def test_dataframe(self):
     """Test converting between Datasets and DataFrames."""
