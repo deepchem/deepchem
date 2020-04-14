@@ -106,6 +106,8 @@ class ComplexFeaturizer(Featurizer):
       List of PDB filenames for molecules.
     protein_pdbs: list
       List of PDB filenames for proteins.
+    parallelize: bool
+      Use multiprocessing to parallelize
 
     Returns
     -------
@@ -126,7 +128,10 @@ class ComplexFeaturizer(Featurizer):
     features = []
     failures = []
     for ind, result in enumerate(results):
-      new_features = result.get()
+      if parallelize:
+        new_features = result.get()
+      else:
+        new_features = result
       # Handle loading failures which return None
       if new_features is not None:
         features.append(new_features)

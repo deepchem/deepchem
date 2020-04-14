@@ -17,10 +17,11 @@ from deepchem.feat.graph_features import AtomicConvFeaturizer
 
 logger = logging.getLogger(__name__)
 DEFAULT_DATA_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.get_data_dir()
 
 
-def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
-  """Featurizes pdbbind according to provided featurization"""
+def _fetch_precomputed_grid(data_dir=None, feat="grid", subset="core"):
+  """Fetches precomputed grid features. Private method"""
   tasks = ["-logKd/Ki"]
   data_dir = deepchem.utils.get_data_dir()
   pdbbind_dir = os.path.join(data_dir, "pdbbind")
@@ -54,7 +55,7 @@ def load_pdbbind_grid(split="random",
                       reload=True):
   """Load PDBBind datasets. Does not do train/test split"""
   if featurizer == 'grid':
-    dataset, tasks = featurize_pdbbind(feat=featurizer, subset=subset)
+    dataset, tasks = _fetch_precomputed_grid(feat=featurizer, subset=subset)
 
     splitters = {
         'index': deepchem.splits.IndexSplitter(),
@@ -188,11 +189,11 @@ def load_pdbbind(reload=True,
   deepchem_dir = deepchem.utils.get_data_dir()
 
   if data_dir == None:
-    data_dir = DEFAULT_DATA_DIR
+    data_dir = DEFAULT_DIR
   data_folder = os.path.join(data_dir, "pdbbind", "v2015")
 
   if save_dir == None:
-    save_dir = os.path.join(DEFAULT_DATA_DIR, "from-pdbbind")
+    save_dir = os.path.join(DEFAULT_DIR, "from-pdbbind")
   if load_binding_pocket:
     save_folder = os.path.join(
         save_dir, "protein_pocket-%s-%s-%s" % (subset, featurizer, split))

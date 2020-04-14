@@ -190,10 +190,12 @@ class AtomicConvModel(KerasModel):
     atom_types: list
       List of atoms recognized by model. Atoms are indicated by their
       nuclear numbers.
-    radial: list
-      TODO: add description
+    radial: list of lists of floats
+      List of length l, where l is the number of radial filters
+      learned. These are the values used at initialization, but
+      values are learned afterwards.
     layer_sizes: list
-      TODO: add description
+      List specifying the number of fully connected layers on top of atomic convolutions.
     learning_rate: float
       Learning rate for the model.
     """

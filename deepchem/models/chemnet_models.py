@@ -190,30 +190,36 @@ class Smiles2Vec(KerasModel):
 
 class ChemCeption(KerasModel):
   """
-  Implements the ChemCeption model that leverages the representational capacities
-  of convolutional neural networks (CNNs) to predict molecular properties.
+  Implements the ChemCeption model that leverages the
+  representational capacities of convolutional neural networks
+  (CNNs) to predict molecular properties.
 
-  The model is based on the description in Goh et al., "Chemception: A Deep
-  Neural Network with Minimal Chemistry Knowledge Matches the Performance of
-  Expert-developed QSAR/QSPR Models" (https://arxiv.org/pdf/1706.06689.pdf).
-  The authors use an image based representation of the molecule, where pixels
-  encode different atomic and bond properties. More details on the image repres-
-  entations can be found at https://arxiv.org/abs/1710.02238
+  The model is based on the description in Goh et al.,
+  "Chemception: A Deep Neural Network with Minimal Chemistry
+  Knowledge Matches the Performance of Expert-developed
+  QSAR/QSPR Models" (https://arxiv.org/pdf/1706.06689.pdf).  The
+  authors use an image based representation of the molecule,
+  where pixels encode different atomic and bond properties. More
+  details on the image repres- entations can be found at
+  https://arxiv.org/abs/1710.02238
 
-  The model consists of a Stem Layer that reduces the image resolution for the
-  layers to follow. The output of the Stem Layer is followed by a series of
-  Inception-Resnet blocks & a Reduction layer. Layers in the Inception-Resnet
-  blocks process image tensors at multiple resolutions and use a ResNet style
-  skip-connection, combining features from different resolutions. The Reduction
-  layers reduce the spatial extent of the image by max-pooling and 2-strided
-  convolutions. More details on these layers can be found in the ChemCeption
-  paper referenced above. The output of the final Reduction layer is subject to
-  a Global Average Pooling, and a fully-connected layer maps the features to
-  downstream outputs.
+  The model consists of a Stem Layer that reduces the image
+  resolution for the layers to follow. The output of the Stem
+  Layer is followed by a series of Inception-Resnet blocks & a
+  Reduction layer. Layers in the Inception-Resnet blocks process
+  image tensors at multiple resolutions and use a ResNet style
+  skip-connection, combining features from different
+  resolutions. The Reduction layers reduce the spatial extent of
+  the image by max-pooling and 2-strided convolutions. More
+  details on these layers can be found in the ChemCeption paper
+  referenced above. The output of the final Reduction layer is
+  subject to a Global Average Pooling, and a fully-connected
+  layer maps the features to downstream outputs.
 
-  In the ChemCeption paper, the authors perform real-time image augmentation by
-  rotating images between 0 to 180 degrees. This can be done during model
-  training by setting the augment argument to True.
+  In the ChemCeption paper, the authors perform real-time image
+  augmentation by rotating images between 0 to 180 degrees. This
+  can be done during model training by setting the augment
+  argument to True.
   """
 
   def __init__(self,
