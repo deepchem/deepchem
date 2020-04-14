@@ -305,6 +305,22 @@ class Dataset(object):
 
     return tf.data.Dataset.from_generator(gen_data, dtypes, shapes)
 
+  def make_pytorch_dataset(self, epochs=1, deterministic=False):
+    """Create a torch.utils.data.IterableDataset that iterates over the data in this Dataset.
+
+    Each value returned by the Dataset's iterator is a tuple of (X, y, w, id) for
+    one sample.
+
+    Parameters
+    ----------
+    epochs: int
+      the number of times to iterate over the Dataset
+    deterministic: bool
+      if True, the data is produced in order.  If False, a different random
+      permutation of the data is used for each epoch.
+    """
+    raise NotImplementedError()
+
   def to_dataframe(self):
     """Construct a pandas DataFrame containing the data from this Dataset."""
     X = self.X
@@ -569,6 +585,48 @@ class NumpyDataset(Dataset):
     w = self.w[indices]
     ids = self.ids[indices]
     return NumpyDataset(X, y, w, ids)
+
+  def make_pytorch_dataset(self, epochs=1, deterministic=False):
+    """Create a torch.utils.data.IterableDataset that iterates over the data in this Dataset.
+
+    Each value returned by the Dataset's iterator is a tuple of (X, y, w, id) for
+    one sample.
+
+    Parameters
+    ----------
+    epochs: int
+      the number of times to iterate over the Dataset
+    deterministic: bool
+      if True, the data is produced in order.  If False, a different random
+      permutation of the data is used for each epoch.
+    """
+    import torch
+
+    def iterate():
+      n_samples = self._X.shape[0]
+      worker_info = torch.utils.data.get_worker_info()
+      if worker_info is None:
+        first_sample = 0
+        last_sample = n_samples
+      else:
+        first_sample = worker_info.id * n_samples // worker_info.num_workers
+        last_sample = (
+            worker_info.id + 1) * n_samples // worker_info.num_workers
+      for epoch in range(epochs):
+        if deterministic:
+          order = first_sample + np.arange(last_sample - first_sample)
+        else:
+          order = first_sample + np.random.permutation(last_sample -
+                                                       first_sample)
+        for i in order:
+          yield (self._X[i], self._y[i], self._w[i], self._ids[i])
+
+    class TorchDataset(torch.utils.data.IterableDataset):
+
+      def __iter__(self):
+        return iterate()
+
+    return TorchDataset()
 
   @staticmethod
   def from_DiskDataset(ds):
@@ -897,9 +955,19 @@ class DiskDataset(Dataset):
 
 
     """
+    shard_indices = list(range(self.get_number_shards()))
+    return self._iterbatches_from_shards(shard_indices, batch_size,
+                                         deterministic, pad_batches)
+
+  def _iterbatches_from_shards(self,
+                               shard_indices,
+                               batch_size=None,
+                               deterministic=False,
+                               pad_batches=False):
+    """Get an object that iterates over batches from a restricted set of shards."""
 
     def iterate(dataset, batch_size):
-      num_shards = dataset.get_number_shards()
+      num_shards = len(shard_indices)
       if not deterministic:
         shard_perm = np.random.permutation(num_shards)
       else:
@@ -910,7 +978,8 @@ class DiskDataset(Dataset):
       # objects as an extra overhead. Also, as hideously as un-thread safe this looks,
       # we're actually protected by the GIL.
       pool = Pool(1)  # mp.dummy aliases ThreadPool to Pool
-      next_shard = pool.apply_async(dataset.get_shard, (shard_perm[0],))
+      next_shard = pool.apply_async(dataset.get_shard,
+                                    (shard_indices[shard_perm[0]],))
 
       total_yield = 0
 
@@ -927,8 +996,8 @@ class DiskDataset(Dataset):
 
         X, y, w, ids = next_shard.get()
         if cur_shard < num_shards - 1:
-          next_shard = pool.apply_async(dataset.get_shard,
-                                        (shard_perm[cur_shard + 1],))
+          next_shard = pool.apply_async(
+              dataset.get_shard, (shard_indices[shard_perm[cur_shard + 1]],))
         else:
           pool.close()
 
@@ -1067,6 +1136,47 @@ class DiskDataset(Dataset):
 
     return DiskDataset.create_dataset(
         generator(), data_dir=out_dir, tasks=tasks, verbose=verbose)
+
+  def make_pytorch_dataset(self, epochs=1, deterministic=False):
+    """Create a torch.utils.data.IterableDataset that iterates over the data in this Dataset.
+
+    Each value returned by the Dataset's iterator is a tuple of (X, y, w, id) for
+    one sample.
+
+    Parameters
+    ----------
+    epochs: int
+      the number of times to iterate over the Dataset
+    deterministic: bool
+      if True, the data is produced in order.  If False, a different random
+      permutation of the data is used for each epoch.
+    """
+    import torch
+
+    def iterate():
+      worker_info = torch.utils.data.get_worker_info()
+      n_shards = self.get_number_shards()
+      if worker_info is None:
+        first_shard = 0
+        last_shard = n_shards
+      else:
+        first_shard = worker_info.id * n_shards // worker_info.num_workers
+        last_shard = (worker_info.id + 1) * n_shards // worker_info.num_workers
+      if first_shard == last_shard:
+        return
+      shard_indices = list(range(first_shard, last_shard))
+      for epoch in range(epochs):
+        for X, y, w, ids in self._iterbatches_from_shards(
+            shard_indices, deterministic=deterministic):
+          for i in range(X.shape[0]):
+            yield (X[i], y[i], w[i], ids[i])
+
+    class TorchDataset(torch.utils.data.IterableDataset):
+
+      def __iter__(self):
+        return iterate()
+
+    return TorchDataset()
 
   @staticmethod
   def from_numpy(X,
@@ -1662,6 +1772,54 @@ class ImageDataset(Dataset):
     w = self._w[indices]
     ids = self._ids[indices]
     return ImageDataset(X, y, w, ids)
+
+  def make_pytorch_dataset(self, epochs=1, deterministic=False):
+    """Create a torch.utils.data.IterableDataset that iterates over the data in this Dataset.
+
+    Each value returned by the Dataset's iterator is a tuple of (X, y, w, id) for
+    one sample.
+
+    Parameters
+    ----------
+    epochs: int
+      the number of times to iterate over the Dataset
+    deterministic: bool
+      if True, the data is produced in order.  If False, a different random
+      permutation of the data is used for each epoch.
+    """
+    import torch
+
+    def get_image(array, index):
+      if isinstance(array, np.ndarray):
+        return array[index]
+      return dc.data.ImageLoader.load_img([array[index]])[0]
+
+    def iterate():
+      n_samples = self._X_shape[0]
+      worker_info = torch.utils.data.get_worker_info()
+      if worker_info is None:
+        first_sample = 0
+        last_sample = n_samples
+      else:
+        first_sample = worker_info.id * n_samples // worker_info.num_workers
+        last_sample = (
+            worker_info.id + 1) * n_samples // worker_info.num_workers
+      for epoch in range(epochs):
+        if deterministic:
+          order = first_sample + np.arange(last_sample - first_sample)
+        else:
+          order = first_sample + np.random.permutation(last_sample -
+                                                       first_sample)
+        for i in order:
+          yield (get_image(self._X, i), get_image(self._y, i), self._w[i],
+                 self._ids[i])
+
+    class TorchDataset(torch.utils.data.IterableDataset):
+
+      def __iter__(self):
+        return iterate()
+
+    return TorchDataset()
 
 
 class Databag(object):
