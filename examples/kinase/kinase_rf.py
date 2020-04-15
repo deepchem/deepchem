@@ -1,25 +1,19 @@
 """
 Script that trains RF model on KINASE datasets.
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import numpy as np
 import tempfile
 import shutil
 import deepchem as dc
 from sklearn.ensemble import RandomForestRegressor
-from KINASE_datasets import load_kinase
 
 ###Load data###
 np.random.seed(123)
 shard_size = 2000
-#num_trials = 5
 num_trials = 1
 print("About to load KINASE data.")
-KINASE_tasks, datasets, transformers = load_kinase(shard_size=shard_size)
+KINASE_tasks, datasets, transformers = dc.molnet.load_kinase(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
 
 print("Number of compounds in train set")
@@ -60,9 +54,9 @@ for trial in range(num_trials):
                       valid_score, valid_task_scores,
                       test_score, test_task_scores))
 
-  print("----------------------------------------------------------------")
+  print("-----------------------------------------------------")
   print("Scores for trial %d" % trial)
-  print("----------------------------------------------------------------")
+  print("-----------------------------------------------------")
   print("train_task_scores")
   print(train_task_scores)
   print("Mean Train score")
@@ -76,14 +70,14 @@ for trial in range(num_trials):
   print("Mean Test score")
   print(test_score)
 
-print("####################################################################")
+print("#######################################################")
 
 for trial in range(num_trials):
   (train_score, train_task_scores, valid_score, valid_task_scores,
    test_score, test_task_scores) = all_results[trial]
-  print("----------------------------------------------------------------")
+  print("-----------------------------------------------------")
   print("Scores for trial %d" % trial)
-  print("----------------------------------------------------------------")
+  print("-----------------------------------------------------")
   print("train_task_scores")
   print(train_task_scores)
   print("Mean Train score")

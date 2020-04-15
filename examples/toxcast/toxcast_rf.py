@@ -1,10 +1,6 @@
 """
 Script that trains Sklearn multitask models on toxcast & tox21 dataset.
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.molnet import load_toxcast

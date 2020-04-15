@@ -12,13 +12,21 @@ import deepchem as dc
 
 
 def load_permeability(featurizer='ECFP', split='index'):
-  """Load membrain permeability datasets. Does not do train/test split"""
-  print("About to load membrain permeability dataset.")
+  """Load membrane permeability datasets. Does not do train/test split
+
+  RRCK permeability dataset. This set contains permeability data and structures for 201 compounds curated from 8 sources using the RRCK (aka MDCK-LE) permeability assay. The dataset has been used to train a 3D physics-based permeability model as referenced in http://doi.org/10.1021/acs.jcim.6b00005. Here's the citation for the paper:
+
+  Leung, Siegfried SF, Daniel Sindhikara, and Matthew P. Jacobson. "Simple predictive models of passive membrane permeability incorporating size-dependent membrane-water partition." Journal of chemical information and modeling 56.5 (2016): 924-929.
+
+
+  Looks like we're using the 3d coordinates here. Just like ESOL, permeability should be based on the compound not conformer, but the conformational ensemble highly affects the permeability (solubility as well). Existing predictors of permeability and solubility both require sampling of the 3d structures.
+  """
+  print("About to load membrane permeability dataset.")
   current_dir = os.path.dirname(os.path.realpath(__file__))
   dataset_file = os.path.join(current_dir,
                               "../../datasets/membrane_permeability.sdf")
   # Featurize permeability dataset
-  print("About to featurize membrain permeability dataset.")
+  print("About to featurize membrane permeability dataset.")
 
   if featurizer == 'ECFP':
     featurizer_func = dc.feat.CircularFingerprint(size=1024)

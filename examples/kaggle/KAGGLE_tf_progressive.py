@@ -1,11 +1,6 @@
 """
 Script that trains Tensorflow Progressive Multitask models on KAGGLE datasets.
 """
-
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import tempfile
 import shutil
