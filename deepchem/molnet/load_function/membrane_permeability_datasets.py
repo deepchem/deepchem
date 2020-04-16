@@ -1,10 +1,6 @@
 """
-MUV dataset loader.
+Membrane Permeability Dataset Loader
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import numpy as np
 import shutil
@@ -19,7 +15,11 @@ def load_permeability(featurizer='ECFP', split='index'):
   Leung, Siegfried SF, Daniel Sindhikara, and Matthew P. Jacobson. "Simple predictive models of passive membrane permeability incorporating size-dependent membrane-water partition." Journal of chemical information and modeling 56.5 (2016): 924-929.
 
 
-  Looks like we're using the 3d coordinates here. Just like ESOL, permeability should be based on the compound not conformer, but the conformational ensemble highly affects the permeability (solubility as well). Existing predictors of permeability and solubility both require sampling of the 3d structures.
+  Just like the ESOL dataset, permeability should be based on
+  the compound not conformer, but the conformational ensemble
+  highly affects the permeability (solubility as well).
+  Existing predictors of permeability and solubility both often
+  require sampling of the 3d structures.
   """
   print("About to load membrane permeability dataset.")
   current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -32,6 +32,15 @@ def load_permeability(featurizer='ECFP', split='index'):
     featurizer_func = dc.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
     featurizer_func = dc.feat.ConvMolFeaturizer()
+  elif featurizer == 'Weave':
+    featurizer = deepchem.feat.WeaveFeaturizer()
+  elif featurizer == 'Raw':
+    featurizer = deepchem.feat.RawFeaturizer()
+  elif featurizer == "smiles2img":
+    img_spec = kwargs.get("img_spec", "std")
+    img_size = kwargs.get("img_size", 80)
+    featurizer = deepchem.feat.SmilesToImage(
+        img_size=img_size, img_spec=img_spec)
 
   permeability_tasks = sorted(['LogP(RRCK)'])
 

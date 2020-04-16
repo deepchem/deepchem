@@ -1,10 +1,6 @@
 """
 Script that trains GraphConv models on qm7 dataset.
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import numpy as np
 np.random.seed(123)
 import tensorflow as tf
@@ -29,7 +25,7 @@ model = dc.models.GraphConvModel(
     len(tasks), batch_size=batch_size, learning_rate=0.001, mode="regression")
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=50)
+model.fit(train_dataset, nb_epoch=5)
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, metric, transformers)

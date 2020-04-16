@@ -1,19 +1,14 @@
 """
-Script that trains graph-conv models on Tox21 dataset.
+Script that trains DAG models on Membrane Permeability dataset.
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import numpy as np
 np.random.seed(123)
 import tensorflow as tf
 tf.random.set_seed(123)
 import deepchem as dc
-from membrane_permeability_datasets import load_permeability
 
 # Load Tox21 dataset
-permeability_tasks, permeability_datasets, transformers = load_permeability(
+permeability_tasks, permeability_datasets, transformers = dc.molnet.load_permeability(
     featurizer='GraphConv')
 train_dataset, valid_dataset, test_dataset = permeability_datasets
 
