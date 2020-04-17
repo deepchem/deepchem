@@ -4,7 +4,10 @@ Membrane Permeability Dataset Loader
 import os
 import numpy as np
 import shutil
+import logging
 import deepchem as dc
+
+logger = logging.getLogger(__name__)
 
 
 def load_permeability(featurizer='ECFP', split='index'):
@@ -21,12 +24,12 @@ def load_permeability(featurizer='ECFP', split='index'):
   Existing predictors of permeability and solubility both often
   require sampling of the 3d structures.
   """
-  print("About to load membrane permeability dataset.")
+  logger.info("About to load membrane permeability dataset.")
   current_dir = os.path.dirname(os.path.realpath(__file__))
   dataset_file = os.path.join(current_dir,
                               "../../datasets/membrane_permeability.sdf")
   # Featurize permeability dataset
-  print("About to featurize membrane permeability dataset.")
+  logger.info("About to featurize membrane permeability dataset.")
 
   if featurizer == 'ECFP':
     featurizer_func = dc.feat.CircularFingerprint(size=1024)

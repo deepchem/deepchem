@@ -10,10 +10,6 @@ import sklearn
 from deepchem.trans import undo_transforms
 from deepchem.metrics import from_one_hot
 
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 logger = logging.getLogger(__name__)
 
 
@@ -104,7 +100,7 @@ class Evaluator(object):
     all_task_scores = {}
 
     if csv_out is not None:
-      logger.info("Saving predictions to %s" % csv_out, self.verbose)
+      logger.info("Saving predictions to %s" % csv_out)
       self.output_predictions(y_pred_print, csv_out)
 
     # Compute multitask metrics
@@ -118,7 +114,7 @@ class Evaluator(object):
             y, y_pred, w, per_task_metrics=False)
 
     if stats_out is not None:
-      logger.info("Saving stats to %s" % stats_out, self.verbose)
+      logger.info("Saving stats to %s" % stats_out)
       self.output_statistics(multitask_scores, stats_out)
 
     if not per_task_metrics:

@@ -8,6 +8,8 @@ from deepchem.feat import ComplexFeaturizer
 from deepchem.utils import rdkit_util, pad_array
 from deepchem.utils.rdkit_util import MoleculeLoadException
 
+logger = logging.getLogger(__name__)
+
 
 class AtomicCoordinates(Featurizer):
   """

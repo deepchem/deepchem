@@ -367,3 +367,18 @@ class UserDefinedFeaturizer(Featurizer):
   def __init__(self, feature_fields):
     """Creates user-defined-featurizer."""
     self.feature_fields = feature_fields
+
+
+class ReactionFeaturizer(Featurizer):
+  """Abstract class that featurizes reactions."""
+
+  def _featurize(self, smarts):
+    """"
+    Calculate features for a single reaction.
+
+    Parameters
+    ----------
+    smarts: str
+      SMARTS string defining reaction.
+    """
+    raise NotImplementedError('Featurizer is not defined')

@@ -1,17 +1,15 @@
 """
 Contains an abstract base class that supports chemically aware data splits.
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import tempfile
 import numpy as np
+import logging
 from deepchem.utils import ScaffoldGenerator
 from deepchem.data import NumpyDataset
 from deepchem.utils.save import load_data
 from deepchem.splits import Splitter
 
+logger = logging.getLogger(__name__)
 
 def merge_fold_datasets(fold_datasets):
   """Merges fold datasets together.
@@ -100,7 +98,7 @@ class TaskSplitter(Splitter):
     n_tasks = len(dataset.get_task_names())
     n_per_fold = int(np.round(n_tasks / float(K)))
     if K * n_per_fold != n_tasks:
-      print("Assigning extra tasks to last fold due to uneven split")
+      logger.info("Assigning extra tasks to last fold due to uneven split")
 
     X, y, w, ids = dataset.X, dataset.y, dataset.w, dataset.ids
 

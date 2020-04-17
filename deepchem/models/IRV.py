@@ -1,11 +1,15 @@
+"""
+Implements Influence Relevance Voting.
+"""
 import logging
 import numpy as np
 import tensorflow as tf
-
 from deepchem.models import KerasModel, layers
 from deepchem.models.losses import SigmoidCrossEntropy
 from deepchem.trans import undo_transforms
 from tensorflow.keras.layers import Input, Layer, Activation, Concatenate, Lambda
+
+logger = logging.getLogger(__name__)
 
 
 class IRVLayer(Layer):
@@ -87,6 +91,10 @@ class MultitaskIRVClassifier(KerasModel):
                mode="classification",
                **kwargs):
     """Initialize MultitaskIRVClassifier
+
+    This model was introduced in the following paper:
+
+    Swamidass, S. Joshua, et al. "Influence relevance voting: an accurate and interpretable virtual high throughput screening method." Journal of chemical information and modeling 49.4 (2009): 756-766.
 
     Parameters
     ----------

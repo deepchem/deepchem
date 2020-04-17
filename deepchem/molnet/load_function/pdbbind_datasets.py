@@ -208,10 +208,10 @@ def load_pdbbind(reload=True,
 
   if reload:
     if not os.path.exists(save_folder):
-      print(
+      logger.info(
           "Dataset does not exist at {}. Reconstructing...".format(save_folder))
     else:
-      print(
+      logger.info(
           "\nLoading featurized and splitted dataset from:\n%s\n" % save_folder)
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
         save_folder)
@@ -228,12 +228,12 @@ def load_pdbbind(reload=True,
   if os.path.exists(data_folder):
     logger.info("PDBBind full dataset already exists.")
   else:
-    print("Untarring full dataset...")
+    logger.info("Untarring full dataset...")
     deepchem.utils.untargz_file(
         dataset_file, dest_dir=os.path.join(data_dir, "pdbbind"))
 
-  print("\nRaw dataset:\n%s" % data_folder)
-  print("\nFeaturized and splitted dataset:\n%s" % save_folder)
+  logger.info("\nRaw dataset:\n%s" % data_folder)
+  logger.info("\nFeaturized and splitted dataset:\n%s" % save_folder)
 
   if subset == "core":
     index_labels_file = os.path.join(data_folder, "INDEX_core_data.2013")
@@ -307,25 +307,25 @@ def load_pdbbind(reload=True,
   else:
     raise ValueError("Featurizer not supported")
 
-  print("\nFeaturizing Complexes for \"%s\" ...\n" % data_folder)
+  logger.info("\nFeaturizing Complexes for \"%s\" ...\n" % data_folder)
   feat_t1 = time.time()
   features, failures = featurizer.featurize(ligand_files, protein_files)
   feat_t2 = time.time()
-  print("\nFeaturization finished, took %0.3f s." % (feat_t2 - feat_t1))
+  logger.info("\nFeaturization finished, took %0.3f s." % (feat_t2 - feat_t1))
 
   # Delete labels and ids for failing elements
   labels = np.delete(labels, failures)
   labels = labels.reshape((len(labels), 1))
   ids = np.delete(pdbs, failures)
 
-  print("\nConstruct dataset excluding failing featurization elements...")
+  logger.info("\nConstruct dataset excluding failing featurization elements...")
   dataset = deepchem.data.DiskDataset.from_numpy(features, y=labels, ids=ids)
 
   # No transformations of data
   transformers = []
 
   # Split dataset
-  print("\nSplit dataset...\n")
+  logger.info("\nSplit dataset...\n")
   if split == None:
     return pdbbind_tasks, (dataset, None, None), transformers
 
@@ -339,7 +339,7 @@ def load_pdbbind(reload=True,
   train, valid, test = splitter.train_valid_test_split(dataset, seed=split_seed)
 
   all_dataset = (train, valid, test)
-  print("\nSaving dataset to \"%s\" ..." % save_folder)
+  logger.info("\nSaving dataset to \"%s\" ..." % save_folder)
   deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
                                            transformers)
   return pdbbind_tasks, all_dataset, transformers
@@ -411,7 +411,6 @@ def load_pdbbind_from_dir(data_folder,
       labels_tmp[line[0]] = log_label
 
   labels = np.array([labels_tmp[pdb] for pdb in pdbs])
-  print(labels)
   # Featurize Data
   if featurizer == "grid":
     featurizer = rgf.RdkitGridFeaturizer(
@@ -436,7 +435,7 @@ def load_pdbbind_from_dir(data_folder,
 
   else:
     raise ValueError("Featurizer not supported")
-  print("Featurizing Complexes")
+  logger.info("Featurizing Complexes")
   features, failures = featurizer.featurize(ligand_files, protein_files)
   # Delete labels for failing elements
   labels = np.delete(labels, failures)

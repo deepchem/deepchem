@@ -2,11 +2,6 @@
 Contains an abstract base class that supports chemically aware data splits.
 """
 import random
-
-__author__ = "Bharath Ramsundar, Aneesh Pappu "
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import tempfile
 import numpy as np
 import pandas as pd
@@ -1032,7 +1027,7 @@ class ButinaSplitter(Splitter):
         Setting a small cutoff value will generate smaller, finer clusters of high similarity,
         whereas setting a large cutoff value will generate larger, coarser clusters of low similarity.
         """
-    print("Performing butina clustering with cutoff of", cutoff)
+    logger.info("Performing butina clustering with cutoff of %s" % str(cutoff))
     mols = []
     from rdkit import Chem
     for ind, smiles in enumerate(dataset.ids):
@@ -1055,8 +1050,8 @@ class ButinaSplitter(Splitter):
       # TODO (Ytz): for regression tasks we'd stop after only one cluster.
       active_populations = np.sum(ys[valid_inds], axis=0)
       if np.all(active_populations):
-        print("# of actives per task in valid:", active_populations)
-        print("Total # of validation points:", len(valid_inds))
+        logger("# of actives per task in valid: %s" % str(active_populations))
+        logger("Total # of validation points: %d" % len(valid_inds))
         break
 
     train_inds = list(itertools.chain.from_iterable(scaffold_sets[c_idx + 1:]))

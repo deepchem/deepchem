@@ -1,14 +1,13 @@
 """TensorFlow implementation of fully connected networks.
 """
-import logging
 import warnings
 import time
 import numpy as np
 import tensorflow as tf
 import threading
 import collections
-
 import deepchem as dc
+import logging
 from deepchem.models import KerasModel
 from deepchem.models.layers import SwitchedDropout
 from deepchem.metrics import to_one_hot
