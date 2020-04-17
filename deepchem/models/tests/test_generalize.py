@@ -206,7 +206,7 @@ class TestGeneralize(unittest.TestCase):
     esr = {'early_stopping_rounds': 50}
 
     xgb_model = xgboost.XGBRegressor(n_estimators=50, random_state=123)
-    model = dc.models.XGBoostModel(xgb_model, verbose=False, **esr)
+    model = dc.models.XGBoostModel(xgb_model, **esr)
 
     # Fit trained model
     model.fit(train_dataset)
@@ -239,7 +239,7 @@ class TestGeneralize(unittest.TestCase):
 
     def model_builder(model_dir):
       xgb_model = xgboost.XGBRegressor(n_estimators=50, seed=123)
-      return dc.models.XGBoostModel(xgb_model, model_dir, verbose=False, **esr)
+      return dc.models.XGBoostModel(xgb_model, model_dir, **esr)
 
     model = dc.models.SingletaskToMultitask(tasks, model_builder)
 
@@ -270,7 +270,7 @@ class TestGeneralize(unittest.TestCase):
     classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
     esr = {'early_stopping_rounds': 50}
     xgb_model = xgboost.XGBClassifier(n_estimators=50, seed=123)
-    model = dc.models.XGBoostModel(xgb_model, verbose=False, **esr)
+    model = dc.models.XGBoostModel(xgb_model, **esr)
 
     # Fit trained model
     model.fit(train_dataset)

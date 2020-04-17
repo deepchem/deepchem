@@ -5,10 +5,6 @@ from deepchem.molnet import load_delaney
 from deepchem.trans.transformers import FeaturizationTransformer
 from deepchem.trans.transformers import DataTransforms
 
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import os
 import unittest
 import numpy as np

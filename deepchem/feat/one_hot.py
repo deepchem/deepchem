@@ -1,5 +1,10 @@
+"""
+Implements a simple one hot encoder for text models.
+"""
 import numpy as np
 from deepchem.feat.base_classes import MolecularFeaturizer
+
+logger = logging.getLogger(__name__)
 
 zinc_charset = [
     ' ', '#', ')', '(', '+', '-', '/', '1', '3', '2', '5', '4', '7', '6', '8',

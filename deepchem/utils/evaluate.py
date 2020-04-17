@@ -30,14 +30,13 @@ def threshold_predictions(y, threshold):
 class Evaluator(object):
   """Class that evaluates a model on a given dataset."""
 
-  def __init__(self, model, dataset, transformers, verbose=False):
+  def __init__(self, model, dataset, transformers):
     self.model = model
     self.dataset = dataset
     self.output_transformers = [
         transformer for transformer in transformers if transformer.transform_y
     ]
     self.task_names = dataset.get_task_names()
-    self.verbose = verbose
 
   def output_statistics(self, scores, stats_out):
     """

@@ -1,3 +1,6 @@
+"""
+Implements featurizations for GraphConv and Weave Models.
+"""
 import numpy as np
 import deepchem as dc
 from deepchem.feat.base_classes import MolecularFeaturizer
@@ -5,6 +8,8 @@ from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCo
 from deepchem.feat.mol_graphs import ConvMol, WeaveMol
 from deepchem.data import DiskDataset
 import logging
+
+logger = logging.getLogger(__name__)
 
 
 def one_of_k_encoding(x, allowable_set):
@@ -273,7 +278,9 @@ def atom_features(atom,
                   use_chirality=False):
   """Helper method used to compute per-atom feature vectors.
 
-  Many different featurization methods compute per-atom features such as ConvMolFeaturizer, WeaveFeaturizer. This method computes such features.
+  Many different featurization methods compute per-atom features
+  such as ConvMolFeaturizer, WeaveFeaturizer. This method
+  computes such features.
 
   Parameters
   ----------

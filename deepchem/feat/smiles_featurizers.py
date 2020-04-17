@@ -7,18 +7,18 @@ SmilesToImage featurizer for ChemCeption models taken from https://arxiv.org/abs
 __author__ = "Vignesh Ram Somnath"
 __license__ = "MIT"
 
+import logging
 import numpy as np
 import pandas as pd
 from deepchem.feat.base_classes import MolecularFeaturizer
+
+logger = logging.getLogger(__name__)
 
 PAD_TOKEN = "<pad>"
 OUT_OF_VOCAB_TOKEN = "<unk>"
 
 
-def create_char_to_idx(filename,
-                       max_len=250,
-                       smiles_field="smiles",
-                       verbose=False):
+def create_char_to_idx(filename, max_len=250, smiles_field="smiles"):
   """Creates a dictionary with character to index mapping.
 
   Parameters
@@ -44,13 +44,11 @@ def create_char_to_idx(filename,
 
   unique_char_list = list(char_set)
   unique_char_list += [PAD_TOKEN, OUT_OF_VOCAB_TOKEN]
-  if verbose:
-    print("Number of unique characters: ", len(unique_char_list))
+  logger.info("Number of unique characters: %d" % len(unique_char_list))
 
   char_to_idx = {letter: idx for idx, letter in enumerate(unique_char_list)}
 
-  if verbose:
-    print(unique_char_list)
+  logger.info("Unique character list: %s" % str(unique_char_list))
   return char_to_idx
 
 

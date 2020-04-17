@@ -1,4 +1,11 @@
+"""
+Encodes smiles/smarts as RDKIT objects directly.
+"""
 from deepchem.feat.base_classes import MolecularFeaturizer
+
+import logging
+from deepchem.feat import MolecularFeaturizer
+from deepchem.feat import ReactionFeaturizer
 
 
 class RawFeaturizer(MolecularFeaturizer):
@@ -45,10 +52,13 @@ class RawFeaturizer(MolecularFeaturizer):
     else:
       return mol
 
-class RawReactionFeaturizer(Featurizer):
+
+class RawReactionFeaturizer(ReactionFeaturizer):
   """Featurize SMARTS as RDKit Reaction objects.
 
-  This featurizer uses RDKit's `rdkit.Chem.rdChemReactions.ReactionFromSmarts` to parse in input SMARTS strings.
+  This featurizer uses RDKit's
+  `rdkit.Chem.rdChemReactions.ReactionFromSmarts` to parse in
+  input SMARTS strings which encode reactions.
   """
 
   def __init__(self, smarts=True):
@@ -58,7 +68,7 @@ class RawReactionFeaturizer(Featurizer):
     smarts: bool, optional
       If True, process smarts into rdkit Reaction objects. Else don't process.
     """
-    self.smarts = smarts 
+    self.smarts = smarts
 
   def _featurize(self, mol):
     """
@@ -67,7 +77,7 @@ class RawReactionFeaturizer(Featurizer):
     """
     from rdkit.Chem import rdChemReactions
     if self.smarts:
-      smarts = mol 
+      smarts = mol
       # Sometimes smarts have extraneous information at end of
       # form " |f:0" that causes parsing to fail. Not sure what
       # this information is, but just ignoring for now.
