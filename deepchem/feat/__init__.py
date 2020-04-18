@@ -5,6 +5,7 @@ from deepchem.feat.base_classes import Featurizer
 from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.feat.base_classes import StructureFeaturizer
 from deepchem.feat.base_classes import CompositionFeaturizer
+from deepchem.feat.base_classes import ReactionFeaturizer
 from deepchem.feat.base_classes import ComplexFeaturizer
 from deepchem.feat.base_classes import UserDefinedFeaturizer
 from deepchem.feat.graph_features import ConvMolFeaturizer
@@ -21,6 +22,7 @@ from deepchem.feat.raw_featurizer import RawFeaturizer
 from deepchem.feat.raw_featurizer import RawReactionFeaturizer
 from deepchem.feat.atomic_coordinates import AtomicCoordinates
 from deepchem.feat.atomic_coordinates import NeighborListComplexAtomicCoordinates
+from deepchem.feat.atomic_coordinates import AtomicConvFeaturizer
 from deepchem.feat.adjacency_fingerprints import AdjacencyFingerprint
 from deepchem.feat.smiles_featurizers import SmilesToSeq, SmilesToImage
 from deepchem.feat.materials_featurizers import ElementPropertyFingerprint, SineCoulombMatrix, StructureGraphFeaturizer

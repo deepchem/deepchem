@@ -23,12 +23,38 @@ from deepchem.utils.geometry_utils import generate_random_rotation_matrix
 
 logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 
 class MoleculeLoadException(Exception):
 
   def __init__(self, *args, **kwargs):
     Exception.__init__(*args, **kwargs)
 
+
+def compute_pairwise_distances(first_xyz, second_xyz):
+  """Computes pairwise distances between two molecules.
+
+  Takes an input (m, 3) and (n, 3) numpy arrays of 3D coords of
+  protein and ligand, respectively, and outputs an m x n numpy
+  array of pairwise distances in Angstroms between protein and
+  ligand atoms. entry (i,j) is dist between the i"th protein
+  atom and the j"th ligand atom.
+
+  Parameters
+  ----------
+  first_xyz: np.ndarray
+    Of shape (m, 3)
+  seocnd_xyz: np.ndarray
+    Of shape (n, 3)
+
+  Returns
+  -------
+  np.ndarray of shape (m, n)
+  """
+
+  pairwise_distances = cdist(first_xyz, second_xyz,
+                             metric='euclidean')
+  return (pairwise_distances)
 
 def get_xyz_from_mol(mol):
   """Extracts a numpy array of coordinates from a molecules.

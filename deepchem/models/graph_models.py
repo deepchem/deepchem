@@ -497,7 +497,7 @@ class DAGModel(KerasModel):
                         mode='fit',
                         deterministic=True,
                         pad_batches=True):
-    """TensorGraph style implementation"""
+    """Generator that turns batches into form for model to use"""
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,

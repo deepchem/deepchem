@@ -7,13 +7,13 @@ from deepchem.feat import fingerprints as fp
 
 class TestCircularFingerprint(unittest.TestCase):
   """
-    Tests for CircularFingerprint.
-    """
+  Tests for CircularFingerprint.
+  """
 
   def setUp(self):
     """
-        Set up tests.
-        """
+    Set up tests.
+    """
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
     from rdkit import Chem
     self.mol = Chem.MolFromSmiles(smiles)
@@ -21,15 +21,25 @@ class TestCircularFingerprint(unittest.TestCase):
 
   def test_circular_fingerprints(self):
     """
-        Test CircularFingerprint.
-        """
+    Test CircularFingerprint.
+    """
     rval = self.engine([self.mol])
+    assert rval.shape == (1, self.engine.size)
+
+  def test_circular_fingerprints_on_smiles(self):
+    """
+    Test CircularFingerprint on smiles
+    """
+    rval = self.engine('CC(=O)OC1=CC=CC=C1C(=O)O')
+    assert rval.shape == (1, self.engine.size)
+
+    rval = self.engine(['CC(=O)OC1=CC=CC=C1C(=O)O'])
     assert rval.shape == (1, self.engine.size)
 
   def test_sparse_circular_fingerprints(self):
     """
-        Test CircularFingerprint with sparse encoding.
-        """
+    Test CircularFingerprint with sparse encoding.
+    """
     self.engine = fp.CircularFingerprint(sparse=True)
     rval = self.engine([self.mol])
     assert rval.shape == (1,)
@@ -38,9 +48,9 @@ class TestCircularFingerprint(unittest.TestCase):
 
   def test_sparse_circular_fingerprints_with_smiles(self):
     """
-        Test CircularFingerprint with sparse encoding and SMILES for each
-        fragment.
-        """
+    Test CircularFingerprint with sparse encoding and SMILES for each
+    fragment.
+    """
     self.engine = fp.CircularFingerprint(sparse=True, smiles=True)
     rval = self.engine([self.mol])
     assert rval.shape == (1,)

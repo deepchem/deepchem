@@ -3,7 +3,8 @@ Atomic coordinate featurizer.
 """
 import logging
 import numpy as np
-from deepchem.feat import Featurizer
+import logging
+from deepchem.feat import MolecularFeaturizer
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils import rdkit_util, pad_array
 from deepchem.utils.rdkit_util import MoleculeLoadException
@@ -11,7 +12,7 @@ from deepchem.utils.rdkit_util import MoleculeLoadException
 logger = logging.getLogger(__name__)
 
 
-class AtomicCoordinates(Featurizer):
+class AtomicCoordinates(MolecularFeaturizer):
   """
   Nx3 matrix of Cartesian coordinates [Angstrom]
   """
@@ -26,7 +27,6 @@ class AtomicCoordinates(Featurizer):
     mol : RDKit Mol
           Molecule.
     """
-
     N = mol.GetNumAtoms()
     coords = np.zeros((N, 3))
 
@@ -47,8 +47,8 @@ class AtomicCoordinates(Featurizer):
     return coords
 
 
-def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
-                          periodic_box_size):
+def _compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
+                           periodic_box_size):
   """Computes a neighbor list from atom coordinates."""
   N = coords.shape[0]
   import mdtraj
@@ -92,7 +92,7 @@ def get_coords(mol):
   return coords
 
 
-class NeighborListAtomicCoordinates(Featurizer):
+class NeighborListAtomicCoordinates(MolecularFeaturizer):
   """
   Adjacency List of neighbors in 3-space
 
@@ -131,16 +131,16 @@ class NeighborListAtomicCoordinates(Featurizer):
 
     Parameters
     ----------
-      mol: rdkit Mol
-        To be featurized.
+    mol: rdkit Mol
+      To be featurized.
     """
     N = mol.GetNumAtoms()
     # TODO(rbharath): Should this return a list?
     bohr_coords = self.coordinates_featurizer._featurize(mol)[0]
     coords = get_coords(mol)
-    neighbor_list = compute_neighbor_list(coords, self.neighbor_cutoff,
-                                          self.max_num_neighbors,
-                                          self.periodic_box_size)
+    neighbor_list = _compute_neighbor_list(coords, self.neighbor_cutoff,
+                                           self.max_num_neighbors,
+                                           self.periodic_box_size)
     return (bohr_coords, neighbor_list)
 
 
@@ -178,13 +178,13 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     protein_coords, protein_mol = rdkit_util.load_molecule(protein_pdb_file)
     system_coords = rdkit_util.merge_molecules_xyz([mol_coords, protein_coords])
 
-    system_neighbor_list = compute_neighbor_list(
+    system_neighbor_list = _compute_neighbor_list(
         system_coords, self.neighbor_cutoff, self.max_num_neighbors, None)
 
     return (system_coords, system_neighbor_list)
 
 
-class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
+class AtomicConvFeaturizer(ComplexFeaturizer):
   """This class computes the featurization that corresponds to AtomicConvModel.
 
   This class computes featurizations needed for AtomicConvModel.
@@ -206,22 +206,35 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
   """
 
   def __init__(self,
-               frag1_num_atoms,
-               frag2_num_atoms,
+               frag_num_atoms,
                complex_num_atoms,
                max_num_neighbors,
                neighbor_cutoff,
                strip_hydrogens=True):
-    self.frag1_num_atoms = frag1_num_atoms
-    self.frag2_num_atoms = frag2_num_atoms
-    self.complex_num_atoms = complex_num_atoms
+    """Initialize an AtomicConvFeaturizer object.
+
+    Parameters
+    ----------
+    frag_num_atoms: list[int]
+      List of the number of atoms in each fragment.
+    max_num_neighbors: int
+      The maximum number of neighbors allowed
+    neighbor_cutoff: float
+      The distance in angstroms after which neighbors are cutoff.
+    strip_hydrogens: bool, optional
+      If true, remove hydrogens before featurizing.
+    """
+    # TODO(rbharath): extend to more fragments
+    if len(frag_num_atoms) != 2:
+      raise ValueError("Currently only supports two fragments")
+    self.complex_num_atoms = sum(frag_num_atoms)
     self.max_num_neighbors = max_num_neighbors
     self.neighbor_cutoff = neighbor_cutoff
     self.strip_hydrogens = strip_hydrogens
-    self.neighborlist_featurizer = NeighborListComplexAtomicCoordinates(
-        self.max_num_neighbors, self.neighbor_cutoff)
 
   def _featurize(self, mol_pdb_file, protein_pdb_file):
+    frag_coords = []
+    frag_mols = []
     try:
       frag1_coords, frag1_mol = rdkit_util.load_molecule(
           mol_pdb_file, is_protein=False, sanitize=True, add_hydrogens=False)
@@ -265,8 +278,8 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
 
   def featurize_mol(self, coords, mol, max_num_atoms):
     logging.info("Featurizing molecule of size: %d", len(mol.GetAtoms()))
-    neighbor_list = compute_neighbor_list(coords, self.neighbor_cutoff,
-                                          self.max_num_neighbors, None)
+    neighbor_list = _compute_neighbor_list(coords, self.neighbor_cutoff,
+                                           self.max_num_neighbors, None)
     z = self.get_Z_matrix(mol, max_num_atoms)
     z = pad_array(z, max_num_atoms)
     coords = pad_array(coords, (max_num_atoms, 3))
@@ -304,3 +317,20 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
     mol = MoleculeShim(atomic_numbers)
     coords = coords[indexes_to_keep]
     return coords, mol
+
+
+############################# Deprecation warning for old name of AtomicConvFeaturizer ###############################
+
+DEPRECATION = "{} is deprecated and has been renamed to {} and will be removed in DeepChem 3.0."
+
+
+class ComplexNeighborListFragmentAtomicCoordinates(AtomicConvFeaturizer):
+
+  def __init__(self, *args, **kwargs):
+
+    warnings.warn(
+        DEPRECATION.format("ComplexNeighborListFragmentAtomicCoordinates",
+                           "AtomicConvFeaturizer"), FutureWarning)
+
+    super(ComplexNeighborListFragmentAtomicCoordinates, self).__init__(
+        *args, **kwargs)

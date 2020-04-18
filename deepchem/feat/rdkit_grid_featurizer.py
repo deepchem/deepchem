@@ -8,151 +8,31 @@ import time
 import hashlib
 import multiprocessing
 from collections import Counter
-from warnings import warn
-from deepchem.utils.rdkit_util import load_molecule
-from deepchem.utils.rdkit_util import MoleculeLoadException
 import numpy as np
-from scipy.spatial.distance import cdist
+from warnings import warn
 from copy import deepcopy
+from collections import Counter
+from deepchem.utils.rdkit_util import load_molecule
+from deepchem.utils.rdkit_util import compute_centroid
+from deepchem.utils.rdkit_util import compute_ring_center
+from deepchem.utils.rdkit_util import rotate_molecules
+from deepchem.utils.rdkit_util import compute_pairwise_distances
+from deepchem.utils.rdkit_util import is_salt_bridge
+from deepchem.utils.rdkit_util import MoleculeLoadException
+from scipy.spatial.distance import cdist
 from deepchem.feat import ComplexFeaturizer
 
 logger = logging.getLogger(__name__)
-
-
-def compute_centroid(coordinates):
-  """Compute the x,y,z centroid of provided coordinates
-
-  coordinates: np.ndarray
-    Shape (N, 3), where N is number atoms.
-  """
-  centroid = np.mean(coordinates, axis=0)
-  return (centroid)
-
-
-def generate_random__unit_vector():
-  """Generate a random unit vector on the 3-sphere.
-  citation:
-  http://mathworld.wolfram.com/SpherePointPicking.html
-
-  a. Choose random theta \element [0, 2*pi]
-  b. Choose random z \element [-1, 1]
-  c. Compute output vector u: (x,y,z) = (sqrt(1-z^2)*cos(theta), sqrt(1-z^2)*sin(theta),z)
-  """
-
-  theta = np.random.uniform(low=0.0, high=2 * np.pi)
-  z = np.random.uniform(low=-1.0, high=1.0)
-  u = np.array(
-      [np.sqrt(1 - z**2) * np.cos(theta),
-       np.sqrt(1 - z**2) * np.sin(theta), z])
-  return (u)
-
-
-def generate_random_rotation_matrix():
-  """Generate a random rotation matrix in 3D.
-
-  1. Generate a random unit vector u, randomly sampled from the unit
-     3-sphere (see function generate_random__unit_vector() for details)
-  2. Generate a second random unit vector v
-    a. If absolute value of u \dot v > 0.99, repeat.
-       (This is important for numerical stability. Intuition: we want them to
-       be as linearly independent as possible or else the orthogonalized
-       version of v will be much shorter in magnitude compared to u. I assume
-       in Stack they took this from Gram-Schmidt orthogonalization?)
-    b. v" = v - (u \dot v)*u, i.e. subtract out the component of v that's in
-       u's direction
-    c. normalize v" (this isn"t in Stack but I assume it must be done)
-  3. find w = u \cross v"
-  4. u, v", and w will form the columns of a rotation matrix, R. The
-     intuition is that u, v" and w are, respectively, what the standard basis
-     vectors e1, e2, and e3 will be mapped to under the transformation.
-  """
-  u = generate_random__unit_vector()
-  v = generate_random__unit_vector()
-  while np.abs(np.dot(u, v)) >= 0.99:
-    v = generate_random__unit_vector()
-
-  vp = v - (np.dot(u, v) * u)
-  vp /= np.linalg.norm(vp)
-
-  w = np.cross(u, vp)
-
-  R = np.column_stack((u, vp, w))
-  return (R)
-
-
-def rotate_molecules(mol_coordinates_list):
-  """Rotates provided molecular coordinates.
-
-  Pseudocode:
-  1. Generate random rotation matrix. This matrix applies a random
-     transformation to any 3-vector such that, were the random transformation
-     repeatedly applied, it would randomly sample along the surface of a sphere
-     with radius equal to the norm of the given 3-vector cf.
-     _generate_random_rotation_matrix() for details
-  2. Apply R to all atomic coordinatse.
-  3. Return rotated molecule
-  """
-  R = generate_random_rotation_matrix()
-  rotated_coordinates_list = []
-
-  for mol_coordinates in mol_coordinates_list:
-    coordinates = deepcopy(mol_coordinates)
-    rotated_coordinates = np.transpose(np.dot(R, np.transpose(coordinates)))
-    rotated_coordinates_list.append(rotated_coordinates)
-
-  return (rotated_coordinates_list)
-
-
-def compute_pairwise_distances(protein_xyz, ligand_xyz):
-  """Takes an input m x 3 and n x 3 np arrays of 3D coords of protein and ligand,
-  respectively, and outputs an m x n np array of pairwise distances in Angstroms
-  between protein and ligand atoms. entry (i,j) is dist between the i"th protein
-  atom and the j"th ligand atom.
-  """
-
-  pairwise_distances = cdist(protein_xyz, ligand_xyz, metric='euclidean')
-  return (pairwise_distances)
-
-
 """following two functions adapted from:
 http://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
 """
 
 
-def unit_vector(vector):
-  """ Returns the unit vector of the vector.  """
-  return vector / np.linalg.norm(vector)
-
-
-def angle_between(vector_i, vector_j):
-  """Returns the angle in radians between vectors "vector_i" and "vector_j"::
-
-  >>> print("%0.06f" % angle_between((1, 0, 0), (0, 1, 0)))
-  1.570796
-  >>> print("%0.06f" % angle_between((1, 0, 0), (1, 0, 0)))
-  0.000000
-  >>> print("%0.06f" % angle_between((1, 0, 0), (-1, 0, 0)))
-  3.141593
-
-  Note that this function always returns the smaller of the two angles between
-  the vectors (value between 0 and pi).
-  """
-  vector_i_u = unit_vector(vector_i)
-  vector_j_u = unit_vector(vector_j)
-  angle = np.arccos(np.dot(vector_i_u, vector_j_u))
-  if np.isnan(angle):
-    if np.allclose(vector_i_u, vector_j_u):
-      return 0.0
-    else:
-      return np.pi
-  return angle
-
-
-def hash_sybyl(sybyl, sybyl_types):
+def _hash_sybyl(sybyl, sybyl_types):
   return (sybyl_types.index(sybyl))
 
 
-def hash_ecfp(ecfp, power):
+def _hash_ecfp(ecfp, power):
   """
   Returns an int of size 2^power representing that
   ECFP fragment. Input must be a string.
@@ -165,7 +45,7 @@ def hash_ecfp(ecfp, power):
   return (ecfp_hash)
 
 
-def hash_ecfp_pair(ecfp_pair, power):
+def _hash_ecfp_pair(ecfp_pair, power):
   """Returns an int of size 2^power representing that ECFP pair. Input must be
   a tuple of strings.
   """
@@ -178,7 +58,7 @@ def hash_ecfp_pair(ecfp_pair, power):
   return (ecfp_hash)
 
 
-def compute_all_ecfp(mol, indices=None, degree=2):
+def _compute_all_ecfp(mol, indices=None, degree=2):
   """Obtain molecular fragment for all atoms emanating outward to given degree.
   For each fragment, compute SMILES string (for now) and hash to an int.
   Return a dictionary mapping atom index to hashed SMILES.
@@ -197,7 +77,8 @@ def compute_all_ecfp(mol, indices=None, degree=2):
   return ecfp_dict
 
 
-def compute_ecfp_features(mol, ecfp_degree=2, ecfp_power=11):
+# TODO(rbharath): Why not just use dc.feat.CircularFingerprint? This seems unne
+def _compute_ecfp_features(mol, ecfp_degree=2, ecfp_power=11):
   """Computes ECFP features for provided rdkit molecule.
 
   Parameters
@@ -223,13 +104,13 @@ def compute_ecfp_features(mol, ecfp_degree=2, ecfp_power=11):
   return np.array(bv)
 
 
-def featurize_binding_pocket_ecfp(protein_xyz,
-                                  protein,
-                                  ligand_xyz,
-                                  ligand,
-                                  pairwise_distances=None,
-                                  cutoff=4.5,
-                                  ecfp_degree=2):
+def _featurize_binding_pocket_ecfp(protein_xyz,
+                                   protein,
+                                   ligand_xyz,
+                                   ligand,
+                                   pairwise_distances=None,
+                                   cutoff=4.5,
+                                   ecfp_degree=2):
   """Computes ECFP dicts for ligand and binding pocket of the protein.
 
   Parameters
@@ -255,24 +136,24 @@ def featurize_binding_pocket_ecfp(protein_xyz,
   contacts = np.nonzero((pairwise_distances < cutoff))
   protein_atoms = set([int(c) for c in contacts[0].tolist()])
 
-  protein_ecfp_dict = compute_all_ecfp(
+  protein_ecfp_dict = _compute_all_ecfp(
       protein, indices=protein_atoms, degree=ecfp_degree)
-  ligand_ecfp_dict = compute_all_ecfp(ligand, degree=ecfp_degree)
+  ligand_ecfp_dict = _compute_all_ecfp(ligand, degree=ecfp_degree)
 
   return (protein_ecfp_dict, ligand_ecfp_dict)
 
 
-def compute_all_sybyl(mol, indices=None):
+def _compute_all_sybyl(mol, indices=None):
   """Computes Sybyl atom types for atoms in molecule."""
   raise NotImplementedError("This function is not implemented yet")
 
 
-def featurize_binding_pocket_sybyl(protein_xyz,
-                                   protein,
-                                   ligand_xyz,
-                                   ligand,
-                                   pairwise_distances=None,
-                                   cutoff=7.0):
+def _featurize_binding_pocket_sybyl(protein_xyz,
+                                    protein,
+                                    ligand_xyz,
+                                    ligand,
+                                    pairwise_distances=None,
+                                    cutoff=7.0):
   """Computes Sybyl dicts for ligand and binding pocket of the protein.
 
   Parameters
@@ -297,31 +178,32 @@ def featurize_binding_pocket_sybyl(protein_xyz,
   contacts = np.nonzero((pairwise_distances < cutoff))
   protein_atoms = set([int(c) for c in contacts[0].tolist()])
 
-  protein_sybyl_dict = compute_all_sybyl(protein, indices=protein_atoms)
-  ligand_sybyl_dict = compute_all_sybyl(ligand)
+  protein_sybyl_dict = _compute_all_sybyl(protein, indices=protein_atoms)
+  ligand_sybyl_dict = _compute_all_sybyl(ligand)
   return (protein_sybyl_dict, ligand_sybyl_dict)
 
 
-def compute_splif_features_in_range(protein,
-                                    ligand,
-                                    pairwise_distances,
-                                    contact_bin,
-                                    ecfp_degree=2):
+def _compute_splif_features_in_range(protein,
+                                     ligand,
+                                     pairwise_distances,
+                                     contact_bin,
+                                     ecfp_degree=2):
   """Computes SPLIF features for protein atoms close to ligand atoms.
 
-  Finds all protein atoms that are > contact_bin[0] and < contact_bin[1] away
-  from ligand atoms. Then, finds the ECFP fingerprints for the contacting
-  atoms. Returns a dictionary mapping (protein_index_i, ligand_index_j) -->
-  (protein_ecfp_i, ligand_ecfp_j)
+  Finds all protein atoms that are > contact_bin[0] and <
+  contact_bin[1] away from ligand atoms. Then, finds the ECFP
+  fingerprints for the contacting atoms. Returns a dictionary
+  mapping (protein_index_i, ligand_index_j) --> (protein_ecfp_i,
+  ligand_ecfp_j)
   """
   contacts = np.nonzero((pairwise_distances > contact_bin[0]) &
                         (pairwise_distances < contact_bin[1]))
   protein_atoms = set([int(c) for c in contacts[0].tolist()])
   contacts = zip(contacts[0], contacts[1])
 
-  protein_ecfp_dict = compute_all_ecfp(
+  protein_ecfp_dict = _compute_all_ecfp(
       protein, indices=protein_atoms, degree=ecfp_degree)
-  ligand_ecfp_dict = compute_all_ecfp(ligand, degree=ecfp_degree)
+  ligand_ecfp_dict = _compute_all_ecfp(ligand, degree=ecfp_degree)
   splif_dict = {
       contact: (protein_ecfp_dict[contact[0]], ligand_ecfp_dict[contact[1]])
       for contact in contacts
@@ -329,81 +211,31 @@ def compute_splif_features_in_range(protein,
   return (splif_dict)
 
 
+# TODO(rbharath): Should this be a featurizer class?
 def featurize_splif(protein_xyz, protein, ligand_xyz, ligand, contact_bins,
                     pairwise_distances, ecfp_degree):
   """Computes SPLIF featurization of protein-ligand binding pocket.
 
-  For each contact range (i.e. 1 A to 2 A, 2 A to 3 A, etc.) compute a
-  dictionary mapping (protein_index_i, ligand_index_j) tuples -->
-  (protein_ecfp_i, ligand_ecfp_j) tuples. Return a list of such splif
-  dictionaries.
+  For each contact range (i.e. 1 A to 2 A, 2 A to 3 A, etc.)
+  compute a dictionary mapping (protein_index_i, ligand_index_j)
+  tuples --> (protein_ecfp_i, ligand_ecfp_j) tuples. Return a
+  list of such splif dictionaries.
   """
   splif_dicts = []
   for i, contact_bin in enumerate(contact_bins):
     splif_dicts.append(
-        compute_splif_features_in_range(protein, ligand, pairwise_distances,
-                                        contact_bin, ecfp_degree))
+        _compute_splif_features_in_range(protein, ligand, pairwise_distances,
+                                         contact_bin, ecfp_degree))
 
   return (splif_dicts)
 
 
-def compute_ring_center(mol, ring_indices):
-  """Computes 3D coordinates of a center of a given ring.
-
-  Parameters
-  ----------
-  mol: rdkit.rdchem.Mol
-    Molecule containing a ring
-  ring_indices: array-like
-    Indices of atoms forming a ring
-
-  Returns
-  -------
-  ring_centroid: np.ndarray
-    Position of a ring center
-  """
-  conformer = mol.GetConformer()
-  ring_xyz = np.zeros((len(ring_indices), 3))
-  for i, atom_idx in enumerate(ring_indices):
-    atom_position = conformer.GetAtomPosition(atom_idx)
-    ring_xyz[i] = np.array(atom_position)
-  ring_centroid = compute_centroid(ring_xyz)
-  return ring_centroid
-
-
-def compute_ring_normal(mol, ring_indices):
-  """Computes normal to a plane determined by a given ring.
-
-  Parameters
-  ----------
-  mol: rdkit.rdchem.Mol
-    Molecule containing a ring
-  ring_indices: array-like
-    Indices of atoms forming a ring
-
-  Returns
-  -------
-  normal: np.ndarray
-    Normal vector
-  """
-  conformer = mol.GetConformer()
-  points = np.zeros((3, 3))
-  for i, atom_idx in enumerate(ring_indices[:3]):
-    atom_position = conformer.GetAtomPosition(atom_idx)
-    points[i] = np.array(atom_position)
-
-  v1 = points[1] - points[0]
-  v2 = points[2] - points[0]
-  normal = np.cross(v1, v2)
-  return normal
-
-
-def is_pi_parallel(ring1_center,
-                   ring1_normal,
-                   ring2_center,
-                   ring2_normal,
-                   dist_cutoff=8.0,
-                   angle_cutoff=30.0):
+def _is_pi_parallel(ring1_center,
+                    ring1_normal,
+                    ring2_center,
+                    ring2_normal,
+                    dist_cutoff=8.0,
+                    angle_cutoff=30.0):
   """Check if two aromatic rings form a parallel pi-pi contact.
 
   Parameters
@@ -429,12 +261,12 @@ def is_pi_parallel(ring1_center,
   return False
 
 
-def is_pi_t(ring1_center,
-            ring1_normal,
-            ring2_center,
-            ring2_normal,
-            dist_cutoff=5.5,
-            angle_cutoff=30.0):
+def _is_pi_t(ring1_center,
+             ring1_normal,
+             ring2_center,
+             ring2_normal,
+             dist_cutoff=5.5,
+             angle_cutoff=30.0):
   """Check if two aromatic rings form a T-shaped pi-pi contact.
 
   Parameters
@@ -459,11 +291,11 @@ def is_pi_t(ring1_center,
   return False
 
 
-def compute_pi_stack(protein,
-                     ligand,
-                     pairwise_distances=None,
-                     dist_cutoff=4.4,
-                     angle_cutoff=30.):
+def _compute_pi_stack(protein,
+                      ligand,
+                      pairwise_distances=None,
+                      dist_cutoff=4.4,
+                      angle_cutoff=30.):
   """Find aromatic rings in protein and ligand that form pi-pi contacts.
   For each atom in the contact, count number of atoms in the other molecule
   that form this contact.
@@ -522,7 +354,7 @@ def compute_pi_stack(protein,
   counted_pairs_t = set()
   for prot_ring, prot_ring_center, prot_ring_normal in protein_aromatic_rings:
     for lig_ring, lig_ring_center, lig_ring_normal in ligand_aromatic_rings:
-      if is_pi_parallel(
+      if _is_pi_parallel(
           prot_ring_center,
           prot_ring_normal,
           lig_ring_center,
@@ -542,7 +374,7 @@ def compute_pi_stack(protein,
         protein_pi_parallel.update(prot_to_update)
         ligand_pi_parallel.update(lig_to_update)
 
-      if is_pi_t(
+      if _is_pi_t(
           prot_ring_center,
           prot_ring_normal,
           lig_ring_center,
@@ -679,30 +511,11 @@ def compute_binding_pocket_cation_pi(protein, ligand, **kwargs):
   return protein_cation_pi, ligand_cation_pi
 
 
-def get_partial_charge(atom):
-  """Get partial charge of a given atom (rdkit Atom object)"""
-  try:
-    value = atom.GetProp(str("_GasteigerCharge"))
-    if value == '-nan':
-      return 0
-    return float(value)
-  except KeyError:
-    return 0
-
-
 def get_formal_charge(atom):
   logger.warning(
       'get_formal_charge function is deprecated and will be removed'
       ' in version 1.4, use get_partial_charge instead', DeprecationWarning)
   return get_partial_charge(atom)
-
-
-def is_salt_bridge(atom_i, atom_j):
-  """Check if two atoms have correct charges to form a salt bridge"""
-  if np.abs(2.0 - np.abs(
-      get_partial_charge(atom_i) - get_partial_charge(atom_j))) < 0.01:
-    return True
-  return False
 
 
 def compute_salt_bridges(protein_xyz,
@@ -711,7 +524,7 @@ def compute_salt_bridges(protein_xyz,
                          ligand,
                          pairwise_distances,
                          cutoff=5.0):
-  """Find salt bridge contacts between protein and lingand.
+  """Find salt bridge contacts between protein and ligand.
 
   Parameters
   ----------
@@ -741,23 +554,6 @@ def compute_salt_bridges(protein_xyz,
     if is_salt_bridge(protein_atom, ligand_atom):
       salt_bridge_contacts.append(contact)
   return salt_bridge_contacts
-
-
-def is_angle_within_cutoff(vector_i, vector_j, hbond_angle_cutoff):
-  angle = angle_between(vector_i, vector_j) * 180. / np.pi
-  return (angle > (180 - hbond_angle_cutoff) and
-          angle < (180. + hbond_angle_cutoff))
-
-
-def is_hydrogen_bond(protein_xyz, protein, ligand_xyz, ligand, contact,
-                     hbond_angle_cutoff):
-  """
-  Determine if a pair of atoms (contact = tuple of protein_atom_index, ligand_atom_index)
-  between protein and ligand represents a hydrogen bond. Returns a boolean result.
-  """
-
-  # TODO(LESWING)
-  return False
 
 
 def compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
@@ -1056,12 +852,14 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
   def _compute_feature(self, feature_name, prot_xyz, prot_rdk, lig_xyz, lig_rdk,
                        distances):
     if feature_name == 'ecfp_ligand':
-      return [compute_ecfp_features(lig_rdk, self.ecfp_degree, self.ecfp_power)]
+      return [
+          _compute_ecfp_features(lig_rdk, self.ecfp_degree, self.ecfp_power)
+      ]
     if feature_name == 'ecfp_hashed':
       return [
           self._vectorize(
-              hash_ecfp, feature_dict=ecfp_dict, channel_power=self.ecfp_power)
-          for ecfp_dict in featurize_binding_pocket_ecfp(
+              _hash_ecfp, feature_dict=ecfp_dict, channel_power=self.ecfp_power)
+          for ecfp_dict in _featurize_binding_pocket_ecfp(
               prot_xyz,
               prot_rdk,
               lig_xyz,
@@ -1073,7 +871,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     if feature_name == 'splif_hashed':
       return [
           self._vectorize(
-              hash_ecfp_pair,
+              _hash_ecfp_pair,
               feature_dict=splif_dict,
               channel_power=self.splif_power) for splif_dict in featurize_splif(
                   prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.cutoffs[
@@ -1082,7 +880,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     if feature_name == 'hbond_count':
       return [
           self._vectorize(
-              hash_ecfp_pair, feature_list=hbond_list, channel_power=0)
+              _hash_ecfp_pair, feature_list=hbond_list, channel_power=0)
           for hbond_list in compute_hydrogen_bonds(
               prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances, self.cutoffs[
                   'hbond_dist_bins'], self.cutoffs['hbond_angle_cutoffs'])
@@ -1092,12 +890,12 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
           sum([
               self._voxelize(
                   convert_atom_to_voxel,
-                  hash_ecfp,
+                  _hash_ecfp,
                   xyz,
                   feature_dict=ecfp_dict,
                   channel_power=self.ecfp_power)
               for xyz, ecfp_dict in zip((prot_xyz, lig_xyz),
-                                        featurize_binding_pocket_ecfp(
+                                        _featurize_binding_pocket_ecfp(
                                             prot_xyz,
                                             prot_rdk,
                                             lig_xyz,
@@ -1111,7 +909,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       return [
           self._voxelize(
               convert_atom_pair_to_voxel,
-              hash_ecfp_pair, (prot_xyz, lig_xyz),
+              _hash_ecfp_pair, (prot_xyz, lig_xyz),
               feature_dict=splif_dict,
               channel_power=self.splif_power) for splif_dict in featurize_splif(
                   prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.cutoffs[
@@ -1121,12 +919,12 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       return [
           self._voxelize(
               convert_atom_to_voxel,
-              lambda x: hash_sybyl(x, sybyl_types=self.sybyl_types),
+              lambda x: _hash_sybyl(x, sybyl_types=self.sybyl_types),
               xyz,
               feature_dict=sybyl_dict,
               nb_channel=len(self.sybyl_types))
           for xyz, sybyl_dict in zip((prot_xyz, lig_xyz),
-                                     featurize_binding_pocket_sybyl(
+                                     _featurize_binding_pocket_sybyl(
                                          prot_xyz,
                                          prot_rdk,
                                          lig_xyz,
@@ -1213,41 +1011,29 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       Filename for protein pdb file. 
     """
     try:
-      ############################################################## TIMING
       time1 = time.time()
-      ############################################################## TIMING
 
       protein_xyz, protein_rdk = load_molecule(
           protein_pdb_file, calc_charges=True, sanitize=self.sanitize)
-      ############################################################## TIMING
       time2 = time.time()
       logger.info(
           "TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1))
-      ############################################################## TIMING
-      ############################################################## TIMING
       time1 = time.time()
-      ############################################################## TIMING
       ligand_xyz, ligand_rdk = load_molecule(
           mol_pdb_file, calc_charges=True, sanitize=self.sanitize)
-      ############################################################## TIMING
       time2 = time.time()
       logger.info(
           "TIMING: Loading ligand coordinates took %0.3f s" % (time2 - time1))
-      ############################################################## TIMING
     except MoleculeLoadException:
       logger.warning("Some molecules cannot be loaded by Rdkit. Skipping")
       return None
 
-    ############################################################## TIMING
     time1 = time.time()
-    ############################################################## TIMING
-    centroid = compute_centroid(ligand_xyz)
+    centroid = _compute_centroid(ligand_xyz)
     ligand_xyz = subtract_centroid(ligand_xyz, centroid)
     protein_xyz = subtract_centroid(protein_xyz, centroid)
-    ############################################################## TIMING
     time2 = time.time()
     logger.info("TIMING: Centroid processing took %0.3f s" % (time2 - time1))
-    ############################################################## TIMING
 
     pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
 
@@ -1351,7 +1137,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
 
   def _voxelize_pi_stack(self, prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances):
     protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel = (
-        compute_pi_stack(
+        _compute_pi_stack(
             prot_rdk,
             lig_rdk,
             distances,

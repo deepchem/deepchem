@@ -6,7 +6,7 @@ import sklearn
 import tempfile
 import numpy as np
 import shutil
-import logger
+import logging
 from deepchem.models import Model
 from deepchem.data import DiskDataset
 from deepchem.trans import undo_transforms

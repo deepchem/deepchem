@@ -44,7 +44,7 @@ class TestHelperFunctions(unittest.TestCase):
 
   def test_generate_random_unit_vector(self):
     for _ in range(100):
-      u = rgf.generate_random__unit_vector()
+      u = rgf._generate_random_unit_vector()
       # 3D vector with unit length
       self.assertEqual(u.shape, (3,))
       self.assertAlmostEqual(np.linalg.norm(u), 1.0)
@@ -89,7 +89,7 @@ class TestHelperFunctions(unittest.TestCase):
   def test_unit_vector(self):
     for _ in range(10):
       vector = np.random.rand(3)
-      norm_vector = rgf.unit_vector(vector)
+      norm_vector = rgf._unit_vector(vector)
       self.assertAlmostEqual(np.linalg.norm(norm_vector), 1.0)
 
   def test_angle_between(self):
@@ -106,7 +106,7 @@ class TestHelperFunctions(unittest.TestCase):
     for power in (2, 16, 64):
       for _ in range(10):
         string = random_string(10)
-        string_hash = rgf.hash_ecfp(string, power)
+        string_hash = rgf._hash_ecfp(string, power)
         self.assertIsInstance(string_hash, int)
         self.assertLess(string_hash, 2**power)
         self.assertGreaterEqual(string_hash, 0)
@@ -116,7 +116,7 @@ class TestHelperFunctions(unittest.TestCase):
       for _ in range(10):
         string1 = random_string(10)
         string2 = random_string(10)
-        pair_hash = rgf.hash_ecfp_pair((string1, string2), power)
+        pair_hash = rgf._hash_ecfp_pair((string1, string2), power)
         self.assertIsInstance(pair_hash, int)
         self.assertLess(pair_hash, 2**power)
         self.assertGreaterEqual(pair_hash, 0)
@@ -208,7 +208,7 @@ class TestPiInteractions(unittest.TestCase):
   def test_compute_ring_center(self):
     # FIXME might break with different version of rdkit
     self.assertTrue(
-        np.allclose(rgf.compute_ring_center(self.cycle4, range(4)), 0))
+        np.allclose(rgf._compute_ring_center(self.cycle4, range(4)), 0))
 
   def test_compute_ring_normal(self):
     # FIXME might break with different version of rdkit
@@ -329,7 +329,7 @@ class TestFeaturizationFunctions(unittest.TestCase):
     for degree in range(1, 4):
       # TODO test if dict contains smiles
 
-      ecfp_all = rgf.compute_all_ecfp(mol, degree=degree)
+      ecfp_all = rgf._compute_all_ecfp(mol, degree=degree)
       self.assertIsInstance(ecfp_all, dict)
       self.assertEqual(len(ecfp_all), num_atoms)
       self.assertEqual(list(ecfp_all.keys()), list(range(num_atoms)))
@@ -337,7 +337,7 @@ class TestFeaturizationFunctions(unittest.TestCase):
       num_ind = np.random.choice(range(1, num_atoms))
       indices = list(np.random.choice(num_atoms, num_ind, replace=False))
 
-      ecfp_selected = rgf.compute_all_ecfp(mol, indices=indices, degree=degree)
+      ecfp_selected = rgf._compute_all_ecfp(mol, indices=indices, degree=degree)
       self.assertIsInstance(ecfp_selected, dict)
       self.assertEqual(len(ecfp_selected), num_ind)
       self.assertEqual(sorted(ecfp_selected.keys()), sorted(indices))
@@ -349,13 +349,13 @@ class TestFeaturizationFunctions(unittest.TestCase):
         protein_xyz=prot_xyz, ligand_xyz=lig_xyz)
 
     # check if results are the same if we provide precomputed distances
-    prot_dict, lig_dict = rgf.featurize_binding_pocket_ecfp(
+    prot_dict, lig_dict = rgf._featurize_binding_pocket_ecfp(
         prot_xyz,
         prot_rdk,
         lig_xyz,
         lig_rdk,
     )
-    prot_dict_dist, lig_dict_dist = rgf.featurize_binding_pocket_ecfp(
+    prot_dict_dist, lig_dict_dist = rgf._featurize_binding_pocket_ecfp(
         prot_xyz, prot_rdk, lig_xyz, lig_rdk, pairwise_distances=distance)
     # ...but first check if we actually got two dicts
     self.assertIsInstance(prot_dict, dict)
@@ -365,14 +365,14 @@ class TestFeaturizationFunctions(unittest.TestCase):
     self.assertEqual(lig_dict, lig_dict_dist)
 
     # check if we get less features with smaller distance cutoff
-    prot_dict_d2, lig_dict_d2 = rgf.featurize_binding_pocket_ecfp(
+    prot_dict_d2, lig_dict_d2 = rgf._featurize_binding_pocket_ecfp(
         prot_xyz,
         prot_rdk,
         lig_xyz,
         lig_rdk,
         cutoff=2.0,
     )
-    prot_dict_d6, lig_dict_d6 = rgf.featurize_binding_pocket_ecfp(
+    prot_dict_d6, lig_dict_d6 = rgf._featurize_binding_pocket_ecfp(
         prot_xyz,
         prot_rdk,
         lig_xyz,
@@ -386,7 +386,7 @@ class TestFeaturizationFunctions(unittest.TestCase):
     self.assertGreaterEqual(len(lig_dict_d6), len(lig_dict))
 
     # check if using different ecfp_degree changes anything
-    prot_dict_e3, lig_dict_e3 = rgf.featurize_binding_pocket_ecfp(
+    prot_dict_e3, lig_dict_e3 = rgf._featurize_binding_pocket_ecfp(
         prot_xyz,
         prot_rdk,
         lig_xyz,
@@ -584,7 +584,7 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     prot_xyz = rgf.subtract_centroid(prot_xyz, centroid)
     lig_xyz = rgf.subtract_centroid(lig_xyz, centroid)
 
-    prot_ecfp_dict, lig_ecfp_dict = rgf.featurize_binding_pocket_ecfp(
+    prot_ecfp_dict, lig_ecfp_dict = rgf._featurize_binding_pocket_ecfp(
         prot_xyz, prot_rdk, lig_xyz, lig_rdk)
 
     box_w = 20

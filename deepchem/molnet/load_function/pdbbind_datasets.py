@@ -12,8 +12,7 @@ import numpy as np
 import pandas as pd
 import tarfile
 from deepchem.feat import rdkit_grid_featurizer as rgf
-from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
-from deepchem.feat.graph_features import AtomicConvFeaturizer
+from deepchem.feat import AtomicConvFeaturizer
 
 logger = logging.getLogger(__name__)
 DEFAULT_DATA_DIR = deepchem.utils.get_data_dir()
@@ -275,7 +274,7 @@ def load_pdbbind(reload=True,
             'charge'
         ],
         flatten=True)
-  elif featurizer == "atomic" or featurizer == "atomic_conv":
+  elif featurizer == "atomic":
     # Pulled from PDB files. For larger datasets with more PDBs, would use
     # max num atoms instead of exact.
     frag1_num_atoms = 70  # for ligand atoms
@@ -289,21 +288,12 @@ def load_pdbbind(reload=True,
     # Cutoff in angstroms
     neighbor_cutoff = 4
     if featurizer == "atomic":
-      featurizer = ComplexNeighborListFragmentAtomicCoordinates(
+      featurizer = dc.feat.AtomicConvFeaturizer(
           frag1_num_atoms=frag1_num_atoms,
           frag2_num_atoms=frag2_num_atoms,
           complex_num_atoms=complex_num_atoms,
           max_num_neighbors=max_num_neighbors,
           neighbor_cutoff=neighbor_cutoff)
-    if featurizer == "atomic_conv":
-      featurizer = AtomicConvFeaturizer(
-          labels=labels,
-          frag1_num_atoms=frag1_num_atoms,
-          frag2_num_atoms=frag2_num_atoms,
-          complex_num_atoms=complex_num_atoms,
-          neighbor_cutoff=neighbor_cutoff,
-          max_num_neighbors=max_num_neighbors,
-          batch_size=64)
   else:
     raise ValueError("Featurizer not supported")
 
@@ -429,7 +419,7 @@ def load_pdbbind_from_dir(data_folder,
     max_num_neighbors = 4
     # Cutoff in angstroms
     neighbor_cutoff = 4
-    featurizer = ComplexNeighborListFragmentAtomicCoordinates(
+    featurizer = dc.feat.AtomicConvFeaturizer(
         frag1_num_atoms, frag2_num_atoms, complex_num_atoms, max_num_neighbors,
         neighbor_cutoff)
 
