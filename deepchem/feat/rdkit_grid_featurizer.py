@@ -10,16 +10,20 @@ import multiprocessing
 from collections import Counter
 import numpy as np
 from warnings import warn
-from copy import deepcopy
 from collections import Counter
 from deepchem.utils.rdkit_util import load_molecule
 from deepchem.utils.rdkit_util import compute_centroid
+from deepchem.utils.rdkit_util import subtract_centroid
 from deepchem.utils.rdkit_util import compute_ring_center
 from deepchem.utils.rdkit_util import rotate_molecules
+from deepchem.utils.rdkit_util import get_partial_charge
 from deepchem.utils.rdkit_util import compute_pairwise_distances
 from deepchem.utils.rdkit_util import is_salt_bridge
+from deepchem.utils.rdkit_util import compute_salt_bridges
+from deepchem.utils.rdkit_util import compute_pi_stack
+from deepchem.utils.rdkit_util import compute_binding_pocket_cation_pi
+from deepchem.utils.rdkit_util import is_hydrogen_bond
 from deepchem.utils.rdkit_util import MoleculeLoadException
-from scipy.spatial.distance import cdist
 from deepchem.feat import ComplexFeaturizer
 
 logger = logging.getLogger(__name__)
@@ -27,12 +31,20 @@ logger = logging.getLogger(__name__)
 http://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
 """
 
+sybyl_types = [
+    "C3", "C2", "C1", "Cac", "Car", "N3", "N3+", "Npl", "N2", "N1", "Ng+",
+    "Nox", "Nar", "Ntr", "Nam", "Npl3", "N4", "O3", "O-", "O2", "O.co2",
+    "O.spc", "O.t3p", "S3", "S3+", "S2", "So2", "Sox"
+    "Sac"
+    "SO", "P3", "P", "P3+", "F", "Cl", "Br", "I"
+]
 
-def _hash_sybyl(sybyl, sybyl_types):
+
+def hash_sybyl(sybyl, sybyl_types):
   return (sybyl_types.index(sybyl))
 
 
-def _hash_ecfp(ecfp, power):
+def hash_ecfp(ecfp, power):
   """
   Returns an int of size 2^power representing that
   ECFP fragment. Input must be a string.
@@ -45,7 +57,7 @@ def _hash_ecfp(ecfp, power):
   return (ecfp_hash)
 
 
-def _hash_ecfp_pair(ecfp_pair, power):
+def hash_ecfp_pair(ecfp_pair, power):
   """Returns an int of size 2^power representing that ECFP pair. Input must be
   a tuple of strings.
   """
@@ -58,7 +70,7 @@ def _hash_ecfp_pair(ecfp_pair, power):
   return (ecfp_hash)
 
 
-def _compute_all_ecfp(mol, indices=None, degree=2):
+def compute_all_ecfp(mol, indices=None, degree=2):
   """Obtain molecular fragment for all atoms emanating outward to given degree.
   For each fragment, compute SMILES string (for now) and hash to an int.
   Return a dictionary mapping atom index to hashed SMILES.
@@ -78,7 +90,7 @@ def _compute_all_ecfp(mol, indices=None, degree=2):
 
 
 # TODO(rbharath): Why not just use dc.feat.CircularFingerprint? This seems unne
-def _compute_ecfp_features(mol, ecfp_degree=2, ecfp_power=11):
+def compute_ecfp_features(mol, ecfp_degree=2, ecfp_power=11):
   """Computes ECFP features for provided rdkit molecule.
 
   Parameters
@@ -104,13 +116,13 @@ def _compute_ecfp_features(mol, ecfp_degree=2, ecfp_power=11):
   return np.array(bv)
 
 
-def _featurize_binding_pocket_ecfp(protein_xyz,
-                                   protein,
-                                   ligand_xyz,
-                                   ligand,
-                                   pairwise_distances=None,
-                                   cutoff=4.5,
-                                   ecfp_degree=2):
+def featurize_binding_pocket_ecfp(protein_xyz,
+                                  protein,
+                                  ligand_xyz,
+                                  ligand,
+                                  pairwise_distances=None,
+                                  cutoff=4.5,
+                                  ecfp_degree=2):
   """Computes ECFP dicts for ligand and binding pocket of the protein.
 
   Parameters
@@ -136,24 +148,24 @@ def _featurize_binding_pocket_ecfp(protein_xyz,
   contacts = np.nonzero((pairwise_distances < cutoff))
   protein_atoms = set([int(c) for c in contacts[0].tolist()])
 
-  protein_ecfp_dict = _compute_all_ecfp(
+  protein_ecfp_dict = compute_all_ecfp(
       protein, indices=protein_atoms, degree=ecfp_degree)
-  ligand_ecfp_dict = _compute_all_ecfp(ligand, degree=ecfp_degree)
+  ligand_ecfp_dict = compute_all_ecfp(ligand, degree=ecfp_degree)
 
   return (protein_ecfp_dict, ligand_ecfp_dict)
 
 
-def _compute_all_sybyl(mol, indices=None):
+def compute_all_sybyl(mol, indices=None):
   """Computes Sybyl atom types for atoms in molecule."""
   raise NotImplementedError("This function is not implemented yet")
 
 
-def _featurize_binding_pocket_sybyl(protein_xyz,
-                                    protein,
-                                    ligand_xyz,
-                                    ligand,
-                                    pairwise_distances=None,
-                                    cutoff=7.0):
+def featurize_binding_pocket_sybyl(protein_xyz,
+                                   protein,
+                                   ligand_xyz,
+                                   ligand,
+                                   pairwise_distances=None,
+                                   cutoff=7.0):
   """Computes Sybyl dicts for ligand and binding pocket of the protein.
 
   Parameters
@@ -178,16 +190,16 @@ def _featurize_binding_pocket_sybyl(protein_xyz,
   contacts = np.nonzero((pairwise_distances < cutoff))
   protein_atoms = set([int(c) for c in contacts[0].tolist()])
 
-  protein_sybyl_dict = _compute_all_sybyl(protein, indices=protein_atoms)
-  ligand_sybyl_dict = _compute_all_sybyl(ligand)
+  protein_sybyl_dict = compute_all_sybyl(protein, indices=protein_atoms)
+  ligand_sybyl_dict = compute_all_sybyl(ligand)
   return (protein_sybyl_dict, ligand_sybyl_dict)
 
 
-def _compute_splif_features_in_range(protein,
-                                     ligand,
-                                     pairwise_distances,
-                                     contact_bin,
-                                     ecfp_degree=2):
+def compute_splif_features_in_range(protein,
+                                    ligand,
+                                    pairwise_distances,
+                                    contact_bin,
+                                    ecfp_degree=2):
   """Computes SPLIF features for protein atoms close to ligand atoms.
 
   Finds all protein atoms that are > contact_bin[0] and <
@@ -201,9 +213,9 @@ def _compute_splif_features_in_range(protein,
   protein_atoms = set([int(c) for c in contacts[0].tolist()])
   contacts = zip(contacts[0], contacts[1])
 
-  protein_ecfp_dict = _compute_all_ecfp(
+  protein_ecfp_dict = compute_all_ecfp(
       protein, indices=protein_atoms, degree=ecfp_degree)
-  ligand_ecfp_dict = _compute_all_ecfp(ligand, degree=ecfp_degree)
+  ligand_ecfp_dict = compute_all_ecfp(ligand, degree=ecfp_degree)
   splif_dict = {
       contact: (protein_ecfp_dict[contact[0]], ligand_ecfp_dict[contact[1]])
       for contact in contacts
@@ -224,336 +236,10 @@ def featurize_splif(protein_xyz, protein, ligand_xyz, ligand, contact_bins,
   splif_dicts = []
   for i, contact_bin in enumerate(contact_bins):
     splif_dicts.append(
-        _compute_splif_features_in_range(protein, ligand, pairwise_distances,
-                                         contact_bin, ecfp_degree))
+        compute_splif_features_in_range(protein, ligand, pairwise_distances,
+                                        contact_bin, ecfp_degree))
 
   return (splif_dicts)
-
-
-def _is_pi_parallel(ring1_center,
-                    ring1_normal,
-                    ring2_center,
-                    ring2_normal,
-                    dist_cutoff=8.0,
-                    angle_cutoff=30.0):
-  """Check if two aromatic rings form a parallel pi-pi contact.
-
-  Parameters
-  ----------
-  ring1_center, ring2_center: np.ndarray
-    Positions of centers of the two rings. Can be computed with the
-    compute_ring_center function.
-  ring1_normal, ring2_normal: np.ndarray
-    Normals of the two rings. Can be computed with the compute_ring_normal
-    function.
-  dist_cutoff: float
-    Distance cutoff. Max allowed distance between the ring center (Angstroms).
-  angle_cutoff: float
-    Angle cutoff. Max allowed deviation from the ideal (0deg) angle between
-    the rings (in degrees).
-  """
-
-  dist = np.linalg.norm(ring1_center - ring2_center)
-  angle = angle_between(ring1_normal, ring2_normal) * 180 / np.pi
-  if ((angle < angle_cutoff or angle > 180.0 - angle_cutoff) and
-      dist < dist_cutoff):
-    return True
-  return False
-
-
-def _is_pi_t(ring1_center,
-             ring1_normal,
-             ring2_center,
-             ring2_normal,
-             dist_cutoff=5.5,
-             angle_cutoff=30.0):
-  """Check if two aromatic rings form a T-shaped pi-pi contact.
-
-  Parameters
-  ----------
-  ring1_center, ring2_center: np.ndarray
-    Positions of centers of the two rings. Can be computed with the
-    compute_ring_center function.
-  ring1_normal, ring2_normal: np.ndarray
-    Normals of the two rings. Can be computed with the compute_ring_normal
-    function.
-  dist_cutoff: float
-    Distance cutoff. Max allowed distance between the ring center (Angstroms).
-  angle_cutoff: float
-    Angle cutoff. Max allowed deviation from the ideal (90deg) angle between
-    the rings (in degrees).
-  """
-  dist = np.linalg.norm(ring1_center - ring2_center)
-  angle = angle_between(ring1_normal, ring2_normal) * 180 / np.pi
-  if ((90.0 - angle_cutoff < angle < 90.0 + angle_cutoff) and
-      dist < dist_cutoff):
-    return True
-  return False
-
-
-def _compute_pi_stack(protein,
-                      ligand,
-                      pairwise_distances=None,
-                      dist_cutoff=4.4,
-                      angle_cutoff=30.):
-  """Find aromatic rings in protein and ligand that form pi-pi contacts.
-  For each atom in the contact, count number of atoms in the other molecule
-  that form this contact.
-
-  Pseudocode:
-
-  for each aromatic ring in protein:
-    for each aromatic ring in ligand:
-      compute distance between centers
-      compute angle between normals
-      if it counts as parallel pi-pi:
-        count interacting atoms
-      if it counts as pi-T:
-        count interacting atoms
-
-  Parameters
-  ----------
-  protein, ligand: rdkit.rdchem.Mol
-    Two interacting molecules.
-  pairwise_distances: np.ndarray (optional)
-    Array of pairwise protein-ligand distances (Angstroms)
-  dist_cutoff: float
-    Distance cutoff. Max allowed distance between the ring center (Angstroms).
-  angle_cutoff: float
-    Angle cutoff. Max allowed deviation from the ideal angle between rings.
-
-  Returns
-  -------
-  protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel: dict
-    Dictionaries mapping atom indices to number of atoms they interact with.
-    Separate dictionary is created for each type of pi stacking (parallel and
-    T-shaped) and each molecule (protein and ligand).
-  """
-
-  protein_pi_parallel = Counter()
-  protein_pi_t = Counter()
-  ligand_pi_parallel = Counter()
-  ligand_pi_t = Counter()
-
-  protein_aromatic_rings = []
-  ligand_aromatic_rings = []
-  from rdkit import Chem
-  for mol, ring_list in ((protein, protein_aromatic_rings),
-                         (ligand, ligand_aromatic_rings)):
-    aromatic_atoms = {atom.GetIdx() for atom in mol.GetAromaticAtoms()}
-    for ring in Chem.GetSymmSSSR(mol):
-      # if ring is aromatic
-      if set(ring).issubset(aromatic_atoms):
-        # save its indices, center, and normal
-        ring_center = compute_ring_center(mol, ring)
-        ring_normal = compute_ring_normal(mol, ring)
-        ring_list.append((ring, ring_center, ring_normal))
-
-  # remember protein-ligand pairs we already counted
-  counted_pairs_parallel = set()
-  counted_pairs_t = set()
-  for prot_ring, prot_ring_center, prot_ring_normal in protein_aromatic_rings:
-    for lig_ring, lig_ring_center, lig_ring_normal in ligand_aromatic_rings:
-      if _is_pi_parallel(
-          prot_ring_center,
-          prot_ring_normal,
-          lig_ring_center,
-          lig_ring_normal,
-          angle_cutoff=angle_cutoff,
-          dist_cutoff=dist_cutoff):
-        prot_to_update = set()
-        lig_to_update = set()
-        for prot_atom_idx in prot_ring:
-          for lig_atom_idx in lig_ring:
-            if (prot_atom_idx, lig_atom_idx) not in counted_pairs_parallel:
-              # if this pair is new, count atoms forming a contact
-              prot_to_update.add(prot_atom_idx)
-              lig_to_update.add(lig_atom_idx)
-              counted_pairs_parallel.add((prot_atom_idx, lig_atom_idx))
-
-        protein_pi_parallel.update(prot_to_update)
-        ligand_pi_parallel.update(lig_to_update)
-
-      if _is_pi_t(
-          prot_ring_center,
-          prot_ring_normal,
-          lig_ring_center,
-          lig_ring_normal,
-          angle_cutoff=angle_cutoff,
-          dist_cutoff=dist_cutoff):
-        prot_to_update = set()
-        lig_to_update = set()
-        for prot_atom_idx in prot_ring:
-          for lig_atom_idx in lig_ring:
-            if (prot_atom_idx, lig_atom_idx) not in counted_pairs_t:
-              # if this pair is new, count atoms forming a contact
-              prot_to_update.add(prot_atom_idx)
-              lig_to_update.add(lig_atom_idx)
-              counted_pairs_t.add((prot_atom_idx, lig_atom_idx))
-
-        protein_pi_t.update(prot_to_update)
-        ligand_pi_t.update(lig_to_update)
-
-  return (protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel)
-
-
-def is_cation_pi(cation_position,
-                 ring_center,
-                 ring_normal,
-                 dist_cutoff=6.5,
-                 angle_cutoff=30.0):
-  """Check if a cation and an aromatic ring form contact.
-
-  Parameters
-  ----------
-  ring_center: np.ndarray
-    Positions of ring center. Can be computed with the compute_ring_center
-    function.
-  ring_normal: np.ndarray
-    Normal of ring. Can be computed with the compute_ring_normal function.
-  dist_cutoff: float
-    Distance cutoff. Max allowed distance between ring center and cation
-    (in Angstroms).
-  angle_cutoff: float
-    Angle cutoff. Max allowed deviation from the ideal (0deg) angle between
-    ring normal and vector pointing from ring center to cation (in degrees).
-  """
-  cation_to_ring_vec = cation_position - ring_center
-  dist = np.linalg.norm(cation_to_ring_vec)
-  angle = angle_between(cation_to_ring_vec, ring_normal) * 180. / np.pi
-  if ((angle < angle_cutoff or angle > 180.0 - angle_cutoff) and
-      (dist < dist_cutoff)):
-    return True
-  return False
-
-
-def compute_cation_pi(mol1, mol2, charge_tolerance=0.01, **kwargs):
-  """Finds aromatic rings in mo1 and cations in mol2 that interact with each
-  other.
-
-  Parameters
-  ----------
-  mol1: rdkit.rdchem.Mol
-    Molecule to look for interacting rings
-  mol2: rdkit.rdchem.Mol
-    Molecule to look for interacting cations
-  charge_tolerance: float
-    Atom is considered a cation if its formal charge is greater than
-    1 - charge_tolerance
-  **kwargs:
-    Arguments that are passed to is_cation_pi function
-
-  Returns
-  -------
-  mol1_pi: dict
-    Dictionary that maps atom indices (from mol1) to the number of cations
-    (in mol2) they interact with
-  mol2_cation: dict
-    Dictionary that maps atom indices (from mol2) to the number of aromatic
-    atoms (in mol1) they interact with
-  """
-  mol1_pi = Counter()
-  mol2_cation = Counter()
-  conformer = mol2.GetConformer()
-
-  aromatic_atoms = set(atom.GetIdx() for atom in mol1.GetAromaticAtoms())
-  from rdkit import Chem
-  rings = [list(r) for r in Chem.GetSymmSSSR(mol1)]
-
-  for ring in rings:
-    # if ring from mol1 is aromatic
-    if set(ring).issubset(aromatic_atoms):
-      ring_center = compute_ring_center(mol1, ring)
-      ring_normal = compute_ring_normal(mol1, ring)
-
-      for atom in mol2.GetAtoms():
-        # ...and atom from mol2 is a cation
-        if atom.GetFormalCharge() > 1.0 - charge_tolerance:
-          cation_position = np.array(conformer.GetAtomPosition(atom.GetIdx()))
-          # if angle and distance are correct
-          if is_cation_pi(cation_position, ring_center, ring_normal, **kwargs):
-            # count atoms forming a contact
-            mol1_pi.update(ring)
-            mol2_cation.update([atom.GetIndex()])
-  return mol1_pi, mol2_cation
-
-
-def compute_binding_pocket_cation_pi(protein, ligand, **kwargs):
-  """Finds cation-pi interactions between protein and ligand.
-
-  Parameters
-  ----------
-  protein, ligand: rdkit.rdchem.Mol
-    Interacting molecules
-  **kwargs:
-    Arguments that are passed to compute_cation_pi function
-
-  Returns
-  -------
-  protein_cation_pi, ligand_cation_pi: dict
-    Dictionaries that maps atom indices to the number of cations/aromatic
-    atoms they interact with
-  """
-  # find interacting rings from protein and cations from ligand
-  protein_pi, ligand_cation = compute_cation_pi(protein, ligand, **kwargs)
-  # find interacting cations from protein and rings from ligand
-  ligand_pi, protein_cation = compute_cation_pi(ligand, protein, **kwargs)
-
-  # merge counters
-  protein_cation_pi = Counter()
-  protein_cation_pi.update(protein_pi)
-  protein_cation_pi.update(protein_cation)
-
-  ligand_cation_pi = Counter()
-  ligand_cation_pi.update(ligand_pi)
-  ligand_cation_pi.update(ligand_cation)
-
-  return protein_cation_pi, ligand_cation_pi
-
-
-def get_formal_charge(atom):
-  logger.warning(
-      'get_formal_charge function is deprecated and will be removed'
-      ' in version 1.4, use get_partial_charge instead', DeprecationWarning)
-  return get_partial_charge(atom)
-
-
-def compute_salt_bridges(protein_xyz,
-                         protein,
-                         ligand_xyz,
-                         ligand,
-                         pairwise_distances,
-                         cutoff=5.0):
-  """Find salt bridge contacts between protein and ligand.
-
-  Parameters
-  ----------
-  protein_xyz, ligand_xyz: np.ndarray
-    Arrays with atomic coordinates
-  protein, ligand: rdkit.rdchem.Mol
-    Interacting molecules
-  pairwise_distances: np.ndarray
-    Array of pairwise protein-ligand distances (Angstroms)
-  cutoff: float
-    Cutoff distance for contact consideration
-
-  Returns:
-  --------
-  salt_bridge_contacts: list of tuples
-    List of contacts. Tuple (i, j) indicates that atom i from protein
-    interacts with atom j from ligand.
-  """
-
-  salt_bridge_contacts = []
-
-  contacts = np.nonzero(pairwise_distances < cutoff)
-  contacts = zip(contacts[0], contacts[1])
-  for contact in contacts:
-    protein_atom = protein.GetAtoms()[int(contact[0])]
-    ligand_atom = ligand.GetAtoms()[int(contact[1])]
-    if is_salt_bridge(protein_atom, ligand_atom):
-      salt_bridge_contacts.append(contact)
-  return salt_bridge_contacts
 
 
 def compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
@@ -774,14 +460,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     self.voxel_width = float(voxel_width)
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
 
-    self.sybyl_types = [
-        "C3", "C2", "C1", "Cac", "Car", "N3", "N3+", "Npl", "N2", "N1", "Ng+",
-        "Nox", "Nar", "Ntr", "Nam", "Npl3", "N4", "O3", "O-", "O2", "O.co2",
-        "O.spc", "O.t3p", "S3", "S3+", "S2", "So2", "Sox"
-        "Sac"
-        "SO", "P3", "P", "P3+", "F", "Cl", "Br", "I"
-    ]
-
     self.FLAT_FEATURES = [
         'ecfp_ligand', 'ecfp_hashed', 'splif_hashed', 'hbond_count'
     ]
@@ -852,14 +530,12 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
   def _compute_feature(self, feature_name, prot_xyz, prot_rdk, lig_xyz, lig_rdk,
                        distances):
     if feature_name == 'ecfp_ligand':
-      return [
-          _compute_ecfp_features(lig_rdk, self.ecfp_degree, self.ecfp_power)
-      ]
+      return [compute_ecfp_features(lig_rdk, self.ecfp_degree, self.ecfp_power)]
     if feature_name == 'ecfp_hashed':
       return [
           self._vectorize(
-              _hash_ecfp, feature_dict=ecfp_dict, channel_power=self.ecfp_power)
-          for ecfp_dict in _featurize_binding_pocket_ecfp(
+              hash_ecfp, feature_dict=ecfp_dict, channel_power=self.ecfp_power)
+          for ecfp_dict in featurize_binding_pocket_ecfp(
               prot_xyz,
               prot_rdk,
               lig_xyz,
@@ -871,7 +547,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     if feature_name == 'splif_hashed':
       return [
           self._vectorize(
-              _hash_ecfp_pair,
+              hash_ecfp_pair,
               feature_dict=splif_dict,
               channel_power=self.splif_power) for splif_dict in featurize_splif(
                   prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.cutoffs[
@@ -880,7 +556,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     if feature_name == 'hbond_count':
       return [
           self._vectorize(
-              _hash_ecfp_pair, feature_list=hbond_list, channel_power=0)
+              hash_ecfp_pair, feature_list=hbond_list, channel_power=0)
           for hbond_list in compute_hydrogen_bonds(
               prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances, self.cutoffs[
                   'hbond_dist_bins'], self.cutoffs['hbond_angle_cutoffs'])
@@ -890,12 +566,12 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
           sum([
               self._voxelize(
                   convert_atom_to_voxel,
-                  _hash_ecfp,
+                  hash_ecfp,
                   xyz,
                   feature_dict=ecfp_dict,
                   channel_power=self.ecfp_power)
               for xyz, ecfp_dict in zip((prot_xyz, lig_xyz),
-                                        _featurize_binding_pocket_ecfp(
+                                        featurize_binding_pocket_ecfp(
                                             prot_xyz,
                                             prot_rdk,
                                             lig_xyz,
@@ -909,7 +585,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       return [
           self._voxelize(
               convert_atom_pair_to_voxel,
-              _hash_ecfp_pair, (prot_xyz, lig_xyz),
+              hash_ecfp_pair, (prot_xyz, lig_xyz),
               feature_dict=splif_dict,
               channel_power=self.splif_power) for splif_dict in featurize_splif(
                   prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.cutoffs[
@@ -919,12 +595,12 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       return [
           self._voxelize(
               convert_atom_to_voxel,
-              lambda x: _hash_sybyl(x, sybyl_types=self.sybyl_types),
+              lambda x: hash_sybyl(x, sybyl_types=sybyl_types),
               xyz,
               feature_dict=sybyl_dict,
-              nb_channel=len(self.sybyl_types))
+              nb_channel=len(sybyl_types))
           for xyz, sybyl_dict in zip((prot_xyz, lig_xyz),
-                                     _featurize_binding_pocket_sybyl(
+                                     featurize_binding_pocket_sybyl(
                                          prot_xyz,
                                          prot_rdk,
                                          lig_xyz,
@@ -938,9 +614,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
               convert_atom_pair_to_voxel,
               None, (prot_xyz, lig_xyz),
               feature_list=compute_salt_bridges(
-                  prot_xyz,
                   prot_rdk,
-                  lig_xyz,
                   lig_rdk,
                   distances,
                   cutoff=self.cutoffs['salt_bridges_cutoff']),
@@ -1029,7 +703,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       return None
 
     time1 = time.time()
-    centroid = _compute_centroid(ligand_xyz)
+    centroid = compute_centroid(ligand_xyz)
     ligand_xyz = subtract_centroid(ligand_xyz, centroid)
     protein_xyz = subtract_centroid(protein_xyz, centroid)
     time2 = time.time()
@@ -1137,7 +811,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
 
   def _voxelize_pi_stack(self, prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances):
     protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel = (
-        _compute_pi_stack(
+        compute_pi_stack(
             prot_rdk,
             lig_rdk,
             distances,
