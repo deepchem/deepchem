@@ -7,6 +7,9 @@ from deepchem.utils.hash_utils import hash_ecfp_pair
 from deepchem.utils.rdkit_util import compute_all_ecfp
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils.hash_utils import vectorize
+from deepchem.utils.voxel_utils import voxelize 
+from deepchem.utils.voxel_utils import convert_atom_to_voxel
+from deepchem.utils.voxel_utils import convert_atom_pair_to_voxel
 from deepchem.utils.rdkit_util import compute_pairwise_distances
 
 logger = logging.getLogger(__name__)
@@ -124,5 +127,87 @@ class SplifFingerprint(ComplexFeaturizer):
     return [
         vectorize(hash_ecfp_pair, feature_dict=splif_dict,
             size=self.size) for splif_dict in featurize_splif(
+                prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.contact_bins, distances, self.radius)
+    ]
+
+class SplifVoxelizer(ComplexFeaturizer):
+  """Computes SPLIF voxel grid for a macromolecular complex.
+
+  SPLIF fingerprints are based on a technique introduced in the
+  following paper. 
+
+  Da, C., and D. Kireev. "Structural protein–ligand interaction
+  fingerprints (SPLIF) for structure-based virtual screening:
+  method and benchmark study." Journal of chemical information
+  and modeling 54.9 (2014): 2555-2561.
+
+  The SPLIF voxelizer localizes local SPLIF descriptors in
+  space, by assigning features to the voxel in which they
+  originated. This technique may be useful for downstream
+  learning methods such as convolutional networks.
+  """
+
+  def __init__(self, 
+               contact_bins=None,
+               radius=2,
+               size=8,
+               box_width=16.0,
+               voxel_width=1.0):
+    """
+    Parameters
+    ----------
+    contact_bins: list[tuple] 
+      List of contact bins. If not specified is set to default
+      `[(0, 2.0), (2.0, 3.0), (3.0, 4.5)]`.
+    radius : int, optional (default 2)
+        Fingerprint radius used for circular fingerprints.
+    size: int, optional (default 8)
+      Length of generated bit vector.
+    box_width: float, optional (default 16.0)
+      Size of a box in which voxel features are calculated. Box
+      is centered on a ligand centroid.
+    voxel_width: float, optional (default 1.0)
+      Size of a 3D voxel in a grid.
+    """
+    if contact_bins is None:
+      self.contact_bins = SPLIF_CONTACT_BINS
+    else:
+      self.contact_bins = contact_bins
+    self.size = size
+    self.radius = radius
+    self.box_width = box_width
+    self.voxel_width = voxel_width
+    self.voxels_per_edge = int(self.box_width / self.voxel_width)
+
+  def _featurize_complex(self, mol, protein):
+    """
+    Compute featurization for a single mol/protein complex
+
+    TODO(rbharath): This is very not ergonomic. I'd much prefer
+    returning an vector instead of a list of two vectors. In
+    addition, there's a question of efficiency.
+    RdkitGridFeaturizer caches rotated versions etc internally.
+    To make things work out of box, we are accepting that
+    kludgey input. This needs to be cleaned up before full
+    merge.
+
+    Parameters
+    ----------
+    mol: object
+      Representation of the molecule
+    protein: object
+      Representation of the protein
+    """
+    (lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
+    distances = compute_pairwise_distances(prot_xyz, lig_xyz)
+    return [
+        voxelize(
+            convert_atom_pair_to_voxel,
+            self.voxels_per_edge,
+            self.box_width,
+            self.voxel_width,
+            hash_ecfp_pair, (prot_xyz, lig_xyz),
+            feature_dict=splif_dict,
+            nb_channel=self.size) for splif_dict in featurize_splif(
                 prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.contact_bins, distances, self.radius)
     ]

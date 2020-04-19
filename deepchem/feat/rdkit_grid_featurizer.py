@@ -13,15 +13,14 @@ from warnings import warn
 from collections import Counter
 from deepchem.feat.fingerprints import CircularFingerprint
 from deepchem.feat.contact_fingerprints import ContactCircularFingerprint
-from deepchem.feat.contact_fingerprints import featurize_binding_pocket_ecfp
-from deepchem.feat.splif_fingerprint import featurize_splif
+from deepchem.feat.contact_fingerprints import ContactCircularVoxelizer
 from deepchem.feat.splif_fingerprint import SplifFingerprint
+from deepchem.feat.splif_fingerprint import SplifVoxelizer
 from deepchem.utils.rdkit_util import load_molecule
 from deepchem.utils.rdkit_util import compute_centroid
 from deepchem.utils.rdkit_util import subtract_centroid
 from deepchem.utils.rdkit_util import compute_ring_center
 from deepchem.utils.rdkit_util import rotate_molecules
-from deepchem.utils.rdkit_util import get_partial_charge
 from deepchem.utils.rdkit_util import compute_pairwise_distances
 from deepchem.utils.rdkit_util import is_salt_bridge
 from deepchem.utils.rdkit_util import compute_salt_bridges
@@ -76,6 +75,7 @@ def featurize_binding_pocket_sybyl(protein_xyz,
                                    cutoff=7.0):
   """Computes Sybyl dicts for ligand and binding pocket of the protein.
 
+  TODO(rbharath): Consider this comment on rdkit forums https://github.com/rdkit/rdkit/issues/1590
   Parameters
   ----------
   protein_xyz: np.ndarray
@@ -140,30 +140,6 @@ def compute_hydrogen_bonds(protein_xyz, protein, ligand_xyz, ligand,
                                 pairwise_distances, hbond_dist_bin,
                                 hbond_angle_cutoff))
   return (hbond_contacts)
-
-
-def compute_charge_dictionary(molecule):
-  """Create a dictionary with partial charges for each atom in the molecule.
-
-  This function assumes that the charges for the molecule are already
-  computed (it can be done with rdkit_util.compute_charges(molecule))
-  """
-
-  charge_dictionary = {}
-  for i, atom in enumerate(molecule.GetAtoms()):
-    charge_dictionary[i] = get_partial_charge(atom)
-  return charge_dictionary
-
-
-def subtract_centroid(xyz, centroid):
-  """Subtracts centroid from each coordinate.
-
-  Subtracts the centroid, a numpy array of dim 3, from all coordinates of all
-  atoms in the molecule
-  """
-
-  xyz -= np.transpose(centroid)
-  return (xyz)
 
 
 class RdkitGridFeaturizer(ComplexFeaturizer):
@@ -292,10 +268,22 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         cutoff=self.cutoffs['ecfp_cutoff'],
         radius=self.ecfp_degree,
         size=2**self.ecfp_power)
+    self.contact_voxelizer = ContactCircularVoxelizer(
+        cutoff=self.cutoffs['ecfp_cutoff'],
+        radius=self.ecfp_degree,
+        size=2**self.ecfp_power,
+        box_width=self.box_width,
+        voxel_width=self.voxel_width)
     self.splif_featurizer = SplifFingerprint(
         contact_bins=self.cutoffs['splif_contact_bins'],
         radius=self.ecfp_degree,
         size=2**self.splif_power)
+    self.splif_voxelizer = SplifVoxelizer(
+        contact_bins=self.cutoffs['splif_contact_bins'],
+        radius=self.ecfp_degree,
+        size=2**self.splif_power,
+        box_width=self.box_width,
+        voxel_width=self.voxel_width)
 
     # parse provided feature types
     for feature_type in feature_types:
@@ -351,59 +339,21 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       return self.contact_featurizer._featurize_complex((lig_xyz, lig_rdk),
                                                         (prot_xyz, prot_rdk))
     if feature_name == 'splif_hashed':
-      #return [
-      #    vectorize(
-      #        hash_ecfp_pair,
-      #        feature_dict=splif_dict,
-      #        size=2**self.splif_power) for splif_dict in featurize_splif(
-      #            prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.cutoffs[
-      #                'splif_contact_bins'], distances, self.ecfp_degree)
-      #]
       return self.splif_featurizer._featurize_complex((lig_xyz, lig_rdk),
                                                       (prot_xyz, prot_rdk))
     if feature_name == 'hbond_count':
       return [
-          vectorize(hash_ecfp_pair, feature_list=hbond_list, size=2**0)
+          vectorize(hash_ecfp_pair, feature_list=hbond_list, size=1)
           for hbond_list in compute_hydrogen_bonds(
               prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances, self.cutoffs[
                   'hbond_dist_bins'], self.cutoffs['hbond_angle_cutoffs'])
       ]
     if feature_name == 'ecfp':
-      return [
-          sum([
-              voxelize(
-                  convert_atom_to_voxel,
-                  self.voxels_per_edge,
-                  self.box_width,
-                  self.voxel_width,
-                  hash_ecfp,
-                  xyz,
-                  feature_dict=ecfp_dict,
-                  nb_channel=2**self.ecfp_power)
-              for xyz, ecfp_dict in zip((prot_xyz, lig_xyz),
-                                        featurize_binding_pocket_ecfp(
-                                            prot_xyz,
-                                            prot_rdk,
-                                            lig_xyz,
-                                            lig_rdk,
-                                            distances,
-                                            cutoff=self.cutoffs['ecfp_cutoff'],
-                                            ecfp_degree=self.ecfp_degree))
-          ])
-      ]
+      return self.contact_voxelizer._featurize_complex((lig_xyz, lig_rdk),
+                                                       (prot_xyz, prot_rdk))
     if feature_name == 'splif':
-      return [
-          voxelize(
-              convert_atom_pair_to_voxel,
-              self.voxels_per_edge,
-              self.box_width,
-              self.voxel_width,
-              hash_ecfp_pair, (prot_xyz, lig_xyz),
-              feature_dict=splif_dict,
-              nb_channel=2**self.splif_power) for splif_dict in featurize_splif(
-                  prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.cutoffs[
-                      'splif_contact_bins'], distances, self.ecfp_degree)
-      ]
+      return self.splif_voxelizer._featurize_complex((lig_xyz, lig_rdk),
+                                                     (prot_xyz, prot_rdk))
     if feature_name == 'sybyl':
       return [
           voxelize(
@@ -535,6 +485,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       return None
 
     time1 = time.time()
+    # TODO(rbharath): Wait a minute, if we're subtract different centroids for each, have we ruined the alignment between protein and ligand. Figure this out before merging in.
     centroid = compute_centroid(ligand_xyz)
     ligand_xyz = subtract_centroid(ligand_xyz, centroid)
     protein_xyz = subtract_centroid(protein_xyz, centroid)
