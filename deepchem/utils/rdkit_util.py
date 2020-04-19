@@ -712,3 +712,23 @@ def compute_binding_pocket_cation_pi(protein, ligand, **kwargs):
   ligand_cation_pi.update(ligand_cation)
 
   return protein_cation_pi, ligand_cation_pi
+
+def compute_all_ecfp(mol, indices=None, degree=2):
+  """Obtain molecular fragment for all atoms emanating outward to given degree.
+
+  For each fragment, compute SMILES string (for now) and hash to
+  an int. Return a dictionary mapping atom index to hashed
+  SMILES.
+  """
+
+  ecfp_dict = {}
+  from rdkit import Chem
+  for i in range(mol.GetNumAtoms()):
+    if indices is not None and i not in indices:
+      continue
+    env = Chem.FindAtomEnvironmentOfRadiusN(mol, degree, i, useHs=True)
+    submol = Chem.PathToSubmol(mol, env)
+    smile = Chem.MolToSmiles(submol)
+    ecfp_dict[i] = "%s,%s" % (mol.GetAtoms()[i].GetAtomicNum(), smile)
+
+  return ecfp_dict

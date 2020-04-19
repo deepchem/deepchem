@@ -9,14 +9,10 @@ import pytest
 
 np.random.seed(123)
 from deepchem.utils import rdkit_util
+from deepchem.utils import hash_utils
+from deepchem.utils import voxel_utils
 from deepchem.feat import rdkit_grid_featurizer as rgf
-
-
-def random_string(length, chars=None):
-  import string
-  if chars is None:
-    chars = list(string.ascii_letters + string.ascii_letters + '()[]+-.=#@/\\')
-  return ''.join(np.random.choice(chars, length))
+from deepchem.feat.splif_fingerprint import compute_splif_features_in_range
 
 
 class TestHelperFunctions(unittest.TestCase):
@@ -29,26 +25,7 @@ class TestHelperFunctions(unittest.TestCase):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     self.protein_file = os.path.join(current_dir, 'data',
                                      '3ws9_protein_fixer_rdkit.pdb')
-    self.ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
-
-  def test_hash_ecfp(self):
-    for power in (2, 16, 64):
-      for _ in range(10):
-        string = random_string(10)
-        string_hash = rgf.hash_ecfp(string, power)
-        self.assertIsInstance(string_hash, int)
-        self.assertLess(string_hash, 2**power)
-        self.assertGreaterEqual(string_hash, 0)
-
-  def test_hash_ecfp_pair(self):
-    for power in (2, 16, 64):
-      for _ in range(10):
-        string1 = random_string(10)
-        string2 = random_string(10)
-        pair_hash = rgf.hash_ecfp_pair((string1, string2), power)
-        self.assertIsInstance(pair_hash, int)
-        self.assertLess(pair_hash, 2**power)
-        self.assertGreaterEqual(pair_hash, 0)
+    self.ligand_file = os.path.join(current_dir, '3ws9_ligand.sdf')
 
   def test_convert_atom_to_voxel(self):
     # 20 points with coords between -5 and 5, centered at 0
@@ -202,7 +179,7 @@ class TestFeaturizationFunctions(unittest.TestCase):
     distance = rdkit_util.compute_pairwise_distances(prot_xyz, lig_xyz)
 
     for bins in ((0, 2), (2, 3)):
-      splif_dict = rgf.compute_splif_features_in_range(
+      splif_dict = compute_splif_features_in_range(
           prot_rdk,
           lig_rdk,
           distance,
@@ -241,7 +218,7 @@ class TestFeaturizationFunctions(unittest.TestCase):
         pairwise_distances=distance,
         ecfp_degree=2)
     expected_dicts = [
-        rgf.compute_splif_features_in_range(
+        compute_splif_features_in_range(
             prot_rdk, lig_rdk, distance, c_bin, ecfp_degree=2) for c_bin in bins
     ]
     self.assertIsInstance(dicts, list)
@@ -393,24 +370,30 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         flatten=True,
         sanitize=True)
 
-    prot_tensor = rgf_featurizer._voxelize(
+    prot_tensor = voxel_utils.voxelize(
         rgf.convert_atom_to_voxel,
+        rgf_featurizer.voxels_per_edge,
+        rgf_featurizer.box_width,
+        rgf_featurizer.voxel_width,
         rgf.hash_ecfp,
         prot_xyz,
         feature_dict=prot_ecfp_dict,
-        channel_power=f_power)
+        nb_channel=2**f_power)
     self.assertEqual(prot_tensor.shape, tuple([box_w] * 3 + [2**f_power]))
     all_features = prot_tensor.sum()
     # protein is too big for the box, some features should be missing
     self.assertGreater(all_features, 0)
     self.assertLess(all_features, prot_rdk.GetNumAtoms())
 
-    lig_tensor = rgf_featurizer._voxelize(
+    lig_tensor = voxel_utils.voxelize(
         rgf.convert_atom_to_voxel,
+        rgf_featurizer.voxels_per_edge,
+        rgf_featurizer.box_width,
+        rgf_featurizer.voxel_width,
         rgf.hash_ecfp,
         lig_xyz,
         feature_dict=lig_ecfp_dict,
-        channel_power=f_power)
+        nb_channel=2**f_power)
     self.assertEqual(lig_tensor.shape, tuple([box_w] * 3 + [2**f_power]))
     all_features = lig_tensor.sum()
     # whole ligand should fit in the box

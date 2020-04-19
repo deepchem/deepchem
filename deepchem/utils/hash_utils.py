@@ -7,7 +7,6 @@ import hashlib
 
 logger = logging.getLogger(__name__)
 
-
 def hash_ecfp(ecfp, size):
   """
   Returns an int < size representing given ECFP fragment.
@@ -28,7 +27,6 @@ def hash_ecfp(ecfp, size):
   digest = md5.hexdigest()
   ecfp_hash = int(digest, 16) % (size)
   return (ecfp_hash)
-
 
 def hash_ecfp_pair(ecfp_pair, size):
   """Returns an int < size representing that ECFP pair.
@@ -54,8 +52,9 @@ def hash_ecfp_pair(ecfp_pair, size):
   ecfp_hash = int(digest, 16) % (size)
   return (ecfp_hash)
 
-
-def vectorize(hash_function, feature_dict=None, size=1024):
+def vectorize(hash_function,
+              feature_dict=None,
+              size=1024):
   """Helper function to vectorize a spatial description from a hash.
 
   Hash functions are used to perform spatial featurizations in
@@ -81,7 +80,8 @@ def vectorize(hash_function, feature_dict=None, size=1024):
   feature_vector = np.zeros(size)
   if feature_dict is not None:
     on_channels = [
-        hash_function(feature, size) for key, feature in feature_dict.items()
+        hash_function(feature, size)
+        for key, feature in feature_dict.items()
     ]
     feature_vector[on_channels] += 1
 

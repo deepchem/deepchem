@@ -11,6 +11,11 @@ from collections import Counter
 import numpy as np
 from warnings import warn
 from collections import Counter
+from deepchem.feat.fingerprints import CircularFingerprint
+from deepchem.feat.contact_fingerprints import ContactCircularFingerprint
+from deepchem.feat.contact_fingerprints import featurize_binding_pocket_ecfp
+from deepchem.feat.splif_fingerprint import featurize_splif
+from deepchem.feat.splif_fingerprint import SplifFingerprint
 from deepchem.utils.rdkit_util import load_molecule
 from deepchem.utils.rdkit_util import compute_centroid
 from deepchem.utils.rdkit_util import subtract_centroid
@@ -23,7 +28,14 @@ from deepchem.utils.rdkit_util import compute_salt_bridges
 from deepchem.utils.rdkit_util import compute_pi_stack
 from deepchem.utils.rdkit_util import compute_binding_pocket_cation_pi
 from deepchem.utils.rdkit_util import is_hydrogen_bond
+from deepchem.utils.rdkit_util import compute_all_ecfp
 from deepchem.utils.rdkit_util import MoleculeLoadException
+from deepchem.utils.hash_utils import hash_ecfp
+from deepchem.utils.hash_utils import hash_ecfp_pair
+from deepchem.utils.hash_utils import vectorize
+from deepchem.utils.voxel_utils import voxelize
+from deepchem.utils.voxel_utils import convert_atom_to_voxel
+from deepchem.utils.voxel_utils import convert_atom_pair_to_voxel
 from deepchem.feat import ComplexFeaturizer
 
 logger = logging.getLogger(__name__)
@@ -39,138 +51,16 @@ sybyl_types = [
     "SO", "P3", "P", "P3+", "F", "Cl", "Br", "I"
 ]
 
+FLAT_FEATURES = ['ecfp_ligand', 'ecfp_hashed', 'splif_hashed', 'hbond_count']
+
+VOXEL_FEATURES = [
+    'ecfp', 'splif', 'sybyl', 'salt_bridge', 'charge', 'hbond', 'pi_stack',
+    'cation_pi'
+]
+
 
 def hash_sybyl(sybyl, sybyl_types):
   return (sybyl_types.index(sybyl))
-
-
-def hash_ecfp(ecfp, power):
-  """
-  Returns an int of size 2^power representing that
-  ECFP fragment. Input must be a string.
-  """
-  ecfp = ecfp.encode('utf-8')
-  md5 = hashlib.md5()
-  md5.update(ecfp)
-  digest = md5.hexdigest()
-  ecfp_hash = int(digest, 16) % (2**power)
-  return (ecfp_hash)
-
-
-def hash_ecfp_pair(ecfp_pair, power):
-  """Returns an int of size 2^power representing that ECFP pair. Input must be
-  a tuple of strings.
-  """
-  ecfp = "%s,%s" % (ecfp_pair[0], ecfp_pair[1])
-  ecfp = ecfp.encode('utf-8')
-  md5 = hashlib.md5()
-  md5.update(ecfp)
-  digest = md5.hexdigest()
-  ecfp_hash = int(digest, 16) % (2**power)
-  return (ecfp_hash)
-
-
-def _vectorize(hash_function,
-               feature_dict=None,
-               feature_list=None,
-               channel_power=10):
-  """Helper function to vectorize a spatial description."""
-  feature_vector = np.zeros(2**channel_power)
-  if feature_dict is not None:
-    on_channels = [
-        hash_function(feature, channel_power)
-        for key, feature in feature_dict.items()
-    ]
-    feature_vector[on_channels] += 1
-  elif feature_list is not None:
-    feature_vector[0] += len(feature_list)
-
-  return feature_vector
-
-
-def compute_all_ecfp(mol, indices=None, degree=2):
-  """Obtain molecular fragment for all atoms emanating outward to given degree.
-  For each fragment, compute SMILES string (for now) and hash to an int.
-  Return a dictionary mapping atom index to hashed SMILES.
-  """
-
-  ecfp_dict = {}
-  from rdkit import Chem
-  for i in range(mol.GetNumAtoms()):
-    if indices is not None and i not in indices:
-      continue
-    env = Chem.FindAtomEnvironmentOfRadiusN(mol, degree, i, useHs=True)
-    submol = Chem.PathToSubmol(mol, env)
-    smile = Chem.MolToSmiles(submol)
-    ecfp_dict[i] = "%s,%s" % (mol.GetAtoms()[i].GetAtomicNum(), smile)
-
-  return ecfp_dict
-
-
-# TODO(rbharath): Why not just use dc.feat.CircularFingerprint? This seems unne
-def compute_ecfp_features(mol, ecfp_degree=2, ecfp_power=11):
-  """Computes ECFP features for provided rdkit molecule.
-
-  Parameters
-  ----------
-  mol: rdkit molecule
-    Molecule to featurize.
-  ecfp_degree: int
-    ECFP radius
-  ecfp_power: int
-    Number of bits to store ECFP features (2^ecfp_power will be length of
-    ECFP array)
-
-  Returns
-  -------
-  ecfp_array: np.ndarray
-    Returns an array of size 2^ecfp_power where array at index i has a 1 if
-    that ECFP fragment is found in the molecule and array at index j has a 0
-    if ECFP fragment not in molecule.
-  """
-  from rdkit.Chem import AllChem
-  bv = AllChem.GetMorganFingerprintAsBitVect(
-      mol, ecfp_degree, nBits=2**ecfp_power)
-  return np.array(bv)
-
-
-def featurize_binding_pocket_ecfp(protein_xyz,
-                                  protein,
-                                  ligand_xyz,
-                                  ligand,
-                                  pairwise_distances=None,
-                                  cutoff=4.5,
-                                  ecfp_degree=2):
-  """Computes ECFP dicts for ligand and binding pocket of the protein.
-
-  Parameters
-  ----------
-  protein_xyz: np.ndarray
-    Of shape (N_protein_atoms, 3)
-  protein: rdkit.rdchem.Mol
-    Contains more metadata.
-  ligand_xyz: np.ndarray
-    Of shape (N_ligand_atoms, 3)
-  ligand: rdkit.rdchem.Mol
-    Contains more metadata
-  pairwise_distances: np.ndarray
-    Array of pairwise protein-ligand distances (Angstroms)
-  cutoff: float
-    Cutoff distance for contact consideration
-  ecfp_degree: int
-    ECFP radius
-  """
-
-  if pairwise_distances is None:
-    pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
-  contacts = np.nonzero((pairwise_distances < cutoff))
-  protein_atoms = set([int(c) for c in contacts[0].tolist()])
-
-  protein_ecfp_dict = compute_all_ecfp(
-      protein, indices=protein_atoms, degree=ecfp_degree)
-  ligand_ecfp_dict = compute_all_ecfp(ligand, degree=ecfp_degree)
-
-  return (protein_ecfp_dict, ligand_ecfp_dict)
 
 
 def compute_all_sybyl(mol, indices=None):
@@ -213,53 +103,6 @@ def featurize_binding_pocket_sybyl(protein_xyz,
   return (protein_sybyl_dict, ligand_sybyl_dict)
 
 
-def compute_splif_features_in_range(protein,
-                                    ligand,
-                                    pairwise_distances,
-                                    contact_bin,
-                                    ecfp_degree=2):
-  """Computes SPLIF features for protein atoms close to ligand atoms.
-
-  Finds all protein atoms that are > contact_bin[0] and <
-  contact_bin[1] away from ligand atoms. Then, finds the ECFP
-  fingerprints for the contacting atoms. Returns a dictionary
-  mapping (protein_index_i, ligand_index_j) --> (protein_ecfp_i,
-  ligand_ecfp_j)
-  """
-  contacts = np.nonzero((pairwise_distances > contact_bin[0]) &
-                        (pairwise_distances < contact_bin[1]))
-  protein_atoms = set([int(c) for c in contacts[0].tolist()])
-  contacts = zip(contacts[0], contacts[1])
-
-  protein_ecfp_dict = compute_all_ecfp(
-      protein, indices=protein_atoms, degree=ecfp_degree)
-  ligand_ecfp_dict = compute_all_ecfp(ligand, degree=ecfp_degree)
-  splif_dict = {
-      contact: (protein_ecfp_dict[contact[0]], ligand_ecfp_dict[contact[1]])
-      for contact in contacts
-  }
-  return (splif_dict)
-
-
-# TODO(rbharath): Should this be a featurizer class?
-def featurize_splif(protein_xyz, protein, ligand_xyz, ligand, contact_bins,
-                    pairwise_distances, ecfp_degree):
-  """Computes SPLIF featurization of protein-ligand binding pocket.
-
-  For each contact range (i.e. 1 A to 2 A, 2 A to 3 A, etc.)
-  compute a dictionary mapping (protein_index_i, ligand_index_j)
-  tuples --> (protein_ecfp_i, ligand_ecfp_j) tuples. Return a
-  list of such splif dictionaries.
-  """
-  splif_dicts = []
-  for i, contact_bin in enumerate(contact_bins):
-    splif_dicts.append(
-        compute_splif_features_in_range(protein, ligand, pairwise_distances,
-                                        contact_bin, ecfp_degree))
-
-  return (splif_dicts)
-
-
 def compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
                             pairwise_distances, hbond_dist_bin,
                             hbond_angle_cutoff):
@@ -297,45 +140,6 @@ def compute_hydrogen_bonds(protein_xyz, protein, ligand_xyz, ligand,
                                 pairwise_distances, hbond_dist_bin,
                                 hbond_angle_cutoff))
   return (hbond_contacts)
-
-
-def convert_atom_to_voxel(molecule_xyz, atom_index, box_width, voxel_width):
-  """Converts atom coordinates to an i,j,k grid index.
-
-  Parameters:
-  -----------
-  molecule_xyz: np.ndarray
-    Array with coordinates of all atoms in the molecule, shape (N, 3)
-  atom_index: int
-    Index of an atom
-  box_width: float
-    Size of a box
-  voxel_width: float
-    Size of a voxel
-  """
-
-  indices = np.floor(
-      (molecule_xyz[atom_index] + box_width / 2.0) / voxel_width).astype(int)
-  if ((indices < 0) | (indices >= box_width / voxel_width)).any():
-    logger.warning('Coordinates are outside of the box (atom id = %s,'
-                   ' coords xyz = %s, coords in box = %s' %
-                   (atom_index, molecule_xyz[atom_index], indices))
-
-  return ([indices])
-
-
-def convert_atom_pair_to_voxel(molecule_xyz_tuple, atom_index_pair, box_width,
-                               voxel_width):
-  """Converts a pair of atoms to a list of i,j,k tuples."""
-
-  indices_list = []
-  indices_list.append(
-      convert_atom_to_voxel(molecule_xyz_tuple[0], atom_index_pair[0],
-                            box_width, voxel_width)[0])
-  indices_list.append(
-      convert_atom_to_voxel(molecule_xyz_tuple[1], atom_index_pair[1],
-                            box_width, voxel_width)[0])
-  return (indices_list)
 
 
 def compute_charge_dictionary(molecule):
@@ -400,8 +204,8 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       Number of bits to store SPLIF features (resulting vector will be
       2^splif_power long)
     box_width: float, optional (default 16.0)
-      Size of a box in which voxel features are calculated. Box is centered on a
-      ligand centroid.
+      Size of a box in which voxel features are calculated. Box
+      is centered on a ligand centroid.
     voxel_width: float, optional (default 1.0)
       Size of a 3D voxel in a grid.
     flatten: bool, optional (defaul False)
@@ -428,12 +232,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     cation_pi_dist_cutoff: 6.5
     cation_pi_angle_cutoff: 30.0
     """
-
-    ## check if user tries to set removed arguments
-    #deprecated_args = [
-    #    'box_x', 'box_y', 'box_z', 'save_intermediates', 'voxelize_features',
-    #    'parallel', 'voxel_feature_types'
-    #]
 
     # list of features that require sanitized molecules
     require_sanitized = ['pi_stack', 'cation_pi', 'ecfp_ligand']
@@ -473,14 +271,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     self.voxel_width = float(voxel_width)
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
 
-    self.FLAT_FEATURES = [
-        'ecfp_ligand', 'ecfp_hashed', 'splif_hashed', 'hbond_count'
-    ]
-    self.VOXEL_FEATURES = [
-        'ecfp', 'splif', 'sybyl', 'salt_bridge', 'charge', 'hbond', 'pi_stack',
-        'cation_pi'
-    ]
-
     if feature_types is None:
       feature_types = ['ecfp']
 
@@ -495,6 +285,18 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       ignored_features += require_sanitized
     ignored_features += not_implemented
 
+    # Intantiate Featurizers
+    self.ecfp_featurizer = CircularFingerprint(
+        radius=self.ecfp_degree, size=2**self.ecfp_power)
+    self.contact_featurizer = ContactCircularFingerprint(
+        cutoff=self.cutoffs['ecfp_cutoff'],
+        radius=self.ecfp_degree,
+        size=2**self.ecfp_power)
+    self.splif_featurizer = SplifFingerprint(
+        contact_bins=self.cutoffs['splif_contact_bins'],
+        radius=self.ecfp_degree,
+        size=2**self.splif_power)
+
     # parse provided feature types
     for feature_type in feature_types:
       if self.sanitize is False and feature_type in require_sanitized:
@@ -506,19 +308,19 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                        feature_type)
         continue
 
-      if feature_type in self.FLAT_FEATURES:
+      if feature_type in FLAT_FEATURES:
         self.feature_types.append((True, feature_type))
         if self.flatten is False:
           logger.warning(
               '%s feature is used, output will be flattened' % feature_type)
           self.flatten = True
 
-      elif feature_type in self.VOXEL_FEATURES:
+      elif feature_type in VOXEL_FEATURES:
         self.feature_types.append((False, feature_type))
 
       elif feature_type == 'flat_combined':
         self.feature_types += [(True, ftype)
-                               for ftype in sorted(self.FLAT_FEATURES)
+                               for ftype in sorted(FLAT_FEATURES)
                                if ftype not in ignored_features]
         if self.flatten is False:
           logger.warning('Flat features are used, output will be flattened')
@@ -526,14 +328,14 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
 
       elif feature_type == 'voxel_combined':
         self.feature_types += [(False, ftype)
-                               for ftype in sorted(self.VOXEL_FEATURES)
+                               for ftype in sorted(VOXEL_FEATURES)
                                if ftype not in ignored_features]
       elif feature_type == 'all_combined':
         self.feature_types += [(True, ftype)
-                               for ftype in sorted(self.FLAT_FEATURES)
+                               for ftype in sorted(FLAT_FEATURES)
                                if ftype not in ignored_features]
         self.feature_types += [(False, ftype)
-                               for ftype in sorted(self.VOXEL_FEATURES)
+                               for ftype in sorted(VOXEL_FEATURES)
                                if ftype not in ignored_features]
         if self.flatten is False:
           logger.warning('Flat feature are used, output will be flattened')
@@ -544,32 +346,24 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
   def _compute_feature(self, feature_name, prot_xyz, prot_rdk, lig_xyz, lig_rdk,
                        distances):
     if feature_name == 'ecfp_ligand':
-      return [compute_ecfp_features(lig_rdk, self.ecfp_degree, self.ecfp_power)]
+      return [self.ecfp_featurizer(lig_rdk)]
     if feature_name == 'ecfp_hashed':
-      return [
-          _vectorize(
-              hash_ecfp, feature_dict=ecfp_dict, channel_power=self.ecfp_power)
-          for ecfp_dict in featurize_binding_pocket_ecfp(
-              prot_xyz,
-              prot_rdk,
-              lig_xyz,
-              lig_rdk,
-              distances,
-              cutoff=self.cutoffs['ecfp_cutoff'],
-              ecfp_degree=self.ecfp_degree)
-      ]
+      return self.contact_featurizer._featurize_complex((lig_xyz, lig_rdk),
+                                                        (prot_xyz, prot_rdk))
     if feature_name == 'splif_hashed':
-      return [
-          _vectorize(
-              hash_ecfp_pair,
-              feature_dict=splif_dict,
-              channel_power=self.splif_power) for splif_dict in featurize_splif(
-                  prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.cutoffs[
-                      'splif_contact_bins'], distances, self.ecfp_degree)
-      ]
+      #return [
+      #    vectorize(
+      #        hash_ecfp_pair,
+      #        feature_dict=splif_dict,
+      #        size=2**self.splif_power) for splif_dict in featurize_splif(
+      #            prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.cutoffs[
+      #                'splif_contact_bins'], distances, self.ecfp_degree)
+      #]
+      return self.splif_featurizer._featurize_complex((lig_xyz, lig_rdk),
+                                                      (prot_xyz, prot_rdk))
     if feature_name == 'hbond_count':
       return [
-          _vectorize(hash_ecfp_pair, feature_list=hbond_list, channel_power=0)
+          vectorize(hash_ecfp_pair, feature_list=hbond_list, size=2**0)
           for hbond_list in compute_hydrogen_bonds(
               prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances, self.cutoffs[
                   'hbond_dist_bins'], self.cutoffs['hbond_angle_cutoffs'])
@@ -577,12 +371,15 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     if feature_name == 'ecfp':
       return [
           sum([
-              self._voxelize(
+              voxelize(
                   convert_atom_to_voxel,
+                  self.voxels_per_edge,
+                  self.box_width,
+                  self.voxel_width,
                   hash_ecfp,
                   xyz,
                   feature_dict=ecfp_dict,
-                  channel_power=self.ecfp_power)
+                  nb_channel=2**self.ecfp_power)
               for xyz, ecfp_dict in zip((prot_xyz, lig_xyz),
                                         featurize_binding_pocket_ecfp(
                                             prot_xyz,
@@ -596,18 +393,24 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       ]
     if feature_name == 'splif':
       return [
-          self._voxelize(
+          voxelize(
               convert_atom_pair_to_voxel,
+              self.voxels_per_edge,
+              self.box_width,
+              self.voxel_width,
               hash_ecfp_pair, (prot_xyz, lig_xyz),
               feature_dict=splif_dict,
-              channel_power=self.splif_power) for splif_dict in featurize_splif(
+              nb_channel=2**self.splif_power) for splif_dict in featurize_splif(
                   prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.cutoffs[
                       'splif_contact_bins'], distances, self.ecfp_degree)
       ]
     if feature_name == 'sybyl':
       return [
-          self._voxelize(
+          voxelize(
               convert_atom_to_voxel,
+              self.voxels_per_edge,
+              self.box_width,
+              self.voxel_width,
               lambda x: hash_sybyl(x, sybyl_types=sybyl_types),
               xyz,
               feature_dict=sybyl_dict,
@@ -623,8 +426,11 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       ]
     if feature_name == 'salt_bridge':
       return [
-          self._voxelize(
+          voxelize(
               convert_atom_pair_to_voxel,
+              self.voxels_per_edge,
+              self.box_width,
+              self.voxel_width,
               None, (prot_xyz, lig_xyz),
               feature_list=compute_salt_bridges(
                   prot_rdk,
@@ -636,8 +442,11 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     if feature_name == 'charge':
       return [
           sum([
-              self._voxelize(
+              voxelize(
                   convert_atom_to_voxel,
+                  self.voxels_per_edge,
+                  self.box_width,
+                  self.voxel_width,
                   None,
                   xyz,
                   feature_dict=compute_charge_dictionary(mol),
@@ -648,22 +457,28 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       ]
     if feature_name == 'hbond':
       return [
-          self._voxelize(
+          voxelize(
               convert_atom_pair_to_voxel,
+              self.voxels_per_edge,
+              self.box_width,
+              self.voxel_width,
               None, (prot_xyz, lig_xyz),
               feature_list=hbond_list,
-              channel_power=0) for hbond_list in compute_hydrogen_bonds(
+              nb_channel=2**0) for hbond_list in compute_hydrogen_bonds(
                   prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances, self.cutoffs[
                       'hbond_dist_bins'], self.cutoffs['hbond_angle_cutoffs'])
       ]
     if feature_name == 'pi_stack':
-      return self._voxelize_pi_stack(prot_xyz, prot_rdk, lig_xyz, lig_rdk,
-                                     distances)
+      return self.voxelize_pi_stack(prot_xyz, prot_rdk, lig_xyz, lig_rdk,
+                                    distances)
     if feature_name == 'cation_pi':
       return [
           sum([
-              self._voxelize(
+              voxelize(
                   convert_atom_to_voxel,
+                  self.voxels_per_edge,
+                  self.box_width,
+                  self.voxel_width,
                   None,
                   xyz,
                   feature_dict=cation_pi_dict,
@@ -682,14 +497,18 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
   def _featurize(self, mol_pdb_file, protein_pdb_file):
     """Computes grid featurization of protein/ligand complex.
 
-    Takes as input filenames pdb of the protein, pdb of the ligand.
+    Takes as input filenames pdb of the protein, pdb of the
+    ligand.
 
-    This function then computes the centroid of the ligand; decrements this
-    centroid from the atomic coordinates of protein and ligand atoms, and then
-    merges the translated protein and ligand. This combined system/complex is then
+    This function then computes the centroid of the ligand;
+    decrements this centroid from the atomic coordinates of
+    protein and ligand atoms, and then merges the translated
+    protein and ligand. This combined system/complex is then
     saved.
 
-    This function then computes a featurization with scheme specified by the user.
+    This function then computes a featurization with scheme
+    specified by the user.
+
     Parameters
     ----------
     mol_pdb_file: Str 
@@ -752,77 +571,10 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         else:
           features_dict[system_id] = np.concatenate(feature_arrays, axis=-1)
 
-    # TODO(rbharath): Is this squeeze OK?
     features = np.squeeze(np.array(list(features_dict.values())))
     return features
 
-  def _voxelize(self,
-                get_voxels,
-                hash_function,
-                coordinates,
-                feature_dict=None,
-                feature_list=None,
-                channel_power=None,
-                nb_channel=16,
-                dtype="np.int8"):
-    """Private helper function to voxelize inputs.
-
-    Parameters
-    ----------
-    get_voxels: function
-      Function that voxelizes inputs
-    hash_function: function
-      Used to map feature choices to voxel channels.  
-    coordinates: np.ndarray
-      Contains the 3D coordinates of a molecular system.
-    feature_dict: Dictionary
-      Keys are atom indices.  
-    feature_list: list
-      List of available features. 
-    channel_power: int
-      If specified, nb_channel is set to 2**channel_power.
-      TODO: This feels like a redundant parameter.
-    nb_channel: int
-      The number of feature channels computed per voxel 
-    dtype: type
-      The dtype of the numpy ndarray created to hold features.
-    """
-
-    if channel_power is not None:
-      if channel_power == 0:
-        nb_channel = 1
-      else:
-        nb_channel = int(2**channel_power)
-    if dtype == "np.int8":
-      feature_tensor = np.zeros(
-          (self.voxels_per_edge, self.voxels_per_edge, self.voxels_per_edge,
-           nb_channel),
-          dtype=np.int8)
-    else:
-      feature_tensor = np.zeros(
-          (self.voxels_per_edge, self.voxels_per_edge, self.voxels_per_edge,
-           nb_channel),
-          dtype=np.float16)
-    if feature_dict is not None:
-      for key, features in feature_dict.items():
-        voxels = get_voxels(coordinates, key, self.box_width, self.voxel_width)
-        for voxel in voxels:
-          if ((voxel >= 0) & (voxel < self.voxels_per_edge)).all():
-            if hash_function is not None:
-              feature_tensor[voxel[0], voxel[1], voxel[2],
-                             hash_function(features, channel_power)] += 1.0
-            else:
-              feature_tensor[voxel[0], voxel[1], voxel[2], 0] += features
-    elif feature_list is not None:
-      for key in feature_list:
-        voxels = get_voxels(coordinates, key, self.box_width, self.voxel_width)
-        for voxel in voxels:
-          if ((voxel >= 0) & (voxel < self.voxels_per_edge)).all():
-            feature_tensor[voxel[0], voxel[1], voxel[2], 0] += 1.0
-
-    return feature_tensor
-
-  def _voxelize_pi_stack(self, prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances):
+  def voxelize_pi_stack(self, prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances):
     protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel = (
         compute_pi_stack(
             prot_rdk,
@@ -830,27 +582,39 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
             distances,
             dist_cutoff=self.cutoffs['pi_stack_dist_cutoff'],
             angle_cutoff=self.cutoffs['pi_stack_angle_cutoff']))
-    pi_parallel_tensor = self._voxelize(
+    pi_parallel_tensor = voxelize(
         convert_atom_to_voxel,
+        self.voxels_per_edge,
+        self.box_width,
+        self.voxel_width,
         None,
         prot_xyz,
         feature_dict=protein_pi_parallel,
         nb_channel=1)
-    pi_parallel_tensor += self._voxelize(
+    pi_parallel_tensor += voxelize(
         convert_atom_to_voxel,
+        self.voxels_per_edge,
+        self.box_width,
+        self.voxel_width,
         None,
         lig_xyz,
         feature_dict=ligand_pi_parallel,
         nb_channel=1)
 
-    pi_t_tensor = self._voxelize(
+    pi_t_tensor = voxelize(
         convert_atom_to_voxel,
+        self.voxels_per_edge,
+        self.box_width,
+        self.voxel_width,
         None,
         prot_xyz,
         feature_dict=protein_pi_t,
         nb_channel=1)
-    pi_t_tensor += self._voxelize(
+    pi_t_tensor += voxelize(
         convert_atom_to_voxel,
+        self.voxels_per_edge,
+        self.box_width,
+        self.voxel_width,
         None,
         lig_xyz,
         feature_dict=ligand_pi_t,
