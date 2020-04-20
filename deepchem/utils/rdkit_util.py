@@ -402,40 +402,85 @@ def merge_molecules(molecules):
     for nextmol in molecules[1:]:
       combined = rdmolops.CombineMols(combined, nextmol)
     return combined
-  # TODO(rbharath)
-  return False
 
-def compute_salt_bridges(protein,
-                         ligand,
+def is_hydrogen_bond(protein_xyz,
+                     protein,
+                     ligand_xyz,
+                     ligand,
+                     contact,
+                     hbond_distance_cutoff=4.0,
+                     hbond_angle_cutoff=40.0):
+  """
+  Determine if a pair of atoms (contact = tuple of protein_atom_index, ligand_atom_index)
+  between protein and ligand represents a hydrogen bond. Returns a boolean result.
+  """
+  protein_atom_xyz = protein_xyz[int(contact[0])]
+  ligand_atom_xyz = ligand_xyz[int(contact[1])]
+  protein_atom = protein.GetAtoms()[int(contact[0])]
+  ligand_atom = ligand.GetAtoms()[int(contact[1])]
+
+  # Nitrogen has atomic number 7, and oxygen 8.
+  if ((ligand_atom.GetAtomicNum() == 7 or ligand_atom.GetAtomicNum() == 8) and (protein_atom.GetAtomicNum() == 7 or protein_atom.GetAtomicNum() == 8)):
+    hydrogens = []
+
+    for i, atom in enumerate(ligand.GetAtoms()):
+      # If atom is a hydrogen
+      if atom.GetAtomicNum() == 1:
+        atom_xyz = ligand_xyz[i]
+        dist = np.linalg.norm(atom_xyz-ligand_atom_xyz)
+        # O-H distance is 0.96 A, N-H is 1.01 A. See http://www.science.uwaterloo.ca/~cchieh/cact/c120/bondel.html
+        if dist < 1.3:
+          hydrogens.append(atom_xyz)
+    
+    for j, atom in enumerate(protein.GetAtoms()):
+      # If atom is a hydrogen
+      if atom.GetAtomicNum() == 1:
+        atom_xyz = protein_xyz[i]
+        dist = np.linalg.norm(atom_xyz-protein_atom_xyz)
+        # O-H distance is 0.96 A, N-H is 1.01 A. See http://www.science.uwaterloo.ca/~cchieh/cact/c120/bondel.html
+        if dist < 1.3:
+          hydrogens.append(atom_xyz)
+
+    for hydrogen_xyz in hydrogens:
+      hydrogen_to_ligand = ligand_atom_xyz - hydrogen_xyz
+      hydrogen_to_protein = protein_atom_xyz - hydrogen_xyzh
+      if math.abs(180 - angle_between(hydrogen_to_protein, hydrogen_to_ligand) * 180.0 / np.pi) <= hbond_angle_cutoff:
+        return True
+  return False
+        
+      
+
+def compute_salt_bridges(first,
+                         second,
                          pairwise_distances,
                          cutoff=5.0):
-  """Find salt bridge contacts between protein and ligand.
+  """Find salt bridge contacts between two molecules. 
 
   Parameters:
   -----------
-  protein: rdkit.rdchem.Mol
+  first: rdkit.rdchem.Mol
     Interacting molecules
-  ligand: rdkit.rdchem.Mol
+  second: rdkit.rdchem.Mol
     Interacting molecules
   pairwise_distances: np.ndarray
-    Array of pairwise protein-ligand distances (Angstroms)
+    Array of pairwise interatomic distances between molecule atoms (Angstroms)
   cutoff: float
     Cutoff distance for contact consideration
 
   Returns:
   --------
   salt_bridge_contacts: list of tuples
-    List of contacts. Tuple (i, j) indicates that atom i from protein
-    interacts with atom j from ligand.
+    List of contacts. Tuple (i, j) indicates that atom i from
+    first molecule interacts with atom j from second.
   """
 
   salt_bridge_contacts = []
   contacts = np.nonzero(pairwise_distances < cutoff)
   contacts = zip(contacts[0], contacts[1])
   for contact in contacts:
-    protein_atom = protein.GetAtoms()[int(contact[0])]
-    ligand_atom = ligand.GetAtoms()[int(contact[1])]
-    if is_salt_bridge(protein_atom, ligand_atom):
+    first_atom = first.GetAtoms()[int(contact[0])]
+    second_atom = second.GetAtoms()[int(contact[1])]
+    if is_salt_bridge(first_atom, second_atom):
       salt_bridge_contacts.append(contact)
   return salt_bridge_contacts
 
@@ -497,17 +542,18 @@ def is_cation_pi(cation_position,
 
   Parameters:
   -----------
-    ring_center: np.ndarray
-      Positions of ring center. Can be computed with the compute_ring_center
-      function.
-    ring_normal: np.ndarray
-      Normal of ring. Can be computed with the compute_ring_normal function.
-    dist_cutoff: float
-      Distance cutoff. Max allowed distance between ring center and cation
-      (in Angstroms).
-    angle_cutoff: float
-      Angle cutoff. Max allowed deviation from the ideal (0deg) angle between
-      ring normal and vector pointing from ring center to cation (in degrees).
+  ring_center: np.ndarray
+    Positions of ring center. Can be computed with the compute_ring_center
+    function.
+  ring_normal: np.ndarray
+    Normal of ring. Can be computed with the compute_ring_normal function.
+  dist_cutoff: float
+    Distance cutoff. Max allowed distance between ring center
+    and cation (in Angstroms).
+  angle_cutoff: float
+    Angle cutoff. Max allowed deviation from the ideal (0deg)
+    angle between ring normal and vector pointing from ring
+    center to cation (in degrees).
   """
   cation_to_ring_vec = cation_position - ring_center
   dist = np.linalg.norm(cation_to_ring_vec)
@@ -517,19 +563,19 @@ def is_cation_pi(cation_position,
     return True
   return False
 
-def compute_pi_stack(protein,
-                     ligand,
+def compute_pi_stack(mol1,
+                     mol2,
                      pairwise_distances=None,
                      dist_cutoff=4.4,
                      angle_cutoff=30.):
-  """Find aromatic rings in protein and ligand that form pi-pi contacts.
+  """Find aromatic rings in both molecules that form pi-pi contacts.
   For each atom in the contact, count number of atoms in the other molecule
   that form this contact.
 
   Pseudocode:
 
-  for each aromatic ring in protein:
-    for each aromatic ring in ligand:
+  for each aromatic ring in mol1:
+    for each aromatic ring in mol2:
       compute distance between centers
       compute angle between normals
       if it counts as parallel pi-pi:
@@ -539,10 +585,12 @@ def compute_pi_stack(protein,
 
   Parameters:
   -----------
-    protein, ligand: rdkit.rdchem.Mol
-      Two interacting molecules.
+    mol1: rdkit.rdchem.Mol
+      First molecule.
+    mol2: rdkit.rdchem.Mol
+      First molecule.
     pairwise_distances: np.ndarray (optional)
-      Array of pairwise protein-ligand distances (Angstroms)
+      Array of pairwise interatomic distances (Angstroms)
     dist_cutoff: float
       Distance cutoff. Max allowed distance between the ring center (Angstroms).
     angle_cutoff: float
@@ -550,22 +598,22 @@ def compute_pi_stack(protein,
 
   Returns:
   --------
-    protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel: dict
+    mol1_pi_t, mol1_pi_parallel, mol2_pi_t, mol2_pi_parallel: dict
       Dictionaries mapping atom indices to number of atoms they interact with.
       Separate dictionary is created for each type of pi stacking (parallel and
-      T-shaped) and each molecule (protein and ligand).
+      T-shaped) and each molecule (mol1 and mol2).
   """
 
-  protein_pi_parallel = Counter()
-  protein_pi_t = Counter()
-  ligand_pi_parallel = Counter()
-  ligand_pi_t = Counter()
+  mol1_pi_parallel = Counter()
+  mol1_pi_t = Counter()
+  mol2_pi_parallel = Counter()
+  mol2_pi_t = Counter()
 
-  protein_aromatic_rings = []
-  ligand_aromatic_rings = []
+  mol1_aromatic_rings = []
+  mol2_aromatic_rings = []
   from rdkit import Chem
-  for mol, ring_list in ((protein, protein_aromatic_rings),
-                         (ligand, ligand_aromatic_rings)):
+  for mol, ring_list in ((mol1, mol1_aromatic_rings),
+                         (mol2, mol2_aromatic_rings)):
     aromatic_atoms = {atom.GetIdx() for atom in mol.GetAromaticAtoms()}
     for ring in Chem.GetSymmSSSR(mol):
       # if ring is aromatic
@@ -575,11 +623,11 @@ def compute_pi_stack(protein,
         ring_normal = compute_ring_normal(mol, ring)
         ring_list.append((ring, ring_center, ring_normal))
 
-  # remember protein-ligand pairs we already counted
+  # remember mol1-mol2 pairs we already counted
   counted_pairs_parallel = set()
   counted_pairs_t = set()
-  for prot_ring, prot_ring_center, prot_ring_normal in protein_aromatic_rings:
-    for lig_ring, lig_ring_center, lig_ring_normal in ligand_aromatic_rings:
+  for prot_ring, prot_ring_center, prot_ring_normal in mol1_aromatic_rings:
+    for lig_ring, lig_ring_center, lig_ring_normal in mol2_aromatic_rings:
       if is_pi_parallel(
           prot_ring_center,
           prot_ring_normal,
@@ -597,8 +645,8 @@ def compute_pi_stack(protein,
               lig_to_update.add(lig_atom_idx)
               counted_pairs_parallel.add((prot_atom_idx, lig_atom_idx))
 
-        protein_pi_parallel.update(prot_to_update)
-        ligand_pi_parallel.update(lig_to_update)
+        mol1_pi_parallel.update(prot_to_update)
+        mol2_pi_parallel.update(lig_to_update)
 
       if is_pi_t(
           prot_ring_center,
@@ -617,10 +665,10 @@ def compute_pi_stack(protein,
               lig_to_update.add(lig_atom_idx)
               counted_pairs_t.add((prot_atom_idx, lig_atom_idx))
 
-        protein_pi_t.update(prot_to_update)
-        ligand_pi_t.update(lig_to_update)
+        mol1_pi_t.update(prot_to_update)
+        mol2_pi_t.update(lig_to_update)
 
-  return (protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel)
+  return (mol1_pi_t, mol1_pi_parallel, mol2_pi_t, mol2_pi_parallel)
 
 def is_pi_t(ring1_center,
             ring1_normal,
@@ -681,37 +729,39 @@ def is_pi_parallel(ring1_center,
     return True
   return False
 
-def compute_binding_pocket_cation_pi(protein, ligand, **kwargs):
-  """Finds cation-pi interactions between protein and ligand.
+def compute_binding_pocket_cation_pi(mol1, mol2, **kwargs):
+  """Finds cation-pi interactions between mol1 and mol2.
 
   Parameters:
   -----------
-    protein, ligand: rdkit.rdchem.Mol
-      Interacting molecules
-    **kwargs:
-      Arguments that are passed to compute_cation_pi function
+  mol1: rdkit.rdchem.Mol
+    Interacting molecules
+  mol2: rdkit.rdchem.Mol
+    Interacting molecules
+  **kwargs:
+    Arguments that are passed to compute_cation_pi function
 
   Returns:
   --------
-    protein_cation_pi, ligand_cation_pi: dict
-      Dictionaries that maps atom indices to the number of cations/aromatic
-      atoms they interact with
+  mol1_cation_pi, mol2_cation_pi: dict
+    Dictionaries that maps atom indices to the number of cations/aromatic
+    atoms they interact with
   """
-  # find interacting rings from protein and cations from ligand
-  protein_pi, ligand_cation = compute_cation_pi(protein, ligand, **kwargs)
-  # find interacting cations from protein and rings from ligand
-  ligand_pi, protein_cation = compute_cation_pi(ligand, protein, **kwargs)
+  # find interacting rings from mol1 and cations from mol2 
+  mol1_pi, mol2_cation = compute_cation_pi(mol1, mol2, **kwargs)
+  # find interacting cations from mol1 and rings from mol2 
+  mol2_pi, mol1_cation = compute_cation_pi(mol2, mol1, **kwargs)
 
   # merge counters
-  protein_cation_pi = Counter()
-  protein_cation_pi.update(protein_pi)
-  protein_cation_pi.update(protein_cation)
+  mol1_cation_pi = Counter()
+  mol1_cation_pi.update(mol1_pi)
+  mol1_cation_pi.update(mol1_cation)
 
-  ligand_cation_pi = Counter()
-  ligand_cation_pi.update(ligand_pi)
-  ligand_cation_pi.update(ligand_cation)
+  mol2_cation_pi = Counter()
+  mol2_cation_pi.update(mol2_pi)
+  mol2_cation_pi.update(mol2_cation)
 
-  return protein_cation_pi, ligand_cation_pi
+  return mol1_cation_pi, mol2_cation_pi
 
 def compute_all_ecfp(mol, indices=None, degree=2):
   """Obtain molecular fragment for all atoms emanating outward to given degree.

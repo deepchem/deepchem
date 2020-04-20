@@ -16,6 +16,11 @@ from deepchem.feat.contact_fingerprints import ContactCircularFingerprint
 from deepchem.feat.contact_fingerprints import ContactCircularVoxelizer
 from deepchem.feat.splif_fingerprint import SplifFingerprint
 from deepchem.feat.splif_fingerprint import SplifVoxelizer
+from deepchem.feat.grid_featurizers import compute_charge_dictionary
+from deepchem.feat.grid_featurizers import ChargeVoxelizer
+from deepchem.feat.grid_featurizers import SaltBridgeVoxelizer
+from deepchem.feat.grid_featurizers import CationPiVoxelizer
+from deepchem.feat.grid_featurizers import PiStackVoxelizer
 from deepchem.utils.rdkit_util import load_molecule
 from deepchem.utils.rdkit_util import compute_centroid
 from deepchem.utils.rdkit_util import subtract_centroid
@@ -42,65 +47,13 @@ logger = logging.getLogger(__name__)
 http://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
 """
 
-sybyl_types = [
-    "C3", "C2", "C1", "Cac", "Car", "N3", "N3+", "Npl", "N2", "N1", "Ng+",
-    "Nox", "Nar", "Ntr", "Nam", "Npl3", "N4", "O3", "O-", "O2", "O.co2",
-    "O.spc", "O.t3p", "S3", "S3+", "S2", "So2", "Sox"
-    "Sac"
-    "SO", "P3", "P", "P3+", "F", "Cl", "Br", "I"
-]
+# TODO(rbharath): Consider this comment on rdkit forums https://github.com/rdkit/rdkit/issues/1590 about sybyl featurization
 
 FLAT_FEATURES = ['ecfp_ligand', 'ecfp_hashed', 'splif_hashed', 'hbond_count']
 
 VOXEL_FEATURES = [
-    'ecfp', 'splif', 'sybyl', 'salt_bridge', 'charge', 'hbond', 'pi_stack',
-    'cation_pi'
+    'ecfp', 'splif', 'salt_bridge', 'charge', 'hbond', 'pi_stack', 'cation_pi'
 ]
-
-
-def hash_sybyl(sybyl, sybyl_types):
-  return (sybyl_types.index(sybyl))
-
-
-def compute_all_sybyl(mol, indices=None):
-  """Computes Sybyl atom types for atoms in molecule."""
-  raise NotImplementedError("This function is not implemented yet")
-
-
-def featurize_binding_pocket_sybyl(protein_xyz,
-                                   protein,
-                                   ligand_xyz,
-                                   ligand,
-                                   pairwise_distances=None,
-                                   cutoff=7.0):
-  """Computes Sybyl dicts for ligand and binding pocket of the protein.
-
-  TODO(rbharath): Consider this comment on rdkit forums https://github.com/rdkit/rdkit/issues/1590
-  Parameters
-  ----------
-  protein_xyz: np.ndarray
-    Of shape (N_protein_atoms, 3)
-  protein: Rdkit Molecule
-    Contains more metadata.
-  ligand_xyz: np.ndarray
-    Of shape (N_ligand_atoms, 3)
-  ligand: Rdkit Molecule
-    Contains more metadata
-  pairwise_distances: np.ndarray
-    Array of pairwise protein-ligand distances (Angstroms)
-  cutoff: float
-    Cutoff distance for contact consideration.
-  """
-  features_dict = {}
-
-  if pairwise_distances is None:
-    pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
-  contacts = np.nonzero((pairwise_distances < cutoff))
-  protein_atoms = set([int(c) for c in contacts[0].tolist()])
-
-  protein_sybyl_dict = compute_all_sybyl(protein, indices=protein_atoms)
-  ligand_sybyl_dict = compute_all_sybyl(ligand)
-  return (protein_sybyl_dict, ligand_sybyl_dict)
 
 
 def compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
@@ -201,7 +154,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     hbond_angle_cutoffs: [5, 50, 90]
     splif_contact_bins: [(0, 2.0), (2.0, 3.0), (3.0, 4.5)]
     ecfp_cutoff: 4.5
-    sybyl_cutoff: 7.0
+    #sybyl_cutoff: 7.0
     salt_bridges_cutoff: 5.0
     pi_stack_dist_cutoff: 4.4
     pi_stack_angle_cutoff: 30.0
@@ -212,16 +165,11 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     # list of features that require sanitized molecules
     require_sanitized = ['pi_stack', 'cation_pi', 'ecfp_ligand']
 
-    # not implemented featurization types
-    not_implemented = ['sybyl']
-
     self.sanitize = sanitize
     self.flatten = flatten
-
     self.ecfp_degree = ecfp_degree
     self.ecfp_power = ecfp_power
     self.splif_power = splif_power
-
     self.nb_rotations = nb_rotations
 
     # default values
@@ -230,7 +178,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         'hbond_angle_cutoffs': [5, 50, 90],
         'splif_contact_bins': [(0, 2.0), (2.0, 3.0), (3.0, 4.5)],
         'ecfp_cutoff': 4.5,
-        'sybyl_cutoff': 7.0,
         'salt_bridges_cutoff': 5.0,
         'pi_stack_dist_cutoff': 4.4,
         'pi_stack_angle_cutoff': 30.0,
@@ -259,7 +206,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     ignored_features = []
     if self.sanitize is False:
       ignored_features += require_sanitized
-    ignored_features += not_implemented
+    #ignored_features += not_implemented
 
     # Intantiate Featurizers
     self.ecfp_featurizer = CircularFingerprint(
@@ -284,15 +231,27 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         size=2**self.splif_power,
         box_width=self.box_width,
         voxel_width=self.voxel_width)
+    self.charge_voxelizer = ChargeVoxelizer(
+        box_width=self.box_width, voxel_width=self.voxel_width)
+    self.salt_bridge_voxelizer = SaltBridgeVoxelizer(
+        cutoff=self.cutoffs['salt_bridges_cutoff'],
+        box_width=self.box_width,
+        voxel_width=self.voxel_width)
+    self.cation_pi_voxelizer = CationPiVoxelizer(
+        distance_cutoff=self.cutoffs['cation_pi_dist_cutoff'],
+        angle_cutoff=self.cutoffs['cation_pi_angle_cutoff'],
+        box_width=self.box_width,
+        voxel_width=self.voxel_width)
+    self.pi_stack_voxelizer = PiStackVoxelizer(
+        distance_cutoff=self.cutoffs['pi_stack_dist_cutoff'],
+        angle_cutoff=self.cutoffs['pi_stack_angle_cutoff'],
+        box_width=self.box_width,
+        voxel_width=self.voxel_width)
 
     # parse provided feature types
     for feature_type in feature_types:
       if self.sanitize is False and feature_type in require_sanitized:
         logger.warning('sanitize is set to False, %s feature will be ignored' %
-                       feature_type)
-        continue
-      if feature_type in not_implemented:
-        logger.warning('%s feature is not implemented yet and will be ignored' %
                        feature_type)
         continue
 
@@ -354,57 +313,12 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     if feature_name == 'splif':
       return self.splif_voxelizer._featurize_complex((lig_xyz, lig_rdk),
                                                      (prot_xyz, prot_rdk))
-    if feature_name == 'sybyl':
-      return [
-          voxelize(
-              convert_atom_to_voxel,
-              self.voxels_per_edge,
-              self.box_width,
-              self.voxel_width,
-              lambda x: hash_sybyl(x, sybyl_types=sybyl_types),
-              xyz,
-              feature_dict=sybyl_dict,
-              nb_channel=len(sybyl_types))
-          for xyz, sybyl_dict in zip((prot_xyz, lig_xyz),
-                                     featurize_binding_pocket_sybyl(
-                                         prot_xyz,
-                                         prot_rdk,
-                                         lig_xyz,
-                                         lig_rdk,
-                                         distances,
-                                         cutoff=self.cutoffs['sybyl_cutoff']))
-      ]
     if feature_name == 'salt_bridge':
-      return [
-          voxelize(
-              convert_atom_pair_to_voxel,
-              self.voxels_per_edge,
-              self.box_width,
-              self.voxel_width,
-              None, (prot_xyz, lig_xyz),
-              feature_list=compute_salt_bridges(
-                  prot_rdk,
-                  lig_rdk,
-                  distances,
-                  cutoff=self.cutoffs['salt_bridges_cutoff']),
-              nb_channel=1)
-      ]
+      return self.salt_bridge_voxelizer._featurize_complex((lig_xyz, lig_rdk),
+                                                           (prot_xyz, prot_rdk))
     if feature_name == 'charge':
-      return [
-          sum([
-              voxelize(
-                  convert_atom_to_voxel,
-                  self.voxels_per_edge,
-                  self.box_width,
-                  self.voxel_width,
-                  None,
-                  xyz,
-                  feature_dict=compute_charge_dictionary(mol),
-                  nb_channel=1,
-                  dtype="np.float16")
-              for xyz, mol in ((prot_xyz, prot_rdk), (lig_xyz, lig_rdk))
-          ])
-      ]
+      return self.charge_voxelizer._featurize_complex((lig_xyz, lig_rdk),
+                                                      (prot_xyz, prot_rdk))
     if feature_name == 'hbond':
       return [
           voxelize(
@@ -414,34 +328,16 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
               self.voxel_width,
               None, (prot_xyz, lig_xyz),
               feature_list=hbond_list,
-              nb_channel=2**0) for hbond_list in compute_hydrogen_bonds(
+              nb_channel=1) for hbond_list in compute_hydrogen_bonds(
                   prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances, self.cutoffs[
                       'hbond_dist_bins'], self.cutoffs['hbond_angle_cutoffs'])
       ]
     if feature_name == 'pi_stack':
-      return self.voxelize_pi_stack(prot_xyz, prot_rdk, lig_xyz, lig_rdk,
-                                    distances)
+      return self.pi_stack_voxelizer._featurize_complex((lig_xyz, lig_rdk),
+                                                        (prot_xyz, prot_rdk))
     if feature_name == 'cation_pi':
-      return [
-          sum([
-              voxelize(
-                  convert_atom_to_voxel,
-                  self.voxels_per_edge,
-                  self.box_width,
-                  self.voxel_width,
-                  None,
-                  xyz,
-                  feature_dict=cation_pi_dict,
-                  nb_channel=1) for xyz, cation_pi_dict in zip(
-                      (prot_xyz, lig_xyz),
-                      compute_binding_pocket_cation_pi(
-                          prot_rdk,
-                          lig_rdk,
-                          dist_cutoff=self.cutoffs['cation_pi_dist_cutoff'],
-                          angle_cutoff=self.cutoffs['cation_pi_angle_cutoff'],
-                      ))
-          ])
-      ]
+      return self.cation_pi_voxelizer._featurize_complex((lig_xyz, lig_rdk),
+                                                         (prot_xyz, prot_rdk))
     raise ValueError('Unknown feature type "%s"' % feature_name)
 
   def _featurize(self, mol_pdb_file, protein_pdb_file):
@@ -524,50 +420,3 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
 
     features = np.squeeze(np.array(list(features_dict.values())))
     return features
-
-  def voxelize_pi_stack(self, prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances):
-    protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel = (
-        compute_pi_stack(
-            prot_rdk,
-            lig_rdk,
-            distances,
-            dist_cutoff=self.cutoffs['pi_stack_dist_cutoff'],
-            angle_cutoff=self.cutoffs['pi_stack_angle_cutoff']))
-    pi_parallel_tensor = voxelize(
-        convert_atom_to_voxel,
-        self.voxels_per_edge,
-        self.box_width,
-        self.voxel_width,
-        None,
-        prot_xyz,
-        feature_dict=protein_pi_parallel,
-        nb_channel=1)
-    pi_parallel_tensor += voxelize(
-        convert_atom_to_voxel,
-        self.voxels_per_edge,
-        self.box_width,
-        self.voxel_width,
-        None,
-        lig_xyz,
-        feature_dict=ligand_pi_parallel,
-        nb_channel=1)
-
-    pi_t_tensor = voxelize(
-        convert_atom_to_voxel,
-        self.voxels_per_edge,
-        self.box_width,
-        self.voxel_width,
-        None,
-        prot_xyz,
-        feature_dict=protein_pi_t,
-        nb_channel=1)
-    pi_t_tensor += voxelize(
-        convert_atom_to_voxel,
-        self.voxels_per_edge,
-        self.box_width,
-        self.voxel_width,
-        None,
-        lig_xyz,
-        feature_dict=ligand_pi_t,
-        nb_channel=1)
-    return [pi_parallel_tensor, pi_t_tensor]

@@ -11,6 +11,8 @@ np.random.seed(123)
 from deepchem.utils import rdkit_util
 from deepchem.utils import hash_utils
 from deepchem.utils import voxel_utils
+from deepchem.feat.contact_fingerprints import featurize_binding_pocket_ecfp
+from deepchem.feat.splif_fingerprint import featurize_splif
 from deepchem.feat import rdkit_grid_featurizer as rgf
 from deepchem.feat.splif_fingerprint import compute_splif_features_in_range
 
@@ -124,13 +126,13 @@ class TestFeaturizationFunctions(unittest.TestCase):
     distance = rdkit_util.compute_pairwise_distances(prot_xyz, lig_xyz)
 
     # check if results are the same if we provide precomputed distances
-    prot_dict, lig_dict = rgf.featurize_binding_pocket_ecfp(
+    prot_dict, lig_dict = featurize_binding_pocket_ecfp(
         prot_xyz,
         prot_rdk,
         lig_xyz,
         lig_rdk,
     )
-    prot_dict_dist, lig_dict_dist = rgf.featurize_binding_pocket_ecfp(
+    prot_dict_dist, lig_dict_dist = featurize_binding_pocket_ecfp(
         prot_xyz, prot_rdk, lig_xyz, lig_rdk, pairwise_distances=distance)
     # ...but first check if we actually got two dicts
     self.assertIsInstance(prot_dict, dict)
@@ -140,14 +142,14 @@ class TestFeaturizationFunctions(unittest.TestCase):
     self.assertEqual(lig_dict, lig_dict_dist)
 
     # check if we get less features with smaller distance cutoff
-    prot_dict_d2, lig_dict_d2 = rgf.featurize_binding_pocket_ecfp(
+    prot_dict_d2, lig_dict_d2 = featurize_binding_pocket_ecfp(
         prot_xyz,
         prot_rdk,
         lig_xyz,
         lig_rdk,
         cutoff=2.0,
     )
-    prot_dict_d6, lig_dict_d6 = rgf.featurize_binding_pocket_ecfp(
+    prot_dict_d6, lig_dict_d6 = featurize_binding_pocket_ecfp(
         prot_xyz,
         prot_rdk,
         lig_xyz,
@@ -161,7 +163,7 @@ class TestFeaturizationFunctions(unittest.TestCase):
     self.assertGreaterEqual(len(lig_dict_d6), len(lig_dict))
 
     # check if using different ecfp_degree changes anything
-    prot_dict_e3, lig_dict_e3 = rgf.featurize_binding_pocket_ecfp(
+    prot_dict_e3, lig_dict_e3 = featurize_binding_pocket_ecfp(
         prot_xyz,
         prot_rdk,
         lig_xyz,
@@ -209,7 +211,7 @@ class TestFeaturizationFunctions(unittest.TestCase):
 
     bins = [(1, 2), (2, 3)]
 
-    dicts = rgf.featurize_splif(
+    dicts = featurize_splif(
         prot_xyz,
         prot_rdk,
         lig_xyz,
@@ -329,7 +331,7 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         'hbond_angle_cutoffs': [5, 90],
         'splif_contact_bins': [(0, 3.5), (3.5, 6.0)],
         'ecfp_cutoff': 5.0,
-        'sybyl_cutoff': 3.0,
+        #'sybyl_cutoff': 3.0,
         'salt_bridges_cutoff': 4.0,
         'pi_stack_dist_cutoff': 5.0,
         'pi_stack_angle_cutoff': 15.0,
@@ -357,7 +359,7 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     prot_xyz = rgf.subtract_centroid(prot_xyz, centroid)
     lig_xyz = rgf.subtract_centroid(lig_xyz, centroid)
 
-    prot_ecfp_dict, lig_ecfp_dict = rgf.featurize_binding_pocket_ecfp(
+    prot_ecfp_dict, lig_ecfp_dict = featurize_binding_pocket_ecfp(
         prot_xyz, prot_rdk, lig_xyz, lig_rdk)
 
     box_w = 20

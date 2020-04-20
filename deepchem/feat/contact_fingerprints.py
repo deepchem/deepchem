@@ -134,7 +134,7 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
     cutoff: float (default 4.5)
       Distance cutoff in angstroms for molecules in complex.
     radius : int, optional (default 2)
-        Fingerprint radius.
+      Fingerprint radius.
     size : int, optional (default 8)
       Length of generated bit vector.
     box_width: float, optional (default 16.0)
