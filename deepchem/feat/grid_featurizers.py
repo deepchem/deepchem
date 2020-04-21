@@ -30,7 +30,7 @@ def compute_charge_dictionary(molecule):
 class ChargeVoxelizer(ComplexFeaturizer):
   """Localize partial charges of atoms in macromolecular complexes.
 
-  Given a macromolecular compelx made up of multiple
+  Given a macromolecular complex made up of multiple
   constitutent molecules, compute the partial (Gasteiger
   charge) on each molecule. For each atom, localize this
   partial charge in the voxel in which it originated to create
@@ -88,7 +88,7 @@ class ChargeVoxelizer(ComplexFeaturizer):
 class SaltBridgeVoxelizer(ComplexFeaturizer):
   """Localize salt bridges between atoms in macromolecular complexes.
 
-  Given a macromolecular compelx made up of multiple
+  Given a macromolecular complex made up of multiple
   constitutent molecules, compute salt bridges between atoms in
   the macromolecular complex. For each atom, localize this salt
   bridge in the voxel in which it originated to create a local
@@ -152,7 +152,7 @@ class SaltBridgeVoxelizer(ComplexFeaturizer):
 class CationPiVoxelizer(ComplexFeaturizer):
   """Localize cation-Pi interactions between atoms in macromolecular complexes.
 
-  Given a macromolecular compelx made up of multiple
+  Given a macromolecular complex made up of multiple
   constitutent molecules, compute cation-Pi between atoms in
   the macromolecular complex. For each atom, localize this salt
   bridge in the voxel in which it originated to create a local
@@ -226,7 +226,7 @@ class CationPiVoxelizer(ComplexFeaturizer):
 class PiStackVoxelizer(ComplexFeaturizer):
   """Localize Pi stacking interactions between atoms in macromolecular complexes.
 
-  Given a macromolecular compelx made up of multiple
+  Given a macromolecular complex made up of multiple
   constitutent molecules, compute pi-stacking interactions
   between atoms in the macromolecular complex. For each atom,
   localize this salt bridge in the voxel in which it originated
@@ -323,3 +323,71 @@ class PiStackVoxelizer(ComplexFeaturizer):
         feature_dict=ligand_pi_t,
         nb_channel=1)
     return [pi_parallel_tensor, pi_t_tensor]
+    
+class HydrogenBondVoxelizer(ComplexFeaturizer):
+  """Localize hydrogen bonds between atoms in macromolecular complexes.
+
+  Given a macromolecular complex made up of multiple
+  constitutent molecules, compute hydrogen bonds between atoms
+  in the macromolecular complex. For each atom, localize this
+  hydrogen bond in the voxel in which it originated to create a
+  local hydrogen bond array. Note that if atoms in two
+  different voxels interact in a hydrogen bond, the interaction
+  is double counted in both voxels.
+
+  Creates a tensor output of shape (box_width, box_width,
+  box_width, 1) for each macromolecular complex that computes
+  the number of hydrogen bonds at each voxel.
+  """
+  def __init__(self, 
+               distance_cutoff=5.0,
+               angle_cutoff=40.0,
+               box_width=16.0,
+               voxel_width=1.0):
+    """
+    Parameters
+    ----------
+    distance_cutoff: float, optional (default 4.0)
+      The distance in angstroms within which atoms must be to
+      be considered for a hydrogen bond interaction between
+      them.
+    angle_cutoff: float, optional (default 40.0)
+      Angle cutoff. Max allowed deviation from the ideal (180
+      deg) angle between hydrogen-atom1, hydrogen-atom2 vectors.
+    box_width: float, optional (default 16.0)
+      Size of a box in which voxel features are calculated. Box
+      is centered on a ligand centroid.
+    voxel_width: float, optional (default 1.0)
+      Size of a 3D voxel in a grid.
+    """
+    self.distance_cutoff = distance_cutoff
+    self.box_width = box_width
+    self.voxel_width = voxel_width
+    self.voxels_per_edge = int(self.box_width / self.voxel_width)
+
+  def _featurize_complex(self, mol, protein):
+    """
+    Compute featurization for a single mol/protein complex
+
+    Parameters
+    ----------
+    mol: object
+      Representation of the molecule
+    protein: object
+      Representation of the protein
+    """
+    (lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
+    distances = compute_pairwise_distances(prot_xyz, lig_xyz)
+    return [
+        voxelize(
+            convert_atom_pair_to_voxel,
+            self.voxels_per_edge,
+            self.box_width,
+            self.voxel_width,
+            None, (prot_xyz, lig_xyz),
+            feature_list=hbond_list,
+            nb_channel=1) for hbond_list in compute_hydrogen_bonds(
+                prot_xyz, prot_rdk, lig_xyz, lig_rdk,
+                distances, self.distance_cutoff,
+                self.angle_cutoff)
+    ]

@@ -337,6 +337,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         'pi_stack_angle_cutoff': 15.0,
         'cation_pi_dist_cutoff': 5.5,
         'cation_pi_angle_cutoff': 20.0,
+        'hbond_dist_cutoff': 4.0,
+        'hbond_angle_cutoff': 40.0
     }
     rgf_featurizer = rgf.RdkitGridFeaturizer(**custom_cutoffs)
     self.assertEqual(rgf_featurizer.cutoffs, custom_cutoffs)

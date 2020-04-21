@@ -375,18 +375,19 @@ class RandomGroupSplitter(Splitter):
 class RandomStratifiedSplitter(Splitter):
   """RandomStratified Splitter class.
 
-  For sparse multitask datasets, a standard split offers no guarantees
-  that the splits will have any activate compounds. This class guarantees
-  that each task will have a proportional split of the activates in a
-  split. TO do this, a ragged split is performed with different numbers
-  of compounds taken from each task. Thus, the length of the split arrays
-  may exceed the split of the original array. That said, no datapoint is
-  copied to more than one split, so correctness is still ensured.
+  For sparse multitask datasets, a standard split offers no
+  guarantees that the splits will have any activate compounds.
+  This class guarantees that each task will have a proportional
+  split of the activates in a split. TO do this, a ragged split
+  is performed with different numbers of compounds taken from
+  each task. Thus, the length of the split arrays may exceed the
+  split of the original array. That said, no datapoint is copied
+  to more than one split, so correctness is still ensured.
 
   Note that this splitter is only valid for boolean label data.
 
-  TODO(rbharath): This splitter should be refactored to match style of
-  other splitter classes.
+  TODO(rbharath): This splitter should be refactored to match
+  style of other splitter classes.
   """
 
   def __generate_required_hits(self, w, frac_split):
