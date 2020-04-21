@@ -54,7 +54,15 @@ def featurize_binding_pocket_ecfp(protein_xyz,
 class ContactCircularFingerprint(ComplexFeaturizer):
   """Compute (Morgan) fingerprints near contact points of macromolecular complexes.
 
-  Given a macromolecular complex made up of multiple constituent molecules, first compute the contact points where atoms from different molecules come close to one another. For atoms within "contact regions," compute radial "ECFP" fragments which are sub-molecules centered at atoms in the contact region.
+  Given a macromolecular complex made up of multiple
+  constituent molecules, first compute the contact points where
+  atoms from different molecules come close to one another. For
+  atoms within "contact regions," compute radial "ECFP"
+  fragments which are sub-molecules centered at atoms in the
+  contact region.
+
+  For a macromolecular complex, returns a vector of shape
+  `(2*size,)`
   """
 
   def __init__(self, 
@@ -120,6 +128,10 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
   fragments which are sub-molecules centered at atoms in the
   contact region. Localize these ECFP fingeprints at the voxel
   in which they originated.
+
+  Featurizes a macromolecular complex into a tensor of shape
+  `(voxels_per_edge, voxels_per_edge, voxels_per_edge, size)`
+  where `voxels_per_edge = int(box_width/voxel_width)`.
   """
 
   def __init__(self, 

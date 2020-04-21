@@ -79,6 +79,13 @@ class SplifFingerprint(ComplexFeaturizer):
   each ligand atom, it identifies close protein atoms. These
   atom pairs are expanded to 2D circular fragments and a
   fingerprint for the union is turned on in the bit vector.
+
+  This is conceptually pretty similar to
+  `ContactCircularFingerprint` but computes ECFP fragments only
+  for direct contacts instead of the entire contact region.
+
+  For a macromolecular complex, returns a vector of shape
+  `(2*size,)`
   """
 
   def __init__(self, 
@@ -145,6 +152,10 @@ class SplifVoxelizer(ComplexFeaturizer):
   space, by assigning features to the voxel in which they
   originated. This technique may be useful for downstream
   learning methods such as convolutional networks.
+
+  Featurizes a macromolecular complex into a tensor of shape
+  `(voxels_per_edge, voxels_per_edge, voxels_per_edge, size)`
+  where `voxels_per_edge = int(box_width/voxel_width)`.
   """
 
   def __init__(self, 

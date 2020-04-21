@@ -21,6 +21,7 @@ from deepchem.feat.grid_featurizers import ChargeVoxelizer
 from deepchem.feat.grid_featurizers import SaltBridgeVoxelizer
 from deepchem.feat.grid_featurizers import CationPiVoxelizer
 from deepchem.feat.grid_featurizers import PiStackVoxelizer
+from deepchem.feat.grid_featurizers import HydrogenBondCounter
 from deepchem.feat.grid_featurizers import HydrogenBondVoxelizer
 from deepchem.utils.rdkit_util import compute_hydrogen_bonds
 from deepchem.utils.rdkit_util import load_molecule
@@ -213,6 +214,9 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         angle_cutoff=self.cutoffs['pi_stack_angle_cutoff'],
         box_width=self.box_width,
         voxel_width=self.voxel_width)
+    self.hbond_counter = HydrogenBondCounter(
+        distance_bins=self.cutoffs['hbond_dist_cutoff'],
+        angle_cutoffs=self.cutoffs['hbond_angle_cutoff'])
     self.hbond_voxelizer = HydrogenBondVoxelizer(
         distance_cutoff=self.cutoffs['hbond_dist_cutoff'],
         angle_cutoff=self.cutoffs['hbond_angle_cutoff'],
@@ -272,12 +276,8 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       return self.splif_featurizer._featurize_complex((lig_xyz, lig_rdk),
                                                       (prot_xyz, prot_rdk))
     if feature_name == 'hbond_count':
-      return [
-          vectorize(hash_ecfp_pair, feature_list=hbond_list, size=1)
-          for hbond_list in compute_hydrogen_bonds(
-              prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances, self.cutoffs[
-                  'hbond_dist_bins'], self.cutoffs['hbond_angle_cutoffs'])
-      ]
+      return self.hbond_counter._featurize_complex((lig_xyz, lig_rdk),
+                                                   (prot_xyz, prot_rdk))
     if feature_name == 'ecfp':
       return self.contact_voxelizer._featurize_complex((lig_xyz, lig_rdk),
                                                        (prot_xyz, prot_rdk))
@@ -352,7 +352,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       return None
 
     time1 = time.time()
-    # TODO(rbharath): Wait a minute, if we're subtract different centroids for each, have we ruined the alignment between protein and ligand. Figure this out before merging in.
     centroid = compute_centroid(ligand_xyz)
     ligand_xyz = subtract_centroid(ligand_xyz, centroid)
     protein_xyz = subtract_centroid(protein_xyz, centroid)

@@ -12,7 +12,7 @@ import tensorflow as tf
 tf.random.set_seed(123)
 import deepchem as dc
 
-# Load Tox21 dataset
+# Load QM7B dataset
 tasks, datasets, transformers = dc.molnet.load_qm7b_from_mat()
 train_dataset, valid_dataset, test_dataset = datasets
 
