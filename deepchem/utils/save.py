@@ -28,7 +28,20 @@ def save_to_disk(dataset, filename, compress=3):
 
 
 def get_input_type(input_file):
-  """Get type of input file. Must be csv/pkl.gz/sdf file."""
+  """Get type of input file. Must be csv/pkl.gz/sdf file.
+
+  Will automatically remove ".gz" when looking at filetype.
+  Will raise `ValueError` for unnrecognized filetypes.
+
+  Parameters
+  ----------
+  input_file: str
+    Filename to check
+
+  Returns
+  -------
+  A string with the filetype. Possible values are "csv", "pandas-pickle", "pandas-joblib", "sdf".
+  """
   filename, file_extension = os.path.splitext(input_file)
   # If gzipped, need to compute extension again
   if file_extension == ".gz":
@@ -102,7 +115,7 @@ def load_sdf_files(input_files: List[str],
   -------
   dataframes: list
     This function returns a list of pandas dataframes. Each dataframe will
-    contain columns `('mol_id', 'smiles', 'mol')`.
+    contain columns `('mol_id', 'smiles', 'mol', task[0], ..., task[-1])`
   """
   from rdkit import Chem
   dataframes = []
@@ -125,12 +138,14 @@ def load_sdf_files(input_files: List[str],
     if has_csv:
       mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
       raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
-      dataframes.append(pd.concat([mol_df, raw_df], axis=1, join='inner'))
+      #dataframes.append(pd.concat([mol_df, raw_df], axis=1, join='inner'))
+      yield pd.concat([mol_df, raw_df], axis=1, join='inner')
     else:
       mol_df = pd.DataFrame(
           df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks))
-      dataframes.append(mol_df)
-  return dataframes
+      #dataframes.append(mol_df)
+      yield mol_df
+  #return dataframes
 
 
 def load_csv_files(filenames: List[str],
@@ -140,9 +155,10 @@ def load_csv_files(filenames: List[str],
   Parameters
   ----------
   filenames: list[str]
-    List of filenames
+    Filenames of CSV files to load.
   shard_size: int, optional (default None) 
-    The shard size to yield at one time.
+    If set, read `shard_size` rows at a time. Otherwise, yield
+    a full CSV file at at time.
 
   Returns
   -------

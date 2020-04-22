@@ -366,13 +366,6 @@ class HydrogenBondCounter(ComplexFeaturizer):
       self.angle_cutoffs = HBOND_ANGLE_CUTOFFS
     else:
       self.angle_cutoffs = angle_cutoffs
-    ######################################################
-    print("constructor")
-    print("self.distance_bins")
-    print(self.distance_bins)
-    print("self.angle_cutoffs")
-    print(self.angle_cutoffs)
-    ######################################################
 
   def _featurize_complex(self, mol, protein):
     """
@@ -387,12 +380,6 @@ class HydrogenBondCounter(ComplexFeaturizer):
     """
     (lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
     distances = compute_pairwise_distances(prot_xyz, lig_xyz)
-    ######################################################
-    print("self.distance_bins")
-    print(self.distance_bins)
-    print("self.angle_cutoffs")
-    print(self.angle_cutoffs)
-    ######################################################
     return [
         vectorize(
             hash_ecfp_pair, feature_list=hbond_list, size=1)
@@ -416,8 +403,8 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
   the number of hydrogen bonds at each voxel.
   """
   def __init__(self, 
-               distance_cutoff=5.0,
-               angle_cutoff=40.0,
+               distance_bins=None,
+               angle_cutoffs=None,
                box_width=16.0,
                voxel_width=1.0):
     """
@@ -438,8 +425,14 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
     voxel_width: float, optional (default 1.0)
       Size of a 3D voxel in a grid.
     """
-    self.distance_cutoff = distance_cutoff
-    self.angle_cutoff = angle_cutoff
+    if distance_bins is None:
+      self.distance_bins = HBOND_DIST_BINS
+    else:
+      self.distance_bins = distance_bins
+    if angle_cutoffs is None:
+      self.angle_cutoffs = HBOND_ANGLE_CUTOFFS
+    else:
+      self.angle_cutoffs = angle_cutoffs
     self.box_width = box_width
     self.voxel_width = voxel_width
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
@@ -467,6 +460,6 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
             feature_list=hbond_list,
             nb_channel=1) for hbond_list in compute_hydrogen_bonds(
                 prot_xyz, prot_rdk, lig_xyz, lig_rdk,
-                distances, self.distance_cutoff,
-                self.angle_cutoff)
+                distances, self.distance_bins,
+                self.angle_cutoffs)
     ]

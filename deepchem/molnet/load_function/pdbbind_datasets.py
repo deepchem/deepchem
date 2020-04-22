@@ -185,8 +185,6 @@ def load_pdbbind(reload=True,
 
   pdbbind_tasks = ["-logKd/Ki"]
 
-  deepchem_dir = deepchem.utils.get_data_dir()
-
   if data_dir == None:
     data_dir = DEFAULT_DIR
   data_folder = os.path.join(data_dir, "pdbbind", "v2015")
@@ -343,23 +341,23 @@ def load_pdbbind_from_dir(data_folder,
                           save_dir=None):
   """Load and featurize raw PDBBind dataset from a local directory with the option to avoid certain IDs.
 
-    Parameters
-    ----------
-    data_dir: String,
-      Specifies the data directory to store the featurized dataset.
-    index_files: List
-      List of data and labels index file paths relative to the path in data_dir
-    split: Str
-      Either "random" or "index"
-    feat: Str
-      Either "grid" or "atomic" for grid and atomic featurizations.
-    subset: Str
-      Only "core" or "refined" for now.
-    ex_ids: List
-      List of PDB IDs to avoid loading if present
-    save_dir: String
-      Path to store featurized datasets
-    """
+  Parameters
+  ----------
+  data_dir: String,
+    Specifies the data directory to store the featurized dataset.
+  index_files: List
+    List of data and labels index file paths relative to the path in data_dir
+  split: Str
+    Either "random" or "index"
+  feat: Str
+    Either "grid" or "atomic" for grid and atomic featurizations.
+  subset: Str
+    Only "core" or "refined" for now.
+  ex_ids: List
+    List of PDB IDs to avoid loading if present
+  save_dir: String
+    Path to store featurized datasets
+  """
   pdbbind_tasks = ["-logKd/Ki"]
 
   index_file = os.path.join(data_folder, index_files[0])

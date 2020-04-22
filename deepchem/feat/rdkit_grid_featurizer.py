@@ -124,8 +124,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     pi_stack_angle_cutoff: 30.0
     cation_pi_dist_cutoff: 6.5
     cation_pi_angle_cutoff: 30.0
-    hbond_dist_cutoff: 4.0
-    hbond_angle_cutoff: 40.0
     """
 
     # list of features that require sanitized molecules
@@ -149,8 +147,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         'pi_stack_angle_cutoff': 30.0,
         'cation_pi_dist_cutoff': 6.5,
         'cation_pi_angle_cutoff': 30.0,
-        'hbond_dist_cutoff': 4.0,
-        'hbond_angle_cutoff': 40.0
     }
 
     # update with cutoffs specified by the user
@@ -215,11 +211,11 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         box_width=self.box_width,
         voxel_width=self.voxel_width)
     self.hbond_counter = HydrogenBondCounter(
-        distance_bins=self.cutoffs['hbond_dist_cutoff'],
-        angle_cutoffs=self.cutoffs['hbond_angle_cutoff'])
+        distance_bins=self.cutoffs['hbond_dist_bins'],
+        angle_cutoffs=self.cutoffs['hbond_angle_cutoffs'])
     self.hbond_voxelizer = HydrogenBondVoxelizer(
-        distance_cutoff=self.cutoffs['hbond_dist_cutoff'],
-        angle_cutoff=self.cutoffs['hbond_angle_cutoff'],
+        distance_bins=self.cutoffs['hbond_dist_bins'],
+        angle_cutoffs=self.cutoffs['hbond_angle_cutoffs'],
         box_width=self.box_width,
         voxel_width=self.voxel_width)
 
@@ -291,18 +287,8 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       return self.charge_voxelizer._featurize_complex((lig_xyz, lig_rdk),
                                                       (prot_xyz, prot_rdk))
     if feature_name == 'hbond':
-      return [
-          voxelize(
-              convert_atom_pair_to_voxel,
-              self.voxels_per_edge,
-              self.box_width,
-              self.voxel_width,
-              None, (prot_xyz, lig_xyz),
-              feature_list=hbond_list,
-              nb_channel=1) for hbond_list in compute_hydrogen_bonds(
-                  prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances, self.cutoffs[
-                      'hbond_dist_bins'], self.cutoffs['hbond_angle_cutoffs'])
-      ]
+      return self.hbond_voxelizer._featurize_complex((lig_xyz, lig_rdk),
+                                                     (prot_xyz, prot_rdk))
     if feature_name == 'pi_stack':
       return self.pi_stack_voxelizer._featurize_complex((lig_xyz, lig_rdk),
                                                         (prot_xyz, prot_rdk))
