@@ -1,10 +1,6 @@
 """
 Script that trains multitask models on Delaney dataset.
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import shutil
 import numpy as np
