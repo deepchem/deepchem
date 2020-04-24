@@ -227,6 +227,8 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
     # TODO(rbharath): extend to more fragments
     if len(frag_num_atoms) != 2:
       raise ValueError("Currently only supports two fragments")
+    self.frag1_num_atoms = frag_num_atoms[0]
+    self.frag2_num_atoms = frag_num_atoms[0]
     self.complex_num_atoms = sum(frag_num_atoms)
     self.max_num_neighbors = max_num_neighbors
     self.neighbor_cutoff = neighbor_cutoff
