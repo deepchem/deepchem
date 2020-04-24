@@ -49,4 +49,6 @@ competition. Increased competition can help drive down the cost of medicine.
 * [Part 19: Large Scale Chemical Screens](19_Large_Scale_Chemical_Screens.ipynb)
 * [Part 20: [WIP] ConvertingDeepChem Models to TensorFlow Estimators](WIP_20_Converting_DeepChem_Models_to_TensorFlow_Estimators.ipynb)
 * [Part 21: Introduction to Bioinformatics](21_Introduction_to_Bioinformatics.ipynb)
+* [Part 22: Using HuggingFace + Transfer Learning for Toxicity Predictions](22_Transfer_Learning_With_HuggingFace_tox21.ipynb)
+
 
