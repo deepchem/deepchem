@@ -29,14 +29,6 @@ def featurize_contacts_ecfp(frag1,
     A tuple of (coords, mol) returned by `rdkit_util.load_molecule`.
   frag2: Tuple
     A tuple of (coords, mol) returned by `rdkit_util.load_molecule`.
-  #protein_xyz: np.ndarray
-  #  Of shape (N_protein_atoms, 3)
-  #protein: rdkit.rdchem.Mol
-  #  Contains more metadata.
-  #ligand_xyz: np.ndarray
-  #  Of shape (N_ligand_atoms, 3)
-  #ligand: rdkit.rdchem.Mol
-  #  Contains more metadata
   pairwise_distances: np.ndarray
     Array of pairwise protein-ligand distances (Angstroms)
   cutoff: float
@@ -45,7 +37,6 @@ def featurize_contacts_ecfp(frag1,
     ECFP radius
   """
   if pairwise_distances is None:
-    #pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
     pairwise_distances = compute_pairwise_distances(frag1[0], frag2[0])
   # contacts is of form (x_coords, y_coords), a tuple of 2 lists
   contacts = np.nonzero((pairwise_distances < cutoff))
@@ -56,14 +47,10 @@ def featurize_contacts_ecfp(frag1,
   # contacts[1] is the y_coords, the frag2 atoms with nonzero contacts
   frag2_atoms = set([int(c) for c in contacts[1].tolist()])
 
-  #protein_ecfp_dict = compute_all_ecfp(
-  #    protein, indices=protein_atoms, degree=ecfp_degree)
   frag1_ecfp_dict = compute_all_ecfp(
       frag1[1], indices=frag1_atoms, degree=ecfp_degree)
-  #ligand_ecfp_dict = compute_all_ecfp(ligand, degree=ecfp_degree)
   frag2_ecfp_dict = compute_all_ecfp(frag2[1], indices=frag2_atoms, degree=ecfp_degree)
 
-  #return (protein_ecfp_dict, ligand_ecfp_dict)
   return (frag1_ecfp_dict, frag2_ecfp_dict)
 
 
@@ -121,9 +108,10 @@ class ContactCircularFingerprint(ComplexFeaturizer):
       fragments = rdkit_util.load_complex(molecular_complex, add_hydrogens=False)
 
     except MoleculeLoadException:
-      logging.warning("This molecule cannot be loaded by Rdkit. Returning None")
+      logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
       return None
     pairwise_features = []
+    # We compute pairwise contact fingerprints
     for (frag1, frag2) in itertools.combinations(fragments, 2):
       # Get coordinates
       distances = compute_pairwise_distances(frag1[0], frag2[0])
@@ -135,9 +123,10 @@ class ContactCircularFingerprint(ComplexFeaturizer):
             distances,
             cutoff=self.cutoff,
             ecfp_degree=self.radius)]
-      pairwise_features.append(vector)
+      pairwise_features += vector
     
-    return np.array(pairwise_features)
+    pairwise_features = np.concatenate(pairwise_features)
+    return pairwise_features
 
 class ContactCircularVoxelizer(ComplexFeaturizer):
   """Computes ECFP fingerprints on a voxel grid.

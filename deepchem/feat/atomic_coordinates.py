@@ -14,7 +14,13 @@ logger = logging.getLogger(__name__)
 
 class AtomicCoordinates(MolecularFeaturizer):
   """
-  Nx3 matrix of Cartesian coordinates [Angstrom]
+  Nx3 matrix of Cartesian coordinates [Bohr]
+
+  RDKit stores atomic coordinates in Angstrom. Atomic unit of length
+  is the bohr (1 bohr = 0.529177 Angstrom). Converting units makes
+  gradient calculation consistent with most QM software packages.
+
+  TODO(rbharath): Add option for angstrom computation.
   """
   name = ['atomic_coordinates']
 
@@ -26,6 +32,10 @@ class AtomicCoordinates(MolecularFeaturizer):
     ----------
     mol : RDKit Mol
           Molecule.
+
+    Returns
+    -------
+    A Numpy ndarray of shape `(N,3)` in Bohr.
     """
     N = mol.GetNumAtoms()
     coords = np.zeros((N, 3))
@@ -43,7 +53,6 @@ class AtomicCoordinates(MolecularFeaturizer):
       coords[atom, 1] = coords_in_bohr[atom].y
       coords[atom, 2] = coords_in_bohr[atom].z
 
-    coords = [coords]
     return coords
 
 
@@ -145,13 +154,23 @@ class NeighborListAtomicCoordinates(MolecularFeaturizer):
 
 
 class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
-  """
-  Adjacency list of neighbors for protein-ligand complexes in 3-space.
-
-  Neighbors dtermined by user-dfined distance cutoff.
+  """Featurizes a molecular complex as coordinates and adjacency list of neighbors.
+  
+  Computes the 3D coordinates of the system and an adjacency list of
+  neighbors for protein-ligand complexes in 3-space. Neighbors are
+  determined by user-defined distance cutoff.
   """
 
   def __init__(self, max_num_neighbors=None, neighbor_cutoff=4):
+    """Initialize this featurizer.
+
+    Parameters
+    ----------
+    max_num_neighbors: int, optional
+      set the maximum number of neighbors
+    neighbor_cutoff: int, optional
+      The number of neighbors to store in the neighbor list.
+    """
     if neighbor_cutoff <= 0:
       raise ValueError("neighbor_cutoff must be positive value.")
     if max_num_neighbors is not None:
@@ -169,10 +188,8 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
 
     Parameters
     ----------
-    mol_pdb_file: Str 
-      Filename for ligand pdb file. 
-    protein_pdb_file: Str 
-      Filename for protein pdb file. 
+    molecular_complex: Object
+      Some representation of a molecular complex.
     """
     mol_coords, ob_mol = rdkit_util.load_molecule(mol_pdb_file)
     protein_coords, protein_mol = rdkit_util.load_molecule(protein_pdb_file)

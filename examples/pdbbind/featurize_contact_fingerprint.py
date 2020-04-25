@@ -11,3 +11,4 @@ features, failures = featurizer.featurize_complexes(
     core_subset, parallelize=False)
 print("features.shape")
 print(features.shape)
+assert features.shape == (2, 16)

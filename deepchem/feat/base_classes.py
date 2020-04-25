@@ -1,11 +1,14 @@
 """
 Feature calculations.
 """
+import os
 import logging
 import types
 import numpy as np
 import multiprocessing
 from typing import Iterable, Union, Dict, Any
+import logging
+from deepchem.utils import rdkit_util
 
 logger = logging.getLogger(__name__)
 
