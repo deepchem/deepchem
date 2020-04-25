@@ -227,49 +227,54 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
     # TODO(rbharath): extend to more fragments
     if len(frag_num_atoms) != 2:
       raise ValueError("Currently only supports two fragments")
-    self.frag1_num_atoms = frag_num_atoms[0]
-    self.frag2_num_atoms = frag_num_atoms[0]
+    self.frag_num_atoms = frag_num_atoms
     self.complex_num_atoms = sum(frag_num_atoms)
     self.max_num_neighbors = max_num_neighbors
     self.neighbor_cutoff = neighbor_cutoff
     self.strip_hydrogens = strip_hydrogens
 
-  def _featurize(self, mol_pdb_file, protein_pdb_file):
+  def _featurize(self, molecular_complex):
+    """Featurize a single molecular complex.
+
+    Parameters
+    ----------
+    molecular_complex: Object
+      Some representation of a molecular complex.
+    """
     frag_coords = []
     frag_mols = []
     try:
-      frag1_coords, frag1_mol = rdkit_util.load_molecule(
-          mol_pdb_file, is_protein=False, sanitize=True, add_hydrogens=False)
-      frag2_coords, frag2_mol = rdkit_util.load_molecule(
-          protein_pdb_file, is_protein=True, sanitize=True, add_hydrogens=False)
+      fragments = rdkit_util.load_complex(
+          molecular_complex, add_hydrogens=False)
+
     except MoleculeLoadException:
-      # Currently handles loading failures by returning None
-      # TODO: Is there a better handling procedure?
-      logging.warning("Some molecules cannot be loaded by Rdkit. Skipping")
+      logging.warning("This molecule cannot be loaded by Rdkit. Returning None")
       return None
-    system_mol = rdkit_util.merge_molecules([frag1_mol, frag2_mol])
+    mols = [frag[1] for frag in fragments]
+    system_mol = rdkit_util.merge_molecules(mols)
     system_coords = rdkit_util.get_xyz_from_mol(system_mol)
 
-    frag1_coords, frag1_mol = self._strip_hydrogens(frag1_coords, frag1_mol)
-    frag2_coords, frag2_mol = self._strip_hydrogens(frag2_coords, frag2_mol)
-    system_coords, system_mol = self._strip_hydrogens(system_coords, system_mol)
+    if self.strip_hydrogens:
+      fragments = [
+          rdkit_util.strip_hydrogens(frag[0], frag[1]) for frag in fragments
+      ]
+      system_coords, system_mol = rdkit_util.strip_hydrogens(
+          system_coords, system_mol)
 
     try:
-      frag1_coords, frag1_neighbor_list, frag1_z = self.featurize_mol(
-          frag1_coords, frag1_mol, self.frag1_num_atoms)
+      frag_inputs = [
+          self.featurize_mol(frag[0], frag[1], frag_num_atoms)
+          for (frag, frag_num_atoms) in zip(fragments, self.frag_num_atoms)
+      ]
 
-      frag2_coords, frag2_neighbor_list, frag2_z = self.featurize_mol(
-          frag2_coords, frag2_mol, self.frag2_num_atoms)
-
-      system_coords, system_neighbor_list, system_z = self.featurize_mol(
-          system_coords, system_mol, self.complex_num_atoms)
+      system_outputs = self.featurize_mol(system_coords, system_mol,
+                                          self.complex_num_atoms)
     except ValueError as e:
       logging.warning(
           "max_atoms was set too low. Some complexes too large and skipped")
       return None
 
-    return frag1_coords, frag1_neighbor_list, frag1_z, frag2_coords, frag2_neighbor_list, frag2_z, \
-           system_coords, system_neighbor_list, system_z
+    return frag_outputs, system_outputs
 
   def get_Z_matrix(self, mol, max_atoms):
     if len(mol.GetAtoms()) > max_atoms:
@@ -286,39 +291,6 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
     z = pad_array(z, max_num_atoms)
     coords = pad_array(coords, (max_num_atoms, 3))
     return coords, neighbor_list, z
-
-  def _strip_hydrogens(self, coords, mol):
-
-    class MoleculeShim(object):
-      """
-      Shim of a Molecule which supports #GetAtoms()
-      """
-
-      def __init__(self, atoms):
-        self.atoms = [AtomShim(x) for x in atoms]
-
-      def GetAtoms(self):
-        return self.atoms
-
-    class AtomShim(object):
-
-      def __init__(self, atomic_num):
-        self.atomic_num = atomic_num
-
-      def GetAtomicNum(self):
-        return self.atomic_num
-
-    if not self.strip_hydrogens:
-      return coords, mol
-    indexes_to_keep = []
-    atomic_numbers = []
-    for index, atom in enumerate(mol.GetAtoms()):
-      if atom.GetAtomicNum() != 1:
-        indexes_to_keep.append(index)
-        atomic_numbers.append(atom.GetAtomicNum())
-    mol = MoleculeShim(atomic_numbers)
-    coords = coords[indexes_to_keep]
-    return coords, mol
 
 
 ############################# Deprecation warning for old name of AtomicConvFeaturizer ###############################

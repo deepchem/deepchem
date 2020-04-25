@@ -56,7 +56,7 @@ def compute_pairwise_distances(first_xyz, second_xyz):
 
   pairwise_distances = cdist(first_xyz, second_xyz,
                              metric='euclidean')
-  return (pairwise_distances)
+  return pairwise_distances
 
 def get_xyz_from_mol(mol):
   """Extracts a numpy array of coordinates from a molecules.
@@ -139,6 +139,35 @@ def apply_pdbfixer(mol,
   ----
   This function requires RDKit and PDBFixer to be installed.
   """
+  return apply_pdbfixer(mol, hydrogenate=True)
+
+
+def apply_pdbfixer(mol, add_missing=True, hydrogenate=True, pH=7.4,
+                   remove_heterogens=True, is_protein=True):
+  """
+  Apply PDBFixer to a molecule to try to clean it up.
+
+  Parameters
+  ----------
+  mol: Rdkit Mol
+    Molecule to hydrogenate
+  add_missing: bool, optional
+    If true, add in missing residues and atoms
+  hydrogenate: bool, optional
+    If true, add hydrogens at specified pH
+  pH: float, optional
+    The pH at which hydrogens will be added if `hydrogenate==True`. Set to 7.4 by default.
+  remove_heterogens: bool, optional
+    Often times, PDB files come with extra waters and salts attached.
+    If this field is set, remove these heterogens.
+  is_protein: bool, optional
+    If false, then don't remove heterogens (since this molecule is
+    itself a heterogen).
+  
+  Returns
+  -------
+  Rdkit Mol
+  """
   molecule_file = None
   try:
     from rdkit import Chem
@@ -200,7 +229,6 @@ def compute_charges(mol):
   except Exception as e:
     logging.exception("Unable to compute charges for mol")
     raise MoleculeLoadException(e)
-
 
 def load_complex(molecular_complex,
                  add_hydrogens=True,

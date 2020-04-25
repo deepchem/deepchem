@@ -238,6 +238,27 @@ class TestTransformers(unittest.TestCase):
     # Check that untransform does the right thing.
     np.testing.assert_allclose(normalization_transformer.untransform(y_t), y)
 
+  def test_normalization_batch_one(self):
+    """This test is based on a user bug report.
+  
+    When `batch_size==1` and `n_tasks > 1`,
+    `NormalizationTransformer.untransform` had a weird edge case where
+    it would return a larger output that input.
+    """
+    n_samples = 11
+    n_features = 5
+    n_tasks = 2
+    train_dataset = dc.data.NumpyDataset(np.random.rand(n_samples, n_features), np.random.rand(n_samples, n_tasks))
+
+    transformer = dc.trans.NormalizationTransformer(
+            transform_y=True, dataset=train_dataset, move_mean=True)
+
+    # batch of size 1 shape
+    batch = np.random.rand(1, 2, 1)
+    output = transformer.untransform(batch)
+
+    assert len(batch) == len(output)
+
   def test_X_normalization_transformer(self):
     """Tests normalization transformer."""
     solubility_dataset = load_solubility_data()
