@@ -4,11 +4,13 @@ import logging
 from deepchem.molnet.load_function.pdbbind_datasets import get_pdbbind_molecular_complex_files
 
 complex_files = get_pdbbind_molecular_complex_files(subset="core", version="v2015", interactions="protein-ligand", load_binding_pocket=False)
-core_subset = complex_files[:2]
+n_featurize = len(complex_files) 
+core_subset = complex_files[:n_featurize]
 
 featurizer = dc.feat.ContactCircularFingerprint()
 features, failures = featurizer.featurize_complexes(
     core_subset, parallelize=False)
 print("features.shape")
 print(features.shape)
-assert features.shape == (2, 16)
+print("%d failures" % len(failures))
+assert features.shape == (n_featurize, 16)

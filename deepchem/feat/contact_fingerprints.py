@@ -90,14 +90,6 @@ class ContactCircularFingerprint(ComplexFeaturizer):
     """
     Compute featurization for a single mol/protein complex
 
-    TODO(rbharath): This is very not ergonomic. I'd much prefer
-    returning an vector instead of a list of two vectors. In
-    addition, there's a question of efficiency.
-    RdkitGridFeaturizer caches rotated versions etc internally.
-    To make things work out of box, we are accepting that
-    kludgey input. This needs to be cleaned up before full
-    merge.
-
     Parameters
     ----------
     molecular_complex: Object
@@ -171,38 +163,57 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
 
-  def _featurize_complex(self, mol, protein):
+  def _featurize_complex(self, molecular_complex):
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    mol: object
-      Representation of the molecule
-    protein: object
-      Representation of the protein
+    molecular_complex: Object
+      A representation of a molecular complex, produced by
+      `rdkit_util.load_complex`.
     """
-    (lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
-    distances = compute_pairwise_distances(prot_xyz, lig_xyz)
-    return [
-        sum([
-            voxelize(
-                convert_atom_to_voxel,
-                self.voxels_per_edge,
-                self.box_width,
-                self.voxel_width,
-                hash_ecfp,
-                xyz,
-                feature_dict=ecfp_dict,
-                nb_channel=self.size)
-            for xyz, ecfp_dict in zip((prot_xyz, lig_xyz),
-                                      featurize_binding_pocket_ecfp(
-                                          prot_xyz,
-                                          prot_rdk,
-                                          lig_xyz,
-                                          lig_rdk,
-                                          distances,
-                                          cutoff=self.cutoff,
-                                          ecfp_degree=self.radius))
-        ])
-    ]
+
+    # TODO(rbharath): This is a little tricky in the generalized
+    # regime, but we need to find a way to compute the centroid. My
+    # idea is that we can compute the centroid of the contact
+    # atoms.and use this to recenter all the fragments.
+    try:
+      fragments = rdkit_util.load_complex(molecular_complex, add_hydrogens=False)
+
+    except MoleculeLoadException:
+      logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
+      return None
+    pairwise_features = []
+    # We compute pairwise contact fingerprints
+    for (frag1, frag2) in itertools.combinations(fragments, 2):
+      distances = compute_pairwise_distances(frag1[0], frag2[0])
+      xyzs = [frag1[0], frag2[0]]
+      #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
+      #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
+      pairwise_features.append(
+          sum([
+              voxelize(
+                  convert_atom_to_voxel,
+                  self.voxels_per_edge,
+                  self.box_width,
+                  self.voxel_width,
+                  hash_ecfp,
+                  xyz,
+                  feature_dict=ecfp_dict,
+                  nb_channel=self.size)
+              for xyz, ecfp_dict in zip(xyzs,
+                                        featurize_contacts_ecfp(
+                                            frag1,
+                                            frag2,
+                                            distances,
+                                            cutoff=self.cutoff,
+                                            ecfp_degree=self.radius))
+          ])
+      )
+    ############################################
+    print("[feat.shape for feat in pairwise_features]")
+    print([feat.shape for feat in pairwise_features])
+    ############################################
+    # Features are of shape (voxels_per_edge, voxels_per_edge, voxels_per_edge, num_feat) so we should concatenate on the last axis.
+    return np.concatenate(pairwise_features, axis=-1)

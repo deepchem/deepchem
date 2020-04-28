@@ -237,6 +237,11 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
   z-matrix for the molecule which is an array of shape
   (N_atoms,) that contains the atomic number of that atom.
 
+  If `reduce_to_contacts` is set to `True`, only those atoms which are
+  in a contact region of the molecular complex are considered. This
+  can dramatically reduce the number of atoms that need to be
+  featurized so this feature is set to True by default.
+
   Since the featurization computes these three quantities for
   each of the two molecules and the complex, a total of 9
   quantities are returned for each complex. Note that for
@@ -310,6 +315,10 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
     if self.reduce_to_contacts:
       fragments = reduce_molecular_complex_to_contacts(fragments, self.cutoff)
     coords = [frag[0] for frag in fragments]
+    ################################################
+    print("[coord.shape for coord in coords]")
+    print([coord.shape for coord in coords])
+    ################################################
     mols = [frag[1] for frag in fragments]
     #system_mol = rdkit_util.merge_molecules(mols)
     system_mol = rdkit_util.merge_molecular_fragments(mols)

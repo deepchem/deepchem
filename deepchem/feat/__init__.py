@@ -27,3 +27,4 @@ from deepchem.feat.adjacency_fingerprints import AdjacencyFingerprint
 from deepchem.feat.smiles_featurizers import SmilesToSeq, SmilesToImage
 from deepchem.feat.materials_featurizers import ElementPropertyFingerprint, SineCoulombMatrix, StructureGraphFeaturizer
 from deepchem.feat.contact_fingerprints import ContactCircularFingerprint
+from deepchem.feat.contact_fingerprints import ContactCircularVoxelizer

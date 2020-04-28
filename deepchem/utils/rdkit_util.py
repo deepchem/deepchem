@@ -648,11 +648,36 @@ def get_contact_atom_indices(fragments, cutoff=4.5):
   #return atoms_to_keep
 
 
-def compute_centroid(coordinates):
-  """Compute the x,y,z centroid of provided coordinates
+def compute_contact_centroid(molecular_complex, cutoff=4.5):
+  """Computes the (x,y,z) centroid of the contact regions of this molecular complex.
 
+  For a molecular complex, it's necessary for various featurizations
+  that compute voxel grids to find a reasonable center for the
+  voxelization. This function computes the centroid of all the contact
+  atoms, defined as an atom that's within `cutoff` Angstroms of an
+  atom from a different molecule.
+
+  Parameters
+  ----------
+  molecular_complex: Object
+    A representation of a molecular complex, produced by
+    `rdkit_util.load_complex`.
+  cutoff: float, optional
+    The distance in Angstroms considered for computing contacts.
+  """
+  fragments = reduce_molecular_complex_to_contacts(molecular_complex, cutoff)
+  coords = [frag[0] for frag in fragments]
+  contact_coords = merge_molecules_xyz(coords) 
+  centroid = np.mean(contact_coords, axis=0)
+  return (centroid)
+
+def compute_centroid(coordinates):
+  """Compute the (x,y,z) centroid of provided coordinates
+
+  Parameters
+  ----------
   coordinates: np.ndarray
-    Shape (N, 3), where N is number atoms.
+    Shape `(N, 3)`, where `N` is the number of atoms.
   """
   centroid = np.mean(coordinates, axis=0)
   return (centroid)
