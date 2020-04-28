@@ -9,10 +9,4 @@ core_subset = ligand_files[:2]
 
 featurizer = dc.feat.AtomicCoordinates()
 features = featurizer.featurize(core_subset)
-print("features.shape")
-print(features.shape)
-print("features[0].shape")
-print(features[0].shape)
-print("features[1].shape")
-print(features[1].shape)
 assert features.shape == (2,)

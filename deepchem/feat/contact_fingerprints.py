@@ -40,7 +40,6 @@ def featurize_contacts_ecfp(frag1,
     pairwise_distances = compute_pairwise_distances(frag1[0], frag2[0])
   # contacts is of form (x_coords, y_coords), a tuple of 2 lists
   contacts = np.nonzero((pairwise_distances < cutoff))
-  #protein_atoms = set([int(c) for c in contacts[0].tolist()])
   # contacts[0] is the x_coords, that is the frag1 atoms that have
   # nonzero contact.
   frag1_atoms = set([int(c) for c in contacts[0].tolist()])

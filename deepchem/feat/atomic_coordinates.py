@@ -8,6 +8,7 @@ from deepchem.feat import MolecularFeaturizer
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils import rdkit_util, pad_array
 from deepchem.utils.rdkit_util import MoleculeLoadException
+from deepchem.utils.rdkit_util import reduce_molecular_complex_to_contacts
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,19 @@ class AtomicCoordinates(MolecularFeaturizer):
 
 def _compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
                            periodic_box_size):
-  """Computes a neighbor list from atom coordinates."""
+  """Computes a neighbor list from atom coordinates.
+
+  Parameters
+  ----------
+  coords: Numpy array
+    Of shape (N, 3) with all the atoms in this systems
+  neighbor_cutoff: float
+    The neighbor cutoff in angstroms
+  max_num_neighbors: int
+    The maximum number of neighbors per atom
+  periodic_box_size: tuple
+    With (x, y, z) box sizes per dimension
+  """
   N = coords.shape[0]
   import mdtraj
   traj = mdtraj.Trajectory(coords.reshape((1, N, 3)), None)
@@ -89,6 +102,11 @@ def _compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
 def get_coords(mol):
   """
   Gets coordinates in Angstrom for RDKit mol.
+
+  Parameters
+  ----------
+  mol: rdkit mol
+    Molecule to get coordinates for
   """
   N = mol.GetNumAtoms()
   coords = np.zeros((N, 3))
@@ -182,7 +200,7 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     self.dtype = object
     self.coordinates_featurizer = AtomicCoordinates()
 
-  def _featurize(self, mol_pdb_file, protein_pdb_file):
+  def _featurize(self, molecular_complex):
     """
     Compute neighbor list for complex.
 
@@ -191,9 +209,13 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     molecular_complex: Object
       Some representation of a molecular complex.
     """
-    mol_coords, ob_mol = rdkit_util.load_molecule(mol_pdb_file)
-    protein_coords, protein_mol = rdkit_util.load_molecule(protein_pdb_file)
-    system_coords = rdkit_util.merge_molecules_xyz([mol_coords, protein_coords])
+    fragments = rdkit_util.load_complex(molecular_complex, add_hydrogens=False)
+    #mol_coords, ob_mol = rdkit_util.load_molecule(mol_pdb_file)
+    #protein_coords, protein_mol = rdkit_util.load_molecule(protein_pdb_file)
+    coords = [frag[0] for frag in fragments]
+    mols = [frag[1] for frag in fragments]
+    #system_coords = rdkit_util.merge_molecules_xyz(mol_coords, protein_coords)
+    system_coords = rdkit_util.merge_molecules_xyz(coords)
 
     system_neighbor_list = _compute_neighbor_list(
         system_coords, self.neighbor_cutoff, self.max_num_neighbors, None)
@@ -223,31 +245,37 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
   """
 
   def __init__(self,
-               frag_num_atoms,
-               complex_num_atoms,
+               frag_max_atoms,
                max_num_neighbors,
                neighbor_cutoff,
+               reduce_to_contacts=True,
+               cutoff=4.5,
                strip_hydrogens=True):
     """Initialize an AtomicConvFeaturizer object.
 
     Parameters
     ----------
-    frag_num_atoms: list[int]
-      List of the number of atoms in each fragment.
+    frag_max_atoms: int or list[int]
+      List of the max number of atoms in each fragment. If int,
+      assumes you're setting the same bound for all fragments.
     max_num_neighbors: int
       The maximum number of neighbors allowed
     neighbor_cutoff: float
       The distance in angstroms after which neighbors are cutoff.
+    reduce_to_contacts: bool, optional
+      If True, reduce the atoms in the complex to those near a contact
+      region.
+    cutoff: float
+      The cutoff distance in angstroms. Only used if
+      `reduce_to_contacts` is `True`.
     strip_hydrogens: bool, optional
-      If true, remove hydrogens before featurizing.
+      If True, remove hydrogens before featurizing.
     """
-    # TODO(rbharath): extend to more fragments
-    if len(frag_num_atoms) != 2:
-      raise ValueError("Currently only supports two fragments")
-    self.frag_num_atoms = frag_num_atoms
-    self.complex_num_atoms = sum(frag_num_atoms)
+    self.frag_max_atoms = frag_max_atoms
     self.max_num_neighbors = max_num_neighbors
     self.neighbor_cutoff = neighbor_cutoff
+    self.reduce_to_contacts = reduce_to_contacts
+    self.cutoff = cutoff
     self.strip_hydrogens = strip_hydrogens
 
   def _featurize(self, molecular_complex):
@@ -258,6 +286,13 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
     molecular_complex: Object
       Some representation of a molecular complex.
     """
+    # If our upper bound is an int, expand it to a list for each
+    # fragment
+    if isinstance(self.frag_max_atoms, int):
+      frag_max_atoms = [self.frag_max_atoms] * len(molecular_complex)
+    else:
+      frag_max_atoms = self.frag_max_atoms
+    complex_max_atoms = sum(frag_max_atoms)
     frag_coords = []
     frag_mols = []
     try:
@@ -267,25 +302,28 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
     except MoleculeLoadException:
       logging.warning("This molecule cannot be loaded by Rdkit. Returning None")
       return None
-    mols = [frag[1] for frag in fragments]
-    system_mol = rdkit_util.merge_molecules(mols)
-    system_coords = rdkit_util.get_xyz_from_mol(system_mol)
-
     if self.strip_hydrogens:
       fragments = [
           rdkit_util.strip_hydrogens(frag[0], frag[1]) for frag in fragments
       ]
-      system_coords, system_mol = rdkit_util.strip_hydrogens(
-          system_coords, system_mol)
+
+    if self.reduce_to_contacts:
+      fragments = reduce_molecular_complex_to_contacts(fragments, self.cutoff)
+    coords = [frag[0] for frag in fragments]
+    mols = [frag[1] for frag in fragments]
+    #system_mol = rdkit_util.merge_molecules(mols)
+    system_mol = rdkit_util.merge_molecular_fragments(mols)
+    #system_coords = rdkit_util.get_xyz_from_mol(system_mol)
+    system_coords = rdkit_util.merge_molecules_xyz(coords)
 
     try:
-      frag_inputs = [
-          self.featurize_mol(frag[0], frag[1], frag_num_atoms)
-          for (frag, frag_num_atoms) in zip(fragments, self.frag_num_atoms)
+      frag_outputs = [
+          self.featurize_mol(frag[0], frag[1], frag_max)
+          for (frag, frag_max) in zip(fragments, frag_max_atoms)
       ]
 
       system_outputs = self.featurize_mol(system_coords, system_mol,
-                                          self.complex_num_atoms)
+                                          complex_max_atoms)
     except ValueError as e:
       logging.warning(
           "max_atoms was set too low. Some complexes too large and skipped")
@@ -294,6 +332,21 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
     return frag_outputs, system_outputs
 
   def get_Z_matrix(self, mol, max_atoms):
+    """Helper function to make the matrix of atomic-numbers
+
+    Parameters
+    ----------
+    mol: rdkit mol
+      The molecule to featurize.
+    max_atoms: int
+      The max number of atoms allowed.
+
+    Returns
+    -------
+    Numpy array of shape `(max_atoms,)`. The first
+    `len(mol.GetAtoms())` entries will contain the atomic numbers with
+    the remaining entries zero padded.
+    """
     if len(mol.GetAtoms()) > max_atoms:
       raise ValueError("A molecule is larger than permitted by max_atoms. "
                        "Increase max_atoms and try again.")
@@ -301,7 +354,18 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
         np.array([atom.GetAtomicNum() for atom in mol.GetAtoms()]), max_atoms)
 
   def featurize_mol(self, coords, mol, max_num_atoms):
-    logging.info("Featurizing molecule of size: %d", len(mol.GetAtoms()))
+    """Helper function to featurize each molecule in complex.
+
+    Parameters
+    ----------
+    coords: Numpy array
+      Shape `(N, 3)` for this molecule
+    mol: rdkit mol
+      Rdkit mol corresponding to `coords`
+    max_num_atoms: int
+      Max number of atoms for this molecules.
+    """
+    logger.info("Featurizing molecule of size: %d", len(mol.GetAtoms()))
     neighbor_list = _compute_neighbor_list(coords, self.neighbor_cutoff,
                                            self.max_num_neighbors, None)
     z = self.get_Z_matrix(mol, max_num_atoms)

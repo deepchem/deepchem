@@ -433,6 +433,317 @@ def merge_molecules(molecules):
       combined = rdmolops.CombineMols(combined, nextmol)
     return combined
 
+def merge_molecular_fragments(molecules):
+  """Helper method to merge two molecular fragments.
+
+  Parameters
+  ----------
+  molecules: list
+    List of `MolecularFragment` objects. 
+
+  Returns
+  -------
+  merged: `MolecularFragment`
+  """
+  if len(molecules) == 0:
+    return None
+  if len(molecules) == 1:
+    return molecules[0]
+  else:
+    all_atoms = []
+    for mol_frag in molecules:
+      all_atoms += mol_frag.GetAtoms()
+    return MolecularFragment(all_atoms)
+
+def strip_hydrogens(coords, mol):
+  """Strip the hydrogens from input molecule
+
+  Parameters
+  ----------
+  coords: Numpy ndarray
+    Must be of shape (N, 3) and correspond to coordinates of mol.
+  mol: Rdkit mol or `MolecularFragment`
+    The molecule to strip
+
+  Returns
+  -------
+  A tuple of (coords, mol_frag) where coords is a Numpy array of
+  coordinates with hydrogen coordinates. mol_frag is a
+  `MolecularFragment`. 
+  """
+  mol_atoms = mol.GetAtoms()
+  atomic_numbers = [atom.GetAtomicNum() for atom in mol_atoms]
+  atom_indices_to_keep = [ind for (ind, atomic_number) in enumerate(atomic_numbers) if (atomic_number != 1)]
+  return get_mol_subset(coords, mol, atom_indices_to_keep)
+
+class MolecularFragment(object):
+  """A class that represents a fragment of a molecule.
+
+  It's often convenient to represent a fragment of a molecule. For
+  example, if two molecules form a molecular complex, it may be useful
+  to create two fragments which represent the subsets of each molecule
+  that's close to the other molecule (in the contact region).
+  """
+
+  def __init__(self, atoms):
+    """Initialize this object.
+
+    Parameters
+    ----------
+    atoms: list
+      Each entry in this list should be an rdkit Atom object.
+    """
+    self.atoms = [AtomShim(x) for x in atoms]
+    #self.atoms = atoms 
+
+  def GetAtoms(self):
+    """Returns the list of atoms
+
+    Returns
+    -------
+    list of atoms in this fragment.
+    """
+    return self.atoms
+
+class AtomShim(object):
+  """This is a shim object wrapping an atom.
+
+  We use this class instead of raw RDKit atoms since manipulating a
+  large number of rdkit Atoms seems to result in segfaults. Wrapping
+  the basic information in an AtomShim seems to avoid issues.
+  """
+
+  def __init__(self, atomic_num):
+    """Initialize this object
+
+    Parameters
+    ----------
+    atomic_num: int
+      Atomic number for this atom.
+    """
+    self.atomic_num = atomic_num
+
+  def GetAtomicNum(self):
+    return self.atomic_num
+
+def get_mol_subset(coords, mol, atom_indices_to_keep):
+  """Strip a subset of the atoms in this molecule
+
+  Parameters
+  ----------
+  coords: Numpy ndarray
+    Must be of shape (N, 3) and correspond to coordinates of mol.
+  mol: Rdkit mol
+    The molecule to strip
+  atom_indices_to_keep: list
+    List of the indices of the atoms to keep. Each index is a unique
+    number between `[0, N)`.
+
+  Returns
+  -------
+  A tuple of (coords, mol_frag) where coords is a Numpy array of
+  coordinates with hydrogen coordinates. mol_frag is a
+  `MolecularFragment`. 
+  """
+
+  indexes_to_keep = []
+  atoms_to_keep = []
+  atoms = list(mol.GetAtoms())
+  for index in atom_indices_to_keep:
+    indexes_to_keep.append(index)
+    #atomic_numbers.append(atom.GetAtomicNum())
+    atoms_to_keep.append(atoms[index])
+  #mol = MolecularFragment(atomic_numbers)
+  mol_frag = MolecularFragment(atoms_to_keep)
+  coords = coords[indexes_to_keep]
+  return coords, mol_frag
+
+def reduce_molecular_complex_to_contacts(fragments, cutoff=4.5):
+  """Reduce a molecular complex to only those atoms near a contact.
+
+  Molecular complexes can get very large. This can make it unwieldy to
+  compute functions on them. To improve memory usage, it can be very
+  useful to trim out atoms that aren't close to contact regions. This
+  function takes in a molecular complex and returns a new molecular
+  complex representation that contains only contact atoms. The contact
+  atoms are computed by calling `get_contact_atom_indices` under the
+  hood.
+
+  Parameters
+  ----------
+  fragments: List
+    As returned by `rdkit_util.load_complex`, a list of tuples of
+    `(coords, mol)` where `coords` is a `(N_atoms, 3)` array and `mol`
+    is the rdkit molecule object.
+  cutoff: float
+    The cutoff distance in angstroms.
+
+  Returns
+  -------
+  A list of length `len(molecular_complex)`. Each entry in this list
+  is a tuple of `(coords, MolecularShim)`. The coords is stripped down
+  to `(N_contact_atoms, 3)` where `N_contact_atoms` is the number of
+  contact atoms for this complex. `MolecularShim` is used since it's
+  tricky to make a RDKit sub-molecule. 
+  """
+  atoms_to_keep = get_contact_atom_indices(fragments, cutoff)
+  reduced_complex = []
+  for frag, keep in zip(fragments, atoms_to_keep):
+    contact_frag = get_mol_subset(frag[0], frag[1], keep)
+    reduced_complex.append(contact_frag)
+  return reduced_complex
+  
+
+def get_contact_atom_indices(fragments, cutoff=4.5):
+  """Compute that atoms close to contact region.
+
+  Molecular complexes can get very large. This can make it unwieldy to
+  compute functions on them. To improve memory usage, it can be very
+  useful to trim out atoms that aren't close to contact regions. This
+  function computes pairwise distances between all pairs of molecules
+  in the molecular complex. If an atom is within cutoff distance of
+  any atom on another molecule in the complex, it is regarded as a
+  contact atom. Otherwise it is trimmed.
+
+  Parameters
+  ----------
+  fragments: List
+    As returned by `rdkit_util.load_complex`, a list of tuples of
+    `(coords, mol)` where `coords` is a `(N_atoms, 3)` array and `mol`
+    is the rdkit molecule object.
+  cutoff: float
+    The cutoff distance in angstroms.
+
+  Returns
+  -------
+  A list of length `len(molecular_complex)`. Each entry in this list
+  is a list of atom indices from that molecule which should be kept, in
+  sorted order.
+  """
+  # indices to atoms to keep
+  keep_inds = [set([]) for _ in fragments]
+  for (ind1, ind2) in itertools.combinations(range(len(fragments)), 2):
+    frag1, frag2 = fragments[ind1], fragments[ind2]
+    pairwise_distances = compute_pairwise_distances(frag1[0], frag2[0])
+    # contacts is of form (x_coords, y_coords), a tuple of 2 lists
+    contacts = np.nonzero((pairwise_distances < cutoff))
+    # contacts[0] is the x_coords, that is the frag1 atoms that have
+    # nonzero contact.
+    frag1_atoms = set([int(c) for c in contacts[0].tolist()])
+    # contacts[1] is the y_coords, the frag2 atoms with nonzero contacts
+    frag2_atoms = set([int(c) for c in contacts[1].tolist()])
+    keep_inds[ind1] = keep_inds[ind1].union(frag1_atoms)
+    keep_inds[ind2] = keep_inds[ind2].union(frag2_atoms)
+  keep_inds = [sorted(list(keep)) for keep in keep_inds]
+  return keep_inds
+
+  # Now extract atoms
+  #atoms_to_keep = []
+  #for i, frag_keep_inds in enumerate(keep_inds):
+  #  frag = fragments[i]
+  #  mol = frag[1]
+  #  atoms = mol.GetAtoms()
+  #  frag_keep = [atoms[keep_ind] for keep_ind in frag_keep_inds]
+  #  atoms_to_keep.append(frag_keep)
+  #return atoms_to_keep
+
+
+def compute_centroid(coordinates):
+  """Compute the x,y,z centroid of provided coordinates
+
+  coordinates: np.ndarray
+    Shape (N, 3), where N is number atoms.
+  """
+  centroid = np.mean(coordinates, axis=0)
+  return (centroid)
+
+def subtract_centroid(xyz, centroid):
+  """Subtracts centroid from each coordinate.
+
+  Subtracts the centroid, a numpy array of dim 3, from all coordinates of all
+  atoms in the molecule
+  """
+  xyz -= np.transpose(centroid)
+  return (xyz)
+
+def compute_ring_center(mol, ring_indices):
+  """Computes 3D coordinates of a center of a given ring.
+
+  Parameters:
+  -----------
+  mol: rdkit.rdchem.Mol
+    Molecule containing a ring
+  ring_indices: array-like
+    Indices of atoms forming a ring
+
+  Returns:
+  --------
+    ring_centroid: np.ndarray
+      Position of a ring center
+  """
+  conformer = mol.GetConformer()
+  ring_xyz = np.zeros((len(ring_indices), 3))
+  for i, atom_idx in enumerate(ring_indices):
+    atom_position = conformer.GetAtomPosition(atom_idx)
+    ring_xyz[i] = np.array(atom_position)
+  ring_centroid = compute_centroid(ring_xyz)
+  return ring_centroid
+ 
+def compute_ring_normal(mol, ring_indices):
+  """Computes normal to a plane determined by a given ring.
+
+  Parameters:
+  -----------
+  mol: rdkit.rdchem.Mol
+    Molecule containing a ring
+  ring_indices: array-like
+    Indices of atoms forming a ring
+
+  Returns:
+  --------
+  normal: np.ndarray
+    Normal vector
+  """
+  conformer = mol.GetConformer()
+  points = np.zeros((3, 3))
+  for i, atom_idx in enumerate(ring_indices[:3]):
+    atom_position = conformer.GetAtomPosition(atom_idx)
+    points[i] = np.array(atom_position)
+
+  v1 = points[1] - points[0]
+  v2 = points[2] - points[0]
+  normal = np.cross(v1, v2)
+  return normal
+
+def rotate_molecules(mol_coordinates_list):
+  """Rotates provided molecular coordinates.
+
+  Pseudocode:
+  1. Generate random rotation matrix. This matrix applies a
+     random transformation to any 3-vector such that, were the
+     random transformation repeatedly applied, it would randomly
+     sample along the surface of a sphere with radius equal to
+     the norm of the given 3-vector cf.
+     generate_random_rotation_matrix() for details
+  2. Apply R to all atomic coordinates.
+  3. Return rotated molecule
+
+  Parameters
+  ----------
+  mol_coordinates_list: list
+    Elements of list must be (N_atoms, 3) shaped arrays
+  """
+  from rdkit.Chem import rdmolops
+  if len(molecules) == 0:
+    return None
+  elif len(molecules) == 1:
+    return molecules[0]
+  else:
+    combined = molecules[0]
+    for nextmol in molecules[1:]:
+      combined = rdmolops.CombineMols(combined, nextmol)
+    return combined
+
 
 def is_hydrogen_bond(protein_xyz,
                      protein,
