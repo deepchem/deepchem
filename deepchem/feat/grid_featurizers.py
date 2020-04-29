@@ -186,8 +186,6 @@ class SaltBridgeVoxelizer(ComplexFeaturizer):
     centroid = compute_contact_centroid(fragments, cutoff=self.cutoff)
     if self.reduce_to_contacts:
       fragments = reduce_molecular_complex_to_contacts(fragments, self.cutoff)
-    #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
-    #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
     for (frag1_ind, frag2_ind) in itertools.combinations(range(len(fragments)), 2):
       frag1, frag2 = fragments[frag1_ind], fragments[frag2_ind]
       distances = compute_pairwise_distances(frag1[0], frag2[0])
@@ -229,8 +227,8 @@ class CationPiVoxelizer(ComplexFeaturizer):
                distance_cutoff=6.5,
                angle_cutoff=30.0,
                box_width=16.0,
-               voxel_width=1.0,
-               reduce_to_contacts=True):
+               voxel_width=1.0):
+               #reduce_to_contacts=True):
     """
     Parameters
     ----------
@@ -246,9 +244,9 @@ class CationPiVoxelizer(ComplexFeaturizer):
       is centered on a ligand centroid.
     voxel_width: float, optional (default 1.0)
       Size of a 3D voxel in a grid.
-    reduce_to_contacts: bool, optional
-      If True, reduce the atoms in the complex to those near a contact
-      region.
+    #reduce_to_contacts: bool, optional
+    #  If True, reduce the atoms in the complex to those near a contact
+    #  region.
     """
     self.distance_cutoff = distance_cutoff
     self.angle_cutoff = angle_cutoff
@@ -273,16 +271,10 @@ class CationPiVoxelizer(ComplexFeaturizer):
       return None
     pairwise_features = []
     # We compute pairwise contact fingerprints
-    centroid = compute_contact_centroid(fragments, cutoff=self.cutoff)
-    if self.reduce_to_contacts:
-      fragments = reduce_molecular_complex_to_contacts(fragments, self.cutoff)
-    #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
-    #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
+    centroid = compute_contact_centroid(fragments, cutoff=self.distance_cutoff)
     for (frag1_ind, frag2_ind) in itertools.combinations(range(len(fragments)), 2):
       frag1, frag2 = fragments[frag1_ind], fragments[frag2_ind]
       distances = compute_pairwise_distances(frag1[0], frag2[0])
-    #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
-    #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
       frag1_xyz = subtract_centroid(frag1[0], centroid)
       frag2_xyz = subtract_centroid(frag2[0], centroid)
       xyzs = [frag1_xyz, frag2_xyz]
@@ -352,64 +344,80 @@ class PiStackVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
 
-  def _featurize_complex(self, mol, protein):
+  def _featurize_complex(self, molecular_complex):
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    mol: object
-      Representation of the molecule
-    protein: object
-      Representation of the protein
+    molecular_complex: Object
+      Some representation of a molecular complex.
     """
-    (lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
-    distances = compute_pairwise_distances(prot_xyz, lig_xyz)
-    protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel = (
-        compute_pi_stack(
-             prot_rdk,
-             lig_rdk,
-             distances,
-             dist_cutoff=self.distance_cutoff,
-             angle_cutoff=self.angle_cutoff))
-    pi_parallel_tensor = voxelize(
-        convert_atom_to_voxel,
-        self.voxels_per_edge,
-        self.box_width,
-        self.voxel_width,
-        None,
-        prot_xyz,
-        feature_dict=protein_pi_parallel,
-        nb_channel=1)
-    pi_parallel_tensor += voxelize(
-        convert_atom_to_voxel,
-        self.voxels_per_edge,
-        self.box_width,
-        self.voxel_width,
-        None,
-        lig_xyz,
-        feature_dict=ligand_pi_parallel,
-        nb_channel=1)
+    try:
+      fragments = rdkit_util.load_complex(molecular_complex, add_hydrogens=False)
 
-    pi_t_tensor = voxelize(
-        convert_atom_to_voxel,
-        self.voxels_per_edge,
-        self.box_width,
-        self.voxel_width,
-        None,
-        prot_xyz,
-        feature_dict=protein_pi_t,
-        nb_channel=1)
-    pi_t_tensor += voxelize(
-        convert_atom_to_voxel,
-        self.voxels_per_edge,
-        self.box_width,
-        self.voxel_width,
-        None,
-        lig_xyz,
-        feature_dict=ligand_pi_t,
-        nb_channel=1)
-    return [pi_parallel_tensor, pi_t_tensor]
+    except MoleculeLoadException:
+      logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
+      return None
+    pairwise_features = []
+    # We compute pairwise contact fingerprints
+    centroid = compute_contact_centroid(fragments, cutoff=self.distance_cutoff)
+    for (frag1_ind, frag2_ind) in itertools.combinations(range(len(fragments)), 2):
+      frag1, frag2 = fragments[frag1_ind], fragments[frag2_ind]
+      distances = compute_pairwise_distances(frag1[0], frag2[0])
+      frag1_xyz = subtract_centroid(frag1[0], centroid)
+      frag2_xyz = subtract_centroid(frag2[0], centroid)
+      xyzs = [frag1_xyz, frag2_xyz]
+      rdks = [frag1[1], frag2[1]]
+    #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
+    #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
+      protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel = (
+          compute_pi_stack(
+               frag1[1],
+               frag2[1],
+               distances,
+               dist_cutoff=self.distance_cutoff,
+               angle_cutoff=self.angle_cutoff))
+      pi_parallel_tensor = voxelize(
+          convert_atom_to_voxel,
+          self.voxels_per_edge,
+          self.box_width,
+          self.voxel_width,
+          None,
+          frag1_xyz,
+          feature_dict=protein_pi_parallel,
+          nb_channel=1)
+      pi_parallel_tensor += voxelize(
+          convert_atom_to_voxel,
+          self.voxels_per_edge,
+          self.box_width,
+          self.voxel_width,
+          None,
+          frag2_xyz,
+          feature_dict=ligand_pi_parallel,
+          nb_channel=1)
+
+      pi_t_tensor = voxelize(
+          convert_atom_to_voxel,
+          self.voxels_per_edge,
+          self.box_width,
+          self.voxel_width,
+          None,
+          frag1_xyz,
+          feature_dict=protein_pi_t,
+          nb_channel=1)
+      pi_t_tensor += voxelize(
+          convert_atom_to_voxel,
+          self.voxels_per_edge,
+          self.box_width,
+          self.voxel_width,
+          None,
+          frag2_xyz,
+          feature_dict=ligand_pi_t,
+          nb_channel=1)
+      pairwise_features.append(np.concatenate([pi_parallel_tensor, pi_t_tensor], axis=-1))
+    # Features are of shape (voxels_per_edge, voxels_per_edge, voxels_per_edge, 2) so we should concatenate on the last axis.
+    return np.concatenate(pairwise_features, axis=-1)
 
 class HydrogenBondCounter(ComplexFeaturizer):
   """Counts hydrogen bonds between atoms in macromolecular complexes.
@@ -418,16 +426,20 @@ class HydrogenBondCounter(ComplexFeaturizer):
   constitutent molecules, count the number hydrogen bonds
   between atoms in the macromolecular complex.
 
-  Creates a scalar output of shape `(1,)` for each
-  macromolecular that computes the total number of hydrogen
-  bonds.
+  Creates a scalar output of shape `(3,)` (assuming the default value
+  ofor `distance_bins` with 3 bins) for each macromolecular that
+  computes the total number of hydrogen bonds.
   """
   def __init__(self, 
+               cutoff=4.5,
                distance_bins=None,
-               angle_cutoffs=None):
+               angle_cutoffs=None,
+               reduce_to_contacts=True):
     """
     Parameters
     ----------
+    cutoff: float (default 4.5)
+      Distance cutoff in angstroms for molecules in complex.
     distance_bins: list[tuple] 
       List of hydgrogen bond distance bins. If not specified is
       set to default
@@ -437,7 +449,11 @@ class HydrogenBondCounter(ComplexFeaturizer):
       deviation from the ideal (180 deg) angle between
       hydrogen-atom1, hydrogen-atom2 vectors.If not specified
       is set to default `[5, 50, 90]`
+    reduce_to_contacts: bool, optional
+      If True, reduce the atoms in the complex to those near a contact
+      region.
     """
+    self.cutoff = cutoff
     if distance_bins is None:
       self.distance_bins = HBOND_DIST_BINS
     else:
@@ -446,26 +462,46 @@ class HydrogenBondCounter(ComplexFeaturizer):
       self.angle_cutoffs = HBOND_ANGLE_CUTOFFS
     else:
       self.angle_cutoffs = angle_cutoffs
+    self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize_complex(self, mol, protein):
+  def _featurize_complex(self, molecular_complex):
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    mol: object
-      Representation of the molecule
-    protein: object
-      Representation of the protein
+    molecular_complex: Object
+      Some representation of a molecular complex.
     """
-    (lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
-    distances = compute_pairwise_distances(prot_xyz, lig_xyz)
-    return [
-        vectorize(
-            hash_ecfp_pair, feature_list=hbond_list, size=1)
-        for hbond_list in compute_hydrogen_bonds(
-            prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances, self.distance_bins, self.angle_cutoffs)
-    ]
+    try:
+      fragments = rdkit_util.load_complex(molecular_complex, add_hydrogens=False)
+
+    except MoleculeLoadException:
+      logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
+      return None
+    pairwise_features = []
+    # We compute pairwise contact fingerprints
+    centroid = compute_contact_centroid(fragments, cutoff=self.cutoff)
+    if self.reduce_to_contacts:
+      fragments = reduce_molecular_complex_to_contacts(fragments, self.cutoff)
+    # We compute pairwise contact fingerprints
+    for (frag1_ind, frag2_ind) in itertools.combinations(range(len(fragments)), 2):
+      frag1, frag2 = fragments[frag1_ind], fragments[frag2_ind]
+      distances = compute_pairwise_distances(frag1[0], frag2[0])
+      frag1_xyz = subtract_centroid(frag1[0], centroid)
+      frag2_xyz = subtract_centroid(frag2[0], centroid)
+      xyzs = [frag1_xyz, frag2_xyz]
+      rdks = [frag1[1], frag2[1]]
+    #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
+    #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
+      pairwise_features.append(np.concatenate([
+          vectorize(
+              hash_ecfp_pair, feature_list=hbond_list, size=1)
+          for hbond_list in compute_hydrogen_bonds(
+              frag1, frag2, distances, self.distance_bins, self.angle_cutoffs)
+      ], axis=-1))
+    # Features are of shape (voxels_per_edge, voxels_per_edge, voxels_per_edge, 1) so we should concatenate on the last axis.
+    return np.concatenate(pairwise_features, axis=-1)
 
 class HydrogenBondVoxelizer(ComplexFeaturizer):
   """Localize hydrogen bonds between atoms in macromolecular complexes.
@@ -478,18 +514,23 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
   different voxels interact in a hydrogen bond, the interaction
   is double counted in both voxels.
 
-  Creates a tensor output of shape `(voxels_per_edge,
-  voxels_per_edge, voxels_per_edge, 1)` for each macromolecular
-  the number of hydrogen bonds at each voxel.
+  Creates a tensor output of shape `(voxels_per_edge, voxels_per_edge,
+  voxels_per_edge, 3)` (assuming the default for `distance_bins` which
+  has 3 bins) for each macromolecular the number of hydrogen bonds at
+  each voxel.
   """
   def __init__(self, 
+               cutoff=4.5,
                distance_bins=None,
                angle_cutoffs=None,
                box_width=16.0,
-               voxel_width=1.0):
+               voxel_width=1.0,
+               reduce_to_contacts=True):
     """
     Parameters
     ----------
+    cutoff: float (default 4.5)
+      Distance cutoff in angstroms for contact atoms in complex.
     distance_bins: list[tuple] 
       List of hydgrogen bond distance bins. If not specified is
       set to default
@@ -504,7 +545,11 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
       is centered on a ligand centroid.
     voxel_width: float, optional (default 1.0)
       Size of a 3D voxel in a grid.
+    reduce_to_contacts: bool, optional
+      If True, reduce the atoms in the complex to those near a contact
+      region.
     """
+    self.cutoff = cutoff
     if distance_bins is None:
       self.distance_bins = HBOND_DIST_BINS
     else:
@@ -516,30 +561,83 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
     self.box_width = box_width
     self.voxel_width = voxel_width
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
+    self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize_complex(self, mol, protein):
+  def _featurize_complex(self, molecular_complex):
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    mol: object
-      Representation of the molecule
-    protein: object
-      Representation of the protein
+    molecular_complex: Object
+      Some representation of a molecular complex.
     """
-    (lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
-    distances = compute_pairwise_distances(prot_xyz, lig_xyz)
-    return [
-        voxelize(
-            convert_atom_pair_to_voxel,
-            self.voxels_per_edge,
-            self.box_width,
-            self.voxel_width,
-            None, (prot_xyz, lig_xyz),
-            feature_list=hbond_list,
-            nb_channel=1) for hbond_list in compute_hydrogen_bonds(
-                prot_xyz, prot_rdk, lig_xyz, lig_rdk,
-                distances, self.distance_bins,
-                self.angle_cutoffs)
-    ]
+    try:
+      fragments = rdkit_util.load_complex(molecular_complex, add_hydrogens=False)
+
+    except MoleculeLoadException:
+      logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
+      return None
+    pairwise_features = []
+    # We compute pairwise contact fingerprints
+    centroid = compute_contact_centroid(fragments, cutoff=self.cutoff)
+    if self.reduce_to_contacts:
+      fragments = reduce_molecular_complex_to_contacts(fragments, self.cutoff)
+    for (frag1_ind, frag2_ind) in itertools.combinations(range(len(fragments)), 2):
+      frag1, frag2 = fragments[frag1_ind], fragments[frag2_ind]
+      distances = compute_pairwise_distances(frag1[0], frag2[0])
+      frag1_xyz = subtract_centroid(frag1[0], centroid)
+      frag2_xyz = subtract_centroid(frag2[0], centroid)
+      xyzs = [frag1_xyz, frag2_xyz]
+      rdks = [frag1[1], frag2[1]]
+    #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
+    #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
+      pairwise_features.append(np.concatenate([
+          voxelize(
+              convert_atom_pair_to_voxel,
+              self.voxels_per_edge,
+              self.box_width,
+              self.voxel_width,
+              #None, (prot_xyz, lig_xyz),
+              None, xyzs,
+              feature_list=hbond_list,
+              nb_channel=1) for hbond_list in compute_hydrogen_bonds(
+                  frag1, frag2,
+                  distances, self.distance_bins,
+                  self.angle_cutoffs)
+        ], axis=-1)
+      )
+      #############################################
+      #print("""list(voxelize(
+      #        convert_atom_pair_to_voxel,
+      #        self.voxels_per_edge,
+      #        self.box_width,
+      #        self.voxel_width,
+      #        #None, (prot_xyz, lig_xyz),
+      #        None, xyzs,
+      #        feature_list=hbond_list,
+      #        nb_channel=1) for hbond_list in compute_hydrogen_bonds(
+      #            frag1, frag2,
+      #            distances, self.distance_bins,
+      #            self.angle_cutoffs))""")
+      #print(list(voxelize(
+      #        convert_atom_pair_to_voxel,
+      #        self.voxels_per_edge,
+      #        self.box_width,
+      #        self.voxel_width,
+      #        #None, (prot_xyz, lig_xyz),
+      #        None, xyzs,
+      #        feature_list=hbond_list,
+      #        nb_channel=1) for hbond_list in compute_hydrogen_bonds(
+      #            frag1, frag2,
+      #            distances, self.distance_bins,
+      #            self.angle_cutoffs)))
+      #print("compute_hydrogen_bonds(frag1, frag2, distances, self.distance_bins, self.angle_cutoffs)")
+      #print(compute_hydrogen_bonds(frag1, frag2, distances, self.distance_bins, self.angle_cutoffs))
+      ##############################################
+    ################################################
+    #print("pairwise_features")
+    #print(pairwise_features)
+    ################################################
+    # Features are of shape (voxels_per_edge, voxels_per_edge, voxels_per_edge, 1) so we should concatenate on the last axis.
+    return np.concatenate(pairwise_features, axis=-1)

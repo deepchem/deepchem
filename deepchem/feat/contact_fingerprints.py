@@ -175,11 +175,6 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
       A representation of a molecular complex, produced by
       `rdkit_util.load_complex`.
     """
-
-    # TODO(rbharath): This is a little tricky in the generalized
-    # regime, but we need to find a way to compute the centroid. My
-    # idea is that we can compute the centroid of the contact
-    # atoms.and use this to recenter all the fragments.
     try:
       fragments = rdkit_util.load_complex(molecular_complex, add_hydrogens=False)
 
@@ -189,36 +184,11 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
     pairwise_features = []
     # We compute pairwise contact fingerprints
     centroid = compute_contact_centroid(fragments, cutoff=self.cutoff)
-    ############################################
-    #print("centroid")
-    #print(centroid)
-    ############################################
     for (frag1, frag2) in itertools.combinations(fragments, 2):
       distances = compute_pairwise_distances(frag1[0], frag2[0])
-      ############################################
-      #print("np.max(frag1[0])")
-      #print(np.max(frag1[0]))
-      #print("np.min(frag1[0])")
-      #print(np.min(frag1[0]))
-      ############################################
       frag1_xyz = subtract_centroid(frag1[0], centroid)
       frag2_xyz = subtract_centroid(frag2[0], centroid)
       xyzs = [frag1_xyz, frag2_xyz]
-      #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
-      #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
-      ###########################################
-      ##print("np.max(frag1[0])")
-      ##print(np.max(frag1[0]))
-      ##print("np.min(frag1[0])")
-      ##print(np.min(frag1[0]))
-      #print("np.max(frag1_xyz)")
-      #print(np.max(frag1_xyz))
-      #print("np.min(frag1_xyz)")
-      #print(np.min(frag1_xyz))
-      ###########################################
-      # TODO(rbharath): I think the reason this isn't making errors is
-      # that it's already computing contact map under the hood which
-      # prunes out atoms outside the box
       pairwise_features.append(
           sum([
               voxelize(
@@ -239,9 +209,5 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
                                             ecfp_degree=self.radius))
           ])
       )
-    #############################################
-    #print("[feat.shape for feat in pairwise_features]")
-    #print([feat.shape for feat in pairwise_features])
-    ############################################
     # Features are of shape (voxels_per_edge, voxels_per_edge, voxels_per_edge, num_feat) so we should concatenate on the last axis.
     return np.concatenate(pairwise_features, axis=-1)

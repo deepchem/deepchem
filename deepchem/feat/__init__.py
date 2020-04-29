@@ -31,3 +31,6 @@ from deepchem.feat.contact_fingerprints import ContactCircularVoxelizer
 from deepchem.feat.grid_featurizers import ChargeVoxelizer 
 from deepchem.feat.grid_featurizers import SaltBridgeVoxelizer
 from deepchem.feat.grid_featurizers import CationPiVoxelizer
+from deepchem.feat.grid_featurizers import PiStackVoxelizer
+from deepchem.feat.grid_featurizers import HydrogenBondVoxelizer
+from deepchem.feat.grid_featurizers import HydrogenBondCounter

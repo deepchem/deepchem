@@ -818,59 +818,85 @@ def is_salt_bridge(atom_i, atom_j):
   return False
 
 
-def is_hydrogen_bond(protein_xyz,
-                     protein,
-                     ligand_xyz,
-                     ligand,
+def is_hydrogen_bond(frag1,
+                     frag2,
                      contact,
                      hbond_distance_cutoff=4.0,
                      hbond_angle_cutoff=40.0):
   """
-  Determine if a pair of atoms (contact = tuple of protein_atom_index, ligand_atom_index)
-  between protein and ligand represents a hydrogen bond. Returns a boolean result.
+  Determine if a pair of atoms (contact = frag1_atom_index,
+  frag2_atom_index) between two molecules represents a hydrogen
+  bond. Returns a boolean result.
+
+  Parameters
+  ----------
+  frag1: tuple
+    Tuple of (coords, rdkit mol / MolecularFragment
+  frag2: tuple
+    Tuple of (coords, rdkit mol / MolecularFragment
+  contact: Tuple
+    Tuple of indices for (atom_i, atom_j) contact. 
+  hbond_distance_cutoff: float, optional
+    Distance cutoff for hbond. 
+  hbond_angle_cutoff: float, optional
+    Angle deviance cutoff for hbond 
   """
-  protein_atom_xyz = protein_xyz[int(contact[0])]
-  ligand_atom_xyz = ligand_xyz[int(contact[1])]
-  protein_atom = protein.GetAtoms()[int(contact[0])]
-  ligand_atom = ligand.GetAtoms()[int(contact[1])]
+  frag1_xyz, frag2_xyz = frag1[0], frag2[0]
+  frag1_mol, frag2_mol = frag1[1], frag2[1]
+  frag1_atom_xyz = frag1_xyz[int(contact[0])]
+  frag2_atom_xyz = frag2_xyz[int(contact[1])]
+  frag1_atom = frag1_mol.GetAtoms()[int(contact[0])]
+  frag2_atom = frag2_mol.GetAtoms()[int(contact[1])]
 
   # Nitrogen has atomic number 7, and oxygen 8.
-  if ((ligand_atom.GetAtomicNum() == 7 or ligand_atom.GetAtomicNum() == 8) and (protein_atom.GetAtomicNum() == 7 or protein_atom.GetAtomicNum() == 8)):
+  if ((frag2_atom.GetAtomicNum() == 7 or frag2_atom.GetAtomicNum() == 8) and (frag1_atom.GetAtomicNum() == 7 or frag1_atom.GetAtomicNum() == 8)):
     hydrogens = []
 
-    for i, atom in enumerate(ligand.GetAtoms()):
+    for i, atom in enumerate(frag2_mol.GetAtoms()):
       # If atom is a hydrogen
       if atom.GetAtomicNum() == 1:
-        atom_xyz = ligand_xyz[i]
-        dist = np.linalg.norm(atom_xyz-ligand_atom_xyz)
+        atom_xyz = frag2_xyz[i]
+        dist = np.linalg.norm(atom_xyz-frag2_atom_xyz)
         # O-H distance is 0.96 A, N-H is 1.01 A. See http://www.science.uwaterloo.ca/~cchieh/cact/c120/bondel.html
         if dist < 1.3:
           hydrogens.append(atom_xyz)
     
-    for j, atom in enumerate(protein.GetAtoms()):
+    for j, atom in enumerate(frag1_mol.GetAtoms()):
       # If atom is a hydrogen
       if atom.GetAtomicNum() == 1:
-        atom_xyz = protein_xyz[i]
-        dist = np.linalg.norm(atom_xyz-protein_atom_xyz)
+        atom_xyz = frag1_xyz[i]
+        dist = np.linalg.norm(atom_xyz-frag1_atom_xyz)
         # O-H distance is 0.96 A, N-H is 1.01 A. See http://www.science.uwaterloo.ca/~cchieh/cact/c120/bondel.html
         if dist < 1.3:
           hydrogens.append(atom_xyz)
 
     for hydrogen_xyz in hydrogens:
-      hydrogen_to_ligand = ligand_atom_xyz - hydrogen_xyz
-      hydrogen_to_protein = protein_atom_xyz - hydrogen_xyz
-      if np.abs(180 - angle_between(hydrogen_to_protein, hydrogen_to_ligand) * 180.0 / np.pi) <= hbond_angle_cutoff:
+      hydrogen_to_frag2 = frag2_atom_xyz - hydrogen_xyz
+      hydrogen_to_frag1 = frag1_atom_xyz - hydrogen_xyz
+      if np.abs(180 - angle_between(hydrogen_to_frag1, hydrogen_to_frag2) * 180.0 / np.pi) <= hbond_angle_cutoff:
         return True
   return False
 
 
-def compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
+def compute_hbonds_in_range(frag1, frag2,
                             pairwise_distances, hbond_dist_bin,
                             hbond_angle_cutoff):
   """
-  Find all pairs of (protein_index_i, ligand_index_j) that hydrogen bond given
+  Find all pairs of (frag1_index_i, frag2_index_j) that hydrogen bond
+  given a distance bin and an angle cutoff.
 
-  a distance bin and an angle cutoff.
+  Parameters
+  ----------
+  frag1: tuple
+    Tuple of (coords, rdkit mol / MolecularFragment
+  frag2: tuple
+    Tuple of (coords, rdkit mol / MolecularFragment
+  pairwise_distances:
+    Matrix of shape `(N, M)` with pairwise distances between frag1/frag2.
+  hbond_dist_bin: tuple
+    Tuple of floats `(min_dist, max_dist)` in angstroms. 
+  hbond_angle_cutoffs: list[float]
+    List of angles of deviances allowed for hbonds
   """
 
   contacts = np.nonzero((pairwise_distances > hbond_dist_bin[0]) &
@@ -878,12 +904,12 @@ def compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
   contacts = zip(contacts[0], contacts[1])
   hydrogen_bond_contacts = []
   for contact in contacts:
-    if is_hydrogen_bond(protein_xyz, protein, ligand_xyz, ligand, contact,
+    if is_hydrogen_bond(frag1, frag2, contact,
                         hbond_angle_cutoff):
       hydrogen_bond_contacts.append(contact)
   return hydrogen_bond_contacts
 
-def compute_hydrogen_bonds(protein_xyz, protein, ligand_xyz, ligand,
+def compute_hydrogen_bonds(frag1, frag2,
                            pairwise_distances, hbond_dist_bins,
                            hbond_angle_cutoffs):
   """Computes hydrogen bonds between proteins and ligands.
@@ -892,13 +918,26 @@ def compute_hydrogen_bonds(protein_xyz, protein, ligand_xyz, ligand,
   of (protein_index_i, ligand_index_j) that represent a hydrogen
   bond. Each sublist represents a different type of hydrogen
   bond.
+
+  Parameters
+  ----------
+  frag1: tuple
+    Tuple of (coords, rdkit mol / MolecularFragment
+  frag2: tuple
+    Tuple of (coords, rdkit mol / MolecularFragment
+  pairwise_distances:
+    Matrix of shape `(N, M)` with pairwise distances between frag1/frag2.
+  hbond_dist_bins: list[tuple]
+    List of tuples of hbond distance ranges.
+  hbond_angle_cutoffs: list[float]
+    List of angles of deviances allowed for hbonds
   """
 
   hbond_contacts = []
   for i, hbond_dist_bin in enumerate(hbond_dist_bins):
     hbond_angle_cutoff = hbond_angle_cutoffs[i]
     hbond_contacts.append(
-        compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
+        compute_hbonds_in_range(frag1, frag2,
                                 pairwise_distances, hbond_dist_bin,
                                 hbond_angle_cutoff))
   return (hbond_contacts)

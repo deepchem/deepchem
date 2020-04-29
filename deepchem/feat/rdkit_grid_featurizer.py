@@ -261,43 +261,32 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       else:
         logger.warning('Ignoring unknown feature %s' % feature_type)
 
-  def _compute_feature(self, feature_name, prot_xyz, prot_rdk, lig_xyz, lig_rdk,
-                       distances):
+  def _compute_feature(self, feature_name, frag1, frag2, distances):
     if feature_name == 'ecfp_ligand':
-      return [self.ecfp_featurizer(lig_rdk)]
+      return [self.ecfp_featurizer(frag2[1])]
     if feature_name == 'ecfp_hashed':
-      return self.contact_featurizer._featurize_complex((lig_xyz, lig_rdk),
-                                                        (prot_xyz, prot_rdk))
+      return self.contact_featurizer._featurize_complex([frag1, frag2])
     if feature_name == 'splif_hashed':
-      return self.splif_featurizer._featurize_complex((lig_xyz, lig_rdk),
-                                                      (prot_xyz, prot_rdk))
+      return self.splif_featurizer._featurize_complex([frag1, frag2])
     if feature_name == 'hbond_count':
-      return self.hbond_counter._featurize_complex((lig_xyz, lig_rdk),
-                                                   (prot_xyz, prot_rdk))
+      return self.hbond_counter._featurize_complex([frag1, frag2])
     if feature_name == 'ecfp':
-      return self.contact_voxelizer._featurize_complex((lig_xyz, lig_rdk),
-                                                       (prot_xyz, prot_rdk))
+      return self.contact_voxelizer._featurize_complex([frag1, frag2])
     if feature_name == 'splif':
-      return self.splif_voxelizer._featurize_complex((lig_xyz, lig_rdk),
-                                                     (prot_xyz, prot_rdk))
+      return self.splif_voxelizer._featurize_complex([frag1, frag2])
     if feature_name == 'salt_bridge':
-      return self.salt_bridge_voxelizer._featurize_complex((lig_xyz, lig_rdk),
-                                                           (prot_xyz, prot_rdk))
+      return self.salt_bridge_voxelizer._featurize_complex([frag1, frag2])
     if feature_name == 'charge':
-      return self.charge_voxelizer._featurize_complex((lig_xyz, lig_rdk),
-                                                      (prot_xyz, prot_rdk))
+      return self.charge_voxelizer._featurize_complex([frag1, frag2])
     if feature_name == 'hbond':
-      return self.hbond_voxelizer._featurize_complex((lig_xyz, lig_rdk),
-                                                     (prot_xyz, prot_rdk))
+      return self.hbond_voxelizer._featurize_complex([frag1, frag2])
     if feature_name == 'pi_stack':
-      return self.pi_stack_voxelizer._featurize_complex((lig_xyz, lig_rdk),
-                                                        (prot_xyz, prot_rdk))
+      return self.pi_stack_voxelizer._featurize_complex([frag1, frag2])
     if feature_name == 'cation_pi':
-      return self.cation_pi_voxelizer._featurize_complex((lig_xyz, lig_rdk),
-                                                         (prot_xyz, prot_rdk))
+      return self.cation_pi_voxelizer._featurize_complex([frag1, frag2])
     raise ValueError('Unknown feature type "%s"' % feature_name)
 
-  def _featurize(self, mol_pdb_file, protein_pdb_file):
+  def _featurize(self, molecular_complex):
     """Computes grid featurization of protein/ligand complex.
 
     Takes as input filenames pdb of the protein, pdb of the
@@ -314,25 +303,18 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
 
     Parameters
     ----------
-    mol_pdb_file: Str 
-      Filename for ligand pdb file. 
-    protein_pdb_file: Str 
-      Filename for protein pdb file. 
+    molecular_complex: Object
+      Some representation of a molecular complex.
     """
     try:
       time1 = time.time()
 
-      protein_xyz, protein_rdk = load_molecule(
-          protein_pdb_file, calc_charges=True, sanitize=self.sanitize)
+      fragments = rdkit_util.load_complex(
+          molecular_complex, add_hydrogens=False)
+
       time2 = time.time()
-      logger.info(
-          "TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1))
-      time1 = time.time()
-      ligand_xyz, ligand_rdk = load_molecule(
-          mol_pdb_file, calc_charges=True, sanitize=self.sanitize)
-      time2 = time.time()
-      logger.info(
-          "TIMING: Loading ligand coordinates took %0.3f s" % (time2 - time1))
+      logger.info("TIMING: Loading molecular complex coordinates took %0.3f s" %
+                  (time2 - time1))
     except MoleculeLoadException:
       logger.warning("Some molecules cannot be loaded by Rdkit. Skipping")
       return None
