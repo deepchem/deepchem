@@ -147,6 +147,7 @@ def load_pdbbind_grid(split="random",
 
     return tasks, (train, valid, test), transformers
 
+
 def download_pdbbind(data_dir=None,
                      subset="refined",
                      version="v2015",
@@ -205,68 +206,79 @@ def download_pdbbind(data_dir=None,
     if not os.path.exists(index_file):
       logger.info("About to download PDBBind 2019 index file.")
       deepchem.utils.download_url(
-        'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbindv2019/PDBbind_2019_plain_text_index.tar.gz')
+          'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbindv2019/PDBbind_2019_plain_text_index.tar.gz'
+      )
 
     if not os.path.exists(index_folder):
       logger.info("Untarring 2019 index dataset...")
-      deepchem.utils.untargz_file(
-          index_file, dest_dir=data_folder)
+      deepchem.utils.untargz_file(index_file, dest_dir=data_folder)
 
     if interactions == "protein-protein":
       pp_file = os.path.join(data_dir, "pdbbind_v2019_PP.tar.gz")
       if not os.path.exists(pp_file):
-        logger.warning("About to download PDBBind 2019 protein-protein interactions. Large file of 688 MB")
+        logger.warning(
+            "About to download PDBBind 2019 protein-protein interactions. Large file of 688 MB"
+        )
         deepchem.utils.download_url(
-          'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbindv2019/pdbbind_v2019_PP.tar.gz')
+            'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbindv2019/pdbbind_v2019_PP.tar.gz'
+        )
       pp_folder = os.path.join(data_folder, "PP")
       if not os.path.exists(pp_folder):
         logger.info("Untarring 2019 protein-protein dataset...")
-        deepchem.utils.untargz_file(
-            pp_file, dest_dir=data_folder)
+        deepchem.utils.untargz_file(pp_file, dest_dir=data_folder)
     elif interactions == "protein-nucleic-acid":
       pn_file = os.path.join(data_dir, "pdbbind_v2019_PN.tar.gz")
       if not os.path.exists(pn_file):
-        logger.warning("About to download PDBBind 2019 protein-nucleic-acid interactions. Large file of 229 MB")
+        logger.warning(
+            "About to download PDBBind 2019 protein-nucleic-acid interactions. Large file of 229 MB"
+        )
         deepchem.utils.download_url(
-          'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbindv2019/pdbbind_v2019_PN.tar.gz')
+            'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbindv2019/pdbbind_v2019_PN.tar.gz'
+        )
       pn_folder = os.path.join(data_folder, "PN")
       if not os.path.exists(pn_folder):
         logger.info("Untarring 2019 protein-nucleic-acid dataset...")
-        deepchem.utils.untargz_file(
-            pn_file, dest_dir=data_folder)
+        deepchem.utils.untargz_file(pn_file, dest_dir=data_folder)
     elif interactions == "nucleic-acid-ligand":
       nl_file = os.path.join(data_dir, "pdbbind_v2019_NL.tar.gz")
       if not os.path.exists(nl_file):
-        logger.warning("About to download PDBBind 2019 nucleic-acid-ligand interactions. File of 17 MB")
+        logger.warning(
+            "About to download PDBBind 2019 nucleic-acid-ligand interactions. File of 17 MB"
+        )
         deepchem.utils.download_url(
-          'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbindv2019/pdbbind_v2019_NL.tar.gz')
+            'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbindv2019/pdbbind_v2019_NL.tar.gz'
+        )
       nl_folder = os.path.join(data_folder, "NL")
       if not os.path.exists(nl_folder):
         logger.info("Untarring 2019 nucleic-acid-ligand dataset...")
-        deepchem.utils.untargz_file(
-            nl_file, dest_dir=data_folder)
-    elif interactions == "protein-ligand" and subset=="refined":
+        deepchem.utils.untargz_file(nl_file, dest_dir=data_folder)
+    elif interactions == "protein-ligand" and subset == "refined":
       pl_refined_file = os.path.join(data_dir, "pdbbind_v2019_refined.tar.gz")
       if not os.path.exists(pl_refined_file):
-        logger.warning("About to download PDBBind 2019 protein-ligand refined interactions. Large File of 622 MB")
+        logger.warning(
+            "About to download PDBBind 2019 protein-ligand refined interactions. Large File of 622 MB"
+        )
         deepchem.utils.download_url(
-          'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbindv2019/pdbbind_v2019_refined.tar.gz')
+            'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbindv2019/pdbbind_v2019_refined.tar.gz'
+        )
       pl_refined_folder = os.path.join(data_folder, "refined-set")
       if not os.path.exists(pl_refined_folder):
         logger.info("Untarring 2019 protein-ligand refined dataset...")
-        deepchem.utils.untargz_file(
-            pl_refined_file, dest_dir=data_folder)
-    elif interactions == "protein-ligand" and subset=="other":
+        deepchem.utils.untargz_file(pl_refined_file, dest_dir=data_folder)
+    elif interactions == "protein-ligand" and subset == "other":
       pl_other_file = os.path.join(data_dir, "pdbbind_v2019_other_PL.tar.gz")
       if not os.path.exists(pl_other_file):
-        logger.warning("About to download PDBBind 2019 protein-ligand other interactions. Large File of 1.6 GB")
+        logger.warning(
+            "About to download PDBBind 2019 protein-ligand other interactions. Large File of 1.6 GB"
+        )
         deepchem.utils.download_url(
-          'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbindv2019/pdbbind_v2019_other_PL.tar.gz')
+            'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbindv2019/pdbbind_v2019_other_PL.tar.gz'
+        )
       pl_other_folder = os.path.join(data_folder, "v2019-other-PL")
       if not os.path.exists(pl_other_folder):
         logger.info("Untarring 2019 protein-ligand other dataset...")
-        deepchem.utils.untargz_file(
-            pl_other_file, dest_dir=data_folder)
+        deepchem.utils.untargz_file(pl_other_file, dest_dir=data_folder)
+
 
 def get_pdbbind_molecular_complex_files(data_dir=None,
                                         subset="refined",
@@ -316,7 +328,8 @@ def get_pdbbind_molecular_complex_files(data_dir=None,
     elif subset == "refined":
       index_labels_file = os.path.join(data_folder, "INDEX_refined_data.2015")
     elif subset == "general":
-      index_labels_file = os.path.join(data_folder, "INDEX_general_PL_data.2015")
+      index_labels_file = os.path.join(data_folder,
+                                       "INDEX_general_PL_data.2015")
     else:
       raise ValueError("Other subsets not supported")
 
@@ -338,7 +351,8 @@ def get_pdbbind_molecular_complex_files(data_dir=None,
   elif version == "v2019":
     data_folder = os.path.join(data_dir, "pdbbind", "v2019")
     if interactions == "protein-protein":
-      index_labels_file = os.path.join(data_folder, "plain-text-index", "index", "INDEX_general_PP.2019")
+      index_labels_file = os.path.join(data_folder, "plain-text-index", "index",
+                                       "INDEX_general_PP.2019")
 
       with open(index_labels_file, "r") as g:
         pdbs = [line[:4] for line in g.readlines() if line[0] != "#"]
@@ -348,7 +362,8 @@ def get_pdbbind_molecular_complex_files(data_dir=None,
       ]
       return protein_files
     elif interactions == "protein-nucleic-acid":
-      index_labels_file = os.path.join(data_folder, "plain-text-index", "index", "INDEX_general_PN.2019")
+      index_labels_file = os.path.join(data_folder, "plain-text-index", "index",
+                                       "INDEX_general_PN.2019")
 
       with open(index_labels_file, "r") as g:
         pdbs = [line[:4] for line in g.readlines() if line[0] != "#"]
@@ -358,7 +373,8 @@ def get_pdbbind_molecular_complex_files(data_dir=None,
       ]
       return protein_files
     elif interactions == "nucleic-acid-ligand":
-      index_labels_file = os.path.join(data_folder, "plain-text-index", "index", "INDEX_general_NL.2019")
+      index_labels_file = os.path.join(data_folder, "plain-text-index", "index",
+                                       "INDEX_general_NL.2019")
 
       with open(index_labels_file, "r") as g:
         pdbs = [line[:4] for line in g.readlines() if line[0] != "#"]
@@ -369,35 +385,42 @@ def get_pdbbind_molecular_complex_files(data_dir=None,
       return complex_files
     elif interactions == "protein-ligand":
       if subset == "refined":
-        index_labels_file = os.path.join(data_folder, "plain-text-index", "index", "INDEX_refined_data.2019")
+        index_labels_file = os.path.join(data_folder, "plain-text-index",
+                                         "index", "INDEX_refined_data.2019")
 
         with open(index_labels_file, "r") as g:
           pdbs = [line[:4] for line in g.readlines() if line[0] != "#"]
         refined_folder = os.path.join(data_folder, "refined-set")
         protein_files = [
-            os.path.join(refined_folder, pdb, "%s_protein.pdb" % pdb) for pdb in pdbs
+            os.path.join(refined_folder, pdb, "%s_protein.pdb" % pdb)
+            for pdb in pdbs
         ]
         ligand_files = [
-            os.path.join(data_folder, pdb, "%s_ligand.sdf" % pdb) for pdb in pdbs
+            os.path.join(data_folder, pdb, "%s_ligand.sdf" % pdb)
+            for pdb in pdbs
         ]
         return list(zip(protein_files, ligand_files))
       elif subset == "general":
-        index_labels_file = os.path.join(data_folder, "plain-text-index", "index", "INDEX_general_PL_data.2019")
+        index_labels_file = os.path.join(data_folder, "plain-text-index",
+                                         "index", "INDEX_general_PL_data.2019")
 
         with open(index_labels_file, "r") as g:
           pdbs = [line[:4] for line in g.readlines() if line[0] != "#"]
         general_folder = os.path.join(data_folder, "v2019-other-PL")
         protein_files = [
-            os.path.join(general_folder, pdb, "%s_protein.pdb" % pdb) for pdb in pdbs
+            os.path.join(general_folder, pdb, "%s_protein.pdb" % pdb)
+            for pdb in pdbs
         ]
         ligand_files = [
-            os.path.join(data_folder, pdb, "%s_ligand.sdf" % pdb) for pdb in pdbs
+            os.path.join(data_folder, pdb, "%s_ligand.sdf" % pdb)
+            for pdb in pdbs
         ]
         return list(zip(protein_files, ligand_files))
       else:
         raise ValueError("Other subsets not supported")
   else:
     raise ValueError("Only v2015 and v2019 versions are supported.")
+
 
 def get_pdbbind_molecular_complex_labels(data_dir=None,
                                          subset="refined",
@@ -451,7 +474,8 @@ def get_pdbbind_molecular_complex_labels(data_dir=None,
     elif subset == "refined":
       index_labels_file = os.path.join(data_folder, "INDEX_refined_data.2015")
     elif subset == "general":
-      index_labels_file = os.path.join(data_folder, "INDEX_general_PL_data.2015")
+      index_labels_file = os.path.join(data_folder,
+                                       "INDEX_general_PL_data.2015")
     else:
       raise ValueError("Other subsets not supported")
     # Extract labels
@@ -466,13 +490,18 @@ def get_pdbbind_molecular_complex_labels(data_dir=None,
   elif version == "v2019":
     data_folder = os.path.join(data_dir, "pdbbind", "v2019")
     # process interactions that have binding data
-    if interactions in ["protein-protein", "protein-nucleic-acid", "nucleic-acid-ligand"]:
+    if interactions in [
+        "protein-protein", "protein-nucleic-acid", "nucleic-acid-ligand"
+    ]:
       if interactions == "protein-protein":
-        index_labels_file = os.path.join(data_folder, "plain-text-index", "index", "INDEX_general_PP.2019")
+        index_labels_file = os.path.join(data_folder, "plain-text-index",
+                                         "index", "INDEX_general_PP.2019")
       elif interactions == "protein-nucleic-acid":
-        index_labels_file = os.path.join(data_folder, "plain-text-index", "index", "INDEX_general_PN.2019")
+        index_labels_file = os.path.join(data_folder, "plain-text-index",
+                                         "index", "INDEX_general_PN.2019")
       elif interactions == "nucleic-acid-ligand":
-        index_labels_file = os.path.join(data_folder, "plain-text-index", "index", "INDEX_general_NL.2019")
+        index_labels_file = os.path.join(data_folder, "plain-text-index",
+                                         "index", "INDEX_general_NL.2019")
 
       # Lines have format
       # PDB code, resolution, release year, binding data, reference, ligand name
@@ -493,7 +522,13 @@ def get_pdbbind_molecular_complex_labels(data_dir=None,
       separators = ["=", "<", "~", ">"]
 
       # The second step we have to do is separate the units
-      unit_conversions = {"mM": 1e-3, "uM":1e-6, "nM":1e-9, "pM":1e-12, "fM":1e-15}
+      unit_conversions = {
+          "mM": 1e-3,
+          "uM": 1e-6,
+          "nM": 1e-9,
+          "pM": 1e-12,
+          "fM": 1e-15
+      }
       number = None
       for raw in raw_labels:
         for separator in separators:
@@ -505,7 +540,7 @@ def get_pdbbind_molecular_complex_labels(data_dir=None,
         if number is None:
           raise ValueError("Don't know how to parse %s" % raw)
         # Shave off units
-        mantissa = float(number[:-2] )
+        mantissa = float(number[:-2])
         units = unit_conversions[number[-2:]]
         clean_labels.append(mantissa * units)
       # Make sure we didn't miss any labels in processing
@@ -513,9 +548,11 @@ def get_pdbbind_molecular_complex_labels(data_dir=None,
       return clean_labels
     elif interactions == "protein-ligand":
       if subset == "refined":
-        index_labels_file = os.path.join(data_folder, "plain-text-index", "index", "INDEX_refined_data.2019")
+        index_labels_file = os.path.join(data_folder, "plain-text-index",
+                                         "index", "INDEX_refined_data.2019")
       elif subset == "general":
-        index_labels_file = os.path.join(data_folder, "plain-text-index", "index", "INDEX_general_PL_data.2019")
+        index_labels_file = os.path.join(data_folder, "plain-text-index",
+                                         "index", "INDEX_general_PL_data.2019")
       else:
         raise ValueError("Other subsets not supported")
 
@@ -530,7 +567,6 @@ def get_pdbbind_molecular_complex_labels(data_dir=None,
       return labels
   else:
     raise ValueError("Only v2015 and v2019 versions are supported.")
-
 
 
 def load_pdbbind(reload=True,
@@ -555,7 +591,8 @@ def load_pdbbind(reload=True,
   subset: Str
     Specifies which subset of PDBBind, only "core" or "refined" for now.
   featurizer: Str
-    Either "grid" or "atomic" for grid and atomic featurizations.
+    Either "grid" or "atomic" for grid and atomic featurizations. Or
+    can be featurizer object. Must inherit from `ComplexFeaturizer`.
   split: Str
     Either "random" or "index".
   split_seed: Int, optional
@@ -576,14 +613,21 @@ def load_pdbbind(reload=True,
     data_dir = DEFAULT_DIR
   data_folder = os.path.join(data_dir, "pdbbind", "v2015")
 
+  if isinstance(featurizer, str):
+    featurizer_name = featurizer
+  elif isinstance(featurizer, deepchem.feat.ComplexFeaturizer):
+    # This isn't ideal. We should have featurizer parameters set in
+    # the name.
+    featurizer_name = featurizer.__class__.__name__
+
   if save_dir == None:
     save_dir = os.path.join(DEFAULT_DIR, "from-pdbbind")
   if load_binding_pocket:
     save_folder = os.path.join(
-        save_dir, "protein_pocket-%s-%s-%s" % (subset, featurizer, split))
+        save_dir, "protein_pocket-%s-%s-%s" % (subset, featurizer_name, split))
   else:
     save_folder = os.path.join(
-        save_dir, "full_protein-%s-%s-%s" % (subset, featurizer, split))
+        save_dir, "full_protein-%s-%s-%s" % (subset, featurizer_name, split))
 
   if save_timestamp:
     save_folder = "%s-%s-%s" % (save_folder,
@@ -640,6 +684,13 @@ def load_pdbbind(reload=True,
   ligand_files = [
       os.path.join(data_folder, pdb, "%s_ligand.sdf" % pdb) for pdb in pdbs
   ]
+  ########################################################
+  complex_files = get_pdbbind_molecular_complex_files(
+      subset=subset,
+      version="v2015",
+      interactions="protein-ligand",
+      load_binding_pocket=False)
+  ########################################################
 
   # Extract labels
   with open(index_labels_file, "r") as g:
@@ -679,12 +730,14 @@ def load_pdbbind(reload=True,
           complex_num_atoms=complex_num_atoms,
           max_num_neighbors=max_num_neighbors,
           neighbor_cutoff=neighbor_cutoff)
+  elif isinstance(featurizer, deepchem.feat.ComplexFeaturizer):
+    pass
   else:
     raise ValueError("Featurizer not supported")
 
   logger.info("\nFeaturizing Complexes for \"%s\" ...\n" % data_folder)
   feat_t1 = time.time()
-  features, failures = featurizer.featurize(ligand_files, protein_files)
+  features, failures = featurizer.featurize(complex_files, parallelize=False)
   feat_t2 = time.time()
   logger.info("\nFeaturization finished, took %0.3f s." % (feat_t2 - feat_t1))
 
@@ -707,11 +760,11 @@ def load_pdbbind(reload=True,
   # TODO(rbharath): This should be modified to contain a cluster split so
   # structures of the same protein aren't in both train/test
   splitters = {
-      'index': deepchem.splits.IndexSplitter(),
-      'random': deepchem.splits.RandomSplitter(),
+      'index': deepchem.splits.IndexSplitter(seed=split_seed),
+      'random': deepchem.splits.RandomSplitter(seed=split_seed),
   }
   splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset, seed=split_seed)
+  train, valid, test = splitter.train_valid_test_split(dataset)
 
   all_dataset = (train, valid, test)
   logger.info("\nSaving dataset to \"%s\" ..." % save_folder)
