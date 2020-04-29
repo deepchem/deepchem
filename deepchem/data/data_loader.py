@@ -204,7 +204,7 @@ class DataLoader(object):
       (Optional) Number of examples stored in each shard.
     """
     log("Loading raw samples now.", self.verbose)
-    log("shard_size: %d" % shard_size, self.verbose)
+    log("shard_size: {}".format(shard_size), self.verbose)
 
     if not isinstance(input_files, list):
       input_files = [input_files]
