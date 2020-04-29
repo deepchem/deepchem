@@ -28,3 +28,6 @@ from deepchem.feat.smiles_featurizers import SmilesToSeq, SmilesToImage
 from deepchem.feat.materials_featurizers import ElementPropertyFingerprint, SineCoulombMatrix, StructureGraphFeaturizer
 from deepchem.feat.contact_fingerprints import ContactCircularFingerprint
 from deepchem.feat.contact_fingerprints import ContactCircularVoxelizer
+from deepchem.feat.grid_featurizers import ChargeVoxelizer 
+from deepchem.feat.grid_featurizers import SaltBridgeVoxelizer
+from deepchem.feat.grid_featurizers import CationPiVoxelizer

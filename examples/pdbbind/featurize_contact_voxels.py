@@ -4,7 +4,7 @@ import logging
 from deepchem.molnet.load_function.pdbbind_datasets import get_pdbbind_molecular_complex_files
 
 complex_files = get_pdbbind_molecular_complex_files(subset="core", version="v2015", interactions="protein-ligand", load_binding_pocket=False)
-n_featurize = 2
+n_featurize = 10
 core_subset = complex_files[:n_featurize]
 
 box_width = 48 
@@ -16,4 +16,4 @@ features, failures = voxelizer.featurize_complexes(
 print("features.shape")
 print(features.shape)
 print("%d failures" % len(failures))
-assert features.shape == (voxels_per_edge, voxels_per_edge, voxels_per_edge, 8)
+assert features.shape == (n_featurize, voxels_per_edge, voxels_per_edge, voxels_per_edge, 8)

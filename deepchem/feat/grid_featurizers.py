@@ -1,7 +1,10 @@
 """
 Compute various spatial fingerprints for macromolecular complexes.
 """
+import itertools
 import logging
+import numpy as np
+from deepchem.utils import rdkit_util 
 from deepchem.utils.rdkit_util import get_partial_charge
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils.hash_utils import hash_ecfp_pair
@@ -14,6 +17,10 @@ from deepchem.utils.voxel_utils import convert_atom_pair_to_voxel
 from deepchem.utils.rdkit_util import compute_pairwise_distances
 from deepchem.utils.rdkit_util import compute_pi_stack
 from deepchem.utils.rdkit_util import compute_hydrogen_bonds
+from deepchem.utils.rdkit_util import MoleculeLoadException
+from deepchem.utils.rdkit_util import compute_contact_centroid
+from deepchem.utils.rdkit_util import subtract_centroid
+from deepchem.utils.rdkit_util import reduce_molecular_complex_to_contacts
 
 logger = logging.getLogger(__name__)
 
@@ -49,34 +56,58 @@ class ChargeVoxelizer(ComplexFeaturizer):
   complex that computes the effective charge at each voxel.
   """
   def __init__(self, 
+               cutoff=4.5,
                box_width=16.0,
-               voxel_width=1.0):
+               voxel_width=1.0,
+               reduce_to_contacts=True):
     """
     Parameters
     ----------
+    cutoff: float (default 4.5)
+      Distance cutoff in angstroms for molecules in complex.
     box_width: float, optional (default 16.0)
       Size of a box in which voxel features are calculated. Box
       is centered on a ligand centroid.
     voxel_width: float, optional (default 1.0)
       Size of a 3D voxel in a grid.
+    reduce_to_contacts: bool, optional
+      If True, reduce the atoms in the complex to those near a contact
+      region.
     """
+    self.cutoff = cutoff
     self.box_width = box_width
     self.voxel_width = voxel_width
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
+    self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize_complex(self, mol, protein):
+  def _featurize_complex(self, molecular_complex):
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    mol: object
-      Representation of the molecule
-    protein: object
-      Representation of the protein
+    molecular_complex: Object
+      Some representation of a molecular complex.
     """
-    (lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
-    return [
+    try:
+      fragments = rdkit_util.load_complex(molecular_complex, add_hydrogens=False)
+
+    except MoleculeLoadException:
+      logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
+      return None
+    pairwise_features = []
+    # We compute pairwise contact fingerprints
+    centroid = compute_contact_centroid(fragments, cutoff=self.cutoff)
+    if self.reduce_to_contacts:
+      fragments = reduce_molecular_complex_to_contacts(fragments, self.cutoff)
+    # We compute pairwise contact fingerprints
+    for (frag1_ind, frag2_ind) in itertools.combinations(range(len(fragments)), 2):
+      frag1, frag2 = fragments[frag1_ind], fragments[frag2_ind]
+      frag1_xyz = subtract_centroid(frag1[0], centroid)
+      frag2_xyz = subtract_centroid(frag2[0], centroid)
+      xyzs = [frag1_xyz, frag2_xyz]
+      rdks = [frag1[1], frag2[1]]
+      pairwise_features.append(
         sum([
             voxelize(
                 convert_atom_to_voxel,
@@ -88,9 +119,11 @@ class ChargeVoxelizer(ComplexFeaturizer):
                 feature_dict=compute_charge_dictionary(mol),
                 nb_channel=1,
                 dtype="np.float16")
-            for xyz, mol in ((prot_xyz, prot_rdk), (lig_xyz, lig_rdk))
+            for xyz, mol in zip(xyzs, rdks)
         ])
-    ]
+      )
+    # Features are of shape (voxels_per_edge, voxels_per_edge, voxels_per_edge, 1) so we should concatenate on the last axis.
+    return np.concatenate(pairwise_features, axis=-1)
 
 class SaltBridgeVoxelizer(ComplexFeaturizer):
   """Localize salt bridges between atoms in macromolecular complexes.
@@ -110,7 +143,8 @@ class SaltBridgeVoxelizer(ComplexFeaturizer):
   def __init__(self, 
                cutoff=5.0,
                box_width=16.0,
-               voxel_width=1.0):
+               voxel_width=1.0,
+               reduce_to_contacts=True):
     """
     Parameters
     ----------
@@ -122,39 +156,61 @@ class SaltBridgeVoxelizer(ComplexFeaturizer):
       is centered on a ligand centroid.
     voxel_width: float, optional (default 1.0)
       Size of a 3D voxel in a grid.
+    reduce_to_contacts: bool, optional
+      If True, reduce the atoms in the complex to those near a contact
+      region.
     """
     self.cutoff = cutoff
     self.box_width = box_width
     self.voxel_width = voxel_width
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
+    self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize_complex(self, mol, protein):
+  def _featurize_complex(self, molecular_complex):
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    mol: object
-      Representation of the molecule
-    protein: object
-      Representation of the protein
+    molecular_complex: Object
+      Some representation of a molecular complex.
     """
-    (lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
-    distances = compute_pairwise_distances(prot_xyz, lig_xyz)
-    return [
-        voxelize(
-            convert_atom_pair_to_voxel,
-            self.voxels_per_edge,
-            self.box_width,
-            self.voxel_width,
-            None, (prot_xyz, lig_xyz),
-            feature_list=compute_salt_bridges(
-                prot_rdk,
-                lig_rdk,
-                distances,
-                cutoff=self.cutoff),
-            nb_channel=1)
-    ]
+    try:
+      fragments = rdkit_util.load_complex(molecular_complex, add_hydrogens=False)
+
+    except MoleculeLoadException:
+      logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
+      return None
+    pairwise_features = []
+    # We compute pairwise contact fingerprints
+    centroid = compute_contact_centroid(fragments, cutoff=self.cutoff)
+    if self.reduce_to_contacts:
+      fragments = reduce_molecular_complex_to_contacts(fragments, self.cutoff)
+    #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
+    #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
+    for (frag1_ind, frag2_ind) in itertools.combinations(range(len(fragments)), 2):
+      frag1, frag2 = fragments[frag1_ind], fragments[frag2_ind]
+      distances = compute_pairwise_distances(frag1[0], frag2[0])
+      frag1_xyz = subtract_centroid(frag1[0], centroid)
+      frag2_xyz = subtract_centroid(frag2[0], centroid)
+      xyzs = [frag1_xyz, frag2_xyz]
+      rdks = [frag1[1], frag2[1]]
+      pairwise_features.append( 
+          voxelize(
+              convert_atom_pair_to_voxel,
+              self.voxels_per_edge,
+              self.box_width,
+              self.voxel_width,
+              None, xyzs,
+              feature_list=compute_salt_bridges(
+                  frag1[1],
+                  frag2[1],
+                  distances,
+                  cutoff=self.cutoff),
+              nb_channel=1)
+      )
+    # Features are of shape (voxels_per_edge, voxels_per_edge, voxels_per_edge, 1) so we should concatenate on the last axis.
+    return np.concatenate(pairwise_features, axis=-1)
 
 class CationPiVoxelizer(ComplexFeaturizer):
   """Localize cation-Pi interactions between atoms in macromolecular complexes.
@@ -173,7 +229,8 @@ class CationPiVoxelizer(ComplexFeaturizer):
                distance_cutoff=6.5,
                angle_cutoff=30.0,
                box_width=16.0,
-               voxel_width=1.0):
+               voxel_width=1.0,
+               reduce_to_contacts=True):
     """
     Parameters
     ----------
@@ -189,6 +246,9 @@ class CationPiVoxelizer(ComplexFeaturizer):
       is centered on a ligand centroid.
     voxel_width: float, optional (default 1.0)
       Size of a 3D voxel in a grid.
+    reduce_to_contacts: bool, optional
+      If True, reduce the atoms in the complex to those near a contact
+      region.
     """
     self.distance_cutoff = distance_cutoff
     self.angle_cutoff = angle_cutoff
@@ -196,39 +256,59 @@ class CationPiVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
 
-  def _featurize_complex(self, mol, protein):
+  def _featurize_complex(self, molecular_complex):
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    mol: object
-      Representation of the molecule
-    protein: object
-      Representation of the protein
+    molecular_complex: Object
+      Some representation of a molecular complex.
     """
-    (lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
-    distances = compute_pairwise_distances(prot_xyz, lig_xyz)
-    return [
-        sum([
-            voxelize(
-                convert_atom_to_voxel,
-                self.voxels_per_edge,
-                self.box_width,
-                self.voxel_width,
-                None,
-                xyz,
-                feature_dict=cation_pi_dict,
-                nb_channel=1) for xyz, cation_pi_dict in zip(
-                    (prot_xyz, lig_xyz),
-                    compute_binding_pocket_cation_pi(
-                        prot_rdk,
-                        lig_rdk,
-                        dist_cutoff=self.distance_cutoff,
-                        angle_cutoff=self.angle_cutoff,
-                    ))
-        ])
-    ]
+    try:
+      fragments = rdkit_util.load_complex(molecular_complex, add_hydrogens=False)
+
+    except MoleculeLoadException:
+      logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
+      return None
+    pairwise_features = []
+    # We compute pairwise contact fingerprints
+    centroid = compute_contact_centroid(fragments, cutoff=self.cutoff)
+    if self.reduce_to_contacts:
+      fragments = reduce_molecular_complex_to_contacts(fragments, self.cutoff)
+    #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
+    #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
+    for (frag1_ind, frag2_ind) in itertools.combinations(range(len(fragments)), 2):
+      frag1, frag2 = fragments[frag1_ind], fragments[frag2_ind]
+      distances = compute_pairwise_distances(frag1[0], frag2[0])
+    #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
+    #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
+      frag1_xyz = subtract_centroid(frag1[0], centroid)
+      frag2_xyz = subtract_centroid(frag2[0], centroid)
+      xyzs = [frag1_xyz, frag2_xyz]
+      rdks = [frag1[1], frag2[1]]
+      pairwise_features.append(
+          sum([
+              voxelize(
+                  convert_atom_to_voxel,
+                  self.voxels_per_edge,
+                  self.box_width,
+                  self.voxel_width,
+                  None,
+                  xyz,
+                  feature_dict=cation_pi_dict,
+                  nb_channel=1) for xyz, cation_pi_dict in zip(
+                      xyzs,
+                      compute_binding_pocket_cation_pi(
+                          frag1[1],
+                          frag2[1],
+                          dist_cutoff=self.distance_cutoff,
+                          angle_cutoff=self.angle_cutoff,
+                      ))
+          ])
+      )
+    # Features are of shape (voxels_per_edge, voxels_per_edge, voxels_per_edge, 1) so we should concatenate on the last axis.
+    return np.concatenate(pairwise_features, axis=-1)
 
 class PiStackVoxelizer(ComplexFeaturizer):
   """Localize Pi stacking interactions between atoms in macromolecular complexes.
