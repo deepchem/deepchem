@@ -6,6 +6,7 @@ from deepchem.utils.geometry_utils import generate_random_unit_vector
 from deepchem.utils.geometry_utils import generate_random_rotation_matrix
 from deepchem.utils.geometry_utils import is_angle_within_cutoff
 
+
 class TestGeometryUtils(unittest.TestCase):
 
   def test_generate_random_unit_vector(self):

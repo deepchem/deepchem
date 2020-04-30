@@ -6,9 +6,11 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 def unit_vector(vector):
   """ Returns the unit vector of the vector.  """
   return vector / np.linalg.norm(vector)
+
 
 def angle_between(vector_i, vector_j):
   """Returns the angle in radians between vectors "vector_i" and "vector_j"::
@@ -33,6 +35,7 @@ def angle_between(vector_i, vector_j):
       return np.pi
   return angle
 
+
 def generate_random_unit_vector():
   """Generate a random unit vector on the sphere S^2.
 
@@ -49,6 +52,7 @@ def generate_random_unit_vector():
       [np.sqrt(1 - z**2) * np.cos(theta),
        np.sqrt(1 - z**2) * np.sin(theta), z])
   return (u)
+
 
 def generate_random_rotation_matrix():
   """Generates a random rotation matrix.
@@ -91,6 +95,7 @@ def generate_random_rotation_matrix():
   R = np.column_stack((u, vp, w))
   return (R)
 
+
 def is_angle_within_cutoff(vector_i, vector_j, angle_cutoff):
   """A utility function to compute whether two vectors are within a cutoff from 180 degrees apart. 
 
@@ -104,5 +109,4 @@ def is_angle_within_cutoff(vector_i, vector_j, angle_cutoff):
     The deviation from 180 (in degrees)
   """
   angle = angle_between(vector_i, vector_j) * 180. / np.pi
-  return (angle > (180 - angle_cutoff) and
-          angle < (180. + angle_cutoff))
+  return (angle > (180 - angle_cutoff) and angle < (180. + angle_cutoff))
