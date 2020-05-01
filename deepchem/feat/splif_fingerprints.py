@@ -43,20 +43,37 @@ def compute_splif_features_in_range(protein,
   }
   return (splif_dict)
 
-def featurize_splif(protein_xyz, protein, ligand_xyz, ligand,
-contact_bins,
+def featurize_splif(frag1, frag1, contact_bins,
                     pairwise_distances, ecfp_degree):
-  """Computes SPLIF featurization of protein-ligand binding pocket.
+  """Computes SPLIF featurization of fragment interactions binding pocket.
 
   For each contact range (i.e. 1 A to 2 A, 2 A to 3 A, etc.)
-  compute a dictionary mapping (protein_index_i, ligand_index_j)
-  tuples --> (protein_ecfp_i, ligand_ecfp_j) tuples. Return a
+  compute a dictionary mapping (frag1_index_i, frag2_index_j)
+  tuples --> (frag1_ecfp_i, frag2_ecfp_j) tuples. Return a
   list of such splif dictionaries.
+
+  Parameters
+  ----------
+  frag1: Tuple
+    A tuple of (coords, mol) returned by `rdkit_util.load_molecule`.
+  frag2: Tuple
+    A tuple of (coords, mol) returned by `rdkit_util.load_molecule`.
+  contact_bins: np.ndarray
+    TODO 
+  pairwise_distances: np.ndarray
+    Array of pairwise fragment-fragment distances (Angstroms)
+  ecfp_degree: int
+    ECFP radius
+
+  Returns
+  -------
+  Dictionaries of SPLIF interactions suitable for `vectorize` or
+  `voxelize`.
   """
   splif_dicts = []
   for i, contact_bin in enumerate(contact_bins):
     splif_dicts.append(
-        compute_splif_features_in_range(protein, ligand, pairwise_distances,
+        compute_splif_features_in_range(frag1, frag2, pairwise_distances,
                                         contact_bin, ecfp_degree))
 
   return (splif_dicts)
@@ -190,7 +207,7 @@ class SplifVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
 
-  def _featurize_complex(self, mol, protein):
+  def _featurize_complex(self, molecular_complex):
     """
     Compute featurization for a single mol/protein complex
 
@@ -204,21 +221,35 @@ class SplifVoxelizer(ComplexFeaturizer):
 
     Parameters
     ----------
-    mol: object
-      Representation of the molecule
-    protein: object
-      Representation of the protein
+    molecular_complex: Object
+      A representation of a molecular complex, produced by
+      `rdkit_util.load_complex`.
     """
-    (lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
-    distances = compute_pairwise_distances(prot_xyz, lig_xyz)
-    return [
-        voxelize(
-            convert_atom_pair_to_voxel,
-            self.voxels_per_edge,
-            self.box_width,
-            self.voxel_width,
-            hash_ecfp_pair, (prot_xyz, lig_xyz),
-            feature_dict=splif_dict,
-            nb_channel=self.size) for splif_dict in featurize_splif(
-                prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.contact_bins, distances, self.radius)
-    ]
+    try:
+      fragments = rdkit_util.load_complex(molecular_complex, add_hydrogens=False)
+
+    except MoleculeLoadException:
+      logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
+      return None
+    pairwise_features = []
+    # We compute pairwise contact fingerprints
+    centroid = compute_contact_centroid(fragments, cutoff=self.cutoff)
+    for (frag1, frag2) in itertools.combinations(fragments, 2):
+      distances = compute_pairwise_distances(frag1[0], frag2[0])
+      frag1_xyz = subtract_centroid(frag1[0], centroid)
+      frag2_xyz = subtract_centroid(frag2[0], centroid)
+      xyzs = [frag1_xyz, frag2_xyz]
+    #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
+    #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
+      pairwise_features.append(np.concatenate([
+          voxelize(
+              convert_atom_pair_to_voxel,
+              self.box_width,
+              self.voxel_width,
+              hash_ecfp_pair, xyzs,
+              feature_dict=splif_dict,
+              nb_channel=self.size) for splif_dict in featurize_splif(
+                  prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.contact_bins, distances, self.radius)
+      ], axis=-1))
+    # Features are of shape (voxels_per_edge, voxels_per_edge, voxels_per_edge, 1) so we should concatenate on the last axis.
+    return np.concatenate(pairwise_features, axis=-1)

@@ -14,8 +14,8 @@ from collections import Counter
 from deepchem.feat.fingerprints import CircularFingerprint
 from deepchem.feat.contact_fingerprints import ContactCircularFingerprint
 from deepchem.feat.contact_fingerprints import ContactCircularVoxelizer
-from deepchem.feat.splif_fingerprint import SplifFingerprint
-from deepchem.feat.splif_fingerprint import SplifVoxelizer
+from deepchem.feat.splif_fingerprints import SplifFingerprint
+from deepchem.feat.splif_fingerprints import SplifVoxelizer
 from deepchem.feat.grid_featurizers import compute_charge_dictionary
 from deepchem.feat.grid_featurizers import ChargeVoxelizer
 from deepchem.feat.grid_featurizers import SaltBridgeVoxelizer
