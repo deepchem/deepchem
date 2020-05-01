@@ -50,9 +50,10 @@ class ChargeVoxelizer(ComplexFeaturizer):
   a local charge array. Sum contributions to get an effective
   charge at each voxel.
 
-  Creates a tensor output of shape `(voxels_per_edge,
-  voxels_per_edge, voxels_per_edge, 1)` for each macromolecular
-  complex that computes the effective charge at each voxel.
+  Let `voxels_per_edge = int(box_width/voxel_width)`.  Creates a
+  tensor output of shape `(voxels_per_edge, voxels_per_edge,
+  voxels_per_edge, 1)` for each macromolecular complex that computes
+  the effective charge at each voxel.
   """
   def __init__(self, 
                cutoff=4.5,
@@ -76,7 +77,6 @@ class ChargeVoxelizer(ComplexFeaturizer):
     self.cutoff = cutoff
     self.box_width = box_width
     self.voxel_width = voxel_width
-    self.voxels_per_edge = int(self.box_width / self.voxel_width)
     self.reduce_to_contacts = reduce_to_contacts
 
   def _featurize_complex(self, molecular_complex):
@@ -110,7 +110,6 @@ class ChargeVoxelizer(ComplexFeaturizer):
         sum([
             voxelize(
                 convert_atom_to_voxel,
-                self.voxels_per_edge,
                 self.box_width,
                 self.voxel_width,
                 None,
@@ -135,9 +134,10 @@ class SaltBridgeVoxelizer(ComplexFeaturizer):
   interact in a salt-bridge, the interaction is double counted
   in both voxels.
 
-  Creates a tensor output of shape `(voxels_per_edge,
-  voxels_per_edge, voxels_per_edge, 1)` for each macromolecular
-  the number of salt bridges at each voxel.
+  Let `voxels_per_edge = int(box_width/voxel_width)`.  Creates a
+  tensor output of shape `(voxels_per_edge, voxels_per_edge,
+  voxels_per_edge, 1)` for each macromolecular the number of salt
+  bridges at each voxel.
   """
   def __init__(self, 
                cutoff=5.0,
@@ -162,7 +162,6 @@ class SaltBridgeVoxelizer(ComplexFeaturizer):
     self.cutoff = cutoff
     self.box_width = box_width
     self.voxel_width = voxel_width
-    self.voxels_per_edge = int(self.box_width / self.voxel_width)
     self.reduce_to_contacts = reduce_to_contacts
 
   def _featurize_complex(self, molecular_complex):
@@ -195,7 +194,6 @@ class SaltBridgeVoxelizer(ComplexFeaturizer):
       pairwise_features.append( 
           voxelize(
               convert_atom_pair_to_voxel,
-              self.voxels_per_edge,
               self.box_width,
               self.voxel_width,
               None, xyzs,
@@ -218,9 +216,10 @@ class CationPiVoxelizer(ComplexFeaturizer):
   bridge in the voxel in which it originated to create a local
   cation-pi array.
 
-  Creates a tensor output of shape `(voxels_per_edge,
-  voxels_per_edge, voxels_per_edge, 1)` for each macromolecular
-  the number of cation-pi interactions at each voxel.
+  Let `voxels_per_edge = int(box_width/voxel_width)`.  Creates a
+  tensor output of shape `(voxels_per_edge, voxels_per_edge,
+  voxels_per_edge, 1)` for each macromolecular the number of cation-pi
+  interactions at each voxel.
   """
   def __init__(self, 
                distance_cutoff=6.5,
@@ -251,7 +250,6 @@ class CationPiVoxelizer(ComplexFeaturizer):
     self.angle_cutoff = angle_cutoff
     self.box_width = box_width
     self.voxel_width = voxel_width
-    self.voxels_per_edge = int(self.box_width / self.voxel_width)
 
   def _featurize_complex(self, molecular_complex):
     """
@@ -282,7 +280,6 @@ class CationPiVoxelizer(ComplexFeaturizer):
           sum([
               voxelize(
                   convert_atom_to_voxel,
-                  self.voxels_per_edge,
                   self.box_width,
                   self.voxel_width,
                   None,
@@ -310,11 +307,12 @@ class PiStackVoxelizer(ComplexFeaturizer):
   localize this salt bridge in the voxel in which it originated
   to create a local pi-stacking array.
 
-  Creates a tensor output of shape `(voxels_per_edge,
-  voxels_per_edge, voxels_per_edge, 2)` for each macromolecular
-  Each voxel has 2 fields, with the first tracking the number
-  of pi-pi parallel interactions, and the second tracking the
-  number of pi-T interactions.
+  Let `voxels_per_edge = int(box_width/voxel_width)`.  Creates a
+  tensor output of shape `(voxels_per_edge, voxels_per_edge,
+  voxels_per_edge, 2)` for each macromolecular Each voxel has 2
+  fields, with the first tracking the number of pi-pi parallel
+  interactions, and the second tracking the number of pi-T
+  interactions.
   """
   def __init__(self, 
                distance_cutoff=4.4,
@@ -341,7 +339,6 @@ class PiStackVoxelizer(ComplexFeaturizer):
     self.angle_cutoff = angle_cutoff
     self.box_width = box_width
     self.voxel_width = voxel_width
-    self.voxels_per_edge = int(self.box_width / self.voxel_width)
 
   def _featurize_complex(self, molecular_complex):
     """
@@ -379,7 +376,6 @@ class PiStackVoxelizer(ComplexFeaturizer):
                angle_cutoff=self.angle_cutoff))
       pi_parallel_tensor = voxelize(
           convert_atom_to_voxel,
-          self.voxels_per_edge,
           self.box_width,
           self.voxel_width,
           None,
@@ -388,7 +384,6 @@ class PiStackVoxelizer(ComplexFeaturizer):
           nb_channel=1)
       pi_parallel_tensor += voxelize(
           convert_atom_to_voxel,
-          self.voxels_per_edge,
           self.box_width,
           self.voxel_width,
           None,
@@ -398,7 +393,6 @@ class PiStackVoxelizer(ComplexFeaturizer):
 
       pi_t_tensor = voxelize(
           convert_atom_to_voxel,
-          self.voxels_per_edge,
           self.box_width,
           self.voxel_width,
           None,
@@ -407,7 +401,6 @@ class PiStackVoxelizer(ComplexFeaturizer):
           nb_channel=1)
       pi_t_tensor += voxelize(
           convert_atom_to_voxel,
-          self.voxels_per_edge,
           self.box_width,
           self.voxel_width,
           None,
@@ -512,7 +505,8 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
   different voxels interact in a hydrogen bond, the interaction
   is double counted in both voxels.
 
-  Creates a tensor output of shape `(voxels_per_edge, voxels_per_edge,
+  Let `voxels_per_edge = int(box_width/voxel_width)`.  Creates a
+  tensor output of shape `(voxels_per_edge, voxels_per_edge,
   voxels_per_edge, 3)` (assuming the default for `distance_bins` which
   has 3 bins) for each macromolecular the number of hydrogen bonds at
   each voxel.
@@ -558,7 +552,6 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
       self.angle_cutoffs = angle_cutoffs
     self.box_width = box_width
     self.voxel_width = voxel_width
-    self.voxels_per_edge = int(self.box_width / self.voxel_width)
     self.reduce_to_contacts = reduce_to_contacts
 
   def _featurize_complex(self, molecular_complex):
@@ -588,12 +581,9 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
       frag2_xyz = subtract_centroid(frag2[0], centroid)
       xyzs = [frag1_xyz, frag2_xyz]
       rdks = [frag1[1], frag2[1]]
-    #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
-    #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
       pairwise_features.append(np.concatenate([
           voxelize(
               convert_atom_pair_to_voxel,
-              self.voxels_per_edge,
               self.box_width,
               self.voxel_width,
               #None, (prot_xyz, lig_xyz),
@@ -605,37 +595,5 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
                   self.angle_cutoffs)
         ], axis=-1)
       )
-      #############################################
-      #print("""list(voxelize(
-      #        convert_atom_pair_to_voxel,
-      #        self.voxels_per_edge,
-      #        self.box_width,
-      #        self.voxel_width,
-      #        #None, (prot_xyz, lig_xyz),
-      #        None, xyzs,
-      #        feature_list=hbond_list,
-      #        nb_channel=1) for hbond_list in compute_hydrogen_bonds(
-      #            frag1, frag2,
-      #            distances, self.distance_bins,
-      #            self.angle_cutoffs))""")
-      #print(list(voxelize(
-      #        convert_atom_pair_to_voxel,
-      #        self.voxels_per_edge,
-      #        self.box_width,
-      #        self.voxel_width,
-      #        #None, (prot_xyz, lig_xyz),
-      #        None, xyzs,
-      #        feature_list=hbond_list,
-      #        nb_channel=1) for hbond_list in compute_hydrogen_bonds(
-      #            frag1, frag2,
-      #            distances, self.distance_bins,
-      #            self.angle_cutoffs)))
-      #print("compute_hydrogen_bonds(frag1, frag2, distances, self.distance_bins, self.angle_cutoffs)")
-      #print(compute_hydrogen_bonds(frag1, frag2, distances, self.distance_bins, self.angle_cutoffs))
-      ##############################################
-    ################################################
-    #print("pairwise_features")
-    #print(pairwise_features)
-    ################################################
     # Features are of shape (voxels_per_edge, voxels_per_edge, voxels_per_edge, 1) so we should concatenate on the last axis.
     return np.concatenate(pairwise_features, axis=-1)
