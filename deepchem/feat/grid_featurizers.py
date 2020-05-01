@@ -8,7 +8,6 @@ from deepchem.utils import rdkit_util
 from deepchem.utils.rdkit_util import get_partial_charge
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils.hash_utils import hash_ecfp_pair
-from deepchem.utils.hash_utils import vectorize
 from deepchem.utils.voxel_utils import voxelize 
 from deepchem.utils.rdkit_util import compute_salt_bridges
 from deepchem.utils.rdkit_util import compute_binding_pocket_cation_pi
@@ -495,8 +494,7 @@ class HydrogenBondCounter(ComplexFeaturizer):
     #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
     #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
       pairwise_features.append(np.concatenate([
-          vectorize(
-              hash_ecfp_pair, feature_list=hbond_list, size=1)
+          np.array([len(hbond_list)])
           for hbond_list in compute_hydrogen_bonds(
               frag1, frag2, distances, self.distance_bins, self.angle_cutoffs)
       ], axis=-1))

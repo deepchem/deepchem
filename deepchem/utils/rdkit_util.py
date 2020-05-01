@@ -873,9 +873,7 @@ def is_hydrogen_bond(frag1,
     for hydrogen_xyz in hydrogens:
       hydrogen_to_frag2 = frag2_atom_xyz - hydrogen_xyz
       hydrogen_to_frag1 = frag1_atom_xyz - hydrogen_xyz
-      #if np.abs(180 - angle_between(hydrogen_to_frag1, hydrogen_to_frag2) * 180.0 / np.pi) <= hbond_angle_cutoff:
-      #  return True
-      return is_angle_within_cutoff(hydrgoen_to_frag2, hydrogen_to_frag1, hbond_angle_cutoff)
+      return is_angle_within_cutoff(hydrogen_to_frag2, hydrogen_to_frag1, hbond_angle_cutoff)
   return False
 
 

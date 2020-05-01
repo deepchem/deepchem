@@ -4,7 +4,7 @@ import logging
 from deepchem.molnet.load_function.pdbbind_datasets import get_pdbbind_molecular_complex_files
 
 complex_files = get_pdbbind_molecular_complex_files(subset="core", version="v2015", interactions="protein-ligand", load_binding_pocket=False)
-n_featurize = 10
+n_featurize = 2
 core_subset = complex_files[:n_featurize]
 
 featurizer = dc.feat.HydrogenBondCounter()

@@ -23,26 +23,13 @@ from deepchem.feat.grid_featurizers import CationPiVoxelizer
 from deepchem.feat.grid_featurizers import PiStackVoxelizer
 from deepchem.feat.grid_featurizers import HydrogenBondCounter
 from deepchem.feat.grid_featurizers import HydrogenBondVoxelizer
-from deepchem.utils.rdkit_util import compute_hydrogen_bonds
 from deepchem.utils.rdkit_util import load_molecule
 from deepchem.utils.rdkit_util import compute_centroid
 from deepchem.utils.rdkit_util import subtract_centroid
 from deepchem.utils.rdkit_util import compute_ring_center
 from deepchem.utils.rdkit_util import rotate_molecules
 from deepchem.utils.rdkit_util import compute_pairwise_distances
-from deepchem.utils.rdkit_util import is_salt_bridge
-from deepchem.utils.rdkit_util import compute_salt_bridges
-from deepchem.utils.rdkit_util import compute_pi_stack
-from deepchem.utils.rdkit_util import compute_binding_pocket_cation_pi
-from deepchem.utils.rdkit_util import is_hydrogen_bond
-from deepchem.utils.rdkit_util import compute_all_ecfp
 from deepchem.utils.rdkit_util import MoleculeLoadException
-from deepchem.utils.hash_utils import hash_ecfp
-from deepchem.utils.hash_utils import hash_ecfp_pair
-from deepchem.utils.hash_utils import vectorize
-from deepchem.utils.voxel_utils import voxelize
-from deepchem.utils.voxel_utils import convert_atom_to_voxel
-from deepchem.utils.voxel_utils import convert_atom_pair_to_voxel
 from deepchem.feat import ComplexFeaturizer
 
 logger = logging.getLogger(__name__)
