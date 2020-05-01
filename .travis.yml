@@ -15,12 +15,13 @@ jobs:
       os: windows
 
 install:
-- if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+- if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then
     wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O anaconda.sh;
     export python_version=$TRAVIS_PYTHON_VERSION;
     bash anaconda.sh -b -p $HOME/anaconda;
     export PATH="$HOME/anaconda/bin:$PATH";
-  else
+  fi
+- if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
     wget https://repo.continuum.io/miniconda/Miniconda3-latest-Windows-x86_64.exe -O anaconda.sh;
     export python_version=$TRAVIS_PYTHON_VERSION;
     bash anaconda.sh -b -p $HOME/anaconda;
