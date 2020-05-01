@@ -32,7 +32,7 @@ def featurize_contacts_ecfp(frag1,
   frag2: Tuple
     A tuple of (coords, mol) returned by `rdkit_util.load_molecule`.
   pairwise_distances: np.ndarray
-    Array of pairwise protein-ligand distances (Angstroms)
+    Array of pairwise fragment-fragment distances (Angstroms)
   cutoff: float
     Cutoff distance for contact consideration
   ecfp_degree: int
@@ -90,7 +90,7 @@ class ContactCircularFingerprint(ComplexFeaturizer):
 
   def _featurize_complex(self, molecular_complex):
     """
-    Compute featurization for a single mol/protein complex
+    Compute featurization for a molecular complex
 
     Parameters
     ----------

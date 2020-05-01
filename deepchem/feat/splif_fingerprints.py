@@ -1,5 +1,5 @@
 """
-SPLIF Fingeprints for protein-ligand complexes.
+SPLIF Fingerprints for molecular complexes.
 """
 import logging
 import numpy as np
@@ -16,29 +16,42 @@ logger = logging.getLogger(__name__)
 
 SPLIF_CONTACT_BINS = [(0, 2.0), (2.0, 3.0), (3.0, 4.5)]
 
-def compute_splif_features_in_range(protein,
-                                    ligand,
+def compute_splif_features_in_range(frag1,
+                                    frag2,
                                     pairwise_distances,
                                     contact_bin,
                                     ecfp_degree=2):
-  """Computes SPLIF features for protein atoms close to ligand atoms.
+  """Computes SPLIF features for close atoms in molecular complexes.
 
-  Finds all protein atoms that are > contact_bin[0] and <
-  contact_bin[1] away from ligand atoms. Then, finds the ECFP
+  Finds all frag1 atoms that are > contact_bin[0] and <
+  contact_bin[1] away from frag2 atoms. Then, finds the ECFP
   fingerprints for the contacting atoms. Returns a dictionary
-  mapping (protein_index_i, ligand_index_j) --> (protein_ecfp_i,
-  ligand_ecfp_j)
+  mapping (frag1_index_i, frag2_index_j) --> (frag1_ecfp_i,
+  frag2_ecfp_j)
+
+  Parameters
+  ----------
+  frag1: Tuple
+    A tuple of (coords, mol) returned by `rdkit_util.load_molecule`.
+  frag2: Tuple
+    A tuple of (coords, mol) returned by `rdkit_util.load_molecule`.
+  contact_bins: np.ndarray
+    TODO 
+  pairwise_distances: np.ndarray
+    Array of pairwise fragment-fragment distances (Angstroms)
+  ecfp_degree: int
+    ECFP radius
   """
   contacts = np.nonzero((pairwise_distances > contact_bin[0]) &
                         (pairwise_distances < contact_bin[1]))
-  protein_atoms = set([int(c) for c in contacts[0].tolist()])
+  frag1_atoms = set([int(c) for c in contacts[0].tolist()])
   contacts = zip(contacts[0], contacts[1])
 
-  protein_ecfp_dict = compute_all_ecfp(
-      protein, indices=protein_atoms, degree=ecfp_degree)
-  ligand_ecfp_dict = compute_all_ecfp(ligand, degree=ecfp_degree)
+  frag1_ecfp_dict = compute_all_ecfp(
+      frag1, indices=frag1_atoms, degree=ecfp_degree)
+  frag2_ecfp_dict = compute_all_ecfp(frag2, degree=ecfp_degree)
   splif_dict = {
-      contact: (protein_ecfp_dict[contact[0]], ligand_ecfp_dict[contact[1]])
+      contact: (frag1_ecfp_dict[contact[0]], frag2_ecfp_dict[contact[1]])
       for contact in contacts
   }
   return (splif_dict)
@@ -92,10 +105,12 @@ class SplifFingerprint(ComplexFeaturizer):
   and modeling 54.9 (2014): 2555-2561.
 
   SPLIF fingerprints are a subclass of `ComplexFeaturizer`. It
-  requires 3D coordinates for a protein-ligand complex. For
-  each ligand atom, it identifies close protein atoms. These
-  atom pairs are expanded to 2D circular fragments and a
-  fingerprint for the union is turned on in the bit vector.
+  requires 3D coordinates for a molecular complex. For each ligand
+  atom, it identifies close pairs of atoms from different molecules.
+  These atom pairs are expanded to 2D circular fragments and a
+  fingerprint for the union is turned on in the bit vector. Note that
+  we slightly generalize the original paper by not requiring the
+  interacting molecules to be proteins or ligands.
 
   This is conceptually pretty similar to
   `ContactCircularFingerprint` but computes ECFP fragments only
@@ -127,32 +142,36 @@ class SplifFingerprint(ComplexFeaturizer):
     self.size = size
     self.radius = radius
 
-  def _featurize_complex(self, mol, protein):
+  def _featurize_complex(self, molecular_complex):
     """
-    Compute featurization for a single mol/protein complex
-
-    TODO(rbharath): This is very not ergonomic. I'd much prefer
-    returning an vector instead of a list of two vectors. In
-    addition, there's a question of efficiency.
-    RdkitGridFeaturizer caches rotated versions etc internally.
-    To make things work out of box, we are accepting that
-    kludgey input. This needs to be cleaned up before full
-    merge.
+    Compute featurization for a molecular complex
 
     Parameters
     ----------
-    mol: object
-      Representation of the molecule
-    protein: object
-      Representation of the protein
+    molecular_complex: Object
+      Some representation of a molecular complex.
     """
-    (lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
-    distances = compute_pairwise_distances(prot_xyz, lig_xyz)
-    return [
-        vectorize(hash_ecfp_pair, feature_dict=splif_dict,
-            size=self.size) for splif_dict in featurize_splif(
-                prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.contact_bins, distances, self.radius)
-    ]
+    try:
+      fragments = rdkit_util.load_complex(molecular_complex, add_hydrogens=False)
+
+    except MoleculeLoadException:
+      logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
+      return None
+    pairwise_features = []
+    # We compute pairwise contact fingerprints
+    for (frag1, frag2) in itertools.combinations(fragments, 2):
+      # Get coordinates
+      distances = compute_pairwise_distances(frag1[0], frag2[0])
+    #(lig_xyz, lig_rdk), (prot_xyz, prot_rdk) = mol, protein
+    #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
+      vectors = [
+          vectorize(hash_ecfp_pair, feature_dict=splif_dict,
+              size=self.size) for splif_dict in featurize_splif(
+                  prot_xyz, prot_rdk, lig_xyz, lig_rdk, self.contact_bins, distances, self.radius)
+      ]
+      pairwse_features += vector
+    pairwise_features = np.concatenate(pairwise_features)
+    return pairwise_features
 
 class SplifVoxelizer(ComplexFeaturizer):
   """Computes SPLIF voxel grid for a macromolecular complex.
@@ -180,7 +199,8 @@ class SplifVoxelizer(ComplexFeaturizer):
                radius=2,
                size=8,
                box_width=16.0,
-               voxel_width=1.0):
+               voxel_width=1.0,
+               reduce_to_contacts=True):
     """
     Parameters
     ----------
@@ -196,6 +216,9 @@ class SplifVoxelizer(ComplexFeaturizer):
       is centered on a ligand centroid.
     voxel_width: float, optional (default 1.0)
       Size of a 3D voxel in a grid.
+    reduce_to_contacts: bool, optional
+      If True, reduce the atoms in the complex to those near a contact
+      region.
     """
     if contact_bins is None:
       self.contact_bins = SPLIF_CONTACT_BINS
@@ -206,6 +229,7 @@ class SplifVoxelizer(ComplexFeaturizer):
     self.box_width = box_width
     self.voxel_width = voxel_width
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
+    self.reduce_to_contacts = reduce_to_contacts
 
   def _featurize_complex(self, molecular_complex):
     """
@@ -234,6 +258,8 @@ class SplifVoxelizer(ComplexFeaturizer):
     pairwise_features = []
     # We compute pairwise contact fingerprints
     centroid = compute_contact_centroid(fragments, cutoff=self.cutoff)
+    if self.reduce_to_contacts:
+      fragments = reduce_molecular_complex_to_contacts(fragments, self.cutoff)
     for (frag1, frag2) in itertools.combinations(fragments, 2):
       distances = compute_pairwise_distances(frag1[0], frag2[0])
       frag1_xyz = subtract_centroid(frag1[0], centroid)
