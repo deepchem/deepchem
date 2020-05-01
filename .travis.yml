@@ -1,14 +1,31 @@
-language: python
-python:
-- '3.6'
-- '3.7'
-sudo: required
-dist: xenial
+jobs:
+  include:
+    - name: 'Python 3.6'
+      python: '3.6'
+      sudo: required
+      dist: xenial
+
+    - name: 'Python 3.7'
+      python: '3.7'
+      sudo: required
+      dist: xenial
+
+    - name: 'Windows'
+      python: '3.7'
+      os: windows
+
 install:
-- wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O anaconda.sh;
-- export python_version=$TRAVIS_PYTHON_VERSION
-- bash anaconda.sh -b -p $HOME/anaconda
-- export PATH="$HOME/anaconda/bin:$PATH"
+- if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+    wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O anaconda.sh;
+    export python_version=$TRAVIS_PYTHON_VERSION
+    bash anaconda.sh -b -p $HOME/anaconda
+    export PATH="$HOME/anaconda/bin:$PATH"
+  else
+    wget https://repo.continuum.io/miniconda/Miniconda3-latest-Windows-x86_64.exe -O anaconda.sh;
+    export python_version=$TRAVIS_PYTHON_VERSION
+    bash anaconda.sh -b -p $HOME/anaconda
+    export PATH="$HOME/anaconda/:$HOME/anaconda/Scripts:$HOME/anaconda/Library/bin:$PATH"
+  fi
 - hash -r
 - conda config --set always_yes yes --set changeps1 no
 - conda update -q conda
