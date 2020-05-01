@@ -4,6 +4,7 @@ Callback functions that can be invoked while fitting a KerasModel.
 
 import tensorflow as tf
 import sys
+from deepchem.metrics import Metric
 
 
 class ValidationCallback(object):
@@ -88,3 +89,93 @@ class ValidationCallback(object):
       if self._best_score is None or score < self._best_score:
         model.save_checkpoint(model_dir=self.save_dir)
         self._best_score = score
+
+
+class EarlyStoppingCallBack(object):
+
+  def __init__(self,
+               dataset,
+               interval,
+               metric,
+               output_file=sys.stdout,
+               save_dir=None,
+               save_on_minimum=True,
+               delta=0.01,
+               patience=0):
+    """Create an EarlyStoppingCallBack
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      the validation set on which to compute the metric
+    interval: int
+      the interval (in training steps) at which to perform validation
+    metric: either a dc.metrics.Metric or `loss`
+        Metric to compute on the validation set
+    output_file: file
+      to file to which results should be written
+    save_dir: str
+      if not None, the model parameters that produce the best validation score
+      will be written to this directory
+    save_on_minimum: bool
+      if True, the best model is considered to be the one that minimizes the
+      validation metric.  If False, the best model is considered to be the one
+      that maximizes it.
+    patience: int,
+        Number of steps to wait after which the training is stopped if no
+        improvement in metric
+    """
+    if not isinstance(metric, Metric) or 'loss' in metric:
+      raise ValueError(
+          'Metric can be only a dc.metrics.Metric or a loss')
+    self.metric = metric
+    self.dataset = dataset
+    self.interval = interval
+    self.output_file = output_file
+    self.save_dir = save_dir
+    self.save_on_minimum = save_on_minimum
+    self.patience = patience
+    self.wait = 0
+    self.delta = delta
+    self._best_score = None
+
+  def __call__(self, model, step):
+    """This is invoked by the KerasModel after every step of fitting.
+
+    Parameters
+    ----------
+    model: KerasModel
+      the model that is being trained
+    step: int
+      the index of the training step that has just completed
+    """
+    if step % self.inteval != 0:
+      return
+    message = 'Step %d validation:' % step
+    results = {}
+    if 'loss' in self.metric:
+      score = model.compute_loss(self.dataset, transformers=[])
+      results['loss'] = score
+    else:
+      scores = model.evaluate(self.dataset, [self.metric])
+      results.update(scores)
+      score = scores[self.metric.name]
+    for key in scores:
+      message += ' %s=%g' % (key, scores[key])
+    print(message, file=self.output_file)
+    if model.tensorboard:
+      for key in results:
+        model._log_value_to_tensorboard(tag=key, simple_value=results[key])
+    if not self.save_on_minimum:
+      score = -score
+
+    if self._best_score is None or (self._best_score - score > self.delta):
+      self.wait = 0
+      self._best_score = score
+      if self.save_dir is not None:
+        model.save_checkpoint(model_dir=self.save_dir)
+    else:
+      self.wait += 1
+      if self.wait >= self.patience:
+        model.stop_training = True
+        print("No improvement in metric value. Enforcing early stopping.", file=self.output_file)

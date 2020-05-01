@@ -89,7 +89,7 @@ class KerasModel(Model):
     supports uncertainty, it MUST use dropout on every layer,
     and dropout most be enabled during uncertainty prediction.
     Otherwise, the uncertainties it computes will be inaccurate.
-    
+
   - other: Arbitrary output_types can be used to extract outputs
     produced by the model, but will have no additional
     processing performed.
@@ -147,6 +147,7 @@ class KerasModel(Model):
       self.optimizer = optimizer
     self.tensorboard = tensorboard
     self.tensorboard_log_frequency = tensorboard_log_frequency
+    self.stop_training = False
     if self.tensorboard:
       self._summary_writer = tf.summary.create_file_writer(self.model_dir)
     if output_types is None:
@@ -363,6 +364,9 @@ class KerasModel(Model):
       if self.tensorboard and should_log:
         with self._summary_writer.as_default():
           tf.summary.scalar('loss', batch_loss, current_step)
+
+      if self.stop_training:
+        break
 
     # Report final results.
     if averaged_batches > 0:
@@ -956,6 +960,33 @@ class KerasModel(Model):
   def get_global_step(self):
     """Get the number of steps of fitting that have been performed."""
     return int(self._global_step)
+
+  def compute_loss(self, dataset, transformers=[]):
+    """Computes the data-fit loss term on the given dataset.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset,
+        Dataset to compute loss on
+    transformers: list of dc.trans.Transformers
+      Transformers that the dataset has been transformed by. The output
+      is passed through these transformers to undo the transformations.
+    """
+    if hasattr(self, 'mode'):
+      if self.mode == 'regression':
+        y_true = undo_transforms(dataset.y, transformers=transformers)
+      else:
+        y_true = to_one_hot(dataset.y.flatten(), self.n_classes).reshape(
+            -1, len(self.n_tasks), self.n_classes)
+
+    y_pred = self.predict(dataset, transformers=transformers)
+
+    y_pred = tf.convert_to_tensor(y_pred, dtype=tf.float32)
+    y_true = tf.convert_to_tensor(y_true, dtype=tf.float32)
+    weights = tf.convert_to_tensor(dataset.w, dtype=tf.float32)
+
+    loss = self._loss_fn([y_pred], [y_true], weights=[weights]).numpy()
+    return loss
 
   def _create_assignment_map(self, source_model, include_top=True, **kwargs):
     """
