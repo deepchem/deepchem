@@ -5,10 +5,8 @@ import logging
 import numpy as np
 logger = logging.getLogger(__name__)
 
-def convert_atom_to_voxel(coordinates,
-                          atom_index,
-                          box_width,
-                          voxel_width):
+
+def convert_atom_to_voxel(coordinates, atom_index, box_width, voxel_width):
   """Converts atom coordinates to an i,j,k grid index.
 
   This function offsets molecular atom coordinates by
@@ -37,12 +35,12 @@ def convert_atom_to_voxel(coordinates,
   indices = np.floor(
       (coordinates[atom_index] + box_width / 2.0) / voxel_width).astype(int)
   if ((indices < 0) | (indices >= box_width / voxel_width)).any():
-    logger.warning(
-         'Coordinates are outside of the box (atom id = %s,'
-         ' coords xyz = %s, coords in box = %s' %
-         (atom_index, coordinates[atom_index], indices))
+    logger.warning('Coordinates are outside of the box (atom id = %s,'
+                   ' coords xyz = %s, coords in box = %s' %
+                   (atom_index, coordinates[atom_index], indices))
 
   return [indices]
+
 
 def convert_atom_pair_to_voxel(coordinates_tuple, atom_index_pair, box_width,
                                voxel_width):
@@ -68,11 +66,11 @@ def convert_atom_pair_to_voxel(coordinates_tuple, atom_index_pair, box_width,
 
   indices_list = []
   indices_list.append(
-      convert_atom_to_voxel(coordinates_tuple[0], atom_index_pair[0],
-                            box_width, voxel_width)[0])
+      convert_atom_to_voxel(coordinates_tuple[0], atom_index_pair[0], box_width,
+                            voxel_width)[0])
   indices_list.append(
-      convert_atom_to_voxel(coordinates_tuple[1], atom_index_pair[1],
-                            box_width, voxel_width)[0])
+      convert_atom_to_voxel(coordinates_tuple[1], atom_index_pair[1], box_width,
+                            voxel_width)[0])
   return (indices_list)
 
 
@@ -129,16 +127,14 @@ def voxelize(get_voxels,
   voxels_per_edge, nb_channel),
   """
   # Number of voxels per one edge of box to voxelize.
-  voxels_per_edge = int(box_width/voxel_width)
+  voxels_per_edge = int(box_width / voxel_width)
   if dtype == "np.int8":
     feature_tensor = np.zeros(
-        (voxels_per_edge, voxels_per_edge, voxels_per_edge,
-         nb_channel),
+        (voxels_per_edge, voxels_per_edge, voxels_per_edge, nb_channel),
         dtype=np.int8)
   else:
     feature_tensor = np.zeros(
-        (voxels_per_edge, voxels_per_edge, voxels_per_edge,
-         nb_channel),
+        (voxels_per_edge, voxels_per_edge, voxels_per_edge, nb_channel),
         dtype=np.float16)
   if feature_dict is not None:
     for key, features in feature_dict.items():
