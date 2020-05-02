@@ -90,6 +90,9 @@ class TestRdkitUtil(unittest.TestCase):
         after_hydrogen_count += 1
     assert after_hydrogen_count >= original_hydrogen_count
 
+  def test_apply_pdbfixer(self):
+    pass
+
   def test_compute_charges(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
@@ -104,6 +107,12 @@ class TestRdkitUtil(unittest.TestCase):
       if value != 0:
         has_a_charge = True
     assert has_a_charge
+
+  def test_protein_to_pdbqt(self):
+    pass
+
+  def test_convert_mol_to_pdbqrt(self):
+    pass
 
   def test_rotate_molecules(self):
     # check if distances do not change
