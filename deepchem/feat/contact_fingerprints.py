@@ -133,8 +133,10 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
   in which they originated.
 
   Featurizes a macromolecular complex into a tensor of shape
-  `(voxels_per_edge, voxels_per_edge, voxels_per_edge, size)`
-  where `voxels_per_edge = int(box_width/voxel_width)`.
+  `(voxels_per_edge, voxels_per_edge, voxels_per_edge, size)` where
+  `voxels_per_edge = int(box_width/voxel_width)`. If `flatten==True`,
+  then returns a flattened version of this tensor of length
+  `size*voxels_per_edge**3`
   """
 
   def __init__(self, 
@@ -142,7 +144,8 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
                radius=2,
                size=8,
                box_width=16.0,
-               voxel_width=1.0):
+               voxel_width=1.0,
+               flatten=False):
     """
     Parameters
     ----------
@@ -157,6 +160,9 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
       is centered on a ligand centroid.
     voxel_width: float, optional (default 1.0)
       Size of a 3D voxel in a grid.
+    flatten: bool, optional (default False)
+      If True, then returns a flat feature vector rather than voxel grid. This
+      feature vector is constructed by flattening the usual voxel grid.
     """
     self.cutoff = cutoff
     self.radius = radius
@@ -164,6 +170,7 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
     self.box_width = box_width
     self.voxel_width = voxel_width
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
+    self.flatten = flatten
 
   def _featurize_complex(self, molecular_complex):
     """
@@ -193,7 +200,6 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
           sum([
               voxelize(
                   convert_atom_to_voxel,
-                  self.voxels_per_edge,
                   self.box_width,
                   self.voxel_width,
                   hash_ecfp,
@@ -209,5 +215,10 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
                                             ecfp_degree=self.radius))
           ])
       )
-    # Features are of shape (voxels_per_edge, voxels_per_edge, voxels_per_edge, num_feat) so we should concatenate on the last axis.
-    return np.concatenate(pairwise_features, axis=-1)
+    if self.flatten:
+      return np.concatenate([features.flatten() for features in pairwise_features])
+    else:
+      # Features are of shape (voxels_per_edge, voxels_per_edge,
+      # voxels_per_edge, num_feat) so we should concatenate on the last
+      # axis.
+      return np.concatenate(pairwise_features, axis=-1)

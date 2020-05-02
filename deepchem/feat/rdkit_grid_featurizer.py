@@ -37,8 +37,6 @@ logger = logging.getLogger(__name__)
 http://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
 """
 
-# TODO(rbharath): Consider this comment on rdkit forums https://github.com/rdkit/rdkit/issues/1590 about sybyl featurization
-
 FLAT_FEATURES = ['ecfp_ligand', 'ecfp_hashed', 'splif_hashed', 'hbond_count']
 
 VOXEL_FEATURES = [
@@ -306,12 +304,12 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       logger.warning("Some molecules cannot be loaded by Rdkit. Skipping")
       return None
 
-    time1 = time.time()
-    centroid = compute_centroid(ligand_xyz)
-    ligand_xyz = subtract_centroid(ligand_xyz, centroid)
-    protein_xyz = subtract_centroid(protein_xyz, centroid)
-    time2 = time.time()
-    logger.info("TIMING: Centroid processing took %0.3f s" % (time2 - time1))
+    #time1 = time.time()
+    #centroid = compute_centroid(ligand_xyz)
+    #ligand_xyz = subtract_centroid(ligand_xyz, centroid)
+    #protein_xyz = subtract_centroid(protein_xyz, centroid)
+    #time2 = time.time()
+    #logger.info("TIMING: Centroid processing took %0.3f s" % (time2 - time1))
 
     pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
 

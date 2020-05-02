@@ -31,3 +31,14 @@ class TestContactFeaturizers(unittest.TestCase):
         self.complex_files)
     assert features.shape == (1, voxels_per_edge, voxels_per_edge, voxels_per_edge, size)
     
+  def test_contact_voxels_flattened(self):
+    box_width = 48 
+    voxel_width = 2
+    voxels_per_edge = box_width/voxel_width
+    size = 8
+    voxelizer = dc.feat.ContactCircularVoxelizer(box_width=box_width,
+      voxel_width=voxel_width, size=size, flatten=True)
+    features, failures = voxelizer.featurize_complexes(
+        self.complex_files)
+    assert features.shape == (1, int(size*voxels_per_edge**3)) 
+    

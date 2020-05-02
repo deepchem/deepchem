@@ -56,7 +56,7 @@ def compute_splif_features_in_range(frag1,
   }
   return (splif_dict)
 
-def featurize_splif(frag1, frag1, contact_bins,
+def featurize_splif(frag1, frag2, contact_bins,
                     pairwise_distances, ecfp_degree):
   """Computes SPLIF featurization of fragment interactions binding pocket.
 
