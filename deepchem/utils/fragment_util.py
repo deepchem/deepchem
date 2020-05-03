@@ -45,7 +45,6 @@ class MolecularFragment(object):
       Each entry in this list should be an RdkitAtom
     """
     self.atoms = [AtomShim(x.GetAtomicNum(), get_partial_charge(x)) for x in atoms]
-    #self.atoms = atoms 
 
   def GetAtoms(self):
     """Returns the list of atoms
@@ -204,16 +203,6 @@ def get_contact_atom_indices(fragments, cutoff=4.5):
   keep_inds = [sorted(list(keep)) for keep in keep_inds]
   return keep_inds
 
-  # Now extract atoms
-  #atoms_to_keep = []
-  #for i, frag_keep_inds in enumerate(keep_inds):
-  #  frag = fragments[i]
-  #  mol = frag[1]
-  #  atoms = mol.GetAtoms()
-  #  frag_keep = [atoms[keep_ind] for keep_ind in frag_keep_inds]
-  #  atoms_to_keep.append(frag_keep)
-  #return atoms_to_keep
-  
 def reduce_molecular_complex_to_contacts(fragments, cutoff=4.5):
   """Reduce a molecular complex to only those atoms near a contact.
 
