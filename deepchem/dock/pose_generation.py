@@ -12,7 +12,8 @@ import numpy as np
 import os
 import tempfile
 from subprocess import call
-from deepchem.feat import hydrogenate_and_compute_partial_charges
+#from deepchem.feat import hydrogenate_and_compute_partial_charges
+from deepchem.utils.rdkit_util import add_hydrogens_to_mol
 from deepchem.dock.binding_pocket import RFConvexHullPocketFinder
 from deepchem.utils import rdkit_util
 
@@ -91,14 +92,9 @@ class VinaPoseGenerator(PoseGenerator):
 
     # Prepare receptor
     receptor_name = os.path.basename(protein_file).split(".")[0]
-    protein_hyd = os.path.join(out_dir, "%s.pdb" % receptor_name)
+    protein_hyd = os.path.join(out_dir, "%s_hyd.pdb" % receptor_name)
     protein_pdbqt = os.path.join(out_dir, "%s.pdbqt" % receptor_name)
-    hydrogenate_and_compute_partial_charges(
-        protein_file,
-        "pdb",
-        hyd_output=protein_hyd,
-        pdbqt_output=protein_pdbqt,
-        protein=True)
+
     # Get protein centroid and range
     # TODO(rbharath): Need to add some way to identify binding pocket, or this is
     # going to be extremely slow!
@@ -107,7 +103,10 @@ class VinaPoseGenerator(PoseGenerator):
     else:
       if not self.detect_pockets:
         receptor_mol = rdkit_util.load_molecule(
-            protein_hyd, calc_charges=False, add_hydrogens=False)
+            protein_file, calc_charges=True, add_hydrogens=True)
+        rdkit_util.write_molecule(receptor_mol[1], protein_hyd, is_protein=True)
+        rdkit_util.write_molecule(
+            receptor_mol[1], protein_pdbqt, is_protein=True)
         protein_centroid = mol_xyz_util.get_molecule_centroid(receptor_mol[0])
         protein_range = mol_xyz_util.get_molecule_range(receptor_mol[0])
         box_dims = protein_range + 5.0
@@ -129,16 +128,12 @@ class VinaPoseGenerator(PoseGenerator):
 
     # Prepare receptor
     ligand_name = os.path.basename(ligand_file).split(".")[0]
-    ligand_hyd = os.path.join(out_dir, "%s.pdb" % ligand_name)
     ligand_pdbqt = os.path.join(out_dir, "%s.pdbqt" % ligand_name)
 
     # TODO(rbharath): Generalize this so can support mol2 files as well.
-    hydrogenate_and_compute_partial_charges(
-        ligand_file,
-        "sdf",
-        hyd_output=ligand_hyd,
-        pdbqt_output=ligand_pdbqt,
-        protein=False)
+    ligand_mol = rdkit_util.load_molecule(
+        ligand_file, calc_charges=True, add_hydrogens=True)
+    rdkit_util.write_molecule(ligand_mol[1], ligand_pdbqt)
     # Write Vina conf file
     conf_file = os.path.join(out_dir, "conf.txt")
     write_conf(
