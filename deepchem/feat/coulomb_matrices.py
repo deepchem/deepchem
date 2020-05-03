@@ -60,8 +60,7 @@ class CoulombMatrix(Featurizer):
   >>> featurizers = dc.feat.CoulombMatrix(max_atoms=23)
   >>> input_file = 'deepchem/feat/tests/data/water.sdf' # really backed by water.sdf.csv
   >>> tasks = ["atomization_energy"]
-  >>> featurizer = dc.data.SDFLoader(tasks, smiles_field="smiles", mol_field="mol",
-  ...                                    featurizer=featurizers, verbose=False)
+  >>> featurizer = dc.data.SDFLoader(tasks, featurizer=featurizers)
   >>> dataset = featurizer.featurize(input_file)
   Reading structures from deepchem/feat/tests/data/water.sdf.
   Featurizing sample 0
