@@ -61,9 +61,10 @@ class CoulombMatrix(Featurizer):
   >>> input_file = 'deepchem/feat/tests/data/water.sdf' # really backed by water.sdf.csv
   >>> tasks = ["atomization_energy"]
   >>> featurizer = dc.data.SDFLoader(tasks, featurizer=featurizers)
-  >>> dataset = featurizer.featurize(input_file)
+  >>> dataset = featurizer.featurize(input_file) #doctest: +ELLIPSIS
   Reading structures from deepchem/feat/tests/data/water.sdf.
-  Featurizing sample 0
+  ...
+  Loading dataset from disk.
   """
   conformers = True
   name = 'coulomb_matrix'
@@ -221,10 +222,10 @@ class CoulombMatrixEig(CoulombMatrix):
   >>> input_file = 'deepchem/feat/tests/data/water.sdf' # really backed by water.sdf.csv
   >>> tasks = ["atomization_energy"]
   >>> featurizer = dc.data.SDFLoader(tasks, featurizer=featurizers)
-  >>> dataset = featurizer.featurize(input_file)
+  >>> dataset = featurizer.featurize(input_file) #doctest: +ELLIPSIS
   Reading structures from deepchem/feat/tests/data/water.sdf.
-  Featurizing sample 0
-
+  ...
+  Loading dataset from disk.
   """
 
   conformers = True
