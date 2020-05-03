@@ -12,7 +12,6 @@ import numpy as np
 import os
 import tempfile
 from subprocess import call
-#from deepchem.feat import hydrogenate_and_compute_partial_charges
 from deepchem.utils.rdkit_util import add_hydrogens_to_mol
 from deepchem.dock.binding_pocket import RFConvexHullPocketFinder
 from deepchem.utils import rdkit_util
