@@ -83,33 +83,6 @@ def _featurize_smiles_df(df, featurizer, field, log_every_N=1000):
   return np.squeeze(np.array(features), axis=1), valid_inds
 
 
-#def _featurize_smiles_np(arr, featurizer, log_every_N=1000):
-#  """Featurize individual compounds in a numpy array.
-#
-#  Given a featurizer that operates on individual chemical compounds
-#  or macromolecules, compute & add features for that compound to the
-#  features array
-#  """
-#  features = []
-#  from rdkit import Chem
-#  from rdkit.Chem import rdmolfiles
-#  from rdkit.Chem import rdmolops
-#  for ind, elem in enumerate(arr.tolist()):
-#    mol = Chem.MolFromSmiles(elem)
-#    if mol:
-#      new_order = rdmolfiles.CanonicalRankAtoms(mol)
-#      mol = rdmolops.RenumberAtoms(mol, new_order)
-#    if ind % log_every_N == 0:
-#      logger.info("Featurizing sample %d" % ind)
-#    features.append(featurizer.featurize([mol]))
-#
-#  valid_inds = np.array(
-#      [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
-#  features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
-#  features = np.squeeze(np.array(features))
-#  return features.reshape(-1,)
-
-
 def _get_user_specified_features(df, featurizer):
   """Extract and merge user specified features.
 
