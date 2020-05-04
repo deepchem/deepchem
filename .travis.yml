@@ -25,8 +25,8 @@ install:
     export PATH="$HOME/anaconda/bin:$PATH";
   fi
 - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
-    choco install miniconda3 --params="'/JustMe /AddToPath:1 /D:$HOME\anaconda'";
-    echo 4HOME;
+    choco install miniconda3 --params="'/JustMe /AddToPath:1'";
+    echo $HOME;
     ls $HOME;
     ls $HOME/anaconda;
     export PATH="$HOME/anaconda/:$HOME/anaconda/Scripts:$HOME/anaconda/Library/bin:$PATH";
