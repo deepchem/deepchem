@@ -25,11 +25,14 @@ install:
     export PATH="$HOME/anaconda/bin:$PATH";
   fi
 - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
-    wget https://repo.continuum.io/miniconda/Miniconda3-latest-Windows-x86_64.exe;
-    export python_version=$TRAVIS_PYTHON_VERSION;
-    ./Miniconda3-latest-Windows-x86_64.exe /D=C:\anaconda
-    export PATH="$HOME/anaconda/:$HOME/anaconda/Scripts:$HOME/anaconda/Library/bin:$PATH";
+    choco install miniconda3 --params="'/JustMe /AddToPath:1'";
   fi
+#- if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+#    wget https://repo.continuum.io/miniconda/Miniconda3-latest-Windows-x86_64.exe;
+#    export python_version=$TRAVIS_PYTHON_VERSION;
+#    ./Miniconda3-latest-Windows-x86_64.exe /S /D=C:\anaconda
+#    export PATH="$HOME/anaconda/:$HOME/anaconda/Scripts:$HOME/anaconda/Library/bin:$PATH";
+#  fi
 - hash -r
 - conda config --set always_yes yes --set changeps1 no
 - conda update -q conda
