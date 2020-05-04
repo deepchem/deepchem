@@ -1,3 +1,5 @@
+language: python
+
 jobs:
   include:
     - name: 'Python 3.6'
