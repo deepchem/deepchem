@@ -26,7 +26,6 @@ install:
   fi
 - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
     choco install miniconda3 --params="'/JustMe /AddToPath:1'";
-    ls /c/tools/miniconda3;
     export PATH="/c/tools/miniconda3/:/c/tools/miniconda3/Scripts:/c/tools/miniconda3/Library/bin:$PATH";
     source /c/tools/miniconda3/etc/profile.d/conda.sh;
   fi

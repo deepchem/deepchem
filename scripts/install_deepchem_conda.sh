@@ -56,7 +56,7 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     flaky \
     zlib \
     requests \
-    xgboost \
+    py-xgboost \
     simdna \
     setuptools \
     biopython \
