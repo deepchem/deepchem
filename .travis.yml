@@ -1,14 +1,34 @@
-language: python
-python:
-- '3.6'
-- '3.7'
-sudo: required
-dist: xenial
+jobs:
+  include:
+    - name: 'Python 3.6'
+      language: python
+      python: '3.6'
+      sudo: required
+      dist: xenial
+
+    - name: 'Python 3.7'
+      language: python
+      python: '3.7'
+      sudo: required
+      dist: xenial
+
+    - name: 'Windows'
+      language: c # Not really, but travis doesn't support python on Windows
+      python: '3.7'
+      os: windows
+
 install:
-- wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O anaconda.sh;
-- export python_version=$TRAVIS_PYTHON_VERSION
-- bash anaconda.sh -b -p $HOME/anaconda
-- export PATH="$HOME/anaconda/bin:$PATH"
+- if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then
+    wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O anaconda.sh;
+    export python_version=$TRAVIS_PYTHON_VERSION;
+    bash anaconda.sh -b -p $HOME/anaconda;
+    export PATH="$HOME/anaconda/bin:$PATH";
+  fi
+- if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+    choco install miniconda3 --params="'/JustMe /AddToPath:1'";
+    export PATH="/c/tools/miniconda3/:/c/tools/miniconda3/Scripts:/c/tools/miniconda3/Library/bin:$PATH";
+    source /c/tools/miniconda3/etc/profile.d/conda.sh;
+  fi
 - hash -r
 - conda config --set always_yes yes --set changeps1 no
 - conda update -q conda
