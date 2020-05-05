@@ -8,7 +8,7 @@ from deepchem.feat import MolecularFeaturizer
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils import rdkit_util, pad_array
 from deepchem.utils.rdkit_util import MoleculeLoadException
-from deepchem.utils.rdkit_util import reduce_molecular_complex_to_contacts
+from deepchem.utils.fragment_util import reduce_molecular_complex_to_contacts
 
 logger = logging.getLogger(__name__)
 

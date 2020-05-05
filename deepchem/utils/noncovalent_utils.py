@@ -1,4 +1,7 @@
 """The functions in these utilities check that noncovalent interactions happen"""
+import numpy as np
+from deepchem.utils.fragment_util import get_partial_charge 
+from deepchem.utils.rdkit_util import compute_ring_center
 
 def is_salt_bridge(atom_i, atom_j):
   """Check if two atoms have correct charges to form a salt bridge"""

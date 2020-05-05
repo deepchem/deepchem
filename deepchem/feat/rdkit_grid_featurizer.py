@@ -24,11 +24,11 @@ from deepchem.feat.grid_featurizers import PiStackVoxelizer
 from deepchem.feat.grid_featurizers import HydrogenBondCounter
 from deepchem.feat.grid_featurizers import HydrogenBondVoxelizer
 from deepchem.utils.rdkit_util import load_molecule
-from deepchem.utils.rdkit_util import compute_centroid
-from deepchem.utils.rdkit_util import subtract_centroid
+from deepchem.utils.geometry_utils import compute_centroid
+from deepchem.utils.geometry_utils import subtract_centroid
+from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.utils.rdkit_util import compute_ring_center
 from deepchem.utils.rdkit_util import rotate_molecules
-from deepchem.utils.rdkit_util import compute_pairwise_distances
 from deepchem.utils.rdkit_util import MoleculeLoadException
 from deepchem.feat import ComplexFeaturizer
 

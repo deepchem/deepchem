@@ -15,6 +15,7 @@ from io import StringIO
 from copy import deepcopy
 from collections import Counter
 from deepchem.utils.pdbqt_utils import pdbqt_to_pdb
+from scipy.spatial.distance import cdist
 from deepchem.utils.pdbqt_utils import convert_mol_to_pdbqt
 from deepchem.utils.pdbqt_utils import convert_protein_to_pdbqt
 from deepchem.utils.geometry_utils import angle_between
@@ -240,11 +241,11 @@ def load_complex(molecular_complex,
     molecule_complex = [molecular_complex]
   fragments = []
   for mol in molecular_complex:
-    loaded = load_molecule(
-        mol,
-        add_hydrogens=add_hydrogens,
-        calc_charges=calc_charges,
-        sanitize=sanitize)
+    loaded = load_molecule(mol,
+                           add_hydrogens=add_hydrogens,
+                           calc_charges=calc_charges,
+                           pdbfix=pdbfix,
+                           sanitize=sanitize)
     if isinstance(loaded, list):
       fragments += loaded
     else:

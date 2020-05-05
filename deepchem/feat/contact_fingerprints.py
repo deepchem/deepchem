@@ -12,9 +12,9 @@ from deepchem.utils.voxel_utils import voxelize
 from deepchem.utils.voxel_utils import convert_atom_to_voxel
 from deepchem.utils.rdkit_util import compute_all_ecfp
 from deepchem.utils.rdkit_util import compute_contact_centroid
-from deepchem.utils.rdkit_util import subtract_centroid
-from deepchem.utils.rdkit_util import compute_pairwise_distances
 from deepchem.utils.rdkit_util import MoleculeLoadException
+from deepchem.utils.geometry_utils import compute_pairwise_distances
+from deepchem.utils.geometry_utils import subtract_centroid
 
 logger = logging.getLogger(__name__)
 

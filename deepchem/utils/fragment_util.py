@@ -36,15 +36,24 @@ class MolecularFragment(object):
   molecular fragments doesn't seem to be supported functionality. 
   """
 
-  def __init__(self, atoms):
+  def __init__(self, atoms, coords):
     """Initialize this object.
 
     Parameters
     ----------
     atoms: list
       Each entry in this list should be an RdkitAtom
+    coords: np.ndarray
+      Array of locations for atoms of shape `(N, 3)` where `N ==
+      len(atoms)`.
     """
-    self.atoms = [AtomShim(x.GetAtomicNum(), get_partial_charge(x)) for x in atoms]
+    if not isinstance(coords, np.ndarray):
+      raise ValueError("Coords must be a numpy array of shape (N, 3)")
+    if coords.shape != (len(atoms), 3):
+      raise ValueError("Coords must be a numpy array of shape `(N, 3)` where `N == len(atoms)`.")
+    self.atoms = [AtomShim(x.GetAtomicNum(), get_partial_charge(x), coords[ind]) for ind, x in enumerate(atoms)]
+    self.coords = coords
+
 
   def GetAtoms(self):
     """Returns the list of atoms
@@ -55,6 +64,16 @@ class MolecularFragment(object):
     """
     return self.atoms
 
+  def GetCoords(self):
+    """Returns 3D coordinates for this fragment as numpy array.
+
+    Returns
+    -------
+    Numpy array of shape `(N, 3)` with coordinates for this fragment.
+    Here `N == len(self.GetAtoms())`.
+    """
+    return self.coords
+
 class AtomShim(object):
   """This is a shim object wrapping an atom.
 
@@ -63,7 +82,7 @@ class AtomShim(object):
   the basic information in an AtomShim seems to avoid issues.
   """
 
-  def __init__(self, atomic_num, partial_charge):
+  def __init__(self, atomic_num, partial_charge, atom_coords):
     """Initialize this object
 
     Parameters
@@ -72,15 +91,39 @@ class AtomShim(object):
       Atomic number for this atom.
     partial_charge: float
       The partial Gasteiger charge for this atom
+    atom_coords: np.ndarray
+      Of shape (3,) with the coordinates of this atom
     """
     self.atomic_num = atomic_num
     self.partial_charge = partial_charge
+    self.coords = atom_coords
 
   def GetAtomicNum(self):
+    """Returns atomic number for this atom.
+
+    Returns
+    -------
+    Atomic number fo this atom.
+    """
     return self.atomic_num
 
   def GetPartialCharge(self):
+    """Returns partial charge for this atom.
+
+    Returns
+    -------
+    Partial Gasteiger charge for this atom.
+    """
     return self.partial_charge
+
+  def GetCoords(self):
+    """Returns 3D coordinates for this atom as numpy array.
+
+    Returns
+    -------
+    Numpy array of shape `(3,)` with coordinates for this atom.
+    """
+    return self.coords
 
 def merge_molecular_fragments(molecules):
   """Helper method to merge two molecular fragments.
@@ -100,9 +143,12 @@ def merge_molecular_fragments(molecules):
     return molecules[0]
   else:
     all_atoms = []
+    all_coords = []
     for mol_frag in molecules:
       all_atoms += mol_frag.GetAtoms()
-    return MolecularFragment(all_atoms)
+      all_coords.append(mol_frag.GetCoords())
+    all_coords = np.concatenate(all_coords)
+    return MolecularFragment(all_atoms, all_coords)
 
 def get_mol_subset(coords, mol, atom_indices_to_keep):
   """Strip a subset of the atoms in this molecule
@@ -119,25 +165,22 @@ def get_mol_subset(coords, mol, atom_indices_to_keep):
 
   Returns
   -------
-  A tuple of (coords, mol_frag) where coords is a Numpy array of
-  coordinates with hydrogen coordinates. mol_frag is a
-  `MolecularFragment`. 
+  Returns a `MolecularFragment` that summarizes the subset to be
+  returned.
   """
   from rdkit import Chem
   indexes_to_keep = []
   atoms_to_keep = []
-  #####################################################
   # Compute partial charges on molecule if rdkit
   if isinstance(mol, Chem.Mol):
     compute_charges(mol)
-  #####################################################
   atoms = list(mol.GetAtoms())
   for index in atom_indices_to_keep:
     indexes_to_keep.append(index)
     atoms_to_keep.append(atoms[index])
-  mol_frag = MolecularFragment(atoms_to_keep)
   coords = coords[indexes_to_keep]
-  return coords, mol_frag
+  mol_frag = MolecularFragment(atoms_to_keep, coords)
+  return mol_frag
 
 def strip_hydrogens(coords, mol):
   """Strip the hydrogens from input molecule

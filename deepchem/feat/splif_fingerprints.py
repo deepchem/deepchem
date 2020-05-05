@@ -10,7 +10,7 @@ from deepchem.utils.hash_utils import vectorize
 from deepchem.utils.voxel_utils import voxelize 
 from deepchem.utils.voxel_utils import convert_atom_to_voxel
 from deepchem.utils.voxel_utils import convert_atom_pair_to_voxel
-from deepchem.utils.rdkit_util import compute_pairwise_distances
+from deepchem.utils.geometry_utils import compute_pairwise_distances
 
 logger = logging.getLogger(__name__)
 
