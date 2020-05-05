@@ -143,21 +143,31 @@ def _featurize_mol_df(df, featurizer, field, log_every_n=1000):
 class DataLoader(object):
   """Handles loading/featurizing of data from disk.
 
-  The `Featurizer` objects can featurize provided input into
-  numpy arrays but doesn't generate `Dataset` objects. You can
-  of course wrap numpy arrays into `Dataset` objects with
-  `dc.data.NumpyDataset`, but you might face some difficulty
-  with larger dataset processing. The main use of `DataLoader`
-  and its child classes is to make it easier to load large
-  datasets into `Dataset` objects.` You won't ever "need" to use
-  a `DataLoader` but might often find it convenient when
-  processing larger datasets.
+  The main use of `DataLoader` and its child classes is to make it
+  easier to load large datasets into `Dataset` objects.`
 
-  Note that `DataLoader` is an abstract superclass that
-  provides a general framework for loading data into DeepChem.
-  To load your own type of data, make a subclass of
-  `DataLoader` and provide your own implementation for
-  `featurize`.
+  `DataLoader` is an abstract superclass that provides a
+  general framework for loading data into DeepChem. This class should
+  never be instantiated directly.  To load your own type of data, make
+  a subclass of `DataLoader` and provide your own implementation for
+  the `featurize`.
+
+  To construct a `Dataset` from input data, first instantiate a
+  concrete data loader (that is, an object which is an instance of a
+  subclass of `DataLoader`) with a given `Featurizer` object. Then
+  call the data loader's `featurize()` method on a list of input files
+  that hold the source data to process. Note that each subclass of
+  `DataLoader` is specialized to handle one type of input data so you
+  will have to pick the loader class suitable for your input data
+  type.
+  
+  Note that it isn't necessary to use a data loader to process input
+  data. You can directly use `Featurizer` objects to featurize
+  provided input into numpy arrays, but note that this calculation
+  will be performed in memory, so you will have to write generators
+  that walk the source files and write featurized data to disk
+  yourself. `DataLoader` and its subclasses make this process easier
+  for you by performing this work under the hood.
   """
 
   def __init__(self, tasks, id_field=None, featurizer=None, log_every_n=1000):
@@ -171,12 +181,20 @@ class DataLoader(object):
     tasks: list[str]
       List of task names
     id_field: str, optional
-      Name of field that holds sample identifier
+      Name of field that holds sample identifier. Note that the
+      meaning of "field" depends on the input data type and can have a
+      different meaning in different subclasses. For example, a CSV
+      file could have a field as a column, and an SDF file could have
+      a field as molecular property.
     featurizer: dc.feat.Featurizer, optional
       Featurizer to use to process data
     log_every_n: int, optional
       Writes a logging statement this often.
     """
+    if self.__class__ is DataLoader:
+      raise ValueError(
+          "DataLoader should never be instantiated directly. Use a subclass instead."
+      )
     if not isinstance(tasks, list):
       raise ValueError("tasks must be a list.")
     self.tasks = tasks
@@ -191,7 +209,11 @@ class DataLoader(object):
     """Featurize provided files and write to specified location.
 
     For large datasets, automatically shards into smaller chunks
-    for convenience.
+    for convenience. This implementation assumes that the helper
+    methods `_get_shards` and `_featurize_shard` are implemented and
+    that each shard returned by `_get_shards` is a pandas dataframe.
+    You may choose to reuse or override this method in your subclass
+    implementations.
 
     Parameters
     ----------
@@ -235,11 +257,28 @@ class DataLoader(object):
     return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
 
   def _get_shards(self, input_files, shard_size):
-    """Stub for children classes."""
+    """Stub for children classes.
+
+    Should implement a generator that walks over the source data in
+    `input_files` and returns a "shard" at a time. Here a shard is a
+    chunk of input data that can reasonably be handled in memory. For
+    example, this may be a set of rows from a CSV file or a set of
+    molecules from a SDF file. To re-use the `DataLoader.featurize()`
+    method, each shard must be a pandas dataframe.
+
+    If you chose to override `featurize()` directly you don't need to
+    override this helper method.
+    """
     raise NotImplementedError
 
   def _featurize_shard(self, shard):
-    """Featurizes a shard of an input dataframe."""
+    """Featurizes a shard of input data.
+
+    Recall a shard is a chunk of input data that can reasonably be
+    handled in memory. For example, this may be a set of rows from a
+    CSV file or a set of molecules from a SDF file. Featurize this
+    shard in memory and return the results.
+    """
     raise NotImplementedError
 
 
@@ -495,49 +534,3 @@ class ImageLoader(DataLoader):
       else:
         raise ValueError("Unsupported image filetype for %s" % image_file)
     return np.array(images)
-
-
-class MolecularComplexLoader(DataLoader):
-  """Handles Loading of Molecular Complex Data
-
-  This class provides conveniences to load and featurize
-  datasets of macromolecular complexes. The idea here is that
-  each "datapoint" is specified by one or more PDB/sdf files
-  which hold the 3D structures for the sample that you're
-  considering. This loader will load these complexes and
-  featurize them for you.
-
-  Featurizing macromolecular complex data can take a long time,
-  so for convenience, this class provides restart capabilities
-  which will restart a stopped featurization process for a
-  collection of complexes.
-  """
-
-  def __init__(self, data_dir=None):
-    """Initialize MolecularComplexLoader.
-
-    Parameters
-    ----------
-    data_dir: str, optional
-      Directory to use for saving intermediate featurizations
-      and the final produced dataset.
-    """
-    raise NotImplementedError
-
-  def featurize(self, input_files, labels=None, weights=None):
-    """Featurizes Macromolecular Complex Data.
-
-    Parameters
-    ----------
-    input_files: list
-      Each entry in this list should be the collection of all
-      files for a given complex. If only one file is present,
-      this is just a string for the filename. Otherwise, this
-      should be a list of the filenames for the constituent
-      files.
-    labels: optional
-      If provided, a numpy ndarray of image labels
-    weights: optional
-      If provided, a numpy ndarray of image weights
-    """
-    raise NotImplementedError
