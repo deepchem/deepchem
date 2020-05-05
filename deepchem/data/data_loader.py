@@ -11,6 +11,7 @@ import tempfile
 import time
 import sys
 import logging
+import warnings
 from deepchem.utils.save import load_csv_files
 from deepchem.utils.save import load_sdf_files
 from deepchem.utils.genomics import encode_fasta_sequence
@@ -23,7 +24,21 @@ logger = logging.getLogger(__name__)
 
 
 def _convert_df_to_numpy(df, tasks):
-  """Transforms a dataframe containing deepchem input into numpy arrays"""
+  """Transforms a dataframe containing deepchem input into numpy arrays
+
+  This is a private helper method intended to help parse labels and
+  weights arrays from a pandas dataframe. Here `df` is a dataframe
+  which has columns for each task in `tasks`. These labels are
+  extracted into a labels array `y`. Weights `w` are initialized to
+  all ones, but weights for any missing labels are set to 0.
+
+  Parameters
+  ----------
+  df: pd.DataFrame
+    Pandas dataframe with columns for all tasks
+  tasks: list
+    List of tasks
+  """
   n_samples = df.shape[0]
   n_tasks = len(tasks)
 
@@ -55,9 +70,20 @@ def _convert_df_to_numpy(df, tasks):
 def _featurize_smiles_df(df, featurizer, field, log_every_n=1000):
   """Featurize individual compounds in dataframe.
 
-  Given a featurizer that operates on individual chemical
-  compounds or macromolecules, compute & add features for that
-  compound to the features dataframe
+  Private helper that given a featurizer that operates on individual
+  chemical compounds or macromolecules, compute & add features for
+  that compound to the features dataframe
+
+  Parameters
+  ----------
+  df: pd.DataFrame
+    DataFrame that holds SMILES strings
+  featurizer: Featurizer
+    A featurizer object
+  field: str
+    The name of a column in `df` that holds SMILES strings
+  log_every_n: int, optional (default 1000)
+    Emit a logging statement every `log_every_n` rows.
   """
   sample_elems = df[field].tolist()
 
@@ -86,8 +112,8 @@ def _featurize_smiles_df(df, featurizer, field, log_every_n=1000):
 def _get_user_specified_features(df, featurizer):
   """Extract and merge user specified features.
 
-  Merge features included in dataset provided by user
-  into final features dataframe
+  Private helper methods that merges features included in dataset
+  provided by user into final features dataframe
 
   Three types of featurization here:
 
@@ -98,6 +124,12 @@ def _get_user_specified_features(df, featurizer):
       -) PDB files for interacting molecules.
     3) User specified featurizations.
 
+  Parameters
+  ----------
+  df: pd.DataFrame
+    DataFrame that holds SMILES strings
+  featurizer: Featurizer
+    A featurizer object
   """
   time1 = time.time()
   df[featurizer.feature_fields] = df[featurizer.feature_fields].apply(
@@ -150,15 +182,15 @@ class DataLoader(object):
   general framework for loading data into DeepChem. This class should
   never be instantiated directly.  To load your own type of data, make
   a subclass of `DataLoader` and provide your own implementation for
-  the `featurize`.
+  the `create_dataset()` method.
 
   To construct a `Dataset` from input data, first instantiate a
   concrete data loader (that is, an object which is an instance of a
   subclass of `DataLoader`) with a given `Featurizer` object. Then
-  call the data loader's `featurize()` method on a list of input files
-  that hold the source data to process. Note that each subclass of
-  `DataLoader` is specialized to handle one type of input data so you
-  will have to pick the loader class suitable for your input data
+  call the data loader's `create_dataset()` method on a list of input
+  files that hold the source data to process. Note that each subclass
+  of `DataLoader` is specialized to handle one type of input data so
+  you will have to pick the loader class suitable for your input data
   type.
   
   Note that it isn't necessary to use a data loader to process input
@@ -208,6 +240,9 @@ class DataLoader(object):
   def featurize(self, input_files, data_dir=None, shard_size=8192):
     """Featurize provided files and write to specified location.
 
+    DEPRECATED: This method is now a wrapper for `create_dataset()`
+    and calls that method under the hood.
+
     For large datasets, automatically shards into smaller chunks
     for convenience. This implementation assumes that the helper
     methods `_get_shards` and `_featurize_shard` are implemented and
@@ -223,6 +258,43 @@ class DataLoader(object):
       Directory to store featurized dataset.
     shard_size: int, optional
       Number of examples stored in each shard.
+
+    Returns
+    -------
+    A `Dataset` object containing a featurized representation of data
+    from `input_files`.
+    """
+    warnings.warn(
+        "featurize() is deprecated and has been renamed to create_dataset(). featurize() will be removed in DeepChem 3.0",
+        FutureWarning)
+    return self.create_dataset(input_files, data_dir, shard_size)
+
+  def create_dataset(self, input_files, data_dir=None, shard_size=8192):
+    """Creates and returns a `Dataset` object by featurizing provided files.
+
+    Reads in `input_files` and uses `self.featurizer` to featurize the
+    data in these input files.  For large files, automatically shards
+    into smaller chunks of `shard_size` datapoints for convenience.
+    Returns a `Dataset` object that contains the featurized dataset.
+
+    This implementation assumes that the helper methods `_get_shards`
+    and `_featurize_shard` are implemented and that each shard
+    returned by `_get_shards` is a pandas dataframe.  You may choose
+    to reuse or override this method in your subclass implementations.
+
+    Parameters
+    ----------
+    input_files: list
+      List of input filenames.
+    data_dir: str, optional
+      Directory to store featurized dataset.
+    shard_size: int, optional
+      Number of examples stored in each shard.
+
+    Returns
+    -------
+    A `Dataset` object containing a featurized representation of data
+    from `input_files`.
     """
     logger.info("Loading raw samples now.")
     logger.info("shard_size: %d" % shard_size)
@@ -268,6 +340,13 @@ class DataLoader(object):
 
     If you chose to override `featurize()` directly you don't need to
     override this helper method.
+    
+    Parameters
+    ----------
+    input_files: list
+      List of input filenames.
+    shard_size: int, optional
+      Number of examples stored in each shard.
     """
     raise NotImplementedError
 
