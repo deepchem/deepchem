@@ -335,11 +335,12 @@ class DataLoader(object):
     `input_files` and returns a "shard" at a time. Here a shard is a
     chunk of input data that can reasonably be handled in memory. For
     example, this may be a set of rows from a CSV file or a set of
-    molecules from a SDF file. To re-use the `DataLoader.featurize()`
-    method, each shard must be a pandas dataframe.
+    molecules from a SDF file. To re-use the
+    `DataLoader.create_dataset()` method, each shard must be a pandas
+    dataframe.
 
-    If you chose to override `featurize()` directly you don't need to
-    override this helper method.
+    If you chose to override `create_dataset()` directly you don't
+    need to override this helper method.
     
     Parameters
     ----------
@@ -363,7 +364,7 @@ class DataLoader(object):
 
 class CSVLoader(DataLoader):
   """
-  Handles loading of CSV files.
+  Creates `Dataset` objects from input CSF files. 
 
   This class provides conveniences to load data from CSV files.
   It's possible to directly featurize data from CSV files using
@@ -439,7 +440,9 @@ class UserCSVLoader(CSVLoader):
 
 class SDFLoader(DataLoader):
   """
-  Handles loading of SDF files.
+  Creates `Dataset` from SDF input files. 
+
+  This class provides conveniences to load data from SDF files.
   """
 
   def __init__(self, tasks, sanitize=False, featurizer=None, log_every_n=1000):
@@ -495,8 +498,11 @@ class FASTALoader(DataLoader):
     """Initialize loader."""
     pass
 
-  def featurize(self, input_files, data_dir=None):
-    """Featurizes fasta files.
+  def create_dataset(self, input_files, data_dir=None):
+    """Creates a `Dataset` from input FASTA files.
+
+    At present, FASTA support is limited and only allows for one-hot
+    featurization, and doesn't allow for sharding.
 
     Parameters
     ----------
@@ -504,6 +510,11 @@ class FASTALoader(DataLoader):
       List of fasta files.
     data_dir: str, optional
       Name of directory where featurized data is stored.
+
+    Returns
+    -------
+    A `Dataset` object containing a featurized representation of data
+    from `input_files`.
     """
     if not isinstance(input_files, list):
       input_files = [input_files]
@@ -530,6 +541,9 @@ class ImageLoader(DataLoader):
   def __init__(self, tasks=None):
     """Initialize image loader.
 
+    At present, custom image featurizers aren't supported by this
+    loader class.
+
     Parameters
     ----------
     tasks: list[str]
@@ -539,8 +553,12 @@ class ImageLoader(DataLoader):
       tasks = []
     self.tasks = tasks
 
-  def featurize(self, input_files, labels=None, weights=None, in_memory=False):
-    """Featurizes image files.
+  def create_dataset(self,
+                     input_files,
+                     labels=None,
+                     weights=None,
+                     in_memory=False):
+    """Creates and returns a `Dataset` object by featurizing provided image files and labels/weights.
 
     Parameters
     ----------
@@ -554,6 +572,11 @@ class ImageLoader(DataLoader):
       If provided, a numpy ndarray of image weights
     in_memory: bool
       If true, return in-memory NumpyDataset. Else return ImageDataset.
+
+    Returns
+    -------
+    A `Dataset` object containing a featurized representation of data
+    from `input_files`, `labels`, and `weights`.
     """
     if not isinstance(input_files, list):
       input_files = [input_files]
