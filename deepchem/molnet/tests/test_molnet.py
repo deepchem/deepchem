@@ -36,7 +36,7 @@ class TestMolnet(unittest.TestCase):
         split=split,
         out_path=out_path,
         reload=False)
-    with open(os.path.join(out_path, 'results.csv'), 'r') as f:
+    with open(os.path.join(out_path, 'results.csv'), newline='\n') as f:
       reader = csv.reader(f)
       for lastrow in reader:
         pass
@@ -59,7 +59,7 @@ class TestMolnet(unittest.TestCase):
         split=split,
         out_path=out_path,
         reload=False)
-    with open(os.path.join(out_path, 'results.csv'), 'r') as f:
+    with open(os.path.join(out_path, 'results.csv'), newline='\n') as f:
       reader = csv.reader(f)
       for lastrow in reader:
         pass
@@ -82,7 +82,7 @@ class TestMolnet(unittest.TestCase):
         out_path=out_path,
         test=True,
         reload=False)
-    with open(os.path.join(out_path, 'results.csv'), 'r') as f:
+    with open(os.path.join(out_path, 'results.csv'), newline='\n') as f:
       reader = csv.reader(f)
       for lastrow in reader:
         pass
