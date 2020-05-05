@@ -72,18 +72,18 @@ class TestRdkitUtil(unittest.TestCase):
     xyz, mol = rdkit_util.load_molecule(
         ligand_file, calc_charges=False, add_hydrogens=False)
 
-    outfile = "/tmp/mol.sdf"
-    rdkit_util.write_molecule(mol, outfile)
+    with tempfile.TemporaryDirectory() as tmp:
+      outfile = os.path.join(tmp, "mol.sdf")
+      rdkit_util.write_molecule(mol, outfile)
 
-    xyz, mol2 = rdkit_util.load_molecule(
-        outfile, calc_charges=False, add_hydrogens=False)
+      xyz, mol2 = rdkit_util.load_molecule(
+          outfile, calc_charges=False, add_hydrogens=False)
 
     assert_equal(mol.GetNumAtoms(), mol2.GetNumAtoms())
     for atom_idx in range(mol.GetNumAtoms()):
       atom1 = mol.GetAtoms()[atom_idx]
       atom2 = mol.GetAtoms()[atom_idx]
       assert_equal(atom1.GetAtomicNum(), atom2.GetAtomicNum())
-    os.remove(outfile)
 
   def test_pdbqt_to_pdb(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -91,26 +91,25 @@ class TestRdkitUtil(unittest.TestCase):
                                 "../../dock/tests/1jld_protein.pdb")
     xyz, mol = rdkit_util.load_molecule(
         protein_file, calc_charges=False, add_hydrogens=False)
-    out_pdb = "/tmp/mol.pdb"
-    out_pdbqt = "/tmp/mol.pdbqt"
+    with tempfile.TemporaryDirectory() as tmp:
+      out_pdb = os.path.join(tmp, "mol.pdb")
+      out_pdbqt = os.path.join(tmp, "mol.pdbqt")
 
-    rdkit_util.write_molecule(mol, out_pdb)
-    rdkit_util.write_molecule(mol, out_pdbqt, is_protein=True)
+      rdkit_util.write_molecule(mol, out_pdb)
+      rdkit_util.write_molecule(mol, out_pdbqt, is_protein=True)
 
-    pdb_block = rdkit_util.pdbqt_to_pdb(out_pdbqt)
-    from rdkit import Chem
-    pdb_mol = Chem.MolFromPDBBlock(pdb_block, sanitize=False, removeHs=False)
+      pdb_block = rdkit_util.pdbqt_to_pdb(out_pdbqt)
+      from rdkit import Chem
+      pdb_mol = Chem.MolFromPDBBlock(pdb_block, sanitize=False, removeHs=False)
 
-    xyz, pdbqt_mol = rdkit_util.load_molecule(
-        out_pdbqt, add_hydrogens=False, calc_charges=False)
+      xyz, pdbqt_mol = rdkit_util.load_molecule(
+          out_pdbqt, add_hydrogens=False, calc_charges=False)
 
     assert_equal(pdb_mol.GetNumAtoms(), pdbqt_mol.GetNumAtoms())
     for atom_idx in range(pdb_mol.GetNumAtoms()):
       atom1 = pdb_mol.GetAtoms()[atom_idx]
       atom2 = pdbqt_mol.GetAtoms()[atom_idx]
       assert_equal(atom1.GetAtomicNum(), atom2.GetAtomicNum())
-    os.remove(out_pdb)
-    os.remove(out_pdbqt)
 
   def test_merge_molecules_xyz(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
