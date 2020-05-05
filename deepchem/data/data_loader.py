@@ -498,7 +498,7 @@ class FASTALoader(DataLoader):
     """Initialize loader."""
     pass
 
-  def create_dataset(self, input_files, data_dir=None):
+  def create_dataset(self, input_files, data_dir=None, shard_size=None):
     """Creates a `Dataset` from input FASTA files.
 
     At present, FASTA support is limited and only allows for one-hot
@@ -510,6 +510,9 @@ class FASTALoader(DataLoader):
       List of fasta files.
     data_dir: str, optional
       Name of directory where featurized data is stored.
+    shard_size: int, optional
+      For now, this argument is ignored and each FASTA file gets its
+      own shard. 
 
     Returns
     -------
