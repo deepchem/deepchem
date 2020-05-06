@@ -6,11 +6,12 @@ import sklearn
 import tempfile
 import numpy as np
 import shutil
-from deepchem.utils.save import log
+import logging
 from deepchem.models import Model
 from deepchem.data import DiskDataset
 from deepchem.trans import undo_transforms
 
+logger = logging.getLogger(__name__)
 
 class SingletaskToMultitask(Model):
   """
@@ -19,18 +20,18 @@ class SingletaskToMultitask(Model):
   Warning: This current implementation is only functional for sklearn models.
   """
 
-  def __init__(self, tasks, model_builder, model_dir=None, verbose=True):
+  def __init__(self, tasks, model_builder, model_dir=None):
     super(SingletaskToMultitask, self).__init__(
-        self, model_dir=model_dir, verbose=verbose)
+        self, model_dir=model_dir)
     self.tasks = tasks
     self.task_model_dirs = {}
     self.model_builder = model_builder
-    log("About to initialize singletask to multitask model", self.verbose)
+    logger.info("About to initialize singletask to multitask model")
     for task in self.tasks:
       task_model_dir = os.path.join(self.model_dir, str(task))
       if not os.path.exists(task_model_dir):
         os.makedirs(task_model_dir)
-      log("Initializing directory for task %s" % task, self.verbose)
+      logger.info("Initializing directory for task %s" % task)
       self.task_model_dirs[task] = task_model_dir
 
   def _create_task_datasets(self, dataset):
@@ -44,10 +45,9 @@ class SingletaskToMultitask(Model):
       task_data_dirs.append(task_data_dir)
     task_datasets = self._to_singletask(dataset, task_data_dirs)
     for task, task_dataset in zip(self.tasks, task_datasets):
-      log(
+      logger.info(
           "Dataset for task %s has shape %s" % (task,
-                                                str(task_dataset.get_shape())),
-          self.verbose)
+                                                str(task_dataset.get_shape())))
     return task_datasets
 
   @staticmethod
@@ -55,17 +55,17 @@ class SingletaskToMultitask(Model):
     """Transforms a multitask dataset to a collection of singletask datasets."""
     tasks = dataset.get_task_names()
     assert len(tasks) == len(task_dirs)
-    log("Splitting multitask dataset into singletask datasets", dataset.verbose)
+    logger.info("Splitting multitask dataset into singletask datasets")
     task_datasets = [
         DiskDataset.create_dataset([], task_dirs[task_num], [task])
         for (task_num, task) in enumerate(tasks)
     ]
     #task_metadata_rows = {task: [] for task in tasks}
     for shard_num, (X, y, w, ids) in enumerate(dataset.itershards()):
-      log("Processing shard %d" % shard_num, dataset.verbose)
+      logger.info("Processing shard %d" % shard_num)
       basename = "dataset-%d" % shard_num
       for task_num, task in enumerate(tasks):
-        log("\tTask %s" % task, dataset.verbose)
+        logger.info("\tTask %s" % task)
         if len(w.shape) == 1:
           w_task = w
         elif w.shape[1] == 1:
@@ -94,10 +94,10 @@ class SingletaskToMultitask(Model):
     """
     if not isinstance(dataset, DiskDataset):
       raise ValueError('SingletaskToMultitask only works with DiskDatasets')
-    log("About to create task-specific datasets", self.verbose)
+    logger.info("About to create task-specific datasets")
     task_datasets = self._create_task_datasets(dataset)
     for ind, task in enumerate(self.tasks):
-      log("Fitting model for task %s" % task, self.verbose)
+      logger.info("Fitting model for task %s" % task)
       task_model = self.model_builder(self.task_model_dirs[task])
       task_model.fit(task_datasets[ind], **kwargs)
       task_model.save()
