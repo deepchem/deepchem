@@ -13,6 +13,7 @@ from deepchem.trans import undo_transforms
 
 logger = logging.getLogger(__name__)
 
+
 class SingletaskToMultitask(Model):
   """
   Convenience class to let singletask models be fit on multitask data.
@@ -21,8 +22,7 @@ class SingletaskToMultitask(Model):
   """
 
   def __init__(self, tasks, model_builder, model_dir=None):
-    super(SingletaskToMultitask, self).__init__(
-        self, model_dir=model_dir)
+    super(SingletaskToMultitask, self).__init__(self, model_dir=model_dir)
     self.tasks = tasks
     self.task_model_dirs = {}
     self.model_builder = model_builder
@@ -45,9 +45,8 @@ class SingletaskToMultitask(Model):
       task_data_dirs.append(task_data_dir)
     task_datasets = self._to_singletask(dataset, task_data_dirs)
     for task, task_dataset in zip(self.tasks, task_datasets):
-      logger.info(
-          "Dataset for task %s has shape %s" % (task,
-                                                str(task_dataset.get_shape())))
+      logger.info("Dataset for task %s has shape %s" %
+                  (task, str(task_dataset.get_shape())))
     return task_datasets
 
   @staticmethod
