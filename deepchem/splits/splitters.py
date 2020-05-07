@@ -430,7 +430,7 @@ class SingletaskStratifiedSplitter(Splitter):
     >>> X = np.random.rand(n_samples, n_features)
     >>> y = np.random.rand(n_samples, n_tasks)
     >>> w = np.ones_like(y)
-    >>> dataset = DiskDataset.from_numpy(np.ones((100,n_tasks)), np.ones((100,n_tasks)), verbose=False)
+    >>> dataset = DiskDataset.from_numpy(np.ones((100,n_tasks)), np.ones((100,n_tasks)))
     >>> splitter = SingletaskStratifiedSplitter(task_number=5, verbose=False)
     >>> train_dataset, test_dataset = splitter.train_test_split(dataset)
 
