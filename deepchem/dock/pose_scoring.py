@@ -66,7 +66,7 @@ def vina_repulsion(d):
 
   Parameters
   ----------
-  d: np.ndarray
+  d: jax.np.ndarray
     Of shape `(N, M)`.
 
   Returns
