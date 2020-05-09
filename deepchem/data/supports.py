@@ -67,6 +67,10 @@ def get_task_dataset_minus_support(dataset, support, task):
     The support dataset
   task: int
     Task number of task to select.
+
+  Returns
+  -------
+  A `NumpyDataset` contatining task data - support.
   """
   support_ids = set(support.ids)
   non_support_inds = [
@@ -245,8 +249,13 @@ def get_task_support(dataset, n_episodes, n_pos, n_neg, task, log_every_n=50):
 class EpisodeGenerator(object):
   """Generates (support, test) pairs for episodic training.
 
-  Precomputes all (support, test) pairs at construction. Allows to reduce
-  overhead from computation.
+  This class provides tooling to train metalearning models that train
+  on "supports". Recall that a "support" is a small dataset used for
+  some metalearning models. An "episode" trains a model on a
+  `(support, test)` pair.
+
+  This class precomputes all (support, test) pairs at construction,
+  which allows to reduce overhead from computation.
   """
 
   def __init__(self, dataset, n_pos, n_neg, n_test, n_episodes_per_task):
@@ -322,8 +331,11 @@ class EpisodeGenerator(object):
 class SupportGenerator(object):
   """Generate support sets from a dataset.
 
-  Iterates over tasks and trials. For each trial, picks one support from
-  each task, and returns in a randomized order
+  Recall that a "support" is a small portion of a dataset used to
+  train some metalearning models.
+
+  Iterates over tasks and trials. For each trial, picks one support
+  from each task, and returns in a randomized order
   """
 
   def __init__(self, dataset, n_pos, n_neg, n_trials):
@@ -357,11 +369,11 @@ class SupportGenerator(object):
   def __iter__(self):
     return self
 
-  def next(self):
+  def __next__(self):
     """Sample next support.
 
-    Supports are sampled from the tasks in a random order. Each support is
-    drawn entirely from within one task.
+    Supports are sampled from the tasks in a random order. Each
+    support is drawn entirely from within one task.
     """
     if self.trial_num == self.n_trials:
       raise StopIteration
@@ -382,5 +394,3 @@ class SupportGenerator(object):
         self.trial_num += 1  # Upgrade trial index
 
       return (task, support)
-
-  __next__ = next  # Python 3.X compatibility
