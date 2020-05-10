@@ -14,8 +14,9 @@ materials science, quantum chemistry, and biology.
 * [Requirements](#requirements)
 * [Installation](#installation)
     * [Easy Install with Conda](#easy-install-with-conda)
-    * [Conda Environment](#using-a-conda-environment)
     * [Docker](#using-a-docker-image)
+    * [Conda Environment](#installing-from-source-in-a-conda-environment)
+    * [Windows](#installing-in-windows)
 * [FAQ and Troubleshooting](#faq-and-troubleshooting)
 * [Getting Started](#getting-started)
 * [Contributing to DeepChem](/CONTRIBUTING.md)
@@ -62,7 +63,7 @@ conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu=2.3.0
 **Note:** The above commands install the latest stable version of `deepchem` and _do not install from source_. If you need to install from source make sure you follow the steps [here](#using-a-conda-environment).
 
 ### Using a Docker Image
-Using a docker image requires an NVIDIA GPU.  If you do not have a GPU please follow the directions for [using a conda environment](#using-a-conda-environment)
+Using a docker image requires an NVIDIA GPU.  If you do not have a GPU please follow the directions for [using a conda environment](#installing-from-source-in-a-conda-environment)
 In order to get GPU support you will have to use the [nvidia-docker](https://github.com/NVIDIA/nvidia-docker) plugin.
 ``` bash
 # This will the download the latest stable deepchem docker image into your images
@@ -111,7 +112,27 @@ Check [this link](https://conda.io/docs/using/envs.html) for more information ab
 the benefits and usage of conda environments. **Warning**: Segmentation faults can [still happen](https://github.com/deepchem/deepchem/pull/379#issuecomment-277013514)
 via this installation procedure.
 
+### Installing in Windows
 
+Currently you have to install from source in windows. The following scripts requires `conda>4.6`.
+
+If you want gpu support, use the following command in powershell:
+```ps1
+.\scripts\install_deepchem_conda.ps1 -gpu 1 deepchem
+```
+Or you can use the following command to install deepchem without gpu support.
+```ps1
+.\scripts\install_deepchem_conda.ps1 -gpu 0 deepchem
+```
+
+Before activating deepchem envrionment, make sure conda-powershell has been initialized.
+Check if there is a `(base)` before `PS` in powershell. If not, use `conda init powershell`
+to activate it, then:
+```
+conda activate deepchem
+python setup.py install
+nosetests -a '!slow' -v deepchem --nologcapture
+```
 ## FAQ and Troubleshooting
 
 1. DeepChem currently supports Python 3.5 through 3.7, and is supported on 64 bit Linux and Mac OSX. Note that DeepChem is not currently maintained for older versions of Python or with other operating systems.
