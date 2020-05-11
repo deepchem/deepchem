@@ -413,7 +413,6 @@ class CSVLoader(DataLoader):
       self.id_field = smiles_field
     else:
       self.id_field = id_field
-    #self.mol_field = mol_field
     self.user_specified_features = None
     if isinstance(featurizer, UserDefinedFeaturizer):
       self.user_specified_features = featurizer.feature_fields
