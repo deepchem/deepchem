@@ -813,3 +813,10 @@ class TestDatasets(test_util.TensorFlowTestCase):
         X=np.random.rand(50, 3), y=np.random.rand(50, 20), ids=np.arange(50))
     ref_str = '<NumpyDataset X.shape: (50, 3), y.shape: (50, 20), w.shape: (50, 1), ids: [0 1 2 ... 47 48 49], task_names: [ 0  1  2 ... 17 18 19]>'
     assert str(dataset) == ref_str
+
+    # Test max print size
+    dc.utils.set_max_print_size(25)
+    dataset = dc.data.NumpyDataset(
+        X=np.random.rand(50, 3), y=np.random.rand(50,), ids=np.arange(50))
+    ref_str = '<NumpyDataset X.shape: (50, 3), y.shape: (50,), w.shape: (50,), task_names: [0]>'
+    assert str(dataset) == ref_str
