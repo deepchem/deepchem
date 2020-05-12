@@ -16,6 +16,7 @@ from copy import deepcopy
 from collections import Counter
 from deepchem.utils.pdbqt_utils import pdbqt_to_pdb
 from scipy.spatial.distance import cdist
+from deepchem.utils import pdbqt_utils
 from deepchem.utils.pdbqt_utils import convert_mol_to_pdbqt
 from deepchem.utils.pdbqt_utils import convert_protein_to_pdbqt
 from deepchem.utils.geometry_utils import angle_between
@@ -141,6 +142,10 @@ def apply_pdbfixer(mol, add_missing=True, hydrogenate=True, pH=7.4,
   Returns
   -------
   Rdkit Mol
+
+  Note
+  ----
+  This function requires RDKit and PDBFixer to be installed.
   """
   molecule_file = None
   try:
