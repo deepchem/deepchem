@@ -214,7 +214,7 @@ class TestGeneralize(unittest.TestCase):
 
     # Eval model on test
     scores = model.evaluate(test_dataset, [regression_metric])
-    assert scores[regression_metric.name] < 50
+    assert scores[regression_metric.name] < 55
 
   def test_xgboost_multitask_regression(self):
     import xgboost
