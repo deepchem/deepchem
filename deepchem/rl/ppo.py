@@ -84,7 +84,8 @@ class PPO(object):
   The method receives the list of states generated during the rollout, the action taken for each one,
   and a new goal state.  It should generate a new list of states that are identical to the input ones,
   except specifying the new goal.  It should return that list of states, and the rewards that would
-  have been received for taking the specified actions from those states.
+  have been received for taking the specified actions from those states.  The output arrays may be
+  shorter than the input ones, if the modified rollout would have terminated sooner.
   """
 
   def __init__(self,
@@ -543,6 +544,7 @@ class _Worker(object):
     values = outputs[self.ppo._value_index].numpy()
     values = np.append(values.flatten(), 0.0)
     probabilities = outputs[self.ppo._action_prob_index].numpy()
+    actions = actions[:len(rewards)]
     action_prob = probabilities[np.arange(len(actions)), actions]
     return self.process_rollout(hindsight_states, actions, action_prob,
                                 np.array(rewards, dtype=np.float32),
