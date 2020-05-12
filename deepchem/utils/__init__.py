@@ -62,6 +62,77 @@ def get_data_dir():
   return tempfile.gettempdir()
 
 
+# The number of elements to print for dataset ids/tasks
+_print_threshold = 10
+
+
+def get_print_threshold():
+  """Return the printing threshold for datasets.
+
+  The print threshold is the number of elements from ids/tasks to
+  print when printing representations of `Dataset` objects.
+
+  Returns
+  ----------
+  threshold: int
+    Number of elements that will be printed
+  """
+  return _print_threshold
+
+
+def set_print_threshold(threshold):
+  """Set print threshold
+
+  The print threshold is the number of elements from ids/tasks to
+  print when printing representations of `Dataset` objects.
+
+  Parameters
+  ----------
+  threshold: int
+    Number of elements to print.
+  """
+  global _print_threshold
+  _print_threshold = threshold
+
+
+# If a dataset contains more than this number of elements, it won't
+# print any dataset ids
+_max_print_size = 1000
+
+
+def get_max_print_size():
+  """Return the max print size for a datset.
+
+  If a dataset is large, printing `self.ids` as part of a string
+  representation can be very slow. This field controls the maximum
+  size for a dataset before ids are no longer printed.
+
+  Returns
+  -------
+  max_print_size: int
+    Maximum length of a dataset for ids to be printed in string
+    representation.
+  """
+  return _max_print_size
+
+
+def set_max_print_size(max_print_size):
+  """Set max_print_size
+
+  If a dataset is large, printing `self.ids` as part of a string
+  representation can be very slow. This field controls the maximum
+  size for a dataset before ids are no longer printed.
+
+  Parameters
+  ----------
+  max_print_size: int
+    Maximum length of a dataset for ids to be printed in string
+    representation.
+  """
+  global _max_print_size
+  _max_print_size = max_print_size
+
+
 def download_url(url, dest_dir=get_data_dir(), name=None):
   """Download a file to disk.
 
@@ -85,7 +156,7 @@ def download_url(url, dest_dir=get_data_dir(), name=None):
 
 def untargz_file(file, dest_dir=get_data_dir(), name=None):
   """Untar and unzip a .tar.gz file to disk.
-  
+
   Parameters
   ----------
   file: str
@@ -93,7 +164,7 @@ def untargz_file(file, dest_dir=get_data_dir(), name=None):
   dest_dir: str
     the directory to save the file in
   name: str
-    the file name to save it as.  If omitted, it will use the file name 
+    the file name to save it as.  If omitted, it will use the file name
   """
   if name is None:
     name = file
@@ -104,7 +175,7 @@ def untargz_file(file, dest_dir=get_data_dir(), name=None):
 
 def unzip_file(file, dest_dir=None, name=None):
   """Unzip a .zip file to disk.
-  
+
   Parameters
   ----------
   file: str
@@ -113,7 +184,7 @@ def unzip_file(file, dest_dir=None, name=None):
     the directory to save the file in
   name: str
     the directory name to unzip it to.  If omitted, it will use the file
-    name 
+    name
   """
   if name is None:
     name = file
@@ -140,9 +211,9 @@ class ScaffoldGenerator(object):
     """
     Get Murcko scaffolds for molecules.
 
-    Murcko scaffolds are described in DOI: 10.1021/jm9602928. They are
-    essentially that part of the molecule consisting of rings and the
-    linker atoms between them.
+    Murcko scaffolds are described in DOI: 10.1021/jm9602928.
+    They are essentially that part of the molecule consisting of
+    rings and the linker atoms between them.
 
     Parameters
     ----------
