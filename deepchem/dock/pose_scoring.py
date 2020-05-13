@@ -66,7 +66,7 @@ def vina_repulsion(d):
 
   Parameters
   ----------
-  d: jax.np.ndarray
+  d: np.ndarray
     Of shape `(N, M)`.
 
   Returns
@@ -120,7 +120,6 @@ def vina_hbond(d):
       np.where(d < 0, (1.0 / 0.7) * (0 - d), np.zeros_like(d)))
   return out_tensor
 
-
 def vina_gaussian_first(d):
   """Computes Autodock Vina's first Gaussian interaction term.
 
@@ -139,7 +138,6 @@ def vina_gaussian_first(d):
   """
   out_tensor = np.exp(-(d / 0.5)**2)
   return out_tensor
-
 
 def vina_gaussian_second(d):
   """Computes Autodock Vina's second Gaussian interaction term.
@@ -160,7 +158,6 @@ def vina_gaussian_second(d):
   out_tensor = np.exp(-((d - 3) / 2)**2)
   return out_tensor
 
-
 def weighted_linear_sum(w, x):
   """Computes weighted linear sum.
 
@@ -172,7 +169,6 @@ def weighted_linear_sum(w, x):
     Of shape `(N,)`
   """
   return np.sum(np.dot(w, x))
-
 
 def vina_energy_term(coords1, coords2, weights, wrot, Nrot):
   """Computes the Vina Energy function for two molecular conformations

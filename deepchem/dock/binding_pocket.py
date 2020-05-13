@@ -6,6 +6,7 @@ import logging
 import tempfile
 import numpy as np
 from subprocess import call
+from scipy.spatial import ConvexHull
 from deepchem.feat.fingerprints import CircularFingerprint
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils import rdkit_util
