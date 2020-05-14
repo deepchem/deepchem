@@ -314,7 +314,7 @@ class CoordinateBox(object):
     --------
     >>> box = CoordinateBox((0, 1), (0, 1), (0, 1))
     >>> box.volume()
-    1.0
+    1
     """
     x_min, x_max = self.x_range
     y_min, y_max = self.y_range
