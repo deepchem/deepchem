@@ -94,7 +94,7 @@ def merge_overlapping_boxes(boxes, threshold=.8):
   list[CoordinateBox] of merged boxes. This list will have length less
   than or equal to the length of `boxes`.
   """
-  outputs = []
+  outputs = boxes.copy()
   for box in boxes:
     for other in boxes:
       if box == other:
