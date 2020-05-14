@@ -303,6 +303,36 @@ class CoordinateBox(object):
     return (x_min + (x_max - x_min) / 2, y_min + (y_max - y_min) / 2,
             z_min + (z_max - z_min) / 2)
 
+  def __hash__(self):
+    """Implement hashing function for this box.
+
+    Uses the default `hash` on `self.x_range, self.y_range,
+    self.z_range`.
+
+    Returns
+    -------
+    Unique integeer
+    """
+    return hash((self.x_range, self.y_range, self.z_range))
+
+  def center(self):
+    """Computes the center of this box.
+
+    Returns
+    -------
+    `(x, y, z)` the coordinates of the center of the box.
+
+    Examples
+    --------
+    >>> box = CoordinateBox((0, 1), (0, 1), (0, 1))
+    >>> box.center()
+    (0.5, 0.5, 0.5)
+    """
+    x_min, x_max = self.x_range
+    y_min, y_max = self.y_range
+    z_min, z_max = self.z_range
+    return (x_min + (x_max-x_min)/2, y_min + (y_max-y_min)/2, z_min + (z_max-z_min)/2)
+
   def volume(self):
     """Computes and returns the volume of this box.
 
