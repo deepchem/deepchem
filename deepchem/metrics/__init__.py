@@ -12,7 +12,7 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import precision_score
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import auc
-from sklearn.metrics import jaccard_similarity_score
+from sklearn.metrics import jaccard_score
 from sklearn.metrics import f1_score
 from scipy.stats import pearsonr
 
@@ -91,7 +91,7 @@ def jaccard_index(y, y_pred):
       y: ground truth array
       y_pred: predicted array
     """
-  return jaccard_similarity_score(y, y_pred)
+  return jaccard_score(y, y_pred)
 
 
 def pixel_error(y, y_pred):
