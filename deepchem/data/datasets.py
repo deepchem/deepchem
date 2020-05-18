@@ -949,7 +949,6 @@ class DiskDataset(Dataset):
     self.tasks, self.metadata_df = self.load_metadata()
     self._cached_shards = None
     self._memory_cache_size = 20 * (1 << 20)  # 20 MB
-    self._cache_used = 0
 
   @staticmethod
   def create_dataset(shard_generator, data_dir=None, tasks=[]):
@@ -1598,6 +1597,7 @@ class DiskDataset(Dataset):
     # See if we have a cached copy of this shard.
     if self._cached_shards is None:
       self._cached_shards = [None] * self.get_number_shards()
+      self._cache_used = 0
     if self._cached_shards[i] is not None:
       shard = self._cached_shards[i]
       return (shard.X, shard.y, shard.w, shard.ids)
@@ -1784,7 +1784,6 @@ class DiskDataset(Dataset):
     self._memory_cache_size = size
     if self._cache_used > size:
       self._cached_shards = None
-      self._cache_used = 0
 
   def __len__(self):
     """
