@@ -29,7 +29,7 @@ def sparsify_features(X):
   ----------
   X: np.ndarray
     Of shape `(n_samples, ...)
-  
+
   Returns
   -------
   X_sparse, a np.ndarray with `dtype=object` where `X_sparse[i]` is a
@@ -87,7 +87,7 @@ def pad_features(batch_size, X_b):
   >>> batch_size = 10
   >>> X_manual = np.array([0, 1, 2, 0, 1, 2, 0, 1, 2, 0])
   >>> X_out = pad_features(batch_size, X_b)
-  >>> assert (X_manual == X_out).all() 
+  >>> assert (X_manual == X_out).all()
 
   This function is similar to `pad_batch` but doesn't handle labels
   `y` or weights `w` and is intended to be used for inference-time
@@ -1021,25 +1021,25 @@ class DiskDataset(Dataset):
                          w=None,
                          ids=None):
     if X is not None:
-      out_X = "%s-X.joblib" % basename
+      out_X = "%s-X.npy" % basename
       save_to_disk(X, os.path.join(data_dir, out_X))
     else:
       out_X = None
 
     if y is not None:
-      out_y = "%s-y.joblib" % basename
+      out_y = "%s-y.npy" % basename
       save_to_disk(y, os.path.join(data_dir, out_y))
     else:
       out_y = None
 
     if w is not None:
-      out_w = "%s-w.joblib" % basename
+      out_w = "%s-w.npy" % basename
       save_to_disk(w, os.path.join(data_dir, out_w))
     else:
       out_w = None
 
     if ids is not None:
-      out_ids = "%s-ids.joblib" % basename
+      out_ids = "%s-ids.npy" % basename
       save_to_disk(ids, os.path.join(data_dir, out_ids))
     else:
       out_ids = None
@@ -2068,11 +2068,11 @@ class Databag(object):
   to iterate in locksteps. This might be easiest to grasp with a
   simple code example.
 
-  >>> ones_dataset = NumpyDataset(X=np.ones((5, 3)))        
-  >>> zeros_dataset = NumpyDataset(X=np.zeros((5, 3)))      
-  >>> databag = Databag({"ones": ones_dataset, "zeros": zeros_dataset}) 
-  >>> for sample_dict in databag.iterbatches(batch_size=1): 
-  ...   print(sample_dict) 
+  >>> ones_dataset = NumpyDataset(X=np.ones((5, 3)))
+  >>> zeros_dataset = NumpyDataset(X=np.zeros((5, 3)))
+  >>> databag = Databag({"ones": ones_dataset, "zeros": zeros_dataset})
+  >>> for sample_dict in databag.iterbatches(batch_size=1):
+  ...   print(sample_dict)
   {'ones': array([[1., 1., 1.]]), 'zeros': array([[0., 0., 0.]])}
   {'ones': array([[1., 1., 1.]]), 'zeros': array([[0., 0., 0.]])}
   {'ones': array([[1., 1., 1.]]), 'zeros': array([[0., 0., 0.]])}
