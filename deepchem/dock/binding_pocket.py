@@ -14,7 +14,6 @@ from deepchem.utils.fragment_util import get_contact_atom_indices
 
 logger = logging.getLogger(__name__)
 
-
 def extract_active_site(protein_file, ligand_file, cutoff=4):
   """Extracts a box for the active site.
 
@@ -83,25 +82,18 @@ class ConvexHullPocketFinder(BindingPocketFinder):
   Based on https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4112621/pdf/1472-6807-14-18.pdf
   """
 
-  def __init__(self, scoring_model=None, pocket_featurizer=None, ligand_featurizer=None, pad=5):
+  def __init__(self, scoring_model=None, pad=5):
     """Initialize the pocket finder.
 
     Parameters
     ----------
     scoring_model: `dc.models.Model`, optional
       If specified, use this model to prune pockets.
-    pocket_featurizer: `dc.feat.BindingPocketFeaturizer`, optional
-      If `scoring_model` is specified, `pocket_featurizer` must be as
-      well. This featurizer is used to featurize binding pockets.
-    ligand_featurizer: `dc.feat.MolecularFeaturizer`, optional
-      Featurizer used to featurize the ligand.
     pad: float, optional
       The number of angstroms to pad around a binding pocket's atoms
       to get a binding pocket box.
     """
     self.scoring_model = scoring_model
-    self.pocket_featurizer = pocket_featurizer
-    self.ligand_featurizer = ligand_featurizer
     self.pad = pad
 
   def find_all_pockets(self, protein_file):

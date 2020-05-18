@@ -81,7 +81,6 @@ class BindingPocketFeaturizer(Featurizer):
     -------
     A numpy array of shale `(len(pockets), n_residues)`
     """
-    if len(
     import mdtraj
     protein_coords = rdkit_util.load_molecule(
         protein_file, add_hydrogens=False, calc_charges=False)[0]
