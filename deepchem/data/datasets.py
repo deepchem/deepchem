@@ -1024,25 +1024,25 @@ class DiskDataset(Dataset):
                          w=None,
                          ids=None):
     if X is not None:
-      out_X = "%s-X.joblib" % basename
+      out_X = "%s-X.npy" % basename
       save_to_disk(X, os.path.join(data_dir, out_X))
     else:
       out_X = None
 
     if y is not None:
-      out_y = "%s-y.joblib" % basename
+      out_y = "%s-y.npy" % basename
       save_to_disk(y, os.path.join(data_dir, out_y))
     else:
       out_y = None
 
     if w is not None:
-      out_w = "%s-w.joblib" % basename
+      out_w = "%s-w.npy" % basename
       save_to_disk(w, os.path.join(data_dir, out_w))
     else:
       out_w = None
 
     if ids is not None:
-      out_ids = "%s-ids.joblib" % basename
+      out_ids = "%s-ids.npy" % basename
       save_to_disk(ids, os.path.join(data_dir, out_ids))
     else:
       out_ids = None
