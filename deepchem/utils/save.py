@@ -292,6 +292,7 @@ def load_dataset_from_disk(save_dir):
   train = deepchem.data.DiskDataset(train_dir)
   valid = deepchem.data.DiskDataset(valid_dir)
   test = deepchem.data.DiskDataset(test_dir)
+  train.memory_cache_size = 40 * (1 << 20)  # 40 MB
   all_dataset = (train, valid, test)
   with open(os.path.join(save_dir, "transformers.pkl"), 'rb') as f:
     transformers = pickle.load(f)
