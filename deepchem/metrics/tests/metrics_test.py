@@ -24,19 +24,22 @@ class MetricsTest(googletest.TestCase):
     self.assertAlmostEqual(kappa, expected_kappa)
 
   def test_one_sample(self):
+    """Test that the metrics won't raise error even in an extreme condition
+    where there is only one sample with w > 0.
+    """
     np.random.seed(123)
     n_samples = 2
     y_true = np.array([0, 0])
     y_pred = np.random.rand(n_samples, 2)
     w = np.array([0, 1])
     all_metrics = [
-      dc.metrics.Metric(dc.metrics.recall_score),
-      dc.metrics.Metric(dc.metrics.matthews_corrcoef),
-      dc.metrics.Metric(dc.metrics.roc_auc_score)
+        dc.metrics.Metric(dc.metrics.recall_score),
+        dc.metrics.Metric(dc.metrics.matthews_corrcoef),
+        dc.metrics.Metric(dc.metrics.roc_auc_score)
     ]
     for metric in all_metrics:
       score = metric.compute_singletask_metric(y_true, y_pred, w)
-      self.assertTrue(np.isnan(score) or score==0)
+      self.assertTrue(np.isnan(score) or score == 0)
 
   def test_r2_score(self):
     """Test that R^2 metric passes basic sanity tests"""
