@@ -949,6 +949,7 @@ class DiskDataset(Dataset):
     self.tasks, self.metadata_df = self.load_metadata()
     self._cached_shards = None
     self._memory_cache_size = 20 * (1 << 20)  # 20 MB
+    self._cache_used = 0
 
   @staticmethod
   def create_dataset(shard_generator, data_dir=None, tasks=[]):
