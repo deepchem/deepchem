@@ -21,7 +21,12 @@ def log(string, verbose=True):
 
 def save_to_disk(dataset, filename, compress=3):
   """Save a dataset to file."""
-  joblib.dump(dataset, filename, compress=compress)
+  if filename.endswith('.joblib'):
+    joblib.dump(dataset, filename, compress=compress)
+  elif filename.endswith('.npy'):
+    np.save(filename, dataset)
+  else:
+    raise ValueError("Filename with unsupported extension: %s" % filename)
 
 
 def get_input_type(input_file):
@@ -210,15 +215,18 @@ def load_from_disk(filename):
   name = filename
   if os.path.splitext(name)[1] == ".gz":
     name = os.path.splitext(name)[0]
-  if os.path.splitext(name)[1] == ".pkl":
+  extension = os.path.splitext(name)[1]
+  if extension == ".pkl":
     return load_pickle_from_disk(filename)
-  elif os.path.splitext(name)[1] == ".joblib":
+  elif extension == ".joblib":
     return joblib.load(filename)
-  elif os.path.splitext(name)[1] == ".csv":
+  elif extension == ".csv":
     # First line of user-specified CSV *must* be header.
     df = pd.read_csv(filename, header=0)
     df = df.replace(np.nan, str(""), regex=True)
     return df
+  elif extension == ".npy":
+    return np.load(filename, allow_pickle=True)
   else:
     raise ValueError("Unrecognized filetype for %s" % filename)
 
@@ -284,6 +292,7 @@ def load_dataset_from_disk(save_dir):
   train = deepchem.data.DiskDataset(train_dir)
   valid = deepchem.data.DiskDataset(valid_dir)
   test = deepchem.data.DiskDataset(test_dir)
+  train.memory_cache_size = 40 * (1 << 20)  # 40 MB
   all_dataset = (train, valid, test)
   with open(os.path.join(save_dir, "transformers.pkl"), 'rb') as f:
     transformers = pickle.load(f)

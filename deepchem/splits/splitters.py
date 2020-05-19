@@ -153,6 +153,8 @@ class Splitter(object):
     else:
       valid_dataset = None
     test_dataset = dataset.select(test_inds, test_dir)
+    if isinstance(train_dataset, DiskDataset):
+      train_dataset.memory_cache_size = 40 * (1 << 20)  # 40 MB
 
     return train_dataset, valid_dataset, test_dataset
 
