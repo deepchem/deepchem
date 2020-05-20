@@ -3,6 +3,7 @@ Geometric utility functions for 3D geometry.
 """
 import logging
 import numpy as np
+from scipy.spatial.distance import cdist
 
 logger = logging.getLogger(__name__)
 
@@ -110,3 +111,58 @@ def is_angle_within_cutoff(vector_i, vector_j, angle_cutoff):
   """
   angle = angle_between(vector_i, vector_j) * 180. / np.pi
   return (angle > (180 - angle_cutoff) and angle < (180. + angle_cutoff))
+
+def compute_centroid(coordinates):
+  """Compute the (x,y,z) centroid of provided coordinates
+
+  Parameters
+  ----------
+  coordinates: np.ndarray
+    Shape `(N, 3)`, where `N` is the number of atoms.
+  """
+  centroid = np.mean(coordinates, axis=0)
+  return (centroid)
+
+def subtract_centroid(xyz, centroid):
+  """Subtracts centroid from each coordinate.
+
+  Subtracts the centroid, a numpy array of dim 3, from all coordinates
+  of all atoms in the molecule
+
+  Note that this update is made in place to the array it's applied to.
+
+  Parameters
+  ----------
+  xyz: numpy array
+    Of shape `(N, 3)`
+  centroid: numpy array
+    Of shape `(3,)`
+  """
+  xyz -= np.transpose(centroid)
+  return (xyz)
+
+def compute_pairwise_distances(first_xyz, second_xyz):
+  """Computes pairwise distances between two molecules.
+
+  Takes an input (m, 3) and (n, 3) numpy arrays of 3D coords of
+  two molecules respectively, and outputs an m x n numpy
+  array of pairwise distances in Angstroms between the first and
+  second molecule. entry (i,j) is dist between the i"th 
+  atom of first molecule and the j"th atom of second molecule.
+
+  Parameters
+  ----------
+  first_xyz: np.ndarray
+    Of shape (m, 3)
+  seocnd_xyz: np.ndarray
+    Of shape (n, 3)
+
+  Returns
+  -------
+  np.ndarray of shape (m, n)
+  """
+
+  pairwise_distances = cdist(first_xyz, second_xyz,
+                             metric='euclidean')
+  return pairwise_distances
+
