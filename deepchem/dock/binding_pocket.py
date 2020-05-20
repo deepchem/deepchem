@@ -26,6 +26,11 @@ def extract_active_site(protein_file, ligand_file, cutoff=4):
   cutoff: int, optional
     The distance in angstroms from the protein pocket to
     consider for featurization.
+
+  Returns
+  -------
+  A tuple of `(CoordinateBox, np.ndarray)` where the second entry is
+  of shape `(N, 3)` with `N` the number of atoms in the active site.
   """
   protein = rdkit_util.load_molecule(
       protein_file, add_hydrogens=False)

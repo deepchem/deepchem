@@ -270,7 +270,7 @@ def load_molecule(molecule_file,
         str(molecule_file), sanitize=False, removeHs=False)
     from_pdb = True
   else:
-    raise ValueError("Unrecognized file type")
+    raise ValueError("Unrecognized file type for %s" % str(molecule_file))
 
   if my_mol is None:
     raise ValueError("Unable to read non None Molecule Object")
