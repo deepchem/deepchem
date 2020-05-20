@@ -208,7 +208,7 @@ class VinaPoseGenerator(PoseGenerator):
       else:
         logger.info("About to find putative binding pockets")
         pockets = self.pocket_finder.find_pockets(
-            (protein_file, ligand_file))
+            protein_file)
         logger.info("%d pockets found in total" % len(pockets))
         logger.info("Computing centroid and size of proposed pockets.")
         centroids, dimensions = [], []
