@@ -96,14 +96,13 @@ class GraphConv(tf.keras.layers.Layer):
     # Get collection of modified atom features
     new_rel_atoms_collection = (self.max_degree + 1 - self.min_degree) * [None]
 
+    split_features = tf.split(atom_features, deg_slice[:, 1])
     for deg in range(1, self.max_degree + 1):
       # Obtain relevant atoms for this degree
       rel_atoms = deg_summed[deg - 1]
 
       # Get self atoms
-      begin = tf.stack([deg_slice[deg - self.min_degree, 0], 0])
-      size = tf.stack([deg_slice[deg - self.min_degree, 1], -1])
-      self_atoms = tf.slice(atom_features, begin, size)
+      self_atoms = split_features[deg - self.min_degree]
 
       # Apply hidden affine to relevant atoms and append
       rel_out = tf.matmul(rel_atoms, next(W)) + next(b)
@@ -114,16 +113,12 @@ class GraphConv(tf.keras.layers.Layer):
 
     # Determine the min_deg=0 case
     if self.min_degree == 0:
-      deg = 0
-
-      begin = tf.stack([deg_slice[deg - self.min_degree, 0], 0])
-      size = tf.stack([deg_slice[deg - self.min_degree, 1], -1])
-      self_atoms = tf.slice(atom_features, begin, size)
+      self_atoms = split_features[0]
 
       # Only use the self layer
       out = tf.matmul(self_atoms, next(W)) + next(b)
 
-      new_rel_atoms_collection[deg - self.min_degree] = out
+      new_rel_atoms_collection[0] = out
 
     # Combine all atoms back into the list
     atom_features = tf.concat(axis=0, values=new_rel_atoms_collection)
@@ -173,26 +168,27 @@ class GraphPool(tf.keras.layers.Layer):
 
     # Tensorflow correctly processes empty lists when using concat
 
+    split_features = tf.split(atom_features, deg_slice[:, 1])
     for deg in range(1, self.max_degree + 1):
       # Get self atoms
-      begin = tf.stack([deg_slice[deg - self.min_degree, 0], 0])
-      size = tf.stack([deg_slice[deg - self.min_degree, 1], -1])
-      self_atoms = tf.slice(atom_features, begin, size)
+      self_atoms = split_features[deg - self.min_degree]
 
-      # Expand dims
-      self_atoms = tf.expand_dims(self_atoms, 1)
+      if deg_adj_lists[deg - 1].shape[0] == 0:
+        # There are no neighbors of this degree, so just create an empty tensor directly.
+        maxed_atoms = tf.zeros((0, self_atoms.shape[-1]))
+      else:
+        # Expand dims
+        self_atoms = tf.expand_dims(self_atoms, 1)
 
-      # always deg-1 for deg_adj_lists
-      gathered_atoms = tf.gather(atom_features, deg_adj_lists[deg - 1])
-      gathered_atoms = tf.concat(axis=1, values=[self_atoms, gathered_atoms])
+        # always deg-1 for deg_adj_lists
+        gathered_atoms = tf.gather(atom_features, deg_adj_lists[deg - 1])
+        gathered_atoms = tf.concat(axis=1, values=[self_atoms, gathered_atoms])
 
-      maxed_atoms = tf.reduce_max(gathered_atoms, 1)
+        maxed_atoms = tf.reduce_max(gathered_atoms, 1)
       deg_maxed[deg - self.min_degree] = maxed_atoms
 
     if self.min_degree == 0:
-      begin = tf.stack([deg_slice[0, 0], 0])
-      size = tf.stack([deg_slice[0, 1], -1])
-      self_atoms = tf.slice(atom_features, begin, size)
+      self_atoms = split_features[0]
       deg_maxed[0] = self_atoms
 
     return tf.concat(axis=0, values=deg_maxed)
@@ -2378,7 +2374,7 @@ class DAGLayer(tf.keras.layers.Layer):
 
   This layer generates a directed acyclic graph for each atom
   in a molecule. This layer is based on the algorithm from the
-  following paper: 
+  following paper:
 
   Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575.
 
@@ -2403,7 +2399,7 @@ class DAGLayer(tf.keras.layers.Layer):
                dropout=None,
                batch_size=64,
                **kwargs):
-    """   
+    """
     Parameters
     ----------
     n_graph_feat: int, optional

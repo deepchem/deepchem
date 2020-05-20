@@ -22,14 +22,14 @@ def cumulative_sum_minus_last(l, offset=0):
   l: list
     List of integers. Typically small counts.
   """
-  return np.delete(np.insert(np.cumsum(l), 0, 0), -1) + offset
+  return np.delete(np.insert(np.cumsum(l, dtype=np.int32), 0, 0), -1) + offset
 
 
 def cumulative_sum(l, offset=0):
   """Returns cumulative sums for set of counts.
 
   Returns the cumulative sums for a set of counts with the first returned value
-  starting at 0. I.e [3,2,4] -> [0, 3, 5, 9]. Keeps final sum for searching. 
+  starting at 0. I.e [3,2,4] -> [0, 3, 5, 9]. Keeps final sum for searching.
   Useful for reindexing.
 
   Parameters
@@ -96,7 +96,7 @@ class ConvMol(object):
     ]
 
     # Convert to numpy array
-    self.deg_block_indices = np.array(deg_block_indices)
+    self.deg_block_indices = np.array(deg_block_indices, dtype=np.int32)
 
   def get_atoms_with_deg(self, deg):
     """Retrieves atom_features with the specific degree"""
@@ -115,7 +115,7 @@ class ConvMol(object):
     """Sorts atoms by degree and reorders internal data structures.
 
     Sort the order of the atom_features by degree, maintaining original order
-    whenever two atom_features have the same degree. 
+    whenever two atom_features have the same degree.
     """
     old_ind = range(self.get_num_atoms())
     deg_list = self.deg_list
@@ -157,7 +157,7 @@ class ConvMol(object):
       to_cat = [self.canon_adj_list[i] for i in indices]
       if len(to_cat) > 0:
         adj_list = np.vstack([self.canon_adj_list[i] for i in indices])
-        self.deg_adj_lists[deg - self.min_deg] = adj_list
+        self.deg_adj_lists[deg - self.min_deg] = adj_list.astype(np.int32)
 
       else:
         self.deg_adj_lists[deg - self.min_deg] = np.zeros(
@@ -216,7 +216,7 @@ class ConvMol(object):
 
   def get_deg_slice(self):
     """Returns degree-slice tensor.
-  
+
     The deg_slice tensor allows indexing into a flattened version of the
     molecule's atoms. Assume atoms are sorted in order of degree. Then
     deg_slice[deg][0] is the starting position for atoms of degree deg in
@@ -226,7 +226,7 @@ class ConvMol(object):
 
     Returns
     -------
-    deg_slice: np.ndarray 
+    deg_slice: np.ndarray
       Shape (max_deg+1-min_deg, 2)
     """
     return self.deg_slice
@@ -236,10 +236,10 @@ class ConvMol(object):
   def get_null_mol(n_feat, max_deg=10, min_deg=0):
     """Constructs a null molecules
 
-    Get one molecule with one atom of each degree, with all the atoms 
+    Get one molecule with one atom of each degree, with all the atoms
     connected to themselves, and containing n_feat features.
-    
-    Parameters 
+
+    Parameters
     ----------
     n_feat : int
         number of features for the nodes in the null molecule
@@ -254,11 +254,11 @@ class ConvMol(object):
 
   @staticmethod
   def agglomerate_mols(mols, max_deg=10, min_deg=0):
-    """Concatenates list of ConvMol's into one mol object that can be used to feed 
+    """Concatenates list of ConvMol's into one mol object that can be used to feed
     into tensorflow placeholders. The indexing of the molecules are preseved during the
     combination, but the indexing of the atoms are greatly changed.
-    
-    Parameters 
+
+    Parameters
     ----
     mols: list
       ConvMol objects to be combined into one molecule."""
@@ -333,7 +333,7 @@ class ConvMol(object):
         for deg in range(min_deg, max_deg + 1)
     ]
 
-    # Update the old adjcency lists with the new atom indices and then combine
+    # Update the old adjacency lists with the new atom indices and then combine
     # all together
     for deg in range(min_deg, max_deg + 1):
       row = 0  # Initialize counter
