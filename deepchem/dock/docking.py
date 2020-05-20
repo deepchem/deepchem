@@ -1,119 +1,89 @@
 """
-Docks protein-ligand pairs
+Docks Molecular Complexes 
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import logging
 import numpy as np
 import os
 import tempfile
-from deepchem.data import DiskDataset
-from deepchem.models import SklearnModel
-from deepchem.models import MultitaskRegressor
-from deepchem.dock.pose_scoring import GridPoseScorer
-from deepchem.dock.pose_generation import VinaPoseGenerator
-from sklearn.ensemble import RandomForestRegressor
 from subprocess import call
 
 logger = logging.getLogger(__name__)
 
 
 class Docker(object):
-  """Abstract Class specifying API for Docking."""
+  """A generic molecular docking class
 
-  def dock(self,
-           protein_file,
-           ligand_file,
-           centroid=None,
-           box_dims=None,
-           dry_run=False):
-    raise NotImplementedError
+  This class provides a docking engine which uses provided models for
+  featurization, pose generation, and scoring. Most pieces of docking
+  software are command line tools that are invoked from the shell. The
+  goal of this class is to provide a python clean API for invoking
+  molecular docking programmatically.
 
+  The implementation of this class is lightweight and generic. It's
+  expected that the majority of the heavy lifting will be done by pose
+  generation and scoring classes that are provided to this class.
+  """
 
-class VinaGridRFDocker(Docker):
-  """Vina pose-generation, RF-models on grid-featurization of complexes."""
+  def __init__(self,
+               pose_generator,
+               featurizer=None,
+               scoring_model=None):
+    """Builds model.
 
-  def __init__(self, exhaustiveness=10, detect_pockets=False):
-    """Builds model."""
+    Parameters
+    ----------
+    pose_generator: `PoseGenerator`
+      The pose generator to use for this model
+    featurizer: `ComplexFeaturizer`
+      Featurizer associated with `scoring_model`
+    scoring_model: `Model`
+      Should make predictions on molecular complex.
+    """
     self.base_dir = tempfile.mkdtemp()
-    logger.info("About to download trained model.")
-    call((
-        "wget -nv -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/trained_models/random_full_RF.tar.gz"
-    ).split())
-    call(("tar -zxvf random_full_RF.tar.gz").split())
-    call(("mv random_full_RF %s" % (self.base_dir)).split())
-    self.model_dir = os.path.join(self.base_dir, "random_full_RF")
-
-    # Fit model on dataset
-    model = SklearnModel(model_dir=self.model_dir)
-    model.reload()
-
-    self.pose_scorer = GridPoseScorer(model, feat="grid")
-    self.pose_generator = VinaPoseGenerator(
-        exhaustiveness=exhaustiveness, detect_pockets=detect_pockets)
+    self.pose_generator = pose_generator
+    self.featurizer = featurizer
+    self.scoring_model = scoring_model
 
   def dock(self,
-           protein_file,
-           ligand_file,
+           molecular_complex,
            centroid=None,
            box_dims=None,
-           dry_run=False):
-    """Docks using Vina and RF."""
-    protein_docked, ligand_docked = self.pose_generator.generate_poses(
-        protein_file, ligand_file, centroid, box_dims, dry_run)
-    if not dry_run:
-      score = self.pose_scorer.score(protein_docked, ligand_docked)
-    else:
-      score = np.zeros((1,))
-    return (score, (protein_docked, ligand_docked))
+           exhaustiveness=10,
+           num_modes=9,
+           num_pockets=None,
+           out_dir=None):
+    """Docks using Vina and RF.
 
-
-'''
-class VinaGridDNNDocker(object):
-  """Vina pose-generation, DNN-models on grid-featurization of complexes."""
-
-  def __init__(self, exhaustiveness=10, detect_pockets=False):
-    """Builds model."""
-    self.base_dir = tempfile.mkdtemp()
-    logger.info("About to download trained model.")
-    call((
-        "wget -nv -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/trained_models/random_full_DNN.tar.gz"
-    ).split())
-    call(("tar -zxvf random_full_DNN.tar.gz").split())
-    call(("mv random_full_DNN %s" % (self.base_dir)).split())
-    self.model_dir = os.path.join(self.base_dir, "random_full_DNN")
-
-    # Fit model on dataset
-    pdbbind_tasks = ["-logKd/Ki"]
-    n_features = 2052
-    model = MultitaskRegressor(
-        len(pdbbind_tasks),
-        n_features,
-        dropouts=[.25],
-        learning_rate=0.0003,
-        weight_init_stddevs=[.1],
-        batch_size=64,
-        model_dir=self.model_dir)
-    model.reload()
-
-    self.pose_scorer = GridPoseScorer(model, feat="grid")
-    self.pose_generator = VinaPoseGenerator(
-        exhaustiveness=exhaustiveness, detect_pockets=detect_pockets)
-
-  def dock(self,
-           protein_file,
-           ligand_file,
-           centroid=None,
-           box_dims=None,
-           dry_run=False):
-    """Docks using Vina and DNNs."""
-    protein_docked, ligand_docked = self.pose_generator.generate_poses(
-        protein_file, ligand_file, centroid, box_dims, dry_run)
-    if not dry_run:
-      score = self.pose_scorer.score(protein_docked, ligand_docked)
-    else:
-      score = np.zeros((1,))
-    return (score, (protein_docked, ligand_docked))
-'''
+    Parameters
+    ----------
+    molecular_complex: Object
+      Some representation of a molecular complex.
+    exhaustiveness: int, optional (default 10)
+      Tells Autodock Vina how exhaustive it should be with pose
+      generation.
+    num_modes: int, optional (default 9)
+      Tells Autodock Vina how many binding modes it should generate at
+      each invocation.
+    num_pockets: int, optional (default None)
+      If specified, `self.pocket_finder` must be set. Will only
+      generate poses for the first `num_pockets` returned by
+      `self.pocket_finder`.
+    out_dir: str, optional
+      If specified, write generated poses to this directory.
+    """
+    complexes = self.pose_generator.generate_poses(molecular_complex,
+                                                   centroid=centroid,
+                                                   box_dims=box_dims,
+                                                   exhaustiveness=exhaustiveness,
+                                                   num_modes=num_modes,
+                                                   num_pockets=num_pockets,
+                                                   out_dir=out_dir)
+    for posed_complex in complexes:
+      if self.featurizer is not None:
+        # TODO: How to handle the failure here?
+        features, _ = self.featurizer.featurize_complexes([molecular_complex])
+        dataset = NumpyDataset(X=features)
+        score = self.model.predict(dataset)
+        yield (score, posed_complex)
+      else:
+        yield posed_complex
