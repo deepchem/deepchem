@@ -53,7 +53,7 @@ class ConvMol(object):
     ----------
     atom_features: np.ndarray
       Has shape (n_atoms, n_feat)
-    canon_ad_list: list
+    adj_list: list
       List of length n_atoms, with neighor indices of each atom.
     max_deg: int, optional
       Maximum degree of any atom.
@@ -265,71 +265,51 @@ class ConvMol(object):
 
     num_mols = len(mols)
 
-    # Results should be sorted by (atom_degree, mol_index)
+    # Combine the features, then sort them by (atom_degree, mol_index)
     atoms_by_deg = np.concatenate([x.atom_features for x in mols])
     degree_vector = np.concatenate([x.degree_list for x in mols], axis=0)
     # Mergesort is a "stable" sort, so the array maintains it's secondary sort of mol_index
-    all_atoms = atoms_by_deg[degree_vector.argsort(kind='mergesort')]
+    order = degree_vector.argsort(kind='mergesort')
+    ordered = np.empty(order.shape, np.int32)
+    ordered[order] = np.arange(order.shape[0], dtype=np.int32)
+    all_atoms = atoms_by_deg[order]
+
+    # Create a map from the original atom indices within each molecule to the
+    # indices in the combined object.
+    mol_atom_map = []
+    index_start = 0
+    for mol in mols:
+      mol_atom_map.append(
+          ordered[index_start:index_start + mol.get_num_atoms()])
+      index_start += mol.get_num_atoms()
 
     # Sort all atoms by degree.
     # Get the size of each atom list separated by molecule id, then by degree
-    mol_deg_sz = [[mol.get_num_atoms_with_deg(deg)
-                   for mol in mols]
-                  for deg in range(min_deg, max_deg + 1)]
+    mol_deg_sz = np.zeros([max_deg - min_deg + 1, num_mols], dtype=np.int32)
+    for i, mol in enumerate(mols):
+      mol_deg_sz[:, i] += mol.deg_slice[:, 1]
 
     # Get the final size of each degree block
-    deg_sizes = list(map(np.sum, mol_deg_sz))
+    deg_sizes = np.sum(mol_deg_sz, axis=1)
+
     # Get the index at which each degree starts, not resetting after each degree
-    # And not stopping at any speciic molecule
+    # And not stopping at any specific molecule
 
     deg_start = cumulative_sum_minus_last(deg_sizes)
+
     # Get the tensorflow object required for slicing (deg x 2) matrix, with the
     # first column telling the start indices of each degree block and the
     # second colum telling the size of each degree block
-
-    # Input for tensorflow
     deg_slice = np.array(list(zip(deg_start, deg_sizes)))
 
-    # Determines the membership (atom i belongs to membership[i] molecule)
-    membership = [
-        k for deg in range(min_deg, max_deg + 1) for k in range(num_mols)
-        for i in range(mol_deg_sz[deg][k])
-    ]
-
-    # Get the index at which each deg starts, resetting after each degree
-    # (deg x num_mols) matrix describing the start indices when you count up the atoms
-    # in the final representation, stopping at each molecule,
-    # resetting every time the degree changes
-    start_by_deg = np.vstack([cumulative_sum_minus_last(l) for l in mol_deg_sz])
-
-    # Gets the degree resetting block indices for the atoms in each molecule
-    # Here, the indices reset when the molecules change, and reset when the
-    # degree changes
-    deg_block_indices = [mol.deg_block_indices for mol in mols]
-
-    # Get the degree id lookup list. It allows us to search for the degree of a
-    # molecule mol_id with corresponding atom mol_atom_id using
-    # deg_id_lists[mol_id,mol_atom_id]
-    deg_id_lists = [mol.deg_id_list for mol in mols]
-
-    # This is used for convience in the following function (explained below)
-    start_per_mol = deg_start[:, np.newaxis] + start_by_deg
-
-    def to_final_id(mol_atom_id, mol_id):
-      # Get the degree id (corrected for min_deg) of the considered atom
-      deg_id = deg_id_lists[mol_id][mol_atom_id]
-
-      # Return the final index of atom mol_atom_id in molecule mol_id.  Using
-      # the degree of this atom, must find the index in the molecule's original
-      # degree block corresponding to degree id deg_id (second term), and then
-      # calculate which index this degree block ends up in the final
-      # representation (first term). The sum of the two is the final indexn
-      return start_per_mol[deg_id,
-                           mol_id] + deg_block_indices[mol_id][mol_atom_id]
+    # Determine the membership (atom i belongs to molecule membership[i])
+    membership = np.empty(all_atoms.shape[0], np.int32)
+    for i in range(num_mols):
+      membership[mol_atom_map[i]] = i
 
     # Initialize the new degree separated adjacency lists
     deg_adj_lists = [
-        np.zeros([deg_sizes[deg], deg], dtype=np.int32)
+        np.empty([deg_sizes[deg], deg], dtype=np.int32)
         for deg in range(min_deg, max_deg + 1)
     ]
 
@@ -346,12 +326,18 @@ class ConvMol(object):
 
         # Correct all atom indices to the final indices, and then save the
         # results into the new adjacency lists
-        for i in range(nbr_list.shape[0]):
-          for j in range(nbr_list.shape[1]):
-            deg_adj_lists[deg_id][row, j] = to_final_id(nbr_list[i, j], mol_id)
-
-          # Increment once row is done
-          row += 1
+        if nbr_list.shape[0] > 0:
+          if nbr_list.dtype == np.int32:
+            final_id = mol_atom_map[mol_id][nbr_list]
+            deg_adj_lists[deg_id][row:(row + nbr_list.shape[0])] = final_id
+            row += nbr_list.shape[0]
+          else:
+            for i in range(nbr_list.shape[0]):
+              for j in range(nbr_list.shape[1]):
+                deg_adj_lists[deg_id][row, j] = mol_atom_map[mol_id][nbr_list[
+                    i, j]]
+              # Increment once row is done
+              row += 1
 
     # Get the final aggregated molecule
     concat_mol = MultiConvMol(all_atoms, deg_adj_lists, deg_slice, membership,
