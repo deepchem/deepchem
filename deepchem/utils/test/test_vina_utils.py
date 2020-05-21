@@ -16,9 +16,11 @@ class TestVinaUtils(unittest.TestCase):
                                      '1jld_ligand_docked.pdbqt')
 
   def test_load_docked_ligand(self):
-    docked_ligands = vina_utils.load_docked_ligands(self.docked_ligands)
+    docked_ligands, scores = vina_utils.load_docked_ligands(self.docked_ligands)
     assert len(docked_ligands) == 9
+    assert len(scores) == 9
 
-    for ligand in docked_ligands:
+    for ligand, score in zip(docked_ligands, scores):
       xyz = rdkit_util.get_xyz_from_mol(ligand)
+      assert score < 0 # This is a binding free energy
       assert np.count_nonzero(xyz) > 0

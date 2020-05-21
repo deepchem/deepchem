@@ -41,13 +41,14 @@ class TestPoseGeneration(unittest.TestCase):
     ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
 
     vpg = dc.dock.VinaPoseGenerator(pocket_finder=None)
-    poses = vpg.generate_poses(
+    poses, scores = vpg.generate_poses(
         (protein_file, ligand_file),
         exhaustiveness=1,
         num_modes=1,
         out_dir="/tmp")
 
     assert len(poses) == 1
+    assert len(scores) == 1
     protein, ligand = poses[0]
     from rdkit import Chem
     assert isinstance(protein, Chem.Mol)
@@ -69,7 +70,7 @@ class TestPoseGeneration(unittest.TestCase):
     centroid = np.array([56.21891368, 25.95862964, 3.58950065])
     box_dims = np.array([51.354, 51.243, 55.608])
     vpg = dc.dock.VinaPoseGenerator(pocket_finder=None)
-    poses = vpg.generate_poses(
+    poses, scores = vpg.generate_poses(
         (protein_file, ligand_file),
         centroid=centroid,
         box_dims=box_dims,
@@ -78,6 +79,7 @@ class TestPoseGeneration(unittest.TestCase):
         out_dir="/tmp")
 
     assert len(poses) == 1
+    assert len(scores) == 1
     protein, ligand = poses[0]
     from rdkit import Chem
     assert isinstance(protein, Chem.Mol)
@@ -99,7 +101,7 @@ class TestPoseGeneration(unittest.TestCase):
     # Note this may download autodock Vina...
     convex_finder = dc.dock.ConvexHullPocketFinder()
     vpg = dc.dock.VinaPoseGenerator(pocket_finder=convex_finder)
-    poses = vpg.generate_poses(
+    poses, scores = vpg.generate_poses(
         (protein_file, ligand_file),
         exhaustiveness=1,
         num_modes=1,
@@ -107,6 +109,7 @@ class TestPoseGeneration(unittest.TestCase):
         out_dir="/tmp")
 
     assert len(poses) == 2
+    assert len(scores) == 2
     from rdkit import Chem
     for pose in poses:
       protein, ligand = pose

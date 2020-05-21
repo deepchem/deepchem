@@ -140,8 +140,6 @@ class VinaPoseGenerator(PoseGenerator):
 
     TODO: How can this work on Windows? We need to install a .msi file and invoke it correctly from Python for this to work.
 
-    TODO: Can we extract the autodock vina computed binding free energy? Need to parse the output from Autodock vina.
-
     Parameters
     ----------
     molecular_complexes: list
@@ -166,7 +164,10 @@ class VinaPoseGenerator(PoseGenerator):
 
     Returns
     -------
-    List of docked molecular complexes. Each entry in this list contains a `(protein_mol, ligand_mol)` pair of RDKit molecules.
+    Tuple of `(docked_poses, scores)`. `docked_poses` is a list of
+    docked molecular complexes. Each entry in this list contains a
+    `(protein_mol, ligand_mol)` pair of RDKit molecules. `scores` is a
+    list of binding free energies predicted by Vina.
 
     Raises
     ------
@@ -237,8 +238,9 @@ class VinaPoseGenerator(PoseGenerator):
     rdkit_util.write_molecule(ligand_mol[1], ligand_pdbqt)
 
     docked_complexes = []
+    all_scores = []
     for i, (protein_centroid, box_dims) in enumerate(zip(centroids, dimensions)):
-      logger.info("Docking in pocket %d/%d" % (i, len(centroids)))
+      logger.info("Docking in pocket %d/%d" % (i+1, len(centroids)))
       logger.info("Docking with center: %s" % str(protein_centroid))
       logger.info("Box dimensions: %s" % str(box_dims))
       # Write Vina conf file
@@ -260,7 +262,8 @@ class VinaPoseGenerator(PoseGenerator):
           "%s --config %s --log %s --out %s" % (self.vina_cmd, conf_file,
                                                 log_file, out_pdbqt),
           shell=True)
-      ligands = vina_utils.load_docked_ligands(out_pdbqt)
+      ligands, scores = vina_utils.load_docked_ligands(out_pdbqt)
       docked_complexes += [(protein_mol[1], ligand) for ligand in ligands]
+      all_scores += scores
 
-    return docked_complexes
+    return docked_complexes, all_scores

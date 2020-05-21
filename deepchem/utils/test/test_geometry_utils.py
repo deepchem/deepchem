@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 from deepchem.utils.geometry_utils import unit_vector
 from deepchem.utils.geometry_utils import angle_between
+from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.utils.geometry_utils import generate_random_unit_vector
 from deepchem.utils.geometry_utils import generate_random_rotation_matrix
 from deepchem.utils.geometry_utils import is_angle_within_cutoff
@@ -43,3 +44,21 @@ class TestGeometryUtils(unittest.TestCase):
     v2 = np.array([-1, 0, 0])
     angle_cutoff = 10
     assert is_angle_within_cutoff(v1, v2, angle_cutoff)
+
+  def test_compute_pairwise_distances(self):
+    n1 = 10
+    n2 = 50
+    coords1 = np.random.rand(n1, 3)
+    coords2 = np.random.rand(n2, 3)
+
+    distance = compute_pairwise_distances(coords1, coords2)
+    self.assertEqual(distance.shape, (n1, n2))
+    self.assertTrue((distance >= 0).all())
+    # random coords between 0 and 1, so the max possible distance in sqrt(2)
+    self.assertTrue((distance <= 2.0**0.5).all())
+
+    # check if correct distance metric was used
+    coords1 = np.array([[0, 0, 0], [1, 0, 0]])
+    coords2 = np.array([[1, 0, 0], [2, 0, 0], [3, 0, 0]])
+    distance = compute_pairwise_distances(coords1, coords2)
+    self.assertTrue((distance == [[1, 2, 3], [0, 1, 2]]).all())

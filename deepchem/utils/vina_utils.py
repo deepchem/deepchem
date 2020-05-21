@@ -68,7 +68,9 @@ def load_docked_ligands(pdbqt_output):
 
   Returns
   -------
-  A List of rdkit molecules with 3D information.
+  Tuple of `molecules, scores`. `molecules` is a list of rdkit
+  molecules with 3D information. `scores` is the associated vina
+  score.
 
   Note
   ----
@@ -77,10 +79,17 @@ def load_docked_ligands(pdbqt_output):
   from rdkit import Chem
   lines = open(pdbqt_output).readlines()
   molecule_pdbqts = []
+  scores = []
   current_pdbqt = None
   for line in lines:
     if line[:5] == "MODEL":
       current_pdbqt = []
+    elif line[:19] == "REMARK VINA RESULT:":
+      words = line.split()
+      # the line has format
+      # REMARK VINA RESULT: score ...
+      # There is only 1 such line per model so we can append it
+      scores.append(float(words[3]))
     elif line[:6] == "ENDMDL":
       molecule_pdbqts.append(current_pdbqt)
       current_pdbqt = None
@@ -92,4 +101,4 @@ def load_docked_ligands(pdbqt_output):
     mol = Chem.MolFromPDBBlock(
         str(pdb_block), sanitize=False, removeHs=False)
     molecules.append(mol)
-  return molecules
+  return molecules, scores

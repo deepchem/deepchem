@@ -68,16 +68,25 @@ class Docker(object):
       If specified, `self.pocket_finder` must be set. Will only
       generate poses for the first `num_pockets` returned by
       `self.pocket_finder`.
-    out_dir: str, optional
+    out_dir: str, optional (default None)
       If specified, write generated poses to this directory.
+    use_pose_generator_scores: bool, optional (default False)
+      If `True`, ask pose generator to generate scores. This cannot be
+      `True` if `self.featurizer` and `self.scoring_model` are set
+      since those will be used to generate scores in that case. 
     """
-    complexes = self.pose_generator.generate_poses(molecular_complex,
-                                                   centroid=centroid,
-                                                   box_dims=box_dims,
-                                                   exhaustiveness=exhaustiveness,
-                                                   num_modes=num_modes,
-                                                   num_pockets=num_pockets,
-                                                   out_dir=out_dir)
+    outputs = self.pose_generator.generate_poses(molecular_complex,
+                                                 centroid=centroid,
+                                                 box_dims=box_dims,
+                                                 exhaustiveness=exhaustiveness,
+                                                 num_modes=num_modes,
+                                                 num_pockets=num_pockets,
+                                                 out_dir=out_dir,
+                                                 generate_scores=use_pose_generator_scores)
+    if use_pose_generator_scores:
+      complexes, scores = outputs
+    else:
+      complexes = outputs
     for posed_complex in complexes:
       if self.featurizer is not None:
         # TODO: How to handle the failure here?

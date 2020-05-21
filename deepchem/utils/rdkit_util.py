@@ -52,7 +52,7 @@ def get_xyz_from_mol(mol):
     xyz[i, 2] = position.z
   return (xyz)
 
-def add_hydrogens_to_mol(mol):
+def add_hydrogens_to_mol(mol, is_protein=False):
   """
   Add hydrogens to a molecule object
 
@@ -60,6 +60,9 @@ def add_hydrogens_to_mol(mol):
   ----------
   mol: Rdkit Mol
     Molecule to hydrogenate
+  is_protein: bool, optional (default False)
+    Whether this molecule is a protein.
+
 
   Returns
   -------
@@ -69,7 +72,7 @@ def add_hydrogens_to_mol(mol):
   ----
   This function requires RDKit and PDBFixer to be installed.
   """
-  return apply_pdbfixer(mol, hydrogenate=True)
+  return apply_pdbfixer(mol, hydrogenate=True, is_protein=is_protein)
 
 
 def apply_pdbfixer(mol, add_missing=True, hydrogenate=True, pH=7.4,
@@ -80,7 +83,7 @@ def apply_pdbfixer(mol, add_missing=True, hydrogenate=True, pH=7.4,
   Parameters
   ----------
   mol: Rdkit Mol
-    Molecule to hydrogenate
+    Molecule to clean up.
   add_missing: bool, optional
     If true, add in missing residues and atoms
   hydrogenate: bool, optional
