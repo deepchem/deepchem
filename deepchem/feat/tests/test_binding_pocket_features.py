@@ -1,5 +1,5 @@
 """
-Test atomic coordinates and neighbor lists.
+Test Binding Pocket Features. 
 """
 import os
 import numpy as np
@@ -7,14 +7,14 @@ import unittest
 import deepchem as dc
 
 
-class TestAtomicCoordinates(unittest.TestCase):
+class TestBindingPocketFeatures(unittest.TestCase):
   """
   Test AtomicCoordinates.
   """
 
-  def test_atomic_coordinates(self):
+  def test_pocket_features(self):
     """
-    Simple test that atomic coordinates returns ndarray of right shape.
+    Simple test that pocket_features return right shapes.
     """
     current_dir = os.path.dirname(os.path.realpath(__file__))
     protein_file = os.path.join(current_dir,
@@ -23,12 +23,11 @@ class TestAtomicCoordinates(unittest.TestCase):
 
     finder = dc.dock.ConvexHullPocketFinder()
     pocket_featurizer = dc.feat.BindingPocketFeaturizer()
-    pockets, pocket_atoms, pocket_coords = finder.find_pockets(
-        protein_file, ligand_file)
+    pockets = finder.find_pockets(protein_file)
     n_pockets = len(pockets)
 
-    pocket_features = pocket_featurizer.featurize(protein_file, pockets,
-                                                  pocket_atoms, pocket_coords)
+    pocket_features = pocket_featurizer.featurize(protein_file,
+                                                  pockets)
 
     assert isinstance(pocket_features, np.ndarray)
     assert pocket_features.shape[0] == n_pockets
