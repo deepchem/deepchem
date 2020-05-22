@@ -332,9 +332,9 @@ def write_molecule(mol, outfile, is_protein=False):
     writer.write(mol)
     writer.close()
     if is_protein:
-      convert_protein_to_pdbqt(mol, outfile)
+      pdbqt_utils.convert_protein_to_pdbqt(mol, outfile)
     else:
-      convert_mol_to_pdbqt(mol, outfile)
+      pdbqt_utils.convert_mol_to_pdbqt(mol, outfile)
   elif ".pdb" in outfile:
     writer = Chem.PDBWriter(outfile)
     writer.write(mol)
