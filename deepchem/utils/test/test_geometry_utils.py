@@ -1,5 +1,6 @@
 import unittest
 import numpy as np
+from deepchem.utils import geometry_utils
 from deepchem.utils.geometry_utils import unit_vector
 from deepchem.utils.geometry_utils import angle_between
 from deepchem.utils.geometry_utils import compute_pairwise_distances
@@ -62,3 +63,19 @@ class TestGeometryUtils(unittest.TestCase):
     coords2 = np.array([[1, 0, 0], [2, 0, 0], [3, 0, 0]])
     distance = compute_pairwise_distances(coords1, coords2)
     self.assertTrue((distance == [[1, 2, 3], [0, 1, 2]]).all())
+
+  def test_compute_centroid(self):
+    N = 10
+    coords = np.random.rand(N, 3)
+    centroid = geometry_utils.compute_centroid(coords)
+    assert centroid.shape == (3,)
+
+  def test_subract_centroid(self):
+    N = 10
+    coords = np.random.rand(N, 3)
+    centroid = geometry_utils.compute_centroid(coords)
+    new_coords = geometry_utils.subtract_centroid(coords, centroid)
+    assert new_coords.shape == (N, 3)
+    new_centroid = geometry_utils.compute_centroid(new_coords)
+    assert new_centroid.shape == (3,)
+    np.testing.assert_almost_equal(new_centroid, np.zeros_like(new_centroid))
