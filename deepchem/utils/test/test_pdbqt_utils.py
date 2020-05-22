@@ -1,4 +1,5 @@
 import unittest
+import os
 from deepchem.utils import rdkit_util
 from deepchem.utils import pdbqt_utils
 
