@@ -1,5 +1,6 @@
 """Utilities for handling PDBQT files."""
 
+
 def pdbqt_to_pdb(filename=None, pdbqt_data=None):
   """Extracts the PDB part of a pdbqt file as a string.
 

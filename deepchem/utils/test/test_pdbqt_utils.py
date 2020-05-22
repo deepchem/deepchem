@@ -3,6 +3,7 @@ import os
 from deepchem.utils import rdkit_util
 from deepchem.utils import pdbqt_utils
 
+
 class TestPDBQTUtils(unittest.TestCase):
 
   def test_pdbqt_to_pdb(self):

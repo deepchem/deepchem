@@ -8,6 +8,7 @@ from deepchem.feat import Featurizer
 
 logger = logging.getLogger(__name__)
 
+
 def boxes_to_atoms(coords, boxes):
   """Maps each box to a list of atoms in that box.
 
@@ -65,9 +66,7 @@ class BindingPocketFeaturizer(Featurizer):
 
   n_features = len(residues)
 
-  def featurize(self,
-                protein_file,
-                pockets):
+  def featurize(self, protein_file, pockets):
     """
     Calculate atomic coodinates.
 

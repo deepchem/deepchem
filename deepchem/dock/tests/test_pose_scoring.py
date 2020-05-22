@@ -52,7 +52,7 @@ class TestPoseScoring(unittest.TestCase):
     d = np.random.rand(N, M)
     out_tensor = vina_repulsion(d)
     assert out_tensor.shape == (N, M)
-    
+
   def test_vina_hydrophobic(self):
     N = 10
     M = 5

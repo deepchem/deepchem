@@ -24,10 +24,7 @@ class Docker(object):
   generation and scoring classes that are provided to this class.
   """
 
-  def __init__(self,
-               pose_generator,
-               featurizer=None,
-               scoring_model=None):
+  def __init__(self, pose_generator, featurizer=None, scoring_model=None):
     """Builds model.
 
     Parameters
@@ -75,14 +72,15 @@ class Docker(object):
       `True` if `self.featurizer` and `self.scoring_model` are set
       since those will be used to generate scores in that case. 
     """
-    outputs = self.pose_generator.generate_poses(molecular_complex,
-                                                 centroid=centroid,
-                                                 box_dims=box_dims,
-                                                 exhaustiveness=exhaustiveness,
-                                                 num_modes=num_modes,
-                                                 num_pockets=num_pockets,
-                                                 out_dir=out_dir,
-                                                 generate_scores=use_pose_generator_scores)
+    outputs = self.pose_generator.generate_poses(
+        molecular_complex,
+        centroid=centroid,
+        box_dims=box_dims,
+        exhaustiveness=exhaustiveness,
+        num_modes=num_modes,
+        num_pockets=num_pockets,
+        out_dir=out_dir,
+        generate_scores=use_pose_generator_scores)
     if use_pose_generator_scores:
       complexes, scores = outputs
     else:

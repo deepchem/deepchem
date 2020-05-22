@@ -3,13 +3,14 @@ This file contains utilities to work with autodock vina.
 """
 from deepchem.utils import pdbqt_utils
 
+
 def write_vina_conf(protein_filename,
-                     ligand_filename,
-                     centroid,
-                     box_dims,
-                     conf_filename,
-                     num_modes=9,
-                     exhaustiveness=None):
+                    ligand_filename,
+                    centroid,
+                    box_dims,
+                    conf_filename,
+                    num_modes=9,
+                    exhaustiveness=None):
   """Writes Vina configuration file to disk.
 
   Autodock Vina accepts a configuration file which provides options
@@ -98,7 +99,6 @@ def load_docked_ligands(pdbqt_output):
   molecules = []
   for pdbqt_data in molecule_pdbqts:
     pdb_block = pdbqt_utils.pdbqt_to_pdb(pdbqt_data=pdbqt_data)
-    mol = Chem.MolFromPDBBlock(
-        str(pdb_block), sanitize=False, removeHs=False)
+    mol = Chem.MolFromPDBBlock(str(pdb_block), sanitize=False, removeHs=False)
     molecules.append(mol)
   return molecules, scores

@@ -13,9 +13,10 @@ class TestRdkitUtil(unittest.TestCase):
   def setUp(self):
     # TODO test more formats for ligand
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    self.protein_file = os.path.join(current_dir,
-                                     '../../feat/tests/3ws9_protein_fixer_rdkit.pdb')
-    self.ligand_file = os.path.join(current_dir, '../../feat/tests/3ws9_ligand.sdf')
+    self.protein_file = os.path.join(
+        current_dir, '../../feat/tests/3ws9_protein_fixer_rdkit.pdb')
+    self.ligand_file = os.path.join(current_dir,
+                                    '../../feat/tests/3ws9_ligand.sdf')
 
   def test_load_complex(self):
     pass
@@ -25,8 +26,8 @@ class TestRdkitUtil(unittest.TestCase):
     from rdkit.Chem.AllChem import Mol
     for add_hydrogens in (True, False):
       for calc_charges in (True, False):
-        mol_xyz, mol_rdk = rdkit_util.load_molecule(
-          self.ligand_file, add_hydrogens, calc_charges)
+        mol_xyz, mol_rdk = rdkit_util.load_molecule(self.ligand_file,
+                                                    add_hydrogens, calc_charges)
         num_atoms = mol_rdk.GetNumAtoms()
         self.assertIsInstance(mol_xyz, np.ndarray)
         self.assertIsInstance(mol_rdk, Mol)

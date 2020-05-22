@@ -18,7 +18,8 @@ def pairwise_distances(coords1, coords2):
   -------
   A `(N,M)` array with pairwise distances.
   """
-  return np.sum((coords1[None,:] - coords2[:, None])**2, -1)**0.5
+  return np.sum((coords1[None, :] - coords2[:, None])**2, -1)**0.5
+
 
 def cutoff_filter(d, x, cutoff=8.0):
   """Applies a cutoff filter on pairwise distances
@@ -39,6 +40,7 @@ def cutoff_filter(d, x, cutoff=8.0):
   """
   return np.where(d < cutoff, x, np.zeros_like(x))
 
+
 def vina_nonlinearity(c, w, Nrot):
   """Computes non-linearity used in Vina.
 
@@ -58,6 +60,7 @@ def vina_nonlinearity(c, w, Nrot):
   out_tensor = c / (1 + w * Nrot)
   return out_tensor
 
+
 def vina_repulsion(d):
   """Computes Autodock Vina's repulsion interaction term.
 
@@ -71,6 +74,7 @@ def vina_repulsion(d):
   A `(N, M)` array with repulsion terms.
   """
   return np.where(d >= 0, d**2, np.zeros_like(d))
+
 
 def vina_hydrophobic(d):
   """Computes Autodock Vina's hydrophobic interaction term.
@@ -108,6 +112,7 @@ def vina_hbond(d):
       np.where(d < 0, (1.0 / 0.7) * (0 - d), np.zeros_like(d)))
   return out_tensor
 
+
 def vina_gaussian_first(d):
   """Computes Autodock Vina's first Gaussian interaction term.
 
@@ -122,6 +127,7 @@ def vina_gaussian_first(d):
   """
   out_tensor = np.exp(-(d / 0.5)**2)
   return out_tensor
+
 
 def vina_gaussian_second(d):
   """Computes Autodock Vina's second Gaussian interaction term.
@@ -138,6 +144,7 @@ def vina_gaussian_second(d):
   out_tensor = np.exp(-((d - 3) / 2)**2)
   return out_tensor
 
+
 def weighted_linear_sum(w, x):
   """Computes weighted linear sum.
 
@@ -149,6 +156,7 @@ def weighted_linear_sum(w, x):
     Of shape `(N,)`
   """
   return np.sum(np.dot(w, x))
+
 
 def vina_energy_term(coords1, coords2, weights, wrot, Nrot):
   """Computes the Vina Energy function for two molecular conformations

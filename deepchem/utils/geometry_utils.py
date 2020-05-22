@@ -112,6 +112,7 @@ def is_angle_within_cutoff(vector_i, vector_j, angle_cutoff):
   angle = angle_between(vector_i, vector_j) * 180. / np.pi
   return (angle > (180 - angle_cutoff) and angle < (180. + angle_cutoff))
 
+
 def compute_centroid(coordinates):
   """Compute the (x,y,z) centroid of provided coordinates
 
@@ -122,6 +123,7 @@ def compute_centroid(coordinates):
   """
   centroid = np.mean(coordinates, axis=0)
   return (centroid)
+
 
 def subtract_centroid(xyz, centroid):
   """Subtracts centroid from each coordinate.
@@ -140,6 +142,7 @@ def subtract_centroid(xyz, centroid):
   """
   xyz -= np.transpose(centroid)
   return (xyz)
+
 
 def compute_pairwise_distances(first_xyz, second_xyz):
   """Computes pairwise distances between two molecules.
@@ -162,7 +165,5 @@ def compute_pairwise_distances(first_xyz, second_xyz):
   np.ndarray of shape (m, n)
   """
 
-  pairwise_distances = cdist(first_xyz, second_xyz,
-                             metric='euclidean')
+  pairwise_distances = cdist(first_xyz, second_xyz, metric='euclidean')
   return pairwise_distances
-

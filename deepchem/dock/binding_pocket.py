@@ -14,6 +14,7 @@ from deepchem.utils.fragment_util import get_contact_atom_indices
 
 logger = logging.getLogger(__name__)
 
+
 def extract_active_site(protein_file, ligand_file, cutoff=4):
   """Extracts a box for the active site.
 
@@ -32,11 +33,11 @@ def extract_active_site(protein_file, ligand_file, cutoff=4):
   A tuple of `(CoordinateBox, np.ndarray)` where the second entry is
   of shape `(N, 3)` with `N` the number of atoms in the active site.
   """
-  protein = rdkit_util.load_molecule(
-      protein_file, add_hydrogens=False)
+  protein = rdkit_util.load_molecule(protein_file, add_hydrogens=False)
   ligand = rdkit_util.load_molecule(
       ligand_file, add_hydrogens=True, calc_charges=True)
-  protein_contacts, ligand_contacts = get_contact_atom_indices([protein, ligand], cutoff=cutoff)
+  protein_contacts, ligand_contacts = get_contact_atom_indices(
+      [protein, ligand], cutoff=cutoff)
   protein_coords = protein[0]
   pocket_coords = protein_coords[protein_contacts]
 
@@ -48,6 +49,7 @@ def extract_active_site(protein_file, ligand_file, cutoff=4):
   z_max = int(np.ceil(np.amax(pocket_coords[:, 2])))
   box = box_utils.CoordinateBox((x_min, x_max), (y_min, y_max), (z_min, z_max))
   return (box, pocket_coords)
+
 
 class BindingPocketFinder(object):
   """Abstract superclass for binding pocket detectors

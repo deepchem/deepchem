@@ -3,6 +3,7 @@ import itertools
 import numpy as np
 from deepchem.utils.geometry_utils import compute_pairwise_distances
 
+
 def get_partial_charge(atom):
   """Get partial charge of a given atom (rdkit Atom object)
   
@@ -50,10 +51,14 @@ class MolecularFragment(object):
     if not isinstance(coords, np.ndarray):
       raise ValueError("Coords must be a numpy array of shape (N, 3)")
     if coords.shape != (len(atoms), 3):
-      raise ValueError("Coords must be a numpy array of shape `(N, 3)` where `N == len(atoms)`.")
-    self.atoms = [AtomShim(x.GetAtomicNum(), get_partial_charge(x), coords[ind]) for ind, x in enumerate(atoms)]
+      raise ValueError(
+          "Coords must be a numpy array of shape `(N, 3)` where `N == len(atoms)`."
+      )
+    self.atoms = [
+        AtomShim(x.GetAtomicNum(), get_partial_charge(x), coords[ind])
+        for ind, x in enumerate(atoms)
+    ]
     self.coords = coords
-
 
   def GetAtoms(self):
     """Returns the list of atoms
@@ -73,6 +78,7 @@ class MolecularFragment(object):
     Here `N == len(self.GetAtoms())`.
     """
     return self.coords
+
 
 class AtomShim(object):
   """This is a shim object wrapping an atom.
@@ -125,6 +131,7 @@ class AtomShim(object):
     """
     return self.coords
 
+
 def merge_molecular_fragments(molecules):
   """Helper method to merge two molecular fragments.
 
@@ -149,6 +156,7 @@ def merge_molecular_fragments(molecules):
       all_coords.append(mol_frag.GetCoords())
     all_coords = np.concatenate(all_coords)
     return MolecularFragment(all_atoms, all_coords)
+
 
 def get_mol_subset(coords, mol, atom_indices_to_keep):
   """Strip a subset of the atoms in this molecule
@@ -182,6 +190,7 @@ def get_mol_subset(coords, mol, atom_indices_to_keep):
   mol_frag = MolecularFragment(atoms_to_keep, coords)
   return mol_frag
 
+
 def strip_hydrogens(coords, mol):
   """Strip the hydrogens from input molecule
 
@@ -200,8 +209,12 @@ def strip_hydrogens(coords, mol):
   """
   mol_atoms = mol.GetAtoms()
   atomic_numbers = [atom.GetAtomicNum() for atom in mol_atoms]
-  atom_indices_to_keep = [ind for (ind, atomic_number) in enumerate(atomic_numbers) if (atomic_number != 1)]
+  atom_indices_to_keep = [
+      ind for (ind, atomic_number) in enumerate(atomic_numbers)
+      if (atomic_number != 1)
+  ]
   return get_mol_subset(coords, mol, atom_indices_to_keep)
+
 
 def get_contact_atom_indices(fragments, cutoff=4.5):
   """Compute that atoms close to contact region.
@@ -245,6 +258,7 @@ def get_contact_atom_indices(fragments, cutoff=4.5):
     keep_inds[ind2] = keep_inds[ind2].union(frag2_atoms)
   keep_inds = [sorted(list(keep)) for keep in keep_inds]
   return keep_inds
+
 
 def reduce_molecular_complex_to_contacts(fragments, cutoff=4.5):
   """Reduce a molecular complex to only those atoms near a contact.

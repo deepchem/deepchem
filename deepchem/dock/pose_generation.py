@@ -34,8 +34,8 @@ class PoseGenerator(object):
                      molecular_complex,
                      centroid=None,
                      box_dims=None,
-                     exhaustiveness=10, 
-                     num_modes=9, 
+                     exhaustiveness=10,
+                     num_modes=9,
                      num_pockets=None,
                      out_dir=None):
     """Generates a list of low energy poses for molecular complex
@@ -98,7 +98,7 @@ class VinaPoseGenerator(PoseGenerator):
     data_dir = deepchem.utils.get_data_dir()
     if platform.system() == 'Linux':
       url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_linux_x86.tgz"
-      filename = "autodock_vina_1_1_2_linux_x86.tgz" 
+      filename = "autodock_vina_1_1_2_linux_x86.tgz"
       dirname = "autodock_vina_1_1_2_linux_x86"
     elif platform.system() == 'Darwin':
       if sixty_four_bits:
@@ -110,12 +110,14 @@ class VinaPoseGenerator(PoseGenerator):
         filename = "autodock_vina_1_1_2_mac.tgz"
         dirname = "autodock_vina_1_1_2_mac"
     else:
-      raise ValueError("This class can only run on Linux or Mac. If you are on Windows, please try using a cloud platform to run this code instead.")
+      raise ValueError(
+          "This class can only run on Linux or Mac. If you are on Windows, please try using a cloud platform to run this code instead."
+      )
     self.vina_dir = os.path.join(data_dir, dirname)
-    self.pocket_finder = pocket_finder 
+    self.pocket_finder = pocket_finder
     if not os.path.exists(self.vina_dir):
       logger.info("Vina not available. Downloading")
-      wget_cmd = "wget -nv -c -T 15 %s" % url 
+      wget_cmd = "wget -nv -c -T 15 %s" % url
       check_output(wget_cmd.split())
       logger.info("Downloaded Vina. Extracting")
       untar_cmd = "tar -xzvf %s" % filename
@@ -132,8 +134,8 @@ class VinaPoseGenerator(PoseGenerator):
                      molecular_complex,
                      centroid=None,
                      box_dims=None,
-                     exhaustiveness=10, 
-                     num_modes=9, 
+                     exhaustiveness=10,
+                     num_modes=9,
                      num_pockets=None,
                      out_dir=None):
     """Generates the docked complex and outputs files for docked complex.
@@ -177,15 +179,19 @@ class VinaPoseGenerator(PoseGenerator):
       out_dir = tempfile.mkdtemp()
 
     if num_pockets is not None and self.pocket_finder is None:
-      raise ValueError("If num_pockets is specified, pocket_finder must have been provided at construction time.")
+      raise ValueError(
+          "If num_pockets is specified, pocket_finder must have been provided at construction time."
+      )
 
     # Parse complex
     if len(molecular_complex) > 2:
-      raise ValueError("Autodock Vina can only dock protein-ligand complexes and not more general molecular complexes.")
+      raise ValueError(
+          "Autodock Vina can only dock protein-ligand complexes and not more general molecular complexes."
+      )
 
     (protein_file, ligand_file) = molecular_complex
 
-    # Prepare protein 
+    # Prepare protein
     protein_name = os.path.basename(protein_file).split(".")[0]
     protein_hyd = os.path.join(out_dir, "%s_hyd.pdb" % protein_name)
     protein_pdbqt = os.path.join(out_dir, "%s.pdbqt" % protein_name)
@@ -208,14 +214,14 @@ class VinaPoseGenerator(PoseGenerator):
         centroids, dimensions = [protein_centroid], [box_dims]
       else:
         logger.info("About to find putative binding pockets")
-        pockets = self.pocket_finder.find_pockets(
-            protein_file)
+        pockets = self.pocket_finder.find_pockets(protein_file)
         logger.info("%d pockets found in total" % len(pockets))
         logger.info("Computing centroid and size of proposed pockets.")
         centroids, dimensions = [], []
         for pocket in pockets:
           protein_centroid = pocket.center()
-          (x_min, x_max), (y_min, y_max), (z_min, z_max) = pocket.x_range, pocket.y_range, pocket.z_range
+          (x_min, x_max), (y_min, y_max), (
+              z_min, z_max) = pocket.x_range, pocket.y_range, pocket.z_range
           # TODO(rbharath: Does vina divide box dimensions by 2?
           x_box = (x_max - x_min) / 2.
           y_box = (y_max - y_min) / 2.
@@ -225,11 +231,12 @@ class VinaPoseGenerator(PoseGenerator):
           dimensions.append(box_dims)
 
     if num_pockets is not None:
-      logger.info("num_pockets = %d so selecting this many pockets for docking." % num_pockets)
+      logger.info("num_pockets = %d so selecting this many pockets for docking."
+                  % num_pockets)
       centroids = centroids[:num_pockets]
       dimensions = dimensions[:num_pockets]
 
-    # Prepare protein 
+    # Prepare protein
     ligand_name = os.path.basename(ligand_file).split(".")[0]
     ligand_pdbqt = os.path.join(out_dir, "%s.pdbqt" % ligand_name)
 
@@ -239,8 +246,9 @@ class VinaPoseGenerator(PoseGenerator):
 
     docked_complexes = []
     all_scores = []
-    for i, (protein_centroid, box_dims) in enumerate(zip(centroids, dimensions)):
-      logger.info("Docking in pocket %d/%d" % (i+1, len(centroids)))
+    for i, (protein_centroid, box_dims) in enumerate(
+        zip(centroids, dimensions)):
+      logger.info("Docking in pocket %d/%d" % (i + 1, len(centroids)))
       logger.info("Docking with center: %s" % str(protein_centroid))
       logger.info("Box dimensions: %s" % str(box_dims))
       # Write Vina conf file

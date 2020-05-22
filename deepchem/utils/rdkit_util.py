@@ -23,6 +23,7 @@ from deepchem.utils.geometry_utils import generate_random_rotation_matrix
 
 logger = logging.getLogger(__name__)
 
+
 class MoleculeLoadException(Exception):
 
   def __init__(self, *args, **kwargs):
@@ -52,6 +53,7 @@ def get_xyz_from_mol(mol):
     xyz[i, 2] = position.z
   return (xyz)
 
+
 def add_hydrogens_to_mol(mol, is_protein=False):
   """
   Add hydrogens to a molecule object
@@ -75,8 +77,12 @@ def add_hydrogens_to_mol(mol, is_protein=False):
   return apply_pdbfixer(mol, hydrogenate=True, is_protein=is_protein)
 
 
-def apply_pdbfixer(mol, add_missing=True, hydrogenate=True, pH=7.4,
-                   remove_heterogens=True, is_protein=True):
+def apply_pdbfixer(mol,
+                   add_missing=True,
+                   hydrogenate=True,
+                   pH=7.4,
+                   remove_heterogens=True,
+                   is_protein=True):
   """
   Apply PDBFixer to a molecule to try to clean it up.
 
@@ -167,6 +173,7 @@ def compute_charges(mol):
     logging.exception("Unable to compute charges for mol")
     raise MoleculeLoadException(e)
 
+
 def load_complex(molecular_complex,
                  add_hydrogens=True,
                  calc_charges=True,
@@ -207,17 +214,17 @@ def load_complex(molecular_complex,
     molecule_complex = [molecular_complex]
   fragments = []
   for mol in molecular_complex:
-    loaded = load_molecule(mol,
-                           add_hydrogens=add_hydrogens,
-                           calc_charges=calc_charges,
-                           pdbfix=pdbfix,
-                           sanitize=sanitize)
+    loaded = load_molecule(
+        mol,
+        add_hydrogens=add_hydrogens,
+        calc_charges=calc_charges,
+        pdbfix=pdbfix,
+        sanitize=sanitize)
     if isinstance(loaded, list):
       fragments += loaded
     else:
       fragments.append(loaded)
   return fragments
-    
 
 
 def load_molecule(molecule_file,
@@ -280,7 +287,8 @@ def load_molecule(molecule_file,
 
   if add_hydrogens or calc_charges:
     # We assume if it's from a PDB, it should be a protein
-    my_mol = apply_pdbfixer(my_mol, hydrogenate=add_hydrogens, is_protein=from_pdb)
+    my_mol = apply_pdbfixer(
+        my_mol, hydrogenate=add_hydrogens, is_protein=from_pdb)
   if sanitize:
     try:
       Chem.SanitizeMol(my_mol)
@@ -339,7 +347,6 @@ def write_molecule(mol, outfile, is_protein=False):
     raise ValueError("Unsupported Format")
 
 
-
 def merge_molecules_xyz(xyzs):
   """Merges coordinates of multiple molecules. 
 
@@ -374,6 +381,7 @@ def merge_molecules(molecules):
       combined = rdmolops.CombineMols(combined, nextmol)
     return combined
 
+
 def compute_contact_centroid(molecular_complex, cutoff=4.5):
   """Computes the (x,y,z) centroid of the contact regions of this molecular complex.
 
@@ -393,9 +401,10 @@ def compute_contact_centroid(molecular_complex, cutoff=4.5):
   """
   fragments = reduce_molecular_complex_to_contacts(molecular_complex, cutoff)
   coords = [frag[0] for frag in fragments]
-  contact_coords = merge_molecules_xyz(coords) 
+  contact_coords = merge_molecules_xyz(coords)
   centroid = np.mean(contact_coords, axis=0)
   return (centroid)
+
 
 def compute_ring_center(mol, ring_indices):
   """Computes 3D coordinates of a center of a given ring.
@@ -419,7 +428,8 @@ def compute_ring_center(mol, ring_indices):
     ring_xyz[i] = np.array(atom_position)
   ring_centroid = compute_centroid(ring_xyz)
   return ring_centroid
- 
+
+
 def compute_ring_normal(mol, ring_indices):
   """Computes normal to a plane determined by a given ring.
 
@@ -445,6 +455,7 @@ def compute_ring_normal(mol, ring_indices):
   v2 = points[2] - points[0]
   normal = np.cross(v1, v2)
   return normal
+
 
 def rotate_molecules(mol_coordinates_list):
   """Rotates provided molecular coordinates.
@@ -473,6 +484,7 @@ def rotate_molecules(mol_coordinates_list):
     rotated_coordinates_list.append(rotated_coordinates)
 
   return (rotated_coordinates_list)
+
 
 def compute_all_ecfp(mol, indices=None, degree=2):
   """Obtain molecular fragment for all atoms emanating outward to given degree.

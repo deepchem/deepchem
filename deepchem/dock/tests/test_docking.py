@@ -32,12 +32,13 @@ class TestDocking(unittest.TestCase):
     # We provide no scoring model so the docker won't score
     vpg = dc.dock.VinaPoseGenerator()
     docker = dc.dock.Docker(vpg)
-    docked_outputs = docker.dock((self.protein_file, self.ligand_file),
-                                 exhaustiveness=1,
-                                 num_modes=1,
-                                 out_dir="/tmp")
+    docked_outputs = docker.dock(
+        (self.protein_file, self.ligand_file),
+        exhaustiveness=1,
+        num_modes=1,
+        out_dir="/tmp")
 
-    # Check only one output since num_modes==1 
+    # Check only one output since num_modes==1
     assert len(list(docked_outputs)) == 1
 
   @pytest.mark.slow
@@ -48,7 +49,7 @@ class TestDocking(unittest.TestCase):
     vpg = dc.dock.VinaPoseGenerator()
     docker = dc.dock.Docker(vpg)
     docked_outputs = docker.dock(
-        (self.protein_file, self.ligand_file), 
+        (self.protein_file, self.ligand_file),
         centroid=(10, 10, 10),
         box_dims=(1, 1, 1),
         exhaustiveness=1,
@@ -56,7 +57,7 @@ class TestDocking(unittest.TestCase):
         out_dir="/tmp")
 
     # Check returned files exist
-    assert len(list(docked_outputs)) == 1 
+    assert len(list(docked_outputs)) == 1
 
   @pytest.mark.slow
   def test_pocket_docker_dock(self):
