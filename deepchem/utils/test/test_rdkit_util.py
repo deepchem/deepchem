@@ -19,7 +19,11 @@ class TestRdkitUtil(unittest.TestCase):
                                     '../../feat/tests/3ws9_ligand.sdf')
 
   def test_load_complex(self):
-    pass
+    complexes = rdkit_util.load_complex(
+        (self.protein_file, self.ligand_file),
+        add_hydrogens=False,
+        calc_charges=False)
+    assert len(complexes) == 2
 
   def test_load_molecule(self):
     # adding hydrogens and charges is tested in dc.utils
@@ -66,7 +70,25 @@ class TestRdkitUtil(unittest.TestCase):
     assert after_hydrogen_count >= original_hydrogen_count
 
   def test_apply_pdbfixer(self):
-    pass
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
+    xyz, mol = rdkit_util.load_molecule(
+        ligand_file, calc_charges=False, add_hydrogens=False)
+    original_hydrogen_count = 0
+    for atom_idx in range(mol.GetNumAtoms()):
+      atom = mol.GetAtoms()[atom_idx]
+      if atom.GetAtomicNum() == 1:
+        original_hydrogen_count += 1
+
+    assert mol is not None
+    mol = rdkit_util.apply_pdbfixer(mol, hydrogenate=True, is_protein=False)
+    assert mol is not None
+    after_hydrogen_count = 0
+    for atom_idx in range(mol.GetNumAtoms()):
+      atom = mol.GetAtoms()[atom_idx]
+      if atom.GetAtomicNum() == 1:
+        after_hydrogen_count += 1
+    assert_true(after_hydrogen_count >= original_hydrogen_count)
 
   def test_compute_charges(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -82,19 +104,6 @@ class TestRdkitUtil(unittest.TestCase):
       if value != 0:
         has_a_charge = True
     assert has_a_charge
-
-  def test_rotate_molecules(self):
-    # check if distances do not change
-    vectors = np.random.rand(4, 2, 3)
-    norms = np.linalg.norm(vectors[:, 1] - vectors[:, 0], axis=1)
-    vectors_rot = np.array(rdkit_util.rotate_molecules(vectors))
-    norms_rot = np.linalg.norm(vectors_rot[:, 1] - vectors_rot[:, 0], axis=1)
-    self.assertTrue(np.allclose(norms, norms_rot))
-
-    # check if it works for molecules with different numbers of atoms
-    coords = [np.random.rand(n, 3) for n in (10, 20, 40, 100)]
-    coords_rot = rdkit_util.rotate_molecules(coords)
-    self.assertEqual(len(coords), len(coords_rot))
 
   def test_load_molecule(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -160,3 +169,23 @@ class TestRdkitUtil(unittest.TestCase):
       second_atom_equal = np.all(xyz[i] == merged[i + len(xyz)])
       assert first_atom_equal
       assert second_atom_equal
+
+  def test_merge_molecules(self):
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
+    xyz, mol = rdkit_util.load_molecule(
+        ligand_file, calc_charges=False, add_hydrogens=False)
+    num_mol_atoms = mol.GetNumAtoms()
+    # self.ligand_file is for 3ws9_ligand.sdf
+    oth_xyz, oth_mol = rdkit_util.load_molecule(
+        self.ligand_file, calc_charges=False, add_hydrogens=False)
+    num_oth_mol_atoms = oth_mol.GetNumAtoms()
+    merged = rdkit_util.merge_molecules([mol, oth_mol])
+    merged_num_atoms = merged.GetNumAtoms()
+    assert merged_num_atoms == num_mol_atoms + num_oth_mol_atoms
+
+  def test_merge_molecular_fragments(self):
+    pass
+
+  def test_strip_hydrogens(self):
+    pass
