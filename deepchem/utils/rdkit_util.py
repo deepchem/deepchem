@@ -226,7 +226,8 @@ def load_complex(molecular_complex,
 def load_molecule(molecule_file,
                   add_hydrogens=True,
                   calc_charges=True,
-                  sanitize=True):
+                  sanitize=True,
+                  is_protein=False):
   """Converts molecule file to (xyz-coords, obmol object)
 
   Given molecule_file, returns a tuple of xyz coords of molecule
@@ -238,12 +239,15 @@ def load_molecule(molecule_file,
   ----------
   molecule_file: str
     filename for molecule
-  add_hydrogens: bool, optional
-    If true, add hydrogens via pdbfixer
-  calc_charges: bool, optional
-    If true, add charges via rdkit
-  sanitize: bool, optional
-    If true, sanitize molecules via rdkit
+  add_hydrogens: bool, optional (default True)
+    If True, add hydrogens via pdbfixer
+  calc_charges: bool, optional (default True)
+    If True, add charges via rdkit
+  sanitize: bool, optional (default False)
+    If True, sanitize molecules via rdkit
+  is_protein: bool, optional (default False)
+    If True`, this molecule is loaded as a protein. This flag will
+    affect some of the cleanup procedures applied.
 
   Returns
   -------
@@ -278,9 +282,8 @@ def load_molecule(molecule_file,
     raise ValueError("Unable to read non None Molecule Object")
 
   if add_hydrogens or calc_charges:
-    # We assume if it's from a PDB, it should be a protein
     my_mol = apply_pdbfixer(
-        my_mol, hydrogenate=add_hydrogens, is_protein=from_pdb)
+        my_mol, hydrogenate=add_hydrogens, is_protein=is_protein)
   if sanitize:
     try:
       Chem.SanitizeMol(my_mol)
