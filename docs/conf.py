@@ -84,6 +84,7 @@ for name in ['sphinx.ext.linkcode', 'numpydoc.linkcode']:
   else:
     print("NOTE: linkcode extension not found -- no links to source generated")
 
+
 def linkcode_resolve(domain, info):
   """
   Determine the URL corresponding to Python object
@@ -134,7 +135,7 @@ def linkcode_resolve(domain, info):
   fn = relpath(fn, start=dirname(deepchem.__file__))
 
   return "https://github.com/deepchem/deepchem/blob/master/deepchem/%s%s" % (
-       fn, linespec)
+      fn, linespec)
   #if 'dev' in numpy.__version__:
   #  return "https://github.com/numpy/numpy/blob/master/numpy/%s%s" % (
   #       fn, linespec)

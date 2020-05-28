@@ -5,7 +5,9 @@ DeepChem :code:`dc.data.Dataset` objects are one of the core building blocks of 
 
 Dataset
 -------
-The :code:`dc.data.Dataset` class is the abstract parent clss for all datasets. This class should never be directly initialized, but contains a number of useful method implementations.
+The :code:`dc.data.Dataset` class is the abstract parent class for all
+datasets. This class should never be directly initialized, but
+contains a number of useful method implementations.
 
 The goal of the :code:`Dataset` class is to be maximally interoperable with other common representations of machine learning datasets. For this reason we provide interconversion methods mapping from :code:`Dataset` objects to pandas dataframes, tensorflow Datasets, and PyTorch datasets.
 

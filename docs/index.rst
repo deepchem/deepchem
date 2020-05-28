@@ -18,9 +18,13 @@ The DeepChem Project
 What is DeepChem?
 -----------------
 
-The DeepChem project aims to build high quality tools to democratize the use of deep learning in the sciences. The core `DeepChem Repo`_ serves as a monorepo that organizes the DeepChem suite of scientific tools. As the project matures, smaller more focused tool will be surfaced in more targeted repos.
+The DeepChem project aims to build high quality tools to democratize
+the use of deep learning in the sciences. The origin of DeepChem
+focused on applications of deep learning to chemistry, but the project
+has slowly evolved past its roots to broader applications of deep
+learning to the sciences.
 
-DeepChem is primarily developed in Python, but we are experimenting with adding support for other languages.
+The core `DeepChem Repo`_ serves as a monorepo that organizes the DeepChem suite of scientific tools. As the project matures, smaller more focused tool will be surfaced in more targeted repos. DeepChem is primarily developed in Python, but we are experimenting with adding support for other languages.
 
 What are some of the things you can use DeepChem to do? Here's a few examples:
 
@@ -29,11 +33,16 @@ What are some of the things you can use DeepChem to do? Here's a few examples:
 - Predict physical properties of simple materials
 - Analyze protein structures and extract useful descriptors
 - Count the number of cells in a microscopy image
+- More coming soon...
 
 We should clarify one thing up front though. DeepChem is a machine
 learning library, so it gives you the tools to solve each of the
 applications mentioned above yourself. DeepChem may or may not have
 prebaked models which can solve these problems out of the box.
+
+Over time, we hope to grow the set of scientific applications DeepChem
+can address. This means we need lots of help! If you're a scientist
+who's interested in open source, please pitch on building DeepChem.
 
 Quick Start
 -----------
@@ -47,6 +56,7 @@ If you'd like to install DeepChem locally, we recommend using
 DeepChem with the one-liner
 
 .. code-block:: bash
+
     conda install -y -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu=2.3.0
 
 Then open your python and try running.
@@ -76,7 +86,8 @@ DeepChem developers.
 
 That said, we would very much appreciate a citation if you find our tools useful. You can cite DeepChem with the following reference.
 
-.. highlight:: guess
+.. code-block:: guess
+
   @book{Ramsundar-et-al-2019,
       title={Deep Learning for the Life Sciences},
       author={Bharath Ramsundar and Peter Eastman and Patrick Walters and Vijay Pande and Karl Leswing and Zhenqin Wu},
@@ -96,7 +107,7 @@ discussions about research, development or any general questions. If you'd like 
 .. _`on GitHub`: https://github.com/deepchem/deepchem
 .. _`Gitter`: https://gitter.im/deepchem/Lobby
 
-.. important:: Join our `community gitter <https://forms.gle/9TSdDYUgxYs8SA9e8>`_ to discuss DeepChem. Sign up for our `forums <https://forum.deepchem.io/>`_ to ralk about research, development, and general questions. 
+.. important:: Join our `community gitter <https://forms.gle/9TSdDYUgxYs8SA9e8>`_ to discuss DeepChem. Sign up for our `forums <https://forum.deepchem.io/>`_ to talk about research, development, and general questions. 
 
 .. toctree::
    :maxdepth: 4
@@ -108,5 +119,7 @@ discussions about research, development or any general questions. If you'd like 
    Datasets <datasets>
    Data Loaders <dataloaders>
    Featurizers <featurizers>
+   Splitters <splitters>
+   Transformers <transformers>
    Models <models>
    Introduction to Keras <keras>

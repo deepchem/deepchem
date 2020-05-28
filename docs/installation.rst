@@ -15,6 +15,7 @@ If you'd like to install DeepChem locally, we recommend using
 DeepChem with the one-liner
 
 .. code-block:: bash
+
     conda install -y -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu=2.3.0
 
 Then open your python and try running.
