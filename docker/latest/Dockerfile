@@ -18,4 +18,4 @@ RUN conda update -n base conda && \
     . /miniconda/etc/profile.d/conda.sh && \
     conda init bash && \
     conda activate deepchem && \
-    conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu=2.3.0
+    conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu
