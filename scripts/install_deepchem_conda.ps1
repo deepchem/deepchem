@@ -55,4 +55,4 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia `
     biopython `
     numpy
 
-pip install --pre -U $tensorflow tensorflow-probability
+pip install -U tensorflow tensorflow-probability
