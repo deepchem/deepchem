@@ -10,10 +10,8 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
+import os
 import sys
-import deepchem
-# sys.path.insert(0, os.path.abspath('.'))
 
 # -- Project information -----------------------------------------------------
 
@@ -133,7 +131,8 @@ def linkcode_resolve(domain, info):
   else:
     linespec = ""
 
-  fn = relpath(fn, start=dirname(deepchem.__file__))
+  fn = relpath(
+      fn, start=os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
   return "https://github.com/deepchem/deepchem/blob/master/deepchem/%s%s" % (
       fn, linespec)
