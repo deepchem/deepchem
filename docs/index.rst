@@ -53,11 +53,17 @@ Google Colab. Check out one of the `DeepChem Tutorials`_ or this
 
 If you'd like to install DeepChem locally, we recommend using
 :code:`conda`.  If you have :code:`conda` installed, you can install
-DeepChem with the one-liner
+DeepChem with GPU support with the one-liner
 
 .. code-block:: bash
 
-    conda install -y -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu=2.3.0
+    conda install -y -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu
+
+For CPU only support instead run
+
+.. code-block:: bash
+
+    conda install -y -c deepchem -c rdkit -c conda-forge -c omnia deepchem
 
 Then open your python and try running.
 
@@ -110,7 +116,7 @@ discussions about research, development or any general questions. If you'd like 
 .. important:: Join our `community gitter <https://forms.gle/9TSdDYUgxYs8SA9e8>`_ to discuss DeepChem. Sign up for our `forums <https://forum.deepchem.io/>`_ to talk about research, development, and general questions. 
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
    :caption: Table of Contents 
    :name: mastertoc
 
