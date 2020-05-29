@@ -28,7 +28,7 @@ def install(
     """install deepchem from miniconda on Google Colab
 
     For GPU notebook
-    (if you don't set the version, this script installs the latest package)
+    (if you don't set the version, this script will install the latest package)
     ```
     import deepchem_installer
     deepchem_installer.install()
