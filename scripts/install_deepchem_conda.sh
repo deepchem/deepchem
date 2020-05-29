@@ -31,14 +31,7 @@ then
 else
     export envname=$1
     conda create -y --name $envname python=$python_version
-    source activate $envname
-fi
-
-unamestr=`uname`
-if [[ "$unamestr" == 'Darwin' ]]; then
-   source activate root
-   conda install -y -q conda=4.3.25
-   source activate $envname
+    conda activate $envname
 fi
 
 yes | pip install --upgrade pip
@@ -61,5 +54,4 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     setuptools \
     biopython \
     numpy
-#yes | pip install $tensorflow==2.1.0 tensorflow-probability
 yes | pip install --pre -U $tensorflow tensorflow-probability
