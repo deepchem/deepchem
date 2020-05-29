@@ -33,10 +33,7 @@ The :code:`dc.feat.Featurizer` class is the abstract parent class for all featur
 MolecularFeaturizer
 -------------------
 
-The :code:`dc.feat.MolecularFeaturizer` class is the abstract parent class for all featurizers that work with small molecule data. 
-
-.. autoclass:: deepchem.feat.MolecularFeaturizer
-  :members:
+Molecular Featurizers are those that work with datasets of molecules.
 
 ConvMolFeaturizer
 ^^^^^^^^^^^^^^^^^
@@ -74,19 +71,34 @@ CoulombMatrixEig
 .. autoclass:: deepchem.feat.CoulombMatrixEig
   :members:
 
+AtomCoordinates
+^^^^^^^^^^^^^^^
 
-ReactionFeaturizer
-------------------
-
-The :code:`dc.feat.ReactionFeaturizer` class is the abstract parent class for all featurizers that work with chemical reaction data.
-
-.. autoclass:: deepchem.feat.ReactionFeaturizer
+.. autoclass:: deepchem.feat.AtomicCoordinates
   :members:
 
-MolecularComplexFeaturizer
---------------------------
+AdjacencyFingerprint
+^^^^^^^^^^^^^^^^^^^^
 
-The :code:`dc.feat.MolecularComplexFeaturizer` class is the abstract parent class for all featurizers that work with three dimensional molecular complexes. 
+.. autoclass:: deepchem.feat.AdjacencyFingerprint
+  :members:
+
+SmilesToSeq
+^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.SmilesToSeq
+  :members:
+
+SmilesToImage
+^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.SmilesToImage
+  :members:
+
+ComplexFeaturizer
+-----------------
+
+The :code:`dc.feat.ComplexFeaturizer` class is the abstract parent class for all featurizers that work with three dimensional molecular complexes. 
 
 
 .. autoclass:: deepchem.feat.ComplexFeaturizer
@@ -96,6 +108,19 @@ RdkitGridFeaturizer
 ^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.RdkitGridFeaturizer
+  :members:
+
+AtomConvFeaturizer
+^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.NeighborListComplexAtomicCoordinates
+  :members:
+
+
+BindingPocketFeaturizer
+-----------------------
+
+.. autoclass:: deepchem.feat.BindingPocketFeaturizer
   :members:
 
 UserDefinedFeaturizer
@@ -108,4 +133,16 @@ BPSymmetryFunctionInput
 -----------------------
 
 .. autoclass:: deepchem.feat.BPSymmetryFunctionInput
+  :members:
+
+OneHotFeaturizer
+----------------
+
+.. autoclass:: deepchem.feat.OneHotFeaturizer
+  :members:
+
+RawFeaturizer
+-------------
+
+.. autoclass:: deepchem.feat.RawFeaturizer
   :members:

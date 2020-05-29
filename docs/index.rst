@@ -122,4 +122,10 @@ discussions about research, development or any general questions. If you'd like 
    Splitters <splitters>
    Transformers <transformers>
    Models <models>
-   Introduction to Keras <keras>
+   Layers <layers>
+   Metrics <metrics>
+   Hyperparameter Turning <hyper>
+   MoleculeNet <moleculenet>
+   Metalearning <metalearning>
+   Reinforcement Learning <rl>
+   Utilities <utils>
