@@ -10,6 +10,7 @@ then
     export tensorflow=tensorflow-gpu
     echo "Using Tensorflow (GPU MODE)."
 else
+    export tensorflow=tensorflow
     echo "Using Tensorflow (CPU MODE) by default."
 fi
 
