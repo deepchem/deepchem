@@ -85,6 +85,7 @@ for name in ['sphinx.ext.linkcode', 'numpydoc.linkcode']:
     print("NOTE: linkcode extension not found -- no links to source generated")
 
 
+# This code was borrowed from Numpy's doc-to-source linker.
 def linkcode_resolve(domain, info):
   """
   Determine the URL corresponding to Python object
@@ -136,6 +137,7 @@ def linkcode_resolve(domain, info):
 
   return "https://github.com/deepchem/deepchem/blob/master/deepchem/%s%s" % (
       fn, linespec)
+  # TODO: Should we do similar dev handling?
   #if 'dev' in numpy.__version__:
   #  return "https://github.com/numpy/numpy/blob/master/numpy/%s%s" % (
   #       fn, linespec)
