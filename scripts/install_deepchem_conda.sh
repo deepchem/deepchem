@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 # Used to make a conda environment with deepchem
 
-# Change commented out line For gpu tensorflow
-#export tensorflow=tensorflow-gpu
-export tensorflow=tensorflow
-
 if [ -z "$gpu" ]
 then
     export tensorflow=tensorflow
