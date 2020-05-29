@@ -18,7 +18,33 @@ def load_clintox(featurizer='ECFP',
                  data_dir=None,
                  save_dir=None,
                  **kwargs):
-  """Load clintox datasets."""
+  """Load clintox datasets.
+
+  The ClinTox dataset compares drugs approved by the FDA and
+  drugs that have failed clinical trials for toxicity reasons.
+  The dataset includes two classification tasks for 1491 drug
+  compounds with known chemical structures: (1) clinical trial
+  toxicity (or absence of toxicity) and (2) FDA approval status.
+  List of FDA-approved drugs are compiled from the SWEETLEAD
+  database, and list of drugs that failed clinical trials for
+  toxicity reasons are compiled from the Aggregate Analysis of
+  ClinicalTrials.gov(AACT) database.
+
+  The data file contains a csv table, in which columns below are
+  used:
+     "smiles" - SMILES representation of the molecular structure
+     "FDA_APPROVED" - FDA approval status
+     "CT_TOX" - Clinical trial results
+
+References:
+  Gayvert, Kaitlyn M., Neel S. Madhukar, and Olivier Elemento. "A data-driven approach to predicting successes and failures of clinical trials." Cell chemical biology 23.10 (2016): 1294-1301.
+
+  Artemov, Artem V., et al. "Integrated deep learned transcriptomic and structure-based predictor of clinical trials outcomes." bioRxiv (2016): 095653.
+
+  Novick, Paul A., et al. "SWEETLEAD: an in silico database of approved drugs, regulated chemicals, and herbal isolates for computer-aided drug discovery." PloS one 8.11 (2013): e79568.
+
+  Aggregate Analysis of ClincalTrials.gov (AACT) Database. https://www.ctti-clinicaltrials.org/aact-database
+  """
   if data_dir is None:
     data_dir = DEFAULT_DIR
   if save_dir is None:
