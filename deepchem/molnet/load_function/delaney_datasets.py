@@ -18,7 +18,16 @@ def load_delaney(featurizer='ECFP',
                  data_dir=None,
                  save_dir=None,
                  **kwargs):
-  """Load delaney datasets."""
+  """Load delaney datasets.
+
+  The Delaney datasets are extracted from the following paper
+
+  Delaney, John S. "ESOL: estimating aqueous solubility directly from molecular structure." Journal of chemical information and computer sciences 44.3 (2004): 1000-1005.
+
+  This dataset contains 2874 measured aqueous solubility
+  values. The source dataset is available in the supplemental
+  material of the original paper.
+  """
   # Featurize Delaney dataset
   logger.info("About to featurize Delaney dataset.")
   if data_dir is None:
@@ -60,8 +69,9 @@ def load_delaney(featurizer='ECFP',
   elif featurizer == "smiles2img":
     img_spec = kwargs.get("img_spec", "std")
     img_size = kwargs.get("img_size", 80)
+    res = kwargs.get("res", 0.5)
     featurizer = deepchem.feat.SmilesToImage(
-        img_size=img_size, img_spec=img_spec)
+        img_size=img_size, img_spec=img_spec, res=res)
 
   loader = deepchem.data.CSVLoader(
       tasks=delaney_tasks, smiles_field="smiles", featurizer=featurizer)

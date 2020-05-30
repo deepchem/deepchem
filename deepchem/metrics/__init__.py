@@ -2,8 +2,8 @@
 
 import numpy as np
 import warnings
-from deepchem.utils.save import log
 import sklearn.metrics
+import logging
 from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import recall_score
 from sklearn.metrics import r2_score
@@ -16,15 +16,24 @@ from sklearn.metrics import jaccard_score
 from sklearn.metrics import f1_score
 from scipy.stats import pearsonr
 
+logger = logging.getLogger(__name__)
+
 
 def to_one_hot(y, n_classes=2):
   """Transforms label vector into one-hot encoding.
 
-    Turns y into vector of shape [n_samples, 2] (assuming binary labels).
+  Turns y into vector of shape `(n_samples, n_classes)` with a one-hot
+  encoding. 
 
-    y: np.ndarray
-      A vector of shape [n_samples, 1]
-    """
+  Parameters
+  ----------
+  y: np.ndarray
+    A vector of shape `(n_samples, 1)`
+
+  Returns
+  -------
+  A numpy.ndarray of shape `(n_samples, n_classes)`.
+  """
   n_samples = np.shape(y)[0]
   y_hot = np.zeros((n_samples, n_classes))
   y_hot[np.arange(n_samples), y.astype(np.int64)] = 1
@@ -34,9 +43,17 @@ def to_one_hot(y, n_classes=2):
 def from_one_hot(y, axis=1):
   """Transorms label vector from one-hot encoding.
 
-    y: np.ndarray
-      A vector of shape [n_samples, num_classes]
-    """
+  Parameters
+  ----------
+  y: np.ndarray
+    A vector of shape `(n_samples, num_classes)`
+  axis: int, optional (default 1)
+    The axis with one-hot encodings to reduce on.
+
+  Returns
+  -------
+  A numpy.ndarray of shape `(n_samples,)`
+  """
   return np.argmax(y, axis=axis)
 
 
@@ -62,6 +79,24 @@ def roc_auc_score(y, y_pred):
 
 
 def accuracy_score(y, y_pred):
+  """Compute accuracy score
+
+  Computes accuracy score for classification tasks. Works for both
+  binary and multiclass classification.
+
+  Parameters
+  ----------
+  y: np.ndarray
+    Of shape `(N_samples,)`
+  y_pred: np.ndarray
+    Of shape `(N_samples,)`
+
+  Returns
+  -------
+  score: float
+    The fraction of correctly classified samples. A number between 0
+    and 1.
+  """
   y = _ensure_class_labels(y)
   y_pred = _ensure_class_labels(y_pred)
   return sklearn.metrics.accuracy_score(y, y_pred)
@@ -83,26 +118,29 @@ def pearson_r2_score(y, y_pred):
 
 
 def jaccard_index(y, y_pred):
-  """Computes Jaccard Index which is the Intersection Over Union metric
-       which is commonly used in image segmentation tasks
+  """Computes Jaccard Index which is the Intersection Over Union metric which is commonly used in image segmentation tasks
 
-      Parameters
-      ----------
-      y: ground truth array
-      y_pred: predicted array
-    """
+  Parameters
+  ----------
+  y: ground truth array
+  y_pred: predicted array
+  """
   return jaccard_score(y, y_pred)
 
 
 def pixel_error(y, y_pred):
-  """defined as 1 - the maximal F-score of pixel similarity,
-       or squared Euclidean distance between the original and the result labels.
+  """An error metric in case y, y_pred are images.
 
-      Parameters
-      ----------
-      y: ground truth array
-      y_pred: predicted array
-    """
+  Defined as 1 - the maximal F-score of pixel similarity, or squared
+  Euclidean distance between the original and the result labels.
+
+  Parameters
+  ----------
+  y: np.ndarray
+    ground truth array
+  y_pred: np.ndarray
+    predicted array
+  """
   return 1 - f1_score(y, y_pred)
 
 
@@ -129,21 +167,27 @@ def mae_score(y_true, y_pred):
 def kappa_score(y_true, y_pred):
   """Calculate Cohen's kappa for classification tasks.
 
-    See https://en.wikipedia.org/wiki/Cohen%27s_kappa
+  See https://en.wikipedia.org/wiki/Cohen%27s_kappa
 
-    Note that this implementation of Cohen's kappa expects binary labels.
+  Note that this implementation of Cohen's kappa expects binary labels.
 
-    Args:
-      y_true: Numpy array containing true values.
-      y_pred: Numpy array containing predicted values.
+  Parameters
+  ----------
+  y_true: np.ndarray
+    Numpy array containing true values.
+  y_pred: np.ndarray
+    Numpy array containing predicted values.
 
-    Returns:
-      kappa: Numpy array containing kappa for each classification task.
+  Returns
+  -------
+  kappa: np.ndarray
+    Numpy array containing kappa for each classification task.
 
-    Raises:
-      AssertionError: If y_true and y_pred are not the same size, or if class
-        labels are not in [0, 1].
-    """
+  Raises
+  ------
+  AssertionError: If y_true and y_pred are not the same size, or if
+  class labels are not in [0, 1].
+  """
   assert len(y_true) == len(y_pred), 'Number of examples does not match.'
   yt = np.asarray(y_true, dtype=int)
   yp = np.asarray(y_pred, dtype=int)
@@ -165,21 +209,23 @@ def bedroc_score(y_true, y_pred, alpha=20.0):
   """BEDROC metric implemented according to Truchon and Bayley that modifies
   the ROC score by allowing for a factor of early recognition
 
-    References:
-      The original paper by Truchon et al. is located at
-      https://pubs.acs.org/doi/pdf/10.1021/ci600426e
+  Parameters
+  ----------
+  y_true (array_like):
+    Binary class labels. 1 for positive class, 0 otherwise
+  y_pred (array_like):
+    Predicted labels
+  alpha (float), default 20.0:
+    Early recognition parameter
 
-    Args:
-      y_true (array_like):
-        Binary class labels. 1 for positive class, 0 otherwise
-      y_pred (array_like):
-        Predicted labels
-      alpha (float), default 20.0:
-        Early recognition parameter
+  Returns
+  -------
+  float: Value in [0, 1] that indicates the degree of early recognition
 
-    Returns:
-      float: Value in [0, 1] that indicates the degree of early recognition
-
+  Notes
+  -----
+  The original paper by Truchon et al. is located at
+  https://pubs.acs.org/doi/pdf/10.1021/ci600426e
   """
 
   assert len(y_true) == len(y_pred), 'Number of examples do not match'
@@ -203,24 +249,46 @@ def bedroc_score(y_true, y_pred, alpha=20.0):
 
 
 class Metric(object):
-  """Wrapper class for computing user-defined metrics."""
+  """Wrapper class for computing user-defined metrics.
+
+  There are a variety of different metrics this class aims to support.
+  At the most simple, metrics for classification and regression that
+  assume that values to compare are scalars. More complicated, there
+  may perhaps be two image arrays that need to be compared.
+
+  The `Metric` class provides a wrapper for standardizing the API
+  around different classes of metrics that may be useful for DeepChem
+  models. The implementation provides a few non-standard conveniences
+  such as built-in support for multitask and multiclass metrics, and
+  support for multidimensional outputs.
+  """
 
   def __init__(self,
                metric,
                task_averager=None,
                name=None,
                threshold=None,
-               verbose=True,
                mode=None,
                compute_energy_metric=False):
     """
-        Args:
-          metric: function that takes args y_true, y_pred (in that order) and
-                  computes desired score.
-          task_averager: If not None, should be a function that averages metrics
-                  across tasks. For example, task_averager=np.mean. If task_averager
-                  is provided, this task will be inherited as a multitask metric.
-        """
+    Parameters
+    ----------
+    metric: function
+      function that takes args y_true, y_pred (in that order) and
+      computes desired score.
+    task_averager: function, optional
+      If not None, should be a function that averages metrics across
+      tasks. For example, task_averager=np.mean. If task_averager is
+      provided, this task will be inherited as a multitask metric.
+    name: str, optional
+      Name of this metric
+    threshold: float, optional
+      Used for binary metrics and is the threshold for the positive
+      class
+    mode: str, optional
+      Must be either classification or regression.
+    compute_energy_metric: TODO(rbharath): Should this be removed? 
+    """
     self.metric = metric
     self.task_averager = task_averager
     self.is_multitask = (self.task_averager is not None)
@@ -231,13 +299,12 @@ class Metric(object):
         self.name = self.task_averager.__name__ + "-" + self.metric.__name__
     else:
       self.name = name
-    self.verbose = verbose
     self.threshold = threshold
     if mode is None:
       if self.metric.__name__ in [
           "roc_auc_score", "matthews_corrcoef", "recall_score",
           "accuracy_score", "kappa_score", "precision_score",
-          "balanced_accuracy_score", "prc_auc_score", "f1_score"
+          "balanced_accuracy_score", "prc_auc_score", "f1_score", "bedroc_score"
       ]:
         mode = "classification"
       elif self.metric.__name__ in [
@@ -269,25 +336,25 @@ class Metric(object):
                      per_task_metrics=False):
     """Compute a performance metric for each task.
 
-        Parameters
-        ----------
-        y_true: np.ndarray
-          An np.ndarray containing true values for each task.
-        y_pred: np.ndarray
-          An np.ndarray containing predicted values for each task.
-        w: np.ndarray, optional
-          An np.ndarray containing weights for each datapoint.
-        n_classes: int, optional
-          Number of classes in data for classification tasks.
-        filter_nans: bool, optional
-          Remove NaN values in computed metrics
-        per_task_metrics: bool, optional
-          If true, return computed metric for each task on multitask dataset.
+    Parameters
+    ----------
+    y_true: np.ndarray
+      An np.ndarray containing true values for each task.
+    y_pred: np.ndarray
+      An np.ndarray containing predicted values for each task.
+    w: np.ndarray, optional
+      An np.ndarray containing weights for each datapoint.
+    n_classes: int, optional
+      Number of classes in data for classification tasks.
+    filter_nans: bool, optional
+      Remove NaN values in computed metrics
+    per_task_metrics: bool, optional
+      If true, return computed metric for each task on multitask dataset.
 
-        Returns
-        -------
-        A numpy nd.array containing metric values for each task.
-        """
+    Returns
+    -------
+    A numpy nd.array containing metric values for each task.
+    """
     n_samples = y_true.shape[0]
     expected_dims = (3 if self.mode == "classification" else 2)
     if len(y_pred.shape) < expected_dims:
@@ -311,7 +378,7 @@ class Metric(object):
 
       metric_value = self.compute_singletask_metric(y_task, y_pred_task, w_task)
       computed_metrics.append(metric_value)
-    log("computed_metrics: %s" % str(computed_metrics), self.verbose)
+    logger.info("computed_metrics: %s" % str(computed_metrics))
     if n_tasks == 1:
       computed_metrics = computed_metrics[0]
     if not self.is_multitask:
@@ -334,15 +401,20 @@ class Metric(object):
   def compute_singletask_metric(self, y_true, y_pred, w):
     """Compute a metric value.
 
-    Args:
-      y_true: A list of arrays containing true values for each task.
-      y_pred: A list of arrays containing predicted values for each task.
+    Parameters
+    ----------
+    y_true: list
+      A list of arrays containing true values for each task.
+    y_pred: list
+      A list of arrays containing predicted values for each task.
 
-    Returns:
-      Float metric value.
+    Returns
+    -------
+    Float metric value.
 
-    Raises:
-      NotImplementedError: If metric_str is not in METRICS.
+    Raises
+    ------
+    NotImplementedError: If metric_str is not in METRICS.
     """
 
     y_true = np.array(np.squeeze(y_true[w != 0]))

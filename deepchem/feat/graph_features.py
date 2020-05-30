@@ -1,5 +1,4 @@
 import numpy as np
-from rdkit import Chem
 
 import deepchem as dc
 from deepchem.feat import Featurizer
@@ -55,11 +54,9 @@ possible_atom_list = [
 possible_numH_list = [0, 1, 2, 3, 4]
 possible_valence_list = [0, 1, 2, 3, 4, 5, 6]
 possible_formal_charge_list = [-3, -2, -1, 0, 1, 2, 3]
-possible_hybridization_list = [
-    Chem.rdchem.HybridizationType.SP, Chem.rdchem.HybridizationType.SP2,
-    Chem.rdchem.HybridizationType.SP3, Chem.rdchem.HybridizationType.SP3D,
-    Chem.rdchem.HybridizationType.SP3D2
-]
+# To avoid importing rdkit, this is a placeholder list of the correct
+# length. These will be replaced with rdkit HybridizationType below
+possible_hybridization_list = ["SP", "SP2", "SP3", "SP3D", "SP3D2"]
 possible_number_radical_e_list = [0, 1, 2]
 possible_chirality_list = ['R', 'S']
 
@@ -84,6 +81,14 @@ def get_feature_list(atom):
   atom: RDKit.rdchem.Atom
     Atom to get features for 
   """
+  # Replace the hybridization
+  from rdkit import Chem
+  global possible_hybridization_list
+  possible_hybridization_list = [
+      Chem.rdchem.HybridizationType.SP, Chem.rdchem.HybridizationType.SP2,
+      Chem.rdchem.HybridizationType.SP3, Chem.rdchem.HybridizationType.SP3D,
+      Chem.rdchem.HybridizationType.SP3D2
+  ]
   features = 6 * [0]
   features[0] = safe_index(possible_atom_list, atom.GetSymbol())
   features[1] = safe_index(possible_numH_list, atom.GetTotalNumHs())
@@ -91,6 +96,7 @@ def get_feature_list(atom):
   features[3] = safe_index(possible_formal_charge_list, atom.GetFormalCharge())
   features[4] = safe_index(possible_number_radical_e_list,
                            atom.GetNumRadicalElectrons())
+
   features[5] = safe_index(possible_hybridization_list, atom.GetHybridization())
   return features
 

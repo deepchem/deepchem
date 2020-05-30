@@ -20,7 +20,12 @@ def load_sweet(featurizer='ECFP',
                data_dir=None,
                save_dir=None,
                **kwargs):
-  """Load sweet datasets."""
+  """Load sweet datasets.
+  
+  Sweetlead is a dataset of chemical structures for approved drugs, chemical isolates from traditional medicinal herbs, and regulated chemicals. Resulting structures are filtered for the active pharmaceutical ingredient, standardized, and differing formulations of the same drug were combined in the final database.
+
+  Novick, Paul A., et al. "SWEETLEAD: an in silico database of approved drugs, regulated chemicals, and herbal isolates for computer-aided drug discovery." PLoS One 8.11 (2013).
+  """
   # Load Sweetlead dataset
   logger.info("About to load Sweetlead dataset.")
   SWEET_tasks = ["task"]
