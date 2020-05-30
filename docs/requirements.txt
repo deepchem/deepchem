@@ -1,1 +1,7 @@
 sphinx_rtd_theme
+numpy
+pandas
+sklearn
+tensorflow
+pillow
+tensorflow_probability

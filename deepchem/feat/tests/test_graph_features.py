@@ -22,7 +22,7 @@ class TestConvMolFeaturizer(unittest.TestCase):
     # Note there is a central nitrogen of degree 4, with 4 carbons
     # of degree 1 (connected only to central nitrogen).
     raw_smiles = ['C[N+](C)(C)C']
-    import rdkit
+    import rdkit.Chem
     mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
     featurizer = ConvMolFeaturizer()
     mols = featurizer.featurize(mols)
@@ -70,7 +70,7 @@ class TestConvMolFeaturizer(unittest.TestCase):
   def test_alkane(self):
     """Test on simple alkane"""
     raw_smiles = ['CCC']
-    import rdkit
+    import rdkit.Chem
     mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
     featurizer = ConvMolFeaturizer()
     mol_list = featurizer.featurize(mols)
