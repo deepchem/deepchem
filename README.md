@@ -13,12 +13,12 @@ materials science, quantum chemistry, and biology.
 
 * [Requirements](#requirements)
 * [Installation](#installation)
-    * [Install latest package with conda](#install-via-conda-(Recommendation))
-    * [Install latest package with pip (WIP)](#install-via-pip-(WIP))
+    * [Install latest package with conda](#install-via-conda-recommendation)
+    * [Install latest package with pip (WIP)](#install-via-pip-wip)
     * [Install from source](#install-from-source)
       * [OS except Windows](#os-except-windows)
-      * [Windows](#windows-(especially-powershell))
-    * [Install using a Docker with GPU (WIP)](#install-using-a-Docker-with-GPU-(WIP))
+      * [Windows](#windows-especially-powershell)
+    * [Install using a Docker with GPU (WIP)](#install-using-a-docker-with-gpu-wip)
 * [FAQ and Troubleshooting](#faq-and-troubleshooting)
 * [Getting Started](#getting-started)
 * [Contributing to DeepChem](/CONTRIBUTING.md)
@@ -72,7 +72,7 @@ pip install joblib pandas pillow scikit-learn tensorflow deepchem
 ```
 
 ### Install from source
-You can install deepchem in a new conda environment using the conda commands in scripts/install_deepchem_conda.sh. Installing via this script will ensure that you are **installing from the source**.  
+You can install deepchem in a new conda environment using the conda commands in `scripts/install_deepchem_conda.sh.` Installing via this script will ensure that you are **installing from the source**.  
 The following script requires `conda>=4.4` because it uses the `conda activate` command. (Please see the detail from [here](https://github.com/conda/conda/blob/a4c4feae404b2b378e106bd25f62cc8be15c768f/CHANGELOG.md#440-2017-12-20))
 
 First, please clone the deepchem repository from GitHub.
@@ -84,7 +84,7 @@ cd deepchem
 
 Then, follow each instruction on your OS.
 
-#### OS except Windows
+### OS except Windows
 
 If you want GPU support:
 ```
@@ -108,15 +108,18 @@ nosetests -a '!slow' -v deepchem --nologcapture        # Run tests
 
 Check [this link](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for more information about the installation of conda environments.
 
-#### Windows (especially powershell)
+### Windows (especially powershell)
 
 Currently you have to install from source in windows.
 
 If you want gpu support, use the following command in powershell:
+
 ```ps1
 .\scripts\install_deepchem_conda.ps1 -gpu 1 deepchem
 ```
-Or you can use the following command to install deepchem without gpu support.
+
+Or use the following command to install deepchem without gpu support:
+
 ```ps1
 .\scripts\install_deepchem_conda.ps1 -gpu 0 deepchem
 ```
@@ -124,6 +127,7 @@ Or you can use the following command to install deepchem without gpu support.
 Before activating deepchem environment, make sure conda-powershell has been initialized.  
 Check if there is a `(base)` before `PS` in powershell.  
 If not, use `conda init powershell` to activate it, then:
+
 ```
 conda activate deepchem
 python setup.py install
@@ -132,11 +136,11 @@ nosetests -a '!slow' -v deepchem --nologcapture
 
 ### Install using a Docker with GPU (WIP)
 
-#### Build the image from Dockerfile (WIP)
+### Build the image from Dockerfile (WIP)
 
 We prepare for [sample Dockerfiles](https://github.com/deepchem/deepchem/tree/master/docker) to install deepchem from source codes and conda package manager. Please check them!
 
-#### Use the official deepchem image (WIP)
+### Use the official deepchem image (WIP)
 
 This instruction is under development.
 

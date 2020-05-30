@@ -9,7 +9,8 @@ RUN apt-get update && \
 RUN MINICONDA="Miniconda3-latest-Linux-x86_64.sh" && \
     wget --quiet https://repo.continuum.io/miniconda/$MINICONDA && \
     bash $MINICONDA -b -p /miniconda && \
-    rm -f $MINICONDA
+    rm -f $MINICONDA && \
+    echo ". /miniconda/etc/profile.d/conda.sh" >> ~/.bashrc
 ENV PATH /miniconda/bin:$PATH
 
 # install deepchem with master branch
@@ -19,4 +20,9 @@ RUN conda update -n base conda && \
     . /miniconda/etc/profile.d/conda.sh && \
     conda init bash && \
     gpu=1 bash scripts/install_deepchem_conda.sh deepchem && \
-    conda activate deepchem && python setup.py install
+    conda activate deepchem && \
+    python setup.py install && \
+    conda clean -afy
+
+RUN echo "conda activate deepchem" >> ~/.bashrc
+WORKDIR /root/mydir

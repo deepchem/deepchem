@@ -9,7 +9,8 @@ RUN apt-get update && \
 RUN MINICONDA="Miniconda3-latest-Linux-x86_64.sh" && \
     wget --quiet https://repo.continuum.io/miniconda/$MINICONDA && \
     bash $MINICONDA -b -p /miniconda && \
-    rm -f $MINICONDA
+    rm -f $MINICONDA && \
+    echo ". /miniconda/etc/profile.d/conda.sh" >> ~/.bashrc
 ENV PATH /miniconda/bin:$PATH
 
 # install latest version deepchem
@@ -18,4 +19,8 @@ RUN conda update -n base conda && \
     . /miniconda/etc/profile.d/conda.sh && \
     conda init bash && \
     conda activate deepchem && \
-    conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu
+    conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu==2.3.0 && \
+    conda clean -afy
+
+RUN echo "conda activate deepchem" >> ~/.bashrc
+WORKDIR /root/mydir
