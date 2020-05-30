@@ -1,5 +1,4 @@
 import numpy as np
-#from rdkit import Chem
 
 import deepchem as dc
 from deepchem.feat import Featurizer
