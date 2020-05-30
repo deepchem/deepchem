@@ -65,16 +65,10 @@ conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu
 You are able to try to install deepchem via pip using the following command.  
 However, pip installation is under development, so this command may not work well. 
 
-`deepchem>2.3`
+`deepchem=>next_version`
 
 ```bash
 pip install joblib pandas pillow scikit-learn tensorflow deepchem
-```
-
-`deepchem<=2.3`
-
-```bash
-pip install joblib pandas pillow scikit-learn==0.22 tensorflow(or tensorflow-gpu)==1.15 deepchem
 ```
 
 ### Install from source
