@@ -27,6 +27,7 @@ def extract_labels(pdbbind_label_file):
       labels[line[0]] = line[3]
   return labels
 
+
 def construct_df(pdb_stem_directory, pdbbind_label_file, pdbbind_df_joblib):
   """
   Takes as input a stem directory containing subdirectories with ligand
@@ -58,7 +59,7 @@ def construct_df(pdb_stem_directory, pdbbind_label_file, pdbbind_df_joblib):
         ligand_mol2 = f
 
     print("Extracted Input Files:")
-    print (ligand_pdb, protein_pdb, ligand_mol2)
+    print(ligand_pdb, protein_pdb, ligand_mol2)
     if not ligand_pdb or not protein_pdb or not ligand_mol2:
       raise ValueError("Required files not present for %s" % pdb_dir)
     ligand_pdb_path = os.path.join(pdb_dir, ligand_pdb)
@@ -84,11 +85,14 @@ def construct_df(pdb_stem_directory, pdbbind_label_file, pdbbind_df_joblib):
     smiles = Chem.MolToSmiles(ligand_mol)
     complex_id = "%s%s" % (pdb_id, smiles)
     label = labels[pdb_id]
-    df_rows.append([pdb_id, smiles, complex_id, protein_pdb_lines,
-                    ligand_pdb_lines, ligand_mol2_lines, label])
+    df_rows.append([
+        pdb_id, smiles, complex_id, protein_pdb_lines, ligand_pdb_lines,
+        ligand_mol2_lines, label
+    ])
 
-  pdbbind_df = pd.DataFrame(df_rows, columns=('pdb_id', 'smiles', 'complex_id',
-                                              'protein_pdb', 'ligand_pdb',
-                                              'ligand_mol2', 'label'))
+  pdbbind_df = pd.DataFrame(df_rows,
+                            columns=('pdb_id', 'smiles', 'complex_id',
+                                     'protein_pdb', 'ligand_pdb', 'ligand_mol2',
+                                     'label'))
 
   joblib.dump(pdbbind_df, pdbbind_df_joblib)
