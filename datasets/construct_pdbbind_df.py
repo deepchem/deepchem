@@ -6,10 +6,9 @@ from __future__ import print_function
 import pickle
 import os
 import pandas as pd
-from rdkit import Chem
 from glob import glob
 import re
-from sklearn.externals import joblib
+import joblib
 
 
 def extract_labels(pdbbind_label_file):
@@ -39,6 +38,7 @@ def construct_df(pdb_stem_directory, pdbbind_label_file, pdbbind_df_joblib):
     of strings per line in file, ligand mol2 as a list of strings per line in
     mol2 file, and a "label" containing the experimental measurement.
   """
+  from rdkit import Chem
   labels = extract_labels(pdbbind_label_file)
   df_rows = []
   os.chdir(pdb_stem_directory)
