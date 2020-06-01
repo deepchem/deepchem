@@ -4,14 +4,17 @@
 # directly.
 import pandas as pd
 import deepchem as dc
+from rdkit import Chem
 
 df = pd.read_csv("example.csv")
 print("Original data loaded as DataFrame:")
 print(df)
 
 featurizer = dc.feat.CircularFingerprint(size=16)
-features = featurizer.featurize(df["smiles"])
-dataset = dc.data.NumpyDataset(X=features, y=df["log-solubility"], ids=df["Compound ID"])
+mols = [Chem.MolFromSmiles(smiles) for smiles in df["smiles"]]
+features = featurizer.featurize(mols)
+dataset = dc.data.NumpyDataset(
+    X=features, y=df["log-solubility"], ids=df["Compound ID"])
 
 print("Data converted into DeepChem Dataset")
 print(dataset)
