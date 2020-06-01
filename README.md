@@ -18,7 +18,7 @@ materials science, quantum chemistry, and biology.
   - [Install from source](#install-from-source)
     - [General installation](#general-installation)
     - [Use powershell (Windows)](#use-powershell-windows)
-  - [Install using a Docker with GPU (WIP)](#install-using-a-docker-with-gpu-wip)
+  - [Install using a Docker (WIP)](#install-using-a-docker-with-gpu-wip)
 - [FAQ and Troubleshooting](#faq-and-troubleshooting)
 - [Getting Started](#getting-started)
 - [Contributing to DeepChem](/CONTRIBUTING.md)
@@ -123,9 +123,9 @@ python setup.py install
 nosetests -a '!slow' -v deepchem --nologcapture
 ```
 
-### Install using a Docker with GPU (WIP)
+### Install using a Docker (WIP)
 
-### Build the image from Dockerfile (WIP)
+### Build the image from Dockerfile
 
 We prepare for [sample Dockerfiles](https://github.com/deepchem/deepchem/tree/master/docker) to install deepchem from source codes and conda package manager. Please check them!
 
