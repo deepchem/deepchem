@@ -18,4 +18,4 @@ alternate modes of splitting. Similarly, since the source data
 came pre-featurized, it is not possible to apply alternative
 featurizations.
 
-This folder contains examples training models on the Kaggle dataset:
+This folder contains examples training models on the Kaggle dataset.

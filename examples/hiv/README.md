@@ -18,6 +18,4 @@ are used:
 References:
 AIDS Antiviral Screen Data. https://wiki.nci.nih.gov/display/NCIDTPdata/AIDS+Antiviral+Screen+Data
 
-## Models Trained
-
-In this example we train the following models on the HIV collection.
+In this example we train models on the HIV collection.

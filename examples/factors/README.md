@@ -18,6 +18,4 @@ alternate modes of splitting. Similarly, since the source data
 came pre-featurized, it is not possible to apply alternative
 featurizations.
 
-In this example, we train various models on the Factors dataset:
-
-- 
+In this example, we train various models on the Factors dataset.
