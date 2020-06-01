@@ -17,6 +17,7 @@ ENV PATH /miniconda/bin:$PATH
 RUN conda update -n base conda && \
     git clone https://github.com/deepchem/deepchem.git && \
     cd deepchem && \
+    . /miniconda/etc/profile.d/conda.sh && \
     bash scripts/install_deepchem_conda.sh deepchem && \
     conda activate deepchem && \
     python setup.py install && \
