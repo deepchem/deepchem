@@ -1,19 +1,6 @@
 #!/usr/bin/env bash
 # Used to make a conda environment with deepchem
 
-if [ -z "$gpu" ]
-then
-    export tensorflow=tensorflow
-    echo "Using Tensorflow (CPU MODE) by default."
-elif [ "$gpu" == 1 ]
-then
-    export tensorflow=tensorflow-gpu
-    echo "Using Tensorflow (GPU MODE)."
-else
-    export tensorflow=tensorflow
-    echo "Using Tensorflow (CPU MODE) by default."
-fi
-
 if [ -z "$python_version" ]
 then
     echo "Using python 3.6 by default"

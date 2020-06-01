@@ -1,19 +1,3 @@
-param($gpu)
-if ($gpu -eq 1)
-{
-    $tensorflow = "tensorflow-gpu"
-    echo "Using Tensorflow (GPU MODE)."
-}
-elseif($gpu -eq 0)
-{
-    $tensorflow = "tensorflow"
-    echo "Using Tensorflow (CPU MODE)."
-}
-else
-{
-    $tensorflow = "tensorflow"
-    echo "Using Tensorflow (CPU MODE) by default."
-}
 if ($python_version)
 {
     echo "Using python "$python_version". But recommended to use python 3.6."

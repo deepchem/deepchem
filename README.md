@@ -1,9 +1,9 @@
 ﻿# DeepChem
+
 [![Build Status](https://travis-ci.org/deepchem/deepchem.svg?branch=master)](https://travis-ci.org/deepchem/deepchem)
 [![Coverage Status](https://coveralls.io/repos/github/deepchem/deepchem/badge.svg?branch=master)](https://coveralls.io/github/deepchem/deepchem?branch=master)
 [![Anaconda-Server Badge](https://anaconda.org/deepchem/deepchem/badges/version.svg)](https://anaconda.org/deepchem/deepchem)
 [![PyPI version](https://badge.fury.io/py/deepchem.svg)](https://badge.fury.io/py/deepchem)
-
 
 DeepChem aims to provide a high quality open-source toolchain
 that democratizes the use of deep-learning in drug discovery,
@@ -11,41 +11,42 @@ materials science, quantum chemistry, and biology.
 
 ### Table of contents:
 
-* [Requirements](#requirements)
-* [Installation](#installation)
-    * [Install latest package with conda](#install-via-conda-recommendation)
-    * [Install latest package with pip (WIP)](#install-via-pip-wip)
-    * [Install from source](#install-from-source)
-      * [OS except Windows](#os-except-windows)
-      * [Windows](#windows-especially-powershell)
-    * [Install using a Docker with GPU (WIP)](#install-using-a-docker-with-gpu-wip)
-* [FAQ and Troubleshooting](#faq-and-troubleshooting)
-* [Getting Started](#getting-started)
-* [Contributing to DeepChem](/CONTRIBUTING.md)
-    * [Code Style Guidelines](/CONTRIBUTING.md#code-style-guidelines)
-    * [Documentation Style Guidelines](/CONTRIBUTING.md#documentation-style-guidelines)
-    * [Gitter](#gitter)
-* [DeepChem Publications](#deepchem-publications)
-* [Examples](/examples)
-* [About Us](#about-us)
-* [Citing DeepChem](#citing-deepchem)
+- [Requirements](#requirements)
+- [Installation](#installation)
+  - [Install latest package with conda](#install-via-conda-recommendation)
+  - [Install latest package with pip (WIP)](#install-via-pip-wip)
+  - [Install from source](#install-from-source)
+    - [OS except Windows](#os-except-windows)
+    - [Windows](#windows-especially-powershell)
+  - [Install using a Docker with GPU (WIP)](#install-using-a-docker-with-gpu-wip)
+- [FAQ and Troubleshooting](#faq-and-troubleshooting)
+- [Getting Started](#getting-started)
+- [Contributing to DeepChem](/CONTRIBUTING.md)
+  - [Code Style Guidelines](/CONTRIBUTING.md#code-style-guidelines)
+  - [Documentation Style Guidelines](/CONTRIBUTING.md#documentation-style-guidelines)
+  - [Gitter](#gitter)
+- [DeepChem Publications](#deepchem-publications)
+- [Examples](/examples)
+- [About Us](#about-us)
+- [Citing DeepChem](#citing-deepchem)
 
 ## Requirements
 
 DeepChem requires these packages on any condition.
 
-* [joblib](https://pypi.python.org/pypi/joblib)
-* [pandas](http://pandas.pydata.org/)
-* [Pillow](https://pypi.org/project/Pillow/)
-* [scikit-learn](https://github.com/scikit-learn/scikit-learn.git)
-* [tensorflow](https://www.tensorflow.org/)
+- [joblib](https://pypi.python.org/pypi/joblib)
+- [pandas](http://pandas.pydata.org/)
+- [Pillow](https://pypi.org/project/Pillow/)
+- [scikit-learn](https://github.com/scikit-learn/scikit-learn.git)
+- [tensorflow](https://www.tensorflow.org/)
 
 ### Soft Requirements
+
 DeepChem has a number of "soft" requirements. These are packages which are needed for various submodules of DeepChem but not for the package as a whole.
 
-* [RDKit](http://www.rdkit.org/docs/Install.html)
-* [MDTraj](http://mdtraj.org/)
-* [PDBFixer](https://github.com/pandegroup/pdbfixer)
+- [RDKit](http://www.rdkit.org/docs/Install.html)
+- [MDTraj](http://mdtraj.org/)
+- [PDBFixer](https://github.com/pandegroup/pdbfixer)
 
 ## Installation
 
@@ -56,6 +57,7 @@ conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem
 ```
 
 If you want GPU support:
+
 ```bash
 conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu
 ```
@@ -63,15 +65,16 @@ conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu
 ### Install via pip (WIP)
 
 You are able to try to install deepchem via pip using the following command.  
-However, pip installation is under development, so this command may not work well. 
+However, pip installation is under development, so this command may not work well.
 
-`deepchem=>next_version`
+`deepchem>=next_version`
 
 ```bash
 pip install joblib pandas pillow scikit-learn tensorflow deepchem
 ```
 
 ### Install from source
+
 You can install deepchem in a new conda environment using the conda commands in `scripts/install_deepchem_conda.sh.` Installing via this script will ensure that you are **installing from the source**.  
 The following script requires `conda>=4.4` because it uses the `conda activate` command. (Please see the detail from [here](https://github.com/conda/conda/blob/a4c4feae404b2b378e106bd25f62cc8be15c768f/CHANGELOG.md#440-2017-12-20))
 
@@ -86,14 +89,8 @@ Then, follow each instruction on your OS.
 
 ### OS except Windows
 
-If you want GPU support:
-```
-gpu=1 bash scripts/install_deepchem_conda.sh deepchem
-```
-
-If you don't want GPU support:
-```
-gpu=0 bash scripts/install_deepchem_conda.sh deepchem
+```bash
+bash scripts/install_deepchem_conda.sh deepchem
 ```
 
 Before activating deepchem environment, make sure conda has been initialized.  
@@ -112,23 +109,15 @@ Check [this link](https://conda.io/projects/conda/en/latest/user-guide/install/i
 
 Currently you have to install from source in windows.
 
-If you want gpu support, use the following command in powershell:
-
 ```ps1
-.\scripts\install_deepchem_conda.ps1 -gpu 1 deepchem
-```
-
-Or use the following command to install deepchem without gpu support:
-
-```ps1
-.\scripts\install_deepchem_conda.ps1 -gpu 0 deepchem
+.\scripts\install_deepchem_conda.ps1 deepchem
 ```
 
 Before activating deepchem environment, make sure conda-powershell has been initialized.  
 Check if there is a `(base)` before `PS` in powershell.  
 If not, use `conda init powershell` to activate it, then:
 
-```
+```bash
 conda activate deepchem
 python setup.py install
 nosetests -a '!slow' -v deepchem --nologcapture
@@ -144,7 +133,7 @@ We prepare for [sample Dockerfiles](https://github.com/deepchem/deepchem/tree/ma
 
 This instruction is under development.
 
-``` bash
+```bash
 # This will the download the latest stable deepchem docker image into your images
 docker pull deepchemio/deepchem
 
@@ -166,27 +155,33 @@ import deepchem as dc
 
 1. DeepChem currently supports Python 3.5 through 3.7, and is supported on 64 bit Linux and Mac OSX. Note that DeepChem is not currently maintained for older versions of Python or with other operating systems.
 2. Question: I'm seeing some failures in my test suite having to do with MKL
-   ```Intel MKL FATAL ERROR: Cannot load libmkl_avx.so or libmkl_def.so.```
+   `Intel MKL FATAL ERROR: Cannot load libmkl_avx.so or libmkl_def.so.`
 
    Answer: This is a general issue with the newest version of `scikit-learn` enabling MKL by default. This doesn't play well with many linux systems. See [BVLC/caffe#3884](https://github.com/BVLC/caffe/issues/3884) for discussions. The following seems to fix the issue
+
    ```bash
    conda install nomkl numpy scipy scikit-learn numexpr
    conda remove mkl mkl-service
    ```
-3.  Note that when using Ubuntu 16.04 server or similar environments, you may need to ensure libxrender is provided via e.g.:
-   ```bash
-   sudo apt-get install -y libxrender-dev
-   ```
+
+3. Note that when using Ubuntu 16.04 server or similar environments, you may need to ensure libxrender is provided via e.g.:
+
+```bash
+sudo apt-get install -y libxrender-dev
+```
 
 ## Getting Started
+
 The DeepChem project maintains an extensive colelction of [tutorials](https://github.com/deepchem/deepchem/tree/master/examples/tutorials). All tutorials are designed to be run on Google colab (or locally if you prefer). Tutorials are arranged in a suggested learning sequence which will take you from beginner to proficient at molecular machine learning and computational biology more broadly.
 
 After working through the tutorials, you can also go through other [examples](https://github.com/deepchem/deepchem/tree/master/examples). To apply `deepchem` to a new problem, try starting from one of the existing examples or tutorials and modifying it step by step to work with your new use-case. If you have questions or comments you can raise them on our [gitter](https://gitter.im/deepchem/Lobby).
 
 ### Gitter
+
 Join us on gitter at [https://gitter.im/deepchem/Lobby](https://gitter.im/deepchem/Lobby). Probably the easiest place to ask simple questions or float requests for new features.
 
 ## About Us
+
 DeepChem is managed by a team of open source contributors. Anyone is free to join and contribute!
 
 ## Citing DeepChem
@@ -206,4 +201,5 @@ To cite this book, please use this bibtex entry:
 ```
 
 ## Version
+
 2.1.0

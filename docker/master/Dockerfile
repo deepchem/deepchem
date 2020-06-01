@@ -19,7 +19,7 @@ RUN conda update -n base conda && \
     cd deepchem && \
     . /miniconda/etc/profile.d/conda.sh && \
     conda init bash && \
-    gpu=1 bash scripts/install_deepchem_conda.sh deepchem && \
+    bash scripts/install_deepchem_conda.sh deepchem && \
     conda activate deepchem && \
     python setup.py install && \
     conda clean -afy
