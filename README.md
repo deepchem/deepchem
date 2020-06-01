@@ -16,8 +16,8 @@ materials science, quantum chemistry, and biology.
   - [Install latest package with conda](#install-via-conda-recommendation)
   - [Install latest package with pip (WIP)](#install-via-pip-wip)
   - [Install from source](#install-from-source)
-    - [OS except Windows](#os-except-windows)
-    - [Windows](#windows-especially-powershell)
+    - [General installation](#general-installation)
+    - [Use powershell (Windows)](#use-powershell-windows)
   - [Install using a Docker with GPU (WIP)](#install-using-a-docker-with-gpu-wip)
 - [FAQ and Troubleshooting](#faq-and-troubleshooting)
 - [Getting Started](#getting-started)
@@ -87,7 +87,7 @@ cd deepchem
 
 Then, follow each instruction on your OS.
 
-### OS except Windows
+### General installation
 
 ```bash
 bash scripts/install_deepchem_conda.sh deepchem
@@ -95,7 +95,7 @@ bash scripts/install_deepchem_conda.sh deepchem
 
 Before activating deepchem environment, make sure conda has been initialized.  
 Check if there is a `(base)` in your command line.  
-If not, use `conda init bash (zsh, fish and so on)` to activate it, then:
+If not, use `conda init bash` to activate it, then:
 
 ```
 conda activate deepchem
@@ -105,7 +105,7 @@ nosetests -a '!slow' -v deepchem --nologcapture        # Run tests
 
 Check [this link](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for more information about the installation of conda environments.
 
-### Windows (especially powershell)
+### Use powershell (Windows)
 
 Currently you have to install from source in windows.
 
@@ -131,24 +131,42 @@ We prepare for [sample Dockerfiles](https://github.com/deepchem/deepchem/tree/ma
 
 ### Use the official deepchem image (WIP)
 
-This instruction is under development.
+We couldn't check if this introduction works well or not.
+
+First, you pull the latest stable deepchem docker image.
 
 ```bash
-# This will the download the latest stable deepchem docker image into your images
 docker pull deepchemio/deepchem
+```
 
-# This will create a container out of our latest image with GPU support
-nvidia-docker run -i -t deepchemio/deepchem
+Then, you create a container based on our latest image.
 
-# You are now in a docker container whose python has deepchem installed
-# For example you can run our tox21 benchmark
-cd deepchem/examples
-python benchmark.py -d tox21
+```bash
+docker run -it deepchemio/deepchem
+```
 
-# Or you can start playing with it in the command line
+If you want GPU support:
+
+```bash
+# If nvidia-docker is installed
+nvidia-docker run -it deepchemio/deepchem
+docker run --runtime nvidia -it deepchemio/deepchem
+
+# If nvidia-container-toolkit is installed
+docker run --gpus all -it deepchemio/deepchem
+```
+
+You are now in a docker container whose python has deepchem installed.
+
+```bash
+# you can start playing with it in the command line
 pip install jupyter
 ipython
 import deepchem as dc
+
+# you can run our tox21 benchmark
+cd /deepchem/examples
+python benchmark.py -d tox21
 ```
 
 ## FAQ and Troubleshooting
