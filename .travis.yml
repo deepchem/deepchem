@@ -1,50 +1,50 @@
 jobs:
   include:
-    - name: 'Python 3.6'
+    - name: "Python 3.6"
       language: python
-      python: '3.6'
+      python: "3.6"
       sudo: required
       dist: xenial
 
-    - name: 'Python 3.7'
+    - name: "Python 3.7"
       language: python
-      python: '3.7'
+      python: "3.7"
       sudo: required
       dist: xenial
 
-    - name: 'Windows'
+    - name: "Windows"
       language: c # Not really, but travis doesn't support python on Windows
-      python: '3.7'
+      python: "3.7"
       os: windows
 
 install:
-- if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then
-    wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O anaconda.sh;
+  - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then
+    wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
     export python_version=$TRAVIS_PYTHON_VERSION;
-    bash anaconda.sh -b -p $HOME/anaconda;
-    export PATH="$HOME/anaconda/bin:$PATH";
-  fi
-- if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+    bash miniconda.sh -b -p $HOME/miniconda;
+    source "$HOME/miniconda/etc/profile.d/conda.sh";
+    fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
     choco install miniconda3 --params="'/JustMe /AddToPath:1'";
     export PATH="/c/tools/miniconda3/:/c/tools/miniconda3/Scripts:/c/tools/miniconda3/Library/bin:$PATH";
     source /c/tools/miniconda3/etc/profile.d/conda.sh;
-  fi
-- hash -r
-- conda config --set always_yes yes --set changeps1 no
-- conda update -q conda
-- conda config --add channels http://conda.binstar.org/omnia
-- bash scripts/install_deepchem_conda.sh deepchem
-- source activate deepchem
-- pip install yapf==0.22.0
-- pip install coveralls
-- python setup.py install
+    fi
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda config --add channels http://conda.binstar.org/omnia
+  - bash scripts/install_deepchem_conda.sh deepchem
+  - conda activate deepchem
+  - pip install yapf==0.22.0
+  - pip install coveralls
+  - python setup.py install
 script:
-- nosetests -q --with-flaky -a '!slow' --with-coverage --cover-package=deepchem
-  -v deepchem --nologcapture
-- if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
-      find ./deepchem | grep .py$ |xargs python -m doctest -v;
-  fi
-- bash devtools/travis-ci/test_format_code.sh
+  - nosetests -q --with-flaky -a '!slow' --with-coverage --cover-package=deepchem
+    -v deepchem --nologcapture
+  - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
+    find ./deepchem | grep .py$ |xargs python -m doctest -v;
+    fi
+  - bash devtools/travis-ci/test_format_code.sh
 after_success:
-- echo $TRAVIS_SECURE_ENV_VARS
-- coveralls
+  - echo $TRAVIS_SECURE_ENV_VARS
+  - coveralls

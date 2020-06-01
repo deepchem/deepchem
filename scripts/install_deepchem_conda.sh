@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Used to make a conda environment with deepchem
 
+# This line is needed for using conda activate
+# This command is nearly equal to `conda init` command
+source $(conda info --root)/etc/profile.d/conda.sh
+
 if [ -z "$python_version" ]
 then
     echo "Using python 3.6 by default"
