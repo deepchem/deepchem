@@ -10,4 +10,3 @@ example, execute the following command in your shell
 ```
 python fcnet_pretraining.py
 ```
-
