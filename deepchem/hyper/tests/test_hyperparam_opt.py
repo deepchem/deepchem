@@ -1,10 +1,6 @@
 """
-Integration tests for hyperparam optimization.
+Tests for hyperparam optimization.
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import os
 import unittest
 import tempfile
@@ -12,13 +8,34 @@ import shutil
 import numpy as np
 import tensorflow as tf
 import deepchem as dc
+import sklearn
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 
 
 class TestHyperparamOpt(unittest.TestCase):
   """
-  Test hyperparameter optimization API.
+  Test abstract superclass behavior.
+  """
+
+  def test_cant_be_initialized(self):
+    """Test HyperparamOpt can't be initialized."""
+    initialized = True
+
+    def rf_model_builder(model_params, model_dir):
+      sklearn_model = sklearn.ensemble.RandomForestRegressor(**model_params)
+      return dc.model.SklearnModel(sklearn_model, model_dir)
+
+    try:
+      opt = dc.hyper.HyperparamOpt(rf_model_builder)
+    except:
+      initialized = False
+    assert not initialized
+
+
+class TestGridHyperparamOpt(unittest.TestCase):
+  """
+  Test grid hyperparameter optimization API.
   """
 
   def test_singletask_sklearn_rf_ECFP_regression_hyperparam_opt(self):
@@ -50,7 +67,7 @@ class TestHyperparamOpt(unittest.TestCase):
       sklearn_model = RandomForestRegressor(**model_params)
       return dc.models.SklearnModel(sklearn_model, model_dir)
 
-    optimizer = dc.hyper.HyperparamOpt(rf_model_builder)
+    optimizer = dc.hyper.GridHyperparamOpt(rf_model_builder)
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
         params_dict,
         train_dataset,
@@ -102,7 +119,7 @@ class TestHyperparamOpt(unittest.TestCase):
 
       return dc.models.SingletaskToMultitask(tasks, model_builder, model_dir)
 
-    optimizer = dc.hyper.HyperparamOpt(multitask_model_builder)
+    optimizer = dc.hyper.GridHyperparamOpt(multitask_model_builder)
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
         params_dict,
         train_dataset,
@@ -144,7 +161,7 @@ class TestHyperparamOpt(unittest.TestCase):
       return dc.models.MultitaskClassifier(
           len(tasks), n_features, model_dir=model_dir, **model_params)
 
-    optimizer = dc.hyper.HyperparamOpt(model_builder)
+    optimizer = dc.hyper.GridHyperparamOpt(model_builder)
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
         params_dict,
         train_dataset,
