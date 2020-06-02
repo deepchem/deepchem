@@ -39,6 +39,8 @@ DeepChem requires these packages on any condition.
 - [Pillow](https://pypi.org/project/Pillow/)
 - [scikit-learn](https://github.com/scikit-learn/scikit-learn.git)
 - [tensorflow](https://www.tensorflow.org/)
+  - `deepchem>=2.4.0` requires tensorflow v2
+  - `deepchem<2.4.0` requires tensorflow v1
 
 ### Soft Requirements
 
@@ -67,10 +69,16 @@ conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu
 You are able to try to install deepchem via pip using the following command.  
 However, pip installation is under development, so this command may not work well.
 
-`deepchem>=next_version`
+`deepchem>=2.4.0`
 
 ```bash
 pip install joblib pandas pillow scikit-learn tensorflow deepchem
+```
+
+`deepchem<2.4.0`
+
+```bash
+pip install joblib pandas pillow scikit-learn==0.22.1 tensorflow==0.1.15 deepchem==2.3.0
 ```
 
 ### Install from source
