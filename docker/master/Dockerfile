@@ -2,14 +2,16 @@ FROM nvidia/cuda:10.1-cudnn7-devel
 
 # Install some utilities
 RUN apt-get update && \
-    apt-get install -y -q wget git vim libxrender1 libsm6 bzip2
+    apt-get install -y -q wget git libxrender1 libsm6 bzip2 && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Install miniconda
 RUN MINICONDA="Miniconda3-latest-Linux-x86_64.sh" && \
     wget --quiet https://repo.continuum.io/miniconda/$MINICONDA && \
     bash $MINICONDA -b -p /miniconda && \
     rm -f $MINICONDA && \
-    echo ". /miniconda/etc/profile.d/conda.sh" >> ~/.bashrc
+    echo ". /miniconda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    conda clean -afy
 ENV PATH /miniconda/bin:$PATH
 
 # install deepchem with master branch
@@ -19,13 +21,7 @@ RUN conda update -n base conda && \
     . /miniconda/etc/profile.d/conda.sh && \
     bash scripts/install_deepchem_conda.sh deepchem && \
     conda activate deepchem && \
-    python setup.py install
-
-# clean cache and reduce image size
-RUN apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    rm -rf /usr/local/src/* && \
+    python setup.py install && \
     conda clean -afy && \
     rm -rf ~/.cache/pip
 
