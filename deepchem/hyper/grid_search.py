@@ -1,5 +1,3 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
 """
 Contains basic hyperparameter optimizations.
 """
@@ -9,23 +7,23 @@ import itertools
 import tempfile
 import shutil
 import collections
+import logging
 from functools import reduce
 from operator import mul
 from deepchem.utils.evaluate import Evaluator
-from deepchem.utils.save import log
+from deepchem.hyper.base_classes import HyperparamOpt
 
 
-class HyperparamOpt(object):
+class GridHyperparamOpt(HyperparamOpt):
   """
-  Provides simple hyperparameter search capabilities.
+  Provides simple grid hyperparameter search capabilities.
+
+  This class performs a grid hyperparameter search over the specified
+  hyperparameter space. This implementation is simple and simply does
+  a direct iteration over all possible hyperparameters and doesn't use
+  parallelization to speed up the search.
   """
 
-  def __init__(self, model_class, verbose=True):
-    self.model_class = model_class
-    self.verbose = verbose
-
-  # TODO(rbharath): This function is complicated and monolithic. Is there a nice
-  # way to refactor this?
   def hyperparam_search(self,
                         params_dict,
                         train_dataset,
@@ -36,10 +34,35 @@ class HyperparamOpt(object):
                         logdir=None):
     """Perform hyperparams search according to params_dict.
 
-    Each key to hyperparams_dict is a model_param. The values should be a list
-    of potential values for that hyperparam.
+    Each key to hyperparams_dict is a model_param. The values should
+    be a list of potential values for that hyperparam.
 
-    TODO(rbharath): This shouldn't be stored in a temporary directory.
+    Parameters
+    ----------
+    params_dict: dict
+      dict including parameters and their initial values.
+    train_dataset: `dc.data.Dataset`
+      dataset used for training
+    valid_dataset: `dc.data.Dataset`
+      dataset used for validation(optimization on valid scores)
+    output_transformers: list of dc.trans.Transformer
+      transformers for evaluation
+    metric: dc.metrics.Metric
+      metric used for evaluation
+    use_max: bool, optional
+      If True, return the model with the highest score. Else return
+      model with the minimum score.
+    logdir: str, optional
+      The directory in which to store created models. If not set, will
+      use a temporary directory.
+
+    Returns
+    -------
+    `(best_model, best_hyperparams, all_scores)` where `best_model` is
+    an instance of `dc.model.Models`, `best_hyperparams` is a
+    dictionary of parameters, and `all_scores` is a dictionary mapping
+    string representations of hyperparameter sets to validation
+    scores.
     """
     hyperparams = params_dict.keys()
     hyperparam_vals = params_dict.values()
@@ -58,20 +81,19 @@ class HyperparamOpt(object):
     for ind, hyperparameter_tuple in enumerate(
         itertools.product(*hyperparam_vals)):
       model_params = {}
-      log("Fitting model %d/%d" % (ind + 1, number_combinations), self.verbose)
+      logger.info("Fitting model %d/%d" % (ind + 1, number_combinations))
       for hyperparam, hyperparam_val in zip(hyperparams, hyperparameter_tuple):
         model_params[hyperparam] = hyperparam_val
-      log("hyperparameters: %s" % str(model_params), self.verbose)
+      logger.info("hyperparameters: %s" % str(model_params))
 
       if logdir is not None:
         model_dir = os.path.join(logdir, str(ind))
-        log("model_dir is %s" % model_dir, self.verbose)
+        logger.info("model_dir is %s" % model_dir)
         try:
           os.makedirs(model_dir)
         except OSError:
           if not os.path.isdir(model_dir):
-            log("Error creating model_dir, using tempfile directory",
-                self.verbose)
+            logger.info("Error creating model_dir, using tempfile directory")
             model_dir = tempfile.mkdtemp()
       else:
         model_dir = tempfile.mkdtemp()
@@ -95,21 +117,18 @@ class HyperparamOpt(object):
       else:
         shutil.rmtree(model_dir)
 
-      log(
-          "Model %d/%d, Metric %s, Validation set %s: %f" %
-          (ind + 1, number_combinations, metric.name, ind, valid_score),
-          self.verbose)
-      log("\tbest_validation_score so far: %f" % best_validation_score,
-          self.verbose)
+      logger.info("Model %d/%d, Metric %s, Validation set %s: %f" %
+                  (ind + 1, number_combinations, metric.name, ind, valid_score))
+      logger.info("\tbest_validation_score so far: %f" % best_validation_score)
     if best_model is None:
-      log("No models trained correctly.", self.verbose)
+      logger.info("No models trained correctly.")
       # arbitrarily return last model
       best_model, best_hyperparams = model, hyperparameter_tuple
       return best_model, best_hyperparams, all_scores
     train_evaluator = Evaluator(best_model, train_dataset, output_transformers)
     multitask_scores = train_evaluator.compute_model_performance([metric])
     train_score = multitask_scores[metric.name]
-    log("Best hyperparameters: %s" % str(best_hyperparams), self.verbose)
-    log("train_score: %f" % train_score, self.verbose)
-    log("validation_score: %f" % best_validation_score, self.verbose)
+    logger.info("Best hyperparameters: %s" % str(best_hyperparams))
+    logger.info("train_score: %f" % train_score)
+    logger.info("validation_score: %f" % best_validation_score)
     return best_model, best_hyperparams, all_scores
