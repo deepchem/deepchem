@@ -10,8 +10,7 @@ RUN MINICONDA="Miniconda3-latest-Linux-x86_64.sh" && \
     wget --quiet https://repo.continuum.io/miniconda/$MINICONDA && \
     bash $MINICONDA -b -p /miniconda && \
     rm -f $MINICONDA && \
-    echo ". /miniconda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-    conda clean -afy
+    echo ". /miniconda/etc/profile.d/conda.sh" >> ~/.bashrc
 ENV PATH /miniconda/bin:$PATH
 
 # install deepchem with master branch
