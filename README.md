@@ -81,7 +81,13 @@ pip install joblib pandas scikit-learn tensorflow deepchem
 `deepchem<2.4.0`
 
 ```bash
-pip install joblib pandas pillow scikit-learn==0.22.1 tensorflow(tensorflow-gpu)==1.15 deepchem==2.2.1.dev54
+pip install joblib pandas pillow scikit-learn==0.22.1 tensorflow==1.15 deepchem==2.2.1.dev54
+```
+
+If you want GPU support:
+
+```bash
+pip install joblib pandas pillow scikit-learn==0.22.1 tensorflow-gpu==1.15 deepchem==2.2.1.dev54
 ```
 
 ### Install from source
