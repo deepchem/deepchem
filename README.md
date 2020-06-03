@@ -36,7 +36,6 @@ DeepChem requires these packages on any condition.
 
 - [joblib](https://pypi.python.org/pypi/joblib)
 - [pandas](http://pandas.pydata.org/)
-- [Pillow](https://pypi.org/project/Pillow/)
 - [scikit-learn](https://github.com/scikit-learn/scikit-learn.git)
 - [tensorflow](https://www.tensorflow.org/)
   - `deepchem>=2.4.0` requires tensorflow v2
@@ -46,9 +45,13 @@ DeepChem requires these packages on any condition.
 
 DeepChem has a number of "soft" requirements. These are packages which are needed for various submodules of DeepChem but not for the package as a whole.
 
-- [RDKit](http://www.rdkit.org/docs/Install.html)
 - [MDTraj](http://mdtraj.org/)
+- [NetworkX](https://networkx.github.io/documentation/stable/index.html)
 - [PDBFixer](https://github.com/pandegroup/pdbfixer)
+- [Pillow](https://pypi.org/project/Pillow/)
+- [RDKit](http://www.rdkit.org/docs/Install.html)
+- [simdna](https://github.com/kundajelab/simdna)
+- [XGBoost](https://xgboost.readthedocs.io/en/latest/)
 
 ## Installation
 
@@ -72,13 +75,13 @@ However, pip installation is under development, so this command may not work wel
 `deepchem>=2.4.0`
 
 ```bash
-pip install joblib pandas pillow scikit-learn tensorflow deepchem
+pip install joblib pandas scikit-learn tensorflow deepchem
 ```
 
 `deepchem<2.4.0`
 
 ```bash
-pip install joblib pandas pillow scikit-learn==0.22.1 tensorflow==0.1.15 deepchem==2.3.0
+pip install joblib pandas pillow scikit-learn==0.22.1 tensorflow(tensorflow-gpu)==1.15 deepchem==2.2.1.dev54
 ```
 
 ### Install from source

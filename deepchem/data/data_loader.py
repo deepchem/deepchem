@@ -18,7 +18,6 @@ from deepchem.utils.genomics import encode_fasta_sequence
 from deepchem.feat import UserDefinedFeaturizer
 from deepchem.data import DiskDataset, NumpyDataset, ImageDataset
 import zipfile
-from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -625,6 +624,7 @@ class ImageLoader(DataLoader):
 
   @staticmethod
   def load_img(image_files):
+    from PIL import Image
     images = []
     for image_file in image_files:
       _, extension = os.path.splitext(image_file)

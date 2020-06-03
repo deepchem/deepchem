@@ -16,7 +16,6 @@ import pandas as pd
 import deepchem as dc
 import tensorflow as tf
 import scipy.ndimage
-from PIL import Image
 
 
 class TestTransformers(unittest.TestCase):
@@ -613,6 +612,7 @@ class TestTransformers(unittest.TestCase):
     assert np.allclose(flip_lr, check_lr)
 
   def test_scaling(self):
+    from PIL import Image
     # Check Scales
     dt = DataTransforms(self.d)
     h = 150
