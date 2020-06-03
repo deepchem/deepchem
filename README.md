@@ -57,14 +57,22 @@ DeepChem has a number of "soft" requirements. These are packages which are neede
 
 ### Install via conda (Recommendation)
 
+`deepchem>=2.4.0`
+
+Coming soon...
+
+`deepchem<2.4.0`
+
 ```bash
-conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem
+pip install tensorflow==1.15
+conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem==2.3.0
 ```
 
 If you want GPU support:
 
 ```bash
-conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu
+conda install -y -q scikit-learn=0.22
+conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu==2.3.0
 ```
 
 ### Install via pip (WIP)
@@ -74,9 +82,7 @@ However, pip installation is under development, so this command may not work wel
 
 `deepchem>=2.4.0`
 
-```bash
-pip install joblib pandas scikit-learn tensorflow deepchem
-```
+Coming soon...
 
 `deepchem<2.4.0`
 
