@@ -18,6 +18,11 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
 
+try:
+  import xgboost
+except ImportError:
+  pass
+
 
 class TestGeneralize(unittest.TestCase):
   """
@@ -198,7 +203,6 @@ class TestGeneralize(unittest.TestCase):
     See Discussion Here
     https://github.com/deepchem/deepchem/issues/960
     """
-    import xgboost
     np.random.seed(123)
 
     dataset = sklearn.datasets.load_diabetes()
@@ -236,7 +240,6 @@ class TestGeneralize(unittest.TestCase):
     See Discussion Here
     https://github.com/deepchem/deepchem/issues/960
     """
-    import xgboost
     np.random.seed(123)
     n_tasks = 4
     tasks = range(n_tasks)
@@ -274,7 +277,6 @@ class TestGeneralize(unittest.TestCase):
   @attr('slow')
   def test_xgboost_classification(self):
     """Test that sklearn models can learn on simple classification datasets."""
-    import xgboost
     np.random.seed(123)
     dataset = sklearn.datasets.load_digits(n_class=2)
     X, y = dataset.data, dataset.target

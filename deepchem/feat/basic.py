@@ -7,6 +7,11 @@ __license__ = "MIT"
 
 from deepchem.feat import Featurizer
 
+try:
+  from rdkit.Chem import Descriptors
+except ImportError:
+  pass
+
 
 class MolecularWeight(Featurizer):
   """
@@ -23,7 +28,6 @@ class MolecularWeight(Featurizer):
     mol : RDKit Mol
         Molecule.
     """
-    from rdkit.Chem import Descriptors
     wt = Descriptors.ExactMolWt(mol)
     wt = [wt]
     return wt
@@ -71,7 +75,6 @@ class RDKitDescriptors(Featurizer):
   def __init__(self):
     self.descriptors = []
     self.descList = []
-    from rdkit.Chem import Descriptors
     for descriptor, function in Descriptors.descList:
       if descriptor in self.allowedDescriptors:
         self.descriptors.append(descriptor)

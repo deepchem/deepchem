@@ -14,6 +14,11 @@ import deepchem as dc
 from nose.tools import nottest
 from deepchem.utils import rdkit_util
 
+try:
+  import mdtraj as md
+except ImportError:
+  pass
+
 logger = logging.getLogger(__name__)
 
 
@@ -125,7 +130,6 @@ class TestBindingPocket(unittest.TestCase):
     protein_file = os.path.join(current_dir, "1jld_protein.pdb")
     ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
 
-    import mdtraj as md
     protein = md.load(protein_file)
 
     finder = dc.dock.ConvexHullPocketFinder()
@@ -157,7 +161,6 @@ class TestBindingPocket(unittest.TestCase):
     protein_file = os.path.join(current_dir, "1jld_protein.pdb")
     ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
 
-    import mdtraj as md
     protein = md.load(protein_file)
 
     finder = dc.dock.RFConvexHullPocketFinder()

@@ -6,6 +6,11 @@ import unittest
 
 from deepchem.feat.basic import MolecularWeight, RDKitDescriptors
 
+try:
+  from rdkit import Chem
+except ImportError:
+  pass
+
 
 class TestMolecularWeight(unittest.TestCase):
   """
@@ -17,7 +22,6 @@ class TestMolecularWeight(unittest.TestCase):
     Set up tests.
     """
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
-    from rdkit import Chem
     self.mol = Chem.MolFromSmiles(smiles)
     self.engine = MolecularWeight()
 
@@ -38,7 +42,6 @@ class TestRDKitDescriptors(unittest.TestCase):
     Set up tests.
     """
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
-    from rdkit import Chem
     self.mol = Chem.MolFromSmiles(smiles)
     self.engine = RDKitDescriptors()
 

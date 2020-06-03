@@ -14,6 +14,11 @@ from deepchem.feat.base_classes import Featurizer
 from deepchem.feat.graph_features import atom_features
 from scipy.sparse import csr_matrix
 
+try:
+  from rdkit import Chem
+except ImportError:
+  pass
+
 
 def get_atom_type(atom):
   elem = atom.GetAtomicNum()
@@ -157,8 +162,6 @@ class AdjacencyFingerprint(Featurizer):
 
   def featurize(self, rdkit_mols):
     featurized_mols = np.empty((len(rdkit_mols)), dtype=object)
-
-    from rdkit import Chem
     for idx, mol in enumerate(rdkit_mols):
       if self.add_hydrogens:
         mol = Chem.AddHs(mol)

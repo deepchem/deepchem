@@ -8,6 +8,11 @@ from deepchem.data import DiskDataset
 import multiprocessing
 import logging
 
+try:
+  from rdkit import Chem
+except ImportError:
+  pass
+
 
 def _featurize_complex(featurizer, mol_pdb_file, protein_pdb_file, log_message):
   logging.info(log_message)
@@ -82,7 +87,6 @@ def get_feature_list(atom):
     Atom to get features for 
   """
   # Replace the hybridization
-  from rdkit import Chem
   global possible_hybridization_list
   possible_hybridization_list = [
       Chem.rdchem.HybridizationType.SP, Chem.rdchem.HybridizationType.SP2,
@@ -159,7 +163,6 @@ def atom_features(atom,
   if bool_id_feat:
     return np.array([atom_to_id(atom)])
   else:
-    from rdkit import Chem
     results = one_of_k_encoding_unk(
       atom.GetSymbol(),
       [
@@ -243,7 +246,6 @@ def bond_features(bond, use_chirality=False):
   use_chirality: bool, optional
     If true, use chirality information.
   """
-  from rdkit import Chem
   bt = bond.GetBondType()
   bond_feats = [
       bt == Chem.rdchem.BondType.SINGLE, bt == Chem.rdchem.BondType.DOUBLE,

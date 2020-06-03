@@ -7,6 +7,11 @@ import unittest
 from deepchem.feat import coulomb_matrices as cm
 from deepchem.utils import conformers
 
+try:
+  from rdkit import Chem
+except ImportError:
+  pass
+
 
 class TestCoulombMatrix(unittest.TestCase):
   """
@@ -18,7 +23,6 @@ class TestCoulombMatrix(unittest.TestCase):
         Set up tests.
         """
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
-    from rdkit import Chem
     mol = Chem.MolFromSmiles(smiles)
     engine = conformers.ConformerGenerator(max_conformers=1)
     self.mol = engine.generate_conformers(mol)
@@ -64,7 +68,6 @@ class TestCoulombMatrix(unittest.TestCase):
     """
         Test hydrogen removal.
         """
-    from rdkit import Chem
     mol = Chem.RemoveHs(self.mol)
     assert mol.GetNumAtoms() < self.mol.GetNumAtoms()
     f = cm.CoulombMatrix(
@@ -96,7 +99,6 @@ class TestCoulombMatrixEig(unittest.TestCase):
         Set up tests.
         """
     smiles = '[H]C([H])([H])[H]'
-    from rdkit import Chem
     mol = Chem.MolFromSmiles(smiles)
     mol = Chem.AddHs(mol)
     engine = conformers.ConformerGenerator(max_conformers=1)

@@ -7,6 +7,12 @@ __license__ = "MIT"
 
 from deepchem.feat import Featurizer
 
+try:
+  from rdkit import Chem
+  from rdkit.Chem import rdMolDescriptors
+except ImportError:
+  pass
+
 
 class CircularFingerprint(Featurizer):
   """
@@ -59,8 +65,6 @@ class CircularFingerprint(Featurizer):
     mol : RDKit Mol
         Molecule.
     """
-    from rdkit import Chem
-    from rdkit.Chem import rdMolDescriptors
     if self.sparse:
       info = {}
       fp = rdMolDescriptors.GetMorganFingerprint(

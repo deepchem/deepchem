@@ -15,6 +15,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.kernel_ridge import KernelRidge
 
+try:
+  import xgboost
+except ImportError:
+  pass
+
 
 def benchmark_classification(train_dataset,
                              valid_dataset,
@@ -345,7 +350,6 @@ def benchmark_classification(train_dataset,
 
     # Building xgboost classification model
     def model_builder(model_dir_xgb):
-      import xgboost
       xgboost_model = xgboost.XGBClassifier(
           max_depth=max_depth,
           learning_rate=learning_rate,
@@ -440,7 +444,6 @@ def benchmark_regression(train_dataset,
       'dtnn', 'dag_regression', 'xgb_regression', 'weave_regression',
       'textcnn_regression', 'krr', 'ani', 'krr_ft', 'mpnn'
   ]
-  import xgboost
   if hyper_parameters is None:
     hyper_parameters = hps[model]
   model_name = model

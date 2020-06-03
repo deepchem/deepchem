@@ -11,6 +11,12 @@ import numpy as np
 import pandas as pd
 from deepchem.feat import Featurizer
 
+try:
+  from rdkit import Chem
+  from rdkit.Chem import AllChem
+except ImportError:
+  pass
+
 PAD_TOKEN = "<pad>"
 OUT_OF_VOCAB_TOKEN = "<unk>"
 
@@ -110,7 +116,6 @@ class SmilesToSeq(Featurizer):
 
   def _featurize(self, mol):
     """Featurizes a SMILES sequence."""
-    from rdkit import Chem
     smile = Chem.MolToSmiles(mol)
     if len(smile) > self.max_len:
       return list()
@@ -176,8 +181,6 @@ class SmilesToImage(Featurizer):
 
   def _featurize(self, mol):
     """Featurizes a single SMILE sequence."""
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
 
     smile = Chem.MolToSmiles(mol)
     if len(smile) > self.max_len:

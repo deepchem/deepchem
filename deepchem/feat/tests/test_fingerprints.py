@@ -4,6 +4,11 @@ Test topological fingerprints.
 import unittest
 from deepchem.feat import fingerprints as fp
 
+try:
+  from rdkit import Chem
+except ImportError:
+  pass
+
 
 class TestCircularFingerprint(unittest.TestCase):
   """
@@ -15,7 +20,6 @@ class TestCircularFingerprint(unittest.TestCase):
         Set up tests.
         """
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
-    from rdkit import Chem
     self.mol = Chem.MolFromSmiles(smiles)
     self.engine = fp.CircularFingerprint()
 

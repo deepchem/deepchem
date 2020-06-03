@@ -9,6 +9,11 @@ import numpy as np
 from deepchem.utils.save import log
 from deepchem.feat import Featurizer
 
+try:
+  import mdtraj as md
+except ImportError:
+  pass
+
 
 class BindingPocketFeaturizer(Featurizer):
   """
@@ -32,8 +37,7 @@ class BindingPocketFeaturizer(Featurizer):
     """
     Calculate atomic coodinates.
     """
-    import mdtraj
-    protein = mdtraj.load(protein_file)
+    protein = md.load(protein_file)
     n_pockets = len(pockets)
     n_residues = len(BindingPocketFeaturizer.residues)
     res_map = dict(zip(BindingPocketFeaturizer.residues, range(n_residues)))

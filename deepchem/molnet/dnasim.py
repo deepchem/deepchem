@@ -1,9 +1,15 @@
 from collections import OrderedDict
 import numpy as np
 
+try:
+  import simdna
+  from simdna import synthetic
+  from simdna.util import DiscreteDistribution
+except ImportError:
+  pass
+
 
 def get_distribution(GC_fraction):
-  from simdna.util import DiscreteDistribution
   return DiscreteDistribution({
       'A': (1 - GC_fraction) / 2,
       'C': GC_fraction / 2,
@@ -34,8 +40,6 @@ def simple_motif_embedding(motif_name, seq_length, num_seqs, GC_fraction):
   embedding_arr: 1darray
       Array of embedding objects.
   """
-  import simdna
-  from simdna import synthetic
   if motif_name is None:
     embedders = []
   else:
@@ -72,8 +76,6 @@ def motif_density(motif_name,
   """
   Returns sequences with motif density, along with embeddings array.
   """
-  import simdna
-  from simdna import synthetic
   loaded_motifs = synthetic.LoadedEncodeMotifs(
       simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
   substring_generator = synthetic.PwmSamplerFromLoadedMotifs(
@@ -260,9 +262,6 @@ def simulate_multi_motif_embedding(motif_names, seq_length, min_num_motifs,
   embedding_arr: 1darray
       Array of embedding objects.
   """
-
-  import simdna
-  from simdna import synthetic
   loaded_motifs = synthetic.LoadedEncodeMotifs(
       simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
 
@@ -371,8 +370,6 @@ def simulate_heterodimer_grammar(motif1, motif2, seq_length, min_spacing,
     embedding_arr: list
         List of embedding objects.
     """
-  import simdna
-  from simdna import synthetic
   loaded_motifs = synthetic.LoadedEncodeMotifs(
       simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
   motif1_generator = synthetic.ReverseComplementWrapper(

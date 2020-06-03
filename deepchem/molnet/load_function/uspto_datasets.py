@@ -15,6 +15,11 @@ logger = logging.getLogger(__name__)
 DEFAULT_DIR = deepchem.utils.get_data_dir()
 USPTO_URL = "https://bitbucket.org/dan2097/patent-reaction-extraction/downloads/2008-2011_USPTO_reactionSmiles_filtered.zip"
 
+try:
+  from rdkit.Chem import rdChemReactions
+except ImportError:
+  pass
+
 
 def load_uspto(featurizer="plain",
                split=None,
@@ -70,7 +75,6 @@ def load_uspto(featurizer="plain",
   filename = os.path.join(unzip_dir,
                           "2008-2011_USPTO_reactionSmiles_filtered.txt")
   rxns = []
-  from rdkit.Chem import rdChemReactions
   with open(filename) as tsvfile:
     reader = csv.reader(tsvfile, delimiter="\t")
     for ind, row in enumerate(reader):

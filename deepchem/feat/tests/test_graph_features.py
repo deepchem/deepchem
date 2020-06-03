@@ -11,6 +11,11 @@ import numpy as np
 from nose.plugins.attrib import attr
 from deepchem.feat.graph_features import ConvMolFeaturizer, AtomicConvFeaturizer
 
+try:
+  from rdkit import Chem
+except ImportError:
+  pass
+
 
 class TestConvMolFeaturizer(unittest.TestCase):
   """
@@ -22,8 +27,7 @@ class TestConvMolFeaturizer(unittest.TestCase):
     # Note there is a central nitrogen of degree 4, with 4 carbons
     # of degree 1 (connected only to central nitrogen).
     raw_smiles = ['C[N+](C)(C)C']
-    import rdkit.Chem
-    mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
+    mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
     featurizer = ConvMolFeaturizer()
     mols = featurizer.featurize(mols)
     mol = mols[0]
@@ -48,8 +52,7 @@ class TestConvMolFeaturizer(unittest.TestCase):
   def test_single_carbon(self):
     """Test that single carbon atom is featurized properly."""
     raw_smiles = ['C']
-    import rdkit
-    mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
+    mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
     featurizer = ConvMolFeaturizer()
     mol_list = featurizer.featurize(mols)
     mol = mol_list[0]
@@ -70,8 +73,7 @@ class TestConvMolFeaturizer(unittest.TestCase):
   def test_alkane(self):
     """Test on simple alkane"""
     raw_smiles = ['CCC']
-    import rdkit.Chem
-    mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
+    mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
     featurizer = ConvMolFeaturizer()
     mol_list = featurizer.featurize(mols)
     mol = mol_list[0]

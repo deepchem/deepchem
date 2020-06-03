@@ -13,6 +13,11 @@ from deepchem.feat import ComplexFeaturizer
 from deepchem.utils import rdkit_util, pad_array
 from deepchem.utils.rdkit_util import MoleculeLoadException
 
+try:
+  import mdtraj as md
+except ImportError:
+  pass
+
 
 class AtomicCoordinates(Featurizer):
   """
@@ -54,15 +59,14 @@ def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
                           periodic_box_size):
   """Computes a neighbor list from atom coordinates."""
   N = coords.shape[0]
-  import mdtraj
-  traj = mdtraj.Trajectory(coords.reshape((1, N, 3)), None)
+  traj = md.Trajectory(coords.reshape((1, N, 3)), None)
   box_size = None
   if periodic_box_size is not None:
     box_size = np.array(periodic_box_size)
     traj.unitcell_vectors = np.array(
         [[[box_size[0], 0, 0], [0, box_size[1], 0], [0, 0, box_size[2]]]],
         dtype=np.float32)
-  neighbors = mdtraj.geometry.compute_neighborlist(traj, neighbor_cutoff)
+  neighbors = md.geometry.compute_neighborlist(traj, neighbor_cutoff)
   neighbor_list = {}
   for i in range(N):
     if max_num_neighbors is not None and len(neighbors[i]) > max_num_neighbors:

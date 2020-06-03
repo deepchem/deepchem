@@ -13,6 +13,11 @@ from deepchem.feat import Featurizer
 from deepchem.utils import pad_array
 from deepchem.feat.atomic_coordinates import AtomicCoordinates
 
+try:
+  from rdkit import Chem
+except ImportError:
+  pass
+
 
 class BPSymmetryFunctionInput(Featurizer):
   """
@@ -112,7 +117,6 @@ class CoulombMatrix(Featurizer):
     mol : RDKit Mol
         Molecule.
     """
-    from rdkit import Chem
     if self.remove_hydrogens:
       mol = Chem.RemoveHs(mol)
     n_atoms = mol.GetNumAtoms()

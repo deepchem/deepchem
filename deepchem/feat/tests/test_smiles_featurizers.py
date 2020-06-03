@@ -5,6 +5,11 @@ from deepchem.feat import SmilesToSeq, SmilesToImage
 from deepchem.feat.smiles_featurizers import create_char_to_idx
 import os
 
+try:
+  from rdkit import Chem
+except ImportError:
+  pass
+
 
 class TestSmilesFeaturizers(TestCase):
   """Tests for SmilesToSeq and SmilesToImage featurizers."""
@@ -21,7 +26,6 @@ class TestSmilesFeaturizers(TestCase):
 
   def test_smiles_to_seq_featurize(self):
     """Test SmilesToSeq featurization."""
-    from rdkit import Chem
     smiles = ["Cn1c(=O)c2c(ncn2C)n(C)c1=O", "CC(=O)N1CN(C(C)=O)C(O)C1O"]
     mols = [Chem.MolFromSmiles(smile) for smile in smiles]
     expected_seq_len = self.feat.max_len + 2 * self.feat.pad_len
@@ -33,7 +37,6 @@ class TestSmilesFeaturizers(TestCase):
   def test_reconstruct_from_seq(self):
     """Test SMILES reconstruction from features."""
     smiles = ["Cn1c(=O)c2c(ncn2C)n(C)c1=O"]
-    from rdkit import Chem
     mols = [Chem.MolFromSmiles(smile) for smile in smiles]
     features = self.feat.featurize(mols)
 

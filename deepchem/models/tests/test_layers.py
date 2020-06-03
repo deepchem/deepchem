@@ -4,6 +4,11 @@ import tensorflow as tf
 import deepchem.models.layers as layers
 from tensorflow.python.framework import test_util
 
+try:
+  from rdkit import Chem
+except ImportError:
+  pass
+
 
 class TestLayers(test_util.TensorFlowTestCase):
 
@@ -78,8 +83,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     out_channels = 2
     n_atoms = 4  # In CCC and C, there are 4 atoms
     raw_smiles = ['CCC', 'C']
-    import rdkit
-    mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
+    mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
     featurizer = dc.feat.WeaveFeaturizer()
     mols = featurizer.featurize(mols)
     weave = layers.WeaveLayer()
@@ -120,8 +124,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     out_channels = 2
     n_atoms = 4  # In CCC and C, there are 4 atoms
     raw_smiles = ['CCC', 'C']
-    import rdkit
-    mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
+    mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
     featurizer = dc.feat.graph_features.ConvMolFeaturizer()
     mols = featurizer.featurize(mols)
     multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
@@ -140,8 +143,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     """Test invoking GraphPool."""
     n_atoms = 4  # In CCC and C, there are 4 atoms
     raw_smiles = ['CCC', 'C']
-    import rdkit
-    mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
+    mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
     featurizer = dc.feat.graph_features.ConvMolFeaturizer()
     mols = featurizer.featurize(mols)
     multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
@@ -160,8 +162,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_features = 75
     n_atoms = 4  # In CCC and C, there are 4 atoms
     raw_smiles = ['CCC', 'C']
-    import rdkit
-    mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
+    mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
     featurizer = dc.feat.graph_features.ConvMolFeaturizer()
     mols = featurizer.featurize(mols)
     multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)

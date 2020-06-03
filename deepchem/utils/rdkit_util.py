@@ -2,11 +2,25 @@ import logging
 
 import numpy as np
 import os
+from io import StringIO
 
 try:
-  from StringIO import StringIO
+  from rdkit import Chem
+  from rdkit.Chem import AllChem
+  from rdkit.Chem import rdmolops
 except ImportError:
-  from io import StringIO
+  pass
+
+try:
+  import networkx as nx
+except ImportError:
+  pass
+
+try:
+  import pdbfixer
+  import simtk
+except ImportError:
+  pass
 
 
 class MoleculeLoadException(Exception):
@@ -39,12 +53,10 @@ def add_hydrogens_to_mol(mol):
   """
   molecule_file = None
   try:
-    from rdkit import Chem
     pdbblock = Chem.MolToPDBBlock(mol)
     pdb_stringio = StringIO()
     pdb_stringio.write(pdbblock)
     pdb_stringio.seek(0)
-    import pdbfixer
     fixer = pdbfixer.PDBFixer(pdbfile=pdb_stringio)
     fixer.findMissingResidues()
     fixer.findMissingAtoms()
@@ -52,7 +64,6 @@ def add_hydrogens_to_mol(mol):
     fixer.addMissingHydrogens(7.4)
 
     hydrogenated_io = StringIO()
-    import simtk
     simtk.openmm.app.PDBFile.writeFile(fixer.topology, fixer.positions,
                                        hydrogenated_io)
     hydrogenated_io.seek(0)
@@ -82,7 +93,6 @@ def compute_charges(mol):
   -------
   molecule with charges
   """
-  from rdkit.Chem import AllChem
   try:
     AllChem.ComputeGasteigerCharges(mol)
   except Exception as e:
@@ -105,7 +115,6 @@ def load_molecule(molecule_file,
   :param calc_charges: should add charges vis rdkit
   :return: (xyz, mol)
   """
-  from rdkit import Chem
   if ".mol2" in molecule_file:
     my_mol = Chem.MolFromMol2File(molecule_file, sanitize=False, removeHs=False)
   elif ".sdf" in molecule_file:
@@ -178,7 +187,6 @@ def write_molecule(mol, outfile, is_protein=False):
   :param outfile: filename to write mol to
   :param is_protein: is this molecule a protein?
   """
-  from rdkit import Chem
   if ".pdbqt" in outfile:
     writer = Chem.PDBWriter(outfile)
     writer.write(mol)
@@ -215,7 +223,6 @@ def merge_molecules_xyz(protein_xyz, ligand_xyz):
 
 def merge_molecules(ligand, protein):
   """Helper method to merge ligand and protein molecules."""
-  from rdkit.Chem import rdmolops
   return rdmolops.CombineMols(ligand, protein)
 
 
@@ -237,7 +244,6 @@ class PdbqtLigandWriter(object):
     The single public function of this class.
     It converts a molecule and a pdb file into a pdbqt file stored in outfile
     """
-    import networkx as nx
     self._create_pdb_map()
     self._mol_to_graph()
     self._get_rotatable_bonds()
@@ -362,7 +368,6 @@ class PdbqtLigandWriter(object):
     atoms are nodes, and bonds are vertices
     store as self.graph
     """
-    import networkx as nx
     G = nx.Graph()
     num_atoms = self.mol.GetNumAtoms()
     G.add_nodes_from(range(num_atoms))
@@ -378,8 +383,6 @@ class PdbqtLigandWriter(object):
     Taken from rdkit source to find which bonds are rotatable
     store rotatable bonds in (from_atom, to_atom)
     """
-    from rdkit import Chem
-    from rdkit.Chem import rdmolops
     pattern = Chem.MolFromSmarts(
         "[!$(*#*)&!D1&!$(C(F)(F)F)&!$(C(Cl)(Cl)Cl)&!$(C(Br)(Br)Br)&!$(C([CH3])("
         "[CH3])[CH3])&!$([CD3](=[N,O,S])-!@[#7,O,S!D1])&!$([#7,O,S!D1]-!@[CD3]="

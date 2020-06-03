@@ -2,6 +2,11 @@
 # -*- coding: utf-8 -*-
 from deepchem.feat import Featurizer
 
+try:
+  from rdkit import Chem
+except ImportError:
+  pass
+
 
 class RawFeaturizer(Featurizer):
 
@@ -9,7 +14,6 @@ class RawFeaturizer(Featurizer):
     self.smiles = smiles
 
   def _featurize(self, mol):
-    from rdkit import Chem
     if self.smiles:
       return Chem.MolToSmiles(mol)
     else:

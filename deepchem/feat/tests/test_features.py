@@ -6,6 +6,11 @@ import unittest
 from deepchem.feat import ConvMolFeaturizer, CircularFingerprint
 from deepchem.feat.basic import MolecularWeight
 
+try:
+  from rdkit import Chem
+except ImportError:
+  pass
+
 
 class TestFeaturizer(unittest.TestCase):
   """
@@ -17,7 +22,6 @@ class TestFeaturizer(unittest.TestCase):
     Set up tests.
     """
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
-    from rdkit import Chem
     self.mol = Chem.MolFromSmiles(smiles)
 
   def test_featurizer(self):

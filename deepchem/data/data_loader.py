@@ -19,6 +19,18 @@ from deepchem.feat import UserDefinedFeaturizer
 from deepchem.data import DiskDataset, NumpyDataset, ImageDataset
 import zipfile
 
+try:
+  from rdkit import Chem
+  from rdkit.Chem import rdmolfiles
+  from rdkit.Chem import rdmolops
+except ImportError:
+  pass
+
+try:
+  from PIL import Image
+except ImportError:
+  pass
+
 logger = logging.getLogger(__name__)
 
 
@@ -87,9 +99,6 @@ def _featurize_smiles_df(df, featurizer, field, log_every_n=1000):
   sample_elems = df[field].tolist()
 
   features = []
-  from rdkit import Chem
-  from rdkit.Chem import rdmolfiles
-  from rdkit.Chem import rdmolops
   for ind, elem in enumerate(sample_elems):
     mol = Chem.MolFromSmiles(elem)
     # TODO (ytz) this is a bandage solution to reorder the atoms
@@ -624,7 +633,6 @@ class ImageLoader(DataLoader):
 
   @staticmethod
   def load_img(image_files):
-    from PIL import Image
     images = []
     for image_file in image_files:
       _, extension = os.path.splitext(image_file)

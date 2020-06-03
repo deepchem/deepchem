@@ -3,12 +3,16 @@ from unittest import TestCase
 import deepchem as dc
 from nose.tools import assert_equals
 
+try:
+  from rdkit import Chem
+except ImportError:
+  pass
+
 
 class TestOneHotFeaturizer(TestCase):
   """Tests for the one-hot featurizer."""
 
   def test_featurize(self):
-    from rdkit import Chem
     smiles = ["Cn1c(=O)c2c(ncn2C)n(C)c1=O", "CC(=O)N1CN(C(C)=O)C(O)C1O"]
     mols = [Chem.MolFromSmiles(smile) for smile in smiles]
     featurizer = dc.feat.one_hot.OneHotFeaturizer(dc.feat.one_hot.zinc_charset)

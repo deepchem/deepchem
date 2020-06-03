@@ -19,6 +19,13 @@ from scipy.spatial.distance import cdist
 from copy import deepcopy
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils.save import log
+
+try:
+  from rdkit import Chem
+  from rdkit.Chem import AllChem
+except ImportError:
+  pass
+
 """
 TODO(LESWING) add sanitization with rdkit upgrade to 2017.*
 """
@@ -189,7 +196,6 @@ def compute_all_ecfp(mol, indices=None, degree=2):
   """
 
   ecfp_dict = {}
-  from rdkit import Chem
   for i in range(mol.GetNumAtoms()):
     if indices is not None and i not in indices:
       continue
@@ -220,7 +226,6 @@ def compute_ecfp_features(mol, ecfp_degree=2, ecfp_power=11):
       that ECFP fragment is found in the molecule and array at index j has a 0
       if ECFP fragment not in molecule.
   """
-  from rdkit.Chem import AllChem
   bv = AllChem.GetMorganFingerprintAsBitVect(
       mol, ecfp_degree, nBits=2**ecfp_power)
   return np.array(bv)
@@ -508,7 +513,6 @@ def compute_pi_stack(protein,
 
   protein_aromatic_rings = []
   ligand_aromatic_rings = []
-  from rdkit import Chem
   for mol, ring_list in ((protein, protein_aromatic_rings),
                          (ligand, ligand_aromatic_rings)):
     aromatic_atoms = {atom.GetIdx() for atom in mol.GetAromaticAtoms()}
@@ -628,7 +632,6 @@ def compute_cation_pi(mol1, mol2, charge_tolerance=0.01, **kwargs):
   conformer = mol2.GetConformer()
 
   aromatic_atoms = set(atom.GetIdx() for atom in mol1.GetAromaticAtoms())
-  from rdkit import Chem
   rings = [list(r) for r in Chem.GetSymmSSSR(mol1)]
 
   for ring in rings:

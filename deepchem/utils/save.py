@@ -12,6 +12,11 @@ import deepchem
 import warnings
 from deepchem.utils.genomics import encode_bio_sequence as encode_sequence, encode_fasta_sequence as fasta_sequence, seq_one_hot_encode as seq_one_hotencode
 
+try:
+  from rdkit import Chem
+except:
+  pass
+
 
 def log(string, verbose=True):
   """Print string if verbose."""
@@ -70,7 +75,6 @@ def load_data(input_files, shard_size=None, verbose=True):
 
 def load_sdf_files(input_files, clean_mols, tasks=[]):
   """Load SDF file into dataframe."""
-  from rdkit import Chem
   dataframes = []
   for input_file in input_files:
     # Tasks are either in .sdf.csv file or in the .sdf file itself

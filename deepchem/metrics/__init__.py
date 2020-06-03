@@ -16,6 +16,11 @@ from sklearn.metrics import jaccard_score
 from sklearn.metrics import f1_score
 from scipy.stats import pearsonr
 
+try:
+  from rdkit.ML.Scoring.Scoring import CalcBEDROC
+except ImportError:
+  pass
+
 logger = logging.getLogger(__name__)
 
 
@@ -233,8 +238,6 @@ def bedroc_score(y_true, y_pred, alpha=20.0):
   assert np.array_equal(
       np.unique(y_true).astype(int),
       [0, 1]), ('Class labels must be binary: %s' % np.unique(y_true))
-
-  from rdkit.ML.Scoring.Scoring import CalcBEDROC
 
   yt = np.asarray(y_true)
   yp = np.asarray(y_pred)

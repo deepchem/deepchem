@@ -11,6 +11,11 @@ from deepchem.utils.save import save_to_disk
 from sklearn.model_selection import train_test_split, GridSearchCV
 import tempfile
 
+try:
+  import xgboost as xgb
+except ImportError:
+  pass
+
 
 class XGBoostModel(SklearnModel):
   """
@@ -53,7 +58,6 @@ class XGBoostModel(SklearnModel):
     y = np.squeeze(dataset.y)
     w = np.squeeze(dataset.w)
     seed = self.model_instance.seed
-    import xgboost as xgb
     if isinstance(self.model_instance, xgb.XGBClassifier):
       xgb_metric = "auc"
       sklearn_metric = "roc_auc"

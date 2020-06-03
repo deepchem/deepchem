@@ -14,6 +14,11 @@ from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCo
 
 logger = logging.getLogger(__name__)
 
+try:
+  from rdkit import Chem
+except ImportError:
+  pass
+
 
 class TestAtomicCoordinates(unittest.TestCase):
   """
@@ -25,7 +30,6 @@ class TestAtomicCoordinates(unittest.TestCase):
     Set up tests.
     """
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
-    from rdkit import Chem
     mol = Chem.MolFromSmiles(smiles)
     engine = conformers.ConformerGenerator(max_conformers=1)
     self.mol = engine.generate_conformers(mol)

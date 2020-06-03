@@ -14,11 +14,12 @@ import sys
 import tempfile
 import tarfile
 import zipfile
+from urllib.request import urlretrieve
 
 try:
-  from urllib.request import urlretrieve  # Python 3
+  from rdkit.Chem.Scaffolds import MurckoScaffold
 except:
-  from urllib import urlretrieve  # Python 2
+  pass
 
 
 def pad_array(x, shape, fill=0, both=False):
@@ -220,6 +221,5 @@ class ScaffoldGenerator(object):
     mols : array_like
         Molecules.
     """
-    from rdkit.Chem.Scaffolds import MurckoScaffold
     return MurckoScaffold.MurckoScaffoldSmiles(
         mol=mol, includeChirality=self.include_chirality)

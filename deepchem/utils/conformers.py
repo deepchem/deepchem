@@ -8,6 +8,12 @@ __license__ = "3-clause BSD"
 
 import numpy as np
 
+try:
+  from rdkit import Chem
+  from rdkit.Chem import AllChem
+except:
+  pass
+
 
 class ConformerGenerator(object):
   """
@@ -107,8 +113,6 @@ class ConformerGenerator(object):
     mol : RDKit Mol
         Molecule.
     """
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
     mol = Chem.AddHs(mol)  # add hydrogens
     n_confs = self.max_conformers * self.pool_multiplier
     AllChem.EmbedMultipleConfs(mol, numConfs=n_confs, pruneRmsThresh=-1.)
@@ -127,7 +131,6 @@ class ConformerGenerator(object):
     kwargs : dict, optional
         Keyword arguments for force field constructor.
     """
-    from rdkit.Chem import AllChem
     if self.force_field == 'uff':
       ff = AllChem.UFFGetMoleculeForceField(mol, confId=conf_id, **kwargs)
     elif self.force_field.startswith('mmff'):
@@ -221,7 +224,6 @@ class ConformerGenerator(object):
 
     # create a new molecule to hold the chosen conformers
     # this ensures proper conformer IDs and energy-based ordering
-    from rdkit import Chem
     new = Chem.Mol(mol)
     new.RemoveAllConformers()
     conf_ids = [conf.GetId() for conf in mol.GetConformers()]
@@ -240,7 +242,6 @@ class ConformerGenerator(object):
     mol : RDKit Mol
         Molecule.
     """
-    from rdkit.Chem import AllChem
     rmsd = np.zeros(
         (mol.GetNumConformers(), mol.GetNumConformers()), dtype=float)
     for i, ref_conf in enumerate(mol.GetConformers()):
