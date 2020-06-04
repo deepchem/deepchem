@@ -5,7 +5,6 @@ import os
 import unittest
 import tempfile
 from scipy import misc
-from PIL import Image
 import deepchem as dc
 import zipfile
 
@@ -17,6 +16,7 @@ class TestImageLoader(unittest.TestCase):
 
   def setUp(self):
     super(TestImageLoader, self).setUp()
+    from PIL import Image
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
     self.tif_image_path = os.path.join(self.current_dir, "a_image.tif")
 

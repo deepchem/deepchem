@@ -11,7 +11,6 @@ import time
 import deepchem as dc
 import tensorflow as tf
 from deepchem.data import NumpyDataset
-from PIL import Image
 
 
 def undo_transforms(y, transformers):
@@ -1042,6 +1041,7 @@ class ImageTransformer(Transformer):
 
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
+    from PIL import Image
     images = [scipy.ndimage.imread(x, mode='RGB') for x in X]
     images = [Image.fromarray(x).resize(self.size) for x in images]
     return np.array(images), y, w
@@ -1286,6 +1286,7 @@ class DataTransforms(Transformer):
                 h - height of the images
                 w - width of the images
     """
+    from PIL import Image
     return Image.fromarray(self.Image).resize((h, w))
 
   def flip(self, direction="lr"):
