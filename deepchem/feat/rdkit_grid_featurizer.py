@@ -25,7 +25,6 @@ try:
   from rdkit.Chem import AllChem
 except ImportError:
   pass
-
 """
 TODO(LESWING) add sanitization with rdkit upgrade to 2017.*
 """
