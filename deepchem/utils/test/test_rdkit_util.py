@@ -12,7 +12,7 @@ from deepchem.utils import rdkit_util
 
 try:
   from rdkit import Chem
-except:
+except ImportError:
   pass
 
 

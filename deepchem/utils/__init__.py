@@ -18,7 +18,7 @@ from urllib.request import urlretrieve
 
 try:
   from rdkit.Chem.Scaffolds import MurckoScaffold
-except:
+except ImportError:
   pass
 
 

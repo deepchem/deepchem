@@ -11,7 +11,7 @@ import numpy as np
 try:
   from rdkit import Chem
   from rdkit.Chem import AllChem
-except:
+except ImportError:
   pass
 
 

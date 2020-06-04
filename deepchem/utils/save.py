@@ -14,7 +14,7 @@ from deepchem.utils.genomics import encode_bio_sequence as encode_sequence, enco
 
 try:
   from rdkit import Chem
-except:
+except ImportError:
   pass
 
 
