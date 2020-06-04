@@ -52,7 +52,7 @@ class XGBoostModel(SklearnModel):
     X = dataset.X
     y = np.squeeze(dataset.y)
     w = np.squeeze(dataset.w)
-    seed = self.model_instance.seed
+    seed = self.model_instance.random_state
     import xgboost as xgb
     if isinstance(self.model_instance, xgb.XGBClassifier):
       xgb_metric = "auc"
@@ -88,15 +88,26 @@ class XGBoostModel(SklearnModel):
     '''
     Find best potential parameters set using few n_estimators
     '''
+
     # Make sure user specified params are in the grid.
-    max_depth_grid = list(np.unique([self.model_instance.max_depth, 5, 7]))
-    colsample_bytree_grid = list(
-        np.unique([self.model_instance.colsample_bytree, 0.66, 0.9]))
-    reg_lambda_grid = list(np.unique([self.model_instance.reg_lambda, 1, 5]))
+
+    def unique_not_none(values):
+      return list(np.unique([x for x in values if x is not None]))
+
+    max_depth_grid = unique_not_none([self.model_instance.max_depth, 5, 7])
+    colsample_bytree_grid = unique_not_none(
+        [self.model_instance.colsample_bytree, 0.66, 0.9])
+    reg_lambda_grid = unique_not_none([self.model_instance.reg_lambda, 1, 5])
+    learning_rate = 0.3
+    if self.model_instance.learning_rate is not None:
+      learning_rate = max(learning_rate, self.model_instance.learning_rate)
+    n_estimators = 60
+    if self.model_instance.n_estimators is not None:
+      n_estimators = min(n_estimators, self.model_instance.n_estimators)
     param_grid = {
         'max_depth': max_depth_grid,
-        'learning_rate': [max(self.model_instance.learning_rate, 0.3)],
-        'n_estimators': [min(self.model_instance.n_estimators, 60)],
+        'learning_rate': [learning_rate],
+        'n_estimators': [n_estimators],
         'gamma': [self.model_instance.gamma],
         'min_child_weight': [self.model_instance.min_child_weight],
         'max_delta_step': [self.model_instance.max_delta_step],
@@ -107,7 +118,7 @@ class XGBoostModel(SklearnModel):
         'reg_lambda': reg_lambda_grid,
         'scale_pos_weight': [self.model_instance.scale_pos_weight],
         'base_score': [self.model_instance.base_score],
-        'seed': [self.model_instance.seed]
+        'seed': [self.model_instance.random_state]
     }
     grid_search = GridSearchCV(
         self.model_instance, param_grid, cv=2, refit=False, scoring=metric)

@@ -110,7 +110,8 @@ class A2C(object):
   The method receives the list of states generated during the rollout, the action taken for each one,
   and a new goal state.  It should generate a new list of states that are identical to the input ones,
   except specifying the new goal.  It should return that list of states, and the rewards that would
-  have been received for taking the specified actions from those states.
+  have been received for taking the specified actions from those states.  The output arrays may be
+  shorter than the input ones, if the modified rollout would have terminated sooner.
   """
 
   def __init__(self,
@@ -488,7 +489,7 @@ class A2C(object):
     outputs = self._compute_model(inputs)
     values = outputs[self._value_index].numpy()
     values = np.append(values.flatten(), 0.0)
-    self._process_rollout(hindsight_states, actions,
+    self._process_rollout(hindsight_states, actions[:len(rewards)],
                           np.array(rewards, dtype=np.float32),
                           np.array(values, dtype=np.float32),
                           initial_rnn_states)

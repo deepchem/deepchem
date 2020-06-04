@@ -206,6 +206,7 @@ class TestPPO(unittest.TestCase):
           pos_after_action = new_state[:2] + self.moves[action]
           if np.array_equal(pos_after_action, goal_pos):
             rewards.append(1)
+            break
           else:
             rewards.append(0)
         return new_states, rewards
@@ -234,8 +235,9 @@ class TestPPO(unittest.TestCase):
         env,
         TestPolicy(),
         use_hindsight=True,
-        optimization_epochs=8,
-        optimizer=Adam(learning_rate=learning_rate))
+        optimization_epochs=1,
+        batch_size=0,
+        optimizer=Adam(learning_rate=0.001))
     ppo.fit(1500000)
 
     # Try running it a few times and see if it succeeds.
