@@ -193,13 +193,6 @@ class TestGeneralize(unittest.TestCase):
   #    assert score > .5
 
   def test_xgboost_regression(self):
-    """
-    This test is not actually slow -- but cannot currently run
-    on Ubuntu 14.04 with Tensorflow 1.4.0
-
-    See Discussion Here
-    https://github.com/deepchem/deepchem/issues/960
-    """
     np.random.seed(123)
 
     dataset = sklearn.datasets.load_diabetes()
@@ -228,14 +221,6 @@ class TestGeneralize(unittest.TestCase):
     assert scores[regression_metric.name] < 55
 
   def test_xgboost_multitask_regression(self):
-    """
-    Test that xgboost models can learn on simple multitask regression.
-    This test is not actually slow -- but cannot currently run
-    on Ubuntu 14.04 with Tensorflow 1.4.0
-
-    See Discussion Here
-    https://github.com/deepchem/deepchem/issues/960
-    """
     np.random.seed(123)
     n_tasks = 4
     tasks = range(n_tasks)
