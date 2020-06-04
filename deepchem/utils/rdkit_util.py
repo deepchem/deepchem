@@ -6,8 +6,7 @@ from io import StringIO
 
 try:
   from rdkit import Chem
-  from rdkit.Chem import AllChem
-  from rdkit.Chem import rdmolops
+  from rdkit.Chem import AllChem, rdmolops
 except ImportError:
   pass
 

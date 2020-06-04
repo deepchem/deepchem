@@ -21,8 +21,7 @@ import zipfile
 
 try:
   from rdkit import Chem
-  from rdkit.Chem import rdmolfiles
-  from rdkit.Chem import rdmolops
+  from rdkit.Chem import rdmolops, rdmolfiles
 except ImportError:
   pass
 

@@ -9,8 +9,7 @@ from deepchem.feat import rdkit_grid_featurizer as rgf
 
 try:
   from rdkit.Chem import MolFromSmiles
-  from rdkit.Chem.AllChem import Mol
-  from rdkit.Chem.AllChem import ComputeGasteigerCharges
+  from rdkit.Chem.AllChem import Mol, ComputeGasteigerCharges
 except ImportError:
   pass
 
