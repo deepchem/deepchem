@@ -1,0 +1,6 @@
+{
+  "python.pythonPath": "/Users/nishikawadaiki/.pyenv/shims/python",
+  "python.linting.flake8Enabled": false,
+  "editor.formatOnSave": true,
+  "python.formatting.provider": "yapf"
+}
