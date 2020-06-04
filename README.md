@@ -18,7 +18,7 @@ materials science, quantum chemistry, and biology.
   - [Install from source](#install-from-source)
     - [General installation](#general-installation)
     - [Use powershell (Windows)](#use-powershell-windows)
-  - [Install using a Docker (WIP)](#install-using-a-docker-with-gpu-wip)
+  - [Install using a Docker (WIP)](#install-using-a-docker-wip)
 - [FAQ and Troubleshooting](#faq-and-troubleshooting)
 - [Getting Started](#getting-started)
 - [Contributing to DeepChem](/CONTRIBUTING.md)
@@ -117,8 +117,7 @@ bash scripts/install_deepchem_conda.sh deepchem
 ```
 
 Before activating deepchem environment, make sure conda has been initialized.  
-Check if there is a `(base)` in your command line.  
-If not, use `conda init bash` to activate it, then:
+Check if there is a `(base)` in your command line. If not, use `conda init bash` to activate it, then:
 
 ```
 conda activate deepchem
@@ -137,8 +136,7 @@ Currently you have to install from source in windows.
 ```
 
 Before activating deepchem environment, make sure conda-powershell has been initialized.  
-Check if there is a `(base)` before `PS` in powershell.  
-If not, use `conda init powershell` to activate it, then:
+Check if there is a `(base)` before `PS` in powershell. If not, use `conda init powershell` to activate it, then:
 
 ```bash
 conda activate deepchem
