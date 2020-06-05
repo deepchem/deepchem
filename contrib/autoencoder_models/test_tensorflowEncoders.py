@@ -12,7 +12,7 @@ from deepchem.models.autoencoder_models.autoencoder import TensorflowMoleculeEnc
 
 class TestTensorflowEncoders(TestCase):
 
-  @attr('slow')
+  @pytest.mark.slow('slow')
   def test_fit(self):
     tf_enc = TensorflowMoleculeEncoder.zinc_encoder()
 

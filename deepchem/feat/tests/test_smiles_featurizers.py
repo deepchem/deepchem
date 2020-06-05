@@ -1,6 +1,5 @@
 from unittest import TestCase
 import numpy as np
-from nose.tools import assert_equals
 from deepchem.feat import SmilesToSeq, SmilesToImage
 from deepchem.feat.smiles_featurizers import create_char_to_idx
 import os
@@ -27,8 +26,8 @@ class TestSmilesFeaturizers(TestCase):
     expected_seq_len = self.feat.max_len + 2 * self.feat.pad_len
 
     features = self.feat.featurize(mols)
-    assert_equals(features.shape[0], len(smiles))
-    assert_equals(features.shape[-1], expected_seq_len)
+    assert features.shape[0] == len(smiles)
+    assert features.shape[-1] == expected_seq_len
 
   def test_reconstruct_from_seq(self):
     """Test SMILES reconstruction from features."""
@@ -38,4 +37,4 @@ class TestSmilesFeaturizers(TestCase):
     features = self.feat.featurize(mols)
 
     reconstructed_smile = self.feat.smiles_from_seq(features[0])
-    assert_equals(smiles[0], reconstructed_smile)
+    assert smiles[0] == reconstructed_smile

@@ -1,9 +1,11 @@
 """
 Tests for Atomic Convolutions.
 """
-from nose.plugins.attrib import attr
 
 import os
+
+import pytest
+
 import deepchem
 import numpy as np
 import tensorflow as tf
@@ -16,7 +18,7 @@ from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCo
 
 class TestAtomicConv(unittest.TestCase):
 
-  @attr("slow")
+  @pytest.mark.slow
   def test_atomic_conv(self):
     """A simple test that initializes and fits an AtomicConvModel."""
     # For simplicity, let's assume both molecules have same number of
@@ -64,7 +66,7 @@ class TestAtomicConv(unittest.TestCase):
     atomic_convnet.fit(train, nb_epoch=300)
     assert np.allclose(labels, atomic_convnet.predict(train), atol=0.01)
 
-  @attr("slow")
+  @pytest.mark.slow("slow")
   def test_atomic_conv_variable(self):
     """A simple test that initializes and fits an AtomicConvModel on variable input size."""
     # For simplicity, let's assume both molecules have same number of
@@ -100,7 +102,7 @@ class TestAtomicConv(unittest.TestCase):
     train = NumpyDataset(features, labels)
     atomic_convnet.fit(train, nb_epoch=1)
 
-  @attr("slow")
+  @pytest.mark.slow("slow")
   def test_atomic_conv_with_feat(self):
     """A simple test for running an atomic convolution on featurized data."""
     dir_path = os.path.dirname(os.path.realpath(__file__))

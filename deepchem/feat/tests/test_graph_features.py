@@ -8,7 +8,8 @@ __license__ = "MIT"
 import unittest
 import os
 import numpy as np
-from nose.plugins.attrib import attr
+import pytest
+
 from deepchem.feat.graph_features import ConvMolFeaturizer, AtomicConvFeaturizer
 
 
@@ -94,7 +95,7 @@ class TestConvMolFeaturizer(unittest.TestCase):
 
 class TestAtomicConvFeaturizer(unittest.TestCase):
 
-  @attr("slow")
+  @pytest.mark.slow
   def test_feature_generation(self):
     """Test if featurization works using AtomicConvFeaturizer."""
     dir_path = os.path.dirname(os.path.realpath(__file__))

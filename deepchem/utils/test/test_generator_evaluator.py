@@ -6,7 +6,6 @@ import tensorflow as tf
 from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
 from tensorflow.keras import layers
-from nose.tools import assert_true
 from flaky import flaky
 
 
@@ -49,7 +48,7 @@ class TestGeneratorEvaluator(TestCase):
         model.default_generator(dataset), [metric], per_task_metrics=True)
     scores = list(scores[1].values())
     # Loosening atol to see if tests stop failing sporadically
-    assert_true(np.all(np.isclose(scores, [1.0, 1.0], atol=0.50)))
+    assert np.all(np.isclose(scores, [1.0, 1.0], atol=0.50))
 
   def test_compute_model_performance_singletask_classifier(self):
     n_data_points = 20

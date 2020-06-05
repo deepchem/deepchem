@@ -10,8 +10,9 @@ import logging
 import unittest
 import os
 import numpy as np
+import pytest
+
 import deepchem as dc
-from nose.tools import nottest
 from deepchem.utils import rdkit_util
 
 logger = logging.getLogger(__name__)
@@ -147,7 +148,7 @@ class TestBindingPocket(unittest.TestCase):
 
     assert len(pockets) < len(all_pockets)
 
-  @nottest
+  @pytest.mark.skip(reson="Unknown")
   def test_rf_convex_find_pockets(self):
     """Test that filter with pre-trained RF models works."""
     if sys.version_info >= (3, 0):

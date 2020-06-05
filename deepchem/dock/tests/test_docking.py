@@ -7,25 +7,27 @@ __license__ = "MIT"
 
 import unittest
 import os
-from nose.plugins.attrib import attr
-from nose.tools import nottest
+
 import sys
+
+import pytest
+
 import deepchem as dc
 
 
 class TestDocking(unittest.TestCase):
   """
-  Does sanity checks on pose generation. 
+  Does sanity checks on pose generation.
   """
 
-  @nottest
+  @pytest.mark.skip(reason="Unknown")
   def test_vina_grid_rf_docker_init(self):
     """Test that VinaGridRFDocker can be initialized."""
     if sys.version_info >= (3, 0):
       return
     docker = dc.dock.VinaGridRFDocker(exhaustiveness=1, detect_pockets=False)
 
-  @nottest
+  @pytest.mark.skip(reason="Unknown")
   def test_pocket_vina_grid_rf_docker_init(self):
     """Test that VinaGridRFDocker w/pockets can be initialized."""
     if sys.version_info >= (3, 0):
@@ -45,7 +47,7 @@ class TestDocking(unittest.TestCase):
     docker = dc.dock.VinaGridDNNDocker(exhaustiveness=1, detect_pockets=True)
   '''
 
-  @attr("slow")
+  @pytest.mark.slow
   def test_vina_grid_rf_docker_dock(self):
     """Test that VinaGridRFDocker can dock."""
     if sys.version_info >= (3, 0):
@@ -64,7 +66,7 @@ class TestDocking(unittest.TestCase):
     assert os.path.exists(protein_docked)
     assert os.path.exists(ligand_docked)
 
-  @nottest
+  @pytest.mark.skip(reason="Unknown")
   def test_vina_grid_rf_docker_specified_pocket(self):
     """Test that VinaGridRFDocker can dock into spec. pocket."""
     if sys.version_info >= (3, 0):
@@ -85,7 +87,7 @@ class TestDocking(unittest.TestCase):
     # Check returned files exist
     assert score.shape == (1,)
 
-  @nottest
+  @pytest.mark.skip(reason="Unknown")
   def test_pocket_vina_grid_rf_docker_dock(self):
     """Test that VinaGridRFDocker can dock."""
     if sys.version_info >= (3, 0):
@@ -106,7 +108,7 @@ class TestDocking(unittest.TestCase):
     assert score.shape == (1,)
 
   '''
-  @attr("slow")
+  @pytest.mark.slow("slow")
   def test_vina_grid_dnn_docker_dock(self):
     """Test that VinaGridDNNDocker can dock."""
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -122,7 +124,7 @@ class TestDocking(unittest.TestCase):
     assert os.path.exists(protein_docked)
     assert os.path.exists(ligand_docked)
 
-  @attr('slow')
+  @pytest.mark.slow('slow')
   def test_pocket_vina_grid_dnn_docker_dock(self):
     """Test that VinaGridDNNDocker can dock."""
     if sys.version_info >= (3, 0):

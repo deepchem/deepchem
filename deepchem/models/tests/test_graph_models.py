@@ -1,6 +1,7 @@
 import unittest
 import os
 import numpy as np
+import pytest
 import scipy
 
 import deepchem as dc
@@ -9,7 +10,7 @@ from deepchem.data import NumpyDataset
 from deepchem.models import GraphConvModel, DAGModel, WeaveModel, MPNNModel
 from deepchem.molnet import load_bace_classification, load_delaney
 from deepchem.feat import ConvMolFeaturizer
-from nose.plugins.attrib import attr
+
 from flaky import flaky
 
 
@@ -143,7 +144,7 @@ class TestGraphModels(unittest.TestCase):
     model.fit(dataset, nb_epoch=1)
     y_pred1 = model.predict(dataset)
 
-  @attr("slow")
+  @pytest.mark.slow
   def test_weave_model(self):
     tasks, dataset, transformers, metric = self.get_dataset(
         'classification', 'Weave')
@@ -165,7 +166,7 @@ class TestGraphModels(unittest.TestCase):
     scores = model.evaluate(dataset, [metric], transformers)
     assert all(s < 0.1 for s in scores['mean_absolute_error'])
 
-  @attr("slow")
+  @pytest.mark.slow
   def test_dag_model(self):
     tasks, dataset, transformers, metric = self.get_dataset(
         'classification', 'GraphConv')
@@ -187,7 +188,7 @@ class TestGraphModels(unittest.TestCase):
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
 
-  @attr("slow")
+  @pytest.mark.slow
   def test_dag_regression_model(self):
     np.random.seed(1234)
     tf.random.set_seed(1234)
@@ -211,7 +212,7 @@ class TestGraphModels(unittest.TestCase):
     scores = model.evaluate(dataset, [metric], transformers)
     assert all(s < 0.15 for s in scores['mean_absolute_error'])
 
-  @attr("slow")
+  @pytest.mark.slow
   def test_dag_regression_uncertainty(self):
     np.random.seed(1234)
     tf.random.set_seed(1234)
@@ -248,7 +249,7 @@ class TestGraphModels(unittest.TestCase):
     assert mean_std > 0.5 * mean_error
     assert mean_std < mean_value
 
-  @attr("slow")
+  @pytest.mark.slow
   def test_mpnn_model(self):
     tasks, dataset, transformers, metric = self.get_dataset(
         'classification', 'Weave')
@@ -268,7 +269,7 @@ class TestGraphModels(unittest.TestCase):
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
 
-  @attr("slow")
+  @pytest.mark.slow
   def test_mpnn_regression_model(self):
     tasks, dataset, transformers, metric = self.get_dataset(
         'regression', 'Weave')
@@ -288,7 +289,7 @@ class TestGraphModels(unittest.TestCase):
     scores = model.evaluate(dataset, [metric], transformers)
     assert all(s < 0.1 for s in scores['mean_absolute_error'])
 
-  @attr("slow")
+  @pytest.mark.slow
   def test_mpnn_regression_uncertainty(self):
     tasks, dataset, transformers, metric = self.get_dataset(
         'regression', 'Weave')
