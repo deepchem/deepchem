@@ -76,7 +76,7 @@ class TestGeneratorEvaluator(TestCase):
     scores = model.evaluate_generator(
         model.default_generator(dataset), [metric], per_task_metrics=True)
     scores = list(scores[1].values())
-    assert_true(np.isclose(scores, [1.0], atol=0.05))
+    assert np.isclose(scores, [1.0], atol=0.05)
 
   def test_compute_model_performance_multitask_regressor(self):
     random_seed = 42
@@ -105,4 +105,4 @@ class TestGeneratorEvaluator(TestCase):
     scores = model.evaluate_generator(
         model.default_generator(dataset), metric, per_task_metrics=True)
     scores = list(scores[1].values())
-    assert_true(np.all(np.isclose(scores, [0.0, 0.0], atol=1.0)))
+    assert np.all(np.isclose(scores, [0.0, 0.0], atol=1.0))

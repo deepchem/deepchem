@@ -15,6 +15,7 @@ from deepchem.feat.smiles_featurizers import create_char_to_idx
 from flaky import flaky
 
 
+@pytest.mark.skip(reason="Unknown")
 class TestChemnetModel(unittest.TestCase):
 
   def setUp(self):
