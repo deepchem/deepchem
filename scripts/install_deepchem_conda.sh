@@ -24,22 +24,20 @@ fi
 
 yes | pip install --upgrade pip
 conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
-    mdtraj \
-    pdbfixer \
-    rdkit \
-    joblib \
+    pandas \ 
     scikit-learn \
+    # soft dependencies
+    biopython \ 
+    mdtraj \
     networkx \
+    openmm \
+    pdbfixer \
     pillow \
-    pandas \
+    rdkit \
+    simdna \
+    py-xgboost \
+    # test dependencies
     nose \
     nose-timer \
-    flaky \
-    zlib \
-    requests \
-    py-xgboost \
-    simdna \
-    setuptools \
-    biopython \
-    numpy
+    flaky
 yes | pip install -U tensorflow tensorflow-probability

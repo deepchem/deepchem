@@ -35,9 +35,11 @@ materials science, quantum chemistry, and biology.
 DeepChem requires these packages on any condition.
 
 - [joblib](https://pypi.python.org/pypi/joblib)
+- [NumPy](https://numpy.org/)
 - [pandas](http://pandas.pydata.org/)
-- [scikit-learn](https://github.com/scikit-learn/scikit-learn.git)
-- [tensorflow](https://www.tensorflow.org/)
+- [scikit-learn](https://scikit-learn.org/stable/)
+- [SciPy](https://www.scipy.org/)
+- [TensorFlow](https://www.tensorflow.org/)
   - `deepchem>=2.4.0` requires tensorflow v2
   - `deepchem<2.4.0` requires tensorflow v1
 
@@ -45,8 +47,10 @@ DeepChem requires these packages on any condition.
 
 DeepChem has a number of "soft" requirements. These are packages which are needed for various submodules of DeepChem but not for the package as a whole.
 
+- [BioPython](https://biopython.org/wiki/Documentation)
 - [MDTraj](http://mdtraj.org/)
 - [NetworkX](https://networkx.github.io/documentation/stable/index.html)
+- [OpenMM](http://openmm.org/)
 - [PDBFixer](https://github.com/pandegroup/pdbfixer)
 - [Pillow](https://pypi.org/project/Pillow/)
 - [RDKit](http://www.rdkit.org/docs/Install.html)
@@ -87,13 +91,13 @@ Coming soon...
 `deepchem<2.4.0`
 
 ```bash
-pip install joblib pandas pillow scikit-learn==0.22 tensorflow==1.15 deepchem==2.2.1.dev54
+pip install pandas pillow scikit-learn==0.22 tensorflow==1.15 deepchem==2.2.1.dev54
 ```
 
 If you want GPU support:
 
 ```bash
-pip install joblib pandas pillow scikit-learn==0.22 tensorflow-gpu==1.15 deepchem==2.2.1.dev54
+pip install pandas pillow scikit-learn==0.22 tensorflow-gpu==1.15 deepchem==2.2.1.dev54
 ```
 
 ### Install from source
