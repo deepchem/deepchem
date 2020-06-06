@@ -1,12 +1,12 @@
 from unittest import TestCase
 
-import deepchem as dc
 import numpy as np
 import tensorflow as tf
-from deepchem.data import NumpyDataset
-from deepchem.data.datasets import Databag
-from tensorflow.keras import layers
 from flaky import flaky
+from tensorflow.keras import layers
+
+import deepchem as dc
+from deepchem.data import NumpyDataset
 
 
 class TestGeneratorEvaluator(TestCase):
