@@ -20,7 +20,7 @@ def generate_data(gan, batches, batch_size):
     yield batch
 
 
-class ExampleGAN(dc.models.GAN):
+class ExampleGAN(dc.models.gan.GAN):
 
   def get_noise_input_shape(self):
     return (2,)
@@ -95,7 +95,7 @@ class TestGAN(unittest.TestCase):
   def test_wgan(self):
     """Test fitting a conditional WGAN."""
 
-    class ExampleWGAN(dc.models.WGAN):
+    class ExampleWGAN(dc.models.gan.WGAN):
 
       def get_noise_input_shape(self):
         return (2,)

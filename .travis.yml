@@ -37,7 +37,8 @@ install:
   - conda activate deepchem
   - pip install yapf==0.22.0
   - pip install coveralls
-  - python setup.py install
+  - cd src/deepchem && python setup.py install
+  - cd src/tensorchem && python setup.py install
 script:
   - pytest -m "not slow" --cov=deepchem deepchem
   - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
