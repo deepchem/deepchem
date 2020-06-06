@@ -5,10 +5,9 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
-import unittest
 import os
-
 import sys
+import unittest
 
 import pytest
 
@@ -106,38 +105,3 @@ class TestDocking(unittest.TestCase):
       return
 
     assert score.shape == (1,)
-
-  '''
-  @pytest.mark.slow("slow")
-  def test_vina_grid_dnn_docker_dock(self):
-    """Test that VinaGridDNNDocker can dock."""
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    protein_file = os.path.join(current_dir, "1jld_protein.pdb")
-    ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
-
-    docker = dc.dock.VinaGridDNNDocker(exhaustiveness=1, detect_pockets=False)
-    (score, (protein_docked, ligand_docked)) = docker.dock(
-        protein_file, ligand_file)
-
-    # Check returned files exist
-    assert score.shape == (1,)
-    assert os.path.exists(protein_docked)
-    assert os.path.exists(ligand_docked)
-
-  @pytest.mark.slow('slow')
-  def test_pocket_vina_grid_dnn_docker_dock(self):
-    """Test that VinaGridDNNDocker can dock."""
-    if sys.version_info >= (3, 0):
-      return
-
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    protein_file = os.path.join(current_dir, "1jld_protein.pdb")
-    ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
-
-    docker = dc.dock.VinaGridDNNDocker(exhaustiveness=1, detect_pockets=True)
-    (score, (protein_docked, ligand_docked)) = docker.dock(
-        protein_file, ligand_file, dry_run=True)
-
-    # Check returned files exist
-    assert score.shape == (1,)
-  '''

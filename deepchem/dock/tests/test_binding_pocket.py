@@ -148,7 +148,7 @@ class TestBindingPocket(unittest.TestCase):
 
     assert len(pockets) < len(all_pockets)
 
-  @pytest.mark.skip(reson="Unknown")
+  @pytest.mark.skip(reason="Unknown")
   def test_rf_convex_find_pockets(self):
     """Test that filter with pre-trained RF models works."""
     if sys.version_info >= (3, 0):
