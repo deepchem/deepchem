@@ -40,7 +40,6 @@ install:
   - python setup.py install
 script:
   - pytest -m "not slow" deepchem
-    -v deepchem --nologcapture
   - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
     find ./deepchem | grep .py$ |xargs python -m doctest -v;
     fi
