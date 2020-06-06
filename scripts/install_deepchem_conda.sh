@@ -33,6 +33,7 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     pillow \
     pandas \
     pytest \
+    pytest-cov \
     flaky \
     zlib \
     py-xgboost \
