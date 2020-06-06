@@ -18,7 +18,7 @@ materials science, quantum chemistry, and biology.
   - [Install from source](#install-from-source)
     - [General installation](#general-installation)
     - [Use powershell (Windows)](#use-powershell-windows)
-  - [Install using a Docker (WIP)](#install-using-a-docker-with-gpu-wip)
+  - [Install using a Docker (WIP)](#install-using-a-docker-wip)
 - [FAQ and Troubleshooting](#faq-and-troubleshooting)
 - [Getting Started](#getting-started)
 - [Contributing to DeepChem](/CONTRIBUTING.md)
@@ -65,14 +65,14 @@ Coming soon...
 
 ```bash
 pip install tensorflow==1.15
-conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem==2.3.0
+conda install -c rdkit -c conda-forge -c omnia deepchem==2.3.0
 ```
 
 If you want GPU support:
 
 ```bash
-conda install -y -q scikit-learn=0.22
-conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu==2.3.0
+pip install tensorflow-gpu==1.15
+conda install -c rdkit -c conda-forge -c omnia deepchem==2.3.0
 ```
 
 ### Install via pip (WIP)
@@ -123,7 +123,6 @@ If not, use `conda init bash` to activate it, then:
 ```
 conda activate deepchem
 python setup.py install                                # Manual install
-nosetests -a '!slow' -v deepchem --nologcapture        # Run tests
 ```
 
 Check [this link](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for more information about the installation of conda environments.
@@ -143,7 +142,6 @@ If not, use `conda init powershell` to activate it, then:
 ```bash
 conda activate deepchem
 python setup.py install
-nosetests -a '!slow' -v deepchem --nologcapture
 ```
 
 ### Install using a Docker (WIP)
