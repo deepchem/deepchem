@@ -40,7 +40,7 @@ install:
   - cd src/deepchem && python setup.py install
   - cd src/tensorchem && python setup.py install
 script:
-  - pytest -m "not slow" --cov=deepchem deepchem
+  - pytest -m "not slow" --cov=deepchem src/
   - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
     find ./deepchem | grep .py$ |xargs python -m doctest -v;
     fi
