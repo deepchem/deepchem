@@ -51,7 +51,7 @@ def convert_protein_to_pdbqt(mol, outfile):
     if not line.startswith("ATOM"):
       continue
     line = line[:66]
-    atom_index = int(line.split()[1])
+    atom_index = int(line[6:11])
     atom = mol.GetAtoms()[atom_index - 1]
     line = "%s    +0.000 %s\n" % (line, atom.GetSymbol().ljust(2))
     out_lines.append(line)

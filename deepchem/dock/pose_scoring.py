@@ -73,11 +73,15 @@ def vina_repulsion(d):
   -------
   A `(N, M)` array with repulsion terms.
   """
-  return np.where(d >= 0, d**2, np.zeros_like(d))
+  return np.where(d < 0, d**2, np.zeros_like(d))
 
 
 def vina_hydrophobic(d):
   """Computes Autodock Vina's hydrophobic interaction term.
+
+  Here, d is the set of surface distances as defined in:
+
+  Jain, Ajay N. "Scoring noncovalent protein-ligand interactions: a continuous differentiable function tuned to compute binding affinities." Journal of computer-aided molecular design 10.5 (1996): 427-440.
 
   Parameters
   ----------
@@ -96,6 +100,10 @@ def vina_hydrophobic(d):
 
 def vina_hbond(d):
   """Computes Autodock Vina's hydrogen bond interaction term.
+
+  Here, d is the set of surface distances as defined in:
+
+  Jain, Ajay N. "Scoring noncovalent protein-ligand interactions: a continuous differentiable function tuned to compute binding affinities." Journal of computer-aided molecular design 10.5 (1996): 427-440.
 
   Parameters
   ----------
@@ -116,6 +124,10 @@ def vina_hbond(d):
 def vina_gaussian_first(d):
   """Computes Autodock Vina's first Gaussian interaction term.
 
+  Here, d is the set of surface distances as defined in:
+
+  Jain, Ajay N. "Scoring noncovalent protein-ligand interactions: a continuous differentiable function tuned to compute binding affinities." Journal of computer-aided molecular design 10.5 (1996): 427-440.
+
   Parameters
   ----------
   d: np.ndarray
@@ -131,6 +143,10 @@ def vina_gaussian_first(d):
 
 def vina_gaussian_second(d):
   """Computes Autodock Vina's second Gaussian interaction term.
+
+  Here, d is the set of surface distances as defined in:
+
+  Jain, Ajay N. "Scoring noncovalent protein-ligand interactions: a continuous differentiable function tuned to compute binding affinities." Journal of computer-aided molecular design 10.5 (1996): 427-440.
 
   Parameters
   ----------

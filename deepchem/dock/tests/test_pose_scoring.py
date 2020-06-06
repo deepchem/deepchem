@@ -14,6 +14,8 @@ import deepchem as dc
 from subprocess import call
 from deepchem.dock.pose_scoring import vina_nonlinearity
 from deepchem.dock.pose_scoring import vina_hydrophobic
+from deepchem.dock.pose_scoring import vina_gaussian_first
+from deepchem.dock.pose_scoring import vina_gaussian_second
 from deepchem.dock.pose_scoring import vina_hbond
 from deepchem.dock.pose_scoring import vina_repulsion
 from deepchem.dock.pose_scoring import cutoff_filter
@@ -45,27 +47,49 @@ class TestPoseScoring(unittest.TestCase):
     w = 0.5
     out_tensor = vina_nonlinearity(c, w, Nrot)
     assert out_tensor.shape == (N, M)
+    assert (out_tensor == c / (1 + w * Nrot)).all()
 
   def test_vina_repulsion(self):
     N = 10
     M = 5
-    d = np.random.rand(N, M)
+    d = np.ones((N, M))
     out_tensor = vina_repulsion(d)
     assert out_tensor.shape == (N, M)
+    # Where d is greater than zero, the repulsion is just zeros
+    assert (out_tensor == np.zeros_like(d)).all()
 
   def test_vina_hydrophobic(self):
     N = 10
     M = 5
-    d = np.random.rand(N, M)
+    d = np.zeros((N, M))
     out_tensor = vina_hydrophobic(d)
     assert out_tensor.shape == (N, M)
+    # When d is 0, this should just be 1
+    assert (out_tensor == np.ones_like(d)).all()
 
   def test_vina_hbond(self):
     N = 10
     M = 5
-    d = np.random.rand(N, M)
+    d = np.zeros((N, M))
     out_tensor = vina_hbond(d)
     assert out_tensor.shape == (N, M)
+    # When d == 0, the hbond interaction is 0
+    assert (out_tensor == np.zeros_like(d)).all()
+
+  def test_vina_gaussian(self):
+    N = 10
+    M = 5
+    d = np.zeros((N, M))
+    out_tensor = vina_gaussian_first(d)
+    assert out_tensor.shape == (N, M)
+    # The exponential returns 1 when input 0.
+    assert (out_tensor == np.ones_like(d)).all()
+
+    d = 3 * np.ones((N, M))
+    out_tensor = vina_gaussian_second(d)
+    assert out_tensor.shape == (N, M)
+    # This exponential returns 1 when input 3
+    assert (out_tensor == np.ones_like(d)).all()
 
   def test_energy_term(self):
     N = 10
@@ -76,3 +100,4 @@ class TestPoseScoring(unittest.TestCase):
     wrot = 1.0
     Nrot = 3
     energy = vina_energy_term(coords1, coords2, weights, wrot, Nrot)
+    assert energy > 0

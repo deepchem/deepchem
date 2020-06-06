@@ -28,8 +28,8 @@ class TestPoseGeneration(unittest.TestCase):
     vpg = dc.dock.VinaPoseGenerator(pocket_finder=pocket_finder)
 
   @pytest.mark.slow
-  def test_vina_poses(self):
-    """Test that VinaPoseGenerator creates pose files.
+  def test_vina_poses_and_scores(self):
+    """Test that VinaPoseGenerator generates poses and scores
 
     This test takes some time to run, about a minute and a half on
     development laptop.
@@ -45,7 +45,8 @@ class TestPoseGeneration(unittest.TestCase):
         (protein_file, ligand_file),
         exhaustiveness=1,
         num_modes=1,
-        out_dir="/tmp")
+        out_dir="/tmp",
+        generate_scores=True)
 
     assert len(poses) == 1
     assert len(scores) == 1
@@ -55,6 +56,34 @@ class TestPoseGeneration(unittest.TestCase):
     assert isinstance(ligand, Chem.Mol)
 
   @pytest.mark.slow
+  def test_vina_poses_no_scores(self):
+    """Test that VinaPoseGenerator generates poses.
+
+    This test takes some time to run, about a minute and a half on
+    development laptop.
+    """
+    # Let's turn on logging since this test will run for a while
+    logging.basicConfig(level=logging.INFO)
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    protein_file = os.path.join(current_dir, "1jld_protein.pdb")
+    ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
+
+    vpg = dc.dock.VinaPoseGenerator(pocket_finder=None)
+    poses = vpg.generate_poses(
+        (protein_file, ligand_file),
+        exhaustiveness=1,
+        num_modes=1,
+        out_dir="/tmp",
+        generate_scores=False)
+
+    assert len(poses) == 1
+    protein, ligand = poses[0]
+    from rdkit import Chem
+    assert isinstance(protein, Chem.Mol)
+    assert isinstance(ligand, Chem.Mol)
+
+  @attr("slow")
+>>>>>>> Changes
   def test_vina_pose_specified_centroid(self):
     """Test that VinaPoseGenerator creates pose files with specified centroid/box dims.
 
@@ -76,7 +105,8 @@ class TestPoseGeneration(unittest.TestCase):
         box_dims=box_dims,
         exhaustiveness=1,
         num_modes=1,
-        out_dir="/tmp")
+        out_dir="/tmp",
+        generate_scores=True)
 
     assert len(poses) == 1
     assert len(scores) == 1
@@ -106,7 +136,8 @@ class TestPoseGeneration(unittest.TestCase):
         exhaustiveness=1,
         num_modes=1,
         num_pockets=2,
-        out_dir="/tmp")
+        out_dir="/tmp",
+        generate_scores=True)
 
     assert len(poses) == 2
     assert len(scores) == 2

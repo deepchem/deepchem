@@ -6,6 +6,7 @@ import numpy as np
 import os
 import tempfile
 from subprocess import call
+from deepchem.data import NumpyDataset
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,10 @@ class Docker(object):
     scoring_model: `Model`
       Should make predictions on molecular complex.
     """
+    if ((featurizer is not None and scoring_model is None) or
+        (featurizer is None and scoring_model is not None)):
+      raise ValueError(
+          "featurizer/scoring_model must both be set or must both be None.")
     self.base_dir = tempfile.mkdtemp()
     self.pose_generator = pose_generator
     self.featurizer = featurizer
@@ -48,18 +53,23 @@ class Docker(object):
            exhaustiveness=10,
            num_modes=9,
            num_pockets=None,
-           out_dir=None):
-    """Docks using Vina and RF.
+           out_dir=None,
+           use_pose_generator_scores=False):
+    """Generic docking function.
+
+    This docking function uses this object's featurizer, pose
+    generator, and scoring model to make docking predictions. This
+    function is written in generic style so  
 
     Parameters
     ----------
     molecular_complex: Object
       Some representation of a molecular complex.
     exhaustiveness: int, optional (default 10)
-      Tells Autodock Vina how exhaustive it should be with pose
+      Tells pose generator how exhaustive it should be with pose
       generation.
     num_modes: int, optional (default 9)
-      Tells Autodock Vina how many binding modes it should generate at
+      Tells pose generator how many binding modes it should generate at
       each invocation.
     num_pockets: int, optional (default None)
       If specified, `self.pocket_finder` must be set. Will only
@@ -71,7 +81,17 @@ class Docker(object):
       If `True`, ask pose generator to generate scores. This cannot be
       `True` if `self.featurizer` and `self.scoring_model` are set
       since those will be used to generate scores in that case. 
+
+    Returns
+    -------
+    A generator. If `use_pose_generator_scores==True` or
+    `self.scoring_model` is set, then will yield tuples
+    `(posed_complex, score)`. Else will yield `posed_complex`.
     """
+    if self.scoring_model is not None and use_pose_generator_scores:
+      raise ValueError(
+          "Cannot set use_pose_generator_scores=True when self.scoring_model is set (since both generator scores for complexes)."
+      )
     outputs = self.pose_generator.generate_poses(
         molecular_complex,
         centroid=centroid,
@@ -85,12 +105,17 @@ class Docker(object):
       complexes, scores = outputs
     else:
       complexes = outputs
-    for posed_complex in complexes:
-      if self.featurizer is not None:
+    # We know use_pose_generator_scores == False in this case
+    if self.scoring_model is not None:
+      for posed_complex in complexes:
         # TODO: How to handle the failure here?
         features, _ = self.featurizer.featurize_complexes([molecular_complex])
         dataset = NumpyDataset(X=features)
-        score = self.model.predict(dataset)
-        yield (score, posed_complex)
-      else:
+        score = self.scoring_model.predict(dataset)
+        yield (posed_complex, score)
+    elif use_pose_generator_scores:
+      for posed_complex, score in zip(complexes, scores):
+        yield (posed_complex, score)
+    else:
+      for posed_complex in complexes:
         yield posed_complex

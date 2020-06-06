@@ -1,5 +1,5 @@
 """
-Generates protein-ligand docked poses using Autodock Vina.
+Generates protein-ligand docked poses.
 """
 import platform
 import deepchem
@@ -37,7 +37,8 @@ class PoseGenerator(object):
                      exhaustiveness=10,
                      num_modes=9,
                      num_pockets=None,
-                     out_dir=None):
+                     out_dir=None,
+                     generate_scores=False):
     """Generates a list of low energy poses for molecular complex
 
     Parameters
@@ -50,10 +51,10 @@ class PoseGenerator(object):
       Of shape `(3,)` holding the size of the box to dock. If not
       specified is set to size of molecular complex plus 5 angstroms.
     exhaustiveness: int, optional (default 10)
-      Tells Autodock Vina how exhaustive it should be with pose
+      Tells pose generator how exhaustive it should be with pose
       generation.
     num_modes: int, optional (default 9)
-      Tells Autodock Vina how many binding modes it should generate at
+      Tells pose generator how many binding modes it should generate at
       each invocation.
     num_pockets: int, optional (default None)
       If specified, `self.pocket_finder` must be set. Will only
@@ -61,6 +62,10 @@ class PoseGenerator(object):
       `self.pocket_finder`.
     out_dir: str, optional
       If specified, write generated poses to this directory.
+    generate_score: bool, optional (default False)
+      If `True`, the pose generator will return scores for complexes.
+      This is used typically when invoking external docking programs
+      that compute scores. 
 
     Returns
     -------
@@ -137,7 +142,8 @@ class VinaPoseGenerator(PoseGenerator):
                      exhaustiveness=10,
                      num_modes=9,
                      num_pockets=None,
-                     out_dir=None):
+                     out_dir=None,
+                     generate_scores=False):
     """Generates the docked complex and outputs files for docked complex.
 
     TODO: How can this work on Windows? We need to install a .msi file and invoke it correctly from Python for this to work.
@@ -163,6 +169,10 @@ class VinaPoseGenerator(PoseGenerator):
       `self.pocket_finder`.
     out_dir: str, optional
       If specified, write generated poses to this directory.
+    generate_score: bool, optional (default False)
+      If `True`, the pose generator will return scores for complexes.
+      This is used typically when invoking external docking programs
+      that compute scores. 
 
     Returns
     -------
@@ -274,4 +284,7 @@ class VinaPoseGenerator(PoseGenerator):
       docked_complexes += [(protein_mol[1], ligand) for ligand in ligands]
       all_scores += scores
 
-    return docked_complexes, all_scores
+    if generate_scores:
+      return docked_complexes, all_scores
+    else:
+      return docked_complexes

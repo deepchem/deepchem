@@ -65,7 +65,6 @@ html_static_path = ['_static']
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 html_logo = '_static/logo.png'
-
 # -----------------------------------------------------------------------------
 # Source code links
 # -----------------------------------------------------------------------------
@@ -135,8 +134,8 @@ def linkcode_resolve(domain, info):
   fn = relpath(
       fn, start=os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-  return "https://github.com/deepchem/deepchem/blob/master/deepchem/%s%s" % (
-      fn, linespec)
+  return "https://github.com/deepchem/deepchem/blob/master/%s%s" % (fn,
+                                                                    linespec)
   # TODO: Should we do similar dev handling?
   #if 'dev' in numpy.__version__:
   #  return "https://github.com/numpy/numpy/blob/master/numpy/%s%s" % (
@@ -144,3 +143,14 @@ def linkcode_resolve(domain, info):
   #else:
   #    return "https://github.com/numpy/numpy/blob/v%s/numpy/%s%s" % (
   #       numpy.__version__, fn, linespec)
+
+
+# Document __init__ methods
+def skip(app, what, name, obj, would_skip, options):
+  if name == "__init__":
+    return False
+  return would_skip
+
+
+def setup(app):
+  app.connect("autodoc-skip-member", skip)

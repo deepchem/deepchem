@@ -6,8 +6,12 @@ import sys
 import unittest
 import pytest
 import logging
+import numpy as np
 import deepchem as dc
 from deepchem.dock.binding_pocket import ConvexHullPocketFinder
+from deepchem.feat import ComplexFeaturizer
+from deepchem.models import Model
+from deepchem.dock.pose_generation import PoseGenerator
 
 
 class TestDocking(unittest.TestCase):
@@ -42,6 +46,24 @@ class TestDocking(unittest.TestCase):
     assert len(list(docked_outputs)) == 1
 
   @pytest.mark.slow
+  def test_docker_pose_generator_scores(self):
+    """Test that Docker can get scores from pose_generator."""
+    # We provide no scoring model so the docker won't score
+    vpg = dc.dock.VinaPoseGenerator()
+    docker = dc.dock.Docker(vpg)
+    docked_outputs = docker.dock(
+        (self.protein_file, self.ligand_file),
+        exhaustiveness=1,
+        num_modes=1,
+        out_dir="/tmp",
+        use_pose_generator_scores=True)
+
+    # Check only one output since num_modes==1
+    docked_outputs = list(docked_outputs)
+    assert len(docked_outputs) == 1
+    assert len(docked_outputs[0]) == 2
+
+  @pytest.mark.slow
   def test_docker_specified_pocket(self):
     """Test that Docker can dock into spec. pocket."""
     # Let's turn on logging since this test will run for a while
@@ -51,7 +73,7 @@ class TestDocking(unittest.TestCase):
     docked_outputs = docker.dock(
         (self.protein_file, self.ligand_file),
         centroid=(10, 10, 10),
-        box_dims=(1, 1, 1),
+        box_dims=(10, 10, 10),
         exhaustiveness=1,
         num_modes=1,
         out_dir="/tmp")
@@ -76,3 +98,29 @@ class TestDocking(unittest.TestCase):
 
     # Check returned files exist
     assert len(list(docked_outputs)) == 1
+
+  @attr("slow")
+  def test_scoring_model_and_featurizer(self):
+    """Test that scoring model and featurizer are invoked correctly."""
+
+    class DummyFeaturizer(ComplexFeaturizer):
+
+      def featurize_complexes(self, complexes, *args, **kwargs):
+        return np.zeros((len(complexes), 5)), None
+
+    class DummyModel(Model):
+
+      def predict(self, dataset, *args, **kwargs):
+        return np.zeros(len(dataset))
+
+    class DummyPoseGenerator(PoseGenerator):
+
+      def generate_poses(self, *args, **kwargs):
+        return [None]
+
+    featurizer = DummyFeaturizer()
+    scoring_model = DummyModel()
+    pose_generator = DummyPoseGenerator()
+    docker = dc.dock.Docker(pose_generator, featurizer, scoring_model)
+    outputs = docker.dock(None)
+    assert list(outputs) == [(None, np.array([0.]))]
