@@ -9,7 +9,7 @@ import os
 import sys
 import unittest
 import deepchem as dc
-from nose.plugins.attrib import attr
+import pytest
 
 
 class TestPoseGeneration(unittest.TestCase):
@@ -17,13 +17,13 @@ class TestPoseGeneration(unittest.TestCase):
   Does sanity checks on pose generation.
   """
 
-  @attr("slow")
+  @pytest.mark.slow
   def test_vina_initialization(self):
     """Test that VinaPoseGenerator can be initialized."""
     # Note this may download autodock Vina...
     vpg = dc.dock.VinaPoseGenerator(detect_pockets=False, exhaustiveness=1)
 
-  @attr("slow")
+  @pytest.mark.slow("slow")
   def test_pocket_vina_initialization(self):
     """Test that VinaPoseGenerator can be initialized."""
     # Note this may download autodock Vina...
@@ -31,7 +31,7 @@ class TestPoseGeneration(unittest.TestCase):
       return
     vpg = dc.dock.VinaPoseGenerator(detect_pockets=True, exhaustiveness=1)
 
-  @attr("slow")
+  @pytest.mark.slow("slow")
   def test_vina_poses(self):
     """Test that VinaPoseGenerator creates pose files."""
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -47,7 +47,7 @@ class TestPoseGeneration(unittest.TestCase):
     assert os.path.exists(protein_pose_file)
     assert os.path.exists(ligand_pose_file)
 
-  @attr('slow')
+  @pytest.mark.slow('slow')
   def test_pocket_vina_poses(self):
     """Test that VinaPoseGenerator creates pose files."""
     if sys.version_info >= (3, 0):

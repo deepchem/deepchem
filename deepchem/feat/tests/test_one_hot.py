@@ -1,7 +1,6 @@
 from unittest import TestCase
 
 import deepchem as dc
-from nose.tools import assert_equals
 
 
 class TestOneHotFeaturizer(TestCase):
@@ -14,6 +13,6 @@ class TestOneHotFeaturizer(TestCase):
     featurizer = dc.feat.one_hot.OneHotFeaturizer(dc.feat.one_hot.zinc_charset)
     one_hots = featurizer.featurize(mols)
     untransformed = featurizer.untransform(one_hots)
-    assert_equals(len(smiles), len(untransformed))
+    len(smiles) == len(untransformed)
     for i in range(len(smiles)):
-      assert_equals(smiles[i], untransformed[i][0])
+      assert smiles[i] == untransformed[i][0]

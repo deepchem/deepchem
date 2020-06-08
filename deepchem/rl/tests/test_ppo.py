@@ -1,3 +1,4 @@
+import pytest
 from flaky import flaky
 
 import deepchem as dc
@@ -6,7 +7,6 @@ from tensorflow.keras.layers import Input, Dense, GRU, Reshape, Softmax
 import numpy as np
 import tensorflow as tf
 import unittest
-from nose.plugins.attrib import attr
 
 
 class TestPPO(unittest.TestCase):
@@ -162,7 +162,7 @@ class TestPPO(unittest.TestCase):
     assert np.array_equal(prob3, prob4)
     assert not np.array_equal(prob2, prob3)
 
-  @attr('slow')
+  @pytest.mark.slow
   def test_hindsight(self):
     """Test Hindsight Experience Replay."""
 

@@ -1,7 +1,6 @@
 from unittest import TestCase
 
-from nose.tools import assert_equals
-from nose.plugins.attrib import attr
+import pytest
 from rdkit import Chem
 
 import deepchem as dc
@@ -12,7 +11,7 @@ from deepchem.models.autoencoder_models.autoencoder import TensorflowMoleculeEnc
 
 class TestTensorflowEncoders(TestCase):
 
-  @attr('slow')
+  @pytest.mark.slow
   def test_fit(self):
     tf_enc = TensorflowMoleculeEncoder.zinc_encoder()
 
@@ -36,4 +35,4 @@ class TestTensorflowEncoders(TestCase):
     tf_de = TensorflowMoleculeDecoder.zinc_decoder()
     one_hot_decoded = tf_de.predict_on_batch(prediction)
     decoded_smiles = featurizer.untransform(one_hot_decoded)
-    assert_equals(len(decoded_smiles), len(smiles))
+    assert len(decoded_smiles) == len(smiles)

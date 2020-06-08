@@ -7,7 +7,7 @@ import unittest
 
 import numpy as np
 import os
-from nose.plugins.attrib import attr
+import pytest
 
 import deepchem as dc
 
@@ -21,7 +21,7 @@ class TestMolnet(unittest.TestCase):
     super(TestMolnet, self).setUp()
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
-  @attr('slow')
+  @pytest.mark.slow
   def test_delaney_graphconvreg(self):
     """Tests molnet benchmarking on delaney with graphconvreg."""
     datasets = ['delaney']
@@ -44,7 +44,7 @@ class TestMolnet(unittest.TestCase):
       assert float(lastrow[-3]) > 0.75
     os.remove(os.path.join(out_path, 'results.csv'))
 
-  @attr('slow')
+  @pytest.mark.slow
   def test_qm7_multitask(self):
     """Tests molnet benchmarking on qm7 with multitask network."""
     datasets = ['qm7']
