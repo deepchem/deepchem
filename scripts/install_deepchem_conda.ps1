@@ -28,7 +28,7 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia `
     pillow `
     rdkit `
     simdna `
-    py-xgboost  `
+    py-xgboost `
     pytest `
     pytest-cov `
     flaky

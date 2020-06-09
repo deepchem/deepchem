@@ -24,7 +24,6 @@ fi
 
 yes | pip install --upgrade pip
 conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
-    # soft dependencies
     biopython \
     mdtraj \
     networkx \
@@ -34,7 +33,6 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     rdkit \
     simdna \
     py-xgboost \
-    # test dependencies
     pytest \
     pytest-cov \
     flaky
