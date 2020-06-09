@@ -5,6 +5,8 @@
 [![Anaconda-Server Badge](https://anaconda.org/deepchem/deepchem/badges/version.svg)](https://anaconda.org/deepchem/deepchem)
 [![PyPI version](https://badge.fury.io/py/deepchem.svg)](https://badge.fury.io/py/deepchem)
 
+Documentation ([Latest](https://deepchem.readthedocs.io/en/latest/))
+
 DeepChem aims to provide a high quality open-source toolchain
 that democratizes the use of deep-learning in drug discovery,
 materials science, quantum chemistry, and biology.
@@ -124,8 +126,7 @@ bash scripts/install_deepchem_conda.sh deepchem
 ```
 
 Before activating deepchem environment, make sure conda has been initialized.  
-Check if there is a `(base)` in your command line.  
-If not, use `conda init bash` to activate it, then:
+Check if there is a `(base)` in your command line. If not, use `conda init bash` to activate it, then:
 
 ```
 conda activate deepchem
@@ -143,8 +144,7 @@ Currently you have to install from source in windows.
 ```
 
 Before activating deepchem environment, make sure conda-powershell has been initialized.  
-Check if there is a `(base)` before `PS` in powershell.  
-If not, use `conda init powershell` to activate it, then:
+Check if there is a `(base)` before `PS` in powershell. If not, use `conda init powershell` to activate it, then:
 
 ```bash
 conda activate deepchem
