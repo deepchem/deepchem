@@ -26,13 +26,13 @@ setup(
         'life-science',
         'drug-discovery',
     ],
-    packages=find_packages('deepchem'),
+    packages=find_packages(),
     project_urls={
         'Documentation': 'https://deepchem.readthedocs.io/en/latest/',
         'Source': 'https://github.com/deepchem/deepchem',
     },
     install_requires=[
-        'joblib'
+        'joblib',
         'numpy',
         'pandas',
         'scikit-learn',
