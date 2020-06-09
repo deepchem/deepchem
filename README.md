@@ -48,11 +48,14 @@ DeepChem requires these packages on any condition.
 DeepChem has a number of "soft" requirements. These are packages which are needed for various submodules of DeepChem but not for the package as a whole.
 
 - [BioPython](https://biopython.org/wiki/Documentation)
+- [OpenAI Gym](https://gym.openai.com/)
 - [MDTraj](http://mdtraj.org/)
 - [NetworkX](https://networkx.github.io/documentation/stable/index.html)
 - [OpenMM](http://openmm.org/)
 - [PDBFixer](https://github.com/pandegroup/pdbfixer)
 - [Pillow](https://pypi.org/project/Pillow/)
+- [pyGPGO](https://pygpgo.readthedocs.io/en/latest/)
+- [PyTorch](https://pytorch.org/)
 - [RDKit](http://www.rdkit.org/docs/Install.html)
 - [simdna](https://github.com/kundajelab/simdna)
 - [XGBoost](https://xgboost.readthedocs.io/en/latest/)
@@ -68,14 +71,14 @@ Coming soon...
 `deepchem<2.4.0`
 
 ```bash
-pip install tensorflow==1.15
+pip install tensorflow==1.14
 conda install -c rdkit -c conda-forge -c omnia deepchem==2.3.0
 ```
 
 If you want GPU support:
 
 ```bash
-pip install tensorflow-gpu==1.15
+pip install tensorflow-gpu==1.14
 conda install -c rdkit -c conda-forge -c omnia deepchem==2.3.0
 ```
 
@@ -91,13 +94,13 @@ Coming soon...
 `deepchem<2.4.0`
 
 ```bash
-pip install pandas pillow scikit-learn==0.22 tensorflow==1.15 deepchem==2.2.1.dev54
+pip install pandas pillow scikit-learn==0.22 tensorflow==1.14 deepchem==2.2.1.dev54
 ```
 
 If you want GPU support:
 
 ```bash
-pip install pandas pillow scikit-learn==0.22 tensorflow-gpu==1.15 deepchem==2.2.1.dev54
+pip install pandas pillow scikit-learn==0.22 tensorflow-gpu==1.14 deepchem==2.2.1.dev54
 ```
 
 ### Install from source
@@ -126,7 +129,7 @@ If not, use `conda init bash` to activate it, then:
 
 ```
 conda activate deepchem
-python setup.py install                                # Manual install
+python setup.py install
 ```
 
 Check [this link](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for more information about the installation of conda environments.
