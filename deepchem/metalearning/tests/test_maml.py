@@ -76,7 +76,7 @@ class TestMAML(unittest.TestCase):
 
     # After one step of optimization it should do much better.
 
-    assert np.average(loss2) < 1.0
+    assert np.average(loss2) < np.average(loss1)
 
     # Verify that we can create a new MAML object, reload the parameters from the first one, and
     # get the same result.

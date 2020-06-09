@@ -1,26 +1,23 @@
 """
 Tests to make sure deepchem models can overfit on tiny datasets.
 """
-from nose.plugins.attrib import attr
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
 import os
-import tempfile
+
 import numpy as np
-import unittest
-import sklearn
-import shutil
+import pytest
 import tensorflow as tf
-import deepchem as dc
-import scipy.io
-from deepchem.models.optimizers import Adam, ExponentialDecay
-from tensorflow.python.framework import test_util
+from flaky import flaky
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
-from flaky import flaky
+from tensorflow.python.framework import test_util
+
+import deepchem as dc
+from deepchem.models.optimizers import Adam
 
 
 class TestOverfit(test_util.TensorFlowTestCase):
@@ -573,7 +570,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .2
 
-  @attr('slow')
+  @pytest.mark.slow
   def test_DAG_singletask_regression_overfit(self):
     """Test DAG regressor multitask overfits tiny data."""
     np.random.seed(123)
@@ -691,7 +688,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .8
 
-  @attr("slow")
+  @pytest.mark.slow
   def test_MPNN_singletask_regression_overfit(self):
     """Test MPNN overfits tiny data."""
     np.random.seed(123)

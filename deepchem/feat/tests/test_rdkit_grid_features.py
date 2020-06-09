@@ -5,6 +5,8 @@ import os
 import unittest
 
 import numpy as np
+import pytest
+
 np.random.seed(123)
 from deepchem.feat import rdkit_grid_featurizer as rgf
 
@@ -450,6 +452,7 @@ class TestFeaturizationFunctions(unittest.TestCase):
     self.assertEqual(dicts, expected_dicts)
 
 
+@pytest.mark.linux_only
 class TestRdkitGridFeaturizer(unittest.TestCase):
   """
   Test RdkitGridFeaturizer class defined in rdkit_grid_featurizer module.

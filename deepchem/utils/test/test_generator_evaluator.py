@@ -1,13 +1,12 @@
 from unittest import TestCase
 
-import deepchem as dc
 import numpy as np
 import tensorflow as tf
-from deepchem.data import NumpyDataset
-from deepchem.data.datasets import Databag
-from tensorflow.keras import layers
-from nose.tools import assert_true
 from flaky import flaky
+from tensorflow.keras import layers
+
+import deepchem as dc
+from deepchem.data import NumpyDataset
 
 
 class TestGeneratorEvaluator(TestCase):
@@ -49,7 +48,7 @@ class TestGeneratorEvaluator(TestCase):
         model.default_generator(dataset), [metric], per_task_metrics=True)
     scores = list(scores[1].values())
     # Loosening atol to see if tests stop failing sporadically
-    assert_true(np.all(np.isclose(scores, [1.0, 1.0], atol=0.50)))
+    assert np.all(np.isclose(scores, [1.0, 1.0], atol=0.50))
 
   def test_compute_model_performance_singletask_classifier(self):
     n_data_points = 20
@@ -77,7 +76,7 @@ class TestGeneratorEvaluator(TestCase):
     scores = model.evaluate_generator(
         model.default_generator(dataset), [metric], per_task_metrics=True)
     scores = list(scores[1].values())
-    assert_true(np.isclose(scores, [1.0], atol=0.05))
+    assert np.isclose(scores, [1.0], atol=0.05)
 
   def test_compute_model_performance_multitask_regressor(self):
     random_seed = 42
@@ -106,4 +105,4 @@ class TestGeneratorEvaluator(TestCase):
     scores = model.evaluate_generator(
         model.default_generator(dataset), metric, per_task_metrics=True)
     scores = list(scores[1].values())
-    assert_true(np.all(np.isclose(scores, [0.0, 0.0], atol=1.0)))
+    assert np.all(np.isclose(scores, [0.0, 0.0], atol=1.0))

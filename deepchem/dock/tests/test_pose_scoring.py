@@ -12,6 +12,8 @@ import tempfile
 import os
 import shutil
 import numpy as np
+import pytest
+
 import deepchem as dc
 from sklearn.ensemble import RandomForestRegressor
 from subprocess import call
@@ -21,6 +23,7 @@ from deepchem.utils import get_data_dir
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.linux_only
 class TestPoseScoring(unittest.TestCase):
   """
   Does sanity checks on pose generation.

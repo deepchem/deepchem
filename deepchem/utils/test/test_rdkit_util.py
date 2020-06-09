@@ -3,10 +3,7 @@ import unittest
 import os
 import shutil
 
-from nose.tools import assert_equal
 import numpy as np
-from nose.tools import assert_false
-from nose.tools import assert_true
 
 from deepchem.utils import rdkit_util
 
@@ -22,7 +19,7 @@ class TestRdkitUtil(unittest.TestCase):
     xyz2 = rdkit_util.get_xyz_from_mol(mol)
 
     equal_array = np.all(xyz == xyz2)
-    assert_true(equal_array)
+    assert equal_array
 
   def test_add_hydrogens_to_mol(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -41,7 +38,7 @@ class TestRdkitUtil(unittest.TestCase):
       atom = mol.GetAtoms()[atom_idx]
       if atom.GetAtomicNum() == 1:
         after_hydrogen_count += 1
-    assert_true(after_hydrogen_count >= original_hydrogen_count)
+    assert after_hydrogen_count >= original_hydrogen_count
 
   def test_compute_charges(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -56,15 +53,15 @@ class TestRdkitUtil(unittest.TestCase):
       value = atom.GetProp(str("_GasteigerCharge"))
       if value != 0:
         has_a_charge = True
-    assert_true(has_a_charge)
+    assert has_a_charge
 
   def test_load_molecule(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
     xyz, mol = rdkit_util.load_molecule(
         ligand_file, calc_charges=False, add_hydrogens=False)
-    assert_true(xyz is not None)
-    assert_true(mol is not None)
+    assert xyz is not None
+    assert mol is not None
 
   def test_write_molecule(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -79,11 +76,11 @@ class TestRdkitUtil(unittest.TestCase):
       xyz, mol2 = rdkit_util.load_molecule(
           outfile, calc_charges=False, add_hydrogens=False)
 
-    assert_equal(mol.GetNumAtoms(), mol2.GetNumAtoms())
+    assert mol.GetNumAtoms() == mol2.GetNumAtoms()
     for atom_idx in range(mol.GetNumAtoms()):
       atom1 = mol.GetAtoms()[atom_idx]
       atom2 = mol.GetAtoms()[atom_idx]
-      assert_equal(atom1.GetAtomicNum(), atom2.GetAtomicNum())
+      assert atom1.GetAtomicNum() == atom2.GetAtomicNum()
 
   def test_pdbqt_to_pdb(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -105,11 +102,11 @@ class TestRdkitUtil(unittest.TestCase):
       xyz, pdbqt_mol = rdkit_util.load_molecule(
           out_pdbqt, add_hydrogens=False, calc_charges=False)
 
-    assert_equal(pdb_mol.GetNumAtoms(), pdbqt_mol.GetNumAtoms())
+    assert pdb_mol.GetNumAtoms() == pdbqt_mol.GetNumAtoms()
     for atom_idx in range(pdb_mol.GetNumAtoms()):
       atom1 = pdb_mol.GetAtoms()[atom_idx]
       atom2 = pdbqt_mol.GetAtoms()[atom_idx]
-      assert_equal(atom1.GetAtomicNum(), atom2.GetAtomicNum())
+      assert atom1.GetAtomicNum() == atom2.GetAtomicNum()
 
   def test_merge_molecules_xyz(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -120,5 +117,5 @@ class TestRdkitUtil(unittest.TestCase):
     for i in range(len(xyz)):
       first_atom_equal = np.all(xyz[i] == merged[i])
       second_atom_equal = np.all(xyz[i] == merged[i + len(xyz)])
-      assert_true(first_atom_equal)
-      assert_true(second_atom_equal)
+      assert first_atom_equal
+      assert second_atom_equal
