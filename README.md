@@ -66,6 +66,9 @@ DeepChem has a number of "soft" requirements. These are packages which are neede
 
 ### Install via conda (Recommendation)
 
+RDKit is a soft requirement package, but many useful methods like molnet are dependent on it.
+If you use conda, we recommend installing RDKit with deepchem.
+
 `deepchem>=2.4.0`
 
 Coming soon...
@@ -74,14 +77,14 @@ Coming soon...
 
 ```bash
 pip install tensorflow==1.14
-conda install -c rdkit -c conda-forge -c omnia deepchem==2.3.0
+conda install -c rdkit -c conda-forge rdkit deepchem==2.3.0
 ```
 
 If you want GPU support:
 
 ```bash
 pip install tensorflow-gpu==1.14
-conda install -c rdkit -c conda-forge -c omnia deepchem==2.3.0
+conda install -c rdkit -c conda-forge rdkit deepchem==2.3.0
 ```
 
 ### Install via pip (WIP)
@@ -131,6 +134,7 @@ Check if there is a `(base)` in your command line. If not, use `conda init bash`
 ```
 conda activate deepchem
 python setup.py install
+pytest -m "not slow"
 ```
 
 Check [this link](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for more information about the installation of conda environments.
@@ -149,13 +153,17 @@ Check if there is a `(base)` before `PS` in powershell. If not, use `conda init 
 ```bash
 conda activate deepchem
 python setup.py install
+pytest -m "not slow"
 ```
 
 ### Install using a Docker (WIP)
 
 ### Build the image from Dockerfile
 
-We prepare for [sample Dockerfiles](https://github.com/deepchem/deepchem/tree/master/docker) to install deepchem from source codes and conda package manager. Please check them!
+We created [sample Dockerfiles](https://github.com/deepchem/deepchem/tree/master/docker) based on the `nvidia/cuda:10.1-cudnn7-devel` image.  
+If you want to build your own deepchem environment, these files may be helpful.  
+- `docker/x.x.x` : build an image by using conda package manager (x.x.x is a version of deepchem)  
+- `docker/master` : build an image from master branch of deepchem source codes
 
 ### Use the official deepchem image (WIP)
 
