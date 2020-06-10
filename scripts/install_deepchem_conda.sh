@@ -30,9 +30,9 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     openmm \
     pdbfixer \
     pillow \
+    py-xgboost \
     rdkit \
     simdna \
-    py-xgboost \
     pytest \
     pytest-cov \
     flaky
