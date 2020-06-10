@@ -18,7 +18,7 @@ then
     echo "Installing DeepChem in current env"
 else
     export envname=$1
-    conda create -y --name $envname "python>=$python_version"
+    conda create -y --name $envname python=$python_version
     conda activate $envname
 fi
 
