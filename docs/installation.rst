@@ -11,18 +11,21 @@ Google Colab. Check out one of the `DeepChem Tutorials`_ or this
 Conda Installation
 ------------------
 If you'd like to install DeepChem locally, we recommend using
-:code:`conda`.  If you have :code:`conda` installed, you can install
-DeepChem with GPU support with the one-liner
+:code:`conda` and installing RDKit with deepchem. 
+RDKit is a soft requirement package, but many useful methods like
+molnet depend on it.
 
 .. code-block:: bash
 
-    conda install -y -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu
+    pip install tensorflow-gpu==1.14
+    conda install -y -c rdkit -c conda-forge rdkit deepchem
 
 For CPU only support instead run
 
 .. code-block:: bash
 
-    conda install -y -c deepchem -c rdkit -c conda-forge -c omnia deepchem
+    pip install tensorflow==1.14
+    conda install -y -c rdkit -c conda-forge rdkit deepchem
 
 Then open your python and try running.
 

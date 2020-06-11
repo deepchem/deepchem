@@ -18,9 +18,10 @@ RUN conda update -n base conda && \
     conda create -y --name deepchem python=3.6 && \
     . /miniconda/etc/profile.d/conda.sh && \
     conda activate deepchem && \
-    conda install -y -q scikit-learn=0.22 && \
-    conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-gpu==2.3.0 && \
-    conda clean -afy
+    pip install tensorflow-gpu==1.14 && \
+    conda install -c rdkit -c conda-forge rdkit deepchem==2.3.0 && \
+    conda clean -afy && \
+    rm -rf ~/.cache/pip
 
 RUN echo "conda activate deepchem" >> ~/.bashrc
 WORKDIR /root/mydir

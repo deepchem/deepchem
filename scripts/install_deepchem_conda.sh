@@ -18,27 +18,22 @@ then
     echo "Installing DeepChem in current env"
 else
     export envname=$1
-    conda create -y --name $envname "python>=$python_version"
+    conda create -y --name $envname python=$python_version
     conda activate $envname
 fi
 
 yes | pip install --upgrade pip
 conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
+    biopython \
     mdtraj \
-    pdbfixer \
-    rdkit \
-    joblib \
-    scikit-learn \
     networkx \
+    openmm \
+    pdbfixer \
     pillow \
-    pandas \
+    py-xgboost \
+    rdkit \
+    simdna \
     pytest \
     pytest-cov \
-    flaky \
-    zlib \
-    py-xgboost \
-    simdna \
-    setuptools \
-    biopython \
-    numpy
+    flaky
 yes | pip install -U tensorflow tensorflow-probability

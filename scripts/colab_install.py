@@ -14,30 +14,58 @@ logger = getLogger(__name__)
 logger.addHandler(StreamHandler())
 logger.setLevel(INFO)
 
+default_channels = [
+    "-c",
+    "rdkit",
+    "-c",
+    "conda-forge",
+]
+default_packages = [
+    "rdkit",
+]
 
-def install(chunk_size=4096,
-            file_name="Miniconda3-latest-Linux-x86_64.sh",
-            url_base="https://repo.continuum.io/miniconda/",
-            conda_path=os.path.expanduser(os.path.join("~", "miniconda")),
-            version=None,
-            gpu=True,
-            add_python_path=True,
-            force=False):
-  """install deepchem from miniconda on Google Colab
 
-    For GPU notebook
+def install(
+    chunk_size=4096,
+    file_name="Miniconda3-latest-Linux-x86_64.sh",
+    url_base="https://repo.continuum.io/miniconda/",
+    conda_path=os.path.expanduser(os.path.join("~", "miniconda")),
+    add_python_path=True,
+    version=None,
+    # default channels are "conda-forge" and "rdkit"
+    additional_channels=[],
+    # default packages are "rdkit" and "deepchem"
+    additional_packages=[],
+    # whether to clean install or not
+    force=False):
+  """install deepchem on Google Colab
+
+    For GPU/CPU notebook
     (if you don't set the version, this script will install the latest package)
     ```
     import deepchem_installer
-    deepchem_installer.install()
+    deepchem_installer.install(version='2.4.0')
     ```
 
-    For CPU notebook
+    If you want to add soft dependent packages, you can use additional_conda_channels and 
+    additional_conda_package arguments. Please see the example.
     ```
     import deepchem_installer
-    deepchem_installer.install(version="2.3.0", gpu=False)
+    deepchem_installer.install(
+      version='2.4.0',
+      additional_conda_channels=[]
+      additional_conda_packages=["mdtraj", "networkx"]
+    )
+
+    // add channel
+    import deepchem_installer
+    deepchem_installer.install(
+      version='2.4.0',
+      additional_conda_channels=["-c", "omnia"]
+      additional_conda_packages=["openmm"]
+    )
     ```
-    """
+  """
 
   python_path = os.path.join(
       conda_path,
@@ -82,12 +110,17 @@ def install(chunk_size=4096,
   logger.info('done')
 
   logger.info("installing deepchem")
-  deepchem_package = "deepchem-gpu" if gpu else "deepchem"
+  deepchem = "deepchem" if version is None else "deepchem=={}".format(version)
   subprocess.check_call([
-      os.path.join(conda_path, "bin", "conda"), "install", "--yes", "-c",
-      "deepchem", "-c", "rdkit", "-c", "conda-forge", "-c", "omnia",
-      "python=={}".format(python_version), deepchem_package
-      if version is None else "{}=={}".format(deepchem_package, version)
+      os.path.join(conda_path, "bin", "conda"),
+      "install",
+      "--yes",
+      *default_channels,
+      *additional_channels,
+      "python=={}".format(python_version),
+      *default_packages,
+      *additional_packages,
+      deepchem,
   ])
   logger.info("done")
 
