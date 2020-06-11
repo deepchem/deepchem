@@ -36,7 +36,7 @@ setup(
         'life-science',
         'drug-discovery',
     ],
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests"]),
     project_urls={
         'Documentation': 'https://deepchem.readthedocs.io/en/latest/',
         'Source': 'https://github.com/deepchem/deepchem',

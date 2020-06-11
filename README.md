@@ -5,7 +5,7 @@
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/deepchem/badges/version.svg)](https://anaconda.org/conda-forge/deepchem)
 [![PyPI version](https://badge.fury.io/py/deepchem.svg)](https://badge.fury.io/py/deepchem)
 
-[TopSite](https://deepchem.io/) | [Documentation (master)](https://deepchem.readthedocs.io/en/latest/)) | [Colab Tutorial](https://github.com/deepchem/deepchem/tree/master/examples/tutorials) | [Discussion Forum](https://forum.deepchem.io/) | [Gitter](https://gitter.im/deepchem/Lobby)
+[WebSite](https://deepchem.io/) | [Documentation (master)](https://deepchem.readthedocs.io/en/latest/)) | [Colab Tutorial](https://github.com/deepchem/deepchem/tree/master/examples/tutorials) | [Discussion Forum](https://forum.deepchem.io/) | [Gitter](https://gitter.im/deepchem/Lobby)
 
 DeepChem aims to provide a high quality open-source toolchain
 that democratizes the use of deep-learning in drug discovery,
@@ -256,4 +256,4 @@ To cite this book, please use this bibtex entry:
 
 ## Version
 
-2.1.0
+2.3.0
