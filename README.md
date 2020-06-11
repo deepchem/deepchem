@@ -66,7 +66,7 @@ DeepChem has a number of "soft" requirements. These are packages which are neede
 
 ### Install via conda (Recommendation)
 
-RDKit is a soft requirement package, but many useful methods like molnet are dependent on it.
+RDKit is a soft requirement package, but many useful methods like molnet depend on it.
 If you use conda, we recommend installing RDKit with deepchem.
 
 `deepchem>=2.4.0`
