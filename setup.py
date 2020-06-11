@@ -1,10 +1,20 @@
 from setuptools import setup, find_packages
 
-VERSION = '2.4.0'
+
+# get the version from deepchem/__init__.py
+def _get_version():
+  with open('deepchem/__init__.py') as fp:
+    for line in fp:
+      if line.startswith('__version__'):
+        g = {}
+        exec(line, g)
+        return g['__version__']
+    raise ValueError('`__version__` not defined in `deepchem/__init__.py`')
+
 
 setup(
     name='deepchem',
-    version=VERSION,
+    version=_get_version(),
     url='https://github.com/deepchem/deepchem',
     maintainer='DeepChem contributors',
     classifiers=[
