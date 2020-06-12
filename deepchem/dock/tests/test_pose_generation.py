@@ -82,8 +82,7 @@ class TestPoseGeneration(unittest.TestCase):
     assert isinstance(protein, Chem.Mol)
     assert isinstance(ligand, Chem.Mol)
 
-  @attr("slow")
->>>>>>> Changes
+  @pytest.mark.slow
   def test_vina_pose_specified_centroid(self):
     """Test that VinaPoseGenerator creates pose files with specified centroid/box dims.
 

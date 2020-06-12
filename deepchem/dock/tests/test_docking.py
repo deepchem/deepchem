@@ -99,7 +99,7 @@ class TestDocking(unittest.TestCase):
     # Check returned files exist
     assert len(list(docked_outputs)) == 1
 
-  @attr("slow")
+  @pytest.mark.slow
   def test_scoring_model_and_featurizer(self):
     """Test that scoring model and featurizer are invoked correctly."""
 
