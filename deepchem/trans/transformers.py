@@ -11,7 +11,6 @@ import time
 import deepchem as dc
 import tensorflow as tf
 from deepchem.data import NumpyDataset
-from PIL import Image
 
 
 def undo_transforms(y, transformers):
