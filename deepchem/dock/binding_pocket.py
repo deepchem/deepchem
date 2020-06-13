@@ -14,6 +14,7 @@ from deepchem.utils.fragment_util import get_contact_atom_indices
 
 logger = logging.getLogger(__name__)
 
+
 def extract_active_site(protein_file, ligand_file, cutoff=4):
   """Extracts a box for the active site.
 

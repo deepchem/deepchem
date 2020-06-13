@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class PoseGenerator(object):
   """A Pose Generator computes low energy conformations for molecular complexes.
+
   Many questions in structural biophysics reduce to that of computing
   the binding free energy of molecular complexes. A key step towards
   computing the binding free energy of two complexes is to find low
