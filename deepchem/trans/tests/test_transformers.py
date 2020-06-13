@@ -40,8 +40,8 @@ class TestTransformers(unittest.TestCase):
   def test_y_log_transformer(self):
     """Tests logarithmic data transformer."""
     solubility_dataset = dc.data.tests.load_solubility_data()
-    log_transformer = dc.trans.LogTransformer(transform_y=True,
-                                              dataset=solubility_dataset)
+    log_transformer = dc.trans.LogTransformer(
+        transform_y=True, dataset=solubility_dataset)
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
                     solubility_dataset.w, solubility_dataset.ids)
     solubility_dataset = log_transformer.transform(solubility_dataset)
@@ -72,14 +72,14 @@ class TestTransformers(unittest.TestCase):
       dc.trans.transformers.Transformer(transform_w=True).transform(ul_dataset)
 
     # transforming X should be okay
-    dc.trans.NormalizationTransformer(transform_X=True,
-                                      dataset=ul_dataset).transform(ul_dataset)
+    dc.trans.NormalizationTransformer(
+        transform_X=True, dataset=ul_dataset).transform(ul_dataset)
 
   def test_X_log_transformer(self):
     """Tests logarithmic data transformer."""
     solubility_dataset = dc.data.tests.load_solubility_data()
-    log_transformer = dc.trans.LogTransformer(transform_X=True,
-                                              dataset=solubility_dataset)
+    log_transformer = dc.trans.LogTransformer(
+        transform_X=True, dataset=solubility_dataset)
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
                     solubility_dataset.w, solubility_dataset.ids)
     solubility_dataset = log_transformer.transform(solubility_dataset)
@@ -112,9 +112,8 @@ class TestTransformers(unittest.TestCase):
       tiid = dfe.columns.get_loc(task) - dfe.columns.get_loc(first_task)
       tid = np.concatenate((tid, np.array([tiid])))
     tasks = tid.astype(int)
-    log_transformer = dc.trans.LogTransformer(transform_y=True,
-                                              tasks=tasks,
-                                              dataset=multitask_dataset)
+    log_transformer = dc.trans.LogTransformer(
+        transform_y=True, tasks=tasks, dataset=multitask_dataset)
     X, y, w, ids = (multitask_dataset.X, multitask_dataset.y,
                     multitask_dataset.w, multitask_dataset.ids)
     multitask_dataset = log_transformer.transform(multitask_dataset)
@@ -147,9 +146,8 @@ class TestTransformers(unittest.TestCase):
       fiid = dfe.columns.get_loc(feature) - dfe.columns.get_loc(first_feature)
       fid = np.concatenate((fid, np.array([fiid])))
     features = fid.astype(int)
-    log_transformer = dc.trans.LogTransformer(transform_X=True,
-                                              features=features,
-                                              dataset=multitask_dataset)
+    log_transformer = dc.trans.LogTransformer(
+        transform_X=True, features=features, dataset=multitask_dataset)
     X, y, w, ids = (multitask_dataset.X, multitask_dataset.y,
                     multitask_dataset.w, multitask_dataset.ids)
     multitask_dataset = log_transformer.transform(multitask_dataset)
@@ -172,8 +170,8 @@ class TestTransformers(unittest.TestCase):
   def test_y_minmax_transformer(self):
     """Tests MinMax transformer. """
     solubility_dataset = dc.data.tests.load_solubility_data()
-    minmax_transformer = dc.trans.MinMaxTransformer(transform_y=True,
-                                                    dataset=solubility_dataset)
+    minmax_transformer = dc.trans.MinMaxTransformer(
+        transform_y=True, dataset=solubility_dataset)
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
                     solubility_dataset.w, solubility_dataset.ids)
     solubility_dataset = minmax_transformer.transform(solubility_dataset)
@@ -205,8 +203,8 @@ class TestTransformers(unittest.TestCase):
     y = np.random.randn(n_samples, n_tasks)
     dataset = dc.data.NumpyDataset(X, y)
 
-    minmax_transformer = dc.trans.MinMaxTransformer(transform_y=True,
-                                                    dataset=dataset)
+    minmax_transformer = dc.trans.MinMaxTransformer(
+        transform_y=True, dataset=dataset)
     w, ids = dataset.w, dataset.ids
 
     dataset = minmax_transformer.transform(dataset)
@@ -232,8 +230,8 @@ class TestTransformers(unittest.TestCase):
 
   def test_X_minmax_transformer(self):
     solubility_dataset = dc.data.tests.load_solubility_data()
-    minmax_transformer = dc.trans.MinMaxTransformer(transform_X=True,
-                                                    dataset=solubility_dataset)
+    minmax_transformer = dc.trans.MinMaxTransformer(
+        transform_X=True, dataset=solubility_dataset)
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
                     solubility_dataset.w, solubility_dataset.ids)
     solubility_dataset = minmax_transformer.transform(solubility_dataset)
@@ -319,9 +317,8 @@ class TestTransformers(unittest.TestCase):
     target = np.transpose(np.array(np.append([target], [target], axis=0)))
     gaussian_dataset = dc.data.tests.load_gaussian_cdf_data()
     bins = 1001
-    cdf_transformer = dc.trans.CDFTransformer(transform_X=True,
-                                              dataset=gaussian_dataset,
-                                              bins=bins)
+    cdf_transformer = dc.trans.CDFTransformer(
+        transform_X=True, dataset=gaussian_dataset, bins=bins)
     X, y, w, ids = (gaussian_dataset.X, gaussian_dataset.y, gaussian_dataset.w,
                     gaussian_dataset.ids)
     gaussian_dataset = cdf_transformer.transform(gaussian_dataset, bins=bins)
@@ -345,9 +342,8 @@ class TestTransformers(unittest.TestCase):
     target = np.transpose(np.array(np.append([target], [target], axis=0)))
     gaussian_dataset = dc.data.tests.load_gaussian_cdf_data()
     bins = 1001
-    cdf_transformer = dc.trans.CDFTransformer(transform_y=True,
-                                              dataset=gaussian_dataset,
-                                              bins=bins)
+    cdf_transformer = dc.trans.CDFTransformer(
+        transform_y=True, dataset=gaussian_dataset, bins=bins)
     X, y, w, ids = (gaussian_dataset.X, gaussian_dataset.y, gaussian_dataset.w,
                     gaussian_dataset.ids)
     gaussian_dataset = cdf_transformer.transform(gaussian_dataset, bins=bins)
@@ -424,8 +420,8 @@ class TestTransformers(unittest.TestCase):
     """Test Power transformer on Gaussian normal dataset."""
     gaussian_dataset = dc.data.tests.load_gaussian_cdf_data()
     powers = [1, 2, 0.5]
-    power_transformer = dc.trans.PowerTransformer(transform_X=True,
-                                                  powers=powers)
+    power_transformer = dc.trans.PowerTransformer(
+        transform_X=True, powers=powers)
     X, y, w, ids = (gaussian_dataset.X, gaussian_dataset.y, gaussian_dataset.w,
                     gaussian_dataset.ids)
     gaussian_dataset2 = power_transformer.transform(gaussian_dataset)
@@ -449,8 +445,8 @@ class TestTransformers(unittest.TestCase):
     """Test Power transformer on Gaussian normal dataset."""
     gaussian_dataset = dc.data.tests.load_gaussian_cdf_data()
     powers = [1, 2, 0.5]
-    power_transformer = dc.trans.PowerTransformer(transform_y=True,
-                                                  powers=powers)
+    power_transformer = dc.trans.PowerTransformer(
+        transform_y=True, powers=powers)
     X, y, w, ids = (gaussian_dataset.X, gaussian_dataset.y, gaussian_dataset.w,
                     gaussian_dataset.ids)
     gaussian_dataset2 = power_transformer.transform(gaussian_dataset)
@@ -501,8 +497,8 @@ class TestTransformers(unittest.TestCase):
       np.testing.assert_allclose(w_task[w_orig_task == 0],
                                  np.zeros_like(w_task[w_orig_task == 0]))
       # Check that sum of 0s equals sum of 1s in transformed for each task
-      assert np.isclose(np.sum(w_task[y_task == 0]),
-                        np.sum(w_task[y_task == 1]))
+      assert np.isclose(
+          np.sum(w_task[y_task == 0]), np.sum(w_task[y_task == 1]))
 
   def test_multitask_balancing_transformer(self):
     """Test balancing transformer on multitask dataset."""
@@ -529,8 +525,8 @@ class TestTransformers(unittest.TestCase):
       np.testing.assert_allclose(w_task[w_orig_task == 0],
                                  np.zeros_like(w_task[w_orig_task == 0]))
       # Check that sum of 0s equals sum of 1s in transformed for each task
-      assert np.isclose(np.sum(w_task[y_task == 0]),
-                        np.sum(w_task[y_task == 1]))
+      assert np.isclose(
+          np.sum(w_task[y_task == 0]), np.sum(w_task[y_task == 1]))
 
   def test_coulomb_fit_transformer(self):
     """Test coulomb fit transformer on singletask dataset."""
@@ -559,8 +555,9 @@ class TestTransformers(unittest.TestCase):
     y_test = np.zeros((test_samples, n_tasks))
     w_test = np.ones((test_samples, n_tasks))
     test_dataset = dc.data.NumpyDataset(X_test, y_test, w_test, ids=None)
-    sims = np.sum(X_test[0, :] * X, axis=1, dtype=float) / np.sum(
-        np.sign(X_test[0, :] + X), axis=1, dtype=float)
+    sims = np.sum(
+        X_test[0, :] * X, axis=1, dtype=float) / np.sum(
+            np.sign(X_test[0, :] + X), axis=1, dtype=float)
     sims = sorted(sims, reverse=True)
     IRV_transformer = dc.trans.IRVTransformer(10, n_tasks, dataset)
     test_dataset_trans = IRV_transformer.transform(test_dataset)
@@ -691,9 +688,8 @@ class TestTransformers(unittest.TestCase):
     tasks = ["outcome"]
     input_file = os.path.join(self.current_dir,
                               "../../models/tests/example_regression.csv")
-    loader = dc.data.CSVLoader(tasks=tasks,
-                               smiles_field="smiles",
-                               featurizer=featurizer)
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(input_file)
     transformer = dc.trans.DAGTransformer(max_atoms=50)
     dataset = transformer.transform(dataset)

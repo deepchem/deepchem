@@ -154,10 +154,11 @@ class MinMaxTransformer(Transformer):
       if len(dataset.y.shape) > 1:
         assert len(self.y_min) == dataset.y.shape[1]
 
-    super(MinMaxTransformer, self).__init__(transform_X=transform_X,
-                                            transform_y=transform_y,
-                                            transform_w=transform_w,
-                                            dataset=dataset)
+    super(MinMaxTransformer, self).__init__(
+        transform_X=transform_X,
+        transform_y=transform_y,
+        transform_w=transform_w,
+        dataset=dataset)
 
   def transform(self, dataset, parallel=False):
     """Transforms the dataset."""
@@ -231,14 +232,15 @@ class NormalizationTransformer(Transformer):
       self.grad = np.reshape(true_grad, (true_grad.shape[0], -1, 3))
       self.ydely_means = ydely_means
 
-    super(NormalizationTransformer, self).__init__(transform_X=transform_X,
-                                                   transform_y=transform_y,
-                                                   transform_w=transform_w,
-                                                   dataset=dataset)
+    super(NormalizationTransformer, self).__init__(
+        transform_X=transform_X,
+        transform_y=transform_y,
+        transform_w=transform_w,
+        dataset=dataset)
 
   def transform(self, dataset, parallel=False):
-    return super(NormalizationTransformer, self).transform(dataset,
-                                                           parallel=parallel)
+    return super(NormalizationTransformer, self).transform(
+        dataset, parallel=parallel)
 
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
@@ -289,8 +291,8 @@ class NormalizationTransformer(Transformer):
 
       grad_means = self.y_means[1:]
       energy_var = self.y_stds[0]
-      grad_var = 1 / energy_var * (self.ydely_means -
-                                   self.y_means[0] * self.y_means[1:])
+      grad_var = 1 / energy_var * (
+          self.ydely_means - self.y_means[0] * self.y_means[1:])
       energy = tasks[:, 0]
       transformed_grad = []
 
@@ -348,10 +350,11 @@ class ClippingTransformer(Transformer):
       Maximum absolute value for y
 
     """
-    super(ClippingTransformer, self).__init__(transform_X=transform_X,
-                                              transform_y=transform_y,
-                                              transform_w=transform_w,
-                                              dataset=dataset)
+    super(ClippingTransformer, self).__init__(
+        transform_X=transform_X,
+        transform_y=transform_y,
+        transform_w=transform_w,
+        dataset=dataset)
     assert not transform_w
     self.x_max = x_max
     self.y_max = y_max
@@ -402,9 +405,8 @@ class LogTransformer(Transformer):
     self.features = features
     self.tasks = tasks
     """Initialize log  transformation."""
-    super(LogTransformer, self).__init__(transform_X=transform_X,
-                                         transform_y=transform_y,
-                                         dataset=dataset)
+    super(LogTransformer, self).__init__(
+        transform_X=transform_X, transform_y=transform_y, dataset=dataset)
 
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
@@ -467,10 +469,11 @@ class BalancingTransformer(Transformer):
                transform_w=False,
                dataset=None,
                seed=None):
-    super(BalancingTransformer, self).__init__(transform_X=transform_X,
-                                               transform_y=transform_y,
-                                               transform_w=transform_w,
-                                               dataset=dataset)
+    super(BalancingTransformer, self).__init__(
+        transform_X=transform_X,
+        transform_y=transform_y,
+        transform_w=transform_w,
+        dataset=dataset)
     # BalancingTransformer can only transform weights.
     assert not transform_X
     assert not transform_y
@@ -514,10 +517,7 @@ class CDFTransformer(Transformer):
   """Histograms the data and assigns values based on sorted list."""
   """Acts like a Cumulative Distribution Function (CDF)."""
 
-  def __init__(self,
-               transform_X=False,
-               transform_y=False,
-               dataset=None,
+  def __init__(self, transform_X=False, transform_y=False, dataset=None,
                bins=2):
     self.transform_X = transform_X
     self.transform_y = transform_y
@@ -838,9 +838,9 @@ class IRVTransformer():
     n_features = X_target.shape[1]
     print('start similarity calculation')
     time1 = time.time()
-    similarity = IRVTransformer.matrix_mul(X_target, np.transpose(self.X)) / (
-        n_features -
-        IRVTransformer.matrix_mul(1 - X_target, np.transpose(1 - self.X)))
+    similarity = IRVTransformer.matrix_mul(X_target, np.transpose(
+        self.X)) / (n_features - IRVTransformer.matrix_mul(
+            1 - X_target, np.transpose(1 - self.X)))
     time2 = time.time()
     print('similarity calculation takes %i s' % (time2 - time1))
     for i in range(self.n_tasks):
@@ -867,8 +867,8 @@ class IRVTransformer():
         partial_result = np.matmul(
             X1[X1_id * shard_size:min((X1_id + 1) *
                                       shard_size, X1_shape[0]), :],
-            X2[:,
-               X2_id * shard_size:min((X2_id + 1) * shard_size, X2_shape[1])])
+            X2[:, X2_id * shard_size:min((X2_id + 1) *
+                                         shard_size, X2_shape[1])])
         # calculate matrix multiplicatin on slices
         if result.size == 1:
           result = partial_result
@@ -888,8 +888,8 @@ class IRVTransformer():
     X_trans = []
     for count in range(X_length // 5000 + 1):
       X_trans.append(
-          self.X_transform(dataset.X[count * 5000:min((count + 1) *
-                                                      5000, X_length), :]))
+          self.X_transform(
+              dataset.X[count * 5000:min((count + 1) * 5000, X_length), :]))
     X_trans = np.concatenate(X_trans, axis=0)
     return NumpyDataset(X_trans, dataset.y, dataset.w, ids=None)
 
@@ -1097,8 +1097,8 @@ class ANITransformer(Transformer):
       while True:
         end = min((start + 1) * batch_size, X.shape[0])
         X_batch = X[(start * batch_size):end]
-        output = self.sess.run([self.outputs],
-                               feed_dict={self.inputs: X_batch})[0]
+        output = self.sess.run(
+            [self.outputs], feed_dict={self.inputs: X_batch})[0]
         X_out.append(output)
         num_transformed = num_transformed + X_batch.shape[0]
         print('%i samples transformed' % num_transformed)
@@ -1132,11 +1132,12 @@ class ANITransformer(Transformer):
       radial_sym = self.radial_symmetry(d_radial_cutoff, d, atom_numbers)
       angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
                                           coordinates)
-      self.outputs = tf.concat([
-          tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
-          angular_sym
-      ],
-                               axis=2)
+      self.outputs = tf.concat(
+          [
+              tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
+              angular_sym
+          ],
+          axis=2)
     return graph
 
   def distance_matrix(self, coordinates, flags):
@@ -1178,9 +1179,9 @@ class ANITransformer(Transformer):
     if self.atomic_number_differentiated:
       out_tensors = []
       for atom_type in self.atom_cases:
-        selected_atoms = tf.expand_dims(tf.expand_dims(
-            atom_numbers_embedded[:, :, atom_type], axis=1),
-                                        axis=3)
+        selected_atoms = tf.expand_dims(
+            tf.expand_dims(atom_numbers_embedded[:, :, atom_type], axis=1),
+            axis=3)
         out_tensors.append(tf.reduce_sum(out * selected_atoms, axis=2))
       return tf.concat(out_tensors, axis=2)
     else:
@@ -1233,9 +1234,8 @@ class ANITransformer(Transformer):
         for atom_type_k in self.atom_cases[id_j:]:
           selected_atoms = tf.stack([atom_numbers_embedded[:, :, atom_type_j]] * max_atoms, axis=2) * \
                            tf.stack([atom_numbers_embedded[:, :, atom_type_k]] * max_atoms, axis=1)
-          selected_atoms = tf.expand_dims(tf.expand_dims(selected_atoms,
-                                                         axis=1),
-                                          axis=4)
+          selected_atoms = tf.expand_dims(
+              tf.expand_dims(selected_atoms, axis=1), axis=4)
           out_tensors.append(
               tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
       return tf.concat(out_tensors, axis=2)
@@ -1263,10 +1263,11 @@ class FeaturizationTransformer(Transformer):
     self.featurizer = featurizer
     if not transform_X:
       raise ValueError("FeaturizingTransfomer can only be used on X")
-    super(FeaturizationTransformer, self).__init__(transform_X=transform_X,
-                                                   transform_y=transform_y,
-                                                   transform_w=transform_w,
-                                                   dataset=dataset)
+    super(FeaturizationTransformer, self).__init__(
+        transform_X=transform_X,
+        transform_y=transform_y,
+        transform_w=transform_w,
+        dataset=dataset)
 
   def transform_array(self, X, y, w):
     X = self.featurizer.featurize(X)
@@ -1312,11 +1313,8 @@ class DataTransforms(Transformer):
              (‘constant’, ‘nearest’, ‘reflect’ or ‘wrap’). Default is ‘constant’.
               order - The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
     """
-    return scipy.ndimage.rotate(self.Image,
-                                angle,
-                                reshape=reshape,
-                                mode=mode,
-                                order=order)
+    return scipy.ndimage.rotate(
+        self.Image, angle, reshape=reshape, mode=mode, order=order)
 
   def gaussian_blur(self, sigma=0.2):
     """ Adds gaussian noise to the image
@@ -1352,13 +1350,11 @@ class DataTransforms(Transformer):
           order - The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
           """
     if len(self.Image.shape) == 2:
-      return scipy.ndimage.shift(self.Image, [height, width],
-                                 order=order,
-                                 mode=mode)
+      return scipy.ndimage.shift(
+          self.Image, [height, width], order=order, mode=mode)
     if len(self.Image.shape == 3):
-      return scipy.ndimage.shift(self.Image, [height, width, 0],
-                                 order=order,
-                                 mode=mode)
+      return scipy.ndimage.shift(
+          self.Image, [height, width, 0], order=order, mode=mode)
 
   def gaussian_noise(self, mean=0, std=25.5):
     '''Adds gaussian noise to the image
