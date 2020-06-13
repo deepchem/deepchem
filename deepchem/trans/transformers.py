@@ -1385,12 +1385,12 @@ class DataTransforms(Transformer):
     x[noise > (1 - prob / 2)] = salt
     return x
 
-  def median_filter(self, size, mode='reflect', cval=0.0):
+  def median_filter(self, size):
     """ Calculates a multidimensional median filter
     Parameters:
-      size - Shape taken from array at every element to define the input to the filter.
-      mode - Points outside the boundaries of the input are filled according to the given mode
-             (‘constant’, ‘nearest’, ‘reflect’ or ‘wrap’). Default is ‘constant’.
-      cval - value to fill past edges if mode is 'constant'.
+      size - The kernel size in pixels.
     """
-    return scipy.ndimage.median_filter(self.Image, size, mode=mode, cval=cval)
+    from PIL import Image, ImageFilter
+    image = Image.fromarray(self.Image)
+    image = image.filter(ImageFilter.MedianFilter(size=size))
+    return np.array(image)

@@ -704,7 +704,10 @@ class TestTransformers(unittest.TestCase):
 
   def test_median_filter(self):
     #Check median filter
+    from PIL import Image, ImageFilter
     dt = DataTransforms(self.d)
-    filtered = dt.median_filter(size=2)
-    check_filtered = scipy.ndimage.gaussian_filter(self.d, 2)
+    filtered = dt.median_filter(size=3)
+    image = Image.fromarray(self.d)
+    image = image.filter(ImageFilter.MedianFilter(size=3))
+    check_filtered = np.array(image)
     assert np.allclose(check_filtered, filtered)
