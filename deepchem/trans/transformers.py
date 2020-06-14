@@ -1306,12 +1306,18 @@ class DataTransforms(Transformer):
 
   def rotate(self, angle=0, reshape=True, mode='constant', order=3):
     """ Rotates the image
-          Parameters:
-              angle (default = 0 i.e no rotation) - Denotes angle by which the image should be rotated (in Degrees)
-              reshape (default = True i.e will get reshape)
-              mode - Points outside the boundaries of the input are filled according to the given mode
-             (‘constant’, ‘nearest’, ‘reflect’ or ‘wrap’). Default is ‘constant’.
-              order - The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
+
+    Parameters
+    ----------
+    angle (default = 0 i.e no rotation) - Denotes angle by which the image should be rotated (in Degrees).
+    reshape (default = True i.e will get reshape)
+     mode - Points outside the boundaries of the input are filled according to the given mode
+	(‘constant’, ‘nearest’, ‘reflect’ or ‘wrap’). Default is ‘constant’.
+     order - The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
+
+    Returns
+    ----------
+    The rotated imput array.
     """
     return scipy.ndimage.rotate(
         self.Image, angle, reshape=reshape, mode=mode, order=order)
@@ -1324,10 +1330,17 @@ class DataTransforms(Transformer):
     return scipy.ndimage.gaussian_filter(self.Image, sigma)
 
   def crop(self, x_crop, y_crop):
-    """ Crops the image from the center.
-          Parameters:
-            x_crop - bound for x
-            y_crop - bound for y
+    """ Crops the image from the center
+
+    Parameters
+    ----------
+    x_crop - bound for x.
+    y_crop - bound for y.
+
+    Returns
+    ----------
+    The cropped input array.
+
     """
     y = self.Image.shape[0]
     x = self.Image.shape[1]
@@ -1336,7 +1349,13 @@ class DataTransforms(Transformer):
     return self.Image[y_start:y_start + y_crop, x_start:x_start + x_crop]
 
   def convert2gray(self):
-    """ Converts the image to grayscale
+    """ Converts the image to grayscale. Borrowd from the MATLAB implementation of the "rgb2gray" function.
+    Link to reference: https://in.mathworks.com/help/matlab/ref/rgb2gray.html
+    
+    Returns
+    ----------
+    The grayscale image.
+
     """
     return np.dot(self.Image[..., :3], [0.2989, 0.5870, 0.1140])
 
@@ -1383,8 +1402,14 @@ class DataTransforms(Transformer):
 
   def median_filter(self, size):
     """ Calculates a multidimensional median filter
-    Parameters:
-      size - The kernel size in pixels.
+
+    Parameters
+    ----------
+    size - The kernel size in pixels.
+
+    Returns
+    ----------
+    The median filtered image.
     """
     from PIL import Image, ImageFilter
     image = Image.fromarray(self.Image)
