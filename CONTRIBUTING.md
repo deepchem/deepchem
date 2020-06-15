@@ -24,8 +24,7 @@ yapf -i <python_files changed>
 Our integration tests will fail if code is not formatted correctly
 
 ## Documentation Style Guidelines
-DeepChem uses [NumPy style documentation](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt). Please follow these conventions when documenting code, since we use Sphinx to automatically generate [docs](https://deepchem.readthedocs.io/en/latest/).
-
+DeepChem uses [NumPy style documentation](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt). Please follow these conventions when documenting code, since we use [Sphinx+Napoleon](http://www.sphinx-doc.org/en/stable/ext/napoleon.html) to automatically generate [docs](https://deepchem.readthedocs.io/en/latest).
 
 ## The Agreement
 Contributor offers to license certain software (a “Contribution” or multiple “Contributions”) to DeepChem, and DeepChem agrees to accept said Contributions, under the terms of the open source license [The MIT License](https://opensource.org/licenses/MIT)
