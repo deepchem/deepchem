@@ -109,7 +109,8 @@ def balanced_accuracy_score(y, y_pred):
   pos_weight = num_negative / num_positive
   weights = np.ones_like(y)
   weights[y != 0] = pos_weight
-  return accuracy_score(y, y_pred, sample_weight=weights)
+  return sklearn.metrics.balanced_accuracy_score(
+      y, y_pred, sample_weight=weights)
 
 
 def pearson_r2_score(y, y_pred):
