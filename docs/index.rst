@@ -137,4 +137,5 @@ discussions about research, development or any general questions. If you'd like 
    MoleculeNet <moleculenet>
    Metalearning <metalearning>
    Reinforcement Learning <rl>
+   Docking <docking>
    Utilities <utils>

@@ -549,9 +549,3 @@ class TestSplitter(unittest.TestCase):
     assert not np.array_equal(train1.X, train2.X)
     assert not np.array_equal(valid1.X, valid2.X)
     assert not np.array_equal(test1.X, test2.X)
-
-
-if __name__ == "__main__":
-  import nose
-
-  nose.run(defaultTest=__name__)
