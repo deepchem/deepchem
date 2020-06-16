@@ -148,7 +148,6 @@ class KerasModel(Model):
       self.optimizer = optimizer
     self.tensorboard = tensorboard
     self.tensorboard_log_frequency = tensorboard_log_frequency
-    self.stop_training = False
     if self.tensorboard:
       self._summary_writer = tf.summary.create_file_writer(self.model_dir)
     if output_types is None:
