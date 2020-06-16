@@ -7,6 +7,7 @@ import logging
 import numpy as np
 import os
 import tempfile
+import tarfile
 from subprocess import call
 from deepchem.utils.rdkit_util import add_hydrogens_to_mol
 from subprocess import check_output
@@ -14,6 +15,7 @@ from deepchem.utils import rdkit_util
 from deepchem.utils import mol_xyz_util
 from deepchem.utils import geometry_utils
 from deepchem.utils import vina_utils
+from deepchem.utils import download_url
 
 logger = logging.getLogger(__name__)
 
@@ -65,11 +67,11 @@ class PoseGenerator(object):
     generate_score: bool, optional (default False)
       If `True`, the pose generator will return scores for complexes.
       This is used typically when invoking external docking programs
-      that compute scores. 
+      that compute scores.
 
     Returns
     -------
-    A list of molecular complexes in energetically favorable poses. 
+    A list of molecular complexes in energetically favorable poses.
     """
     raise NotImplementedError
 
@@ -95,7 +97,7 @@ class VinaPoseGenerator(PoseGenerator):
     ------
     sixty_four_bits: bool, optional (default True)
       Specifies whether this is a 64-bit machine. Needed to download
-      the correct executable. 
+      the correct executable.
     pocket_finder: object, optional (default None)
       If specified should be an instance of
       `dc.dock.BindingPocketFinder`.
@@ -122,17 +124,13 @@ class VinaPoseGenerator(PoseGenerator):
     self.pocket_finder = pocket_finder
     if not os.path.exists(self.vina_dir):
       logger.info("Vina not available. Downloading")
-      wget_cmd = "wget -nv -c -T 15 %s" % url
-      check_output(wget_cmd.split())
+      download_url(url, data_dir)
+      downloaded_file = os.path.join(data_dir, filename)
       logger.info("Downloaded Vina. Extracting")
-      untar_cmd = "tar -xzvf %s" % filename
-      check_output(untar_cmd.split())
-      logger.info("Moving to final location")
-      mv_cmd = "mv %s %s" % (dirname, data_dir)
-      check_output(mv_cmd.split())
+      with tarfile.open(downloaded_file) as tar:
+        tar.extractall(data_dir)
       logger.info("Cleanup: removing downloaded vina tar.gz")
-      rm_cmd = "rm %s" % filename
-      call(rm_cmd.split())
+      os.remove(downloaded_file)
     self.vina_cmd = os.path.join(self.vina_dir, "bin/vina")
 
   def generate_poses(self,
@@ -172,7 +170,7 @@ class VinaPoseGenerator(PoseGenerator):
     generate_score: bool, optional (default False)
       If `True`, the pose generator will return scores for complexes.
       This is used typically when invoking external docking programs
-      that compute scores. 
+      that compute scores.
 
     Returns
     -------
@@ -207,6 +205,8 @@ class VinaPoseGenerator(PoseGenerator):
     protein_pdbqt = os.path.join(out_dir, "%s.pdbqt" % protein_name)
     protein_mol = rdkit_util.load_molecule(
         protein_file, calc_charges=True, add_hydrogens=True)
+    rdkit_util.write_molecule(protein_mol[1], protein_hyd, is_protein=True)
+    rdkit_util.write_molecule(protein_mol[1], protein_pdbqt, is_protein=True)
 
     # Get protein centroid and range
     if centroid is not None and box_dims is not None:
@@ -215,9 +215,6 @@ class VinaPoseGenerator(PoseGenerator):
     else:
       if self.pocket_finder is None:
         logger.info("Pockets not specified. Will use whole protein to dock")
-        rdkit_util.write_molecule(protein_mol[1], protein_hyd, is_protein=True)
-        rdkit_util.write_molecule(
-            protein_mol[1], protein_pdbqt, is_protein=True)
         protein_centroid = geometry_utils.compute_centroid(protein_mol[0])
         protein_range = mol_xyz_util.get_molecule_range(protein_mol[0])
         box_dims = protein_range + 5.0
