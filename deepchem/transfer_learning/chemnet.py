@@ -22,6 +22,8 @@ from deepchem.transfer_learning import get_model_str
 
 logger = logging.getLogger(__name__)
 
+BASE_URL = "https://s3-us-west-1.amazonaws.com/deepchem.io/checkpoints/"
+
 
 def pretrain_model(chembl_config,
                    model_class,
@@ -81,13 +83,17 @@ def pretrain_model(chembl_config,
 
   model = model_class(n_tasks=len(tasks), **model_hparams)
   model.fit(train, nb_epoch, checkpoint_interval=0, callbacks=callbacks)
-  test_scores = model.evaluate(test, metrics=[metric], [])
+  test_scores = model.evaluate(
+      test, metrics=[metric], transformers=transformers)
   logger.info("Test-{}: {}".format(metric.name, test_scores[metric.name]))
   return model
 
 
-def finetune_model(dataset_name,
-                   dataset_config,
+def finetune_model(train_dataset,
+                   valid_dataset,
+                   test_dataset,
+                   transformers,
+                   tasks,
                    model_class,
                    model_hparams,
                    train_config,
@@ -97,46 +103,21 @@ def finetune_model(dataset_name,
                    include_top=False,
                    model_dir=None,
                    **kwargs):
+  if model_hparams.get('mode', None) is None:
+    raise ValueError(
+        "Finetuning task must have a classification or regression mode defined."
+    )
+
   if metric_type is None:
     if model_hparams['mode'] == "classification":
       metric_type = deepchem.metrics.roc_auc_score
     else:
       metric_type = deepchem.metrics.rms_score
 
-  loading_functions = {
-      'bace_c': deepchem.molnet.load_bace_classification,
-      'bace_r': deepchem.molnet.load_bace_regression,
-      'bbbp': deepchem.molnet.load_bbbp,
-      'chembl': deepchem.molnet.load_chembl,
-      'clearance': deepchem.molnet.load_clearance,
-      'clintox': deepchem.molnet.load_clintox,
-      'delaney': deepchem.molnet.load_delaney,
-      'factors': deepchem.molnet.load_factors,
-      'hiv': deepchem.molnet.load_hiv,
-      'hopv': deepchem.molnet.load_hopv,
-      'hppb': deepchem.molnet.load_hppb,
-      'kaggle': deepchem.molnet.load_kaggle,
-      'kinase': deepchem.molnet.load_kinase,
-      'lipo': deepchem.molnet.load_lipo,
-      'muv': deepchem.molnet.load_muv,
-      'nci': deepchem.molnet.load_nci,
-      'pcba': deepchem.molnet.load_pcba,
-      'pcba_146': deepchem.molnet.load_pcba_146,
-      'pcba_2475': deepchem.molnet.load_pcba_2475,
-      'pdbbind': deepchem.molnet.load_pdbbind_grid,
-      'ppb': deepchem.molnet.load_ppb,
-      'qm7': deepchem.molnet.load_qm7_from_mat,
-      'qm7b': deepchem.molnet.load_qm7b_from_mat,
-      'qm8': deepchem.molnet.load_qm8,
-      'qm9': deepchem.molnet.load_qm9,
-      'sampl': deepchem.molnet.load_sampl,
-      'sider': deepchem.molnet.load_sider,
-      'sweetlead': deepchem.molnet.load_sweet,
-      'thermosol': deepchem.molnet.load_thermosol,
-      'tox21': deepchem.molnet.load_tox21,
-      'toxcast': deepchem.molnet.load_toxcast,
-      'uv': deepchem.molnet.load_uv,
-  }
+  if model_hparams.get('model_dir', None) is None:
+    model_dir = tempfile.mkdtemp()
+  else:
+    model_dir = model_hparams.get('model_dir')
 
   if pretrained_model is None:
     if pretrain_config is None:
@@ -144,11 +125,13 @@ def finetune_model(dataset_name,
           "Pretrain config cannot be None when pretrained model is None.")
 
     model_str = get_model_str(model_class.__name__, model_hparams)
+    ckpt_url = BASE_URL + model_str + "weights.zip"
+    deepchem.utils.download_url(url=ckpt_url, dest_dir=model_dir)
+    deepchem.utils.unzip_file(
+        file=os.path.join(model_dir, "weights.zip"), dest_dir=model_dir)
+
     pretrained_model = model_class(
         **pretrain_config, n_tasks=len(chembl25_tasks), mode="regression")
-
-  load_fn = loading_functions[dataset_name]
-  tasks, dataset, transformers = load_fn(**dataset_config)
 
   if not model_hparams.get('mode', None):
     raise ValueError(
@@ -160,7 +143,6 @@ def finetune_model(dataset_name,
       task_averager=np.mean,
       mode=model_hparams["mode"],
       verbose=False)
-  train, valid, test = dataset
 
   model_hparams = update_hparams(model_hparams)
   if not model_hparams.get('model_dir'):
@@ -168,7 +150,8 @@ def finetune_model(dataset_name,
   model = model_class(n_tasks=len(tasks), **model_hparams)
 
   nb_epoch = train_config.get('nb_epoch', 500)
-  patience_early_stopping = train_config.get('patience_early_stopping', 50)
+  patience = train_config.get('patience', 50)
+  delta = train_config.get('delta', 0.01)
 
   model.load_from_pretrained(
       source_model=pretrained_model,
@@ -180,17 +163,19 @@ def finetune_model(dataset_name,
 
   callbacks = [
       ValidationCallback(
-          dataset=valid, metrics=[metric], interval=steps_per_epoch),
-      EarlyStoppingCallBack(
-          dataset=valid,
-          metric='loss',
+          dataset=valid_dataset,
+          metrics=[metric],
           interval=steps_per_epoch,
-          patience=patience_early_stopping,
-          save_dir=model_dir)
+          early_stop_metric='loss',
+          interval=steps_per_epoch,
+          patience=patience,
+          save_dir=model_dir,
+          delta=delta)
   ]
 
-  model.fit(train, nb_epoch, checkpoint_interval=0, callbacks=callbacks)
-  test_scores = model.evaluate(test, metrics=[metric], [])
+  model.fit(train_dataset, nb_epoch, checkpoint_interval=0, callbacks=callbacks)
+  test_scores = model.evaluate(
+      test_dataset, metrics=[metric], transformers=transformers)
   logger.info("Test-{}: {}".format(metric.name, test_scores[metric.name]))
   return model
 

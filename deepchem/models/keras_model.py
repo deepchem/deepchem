@@ -16,6 +16,7 @@ from deepchem.models.models import Model
 from deepchem.models.optimizers import Adam
 from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
+from deepchem.models.callbacks import StopIteration
 
 
 class KerasModel(Model):
@@ -360,13 +361,13 @@ class KerasModel(Model):
       if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
         manager.save()
       for c in callbacks:
-        c(self, current_step)
+        try:
+          c(self, current_step)
+        except StopIteration:
+          break
       if self.tensorboard and should_log:
         with self._summary_writer.as_default():
           tf.summary.scalar('loss', batch_loss, current_step)
-
-      if self.stop_training:
-        break
 
     # Report final results.
     if averaged_batches > 0:
@@ -961,7 +962,7 @@ class KerasModel(Model):
     """Get the number of steps of fitting that have been performed."""
     return int(self._global_step)
 
-  def compute_loss(self, dataset, transformers=[]):
+  def compute_loss(self, dataset):
     """Computes the data-fit loss term on the given dataset.
 
     Parameters
@@ -972,15 +973,7 @@ class KerasModel(Model):
       Transformers that the dataset has been transformed by. The output
       is passed through these transformers to undo the transformations.
     """
-    if hasattr(self, 'mode'):
-      if self.mode == 'regression':
-        y_true = undo_transforms(dataset.y, transformers=transformers)
-      else:
-        y_true = to_one_hot(dataset.y.flatten(), self.n_classes).reshape(
-            -1, len(self.n_tasks), self.n_classes)
-
-    y_pred = self.predict(dataset, transformers=transformers)
-
+    y_pred = self.predict(dataset)
     y_pred = tf.convert_to_tensor(y_pred, dtype=tf.float32)
     y_true = tf.convert_to_tensor(y_true, dtype=tf.float32)
     weights = tf.convert_to_tensor(dataset.w, dtype=tf.float32)

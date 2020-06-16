@@ -7,6 +7,12 @@ import sys
 from deepchem.metrics import Metric
 
 
+class StopIteration(Exception):
+
+  def __init__(self, *args, **kwargs):
+    Exception.__init__(*args, **kwargs)
+
+
 class ValidationCallback(object):
   """Performs validation while training a KerasModel.
 
@@ -29,7 +35,10 @@ class ValidationCallback(object):
                output_file=sys.stdout,
                save_dir=None,
                save_metric=0,
-               save_on_minimum=True):
+               save_on_minimum=True,
+               early_stop_metric=None,
+               delta=0.01,
+               patience=0):
     """Create a ValidationCallback.
 
     Parameters
@@ -52,6 +61,14 @@ class ValidationCallback(object):
       if True, the best model is considered to be the one that minimizes the
       validation metric.  If False, the best model is considered to be the one
       that maximizes it.
+    early_stop_metric: str/int, default None
+      Indicates whether early stopping needs to be applied. If int, the index 
+      of the metric to use when checking for early stopping. If str, the loss 
+      on validation dataset is computed.
+    delta: float, default 0.01
+      Threshold for measuring the change in metric, to focus only on significant changes.
+    patience: int, default 0,
+      Number of steps with no improvement after which early stopping is enforced.
     """
     self.dataset = dataset
     self.interval = interval
@@ -60,6 +77,10 @@ class ValidationCallback(object):
     self.save_dir = save_dir
     self.save_metric = save_metric
     self.save_on_minimum = save_on_minimum
+    self.early_stop_metric = early_stop_metric
+    self.delta = delta  #Used only for early stopping
+    self.patience = patience  #Used only for early stopping
+    self.wait = 0  #Used only for early stopping
     self._best_score = None
 
   def __call__(self, model, step):
@@ -82,100 +103,33 @@ class ValidationCallback(object):
     if model.tensorboard:
       for key in scores:
         model._log_value_to_tensorboard(tag=key, simple_value=scores[key])
-    if self.save_dir is not None:
-      score = scores[self.metrics[self.save_metric].name]
+
+    if self.early_stopping_metric is not None:
+      if self.early_stopping_metric == 'loss':
+        early_stop_score = model.compute_loss(self.dataset, transformers=[])
+        model._log_value_to_tensorboard(
+            tag='loss', sample_value=early_stop_score)
+      else:
+        early_stop_score = scores[self.metrics[self.early_stopping_metric].name]
+
       if not self.save_on_minimum:
-        score = -score
-      if self._best_score is None or score < self._best_score:
-        model.save_checkpoint(model_dir=self.save_dir)
-        self._best_score = score
-
-
-class EarlyStoppingCallBack(object):
-
-  def __init__(self,
-               dataset,
-               interval,
-               metric,
-               output_file=sys.stdout,
-               save_dir=None,
-               save_on_minimum=True,
-               delta=0.01,
-               patience=0):
-    """Create an EarlyStoppingCallBack
-
-    Parameters
-    ----------
-    dataset: dc.data.Dataset
-      the validation set on which to compute the metric
-    interval: int
-      the interval (in training steps) at which to perform validation
-    metric: either a dc.metrics.Metric or `loss`
-        Metric to compute on the validation set
-    output_file: file
-      to file to which results should be written
-    save_dir: str
-      if not None, the model parameters that produce the best validation score
-      will be written to this directory
-    save_on_minimum: bool
-      if True, the best model is considered to be the one that minimizes the
-      validation metric.  If False, the best model is considered to be the one
-      that maximizes it.
-    patience: int,
-        Number of steps to wait after which the training is stopped if no
-        improvement in metric
-    """
-    if not isinstance(metric, Metric) or 'loss' in metric:
-      raise ValueError(
-          'Metric can be only a dc.metrics.Metric or a loss')
-    self.metric = metric
-    self.dataset = dataset
-    self.interval = interval
-    self.output_file = output_file
-    self.save_dir = save_dir
-    self.save_on_minimum = save_on_minimum
-    self.patience = patience
-    self.wait = 0
-    self.delta = delta
-    self._best_score = None
-
-  def __call__(self, model, step):
-    """This is invoked by the KerasModel after every step of fitting.
-
-    Parameters
-    ----------
-    model: KerasModel
-      the model that is being trained
-    step: int
-      the index of the training step that has just completed
-    """
-    if step % self.inteval != 0:
-      return
-    message = 'Step %d validation:' % step
-    results = {}
-    if 'loss' in self.metric:
-      score = model.compute_loss(self.dataset, transformers=[])
-      results['loss'] = score
+        early_stop_score = -early_stop_score
+      if self._best_score is None or (self._best_score - early_stop_score >
+                                      self.delta):
+        self.wait = 0  #Reset counter if improvement recorded
+        self._best_score = early_stop_score
+        if self.save_dir is not None:
+          model.save_checkpoint(model_dir=self.save_dir)
+      else:
+        self.wait += 1
+        if self.wait >= self.patience:
+          raise StopIteration("No improvement in metric value. \
+                              Enforcing early stopping.")
     else:
-      scores = model.evaluate(self.dataset, [self.metric])
-      results.update(scores)
-      score = scores[self.metric.name]
-    for key in scores:
-      message += ' %s=%g' % (key, scores[key])
-    print(message, file=self.output_file)
-    if model.tensorboard:
-      for key in results:
-        model._log_value_to_tensorboard(tag=key, simple_value=results[key])
-    if not self.save_on_minimum:
-      score = -score
-
-    if self._best_score is None or (self._best_score - score > self.delta):
-      self.wait = 0
-      self._best_score = score
       if self.save_dir is not None:
-        model.save_checkpoint(model_dir=self.save_dir)
-    else:
-      self.wait += 1
-      if self.wait >= self.patience:
-        model.stop_training = True
-        print("No improvement in metric value. Enforcing early stopping.", file=self.output_file)
+        score = scores[self.metrics[self.save_metric].name]
+        if not self.save_on_minimum:
+          score = -score
+        if self._best_score is None or score < self._best_score:
+          model.save_checkpoint(model_dir=self.save_dir)
+          self._best_score = score
