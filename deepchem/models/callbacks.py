@@ -57,7 +57,7 @@ class ValidationCallback(object):
       that maximizes it.
     early_stop_metric: str/int, default None
       Indicates whether early stopping needs to be applied. If int, the index 
-      of the metric to use when checking for early stopping. If str, the loss 
+      of the metric to use when checking for early stopping. If loss, the loss 
       on validation dataset is computed.
     delta: float, default 0.01
       Threshold for measuring the change in metric, to focus only on significant changes.
