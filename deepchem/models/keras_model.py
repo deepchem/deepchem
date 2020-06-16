@@ -16,7 +16,6 @@ from deepchem.models.models import Model
 from deepchem.models.optimizers import Adam
 from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
-from deepchem.models.callbacks import StopIteration
 
 
 class KerasModel(Model):

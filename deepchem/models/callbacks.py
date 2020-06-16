@@ -7,12 +7,6 @@ import sys
 from deepchem.metrics import Metric
 
 
-class StopIteration(Exception):
-
-  def __init__(self, *args, **kwargs):
-    Exception.__init__(*args, **kwargs)
-
-
 class ValidationCallback(object):
   """Performs validation while training a KerasModel.
 
