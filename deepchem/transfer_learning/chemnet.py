@@ -17,7 +17,7 @@ import tempfile
 
 from deepchem.models.tensorgraph.optimizers import RMSProp
 from deepchem.molnet.load_function.chembl25_datasets import chembl25_tasks
-from deepchem.models.callbacks import ValidationCallback, EarlyStoppingCallBack
+from deepchem.models.callbacks import ValidationCallback
 from deepchem.transfer_learning import get_model_str
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,8 @@ def pretrain_model(chembl_config,
   n_samples = len(train.w)
   batch_size = model_hparams.get('batch_size')
   nb_epoch = train_config.get('nb_epoch', 50)
-  patience_early_stopping = train_config.get('patience_early_stopping', 10)
+  patience = train_config.get('patience', 10)
+  delta = train_config.get('delta', 0.01)
 
   if n_samples % batch_size == 0:
     steps_per_epoch = n_samples // batch_size
@@ -72,13 +73,14 @@ def pretrain_model(chembl_config,
 
   callbacks = [
       ValidationCallback(
-          dataset=valid, metrics=[metric], interval=steps_per_epoch),
-      EarlyStoppingCallBack(
           dataset=valid,
-          metric='loss',
+          metrics=[metric],
           interval=steps_per_epoch,
-          patience=patience_early_stopping,
-          save_dir=model_dir)
+          early_stop_metric='loss',
+          interval=steps_per_epoch,
+          patience=patience,
+          save_dir=model_dir,
+          delta=delta)
   ]
 
   model = model_class(n_tasks=len(tasks), **model_hparams)
