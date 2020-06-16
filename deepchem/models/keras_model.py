@@ -89,7 +89,7 @@ class KerasModel(Model):
     supports uncertainty, it MUST use dropout on every layer,
     and dropout most be enabled during uncertainty prediction.
     Otherwise, the uncertainties it computes will be inaccurate.
-    
+
   - other: Arbitrary output_types can be used to extract outputs
     produced by the model, but will have no additional
     processing performed.
@@ -618,8 +618,7 @@ class KerasModel(Model):
     a NumPy array of the model produces a single output, or a list of arrays
     if it produces multiple outputs
     """
-    dataset = NumpyDataset(X=X, y=None)
-    return self.predict(dataset, transformers, outputs)
+    return self.predict_on_generator([(X, None, None)], transformers, outputs)
 
   def predict_uncertainty_on_batch(self, X, masks=50):
     """
