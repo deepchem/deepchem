@@ -107,6 +107,8 @@ class VinaPoseGenerator(PoseGenerator):
       url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_linux_x86.tgz"
       filename = "autodock_vina_1_1_2_linux_x86.tgz"
       dirname = "autodock_vina_1_1_2_linux_x86"
+      self.vina_dir = os.path.join(data_dir, dirname)
+      self.vina_cmd = os.path.join(self.vina_dir, "bin/vina")
     elif platform.system() == 'Darwin':
       if sixty_four_bits:
         url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_mac_64bit.tar.gz"
@@ -116,22 +118,31 @@ class VinaPoseGenerator(PoseGenerator):
         url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_mac.tgz"
         filename = "autodock_vina_1_1_2_mac.tgz"
         dirname = "autodock_vina_1_1_2_mac"
+      self.vina_dir = os.path.join(data_dir, dirname)
+      self.vina_cmd = os.path.join(self.vina_dir, "bin/vina")
+    elif platform.system() == 'Windows':
+      url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_win32.msi"
+      filename = "autodock_vina_1_1_2_win32.msi"
+      self.vina_dir = "\\Program Files (x86)\\The Scripps Research Institute\\Vina"
+      self.vina_cmd = os.path.join(self.vina_dir, "vina.exe")
     else:
       raise ValueError(
-          "This class can only run on Linux or Mac. If you are on Windows, please try using a cloud platform to run this code instead."
+          "Unknown operating system.  Try using a cloud platform to run this code instead."
       )
-    self.vina_dir = os.path.join(data_dir, dirname)
     self.pocket_finder = pocket_finder
     if not os.path.exists(self.vina_dir):
       logger.info("Vina not available. Downloading")
       download_url(url, data_dir)
       downloaded_file = os.path.join(data_dir, filename)
       logger.info("Downloaded Vina. Extracting")
-      with tarfile.open(downloaded_file) as tar:
-        tar.extractall(data_dir)
+      if platform.system() == 'Windows':
+        msi_cmd = "msiexec /i %s" % downloaded_file
+        check_output(msi_cmd.split())
+      else:
+        with tarfile.open(downloaded_file) as tar:
+          tar.extractall(data_dir)
       logger.info("Cleanup: removing downloaded vina tar.gz")
       os.remove(downloaded_file)
-    self.vina_cmd = os.path.join(self.vina_dir, "bin/vina")
 
   def generate_poses(self,
                      molecular_complex,
@@ -273,10 +284,13 @@ class VinaPoseGenerator(PoseGenerator):
       log_file = os.path.join(out_dir, "%s_log.txt" % ligand_name)
       out_pdbqt = os.path.join(out_dir, "%s_docked.pdbqt" % ligand_name)
       logger.info("About to call Vina")
-      call(
-          "%s --config %s --log %s --out %s" % (self.vina_cmd, conf_file,
-                                                log_file, out_pdbqt),
-          shell=True)
+      if platform.system() == 'Windows':
+        args = [self.vina_cmd, "--config", conf_file, "--log", log_file, "--out", out_pdbqt]
+      else:
+        # I'm not sure why specifying the args as a list fails on other platforms,
+        # but for some reason it only works if I pass it as a string.
+        args = "%s --config %s --log %s --out %s" % (self.vina_cmd, conf_file, log_file, out_pdbqt)
+      call(args, shell=True)
       ligands, scores = vina_utils.load_docked_ligands(out_pdbqt)
       docked_complexes += [(protein_mol[1], ligand) for ligand in ligands]
       all_scores += scores
