@@ -23,20 +23,16 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
     valid_dataset = dc.data.NumpyDataset(
         X=np.random.rand(20, 5), y=np.random.rand(20, 1))
     optimizer = dc.hyper.GaussianProcessHyperparamOpt(rf_model_builder)
-    params_dict = {"n_estimators": 40}
+    params_dict = {"n_estimators": [10, 100]}
     transformers = [
         dc.trans.NormalizationTransformer(
             transform_y=True, dataset=train_dataset)
     ]
     metric = dc.metrics.Metric(dc.metrics.r2_score)
 
-    best_hyperparams, all_results = optimizer.hyperparam_search(
-        params_dict, train_dataset, valid_dataset, transformers, metric)
-
-    ########################################
-    print("best_hyperparams")
-    print(best_hyperparams)
-    print("all_results")
-    print(all_results)
-    assert 0 == 1
-    ########################################
+    best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
+        params_dict,
+        train_dataset,
+        valid_dataset,
+        transformers,
+        metric)

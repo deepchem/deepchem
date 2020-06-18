@@ -39,13 +39,14 @@ class GridHyperparamOpt(HyperparamOpt):
 
     Parameters
     ----------
-    params_dict: dict
-      dict including parameters and their initial values.
+    params_dict: Dict[str, list]
+      Maps hyperparameter names (strings) to lists of possible
+      parameter values.
     train_dataset: `dc.data.Dataset`
       dataset used for training
     valid_dataset: `dc.data.Dataset`
       dataset used for validation(optimization on valid scores)
-    output_transformers: list of dc.trans.Transformer
+    output_transformers: list[dc.trans.Transformer]
       transformers for evaluation
     metric: dc.metrics.Metric
       metric used for evaluation
