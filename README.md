@@ -18,8 +18,6 @@ materials science, quantum chemistry, and biology.
   - [Install latest package with conda](#install-via-conda-recommendation)
   - [Install latest package with pip (WIP)](#install-via-pip-wip)
   - [Install from source](#install-from-source)
-    - [General installation](#general-installation)
-    - [Use powershell (Windows)](#use-powershell-windows)
   - [Install using a Docker (WIP)](#install-using-a-docker-wip)
 - [FAQ and Troubleshooting](#faq-and-troubleshooting)
 - [Getting Started](#getting-started)
@@ -118,41 +116,28 @@ git clone https://github.com/deepchem/deepchem.git
 cd deepchem
 ```
 
-Then, follow each instruction on your OS.
-
-### General installation
+Then, execute the shell script.
 
 ```bash
 bash scripts/install_deepchem_conda.sh deepchem
 ```
 
-Before activating deepchem environment, make sure conda has been initialized.  
-Check if there is a `(base)` in your command line. If not, use `conda init bash` to activate it, then:
-
-```
-conda activate deepchem
-python setup.py install
-pytest -m "not slow"
-```
-
-Check [this link](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for more information about the installation of conda environments.
-
-### Use powershell (Windows)
-
-Currently you have to install from source in windows.
+If you are using the Windows and the PowerShell:
 
 ```ps1
 .\scripts\install_deepchem_conda.ps1 deepchem
 ```
 
-Before activating deepchem environment, make sure conda-powershell has been initialized.  
-Check if there is a `(base)` before `PS` in powershell. If not, use `conda init powershell` to activate it, then:
+Before activating deepchem environment, make sure conda has been initialized.  
+Check if there is a `(base)` in your command line. If not, use `conda init <YOUR_SHELL_NAME>` to activate it, then:
 
 ```bash
 conda activate deepchem
 python setup.py install
-pytest -m "not slow"
+pytest -m "not slow" deepchem # optional
 ```
+
+Check [this link](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for more information about the installation of conda environments.
 
 ### Install using a Docker (WIP)
 
