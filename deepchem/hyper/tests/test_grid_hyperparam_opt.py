@@ -1,5 +1,5 @@
 """
-Tests for Grid hyperparam optimization.
+Tests for hyperparam optimization.
 """
 import os
 import unittest
@@ -11,7 +11,6 @@ import deepchem as dc
 import sklearn
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
-
 
 
 class TestGridHyperparamOpt(unittest.TestCase):

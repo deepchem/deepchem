@@ -16,6 +16,13 @@ logger = logging.getLogger(__name__)
 class GaussianProcessHyperparamOpt(HyperparamOpt):
   """
   Gaussian Process Global Optimization(GPGO)
+
+  This class uses Gaussian Process optimization to select
+  hyperparameters. Note that this class can only optimize 20
+  parameters at a time.
+
+  TODO: This class is too tied up with the MoleculeNet benchmarking.
+  This needs to be refactored out cleanly.
   """
 
   def hyperparam_search(
@@ -23,46 +30,34 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       params_dict,
       train_dataset,
       valid_dataset,
-      output_transformers,
+      transformers,
       metric,
-      direction=True,
+      use_max=True,
+      logdir=None,
       n_features=1024,
       n_tasks=1,
       max_iter=20,
       search_range=4,
-      hp_invalid_list=[
-          'seed', 'nb_epoch', 'penalty_type', 'dropouts', 'bypass_dropouts',
-          'n_pair_feat', 'fit_transformers', 'min_child_weight',
-          'max_delta_step', 'subsample', 'colsample_bylevel',
-          'colsample_bytree', 'reg_alpha', 'reg_lambda', 'scale_pos_weight',
-          'base_score'
-      ],
       log_file='GPhypersearch.log'):
-    """Perform hyperparams search using a gaussian process assumption
-
-    `params_dict` should map names of parameters being optimized to a
-    list of parameter values, which should only contain int, float and
-    list of int(float). Parameters with names in hp_invalid_list will
-    not be changed/
-
-    For Molnet models, self.model_class is model name in string,
-    params_dict = dc.molnet.preset_hyper_parameters.hps[self.model_class]
+    """Perform hyperparameter search using a gaussian process.
 
     Parameters
     ----------
     params_dict: dict
       dict including parameters and their initial values
-      parameters not suitable for optimization can be added to hp_invalid_list
     train_dataset: `dc.data.Dataset`
       dataset used for training
     valid_dataset: `dc.data.Dataset`
       dataset used for validation(optimization on valid scores)
-    output_transformers: list[dc.trans.Transformer]
+    transformers: list[dc.trans.Transformer]
       transformers for evaluation
     metric: `dc.metrics.Metric`
       metric used for evaluation
-    direction: bool, (default True)
+    use_max: bool, (default True)
       maximization(True) or minimization(False)
+    logdir: str, optional
+      The directory in which to store created models. If not set, will
+      use a temporary directory.
     n_features: int, (default 1024)
       number of input features
     n_tasks: int, (default 1)
@@ -72,7 +67,6 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     search_range: int(float) (default 4)
       optimization on [initial values / search_range,
                        initial values * search_range]
-    hp_invalid_list: list, (default `['seed', 'nb_epoch', 'penalty_type', 'dropouts', 'bypass_dropouts', 'n_pair_feat', 'fit_transformers', 'min_child_weight', 'max_delta_step', 'subsample', 'colsample_bylevel', 'colsample_bytree', 'reg_alpha', 'reg_lambda', 'scale_pos_weight', 'base_score']`)
       names of parameters that should not be optimized
     logfile: string
       name of log file, hyperparameters and results for each trial
@@ -80,56 +74,55 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
     Returns
     -------
-    hyper_parameters: dict
-      params_dict with all optimized values
-    valid_performance_opt: float
-      best performance on valid dataset
+    `(best_model, best_hyperparams, all_scores)` where `best_model` is
+    an instance of `dc.model.Models`, `best_hyperparams` is a
+    dictionary of parameters, and `all_scores` is a dictionary mapping
+    string representations of hyperparameter sets to validation
+    scores.
     """
-    hyper_parameters = params_dict
-    hp_list = list(hyper_parameters.keys())
-    for hp in hp_invalid_list:
-      if hp in hp_list:
-        hp_list.remove(hp)
-
-    hp_list_class = [hyper_parameters[hp].__class__ for hp in hp_list]
-    assert set(hp_list_class) <= set([list, int, float])
-    # Float or int hyper parameters(ex. batch_size, learning_rate)
-    hp_list_single = [
-        hp_list[i] for i in range(len(hp_list)) if not hp_list_class[i] is list
-    ]
-    # List of float or int hyper parameters(ex. layer_sizes)
-    hp_list_multiple = [(hp_list[i], len(hyper_parameters[hp_list[i]]))
-                        for i in range(len(hp_list))
-                        if hp_list_class[i] is list]
+    if len(params_dict) > 20:
+      raise ValueError("This class can only search over 20 parameters in one invocation.")
+    #hyper_parameters = params_dict
+    #hp_list = list(hyper_parameters.keys())
+    #hp_list_class = [hyper_parameters[hp].__class__ for hp in hp_list]
+    #assert set(hp_list_class) <= set([list, int, float])
+    ## Float or int hyper parameters(ex. batch_size, learning_rate)
+    #hp_list_single = [
+    #    hp_list[i] for i in range(len(hp_list)) if not hp_list_class[i] is list
+    #]
+    ## List of float or int hyper parameters(ex. layer_sizes)
+    #hp_list_multiple = [(hp_list[i], len(hyper_parameters[hp_list[i]]))
+    #                    for i in range(len(hp_list))
+    #                    if hp_list_class[i] is list]
 
     # Number of parameters
     n_param = len(hp_list_single)
     if len(hp_list_multiple) > 0:
       n_param = n_param + sum([hp[1] for hp in hp_list_multiple])
-    # Range of optimization
-    param_range = []
-    for hp in hp_list_single:
-      if hyper_parameters[hp].__class__ is int:
-        param_range.append((('int'), [
-            hyper_parameters[hp] // search_range,
-            hyper_parameters[hp] * search_range
-        ]))
-      else:
-        param_range.append((('cont'), [
-            hyper_parameters[hp] / search_range,
-            hyper_parameters[hp] * search_range
-        ]))
-    for hp in hp_list_multiple:
-      if hyper_parameters[hp[0]][0].__class__ is int:
-        param_range.extend([(('int'), [
-            hyper_parameters[hp[0]][i] // search_range,
-            hyper_parameters[hp[0]][i] * search_range
-        ]) for i in range(hp[1])])
-      else:
-        param_range.extend([(('cont'), [
-            hyper_parameters[hp[0]][i] / search_range,
-            hyper_parameters[hp[0]][i] * search_range
-        ]) for i in range(hp[1])])
+    ## Range of optimization
+    #param_range = []
+    #for hp in hp_list_single:
+    #  if hyper_parameters[hp].__class__ is int:
+    #    param_range.append((('int'), [
+    #        hyper_parameters[hp] // search_range,
+    #        hyper_parameters[hp] * search_range
+    #    ]))
+    #  else:
+    #    param_range.append((('cont'), [
+    #        hyper_parameters[hp] / search_range,
+    #        hyper_parameters[hp] * search_range
+    #    ]))
+    #for hp in hp_list_multiple:
+    #  if hyper_parameters[hp[0]][0].__class__ is int:
+    #    param_range.extend([(('int'), [
+    #        hyper_parameters[hp[0]][i] // search_range,
+    #        hyper_parameters[hp[0]][i] * search_range
+    #    ]) for i in range(hp[1])])
+    #  else:
+    #    param_range.extend([(('cont'), [
+    #        hyper_parameters[hp[0]][i] / search_range,
+    #        hyper_parameters[hp[0]][i] * search_range
+    #    ]) for i in range(hp[1])])
 
     # Dummy names
     param_name = ['l' + format(i, '02d') for i in range(20)]
@@ -159,6 +152,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
           l18=0,
           l19=0):
       """ Optimizing function
+
       Take in hyper parameter values and return valid set performances
 
       Parameters
@@ -200,7 +194,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
               train_dataset,
               valid_dataset,
               valid_dataset, ['task_placeholder'] * n_tasks,
-              output_transformers,
+              transformers,
               n_features,
               metric,
               self.model_class,
@@ -210,7 +204,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
               train_dataset,
               valid_dataset,
               valid_dataset, ['task_placeholder'] * n_tasks,
-              output_transformers,
+              transformers,
               n_features,
               metric,
               self.model_class,
@@ -221,7 +215,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         model = self.model_class(hyper_parameters, model_dir)
         model.fit(train_dataset, **hyper_parameters)
         model.save()
-        evaluator = Evaluator(model, valid_dataset, output_transformers)
+        evaluator = Evaluator(model, valid_dataset, transformers)
         multitask_scores = evaluator.compute_model_performance([metric])
         score = multitask_scores[metric.name]
 
@@ -230,7 +224,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         f.write(str(score))
         f.write('\n')
       # GPGO maximize performance by default, set performance to its negative value for minimization
-      if direction:
+      if use_max:
         return score
       else:
         return -score
@@ -274,7 +268,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
             train_dataset,
             valid_dataset,
             valid_dataset, ['task_placeholder'] * n_tasks,
-            output_transformers,
+            transformers,
             n_features,
             metric,
             self.model_class,
@@ -284,7 +278,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
             train_dataset,
             valid_dataset,
             valid_dataset, ['task_placeholder'] * n_tasks,
-            output_transformers,
+            transformers,
             n_features,
             metric,
             self.model_class,
@@ -294,7 +288,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         # Record performances
         f.write(str(score))
         f.write('\n')
-      if not direction:
+      if not use_max:
         score = -score
       if score > valid_performance_opt:
         # Optimized model is better, return hyperparameters
