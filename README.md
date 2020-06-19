@@ -106,7 +106,7 @@ pip install pandas pillow scikit-learn==0.22 tensorflow-gpu==1.14 deepchem==2.2.
 
 ### Install from source
 
-You can install deepchem in a new conda environment using the conda commands in `scripts/install_deepchem_conda.sh.` Installing via this script will ensure that you are **installing from the source**.  
+You can install deepchem in a new conda environment using the conda commands in `scripts/install_deepchem_conda.sh.` Installing via this script will ensure that you are **installing from the source**.
 The following script requires `conda>=4.4` because it uses the `conda activate` command. (Please see the detail from [here](https://github.com/conda/conda/blob/a4c4feae404b2b378e106bd25f62cc8be15c768f/CHANGELOG.md#440-2017-12-20))
 
 First, please clone the deepchem repository from GitHub.
@@ -141,16 +141,16 @@ Check [this link](https://conda.io/projects/conda/en/latest/user-guide/install/i
 
 ### Install using a Docker (WIP)
 
-### Build the image from Dockerfile
+If you want to install using a docker, you can pull two images.
 
-We created [sample Dockerfiles](https://github.com/deepchem/deepchem/tree/master/docker) based on the `nvidia/cuda:10.1-cudnn7-devel` image.  
-If you want to build your own deepchem environment, these files may be helpful.  
-- `docker/x.x.x` : build an image by using conda package manager (x.x.x is a version of deepchem)  
-- `docker/master` : build an image from master branch of deepchem source codes
-
-### Use the official deepchem image (WIP)
-
-We couldn't check if this introduction works well or not.
+- `deepchemio/deepchem:x.x.x`
+  - Image built by using a conda package manager (x.x.x is a version of deepchem)
+  - Dockerfile is put in `docker/x.x.x` directory of this repository
+  - [Docker Hub](https://hub.docker.com/repository/docker/deepchemio/deepchem)
+- `deepchemio/deepchem-master`
+  - Image built by the master branch of deepchem source codes
+  - Dockerfile is put in `docker/master` directory of this repository
+  - [Docker Hub](https://hub.docker.com/repository/docker/deepchemio/deepchem-master)
 
 First, you pull the latest stable deepchem docker image.
 
@@ -179,8 +179,7 @@ You are now in a docker container whose python has deepchem installed.
 
 ```bash
 # you can start playing with it in the command line
-pip install jupyter
-ipython
+python
 import deepchem as dc
 
 # you can run our tox21 benchmark
