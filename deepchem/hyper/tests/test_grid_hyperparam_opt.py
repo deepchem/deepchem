@@ -43,8 +43,10 @@ class TestGridHyperparamOpt(unittest.TestCase):
     params_dict = {"n_estimators": [10, 100]}
     metric = dc.metrics.Metric(dc.metrics.r2_score)
 
-    def rf_model_builder(model_params, model_dir):
-      sklearn_model = RandomForestRegressor(**model_params)
+    def rf_model_builder(**model_params):
+      rf_params = {k:v for (k,v) in model_params.items() if k != 'model_dir'}
+      model_dir = model_params['model_dir']
+      sklearn_model = RandomForestRegressor(**rf_params)
       return dc.models.SklearnModel(sklearn_model, model_dir)
 
     optimizer = dc.hyper.GridHyperparamOpt(rf_model_builder)
@@ -91,10 +93,11 @@ class TestGridHyperparamOpt(unittest.TestCase):
         dc.metrics.matthews_corrcoef, np.mean, mode="classification")
     params_dict = {"n_estimators": [1, 10]}
 
-    def multitask_model_builder(model_params, model_dir):
-
+    def multitask_model_builder(**model_params):
+      rf_params = {k:v for (k,v) in model_params.items() if k != 'model_dir'}
+      model_dir = model_params['model_dir']
       def model_builder(model_dir):
-        sklearn_model = RandomForestClassifier(**model_params)
+        sklearn_model = RandomForestClassifier(**rf_params)
         return dc.models.SklearnModel(sklearn_model, model_dir)
 
       return dc.models.SingletaskToMultitask(tasks, model_builder, model_dir)
@@ -137,9 +140,11 @@ class TestGridHyperparamOpt(unittest.TestCase):
         dc.metrics.roc_auc_score, np.mean, mode="classification")
     params_dict = {"layer_sizes": [(10,), (100,)]}
 
-    def model_builder(model_params, model_dir):
+    def model_builder(**model_params):
+      model_dir = model_params['model_dir']
+      multitask_params = {k:v for (k,v) in model_params.items() if k != 'model_dir'}
       return dc.models.MultitaskClassifier(
-          len(tasks), n_features, model_dir=model_dir, **model_params)
+          len(tasks), n_features, model_dir=model_dir, **multitask_params)
 
     optimizer = dc.hyper.GridHyperparamOpt(model_builder)
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(

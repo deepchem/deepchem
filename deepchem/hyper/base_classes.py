@@ -1,5 +1,5 @@
 
-def compute_parameter_search_space(params_dict, search_range):
+def compute_parameter_range(params_dict, search_range):
   """Convenience Function to compute parameter search space.
 
   Parameters
@@ -7,7 +7,7 @@ def compute_parameter_search_space(params_dict, search_range):
   params_dict: dict
     Dictionary mapping strings to Ints/Floats/Lists. For those
     parameters in which int/float is specified, an explicit list of
-    parameters is computed with `search_range`. Parameters in `hp_invalid_list`
+    parameters is computed with `search_range`.
   search_range: int(float) (default 4)
     For int/float values in `params_dict`, computes optimization range
     on `[initial values / search_range, initial values *
@@ -19,14 +19,9 @@ def compute_parameter_search_space(params_dict, search_range):
     Expanded dictionary of parameters where all int/float values in
     `params_dict` are expanded out into explicit search ranges.
   """
-  hyper_parameters = params_dict
-  hp_list = list(hyper_parameters.keys())
+  hp_list = list(params_dict.keys())
 
-  for hp in hp_invalid_list:
-    if hp in hp_list:
-      hp_list.remove(hp)
-
-  hp_list_class = [hyper_parameters[hp].__class__ for hp in hp_list]
+  hp_list_class = [params_dict[hp].__class__ for hp in hp_list]
   # Check the type is correct
   if not (set(hp_list_class) <= set([list, int, float])):
     raise ValueError("params_dict must contain values that are lists/ints/floats.")
@@ -37,34 +32,35 @@ def compute_parameter_search_space(params_dict, search_range):
   ]
 
   # List of float or int hyper parameters(ex. layer_sizes)
-  hp_list_multiple = [(hp_list[i], len(hyper_parameters[hp_list[i]]))
+  hp_list_multiple = [(hp_list[i], len(params_dict[hp_list[i]]))
                       for i in range(len(hp_list))
                       if hp_list_class[i] is list]
 
   # Range of optimization
   param_range = []
   for hp in hp_list_single:
-    if hyper_parameters[hp].__class__ is int:
+    if params_dict[hp].__class__ is int:
       param_range.append((('int'), [
-          hyper_parameters[hp] // search_range,
-          hyper_parameters[hp] * search_range
+          params_dict[hp] // search_range,
+          params_dict[hp] * search_range
       ]))
     else:
       param_range.append((('cont'), [
-          hyper_parameters[hp] / search_range,
-          hyper_parameters[hp] * search_range
+          params_dict[hp] / search_range,
+          params_dict[hp] * search_range
       ]))
   for hp in hp_list_multiple:
-    if hyper_parameters[hp[0]][0].__class__ is int:
+    if params_dict[hp[0]][0].__class__ is int:
       param_range.extend([(('int'), [
-          hyper_parameters[hp[0]][i] // search_range,
-          hyper_parameters[hp[0]][i] * search_range
+          params_dict[hp[0]][i] // search_range,
+          params_dict[hp[0]][i] * search_range
       ]) for i in range(hp[1])])
     else:
       param_range.extend([(('cont'), [
-          hyper_parameters[hp[0]][i] / search_range,
-          hyper_parameters[hp[0]][i] * search_range
+          params_dict[hp[0]][i] / search_range,
+          params_dict[hp[0]][i] * search_range
       ]) for i in range(hp[1])])
+  return hp_list_single, hp_list_multiple, param_range
 
 class HyperparamOpt(object):
   """Abstract superclass for hyperparameter search classes.
@@ -81,14 +77,9 @@ class HyperparamOpt(object):
   strategy for searching the hyperparameter evaluation space. This
   class itself is an abstract superclass and should never be directly
   instantiated.
-
-  Objects of this class maintains a list of constants,
-  `hp_invalid_list` that contains a list of model parameters which
-  cannot be optimized over This list is used to catch user errors. You
-  can customize this list in the constructor.
   """
 
-  def __init__(self, model_class, hp_invalid_list=['seed', 'nb_epoch', 'penalty_type', 'dropouts', 'bypass_dropouts', 'n_pair_feat', 'fit_transformers', 'min_child_weight', 'max_delta_step', 'subsample', 'colsample_bylevel', 'colsample_bytree', 'reg_alpha', 'reg_lambda', 'scale_pos_weight', 'base_score']):
+  def __init__(self, model_class):
     """Initialize Hyperparameter Optimizer.
 
     Note this is an abstract constructor which should only be used by
@@ -112,14 +103,12 @@ class HyperparamOpt(object):
       must accept two arguments, `model_params` of type `dict` and
       `model_dir`, a string specifying a path to a model directory.
       See the example.
-    hp_invalid_list: list, (default `['seed', 'nb_epoch', 'penalty_type', 'dropouts', 'bypass_dropouts', 'n_pair_feat', 'fit_transformers', 'min_child_weight', 'max_delta_step', 'subsample', 'colsample_bylevel', 'colsample_bytree', 'reg_alpha', 'reg_lambda', 'scale_pos_weight', 'base_score']`)
     """
     if self.__class__.__name__ == "HyperparamOpt":
       raise ValueError(
           "HyperparamOpt is an abstract superclass and cannot be directly instantiated. You probably want to instantiate a concrete subclass instead."
       )
     self.model_class = model_class
-    self.hp_invalid_list = hp_invalid_list
 
   def hyperparam_search(self,
                         params_dict,
