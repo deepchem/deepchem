@@ -13,6 +13,7 @@ from operator import mul
 from deepchem.utils.evaluate import Evaluator
 from deepchem.hyper.base_classes import HyperparamOpt
 
+logger = logging.getLogger(__name__)
 
 class GridHyperparamOpt(HyperparamOpt):
   """
@@ -98,8 +99,8 @@ class GridHyperparamOpt(HyperparamOpt):
             model_dir = tempfile.mkdtemp()
       else:
         model_dir = tempfile.mkdtemp()
-
-      model = self.model_class(model_params, model_dir)
+      model_params['model_dir'] = model_dir
+      model = self.model_class(**model_params)
       model.fit(train_dataset)
 
       evaluator = Evaluator(model, valid_dataset, output_transformers)

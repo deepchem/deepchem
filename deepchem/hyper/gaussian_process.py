@@ -6,9 +6,9 @@ import numpy as np
 import tempfile
 import os
 import deepchem
+from deepchem.hyper.base_classes import compute_parameter_range
 from deepchem.hyper.base_classes import HyperparamOpt
 from deepchem.utils.evaluate import Evaluator
-from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +34,9 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       metric,
       use_max=True,
       logdir=None,
-      n_features=1024,
-      n_tasks=1,
       max_iter=20,
       search_range=4,
-      log_file='GPhypersearch.log'):
+      logfile=None):
     """Perform hyperparameter search using a gaussian process.
 
     Parameters
@@ -58,19 +56,17 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     logdir: str, optional
       The directory in which to store created models. If not set, will
       use a temporary directory.
-    n_features: int, (default 1024)
-      number of input features
-    n_tasks: int, (default 1)
-      number of tasks
     max_iter: int, (default 20)
       number of optimization trials
     search_range: int(float) (default 4)
       optimization on [initial values / search_range,
                        initial values * search_range]
       names of parameters that should not be optimized
-    logfile: string
-      name of log file, hyperparameters and results for each trial
-      will be recorded
+    logfile: str
+      Name of logfile to write results to. If specified, this is must
+      be a valid file. If not specified, results of hyperparameter
+      search will be written to `logdir/.txt`.
+
 
     Returns
     -------
@@ -82,54 +78,27 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     """
     if len(params_dict) > 20:
       raise ValueError("This class can only search over 20 parameters in one invocation.")
-    #hyper_parameters = params_dict
-    #hp_list = list(hyper_parameters.keys())
-    #hp_list_class = [hyper_parameters[hp].__class__ for hp in hp_list]
-    #assert set(hp_list_class) <= set([list, int, float])
-    ## Float or int hyper parameters(ex. batch_size, learning_rate)
-    #hp_list_single = [
-    #    hp_list[i] for i in range(len(hp_list)) if not hp_list_class[i] is list
-    #]
-    ## List of float or int hyper parameters(ex. layer_sizes)
-    #hp_list_multiple = [(hp_list[i], len(hyper_parameters[hp_list[i]]))
-    #                    for i in range(len(hp_list))
-    #                    if hp_list_class[i] is list]
+    data_dir = deepchem.utils.get_data_dir()
+    # Specify logfile
+    if logfile:
+      log_file = logfile
+    elif logdir is not None:
+      log_file = os.path.join(model_dir, log_file)
+    else:
+      log_file = None
+
+    hyper_parameters = params_dict
+    hp_list_single, hp_list_multiple, param_range = compute_parameter_range(params_dict, search_range)
 
     # Number of parameters
     n_param = len(hp_list_single)
     if len(hp_list_multiple) > 0:
       n_param = n_param + sum([hp[1] for hp in hp_list_multiple])
-    ## Range of optimization
-    #param_range = []
-    #for hp in hp_list_single:
-    #  if hyper_parameters[hp].__class__ is int:
-    #    param_range.append((('int'), [
-    #        hyper_parameters[hp] // search_range,
-    #        hyper_parameters[hp] * search_range
-    #    ]))
-    #  else:
-    #    param_range.append((('cont'), [
-    #        hyper_parameters[hp] / search_range,
-    #        hyper_parameters[hp] * search_range
-    #    ]))
-    #for hp in hp_list_multiple:
-    #  if hyper_parameters[hp[0]][0].__class__ is int:
-    #    param_range.extend([(('int'), [
-    #        hyper_parameters[hp[0]][i] // search_range,
-    #        hyper_parameters[hp[0]][i] * search_range
-    #    ]) for i in range(hp[1])])
-    #  else:
-    #    param_range.extend([(('cont'), [
-    #        hyper_parameters[hp[0]][i] / search_range,
-    #        hyper_parameters[hp[0]][i] * search_range
-    #    ]) for i in range(hp[1])])
 
     # Dummy names
     param_name = ['l' + format(i, '02d') for i in range(20)]
     param = dict(zip(param_name[:n_param], param_range))
 
-    data_dir = deepchem.utils.get_data_dir()
-    log_file = os.path.join(data_dir, log_file)
 
     def f(l00=0,
           l01=0,
@@ -183,46 +152,37 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         i = i + hp[1]
 
       logger.info(hyper_parameters)
-      # Run benchmark
-      with open(log_file, 'a') as f:
-        # Record hyperparameters
-        f.write(str(hyper_parameters))
-        f.write('\n')
-      if isinstance(self.model_class, str):
+      if log_file:
+        # Run benchmark
+        with open(log_file, 'a') as f:
+          # Record hyperparameters
+          f.write(str(hyper_parameters))
+          f.write('\n')
+
+
+      if logdir is not None:
+        model_dir = os.path.join(logdir, str(ind))
+        logger.info("model_dir is %s" % model_dir)
         try:
-          train_scores, valid_scores, _ = benchmark_classification(
-              train_dataset,
-              valid_dataset,
-              valid_dataset, ['task_placeholder'] * n_tasks,
-              transformers,
-              n_features,
-              metric,
-              self.model_class,
-              hyper_parameters=hyper_parameters)
-        except AssertionError:
-          train_scores, valid_scores, _ = benchmark_regression(
-              train_dataset,
-              valid_dataset,
-              valid_dataset, ['task_placeholder'] * n_tasks,
-              transformers,
-              n_features,
-              metric,
-              self.model_class,
-              hyper_parameters=hyper_parameters)
-        score = valid_scores[self.model_class][metric[0].name]
+          os.makedirs(model_dir)
+        except OSError:
+          if not os.path.isdir(model_dir):
+            logger.info("Error creating model_dir, using tempfile directory")
+            model_dir = tempfile.mkdtemp()
       else:
         model_dir = tempfile.mkdtemp()
-        model = self.model_class(hyper_parameters, model_dir)
-        model.fit(train_dataset, **hyper_parameters)
-        model.save()
-        evaluator = Evaluator(model, valid_dataset, transformers)
-        multitask_scores = evaluator.compute_model_performance([metric])
-        score = multitask_scores[metric.name]
+      model = self.model_class(hyper_parameters, model_dir)
+      model.fit(train_dataset, **hyper_parameters)
+      model.save()
+      evaluator = Evaluator(model, valid_dataset, transformers)
+      multitask_scores = evaluator.compute_model_performance([metric])
+      score = multitask_scores[metric.name]
 
-      with open(log_file, 'a') as f:
-        # Record performances
-        f.write(str(score))
-        f.write('\n')
+      if log_file:
+        with open(log_file, 'a') as f:
+          # Record performances
+          f.write(str(score))
+          f.write('\n')
       # GPGO maximize performance by default, set performance to its negative value for minimization
       if use_max:
         return score
@@ -258,41 +218,11 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       i = i + hp[1]
 
     # Compare best model to default hyperparameters
-    with open(log_file, 'a') as f:
-      # Record hyperparameters
-      f.write(str(params_dict))
-      f.write('\n')
-    if isinstance(self.model_class, str):
-      try:
-        train_scores, valid_scores, _ = benchmark_classification(
-            train_dataset,
-            valid_dataset,
-            valid_dataset, ['task_placeholder'] * n_tasks,
-            transformers,
-            n_features,
-            metric,
-            self.model_class,
-            hyper_parameters=params_dict)
-      except AssertionError:
-        train_scores, valid_scores, _ = benchmark_regression(
-            train_dataset,
-            valid_dataset,
-            valid_dataset, ['task_placeholder'] * n_tasks,
-            transformers,
-            n_features,
-            metric,
-            self.model_class,
-            hyper_parameters=params_dict)
-      score = valid_scores[self.model_class][metric[0].name]
+    if log_file:
       with open(log_file, 'a') as f:
-        # Record performances
-        f.write(str(score))
+        # Record hyperparameters
+        f.write(str(params_dict))
         f.write('\n')
-      if not use_max:
-        score = -score
-      if score > valid_performance_opt:
-        # Optimized model is better, return hyperparameters
-        return params_dict, score
 
     # Return default hyperparameters
     return hyper_parameters, valid_performance_opt
