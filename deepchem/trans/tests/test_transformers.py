@@ -587,18 +587,27 @@ class TestTransformers(unittest.TestCase):
     check_blur = scipy.ndimage.gaussian_filter(self.d, 1.5)
     assert np.allclose(check_blur, blurred)
 
-  def check_crop(self):
-    # Check crop
+  def check_center_crop(self):
+    # Check center crop
     dt = DataTransforms(self.d)
     x_crop = 50
     y_crop = 50
-    crop = dt.crop(x_crop, y_crop)
+    crop = dt.center_crop(x_crop, y_crop)
     y = self.d.shape[0]
     x = self.d.shape[1]
     x_start = x // 2 - (x_crop // 2)
     y_start = y // 2 - (y_crop // 2)
     check_crop = self.d[y_start:y_start + y_crop, x_start:x_start + x_crop]
     assert np.allclose(check_crop, crop)
+
+  def check_crop(self):
+    #Check crop
+    from PIL import Image
+    dt = DataTransforms(self.d)
+    crop = dt.crop(0, 10, 0, 10)
+    image = Image.fromarray(self.d)
+    check_crop = np.array(image.crop((0, 10, 0, 10)))
+    assert np.allclose(crop, check_crop)
 
   def chef_convert2gray(self):
     # Check convert2gray

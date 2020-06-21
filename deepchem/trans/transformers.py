@@ -1304,23 +1304,19 @@ class DataTransforms(Transformer):
           "Invalid flip command : Enter either lr (for left to right flip) or ud (for up to down flip)"
       )
 
-  def rotate(self, angle=0, reshape=True, mode='constant', order=3):
+  def rotate(self, angle=0):
     """ Rotates the image
 
     Parameters
     ----------
-    angle (default = 0 i.e no rotation) - Denotes angle by which the image should be rotated (in Degrees).
-    reshape (default = True i.e will get reshape)
-     mode - Points outside the boundaries of the input are filled according to the given mode
-	(‘constant’, ‘nearest’, ‘reflect’ or ‘wrap’). Default is ‘constant’.
-     order - The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
+    angle: float (default = 0 i.e no rotation)
+	Denotes angle by which the image should be rotated (in Degrees)
 
     Returns
     ----------
-    The rotated imput array.
+    The rotated imput array
     """
-    return scipy.ndimage.rotate(
-        self.Image, angle, reshape=reshape, mode=mode, order=order)
+    return scipy.ndimage.rotate(self.Image, angle)
 
   def gaussian_blur(self, sigma=0.2):
     """ Adds gaussian noise to the image
@@ -1329,17 +1325,19 @@ class DataTransforms(Transformer):
     """
     return scipy.ndimage.gaussian_filter(self.Image, sigma)
 
-  def crop(self, x_crop, y_crop):
+  def center_crop(self, x_crop, y_crop):
     """ Crops the image from the center
 
     Parameters
     ----------
-    x_crop - bound for x.
-    y_crop - bound for y.
+    x_crop: int
+	the total number of pixels to remove in the horizontal direction, evenly split between the left and right sides
+    y_crop: int
+        the total number of pixels to remove in the vertical direction, evenly split between the top and bottom sides
 
     Returns
     ----------
-    The cropped input array.
+    The center cropped input array
 
     """
     y = self.Image.shape[0]
@@ -1348,9 +1346,31 @@ class DataTransforms(Transformer):
     y_start = y // 2 - (y_crop // 2)
     return self.Image[y_start:y_start + y_crop, x_start:x_start + x_crop]
 
+  def crop(self, left, top, right, bottom):
+    """ Crops the image and returns the specified rectangular region from an image
+
+    Parameters
+    ----------
+    left: int
+	the number of pixels to exclude from the left of the image
+    top: int
+	the number of pixels to exclude from the top of the image
+    right: int
+	the number of pixels to exclude from the right of the image    
+    bottom: int
+	the number of pixels to exclude from the bottom of the image
+
+    Returns
+    ----------
+    The cropped input array
+    """
+    from PIL import Image
+    image = Image.fromarray(self.Imaage)
+    image = image.crop((left, top, right, bottom))
+    return np.array(image)
+
   def convert2gray(self):
-    """ Converts the image to grayscale. Borrowd from the MATLAB implementation of the "rgb2gray" function.
-    Link to reference: https://in.mathworks.com/help/matlab/ref/rgb2gray.html
+    """ Converts the image to grayscale. The coefficients correspond to the Y' component of the Y'UV color system.
     
     Returns
     ----------
@@ -1405,7 +1425,8 @@ class DataTransforms(Transformer):
 
     Parameters
     ----------
-    size - The kernel size in pixels.
+    size: int
+	The kernel size in pixels.
 
     Returns
     ----------
