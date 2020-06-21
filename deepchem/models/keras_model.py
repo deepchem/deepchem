@@ -1012,6 +1012,7 @@ class KerasModel(Model):
                            checkpoint=None,
                            model_dir=None,
                            include_top=True,
+                           inputs=None,
                            **kwargs):
     """Copies variable values from a pretrained model. `source_model` can either
     be a pretrained model or a model with the same architecture. `value_map`
@@ -1047,7 +1048,15 @@ class KerasModel(Model):
     include_top: bool, default True
         if True, copies the weights and bias associated with the final dense
         layer. Used only when assignment map is None
+    inputs: List, input tensors for model
+        if not None, then the weights are built for both the source and self. 
+        This option is useful only for models that are built by 
+        subclassing tf.keras.Model, and not using the functional API by tf.keras
     """
+    if inputs is not None:
+      # Ensure weights for both models are built.
+      source_model.model(inputs)
+      self.model(inputs)
 
     self._ensure_built()
     if value_map is None:
