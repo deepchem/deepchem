@@ -141,38 +141,39 @@ Check [this link](https://conda.io/projects/conda/en/latest/user-guide/install/i
 
 ### Install using a Docker (WIP)
 
-If you want to install using a docker, you can pull two images.
+If you want to install using a docker, you can pull two kinds of images.  
+DockerHub : https://hub.docker.com/repository/docker/deepchemio/deepchem
 
 - `deepchemio/deepchem:x.x.x`
   - Image built by using a conda package manager (x.x.x is a version of deepchem)
-  - Dockerfile is put in `docker/x.x.x` directory of this repository
-  - [Docker Hub](https://hub.docker.com/repository/docker/deepchemio/deepchem)
-- `deepchemio/deepchem-master`
+  - The x.x.x image is built when we push x.x.x. tag
+  - Dockerfile is put in `docker/conda-forge` directory of this repository
+- `deepchemio/deepchem:latest`
   - Image built by the master branch of deepchem source codes
+  - The latest image is built every time we commit to the master branch
   - Dockerfile is put in `docker/master` directory of this repository
-  - [Docker Hub](https://hub.docker.com/repository/docker/deepchemio/deepchem-master)
 
-First, you pull the latest stable deepchem docker image.
+First, you pull the image you want to use.
 
 ```bash
-docker pull deepchemio/deepchem
+docker pull deepchemio/deepchem:2.3.0
 ```
 
-Then, you create a container based on our latest image.
+Then, you create a container based on the image.
 
 ```bash
-docker run -it deepchemio/deepchem
+docker run -it deepchemio/deepchem:2.3.0
 ```
 
 If you want GPU support:
 
 ```bash
 # If nvidia-docker is installed
-nvidia-docker run -it deepchemio/deepchem
-docker run --runtime nvidia -it deepchemio/deepchem
+nvidia-docker run -it deepchemio/deepchem:2.3.0
+docker run --runtime nvidia -it deepchemio/deepchem:2.3.0
 
 # If nvidia-container-toolkit is installed
-docker run --gpus all -it deepchemio/deepchem
+docker run --gpus all -it deepchemio/deepchem:2.3.0
 ```
 
 You are now in a docker container whose python has deepchem installed.
