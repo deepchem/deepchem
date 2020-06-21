@@ -36,4 +36,4 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     pytest \
     pytest-cov \
     flaky
-yes | pip install -U tensorflow tensorflow-probability
+yes | pip install -U tensorflow==2.2 tensorflow-probability==2.2
