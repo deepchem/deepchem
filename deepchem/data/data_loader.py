@@ -12,7 +12,7 @@ import time
 import sys
 import logging
 import warnings
-from deepchem.utils.save import load_csv_files
+from deepchem.utils.save import load_csv_files, load_json_files
 from deepchem.utils.save import load_sdf_files
 from deepchem.utils.genomics import encode_fasta_sequence
 from deepchem.feat import UserDefinedFeaturizer
@@ -363,7 +363,7 @@ class DataLoader(object):
 
 class CSVLoader(DataLoader):
   """
-  Creates `Dataset` objects from input CSF files. 
+  Creates `Dataset` objects from input CSV files. 
 
   This class provides conveniences to load data from CSV files.
   It's possible to directly featurize data from CSV files using
@@ -421,6 +421,53 @@ class CSVLoader(DataLoader):
         log_every_n=self.log_every_n)
 
 
+class CSVCompositionLoader(CSVLoader):
+  """
+  Load CSV with inorganic crystal compositions.
+  """
+
+  def _featurize_shard(self, shard):
+    """Featurizes a shard of an input dataframe."""
+    return self._featurize_composition_df(shard, self.featurizer)
+
+  def _featurize_composition_df(self,
+                                df,
+                                featurizer,
+                                field="composition",
+                                log_every_n=1000):
+    """Featurize individual compounds in dataframe.
+
+    Private helper that given a featurizer that operates on individual
+    inorganic crystals, compute & add features for
+    that compound to the features dataframe
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+      DataFrame that holds crystal formulas
+    featurizer: Featurizer
+      A featurizer object
+    field: str (default "composition")
+      The name of a column in `df` that holds crystal formula
+    log_every_n: int, optional (default 1000)
+      Emit a logging statement every `log_every_n` rows.
+    """
+    sample_comps = df[field].tolist()
+
+    features = []
+    for idx, comp in enumerate(sample_comps):
+      if idx % log_every_n == 0:
+        logger.info("Featurizing sample %d" % idx)
+      features.append(featurizer.featurize([comp]))
+    valid_inds = np.array(
+        [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
+    features = [
+        elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
+    ]
+
+    return np.squeeze(np.array(features), axis=1), valid_inds
+
+
 class UserCSVLoader(CSVLoader):
   """
   Handles loading of CSV files with user-defined featurizers.
@@ -435,6 +482,114 @@ class UserCSVLoader(CSVLoader):
     assert isinstance(self.featurizer, UserDefinedFeaturizer)
     X = _get_user_specified_features(shard, self.featurizer)
     return (X, np.ones(len(X), dtype=bool))
+
+
+class JsonLoader(DataLoader):
+  """
+  Creates `Dataset` objects from input json files. 
+
+  This class provides conveniences to load data from json files.
+  It's possible to directly featurize data from json files using
+  pandas, but this class may prove useful if you're processing
+  large json files that you don't want to manipulate directly in
+  memory.
+  """
+
+  def __init__(self,
+               tasks,
+               smiles_field=None,
+               id_field=None,
+               featurizer=None,
+               log_every_n=1000):
+    """Initializes JsonLoader.
+
+    Parameters
+    ----------
+    tasks: list[str]
+      List of task names
+    smiles_field: str, optional
+      Name of field that holds smiles string 
+    id_field: str, optional
+      Name of field that holds sample identifier
+    featurizer: dc.feat.Featurizer, optional
+      Featurizer to use to process data
+    log_every_n: int, optional
+      Writes a logging statement this often.
+    """
+
+    if not isinstance(tasks, list):
+      raise ValueError("tasks must be a list.")
+    self.tasks = tasks
+    self.smiles_field = smiles_field
+    if id_field is None:
+      self.id_field = smiles_field
+    else:
+      self.id_field = id_field
+
+    self.user_specified_features = None
+    if isinstance(featurizer, UserDefinedFeaturizer):
+      self.user_specified_features = featurizer.feature_fields
+    self.featurizer = featurizer
+    self.log_every_n = log_every_n
+
+  def _get_shards(self, input_files, shard_size):
+    """Defines a generator which returns data for each shard"""
+    return load_json_files(input_files, shard_size)
+
+  def _featurize_shard(self, shard):
+    """Featurizes a shard of an input dataframe."""
+    return _featurize_smiles_df(
+        shard,
+        self.featurizer,
+        field=self.smiles_field,
+        log_every_n=self.log_every_n)
+
+
+class JsonStructureLoader(JsonLoader):
+  """
+  Load json with inorganic crystal structures.
+  """
+
+  def _featurize_shard(self, shard):
+    """Featurizes a shard of an input dataframe."""
+    return self._featurize_structure_df(shard, self.featurizer)
+
+  def _featurize_structure_df(self,
+                              df,
+                              featurizer,
+                              field="structure",
+                              log_every_n=1000):
+    """Featurize individual compounds in dataframe.
+
+    Private helper that given a featurizer that operates on individual
+    inorganic crystals, compute & add features for
+    that compound to the features dataframe
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+      DataFrame that holds crystal formulas
+    featurizer: Featurizer
+      A featurizer object
+    field: str (default "structure")
+      The name of a column in `df` that holds crystal formula
+    log_every_n: int, optional (default 1000)
+      Emit a logging statement every `log_every_n` rows.
+    """
+    sample_structs = df[field].tolist()
+
+    features = []
+    for idx, struct in enumerate(sample_structs):
+      if idx % log_every_n == 0:
+        logger.info("Featurizing sample %d" % idx)
+      features.append(featurizer.featurize([struct]))
+    valid_inds = np.array(
+        [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
+    features = [
+        elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
+    ]
+
+    return np.squeeze(np.array(features), axis=1), valid_inds
 
 
 class SDFLoader(DataLoader):

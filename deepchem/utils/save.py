@@ -116,6 +116,23 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
         yield df
 
 
+def load_json_files(filenames, shard_size=None, verbose=True):
+  """Load data as pandas dataframe."""
+  shard_num = 1
+  for filename in filenames:
+    if shard_size is None:
+      yield pd.read_json(filename)
+    else:
+      log("About to start loading json from %s" % filename, verbose)
+      for df in pd.read_json(
+          filename, orient='records', chunksize=shard_size, lines=True):
+        log("Loading shard %d of size %s." % (shard_num, str(shard_size)),
+            verbose)
+        df = df.replace(np.nan, str(""), regex=True)
+        shard_num += 1
+        yield df
+
+
 def seq_one_hot_encode(sequences, letters='ATCGN'):
   """One hot encodes list of genomic sequences.
 
