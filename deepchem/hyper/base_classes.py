@@ -1,67 +1,4 @@
 
-def compute_parameter_range(params_dict, search_range):
-  """Convenience Function to compute parameter search space.
-
-  Parameters
-  ----------
-  params_dict: dict
-    Dictionary mapping strings to Ints/Floats/Lists. For those
-    parameters in which int/float is specified, an explicit list of
-    parameters is computed with `search_range`.
-  search_range: int(float) (default 4)
-    For int/float values in `params_dict`, computes optimization range
-    on `[initial values / search_range, initial values *
-    search_range]`
-
-  Returns
-  -------
-  expanded_params: dict
-    Expanded dictionary of parameters where all int/float values in
-    `params_dict` are expanded out into explicit search ranges.
-  """
-  hp_list = list(params_dict.keys())
-
-  hp_list_class = [params_dict[hp].__class__ for hp in hp_list]
-  # Check the type is correct
-  if not (set(hp_list_class) <= set([list, int, float])):
-    raise ValueError("params_dict must contain values that are lists/ints/floats.")
-
-  # Float or int hyper parameters(ex. batch_size, learning_rate)
-  hp_list_single = [
-      hp_list[i] for i in range(len(hp_list)) if not hp_list_class[i] is list
-  ]
-
-  # List of float or int hyper parameters(ex. layer_sizes)
-  hp_list_multiple = [(hp_list[i], len(params_dict[hp_list[i]]))
-                      for i in range(len(hp_list))
-                      if hp_list_class[i] is list]
-
-  # Range of optimization
-  param_range = []
-  for hp in hp_list_single:
-    if params_dict[hp].__class__ is int:
-      param_range.append((('int'), [
-          params_dict[hp] // search_range,
-          params_dict[hp] * search_range
-      ]))
-    else:
-      param_range.append((('cont'), [
-          params_dict[hp] / search_range,
-          params_dict[hp] * search_range
-      ]))
-  for hp in hp_list_multiple:
-    if params_dict[hp[0]][0].__class__ is int:
-      param_range.extend([(('int'), [
-          params_dict[hp[0]][i] // search_range,
-          params_dict[hp[0]][i] * search_range
-      ]) for i in range(hp[1])])
-    else:
-      param_range.extend([(('cont'), [
-          params_dict[hp[0]][i] / search_range,
-          params_dict[hp[0]][i] * search_range
-      ]) for i in range(hp[1])])
-  return hp_list_single, hp_list_multiple, param_range
-
 class HyperparamOpt(object):
   """Abstract superclass for hyperparameter search classes.
 
@@ -127,9 +64,9 @@ class HyperparamOpt(object):
     Parameters
     ----------
     params_dict: dict
-      Dictionary mapping strings to Ints/Floats/Lists. For those
-      parameters in which int/float is specified, an explicit list of
-      parameters is computed with `search_range`.
+      Dictionary mapping strings to Ints/Floats/Lists. Note that the
+      precise semantics of `params_dict` will change depending on the
+      optimizer that you're using.
     train_dataset: `dc.data.Dataset`
       dataset used for training
     valid_dataset: `dc.data.Dataset`
