@@ -1364,10 +1364,9 @@ class DataTransforms(Transformer):
     ----------
     The cropped input array
     """
-    from PIL import Image
-    image = Image.fromarray(self.Imaage)
-    image = image.crop((left, top, right, bottom))
-    return np.array(image)
+    y = self.Image.shape[0]
+    x = self.Image.shape[1]
+    return self.Image[top:y - bottom, left:x - right]
 
   def convert2gray(self):
     """ Converts the image to grayscale. The coefficients correspond to the Y' component of the Y'UV color system.
