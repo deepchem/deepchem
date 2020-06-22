@@ -12,17 +12,108 @@ from deepchem.utils.evaluate import Evaluator
 
 logger = logging.getLogger(__name__)
 
+def compute_parameter_range(params_dict, search_range):
+  """Convenience Function to compute parameter search space.
+
+  Parameters
+  ----------
+  params_dict: dict
+    Dictionary mapping strings to Ints/Floats/Lists. For those
+    parameters in which int/float is specified, an explicit list of
+    parameters is computed with `search_range`.
+  search_range: int(float) (default 4)
+    For int/float values in `params_dict`, computes optimization range
+    on `[initial values / search_range, initial values *
+    search_range]`
+
+  Returns
+  -------
+  param_range: list
+    List of tuples. Each tuple is of form `(value_type, value_range)`
+    where `value_type` is a string that is either "int" or "cont" and
+    `value_range` is a list of two elements of the form `[low, hi]`
+  """
+  #hp_list = list(params_dict.keys())
+
+  #hp_list_class = [params_dict[hp].__class__ for hp in hp_list]
+  ## Check the type is correct
+  #if not (set(hp_list_class) <= set([list, int, float])):
+  #  raise ValueError("params_dict must contain values that are lists/ints/floats.")
+
+  ## Float or int hyper parameters(ex. batch_size, learning_rate)
+  #hp_list_single = [
+  #    hp_list[i] for i in range(len(hp_list)) if not hp_list_class[i] is list
+  #]
+
+  ## List of float or int hyper parameters(ex. layer_sizes)
+  #hp_list_multiple = [(hp_list[i], len(params_dict[hp_list[i]]))
+  #                    for i in range(len(hp_list))
+  #                    if hp_list_class[i] is list]
+
+  # Range of optimization
+  param_range = []
+  for hp, value in params_dict.items():
+    if isinstance(value, int):
+      value_range = [value // search_range, value * search_range]
+      param_range.append(("int", value_range))
+      pass
+    elif isinstance(value, float):
+      value_range = [value / search_range, value * search_range]
+      param_range.append(("cont", value_range))
+      pass
+    elif isinstance(value, list):
+      if len(value) == 0:
+        raise ValueError("Cannot specify empty lists for hyperparameter search.")
+      if isinstance(value[0], int):
+        # Expand out each of the possible values into a range
+        for val in value:
+          value_range = [value // search_range, value * search_range]
+          param_range.append(("int", value_range))
+
+      elif isinstance(value[0], float):
+        for val in value:
+          value_range = [value / search_range, value * search_range]
+          param_range.append(("cont", value_range))
+    return param_range
+    
+  #for hp in hp_list_single:
+  #  if params_dict[hp].__class__ is int:
+  #    param_range.append((('int'), [
+  #        params_dict[hp] // search_range,
+  #        params_dict[hp] * search_range
+  #    ]))
+  #  else:
+  #    param_range.append((('cont'), [
+  #        params_dict[hp] / search_range,
+  #        params_dict[hp] * search_range
+  #    ]))
+  #for hp in hp_list_multiple:
+  #  if params_dict[hp[0]][0].__class__ is int:
+  #    param_range.extend([(('int'), [
+  #        params_dict[hp[0]][i] // search_range,
+  #        params_dict[hp[0]][i] * search_range
+  #    ]) for i in range(hp[1])])
+  #  else:
+  #    param_range.extend([(('cont'), [
+  #        params_dict[hp[0]][i] / search_range,
+  #        params_dict[hp[0]][i] * search_range
+  #    ]) for i in range(hp[1])])
+  ##return hp_list_single, hp_list_multiple, param_range
+  #return param_range
+
 
 class GaussianProcessHyperparamOpt(HyperparamOpt):
   """
   Gaussian Process Global Optimization(GPGO)
 
   This class uses Gaussian Process optimization to select
-  hyperparameters. Note that this class can only optimize 20
-  parameters at a time.
+  hyperparameters. Underneath the hood it uses pyGPGO to optimize
+  models. If you don't have pyGPGO installed, you won't be able to use
+  this class.
 
-  TODO: This class is too tied up with the MoleculeNet benchmarking.
-  This needs to be refactored out cleanly.
+  Note
+  ----
+  This class can only optimize 20 parameters at a time.
   """
 
   def hyperparam_search(
@@ -83,22 +174,28 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     if logfile:
       log_file = logfile
     elif logdir is not None:
-      log_file = os.path.join(model_dir, log_file)
+      log_file = os.path.join(logdir, log_file)
     else:
       log_file = None
 
-    hyper_parameters = params_dict
-    hp_list_single, hp_list_multiple, param_range = compute_parameter_range(params_dict, search_range)
+    #hyper_parameters = params_dict
+    param_range = compute_parameter_range(params_dict, search_range)
 
-    # Number of parameters
-    n_param = len(hp_list_single)
-    if len(hp_list_multiple) > 0:
-      n_param = n_param + sum([hp[1] for hp in hp_list_multiple])
+    ## Number of parameters
+    #n_param = len(hp_list_single)
+    #if len(hp_list_multiple) > 0:
+    #  n_param = n_param + sum([hp[1] for hp in hp_list_multiple])
+    # Compute number of different params
+    n_param = 0
+    for val in params_dict.items():
+      if isinstance(val, list):
+        n_param += len(val)
+      else:
+        n_param += 1
 
     # Dummy names
     param_name = ['l' + format(i, '02d') for i in range(20)]
     param = dict(zip(param_name[:n_param], param_range))
-
 
     def f(l00=0,
           l01=0,
@@ -120,7 +217,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
           l17=0,
           l18=0,
           l19=0):
-      """ Optimizing function
+      """Private Optimizing function
 
       Take in hyper parameter values and return valid set performances
 
