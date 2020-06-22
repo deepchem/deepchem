@@ -602,7 +602,6 @@ class TestTransformers(unittest.TestCase):
 
   def test_crop(self):
     #Check crop
-    from PIL import Image
     dt = DataTransforms(self.d)
     crop = dt.crop(0, 10, 0, 10)
     y = self.d.shape[0]
