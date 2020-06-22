@@ -23,3 +23,4 @@ from deepchem.feat.atomic_coordinates import AtomicCoordinates
 from deepchem.feat.atomic_coordinates import NeighborListComplexAtomicCoordinates
 from deepchem.feat.adjacency_fingerprints import AdjacencyFingerprint
 from deepchem.feat.smiles_featurizers import SmilesToSeq, SmilesToImage
+from deepchem.feat.materials_featurizers import ChemicalFingerprint, SineCoulombMatrix, StructureGraphFeaturizer
