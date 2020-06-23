@@ -745,9 +745,6 @@ class GraphConvModel(KerasModel):
     super(GraphConvModel, self).__init__(
         model, loss, output_types=output_types, batch_size=batch_size, **kwargs)
 
-  def fit(self, *args, **kwargs):
-    super(GraphConvModel, self).fit(*args, **kwargs)
-
   def default_generator(self,
                         dataset,
                         epochs=1,
