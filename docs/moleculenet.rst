@@ -2,6 +2,31 @@ MoleculeNet
 ===========
 The DeepChem library is packaged alongside the MoleculeNet suite of datasets. One of the most important parts of machine learning applications is finding a suitable dataset. The MoleculeNet suite has curated a whole range of datasets and loaded them into DeepChem :code:`dc.data.Dataset` objects for convenience.
 
+Contributing a new dataset to MoleculeNet
+-----------------------------------------
+
+If you are proposing a new dataset to be included in the MoleculeNet benchmarking suite, 
+please follow the instructions below. Please review the `datasets already available in MolNet <http://moleculenet.ai/datasets-1>`_ before contributing.
+
+0. Read the `Contribution guidelines <https://github.com/deepchem/deepchem/blob/master/CONTRIBUTING.md>`_.
+
+1. Open an `issue <https://github.com/deepchem/deepchem/issues>`_ to discuss the dataset you want to add to MolNet.
+
+2. Implement a function in the ``deepchem.molnet.load_function`` module following the template function ``deepchem.molnet.load_function.load_mydataset``.
+
+3. Add your load function to ``deepchem.molnet.__init__.py`` for easy importing.
+
+4. Prepare your dataset as a .tar.gz or .zip file. Accepted filetypes include CSV, JSON, and SDF.
+
+5. Ask a member of the technical steering committee to add your .tar.gz or .zip file to the DeepChem AWS bucket. Modify your load function to pull down the dataset from AWS.
+
+6. Submit a [WIR] PR (Work in progress pull request) following the PR `template <https://github.com/deepchem/deepchem/blob/master/docs/molnet_pr_template.md>`_.  
+
+Load Dataset Template
+---------------------
+
+.. autofunction:: deepchem.molnet.load_mydataset
+
 BACE Dataset
 ------------
 
