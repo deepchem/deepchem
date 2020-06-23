@@ -52,8 +52,11 @@ class TestMaterialFeaturizers(unittest.TestCase):
     """
 
     featurizer = ChemicalFingerprint(data_source='matminer')
+    features = featurizer.featurize([self.formula])
 
-    assert isinstance(featurizer, ChemicalFingerprint)
+    assert len(features[0]) == 65
+    assert np.allclose(
+        features[0][:5], [2.16, 2.58, 0.42, 2.44, 0.29698485], atol=0.1)
 
   def testSCM(self):
     """
@@ -63,4 +66,5 @@ class TestMaterialFeaturizers(unittest.TestCase):
     featurizer = SineCoulombMatrix(1)
     features = featurizer.featurize([self.struct_dict])
 
+    assert len(features) == 1
     assert np.isclose(features[0], 1244, atol=.5)

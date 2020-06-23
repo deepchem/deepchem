@@ -116,6 +116,23 @@ AtomConvFeaturizer
 .. autoclass:: deepchem.feat.NeighborListComplexAtomicCoordinates
   :members:
 
+ChemicalFingerprint
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.ChemicalFingerprint
+  :members:
+
+SineCoulombMatrix
+^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.SineCoulombMatrix
+  :members:
+
+StructureGraphFeaturizer
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.StructureGraphFeaturizer
+  :members:
 
 BindingPocketFeaturizer
 -----------------------
