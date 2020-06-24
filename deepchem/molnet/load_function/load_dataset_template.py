@@ -56,6 +56,18 @@ def load_mydataset(featurizer: str = None,
     Path to featurized datasets.
   **kwargs: optional arguments to featurizers and splitters.
 
+  Returns
+  -------
+  tasks, datasets, transformers : iterable
+    tasks : list
+      Column names corresponding to machine learning target variables.
+    datasets : tuple
+      train, validation, test splits of data as
+      ``deepchem.data.datasets.Dataset`` instances.
+    transformers : list
+      ``deepchem.trans.transformers.Transformer`` instances applied
+      to dataset.
+
   References
   ----------
   MLA style references for this dataset. E.g.
@@ -65,6 +77,15 @@ def load_mydataset(featurizer: str = None,
 
     Last, First et al. "Article title." Journal name, vol. #,
       no. #, year, pp. page range, DOI. 
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> tasks, datasets, transformers = dc.molnet.load_mydataset()
+  >>> train_dataset, val_dataset, test_dataset = datasets
+  >>> n_tasks = len(tasks)
+  >>> n_features = train_dataset.get_data_shape()[0]
+  >>> model = dc.models.MultiTaskClassifier(n_tasks, n_features)
 
   """
 
