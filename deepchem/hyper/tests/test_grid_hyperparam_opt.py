@@ -18,7 +18,7 @@ class TestGridHyperparamOpt(unittest.TestCase):
   Test grid hyperparameter optimization API.
   """
 
-  def test_singletask_sklearn_rf_ECFP_regression_hyperparam_opt(self):
+  def test_rf_hyperparam(self):
     """Test of hyperparam_opt with singletask RF ECFP regression API."""
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
@@ -44,7 +44,7 @@ class TestGridHyperparamOpt(unittest.TestCase):
     metric = dc.metrics.Metric(dc.metrics.r2_score)
 
     def rf_model_builder(**model_params):
-      rf_params = {k:v for (k,v) in model_params.items() if k != 'model_dir'}
+      rf_params = {k: v for (k, v) in model_params.items() if k != 'model_dir'}
       model_dir = model_params['model_dir']
       sklearn_model = RandomForestRegressor(**rf_params)
       return dc.models.SklearnModel(sklearn_model, model_dir)
@@ -58,7 +58,7 @@ class TestGridHyperparamOpt(unittest.TestCase):
         metric,
         logdir=None)
 
-  def test_singletask_to_multitask_sklearn_hyperparam_opt(self):
+  def test_multitask_rf_hyperparam_opt(self):
     """Test of hyperparam_opt with singletask_to_multitask."""
     tasks = [
         "task0", "task1", "task2", "task3", "task4", "task5", "task6", "task7",
@@ -94,8 +94,9 @@ class TestGridHyperparamOpt(unittest.TestCase):
     params_dict = {"n_estimators": [1, 10]}
 
     def multitask_model_builder(**model_params):
-      rf_params = {k:v for (k,v) in model_params.items() if k != 'model_dir'}
+      rf_params = {k: v for (k, v) in model_params.items() if k != 'model_dir'}
       model_dir = model_params['model_dir']
+
       def model_builder(model_dir):
         sklearn_model = RandomForestClassifier(**rf_params)
         return dc.models.SklearnModel(sklearn_model, model_dir)
@@ -111,10 +112,8 @@ class TestGridHyperparamOpt(unittest.TestCase):
         classification_metric,
         logdir=None)
 
-  def test_multitask_tf_mlp_ECFP_classification_hyperparam_opt(self):
+  def test_mlp_hyperparam_opt(self):
     """Straightforward test of Tensorflow multitask deepchem classification API."""
-    task_type = "classification"
-
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir,
                               "../../models/tests/multitask_example.csv")
@@ -142,7 +141,9 @@ class TestGridHyperparamOpt(unittest.TestCase):
 
     def model_builder(**model_params):
       model_dir = model_params['model_dir']
-      multitask_params = {k:v for (k,v) in model_params.items() if k != 'model_dir'}
+      multitask_params = {
+          k: v for (k, v) in model_params.items() if k != 'model_dir'
+      }
       return dc.models.MultitaskClassifier(
           len(tasks), n_features, model_dir=model_dir, **multitask_params)
 

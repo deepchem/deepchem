@@ -6,11 +6,36 @@ import numpy as np
 import tempfile
 import os
 import deepchem
-from deepchem.hyper.base_classes import compute_parameter_range
 from deepchem.hyper.base_classes import HyperparamOpt
 from deepchem.utils.evaluate import Evaluator
 
 logger = logging.getLogger(__name__)
+
+
+def _convert_hyperparam_dict_to_filename(hyper_params):
+  """Helper function that converts a dictionary of hyperparameters to a string that can be a filename.
+
+  Parameters
+  ----------
+  hyper_params: dict
+    Maps string of hyperparameter name to int/float/list.
+
+  Returns
+  -------
+  filename: str
+    A filename of form "_key1_value1_value2_..._key2..."
+  """
+  filename = ""
+  keys = sorted(hyper_params.keys())
+  for key in keys:
+    filename += "_%s" % str(key)
+    value = hyper_params[key]
+    if isinstance(value, int):
+      filename += "_%s" % str(value)
+    else:
+      filename += "_%.2f" % value
+  return filename
+
 
 def compute_parameter_range(params_dict, search_range):
   """Convenience Function to compute parameter search space.
@@ -28,78 +53,24 @@ def compute_parameter_range(params_dict, search_range):
 
   Returns
   -------
-  param_range: list
-    List of tuples. Each tuple is of form `(value_type, value_range)`
-    where `value_type` is a string that is either "int" or "cont" and
-    `value_range` is a list of two elements of the form `[low, hi]`
+  param_range: dict 
+    Dictionary mapping hyperparameter names to tuples. Each tuple is
+    of form `(value_type, value_range)` where `value_type` is a string
+    that is either "int" or "cont" and `value_range` is a list of two
+    elements of the form `[low, hi]`
   """
-  #hp_list = list(params_dict.keys())
-
-  #hp_list_class = [params_dict[hp].__class__ for hp in hp_list]
-  ## Check the type is correct
-  #if not (set(hp_list_class) <= set([list, int, float])):
-  #  raise ValueError("params_dict must contain values that are lists/ints/floats.")
-
-  ## Float or int hyper parameters(ex. batch_size, learning_rate)
-  #hp_list_single = [
-  #    hp_list[i] for i in range(len(hp_list)) if not hp_list_class[i] is list
-  #]
-
-  ## List of float or int hyper parameters(ex. layer_sizes)
-  #hp_list_multiple = [(hp_list[i], len(params_dict[hp_list[i]]))
-  #                    for i in range(len(hp_list))
-  #                    if hp_list_class[i] is list]
-
   # Range of optimization
-  param_range = []
+  param_range = {}
   for hp, value in params_dict.items():
     if isinstance(value, int):
       value_range = [value // search_range, value * search_range]
-      param_range.append(("int", value_range))
+      param_range[hp] = ("int", value_range)
       pass
     elif isinstance(value, float):
       value_range = [value / search_range, value * search_range]
-      param_range.append(("cont", value_range))
+      param_range[hp] = ("cont", value_range)
       pass
-    elif isinstance(value, list):
-      if len(value) == 0:
-        raise ValueError("Cannot specify empty lists for hyperparameter search.")
-      if isinstance(value[0], int):
-        # Expand out each of the possible values into a range
-        for val in value:
-          value_range = [value // search_range, value * search_range]
-          param_range.append(("int", value_range))
-
-      elif isinstance(value[0], float):
-        for val in value:
-          value_range = [value / search_range, value * search_range]
-          param_range.append(("cont", value_range))
     return param_range
-    
-  #for hp in hp_list_single:
-  #  if params_dict[hp].__class__ is int:
-  #    param_range.append((('int'), [
-  #        params_dict[hp] // search_range,
-  #        params_dict[hp] * search_range
-  #    ]))
-  #  else:
-  #    param_range.append((('cont'), [
-  #        params_dict[hp] / search_range,
-  #        params_dict[hp] * search_range
-  #    ]))
-  #for hp in hp_list_multiple:
-  #  if params_dict[hp[0]][0].__class__ is int:
-  #    param_range.extend([(('int'), [
-  #        params_dict[hp[0]][i] // search_range,
-  #        params_dict[hp[0]][i] * search_range
-  #    ]) for i in range(hp[1])])
-  #  else:
-  #    param_range.extend([(('cont'), [
-  #        params_dict[hp[0]][i] / search_range,
-  #        params_dict[hp[0]][i] * search_range
-  #    ]) for i in range(hp[1])])
-  ##return hp_list_single, hp_list_multiple, param_range
-  #return param_range
 
 
 class GaussianProcessHyperparamOpt(HyperparamOpt):
@@ -111,29 +82,36 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   models. If you don't have pyGPGO installed, you won't be able to use
   this class.
 
+  Note that `params_dict` has a different semantics than for
+  `GridHyperparamOpt`. `param_dict[hp]` must be an int/float and is
+  used as the center of a search range.
+
   Note
   ----
   This class can only optimize 20 parameters at a time.
   """
 
-  def hyperparam_search(
-      self,
-      params_dict,
-      train_dataset,
-      valid_dataset,
-      transformers,
-      metric,
-      use_max=True,
-      logdir=None,
-      max_iter=20,
-      search_range=4,
-      logfile=None):
+  def hyperparam_search(self,
+                        params_dict,
+                        train_dataset,
+                        valid_dataset,
+                        transformers,
+                        metric,
+                        use_max=True,
+                        logdir=None,
+                        max_iter=20,
+                        search_range=4,
+                        logfile=None):
     """Perform hyperparameter search using a gaussian process.
 
     Parameters
     ----------
     params_dict: dict
-      dict including parameters and their initial values
+      Maps hyperparameter names (strings) to possible parameter
+      values. The semantics of this list are different than for
+      `GridHyperparamOpt`. `params_dict[hp]` must map to an int/float,
+      which is used as the center of a search with radius
+      `search_range`.
     train_dataset: `dc.data.Dataset`
       dataset used for training
     valid_dataset: `dc.data.Dataset`
@@ -168,7 +146,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     scores.
     """
     if len(params_dict) > 20:
-      raise ValueError("This class can only search over 20 parameters in one invocation.")
+      raise ValueError(
+          "This class can only search over 20 parameters in one invocation.")
     data_dir = deepchem.utils.get_data_dir()
     # Specify logfile
     if logfile:
@@ -178,14 +157,11 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     else:
       log_file = None
 
-    #hyper_parameters = params_dict
     param_range = compute_parameter_range(params_dict, search_range)
+    param_range_keys = list(param_range.keys())
+    param_range_values = [param_range[key] for key in param_range_keys]
 
-    ## Number of parameters
-    #n_param = len(hp_list_single)
-    #if len(hp_list_multiple) > 0:
-    #  n_param = n_param + sum([hp[1] for hp in hp_list_multiple])
-    # Compute number of different params
+    # Number of parameters
     n_param = 0
     for val in params_dict.items():
       if isinstance(val, list):
@@ -195,8 +171,14 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
     # Dummy names
     param_name = ['l' + format(i, '02d') for i in range(20)]
-    param = dict(zip(param_name[:n_param], param_range))
+    # This is the dictionary of arguments we'll pass to pyGPGO
+    param = dict(zip(param_name[:n_param], param_range_values))
 
+    # Stores all results
+    all_results = {}
+
+    # Demarcating internal function for readability
+    ########################
     def f(l00=0,
           l01=0,
           l02=0,
@@ -232,23 +214,19 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       valid_scores: float
         valid set performances
       """
+      hyper_parameters = {}
+      # This is a dictionary of form {'l01': val, ...} binding
+      # arguments
       args = locals()
-      # Input hyper parameters
-      i = 0
-      for hp in hp_list_single:
-        hyper_parameters[hp] = float(args[param_name[i]])
-        if param_range[i][0] == 'int':
-          hyper_parameters[hp] = int(hyper_parameters[hp])
-        i = i + 1
-      for hp in hp_list_multiple:
-        hyper_parameters[hp[0]] = [
-            float(args[param_name[j]]) for j in range(i, i + hp[1])
-        ]
-        if param_range[i][0] == 'int':
-          hyper_parameters[hp[0]] = list(map(int, hyper_parameters[hp[0]]))
-        i = i + hp[1]
+      # This bit of code re-associates hyperparameter values to their
+      # names from the arguments of this local function.
+      for i, hp in enumerate(param_range_keys):
+        if isinstance(params_dict[hp], int):
+          hyper_parameters[hp] = int(args[param_name[i]])
+        elif isinstance(params_dict[hp], float):
+          hyper_parameters[hp] = float(args[param_name[i]])
 
-      logger.info(hyper_parameters)
+      logger.info("Running hyperparameter set: %s" % str(hyper_parameters))
       if log_file:
         # Run benchmark
         with open(log_file, 'a') as f:
@@ -256,9 +234,10 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
           f.write(str(hyper_parameters))
           f.write('\n')
 
-
+      hp_str = _convert_hyperparam_dict_to_filename(hyper_parameters)
       if logdir is not None:
-        model_dir = os.path.join(logdir, str(ind))
+        filename = "model%s" % hp_str
+        model_dir = os.path.join(logdir, filename)
         logger.info("model_dir is %s" % model_dir)
         try:
           os.makedirs(model_dir)
@@ -268,9 +247,16 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
             model_dir = tempfile.mkdtemp()
       else:
         model_dir = tempfile.mkdtemp()
-      model = self.model_class(hyper_parameters, model_dir)
-      model.fit(train_dataset, **hyper_parameters)
-      model.save()
+      # Add it on to the information needed for the constructor
+      hyper_parameters["model_dir"] = model_dir
+      model = self.model_class(**hyper_parameters)
+      model.fit(train_dataset)
+      try:
+        model.save()
+      # Some models autosave
+      except NotImplementedError:
+        pass
+
       evaluator = Evaluator(model, valid_dataset, transformers)
       multitask_scores = evaluator.compute_model_performance([metric])
       score = multitask_scores[metric.name]
@@ -280,11 +266,15 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
           # Record performances
           f.write(str(score))
           f.write('\n')
+      # Store all results
+      all_results[hp_str] = score
       # GPGO maximize performance by default, set performance to its negative value for minimization
       if use_max:
         return score
       else:
         return -score
+
+    ########################
 
     import pyGPGO
     from pyGPGO.covfunc import matern32
@@ -300,19 +290,16 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
     hp_opt, valid_performance_opt = gpgo.getResult()
     # Readout best hyper parameters
-    i = 0
-    for hp in hp_list_single:
-      hyper_parameters[hp] = float(hp_opt[param_name[i]])
-      if param_range[i][0] == 'int':
-        hyper_parameters[hp] = int(hyper_parameters[hp])
-      i = i + 1
-    for hp in hp_list_multiple:
-      hyper_parameters[hp[0]] = [
-          float(hp_opt[param_name[j]]) for j in range(i, i + hp[1])
-      ]
-      if param_range[i][0] == 'int':
-        hyper_parameters[hp[0]] = list(map(int, hyper_parameters[hp[0]]))
-      i = i + hp[1]
+    hyper_parameters = {}
+    for i, hp in enumerate(param_range_keys):
+      if isinstance(params_dict[hp], int):
+        hyper_parameters[hp] = int(hp_opt[param_name[i]])
+      elif isinstance(params_dict[hp], float):
+        hyper_parameters[hp] = float(hp_opt[param_name[i]])
+    hp_str = _convert_hyperparam_dict_to_filename(hyper_parameters)
+    model_dir = "model%s" % hp_str
+    hyper_parameters["model_dir"] = model_dir
+    best_model = self.model_class(**hyper_parameters)
 
     # Compare best model to default hyperparameters
     if log_file:
@@ -322,4 +309,4 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         f.write('\n')
 
     # Return default hyperparameters
-    return hyper_parameters, valid_performance_opt
+    return best_model, hyper_parameters, all_results

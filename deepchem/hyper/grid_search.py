@@ -15,6 +15,7 @@ from deepchem.hyper.base_classes import HyperparamOpt
 
 logger = logging.getLogger(__name__)
 
+
 class GridHyperparamOpt(HyperparamOpt):
   """
   Provides simple grid hyperparameter search capabilities.
@@ -102,6 +103,11 @@ class GridHyperparamOpt(HyperparamOpt):
       model_params['model_dir'] = model_dir
       model = self.model_class(**model_params)
       model.fit(train_dataset)
+      try:
+        model.save()
+      # Some models autosave
+      except NotImplementedError:
+        pass
 
       evaluator = Evaluator(model, valid_dataset, output_transformers)
       multitask_scores = evaluator.compute_model_performance([metric])
