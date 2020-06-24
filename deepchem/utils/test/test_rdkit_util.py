@@ -19,11 +19,7 @@ class TestRdkitUtil(unittest.TestCase):
                                     '../../feat/tests/3ws9_ligand.sdf')
 
   def test_load_complex(self):
-    complexes = rdkit_util.load_complex(
-        (self.protein_file, self.ligand_file),
-        add_hydrogens=False,
-        calc_charges=False)
-    assert len(complexes) == 2
+    pass
 
   def test_load_molecule(self):
     # adding hydrogens and charges is tested in dc.utils
@@ -90,6 +86,9 @@ class TestRdkitUtil(unittest.TestCase):
         after_hydrogen_count += 1
     assert after_hydrogen_count >= original_hydrogen_count
 
+  def test_apply_pdbfixer(self):
+    pass
+
   def test_compute_charges(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
@@ -104,6 +103,43 @@ class TestRdkitUtil(unittest.TestCase):
       if value != 0:
         has_a_charge = True
     assert has_a_charge
+
+  def test_protein_to_pdbqt(self):
+    pass
+
+  def test_convert_mol_to_pdbqrt(self):
+    pass
+
+  def test_rotate_molecules(self):
+    # check if distances do not change
+    vectors = np.random.rand(4, 2, 3)
+    norms = np.linalg.norm(vectors[:, 1] - vectors[:, 0], axis=1)
+    vectors_rot = np.array(rdkit_util.rotate_molecules(vectors))
+    norms_rot = np.linalg.norm(vectors_rot[:, 1] - vectors_rot[:, 0], axis=1)
+    self.assertTrue(np.allclose(norms, norms_rot))
+
+    # check if it works for molecules with different numbers of atoms
+    coords = [np.random.rand(n, 3) for n in (10, 20, 40, 100)]
+    coords_rot = rdkit_util.rotate_molecules(coords)
+    self.assertEqual(len(coords), len(coords_rot))
+
+  def test_compute_pairwise_distances(self):
+    n1 = 10
+    n2 = 50
+    coords1 = np.random.rand(n1, 3)
+    coords2 = np.random.rand(n2, 3)
+
+    distance = rdkit_util.compute_pairwise_distances(coords1, coords2)
+    self.assertEqual(distance.shape, (n1, n2))
+    self.assertTrue((distance >= 0).all())
+    # random coords between 0 and 1, so the max possible distance in sqrt(2)
+    self.assertTrue((distance <= 2.0**0.5).all())
+
+    # check if correct distance metric was used
+    coords1 = np.array([[0, 0, 0], [1, 0, 0]])
+    coords2 = np.array([[1, 0, 0], [2, 0, 0], [3, 0, 0]])
+    distance = rdkit_util.compute_pairwise_distances(coords1, coords2)
+    self.assertTrue((distance == [[1, 2, 3], [0, 1, 2]]).all())
 
   def test_load_molecule(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
