@@ -28,8 +28,8 @@ class HyperparamOpt(object):
     >>> import sklearn
     >>> import deepchem as dc
     >>> def rf_model_builder(model_params, model_dir):
-          sklearn_model = sklearn.ensemble.RandomForestRegressor(**model_params)
-          return dc.models.SklearnModel(sklearn_model, model_dir)
+    ...   sklearn_model = sklearn.ensemble.RandomForestRegressor(**model_params)
+    ...   return dc.models.SklearnModel(sklearn_model, model_dir)
 
     Parameters
     ----------
