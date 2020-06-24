@@ -6,6 +6,7 @@ import unittest
 import sklearn
 import deepchem as dc
 
+
 class TestHyperparamOpt(unittest.TestCase):
   """
   Test abstract superclass behavior.
@@ -24,4 +25,3 @@ class TestHyperparamOpt(unittest.TestCase):
     except:
       initialized = False
     assert not initialized
-

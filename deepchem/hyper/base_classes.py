@@ -1,4 +1,3 @@
-
 class HyperparamOpt(object):
   """Abstract superclass for hyperparameter search classes.
 
