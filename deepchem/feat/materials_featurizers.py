@@ -17,7 +17,7 @@ class ChemicalFingerprint(Featurizer):
   based on elemental stoichiometry. E.g., the average electronegativity
   of atoms in a crystal structure. The chemical fingerprint is a 
   vector of these statistics. For a full list of properties and statistics,
-  see ElementProperty(data_source).feature_labels().
+  see ``matminer.featurizers.composition.ElementProperty(data_source).feature_labels()``.
 
   This featurizer requires the optional dependencies pymatgen and
   matminer. It may be useful when only crystal compositions are available
@@ -55,6 +55,12 @@ class ChemicalFingerprint(Featurizer):
     ----------
     comp : str
       Reduced formula of crystal.
+
+    Returns
+    -------
+    feats: np.ndarray
+      Vector of properties and statistics derived from chemical
+      stoichiometry.
 
     """
 
@@ -118,7 +124,13 @@ class SineCoulombMatrix(Featurizer):
     Parameters
     ----------
     struct : dict
-      pymatgen structure dictionary
+      Json-serializable dictionary representation of pymatgen.core.structure
+      https://pymatgen.org/pymatgen.core.structure.html
+
+    Returns
+    -------
+    features: np.ndarray
+      2D sine Coulomb matrix, or 1D matrix eigenvalues. 
 
     """
 
@@ -136,7 +148,16 @@ class SineCoulombMatrix(Featurizer):
 
     Parameters
     ----------
-    s : pymatgen structure
+    s : pymatgen.core.structure
+      A periodic crystal composed of a lattice and a sequence of atomic
+      sites with 3D coordinates and elements.
+
+    Returns
+    -------
+    eigs: np.ndarray
+      1D matrix eigenvalues. 
+    sine_mat: np.ndarray
+      2D sine Coulomb matrix.
 
     """
 
@@ -167,7 +188,8 @@ class SineCoulombMatrix(Featurizer):
       eigs, _ = np.linalg.eig(sine_mat)
       zeros = np.zeros((self.max_atoms,))
       zeros[:len(eigs)] = eigs
-      return zeros
+      eigs = zeros
+      return eigs
     else:
       sine_mat = pad_array(sine_mat, self.max_atoms)
       return sine_mat
@@ -216,7 +238,13 @@ class StructureGraphFeaturizer(Featurizer):
     Parameters
     ----------
     struct : dict
-      pymatgen structure dictionary.
+      Json-serializable dictionary representation of pymatgen.core.structure
+      https://pymatgen.org/pymatgen.core.structure.html
+
+    Returns
+    -------
+    feats: tuple
+      atomic numbers, nodes, and edges in networkx.classes.multidigraph.MultiDiGraph format.
 
     """
 
@@ -235,7 +263,14 @@ class StructureGraphFeaturizer(Featurizer):
 
     Parameters
     ----------
-    struct : pymatgen structure
+    struct : pymatgen.core.structure
+      A periodic crystal composed of a lattice and a sequence of atomic
+      sites with 3D coordinates and elements.
+
+    Returns
+    -------
+    feats: tuple
+      atomic numbers, nodes, and edges in networkx.classes.multidigraph.MultiDiGraph format.
     
     """
 
@@ -244,7 +279,7 @@ class StructureGraphFeaturizer(Featurizer):
     atom_features = np.array([site.specie.Z for site in struct], dtype='int32')
 
     sg = StructureGraph.with_local_env_strategy(struct, self.strategy)
-    nodes = np.asarray(sg.graph.nodes)
-    edges = np.asarray(sg.graph.edges)
+    nodes = np.array(list(sg.graph.nodes))
+    edges = np.array(list(sg.graph.edges))
 
     return (atom_features, nodes, edges)

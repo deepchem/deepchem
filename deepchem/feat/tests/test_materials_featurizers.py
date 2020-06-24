@@ -68,3 +68,15 @@ class TestMaterialFeaturizers(unittest.TestCase):
 
     assert len(features) == 1
     assert np.isclose(features[0], 1244, atol=.5)
+
+  def testSGF(self):
+    """
+    Test StructureGraphFeaturizer.
+    """
+
+    featurizer = StructureGraphFeaturizer()
+    features = featurizer.featurize([self.struct_dict])
+
+    assert len(features[0]) == 3
+    assert features[0][0] == 26
+    assert len(features[0][2]) == 6

@@ -47,12 +47,14 @@ DeepChem has a number of "soft" requirements. These are packages which are neede
 
 - [BioPython](https://biopython.org/wiki/Documentation)
 - [OpenAI Gym](https://gym.openai.com/)
+- [matminer](https://hackingmaterials.lbl.gov/matminer/)
 - [MDTraj](http://mdtraj.org/)
 - [NetworkX](https://networkx.github.io/documentation/stable/index.html)
 - [OpenMM](http://openmm.org/)
 - [PDBFixer](https://github.com/pandegroup/pdbfixer)
 - [Pillow](https://pypi.org/project/Pillow/)
 - [pyGPGO](https://pygpgo.readthedocs.io/en/latest/)
+- [Pymatgen](https://pymatgen.org/)
 - [PyTorch](https://pytorch.org/)
 - [RDKit](http://www.rdkit.org/docs/Install.html)
 - [simdna](https://github.com/kundajelab/simdna)
@@ -209,7 +211,7 @@ sudo apt-get install -y libxrender-dev
 
 ## Getting Started
 
-The DeepChem project maintains an extensive colelction of [tutorials](https://github.com/deepchem/deepchem/tree/master/examples/tutorials). All tutorials are designed to be run on Google colab (or locally if you prefer). Tutorials are arranged in a suggested learning sequence which will take you from beginner to proficient at molecular machine learning and computational biology more broadly.
+The DeepChem project maintains an extensive collection of [tutorials](https://github.com/deepchem/deepchem/tree/master/examples/tutorials). All tutorials are designed to be run on Google colab (or locally if you prefer). Tutorials are arranged in a suggested learning sequence which will take you from beginner to proficient at molecular machine learning and computational biology more broadly.
 
 After working through the tutorials, you can also go through other [examples](https://github.com/deepchem/deepchem/tree/master/examples). To apply `deepchem` to a new problem, try starting from one of the existing examples or tutorials and modifying it step by step to work with your new use-case. If you have questions or comments you can raise them on our [gitter](https://gitter.im/deepchem/Lobby).
 
