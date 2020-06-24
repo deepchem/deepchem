@@ -12,7 +12,7 @@ import time
 import sys
 import logging
 import warnings
-from deepchem.utils.save import load_csv_files
+from deepchem.utils.save import load_csv_files, load_json_files
 from deepchem.utils.save import load_sdf_files
 from deepchem.utils.genomics import encode_fasta_sequence
 from deepchem.feat import UserDefinedFeaturizer
@@ -435,6 +435,69 @@ class UserCSVLoader(CSVLoader):
     assert isinstance(self.featurizer, UserDefinedFeaturizer)
     X = _get_user_specified_features(shard, self.featurizer)
     return (X, np.ones(len(X), dtype=bool))
+
+
+class JsonLoader(DataLoader):
+  """
+  Creates `Dataset` objects from input json files. 
+
+  This class provides conveniences to load data from json files.
+  It's possible to directly featurize data from json files using
+  pandas, but this class may prove useful if you're processing
+  large json files that you don't want to manipulate directly in
+  memory.
+  
+  """
+
+  def __init__(self,
+               tasks,
+               smiles_field=None,
+               id_field=None,
+               featurizer=None,
+               log_every_n=1000):
+    """Initializes JsonLoader.
+
+    Parameters
+    ----------
+    tasks: list[str]
+      List of task names
+    smiles_field: str, optional
+      Name of field that holds smiles string 
+    id_field: str, optional
+      Name of field that holds sample identifier
+    featurizer: dc.feat.Featurizer, optional
+      Featurizer to use to process data
+    log_every_n: int, optional
+      Writes a logging statement this often.
+
+    """
+
+    if not isinstance(tasks, list):
+      raise ValueError("tasks must be a list.")
+    self.tasks = tasks
+    self.smiles_field = smiles_field
+    if id_field is None:
+      self.id_field = smiles_field
+    else:
+      self.id_field = id_field
+
+    self.user_specified_features = None
+    if isinstance(featurizer, UserDefinedFeaturizer):
+      self.user_specified_features = featurizer.feature_fields
+    self.featurizer = featurizer
+    self.log_every_n = log_every_n
+
+  def _get_shards(self, input_files, shard_size):
+    """Defines a generator which returns data for each shard"""
+    return load_json_files(input_files, shard_size)
+
+  def _featurize_shard(self, shard):
+    """Featurizes a shard of an input dataframe."""
+    return _featurize_smiles_df(
+        shard,
+        self.featurizer,
+        field=self.smiles_field,
+        log_every_n=self.log_every_n)
 
 
 class SDFLoader(DataLoader):
