@@ -148,7 +148,6 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     if len(params_dict) > 20:
       raise ValueError(
           "This class can only search over 20 parameters in one invocation.")
-    data_dir = deepchem.utils.get_data_dir()
     # Specify logfile
     if logfile:
       log_file = logfile
