@@ -24,6 +24,20 @@ class GridHyperparamOpt(HyperparamOpt):
   hyperparameter space. This implementation is simple and simply does
   a direct iteration over all possible hyperparameters and doesn't use
   parallelization to speed up the search.
+
+  Example
+  -------
+  This example shows the type of constructor function expected. 
+
+  >>> import sklearn
+  >>> import deepchem as dc
+  >>> def rf_model_builder(**model_params):
+  ...   rf_params = {k: v for (k, v) in model_params.items() if k != 'model_dir'}
+  ...   model_dir = model_params['model_dir']
+  ...   sklearn_model = sklearn.ensemble.RandomForestRegressor(**rf_params)
+  ...   return dc.models.SklearnModel(sklearn_model, model_dir)
+  >>> optimizer = dc.hyper.GridHyperparamOpt(rf_model_builder)
+
   """
 
   def hyperparam_search(self,
@@ -101,7 +115,7 @@ class GridHyperparamOpt(HyperparamOpt):
       else:
         model_dir = tempfile.mkdtemp()
       model_params['model_dir'] = model_dir
-      model = self.model_class(**model_params)
+      model = self.model_builder(**model_params)
       model.fit(train_dataset)
       try:
         model.save()

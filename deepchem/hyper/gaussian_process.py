@@ -86,9 +86,19 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   `GridHyperparamOpt`. `param_dict[hp]` must be an int/float and is
   used as the center of a search range.
 
-  Note
-  ----
-  This class can only optimize 20 parameters at a time.
+  Example
+  -------
+  This example shows the type of constructor function expected. 
+
+  >>> import sklearn
+  >>> import deepchem as dc
+  >>> def rf_model_builder(**model_params):
+  ...   rf_params = {k: v for (k, v) in model_params.items() if k != 'model_dir'}
+  ...   model_dir = model_params['model_dir']
+  ...   sklearn_model = sklearn.ensemble.RandomForestRegressor(**rf_params)
+  ...   return dc.models.SklearnModel(sklearn_model, model_dir)
+  >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(rf_model_builder)
+
   """
 
   def hyperparam_search(self,
@@ -149,7 +159,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     if logfile:
       log_file = logfile
     elif logdir is not None:
-      log_file = os.path.join(logdir, log_file)
+      log_file = os.path.join(logdir, "results.txt")
     else:
       log_file = None
 
@@ -159,19 +169,20 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
     # Stores all results
     all_results = {}
+    # Stores all model locations
+    model_locations = {}
 
     # Demarcating internal function for readability
     ########################
-    def f(**placeholders):
+    def optimizing_function(**placeholders):
       """Private Optimizing function
 
       Take in hyper parameter values and return valid set performances
 
       Parameters
       ----------
-      l00~l19: int or float
-        placeholders for hyperparameters being optimized,
-        hyper_parameters dict is rebuilt based on input values of placeholders
+      placeholders: keyword arguments
+        Should be various hyperparameters as specified in `param_keys` above.
 
       Returns:
       --------
@@ -209,7 +220,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         model_dir = tempfile.mkdtemp()
       # Add it on to the information needed for the constructor
       hyper_parameters["model_dir"] = model_dir
-      model = self.model_class(**hyper_parameters)
+      model = self.model_builder(**hyper_parameters)
       model.fit(train_dataset)
       try:
         model.save()
@@ -228,6 +239,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
           f.write('\n')
       # Store all results
       all_results[hp_str] = score
+      model_locations[hp_str] = model_dir
       # GPGO maximize performance by default, set performance to its negative value for minimization
       if use_max:
         return score
@@ -244,7 +256,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     cov = matern32()
     gp = GaussianProcess(cov)
     acq = Acquisition(mode='ExpectedImprovement')
-    gpgo = GPGO(gp, acq, f, param_range)
+    gpgo = GPGO(gp, acq, optimizing_function, param_range)
     logger.info("Max number of iteration: %i" % max_iter)
     gpgo.run(max_iter=max_iter)
 
@@ -256,9 +268,17 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       else:
         hyper_parameters[hp] = float(hp_opt[hp])
     hp_str = _convert_hyperparam_dict_to_filename(hyper_parameters)
-    model_dir = "model%s" % hp_str
+
+    # Let's reinitialize the model with the best parameters
+    model_dir = model_locations[hp_str]
     hyper_parameters["model_dir"] = model_dir
-    best_model = self.model_class(**hyper_parameters)
+    best_model = self.model_builder(**hyper_parameters)
+    # Some models need to be explicitly reloaded
+    try:
+      best_model.restore()
+    # Some models auto reload
+    except NotImplementedError:
+      pass
 
     # Compare best model to default hyperparameters
     if log_file:

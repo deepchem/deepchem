@@ -15,27 +15,17 @@ class HyperparamOpt(object):
   instantiated.
   """
 
-  def __init__(self, model_class):
+  def __init__(self, model_builder):
     """Initialize Hyperparameter Optimizer.
 
     Note this is an abstract constructor which should only be used by
     subclasses.
 
-    Example
-    -------
-    This example shows the type of constructor function expected. 
-
-    >>> import sklearn
-    >>> import deepchem as dc
-    >>> def rf_model_builder(model_params, model_dir):
-    ...   sklearn_model = sklearn.ensemble.RandomForestRegressor(**model_params)
-    ...   return dc.models.SklearnModel(sklearn_model, model_dir)
-
     Parameters
     ----------
-    model_class: constructor function.
+    model_builder: constructor function.
       This parameter must be constructor function which returns an
-      object which is an instance of `dc.model.Model`. This function
+      object which is an instance of `dc.models.Model`. This function
       must accept two arguments, `model_params` of type `dict` and
       `model_dir`, a string specifying a path to a model directory.
       See the example.
@@ -44,7 +34,7 @@ class HyperparamOpt(object):
       raise ValueError(
           "HyperparamOpt is an abstract superclass and cannot be directly instantiated. You probably want to instantiate a concrete subclass instead."
       )
-    self.model_class = model_class
+    self.model_builder = model_builder
 
   def hyperparam_search(self,
                         params_dict,

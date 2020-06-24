@@ -12,7 +12,7 @@ DeepChem's hyperparameter optimzation algorithms are simple and run in
 single-threaded fashion. They are not intended to be production grade
 hyperparameter utilities, but rather useful first tools as you start
 exploring your parameter space. As the needs of your application grow,
-we recommend swapping to a more hyeavy duty hyperparameter
+we recommend swapping to a more heavy duty hyperparameter
 optimization library.
 
 Hyperparameter Optimization API

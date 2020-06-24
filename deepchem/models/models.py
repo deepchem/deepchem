@@ -77,7 +77,7 @@ class Model(BaseEstimator):
     raise NotImplementedError(
         "Each model is responsible for its own predict_on_batch method.")
 
-  def reload(self):
+  def restore(self):
     """
     Reload trained model from disk.
     """
