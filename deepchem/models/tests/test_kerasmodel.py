@@ -235,7 +235,7 @@ class TestKerasModel(unittest.TestCase):
         keras_model,
         dc.models.losses.CategoricalCrossEntropy(),
         tensorboard=True,
-        tensorboard_log_frequency=1)
+        log_frequency=1)
     model.fit(dataset, nb_epoch=10)
     files_in_dir = os.listdir(model.model_dir)
     event_file = list(filter(lambda x: x.startswith("events"), files_in_dir))
