@@ -131,8 +131,12 @@ class KerasModel(Model):
     tensorboard: bool
       whether to log progress to TensorBoard during training
     log_frequency: int
-      The frequency at which to log data. Data is logged using `logging` by
-      default. If `tensorboard` is set, data is also logged to TensorBoard.
+      The frequency at which to log data. Data is logged using
+      `logging` by default. If `tensorboard` is set, data is also
+      logged to TensorBoard. Logging happens at global steps. Roughly,
+      a global step corresponds to one batch of training. If you'd
+      like a printout every 10 batch steps, you'd set
+      `log_frequency=10` for example.
     """
     super(KerasModel, self).__init__(
         model_instance=model, model_dir=model_dir, **kwargs)
