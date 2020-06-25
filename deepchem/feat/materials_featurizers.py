@@ -60,7 +60,7 @@ class ChemicalFingerprint(Featurizer):
     -------
     feats: np.ndarray
       Vector of properties and statistics derived from chemical
-      stoichiometry.
+      stoichiometry. Some values may be NaN.
 
     """
 
@@ -77,7 +77,7 @@ class ChemicalFingerprint(Featurizer):
     except:
       feats = []
 
-    return feats
+    return np.array(feats)
 
 
 class SineCoulombMatrix(Featurizer):
