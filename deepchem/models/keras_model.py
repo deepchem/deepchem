@@ -151,7 +151,14 @@ class KerasModel(Model):
     else:
       self.optimizer = optimizer
     self.tensorboard = tensorboard
-    self.log_frequency = log_frequency
+    # Backwards compatibility
+    if "tensorboard_log_frequency" in kwargs:
+      logger.warn(
+          "tensorboard_log_frequency is deprecated. Please use log_frequency instead. This argument will be removed in a future release of DeepChem."
+      )
+      self.log_frequency = kwargs["tensorboard_log_frequency"]
+    else:
+      self.log_frequency = log_frequency
     if self.tensorboard:
       self._summary_writer = tf.summary.create_file_writer(self.model_dir)
     if output_types is None:
