@@ -22,6 +22,7 @@ from deepchem.utils.pdbqt_utils import convert_protein_to_pdbqt
 from deepchem.utils.geometry_utils import angle_between
 from deepchem.utils.geometry_utils import is_angle_within_cutoff
 from deepchem.utils.geometry_utils import generate_random_rotation_matrix
+from deepchem.utils.fragment_util import get_partial_charge
 
 logger = logging.getLogger(__name__)
 
@@ -251,12 +252,12 @@ def load_complex(molecular_complex,
   if isinstance(molecular_complex, str):
     molecule_complex = [molecular_complex]
   fragments = []
+  # TODO: How do I handle the is_protein here?
   for mol in molecular_complex:
     loaded = load_molecule(
         mol,
         add_hydrogens=add_hydrogens,
         calc_charges=calc_charges,
-        pdbfix=pdbfix,
         sanitize=sanitize)
     if isinstance(loaded, list):
       fragments += loaded
