@@ -147,11 +147,11 @@ DockerHub : https://hub.docker.com/repository/docker/deepchemio/deepchem
 - `deepchemio/deepchem:x.x.x`
   - Image built by using a conda package manager (x.x.x is a version of deepchem)
   - The x.x.x image is built when we push x.x.x. tag
-  - Dockerfile is put in `docker/conda-forge` directory of this repository
+  - Dockerfile is put in `docker/conda-forge` directory
 - `deepchemio/deepchem:latest`
   - Image built by the master branch of deepchem source codes
   - The latest image is built every time we commit to the master branch
-  - Dockerfile is put in `docker/master` directory of this repository
+  - Dockerfile is put in `docker/master` directory
 
 First, you pull the image you want to use.
 

@@ -44,7 +44,7 @@ how to do this well.
 Docker Installation
 ------------------
 
-If you want to install using a docker, you can pull two kinds of images from `DokerHub`_.
+If you want to install using a docker, you can pull two kinds of images from `DockerHub`_.
 
 - **deepchemio/deepchem:x.x.x**
 
@@ -105,7 +105,7 @@ Check out our directions on Github for how to `install from source`_.
 
 .. _`DeepChem Tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials
 .. _`forum post`: https://forum.deepchem.io/t/getting-deepchem-running-in-colab/81
-.. _`DokerHub`: https://hub.docker.com/repository/docker/deepchemio/deepchem
+.. _`DockerHub`: https://hub.docker.com/repository/docker/deepchemio/deepchem
 .. _`docker/conda-forge`: https://github.com/deepchem/deepchem/tree/master/docker/conda-forge
 .. _`docker/master`: https://github.com/deepchem/deepchem/tree/master/docker/master
 .. _`install from source`: https://github.com/deepchem/deepchem/blob/master/README.md#install-from-source
