@@ -153,7 +153,7 @@ class KerasModel(Model):
     self.tensorboard = tensorboard
     # Backwards compatibility
     if "tensorboard_log_frequency" in kwargs:
-      logger.warn(
+      logger.warning(
           "tensorboard_log_frequency is deprecated. Please use log_frequency instead. This argument will be removed in a future release of DeepChem."
       )
       self.log_frequency = kwargs["tensorboard_log_frequency"]
