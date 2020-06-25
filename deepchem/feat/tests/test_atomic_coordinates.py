@@ -31,15 +31,23 @@ class TestAtomicCoordinates(unittest.TestCase):
     self.mol = engine.generate_conformers(mol)
     assert self.mol.GetNumConformers() > 0
 
-  def test_atomic_coordinates(self):
+  def test_atomic_coordinates_bohr(self):
     """
     Simple test that atomic coordinates returns ndarray of right shape.
     """
     N = self.mol.GetNumAtoms()
-    atomic_coords_featurizer = AtomicCoordinates()
-    # TODO(rbharath, joegomes): Why does AtomicCoordinates return a list? Is
-    # this expected behavior? Need to think about API.
-    coords = atomic_coords_featurizer._featurize(self.mol)[0]
+    atomic_coords_featurizer = AtomicCoordinates(use_bohr=True)
+    coords = atomic_coords_featurizer._featurize(self.mol)
+    assert isinstance(coords, np.ndarray)
+    assert coords.shape == (N, 3)
+
+  def test_atomic_coordinates_angstrom(self):
+    """
+    Simple test that atomic coordinates returns ndarray of right shape.
+    """
+    N = self.mol.GetNumAtoms()
+    atomic_coords_featurizer = AtomicCoordinates(use_bohr=False)
+    coords = atomic_coords_featurizer._featurize(self.mol)
     assert isinstance(coords, np.ndarray)
     assert coords.shape == (N, 3)
 

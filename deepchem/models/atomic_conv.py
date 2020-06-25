@@ -1,9 +1,4 @@
-__author__ = "Joseph Gomes"
-__copyright__ = "Copyright 2017, Stanford University"
-__license__ = "MIT"
-
 import sys
-
 from deepchem.models import KerasModel
 from deepchem.models.layers import AtomicConvolution
 from deepchem.models.losses import L2Loss
@@ -14,7 +9,7 @@ import tensorflow as tf
 import itertools
 
 
-def initializeWeightsBiases(prev_layer_size,
+def _initialize_weights_biases(prev_layer_size,
                             size,
                             weights=None,
                             biases=None,
@@ -78,7 +73,7 @@ class AtomicConvScore(Layer):
       self.output_weights.append([])
       self.output_biases.append([])
       for i in range(num_layers):
-        weight, bias = initializeWeightsBiases(
+        weight, bias = _initialize_weights_biases(
             prev_layer_size=prev_layer_size,
             size=layer_sizes[i],
             weights=tf.random.truncated_normal(
@@ -89,7 +84,7 @@ class AtomicConvScore(Layer):
         self.type_weights[ind].append(weight)
         self.type_biases[ind].append(bias)
         prev_layer_size = layer_sizes[i]
-      weight, bias = initializeWeightsBiases(prev_layer_size, 1)
+      weight, bias = _initialize_weights_biases(prev_layer_size, 1)
       self.output_weights[ind].append(weight)
       self.output_biases[ind].append(bias)
 

@@ -12,8 +12,7 @@ import numpy as np
 import pandas as pd
 import tarfile
 from deepchem.feat import rdkit_grid_featurizer as rgf
-from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
-from deepchem.feat.graph_features import AtomicConvFeaturizer
+from deepchem.feat.atomic_coordinates import AtomicConvFeaturizer
 
 logger = logging.getLogger(__name__)
 DEFAULT_DATA_DIR = deepchem.utils.get_data_dir()
@@ -288,7 +287,7 @@ def load_pdbbind(reload=True,
     # Cutoff in angstroms
     neighbor_cutoff = 4
     if featurizer == "atomic":
-      featurizer = ComplexNeighborListFragmentAtomicCoordinates(
+      featurizer = AtomicConvFeaturizer(
           frag1_num_atoms=frag1_num_atoms,
           frag2_num_atoms=frag2_num_atoms,
           complex_num_atoms=complex_num_atoms,
@@ -430,7 +429,7 @@ def load_pdbbind_from_dir(data_folder,
     max_num_neighbors = 4
     # Cutoff in angstroms
     neighbor_cutoff = 4
-    featurizer = ComplexNeighborListFragmentAtomicCoordinates(
+    featurizer = AtomicConvFeaturizer(
         frag1_num_atoms, frag2_num_atoms, complex_num_atoms, max_num_neighbors,
         neighbor_cutoff)
 

@@ -4,7 +4,7 @@ Atomic coordinate featurizer.
 import logging
 import numpy as np
 import logging
-from deepchem.feat import MolecularFeaturizer
+from deepchem.feat import Featurizer
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils import rdkit_util, pad_array
 from deepchem.utils.rdkit_util import MoleculeLoadException
@@ -13,17 +13,29 @@ from deepchem.utils.fragment_util import reduce_molecular_complex_to_contacts
 logger = logging.getLogger(__name__)
 
 
-class AtomicCoordinates(MolecularFeaturizer):
-  """
-  Nx3 matrix of Cartesian coordinates [Bohr]
+class AtomicCoordinates(Featurizer):
+  """Nx3 matrix of Cartesian coordinates.
 
-  RDKit stores atomic coordinates in Angstrom. Atomic unit of length
-  is the bohr (1 bohr = 0.529177 Angstrom). Converting units makes
+  This featurizer featurizes molecules as arrays of atomic
+  coordinates. A molecule with `N` atoms will be featurized as a `(N,
+  3)` shape matrix.
+
+  This class supports coordinates in both Angstrom and Bohr.  RDKit
+  stores atomic coordinates in Angstrom. Atomic unit of length is the
+  bohr (1 bohr = 0.529177 Angstrom). Converting units to Bohr makes
   gradient calculation consistent with most QM software packages.
-
-  TODO(rbharath): Add option for angstrom computation.
   """
   name = ['atomic_coordinates']
+
+  def __init__(self, use_bohr=True):
+    """Initialize atomic coordinates.
+
+    Parameters
+    ----------
+    use_bohr: bool, optional (Default True)
+      If True return coordinates in Bohr, else in Angstrom.
+    """
+    self.use_bohr = use_bohr
 
   def _featurize(self, mol):
     """
@@ -41,25 +53,35 @@ class AtomicCoordinates(MolecularFeaturizer):
     N = mol.GetNumAtoms()
     coords = np.zeros((N, 3))
 
-    # RDKit stores atomic coordinates in Angstrom. Atomic unit of length is the
-    # bohr (1 bohr = 0.529177 Angstrom). Converting units makes gradient calculation
-    # consistent with most QM software packages.
-    coords_in_bohr = [
-        mol.GetConformer(0).GetAtomPosition(i).__idiv__(0.52917721092)
-        for i in range(N)
-    ]
+    if self.use_bohr:
+      # RDKit stores atomic coordinates in Angstrom. Atomic unit of
+      # length is the bohr (1 bohr = 0.529177 Angstrom). Converting
+      # units makes gradient calculation consistent with most QM
+      # software packages.
+      coords_in_bohr = [
+          mol.GetConformer(0).GetAtomPosition(i).__idiv__(0.52917721092)
+          for i in range(N)
+      ]
 
-    for atom in range(N):
-      coords[atom, 0] = coords_in_bohr[atom].x
-      coords[atom, 1] = coords_in_bohr[atom].y
-      coords[atom, 2] = coords_in_bohr[atom].z
+      for atom in range(N):
+        coords[atom, 0] = coords_in_bohr[atom].x
+        coords[atom, 1] = coords_in_bohr[atom].y
+        coords[atom, 2] = coords_in_bohr[atom].z
+    else:
+      coords = np.array([
+          mol.GetConformer(0).GetAtomPosition(i)
+          for i in range(N)
+      ])
 
     return coords
 
 
-def _compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
+def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
                            periodic_box_size):
   """Computes a neighbor list from atom coordinates.
+
+  This function uses `mdtraj` to compute the neighborlist. You must
+  have mdtraj installed to use it.
 
   Parameters
   ----------
@@ -71,6 +93,12 @@ def _compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
     The maximum number of neighbors per atom
   periodic_box_size: tuple
     With (x, y, z) box sizes per dimension
+
+  Returns
+  -------
+  neighbor_list: list
+    List of length `N` where `neighbor_list[i]` is the neighbors of
+    atom `i`.
   """
   N = coords.shape[0]
   import mdtraj
@@ -119,27 +147,40 @@ def get_coords(mol):
   return coords
 
 
-class NeighborListAtomicCoordinates(MolecularFeaturizer):
-  """
-  Adjacency List of neighbors in 3-space
+class NeighborListAtomicCoordinates(Featurizer):
+  """Featurizes molecules as coordinates and neighbor lists.
 
-  Neighbors determined by user-defined distance cutoff [in Angstrom].
+  This featurizer takes a molecule and featurizes it as a tuple of
+  `(coords, nbr_list)` where `coords` is a `(N, 3)` shaped array of
+  coordinates and `nbr_list` is a list of neighbor connectivity
+  returned by `compute_neighbor_list`. Neighbors are determined by
+  user-defined distance cutoff [in Angstrom].
 
-  https://en.wikipedia.org/wiki/Cell_list
-  Ref: http://www.cs.cornell.edu/ron/references/1989/Calculations%20of%20a%20List%20of%20Neighbors%20in%20Molecular%20Dynamics%20Si.pdf
-
-  Parameters
-  ----------
-  neighbor_cutoff: float
-    Threshold distance [Angstroms] for counting neighbors.
-  periodic_box_size: 3 element array
-    Dimensions of the periodic box in Angstroms, or None to not use periodic boundary conditions
+  Notes
+  -----
+  <https://en.wikipedia.org/wiki/Cell_list>
+  <http://www.cs.cornell.edu/ron/references/1989/Calculations%20of%20a%20List%20of%20Neighbors%20in%20Molecular%20Dynamics%20Si.pdf>
   """
 
   def __init__(self,
                max_num_neighbors=None,
                neighbor_cutoff=4,
-               periodic_box_size=None):
+               periodic_box_size=None,
+               use_bohr=True):
+    """Initializes Neighbor List Featurizer.
+
+    Parameters
+    ----------
+    max_num_neighbors: int, optional (Default None)
+      The maximum number of neighbors allowed for a given atom.
+    neighbor_cutoff: float (Default 4.0)
+      Threshold distance [Angstroms] for counting neighbors.
+    periodic_box_size: np.ndarray, optional (Default None) 
+      Dimensions of the periodic box in Angstroms (an `np.ndarray` of
+      shape `(3,)`, or None to not use periodic boundary conditions
+    use_bohr: bool, optional (Default True)
+      If `True` return coordinates in Bohr, else in angstrom.
+    """
     if neighbor_cutoff <= 0:
       raise ValueError("neighbor_cutoff must be positive value.")
     if max_num_neighbors is not None:
@@ -150,7 +191,7 @@ class NeighborListAtomicCoordinates(MolecularFeaturizer):
     self.periodic_box_size = periodic_box_size
     # Type of data created by this featurizer
     self.dtype = object
-    self.coordinates_featurizer = AtomicCoordinates()
+    self.coordinates_featurizer = AtomicCoordinates(use_bohr=use_bohr)
 
   def _featurize(self, mol):
     """
@@ -160,15 +201,21 @@ class NeighborListAtomicCoordinates(MolecularFeaturizer):
     ----------
     mol: rdkit Mol
       To be featurized.
+
+    Returns
+    -------
+    featurization: Tuple
+       A tuple with two elements. The first is the coordinates of the
+       molecule, of shape `(N, 3)`. The second is the neighbor list.
     """
     N = mol.GetNumAtoms()
-    # TODO(rbharath): Should this return a list?
-    bohr_coords = self.coordinates_featurizer._featurize(mol)[0]
+    coords = self.coordinates_featurizer._featurize(mol)[0]
     coords = get_coords(mol)
-    neighbor_list = _compute_neighbor_list(coords, self.neighbor_cutoff,
+    neighbor_list = compute_neighbor_list(coords, self.neighbor_cutoff,
                                            self.max_num_neighbors,
                                            self.periodic_box_size)
-    return (bohr_coords, neighbor_list)
+    featurization = (coords, neighbor_list)
+    return featurization 
 
 
 class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
@@ -179,7 +226,7 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
   determined by user-defined distance cutoff.
   """
 
-  def __init__(self, max_num_neighbors=None, neighbor_cutoff=4):
+  def __init__(self, max_num_neighbors=None, neighbor_cutoff=4, use_bohr=True):
     """Initialize this featurizer.
 
     Parameters
@@ -188,6 +235,8 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
       set the maximum number of neighbors
     neighbor_cutoff: int, optional
       The number of neighbors to store in the neighbor list.
+    use_bohr: bool, optional (Default True)
+      If True return coordinates in Bohr, else in Angstrom.
     """
     if neighbor_cutoff <= 0:
       raise ValueError("neighbor_cutoff must be positive value.")
@@ -198,7 +247,7 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     self.neighbor_cutoff = neighbor_cutoff
     # Type of data created by this featurizer
     self.dtype = object
-    self.coordinates_featurizer = AtomicCoordinates()
+    self.coordinates_featurizer = AtomicCoordinates(use_bohr=use_bohr)
 
   def _featurize_complex(self, molecular_complex):
     """
@@ -208,6 +257,12 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     ----------
     molecular_complex: Object
       Some representation of a molecular complex.
+
+    Returns
+    -------
+    featurization: Tuple
+       A tuple with two elements. The first is the coordinates of the
+       system, of shape `(N, 3)`. The second is the neighbor list.
     """
     fragments = rdkit_util.load_complex(molecular_complex, add_hydrogens=False)
     #mol_coords, ob_mol = rdkit_util.load_molecule(mol_pdb_file)
@@ -217,7 +272,7 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     #system_coords = rdkit_util.merge_molecules_xyz(mol_coords, protein_coords)
     system_coords = rdkit_util.merge_molecules_xyz(coords)
 
-    system_neighbor_list = _compute_neighbor_list(
+    system_neighbor_list = compute_neighbor_list(
         system_coords, self.neighbor_cutoff, self.max_num_neighbors, None)
 
     return (system_coords, system_neighbor_list)
@@ -376,7 +431,7 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
       Max number of atoms for this molecules.
     """
     logger.info("Featurizing molecule of size: %d", len(mol.GetAtoms()))
-    neighbor_list = _compute_neighbor_list(coords, self.neighbor_cutoff,
+    neighbor_list = compute_neighbor_list(coords, self.neighbor_cutoff,
                                            self.max_num_neighbors, None)
     z = self.get_Z_matrix(mol, max_num_atoms)
     z = pad_array(z, max_num_atoms)
