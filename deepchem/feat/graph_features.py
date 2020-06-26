@@ -634,8 +634,8 @@ class AtomicConvFeaturizer(ComplexNeighborListFragmentAtomicCoordinates):
         dataset=dataset, epochs=1)
 
     for X, y, w in batch_generator:
-      frag1_conv, frag2_conv, complex_conv = self.atomic_conv_model.predict_on_batch(
-          X, outputs=layers_to_fetch)
+      frag1_conv, frag2_conv, complex_conv = self.atomic_conv_model.predict_on_generator(
+          [(X, y, w)], outputs=layers_to_fetch)
       concatenated = np.concatenate(
           [frag1_conv, frag2_conv, complex_conv], axis=1)
       atomic_conv_features.append(concatenated)

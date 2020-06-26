@@ -618,7 +618,8 @@ class KerasModel(Model):
     a NumPy array of the model produces a single output, or a list of arrays
     if it produces multiple outputs
     """
-    return self.predict_on_generator([(X, None, None)], transformers, outputs)
+    dataset = NumpyDataset(X=X, y=None)
+    return self.predict(dataset, transformers, outputs)
 
   def predict_uncertainty_on_batch(self, X, masks=50):
     """
