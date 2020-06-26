@@ -156,13 +156,13 @@ class Evaluator(object):
     else:
       mode = metrics[0].mode
     y_pred = self.model.predict(self.dataset, self.output_transformers)
-    ########################################
-    print("y.shape")
-    print(y.shape)
-    print("y_pred.shape")
-    print(y_pred.shape)
-    assert 0 == 1
-    ########################################
+    #########################################
+    #print("y.shape")
+    #print(y.shape)
+    #print("y_pred.shape")
+    #print(y_pred.shape)
+    #assert 0 == 1
+    #########################################
     if mode == "classification":
       y_pred_print = np.argmax(y_pred, -1)
     else:

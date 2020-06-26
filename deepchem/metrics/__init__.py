@@ -164,15 +164,12 @@ def normalize_prediction_shape(y, mode="classification", n_classes=None):
         y_hot = to_one_hot(y, n_classes=n_classes)
         # Insert task dimension
         y_out = np.expand_dims(y_hot, 1)
-        return y_out
       elif len(y.shape) == 2:
         # Insert a task dimension
         n_tasks = 1
         y_out = np.expand_dims(y, 1)
-        return y_out
       elif len(y.shape) == 3:
         y_out = y
-        return y_out
       else:
         raise ValueError("y must be an array of dimension 1, 2, or 3 for classification problems.")
     else:
@@ -182,28 +179,33 @@ def normalize_prediction_shape(y, mode="classification", n_classes=None):
       y = np.reshape(y, (1,))
       y = to_one_hot(y, n_classes=n_classes)
       y_out = np.expand_dims(y, 1)
-      return y_out
   elif mode == "regression":
     if isinstance(y, np.ndarray):
       if len(y.shape) == 1:
         # Insert a task dimension
         n_tasks = 1
         y_out = np.expand_dims(y, 1)
-        return y_out
       elif len(y.shape) == 2:
         y_out = y
-        return y_out
       elif len(y.shape) == 3:
-        if y[-1] != 1:
-          raise ValueError("y must be of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems.")
+        if y.shape[-1] != 1:
+          raise ValueError("y must a float sclar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems.")
         y_out = np.squeeze(y, axis=-1)
       else:
-        raise ValueError("y must be of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems.")
+        raise ValueError("y must a float sclar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems.")
     else:
       # In this clase, y is a scalar.
+      try:
+        y = float(y)
+      except TypeError:
+        #################
+        print("y")
+        print(y)
+        #################
+        raise ValueError("y must a float sclar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems.")
       y = np.array(y)
       y_out = np.reshape(y, (1, 1))
-      return y_out
+  return y_out
     
 def to_one_hot(y, n_classes=2):
   """Transforms label vector into one-hot encoding.
