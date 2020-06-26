@@ -1,17 +1,13 @@
 """
 Tests for metricsT.
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import numpy as np
 import deepchem as dc
-from tensorflow.python.platform import googletest
+import unittest
 from deepchem import metrics
 
 
-class MetricsTest(googletest.TestCase):
+class MetricsTest(unittest.TestCase):
 
   def test_kappa_score(self):
     y_true = [1, 0, 1, 0]
@@ -52,17 +48,8 @@ class MetricsTest(googletest.TestCase):
         dc.metrics.r2_score(y_true, y_pred),
         regression_metric.compute_metric(y_true, y_pred))
 
-  def test_one_hot(self):
-    y = np.array([0, 0, 1, 0, 1, 1, 0])
-    y_hot = metrics.to_one_hot(y)
-    expected = np.array([[1, 0], [1, 0], [0, 1], [1, 0], [0, 1], [0, 1], [1,
-                                                                          0]])
-    yp = metrics.from_one_hot(y_hot)
-    assert np.array_equal(expected, y_hot)
-    assert np.array_equal(y, yp)
-
   def test_bedroc_score(self):
-
+    """Test BEDROC."""
     num_actives = 20
     num_total = 400
 
@@ -83,7 +70,3 @@ class MetricsTest(googletest.TestCase):
         np.concatenate([worst_pred_actives, worst_pred_inactives]))
     worst_score = dc.metrics.bedroc_score(y_true, y_pred_worst)
     self.assertAlmostEqual(worst_score, 0.0, 4)
-
-
-if __name__ == '__main__':
-  googletest.main()
