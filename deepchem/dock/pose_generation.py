@@ -285,11 +285,15 @@ class VinaPoseGenerator(PoseGenerator):
       out_pdbqt = os.path.join(out_dir, "%s_docked.pdbqt" % ligand_name)
       logger.info("About to call Vina")
       if platform.system() == 'Windows':
-        args = [self.vina_cmd, "--config", conf_file, "--log", log_file, "--out", out_pdbqt]
+        args = [
+            self.vina_cmd, "--config", conf_file, "--log", log_file, "--out",
+            out_pdbqt
+        ]
       else:
         # I'm not sure why specifying the args as a list fails on other platforms,
         # but for some reason it only works if I pass it as a string.
-        args = "%s --config %s --log %s --out %s" % (self.vina_cmd, conf_file, log_file, out_pdbqt)
+        args = "%s --config %s --log %s --out %s" % (self.vina_cmd, conf_file,
+                                                     log_file, out_pdbqt)
       call(args, shell=True)
       ligands, scores = vina_utils.load_docked_ligands(out_pdbqt)
       docked_complexes += [(protein_mol[1], ligand) for ligand in ligands]
