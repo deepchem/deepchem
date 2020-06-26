@@ -4,7 +4,7 @@ Test featurizers for inorganic crystals.
 import numpy as np
 import unittest
 
-from deepchem.feat.materials_featurizers import ChemicalFingerprint, SineCoulombMatrix, StructureGraphFeaturizer
+from deepchem.feat.materials_featurizers import ElementPropertyFingerprint, SineCoulombMatrix, StructureGraphFeaturizer
 
 
 class TestMaterialFeaturizers(unittest.TestCase):
@@ -46,12 +46,12 @@ class TestMaterialFeaturizers(unittest.TestCase):
         }]
     }
 
-  def testCF(self):
+  def testEPF(self):
     """
-    Test CF featurizer.
+    Test Element Property featurizer.
     """
 
-    featurizer = ChemicalFingerprint(data_source='matminer')
+    featurizer = ElementPropertyFingerprint(data_source='matminer')
     features = featurizer.featurize([self.formula])
 
     assert len(features[0]) == 65
@@ -74,9 +74,9 @@ class TestMaterialFeaturizers(unittest.TestCase):
     Test StructureGraphFeaturizer.
     """
 
-    featurizer = StructureGraphFeaturizer()
+    featurizer = StructureGraphFeaturizer(radius=3.0, max_neighbors=6)
     features = featurizer.featurize([self.struct_dict])
 
     assert len(features[0]) == 3
     assert features[0][0] == 26
-    assert len(features[0][2]) == 6
+    assert features[0][1].shape == (6,16)

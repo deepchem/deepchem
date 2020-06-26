@@ -125,10 +125,10 @@ lattice and 3D coordinates that specify a periodic crystal structure. They
 should be applied on systems that have periodic boundary conditions. Materials
 featurizers are not designed to work with molecules. 
 
-ChemicalFingerprint
+ElementPropertyFingerprint
 ^^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: deepchem.feat.ChemicalFingerprint
+.. autoclass:: deepchem.feat.ElementPropertyFingerprint
   :members:
 
 SineCoulombMatrix
