@@ -18,12 +18,198 @@ from scipy.stats import pearsonr
 
 logger = logging.getLogger(__name__)
 
+def matthews_corrcoef(*args, **kwargs):
+  logger.warning("matthews_corrcoef is deprecated. Use sklearn.metrics.matthews_corrcoef instead. dc.metrics.matthews_corrcoef will be removed in a future version of DeepChem.")
+  return sklearn.metrics.matthews_corrcoef(*args, **kwargs)
 
+def recall_score(*args, **kwargs):
+  logger.warning("recall_score is deprecated. Use sklearn.metrics.recall_score instead. dc.metrics.recall_score will be removed in a future version of DeepChem.")
+  return sklearn.metrics.recall_score(*args, **kwargs)
+
+def r2_score(*args, **kwargs):
+  logger.warning("r2_score is deprecated. Use sklearn.metrics.r2_score instead. dc.metrics.r2_score will be removed in a future version of DeepChem.")
+  return sklearn.metrics.r2_score(*args, **kwargs)
+
+def mean_squared_error(*args, **kwargs):
+  logger.warning("mean_squared_error is deprecated. Use sklearn.metrics.mean_squared_error instead. dc.metrics.mean_squared_error will be removed in a future version of DeepChem.")
+  return sklearn.metrics.mean_squared_error(*args, **kwargs)
+
+def mean_absolute_error(*args, **kwargs):
+  logger.warning("mean_absolute_error is deprecated. Use sklearn.metrics.mean_absolute_error instead. dc.metrics.mean_absolute_error will be removed in a future version of DeepChem.")
+  return sklearn.metrics.mean_absolute_error(*args, **kwargs)
+
+def precision_score(*args, **kwargs):
+  logger.warning("precision_score is deprecated. Use sklearn.metrics.precision_score instead. dc.metrics.precision_score will be removed in a future version of DeepChem.")
+  return sklearn.metrics.precision_score(*args, **kwargs)
+
+def precision_recall_curve(*args, **kwargs):
+  logger.warning("precision_recall_curve is deprecated. Use sklearn.metrics.precision_recall_curve instead. dc.metrics.precision_recall_curve will be removed in a future version of DeepChem.")
+  return sklearn.metrics.precision_recall_curve(*args, **kwargs)
+
+def auc(*args, **kwargs):
+  logger.warning("auc is deprecated. Use sklearn.metrics.auc instead. dc.metrics.auc will be removed in a future version of DeepChem.")
+  return sklearn.metrics.auc(*args, **kwargs)
+
+
+def jaccard_score(*args, **kwargs):
+  logger.warning("jaccard_score is deprecated. Use sklearn.metrics.jaccard_score instead. dc.metrics.jaccard_score will be removed in a future version of DeepChem.")
+  return sklearn.metrics.jaccard_score(*args, **kwargs)
+
+def f1_score(*args, **kwargs):
+  logger.warning("f1_score is deprecated. Use sklearn.metrics.f1_score instead. dc.metrics.f1_score will be removed in a future version of DeepChem.")
+  return sklearn.metrics.f1_score(*args, **kwargs)
+
+def normalize_weight_shape(w, n_samples, n_tasks):
+  """A utility function to correct the shape of the weight array.
+
+  This utility function is used to normalize the shapes of a given
+  weight array. 
+
+  Parameters
+  ----------
+  w: np.ndarray
+    `w` can be `None` or a scalar or a `np.ndarray` of shape
+    `(n_samples,)` or of shape `(n_samples, n_tasks)`. If `w` is a
+    sclar, it's assumed to be the same weight for all samples/tasks.
+  n_samples: int
+    The number of samples in the dataset. If `w` is not None, we should
+    have `n_samples = w.shape[0]` if `w` is a ndarray
+  n_tasks: int
+    The number of tasks. If `w` is 2d ndarray, then we should have
+    `w.shape[1] == n_tasks`.
+
+  Returns
+  -------
+  w_out: np.ndarray
+    Array of shape `(n_samples, n_tasks)`
+  """
+  if w is None:
+    w_out = np.ones((n_samples, n_tasks))
+  elif isinstance(w, np.ndarray):
+    if len(w.shape) == 0:  
+      # scalar case
+      w_out = w * np.ones((n_samples, n_tasks))
+    elif len(w.shape) == 1:
+      if len(w) != n_samples:
+        raise ValueError("Length of w isn't n_samples")
+      # per-example case
+      # This is a little arcane but it repeats w across tasks.
+      w_out = np.tile(w, (n_tasks, 1)).T
+    elif len(w.shape) == 2:
+      if w.shape != (n_samples, n_tasks):
+        raise ValueError("Shape for w doens't match (n_samples, n_tasks)")
+      w_out = w
+    else:
+      raise ValueError("w must be of dimension 1, 2, or 3")
+  else:
+    # scalar case
+    w_out = w * np.ones((n_samples, n_tasks))
+  return w_out
+    
+    
+
+def normalize_prediction_shape(y, mode="classification", n_classes=None):
+  """A utility function to correct the shape of the input array.
+
+  The metric computation classes expect that inputs for classification
+  have the uniform shape `(N, n_tasks, n_classes)` and inputs for
+  regression have the uniform shape `(N, n_tasks)`. This function
+  normalizes the provided input array to have the desired shape.
+
+  Examples
+  --------
+  >>> import numpy as np
+  >>> y = np.random.rand(10)
+  >>> y_out = normalize_prediction_shape(y, "regression")
+  >>> y_out.shape
+  (10, 1)
+
+  Parameters
+  ----------
+  y: np.ndarray
+    If `mode=="classification"`, `y` is an array of shape `(N,)` or
+    `(N, n_classes)` or `(N, n_tasks, n_classes)`. If `y` is of shape
+    `(N,)` in order to impute the number of classes correctly, `y`
+    must take values from `0` to `n_classes-1` as integers. If
+    `mode=="regression"`, `y` is an array of shape `(N,)` or `(N,
+    n_tasks)`or `(N, n_tasks, 1)`. In the edge case where `N == 1`,
+    `y` may be a scalar.
+  mode: str
+    Must be either "classification" or "regression".
+  n_classes: int, optional
+    If specified use this as the number of classes. Else will try to
+    impute it as `n_classes = max(y) + 1` for arrays and as
+    `n_classes=2` for the case of scalars. Note this parameter only
+    has value if `mode=="classification"`
+
+  Returns
+  -------
+  y_out: np.ndarray
+    If `mode=="classification"`, `y_out` is an array of shape `(N,
+    n_tasks, n_classes)`. If `mode=="regression"`, `y_out` is an array
+    of shape `(N, n_tasks)`.
+  """
+  if n_classes is None:
+    if isinstance(y, np.ndarray):
+      # Find number of classes. Note that `y` must have values in
+      # range 0 to n_classes - 1
+      n_classes = np.amax(y) + 1
+    else:
+      # scalar case
+      n_classes = 2
+  if mode == "classification":
+    if isinstance(y, np.ndarray):
+      if len(y.shape) == 1:
+        # y_hot is of shape (N, n_classes)
+        y_hot = to_one_hot(y, n_classes=n_classes)
+        # Insert task dimension
+        y_out = np.expand_dims(y_hot, 1)
+        return y_out
+      elif len(y.shape) == 2:
+        # Insert a task dimension
+        n_tasks = 1
+        y_out = np.expand_dims(y, 1)
+        return y_out
+      elif len(y.shape) == 3:
+        y_out = y
+        return y_out
+      else:
+        raise ValueError("y must be an array of dimension 1, 2, or 3 for classification problems.")
+    else:
+      # In this clase, y is a scalar. We assume that `y` is binary
+      # since it's hard to do anything else in this case.
+      y = np.array(y)
+      y = np.reshape(y, (1,))
+      y = to_one_hot(y, n_classes=n_classes)
+      y_out = np.expand_dims(y, 1)
+      return y_out
+  elif mode == "regression":
+    if isinstance(y, np.ndarray):
+      if len(y.shape) == 1:
+        # Insert a task dimension
+        n_tasks = 1
+        y_out = np.expand_dims(y, 1)
+        return y_out
+      elif len(y.shape) == 2:
+        y_out = y
+        return y_out
+      elif len(y.shape) == 3:
+        if y[-1] != 1:
+          raise ValueError("y must be of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems.")
+        y_out = np.squeeze(y, axis=-1)
+      else:
+        raise ValueError("y must be of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems.")
+    else:
+      # In this clase, y is a scalar.
+      y = np.array(y)
+      y_out = np.reshape(y, (1, 1))
+      return y_out
+    
 def to_one_hot(y, n_classes=2):
   """Transforms label vector into one-hot encoding.
 
   Turns y into vector of shape `(n_samples, n_classes)` with a one-hot
-  encoding. 
+  encoding. Assumes that `y` takes values from `0` to `n_classes - 1`.
 
   Parameters
   ----------
@@ -252,16 +438,16 @@ def bedroc_score(y_true, y_pred, alpha=20.0):
 class Metric(object):
   """Wrapper class for computing user-defined metrics.
 
-  There are a variety of different metrics this class aims to support.
-  At the most simple, metrics for classification and regression that
-  assume that values to compare are scalars. More complicated, there
-  may perhaps be two image arrays that need to be compared.
-
   The `Metric` class provides a wrapper for standardizing the API
   around different classes of metrics that may be useful for DeepChem
   models. The implementation provides a few non-standard conveniences
   such as built-in support for multitask and multiclass metrics, and
   support for multidimensional outputs.
+
+  There are a variety of different metrics this class aims to support.
+  At the most simple, metrics for classification and regression that
+  assume that values to compare are scalars. More complicated, there
+  may perhaps be two image arrays that need to be compared.
   """
 
   def __init__(self,
@@ -270,7 +456,7 @@ class Metric(object):
                name=None,
                threshold=None,
                mode=None,
-               compute_energy_metric=False):
+               **kwargs):
     """
     Parameters
     ----------
@@ -288,8 +474,12 @@ class Metric(object):
       class
     mode: str, optional
       Must be either classification or regression.
-    compute_energy_metric: TODO(rbharath): Should this be removed? 
     """
+    if "compute_energy_metric" in kwargs:
+      self.compute_energy_metric = kwargs["compute_energy_metric"]
+      logger.warn("compute_energy_metric is deprecated and will be removed in a future version of DeepChem.")
+    else:
+      self.compute_energy_metric = False
     self.metric = metric
     self.task_averager = task_averager
     self.is_multitask = (self.task_averager is not None)
@@ -322,11 +512,6 @@ class Metric(object):
     ] and threshold is None:
       self.threshold = 0.5
     self.mode = mode
-    # The convention used is that the first task is the metric.
-    # TODO(rbharath, joegomes): This doesn't seem like it should be hard-coded as
-    # an option in the Metric class. Instead, this should be possible to move into
-    # user-space as a custom task_averager function.
-    self.compute_energy_metric = compute_energy_metric
 
   def compute_metric(self,
                      y_true,
@@ -340,11 +525,16 @@ class Metric(object):
     Parameters
     ----------
     y_true: np.ndarray
-      An np.ndarray containing true values for each task.
+      An np.ndarray containing true values for each task. Must be of
+      shape `(N, n_tasks, n_classes)` if a classification metric, else
+      must be of shape `(N, n_tasks)` if a regression metric.
     y_pred: np.ndarray
-      An np.ndarray containing predicted values for each task.
+      An np.ndarray containing predicted values for each task. Must be
+      of shape `(N, n_tasks, n_classes)` if a classification metric,
+      else must be of shape `(N, n_tasks)` if a regression metric.
     w: np.ndarray, optional
-      An np.ndarray containing weights for each datapoint.
+      An np.ndarray containing weights for each datapoint. If
+      specified,  must be of shape `(N, n_tasks)`.
     n_classes: int, optional
       Number of classes in data for classification tasks.
     filter_nans: bool, optional
@@ -356,26 +546,18 @@ class Metric(object):
     -------
     A numpy nd.array containing metric values for each task.
     """
+    # TODO: How about non standard shapes?
+    y_true = normalize_prediction_shape(y_true, mode=self.mode, n_classes=n_classes)
+    y_pred = normalize_prediction_shape(y_pred, mode=self.mode, n_classes=n_classes)
+    # This is safe now because of normalization above
     n_samples = y_true.shape[0]
-    expected_dims = (3 if self.mode == "classification" else 2)
-    if len(y_pred.shape) < expected_dims:
-      n_tasks = 1
-      y_true = np.expand_dims(y_true, 1)
-      y_pred = np.expand_dims(y_pred, 1)
-    else:
-      n_tasks = y_pred.shape[1]
-    if w is None or len(w) == 0:
-      w = np.ones((n_samples, n_tasks))
+    n_tasks = y_pred.shape[1]
+    w = normalize_weight_shape(w, n_samples, n_tasks)
     computed_metrics = []
     for task in range(n_tasks):
       y_task = y_true[:, task]
       y_pred_task = y_pred[:, task]
-      if len(w.shape) == 1:
-        w_task = w
-      elif w.shape[1] == 1:
-        w_task = w[:, 0]
-      else:
-        w_task = w[:, task]
+      w_task = w[:, task]
 
       metric_value = self.compute_singletask_metric(y_task, y_pred_task, w_task)
       computed_metrics.append(metric_value)
@@ -388,10 +570,10 @@ class Metric(object):
       if filter_nans:
         computed_metrics = np.array(computed_metrics)
         computed_metrics = computed_metrics[~np.isnan(computed_metrics)]
+      # DEPRECATED. WILL BE REMOVED IN NEXT DEEPCHEM VERSION
       if self.compute_energy_metric:
-        # TODO(rbharath, joegomes): What is this magic number?
         force_error = self.task_averager(computed_metrics[1:]) * 4961.47596096
-        print("Force error (metric: np.mean(%s)): %f kJ/mol/A" % (self.name,
+        logger.info("Force error (metric: np.mean(%s)): %f kJ/mol/A" % (self.name,
                                                                   force_error))
         return computed_metrics[0]
       elif not per_task_metrics:
