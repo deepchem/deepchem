@@ -89,7 +89,7 @@ class KerasModel(Model):
     supports uncertainty, it MUST use dropout on every layer,
     and dropout most be enabled during uncertainty prediction.
     Otherwise, the uncertainties it computes will be inaccurate.
-    
+
   - other: Arbitrary output_types can be used to extract outputs
     produced by the model, but will have no additional
     processing performed.

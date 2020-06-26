@@ -177,7 +177,7 @@ class AtomicConvModel(KerasModel):
                layer_sizes=[32, 32, 16],
                learning_rate=0.001,
                **kwargs):
-    """   
+    """
     Params
     ------
     frag1_num_atoms: int
@@ -221,20 +221,22 @@ class AtomicConvModel(KerasModel):
     complex_nbrs_z = Input(shape=(complex_num_atoms, max_num_neighbors))
     complex_z = Input(shape=(complex_num_atoms,))
 
-    frag1_conv = AtomicConvolution(
+    self._frag1_conv = AtomicConvolution(
         atom_types=self.atom_types, radial_params=rp,
         boxsize=None)([frag1_X, frag1_nbrs, frag1_nbrs_z])
 
-    frag2_conv = AtomicConvolution(
+    self._frag2_conv = AtomicConvolution(
         atom_types=self.atom_types, radial_params=rp,
         boxsize=None)([frag2_X, frag2_nbrs, frag2_nbrs_z])
 
-    complex_conv = AtomicConvolution(
+    self._complex_conv = AtomicConvolution(
         atom_types=self.atom_types, radial_params=rp,
         boxsize=None)([complex_X, complex_nbrs, complex_nbrs_z])
 
-    score = AtomicConvScore(self.atom_types, layer_sizes)(
-        [frag1_conv, frag2_conv, complex_conv, frag1_z, frag2_z, complex_z])
+    score = AtomicConvScore(self.atom_types, layer_sizes)([
+        self._frag1_conv, self._frag2_conv, self._complex_conv, frag1_z,
+        frag2_z, complex_z
+    ])
 
     model = tf.keras.Model(
         inputs=[
