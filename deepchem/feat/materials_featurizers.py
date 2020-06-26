@@ -135,7 +135,8 @@ class SineCoulombMatrix(Featurizer):
     Returns
     -------
     features: np.ndarray
-      2D sine Coulomb matrix, or 1D matrix eigenvalues. 
+      2D sine Coulomb matrix with shape (max_atoms, max_atoms),
+      or 1D matrix eigenvalues with shape (max_atoms,). 
 
     """
 
@@ -243,8 +244,6 @@ class StructureGraphFeaturizer(Featurizer):
       atomic numbers, filtered interatomic distance tensor, and neighbor ids
     
     """
-
-    from pymatgen.analysis.graphs import StructureGraph
 
     atom_features = np.array([site.specie.Z for site in struct], dtype='int32')
 

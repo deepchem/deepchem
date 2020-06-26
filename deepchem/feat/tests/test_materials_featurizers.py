@@ -46,7 +46,7 @@ class TestMaterialFeaturizers(unittest.TestCase):
         }]
     }
 
-  def testEPF(self):
+  def test_element_property_fingerprint(self):
     """
     Test Element Property featurizer.
     """
@@ -58,18 +58,18 @@ class TestMaterialFeaturizers(unittest.TestCase):
     assert np.allclose(
         features[0][:5], [2.16, 2.58, 0.42, 2.44, 0.29698485], atol=0.1)
 
-  def testSCM(self):
+  def test_sine_coulomb_matrix(self):
     """
     Test SCM featurizer.
     """
 
-    featurizer = SineCoulombMatrix(1)
+    featurizer = SineCoulombMatrix(max_atoms=1)
     features = featurizer.featurize([self.struct_dict])
 
     assert len(features) == 1
     assert np.isclose(features[0], 1244, atol=.5)
 
-  def testSGF(self):
+  def test_structure_graph_featurizer(self):
     """
     Test StructureGraphFeaturizer.
     """
@@ -79,4 +79,4 @@ class TestMaterialFeaturizers(unittest.TestCase):
 
     assert len(features[0]) == 3
     assert features[0][0] == 26
-    assert features[0][1].shape == (6,16)
+    assert features[0][1].shape == (6, 16)
