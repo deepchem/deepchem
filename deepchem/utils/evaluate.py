@@ -9,8 +9,55 @@ import pandas as pd
 import sklearn
 from deepchem.trans import undo_transforms
 from deepchem.metrics import from_one_hot
+from deepchem.metrics import Metric
 
 logger = logging.getLogger(__name__)
+
+
+def _process_metric_input(metrics):
+  """A private helper method which processes metrics correctly.
+
+  Metrics can be input as `dc.metrics.Metric` objects, lists of
+  `dc.metrics.Metric` objects, or as raw metric functions or lists of
+  raw metric functions. Metric functions are functions which accept
+  two arguments `y_true, y_pred` both of which must be `np.ndarray`
+  objects and return a float value. This functions normalizes these
+  different types of inputs to type `list[dc.metrics.Metric]` object
+  for ease of later processing.
+
+  Note that raw metric functions which don't have names attached will
+  simply be named "metric-#" where # is their position in the provided
+  metric list. For example, "metric-1" or "metric-7"
+
+  Parameters
+  ----------
+  metrics: dc.metrics.Metric/list[dc.metrics.Metric]/metric function/ list[metric function]
+    Input metrics to process.
+
+  Returns
+  -------
+  final_metrics: list[dc.metrics.Metric]
+    Converts all input metrics and outputs a list of
+    `dc.metrics.Metric` objects.
+  """
+  # Make sure input is a list
+  if not len(metrics):
+    metrics = [metrics]
+  final_metrics = []
+  for i, metric in enumerate(metrics):
+    # Ensure that metric is wrapped in a list.
+    if isinstance(metric, Metric):
+      final_metrics.append(metric)
+    # This case checks if input is a function then wraps a
+    # dc.metrics.Metric object around it
+    elif callable(metric):
+      wrap_metric = Metric(metric, name="metric-%d" % i)
+      final_metrics.append(wrap_metric)
+    else:
+      raise ValueError(
+          "metrics must be one of metric function / dc.metrics.Metric object / list of dc.metrics.Metric or metric functions."
+      )
+  return final_metrics
 
 
 def relative_difference(x, y):
@@ -100,8 +147,7 @@ class Evaluator(object):
       statsfile.write(str(scores) + "\n")
 
   def output_predictions(self, y_preds, csv_out):
-    """
-    Writes predictions to file.
+    """Writes predictions to file.
 
     Parameters
     ----------
@@ -156,13 +202,6 @@ class Evaluator(object):
     else:
       mode = metrics[0].mode
     y_pred = self.model.predict(self.dataset, self.output_transformers)
-    #########################################
-    #print("y.shape")
-    #print(y.shape)
-    #print("y_pred.shape")
-    #print(y_pred.shape)
-    #assert 0 == 1
-    #########################################
     if mode == "classification":
       y_pred_print = np.argmax(y_pred, -1)
     else:
@@ -248,10 +287,18 @@ class GeneratorEvaluator(object):
 
     Parameters
     ----------
-    metrics: list
-      List of dc.metrics.Metric objects
+    metrics: dc.metrics.Metric/list[dc.metrics.Metric]/function
+      The set of metrics provided. This class attempts to do some
+      intelligent handling of input. If a single `dc.metrics.Metric`
+      object is provided or a list is provided, it will evaluate
+      `self.model` on these metrics. If a function is provided, it is
+      assumed to be a metric function that this method will attempt to
+      wrap in a `dc.metrics.Metric` object. A metric function must
+      accept two arguments, `y_true, y_pred` both of which are
+      `np.ndarray` objects and return a floating point score.
     per_task_metrics: bool, optional
-      If true, return computed metric for each task on multitask dataset.
+      If true, return computed metric for each task on multitask
+      dataset.
 
     Returns
     -------
@@ -261,6 +308,9 @@ class GeneratorEvaluator(object):
       If `per_task_metrics == True`, then returns a second dictionary
       of scores for each task separately.
     """
+    metrics = _process_metric_input(metrics)
+
+    # We use y/w to aggregate labels/weights across generator.
     y = []
     w = []
 
@@ -284,42 +334,29 @@ class GeneratorEvaluator(object):
             w.append(weights[0])
           yield (inputs, labels, weights)
 
-    if not len(metrics):
-      return {}
-    else:
-      mode = metrics[0].mode
+    # Process predictions and populate y/w lists
     y_pred = self.model.predict_on_generator(generator_closure())
-    #y = np.concatenate(y, axis=0)
+
+    # Combine labels/weights
+    y = np.concatenate(y, axis=0)
+    w = np.concatenate(w, axis=0)
+
     multitask_scores = {}
     all_task_scores = {}
 
+    # Undo data transformations.
     y = undo_transforms(y, self.output_transformers)
     y_pred = undo_transforms(y_pred, self.output_transformers)
-    #if len(w) != 0:
-    #  w = np.array(w)
-    #  if np.prod(w.shape) == y.shape[0]:
-    #    w = np.reshape(w, newshape=(y.shape[0], 1))
-    #  else:
-    #    w = np.reshape(w, newshape=y.shape)
 
     # Compute multitask metrics
-    #n_classes = y.shape[-1]
     for metric in metrics:
       if per_task_metrics:
         multitask_scores[metric.name], computed_metrics = metric.compute_metric(
-            #y, y_pred, w, per_task_metrics=True, n_classes=n_classes)
-            y,
-            y_pred,
-            w,
-            per_task_metrics=True)
+            y, y_pred, w, per_task_metrics=True)
         all_task_scores[metric.name] = computed_metrics
       else:
         multitask_scores[metric.name] = metric.compute_metric(
-            #y, y_pred, w, per_task_metrics=False, n_classes=n_classes)
-            y,
-            y_pred,
-            w,
-            per_task_metrics=False)
+            y, y_pred, w, per_task_metrics=False)
 
     if not per_task_metrics:
       return multitask_scores

@@ -198,10 +198,6 @@ def normalize_prediction_shape(y, mode="classification", n_classes=None):
       try:
         y = float(y)
       except TypeError:
-        #################
-        print("y")
-        print(y)
-        #################
         raise ValueError("y must a float sclar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems.")
       y = np.array(y)
       y_out = np.reshape(y, (1, 1))

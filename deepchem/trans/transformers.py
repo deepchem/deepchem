@@ -32,6 +32,11 @@ def undo_transforms(y, transformers):
   transformers: list[dc.trans.Transformer]
     List of transformations which have already been applied to `y` in the
     order specifed.
+
+  Returns
+  -------
+  y_out: np.ndarray
+    The array with all transformations reversed.
   """
   # Note that transformers have to be undone in reversed order
   for transformer in reversed(transformers):
@@ -50,9 +55,9 @@ def undo_grad_transforms(grad, tasks, transformers):
 def get_grad_statistics(dataset):
   """Computes and returns statistics of a dataset
 
-  This function assumes that the first task of a dataset holds the energy for
-  an input system, and that the remaining tasks holds the gradient for the
-  system.
+  This function assumes that the first task of a dataset holds the
+  energy for an input system, and that the remaining tasks holds the
+  gradient for the system.
   """
   if len(dataset) == 0:
     return None, None, None, None
@@ -68,13 +73,28 @@ def get_grad_statistics(dataset):
 class Transformer(object):
   """Abstract base class for different data transformation techniques.
 
-  `Transformer` objects are used to transform `Dataset` objects in ways that
-  are useful to machine learning. Transformations might process the data to
-  make learning easier (say by normalizing), or may implement techniques such
-  as data augmentation.
+  A transformer is an object that applies a transformation to a given
+  dataset. Think of a transformation as a mathematical operation which
+  makes the source dataset more amenable to learning. For example, one
+  transformer could normalize the features for a dataset (ensuring
+  they have zero mean and unit standard deviation). Another
+  transformer could for example threshold values in a dataset so that
+  values outside a given range are truncated. Yet another transformer
+  could act as a data augmentation routine, generating multiple
+  different images from each source datapoint (a transformation need
+  not necessarily be one to one).
 
-  Note that you can never instantiate a `Transformer` class directly. You will
-  want to use one of the concrete subclasses.
+  Transformers are designed to be chained, since data pipelines often
+  chain multiple different transformations to a dataset. Transformers
+  are also designed to be scalable and can be applied to 
+  large `dc.data.Dataset` objects. Not that Transformers are not
+  usually thread-safe so you will have to be careful in processing
+  very large datasets.
+
+  This class is an abstract superclass that isn't meant to be directly
+  instantiated. Instead, you will want to instantiate one of the
+  subclasses of this class inorder to perform concrete
+  transformations.
   """
   # Hack to allow for easy unpickling:
   # http://stefaanlippens.net/pickleproblem
