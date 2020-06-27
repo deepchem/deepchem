@@ -14,6 +14,53 @@ from deepchem.metrics import Metric
 
 logger = logging.getLogger(__name__)
 
+def output_statistics(scores, stats_out):
+  """Write computed stats to file.
+
+  Statistics are written to specified `stats_out` file.
+
+  Parameters
+  ----------
+  scores: dict
+    Dictionary mapping names of metrics to scores.
+  stats_out: str
+    Name of file to write scores to.
+  """
+  logger.warning("output_statistics is deprecated.")
+  with open(stats_out, "w") as statsfile:
+    statsfile.write(str(scores) + "\n")
+
+
+def output_predictions(dataset, y_preds, csv_out):
+  """Writes predictions to file.
+
+  Writes predictions made on `dataset` to a specified file on
+  disk. `dataset.ids` are used to format predictions. The produce CSV file will have format as follows
+
+  | ID          | Task1Name    | Task2Name    |
+  | ----------- | ------------ | ------------ |
+  | identifer1  | prediction11 | prediction12 |
+  | identifer2  | prediction21 | prediction22 |
+
+  Parameters
+  ----------
+  dataset: dc.data.Dataset
+    Dataset on which predictions have been made.
+  y_preds: np.ndarray
+    Predictions to output
+  csv_out: str
+    Name of file to write predictions to.
+  """
+  mol_ids = dataset.ids
+  n_tasks = len(dataset.get_task_names())
+  y_preds = np.reshape(y_preds, (len(y_preds), n_tasks))
+  assert len(y_preds) == len(mol_ids)
+  with open(csv_out, "w") as csvfile:
+    csvwriter = csv.writer(csvfile)
+    csvwriter.writerow(["ID"] + dataset.get_task_names())
+    for mol_id, y_pred in zip(mol_ids, y_preds):
+      csvwriter.writerow([mol_id] + list(y_pred))
+
 def _process_metric_input(metrics):
   """A private helper method which processes metrics correctly.
 
@@ -41,7 +88,7 @@ def _process_metric_input(metrics):
     `dc.metrics.Metric` objects.
   """
   # Make sure input is a list
-  if not len(metrics):
+  if not isinstance(metrics, list):
     metrics = [metrics]
   final_metrics = []
   for i, metric in enumerate(metrics):
@@ -51,7 +98,7 @@ def _process_metric_input(metrics):
     # This case checks if input is a function then wraps a
     # dc.metrics.Metric object around it
     elif callable(metric):
-      wrap_metric = Metric(metric, name="metric-%d" % i)
+      wrap_metric = Metric(metric, name="metric-%d" % (i+1))
       final_metrics.append(wrap_metric)
     else:
       raise ValueError("metrics must be one of metric function / dc.metrics.Metric object / list of dc.metrics.Metric or metric functions.")
@@ -109,15 +156,29 @@ class Evaluator(object):
 
   Example
   -------
+  Evaluators allow for a model to be evaluated directly on a Metric
+  for `sklearn`. Let's do a bit of setup constructing our dataset and
+  model.
+
   >>> import numpy as np
   >>> X = np.random.rand(10, 5)
   >>> y = np.random.rand(10, 1)
   >>> dataset = dc.data.NumpyDataset(X, y)
   >>> model = dc.models.MultitaskRegressor(1, 5)
   >>> transformers = []
+
+  Then you can evaluate this model as follows 
+  >>> import sklearn
+  >>> evaluator = Evaluator(model, dataset, transformers)
+  >>> multitask_scores = evaluator.compute_model_performance(
+  ...     sklearn.metrics.mean_absolute_error)
+
+  Evaluators can also be used with `dc.metrics.Metric` objects as well
+  in case you want to customize your metric further. 
+
   >>> evaluator = Evaluator(model, dataset, transformers)
   >>> metric = dc.metrics.Metric(dc.metrics.mae_score)
-  >>> multitask_scores = evaluator.compute_model_performance([metric])
+  >>> multitask_scores = evaluator.compute_model_performance(metric)
   """
 
   def __init__(self, model, dataset, transformers):
@@ -126,7 +187,6 @@ class Evaluator(object):
     self.output_transformers = [
         transformer for transformer in transformers if transformer.transform_y
     ]
-    self.task_names = dataset.get_task_names()
 
   def output_statistics(self, scores, stats_out):
     """ Write computed stats to file.
@@ -138,26 +198,31 @@ class Evaluator(object):
     stats_out: str
       Name of file to write scores to.
     """
+    logger.warning("Evaluator.output_statistics is deprecated. Please use dc.utils.evaluate.output_statistics instead. This method will be removed in a future version of DeepChem.")
     with open(stats_out, "w") as statsfile:
       statsfile.write(str(scores) + "\n")
 
   def output_predictions(self, y_preds, csv_out):
     """Writes predictions to file.
 
+    Writes predictions made on `self.dataset` to a specified file on
+    disk. `self.dataset.ids` are used to format predictions.
+
     Parameters
     ----------
     y_preds: np.ndarray
       Predictions to output
-    csvfile: str
+    csv_out: str
       Name of file to write predictions to.
     """
+    logger.warning("Evaluator.output_predictions is deprecated. Please use dc.utils.evaluate.output_predictions instead. This method will be removed in a future version of DeepChem.")
     mol_ids = self.dataset.ids
-    n_tasks = len(self.task_names)
+    n_tasks = len(self.dataset.get_task_names())
     y_preds = np.reshape(y_preds, (len(y_preds), n_tasks))
     assert len(y_preds) == len(mol_ids)
     with open(csv_out, "w") as csvfile:
       csvwriter = csv.writer(csvfile)
-      csvwriter.writerow(["Compound"] + self.dataset.get_task_names())
+      csvwriter.writerow(["ID"] + self.dataset.get_task_names())
       for mol_id, y_pred in zip(mol_ids, y_preds):
         csvwriter.writerow([mol_id] + list(y_pred))
 
@@ -165,17 +230,29 @@ class Evaluator(object):
                                 metrics,
                                 csv_out=None,
                                 stats_out=None,
-                                per_task_metrics=False):
+                                per_task_metrics=False,
+                                n_classes=None):
     """
     Computes statistics of model on test data and saves results to csv.
 
     Parameters
     ----------
-    metrics: list
-      List of dc.metrics.Metric objects
-    csv_out: str, optional
+    metrics: dc.metrics.Metric/list[dc.metrics.Metric]/function
+      The set of metrics provided. This class attempts to do some
+      intelligent handling of input. If a single `dc.metrics.Metric`
+      object is provided or a list is provided, it will evaluate
+      `self.model` on these metrics. If a function is provided, it is
+      assumed to be a metric function that this method will attempt to
+      wrap in a `dc.metrics.Metric` object. A metric function must
+      accept two arguments, `y_true, y_pred` both of which are
+      `np.ndarray` objects and return a floating point score.
+    n_classes: int, optional (default None)
+      If specified, will assume that all `metrics` are classification
+      metrics and will use `n_classes` as the number of unique classes
+      in `self.dataset`.
+    csv_out: str, optional (Deprecated)
       Filename to write CSV of model predictions.
-    stats_out: str, optional
+    stats_out: str, optional (Deprecated)
       Filename to write computed statistics.
     per_task_metrics: bool, optional
       If true, return computed metric for each task on multitask dataset.
@@ -188,39 +265,32 @@ class Evaluator(object):
       If `per_task_metrics == True`, then returns a second dictionary
       of scores for each task separately.
     """
+    if csv_out is not None:
+      logger.warning("csv_out is deprecated as an argument and will be removed in a future version of DeepChem. Output is not written to CSV; manually write output instead.")
+    if stats_out is not None:
+      logger.warning("stats_out is deprecated as an argument and will be removed in a future version of DeepChem. Stats output is not written; please manually write output instead")
+    # Process input metrics
+    metrics = _process_metric_input(metrics)
+
     y = self.dataset.y
     y = undo_transforms(y, self.output_transformers)
     w = self.dataset.w
 
-    if not len(metrics):
-      return {}
-    else:
-      mode = metrics[0].mode
     y_pred = self.model.predict(self.dataset, self.output_transformers)
-    if mode == "classification":
-      y_pred_print = np.argmax(y_pred, -1)
-    else:
-      y_pred_print = y_pred
+
     multitask_scores = {}
     all_task_scores = {}
 
-    if csv_out is not None:
-      logger.info("Saving predictions to %s" % csv_out)
-      self.output_predictions(y_pred_print, csv_out)
-
     # Compute multitask metrics
     for metric in metrics:
+      results = metric.compute_metric(
+            y, y_pred, w, per_task_metrics=per_task_metrics,
+            n_classes=n_classes)
       if per_task_metrics:
-        multitask_scores[metric.name], computed_metrics = metric.compute_metric(
-            y, y_pred, w, per_task_metrics=True)
+        multitask_scores[metric.name], computed_metrics = results
         all_task_scores[metric.name] = computed_metrics
       else:
-        multitask_scores[metric.name] = metric.compute_metric(
-            y, y_pred, w, per_task_metrics=False)
-
-    if stats_out is not None:
-      logger.info("Saving stats to %s" % stats_out)
-      self.output_statistics(multitask_scores, stats_out)
+        multitask_scores[metric.name] = results
 
     if not per_task_metrics:
       return multitask_scores
@@ -242,10 +312,21 @@ class GeneratorEvaluator(object):
   >>> y = np.random.rand(10, 1)
   >>> dataset = dc.data.NumpyDataset(X, y)
   >>> model = dc.models.MultitaskRegressor(1, 5)
-  >>> transformers = []
   >>> generator = model.default_generator(dataset, pad_batches=False)
-  >>> evaluator = Evaluator(model, generator, transformers)
-  >>> multitask_scores = evaluator.compute_model_performance([metric])
+
+  Then you can evaluate this model as follows 
+
+  >>> import sklearn
+  >>> evaluator = GeneratorEvaluator(model, generator, transformers)
+  >>> multitask_scores = evaluator.compute_model_performance(
+  ...     sklearn.metrics.mean_absolute_error)
+
+  Evaluators can also be used with `dc.metrics.Metric` objects as well
+  in case you want to customize your metric further. 
+
+  >>> evaluator = GeneratorEvaluator(model, dataset, transformers)
+  >>> metric = dc.metrics.Metric(dc.metrics.mae_score)
+  >>> multitask_scores = evaluator.compute_model_performance(metric)
   """
 
   def __init__(self, model, generator, transformers, labels=None, weights=None):
@@ -276,7 +357,7 @@ class GeneratorEvaluator(object):
     if labels is not None and len(labels) != 1:
       raise ValueError("GeneratorEvaluator currently only supports one label")
 
-  def compute_model_performance(self, metrics, per_task_metrics=False):
+  def compute_model_performance(self, metrics, per_task_metrics=False, n_classes=None):
     """
     Computes statistics of model on test data and saves results to csv.
 
@@ -294,6 +375,10 @@ class GeneratorEvaluator(object):
     per_task_metrics: bool, optional
       If true, return computed metric for each task on multitask
       dataset.
+    n_classes: int, optional (default None)
+      If specified, will assume that all `metrics` are classification
+      metrics and will use `n_classes` as the number of unique classes
+      in `self.dataset`.
 
     Returns
     -------
@@ -310,6 +395,7 @@ class GeneratorEvaluator(object):
     w = []
 
     def generator_closure():
+      """This function is used to pull true labels/weights out as we iterate over the generator."""
       if self.label_keys is None:
         weights = None
         # This is a KerasModel.
@@ -342,13 +428,13 @@ class GeneratorEvaluator(object):
 
     # Compute multitask metrics
     for metric in metrics:
+      results = metric.compute_metric(
+            y, y_pred, w, per_task_metrics=per_task_metrics)
       if per_task_metrics:
-        multitask_scores[metric.name], computed_metrics = metric.compute_metric(
-            y, y_pred, w, per_task_metrics=True)
+        multitask_scores[metric.name], computed_metrics = results 
         all_task_scores[metric.name] = computed_metrics
       else:
-        multitask_scores[metric.name] = metric.compute_metric(
-            y, y_pred, w, per_task_metrics=False)
+        multitask_scores[metric.name] = results 
 
     if not per_task_metrics:
       return multitask_scores

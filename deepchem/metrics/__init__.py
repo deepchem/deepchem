@@ -4,6 +4,7 @@ import numpy as np
 import warnings
 import sklearn.metrics
 import logging
+# TODO: Imported metrics will be removed in a futrue version of DeepCHem
 from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import recall_score
 from sklearn.metrics import r2_score
@@ -108,7 +109,7 @@ def normalize_weight_shape(w, n_samples, n_tasks):
     
     
 
-def normalize_prediction_shape(y, mode="classification", n_classes=None):
+def normalize_prediction_shape(y, mode=None, n_classes=None):
   """A utility function to correct the shape of the input array.
 
   The metric computation classes expect that inputs for classification
@@ -133,9 +134,12 @@ def normalize_prediction_shape(y, mode="classification", n_classes=None):
     must take values from `0` to `n_classes-1` as integers. If
     `mode=="regression"`, `y` is an array of shape `(N,)` or `(N,
     n_tasks)`or `(N, n_tasks, 1)`. In the edge case where `N == 1`,
-    `y` may be a scalar.
-  mode: str
-    Must be either "classification" or "regression".
+    `y` may be a scalar. If `mode` is None, then `y` can be of any
+    shape and is returned unchanged.
+  mode: str, optional (default None)
+    If `mode` is "classification" or "regression", attempts to apply
+    data transformations. For other modes, performs no transformations
+    to data and returns as-is.
   n_classes: int, optional
     If specified use this as the number of classes. Else will try to
     impute it as `n_classes = max(y) + 1` for arrays and as
@@ -149,15 +153,15 @@ def normalize_prediction_shape(y, mode="classification", n_classes=None):
     n_tasks, n_classes)`. If `mode=="regression"`, `y_out` is an array
     of shape `(N, n_tasks)`.
   """
-  if n_classes is None:
-    if isinstance(y, np.ndarray):
-      # Find number of classes. Note that `y` must have values in
-      # range 0 to n_classes - 1
-      n_classes = np.amax(y) + 1
-    else:
-      # scalar case
-      n_classes = 2
   if mode == "classification":
+    if n_classes is None:
+      if isinstance(y, np.ndarray):
+        # Find number of classes. Note that `y` must have values in
+        # range 0 to n_classes - 1
+        n_classes = np.amax(y) + 1
+      else:
+        # scalar case
+        n_classes = 2
     if isinstance(y, np.ndarray):
       if len(y.shape) == 1:
         # y_hot is of shape (N, n_classes)
@@ -201,6 +205,10 @@ def normalize_prediction_shape(y, mode="classification", n_classes=None):
         raise ValueError("y must a float sclar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems.")
       y = np.array(y)
       y_out = np.reshape(y, (1, 1))
+  else:
+    # If mode isn't classification or regression don't perform any
+    # transformations.
+    y_out = y
   return y_out
     
 def to_one_hot(y, n_classes=2):
@@ -454,7 +462,7 @@ class Metric(object):
                name=None,
                threshold=None,
                mode=None,
-               **kwargs):
+               compute_energy_metric=None):
     """
     Parameters
     ----------
@@ -464,17 +472,21 @@ class Metric(object):
     task_averager: function, optional
       If not None, should be a function that averages metrics across
       tasks. For example, task_averager=np.mean. If task_averager is
-      provided, this task will be inherited as a multitask metric.
-    name: str, optional
+      provided, this metric will be assumed to be multitask and
+      `self.is_multitask` will be set to True. 
+    name: str, optional (default None)
       Name of this metric
-    threshold: float, optional
+    threshold: float, optional (default None)
       Used for binary metrics and is the threshold for the positive
-      class
-    mode: str, optional
-      Must be either classification or regression.
+      class.
+    mode: str, optional (default None)
+      Should usually be "classification" or "regression."
+    compute_energy_metric: bool, optional (default None)
+      Deprecated metric. Will be removed in a future version of
+      DeepChem. Do not use.
     """
-    if "compute_energy_metric" in kwargs:
-      self.compute_energy_metric = kwargs["compute_energy_metric"]
+    if compute_energy_metric is not None:
+      self.compute_energy_metric = compute_energy_metric 
       logger.warn("compute_energy_metric is deprecated and will be removed in a future version of DeepChem.")
     else:
       self.compute_energy_metric = False
@@ -483,13 +495,20 @@ class Metric(object):
     self.is_multitask = (self.task_averager is not None)
     if name is None:
       if not self.is_multitask:
-        self.name = self.metric.__name__
+        if hasattr(self.metric, '__name__'):
+          self.name = self.metric.__name__
+        else:
+          self.name = "unknown metric"
       else:
-        self.name = self.task_averager.__name__ + "-" + self.metric.__name__
+        if hasattr(self.metric, '__name__'):
+          self.name = self.task_averager.__name__ + "-" + self.metric.__name__
+        else:
+          self.name = "unknown metric"
     else:
       self.name = name
     self.threshold = threshold
     if mode is None:
+      # These are some smart defaults 
       if self.metric.__name__ in [
           "roc_auc_score", "matthews_corrcoef", "recall_score",
           "accuracy_score", "kappa_score", "precision_score",
@@ -502,11 +521,12 @@ class Metric(object):
       ]:
         mode = "regression"
       else:
-        raise ValueError("Must specify mode for new metric.")
-    assert mode in ["classification", "regression"]
+        logger.info("Support for non classification/regression metrics is new. Check your results carefully.")
+    # Attempts to set threshold defaults intelligently
     if self.metric.__name__ in [
         "accuracy_score", "balanced_accuracy_score", "recall_score",
-        "matthews_corrcoef", "precision_score", "f1_score"
+        "matthews_corrcoef", "roc_auc_score", "precision_score",
+        "f1_score"
     ] and threshold is None:
       self.threshold = 0.5
     self.mode = mode
