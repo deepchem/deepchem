@@ -135,6 +135,8 @@ def threshold_predictions(y, threshold=0.5):
   threshold: float, optional (Default 0.5)
     The threshold probability for the positive class.
 
+  TODO: This needs to be generalized to multiclass probabilities
+
   Returns
   -------
   y_out: np.ndarray

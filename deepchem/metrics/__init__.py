@@ -579,6 +579,14 @@ class Metric(object):
 
       metric_value = self.compute_singletask_metric(y_task, y_pred_task, w_task)
       computed_metrics.append(metric_value)
+    ##################
+    print("y_true.shape")
+    print(y_true.shape)
+    print("y_pred.shape")
+    print(y_pred.shape)
+    print("computed_metrics")
+    print(computed_metrics)
+    ##################
     logger.info("computed_metrics: %s" % str(computed_metrics))
     if n_tasks == 1:
       computed_metrics = computed_metrics[0]

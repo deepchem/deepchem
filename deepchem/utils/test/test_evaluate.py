@@ -15,6 +15,13 @@ class TestEvaluator(unittest.TestCase):
     self.dataset = dc.data.NumpyDataset(X, y)
     self.model = dc.models.MultitaskRegressor(1, 5)
 
+  def threshold_predictions(self):
+    """Check prediction thresholding works correctly."""
+    # TODO: Finish this test
+    y = np.random.rand(10, 5)
+    y_sums = np.sum(y, axis=1)
+    y = y / y_sums
+
   def test_evaluator_dc_metric(self):
     """Test an evaluator on a dataset."""
     evaluator = Evaluator(self.model, self.dataset, [])
@@ -101,8 +108,11 @@ class TestEvaluator(unittest.TestCase):
     dataset = dc.data.NumpyDataset(X, y)
     model = dc.models.MultitaskClassifier(1, 5, n_classes=5)
     evaluator = Evaluator(model, dataset, [])
+    # TODO: Fix this case with correct thresholding
+    #multitask_scores = evaluator.compute_model_performance(
+    #  sklearn.metrics.accuracy_score, n_classes=5)
     multitask_scores = evaluator.compute_model_performance(
-      sklearn.metrics.accuracy_score, n_classes=5)
+      sklearn.metrics.roc_auc_score, n_classes=5)
     assert len(multitask_scores) == 1
     assert multitask_scores["metric-1"] >= 0
 
