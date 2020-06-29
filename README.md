@@ -18,7 +18,7 @@ materials science, quantum chemistry, and biology.
   - [Install latest package with conda](#install-via-conda-recommendation)
   - [Install latest package with pip (WIP)](#install-via-pip-wip)
   - [Install from source](#install-from-source)
-  - [Install using a Docker (WIP)](#install-using-a-docker-wip)
+  - [Install using a Docker](#install-using-a-docker)
 - [FAQ and Troubleshooting](#faq-and-troubleshooting)
 - [Getting Started](#getting-started)
 - [Contributing to DeepChem](/CONTRIBUTING.md)
@@ -139,7 +139,7 @@ pytest -m "not slow" deepchem # optional
 
 Check [this link](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for more information about the installation of conda environments.
 
-### Install using a Docker (WIP)
+### Install using a Docker
 
 If you want to install using a docker, you can pull two kinds of images.  
 DockerHub : https://hub.docker.com/repository/docker/deepchemio/deepchem
