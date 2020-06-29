@@ -129,31 +129,6 @@ def relative_difference(x, y):
   return z
 
 
-def threshold_predictions(y, threshold=0.5):
-  """Threshold predictions from classification model.
-
-  Parameters
-  ----------
-  y: np.ndarray
-    Must have shape `(N, n_classes)` and be class probabilities.
-  threshold: float, optional (Default 0.5)
-    The threshold probability for the positive class.
-
-  TODO: This needs to be generalized to multiclass probabilities
-
-  Returns
-  -------
-  y_out: np.ndarray
-    Of shape `(N,)` with class predictions as integers ranging from 0
-    to `n_classes-1`.
-  """
-  n_preds = len(y_pred)
-  y_out = np.zeros_like(y)
-  y_out = np.where(y_pred[:, 1] >= threshold, np.ones(n_preds),
-                   np.zeros(n_preds))
-  return y_out
-
-
 class Evaluator(object):
   """Class that evaluates a model on a given dataset.
 
@@ -190,6 +165,21 @@ class Evaluator(object):
   """
 
   def __init__(self, model, dataset, transformers):
+    """Initialize this evaluator
+
+    Parameters
+    ----------
+    model: dc.models.Model 
+      Model to evaluate. Note that this must be a regression or
+      classification model and not a generative model.
+    dataset: dc.data.Dataset
+      Dataset object to evaluate `model` on.
+    transformers: list
+      List of `dc.trans.Transformer` objects. These transformations
+      must have been applied to `dataset` previously. The dataset will
+      be untransformed for metric evaluation.
+    """
+
     self.model = model
     self.dataset = dataset
     self.output_transformers = [
@@ -243,6 +233,8 @@ class Evaluator(object):
                                 csv_out=None,
                                 stats_out=None,
                                 per_task_metrics=False,
+                                use_sample_weights=False,
+                                threshold=None,
                                 n_classes=None):
     """
     Computes statistics of model on test data and saves results to csv.
@@ -257,17 +249,27 @@ class Evaluator(object):
       assumed to be a metric function that this method will attempt to
       wrap in a `dc.metrics.Metric` object. A metric function must
       accept two arguments, `y_true, y_pred` both of which are
-      `np.ndarray` objects and return a floating point score.
+      `np.ndarray` objects and return a floating point score. The
+      metric function may also accept a keyword argument
+      `sample_weight` to account for per-sample weights.
+    csv_out: str, optional (DEPRECATED)
+      Filename to write CSV of model predictions.
+    stats_out: str, optional (DEPRECATED)
+      Filename to write computed statistics.
+    per_task_metrics: bool, optional
+      If true, return computed metric for each task on multitask dataset.
+    use_sample_weights: bool, optional (default False)
+      If set, use per-sample weights `w`.
+    threshold: float or bool, optional (default None)
+      If set, apply a thresholding operation to values. This option isj
+      only sensible on classification tasks. If float, this will be
+      applied as a binary classification value. If bool, then
+      thresholding will be applied to a multiclass prediction and will
+      pick the maximum probability class.
     n_classes: int, optional (default None)
       If specified, will assume that all `metrics` are classification
       metrics and will use `n_classes` as the number of unique classes
       in `self.dataset`.
-    csv_out: str, optional (Deprecated)
-      Filename to write CSV of model predictions.
-    stats_out: str, optional (Deprecated)
-      Filename to write computed statistics.
-    per_task_metrics: bool, optional
-      If true, return computed metric for each task on multitask dataset.
 
     Returns
     -------
@@ -300,7 +302,13 @@ class Evaluator(object):
     # Compute multitask metrics
     for metric in metrics:
       results = metric.compute_metric(
-          y, y_pred, w, per_task_metrics=per_task_metrics, n_classes=n_classes)
+          y,
+          y_pred,
+          w,
+          per_task_metrics=per_task_metrics,
+          n_classes=n_classes,
+          use_sample_weights=use_sample_weights,
+          threshold=threshold)
       if per_task_metrics:
         multitask_scores[metric.name], computed_metrics = results
         all_task_scores[metric.name] = computed_metrics
