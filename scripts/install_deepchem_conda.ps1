@@ -29,8 +29,10 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia `
     py-xgboost `
     rdkit `
     simdna `
+    pymatgen `
     pytest `
     pytest-cov `
     flaky
 
-pip install -U tensorflow==2.2 tensorflow-probability==0.10
+
+pip install -U matminer tensorflow==2.2 tensorflow-probability==0.10
