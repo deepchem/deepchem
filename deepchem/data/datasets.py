@@ -1937,7 +1937,7 @@ class ImageDataset(Dataset):
         sample_perm = np.arange(n_samples)
       if batch_size is None:
         batch_size = n_samples
-      for epoch in epochs:
+      for epoch in range(epochs):
         if not deterministic:
           sample_perm = np.random.permutation(n_samples)
         batch_idx = 0
