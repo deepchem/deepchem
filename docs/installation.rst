@@ -69,33 +69,37 @@ Then, you create a container based on the image.
 
 .. code-block:: bash
 
-    docker run -it deepchemio/deepchem:2.3.0
+    docker run --rm -it deepchemio/deepchem:2.3.0
 
 If you want GPU support:
 
 .. code-block:: bash
 
     # If nvidia-docker is installed
-    nvidia-docker run -it deepchemio/deepchem:2.3.0
-    docker run --runtime nvidia -it deepchemio/deepchem:2.3.0
+    nvidia-docker run --rm -it deepchemio/deepchem:2.3.0
+    docker run --runtime nvidia --rm -it deepchemio/deepchem:2.3.0
 
     # If nvidia-container-toolkit is installed
-    docker run --gpus all -it deepchemio/deepchem:2.3.0
+    docker run --gpus all --rm -it deepchemio/deepchem:2.3.0
 
-You are now in a docker container whose python has deepchem installed.
+You are now in a docker container which deepchem was installed.
+You can start playing with it in the command line.
 
 .. code-block:: bash
 
-    # you can start playing with it in the command line
-    (deepchem) root@xxxxxxxxxxx:~/mydir# python
+    (deepchem) root@xxxxxxxxxxxxx:~/mydir# python
     Python 3.6.10 |Anaconda, Inc.| (default, May  8 2020, 02:54:21)
     [GCC 7.3.0] on linux
     Type "help", "copyright", "credits" or "license" for more information.
     >>> import deepchem as dc
 
+If you want to check the tox21 benchmark:
+
+.. code-block:: bash
+
     # you can run our tox21 benchmark
-    (deepchem) root@xxxxxxxxxxx:~/mydir# cd /deepchem/examples
-    (deepchem) root@xxxxxxxxxxx:/deepchem/examples# python benchmark.py -d tox21
+    (deepchem) root@xxxxxxxxxxxxx:~/mydir# wget https://raw.githubusercontent.com/deepchem/deepchem/master/examples/benchmark.py
+    (deepchem) root@xxxxxxxxxxxxx:~/mydir# python benchmark.py -d tox21 -m graphconv -s random
 
 
 Installing from Source
