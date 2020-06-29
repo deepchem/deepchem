@@ -47,7 +47,7 @@ def load_qm9(featurizer='CoulombMatrix',
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
         save_folder)
     if loaded:
-      return qm7_tasks, all_dataset, transformers
+      return qm9_tasks, all_dataset, transformers
 
   if featurizer in ['CoulombMatrix', 'BPSymmetryFunctionInput', 'MP', 'Raw']:
     dataset_file = os.path.join(data_dir, "gdb9.sdf")

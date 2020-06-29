@@ -89,7 +89,7 @@ class KerasModel(Model):
     supports uncertainty, it MUST use dropout on every layer,
     and dropout most be enabled during uncertainty prediction.
     Otherwise, the uncertainties it computes will be inaccurate.
-    
+
   - other: Arbitrary output_types can be used to extract outputs
     produced by the model, but will have no additional
     processing performed.
@@ -104,7 +104,7 @@ class KerasModel(Model):
                learning_rate=0.001,
                optimizer=None,
                tensorboard=False,
-               tensorboard_log_frequency=100,
+               log_frequency=100,
                **kwargs):
     """Create a new KerasModel.
 
@@ -130,8 +130,13 @@ class KerasModel(Model):
       ignored.
     tensorboard: bool
       whether to log progress to TensorBoard during training
-    tensorboard_log_frequency: int
-      the frequency at which to log data to TensorBoard, measured in batches
+    log_frequency: int
+      The frequency at which to log data. Data is logged using
+      `logging` by default. If `tensorboard` is set, data is also
+      logged to TensorBoard. Logging happens at global steps. Roughly,
+      a global step corresponds to one batch of training. If you'd
+      like a printout every 10 batch steps, you'd set
+      `log_frequency=10` for example.
     """
     super(KerasModel, self).__init__(
         model_instance=model, model_dir=model_dir, **kwargs)
@@ -146,7 +151,14 @@ class KerasModel(Model):
     else:
       self.optimizer = optimizer
     self.tensorboard = tensorboard
-    self.tensorboard_log_frequency = tensorboard_log_frequency
+    # Backwards compatibility
+    if "tensorboard_log_frequency" in kwargs:
+      logger.warning(
+          "tensorboard_log_frequency is deprecated. Please use log_frequency instead. This argument will be removed in a future release of DeepChem."
+      )
+      self.log_frequency = kwargs["tensorboard_log_frequency"]
+    else:
+      self.log_frequency = log_frequency
     if self.tensorboard:
       self._summary_writer = tf.summary.create_file_writer(self.model_dir)
     if output_types is None:
@@ -348,7 +360,7 @@ class KerasModel(Model):
 
       # Report progress and write checkpoints.
       averaged_batches += 1
-      should_log = (current_step % self.tensorboard_log_frequency == 0)
+      should_log = (current_step % self.log_frequency == 0)
       if should_log:
         avg_loss = float(avg_loss) / averaged_batches
         logger.info(

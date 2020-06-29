@@ -34,4 +34,5 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia `
     pytest-cov `
     flaky
 
-pip install -U matminer tensorflow tensorflow-probability
+
+pip install -U matminer tensorflow==2.2 tensorflow-probability==0.10

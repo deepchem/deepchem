@@ -107,9 +107,9 @@ class TestAtomicConv(unittest.TestCase):
     """A simple test for running an atomic convolution on featurized data."""
     dir_path = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(dir_path,
-                               "../../../feat/tests/data/3zso_ligand_hyd.pdb")
+                               "../../feat/tests/data/3zso_ligand_hyd.pdb")
     protein_file = os.path.join(dir_path,
-                                "../../../feat/tests/data/3zso_protein.pdb")
+                                "../../feat/tests/data/3zso_protein.pdb")
     # Pulled from PDB files. For larger datasets with more PDBs, would use
     # max num atoms instead of exact.
     frag1_num_atoms = 44  # for ligand atoms
