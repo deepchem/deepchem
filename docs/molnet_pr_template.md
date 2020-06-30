@@ -1,5 +1,5 @@
 ### Template for pull request contributing a new dataset to MoleculeNet
-Category: {Quantum Mechanics, Physical Chemistry, Biophysics, Physiology}  
+Category: {Quantum Mechanics, Materials Science, Physical Chemistry, Biophysics, Physiology}  
 Dataset: {short name identifying dataset}  
 Data Type: {SMILES, 3D coordinates}  
 Task Type: {Regression, Classification}  

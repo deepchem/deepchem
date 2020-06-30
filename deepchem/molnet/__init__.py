@@ -1,4 +1,3 @@
-from deepchem.molnet.load_function.load_dataset_template import load_mydataset
 from deepchem.molnet.load_function.bace_datasets import load_bace_classification, load_bace_regression
 from deepchem.molnet.load_function.bbbc_datasets import load_bbbc001, load_bbbc002
 from deepchem.molnet.load_function.bbbp_datasets import load_bbbp
