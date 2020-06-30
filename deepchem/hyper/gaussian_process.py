@@ -51,10 +51,24 @@ def compute_parameter_range(params_dict, search_range):
     parameters is computed with `search_range`. The optimization range
     computed is specified in the documentation for `search_range`
     below.
-  search_range: int(float) (default 4)
-    For int/float values in `params_dict`, computes optimization range
-    on `[initial values / search_range, initial values *
-    search_range]`
+  search_range: int(float)/dict (default 4)
+    The `search_range` specifies the range of parameter values to
+    search for. If `search_range` is an int/float, it is used as the
+    global search range for parameters. This creates a search
+    problem on the following space:
+
+    optimization on [initial value / search_range,
+                     initial value * search_range]
+
+    If `search_range` is a dict, it must contain the same keys as
+    for `params_dict`. In this case, `search_range` specifies a
+    per-parameter search range. This is useful in case some
+    parameters have a larger natural range than others. For a given
+    hyperparameter `hp` this would create the following search
+    range:
+
+    optimization on hp on [initial value[hp] / search_range[hp],
+                           initial value[hp] * search_range[hp]]
 
   Returns
   -------
@@ -102,19 +116,23 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(lambda **p: dc.models.GraphConvModel(**p))
 
   Here's a more sophisticated example that shows how to optimize only
-  some parameters of a model
+  some parameters of a model. In this case, we have some parameters we
+  want to optimize, and others which we don't. To handle this type of
+  search, we create a `model_builder` which hard codes some arguments
+  (in this case, `n_tasks` and `n_features` which are properties of a
+  dataset and not hyperparameters to search over.)
 
   >>> def model_builder(**model_params):
-  ...  n_layers = model_params['layers']
-  ...  layer_width = model_params['width']
-  ...  dropout = model_params['dropout']
-  ...  return dc.models.MultitaskClassifier(
-  ...    n_tasks=5,
-  ...    n_features=100,
-  ...    layer_sizes=[layer_width]*n_layers,
-  ...    dropouts=dropout
-  ...  )
-  >> optimizer = dc.hyper.GaussianProcessHyperparamOpt(model_builder)
+  ...   n_layers = model_params['layers']
+  ...   layer_width = model_params['width']
+  ...   dropout = model_params['dropout']
+  ...   return dc.models.MultitaskClassifier(
+  ...     n_tasks=5,
+  ...     n_features=100,
+  ...     layer_sizes=[layer_width]*n_layers,
+  ...     dropouts=dropout
+  ...   )
+  >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(model_builder)
   """
 
   def hyperparam_search(self,
@@ -155,10 +173,24 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       use a temporary directory.
     max_iter: int, (default 20)
       number of optimization trials
-    search_range: int(float) (default 4)
-      optimization on [initial values / search_range,
-                       initial values * search_range]
-      names of parameters that should not be optimized
+    search_range: int(float)/dict (default 4)
+      The `search_range` specifies the range of parameter values to
+      search for. If `search_range` is an int/float, it is used as the
+      global search range for parameters. This creates a search
+      problem on the following space:
+
+      optimization on [initial value / search_range,
+                       initial value * search_range]
+
+      If `search_range` is a dict, it must contain the same keys as
+      for `params_dict`. In this case, `search_range` specifies a
+      per-parameter search range. This is useful in case some
+      parameters have a larger natural range than others. For a given
+      hyperparameter `hp` this would create the following search
+      range:
+
+      optimization on hp on [initial value[hp] / search_range[hp],
+                             initial value[hp] * search_range[hp]]
     logfile: str
       Name of logfile to write results to. If specified, this is must
       be a valid file. If not specified, results of hyperparameter
