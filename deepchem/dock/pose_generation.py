@@ -7,6 +7,7 @@ import logging
 import numpy as np
 import os
 import tempfile
+import tarfile
 from subprocess import call
 from deepchem.utils.rdkit_util import add_hydrogens_to_mol
 from subprocess import check_output
@@ -14,6 +15,7 @@ from deepchem.utils import rdkit_util
 from deepchem.utils import mol_xyz_util
 from deepchem.utils import geometry_utils
 from deepchem.utils import vina_utils
+from deepchem.utils import download_url
 
 logger = logging.getLogger(__name__)
 
@@ -65,11 +67,11 @@ class PoseGenerator(object):
     generate_score: bool, optional (default False)
       If `True`, the pose generator will return scores for complexes.
       This is used typically when invoking external docking programs
-      that compute scores. 
+      that compute scores.
 
     Returns
     -------
-    A list of molecular complexes in energetically favorable poses. 
+    A list of molecular complexes in energetically favorable poses.
     """
     raise NotImplementedError
 
@@ -95,7 +97,7 @@ class VinaPoseGenerator(PoseGenerator):
     ------
     sixty_four_bits: bool, optional (default True)
       Specifies whether this is a 64-bit machine. Needed to download
-      the correct executable. 
+      the correct executable.
     pocket_finder: object, optional (default None)
       If specified should be an instance of
       `dc.dock.BindingPocketFinder`.
@@ -105,6 +107,8 @@ class VinaPoseGenerator(PoseGenerator):
       url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_linux_x86.tgz"
       filename = "autodock_vina_1_1_2_linux_x86.tgz"
       dirname = "autodock_vina_1_1_2_linux_x86"
+      self.vina_dir = os.path.join(data_dir, dirname)
+      self.vina_cmd = os.path.join(self.vina_dir, "bin/vina")
     elif platform.system() == 'Darwin':
       if sixty_four_bits:
         url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_mac_64bit.tar.gz"
@@ -114,26 +118,31 @@ class VinaPoseGenerator(PoseGenerator):
         url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_mac.tgz"
         filename = "autodock_vina_1_1_2_mac.tgz"
         dirname = "autodock_vina_1_1_2_mac"
+      self.vina_dir = os.path.join(data_dir, dirname)
+      self.vina_cmd = os.path.join(self.vina_dir, "bin/vina")
+    elif platform.system() == 'Windows':
+      url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_win32.msi"
+      filename = "autodock_vina_1_1_2_win32.msi"
+      self.vina_dir = "\\Program Files (x86)\\The Scripps Research Institute\\Vina"
+      self.vina_cmd = os.path.join(self.vina_dir, "vina.exe")
     else:
       raise ValueError(
-          "This class can only run on Linux or Mac. If you are on Windows, please try using a cloud platform to run this code instead."
+          "Unknown operating system.  Try using a cloud platform to run this code instead."
       )
-    self.vina_dir = os.path.join(data_dir, dirname)
     self.pocket_finder = pocket_finder
     if not os.path.exists(self.vina_dir):
       logger.info("Vina not available. Downloading")
-      wget_cmd = "wget -nv -c -T 15 %s" % url
-      check_output(wget_cmd.split())
+      download_url(url, data_dir)
+      downloaded_file = os.path.join(data_dir, filename)
       logger.info("Downloaded Vina. Extracting")
-      untar_cmd = "tar -xzvf %s" % filename
-      check_output(untar_cmd.split())
-      logger.info("Moving to final location")
-      mv_cmd = "mv %s %s" % (dirname, data_dir)
-      check_output(mv_cmd.split())
+      if platform.system() == 'Windows':
+        msi_cmd = "msiexec /i %s" % downloaded_file
+        check_output(msi_cmd.split())
+      else:
+        with tarfile.open(downloaded_file) as tar:
+          tar.extractall(data_dir)
       logger.info("Cleanup: removing downloaded vina tar.gz")
-      rm_cmd = "rm %s" % filename
-      call(rm_cmd.split())
-    self.vina_cmd = os.path.join(self.vina_dir, "bin/vina")
+      os.remove(downloaded_file)
 
   def generate_poses(self,
                      molecular_complex,
@@ -172,7 +181,7 @@ class VinaPoseGenerator(PoseGenerator):
     generate_score: bool, optional (default False)
       If `True`, the pose generator will return scores for complexes.
       This is used typically when invoking external docking programs
-      that compute scores. 
+      that compute scores.
 
     Returns
     -------
@@ -207,6 +216,8 @@ class VinaPoseGenerator(PoseGenerator):
     protein_pdbqt = os.path.join(out_dir, "%s.pdbqt" % protein_name)
     protein_mol = rdkit_util.load_molecule(
         protein_file, calc_charges=True, add_hydrogens=True)
+    rdkit_util.write_molecule(protein_mol[1], protein_hyd, is_protein=True)
+    rdkit_util.write_molecule(protein_mol[1], protein_pdbqt, is_protein=True)
 
     # Get protein centroid and range
     if centroid is not None and box_dims is not None:
@@ -215,9 +226,6 @@ class VinaPoseGenerator(PoseGenerator):
     else:
       if self.pocket_finder is None:
         logger.info("Pockets not specified. Will use whole protein to dock")
-        rdkit_util.write_molecule(protein_mol[1], protein_hyd, is_protein=True)
-        rdkit_util.write_molecule(
-            protein_mol[1], protein_pdbqt, is_protein=True)
         protein_centroid = geometry_utils.compute_centroid(protein_mol[0])
         protein_range = mol_xyz_util.get_molecule_range(protein_mol[0])
         box_dims = protein_range + 5.0
@@ -276,10 +284,17 @@ class VinaPoseGenerator(PoseGenerator):
       log_file = os.path.join(out_dir, "%s_log.txt" % ligand_name)
       out_pdbqt = os.path.join(out_dir, "%s_docked.pdbqt" % ligand_name)
       logger.info("About to call Vina")
-      call(
-          "%s --config %s --log %s --out %s" % (self.vina_cmd, conf_file,
-                                                log_file, out_pdbqt),
-          shell=True)
+      if platform.system() == 'Windows':
+        args = [
+            self.vina_cmd, "--config", conf_file, "--log", log_file, "--out",
+            out_pdbqt
+        ]
+      else:
+        # I'm not sure why specifying the args as a list fails on other platforms,
+        # but for some reason it only works if I pass it as a string.
+        args = "%s --config %s --log %s --out %s" % (self.vina_cmd, conf_file,
+                                                     log_file, out_pdbqt)
+      call(args, shell=True)
       ligands, scores = vina_utils.load_docked_ligands(out_pdbqt)
       docked_complexes += [(protein_mol[1], ligand) for ligand in ligands]
       all_scores += scores

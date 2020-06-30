@@ -58,6 +58,30 @@ class TestKerasModel(unittest.TestCase):
     scores = model.evaluate_generator(generator, [metric])
     assert scores[metric.name] > 0.9
 
+  def test_fit_on_batch(self):
+    """Test fitting a KerasModel to individual batches."""
+    n_data_points = 10
+    n_features = 2
+    X = np.random.rand(n_data_points, n_features)
+    y = (X[:, 0] > X[:, 1]).astype(np.float32)
+    dataset = dc.data.NumpyDataset(X, y)
+    keras_model = tf.keras.Sequential([
+        tf.keras.layers.Dense(10, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+    model = dc.models.KerasModel(
+        keras_model, dc.models.losses.BinaryCrossEntropy(), learning_rate=0.005)
+    i = 0
+    for X, y, w, ids in dataset.iterbatches(model.batch_size, 500):
+      i += 1
+      model.fit_on_batch(X, y, w, checkpoint=False)
+    prediction = np.squeeze(model.predict_on_batch(X))
+    assert np.array_equal(y, np.round(prediction))
+    metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
+    generator = model.default_generator(dataset, pad_batches=False)
+    scores = model.evaluate_generator(generator, [metric])
+    assert scores[metric.name] > 0.9
+
   def test_checkpointing(self):
     """Test loading and saving checkpoints with KerasModel."""
     # Create two models using the same model directory.
@@ -235,7 +259,7 @@ class TestKerasModel(unittest.TestCase):
         keras_model,
         dc.models.losses.CategoricalCrossEntropy(),
         tensorboard=True,
-        tensorboard_log_frequency=1)
+        log_frequency=1)
     model.fit(dataset, nb_epoch=10)
     files_in_dir = os.listdir(model.model_dir)
     event_file = list(filter(lambda x: x.startswith("events"), files_in_dir))

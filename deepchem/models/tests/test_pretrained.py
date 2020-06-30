@@ -5,6 +5,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Input, Dense
 from deepchem.models.losses import L2Loss
+from deepchem.feat.mol_graphs import ConvMol
 
 
 class MLP(dc.models.KerasModel):
@@ -74,6 +75,63 @@ class TestPretrained(unittest.TestCase):
 
     for source_var, dest_var in assignment_map.items():
       source_val = source_var.deref().numpy()
+      dest_val = dest_var.numpy()
+      np.testing.assert_array_almost_equal(source_val, dest_val)
+
+  def test_load_pretrained_subclassed_model(self):
+    from rdkit import Chem
+    bi_tasks = ['a', 'b']
+    y = np.ones((3, 2))
+    smiles = ['C', 'CC', 'CCC']
+    mols = [Chem.MolFromSmiles(smile) for smile in smiles]
+    featurizer = dc.feat.ConvMolFeaturizer()
+    X = featurizer.featurize(mols)
+    dataset = dc.data.NumpyDataset(X, y, ids=smiles)
+
+    source_model = dc.models.GraphConvModel(
+        n_tasks=len(bi_tasks),
+        graph_conv_layers=[128, 128],
+        dense_layer_size=512,
+        dropout=0,
+        mode='regression',
+        learning_rate=0.001,
+        batch_size=8,
+        model_dir="model")
+    source_model.fit(dataset)
+
+    dest_model = dc.models.GraphConvModel(
+        n_tasks=len(bi_tasks),
+        graph_conv_layers=[128, 128],
+        dense_layer_size=512,
+        dropout=0,
+        mode='regression',
+        learning_rate=0.001,
+        batch_size=8)
+
+    X_b, y_b, w_b, ids_b = next(
+        dataset.iterbatches(batch_size=8, deterministic=True, pad_batches=True))
+    multiConvMol = ConvMol.agglomerate_mols(X_b)
+    n_samples = np.array(X_b.shape[0])
+    inputs = [
+        multiConvMol.get_atom_features(), multiConvMol.deg_slice,
+        np.array(multiConvMol.membership), n_samples
+    ]
+    for i in range(1, len(multiConvMol.get_deg_adjacency_lists())):
+      inputs.append(multiConvMol.get_deg_adjacency_lists()[i])
+
+    dest_model.load_from_pretrained(
+        source_model=source_model,
+        assignment_map=None,
+        value_map=None,
+        include_top=False,
+        inputs=inputs)
+
+    source_vars = source_model.model.trainable_variables[:-2]
+    dest_vars = dest_model.model.trainable_variables[:-2]
+    assert len(source_vars) == len(dest_vars)
+
+    for source_var, dest_var in zip(*(source_vars, dest_vars)):
+      source_val = source_var.numpy()
       dest_val = dest_var.numpy()
       np.testing.assert_array_almost_equal(source_val, dest_val)
 

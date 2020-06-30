@@ -1306,8 +1306,15 @@ class DataTransforms(Transformer):
 
   def rotate(self, angle=0):
     """ Rotates the image
-          Parameters:
-              angle (default = 0 i.e no rotation) - Denotes angle by which the image should be rotated (in Degrees)
+
+    Parameters
+    ----------
+    angle: float (default = 0 i.e no rotation)
+	Denotes angle by which the image should be rotated (in Degrees)
+
+    Returns
+    ----------
+    The rotated imput array
     """
     return scipy.ndimage.rotate(self.Image, angle)
 
@@ -1317,6 +1324,59 @@ class DataTransforms(Transformer):
             sigma - std dev. of the gaussian distribution
     """
     return scipy.ndimage.gaussian_filter(self.Image, sigma)
+
+  def center_crop(self, x_crop, y_crop):
+    """ Crops the image from the center
+
+    Parameters
+    ----------
+    x_crop: int
+	the total number of pixels to remove in the horizontal direction, evenly split between the left and right sides
+    y_crop: int
+        the total number of pixels to remove in the vertical direction, evenly split between the top and bottom sides
+
+    Returns
+    ----------
+    The center cropped input array
+
+    """
+    y = self.Image.shape[0]
+    x = self.Image.shape[1]
+    x_start = x // 2 - (x_crop // 2)
+    y_start = y // 2 - (y_crop // 2)
+    return self.Image[y_start:y_start + y_crop, x_start:x_start + x_crop]
+
+  def crop(self, left, top, right, bottom):
+    """ Crops the image and returns the specified rectangular region from an image
+
+    Parameters
+    ----------
+    left: int
+	the number of pixels to exclude from the left of the image
+    top: int
+	the number of pixels to exclude from the top of the image
+    right: int
+	the number of pixels to exclude from the right of the image    
+    bottom: int
+	the number of pixels to exclude from the bottom of the image
+
+    Returns
+    ----------
+    The cropped input array
+    """
+    y = self.Image.shape[0]
+    x = self.Image.shape[1]
+    return self.Image[top:y - bottom, left:x - right]
+
+  def convert2gray(self):
+    """ Converts the image to grayscale. The coefficients correspond to the Y' component of the Y'UV color system.
+    
+    Returns
+    ----------
+    The grayscale image.
+
+    """
+    return np.dot(self.Image[..., :3], [0.2989, 0.5870, 0.1140])
 
   def shift(self, width, height, mode='constant', order=3):
     """Shifts the image
@@ -1358,3 +1418,20 @@ class DataTransforms(Transformer):
     x[noise < (prob / 2)] = pepper
     x[noise > (1 - prob / 2)] = salt
     return x
+
+  def median_filter(self, size):
+    """ Calculates a multidimensional median filter
+
+    Parameters
+    ----------
+    size: int
+	The kernel size in pixels.
+
+    Returns
+    ----------
+    The median filtered image.
+    """
+    from PIL import Image, ImageFilter
+    image = Image.fromarray(self.Image)
+    image = image.filter(ImageFilter.MedianFilter(size=size))
+    return np.array(image)

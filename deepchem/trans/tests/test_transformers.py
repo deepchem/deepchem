@@ -587,6 +587,35 @@ class TestTransformers(unittest.TestCase):
     check_blur = scipy.ndimage.gaussian_filter(self.d, 1.5)
     assert np.allclose(check_blur, blurred)
 
+  def test_center_crop(self):
+    # Check center crop
+    dt = DataTransforms(self.d)
+    x_crop = 50
+    y_crop = 50
+    crop = dt.center_crop(x_crop, y_crop)
+    y = self.d.shape[0]
+    x = self.d.shape[1]
+    x_start = x // 2 - (x_crop // 2)
+    y_start = y // 2 - (y_crop // 2)
+    check_crop = self.d[y_start:y_start + y_crop, x_start:x_start + x_crop]
+    assert np.allclose(check_crop, crop)
+
+  def test_crop(self):
+    #Check crop
+    dt = DataTransforms(self.d)
+    crop = dt.crop(0, 10, 0, 10)
+    y = self.d.shape[0]
+    x = self.d.shape[1]
+    check_crop = self.d[10:y - 10, 0:x - 0]
+    assert np.allclose(crop, check_crop)
+
+  def test_convert2gray(self):
+    # Check convert2gray
+    dt = DataTransforms(self.d)
+    gray = dt.convert2gray()
+    check_gray = np.dot(self.d[..., :3], [0.2989, 0.5870, 0.1140])
+    assert np.allclose(check_gray, gray)
+
   def test_rotation(self):
     # Check rotation
     dt = DataTransforms(self.d)
@@ -677,3 +706,13 @@ class TestTransformers(unittest.TestCase):
     # atoms. These are denoted the "parents"
     for idm, mol in enumerate(dataset.X):
       assert dataset.X[idm].get_num_atoms() == len(dataset.X[idm].parents)
+
+  def test_median_filter(self):
+    #Check median filter
+    from PIL import Image, ImageFilter
+    dt = DataTransforms(self.d)
+    filtered = dt.median_filter(size=3)
+    image = Image.fromarray(self.d)
+    image = image.filter(ImageFilter.MedianFilter(size=3))
+    check_filtered = np.array(image)
+    assert np.allclose(check_filtered, filtered)

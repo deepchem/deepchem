@@ -18,9 +18,7 @@ materials science, quantum chemistry, and biology.
   - [Install latest package with conda](#install-via-conda-recommendation)
   - [Install latest package with pip (WIP)](#install-via-pip-wip)
   - [Install from source](#install-from-source)
-    - [General installation](#general-installation)
-    - [Use powershell (Windows)](#use-powershell-windows)
-  - [Install using a Docker (WIP)](#install-using-a-docker-wip)
+  - [Install using a Docker](#install-using-a-docker)
 - [FAQ and Troubleshooting](#faq-and-troubleshooting)
 - [Getting Started](#getting-started)
 - [Contributing to DeepChem](/CONTRIBUTING.md)
@@ -49,12 +47,14 @@ DeepChem has a number of "soft" requirements. These are packages which are neede
 
 - [BioPython](https://biopython.org/wiki/Documentation)
 - [OpenAI Gym](https://gym.openai.com/)
+- [matminer](https://hackingmaterials.lbl.gov/matminer/)
 - [MDTraj](http://mdtraj.org/)
 - [NetworkX](https://networkx.github.io/documentation/stable/index.html)
 - [OpenMM](http://openmm.org/)
 - [PDBFixer](https://github.com/pandegroup/pdbfixer)
 - [Pillow](https://pypi.org/project/Pillow/)
 - [pyGPGO](https://pygpgo.readthedocs.io/en/latest/)
+- [Pymatgen](https://pymatgen.org/)
 - [PyTorch](https://pytorch.org/)
 - [RDKit](http://www.rdkit.org/docs/Install.html)
 - [simdna](https://github.com/kundajelab/simdna)
@@ -108,7 +108,7 @@ pip install pandas pillow scikit-learn==0.22 tensorflow-gpu==1.14 deepchem==2.2.
 
 ### Install from source
 
-You can install deepchem in a new conda environment using the conda commands in `scripts/install_deepchem_conda.sh.` Installing via this script will ensure that you are **installing from the source**.  
+You can install deepchem in a new conda environment using the conda commands in `scripts/install_deepchem_conda.sh.` Installing via this script will ensure that you are **installing from the source**.
 The following script requires `conda>=4.4` because it uses the `conda activate` command. (Please see the detail from [here](https://github.com/conda/conda/blob/a4c4feae404b2b378e106bd25f62cc8be15c768f/CHANGELOG.md#440-2017-12-20))
 
 First, please clone the deepchem repository from GitHub.
@@ -118,89 +118,81 @@ git clone https://github.com/deepchem/deepchem.git
 cd deepchem
 ```
 
-Then, follow each instruction on your OS.
-
-### General installation
+Then, execute the shell script.
 
 ```bash
 bash scripts/install_deepchem_conda.sh deepchem
 ```
 
-Before activating deepchem environment, make sure conda has been initialized.  
-Check if there is a `(base)` in your command line. If not, use `conda init bash` to activate it, then:
-
-```
-conda activate deepchem
-python setup.py install
-pytest -m "not slow"
-```
-
-Check [this link](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for more information about the installation of conda environments.
-
-### Use powershell (Windows)
-
-Currently you have to install from source in windows.
+If you are using the Windows and the PowerShell:
 
 ```ps1
 .\scripts\install_deepchem_conda.ps1 deepchem
 ```
 
-Before activating deepchem environment, make sure conda-powershell has been initialized.  
-Check if there is a `(base)` before `PS` in powershell. If not, use `conda init powershell` to activate it, then:
+Before activating deepchem environment, make sure conda has been initialized.  
+Check if there is a `(base)` in your command line. If not, use `conda init <YOUR_SHELL_NAME>` to activate it, then:
 
 ```bash
 conda activate deepchem
 python setup.py install
-pytest -m "not slow"
+pytest -m "not slow" deepchem # optional
 ```
 
-### Install using a Docker (WIP)
+Check [this link](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for more information about the installation of conda environments.
 
-### Build the image from Dockerfile
+### Install using a Docker
 
-We created [sample Dockerfiles](https://github.com/deepchem/deepchem/tree/master/docker) based on the `nvidia/cuda:10.1-cudnn7-devel` image.  
-If you want to build your own deepchem environment, these files may be helpful.  
-- `docker/x.x.x` : build an image by using conda package manager (x.x.x is a version of deepchem)  
-- `docker/master` : build an image from master branch of deepchem source codes
+If you want to install using a docker, you can pull two kinds of images.  
+DockerHub : https://hub.docker.com/repository/docker/deepchemio/deepchem
 
-### Use the official deepchem image (WIP)
+- `deepchemio/deepchem:x.x.x`
+  - Image built by using a conda package manager (x.x.x is a version of deepchem)
+  - The x.x.x image is built when we push x.x.x. tag
+  - Dockerfile is put in `docker/conda-forge` directory
+- `deepchemio/deepchem:latest`
+  - Image built by the master branch of deepchem source codes
+  - The latest image is built every time we commit to the master branch
+  - Dockerfile is put in `docker/master` directory
 
-We couldn't check if this introduction works well or not.
-
-First, you pull the latest stable deepchem docker image.
+First, you pull the image you want to use.
 
 ```bash
-docker pull deepchemio/deepchem
+docker pull deepchemio/deepchem:2.3.0
 ```
 
-Then, you create a container based on our latest image.
+Then, you create a container based on the image.
 
 ```bash
-docker run -it deepchemio/deepchem
+docker run --rm -it deepchemio/deepchem:2.3.0
 ```
 
 If you want GPU support:
 
 ```bash
 # If nvidia-docker is installed
-nvidia-docker run -it deepchemio/deepchem
-docker run --runtime nvidia -it deepchemio/deepchem
+nvidia-docker run --rm -it deepchemio/deepchem:2.3.0
+docker run --runtime nvidia --rm -it deepchemio/deepchem:2.3.0
 
 # If nvidia-container-toolkit is installed
-docker run --gpus all -it deepchemio/deepchem
+docker run --gpus all --rm -it deepchemio/deepchem:2.3.0
 ```
 
-You are now in a docker container whose python has deepchem installed.
+You are now in a docker container which deepchem was installed. You can start playing with it in the command line.
+
+```
+(deepchem) root@xxxxxxxxxxxxx:~/mydir# python
+Python 3.6.10 |Anaconda, Inc.| (default, May  8 2020, 02:54:21)
+[GCC 7.3.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import deepchem as dc
+```
+
+If you want to check the tox21 benchmark:
 
 ```bash
-# you can start playing with it in the command line
-pip install jupyter
-ipython
-import deepchem as dc
-
-# you can run our tox21 benchmark
-cd /deepchem/examples
-python benchmark.py -d tox21
+(deepchem) root@xxxxxxxxxxxxx:~/mydir# wget https://raw.githubusercontent.com/deepchem/deepchem/master/examples/benchmark.py
+(deepchem) root@xxxxxxxxxxxxx:~/mydir# python benchmark.py -d tox21 -m graphconv -s random
 ```
 
 ## FAQ and Troubleshooting
@@ -224,7 +216,7 @@ sudo apt-get install -y libxrender-dev
 
 ## Getting Started
 
-The DeepChem project maintains an extensive colelction of [tutorials](https://github.com/deepchem/deepchem/tree/master/examples/tutorials). All tutorials are designed to be run on Google colab (or locally if you prefer). Tutorials are arranged in a suggested learning sequence which will take you from beginner to proficient at molecular machine learning and computational biology more broadly.
+The DeepChem project maintains an extensive collection of [tutorials](https://github.com/deepchem/deepchem/tree/master/examples/tutorials). All tutorials are designed to be run on Google colab (or locally if you prefer). Tutorials are arranged in a suggested learning sequence which will take you from beginner to proficient at molecular machine learning and computational biology more broadly.
 
 After working through the tutorials, you can also go through other [examples](https://github.com/deepchem/deepchem/tree/master/examples). To apply `deepchem` to a new problem, try starting from one of the existing examples or tutorials and modifying it step by step to work with your new use-case. If you have questions or comments you can raise them on our [gitter](https://gitter.im/deepchem/Lobby).
 

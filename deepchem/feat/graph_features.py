@@ -79,7 +79,7 @@ def get_feature_list(atom):
   Parameters
   ----------
   atom: RDKit.rdchem.Atom
-    Atom to get features for 
+    Atom to get features for
   """
   # Replace the hybridization
   from rdkit import Chem
@@ -264,7 +264,7 @@ def pair_features(mol, edge_list, canon_adj_list, bt_len=6,
   Many different featurization methods compute atom pair features
   such as WeaveFeaturizer. Note that atom pair features could be
   for pairs of atoms which aren't necessarily bonded to one
-  another. 
+  another.
 
   Parameters
   ----------
@@ -604,18 +604,11 @@ class AtomicConvFeaturizer(ComplexNeighborListFragmentAtomicCoordinates):
     self.labels = labels
 
   def featurize_complexes(self, mol_files, protein_files):
-    pool = multiprocessing.Pool()
-    results = []
-    for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_files)):
-      log_message = "Featurizing %d / %d" % (i, len(mol_files))
-      results.append(
-          pool.apply_async(_featurize_complex,
-                           (self, mol_file, protein_pdb, log_message)))
-    pool.close()
     features = []
     failures = []
-    for ind, result in enumerate(results):
-      new_features = result.get()
+    for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_files)):
+      logging.info("Featurizing %d / %d" % (i, len(mol_files)))
+      new_features = self._featurize_complex(mol_file, protein_pdb)
       # Handle loading failures which return None
       if new_features is not None:
         features.append(new_features)
@@ -630,20 +623,19 @@ class AtomicConvFeaturizer(ComplexNeighborListFragmentAtomicCoordinates):
     self.atomic_conv_model.fit(dataset, nb_epoch=self.epochs)
 
     # Add the Atomic Convolution layers to fetches
-    layers_to_fetch = list()
-    for layer in self.atomic_conv_model.layers.values():
-      if isinstance(layer, dc.models.atomic_conv.AtomicConvolution):
-        layers_to_fetch.append(layer)
+    layers_to_fetch = [
+        self.atomic_conv_model._frag1_conv, self.atomic_conv_model._frag2_conv,
+        self.atomic_conv_model._complex_conv
+    ]
 
     # Extract the atomic convolution features
     atomic_conv_features = list()
-    feed_dict_generator = self.atomic_conv_model.default_generator(
+    batch_generator = self.atomic_conv_model.default_generator(
         dataset=dataset, epochs=1)
 
-    for feed_dict in self.atomic_conv_model._create_feed_dicts(
-        feed_dict_generator, training=False):
-      frag1_conv, frag2_conv, complex_conv = self.atomic_conv_model._run_graph(
-          outputs=layers_to_fetch, feed_dict=feed_dict, training=False)
+    for X, y, w in batch_generator:
+      frag1_conv, frag2_conv, complex_conv = self.atomic_conv_model.predict_on_generator(
+          [(X, y, w)], outputs=layers_to_fetch)
       concatenated = np.concatenate(
           [frag1_conv, frag2_conv, complex_conv], axis=1)
       atomic_conv_features.append(concatenated)
