@@ -33,10 +33,7 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
 
     optimizer = dc.hyper.GaussianProcessHyperparamOpt(self.rf_model_builder)
     params_dict = {"n_estimators": 10}
-    transformers = [
-        dc.trans.NormalizationTransformer(
-            transform_y=True, dataset=self.train_dataset)
-    ]
+    transformers = []
     metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
 
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
@@ -49,16 +46,36 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
 
     valid_score = best_model.evaluate(self.valid_dataset, [metric],
                                       transformers)
+    assert valid_score["pearson_r2_score"] == max(all_results.values())
+    assert valid_score["pearson_r2_score"] > 0
+
+  def test_rf_example_min(self):
+    """Test a simple example of optimizing a RF model with a gaussian process looking for minimum score."""
+
+    optimizer = dc.hyper.GaussianProcessHyperparamOpt(self.rf_model_builder)
+    params_dict = {"n_estimators": 10}
+    transformers = []
+    metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
+
+    best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
+        params_dict,
+        self.train_dataset,
+        self.valid_dataset,
+        transformers,
+        metric,
+        use_max=False,
+        max_iter=2)
+
+    valid_score = best_model.evaluate(self.valid_dataset, [metric],
+                                      transformers)
+    assert valid_score["pearson_r2_score"] == min(all_results.values())
     assert valid_score["pearson_r2_score"] > 0
 
   def test_rf_with_logdir(self):
     """Test that using a logdir can work correctly."""
     optimizer = dc.hyper.GaussianProcessHyperparamOpt(self.rf_model_builder)
     params_dict = {"n_estimators": 10}
-    transformers = [
-        dc.trans.NormalizationTransformer(
-            transform_y=True, dataset=self.train_dataset)
-    ]
+    transformers = []
     metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
     with tempfile.TemporaryDirectory() as tmpdirname:
       best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
@@ -71,4 +88,70 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
           max_iter=2)
     valid_score = best_model.evaluate(self.valid_dataset, [metric],
                                       transformers)
+    assert valid_score["pearson_r2_score"] == max(all_results.values())
     assert valid_score["pearson_r2_score"] > 0
+
+  def test_regression_overfit(self):
+    """Test that MultitaskRegressor can overfit simple regression datasets."""
+    n_samples = 10
+    n_features = 3
+    n_tasks = 1
+
+    # Generate dummy dataset
+    np.random.seed(123)
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.zeros((n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+
+    regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
+    # TODO(rbharath): This breaks with optimizer="momentum". Why?
+    model = dc.models.MultitaskRegressor(
+        n_tasks,
+        n_features,
+        dropouts=[0.],
+        weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
+        batch_size=n_samples,
+        learning_rate=0.003)
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=100)
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [regression_metric])
+    assert scores[regression_metric.name] < .1
+
+  def test_multitask_example(self):
+    """Test a simple example of optimizing a multitask model with a grid search."""
+    # Generate dummy dataset
+    np.random.seed(123)
+    train_dataset = dc.data.NumpyDataset(
+        np.random.rand(10, 3), np.zeros((10, 2)), np.ones((10, 2)),
+        np.arange(10))
+    valid_dataset = dc.data.NumpyDataset(
+        np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
+
+    optimizer = dc.hyper.GaussianProcessHyperparamOpt(
+        lambda **p: dc.models.MultitaskRegressor(n_tasks=2,
+             n_features=3, dropouts=[0.],
+             weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
+             learning_rate=0.003, **p))
+
+    params_dict = {"batch_size": 10}
+    transformers = []
+    metric = dc.metrics.Metric(
+        dc.metrics.mean_squared_error, task_averager=np.mean)
+
+    best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
+        params_dict,
+        train_dataset,
+        valid_dataset,
+        transformers,
+        metric,
+        max_iter=2,
+        use_max=False)
+
+    valid_score = best_model.evaluate(valid_dataset, [metric])
+    assert valid_score["mean-mean_squared_error"] == min(all_results.values())
+    assert valid_score["mean-mean_squared_error"] > 0

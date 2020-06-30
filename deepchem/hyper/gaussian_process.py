@@ -92,12 +92,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
   >>> import sklearn
   >>> import deepchem as dc
-  >>> def rf_model_builder(**model_params):
-  ...   rf_params = {k: v for (k, v) in model_params.items() if k != 'model_dir'}
-  ...   model_dir = model_params['model_dir']
-  ...   sklearn_model = sklearn.ensemble.RandomForestRegressor(**rf_params)
-  ...   return dc.models.SklearnModel(sklearn_model, model_dir)
-  >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(rf_model_builder)
+  >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(lambda **p: dc.models.GraphConvModel(**p))
 
   """
 
@@ -131,6 +126,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     metric: `dc.metrics.Metric`
       metric used for evaluation
     use_max: bool, (default True)
+      Specifies whether to maximize or minimize `metric`.
       maximization(True) or minimization(False)
     logdir: str, optional
       The directory in which to store created models. If not set, will
@@ -228,8 +224,9 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       except NotImplementedError:
         pass
 
-      evaluator = Evaluator(model, valid_dataset, transformers)
-      multitask_scores = evaluator.compute_model_performance([metric])
+      #evaluator = Evaluator(model, valid_dataset, transformers)
+      #multitask_scores = evaluator.compute_model_performance([metric])
+      multitask_scores = model.evaluate(valid_dataset, [metric])
       score = multitask_scores[metric.name]
 
       if log_file:

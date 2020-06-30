@@ -3,7 +3,7 @@ class HyperparamOpt(object):
 
   This class is an abstract base class for hyperparameter search
   classes in DeepChem. Hyperparameter search is performed on
-  `dc.model.Model` classes. Each hyperparameter object accepts a
+  `dc.models.Model` classes. Each hyperparameter object accepts a
   `dc.models.Model` class upon construct. When the `hyperparam_search`
   class is invoked, this class is used to construct many different
   concrete models which are trained on the specified training set and
@@ -75,7 +75,7 @@ class HyperparamOpt(object):
     Returns
     -------
     `(best_model, best_hyperparams, all_scores)` where `best_model` is
-    an instance of `dc.model.Models`, `best_hyperparams` is a
+    an instance of `dc.models.Models`, `best_hyperparams` is a
     dictionary of parameters, and `all_scores` is a dictionary mapping
     string representations of hyperparameter sets to validation
     scores.

@@ -31,12 +31,7 @@ class GridHyperparamOpt(HyperparamOpt):
 
   >>> import sklearn
   >>> import deepchem as dc
-  >>> def rf_model_builder(**model_params):
-  ...   rf_params = {k: v for (k, v) in model_params.items() if k != 'model_dir'}
-  ...   model_dir = model_params['model_dir']
-  ...   sklearn_model = sklearn.ensemble.RandomForestRegressor(**rf_params)
-  ...   return dc.models.SklearnModel(sklearn_model, model_dir)
-  >>> optimizer = dc.hyper.GridHyperparamOpt(rf_model_builder)
+  >>> optimizer = dc.hyper.GridHyperparamOpt(lambda **p: dc.models.GraphConvModel(**p))
 
   """
 

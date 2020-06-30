@@ -18,140 +18,105 @@ class TestGridHyperparamOpt(unittest.TestCase):
   Test grid hyperparameter optimization API.
   """
 
-  def test_rf_hyperparam(self):
-    """Test of hyperparam_opt with singletask RF ECFP regression API."""
-    featurizer = dc.feat.CircularFingerprint(size=1024)
-    tasks = ["log-solubility"]
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    input_file = os.path.join(current_dir, "../../models/tests/example.csv")
-    loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(input_file)
-
-    splitter = dc.splits.ScaffoldSplitter()
-    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-        dataset)
-
-    transformers = [
-        dc.trans.NormalizationTransformer(
-            transform_y=True, dataset=train_dataset)
-    ]
-    for dataset in [train_dataset, test_dataset]:
-      for transformer in transformers:
-        dataset = transformer.transform(dataset)
-
-    params_dict = {"n_estimators": [10, 100]}
-    metric = dc.metrics.Metric(dc.metrics.r2_score)
+  def setUp(self):
+    """Set up common resources."""
 
     def rf_model_builder(**model_params):
       rf_params = {k: v for (k, v) in model_params.items() if k != 'model_dir'}
       model_dir = model_params['model_dir']
-      sklearn_model = RandomForestRegressor(**rf_params)
+      sklearn_model = sklearn.ensemble.RandomForestRegressor(**rf_params)
       return dc.models.SklearnModel(sklearn_model, model_dir)
 
-    optimizer = dc.hyper.GridHyperparamOpt(rf_model_builder)
+    self.rf_model_builder = rf_model_builder
+    self.train_dataset = dc.data.NumpyDataset(
+        X=np.random.rand(50, 5), y=np.random.rand(50, 1))
+    self.valid_dataset = dc.data.NumpyDataset(
+        X=np.random.rand(20, 5), y=np.random.rand(20, 1))
+
+  def test_rf_hyperparam(self):
+    """Test of hyperparam_opt with singletask RF ECFP regression API."""
+    optimizer = dc.hyper.GridHyperparamOpt(self.rf_model_builder)
+    params_dict = {"n_estimators": [10, 100]}
+    transformers = []
+    metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
+
+    best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
+        params_dict, self.train_dataset, self.valid_dataset, transformers,
+        metric)
+    valid_score = best_model.evaluate(self.valid_dataset, [metric],
+                                      transformers)
+
+    assert valid_score["pearson_r2_score"] == max(all_results.values())
+    assert valid_score["pearson_r2_score"] > 0
+
+  def test_rf_hyperparam_min(self):
+    """Test of hyperparam_opt with singletask RF ECFP regression API."""
+    optimizer = dc.hyper.GridHyperparamOpt(self.rf_model_builder)
+    params_dict = {"n_estimators": [10, 100]}
+    transformers = []
+    metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
+
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
         params_dict,
-        train_dataset,
-        valid_dataset,
+        self.train_dataset,
+        self.valid_dataset,
         transformers,
         metric,
-        logdir=None)
+        use_max=False)
+    valid_score = best_model.evaluate(self.valid_dataset, [metric],
+                                      transformers)
 
-  def test_multitask_rf_hyperparam_opt(self):
-    """Test of hyperparam_opt with singletask_to_multitask."""
-    tasks = [
-        "task0", "task1", "task2", "task3", "task4", "task5", "task6", "task7",
-        "task8", "task9", "task10", "task11", "task12", "task13", "task14",
-        "task15", "task16"
-    ]
-    input_file = "multitask_example.csv"
+    assert valid_score["pearson_r2_score"] == min(all_results.values())
+    assert valid_score["pearson_r2_score"] > 0
 
-    n_features = 10
-    n_tasks = len(tasks)
-    # Define train dataset
-    n_train = 100
-    X_train = np.random.rand(n_train, n_features)
-    y_train = np.random.randint(2, size=(n_train, n_tasks))
-    w_train = np.ones_like(y_train)
-    ids_train = ["C"] * n_train
-
-    train_dataset = dc.data.DiskDataset.from_numpy(X_train, y_train, w_train,
-                                                   ids_train, tasks)
-
-    # Define validation dataset
-    n_valid = 10
-    X_valid = np.random.rand(n_valid, n_features)
-    y_valid = np.random.randint(2, size=(n_valid, n_tasks))
-    w_valid = np.ones_like(y_valid)
-    ids_valid = ["C"] * n_valid
-    valid_dataset = dc.data.DiskDataset.from_numpy(X_valid, y_valid, w_valid,
-                                                   ids_valid, tasks)
-
+  def test_rf_with_logdir(self):
+    """Test that using a logdir can work correctly."""
+    optimizer = dc.hyper.GridHyperparamOpt(self.rf_model_builder)
+    params_dict = {"n_estimators": [10, 5]}
     transformers = []
-    classification_metric = dc.metrics.Metric(
-        dc.metrics.matthews_corrcoef, np.mean, mode="classification")
-    params_dict = {"n_estimators": [1, 10]}
+    metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
+    with tempfile.TemporaryDirectory() as tmpdirname:
+      best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
+          params_dict,
+          self.train_dataset,
+          self.valid_dataset,
+          transformers,
+          metric,
+          logdir=tmpdirname)
+    valid_score = best_model.evaluate(self.valid_dataset, [metric],
+                                      transformers)
+    assert valid_score["pearson_r2_score"] == max(all_results.values())
+    assert valid_score["pearson_r2_score"] > 0
 
-    def multitask_model_builder(**model_params):
-      rf_params = {k: v for (k, v) in model_params.items() if k != 'model_dir'}
-      model_dir = model_params['model_dir']
+  def test_multitask_example(self):
+    """Test a simple example of optimizing a multitask model with a grid search."""
+    # Generate dummy dataset
+    np.random.seed(123)
+    train_dataset = dc.data.NumpyDataset(
+        np.random.rand(10, 3), np.zeros((10, 2)), np.ones((10, 2)),
+        np.arange(10))
+    valid_dataset = dc.data.NumpyDataset(
+        np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
 
-      def model_builder(model_dir):
-        sklearn_model = RandomForestClassifier(**rf_params)
-        return dc.models.SklearnModel(sklearn_model, model_dir)
+    optimizer = dc.hyper.GridHyperparamOpt(
+        lambda **p: dc.models.MultitaskRegressor(n_tasks=2,
+             n_features=3, dropouts=[0.],
+             weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
+             learning_rate=0.003, **p))
 
-      return dc.models.SingletaskToMultitask(tasks, model_builder, model_dir)
-
-    optimizer = dc.hyper.GridHyperparamOpt(multitask_model_builder)
-    best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
-        params_dict,
-        train_dataset,
-        valid_dataset,
-        transformers,
-        classification_metric,
-        logdir=None)
-
-  def test_mlp_hyperparam_opt(self):
-    """Straightforward test of Tensorflow multitask deepchem classification API."""
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    input_file = os.path.join(current_dir,
-                              "../../models/tests/multitask_example.csv")
-    tasks = [
-        "task0", "task1", "task2", "task3", "task4", "task5", "task6", "task7",
-        "task8", "task9", "task10", "task11", "task12", "task13", "task14",
-        "task15", "task16"
-    ]
-
-    n_features = 1024
-    featurizer = dc.feat.CircularFingerprint(size=n_features)
-
-    loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(input_file)
-
-    splitter = dc.splits.ScaffoldSplitter()
-    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-        dataset)
-
+    params_dict = {"batch_size": [10, 20]}
     transformers = []
     metric = dc.metrics.Metric(
-        dc.metrics.roc_auc_score, np.mean, mode="classification")
-    params_dict = {"layer_sizes": [(10,), (100,)]}
+        dc.metrics.mean_squared_error, task_averager=np.mean)
 
-    def model_builder(**model_params):
-      model_dir = model_params['model_dir']
-      multitask_params = {
-          k: v for (k, v) in model_params.items() if k != 'model_dir'
-      }
-      return dc.models.MultitaskClassifier(
-          len(tasks), n_features, model_dir=model_dir, **multitask_params)
-
-    optimizer = dc.hyper.GridHyperparamOpt(model_builder)
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
         params_dict,
         train_dataset,
         valid_dataset,
         transformers,
         metric,
-        logdir=None)
+        use_max=False)
+
+    valid_score = best_model.evaluate(valid_dataset, [metric])
+    assert valid_score["mean-mean_squared_error"] == min(all_results.values())
+    assert valid_score["mean-mean_squared_error"] > 0
