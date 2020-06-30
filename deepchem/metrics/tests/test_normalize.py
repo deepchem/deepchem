@@ -1,5 +1,6 @@
 """Test normalization of input."""
 
+import pytest
 import numpy as np
 import unittest
 import deepchem as dc
@@ -25,9 +26,9 @@ class TestNormalization(unittest.TestCase):
 
   def test_normalize_scalar_classification_binary(self):
     """Tests 1d classification normalization."""
-    y = 1 
-    y_out = normalize_prediction_shape(y, mode="classification")
-    assert y_out.shape == (1, 1, 2)
+    with pytest.raises(ValueError):
+      y = 1
+      y_out = normalize_prediction_shape(y, mode="classification")
 
   def test_normalize_1d_classification_binary(self):
     """Tests 1d classification normalization."""

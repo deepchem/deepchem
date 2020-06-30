@@ -222,70 +222,55 @@ def normalize_prediction_shape(y, mode=None, n_classes=None):
     n_tasks, n_classes)`. If `mode=="regression"`, `y_out` is an array
     of shape `(N, n_tasks)`.
   """
+
+  # mode check
+  if mode not in ['classification', 'regression']:
+    raise ValueError('Some error....')
+
+  # y check
+  if isinstance(y, np.ndarray) is False:
+    if mode=='regression' and isinstance(y, float):
+      y = np.array([y])
+    else:
+      raise ValueError('Some error....')
+
   if mode == "classification":
-    if n_classes is None:
-      if isinstance(y, np.ndarray):
-        # Find number of classes. Note that `y` must have values in
-        # range 0 to n_classes - 1
-        n_classes = np.amax(y) + 1
-      else:
-        # scalar case
-        n_classes = 2
-    if isinstance(y, np.ndarray):
-      if len(y.shape) == 1:
-        # y_hot is of shape (N, n_classes)
-        y_hot = to_one_hot(y, n_classes=n_classes)
-        # Insert task dimension
-        y_out = np.expand_dims(y_hot, 1)
-      elif len(y.shape) == 2:
-        # Insert a task dimension
-        n_tasks = 1
-        y_out = np.expand_dims(y, 1)
-      elif len(y.shape) == 3:
-        y_out = y
-      else:
-        raise ValueError(
-            "y must be an array of dimension 1, 2, or 3 for classification problems."
-        )
-    else:
-      # In this clase, y is a scalar. We assume that `y` is binary
-      # since it's hard to do anything else in this case.
-      y = np.array(y)
-      y = np.reshape(y, (1,))
-      y = to_one_hot(y, n_classes=n_classes)
+    if len(y.shape) == 1:
+      # Find number of classes. Note that `y` must have values in
+      # range 0 to n_classes - 1
+      n_classes = np.amax(y) + 1 if n_classes is None else n_classes
+      # y_hot is of shape (N, n_classes)
+      y_hot = to_one_hot(y, n_classes=n_classes)
+      # Insert task dimension
+      y_out = np.expand_dims(y_hot, 1)
+    elif len(y.shape) == 2:
+      # Insert a task dimension
+      n_tasks = 1
       y_out = np.expand_dims(y, 1)
-  elif mode == "regression":
-    if isinstance(y, np.ndarray):
-      if len(y.shape) == 1:
-        # Insert a task dimension
-        n_tasks = 1
-        y_out = np.expand_dims(y, 1)
-      elif len(y.shape) == 2:
-        y_out = y
-      elif len(y.shape) == 3:
-        if y.shape[-1] != 1:
-          raise ValueError(
-              "y must a float sclar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems."
-          )
-        y_out = np.squeeze(y, axis=-1)
-      else:
-        raise ValueError(
-            "y must a float sclar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems."
-        )
+    elif len(y.shape) == 3:
+      y_out = y
     else:
-      # In this clase, y is a scalar.
-      try:
-        y = float(y)
-      except TypeError:
+      raise ValueError(
+          "y must be an array of dimension 1, 2, or 3 for classification problems."
+      )
+  elif mode == "regression":
+    if len(y.shape) == 1:
+      # Insert a task dimension
+      n_tasks = 1
+      y_out = np.expand_dims(y, 1)
+    elif len(y.shape) == 2:
+      y_out = y
+    elif len(y.shape) == 3:
+      if y.shape[-1] != 1:
         raise ValueError(
             "y must a float sclar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems."
         )
-      y = np.array(y)
-      y_out = np.reshape(y, (1, 1))
-  else:
-    # If mode isn't classification or regression don't perform any
-    # transformations.
-    y_out = y
+      y_out = np.squeeze(y, axis=-1)
+    else:
+      raise ValueError(
+          "y must a float sclar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems."
+      )
+
   return y_out
 
 
@@ -688,11 +673,13 @@ class Metric(object):
     if n_tasks == 1:
       computed_metrics = computed_metrics[0]
 
+    # DEPRECATED. WILL BE REMOVED IN NEXT DEEPCHEM VERSION
     if filter_nans:
       computed_metrics = np.array(computed_metrics)
       computed_metrics = computed_metrics[~np.isnan(computed_metrics)]
-    # DEPRECATED. WILL BE REMOVED IN NEXT DEEPCHEM VERSION
+
     if self.compute_energy_metric:
+      # DEPRECATED. WILL BE REMOVED IN NEXT DEEPCHEM VERSION
       force_error = self.task_averager(computed_metrics[1:]) * 4961.47596096
       logger.info("Force error (metric: np.mean(%s)): %f kJ/mol/A" %
                   (self.name, force_error))
