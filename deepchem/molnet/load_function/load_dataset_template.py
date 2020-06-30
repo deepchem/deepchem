@@ -4,8 +4,9 @@ Short docstring description of dataset.
 import os
 import logging
 import deepchem
+from deepchem.feat import Featurizer
 
-from typing import Iterable
+from typing import Iterable, List
 
 logger = logging.getLogger(__name__)
 
@@ -103,8 +104,7 @@ def load_mydataset(featurizer: str = None,
   if reload:
     save_folder = os.path.join(save_dir, "mydataset-featurized")
     if not move_mean:
-      save_folder = os.path.join(save_folder,
-                                 str(featurizer) + "_mean_unmoved")
+      save_folder = os.path.join(save_folder, str(featurizer) + "_mean_unmoved")
     else:
       save_folder = os.path.join(save_folder, str(featurizer))
 
@@ -113,7 +113,9 @@ def load_mydataset(featurizer: str = None,
     if loaded:
       return my_tasks, all_dataset, transformers
 
-  sdf_featurizers = []  # e.g. 'CoulombMatrix' or 'MP'
+  # 3D coordinate featurizers, e.g. 'CoulombMatrix' or 'MP'
+  # For crystal structures, replace with json_featurizers
+  sdf_featurizers = []  # type: List[Featurizer]
 
   # If featurizer requires a non-CSV file format, load .tar.gz file
   if featurizer in sdf_featurizers:
@@ -126,8 +128,7 @@ def load_mydataset(featurizer: str = None,
   else:  # only load CSV file
     dataset_file = os.path.join(data_dir, "mydataset.csv")
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(
-          url=MYDATASET_CSV_URL, dest_dir=data_dir)
+      deepchem.utils.download_url(url=MYDATASET_CSV_URL, dest_dir=data_dir)
 
   # Handle all allowed SDF featurizers
   if featurizer in sdf_featurizers:
@@ -137,10 +138,10 @@ def load_mydataset(featurizer: str = None,
       featurizer = deepchem.feat.Featurizer2()
 
     loader = deepchem.data.SDFLoader(
-      tasks=my_tasks,
-      smiles_field="smiles",  # column name holding SMILES strings
-      mol_field="mol",  # field where RKit mol objects are stored
-      featurizer=featurizer)
+        tasks=my_tasks,
+        smiles_field="smiles",  # column name holding SMILES strings
+        mol_field="mol",  # field where RKit mol objects are stored
+        featurizer=featurizer)
   else:  # Handle allowed CSV featurizers
     if featurizer == 'Featurizer3':
       featurizer = deepchem.feat.Featurizer3()
@@ -162,8 +163,7 @@ def load_mydataset(featurizer: str = None,
       'random':
       deepchem.splits.RandomSplitter(),
       'stratified':
-      deepchem.splits.SingletaskStratifiedSplitter(
-          task_number=len(my_tasks)),
+      deepchem.splits.SingletaskStratifiedSplitter(task_number=len(my_tasks)),
       'scaffold':
       deepchem.splits.ScaffoldSplitter()
   }
@@ -192,8 +192,7 @@ def load_mydataset(featurizer: str = None,
     test_dataset = transformer.transform(test_dataset)
 
   if reload:  # save to disk
-    deepchem.utils.save.save_dataset_to_disk(save_folder, train_dataset,
-                                             valid_dataset, test_dataset,
-                                             transformers)
+    deepchem.utils.save.save_dataset_to_disk(
+        save_folder, train_dataset, valid_dataset, test_dataset, transformers)
 
   return my_tasks, (train_dataset, valid_dataset, test_dataset), transformers
