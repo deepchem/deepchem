@@ -18,7 +18,7 @@ def _convert_hyperparam_dict_to_filename(hyper_params):
   Parameters
   ----------
   hyper_params: dict
-    Maps string of hyperparameter name to int/float/list.
+    Maps string of hyperparameter name to int/float.
 
   Returns
   -------
@@ -32,8 +32,12 @@ def _convert_hyperparam_dict_to_filename(hyper_params):
     value = hyper_params[key]
     if isinstance(value, int):
       filename += "_%s" % str(value)
-    else:
+    elif isinstance(value, float):
       filename += "_%.2f" % value
+    else:
+      raise ValueError(
+          "Hyperparameters to search must be specified as ints/floats since GaussianProcessHyperparamOpt searches over a range of numbers around the specified point."
+      )
   return filename
 
 
@@ -43,9 +47,10 @@ def compute_parameter_range(params_dict, search_range):
   Parameters
   ----------
   params_dict: dict
-    Dictionary mapping strings to Ints/Floats/Lists. For those
-    parameters in which int/float is specified, an explicit list of
-    parameters is computed with `search_range`.
+    Dictionary mapping strings to Ints/Floats. An explicit list of
+    parameters is computed with `search_range`. The optimization range
+    computed is specified in the documentation for `search_range`
+    below.
   search_range: int(float) (default 4)
     For int/float values in `params_dict`, computes optimization range
     on `[initial values / search_range, initial values *
@@ -57,7 +62,9 @@ def compute_parameter_range(params_dict, search_range):
     Dictionary mapping hyperparameter names to tuples. Each tuple is
     of form `(value_type, value_range)` where `value_type` is a string
     that is either "int" or "cont" and `value_range` is a list of two
-    elements of the form `[low, hi]`
+    elements of the form `[low, hi]`. This format is expected by
+    pyGPGO which `GaussianProcessHyperparamOpt` uses to perform
+    optimization.
   """
   # Range of optimization
   param_range = {}
@@ -94,6 +101,20 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   >>> import deepchem as dc
   >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(lambda **p: dc.models.GraphConvModel(**p))
 
+  Here's a more sophisticated example that shows how to optimize only
+  some parameters of a model
+
+  >>> def model_builder(**model_params):
+  ...  n_layers = model_params['layers']
+  ...  layer_width = model_params['width']
+  ...  dropout = model_params['dropout']
+  ...  return dc.models.MultitaskClassifier(
+  ...    n_tasks=5,
+  ...    n_features=100,
+  ...    layer_sizes=[layer_width]*n_layers,
+  ...    dropouts=dropout
+  ...  )
+  >> optimizer = dc.hyper.GaussianProcessHyperparamOpt(model_builder)
   """
 
   def hyperparam_search(self,
@@ -116,7 +137,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       values. The semantics of this list are different than for
       `GridHyperparamOpt`. `params_dict[hp]` must map to an int/float,
       which is used as the center of a search with radius
-      `search_range`.
+      `search_range` since pyGPGO can only optimize numerical
+      hyperparameters.
     train_dataset: `dc.data.Dataset`
       dataset used for training
     valid_dataset: `dc.data.Dataset`

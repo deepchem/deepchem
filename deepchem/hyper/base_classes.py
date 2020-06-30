@@ -53,9 +53,13 @@ class HyperparamOpt(object):
     Parameters
     ----------
     params_dict: dict
-      Dictionary mapping strings to Ints/Floats/Lists. Note that the
+      Dictionary mapping strings to values. Note that the
       precise semantics of `params_dict` will change depending on the
-      optimizer that you're using.
+      optimizer that you're using. Depending on the type of
+      hyperparameter optimization, these values can be
+      ints/floats/strings/lists/etc. Read the documentation for the
+      concrete hyperparameter optimization subclass you're using to
+      learn more about what's expected.
     train_dataset: `dc.data.Dataset`
       dataset used for training
     valid_dataset: `dc.data.Dataset`
