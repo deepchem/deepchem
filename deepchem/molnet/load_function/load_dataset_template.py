@@ -82,13 +82,20 @@ def load_mydataset(featurizer: str = None,
   Examples
   --------
   >>> import deepchem as dc
-  >>> tasks, datasets, transformers = dc.molnet.load_mydataset()
+  >>> tasks, datasets, transformers = dc.molnet.load_tox21(reload=False)
   >>> train_dataset, val_dataset, test_dataset = datasets
   >>> n_tasks = len(tasks)
   >>> n_features = train_dataset.get_data_shape()[0]
-  >>> model = dc.models.MultiTaskClassifier(n_tasks, n_features)
+  >>> model = dc.models.MultitaskClassifier(n_tasks, n_features)
 
   """
+
+  # Warning message about this template
+  raise ValueError("""
+    This is a template function and it doesn't do anything!
+    Use this function as a reference when implementing new
+    loaders for MoleculeNet datasets.
+    """)
 
   # Featurize mydataset
   logger.info("About to featurize mydataset.")
