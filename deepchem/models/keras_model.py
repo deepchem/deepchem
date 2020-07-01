@@ -28,6 +28,9 @@ try:
 except (ImportError, AttributeError):
   _has_wandb = False
 
+def is_wandb_available():
+  return _has_wandb
+
 class KerasModel(Model):
   """This is a DeepChem model implemented by a Keras model.
 
@@ -166,12 +169,12 @@ class KerasModel(Model):
     self.tensorboard = tensorboard
 
     # W&B logging
-    if wandb and not _has_wandb:
+    if wandb and not is_wandb_available():
       logger.warning(
         "You set wandb to True but W&B is not installed. To use wandb logging, "
         "run `pip install wandb; wandb login` see https://docs.wandb.com/huggingface."
       )
-    self.wandb = wandb and _has_wandb
+    self.wandb = wandb and is_wandb_available()
     
     # Backwards compatibility
     if "tensorboard_log_frequency" in kwargs:

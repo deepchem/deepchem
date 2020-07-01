@@ -5,6 +5,10 @@ Callback functions that can be invoked while fitting a KerasModel.
 import tensorflow as tf
 import sys
 
+from deepchem.models.keras_model import is_wandb_available
+if is_wandb_available():
+  import wandb
+
 
 class ValidationCallback(object):
   """Performs validation while training a KerasModel.
