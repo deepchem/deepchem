@@ -34,6 +34,25 @@ class GridHyperparamOpt(HyperparamOpt):
   >>> import deepchem as dc
   >>> optimizer = dc.hyper.GridHyperparamOpt(lambda **p: dc.models.GraphConvModel(**p))
 
+  Here's a more sophisticated example that shows how to optimize only
+  some parameters of a model. In this case, we have some parameters we
+  want to optimize, and others which we don't. To handle this type of
+  search, we create a `model_builder` which hard codes some arguments
+  (in this case, `n_tasks` and `n_features` which are properties of a
+  dataset and not hyperparameters to search over.)
+
+  >>> def model_builder(**model_params):
+  ...   n_layers = model_params['layers']
+  ...   layer_width = model_params['width']
+  ...   dropout = model_params['dropout']
+  ...   return dc.models.MultitaskClassifier(
+  ...     n_tasks=5,
+  ...     n_features=100,
+  ...     layer_sizes=[layer_width]*n_layers,
+  ...     dropouts=dropout
+  ...   )
+  >>> optimizer = dc.hyper.GridHyperparamOpt(model_builder)
+
   """
 
   def hyperparam_search(self,

@@ -97,37 +97,6 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
     assert valid_score["pearson_r2_score"] == max(all_results.values())
     assert valid_score["pearson_r2_score"] > 0
 
-  def test_regression_overfit(self):
-    """Test that MultitaskRegressor can overfit simple regression datasets."""
-    n_samples = 10
-    n_features = 3
-    n_tasks = 1
-
-    # Generate dummy dataset
-    np.random.seed(123)
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features)
-    y = np.zeros((n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-    regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
-    # TODO(rbharath): This breaks with optimizer="momentum". Why?
-    model = dc.models.MultitaskRegressor(
-        n_tasks,
-        n_features,
-        dropouts=[0.],
-        weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
-        batch_size=n_samples,
-        learning_rate=0.003)
-
-    # Fit trained model
-    model.fit(dataset, nb_epoch=100)
-
-    # Eval model on train
-    scores = model.evaluate(dataset, [regression_metric])
-    assert scores[regression_metric.name] < .1
-
   @flaky
   def test_multitask_example(self):
     """Test a simple example of optimizing a multitask model with a gaussian process search."""

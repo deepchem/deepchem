@@ -6,21 +6,23 @@ import deepchem as dc
 import sklearn
 
 # Load delaney dataset
-delaney_tasks, delaney_datasets, transformers = dc.molnet.load_delaney()
+delaney_tasks, delaney_datasets, transformers = dc.molnet.load_delaney(
+    featurizer="GraphConv")
 train, valid, test = delaney_datasets
 
 # Fit models
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
 
+# Fit models
+metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
+optimizer = dc.hyper.GridHyperparamOpt(
+    lambda **p: dc.models.GraphConvModel(
+    n_tasks=len(delaney_tasks), mode="regression", **p))
 
-def rf_model_builder(**model_params):
-  rf_params = {k: v for (k, v) in model_params.items() if k != 'model_dir'}
-  model_dir = model_params['model_dir']
-  sklearn_model = sklearn.ensemble.RandomForestRegressor(**rf_params)
-  return dc.models.SklearnModel(sklearn_model, model_dir)
-
-
-params_dict = {"n_estimators": [10, 30, 50, 100]}
-optimizer = dc.hyper.GridHyperparamOpt(rf_model_builder)
+params_dict = {"dropout": [0.1, 0.5]}
 best_model, best_params, all_results = optimizer.hyperparam_search(
     params_dict, train, valid, transformers, metric)
+
+valid_score = best_model.evaluate(valid, [metric], transformers)
+print("valid_score")
+print(valid_score)

@@ -96,7 +96,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
   >>> import sklearn
   >>> import deepchem as dc
-  >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(lambda **p: dc.models.GraphConvModel(**p))
+  >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(lambda **p: dc.models.GraphConvModel(n_tasks=1, **p))
 
   Here's a more sophisticated example that shows how to optimize only
   some parameters of a model. In this case, we have some parameters we
@@ -222,10 +222,6 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       valid_scores: float
         valid set performances
       """
-      ############################
-      print("placeholders: %s" % str(placeholders))
-      print("param_range: %s" % str(param_range))
-      ############################
       hyper_parameters = {}
       for hp in param_keys:
         if param_range[hp][0] == "int":
