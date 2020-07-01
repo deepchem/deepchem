@@ -12,6 +12,7 @@ from functools import reduce
 from operator import mul
 from deepchem.utils.evaluate import Evaluator
 from deepchem.hyper.base_classes import HyperparamOpt
+from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +95,8 @@ class GridHyperparamOpt(HyperparamOpt):
         itertools.product(*hyperparam_vals)):
       model_params = {}
       logger.info("Fitting model %d/%d" % (ind + 1, number_combinations))
+      # Construction dictionary mapping hyperparameter names to values
+      hyper_params = dict(zip(hyperparams, hyperparameter_tuple))
       for hyperparam, hyperparam_val in zip(hyperparams, hyperparameter_tuple):
         model_params[hyperparam] = hyperparam_val
       logger.info("hyperparameters: %s" % str(model_params))
@@ -121,7 +124,8 @@ class GridHyperparamOpt(HyperparamOpt):
       evaluator = Evaluator(model, valid_dataset, output_transformers)
       multitask_scores = evaluator.compute_model_performance([metric])
       valid_score = multitask_scores[metric.name]
-      all_scores[str(hyperparameter_tuple)] = valid_score
+      hp_str = _convert_hyperparam_dict_to_filename(hyper_params)
+      all_scores[hp_str] = valid_score
 
       if (use_max and valid_score >= best_validation_score) or (
           not use_max and valid_score <= best_validation_score):

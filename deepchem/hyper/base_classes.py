@@ -1,3 +1,35 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def _convert_hyperparam_dict_to_filename(hyper_params):
+  """Helper function that converts a dictionary of hyperparameters to a string that can be a filename.
+
+  Parameters
+  ----------
+  hyper_params: dict
+    Maps string of hyperparameter name to int/float.
+
+  Returns
+  -------
+  filename: str
+    A filename of form "_key1_value1_value2_..._key2..."
+  """
+  filename = ""
+  keys = sorted(hyper_params.keys())
+  for key in keys:
+    filename += "_%s" % str(key)
+    value = hyper_params[key]
+    if isinstance(value, int):
+      filename += "_%s" % str(value)
+    elif isinstance(value, float):
+      filename += "_%.2f" % value
+    else:
+      filename += "%s" % str(value)
+  return filename
+
+
 class HyperparamOpt(object):
   """Abstract superclass for hyperparameter search classes.
 

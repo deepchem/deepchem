@@ -8,37 +8,9 @@ import os
 import deepchem
 from deepchem.hyper.base_classes import HyperparamOpt
 from deepchem.utils.evaluate import Evaluator
+from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
 
 logger = logging.getLogger(__name__)
-
-
-def _convert_hyperparam_dict_to_filename(hyper_params):
-  """Helper function that converts a dictionary of hyperparameters to a string that can be a filename.
-
-  Parameters
-  ----------
-  hyper_params: dict
-    Maps string of hyperparameter name to int/float.
-
-  Returns
-  -------
-  filename: str
-    A filename of form "_key1_value1_value2_..._key2..."
-  """
-  filename = ""
-  keys = sorted(hyper_params.keys())
-  for key in keys:
-    filename += "_%s" % str(key)
-    value = hyper_params[key]
-    if isinstance(value, int):
-      filename += "_%s" % str(value)
-    elif isinstance(value, float):
-      filename += "_%.2f" % value
-    else:
-      raise ValueError(
-          "Hyperparameters to search must be specified as ints/floats since GaussianProcessHyperparamOpt searches over a range of numbers around the specified point."
-      )
-  return filename
 
 
 def compute_parameter_range(params_dict, search_range):
@@ -82,16 +54,27 @@ def compute_parameter_range(params_dict, search_range):
   """
   # Range of optimization
   param_range = {}
+  if isinstance(search_range, dict):
+    if sorted(params_dict.keys()) != sorted(search_range.keys()):
+      raise ValueError(
+          "If search_range is provided as a dictionary, it must have the same keys as params_dict."
+      )
+  elif (not isinstance(search_range, int)) and (not isinstance(
+      search_range, float)):
+    raise ValueError("search_range must be a dict or int or float.")
   for hp, value in params_dict.items():
+    if isinstance(search_range, dict):
+      hp_search_range = search_range[hp]
+    else:
+      # We know from guard above that this is an int/float
+      hp_search_range = search_range
     if isinstance(value, int):
-      value_range = [value // search_range, value * search_range]
+      value_range = [value // hp_search_range, value * hp_search_range]
       param_range[hp] = ("int", value_range)
-      pass
     elif isinstance(value, float):
-      value_range = [value / search_range, value * search_range]
+      value_range = [value / hp_search_range, value * hp_search_range]
       param_range[hp] = ("cont", value_range)
-      pass
-    return param_range
+  return param_range
 
 
 class GaussianProcessHyperparamOpt(HyperparamOpt):
@@ -239,6 +222,10 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       valid_scores: float
         valid set performances
       """
+      ############################
+      print("placeholders: %s" % str(placeholders))
+      print("param_range: %s" % str(param_range))
+      ############################
       hyper_parameters = {}
       for hp in param_keys:
         if param_range[hp][0] == "int":
@@ -335,6 +322,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     if log_file:
       with open(log_file, 'a') as f:
         # Record hyperparameters
+        f.write("params_dict:")
         f.write(str(params_dict))
         f.write('\n')
 

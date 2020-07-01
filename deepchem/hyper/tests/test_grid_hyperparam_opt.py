@@ -120,3 +120,47 @@ class TestGridHyperparamOpt(unittest.TestCase):
     valid_score = best_model.evaluate(valid_dataset, [metric])
     assert valid_score["mean-mean_squared_error"] == min(all_results.values())
     assert valid_score["mean-mean_squared_error"] > 0
+
+  def test_multitask_example_multiple_params(self):
+    """Test a simple example of optimizing a multitask model with a grid search with multiple parameters to optimize."""
+    # Generate dummy dataset
+    np.random.seed(123)
+    train_dataset = dc.data.NumpyDataset(
+        np.random.rand(10, 3), np.zeros((10, 2)), np.ones((10, 2)),
+        np.arange(10))
+    valid_dataset = dc.data.NumpyDataset(
+        np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
+
+    optimizer = dc.hyper.GridHyperparamOpt(
+        lambda **p: dc.models.MultitaskRegressor(
+            n_tasks=2,
+            n_features=3,
+            dropouts=[0.],
+            weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
+            #learning_rate=0.003, **p))
+            **p))
+
+    params_dict = {"learning_rate": [0.003, 0.03], "batch_size": [10, 50]}
+    # These are per-example multiplier
+    transformers = []
+    metric = dc.metrics.Metric(
+        dc.metrics.mean_squared_error, task_averager=np.mean)
+
+    with tempfile.TemporaryDirectory() as tmpdirname:
+      best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
+          params_dict,
+          train_dataset,
+          valid_dataset,
+          transformers,
+          metric,
+          logdir=tmpdirname,
+          use_max=False)
+      valid_score = best_model.evaluate(valid_dataset, [metric])
+    # Test that 2 parameters were optimized
+    for hp_str in all_results.keys():
+      # Recall that the key is a string of the form _batch_size_39_learning_rate_0.01 for example
+      assert "batch_size" in hp_str
+      assert "learning_rate" in hp_str
+
+    assert valid_score["mean-mean_squared_error"] == min(all_results.values())
+    assert valid_score["mean-mean_squared_error"] > 0
