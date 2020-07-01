@@ -20,7 +20,7 @@ please follow the instructions below. Please review the `datasets already availa
 
 5. Ask a member of the technical steering committee to add your .tar.gz or .zip file to the DeepChem AWS bucket. Modify your load function to pull down the dataset from AWS.
 
-6. Submit a [WIR] PR (Work in progress pull request) following the PR `template <https://github.com/deepchem/deepchem/blob/master/docs/molnet_pr_template.md>`_.  
+6. Submit a [WIP] PR (Work in progress pull request) following the PR `template <https://github.com/deepchem/deepchem/blob/master/docs/molnet_pr_template.md>`_.  
 
 Load Dataset Template
 ---------------------
