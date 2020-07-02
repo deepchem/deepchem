@@ -205,6 +205,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
     # Stores all results
     all_results = {}
+    # Store all model references so we don't have to reload
+    all_models = {}
     # Stores all model locations
     model_locations = {}
 
@@ -255,15 +257,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         model_dir = tempfile.mkdtemp()
       # Add it on to the information needed for the constructor
       hyper_parameters["model_dir"] = model_dir
-      ##########################################
-      print("hyper_parameters")
-      print(hyper_parameters)
-      ##########################################
       model = self.model_builder(**hyper_parameters)
       model.fit(train_dataset)
-      ##########################################
-      print("SAVING MODEL")
-      ##########################################
       try:
         model.save()
       # Some models autosave
@@ -280,6 +275,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
           f.write('\n')
       # Store all results
       all_results[hp_str] = score
+      # Store reference to model
+      all_models[hp_str] = model
       model_locations[hp_str] = model_dir
       # GPGO maximize performance by default, set performance to its negative value for minimization
       if use_max:
@@ -310,19 +307,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         hyper_parameters[hp] = float(hp_opt[hp])
     hp_str = _convert_hyperparam_dict_to_filename(hyper_parameters)
 
-    # Let's reinitialize the model with the best parameters
-    model_dir = model_locations[hp_str]
-    hyper_parameters["model_dir"] = model_dir
-    best_model = self.model_builder(**hyper_parameters)
-    ##########################################
-    print("RESTORING BEST MODEL")
-    ##########################################
-    # Some models need to be explicitly reloaded
-    try:
-      best_model.restore()
-    # Some models auto reload
-    except NotImplementedError:
-      pass
+    # Let's fetch the model with the best parameters
+    best_model = all_models[hp_str]
 
     # Compare best model to default hyperparameters
     if log_file:
