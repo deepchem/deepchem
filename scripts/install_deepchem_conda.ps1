@@ -21,6 +21,7 @@ else
 
 conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia `
     biopython `
+    cloudpickle=1.4.1 `
     mdtraj `
     networkx `
     openmm `
