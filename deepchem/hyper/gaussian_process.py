@@ -192,6 +192,9 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     if logfile:
       log_file = logfile
     elif logdir is not None:
+      # Make logdir if it doesn't exist.
+      if not os.path.exists(logdir):
+        os.makedirs(logdir, exist_ok=True)
       log_file = os.path.join(logdir, "results.txt")
     else:
       log_file = None
@@ -232,10 +235,9 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
           hyper_parameters[hp] = float(placeholders[hp])
       logger.info("Running hyperparameter set: %s" % str(hyper_parameters))
       if log_file:
-        # Run benchmark
-        with open(log_file, 'a') as f:
+        with open(log_file, 'w+') as f:
           # Record hyperparameters
-          f.write(str(hyper_parameters))
+          f.write("Parameters: %s" % str(hyper_parameters))
           f.write('\n')
 
       hp_str = _convert_hyperparam_dict_to_filename(hyper_parameters)
@@ -253,23 +255,28 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         model_dir = tempfile.mkdtemp()
       # Add it on to the information needed for the constructor
       hyper_parameters["model_dir"] = model_dir
+      ##########################################
+      print("hyper_parameters")
+      print(hyper_parameters)
+      ##########################################
       model = self.model_builder(**hyper_parameters)
       model.fit(train_dataset)
+      ##########################################
+      print("SAVING MODEL")
+      ##########################################
       try:
         model.save()
       # Some models autosave
       except NotImplementedError:
         pass
 
-      #evaluator = Evaluator(model, valid_dataset, transformers)
-      #multitask_scores = evaluator.compute_model_performance([metric])
       multitask_scores = model.evaluate(valid_dataset, [metric])
       score = multitask_scores[metric.name]
 
       if log_file:
         with open(log_file, 'a') as f:
           # Record performances
-          f.write(str(score))
+          f.write("Score: %s" % str(score))
           f.write('\n')
       # Store all results
       all_results[hp_str] = score
@@ -307,6 +314,9 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     model_dir = model_locations[hp_str]
     hyper_parameters["model_dir"] = model_dir
     best_model = self.model_builder(**hyper_parameters)
+    ##########################################
+    print("RESTORING BEST MODEL")
+    ##########################################
     # Some models need to be explicitly reloaded
     try:
       best_model.restore()

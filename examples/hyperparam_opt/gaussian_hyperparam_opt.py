@@ -18,7 +18,7 @@ optimizer = dc.hyper.GaussianProcessHyperparamOpt(
 
 params_dict = {"dropout": 0.5}
 best_model, best_params, all_results = optimizer.hyperparam_search(
-    params_dict, train, valid, transformers, metric, max_iter=2, search_range=2)
+    params_dict, train, valid, transformers, metric, max_iter=1, search_range=2)
 
 valid_score = best_model.evaluate(valid, [metric], transformers)
 print("valid_score")
