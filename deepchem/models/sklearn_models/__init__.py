@@ -92,7 +92,7 @@ class SklearnModel(Model):
     """Saves sklearn model to disk using joblib."""
     save_to_disk(self.model_instance, self.get_model_filename(self.model_dir))
 
-  def restore(self):
+  def reload(self):
     """Loads sklearn model from joblib file on disk."""
     self.model_instance = load_from_disk(
         Model.get_model_filename(self.model_dir))
