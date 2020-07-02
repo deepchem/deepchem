@@ -4,4 +4,5 @@ pandas
 sklearn
 tensorflow
 pillow
+cloudpickle=1.4.1
 tensorflow_probability
