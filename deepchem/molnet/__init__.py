@@ -33,5 +33,46 @@ from deepchem.molnet.load_function.hppb_datasets import load_hppb
 from deepchem.molnet.load_function.chembl25_datasets import load_chembl25
 
 from deepchem.molnet.run_benchmark import run_benchmark
-#from deepchem.molnet.run_benchmark_low_data import run_benchmark_low_data
 from deepchem.molnet import run_benchmark_models
+
+# Deprecation warnings
+from deepchem.applications.genomics import simulate_motif_density_localization as motif_density_localization
+from deepchem.applications.genomics import simulate_motif_counting as motif_counting
+from deepchem.applications.genomics import simple_motif_embedding as motif_embedding
+from deepchem.applications.genomics import motif_density as density
+from deepchem.applications.genomics import simulate_single_motif_detection as single_motif_detection
+
+
+def simulate_motif_density_localization(*args, **kwargs):
+  warnings.warn(
+      "This function has been deprecated and now resides in deepchem.applications.genomics ",
+      DeprecationWarning)
+  motif_density_localization(*args, **kwargs)
+
+
+def simulate_motif_counting(*args, **kwargs):
+  warnings.warn(
+      "This function has been deprecated and now resides in deepchem.applications.genomics ",
+      DeprecationWarning)
+  motif_counting(*args, **kwargs)
+
+
+def simple_motif_embedding(*args, **kwargs):
+  warnings.warn(
+      "This function has been deprecated and now resides in deepchem.applications.genomics ",
+      DeprecationWarning)
+  motif_embedding(*args, **kwargs)
+
+
+def motif_density(*args, **kwargs):
+  warnings.warn(
+      "This function has been deprecated and now resides in deepchem.applications.genomics ",
+      DeprecationWarning)
+  density(*args, **kwargs)
+
+
+def simulate_single_motif_detection(*args, **kwargs):
+  warnings.warn(
+      "This function has been deprecated and now resides in deepchem.applications.genomics ",
+      DeprecationWarning)
+  single_motif_detection(*args, **kwargs)
