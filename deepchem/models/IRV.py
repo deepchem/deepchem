@@ -79,7 +79,7 @@ class Slice(Layer):
     return tf.slice(inputs, [0] * axis + [slice_num], [-1] * axis + [1])
 
 
-class TensorflowMultitaskIRVClassifier(KerasModel):
+class MultitaskIRVClassifier(KerasModel):
 
   def __init__(self,
                n_tasks,
