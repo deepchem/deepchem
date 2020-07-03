@@ -436,9 +436,9 @@ class TestDatasets(test_util.TensorFlowTestCase):
                   solubility_dataset.w, solubility_dataset.ids)
     batch_sizes = []
     for X, y, _, _ in solubility_dataset.iterbatches(
-        3, pad_batches=False, deterministic=True):
+        3, epochs=2, pad_batches=False, deterministic=True):
       batch_sizes.append(len(X))
-    self.assertEqual([3, 3, 3, 1], batch_sizes)
+    self.assertEqual([3, 3, 3, 1, 3, 3, 3, 1], batch_sizes)
 
   def test_disk_pad_batches(self):
     shard_sizes = [21, 11, 41, 21, 51]
@@ -663,9 +663,9 @@ class TestDatasets(test_util.TensorFlowTestCase):
         solubility_dataset)
     batch_sizes = []
     for X, y, _, _ in solubility_dataset.iterbatches(
-        3, pad_batches=False, deterministic=True):
+        3, epochs=2, pad_batches=False, deterministic=True):
       batch_sizes.append(len(X))
-    self.assertEqual([3, 3, 3, 1], batch_sizes)
+    self.assertEqual([3, 3, 3, 1, 3, 3, 3, 1], batch_sizes)
 
   def test_merge(self):
     """Test that dataset merge works."""
