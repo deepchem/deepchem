@@ -86,7 +86,7 @@ class ValidationCallback(object):
       for key in scores:
         model._log_value_to_tensorboard(tag=key, simple_value=scores[key])
     if model.wandb:
-      wandb.log(scores)
+      wandb.log(scores, step=step)
     if self.save_dir is not None:
       score = scores[self.metrics[self.save_metric].name]
       if not self.save_on_minimum:
