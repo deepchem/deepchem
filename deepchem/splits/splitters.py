@@ -13,11 +13,14 @@ import pandas as pd
 import itertools
 import os
 import deepchem as dc
+import logging
 from deepchem.data import DiskDataset
 from deepchem.utils import ScaffoldGenerator
 from deepchem.utils.save import log
 from deepchem.data import NumpyDataset
 from deepchem.utils.save import load_data
+
+logger = logging.getLogger(__name__)
 
 
 def generate_scaffold(smiles, include_chirality=False):
@@ -43,10 +46,6 @@ class Splitter(object):
   """
     Abstract base class for chemically aware splits..
     """
-
-  def __init__(self, verbose=False):
-    """Creates splitter object."""
-    self.verbose = verbose
 
   def k_fold_split(self, dataset, k, directories=None, **kwargs):
     """
@@ -75,7 +74,7 @@ class Splitter(object):
     :param kwargs:
     :return: list of length k tuples of (train, cv)
     """
-    log("Computing K-fold split", self.verbose)
+    logger.info("Computing K-fold split")
     if directories is None:
       directories = [tempfile.mkdtemp() for _ in range(2 * k)]
     else:
@@ -125,14 +124,12 @@ class Splitter(object):
                              frac_test=.1,
                              seed=None,
                              log_every_n=1000,
-                             verbose=True,
                              **kwargs):
-    """
-        Splits self into train/validation/test sets.
+    """ Splits self into train/validation/test sets.
 
-        Returns Dataset objects.
-        """
-    log("Computing train/valid/test indices", self.verbose)
+    Returns Dataset objects.
+    """
+    logger.info("Computing train/valid/test indices")
     train_inds, valid_inds, test_inds = self.split(
         dataset,
         seed=seed,
@@ -164,12 +161,10 @@ class Splitter(object):
                        test_dir=None,
                        seed=None,
                        frac_train=.8,
-                       verbose=True,
                        **kwargs):
+    """Splits self into train/test sets.
+    Returns Dataset objects.
     """
-        Splits self into train/test sets.
-        Returns Dataset objects.
-        """
     valid_dir = tempfile.mkdtemp()
     train_dataset, _, test_dataset = self.train_valid_test_split(
         dataset,
@@ -180,7 +175,6 @@ class Splitter(object):
         frac_test=1 - frac_train,
         frac_valid=0.,
         seed=seed,
-        verbose=verbose,
         **kwargs)
     return train_dataset, test_dataset
 
@@ -191,7 +185,6 @@ class Splitter(object):
             frac_valid=None,
             frac_test=None,
             log_every_n=None,
-            verbose=False,
             **kwargs):
     """
     Stub to be filled in by child classes.
@@ -400,7 +393,7 @@ class RandomStratifiedSplitter(Splitter):
 
   def k_fold_split(self, dataset, k, directories=None, **kwargs):
     """Needs custom implementation due to ragged splits for stratification."""
-    log("Computing K-fold split", self.verbose)
+    logger.info("Computing K-fold split")
     if directories is None:
       directories = [tempfile.mkdtemp() for _ in range(k)]
     else:
@@ -433,24 +426,21 @@ class SingletaskStratifiedSplitter(Splitter):
     >>> y = np.random.rand(n_samples, n_tasks)
     >>> w = np.ones_like(y)
     >>> dataset = DiskDataset.from_numpy(np.ones((100,n_tasks)), np.ones((100,n_tasks)))
-    >>> splitter = SingletaskStratifiedSplitter(task_number=5, verbose=False)
+    >>> splitter = SingletaskStratifiedSplitter(task_number=5)
     >>> train_dataset, test_dataset = splitter.train_test_split(dataset)
 
     """
 
-  def __init__(self, task_number=0, verbose=False):
+  def __init__(self, task_number=0):
     """
-        Creates splitter object.
+    Creates splitter object.
 
-        Parameters
-        ----------
-        task_number: int (Optional, Default 0)
-          Task number for stratification.
-        verbose: bool (Optional, Default False)
-          Controls logging frequency.
-        """
+    Parameters
+    ----------
+    task_number: int (Optional, Default 0)
+      Task number for stratification.
+    """
     self.task_number = task_number
-    self.verbose = verbose
 
   def k_fold_split(self,
                    dataset,
@@ -460,26 +450,26 @@ class SingletaskStratifiedSplitter(Splitter):
                    log_every_n=None,
                    **kwargs):
     """
-        Splits compounds into k-folds using stratified sampling.
-        Overriding base class k_fold_split.
+    Splits compounds into k-folds using stratified sampling.
+    Overriding base class k_fold_split.
 
-        Parameters
-        ----------
-        dataset: dc.data.Dataset object
-          Dataset.
-        k: int
-          Number of folds.
-        seed: int (Optional, Default None)
-          Random seed.
-        log_every_n: int (Optional, Default None)
-          Log every n examples (not currently used).
+    Parameters
+    ----------
+    dataset: dc.data.Dataset object
+      Dataset.
+    k: int
+      Number of folds.
+    seed: int (Optional, Default None)
+      Random seed.
+    log_every_n: int (Optional, Default None)
+      Log every n examples (not currently used).
 
-        Returns
-        -------
-        fold_datasets: List
-          List containing dc.data.Dataset objects
-        """
-    log("Computing K-fold split", self.verbose)
+    Returns
+    -------
+    fold_datasets: List
+      List containing dc.data.Dataset objects
+    """
+    logger.info("Computing K-fold split")
     if directories is None:
       directories = [tempfile.mkdtemp() for _ in range(k)]
     else:
@@ -731,16 +721,15 @@ class IndiceSplitter(Splitter):
     Class for splits based on input order.
     """
 
-  def __init__(self, verbose=False, valid_indices=None, test_indices=None):
+  def __init__(self, valid_indices=None, test_indices=None):
     """
-        Parameters
-        -----------
-        valid_indices: list of int
-            indices of samples in the valid set
-        test_indices: list of int
-            indices of samples in the test set
-        """
-    self.verbose = verbose
+    Parameters
+    -----------
+    valid_indices: list of int
+        indices of samples in the valid set
+    test_indices: list of int
+        indices of samples in the test set
+    """
     self.valid_indices = valid_indices
     self.test_indices = test_indices
 
@@ -752,8 +741,8 @@ class IndiceSplitter(Splitter):
             frac_test=.1,
             log_every_n=None):
     """
-        Splits internal compounds into train/validation/test in designated order.
-        """
+    Splits internal compounds into train/validation/test in designated order.
+    """
     num_datapoints = len(dataset)
     indices = np.arange(num_datapoints).tolist()
     train_indices = []
@@ -866,7 +855,7 @@ class ScaffoldSplitter(Splitter):
     valid_cutoff = (frac_train + frac_valid) * len(dataset)
     train_inds, valid_inds, test_inds = [], [], []
 
-    log("About to sort in scaffold sets", self.verbose)
+    logger.info("About to sort in scaffold sets")
     for scaffold_set in scaffold_sets:
       if len(train_inds) + len(scaffold_set) > train_cutoff:
         if len(train_inds) + len(valid_inds) + len(scaffold_set) > valid_cutoff:
@@ -884,10 +873,10 @@ class ScaffoldSplitter(Splitter):
     scaffolds = {}
     data_len = len(dataset)
 
-    log("About to generate scaffolds", self.verbose)
+    logger.info("About to generate scaffolds")
     for ind, smiles in enumerate(dataset.ids):
       if ind % log_every_n == 0:
-        log("Generating scaffold %d/%d" % (ind, data_len), self.verbose)
+        logger.info("Generating scaffold %d/%d" % (ind, data_len))
       scaffold = generate_scaffold(smiles)
       if scaffold not in scaffolds:
         scaffolds[scaffold] = [ind]
@@ -992,14 +981,13 @@ class FingerprintSplitter(Splitter):
 
 class SpecifiedSplitter(Splitter):
   """
-    Class that splits data according to user specification.
-    """
+  Class that splits data according to user specification.
+  """
 
-  def __init__(self, input_file, split_field, verbose=False):
+  def __init__(self, input_file, split_field):
     """Provide input information for splits."""
     raw_df = next(load_data([input_file], shard_size=None))
     self.splits = raw_df[split_field].values
-    self.verbose = verbose
 
   def split(self,
             dataset,
@@ -1009,8 +997,8 @@ class SpecifiedSplitter(Splitter):
             frac_test=.1,
             log_every_n=1000):
     """
-        Splits internal compounds into train/validation/test by user-specification.
-        """
+    Splits internal compounds into train/validation/test by user-specification.
+    """
     train_inds, valid_inds, test_inds = [], [], []
     for ind, split in enumerate(self.splits):
       split = split.lower()
@@ -1030,13 +1018,11 @@ class SpecifiedIndexSplitter(Splitter):
   Class that splits data according to user index specification
   """
 
-  def __init__(self, train_inds, valid_inds, test_inds, verbose=False):
+  def __init__(self, train_inds, valid_inds, test_inds):
     """Provide input information for splits."""
     self.train_inds = train_inds
     self.valid_inds = valid_inds
     self.test_inds = test_inds
-    self.verbose = verbose
-    super(SpecifiedIndexSplitter, self).__init__(verbose)
 
   def split(self,
             dataset,
@@ -1044,8 +1030,7 @@ class SpecifiedIndexSplitter(Splitter):
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
-            log_every_n=1000,
-            verbose=False):
+            log_every_n=1000):
     """
     Splits internal compounds into train/validation/test by user-specification.
     """
@@ -1054,10 +1039,9 @@ class SpecifiedIndexSplitter(Splitter):
 
 class TimeSplitterPDBbind(Splitter):
 
-  def __init__(self, ids, year_file=None, verbose=False):
+  def __init__(self, ids, year_file=None):
     self.ids = ids
     self.year_file = year_file
-    self.verbose = verbose
 
   def split(self,
             dataset,

@@ -5,6 +5,7 @@ __author__ = "Bharath Ramsundar, Aneesh Pappu"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
+import os
 import tempfile
 import unittest
 import numpy as np

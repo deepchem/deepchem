@@ -423,7 +423,7 @@ class TestDatasets(test_util.TensorFlowTestCase):
 
   def test_to_numpy(self):
     """Test that transformation to numpy arrays is sensible."""
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     data_shape = solubility_dataset.get_data_shape()
     tasks = solubility_dataset.get_task_names()
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
@@ -438,7 +438,7 @@ class TestDatasets(test_util.TensorFlowTestCase):
 
   def test_consistent_ordering(self):
     """Test that ordering of labels is consistent over time."""
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
 
     ids1 = solubility_dataset.ids
     ids2 = solubility_dataset.ids
@@ -447,7 +447,7 @@ class TestDatasets(test_util.TensorFlowTestCase):
 
   def test_get_statistics(self):
     """Test statistics computation of this dataset."""
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     X, y, _, _ = (solubility_dataset.X, solubility_dataset.y,
                   solubility_dataset.w, solubility_dataset.ids)
     X_means, y_means = np.mean(X, axis=0), np.mean(y, axis=0)
@@ -460,7 +460,7 @@ class TestDatasets(test_util.TensorFlowTestCase):
     np.testing.assert_allclose(comp_y_stds, y_stds)
 
   def test_disk_iterate_batch_size(self):
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     X, y, _, _ = (solubility_dataset.X, solubility_dataset.y,
                   solubility_dataset.w, solubility_dataset.ids)
     batch_sizes = []
@@ -685,7 +685,7 @@ class TestDatasets(test_util.TensorFlowTestCase):
           np.sort(all_ids, axis=0), np.sort(test_ids, axis=0))
 
   def test_numpy_iterate_batch_size(self):
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     X, y, _, _ = (solubility_dataset.X, solubility_dataset.y,
                   solubility_dataset.w, solubility_dataset.ids)
     solubility_dataset = dc.data.NumpyDataset.from_DiskDataset(
@@ -798,12 +798,12 @@ class TestDatasets(test_util.TensorFlowTestCase):
   @unittest.skipIf(PYTORCH_IMPORT_FAILED, 'PyTorch is not installed')
   def test_make_pytorch_dataset_from_disk(self):
     """Test creating a PyTorch Dataset from a DiskDataset."""
-    dataset = dc.data.tests.load_solubility_data()
+    dataset = load_solubility_data()
     self._validate_pytorch_dataset(dataset)
 
   def test_dataframe(self):
     """Test converting between Datasets and DataFrames."""
-    dataset = dc.data.tests.load_solubility_data()
+    dataset = load_solubility_data()
 
     # A round trip from Dataset to DataFrame to Dataset should produce identical arrays.
 
