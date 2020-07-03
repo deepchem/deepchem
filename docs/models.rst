@@ -23,8 +23,23 @@ KerasModel
 ----------
 DeepChem extensively uses `Keras`_ to build powerful machine learning models.
 
+Training loss and validation metrics can be automatically logged to `Weights & Biases`_ with the following commands::
+
+  # Install wandb in shell
+  pip install wandb
+
+  # Login in shell (required only once)
+  wandb login
+
+  # Start a W&B run in your script (refer to docs for optional parameters)
+  wandb.init(project="my project")
+
+  # Set `wandb` arg when creating `KerasModel`
+  model = KerasModel(…, wandb=True)
+
 .. _`Keras`: https://keras.io/
 
+.. _`Weights & Biases`: http://docs.wandb.com/
 
 .. autoclass:: deepchem.models.KerasModel
   :members:
