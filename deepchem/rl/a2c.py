@@ -4,7 +4,6 @@ from deepchem.models import KerasModel
 from deepchem.models.optimizers import Adam
 import numpy as np
 import tensorflow as tf
-import tensorflow_probability as tfp
 import collections
 import copy
 import multiprocessing
@@ -40,10 +39,20 @@ class A2CLossDiscrete(object):
 
 
 class A2CLossContinuous(object):
-  """This class computes the loss function for A2C with continuous action spaces."""
+  """This class computes the loss function for A2C with continuous action spaces.
+
+  Note
+  ----
+  This class requires tensorflow-probability to be installed.
+  """
 
   def __init__(self, value_weight, entropy_weight, mean_index, std_index,
                value_index):
+    try:
+      import tensorflow_probability as tfp
+    except ModuleNotFoundError:
+      raise ValueError(
+          "This class requires tensorflow-probability to be installed.")
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
     self.mean_index = mean_index
