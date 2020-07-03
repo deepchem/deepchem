@@ -1,4 +1,17 @@
+import sys
 from setuptools import setup, find_packages
+
+if '--release' in sys.argv:
+  release = True
+  sys.argv.remove('--release')
+else:
+  # Build a nightly package by default.
+  release = False
+
+if release:
+  project_name = 'deepchem'
+else:
+  project_name = 'deepchem-nightly'
 
 
 # get the version from deepchem/__init__.py
@@ -13,7 +26,7 @@ def _get_version():
 
 
 setup(
-    name='deepchem',
+    name=project_name,
     version=_get_version(),
     url='https://github.com/deepchem/deepchem',
     maintainer='DeepChem contributors',
@@ -33,6 +46,9 @@ setup(
         quantum chemistry, and the life sciences.',
     keywords=[
         'deepchem',
+        'chemistry',
+        'biology',
+        'materials-science',
         'life-science',
         'drug-discovery',
     ],
