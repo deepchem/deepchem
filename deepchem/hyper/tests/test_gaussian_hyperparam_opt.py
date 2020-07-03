@@ -149,7 +149,6 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
             n_features=3,
             dropouts=[0.],
             weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
-            #learning_rate=0.003, **p))
             **p))
 
     params_dict = {"learning_rate": 0.003, "batch_size": 10}
