@@ -17,7 +17,7 @@ class TestDNASim(unittest.TestCase):
         "num_neg": 30,
         "GC_fraction": 0.4
     }
-    sequences, y, embed = dc.molnet.simulate_motif_density_localization(
+    sequences, y, embed = dc.applications.genomics.simulate_motif_density_localization(
         **params)
     assert sequences.shape == (60,)
     assert y.shape == (60, 1)
@@ -33,7 +33,8 @@ class TestDNASim(unittest.TestCase):
         "num_neg": 30,
         "GC_fraction": 0.4
     }
-    sequences, y, embed = dc.molnet.simulate_motif_counting(**params)
+    sequences, y, embed = dc.applications.genomics.simulate_motif_counting(
+        **params)
     assert sequences.shape == (60,)
     assert y.shape == (60, 1)
 
@@ -45,7 +46,7 @@ class TestDNASim(unittest.TestCase):
         "num_seqs": 30,
         "GC_fraction": 0.4
     }
-    sequences, embed = dc.molnet.simple_motif_embedding(**params)
+    sequences, embed = dc.applications.genomics.simple_motif_embedding(**params)
     assert sequences.shape == (30,)
 
   def test_motif_density(self):
@@ -58,7 +59,7 @@ class TestDNASim(unittest.TestCase):
         "max_counts": 4,
         "GC_fraction": 0.4
     }
-    sequences, embed = dc.molnet.motif_density(**params)
+    sequences, embed = dc.applications.genomics.motif_density(**params)
     assert sequences.shape == (30,)
 
   def test_single_motif_detection(self):
@@ -70,6 +71,7 @@ class TestDNASim(unittest.TestCase):
         "num_neg": 30,
         "GC_fraction": 0.4
     }
-    sequences, y, embed = dc.molnet.simulate_single_motif_detection(**params)
+    sequences, y, embed = dc.applications.genomics.simulate_single_motif_detection(
+        **params)
     assert sequences.shape == (60,)
     assert y.shape == (60, 1)
