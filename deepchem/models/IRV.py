@@ -87,7 +87,7 @@ class MultitaskIRVClassifier(KerasModel):
                penalty=0.0,
                mode="classification",
                **kwargs):
-    """Initialize TensorflowMultitaskIRVClassifier
+    """Initialize MultitaskIRVClassifier
 
     Parameters
     ----------
@@ -119,7 +119,7 @@ class MultitaskIRVClassifier(KerasModel):
         if len(logits) == 1 else Concatenate(axis=1)(logits)
     ]
     model = tf.keras.Model(inputs=[mol_features], outputs=outputs)
-    super(TensorflowMultitaskIRVClassifier, self).__init__(
+    super(MultitaskIRVClassifier, self).__init__(
         model,
         SigmoidCrossEntropy(),
         output_types=['prediction', 'loss'],
