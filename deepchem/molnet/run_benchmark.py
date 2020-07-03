@@ -15,42 +15,8 @@ from deepchem.molnet.preset_hyper_parameters import hps
 
 logger = logging.getLogger(__name__)
 
+
 # Loading functions available
-loading_functions = {
-    'bace_c': deepchem.molnet.load_bace_classification,
-    'bace_r': deepchem.molnet.load_bace_regression,
-    'bbbp': deepchem.molnet.load_bbbp,
-    'chembl': deepchem.molnet.load_chembl,
-    'clearance': deepchem.molnet.load_clearance,
-    'clintox': deepchem.molnet.load_clintox,
-    'delaney': deepchem.molnet.load_delaney,
-    'factors': deepchem.molnet.load_factors,
-    'hiv': deepchem.molnet.load_hiv,
-    'hopv': deepchem.molnet.load_hopv,
-    'hppb': deepchem.molnet.load_hppb,
-    'kaggle': deepchem.molnet.load_kaggle,
-    'kinase': deepchem.molnet.load_kinase,
-    'lipo': deepchem.molnet.load_lipo,
-    'muv': deepchem.molnet.load_muv,
-    'nci': deepchem.molnet.load_nci,
-    'pcba': deepchem.molnet.load_pcba,
-    'pcba_146': deepchem.molnet.load_pcba_146,
-    'pcba_2475': deepchem.molnet.load_pcba_2475,
-    'pdbbind': deepchem.molnet.load_pdbbind_grid,
-    'ppb': deepchem.molnet.load_ppb,
-    'qm7': deepchem.molnet.load_qm7_from_mat,
-    'qm7b': deepchem.molnet.load_qm7b_from_mat,
-    'qm8': deepchem.molnet.load_qm8,
-    'qm9': deepchem.molnet.load_qm9,
-    'sampl': deepchem.molnet.load_sampl,
-    'sider': deepchem.molnet.load_sider,
-    'thermosol': deepchem.molnet.load_thermosol,
-    'tox21': deepchem.molnet.load_tox21,
-    'toxcast': deepchem.molnet.load_toxcast,
-    'uv': deepchem.molnet.load_uv,
-}
-
-
 def run_benchmark(datasets,
                   model,
                   split=None,
@@ -115,6 +81,40 @@ def run_benchmark(datasets,
   reload: boolean, optional(default=True)
       whether to save and reload featurized datasets
   """
+  loading_functions = {
+      'bace_c': deepchem.molnet.load_bace_classification,
+      'bace_r': deepchem.molnet.load_bace_regression,
+      'bbbp': deepchem.molnet.load_bbbp,
+      'chembl': deepchem.molnet.load_chembl,
+      'clearance': deepchem.molnet.load_clearance,
+      'clintox': deepchem.molnet.load_clintox,
+      'delaney': deepchem.molnet.load_delaney,
+      'factors': deepchem.molnet.load_factors,
+      'hiv': deepchem.molnet.load_hiv,
+      'hopv': deepchem.molnet.load_hopv,
+      'hppb': deepchem.molnet.load_hppb,
+      'kaggle': deepchem.molnet.load_kaggle,
+      'kinase': deepchem.molnet.load_kinase,
+      'lipo': deepchem.molnet.load_lipo,
+      'muv': deepchem.molnet.load_muv,
+      'nci': deepchem.molnet.load_nci,
+      'pcba': deepchem.molnet.load_pcba,
+      'pcba_146': deepchem.molnet.load_pcba_146,
+      'pcba_2475': deepchem.molnet.load_pcba_2475,
+      'pdbbind': deepchem.molnet.load_pdbbind_grid,
+      'ppb': deepchem.molnet.load_ppb,
+      'qm7': deepchem.molnet.load_qm7_from_mat,
+      'qm7b': deepchem.molnet.load_qm7b_from_mat,
+      'qm8': deepchem.molnet.load_qm8,
+      'qm9': deepchem.molnet.load_qm9,
+      'sampl': deepchem.molnet.load_sampl,
+      'sider': deepchem.molnet.load_sider,
+      'thermosol': deepchem.molnet.load_thermosol,
+      'tox21': deepchem.molnet.load_tox21,
+      'toxcast': deepchem.molnet.load_toxcast,
+      'uv': deepchem.molnet.load_uv,
+  }
+
   for dataset in datasets:
     if dataset in [
         'bace_c', 'bbbp', 'clintox', 'hiv', 'muv', 'pcba', 'pcba_146',
