@@ -79,7 +79,7 @@ class Slice(Layer):
     return tf.slice(inputs, [0] * axis + [slice_num], [-1] * axis + [1])
 
 
-class TensorflowMultitaskIRVClassifier(KerasModel):
+class MultitaskIRVClassifier(KerasModel):
 
   def __init__(self,
                n_tasks,
@@ -87,7 +87,7 @@ class TensorflowMultitaskIRVClassifier(KerasModel):
                penalty=0.0,
                mode="classification",
                **kwargs):
-    """Initialize TensorflowMultitaskIRVClassifier
+    """Initialize MultitaskIRVClassifier
 
     Parameters
     ----------
@@ -119,8 +119,19 @@ class TensorflowMultitaskIRVClassifier(KerasModel):
         if len(logits) == 1 else Concatenate(axis=1)(logits)
     ]
     model = tf.keras.Model(inputs=[mol_features], outputs=outputs)
-    super(TensorflowMultitaskIRVClassifier, self).__init__(
+    super(MultitaskIRVClassifier, self).__init__(
         model,
         SigmoidCrossEntropy(),
         output_types=['prediction', 'loss'],
         **kwargs)
+
+
+class TensorflowMultitaskIRVClassifier(MultitaskIRVClassifier):
+
+  def __init__(self, *args, **kwargs):
+
+    warnings.warn(
+        "TensorflowMultitaskIRVClassifier is deprecated and has been renamed to MultitaskIRVClassifier",
+        FutureWarning)
+
+    super(TensorflowMultitaskIRVClassifier, self).__init__(*args, **kwargs)
