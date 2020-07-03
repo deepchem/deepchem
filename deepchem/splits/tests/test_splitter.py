@@ -13,13 +13,71 @@ from deepchem.data import NumpyDataset
 from deepchem.splits import IndexSplitter
 
 
+def load_sparse_multitask_dataset():
+  """Load sparse tox multitask data, sample dataset."""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  featurizer = dc.feat.CircularFingerprint(size=1024)
+  tasks = [
+      "task1", "task2", "task3", "task4", "task5", "task6", "task7", "task8",
+      "task9"
+  ]
+  input_file = os.path.join(current_dir,
+                            "../../models/tests/sparse_multitask_example.csv")
+  loader = dc.data.CSVLoader(
+      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+  return loader.featurize(input_file)
+
+
+def load_multitask_data():
+  """Load example multitask data."""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  featurizer = dc.feat.CircularFingerprint(size=1024)
+  tasks = [
+      "task0", "task1", "task2", "task3", "task4", "task5", "task6", "task7",
+      "task8", "task9", "task10", "task11", "task12", "task13", "task14",
+      "task15", "task16"
+  ]
+  input_file = os.path.join(current_dir,
+                            "../../models/tests/multitask_example.csv")
+  loader = dc.data.CSVLoader(
+      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+  return loader.featurize(input_file)
+
+
+def load_solubility_data():
+  """Loads solubility dataset"""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  featurizer = dc.feat.CircularFingerprint(size=1024)
+  tasks = ["log-solubility"]
+  task_type = "regression"
+  input_file = os.path.join(current_dir, "../../models/tests/example.csv")
+  loader = dc.data.CSVLoader(
+      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+
+  return loader.featurize(input_file)
+
+
+def load_butina_data():
+  """Loads solubility dataset"""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  featurizer = dc.feat.CircularFingerprint(size=1024)
+  tasks = ["task"]
+  # task_type = "regression"
+  input_file = os.path.join(current_dir,
+                            "../../models/tests/butina_example.csv")
+  loader = dc.data.CSVLoader(
+      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+
+  return loader.featurize(input_file)
+
+
 class TestSplitter(unittest.TestCase):
   """
   Test some basic splitters.
   """
 
   def test_random_group_split(self):
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
 
     groups = [0, 4, 1, 2, 3, 7, 0, 3, 1, 0]
     # 0 1 2 3 4 5 6 7 8 9
@@ -48,7 +106,7 @@ class TestSplitter(unittest.TestCase):
     """
     Test singletask RandomSplitter class.
     """
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     random_splitter = dc.splits.RandomSplitter()
     train_data, valid_data, test_data = \
       random_splitter.train_valid_test_split(
@@ -65,7 +123,7 @@ class TestSplitter(unittest.TestCase):
     """
     Test singletask IndexSplitter class.
     """
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     random_splitter = dc.splits.IndexSplitter()
     train_data, valid_data, test_data = \
       random_splitter.train_valid_test_split(
@@ -86,7 +144,7 @@ class TestSplitter(unittest.TestCase):
     """
     Test singletask ScaffoldSplitter class.
     """
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     scaffold_splitter = dc.splits.ScaffoldSplitter()
     train_data, valid_data, test_data = \
       scaffold_splitter.train_valid_test_split(
@@ -99,7 +157,7 @@ class TestSplitter(unittest.TestCase):
     """
     Test singletask Fingerprint class.
     """
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     assert (len(solubility_dataset.X) == 10)
     scaffold_splitter = dc.splits.FingerprintSplitter()
     train_data, valid_data, test_data = \
@@ -116,7 +174,7 @@ class TestSplitter(unittest.TestCase):
     """
     Test singletask SingletaskStratifiedSplitter class.
     """
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     stratified_splitter = dc.splits.ScaffoldSplitter()
     train_data, valid_data, test_data = \
       stratified_splitter.train_valid_test_split(
@@ -133,7 +191,7 @@ class TestSplitter(unittest.TestCase):
     """
     Test singletask MaxMinSplitter class.
     """
-    solubility_dataset = dc.data.tests.load_butina_data()
+    solubility_dataset = load_butina_data()
     maxmin_splitter = dc.splits.MaxMinSplitter()
     train_data, valid_data, test_data = \
       maxmin_splitter.train_valid_test_split(
@@ -146,7 +204,7 @@ class TestSplitter(unittest.TestCase):
     """
     Test singletask ButinaSplitter class.
     """
-    solubility_dataset = dc.data.tests.load_butina_data()
+    solubility_dataset = load_butina_data()
     butina_splitter = dc.splits.ButinaSplitter()
     train_data, valid_data, test_data = \
       butina_splitter.train_valid_test_split(
@@ -177,7 +235,7 @@ class TestSplitter(unittest.TestCase):
     """
     Test singletask RandomSplitter class.
     """
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     random_splitter = dc.splits.RandomSplitter()
     ids_set = set(solubility_dataset.ids)
 
@@ -202,7 +260,7 @@ class TestSplitter(unittest.TestCase):
     """
     Test singletask IndexSplitter class.
     """
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     index_splitter = dc.splits.IndexSplitter()
     ids_set = set(solubility_dataset.ids)
 
@@ -232,7 +290,7 @@ class TestSplitter(unittest.TestCase):
     """
     Test singletask ScaffoldSplitter class.
     """
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     scaffold_splitter = dc.splits.ScaffoldSplitter()
     ids_set = set(solubility_dataset.ids)
 
@@ -469,7 +527,7 @@ class TestSplitter(unittest.TestCase):
     """
     Test multitask RandomSplitter class.
     """
-    multitask_dataset = dc.data.tests.load_multitask_data()
+    multitask_dataset = load_multitask_data()
     random_splitter = dc.splits.RandomSplitter()
     train_data, valid_data, test_data = \
       random_splitter.train_valid_test_split(
@@ -482,7 +540,7 @@ class TestSplitter(unittest.TestCase):
     """
     Test multitask IndexSplitter class.
     """
-    multitask_dataset = dc.data.tests.load_multitask_data()
+    multitask_dataset = load_multitask_data()
     index_splitter = dc.splits.IndexSplitter()
     train_data, valid_data, test_data = \
       index_splitter.train_valid_test_split(
@@ -495,7 +553,7 @@ class TestSplitter(unittest.TestCase):
     """
     Test multitask ScaffoldSplitter class.
     """
-    multitask_dataset = dc.data.tests.load_multitask_data()
+    multitask_dataset = load_multitask_data()
     scaffold_splitter = dc.splits.ScaffoldSplitter()
     train_data, valid_data, test_data = \
       scaffold_splitter.train_valid_test_split(
@@ -511,7 +569,7 @@ class TestSplitter(unittest.TestCase):
     # sparsity is determined by number of w weights that are 0 for a given
     # task structure of w np array is such that each row corresponds to a
     # sample. The loaded sparse dataset has many rows with only zeros
-    sparse_dataset = dc.data.tests.load_sparse_multitask_dataset()
+    sparse_dataset = load_sparse_multitask_dataset()
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
     datasets = stratified_splitter.train_valid_test_split(
@@ -526,7 +584,7 @@ class TestSplitter(unittest.TestCase):
 
   def test_indice_split(self):
 
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     random_splitter = dc.splits.IndiceSplitter(
         valid_indices=[7], test_indices=[8])
     train_data, valid_data, test_data = \
@@ -538,7 +596,7 @@ class TestSplitter(unittest.TestCase):
 
   def test_random_seed(self):
     """Test that splitters use the random seed correctly."""
-    dataset = dc.data.tests.load_solubility_data()
+    dataset = load_solubility_data()
     splitter = dc.splits.RandomSplitter()
     train1, valid1, test1 = splitter.train_valid_test_split(dataset, seed=1)
     train2, valid2, test2 = splitter.train_valid_test_split(dataset, seed=2)

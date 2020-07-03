@@ -24,6 +24,35 @@ except ImportError:
   PYTORCH_IMPORT_FAILED = True
 
 
+def load_solubility_data():
+  """Loads solubility dataset"""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  featurizer = dc.feat.CircularFingerprint(size=1024)
+  tasks = ["log-solubility"]
+  task_type = "regression"
+  input_file = os.path.join(current_dir, "../../models/tests/example.csv")
+  loader = dc.data.CSVLoader(
+      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+
+  return loader.create_dataset(input_file)
+
+
+def load_multitask_data():
+  """Load example multitask data."""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  featurizer = dc.feat.CircularFingerprint(size=1024)
+  tasks = [
+      "task0", "task1", "task2", "task3", "task4", "task5", "task6", "task7",
+      "task8", "task9", "task10", "task11", "task12", "task13", "task14",
+      "task15", "task16"
+  ]
+  input_file = os.path.join(current_dir,
+                            "../../models/tests/multitask_example.csv")
+  loader = dc.data.CSVLoader(
+      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+  return loader.featurize(input_file)
+
+
 class TestDatasets(test_util.TensorFlowTestCase):
   """
   Test basic top-level API for dataset objects.
@@ -172,10 +201,10 @@ class TestDatasets(test_util.TensorFlowTestCase):
 
   def test_get_task_names(self):
     """Test that get_task_names returns correct task_names"""
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     assert solubility_dataset.get_task_names() == ["log-solubility"]
 
-    multitask_dataset = dc.data.tests.load_multitask_data()
+    multitask_dataset = load_multitask_data()
     assert sorted(multitask_dataset.get_task_names()) == sorted([
         "task0", "task1", "task2", "task3", "task4", "task5", "task6", "task7",
         "task8", "task9", "task10", "task11", "task12", "task13", "task14",
@@ -184,20 +213,20 @@ class TestDatasets(test_util.TensorFlowTestCase):
 
   def test_get_data_shape(self):
     """Test that get_data_shape returns currect data shape"""
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     assert solubility_dataset.get_data_shape() == (1024,)
 
-    multitask_dataset = dc.data.tests.load_multitask_data()
+    multitask_dataset = load_multitask_data()
     assert multitask_dataset.get_data_shape() == (1024,)
 
   def test_len(self):
     """Test that len(dataset) works."""
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     assert len(solubility_dataset) == 10
 
   def test_reshard(self):
     """Test that resharding the dataset works."""
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
                     solubility_dataset.w, solubility_dataset.ids)
     assert solubility_dataset.get_number_shards() == 1
@@ -302,7 +331,7 @@ class TestDatasets(test_util.TensorFlowTestCase):
 
   def test_iterbatches(self):
     """Test that iterating over batches of data works."""
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     batch_size = 2
     data_shape = solubility_dataset.get_data_shape()
     tasks = solubility_dataset.get_task_names()
@@ -331,7 +360,7 @@ class TestDatasets(test_util.TensorFlowTestCase):
 
   def test_itersamples_disk(self):
     """Test that iterating over samples in a DiskDataset works."""
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     X = solubility_dataset.X
     y = solubility_dataset.y
     w = solubility_dataset.w
@@ -372,7 +401,7 @@ class TestDatasets(test_util.TensorFlowTestCase):
 
   def test_transform_disk(self):
     """Test that the transform() method works for DiskDatasets."""
-    dataset = dc.data.tests.load_solubility_data()
+    dataset = load_solubility_data()
     X = dataset.X
     y = dataset.y
     w = dataset.w
