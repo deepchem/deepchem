@@ -59,6 +59,7 @@ DeepChem has a number of "soft" requirements. These are packages which are neede
 - [RDKit](http://www.rdkit.org/docs/Install.html)
 - [simdna](https://github.com/kundajelab/simdna)
 - [XGBoost](https://xgboost.readthedocs.io/en/latest/)
+- [Weights & Biases](https://docs.wandb.com/)
 
 ## Installation
 
