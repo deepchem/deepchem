@@ -21,6 +21,15 @@ except:
   from urllib import urlretrieve  # Python 2
 
 
+class TensorFlowStub(object):
+  """This class provides a stub to handle TensorFlow import failures."""
+
+  def __init__(self, *args, **kwargs):
+    raise ModuleNotFoundError(
+        "The class '%s' cannot be used because TensorFlow is not installed" %
+        type(self).__name__)
+
+
 def pad_array(x, shape, fill=0, both=False):
   """
   Pad an array with a fill value.
