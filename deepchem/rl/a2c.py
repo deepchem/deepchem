@@ -33,7 +33,6 @@ class A2CLossDiscrete(object):
     self.value_index = value_index
 
   def __call__(self, outputs, labels, weights):
-    import tensorflow as tf
     prob = outputs[self.action_prob_index]
     value = outputs[self.value_index]
     reward, advantage = weights
