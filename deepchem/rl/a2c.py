@@ -60,6 +60,7 @@ class A2CLossContinuous(object):
     self.value_index = value_index
 
   def __call__(self, outputs, labels, weights):
+    import tensorflow_probability as tfp
     mean = outputs[self.mean_index]
     std = outputs[self.std_index]
     value = outputs[self.value_index]

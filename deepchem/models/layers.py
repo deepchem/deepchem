@@ -2267,6 +2267,7 @@ class WeaveGather(tf.keras.layers.Layer):
     return output_molecules
 
   def gaussian_histogram(self, x):
+    import tensorflow_probability as tfp
     gaussian_memberships = [(-1.645, 0.283), (-1.080, 0.170), (-0.739, 0.134),
                             (-0.468, 0.118), (-0.228, 0.114), (0., 0.114),
                             (0.228, 0.114), (0.468, 0.118), (0.739, 0.134),
