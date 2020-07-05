@@ -81,3 +81,71 @@ class ChemBERTaforSequenceClassification(BertPreTrainedModel):
             outputs = (loss,) + outputs
 
         return outputs  # (loss), logits, (hidden_states), (attentions)
+
+# BELOW code is taken from modles.py methods, for basic idea of structure to follow.
+
+  def fit(self, dataset, nb_epoch=10, batch_size=32, **kwargs):
+    """
+    Fits a model on data in a Dataset object.
+    """
+    # TODO(rbharath/enf): We need a structured way to deal with potential GPU
+    #                     memory overflows.
+    for epoch in range(nb_epoch):
+      log("Starting epoch %s" % str(epoch + 1), self.verbose)
+      losses = []
+      for (X_batch, y_batch, w_batch,
+           ids_batch) in dataset.iterbatches(batch_size):
+        losses.append(self.fit_on_batch(X_batch, y_batch, w_batch))
+      log("Avg loss for epoch %d: %f" % (epoch + 1, np.array(losses).mean()),
+          self.verbose)
+
+  def predict(self, dataset, transformers=[], batch_size=None):
+    """
+    Uses self to make predictions on provided Dataset object.
+
+    Returns:
+      y_pred: numpy ndarray of shape (n_samples,)
+    """
+    y_preds = []
+    n_tasks = self.get_num_tasks()
+    ind = 0
+
+    for (X_batch, _, _, ids_batch) in dataset.iterbatches(
+        batch_size, deterministic=True):
+      n_samples = len(X_batch)
+      y_pred_batch = self.predict_on_batch(X_batch)
+      # Discard any padded predictions
+      y_pred_batch = y_pred_batch[:n_samples]
+      y_pred_batch = undo_transforms(y_pred_batch, transformers)
+      y_preds.append(y_pred_batch)
+    y_pred = np.concatenate(y_preds)
+    return y_pred
+
+  def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):
+    """
+    Evaluates the performance of this model on specified dataset.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset object.
+    metric: deepchem.metrics.Metric
+      Evaluation metric
+    transformers: list
+      List of deepchem.transformers.Transformer
+    per_task_metrics: bool
+      If True, return per-task scores.
+
+    Returns
+    -------
+    dict
+      Maps tasks to scores under metric.
+    """
+    evaluator = Evaluator(self, dataset, transformers)
+    if not per_task_metrics:
+      scores = evaluator.compute_model_performance(metrics)
+      return scores
+    else:
+      scores, per_task_scores = evaluator.compute_model_performance(
+          metrics, per_task_metrics=per_task_metrics)
+      return scores, per_task_scores
