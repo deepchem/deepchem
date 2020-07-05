@@ -122,6 +122,11 @@ class A2C(object):
   except specifying the new goal.  It should return that list of states, and the rewards that would
   have been received for taking the specified actions from those states.  The output arrays may be
   shorter than the input ones, if the modified rollout would have terminated sooner.
+
+
+  Note
+  ----
+  Using this class on continuous action spaces requires that `tensorflow_probability` be installed.
   """
 
   def __init__(self,
