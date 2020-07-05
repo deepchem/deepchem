@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
-import tensorflow_probability as tfp
 import numpy as np
 import collections
 from tensorflow.keras import activations, initializers, backend
@@ -2184,6 +2183,17 @@ class WeaveLayer(tf.keras.layers.Layer):
 
 
 class WeaveGather(tf.keras.layers.Layer):
+  """Implements the weave-gathering section of weave convolutions.
+
+  Implements the gathering layer from the following paper:
+
+  Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+  fingerprints." Journal of computer-aided molecular design 30.8 (2016): 595-608.
+
+  The weave gathering layer gathers	per-atom features to create a
+  molecule-level fingerprint in a weave convolutional network. This layer can
+  also perform Gaussian histogram expansion as detailed in the original paper.
+  """
 
   def __init__(self,
                batch_size,
@@ -2208,6 +2218,11 @@ class WeaveGather(tf.keras.layers.Layer):
     activation: str, optional
       Activation function applied
     """
+    try:
+      import tensorflow_probability as tfp
+    except ModuleNotFoundError:
+      raise ValueError(
+          "This class requires tensorflow-probability to be installed.")
     super(WeaveGather, self).__init__(**kwargs)
     self.n_input = n_input
     self.batch_size = batch_size
@@ -2252,6 +2267,7 @@ class WeaveGather(tf.keras.layers.Layer):
     return output_molecules
 
   def gaussian_histogram(self, x):
+    import tensorflow_probability as tfp
     gaussian_memberships = [(-1.645, 0.283), (-1.080, 0.170), (-0.739, 0.134),
                             (-0.468, 0.118), (-0.228, 0.114), (0., 0.114),
                             (0.228, 0.114), (0.468, 0.118), (0.739, 0.134),
