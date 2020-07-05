@@ -18,6 +18,86 @@ import tensorflow as tf
 import scipy.ndimage
 
 
+def load_classification_data():
+  """Loads classification data from example.csv"""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  featurizer = dc.feat.CircularFingerprint(size=1024)
+  tasks = ["outcome"]
+  task_type = "classification"
+  input_file = os.path.join(current_dir,
+                            "../../models/tests/example_classification.csv")
+  loader = dc.data.CSVLoader(
+      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+  return loader.featurize(input_file)
+
+
+def load_multitask_data():
+  """Load example multitask data."""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  featurizer = dc.feat.CircularFingerprint(size=1024)
+  tasks = [
+      "task0", "task1", "task2", "task3", "task4", "task5", "task6", "task7",
+      "task8", "task9", "task10", "task11", "task12", "task13", "task14",
+      "task15", "task16"
+  ]
+  input_file = os.path.join(current_dir,
+                            "../../models/tests/multitask_example.csv")
+  loader = dc.data.CSVLoader(
+      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+  return loader.featurize(input_file)
+
+
+def load_solubility_data():
+  """Loads solubility dataset"""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  featurizer = dc.feat.CircularFingerprint(size=1024)
+  tasks = ["log-solubility"]
+  task_type = "regression"
+  input_file = os.path.join(current_dir, "../../models/tests/example.csv")
+  loader = dc.data.CSVLoader(
+      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+
+  return loader.create_dataset(input_file)
+
+
+def load_feat_multitask_data():
+  """Load example with numerical features, tasks."""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  features = ["feat0", "feat1", "feat2", "feat3", "feat4", "feat5"]
+  featurizer = dc.feat.UserDefinedFeaturizer(features)
+  tasks = ["task0", "task1", "task2", "task3", "task4", "task5"]
+  input_file = os.path.join(current_dir,
+                            "../../models/tests/feat_multitask_example.csv")
+  loader = dc.data.UserCSVLoader(
+      tasks=tasks, featurizer=featurizer, id_field="id")
+  return loader.featurize(input_file)
+
+
+def load_gaussian_cdf_data():
+  """Load example with numbers sampled from Gaussian normal distribution.
+     Each feature and task is a column of values that is sampled
+     from a normal distribution of mean 0, stdev 1."""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  features = ["feat0", "feat1"]
+  featurizer = dc.feat.UserDefinedFeaturizer(features)
+  tasks = ["task0", "task1"]
+  input_file = os.path.join(current_dir,
+                            "../../models/tests/gaussian_cdf_example.csv")
+  loader = dc.data.UserCSVLoader(
+      tasks=tasks, featurizer=featurizer, id_field="id")
+  return loader.featurize(input_file)
+
+
+def load_unlabelled_data():
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  featurizer = dc.feat.CircularFingerprint(size=1024)
+  tasks = []
+  input_file = os.path.join(current_dir, "../../data/tests/no_labels.csv")
+  loader = dc.data.CSVLoader(
+      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+  return loader.featurize(input_file)
+
+
 class TestTransformers(unittest.TestCase):
   """
   Test top-level API for transformer objects.
@@ -39,7 +119,7 @@ class TestTransformers(unittest.TestCase):
 
   def test_y_log_transformer(self):
     """Tests logarithmic data transformer."""
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     log_transformer = dc.trans.LogTransformer(
         transform_y=True, dataset=solubility_dataset)
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
@@ -62,7 +142,7 @@ class TestTransformers(unittest.TestCase):
     np.testing.assert_allclose(log_transformer.untransform(y_t), y)
 
   def test_transform_unlabelled(self):
-    ul_dataset = dc.data.tests.load_unlabelled_data()
+    ul_dataset = load_unlabelled_data()
     # transforming y should raise an exception
     with self.assertRaises(ValueError) as context:
       dc.trans.transformers.Transformer(transform_y=True).transform(ul_dataset)
@@ -77,7 +157,7 @@ class TestTransformers(unittest.TestCase):
 
   def test_X_log_transformer(self):
     """Tests logarithmic data transformer."""
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     log_transformer = dc.trans.LogTransformer(
         transform_X=True, dataset=solubility_dataset)
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
@@ -101,7 +181,7 @@ class TestTransformers(unittest.TestCase):
 
   def test_y_log_transformer_select(self):
     """Tests logarithmic data transformer with selection."""
-    multitask_dataset = dc.data.tests.load_feat_multitask_data()
+    multitask_dataset = load_feat_multitask_data()
     dfe = pd.read_csv(
         os.path.join(self.current_dir,
                      "../../models/tests/feat_multitask_example.csv"))
@@ -135,7 +215,7 @@ class TestTransformers(unittest.TestCase):
 
   def test_X_log_transformer_select(self):
     # Tests logarithmic data transformer with selection.
-    multitask_dataset = dc.data.tests.load_feat_multitask_data()
+    multitask_dataset = load_feat_multitask_data()
     dfe = pd.read_csv(
         os.path.join(self.current_dir,
                      "../../models/tests/feat_multitask_example.csv"))
@@ -169,7 +249,7 @@ class TestTransformers(unittest.TestCase):
 
   def test_y_minmax_transformer(self):
     """Tests MinMax transformer. """
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     minmax_transformer = dc.trans.MinMaxTransformer(
         transform_y=True, dataset=solubility_dataset)
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
@@ -229,7 +309,7 @@ class TestTransformers(unittest.TestCase):
     np.testing.assert_allclose(np.squeeze(y_restored, axis=-1), y)
 
   def test_X_minmax_transformer(self):
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     minmax_transformer = dc.trans.MinMaxTransformer(
         transform_X=True, dataset=solubility_dataset)
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
@@ -256,7 +336,7 @@ class TestTransformers(unittest.TestCase):
 
   def test_y_normalization_transformer(self):
     """Tests normalization transformer."""
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     normalization_transformer = dc.trans.NormalizationTransformer(
         transform_y=True, dataset=solubility_dataset)
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
@@ -280,7 +360,7 @@ class TestTransformers(unittest.TestCase):
 
   def test_X_normalization_transformer(self):
     """Tests normalization transformer."""
-    solubility_dataset = dc.data.tests.load_solubility_data()
+    solubility_dataset = load_solubility_data()
     normalization_transformer = dc.trans.NormalizationTransformer(
         transform_X=True, dataset=solubility_dataset)
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
@@ -315,7 +395,7 @@ class TestTransformers(unittest.TestCase):
     """Test CDF transformer on Gaussian normal dataset."""
     target = np.array(np.transpose(np.linspace(0., 1., 1001)))
     target = np.transpose(np.array(np.append([target], [target], axis=0)))
-    gaussian_dataset = dc.data.tests.load_gaussian_cdf_data()
+    gaussian_dataset = load_gaussian_cdf_data()
     bins = 1001
     cdf_transformer = dc.trans.CDFTransformer(
         transform_X=True, dataset=gaussian_dataset, bins=bins)
@@ -340,7 +420,7 @@ class TestTransformers(unittest.TestCase):
     # Test CDF transformer on Gaussian normal dataset.
     target = np.array(np.transpose(np.linspace(0., 1., 1001)))
     target = np.transpose(np.array(np.append([target], [target], axis=0)))
-    gaussian_dataset = dc.data.tests.load_gaussian_cdf_data()
+    gaussian_dataset = load_gaussian_cdf_data()
     bins = 1001
     cdf_transformer = dc.trans.CDFTransformer(
         transform_y=True, dataset=gaussian_dataset, bins=bins)
@@ -418,7 +498,7 @@ class TestTransformers(unittest.TestCase):
 
   def test_power_X_transformer(self):
     """Test Power transformer on Gaussian normal dataset."""
-    gaussian_dataset = dc.data.tests.load_gaussian_cdf_data()
+    gaussian_dataset = load_gaussian_cdf_data()
     powers = [1, 2, 0.5]
     power_transformer = dc.trans.PowerTransformer(
         transform_X=True, powers=powers)
@@ -443,7 +523,7 @@ class TestTransformers(unittest.TestCase):
 
   def test_power_y_transformer(self):
     """Test Power transformer on Gaussian normal dataset."""
-    gaussian_dataset = dc.data.tests.load_gaussian_cdf_data()
+    gaussian_dataset = load_gaussian_cdf_data()
     powers = [1, 2, 0.5]
     power_transformer = dc.trans.PowerTransformer(
         transform_y=True, powers=powers)
@@ -472,7 +552,7 @@ class TestTransformers(unittest.TestCase):
   def test_singletask_balancing_transformer(self):
     """Test balancing transformer on single-task dataset."""
 
-    classification_dataset = dc.data.tests.load_classification_data()
+    classification_dataset = load_classification_data()
     balancing_transformer = dc.trans.BalancingTransformer(
         transform_w=True, dataset=classification_dataset)
     X, y, w, ids = (classification_dataset.X, classification_dataset.y,
@@ -502,7 +582,7 @@ class TestTransformers(unittest.TestCase):
 
   def test_multitask_balancing_transformer(self):
     """Test balancing transformer on multitask dataset."""
-    multitask_dataset = dc.data.tests.load_multitask_data()
+    multitask_dataset = load_multitask_data()
     balancing_transformer = dc.trans.BalancingTransformer(
         transform_w=True, dataset=multitask_dataset)
     X, y, w, ids = (multitask_dataset.X, multitask_dataset.y,
@@ -699,7 +779,7 @@ class TestTransformers(unittest.TestCase):
                               "../../models/tests/example_regression.csv")
     loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(input_file)
+    dataset = loader.create_dataset(input_file)
     transformer = dc.trans.DAGTransformer(max_atoms=50)
     dataset = transformer.transform(dataset)
     # The transformer generates n DAGs for a molecule with n

@@ -3,6 +3,7 @@ Gathers all transformers in one place for convenient imports
 """
 from deepchem.trans.transformers import undo_transforms
 from deepchem.trans.transformers import undo_grad_transforms
+from deepchem.trans.transformers import Transformer
 from deepchem.trans.transformers import LogTransformer
 from deepchem.trans.transformers import ClippingTransformer
 from deepchem.trans.transformers import NormalizationTransformer

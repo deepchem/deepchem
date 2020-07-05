@@ -3,7 +3,7 @@
 Contains an abstract base class that supports data transformations.
 """
 import os
-
+import logging
 import numpy as np
 import scipy
 import scipy.ndimage
@@ -11,6 +11,8 @@ import time
 import deepchem as dc
 import tensorflow as tf
 from deepchem.data import NumpyDataset
+
+logger = logging.getLogger(__name__)
 
 
 def undo_transforms(y, transformers):
