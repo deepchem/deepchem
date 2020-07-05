@@ -10,7 +10,7 @@ from transformers.modeling_roberta import (
 )
 
 
-class ChemBERTa(BertPreTrainedModel):
+class ChemBERTaforSequenceClassification(BertPreTrainedModel):
     r"""
         **labels**: (`optional`) ``torch.LongTensor`` of shape ``(batch_size,)``:
             Labels for computing the sequence classification/regression loss.
@@ -31,7 +31,7 @@ class ChemBERTa(BertPreTrainedModel):
             Attentions weights after the attention softmax, used to compute the weighted average in the self-attention heads.
     Examples::
         tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-        model = ChemBERTa.from_pretrained('roberta-base')
+        model = ChemBERTaforSequenceClassification.from_pretrained('roberta-base')
         input_ids = torch.tensor(tokenizer.encode("Hello, my dog is cute")).unsqueeze(0)  # Batch size 1
         labels = torch.tensor([1]).unsqueeze(0)  # Batch size 1
         outputs = model(input_ids, labels=labels)
