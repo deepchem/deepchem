@@ -12,7 +12,7 @@ please follow the instructions below. Please review the `datasets already availa
 
 1. Open an `issue <https://github.com/deepchem/deepchem/issues>`_ to discuss the dataset you want to add to MolNet.
 
-2. Implement a function in the `deepchem.molnet.load_function <https://github.com/deepchem/deepchem/tree/master/deepchem/molnet/load_function>`_ module following the template function `deepchem.molnet.load_function.load_mydataset <https://github.com/deepchem/deepchem/blob/master/deepchem/molnet/load_function/load_mydataset.py>`_.
+2. Implement a function in the `deepchem.molnet.load_function <https://github.com/deepchem/deepchem/tree/master/deepchem/molnet/load_function>`_ module following the template function `deepchem.molnet.load_function.load_mydataset <https://github.com/deepchem/deepchem/blob/master/deepchem/molnet/load_function/load_mydataset.py>`_. Specify which featurizers, transformers, and splitters (listed in `deepchem/molnet/defaults <https://github.com/deepchem/deepchem/tree/master/deepchem/molnet/defaults.json>`_) are supported for your dataset. 
 
 3. Add your load function to `deepchem.molnet.__init__.py <https://github.com/deepchem/deepchem/blob/master/deepchem/molnet/__init__.py>`_ for easy importing.
 
