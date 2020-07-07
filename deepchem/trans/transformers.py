@@ -10,13 +10,29 @@ import scipy.ndimage
 import time
 import deepchem as dc
 import tensorflow as tf
+import warnings
 from deepchem.data import NumpyDataset
 
 logger = logging.getLogger(__name__)
 
 
 def undo_transforms(y, transformers):
-  """Undoes all transformations applied."""
+  """Undoes all transformations applied.
+
+  Transformations are reversed using `transformer.untransform`.
+  Transformations will be assumed to have been applied in the order specified,
+  so transformations will be reversed in the opposite order. That is if
+  `transformers = [t1, t2]`, then this method will do `t2.untransform`
+  followed by `t1.untransform`.
+
+  Parameters
+  ----------
+  y: np.ndarray
+    Array of values for which transformations have to be undone.
+  transformers: list[dc.trans.Transformer]
+    List of transformations which have already been applied to `y` in the
+    order specifed.
+  """
   # Note that transformers have to be undone in reversed order
   for transformer in reversed(transformers):
     if transformer.transform_y:
@@ -50,8 +66,15 @@ def get_grad_statistics(dataset):
 
 
 class Transformer(object):
-  """
-  Abstract base class for different ML models.
+  """Abstract base class for different data transformation techniques. 
+
+  `Transformer` objects are used to transform `Dataset` objects in ways that
+  are useful to machine learning. Transformations might process the data to
+  make learning easier (say by normalizing), or may implement techniques such
+  as data augmentation.
+
+  Note that you can never instantiate a `Transformer` class directly. You will
+  want to use one of the concrete subclasses.
   """
   # Hack to allow for easy unpickling:
   # http://stefaanlippens.net/pickleproblem
@@ -62,7 +85,23 @@ class Transformer(object):
                transform_y=False,
                transform_w=False,
                dataset=None):
-    """Initializes transformation based on dataset statistics."""
+    """Initializes transformation based on dataset statistics.
+
+    Parameters
+    ----------
+    transform_X: bool, optional (default False)
+      Whether to transform X
+    transform_y: bool, optional (default False)
+      Whether to transform y
+    transform_w: bool, optional (default False)
+      Whether to transform w
+    dataset: dc.data.Dataset object, optional (default None)
+      Dataset to be transformed
+    """
+    if self.__class__.__name__ == "Transformer":
+      raise ValueError(
+          "Transformer is an abstract superclass and cannot be directly instantiated. You probably want to instantiate a concrete subclass instead."
+      )
     self.transform_X = transform_X
     self.transform_y = transform_y
     self.transform_w = transform_w
@@ -72,19 +111,69 @@ class Transformer(object):
     assert (transform_X + transform_y + transform_w) == 1
 
   def transform_array(self, X, y, w):
-    """Transform the data in a set of (X, y, w) arrays."""
+    """Transform the data in a set of (X, y, w) arrays.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Array of features
+    y: np.ndarray
+      Array of labels
+    w: np.ndarray
+      Array of weights.
+
+    Returns
+    -------
+    Xtrans: np.ndarray
+      Transformed array of features
+    ytrans: np.ndarray
+      Transformed array of labels
+    wtrans: np.ndarray
+      Transformed array of weights
+    """
     raise NotImplementedError(
         "Each Transformer is responsible for its own transform_array method.")
 
   def untransform(self, z):
-    """Reverses stored transformation on provided data."""
-    raise NotImplementedError(
-        "Each Transformer is responsible for its own untransfomr method.")
+    """Reverses stored transformation on provided data.
 
-  def transform(self, dataset, parallel=False):
+    Depending on whether `transform_X` or `transform_y` or `transform_w` was
+    set, this will perform different un-transformations. Note that this method
+    may not always be defined since some transformations aren't 1-1.
+
+    Parameters
+    ----------
+    z: np.ndarray
+      Array which was previously transformed by this class.
+
+    Returns
+    -------
+    ztrans
     """
-    Transforms all internally stored data.
-    Adds X-transform, y-transform columns to metadata.
+    raise NotImplementedError(
+        "Each Transformer is responsible for its own untransform method.")
+
+  def transform(self, dataset, parallel=False, **kwargs):
+    """Transforms all internally stored data in dataset.
+
+    This method transforms all internal data in the provided dataset by using
+    the `Dataset.transform` method. Note that this method adds X-transform,
+    y-transform columns to metadata. Specified keyword arguments are passed on
+    to `Dataset.transform`.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset object to be transformed.
+    parallel: bool, optional (default False)
+      At present this argument is ignored.
+    out_dir: str, optional
+      If `out_dir` is specified in `kwargs` and `dataset` is a `DiskDataset`,
+      the output dataset will be written to the specified directory.
+
+    Returns
+    -------
+    a newly constructed Dataset object
     """
     _, y_shape, w_shape, _ = dataset.get_shape()
     if y_shape == tuple() and self.transform_y:
@@ -94,37 +183,76 @@ class Transformer(object):
     return dataset.transform(lambda X, y, w: self.transform_array(X, y, w))
 
   def transform_on_array(self, X, y, w):
+    """Transforms numpy arrays X, y, and w
+
+    DEPRECATED. Use `transform_array` instead.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Array of features
+    y: np.ndarray
+      Array of labels
+    w: np.ndarray
+      Array of weights.
+
+    Returns
+    -------
+    Xtrans: np.ndarray
+      Transformed array of features
+    ytrans: np.ndarray
+      Transformed array of labels
+    wtrans: np.ndarray
+      Transformed array of weights
     """
-    Transforms numpy arrays X, y, and w
-    """
+    warnings.warn(
+        "transform_on_array() is deprecated and has been renamed to transform_array(). transform_on_array() will be removed in DeepChem 3.0",
+        FutureWarning)
     X, y, w = self.transform_array(X, y, w)
     return X, y, w
 
 
 class MinMaxTransformer(Transformer):
-  """MinMax transformer transforms the dataset by shifting each axis of X or y
-  (depending on whether transform_X or transform_y is True), except the first one
-  by the minimum value along the axis and dividing the result by the range
+  """Ensure each value rests between 0 and 1 by using the min and max.
+
+  `MinMaxTransformer` transforms the dataset by shifting each axis of X or y
+  (depending on whether transform_X or transform_y is True), except the first
+  one by the minimum value along the axis and dividing the result by the range
   (maximum value - minimum value) along the axis. This ensures each axis is
-  between 0 and 1. In case of multi-task learning, it ensures each task is given
-  equal importance.
+  between 0 and 1. In case of multi-task learning, it ensures each task is
+  given equal importance.
 
   Given original array A, the transformed array can be written as:
-  A_min = np.min(A, axis=0)
-  A_max = np.max(A, axis=0)
-  A_t = np.nan_to_num((A - A_min)/(A_max - A_min))
 
-  Example:
+  >>> import numpy as np
+  >>> A = np.random.rand(10, 10)
+  >>> A_min = np.min(A, axis=0)
+  >>> A_max = np.max(A, axis=0)
+  >>> A_t = np.nan_to_num((A - A_min)/(A_max - A_min))
+
+  Example
+  -------
+
   >>> n_samples = 10
   >>> n_features = 3
   >>> n_tasks = 1
   >>> ids = np.arange(n_samples)
   >>> X = np.random.rand(n_samples, n_features)
-  >>> y = np.zeros((n_samples, n_tasks))
+  >>> y = np.random.rand(n_samples, n_tasks)
   >>> w = np.ones((n_samples, n_tasks))
   >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
   >>> transformer = dc.trans.MinMaxTransformer(transform_y=True, dataset=dataset)
   >>> dataset = transformer.transform(dataset)
+
+  Note
+  ----
+  This class can only transform `X` or `y` and not `w`. So only one of
+  `transform_X` or `transform_y` can be set.
+
+  Raises
+  ------
+  `ValueError` if `transform_w` is set or `transform_X` and `transform_y` are
+  both set.
   """
 
   def __init__(self,
@@ -142,9 +270,13 @@ class MinMaxTransformer(Transformer):
       Whether to transform y
     transform_w: bool, optional (default False)
       Whether to transform w
-    dataset: dc.data.Dataset object, optional
+    dataset: dc.data.Dataset object, optional (default None)
       Dataset to be transformed
     """
+    if transform_X and transform_y:
+      raise ValueError("Can only transform only one of X and y")
+    if transform_w:
+      raise ValueError("MinMaxTransformer doesn't support w transformation.")
     if transform_X:
       self.X_min = np.min(dataset.X, axis=0)
       self.X_max = np.max(dataset.X, axis=0)
@@ -163,15 +295,57 @@ class MinMaxTransformer(Transformer):
         dataset=dataset)
 
   def transform(self, dataset, parallel=False):
-    """Transforms the dataset."""
+    """Transforms the dataset.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset object to be transformed.
+    parallel: bool, optional (default False)
+      At present this argument is ignored.
+    out_dir: str, optional
+      If `out_dir` is specified in `kwargs` and `dataset` is a `DiskDataset`,
+      the output dataset will be written to the specified directory.
+
+    Returns
+    -------
+    a newly constructed Dataset object
+    """
     return super(MinMaxTransformer, self).transform(dataset, parallel=parallel)
 
   def transform_array(self, X, y, w):
-    """Transform the data in a set of (X, y, w) arrays."""
+    """Transform the data in a set of (X, y, w) arrays.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Array of features
+    y: np.ndarray
+      Array of labels
+    w: np.ndarray
+      Array of weights.
+
+    Returns
+    -------
+    Xtrans: np.ndarray
+      Transformed array of features
+    ytrans: np.ndarray
+      Transformed array of labels
+    wtrans: np.ndarray
+      Transformed array of weights
+    """
     if self.transform_X:
-      X = np.nan_to_num((X - self.X_min) / (self.X_max - self.X_min))
+      # Handle division by zero
+      denominator = np.where((self.X_max - self.X_min) > 0,
+                             (self.X_max - self.X_min),
+                             np.ones_like(self.X_max - self.X_min))
+      X = np.nan_to_num((X - self.X_min) / denominator)
     elif self.transform_y:
-      y = np.nan_to_num((y - self.y_min) / (self.y_max - self.y_min))
+      # Handle division by zero
+      denominator = np.where((self.y_max - self.y_min) > 0,
+                             (self.y_max - self.y_min),
+                             np.ones_like(self.y_max - self.y_min))
+      y = np.nan_to_num((y - self.y_min) / denominator)
     return (X, y, w)
 
   def untransform(self, z):
@@ -207,6 +381,35 @@ class MinMaxTransformer(Transformer):
 
 
 class NormalizationTransformer(Transformer):
+  """Normalizes dataset to have zero mean and unit standard deviation
+
+  This transformer transforms datasets to have zero mean and unit standard
+  deviation. 
+
+  Example
+  -------
+
+  >>> n_samples = 10
+  >>> n_features = 3
+  >>> n_tasks = 1
+  >>> ids = np.arange(n_samples)
+  >>> X = np.random.rand(n_samples, n_features)
+  >>> y = np.random.rand(n_samples, n_tasks)
+  >>> w = np.ones((n_samples, n_tasks))
+  >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+  >>> transformer = dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset)
+  >>> dataset = transformer.transform(dataset)
+
+  Note
+  ----
+  This class can only transform `X` or `y` and not `w`. So only one of
+  `transform_X` or `transform_y` can be set.
+
+  Raises
+  ------
+  `ValueError` if `transform_w` is set or `transform_X` and `transform_y` are
+  both set.
+  """
 
   def __init__(self,
                transform_X=False,
@@ -215,7 +418,23 @@ class NormalizationTransformer(Transformer):
                dataset=None,
                transform_gradients=False,
                move_mean=True):
-    """Initialize normalization transformation."""
+    """Initialize normalization transformation.
+
+    Parameters
+    ----------
+    transform_X: bool, optional (default False)
+      Whether to transform X
+    transform_y: bool, optional (default False)
+      Whether to transform y
+    transform_w: bool, optional (default False)
+      Whether to transform w
+    dataset: dc.data.Dataset object, optional (default None)
+      Dataset to be transformed
+    """
+    if transform_X and transform_y:
+      raise ValueError("Can only transform only one of X and y")
+    if transform_w:
+      raise ValueError("MinMaxTransformer doesn't support w transformation.")
     if transform_X:
       X_means, X_stds = dataset.get_statistics(X_stats=True, y_stats=False)
       self.X_means = X_means
@@ -312,19 +531,18 @@ class NormalizationTransformer(Transformer):
 class ClippingTransformer(Transformer):
   """Clip large values in datasets.
 
-     Example:
-
-     >>> n_samples = 10
-     >>> n_features = 3
-     >>> n_tasks = 1
-     >>> ids = np.arange(n_samples)
-     >>> X = np.random.rand(n_samples, n_features)
-     >>> y = np.zeros((n_samples, n_tasks))
-     >>> w = np.ones((n_samples, n_tasks))
-     >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
-     >>> transformer = dc.trans.ClippingTransformer(transform_X=True)
-     >>> dataset = transformer.transform(dataset)
-
+  Example
+  -------
+  >>> n_samples = 10
+  >>> n_features = 3
+  >>> n_tasks = 1
+  >>> ids = np.arange(n_samples)
+  >>> X = np.random.rand(n_samples, n_features)
+  >>> y = np.zeros((n_samples, n_tasks))
+  >>> w = np.ones((n_samples, n_tasks))
+  >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+  >>> transformer = dc.trans.ClippingTransformer(transform_X=True)
+  >>> dataset = transformer.transform(dataset)
   """
 
   def __init__(self,
@@ -351,13 +569,23 @@ class ClippingTransformer(Transformer):
     y_max: float, optional
       Maximum absolute value for y
 
+    Note
+    ----
+    This transformer can transform `X` and `y` jointly, but does not transform
+    `w`.
+
+    Raises
+    ------
+    `ValueError` if `transform_w` is set.
     """
     super(ClippingTransformer, self).__init__(
         transform_X=transform_X,
         transform_y=transform_y,
         transform_w=transform_w,
         dataset=dataset)
-    assert not transform_w
+    if transform_w:
+      raise ValueError("ClippingTransformer doesn't support w transformation.")
+
     self.x_max = x_max
     self.y_max = y_max
 
@@ -381,7 +609,6 @@ class ClippingTransformer(Transformer):
       Transformed tasks
     w: np.ndarray
       Transformed weights
-
     """
     if self.transform_X:
       X[X > self.x_max] = self.x_max
@@ -397,21 +624,95 @@ class ClippingTransformer(Transformer):
 
 
 class LogTransformer(Transformer):
+  """Computes a logarithmic transformation
+
+  This transformer computes the transformation given by
+
+  >>> import numpy as np
+  >>> A = np.random.rand(10, 10)
+  >>> A = np.log(A + 1)
+
+  Assuming that tasks/features are not specified. If specified, then
+  transformations are only performed on specified tasks/features.
+
+  Example
+  -------
+  >>> n_samples = 10
+  >>> n_features = 3
+  >>> n_tasks = 1
+  >>> ids = np.arange(n_samples)
+  >>> X = np.random.rand(n_samples, n_features)
+  >>> y = np.zeros((n_samples, n_tasks))
+  >>> w = np.ones((n_samples, n_tasks))
+  >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+  >>> transformer = dc.trans.LogTransformer(transform_X=True)
+  >>> dataset = transformer.transform(dataset)
+
+  Note
+  ----
+  This class can only transform `X` or `y` and not `w`. So only one of
+  `transform_X` or `transform_y` can be set.
+
+  Raises
+  ------
+  `ValueError` if `transform_w` is set or `transform_X` and `transform_y` are
+  both set.
+  """
 
   def __init__(self,
                transform_X=False,
                transform_y=False,
+               transform_w=False,
                features=None,
                tasks=None,
                dataset=None):
+    """Initialize log transformer.
+
+    Parameters
+    ----------
+    transform_X: bool, optional (default False)
+      Whether to transform X
+    transform_y: bool, optional (default False)
+      Whether to transform y
+    transform_w: bool, optional (default False)
+      Whether to transform w
+    dataset: dc.data.Dataset object, optional (default None)
+      Dataset to be transformed
+    features: list[Int]
+      List of features indices to transform
+    tasks: list[str]
+      List of task names to transform.
+    """
+    if transform_X and transform_y:
+      raise ValueError("Can only transform only one of X and y")
+    if transform_w:
+      raise ValueError("MinMaxTransformer doesn't support w transformation.")
     self.features = features
     self.tasks = tasks
-    """Initialize log  transformation."""
     super(LogTransformer, self).__init__(
         transform_X=transform_X, transform_y=transform_y, dataset=dataset)
 
   def transform_array(self, X, y, w):
-    """Transform the data in a set of (X, y, w) arrays."""
+    """Transform the data in a set of (X, y, w) arrays.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Array of features
+    y: np.ndarray
+      Array of labels
+    w: np.ndarray
+      Array of weights.
+
+    Returns
+    -------
+    Xtrans: np.ndarray
+      Transformed array of features
+    ytrans: np.ndarray
+      Transformed array of labels
+    wtrans: np.ndarray
+      Transformed array of weights
+    """
     if self.transform_X:
       num_features = len(X[0])
       if self.features is None:
@@ -437,6 +738,11 @@ class LogTransformer(Transformer):
   def untransform(self, z):
     """
     Undo transformation on provided data.
+
+    Parameters
+    ----------
+    z: np.ndarray,
+      Transformed X or y array
     """
     if self.transform_X:
       num_features = len(z[0])
@@ -463,7 +769,31 @@ class LogTransformer(Transformer):
 
 
 class BalancingTransformer(Transformer):
-  """Balance positive and negative examples for weights."""
+  """Balance positive and negative examples for weights.
+
+  Example
+  -------
+
+  >>> n_samples = 10
+  >>> n_features = 3
+  >>> n_tasks = 1
+  >>> ids = np.arange(n_samples)
+  >>> X = np.random.rand(n_samples, n_features)
+  >>> y = np.random.randint(2, size=(n_samples, n_tasks))
+  >>> w = np.ones((n_samples, n_tasks))
+  >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+  >>> transformer = dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
+  >>> dataset = transformer.transform(dataset)
+
+  Note
+  ----
+  This class can only transform `w`. Note at present this class only supports
+  binary datasets and not multiclass datasets.
+
+  Raises
+  ------
+  `ValueError` if `transform_X` or `transform_y` are set.
+  """
 
   def __init__(self,
                transform_X=False,
@@ -471,15 +801,16 @@ class BalancingTransformer(Transformer):
                transform_w=False,
                dataset=None,
                seed=None):
+    # BalancingTransformer can only transform weights.
+    if transform_X or transform_y:
+      raise ValueError("Cannot transform X or y")
+    if not transform_w:
+      raise ValueError("BalancingTransformer must have transform_w=True.")
     super(BalancingTransformer, self).__init__(
         transform_X=transform_X,
         transform_y=transform_y,
         transform_w=transform_w,
         dataset=dataset)
-    # BalancingTransformer can only transform weights.
-    assert not transform_X
-    assert not transform_y
-    assert transform_w
 
     # Compute weighting factors from dataset.
     y = dataset.y
@@ -503,7 +834,26 @@ class BalancingTransformer(Transformer):
     self.weights = weights
 
   def transform_array(self, X, y, w):
-    """Transform the data in a set of (X, y, w) arrays."""
+    """Transform the data in a set of (X, y, w) arrays.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Array of features
+    y: np.ndarray
+      Array of labels
+    w: np.ndarray
+      Array of weights.
+
+    Returns
+    -------
+    Xtrans: np.ndarray
+      Transformed array of features
+    ytrans: np.ndarray
+      Transformed array of labels
+    wtrans: np.ndarray
+      Transformed array of weights
+    """
     w_balanced = np.zeros_like(w)
     for ind in range(y.shape[1]):
       task_y = y[:, ind]
@@ -616,21 +966,22 @@ class PowerTransformer(Transformer):
 class CoulombFitTransformer(Transformer):
   """Performs randomization and binarization operations on batches of Coulomb Matrix features during fit.
 
-     Example:
+  Example
+  -------
 
-     >>> n_samples = 10
-     >>> n_features = 3
-     >>> n_tasks = 1
-     >>> ids = np.arange(n_samples)
-     >>> X = np.random.rand(n_samples, n_features, n_features)
-     >>> y = np.zeros((n_samples, n_tasks))
-     >>> w = np.ones((n_samples, n_tasks))
-     >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
-     >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
-     >>> model = dc.models.MultitaskFitTransformRegressor(n_tasks,
-     ...    [n_features, n_features], batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
-     >>> print(model.n_features)
-     12
+  >>> n_samples = 10
+  >>> n_features = 3
+  >>> n_tasks = 1
+  >>> ids = np.arange(n_samples)
+  >>> X = np.random.rand(n_samples, n_features, n_features)
+  >>> y = np.zeros((n_samples, n_tasks))
+  >>> w = np.ones((n_samples, n_tasks))
+  >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+  >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
+  >>> model = dc.models.MultitaskFitTransformRegressor(n_tasks,
+  ...    [n_features, n_features], batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
+  >>> print(model.n_features)
+  12
   """
 
   def __init__(self, dataset):
@@ -667,8 +1018,6 @@ class CoulombFitTransformer(Transformer):
     -------
     X: np.ndarray
       Randomized features
-
-
     """
 
     def _realize_(x):
@@ -749,6 +1098,7 @@ class IRVTransformer():
 
   def __init__(self, K, n_tasks, dataset, transform_y=False, transform_x=False):
     """Initializes IRVTransformer.
+
     Parameters:
     ----------
     dataset: dc.data.Dataset object
@@ -757,7 +1107,6 @@ class IRVTransformer():
       number of nearest neighbours being count
     n_tasks: int
       number of tasks
-
     """
     self.X = dataset.X
     self.n_tasks = n_tasks
@@ -824,6 +1173,7 @@ class IRVTransformer():
     """ Calculate similarity between target dataset(X_target) and
     reference dataset(X): #(1 in intersection)/#(1 in union)
          similarity = (X_target intersect X)/(X_target union X)
+
     Parameters:
     -----------
     X_target: np.ndarray
@@ -1250,10 +1600,10 @@ class ANITransformer(Transformer):
 
 
 class FeaturizationTransformer(Transformer):
-  """
-  A transformer which runs a featurizer over the X values of a dataset.
-  Datasets used by this transformer must have rdkit.mol objects as the X
-  values
+  """A transformer which runs a featurizer over the X values of a dataset.
+
+  Datasets used by this transformer be compatible with the internal
+  featurizer. 
   """
 
   def __init__(self,
@@ -1262,9 +1612,26 @@ class FeaturizationTransformer(Transformer):
                transform_w=False,
                dataset=None,
                featurizer=None):
+    """Initialization of FeaturizationTransformer
+
+    Parameters
+    ----------
+    transform_X: bool, optional (default False)
+      Whether to transform X
+    transform_y: bool, optional (default False)
+      Whether to transform y
+    transform_w: bool, optional (default False)
+      Whether to transform w
+    dataset: dc.data.Dataset object, optional (default None)
+      Dataset to be transformed
+    featurizer: dc.feat.Featurizer object
+      Featurizer applied to perform transformations.
+    """
+    if not transform_X or transform_y or transform_w:
+      raise ValueError("FeaturizingTransformer can only be used on X")
+    if featurizer is None:
+      raise ValueError("featurizer must be specified.")
     self.featurizer = featurizer
-    if not transform_X:
-      raise ValueError("FeaturizingTransfomer can only be used on X")
     super(FeaturizationTransformer, self).__init__(
         transform_X=transform_X,
         transform_y=transform_y,
@@ -1272,6 +1639,26 @@ class FeaturizationTransformer(Transformer):
         dataset=dataset)
 
   def transform_array(self, X, y, w):
+    """Transforms arrays of rdkit mols using internal featurizer.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Array of features
+    y: np.ndarray
+      Array of labels
+    w: np.ndarray
+      Array of weights.
+
+    Returns
+    -------
+    Xtrans: np.ndarray
+      Transformed array of features
+    ytrans: np.ndarray
+      Transformed array of labels
+    wtrans: np.ndarray
+      Transformed array of weights
+    """
     X = self.featurizer.featurize(X)
     return X, y, w
 
@@ -1283,19 +1670,25 @@ class DataTransforms(Transformer):
     self.Image = Image
 
   def scale(self, h, w):
-    """ Scales the image
-            Parameters:
-                h - height of the images
-                w - width of the images
+    """Scales the image
+    
+    Parameters
+    ----------
+    h: int
+      Height of the images
+    w: int
+      Width of the images
     """
     from PIL import Image
     return Image.fromarray(self.Image).resize((h, w))
 
   def flip(self, direction="lr"):
-    """ Flips the image
-          Parameters:
-              direction - "lr" denotes left-right fliplr
-                          "ud" denotes up-down flip
+    """Flips the image
+
+    Parameters
+    ----------
+    direction: str
+      "lr" denotes left-right flip and "ud" denotes up-down flip.
     """
     if direction == "lr":
       return np.fliplr(self.Image)
@@ -1307,7 +1700,7 @@ class DataTransforms(Transformer):
       )
 
   def rotate(self, angle=0):
-    """ Rotates the image
+    """Rotates the image
 
     Parameters
     ----------
@@ -1321,14 +1714,17 @@ class DataTransforms(Transformer):
     return scipy.ndimage.rotate(self.Image, angle)
 
   def gaussian_blur(self, sigma=0.2):
-    """ Adds gaussian noise to the image
-          Parameters:
-            sigma - std dev. of the gaussian distribution
+    """Adds gaussian noise to the image
+
+    Parameters
+    ----------
+    sigma: float
+      Std dev. of the gaussian distribution
     """
     return scipy.ndimage.gaussian_filter(self.Image, sigma)
 
   def center_crop(self, x_crop, y_crop):
-    """ Crops the image from the center
+    """Crops the image from the center
 
     Parameters
     ----------
@@ -1349,7 +1745,7 @@ class DataTransforms(Transformer):
     return self.Image[y_start:y_start + y_crop, x_start:x_start + x_crop]
 
   def crop(self, left, top, right, bottom):
-    """ Crops the image and returns the specified rectangular region from an image
+    """Crops the image and returns the specified rectangular region from an image
 
     Parameters
     ----------
@@ -1371,24 +1767,30 @@ class DataTransforms(Transformer):
     return self.Image[top:y - bottom, left:x - right]
 
   def convert2gray(self):
-    """ Converts the image to grayscale. The coefficients correspond to the Y' component of the Y'UV color system.
+    """Converts the image to grayscale. The coefficients correspond to the Y' component of the Y'UV color system.
     
     Returns
     ----------
     The grayscale image.
-
     """
     return np.dot(self.Image[..., :3], [0.2989, 0.5870, 0.1140])
 
   def shift(self, width, height, mode='constant', order=3):
     """Shifts the image
-        Parameters:
-          width - amount of width shift(positive values shift image right )
-          height - amount of height shift(positive values shift image lower)
-          mode - Points outside the boundaries of the input are filled according to the given mode
-          (‘constant’, ‘nearest’, ‘reflect’ or ‘wrap’). Default is ‘constant’
-          order - The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
-          """
+
+    Parameters
+    ----------
+    width: float
+      Amount of width shift (positive values shift image right )
+    height: float
+      Amount of height shift(positive values shift image lower)
+    mode: str
+      Points outside the boundaries of the input are filled according to the
+      given mode: (‘constant’, ‘nearest’, ‘reflect’ or ‘wrap’). Default is
+      ‘constant’
+    order: int
+      The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
+    """
     if len(self.Image.shape) == 2:
       return scipy.ndimage.shift(
           self.Image, [height, width], order=order, mode=mode)
@@ -1397,23 +1799,32 @@ class DataTransforms(Transformer):
           self.Image, [height, width, 0], order=order, mode=mode)
 
   def gaussian_noise(self, mean=0, std=25.5):
-    '''Adds gaussian noise to the image
-    Parameters:
-      mean - mean of gaussian.
-      std - standard deviation of gaussian.
-        '''
+    """Adds gaussian noise to the image
+
+    Parameters
+    ----------
+    mean: float
+      Mean of gaussian.
+    std: float
+      Standard deviation of gaussian.
+    """
 
     x = self.Image
     x = x + np.random.normal(loc=mean, scale=std, size=self.Image.shape)
     return x
 
   def salt_pepper_noise(self, prob=0.05, salt=255, pepper=0):
-    '''Adds salt and pepper noise to the image
-    Parameters:
-      prob - probability of the noise.
-      salt - value of salt noise.
-      pepper - value of pepper noise.
-        '''
+    """Adds salt and pepper noise to the image
+
+    Parameters
+    ----------
+    prob: float
+      probability of the noise.
+    salt: float
+      value of salt noise.
+    pepper: float
+      value of pepper noise.
+    """
 
     noise = np.random.random(size=self.Image.shape)
     x = self.Image
@@ -1427,7 +1838,7 @@ class DataTransforms(Transformer):
     Parameters
     ----------
     size: int
-	The kernel size in pixels.
+      The kernel size in pixels.
 
     Returns
     ----------
