@@ -9,7 +9,7 @@ from deepchem.trans import Transformer
 from deepchem.split.splitters import Splitter
 from deepchem.molnet.defaults import get_defaults
 
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -17,54 +17,36 @@ DEFAULT_DIR = deepchem.utils.get_data_dir()
 MYDATASET_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/mydataset.tar.gz'
 MYDATASET_CSV_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/mydataset.csv'
 
-# Get dictionary of all featurizers, transformers, and splitters
-# Check this dict or `defaults.json` to see list of available classes
-DEFAULTS = get_defaults()
-
 # dict of accepted featurizers for this dataset
-# update for your dataset
-DEFAULT_FEATURIZERS = {
-    'AdjacencyFingerprint': deepchem.feat.AdjacencyFingerprint(),
-    'AtomicCoordinates': deepchem.feat.AtomicCoordinates(),
-    'ConvMolFeaturizer': deepchem.feat.ConvMolFeaturizer(),
-    'CoulombMatrix': deepchem.feat.CoulombMatrix(max_atoms=5),
-    'RDKitDescriptors': deepchem.feat.RDKitDescriptors(),
-    'RawFeaturizer': deepchem.feat.RawFeaturizer(),
-    'CircularFingerprint': deepchem.feat.CircularFingerprint(size=1024),
-}
+# modify the returned dicts your dataset
+DEFAULT_FEATURIZERS = get_defaults("feat")
 
 # dict of accepted transformers
-DEFAULT_TRANSFORMERS = {
-    'Power': deepchem.trans.PowerTransformer(),
-    'Balancing': deepchem.trans.BalancingTransformer(),
-    'Log': deepchem.trans.LogTransformer(),
-    'MinMax': deepchem.trans.MinMaxTransformer()
-}
+DEFAULT_TRANSFORMERS = get_defaults("trans")
 
 # dict of accepted splitters
-DEFAULT_SPLITTERS = {
-    'Index': deepchem.splits.IndexSplitter(),
-    'Random': deepchem.splits.RandomSplitter(),
-    'Scaffold': deepchem.splits.ScaffoldSplitter(),
-}
+DEFAULT_SPLITTERS = get_defaults("split")
 
 
 def load_mydataset(
     featurizer: Featurizer = DEFAULT_FEATURIZERS['RawFeaturizer'],
-    transformers: Tuple[Transformer] = (DEFAULT_TRANSFORMERS['Power']),
-    splitter: Splitter = DEFAULT_SPLITTERS['Random'],
+    transformers: Tuple[Transformer] = (
+        DEFAULT_TRANSFORMERS['PowerTransformer']),
+    splitter: Splitter = DEFAULT_SPLITTERS['RandomSplitter'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
+    featurizer_kwargs: Optional[Dict[str, object]] = None,
+    splitter_kwargs: Optional[Dict[str, object]] = None,
+    transformer_kwargs: Optional[Dict[str, Dict[str, object]]] = None,
     **kwargs) -> Tuple[List, Tuple, List]:
   """Load mydataset.
 
   This is a template for adding a function to load a dataset from
   MoleculeNet. Adjust the global variable URL strings, default parameters,
   default featurizers, transformers, and splitters, and variable names as
-  needed. A dictionary of all available featurizers, transformers, and
-  splitters is available in the global variable `DEFAULTS` and also
-  in `deepchem/molnet/defaults.json`.
+  needed. All available featurizers, transformers, and
+  splitters are in the `DEFAULTS_X` global variables.
 
   If `reload = True` and `data_dir` (`save_dir`) is specified, the loader
   will attempt to load the raw dataset (featurized dataset) from disk.
@@ -97,8 +79,14 @@ def load_mydataset(
     Path to datasets.
   save_dir : str, optional
     Path to featurized datasets.
-  **kwargs : optional arguments to methods of featurizers, transformers, and
-    splitters.
+  featurizer_kwargs : dict
+    Specify parameters to featurizer, e.g. {"size": 1024}
+  splitter_kwargs : dict
+    Specify parameters to splitter, e.g. {"seed": 42}
+  transformer_kwargs : dict
+    Maps transformer names to constructor arguments, e.g.
+    {"BalancingTransformer": {"transform_x":True, "transform_y":False}}
+  **kwargs : additional optional arguments.
 
   Returns
   -------
@@ -150,14 +138,16 @@ def load_mydataset(
   if save_dir is None:
     save_dir = DEFAULT_DIR
 
-  # Check for str args to featurizer, splitter, and transformers
+  # Check for str args to featurizer and splitter
   if isinstance(featurizer, str):
-    featurizer = DEFAULT_FEATURIZERS[featurizer]
+    featurizer = DEFAULT_FEATURIZERS[featurizer](**featurizer_kwargs)
+  elif issubclass(featurizer, Featurizer):
+    featurizer = featurizer(**featurizer_kwargs)
+
   if isinstance(splitter, str):
-    splitter = DEFAULT_SPLITTERS[splitter]
-  transformers = [
-      DEFAULT_TRANSFORMERS[t] if isinstance(t, str) else t for t in transformers
-  ]
+    splitter = DEFAULT_SPLITTERS[splitter](**splitter_kwargs)
+  elif issubclass(splitter, Splitter):
+    splitter = splitter(**splitter_kwargs)
 
   # Reload from disk
   if reload:
@@ -211,13 +201,13 @@ def load_mydataset(
       frac_valid=frac_valid,
       frac_test=frac_test)
 
-  # Check for transformers that require a dataset
-  normalize = kwargs.get("normalize", True)  # Normalization transform
-  move_mean = kwargs.get("move_mean", True)  # Zero out mean of dataset
-  if normalize:
-    transformers.append(
-        deepchem.trans.NormalizationTransformer(
-            transform_y=True, dataset=train_dataset, move_mean=move_mean))
+  # Initialize transformers
+  transformers = [
+      DEFAULT_TRANSFORMERS[t](dataset, **transformer_kwargs[t])
+      if isinstance(t, str) else t(
+          dataset, **transformer_kwargs[str(t.__class__.__name__)])
+      for t in transformers
+  ]
 
   for transformer in transformers:
     train_dataset = transformer.transform(train_dataset)

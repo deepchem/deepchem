@@ -9,47 +9,58 @@ import logging
 import json
 from typing import Dict, List
 
+from deepchem.feat.base_classes import Featurizer
+from deepchem.trans.transformers import Transformer
+from deepchem.splits.splitters import Splitter
+
 logger = logging.getLogger(__name__)
 
 
-def get_defaults(inspect_modules: bool = False) -> Dict[str, List[str]]:
+def get_defaults(module_name: str = None) -> Dict[str, object]:
   """Get featurizers, transformers, and splitters.
 
-  This function returns a dictionary with keys 'featurizer', 'transformer',
-  and 'splitter'. Each value is a list of names of classes in that
-  category. All MolNet ``load_x`` functions should specify which
+  This function returns a dictionary with class names as keys and classes
+  as values. All MolNet ``load_x`` functions should specify which
   featurizers, transformers, and splitters the dataset supports and
   provide sensible defaults.
 
   Parameters
   ----------
-  inspect_modules : bool (default False)
-    Inspect dc.feat, dc.trans, and dc.splits modules to get class names.
+  module_name : {"feat", "trans", "splits"}
+    Default classes from deepchem.`module_name` will be returned.
 
   Returns
   -------
-  defaults : dict
-    Contains names of all available featurizers, transformers, and splitters.
+  defaults : Dict[str, object]
+    Keys are class names and values are class constructors. 
+
+  Examples
+  --------
+  >> splitter = get_defaults('splits')['RandomSplitter']() 
+  >> transformer = get_defaults('trans')['BalancingTransformer'](dataset, {"transform_X": True})
+  >> featurizer = get_defaults('feat')["CoulombMatrix"](max_atoms=5)  
 
   """
 
-  if not inspect_modules:
-    path = os.path.dirname(os.path.abspath(__file__))
-    defaults = json.load(open(os.path.join(path, "defaults.json")))
-  else:
-    module = importlib.import_module("deepchem.feat", package="deepchem")
-    featurizers = [x[0] for x in inspect.getmembers(module, inspect.isclass)]
+  if module_name not in ["feat", "trans", "splits"]:
+    raise ValueError(
+        "Input argument must be either 'feat', 'trans', or 'splits'.")
 
-    module = importlib.import_module("deepchem.trans", package="deepchem")
-    transformers = [x[0] for x in inspect.getmembers(module, inspect.isclass)]
+  if module_name == "feat":
+    sc = Featurizer
+  elif module_name == "trans":
+    sc = Transformer
+  elif module_name == "splits":
+    sc = Splitter
 
-    module = importlib.import_module("deepchem.splits", package="deepchem")
-    splitters = [x[0] for x in inspect.getmembers(module, inspect.isclass)]
+  module_name = "deepchem." + module_name
 
-    defaults = {
-        'featurizer': featurizers,
-        'transformer': transformers,
-        'splitter': splitters
-    }
+  module = importlib.import_module(module_name, package="deepchem")
+
+  defaults = {
+      x[0]: x[1]
+      for x in inspect.getmembers(module, inspect.isclass)
+      if issubclass(x[1], sc)
+  }
 
   return defaults
