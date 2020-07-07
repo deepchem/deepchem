@@ -419,7 +419,7 @@ class TestSplitter(unittest.TestCase):
       assert np.count_nonzero(y_present[:split_index, task]) == int(
           task_actives / 2)
 
-  def test_singletask_stratified_split(self):
+  def test_random_stratified_split(self):
     """
     Test RandomStratifiedSplitter on a singletask split.
     """

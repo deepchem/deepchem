@@ -105,7 +105,7 @@ class TestRdkitUtil(unittest.TestCase):
         has_a_charge = True
     assert has_a_charge
 
-  def test_load_molecule(self):
+  def test_load_molecule2(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
     xyz, mol = rdkit_util.load_molecule(

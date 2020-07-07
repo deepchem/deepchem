@@ -4,18 +4,25 @@ import time
 import logging
 import os
 try:
-  from collections.abc import Sequence
+  from collections.abc import Sequence as SequenceCollection
 except:
-  from collections import Sequence
+  from collections import Sequence as SequenceCollection
 
 logger = logging.getLogger(__name__)
 
-from deepchem.data import NumpyDataset
+from deepchem.data import Dataset, NumpyDataset
+from deepchem.metrics import Metric
 from deepchem.models.losses import Loss
 from deepchem.models.models import Model
-from deepchem.models.optimizers import Adam
-from deepchem.trans import undo_transforms
+from deepchem.models.optimizers import Adam, Optimizer, LearningRateSchedule
+from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
+
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, TypeVar, Union
+
+LossFunction = Callable[[List, List, List], float]
+T = TypeVar("T")
+OneOrMany = Union[T, Sequence[T]]
 
 
 class KerasModel(Model):
@@ -96,15 +103,15 @@ class KerasModel(Model):
   """
 
   def __init__(self,
-               model,
-               loss,
-               output_types=None,
-               batch_size=100,
-               model_dir=None,
-               learning_rate=0.001,
-               optimizer=None,
-               tensorboard=False,
-               log_frequency=100,
+               model: tf.keras.Model,
+               loss: Union[Loss, LossFunction],
+               output_types: Optional[List[str]] = None,
+               batch_size: int = 100,
+               model_dir: Optional[str] = None,
+               learning_rate: Union[float, LearningRateSchedule] = 0.001,
+               optimizer: Optional[Optimizer] = None,
+               tensorboard: bool = False,
+               log_frequency: int = 100,
                **kwargs):
     """Create a new KerasModel.
 
@@ -142,12 +149,12 @@ class KerasModel(Model):
         model_instance=model, model_dir=model_dir, **kwargs)
     self.model = model
     if isinstance(loss, Loss):
-      self._loss_fn = _StandardLoss(model, loss)
+      self._loss_fn: LossFunction = _StandardLoss(model, loss)
     else:
       self._loss_fn = loss
     self.batch_size = batch_size
     if optimizer is None:
-      self.optimizer = Adam(learning_rate=learning_rate)
+      self.optimizer: Optimizer = Adam(learning_rate=learning_rate)
     else:
       self.optimizer = optimizer
     self.tensorboard = tensorboard
@@ -185,10 +192,10 @@ class KerasModel(Model):
     self._built = False
     self._inputs_built = False
     self._training_ops_built = False
-    self._output_functions = {}
-    self._gradient_fn_for_vars = {}
+    self._output_functions: Dict[Any, Any] = {}
+    self._gradient_fn_for_vars: Dict[Any, Any] = {}
 
-  def _ensure_built(self):
+  def _ensure_built(self) -> None:
     """The first time this is called, create internal data structures."""
     if self._built:
       return
@@ -198,7 +205,7 @@ class KerasModel(Model):
     self._checkpoint = tf.train.Checkpoint(
         optimizer=self._tf_optimizer, model=self.model)
 
-  def _create_inputs(self, example_inputs):
+  def _create_inputs(self, example_inputs: List) -> None:
     """The first time this is called, create tensors representing the inputs and outputs."""
     if self._inputs_built:
       return
@@ -214,7 +221,8 @@ class KerasModel(Model):
           for x in example_inputs
       ]
 
-  def _create_training_ops(self, example_batch):
+  def _create_training_ops(self,
+                           example_batch: Tuple[List, List, List]) -> None:
     """The first time this is called, create tensors used in optimization."""
     if self._training_ops_built:
       return
@@ -230,15 +238,16 @@ class KerasModel(Model):
     ]
 
   def fit(self,
-          dataset,
-          nb_epoch=10,
-          max_checkpoints_to_keep=5,
-          checkpoint_interval=1000,
-          deterministic=False,
-          restore=False,
-          variables=None,
-          loss=None,
-          callbacks=[]):
+          dataset: Dataset,
+          nb_epoch: int = 10,
+          max_checkpoints_to_keep: int = 5,
+          checkpoint_interval: int = 1000,
+          deterministic: bool = False,
+          restore: bool = False,
+          variables: Optional[List[tf.Variable]] = None,
+          loss: Optional[LossFunction] = None,
+          callbacks: Union[Callable, List[Callable]] = [],
+          **kwargs) -> float:
     """Train this model on a dataset.
 
     Parameters
@@ -268,6 +277,10 @@ class KerasModel(Model):
     callbacks: function or list of functions
       one or more functions of the form f(model, step) that will be invoked after
       every step.  This can be used to perform validation, logging, etc.
+
+    Returns
+    -------
+    the average loss over the most recent checkpoint interval
    """
     return self.fit_generator(
         self.default_generator(
@@ -276,13 +289,13 @@ class KerasModel(Model):
         checkpoint_interval, restore, variables, loss, callbacks)
 
   def fit_generator(self,
-                    generator,
-                    max_checkpoints_to_keep=5,
-                    checkpoint_interval=1000,
-                    restore=False,
-                    variables=None,
-                    loss=None,
-                    callbacks=[]):
+                    generator: Iterable[Tuple[Any, Any, Any]],
+                    max_checkpoints_to_keep: int = 5,
+                    checkpoint_interval: int = 1000,
+                    restore: bool = False,
+                    variables: Optional[List[tf.Variable]] = None,
+                    loss: Optional[LossFunction] = None,
+                    callbacks: Union[Callable, List[Callable]] = []) -> float:
     """Train this model on data from a generator.
 
     Parameters
@@ -313,7 +326,7 @@ class KerasModel(Model):
     -------
     the average loss over the most recent checkpoint interval
     """
-    if not isinstance(callbacks, Sequence):
+    if not isinstance(callbacks, SequenceCollection):
       callbacks = [callbacks]
     self._ensure_built()
     if checkpoint_interval > 0:
@@ -389,7 +402,8 @@ class KerasModel(Model):
     logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return avg_loss
 
-  def _create_gradient_fn(self, variables):
+  def _create_gradient_fn(self,
+                          variables: Optional[List[tf.Variable]]) -> Callable:
     """Create a function that computes gradients and applies them to the model.
     Because of the way TensorFlow function tracing works, we need to create a
     separate function for each new set of variables.
@@ -416,14 +430,14 @@ class KerasModel(Model):
     return apply_gradient_for_batch
 
   def fit_on_batch(self,
-                   X,
-                   y,
-                   w,
-                   variables=None,
-                   loss=None,
-                   callbacks=[],
-                   checkpoint=True,
-                   max_checkpoints_to_keep=5):
+                   X: Sequence,
+                   y: Sequence,
+                   w: Sequence,
+                   variables: Optional[List[tf.Variable]] = None,
+                   loss: Optional[LossFunction] = None,
+                   callbacks: Union[Callable, List[Callable]] = [],
+                   checkpoint: bool = True,
+                   max_checkpoints_to_keep: int = 5) -> float:
     """Perform a single step of training.
 
     Parameters
@@ -448,6 +462,10 @@ class KerasModel(Model):
       if true, save a checkpoint after performing the training step
     max_checkpoints_to_keep: int
       the maximum number of checkpoints to keep.  Older checkpoints are discarded.
+
+    Returns
+    -------
+    the loss on the batch
     """
     self._ensure_built()
     dataset = NumpyDataset(X, y, w)
@@ -460,8 +478,11 @@ class KerasModel(Model):
         loss=loss,
         callbacks=callbacks)
 
-  def _predict(self, generator, transformers, outputs, uncertainty,
-               other_output_types):
+  def _predict(
+      self, generator: Iterable[Tuple[Any, Any, Any]],
+      transformers: List[Transformer], outputs: Optional[OneOrMany[tf.Tensor]],
+      uncertainty: bool,
+      other_output_types: Optional[OneOrMany[str]]) -> OneOrMany[np.ndarray]:
     """
     Predict outputs for data provided by a generator.
 
@@ -492,8 +513,8 @@ class KerasModel(Model):
       a NumPy array of the model produces a single output, or a list of arrays
       if it produces multiple outputs
     """
-    results = None
-    variances = None
+    results: Optional[List[np.ndarray]] = None
+    variances: Optional[List[np.ndarray]] = None
     if (outputs is not None) and (other_output_types is not None):
       raise ValueError(
           'This model cannot compute outputs and other output_types simultaneously. Please invoke one at a time.'
@@ -575,9 +596,10 @@ class KerasModel(Model):
     # Concatenate arrays to create the final results.
     final_results = []
     final_variances = []
-    for r in results:
-      final_results.append(np.concatenate(r, axis=0))
-    if uncertainty:
+    if results is not None:
+      for r in results:
+        final_results.append(np.concatenate(r, axis=0))
+    if uncertainty and variances is not None:
       for v in variances:
         final_variances.append(np.concatenate(v, axis=0))
       return zip(final_results, final_variances)
@@ -587,15 +609,16 @@ class KerasModel(Model):
       return final_results
 
   @tf.function(experimental_relax_shapes=True)
-  def _compute_model(self, inputs):
+  def _compute_model(self, inputs: Sequence):
     """Evaluate the model for a set of inputs."""
     return self.model(inputs, training=False)
 
-  def predict_on_generator(self,
-                           generator,
-                           transformers=[],
-                           outputs=None,
-                           output_types=None):
+  def predict_on_generator(
+      self,
+      generator: Iterable[Tuple[Any, Any, Any]],
+      transformers: List[Transformer] = [],
+      outputs: Optional[OneOrMany[tf.Tensor]] = None,
+      output_types: Optional[OneOrMany[str]] = None) -> OneOrMany[np.ndarray]:
     """
     Parameters
     ----------
@@ -622,7 +645,11 @@ class KerasModel(Model):
     """
     return self._predict(generator, transformers, outputs, False, output_types)
 
-  def predict_on_batch(self, X, transformers=[], outputs=None):
+  def predict_on_batch(self,
+                       X: Sequence,
+                       transformers: List[Transformer] = [],
+                       outputs: Optional[OneOrMany[tf.Tensor]] = None,
+                       **kwargs) -> OneOrMany[np.ndarray]:
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
@@ -646,7 +673,8 @@ class KerasModel(Model):
     dataset = NumpyDataset(X=X, y=None)
     return self.predict(dataset, transformers, outputs)
 
-  def predict_uncertainty_on_batch(self, X, masks=50):
+  def predict_uncertainty_on_batch(self, X: Sequence, masks: int = 50
+                                  ) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:
     """
     Predict the model's outputs, along with the uncertainty in each one.
 
@@ -673,7 +701,12 @@ class KerasModel(Model):
     dataset = NumpyDataset(X=X, y=None)
     return self.predict_uncertainty(dataset, masks)
 
-  def predict(self, dataset, transformers=[], outputs=None, output_types=None):
+  def predict(
+      self,
+      dataset: Dataset,
+      transformers: List[Transformer] = [],
+      outputs: Optional[OneOrMany[tf.Tensor]] = None,
+      output_types: Optional[List[str]] = None) -> OneOrMany[np.ndarray]:
     """
     Uses self to make predictions on provided Dataset object.
 
@@ -689,8 +722,10 @@ class KerasModel(Model):
       outputs will be returned.  Alternatively one or more Tensors within the
       model may be specified, in which case the output of those Tensors will be
       returned.
-    output_types: list of Strings
-      The output types to return. Will retrieve all outputs of these types from the model.
+    output_types: String or list of Strings
+      If specified, all outputs of this type will be retrieved
+      from the model. If output_types is specified, outputs must
+      be None.
 
     Returns
     -------
@@ -705,7 +740,7 @@ class KerasModel(Model):
         outputs=outputs,
         output_types=output_types)
 
-  def predict_embedding(self, dataset):
+  def predict_embedding(self, dataset: Dataset) -> OneOrMany[np.ndarray]:
     """
     Predicts embeddings created by underlying model if any exist.
     An embedding must be specified to have `output_type` of
@@ -725,7 +760,8 @@ class KerasModel(Model):
         dataset, mode='predict', pad_batches=False)
     return self._predict(generator, [], None, False, ['embedding'])
 
-  def predict_uncertainty(self, dataset, masks=50):
+  def predict_uncertainty(self, dataset: Dataset, masks: int = 50
+                         ) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:
     """
     Predict the model's outputs, along with the uncertainty in each one.
 
@@ -749,9 +785,9 @@ class KerasModel(Model):
     value of the output, and each element of y_std estimates the standard
     deviation of the corresponding element of y_pred
     """
-    sum_pred = []
-    sum_sq_pred = []
-    sum_var = []
+    sum_pred: List[np.ndarray] = []
+    sum_sq_pred: List[np.ndarray] = []
+    sum_var: List[np.ndarray] = []
     for i in range(masks):
       generator = self.default_generator(
           dataset, mode='uncertainty', pad_batches=False)
@@ -775,13 +811,14 @@ class KerasModel(Model):
     if len(output) == 1:
       return (output[0], std[0])
     else:
-      return zip(output, std)
+      return list(zip(output, std))
 
-  def evaluate_generator(self,
-                         generator,
-                         metrics,
-                         transformers=[],
-                         per_task_metrics=False):
+  def evaluate_generator(
+      self,
+      generator: Iterable[Tuple[Any, Any, Any]],
+      metrics: List[Metric],
+      transformers: List[Transformer] = [],
+      per_task_metrics: bool = False) -> Dict[str, np.ndarray]:
     """Evaluate the performance of this model on the data produced by a generator.
 
     Parameters
@@ -789,7 +826,7 @@ class KerasModel(Model):
     generator: generator
       this should generate batches, each represented as a tuple of the form
       (inputs, labels, weights).
-    metric: deepchem.metrics.Metric
+    metric: list of deepchem.metrics.Metric
       Evaluation metric
     transformers: list of dc.trans.Transformers
       Transformers that the input data has been transformed by.  The output
@@ -805,7 +842,7 @@ class KerasModel(Model):
     evaluator = GeneratorEvaluator(self, generator, transformers)
     return evaluator.compute_model_performance(metrics, per_task_metrics)
 
-  def compute_saliency(self, X):
+  def compute_saliency(self, X: np.ndarray) -> OneOrMany[np.ndarray]:
     """Compute the saliency map for an input sample.
 
     This computes the Jacobian matrix with the derivative of each output element
@@ -854,7 +891,8 @@ class KerasModel(Model):
       return final_result[0]
     return final_result
 
-  def _prepare_batch(self, batch):
+  def _prepare_batch(self,
+                     batch: Tuple[Any, Any, Any]) -> Tuple[List, List, List]:
     inputs, labels, weights = batch
     inputs = [
         x if x.dtype == t else x.astype(t)
@@ -880,12 +918,13 @@ class KerasModel(Model):
         inputs[i] = inputs[i].reshape(shape[:expected_dims])
     return (inputs, labels, weights)
 
-  def default_generator(self,
-                        dataset,
-                        epochs=1,
-                        mode='fit',
-                        deterministic=True,
-                        pad_batches=True):
+  def default_generator(
+      self,
+      dataset: Dataset,
+      epochs: int = 1,
+      mode: str = 'fit',
+      deterministic: bool = True,
+      pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
     """Create a generator that iterates batches for a dataset.
 
     Subclasses may override this method to customize how model inputs are
@@ -919,7 +958,9 @@ class KerasModel(Model):
           pad_batches=pad_batches):
         yield ([X_b], [y_b], [w_b])
 
-  def save_checkpoint(self, max_checkpoints_to_keep=5, model_dir=None):
+  def save_checkpoint(self,
+                      max_checkpoints_to_keep: int = 5,
+                      model_dir: Optional[str] = None) -> None:
     """Save a checkpoint to disk.
 
     Usually you do not need to call this method, since fit() saves checkpoints
@@ -942,7 +983,7 @@ class KerasModel(Model):
                                          max_checkpoints_to_keep)
     manager.save()
 
-  def get_checkpoints(self, model_dir=None):
+  def get_checkpoints(self, model_dir: Optional[str] = None):
     """Get a list of all available checkpoint files.
 
     Parameters
@@ -955,7 +996,9 @@ class KerasModel(Model):
       model_dir = self.model_dir
     return tf.train.get_checkpoint_state(model_dir).all_model_checkpoint_paths
 
-  def restore(self, checkpoint=None, model_dir=None, session=None):
+  def restore(self,
+              checkpoint: Optional[str] = None,
+              model_dir: Optional[str] = None) -> None:
     """Reload the values of all variables from a checkpoint file.
 
     Parameters
@@ -966,8 +1009,6 @@ class KerasModel(Model):
       list of all available checkpoints.
     model_dir: str, default None
       Directory to restore checkpoint from. If None, use self.model_dir.
-    session: tf.Session(), default None
-      Session to run restore ops under. If None, self.session is used.
     """
     self._ensure_built()
     if model_dir is None:
@@ -978,11 +1019,14 @@ class KerasModel(Model):
       raise ValueError('No checkpoint found')
     self._checkpoint.restore(checkpoint)
 
-  def get_global_step(self):
+  def get_global_step(self) -> int:
     """Get the number of steps of fitting that have been performed."""
     return int(self._global_step)
 
-  def _create_assignment_map(self, source_model, include_top=True, **kwargs):
+  def _create_assignment_map(self,
+                             source_model: "KerasModel",
+                             include_top: bool = True,
+                             **kwargs) -> Dict[Any, Any]:
     """
     Creates a default assignment map between variables of source and current model.
     This is used only when a custom assignment map is missing. This assumes the
@@ -998,7 +1042,7 @@ class KerasModel(Model):
     include_top: bool, default True
         if true, copies the last dense layer
     """
-    assignment_map = {}
+    assignment_map: Dict[Any, Any] = {}
     source_vars = source_model.model.trainable_variables
     dest_vars = self.model.trainable_variables
 
@@ -1011,7 +1055,8 @@ class KerasModel(Model):
 
     return assignment_map
 
-  def _create_value_map(self, source_model, **kwargs):
+  def _create_value_map(self, source_model: "KerasModel",
+                        **kwargs) -> Dict[Any, Any]:
     """
     Creates a value map between variables in the source model and their
     current values. This is used only when a custom value map is missing, and
@@ -1022,7 +1067,7 @@ class KerasModel(Model):
     source_model: dc.models.KerasModel
         Source model to create value map from
     """
-    value_map = {}
+    value_map: Dict[Any, Any] = {}
     source_vars = source_model.model.trainable_variables
 
     for source_var in source_vars:
@@ -1031,14 +1076,14 @@ class KerasModel(Model):
     return value_map
 
   def load_from_pretrained(self,
-                           source_model,
-                           assignment_map=None,
-                           value_map=None,
-                           checkpoint=None,
-                           model_dir=None,
-                           include_top=True,
-                           inputs=None,
-                           **kwargs):
+                           source_model: "KerasModel",
+                           assignment_map: Optional[Dict[Any, Any]] = None,
+                           value_map: Optional[Dict[Any, Any]] = None,
+                           checkpoint: Optional[str] = None,
+                           model_dir: Optional[str] = None,
+                           include_top: bool = True,
+                           inputs: Optional[Sequence[Any]] = None,
+                           **kwargs) -> None:
     """Copies variable values from a pretrained model. `source_model` can either
     be a pretrained model or a model with the same architecture. `value_map`
     is a variable-value dictionary. If no `value_map` is provided, the variable
@@ -1104,11 +1149,11 @@ class KerasModel(Model):
 class _StandardLoss(object):
   """The implements the loss function for models that use a dc.models.losses.Loss."""
 
-  def __init__(self, model, loss):
+  def __init__(self, model: tf.keras.Model, loss: Loss):
     self.model = model
     self.loss = loss
 
-  def __call__(self, outputs, labels, weights):
+  def __call__(self, outputs: List, labels: List, weights: List) -> float:
     if len(outputs) != 1 or len(labels) != 1 or len(weights) != 1:
       raise ValueError(
           "Loss functions expects exactly one each of outputs, labels, and weights"

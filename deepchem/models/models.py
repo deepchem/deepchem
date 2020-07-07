@@ -105,7 +105,7 @@ class Model(BaseEstimator):
     """
     raise NotImplementedError
 
-  def fit(self, dataset, nb_epoch=10, batch_size=50, **kwargs):
+  def fit(self, dataset, nb_epoch=10, **kwargs):
     """
     Fits a model on data in a Dataset object.
     """
@@ -114,13 +114,12 @@ class Model(BaseEstimator):
     for epoch in range(nb_epoch):
       log("Starting epoch %s" % str(epoch + 1), self.verbose)
       losses = []
-      for (X_batch, y_batch, w_batch,
-           ids_batch) in dataset.iterbatches(batch_size):
+      for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches():
         losses.append(self.fit_on_batch(X_batch, y_batch, w_batch))
       log("Avg loss for epoch %d: %f" % (epoch + 1, np.array(losses).mean()),
           self.verbose)
 
-  def predict(self, dataset, transformers=[], batch_size=None):
+  def predict(self, dataset, transformers=[]):
     """
     Uses self to make predictions on provided Dataset object.
 
@@ -131,8 +130,7 @@ class Model(BaseEstimator):
     n_tasks = self.get_num_tasks()
     ind = 0
 
-    for (X_batch, _, _, ids_batch) in dataset.iterbatches(
-        batch_size, deterministic=True):
+    for (X_batch, _, _, ids_batch) in dataset.iterbatches(deterministic=True):
       n_samples = len(X_batch)
       y_pred_batch = self.predict_on_batch(X_batch)
       # Discard any padded predictions
