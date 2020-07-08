@@ -1600,8 +1600,7 @@ class ANITransformer(Transformer):
 class FeaturizationTransformer(Transformer):
   """A transformer which runs a featurizer over the X values of a dataset.
 
-  Datasets used by this transformer be compatible with the internal
-  featurizer. 
+  Datasets used by this transformer be compatible with the internal featurizer.
   """
 
   def __init__(self,
@@ -1706,7 +1705,7 @@ class DataTransforms(Transformer):
       Denotes angle by which the image should be rotated (in Degrees)
 
     Returns
-    ----------
+    -------
     The rotated input array
     """
     return scipy.ndimage.rotate(self.Image, angle)
@@ -1732,7 +1731,7 @@ class DataTransforms(Transformer):
       the total number of pixels to remove in the vertical direction, evenly split between the top and bottom sides
 
     Returns
-    ----------
+    -------
     The center cropped input array
 
     """
@@ -1757,7 +1756,7 @@ class DataTransforms(Transformer):
       the number of pixels to exclude from the bottom of the image
 
     Returns
-    ----------
+    -------
     The cropped input array
     """
     y = self.Image.shape[0]
@@ -1768,7 +1767,7 @@ class DataTransforms(Transformer):
     """Converts the image to grayscale. The coefficients correspond to the Y' component of the Y'UV color system.
     
     Returns
-    ----------
+    -------
     The grayscale image.
     """
     return np.dot(self.Image[..., :3], [0.2989, 0.5870, 0.1140])
