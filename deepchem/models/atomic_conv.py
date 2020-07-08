@@ -178,8 +178,8 @@ class AtomicConvModel(KerasModel):
                learning_rate=0.001,
                **kwargs):
     """
-    Params
-    ------
+    Parameters
+    ----------
     frag1_num_atoms: int
       Number of atoms in first fragment
     frag2_num_atoms: int

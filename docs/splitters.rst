@@ -61,7 +61,7 @@ RandomGroupSplitter
   :members:
 
 RandomStratifiedSplitter
--------------------
+------------------------
 
 .. autoclass:: deepchem.splits.RandomStratifiedSplitter
   :members:
@@ -97,7 +97,7 @@ ScaffoldSplitter
   :members:
 
 FingeprintSplitter
-----------------
+------------------
 
 .. autoclass:: deepchem.splits.FingerprintSplitter
   :members:

@@ -412,8 +412,8 @@ class Dataset(object):
 
     Returns
     -------
-    If `X_stats == True`, returns `(X_means, X_stds)`. If `y_stats ==
-    True`, returns `(y_means, y_stds)`. If both are true, returns
+    If `X_stats == True`, returns `(X_means, X_stds)`. If `y_stats == True`,
+    returns `(y_means, y_stds)`. If both are true, returns
     `(X_means, X_stds, y_means, y_stds)`.
     """
     X_means = 0.0
@@ -1160,8 +1160,8 @@ class DiskDataset(Dataset):
     `math.ceil(len(dataset)/batch_size)`. Each minibatch is returned as
     a tuple of four numpy arrays: `(X, y, w, ids)`.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     batch_size: int
       Number of elements in a batch. If None, then it yields batches
       with size equal to the size of each individual shard.

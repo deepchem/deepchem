@@ -30,13 +30,13 @@ def load_clintox(featurizer='ECFP',
   toxicity reasons are compiled from the Aggregate Analysis of
   ClinicalTrials.gov(AACT) database.
 
-  The data file contains a csv table, in which columns below are
-  used:
-     "smiles" - SMILES representation of the molecular structure
-     "FDA_APPROVED" - FDA approval status
-     "CT_TOX" - Clinical trial results
+  The data file contains a csv table, in which columns below are used:
+  "smiles" - SMILES representation of the molecular structure
+  "FDA_APPROVED" - FDA approval status
+  "CT_TOX" - Clinical trial results
 
-References:
+  References
+  ----------
   Gayvert, Kaitlyn M., Neel S. Madhukar, and Olivier Elemento. "A data-driven approach to predicting successes and failures of clinical trials." Cell chemical biology 23.10 (2016): 1294-1301.
 
   Artemov, Artem V., et al. "Integrated deep learned transcriptomic and structure-based predictor of clinical trials outcomes." bioRxiv (2016): 095653.

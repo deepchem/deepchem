@@ -13,8 +13,9 @@ class ConformerGenerator(object):
   """
   Generate molecule conformers.
 
+  Notes
+  -----
   Procedure
-  ---------
   1. Generate a pool of conformers.
   2. Minimize conformers.
   3. Prune conformers using an RMSD threshold.
