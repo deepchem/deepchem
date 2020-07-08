@@ -60,6 +60,7 @@ DeepChem has a number of "soft" requirements. These are packages which are neede
 - [simdna](https://github.com/kundajelab/simdna)
 - [XGBoost](https://xgboost.readthedocs.io/en/latest/)
 - [Weights & Biases](https://docs.wandb.com/)
+- [Tensorflow Probability](https://www.tensorflow.org/probability)
 
 ## Installation
 

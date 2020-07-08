@@ -1,4 +1,18 @@
+import sys
+import time
 from setuptools import setup, find_packages
+
+if '--release' in sys.argv:
+  release = True
+  sys.argv.remove('--release')
+else:
+  # Build a nightly package by default.
+  release = False
+
+if release:
+  project_name = 'deepchem'
+else:
+  project_name = 'deepchem-nightly'
 
 
 # get the version from deepchem/__init__.py
@@ -8,12 +22,19 @@ def _get_version():
       if line.startswith('__version__'):
         g = {}
         exec(line, g)
-        return g['__version__']
+        if project_name == "deepchem":
+          return g['__version__']
+        else:
+          # nightly version string .devYearMonthDayHourMinute
+          base = g['__version__']
+          dev_version = ".dev" + time.strftime("%Y%m%d%H%M%S")
+          return base + dev_version
+
     raise ValueError('`__version__` not defined in `deepchem/__init__.py`')
 
 
 setup(
-    name='deepchem',
+    name=project_name,
     version=_get_version(),
     url='https://github.com/deepchem/deepchem',
     maintainer='DeepChem contributors',
@@ -22,7 +43,7 @@ setup(
         'Environment :: Console',
         'Intended Audience :: Developers',
         'Intended Audience :: Information Technology',
-        'License :: OSI Approved :: MIT',
+        'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
@@ -33,6 +54,9 @@ setup(
         quantum chemistry, and the life sciences.',
     keywords=[
         'deepchem',
+        'chemistry',
+        'biology',
+        'materials-science',
         'life-science',
         'drug-discovery',
     ],

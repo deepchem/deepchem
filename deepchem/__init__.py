@@ -1,7 +1,7 @@
 """
 Imports all submodules
 """
-__version__ = '2.3.0'
+__version__ = '2.4.0-rc.1'
 
 import deepchem.data
 import deepchem.feat
