@@ -35,14 +35,14 @@ Then open your python and try running.
 
 
 Pip Installation
----------------------------
+----------------
 We are working on improving our pip installation
 capabilities. We'll update our docs once we have more information on
 how to do this well.
 
 
 Docker Installation
-------------------
+-------------------
 
 If you want to install using a docker, you can pull two kinds of images from `DockerHub`_.
 

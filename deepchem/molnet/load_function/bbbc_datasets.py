@@ -27,8 +27,8 @@ def load_bbbc001(split='index',
 
   This dataset contains 6 images of human HT29 colon cancer cells. The task is
   to learn to predict the cell counts in these images. This dataset is too small
-   to serve to train algorithms, but might serve as a good test dataset.
-   https://data.broadinstitute.org/bbbc/BBBC001/
+  to serve to train algorithms, but might serve as a good test dataset.
+  https://data.broadinstitute.org/bbbc/BBBC001/
   """
   # Featurize BBBC001 dataset
   bbbc001_tasks = ["cell-count"]

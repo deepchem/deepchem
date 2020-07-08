@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 def extract_active_site(protein_file, ligand_file, cutoff=4):
   """Extracts a box for the active site.
 
-  Params
-  ------
+  Parameters
+  ----------
   protein_file: str
     Location of protein PDB
   ligand_file: str
@@ -116,8 +116,8 @@ class ConvexHullPocketFinder(BindingPocketFinder):
     face of the hull is converted into a coordinate box used for
     binding.
 
-    Params
-    ------
+    Parameters
+    ----------
     macromolecule_file: str
       Location of the macromolecule file to load
 

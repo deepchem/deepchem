@@ -93,8 +93,8 @@ class VinaPoseGenerator(PoseGenerator):
   def __init__(self, sixty_four_bits=True, pocket_finder=None):
     """Initializes Vina Pose Generator
 
-    Params
-    ------
+    Parameters
+    ----------
     sixty_four_bits: bool, optional (default True)
       Specifies whether this is a 64-bit machine. Needed to download
       the correct executable.

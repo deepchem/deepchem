@@ -163,7 +163,7 @@ MultitaskRegressor
 MultitaskFitTransformRegressor
 ------------------------------
 
-.. autoclass:: deepchem.models.MultitaskClassifier
+.. autoclass:: deepchem.models.MultitaskFitTransformRegressor
   :members:
 
 MultitaskClassifier
@@ -265,7 +265,7 @@ CNN
 TextCNNModel
 ------------
 
-.. autoclass:: deepchem.models.CNN
+.. autoclass:: deepchem.models.TextCNNModel
   :members:
 
 
