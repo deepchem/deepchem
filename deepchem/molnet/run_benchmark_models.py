@@ -152,7 +152,7 @@ def benchmark_classification(train_dataset,
           class_weight="balanced",
           n_jobs=-1)
       return deepchem.models.sklearn_models.SklearnModel(
-          sklearn_model, model_dir_logreg)
+          sklearn_model, model_dir)
 
     model = deepchem.models.multitask.SingletaskToMultitask(
         tasks, model_builder)
@@ -304,7 +304,7 @@ def benchmark_classification(train_dataset,
       sklearn_model = RandomForestClassifier(
           class_weight="balanced", n_estimators=n_estimators, n_jobs=-1)
       return deepchem.models.sklearn_models.SklearnModel(
-          sklearn_model, model_dir_rf)
+          sklearn_model, model_dir)
 
     model = deepchem.models.multitask.SingletaskToMultitask(
         tasks, model_builder)
@@ -318,7 +318,7 @@ def benchmark_classification(train_dataset,
     def model_builder(model_dir):
       sklearn_model = SVC(
           C=C, gamma=gamma, class_weight="balanced", probability=True)
-      return deepchem.models.SklearnModel(sklearn_model, model_dir_kernelsvm)
+      return deepchem.models.SklearnModel(sklearn_model, model_dir)
 
     model = deepchem.models.multitask.SingletaskToMultitask(
         tasks, model_builder)
@@ -362,7 +362,7 @@ def benchmark_classification(train_dataset,
           base_score=base_score,
           seed=seed)
       return deepchem.models.xgboost_models.XGBoostModel(
-          xgboost_model, model_dir_xgb, **esr)
+          xgboost_model, model_dir, **esr)
 
     model = deepchem.models.multitask.SingletaskToMultitask(
         tasks, model_builder)
@@ -677,7 +677,7 @@ def benchmark_regression(train_dataset,
       sklearn_model = RandomForestRegressor(
           n_estimators=n_estimators, n_jobs=-1)
       return deepchem.models.sklearn_models.SklearnModel(
-          sklearn_model, model_dir_rf_regression)
+          sklearn_model, model_dir)
 
     model = deepchem.models.multitask.SingletaskToMultitask(
         tasks, model_builder)
@@ -689,7 +689,7 @@ def benchmark_regression(train_dataset,
     # Building scikit learn Kernel Ridge Regression model
     def model_builder(model_dir):
       sklearn_model = KernelRidge(kernel="rbf", alpha=alpha)
-      return deepchem.models.SklearnModel(sklearn_model, model_dir_krr)
+      return deepchem.models.SklearnModel(sklearn_model, model_dir)
 
     model = deepchem.models.multitask.SingletaskToMultitask(
         tasks, model_builder)
@@ -706,7 +706,7 @@ def benchmark_regression(train_dataset,
     # Building scikit learn Kernel Ridge Regression model
     def model_builder(model_dir):
       sklearn_model = KernelRidge(kernel="rbf", alpha=alpha)
-      return deepchem.models.SklearnModel(sklearn_model, model_dir_krr)
+      return deepchem.models.SklearnModel(sklearn_model, model_dir)
 
     model = deepchem.models.multitask.SingletaskToMultitask(
         tasks, model_builder)
@@ -749,7 +749,7 @@ def benchmark_regression(train_dataset,
           base_score=base_score,
           seed=seed)
       return deepchem.models.xgboost_models.XGBoostModel(
-          xgboost_model, model_dir_xgb, **esr)
+          xgboost_model, model_dir, **esr)
 
     model = deepchem.models.multitask.SingletaskToMultitask(
         tasks, model_builder)
