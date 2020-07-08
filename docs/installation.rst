@@ -8,8 +8,14 @@ The fastest way to get up and running with DeepChem is to run it on
 Google Colab. Check out one of the `DeepChem Tutorials`_ or this
 `forum post`_ for Colab quick start guides.
 
-Conda Installation
-------------------
+
+Stable version
+--------------
+
+**Caution!! : The latest stable version was published nearly a year ago.
+If you are a pip user or you face some errors, we recommend 
+the nightly build version.**
+
 If you'd like to install DeepChem locally, we recommend using
 :code:`conda` and installing RDKit with deepchem. 
 RDKit is a soft requirement package, but many useful methods like
@@ -27,24 +33,33 @@ For CPU only support instead run
     pip install tensorflow==1.14
     conda install -y -c rdkit -c conda-forge rdkit deepchem
 
-Then open your python and try running.
 
-.. code-block:: python
+Nightly build version
+---------------------
 
-    import deepchem
+You install the nightly build version via pip.
+Nightly version is built by the HEAD of DeepChem.
+
+.. code-block:: bash
+
+    pip install tensorflow==2.2
+    pip install --pre deepchem
 
 
-Pip Installation
----------------------------
-We are working on improving our pip installation
-capabilities. We'll update our docs once we have more information on
-how to do this well.
+RDKit is a soft requirement package, but many useful methods
+like molnet depend on it. We recommend installing RDKit
+with deepchem if you use conda.
+
+.. code-block:: bash
+
+    conda install -y -c rdkit rdkit
 
 
-Docker Installation
-------------------
+Docker
+------
 
-If you want to install using a docker, you can pull two kinds of images from `DockerHub`_.
+If you want to install using a docker,
+you can pull two kinds of images from `DockerHub`_.
 
 - **deepchemio/deepchem:x.x.x**
 
@@ -102,14 +117,50 @@ If you want to check the tox21 benchmark:
     (deepchem) root@xxxxxxxxxxxxx:~/mydir# python benchmark.py -d tox21 -m graphconv -s random
 
 
-Installing from Source
-----------------------
+From Source
+-----------
 
-Check out our directions on Github for how to `install from source`_.
+You can install deepchem in a new conda environment using the conda
+commands in :code:`scripts/install_deepchem_conda.sh`. Installing via this
+script will ensure that you are **installing from the source**.
+The following script requires **conda>=4.4** because it uses the
+:code:`conda activate` command.
+
+First, please clone the deepchem repository from GitHub.
+
+.. code-block:: bash
+
+    git clone https://github.com/deepchem/deepchem.git
+    cd deepchem
+
+
+Then, execute the shell script.
+
+.. code-block:: bash
+
+    bash scripts/install_deepchem_conda.sh deepchem
+
+
+If you are using the Windows and the PowerShell:
+
+.. code-block:: ps1
+
+    .\scripts\install_deepchem_conda.ps1 deepchem
+
+
+| Before activating deepchem environment, make sure conda has been initialized.
+| Check if there is a :code:`(base)` in your command line. 
+| If not, use :code:`conda init <YOUR_SHELL_NAME>` to activate it, then:
+
+.. code-block:: bash
+
+    conda activate deepchem
+    python setup.py install
+    pytest -m "not slow" deepchem # optional
+
 
 .. _`DeepChem Tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials
 .. _`forum post`: https://forum.deepchem.io/t/getting-deepchem-running-in-colab/81
 .. _`DockerHub`: https://hub.docker.com/repository/docker/deepchemio/deepchem
 .. _`docker/conda-forge`: https://github.com/deepchem/deepchem/tree/master/docker/conda-forge
 .. _`docker/master`: https://github.com/deepchem/deepchem/tree/master/docker/master
-.. _`install from source`: https://github.com/deepchem/deepchem/blob/master/README.md#install-from-source
