@@ -144,8 +144,7 @@ def load_kinase(shard_size=2000, featurizer=None, split=None, reload=True):
   """Loads Kinase datasets, does not do train/test split
 
   The Kinase dataset is an in-house dataset from Merck that was first introduced in the following paper:
-
-Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
+  Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
 
   It contains 2500 Merck in-house compounds that were measured
   for IC50 of inhibition on 99 protein kinases. Unlike most of

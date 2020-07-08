@@ -28,13 +28,13 @@ def load_hiv(featurizer='ECFP',
   latter two labels, making it a classification task between
   inactive (CI) and active (CA and CM).
 
-  The data file contains a csv table, in which columns below
-  are used:
-     - "smiles": SMILES representation of the molecular structure
-     - "activity": Three-class labels for screening results: CI/CM/CA
-     - "HIV_active": Binary labels for screening results: 1 (CA/CM) and 0 (CI)
+  The data file contains a csv table, in which columns below are used:
+  - "smiles": SMILES representation of the molecular structure
+  - "activity": Three-class labels for screening results: CI/CM/CA
+  - "HIV_active": Binary labels for screening results: 1 (CA/CM) and 0 (CI)
 
-  References:
+  References
+  ----------
   AIDS Antiviral Screen Data. https://wiki.nci.nih.gov/display/NCIDTPdata/AIDS+Antiviral+Screen+Data
   """
   # Featurize hiv dataset

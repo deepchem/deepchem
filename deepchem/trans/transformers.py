@@ -554,7 +554,7 @@ class ClippingTransformer(Transformer):
                y_max=500.):
     """Initialize clipping transformation.
 
-    Parameters:
+    Parameters
     ----------
     transform_X: bool, optional (default False)
       Whether to transform X
@@ -592,7 +592,7 @@ class ClippingTransformer(Transformer):
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays.
 
-    Parameters:
+    Parameters
     ----------
     X: np.ndarray
       Features
@@ -601,7 +601,7 @@ class ClippingTransformer(Transformer):
     w: np.ndarray
       Weights
 
-    Returns:
+    Returns
     -------
     X: np.ndarray
       Transformed features
@@ -771,15 +771,37 @@ class LogTransformer(Transformer):
 class BalancingTransformer(Transformer):
   """Balance positive and negative examples for weights.
 
+  This class balances the sample weights so that the sum of all example
+  weights from all classes is the same. This can be useful when you're
+  working on an imbalanced dataset where there are far fewer examples of some
+  classes than others.
+
   Example
   -------
+
+  Here's an example for a binary dataset.
 
   >>> n_samples = 10
   >>> n_features = 3
   >>> n_tasks = 1
+  >>> n_classes = 2
   >>> ids = np.arange(n_samples)
   >>> X = np.random.rand(n_samples, n_features)
-  >>> y = np.random.randint(2, size=(n_samples, n_tasks))
+  >>> y = np.random.randint(n_classes, size=(n_samples, n_tasks))
+  >>> w = np.ones((n_samples, n_tasks))
+  >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+  >>> transformer = dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
+  >>> dataset = transformer.transform(dataset)
+
+  And here's a multiclass dataset example.
+
+  >>> n_samples = 50
+  >>> n_features = 3
+  >>> n_tasks = 1
+  >>> n_classes = 5
+  >>> ids = np.arange(n_samples)
+  >>> X = np.random.rand(n_samples, n_features)
+  >>> y = np.random.randint(n_classes, size=(n_samples, n_tasks))
   >>> w = np.ones((n_samples, n_tasks))
   >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
   >>> transformer = dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
@@ -787,20 +809,21 @@ class BalancingTransformer(Transformer):
 
   Note
   ----
-  This class can only transform `w`. Note at present this class only supports
-  binary datasets and not multiclass datasets.
+  This transformer is only meaningful for classification datasets where `y`
+  takes on a limited set of values. This class can only transform `w` and does
+  not transform `X` or `y`.
 
   Raises
   ------
-  `ValueError` if `transform_X` or `transform_y` are set.
+  `ValueError` if `transform_X` or `transform_y` are set. Also raises
+  `ValueError` if `y` or `w` aren't of shape `(N,)` or `(N, n_tasks)`.
   """
 
   def __init__(self,
                transform_X=False,
                transform_y=False,
                transform_w=False,
-               dataset=None,
-               seed=None):
+               dataset=None):
     # BalancingTransformer can only transform weights.
     if transform_X or transform_y:
       raise ValueError("Cannot transform X or y")
@@ -815,22 +838,38 @@ class BalancingTransformer(Transformer):
     # Compute weighting factors from dataset.
     y = dataset.y
     w = dataset.w
+    # Handle 1-D case
+    if len(y.shape) == 1:
+      y = np.reshape(y, (len(y), 1))
+    if len(w.shape) == 1:
+      w = np.reshape(w, (len(w), 1))
+    if len(y.shape) != 2:
+      raise ValueError("y must be of shape (N,) or (N, n_tasks)")
+    if len(w.shape) != 2:
+      raise ValueError("w must be of shape (N,) or (N, n_tasks)")
     # Ensure dataset is binary
-    np.testing.assert_allclose(sorted(np.unique(y)), np.array([0., 1.]))
+    self.classes = sorted(np.unique(y))
     weights = []
     for ind, task in enumerate(dataset.get_task_names()):
       task_w = w[:, ind]
       task_y = y[:, ind]
       # Remove labels with zero weights
       task_y = task_y[task_w != 0]
-      num_positives = np.count_nonzero(task_y)
-      num_negatives = len(task_y) - num_positives
-      if num_positives > 0:
-        pos_weight = float(num_negatives) / num_positives
-      else:
-        pos_weight = 1
-      neg_weight = 1
-      weights.append((neg_weight, pos_weight))
+      N_task = len(task_y)
+      class_counts = []
+      # Note that we may 0 elements of a given class since we remove those
+      # labels with zero weight. This typically happens in multitask datasets
+      # where some datapoints only have labels for some tasks.
+      for c in self.classes:
+        # this works because task_y is 1D
+        num_c = len(np.where(task_y == c)[0])
+        class_counts.append(num_c)
+      # This is the right ratio since N_task/num_c * num_c = N_task
+      # for all classes
+      class_weights = [
+          N_task / float(num_c) if num_c > 0 else 0 for num_c in class_counts
+      ]
+      weights.append(class_weights)
     self.weights = weights
 
   def transform_array(self, X, y, w):
@@ -855,22 +894,59 @@ class BalancingTransformer(Transformer):
       Transformed array of weights
     """
     w_balanced = np.zeros_like(w)
-    for ind in range(y.shape[1]):
-      task_y = y[:, ind]
-      task_w = w[:, ind]
-      zero_indices = np.logical_and(task_y == 0, task_w != 0)
-      one_indices = np.logical_and(task_y == 1, task_w != 0)
-      w_balanced[zero_indices, ind] = self.weights[ind][0]
-      w_balanced[one_indices, ind] = self.weights[ind][1]
+    if len(y.shape) == 1:
+      n_tasks = 1
+    elif len(y.shape) == 2:
+      n_tasks = y.shape[1]
+    else:
+      raise ValueError("y must be of shape (N,) or (N, n_tasks)")
+    for ind in range(n_tasks):
+      if n_tasks == 1:
+        task_y = y
+        task_w = w
+      else:
+        task_y = y[:, ind]
+        task_w = w[:, ind]
+      for i, c in enumerate(self.classes):
+        class_indices = np.logical_and(task_y == c, task_w != 0)
+        # Set to the class weight computed previously
+        if n_tasks == 1:
+          w_balanced[class_indices] = self.weights[ind][i]
+        else:
+          w_balanced[class_indices, ind] = self.weights[ind][i]
     return (X, y, w_balanced)
 
 
 class CDFTransformer(Transformer):
-  """Histograms the data and assigns values based on sorted list."""
-  """Acts like a Cumulative Distribution Function (CDF)."""
+  """Histograms the data and assigns values based on sorted list.
+  
+  Acts like a Cumulative Distribution Function (CDF). If given a dataset of
+  samples from a continuous distribution computes the CDF of this dataset.
 
-  def __init__(self, transform_X=False, transform_y=False, dataset=None,
+  TODO: Add an example of this. The current documentation is confusing.
+  """
+
+  def __init__(self,
+               transform_X=False,
+               transform_y=False,
+               transform_w=False,
+               dataset=None,
                bins=2):
+    """Initialize this transformer.
+
+    Parameters
+    ----------
+    transform_X: bool, optional (default False)
+      Whether to transform X
+    transform_y: bool, optional (default False)
+      Whether to transform y
+    transform_w: bool, optional (default False)
+      Whether to transform w
+    dataset: dc.data.Dataset object, optional (default None)
+      Dataset to be transformed
+    bins: int, optional (default 2)
+
+    """
     self.transform_X = transform_X
     self.transform_y = transform_y
     self.bins = bins
@@ -879,28 +955,63 @@ class CDFTransformer(Transformer):
 
   # TODO (flee2): for transform_y, figure out weights
 
-  def transform(self, dataset, bins):
-    """Performs CDF transform on data."""
-    X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
+  def transform_array(self, X, y, w):
+    """Performs CDF transform on data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Array of features
+    y: np.ndarray
+      Array of labels
+    w: np.ndarray
+      Array of weights.
+
+    Returns
+    -------
+    Xtrans: np.ndarray
+      Transformed array of features
+    ytrans: np.ndarray
+      Transformed array of labels
+    wtrans: np.ndarray
+      Transformed array of weights
+    """
     w_t = w
-    ids_t = ids
     if self.transform_X:
       X_t = get_cdf_values(X, self.bins)
       y_t = y
-    if self.transform_y:
+    elif self.transform_y:
       X_t = X
       y_t = get_cdf_values(y, self.bins)
-      # print("y will not be transformed by CDFTransformer, for now.")
-    return NumpyDataset(X_t, y_t, w_t, ids_t)
+    return X_t, y_t, w_t
 
   def untransform(self, z):
-    # print("Cannot undo CDF Transformer, for now.")
+    """Undo transformation on provided data.
+
+    Note that this transformation is only undone for y.
+
+    Parameters
+    ----------
+    z: np.ndarray,
+      Transformed y array
+    """
     # Need this for transform_y
     if self.transform_y:
       return self.y
+    else:
+      raise NotImplementedError
 
 
 def get_cdf_values(array, bins):
+  """Helper function to compute CDF values.
+
+  Parameters
+  ----------
+  array: np.ndarray
+    Must be of shape `(n_rows, n_cols)`
+  bins: int
+    Number of bins to split data into.
+  """
   # array = np.transpose(array)
   n_rows = array.shape[0]
   n_cols = array.shape[1]
@@ -922,18 +1033,63 @@ def get_cdf_values(array, bins):
 
 
 class PowerTransformer(Transformer):
-  """Takes power n transforms of the data based on an input vector."""
+  """Takes power n transforms of the data based on an input vector.
 
-  def __init__(self, transform_X=False, transform_y=False, powers=[1]):
+  Computes the specified powers of the dataset. This can be useful if you're
+  looking to add higher order features of the form `x_i^2`, `x_i^3` etc. to
+  your dataset.
+  """
+
+  def __init__(self,
+               transform_X=False,
+               transform_y=False,
+               transform_w=False,
+               dataset=None,
+               powers=[1]):
+    """Initialize this transformer
+
+    Parameters
+    ----------
+    transform_X: bool, optional (default False)
+      Whether to transform X
+    transform_y: bool, optional (default False)
+      Whether to transform y
+    transform_w: bool, optional (default False)
+      Whether to transform w
+    dataset: dc.data.Dataset object, optional (default None)
+      Dataset to be transformed. Note that this argument is ignored since
+      `PowerTransformer` doesn't require it to be specified.
+    powers: list[int], optional (default `[1]`)
+      The list of powers of features/labels to compute.
+    """
+    if transform_w:
+      raise ValueError("PowerTransformer doesn't support w transformation.")
     self.transform_X = transform_X
     self.transform_y = transform_y
     self.powers = powers
 
-  def transform(self, dataset):
-    """Performs power transform on data."""
-    X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
+  def transform_array(self, X, y, w):
+    """Performs power transform on data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Array of features
+    y: np.ndarray
+      Array of labels
+    w: np.ndarray
+      Array of weights.
+
+    Returns
+    -------
+    Xtrans: np.ndarray
+      Transformed array of features
+    ytrans: np.ndarray
+      Transformed array of labels
+    wtrans: np.ndarray
+      Transformed array of weights
+    """
     w_t = w
-    ids_t = ids
     n_powers = len(self.powers)
     if self.transform_X:
       X_t = np.power(X, self.powers[0])
@@ -941,21 +1097,20 @@ class PowerTransformer(Transformer):
         X_t = np.hstack((X_t, np.power(X, self.powers[i])))
       y_t = y
     if self.transform_y:
-      # print("y will not be transformed by PowerTransformer, for now.")
       y_t = np.power(y, self.powers[0])
       for i in range(1, n_powers):
         y_t = np.hstack((y_t, np.power(y, self.powers[i])))
       X_t = X
-    """
-    shutil.rmtree(dataset.data_dir)
-    os.makedirs(dataset.data_dir)
-    DiskDataset.from_numpy(dataset.data_dir, X_t, y_t, w_t, ids_t)
-    return dataset
-    """
-    return NumpyDataset(X_t, y_t, w_t, ids_t)
+    return (X_t, y_t, w_t)
 
   def untransform(self, z):
-    # print("Cannot undo Power Transformer, for now.")
+    """Undo transformation on provided data.
+
+    Parameters
+    ----------
+    z: np.ndarray,
+      Transformed y array
+    """
     n_powers = len(self.powers)
     orig_len = (z.shape[1]) // n_powers
     z = z[:, :orig_len]
@@ -987,7 +1142,7 @@ class CoulombFitTransformer(Transformer):
   def __init__(self, dataset):
     """Initializes CoulombFitTransformer.
 
-    Parameters:
+    Parameters
     ----------
     dataset: dc.data.Dataset object
 
@@ -1009,12 +1164,12 @@ class CoulombFitTransformer(Transformer):
   def realize(self, X):
     """Randomize features.
 
-    Parameters:
+    Parameters
     ----------
     X: np.ndarray
       Features
 
-    Returns:
+    Returns
     -------
     X: np.ndarray
       Randomized features
@@ -1033,12 +1188,12 @@ class CoulombFitTransformer(Transformer):
   def normalize(self, X):
     """Normalize features.
 
-    Parameters:
+    Parameters
     ----------
     X: np.ndarray
       Features
 
-    Returns:
+    Returns
     -------
     X: np.ndarray
       Normalized features
@@ -1049,16 +1204,15 @@ class CoulombFitTransformer(Transformer):
   def expand(self, X):
     """Binarize features.
 
-    Parameters:
+    Parameters
     ----------
     X: np.ndarray
       Features
 
-    Returns:
+    Returns
     -------
     X: np.ndarray
       Binarized features
-
     """
     Xexp = []
     for i in range(X.shape[1]):
@@ -1069,16 +1223,15 @@ class CoulombFitTransformer(Transformer):
   def X_transform(self, X):
     """Perform Coulomb Fit transform on features.
 
-    Parameters:
+    Parameters
     ----------
     X: np.ndarray
       Features
 
-    Returns:
+    Returns
     -------
     X: np.ndarray
       Transformed features
-
     """
 
     X = self.normalize(self.expand(self.realize(X)))
@@ -1099,7 +1252,7 @@ class IRVTransformer():
   def __init__(self, K, n_tasks, dataset, transform_y=False, transform_x=False):
     """Initializes IRVTransformer.
 
-    Parameters:
+    Parameters
     ----------
     dataset: dc.data.Dataset object
       train_dataset
@@ -1119,8 +1272,8 @@ class IRVTransformer():
   def realize(self, similarity, y, w):
     """find samples with top ten similarity values in the reference dataset
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     similarity: np.ndarray
       similarity value between target dataset and reference dataset
       should have size of (n_samples_in_target, n_samples_in_reference)
@@ -1129,8 +1282,8 @@ class IRVTransformer():
     w: np.array
       weights for a single task
 
-    Return:
-    ----------
+    Returns
+    -------
     features: list
       n_samples * np.array of size (2*K,)
       each array includes K similarity values and corresponding labels
@@ -1172,19 +1325,19 @@ class IRVTransformer():
   def X_transform(self, X_target):
     """ Calculate similarity between target dataset(X_target) and
     reference dataset(X): #(1 in intersection)/#(1 in union)
-         similarity = (X_target intersect X)/(X_target union X)
 
-    Parameters:
-    -----------
+    similarity = (X_target intersect X)/(X_target union X)
+
+    Parameters
+    ----------
     X_target: np.ndarray
       fingerprints of target dataset
       should have same length with X in the second axis
 
-    Returns:
-    ----------
+    Returns
+    -------
     X_target: np.ndarray
       features of size(batch_size, 2*K*n_tasks)
-
     """
     X_target2 = []
     n_features = X_target.shape[1]
@@ -1602,8 +1755,7 @@ class ANITransformer(Transformer):
 class FeaturizationTransformer(Transformer):
   """A transformer which runs a featurizer over the X values of a dataset.
 
-  Datasets used by this transformer be compatible with the internal
-  featurizer. 
+  Datasets used by this transformer be compatible with the internal featurizer.
   """
 
   def __init__(self,
@@ -1671,7 +1823,7 @@ class DataTransforms(Transformer):
 
   def scale(self, h, w):
     """Scales the image
-    
+
     Parameters
     ----------
     h: int
@@ -1705,11 +1857,11 @@ class DataTransforms(Transformer):
     Parameters
     ----------
     angle: float (default = 0 i.e no rotation)
-	Denotes angle by which the image should be rotated (in Degrees)
+      Denotes angle by which the image should be rotated (in Degrees)
 
     Returns
-    ----------
-    The rotated imput array
+    -------
+    The rotated input array
     """
     return scipy.ndimage.rotate(self.Image, angle)
 
@@ -1729,12 +1881,12 @@ class DataTransforms(Transformer):
     Parameters
     ----------
     x_crop: int
-	the total number of pixels to remove in the horizontal direction, evenly split between the left and right sides
+      the total number of pixels to remove in the horizontal direction, evenly split between the left and right sides
     y_crop: int
-        the total number of pixels to remove in the vertical direction, evenly split between the top and bottom sides
+      the total number of pixels to remove in the vertical direction, evenly split between the top and bottom sides
 
     Returns
-    ----------
+    -------
     The center cropped input array
 
     """
@@ -1750,16 +1902,16 @@ class DataTransforms(Transformer):
     Parameters
     ----------
     left: int
-	the number of pixels to exclude from the left of the image
+      the number of pixels to exclude from the left of the image
     top: int
-	the number of pixels to exclude from the top of the image
+      the number of pixels to exclude from the top of the image
     right: int
-	the number of pixels to exclude from the right of the image    
+      the number of pixels to exclude from the right of the image    
     bottom: int
-	the number of pixels to exclude from the bottom of the image
+      the number of pixels to exclude from the bottom of the image
 
     Returns
-    ----------
+    -------
     The cropped input array
     """
     y = self.Image.shape[0]
@@ -1770,7 +1922,7 @@ class DataTransforms(Transformer):
     """Converts the image to grayscale. The coefficients correspond to the Y' component of the Y'UV color system.
     
     Returns
-    ----------
+    -------
     The grayscale image.
     """
     return np.dot(self.Image[..., :3], [0.2989, 0.5870, 0.1140])
@@ -1841,7 +1993,7 @@ class DataTransforms(Transformer):
       The kernel size in pixels.
 
     Returns
-    ----------
+    -------
     The median filtered image.
     """
     from PIL import Image, ImageFilter

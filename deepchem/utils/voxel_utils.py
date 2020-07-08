@@ -13,7 +13,7 @@ def convert_atom_to_voxel(coordinates, atom_index, box_width, voxel_width):
   (box_width/2, box_width/2, box_width/2) and then divides by
   voxel_width to compute the voxel indices.
 
-  Parameters:
+  Parameters
   -----------
   coordinates: np.ndarray
     Array with coordinates of all atoms in the molecule, shape

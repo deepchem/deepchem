@@ -14,7 +14,7 @@ def unit_vector(vector):
 
 
 def angle_between(vector_i, vector_j):
-  """Returns the angle in radians between vectors "vector_i" and "vector_j"::
+  """Returns the angle in radians between vectors "vector_i" and "vector_j"
 
   >>> print("%0.06f" % angle_between((1, 0, 0), (0, 1, 0)))
   1.570796
