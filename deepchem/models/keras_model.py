@@ -18,11 +18,10 @@ from deepchem.models.optimizers import Adam, Optimizer, LearningRateSchedule
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from deepchem.utils.typing import OneOrMany
 
 LossFunction = Callable[[List, List, List], float]
-T = TypeVar("T")
-OneOrMany = Union[T, Sequence[T]]
 
 
 class KerasModel(Model):
@@ -112,7 +111,7 @@ class KerasModel(Model):
                optimizer: Optional[Optimizer] = None,
                tensorboard: bool = False,
                log_frequency: int = 100,
-               **kwargs):
+               **kwargs) -> None:
     """Create a new KerasModel.
 
     Parameters
@@ -246,8 +245,7 @@ class KerasModel(Model):
           restore: bool = False,
           variables: Optional[List[tf.Variable]] = None,
           loss: Optional[LossFunction] = None,
-          callbacks: Union[Callable, List[Callable]] = [],
-          **kwargs) -> float:
+          callbacks: Union[Callable, List[Callable]] = []) -> float:
     """Train this model on a dataset.
 
     Parameters
@@ -645,11 +643,11 @@ class KerasModel(Model):
     """
     return self._predict(generator, transformers, outputs, False, output_types)
 
-  def predict_on_batch(self,
-                       X: Sequence,
-                       transformers: List[Transformer] = [],
-                       outputs: Optional[OneOrMany[tf.Tensor]] = None,
-                       **kwargs) -> OneOrMany[np.ndarray]:
+  def predict_on_batch(
+      self,
+      X: Sequence,
+      transformers: List[Transformer] = [],
+      outputs: Optional[OneOrMany[tf.Tensor]] = None) -> OneOrMany[np.ndarray]:
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
@@ -813,12 +811,11 @@ class KerasModel(Model):
     else:
       return list(zip(output, std))
 
-  def evaluate_generator(
-      self,
-      generator: Iterable[Tuple[Any, Any, Any]],
-      metrics: List[Metric],
-      transformers: List[Transformer] = [],
-      per_task_metrics: bool = False) -> Dict[str, np.ndarray]:
+  def evaluate_generator(self,
+                         generator: Iterable[Tuple[Any, Any, Any]],
+                         metrics: List[Metric],
+                         transformers: List[Transformer] = [],
+                         per_task_metrics: bool = False):
     """Evaluate the performance of this model on the data produced by a generator.
 
     Parameters
@@ -1149,7 +1146,7 @@ class KerasModel(Model):
 class _StandardLoss(object):
   """The implements the loss function for models that use a dc.models.losses.Loss."""
 
-  def __init__(self, model: tf.keras.Model, loss: Loss):
+  def __init__(self, model: tf.keras.Model, loss: Loss) -> None:
     self.model = model
     self.loss = loss
 
