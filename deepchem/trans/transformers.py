@@ -66,7 +66,7 @@ def get_grad_statistics(dataset):
 
 
 class Transformer(object):
-  """Abstract base class for different data transformation techniques. 
+  """Abstract base class for different data transformation techniques.
 
   `Transformer` objects are used to transform `Dataset` objects in ways that
   are useful to machine learning. Transformations might process the data to
@@ -384,7 +384,7 @@ class NormalizationTransformer(Transformer):
   """Normalizes dataset to have zero mean and unit standard deviation
 
   This transformer transforms datasets to have zero mean and unit standard
-  deviation. 
+  deviation.
 
   Example
   -------
@@ -919,7 +919,7 @@ class BalancingTransformer(Transformer):
 
 class CDFTransformer(Transformer):
   """Histograms the data and assigns values based on sorted list.
-  
+
   Acts like a Cumulative Distribution Function (CDF). If given a dataset of
   samples from a continuous distribution computes the CDF of this dataset.
 
@@ -1906,7 +1906,7 @@ class DataTransforms(Transformer):
     top: int
       the number of pixels to exclude from the top of the image
     right: int
-      the number of pixels to exclude from the right of the image    
+      the number of pixels to exclude from the right of the image
     bottom: int
       the number of pixels to exclude from the bottom of the image
 
@@ -1920,7 +1920,7 @@ class DataTransforms(Transformer):
 
   def convert2gray(self):
     """Converts the image to grayscale. The coefficients correspond to the Y' component of the Y'UV color system.
-    
+
     Returns
     -------
     The grayscale image.

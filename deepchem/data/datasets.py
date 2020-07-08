@@ -381,7 +381,7 @@ class Dataset(object):
     raise NotImplementedError()
 
   def transform(self, fn: Callable[[np.ndarray, np.ndarray, np.ndarray], Tuple[
-      np.ndarray, np.ndarray, np.ndarray]], **args) -> Dataset:
+      np.ndarray, np.ndarray, np.ndarray]], **args) -> "Dataset":
     """Construct a new dataset by applying a transformation to every sample in this dataset.
 
     The argument is a function that can be called as follows:
@@ -812,7 +812,7 @@ class NumpyDataset(Dataset):
             for i in range(n_samples))
 
   def transform(self, fn: Callable[[np.ndarray, np.ndarray, np.ndarray], Tuple[
-      np.ndarray, np.ndarray, np.ndarray]], **args) -> NumpyDataset:
+      np.ndarray, np.ndarray, np.ndarray]], **args) -> "NumpyDataset":
     """Construct a new dataset by applying a transformation to every sample in this dataset.
 
     The argument is a function that can be called as follows:
@@ -836,7 +836,7 @@ class NumpyDataset(Dataset):
     return NumpyDataset(newx, newy, neww, self._ids[:])
 
   def select(self, indices: Sequence[int],
-             select_dir: str = None) -> NumpyDataset:
+             select_dir: str = None) -> "NumpyDataset":
     """Creates a new dataset from a selection of indices from self.
 
     Parameters
@@ -896,7 +896,7 @@ class NumpyDataset(Dataset):
     return TorchDataset()
 
   @staticmethod
-  def from_DiskDataset(ds: DiskDataset) -> NumpyDataset:
+  def from_DiskDataset(ds: "DiskDataset") -> "NumpyDataset":
     """
 
     Parameters
@@ -924,13 +924,13 @@ class NumpyDataset(Dataset):
       json.dump(d, fout)
 
   @staticmethod
-  def from_json(fname: str) -> NumpyDataset:
+  def from_json(fname: str) -> "NumpyDataset":
     with open(fname) as fin:
       d = json.load(fin)
       return NumpyDataset(d['X'], d['y'], d['w'], d['ids'])
 
   @staticmethod
-  def merge(datasets: Sequence[Dataset]) -> NumpyDataset:
+  def merge(datasets: Sequence[Dataset]) -> "NumpyDataset":
     """
     Parameters
     ----------
@@ -1337,7 +1337,7 @@ class DiskDataset(Dataset):
     return iterate(self)
 
   def transform(self, fn: Callable[[np.ndarray, np.ndarray, np.ndarray], Tuple[
-      np.ndarray, np.ndarray, np.ndarray]], **args) -> DiskDataset:
+      np.ndarray, np.ndarray, np.ndarray]], **args) -> "DiskDataset":
     """Construct a new dataset by applying a transformation to every sample in this dataset.
 
     The argument is a function that can be called as follows:
@@ -1422,7 +1422,7 @@ class DiskDataset(Dataset):
                  w: Optional[np.ndarray] = None,
                  ids: Optional[np.ndarray] = None,
                  tasks: Optional[Sequence] = None,
-                 data_dir: Optional[str] = None):
+                 data_dir: Optional[str] = None) -> "DiskDataset":
     """Creates a DiskDataset object from specified Numpy arrays."""
     n_samples = len(X)
     if ids is None:
@@ -1458,8 +1458,8 @@ class DiskDataset(Dataset):
         [(X, y, w, ids)], data_dir=data_dir, tasks=tasks)
 
   @staticmethod
-  def merge(datasets: Iterable[DiskDataset],
-            merge_dir: Optional[str] = None) -> DiskDataset:
+  def merge(datasets: Iterable["DiskDataset"],
+            merge_dir: Optional[str] = None) -> "DiskDataset":
     """Merges provided datasets into a merged dataset."""
     if merge_dir is not None:
       if not os.path.exists(merge_dir):
@@ -1492,7 +1492,7 @@ class DiskDataset(Dataset):
         generator(), data_dir=merge_dir, tasks=tasks)
 
   def subset(self, shard_nums: Sequence[int],
-             subset_dir: Optional[str] = None) -> DiskDataset:
+             subset_dir: Optional[str] = None) -> "DiskDataset":
     """Creates a subset of the original dataset on disk."""
     if subset_dir is not None:
       if not os.path.exists(subset_dir):
@@ -1550,7 +1550,7 @@ class DiskDataset(Dataset):
     time2 = time.time()
     logger.info("TIMING: sparse_shuffle took %0.3f s" % (time2 - time1))
 
-  def complete_shuffle(self, data_dir: Optional[str] = None) -> DiskDataset:
+  def complete_shuffle(self, data_dir: Optional[str] = None) -> "DiskDataset":
     """
     Completely shuffle across all data, across all shards.
 
@@ -1702,7 +1702,7 @@ class DiskDataset(Dataset):
     return np.array(
         load_from_disk(os.path.join(self.data_dir, row['y'])), dtype=object)
 
-  def get_shard_w(self, i: int) -> no.ndarray:
+  def get_shard_w(self, i: int) -> np.ndarray:
     """Retrieves the weights for the i-th shard from disk.
 
     Parameters
@@ -1739,7 +1739,7 @@ class DiskDataset(Dataset):
     self._cached_shards = None
 
   def select(self, indices: Sequence[int],
-             select_dir: str = None) -> DiskDataset:
+             select_dir: str = None) -> "DiskDataset":
     """Creates a new dataset from a selection of indices from self.
 
     Parameters
@@ -2095,7 +2095,7 @@ class ImageDataset(Dataset):
     return NumpyDataset(newx, newy, neww, self.ids[:])
 
   def select(self, indices: Sequence[int],
-             select_dir: str = None) -> ImageDataset:
+             select_dir: str = None) -> "ImageDataset":
     """Creates a new dataset from a selection of indices from self.
 
     Parameters

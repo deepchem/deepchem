@@ -19,9 +19,7 @@ from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
-from deepchem.utils.typing import OneOrMany
-
-LossFunction = Callable[[List, List, List], float]
+from deepchem.utils.typing import LossFunction, OneOrMany
 
 try:
   import wandb
