@@ -86,7 +86,7 @@ conda install -y -c rdkit -c conda-forge rdkit deepchem==2.3.0
 You install the nightly build version via pip. Nightly version is built by the HEAD of DeepChem.
 
 ```bash
-pip install tensorflow=2.2
+pip install tensorflow==2.2
 pip install --pre deepchem
 ```
 
