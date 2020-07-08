@@ -33,7 +33,7 @@ Chembl Datasets
 .. autofunction:: deepchem.molnet.load_chembl
 
 Chembl25 Datasets
----------------
+-----------------
 
 .. autofunction:: deepchem.molnet.load_chembl25
 
@@ -146,10 +146,6 @@ SIDER Datasets
 
 .. autofunction:: deepchem.molnet.load_sider
 
-SWEETLEAD Datasets
-------------------
-
-.. autofunction:: deepchem.molnet.load_sweetlead
 
 Thermosol Datasets
 ------------------

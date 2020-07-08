@@ -140,8 +140,7 @@ def load_uv(shard_size=2000, featurizer=None, split=None, reload=True):
   """Load UV dataset; does not do train/test split
 
   The UV dataset is an in-house dataset from Merck that was first introduced in the following paper:
-
-Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
+  Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
 
   The UV dataset tests 10,000 of Merck's internal compounds on
   190 absorption wavelengths between 210 and 400 nm. Unlike

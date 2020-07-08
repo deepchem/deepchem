@@ -31,19 +31,20 @@ def load_qm8(featurizer='CoulombMatrix',
   there are four excited state properties calculated by four
   different methods on 22 thousand samples:
 
-	S_0 -> S_1 transition energy E_1 and the corresponding oscillator strength f_1
-	S_0 -> S_2 transition energy E_2 and the corresponding oscillator strength f_2
+  S_0 -> S_1 transition energy E_1 and the corresponding oscillator strength f_1
+  S_0 -> S_2 transition energy E_2 and the corresponding oscillator strength f_2
 
   The source data files (downloadable from moleculenet.ai):
   qm8.sdf: molecular structures
   qm8.sdf.csv: tables for molecular properties
-	Column 1:      Molecule ID (gdb9 index) mapping to the .sdf file
-	Columns 2-5:   RI-CC2/def2TZVP; 	E1, E2, f1, f2 in atomic units. f1, f2 in length representation
-	Columns 6-9:   LR-TDPBE0/def2SVP;	E1, E2, f1, f2 in atomic units. f1, f2 in length representation
-	Columns 10-13: LR-TDPBE0/def2TZVP;	E1, E2, f1, f2 in atomic units. f1, f2 in length representation
-	Columns 14-17: LR-TDCAM-B3LYP/def2TZVP;	E1, E2, f1, f2 in atomic units. f1, f2 in length representation
+  Column 1:      Molecule ID (gdb9 index) mapping to the .sdf file
+  Columns 2-5:   RI-CC2/def2TZVP; 	E1, E2, f1, f2 in atomic units. f1, f2 in length representation
+  Columns 6-9:   LR-TDPBE0/def2SVP;	E1, E2, f1, f2 in atomic units. f1, f2 in length representation
+  Columns 10-13: LR-TDPBE0/def2TZVP;	E1, E2, f1, f2 in atomic units. f1, f2 in length representation
+  Columns 14-17: LR-TDCAM-B3LYP/def2TZVP;	E1, E2, f1, f2 in atomic units. f1, f2 in length representation
 
-  Reference:
+  References
+  ----------
   Blum, Lorenz C., and Jean-Louis Reymond. "970 million druglike small molecules for virtual screening in the chemical universe database GDB-13." Journal of the American Chemical Society 131.25 (2009): 8732-8733.
   Ramakrishnan, Raghunathan, et al. "Electronic spectra from TDDFT and machine learning in chemical space." The Journal of chemical physics 143.8 (2015): 084111.
   """

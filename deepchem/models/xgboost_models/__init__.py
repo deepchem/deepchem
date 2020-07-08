@@ -23,8 +23,9 @@ class XGBoostModel(SklearnModel):
                verbose=False,
                **kwargs):
     """Abstract class for XGBoost models.
-    Parameters:
-    -----------
+
+    Parameters
+    ----------
     model_instance: object
       Scikit-learn wrapper interface of xgboost
     model_dir: str

@@ -554,7 +554,7 @@ class ClippingTransformer(Transformer):
                y_max=500.):
     """Initialize clipping transformation.
 
-    Parameters:
+    Parameters
     ----------
     transform_X: bool, optional (default False)
       Whether to transform X
@@ -592,7 +592,7 @@ class ClippingTransformer(Transformer):
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays.
 
-    Parameters:
+    Parameters
     ----------
     X: np.ndarray
       Features
@@ -601,7 +601,7 @@ class ClippingTransformer(Transformer):
     w: np.ndarray
       Weights
 
-    Returns:
+    Returns
     -------
     X: np.ndarray
       Transformed features
@@ -987,7 +987,7 @@ class CoulombFitTransformer(Transformer):
   def __init__(self, dataset):
     """Initializes CoulombFitTransformer.
 
-    Parameters:
+    Parameters
     ----------
     dataset: dc.data.Dataset object
 
@@ -1009,12 +1009,12 @@ class CoulombFitTransformer(Transformer):
   def realize(self, X):
     """Randomize features.
 
-    Parameters:
+    Parameters
     ----------
     X: np.ndarray
       Features
 
-    Returns:
+    Returns
     -------
     X: np.ndarray
       Randomized features
@@ -1033,12 +1033,12 @@ class CoulombFitTransformer(Transformer):
   def normalize(self, X):
     """Normalize features.
 
-    Parameters:
+    Parameters
     ----------
     X: np.ndarray
       Features
 
-    Returns:
+    Returns
     -------
     X: np.ndarray
       Normalized features
@@ -1049,16 +1049,15 @@ class CoulombFitTransformer(Transformer):
   def expand(self, X):
     """Binarize features.
 
-    Parameters:
+    Parameters
     ----------
     X: np.ndarray
       Features
 
-    Returns:
+    Returns
     -------
     X: np.ndarray
       Binarized features
-
     """
     Xexp = []
     for i in range(X.shape[1]):
@@ -1069,16 +1068,15 @@ class CoulombFitTransformer(Transformer):
   def X_transform(self, X):
     """Perform Coulomb Fit transform on features.
 
-    Parameters:
+    Parameters
     ----------
     X: np.ndarray
       Features
 
-    Returns:
+    Returns
     -------
     X: np.ndarray
       Transformed features
-
     """
 
     X = self.normalize(self.expand(self.realize(X)))
@@ -1099,7 +1097,7 @@ class IRVTransformer():
   def __init__(self, K, n_tasks, dataset, transform_y=False, transform_x=False):
     """Initializes IRVTransformer.
 
-    Parameters:
+    Parameters
     ----------
     dataset: dc.data.Dataset object
       train_dataset
@@ -1119,8 +1117,8 @@ class IRVTransformer():
   def realize(self, similarity, y, w):
     """find samples with top ten similarity values in the reference dataset
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     similarity: np.ndarray
       similarity value between target dataset and reference dataset
       should have size of (n_samples_in_target, n_samples_in_reference)
@@ -1129,8 +1127,8 @@ class IRVTransformer():
     w: np.array
       weights for a single task
 
-    Return:
-    ----------
+    Returns
+    -------
     features: list
       n_samples * np.array of size (2*K,)
       each array includes K similarity values and corresponding labels
@@ -1172,19 +1170,19 @@ class IRVTransformer():
   def X_transform(self, X_target):
     """ Calculate similarity between target dataset(X_target) and
     reference dataset(X): #(1 in intersection)/#(1 in union)
-         similarity = (X_target intersect X)/(X_target union X)
 
-    Parameters:
-    -----------
+    similarity = (X_target intersect X)/(X_target union X)
+
+    Parameters
+    ----------
     X_target: np.ndarray
       fingerprints of target dataset
       should have same length with X in the second axis
 
-    Returns:
-    ----------
+    Returns
+    -------
     X_target: np.ndarray
       features of size(batch_size, 2*K*n_tasks)
-
     """
     X_target2 = []
     n_features = X_target.shape[1]
@@ -1602,8 +1600,7 @@ class ANITransformer(Transformer):
 class FeaturizationTransformer(Transformer):
   """A transformer which runs a featurizer over the X values of a dataset.
 
-  Datasets used by this transformer be compatible with the internal
-  featurizer. 
+  Datasets used by this transformer be compatible with the internal featurizer.
   """
 
   def __init__(self,
@@ -1671,7 +1668,7 @@ class DataTransforms(Transformer):
 
   def scale(self, h, w):
     """Scales the image
-    
+
     Parameters
     ----------
     h: int
@@ -1705,11 +1702,11 @@ class DataTransforms(Transformer):
     Parameters
     ----------
     angle: float (default = 0 i.e no rotation)
-	Denotes angle by which the image should be rotated (in Degrees)
+      Denotes angle by which the image should be rotated (in Degrees)
 
     Returns
-    ----------
-    The rotated imput array
+    -------
+    The rotated input array
     """
     return scipy.ndimage.rotate(self.Image, angle)
 
@@ -1729,12 +1726,12 @@ class DataTransforms(Transformer):
     Parameters
     ----------
     x_crop: int
-	the total number of pixels to remove in the horizontal direction, evenly split between the left and right sides
+      the total number of pixels to remove in the horizontal direction, evenly split between the left and right sides
     y_crop: int
-        the total number of pixels to remove in the vertical direction, evenly split between the top and bottom sides
+      the total number of pixels to remove in the vertical direction, evenly split between the top and bottom sides
 
     Returns
-    ----------
+    -------
     The center cropped input array
 
     """
@@ -1750,16 +1747,16 @@ class DataTransforms(Transformer):
     Parameters
     ----------
     left: int
-	the number of pixels to exclude from the left of the image
+      the number of pixels to exclude from the left of the image
     top: int
-	the number of pixels to exclude from the top of the image
+      the number of pixels to exclude from the top of the image
     right: int
-	the number of pixels to exclude from the right of the image    
+      the number of pixels to exclude from the right of the image    
     bottom: int
-	the number of pixels to exclude from the bottom of the image
+      the number of pixels to exclude from the bottom of the image
 
     Returns
-    ----------
+    -------
     The cropped input array
     """
     y = self.Image.shape[0]
@@ -1770,7 +1767,7 @@ class DataTransforms(Transformer):
     """Converts the image to grayscale. The coefficients correspond to the Y' component of the Y'UV color system.
     
     Returns
-    ----------
+    -------
     The grayscale image.
     """
     return np.dot(self.Image[..., :3], [0.2989, 0.5870, 0.1140])
@@ -1841,7 +1838,7 @@ class DataTransforms(Transformer):
       The kernel size in pixels.
 
     Returns
-    ----------
+    -------
     The median filtered image.
     """
     from PIL import Image, ImageFilter
