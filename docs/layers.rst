@@ -10,9 +10,6 @@ another tensor. DeepChem maintains an extensive collection of layers which perfo
 .. autoclass:: deepchem.models.layers.GraphConv
   :members:
 
-.. autoclass:: deepchem.models.layers.GraphConv
-  :members:
-
 .. autoclass:: deepchem.models.layers.GraphPool
   :members:
 
@@ -98,9 +95,6 @@ another tensor. DeepChem maintains an extensive collection of layers which perfo
   :members:
 
 .. autoclass:: deepchem.models.layers.GatedRecurrentUnit
-  :members:
-
-.. autoclass:: deepchem.models.layers.SetGather
   :members:
 
 .. autoclass:: deepchem.models.layers.SetGather

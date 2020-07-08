@@ -95,7 +95,7 @@ DeepChem developers.
 
 That said, we would very much appreciate a citation if you find our tools useful. You can cite DeepChem with the following reference.
 
-.. code-block:: guess
+.. code-block::
 
   @book{Ramsundar-et-al-2019,
       title={Deep Learning for the Life Sciences},

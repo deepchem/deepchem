@@ -55,15 +55,15 @@ def generate_random__unit_vector():
 def generate_random_rotation_matrix():
   """
     1. Generate a random unit vector u, randomly sampled from the unit
-      3-sphere (see function generate_random__unit_vector() for details)
+       3-sphere (see function generate_random__unit_vector() for details)
     2. Generate a second random unit vector v
       a. If absolute value of u \dot v > 0.99, repeat.
-       (This is important for numerical stability. Intuition: we want them to
-        be as linearly independent as possible or else the orthogonalized
-        version of v will be much shorter in magnitude compared to u. I assume
-        in Stack they took this from Gram-Schmidt orthogonalization?)
+         (This is important for numerical stability. Intuition: we want them to
+         be as linearly independent as possible or else the orthogonalized
+         version of v will be much shorter in magnitude compared to u. I assume
+         in Stack they took this from Gram-Schmidt orthogonalization?)
       b. v" = v - (u \dot v)*u, i.e. subtract out the component of v that's in
-       u's direction
+         u's direction
       c. normalize v" (this isn"t in Stack but I assume it must be done)
     3. find w = u \cross v"
     4. u, v", and w will form the columns of a rotation matrix, R. The
@@ -204,21 +204,22 @@ def compute_all_ecfp(mol, indices=None, degree=2):
 def compute_ecfp_features(mol, ecfp_degree=2, ecfp_power=11):
   """Computes ECFP features for provided rdkit molecule.
 
-  Parameters:
-  -----------
-    mol: rdkit molecule
-      Molecule to featurize.
-    ecfp_degree: int
-      ECFP radius
-    ecfp_power: int
-      Number of bits to store ECFP features (2^ecfp_power will be length of
-      ECFP array)
-  Returns:
-  --------
-    ecfp_array: np.ndarray
-      Returns an array of size 2^ecfp_power where array at index i has a 1 if
-      that ECFP fragment is found in the molecule and array at index j has a 0
-      if ECFP fragment not in molecule.
+  Parameters
+  ----------
+  mol: rdkit molecule
+    Molecule to featurize.
+  ecfp_degree: int
+    ECFP radius
+  ecfp_power: int
+    Number of bits to store ECFP features (2^ecfp_power will be length of
+    ECFP array)
+
+  Returns
+  -------
+  ecfp_array: np.ndarray
+    Returns an array of size 2^ecfp_power where array at index i has a 1 if
+    that ECFP fragment is found in the molecule and array at index j has a 0
+    if ECFP fragment not in molecule.
   """
   from rdkit.Chem import AllChem
   bv = AllChem.GetMorganFingerprintAsBitVect(
@@ -353,17 +354,17 @@ def featurize_splif(protein_xyz, protein, ligand_xyz, ligand, contact_bins,
 def compute_ring_center(mol, ring_indices):
   """Computes 3D coordinates of a center of a given ring.
 
-  Parameters:
-  -----------
-    mol: rdkit.rdchem.Mol
-      Molecule containing a ring
-    ring_indices: array-like
-      Indices of atoms forming a ring
+  Parameters
+  ----------
+  mol: rdkit.rdchem.Mol
+    Molecule containing a ring
+  ring_indices: array-like
+    Indices of atoms forming a ring
 
-  Returns:
-  --------
-    ring_centroid: np.ndarray
-      Position of a ring center
+  Returns
+  -------
+  ring_centroid: np.ndarray
+    Position of a ring center
   """
   conformer = mol.GetConformer()
   ring_xyz = np.zeros((len(ring_indices), 3))
@@ -377,17 +378,17 @@ def compute_ring_center(mol, ring_indices):
 def compute_ring_normal(mol, ring_indices):
   """Computes normal to a plane determined by a given ring.
 
-  Parameters:
-  -----------
-    mol: rdkit.rdchem.Mol
-      Molecule containing a ring
-    ring_indices: array-like
-      Indices of atoms forming a ring
+  Parameters
+  ----------
+  mol: rdkit.rdchem.Mol
+    Molecule containing a ring
+  ring_indices: array-like
+    Indices of atoms forming a ring
 
-  Returns:
-  --------
-    normal: np.ndarray
-      Normal vector
+  Returns
+  -------
+  normal: np.ndarray
+    Normal vector
   """
   conformer = mol.GetConformer()
   points = np.zeros((3, 3))
@@ -409,19 +410,19 @@ def is_pi_parallel(ring1_center,
                    angle_cutoff=30.0):
   """Check if two aromatic rings form a parallel pi-pi contact.
 
-  Parameters:
-  -----------
-    ring1_center, ring2_center: np.ndarray
-      Positions of centers of the two rings. Can be computed with the
-      compute_ring_center function.
-    ring1_normal, ring2_normal: np.ndarray
-      Normals of the two rings. Can be computed with the compute_ring_normal
-      function.
-    dist_cutoff: float
-      Distance cutoff. Max allowed distance between the ring center (Angstroms).
-    angle_cutoff: float
-      Angle cutoff. Max allowed deviation from the ideal (0deg) angle between
-      the rings (in degrees).
+  Parameters
+  ----------
+  ring1_center, ring2_center: np.ndarray
+    Positions of centers of the two rings. Can be computed with the
+    compute_ring_center function.
+  ring1_normal, ring2_normal: np.ndarray
+    Normals of the two rings. Can be computed with the compute_ring_normal
+    function.
+  dist_cutoff: float
+    Distance cutoff. Max allowed distance between the ring center (Angstroms).
+  angle_cutoff: float
+    Angle cutoff. Max allowed deviation from the ideal (0deg) angle between
+    the rings (in degrees).
   """
 
   dist = np.linalg.norm(ring1_center - ring2_center)
@@ -440,19 +441,19 @@ def is_pi_t(ring1_center,
             angle_cutoff=30.0):
   """Check if two aromatic rings form a T-shaped pi-pi contact.
 
-  Parameters:
-  -----------
-    ring1_center, ring2_center: np.ndarray
-      Positions of centers of the two rings. Can be computed with the
-      compute_ring_center function.
-    ring1_normal, ring2_normal: np.ndarray
-      Normals of the two rings. Can be computed with the compute_ring_normal
-      function.
-    dist_cutoff: float
-      Distance cutoff. Max allowed distance between the ring center (Angstroms).
-    angle_cutoff: float
-      Angle cutoff. Max allowed deviation from the ideal (90deg) angle between
-      the rings (in degrees).
+  Parameters
+  ----------
+  ring1_center, ring2_center: np.ndarray
+    Positions of centers of the two rings. Can be computed with the
+    compute_ring_center function.
+  ring1_normal, ring2_normal: np.ndarray
+    Normals of the two rings. Can be computed with the compute_ring_normal
+    function.
+  dist_cutoff: float
+    Distance cutoff. Max allowed distance between the ring center (Angstroms).
+  angle_cutoff: float
+    Angle cutoff. Max allowed deviation from the ideal (90deg) angle between
+    the rings (in degrees).
   """
   dist = np.linalg.norm(ring1_center - ring2_center)
   angle = angle_between(ring1_normal, ring2_normal) * 180 / np.pi
@@ -482,23 +483,23 @@ def compute_pi_stack(protein,
       if it counts as pi-T:
         count interacting atoms
 
-  Parameters:
-  -----------
-    protein, ligand: rdkit.rdchem.Mol
-      Two interacting molecules.
-    pairwise_distances: np.ndarray (optional)
-      Array of pairwise protein-ligand distances (Angstroms)
-    dist_cutoff: float
-      Distance cutoff. Max allowed distance between the ring center (Angstroms).
-    angle_cutoff: float
-      Angle cutoff. Max allowed deviation from the ideal angle between rings.
+  Parameters
+  ----------
+  protein, ligand: rdkit.rdchem.Mol
+    Two interacting molecules.
+  pairwise_distances: np.ndarray (optional)
+    Array of pairwise protein-ligand distances (Angstroms)
+  dist_cutoff: float
+    Distance cutoff. Max allowed distance between the ring center (Angstroms).
+  angle_cutoff: float
+    Angle cutoff. Max allowed deviation from the ideal angle between rings.
 
-  Returns:
-  --------
-    protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel: dict
-      Dictionaries mapping atom indices to number of atoms they interact with.
-      Separate dictionary is created for each type of pi stacking (parallel and
-      T-shaped) and each molecule (protein and ligand).
+  Returns
+  -------
+  protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel: dict
+    Dictionaries mapping atom indices to number of atoms they interact with.
+    Separate dictionary is created for each type of pi stacking (parallel and
+    T-shaped) and each molecule (protein and ligand).
   """
 
   protein_pi_parallel = Counter()
@@ -575,19 +576,19 @@ def is_cation_pi(cation_position,
                  angle_cutoff=30.0):
   """Check if a cation and an aromatic ring form contact.
 
-  Parameters:
-  -----------
-    ring_center: np.ndarray
-      Positions of ring center. Can be computed with the compute_ring_center
-      function.
-    ring_normal: np.ndarray
-      Normal of ring. Can be computed with the compute_ring_normal function.
-    dist_cutoff: float
-      Distance cutoff. Max allowed distance between ring center and cation
-      (in Angstroms).
-    angle_cutoff: float
-      Angle cutoff. Max allowed deviation from the ideal (0deg) angle between
-      ring normal and vector pointing from ring center to cation (in degrees).
+  Parameters
+  ----------
+  ring_center: np.ndarray
+    Positions of ring center. Can be computed with the compute_ring_center
+    function.
+  ring_normal: np.ndarray
+    Normal of ring. Can be computed with the compute_ring_normal function.
+  dist_cutoff: float
+    Distance cutoff. Max allowed distance between ring center and cation
+    (in Angstroms).
+  angle_cutoff: float
+    Angle cutoff. Max allowed deviation from the ideal (0deg) angle between
+    ring normal and vector pointing from ring center to cation (in degrees).
   """
   cation_to_ring_vec = cation_position - ring_center
   dist = np.linalg.norm(cation_to_ring_vec)
@@ -602,26 +603,26 @@ def compute_cation_pi(mol1, mol2, charge_tolerance=0.01, **kwargs):
   """Finds aromatic rings in mo1 and cations in mol2 that interact with each
   other.
 
-  Parameters:
-  -----------
-    mol1: rdkit.rdchem.Mol
-      Molecule to look for interacting rings
-    mol2: rdkit.rdchem.Mol
-      Molecule to look for interacting cations
-    charge_tolerance: float
-      Atom is considered a cation if its formal charge is greater than
-      1 - charge_tolerance
-    **kwargs:
-      Arguments that are passed to is_cation_pi function
+  Parameters
+  ----------
+  mol1: rdkit.rdchem.Mol
+    Molecule to look for interacting rings
+  mol2: rdkit.rdchem.Mol
+    Molecule to look for interacting cations
+  charge_tolerance: float
+    Atom is considered a cation if its formal charge is greater than
+    1 - charge_tolerance
+  **kwargs:
+    Arguments that are passed to is_cation_pi function
 
-  Returns:
-  --------
-    mol1_pi: dict
-      Dictionary that maps atom indices (from mol1) to the number of cations
-      (in mol2) they interact with
-    mol2_cation: dict
-      Dictionary that maps atom indices (from mol2) to the number of aromatic
-      atoms (in mol1) they interact with
+  Returns
+  -------
+  mol1_pi: dict
+    Dictionary that maps atom indices (from mol1) to the number of cations
+    (in mol2) they interact with
+  mol2_cation: dict
+    Dictionary that maps atom indices (from mol2) to the number of aromatic
+    atoms (in mol1) they interact with
   """
   mol1_pi = Counter()
   mol2_cation = Counter()
@@ -652,18 +653,18 @@ def compute_cation_pi(mol1, mol2, charge_tolerance=0.01, **kwargs):
 def compute_binding_pocket_cation_pi(protein, ligand, **kwargs):
   """Finds cation-pi interactions between protein and ligand.
 
-  Parameters:
-  -----------
-    protein, ligand: rdkit.rdchem.Mol
-      Interacting molecules
-    **kwargs:
-      Arguments that are passed to compute_cation_pi function
+  Parameters
+  ----------
+  protein, ligand: rdkit.rdchem.Mol
+    Interacting molecules
+  **kwargs:
+    Arguments that are passed to compute_cation_pi function
 
-  Returns:
-  --------
-    protein_cation_pi, ligand_cation_pi: dict
-      Dictionaries that maps atom indices to the number of cations/aromatic
-      atoms they interact with
+  Returns
+  -------
+  protein_cation_pi, ligand_cation_pi: dict
+    Dictionaries that maps atom indices to the number of cations/aromatic
+    atoms they interact with
   """
   # find interacting rings from protein and cations from ligand
   protein_pi, ligand_cation = compute_cation_pi(protein, ligand, **kwargs)
@@ -716,8 +717,8 @@ def compute_salt_bridges(protein_xyz,
                          cutoff=5.0):
   """Find salt bridge contacts between protein and lingand.
 
-  Parameters:
-  -----------
+  Parameters
+  ----------
   protein_xyz, ligand_xyz: np.ndarray
     Arrays with atomic coordinates
   protein, ligand: rdkit.rdchem.Mol
@@ -729,9 +730,9 @@ def compute_salt_bridges(protein_xyz,
 
   Returns:
   --------
-    salt_bridge_contacts: list of tuples
-      List of contacts. Tuple (i, j) indicates that atom i from protein
-      interacts with atom j from ligand.
+  salt_bridge_contacts: list of tuples
+    List of contacts. Tuple (i, j) indicates that atom i from protein
+    interacts with atom j from ligand.
   """
 
   salt_bridge_contacts = []
@@ -809,18 +810,18 @@ def convert_atom_to_voxel(molecule_xyz,
                           verbose=False):
   """Converts atom coordinates to an i,j,k grid index.
 
-  Parameters:
-  -----------
-    molecule_xyz: np.ndarray
-      Array with coordinates of all atoms in the molecule, shape (N, 3)
-    atom_index: int
-      Index of an atom
-    box_width: float
-      Size of a box
-    voxel_width: float
-      Size of a voxel
-    verbose: bool
-      Print warnings when atom is outside of a box
+  Parameters
+  ----------
+  molecule_xyz: np.ndarray
+    Array with coordinates of all atoms in the molecule, shape (N, 3)
+  atom_index: int
+    Index of an atom
+  box_width: float
+    Size of a box
+  voxel_width: float
+    Size of a voxel
+  verbose: bool
+    Print warnings when atom is outside of a box
   """
 
   indices = np.floor(
@@ -889,19 +890,19 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                verbose=True,
                sanitize=False,
                **kwargs):
-    """Parameters:
-    -----------
+    """
+    Parameters
+    ----------
     nb_rotations: int, optional (default 0)
       Number of additional random rotations of a complex to generate.
     feature_types: list, optional (default ['ecfp'])
-      Types of features to calculate. Available types are:
-        flat features: 'ecfp_ligand', 'ecfp_hashed', 'splif_hashed', 'hbond_count'
-        voxel features: 'ecfp', 'splif', 'sybyl', 'salt_bridge', 'charge', 'hbond',
-        'pi_stack, 'cation_pi'
-      There are also 3 predefined sets of features: 'flat_combined',
-      'voxel_combined', and 'all_combined'. Calculated features are concatenated
-      and their order is preserved (features in predefined sets are in
-      alphabetical order).
+      Types of features to calculate. Available types are
+        flat features -> 'ecfp_ligand', 'ecfp_hashed', 'splif_hashed', 'hbond_count'
+        voxel features -> 'ecfp', 'splif', 'sybyl', 'salt_bridge', 'charge', 'hbond', 'pi_stack, 'cation_pi'
+      There are also 3 predefined sets of features
+        'flat_combined', 'voxel_combined', and 'all_combined'.
+      Calculated features are concatenated and their order is preserved
+      (features in predefined sets are in alphabetical order).
     ecfp_degree: int, optional (default 2)
       ECFP radius.
     ecfp_power: int, optional (default 3)
@@ -927,18 +928,18 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       Keyword arguments can be usaed to specify custom cutoffs and bins (see
       default values below).
 
-    Default cutoffs and bins:
-    -------------------------
-      hbond_dist_bins: [(2.2, 2.5), (2.5, 3.2), (3.2, 4.0)]
-      hbond_angle_cutoffs: [5, 50, 90]
-      splif_contact_bins: [(0, 2.0), (2.0, 3.0), (3.0, 4.5)]
-      ecfp_cutoff: 4.5
-      sybyl_cutoff: 7.0
-      salt_bridges_cutoff: 5.0
-      pi_stack_dist_cutoff: 4.4
-      pi_stack_angle_cutoff: 30.0
-      cation_pi_dist_cutoff: 6.5
-      cation_pi_angle_cutoff: 30.0
+    Default cutoffs and bins
+    ------------------------
+    hbond_dist_bins: [(2.2, 2.5), (2.5, 3.2), (3.2, 4.0)]
+    hbond_angle_cutoffs: [5, 50, 90]
+    splif_contact_bins: [(0, 2.0), (2.0, 3.0), (3.0, 4.5)]
+    ecfp_cutoff: 4.5
+    sybyl_cutoff: 7.0
+    salt_bridges_cutoff: 5.0
+    pi_stack_dist_cutoff: 4.4
+    pi_stack_angle_cutoff: 30.0
+    cation_pi_dist_cutoff: 6.5
+    cation_pi_angle_cutoff: 30.0
     """
 
     # check if user tries to set removed arguments
