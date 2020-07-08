@@ -5,17 +5,22 @@
 # This command is nearly equal to `conda init` command
 source $(conda info --root)/etc/profile.d/conda.sh
 
-if [ -z "$python_version" ]
-then
-    echo "Using python 3.6 by default"
-    export python_version=3.6
-else
-    echo "Using python "$python_version". But recommended to use python 3.6."
-fi
+## Force python version 3.6 because other versions will
+## throw errors
+export python_version=3.6
 
 if [ -z "$1" ];
 then
     echo "Installing DeepChem in current env"
+    read -r -p "Are you sure? [y/N] " response
+    response=${response,,}
+    if [[ "$response" =~ ^(yes|y)$ ]];
+    then
+        echo "Continuing..."
+    else
+        echo "Quitting without changes"
+        exit 1
+    fi
 else
     export envname=$1
     conda create -y --name $envname python=$python_version
@@ -37,6 +42,8 @@ conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
     pymatgen \
     pytest \
     pytest-cov \
-    flaky
+    flaky \
+    ipython
 yes | pip install pyGPGO
 yes | pip install -U matminer tensorflow==2.2 tensorflow-probability==0.10
+conda update scikit-learn 
