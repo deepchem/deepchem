@@ -18,35 +18,6 @@ import tensorflow as tf
 import scipy.ndimage
 
 
-def load_classification_data():
-  """Loads classification data from example.csv"""
-  current_dir = os.path.dirname(os.path.abspath(__file__))
-  featurizer = dc.feat.CircularFingerprint(size=1024)
-  tasks = ["outcome"]
-  task_type = "classification"
-  input_file = os.path.join(current_dir,
-                            "../../models/tests/example_classification.csv")
-  loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  return loader.featurize(input_file)
-
-
-def load_multitask_data():
-  """Load example multitask data."""
-  current_dir = os.path.dirname(os.path.abspath(__file__))
-  featurizer = dc.feat.CircularFingerprint(size=1024)
-  tasks = [
-      "task0", "task1", "task2", "task3", "task4", "task5", "task6", "task7",
-      "task8", "task9", "task10", "task11", "task12", "task13", "task14",
-      "task15", "task16"
-  ]
-  input_file = os.path.join(current_dir,
-                            "../../models/tests/multitask_example.csv")
-  loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  return loader.featurize(input_file)
-
-
 def load_solubility_data():
   """Loads solubility dataset"""
   current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -548,65 +519,6 @@ class TestTransformers(unittest.TestCase):
 
     # Check that untransform does the right thing.
     np.testing.assert_allclose(power_transformer.untransform(y_t), y)
-
-  def test_singletask_balancing_transformer(self):
-    """Test balancing transformer on single-task dataset."""
-
-    classification_dataset = load_classification_data()
-    balancing_transformer = dc.trans.BalancingTransformer(
-        transform_w=True, dataset=classification_dataset)
-    X, y, w, ids = (classification_dataset.X, classification_dataset.y,
-                    classification_dataset.w, classification_dataset.ids)
-    classification_dataset = balancing_transformer.transform(
-        classification_dataset)
-    X_t, y_t, w_t, ids_t = (classification_dataset.X, classification_dataset.y,
-                            classification_dataset.w,
-                            classification_dataset.ids)
-    # Check ids are unchanged.
-    for id_elt, id_t_elt in zip(ids, ids_t):
-      assert id_elt == id_t_elt
-    # Check X is unchanged since this is a w transformer
-    np.testing.assert_allclose(X, X_t)
-    # Check y is unchanged since this is a w transformer
-    np.testing.assert_allclose(y, y_t)
-    for ind, task in enumerate(classification_dataset.get_task_names()):
-      y_task = y_t[:, ind]
-      w_task = w_t[:, ind]
-      w_orig_task = w[:, ind]
-      # Assert that entries with zero weight retain zero weight
-      np.testing.assert_allclose(w_task[w_orig_task == 0],
-                                 np.zeros_like(w_task[w_orig_task == 0]))
-      # Check that sum of 0s equals sum of 1s in transformed for each task
-      assert np.isclose(
-          np.sum(w_task[y_task == 0]), np.sum(w_task[y_task == 1]))
-
-  def test_multitask_balancing_transformer(self):
-    """Test balancing transformer on multitask dataset."""
-    multitask_dataset = load_multitask_data()
-    balancing_transformer = dc.trans.BalancingTransformer(
-        transform_w=True, dataset=multitask_dataset)
-    X, y, w, ids = (multitask_dataset.X, multitask_dataset.y,
-                    multitask_dataset.w, multitask_dataset.ids)
-    multitask_dataset = balancing_transformer.transform(multitask_dataset)
-    X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y,
-                            multitask_dataset.w, multitask_dataset.ids)
-    # Check ids are unchanged.
-    for id_elt, id_t_elt in zip(ids, ids_t):
-      assert id_elt == id_t_elt
-    # Check X is unchanged since this is a w transformer
-    np.testing.assert_allclose(X, X_t)
-    # Check y is unchanged since this is a w transformer
-    np.testing.assert_allclose(y, y_t)
-    for ind, task in enumerate(multitask_dataset.get_task_names()):
-      y_task = y_t[:, ind]
-      w_task = w_t[:, ind]
-      w_orig_task = w[:, ind]
-      # Assert that entries with zero weight retain zero weight
-      np.testing.assert_allclose(w_task[w_orig_task == 0],
-                                 np.zeros_like(w_task[w_orig_task == 0]))
-      # Check that sum of 0s equals sum of 1s in transformed for each task
-      assert np.isclose(
-          np.sum(w_task[y_task == 0]), np.sum(w_task[y_task == 1]))
 
   def test_coulomb_fit_transformer(self):
     """Test coulomb fit transformer on singletask dataset."""

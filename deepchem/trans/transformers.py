@@ -771,15 +771,37 @@ class LogTransformer(Transformer):
 class BalancingTransformer(Transformer):
   """Balance positive and negative examples for weights.
 
+  This class balances the sample weights so that the sum of all example
+  weights from all classes is the same. This can be useful when you're
+  working on an imbalanced dataset where there are far fewer examples of some
+  classes than others.
+
   Example
   -------
+
+  Here's an example for a binary dataset.
 
   >>> n_samples = 10
   >>> n_features = 3
   >>> n_tasks = 1
+  >>> n_classes = 2
   >>> ids = np.arange(n_samples)
   >>> X = np.random.rand(n_samples, n_features)
-  >>> y = np.random.randint(2, size=(n_samples, n_tasks))
+  >>> y = np.random.randint(n_classes, size=(n_samples, n_tasks))
+  >>> w = np.ones((n_samples, n_tasks))
+  >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+  >>> transformer = dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
+  >>> dataset = transformer.transform(dataset)
+
+  And here's a multiclass dataset example.
+
+  >>> n_samples = 50
+  >>> n_features = 3
+  >>> n_tasks = 1
+  >>> n_classes = 5
+  >>> ids = np.arange(n_samples)
+  >>> X = np.random.rand(n_samples, n_features)
+  >>> y = np.random.randint(n_classes, size=(n_samples, n_tasks))
   >>> w = np.ones((n_samples, n_tasks))
   >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
   >>> transformer = dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
@@ -787,20 +809,21 @@ class BalancingTransformer(Transformer):
 
   Note
   ----
-  This class can only transform `w`. Note at present this class only supports
-  binary datasets and not multiclass datasets.
+  This transformer is only meaningful for classification datasets where `y`
+  takes on a limited set of values. This class can only transform `w` and does
+  not transform `X` or `y`.
 
   Raises
   ------
-  `ValueError` if `transform_X` or `transform_y` are set.
+  `ValueError` if `transform_X` or `transform_y` are set. Also raises
+  `ValueError` if `y` or `w` aren't of shape `(N,)` or `(N, n_tasks)`.
   """
 
   def __init__(self,
                transform_X=False,
                transform_y=False,
                transform_w=False,
-               dataset=None,
-               seed=None):
+               dataset=None):
     # BalancingTransformer can only transform weights.
     if transform_X or transform_y:
       raise ValueError("Cannot transform X or y")
@@ -815,22 +838,35 @@ class BalancingTransformer(Transformer):
     # Compute weighting factors from dataset.
     y = dataset.y
     w = dataset.w
+    # Handle 1-D case
+    if len(y.shape) == 1:
+      y = np.reshape(y, (len(y), 1))
+    if len(w.shape) == 1:
+      w = np.reshape(w, (len(w), 1))
+    if len(y.shape) != 2:
+      raise ValueError("y must be of shape (N,) or (N, n_tasks)")
+    if len(w.shape) != 2:
+      raise ValueError("w must be of shape (N,) or (N, n_tasks)")
     # Ensure dataset is binary
-    np.testing.assert_allclose(sorted(np.unique(y)), np.array([0., 1.]))
+    self.classes = sorted(np.unique(y))
+    #np.testing.assert_allclose(sorted(np.unique(y)), np.array([0., 1.]))
     weights = []
     for ind, task in enumerate(dataset.get_task_names()):
       task_w = w[:, ind]
       task_y = y[:, ind]
       # Remove labels with zero weights
       task_y = task_y[task_w != 0]
-      num_positives = np.count_nonzero(task_y)
-      num_negatives = len(task_y) - num_positives
-      if num_positives > 0:
-        pos_weight = float(num_negatives) / num_positives
-      else:
-        pos_weight = 1
-      neg_weight = 1
-      weights.append((neg_weight, pos_weight))
+      N_task = len(task_y)
+      class_counts = []
+      # Note that by definition of classes, num_c >= 1 for all classes
+      for c in self.classes:
+        # this works because task_y is 1D
+        num_c = len(np.where(task_y == c)[0])
+        class_counts.append(num_c)
+      # This is the right ratio since N_task/num_c * num_c = N_task
+      # for all classes
+      class_weights = [N_task / float(num_c) for num_c in class_counts]
+      weights.append(class_weights)
     self.weights = weights
 
   def transform_array(self, X, y, w):
@@ -855,13 +891,26 @@ class BalancingTransformer(Transformer):
       Transformed array of weights
     """
     w_balanced = np.zeros_like(w)
-    for ind in range(y.shape[1]):
-      task_y = y[:, ind]
-      task_w = w[:, ind]
-      zero_indices = np.logical_and(task_y == 0, task_w != 0)
-      one_indices = np.logical_and(task_y == 1, task_w != 0)
-      w_balanced[zero_indices, ind] = self.weights[ind][0]
-      w_balanced[one_indices, ind] = self.weights[ind][1]
+    if len(y.shape) == 1:
+      n_tasks = 1
+    elif len(y.shape) == 2:
+      n_tasks = y.shape[1]
+    else:
+      raise ValueError("y must be of shape (N,) or (N, n_tasks)")
+    for ind in range(n_tasks):
+      if n_tasks == 1:
+        task_y = y
+        task_w = w
+      else:
+        task_y = y[:, ind]
+        task_w = w[:, ind]
+      for i, c in enumerate(self.classes):
+        class_indices = np.logical_and(task_y == c, task_w != 0)
+        # Set to the class weight computed previously
+        if n_tasks == 1:
+          w_balanced[class_indices] = self.weights[ind][i]
+        else:
+          w_balanced[class_indices, ind] = self.weights[ind][i]
     return (X, y, w_balanced)
 
 
