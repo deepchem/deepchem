@@ -857,14 +857,18 @@ class BalancingTransformer(Transformer):
       task_y = task_y[task_w != 0]
       N_task = len(task_y)
       class_counts = []
-      # Note that by definition of classes, num_c >= 1 for all classes
+      # Note that we may 0 elements of a given class since we remove those
+      # labels with zero weight. This typically happens in multitask datasets
+      # where some datapoints only have labels for some tasks.
       for c in self.classes:
         # this works because task_y is 1D
         num_c = len(np.where(task_y == c)[0])
         class_counts.append(num_c)
       # This is the right ratio since N_task/num_c * num_c = N_task
       # for all classes
-      class_weights = [N_task / float(num_c) for num_c in class_counts]
+      class_weights = [
+          N_task / float(num_c) if num_c > 0 else 0 for num_c in class_counts
+      ]
       weights.append(class_weights)
     self.weights = weights
 
@@ -914,11 +918,35 @@ class BalancingTransformer(Transformer):
 
 
 class CDFTransformer(Transformer):
-  """Histograms the data and assigns values based on sorted list."""
-  """Acts like a Cumulative Distribution Function (CDF)."""
+  """Histograms the data and assigns values based on sorted list.
+  
+  Acts like a Cumulative Distribution Function (CDF). If given a dataset of
+  samples from a continuous distribution computes the CDF of this dataset.
 
-  def __init__(self, transform_X=False, transform_y=False, dataset=None,
+  TODO: Add an example of this. The current documentation is confusing.
+  """
+
+  def __init__(self,
+               transform_X=False,
+               transform_y=False,
+               transform_w=False,
+               dataset=None,
                bins=2):
+    """Initialize this transformer.
+
+    Parameters
+    ----------
+    transform_X: bool, optional (default False)
+      Whether to transform X
+    transform_y: bool, optional (default False)
+      Whether to transform y
+    transform_w: bool, optional (default False)
+      Whether to transform w
+    dataset: dc.data.Dataset object, optional (default None)
+      Dataset to be transformed
+    bins: int, optional (default 2)
+
+    """
     self.transform_X = transform_X
     self.transform_y = transform_y
     self.bins = bins
@@ -927,28 +955,63 @@ class CDFTransformer(Transformer):
 
   # TODO (flee2): for transform_y, figure out weights
 
-  def transform(self, dataset, bins):
-    """Performs CDF transform on data."""
-    X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
+  def transform_array(self, X, y, w):
+    """Performs CDF transform on data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Array of features
+    y: np.ndarray
+      Array of labels
+    w: np.ndarray
+      Array of weights.
+
+    Returns
+    -------
+    Xtrans: np.ndarray
+      Transformed array of features
+    ytrans: np.ndarray
+      Transformed array of labels
+    wtrans: np.ndarray
+      Transformed array of weights
+    """
     w_t = w
-    ids_t = ids
     if self.transform_X:
       X_t = get_cdf_values(X, self.bins)
       y_t = y
-    if self.transform_y:
+    elif self.transform_y:
       X_t = X
       y_t = get_cdf_values(y, self.bins)
-      # print("y will not be transformed by CDFTransformer, for now.")
-    return NumpyDataset(X_t, y_t, w_t, ids_t)
+    return X_t, y_t, w_t
 
   def untransform(self, z):
-    # print("Cannot undo CDF Transformer, for now.")
+    """Undo transformation on provided data.
+
+    Note that this transformation is only undone for y.
+
+    Parameters
+    ----------
+    z: np.ndarray,
+      Transformed y array
+    """
     # Need this for transform_y
     if self.transform_y:
       return self.y
+    else:
+      raise NotImplementedError
 
 
 def get_cdf_values(array, bins):
+  """Helper function to compute CDF values.
+
+  Parameters
+  ----------
+  array: np.ndarray
+    Must be of shape `(n_rows, n_cols)`
+  bins: int
+    Number of bins to split data into.
+  """
   # array = np.transpose(array)
   n_rows = array.shape[0]
   n_cols = array.shape[1]
@@ -970,18 +1033,63 @@ def get_cdf_values(array, bins):
 
 
 class PowerTransformer(Transformer):
-  """Takes power n transforms of the data based on an input vector."""
+  """Takes power n transforms of the data based on an input vector.
 
-  def __init__(self, transform_X=False, transform_y=False, powers=[1]):
+  Computes the specified powers of the dataset. This can be useful if you're
+  looking to add higher order features of the form `x_i^2`, `x_i^3` etc. to
+  your dataset.
+  """
+
+  def __init__(self,
+               transform_X=False,
+               transform_y=False,
+               transform_w=False,
+               dataset=None,
+               powers=[1]):
+    """Initialize this transformer
+
+    Parameters
+    ----------
+    transform_X: bool, optional (default False)
+      Whether to transform X
+    transform_y: bool, optional (default False)
+      Whether to transform y
+    transform_w: bool, optional (default False)
+      Whether to transform w
+    dataset: dc.data.Dataset object, optional (default None)
+      Dataset to be transformed. Note that this argument is ignored since
+      `PowerTransformer` doesn't require it to be specified.
+    powers: list[int], optional (default `[1]`)
+      The list of powers of features/labels to compute.
+    """
+    if transform_w:
+      raise ValueError("PowerTransformer doesn't support w transformation.")
     self.transform_X = transform_X
     self.transform_y = transform_y
     self.powers = powers
 
-  def transform(self, dataset):
-    """Performs power transform on data."""
-    X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
+  def transform_array(self, X, y, w):
+    """Performs power transform on data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Array of features
+    y: np.ndarray
+      Array of labels
+    w: np.ndarray
+      Array of weights.
+
+    Returns
+    -------
+    Xtrans: np.ndarray
+      Transformed array of features
+    ytrans: np.ndarray
+      Transformed array of labels
+    wtrans: np.ndarray
+      Transformed array of weights
+    """
     w_t = w
-    ids_t = ids
     n_powers = len(self.powers)
     if self.transform_X:
       X_t = np.power(X, self.powers[0])
@@ -989,21 +1097,20 @@ class PowerTransformer(Transformer):
         X_t = np.hstack((X_t, np.power(X, self.powers[i])))
       y_t = y
     if self.transform_y:
-      # print("y will not be transformed by PowerTransformer, for now.")
       y_t = np.power(y, self.powers[0])
       for i in range(1, n_powers):
         y_t = np.hstack((y_t, np.power(y, self.powers[i])))
       X_t = X
-    """
-    shutil.rmtree(dataset.data_dir)
-    os.makedirs(dataset.data_dir)
-    DiskDataset.from_numpy(dataset.data_dir, X_t, y_t, w_t, ids_t)
-    return dataset
-    """
-    return NumpyDataset(X_t, y_t, w_t, ids_t)
+    return (X_t, y_t, w_t)
 
   def untransform(self, z):
-    # print("Cannot undo Power Transformer, for now.")
+    """Undo transformation on provided data.
+
+    Parameters
+    ----------
+    z: np.ndarray,
+      Transformed y array
+    """
     n_powers = len(self.powers)
     orig_len = (z.shape[1]) // n_powers
     z = z[:, :orig_len]
