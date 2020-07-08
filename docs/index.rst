@@ -123,9 +123,9 @@ discussions about research, development or any general questions. If you'd like 
    :caption: Table of Contents 
    :name: mastertoc
 
-   Introduction <index>
    Tutorial <tutorial>
    Installation <installation>
+   Requirements <requirements>
    Datasets <datasets>
    Data Loaders <dataloaders>
    Featurizers <featurizers>
