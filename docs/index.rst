@@ -124,6 +124,7 @@ discussions about research, development or any general questions. If you'd like 
    :name: mastertoc
 
    Introduction <index>
+   Tutorial <tutorial>
    Installation <installation>
    Datasets <datasets>
    Data Loaders <dataloaders>
