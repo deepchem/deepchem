@@ -7,7 +7,7 @@ import importlib
 import inspect
 import logging
 import json
-from typing import Dict, List
+from typing import Dict, List, Any
 
 from deepchem.feat.base_classes import Featurizer
 from deepchem.trans.transformers import Transformer
@@ -16,7 +16,7 @@ from deepchem.splits.splitters import Splitter
 logger = logging.getLogger(__name__)
 
 
-def get_defaults(module_name: str = None) -> Dict[str, object]:
+def get_defaults(module_name: str = None) -> Dict[str, Any]:
   """Get featurizers, transformers, and splitters.
 
   This function returns a dictionary with class names as keys and classes

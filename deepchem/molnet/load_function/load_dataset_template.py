@@ -18,14 +18,22 @@ MYDATASET_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/
 MYDATASET_CSV_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/mydataset.csv'
 
 # dict of accepted featurizers for this dataset
-# modify the returned dicts your dataset
+# modify the returned dicts for your dataset
 DEFAULT_FEATURIZERS = get_defaults("feat")
+
+# Names of supported featurizers
+mydataset_featurizers = ['Featurizer1', 'Featurizer2', 'Featurizer3']
+DEFAULT_FEATURIZERS = {k: DEFAULT_FEATURIZERS[k] for k in mydataset_featurizers}
 
 # dict of accepted transformers
 DEFAULT_TRANSFORMERS = get_defaults("trans")
 
 # dict of accepted splitters
 DEFAULT_SPLITTERS = get_defaults("split")
+
+# names of supported splitters
+mydataset_splitters = ['Splitter1', 'Splitter2', 'Splitter3']
+DEFAULT_SPLITTERS = {k: DEFAULT_SPLITTERS[k] for k in mydataset_splitters}
 
 
 def load_mydataset(
@@ -203,9 +211,9 @@ def load_mydataset(
 
   # Initialize transformers
   transformers = [
-      DEFAULT_TRANSFORMERS[t](dataset, **transformer_kwargs[t])
+      DEFAULT_TRANSFORMERS[t](dataset=dataset, **transformer_kwargs[t])
       if isinstance(t, str) else t(
-          dataset, **transformer_kwargs[str(t.__class__.__name__)])
+          dataset=dataset, **transformer_kwargs[str(t.__class__.__name__)])
       for t in transformers
   ]
 
