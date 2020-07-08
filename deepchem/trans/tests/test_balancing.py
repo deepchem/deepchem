@@ -7,7 +7,7 @@ import os
 
 class TestBalancingTransformer(unittest.TestCase):
   """
-  Test top-level API for transformer objects.
+  Test BalancingTransformer functionality. 
   """
 
   def test_binary_1d(self):

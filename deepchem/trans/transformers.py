@@ -849,7 +849,6 @@ class BalancingTransformer(Transformer):
       raise ValueError("w must be of shape (N,) or (N, n_tasks)")
     # Ensure dataset is binary
     self.classes = sorted(np.unique(y))
-    #np.testing.assert_allclose(sorted(np.unique(y)), np.array([0., 1.]))
     weights = []
     for ind, task in enumerate(dataset.get_task_names()):
       task_w = w[:, ind]
