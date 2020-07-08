@@ -70,8 +70,8 @@ class BindingPocketFeaturizer(Featurizer):
     """
     Calculate atomic coodinates.
 
-    Params
-    ------
+    Parameters
+    ----------
     protein_file: str
       Location of PDB file. Will be loaded by MDTraj
     pockets: list[CoordinateBox]

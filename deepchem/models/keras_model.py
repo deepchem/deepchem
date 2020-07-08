@@ -23,6 +23,23 @@ from deepchem.utils.typing import OneOrMany
 
 LossFunction = Callable[[List, List, List], float]
 
+try:
+  import wandb
+  wandb.ensure_configured()
+  if wandb.api.api_key is None:
+    _has_wandb = False
+    wandb.termwarn(
+        "W&B installed but not logged in.  Run `wandb login` or set the WANDB_API_KEY env variable."
+    )
+  else:
+    _has_wandb = True
+except (ImportError, AttributeError):
+  _has_wandb = False
+
+
+def is_wandb_available():
+  return _has_wandb
+
 
 class KerasModel(Model):
   """This is a DeepChem model implemented by a Keras model.
@@ -110,6 +127,7 @@ class KerasModel(Model):
                learning_rate: Union[float, LearningRateSchedule] = 0.001,
                optimizer: Optional[Optimizer] = None,
                tensorboard: bool = False,
+               wandb: bool = False,
                log_frequency: int = 100,
                **kwargs) -> None:
     """Create a new KerasModel.
@@ -136,6 +154,8 @@ class KerasModel(Model):
       ignored.
     tensorboard: bool
       whether to log progress to TensorBoard during training
+    wandb: bool
+      whether to log progress to Weights & Biases during training
     log_frequency: int
       The frequency at which to log data. Data is logged using
       `logging` by default. If `tensorboard` is set, data is also
@@ -157,6 +177,15 @@ class KerasModel(Model):
     else:
       self.optimizer = optimizer
     self.tensorboard = tensorboard
+
+    # W&B logging
+    if wandb and not is_wandb_available():
+      logger.warning(
+          "You set wandb to True but W&B is not installed. To use wandb logging, "
+          "run `pip install wandb; wandb login` see https://docs.wandb.com/huggingface."
+      )
+    self.wandb = wandb and is_wandb_available()
+
     # Backwards compatibility
     if "tensorboard_log_frequency" in kwargs:
       logger.warning(
@@ -386,6 +415,8 @@ class KerasModel(Model):
       if self.tensorboard and should_log:
         with self._summary_writer.as_default():
           tf.summary.scalar('loss', batch_loss, current_step)
+      if self.wandb and should_log:
+        wandb.log({'loss': batch_loss}, step=current_step)
 
     # Report final results.
     if averaged_batches > 0:

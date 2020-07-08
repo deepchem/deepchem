@@ -142,14 +142,14 @@ class CoulombMatrix(Featurizer):
 
   def randomize_coulomb_matrix(self, m):
     """
-    Randomize a Coulomb matrix as decribed in Montavon et al., _New Journal
-    of Physics_ __15__ (2013) 095003:
+    Randomize a Coulomb matrix as decribed in Montavon et al.,
+    New Journal of Physics, 15, (2013), 095003:
 
-        1. Compute row norms for M in a vector row_norms.
-        2. Sample a zero-mean unit-variance noise vector e with dimension
-           equal to row_norms.
-        3. Permute the rows and columns of M with the permutation that
-           sorts row_norms + e.
+    1. Compute row norms for M in a vector row_norms.
+    2. Sample a zero-mean unit-variance noise vector e with dimension
+       equal to row_norms.
+    3. Permute the rows and columns of M with the permutation that
+       sorts row_norms + e.
 
     Parameters
     ----------

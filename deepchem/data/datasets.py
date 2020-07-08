@@ -420,8 +420,8 @@ class Dataset(object):
 
     Returns
     -------
-    If `X_stats == True`, returns `(X_means, X_stds)`. If `y_stats ==
-    True`, returns `(y_means, y_stds)`. If both are true, returns
+    If `X_stats == True`, returns `(X_means, X_stds)`. If `y_stats == True`,
+    returns `(y_means, y_stds)`. If both are true, returns
     `(X_means, X_stds, y_means, y_stds)`.
     """
     X_means = 0.0
@@ -1182,8 +1182,8 @@ class DiskDataset(Dataset):
     `math.ceil(len(dataset)/batch_size)`. Each minibatch is returned as
     a tuple of four numpy arrays: `(X, y, w, ids)`.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     batch_size: int
       Number of elements in a batch. If None, then it yields batches
       with size equal to the size of each individual shard.
@@ -1687,6 +1687,36 @@ class DiskDataset(Dataset):
     return np.array(
         load_from_disk(os.path.join(self.data_dir, row['ids'])), dtype=object)
 
+  def get_shard_y(self, i: int) -> np.ndarray:
+    """Retrieves the labels for the i-th shard from disk.
+
+    Parameters
+    ----------
+    i: int
+      Shard index for shard to retrieve labels from
+    """
+
+    if self._cached_shards is not None and self._cached_shards[i] is not None:
+      return self._cached_shards[i].y
+    row = self.metadata_df.iloc[i]
+    return np.array(
+        load_from_disk(os.path.join(self.data_dir, row['y'])), dtype=object)
+
+  def get_shard_w(self, i: int) -> no.ndarray:
+    """Retrieves the weights for the i-th shard from disk.
+
+    Parameters
+    ----------
+    i: int
+      Shard index for shard to retrieve weights from
+    """
+
+    if self._cached_shards is not None and self._cached_shards[i] is not None:
+      return self._cached_shards[i].w
+    row = self.metadata_df.iloc[i]
+    return np.array(
+        load_from_disk(os.path.join(self.data_dir, row['w'])), dtype=object)
+
   def add_shard(self, X: np.ndarray, y: Optional[np.ndarray],
                 w: Optional[np.ndarray], ids: Optional[np.ndarray]) -> None:
     """Adds a data shard."""
@@ -1793,9 +1823,12 @@ class DiskDataset(Dataset):
   @property
   def y(self) -> np.ndarray:
     """Get the y vector for this dataset as a single numpy array."""
+    if len(self) == 0:
+      return np.array([])
     ys = []
     one_dimensional = False
-    for (_, y_b, _, _) in self.itershards():
+    for i in range(self.get_number_shards()):
+      y_b = self.get_shard_y(i)
       ys.append(y_b)
       if len(y_b.shape) == 1:
         one_dimensional = True
@@ -1809,8 +1842,9 @@ class DiskDataset(Dataset):
     """Get the weight vector for this dataset as a single numpy array."""
     ws = []
     one_dimensional = False
-    for (_, _, w_b, _) in self.itershards():
-      ws.append(np.array(w_b))
+    for i in range(self.get_number_shards()):
+      w_b = self.get_shard_w(i)
+      ws.append(w_b)
       if len(w_b.shape) == 1:
         one_dimensional = True
     if not one_dimensional:

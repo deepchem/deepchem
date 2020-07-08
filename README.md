@@ -5,7 +5,7 @@
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/deepchem/badges/version.svg)](https://anaconda.org/conda-forge/deepchem)
 [![PyPI version](https://badge.fury.io/py/deepchem.svg)](https://badge.fury.io/py/deepchem)
 
-[Website](https://deepchem.io/) | [Documentation (master)](https://deepchem.readthedocs.io/en/latest/)) | [Colab Tutorial](https://github.com/deepchem/deepchem/tree/master/examples/tutorials) | [Discussion Forum](https://forum.deepchem.io/) | [Gitter](https://gitter.im/deepchem/Lobby)
+[Website](https://deepchem.io/) | [Documentation (master)](https://deepchem.readthedocs.io/en/latest/) | [Colab Tutorial](https://github.com/deepchem/deepchem/tree/master/examples/tutorials) | [Discussion Forum](https://forum.deepchem.io/) | [Gitter](https://gitter.im/deepchem/Lobby)
 
 DeepChem aims to provide a high quality open-source toolchain
 that democratizes the use of deep-learning in drug discovery,
@@ -59,6 +59,7 @@ DeepChem has a number of "soft" requirements. These are packages which are neede
 - [RDKit](http://www.rdkit.org/docs/Install.html)
 - [simdna](https://github.com/kundajelab/simdna)
 - [XGBoost](https://xgboost.readthedocs.io/en/latest/)
+- [Weights & Biases](https://docs.wandb.com/)
 - [Tensorflow Probability](https://www.tensorflow.org/probability)
 
 ## Installation

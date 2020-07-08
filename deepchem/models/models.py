@@ -38,7 +38,8 @@ class Model(BaseEstimator):
                verbose: bool = True,
                **kwargs) -> None:
     """Abstract class for all models.
-    Parameters:
+
+    Parameters
     -----------
     model_instance: object
       Wrapper around ScikitLearn/Keras/Tensorflow model object.

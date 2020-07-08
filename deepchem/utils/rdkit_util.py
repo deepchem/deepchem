@@ -153,8 +153,8 @@ def compute_charges(mol):
   This also has the side effect of calculating charges on mol.  The
   mol passed into this function has to already have been sanitized
 
-  Params
-  ------
+  Parameters
+  ----------
   mol: rdkit molecule
 
   Returns

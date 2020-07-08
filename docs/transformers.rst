@@ -77,12 +77,6 @@ DAGTransformer
 .. autoclass:: deepchem.trans.DAGTransformer
   :members:
 
-DAGTransformer
---------------
-
-.. autoclass:: deepchem.trans.DAGTransformer
-  :members:
-
 ImageTransformer
 ----------------
 

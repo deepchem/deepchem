@@ -581,7 +581,7 @@ class TestSplitter(unittest.TestCase):
       w = dataset.w
       # verify that there are no rows (samples) in weights matrix w
       # that have no hits.
-      assert len(np.where(~w.any(axis=1))[0]) == 0
+      assert len(np.where(w.any(axis=1) == 0)[0]) == 0
 
   def test_indice_split(self):
 
