@@ -1321,23 +1321,23 @@ class DiskDataset(Dataset):
 
     >> newx, newy, neww = fn(x, y, w)
 
-    It might be called only once with the whole dataset, or multiple times with different
-    subsets of the data.  Each time it is called, it should transform the samples and return
-    the transformed data.
+    It might be called only once with the whole dataset, or multiple times
+    with different subsets of the data.  Each time it is called, it should
+    transform the samples and return the transformed data.
 
     Parameters
     ----------
     fn: function
       A function to apply to each sample in the dataset
     out_dir: string
-      The directory to save the new dataset in.  If this is omitted, a temporary directory
-      is created automatically
+      The directory to save the new dataset in.  If this is omitted, a
+      temporary directory is created automatically
 
     Returns
     -------
     a newly constructed Dataset object
     """
-    if 'out_dir' in args:
+    if 'out_dir' in args and args['out_dir'] is not None:
       out_dir = args['out_dir']
     else:
       out_dir = tempfile.mkdtemp()

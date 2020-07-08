@@ -153,7 +153,7 @@ class Transformer(object):
     raise NotImplementedError(
         "Each Transformer is responsible for its own untransform method.")
 
-  def transform(self, dataset, parallel=False, **kwargs):
+  def transform(self, dataset, parallel=False, out_dir=None, **kwargs):
     """Transforms all internally stored data in dataset.
 
     This method transforms all internal data in the provided dataset by using
@@ -175,12 +175,18 @@ class Transformer(object):
     -------
     a newly constructed Dataset object
     """
+    # Add this case in to handle non-DiskDataset that should be written to disk
+    if out_dir is not None:
+      if not isinstance(dataset, dc.data.DiskDataset):
+        dataset = dc.data.DiskDataset.from_numpy(dataset.X, dataset.y,
+                                                 dataset.w, dataset.ids)
     _, y_shape, w_shape, _ = dataset.get_shape()
     if y_shape == tuple() and self.transform_y:
       raise ValueError("Cannot transform y when y_values are not present")
     if w_shape == tuple() and self.transform_w:
       raise ValueError("Cannot transform w when w_values are not present")
-    return dataset.transform(lambda X, y, w: self.transform_array(X, y, w))
+    return dataset.transform(
+        lambda X, y, w: self.transform_array(X, y, w), out_dir=out_dir)
 
   def transform_on_array(self, X, y, w):
     """Transforms numpy arrays X, y, and w
