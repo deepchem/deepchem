@@ -31,12 +31,14 @@ Quickstart
 If you're new, you can install DeepChem on a new machine with the following commands
 
 .. code-block:: bash
+
   pip install tensorflow
   pip install deepchem-nightly
 
 DeepChem is under very active development at present, so we recommend using our nightly build until we release a next major release. Note that to use DeepChem for chemistry applications, you will have to also install RDKit using conda.
 
 .. code-block:: bash
+
   conda install -y -c rdkit -c conda-forge rdkit
 
 
