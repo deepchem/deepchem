@@ -14,7 +14,7 @@ import numpy as np
 from io import StringIO
 from copy import deepcopy
 from collections import Counter
-from deepchem.utils import pdbqt_utils
+from deepchem.utils.pdbqt_utils import pdbqt_to_pdb
 from deepchem.utils.pdbqt_utils import convert_mol_to_pdbqt
 from deepchem.utils.pdbqt_utils import convert_protein_to_pdbqt
 from deepchem.utils.geometry_utils import angle_between
@@ -328,9 +328,9 @@ def write_molecule(mol, outfile, is_protein=False):
     writer.write(mol)
     writer.close()
     if is_protein:
-      pdbqt_utils.convert_protein_to_pdbqt(mol, outfile)
+      convert_protein_to_pdbqt(mol, outfile)
     else:
-      pdbqt_utils.convert_mol_to_pdbqt(mol, outfile)
+      convert_mol_to_pdbqt(mol, outfile)
   elif ".pdb" in outfile:
     writer = Chem.PDBWriter(outfile)
     writer.write(mol)

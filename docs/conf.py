@@ -77,6 +77,7 @@ html_logo = '_static/logo.png'
 
 import inspect
 from os.path import relpath, dirname
+import deepchem
 
 for name in ['sphinx.ext.linkcode', 'numpydoc.linkcode']:
   try:
@@ -141,10 +142,10 @@ def linkcode_resolve(domain, info):
       fn, start=os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
   if 'dev' in deepchem.__version__:
-    return "https://github.com/numpy/numpy/blob/master/numpy/%s%s" % (
+    return "https://github.com/deepchem/deepchem/blob/master/deepchem/%s%s" % (
         fn, linespec)
   else:
-    return "https://github.com/numpy/numpy/blob/v%s/numpy/%s%s" % (
+    return "https://github.com/deepchem/deepchem/blob/v%s/deepchem/%s%s" % (
         deepchem.__version__, fn, linespec)
 
 
