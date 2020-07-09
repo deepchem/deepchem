@@ -117,12 +117,12 @@ class ComplexFeaturizer(object):
     raise NotImplementedError('Featurizer is not defined.')
 
 
-class MolecularFeaturizer(object):
+class MolecularFeaturizer(Featurizer):
   """Abstract class for calculating a set of features for a
   molecule.
 
   The defining feature of a `MolecularFeaturizer` is that it
-  uses SMILES strings and RDKIT molecule objecgs to represent
+  uses SMILES strings and RDKIT molecule objects to represent
   small molecules. All other featurizers which are subclasses of
   this class should plan to process input which comes as smiles
   strings or RDKIT molecules. 

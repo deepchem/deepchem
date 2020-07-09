@@ -16,8 +16,8 @@ class RawFeaturizer(MolecularFeaturizer):
   def __init__(self, smiles=False):
     """Initialize this featurizer.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     smiles: bool, optional (default False)
       If True, encode this molecule as a SMILES string. Else as a RDKit mol.
     """

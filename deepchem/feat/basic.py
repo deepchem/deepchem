@@ -2,6 +2,7 @@
 Basic molecular features.
 """
 
+import numpy as np
 from deepchem.feat.base_classes import MolecularFeaturizer
 
 
@@ -12,7 +13,6 @@ class MolecularWeight(MolecularFeaturizer):
   ----
   This class requires RDKit to be installed.
   """
-  name = ['mw', 'molecular_weight']
 
   def _featurize(self, mol):
     """
@@ -22,6 +22,10 @@ class MolecularWeight(MolecularFeaturizer):
     ----------
     mol : RDKit Mol
         Molecule.
+
+    Returns
+    -------
+    np.ndarray of length 1 containing the molecular weight.
     """
     try:
       from rdkit.Chem import Descriptors
@@ -29,7 +33,7 @@ class MolecularWeight(MolecularFeaturizer):
       raise ValueError("This class requires RDKit to be installed.")
     wt = Descriptors.ExactMolWt(mol)
     wt = [wt]
-    return wt
+    return np.asarray(wt)
 
 
 class RDKitDescriptors(MolecularFeaturizer):
@@ -40,11 +44,15 @@ class RDKitDescriptors(MolecularFeaturizer):
   See http://rdkit.org/docs/GettingStartedInPython.html
   #list-of-available-descriptors.
 
+  Attributes
+  ----------
+  descriptors: list
+    List of RDKit descriptor names used in this class.
+
   Note
   ----
   This class requires RDKit to be installed.
   """
-  name = 'descriptors'
 
   # (ytz): This is done to avoid future compatibility issues like inclusion of
   # the 3D descriptors or changing the feature size.
@@ -105,4 +113,4 @@ class RDKitDescriptors(MolecularFeaturizer):
     rval = []
     for desc_name, function in self.descList:
       rval.append(function(mol))
-    return rval
+    return np.asarray(rval)
