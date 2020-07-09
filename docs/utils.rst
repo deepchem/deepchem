@@ -145,11 +145,19 @@ Hash Function Utilities
 
 .. autofunction:: deepchem.utils.hash_utils.vectorize
 
-Voxel Utils
------------
+Voxel Utilities
+---------------
 
 .. autofunction:: deepchem.utils.voxel_utils.convert_atom_to_voxel
 
 .. autofunction:: deepchem.utils.voxel_utils.convert_atom_pair_to_voxel
 
 .. autofunction:: deepchem.utils.voxel_utils.voxelize
+
+Dataset Utilities
+-----------------
+
+The :code:`datasetify` function provides some useful utilities for converting
+:code:`Dataset`-like inputs into :code:`Dataset` objects.
+
+.. autofunction:: deepchem.utils.data.datasetify
