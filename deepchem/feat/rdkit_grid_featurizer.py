@@ -1,7 +1,3 @@
-__author__ = "Bharath Ramsundar, Evan Feinberg, and Karl Leswing"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import logging
 import os
 import shutil
@@ -19,9 +15,6 @@ from scipy.spatial.distance import cdist
 from copy import deepcopy
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils.save import log
-"""
-TODO(LESWING) add sanitization with rdkit upgrade to 2017.*
-"""
 
 
 def compute_centroid(coordinates):
@@ -53,22 +46,23 @@ def generate_random__unit_vector():
 
 
 def generate_random_rotation_matrix():
-  """
-    1. Generate a random unit vector u, randomly sampled from the unit
-       3-sphere (see function generate_random__unit_vector() for details)
-    2. Generate a second random unit vector v
-      a. If absolute value of u \dot v > 0.99, repeat.
-         (This is important for numerical stability. Intuition: we want them to
-         be as linearly independent as possible or else the orthogonalized
-         version of v will be much shorter in magnitude compared to u. I assume
-         in Stack they took this from Gram-Schmidt orthogonalization?)
-      b. v" = v - (u \dot v)*u, i.e. subtract out the component of v that's in
-         u's direction
-      c. normalize v" (this isn"t in Stack but I assume it must be done)
-    3. find w = u \cross v"
-    4. u, v", and w will form the columns of a rotation matrix, R. The
-       intuition is that u, v" and w are, respectively, what the standard basis
-       vectors e1, e2, and e3 will be mapped to under the transformation.
+  """Generate a random rotation matrix in 3D.
+
+  1. Generate a random unit vector u, randomly sampled from the unit
+     3-sphere (see function generate_random__unit_vector() for details)
+  2. Generate a second random unit vector v
+    a. If absolute value of u \dot v > 0.99, repeat.
+       (This is important for numerical stability. Intuition: we want them to
+       be as linearly independent as possible or else the orthogonalized
+       version of v will be much shorter in magnitude compared to u. I assume
+       in Stack they took this from Gram-Schmidt orthogonalization?)
+    b. v" = v - (u \dot v)*u, i.e. subtract out the component of v that's in
+       u's direction
+    c. normalize v" (this isn"t in Stack but I assume it must be done)
+  3. find w = u \cross v"
+  4. u, v", and w will form the columns of a rotation matrix, R. The
+     intuition is that u, v" and w are, respectively, what the standard basis
+     vectors e1, e2, and e3 will be mapped to under the transformation.
   """
   u = generate_random__unit_vector()
   v = generate_random__unit_vector()

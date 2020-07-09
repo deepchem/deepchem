@@ -1,7 +1,6 @@
 import numpy as np
-
 import deepchem as dc
-from deepchem.feat import Featurizer
+from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
 from deepchem.feat.mol_graphs import ConvMol, WeaveMol
 from deepchem.data import DiskDataset
@@ -242,8 +241,15 @@ def bond_features(bond, use_chirality=False):
   ----------
   use_chirality: bool, optional
     If true, use chirality information.
+
+  Note
+  ----
+  This method requires RDKit to be installed.
   """
-  from rdkit import Chem
+  try:
+    from rdkit import Chem
+  except ModuleNotFoundError:
+    raise ValueError("This method requires RDKit to be installed.")
   bt = bond.GetBondType()
   bond_feats = [
       bt == Chem.rdchem.BondType.SINGLE, bt == Chem.rdchem.BondType.DOUBLE,
@@ -268,16 +274,20 @@ def pair_features(mol, edge_list, canon_adj_list, bt_len=6,
 
   Parameters
   ----------
-  mol: TODO
-    TODO
+  mol: RDKit Mol
+    Molecule to compute features on.
   edge_list: list
-    List of edges t oconsider
+    List of edges to consider
   canon_adj_list: list
     TODO
   bt_len: int, optional
     TODO
   graph_distance: bool, optional
-    TODO
+    If true, use graph distance between molecules. Else use euclidean distance.
+
+  Note
+  ----
+  This method requires RDKit to be installed.
   """
   if graph_distance:
     max_distance = 7
@@ -334,10 +344,21 @@ def find_distance(a1, num_atoms, canon_adj_list, max_distance=7):
   return distance
 
 
-class ConvMolFeaturizer(Featurizer):
-  """This class implements the featurization to implement graph convolutions from the Duvenaud graph convolution paper
+class ConvMolFeaturizer(MolecularFeaturizer):
+  """This class implements the featurization to implement Duvenaud graph convolutions.
 
-Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints." Advances in neural information processing systems. 2015.
+  Duvenaud graph convolutions [1]_ construct a vector of descriptors for each
+  atom in a molecule. The featurizer computes that vector of local descriptors.
+
+  References
+  ---------
+  .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+         learning molecular fingerprints." Advances in neural information processing
+         systems. 2015.
+
+  Note
+  ----
+  This class requires RDKit to be installed.
   """
   name = ['conv_mol']
 
@@ -448,10 +469,23 @@ Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecu
            tuple(self.atom_properties) == tuple(other.atom_properties)
 
 
-class WeaveFeaturizer(Featurizer):
-  """This class implements the featurization to implement Weave convolutions from the Google graph convolution paper.
+class WeaveFeaturizer(MolecularFeaturizer):
+  """This class implements the featurization to implement Weave convolutions.
+  
+  Weave convolutions were introduced in [1]_. Unlike Duvenaud graph
+  convolutions, weave convolutions require a quadratic matrix of interaction
+  descriptors for each pair of atoms. These extra descriptors may provide for
+  additional descriptive power but at the cost of a larger featurized dataset.
 
-  Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints." Journal of computer-aided molecular design 30.8 (2016): 595-608.
+  References
+  ----------
+  .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+         fingerprints." Journal of computer-aided molecular design 30.8 (2016):
+         595-608.
+
+  Note
+  ----
+  This class requires RDKit to be installed.
   """
 
   name = ['weave_mol']

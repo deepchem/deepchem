@@ -1,16 +1,16 @@
 """
 Basic molecular features.
 """
-__author__ = "Steven Kearnes"
-__copyright__ = "Copyright 2014, Stanford University"
-__license__ = "MIT"
 
-from deepchem.feat import Featurizer
+from deepchem.feat.base_classes import MolecularFeaturizer
 
 
-class MolecularWeight(Featurizer):
-  """
-  Molecular weight.
+class MolecularWeight(MolecularFeaturizer):
+  """Molecular weight.
+
+  Note
+  ----
+  This class requires RDKit to be installed.
   """
   name = ['mw', 'molecular_weight']
 
@@ -23,18 +23,26 @@ class MolecularWeight(Featurizer):
     mol : RDKit Mol
         Molecule.
     """
-    from rdkit.Chem import Descriptors
+    try:
+      from rdkit.Chem import Descriptors
+    except ModuleNotFoundError:
+      raise ValueError("This class requires RDKit to be installed.")
     wt = Descriptors.ExactMolWt(mol)
     wt = [wt]
     return wt
 
 
-class RDKitDescriptors(Featurizer):
-  """
-  RDKit descriptors.
+class RDKitDescriptors(MolecularFeaturizer):
+  """RDKit descriptors.
+
+  This class comptues a list of chemical descriptors using RDKit.
 
   See http://rdkit.org/docs/GettingStartedInPython.html
   #list-of-available-descriptors.
+
+  Note
+  ----
+  This class requires RDKit to be installed.
   """
   name = 'descriptors'
 
@@ -69,9 +77,12 @@ class RDKitDescriptors(Featurizer):
   ])
 
   def __init__(self):
+    try:
+      from rdkit.Chem import Descriptors
+    except ModuleNotFoundError:
+      raise ValueError("This class requires RDKit to be installed.")
     self.descriptors = []
     self.descList = []
-    from rdkit.Chem import Descriptors
     for descriptor, function in Descriptors.descList:
       if descriptor in self.allowedDescriptors:
         self.descriptors.append(descriptor)
@@ -85,6 +96,11 @@ class RDKitDescriptors(Featurizer):
     ----------
     mol : RDKit Mol
         Molecule.
+
+    Returns
+    -------
+    rval: np.ndarray
+      Vector of RDKit descriptors for `mol`
     """
     rval = []
     for desc_name, function in self.descList:

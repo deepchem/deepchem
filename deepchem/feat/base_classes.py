@@ -6,14 +6,59 @@ import types
 import numpy as np
 import multiprocessing
 
-__author__ = "Steven Kearnes"
-__copyright__ = "Copyright 2014, Stanford University"
-__license__ = "BSD 3-clause"
+logger = logging.getLogger(__name__)
 
 
 def _featurize_complex(featurizer, mol_pdb_file, protein_pdb_file, log_message):
   logging.info(log_message)
   return featurizer._featurize_complex(mol_pdb_file, protein_pdb_file)
+
+
+class Featurizer(object):
+  """Abstract class for calculating a set of features for a datapoint.
+
+  This class is abstract and cannot be invoked directly. You'll
+  likely only interact with this class if you're a developer. In
+  that case, you might want to make a child class which
+  implements the `_featurize` method for calculating features for
+  a single datapoints if you'd like to make a featurizer for a
+  new datatype.
+  """
+
+  def featurize(self, datapoints, log_every_n=1000):
+    """Calculate features for datapoints.
+
+    Parameters
+    ----------
+    datapoints: object 
+       Any blob of data you like. Subclasss should instantiate this. 
+
+    Returns
+    -------
+    A numpy array containing a featurized representation of
+    `datapoints`.
+    """
+    datapoints = list(datapoints)
+    features = []
+    for i, point in enumerate(datapoints):
+      if point is not None:
+        features.append(self._featurize(point))
+      else:
+        features.append(np.array([]))
+
+    features = np.asarray(features)
+    return features
+
+  def __call__(self, datapoints):
+    """Calculate features for datapoints.
+
+    Parameters
+    ----------
+    datapoints: object 
+       Any blob of data you like. Subclasss should instantiate
+       this. 
+    """
+    return self.featurize(datapoints)
 
 
 class ComplexFeaturizer(object):
@@ -73,27 +118,56 @@ class ComplexFeaturizer(object):
     raise NotImplementedError('Featurizer is not defined.')
 
 
-class Featurizer(object):
-  """
-  Abstract class for calculating a set of features for a molecule.
+class MolecularFeaturizer(object):
+  """Abstract class for calculating a set of features for a
+  molecule.
 
-  Child classes implement the _featurize method for calculating features
-  for a single molecule.
+  The defining feature of a `MolecularFeaturizer` is that it
+  uses SMILES strings and RDKIT molecule objecgs to represent
+  small molecules. All other featurizers which are subclasses of
+  this class should plan to process input which comes as smiles
+  strings or RDKIT molecules. 
+
+  Child classes need to implement the _featurize method for
+  calculating features for a single molecule.
+
+  Note
+  ----
+  In general, subclasses of this class will require RDKit to be installed.
   """
 
   def featurize(self, mols, verbose=True, log_every_n=1000):
-    """
-    Calculate features for molecules.
+    """Calculate features for molecules.
 
     Parameters
     ----------
     mols : iterable
-        RDKit Mol objects.
+        RDKit Mol, or SMILES string, or filename for
+        mol2/sdf/pdb/pdbqt file.
+
+    Returns
+    -------
+    A numpy array containing a featurized representation of
+    `datapoints`.
     """
-    mols = list(mols)
+    try:
+      from rdkit import Chem
+      from rdkit.Chem.rdchem import Mol
+    except ModuleNotFoundError:
+      raise ValueError("This class requires RDKit to be installed.")
+    # Special case handling of single molecule
+    if isinstance(mols, str) or isinstance(mols, Mol):
+      mols = [mols]
+    else:
+      # Convert iterables to list
+      mols = list(mols)
     features = []
     for i, mol in enumerate(mols):
       if mol is not None:
+        # Process only case of SMILES strings.
+        if isinstance(mol, str):
+          # mol must be a SMILES string so parse
+          mol = Chem.MolFromSmiles(mol)
         features.append(self._featurize(mol))
       else:
         features.append(np.array([]))

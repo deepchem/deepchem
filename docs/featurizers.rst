@@ -35,6 +35,10 @@ MolecularFeaturizer
 
 Molecular Featurizers are those that work with datasets of molecules.
 
+.. autoclass:: deepchem.feat.MolecularFeaturizer
+  :members:
+
+
 ConvMolFeaturizer
 ^^^^^^^^^^^^^^^^^
 
