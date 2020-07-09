@@ -16,7 +16,7 @@ materials science, quantum chemistry, and biology.
 - [Requirements](#requirements)
 - [Installation](#installation)
   - [Stable version](#stable-version)
-  - [Nightly version](#nightly-build-version)
+  - [Nightly build version](#nightly-build-version)
   - [Docker](#docker)
   - [From source](#from-source)
 - [Getting Started](#getting-started)

@@ -19,5 +19,5 @@ else
     echo "Installing DeepChem in current env"
 }
 
-$path = join-path C: $Pwd "requirements.yml"
+$path = Join-Path $Pwd "requirements.yml"
 conda env update --file $path

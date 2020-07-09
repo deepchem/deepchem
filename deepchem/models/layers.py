@@ -435,7 +435,7 @@ def _cosine_dist(x, y):
 
 
 class AttnLSTMEmbedding(tf.keras.layers.Layer):
-  """Implements AttnLSTM as in matching networks paper.
+  """Implements AttnLSTM as in matching networks paper [1]_, [2]_.
 
   The AttnLSTM embedding adjusts two sets of vectors, the "test" and
   "support" sets. The "support" consists of a set of evidence vectors.
@@ -447,12 +447,10 @@ class AttnLSTMEmbedding(tf.keras.layers.Layer):
   metric that allows a network to modify its internal notion of
   distance.
 
-  References:
-  Matching Networks for One Shot Learning
-  https://arxiv.org/pdf/1606.04080v1.pdf
-
-  Order Matters: Sequence to sequence for sets
-  https://arxiv.org/abs/1511.06391
+  References
+  ----------
+  .. [1] Matching Networks for One Shot Learning, https://arxiv.org/abs/1606.04080
+  .. [2] Order Matters: Sequence to sequence for sets, https://arxiv.org/abs/1511.06391
   """
 
   def __init__(self, n_test, n_support, n_feat, max_depth, **kwargs):
