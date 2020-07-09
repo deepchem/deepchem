@@ -88,6 +88,14 @@ Molecular Utilities
 
 .. autofunction:: deepchem.utils.rdkit_util.write_molecule
 
+Molecular Fragment Utilities
+----------------------------
+
+It's often convenient to manipulate subsets of a molecule. The :code:`MolecularFragment` class aids in such manipulations.
+
+.. autoclass:: deepchem.utils.MolecularFragment
+  :members:
+
 Coordinate Box Utilities
 ------------------------
 

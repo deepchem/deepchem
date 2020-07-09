@@ -2,6 +2,8 @@ import os
 import unittest
 from deepchem.utils import rdkit_util
 from deepchem.utils.fragment_util import get_contact_atom_indices
+from deepchem.utils.fragment_util import merge_molecular_fragments
+from deepchem.utils.fragment_util import MolecularFragment
 
 
 class TestFragmentUtil(unittest.TestCase):
@@ -18,3 +20,16 @@ class TestFragmentUtil(unittest.TestCase):
     complexes = rdkit_util.load_complex([self.protein_file, self.ligand_file])
     contact_indices = get_contact_atom_indices(complexes)
     assert len(contact_indices) == 2
+
+  def test_create_molecular_fragment(self):
+    mol_xyz, mol_rdk = rdkit_util.load_molecule(self.ligand_file)
+    fragment = MolecularFragment(mol_rdk.GetAtoms(), mol_xyz)
+    assert len(mol_rdk.GetAtoms()) == len(fragment.GetAtoms())
+    assert (fragment.GetCoords() == mol_xyz).all()
+
+  def test_merge_molecular_fragments(self):
+    mol_xyz, mol_rdk = rdkit_util.load_molecule(self.ligand_file)
+    fragment1 = MolecularFragment(mol_rdk.GetAtoms(), mol_xyz)
+    fragment2 = MolecularFragment(mol_rdk.GetAtoms(), mol_xyz)
+    joint = merge_molecular_fragments([fragment1, fragment2])
+    assert len(mol_rdk.GetAtoms())*2 == len(joint.GetAtoms())
