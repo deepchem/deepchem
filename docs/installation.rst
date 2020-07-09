@@ -24,14 +24,14 @@ molnet depend on it.
 .. code-block:: bash
 
     pip install tensorflow-gpu==1.14
-    conda install -y -c rdkit -c conda-forge rdkit deepchem
+    conda install -y -c conda-forge rdkit deepchem
 
 For CPU only support instead run
 
 .. code-block:: bash
 
     pip install tensorflow==1.14
-    conda install -y -c rdkit -c conda-forge rdkit deepchem
+    conda install -y -c conda-forge rdkit deepchem
 
 
 Nightly build version
@@ -52,7 +52,7 @@ with deepchem if you use conda.
 
 .. code-block:: bash
 
-    conda install -y -c rdkit rdkit
+    conda install -y -c conda-forge rdkit
 
 
 Docker

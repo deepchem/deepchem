@@ -1,7 +1,6 @@
 name: deepchem
 channels:
   - deepchem
-  - rdkit
   - omnia
   - conda-forge
   - defaults
@@ -14,7 +13,7 @@ dependencies:
   - pdbfixer==1.6
   - pillow==7.1.2
   - py-xgboost==0.90
-  - rdkit==2020.03.3.0
+  - rdkit==2020.03.4
   - simdna==0.4.3.2
   - pymatgen==2020.7.3
   - pytest

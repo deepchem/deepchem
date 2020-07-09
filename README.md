@@ -72,14 +72,14 @@ RDKit is a soft requirement package, but many useful methods like molnet depend 
 
 ```bash
 pip install tensorflow==1.14
-conda install -y -c rdkit -c conda-forge rdkit deepchem==2.3.0
+conda install -y -c conda-forge rdkit deepchem==2.3.0
 ```
 
 If you want GPU support:
 
 ```bash
 pip install tensorflow-gpu==1.14
-conda install -y -c rdkit -c conda-forge rdkit deepchem==2.3.0
+conda install -y -c conda-forge rdkit deepchem==2.3.0
 ```
 
 ### Nightly build version
@@ -94,7 +94,7 @@ pip install --pre deepchem
 RDKit is a soft requirement package, but many useful methods like molnet depend on it. We recommend installing RDKit with deepchem if you use conda.
 
 ```bash
-conda install -y -c rdkit rdkit
+conda install -y -c conda-forge rdkit
 ```
 
 ### Docker
