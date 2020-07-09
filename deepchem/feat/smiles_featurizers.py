@@ -21,17 +21,17 @@ def create_char_to_idx(filename,
                        verbose=False):
   """Creates a dictionary with character to index mapping.
 
-    Parameters
-    ----------
-    filename: str,
-        Name of the file containing the SMILES strings
-    max_len: int, default 250
-        Maximum allowed length of the SMILES string
-    smiles_field: str, default smiles
-        Field indicating the SMILES strings int the file.
-    verbose: bool, default True
-        Whether to print the progress
-    """
+  Parameters
+  ----------
+  filename: str,
+      Name of the file containing the SMILES strings
+  max_len: int, default 250
+      Maximum allowed length of the SMILES string
+  smiles_field: str, default smiles
+      Field indicating the SMILES strings int the file.
+  verbose: bool, default True
+      Whether to print the progress
+  """
   smiles_df = pd.read_csv(filename)
   char_set = set()
   for smile in smiles_df[smiles_field]:
@@ -76,6 +76,7 @@ class SmilesToSeq(MolecularFeaturizer):
 
   def __init__(self, char_to_idx, max_len=250, pad_len=10, **kwargs):
     """Initialize this class. 
+
     Parameters
     ----------
     char_to_idx: dict

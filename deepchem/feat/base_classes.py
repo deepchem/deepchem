@@ -35,8 +35,7 @@ class Featurizer(object):
 
     Returns
     -------
-    A numpy array containing a featurized representation of
-    `datapoints`.
+    A numpy array containing a featurized representation of `datapoints`.
     """
     datapoints = list(datapoints)
     features = []

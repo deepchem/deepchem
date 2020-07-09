@@ -352,9 +352,10 @@ class ConvMolFeaturizer(MolecularFeaturizer):
 
   References
   ---------
+
   .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
-         learning molecular fingerprints." Advances in neural information processing
-         systems. 2015.
+         learning molecular fingerprints." Advances in neural information
+         processing systems. 2015.
 
   Note
   ----
