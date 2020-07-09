@@ -435,7 +435,7 @@ def _cosine_dist(x, y):
 
 
 class AttnLSTMEmbedding(tf.keras.layers.Layer):
-  """Implements AttnLSTM as in matching networks paper [1]_, [2]_.
+  """Implements AttnLSTM as in matching networks paper.
 
   The AttnLSTM embedding adjusts two sets of vectors, the "test" and
   "support" sets. The "support" consists of a set of evidence vectors.

@@ -42,24 +42,10 @@ DeepChem currently supports Python 3.5 through 3.7 and requires these packages o
 
 ### Soft Requirements
 
-DeepChem has a number of "soft" requirements. These are packages which are needed for various submodules of DeepChem but not for the package as a whole.
+DeepChem has a number of "soft" requirements.  
+If you face `ImportError: No module named XXXX`, you may need to install some packages.
 
-- [BioPython](https://biopython.org/wiki/Documentation)
-- [OpenAI Gym](https://gym.openai.com/)
-- [matminer](https://hackingmaterials.lbl.gov/matminer/)
-- [MDTraj](http://mdtraj.org/)
-- [NetworkX](https://networkx.github.io/documentation/stable/index.html)
-- [OpenMM](http://openmm.org/)
-- [PDBFixer](https://github.com/pandegroup/pdbfixer)
-- [Pillow](https://pypi.org/project/Pillow/)
-- [pyGPGO](https://pygpgo.readthedocs.io/en/latest/)
-- [Pymatgen](https://pymatgen.org/)
-- [PyTorch](https://pytorch.org/)
-- [RDKit](http://www.rdkit.org/docs/Install.html)
-- [simdna](https://github.com/kundajelab/simdna)
-- [XGBoost](https://xgboost.readthedocs.io/en/latest/)
-- [Weights & Biases](https://docs.wandb.com/)
-- [Tensorflow Probability](https://www.tensorflow.org/probability)
+Please check [the documents](https://deepchem.readthedocs.io/en/latest/requirements.html##soft-requirements) about the details of soft requirements.
 
 ## Installation
 
