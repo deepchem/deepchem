@@ -267,7 +267,7 @@ def load_molecule(molecule_file,
     # TODO: This is wrong. Should return all molecules
     my_mol = suppl[0]
   elif ".pdbqt" in molecule_file:
-    pdb_block = pdbqt_utils.pdbqt_to_pdb(molecule_file)
+    pdb_block = pdbqt_to_pdb(molecule_file)
     my_mol = Chem.MolFromPDBBlock(
         str(pdb_block), sanitize=False, removeHs=False)
     from_pdb = True

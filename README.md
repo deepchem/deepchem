@@ -45,7 +45,7 @@ DeepChem currently supports Python 3.5 through 3.7 and requires these packages o
 DeepChem has a number of "soft" requirements.  
 If you face `ImportError: No module named XXXX`, you may need to install some packages.
 
-Please check [the documents](https://deepchem.readthedocs.io/en/latest/requirements.html##soft-requirements) about the details of soft requirements.
+Please check [the document](https://deepchem.readthedocs.io/en/latest/requirements.html##soft-requirements) about the details of soft requirements.
 
 ## Installation
 
