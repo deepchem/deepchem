@@ -54,6 +54,8 @@ File Handling
 
 .. autofunction:: deepchem.utils.save.load_csv_files
 
+.. autofunction:: deepchem.utils.save.load_json_files
+
 .. autofunction:: deepchem.utils.save.save_metadata
 
 .. autofunction:: deepchem.utils.save.load_from_disk

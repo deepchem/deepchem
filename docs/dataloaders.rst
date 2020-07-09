@@ -22,6 +22,12 @@ UserCSVLoader
 .. autoclass:: deepchem.data.UserCSVLoader
   :members:
 
+JsonLoader
+^^^^^^^^^^
+
+.. autoclass:: deepchem.data.JsonLoader
+  :members:
+
 FASTALoader
 ^^^^^^^^^^^
 

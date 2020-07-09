@@ -10,6 +10,7 @@ import numpy as np
 import os
 import deepchem
 import warnings
+from typing import List, Optional
 from deepchem.utils.genomics import encode_bio_sequence as encode_sequence, encode_fasta_sequence as fasta_sequence, seq_one_hot_encode as seq_one_hotencode
 
 
@@ -116,8 +117,33 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
         yield df
 
 
-def load_json_files(filenames, shard_size=None, verbose=True):
-  """Load data as pandas dataframe."""
+def load_json_files(filenames: List[str],
+                    shard_size: Optional[int] = None,
+                    verbose: bool = True):
+  """Load data as pandas dataframe.
+
+  Parameters
+  ----------
+  filenames : List[str]
+    List of json filenames.
+  shard_size : int, optional
+    Chunksize for reading json files.
+  verbose : bool (default True)
+    Log json loading with shard numbers.
+
+  Yields
+  ------
+  df : pandas.DataFrame
+    Shard of dataframe.
+
+  Notes
+  -----
+  To load shards from a json file into a Pandas dataframe, the file
+    must be originally saved with
+  ``df.to_json('filename.json', orient='records', lines=True)``
+
+  """
+
   shard_num = 1
   for filename in filenames:
     if shard_size is None:
