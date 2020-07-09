@@ -25,7 +25,7 @@ please follow the instructions below. Please review the `datasets already availa
 Load Dataset Template
 ---------------------
 
-.. autofunction:: deepchem.molnet.load_function.load_mydataset
+.. autofunction:: deepchem.molnet.load_function.load_dataset_template.load_mydataset
 
 BACE Dataset
 ------------

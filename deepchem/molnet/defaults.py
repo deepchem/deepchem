@@ -31,7 +31,7 @@ def get_defaults(module_name: str = None) -> Dict[str, Any]:
 
   Returns
   -------
-  defaults : Dict[str, object]
+  defaults : Dict[str, Any]
     Keys are class names and values are class constructors. 
 
   Examples
