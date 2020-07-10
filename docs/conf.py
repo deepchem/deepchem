@@ -142,10 +142,10 @@ def linkcode_resolve(domain, info):
       fn, start=os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
   if 'dev' in deepchem.__version__:
-    return "https://github.com/deepchem/deepchem/blob/master/deepchem/%s%s" % (
+    return "https://github.com/deepchem/deepchem/blob/master/%s%s" % (
         fn, linespec)
   else:
-    return "https://github.com/deepchem/deepchem/blob/v%s/deepchem/%s%s" % (
+    return "https://github.com/deepchem/deepchem/blob/%s/%s%s" % (
         deepchem.__version__, fn, linespec)
 
 
