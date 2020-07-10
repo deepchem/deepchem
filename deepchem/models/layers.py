@@ -447,10 +447,14 @@ class AttnLSTMEmbedding(tf.keras.layers.Layer):
   metric that allows a network to modify its internal notion of
   distance.
 
+  See references [1]_ [2]_ for more details.
+
   References
   ----------
-  .. [1] Matching Networks for One Shot Learning, https://arxiv.org/abs/1606.04080
-  .. [2] Order Matters: Sequence to sequence for sets, https://arxiv.org/abs/1511.06391
+  .. [1] Vinyals, Oriol, et al. "Matching networks for one shot learning." 
+         Advances in neural information processing systems. 2016.
+  .. [2] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters:
+         Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
   """
 
   def __init__(self, n_test, n_support, n_feat, max_depth, **kwargs):

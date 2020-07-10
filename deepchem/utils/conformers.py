@@ -21,7 +21,7 @@ class ConformerGenerator(object):
   3. Prune conformers using an RMSD threshold.
 
   Note that pruning is done _after_ minimization, which differs from the
-  protocol described in the references.
+  protocol described in the references [1]_ [2]_.
 
   References
   ----------
