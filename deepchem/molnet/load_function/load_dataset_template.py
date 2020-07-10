@@ -6,7 +6,7 @@ import logging
 import deepchem
 from deepchem.feat import Featurizer
 from deepchem.trans import Transformer
-from deepchem.split.splitters import Splitter
+from deepchem.splits.splitters import Splitter
 from deepchem.molnet.defaults import get_defaults
 
 from typing import List, Tuple, Dict, Optional

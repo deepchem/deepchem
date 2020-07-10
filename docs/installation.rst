@@ -38,7 +38,7 @@ Nightly build version
 ---------------------
 
 You install the nightly build version via pip.
-Nightly version is built by the HEAD of DeepChem.
+The nightly version is built by the HEAD of DeepChem.
 
 .. code-block:: bash
 
