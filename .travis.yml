@@ -29,8 +29,8 @@ install:
 - pip install coveralls yapf==0.22.0
 script:
 - pytest -m "not slow" --cov=deepchem deepchem
-- if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then find ./deepchem | grep .py$ | xargs
-  python -m doctest -v; fi
+- if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
+  find ./deepchem -name "*.py" ! -name '*load_dataset_template.py' | xargs python -m doctest -v; fi
 - bash devtools/travis-ci/test_format_code.sh
 after_success:
 - echo $TRAVIS_SECURE_ENV_VARS
