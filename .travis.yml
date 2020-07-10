@@ -32,7 +32,7 @@ script:
 - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
   find ./deepchem -name "*.py" ! -name '*load_dataset_template.py' | xargs python -m doctest -v; fi
 - bash devtools/travis-ci/test_format_code.sh
-- if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then
+- if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
   cd docs && pip install -r requirements.txt && make clean html && cd ..; fi
 after_success:
 - echo $TRAVIS_SECURE_ENV_VARS
