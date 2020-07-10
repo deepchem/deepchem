@@ -27,6 +27,14 @@ class BPSymmetryFunctionInput(MolecularFeaturizer):
   """
 
   def __init__(self, max_atoms):
+    """Initialize this featurizer.
+
+    Parameters
+    ----------
+    max_atoms: int
+      The maximum number of atoms expected for molecules this featurizer will
+      process.
+    """
     self.max_atoms = max_atoms
 
   def _featurize(self, mol):
@@ -92,6 +100,24 @@ class CoulombMatrix(MolecularFeaturizer):
                upper_tri=False,
                n_samples=1,
                seed=None):
+    """Initialize this featurizer.
+
+    Parameters
+    ----------
+    max_atoms: int
+      The maximum number of atoms expected for molecules this featurizer will
+      process.
+    remove_hydrogens: bool, optional (default False)
+      If True, remove hydrogens before processing them.
+    randomize: bool, optional (default False)
+      If True, use method `randomize_coulomb_matrices` to randomize Coulomb matrices.
+    upper_tri: bool, optional (default False)
+      Generate only upper triangle part of Coulomb matrices.
+    n_samples: int, optional (default 1)
+      If `randomize` is set to True, the number of random samples to draw.
+    seed: int, optional (default None)
+      Random seed to use.
+    """
     try:
       from rdkit import Chem
     except ModuleNotFoundError:
@@ -163,9 +189,7 @@ class CoulombMatrix(MolecularFeaturizer):
     return rval
 
   def randomize_coulomb_matrix(self, m):
-    """
-    Randomize a Coulomb matrix as decribed in Montavon et al.,
-    New Journal of Physics, 15, (2013), 095003:
+    """Randomize a Coulomb matrix as decribed in [1]_:
 
     1. Compute row norms for M in a vector row_norms.
     2. Sample a zero-mean unit-variance noise vector e with dimension
@@ -181,6 +205,10 @@ class CoulombMatrix(MolecularFeaturizer):
         Number of random matrices to generate.
     seed : int, optional
         Random seed.
+
+    References
+    ----------
+    .. [1] Montavon et al., New Journal of Physics, 15, (2013), 095003
     """
     rval = []
     row_norms = np.asarray([np.linalg.norm(row) for row in m], dtype=float)
@@ -263,6 +291,22 @@ class CoulombMatrixEig(CoulombMatrix):
                randomize=False,
                n_samples=1,
                seed=None):
+    """Initialize this featurizer.
+
+    Parameters
+    ----------
+    max_atoms: int
+      The maximum number of atoms expected for molecules this featurizer will
+      process.
+    remove_hydrogens: bool, optional (default False)
+      If True, remove hydrogens before processing them.
+    randomize: bool, optional (default False)
+      If True, use method `randomize_coulomb_matrices` to randomize Coulomb matrices.
+    n_samples: int, optional (default 1)
+      If `randomize` is set to True, the number of random samples to draw.
+    seed: int, optional (default None)
+      Random seed to use.
+    """
     self.max_atoms = int(max_atoms)
     self.remove_hydrogens = remove_hydrogens
     self.randomize = randomize

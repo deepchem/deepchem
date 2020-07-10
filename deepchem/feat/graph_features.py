@@ -1,3 +1,4 @@
+import enum
 import numpy as np
 import deepchem as dc
 from deepchem.feat.base_classes import MolecularFeaturizer
@@ -14,21 +15,73 @@ def _featurize_complex(featurizer, mol_pdb_file, protein_pdb_file, log_message):
 
 
 def one_of_k_encoding(x, allowable_set):
+  """Encodes elements of a provided set as integers.
+
+  Parameters
+  ----------
+  x: object
+    Must be present in `allowable_set`. 
+  allowable_set: list
+    List of allowable quantities.
+
+  Example
+  -------
+  >>> import deepchem as dc
+  >>> dc.feat.graph_features.one_of_k_encoding("a", ["a", "b", "c"])         
+  [True, False, False]
+
+  Raises
+  ------
+  `ValueError` if `x` is not in `allowable_set`.
+  """
   if x not in allowable_set:
-    raise Exception("input {0} not in allowable set{1}:".format(
+    raise ValueError("input {0} not in allowable set{1}:".format(
         x, allowable_set))
   return list(map(lambda s: x == s, allowable_set))
 
 
 def one_of_k_encoding_unk(x, allowable_set):
-  """Maps inputs not in the allowable set to the last element."""
+  """Maps inputs not in the allowable set to the last element.
+
+  Unlike `one_of_k_encoding`, if `x` is not in `allowable_set`, this method
+  pretends that `x` is the last element of `allowable_set`.
+
+  Parameters
+  ----------
+  x: object
+    Must be present in `allowable_set`. 
+  allowable_set: list
+    List of allowable quantities.
+
+  Examples
+  --------
+  >>> dc.feat.graph_features.one_of_k_encoding_unk("s", ["a", "b", "c"])    
+  [False, False, True]
+  """
   if x not in allowable_set:
     x = allowable_set[-1]
   return list(map(lambda s: x == s, allowable_set))
 
 
 def get_intervals(l):
-  """For list of lists, gets the cumulative products of the lengths"""
+  """For list of lists, gets the cumulative products of the lengths
+
+  Note that we add 1 to the lengths of all lists (to avoid an empty list
+  propagating a 0).
+
+  Parameters
+  ----------
+  l: list of lists
+    Returns the cumulative product of these lengths.
+
+  Examples
+  --------
+  >>> dc.feat.graph_features.get_intervals([[1], [1, 2], [1, 2, 3]])        
+  [1, 3, 12]
+
+  >>> dc.feat.graph_features.get_intervals([[1], [], [1, 2], [1, 2, 3]])    
+  >>> [1, 1, 3, 12]
+  """
   intervals = len(l) * [0]
   # Initalize with 1
   intervals[0] = 1
@@ -39,37 +92,59 @@ def get_intervals(l):
 
 
 def safe_index(l, e):
-  """Gets the index of e in l, providing an index of len(l) if not found"""
+  """Gets the index of e in l, providing an index of len(l) if not found
+
+  Parameters
+  ----------
+  l: list
+    List of values
+  e: object
+    Object to check whether `e` is in `l`
+
+  Examples
+  --------
+  >>> dc.feat.graph_features.safe_index([1, 2, 3], 1)                       
+  0
+  >>> dc.feat.graph_features.safe_index([1, 2, 3], 7)                       
+  3
+  """
   try:
     return l.index(e)
   except:
     return len(l)
 
 
-possible_atom_list = [
-    'C', 'N', 'O', 'S', 'F', 'P', 'Cl', 'Mg', 'Na', 'Br', 'Fe', 'Ca', 'Cu',
-    'Mc', 'Pd', 'Pb', 'K', 'I', 'Al', 'Ni', 'Mn'
-]
-possible_numH_list = [0, 1, 2, 3, 4]
-possible_valence_list = [0, 1, 2, 3, 4, 5, 6]
-possible_formal_charge_list = [-3, -2, -1, 0, 1, 2, 3]
-# To avoid importing rdkit, this is a placeholder list of the correct
-# length. These will be replaced with rdkit HybridizationType below
-possible_hybridization_list = ["SP", "SP2", "SP3", "SP3D", "SP3D2"]
-possible_number_radical_e_list = [0, 1, 2]
-possible_chirality_list = ['R', 'S']
-
-reference_lists = [
-    possible_atom_list, possible_numH_list, possible_valence_list,
-    possible_formal_charge_list, possible_number_radical_e_list,
-    possible_hybridization_list, possible_chirality_list
-]
-
-intervals = get_intervals(reference_lists)
-# We use E-Z notation for stereochemistry
-# https://en.wikipedia.org/wiki/E%E2%80%93Z_notation
-possible_bond_stereo = ["STEREONONE", "STEREOANY", "STEREOZ", "STEREOE"]
-bond_fdim_base = 6
+class GraphConvConstants(enum.Enum):
+  """Allowed Atom Types."""
+  possible_atom_list = [
+      'C', 'N', 'O', 'S', 'F', 'P', 'Cl', 'Mg', 'Na', 'Br', 'Fe', 'Ca', 'Cu',
+      'Mc', 'Pd', 'Pb', 'K', 'I', 'Al', 'Ni', 'Mn'
+  ]
+  """Allowed Numbers of Hydrogens"""
+  possible_numH_list = [0, 1, 2, 3, 4]
+  """Allowed Valences for Atoms"""
+  possible_valence_list = [0, 1, 2, 3, 4, 5, 6]
+  """Allowed Formal Charges for Atoms"""
+  possible_formal_charge_list = [-3, -2, -1, 0, 1, 2, 3]
+  """This is a placeholder for documentation. These will be replaced with corresponding values of the rdkit HybridizationType"""
+  possible_hybridization_list = ["SP", "SP2", "SP3", "SP3D", "SP3D2"]
+  """Allowed number of radical electrons."""
+  possible_number_radical_e_list = [0, 1, 2]
+  """Allowed types of Chirality"""
+  possible_chirality_list = ['R', 'S']
+  """The set of all values allowed."""
+  reference_lists = [
+      possible_atom_list, possible_numH_list, possible_valence_list,
+      possible_formal_charge_list, possible_number_radical_e_list,
+      possible_hybridization_list, possible_chirality_list
+  ]
+  """The number of different values that can be taken. See `get_intervals()`"""
+  intervals = get_intervals(reference_lists)
+  """Possible stereochemistry. We use E-Z notation for stereochemistry
+     https://en.wikipedia.org/wiki/E%E2%80%93Z_notation"""
+  possible_bond_stereo = ["STEREONONE", "STEREOANY", "STEREOZ", "STEREOE"]
+  """Number of different bond types not counting stereochemistry."""
+  bond_fdim_base = 6
 
 
 def get_feature_list(atom):
@@ -79,10 +154,39 @@ def get_feature_list(atom):
   ----------
   atom: RDKit.rdchem.Atom
     Atom to get features for
+
+  Examples
+  --------
+  >>> from rdkit import Chem
+  >>> mol = Chem.MolFromSmiles("C")
+  >>> atom = mol.GetAtoms()[0]
+  >>> dc.feat.graph_features.get_feature_list(atom)
+  [0, 4, 4, 3, 0, 2]
+
+  Note
+  ----
+  This method requires RDKit to be installed.
+
+  Returns
+  -------
+  features: list
+    List of length 6. The i-th value in this list provides the index of the
+    atom in the corresponding feature value list. The 6 feature values lists
+    for this function are `[GraphConvConstants.possible_atom_list,
+    GraphConvConstants.possible_numH_list,
+    GraphConvConstants.possible_valence_list,
+    GraphConvConstants.possible_formal_charge_list,
+    GraphConvConstants.possible_num_radical_e_list]`.
   """
+  possible_atom_list = GraphConvConstants.possible_atom_list
+  possible_numH_list = GraphConvConstants.possible_numH_list
+  possible_valence_list = GraphConvConstants.possible_valence_list
+  possible_formal_charge_list = GraphConvConstants.possible_formal_charge_list
+  possible_number_radical_e_list = GraphConvConstants.possible_number_radical_e_list
+  possible_hybridization_list = GraphConvConstants.possible_hybridization_list
   # Replace the hybridization
   from rdkit import Chem
-  global possible_hybridization_list
+  #global possible_hybridization_list
   possible_hybridization_list = [
       Chem.rdchem.HybridizationType.SP, Chem.rdchem.HybridizationType.SP2,
       Chem.rdchem.HybridizationType.SP3, Chem.rdchem.HybridizationType.SP3D,
@@ -101,7 +205,20 @@ def get_feature_list(atom):
 
 
 def features_to_id(features, intervals):
-  """Convert list of features into index using spacings provided in intervals"""
+  """Convert list of features into index using spacings provided in intervals
+
+  Parameters
+  ----------
+  features: list
+    List of features as returned by `get_feature_list()`
+  intervals: list
+    List of intervals as returned by `get_intervals()`  
+
+  Returns
+  -------
+  id: int 
+    The index in a feature vector given by the given set of features.
+  """
   id = 0
   for k in range(len(intervals)):
     id += features[k] * intervals[k]
@@ -112,6 +229,20 @@ def features_to_id(features, intervals):
 
 
 def id_to_features(id, intervals):
+  """Given an index in a feature vector, return the original set of features.
+
+  Parameters
+  ----------
+  id: int 
+    The index in a feature vector given by the given set of features.
+  intervals: list
+    List of intervals as returned by `get_intervals()`  
+
+  Returns
+  -------
+  features: list
+    List of features as returned by `get_feature_list()`
+  """
   features = 6 * [0]
 
   # Correct for null
@@ -133,6 +264,11 @@ def atom_to_id(atom):
   ----------
   atom: RDKit.rdchem.Atom
     Atom to convert to ids.
+
+  Returns
+  -------
+  id: int 
+    The index in a feature vector given by the given set of features.
   """
   features = get_feature_list(atom)
   return features_to_id(features, intervals)
@@ -154,6 +290,10 @@ def atom_features(atom,
     If true, model hydrogens explicitly
   use_chirality: bool, optional
     If true, use chirality information.
+
+  Returns
+  -------
+  np.ndarray of per-atom features.
   """
   if bool_id_feat:
     return np.array([atom_to_id(atom)])
@@ -245,6 +385,12 @@ def bond_features(bond, use_chirality=False):
   Note
   ----
   This method requires RDKit to be installed.
+
+  Returns
+  -------
+  bond_feats: np.ndarray
+    Array of bond features. This is a 1-D array of length 6 if `use_chirality`
+    is `False` else of length 10 with chirality encoded.
   """
   try:
     from rdkit import Chem
@@ -278,16 +424,24 @@ def pair_features(mol, edge_list, canon_adj_list, bt_len=6,
     Molecule to compute features on.
   edge_list: list
     List of edges to consider
-  canon_adj_list: list
-    TODO
-  bt_len: int, optional
-    TODO
-  graph_distance: bool, optional
+  canon_adj_list: list of lists
+    `canon_adj_list[i]` is a list of the atom indices that atom `i` shares a
+    list. This list is symmetrical so if `j in canon_adj_list[i]` then `i in
+    canon_adj_list[j]`.
+  bt_len: int, optional (default 6)
+    The number of different bond types to consider.
+  graph_distance: bool, optional (default True)
     If true, use graph distance between molecules. Else use euclidean distance.
 
   Note
   ----
   This method requires RDKit to be installed.
+
+  Returns
+  -------
+  features: np.ndarray
+    Of shape `(N, N, bt_len + max_distance + 1)`. This is the array of pairwise
+    features for all atom pairs.
   """
   if graph_distance:
     max_distance = 7
@@ -326,6 +480,28 @@ def pair_features(mol, edge_list, canon_adj_list, bt_len=6,
 
 
 def find_distance(a1, num_atoms, canon_adj_list, max_distance=7):
+  """Computes distances from provided atom.
+
+  Parameters
+  ----------
+  a1: RDKit atom
+    The source atom to compute distances from.
+  num_atoms: int
+    The total number of atoms.
+  canon_adj_list: list of lists
+    `canon_adj_list[i]` is a list of the atom indices that atom `i` shares a
+    list. This list is symmetrical so if `j in canon_adj_list[i]` then `i in
+    canon_adj_list[j]`.
+  max_distance: int, optional (default 7)
+    The max distance to search.
+
+  Returns
+  -------
+  distances: np.ndarray
+    Of shape `(num_atoms, max_distance)`. Provides a one-hot encoding of the
+    distances. That is, `distances[i]` is a one-hot encoding of the distance
+    from `a1` to atom `i`.
+  """
   distance = np.zeros((num_atoms, max_distance))
   radial = 0
   # atoms `radial` bonds away from `a1`

@@ -46,8 +46,8 @@ class RDKitDescriptors(MolecularFeaturizer):
 
   Attributes
   ----------
-  descriptors: list
-    List of RDKit descriptor names used in this class.
+  descriptors: np.ndarray
+    1D array of RDKit descriptor names used in this class.
 
   Note
   ----
@@ -108,7 +108,7 @@ class RDKitDescriptors(MolecularFeaturizer):
     Returns
     -------
     rval: np.ndarray
-      Vector of RDKit descriptors for `mol`
+      1D array of RDKit descriptors for `mol`
     """
     rval = []
     for desc_name, function in self.descList:

@@ -129,6 +129,7 @@ discussions about research, development or any general questions. If you'd like 
    Datasets <datasets>
    Data Loaders <dataloaders>
    Featurizers <featurizers>
+   Data Classes <dataclasses>
    Splitters <splitters>
    Transformers <transformers>
    Models <models>

@@ -25,10 +25,10 @@ class OneHotFeaturizer(MolecularFeaturizer):
 
     Parameters
     ----------
-    charset: obj:`list` of obj:`str`
-      Each string is length 1
-    padlength: int
-      length to pad the smile strings to
+    charset: list of str, optional (default None)
+      A list of strings, where each string is length 1.
+    padlength: int, optional (default 120)
+      length to pad the smile strings to.
     """
     try:
       from rdkit import Chem

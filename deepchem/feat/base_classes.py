@@ -30,8 +30,10 @@ class Featurizer(object):
 
     Parameters
     ----------
-    datapoints: object 
-       Any blob of data you like. Subclasss should instantiate this. 
+    datapoints: iterable 
+       A sequence of objects that you'd like to featurize. Subclassses of
+       `Featurizer` should instantiate the `_featurize` method that featurizes
+       objects in the sequence.
 
     Returns
     -------
@@ -40,6 +42,8 @@ class Featurizer(object):
     datapoints = list(datapoints)
     features = []
     for i, point in enumerate(datapoints):
+      if i % log_every_n == 0:
+        logger.info("Featurizing datapoint %i" % i)
       if point is not None:
         features.append(self._featurize(point))
       else:
@@ -135,14 +139,14 @@ class MolecularFeaturizer(Featurizer):
   In general, subclasses of this class will require RDKit to be installed.
   """
 
-  def featurize(self, mols, verbose=True, log_every_n=1000):
+  def featurize(self, mols, log_every_n=1000):
     """Calculate features for molecules.
 
     Parameters
     ----------
-    mols : iterable
-        RDKit Mol, or SMILES string, or filename for
-        mol2/sdf/pdb/pdbqt file.
+    mols : RDKit Mol / SMILES string /iterable
+        RDKit Mol, or SMILES string or iterable sequence of RDKit mols/SMILES
+        strings.
 
     Returns
     -------
@@ -162,6 +166,8 @@ class MolecularFeaturizer(Featurizer):
       mols = list(mols)
     features = []
     for i, mol in enumerate(mols):
+      if i % log_every_n == 0:
+        logger.info("Featurizing datapoint %i" % i)
       if mol is not None:
         # Process only case of SMILES strings.
         if isinstance(mol, str):

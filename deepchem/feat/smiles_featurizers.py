@@ -31,6 +31,10 @@ def create_char_to_idx(filename,
       Field indicating the SMILES strings int the file.
   verbose: bool, default True
       Whether to print the progress
+
+  Returns
+  -------
+  A dictionary mapping characters to their integer indexes.
   """
   smiles_df = pd.read_csv(filename)
   char_set = set()
