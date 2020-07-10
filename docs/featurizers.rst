@@ -116,6 +116,32 @@ AtomConvFeaturizer
 .. autoclass:: deepchem.feat.NeighborListComplexAtomicCoordinates
   :members:
 
+MaterialsFeaturizers
+-------------------
+
+Materials Featurizers are those that work with datasets of inorganic crystals.
+These featurizers operate on chemical compositions (e.g. "MoS2"), or on a
+lattice and 3D coordinates that specify a periodic crystal structure. They
+should be applied on systems that have periodic boundary conditions. Materials
+featurizers are not designed to work with molecules. 
+
+ElementPropertyFingerprint
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.ElementPropertyFingerprint
+  :members:
+
+SineCoulombMatrix
+^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.SineCoulombMatrix
+  :members:
+
+StructureGraphFeaturizer
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.StructureGraphFeaturizer
+  :members:
 
 BindingPocketFeaturizer
 -----------------------
