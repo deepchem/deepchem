@@ -690,9 +690,9 @@ class WeaveFeaturizer(MolecularFeaturizer):
     # If uses use_chirality
     self.use_chirality = use_chirality
     if self.use_chirality:
-      self.bt_len = bond_fdim_base + len(possible_bond_stereo)
+      self.bt_len = GraphConvConstants.bond_fdim_base + len(possible_bond_stereo)
     else:
-      self.bt_len = bond_fdim_base
+      self.bt_len = GraphConvConstants.bond_fdim_base
 
   def _featurize(self, mol):
     """Encodes mol as a WeaveMol object."""
