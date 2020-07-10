@@ -40,7 +40,7 @@ DeepChem is under very active development at present, so we recommend using our 
 
 .. code-block:: bash
 
-    conda install -y -c rdkit rdkit
+    conda install -y -c conda-forge rdkit
 
 
 
