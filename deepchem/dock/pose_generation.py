@@ -9,7 +9,6 @@ import os
 import tempfile
 import tarfile
 from subprocess import call
-from deepchem.utils.rdkit_util import add_hydrogens_to_mol
 from subprocess import check_output
 from deepchem.utils import rdkit_util
 from deepchem.utils import mol_xyz_util

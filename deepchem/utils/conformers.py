@@ -25,9 +25,8 @@ class ConformerGenerator(object):
 
   References
   ----------
-  * http://rdkit.org/docs/GettingStartedInPython.html
-    #working-with-3d-molecules
-  * http://pubs.acs.org/doi/full/10.1021/ci2004658
+  .. [1] http://rdkit.org/docs/GettingStartedInPython.html#working-with-3d-molecules
+  .. [2] http://pubs.acs.org/doi/full/10.1021/ci2004658
 
   Parameters
   ----------
