@@ -114,7 +114,7 @@ def safe_index(l, e):
     return len(l)
 
 
-class GraphConvConstants(enum.Enum):
+class GraphConvConstants(object):
   """Allowed Atom Types."""
   possible_atom_list = [
       'C', 'N', 'O', 'S', 'F', 'P', 'Cl', 'Mg', 'Na', 'Br', 'Fe', 'Ca', 'Cu',
@@ -690,9 +690,10 @@ class WeaveFeaturizer(MolecularFeaturizer):
     # If uses use_chirality
     self.use_chirality = use_chirality
     if self.use_chirality:
-      self.bt_len = GraphConvConstants.bond_fdim_base + len(possible_bond_stereo)
+      self.bt_len = int(
+          GraphConvConstants.bond_fdim_base) + len(possible_bond_stereo)
     else:
-      self.bt_len = GraphConvConstants.bond_fdim_base
+      self.bt_len = int(GraphConvConstants.bond_fdim_base)
 
   def _featurize(self, mol):
     """Encodes mol as a WeaveMol object."""

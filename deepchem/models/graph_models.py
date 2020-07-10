@@ -430,10 +430,6 @@ class DAGModel(KerasModel):
       if dropout is None or dropout == 0.0:
         raise ValueError('Dropout must be included to predict uncertainty')
 
-    ############################################
-    print("self.dropout")
-    print(self.dropout)
-    ############################################
     # Build the model.
 
     atom_features = Input(shape=(self.n_atom_feat,))
