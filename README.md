@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/deepchem/deepchem.svg?branch=master)](https://travis-ci.org/deepchem/deepchem)
 [![Coverage Status](https://coveralls.io/repos/github/deepchem/deepchem/badge.svg?branch=master)](https://coveralls.io/github/deepchem/deepchem?branch=master)
+[![Documentation Status](https://readthedocs.org/projects/deepchem/badge/?version=latest)](https://deepchem.readthedocs.io/en/latest/?badge=latest)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/deepchem/badges/version.svg)](https://anaconda.org/conda-forge/deepchem)
 [![PyPI version](https://badge.fury.io/py/deepchem.svg)](https://badge.fury.io/py/deepchem)
 
@@ -43,16 +44,15 @@ DeepChem currently supports Python 3.5 through 3.7 and requires these packages o
 ### Soft Requirements
 
 DeepChem has a number of "soft" requirements.  
-If you face `ImportError: No module named XXXX`, you may need to install some packages.
+If you face some errors like `ImportError: No module named XXXX`, you may need to install some packages.
 
-Please check [the document](https://deepchem.readthedocs.io/en/latest/requirements.html##soft-requirements) about the details of soft requirements.
+Please check [the document](https://deepchem.readthedocs.io/en/latest/requirements.html##soft-requirements) about soft requirements.
 
 ## Installation
 
 ### Stable version
 
-**Caution!!:**  
-**The latest stable version was published nearly a year ago. If you are a pip user or you face some errors, we recommend the nightly build version.**
+**Caution!! : The latest stable version was published nearly a year ago. If you are a pip user or you face some errors, we recommend the nightly build version.**
 
 RDKit is a soft requirement package, but many useful methods like molnet depend on it. We recommend installing RDKit with deepchem.
 
@@ -70,7 +70,7 @@ conda install -y -c conda-forge rdkit deepchem==2.3.0
 
 ### Nightly build version
 
-You install the nightly build version via pip. Nightly version is built by the HEAD of DeepChem.
+You install the nightly build version via pip. The nightly version is built by the HEAD of DeepChem.
 
 ```bash
 pip install tensorflow==2.2
