@@ -80,7 +80,7 @@ def get_intervals(l):
   [1, 3, 12]
 
   >>> dc.feat.graph_features.get_intervals([[1], [], [1, 2], [1, 2, 3]])    
-  >>> [1, 1, 3, 12]
+  [1, 1, 3, 12]
   """
   intervals = len(l) * [0]
   # Initalize with 1
