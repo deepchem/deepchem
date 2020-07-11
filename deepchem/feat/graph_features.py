@@ -115,7 +115,7 @@ def safe_index(l, e):
 
 
 class GraphConvConstants(object):
-  """Allowed Atom Types."""
+  """This class defines a collection of constants which are useful for graph convolutions on molecules."""
   possible_atom_list = [
       'C', 'N', 'O', 'S', 'F', 'P', 'Cl', 'Mg', 'Na', 'Br', 'Fe', 'Ca', 'Cu',
       'Mc', 'Pd', 'Pb', 'K', 'I', 'Al', 'Ni', 'Mn'
