@@ -12,7 +12,7 @@ import time
 import sys
 import logging
 import warnings
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from deepchem.utils.save import load_csv_files, load_json_files
 from deepchem.utils.save import load_sdf_files
@@ -448,13 +448,27 @@ class JsonLoader(DataLoader):
   pandas, but this class may prove useful if you're processing
   large json files that you don't want to manipulate directly in
   memory.
+
+  It is meant to load JSON files formatted as "records" in line
+  delimited format, which allows for sharding.
+  ``list like [{column -> value}, ... , {column -> value}]``.
+
+  Examples
+  --------
+  >> import pandas as pd
+  >> df = pd.DataFrame(some_data)
+  >> df.columns.tolist()
+  .. ['formula', structure', 'task']
+  >> df.to_json('file.json', orient='records', lines=True)
+  >> loader = JsonLoader(['task'], {'structure': dict}, 'formula')
+  >> dataset = loader.create_dataset('file.json')
   
   """
 
   def __init__(self,
                tasks: List[str],
-               smiles_field: Optional[str] = None,
-               id_field: Optional[str] = None,
+               json_fields: Dict[str, type],
+               id_field: str = None,
                featurizer: Optional[Featurizer] = None,
                log_every_n: int = 1000):
     """Initializes JsonLoader.
@@ -463,10 +477,11 @@ class JsonLoader(DataLoader):
     ----------
     tasks : List[str]
       List of task names
-    smiles_field : str, optional
-      Name of field that holds smiles string 
-    id_field : str, optional
-      Name of field that holds sample identifier
+    json_fields : Dict[str, type]
+      column names and dtypes in dataframe containing data to be featurized
+      e.g. {"structure": dict, "composition": str}
+    id_field : str, default None
+      Column for identifying samples.
     featurizer : dc.feat.Featurizer, optional
       Featurizer to use to process data
     log_every_n : int, optional
@@ -477,9 +492,9 @@ class JsonLoader(DataLoader):
     if not isinstance(tasks, list):
       raise ValueError("Tasks must be a list.")
     self.tasks = tasks
-    self.smiles_field = smiles_field
+    self.json_fields = json_fields
     if id_field is None:
-      self.id_field = smiles_field
+      self.id_field = next(iter(json_fields))
     else:
       self.id_field = id_field
 
@@ -495,11 +510,51 @@ class JsonLoader(DataLoader):
 
   def _featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
-    return _featurize_smiles_df(
+    return self._featurize_df(
         shard,
         self.featurizer,
-        field=self.smiles_field,
+        json_fields=self.json_fields,
         log_every_n=self.log_every_n)
+
+  def _featurize_df(self,
+                    shard,
+                    featurizer: Featurizer,
+                    json_fields: Dict[str, type],
+                    log_every_n: int = 1000):
+    """Featurize individual materials in dataframe.
+
+    Helper that given a featurizer that operates on individual
+    inorganic crystal structures, computes & adds features for
+    that compound to the features dataframe.
+
+    Parameters
+    ----------
+    shard: pd.DataFrame
+      DataFrame that holds pymatgen.Structure dict or 
+      pymatgen.Composition str
+    featurizer: CrystalFeaturizer
+      A crystal featurizer object
+    json_fields : Dict[str, type]
+      column names and dtypes in dataframe containing data to be featurized
+      e.g. {"structure": dict, "composition": str}
+    log_every_n: int, optional (default 1000)
+      Emit a logging statement every `log_every_n` rows.
+
+    """
+
+    features = []
+    field = next(iter(json_fields))
+    data = shard[field].tolist()
+    for idx, datapoint in enumerate(data):
+      features.append(featurizer.featurize([datapoint]))
+
+    valid_inds = np.array(
+        [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
+    features = [
+        elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
+    ]
+
+    return np.squeeze(np.array(features), axis=1), valid_inds
 
 
 class SDFLoader(DataLoader):

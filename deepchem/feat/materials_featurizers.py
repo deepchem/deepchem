@@ -151,7 +151,7 @@ class SineCoulombMatrix(Featurizer):
 
     if self.flatten:
       eigs, _ = np.linalg.eig(sine_mat)
-      zeros = np.zeros((self.max_atoms,))
+      zeros = np.zeros((1,self.max_atoms))
       zeros[:len(eigs)] = eigs
       features = zeros
     else:
