@@ -51,14 +51,14 @@ def output_predictions(dataset, y_preds, csv_out):
   csv_out: str
     Name of file to write predictions to.
   """
-  mol_ids = dataset.ids
+  data_ids = dataset.ids
   n_tasks = len(dataset.get_task_names())
   y_preds = np.reshape(y_preds, (len(y_preds), n_tasks))
-  assert len(y_preds) == len(mol_ids)
+  assert len(y_preds) == len(data_ids)
   with open(csv_out, "w") as csvfile:
     csvwriter = csv.writer(csvfile)
     csvwriter.writerow(["ID"] + dataset.get_task_names())
-    for mol_id, y_pred in zip(mol_ids, y_preds):
+    for mol_id, y_pred in zip(data_ids, y_preds):
       csvwriter.writerow([mol_id] + list(y_pred))
 
 
@@ -218,14 +218,14 @@ class Evaluator(object):
     logger.warning(
         "Evaluator.output_predictions is deprecated. Please use dc.utils.evaluate.output_predictions instead. This method will be removed in a future version of DeepChem."
     )
-    mol_ids = self.dataset.ids
+    data_ids = self.dataset.ids
     n_tasks = len(self.dataset.get_task_names())
     y_preds = np.reshape(y_preds, (len(y_preds), n_tasks))
-    assert len(y_preds) == len(mol_ids)
+    assert len(y_preds) == len(data_ids)
     with open(csv_out, "w") as csvfile:
       csvwriter = csv.writer(csvfile)
       csvwriter.writerow(["ID"] + self.dataset.get_task_names())
-      for mol_id, y_pred in zip(mol_ids, y_preds):
+      for mol_id, y_pred in zip(data_ids, y_preds):
         csvwriter.writerow([mol_id] + list(y_pred))
 
   def compute_model_performance(self,

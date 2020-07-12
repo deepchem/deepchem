@@ -4,7 +4,6 @@ import numpy as np
 import warnings
 import sklearn.metrics
 import logging
-# TODO: Imported metrics will be removed in a futrue version of DeepCHem
 from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import recall_score
 from sklearn.metrics import r2_score
@@ -18,76 +17,6 @@ from sklearn.metrics import f1_score
 from scipy.stats import pearsonr
 
 logger = logging.getLogger(__name__)
-
-
-def matthews_corrcoef(*args, **kwargs):
-  logger.warning(
-      "matthews_corrcoef is deprecated. Use sklearn.metrics.matthews_corrcoef instead. dc.metrics.matthews_corrcoef will be removed in a future version of DeepChem."
-  )
-  return sklearn.metrics.matthews_corrcoef(*args, **kwargs)
-
-
-def recall_score(*args, **kwargs):
-  logger.warning(
-      "recall_score is deprecated. Use sklearn.metrics.recall_score instead. dc.metrics.recall_score will be removed in a future version of DeepChem."
-  )
-  return sklearn.metrics.recall_score(*args, **kwargs)
-
-
-def r2_score(*args, **kwargs):
-  logger.warning(
-      "r2_score is deprecated. Use sklearn.metrics.r2_score instead. dc.metrics.r2_score will be removed in a future version of DeepChem."
-  )
-  return sklearn.metrics.r2_score(*args, **kwargs)
-
-
-def mean_squared_error(*args, **kwargs):
-  logger.warning(
-      "mean_squared_error is deprecated. Use sklearn.metrics.mean_squared_error instead. dc.metrics.mean_squared_error will be removed in a future version of DeepChem."
-  )
-  return sklearn.metrics.mean_squared_error(*args, **kwargs)
-
-
-def mean_absolute_error(*args, **kwargs):
-  logger.warning(
-      "mean_absolute_error is deprecated. Use sklearn.metrics.mean_absolute_error instead. dc.metrics.mean_absolute_error will be removed in a future version of DeepChem."
-  )
-  return sklearn.metrics.mean_absolute_error(*args, **kwargs)
-
-
-def precision_score(*args, **kwargs):
-  logger.warning(
-      "precision_score is deprecated. Use sklearn.metrics.precision_score instead. dc.metrics.precision_score will be removed in a future version of DeepChem."
-  )
-  return sklearn.metrics.precision_score(*args, **kwargs)
-
-
-def precision_recall_curve(*args, **kwargs):
-  logger.warning(
-      "precision_recall_curve is deprecated. Use sklearn.metrics.precision_recall_curve instead. dc.metrics.precision_recall_curve will be removed in a future version of DeepChem."
-  )
-  return sklearn.metrics.precision_recall_curve(*args, **kwargs)
-
-
-def auc(*args, **kwargs):
-  logger.warning(
-      "auc is deprecated. Use sklearn.metrics.auc instead. dc.metrics.auc will be removed in a future version of DeepChem."
-  )
-  return sklearn.metrics.auc(*args, **kwargs)
-
-
-def jaccard_score(*args, **kwargs):
-  logger.warning(
-      "jaccard_score is deprecated. Use sklearn.metrics.jaccard_score instead. dc.metrics.jaccard_score will be removed in a future version of DeepChem."
-  )
-  return sklearn.metrics.jaccard_score(*args, **kwargs)
-
-
-def f1_score(*args, **kwargs):
-  logger.warning(
-      "f1_score is deprecated. Use sklearn.metrics.f1_score instead. dc.metrics.f1_score will be removed in a future version of DeepChem."
-  )
-  return sklearn.metrics.f1_score(*args, **kwargs)
 
 
 def threshold_predictions(y, threshold=0.5):
@@ -135,7 +64,7 @@ def normalize_weight_shape(w, n_samples, n_tasks):
   w: np.ndarray
     `w` can be `None` or a scalar or a `np.ndarray` of shape
     `(n_samples,)` or of shape `(n_samples, n_tasks)`. If `w` is a
-    sclar, it's assumed to be the same weight for all samples/tasks.
+    scalar, it's assumed to be the same weight for all samples/tasks.
   n_samples: int
     The number of samples in the dataset. If `w` is not None, we should
     have `n_samples = w.shape[0]` if `w` is a ndarray
@@ -198,7 +127,7 @@ def normalize_prediction_shape(y, mode=None, n_classes=None):
   ----------
   y: np.ndarray
     If `mode=="classification"`, `y` is an array of shape `(N,)` or
-    `(N, n_classes)` or `(N, n_tasks, n_classes)`. If `y` is of shape
+    `(N, n_classes)` or `(N, n_tasks, n_classes)`. If `y` is an array of shape
     `(N,)` in order to impute the number of classes correctly, `y`
     must take values from `0` to `n_classes-1` as integers. If
     `mode=="regression"`, `y` is an array of shape `(N,)` or `(N,
@@ -265,12 +194,12 @@ def normalize_prediction_shape(y, mode=None, n_classes=None):
       elif len(y.shape) == 3:
         if y.shape[-1] != 1:
           raise ValueError(
-              "y must a float sclar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems."
+              "y must a float scalar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems."
           )
         y_out = np.squeeze(y, axis=-1)
       else:
         raise ValueError(
-            "y must a float sclar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems."
+            "y must a float scalar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems."
         )
     else:
       # In this clase, y is a scalar.
@@ -278,14 +207,14 @@ def normalize_prediction_shape(y, mode=None, n_classes=None):
         y = float(y)
       except TypeError:
         raise ValueError(
-            "y must a float sclar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems."
+            "y must a float scalar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems."
         )
       y = np.array(y)
       y_out = np.reshape(y, (1, 1))
   else:
     # If mode isn't classification or regression don't perform any
     # transformations.
-    y_out = y
+    raise ValueError("mode must be either classification or regression.")
   return y_out
 
 
@@ -688,6 +617,7 @@ class Metric(object):
     if n_tasks == 1:
       computed_metrics = computed_metrics[0]
 
+    # DEPRECATED. WILL BE REMOVED IN NEXT DEEPCHEM VERSION
     if filter_nans:
       computed_metrics = np.array(computed_metrics)
       computed_metrics = computed_metrics[~np.isnan(computed_metrics)]

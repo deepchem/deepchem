@@ -9,6 +9,8 @@ depending on the type of model at hand.
 
 Metric Utilities
 ----------------
+Metric utility functions allow for some common manipulations such as
+switching to/from one-hot representations.
 
 .. autofunction:: deepchem.metrics.to_one_hot
 
@@ -17,6 +19,28 @@ Metric Utilities
 
 Metric Functions
 ----------------
+DeepChem has a variety of different metrics which are useful for measuring model performance. A number (but not all) of these metrics are directly sourced from :code:`sklearn`.
+
+.. autofunction:: deepchem.metrics.matthews_corrcoef
+
+.. autofunction:: deepchem.metrics.recall_score
+
+.. autofunction:: deepchem.metrics.r2_score
+
+.. autofunction:: deepchem.metrics.mean_squared_error
+
+.. autofunction:: deepchem.metrics.mean_absolute_error
+
+.. autofunction:: deepchem.metrics.precision_score
+
+.. autofunction:: deepchem.metrics.precision_recall_curve
+
+.. autofunction:: deepchem.metrics.auc
+
+.. autofunction:: deepchem.metrics.jaccard_score
+
+.. autofunction:: deepchem.metrics.f1_score
+
 .. autofunction:: deepchem.metrics.roc_auc_score
 
 .. autofunction:: deepchem.metrics.accuracy_score
