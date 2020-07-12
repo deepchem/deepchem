@@ -1,10 +1,6 @@
 """
 Atomic coordinate featurizer.
 """
-__author__ = "Joseph Gomes and Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import logging
 import numpy as np
 from deepchem.utils.save import log

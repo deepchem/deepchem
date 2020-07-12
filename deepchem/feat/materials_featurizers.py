@@ -23,17 +23,19 @@ class ElementPropertyFingerprint(Featurizer):
   matminer. It may be useful when only crystal compositions are available
   (and not 3D coordinates).
 
+  See references [1]_ [2]_ [3]_ [4]_ for more details.
+
   References
   ----------
-  MagPie data: Ward, L. et al. npj Comput Mater 2, 16028 (2016).
-    https://doi.org/10.1038/npjcompumats.2016.28
+  .. [1] MagPie data: Ward, L. et al. npj Comput Mater 2, 16028 (2016).
+	 https://doi.org/10.1038/npjcompumats.2016.28
 
-  Deml data: Deml, A. et al. Physical Review B 93, 085142 (2016).
-    10.1103/PhysRevB.93.085142
+  .. [2] Deml data: Deml, A. et al. Physical Review B 93, 085142 (2016).
+	 10.1103/PhysRevB.93.085142
 
-  Matminer: Ward, L. et al. Comput. Mater. Sci. 152, 60-69 (2018).
+  .. [3] Matminer: Ward, L. et al. Comput. Mater. Sci. 152, 60-69 (2018).
 
-  Pymatgen: Ong, S.P. et al. Comput. Mater. Sci. 68, 314-319 (2013). 
+  .. [4] Pymatgen: Ong, S.P. et al. Comput. Mater. Sci. 68, 314-319 (2013). 
 
   """
 
@@ -101,9 +103,11 @@ class SineCoulombMatrix(Featurizer):
   matminer. It may be useful when crystal structures with 3D coordinates 
   are available.
 
+  See [1]_ for more details.
+
   References
   ----------
-  Faber et al. Inter. J. Quantum Chem. 115, 16, 2015.
+  .. [1] Faber et al. Inter. J. Quantum Chem. 115, 16, 2015.
 
   """
 
@@ -177,9 +181,11 @@ class StructureGraphFeaturizer(Featurizer):
   be useful when 3D coordinates are available and when using graph 
   network models and crystal graph convolutional networks.
 
+  See [1]_ for more details.
+
   References
   ----------
-  T. Xie and J. C. Grossman, Phys. Rev. Lett. 120, 2018.
+  .. [1] T. Xie and J. C. Grossman, Phys. Rev. Lett. 120, 2018.
 
   """
 

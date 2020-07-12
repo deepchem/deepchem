@@ -1,18 +1,18 @@
 """
 Basic molecular features.
 """
-__author__ = "Steven Kearnes"
-__copyright__ = "Copyright 2014, Stanford University"
-__license__ = "MIT"
 
-from deepchem.feat import Featurizer
+import numpy as np
+from deepchem.feat.base_classes import MolecularFeaturizer
 
 
-class MolecularWeight(Featurizer):
+class MolecularWeight(MolecularFeaturizer):
+  """Molecular weight.
+
+  Note
+  ----
+  This class requires RDKit to be installed.
   """
-  Molecular weight.
-  """
-  name = ['mw', 'molecular_weight']
 
   def _featurize(self, mol):
     """
@@ -22,21 +22,37 @@ class MolecularWeight(Featurizer):
     ----------
     mol : RDKit Mol
         Molecule.
+
+    Returns
+    -------
+    np.ndarray of length 1 containing the molecular weight.
     """
-    from rdkit.Chem import Descriptors
+    try:
+      from rdkit.Chem import Descriptors
+    except ModuleNotFoundError:
+      raise ValueError("This class requires RDKit to be installed.")
     wt = Descriptors.ExactMolWt(mol)
     wt = [wt]
-    return wt
+    return np.asarray(wt)
 
 
-class RDKitDescriptors(Featurizer):
-  """
-  RDKit descriptors.
+class RDKitDescriptors(MolecularFeaturizer):
+  """RDKit descriptors.
+
+  This class comptues a list of chemical descriptors using RDKit.
 
   See http://rdkit.org/docs/GettingStartedInPython.html
   #list-of-available-descriptors.
+
+  Attributes
+  ----------
+  descriptors: np.ndarray
+    1D array of RDKit descriptor names used in this class.
+
+  Note
+  ----
+  This class requires RDKit to be installed.
   """
-  name = 'descriptors'
 
   # (ytz): This is done to avoid future compatibility issues like inclusion of
   # the 3D descriptors or changing the feature size.
@@ -69,9 +85,12 @@ class RDKitDescriptors(Featurizer):
   ])
 
   def __init__(self):
+    try:
+      from rdkit.Chem import Descriptors
+    except ModuleNotFoundError:
+      raise ValueError("This class requires RDKit to be installed.")
     self.descriptors = []
     self.descList = []
-    from rdkit.Chem import Descriptors
     for descriptor, function in Descriptors.descList:
       if descriptor in self.allowedDescriptors:
         self.descriptors.append(descriptor)
@@ -85,8 +104,13 @@ class RDKitDescriptors(Featurizer):
     ----------
     mol : RDKit Mol
         Molecule.
+
+    Returns
+    -------
+    rval: np.ndarray
+      1D array of RDKit descriptors for `mol`
     """
     rval = []
     for desc_name, function in self.descList:
       rval.append(function(mol))
-    return rval
+    return np.asarray(rval)
