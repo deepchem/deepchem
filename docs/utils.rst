@@ -93,8 +93,19 @@ Molecular Fragment Utilities
 
 It's often convenient to manipulate subsets of a molecule. The :code:`MolecularFragment` class aids in such manipulations.
 
-.. autoclass:: deepchem.utils.MolecularFragment
+.. autoclass:: deepchem.utils.fragment_util.MolecularFragment
   :members:
+
+.. autoclass:: deepchem.utils.fragment_util.AtomShim
+  :members:
+
+.. autofunction:: deepchem.utils.fragment_util.strip_hydrogens
+
+.. autofunction:: deepchem.utils.fragment_util.merge_molecular_fragments
+
+.. autofunction:: deepchem.utils.fragment_util.get_contact_atom_indices
+
+.. autofunction:: deepchem.utils.fragment_util.reduce_molecular_complex_to_contacts
 
 Coordinate Box Utilities
 ------------------------

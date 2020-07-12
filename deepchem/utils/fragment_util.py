@@ -2,6 +2,7 @@
 import itertools
 import numpy as np
 from deepchem.utils.geometry_utils import compute_pairwise_distances
+from deepchem.utils.rdkit_util import compute_charges
 
 
 def get_partial_charge(atom):
@@ -11,6 +12,18 @@ def get_partial_charge(atom):
   ----------
   atom: rdkit atom or `AtomShim` object
     Either an rdkit atom or `AtomShim`
+
+  Note
+  ----
+  This function requires RDKit to be installed.
+
+  Examples
+  --------
+  >>> from rdkit import Chem
+  >>> mol = Chem.MolFromSmiles("CC")
+  >>> atom = mol.GetAtoms()[0]
+  >>> get_partial_charge(atom)
+  0
   """
   from rdkit import Chem
   if isinstance(atom, Chem.Atom):
@@ -35,6 +48,15 @@ class MolecularFragment(object):
 
   Ideally, we'd be able to do this in RDKit direct, but manipulating
   molecular fragments doesn't seem to be supported functionality. 
+
+  Examples
+  --------
+  >>> import numpy as np
+  >>> from rdkit import Chem
+  >>> mol = Chem.MolFromSmiles("C")
+  >>> coords = np.array([[0.0, 0.0, 0.0]])
+  >>> atom = mol.GetAtoms()[0]
+  >>> fragment = MolecularFragment([atom], coords)
   """
 
   def __init__(self, atoms, coords):
