@@ -72,6 +72,13 @@ def normalize_weight_shape(w, n_samples, n_tasks):
     The number of tasks. If `w` is 2d ndarray, then we should have
     `w.shape[1] == n_tasks`.
 
+  Examples
+  --------
+  >>> import numpy as np
+  >>> w_out = dc.metrics.normalize_weight_shape(None, n_samples, n_tasks)
+  >>> (w_out == np.ones((n_samples, n_tasks))).all()
+  True
+
   Returns
   -------
   w_out: np.ndarray
@@ -302,7 +309,20 @@ def accuracy_score(y, y_pred):
 
 
 def balanced_accuracy_score(y, y_pred):
-  """Computes balanced accuracy score."""
+  """Computes balanced accuracy score.
+
+  Parameters
+  ----------
+  y: np.ndarray
+    Of shape `(N_samples,)`
+  y_pred: np.ndarray
+    Of shape `(N_samples,)`
+
+  Returns
+  -------
+  score: float
+    The balanced_accuracy. A number between 0 and 1.
+  """
   num_positive = float(np.count_nonzero(y))
   num_negative = float(len(y) - num_positive)
   pos_weight = num_negative / num_positive
@@ -322,8 +342,15 @@ def jaccard_index(y, y_pred):
 
   Parameters
   ----------
-  y: ground truth array
-  y_pred: predicted array
+  y: np.ndarray
+    ground truth array
+  y_pred: np.ndarray
+    predicted array
+
+  Returns
+  -------
+  score: float
+    The jaccard index. A number between 0 and 1.
   """
   return jaccard_score(y, y_pred)
 

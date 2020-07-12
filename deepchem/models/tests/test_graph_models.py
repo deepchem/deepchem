@@ -5,7 +5,6 @@ import pytest
 import scipy
 
 import deepchem as dc
-import tensorflow as tf
 from deepchem.data import NumpyDataset
 from deepchem.models import GraphConvModel, DAGModel, WeaveModel, MPNNModel
 from deepchem.molnet import load_bace_classification, load_delaney
@@ -190,6 +189,7 @@ class TestGraphModels(unittest.TestCase):
 
   @pytest.mark.slow
   def test_dag_regression_model(self):
+    import tensorflow as tf
     np.random.seed(1234)
     tf.random.set_seed(1234)
     tasks, dataset, transformers, metric = self.get_dataset(
@@ -214,6 +214,7 @@ class TestGraphModels(unittest.TestCase):
 
   @pytest.mark.slow
   def test_dag_regression_uncertainty(self):
+    import tensorflow as tf
     np.random.seed(1234)
     tf.random.set_seed(1234)
     tasks, dataset, transformers, metric = self.get_dataset(

@@ -657,11 +657,14 @@ class GraphConvModel(KerasModel):
   """Graph Convolutional Models.
 
   This class implements the graph convolutional model from the
-  following paper:
+  following paper [1]_.
 
 
-  Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints." Advances in neural information processing systems. 2015.
-
+  References
+  ----------
+  .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+  learning molecular fingerprints." Advances in neural information processing
+  systems. 2015.
   """
 
   def __init__(self,
