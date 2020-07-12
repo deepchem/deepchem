@@ -657,8 +657,9 @@ class GraphConvModel(KerasModel):
   """Graph Convolutional Models.
 
   This class implements the graph convolutional model from the
-  following paper [1]_.
-
+  following paper [1]_. These graph convolutions start with a per-atom set of
+  descriptors for each atom in a molecule, then combine and recombine these
+  descriptors over convolutional layers.
 
   References
   ----------

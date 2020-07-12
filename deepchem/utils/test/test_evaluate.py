@@ -318,15 +318,31 @@ def test_gc_binary_classification():
   assert multitask_scores["metric-1"] >= 0
 
 
+def test_gc_binary_kappa_classification():
+  """Test multiclass classification evaluation."""
+  smiles = ["C", "CC"]
+  featurizer = dc.feat.ConvMolFeaturizer()
+  X = featurizer.featurize(smiles)
+  y = np.random.randint(2, size=(len(smiles),))
+  dataset = dc.data.NumpyDataset(X, y)
+  model = dc.models.GraphConvModel(1, mode="classification")
+  # TODO: Fix this case with correct thresholding
+  evaluator = Evaluator(model, dataset, [])
+  multitask_scores = evaluator.compute_model_performance(
+      dc.metrics.kappa_score, n_classes=2, threshold=True)
+  assert len(multitask_scores) == 1
+  assert multitask_scores["metric-1"] >= 0
+
+
 def test_gc_multiclass_classification():
   """Test multiclass classification evaluation."""
-  np.random.seed(123)
+  np.random.seed(1234)
   smiles = ["C", "CC"]
   featurizer = dc.feat.ConvMolFeaturizer()
   X = featurizer.featurize(smiles)
   y = np.random.randint(5, size=(len(smiles),))
   dataset = dc.data.NumpyDataset(X, y)
-  model = dc.models.GraphConvModel(1, mode="classification")
+  model = dc.models.GraphConvModel(1, mode="classification", n_classes=5)
   # TODO: Fix this case with correct thresholding
   evaluator = Evaluator(model, dataset, [])
   multitask_scores = evaluator.compute_model_performance(
