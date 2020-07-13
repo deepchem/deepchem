@@ -3,7 +3,15 @@
 from typing import Callable, List, Sequence, Tuple, TypeVar, Union
 
 T = TypeVar("T")
-ActivationFn = Union[Callable, str]
-LossFunction = Callable[[List, List, List], float]
+
+# An activation function for a Keras layer: either a TensorFlow function or the name of a standard activation
+KerasActivationFn = Union[Callable, str]
+
+# A loss function for use with KerasModel: f(outputs, labels, weights)
+KerasLossFn = Callable[[List, List, List], float]
+
+# A single value of some type, or multiple values of that type
 OneOrMany = Union[T, Sequence[T]]
+
+# The shape of a NumPy array
 Shape = Tuple[int, ...]

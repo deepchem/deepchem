@@ -16,7 +16,7 @@ from deepchem.metrics import to_one_hot
 from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Activation, Lambda
 
 from typing import Any, Callable, Iterable, List, Optional, Sequence, Tuple, Union
-from deepchem.utils.typing import ActivationFn, LossFunction, OneOrMany
+from deepchem.utils.typing import KerasActivationFn, KerasLossFn, OneOrMany
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class MultitaskClassifier(KerasModel):
                weight_decay_penalty: float = 0.0,
                weight_decay_penalty_type: str = "l2",
                dropouts: OneOrMany[float] = 0.5,
-               activation_fns: OneOrMany[ActivationFn] = tf.nn.relu,
+               activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
                n_classes: int = 2,
                residual: bool = False,
                **kwargs) -> None:
@@ -195,7 +195,7 @@ class MultitaskRegressor(KerasModel):
                weight_decay_penalty: float = 0.0,
                weight_decay_penalty_type: str = "l2",
                dropouts: OneOrMany[float] = 0.5,
-               activation_fns: OneOrMany[ActivationFn] = tf.nn.relu,
+               activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
                uncertainty: bool = False,
                residual: bool = False,
                **kwargs) -> None:
@@ -300,7 +300,7 @@ class MultitaskRegressor(KerasModel):
             stddev=weight_init_stddevs[-1]),
         bias_initializer=tf.constant_initializer(
             value=bias_init_consts[-1]))(prev_layer))
-    loss: Union[dc.models.losses.Loss, LossFunction]
+    loss: Union[dc.models.losses.Loss, KerasLossFn]
     if uncertainty:
       log_var = Reshape((n_tasks, 1))(Dense(
           n_tasks,

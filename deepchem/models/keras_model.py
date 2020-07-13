@@ -19,7 +19,7 @@ from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
-from deepchem.utils.typing import LossFunction, OneOrMany
+from deepchem.utils.typing import KerasLossFn, OneOrMany
 
 try:
   import wandb
@@ -118,7 +118,7 @@ class KerasModel(Model):
 
   def __init__(self,
                model: tf.keras.Model,
-               loss: Union[Loss, LossFunction],
+               loss: Union[Loss, KerasLossFn],
                output_types: Optional[List[str]] = None,
                batch_size: int = 100,
                model_dir: Optional[str] = None,
@@ -166,7 +166,7 @@ class KerasModel(Model):
         model_instance=model, model_dir=model_dir, **kwargs)
     self.model = model
     if isinstance(loss, Loss):
-      self._loss_fn: LossFunction = _StandardLoss(model, loss)
+      self._loss_fn: KerasLossFn = _StandardLoss(model, loss)
     else:
       self._loss_fn = loss
     self.batch_size = batch_size
@@ -271,7 +271,7 @@ class KerasModel(Model):
           deterministic: bool = False,
           restore: bool = False,
           variables: Optional[List[tf.Variable]] = None,
-          loss: Optional[LossFunction] = None,
+          loss: Optional[KerasLossFn] = None,
           callbacks: Union[Callable, List[Callable]] = []) -> float:
     """Train this model on a dataset.
 
@@ -319,7 +319,7 @@ class KerasModel(Model):
                     checkpoint_interval: int = 1000,
                     restore: bool = False,
                     variables: Optional[List[tf.Variable]] = None,
-                    loss: Optional[LossFunction] = None,
+                    loss: Optional[KerasLossFn] = None,
                     callbacks: Union[Callable, List[Callable]] = []) -> float:
     """Train this model on data from a generator.
 
@@ -461,7 +461,7 @@ class KerasModel(Model):
                    y: Sequence,
                    w: Sequence,
                    variables: Optional[List[tf.Variable]] = None,
-                   loss: Optional[LossFunction] = None,
+                   loss: Optional[KerasLossFn] = None,
                    callbacks: Union[Callable, List[Callable]] = [],
                    checkpoint: bool = True,
                    max_checkpoints_to_keep: int = 5) -> float:
