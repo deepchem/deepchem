@@ -26,8 +26,9 @@ class TestJsonLoader(unittest.TestCase):
     featurizer = SineCoulombMatrix(max_atoms=5)
     loader = JsonLoader(
         tasks=['e_form'],
-        json_fields={"structure": dict},
+        feature_field='structure',
         id_field='formula',
+        label_field='e_form',
         featurizer=featurizer)
     dataset = loader.create_dataset(input_file, shard_size=1)
 
@@ -35,3 +36,9 @@ class TestJsonLoader(unittest.TestCase):
 
     assert dataset.X.shape == (5, 1, 5)
     assert np.allclose(dataset.X[0][0], a, atol=.5)
+
+    dataset = loader.create_dataset(input_file, shard_size=None)
+    assert dataset.X.shape == (5, 1, 5)
+
+    dataset = loader.create_dataset([input_file, input_file], shard_size=5)
+    assert dataset.X.shape == (10, 1, 5)

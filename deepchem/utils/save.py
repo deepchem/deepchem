@@ -11,10 +11,11 @@ import os
 import deepchem
 import warnings
 import logging
-from typing import List, Optional
+from typing import List, Optional, Iterator
 from deepchem.utils.genomics import encode_bio_sequence as encode_sequence, encode_fasta_sequence as fasta_sequence, seq_one_hot_encode as seq_one_hotencode
 
 logger = logging.getLogger(__name__)
+
 
 def log(string, verbose=True):
   """Print string if verbose."""
@@ -120,7 +121,7 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
 
 
 def load_json_files(filenames: List[str],
-                    shard_size: Optional[int] = None):
+                    shard_size: Optional[int] = None) -> Iterator[pd.DataFrame]:
   """Load data as pandas dataframe.
 
   Parameters
@@ -146,12 +147,13 @@ def load_json_files(filenames: List[str],
   shard_num = 1
   for filename in filenames:
     if shard_size is None:
-      yield pd.read_json(filename)
+      yield pd.read_json(filename, orient='records', lines=True)
     else:
       logger.info("About to start loading json from %s." % filename)
       for df in pd.read_json(
           filename, orient='records', chunksize=shard_size, lines=True):
-        logger.info("Loading shard %d of size %s." % (shard_num, str(shard_size)))
+        logger.info(
+            "Loading shard %d of size %s." % (shard_num, str(shard_size)))
         df = df.replace(np.nan, str(""), regex=True)
         shard_num += 1
         yield df
