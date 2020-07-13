@@ -430,10 +430,6 @@ class DAGModel(KerasModel):
       if dropout is None or dropout == 0.0:
         raise ValueError('Dropout must be included to predict uncertainty')
 
-    ############################################
-    print("self.dropout")
-    print(self.dropout)
-    ############################################
     # Build the model.
 
     atom_features = Input(shape=(self.n_atom_feat,))
@@ -635,7 +631,7 @@ class _GraphConvKerasModel(tf.keras.Model):
     if self.batch_norms[-1] is not None:
       dense = self.batch_norms[-1](dense, training=training)
     if training and self.dropouts[-1] is not None:
-      dense = self.dropouts[1](dense, training=training)
+      dense = self.dropouts[-1](dense, training=training)
     neural_fingerprint = self.graph_gather([dense, degree_slice, membership] +
                                            deg_adjs)
     if self.mode == 'classification':

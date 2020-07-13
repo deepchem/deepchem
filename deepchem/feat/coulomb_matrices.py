@@ -3,24 +3,38 @@ Generate coulomb matrices for molecules.
 
 See Montavon et al., _New Journal of Physics_ __15__ (2013) 095003.
 """
-__author__ = "Steven Kearnes"
-__copyright__ = "Copyright 2014, Stanford University"
-__license__ = "MIT"
-
 import numpy as np
 import deepchem as dc
-from deepchem.feat import Featurizer
+from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.utils import pad_array
 from deepchem.feat.atomic_coordinates import AtomicCoordinates
 
 
-class BPSymmetryFunctionInput(Featurizer):
-  """
-  Calculate Symmetry Function for each atom in the molecules
-  Methods described in https://journals.aps.org/prl/pdf/10.1103/PhysRevLett.98.146401
+class BPSymmetryFunctionInput(MolecularFeaturizer):
+  """Calculate Symmetry Function for each atom in the molecules
+
+  This method is described in [1]_ 
+
+  References
+  ----------
+  .. [1] Behler, Jörg, and Michele Parrinello. "Generalized neural-network
+         representation of high-dimensional potential-energy surfaces." Physical
+         review letters 98.14 (2007): 146401.
+
+  Note
+  ----
+  This class requires RDKit to be installed.
   """
 
   def __init__(self, max_atoms):
+    """Initialize this featurizer.
+
+    Parameters
+    ----------
+    max_atoms: int
+      The maximum number of atoms expected for molecules this featurizer will
+      process.
+    """
     self.max_atoms = max_atoms
 
   def _featurize(self, mol):
@@ -34,9 +48,11 @@ class BPSymmetryFunctionInput(Featurizer):
     return np.pad(features, ((0, self.max_atoms - n_atoms), (0, 0)), 'constant')
 
 
-class CoulombMatrix(Featurizer):
-  """
-  Calculate Coulomb matrices for molecules.
+class CoulombMatrix(MolecularFeaturizer):
+  """Calculate Coulomb matrices for molecules.
+
+  Coulomb matrices provide a representation of the electronic structure of a
+  molecule. This method is described in [1]_.
 
   Parameters
   ----------
@@ -55,14 +71,24 @@ class CoulombMatrix(Featurizer):
   seed : int, optional
       Random seed.
 
-  Example:
-
+  Example
+  -------
   >>> featurizers = dc.feat.CoulombMatrix(max_atoms=23)
   >>> input_file = 'deepchem/feat/tests/data/water.sdf' # really backed by water.sdf.csv
   >>> tasks = ["atomization_energy"]
   >>> loader = dc.data.SDFLoader(tasks, featurizer=featurizers)
   >>> dataset = loader.create_dataset(input_file) #doctest: +ELLIPSIS
   Reading structures from deepchem/feat/tests/data/water.sdf.
+
+  References
+  ----------
+  .. [1] Montavon, Grégoire, et al. "Learning invariant representations of
+         molecules for atomization energy prediction." Advances in neural information
+         processing systems. 2012.
+
+  Note
+  ----
+  This class requires RDKit to be installed.
   """
   conformers = True
   name = 'coulomb_matrix'
@@ -74,6 +100,28 @@ class CoulombMatrix(Featurizer):
                upper_tri=False,
                n_samples=1,
                seed=None):
+    """Initialize this featurizer.
+
+    Parameters
+    ----------
+    max_atoms: int
+      The maximum number of atoms expected for molecules this featurizer will
+      process.
+    remove_hydrogens: bool, optional (default False)
+      If True, remove hydrogens before processing them.
+    randomize: bool, optional (default False)
+      If True, use method `randomize_coulomb_matrices` to randomize Coulomb matrices.
+    upper_tri: bool, optional (default False)
+      Generate only upper triangle part of Coulomb matrices.
+    n_samples: int, optional (default 1)
+      If `randomize` is set to True, the number of random samples to draw.
+    seed: int, optional (default None)
+      Random seed to use.
+    """
+    try:
+      from rdkit import Chem
+    except ModuleNotFoundError:
+      raise ValueError("This class requires RDKit to be installed.")
     self.max_atoms = int(max_atoms)
     self.remove_hydrogens = remove_hydrogens
     self.randomize = randomize
@@ -141,9 +189,7 @@ class CoulombMatrix(Featurizer):
     return rval
 
   def randomize_coulomb_matrix(self, m):
-    """
-    Randomize a Coulomb matrix as decribed in Montavon et al.,
-    New Journal of Physics, 15, (2013), 095003:
+    """Randomize a Coulomb matrix as decribed in [1]_:
 
     1. Compute row norms for M in a vector row_norms.
     2. Sample a zero-mean unit-variance noise vector e with dimension
@@ -159,6 +205,10 @@ class CoulombMatrix(Featurizer):
         Number of random matrices to generate.
     seed : int, optional
         Random seed.
+
+    References
+    ----------
+    .. [1] Montavon et al., New Journal of Physics, 15, (2013), 095003
     """
     rval = []
     row_norms = np.asarray([np.linalg.norm(row) for row in m], dtype=float)
@@ -196,8 +246,10 @@ class CoulombMatrix(Featurizer):
 
 
 class CoulombMatrixEig(CoulombMatrix):
-  """
-  Calculate the eigenvales of Coulomb matrices for molecules.
+  """Calculate the eigenvalues of Coulomb matrices for molecules.
+
+  This featurizer computes the eigenvalues of the Coulomb matrices for provided
+  molecules. Coulomb matrices are described in [1]_.
 
   Parameters
   ----------
@@ -214,14 +266,20 @@ class CoulombMatrixEig(CoulombMatrix):
   seed : int, optional
       Random seed.
 
-  Example:
-
+  Example
+  -------
   >>> featurizers = dc.feat.CoulombMatrixEig(max_atoms=23)
   >>> input_file = 'deepchem/feat/tests/data/water.sdf' # really backed by water.sdf.csv
   >>> tasks = ["atomization_energy"]
   >>> loader = dc.data.SDFLoader(tasks, featurizer=featurizers)
   >>> dataset = loader.create_dataset(input_file) #doctest: +ELLIPSIS
   Reading structures from deepchem/feat/tests/data/water.sdf.
+
+  References
+  ----------
+  .. [1] Montavon, Grégoire, et al. "Learning invariant representations of
+         molecules for atomization energy prediction." Advances in neural information
+         processing systems. 2012.
   """
 
   conformers = True
@@ -233,6 +291,22 @@ class CoulombMatrixEig(CoulombMatrix):
                randomize=False,
                n_samples=1,
                seed=None):
+    """Initialize this featurizer.
+
+    Parameters
+    ----------
+    max_atoms: int
+      The maximum number of atoms expected for molecules this featurizer will
+      process.
+    remove_hydrogens: bool, optional (default False)
+      If True, remove hydrogens before processing them.
+    randomize: bool, optional (default False)
+      If True, use method `randomize_coulomb_matrices` to randomize Coulomb matrices.
+    n_samples: int, optional (default 1)
+      If `randomize` is set to True, the number of random samples to draw.
+    seed: int, optional (default None)
+      Random seed to use.
+    """
     self.max_atoms = int(max_atoms)
     self.remove_hydrogens = remove_hydrogens
     self.randomize = randomize

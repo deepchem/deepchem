@@ -37,13 +37,16 @@ def load_clintox(featurizer='ECFP',
 
   References
   ----------
-  Gayvert, Kaitlyn M., Neel S. Madhukar, and Olivier Elemento. "A data-driven approach to predicting successes and failures of clinical trials." Cell chemical biology 23.10 (2016): 1294-1301.
-
-  Artemov, Artem V., et al. "Integrated deep learned transcriptomic and structure-based predictor of clinical trials outcomes." bioRxiv (2016): 095653.
-
-  Novick, Paul A., et al. "SWEETLEAD: an in silico database of approved drugs, regulated chemicals, and herbal isolates for computer-aided drug discovery." PloS one 8.11 (2013): e79568.
-
-  Aggregate Analysis of ClincalTrials.gov (AACT) Database. https://www.ctti-clinicaltrials.org/aact-database
+  .. [1] Gayvert, Kaitlyn M., Neel S. Madhukar, and Olivier Elemento. 
+     "A data-driven approach to predicting successes and failures of clinical trials." 
+     Cell chemical biology 23.10 (2016): 1294-1301.
+  .. [2] Artemov, Artem V., et al. "Integrated deep learned transcriptomic and 
+     structure-based predictor of clinical trials outcomes." bioRxiv (2016): 095653.
+  .. [3] Novick, Paul A., et al. "SWEETLEAD: an in silico database of approved drugs, 
+     regulated chemicals, and herbal isolates for computer-aided drug discovery." 
+     PloS one 8.11 (2013): e79568.
+  .. [4] Aggregate Analysis of ClincalTrials.gov (AACT) Database. 
+     https://www.ctti-clinicaltrials.org/aact-database
   """
   if data_dir is None:
     data_dir = DEFAULT_DIR

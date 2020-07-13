@@ -1,11 +1,8 @@
 """
 Making it easy to import in classes.
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 from deepchem.feat.base_classes import Featurizer
+from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.feat.base_classes import ComplexFeaturizer
 from deepchem.feat.base_classes import UserDefinedFeaturizer
 from deepchem.feat.graph_features import ConvMolFeaturizer

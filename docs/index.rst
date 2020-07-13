@@ -59,14 +59,14 @@ molnet depend on it.
 .. code-block:: bash
 
     pip install tensorflow-gpu==1.14
-    conda install -y -c rdkit -c conda-forge rdkit deepchem
+    conda install -y -c conda-forge rdkit deepchem
 
 For CPU only support instead run
 
 .. code-block:: bash
 
     pip install tensorflow==1.14
-    conda install -y -c rdkit -c conda-forge rdkit deepchem
+    conda install -y -c conda-forge rdkit deepchem
 
 Then open your python and try running.
 
@@ -123,12 +123,13 @@ discussions about research, development or any general questions. If you'd like 
    :caption: Table of Contents
    :name: mastertoc
 
-   Introduction <index>
    Tutorial <tutorial>
    Installation <installation>
+   Requirements <requirements>
    Datasets <datasets>
    Data Loaders <dataloaders>
    Featurizers <featurizers>
+   Data Classes <dataclasses>
    Splitters <splitters>
    Transformers <transformers>
    Models <models>

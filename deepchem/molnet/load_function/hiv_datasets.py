@@ -35,7 +35,7 @@ def load_hiv(featurizer='ECFP',
 
   References
   ----------
-  AIDS Antiviral Screen Data. https://wiki.nci.nih.gov/display/NCIDTPdata/AIDS+Antiviral+Screen+Data
+  .. [1] AIDS Antiviral Screen Data. https://wiki.nci.nih.gov/display/NCIDTPdata/AIDS+Antiviral+Screen+Data
   """
   # Featurize hiv dataset
   logger.info("About to featurize hiv dataset.")

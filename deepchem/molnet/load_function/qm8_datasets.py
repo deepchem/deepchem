@@ -45,8 +45,11 @@ def load_qm8(featurizer='CoulombMatrix',
 
   References
   ----------
-  Blum, Lorenz C., and Jean-Louis Reymond. "970 million druglike small molecules for virtual screening in the chemical universe database GDB-13." Journal of the American Chemical Society 131.25 (2009): 8732-8733.
-  Ramakrishnan, Raghunathan, et al. "Electronic spectra from TDDFT and machine learning in chemical space." The Journal of chemical physics 143.8 (2015): 084111.
+  .. [1] Blum, Lorenz C., and Jean-Louis Reymond. "970 million druglike small molecules
+     for virtual screening in the chemical universe database GDB-13." Journal of the
+     American Chemical Society 131.25 (2009): 8732-8733.
+  .. [2] Ramakrishnan, Raghunathan, et al. "Electronic spectra from TDDFT and machine learning
+     in chemical space." The Journal of chemical physics 143.8 (2015): 084111.
   """
   qm8_tasks = [
       "E1-CC2", "E2-CC2", "f1-CC2", "f2-CC2", "E1-PBE0", "E2-PBE0", "f1-PBE0",

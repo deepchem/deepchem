@@ -1,0 +1,27 @@
+name: deepchem
+channels:
+  - deepchem
+  - omnia
+  - conda-forge
+  - defaults
+dependencies:
+  - biopython==1.77
+  - cloudpickle=1.4.1 # This is a hotfix
+  - mdtraj==1.9.4
+  - networkx==2.2
+  - openmm==7.4.2
+  - pdbfixer==1.6
+  - pillow==7.1.2
+  - py-xgboost==0.90
+  - rdkit==2020.03.4
+  - simdna==0.4.3.2
+  - pymatgen==2020.7.3
+  - pytest
+  - pytest-cov
+  - flaky
+  - pip
+  - pip:
+    - pyGPGO==0.4.0.dev1
+    - matminer==0.6.3
+    - tensorflow==2.2
+    - tensorflow-probability==0.10

@@ -1,9 +1,6 @@
 """
 Contains an abstract base class that supports different ML models.
 """
-__author__ = "Bharath Ramsundar and Joseph Gomes"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
 
 import sys
 import numpy as np
@@ -15,16 +12,18 @@ import tempfile
 import sklearn
 from sklearn.base import BaseEstimator
 
+import logging
 from deepchem.data import Dataset, pad_features
 from deepchem.metrics import Metric
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
-from deepchem.utils.save import log
 from deepchem.utils.evaluate import Evaluator
 
 from typing import Any, Dict, List, Optional, Sequence
 from deepchem.utils.typing import OneOrMany
+
+logger = logging.getLogger(__name__)
 
 
 class Model(BaseEstimator):
@@ -35,7 +34,6 @@ class Model(BaseEstimator):
   def __init__(self,
                model_instance: Optional[Any] = None,
                model_dir: Optional[str] = None,
-               verbose: bool = True,
                **kwargs) -> None:
     """Abstract class for all models.
 
@@ -56,8 +54,6 @@ class Model(BaseEstimator):
     self.model_dir = model_dir
     self.model_instance = model_instance
     self.model_class = model_instance.__class__
-
-    self.verbose = verbose
 
   def __del__(self):
     if 'model_dir_is_temp' in dir(self) and self.model_dir_is_temp:
@@ -140,12 +136,12 @@ class Model(BaseEstimator):
     # TODO(rbharath/enf): We need a structured way to deal with potential GPU
     #                     memory overflows.
     for epoch in range(nb_epoch):
-      log("Starting epoch %s" % str(epoch + 1), self.verbose)
+      logger.info("Starting epoch %s" % str(epoch + 1))
       losses = []
       for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches():
         losses.append(self.fit_on_batch(X_batch, y_batch, w_batch))
-      log("Avg loss for epoch %d: %f" % (epoch + 1, np.array(losses).mean()),
-          self.verbose)
+      logger.info(
+          "Avg loss for epoch %d: %f" % (epoch + 1, np.array(losses).mean()))
     return np.array(losses).mean()
 
   def predict(self, dataset: Dataset,

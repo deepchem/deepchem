@@ -158,8 +158,11 @@ def load_qm7b_from_mat(featurizer='CoulombMatrix',
 
   References
   ----------
-  Blum, Lorenz C., and Jean-Louis Reymond. "970 million druglike small molecules for virtual screening in the chemical universe database GDB-13." Journal of the American Chemical Society 131.25 (2009): 8732-8733.
-  Montavon, Grégoire, et al. "Machine learning of molecular electronic properties in chemical compound space." New Journal of Physics 15.9 (2013): 095003.
+  .. [1] Blum, Lorenz C., and Jean-Louis Reymond. "970 million druglike 
+     small molecules for virtual screening in the chemical universe database GDB-13."
+     Journal of the American Chemical Society 131.25 (2009): 8732-8733.
+  .. [2] Montavon, Grégoire, et al. "Machine learning of molecular electronic 
+     properties in chemical compound space." New Journal of Physics 15.9 (2013): 095003.
   """
   if data_dir is None:
     data_dir = DEFAULT_DIR
