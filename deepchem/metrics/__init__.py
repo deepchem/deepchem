@@ -14,23 +14,27 @@ from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import auc
 from sklearn.metrics import jaccard_score
 from sklearn.metrics import f1_score
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import balanced_accuracy_score
 from scipy.stats import pearsonr
 
 logger = logging.getLogger(__name__)
 
 
-def threshold_predictions(y, threshold=0.5):
+def threshold_predictions(y, threshold=None):
   """Threshold predictions from classification model.
 
   Parameters
   ----------
   y: np.ndarray
     Must have shape `(N, n_classes)` and be class probabilities.
-  threshold: float, optional (Default 0.5)
+  threshold: float, optional (default 0.5)
     The threshold probability for the positive class. Note that this
     threshold will only be applied for binary classifiers (where
     `n_classes==2`). If specified for multiclass problems, will be
-    ignored.
+    ignored. If `threshold` is None, and `n_classes==2` then a default
+    threshold of 0.5 will be applied.
 
   Returns
   -------
@@ -42,6 +46,9 @@ def threshold_predictions(y, threshold=0.5):
     raise ValueError("y must be a ndarray of shape (N, n_classes)")
   N = y.shape[0]
   n_classes = y.shape[1]
+  if threshold is None and n_classes == 2:
+    logger.info("Using default threshold of 0.5 for binary dataset.")
+    threshold = 0.5
   if not np.allclose(np.sum(y, axis=1), np.ones(N)):
     raise ValueError(
         "y must be a class probability matrix with rows summing to 1.")
@@ -163,7 +170,9 @@ def normalize_prediction_shape(y, mode=None, n_classes=None):
       if isinstance(y, np.ndarray):
         # Find number of classes. Note that `y` must have values in
         # range 0 to n_classes - 1
-        n_classes = np.amax(y) + 1
+        # TODO: replace with np.unique
+        #n_classes = np.amax(y) + 1
+        n_classes = len(np.unique(y))
       else:
         # scalar case
         n_classes = 2
@@ -174,9 +183,13 @@ def normalize_prediction_shape(y, mode=None, n_classes=None):
         # Insert task dimension
         y_out = np.expand_dims(y_hot, 1)
       elif len(y.shape) == 2:
-        # Insert a task dimension
-        n_tasks = 1
-        y_out = np.expand_dims(y, 1)
+        # In this case, effectively 1D
+        if y.shape[1] == 1:
+          y_hot = to_one_hot(y[:, 0], n_classes=n_classes)
+          y_out = np.expand_dims(y_hot, 1)
+        else:
+          # Insert a task dimension
+          y_out = np.expand_dims(y, 1)
       elif len(y.shape) == 3:
         y_out = y
       else:
@@ -194,7 +207,6 @@ def normalize_prediction_shape(y, mode=None, n_classes=None):
     if isinstance(y, np.ndarray):
       if len(y.shape) == 1:
         # Insert a task dimension
-        n_tasks = 1
         y_out = np.expand_dims(y, 1)
       elif len(y.shape) == 2:
         y_out = y
@@ -225,24 +237,102 @@ def normalize_prediction_shape(y, mode=None, n_classes=None):
   return y_out
 
 
-def to_one_hot(y, n_classes=2):
-  """Transforms label vector into one-hot encoding.
+def handle_classification_mode(y,
+                               classification_handling_mode=None,
+                               threshold_value=None):
+  """Handle classification mode.
 
-  Turns y into vector of shape `(n_samples, n_classes)` with a one-hot
-  encoding. Assumes that `y` takes values from `0` to `n_classes - 1`.
+  Transform predictions so that they have the correct classification mode.
 
   Parameters
   ----------
   y: np.ndarray
-    A vector of shape `(n_samples, 1)`
+    Must be of shape `(N, n_tasks, n_classes)`
+  classification_handling_mode: str, optional (default None)
+    DeepChem models by default predict class probabilities for
+    classification problems. This means that for a given singletask
+    prediction, after shape normalization, the DeepChem prediction will be a
+    numpy array of shape `(N, n_classes)` with class probabilities.
+    `classification_handling_mode` is a string that instructs this method
+    how to handle transforming these probabilities. It can take on the
+    following values:
+
+    - None: default value. Pass in `y_pred` directy into `self.metric`.
+    - "threshold": Use `threshold_predictions` to threshold `y_pred`. Use
+      `threshold_value` as the desired threshold.
+    - "threshold-one-hot": Use `threshold_predictions` to threshold `y_pred`
+      using `threshold_values`, then apply `to_one_hot` to output.
+  threshold_value: float, optional (default None)
+    If set, and `classification_handling_mode` is "threshold" or
+    "threshold-one-hot" apply a thresholding operation to values with this
+    threshold. This option isj only sensible on binary classification tasks.
+    If float, this will be applied as a binary classification value.
 
   Returns
   -------
-  A numpy.ndarray of shape `(n_samples, n_classes)`.
+  y_out: np.ndarray
+    If `classification_handling_mode` is None, then of shape `(N, n_tasks, n_classes)`. If `classification_handling_mode` is "threshold", then of shape `(N, n_tasks)`. If `classification_handling_mode is "threshold-one-hot", then of shape `(N, n_tasks, n_classes)"
   """
-  n_samples = np.shape(y)[0]
-  y_hot = np.zeros((n_samples, n_classes))
-  y_hot[np.arange(n_samples), y.astype(np.int64)] = 1
+  if len(y.shape) != 3:
+    raise ValueError("y must be of shape (N, n_tasks, n_classes)")
+  N, n_tasks, n_classes = y.shape
+  if classification_handling_mode is None:
+    return y
+  elif classification_handling_mode == "threshold":
+    thresholded = []
+    for task in range(n_tasks):
+      task_array = y[:, task, :]
+      # Now of shape (N,)
+      task_array = threshold_predictions(task_array, threshold_value)
+      # Now of shape (N, 1)
+      task_array = np.expand_dims(task_array, 1)
+      thresholded.append(task_array)
+    # Returns shape (N, n_tasks)
+    return np.concatenate(thresholded, axis=1)
+  elif classification_handling_mode == "threshold-one-hot":
+    thresholded = []
+    for task in range(n_tasks):
+      task_array = y[:, task, :]
+      # Now of shape (N,)
+      task_array = threshold_predictions(task_array, threshold_value)
+      # Now of shape (N, n_classes)
+      task_array = to_one_hot(task_array, n_classes=n_classes)
+      # Now of shape (N, 1, n_classes)
+      task_array = np.expand_dims(task_array, 1)
+      thresholded.append(task_array)
+    # Returns shape (N, n_tasks, n_classes)
+    return np.concatenate(thresholded, axis=1)
+  else:
+    raise ValueError(
+        "classification_handling_mode must be one of None, threshold, threshold-one-hot"
+    )
+
+
+def to_one_hot(y, n_classes=2):
+  """Transforms label vector into one-hot encoding.
+
+  Turns y into vector of shape `(N, n_classes)` with a one-hot
+  encoding. Assumes that `y` takes values from `0` to `n_classes - 1`.
+
+
+  Parameters
+  ----------
+  y: np.ndarray
+    A vector of shape `(N,)` or `(N, 1)`
+
+  Returns
+  -------
+  A numpy.ndarray of shape `(N, n_classes)`.
+  """
+  if len(y.shape) > 2:
+    raise ValueError("y must be a vector of shape (N,) or (N, 1)")
+  if len(y.shape) == 2 and y.shape[1] != 1:
+    raise ValueError("y must be a vector of shape (N,) or (N, 1)")
+  if len(np.unique(y)) > n_classes:
+    raise ValueError("y has more than n_class unique elements.")
+  N = np.shape(y)[0]
+  y_hot = np.zeros((N, n_classes))
+  y_hot[np.arange(N), y.astype(np.int64)] = 1
   return y_hot
 
 
@@ -277,68 +367,80 @@ def _ensure_class_labels(y):
   return y
 
 
-def roc_auc_score(y, y_pred):
-  """Area under the receiver operating characteristic curve."""
-  if y.shape != y_pred.shape:
-    y = _ensure_one_hot(y)
-  return sklearn.metrics.roc_auc_score(y, y_pred)
+#def roc_auc_score(y, y_pred):
+#  """Area under the receiver operating characteristic curve."""
+#  if y.shape != y_pred.shape:
+#    y = _ensure_one_hot(y)
+#  return sklearn.metrics.roc_auc_score(y, y_pred)
 
+#def accuracy_score(y, y_pred):
+#  """Compute accuracy score
+#
+#  Computes accuracy score for classification tasks. Works for both
+#  binary and multiclass classification.
+#
+#  Parameters
+#  ----------
+#  y: np.ndarray
+#    Of shape `(N_samples,)`
+#  y_pred: np.ndarray
+#    Of shape `(N_samples,)`
+#
+#  Returns
+#  -------
+#  score: float
+#    The fraction of correctly classified samples. A number between 0
+#    and 1.
+#  """
+#  y = _ensure_class_labels(y)
+#  y_pred = _ensure_class_labels(y_pred)
+#  return sklearn.metrics.accuracy_score(y, y_pred)
 
-def accuracy_score(y, y_pred):
-  """Compute accuracy score
-
-  Computes accuracy score for classification tasks. Works for both
-  binary and multiclass classification.
-
-  Parameters
-  ----------
-  y: np.ndarray
-    Of shape `(N_samples,)`
-  y_pred: np.ndarray
-    Of shape `(N_samples,)`
-
-  Returns
-  -------
-  score: float
-    The fraction of correctly classified samples. A number between 0
-    and 1.
-  """
-  y = _ensure_class_labels(y)
-  y_pred = _ensure_class_labels(y_pred)
-  return sklearn.metrics.accuracy_score(y, y_pred)
-
-
-def balanced_accuracy_score(y, y_pred):
-  """Computes balanced accuracy score.
-
-  Parameters
-  ----------
-  y: np.ndarray
-    Of shape `(N_samples,)`
-  y_pred: np.ndarray
-    Of shape `(N_samples,)`
-
-  Returns
-  -------
-  score: float
-    The balanced_accuracy. A number between 0 and 1.
-  """
-  num_positive = float(np.count_nonzero(y))
-  num_negative = float(len(y) - num_positive)
-  pos_weight = num_negative / num_positive
-  weights = np.ones_like(y)
-  weights[y != 0] = pos_weight
-  return sklearn.metrics.balanced_accuracy_score(
-      y, y_pred, sample_weight=weights)
+#def balanced_accuracy_score(y, y_pred):
+#  """Computes balanced accuracy score.
+#
+#  Parameters
+#  ----------
+#  y: np.ndarray
+#    Of shape `(N_samples,)`
+#  y_pred: np.ndarray
+#    Of shape `(N_samples,)`
+#
+#  Returns
+#  -------
+#  score: float
+#    The balanced_accuracy. A number between 0 and 1.
+#  """
+#  num_positive = float(np.count_nonzero(y))
+#  num_negative = float(len(y) - num_positive)
+#  pos_weight = num_negative / num_positive
+#  weights = np.ones_like(y)
+#  weights[y != 0] = pos_weight
+#  return sklearn.metrics.balanced_accuracy_score(
+#      y, y_pred, sample_weight=weights)
 
 
 def pearson_r2_score(y, y_pred):
-  """Computes Pearson R^2 (square of Pearson correlation)."""
+  """Computes Pearson R^2 (square of Pearson correlation).
+
+  Parameters
+  ----------
+  y: 1D array
+    Of shape `(N,)
+  y_pred: 1D array
+    Of shape `(N,)`
+
+  Returns
+  -------
+  Float value of the Pearson-R^2 score.
+  """
   return pearsonr(y, y_pred)[0]**2
 
 
 def jaccard_index(y, y_pred):
   """Computes Jaccard Index which is the Intersection Over Union metric which is commonly used in image segmentation tasks
+
+  DEPRECATED: WILL BE REMOVED IN A FUTURE VERSION OF DEEEPCHEM. USE `jaccard_score` instead.
 
   Parameters
   ----------
@@ -367,16 +469,33 @@ def pixel_error(y, y_pred):
     ground truth array
   y_pred: np.ndarray
     predicted array
+
+  Returns
+  -------
+  score: float
+    The pixel-error. A number between 0 and 1.
   """
   return 1 - f1_score(y, y_pred)
 
 
 def prc_auc_score(y, y_pred):
-  """Compute area under precision-recall curve"""
-  if y.shape != y_pred.shape:
-    y = _ensure_one_hot(y)
-  assert y_pred.shape == y.shape
-  assert y_pred.shape[1] == 2
+  """Compute area under precision-recall curve
+
+  Parameters
+  ----------
+  y: np.ndarray
+    Of shape `(N, n_classes)` or `(N,)` with true labels 
+  y_pred: np.ndarray
+    Of shape `(N, n_classes)` with class probabilities.
+
+  Returns
+  -------
+  The area under the precision-recall curve. A number between 0 and 1.
+  """
+  #if y.shape != y_pred.shape:
+  #  y = _ensure_one_hot(y)
+  #assert y_pred.shape == y.shape
+  #assert y_pred.shape[1] == 2
   precision, recall, _ = precision_recall_curve(y[:, 1], y_pred[:, 1])
   return auc(recall, precision)
 
@@ -401,9 +520,9 @@ def kappa_score(y_true, y_pred):
   Parameters
   ----------
   y_true: np.ndarray
-    Numpy array containing true values.
+    Numpy array containing true values of shape `(N,)`
   y_pred: np.ndarray
-    Numpy array containing predicted values.
+    Numpy array containing predicted values of shape `(N,)`
 
   Returns
   -------
@@ -438,19 +557,23 @@ def bedroc_score(y_true, y_pred, alpha=20.0):
 
   Parameters
   ----------
-  y_true (array_like):
+  y_true: array_like
     Binary class labels. 1 for positive class, 0 otherwise
-  y_pred (array_like):
+  y_pred: array_like
     Predicted labels
-  alpha (float), default 20.0:
+  alpha: float, optional (default 20.0)
     Early recognition parameter
 
   Returns
   -------
   float: Value in [0, 1] that indicates the degree of early recognition
 
-  Notes
-  -----
+  Note
+  ----
+  This function requires rdkit to be installed.
+
+  References
+  ----------
   The original paper by Truchon et al. is located at
   https://pubs.acs.org/doi/pdf/10.1021/ci600426e
   """
@@ -499,6 +622,8 @@ class Metric(object):
                name=None,
                threshold=None,
                mode=None,
+               classification_handling_mode=None,
+               threshold_value=None,
                compute_energy_metric=None):
     """
     Parameters
@@ -518,6 +643,25 @@ class Metric(object):
       class.
     mode: str, optional (default None)
       Should usually be "classification" or "regression."
+    classification_handling_mode: str, optional (default None)
+      DeepChem models by default predict class probabilities for
+      classification problems. This means that for a given singletask
+      prediction, after shape normalization, the DeepChem prediction will be a
+      numpy array of shape `(N, n_classes)` with class probabilities.
+      `classification_handling_mode` is a string that instructs this method
+      how to handle transforming these probabilities. It can take on the
+      following values:
+ 
+      - None: default value. Pass in `y_pred` directy into `self.metric`.
+      - "threshold": Use `threshold_predictions` to threshold `y_pred`. Use
+        `threshold_value` as the desired threshold.
+      - "threshold-one-hot": Use `threshold_predictions` to threshold `y_pred`
+        using `threshold_values`, then apply `to_one_hot` to output.
+    threshold_value: float, optional (default None)
+      If set, and `classification_handling_mode` is "threshold" or
+      "threshold-one-hot" apply a thresholding operation to values with this
+      threshold. This option isj only sensible on binary classification tasks.
+      If float, this will be applied as a binary classification value.
     compute_energy_metric: bool, optional (default None) (DEPRECATED)
       Deprecated metric. Will be removed in a future version of
       DeepChem. Do not use.
@@ -554,21 +698,55 @@ class Metric(object):
     if mode is None:
       # These are some smart defaults
       if self.metric.__name__ in [
-          "roc_auc_score", "matthews_corrcoef", "recall_score",
-          "accuracy_score", "kappa_score", "precision_score",
-          "balanced_accuracy_score", "prc_auc_score", "f1_score", "bedroc_score"
+          "roc_auc_score",
+          "matthews_corrcoef",
+          "recall_score",
+          "accuracy_score",
+          "kappa_score",
+          "precision_score",
+          "balanced_accuracy_score",
+          "prc_auc_score",
+          "f1_score",
+          "bedroc_score",
+          "jaccard_score",
+          "jaccard_index",
+          "pixel_error",
       ]:
         mode = "classification"
+        # These are some smart defaults corresponding to sklearn's required
+        # behavior
+        if classification_handling_mode is None:
+          if self.metric.__name__ in [
+              "matthews_corrcoef", "kappa_score", "balanced_accuracy_score",
+              "recall_score", "jaccard_score", "jaccard_index", "pixel_error",
+              "f1_score"
+          ]:
+            classification_handling_mode = "threshold"
+          elif self.metric.__name__ in [
+              "accuracy_score", "precision_score", "bedroc_score"
+          ]:
+            classification_handling_mode = "threshold-one-hot"
+          elif self.metric.__name__ in ["roc_auc_score", "prc_auc_score"]:
+            classification_handling_mode = None
       elif self.metric.__name__ in [
           "pearson_r2_score", "r2_score", "mean_squared_error",
           "mean_absolute_error", "rms_score", "mae_score", "pearsonr"
       ]:
         mode = "regression"
       else:
-        logger.info(
-            "Could not detect mode of classifier. Check your results carefully."
+        raise ValueError(
+            "Please specify the mode of this metric. mode must be 'regression' or 'classification'"
         )
+
       self.mode = mode
+      if classification_handling_mode not in [
+          None, "threshold", "threshold-one-hot"
+      ]:
+        raise ValueError(
+            "classification_handling_mode must be one of None, 'threshold', 'threshold_one_hot'"
+        )
+      self.classification_handling_mode = classification_handling_mode
+      self.threshold_value = threshold_value
 
   def compute_metric(self,
                      y_true,
@@ -578,7 +756,7 @@ class Metric(object):
                      filter_nans=False,
                      per_task_metrics=False,
                      use_sample_weights=False,
-                     threshold=None):
+                     **kwargs):
     """Compute a performance metric for each task.
 
     Parameters
@@ -602,22 +780,22 @@ class Metric(object):
       If true, return computed metric for each task on multitask dataset.
     use_sample_weights: bool, optional (default False)
       If set, use per-sample weights `w`.
-    threshold: float or bool, optional (default None)
-      If set, apply a thresholding operation to values. This option isj
-      only sensible on classification tasks. If float, this will be
-      applied as a binary classification value. If bool, then
-      thresholding will be applied to a multiclass prediction and will
-      pick the maximum probability class.
+    kwargs: dict
+      Will be passed on to self.metric
 
     Returns
     -------
     A numpy nd.array containing metric values for each task.
     """
-    # TODO: How about non standard shapes?
     y_true = normalize_prediction_shape(
         y_true, mode=self.mode, n_classes=n_classes)
     y_pred = normalize_prediction_shape(
         y_pred, mode=self.mode, n_classes=n_classes)
+    if self.mode == "classification":
+      y_true = handle_classification_mode(
+          y_true, self.classification_handling_mode, self.threshold_value)
+      y_pred = handle_classification_mode(
+          y_pred, self.classification_handling_mode, self.threshold_value)
     # This is safe now because of normalization above
     n_samples = y_true.shape[0]
     n_tasks = y_pred.shape[1]
@@ -627,18 +805,14 @@ class Metric(object):
       y_task = y_true[:, task]
       y_pred_task = y_pred[:, task]
       w_task = w[:, task]
-      if threshold is not None:
-        y_task = threshold_predictions(y_task, threshold=threshold)
-        y_task = to_one_hot(y_task, n_classes=n_classes)
-        y_pred_task = threshold_predictions(y_pred_task, threshold=threshold)
-        y_pred_task = to_one_hot(y_pred_task, n_classes=n_classes)
 
       metric_value = self.compute_singletask_metric(
           y_task,
           y_pred_task,
           w_task,
           n_samples=n_samples,
-          use_sample_weights=use_sample_weights)
+          use_sample_weights=use_sample_weights,
+          **kwargs)
       computed_metrics.append(metric_value)
     logger.info("computed_metrics: %s" % str(computed_metrics))
     if n_tasks == 1:
@@ -664,7 +838,8 @@ class Metric(object):
                                 y_pred,
                                 w=None,
                                 n_samples=None,
-                                use_sample_weights=False):
+                                use_sample_weights=False,
+                                **kwargs):
     """Compute a metric value.
 
     Parameters
@@ -677,20 +852,38 @@ class Metric(object):
       if classification and `(N,)` if regression.
     w: `np.ndarray`, optional (default None)
       Sample weight array. This array must be of shape `(N,)`
-    n_samples: int, optional (default None)
-      The number of samples in the dataset. This is `N`
+    n_samples: int, optional (default None) (DEPRECATED)
+      The number of samples in the dataset. This is `N`. This argument is
+      ignored.
     use_sample_weights: bool, optional (default False)
       If set, use per-sample weights `w`.
+    kwargs: dict
+      Will be passed on to self.metric
 
     Returns
     -------
     metric_value: float
       The computed value of the metric.
     """
-    if n_samples is None:
-      n_samples = len(y_true)
-    if use_sample_weights:
-      metric_value = self.metric(y_true, y_pred, sample_weight=w)
+    if n_samples != None:
+      logger.warning("n_samples is a deprecated argument which is ignored.")
+    # Attempt to convert both into the same type
+    if self.mode == "regression":
+      if len(y_true.shape) != 1 or len(y_pred).shape != 1 or len(y_true) != len(
+          y_pred):
+        raise ValueError(
+            "For regression metrics, y_true and y_pred must both be of shape (N,)"
+        )
+    elif self.mode == "classification":
+      pass
+      #if len(y_true.shape) != 2 or len(y_pred.shape) != 2 or y_true.shape != y_pred.shape:
+      #  raise ValueError("For classification metrics, y_true and y_pred must both be of shape (N, n_classes)")
     else:
-      metric_value = self.metric(y_true, y_pred)
+      raise ValueError(
+          "Only classification and regression are supported for metrics calculations."
+      )
+    if use_sample_weights:
+      metric_value = self.metric(y_true, y_pred, sample_weight=w, **kwargs)
+    else:
+      metric_value = self.metric(y_true, y_pred, **kwargs)
     return metric_value

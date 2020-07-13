@@ -1,185 +1,165 @@
 """
 Integration tests for singletask vector feature models.
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import os
-import unittest
-import tempfile
-import shutil
-import tensorflow as tf
 import deepchem as dc
+import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 
 
-class TestAPI(unittest.TestCase):
-  """
-  Test top-level API for ML models.
-  """
+def test_singletask_sklearn_rf_ECFP_regression_API():
+  """Test of singletask RF ECFP regression API."""
+  X = np.random.rand(100, 5)
+  y = np.random.rand(100,)
+  dataset = dc.data.NumpyDataset(X, y)
 
-  def test_singletask_sklearn_rf_ECFP_regression_API(self):
-    """Test of singletask RF ECFP regression API."""
-    splittype = "scaffold"
-    featurizer = dc.feat.CircularFingerprint(size=1024)
-    tasks = ["log-solubility"]
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    input_file = os.path.join(current_dir, "example.csv")
-    loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(input_file)
+  splitter = dc.splits.RandomSplitter()
+  train_dataset, test_dataset = splitter.train_test_split(dataset)
 
-    splitter = dc.splits.ScaffoldSplitter()
-    train_dataset, test_dataset = splitter.train_test_split(dataset)
+  transformer = dc.trans.NormalizationTransformer(
+      transform_y=True, dataset=train_dataset)
+  train_dataset = transformer.transform(train_dataset)
+  test_dataset = transformer.transform(test_dataset)
 
-    transformers = [
-        dc.trans.NormalizationTransformer(
-            transform_y=True, dataset=train_dataset)
-    ]
-    regression_metrics = [
-        dc.metrics.Metric(dc.metrics.r2_score),
-        dc.metrics.Metric(dc.metrics.mean_squared_error),
-        dc.metrics.Metric(dc.metrics.mean_absolute_error)
-    ]
+  regression_metrics = [
+      dc.metrics.Metric(dc.metrics.r2_score),
+      dc.metrics.Metric(dc.metrics.mean_squared_error),
+      dc.metrics.Metric(dc.metrics.mean_absolute_error)
+  ]
 
-    sklearn_model = RandomForestRegressor()
-    model = dc.models.SklearnModel(sklearn_model)
+  sklearn_model = RandomForestRegressor()
+  model = dc.models.SklearnModel(sklearn_model)
 
-    # Fit trained model
-    model.fit(train_dataset)
-    model.save()
+  # Fit trained model
+  model.fit(train_dataset)
+  model.save()
+  ######################
+  print("transformer.y_stds.shape")
+  print(transformer.y_stds.shape)
+  ######################
 
-    # Eval model on train
-    _ = model.evaluate(train_dataset, regression_metrics, transformers)
-    _ = model.evaluate(test_dataset, regression_metrics, transformers)
+  # Eval model on train
+  _ = model.evaluate(train_dataset, regression_metrics, [transformer])
+  _ = model.evaluate(test_dataset, regression_metrics, [transformer])
 
-  def test_singletask_sklearn_rf_user_specified_regression_API(self):
-    """Test of singletask RF USF regression API."""
-    splittype = "specified"
-    featurizer = dc.feat.UserDefinedFeaturizer(
-        ["user-specified1", "user-specified2"])
-    tasks = ["log-solubility"]
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    input_file = os.path.join(current_dir, "user_specified_example.csv")
-    loader = dc.data.UserCSVLoader(
-        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(input_file)
 
-    splitter = dc.splits.SpecifiedSplitter(input_file, "split")
-    train_dataset, test_dataset = splitter.train_test_split(dataset)
+def test_singletask_sklearn_rf_user_specified_regression_API():
+  """Test of singletask RF USF regression API."""
+  splittype = "specified"
+  featurizer = dc.feat.UserDefinedFeaturizer(
+      ["user-specified1", "user-specified2"])
+  tasks = ["log-solubility"]
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  input_file = os.path.join(current_dir, "user_specified_example.csv")
+  loader = dc.data.UserCSVLoader(
+      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+  dataset = loader.create_dataset(input_file)
 
-    transformers = [
-        dc.trans.NormalizationTransformer(
-            transform_y=True, dataset=train_dataset)
-    ]
-    for dataset in [train_dataset, test_dataset]:
-      for transformer in transformers:
-        dataset = transformer.transform(dataset)
+  splitter = dc.splits.SpecifiedSplitter(input_file, "split")
+  train_dataset, test_dataset = splitter.train_test_split(dataset)
 
-    regression_metrics = [
-        dc.metrics.Metric(dc.metrics.r2_score),
-        dc.metrics.Metric(dc.metrics.mean_squared_error),
-        dc.metrics.Metric(dc.metrics.mean_absolute_error)
-    ]
+  transformers = [
+      dc.trans.NormalizationTransformer(
+          transform_y=True, dataset=train_dataset)
+  ]
+  for dataset in [train_dataset, test_dataset]:
+    for transformer in transformers:
+      dataset = transformer.transform(dataset)
 
-    sklearn_model = RandomForestRegressor()
-    model = dc.models.SklearnModel(sklearn_model)
+  regression_metrics = [
+      dc.metrics.Metric(dc.metrics.r2_score),
+      dc.metrics.Metric(dc.metrics.mean_squared_error),
+      dc.metrics.Metric(dc.metrics.mean_absolute_error)
+  ]
 
-    # Fit trained model
-    model.fit(train_dataset)
-    model.save()
+  sklearn_model = RandomForestRegressor()
+  model = dc.models.SklearnModel(sklearn_model)
 
-    # Eval model on train/test
-    _ = model.evaluate(train_dataset, regression_metrics, transformers)
-    _ = model.evaluate(test_dataset, regression_metrics, transformers)
+  # Fit trained model
+  model.fit(train_dataset)
+  model.save()
 
-  def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API(self):
-    """Test of singletask RF RDKIT-descriptor regression API."""
-    splittype = "scaffold"
-    featurizer = dc.feat.RDKitDescriptors()
-    tasks = ["log-solubility"]
+  # Eval model on train/test
+  _ = model.evaluate(train_dataset, regression_metrics, transformers)
+  _ = model.evaluate(test_dataset, regression_metrics, transformers)
 
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    input_file = os.path.join(current_dir, "example.csv")
-    loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(input_file)
 
-    splitter = dc.splits.ScaffoldSplitter()
-    train_dataset, test_dataset = splitter.train_test_split(dataset)
+def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API():
+  """Test of singletask RF RDKIT-descriptor regression API."""
+  splittype = "scaffold"
+  featurizer = dc.feat.RDKitDescriptors()
+  tasks = ["log-solubility"]
 
-    transformers = [
-        dc.trans.NormalizationTransformer(
-            transform_X=True, dataset=train_dataset),
-        dc.trans.ClippingTransformer(transform_X=True, dataset=train_dataset),
-        dc.trans.NormalizationTransformer(
-            transform_y=True, dataset=train_dataset)
-    ]
-    for dataset in [train_dataset, test_dataset]:
-      for transformer in transformers:
-        dataset = transformer.transform(dataset)
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  input_file = os.path.join(current_dir, "example.csv")
+  loader = dc.data.CSVLoader(
+      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+  dataset = loader.create_dataset(input_file)
 
-    regression_metrics = [
-        dc.metrics.Metric(dc.metrics.r2_score),
-        dc.metrics.Metric(dc.metrics.mean_squared_error),
-        dc.metrics.Metric(dc.metrics.mean_absolute_error)
-    ]
+  splitter = dc.splits.ScaffoldSplitter()
+  train_dataset, test_dataset = splitter.train_test_split(dataset)
 
-    sklearn_model = RandomForestRegressor()
-    model = dc.models.SklearnModel(sklearn_model)
+  transformers = [
+      dc.trans.NormalizationTransformer(
+          transform_X=True, dataset=train_dataset),
+      dc.trans.ClippingTransformer(transform_X=True, dataset=train_dataset),
+      dc.trans.NormalizationTransformer(
+          transform_y=True, dataset=train_dataset)
+  ]
+  for dataset in [train_dataset, test_dataset]:
+    for transformer in transformers:
+      dataset = transformer.transform(dataset)
 
-    # Fit trained model
-    model.fit(train_dataset)
-    model.save()
+  regression_metrics = [
+      dc.metrics.Metric(dc.metrics.r2_score),
+      dc.metrics.Metric(dc.metrics.mean_squared_error),
+      dc.metrics.Metric(dc.metrics.mean_absolute_error)
+  ]
 
-    # Eval model on train/test
-    _ = model.evaluate(train_dataset, regression_metrics, transformers)
-    _ = model.evaluate(test_dataset, regression_metrics, transformers)
+  sklearn_model = RandomForestRegressor()
+  model = dc.models.SklearnModel(sklearn_model)
 
-  def test_singletask_tg_mlp_ECFP_classification_API(self):
-    """Test of TensorGraph singletask deepchem classification API."""
-    n_features = 1024
-    featurizer = dc.feat.CircularFingerprint(size=n_features)
+  # Fit trained model
+  model.fit(train_dataset)
+  model.save()
 
-    tasks = ["outcome"]
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    input_file = os.path.join(current_dir, "example_classification.csv")
+  # Eval model on train/test
+  _ = model.evaluate(train_dataset, regression_metrics, transformers)
+  _ = model.evaluate(test_dataset, regression_metrics, transformers)
 
-    loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(input_file)
 
-    splitter = dc.splits.ScaffoldSplitter()
-    train_dataset, test_dataset = splitter.train_test_split(dataset)
+def test_singletask_mlp_ECFP_classification_API():
+  """Test of singletask MLP classification API."""
+  np.random.seed(123)
 
-    transformers = [
-        dc.trans.NormalizationTransformer(
-            transform_y=True, dataset=train_dataset)
-    ]
+  X = np.random.rand(100, 5)
+  y = np.random.randint(2, size=(100,))
+  dataset = dc.data.NumpyDataset(X, y)
 
-    for dataset in [train_dataset, test_dataset]:
-      for transformer in transformers:
-        dataset = transformer.transform(dataset)
+  splitter = dc.splits.RandomSplitter()
+  train_dataset, test_dataset = splitter.train_test_split(dataset)
 
-    classification_metrics = [
-        dc.metrics.Metric(dc.metrics.roc_auc_score),
-        dc.metrics.Metric(dc.metrics.matthews_corrcoef),
-        dc.metrics.Metric(dc.metrics.recall_score),
-        dc.metrics.Metric(dc.metrics.accuracy_score)
-    ]
+  transformers = []
 
-    model = dc.models.MultitaskClassifier(len(tasks), n_features)
+  classification_metrics = [
+      dc.metrics.Metric(dc.metrics.roc_auc_score),
+      dc.metrics.Metric(dc.metrics.prc_auc_score),
+      dc.metrics.Metric(dc.metrics.matthews_corrcoef),
+      dc.metrics.Metric(dc.metrics.recall_score),
+      dc.metrics.Metric(dc.metrics.accuracy_score),
+      dc.metrics.Metric(dc.metrics.balanced_accuracy_score),
+      dc.metrics.Metric(dc.metrics.jaccard_score),
+      dc.metrics.Metric(dc.metrics.f1_score),
+      dc.metrics.Metric(dc.metrics.pixel_error),
+      dc.metrics.Metric(dc.metrics.kappa_score),
+      dc.metrics.Metric(dc.metrics.bedroc_score),
+  ]
 
-    # Test Parameter getting and setting
-    param, value = 'weight_decay_penalty_type', 'l2'
-    assert model.get_params()[param] is None
-    model.set_params(**{param: value})
-    assert model.get_params()[param] == value
+  model = dc.models.MultitaskClassifier(1, 5)
 
-    # Fit trained model
-    model.fit(train_dataset)
+  # Fit trained model
+  model.fit(train_dataset)
 
-    # Eval model on train/test
-    _ = model.evaluate(train_dataset, classification_metrics, transformers)
-    _ = model.evaluate(test_dataset, classification_metrics, transformers)
+  # Eval model on train/test
+  _ = model.evaluate(train_dataset, classification_metrics, transformers)
+  _ = model.evaluate(test_dataset, classification_metrics, transformers)

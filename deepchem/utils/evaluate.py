@@ -234,8 +234,9 @@ class Evaluator(object):
                                 stats_out=None,
                                 per_task_metrics=False,
                                 use_sample_weights=False,
-                                threshold=None,
-                                n_classes=None):
+                                n_classes=None,
+                                classification_handling_mode=None,
+                                threshold_value=None):
     """
     Computes statistics of model on test data and saves results to csv.
 
@@ -260,12 +261,25 @@ class Evaluator(object):
       If true, return computed metric for each task on multitask dataset.
     use_sample_weights: bool, optional (default False)
       If set, use per-sample weights `w`.
-    threshold: float or bool, optional (default None)
-      If set, apply a thresholding operation to values. This option isj
-      only sensible on classification tasks. If float, this will be
-      applied as a binary classification value. If bool, then
-      thresholding will be applied to a multiclass prediction and will
-      pick the maximum probability class.
+    classification_handling_mode: str, optional (default None)
+      DeepChem models by default predict class probabilities for
+      classification problems. This means that for a given singletask
+      prediction, after shape normalization, the DeepChem prediction will be a
+      numpy array of shape `(N, n_classes)` with class probabilities.
+      `classification_handling_mode` is a string that instructs this method
+      how to handle transforming these probabilities. It can take on the
+      following values:
+
+      - None: default value. Pass in `y_pred` directy into `self.metric`.
+      - "threshold": Use `threshold_predictions` to threshold `y_pred`. Use
+        `threshold_value` as the desired threshold.
+      - "threshold-one-hot": Use `threshold_predictions` to threshold `y_pred`
+        using `threshold_values`, then apply `to_one_hot` to output.
+    threshold_value: float, optional (default None)
+      If set, and `classification_handling_mode` is "threshold" or
+      "threshold-one-hot" apply a thresholding operation to values with this
+      threshold. This option isj only sensible on binary classification tasks.
+      If float, this will be applied as a binary classification value.
     n_classes: int, optional (default None)
       If specified, will assume that all `metrics` are classification
       metrics and will use `n_classes` as the number of unique classes
@@ -307,8 +321,7 @@ class Evaluator(object):
           w,
           per_task_metrics=per_task_metrics,
           n_classes=n_classes,
-          use_sample_weights=use_sample_weights,
-          threshold=threshold)
+          use_sample_weights=use_sample_weights)
       if per_task_metrics:
         multitask_scores[metric.name], computed_metrics = results
         all_task_scores[metric.name] = computed_metrics
