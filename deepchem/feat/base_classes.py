@@ -5,6 +5,7 @@ import logging
 import types
 import numpy as np
 import multiprocessing
+from typing import Iterable, Union
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +166,7 @@ class MolecularFeaturizer(Featurizer):
       molecules = [molecules]
     else:
       # Convert iterables to list
-      molecutes = list(molecules)
+      molecules = list(molecules)
     features = []
     for i, mol in enumerate(molecules):
       if i % log_every_n == 0:
@@ -205,6 +206,93 @@ class MolecularFeaturizer(Featurizer):
         An iterable yielding RDKit Mol objects or SMILES strings.
     """
     return self.featurize(molecules)
+
+
+class CrystalFeaturizer(Featurizer):
+  """
+  Abstract class for calculating a set of features for a
+  crystal structure.
+
+  The defining feature of a `CrystalFeaturizer` is that it
+  operates on 3D crystals with periodic boundary conditions. Inorganic
+  crystal structures are represented by Pymatgen composition and structure
+  objects. Featurizers for inorganic crystal structures that are subclasses of
+  this class should plan to process input which comes as composition
+  strings or pymatgen structure dictionaries. 
+
+  Child classes need to implement the _featurize method for
+  calculating features for a single crystal.
+
+  Notes
+  -----
+  Some subclasses of this class will require pymatgen and matminer to be
+  installed.
+
+  """
+
+  def featurize(self, crystals: Iterable, log_every_n: int = 1000) -> np.ndarray:
+    """Calculate features for crystals.
+
+    Parameters
+    ----------
+    crystals: Iterable
+      Iterable sequence of composition strings, pymatgen structure
+      dictionaries, or another crystal representation.
+    log_every_n: int, default 1000
+      Logging messages reported every `log_every_n` samples.
+
+    Returns
+    -------
+    features: np.ndarray
+      A numpy array containing a featurized representation of
+      `crystals`.
+
+    """
+
+    # Special case handling of single crystal
+    if not isinstance(crystals, Iterable):
+      crystals = [crystals]
+    else:
+      # Convert iterables to list
+      crystals = list(crystals)
+
+    features = []
+    for idx, crystal in enumerate(crystals):
+      if idx % log_every_n == 0:
+        logger.info("Featurizing datapoint %i" % idx)
+      try:
+        features.append(self._featurize(crystal))
+      except:
+        logger.warning(
+            "Failed to featurize datapoint %i. Appending empty array" % idx)
+        features.append(np.array([]))
+
+    features = np.asarray(features)
+    return features
+
+  def _featurize(self, crystal):
+    """Calculate features for a single crystal.
+
+    Parameters
+    ----------
+    crystal: crystal representation
+        Crystal.
+
+    """
+
+    raise NotImplementedError('Featurizer is not defined.')
+
+  def __call__(self, crystals: Iterable):
+    """Calculate features for crystals.
+
+    Parameters
+    ----------
+    crystals: Iterable
+        An iterable of crystal representations.
+
+    """
+
+    return self.featurize(crystals)
 
 
 class UserDefinedFeaturizer(Featurizer):

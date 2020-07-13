@@ -4,11 +4,11 @@ Featurizers for inorganic crystals.
 
 import numpy as np
 
-from deepchem.feat import Featurizer
+from deepchem.feat import CrystalFeaturizer
 from deepchem.utils import pad_array
 
 
-class ElementPropertyFingerprint(Featurizer):
+class ElementPropertyFingerprint(CrystalFeaturizer):
   """
   Fingerprint of elemental properties from composition.
 
@@ -67,8 +67,11 @@ class ElementPropertyFingerprint(Featurizer):
 
     """
 
-    from pymatgen import Composition
-    from matminer.featurizers.composition import ElementProperty
+    try:
+      from pymatgen import Composition
+      from matminer.featurizers.composition import ElementProperty
+    except ModuleNotFoundError:
+      raise ValueError("This class requires pymatgen and matminer to be installed.")
 
     # Get pymatgen Composition object
     c = Composition(comp)
@@ -83,7 +86,7 @@ class ElementPropertyFingerprint(Featurizer):
     return np.array(feats)
 
 
-class SineCoulombMatrix(Featurizer):
+class SineCoulombMatrix(CrystalFeaturizer):
   """
   Calculate sine Coulomb matrix for crystals.
 
@@ -144,8 +147,11 @@ class SineCoulombMatrix(Featurizer):
 
     """
 
-    from pymatgen import Structure
-    from matminer.featurizers.structure import SineCoulombMatrix as SCM
+    try:
+      from pymatgen import Structure
+      from matminer.featurizers.structure import SineCoulombMatrix as SCM
+    except ModuleNotFoundError:
+      raise ValueError("This class requires pymatgen and matminer to be installed.")
 
     s = Structure.from_dict(struct)
 
@@ -166,7 +172,7 @@ class SineCoulombMatrix(Featurizer):
     return features
 
 
-class StructureGraphFeaturizer(Featurizer):
+class StructureGraphFeaturizer(CrystalFeaturizer):
   """
   Calculate structure graph features for crystals.
 
@@ -224,7 +230,10 @@ class StructureGraphFeaturizer(Featurizer):
 
     """
 
-    from pymatgen import Structure
+    try:
+      from pymatgen import Structure
+    except ModuleNotFoundError:
+      raise ValueError("This class requires pymatgen to be installed.")
 
     # Get pymatgen structure object
     s = Structure.from_dict(struct)

@@ -3,6 +3,7 @@ Making it easy to import in classes.
 """
 from deepchem.feat.base_classes import Featurizer
 from deepchem.feat.base_classes import MolecularFeaturizer
+from deepchem.feat.base_classes import CrystalFeaturizer
 from deepchem.feat.base_classes import ComplexFeaturizer
 from deepchem.feat.base_classes import UserDefinedFeaturizer
 from deepchem.feat.graph_features import ConvMolFeaturizer

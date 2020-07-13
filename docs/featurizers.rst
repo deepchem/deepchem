@@ -161,14 +161,18 @@ AtomConvFeaturizer
 .. autoclass:: deepchem.feat.NeighborListComplexAtomicCoordinates
   :members:
 
-MaterialsFeaturizers
---------------------
+CrystalFeaturizer
+-----------------
 
-Materials Featurizers are those that work with datasets of inorganic crystals.
-These featurizers operate on chemical compositions (e.g. "MoS2"), or on a
-lattice and 3D coordinates that specify a periodic crystal structure. They
-should be applied on systems that have periodic boundary conditions. Materials
-featurizers are not designed to work with molecules. 
+Crystal Featurizers are those that work with datasets of crystals with
+periodic boundary conditions. For inorganic crystal structures, these
+featurizers operate on chemical compositions (e.g. "MoS2"), or on a 
+lattice and 3D coordinates that specify a periodic crystal structure. 
+They should be applied on systems that have periodic boundary conditions.
+Crystal featurizers are not designed to work with molecules. 
+
+.. autoclass:: deepchem.feat.CrystalFeaturizer
+  :members:
 
 ElementPropertyFingerprint
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
