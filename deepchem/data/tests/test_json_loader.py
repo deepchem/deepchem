@@ -22,7 +22,8 @@ class TestJsonLoader(unittest.TestCase):
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
   def test_json_loader(self):
-    input_file = os.path.join(self.current_dir, 'perov_test.json')
+    input_file = os.path.join(self.current_dir,
+                              'inorganic_crystal_sample_data.json')
     featurizer = SineCoulombMatrix(max_atoms=5)
     loader = JsonLoader(
         tasks=['e_form'],

@@ -549,7 +549,7 @@ class JsonLoader(DataLoader):
         ids = ids[valid_inds]
 
         if len(self.tasks) > 0:
-          # Featurize task results iff they exist.
+          # Featurize task results if they exist.
           y, w = _convert_df_to_numpy(shard, self.tasks)
 
           if self.label_field:
@@ -611,16 +611,16 @@ class JsonLoader(DataLoader):
     """
 
     features = []
+    valid_inds = []
     field = self.feature_field
     data = shard[field].tolist()
-    for idx, datapoint in enumerate(data):
-      features.append(featurizer.featurize([datapoint]))
 
-    valid_inds = np.array(
-        [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
-    features = [
-        elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
-    ]
+    for idx, datapoint in enumerate(data):
+      feat = featurizer.featurize([datapoint])
+      is_valid = True if feat.size > 0 else False
+      valid_inds.append(is_valid)
+      if is_valid:
+        features.append(feat)
 
     return np.squeeze(np.array(features), axis=1), valid_inds
 
