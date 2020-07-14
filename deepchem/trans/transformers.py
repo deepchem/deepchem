@@ -1166,6 +1166,7 @@ class CoulombFitTransformer(Transformer):
     self.nbout = X.shape[1]
     self.mean = X.mean(axis=0)
     self.std = (X - self.mean).std()
+    super(CoulombFitTransformer, self).__init__(transform_X=True)
 
   def realize(self, X):
     """Randomize features.
@@ -1272,8 +1273,8 @@ class IRVTransformer():
     self.K = K
     self.y = dataset.y
     self.w = dataset.w
-    self.transform_x = transform_x
-    self.transform_y = transform_y
+    super(IRVTransformer, self).__init__(
+        transform_X=transform_x, transform_y=transform_y)
 
   def realize(self, similarity, y, w):
     """find samples with top ten similarity values in the reference dataset
