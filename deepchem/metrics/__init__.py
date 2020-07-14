@@ -179,9 +179,6 @@ def normalize_labels_shape(y, mode=None, n_tasks=None, n_classes=None):
     # If 3D and last dimension isn't 1, assume this is one-hot encoded and return as-is.
     if y.shape[-1] != 1:
       return y
-      #raise ValueError(
-      #    "y must be a float scalar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)`."
-      #)
     y_out = np.squeeze(y, axis=-1)
   # Handle classification. We need to convert labels into one-hot
   # representation.

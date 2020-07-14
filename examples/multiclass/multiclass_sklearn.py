@@ -10,8 +10,7 @@ X = np.random.rand(N, n_feat)
 y = np.random.randint(3, size=(N,))
 dataset = dc.data.NumpyDataset(X, y)
 
-sklearn_model = RandomForestClassifier(
-    class_weight="balanced", n_estimators=50)
+sklearn_model = RandomForestClassifier(class_weight="balanced", n_estimators=50)
 model = dc.models.SklearnModel(sklearn_model)
 
 # Fit trained model
@@ -20,8 +19,7 @@ model.fit(dataset)
 model.save()
 
 print("About to evaluate model")
-train_scores = model.evaluate(dataset,
-    sklearn.metrics.roc_auc_score, [])
+train_scores = model.evaluate(dataset, sklearn.metrics.roc_auc_score, [])
 
 print("Train scores")
 print(train_scores)
