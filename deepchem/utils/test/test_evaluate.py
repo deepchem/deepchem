@@ -320,7 +320,8 @@ def test_gc_binary_classification():
 
 def test_gc_binary_kappa_classification():
   """Test multiclass classification evaluation."""
-  smiles = ["C", "CC"]
+  np.random.seed(1234)
+  smiles = ["C", "CC", "CO", "CCC", "CCCC"]
   featurizer = dc.feat.ConvMolFeaturizer()
   X = featurizer.featurize(smiles)
   y = np.random.randint(2, size=(len(smiles),))
@@ -343,7 +344,6 @@ def test_gc_multiclass_classification():
   y = np.random.randint(5, size=(len(smiles),))
   dataset = dc.data.NumpyDataset(X, y)
   model = dc.models.GraphConvModel(1, mode="classification", n_classes=5)
-  # TODO: Fix this case with correct thresholding
   evaluator = Evaluator(model, dataset, [])
   multitask_scores = evaluator.compute_model_performance(
       dc.metrics.accuracy_score, n_classes=5)

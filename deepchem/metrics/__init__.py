@@ -154,6 +154,13 @@ def normalize_labels_shape(y, mode=None, n_tasks=None, n_classes=None):
     raise ValueError("n_classes must be specified")
   if not isinstance(y, np.ndarray):
     raise ValueError("y must be a np.ndarray")
+  # Handle n_classes/n_task shape ambiguity
+  if mode == "classification" and len(y.shape) == 2:
+    if n_classes == y.shape[1] and n_tasks != 1 and n_classes != n_tasks:
+      raise ValueError("Shape of input doesn't match expected n_tasks=1")
+    elif n_classes == y.shape[1] and n_tasks == 1:
+      # Add in task dimension
+      y = np.expand_dims(y, 1)
   if len(y.shape) == 1 and n_tasks != 1:
     raise ValueError("n_tasks must equal 1 for a 1D set of labels.")
   if (len(y.shape) == 2 or len(y.shape) == 3) and n_tasks != y.shape[1]:
@@ -169,10 +176,12 @@ def normalize_labels_shape(y, mode=None, n_tasks=None, n_classes=None):
   elif len(y.shape) == 2:
     y_out = y
   elif len(y.shape) == 3:
+    # If 3D and last dimension isn't 1, assume this is one-hot encoded and return as-is.
     if y.shape[-1] != 1:
-      raise ValueError(
-          "y must be a float scalar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)`."
-      )
+      return y
+      #raise ValueError(
+      #    "y must be a float scalar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)`."
+      #)
     y_out = np.squeeze(y, axis=-1)
   # Handle classification. We need to convert labels into one-hot
   # representation.
@@ -236,10 +245,11 @@ def normalize_prediction_shape(y, mode=None, n_tasks=None, n_classes=None):
     raise ValueError("y must be a np.ndarray")
   # Handle n_classes/n_task shape ambiguity
   if mode == "classification" and len(y.shape) == 2:
-    if n_classes == y.shape[1] and n_tasks != 1:
+    if n_classes == y.shape[1] and n_tasks != 1 and n_classes != n_tasks:
       raise ValueError("Shape of input doesn't match expected n_tasks=1")
-    # Add in task dimension
-    y = np.expand_dims(y, 1)
+    elif n_classes == y.shape[1] and n_tasks == 1:
+      # Add in task dimension
+      y = np.expand_dims(y, 1)
   if (len(y.shape) == 2 or len(y.shape) == 3) and n_tasks != y.shape[1]:
     raise ValueError(
         "Shape of input doesn't match expected n_tasks=%d" % n_tasks)
@@ -527,9 +537,9 @@ def kappa_score(y_true, y_pred):
   yp = np.asarray(y_pred, dtype=int)
   if not set(np.unique(yt)).issubset(set([0, 1])):
     raise ValueError("Class labels must be binary 0, 1")
-  #assert np.array_equal(
-  #    np.unique(yt),
-  #    [0, 1]), ('Class labels must be binary: %s' % np.unique(yt))
+  assert np.array_equal(
+      np.unique(yt),
+      [0, 1]), ('Class labels must be binary: %s' % np.unique(yt))
   observed_agreement = np.true_divide(
       np.count_nonzero(np.equal(yt, yp)), len(yt))
   expected_agreement = np.true_divide(

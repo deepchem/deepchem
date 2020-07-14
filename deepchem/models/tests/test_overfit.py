@@ -199,6 +199,7 @@ def test_residual_classification_overfit():
   assert scores[classification_metric.name] > .9
 
 
+@flaky
 def test_fittransform_regression_overfit():
   """Test that MultitaskFitTransformRegressor can overfit simple regression datasets."""
   n_samples = 10
@@ -207,6 +208,7 @@ def test_fittransform_regression_overfit():
 
   # Generate dummy dataset
   np.random.seed(123)
+  tf.random.set_seed(123)
   ids = np.arange(n_samples)
   X = np.random.rand(n_samples, n_features, n_features)
   y = np.zeros((n_samples, n_tasks))
@@ -345,7 +347,7 @@ def test_sklearn_multitask_classification_overfit():
   assert scores[classification_metric.name] > .9
 
 
-#@flaky
+@flaky
 def test_multitask_classification_overfit():
   """Test MultitaskClassifier overfits tiny data."""
   n_tasks = 10

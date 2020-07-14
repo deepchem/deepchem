@@ -16,6 +16,22 @@ switching to/from one-hot representations.
 
 .. autofunction:: deepchem.metrics.from_one_hot
 
+Metric Shape Handling
+---------------------
+One of the trickiest parts of handling metrics correctly is making sure the
+shapes of input weights, predictions and labels and processed correctly. This
+is challenging in particular since DeepChem supports multitask, multiclass
+models which means that shapes must be handled with care to prevent errors.
+DeepChem maintains the following utility functions which attempt to
+facilitate shape handling for you.
+
+.. autofunction:: deepchem.metrics.normalize_weight_shape
+
+.. autofunction:: deepchem.metrics.normalize_labels_shape
+
+.. autofunction:: deepchem.metrics.normalize_prediction_shape
+
+.. autofunction:: deepchem.metrics.handle_classification_mode
 
 Metric Functions
 ----------------
