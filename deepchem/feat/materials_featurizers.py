@@ -4,11 +4,11 @@ Featurizers for inorganic crystals.
 
 import numpy as np
 
-from deepchem.feat import CrystalFeaturizer
+from deepchem.feat import StructureFeaturizer, CompositionFeaturizer
 from deepchem.utils import pad_array
 
 
-class ElementPropertyFingerprint(CrystalFeaturizer):
+class ElementPropertyFingerprint(CompositionFeaturizer):
   """
   Fingerprint of elemental properties from composition.
 
@@ -50,14 +50,14 @@ class ElementPropertyFingerprint(CrystalFeaturizer):
 
     self.data_source = data_source
 
-  def _featurize(self, comp):
+  def _featurize(self, composition: "pymatgen.Composition"):
     """
     Calculate chemical fingerprint from crystal composition.
 
     Parameters
     ----------
-    comp : str
-      Reduced formula of crystal.
+    composition: pymatgen.Composition object
+      Composition object.
 
     Returns
     -------
@@ -66,27 +66,22 @@ class ElementPropertyFingerprint(CrystalFeaturizer):
       stoichiometry. Some values may be NaN.
 
     """
-
     try:
-      from pymatgen import Composition
       from matminer.featurizers.composition import ElementProperty
     except ModuleNotFoundError:
-      raise ValueError("This class requires pymatgen and matminer to be installed.")
-
-    # Get pymatgen Composition object
-    c = Composition(comp)
+      raise ValueError("This class requires matminer to be installed.")
 
     ep = ElementProperty.from_preset(self.data_source)
 
     try:
-      feats = ep.featurize(c)
+      feats = ep.featurize(composition)
     except:
       feats = []
 
     return np.array(feats)
 
 
-class SineCoulombMatrix(CrystalFeaturizer):
+class SineCoulombMatrix(StructureFeaturizer):
   """
   Calculate sine Coulomb matrix for crystals.
 
@@ -129,16 +124,16 @@ class SineCoulombMatrix(CrystalFeaturizer):
     self.max_atoms = int(max_atoms)
     self.flatten = flatten
 
-  def _featurize(self, struct):
+  def _featurize(self, struct: "pymatgen.Structure"):
     """
     Calculate sine Coulomb matrix from pymatgen structure.
 
     Parameters
     ----------
-    struct : dict
-      Json-serializable dictionary representation of pymatgen.core.structure
-      https://pymatgen.org/pymatgen.core.structure.html
-
+    struct : pymatgen.Structure
+      A periodic crystal composed of a lattice and a sequence of atomic
+      sites with 3D coordinates and elements.
+      
     Returns
     -------
     features: np.ndarray
@@ -148,16 +143,13 @@ class SineCoulombMatrix(CrystalFeaturizer):
     """
 
     try:
-      from pymatgen import Structure
       from matminer.featurizers.structure import SineCoulombMatrix as SCM
     except ModuleNotFoundError:
-      raise ValueError("This class requires pymatgen and matminer to be installed.")
-
-    s = Structure.from_dict(struct)
+      raise ValueError("This class requires matminer to be installed.")
 
     # Get full N x N SCM
     scm = SCM(flatten=False)
-    sine_mat = scm.featurize(s)
+    sine_mat = scm.featurize(struct)
 
     if self.flatten:
       eigs, _ = np.linalg.eig(sine_mat)
@@ -172,7 +164,7 @@ class SineCoulombMatrix(CrystalFeaturizer):
     return features
 
 
-class StructureGraphFeaturizer(CrystalFeaturizer):
+class StructureGraphFeaturizer(StructureFeaturizer):
   """
   Calculate structure graph features for crystals.
 
@@ -218,9 +210,9 @@ class StructureGraphFeaturizer(CrystalFeaturizer):
 
     Parameters
     ----------
-    struct : dict
-      Json-serializable dictionary representation of pymatgen.core.structure
-      https://pymatgen.org/pymatgen.core.structure.html
+    struct : pymatgen.Structure
+      A periodic crystal composed of a lattice and a sequence of atomic
+      sites with 3D coordinates and elements.
 
     Returns
     -------
@@ -230,15 +222,7 @@ class StructureGraphFeaturizer(CrystalFeaturizer):
 
     """
 
-    try:
-      from pymatgen import Structure
-    except ModuleNotFoundError:
-      raise ValueError("This class requires pymatgen to be installed.")
-
-    # Get pymatgen structure object
-    s = Structure.from_dict(struct)
-
-    features = self._get_structure_graph_features(s)
+    features = self._get_structure_graph_features(struct)
     features = np.array(features)
 
     return features
@@ -249,7 +233,7 @@ class StructureGraphFeaturizer(CrystalFeaturizer):
 
     Parameters
     ----------
-    struct : pymatgen.core.structure
+    struct : pymatgen.Structure
       A periodic crystal composed of a lattice and a sequence of atomic
       sites with 3D coordinates and elements.
 
