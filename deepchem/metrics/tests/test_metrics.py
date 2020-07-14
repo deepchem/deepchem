@@ -34,8 +34,6 @@ def test_one_sample():
   ]
   for metric in all_metrics:
     score = metric.compute_singletask_metric(y_true, y_pred, w)
-    print("score")
-    print(score)
 
 
 def test_r2_score():

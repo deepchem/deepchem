@@ -670,6 +670,7 @@ class Metric(object):
       )
     else:
       self.compute_energy_metric = False
+
     self.metric = metric
     if task_averager is None:
       self.task_averager = np.mean
@@ -688,6 +689,7 @@ class Metric(object):
           self.name = "unknown metric"
     else:
       self.name = name
+
     if mode is None:
       # These are some smart defaults
       if self.metric.__name__ in [
