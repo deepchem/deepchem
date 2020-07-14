@@ -87,21 +87,13 @@ def test_threshold_predictions_multiclass():
   assert (y_thresh == np.argmax(y, axis=1)).all()
 
 
-def test_normalize_scalar_classification_binary():
-  """Tests 1d classification normalization."""
-  y = 1
-  expected = np.array([[[0., 1.]]])
-  y_out = normalize_prediction_shape(y, mode="classification")
-  assert y_out.shape == (1, 1, 2)
-  assert np.array_equal(expected, y_out)
-
-
 def test_normalize_1d_classification_binary():
   """Tests 1d classification normalization."""
   y = np.array([0, 0, 1, 0, 1, 1, 0])
   expected = np.array([[[1., 0.]], [[1., 0.]], [[0., 1.]], [[1., 0.]],
                        [[0., 1.]], [[0., 1.]], [[1., 0.]]])
-  y_out = normalize_prediction_shape(y, mode="classification")
+  y_out = normalize_prediction_shape(
+      y, mode="classification", n_tasks=1, n_classes=2)
   assert y_out.shape == (7, 1, 2)
   assert np.array_equal(expected, y_out)
 
@@ -110,7 +102,8 @@ def test_normalize_1d_classification_multiclass():
   """Tests 1d classification normalization."""
   y = np.random.randint(5, size=(200,))
   y_expected = np.expand_dims(to_one_hot(y, n_classes=5), 1)
-  y_out = normalize_prediction_shape(y, mode="classification")
+  y_out = normalize_prediction_shape(
+      y, mode="classification", n_tasks=1, n_classes=5)
   assert y_out.shape == (200, 1, 5)
   assert np.array_equal(y_expected, y_out)
 
@@ -119,7 +112,8 @@ def test_normalize_1d_classification_multiclass_explicit_nclasses():
   """Tests 1d classification normalization."""
   y = np.random.randint(5, size=(10,))
   y_expected = np.expand_dims(to_one_hot(y, n_classes=10), 1)
-  y_out = normalize_prediction_shape(y, mode="classification", n_classes=10)
+  y_out = normalize_prediction_shape(
+      y, mode="classification", n_classes=10, n_tasks=1)
   assert y_out.shape == (10, 1, 10)
   assert np.array_equal(y_expected, y_out)
 
@@ -127,10 +121,10 @@ def test_normalize_1d_classification_multiclass_explicit_nclasses():
 def test_normalize_2d_classification_binary():
   """Tests 2d classification normalization."""
   # Of shape (N, n_classes)
-  y = np.random.randint(2, size=(10,))
-  y = dc.metrics.to_one_hot(y, n_classes=2)
-  y_expected = np.expand_dims(y, 1)
-  y_out = normalize_prediction_shape(y, mode="classification")
+  y = np.random.randint(2, size=(10, 1))
+  y_expected = np.expand_dims(dc.metrics.to_one_hot(np.squeeze(y)), 1)
+  y_out = normalize_prediction_shape(
+      y, mode="classification", n_tasks=1, n_classes=2)
   assert y_out.shape == (10, 1, 2)
   assert np.array_equal(y_expected, y_out)
 
@@ -142,17 +136,9 @@ def test_normalize_3d_classification_binary():
   y = dc.metrics.to_one_hot(y, n_classes=2)
   y = np.expand_dims(y, 1)
   y_expected = y
-  y_out = normalize_prediction_shape(y, mode="classification")
+  y_out = normalize_prediction_shape(
+      y, mode="classification", n_tasks=1, n_classes=2)
   assert y_out.shape == (10, 1, 2)
-  assert np.array_equal(y_expected, y_out)
-
-
-def test_normalize_scalar_regression():
-  """Tests scalar regression normalization."""
-  y = 4.0
-  y_out = normalize_prediction_shape(y, mode="regression")
-  y_expected = np.array([[4.0]])
-  assert y_out.shape == (1, 1)
   assert np.array_equal(y_expected, y_out)
 
 
@@ -160,7 +146,7 @@ def test_normalize_1d_regression():
   """Tests 1d regression normalization."""
   y = np.random.rand(10)
   y_expected = y[:, np.newaxis]
-  y_out = normalize_prediction_shape(y, mode="regression")
+  y_out = normalize_prediction_shape(y, mode="regression", n_tasks=1)
   assert y_out.shape == (10, 1)
   assert np.array_equal(y_expected, y_out)
 
@@ -169,7 +155,7 @@ def test_normalize_2d_regression():
   """Tests 2d regression normalization."""
   y = np.random.rand(10, 5)
   y_expected = y
-  y_out = normalize_prediction_shape(y, mode="regression")
+  y_out = normalize_prediction_shape(y, mode="regression", n_tasks=5)
   assert y_out.shape == (10, 5)
   assert np.array_equal(y_expected, y_out)
 
@@ -178,7 +164,7 @@ def test_normalize_3d_regression():
   """Tests 3d regression normalization."""
   y = np.random.rand(10, 5, 1)
   y_expected = np.squeeze(y)
-  y_out = normalize_prediction_shape(y, mode="regression")
+  y_out = normalize_prediction_shape(y, mode="regression", n_tasks=5)
   assert y_out.shape == (10, 5)
   assert np.array_equal(y_expected, y_out)
 

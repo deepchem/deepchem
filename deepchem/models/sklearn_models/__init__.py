@@ -36,6 +36,11 @@ class SklearnModel(Model):
   `dc.hyper`. The `SklearnModel` class provides a wrapper around scikit-learn
   models that allows scikit-learn models to be trained on `Dataset` objects
   and evaluated with the same metrics as other DeepChem models.`
+
+  Note
+  ----
+  All `SklearnModels` perform learning solely in memory. This means that it
+  may not be possible to train `SklearnModel` on large `Dataset`s.
   """
 
   def __init__(self, model_instance=None, model_dir=None, **kwargs):
@@ -61,13 +66,17 @@ class SklearnModel(Model):
         self.use_weights = False
 
   def fit(self, dataset, **kwargs):
-    """
-    Fits SKLearn model to data.
+    """Fits SKLearn model to data.
+
+    Parameters
+    ----------
+    dataset: `Dataset`
+      The `Dataset` to train this model on.
     """
     X = dataset.X
     y = np.squeeze(dataset.y)
     w = np.squeeze(dataset.w)
-    # Logistic regression doesn't support weights
+    # Some scikit-learn models don't use weights.
     if self.use_weights:
       self.model_instance.fit(X, y, w)
       return

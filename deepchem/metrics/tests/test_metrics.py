@@ -44,7 +44,7 @@ def test_r2_score():
   n_samples = 10
   y_true = np.random.rand(n_samples,)
   y_pred = np.random.rand(n_samples,)
-  regression_metric = dc.metrics.Metric(dc.metrics.r2_score)
+  regression_metric = dc.metrics.Metric(dc.metrics.r2_score, n_tasks=1)
   assert np.isclose(
       dc.metrics.r2_score(y_true, y_pred),
       regression_metric.compute_metric(y_true, y_pred))

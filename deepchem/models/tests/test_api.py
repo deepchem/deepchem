@@ -33,10 +33,6 @@ def test_singletask_sklearn_rf_ECFP_regression_API():
   # Fit trained model
   model.fit(train_dataset)
   model.save()
-  ######################
-  print("transformer.y_stds.shape")
-  print(transformer.y_stds.shape)
-  ######################
 
   # Eval model on train
   _ = model.evaluate(train_dataset, regression_metrics, [transformer])

@@ -506,6 +506,16 @@ class NormalizationTransformer(Transformer):
   def untransform(self, z):
     """
     Undo transformation on provided data.
+
+    Parameters
+    ----------
+    z: np.ndarray
+      Array to transform back
+
+    Returns
+    -------
+    z_out: np.ndarray
+      Array with normalization undone.
     """
     if self.transform_X:
       if not hasattr(self, 'move_mean') or self.move_mean:
@@ -515,7 +525,11 @@ class NormalizationTransformer(Transformer):
     elif self.transform_y:
       y_stds = self.y_stds
       y_means = self.y_means
-      n_tasks = self.y_stds.shape[0]
+      # Handle case with 1 task correctly
+      if len(self.y_stds.shape) == 0:
+        n_tasks = 1
+      else:
+        n_tasks = self.y_stds.shape[0]
       z_shape = list(z.shape)
       # Get the reversed shape of z: (..., n_tasks, batch_size)
       z_shape.reverse()

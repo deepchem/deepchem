@@ -91,7 +91,7 @@ def test_multiclass_classification_singletask():
   model = dc.models.MultitaskClassifier(1, 5, n_classes=5)
   evaluator = Evaluator(model, dataset, [])
   multitask_scores = evaluator.compute_model_performance(
-      dc.metrics.accuracy_score, n_classes=5, threshold=True)
+      dc.metrics.accuracy_score, n_classes=5)
   assert len(multitask_scores) == 1
   assert multitask_scores["metric-1"] >= 0
 
@@ -184,8 +184,8 @@ def test_evaluator_dc_multi_metric():
   dataset = dc.data.NumpyDataset(X, y)
   model = dc.models.MultitaskRegressor(1, 5)
   evaluator = Evaluator(model, dataset, [])
-  metric1 = dc.metrics.Metric(dc.metrics.mae_score)
-  metric2 = dc.metrics.Metric(dc.metrics.r2_score)
+  metric1 = dc.metrics.Metric(dc.metrics.mae_score, n_tasks=2)
+  metric2 = dc.metrics.Metric(dc.metrics.r2_score, n_tasks=2)
   multitask_scores = evaluator.compute_model_performance([metric1, metric2])
   assert isinstance(multitask_scores, dict)
   assert len(multitask_scores) == 2
@@ -313,7 +313,7 @@ def test_gc_binary_classification():
   # TODO: Fix this case with correct thresholding
   evaluator = Evaluator(model, dataset, [])
   multitask_scores = evaluator.compute_model_performance(
-      dc.metrics.accuracy_score, n_classes=2, threshold=True)
+      dc.metrics.accuracy_score, n_classes=2)
   assert len(multitask_scores) == 1
   assert multitask_scores["metric-1"] >= 0
 
@@ -329,7 +329,7 @@ def test_gc_binary_kappa_classification():
   # TODO: Fix this case with correct thresholding
   evaluator = Evaluator(model, dataset, [])
   multitask_scores = evaluator.compute_model_performance(
-      dc.metrics.kappa_score, n_classes=2, threshold=True)
+      dc.metrics.kappa_score, n_classes=2)
   assert len(multitask_scores) == 1
   assert multitask_scores["metric-1"] >= 0
 
@@ -346,6 +346,6 @@ def test_gc_multiclass_classification():
   # TODO: Fix this case with correct thresholding
   evaluator = Evaluator(model, dataset, [])
   multitask_scores = evaluator.compute_model_performance(
-      dc.metrics.accuracy_score, n_classes=5, threshold=True)
+      dc.metrics.accuracy_score, n_classes=5)
   assert len(multitask_scores) == 1
   assert multitask_scores["metric-1"] >= 0

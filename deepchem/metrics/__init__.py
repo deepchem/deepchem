@@ -121,8 +121,74 @@ def normalize_weight_shape(w, n_samples, n_tasks):
   return w_out
 
 
-def normalize_prediction_shape(y, mode=None, n_classes=None):
-  """A utility function to correct the shape of the input array.
+def normalize_labels_shape(y, mode=None, n_tasks=None, n_classes=None):
+  """A utility function to correct the shape of the labels.
+
+  Parameters
+  ----------
+  y: np.ndarray
+    `y` is an array of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)`.
+  mode: str, optional (default None)
+    If `mode` is "classification" or "regression", attempts to apply
+    data transformations. 
+  n_tasks: int, optional (default 1)
+    The number of tasks this class is expected to handle.
+  n_classes: int, optional
+    If specified use this as the number of classes. Else will try to
+    impute it as `n_classes = max(y) + 1` for arrays and as
+    `n_classes=2` for the case of scalars. Note this parameter only
+    has value if `mode=="classification"`
+
+  Returns
+  -------
+  y_out: np.ndarray
+    If `mode=="classification"`, `y_out` is an array of shape `(N,
+    n_tasks, n_classes)`. If `mode=="regression"`, `y_out` is an array
+    of shape `(N, n_tasks)`.
+  """
+  if n_tasks is None:
+    raise ValueError("n_tasks must be specified")
+  if mode not in ["classification", "regression"]:
+    raise ValueError("mode must be either classification or regression.")
+  if mode == "classification" and n_classes is None:
+    raise ValueError("n_classes must be specified")
+  if not isinstance(y, np.ndarray):
+    raise ValueError("y must be a np.ndarray")
+  if len(y.shape) == 1 and n_tasks != 1:
+    raise ValueError("n_tasks must equal 1 for a 1D set of labels.")
+  if (len(y.shape) == 2 or len(y.shape) == 3) and n_tasks != y.shape[1]:
+    raise ValueError(
+        "Shape of input doesn't match expected n_tasks=%d" % n_tasks)
+  if len(y.shape) >= 4:
+    raise ValueError(
+        "Labels y must be a float scalar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems and of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for classification problems"
+    )
+  if len(y.shape) == 1:
+    # Insert a task dimension (we know n_tasks=1 from above0
+    y_out = np.expand_dims(y, 1)
+  elif len(y.shape) == 2:
+    y_out = y
+  elif len(y.shape) == 3:
+    if y.shape[-1] != 1:
+      raise ValueError(
+          "y must be a float scalar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)`."
+      )
+    y_out = np.squeeze(y, axis=-1)
+  # Handle classification. We need to convert labels into one-hot
+  # representation.
+  if mode == "classification":
+    all_y_task = []
+    for task in range(n_tasks):
+      y_task = y_out[:, task]
+      y_hot = to_one_hot(y_task, n_classes=n_classes)
+      y_hot = np.expand_dims(y_hot, 1)
+      all_y_task.append(y_hot)
+    y_out = np.concatenate(all_y_task, axis=1)
+  return y_out
+
+
+def normalize_prediction_shape(y, mode=None, n_tasks=None, n_classes=None):
+  """A utility function to correct the shape of provided predictions.
 
   The metric computation classes expect that inputs for classification
   have the uniform shape `(N, n_tasks, n_classes)` and inputs for
@@ -141,17 +207,14 @@ def normalize_prediction_shape(y, mode=None, n_classes=None):
   ----------
   y: np.ndarray
     If `mode=="classification"`, `y` is an array of shape `(N,)` or
-    `(N, n_classes)` or `(N, n_tasks, n_classes)`. If `y` is an array of shape
-    `(N,)` in order to impute the number of classes correctly, `y`
-    must take values from `0` to `n_classes-1` as integers. If
+    `(N, n_tasks)` or `(N, n_tasks, n_classes)`. If
     `mode=="regression"`, `y` is an array of shape `(N,)` or `(N,
-    n_tasks)`or `(N, n_tasks, 1)`. In the edge case where `N == 1`,
-    `y` may be a scalar. If `mode` is None, then `y` can be of any
-    shape and is returned unchanged.
+    n_tasks)`or `(N, n_tasks, 1)`. 
   mode: str, optional (default None)
     If `mode` is "classification" or "regression", attempts to apply
-    data transformations. For other modes, performs no transformations
-    to data and returns as-is.
+    data transformations. 
+  n_tasks: int, optional (default 1)
+    The number of tasks this class is expected to handle.
   n_classes: int, optional
     If specified use this as the number of classes. Else will try to
     impute it as `n_classes = max(y) + 1` for arrays and as
@@ -165,74 +228,70 @@ def normalize_prediction_shape(y, mode=None, n_classes=None):
     n_tasks, n_classes)`. If `mode=="regression"`, `y_out` is an array
     of shape `(N, n_tasks)`.
   """
+  if n_tasks is None:
+    raise ValueError("n_tasks must be specified")
+  if mode == "classification" and n_classes is None:
+    raise ValueError("n_classes must be specified")
+  if not isinstance(y, np.ndarray):
+    raise ValueError("y must be a np.ndarray")
+  # Handle n_classes/n_task shape ambiguity
+  if mode == "classification" and len(y.shape) == 2:
+    if n_classes == y.shape[1] and n_tasks != 1:
+      raise ValueError("Shape of input doesn't match expected n_tasks=1")
+    # Add in task dimension
+    y = np.expand_dims(y, 1)
+  if (len(y.shape) == 2 or len(y.shape) == 3) and n_tasks != y.shape[1]:
+    raise ValueError(
+        "Shape of input doesn't match expected n_tasks=%d" % n_tasks)
+  if len(y.shape) >= 4:
+    raise ValueError(
+        "Predictions y must be a float scalar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems and of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, n_classes)` for classification problems"
+    )
   if mode == "classification":
     if n_classes is None:
-      if isinstance(y, np.ndarray):
-        # Find number of classes. Note that `y` must have values in
-        # range 0 to n_classes - 1
-        # TODO: replace with np.unique
-        #n_classes = np.amax(y) + 1
-        n_classes = len(np.unique(y))
-      else:
-        # scalar case
-        n_classes = 2
-    if isinstance(y, np.ndarray):
+      raise ValueError("n_classes must be specified.")
+    if len(y.shape) == 1 or len(y.shape) == 2:
+      # Make everything 2D so easy to handle
       if len(y.shape) == 1:
-        # y_hot is of shape (N, n_classes)
-        y_hot = to_one_hot(y, n_classes=n_classes)
-        # Insert task dimension
-        y_out = np.expand_dims(y_hot, 1)
-      elif len(y.shape) == 2:
-        # In this case, effectively 1D
-        if y.shape[1] == 1:
-          y_hot = to_one_hot(y[:, 0], n_classes=n_classes)
-          y_out = np.expand_dims(y_hot, 1)
+        y = y[:, np.newaxis]
+      # Handle each task separately.
+      all_y_task = []
+      for task in range(n_tasks):
+        y_task = y[:, task]
+        # Handle continuous class probabilites of positive class for binary
+        if len(np.unique(y_task)) > n_classes:
+          if n_classes > 2:
+            raise ValueError(
+                "Cannot handle continuous probabilities for multiclass problems. Need a per-class probability"
+            )
+          # Fill in class 0 probabilities
+          y_task = np.array([1 - y_task, y_task]).T
+          # Add a task dimension to concatenate on
+          y_task = np.expand_dims(y_task, 1)
+          all_y_task.append(y_task)
+        # Handle binary labels
         else:
-          # Insert a task dimension
-          y_out = np.expand_dims(y, 1)
-      elif len(y.shape) == 3:
-        y_out = y
-      else:
-        raise ValueError(
-            "y must be an array of dimension 1, 2, or 3 for classification problems."
-        )
-    else:
-      # In this clase, y is a scalar. We assume that `y` is binary
-      # since it's hard to do anything else in this case.
-      y = np.array(y)
-      y = np.reshape(y, (1,))
-      y = to_one_hot(y, n_classes=n_classes)
-      y_out = np.expand_dims(y, 1)
+          # make y_hot of shape (N, n_classes)
+          y_task = to_one_hot(y_task, n_classes=n_classes)
+          # Add a task dimension to concatenate on
+          y_task = np.expand_dims(y_task, 1)
+          all_y_task.append(y_task)
+      y_out = np.concatenate(all_y_task, axis=1)
+    elif len(y.shape) == 3:
+      y_out = y
   elif mode == "regression":
-    if isinstance(y, np.ndarray):
-      if len(y.shape) == 1:
-        # Insert a task dimension
-        y_out = np.expand_dims(y, 1)
-      elif len(y.shape) == 2:
-        y_out = y
-      elif len(y.shape) == 3:
-        if y.shape[-1] != 1:
-          raise ValueError(
-              "y must a float scalar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems."
-          )
-        y_out = np.squeeze(y, axis=-1)
-      else:
+    if len(y.shape) == 1:
+      # Insert a task dimension
+      y_out = np.expand_dims(y, 1)
+    elif len(y.shape) == 2:
+      y_out = y
+    elif len(y.shape) == 3:
+      if y.shape[-1] != 1:
         raise ValueError(
-            "y must a float scalar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems."
+            "y must be a float scalar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems."
         )
-    else:
-      # In this clase, y is a scalar.
-      try:
-        y = float(y)
-      except TypeError:
-        raise ValueError(
-            "y must a float scalar or a ndarray of shape `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` for regression problems."
-        )
-      y = np.array(y)
-      y_out = np.reshape(y, (1, 1))
+      y_out = np.squeeze(y, axis=-1)
   else:
-    # If mode isn't classification or regression don't perform any
-    # transformations.
     raise ValueError("mode must be either classification or regression.")
   return y_out
 
@@ -353,73 +412,6 @@ def from_one_hot(y, axis=1):
   return np.argmax(y, axis=axis)
 
 
-def _ensure_one_hot(y):
-  """If neceessary, convert class labels to one-hot encoding."""
-  if len(y.shape) == 1:
-    return to_one_hot(y)
-  return y
-
-
-def _ensure_class_labels(y):
-  """If necessary, convert one-hot encoding to class labels."""
-  if len(y.shape) == 2:
-    return from_one_hot(y)
-  return y
-
-
-#def roc_auc_score(y, y_pred):
-#  """Area under the receiver operating characteristic curve."""
-#  if y.shape != y_pred.shape:
-#    y = _ensure_one_hot(y)
-#  return sklearn.metrics.roc_auc_score(y, y_pred)
-
-#def accuracy_score(y, y_pred):
-#  """Compute accuracy score
-#
-#  Computes accuracy score for classification tasks. Works for both
-#  binary and multiclass classification.
-#
-#  Parameters
-#  ----------
-#  y: np.ndarray
-#    Of shape `(N_samples,)`
-#  y_pred: np.ndarray
-#    Of shape `(N_samples,)`
-#
-#  Returns
-#  -------
-#  score: float
-#    The fraction of correctly classified samples. A number between 0
-#    and 1.
-#  """
-#  y = _ensure_class_labels(y)
-#  y_pred = _ensure_class_labels(y_pred)
-#  return sklearn.metrics.accuracy_score(y, y_pred)
-
-#def balanced_accuracy_score(y, y_pred):
-#  """Computes balanced accuracy score.
-#
-#  Parameters
-#  ----------
-#  y: np.ndarray
-#    Of shape `(N_samples,)`
-#  y_pred: np.ndarray
-#    Of shape `(N_samples,)`
-#
-#  Returns
-#  -------
-#  score: float
-#    The balanced_accuracy. A number between 0 and 1.
-#  """
-#  num_positive = float(np.count_nonzero(y))
-#  num_negative = float(len(y) - num_positive)
-#  pos_weight = num_negative / num_positive
-#  weights = np.ones_like(y)
-#  weights[y != 0] = pos_weight
-#  return sklearn.metrics.balanced_accuracy_score(
-#      y, y_pred, sample_weight=weights)
-
-
 def pearson_r2_score(y, y_pred):
   """Computes Pearson R^2 (square of Pearson correlation).
 
@@ -492,10 +484,6 @@ def prc_auc_score(y, y_pred):
   -------
   The area under the precision-recall curve. A number between 0 and 1.
   """
-  #if y.shape != y_pred.shape:
-  #  y = _ensure_one_hot(y)
-  #assert y_pred.shape == y.shape
-  #assert y_pred.shape[1] == 2
   precision, recall, _ = precision_recall_curve(y[:, 1], y_pred[:, 1])
   return auc(recall, precision)
 
@@ -537,9 +525,11 @@ def kappa_score(y_true, y_pred):
   assert len(y_true) == len(y_pred), 'Number of examples does not match.'
   yt = np.asarray(y_true, dtype=int)
   yp = np.asarray(y_pred, dtype=int)
-  assert np.array_equal(
-      np.unique(yt),
-      [0, 1]), ('Class labels must be binary: %s' % np.unique(yt))
+  if not set(np.unique(yt)).issubset(set([0, 1])):
+    raise ValueError("Class labels must be binary 0, 1")
+  #assert np.array_equal(
+  #    np.unique(yt),
+  #    [0, 1]), ('Class labels must be binary: %s' % np.unique(yt))
   observed_agreement = np.true_divide(
       np.count_nonzero(np.equal(yt, yp)), len(yt))
   expected_agreement = np.true_divide(
@@ -622,6 +612,7 @@ class Metric(object):
                name=None,
                threshold=None,
                mode=None,
+               n_tasks=None,
                classification_handling_mode=None,
                threshold_value=None,
                compute_energy_metric=None):
@@ -643,6 +634,8 @@ class Metric(object):
       class.
     mode: str, optional (default None)
       Should usually be "classification" or "regression."
+    n_tasks: int, optional (default 1)
+      The number of tasks this class is expected to handle.
     classification_handling_mode: str, optional (default None)
       DeepChem models by default predict class probabilities for
       classification problems. This means that for a given singletask
@@ -738,20 +731,22 @@ class Metric(object):
             "Please specify the mode of this metric. mode must be 'regression' or 'classification'"
         )
 
-      self.mode = mode
-      if classification_handling_mode not in [
-          None, "threshold", "threshold-one-hot"
-      ]:
-        raise ValueError(
-            "classification_handling_mode must be one of None, 'threshold', 'threshold_one_hot'"
-        )
-      self.classification_handling_mode = classification_handling_mode
-      self.threshold_value = threshold_value
+    self.mode = mode
+    self.n_tasks = n_tasks
+    if classification_handling_mode not in [
+        None, "threshold", "threshold-one-hot"
+    ]:
+      raise ValueError(
+          "classification_handling_mode must be one of None, 'threshold', 'threshold_one_hot'"
+      )
+    self.classification_handling_mode = classification_handling_mode
+    self.threshold_value = threshold_value
 
   def compute_metric(self,
                      y_true,
                      y_pred,
                      w=None,
+                     n_tasks=None,
                      n_classes=2,
                      filter_nans=False,
                      per_task_metrics=False,
@@ -762,9 +757,12 @@ class Metric(object):
     Parameters
     ----------
     y_true: np.ndarray
-      An np.ndarray containing true values for each task. Must be of
-      shape `(N, n_tasks, n_classes)` if a classification metric, else
-      must be of shape `(N, n_tasks)` if a regression metric.
+      An np.ndarray containing true values for each task. Must be of shape
+      `(N,)` or `(N, n_tasks)` or `(N, n_tasks, n_classes)` if a
+      classification metric. If of shape `(N, n_tasks)` values can either be
+      class-labels or probabilities of the positive class for binary
+      classification problems. If a regression problem, must be of shape
+      `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` if a regression metric.
     y_pred: np.ndarray
       An np.ndarray containing predicted values for each task. Must be
       of shape `(N, n_tasks, n_classes)` if a classification metric,
@@ -772,6 +770,8 @@ class Metric(object):
     w: np.ndarray, optional
       An np.ndarray containing weights for each datapoint. If
       specified,  must be of shape `(N, n_tasks)`.
+    n_tasks: int, optional (default 1)
+      The number of tasks this class is expected to handle.
     n_classes: int, optional
       Number of classes in data for classification tasks.
     filter_nans: bool, optional (default False) (DEPRECATED)
@@ -784,21 +784,28 @@ class Metric(object):
       Will be passed on to self.metric
 
     Returns
-    -------
+    
     A numpy nd.array containing metric values for each task.
     """
-    y_true = normalize_prediction_shape(
-        y_true, mode=self.mode, n_classes=n_classes)
+    # Attempt some limited shape imputation to find n_tasks
+    if n_tasks is None:
+      if self.n_tasks is None and isinstance(y_true, np.ndarray):
+        if len(y_true.shape) == 1:
+          n_tasks = 1
+        elif len(y_true.shape) >= 2:
+          n_tasks = y_true.shape[1]
+      else:
+        n_tasks = self.n_tasks
+    y_true = normalize_labels_shape(
+        y_true, mode=self.mode, n_tasks=n_tasks, n_classes=n_classes)
     y_pred = normalize_prediction_shape(
-        y_pred, mode=self.mode, n_classes=n_classes)
+        y_pred, mode=self.mode, n_tasks=n_tasks, n_classes=n_classes)
     if self.mode == "classification":
       y_true = handle_classification_mode(
           y_true, self.classification_handling_mode, self.threshold_value)
       y_pred = handle_classification_mode(
           y_pred, self.classification_handling_mode, self.threshold_value)
-    # This is safe now because of normalization above
     n_samples = y_true.shape[0]
-    n_tasks = y_pred.shape[1]
     w = normalize_weight_shape(w, n_samples, n_tasks)
     computed_metrics = []
     for task in range(n_tasks):
@@ -869,8 +876,8 @@ class Metric(object):
       logger.warning("n_samples is a deprecated argument which is ignored.")
     # Attempt to convert both into the same type
     if self.mode == "regression":
-      if len(y_true.shape) != 1 or len(y_pred).shape != 1 or len(y_true) != len(
-          y_pred):
+      if len(y_true.shape) != 1 or len(
+          y_pred.shape) != 1 or len(y_true) != len(y_pred):
         raise ValueError(
             "For regression metrics, y_true and y_pred must both be of shape (N,)"
         )
