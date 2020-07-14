@@ -220,8 +220,10 @@ class StructureFeaturizer(Featurizer):
   this class should plan to process input which comes as pymatgen
   structure objects. 
 
-  Child classes need to implement the _featurize method for
-  calculating features for a single crystal.
+  This class is abstract and cannot be invoked directly. You'll
+  likely only interact with this class if you're a developer. Child 
+  classes need to implement the _featurize method for calculating 
+  features for a single crystal structure.
 
   Notes
   -----
@@ -315,8 +317,10 @@ class CompositionFeaturizer(Featurizer):
   subclasses of this class should plan to process input which comes as
   Pymatgen composition objects. 
 
-  Child classes need to implement the _featurize method for
-  calculating features for a single composition.
+  This class is abstract and cannot be invoked directly. You'll
+  likely only interact with this class if you're a developer. Child 
+  classes need to implement the _featurize method for calculating 
+  features for a single crystal composition.
 
   Notes
   -----
