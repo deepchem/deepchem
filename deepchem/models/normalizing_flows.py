@@ -6,6 +6,8 @@ import numpy as np
 import logging
 from typing import List
 
+import tensorflow_probability as tfp
+
 from deepchem.models.models import Model
 
 logger = logging.getLogger(__name__)
@@ -50,7 +52,7 @@ class NormalizingFlowLayer(object):
     Parameters
     ----------
     model : object
-      Model object from TensorFlowProbability, Pytorch, etc. The model
+      Model object from `tensorflow_probability.bijectors`. The model
       should be a bijective transformation with forward, inverse, and 
       LDJ methods.
     kwargs : dict
@@ -245,7 +247,7 @@ class NormalizingFlowModel(Model):
   """
 
   def __init__(self,
-               base_distribution,
+               base_distribution: tfp.distributions.Distribution,
                normalizing_flow: NormalizingFlow,
                event_shape=None):
     """Creates a new NormalizingFlowModel.
