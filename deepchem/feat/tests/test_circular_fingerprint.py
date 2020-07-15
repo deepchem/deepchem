@@ -2,7 +2,7 @@
 Test topological fingerprints.
 """
 import unittest
-from deepchem.feat import fingerprints as fp
+from deepchem.feat import CircularFingerprint
 
 
 class TestCircularFingerprint(unittest.TestCase):
@@ -17,7 +17,7 @@ class TestCircularFingerprint(unittest.TestCase):
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
     from rdkit import Chem
     self.mol = Chem.MolFromSmiles(smiles)
-    self.engine = fp.CircularFingerprint()
+    self.engine = CircularFingerprint()
 
   def test_circular_fingerprints(self):
     """
@@ -30,7 +30,7 @@ class TestCircularFingerprint(unittest.TestCase):
     """
         Test CircularFingerprint with sparse encoding.
         """
-    self.engine = fp.CircularFingerprint(sparse=True)
+    self.engine = CircularFingerprint(sparse=True)
     rval = self.engine([self.mol])
     assert rval.shape == (1,)
     assert isinstance(rval[0], dict)
@@ -41,7 +41,7 @@ class TestCircularFingerprint(unittest.TestCase):
         Test CircularFingerprint with sparse encoding and SMILES for each
         fragment.
         """
-    self.engine = fp.CircularFingerprint(sparse=True, smiles=True)
+    self.engine = CircularFingerprint(sparse=True, smiles=True)
     rval = self.engine([self.mol])
     assert rval.shape == (1,)
     assert isinstance(rval[0], dict)

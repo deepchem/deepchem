@@ -13,7 +13,7 @@ from deepchem.feat.coulomb_matrices_featurizers import CoulombMatrixEig
 from deepchem.feat.bp_symmetry_function_input import BPSymmetryFunctionInput
 from deepchem.feat.rdkit_descriptors import RDKitDescriptors
 from deepchem.feat.rdkit_grid_featurizer import RdkitGridFeaturizer
-from deepchem.feat.binding_pocket_features import BindingPocketFeaturizer
+from deepchem.feat.binding_pocket_featurizer import BindingPocketFeaturizer
 from deepchem.feat.one_hot_featurizer import OneHotFeaturizer
 from deepchem.feat.raw_featurizer import RawFeaturizer
 from deepchem.feat.atomic_coordinates_featurizers import AtomicCoordinates

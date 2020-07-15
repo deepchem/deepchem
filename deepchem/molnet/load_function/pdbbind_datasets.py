@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import tarfile
 from deepchem.feat import rdkit_grid_featurizer as rgf
-from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
+from deepchem.feat.atomic_coordinates_featurizers import ComplexNeighborListFragmentAtomicCoordinates
 from deepchem.feat.graph_features import AtomicConvFeaturizer
 
 logger = logging.getLogger(__name__)

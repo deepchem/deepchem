@@ -1,12 +1,12 @@
 from unittest import TestCase
 import numpy as np
-from deepchem.feat import SmilesToSeq, SmilesToImage
-from deepchem.feat.smiles_featurizers import create_char_to_idx
+from deepchem.feat import SmilesToSeq
+from deepchem.feat.smiles_to_seq import create_char_to_idx
 import os
 
 
 class TestSmilesFeaturizers(TestCase):
-  """Tests for SmilesToSeq and SmilesToImage featurizers."""
+  """Tests for SmilesToSeq featurizers."""
 
   def setUp(self):
     """Setup."""
