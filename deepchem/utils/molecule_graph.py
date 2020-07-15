@@ -10,7 +10,7 @@ class MoleculeGraphData(object):
                  edge_index: Optional[np.ndarray] = None,
                  edge_features: Optional[np.ndarray] = None,
                  graph_features: Optional[np.ndarray] = None,
-                 y : Optional[np.ndarray] = None,):
+                 targets : Optional[np.ndarray] = None,):
         """
 
         Parameters
@@ -23,7 +23,7 @@ class MoleculeGraphData(object):
           Edge feature matrix with shape [num_edges, num_edge_features]
         graph_features : np.ndarray, optional (default None)
           Graph feature vector with shape [num_graph_features,]
-        y : np.ndarray, optional (default None)
+        targets : np.ndarray, optional (default None)
           Graph or node targets with arbitrary shape
         """
         super(MoleculeGraphData, self).__init__()
@@ -43,14 +43,14 @@ class MoleculeGraphData(object):
                     same as the second dimension of edge_index.')
         if graph_features is not None and isinstance(graph_features, np.ndarray) is False:
             raise ValueError('graph_features must be np.ndarray or None.')
-        if y is not None and isinstance(y, np.ndarray) is False:
+        if targets is not None and isinstance(targets, np.ndarray) is False:
             raise ValueError('y must be np.ndarray or None.')
 
         self.node_features = node_features
         self.edge_index = edge_index
         self.edge_features = edge_features
         self.graph_features = graph_features
-        self.y = y
+        self.targets = targets
         self.num_nodes, self.num_node_features = None, None
         self.num_edges, self.num_edge_features = None, None
         if self.node_features is not None:
