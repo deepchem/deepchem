@@ -85,6 +85,10 @@ def _featurize_smiles_df(df, featurizer, field, log_every_n=1000):
     The name of a column in `df` that holds SMILES strings
   log_every_n: int, optional (default 1000)
     Emit a logging statement every `log_every_n` rows.
+
+  Note
+  ----
+  This function requires RDKit to be installed
   """
   sample_elems = df[field].tolist()
 
@@ -238,7 +242,7 @@ class DataLoader(object):
     self.featurizer = featurizer
     self.log_every_n = log_every_n
 
-  def featurize(self, input_files, data_dir=None, shard_size=8192):
+  def featurize(self, inputs, data_dir=None, shard_size=8192):
     """Featurize provided files and write to specified location.
 
     DEPRECATED: This method is now a wrapper for `create_dataset()`
@@ -253,8 +257,8 @@ class DataLoader(object):
 
     Parameters
     ----------
-    input_files: list
-      List of input filenames.
+    inputs: list
+      List of inputs to process. Entries can be filenames or arbitrary objects.
     data_dir: str, optional
       Directory to store featurized dataset.
     shard_size: int, optional
@@ -263,17 +267,17 @@ class DataLoader(object):
     Returns
     -------
     A `Dataset` object containing a featurized representation of data
-    from `input_files`.
+    from `input`.
     """
     warnings.warn(
         "featurize() is deprecated and has been renamed to create_dataset(). featurize() will be removed in DeepChem 3.0",
         FutureWarning)
-    return self.create_dataset(input_files, data_dir, shard_size)
+    return self.create_dataset(inputs, data_dir, shard_size)
 
-  def create_dataset(self, input_files, data_dir=None, shard_size=8192):
+  def create_dataset(self, inputs, data_dir=None, shard_size=8192):
     """Creates and returns a `Dataset` object by featurizing provided files.
 
-    Reads in `input_files` and uses `self.featurizer` to featurize the
+    Reads in `inputs` and uses `self.featurizer` to featurize the
     data in these input files.  For large files, automatically shards
     into smaller chunks of `shard_size` datapoints for convenience.
     Returns a `Dataset` object that contains the featurized dataset.
@@ -285,8 +289,8 @@ class DataLoader(object):
 
     Parameters
     ----------
-    input_files: list
-      List of input filenames.
+    inputs: list
+      List of inputs to process. Entries can be filenames or arbitrary objects.
     data_dir: str, optional
       Directory to store featurized dataset.
     shard_size: int, optional
@@ -295,17 +299,16 @@ class DataLoader(object):
     Returns
     -------
     A `Dataset` object containing a featurized representation of data
-    from `input_files`.
+    from `inputs`.
     """
     logger.info("Loading raw samples now.")
     logger.info("shard_size: %d" % shard_size)
 
-    if not isinstance(input_files, list):
-      input_files = [input_files]
+    if not isinstance(inputs, list):
+      inputs = [inputs]
 
     def shard_generator():
-      for shard_num, shard in enumerate(
-          self._get_shards(input_files, shard_size)):
+      for shard_num, shard in enumerate(self._get_shards(inputs, shard_size)):
         time1 = time.time()
         X, valid_inds = self._featurize_shard(shard)
         ids = shard[self.id_field].values
@@ -329,11 +332,11 @@ class DataLoader(object):
 
     return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
 
-  def _get_shards(self, input_files, shard_size):
+  def _get_shards(self, inputs, shard_size):
     """Stub for children classes.
 
     Should implement a generator that walks over the source data in
-    `input_files` and returns a "shard" at a time. Here a shard is a
+    `inputs` and returns a "shard" at a time. Here a shard is a
     chunk of input data that can reasonably be handled in memory. For
     example, this may be a set of rows from a CSV file or a set of
     molecules from a SDF file. To re-use the
@@ -345,8 +348,8 @@ class DataLoader(object):
     
     Parameters
     ----------
-    input_files: list
-      List of input filenames.
+    inputs: list
+      List of inputs to process. Entries can be filenames or arbitrary objects.
     shard_size: int, optional
       Number of examples stored in each shard.
     """
@@ -411,7 +414,15 @@ class CSVLoader(DataLoader):
     self.log_every_n = log_every_n
 
   def _get_shards(self, input_files, shard_size):
-    """Defines a generator which returns data for each shard"""
+    """Defines a generator which returns data for each shard
+
+    Parameters
+    ----------
+    input_files: list[str]
+      List of filenames to process
+    shard_size: int
+      The size of a shard of data to process at a time.
+    """
     return load_csv_files(input_files, shard_size)
 
   def _featurize_shard(self, shard):
@@ -812,6 +823,21 @@ class ImageLoader(DataLoader):
 
   @staticmethod
   def load_img(image_files):
+    """Loads a set of images from disk.
+
+    Parameters
+    ----------
+    image_files: list[str]
+      List of image filenames to load
+
+    Returns
+    -------
+    np.ndarray of that contains loaded images. Of shape `(N,...)`.
+
+    Note
+    ----
+    This method requires PIL to be installed.
+    """
     from PIL import Image
     images = []
     for image_file in image_files:
@@ -827,3 +853,182 @@ class ImageLoader(DataLoader):
       else:
         raise ValueError("Unsupported image filetype for %s" % image_file)
     return np.array(images)
+
+
+class InMemoryLoader(DataLoader):
+  """Facilitate Featurization of In-memory objects.
+
+  When featurizing a dataset, it's often the case that the initial set of
+  data (pre-featurization) fits handily within memory. (For example, perhaps
+  it fits within a column of a pandas DataFrame.) In this case, it would be
+  convenient to directly be able to featurize this column of data. However,
+  the process of featurization often generates large arrays which quickly eat
+  up available memory. This class provides convenient capabilities to process
+  such in-memory data by checkpointing generated features periodically to
+  disk.
+
+  Example
+  -------
+  Here's an example with only datapoints and no labels or weights.
+
+  >>> import deepchem as dc
+  >>> smiles = ["C", "CC", "CCC", "CCCC"]
+  >>> featurizer = dc.feat.CircularFingerprint()
+  >>> loader = dc.data.InMemoryLoader(tasks=["task1"], featurizer=featurizer)
+  >>> dataset = loader.create_dataset(smiles, shard_size=2)
+  >>> len(dataset)
+  4
+
+  Here's an example with both datapoints and labels
+  
+  >>> import deepchem as dc
+  >>> smiles = ["C", "CC", "CCC", "CCCC"]
+  >>> labels = [1, 0, 1, 0]
+  >>> featurizer = dc.feat.CircularFingerprint()
+  >>> loader = dc.data.InMemoryLoader(tasks=["task1"], featurizer=featurizer)
+  >>> dataset = loader.create_dataset(zip(smiles, labels), shard_size=2)
+  >>> len(dataset)
+  4
+
+  Here's an example with datapoints, labels, weights and ids all provided.
+
+  >>> import deepchem as dc
+  >>> smiles = ["C", "CC", "CCC", "CCCC"]
+  >>> labels = [1, 0, 1, 0]
+  >>> weights = [1.5, 0, 1.5, 0]
+  >>> ids = ["C", "CC", "CCC", "CCCC"]
+  >>> featurizer = dc.feat.CircularFingerprint()
+  >>> loader = dc.data.InMemoryLoader(tasks=["task1"], featurizer=featurizer)
+  >>> dataset = loader.create_dataset(zip(smiles, labels, weights, ids), shard_size=2)
+  >>> len(dataset)
+  4
+
+  """
+
+  def create_dataset(self, inputs, data_dir=None, shard_size=8192):
+    """Creates and returns a `Dataset` object by featurizing provided files.
+
+    Reads in `inputs` and uses `self.featurizer` to featurize the
+    data in these input files.  For large files, automatically shards
+    into smaller chunks of `shard_size` datapoints for convenience.
+    Returns a `Dataset` object that contains the featurized dataset.
+
+    This implementation assumes that the helper methods `_get_shards`
+    and `_featurize_shard` are implemented and that each shard
+    returned by `_get_shards` is a pandas dataframe.  You may choose
+    to reuse or override this method in your subclass implementations.
+
+    Parameters
+    ----------
+    inputs: list
+      List of inputs to process. Entries can be filenames or arbitrary objects.
+    data_dir: str, optional
+      Directory to store featurized dataset.
+    shard_size: int, optional
+      Number of examples stored in each shard.
+
+    Returns
+    -------
+    A `Dataset` object containing a featurized representation of data
+    from `inputs`.
+    """
+    logger.info("Loading raw samples now.")
+    logger.info("shard_size: %d" % shard_size)
+
+    if not isinstance(inputs, list):
+      try:
+        inputs = list(inputs)
+      except TypeError:
+        inputs = [inputs]
+
+    def shard_generator():
+      global_index = 0
+      for shard_num, shard in enumerate(self._get_shards(inputs, shard_size)):
+        time1 = time.time()
+        X, y, w, ids = self._featurize_shard(shard, global_index)
+        global_index += len(shard)
+
+        time2 = time.time()
+        logger.info("TIMING: featurizing shard %d took %0.3f s" %
+                    (shard_num, time2 - time1))
+        yield X, y, w, ids
+
+    return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
+
+  def _get_shards(self, inputs, shard_size):
+    """Break up input into shards.
+
+    Parameters
+    ----------
+    inputs: list[object]
+      Each entry in this list must be of the form `(featurization_input,
+      label, weight, id)` or `(featurization_input, label, weight)` or
+      `(featurization_input, label)` or `featurization_input` for one
+      datapoint, where `featurization_input` is any input that is recognized
+      by `self.featurizer`.
+    shard_size: int
+      The size of shard to generate.
+
+    Returns
+    -------
+    Iterator which iterates over shards of data.
+    """
+    current_shard = []
+    for i, datapoint in enumerate(inputs):
+      if i != 0 and i % shard_size == 0:
+        shard_data = current_shard
+        current_shard = []
+        yield shard_data
+      current_shard.append(datapoint)
+    yield current_shard
+
+  def _featurize_shard(self, shard, global_index):
+    """Featurizes a shard of an input data.
+
+    Parameters
+    ----------
+    shard: list
+      List each entry of which must be of the form `(featurization_input,
+      label, weight, id)` or `(featurization_input, label, weight)` or
+      `(featurization_input, label)` or `featurization_input` for one
+      datapoint, where `featurization_input` is any input that is recognized
+      by `self.featurizer`.
+    global_index: int
+      The starting index for this shard in the full set of provided inputs
+    """
+    features = []
+    labels = []
+    weights = []
+    ids = []
+    n_tasks = len(self.tasks)
+    for i, entry in enumerate(shard):
+      if not isinstance(entry, tuple):
+        entry = (entry,)
+      if len(entry) > 4:
+        raise ValueError(
+            "Entry is malformed and must be of length 1-4 containing featurization_input and optionally label, weight, and id."
+        )
+      if len(entry) == 4:
+        featurization_input, label, weight, entry_id = entry
+      elif len(entry) == 3:
+        featurization_input, label, weight = entry
+        entry_id = global_index + i
+      elif len(entry) == 2:
+        featurization_input, label = entry
+        weight = np.ones((n_tasks), np.float32)
+        entry_id = global_index + i
+      elif len(entry) == 1:
+        featurization_input = entry
+        label = np.zeros((n_tasks), np.float32)
+        weight = np.zeros((n_tasks), np.float32)
+        entry_id = global_index + i
+      feature = self.featurizer(featurization_input)
+      features.append(feature)
+      weights.append(weight)
+      labels.append(label)
+      ids.append(entry_id)
+    X = np.concatenate(features, axis=0)
+    y = np.array(labels)
+    w = np.array(weights)
+    ids = np.array(ids)
+    return X, y, w, ids

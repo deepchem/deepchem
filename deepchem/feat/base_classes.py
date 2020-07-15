@@ -183,6 +183,8 @@ class MolecularFeaturizer(Featurizer):
     """
     try:
       from rdkit import Chem
+      from rdkit.Chem import rdmolfiles
+      from rdkit.Chem import rdmolops
       from rdkit.Chem.rdchem import Mol
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
@@ -201,6 +203,13 @@ class MolecularFeaturizer(Featurizer):
         if isinstance(mol, str):
           # mol must be a SMILES string so parse
           mol = Chem.MolFromSmiles(mol)
+          # TODO (ytz) this is a bandage solution to reorder the atoms
+          # so that they're always in the same canonical order.
+          # Presumably this should be correctly implemented in the
+          # future for graph mols.
+          if mol:
+            new_order = rdmolfiles.CanonicalRankAtoms(mol)
+            mol = rdmolops.RenumberAtoms(mol, new_order)
         features.append(self._featurize(mol))
       except:
         logger.warning(
