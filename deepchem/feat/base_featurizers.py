@@ -9,11 +9,6 @@ import multiprocessing
 logger = logging.getLogger(__name__)
 
 
-def _featurize_complex(featurizer, mol_pdb_file, protein_pdb_file, log_message):
-  logging.info(log_message)
-  return featurizer._featurize_complex(mol_pdb_file, protein_pdb_file)
-
-
 class Featurizer(object):
   """Abstract class for calculating a set of features for a datapoint.
 
@@ -88,12 +83,16 @@ class ComplexFeaturizer(object):
     failures: list
       Indices of complexes that failed to featurize.
     """
+    # def _featurize_complex(featurizer, mol_pdb_file, protein_pdb_file, log_message):
+    #   logging.info(log_message)
+    #   return featurizer._featurize_complex(mol_pdb_file, protein_pdb_file)
+
     pool = multiprocessing.Pool()
     results = []
     for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_pdbs)):
       log_message = "Featurizing %d / %d" % (i, len(mol_files))
       results.append(
-          pool.apply_async(_featurize_complex,
+          pool.apply_async(self._featurize_complex,
                            (self, mol_file, protein_pdb, log_message)))
     pool.close()
     features = []

@@ -2,7 +2,7 @@ import enum
 import numpy as np
 import deepchem as dc
 from deepchem.feat.base_featurizers import MolecularFeaturizer
-from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
+from deepchem.feat.atomic_coordinates_featurizers import ComplexNeighborListFragmentAtomicCoordinates
 from deepchem.feat.mol_graphs import ConvMol, WeaveMol
 from deepchem.data import DiskDataset
 import multiprocessing

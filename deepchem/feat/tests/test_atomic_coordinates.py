@@ -6,11 +6,11 @@ import logging
 import numpy as np
 import unittest
 from deepchem.utils import conformers
-from deepchem.feat.atomic_coordinates import get_coords
-from deepchem.feat.atomic_coordinates import AtomicCoordinates
-from deepchem.feat.atomic_coordinates import NeighborListAtomicCoordinates
-from deepchem.feat.atomic_coordinates import NeighborListComplexAtomicCoordinates
-from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
+from deepchem.feat.atomic_coordinates_featurizers import get_coords
+from deepchem.feat.atomic_coordinates_featurizers import AtomicCoordinates
+from deepchem.feat.atomic_coordinates_featurizers import NeighborListAtomicCoordinates
+from deepchem.feat.atomic_coordinates_featurizers import NeighborListComplexAtomicCoordinates
+from deepchem.feat.atomic_coordinates_featurizers import ComplexNeighborListFragmentAtomicCoordinates
 
 logger = logging.getLogger(__name__)
 
