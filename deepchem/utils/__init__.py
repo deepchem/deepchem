@@ -15,10 +15,7 @@ import tempfile
 import tarfile
 import zipfile
 
-try:
-  from urllib.request import urlretrieve  # Python 3
-except:
-  from urllib import urlretrieve  # Python 2
+from urllib.request import urlretrieve
 
 
 def pad_array(x, shape, fill=0, both=False):

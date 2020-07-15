@@ -52,7 +52,7 @@ Google Colab. Check out one of the `DeepChem Tutorials`_ or this
 `forum post`_ for Colab quick start guides.
 
 If you'd like to install DeepChem locally, we recommend using
-:code:`conda` and installing RDKit with deepchem. 
+:code:`conda` and installing RDKit with deepchem.
 RDKit is a soft requirement package, but many useful methods like
 molnet depend on it.
 
@@ -72,7 +72,7 @@ Then open your python and try running.
 
 .. code-block:: python
 
-    import deepchem 
+    import deepchem
 
 .. _`DeepChem Tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials
 .. _`forum post`: https://forum.deepchem.io/t/getting-deepchem-running-in-colab/81
@@ -108,7 +108,7 @@ That said, we would very much appreciate a citation if you find our tools useful
 Getting Involved
 ----------------
 
-Support the DeepChem project by starring us on `on GitHub`_.  
+Support the DeepChem project by starring us on `on GitHub`_.
 Join our forums at https://forum.deepchem.io to participate in
 discussions about research, development or any general questions. If you'd like to talk to real human beings involved in the project, say hi on our `Gitter`_ chatroom.
 
@@ -116,11 +116,11 @@ discussions about research, development or any general questions. If you'd like 
 .. _`on GitHub`: https://github.com/deepchem/deepchem
 .. _`Gitter`: https://gitter.im/deepchem/Lobby
 
-.. important:: Join our `community gitter <https://forms.gle/9TSdDYUgxYs8SA9e8>`_ to discuss DeepChem. Sign up for our `forums <https://forum.deepchem.io/>`_ to talk about research, development, and general questions. 
+.. important:: Join our `community gitter <https://forms.gle/9TSdDYUgxYs8SA9e8>`_ to discuss DeepChem. Sign up for our `forums <https://forum.deepchem.io/>`_ to talk about research, development, and general questions.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Table of Contents 
+   :caption: Table of Contents
    :name: mastertoc
 
    Tutorial <tutorial>
@@ -141,3 +141,4 @@ discussions about research, development or any general questions. If you'd like 
    Reinforcement Learning <rl>
    Docking <docking>
    Utilities <utils>
+   Coding Conventions <coding>

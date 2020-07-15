@@ -32,13 +32,13 @@ def get_defaults(module_name: str = None) -> Dict[str, Any]:
   Returns
   -------
   defaults : Dict[str, Any]
-    Keys are class names and values are class constructors. 
+    Keys are class names and values are class constructors.
 
   Examples
   --------
-  >> splitter = get_defaults('splits')['RandomSplitter']() 
+  >> splitter = get_defaults('splits')['RandomSplitter']()
   >> transformer = get_defaults('trans')['BalancingTransformer'](dataset, {"transform_X": True})
-  >> featurizer = get_defaults('feat')["CoulombMatrix"](max_atoms=5)  
+  >> featurizer = get_defaults('feat')["CoulombMatrix"](max_atoms=5)
 
   """
 
@@ -47,7 +47,7 @@ def get_defaults(module_name: str = None) -> Dict[str, Any]:
         "Input argument must be either 'feat', 'trans', or 'splits'.")
 
   if module_name == "feat":
-    sc = Featurizer
+    sc: Any = Featurizer
   elif module_name == "trans":
     sc = Transformer
   elif module_name == "splits":

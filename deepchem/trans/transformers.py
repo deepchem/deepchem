@@ -66,7 +66,7 @@ def get_grad_statistics(dataset):
 
 
 class Transformer(object):
-  """Abstract base class for different data transformation techniques. 
+  """Abstract base class for different data transformation techniques.
 
   `Transformer` objects are used to transform `Dataset` objects in ways that
   are useful to machine learning. Transformations might process the data to
@@ -390,7 +390,7 @@ class NormalizationTransformer(Transformer):
   """Normalizes dataset to have zero mean and unit standard deviation
 
   This transformer transforms datasets to have zero mean and unit standard
-  deviation. 
+  deviation.
 
   Example
   -------
@@ -925,7 +925,7 @@ class BalancingTransformer(Transformer):
 
 class CDFTransformer(Transformer):
   """Histograms the data and assigns values based on sorted list.
-  
+
   Acts like a Cumulative Distribution Function (CDF). If given a dataset of
   samples from a continuous distribution computes the CDF of this dataset.
 
@@ -1166,6 +1166,7 @@ class CoulombFitTransformer(Transformer):
     self.nbout = X.shape[1]
     self.mean = X.mean(axis=0)
     self.std = (X - self.mean).std()
+    super(CoulombFitTransformer, self).__init__(transform_X=True)
 
   def realize(self, X):
     """Randomize features.
@@ -1252,8 +1253,8 @@ class CoulombFitTransformer(Transformer):
         "Cannot untransform datasets with FitTransformer.")
 
 
-class IRVTransformer():
-  """Performs transform from ECFP to IRV features(K nearest neibours)."""
+class IRVTransformer(Transformer):
+  """Performs transform from ECFP to IRV features(K nearest neighbors)."""
 
   def __init__(self, K, n_tasks, dataset, transform_y=False, transform_x=False):
     """Initializes IRVTransformer.
@@ -1272,8 +1273,7 @@ class IRVTransformer():
     self.K = K
     self.y = dataset.y
     self.w = dataset.w
-    self.transform_x = transform_x
-    self.transform_y = transform_y
+    super(IRVTransformer, self).__init__(transform_X=True)
 
   def realize(self, similarity, y, w):
     """find samples with top ten similarity values in the reference dataset
@@ -1394,7 +1394,7 @@ class IRVTransformer():
       del result
     return all_result
 
-  def transform(self, dataset):
+  def transform(self, dataset, parallel=False, out_dir=None, **kwargs):
     X_length = dataset.X.shape[0]
     X_trans = []
     for count in range(X_length // 5000 + 1):
@@ -1402,7 +1402,10 @@ class IRVTransformer():
           self.X_transform(
               dataset.X[count * 5000:min((count + 1) * 5000, X_length), :]))
     X_trans = np.concatenate(X_trans, axis=0)
-    return NumpyDataset(X_trans, dataset.y, dataset.w, ids=None)
+    if out_dir is None:
+      return NumpyDataset(X_trans, dataset.y, dataset.w, ids=None)
+    return DiskDataset.from_numpy(
+        X_trans, dataset.y, dataset.w, data_dir=out_dir)
 
   def untransform(self, z):
     raise NotImplementedError(
@@ -1912,7 +1915,7 @@ class DataTransforms(Transformer):
     top: int
       the number of pixels to exclude from the top of the image
     right: int
-      the number of pixels to exclude from the right of the image    
+      the number of pixels to exclude from the right of the image
     bottom: int
       the number of pixels to exclude from the bottom of the image
 
@@ -1926,7 +1929,7 @@ class DataTransforms(Transformer):
 
   def convert2gray(self):
     """Converts the image to grayscale. The coefficients correspond to the Y' component of the Y'UV color system.
-    
+
     Returns
     -------
     The grayscale image.

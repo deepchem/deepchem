@@ -26,12 +26,14 @@ install:
 - bash scripts/install_deepchem_conda.sh deepchem
 - conda activate deepchem
 - python setup.py install
+- conda install mypy
 - pip install coveralls yapf==0.22.0
 script:
 - pytest -m "not slow" --cov=deepchem deepchem
 - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
   find ./deepchem -name "*.py" ! -name '*load_dataset_template.py' | xargs python -m doctest -v; fi
 - bash devtools/travis-ci/test_format_code.sh
+- mypy -p deepchem --ignore-missing-imports
 - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
   cd docs && pip install -r requirements.txt && make clean html && cd ..; fi
 after_success:
