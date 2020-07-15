@@ -5,9 +5,11 @@ import logging
 import types
 import numpy as np
 import multiprocessing
-from typing import Iterable, Union
+from typing import Iterable, Union, Dict, Any
 
 logger = logging.getLogger(__name__)
+
+JSON = Dict[str, Any]
 
 
 def _featurize_complex(featurizer, mol_pdb_file, protein_pdb_file, log_message):
@@ -232,13 +234,13 @@ class StructureFeaturizer(Featurizer):
 
   """
 
-  def featurize(self, structures: Iterable[dict],
+  def featurize(self, structures: Iterable[JSON],
                 log_every_n: int = 1000) -> np.ndarray:
     """Calculate features for crystal structures.
 
     Parameters
     ----------
-    structures: Iterable[dict]
+    structures: Iterable[JSON]
       Iterable sequence of pymatgen structure dictionaries.
       Json-serializable dictionary representation of pymatgen.core.structure
       https://pymatgen.org/pymatgen.core.structure.html
