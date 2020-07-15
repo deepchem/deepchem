@@ -10,7 +10,11 @@ import numpy as np
 import os
 import deepchem
 import warnings
+import logging
+from typing import List, Optional, Iterator
 from deepchem.utils.genomics import encode_bio_sequence as encode_sequence, encode_fasta_sequence as fasta_sequence, seq_one_hot_encode as seq_one_hotencode
+
+logger = logging.getLogger(__name__)
 
 
 def log(string, verbose=True):
@@ -111,6 +115,45 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
       for df in pd.read_csv(filename, chunksize=shard_size):
         log("Loading shard %d of size %s." % (shard_num, str(shard_size)),
             verbose)
+        df = df.replace(np.nan, str(""), regex=True)
+        shard_num += 1
+        yield df
+
+
+def load_json_files(filenames: List[str],
+                    shard_size: Optional[int] = None) -> Iterator[pd.DataFrame]:
+  """Load data as pandas dataframe.
+
+  Parameters
+  ----------
+  filenames : List[str]
+    List of json filenames.
+  shard_size : int, optional
+    Chunksize for reading json files.
+
+  Yields
+  ------
+  df : pandas.DataFrame
+    Shard of dataframe.
+
+  Notes
+  -----
+  To load shards from a json file into a Pandas dataframe, the file
+    must be originally saved with
+  ``df.to_json('filename.json', orient='records', lines=True)``
+
+  """
+
+  shard_num = 1
+  for filename in filenames:
+    if shard_size is None:
+      yield pd.read_json(filename, orient='records', lines=True)
+    else:
+      logger.info("About to start loading json from %s." % filename)
+      for df in pd.read_json(
+          filename, orient='records', chunksize=shard_size, lines=True):
+        logger.info(
+            "Loading shard %d of size %s." % (shard_num, str(shard_size)))
         df = df.replace(np.nan, str(""), regex=True)
         shard_num += 1
         yield df
