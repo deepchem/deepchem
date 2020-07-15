@@ -142,8 +142,6 @@ class Model(BaseEstimator):
     -------
     the average loss over the most recent epoch
     """
-    # TODO(rbharath/enf): We need a structured way to deal with potential GPU
-    #                     memory overflows.
     for epoch in range(nb_epoch):
       logger.info("Starting epoch %s" % str(epoch + 1))
       losses = []
