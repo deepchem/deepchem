@@ -278,7 +278,7 @@ class DataLoader(object):
     """Creates and returns a `Dataset` object by featurizing provided files.
 
     Reads in `inputs` and uses `self.featurizer` to featurize the
-    data in these input files.  For large files, automatically shards
+    data in these inputs.  For large files, automatically shards
     into smaller chunks of `shard_size` datapoints for convenience.
     Returns a `Dataset` object that contains the featurized dataset.
 
