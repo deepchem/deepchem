@@ -83,19 +83,6 @@ def test_evaluate_multiclass_classification_singletask():
   assert multitask_scores["metric-1"] >= 0
 
 
-def test_multiclass_classification_singletask():
-  """Test multiclass classification evaluation."""
-  X = np.random.rand(100, 5)
-  y = np.random.randint(5, size=(100,))
-  dataset = dc.data.NumpyDataset(X, y)
-  model = dc.models.MultitaskClassifier(1, 5, n_classes=5)
-  evaluator = Evaluator(model, dataset, [])
-  multitask_scores = evaluator.compute_model_performance(
-      dc.metrics.accuracy_score, n_classes=5)
-  assert len(multitask_scores) == 1
-  assert multitask_scores["metric-1"] >= 0
-
-
 def test_multitask_evaluator():
   """Test evaluation of a multitask metric."""
   n_tasks = 2
@@ -125,24 +112,6 @@ def test_model_evaluate_dc_metric():
   assert isinstance(multitask_scores, dict)
   assert len(multitask_scores) == 1
   assert multitask_scores['mae_score'] > 0
-
-
-def test_multitask_evaluator():
-  """Test evaluation of a multitask metric."""
-  n_tasks = 2
-  X = np.random.rand(10, 5)
-  y = np.random.rand(10, 2)
-  dataset = dc.data.NumpyDataset(X, y)
-  model = dc.models.MultitaskRegressor(2, 5)
-  evaluator = Evaluator(model, dataset, [])
-  metric = dc.metrics.Metric(dc.metrics.mae_score)
-  multitask_scores, all_task_scores = evaluator.compute_model_performance(
-      metric, per_task_metrics=True)
-  assert isinstance(multitask_scores, dict)
-  assert len(multitask_scores) == 1
-  assert multitask_scores['mae_score'] > 0
-  assert isinstance(all_task_scores, dict)
-  assert len(multitask_scores) == 1
 
 
 def test_multitask_model_evaluate_sklearn():

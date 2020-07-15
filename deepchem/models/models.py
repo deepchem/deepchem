@@ -188,7 +188,9 @@ class Model(BaseEstimator):
                dataset: Dataset,
                metrics: List[Metric],
                transformers: List[Transformer] = [],
-               per_task_metrics: bool = False):
+               per_task_metrics: bool = False,
+               use_sample_weights: bool = False,
+               n_classes: int = 2):
     """
     Evaluates the performance of this model on specified dataset.
 
@@ -220,6 +222,14 @@ class Model(BaseEstimator):
       List of `dc.trans.Transformer` objects. These transformations
       must have been applied to `dataset` previously. The dataset will
       be untransformed for metric evaluation.
+    per_task_metrics: bool, optional
+      If true, return computed metric for each task on multitask dataset.
+    use_sample_weights: bool, optional (default False)
+      If set, use per-sample weights `w`.
+    n_classes: int, optional (default None)
+      If specified, will use `n_classes` as the number of unique classes
+      in `self.dataset`. Note that this argument will be ignored for
+      regression metrics.
 
     Returns
     -------
@@ -231,7 +241,11 @@ class Model(BaseEstimator):
       separately.
     """
     evaluator = Evaluator(self, dataset, transformers)
-    return evaluator.compute_model_performance(metrics, **kwargs)
+    return evaluator.compute_model_performance(
+        metrics,
+        per_task_metrics=per_task_metrics,
+        use_sample_weights=use_sample_weights,
+        n_classes=n_classes)
 
   def get_task_type(self) -> str:
     """

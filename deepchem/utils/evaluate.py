@@ -260,9 +260,9 @@ class Evaluator(object):
     use_sample_weights: bool, optional (default False)
       If set, use per-sample weights `w`.
     n_classes: int, optional (default None)
-      If specified, will assume that all `metrics` are classification
-      metrics and will use `n_classes` as the number of unique classes
-      in `self.dataset`.
+      If specified, will use `n_classes` as the number of unique classes
+      in `self.dataset`. Note that this argument will be ignored for
+      regression metrics.
 
     Returns
     -------

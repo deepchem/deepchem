@@ -6,6 +6,7 @@ import sklearn.metrics
 import logging
 from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import recall_score
+from sklearn.metrics import cohen_kappa_score
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
@@ -505,47 +506,50 @@ def mae_score(y_true, y_pred):
   return mean_absolute_error(y_true, y_pred)
 
 
-def kappa_score(y_true, y_pred):
-  """Calculate Cohen's kappa for classification tasks.
+# kappa_score is an alias for `sklearn.metrics.cohen_kappa_score`
+kappa_score = cohen_kappa_score
 
-  See https://en.wikipedia.org/wiki/Cohen%27s_kappa
-
-  Note that this implementation of Cohen's kappa expects binary labels.
-
-  Parameters
-  ----------
-  y_true: np.ndarray
-    Numpy array containing true values of shape `(N,)`
-  y_pred: np.ndarray
-    Numpy array containing predicted values of shape `(N,)`
-
-  Returns
-  -------
-  kappa: np.ndarray
-    Numpy array containing kappa for each classification task.
-
-  Raises
-  ------
-  AssertionError: If y_true and y_pred are not the same size, or if
-  class labels are not in [0, 1].
-  """
-  assert len(y_true) == len(y_pred), 'Number of examples does not match.'
-  yt = np.asarray(y_true, dtype=int)
-  yp = np.asarray(y_pred, dtype=int)
-  if not set(np.unique(yt)).issubset(set([0, 1])):
-    raise ValueError("Class labels must be binary 0, 1")
-  assert np.array_equal(
-      np.unique(yt),
-      [0, 1]), ('Class labels must be binary: %s' % np.unique(yt))
-  observed_agreement = np.true_divide(
-      np.count_nonzero(np.equal(yt, yp)), len(yt))
-  expected_agreement = np.true_divide(
-      np.count_nonzero(yt == 1) * np.count_nonzero(yp == 1) +
-      np.count_nonzero(yt == 0) * np.count_nonzero(yp == 0),
-      len(yt)**2)
-  kappa = np.true_divide(observed_agreement - expected_agreement,
-                         1.0 - expected_agreement)
-  return kappa
+#def kappa_score(y_true, y_pred):
+#  """Calculate Cohen's kappa for classification tasks.
+#
+#  See https://en.wikipedia.org/wiki/Cohen%27s_kappa
+#
+#  Note that this implementation of Cohen's kappa expects binary labels.
+#
+#  Parameters
+#  ----------
+#  y_true: np.ndarray
+#    Numpy array containing true values of shape `(N,)`
+#  y_pred: np.ndarray
+#    Numpy array containing predicted values of shape `(N,)`
+#
+#  Returns
+#  -------
+#  kappa: np.ndarray
+#    Numpy array containing kappa for each classification task.
+#
+#  Raises
+#  ------
+#  AssertionError: If y_true and y_pred are not the same size, or if
+#  class labels are not in [0, 1].
+#  """
+#  assert len(y_true) == len(y_pred), 'Number of examples does not match.'
+#  yt = np.asarray(y_true, dtype=int)
+#  yp = np.asarray(y_pred, dtype=int)
+#  if not set(np.unique(yt)).issubset(set([0, 1])):
+#    raise ValueError("Class labels must be binary 0, 1")
+#  assert np.array_equal(
+#      np.unique(yt),
+#      [0, 1]), ('Class labels must be binary: %s' % np.unique(yt))
+#  observed_agreement = np.true_divide(
+#      np.count_nonzero(np.equal(yt, yp)), len(yt))
+#  expected_agreement = np.true_divide(
+#      np.count_nonzero(yt == 1) * np.count_nonzero(yp == 1) +
+#      np.count_nonzero(yt == 0) * np.count_nonzero(yp == 0),
+#      len(yt)**2)
+#  kappa = np.true_divide(observed_agreement - expected_agreement,
+#                         1.0 - expected_agreement)
+#  return kappa
 
 
 def bedroc_score(y_true, y_pred, alpha=20.0):
@@ -705,6 +709,7 @@ class Metric(object):
           "recall_score",
           "accuracy_score",
           "kappa_score",
+          "cohen_kappa_score",
           "precision_score",
           "balanced_accuracy_score",
           "prc_auc_score",
@@ -719,9 +724,9 @@ class Metric(object):
         # behavior
         if classification_handling_mode is None:
           if self.metric.__name__ in [
-              "matthews_corrcoef", "kappa_score", "balanced_accuracy_score",
-              "recall_score", "jaccard_score", "jaccard_index", "pixel_error",
-              "f1_score"
+              "matthews_corrcoef", "cohen_kappa_score", "kappa_score",
+              "balanced_accuracy_score", "recall_score", "jaccard_score",
+              "jaccard_index", "pixel_error", "f1_score"
           ]:
             classification_handling_mode = "threshold"
           elif self.metric.__name__ in [
