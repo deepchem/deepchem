@@ -31,9 +31,9 @@ class Featurizer(object):
     Parameters
     ----------
     datapoints: iterable 
-       A sequence of objects that you'd like to featurize. Subclassses of
-       `Featurizer` should instantiate the `_featurize` method that featurizes
-       objects in the sequence.
+      A sequence of objects that you'd like to featurize. Subclassses of
+      `Featurizer` should instantiate the `_featurize` method that featurizes
+      objects in the sequence.
 
     Returns
     -------
@@ -54,16 +54,15 @@ class Featurizer(object):
     features = np.asarray(features)
     return features
 
-  def __call__(self, datapoints):
-    """Calculate features for datapoints.
+  def _featurize(self, point):
+    """Calculate features for a single datapoint.
 
     Parameters
     ----------
-    datapoints: object 
-       Any blob of data you like. Subclasss should instantiate
-       this. 
+    point : Any object
+      A single datapoint in a sequence of objects
     """
-    return self.featurize(datapoints)
+    raise NotImplementedError('_featurize function is not defined.')
 
 
 class ComplexFeaturizer(object):
@@ -147,8 +146,8 @@ class MolecularFeaturizer(Featurizer):
     Parameters
     ----------
     molecules: RDKit Mol / SMILES string /iterable
-        RDKit Mol, or SMILES string or iterable sequence of RDKit mols/SMILES
-        strings.
+      RDKit Mol, or SMILES string or iterable sequence of RDKit mols/SMILES
+      strings.
 
     Returns
     -------
@@ -183,28 +182,6 @@ class MolecularFeaturizer(Featurizer):
 
     features = np.asarray(features)
     return features
-
-  def _featurize(self, mol):
-    """
-    Calculate features for a single molecule.
-
-    Parameters
-    ----------
-    mol : RDKit Mol
-        Molecule.
-    """
-    raise NotImplementedError('Featurizer is not defined.')
-
-  def __call__(self, molecules):
-    """
-    Calculate features for molecules.
-
-    Parameters
-    ----------
-    molecules: iterable
-        An iterable yielding RDKit Mol objects or SMILES strings.
-    """
-    return self.featurize(molecules)
 
 
 class UserDefinedFeaturizer(Featurizer):

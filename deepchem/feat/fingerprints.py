@@ -1,7 +1,7 @@
 """
 Topological fingerprints.
 """
-from deepchem.feat.base_classes import MolecularFeaturizer
+from deepchem.feat.base_featurizers import MolecularFeaturizer
 
 
 class CircularFingerprint(MolecularFeaturizer):

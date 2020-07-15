@@ -4,7 +4,6 @@ Test featurizer class.
 import unittest
 
 from deepchem.feat import ConvMolFeaturizer, CircularFingerprint
-from deepchem.feat.basic import MolecularWeight
 
 
 class TestFeaturizer(unittest.TestCase):
@@ -19,22 +18,6 @@ class TestFeaturizer(unittest.TestCase):
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
     from rdkit import Chem
     self.mol = Chem.MolFromSmiles(smiles)
-
-  def test_featurizer(self):
-    """
-    Test basic functionality of Featurizer.
-    """
-    f = MolecularWeight()
-    rval = f([self.mol])
-    assert rval.shape == (1, 1)
-
-  def test_flatten_conformers(self):
-    """
-    Calculate molecule-level features for a multiconformer molecule.
-    """
-    f = MolecularWeight()
-    rval = f([self.mol])
-    assert rval.shape == (1, 1)
 
   def test_convmol_hashable(self):
     featurizer1 = ConvMolFeaturizer(atom_properties=['feature'])

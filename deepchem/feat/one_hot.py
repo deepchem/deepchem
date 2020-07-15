@@ -1,5 +1,5 @@
 import numpy as np
-from deepchem.feat.base_classes import MolecularFeaturizer
+from deepchem.feat.base_featurizers import MolecularFeaturizer
 
 zinc_charset = [
     ' ', '#', ')', '(', '+', '-', '/', '1', '3', '2', '5', '4', '7', '6', '8',

@@ -3,37 +3,7 @@ Basic molecular features.
 """
 
 import numpy as np
-from deepchem.feat.base_classes import MolecularFeaturizer
-
-
-class MolecularWeight(MolecularFeaturizer):
-  """Molecular weight.
-
-  Note
-  ----
-  This class requires RDKit to be installed.
-  """
-
-  def _featurize(self, mol):
-    """
-    Calculate molecular weight.
-
-    Parameters
-    ----------
-    mol : RDKit Mol
-        Molecule.
-
-    Returns
-    -------
-    np.ndarray of length 1 containing the molecular weight.
-    """
-    try:
-      from rdkit.Chem import Descriptors
-    except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
-    wt = Descriptors.ExactMolWt(mol)
-    wt = [wt]
-    return np.asarray(wt)
+from deepchem.feat.base_featurizers import MolecularFeaturizer
 
 
 class RDKitDescriptors(MolecularFeaturizer):

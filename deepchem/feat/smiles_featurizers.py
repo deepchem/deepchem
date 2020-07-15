@@ -9,7 +9,7 @@ __license__ = "MIT"
 
 import numpy as np
 import pandas as pd
-from deepchem.feat.base_classes import MolecularFeaturizer
+from deepchem.feat.base_featurizers import MolecularFeaturizer
 
 PAD_TOKEN = "<pad>"
 OUT_OF_VOCAB_TOKEN = "<unk>"

@@ -5,7 +5,7 @@ See Montavon et al., _New Journal of Physics_ __15__ (2013) 095003.
 """
 import numpy as np
 import deepchem as dc
-from deepchem.feat.base_classes import MolecularFeaturizer
+from deepchem.feat.base_featurizers import MolecularFeaturizer
 from deepchem.utils import pad_array
 from deepchem.feat.atomic_coordinates import AtomicCoordinates
 

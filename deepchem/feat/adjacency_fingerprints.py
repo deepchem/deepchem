@@ -10,7 +10,7 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 import pandas as pd
 
-from deepchem.feat.base_classes import Featurizer
+from deepchem.feat.base_featurizers import Featurizer
 from deepchem.feat.graph_features import atom_features
 from scipy.sparse import csr_matrix
 
