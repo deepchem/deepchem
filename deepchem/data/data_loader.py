@@ -543,9 +543,6 @@ class JsonLoader(DataLoader):
 
     """
 
-    if not isinstance(input_files, list):
-      input_files = [input_files]
-
     def shard_generator():
       """Yield X, y, w, and ids for shards."""
       for shard_num, shard in enumerate(

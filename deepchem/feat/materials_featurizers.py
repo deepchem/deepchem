@@ -50,7 +50,7 @@ class ElementPropertyFingerprint(CompositionFeaturizer):
 
     self.data_source = data_source
 
-  def _featurize(self, composition: "pymatgen.Composition"):
+  def _featurize(self, composition: "pymatgen.Composition"):  # type: ignore
     """
     Calculate chemical fingerprint from crystal composition.
 
@@ -124,7 +124,7 @@ class SineCoulombMatrix(StructureFeaturizer):
     self.max_atoms = int(max_atoms)
     self.flatten = flatten
 
-  def _featurize(self, struct: "pymatgen.Structure"):
+  def _featurize(self, struct: "pymatgen.Structure"):  # type: ignore
     """
     Calculate sine Coulomb matrix from pymatgen structure.
 

@@ -265,12 +265,8 @@ class StructureFeaturizer(Featurizer):
 
     """
 
-    # Special case handling of single crystal structure
-    if not isinstance(structures, Iterable):
-      structures = [structures]
-    else:
-      # Convert iterables to list
-      structures = list(structures)
+    # Convert iterables to list
+    structures = list(structures)
 
     try:
       from pymatgen import Structure
@@ -336,12 +332,8 @@ class CompositionFeaturizer(Featurizer):
 
     """
 
-    # Special case handling of single crystal composition
-    if not isinstance(compositions, Iterable):
-      compositions = [compositions]
-    else:
-      # Convert iterables to list
-      compositions = list(compositions)
+    # Convert iterables to list
+    compositions = list(compositions)
 
     try:
       from pymatgen import Composition
