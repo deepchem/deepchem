@@ -1485,6 +1485,7 @@ class DiskDataset(Dataset):
 
     def generator():
       for ind, dataset in enumerate(datasets):
+        loger.info("Merging in dataset %d" % ind)
         X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
         yield (X, y, w, ids)
 
