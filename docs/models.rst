@@ -302,3 +302,9 @@ ChemCeption
 
 .. autoclass:: deepchem.models.ChemCeption
   :members:
+
+NormalizingFlowModel
+--------------------
+
+.. autoclass:: deepchem.models.normalizing_flows.NormalizingFlowModel
+  :members:

@@ -13,60 +13,47 @@ import tensorflow_probability as tfp
 import unittest
 import numpy as np
 
-from deepchem.models.normalizing_flows import NormalizingFlowLayer, NormalizingFlow, NormalizingFlowModel
+from deepchem.data import NumpyDataset
+from deepchem.models.normalizing_flows import NormalizingFlow, NormalizingFlowModel
+
+tfd = tfp.distributions
+tfb = tfp.bijectors
 
 
 class TestNormalizingFlow(unittest.TestCase):
 
   def setUp(self):
 
-    self.ef = ExpFlow()
-    self.nfm = TransformedNormal()
+    flow_layers = [
+        tfb.RealNVP(
+            num_masked=2,
+            shift_and_log_scale_fn=tfb.real_nvp_default_template(
+                hidden_layers=[8, 8]))
+    ]
+    # 3D Multivariate Gaussian base distribution
+    self.nfm = NormalizingFlowModel(
+        base_distribution=tfd.MultivariateNormalDiag(loc=[0., 0., 0.]),
+        flow_layers=flow_layers)
+
+    # Must be float32 for RealNVP
+    self.dataset = NumpyDataset(
+        X=np.random.rand(5, 3).astype(np.float32),
+        y=np.random.rand(5,),
+        ids=np.arange(5))
 
   def test_simple_flow(self):
-    """Tests a simple flow of Exp layers."""
+    """Tests a simple flow of one RealNVP layer."""
 
-    X = self.nfm.sample([10])
+    X = self.nfm.flow.sample()
+    x1 = tf.zeros([3])
+    x2 = self.dataset.X[0]
 
-    ys, ldjs = self.nfm(X)
-    xs, ildjs = self.nfm.normalizing_flow._inverse(ys[-1])
+    # log likelihoods should be negative
+    assert self.nfm.flow.log_prob(X).numpy() < 0
+    assert self.nfm.flow.log_prob(x1).numpy() < 0
+    assert self.nfm.flow.log_prob(x2).numpy() < 0
 
-    assert len(xs) == 3
-    assert len(ys) == 3
-    assert xs[0].shape == 10
-    assert np.isclose(self.nfm.log_prob(1), -1.4, atol=0.5)
-
-
-class ExpFlow(NormalizingFlowLayer):
-  """Exp(x)."""
-
-  def __init__(self, **kwargs):
-    model = tfp.bijectors.Exp()
-    super(ExpFlow, self).__init__(model, **kwargs)
-
-  def _forward(self, x):
-    return self.model.forward(x)
-
-  def _inverse(self, y):
-    return self.model.inverse(y)
-
-  def _forward_log_det_jacobian(self, x):
-    return self.model.forward_log_det_jacobian(x, 1)
-
-
-class TransformedNormal(NormalizingFlowModel):
-  """Univariate Gaussian base distribution."""
-
-  def __init__(self, 
-    base_distribution=tfp.distributions.Normal(0, 1),
-    normalizing_flow=NormalizingFlow([ExpFlow(), ExpFlow()])
-    ):
-
-    super(TransformedNormal, self).__init__(base_distribution, normalizing_flow)
-
-  def sample(self, shape, seed=None):
-    return self.base_distribution.sample(sample_shape=shape, seed=seed)
-
-  def log_prob(self, value):
-    return self.base_distribution.log_prob(value=value)
-
+    # Build and fit model
+    self.nfm.build()
+    final, avg = self.nfm.fit(self.dataset, batch_size=1, nb_epoch=5)
+    assert final.numpy() < 5.0
