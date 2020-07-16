@@ -19,7 +19,7 @@ from deepchem.utils.save import load_csv_files, load_json_files
 from deepchem.utils.save import load_sdf_files
 from deepchem.utils.genomics import encode_fasta_sequence
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
-from deepchem.data import DiskDataset, NumpyDataset, ImageDataset
+from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 import zipfile
 
 logger = logging.getLogger(__name__)
@@ -278,7 +278,7 @@ class DataLoader(object):
   def create_dataset(self,
                      inputs: Sequence[Any],
                      data_dir: Optional[str] = None,
-                     shard_size: int = 8192) -> DiskDataset:
+                     shard_size: Optional[int] = 8192) -> Dataset:
     """Creates and returns a `Dataset` object by featurizing provided files.
 
     Reads in `inputs` and uses `self.featurizer` to featurize the
@@ -306,7 +306,7 @@ class DataLoader(object):
     from `inputs`.
     """
     logger.info("Loading raw samples now.")
-    logger.info("shard_size: %d" % shard_size)
+    logger.info("shard_size: %s" % str(shard_size))
 
     if not isinstance(inputs, list):
       inputs = [inputs]
@@ -527,7 +527,7 @@ class JsonLoader(DataLoader):
   def create_dataset(self,
                      input_files: OneOrMany[str],
                      data_dir: Optional[str] = None,
-                     shard_size: int = 8192) -> DiskDataset:
+                     shard_size: Optional[int] = 8192) -> DiskDataset:
     """Creates a `Dataset` from input JSON files.
 
     Parameters
@@ -731,7 +731,7 @@ class FASTALoader(DataLoader):
     A `Dataset` object containing a featurized representation of data
     from `input_files`.
     """
-    if not isinstance(input_files, list):
+    if isinstance(input_files, str):
       input_files = [input_files]
 
     def shard_generator():
@@ -768,25 +768,31 @@ class ImageLoader(DataLoader):
       tasks = []
     self.tasks = tasks
 
-  def create_dataset(
-      self,
-      input_files: OneOrMany[str],
-      labels: Optional[np.ndarray],
-      weights: Optional[np.ndarray],
-      data_dir: Optional[str] = None,
-      in_memory: bool = False) -> Union[NumpyDataset, ImageDataset]:
+  def create_dataset(self,
+                     inputs: Union[OneOrMany[str], Tuple[Any]],
+                     data_dir: Optional[str] = None,
+                     shard_size: Optional[int] = 8192,
+                     in_memory: bool = False) -> Dataset:
     """Creates and returns a `Dataset` object by featurizing provided image files and labels/weights.
 
     Parameters
     ----------
-    input_files: list
-      Each file in this list should either be of a supported
-      image format (.png, .tif only for now) or of a compressed
-      folder of image files (only .zip for now).
-    labels: optional
-      If provided, a numpy ndarray of image labels
-    weights: optional
-      If provided, a numpy ndarray of image weights
+    inputs: `Union[OneOrMany[str], Tuple[Any]]`
+      The inputs provided should be one of the following
+
+      - filename
+      - list of filenames
+      - Tuple (list of filenames, labels)
+      - Tuple (list of filenames, labels, weights)
+
+      Each file in a given list of filenames should either be of a supported
+      image format (.png, .tif only for now) or of a compressed folder of
+      image files (only .zip for now). If `labels` or `weights` are provided,
+      they must correspond to the sorted order of all filenames provided, with
+      one label/weight per file.
+
+    data_dir: str, optional
+      Directory to store featurized dataset.
     in_memory: bool
       If true, return in-memory NumpyDataset. Else return ImageDataset.
 
@@ -794,8 +800,23 @@ class ImageLoader(DataLoader):
     -------
     A `Dataset` object containing a featurized representation of data
     from `input_files`, `labels`, and `weights`.
+
     """
-    if not isinstance(input_files, list):
+    labels, weights = None, None
+    if isinstance(inputs, tuple):
+      if len(inputs) == 1:
+        input_files = inputs[0]
+        if isinstance(inputs, str):
+          input_files = [inputs]
+      elif len(inputs) == 2:
+        input_files, labels = inputs
+      elif len(inputs) == 3:
+        input_files, labels, weights = inputs
+      else:
+        raise ValueError("Input must be a tuple of length 1, 2, or 3")
+    else:
+      input_files = inputs
+    if isinstance(input_files, str):
       input_files = [input_files]
 
     image_files = []
@@ -831,14 +852,29 @@ class ImageLoader(DataLoader):
           raise ValueError("Unsupported file format")
       input_files = remainder
 
+    # Sort image files
+    image_files = sorted(image_files)
+
     if in_memory:
-      return NumpyDataset(
-          self.load_img(image_files), y=labels, w=weights, ids=image_files)
+      if data_dir is None:
+        return NumpyDataset(
+            self.load_img(image_files), y=labels, w=weights, ids=image_files)
+      else:
+        dataset = DiskDataset.from_numpy(
+            self.load_img(image_files),
+            y=labels,
+            w=weights,
+            ids=image_files,
+            tasks=self.tasks,
+            data_dir=data_dir)
+        if shard_size is not None:
+          dataset.reshard(shard_size)
+        return dataset
     else:
       return ImageDataset(image_files, y=labels, w=weights, ids=image_files)
 
   @staticmethod
-  def load_img(image_files):
+  def load_img(image_files) -> np.ndarray:
     """Loads a set of images from disk.
 
     Parameters
@@ -848,7 +884,7 @@ class ImageLoader(DataLoader):
 
     Returns
     -------
-    np.ndarray of that contains loaded images. Of shape `(N,...)`.
+    np.ndarray that contains loaded images. Of shape `(N,...)`.
 
     Note
     ----
@@ -924,7 +960,7 @@ class InMemoryLoader(DataLoader):
   def create_dataset(self,
                      inputs: Sequence[Any],
                      data_dir: Optional[str] = None,
-                     shard_size: int = 8192) -> DiskDataset:
+                     shard_size: Optional[int] = 8192) -> DiskDataset:
     """Creates and returns a `Dataset` object by featurizing provided files.
 
     Reads in `inputs` and uses `self.featurizer` to featurize the
@@ -939,7 +975,7 @@ class InMemoryLoader(DataLoader):
 
     Parameters
     ----------
-    inputs: list
+    inputs: Sequence[Any]
       List of inputs to process. Entries can be filenames or arbitrary objects.
     data_dir: str, optional
       Directory to store featurized dataset.
@@ -952,7 +988,7 @@ class InMemoryLoader(DataLoader):
     from `inputs`.
     """
     logger.info("Loading raw samples now.")
-    logger.info("shard_size: %d" % shard_size)
+    logger.info("shard_size: %s" % str(shard_size))
 
     if not isinstance(inputs, list):
       try:

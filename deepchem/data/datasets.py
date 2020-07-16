@@ -1090,9 +1090,6 @@ class DiskDataset(Dataset):
     Gets learning tasks associated with this dataset.
     """
     return self.tasks
-    # if not len(self.metadata_df):
-    #  raise ValueError("No data in dataset.")
-    # return next(self.metadata_df.iterrows())[1]['task_names']
 
   def reshard(self, shard_size: int) -> None:
     """Reshards data to have specified shard size."""
