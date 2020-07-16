@@ -1943,7 +1943,12 @@ class ImageDataset(Dataset):
     self._X_shape = self._find_array_shape(X)
     self._y_shape = self._find_array_shape(y)
     if w is None:
-      if len(self._y_shape) == 1:
+      if len(self._y_shape) == 0:
+        # Case n_samples should be 1
+        if n_samples != 1:
+          raise ValueError("y can only be a scalar if n_samples == 1")
+        w = np.ones_like(y)
+      elif len(self._y_shape) == 1:
         w = np.ones(self._y_shape[0], np.float32)
       else:
         w = np.ones((self._y_shape[0], 1), np.float32)

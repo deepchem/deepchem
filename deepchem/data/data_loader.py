@@ -976,7 +976,8 @@ class InMemoryLoader(DataLoader):
     Parameters
     ----------
     inputs: Sequence[Any]
-      List of inputs to process. Entries can be filenames or arbitrary objects.
+      List of inputs to process. Entries can be arbitrary objects so long as
+      they are understood by `self.featurizer`
     data_dir: str, optional
       Directory to store featurized dataset.
     shard_size: int, optional
