@@ -21,7 +21,7 @@ class TestHyperparamOpt(unittest.TestCase):
       return dc.model.SklearnModel(sklearn_model, model_dir)
 
     try:
-      opt = dc.hyper.HyperparamOpt(rf_model_builder)
+      _ = dc.hyper.HyperparamOpt(rf_model_builder)
     except:
       initialized = False
     assert not initialized

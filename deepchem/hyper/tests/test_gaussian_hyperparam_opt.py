@@ -5,7 +5,6 @@ These tests fails every so often. I think it's when the Gaussian
 process optimizer doesn't find an optimal point. This is still a
 valuable test suite so leaving it in despite the flakiness.
 """
-import os
 import numpy as np
 import sklearn
 import deepchem as dc
@@ -110,9 +109,9 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
 
     optimizer = dc.hyper.GaussianProcessHyperparamOpt(
         lambda **p: dc.models.MultitaskRegressor(n_tasks=2,
-             n_features=3, dropouts=[0.],
-             weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
-             learning_rate=0.003, **p))
+                                                 n_features=3, dropouts=[0.],
+                                                 weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
+                                                 learning_rate=0.003, **p))
 
     params_dict = {"batch_size": 10}
     transformers = []

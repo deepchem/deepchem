@@ -1,13 +1,10 @@
 """
 Contains class for gaussian process hyperparameter optimizations.
 """
-import logging
-import numpy as np
-import tempfile
 import os
-import deepchem
+import logging
+import tempfile
 from deepchem.hyper.base_classes import HyperparamOpt
-from deepchem.utils.evaluate import Evaluator
 from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
 
 logger = logging.getLogger(__name__)
@@ -44,7 +41,7 @@ def compute_parameter_range(params_dict, search_range):
 
   Returns
   -------
-  param_range: dict 
+  param_range: dict
     Dictionary mapping hyperparameter names to tuples. Each tuple is
     of form `(value_type, value_range)` where `value_type` is a string
     that is either "int" or "cont" and `value_range` is a list of two
@@ -92,7 +89,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
   Example
   -------
-  This example shows the type of constructor function expected. 
+  This example shows the type of constructor function expected.
 
   >>> import sklearn
   >>> import deepchem as dc
@@ -286,7 +283,6 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
     ########################
 
-    import pyGPGO
     from pyGPGO.covfunc import matern32
     from pyGPGO.acquisition import Acquisition
     from pyGPGO.surrogates.GaussianProcess import GaussianProcess

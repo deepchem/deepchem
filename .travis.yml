@@ -39,7 +39,8 @@ script:
   - pytest --cov=deepchem deepchem
   - bash devtools/run_doctest.sh
   - mypy -p deepchem
-  - bash devtools/run_format_code.sh
+  - bash devtools/run_flake8.sh
+  - bash devtools/run_yapf.sh
   - bash devtools/run_docs_build.sh
 
 after_success:

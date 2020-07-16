@@ -28,7 +28,7 @@ class GridHyperparamOpt(HyperparamOpt):
 
   Example
   -------
-  This example shows the type of constructor function expected. 
+  This example shows the type of constructor function expected.
 
   >>> import sklearn
   >>> import deepchem as dc
