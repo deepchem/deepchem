@@ -73,6 +73,14 @@ class Featurizer(object):
     raise NotImplementedError('Featurizer is not defined.')
 
 
+# callback function for apply_async
+# NOTE : apply_async() : nested function is not executed
+# https://stackoverflow.com/questions/56533827/pool-apply-async-nested-function-is-not-executed
+def _featurize_callback(featurizer, mol_pdb_file, protein_pdb_file, log_message):
+  logging.info(log_message)
+  return featurizer._featurize(mol_pdb_file, protein_pdb_file)
+
+
 class ComplexFeaturizer(Featurizer):
   """"
   Abstract class for calculating features for mol/protein complexes.
@@ -96,10 +104,6 @@ class ComplexFeaturizer(Featurizer):
     failures: list
       Indices of complexes that failed to featurize.
     """
-    # callback function for apply_async
-    def _featurize_callback(mol_pdb_file, protein_pdb_file, log_message):
-      logging.info(log_message)
-      return self._featurize(mol_pdb_file, protein_pdb_file)
 
     pool = multiprocessing.Pool()
     results = []
@@ -107,7 +111,7 @@ class ComplexFeaturizer(Featurizer):
       log_message = "Featurizing %d / %d" % (i, len(mol_files))
       results.append(
           pool.apply_async(_featurize_callback,
-                           (mol_file, protein_pdb, log_message)))
+                           (self, mol_file, protein_pdb, log_message)))
     pool.close()
     features = []
     failures = []
