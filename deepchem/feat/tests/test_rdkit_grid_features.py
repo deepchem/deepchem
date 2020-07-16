@@ -27,8 +27,8 @@ class TestHelperFunctions(unittest.TestCase):
     # TODO test more formats for ligand
     current_dir = os.path.dirname(os.path.realpath(__file__))
     self.protein_file = os.path.join(current_dir,
-                                     '3ws9_protein_fixer_rdkit.pdb')
-    self.ligand_file = os.path.join(current_dir, '3ws9_ligand.sdf')
+                                     'data', '3ws9_protein_fixer_rdkit.pdb')
+    self.ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
 
   def test_load_molecule(self):
     # adding hydrogens and charges is tested in dc.utils
@@ -194,13 +194,13 @@ class TestPiInteractions(unittest.TestCase):
 
     # load and sanitize two real molecules
     _, self.prot = rgf.load_molecule(
-        os.path.join(current_dir, '3ws9_protein_fixer_rdkit.pdb'),
+        os.path.join(current_dir, 'data', '3ws9_protein_fixer_rdkit.pdb'),
         add_hydrogens=False,
         calc_charges=False,
         sanitize=True)
 
     _, self.lig = rgf.load_molecule(
-        os.path.join(current_dir, '3ws9_ligand.sdf'),
+        os.path.join(current_dir, 'data', '3ws9_ligand.sdf'),
         add_hydrogens=False,
         calc_charges=False,
         sanitize=True)
@@ -320,8 +320,8 @@ class TestFeaturizationFunctions(unittest.TestCase):
   def setUp(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     self.protein_file = os.path.join(current_dir,
-                                     '3ws9_protein_fixer_rdkit.pdb')
-    self.ligand_file = os.path.join(current_dir, '3ws9_ligand.sdf')
+                                     'data', '3ws9_protein_fixer_rdkit.pdb')
+    self.ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
 
   def test_compute_all_ecfp(self):
     _, mol = rgf.load_molecule(self.ligand_file)
