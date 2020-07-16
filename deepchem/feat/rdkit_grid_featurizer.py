@@ -685,7 +685,7 @@ def get_partial_charge(atom):
 
 
 def get_formal_charge(atom):
-  logger.warn(
+  logger.warning(
       'get_formal_charge function is deprecated and will be removed'
       ' in version 1.4, use get_partial_charge instead', DeprecationWarning)
   return get_partial_charge(atom)
@@ -818,9 +818,9 @@ def convert_atom_to_voxel(molecule_xyz,
       (molecule_xyz[atom_index] + box_width / 2.0) / voxel_width).astype(int)
   if ((indices < 0) | (indices >= box_width / voxel_width)).any():
     if verbose:
-      logger.warn('Coordinates are outside of the box (atom id = %s,'
-                  ' coords xyz = %s, coords in box = %s' %
-                  (atom_index, molecule_xyz[atom_index], indices))
+      logger.warning('Coordinates are outside of the box (atom id = %s,'
+                     ' coords xyz = %s, coords in box = %s' %
+                     (atom_index, molecule_xyz[atom_index], indices))
 
   return ([indices])
 
@@ -946,7 +946,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
 
     for arg in deprecated_args:
       if arg in kwargs and verbose:
-        logger.warn(
+        logger.warning(
             '%s argument was removed and it is ignored,'
             ' using it will result in error in version 1.4' % arg,
             DeprecationWarning)
@@ -1017,20 +1017,20 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     for feature_type in feature_types:
       if self.sanitize is False and feature_type in require_sanitized:
         if self.verbose:
-          logger.warn('sanitize is set to False, %s feature will be ignored' %
-                      feature_type)
+          logger.warning('sanitize is set to False, %s feature will be ignored'
+                         % feature_type)
         continue
       if feature_type in not_implemented:
         if self.verbose:
-          logger.warn('%s feature is not implemented yet and will be ignored' %
-                      feature_type)
+          logger.warning('%s feature is not implemented yet and will be ignored'
+                         % feature_type)
         continue
 
       if feature_type in self.FLAT_FEATURES:
         self.feature_types.append((True, feature_type))
         if self.flatten is False:
           if self.verbose:
-            logger.warn(
+            logger.warning(
                 '%s feature is used, output will be flattened' % feature_type)
           self.flatten = True
 
@@ -1043,7 +1043,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                                if ftype not in ignored_features]
         if self.flatten is False:
           if self.verbose:
-            logger.warn('Flat features are used, output will be flattened')
+            logger.warning('Flat features are used, output will be flattened')
           self.flatten = True
 
       elif feature_type == 'voxel_combined':
@@ -1059,10 +1059,10 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                                if ftype not in ignored_features]
         if self.flatten is False:
           if self.verbose:
-            logger.warn('Flat feature are used, output will be flattened')
+            logger.warning('Flat feature are used, output will be flattened')
           self.flatten = True
       elif self.verbose:
-        logger.warn('Ignoring unknown feature %s' % feature_type)
+        logger.warning('Ignoring unknown feature %s' % feature_type)
 
   def _compute_feature(self, feature_name, prot_xyz, prot_rdk, lig_xyz, lig_rdk,
                        distances):
@@ -1248,7 +1248,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
           self.verbose)
       ############################################################## TIMING
     except MoleculeLoadException:
-      logger.warn("Some molecules cannot be loaded by Rdkit. Skipping")
+      logger.warning("Some molecules cannot be loaded by Rdkit. Skipping")
       return None
 
     ############################################################## TIMING
