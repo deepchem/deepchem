@@ -52,6 +52,16 @@ class Featurizer(object):
     features = np.asarray(features)
     return features
 
+  def __call__(self, datapoints):
+    """Calculate features for datapoints.
+
+    Parameters
+    ----------
+    datapoints: object
+      Any blob of data you like. Subclasss should instantiate this.
+    """
+    return self.featurize(datapoints)
+
   def _featurize(self, datapoint):
     """Calculate features for a single datapoint.
 
@@ -86,13 +96,18 @@ class ComplexFeaturizer(Featurizer):
     failures: list
       Indices of complexes that failed to featurize.
     """
+    # callback function for apply_async
+    def _featurize_callback(mol_pdb_file, protein_pdb_file, log_message):
+      logging.info(log_message)
+      return self._featurize(mol_pdb_file, protein_pdb_file)
+
     pool = multiprocessing.Pool()
     results = []
     for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_pdbs)):
       log_message = "Featurizing %d / %d" % (i, len(mol_files))
       results.append(
-          pool.apply_async(self._featurize,
-                           (self, mol_file, protein_pdb, log_message)))
+          pool.apply_async(_featurize_callback,
+                           (mol_file, protein_pdb, log_message)))
     pool.close()
     features = []
     failures = []
