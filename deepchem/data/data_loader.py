@@ -12,7 +12,7 @@ import time
 import sys
 import logging
 import warnings
-from typing import List, Optional, Dict, Tuple, Any, Sequence
+from typing import List, Optional, Dict, Tuple, Any, Sequence, Union
 
 from deepchem.utils.typing import OneOrMany
 from deepchem.utils.save import load_csv_files, load_json_files
@@ -275,7 +275,10 @@ class DataLoader(object):
         FutureWarning)
     return self.create_dataset(inputs, data_dir, shard_size)
 
-  def create_dataset(self, inputs, data_dir=None, shard_size=8192):
+  def create_dataset(self,
+                     inputs: Sequence[Any],
+                     data_dir: Optional[str] = None,
+                     shard_size: int = 8192) -> DiskDataset:
     """Creates and returns a `Dataset` object by featurizing provided files.
 
     Reads in `inputs` and uses `self.featurizer` to featurize the
@@ -524,7 +527,7 @@ class JsonLoader(DataLoader):
   def create_dataset(self,
                      input_files: OneOrMany[str],
                      data_dir: Optional[str] = None,
-                     shard_size: Optional[int] = 8192) -> DiskDataset:
+                     shard_size: int = 8192) -> DiskDataset:
     """Creates a `Dataset` from input JSON files.
 
     Parameters
@@ -704,7 +707,10 @@ class FASTALoader(DataLoader):
     """Initialize loader."""
     pass
 
-  def create_dataset(self, input_files, data_dir=None, shard_size=None):
+  def create_dataset(self,
+                     input_files: OneOrMany[str],
+                     data_dir: Optional[str] = None,
+                     shard_size: Optional[int] = None) -> DiskDataset:
     """Creates a `Dataset` from input FASTA files.
 
     At present, FASTA support is limited and only allows for one-hot
@@ -747,7 +753,7 @@ class ImageLoader(DataLoader):
   traverse subdirectories which contain images.
   """
 
-  def __init__(self, tasks=None):
+  def __init__(self, tasks: OneOrMany[str] = None):
     """Initialize image loader.
 
     At present, custom image featurizers aren't supported by this
@@ -762,11 +768,13 @@ class ImageLoader(DataLoader):
       tasks = []
     self.tasks = tasks
 
-  def create_dataset(self,
-                     input_files,
-                     labels=None,
-                     weights=None,
-                     in_memory=False):
+  def create_dataset(
+      self,
+      input_files: OneOrMany[str],
+      labels: Optional[np.ndarray],
+      weights: Optional[np.ndarray],
+      data_dir: Optional[str] = None,
+      in_memory: bool = False) -> Union[NumpyDataset, ImageDataset]:
     """Creates and returns a `Dataset` object by featurizing provided image files and labels/weights.
 
     Parameters
