@@ -161,17 +161,17 @@ AtomConvFeaturizer
 .. autoclass:: deepchem.feat.NeighborListComplexAtomicCoordinates
   :members:
 
-StructureFeaturizer
--------------------
+MaterialStructureFeaturizer
+---------------------------
 
-Structure Featurizers are those that work with datasets of crystals with
+Material Structure Featurizers are those that work with datasets of crystals with
 periodic boundary conditions. For inorganic crystal structures, these
 featurizers operate on pymatgen.Structure objects, which include a
 lattice and 3D coordinates that specify a periodic crystal structure. 
 They should be applied on systems that have periodic boundary conditions.
 Structure featurizers are not designed to work with molecules. 
 
-.. autoclass:: deepchem.feat.StructureFeaturizer
+.. autoclass:: deepchem.feat.MaterialStructureFeaturizer
   :members:
 
 SineCoulombMatrix
@@ -186,17 +186,17 @@ StructureGraphFeaturizer
 .. autoclass:: deepchem.feat.StructureGraphFeaturizer
   :members:
 
-CompositionFeaturizer
----------------------
+MaterialCompositionFeaturizer
+-----------------------------
 
-Composition Featurizers are those that work with datasets of crystal
+Material Composition Featurizers are those that work with datasets of crystal
 compositions with periodic boundary conditions. 
 For inorganic crystal structures, these featurizers operate on chemical
 compositions (e.g. "MoS2"). They should be applied on systems that have
 periodic boundary conditions. Composition featurizers are not designed 
 to work with molecules. 
 
-.. autoclass:: deepchem.feat.CompositionFeaturizer
+.. autoclass:: deepchem.feat.MaterialCompositionFeaturizer
   :members:
 
 ElementPropertyFingerprint

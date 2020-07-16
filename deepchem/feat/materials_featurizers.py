@@ -4,11 +4,11 @@ Featurizers for inorganic crystals.
 
 import numpy as np
 
-from deepchem.feat import StructureFeaturizer, CompositionFeaturizer
+from deepchem.feat import MaterialStructureFeaturizer, MaterialCompositionFeaturizer
 from deepchem.utils import pad_array
 
 
-class ElementPropertyFingerprint(CompositionFeaturizer):
+class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
   """
   Fingerprint of elemental properties from composition.
 
@@ -50,7 +50,7 @@ class ElementPropertyFingerprint(CompositionFeaturizer):
 
     self.data_source = data_source
 
-  def _featurize(self, composition: "pymatgen.Composition"):
+  def _featurize(self, composition):
     """
     Calculate chemical fingerprint from crystal composition.
 
@@ -81,7 +81,7 @@ class ElementPropertyFingerprint(CompositionFeaturizer):
     return np.array(feats)
 
 
-class SineCoulombMatrix(StructureFeaturizer):
+class SineCoulombMatrix(MaterialStructureFeaturizer):
   """
   Calculate sine Coulomb matrix for crystals.
 
@@ -124,7 +124,7 @@ class SineCoulombMatrix(StructureFeaturizer):
     self.max_atoms = int(max_atoms)
     self.flatten = flatten
 
-  def _featurize(self, struct: "pymatgen.Structure"):
+  def _featurize(self, struct):
     """
     Calculate sine Coulomb matrix from pymatgen structure.
 
@@ -164,7 +164,7 @@ class SineCoulombMatrix(StructureFeaturizer):
     return features
 
 
-class StructureGraphFeaturizer(StructureFeaturizer):
+class StructureGraphFeaturizer(MaterialStructureFeaturizer):
   """
   Calculate structure graph features for crystals.
 

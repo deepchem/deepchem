@@ -9,8 +9,6 @@ from typing import Iterable, Union, Dict, Any
 
 logger = logging.getLogger(__name__)
 
-JSON = Dict[str, Any]
-
 
 def _featurize_complex(featurizer, mol_pdb_file, protein_pdb_file, log_message):
   logging.info(log_message)
@@ -210,12 +208,12 @@ class MolecularFeaturizer(Featurizer):
     return self.featurize(molecules)
 
 
-class StructureFeaturizer(Featurizer):
+class MaterialStructureFeaturizer(Featurizer):
   """
   Abstract class for calculating a set of features for an
   inorganic crystal structure.
 
-  The defining feature of a `StructureFeaturizer` is that it
+  The defining feature of a `MaterialStructureFeaturizer` is that it
   operates on 3D crystal structures with periodic boundary conditions. 
   Inorganic crystal structures are represented by Pymatgen structure
   objects. Featurizers for inorganic crystal structures that are subclasses of
@@ -234,15 +232,16 @@ class StructureFeaturizer(Featurizer):
 
   """
 
-  def featurize(self, structures: Iterable[JSON],
+  def featurize(self,
+                structures: Iterable[Dict[str, Any]],
                 log_every_n: int = 1000) -> np.ndarray:
     """Calculate features for crystal structures.
 
     Parameters
     ----------
-    structures: Iterable[JSON]
+    structures: Iterable[Dict[str, Any]]
       Iterable sequence of pymatgen structure dictionaries.
-      Json-serializable dictionary representation of pymatgen.core.structure
+      Dictionary representations of pymatgen.Structure
       https://pymatgen.org/pymatgen.core.structure.html
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
@@ -282,7 +281,7 @@ class StructureFeaturizer(Featurizer):
     features = np.asarray(features)
     return features
 
-  def _featurize(self, structure: "pymatgen.Structure"):
+  def _featurize(self, structure):
     """Calculate features for a single crystal structure.
 
     Parameters
@@ -294,25 +293,25 @@ class StructureFeaturizer(Featurizer):
 
     raise NotImplementedError('Featurizer is not defined.')
 
-  def __call__(self, structures: Iterable[dict]):
+  def __call__(self, structures: Iterable[Dict[str, Any]]):
     """Calculate features for crystal structures.
 
     Parameters
     ----------
-    structures: Iterable[dict]
-      An iterable of crystal structure dictionaries.
+    structures: Iterable[Dict[str, Any]]
+      An iterable of pymatgen.Structure dictionaries.
 
     """
 
     return self.featurize(structures)
 
 
-class CompositionFeaturizer(Featurizer):
+class MaterialCompositionFeaturizer(Featurizer):
   """
   Abstract class for calculating a set of features for an
   inorganic crystal composition.
 
-  The defining feature of a `CompositionFeaturizer` is that it
+  The defining feature of a `MaterialCompositionFeaturizer` is that it
   operates on 3D crystal chemical compositions. 
   Inorganic crystal compositions are represented by Pymatgen composition
   objects. Featurizers for inorganic crystal compositions that are 
@@ -377,7 +376,7 @@ class CompositionFeaturizer(Featurizer):
     features = np.asarray(features)
     return features
 
-  def _featurize(self, composition: "pymatgen.Composition"):
+  def _featurize(self, composition):
     """Calculate features for a single crystal composition.
 
     Parameters
