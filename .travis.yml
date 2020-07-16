@@ -33,13 +33,13 @@ install:
   - bash scripts/install_deepchem_conda.sh deepchem
   - conda activate deepchem
   - python setup.py install
-  - pip install coveralls mypy flake8 yapf==0.22.0
+  - pip install coveralls mypy yapf==0.22.0
 
 script:
   - pytest --cov=deepchem deepchem
   - bash devtools/run_doctest.sh
   - mypy -p deepchem
-  - bash devtools/run_format_code.sh
+  - bash devtools/run_yapf.sh
   - bash devtools/run_docs_build.sh
 
 after_success:
