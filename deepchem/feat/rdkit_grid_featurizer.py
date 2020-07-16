@@ -1,11 +1,6 @@
 import logging
-import os
-import shutil
-from warnings import warn
 import time
-import tempfile
 import hashlib
-import multiprocessing
 from collections import Counter
 from deepchem.utils.rdkit_util import load_molecule
 from deepchem.utils.rdkit_util import MoleculeLoadException
@@ -14,7 +9,9 @@ import numpy as np
 from scipy.spatial.distance import cdist
 from copy import deepcopy
 from deepchem.feat import ComplexFeaturizer
-from deepchem.utils.save import log
+
+
+logger = logging.getLogger(__name__)
 
 
 def compute_centroid(coordinates):
@@ -689,7 +686,7 @@ def get_partial_charge(atom):
 
 
 def get_formal_charge(atom):
-  warn(
+  logger.warn(
       'get_formal_charge function is deprecated and will be removed'
       ' in version 1.4, use get_partial_charge instead', DeprecationWarning)
   return get_partial_charge(atom)
@@ -822,7 +819,7 @@ def convert_atom_to_voxel(molecule_xyz,
       (molecule_xyz[atom_index] + box_width / 2.0) / voxel_width).astype(int)
   if ((indices < 0) | (indices >= box_width / voxel_width)).any():
     if verbose:
-      warn('Coordinates are outside of the box (atom id = %s,'
+      logger.warn('Coordinates are outside of the box (atom id = %s,'
            ' coords xyz = %s, coords in box = %s' %
            (atom_index, molecule_xyz[atom_index], indices))
 
@@ -950,7 +947,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
 
     for arg in deprecated_args:
       if arg in kwargs and verbose:
-        warn(
+        logger.warn(
             '%s argument was removed and it is ignored,'
             ' using it will result in error in version 1.4' % arg,
             DeprecationWarning)
@@ -1021,12 +1018,12 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     for feature_type in feature_types:
       if self.sanitize is False and feature_type in require_sanitized:
         if self.verbose:
-          warn('sanitize is set to False, %s feature will be ignored' %
+          logger.warn('sanitize is set to False, %s feature will be ignored' %
                feature_type)
         continue
       if feature_type in not_implemented:
         if self.verbose:
-          warn('%s feature is not implemented yet and will be ignored' %
+          logger.warn('%s feature is not implemented yet and will be ignored' %
                feature_type)
         continue
 
@@ -1034,7 +1031,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         self.feature_types.append((True, feature_type))
         if self.flatten is False:
           if self.verbose:
-            warn('%s feature is used, output will be flattened' % feature_type)
+            logger.warn('%s feature is used, output will be flattened' % feature_type)
           self.flatten = True
 
       elif feature_type in self.VOXEL_FEATURES:
@@ -1046,7 +1043,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                                if ftype not in ignored_features]
         if self.flatten is False:
           if self.verbose:
-            warn('Flat features are used, output will be flattened')
+            logger.warn('Flat features are used, output will be flattened')
           self.flatten = True
 
       elif feature_type == 'voxel_combined':
@@ -1062,10 +1059,10 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                                if ftype not in ignored_features]
         if self.flatten is False:
           if self.verbose:
-            warn('Flat feature are used, output will be flattened')
+            logger.warn('Flat feature are used, output will be flattened')
           self.flatten = True
       elif self.verbose:
-        warn('Ignoring unknown feature %s' % feature_type)
+        logger.warn('Ignoring unknown feature %s' % feature_type)
 
   def _compute_feature(self, feature_name, prot_xyz, prot_rdk, lig_xyz, lig_rdk,
                        distances):
@@ -1208,7 +1205,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       ]
     raise ValueError('Unknown feature type "%s"' % feature_name)
 
-  def _featurize_complex(self, mol_pdb_file, protein_pdb_file):
+  def _featurize(self, mol_pdb_file, protein_pdb_file):
     """Computes grid featurization of protein/ligand complex.
 
     Takes as input filenames pdb of the protein, pdb of the ligand.
@@ -1235,7 +1232,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
           protein_pdb_file, calc_charges=True, sanitize=self.sanitize)
       ############################################################## TIMING
       time2 = time.time()
-      log("TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1),
+      logger.info("TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1),
           self.verbose)
       ############################################################## TIMING
       ############################################################## TIMING
@@ -1245,11 +1242,11 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
           mol_pdb_file, calc_charges=True, sanitize=self.sanitize)
       ############################################################## TIMING
       time2 = time.time()
-      log("TIMING: Loading ligand coordinates took %0.3f s" % (time2 - time1),
+      logger.info("TIMING: Loading ligand coordinates took %0.3f s" % (time2 - time1),
           self.verbose)
       ############################################################## TIMING
     except MoleculeLoadException:
-      logging.warning("Some molecules cannot be loaded by Rdkit. Skipping")
+      logger.warn("Some molecules cannot be loaded by Rdkit. Skipping")
       return None
 
     ############################################################## TIMING
@@ -1260,7 +1257,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     protein_xyz = subtract_centroid(protein_xyz, centroid)
     ############################################################## TIMING
     time2 = time.time()
-    log("TIMING: Centroid processing took %0.3f s" % (time2 - time1),
+    logger.info("TIMING: Centroid processing took %0.3f s" % (time2 - time1),
         self.verbose)
     ############################################################## TIMING
 
