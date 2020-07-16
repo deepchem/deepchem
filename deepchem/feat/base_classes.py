@@ -12,11 +12,6 @@ logger = logging.getLogger(__name__)
 JSON = Dict[str, Any]
 
 
-def _featurize_complex(featurizer, mol_pdb_file, protein_pdb_file, log_message):
-  logging.info(log_message)
-  return featurizer._featurize_complex(mol_pdb_file, protein_pdb_file)
-
-
 class Featurizer(object):
   """Abstract class for calculating a set of features for a datapoint.
 
@@ -34,9 +29,9 @@ class Featurizer(object):
     Parameters
     ----------
     datapoints: iterable 
-       A sequence of objects that you'd like to featurize. Subclassses of
-       `Featurizer` should instantiate the `_featurize` method that featurizes
-       objects in the sequence.
+      A sequence of objects that you'd like to featurize. Subclassses of
+      `Featurizer` should instantiate the `_featurize` method that featurizes
+      objects in the sequence.
 
     Returns
     -------
@@ -62,19 +57,46 @@ class Featurizer(object):
 
     Parameters
     ----------
-    datapoints: object 
-       Any blob of data you like. Subclasss should instantiate
-       this. 
+    datapoints: object
+      Any blob of data you like. Subclasss should instantiate this.
     """
     return self.featurize(datapoints)
 
+  def _featurize(self, datapoint):
+    """Calculate features for a single datapoint.
 
-class ComplexFeaturizer(object):
+    Parameters
+    ----------
+    datapoint: object
+      a single datapoint in a sequence of objects
+    """
+    raise NotImplementedError('Featurizer is not defined.')
+
+
+def _featurize_callback(
+    featurizer,
+    mol_pdb_file,
+    protein_pdb_file,
+    log_message,
+):
+  """Callback function for apply_async in ComplexFeaturizer.
+
+  This callback function must be defined globally
+  because `apply_async` doesn't execute a nested function.
+
+  See the details from the following link.
+  https://stackoverflow.com/questions/56533827/pool-apply-async-nested-function-is-not-executed
+  """
+  logging.info(log_message)
+  return featurizer._featurize(mol_pdb_file, protein_pdb_file)
+
+
+class ComplexFeaturizer(Featurizer):
   """"
   Abstract class for calculating features for mol/protein complexes.
   """
 
-  def featurize_complexes(self, mol_files, protein_pdbs):
+  def featurize(self, mol_files, protein_pdbs):
     """
     Calculate features for mol/protein complexes.
 
@@ -92,12 +114,13 @@ class ComplexFeaturizer(object):
     failures: list
       Indices of complexes that failed to featurize.
     """
+
     pool = multiprocessing.Pool()
     results = []
     for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_pdbs)):
       log_message = "Featurizing %d / %d" % (i, len(mol_files))
       results.append(
-          pool.apply_async(_featurize_complex,
+          pool.apply_async(_featurize_callback,
                            (self, mol_file, protein_pdb, log_message)))
     pool.close()
     features = []
@@ -112,7 +135,7 @@ class ComplexFeaturizer(object):
     features = np.asarray(features)
     return features, failures
 
-  def _featurize_complex(self, mol_pdb, complex_pdb):
+  def _featurize(self, mol_pdb, complex_pdb):
     """
     Calculate features for single mol/protein complex.
 
@@ -187,28 +210,6 @@ class MolecularFeaturizer(Featurizer):
     features = np.asarray(features)
     return features
 
-  def _featurize(self, mol):
-    """
-    Calculate features for a single molecule.
-
-    Parameters
-    ----------
-    mol : RDKit Mol
-        Molecule.
-    """
-    raise NotImplementedError('Featurizer is not defined.')
-
-  def __call__(self, molecules):
-    """
-    Calculate features for molecules.
-
-    Parameters
-    ----------
-    molecules: iterable
-        An iterable yielding RDKit Mol objects or SMILES strings.
-    """
-    return self.featurize(molecules)
-
 
 class StructureFeaturizer(Featurizer):
   """
@@ -282,30 +283,6 @@ class StructureFeaturizer(Featurizer):
     features = np.asarray(features)
     return features
 
-  def _featurize(self, structure: "pymatgen.Structure"):
-    """Calculate features for a single crystal structure.
-
-    Parameters
-    ----------
-    structure: pymatgen.Structure object
-      Structure object with 3D coordinates and periodic lattice.
-
-    """
-
-    raise NotImplementedError('Featurizer is not defined.')
-
-  def __call__(self, structures: Iterable[dict]):
-    """Calculate features for crystal structures.
-
-    Parameters
-    ----------
-    structures: Iterable[dict]
-      An iterable of crystal structure dictionaries.
-
-    """
-
-    return self.featurize(structures)
-
 
 class CompositionFeaturizer(Featurizer):
   """
@@ -376,30 +353,6 @@ class CompositionFeaturizer(Featurizer):
 
     features = np.asarray(features)
     return features
-
-  def _featurize(self, composition: "pymatgen.Composition"):
-    """Calculate features for a single crystal composition.
-
-    Parameters
-    ----------
-    composition: pymatgen.Composition object
-      Composition object for 3D inorganic crystal.
-
-    """
-
-    raise NotImplementedError('Featurizer is not defined.')
-
-  def __call__(self, compositions: Iterable[str]):
-    """Calculate features for crystal compositions.
-
-    Parameters
-    ----------
-    compositions: Iterable[str]
-      An iterable of crystal compositions.
-
-    """
-
-    return self.featurize(compositions)
 
 
 class UserDefinedFeaturizer(Featurizer):

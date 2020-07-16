@@ -17,12 +17,6 @@ from deepchem.utils.genomics import encode_bio_sequence as encode_sequence, enco
 logger = logging.getLogger(__name__)
 
 
-def log(string, verbose=True):
-  """Print string if verbose."""
-  if verbose:
-    print(string)
-
-
 def save_to_disk(dataset, filename, compress=3):
   """Save a dataset to file."""
   if filename.endswith('.joblib'):
@@ -61,7 +55,7 @@ def load_data(input_files, shard_size=None, verbose=True):
   input_type = get_input_type(input_files[0])
   if input_type == "sdf":
     if shard_size is not None:
-      log("Ignoring shard_size for sdf input.", verbose)
+      logger.info("Ignoring shard_size for sdf input.", verbose)
     for value in load_sdf_files(input_files):
       yield value
   elif input_type == "csv":
@@ -111,9 +105,10 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
     if shard_size is None:
       yield pd.read_csv(filename)
     else:
-      log("About to start loading CSV from %s" % filename, verbose)
+      logger.info("About to start loading CSV from %s" % filename, verbose)
       for df in pd.read_csv(filename, chunksize=shard_size):
-        log("Loading shard %d of size %s." % (shard_num, str(shard_size)),
+        logger.info(
+            "Loading shard %d of size %s." % (shard_num, str(shard_size)),
             verbose)
         df = df.replace(np.nan, str(""), regex=True)
         shard_num += 1
