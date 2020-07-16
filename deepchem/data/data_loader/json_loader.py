@@ -5,7 +5,7 @@ import pandas as pd
 from typing import List, Optional, Tuple, Iterator
 from deepchem.data import DiskDataset
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
-from deepchem.data.data_loader.base_loader import DataLoader
+from deepchem.data.data_loader.base_loader import DataLoader, _convert_df_to_numpy
 
 logger = logging.getLogger(__name__)
 
