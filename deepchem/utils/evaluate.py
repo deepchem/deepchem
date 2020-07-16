@@ -16,6 +16,7 @@ __license__ = "MIT"
 
 logger = logging.getLogger(__name__)
 
+
 def relative_difference(x, y):
   """Compute the relative difference between x and y"""
   return np.abs(x - y) / np.abs(max(x, y))

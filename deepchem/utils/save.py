@@ -107,7 +107,8 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
     else:
       logger.info("About to start loading CSV from %s" % filename, verbose)
       for df in pd.read_csv(filename, chunksize=shard_size):
-        logger.info("Loading shard %d of size %s." % (shard_num, str(shard_size)),
+        logger.info(
+            "Loading shard %d of size %s." % (shard_num, str(shard_size)),
             verbose)
         df = df.replace(np.nan, str(""), regex=True)
         shard_num += 1

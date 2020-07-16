@@ -4,7 +4,7 @@ Test basic molecular features.
 import numpy as np
 import unittest
 
-from deepchem.feat.basic import RDKitDescriptors
+from deepchem.feat.rdkit_descriptors import RDKitDescriptors
 
 
 class TestRDKitDescriptors(unittest.TestCase):

@@ -124,4 +124,4 @@ class TestAtomicConvFeaturizer(unittest.TestCase):
         neighbor_cutoff=neighbor_cutoff)
 
     features, _ = featurizer.featurize([ligand_file, ligand_file],
-                                                 [protein_file, protein_file])
+                                       [protein_file, protein_file])

@@ -10,7 +10,6 @@ from scipy.spatial.distance import cdist
 from copy import deepcopy
 from deepchem.feat import ComplexFeaturizer
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -820,8 +819,8 @@ def convert_atom_to_voxel(molecule_xyz,
   if ((indices < 0) | (indices >= box_width / voxel_width)).any():
     if verbose:
       logger.warn('Coordinates are outside of the box (atom id = %s,'
-           ' coords xyz = %s, coords in box = %s' %
-           (atom_index, molecule_xyz[atom_index], indices))
+                  ' coords xyz = %s, coords in box = %s' %
+                  (atom_index, molecule_xyz[atom_index], indices))
 
   return ([indices])
 
@@ -1019,19 +1018,20 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       if self.sanitize is False and feature_type in require_sanitized:
         if self.verbose:
           logger.warn('sanitize is set to False, %s feature will be ignored' %
-               feature_type)
+                      feature_type)
         continue
       if feature_type in not_implemented:
         if self.verbose:
           logger.warn('%s feature is not implemented yet and will be ignored' %
-               feature_type)
+                      feature_type)
         continue
 
       if feature_type in self.FLAT_FEATURES:
         self.feature_types.append((True, feature_type))
         if self.flatten is False:
           if self.verbose:
-            logger.warn('%s feature is used, output will be flattened' % feature_type)
+            logger.warn(
+                '%s feature is used, output will be flattened' % feature_type)
           self.flatten = True
 
       elif feature_type in self.VOXEL_FEATURES:
@@ -1232,7 +1232,8 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
           protein_pdb_file, calc_charges=True, sanitize=self.sanitize)
       ############################################################## TIMING
       time2 = time.time()
-      logger.info("TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1),
+      logger.info(
+          "TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1),
           self.verbose)
       ############################################################## TIMING
       ############################################################## TIMING
@@ -1242,7 +1243,8 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
           mol_pdb_file, calc_charges=True, sanitize=self.sanitize)
       ############################################################## TIMING
       time2 = time.time()
-      logger.info("TIMING: Loading ligand coordinates took %0.3f s" % (time2 - time1),
+      logger.info(
+          "TIMING: Loading ligand coordinates took %0.3f s" % (time2 - time1),
           self.verbose)
       ############################################################## TIMING
     except MoleculeLoadException:
@@ -1258,7 +1260,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     ############################################################## TIMING
     time2 = time.time()
     logger.info("TIMING: Centroid processing took %0.3f s" % (time2 - time1),
-        self.verbose)
+                self.verbose)
     ############################################################## TIMING
 
     pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
