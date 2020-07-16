@@ -73,10 +73,20 @@ class Featurizer(object):
     raise NotImplementedError('Featurizer is not defined.')
 
 
-# callback function for apply_async
-# NOTE : apply_async() : nested function is not executed
-# https://stackoverflow.com/questions/56533827/pool-apply-async-nested-function-is-not-executed
-def _featurize_callback(featurizer, mol_pdb_file, protein_pdb_file, log_message):
+def _featurize_callback(
+    featurizer,
+    mol_pdb_file,
+    protein_pdb_file,
+    log_message,
+):
+  """Callback function for apply_async in ComplexFeaturizer.
+
+  This callback function must be defined globally
+  because `apply_async` doesn't execute a nested function.
+
+  See the details from the following link.
+  https://stackoverflow.com/questions/56533827/pool-apply-async-nested-function-is-not-executed
+  """
   logging.info(log_message)
   return featurizer._featurize(mol_pdb_file, protein_pdb_file)
 
