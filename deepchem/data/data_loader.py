@@ -243,7 +243,10 @@ class DataLoader(object):
     self.featurizer = featurizer
     self.log_every_n = log_every_n
 
-  def featurize(self, inputs, data_dir=None, shard_size=8192):
+  def featurize(self,
+                inputs: Sequence[Any],
+                data_dir: Optional[str] = None,
+                shard_size: Optional[int] = 8192) -> Dataset:
     """Featurize provided files and write to specified location.
 
     DEPRECATED: This method is now a wrapper for `create_dataset()`
