@@ -1,7 +1,7 @@
 import unittest
 import pytest
 import numpy as np
-from deepchem.feat.molecule_graph import MoleculeGraphData, BatchMoleculeGraphData
+from deepchem.utils.molecule_graph import MoleculeGraphData, BatchMoleculeGraphData
 
 
 class TestMoleculeGraph(unittest.TestCase):
@@ -73,7 +73,7 @@ class TestMoleculeGraph(unittest.TestCase):
     ]
     targets = np.random.random_sample(5)
 
-    molecule_graph_list = [
+    molecule_graphs = [
         MoleculeGraphData(
             node_features=np.random.random_sample((num_nodes_list[i],
                                                    num_node_features)),
@@ -83,11 +83,11 @@ class TestMoleculeGraph(unittest.TestCase):
                                                    num_edge_features)),
             graph_features=None) for i in range(len(num_edge_list))
     ]
-    batch = BatchMoleculeGraphData(molecule_graph_list)
+    batch = BatchMoleculeGraphData(molecule_graphs)
 
     assert batch.num_nodes == sum(num_nodes_list)
     assert batch.num_node_features == num_node_features
     assert batch.num_edges == sum(num_edge_list)
     assert batch.num_edge_features == num_edge_features
     assert batch.targets.shape == (3, 5)
-    assert batch.graph_idx.shape == (sum(num_nodes_list),)
+    assert batch.graph_index.shape == (sum(num_nodes_list),)
