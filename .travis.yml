@@ -33,14 +33,14 @@ install:
   - bash scripts/install_deepchem_conda.sh deepchem
   - conda activate deepchem
   - python setup.py install
-  - pip install coveralls mypy yapf==0.22.0
+  - pip install coveralls mypy flake8 yapf==0.22.0
 
 script:
-  - pytest -m "not slow" --cov=deepchem deepchem
+  - pytest --cov=deepchem deepchem
   - bash devtools/run_doctest.sh
-  - mypy -p deepchem --ignore-missing-imports
-  - bash devtools/run_docs_build.sh
+  - mypy -p deepchem
   - bash devtools/run_format_code.sh
+  - bash devtools/run_docs_build.sh
 
 after_success:
   - echo $TRAVIS_SECURE_ENV_VARS
