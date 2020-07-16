@@ -2,14 +2,12 @@
 Tests for Pose Generation
 """
 import os
-import sys
 import tempfile
 import unittest
 import logging
 import numpy as np
 import deepchem as dc
 import pytest
-from deepchem.dock.binding_pocket import ConvexHullPocketFinder
 
 
 class TestPoseGeneration(unittest.TestCase):
@@ -19,12 +17,12 @@ class TestPoseGeneration(unittest.TestCase):
 
   def test_vina_initialization(self):
     """Test that VinaPoseGenerator can be initialized."""
-    vpg = dc.dock.VinaPoseGenerator()
+    dc.dock.VinaPoseGenerator()
 
   def test_pocket_vina_initialization(self):
     """Test that VinaPoseGenerator can be initialized."""
-    pocket_finder = ConvexHullPocketFinder()
-    vpg = dc.dock.VinaPoseGenerator(pocket_finder=pocket_finder)
+    pocket_finder = dc.dock.ConvexHullPocketFinder()
+    dc.dock.VinaPoseGenerator(pocket_finder=pocket_finder)
 
   @pytest.mark.slow
   def test_vina_poses_and_scores(self):

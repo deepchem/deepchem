@@ -2,9 +2,7 @@
 Generates protein-ligand docked poses.
 """
 import platform
-import deepchem
 import logging
-import numpy as np
 import os
 import tempfile
 import tarfile
@@ -15,6 +13,7 @@ from deepchem.utils import mol_xyz_util
 from deepchem.utils import geometry_utils
 from deepchem.utils import vina_utils
 from deepchem.utils import download_url
+from deepchem.utils import get_data_dir
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +100,7 @@ class VinaPoseGenerator(PoseGenerator):
       If specified should be an instance of
       `dc.dock.BindingPocketFinder`.
     """
-    data_dir = deepchem.utils.get_data_dir()
+    data_dir = get_data_dir()
     if platform.system() == 'Linux':
       url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_linux_x86.tgz"
       filename = "autodock_vina_1_1_2_linux_x86.tgz"

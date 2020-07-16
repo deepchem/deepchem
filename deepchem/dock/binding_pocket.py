@@ -1,13 +1,8 @@
 """
 Computes putative binding pockets on protein.
 """
-import os
 import logging
-import tempfile
 import numpy as np
-from subprocess import call
-from deepchem.feat.fingerprints import CircularFingerprint
-from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils import rdkit_util
 from deepchem.utils import coordinate_box_utils as box_utils
 from deepchem.utils.fragment_util import get_contact_atom_indices
@@ -99,7 +94,7 @@ class ConvexHullPocketFinder(BindingPocketFinder):
 
   def find_all_pockets(self, protein_file):
     """Find list of binding pockets on protein.
-    
+
     Parameters
     ----------
     protein_file: str

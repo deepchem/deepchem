@@ -27,9 +27,9 @@ def cutoff_filter(d, x, cutoff=8.0):
   Parameters
   ----------
   d: np.ndarray
-    Pairwise distances matrix. Of shape `(N, M)` 
+    Pairwise distances matrix. Of shape `(N, M)`
   x: np.ndarray
-    Matrix of shape `(N, M)` 
+    Matrix of shape `(N, M)`
   cutoff: float, optional (default 8)
     Cutoff for selection in Angstroms
 
@@ -46,8 +46,8 @@ def vina_nonlinearity(c, w, Nrot):
 
   Parameters
   ----------
-  c: np.ndarray 
-    Of shape `(N, M)` 
+  c: np.ndarray
+    Of shape `(N, M)`
   w: float
     Weighting term
   Nrot: int
@@ -124,9 +124,7 @@ def vina_hbond(d):
 def vina_gaussian_first(d):
   """Computes Autodock Vina's first Gaussian interaction term.
 
-  Here, d is the set of surface distances as defined in:
-
-  Jain, Ajay N. "Scoring noncovalent protein-ligand interactions: a continuous differentiable function tuned to compute binding affinities." Journal of computer-aided molecular design 10.5 (1996): 427-440.
+  Here, d is the set of surface distances as defined in [1]_
 
   Parameters
   ----------
@@ -136,6 +134,12 @@ def vina_gaussian_first(d):
   Returns
   -------
   A `(N, M)` array of gaussian interaction terms.
+
+  References
+  ----------
+  .. [1] Jain, Ajay N. "Scoring noncovalent protein-ligand interactions:
+     a continuous differentiable function tuned to compute binding affinities."
+     Journal of computer-aided molecular design 10.5 (1996): 427-440.
   """
   out_tensor = np.exp(-(d / 0.5)**2)
   return out_tensor
@@ -144,9 +148,7 @@ def vina_gaussian_first(d):
 def vina_gaussian_second(d):
   """Computes Autodock Vina's second Gaussian interaction term.
 
-  Here, d is the set of surface distances as defined in:
-
-  Jain, Ajay N. "Scoring noncovalent protein-ligand interactions: a continuous differentiable function tuned to compute binding affinities." Journal of computer-aided molecular design 10.5 (1996): 427-440.
+  Here, d is the set of surface distances as defined in [1]_
 
   Parameters
   ----------
@@ -156,6 +158,12 @@ def vina_gaussian_second(d):
   Returns
   -------
   A `(N, M)` array of gaussian interaction terms.
+
+  References
+  ----------
+  .. [1] Jain, Ajay N. "Scoring noncovalent protein-ligand interactions:
+     a continuous differentiable function tuned to compute binding affinities."
+     Journal of computer-aided molecular design 10.5 (1996): 427-440.
   """
   out_tensor = np.exp(-((d - 3) / 2)**2)
   return out_tensor
@@ -179,9 +187,9 @@ def vina_energy_term(coords1, coords2, weights, wrot, Nrot):
 
   Parameters
   ----------
-  coords1: np.ndarray 
+  coords1: np.ndarray
     Molecular coordinates of shape `(N, 3)`
-  coords2: np.ndarray 
+  coords2: np.ndarray
     Molecular coordinates of shape `(M, 3)`
   weights: np.ndarray
     Of shape `(5,)`

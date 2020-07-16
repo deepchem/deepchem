@@ -1,11 +1,8 @@
 """
-Docks Molecular Complexes 
+Docks Molecular Complexes
 """
 import logging
-import numpy as np
-import os
 import tempfile
-from subprocess import call
 from deepchem.data import NumpyDataset
 
 logger = logging.getLogger(__name__)
@@ -59,7 +56,7 @@ class Docker(object):
 
     This docking function uses this object's featurizer, pose
     generator, and scoring model to make docking predictions. This
-    function is written in generic style so  
+    function is written in generic style so
 
     Parameters
     ----------
@@ -80,7 +77,7 @@ class Docker(object):
     use_pose_generator_scores: bool, optional (default False)
       If `True`, ask pose generator to generate scores. This cannot be
       `True` if `self.featurizer` and `self.scoring_model` are set
-      since those will be used to generate scores in that case. 
+      since those will be used to generate scores in that case.
 
     Returns
     -------
