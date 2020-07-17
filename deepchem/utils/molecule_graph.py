@@ -5,9 +5,8 @@ import numpy as np
 class MoleculeGraphData(object):
   """MoleculeGraphData class
 
-  This data class is almost same as `torch_geometric.data.Data
-  <https://pytorch-geometric.readthedocs.io/en/latest/modules/data.html#torch_geometric.data.Data>`
-  in PyTorch Geometric.
+  This data class is almost same as `torch_geometric.data.Data 
+  <https://pytorch-geometric.readthedocs.io/en/latest/modules/data.html#torch_geometric.data.Data>`_.
 
   Attributes
   ----------
@@ -85,7 +84,13 @@ class MoleculeGraphData(object):
       self.num_edge_features = self.edge_features.shape[1]
 
   def to_pyg_data(self):
-    """"Convert to PyTorch Geometric data class"""
+    """Convert to PyTorch Geometric Data instance
+
+    Returns
+    -------
+    torch_geometric.data.Data
+      Molecule graph data for PyTorch Geometric
+    """
     try:
       import torch
       from torch_geometric.data import Data
@@ -160,12 +165,17 @@ class BatchMoleculeGraphData(MoleculeGraphData):
 
     @staticmethod
     def to_pyg_data(molecule_graphs: Iterable[MoleculeGraphData]):
-      """"Convert to PyTorch Geometric Batch class
+      """Convert to PyTorch Geometric Batch instance
 
       Parameters
       ----------
       molecule_graphs : Iterable[MoleculeGraphData]
         List of MoleculeGraphData
+
+      Returns
+      -------
+      torch_geometric.data.Batch
+        Batch data of molecule graph for PyTorch Geometric
       """
       try:
         from torch_geometric.data import Batch
