@@ -2,6 +2,7 @@
 import tensorflow as tf
 import numpy as np
 import collections
+from typing import Callable, Dict, List
 from tensorflow.keras import activations, initializers, backend
 from tensorflow.keras.layers import Dropout
 
@@ -2121,7 +2122,8 @@ class WeaveLayer(tf.keras.layers.Layer):
     self.n_pair_output_feat = n_pair_output_feat
     self.W_AP, self.b_AP, self.W_PP, self.b_PP, self.W_P, self.b_P = None, None, None, None, None, None
 
-  def get_config(self):
+  def get_config(self) -> Dict:
+    """Returns config dictionary for this layer."""
     config = super(WeaveLayer, self).get_config()
     config['n_atom_input_feat'] = self.n_atom_input_feat
     config['n_pair_input_feat'] = self.n_pair_input_feat
