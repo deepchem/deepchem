@@ -143,6 +143,7 @@ class Evaluator(object):
   for `sklearn`. Let's do a bit of setup constructing our dataset and
   model.
 
+  >>> import deepchem as dc
   >>> import numpy as np
   >>> X = np.random.rand(10, 5)
   >>> y = np.random.rand(10, 1)
@@ -324,6 +325,7 @@ class GeneratorEvaluator(object):
 
   Example
   -------
+  >>> import deepchem as dc
   >>> import numpy as np
   >>> X = np.random.rand(10, 5)
   >>> y = np.random.rand(10, 1)
