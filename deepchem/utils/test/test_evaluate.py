@@ -301,7 +301,8 @@ def test_gc_binary_kappa_classification():
   multitask_scores = evaluator.compute_model_performance(
       dc.metrics.kappa_score, n_classes=2)
   assert len(multitask_scores) == 1
-  assert multitask_scores["metric-1"] >= 0
+  assert multitask_scores["metric-1"] <= 1
+  assert multitask_scores["metric-1"] >= -1
 
 
 def test_gc_multiclass_classification():
