@@ -332,6 +332,7 @@ class GeneratorEvaluator(object):
   >>> dataset = dc.data.NumpyDataset(X, y)
   >>> model = dc.models.MultitaskRegressor(1, 5)
   >>> generator = model.default_generator(dataset, pad_batches=False)
+  >>> transformers = []
 
   Then you can evaluate this model as follows 
 
