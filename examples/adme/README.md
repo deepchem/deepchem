@@ -1,11 +1,15 @@
-# DeepChem ADME
+# ADME Dataset Examples
 
-ADME (Absorption, Distribution, Metabolism, Excretion) is a core part of the drug discovery process. In-silico models\
- for ADME tasks span a wide variety of pharmacokinetics endpoints across multiple species.
+ADME (Absorption, Distribution, Metabolism, Excretion) is a
+core part of the drug discovery process. In-silico models for
+ADME tasks span a wide variety of pharmacokinetics endpoints
+across multiple species.
 
-The ADME benchmark contains three of the larger datasets that were released by AstraZenica on ChEMBL: human plasma pr\
-otein binding (PPB), lipophilicity, and human clearance. While this data is small relative to full industrial dataset\
-s, it is high quality and diverse.
+The ADME benchmark contains three of the larger datasets that
+were released by AstraZeneca on ChEMBL: human plasma protein
+binding (PPB), lipophilicity, and human clearance. While this
+data is small relative to full industrial datasets, it is high
+quality and diverse.
 
 Note that PPB dataset labels are transformed using %bound -> log(1 - %bound).
 
@@ -17,17 +21,14 @@ Note that PPB dataset labels are transformed using %bound -> log(1 - %bound).
 
 # Running Benchmark
 ```sh
-$ python run_benchmark.py model split dataset
+$ python run_benchmark.py
 ```
 
-- models: {GraphConv, PDNN, RF, SVR}
-- splits: {scaffold, random, index}
-- dataset: {az_clearance.csv, az_hppb.csv, az_logd.csv}
+You can manually edit variables within `run_benchmarks.py` to the following values and fun
 
-Paper
-----
-
-www.arxiv.org/00000000
+- `MODEL`: {GraphConv, RF, SVR}
+- `SPLIT`: {scaffold, random, index}
+- `DATASET_NAME`: {clearance, hppb}
 
 License
 ----

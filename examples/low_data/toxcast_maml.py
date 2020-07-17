@@ -1,4 +1,6 @@
-from __future__ import print_function
+"""
+Train Metalearning models on the ToxCast dataset.
+"""
 
 import deepchem as dc
 import numpy as np
@@ -6,7 +8,6 @@ import tensorflow as tf
 from sklearn.metrics import accuracy_score
 
 # Load the data.
-
 tasks, datasets, transformers = dc.molnet.load_toxcast()
 (train_dataset, valid_dataset, test_dataset) = datasets
 x = train_dataset.X
@@ -16,10 +17,11 @@ n_features = x.shape[1]
 n_molecules = y.shape[0]
 n_tasks = y.shape[1]
 
-# Toxcast has data on 6874 molecules and 617 tasks.  However, the data is very
-# sparse: most tasks do not include data for most molecules.  It also is very
-# unbalanced: there are many more negatives than positives.  For each task,
-# create a list of alternating positives and negatives so each batch will have
+# Toxcast has data on 6874 molecules and 617 tasks.  However,
+# the data is very sparse: most tasks do not include data for
+# most molecules.  It also is very unbalanced: there are many
+# more negatives than positives.  For each task, create a list
+# of alternating positives and negatives so each batch will have
 # equal numbers of both.
 
 task_molecules = []
@@ -32,8 +34,6 @@ for i in range(n_tasks):
   task_molecules.append(mols)
 
 # Define a MetaLearner describing the learning problem.
-
-
 class ToxcastLearner(dc.metalearning.MetaLearner):
 
   def __init__(self):
@@ -82,7 +82,6 @@ class ToxcastLearner(dc.metalearning.MetaLearner):
 
 
 # Run meta-learning on 80% of the tasks.
-
 n_epochs = 20
 learner = ToxcastLearner()
 maml = dc.metalearning.MAML(learner)

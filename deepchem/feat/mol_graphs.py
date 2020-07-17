@@ -6,8 +6,11 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
 import csv
+import logging
 import random
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 def cumulative_sum_minus_last(l, offset=0):

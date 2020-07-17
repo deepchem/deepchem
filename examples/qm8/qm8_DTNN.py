@@ -1,14 +1,10 @@
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import numpy as np
 np.random.seed(123)
 import tensorflow as tf
 tf.random.set_seed(123)
 import deepchem as dc
 
-# Load Tox21 dataset
+# Load QM8 dataset
 tasks, datasets, transformers = dc.molnet.load_qm8()
 train_dataset, valid_dataset, test_dataset = datasets
 

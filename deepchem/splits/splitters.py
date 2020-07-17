@@ -2,11 +2,6 @@
 Contains an abstract base class that supports chemically aware data splits.
 """
 import random
-
-__author__ = "Bharath Ramsundar, Aneesh Pappu "
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import tempfile
 import numpy as np
 import pandas as pd
@@ -18,12 +13,21 @@ from deepchem.data import DiskDataset
 from deepchem.utils import ScaffoldGenerator
 from deepchem.data import NumpyDataset
 from deepchem.utils.save import load_data
+from deepchem.utils.data import datasetify
 
 logger = logging.getLogger(__name__)
 
 
 def generate_scaffold(smiles, include_chirality=False):
   """Compute the Bemis-Murcko scaffold for a SMILES string.
+
+  Parameters
+  ----------
+  smiles: str
+    The SMILES string representation of a molecule
+  include_chiralisty: bool, optional
+    Whether to consider chirality information when computing
+    scaffolds.
 
   Note
   ----
@@ -59,24 +63,40 @@ class Splitter(object):
   instantiate this class directly. Rather you will want to use a concrete
   subclass for your application.
   """
+  def __init__(self, seed=None):
+    """Creates splitter object.
 
-  def k_fold_split(self, dataset, k, directories=None, **kwargs):
-    """
     Parameters
     ----------
-    dataset: `dc.data.Dataset`
-      Dataset to do a k-fold split
+    seed: int, optional
+      Random seed to make the split deterministic 
+    """
+    if seed is not None:
+      np.random.seed(seed)
+    self.seed = seed
+
+  def k_fold_split(self, dataset, k, directories=None, **kwargs):
+    """Perform a k-fold split of the dataset
+
+    Parameters
+    ----------
+    dataset: data-like object. 
+      Dataset to do a k-fold split on. This should either be of type
+      `dc.data.Dataset` or a type that `dc.utils.data.datasetify` can
+      convert into a `Dataset`.
     k: int
       Number of folds to split `dataset` into.
     directories: list[str]
-      list of length 2*k filepaths to save the result disk-datasets
+      list of length 2*k filepaths to save the result
+      disk-datasets
 
     Returns
     -------
-    list of length k tuples of (train, cv) where `train` and `cv` are both
-    lists of `Dataset`s.
+    list of length k tuples of (train, cv), where both of these
+    are `dc.data.Dataset` objects.
     """
     logger.info("Computing K-fold split")
+    dataset = datasetify(dataset)
     if directories is None:
       directories = [tempfile.mkdtemp() for _ in range(2 * k)]
     else:
@@ -124,7 +144,6 @@ class Splitter(object):
                              frac_train=.8,
                              frac_valid=.1,
                              frac_test=.1,
-                             seed=None,
                              log_every_n=1000,
                              **kwargs):
     """ Splits self into train/validation/test sets.
@@ -168,9 +187,9 @@ class Splitter(object):
     Train and test datasets as dc.data.Dataset objects.
     """
     logger.info("Computing train/valid/test indices")
+    dataset = datasetify(dataset)
     train_inds, valid_inds, test_inds = self.split(
         dataset,
-        seed=seed,
         frac_train=frac_train,
         frac_test=frac_test,
         frac_valid=frac_valid,
@@ -197,7 +216,6 @@ class Splitter(object):
                        dataset,
                        train_dir=None,
                        test_dir=None,
-                       seed=None,
                        frac_train=.8,
                        **kwargs):
     """Splits self into train/test sets.
@@ -229,6 +247,7 @@ class Splitter(object):
     -------
     Train and test datasets as dc.data.Dataset objects.
     """
+    dataset = datasetify(dataset)
     valid_dir = tempfile.mkdtemp()
     train_dataset, _, test_dataset = self.train_valid_test_split(
         dataset,
@@ -238,13 +257,11 @@ class Splitter(object):
         frac_train=frac_train,
         frac_test=1 - frac_train,
         frac_valid=0.,
-        seed=seed,
         **kwargs)
     return train_dataset, test_dataset
 
   def split(self,
             dataset,
-            seed=None,
             frac_train=None,
             frac_valid=None,
             frac_test=None,
@@ -256,17 +273,18 @@ class Splitter(object):
     ----------
     dataset: dc.data.Dataset
       Dataset to be split
-    seed: int, optional (default None)
-      Random seed to use.
+    train_dir: str, optional
+      If specified, the directory in which the generated
+      training dataset should be stored. This is only
+      considered if `isinstance(dataset, dc.data.DiskDataset)`
+      is True.
+    test_dir: str, optional
+      If specified, the directory in which the generated
+      test dataset should be stored. This is only
+      considered if `isinstance(dataset, dc.data.DiskDataset)`
+      is True.
     frac_train: float, optional (default 0.8)
       The fraction of data to be used for the training split.
-    frac_valid: float, optional (default 0.1)
-      The fraction of data to be used for the validation split.
-    frac_test: float, optional (default 0.1)
-      The fraction of data to be used for the test split.
-    log_every_n: int, optional
-      Controls the logger by dictating how often logger outputs
-      will be produced.
 
     Returns
     -------
@@ -312,7 +330,6 @@ class RandomGroupSplitter(Splitter):
 
   def split(self,
             dataset,
-            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
@@ -341,11 +358,9 @@ class RandomGroupSplitter(Splitter):
     the various splits.
     """
 
+    dataset = datasetify(dataset)
     assert len(self.groups) == dataset.X.shape[0]
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
-
-    if not seed is None:
-      np.random.seed(seed)
 
     # dict is needed in case groups aren't strictly flattened or
     # hashed by something non-integer like
@@ -380,18 +395,19 @@ class RandomGroupSplitter(Splitter):
 class RandomStratifiedSplitter(Splitter):
   """RandomStratified Splitter class.
 
-  For sparse multitask datasets, a standard split offers no guarantees
-  that the splits will have any activate compounds. This class guarantees
-  that each task will have a proportional split of the activates in a
-  split. TO do this, a ragged split is performed with different numbers
-  of compounds taken from each task. Thus, the length of the split arrays
-  may exceed the split of the original array. That said, no datapoint is
-  copied to more than one split, so correctness is still ensured.
+  For sparse multitask datasets, a standard split offers no
+  guarantees that the splits will have any active compounds.
+  This class guarantees that each task will have a proportional
+  split of the actives in a split. TO do this, a ragged split
+  is performed with different numbers of compounds taken from
+  each task. Thus, the length of the split arrays may exceed the
+  split of the original array. That said, no datapoint is copied
+  to more than one split, so correctness is still ensured.
 
   Note that this splitter is only valid for boolean label data.
 
-  TODO(rbharath): This splitter should be refactored to match style of
-  other splitter classes.
+  TODO(rbharath): This splitter should be refactored to match
+  style of other splitter classes.
   """
 
   def __generate_required_hits(self, w, frac_split):
@@ -425,12 +441,22 @@ class RandomStratifiedSplitter(Splitter):
       split_indices.append(split_index + 1)
     return split_indices
 
-  # TODO(rbharath): Refactor this split method to match API of other
-  # splits (or potentially refactor those to match this).
+  # TODO(rbharath): Refactor this split method to match API of
+  # other splits (or potentially refactor those to match this).
   def split(self, dataset, frac_split, split_dirs=None):
     """
     Method that does bulk of splitting dataset.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset to be split
+    frac_split: float
+      Fraction that goes in first dataset 
+    split_dirs: list, optional
+      List of directory names to store output
     """
+    dataset = datasetify(dataset)
     if split_dirs is not None:
       assert len(split_dirs) == 2
     else:
@@ -476,7 +502,6 @@ class RandomStratifiedSplitter(Splitter):
                              frac_train=.8,
                              frac_valid=.1,
                              frac_test=.1,
-                             seed=None,
                              log_every_n=1000):
     """ Splits self into train/validation/test sets.
 
@@ -520,6 +545,7 @@ class RandomStratifiedSplitter(Splitter):
     -------
     Train and test datasets as dc.data.Dataset objects.
     """
+    dataset = datasetify(dataset)
     if train_dir is None:
       train_dir = tempfile.mkdtemp()
     if valid_dir is None:
@@ -558,7 +584,7 @@ class RandomStratifiedSplitter(Splitter):
       fold_dir = directories[fold]
       rem_dir = tempfile.mkdtemp()
       fold_dataset, rem_dataset = self.split(rem_dataset, frac_fold,
-                                             [fold_dir, rem_dir])
+                                             [fold_dir, rem_dir], **kwargs)
       fold_datasets.append(fold_dataset)
     return fold_datasets
 
@@ -581,7 +607,7 @@ class SingletaskStratifiedSplitter(Splitter):
 
   """
 
-  def __init__(self, task_number=0):
+  def __init__(self, task_number=0, *args, **kwargs):
     """
     Creates splitter object.
 
@@ -591,12 +617,12 @@ class SingletaskStratifiedSplitter(Splitter):
       Task number for stratification.
     """
     self.task_number = task_number
+    super(SingletaskStratifiedSplitter, self).__init__(*args, **kwargs)
 
   def k_fold_split(self,
                    dataset,
                    k,
                    directories=None,
-                   seed=None,
                    log_every_n=None,
                    **kwargs):
     """
@@ -605,12 +631,12 @@ class SingletaskStratifiedSplitter(Splitter):
 
     Parameters
     ----------
-    dataset: dc.data.Dataset object
-      Dataset.
+    dataset: data like object
+      Dataset. This should either be of type
+      c.data.Dataset` or a type that `dc.utils.data.datasetify` can
+      nvert into a `Dataset`.
     k: int
       Number of folds.
-    seed: int (Optional, Default None)
-      Random seed.
     log_every_n: int (Optional, Default None)
       Log every n examples (not currently used).
 
@@ -620,6 +646,7 @@ class SingletaskStratifiedSplitter(Splitter):
       List containing dc.data.Dataset objects
     """
     logger.info("Computing K-fold split")
+    dataset = datasetify(dataset)
     if directories is None:
       directories = [tempfile.mkdtemp() for _ in range(k)]
     else:
@@ -639,7 +666,6 @@ class SingletaskStratifiedSplitter(Splitter):
 
   def split(self,
             dataset,
-            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
@@ -651,8 +677,6 @@ class SingletaskStratifiedSplitter(Splitter):
     ----------
     dataset: dc.data.Dataset object
       Dataset.
-    seed: int (Optional, Default None)
-      Random seed.
     frac_train: float (Optional, Default .8)
       Fraction of dataset put into training data.
     frac_valid: float (Optional, Default .1)
@@ -673,9 +697,7 @@ class SingletaskStratifiedSplitter(Splitter):
     np.testing.assert_equal(frac_train + frac_valid + frac_test, 1.)
     np.testing.assert_equal(10 * frac_train + 10 * frac_valid + 10 * frac_test,
                             10.)
-
-    if not seed is None:
-      np.random.seed(seed)
+    dataset = datasetify(dataset)
 
     y_s = dataset.y[:, self.task_number]
     sortidx = np.argsort(y_s)
@@ -714,7 +736,6 @@ class MolecularWeightSplitter(Splitter):
 
   def split(self,
             dataset,
-            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
@@ -745,10 +766,8 @@ class MolecularWeightSplitter(Splitter):
     A tuple `(train_inds, valid_inds, test_inds` of the indices (integers) for
     the various splits.
     """
-
+    dataset = datasetify(dataset)
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
-    if not seed is None:
-      np.random.seed(seed)
 
     mws = []
     from rdkit import Chem
@@ -783,18 +802,39 @@ class MaxMinSplitter(Splitter):
 
   def split(self,
             dataset,
-            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
             log_every_n=None):
     """
     Splits internal compounds randomly into train/validation/test.
+
+    In order to use the RDKit `MaxMinPicker` object, we need to have a specified random seed. If one wasn't specified in the constructor, this method chooses a random integer as its seed.
+
+    Parameters
+    ----------
+    dataset: data like object. 
+      Dataset to be split. This should either be of type
+      `dc.data.Dataset` or a type that `dc.utils.data.datasetify` can
+      convert into a `Dataset`.
+    frac_train: float, optional (default 0.8)
+      The fraction of data to be used for the training split.
+    frac_valid: float, optional (default 0.1)
+      The fraction of data to be used for the validation split.
+    frac_test: float, optional (default 0.1)
+      The fraction of data to be used for the test split.
+    log_every_n: int, optional
+      Controls the logger by dictating how often logger outputs
+      will be produced.
     """
+
+    # Set seed to match MaxMinPicker API
+    if self.seed is None:
+      self.seed = random.randint(0, 2**30)
+    np.random.seed(self.seed)
+
+    dataset = datasetify(dataset)
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
-    if seed is None:
-      seed = random.randint(0, 2**30)
-    np.random.seed(seed)
 
     num_datapoints = len(dataset)
 
@@ -824,14 +864,14 @@ class MaxMinSplitter(Splitter):
         distFunc=distance,
         poolSize=num_datapoints,
         pickSize=num_test,
-        seed=seed)
+        seed=self.seed)
 
     validTestIndices = picker.LazyPick(
         distFunc=distance,
         poolSize=num_datapoints,
         pickSize=num_valid + num_test,
         firstPicks=testIndices,
-        seed=seed)
+        seed=self.seed)
 
     allSet = set(range(num_datapoints))
     testSet = set(testIndices)
@@ -853,7 +893,6 @@ class RandomSplitter(Splitter):
 
   def split(self,
             dataset,
-            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
@@ -863,10 +902,10 @@ class RandomSplitter(Splitter):
 
     Parameters
     ----------
-    dataset: dc.data.Dataset
-      Dataset to be split
-    seed: int, optional (default None)
-      Random seed to use.
+    dataset: data like object. 
+      Dataset to be split. This should either be of type
+      `dc.data.Dataset` or a type that `dc.utils.data.datasetify` can
+      convert into a `Dataset`.
     frac_train: float, optional (default 0.8)
       The fraction of data to be used for the training split.
     frac_valid: float, optional (default 0.1)
@@ -882,9 +921,8 @@ class RandomSplitter(Splitter):
     A tuple `(train_inds, valid_inds, test_inds` of the indices (integers) for
     the various splits.
     """
+    dataset = datasetify(dataset)
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
-    if not seed is None:
-      np.random.seed(seed)
     num_datapoints = len(dataset)
     train_cutoff = int(frac_train * num_datapoints)
     valid_cutoff = int((frac_train + frac_valid) * num_datapoints)
@@ -905,7 +943,6 @@ class IndexSplitter(Splitter):
 
   def split(self,
             dataset,
-            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
@@ -916,8 +953,6 @@ class IndexSplitter(Splitter):
     ----------
     dataset: dc.data.Dataset
       Dataset to be split
-    seed: int, optional (default None)
-      Random seed to use.
     frac_train: float, optional (default 0.8)
       The fraction of data to be used for the training split.
     frac_valid: float, optional (default 0.1)
@@ -933,6 +968,7 @@ class IndexSplitter(Splitter):
     A tuple `(train_inds, valid_inds, test_inds` of the indices (integers) for
     the various splits.
     """
+    dataset = datasetify(dataset)
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     num_datapoints = len(dataset)
     train_cutoff = int(frac_train * num_datapoints)
@@ -953,7 +989,7 @@ class IndiceSplitter(Splitter):
   split on any specified ordering.
   """
 
-  def __init__(self, valid_indices=None, test_indices=None):
+  def __init__(self, valid_indices=None, test_indices=None, *args, **kwargs):
     """
     Parameters
     -----------
@@ -964,17 +1000,34 @@ class IndiceSplitter(Splitter):
     """
     self.valid_indices = valid_indices
     self.test_indices = test_indices
+    super(IndiceSplitter, self).__init__(*args, **kwargs)
 
   def split(self,
             dataset,
-            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
             log_every_n=None):
     """
     Splits internal compounds into train/validation/test in designated order.
+
+    Parameters
+    ----------
+    dataset: data like object. 
+      Dataset to be split. This should either be of type
+      `dc.data.Dataset` or a type that `dc.utils.data.datasetify` can
+      convert into a `Dataset`.
+    frac_train: float, optional (default 0.8)
+      The fraction of data to be used for the training split.
+    frac_valid: float, optional (default 0.1)
+      The fraction of data to be used for the validation split.
+    frac_test: float, optional (default 0.1)
+      The fraction of data to be used for the test split.
+    log_every_n: int, optional
+      Controls the logger by dictating how often logger outputs
+      will be produced.
     """
+    dataset = datasetify(dataset)
     num_datapoints = len(dataset)
     indices = np.arange(num_datapoints).tolist()
     train_indices = []
@@ -992,7 +1045,13 @@ class IndiceSplitter(Splitter):
 
 
 def ClusterFps(fps, cutoff=0.2):
+  """Butina Cluster Helper Function 
+
   # (ytz): this is directly copypasta'd from Greg Landrum's clustering example.
+
+  fps: list[np.ndarray]
+    List of fingerprints
+  """
   dists = []
   nfps = len(fps)
   from rdkit import DataStructs
@@ -1006,33 +1065,56 @@ def ClusterFps(fps, cutoff=0.2):
 
 class ButinaSplitter(Splitter):
   """
-    Class for doing data splits based on the butina clustering of a bulk tanimoto
-    fingerprint matrix.
-    """
+  Class for doing data splits based on the butina clustering of a bulk
+  tanimoto fingerprint matrix.
+  """
 
   def split(self,
             dataset,
-            seed=None,
             frac_train=None,
             frac_valid=None,
             frac_test=None,
             log_every_n=1000,
             cutoff=0.18):
     """
-        Splits internal compounds into train and validation based on the butina
-        clustering algorithm. This splitting algorithm has an O(N^2) run time, where N
-        is the number of elements in the dataset. The dataset is expected to be a classification
-        dataset.
+    Splits internal compounds into train and validation based
+    on the butina clustering algorithm. This splitting
+    algorithm has an O(N^2) run time, where N is the number of
+    elements in the dataset. The dataset is expected to be a
+    classification dataset.
 
-        This algorithm is designed to generate validation data that are novel chemotypes.
+    This algorithm is designed to generate validation data that
+    are novel chemotypes.
 
-        Note that this function entirely disregards the ratios for frac_train, frac_valid,
-        and frac_test. Furthermore, it does not generate a test set, only a train and valid set.
+    Note that this function entirely disregards the ratios for
+    frac_train, frac_valid, and frac_test. Furthermore, it does
+    not generate a test set, only a train and valid set.
 
-        Setting a small cutoff value will generate smaller, finer clusters of high similarity,
-        whereas setting a large cutoff value will generate larger, coarser clusters of low similarity.
-        """
-    print("Performing butina clustering with cutoff of", cutoff)
+    Setting a small cutoff value will generate smaller, finer
+    clusters of high similarity, whereas setting a large cutoff
+    value will generate larger, coarser clusters of low
+    similarity.
+
+    Parameters
+    ----------
+    dataset: data like object. 
+      Dataset to be split. This should either be of type
+      `dc.data.Dataset` or a type that `dc.utils.data.datasetify` can
+      convert into a `Dataset`.
+    frac_train: float, optional (default 0.8)
+      Ignored 
+    frac_valid: float, optional (default 0.1)
+      Ignored.
+    frac_test: float, optional (default 0.1)
+      Ignored.
+    log_every_n: int, optional
+      Controls the logger by dictating how often logger outputs
+      will be produced.
+    cutoff: float, optional 
+      The cutoff used for deciding data splits
+    """
+    logger.info("Performing butina clustering with cutoff of %s" % str(cutoff))
+    dataset = datasetify(dataset)
     mols = []
     from rdkit import Chem
     for ind, smiles in enumerate(dataset.ids):
@@ -1055,8 +1137,8 @@ class ButinaSplitter(Splitter):
       # TODO (Ytz): for regression tasks we'd stop after only one cluster.
       active_populations = np.sum(ys[valid_inds], axis=0)
       if np.all(active_populations):
-        print("# of actives per task in valid:", active_populations)
-        print("Total # of validation points:", len(valid_inds))
+        logger.info("# of actives per task in valid: %s" % str(active_populations))
+        logger.info("Total # of validation points: %d" % len(valid_inds))
         break
 
     train_inds = list(itertools.chain.from_iterable(scaffold_sets[c_idx + 1:]))
@@ -1072,14 +1154,30 @@ class ScaffoldSplitter(Splitter):
 
   def split(self,
             dataset,
-            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
             log_every_n=1000):
     """
     Splits internal compounds into train/validation/test by scaffold.
+    
+    Parameters
+    ----------
+    dataset: data like object. 
+      Dataset to be split. This should either be of type
+      `dc.data.Dataset` or a type that `dc.utils.data.datasetify` can
+      convert into a `Dataset`.
+    frac_train: float, optional (default 0.8)
+      The fraction of data to be used for the training split.
+    frac_valid: float, optional (default 0.1)
+      The fraction of data to be used for the validation split.
+    frac_test: float, optional (default 0.1)
+      The fraction of data to be used for the test split.
+    log_every_n: int, optional
+      Controls the logger by dictating how often logger outputs
+      will be produced.
     """
+    dataset = datasetify(dataset)
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     scaffold_sets = self.generate_scaffolds(dataset)
 
@@ -1101,7 +1199,18 @@ class ScaffoldSplitter(Splitter):
   def generate_scaffolds(self, dataset, log_every_n=1000):
     """
     Returns all scaffolds from the dataset
+
+    Parameters
+    ----------
+    dataset: data like object. 
+      Dataset to be split. This should either be of type
+      `dc.data.Dataset` or a type that `dc.utils.data.datasetify` can
+      convert into a `Dataset`.
+    log_every_n: int, optional
+      Controls the logger by dictating how often logger outputs
+      will be produced.
     """
+    dataset = datasetify(dataset)
     scaffolds = {}
     data_len = len(dataset)
 
@@ -1126,20 +1235,37 @@ class ScaffoldSplitter(Splitter):
 
 class FingerprintSplitter(Splitter):
   """
-    Class for doing data splits based on the fingerprints of small molecules
-    O(N**2) algorithm
+  Class for doing data splits based on the fingerprints of small molecules
+
+  O(N**2) algorithm
   """
 
   def split(self,
             dataset,
-            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
             log_every_n=1000):
     """
-        Splits internal compounds into train/validation/test by fingerprint.
+    Splits internal compounds into train/validation/test by fingerprint.
+
+    Parameters
+    ----------
+    dataset: data like object. 
+      Dataset to be split. This should either be of type
+      `dc.data.Dataset` or a type that `dc.utils.data.datasetify` can
+      convert into a `Dataset`.
+    frac_train: float, optional (default 0.8)
+      The fraction of data to be used for the training split.
+    frac_valid: float, optional (default 0.1)
+      The fraction of data to be used for the validation split.
+    frac_test: float, optional (default 0.1)
+      The fraction of data to be used for the test split.
+    log_every_n: int, optional
+      Controls the logger by dictating how often logger outputs
+      will be produced.
     """
+    dataset = datasetify(dataset)
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     data_len = len(dataset)
     mols, fingerprints = [], []
@@ -1216,21 +1342,38 @@ class SpecifiedSplitter(Splitter):
   Class that splits data according to user specification.
   """
 
-  def __init__(self, input_file, split_field):
+  def __init__(self, input_file, split_field, *args, **kwargs):
     """Provide input information for splits."""
     raw_df = next(load_data([input_file], shard_size=None))
     self.splits = raw_df[split_field].values
+    super(IndiceSplitter, self).__init__(*args, **kwargs)
 
   def split(self,
             dataset,
-            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
             log_every_n=1000):
     """
     Splits internal compounds into train/validation/test by user-specification.
+
+    Parameters
+    ----------
+    dataset: data like object. 
+      Dataset to be split. This should either be of type
+      `dc.data.Dataset` or a type that `dc.utils.data.datasetify` can
+      convert into a `Dataset`.
+    frac_train: float, optional (default 0.8)
+      The fraction of data to be used for the training split.
+    frac_valid: float, optional (default 0.1)
+      The fraction of data to be used for the validation split.
+    frac_test: float, optional (default 0.1)
+      The fraction of data to be used for the test split.
+    log_every_n: int, optional
+      Controls the logger by dictating how often logger outputs
+      will be produced.
     """
+    dataset = datasetify(dataset)
     train_inds, valid_inds, test_inds = [], [], []
     for ind, split in enumerate(self.splits):
       split = split.lower()
@@ -1250,44 +1393,77 @@ class SpecifiedIndexSplitter(Splitter):
   Class that splits data according to user index specification
   """
 
-  def __init__(self, train_inds, valid_inds, test_inds):
+  def __init__(self, train_inds, valid_inds, test_inds, *args, **kwargs):
     """Provide input information for splits."""
     self.train_inds = train_inds
     self.valid_inds = valid_inds
     self.test_inds = test_inds
+    super(SpecifiedIndexSplitter, self).__init__(*args, **kwargs)
 
   def split(self,
             dataset,
-            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
             log_every_n=1000):
     """
     Splits internal compounds into train/validation/test by user-specification.
+
+    Parameters
+    ----------
+    dataset: data like object. 
+      Dataset to be split. This should either be of type
+      `dc.data.Dataset` or a type that `dc.utils.data.datasetify` can
+      convert into a `Dataset`.
+    frac_train: float, optional (default 0.8)
+      Ignored 
+    frac_valid: float, optional (default 0.1)
+      Ignored 
+    frac_test: float, optional (default 0.1)
+      Ignored 
+    log_every_n: int, optional
+      Controls the logger by dictating how often logger outputs
+      will be produced.
     """
     return self.train_inds, self.valid_inds, self.test_inds
 
 
 class TimeSplitterPDBbind(Splitter):
 
-  def __init__(self, ids, year_file=None):
+  def __init__(self, ids, year_file=None, *args, **kwargs):
     self.ids = ids
     self.year_file = year_file
+    super(TimeSplitterPDBbind, self).__init__(*args, **kwargs)
 
   def split(self,
             dataset,
-            seed=None,
             frac_train=.8,
             frac_valid=.1,
             frac_test=.1,
             log_every_n=None):
     """
     Splits protein-ligand pairs in PDBbind into train/validation/test in time order.
+
+    Parameters
+    ----------
+    dataset: data like object. 
+      Dataset to be split. This should either be of type
+      `dc.data.Dataset` or a type that `dc.utils.data.datasetify` can
+      convert into a `Dataset`.
+    frac_train: float, optional (default 0.8)
+      The fraction of data to be used for the training split.
+    frac_valid: float, optional (default 0.1)
+      The fraction of data to be used for the validation split.
+    frac_test: float, optional (default 0.1)
+      The fraction of data to be used for the test split.
+    log_every_n: int, optional
+      Controls the logger by dictating how often logger outputs
+      will be produced.
     """
+    dataset = datasetify(dataset)
     if self.year_file is None:
       try:
-        data_dir = os.environ['DEEPCHEM_DATA_DIR']
+        data_dir = deepchem.utils.get_data_dir() 
         self.year_file = os.path.join(data_dir, 'pdbbind_year.csv')
         if not os.path.exists(self.year_file):
           dc.utils.download_url(

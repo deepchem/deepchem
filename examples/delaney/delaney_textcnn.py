@@ -1,10 +1,6 @@
 """
 Script that trains textCNN models on delaney dataset.
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import numpy as np
 np.random.seed(123)
 import tensorflow as tf
@@ -34,7 +30,7 @@ model = dc.models.TextCNNModel(
     use_queue=False)
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=100)
+model.fit(train_dataset, nb_epoch=10)
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, [metric], transformers)

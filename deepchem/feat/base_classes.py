@@ -1,11 +1,14 @@
 """
 Feature calculations.
 """
+import os
 import logging
 import types
 import numpy as np
 import multiprocessing
 from typing import Iterable, Union, Dict, Any
+import logging
+from deepchem.utils import rdkit_util
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +109,8 @@ class ComplexFeaturizer(Featurizer):
       List of PDB filenames for molecules.
     protein_pdbs: list
       List of PDB filenames for proteins.
+    parallelize: bool
+      Use multiprocessing to parallelize
 
     Returns
     -------
@@ -126,7 +131,10 @@ class ComplexFeaturizer(Featurizer):
     features = []
     failures = []
     for ind, result in enumerate(results):
-      new_features = result.get()
+      if parallelize:
+        new_features = result.get()
+      else:
+        new_features = result
       # Handle loading failures which return None
       if new_features is not None:
         features.append(new_features)
@@ -362,3 +370,18 @@ class UserDefinedFeaturizer(Featurizer):
   def __init__(self, feature_fields):
     """Creates user-defined-featurizer."""
     self.feature_fields = feature_fields
+
+
+class ReactionFeaturizer(Featurizer):
+  """Abstract class that featurizes reactions."""
+
+  def _featurize(self, smarts):
+    """"
+    Calculate features for a single reaction.
+
+    Parameters
+    ----------
+    smarts: str
+      SMARTS string defining reaction.
+    """
+    raise NotImplementedError('Featurizer is not defined')

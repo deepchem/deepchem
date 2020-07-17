@@ -597,11 +597,13 @@ class TestSplitter(unittest.TestCase):
 
   def test_random_seed(self):
     """Test that splitters use the random seed correctly."""
-    dataset = load_solubility_data()
-    splitter = dc.splits.RandomSplitter()
-    train1, valid1, test1 = splitter.train_valid_test_split(dataset, seed=1)
-    train2, valid2, test2 = splitter.train_valid_test_split(dataset, seed=2)
-    train3, valid3, test3 = splitter.train_valid_test_split(dataset, seed=1)
+    dataset = dc.data.tests.load_solubility_data()
+    splitter1 = dc.splits.RandomSplitter(seed=1)
+    train1, valid1, test1 = splitter1.train_valid_test_split(dataset)
+    splitter2 = dc.splits.RandomSplitter(seed=2)
+    train2, valid2, test2 = splitter2.train_valid_test_split(dataset)
+    splitter3 = dc.splits.RandomSplitter(seed=1)
+    train3, valid3, test3 = splitter3.train_valid_test_split(dataset)
     assert np.array_equal(train1.X, train3.X)
     assert np.array_equal(valid1.X, valid3.X)
     assert np.array_equal(test1.X, test3.X)

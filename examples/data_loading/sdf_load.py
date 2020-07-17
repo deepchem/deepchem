@@ -2,5 +2,4 @@
 import deepchem as dc
 
 featurizer = dc.feat.CircularFingerprint(size=16)
-loader = dc.data.SDFLoader(["LogP(RRCK)"], featurizer=featurizer, sanitize=True)
-dataset = loader.featurize("membrane_permeability.sdf")
+loader = dc.data.SDFLoader(["LogP(RRCK)"], featurizer=featurizer, sanitize=True) dataset = loader.featurize("membrane_permeability.sdf")

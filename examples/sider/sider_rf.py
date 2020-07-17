@@ -2,18 +2,14 @@
 Script that trains Sklearn multitask models on the sider dataset
 @Author Bharath Ramsundar, Aneesh Pappu
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import shutil
 import numpy as np
 import deepchem as dc
-from sider_datasets import load_sider
+#from sider_datasets import load_sider
 from sklearn.ensemble import RandomForestClassifier
 
-sider_tasks, datasets, transformers = load_sider()
+sider_tasks, datasets, transformers = dc.molnet.load_sider()
 train_dataset, valid_dataset, test_dataset = datasets
 
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean,

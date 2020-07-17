@@ -1,10 +1,6 @@
 """
 Script that trains DAG models on delaney dataset.
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import numpy as np
 np.random.seed(123)
 import tensorflow as tf
@@ -44,7 +40,7 @@ model = dc.models.DAGModel(
     mode='regression')
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=50, checkpoint_interval=100)
+model.fit(train_dataset, nb_epoch=10, checkpoint_interval=100)
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, [metric], transformers)
 valid_scores = model.evaluate(valid_dataset, [metric], transformers)

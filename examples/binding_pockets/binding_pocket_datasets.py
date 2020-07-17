@@ -2,10 +2,6 @@
 PDBBind binding pocket dataset loader.
 """
 
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import numpy as np
 import pandas as pd
@@ -17,7 +13,21 @@ import deepchem as dc
 
 def compute_binding_pocket_features(pocket_featurizer, ligand_featurizer,
                                     pdb_subdir, pdb_code, threshold=.3):
-  """Compute features for a given complex"""
+  """Compute binding pocket features for a given complex
+
+  Params
+  ------
+  pocket_featurizer: dc.feat.BindingPocketFeaturizer
+    Pocket featurizer to use
+  ligand_featurizer: dc.feat.Featurizer
+    Ligand Featurizer to use
+  pdb_subdir: str
+    Directory holding PDB files
+  pdb_code: str
+    The 4 character PDB code for the protein
+  threshold: float, optional
+    TODO: Is this needed?
+  """
   protein_file = os.path.join(pdb_subdir, "%s_protein.pdb" % pdb_code)
   ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
   ligand_mol2 = os.path.join(pdb_subdir, "%s_ligand.mol2" % pdb_code)
@@ -153,16 +163,6 @@ def load_pdbbind_pockets(split="index", subset="core"):
   splitters = {'index': dc.splits.IndexSplitter(),
                'random': dc.splits.RandomSplitter()}
   splitter = splitters[split]
-  ########################################################### DEBUG
-  print("dataset.X.shape")
-  print(dataset.X.shape)
-  print("dataset.y.shape")
-  print(dataset.y.shape)
-  print("dataset.w.shape")
-  print(dataset.w.shape)
-  print("dataset.ids.shape")
-  print(dataset.ids.shape)
-  ########################################################### DEBUG
   train, valid, test = splitter.train_valid_test_split(dataset)
 
   transformers = []

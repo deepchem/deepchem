@@ -2,16 +2,13 @@ import unittest
 import numpy as np
 from deepchem.utils import hash_utils
 
-
 def random_string(length, chars=None):
   import string
   if chars is None:
     chars = list(string.ascii_letters + string.ascii_letters + '()[]+-.=#@/\\')
   return ''.join(np.random.choice(chars, length))
 
-
 class TestHashUtils(unittest.TestCase):
-
   def test_hash_ecfp(self):
     for power in (2, 16, 64):
       for _ in range(10):

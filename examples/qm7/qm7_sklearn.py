@@ -1,10 +1,6 @@
 """
 Script that trains Sklearn singletask models on GDB7 dataset.
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import numpy as np
 np.random.seed(123)
 import tensorflow as tf

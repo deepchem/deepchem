@@ -1,25 +1,21 @@
 """
 Script that trains Atomic Conv models on PDBbind dataset.
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import os
 import deepchem as dc
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor
 from deepchem.molnet import load_pdbbind
+# You'll want to see some of the logging statements to track progress
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 # For stable runs
 np.random.seed(123)
 
 pdbbind_tasks, pdbbind_datasets, transformers = load_pdbbind(
-    featurizer="atomic", split="random", subset="core")
+    featurizer="atomic",
+    split="random",
+    subset="core")
 train_dataset, valid_dataset, test_dataset = pdbbind_datasets
 
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
@@ -30,7 +26,8 @@ complex_num_atoms = frag1_num_atoms + frag2_num_atoms
 model = dc.models.AtomicConvModel(
     frag1_num_atoms=frag1_num_atoms,
     frag2_num_atoms=frag2_num_atoms,
-    complex_num_atoms=complex_num_atoms)
+    complex_num_atoms=complex_num_atoms,
+    tensorboard_log_frequence=1)
 
 # Fit trained model
 print("Fitting model on train dataset")

@@ -1,7 +1,5 @@
 """
 Generate coulomb matrices for molecules.
-
-See Montavon et al., _New Journal of Physics_ __15__ (2013) 095003.
 """
 import numpy as np
 import deepchem as dc

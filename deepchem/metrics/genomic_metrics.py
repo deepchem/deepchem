@@ -14,12 +14,17 @@ def get_motif_scores(encoded_sequences,
 
   Parameters
   ----------
-  encoded_sequences : 4darray
-       (N_sequences, N_letters, sequence_length, 1) array
-  motif_names : list of strings
-  max_scores : int, optional
-  return_positions : boolean, optional
+  encoded_sequences: np.ndarray
+    A 4darray of shape `(N_sequences, N_letters, sequence_length, 1)`
+    array
+  motif_names: list[str]
+    List of strings with motif names.
+  max_scores: int, optional
+    The maximum score to allow
+  return_positions: bool, optional
+    TODO
   GC_fraction : float, optional
+    TODO
 
   Returns
   -------

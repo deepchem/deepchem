@@ -5,6 +5,7 @@ from deepchem.feat.base_classes import Featurizer
 from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.feat.base_classes import StructureFeaturizer
 from deepchem.feat.base_classes import CompositionFeaturizer
+from deepchem.feat.base_classes import ReactionFeaturizer
 from deepchem.feat.base_classes import ComplexFeaturizer
 from deepchem.feat.base_classes import UserDefinedFeaturizer
 from deepchem.feat.graph_features import ConvMolFeaturizer
@@ -18,8 +19,18 @@ from deepchem.feat.rdkit_grid_featurizer import RdkitGridFeaturizer
 from deepchem.feat.binding_pocket_features import BindingPocketFeaturizer
 from deepchem.feat.one_hot import OneHotFeaturizer
 from deepchem.feat.raw_featurizer import RawFeaturizer
+from deepchem.feat.raw_featurizer import RawReactionFeaturizer
 from deepchem.feat.atomic_coordinates import AtomicCoordinates
 from deepchem.feat.atomic_coordinates import NeighborListComplexAtomicCoordinates
+from deepchem.feat.atomic_coordinates import AtomicConvFeaturizer
 from deepchem.feat.adjacency_fingerprints import AdjacencyFingerprint
 from deepchem.feat.smiles_featurizers import SmilesToSeq, SmilesToImage
 from deepchem.feat.materials_featurizers import ElementPropertyFingerprint, SineCoulombMatrix, StructureGraphFeaturizer
+from deepchem.feat.contact_fingerprints import ContactCircularFingerprint
+from deepchem.feat.contact_fingerprints import ContactCircularVoxelizer
+from deepchem.feat.grid_featurizers import ChargeVoxelizer 
+from deepchem.feat.grid_featurizers import SaltBridgeVoxelizer
+from deepchem.feat.grid_featurizers import CationPiVoxelizer
+from deepchem.feat.grid_featurizers import PiStackVoxelizer
+from deepchem.feat.grid_featurizers import HydrogenBondVoxelizer
+from deepchem.feat.grid_featurizers import HydrogenBondCounter
