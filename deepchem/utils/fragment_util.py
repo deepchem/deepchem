@@ -1,6 +1,7 @@
 """A collection of utilities for dealing with Molecular Fragments"""
 import itertools
 import numpy as np
+from typing import List, Optional, Any
 from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.utils.rdkit_util import compute_charges
 
@@ -110,7 +111,8 @@ class AtomShim(object):
   the basic information in an AtomShim seems to avoid issues.
   """
 
-  def __init__(self, atomic_num, partial_charge, atom_coords):
+  def __init__(self, atomic_num: int, partial_charge: float,
+               atom_coords: np.ndarray):
     """Initialize this object
 
     Parameters
@@ -126,16 +128,16 @@ class AtomShim(object):
     self.partial_charge = partial_charge
     self.coords = atom_coords
 
-  def GetAtomicNum(self):
+  def GetAtomicNum(self) -> int:
     """Returns atomic number for this atom.
 
     Returns
     -------
-    Atomic number fo this atom.
+    Atomic number for this atom.
     """
     return self.atomic_num
 
-  def GetPartialCharge(self):
+  def GetPartialCharge(self) -> float:
     """Returns partial charge for this atom.
 
     Returns
@@ -144,7 +146,7 @@ class AtomShim(object):
     """
     return self.partial_charge
 
-  def GetCoords(self):
+  def GetCoords(self) -> np.ndarray:
     """Returns 3D coordinates for this atom as numpy array.
 
     Returns
@@ -154,7 +156,8 @@ class AtomShim(object):
     return self.coords
 
 
-def merge_molecular_fragments(molecules):
+def merge_molecular_fragments(
+    molecules: List[MolecularFragment]) -> Optional[MolecularFragment]:
   """Helper method to merge two molecular fragments.
 
   Parameters
@@ -180,7 +183,8 @@ def merge_molecular_fragments(molecules):
     return MolecularFragment(all_atoms, all_coords)
 
 
-def get_mol_subset(coords, mol, atom_indices_to_keep):
+def get_mol_subset(coords: np.ndarray, mol,
+                   atom_indices_to_keep: List[int]) -> MolecularFragment:
   """Strip a subset of the atoms in this molecule
 
   Parameters
@@ -219,7 +223,7 @@ def get_mol_subset(coords, mol, atom_indices_to_keep):
   return mol_frag
 
 
-def strip_hydrogens(coords, mol):
+def strip_hydrogens(coords: np.ndarray, mol) -> MolecularFragment:
   """Strip the hydrogens from input molecule
 
   Parameters
@@ -248,7 +252,8 @@ def strip_hydrogens(coords, mol):
   return get_mol_subset(coords, mol, atom_indices_to_keep)
 
 
-def get_contact_atom_indices(fragments, cutoff=4.5):
+def get_contact_atom_indices(fragments: List[Any],
+                             cutoff: float = 4.5) -> List[Any]:
   """Compute that atoms close to contact region.
 
   Molecular complexes can get very large. This can make it unwieldy to
@@ -275,7 +280,7 @@ def get_contact_atom_indices(fragments, cutoff=4.5):
   sorted order.
   """
   # indices to atoms to keep
-  keep_inds = [set([]) for _ in fragments]
+  keep_inds: List[Any] = [set([]) for _ in fragments]
   for (ind1, ind2) in itertools.combinations(range(len(fragments)), 2):
     frag1, frag2 = fragments[ind1], fragments[ind2]
     pairwise_distances = compute_pairwise_distances(frag1[0], frag2[0])
@@ -292,7 +297,8 @@ def get_contact_atom_indices(fragments, cutoff=4.5):
   return keep_inds
 
 
-def reduce_molecular_complex_to_contacts(fragments, cutoff=4.5):
+def reduce_molecular_complex_to_contacts(fragments: List,
+                                         cutoff: float = 4.5) -> List:
   """Reduce a molecular complex to only those atoms near a contact.
 
   Molecular complexes can get very large. This can make it unwieldy to
