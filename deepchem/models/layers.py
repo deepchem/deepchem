@@ -57,11 +57,10 @@ class InteratomicL2Distances(tf.keras.layers.Layer):
 class GraphConv(tf.keras.layers.Layer):
   """Graph Convolutional Layers
   
-  This layer implements the graph convolution introduced in 
-
-  The graph convolution combines per-node feature vectures in a
-  nonlinear fashion with the feature vectors for neighboring nodes.
-  This "blends" information in local neighborhoods of a graph.
+  This layer implements the graph convolution introduced in [1]_.  The graph
+  convolution combines per-node feature vectures in a nonlinear fashion with
+  the feature vectors for neighboring nodes.  This "blends" information in
+  local neighborhoods of a graph.
 
   References
   ----------
@@ -194,8 +193,16 @@ class GraphPool(tf.keras.layers.Layer):
   """A GraphPool gathers data from local neighborhoods of a graph.
 
   This layer does a max-pooling over the feature vectors of atoms in a
-  neighborhood. You can think of this layer as analogous to a max-pooling layer
-  for 2D convolutions but which operates on graphs instead.
+  neighborhood. You can think of this layer as analogous to a max-pooling
+  layer for 2D convolutions but which operates on graphs instead. This
+  technique is described in [1]_.
+
+  References
+  ----------
+  .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+  learning molecular fingerprints." Advances in neural information processing
+  systems. 2015. https://arxiv.org/abs/1509.09292
+  
   """
 
   def __init__(self, min_degree=0, max_degree=10, **kwargs):
@@ -277,6 +284,12 @@ class GraphGather(tf.keras.layers.Layer):
   `GraphConv`, and `GraphPool` layers pool all nodes from all graphs
   in a batch that's being processed. The `GraphGather` reassembles
   these jumbled node feature vectors into per-graph feature vectors.
+
+  References
+  ----------
+  .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+  learning molecular fingerprints." Advances in neural information processing
+  systems. 2015. https://arxiv.org/abs/1509.09292
   """
 
   def __init__(self, batch_size, activation_fn=None, **kwargs):
@@ -2124,7 +2137,13 @@ class WeaveLayer(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    """ Construct internal trainable weights."""
+    """ Construct internal trainable weights.
+
+    Parameters
+    ----------
+    input_shape: tuple
+      Ignored since we don't need the input shape to create internal weights.
+    """
     init = initializers.get(self.init)  # Set weight initialization
 
     self.W_AA = init([self.n_atom_input_feat, self.n_hidden_AA])

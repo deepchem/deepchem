@@ -43,6 +43,20 @@ class WeaveModel(KerasModel):
   scaling issues, but may possibly allow for better modeling
   of subtle bond effects.
 
+  Examples
+  --------
+
+  Here's an example of how to fit a `WeaveModel` on a tiny sample dataset.
+  
+  >>> import numpy as np
+  >>> import deepchem as dc
+  >>> featurizer = dc.feat.WeaveFeaturizer()
+  >>> X = featurizer(["C", "CC"])
+  >>> y = np.array([1, 0])
+  >>> dataset = dc.data.NumpyDataset(X, y)
+  >>> model = dc.models.WeaveModel(n_tasks=1, n_weave=2, fully_connected_layer_sizes=[2000, 1000], mode="classification")
+  >>> loss = model.fit(dataset)
+
   References
   ----------
   .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
