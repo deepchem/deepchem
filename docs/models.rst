@@ -305,6 +305,13 @@ ChemCeption
 
 NormalizingFlowModel
 --------------------
+The purpose of a normalizing flow is to map a simple distribution (that is
+easy to sample from and evaluate probability densities for) to a more
+complex distribution that is learned from data. Normalizing flows combine the
+advantages of autoregressive models (which provide likelihood estimation
+but do not learn features) and variational autoencoders (which learn feature
+representations but do not provide marginal likelihoods). They are effective
+for any application requiring a probabilistic model with these capabilities, e.g. generative modeling, unsupervised learning, or probabilistic inference.
 
 .. autoclass:: deepchem.models.normalizing_flows.NormalizingFlowModel
   :members:

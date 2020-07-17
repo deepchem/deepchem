@@ -1,10 +1,10 @@
 """
-Normalizing flows for transforming distributions.
+Normalizing flows for transforming probability distributions.
 """
 
 import numpy as np
 import logging
-from typing import List, Iterable, Optional, Tuple
+from typing import List, Iterable, Optional, Tuple, Sequence
 
 import tensorflow as tf
 
@@ -19,20 +19,16 @@ logger = logging.getLogger(__name__)
 class NormalizingFlow(tf.keras.models.Model):
   """Base class for normalizing flow.
 
-  The purpose of a normalizing flow is to map a simple distribution that is
-  easy to sample from and evaluate probability densities to more complex
-  distribituions that are learned with data. The base distribution p(x) is
-  transformed by the associated normalizing flow y=g(x) to model the
+  The purpose of a normalizing flow is to map a simple distribution (that is
+  easy to sample from and evaluate probability densities for) to a more
+  complex distribution that is learned from data. The base distribution 
+  p(x) is transformed by the associated normalizing flow y=g(x) to model the
   distribution p(y).
 
   Normalizing flows combine the advantages of autoregressive models
   (which provide likelihood estimation but do not learn features) and
   variational autoencoders (which learn feature representations but
   do not provide marginal likelihoods).
-
-  The determinant of the Jacobian of the transformation gives a factor
-  that preserves the probability volume to 1 when transforming between
-  probability densities of different random variables.
 
   """
 
@@ -90,13 +86,24 @@ class NormalizingFlowModel(NormalizingFlow):
   Deep Normalizing Flow models require normalizing flow layers where
   input and output dimensions are the same, the transformation is invertible,
   and the determinant of the Jacobian is efficient to compute and
-  differentiable. 
+  differentiable. The determinant of the Jacobian of the transformation 
+  gives a factor that preserves the probability volume to 1 when transforming
+  between probability densities of different random variables.
+
+  They are effective for any application requiring a probabilistic
+  model with these capabilities, e.g. generative modeling,
+  unsupervised learning, or probabilistic inference. For a thorough review
+  of normalizing flows, see [1]_.
+
+  References
+  ----------
+  .. [1] Papamakarios, George et al. "Normalizing Flows for Probabilistic Modeling and Inference." (2019). https://arxiv.org/abs/1912.02762.
 
   """
 
   def __init__(self,
                base_distribution,
-               flow_layers: Iterable,
+               flow_layers: Sequence,
                optimizer: Optional[dc.models.optimizers.Optimizer] = None,
                loss: Optional[dc.models.losses.Loss] = None,
                **kwargs):
@@ -107,12 +114,29 @@ class NormalizingFlowModel(NormalizingFlow):
     base_distribution : tfd.Distribution
       Probability distribution to be transformed.
       Typically an N dimensional multivariate Gaussian.
-    flow_layers : Iterable[tfb.Bijector]
+    flow_layers : Sequence[tfb.Bijector]
       An iterable of bijectors that comprise the flow.
     optimizer: dc.models.optimizers.Optimizer
       An instance of Optimizer.
     loss: dc.models.losses.Loss
       An instance of Loss.
+
+    Examples
+    --------
+    >> import tensorflow_probability as tfp
+    >> tfd = tfp.distributions
+    >> tfb = tfp.bijectors
+    >> flow_layers = [
+    ..    tfb.RealNVP(
+    ..        num_masked=2,
+    ..        shift_and_log_scale_fn=tfb.real_nvp_default_template(
+    ..            hidden_layers=[8, 8]))
+    ..]
+    >> base_distribution = tfd.MultivariateNormalDiag(loc=[0., 0., 0.])
+    >> nfm = NormalizingFlowModel(base_distribution, flow_layers)
+    >> X = np.random.rand(5, 3).astype(np.float32)
+    >> nfm.build()
+    >> nfm.fit(X)
 
     """
 
@@ -224,14 +248,12 @@ class NormalizingFlowLayer(object):
     Compute the determinant of the Jacobian of the transformation, 
     which is a scaling that conserves the probability "volume" to equal 1. 
 
-  They are effective for any application requiring a probabilistic
-  model with these capabilities (e.g. generative modeling,
-  unsupervised learning, probabilistic inference). For a thorough review
-  of normalizing flows, see [1]_.
+  For examples of customized normalizing flows applied to toy problems,
+  see [1]_.
 
   References
   ----------
-  .. [1] Papamakarios, George et al. "Normalizing Flows for Probabilistic Modeling and Inference." (2019). https://arxiv.org/abs/1912.02762.
+  .. [1] Saund, Brad. "Normalizing Flows." (2020). https://github.com/bsaund/normalizing_flows.
 
   Notes
   -----
