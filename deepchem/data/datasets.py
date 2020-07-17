@@ -888,7 +888,7 @@ class NumpyDataset(Dataset):
         for i in order:
           yield (self._X[i], self._y[i], self._w[i], self._ids[i])
 
-    class TorchDataset(torch.utils.data.IterableDataset):
+    class TorchDataset(torch.utils.data.IterableDataset):  # type: ignore
 
       def __iter__(self):
         return iterate()
@@ -1090,9 +1090,6 @@ class DiskDataset(Dataset):
     Gets learning tasks associated with this dataset.
     """
     return self.tasks
-    # if not len(self.metadata_df):
-    #  raise ValueError("No data in dataset.")
-    # return next(self.metadata_df.iterrows())[1]['task_names']
 
   def reshard(self, shard_size: int) -> None:
     """Reshards data to have specified shard size."""
@@ -1415,7 +1412,7 @@ class DiskDataset(Dataset):
           for i in range(X.shape[0]):
             yield (X[i], y[i], w[i], ids[i])
 
-    class TorchDataset(torch.utils.data.IterableDataset):
+    class TorchDataset(torch.utils.data.IterableDataset):  # type: ignore
 
       def __iter__(self):
         return iterate()
@@ -1946,7 +1943,12 @@ class ImageDataset(Dataset):
     self._X_shape = self._find_array_shape(X)
     self._y_shape = self._find_array_shape(y)
     if w is None:
-      if len(self._y_shape) == 1:
+      if len(self._y_shape) == 0:
+        # Case n_samples should be 1
+        if n_samples != 1:
+          raise ValueError("y can only be a scalar if n_samples == 1")
+        w = np.ones_like(y)
+      elif len(self._y_shape) == 1:
         w = np.ones(self._y_shape[0], np.float32)
       else:
         w = np.ones((self._y_shape[0], 1), np.float32)
@@ -2174,7 +2176,7 @@ class ImageDataset(Dataset):
           yield (get_image(self._X, i), get_image(self._y, i), self._w[i],
                  self._ids[i])
 
-    class TorchDataset(torch.utils.data.IterableDataset):
+    class TorchDataset(torch.utils.data.IterableDataset):  # type: ignore
 
       def __iter__(self):
         return iterate()
