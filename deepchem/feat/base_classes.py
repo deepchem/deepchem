@@ -26,15 +26,18 @@ class Featurizer(object):
   new datatype.
   """
 
-  def featurize(self, datapoints, log_every_n=1000):
+  def featurize(self, datapoints: Iterable[Any],
+                log_every_n: int = 1000) -> np.ndarray:
     """Calculate features for datapoints.
 
     Parameters
     ----------
-    datapoints: iterable 
+    datapoints: Iterable[Any]
        A sequence of objects that you'd like to featurize. Subclassses of
        `Featurizer` should instantiate the `_featurize` method that featurizes
        objects in the sequence.
+    log_every_n: int, default 1000
+      Logs featurization progress every `log_every_n` steps.
 
     Returns
     -------
@@ -65,6 +68,18 @@ class Featurizer(object):
        this. 
     """
     return self.featurize(datapoints)
+
+  def _featurize(self, datapoint):
+    """Calculate features for a single datapoint.
+
+    Parameters
+    ----------
+    datapoint: object 
+      Any blob of data you like. Subclass should instantiate
+      this. 
+    """
+
+    raise NotImplementedError('Featurizer is not defined.')
 
 
 class ComplexFeaturizer(object):
@@ -254,12 +269,7 @@ class MaterialStructureFeaturizer(Featurizer):
 
     """
 
-    # Special case handling of single crystal structure
-    if not isinstance(structures, Iterable):
-      structures = [structures]
-    else:
-      # Convert iterables to list
-      structures = list(structures)
+    structures = list(structures)
 
     try:
       from pymatgen import Structure
@@ -349,12 +359,7 @@ class MaterialCompositionFeaturizer(Featurizer):
 
     """
 
-    # Special case handling of single crystal composition
-    if not isinstance(compositions, Iterable):
-      compositions = [compositions]
-    else:
-      # Convert iterables to list
-      compositions = list(compositions)
+    compositions = list(compositions)
 
     try:
       from pymatgen import Composition
