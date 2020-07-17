@@ -71,7 +71,7 @@ class WeaveModel(KerasModel):
                n_tasks: int,
                n_atom_feat: OneOrMany[int] = 75,
                n_pair_feat: OneOrMany[int] = 14,
-               n_hidden: OneOrMany[int] = 50,
+               n_hidden: int = 50,
                n_graph_feat: OneOrMany[int] = 128,
                n_weave: int = 2,
                fully_connected_layer_sizes: List[int] = [2000, 1000],
