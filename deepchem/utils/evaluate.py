@@ -344,7 +344,6 @@ class GeneratorEvaluator(object):
   Evaluators can also be used with `dc.metrics.Metric` objects as well
   in case you want to customize your metric further. 
 
-  >>> evaluator = GeneratorEvaluator(model, dataset, transformers)
   >>> metric = dc.metrics.Metric(dc.metrics.mae_score)
   >>> multitask_scores = evaluator.compute_model_performance(metric)
   """
