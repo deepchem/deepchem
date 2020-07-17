@@ -96,7 +96,7 @@ class MoleculeGraphData(object):
       from torch_geometric.data import Data
     except ModuleNotFoundError:
       raise ValueError(
-          "This class requires Pytorch and PyTorch Geometric to be installed.")
+          "This class requires PyTorch Geometric to be installed.")
 
     return Data(
       x=torch.from_numpy(self.node_features),

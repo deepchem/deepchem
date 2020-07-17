@@ -76,12 +76,6 @@ Molecular Utilities
 .. autoclass:: deepchem.utils.rdkit_util.MoleculeLoadException
   :members:
 
-.. autoclass:: deepchem.utils.molecule_graph.MoleculeGraphData
-  :members:
-
-.. autoclass:: deepchem.utils.molecule_graph.BatchMoleculeGraphData
-  :members:
-
 .. autofunction:: deepchem.utils.rdkit_util.get_xyz_from_mol
 
 .. autofunction:: deepchem.utils.rdkit_util.add_hydrogens_to_mol
