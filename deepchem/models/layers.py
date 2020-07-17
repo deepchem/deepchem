@@ -429,9 +429,12 @@ def _cosine_dist(x, y):
   y: tf.Tensor
     Input Tensor
   """
-  denom = (backend.sqrt(backend.sum(tf.square(x)) * backend.sum(tf.square(y))) +
-           backend.epsilon())
-  return backend.dot(x, tf.transpose(y)) / denom
+  x_reshape = tf.reshape(backend.sum(tf.square(x), axis=1), (-1, 1))
+  y_reshape = tf.reshape(backend.sum(tf.square(y), axis=1), (1, -1))
+  backend.dot(, ) + backend.epsilon()
+  denom = backend.sqrt()
+  
+  return tf.math.divide(backend.dot(x, tf.transpose(y)), denom)
 
 
 class AttnLSTMEmbedding(tf.keras.layers.Layer):
