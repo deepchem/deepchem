@@ -342,8 +342,11 @@ class GeneratorEvaluator(object):
   ...     sklearn.metrics.mean_absolute_error)
 
   Evaluators can also be used with `dc.metrics.Metric` objects as well
-  in case you want to customize your metric further. 
+  in case you want to customize your metric further. (Note that a given
+  generator can only be used once so we have to redefine the generator here.)
 
+  >>> generator = model.default_generator(dataset, pad_batches=False)
+  >>> evaluator = GeneratorEvaluator(model, generator, transformers)
   >>> metric = dc.metrics.Metric(dc.metrics.mae_score)
   >>> multitask_scores = evaluator.compute_model_performance(metric)
   """
