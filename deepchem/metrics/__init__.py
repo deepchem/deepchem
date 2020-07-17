@@ -509,48 +509,6 @@ def mae_score(y_true, y_pred):
 # kappa_score is an alias for `sklearn.metrics.cohen_kappa_score`
 kappa_score = cohen_kappa_score
 
-#def kappa_score(y_true, y_pred):
-#  """Calculate Cohen's kappa for classification tasks.
-#
-#  See https://en.wikipedia.org/wiki/Cohen%27s_kappa
-#
-#  Note that this implementation of Cohen's kappa expects binary labels.
-#
-#  Parameters
-#  ----------
-#  y_true: np.ndarray
-#    Numpy array containing true values of shape `(N,)`
-#  y_pred: np.ndarray
-#    Numpy array containing predicted values of shape `(N,)`
-#
-#  Returns
-#  -------
-#  kappa: np.ndarray
-#    Numpy array containing kappa for each classification task.
-#
-#  Raises
-#  ------
-#  AssertionError: If y_true and y_pred are not the same size, or if
-#  class labels are not in [0, 1].
-#  """
-#  assert len(y_true) == len(y_pred), 'Number of examples does not match.'
-#  yt = np.asarray(y_true, dtype=int)
-#  yp = np.asarray(y_pred, dtype=int)
-#  if not set(np.unique(yt)).issubset(set([0, 1])):
-#    raise ValueError("Class labels must be binary 0, 1")
-#  assert np.array_equal(
-#      np.unique(yt),
-#      [0, 1]), ('Class labels must be binary: %s' % np.unique(yt))
-#  observed_agreement = np.true_divide(
-#      np.count_nonzero(np.equal(yt, yp)), len(yt))
-#  expected_agreement = np.true_divide(
-#      np.count_nonzero(yt == 1) * np.count_nonzero(yp == 1) +
-#      np.count_nonzero(yt == 0) * np.count_nonzero(yp == 0),
-#      len(yt)**2)
-#  kappa = np.true_divide(observed_agreement - expected_agreement,
-#                         1.0 - expected_agreement)
-#  return kappa
-
 
 def bedroc_score(y_true, y_pred, alpha=20.0):
   """BEDROC metric implemented according to Truchon and Bayley that modifies
