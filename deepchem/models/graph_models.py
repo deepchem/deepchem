@@ -33,9 +33,7 @@ class WeaveModel(KerasModel):
   """Implements Google-style Weave Graph Convolutions
 
   This model implements the Weave style graph convolutions
-  from the following paper.
-
-  Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints." Journal of computer-aided molecular design 30.8 (2016): 595-608.
+  from [1]_.
 
   The biggest difference between WeaveModel style convolutions
   and GraphConvModel style convolutions is that Weave
@@ -44,17 +42,24 @@ class WeaveModel(KerasModel):
   explicitly to model bond interactions. This may cause
   scaling issues, but may possibly allow for better modeling
   of subtle bond effects.
+
+  References
+  ----------
+  .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+  fingerprints." Journal of computer-aided molecular design 30.8 (2016):
+  595-608.
+
   """
 
   def __init__(self,
-               n_tasks,
-               n_atom_feat=75,
-               n_pair_feat=14,
-               n_hidden=50,
-               n_graph_feat=128,
-               mode="classification",
-               n_classes=2,
-               batch_size=100,
+               n_tasks: int,
+               n_atom_feat: int = 75,
+               n_pair_feat: int = 14,
+               n_hidden: int = 50,
+               n_graph_feat: int = 128,
+               mode: str = "classification",
+               n_classes: int = 2,
+               batch_size: int = 100,
                **kwargs):
     """
     Parameters
@@ -660,6 +665,8 @@ class GraphConvModel(KerasModel):
   following paper [1]_. These graph convolutions start with a per-atom set of
   descriptors for each atom in a molecule, then combine and recombine these
   descriptors over convolutional layers.
+  following [1]_.
+
 
   References
   ----------
@@ -669,16 +676,16 @@ class GraphConvModel(KerasModel):
   """
 
   def __init__(self,
-               n_tasks,
-               graph_conv_layers=[64, 64],
-               dense_layer_size=128,
-               dropout=0.0,
-               mode="classification",
-               number_atom_features=75,
-               n_classes=2,
-               batch_size=100,
-               batch_normalize=True,
-               uncertainty=False,
+               n_tasks: int,
+               graph_conv_layers: List[int] = [64, 64],
+               dense_layer_size: int = 128,
+               dropout: float = 0.0,
+               mode: str = "classification",
+               number_atom_features: int = 75,
+               n_classes: int = 2,
+               batch_size: int = 100,
+               batch_normalize: bool = True,
+               uncertainty: bool = False,
                **kwargs):
     """The wrapper class for graph convolutions.
 
