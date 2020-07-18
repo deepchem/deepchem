@@ -86,6 +86,11 @@ class GridHyperparamOpt(HyperparamOpt):
       dataset used for training
     valid_dataset: `dc.data.Dataset`
       dataset used for validation(optimization on valid scores)
+    output_transformers: list[dc.trans.Transformer]
+      Transformers for evaluation. This argument is needed since
+      `train_dataset` and `valid_dataset` may have been transformed
+      for learning and need the transform to be inverted before
+      the metric can be evaluated on a model.
     metric: dc.metrics.Metric
       metric used for evaluation
     use_max: bool, optional
@@ -94,11 +99,6 @@ class GridHyperparamOpt(HyperparamOpt):
     logdir: str, optional
       The directory in which to store created models. If not set, will
       use a temporary directory.
-    output_transformers: list[dc.trans.Transformer]
-      Transformers for evaluation. This argument is needed since
-      `train_dataset` and `valid_dataset` may have been transformed
-      for learning and need the transform to be inverted before
-      the metric can be evaluated on a model.
 
     Returns
     -------
