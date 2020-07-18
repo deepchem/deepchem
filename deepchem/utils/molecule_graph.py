@@ -162,7 +162,7 @@ class BatchMoleculeGraphData(MoleculeGraphData):
         graph_features=batch_graph_features,
     )
 
-    @staticmethod # type: ignore
+    @staticmethod  # type: ignore
     def to_pyg_data(molecule_graphs: Sequence[MoleculeGraphData]):
       """Convert to PyTorch Geometric Batch instance
 
