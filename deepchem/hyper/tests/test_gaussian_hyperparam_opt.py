@@ -45,7 +45,6 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         params_dict,
         self.train_dataset,
         self.valid_dataset,
-        transformers,
         metric,
         max_iter=2)
 
@@ -66,7 +65,6 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         params_dict,
         self.train_dataset,
         self.valid_dataset,
-        transformers,
         metric,
         use_max=False,
         max_iter=2)
@@ -87,7 +85,6 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
           params_dict,
           self.train_dataset,
           self.valid_dataset,
-          transformers,
           metric,
           logdir=tmpdirname,
           max_iter=2)
@@ -122,7 +119,6 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         params_dict,
         train_dataset,
         valid_dataset,
-        transformers,
         metric,
         max_iter=1,
         use_max=False)
@@ -162,7 +158,6 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
           params_dict,
           train_dataset,
           valid_dataset,
-          transformers,
           metric,
           max_iter=2,
           logdir=tmpdirname,
