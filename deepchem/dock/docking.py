@@ -106,7 +106,7 @@ class Docker(object):
     if self.scoring_model is not None:
       for posed_complex in complexes:
         # TODO: How to handle the failure here?
-        features, _ = self.featurizer.featurize_complexes([molecular_complex])
+        features, _ = self.featurizer.featurize([molecular_complex])
         dataset = NumpyDataset(X=features)
         score = self.scoring_model.predict(dataset)
         yield (posed_complex, score)

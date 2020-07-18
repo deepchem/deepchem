@@ -888,7 +888,7 @@ class NumpyDataset(Dataset):
         for i in order:
           yield (self._X[i], self._y[i], self._w[i], self._ids[i])
 
-    class TorchDataset(torch.utils.data.IterableDataset):
+    class TorchDataset(torch.utils.data.IterableDataset):  # type: ignore
 
       def __iter__(self):
         return iterate()
@@ -1090,14 +1090,13 @@ class DiskDataset(Dataset):
     Gets learning tasks associated with this dataset.
     """
     return self.tasks
-    # if not len(self.metadata_df):
-    #  raise ValueError("No data in dataset.")
-    # return next(self.metadata_df.iterrows())[1]['task_names']
 
   def reshard(self, shard_size: int) -> None:
     """Reshards data to have specified shard size."""
     # Create temp directory to store resharded version
     reshard_dir = tempfile.mkdtemp()
+
+    n_shards = self.get_number_shards()
 
     # Write data in new shards
     def generator():
@@ -1106,7 +1105,8 @@ class DiskDataset(Dataset):
       y_next = np.zeros((0,) + (len(tasks),))
       w_next = np.zeros((0,) + (len(tasks),))
       ids_next = np.zeros((0,), dtype=object)
-      for (X, y, w, ids) in self.itershards():
+      for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
+        logger.info("Resharding shard %d/%d" % (shard_num, n_shards))
         X_next = np.concatenate([X_next, X], axis=0)
         y_next = np.concatenate([y_next, y], axis=0)
         w_next = np.concatenate([w_next, w], axis=0)
@@ -1366,8 +1366,11 @@ class DiskDataset(Dataset):
       out_dir = tempfile.mkdtemp()
     tasks = self.get_task_names()
 
+    n_shards = self.get_number_shards()
+
     def generator():
       for shard_num, row in self.metadata_df.iterrows():
+        logger.info("Transforming shard %d/%d" % (shard_num, n_shards))
         X, y, w, ids = self.get_shard(shard_num)
         newx, newy, neww = fn(X, y, w)
         yield (newx, newy, neww, ids)
@@ -1409,7 +1412,7 @@ class DiskDataset(Dataset):
           for i in range(X.shape[0]):
             yield (X[i], y[i], w[i], ids[i])
 
-    class TorchDataset(torch.utils.data.IterableDataset):
+    class TorchDataset(torch.utils.data.IterableDataset):  # type: ignore
 
       def __iter__(self):
         return iterate()
@@ -1485,6 +1488,7 @@ class DiskDataset(Dataset):
 
     def generator():
       for ind, dataset in enumerate(datasets):
+        logger.info("Merging in dataset %d/%d" % (ind, len(datasets)))
         X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
         yield (X, y, w, ids)
 
@@ -1761,9 +1765,12 @@ class DiskDataset(Dataset):
     indices = np.array(sorted(indices)).astype(int)
     tasks = self.get_task_names()
 
+    n_shards = self.get_number_shards()
+
     def generator():
       count, indices_count = 0, 0
       for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
+        logger.info("Selecting from shard %d/%d" % (shard_num, n_shards))
         shard_len = len(X)
         # Find indices which rest in this shard
         num_shard_elts = 0
@@ -1936,7 +1943,12 @@ class ImageDataset(Dataset):
     self._X_shape = self._find_array_shape(X)
     self._y_shape = self._find_array_shape(y)
     if w is None:
-      if len(self._y_shape) == 1:
+      if len(self._y_shape) == 0:
+        # Case n_samples should be 1
+        if n_samples != 1:
+          raise ValueError("y can only be a scalar if n_samples == 1")
+        w = np.ones_like(y)
+      elif len(self._y_shape) == 1:
         w = np.ones(self._y_shape[0], np.float32)
       else:
         w = np.ones((self._y_shape[0], 1), np.float32)
@@ -2164,7 +2176,7 @@ class ImageDataset(Dataset):
           yield (get_image(self._X, i), get_image(self._y, i), self._w[i],
                  self._ids[i])
 
-    class TorchDataset(torch.utils.data.IterableDataset):
+    class TorchDataset(torch.utils.data.IterableDataset):  # type: ignore
 
       def __iter__(self):
         return iterate()

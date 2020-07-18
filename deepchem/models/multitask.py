@@ -15,10 +15,15 @@ logger = logging.getLogger(__name__)
 
 
 class SingletaskToMultitask(Model):
-  """
-  Convenience class to let singletask models be fit on multitask data.
+  """Convenience class to let singletask models be fit on multitask data.
 
-  Warning: This current implementation is only functional for sklearn models.
+  This wrapper class groups a set of singletask `SklearnModel` objects to
+  create a multitask model. This class exists primarily to facilitate
+  benchmarking.
+
+  Note
+  ----
+  This current implementation is only functional for sklearn models.
   """
 
   def __init__(self, tasks, model_builder, model_dir=None):
@@ -89,7 +94,9 @@ class SingletaskToMultitask(Model):
     """
     Updates all singletask models with new information.
 
-    Warning: This current implementation is only functional for sklearn models.
+    Note
+    ----
+    This current implementation is only functional for sklearn models.
     """
     if not isinstance(dataset, DiskDataset):
       raise ValueError('SingletaskToMultitask only works with DiskDatasets')

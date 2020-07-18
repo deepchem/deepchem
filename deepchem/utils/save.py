@@ -11,16 +11,10 @@ import os
 import deepchem
 import warnings
 import logging
-from typing import List, Optional, Iterator
+from typing import List, Optional, Iterator, Any
 from deepchem.utils.genomics import encode_bio_sequence as encode_sequence, encode_fasta_sequence as fasta_sequence, seq_one_hot_encode as seq_one_hotencode
 
 logger = logging.getLogger(__name__)
-
-
-def log(string, verbose=True):
-  """Print string if verbose."""
-  if verbose:
-    print(string)
 
 
 def save_to_disk(dataset, filename, compress=3):
@@ -51,29 +45,65 @@ def get_input_type(input_file):
     raise ValueError("Unrecognized extension %s" % file_extension)
 
 
-def load_data(input_files, shard_size=None, verbose=True):
+def load_data(input_files: List[str],
+              shard_size: Optional[int] = None) -> Iterator[Any]:
   """Loads data from disk.
 
   For CSV files, supports sharded loading for large files.
+
+  Parameters
+  ----------
+  input_files: list
+    List of filenames.
+  shard_size: int, optional (default None)
+    Size of shard to yield
+
+  Returns
+  -------
+  Iterator which iterates over provided files.
   """
   if not len(input_files):
     return
   input_type = get_input_type(input_files[0])
   if input_type == "sdf":
     if shard_size is not None:
-      log("Ignoring shard_size for sdf input.", verbose)
+      logger.info("Ignoring shard_size for sdf input.")
     for value in load_sdf_files(input_files):
       yield value
   elif input_type == "csv":
-    for value in load_csv_files(input_files, shard_size, verbose=verbose):
+    for value in load_csv_files(input_files, shard_size):
       yield value
   elif input_type == "pandas-pickle":
     for input_file in input_files:
       yield load_pickle_from_disk(input_file)
 
 
-def load_sdf_files(input_files, clean_mols, tasks=[]):
-  """Load SDF file into dataframe."""
+def load_sdf_files(input_files: List[str],
+                   clean_mols: bool = True,
+                   tasks: List[str] = []) -> List[pd.DataFrame]:
+  """Load SDF file into dataframe.
+
+  Parameters
+  ----------
+  input_files: list[str]
+    List of filenames
+  clean_mols: bool
+    Whether to sanitize molecules.
+  tasks: list, optional (default [])
+    Each entry in `tasks` is treated as a property in the SDF file and is
+    retrieved with `mol.GetProp(str(task))` where `mol` is the RDKit mol
+    loaded from a given SDF entry.
+
+  Note
+  ----
+  This function requires RDKit to be installed.
+
+  Returns
+  -------
+  dataframes: list
+    This function returns a list of pandas dataframes. Each dataframe will
+    contain columns `('mol_id', 'smiles', 'mol')`.
+  """
   from rdkit import Chem
   dataframes = []
   for input_file in input_files:
@@ -103,18 +133,31 @@ def load_sdf_files(input_files, clean_mols, tasks=[]):
   return dataframes
 
 
-def load_csv_files(filenames, shard_size=None, verbose=True):
-  """Load data as pandas dataframe."""
+def load_csv_files(filenames: List[str],
+                   shard_size: Optional[int] = None) -> Iterator[pd.DataFrame]:
+  """Load data as pandas dataframe.
+
+  Parameters
+  ----------
+  filenames: list[str]
+    List of filenames
+  shard_size: int, optional (default None) 
+    The shard size to yield at one time.
+
+  Returns
+  -------
+  Iterator which iterates over shards of data.
+  """
   # First line of user-specified CSV *must* be header.
   shard_num = 1
   for filename in filenames:
     if shard_size is None:
       yield pd.read_csv(filename)
     else:
-      log("About to start loading CSV from %s" % filename, verbose)
+      logger.info("About to start loading CSV from %s" % filename)
       for df in pd.read_csv(filename, chunksize=shard_size):
-        log("Loading shard %d of size %s." % (shard_num, str(shard_size)),
-            verbose)
+        logger.info(
+            "Loading shard %d of size %s." % (shard_num, str(shard_size)))
         df = df.replace(np.nan, str(""), regex=True)
         shard_num += 1
         yield df
@@ -232,8 +275,8 @@ def encode_bio_sequence(fname, file_type="fasta", letters="ATCGN"):
 
 
 def save_metadata(tasks, metadata_df, data_dir):
-  """
-  Saves the metadata for a DiskDataset
+  """Saves the metadata for a DiskDataset
+
   Parameters
   ----------
   tasks: list of str
@@ -241,8 +284,6 @@ def save_metadata(tasks, metadata_df, data_dir):
   metadata_df: pd.DataFrame
   data_dir: str
     Directory to store metadata
-  Returns
-  -------
   """
   if isinstance(tasks, np.ndarray):
     tasks = tasks.tolist()

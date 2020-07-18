@@ -3,7 +3,6 @@ Atomic coordinate featurizer.
 """
 import logging
 import numpy as np
-from deepchem.utils.save import log
 from deepchem.feat import Featurizer
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils import rdkit_util, pad_array
@@ -162,7 +161,7 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     self.dtype = object
     self.coordinates_featurizer = AtomicCoordinates()
 
-  def _featurize_complex(self, mol_pdb_file, protein_pdb_file):
+  def _featurize(self, mol_pdb_file, protein_pdb_file):
     """
     Compute neighbor list for complex.
 
@@ -218,7 +217,7 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
     self.neighborlist_featurizer = NeighborListComplexAtomicCoordinates(
         self.max_num_neighbors, self.neighbor_cutoff)
 
-  def _featurize_complex(self, mol_pdb_file, protein_pdb_file):
+  def _featurize(self, mol_pdb_file, protein_pdb_file):
     try:
       frag1_coords, frag1_mol = rdkit_util.load_molecule(
           mol_pdb_file, is_protein=False, sanitize=True, add_hydrogens=False)

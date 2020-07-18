@@ -47,3 +47,10 @@ ImageLoader
 
 .. autoclass:: deepchem.data.ImageLoader
   :members:
+
+InMemoryLoader
+^^^^^^^^^^^^^^
+The :code:`dc.data.InMemoryLoader` is designed to facilitate the processing of large datasets where you already hold the raw data in-memory (say in a pandas dataframe).
+
+.. autoclass:: deepchem.data.InMemoryLoader
+  :members:
