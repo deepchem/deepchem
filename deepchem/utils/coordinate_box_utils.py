@@ -91,7 +91,7 @@ class CoordinateBox(object):
     return x_cont and y_cont and z_cont
 
   # FIXME: Argument 1 of "__eq__" is incompatible with supertype "object"
-  def __eq__(self, other: "CoordinateBox") -> bool: # type: ignore
+  def __eq__(self, other: "CoordinateBox") -> bool:  # type: ignore
     """Compare two boxes to see if they're equal.
 
     Parameters
