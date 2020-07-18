@@ -289,7 +289,7 @@ def load_molecule(molecule_file,
       Chem.SanitizeMol(my_mol)
     # Ideally we should catch AtomValenceException but Travis seems to choke on it for some reason.
     except:
-      logger.warn("Mol %s failed sanitization" % Chem.MolToSmiles(my_mol))
+      logger.warning("Mol %s failed sanitization" % Chem.MolToSmiles(my_mol))
   if calc_charges:
     # This updates in place
     compute_charges(my_mol)

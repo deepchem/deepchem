@@ -5,8 +5,8 @@ import subprocess
 
 BUCKET_NAME = 'deepchem.io'
 
-if not any(d.project_name == 's3cmd'
-           for d in pip.get_installed_distributions()):
+if not any(
+    d.project_name == 's3cmd' for d in pip.get_installed_distributions()):
   raise ImportError('The s3cmd package is required. try $ pip install s3cmd')
 
 # The secret key is available as a secure environment variable

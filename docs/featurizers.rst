@@ -161,19 +161,17 @@ AtomConvFeaturizer
 .. autoclass:: deepchem.feat.NeighborListComplexAtomicCoordinates
   :members:
 
-MaterialsFeaturizers
---------------------
+MaterialStructureFeaturizer
+---------------------------
 
-Materials Featurizers are those that work with datasets of inorganic crystals.
-These featurizers operate on chemical compositions (e.g. "MoS2"), or on a
-lattice and 3D coordinates that specify a periodic crystal structure. They
-should be applied on systems that have periodic boundary conditions. Materials
-featurizers are not designed to work with molecules. 
+Material Structure Featurizers are those that work with datasets of crystals with
+periodic boundary conditions. For inorganic crystal structures, these
+featurizers operate on pymatgen.Structure objects, which include a
+lattice and 3D coordinates that specify a periodic crystal structure. 
+They should be applied on systems that have periodic boundary conditions.
+Structure featurizers are not designed to work with molecules. 
 
-ElementPropertyFingerprint
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. autoclass:: deepchem.feat.ElementPropertyFingerprint
+.. autoclass:: deepchem.feat.MaterialStructureFeaturizer
   :members:
 
 SineCoulombMatrix
@@ -186,6 +184,25 @@ StructureGraphFeaturizer
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.StructureGraphFeaturizer
+  :members:
+
+MaterialCompositionFeaturizer
+-----------------------------
+
+Material Composition Featurizers are those that work with datasets of crystal
+compositions with periodic boundary conditions. 
+For inorganic crystal structures, these featurizers operate on chemical
+compositions (e.g. "MoS2"). They should be applied on systems that have
+periodic boundary conditions. Composition featurizers are not designed 
+to work with molecules. 
+
+.. autoclass:: deepchem.feat.MaterialCompositionFeaturizer
+  :members:
+
+ElementPropertyFingerprint
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.ElementPropertyFingerprint
   :members:
 
 BindingPocketFeaturizer

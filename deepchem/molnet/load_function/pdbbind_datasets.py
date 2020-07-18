@@ -308,8 +308,7 @@ def load_pdbbind(reload=True,
 
   print("\nFeaturizing Complexes for \"%s\" ...\n" % data_folder)
   feat_t1 = time.time()
-  features, failures = featurizer.featurize_complexes(ligand_files,
-                                                      protein_files)
+  features, failures = featurizer.featurize(ligand_files, protein_files)
   feat_t2 = time.time()
   print("\nFeaturization finished, took %0.3f s." % (feat_t2 - feat_t1))
 
@@ -437,8 +436,7 @@ def load_pdbbind_from_dir(data_folder,
   else:
     raise ValueError("Featurizer not supported")
   print("Featurizing Complexes")
-  features, failures = featurizer.featurize_complexes(ligand_files,
-                                                      protein_files)
+  features, failures = featurizer.featurize(ligand_files, protein_files)
   # Delete labels for failing elements
   labels = np.delete(labels, failures)
   dataset = deepchem.data.DiskDataset.from_numpy(features, labels)

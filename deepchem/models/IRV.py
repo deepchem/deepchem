@@ -2,7 +2,6 @@ import logging
 import numpy as np
 import tensorflow as tf
 
-from deepchem.utils.save import log
 from deepchem.models import KerasModel, layers
 from deepchem.models.losses import SigmoidCrossEntropy
 from deepchem.trans import undo_transforms

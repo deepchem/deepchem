@@ -14,9 +14,9 @@ class TestRdkitUtil(unittest.TestCase):
     # TODO test more formats for ligand
     current_dir = os.path.dirname(os.path.realpath(__file__))
     self.protein_file = os.path.join(
-        current_dir, '../../feat/tests/3ws9_protein_fixer_rdkit.pdb')
+        current_dir, '../../feat/tests/data/3ws9_protein_fixer_rdkit.pdb')
     self.ligand_file = os.path.join(current_dir,
-                                    '../../feat/tests/3ws9_ligand.sdf')
+                                    '../../feat/tests/data/3ws9_ligand.sdf')
 
   def test_load_complex(self):
     complexes = rdkit_util.load_complex(
@@ -105,7 +105,7 @@ class TestRdkitUtil(unittest.TestCase):
         has_a_charge = True
     assert has_a_charge
 
-  def test_load_molecule(self):
+  def test_load_molecule2(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
     xyz, mol = rdkit_util.load_molecule(

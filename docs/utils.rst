@@ -54,6 +54,8 @@ File Handling
 
 .. autofunction:: deepchem.utils.save.load_csv_files
 
+.. autofunction:: deepchem.utils.save.load_json_files
+
 .. autofunction:: deepchem.utils.save.save_metadata
 
 .. autofunction:: deepchem.utils.save.load_from_disk
@@ -85,6 +87,25 @@ Molecular Utilities
 .. autofunction:: deepchem.utils.rdkit_util.load_molecule
 
 .. autofunction:: deepchem.utils.rdkit_util.write_molecule
+
+Molecular Fragment Utilities
+----------------------------
+
+It's often convenient to manipulate subsets of a molecule. The :code:`MolecularFragment` class aids in such manipulations.
+
+.. autoclass:: deepchem.utils.fragment_util.MolecularFragment
+  :members:
+
+.. autoclass:: deepchem.utils.fragment_util.AtomShim
+  :members:
+
+.. autofunction:: deepchem.utils.fragment_util.strip_hydrogens
+
+.. autofunction:: deepchem.utils.fragment_util.merge_molecular_fragments
+
+.. autofunction:: deepchem.utils.fragment_util.get_contact_atom_indices
+
+.. autofunction:: deepchem.utils.fragment_util.reduce_molecular_complex_to_contacts
 
 Coordinate Box Utilities
 ------------------------

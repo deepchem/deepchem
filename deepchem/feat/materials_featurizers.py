@@ -4,11 +4,11 @@ Featurizers for inorganic crystals.
 
 import numpy as np
 
-from deepchem.feat import Featurizer
+from deepchem.feat import MaterialStructureFeaturizer, MaterialCompositionFeaturizer
 from deepchem.utils import pad_array
 
 
-class ElementPropertyFingerprint(Featurizer):
+class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
   """
   Fingerprint of elemental properties from composition.
 
@@ -50,14 +50,14 @@ class ElementPropertyFingerprint(Featurizer):
 
     self.data_source = data_source
 
-  def _featurize(self, comp):
+  def _featurize(self, composition):
     """
     Calculate chemical fingerprint from crystal composition.
 
     Parameters
     ----------
-    comp : str
-      Reduced formula of crystal.
+    composition: pymatgen.Composition object
+      Composition object.
 
     Returns
     -------
@@ -66,24 +66,22 @@ class ElementPropertyFingerprint(Featurizer):
       stoichiometry. Some values may be NaN.
 
     """
-
-    from pymatgen import Composition
-    from matminer.featurizers.composition import ElementProperty
-
-    # Get pymatgen Composition object
-    c = Composition(comp)
+    try:
+      from matminer.featurizers.composition import ElementProperty
+    except ModuleNotFoundError:
+      raise ValueError("This class requires matminer to be installed.")
 
     ep = ElementProperty.from_preset(self.data_source)
 
     try:
-      feats = ep.featurize(c)
+      feats = ep.featurize(composition)
     except:
       feats = []
 
     return np.array(feats)
 
 
-class SineCoulombMatrix(Featurizer):
+class SineCoulombMatrix(MaterialStructureFeaturizer):
   """
   Calculate sine Coulomb matrix for crystals.
 
@@ -132,10 +130,10 @@ class SineCoulombMatrix(Featurizer):
 
     Parameters
     ----------
-    struct : dict
-      Json-serializable dictionary representation of pymatgen.core.structure
-      https://pymatgen.org/pymatgen.core.structure.html
-
+    struct : pymatgen.Structure
+      A periodic crystal composed of a lattice and a sequence of atomic
+      sites with 3D coordinates and elements.
+      
     Returns
     -------
     features: np.ndarray
@@ -144,18 +142,18 @@ class SineCoulombMatrix(Featurizer):
 
     """
 
-    from pymatgen import Structure
-    from matminer.featurizers.structure import SineCoulombMatrix as SCM
-
-    s = Structure.from_dict(struct)
+    try:
+      from matminer.featurizers.structure import SineCoulombMatrix as SCM
+    except ModuleNotFoundError:
+      raise ValueError("This class requires matminer to be installed.")
 
     # Get full N x N SCM
     scm = SCM(flatten=False)
-    sine_mat = scm.featurize(s)
+    sine_mat = scm.featurize(struct)
 
     if self.flatten:
       eigs, _ = np.linalg.eig(sine_mat)
-      zeros = np.zeros((self.max_atoms,))
+      zeros = np.zeros((1, self.max_atoms))
       zeros[:len(eigs)] = eigs
       features = zeros
     else:
@@ -166,7 +164,7 @@ class SineCoulombMatrix(Featurizer):
     return features
 
 
-class StructureGraphFeaturizer(Featurizer):
+class StructureGraphFeaturizer(MaterialStructureFeaturizer):
   """
   Calculate structure graph features for crystals.
 
@@ -212,9 +210,9 @@ class StructureGraphFeaturizer(Featurizer):
 
     Parameters
     ----------
-    struct : dict
-      Json-serializable dictionary representation of pymatgen.core.structure
-      https://pymatgen.org/pymatgen.core.structure.html
+    struct : pymatgen.Structure
+      A periodic crystal composed of a lattice and a sequence of atomic
+      sites with 3D coordinates and elements.
 
     Returns
     -------
@@ -224,12 +222,7 @@ class StructureGraphFeaturizer(Featurizer):
 
     """
 
-    from pymatgen import Structure
-
-    # Get pymatgen structure object
-    s = Structure.from_dict(struct)
-
-    features = self._get_structure_graph_features(s)
+    features = self._get_structure_graph_features(struct)
     features = np.array(features)
 
     return features
@@ -240,7 +233,7 @@ class StructureGraphFeaturizer(Featurizer):
 
     Parameters
     ----------
-    struct : pymatgen.core.structure
+    struct : pymatgen.Structure
       A periodic crystal composed of a lattice and a sequence of atomic
       sites with 3D coordinates and elements.
 

@@ -22,6 +22,20 @@ UserCSVLoader
 .. autoclass:: deepchem.data.UserCSVLoader
   :members:
 
+JsonLoader
+^^^^^^^^^^
+JSON is a flexible file format that is human-readable, lightweight, 
+and more compact than other open standard formats like XML. JSON files
+are similar to python dictionaries of key-value pairs. All keys must
+be strings, but values can be any of (string, number, object, array,
+boolean, or null), so the format is more flexible than CSV. JSON is
+used for describing structured data and to serialize objects. It is
+conveniently used to read/write Pandas dataframes with the
+`pandas.read_json` and `pandas.write_json` methods.
+
+.. autoclass:: deepchem.data.JsonLoader
+  :members:
+
 FASTALoader
 ^^^^^^^^^^^
 
@@ -32,4 +46,11 @@ ImageLoader
 ^^^^^^^^^^^
 
 .. autoclass:: deepchem.data.ImageLoader
+  :members:
+
+InMemoryLoader
+^^^^^^^^^^^^^^
+The :code:`dc.data.InMemoryLoader` is designed to facilitate the processing of large datasets where you already hold the raw data in-memory (say in a pandas dataframe).
+
+.. autoclass:: deepchem.data.InMemoryLoader
   :members:

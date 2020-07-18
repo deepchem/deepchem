@@ -1,17 +1,10 @@
-import enum
 import numpy as np
 import deepchem as dc
 from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
 from deepchem.feat.mol_graphs import ConvMol, WeaveMol
 from deepchem.data import DiskDataset
-import multiprocessing
 import logging
-
-
-def _featurize_complex(featurizer, mol_pdb_file, protein_pdb_file, log_message):
-  logging.info(log_message)
-  return featurizer._featurize_complex(mol_pdb_file, protein_pdb_file)
 
 
 def one_of_k_encoding(x, allowable_set):
@@ -815,12 +808,12 @@ class AtomicConvFeaturizer(ComplexNeighborListFragmentAtomicCoordinates):
     self.epochs = epochs
     self.labels = labels
 
-  def featurize_complexes(self, mol_files, protein_files):
+  def featurize(self, mol_files, protein_files):
     features = []
     failures = []
     for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_files)):
       logging.info("Featurizing %d / %d" % (i, len(mol_files)))
-      new_features = self._featurize_complex(mol_file, protein_pdb)
+      new_features = self._featurize(mol_file, protein_pdb)
       # Handle loading failures which return None
       if new_features is not None:
         features.append(new_features)

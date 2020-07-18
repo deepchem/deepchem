@@ -4,12 +4,15 @@ Scikit-learn wrapper interface of xgboost
 
 import numpy as np
 import os
+import logging
 from deepchem.models import Model
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
 from sklearn.model_selection import train_test_split, GridSearchCV
 import tempfile
+
+logger = logging.getLogger(__name__)
 
 
 class XGBoostModel(SklearnModel):
