@@ -8,7 +8,24 @@ from tensorflow.keras.layers import Dropout
 
 
 class InteratomicL2Distances(tf.keras.layers.Layer):
-  """Compute (squared) L2 Distances between atoms given neighbors."""
+  """Compute (squared) L2 Distances between atoms given neighbors.
+
+  This class computes pairwise distances between its inputs.
+
+  Examples
+  --------
+  >>> import numpy as np
+  >>> import deepchem as dc
+  >>> atoms = 5
+  >>> neighbors = 2
+  >>> coords = np.random.rand(atoms, 3)
+  >>> neighbor_list = np.random.randint(0, atoms, size=(atoms, neighbors))
+  >>> layer = InteratomicL2Distances(atoms, neighbors, 3)
+  >>> result = np.array(layer([coords, neighbor_list]))
+  >>> result.shape
+  (5, 2)
+
+  """
 
   def __init__(self, N_atoms: int, M_nbrs: int, ndim: int, **kwargs):
     """Constructor for this layer.
@@ -40,7 +57,12 @@ class InteratomicL2Distances(tf.keras.layers.Layer):
     Parameters
     ----------
     inputs: list
-      Should be of form `inputs=[coords, nbr_list]` where `coords` is a tensor of shape `(None, N, 3)` and `nbr_list` is a list.
+      Should be of form `inputs=[coords, nbr_list]` where `coords` is a
+      tensor of shape `(None, N, 3)` and `nbr_list` is a list.
+
+    Returns
+    -------
+    Tensor of shape `(N_atoms, M_nbrs)` with interatomic distances.
     """
     if len(inputs) != 2:
       raise ValueError("InteratomicDistances requires coords,nbr_list")
@@ -2062,6 +2084,88 @@ class WeaveLayer(tf.keras.layers.Layer):
   There are 2 types of transformation, atom->atom, atom->pair,
   pair->atom, pair->pair that this model implements.
 
+  Examples
+  --------
+  This layer expects 4 inputs in a list of the form `[atom_features,
+  pair_features, pair_split, atom_to_pair]`. We'll walk through the structure
+  of these inputs. Let's start with some basic definitions.
+
+  >>> import deepchem as dc
+  >>> import numpy as np
+
+  Suppose you have a batch of molecules
+
+  >>> smiles = ["CCC", "C"]
+
+  Note that there are 4 atoms in total in this system. This layer expects its
+  input molecules to be batched together.
+
+  >>> total_n_atoms = 4
+
+  Let's suppose that we have a featurizer that computes `n_atom_feat` features
+  per atom.
+
+  >>> n_atom_feat = 75
+
+  Then conceptually, `atom_feat` is the array of shape `(total_n_atoms,
+  n_atom_feat)` of atomic features. For simplicity, let's just go with a
+  random such matrix.
+
+  >>> atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
+
+  Let's suppose we have `n_pair_feat` pairwise features
+
+  >>> n_pair_feat = 14
+
+  For each molecule, we compute a matrix of shape `(n_atoms*n_atoms,
+  n_pair_feat)` of pairwise features for each pair of atoms in the molecule.
+  Let's construct this conceptually for our example.
+
+  >>> pair_feat = [np.random.rand(1*1, n_pair_feat), np.random.rand(3*3, n_pair_feat)]
+  >>> pair_feat = np.concatenate(pair_feat, axis=0)
+  >>> pair_feat.shape
+  (10, 14)
+
+  `pair_split` is an index into `pair_feat` which tells us which atom each row belongs to. In our case, we hve
+
+  >>> pair_split = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 3])
+
+  That is, the first 9 entries belong to "CCC" and the last entry to "C". The
+  final entry `atom_to_pair` goes in a little more in-depth than `pair_split`
+  and tells us the precise pair each pair feature belongs to. In our case
+
+  >>> atom_to_pair = np.array([[0, 0],
+  ...                          [0, 1],
+  ...                          [0, 2],
+  ...                          [1, 0],
+  ...                          [1, 1],
+  ...                          [1, 2],
+  ...                          [2, 0],
+  ...                          [2, 1],
+  ...                          [2, 2],
+  ...                          [3, 3]])
+
+  Let's now define the actual layer
+
+  >>> layer = WeaveLayer()
+
+  And invoke it
+
+  >>> [A, P] = layer([atom_feat, pair_feat, pair_split, atom_to_pair])
+
+  The weave layer produces new atom/pair features. Let's check their shapes
+
+  >>> A = np.array(A)
+  >>> A.shape
+  (4, 50)
+  >>> P = np.array(P)
+  >>> P.shape
+  (10, 50)
+
+  The 4 is `total_num_atoms` and the 10 is the total number of pairs. Where
+  does `50` come from? It's from the default arguments `n_atom_input_feat` and
+  `n_pair_input_feat`.
+
   References
   ----------
   .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
@@ -2180,7 +2284,7 @@ class WeaveLayer(tf.keras.layers.Layer):
       ])
     self.built = True
 
-  def call(self, inputs: List):
+  def call(self, inputs: List) -> List:
     """Creates weave tensors.
 
     Parameters

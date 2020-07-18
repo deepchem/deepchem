@@ -4,9 +4,9 @@ import deepchem as dc
 import numpy as np
 import tensorflow as tf
 
-from typing import List, Union
+from typing import List, Union, Tuple, Iterable
 from deepchem.utils.typing import OneOrMany, KerasLossFn
-from deepchem.data import NumpyDataset, pad_features
+from deepchem.data import Dataset, NumpyDataset, pad_features
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
 from deepchem.metrics import to_one_hot
@@ -107,6 +107,7 @@ class WeaveModel(KerasModel):
     if not isinstance(n_pair_feat, collections.Sequence):
       n_pair_feat = [n_pair_feat] * n_weave
 
+    self.n_tasks = n_tasks
     self.n_atom_feat = n_atom_feat
     self.n_pair_feat = n_pair_feat
     self.n_hidden = n_hidden
@@ -176,11 +177,31 @@ class WeaveModel(KerasModel):
         model, loss, output_types=output_types, batch_size=batch_size, **kwargs)
 
   def default_generator(self,
-                        dataset,
-                        epochs=1,
-                        mode='fit',
+                        dataset: Dataset,
+                        epochs: int = 1,
+                        mode: float = 'fit',
                         deterministic=True,
-                        pad_batches=True):
+                        pad_batches=True) -> Iterable[Tuple[List, List, List]]:
+    """Convert a dataset into the tensors needed for learning.
+
+    Parameters
+    ----------
+    dataset: `dc.data.Dataset`
+      Dataset to convert
+    epochs: int, optional (Default 1)
+      Number of times to walk over `dataset`
+    mode: str, optional (Default 'fit')
+      Ignored in this implementation.
+    deterministic: bool, optional (Default True)
+      Whether the dataset should be walked in a deterministic fashion
+    pad_batches: bool, optional (Default True)
+      If true, each returned batch will have size `self.batch_size`.
+
+    Returns
+    -------
+    Iterator which walks over the batches
+    """
+
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
@@ -215,7 +236,7 @@ class WeaveModel(KerasModel):
           # pair features
           pair_feat.append(
               np.reshape(mol.get_pair_features(),
-                         (n_atoms * n_atoms, self.n_pair_feat)))
+                         (n_atoms * n_atoms, self.n_pair_feat[0])))
 
         inputs = [
             np.concatenate(atom_feat, axis=0),
@@ -230,9 +251,12 @@ class WeaveModel(KerasModel):
 class DTNNModel(KerasModel):
   """Deep Tensor Neural Networks
 
-  This class implements deep tensor neural networks as first defined in
+  This class implements deep tensor neural networks as first defined in [1]_
 
-  Schütt, Kristof T., et al. "Quantum-chemical insights from deep tensor neural networks." Nature communications 8.1 (2017): 1-8.
+  References
+  ----------
+  .. [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
+  tensor neural networks." Nature communications 8.1 (2017): 1-8.
   """
 
   def __init__(self,
@@ -538,7 +562,7 @@ class DAGModel(KerasModel):
                         mode='fit',
                         deterministic=True,
                         pad_batches=True):
-    """TensorGraph style implementation"""
+    """Convert a dataset into the tensors needed for learning"""
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
@@ -738,16 +762,17 @@ class GraphConvModel(KerasModel):
     dense_layer_size: int
       Width of channels for Atom Level Dense Layer before GraphPool
     dropout: list or float
-      the dropout probablity to use for each layer.  The length of this list should equal
-      len(graph_conv_layers)+1 (one value for each convolution layer, and one for the
-      dense layer).  Alternatively this may be a single value instead of a list, in which
-      case the same value is used for every layer.
+      the dropout probablity to use for each layer.  The length of this list
+      should equal len(graph_conv_layers)+1 (one value for each convolution
+      layer, and one for the dense layer).  Alternatively this may be a single
+      value instead of a list, in which case the same value is used for every
+      layer.
     mode: str
       Either "classification" or "regression"
     number_atom_features: int
-        75 is the default number of atom features created, but
-        this can vary if various options are passed to the
-        function atom_features in graph_features
+      75 is the default number of atom features created, but
+      this can vary if various options are passed to the
+      function atom_features in graph_features
     n_classes: int
       the number of classes to predict (only used in classification mode)
     batch_normalize: True
@@ -822,11 +847,12 @@ class MPNNModel(KerasModel):
   nodes in a graph send each other "messages" and update their
   internal state as a consequence of these messages.
 
-  Ordering structures in this model are built according to
+  Ordering structures in this model are built according to [1]_
 
-
-Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters: Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
-
+  References
+  ----------
+  .. [1] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters:
+  Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
   """
 
   def __init__(self,
