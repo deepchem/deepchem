@@ -22,6 +22,6 @@ class TestHyperparamOpt(unittest.TestCase):
 
     try:
       _ = dc.hyper.HyperparamOpt(rf_model_builder)
-    except:
+    except ValueError:
       initialized = False
     assert not initialized
