@@ -7,6 +7,13 @@ from tensorflow.python.framework import test_util
 
 class TestLayers(test_util.TensorFlowTestCase):
 
+  def test_cosine_dist(self):
+    """Test invoking _cosine_dist."""
+    x = np.ones((5, 4)).astype(np.float32)
+    y = np.ones((5, 4)).astype(np.float32)
+    assert layers._cosine_dist(x,y)
+
+
   def test_highway(self):
     """Test invoking Highway."""
     width = 5
