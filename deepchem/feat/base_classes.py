@@ -5,7 +5,7 @@ import logging
 import types
 import numpy as np
 import multiprocessing
-from typing import Iterable, Union, Dict, Any
+from typing import Any, Dict, List, Iterable, Sequence, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ class Featurizer(object):
     features = np.asarray(features)
     return features
 
-  def __call__(self, datapoints):
+  def __call__(self, datapoints: Iterable[Any]):
     """Calculate features for datapoints.
 
     Parameters
@@ -63,7 +63,7 @@ class Featurizer(object):
     """
     return self.featurize(datapoints)
 
-  def _featurize(self, datapoint):
+  def _featurize(self, datapoint: Any):
     """Calculate features for a single datapoint.
 
     Parameters
@@ -93,27 +93,28 @@ def _featurize_callback(
   return featurizer._featurize(mol_pdb_file, protein_pdb_file)
 
 
-class ComplexFeaturizer(Featurizer):
+class ComplexFeaturizer(object):
   """"
   Abstract class for calculating features for mol/protein complexes.
   """
 
-  def featurize(self, mol_files, protein_pdbs):
+  def featurize(self, mol_files: Sequence[str],
+                protein_pdbs: Sequence[str]) -> Tuple[np.ndarray, List]:
     """
     Calculate features for mol/protein complexes.
 
     Parameters
     ----------
-    mols: list
+    mols: List[str]
       List of PDB filenames for molecules.
-    protein_pdbs: list
+    protein_pdbs: List[str]
       List of PDB filenames for proteins.
 
     Returns
     -------
-    features: np.array
+    features: np.ndarray
       Array of features
-    failures: list
+    failures: List
       Indices of complexes that failed to featurize.
     """
 
@@ -137,7 +138,7 @@ class ComplexFeaturizer(Featurizer):
     features = np.asarray(features)
     return features, failures
 
-  def _featurize(self, mol_pdb, complex_pdb):
+  def _featurize(self, mol_pdb: str, complex_pdb: str):
     """
     Calculate features for single mol/protein complex.
 
@@ -290,18 +291,6 @@ class MaterialStructureFeaturizer(Featurizer):
     features = np.asarray(features)
     return features
 
-  def __call__(self, structures: Iterable[Dict[str, Any]]):
-    """Calculate features for crystal structures.
-
-    Parameters
-    ----------
-    structures: Iterable[Dict[str, Any]]
-      An iterable of pymatgen.Structure dictionaries.
-
-    """
-
-    return self.featurize(structures)
-
 
 class MaterialCompositionFeaturizer(Featurizer):
   """
@@ -367,18 +356,6 @@ class MaterialCompositionFeaturizer(Featurizer):
 
     features = np.asarray(features)
     return features
-
-  def __call__(self, compositions: Iterable[str]):
-    """Calculate features for crystal compositions.
-
-    Parameters
-    ----------
-    compositions: Iterable[str]
-      An iterable of crystal compositions.
-
-    """
-
-    return self.featurize(compositions)
 
 
 class UserDefinedFeaturizer(Featurizer):

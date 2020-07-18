@@ -1,21 +1,23 @@
 """This module adds utilities for coordinate boxes"""
+from typing import List, Sequence, Tuple
 import numpy as np
 from scipy.spatial import ConvexHull
 
 
-def intersect_interval(interval1, interval2):
+def intersect_interval(interval1: Tuple[int, int],
+                       interval2: Tuple[int, int]) -> Tuple[int, int]:
   """Computes the intersection of two intervals.
 
   Parameters
   ----------
-  interval1: tuple[int]
+  interval1: Tuple[int]
     Should be `(x1_min, x1_max)`
-  interval2: tuple[int]
+  interval2: Tuple[int]
     Should be `(x2_min, x2_max)`
 
   Returns
   -------
-  x_intersect: tuple[int]
+  x_intersect: Tuple[int]
     Should be the intersection. If the intersection is empty returns
     `(0, 0)` to represent the empty set. Otherwise is `(max(x1_min,
     x2_min), min(x1_max, x2_max))`.
@@ -33,7 +35,7 @@ def intersect_interval(interval1, interval2):
   return (x_min, x_max)
 
 
-def intersection(box1, box2):
+def intersection(box1: CoordinateBox, box2: CoordinateBox) -> CoordinateBox:
   """Computes the intersection box of provided boxes.
 
   Parameters
@@ -53,7 +55,7 @@ def intersection(box1, box2):
   return CoordinateBox(x_intersection, y_intersection, z_intersection)
 
 
-def union(box1, box2):
+def union(box1: CoordinateBox, box2: CoordinateBox) -> CoordinateBox:
   """Merges provided boxes to find the smallest union box. 
 
   This method merges the two provided boxes.
@@ -78,14 +80,15 @@ def union(box1, box2):
   return CoordinateBox((x_min, x_max), (y_min, y_max), (z_min, z_max))
 
 
-def merge_overlapping_boxes(boxes, threshold=.8):
+def merge_overlapping_boxes(boxes: List[CoordinateBox],
+                            threshold: float = 0.8) -> List[CoordinateBox]:
   """Merge boxes which have an overlap greater than threshold.
 
   Parameters
   ----------
   boxes: list[CoordinateBox]
     A list of `CoordinateBox` objects.
-  threshold: float, optional (default 0.8)
+  threshold: float, default 0.8
     The volume fraction of the boxes that must overlap for them to be
     merged together. 
   
@@ -94,7 +97,7 @@ def merge_overlapping_boxes(boxes, threshold=.8):
   list[CoordinateBox] of merged boxes. This list will have length less
   than or equal to the length of `boxes`.
   """
-  outputs = []
+  outputs: List[CoordinateBox] = []
   for box in boxes:
     for other in boxes:
       if box == other:
@@ -112,7 +115,7 @@ def merge_overlapping_boxes(boxes, threshold=.8):
   return outputs
 
 
-def get_face_boxes(coords, pad=5):
+def get_face_boxes(coords: np.ndarray, pad: int = 5) -> List[CoordinateBox]:
   """For each face of the convex hull, compute a coordinate box around it.
 
   The convex hull of a macromolecule will have a series of triangular
@@ -130,8 +133,13 @@ def get_face_boxes(coords, pad=5):
   ----------
   coords: np.ndarray
     Of shape `(N, 3)`. The coordinates of a molecule.
-  pad: float, optional (default 5)
+  pad: int, optional (default 5)
     The number of angstroms to pad.
+
+  Returns
+  -------
+  boxes: List[CoordinateBox]
+    List of `CoordinateBox`
 
   Examples
   --------
@@ -185,16 +193,17 @@ class CoordinateBox(object):
   of atoms that live in this box alongside their coordinates.
   """
 
-  def __init__(self, x_range, y_range, z_range):
+  def __init__(self, x_range: Tuple[int, int], y_range: Tuple[int, int],
+               z_range: Tuple[int, int]):
     """Initialize this box.
 
     Parameters
     ----------
-    x_range: tuple
+    x_range: Tuple[int]
       A tuple of `(x_min, x_max)` with max and min x-coordinates.
-    y_range: tuple
+    y_range: Tuple[int]
       A tuple of `(y_min, y_max)` with max and min y-coordinates.
-    z_range: tuple
+    z_range: Tuple[int]
       A tuple of `(z_min, z_max)` with max and min z-coordinates.
 
     Raises
@@ -234,13 +243,17 @@ class CoordinateBox(object):
     """Create a string representation of this box."""
     return self.__repr__()
 
-  def __contains__(self, point):
+  def __contains__(self, point: Sequence[int]) -> bool:
     """Check whether a point is in this box.
 
     Parameters
     ----------
-    point: 3-tuple or list of length 3 or  np.ndarray of shape `(3,)`
+    point: 3-tuple or list of length 3 or np.ndarray of shape `(3,)`
       The `(x, y, z)` coordinates of a point in space.
+
+    Returns
+    -------
+    bool, `True` if `other` is contained in this box.
     """
     (x_min, x_max) = self.x_range
     (y_min, y_max) = self.y_range
@@ -250,7 +263,7 @@ class CoordinateBox(object):
     z_cont = (z_min <= point[2] and point[2] <= z_max)
     return x_cont and y_cont and z_cont
 
-  def __eq__(self, other):
+  def __eq__(self, other: CoordinateBox) -> bool:  # type: ignore
     """Compare two boxes to see if they're equal.
 
     Parameters
@@ -272,7 +285,7 @@ class CoordinateBox(object):
     return (self.x_range == other.x_range and self.y_range == other.y_range and
             self.z_range == other.z_range)
 
-  def __hash__(self):
+  def __hash__(self) -> int:
     """Implement hashing function for this box.
 
     Uses the default `hash` on `self.x_range, self.y_range,
@@ -280,11 +293,11 @@ class CoordinateBox(object):
 
     Returns
     -------
-    Unique integeer
+    Unique integer
     """
     return hash((self.x_range, self.y_range, self.z_range))
 
-  def center(self):
+  def center(self) -> Tuple[float, float, float]:
     """Computes the center of this box.
 
     Returns
@@ -303,12 +316,12 @@ class CoordinateBox(object):
     return (x_min + (x_max - x_min) / 2, y_min + (y_max - y_min) / 2,
             z_min + (z_max - z_min) / 2)
 
-  def volume(self):
+  def volume(self) -> int:
     """Computes and returns the volume of this box.
 
     Returns
     -------
-    float, the volume of this box. Can be 0 if box is empty
+    int, the volume of this box. Can be 0 if box is empty
 
     Examples
     --------
@@ -321,7 +334,7 @@ class CoordinateBox(object):
     z_min, z_max = self.z_range
     return (x_max - x_min) * (y_max - y_min) * (z_max - z_min)
 
-  def contains(self, other):
+  def contains(self, other: CoordinateBox) -> bool:
     """Test whether this box contains another.
 
     This method checks whether `other` is contained in this box.

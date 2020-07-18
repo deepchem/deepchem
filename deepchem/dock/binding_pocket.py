@@ -3,6 +3,9 @@ Computes putative binding pockets on protein.
 """
 import logging
 import numpy as np
+from typing import Any, Optional, Tuple
+
+from deepchem.models import Model
 from deepchem.utils import rdkit_util
 from deepchem.utils import coordinate_box_utils as box_utils
 from deepchem.utils.fragment_util import get_contact_atom_indices
@@ -10,7 +13,10 @@ from deepchem.utils.fragment_util import get_contact_atom_indices
 logger = logging.getLogger(__name__)
 
 
-def extract_active_site(protein_file, ligand_file, cutoff=4):
+def extract_active_site(protein_file: str,
+                        ligand_file: str,
+                        cutoff: float = 4.0
+                       ) -> Tuple[box_utils.CoordinateBox, np.ndarray]:
   """Extracts a box for the active site.
 
   Parameters
@@ -19,7 +25,7 @@ def extract_active_site(protein_file, ligand_file, cutoff=4):
     Location of protein PDB
   ligand_file: str
     Location of ligand input file
-  cutoff: int, optional
+  cutoff: float, optional (default 4.0)
     The distance in angstroms from the protein pocket to
     consider for featurization.
 
@@ -61,7 +67,7 @@ class BindingPocketFinder(object):
   technique to be used.
   """
 
-  def find_pockets(self, molecule):
+  def find_pockets(self, molecule: Any):
     """Finds potential binding pockets in proteins.
 
     Parameters
@@ -78,21 +84,21 @@ class ConvexHullPocketFinder(BindingPocketFinder):
   Based on https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4112621/pdf/1472-6807-14-18.pdf
   """
 
-  def __init__(self, scoring_model=None, pad=5):
+  def __init__(self, scoring_model: Optional[Model] = None, pad: int = 5):
     """Initialize the pocket finder.
 
     Parameters
     ----------
     scoring_model: `dc.models.Model`, optional
       If specified, use this model to prune pockets.
-    pad: float, optional
+    pad: int, optional (default 5)
       The number of angstroms to pad around a binding pocket's atoms
       to get a binding pocket box.
     """
     self.scoring_model = scoring_model
     self.pad = pad
 
-  def find_all_pockets(self, protein_file):
+  def find_all_pockets(self, protein_file: str):
     """Find list of binding pockets on protein.
 
     Parameters
@@ -103,7 +109,7 @@ class ConvexHullPocketFinder(BindingPocketFinder):
     coords, _ = rdkit_util.load_molecule(protein_file)
     return box_utils.get_face_boxes(coords, self.pad)
 
-  def find_pockets(self, macromolecule_file):
+  def find_pockets(self, macromolecule_file: str):
     """Find list of suitable binding pockets on protein.
 
     This function computes putative binding pockets on this protein.

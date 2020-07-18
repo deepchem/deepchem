@@ -3,7 +3,12 @@ Docks Molecular Complexes
 """
 import logging
 import tempfile
+from typing import Any, Optional, cast
+
+from deepchem.models import Model
+from deepchem.feat import ComplexFeaturizer
 from deepchem.data import NumpyDataset
+from deepchem.dock import PoseGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -22,16 +27,19 @@ class Docker(object):
   generation and scoring classes that are provided to this class.
   """
 
-  def __init__(self, pose_generator, featurizer=None, scoring_model=None):
+  def __init__(self,
+               pose_generator: PoseGenerator,
+               featurizer: Optional[ComplexFeaturizer] = None,
+               scoring_model: Optional[Model] = None):
     """Builds model.
 
     Parameters
     ----------
     pose_generator: `PoseGenerator`
       The pose generator to use for this model
-    featurizer: `ComplexFeaturizer`
+    featurizer: `ComplexFeaturizer`, optional (default None)
       Featurizer associated with `scoring_model`
-    scoring_model: `Model`
+    scoring_model: `Model`, optional (default None)
       Should make predictions on molecular complex.
     """
     if ((featurizer is not None and scoring_model is None) or
@@ -44,14 +52,14 @@ class Docker(object):
     self.scoring_model = scoring_model
 
   def dock(self,
-           molecular_complex,
-           centroid=None,
-           box_dims=None,
-           exhaustiveness=10,
-           num_modes=9,
-           num_pockets=None,
-           out_dir=None,
-           use_pose_generator_scores=False):
+           molecular_complex: Any,
+           centroid: Optional[int] = None,
+           box_dims: Optional[int] = None,
+           exhaustiveness: int = 10,
+           num_modes: int = 9,
+           num_pockets: Optional[int] = None,
+           out_dir: Optional[str] = None,
+           use_pose_generator_scores: bool = False):
     """Generic docking function.
 
     This docking function uses this object's featurizer, pose
@@ -89,6 +97,7 @@ class Docker(object):
       raise ValueError(
           "Cannot set use_pose_generator_scores=True when self.scoring_model is set (since both generator scores for complexes)."
       )
+
     outputs = self.pose_generator.generate_poses(
         molecular_complex,
         centroid=centroid,
@@ -102,11 +111,15 @@ class Docker(object):
       complexes, scores = outputs
     else:
       complexes = outputs
+
     # We know use_pose_generator_scores == False in this case
     if self.scoring_model is not None:
       for posed_complex in complexes:
+        # NOTE: this casting is workaround. This line doesn't effect anything to the runtime
+        self.featurizer = cast(ComplexFeaturizer, self.featurizer)
         # TODO: How to handle the failure here?
-        features, _ = self.featurizer.featurize([molecular_complex])
+        features, _ = self.featurizer.featurize(  # type: ignore
+            [molecular_complex])
         dataset = NumpyDataset(X=features)
         score = self.scoring_model.predict(dataset)
         yield (posed_complex, score)

@@ -4,7 +4,7 @@ Utilities to score protein-ligand poses using DeepChem.
 import numpy as np
 
 
-def pairwise_distances(coords1, coords2):
+def pairwise_distances(coords1: np.ndarray, coords2: np.ndarray) -> np.ndarray:
   """Returns matrix of pairwise Euclidean distances.
 
   Parameters
@@ -16,12 +16,13 @@ def pairwise_distances(coords1, coords2):
 
   Returns
   -------
-  A `(N,M)` array with pairwise distances.
+  np.ndarray
+    A `(N,M)` array with pairwise distances.
   """
   return np.sum((coords1[None, :] - coords2[:, None])**2, -1)**0.5
 
 
-def cutoff_filter(d, x, cutoff=8.0):
+def cutoff_filter(d: np.ndarray, x: np.ndarray, cutoff=8.0) -> np.ndarray:
   """Applies a cutoff filter on pairwise distances
 
   Parameters
@@ -35,13 +36,13 @@ def cutoff_filter(d, x, cutoff=8.0):
 
   Returns
   -------
-  A `(N,M)` array with values where distance is too large thresholded
-  to 0.
+  np.ndarray
+    A `(N,M)` array with values where distance is too large thresholded to 0.
   """
   return np.where(d < cutoff, x, np.zeros_like(x))
 
 
-def vina_nonlinearity(c, w, Nrot):
+def vina_nonlinearity(c: np.ndarray, w: float, Nrot: int) -> np.ndarray:
   """Computes non-linearity used in Vina.
 
   Parameters
@@ -55,13 +56,14 @@ def vina_nonlinearity(c, w, Nrot):
 
   Returns
   -------
-  A `(N, M)` array with activations under a nonlinearity.
+  np.ndarray
+    A `(N, M)` array with activations under a nonlinearity.
   """
   out_tensor = c / (1 + w * Nrot)
   return out_tensor
 
 
-def vina_repulsion(d):
+def vina_repulsion(d: np.ndarray) -> np.ndarray:
   """Computes Autodock Vina's repulsion interaction term.
 
   Parameters
@@ -71,17 +73,16 @@ def vina_repulsion(d):
 
   Returns
   -------
-  A `(N, M)` array with repulsion terms.
+  np.ndarray
+    A `(N, M)` array with repulsion terms.
   """
   return np.where(d < 0, d**2, np.zeros_like(d))
 
 
-def vina_hydrophobic(d):
+def vina_hydrophobic(d: np.ndarray) -> np.ndarray:
   """Computes Autodock Vina's hydrophobic interaction term.
 
-  Here, d is the set of surface distances as defined in:
-
-  Jain, Ajay N. "Scoring noncovalent protein-ligand interactions: a continuous differentiable function tuned to compute binding affinities." Journal of computer-aided molecular design 10.5 (1996): 427-440.
+  Here, d is the set of surface distances as defined in [1]_
 
   Parameters
   ----------
@@ -90,20 +91,24 @@ def vina_hydrophobic(d):
 
   Returns
   -------
-  A `(N, M)` array of hydrophoboic interactions in a piecewise linear
-  curve.
+  np.ndarray
+    A `(N, M)` array of hydrophoboic interactions in a piecewise linear curve.
+
+  References
+  ----------
+  .. [1] Jain, Ajay N. "Scoring noncovalent protein-ligand interactions:
+     a continuous differentiable function tuned to compute binding affinities."
+     Journal of computer-aided molecular design 10.5 (1996): 427-440.
   """
   out_tensor = np.where(d < 0.5, np.ones_like(d),
                         np.where(d < 1.5, 1.5 - d, np.zeros_like(d)))
   return out_tensor
 
 
-def vina_hbond(d):
+def vina_hbond(d: np.ndarray) -> np.ndarray:
   """Computes Autodock Vina's hydrogen bond interaction term.
 
-  Here, d is the set of surface distances as defined in:
-
-  Jain, Ajay N. "Scoring noncovalent protein-ligand interactions: a continuous differentiable function tuned to compute binding affinities." Journal of computer-aided molecular design 10.5 (1996): 427-440.
+  Here, d is the set of surface distances as defined in [1]_
 
   Parameters
   ----------
@@ -112,8 +117,14 @@ def vina_hbond(d):
 
   Returns
   -------
-  A `(N, M)` array of hydrophoboic interactions in a piecewise linear
-  curve.
+  np.ndarray
+    A `(N, M)` array of hydrophoboic interactions in a piecewise linear curve.
+
+  References
+  ----------
+  .. [1] Jain, Ajay N. "Scoring noncovalent protein-ligand interactions:
+     a continuous differentiable function tuned to compute binding affinities."
+     Journal of computer-aided molecular design 10.5 (1996): 427-440.
   """
   out_tensor = np.where(
       d < -0.7, np.ones_like(d),
@@ -121,7 +132,7 @@ def vina_hbond(d):
   return out_tensor
 
 
-def vina_gaussian_first(d):
+def vina_gaussian_first(d: np.ndarray) -> np.ndarray:
   """Computes Autodock Vina's first Gaussian interaction term.
 
   Here, d is the set of surface distances as defined in [1]_
@@ -133,7 +144,8 @@ def vina_gaussian_first(d):
 
   Returns
   -------
-  A `(N, M)` array of gaussian interaction terms.
+  np.ndarray
+    A `(N, M)` array of gaussian interaction terms.
 
   References
   ----------
@@ -145,7 +157,7 @@ def vina_gaussian_first(d):
   return out_tensor
 
 
-def vina_gaussian_second(d):
+def vina_gaussian_second(d: np.ndarray) -> np.ndarray:
   """Computes Autodock Vina's second Gaussian interaction term.
 
   Here, d is the set of surface distances as defined in [1]_
@@ -157,7 +169,8 @@ def vina_gaussian_second(d):
 
   Returns
   -------
-  A `(N, M)` array of gaussian interaction terms.
+  np.ndarray
+    A `(N, M)` array of gaussian interaction terms.
 
   References
   ----------
@@ -169,7 +182,7 @@ def vina_gaussian_second(d):
   return out_tensor
 
 
-def weighted_linear_sum(w, x):
+def weighted_linear_sum(w: np.ndarray, x: np.ndarray) -> np.ndarray:
   """Computes weighted linear sum.
 
   Parameters
@@ -178,11 +191,17 @@ def weighted_linear_sum(w, x):
     Of shape `(N,)`
   x: np.ndarray
     Of shape `(N,)`
+
+  Returns
+  -------
+  np.ndarray
+    A scalar value
   """
   return np.sum(np.dot(w, x))
 
 
-def vina_energy_term(coords1, coords2, weights, wrot, Nrot):
+def vina_energy_term(coords1: np.ndarray, coords2: np.ndarray,
+                     weights: np.ndarray, wrot: float, Nrot: int) -> np.ndarray:
   """Computes the Vina Energy function for two molecular conformations
 
   Parameters
@@ -200,7 +219,8 @@ def vina_energy_term(coords1, coords2, weights, wrot, Nrot):
 
   Returns
   -------
-  Scalar with energy
+  np.ndarray
+    A scalar value with free energy
   """
   # TODO(rbharath): The autodock vina source computes surface distances which take into account the van der Waals radius of each atom type.
   dists = pairwise_distances(coords1, coords2)
