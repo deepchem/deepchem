@@ -222,7 +222,8 @@ def vina_energy_term(coords1: np.ndarray, coords2: np.ndarray,
   np.ndarray
     A scalar value with free energy
   """
-  # TODO(rbharath): The autodock vina source computes surface distances which take into account the van der Waals radius of each atom type.
+  # TODO(rbharath): The autodock vina source computes surface distances
+  # which take into account the van der Waals radius of each atom type.
   dists = pairwise_distances(coords1, coords2)
   repulsion = vina_repulsion(dists)
   hydrophobic = vina_hydrophobic(dists)

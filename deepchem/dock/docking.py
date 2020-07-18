@@ -3,7 +3,8 @@ Docks Molecular Complexes
 """
 import logging
 import tempfile
-from typing import Any, Optional, cast
+from typing import cast, Optional, Tuple
+import numpy as np
 
 from deepchem.models import Model
 from deepchem.feat import ComplexFeaturizer
@@ -52,9 +53,9 @@ class Docker(object):
     self.scoring_model = scoring_model
 
   def dock(self,
-           molecular_complex: Any,
-           centroid: Optional[int] = None,
-           box_dims: Optional[int] = None,
+           molecular_complex: Tuple[str, str],
+           centroid: Optional[np.ndarray] = None,
+           box_dims: Optional[np.ndarray] = None,
            exhaustiveness: int = 10,
            num_modes: int = 9,
            num_pockets: Optional[int] = None,
@@ -68,8 +69,14 @@ class Docker(object):
 
     Parameters
     ----------
-    molecular_complex: Object
-      Some representation of a molecular complex.
+    molecular_complex: Tuple[str]
+      A representation of a molecular complex. This tuple is
+      (protein_file, ligand_file).
+    centroid: np.ndarray, optional (default None)
+      The centroid to dock against. Is computed if not specified.
+    box_dims: np.ndarray, optional (default None)
+      Of shape `(3,)` holding the size of the box to dock. If not
+      specified is set to size of molecular complex plus 5 angstroms.
     exhaustiveness: int, optional (default 10)
       Tells pose generator how exhaustive it should be with pose
       generation.
@@ -118,8 +125,8 @@ class Docker(object):
         # NOTE: this casting is workaround. This line doesn't effect anything to the runtime
         self.featurizer = cast(ComplexFeaturizer, self.featurizer)
         # TODO: How to handle the failure here?
-        features, _ = self.featurizer.featurize(  # type: ignore
-            [molecular_complex])
+        (protein_file, ligand_file) = molecular_complex
+        features, _ = self.featurizer.featurize([protein_file], [ligand_file])
         dataset = NumpyDataset(X=features)
         score = self.scoring_model.predict(dataset)
         yield (posed_complex, score)
