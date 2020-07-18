@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 items=(
-    "deepchem/hyper",
+    "deepchem/hyper"
     "deepchem/dock"
 )
 

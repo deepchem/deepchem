@@ -37,6 +37,7 @@ install:
 
 script:
   - bash devtools/run_yapf.sh
+  - bash devtools/run_flake8.sh
   - mypy -p deepchem
   - pytest -m "not slow" --cov=deepchem deepchem
   - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
