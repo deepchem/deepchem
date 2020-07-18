@@ -1,8 +1,8 @@
-from typing import Optional, Iterable
+from typing import Optional, Sequence
 import numpy as np
 
 
-class MoleculeGraphData(object):
+class MoleculeGraphData:
   """MoleculeGraphData class
 
   This data class is almost same as `torch_geometric.data.Data 
@@ -115,7 +115,7 @@ class BatchMoleculeGraphData(MoleculeGraphData):
     This vector indicates which graph the node belongs with shape [num_nodes,]
   """
 
-  def __init__(self, molecule_graphs: Iterable[MoleculeGraphData]):
+  def __init__(self, molecule_graphs: Sequence[MoleculeGraphData]):
     """
     Parameters
     ----------
@@ -162,8 +162,8 @@ class BatchMoleculeGraphData(MoleculeGraphData):
         graph_features=batch_graph_features,
     )
 
-    @staticmethod
-    def to_pyg_data(molecule_graphs: Iterable[MoleculeGraphData]):
+    @staticmethod # type: ignore
+    def to_pyg_data(molecule_graphs: Sequence[MoleculeGraphData]):
       """Convert to PyTorch Geometric Batch instance
 
       Parameters
