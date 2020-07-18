@@ -4,14 +4,14 @@ import deepchem as dc
 import numpy as np
 import tensorflow as tf
 
-from typing import List
-from deepchem.utils.typing import OneOrMany 
+from typing import List, Union
+from deepchem.utils.typing import OneOrMany, KerasLossFn
 from deepchem.data import NumpyDataset, pad_features
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
 from deepchem.metrics import to_one_hot
 from deepchem.models import KerasModel, layers
-from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy
+from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy, Loss
 from deepchem.trans import undo_transforms
 from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Activation, BatchNormalization
 
@@ -72,7 +72,7 @@ class WeaveModel(KerasModel):
                n_atom_feat: OneOrMany[int] = 75,
                n_pair_feat: OneOrMany[int] = 14,
                n_hidden: int = 50,
-               n_graph_feat: OneOrMany[int] = 128,
+               n_graph_feat: int = 128,
                n_weave: int = 2,
                fully_connected_layer_sizes: List[int] = [2000, 1000],
                mode: str = "classification",
@@ -126,8 +126,8 @@ class WeaveModel(KerasModel):
       n_atom = self.n_atom_feat[ind]
       n_pair = self.n_pair_feat[ind]
       if ind < n_weave - 1:
-        n_atom_next = self.n_atom_feat[ind+1]
-        n_pair_next = self.n_pair_feat[ind+1]
+        n_atom_next = self.n_atom_feat[ind + 1]
+        n_pair_next = self.n_pair_feat[ind + 1]
       else:
         n_atom_next = n_hidden
         n_pair_next = n_hidden
@@ -161,7 +161,7 @@ class WeaveModel(KerasModel):
       output = Softmax()(logits)
       outputs = [output, logits]
       output_types = ['prediction', 'loss']
-      loss = SoftmaxCrossEntropy()
+      loss: Loss = SoftmaxCrossEntropy()
     else:
       output = Dense(n_tasks)(weave_gather)
       outputs = [output]
@@ -774,7 +774,7 @@ class GraphConvModel(KerasModel):
         batch_size=batch_size)
     if mode == "classification":
       output_types = ['prediction', 'loss', 'embedding']
-      loss = SoftmaxCrossEntropy()
+      loss: Union[Loss, KerasLossFn] = SoftmaxCrossEntropy()
     else:
       if self.uncertainty:
         output_types = ['prediction', 'variance', 'loss', 'loss', 'embedding']
