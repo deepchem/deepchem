@@ -298,6 +298,7 @@ class VinaPoseGenerator(PoseGenerator):
       else:
         # I'm not sure why specifying the args as a list fails on other platforms,
         # but for some reason it only works if I pass it as a string.
+        # FIXME: Incompatible types in assignment
         args = "%s --config %s --log %s --out %s" % (  # type: ignore
             self.vina_cmd, conf_file, log_file, out_pdbqt)
       # FIXME: We should use `subprocess.run` instead of `call`

@@ -90,7 +90,8 @@ class CoordinateBox(object):
     z_cont = (z_min <= point[2] and point[2] <= z_max)
     return x_cont and y_cont and z_cont
 
-  def __eq__(self, other: "CoordinateBox") -> bool:  # type: ignore
+  # FIXME: Argument 1 of "__eq__" is incompatible with supertype "object"
+  def __eq__(self, other: "CoordinateBox") -> bool: # type: ignore
     """Compare two boxes to see if they're equal.
 
     Parameters

@@ -4,23 +4,30 @@ Contains class for gaussian process hyperparameter optimizations.
 import os
 import logging
 import tempfile
+from typing import Dict, List, Optional, Tuple, Union
+
+from deepchem.data import Dataset
+from deepchem.metrics import Metric
 from deepchem.hyper.base_classes import HyperparamOpt
 from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
 
 logger = logging.getLogger(__name__)
 
 
-def compute_parameter_range(params_dict, search_range):
+def compute_parameter_range(
+    params_dict: Dict[str, Union[int, float]],
+    search_range: Union[int, float, Dict[str, Union[int, float]]]
+) -> Dict[str, Tuple[str, List[float]]]:
   """Convenience Function to compute parameter search space.
 
   Parameters
   ----------
-  params_dict: dict
+  params_dict: Dict
     Dictionary mapping strings to Ints/Floats. An explicit list of
     parameters is computed with `search_range`. The optimization range
     computed is specified in the documentation for `search_range`
     below.
-  search_range: int(float)/dict (default 4)
+  search_range: int/float/Dict (default 4)
     The `search_range` specifies the range of parameter values to
     search for. If `search_range` is an int/float, it is used as the
     global search range for parameters. This creates a search
@@ -41,7 +48,7 @@ def compute_parameter_range(params_dict, search_range):
 
   Returns
   -------
-  param_range: dict
+  param_range: Dict
     Dictionary mapping hyperparameter names to tuples. Each tuple is
     of form `(value_type, value_range)` where `value_type` is a string
     that is either "int" or "cont" and `value_range` is a list of two
@@ -115,22 +122,24 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(model_builder)
   """
 
-  def hyperparam_search(self,
-                        params_dict,
-                        train_dataset,
-                        valid_dataset,
-                        transformers,
-                        metric,
-                        use_max=True,
-                        logdir=None,
-                        max_iter=20,
-                        search_range=4,
-                        logfile=None):
+  # NOTE: mypy prohibits changing the number of arguments
+  # FIXME: Signature of "hyperparam_search" incompatible with supertype "HyperparamOpt"
+  def hyperparam_search(  # type: ignore[override]
+      self,
+      params_dict: Dict[str, Union[int, float]],
+      train_dataset: Dataset,
+      valid_dataset: Dataset,
+      metric: Metric,
+      use_max: bool = True,
+      logdir: Optional[str] = None,
+      max_iter: int = 20,
+      search_range: Union[int, float, Dict[str, Union[int, float]]] = 4,
+      logfile: Optional[str] = None):
     """Perform hyperparameter search using a gaussian process.
 
     Parameters
     ----------
-    params_dict: dict
+    params_dict: Dict
       Maps hyperparameter names (strings) to possible parameter
       values. The semantics of this list are different than for
       `GridHyperparamOpt`. `params_dict[hp]` must map to an int/float,
@@ -141,19 +150,17 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       dataset used for training
     valid_dataset: `dc.data.Dataset`
       dataset used for validation(optimization on valid scores)
-    transformers: list[dc.trans.Transformer]
-      transformers for evaluation
     metric: `dc.metrics.Metric`
       metric used for evaluation
     use_max: bool, (default True)
       Specifies whether to maximize or minimize `metric`.
       maximization(True) or minimization(False)
-    logdir: str, optional
+    logdir: str, optional, (default None)
       The directory in which to store created models. If not set, will
       use a temporary directory.
     max_iter: int, (default 20)
       number of optimization trials
-    search_range: int(float)/dict (default 4)
+    search_range: int/float/Dict (default 4)
       The `search_range` specifies the range of parameter values to
       search for. If `search_range` is an int/float, it is used as the
       global search range for parameters. This creates a search
@@ -171,7 +178,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
       optimization on hp on [initial value[hp] / search_range[hp],
                              initial value[hp] * search_range[hp]]
-    logfile: str
+    logfile: str, optional (default None)
       Name of logfile to write results to. If specified, this is must
       be a valid file. If not specified, results of hyperparameter
       search will be written to `logdir/.txt`.
@@ -180,12 +187,21 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     Returns
     -------
     `(best_model, best_hyperparams, all_scores)` where `best_model` is
-    an instance of `dc.model.Models`, `best_hyperparams` is a
+    an instance of `dc.model.Model`, `best_hyperparams` is a
     dictionary of parameters, and `all_scores` is a dictionary mapping
     string representations of hyperparameter sets to validation
     scores.
     """
+    try:
+      from pyGPGO.covfunc import matern32
+      from pyGPGO.acquisition import Acquisition
+      from pyGPGO.surrogates.GaussianProcess import GaussianProcess
+      from pyGPGO.GPGO import GPGO
+    except ModuleNotFoundError:
+      raise ValueError("This class requires pyGPGO to be installed.")
+
     # Specify logfile
+    log_file = None
     if logfile:
       log_file = logfile
     elif logdir is not None:
@@ -193,8 +209,6 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       if not os.path.exists(logdir):
         os.makedirs(logdir, exist_ok=True)
       log_file = os.path.join(logdir, "results.txt")
-    else:
-      log_file = None
 
     # setup range
     param_range = compute_parameter_range(params_dict, search_range)
@@ -208,7 +222,6 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     model_locations = {}
 
     # Demarcating internal function for readability
-    ########################
     def optimizing_function(**placeholders):
       """Private Optimizing function
 
@@ -275,18 +288,14 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       # Store reference to model
       all_models[hp_str] = model
       model_locations[hp_str] = model_dir
-      # GPGO maximize performance by default, set performance to its negative value for minimization
+      # GPGO maximize performance by default
+      # set performance to its negative value for minimization
       if use_max:
         return score
       else:
         return -score
 
-    ########################
-
-    from pyGPGO.covfunc import matern32
-    from pyGPGO.acquisition import Acquisition
-    from pyGPGO.surrogates.GaussianProcess import GaussianProcess
-    from pyGPGO.GPGO import GPGO
+    # execute GPGO
     cov = matern32()
     gp = GaussianProcess(cov)
     acq = Acquisition(mode='ExpectedImprovement')
@@ -300,7 +309,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       if param_range[hp][0] == "int":
         hyper_parameters[hp] = int(hp_opt[hp])
       else:
-        hyper_parameters[hp] = float(hp_opt[hp])
+        # Incompatible types in assignment
+        hyper_parameters[hp] = float(hp_opt[hp])  # type: ignore
     hp_str = _convert_hyperparam_dict_to_filename(hyper_parameters)
 
     # Let's fetch the model with the best parameters

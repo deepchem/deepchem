@@ -1,15 +1,20 @@
 import logging
+from typing import Any, Callable, Dict, Optional, Tuple
+
+from deepchem.data import Dataset
+from deepchem.models import Model
+from deepchem.metrics import Metric
 
 logger = logging.getLogger(__name__)
 
 
-def _convert_hyperparam_dict_to_filename(hyper_params):
+def _convert_hyperparam_dict_to_filename(hyper_params: Dict) -> str:
   """Helper function that converts a dictionary of hyperparameters to a string that can be a filename.
 
   Parameters
   ----------
-  hyper_params: dict
-    Maps string of hyperparameter name to int/float.
+  hyper_params: Dict
+    Maps string of hyperparameter name to int/float/string/list etc.
 
   Returns
   -------
@@ -47,7 +52,7 @@ class HyperparamOpt(object):
   instantiated.
   """
 
-  def __init__(self, model_builder):
+  def __init__(self, model_builder: Callable[..., Model]):
     """Initialize Hyperparameter Optimizer.
 
     Note this is an abstract constructor which should only be used by
@@ -64,18 +69,19 @@ class HyperparamOpt(object):
     """
     if self.__class__.__name__ == "HyperparamOpt":
       raise ValueError(
-          "HyperparamOpt is an abstract superclass and cannot be directly instantiated. You probably want to instantiate a concrete subclass instead."
-      )
+          "HyperparamOpt is an abstract superclass and cannot be directly instantiated. \
+          You probably want to instantiate a concrete subclass instead.")
     self.model_builder = model_builder
 
-  def hyperparam_search(self,
-                        params_dict,
-                        train_dataset,
-                        valid_dataset,
-                        transformers,
-                        metric,
-                        use_max=True,
-                        logdir=None):
+  def hyperparam_search(
+      self,
+      params_dict: Dict[str, Any],
+      train_dataset: Dataset,
+      valid_dataset: Dataset,
+      metric: Metric,
+      use_max: bool = True,
+      logdir: Optional[str] = None,
+      **kwargs) -> Tuple[Model, Dict[str, Any], Dict[str, float]]:
     """Conduct Hyperparameter search.
 
     This method defines the common API shared by all hyperparameter
@@ -84,7 +90,7 @@ class HyperparamOpt(object):
 
     Parameters
     ----------
-    params_dict: dict
+    params_dict: Dict
       Dictionary mapping strings to values. Note that the
       precise semantics of `params_dict` will change depending on the
       optimizer that you're using. Depending on the type of
@@ -96,11 +102,8 @@ class HyperparamOpt(object):
       dataset used for training
     valid_dataset: `dc.data.Dataset`
       dataset used for validation(optimization on valid scores)
-    output_transformers: list[dc.trans.Transformer]
-      Transformers for evaluation. This argument is needed since
-      `train_dataset` and `valid_dataset` may have been transformed
-      for learning and need the transform to be inverted before
-      the metric can be evaluated on a model.
+    metric: `dc.metrics.Metric`
+      metric used for evaluation
     use_max: bool, optional
       If True, return the model with the highest score. Else return
       model with the minimum score.
