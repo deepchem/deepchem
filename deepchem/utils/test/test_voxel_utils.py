@@ -15,8 +15,7 @@ class TestVoxelUtils(unittest.TestCase):
     voxel_width = 1
     indices = voxel_utils.convert_atom_to_voxel(coordinates, atom_index,
                                                 box_width, voxel_width)
-    assert len(indices) == 1
-    assert indices[0].shape == (3,)
+    assert indices.shape == (3,)
 
   def test_convert_pair_atom_to_voxel(self):
     N = 5
@@ -28,9 +27,7 @@ class TestVoxelUtils(unittest.TestCase):
     voxel_width = 1
     indices = voxel_utils.convert_atom_pair_to_voxel(
         [coordinates1, coordinates2], atom_index_pair, box_width, voxel_width)
-    assert len(indices) == 2
-    assert indices[0].shape == (3,)
-    assert indices[1].shape == (3,)
+    assert indices.shape == (2, 3)
 
   def test_voxelize_convert_atom(self):
     N = 5

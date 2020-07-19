@@ -9,7 +9,7 @@ from deepchem.models import Model
 from deepchem.utils.rdkit_util import load_molecule
 from deepchem.utils.coordinate_box_utils \
   import CoordinateBox, get_face_boxes, merge_overlapping_boxes
-from deepchem.utils.fragment_util import get_contact_atom_indices
+from deepchem.utils.fragment_utils import get_contact_atom_indices
 
 logger = logging.getLogger(__name__)
 

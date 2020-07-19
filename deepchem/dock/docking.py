@@ -3,15 +3,17 @@ Docks Molecular Complexes
 """
 import logging
 import tempfile
-from typing import cast, Optional, Tuple
+from typing import cast, Generator, Optional, Tuple, Union
 import numpy as np
 
+from deepchem.utils.typing import RDKitMol
 from deepchem.models import Model
 from deepchem.feat import ComplexFeaturizer
 from deepchem.data import NumpyDataset
 from deepchem.dock import PoseGenerator
 
 logger = logging.getLogger(__name__)
+POSED_COMPLEX = Tuple[RDKitMol, RDKitMol]
 
 
 class Docker(object):
@@ -60,7 +62,9 @@ class Docker(object):
            num_modes: int = 9,
            num_pockets: Optional[int] = None,
            out_dir: Optional[str] = None,
-           use_pose_generator_scores: bool = False):
+           use_pose_generator_scores: bool = False
+          ) -> Union[Generator[POSED_COMPLEX, None, None], Generator[Tuple[
+              POSED_COMPLEX, float], None, None]]:
     """Generic docking function.
 
     This docking function uses this object's featurizer, pose
@@ -96,9 +100,10 @@ class Docker(object):
 
     Returns
     -------
-    A generator. If `use_pose_generator_scores==True` or
-    `self.scoring_model` is set, then will yield tuples
-    `(posed_complex, score)`. Else will yield `posed_complex`.
+    Generator[(`posed_complex, score`)] or Generator[`posed_complex`]
+      A generator. If `use_pose_generator_scores==True` or
+      `self.scoring_model` is set, then will yield tuples
+      `(posed_complex, score)`. Else will yield `posed_complex`.
     """
     if self.scoring_model is not None and use_pose_generator_scores:
       raise ValueError(

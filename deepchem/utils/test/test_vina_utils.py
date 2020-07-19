@@ -13,7 +13,8 @@ class TestVinaUtils(unittest.TestCase):
   def setUp(self):
     # TODO test more formats for ligand
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    self.docked_ligands = os.path.join(current_dir, '1jld_ligand_docked.pdbqt')
+    self.docked_ligands = os.path.join(current_dir, 'data',
+                                       '1jld_ligand_docked.pdbqt')
 
   def test_load_docked_ligand(self):
     docked_ligands, scores = vina_utils.load_docked_ligands(self.docked_ligands)

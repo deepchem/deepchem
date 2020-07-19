@@ -9,16 +9,17 @@ import tarfile
 import numpy as np
 from subprocess import call
 from subprocess import check_output
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from deepchem.dock.binding_pocket import BindingPocketFinder
 from deepchem.utils import download_url, get_data_dir
-from deepchem.utils.mol_xyz_util import get_molecule_range
-from deepchem.utils.geometry_utils import compute_centroid
+from deepchem.utils.typing import RDKitMol
+from deepchem.utils.geometry_utils import compute_centroid, compute_protein_range
 from deepchem.utils.rdkit_util import load_molecule, write_molecule
 from deepchem.utils.vina_utils import load_docked_ligands, write_vina_conf
 
 logger = logging.getLogger(__name__)
+DOCKED_POSES = List[Tuple[RDKitMol, RDKitMol]]
 
 
 class PoseGenerator(object):
@@ -156,10 +157,12 @@ class VinaPoseGenerator(PoseGenerator):
                      num_modes: int = 9,
                      num_pockets: Optional[int] = None,
                      out_dir: Optional[str] = None,
-                     generate_scores: bool = False):
+                     generate_scores: bool = False
+                    ) -> Union[Tuple[DOCKED_POSES, List[float]], DOCKED_POSES]:
     """Generates the docked complex and outputs files for docked complex.
 
-    TODO: How can this work on Windows? We need to install a .msi file and invoke it correctly from Python for this to work.
+    TODO: How can this work on Windows? We need to install a .msi file and 
+    invoke it correctly from Python for this to work.
 
     Parameters
     ----------
@@ -190,10 +193,11 @@ class VinaPoseGenerator(PoseGenerator):
 
     Returns
     -------
-    Tuple of `(docked_poses, scores)`. `docked_poses` is a list of
-    docked molecular complexes. Each entry in this list contains a
-    `(protein_mol, ligand_mol)` pair of RDKit molecules. `scores` is a
-    list of binding free energies predicted by Vina.
+    `(docked_poses, scores)` or `docked_poses`
+      Tuple of `(docked_poses, scores)` or `docked_poses`. `docked_poses`
+      is a list of docked molecular complexes. Each entry in this list
+      contains a `(protein_mol, ligand_mol)` pair of RDKit molecules.
+      `scores` is a list of binding free energies predicted by Vina.
 
     Raises
     ------
@@ -232,7 +236,7 @@ class VinaPoseGenerator(PoseGenerator):
       if self.pocket_finder is None:
         logger.info("Pockets not specified. Will use whole protein to dock")
         protein_centroid = compute_centroid(protein_mol[0])
-        protein_range = get_molecule_range(protein_mol[0])
+        protein_range = compute_protein_range(protein_mol[0])
         box_dims = protein_range + 5.0
         centroids, dimensions = [protein_centroid], [box_dims]
       else:
