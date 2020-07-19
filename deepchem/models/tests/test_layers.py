@@ -9,13 +9,13 @@ class TestLayers(test_util.TensorFlowTestCase):
 
   def test_cosine_dist(self):
     """Test invoking _cosine_dist."""
-    x = tf.ones((5,4), dtype=tf.dtypes.float32, name=None)
-    y_same = tf.ones((5,4), dtype=tf.dtypes.float32, name=None)
-    y_far = -1. * tf.ones((5,4), dtype=tf.dtypes.float32, name=None) 
+    x = tf.ones((5, 4), dtype=tf.dtypes.float32, name=None)
+    y_same = tf.ones((5, 4), dtype=tf.dtypes.float32, name=None)
+    y_far = -1. * tf.ones((5, 4), dtype=tf.dtypes.float32, name=None)
     close_cosine_dist = layers._cosine_dist(x, y_same)
     far_close_dist = layers._cosine_dist(x, y_far)
     assert tf.reduce_sum(close_cosine_dist) == 0.
-    assert tf.reduce_sum(far_close_dist) == 2.*5.*5.
+    assert tf.reduce_sum(far_close_dist) == 2. * 5. * 5.
 
   def test_highway(self):
     """Test invoking Highway."""
