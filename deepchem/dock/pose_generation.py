@@ -12,12 +12,11 @@ from subprocess import check_output
 from typing import Optional, Tuple
 
 from deepchem.dock.binding_pocket import BindingPocketFinder
-from deepchem.utils import rdkit_util
-from deepchem.utils import mol_xyz_util
-from deepchem.utils import geometry_utils
-from deepchem.utils import vina_utils
-from deepchem.utils import download_url
-from deepchem.utils import get_data_dir
+from deepchem.utils import download_url, get_data_dir
+from deepchem.utils.mol_xyz_util import get_molecule_range
+from deepchem.utils.geometry_utils import compute_centroid
+from deepchem.utils.rdkit_util import load_molecule, write_molecule
+from deepchem.utils.vina_utils import load_docked_ligands, write_vina_conf
 
 logger = logging.getLogger(__name__)
 
@@ -220,10 +219,10 @@ class VinaPoseGenerator(PoseGenerator):
     protein_name = os.path.basename(protein_file).split(".")[0]
     protein_hyd = os.path.join(out_dir, "%s_hyd.pdb" % protein_name)
     protein_pdbqt = os.path.join(out_dir, "%s.pdbqt" % protein_name)
-    protein_mol = rdkit_util.load_molecule(
+    protein_mol = load_molecule(
         protein_file, calc_charges=True, add_hydrogens=True)
-    rdkit_util.write_molecule(protein_mol[1], protein_hyd, is_protein=True)
-    rdkit_util.write_molecule(protein_mol[1], protein_pdbqt, is_protein=True)
+    write_molecule(protein_mol[1], protein_hyd, is_protein=True)
+    write_molecule(protein_mol[1], protein_pdbqt, is_protein=True)
 
     # Get protein centroid and range
     if centroid is not None and box_dims is not None:
@@ -232,8 +231,8 @@ class VinaPoseGenerator(PoseGenerator):
     else:
       if self.pocket_finder is None:
         logger.info("Pockets not specified. Will use whole protein to dock")
-        protein_centroid = geometry_utils.compute_centroid(protein_mol[0])
-        protein_range = mol_xyz_util.get_molecule_range(protein_mol[0])
+        protein_centroid = compute_centroid(protein_mol[0])
+        protein_range = get_molecule_range(protein_mol[0])
         box_dims = protein_range + 5.0
         centroids, dimensions = [protein_centroid], [box_dims]
       else:
@@ -264,9 +263,9 @@ class VinaPoseGenerator(PoseGenerator):
     ligand_name = os.path.basename(ligand_file).split(".")[0]
     ligand_pdbqt = os.path.join(out_dir, "%s.pdbqt" % ligand_name)
 
-    ligand_mol = rdkit_util.load_molecule(
+    ligand_mol = load_molecule(
         ligand_file, calc_charges=True, add_hydrogens=True)
-    rdkit_util.write_molecule(ligand_mol[1], ligand_pdbqt)
+    write_molecule(ligand_mol[1], ligand_pdbqt)
 
     docked_complexes = []
     all_scores = []
@@ -277,7 +276,7 @@ class VinaPoseGenerator(PoseGenerator):
       logger.info("Box dimensions: %s" % str(box_dims))
       # Write Vina conf file
       conf_file = os.path.join(out_dir, "conf.txt")
-      vina_utils.write_vina_conf(
+      write_vina_conf(
           protein_pdbqt,
           ligand_pdbqt,
           protein_centroid,
@@ -303,7 +302,7 @@ class VinaPoseGenerator(PoseGenerator):
             self.vina_cmd, conf_file, log_file, out_pdbqt)
       # FIXME: We should use `subprocess.run` instead of `call`
       call(args, shell=True)
-      ligands, scores = vina_utils.load_docked_ligands(out_pdbqt)
+      ligands, scores = load_docked_ligands(out_pdbqt)
       docked_complexes += [(protein_mol[1], ligand) for ligand in ligands]
       all_scores += scores
 
