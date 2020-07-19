@@ -12,8 +12,8 @@ class TestLayers(test_util.TensorFlowTestCase):
     x = np.ones((5, 4)).astype(np.float32)
     y_same = np.ones((5, 4)).astype(np.float32)
     y_far = np.zeros((5, 4)).astype(np.float32)
-    assert sum(layers._cosine_dist(x,y_same)) == 0
-    assert sum(layers._cosine_dist(x,y_far)) == 5
+    assert sum(layers._cosine_dist(x, y_same)) == 0
+    assert sum(layers._cosine_dist(x, y_far)) == 5
 
   def test_highway(self):
     """Test invoking Highway."""
@@ -262,7 +262,8 @@ class TestLayers(test_util.TensorFlowTestCase):
     layer = layers.WeightedLinearCombo()
     result = layer([input1, input2])
     assert len(layer.trainable_variables) == 2
-    expected = input1 * layer.trainable_variables[0] + input2 * layer.trainable_variables[1]
+    expected = input1 * layer.trainable_variables[
+        0] + input2 * layer.trainable_variables[1]
     assert np.allclose(result, expected)
 
   def test_neighbor_list(self):
@@ -288,10 +289,11 @@ class TestLayers(test_util.TensorFlowTestCase):
     params = [[5.0, 2.0, 0.5], [10.0, 2.0, 0.5]]
     input1 = np.random.rand(batch_size, max_atoms,
                             dimensions).astype(np.float32)
-    input2 = np.random.randint(
-        max_atoms, size=(batch_size, max_atoms, max_neighbors))
-    input3 = np.random.randint(
-        1, 10, size=(batch_size, max_atoms, max_neighbors))
+    input2 = np.random.randint(max_atoms,
+                               size=(batch_size, max_atoms, max_neighbors))
+    input3 = np.random.randint(1,
+                               10,
+                               size=(batch_size, max_atoms, max_neighbors))
     layer = layers.AtomicConvolution(radial_params=params)
     result = layer([input1, input2, input3])
     assert result.shape == (batch_size, max_atoms, len(params))
@@ -413,10 +415,12 @@ class TestLayers(test_util.TensorFlowTestCase):
     max_atoms = 50
     layer_sizes = [100]
     atom_features = np.random.rand(batch_size, n_atom_feat)
-    parents = np.random.randint(
-        0, max_atoms, size=(batch_size, max_atoms, max_atoms))
-    calculation_orders = np.random.randint(
-        0, batch_size, size=(batch_size, max_atoms))
+    parents = np.random.randint(0,
+                                max_atoms,
+                                size=(batch_size, max_atoms, max_atoms))
+    calculation_orders = np.random.randint(0,
+                                           batch_size,
+                                           size=(batch_size, max_atoms))
     calculation_masks = np.random.randint(0, 2, size=(batch_size, max_atoms))
     # Recall that the DAG layer expects a MultiConvMol as input,
     # so the "batch" is a pooled set of atoms from all the
@@ -424,11 +428,10 @@ class TestLayers(test_util.TensorFlowTestCase):
     # This means that n_atoms is the batch-size
     n_atoms = batch_size
     #dropout_switch = False
-    layer = layers.DAGLayer(
-        n_graph_feat=n_graph_feat,
-        n_atom_feat=n_atom_feat,
-        max_atoms=max_atoms,
-        layer_sizes=layer_sizes)
+    layer = layers.DAGLayer(n_graph_feat=n_graph_feat,
+                            n_atom_feat=n_atom_feat,
+                            max_atoms=max_atoms,
+                            layer_sizes=layer_sizes)
     outputs = layer([
         atom_features,
         parents,
@@ -450,11 +453,10 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_outputs = 75
     max_atoms = 50
     layer_sizes = [100]
-    layer = layers.DAGGather(
-        n_graph_feat=n_graph_feat,
-        n_outputs=n_outputs,
-        max_atoms=max_atoms,
-        layer_sizes=layer_sizes)
+    layer = layers.DAGGather(n_graph_feat=n_graph_feat,
+                             n_outputs=n_outputs,
+                             max_atoms=max_atoms,
+                             layer_sizes=layer_sizes)
     atom_features = np.random.rand(batch_size, n_atom_feat)
     membership = np.sort(np.random.randint(0, batch_size, size=(batch_size)))
     outputs = layer([atom_features, membership])
