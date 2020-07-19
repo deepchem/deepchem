@@ -429,8 +429,7 @@ def _cosine_dist(x, y):
   """
   x_norm = tf.nn.l2_normalize(x, axis=1)
   y_norm = tf.nn.l2_normalize(y, axis=1)
-  # the cosine distance is 1 - the cosine similarity
-  return 1. - tf.reduce_sum(tf.multiply(x_norm, y_norm), axis=1)
+  return 1. - backend.dot(x_norm, tf.transpose(y_norm))
 
 
 class AttnLSTMEmbedding(tf.keras.layers.Layer):
