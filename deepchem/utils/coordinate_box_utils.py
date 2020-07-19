@@ -20,17 +20,17 @@ class CoordinateBox(object):
   of atoms that live in this box alongside their coordinates.
   """
 
-  def __init__(self, x_range: Tuple[int, int], y_range: Tuple[int, int],
-               z_range: Tuple[int, int]):
+  def __init__(self, x_range: Tuple[float, float], y_range: Tuple[float, float],
+               z_range: Tuple[float, float]):
     """Initialize this box.
 
     Parameters
     ----------
-    x_range: Tuple[int]
+    x_range: Tuple[float]
       A tuple of `(x_min, x_max)` with max and min x-coordinates.
-    y_range: Tuple[int]
+    y_range: Tuple[float]
       A tuple of `(y_min, y_max)` with max and min y-coordinates.
-    z_range: Tuple[int]
+    z_range: Tuple[float]
       A tuple of `(z_min, z_max)` with max and min z-coordinates.
 
     Raises
@@ -70,7 +70,7 @@ class CoordinateBox(object):
     """Create a string representation of this box."""
     return self.__repr__()
 
-  def __contains__(self, point: Sequence[int]) -> bool:
+  def __contains__(self, point: Sequence[float]) -> bool:
     """Check whether a point is in this box.
 
     Parameters
@@ -144,12 +144,12 @@ class CoordinateBox(object):
     return (x_min + (x_max - x_min) / 2, y_min + (y_max - y_min) / 2,
             z_min + (z_max - z_min) / 2)
 
-  def volume(self) -> int:
+  def volume(self) -> float:
     """Computes and returns the volume of this box.
 
     Returns
     -------
-    int, the volume of this box. Can be 0 if box is empty
+    float, the volume of this box. Can be 0 if box is empty
 
     Examples
     --------
@@ -193,20 +193,20 @@ class CoordinateBox(object):
             self_z_min <= other_z_min and other_z_max <= self_z_max)
 
 
-def intersect_interval(interval1: Tuple[int, int],
-                       interval2: Tuple[int, int]) -> Tuple[int, int]:
+def intersect_interval(interval1: Tuple[float, float],
+                       interval2: Tuple[float, float]) -> Tuple[float, float]:
   """Computes the intersection of two intervals.
 
   Parameters
   ----------
-  interval1: Tuple[int]
+  interval1: Tuple[float]
     Should be `(x1_min, x1_max)`
-  interval2: Tuple[int]
+  interval2: Tuple[float]
     Should be `(x2_min, x2_max)`
 
   Returns
   -------
-  x_intersect: Tuple[int]
+  x_intersect: Tuple[float]
     Should be the intersection. If the intersection is empty returns
     `(0, 0)` to represent the empty set. Otherwise is `(max(x1_min,
     x2_min), min(x1_max, x2_max))`.
@@ -304,7 +304,7 @@ def merge_overlapping_boxes(boxes: List[CoordinateBox],
   return outputs
 
 
-def get_face_boxes(coords: np.ndarray, pad: int = 5) -> List[CoordinateBox]:
+def get_face_boxes(coords: np.ndarray, pad: float = 5.0) -> List[CoordinateBox]:
   """For each face of the convex hull, compute a coordinate box around it.
 
   The convex hull of a macromolecule will have a series of triangular
@@ -322,7 +322,7 @@ def get_face_boxes(coords: np.ndarray, pad: int = 5) -> List[CoordinateBox]:
   ----------
   coords: np.ndarray
     Of shape `(N, 3)`. The coordinates of a molecule.
-  pad: int, optional (default 5)
+  pad: float, optional (default 5.0)
     The number of angstroms to pad.
 
   Returns

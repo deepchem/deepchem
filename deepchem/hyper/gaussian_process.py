@@ -120,6 +120,10 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   ...     dropouts=dropout
   ...   )
   >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(model_builder)
+
+  Note
+  ----
+  This class requires pyGPGO to be installed.
   """
 
   # NOTE: mypy prohibits changing the number of arguments
@@ -309,7 +313,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       if param_range[hp][0] == "int":
         hyper_parameters[hp] = int(hp_opt[hp])
       else:
-        # Incompatible types in assignment
+        # FIXME: Incompatible types in assignment
         hyper_parameters[hp] = float(hp_opt[hp])  # type: ignore
     hp_str = _convert_hyperparam_dict_to_filename(hyper_parameters)
 

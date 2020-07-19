@@ -102,7 +102,8 @@ class Docker(object):
     """
     if self.scoring_model is not None and use_pose_generator_scores:
       raise ValueError(
-          "Cannot set use_pose_generator_scores=True when self.scoring_model is set (since both generator scores for complexes)."
+          "Cannot set use_pose_generator_scores=True "
+          "when self.scoring_model is set (since both generator scores for complexes)."
       )
 
     outputs = self.pose_generator.generate_poses(

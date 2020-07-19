@@ -8,7 +8,7 @@ from deepchem.metrics import Metric
 logger = logging.getLogger(__name__)
 
 
-def _convert_hyperparam_dict_to_filename(hyper_params: Dict) -> str:
+def _convert_hyperparam_dict_to_filename(hyper_params: Dict[str, Any]) -> str:
   """Helper function that converts a dictionary of hyperparameters to a string that can be a filename.
 
   Parameters
