@@ -10,9 +10,10 @@ class TestLayers(test_util.TensorFlowTestCase):
   def test_cosine_dist(self):
     """Test invoking _cosine_dist."""
     x = np.ones((5, 4)).astype(np.float32)
-    y = np.ones((5, 4)).astype(np.float32)
-    print(layers._cosine_dist(x,y))
-
+    y_same = np.ones((5, 4)).astype(np.float32)
+    y_far = np.zeros((5, 4)).astype(np.float32)
+    assert sum(layers._cosine_dist(x,y_same)) == 0
+    assert sum(layers._cosine_dist(x,y_far)) == 5
 
   def test_highway(self):
     """Test invoking Highway."""
