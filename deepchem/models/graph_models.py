@@ -4,8 +4,8 @@ import deepchem as dc
 import numpy as np
 import tensorflow as tf
 
-from typing import List, Union, Tuple, Iterable
-from deepchem.utils.typing import OneOrMany, KerasLossFn
+from typing import List, Union, Tuple, Iterable, Dict
+from deepchem.utils.typing import OneOrMany, KerasLossFn, KerasActivationFn
 from deepchem.data import Dataset, NumpyDataset, pad_features
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
@@ -45,6 +45,10 @@ class WeaveModel(KerasModel):
   scaling issues, but may possibly allow for better modeling
   of subtle bond effects.
 
+  Note that [1]_ introduces a whole variety of different architectures for
+  Weave models. The default settings in this class correspond to the W2N2
+  variant from [1]_ which is the most commonly used variant..
+
   Examples
   --------
 
@@ -58,6 +62,13 @@ class WeaveModel(KerasModel):
   >>> dataset = dc.data.NumpyDataset(X, y)
   >>> model = dc.models.WeaveModel(n_tasks=1, n_weave=2, fully_connected_layer_sizes=[2000, 1000], mode="classification")
   >>> loss = model.fit(dataset)
+
+  Note
+  ----
+  In general, the use of batch normalization can cause issues with NaNs. If
+  you're having trouble with NaNs while using this model, consider setting
+  `batch_normalize_kwargs={"trainable": False}` or turning off batch
+  normalization entirely with `batch_normalize=False`.
 
   References
   ----------
@@ -74,7 +85,20 @@ class WeaveModel(KerasModel):
                n_hidden: int = 50,
                n_graph_feat: int = 128,
                n_weave: int = 2,
-               fully_connected_layer_sizes: List[int] = [2000, 1000],
+               fully_connected_layer_sizes: List[int] = [2000, 100],
+               weight_init_stddevs: OneOrMany[float] = [0.01, 0.04],
+               bias_init_consts: OneOrMany[float] = [0.5, 3.0],
+               weight_decay_penalty: float = 0.0,
+               weight_decay_penalty_type: str = "l2",
+               dropouts: OneOrMany[float] = 0.25,
+               activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
+               batch_normalize: bool = True,
+               batch_normalize_kwargs: Dict = {
+                   "renorm": True,
+                   "fused": False
+               },
+               gaussian_expand: bool = True,
+               compress_post_gaussian_expansion: bool = False,
                mode: str = "classification",
                n_classes: int = 2,
                batch_size: int = 100,
@@ -94,6 +118,47 @@ class WeaveModel(KerasModel):
       Number of output features for each molecule(graph)
     n_weave: int, optional
       The number of weave layers in this model.
+    fully_connected_layer_sizes: list
+      The size of each dense layer in the network.  The length of
+      this list determines the number of layers.
+    weight_init_stddevs: list or float
+      The standard deviation of the distribution to use for weight
+      initialization of each layer.  The length of this list should
+      equal len(layer_sizes).  Alternatively this may be a single
+      value instead of a list, in which case the same value is used
+      for every layer.
+    bias_init_consts: list or float
+      The value to initialize the biases in each layer to.  The
+      length of this list should equal len(layer_sizes).
+      Alternatively this may be a single value instead of a list, in
+      which case the same value is used for every layer.
+    weight_decay_penalty: float
+      The magnitude of the weight decay penalty to use
+    weight_decay_penalty_type: str
+      The type of penalty to use for weight decay, either 'l1' or 'l2'
+    dropouts: list or float
+      The dropout probablity to use for each layer.  The length of this list
+      should equal len(layer_sizes).  Alternatively this may be a single value
+      instead of a list, in which case the same value is used for every layer.
+    activation_fns: list or object
+      The Tensorflow activation function to apply to each layer.  The length
+      of this list should equal len(layer_sizes).  Alternatively this may be a
+      single value instead of a list, in which case the same value is used for
+      every layer.
+    batch_normalize: bool, optional (default True)
+      If this is turned on, apply batch normalization before applying
+      activation functions on convolutional and fully connected layers.
+    batch_normalize_kwargs: Dict, optional (default `{"renorm"=True, "fused": False}`)
+      Batch normalization is a complex layer which has many potential
+      argumentswhich change behavior. This layer accepts user-defined
+      parameters which are passed to all `BatchNormalization` layers in
+      `WeaveModel`, `WeaveLayer`, and `WeaveGather`.
+    gaussian_expand: boolean, optional (default True)
+      Whether to expand each dimension of atomic features by gaussian
+      histogram
+    compress_post_gaussian_expansion: bool, optional (default False)
+      If True, compress the results of the Gaussian expansion back to the
+      original dimensions of the input.
     mode: str
       Either "classification" or "regression" for type of model.
     n_classes: int
@@ -106,6 +171,22 @@ class WeaveModel(KerasModel):
       n_atom_feat = [n_atom_feat] * n_weave
     if not isinstance(n_pair_feat, collections.Sequence):
       n_pair_feat = [n_pair_feat] * n_weave
+    n_layers = len(fully_connected_layer_sizes)
+    if not isinstance(weight_init_stddevs, collections.Sequence):
+      weight_init_stddevs = [weight_init_stddevs] * n_layers
+    if not isinstance(bias_init_consts, collections.Sequence):
+      bias_init_consts = [bias_init_consts] * n_layers
+    if not isinstance(dropouts, collections.Sequence):
+      dropouts = [dropouts] * n_layers
+    if not isinstance(activation_fns, collections.Sequence):
+      activation_fns = [activation_fns] * n_layers
+    if weight_decay_penalty != 0.0:
+      if weight_decay_penalty_type == 'l1':
+        regularizer = tf.keras.regularizers.l1(weight_decay_penalty)
+      else:
+        regularizer = tf.keras.regularizers.l2(weight_decay_penalty)
+    else:
+      regularizer = None
 
     self.n_tasks = n_tasks
     self.n_atom_feat = n_atom_feat
@@ -136,29 +217,49 @@ class WeaveModel(KerasModel):
           n_atom_input_feat=n_atom,
           n_pair_input_feat=n_pair,
           n_atom_output_feat=n_atom_next,
-          n_pair_output_feat=n_pair_next)(inputs)
+          n_pair_output_feat=n_pair_next,
+          batch_normalize=batch_normalize)(inputs)
       inputs = [weave_layer_ind_A, weave_layer_ind_P, pair_split, atom_to_pair]
-    #weave_layer2A, weave_layer2P = layers.WeaveLayer(
-    #    n_atom_input_feat=self.n_hidden,
-    #    n_pair_input_feat=self.n_hidden,
-    #    n_atom_output_feat=self.n_hidden,
-    #    n_pair_output_feat=self.n_hidden,
-    #    update_pair=False)(
-    #        [weave_layer1A, weave_layer1P, pair_split, atom_to_pair])
-    #dense1 = Dense(self.n_graph_feat, activation=tf.nn.tanh)(weave_layer2A)
+    # Final atom-layer convolution. Note this differs slightly from the paper
+    # since we use a tanh activation. This seems necessary for numerical
+    # stability.
     dense1 = Dense(self.n_graph_feat, activation=tf.nn.tanh)(weave_layer_ind_A)
-    # Batch normalization causes issues, spitting out NaNs if
-    # allowed to train
-    batch_norm1 = BatchNormalization(epsilon=1e-5, trainable=False)(dense1)
+    if batch_normalize:
+      dense1 = BatchNormalization(**batch_normalize_kwargs)(dense1)
     weave_gather = layers.WeaveGather(
-        batch_size, n_input=self.n_graph_feat,
-        gaussian_expand=True)([batch_norm1, atom_split])
+        batch_size,
+        n_input=self.n_graph_feat,
+        gaussian_expand=gaussian_expand,
+        compress_post_gaussian_expansion=compress_post_gaussian_expansion)(
+            [dense1, atom_split])
+
+    if n_layers > 0:
+      # Now fully connected layers
+      input_layer = weave_gather
+      for layer_size, weight_stddev, bias_const, dropout, activation_fn in zip(
+          fully_connected_layer_sizes, weight_init_stddevs, bias_init_consts,
+          dropouts, activation_fns):
+        layer = Dense(
+            layer_size,
+            kernel_initializer=tf.keras.initializers.TruncatedNormal(
+                stddev=weight_stddev),
+            bias_initializer=tf.constant_initializer(value=bias_const),
+            kernel_regularizer=regularizer)(weave_gather)
+        if dropout > 0.0:
+          layer = Dropout(rate=dropout)(layer)
+        if batch_normalize:
+          # Should this allow for training?
+          layer = BatchNormalization(**batch_normalize_kwargs)(layer)
+        layer = Activation(activation_fn)(layer)
+        input_layer = layer
+      output = input_layer
+    else:
+      output = weave_gather
 
     n_tasks = self.n_tasks
     if self.mode == 'classification':
       n_classes = self.n_classes
-      logits = Reshape((n_tasks,
-                        n_classes))(Dense(n_tasks * n_classes)(weave_gather))
+      logits = Reshape((n_tasks, n_classes))(Dense(n_tasks * n_classes)(output))
       output = Softmax()(logits)
       outputs = [output, logits]
       output_types = ['prediction', 'loss']
@@ -176,12 +277,13 @@ class WeaveModel(KerasModel):
     super(WeaveModel, self).__init__(
         model, loss, output_types=output_types, batch_size=batch_size, **kwargs)
 
-  def default_generator(self,
-                        dataset: Dataset,
-                        epochs: int = 1,
-                        mode: float = 'fit',
-                        deterministic=True,
-                        pad_batches=True) -> Iterable[Tuple[List, List, List]]:
+  def default_generator(
+      self,
+      dataset: Dataset,
+      epochs: int = 1,
+      mode: str = 'fit',
+      deterministic: bool = True,
+      pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
     """Convert a dataset into the tensors needed for learning.
 
     Parameters
