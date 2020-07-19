@@ -1,17 +1,12 @@
 """
 Tests for Pose Scoring
 """
-import sys
+
 import logging
 import unittest
-import tempfile
-import os
-import shutil
-import numpy as np
 import pytest
+import numpy as np
 
-import deepchem as dc
-from subprocess import call
 from deepchem.dock.pose_scoring import vina_nonlinearity
 from deepchem.dock.pose_scoring import vina_hydrophobic
 from deepchem.dock.pose_scoring import vina_gaussian_first
