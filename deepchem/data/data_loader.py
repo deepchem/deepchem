@@ -108,7 +108,7 @@ def _featurize_smiles_df(df, featurizer, field, log_every_n=1000):
       mol = rdmolops.RenumberAtoms(mol, new_order)
     if ind % log_every_n == 0:
       logger.info("Featurizing sample %d" % ind)
-    features.append(featurizer._featurize([mol]))
+    features.append(featurizer.featurize([mol]))
   valid_inds = np.array(
       [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
@@ -171,7 +171,7 @@ def _featurize_mol_df(df, featurizer, field, log_every_n=1000):
   for ind, mol in enumerate(sample_elems):
     if ind % log_every_n == 0:
       logger.info("Featurizing sample %d" % ind)
-    features.append(featurizer._featurize([mol]))
+    features.append(featurizer.featurize([mol]))
   valid_inds = np.array(
       [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
