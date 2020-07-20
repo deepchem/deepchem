@@ -79,26 +79,28 @@ def _featurize_smiles_df(df, featurizer, field, log_every_n=1000):
   """
   sample_elems = df[field].tolist()
 
-  features = []
-  from rdkit import Chem
-  from rdkit.Chem import rdmolfiles
-  from rdkit.Chem import rdmolops
-  for ind, elem in enumerate(sample_elems):
-    mol = Chem.MolFromSmiles(elem)
-    # TODO (ytz) this is a bandage solution to reorder the atoms
-    # so that they're always in the same canonical order.
-    # Presumably this should be correctly implemented in the
-    # future for graph mols.
-    if mol:
-      new_order = rdmolfiles.CanonicalRankAtoms(mol)
-      mol = rdmolops.RenumberAtoms(mol, new_order)
-    if ind % log_every_n == 0:
-      logger.info("Featurizing sample %d" % ind)
-    features.append(featurizer.featurize([mol]))
+  features = featurizer(df[field])
+  #features = []
+  #from rdkit import Chem
+  #from rdkit.Chem import rdmolfiles
+  #from rdkit.Chem import rdmolops
+  #for ind, elem in enumerate(sample_elems):
+  #  mol = Chem.MolFromSmiles(elem)
+  #  # TODO (ytz) this is a bandage solution to reorder the atoms
+  #  # so that they're always in the same canonical order.
+  #  # Presumably this should be correctly implemented in the
+  #  # future for graph mols.
+  #  if mol:
+  #    new_order = rdmolfiles.CanonicalRankAtoms(mol)
+  #    mol = rdmolops.RenumberAtoms(mol, new_order)
+  #  if ind % log_every_n == 0:
+  #    logger.info("Featurizing sample %d" % ind)
+  #  features.append(featurizer._featurize([mol]))
   valid_inds = np.array(
       [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
-  return np.squeeze(np.array(features), axis=1), valid_inds
+  return np.array(features), valid_inds
+  #return np.squeeze(np.array(features), axis=1), valid_inds
 
 
 def _get_user_specified_features(df, featurizer):
@@ -157,7 +159,7 @@ def _featurize_mol_df(df, featurizer, field, log_every_n=1000):
   for ind, mol in enumerate(sample_elems):
     if ind % log_every_n == 0:
       logger.info("Featurizing sample %d" % ind)
-    features.append(featurizer.featurize([mol]))
+    features.append(featurizer._featurize([mol]))
   valid_inds = np.array(
       [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
