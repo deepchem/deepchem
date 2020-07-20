@@ -335,7 +335,7 @@ def reduce_molecular_complex_to_contacts(
 
   Parameters
   ----------
-  fragments: List[Tuple[np.ndarray, RDKitMol]]
+  fragments: List[Tuple[np.ndarray, RDKit Mol]]
     As returned by `rdkit_utils.load_complex`, a list of tuples of
     `(coords, mol)` where `coords` is a `(N_atoms, 3)` array and `mol`
     is the rdkit molecule object.
