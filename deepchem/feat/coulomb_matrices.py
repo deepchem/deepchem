@@ -13,7 +13,7 @@ from deepchem.feat.atomic_coordinates import AtomicCoordinates
 class BPSymmetryFunctionInput(MolecularFeaturizer):
   """Calculate Symmetry Function for each atom in the molecules
 
-  This method is described in [1]_ 
+  This method is described in [1]_
 
   References
   ----------
@@ -168,16 +168,8 @@ class CoulombMatrix(MolecularFeaturizer):
     rval = []
     for conf in mol.GetConformers():
       d = self.get_interatomic_distances(conf)
-      m = np.zeros((n_atoms, n_atoms))
-      for i in range(mol.GetNumAtoms()):
-        for j in range(mol.GetNumAtoms()):
-          if i == j:
-            m[i, j] = 0.5 * z[i]**2.4
-          elif i < j:
-            m[i, j] = (z[i] * z[j]) / d[i, j]
-            m[j, i] = m[i, j]
-          else:
-            continue
+      m = np.outer(z, z) / d
+      m[range(n_atoms), range(n_atoms)] = 0.5 * np.array(z)**2.4
       if self.randomize:
         for random_m in self.randomize_coulomb_matrix(m):
           random_m = pad_array(random_m, self.max_atoms)
@@ -236,12 +228,9 @@ class CoulombMatrix(MolecularFeaturizer):
     ]  # Convert AtomPositions from Angstrom to bohr (atomic units)
     d = np.zeros((n_atoms, n_atoms), dtype=float)
     for i in range(n_atoms):
-      for j in range(n_atoms):
-        if i < j:
-          d[i, j] = coords[i].Distance(coords[j])
-          d[j, i] = d[i, j]
-        else:
-          continue
+      for j in range(i):
+        d[i, j] = coords[i].Distance(coords[j])
+        d[j, i] = d[i, j]
     return d
 
 
@@ -319,7 +308,7 @@ class CoulombMatrixEig(CoulombMatrix):
     """
     Calculate eigenvalues of Coulomb matrix for molecules. Eigenvalues
     are returned sorted by absolute value in descending order and padded
-    by max_atoms. 
+    by max_atoms.
 
     Parameters
     ----------
