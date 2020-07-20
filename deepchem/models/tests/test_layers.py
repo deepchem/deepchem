@@ -4,6 +4,7 @@ import tensorflow as tf
 import deepchem.models.layers as layers
 from tensorflow.python.framework import test_util
 
+
 def test_cosine_dist():
   """Test invoking _cosine_dist."""
   x = tf.ones((5, 4), dtype=tf.dtypes.float32, name=None)
@@ -25,6 +26,7 @@ def test_cosine_dist():
   cos_sim_orth = layers._cosine_dist(x1, x2)
   assert tf.reduce_sum(cos_sim_orth) == 0  # True
   assert all([cos_sim_orth.shape[dim] == 256 for dim in range(2)])  # True
+
 
 def test_highway():
   """Test invoking Highway."""
