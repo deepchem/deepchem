@@ -420,18 +420,83 @@ class LSTMStep(tf.keras.layers.Layer):
 
 
 def _cosine_dist(x, y):
-  """Computes the inner product (cosine distance) between two tensors.
+  """Computes the inner product (cosine similarity) between two tensors.
+  
+  This assumes that the two input tensors contain rows of vectors where 
+  each column represents a different feature. The output tensor will have
+  elements that represent the inner product between pairs of normalized vectors
+  in the rows of x and y. The two tensors need to have the same number of columns,
+  because one cannot take the dot product between vectors of different lengths.
+  For example, in sentence similarity and sentence classification tasks,
+  the number of columns is the embedding size. In these tasks, the rows of the
+  input tensors would be different test vectors or sentences. The input tensors
+  themselves could be different batches. Using vectors or tensors of all 0s
+  should be avoided.
+
+  Method
+  ------
+  The vectors in the input tensors are first l2-normalized such that each vector
+  has length or magnitude of 1. The inner product (dot product) is then taken 
+  between corresponding pairs of row vectors in the input tensors and returned.
+
+  Examples
+  --------
+  The cosine similarity between two equivalent vectors will be 1. The cosine
+  similarity between two equivalent tensors (input tensors where the elements are
+  the same), will be a tensor of ones. In this scenario, if the input tensors
+  a and y were each of shape (n,p), where each element in x and y were the same, then 
+  the output tensor would be a tensor of shape (n,n) with 1 in every entry.
+  The cosine similarity between two orthogonal vectors will be 0 (by definition).
+  If every row in x is orthogonal to every row in y, then the output will be a tensor
+  of 0s.
+
+  ```python
+  import tensorflow as tf
+  import deepchem.models.layers as layers
+
+  x = tf.ones((5, 4), dtype=tf.dtypes.float32, name=None)
+  y_same = tf.ones((5, 4), dtype=tf.dtypes.float32, name=None)
+  # x and y are the same tensor (equivalent at every element)
+  # the pairwise inner product of the rows in x and y will always be 1
+  # the output tensor will be of shape (5,5)
+  cos_sim_same = layers._cosine_dist(x,y_same)
+  diff = cos_sim_same - tf.ones((5, 5), dtype=tf.dtypes.float32, name=None)
+  assert tf.reduce_sum(diff) == 0 # True
+
+  identity_tensor = tf.eye(512, dtype=tf.dtypes.float32) # identity matrix of shape (512,512)
+  x1 = identity_tensor[0:256,:]
+  x2 = identity_tensor[256:512,:]
+  # each row in x1 is orthogonal to each row in x2
+  # the pairwise inner product of the rows in x and y will always be 0
+  # the output tensor will be of shape (256,256)
+  cos_sim_orth = layers._cosine_dist(x1,x2)
+  assert tf.reduce_sum(cos_sim_orth) == 0 # True
+  assert all([cos_sim_orth.shape[dim] == 256 for dim in range(2)]) # True
+  ```
 
   Parameters
   ----------
   x: tf.Tensor
-    Input Tensor
+    Input Tensor of shape (n, p).
+    The shape of this input tensor should be n rows by p columns.
+    Note that n need not equal m (the number of rows in y).
   y: tf.Tensor
-    Input Tensor
+    Input Tensor of shape (m, p)
+    The shape of this input tensor should be m rows by p columns.
+    Note that m need not equal n (the number of rows in x).
+
+  Returns
+  -------
+  tf.Tensor
+    Returns a tensor of shape (n, m), that is, n rows by m columns. 
+    Each i,j-th entry of this output tensor is the inner product between
+    the l2-normalized i-th row of the input tensor x and the
+    the l2-normalized j-th row of the output tensor y.
+
   """
-  x_norm = tf.nn.l2_normalize(x, axis=1)
-  y_norm = tf.nn.l2_normalize(y, axis=1)
-  return 1. - backend.dot(x_norm, tf.transpose(y_norm))
+  x_norm = tf.math.l2_normalize(x, axis=1)
+  y_norm = tf.math.l2_normalize(y, axis=1)
+  return backend.dot(x_norm, tf.transpose(y_norm))
 
 
 class AttnLSTMEmbedding(tf.keras.layers.Layer):
