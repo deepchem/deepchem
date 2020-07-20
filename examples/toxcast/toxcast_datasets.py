@@ -36,9 +36,9 @@ def load_toxcast(featurizer='ECFP', split='index'):
       tasks=TOXCAST_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
 
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
-      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
+      dc.trans.BalancingTransformer(dataset=dataset)]
   print("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
@@ -49,5 +49,5 @@ def load_toxcast(featurizer='ECFP', split='index'):
   splitter = splitters[split]
 
   train, valid, test = splitter.train_valid_test_split(dataset)
-  
+
   return TOXCAST_tasks, (train, valid, test), transformers

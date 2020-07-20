@@ -39,7 +39,7 @@ def load_sider(featurizer='ECFP', split='index'):
 
   # Initialize transformers
   transformers = [
-      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
+      dc.trans.BalancingTransformer(dataset=dataset)]
   print("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)

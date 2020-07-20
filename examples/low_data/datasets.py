@@ -34,9 +34,9 @@ def load_tox21_ecfp(num_train=7200):
   dataset = loader.featurize(
       dataset_file, shard_size=8192)
 
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
-      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
+      dc.trans.BalancingTransformer(dataset=dataset)]
 
   print("About to transform data")
   for transformer in transformers:
@@ -63,9 +63,9 @@ def load_tox21_convmol(base_dir=None, num_train=7200):
   dataset = loader.featurize(
       dataset_file, shard_size=8192)
 
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
-      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
+      dc.trans.BalancingTransformer(dataset=dataset)]
 
   print("About to transform data")
   for transformer in transformers:
@@ -92,9 +92,9 @@ def load_muv_ecfp():
       tasks=MUV_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
 
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
-      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
+      dc.trans.BalancingTransformer(dataset=dataset)]
   print("About to transform data")
   for transformer in transformers:
       dataset = transformer.transform(dataset)
@@ -120,9 +120,9 @@ def load_muv_convmol():
       tasks=MUV_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
 
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
-      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
+      dc.trans.BalancingTransformer(dataset=dataset)]
   print("About to transform data")
   for transformer in transformers:
       dataset = transformer.transform(dataset)
@@ -151,7 +151,7 @@ def load_sider_ecfp():
 
   # Initialize transformers
   transformers = [
-      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
+      dc.trans.BalancingTransformer(dataset=dataset)]
   print("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
@@ -180,7 +180,7 @@ def load_sider_convmol():
 
   # Initialize transformers
   transformers = [
-      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
+      dc.trans.BalancingTransformer(dataset=dataset)]
   print("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)

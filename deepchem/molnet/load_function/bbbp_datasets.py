@@ -63,9 +63,7 @@ def load_bbbp(featurizer='ECFP',
 
   if split is None:
     # Initialize transformers
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-    ]
+    transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
 
     logger.info("Split is None, about to transform data")
     for transformer in transformers:
@@ -91,9 +89,7 @@ def load_bbbp(featurizer='ECFP',
       frac_test=frac_test)
 
   # Initialize transformers
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
-  ]
+  transformers = [deepchem.trans.BalancingTransformer(dataset=train)]
 
   for transformer in transformers:
     train = transformer.transform(train)

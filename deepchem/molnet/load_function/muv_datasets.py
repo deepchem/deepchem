@@ -71,9 +71,7 @@ def load_muv(featurizer='ECFP',
   dataset = loader.featurize(dataset_file)
 
   if split == None:
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-    ]
+    transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
 
     logger.info("Split is None, about to transform data")
     for transformer in transformers:
