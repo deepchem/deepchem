@@ -2439,9 +2439,9 @@ class WeaveGather(tf.keras.layers.Layer):
                batch_size: int,
                n_input: int = 128,
                gaussian_expand: bool = True,
+               compress_post_gaussian_expansion: bool = False,
                init: str = 'glorot_uniform',
                activation: str = 'tanh',
-               compress_post_gaussian_expansion: bool = False,
                **kwargs):
     """
     Parameters
@@ -2452,17 +2452,19 @@ class WeaveGather(tf.keras.layers.Layer):
       number of features for each input molecule
     gaussian_expand: boolean, optional (default True)
       Whether to expand each dimension of atomic features by gaussian histogram
-    init: str, optional (default 'glorot_uniform')
-      Weight initialization for filters.
-    activation: str, optional (default 'tanh')
-      Activation function applied. Should be recognizable by
-      `tf.keras.activations`.
     compress_post_gaussian_expansion: bool, optional (default False)
       If True, compress the results of the Gaussian expansion back to the
       original dimensions of the input by using a linear layer with specified
       activation function. Note that this compression was not in the original
       paper, but was present in the original DeepChem implementation so is
       left present for backwards compatibility.
+    init: str, optional (default 'glorot_uniform')
+      Weight initialization for filters if `compress_post_gaussian_expansion`
+      is True.
+    activation: str, optional (default 'tanh')
+      Activation function applied for filters if
+      `compress_post_gaussian_expansion` is True. Should be recognizable by
+      `tf.keras.activations`.
     """
     try:
       import tensorflow_probability as tfp
@@ -2473,10 +2475,10 @@ class WeaveGather(tf.keras.layers.Layer):
     self.n_input = n_input
     self.batch_size = batch_size
     self.gaussian_expand = gaussian_expand
+    self.compress_post_gaussian_expansion = compress_post_gaussian_expansion
     self.init = init  # Set weight initialization
     self.activation = activation  # Get activations
     self.activation_fn = activations.get(activation)
-    self.compress_post_gaussian_expansion = compress_post_gaussian_expansion
 
   def get_config(self):
     config = super(WeaveGather, self).get_config()
@@ -2490,7 +2492,7 @@ class WeaveGather(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    if self.gaussian_expand:
+    if self.compress_post_gaussian_expansion:
       init = initializers.get(self.init)
       self.W = init([self.n_input * 11, self.n_input])
       self.b = backend.zeros(shape=[self.n_input])

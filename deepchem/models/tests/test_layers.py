@@ -153,7 +153,7 @@ def test_weave_gather():
       batch_size=2,
       n_input=75,
       gaussian_expand=True,
-      compress_post_expansion=True)
+      compress_post_gaussian_expansion=True)
   # Outputs should be [mol1_vec, mol2_vec)
   outputs = gather(inputs)
   assert len(outputs) == 2
