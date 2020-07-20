@@ -166,7 +166,7 @@ class VinaPoseGenerator(PoseGenerator):
 
     Parameters
     ----------
-    molecular_complexes: Tuple[str]
+    molecular_complexes: Tuple[str, str]
       A representation of a molecular complex. This tuple is
       (protein_file, ligand_file).
     centroid: np.ndarray, optional

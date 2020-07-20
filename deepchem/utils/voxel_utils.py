@@ -29,7 +29,7 @@ def convert_atom_to_voxel(coordinates: np.ndarray, atom_index: int,
 
   Returns
   -------
-  np.ndarray
+  indices: np.ndarray
     A 1D numpy array of length 3 with `[i, j, k]`, the voxel coordinates
     of specified atom.
   """
@@ -53,7 +53,7 @@ def convert_atom_pair_to_voxel(coordinates_tuple: Tuple[np.ndarray, np.ndarray],
 
   Parameters
   ----------
-  coordinates_tuple: Tuple[np.ndarray]
+  coordinates_tuple: Tuple[np.ndarray, np.ndarray]
     A tuple containing two molecular coordinate arrays of shapes `(N, 3)` and `(M, 3)`.
   atom_index_pair: Tuple[int]
     A tuple of indices for the atoms in the two molecules.
@@ -64,7 +64,7 @@ def convert_atom_pair_to_voxel(coordinates_tuple: Tuple[np.ndarray, np.ndarray],
 
   Returns
   -------
-  np.ndarray
+  indices_list: np.ndarray
     A numpy array of shape `(2, 3)`. `3` indicates `[i, j, k]` of the
     voxel coordinates of specified atom.
   """
@@ -125,7 +125,7 @@ def voxelize(get_voxels: Callable[..., Any],
 
   Returns
   -------
-  np.ndarray
+  feature_tensor: np.ndarray
     The voxel of the input with the shape
     `(voxels_per_edge, voxels_per_edge, voxels_per_edge, nb_channel)`.
   """

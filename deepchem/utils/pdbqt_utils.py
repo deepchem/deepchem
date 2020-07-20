@@ -32,7 +32,7 @@ def pdbqt_to_pdb(filename: Optional[str] = None,
 
   pdb_block = ""
   # FIXME: Item "None" of "Optional[List[str]]" has no attribute "__iter__" (not iterable)
-  for line in pdbqt_data: # type: ignore
+  for line in pdbqt_data:  # type: ignore
     pdb_block += "%s\n" % line[:66]
   return pdb_block
 

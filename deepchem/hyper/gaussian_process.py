@@ -12,12 +12,12 @@ from deepchem.hyper.base_classes import HyperparamOpt
 from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
 
 logger = logging.getLogger(__name__)
+PARAM_DICT = Dict[str, Union[int, float]]
 
 
-def compute_parameter_range(
-    params_dict: Dict[str, Union[int, float]],
-    search_range: Union[int, float, Dict[str, Union[int, float]]]
-) -> Dict[str, Tuple[str, List[float]]]:
+def compute_parameter_range(params_dict: PARAM_DICT,
+                            search_range: Union[int, float, PARAM_DICT]
+                           ) -> Dict[str, Tuple[str, List[float]]]:
   """Convenience Function to compute parameter search space.
 
   Parameters
@@ -130,14 +130,14 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   # FIXME: Signature of "hyperparam_search" incompatible with supertype "HyperparamOpt"
   def hyperparam_search(  # type: ignore[override]
       self,
-      params_dict: Dict[str, Union[int, float]],
+      params_dict: PARAM_DICT,
       train_dataset: Dataset,
       valid_dataset: Dataset,
       metric: Metric,
       use_max: bool = True,
       logdir: Optional[str] = None,
       max_iter: int = 20,
-      search_range: Union[int, float, Dict[str, Union[int, float]]] = 4,
+      search_range: Union[int, float, PARAM_DICT] = 4,
       logfile: Optional[str] = None):
     """Perform hyperparameter search using a gaussian process.
 
@@ -190,11 +190,12 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
     Returns
     -------
-    `(best_model, best_hyperparams, all_scores)` where `best_model` is
-    an instance of `dc.model.Model`, `best_hyperparams` is a
-    dictionary of parameters, and `all_scores` is a dictionary mapping
-    string representations of hyperparameter sets to validation
-    scores.
+    Tuple[best_model, best_hyperparams, all_scores]
+      `(best_model, best_hyperparams, all_scores)` where `best_model` is
+      an instance of `dc.model.Model`, `best_hyperparams` is a
+      dictionary of parameters, and `all_scores` is a dictionary mapping
+      string representations of hyperparameter sets to validation
+      scores.
     """
     try:
       from pyGPGO.covfunc import matern32

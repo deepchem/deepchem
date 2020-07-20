@@ -26,11 +26,11 @@ class CoordinateBox(object):
 
     Parameters
     ----------
-    x_range: Tuple[float]
+    x_range: Tuple[float, float]
       A tuple of `(x_min, x_max)` with max and min x-coordinates.
-    y_range: Tuple[float]
+    y_range: Tuple[float, float]
       A tuple of `(y_min, y_max)` with max and min y-coordinates.
-    z_range: Tuple[float]
+    z_range: Tuple[float, float]
       A tuple of `(z_min, z_max)` with max and min z-coordinates.
 
     Raises
@@ -75,12 +75,14 @@ class CoordinateBox(object):
 
     Parameters
     ----------
-    point: 3-tuple or list of length 3 or np.ndarray of shape `(3,)`
+    point: Sequence[float]
+      3-tuple or list of length 3 or np.ndarray of shape `(3,)`.
       The `(x, y, z)` coordinates of a point in space.
 
     Returns
     -------
-    bool, `True` if `other` is contained in this box.
+    bool
+      `True` if `other` is contained in this box.
     """
     (x_min, x_max) = self.x_range
     (y_min, y_max) = self.y_range
@@ -101,7 +103,8 @@ class CoordinateBox(object):
 
     Returns
     -------
-    bool that's `True` if all bounds match.
+    bool
+      That's `True` if all bounds match.
 
     Raises
     ------
@@ -121,7 +124,8 @@ class CoordinateBox(object):
 
     Returns
     -------
-    Unique integer
+    int
+      Unique integer
     """
     return hash((self.x_range, self.y_range, self.z_range))
 
@@ -130,7 +134,8 @@ class CoordinateBox(object):
 
     Returns
     -------
-    `(x, y, z)` the coordinates of the center of the box.
+    Tuple[float, float, float]
+      `(x, y, z)` the coordinates of the center of the box.
 
     Examples
     --------
@@ -149,7 +154,8 @@ class CoordinateBox(object):
 
     Returns
     -------
-    float, the volume of this box. Can be 0 if box is empty
+    float
+      The volume of this box. Can be 0 if box is empty
 
     Examples
     --------
@@ -174,7 +180,8 @@ class CoordinateBox(object):
 
     Returns
     -------
-    bool, `True` if `other` is contained in this box.
+    bool
+      `True` if `other` is contained in this box.
 
     Raises
     ------
@@ -199,14 +206,14 @@ def intersect_interval(interval1: Tuple[float, float],
 
   Parameters
   ----------
-  interval1: Tuple[float]
+  interval1: Tuple[float, float]
     Should be `(x1_min, x1_max)`
-  interval2: Tuple[float]
+  interval2: Tuple[float, float]
     Should be `(x2_min, x2_max)`
 
   Returns
   -------
-  x_intersect: Tuple[float]
+  x_intersect: Tuple[float, float]
     Should be the intersection. If the intersection is empty returns
     `(0, 0)` to represent the empty set. Otherwise is `(max(x1_min,
     x2_min), min(x1_max, x2_max))`.
@@ -236,7 +243,9 @@ def intersection(box1: CoordinateBox, box2: CoordinateBox) -> CoordinateBox:
 
   Returns
   -------
-  A `CoordinateBox` containing the intersection. If the intersection is empty, returns the box with 0 bounds.
+  `CoordinateBox`
+    A `CoordinateBox` containing the intersection. If the intersection is empty,
+    returns the box with 0 bounds.
   """
   x_intersection = intersect_interval(box1.x_range, box2.x_range)
   y_intersection = intersect_interval(box1.y_range, box2.y_range)
@@ -258,7 +267,8 @@ def union(box1: CoordinateBox, box2: CoordinateBox) -> CoordinateBox:
 
   Returns
   -------
-  Smallest `CoordinateBox` that contains both `box1` and `box2`
+  `CoordinateBox`
+    Smallest `CoordinateBox` that contains both `box1` and `box2`
   """
   x_min = min(box1.x_range[0], box2.x_range[0])
   y_min = min(box1.y_range[0], box2.y_range[0])
@@ -283,8 +293,9 @@ def merge_overlapping_boxes(boxes: List[CoordinateBox],
   
   Returns
   -------
-  list[CoordinateBox] of merged boxes. This list will have length less
-  than or equal to the length of `boxes`.
+  List[CoordinateBox]
+    List[CoordinateBox] of merged boxes. This list will have length less
+    than or equal to the length of `boxes`.
   """
   outputs: List[CoordinateBox] = []
   for box in boxes:

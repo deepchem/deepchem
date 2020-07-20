@@ -107,7 +107,7 @@ def encode_bio_sequence(fname: str,
   Returns
   -------
   np.ndarray
-    `Shape (N_sequences, N_letters, sequence_length, 1)`.
+    Shape `(N_sequences, N_letters, sequence_length, 1)`.
 
   Note
   ----
