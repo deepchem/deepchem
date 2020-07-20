@@ -6,7 +6,7 @@ import numpy as np
 from typing import Any, List, Optional, Tuple
 
 from deepchem.models import Model
-from deepchem.utils.rdkit_util import load_molecule
+from deepchem.utils.rdkit_utils import load_molecule
 from deepchem.utils.coordinate_box_utils \
   import CoordinateBox, get_face_boxes, merge_overlapping_boxes
 from deepchem.utils.fragment_utils import get_contact_atom_indices

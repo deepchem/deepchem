@@ -5,7 +5,7 @@ import os
 import numpy as np
 import unittest
 from deepchem.utils import vina_utils
-from deepchem.utils import rdkit_util
+from deepchem.utils import rdkit_utils
 
 
 class TestVinaUtils(unittest.TestCase):
@@ -22,6 +22,6 @@ class TestVinaUtils(unittest.TestCase):
     assert len(scores) == 9
 
     for ligand, score in zip(docked_ligands, scores):
-      xyz = rdkit_util.get_xyz_from_mol(ligand)
+      xyz = rdkit_utils.get_xyz_from_mol(ligand)
       assert score < 0  # This is a binding free energy
       assert np.count_nonzero(xyz) > 0

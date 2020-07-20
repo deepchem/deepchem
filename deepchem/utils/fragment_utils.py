@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 from typing import List, Optional, Any
 from deepchem.utils.geometry_utils import compute_pairwise_distances
-from deepchem.utils.rdkit_util import compute_charges
+from deepchem.utils.rdkit_utils import compute_charges
 
 
 def get_partial_charge(atom):
@@ -267,7 +267,7 @@ def get_contact_atom_indices(fragments: List[Any],
   Parameters
   ----------
   fragments: List
-    As returned by `rdkit_util.load_complex`, a list of tuples of
+    As returned by `rdkit_utils.load_complex`, a list of tuples of
     `(coords, mol)` where `coords` is a `(N_atoms, 3)` array and `mol`
     is the rdkit molecule object.
   cutoff: float
@@ -312,7 +312,7 @@ def reduce_molecular_complex_to_contacts(fragments: List,
   Parameters
   ----------
   fragments: List
-    As returned by `rdkit_util.load_complex`, a list of tuples of
+    As returned by `rdkit_utils.load_complex`, a list of tuples of
     `(coords, mol)` where `coords` is a `(N_atoms, 3)` array and `mol`
     is the rdkit molecule object.
   cutoff: float

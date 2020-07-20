@@ -2,8 +2,8 @@ import logging
 import time
 import hashlib
 from collections import Counter
-from deepchem.utils.rdkit_util import load_molecule
-from deepchem.utils.rdkit_util import MoleculeLoadException
+
+from deepchem.utils.rdkit_utils import MoleculeLoadException, load_molecule
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -843,7 +843,7 @@ def compute_charge_dictionary(molecule):
   """Create a dictionary with partial charges for each atom in the molecule.
 
   This function assumes that the charges for the molecule are already
-  computed (it can be done with rdkit_util.compute_charges(molecule))
+  computed (it can be done with rdkit_utils.compute_charges(molecule))
   """
 
   charge_dictionary = {}

@@ -5,7 +5,7 @@ import shutil
 
 import numpy as np
 
-from deepchem.utils import rdkit_util
+from deepchem.utils import rdkit_utils
 
 
 class TestRdkitUtil(unittest.TestCase):
@@ -19,7 +19,7 @@ class TestRdkitUtil(unittest.TestCase):
                                     '../../feat/tests/data/3ws9_ligand.sdf')
 
   def test_load_complex(self):
-    complexes = rdkit_util.load_complex(
+    complexes = rdkit_utils.load_complex(
         (self.protein_file, self.ligand_file),
         add_hydrogens=False,
         calc_charges=False)
@@ -30,8 +30,8 @@ class TestRdkitUtil(unittest.TestCase):
     from rdkit.Chem.AllChem import Mol
     for add_hydrogens in (True, False):
       for calc_charges in (True, False):
-        mol_xyz, mol_rdk = rdkit_util.load_molecule(self.ligand_file,
-                                                    add_hydrogens, calc_charges)
+        mol_xyz, mol_rdk = rdkit_utils.load_molecule(
+            self.ligand_file, add_hydrogens, calc_charges)
         num_atoms = mol_rdk.GetNumAtoms()
         self.assertIsInstance(mol_xyz, np.ndarray)
         self.assertIsInstance(mol_rdk, Mol)
@@ -41,9 +41,9 @@ class TestRdkitUtil(unittest.TestCase):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
 
-    xyz, mol = rdkit_util.load_molecule(
+    xyz, mol = rdkit_utils.load_molecule(
         ligand_file, calc_charges=False, add_hydrogens=False)
-    xyz2 = rdkit_util.get_xyz_from_mol(mol)
+    xyz2 = rdkit_utils.get_xyz_from_mol(mol)
 
     equal_array = np.all(xyz == xyz2)
     assert equal_array
@@ -51,7 +51,7 @@ class TestRdkitUtil(unittest.TestCase):
   def test_add_hydrogens_to_mol(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
-    xyz, mol = rdkit_util.load_molecule(
+    xyz, mol = rdkit_utils.load_molecule(
         ligand_file, calc_charges=False, add_hydrogens=False)
     original_hydrogen_count = 0
     for atom_idx in range(mol.GetNumAtoms()):
@@ -60,7 +60,7 @@ class TestRdkitUtil(unittest.TestCase):
         original_hydrogen_count += 1
 
     assert mol is not None
-    mol = rdkit_util.add_hydrogens_to_mol(mol, is_protein=False)
+    mol = rdkit_utils.add_hydrogens_to_mol(mol, is_protein=False)
     assert mol is not None
     after_hydrogen_count = 0
     for atom_idx in range(mol.GetNumAtoms()):
@@ -72,7 +72,7 @@ class TestRdkitUtil(unittest.TestCase):
   def test_apply_pdbfixer(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
-    xyz, mol = rdkit_util.load_molecule(
+    xyz, mol = rdkit_utils.load_molecule(
         ligand_file, calc_charges=False, add_hydrogens=False)
     original_hydrogen_count = 0
     for atom_idx in range(mol.GetNumAtoms()):
@@ -81,7 +81,7 @@ class TestRdkitUtil(unittest.TestCase):
         original_hydrogen_count += 1
 
     assert mol is not None
-    mol = rdkit_util.apply_pdbfixer(mol, hydrogenate=True, is_protein=False)
+    mol = rdkit_utils.apply_pdbfixer(mol, hydrogenate=True, is_protein=False)
     assert mol is not None
     after_hydrogen_count = 0
     for atom_idx in range(mol.GetNumAtoms()):
@@ -93,9 +93,9 @@ class TestRdkitUtil(unittest.TestCase):
   def test_compute_charges(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
-    xyz, mol = rdkit_util.load_molecule(
+    xyz, mol = rdkit_utils.load_molecule(
         ligand_file, calc_charges=False, add_hydrogens=True)
-    rdkit_util.compute_charges(mol)
+    rdkit_utils.compute_charges(mol)
 
     has_a_charge = False
     for atom_idx in range(mol.GetNumAtoms()):
@@ -108,7 +108,7 @@ class TestRdkitUtil(unittest.TestCase):
   def test_load_molecule2(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
-    xyz, mol = rdkit_util.load_molecule(
+    xyz, mol = rdkit_utils.load_molecule(
         ligand_file, calc_charges=False, add_hydrogens=False)
     assert xyz is not None
     assert mol is not None
@@ -116,14 +116,14 @@ class TestRdkitUtil(unittest.TestCase):
   def test_write_molecule(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
-    xyz, mol = rdkit_util.load_molecule(
+    xyz, mol = rdkit_utils.load_molecule(
         ligand_file, calc_charges=False, add_hydrogens=False)
 
     with tempfile.TemporaryDirectory() as tmp:
       outfile = os.path.join(tmp, "mol.sdf")
-      rdkit_util.write_molecule(mol, outfile)
+      rdkit_utils.write_molecule(mol, outfile)
 
-      xyz, mol2 = rdkit_util.load_molecule(
+      xyz, mol2 = rdkit_utils.load_molecule(
           outfile, calc_charges=False, add_hydrogens=False)
 
     assert mol.GetNumAtoms() == mol2.GetNumAtoms()
@@ -135,9 +135,9 @@ class TestRdkitUtil(unittest.TestCase):
   def test_merge_molecules_xyz(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
-    xyz, mol = rdkit_util.load_molecule(
+    xyz, mol = rdkit_utils.load_molecule(
         ligand_file, calc_charges=False, add_hydrogens=False)
-    merged = rdkit_util.merge_molecules_xyz([xyz, xyz])
+    merged = rdkit_utils.merge_molecules_xyz([xyz, xyz])
     for i in range(len(xyz)):
       first_atom_equal = np.all(xyz[i] == merged[i])
       second_atom_equal = np.all(xyz[i] == merged[i + len(xyz)])
@@ -147,14 +147,14 @@ class TestRdkitUtil(unittest.TestCase):
   def test_merge_molecules(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
-    xyz, mol = rdkit_util.load_molecule(
+    xyz, mol = rdkit_utils.load_molecule(
         ligand_file, calc_charges=False, add_hydrogens=False)
     num_mol_atoms = mol.GetNumAtoms()
     # self.ligand_file is for 3ws9_ligand.sdf
-    oth_xyz, oth_mol = rdkit_util.load_molecule(
+    oth_xyz, oth_mol = rdkit_utils.load_molecule(
         self.ligand_file, calc_charges=False, add_hydrogens=False)
     num_oth_mol_atoms = oth_mol.GetNumAtoms()
-    merged = rdkit_util.merge_molecules([mol, oth_mol])
+    merged = rdkit_utils.merge_molecules([mol, oth_mol])
     merged_num_atoms = merged.GetNumAtoms()
     assert merged_num_atoms == num_mol_atoms + num_oth_mol_atoms
 

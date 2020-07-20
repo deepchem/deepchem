@@ -75,18 +75,18 @@ Molecular Utilities
 .. autoclass:: deepchem.utils.conformers.ConformerGenerator
   :members:
 
-.. autoclass:: deepchem.utils.rdkit_util.MoleculeLoadException
+.. autoclass:: deepchem.utils.rdkit_utils.MoleculeLoadException
   :members:
 
-.. autofunction:: deepchem.utils.rdkit_util.get_xyz_from_mol
+.. autofunction:: deepchem.utils.rdkit_utils.get_xyz_from_mol
 
-.. autofunction:: deepchem.utils.rdkit_util.add_hydrogens_to_mol
+.. autofunction:: deepchem.utils.rdkit_utils.add_hydrogens_to_mol
 
-.. autofunction:: deepchem.utils.rdkit_util.compute_charges
+.. autofunction:: deepchem.utils.rdkit_utils.compute_charges
 
-.. autofunction:: deepchem.utils.rdkit_util.load_molecule
+.. autofunction:: deepchem.utils.rdkit_utils.load_molecule
 
-.. autofunction:: deepchem.utils.rdkit_util.write_molecule
+.. autofunction:: deepchem.utils.rdkit_utils.write_molecule
 
 Molecular Fragment Utilities
 ----------------------------
