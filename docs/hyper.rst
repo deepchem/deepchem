@@ -20,7 +20,6 @@ Hyperparameter Optimization API
 
 .. autoclass:: deepchem.hyper.HyperparamOpt
   :members:
-  :special-members:
 
 Grid Hyperparameter Optimization
 --------------------------------
@@ -31,13 +30,11 @@ hyperaparameters.
 
 .. autoclass:: deepchem.hyper.GridHyperparamOpt
   :members:
-  :special-members:
 
 Gaussian Process Hyperparameter Optimization
 --------------------------------------------
 
 .. autoclass:: deepchem.hyper.GaussianProcessHyperparamOpt
   :members:
-  :special-members:
 
 
