@@ -53,7 +53,7 @@ class PoseGenerator(object):
     centroid: np.ndarray, optional (default None)
       The centroid to dock against. Is computed if not specified.
     box_dims: np.ndarray, optional (default None)
-      Of shape `(3,)` holding the size of the box to dock. If not
+      A numpy array of shape `(3,)` holding the size of the box to dock. If not
       specified is set to size of molecular complex plus 5 angstroms.
     exhaustiveness: int, optional (default 10)
       Tells pose generator how exhaustive it should be with pose
@@ -172,7 +172,7 @@ class VinaPoseGenerator(PoseGenerator):
     centroid: np.ndarray, optional
       The centroid to dock against. Is computed if not specified.
     box_dims: np.ndarray, optional
-      Of shape `(3,)` holding the size of the box to dock. If not
+      A numpy array of shape `(3,)` holding the size of the box to dock. If not
       specified is set to size of molecular complex plus 5 angstroms.
     exhaustiveness: int, optional (default 10)
       Tells Autodock Vina how exhaustive it should be with pose

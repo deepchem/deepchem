@@ -98,7 +98,7 @@ class CoordinateBox(object):
 
     Parameters
     ----------
-    other: `CoordinateBox`
+    other: CoordinateBox
       Compare this coordinate box to the other one.
 
     Returns
@@ -175,7 +175,7 @@ class CoordinateBox(object):
 
     Parameters
     ----------
-    other: `CoordinateBox`
+    other: CoordinateBox
       The box to check is contained in this box.
 
     Returns
@@ -236,14 +236,14 @@ def intersection(box1: CoordinateBox, box2: CoordinateBox) -> CoordinateBox:
 
   Parameters
   ----------
-  box1: `CoordinateBox`
+  box1: CoordinateBox
     First `CoordinateBox`
-  box2: `CoordinateBox`
+  box2: CoordinateBox
     Another `CoordinateBox` to intersect first one with.
 
   Returns
   -------
-  `CoordinateBox`
+  CoordinateBox
     A `CoordinateBox` containing the intersection. If the intersection is empty,
     returns the box with 0 bounds.
   """
@@ -260,14 +260,14 @@ def union(box1: CoordinateBox, box2: CoordinateBox) -> CoordinateBox:
 
   Parameters
   ----------
-  box1: `CoordinateBox`
+  box1: CoordinateBox
     First box to merge in
-  box2: `CoordinateBox`
+  box2: CoordinateBox
     Second box to merge into this box
 
   Returns
   -------
-  `CoordinateBox`
+  CoordinateBox
     Smallest `CoordinateBox` that contains both `box1` and `box2`
   """
   x_min = min(box1.x_range[0], box2.x_range[0])
@@ -332,7 +332,7 @@ def get_face_boxes(coords: np.ndarray, pad: float = 5.0) -> List[CoordinateBox]:
   Parameters
   ----------
   coords: np.ndarray
-    Of shape `(N, 3)`. The coordinates of a molecule.
+    A numpy array of shape `(N, 3)`. The coordinates of a molecule.
   pad: float, optional (default 5.0)
     The number of angstroms to pad.
 

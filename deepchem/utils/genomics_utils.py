@@ -14,7 +14,7 @@ def seq_one_hot_encode(sequences: Union[np.ndarray, Iterator[Iterable[str]]],
 
   Parameters
   ----------
-  sequences: np.ndarray or Iterator[`Bio.SeqRecord`]
+  sequences: np.ndarray or Iterator[Bio.SeqRecord]
     Iterable object of genetic sequences
   letters: str, optional (default "ATCGN")
     String with the set of possible letters in the sequences.
@@ -27,7 +27,7 @@ def seq_one_hot_encode(sequences: Union[np.ndarray, Iterator[Iterable[str]]],
   Returns
   -------
   np.ndarray
-    Shape `(N_sequences, N_letters, sequence_length, 1)`.
+    A numpy array of shape `(N_sequences, N_letters, sequence_length, 1)`.
   """
 
   # The label encoder is given characters for ACGTN
@@ -68,7 +68,7 @@ def _seq_to_encoded(seq: Union[str, Iterable[str]],
 
   Parameters
   ----------
-  seq: str or `Bio.SeqRecord`
+  seq: str or Bio.SeqRecord
     a genetic sequence
   letter_encoder: Dict[str, int]
     The keys are letters and the values are unique int values (like 0, 1, 2...).
@@ -80,7 +80,7 @@ def _seq_to_encoded(seq: Union[str, Iterable[str]],
   Returns
   -------
   encoded_seq: np.ndarray
-    Shape `(N_letters, sequence_length)`.
+    A numpy array of shape `(N_letters, sequence_length)`.
   """
   encoded_seq = np.zeros((alphabet_length, sequence_length))
   seq_ints = [letter_encoder[s] for s in seq]
@@ -107,7 +107,7 @@ def encode_bio_sequence(fname: str,
   Returns
   -------
   np.ndarray
-    Shape `(N_sequences, N_letters, sequence_length, 1)`.
+    A numpy array of shape `(N_sequences, N_letters, sequence_length, 1)`.
 
   Note
   ----

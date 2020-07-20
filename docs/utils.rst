@@ -139,8 +139,6 @@ Genomic Utilities
 
 .. autofunction:: deepchem.utils.genomics_utils.seq_one_hot_encode
 
-.. autofunction:: deepchem.utils.genomics_utils.encode_fasta_sequence
-
 .. autofunction:: deepchem.utils.genomics_utils.encode_bio_sequence
 
 

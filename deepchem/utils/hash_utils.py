@@ -91,7 +91,7 @@ def vectorize(hash_function: Callable[[str, int], int],
   Returns
   -------
   feature_vector: np.ndarray
-    Shape `(size,)`
+    A numpy array of shape `(size,)`
   """
   feature_vector = np.zeros(size)
   if feature_dict is not None:

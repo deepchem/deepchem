@@ -29,9 +29,9 @@ def write_vina_conf(protein_filename: str,
   ligand_filename: str
     Filename for the ligand
   centroid: np.ndarray
-    Of shape `(3,)` holding centroid of system
+    A numpy array with shape `(3,)` holding centroid of system
   box_dims: np.ndarray
-    Of shape `(3,)` holding the size of the box to dock
+    A numpy array of shape `(3,)` holding the size of the box to dock
   conf_filename: str
     Filename to write Autodock Vina configuration to.
   num_modes: int, optional (default 9)

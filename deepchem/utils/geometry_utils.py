@@ -11,12 +11,12 @@ def unit_vector(vector: np.ndarray) -> np.ndarray:
   Parameters
   ----------
   vector: np.ndarray
-    Shape `(3,)`, where `3` is (x,y,z).
+    A numpy array of shape `(3,)`, where `3` is (x,y,z).
 
   Returns
   ----------
   np.ndarray
-    Shape `(3,)`. Ths unit vector of the input vector.
+    A numpy array of shape `(3,)`. The unit vector of the input vector.
   """
   return vector / np.linalg.norm(vector)
 
@@ -30,9 +30,9 @@ def angle_between(vector_i: np.ndarray, vector_j: np.ndarray) -> np.ndarray:
   Parameters
   ----------
   vector_i: np.ndarray
-    Shape `(3,)`, where `3` is (x,y,z).
+    A numpy array of shape `(3,)`, where `3` is (x,y,z).
   vector_j: np.ndarray
-    Shape `(3,)`, where `3` is (x,y,z).
+    A numpy array of shape `(3,)`, where `3` is (x,y,z).
 
   Returns
   ----------
@@ -72,7 +72,7 @@ def generate_random_unit_vector() -> np.ndarray:
   Returns
   -------
   u: np.ndarray
-    Shape `(3,)`. u is an unit vector
+    A numpy array of shape `(3,)`. u is an unit vector
   """
   theta = np.random.uniform(low=0.0, high=2 * np.pi)
   z = np.random.uniform(low=-1.0, high=1.0)
@@ -108,7 +108,7 @@ def generate_random_rotation_matrix() -> np.ndarray:
   Returns
   -------
   R: np.ndarray
-    Shape `(3, 3)`. R is a rotation matrix.
+    A numpy array of shape `(3, 3)`. R is a rotation matrix.
   """
   u = generate_random_unit_vector()
   v = generate_random_unit_vector()
@@ -129,9 +129,9 @@ def is_angle_within_cutoff(vector_i: np.ndarray, vector_j: np.ndarray,
   Parameters
   ----------
   vector_i: np.ndarray
-    Shape `(3,)`, where `3` is (x,y,z).
+    A numpy array of shape (3,)`, where `3` is (x,y,z).
   vector_j: np.ndarray
-    Shape `(3,)`, where `3` is (x,y,z).
+    A numpy array of shape `(3,)`, where `3` is (x,y,z).
   cutoff: float
     The deviation from 180 (in degrees)
 
@@ -150,12 +150,12 @@ def compute_centroid(coordinates: np.ndarray) -> np.ndarray:
   Parameters
   ----------
   coordinates: np.ndarray
-    Shape `(N, 3)`, where `N` is the number of atoms.
+    A numpy array of shape `(N, 3)`, where `N` is the number of atoms.
 
   Returns
   -------
   centroid: np.ndarray
-    Shape `(3,)`, where `3` is (x,y,z).
+    A numpy array of shape `(3,)`, where `3` is (x,y,z).
   """
   centroid = np.mean(coordinates, axis=0)
   return centroid
@@ -167,12 +167,12 @@ def compute_protein_range(coordinates: np.ndarray) -> np.ndarray:
   Parameters
   ----------
   coordinates: np.ndarray
-    Shape `(N, 3)`, where `N` is the number of atoms.
+    A numpy array of shape `(N, 3)`, where `N` is the number of atoms.
 
   Returns
   -------
   protein_range: np.ndarray
-    Shape `(3,)`, where `3` is (x,y,z).
+    A numpy array of shape `(3,)`, where `3` is (x,y,z).
   """
   protein_max = np.max(coordinates, axis=0)
   protein_min = np.min(coordinates, axis=0)
@@ -192,14 +192,14 @@ def subtract_centroid(coordinates: np.ndarray,
   Parameters
   ----------
   coordinates: np.ndarray
-    Shape `(N, 3)`, where `N` is the number of atoms.
+    A numpy array of shape `(N, 3)`, where `N` is the number of atoms.
   centroid: np.ndarray
-    Shape `(3,)`
+    A numpy array of shape `(3,)`
 
   Returns
   -------
   coordinates: np.ndarray
-    Shape `(3,)`, where `3` is (x,y,z).
+    A numpy array of shape `(3,)`, where `3` is (x,y,z).
   """
   coordinates -= np.transpose(centroid)
   return coordinates
@@ -218,14 +218,14 @@ def compute_pairwise_distances(first_coordinate: np.ndarray,
   Parameters
   ----------
   first_coordinate: np.ndarray
-    Shape `(m, 3)`, where `m` is the number of atoms.
+    A numpy array of shape `(m, 3)`, where `m` is the number of atoms.
   second_coordinate: np.ndarray
-    Shape `(n, 3)`, where `n` is the number of atoms.
+    A numpy array of shape `(n, 3)`, where `n` is the number of atoms.
 
   Returns
   -------
   pairwise_distances: np.ndarray
-    Shape `(m, n)`
+    A numpy array of shape `(m, n)`
   """
 
   pairwise_distances = cdist(

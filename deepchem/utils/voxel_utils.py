@@ -65,7 +65,7 @@ def convert_atom_pair_to_voxel(coordinates_tuple: Tuple[np.ndarray, np.ndarray],
   Returns
   -------
   indices_list: np.ndarray
-    A numpy array of shape `(2, 3)`. `3` indicates `[i, j, k]` of the
+    A numpy array of shape `(2, 3)`, where `3` is `[i, j, k]` of the
     voxel coordinates of specified atom.
   """
 
