@@ -1,9 +1,10 @@
 """
 Tests for binding pocket detection.
 """
+import os
 import logging
 import unittest
-import os
+import numpy as np
 
 import deepchem as dc
 from deepchem.utils import rdkit_utils
@@ -53,9 +54,6 @@ class TestBindingPocket(unittest.TestCase):
     protein_file = os.path.join(current_dir, "1jld_protein.pdb")
     ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
 
-    active_site_box, active_site_coords = (
-        dc.dock.binding_pocket.extract_active_site(protein_file, ligand_file))
-    finder = dc.dock.ConvexHullPocketFinder()
-    pockets = finder.find_pockets(protein_file)
-
-    assert len(pockets) > 0
+    active_site_box, active_site_coords = dc.dock.binding_pocket.extract_active_site(protein_file, ligand_file)
+    assert isinstance(active_site_box, box_utils.CoordinateBox)
+    assert isinstance(active_site_coords, np.ndarray)

@@ -19,7 +19,6 @@ from deepchem.dock.pose_scoring import vina_energy_term
 logger = logging.getLogger(__name__)
 
 
-@pytest.mark.linux_only
 class TestPoseScoring(unittest.TestCase):
   """
   Does sanity checks on pose generation.

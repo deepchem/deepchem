@@ -50,7 +50,7 @@ def extract_active_site(protein_file: str,
   z_min = int(np.floor(np.amin(pocket_coords[:, 2])))
   z_max = int(np.ceil(np.amax(pocket_coords[:, 2])))
   box = CoordinateBox((x_min, x_max), (y_min, y_max), (z_min, z_max))
-  return (box, pocket_coords)
+  return box, pocket_coords
 
 
 class BindingPocketFinder(object):
