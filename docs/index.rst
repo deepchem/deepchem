@@ -135,7 +135,7 @@ discussions about research, development or any general questions. If you'd like 
    Models <models>
    Layers <layers>
    Metrics <metrics>
-   Hyperparameter Turning <hyper>
+   Hyperparameter Tuning <hyper>
    MoleculeNet <moleculenet>
    Metalearning <metalearning>
    Reinforcement Learning <rl>

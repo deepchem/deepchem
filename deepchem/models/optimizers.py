@@ -45,6 +45,51 @@ class LearningRateSchedule(object):
     raise NotImplemented("Subclasses must implement this")
 
 
+class AdaGrad(Optimizer):
+  """The AdaGrad optimization algorithm.
+
+  Adagrad is an optimizer with parameter-specific learning rates, which are
+  adapted relative to how frequently a parameter gets updated during training.
+  The more updates a parameter receives, the smaller the updates. See [1]_ for
+a full reference for the algorithm.
+
+  Returns
+  -------
+  .. [1] Duchi, John, Elad Hazan, and Yoram Singer. "Adaptive subgradient
+methods for online learning and stochastic optimization." Journal of machine
+learning research 12.7 (2011).
+  """
+
+  def __init__(self,
+               learning_rate=0.001,
+               initial_accumulator_value=0.1,
+               epsilon=1e-07):
+    """Construct an AdaGrad optimizer.
+    Parameters
+    ----------
+    learning_rate: float or LearningRateSchedule
+      the learning rate to use for optimization
+    initial_accumulator_value: float
+      a parameter of the AdaGrad algorithm
+    epsilon: float
+      a parameter of the AdaGrad algorithm
+
+    """
+    self.learning_rate = learning_rate
+    self.initial_accumulator_value = initial_accumulator_value
+    self.epsilon = epsilon
+
+  def _create_optimizer(self, global_step):
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      learning_rate = self.learning_rate._create_tensor(global_step)
+    else:
+      learning_rate = self.learning_rate
+    return tf.keras.optimizers.Adagrad(
+        learning_rate=self.learning_rate,
+        initial_accumulator_value=self.initial_accumulator_value,
+        epsilon=self.epsilon)
+
+
 class Adam(Optimizer):
   """The Adam optimization algorithm."""
 

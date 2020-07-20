@@ -2,20 +2,50 @@
 import tensorflow as tf
 import numpy as np
 import collections
+from typing import Callable, Dict, List
 from tensorflow.keras import activations, initializers, backend
-from tensorflow.keras.layers import Dropout
+from tensorflow.keras.layers import Dropout, BatchNormalization
 
 
 class InteratomicL2Distances(tf.keras.layers.Layer):
-  """Compute (squared) L2 Distances between atoms given neighbors."""
+  """Compute (squared) L2 Distances between atoms given neighbors.
 
-  def __init__(self, N_atoms, M_nbrs, ndim, **kwargs):
+  This class computes pairwise distances between its inputs.
+
+  Examples
+  --------
+  >>> import numpy as np
+  >>> import deepchem as dc
+  >>> atoms = 5
+  >>> neighbors = 2
+  >>> coords = np.random.rand(atoms, 3)
+  >>> neighbor_list = np.random.randint(0, atoms, size=(atoms, neighbors))
+  >>> layer = InteratomicL2Distances(atoms, neighbors, 3)
+  >>> result = np.array(layer([coords, neighbor_list]))
+  >>> result.shape
+  (5, 2)
+
+  """
+
+  def __init__(self, N_atoms: int, M_nbrs: int, ndim: int, **kwargs):
+    """Constructor for this layer.
+
+    Parameters
+    ----------
+    N_atoms: int
+      Number of atoms in the system total.
+    M_nbrs: int
+      Number of neighbors to consider when computing distances.
+    n_dim:  int
+      Number of descriptors for each atom.
+    """
     super(InteratomicL2Distances, self).__init__(**kwargs)
     self.N_atoms = N_atoms
     self.M_nbrs = M_nbrs
     self.ndim = ndim
 
-  def get_config(self):
+  def get_config(self) -> Dict:
+    """Returns config dictionary for this layer."""
     config = super(InteratomicL2Distances, self).get_config()
     config['N_atoms'] = self.N_atoms
     config['M_nbrs'] = self.M_nbrs
@@ -28,7 +58,12 @@ class InteratomicL2Distances(tf.keras.layers.Layer):
     Parameters
     ----------
     inputs: list
-      Should be of form `inputs=[coords, nbr_list]` where `coords` is a tensor of shape `(None, N, 3)` and `nbr_list` is a list.
+      Should be of form `inputs=[coords, nbr_list]` where `coords` is a
+      tensor of shape `(None, N, 3)` and `nbr_list` is a list.
+
+    Returns
+    -------
+    Tensor of shape `(N_atoms, M_nbrs)` with interatomic distances.
     """
     if len(inputs) != 2:
       raise ValueError("InteratomicDistances requires coords,nbr_list")
@@ -46,20 +81,22 @@ class InteratomicL2Distances(tf.keras.layers.Layer):
 class GraphConv(tf.keras.layers.Layer):
   """Graph Convolutional Layers
   
-  This layer implements the graph convolution introduced in 
+  This layer implements the graph convolution introduced in [1]_.  The graph
+  convolution combines per-node feature vectures in a nonlinear fashion with
+  the feature vectors for neighboring nodes.  This "blends" information in
+  local neighborhoods of a graph.
 
-  Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints." Advances in neural information processing systems. 2015. https://arxiv.org/abs/1509.09292
+  References
+  ----------
+  .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints." Advances in neural information processing systems. 2015. https://arxiv.org/abs/1509.09292
   
-  The graph convolution combines per-node feature vectures in a
-  nonlinear fashion with the feature vectors for neighboring nodes.
-  This "blends" information in local neighborhoods of a graph.
   """
 
   def __init__(self,
-               out_channel,
-               min_deg=0,
-               max_deg=10,
-               activation_fn=None,
+               out_channel: int,
+               min_deg: int = 0,
+               max_deg: int = 10,
+               activation_fn: Callable = None,
                **kwargs):
     """Initialize a graph convolutional layer.
 
@@ -180,8 +217,16 @@ class GraphPool(tf.keras.layers.Layer):
   """A GraphPool gathers data from local neighborhoods of a graph.
 
   This layer does a max-pooling over the feature vectors of atoms in a
-  neighborhood. You can think of this layer as analogous to a max-pooling layer
-  for 2D convolutions but which operates on graphs instead.
+  neighborhood. You can think of this layer as analogous to a max-pooling
+  layer for 2D convolutions but which operates on graphs instead. This
+  technique is described in [1]_.
+
+  References
+  ----------
+  .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+  learning molecular fingerprints." Advances in neural information processing
+  systems. 2015. https://arxiv.org/abs/1509.09292
+  
   """
 
   def __init__(self, min_degree=0, max_degree=10, **kwargs):
@@ -263,6 +308,12 @@ class GraphGather(tf.keras.layers.Layer):
   `GraphConv`, and `GraphPool` layers pool all nodes from all graphs
   in a batch that's being processed. The `GraphGather` reassembles
   these jumbled node feature vectors into per-graph feature vectors.
+
+  References
+  ----------
+  .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+  learning molecular fingerprints." Advances in neural information processing
+  systems. 2015. https://arxiv.org/abs/1509.09292
   """
 
   def __init__(self, batch_size, activation_fn=None, **kwargs):
@@ -2092,49 +2143,152 @@ class Highway(tf.keras.layers.Layer):
 
 class WeaveLayer(tf.keras.layers.Layer):
   """This class implements the core Weave convolution from the
-  Google graph convolution paper.
-
-  Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints." Journal of computer-aided molecular design 30.8 (2016): 595-608.
+  Google graph convolution paper [1]_
 
   This model contains atom features and bond features
   separately.Here, bond features are also called pair features.
   There are 2 types of transformation, atom->atom, atom->pair,
   pair->atom, pair->pair that this model implements.
+
+  Examples
+  --------
+  This layer expects 4 inputs in a list of the form `[atom_features,
+  pair_features, pair_split, atom_to_pair]`. We'll walk through the structure
+  of these inputs. Let's start with some basic definitions.
+
+  >>> import deepchem as dc
+  >>> import numpy as np
+
+  Suppose you have a batch of molecules
+
+  >>> smiles = ["CCC", "C"]
+
+  Note that there are 4 atoms in total in this system. This layer expects its
+  input molecules to be batched together.
+
+  >>> total_n_atoms = 4
+
+  Let's suppose that we have a featurizer that computes `n_atom_feat` features
+  per atom.
+
+  >>> n_atom_feat = 75
+
+  Then conceptually, `atom_feat` is the array of shape `(total_n_atoms,
+  n_atom_feat)` of atomic features. For simplicity, let's just go with a
+  random such matrix.
+
+  >>> atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
+
+  Let's suppose we have `n_pair_feat` pairwise features
+
+  >>> n_pair_feat = 14
+
+  For each molecule, we compute a matrix of shape `(n_atoms*n_atoms,
+  n_pair_feat)` of pairwise features for each pair of atoms in the molecule.
+  Let's construct this conceptually for our example.
+
+  >>> pair_feat = [np.random.rand(3*3, n_pair_feat), np.random.rand(1*1, n_pair_feat)]
+  >>> pair_feat = np.concatenate(pair_feat, axis=0)
+  >>> pair_feat.shape
+  (10, 14)
+
+  `pair_split` is an index into `pair_feat` which tells us which atom each row belongs to. In our case, we hve
+
+  >>> pair_split = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 3])
+
+  That is, the first 9 entries belong to "CCC" and the last entry to "C". The
+  final entry `atom_to_pair` goes in a little more in-depth than `pair_split`
+  and tells us the precise pair each pair feature belongs to. In our case
+
+  >>> atom_to_pair = np.array([[0, 0],
+  ...                          [0, 1],
+  ...                          [0, 2],
+  ...                          [1, 0],
+  ...                          [1, 1],
+  ...                          [1, 2],
+  ...                          [2, 0],
+  ...                          [2, 1],
+  ...                          [2, 2],
+  ...                          [3, 3]])
+
+  Let's now define the actual layer
+
+  >>> layer = WeaveLayer()
+
+  And invoke it
+
+  >>> [A, P] = layer([atom_feat, pair_feat, pair_split, atom_to_pair])
+
+  The weave layer produces new atom/pair features. Let's check their shapes
+
+  >>> A = np.array(A)
+  >>> A.shape
+  (4, 50)
+  >>> P = np.array(P)
+  >>> P.shape
+  (10, 50)
+
+  The 4 is `total_num_atoms` and the 10 is the total number of pairs. Where
+  does `50` come from? It's from the default arguments `n_atom_input_feat` and
+  `n_pair_input_feat`.
+
+  References
+  ----------
+  .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+  fingerprints." Journal of computer-aided molecular design 30.8 (2016):
+  595-608.
+
   """
 
   def __init__(self,
-               n_atom_input_feat=75,
-               n_pair_input_feat=14,
-               n_atom_output_feat=50,
-               n_pair_output_feat=50,
-               n_hidden_AA=50,
-               n_hidden_PA=50,
-               n_hidden_AP=50,
-               n_hidden_PP=50,
-               update_pair=True,
-               init='glorot_uniform',
-               activation='relu',
+               n_atom_input_feat: int = 75,
+               n_pair_input_feat: int = 14,
+               n_atom_output_feat: int = 50,
+               n_pair_output_feat: int = 50,
+               n_hidden_AA: int = 50,
+               n_hidden_PA: int = 50,
+               n_hidden_AP: int = 50,
+               n_hidden_PP: int = 50,
+               update_pair: bool = True,
+               init: str = 'glorot_uniform',
+               activation: str = 'relu',
+               batch_normalize: bool = True,
+               batch_normalize_kwargs: Dict = {"renorm": True},
                **kwargs):
     """
     Parameters
     ----------
-    n_atom_input_feat: int, optional
+    n_atom_input_feat: int, optional (default 75)
       Number of features for each atom in input.
-    n_pair_input_feat: int, optional
+    n_pair_input_feat: int, optional (default 14)
       Number of features for each pair of atoms in input.
-    n_atom_output_feat: int, optional
+    n_atom_output_feat: int, optional (default 50)
       Number of features for each atom in output.
-    n_pair_output_feat: int, optional
+    n_pair_output_feat: int, optional (default 50)
       Number of features for each pair of atoms in output.
-    n_hidden_XX: int, optional
+    n_hidden_AA: int, optional (default 50)
       Number of units(convolution depths) in corresponding hidden layer
-    update_pair: bool, optional
+    n_hidden_PA: int, optional (default 50)
+      Number of units(convolution depths) in corresponding hidden layer
+    n_hidden_AP: int, optional (default 50)
+      Number of units(convolution depths) in corresponding hidden layer
+    n_hidden_PP: int, optional (default 50)
+      Number of units(convolution depths) in corresponding hidden layer
+    update_pair: bool, optional (default True)
       Whether to calculate for pair features,
       could be turned off for last layer
-    init: str, optional
+    init: str, optional (default 'glorot_uniform')
       Weight initialization for filters.
-    activation: str, optional
+    activation: str, optional (default 'relu')
       Activation function applied
+    batch_normalize: bool, optional (default True)
+      If this is turned on, apply batch normalization before applying
+      activation functions on convolutional layers.
+    batch_normalize_kwargs: Dict, optional (default `{renorm=True}`)
+      Batch normalization is a complex layer which has many potential
+      argumentswhich change behavior. This layer accepts user-defined
+      parameters which are passed to all `BatchNormalization` layers in
+      `WeaveModel`, `WeaveLayer`, and `WeaveGather`.
     """
     super(WeaveLayer, self).__init__(**kwargs)
     self.init = init  # Set weight initialization
@@ -2147,6 +2301,8 @@ class WeaveLayer(tf.keras.layers.Layer):
     self.n_hidden_PP = n_hidden_PP
     self.n_hidden_A = n_hidden_AA + n_hidden_PA
     self.n_hidden_P = n_hidden_AP + n_hidden_PP
+    self.batch_normalize = batch_normalize
+    self.batch_normalize_kwargs = batch_normalize_kwargs
 
     self.n_atom_input_feat = n_atom_input_feat
     self.n_pair_input_feat = n_pair_input_feat
@@ -2154,7 +2310,8 @@ class WeaveLayer(tf.keras.layers.Layer):
     self.n_pair_output_feat = n_pair_output_feat
     self.W_AP, self.b_AP, self.W_PP, self.b_PP, self.W_P, self.b_P = None, None, None, None, None, None
 
-  def get_config(self):
+  def get_config(self) -> Dict:
+    """Returns config dictionary for this layer."""
     config = super(WeaveLayer, self).get_config()
     config['n_atom_input_feat'] = self.n_atom_input_feat
     config['n_pair_input_feat'] = self.n_pair_input_feat
@@ -2164,51 +2321,69 @@ class WeaveLayer(tf.keras.layers.Layer):
     config['n_hidden_PA'] = self.n_hidden_PA
     config['n_hidden_AP'] = self.n_hidden_AP
     config['n_hidden_PP'] = self.n_hidden_PP
+    config['batch_normalize'] = self.batch_normalize
+    config['batch_normalize_kwargs'] = self.batch_normalize_kwargs
     config['update_pair'] = self.update_pair
     config['init'] = self.init
     config['activation'] = self.activation
     return config
 
   def build(self, input_shape):
-    """ Construct internal trainable weights."""
+    """ Construct internal trainable weights.
+
+    Parameters
+    ----------
+    input_shape: tuple
+      Ignored since we don't need the input shape to create internal weights.
+    """
     init = initializers.get(self.init)  # Set weight initialization
 
     self.W_AA = init([self.n_atom_input_feat, self.n_hidden_AA])
     self.b_AA = backend.zeros(shape=[
         self.n_hidden_AA,
     ])
+    self.AA_bn = BatchNormalization(**self.batch_normalize_kwargs)
 
     self.W_PA = init([self.n_pair_input_feat, self.n_hidden_PA])
     self.b_PA = backend.zeros(shape=[
         self.n_hidden_PA,
     ])
+    self.PA_bn = BatchNormalization(**self.batch_normalize_kwargs)
 
     self.W_A = init([self.n_hidden_A, self.n_atom_output_feat])
     self.b_A = backend.zeros(shape=[
         self.n_atom_output_feat,
     ])
+    self.A_bn = BatchNormalization(**self.batch_normalize_kwargs)
 
     if self.update_pair:
       self.W_AP = init([self.n_atom_input_feat * 2, self.n_hidden_AP])
       self.b_AP = backend.zeros(shape=[
           self.n_hidden_AP,
       ])
+      self.AP_bn = BatchNormalization(**self.batch_normalize_kwargs)
 
       self.W_PP = init([self.n_pair_input_feat, self.n_hidden_PP])
       self.b_PP = backend.zeros(shape=[
           self.n_hidden_PP,
       ])
+      self.PP_bn = BatchNormalization(**self.batch_normalize_kwargs)
 
       self.W_P = init([self.n_hidden_P, self.n_pair_output_feat])
       self.b_P = backend.zeros(shape=[
           self.n_pair_output_feat,
       ])
+      self.P_bn = BatchNormalization(**self.batch_normalize_kwargs)
     self.built = True
 
-  def call(self, inputs):
+  def call(self, inputs: List) -> List:
     """Creates weave tensors.
 
-    inputs: [atom_features, pair_features, pair_split, atom_to_pair]
+    Parameters
+    ----------
+    inputs: List
+      Should contain 4 tensors [atom_features, pair_features, pair_split,
+      atom_to_pair]
     """
     atom_features = inputs[0]
     pair_features = inputs[1]
@@ -2219,29 +2394,45 @@ class WeaveLayer(tf.keras.layers.Layer):
     activation = self.activation_fn
 
     AA = tf.matmul(atom_features, self.W_AA) + self.b_AA
+    if self.batch_normalize:
+      AA = self.AA_bn(AA)
     AA = activation(AA)
     PA = tf.matmul(pair_features, self.W_PA) + self.b_PA
+    if self.batch_normalize:
+      PA = self.PA_bn(PA)
     PA = activation(PA)
     PA = tf.math.segment_sum(PA, pair_split)
 
     A = tf.matmul(tf.concat([AA, PA], 1), self.W_A) + self.b_A
+    if self.batch_normalize:
+      A = self.A_bn(A)
     A = activation(A)
 
     if self.update_pair:
+      # Note that AP_ij and AP_ji share the same self.AP_bn batch
+      # normalization
       AP_ij = tf.matmul(
           tf.reshape(
               tf.gather(atom_features, atom_to_pair),
               [-1, 2 * self.n_atom_input_feat]), self.W_AP) + self.b_AP
+      if self.batch_normalize:
+        AP_ij = self.AP_bn(AP_ij)
       AP_ij = activation(AP_ij)
       AP_ji = tf.matmul(
           tf.reshape(
               tf.gather(atom_features, tf.reverse(atom_to_pair, [1])),
               [-1, 2 * self.n_atom_input_feat]), self.W_AP) + self.b_AP
+      if self.batch_normalize:
+        AP_ji = self.AP_bn(AP_ji)
       AP_ji = activation(AP_ji)
 
       PP = tf.matmul(pair_features, self.W_PP) + self.b_PP
+      if self.batch_normalize:
+        PP = self.PP_bn(PP)
       PP = activation(PP)
       P = tf.matmul(tf.concat([AP_ij + AP_ji, PP], 1), self.W_P) + self.b_P
+      if self.batch_normalize:
+        P = self.P_bn(P)
       P = activation(P)
     else:
       P = pair_features
@@ -2252,38 +2443,93 @@ class WeaveLayer(tf.keras.layers.Layer):
 class WeaveGather(tf.keras.layers.Layer):
   """Implements the weave-gathering section of weave convolutions.
 
-  Implements the gathering layer from the following paper:
+  Implements the gathering layer from [1]_. The weave gathering layer gathers
+  per-atom features to create a molecule-level fingerprint in a weave
+  convolutional network. This layer can also performs Gaussian histogram
+  expansion as detailed in [1]_. Note that the gathering function here is
+  simply addition as in [1]_>
 
-  Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
-  fingerprints." Journal of computer-aided molecular design 30.8 (2016): 595-608.
+  Examples
+  --------
+  This layer expects 2 inputs in a list of the form `[atom_features,
+  pair_features]`. We'll walk through the structure
+  of these inputs. Let's start with some basic definitions.
 
-  The weave gathering layer gathers	per-atom features to create a
-  molecule-level fingerprint in a weave convolutional network. This layer can
-  also perform Gaussian histogram expansion as detailed in the original paper.
+  >>> import deepchem as dc
+  >>> import numpy as np
+
+  Suppose you have a batch of molecules
+
+  >>> smiles = ["CCC", "C"]
+
+  Note that there are 4 atoms in total in this system. This layer expects its
+  input molecules to be batched together.
+
+  >>> total_n_atoms = 4
+
+  Let's suppose that we have `n_atom_feat` features per atom. 
+
+  >>> n_atom_feat = 75
+
+  Then conceptually, `atom_feat` is the array of shape `(total_n_atoms,
+  n_atom_feat)` of atomic features. For simplicity, let's just go with a
+  random such matrix.
+
+  >>> atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
+
+  We then need to provide a mapping of indices to the atoms they belong to. In
+  ours case this would be
+
+  >>> atom_split = np.array([0, 0, 0, 1])
+
+  Let's now define the actual layer
+
+  >>> gather = WeaveGather(batch_size=2, n_input=n_atom_feat)
+  >>> output_molecules = gather([atom_feat, atom_split])
+  >>> len(output_molecules)
+  2
+
+  References
+  ----------
+  .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+  fingerprints." Journal of computer-aided molecular design 30.8 (2016):
+  595-608.
+
+  Note
+  ----
+  This class requires `tensorflow_probability` to be installed.
   """
 
   def __init__(self,
-               batch_size,
-               n_input=128,
-               gaussian_expand=False,
-               init='glorot_uniform',
-               activation='tanh',
-               epsilon=1e-3,
-               momentum=0.99,
+               batch_size: int,
+               n_input: int = 128,
+               gaussian_expand: bool = True,
+               compress_post_gaussian_expansion: bool = False,
+               init: str = 'glorot_uniform',
+               activation: str = 'tanh',
                **kwargs):
     """
     Parameters
     ----------
     batch_size: int
       number of molecules in a batch
-    n_input: int, optional
+    n_input: int, optional (default 128)
       number of features for each input molecule
-    gaussian_expand: boolean. optional
+    gaussian_expand: boolean, optional (default True)
       Whether to expand each dimension of atomic features by gaussian histogram
-    init: str, optional
-      Weight initialization for filters.
-    activation: str, optional
-      Activation function applied
+    compress_post_gaussian_expansion: bool, optional (default False)
+      If True, compress the results of the Gaussian expansion back to the
+      original dimensions of the input by using a linear layer with specified
+      activation function. Note that this compression was not in the original
+      paper, but was present in the original DeepChem implementation so is
+      left present for backwards compatibility.
+    init: str, optional (default 'glorot_uniform')
+      Weight initialization for filters if `compress_post_gaussian_expansion`
+      is True.
+    activation: str, optional (default 'tanh')
+      Activation function applied for filters if
+      `compress_post_gaussian_expansion` is True. Should be recognizable by
+      `tf.keras.activations`.
     """
     try:
       import tensorflow_probability as tfp
@@ -2294,11 +2540,10 @@ class WeaveGather(tf.keras.layers.Layer):
     self.n_input = n_input
     self.batch_size = batch_size
     self.gaussian_expand = gaussian_expand
+    self.compress_post_gaussian_expansion = compress_post_gaussian_expansion
     self.init = init  # Set weight initialization
     self.activation = activation  # Get activations
     self.activation_fn = activations.get(activation)
-    self.epsilon = epsilon
-    self.momentum = momentum
 
   def get_config(self):
     config = super(WeaveGather, self).get_config()
@@ -2307,18 +2552,31 @@ class WeaveGather(tf.keras.layers.Layer):
     config['gaussian_expand'] = self.gaussian_expand
     config['init'] = self.init
     config['activation'] = self.activation
-    config['epsilon'] = self.epsilon
-    config['momentum'] = self.momentum
+    config[
+        'compress_post_gaussian_expansion'] = self.compress_post_gaussian_expansion
     return config
 
   def build(self, input_shape):
-    if self.gaussian_expand:
+    if self.compress_post_gaussian_expansion:
       init = initializers.get(self.init)
       self.W = init([self.n_input * 11, self.n_input])
       self.b = backend.zeros(shape=[self.n_input])
     self.built = True
 
-  def call(self, inputs):
+  def call(self, inputs: List) -> List:
+    """Creates weave tensors.
+
+    Parameters
+    ----------
+    inputs: List
+      Should contain 2 tensors [atom_features, atom_split]
+
+    Returns
+    -------
+    output_molecules: List 
+      Each entry in this list is of shape `(self.n_inputs,)`
+    
+    """
     outputs = inputs[0]
     atom_split = inputs[1]
 
@@ -2327,13 +2585,42 @@ class WeaveGather(tf.keras.layers.Layer):
 
     output_molecules = tf.math.segment_sum(outputs, atom_split)
 
-    if self.gaussian_expand:
+    if self.compress_post_gaussian_expansion:
       output_molecules = tf.matmul(output_molecules, self.W) + self.b
       output_molecules = self.activation_fn(output_molecules)
 
     return output_molecules
 
   def gaussian_histogram(self, x):
+    """Expands input into a set of gaussian histogram bins.
+
+    Parameters
+    ----------
+    x: tf.Tensor
+      Of shape `(N, n_feat)`
+
+    Examples
+    --------
+    This method uses 11 bins spanning portions of a Gaussian with zero mean
+    and unit standard deviation.
+
+    >>> gaussian_memberships = [(-1.645, 0.283), (-1.080, 0.170),
+    ...                         (-0.739, 0.134), (-0.468, 0.118),
+    ...                         (-0.228, 0.114), (0., 0.114),
+    ...                         (0.228, 0.114), (0.468, 0.118),
+    ...                         (0.739, 0.134), (1.080, 0.170),
+    ...                         (1.645, 0.283)]
+
+    We construct a Gaussian at `gaussian_memberships[i][0]` with standard
+    deviation `gaussian_memberships[i][1]`. Each feature in `x` is assigned
+    the probability of falling in each Gaussian, and probabilities are
+    normalized across the 11 different Gaussians.
+    
+    Returns
+    -------
+    outputs: tf.Tensor
+      Of shape `(N, 11*n_feat)`
+    """
     import tensorflow_probability as tfp
     gaussian_memberships = [(-1.645, 0.283), (-1.080, 0.170), (-0.739, 0.134),
                             (-0.468, 0.118), (-0.228, 0.114), (0., 0.114),

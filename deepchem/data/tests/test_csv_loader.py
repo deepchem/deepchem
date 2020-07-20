@@ -19,6 +19,6 @@ class TestCSVLoader(TestCase):
     loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles", featurizer=featurizer)
 
-    X = loader.featurize(fin.name)
+    X = loader.create_dataset(fin.name)
     self.assertEqual(1, len(X))
     os.remove(fin.name)

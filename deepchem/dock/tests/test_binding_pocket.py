@@ -1,12 +1,9 @@
 """
 Tests for binding pocket detection.
 """
-import sys
 import logging
 import unittest
 import os
-import numpy as np
-import pytest
 
 import deepchem as dc
 from deepchem.utils import rdkit_util
@@ -22,13 +19,12 @@ class TestBindingPocket(unittest.TestCase):
 
   def test_convex_init(self):
     """Tests that ConvexHullPocketFinder can be initialized."""
-    finder = dc.dock.ConvexHullPocketFinder()
+    dc.dock.ConvexHullPocketFinder()
 
   def test_get_face_boxes_for_protein(self):
     """Tests that binding pockets are detected."""
     current_dir = os.path.dirname(os.path.realpath(__file__))
     protein_file = os.path.join(current_dir, "1jld_protein.pdb")
-    ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
     coords = rdkit_util.load_molecule(protein_file)[0]
 
     boxes = box_utils.get_face_boxes(coords)
@@ -41,16 +37,11 @@ class TestBindingPocket(unittest.TestCase):
     """Test that some pockets are filtered out."""
     current_dir = os.path.dirname(os.path.realpath(__file__))
     protein_file = os.path.join(current_dir, "1jld_protein.pdb")
-    ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
-
-    import mdtraj as md
-    protein = md.load(protein_file)
 
     finder = dc.dock.ConvexHullPocketFinder()
     all_pockets = finder.find_all_pockets(protein_file)
     pockets = finder.find_pockets(protein_file)
     # Test that every atom in pocket maps exists
-    n_protein_atoms = protein.xyz.shape[1]
     for pocket in pockets:
       assert isinstance(pocket, box_utils.CoordinateBox)
 

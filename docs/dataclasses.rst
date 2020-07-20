@@ -18,3 +18,9 @@ These classes document the data classes for graph convolutions. We plan to simpl
 
 .. autoclass:: deepchem.feat.mol_graphs.WeaveMol
   :members:
+
+.. autoclass:: deepchem.utils.molecule_graph.MoleculeGraphData
+  :members:
+
+.. autoclass:: deepchem.utils.molecule_graph.BatchMoleculeGraphData
+  :members:
