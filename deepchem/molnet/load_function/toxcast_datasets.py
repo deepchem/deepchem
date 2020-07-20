@@ -83,9 +83,7 @@ def load_toxcast(featurizer='ECFP',
   dataset = loader.featurize(dataset_file)
 
   if split == None:
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-    ]
+    transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
     logger.info("Split is None, about to transform data.")
     for transformer in transformers:
       dataset = transformer.transform(dataset)
@@ -109,9 +107,7 @@ def load_toxcast(featurizer='ECFP',
       frac_valid=frac_valid,
       frac_test=frac_test)
 
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
-  ]
+  transformers = [deepchem.trans.BalancingTransformer(dataset=train)]
 
   logger.info("About to transform dataset.")
   for transformer in transformers:

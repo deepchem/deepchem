@@ -175,9 +175,7 @@ def load_bace_classification(featurizer='ECFP',
 
   if split is None:
     # Initialize transformers
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-    ]
+    transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
 
     logger.info("Split is None, about to transform data")
     for transformer in transformers:
@@ -204,9 +202,7 @@ def load_bace_classification(featurizer='ECFP',
       frac_valid=frac_valid,
       frac_test=frac_test)
 
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
-  ]
+  transformers = [deepchem.trans.BalancingTransformer(dataset=train)]
 
   logger.info("About to transform data.")
   for transformer in transformers:
