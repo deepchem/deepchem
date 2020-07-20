@@ -142,6 +142,8 @@ def voxelize(get_voxels: Callable[..., Any],
   if feature_dict is not None:
     for key, features in feature_dict.items():
       voxels = get_voxels(coordinates, key, box_width, voxel_width)
+      if len(voxels.shape) == 1:
+        voxels = np.expand_dims(voxels, axis=0)
       for voxel in voxels:
         if ((voxel >= 0) & (voxel < voxels_per_edge)).all():
           if hash_function is not None:

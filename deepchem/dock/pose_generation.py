@@ -103,7 +103,7 @@ class VinaPoseGenerator(PoseGenerator):
     sixty_four_bits: bool, optional (default True)
       Specifies whether this is a 64-bit machine. Needed to download
       the correct executable.
-    pocket_finder: object, optional (default None)
+    pocket_finder: BindingPocketFinder, optional (default None)
       If specified should be an instance of
       `dc.dock.BindingPocketFinder`.
     """

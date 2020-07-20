@@ -90,7 +90,7 @@ class ConvexHullPocketFinder(BindingPocketFinder):
 
     Parameters
     ----------
-    scoring_model: `dc.models.Model`, optional (default None)
+    scoring_model: Model, optional (default None)
       If specified, use this model to prune pockets.
     pad: float, optional (default 5.0)
       The number of angstroms to pad around a binding pocket's atoms

@@ -38,11 +38,11 @@ class Docker(object):
 
     Parameters
     ----------
-    pose_generator: `PoseGenerator`
+    pose_generator: PoseGenerator
       The pose generator to use for this model
-    featurizer: `ComplexFeaturizer`, optional (default None)
+    featurizer: ComplexFeaturizer, optional (default None)
       Featurizer associated with `scoring_model`
-    scoring_model: `Model`, optional (default None)
+    scoring_model: Model, optional (default None)
       Should make predictions on molecular complex.
     """
     if ((featurizer is not None and scoring_model is None) or
