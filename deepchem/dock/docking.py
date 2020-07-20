@@ -100,7 +100,7 @@ class Docker(object):
 
     Returns
     -------
-    Generator[(`posed_complex, score`)] or Generator[`posed_complex`]
+    Generator[Tuple[`posed_complex`, `score`]] or Generator[`posed_complex`]
       A generator. If `use_pose_generator_scores==True` or
       `self.scoring_model` is set, then will yield tuples
       `(posed_complex, score)`. Else will yield `posed_complex`.

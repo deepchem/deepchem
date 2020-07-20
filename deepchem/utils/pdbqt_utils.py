@@ -277,7 +277,7 @@ def _dfs(used_partitions: Set[int], current_partition: int,
     Partitions which have already been used
   current_partition: int
     The current partition to expand
-  bond: List[int]
+  bond: Tuple[int, int]
     the bond which goes from the previous partition into this partition
   components: List[List[int]]
     List of connected components
@@ -325,7 +325,7 @@ def _valid_bond(used_partitions: Set[int], bond: Tuple[int, int],
   ----------
   used_partions: Set[int]
     Partitions which have already been used
-  bond: Tuple[int]
+  bond: Tuple[int, int]
     The bond to check if it goes to an unexplored partition.
     This tuple is (from_atom, to_atom).
   current_partition: int

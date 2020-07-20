@@ -102,7 +102,7 @@ class GridHyperparamOpt(HyperparamOpt):
 
     Returns
     -------
-    Tuple[best_model, best_hyperparams, all_scores]
+    Tuple[`best_model`, `best_hyperparams`, `all_scores`]
       `(best_model, best_hyperparams, all_scores)` where `best_model` is
       an instance of `dc.model.Model`, `best_hyperparams` is a
       dictionary of parameters, and `all_scores` is a dictionary mapping

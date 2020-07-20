@@ -161,7 +161,7 @@ class VinaPoseGenerator(PoseGenerator):
                     ) -> Union[Tuple[DOCKED_POSES, List[float]], DOCKED_POSES]:
     """Generates the docked complex and outputs files for docked complex.
 
-    TODO: How can this work on Windows? We need to install a .msi file and 
+    TODO: How can this work on Windows? We need to install a .msi file and
     invoke it correctly from Python for this to work.
 
     Parameters
@@ -193,7 +193,7 @@ class VinaPoseGenerator(PoseGenerator):
 
     Returns
     -------
-    `(docked_poses, scores)` or `docked_poses`
+    Tuple[`docked_poses`, `scores`] or `docked_poses`
       Tuple of `(docked_poses, scores)` or `docked_poses`. `docked_poses`
       is a list of docked molecular complexes. Each entry in this list
       contains a `(protein_mol, ligand_mol)` pair of RDKit molecules.

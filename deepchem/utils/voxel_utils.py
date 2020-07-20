@@ -55,7 +55,7 @@ def convert_atom_pair_to_voxel(coordinates_tuple: Tuple[np.ndarray, np.ndarray],
   ----------
   coordinates_tuple: Tuple[np.ndarray, np.ndarray]
     A tuple containing two molecular coordinate arrays of shapes `(N, 3)` and `(M, 3)`.
-  atom_index_pair: Tuple[int]
+  atom_index_pair: Tuple[int, int]
     A tuple of indices for the atoms in the two molecules.
   box_width: float
     Size of the box in Angstroms.
