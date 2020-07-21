@@ -505,9 +505,9 @@ def _cosine_dist(x, y):
   >>> y_same = tf.ones((6, 4), dtype=tf.dtypes.float32, name=None)
   >>> # x and y are the same tensor (equivalent at every element)
   >>> # the pairwise inner product of the rows in x and y will always be 1
-  >>> # the output tensor will be of shape (5,5)
+  >>> # the output tensor will be of shape (6,6)
   >>> cos_sim_same = layers._cosine_dist(x,y_same)
-  >>> diff = cos_sim_same - tf.ones((5, 5), dtype=tf.dtypes.float32, name=None)
+  >>> diff = cos_sim_same - tf.ones((6, 6), dtype=tf.dtypes.float32, name=None)
   >>> assert tf.reduce_sum(diff) == 0 # True
   True
 
