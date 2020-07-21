@@ -18,7 +18,7 @@ def test_unlabelled():
   loader.create_dataset(input_file)
 
 
-def scaffold_test_train_valid_test_split():
+def test_scaffold_test_train_valid_test_split():
   """Test of singletask RF ECFP regression API."""
   current_dir = os.path.dirname(os.path.abspath(__file__))
   splittype = "scaffold"
@@ -46,7 +46,7 @@ def scaffold_test_train_valid_test_split():
   assert len(test_dataset) == 1
 
 
-def scaffold_test_train_test_split():
+def test_scaffold_test_train_test_split():
   """Test of singletask RF ECFP regression API."""
   current_dir = os.path.dirname(os.path.abspath(__file__))
   splittype = "scaffold"
@@ -72,7 +72,7 @@ def scaffold_test_train_test_split():
   assert len(test_dataset) == 2
 
 
-def random_test_train_valid_test_split():
+def test_random_test_train_valid_test_split():
   """Test of singletask RF ECFP regression API."""
   current_dir = os.path.dirname(os.path.abspath(__file__))
   input_transforms = []
@@ -99,7 +99,7 @@ def random_test_train_valid_test_split():
   assert len(test_dataset) == 1
 
 
-def random_test_train_test_split():
+def test_random_test_train_test_split():
   """Test of singletask RF ECFP regression API."""
   current_dir = os.path.dirname(os.path.abspath(__file__))
   #splittype = "random"
