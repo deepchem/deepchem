@@ -78,7 +78,7 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
     except:
       feats = []
 
-    return np.array(feats)
+    return np.nan_to_num(np.array(feats))
 
 
 class SineCoulombMatrix(MaterialStructureFeaturizer):

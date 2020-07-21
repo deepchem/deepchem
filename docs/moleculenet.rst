@@ -119,6 +119,15 @@ Lipo Datasets
 
 .. autofunction:: deepchem.molnet.load_lipo
 
+Materials Datasets
+------------------
+Materials datasets include inorganic crystal structures, chemical
+compositions, and target properties like formation energies and band
+gaps.
+
+.. autofunction:: deepchem.molnet.load_bandgap
+.. autofunction:: deepchem.molnet.load_perovskite
+
 MUV Datasets
 ------------
 
