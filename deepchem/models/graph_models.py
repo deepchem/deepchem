@@ -265,7 +265,7 @@ class WeaveModel(KerasModel):
       output_types = ['prediction', 'loss']
       loss: Loss = SoftmaxCrossEntropy()
     else:
-      output = Dense(n_tasks)(weave_gather)
+      output = Dense(n_tasks)(output)
       outputs = [output]
       output_types = ['prediction']
       loss = L2Loss()
