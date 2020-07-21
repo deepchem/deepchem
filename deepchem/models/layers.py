@@ -507,9 +507,10 @@ def _cosine_dist(x, y):
   >>> # the pairwise inner product of the rows in x and y will always be 1
   >>> # the output tensor will be of shape (6,6)
   >>> cos_sim_same = layers._cosine_dist(x,y_same)
+  >>> cos_sim_same.shape
+  (6, 6)
   >>> diff = cos_sim_same - tf.ones((6, 6), dtype=tf.dtypes.float32, name=None)
   >>> assert tf.reduce_sum(diff) == 0 # True
-  True
 
   The cosine similarity between two orthogonal vectors will be 0 (by definition).
   If every row in `x` is orthogonal to every row in `y`, then the output will be a
@@ -523,10 +524,10 @@ def _cosine_dist(x, y):
   >>> # the pairwise inner product of the rows in x and y will always be 0
   >>> # the output tensor will be of shape (256,256)
   >>> cos_sim_orth = layers._cosine_dist(x1,x2)
+  >>> cos_sim_orth.shape
+  (256, 256)
   >>> assert tf.reduce_sum(cos_sim_orth) == 0 # True
-  True
   >>> assert all([cos_sim_orth.shape[dim] == 256 for dim in range(2)]) # True
-  True
 
   Parameters
   ----------
