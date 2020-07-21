@@ -476,7 +476,7 @@ def _cosine_dist(x, y):
   This assumes that the two input tensors contain rows of vectors where 
   each column represents a different feature. The output tensor will have
   elements that represent the inner product between pairs of normalized vectors
-  in the rows of x and y. The two tensors need to have the same number of columns,
+  in the rows of `x` and `y`. The two tensors need to have the same number of columns,
   because one cannot take the dot product between vectors of different lengths.
   For example, in sentence similarity and sentence classification tasks,
   the number of columns is the embedding size. In these tasks, the rows of the
@@ -494,36 +494,39 @@ def _cosine_dist(x, y):
   --------
   The cosine similarity between two equivalent vectors will be 1. The cosine
   similarity between two equivalent tensors (input tensors where the elements are
-  the same), will be a tensor of ones. In this scenario, if the input tensors
-  a and y were each of shape (n,p), where each element in x and y were the same, then 
-  the output tensor would be a tensor of shape (n,n) with 1 in every entry.
+  the same), will be a tensor of 1s. In this scenario, if the input tensors
+  `x` and `y` were each of shape `(n,p)`, where each element in `x` and `y`
+  were the same, then the output tensor would be a tensor of shape `(n,n)` 
+  with 1 in every entry.
+  
+  >>> import tensorflow as tf
+  >>> import deepchem.models.layers as layers
+  >>> x = tf.ones((6, 4), dtype=tf.dtypes.float32, name=None)
+  >>> y_same = tf.ones((6, 4), dtype=tf.dtypes.float32, name=None)
+  >>> # x and y are the same tensor (equivalent at every element)
+  >>> # the pairwise inner product of the rows in x and y will always be 1
+  >>> # the output tensor will be of shape (5,5)
+  >>> cos_sim_same = layers._cosine_dist(x,y_same)
+  >>> diff = cos_sim_same - tf.ones((5, 5), dtype=tf.dtypes.float32, name=None)
+  >>> assert tf.reduce_sum(diff) == 0 # True
+  True
+
   The cosine similarity between two orthogonal vectors will be 0 (by definition).
-  If every row in x is orthogonal to every row in y, then the output will be a tensor
-  of 0s.
+  If every row in `x` is orthogonal to every row in `y`, then the output will be a
+  tensor of 0s. In the following example, each row in the tensor `x1` is
+  orthogonal to each row in `x2` because they are halves of an identity matrix.
 
-  ```python
-  import tensorflow as tf
-  import deepchem.models.layers as layers
-
-  x = tf.ones((5, 4), dtype=tf.dtypes.float32, name=None)
-  y_same = tf.ones((5, 4), dtype=tf.dtypes.float32, name=None)
-  # x and y are the same tensor (equivalent at every element)
-  # the pairwise inner product of the rows in x and y will always be 1
-  # the output tensor will be of shape (5,5)
-  cos_sim_same = layers._cosine_dist(x,y_same)
-  diff = cos_sim_same - tf.ones((5, 5), dtype=tf.dtypes.float32, name=None)
-  assert tf.reduce_sum(diff) == 0 # True
-
-  identity_tensor = tf.eye(512, dtype=tf.dtypes.float32) # identity matrix of shape (512,512)
-  x1 = identity_tensor[0:256,:]
-  x2 = identity_tensor[256:512,:]
-  # each row in x1 is orthogonal to each row in x2
-  # the pairwise inner product of the rows in x and y will always be 0
-  # the output tensor will be of shape (256,256)
-  cos_sim_orth = layers._cosine_dist(x1,x2)
-  assert tf.reduce_sum(cos_sim_orth) == 0 # True
-  assert all([cos_sim_orth.shape[dim] == 256 for dim in range(2)]) # True
-  ```
+  >>> identity_tensor = tf.eye(512, dtype=tf.dtypes.float32) # identity matrix of shape (512,512)
+  >>> x1 = identity_tensor[0:256,:]
+  >>> x2 = identity_tensor[256:512,:]
+  >>> # each row in x1 is orthogonal to each row in x2
+  >>> # the pairwise inner product of the rows in x and y will always be 0
+  >>> # the output tensor will be of shape (256,256)
+  >>> cos_sim_orth = layers._cosine_dist(x1,x2)
+  >>> assert tf.reduce_sum(cos_sim_orth) == 0 # True
+  True
+  >>> assert all([cos_sim_orth.shape[dim] == 256 for dim in range(2)]) # True
+  True
 
   Parameters
   ----------
