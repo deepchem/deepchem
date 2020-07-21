@@ -12,7 +12,9 @@ import deepchem
 import warnings
 import logging
 from typing import List, Optional, Iterator, Any
-from deepchem.utils.genomics import encode_bio_sequence as encode_sequence, encode_fasta_sequence as fasta_sequence, seq_one_hot_encode as seq_one_hotencode
+
+from deepchem.utils.genomics_utils import encode_bio_sequence as encode_sequence, \
+  seq_one_hot_encode as seq_one_hotencode
 
 logger = logging.getLogger(__name__)
 
@@ -225,7 +227,7 @@ def seq_one_hot_encode(sequences, letters='ATCGN'):
   np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
   """
   warnings.warn(
-      "This Function has been deprecated and now resides in deepchem.utils.genomics ",
+      "This Function has been deprecated and now resides in deepchem.utils.genomics_utils ",
       DeprecationWarning)
   return seq_one_hotencode(sequences, letters=letters)
 
@@ -244,10 +246,10 @@ def encode_fasta_sequence(fname):
   np.ndarray: Shape (N_sequences, 5, sequence_length, 1).
   """
   warnings.warn(
-      "This Function has been deprecated and now resides in deepchem.utils.genomics",
+      "This Function has been deprecated and now resides in deepchem.utils.genomics_utils",
       DeprecationWarning)
 
-  return fasta_sequence(fname)
+  return encode_sequence(fname)
 
 
 def encode_bio_sequence(fname, file_type="fasta", letters="ATCGN"):
@@ -269,7 +271,7 @@ def encode_bio_sequence(fname, file_type="fasta", letters="ATCGN"):
   np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
   """
   warnings.warn(
-      "This Function has been deprecated and now resides in deepchem.utils.genomics ",
+      "This Function has been deprecated and now resides in deepchem.utils.genomics_utils ",
       DeprecationWarning)
   return encode_sequence(fname, file_type=file_type, letters=letters)
 

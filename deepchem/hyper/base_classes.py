@@ -113,10 +113,11 @@ class HyperparamOpt(object):
 
     Returns
     -------
-    `(best_model, best_hyperparams, all_scores)` where `best_model` is
-    an instance of `dc.models.Models`, `best_hyperparams` is a
-    dictionary of parameters, and `all_scores` is a dictionary mapping
-    string representations of hyperparameter sets to validation
-    scores.
+    Tuple[`best_model`, `best_hyperparams`, `all_scores`]
+      `(best_model, best_hyperparams, all_scores)` where `best_model` is
+      an instance of `dc.models.Model`, `best_hyperparams` is a
+      dictionary of parameters, and `all_scores` is a dictionary mapping
+      string representations of hyperparameter sets to validation
+      scores.
     """
     raise NotImplementedError

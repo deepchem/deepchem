@@ -102,11 +102,12 @@ class GridHyperparamOpt(HyperparamOpt):
 
     Returns
     -------
-    `(best_model, best_hyperparams, all_scores)` where `best_model` is
-    an instance of `dc.model.Model`, `best_hyperparams` is a
-    dictionary of parameters, and `all_scores` is a dictionary mapping
-    string representations of hyperparameter sets to validation
-    scores.
+    Tuple[`best_model`, `best_hyperparams`, `all_scores`]
+      `(best_model, best_hyperparams, all_scores)` where `best_model` is
+      an instance of `dc.model.Model`, `best_hyperparams` is a
+      dictionary of parameters, and `all_scores` is a dictionary mapping
+      string representations of hyperparameter sets to validation
+      scores.
     """
     hyperparams = params_dict.keys()
     hyperparam_vals = params_dict.values()

@@ -3,15 +3,17 @@ Docks Molecular Complexes
 """
 import logging
 import tempfile
-from typing import cast, Optional, Tuple
+from typing import cast, Generator, Optional, Tuple, Union
 import numpy as np
 
+from deepchem.utils.typing import RDKitMol
 from deepchem.models import Model
 from deepchem.feat import ComplexFeaturizer
 from deepchem.data import NumpyDataset
 from deepchem.dock import PoseGenerator
 
 logger = logging.getLogger(__name__)
+POSED_COMPLEX = Tuple[RDKitMol, RDKitMol]
 
 
 class Docker(object):
@@ -36,11 +38,11 @@ class Docker(object):
 
     Parameters
     ----------
-    pose_generator: `PoseGenerator`
+    pose_generator: PoseGenerator
       The pose generator to use for this model
-    featurizer: `ComplexFeaturizer`, optional (default None)
+    featurizer: ComplexFeaturizer, optional (default None)
       Featurizer associated with `scoring_model`
-    scoring_model: `Model`, optional (default None)
+    scoring_model: Model, optional (default None)
       Should make predictions on molecular complex.
     """
     if ((featurizer is not None and scoring_model is None) or
@@ -60,7 +62,9 @@ class Docker(object):
            num_modes: int = 9,
            num_pockets: Optional[int] = None,
            out_dir: Optional[str] = None,
-           use_pose_generator_scores: bool = False):
+           use_pose_generator_scores: bool = False
+          ) -> Union[Generator[POSED_COMPLEX, None, None], Generator[Tuple[
+              POSED_COMPLEX, float], None, None]]:
     """Generic docking function.
 
     This docking function uses this object's featurizer, pose
@@ -69,13 +73,13 @@ class Docker(object):
 
     Parameters
     ----------
-    molecular_complex: Tuple[str]
+    molecular_complex: Tuple[str, str]
       A representation of a molecular complex. This tuple is
       (protein_file, ligand_file).
     centroid: np.ndarray, optional (default None)
       The centroid to dock against. Is computed if not specified.
     box_dims: np.ndarray, optional (default None)
-      Of shape `(3,)` holding the size of the box to dock. If not
+      A numpy array of shape `(3,)` holding the size of the box to dock. If not
       specified is set to size of molecular complex plus 5 angstroms.
     exhaustiveness: int, optional (default 10)
       Tells pose generator how exhaustive it should be with pose
@@ -96,9 +100,10 @@ class Docker(object):
 
     Returns
     -------
-    A generator. If `use_pose_generator_scores==True` or
-    `self.scoring_model` is set, then will yield tuples
-    `(posed_complex, score)`. Else will yield `posed_complex`.
+    Generator[Tuple[`posed_complex`, `score`]] or Generator[`posed_complex`]
+      A generator. If `use_pose_generator_scores==True` or
+      `self.scoring_model` is set, then will yield tuples
+      `(posed_complex, score)`. Else will yield `posed_complex`.
     """
     if self.scoring_model is not None and use_pose_generator_scores:
       raise ValueError(

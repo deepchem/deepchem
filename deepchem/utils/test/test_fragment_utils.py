@@ -2,12 +2,12 @@ import os
 import unittest
 import numpy as np
 from deepchem.utils import rdkit_util
-from deepchem.utils.fragment_util import get_contact_atom_indices
-from deepchem.utils.fragment_util import merge_molecular_fragments
-from deepchem.utils.fragment_util import get_partial_charge
-from deepchem.utils.fragment_util import strip_hydrogens
-from deepchem.utils.fragment_util import MolecularFragment
-from deepchem.utils.fragment_util import AtomShim
+from deepchem.utils.fragment_utils import get_contact_atom_indices
+from deepchem.utils.fragment_utils import merge_molecular_fragments
+from deepchem.utils.fragment_utils import get_partial_charge
+from deepchem.utils.fragment_utils import strip_hydrogens
+from deepchem.utils.fragment_utils import MolecularFragment
+from deepchem.utils.fragment_utils import AtomShim
 
 
 class TestFragmentUtil(unittest.TestCase):

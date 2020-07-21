@@ -9,7 +9,7 @@ from deepchem.models import Model
 from deepchem.utils.rdkit_util import load_molecule
 from deepchem.utils.coordinate_box_utils \
   import CoordinateBox, get_face_boxes, merge_overlapping_boxes
-from deepchem.utils.fragment_util import get_contact_atom_indices
+from deepchem.utils.fragment_utils import get_contact_atom_indices
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ class ConvexHullPocketFinder(BindingPocketFinder):
 
     Parameters
     ----------
-    scoring_model: `dc.models.Model`, optional
+    scoring_model: Model, optional (default None)
       If specified, use this model to prune pockets.
     pad: float, optional (default 5.0)
       The number of angstroms to pad around a binding pocket's atoms

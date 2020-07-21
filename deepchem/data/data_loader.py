@@ -17,7 +17,7 @@ from typing import List, Optional, Dict, Tuple, Any, Sequence, Union
 from deepchem.utils.typing import OneOrMany
 from deepchem.utils.save import load_csv_files, load_json_files
 from deepchem.utils.save import load_sdf_files
-from deepchem.utils.genomics import encode_fasta_sequence
+from deepchem.utils.genomics_utils import encode_bio_sequence
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 import zipfile
@@ -725,7 +725,7 @@ class FASTALoader(DataLoader):
 
     def shard_generator():
       for input_file in input_files:
-        X = encode_fasta_sequence(input_file)
+        X = encode_bio_sequence(input_file)
         ids = np.ones(len(X))
         # (X, y, w, ids)
         yield X, None, None, ids

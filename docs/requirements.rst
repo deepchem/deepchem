@@ -26,7 +26,7 @@ DeepChem has a number of "soft" requirements.
 | Package name                   | Version       | Location where this package is imported           |
 |                                |               | (dc: deepchem)                                    |
 +================================+===============+===================================================+
-| `BioPython`_                   | 1.77          | :code:`dc.utlis.genomics`                         |
+| `BioPython`_                   | 1.77          | :code:`dc.utlis.genomics_utils`                   |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+

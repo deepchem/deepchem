@@ -58,7 +58,7 @@ class Featurizer(object):
 
     Parameters
     ----------
-    datapoints: object
+    datapoints: Iterable[Any]
       Any blob of data you like. Subclasss should instantiate this.
     """
     return self.featurize(datapoints)
@@ -68,9 +68,8 @@ class Featurizer(object):
 
     Parameters
     ----------
-    datapoint: object 
-      Any blob of data you like. Subclass should instantiate
-      this. 
+    datapoint: Any
+      Any blob of data you like. Subclass should instantiate this. 
     """
     raise NotImplementedError('Featurizer is not defined.')
 
