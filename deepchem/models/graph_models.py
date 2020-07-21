@@ -244,7 +244,7 @@ class WeaveModel(KerasModel):
             kernel_initializer=tf.keras.initializers.TruncatedNormal(
                 stddev=weight_stddev),
             bias_initializer=tf.constant_initializer(value=bias_const),
-            kernel_regularizer=regularizer)(weave_gather)
+            kernel_regularizer=regularizer)(input_layer)
         if dropout > 0.0:
           layer = Dropout(rate=dropout)(layer)
         if batch_normalize:
@@ -265,7 +265,7 @@ class WeaveModel(KerasModel):
       output_types = ['prediction', 'loss']
       loss: Loss = SoftmaxCrossEntropy()
     else:
-      output = Dense(n_tasks)(weave_gather)
+      output = Dense(n_tasks)(output)
       outputs = [output]
       output_types = ['prediction']
       loss = L2Loss()
