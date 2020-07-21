@@ -530,7 +530,7 @@ def cosine_dist(x, y):
   be of shape `(256,256)`.
   
   >>> tf.reduce_sum(cos_sim_orth) == 0 # True
-  <tf.Tensor: shape=(), dtype=bool, numpy=True> # True
+  <tf.Tensor: shape=(), dtype=bool, numpy=True>
   >>> cos_sim_orth.shape
   TensorShape([256, 256])
 
