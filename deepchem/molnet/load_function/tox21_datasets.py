@@ -70,9 +70,7 @@ def load_tox21(featurizer='ECFP',
 
   if split == None:
     # Initialize transformers
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-    ]
+    transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
 
     logger.info("About to transform data")
     for transformer in transformers:
@@ -104,9 +102,7 @@ def load_tox21(featurizer='ECFP',
         frac_test=frac_test)
     all_dataset = (train, valid, test)
 
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
-    ]
+    transformers = [deepchem.trans.BalancingTransformer(dataset=train)]
 
     logger.info("About to transform data")
     for transformer in transformers:

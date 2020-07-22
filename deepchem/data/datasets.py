@@ -15,7 +15,7 @@ import time
 import shutil
 import json
 import warnings
-from multiprocessing.dummy import Pool
+import multiprocessing
 from deepchem.utils.save import save_to_disk, save_metadata
 from deepchem.utils.save import load_from_disk
 
@@ -380,8 +380,7 @@ class Dataset(object):
     """
     raise NotImplementedError()
 
-  def transform(self, fn: Callable[[np.ndarray, np.ndarray, np.ndarray], Tuple[
-      np.ndarray, np.ndarray, np.ndarray]], **args) -> "Dataset":
+  def transform(self, transformer: "dc.trans.Transformer", **args) -> "Dataset":
     """Construct a new dataset by applying a transformation to every sample in this dataset.
 
     The argument is a function that can be called as follows:
@@ -394,8 +393,8 @@ class Dataset(object):
 
     Parameters
     ----------
-    fn: function
-      A function to apply to each sample in the dataset
+    transformer: Transformer
+      the transformation to apply to each sample in the dataset
 
     Returns
     -------
@@ -811,8 +810,8 @@ class NumpyDataset(Dataset):
     return ((self._X[i], self._y[i], self._w[i], self._ids[i])
             for i in range(n_samples))
 
-  def transform(self, fn: Callable[[np.ndarray, np.ndarray, np.ndarray], Tuple[
-      np.ndarray, np.ndarray, np.ndarray]], **args) -> "NumpyDataset":
+  def transform(self, transformer: "dc.trans.Transformer",
+                **args) -> "NumpyDataset":
     """Construct a new dataset by applying a transformation to every sample in this dataset.
 
     The argument is a function that can be called as follows:
@@ -825,14 +824,14 @@ class NumpyDataset(Dataset):
 
     Parameters
     ----------
-    fn: function
-      A function to apply to each sample in the dataset
+    transformer: Transformer
+      the transformation to apply to each sample in the dataset
 
     Returns
     -------
     a newly constructed Dataset object
     """
-    newx, newy, neww = fn(self._X, self._y, self._w)
+    newx, newy, neww = transformer.transform_array(self._X, self._y, self._w)
     return NumpyDataset(newx, newy, neww, self._ids[:])
 
   def select(self, indices: Sequence[int],
@@ -1218,7 +1217,8 @@ class DiskDataset(Dataset):
       # than process based pools, since process based pools need to pickle/serialize
       # objects as an extra overhead. Also, as hideously as un-thread safe this looks,
       # we're actually protected by the GIL.
-      pool = Pool(1)  # mp.dummy aliases ThreadPool to Pool
+      pool = multiprocessing.dummy.Pool(
+          1)  # mp.dummy aliases ThreadPool to Pool
 
       if batch_size is None:
         num_global_batches = num_shards
@@ -1336,8 +1336,10 @@ class DiskDataset(Dataset):
 
     return iterate(self)
 
-  def transform(self, fn: Callable[[np.ndarray, np.ndarray, np.ndarray], Tuple[
-      np.ndarray, np.ndarray, np.ndarray]], **args) -> "DiskDataset":
+  def transform(self,
+                transformer: "dc.trans.Transformer",
+                parallel=False,
+                **args) -> "DiskDataset":
     """Construct a new dataset by applying a transformation to every sample in this dataset.
 
     The argument is a function that can be called as follows:
@@ -1350,11 +1352,13 @@ class DiskDataset(Dataset):
 
     Parameters
     ----------
-    fn: function
-      A function to apply to each sample in the dataset
+    transformer: Transformer
+      the transformation to apply to each sample in the dataset
     out_dir: string
       The directory to save the new dataset in.  If this is omitted, a
       temporary directory is created automatically
+    parallel: bool
+      if True, use multiple processes to transform the dataset in parallel
 
     Returns
     -------
@@ -1365,18 +1369,61 @@ class DiskDataset(Dataset):
     else:
       out_dir = tempfile.mkdtemp()
     tasks = self.get_task_names()
-
     n_shards = self.get_number_shards()
 
-    def generator():
-      for shard_num, row in self.metadata_df.iterrows():
-        logger.info("Transforming shard %d/%d" % (shard_num, n_shards))
-        X, y, w, ids = self.get_shard(shard_num)
-        newx, newy, neww = fn(X, y, w)
-        yield (newx, newy, neww, ids)
+    time1 = time.time()
+    if parallel:
+      results = []
+      pool = multiprocessing.Pool()
+      for i in range(self.get_number_shards()):
+        row = self.metadata_df.iloc[i]
+        X_file = os.path.join(self.data_dir, row['X'])
+        if row['y'] is not None:
+          y_file: Optional[str] = os.path.join(self.data_dir, row['y'])
+        else:
+          y_file = None
+        if row['w'] is not None:
+          w_file: Optional[str] = os.path.join(self.data_dir, row['w'])
+        else:
+          w_file = None
+        ids_file = os.path.join(self.data_dir, row['ids'])
+        results.append(
+            pool.apply_async(DiskDataset._transform_shard,
+                             (transformer, i, X_file, y_file, w_file, ids_file,
+                              out_dir, tasks)))
+      pool.close()
+      metadata_rows = [r.get() for r in results]
+      metadata_df = DiskDataset._construct_metadata(metadata_rows)
+      save_metadata(tasks, metadata_df, out_dir)
+      dataset = DiskDataset(out_dir)
+    else:
 
-    return DiskDataset.create_dataset(
-        generator(), data_dir=out_dir, tasks=tasks)
+      def generator():
+        for shard_num, row in self.metadata_df.iterrows():
+          logger.info("Transforming shard %d/%d" % (shard_num, n_shards))
+          X, y, w, ids = self.get_shard(shard_num)
+          newx, newy, neww = transformer.transform_array(X, y, w)
+          yield (newx, newy, neww, ids)
+
+      dataset = DiskDataset.create_dataset(
+          generator(), data_dir=out_dir, tasks=tasks)
+    time2 = time.time()
+    logger.info("TIMING: transforming took %0.3f s" % (time2 - time1))
+    return dataset
+
+  @staticmethod
+  def _transform_shard(transformer: "dc.trans.Transformer", shard_num: int,
+                       X_file: str, y_file: str, w_file: str, ids_file: str,
+                       out_dir: str, tasks: np.ndarray):
+    """This is called by transform() to transform a single shard."""
+    X = None if X_file is None else np.array(load_from_disk(X_file))
+    y = None if y_file is None else np.array(load_from_disk(y_file))
+    w = None if w_file is None else np.array(load_from_disk(w_file))
+    ids = np.array(load_from_disk(ids_file))
+    X, y, w = transformer.transform_array(X, y, w)
+    basename = "shard-%d" % shard_num
+    return DiskDataset.write_data_to_disk(out_dir, basename, tasks, X, y, w,
+                                          ids)
 
   def make_pytorch_dataset(self, epochs: int = 1, deterministic: bool = False):
     """Create a torch.utils.data.IterableDataset that iterates over the data in this Dataset.
@@ -2082,8 +2129,8 @@ class ImageDataset(Dataset):
     return ((get_image(self._X, i), get_image(self._y, i), self._w[i],
              self._ids[i]) for i in range(n_samples))
 
-  def transform(self, fn: Callable[[np.ndarray, np.ndarray, np.ndarray], Tuple[
-      np.ndarray, np.ndarray, np.ndarray]], **args) -> NumpyDataset:
+  def transform(self, transformer: "dc.trans.Transformer",
+                **args) -> NumpyDataset:
     """Construct a new dataset by applying a transformation to every sample in this dataset.
 
     The argument is a function that can be called as follows:
@@ -2096,14 +2143,14 @@ class ImageDataset(Dataset):
 
     Parameters
     ----------
-    fn: function
-      A function to apply to each sample in the dataset
+    transformer: Transformer
+      the transformation to apply to each sample in the dataset
 
     Returns
     -------
     a newly constructed Dataset object
     """
-    newx, newy, neww = fn(self.X, self.y, self.w)
+    newx, newy, neww = transformer.transform_array(self.X, self.y, self.w)
     return NumpyDataset(newx, newy, neww, self.ids[:])
 
   def select(self, indices: Sequence[int],

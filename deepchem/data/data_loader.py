@@ -44,27 +44,13 @@ def _convert_df_to_numpy(df, tasks):
   n_samples = df.shape[0]
   n_tasks = len(tasks)
 
-  time1 = time.time()
   y = np.hstack(
       [np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
-  time2 = time.time()
-
   w = np.ones((n_samples, n_tasks))
-  missing = np.zeros_like(y).astype(int)
-  feature_shape = None
-
-  for ind in range(n_samples):
-    for task in range(n_tasks):
-      if y[ind, task] == "":
-        missing[ind, task] = 1
-
-  # ids = df[id_field].values
-  # Set missing data to have weight zero
-  for ind in range(n_samples):
-    for task in range(n_tasks):
-      if missing[ind, task]:
-        y[ind, task] = 0.
-        w[ind, task] = 0.
+  if y.dtype.kind in ['O', 'U']:
+    missing = (y == '')
+    y[missing] = 0
+    w[missing] = 0
 
   return y.astype(float), w.astype(float)
 
@@ -198,7 +184,7 @@ class DataLoader(object):
   of `DataLoader` is specialized to handle one type of input data so
   you will have to pick the loader class suitable for your input data
   type.
-  
+
   Note that it isn't necessary to use a data loader to process input
   data. You can directly use `Featurizer` objects to featurize
   provided input into numpy arrays, but note that this calculation
@@ -352,7 +338,7 @@ class DataLoader(object):
 
     If you chose to override `create_dataset()` directly you don't
     need to override this helper method.
-    
+
     Parameters
     ----------
     inputs: list
@@ -375,7 +361,7 @@ class DataLoader(object):
 
 class CSVLoader(DataLoader):
   """
-  Creates `Dataset` objects from input CSF files. 
+  Creates `Dataset` objects from input CSF files.
 
   This class provides conveniences to load data from CSV files.
   It's possible to directly featurize data from CSV files using
@@ -397,7 +383,7 @@ class CSVLoader(DataLoader):
     tasks: list[str]
       List of task names
     smiles_field: str, optional
-      Name of field that holds smiles string 
+      Name of field that holds smiles string
     id_field: str, optional
       Name of field that holds sample identifier
     featurizer: dc.feat.Featurizer, optional
@@ -459,7 +445,7 @@ class UserCSVLoader(CSVLoader):
 
 class JsonLoader(DataLoader):
   """
-  Creates `Dataset` objects from input json files. 
+  Creates `Dataset` objects from input json files.
 
   This class provides conveniences to load data from json files.
   It's possible to directly featurize data from json files using
@@ -481,7 +467,7 @@ class JsonLoader(DataLoader):
   >> loader = JsonLoader(tasks=['task'], feature_field='sample_data',
       label_field='task', weight_field='weight', id_field='sample_name')
   >> dataset = loader.create_dataset('file.json')
-  
+
   """
 
   def __init__(self,
@@ -614,7 +600,7 @@ class JsonLoader(DataLoader):
     """Featurize individual samples in dataframe.
 
     Helper that given a featurizer that operates on individual
-    samples, computes & adds features for that sample to the 
+    samples, computes & adds features for that sample to the
     features dataframe.
 
     Parameters
@@ -652,7 +638,7 @@ class JsonLoader(DataLoader):
 
 class SDFLoader(DataLoader):
   """
-  Creates `Dataset` from SDF input files. 
+  Creates `Dataset` from SDF input files.
 
   This class provides conveniences to load data from SDF files.
   """
@@ -727,7 +713,7 @@ class FASTALoader(DataLoader):
       Name of directory where featurized data is stored.
     shard_size: int, optional
       For now, this argument is ignored and each FASTA file gets its
-      own shard. 
+      own shard.
 
     Returns
     -------
@@ -935,7 +921,7 @@ class InMemoryLoader(DataLoader):
   4
 
   Here's an example with both datapoints and labels
-  
+
   >>> import deepchem as dc
   >>> smiles = ["C", "CC", "CCC", "CCCC"]
   >>> labels = [1, 0, 1, 0]

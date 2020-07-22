@@ -94,9 +94,7 @@ def load_sider(featurizer='ECFP',
   logger.info("%d datapoints in SIDER dataset" % len(dataset))
 
   # Initialize transformers
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-  ]
+  transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
   logger.info("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)

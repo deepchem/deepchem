@@ -37,15 +37,15 @@ def load_clintox(featurizer='ECFP',
 
   References
   ----------
-  .. [1] Gayvert, Kaitlyn M., Neel S. Madhukar, and Olivier Elemento. 
-     "A data-driven approach to predicting successes and failures of clinical trials." 
+  .. [1] Gayvert, Kaitlyn M., Neel S. Madhukar, and Olivier Elemento.
+     "A data-driven approach to predicting successes and failures of clinical trials."
      Cell chemical biology 23.10 (2016): 1294-1301.
-  .. [2] Artemov, Artem V., et al. "Integrated deep learned transcriptomic and 
+  .. [2] Artemov, Artem V., et al. "Integrated deep learned transcriptomic and
      structure-based predictor of clinical trials outcomes." bioRxiv (2016): 095653.
-  .. [3] Novick, Paul A., et al. "SWEETLEAD: an in silico database of approved drugs, 
-     regulated chemicals, and herbal isolates for computer-aided drug discovery." 
+  .. [3] Novick, Paul A., et al. "SWEETLEAD: an in silico database of approved drugs,
+     regulated chemicals, and herbal isolates for computer-aided drug discovery."
      PloS one 8.11 (2013): e79568.
-  .. [4] Aggregate Analysis of ClincalTrials.gov (AACT) Database. 
+  .. [4] Aggregate Analysis of ClincalTrials.gov (AACT) Database.
      https://www.ctti-clinicaltrials.org/aact-database
   """
   if data_dir is None:
@@ -97,9 +97,7 @@ def load_clintox(featurizer='ECFP',
 
   # Transform clintox dataset
   if split is None:
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-    ]
+    transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
 
     logger.info("Split is None, about to transform data.")
     for transformer in transformers:
@@ -117,9 +115,7 @@ def load_clintox(featurizer='ECFP',
   logger.info("About to split data with {} splitter.".format(split))
   train, valid, test = splitter.train_valid_test_split(dataset)
 
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
-  ]
+  transformers = [deepchem.trans.BalancingTransformer(dataset=train)]
 
   logger.info("About to transform data.")
   for transformer in transformers:

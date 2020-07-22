@@ -82,9 +82,7 @@ def load_hiv(featurizer='ECFP',
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
   if split is None:
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-    ]
+    transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
 
     logger.info("Split is None, about to transform data")
     for transformer in transformers:
@@ -112,9 +110,7 @@ def load_hiv(featurizer='ECFP',
       frac_test=frac_test)
   train, valid, test = splitter.train_valid_test_split(dataset)
 
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
-  ]
+  transformers = [deepchem.trans.BalancingTransformer(dataset=train)]
 
   logger.info("About to transform data.")
   for transformer in transformers:

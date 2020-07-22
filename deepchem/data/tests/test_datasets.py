@@ -53,6 +53,12 @@ def load_multitask_data():
   return loader.featurize(input_file)
 
 
+class TestTransformer(dc.trans.Transformer):
+
+  def transform_array(self, X, y, w):
+    return (2 * X, 1.5 * y, w)
+
+
 class TestDatasets(test_util.TensorFlowTestCase):
   """
   Test basic top-level API for dataset objects.
@@ -386,10 +392,8 @@ class TestDatasets(test_util.TensorFlowTestCase):
 
     # Transform it
 
-    def fn(x, y, w):
-      return (2 * x, 1.5 * y, w)
-
-    transformed = dataset.transform(fn)
+    transformer = TestTransformer(transform_X=True, transform_y=True)
+    transformed = dataset.transform(transformer)
     np.testing.assert_array_equal(X, dataset.X)
     np.testing.assert_array_equal(y, dataset.y)
     np.testing.assert_array_equal(w, dataset.w)
@@ -408,18 +412,18 @@ class TestDatasets(test_util.TensorFlowTestCase):
     ids = dataset.ids
 
     # Transform it
-    def fn(x, y, w):
-      return (2 * x, 1.5 * y, w)
 
-    transformed = dataset.transform(fn)
-    np.testing.assert_array_equal(X, dataset.X)
-    np.testing.assert_array_equal(y, dataset.y)
-    np.testing.assert_array_equal(w, dataset.w)
-    np.testing.assert_array_equal(ids, dataset.ids)
-    np.testing.assert_array_equal(2 * X, transformed.X)
-    np.testing.assert_array_equal(1.5 * y, transformed.y)
-    np.testing.assert_array_equal(w, transformed.w)
-    np.testing.assert_array_equal(ids, transformed.ids)
+    transformer = TestTransformer(transform_X=True, transform_y=True)
+    for parallel in (True, False):
+      transformed = dataset.transform(transformer, parallel=parallel)
+      np.testing.assert_array_equal(X, dataset.X)
+      np.testing.assert_array_equal(y, dataset.y)
+      np.testing.assert_array_equal(w, dataset.w)
+      np.testing.assert_array_equal(ids, dataset.ids)
+      np.testing.assert_array_equal(2 * X, transformed.X)
+      np.testing.assert_array_equal(1.5 * y, transformed.y)
+      np.testing.assert_array_equal(w, transformed.w)
+      np.testing.assert_array_equal(ids, transformed.ids)
 
   def test_to_numpy(self):
     """Test that transformation to numpy arrays is sensible."""

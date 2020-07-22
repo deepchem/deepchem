@@ -10,13 +10,13 @@ import numpy as np
 import shutil
 import deepchem as dc
 
+
 def load_sider(featurizer='ECFP', split='index'):
   current_dir = os.path.dirname(os.path.realpath(__file__))
 
-	  # Load SIDER dataset
+  # Load SIDER dataset
   print("About to load SIDER dataset.")
-  dataset_file = os.path.join(
-      current_dir, "./sider.csv.gz")
+  dataset_file = os.path.join(current_dir, "./sider.csv.gz")
   dataset = dc.utils.save.load_from_disk(dataset_file)
   print("Columns of dataset: %s" % str(dataset.columns.values))
   print("Number of examples in dataset: %s" % str(dataset.shape[0]))
@@ -38,15 +38,16 @@ def load_sider(featurizer='ECFP', split='index'):
   print("%d datapoints in SIDER dataset" % len(dataset))
 
   # Initialize transformers
-  transformers = [
-      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
+  transformers = [dc.trans.BalancingTransformer(dataset=dataset)]
   print("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
 
-  splitters = {'index': dc.splits.IndexSplitter(),
-               'random': dc.splits.RandomSplitter(),
-               'scaffold': dc.splits.ScaffoldSplitter()}
+  splitters = {
+      'index': dc.splits.IndexSplitter(),
+      'random': dc.splits.RandomSplitter(),
+      'scaffold': dc.splits.ScaffoldSplitter()
+  }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
 

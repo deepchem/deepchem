@@ -127,8 +127,6 @@ class Transformer(object):
     self.transform_w = transform_w
     # One, but not both, transform_X or tranform_y is true
     assert transform_X or transform_y or transform_w
-    # Use fact that bools add as ints in python
-    assert (transform_X + transform_y + transform_w) == 1
 
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays.
@@ -186,7 +184,8 @@ class Transformer(object):
     dataset: dc.data.Dataset
       Dataset object to be transformed.
     parallel: bool, optional (default False)
-      At present this argument is ignored.
+      if True, use multiple processes to transform the dataset in parallel.
+      For large datasets, this might be faster.
     out_dir: str, optional
       If `out_dir` is specified in `kwargs` and `dataset` is a `DiskDataset`,
       the output dataset will be written to the specified directory.
@@ -205,8 +204,7 @@ class Transformer(object):
       raise ValueError("Cannot transform y when y_values are not present")
     if w_shape == tuple() and self.transform_w:
       raise ValueError("Cannot transform w when w_values are not present")
-    return dataset.transform(
-        lambda X, y, w: self.transform_array(X, y, w), out_dir=out_dir)
+    return dataset.transform(self, out_dir=out_dir, parallel=parallel)
 
   def transform_on_array(self, X, y, w):
     """Transforms numpy arrays X, y, and w
@@ -277,15 +275,10 @@ class MinMaxTransformer(Transformer):
 
   Raises
   ------
-  `ValueError` if `transform_w` is set or `transform_X` and `transform_y` are
-  both set.
+  `ValueError` if `transform_X` and `transform_y` are both set.
   """
 
-  def __init__(self,
-               transform_X=False,
-               transform_y=False,
-               transform_w=False,
-               dataset=None):
+  def __init__(self, transform_X=False, transform_y=False, dataset=None):
     """Initialization of MinMax transformer.
 
     Parameters
@@ -294,15 +287,11 @@ class MinMaxTransformer(Transformer):
       Whether to transform X
     transform_y: bool, optional (default False)
       Whether to transform y
-    transform_w: bool, optional (default False)
-      Whether to transform w
     dataset: dc.data.Dataset object, optional (default None)
       Dataset to be transformed
     """
     if transform_X and transform_y:
       raise ValueError("Can only transform only one of X and y")
-    if transform_w:
-      raise ValueError("MinMaxTransformer doesn't support w transformation.")
     if transform_X:
       self.X_min = np.min(dataset.X, axis=0)
       self.X_max = np.max(dataset.X, axis=0)
@@ -315,10 +304,7 @@ class MinMaxTransformer(Transformer):
         assert len(self.y_min) == dataset.y.shape[1]
 
     super(MinMaxTransformer, self).__init__(
-        transform_X=transform_X,
-        transform_y=transform_y,
-        transform_w=transform_w,
-        dataset=dataset)
+        transform_X=transform_X, transform_y=transform_y, dataset=dataset)
 
   def transform(self, dataset, parallel=False):
     """Transforms the dataset.
@@ -433,8 +419,7 @@ class NormalizationTransformer(Transformer):
 
   Raises
   ------
-  `ValueError` if `transform_w` is set or `transform_X` and `transform_y` are
-  both set.
+  `ValueError` if `transform_X` and `transform_y` are both set.
   """
 
   def __init__(self,
@@ -588,7 +573,6 @@ class ClippingTransformer(Transformer):
   def __init__(self,
                transform_X=False,
                transform_y=False,
-               transform_w=False,
                dataset=None,
                x_max=5.,
                y_max=500.):
@@ -600,8 +584,6 @@ class ClippingTransformer(Transformer):
       Whether to transform X
     transform_y: bool, optional (default False)
       Whether to transform y
-    transform_w: bool, optional (default False)
-      Whether to transform w
     dataset: dc.data.Dataset object, optional
       Dataset to be transformed
     x_max: float, optional
@@ -619,12 +601,7 @@ class ClippingTransformer(Transformer):
     `ValueError` if `transform_w` is set.
     """
     super(ClippingTransformer, self).__init__(
-        transform_X=transform_X,
-        transform_y=transform_y,
-        transform_w=transform_w,
-        dataset=dataset)
-    if transform_w:
-      raise ValueError("ClippingTransformer doesn't support w transformation.")
+        transform_X=transform_X, transform_y=transform_y, dataset=dataset)
 
     self.x_max = x_max
     self.y_max = y_max
@@ -702,7 +679,6 @@ class LogTransformer(Transformer):
   def __init__(self,
                transform_X=False,
                transform_y=False,
-               transform_w=False,
                features=None,
                tasks=None,
                dataset=None):
@@ -714,8 +690,6 @@ class LogTransformer(Transformer):
       Whether to transform X
     transform_y: bool, optional (default False)
       Whether to transform y
-    transform_w: bool, optional (default False)
-      Whether to transform w
     dataset: dc.data.Dataset object, optional (default None)
       Dataset to be transformed
     features: list[Int]
@@ -725,8 +699,6 @@ class LogTransformer(Transformer):
     """
     if transform_X and transform_y:
       raise ValueError("Can only transform only one of X and y")
-    if transform_w:
-      raise ValueError("MinMaxTransformer doesn't support w transformation.")
     self.features = features
     self.tasks = tasks
     super(LogTransformer, self).__init__(
@@ -830,7 +802,7 @@ class BalancingTransformer(Transformer):
   >>> y = np.random.randint(n_classes, size=(n_samples, n_tasks))
   >>> w = np.ones((n_samples, n_tasks))
   >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
-  >>> transformer = dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
+  >>> transformer = dc.trans.BalancingTransformer(dataset=dataset)
   >>> dataset = transformer.transform(dataset)
 
   And here's a multiclass dataset example.
@@ -844,7 +816,7 @@ class BalancingTransformer(Transformer):
   >>> y = np.random.randint(n_classes, size=(n_samples, n_tasks))
   >>> w = np.ones((n_samples, n_tasks))
   >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
-  >>> transformer = dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
+  >>> transformer = dc.trans.BalancingTransformer(dataset=dataset)
   >>> dataset = transformer.transform(dataset)
 
   Note
@@ -859,21 +831,10 @@ class BalancingTransformer(Transformer):
   `ValueError` if `y` or `w` aren't of shape `(N,)` or `(N, n_tasks)`.
   """
 
-  def __init__(self,
-               transform_X=False,
-               transform_y=False,
-               transform_w=False,
-               dataset=None):
+  def __init__(self, dataset=None):
     # BalancingTransformer can only transform weights.
-    if transform_X or transform_y:
-      raise ValueError("Cannot transform X or y")
-    if not transform_w:
-      raise ValueError("BalancingTransformer must have transform_w=True.")
     super(BalancingTransformer, self).__init__(
-        transform_X=transform_X,
-        transform_y=transform_y,
-        transform_w=transform_w,
-        dataset=dataset)
+        transform_w=True, dataset=dataset)
 
     # Compute weighting factors from dataset.
     y = dataset.y
@@ -966,11 +927,7 @@ class CDFTransformer(Transformer):
   TODO: Add an example of this. The current documentation is confusing.
   """
 
-  def __init__(self,
-               transform_X=False,
-               transform_y=False,
-               transform_w=False,
-               dataset=None,
+  def __init__(self, transform_X=False, transform_y=False, dataset=None,
                bins=2):
     """Initialize this transformer.
 
@@ -980,15 +937,13 @@ class CDFTransformer(Transformer):
       Whether to transform X
     transform_y: bool, optional (default False)
       Whether to transform y
-    transform_w: bool, optional (default False)
-      Whether to transform w
     dataset: dc.data.Dataset object, optional (default None)
       Dataset to be transformed
     bins: int, optional (default 2)
 
     """
-    self.transform_X = transform_X
-    self.transform_y = transform_y
+    super(CDFTransformer, self).__init__(
+        transform_X=transform_X, transform_y=transform_y)
     self.bins = bins
     self.y = dataset.y
     # self.w = dataset.w
@@ -1083,7 +1038,6 @@ class PowerTransformer(Transformer):
   def __init__(self,
                transform_X=False,
                transform_y=False,
-               transform_w=False,
                dataset=None,
                powers=[1]):
     """Initialize this transformer
@@ -1094,18 +1048,14 @@ class PowerTransformer(Transformer):
       Whether to transform X
     transform_y: bool, optional (default False)
       Whether to transform y
-    transform_w: bool, optional (default False)
-      Whether to transform w
     dataset: dc.data.Dataset object, optional (default None)
       Dataset to be transformed. Note that this argument is ignored since
       `PowerTransformer` doesn't require it to be specified.
     powers: list[int], optional (default `[1]`)
       The list of powers of features/labels to compute.
     """
-    if transform_w:
-      raise ValueError("PowerTransformer doesn't support w transformation.")
-    self.transform_X = transform_X
-    self.transform_y = transform_y
+    super(PowerTransformer, self).__init__(
+        transform_X=transform_X, transform_y=transform_y)
     self.powers = powers
 
   def transform_array(self, X, y, w):
@@ -1451,21 +1401,12 @@ class DAGTransformer(Transformer):
   DAG calculation orders
   """
 
-  def __init__(self,
-               max_atoms=50,
-               transform_X=True,
-               transform_y=False,
-               transform_w=False):
+  def __init__(self, max_atoms=50):
     """Initializes DAGTransformer.
     Only X can be transformed
     """
     self.max_atoms = max_atoms
-    self.transform_X = transform_X
-    self.transform_y = transform_y
-    self.transform_w = transform_w
-    assert self.transform_X
-    assert not self.transform_y
-    assert not self.transform_w
+    super(DAGTransformer, self).__init__(transform_X=True)
 
   def transform_array(self, X, y, w):
     """Add calculation orders to ConvMol objects"""
@@ -1576,16 +1517,10 @@ class ImageTransformer(Transformer):
   Convert an image into width, height, channel
   """
 
-  def __init__(self,
-               size,
-               transform_X=True,
-               transform_y=False,
-               transform_w=False):
+  def __init__(self, size):
     """Initializes transformation based on dataset statistics."""
     self.size = size
-    self.transform_X = True
-    self.transform_y = False
-    self.transform_w = False
+    super(ImageTransformer, self).__init__(transform_X=True)
 
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
@@ -1607,10 +1542,7 @@ class ANITransformer(Transformer):
                angular_length=8,
                atom_cases=[1, 6, 7, 8, 16],
                atomic_number_differentiated=True,
-               coordinates_in_bohr=True,
-               transform_X=True,
-               transform_y=False,
-               transform_w=False):
+               coordinates_in_bohr=True):
     """
     Only X can be transformed
     """
@@ -1622,15 +1554,10 @@ class ANITransformer(Transformer):
     self.atom_cases = atom_cases
     self.atomic_number_differentiated = atomic_number_differentiated
     self.coordinates_in_bohr = coordinates_in_bohr
-    self.transform_X = transform_X
-    self.transform_y = transform_y
-    self.transform_w = transform_w
     self.compute_graph = self.build()
     self.sess = tf.Session(graph=self.compute_graph)
     self.transform_batch_size = 32
-    assert self.transform_X
-    assert not self.transform_y
-    assert not self.transform_w
+    super(ANITransformer, self).__init__(transform_X=True)
 
   def transform_array(self, X, y, w):
     if self.transform_X:
@@ -1858,7 +1785,7 @@ class FeaturizationTransformer(Transformer):
     return X, y, w
 
 
-class DataTransforms(Transformer):
+class DataTransforms(object):
   """Applies different data transforms to images."""
 
   def __init__(self, Image):
