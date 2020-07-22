@@ -407,6 +407,7 @@ class CSVLoader(DataLoader):
     valid_inds: np.ndarray
       Indices of rows in source CSV with valid data.
     """
+    logger.info("About to featurize shard.")
     features = [elt for elt in self.featurizer(shard[self.feature_field])]
     valid_inds = np.array(
         [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
@@ -646,59 +647,48 @@ class JsonLoader(DataLoader):
     """Defines a generator which returns data for each shard"""
     return load_json_files(input_files, shard_size)
 
-  def _featurize_shard(self, shard):
-    """Featurizes a shard of an input dataframe."""
-    return self._featurize_df(
-        shard, self.featurizer, log_every_n=self.log_every_n)
+  def _featurize_shard(self, shard) -> Tuple[np.ndarray, np.ndarray]:
+    """Featurizes a shard of an input dataframe.
 
-  def _featurize_df(self,
-                    shard,
-                    featurizer: Featurizer,
-                    log_every_n: int = 1000) -> Tuple[np.ndarray, np.ndarray]:
-    """Featurize individual samples in dataframe.
-
-    Helper that given a featurizer that operates on individual
-    samples, computes & adds features for that sample to the
-    features dataframe.
+    Helper that computes features for the given shard of data.
 
     Parameters
     ----------
     shard: pd.DataFrame
       DataFrame that holds data to be featurized.
-    featurizer: Featurizer
-      An instance of `dc.feat.Featurizer`.
-    log_every_n: int, optional (default 1000)
-      Emit a logging statement every `log_every_n` rows.
 
     Returns
     -------
     features : np.ndarray
-      Array of feature vectors.
+      Array of feature vectors. Note that samples for which featurization has
+      failed will be filtered out.
     valid_inds : np.ndarray
-      Boolean values indicating successfull featurization.
-
+      Boolean values indicating successful featurization for corresponding
+      sample in the source.
     """
-
-    features = []
-    valid_inds = []
-    field = self.feature_field
-    data = shard[field].tolist()
-
-    for idx, datapoint in enumerate(data):
-      feat = featurizer.featurize([datapoint])
-      is_valid = True if feat.size > 0 else False
-      valid_inds.append(is_valid)
-      if is_valid:
-        features.append(feat)
-
-    return np.squeeze(np.array(features), axis=1), valid_inds
+    logger.info("About to featurize shard.")
+    features = [elt for elt in self.featurizer(shard[self.feature_field])]
+    valid_inds = np.array(
+        [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
+    features = [
+        elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
+    ]
+    return np.array(features), valid_inds
 
 
 class SDFLoader(DataLoader):
-  """
-  Creates `Dataset` from SDF input files.
+  """Creates a `Dataset` object from SDF input files.
 
-  This class provides conveniences to load data from SDF files.
+  This class provides conveniences to load and featurize data from SDF files.
+
+  Examples
+  --------
+  >>> current_dir = os.path.dirname(os.path.realpath(__file__))
+  >>> featurizer = dc.feat.CircularFingerprint(size=16)
+  >>> loader = dc.data.SDFLoader(["LogP(RRCK)"], featurizer=featurizer, sanitize=True)
+  >>> dataset = loader.create_dataset(os.path.join(current_dir, "membrane_permeability.sdf"))
+  >>> len(dataset)
+  2
   """
 
   def __init__(self, tasks, sanitize=False, featurizer=None, log_every_n=1000):
@@ -732,13 +722,13 @@ class SDFLoader(DataLoader):
 
   def _featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
-    features = [elt for elt in featurizer(shard[self.mol_field])]
+    features = [elt for elt in self.featurizer(shard[self.mol_field])]
     valid_inds = np.array(
         [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
     features = [
         elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
     ]
-    return np.squeeze(np.array(features)), valid_inds
+    return np.array(features), valid_inds
 
 
 class FASTALoader(DataLoader):
