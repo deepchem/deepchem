@@ -407,11 +407,9 @@ class CSVLoader(DataLoader):
     valid_inds: np.ndarray
       Indices of rows in source CSV with valid data.
     """
-    features = [
-        np.array(elt) for elt in self.featurizer(shard[self.feature_field])
-    ]
+    features = [elt for elt in self.featurizer(shard[self.feature_field])]
     valid_inds = np.array(
-        [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
+        [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
     features = [
         elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
     ]
@@ -734,9 +732,9 @@ class SDFLoader(DataLoader):
 
   def _featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
-    features = [np.array(elt) for elt in featurizer(shard[self.mol_field])]
+    features = [elt for elt in featurizer(shard[self.mol_field])]
     valid_inds = np.array(
-        [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
+        [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
     features = [
         elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
     ]
