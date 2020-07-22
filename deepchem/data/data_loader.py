@@ -683,10 +683,13 @@ class SDFLoader(DataLoader):
 
   Examples
   --------
+  >>> import deepchem as dc
+  >>> import os
   >>> current_dir = os.path.dirname(os.path.realpath(__file__))
   >>> featurizer = dc.feat.CircularFingerprint(size=16)
   >>> loader = dc.data.SDFLoader(["LogP(RRCK)"], featurizer=featurizer, sanitize=True)
-  >>> dataset = loader.create_dataset(os.path.join(current_dir, "membrane_permeability.sdf"))
+  >>> dataset = loader.create_dataset(os.path.join(current_dir, "tests", "membrane_permeability.sdf")) # doctest:+ELLIPSIS
+  Reading ...
   >>> len(dataset)
   2
   """
