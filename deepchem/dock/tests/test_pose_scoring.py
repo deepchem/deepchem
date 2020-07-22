@@ -4,7 +4,6 @@ Tests for Pose Scoring
 
 import logging
 import unittest
-import pytest
 import numpy as np
 
 from deepchem.dock.pose_scoring import vina_nonlinearity

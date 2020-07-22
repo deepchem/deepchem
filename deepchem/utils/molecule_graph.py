@@ -119,7 +119,7 @@ class BatchMoleculeGraphData(MoleculeGraphData):
     """
     Parameters
     ----------
-    molecule_graphs : Iterable[MoleculeGraphData]
+    molecule_graphs : Sequence[MoleculeGraphData]
       List of MoleculeGraphData
     """
     # stack features and targets
@@ -168,7 +168,7 @@ class BatchMoleculeGraphData(MoleculeGraphData):
 
       Parameters
       ----------
-      molecule_graphs : Iterable[MoleculeGraphData]
+      molecule_graphs : Sequence[MoleculeGraphData]
         List of MoleculeGraphData
 
       Returns
