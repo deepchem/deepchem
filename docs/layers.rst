@@ -99,3 +99,5 @@ another tensor. DeepChem maintains an extensive collection of layers which perfo
 
 .. autoclass:: deepchem.models.layers.SetGather
   :members:
+
+.. autofunction:: deepchem.models.layers.cosine_dist
