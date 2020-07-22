@@ -1,7 +1,7 @@
 import os
 import unittest
 import numpy as np
-from deepchem.utils import rdkit_util
+from deepchem.utils import rdkit_utils
 from deepchem.utils.fragment_utils import get_contact_atom_indices
 from deepchem.utils.fragment_utils import merge_molecular_fragments
 from deepchem.utils.fragment_utils import get_partial_charge
@@ -21,25 +21,25 @@ class TestFragmentUtil(unittest.TestCase):
                                     '../../feat/tests/data/3ws9_ligand.sdf')
 
   def test_get_contact_atom_indices(self):
-    complexes = rdkit_util.load_complex([self.protein_file, self.ligand_file])
+    complexes = rdkit_utils.load_complex([self.protein_file, self.ligand_file])
     contact_indices = get_contact_atom_indices(complexes)
     assert len(contact_indices) == 2
 
   def test_create_molecular_fragment(self):
-    mol_xyz, mol_rdk = rdkit_util.load_molecule(self.ligand_file)
+    mol_xyz, mol_rdk = rdkit_utils.load_molecule(self.ligand_file)
     fragment = MolecularFragment(mol_rdk.GetAtoms(), mol_xyz)
     assert len(mol_rdk.GetAtoms()) == len(fragment.GetAtoms())
     assert (fragment.GetCoords() == mol_xyz).all()
 
   def test_strip_hydrogens(self):
-    mol_xyz, mol_rdk = rdkit_util.load_molecule(self.ligand_file)
+    mol_xyz, mol_rdk = rdkit_utils.load_molecule(self.ligand_file)
     fragment = MolecularFragment(mol_rdk.GetAtoms(), mol_xyz)
 
     # Test on RDKit
     frag = strip_hydrogens(mol_xyz, mol_rdk)
 
   def test_merge_molecular_fragments(self):
-    mol_xyz, mol_rdk = rdkit_util.load_molecule(self.ligand_file)
+    mol_xyz, mol_rdk = rdkit_utils.load_molecule(self.ligand_file)
     fragment1 = MolecularFragment(mol_rdk.GetAtoms(), mol_xyz)
     fragment2 = MolecularFragment(mol_rdk.GetAtoms(), mol_xyz)
     joint = merge_molecular_fragments([fragment1, fragment2])

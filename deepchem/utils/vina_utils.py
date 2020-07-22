@@ -74,7 +74,7 @@ def load_docked_ligands(
 
   Returns
   -------
-  Tuple[List[rdkit Mol], List[float]]
+  Tuple[List[RDKit Mol], List[float]]
     Tuple of `molecules, scores`. `molecules` is a list of rdkit
     molecules with 3D information. `scores` is the associated vina
     score.

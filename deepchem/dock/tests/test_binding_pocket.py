@@ -1,12 +1,13 @@
 """
 Tests for binding pocket detection.
 """
+import os
 import logging
 import unittest
-import os
+import numpy as np
 
 import deepchem as dc
-from deepchem.utils import rdkit_util
+from deepchem.utils import rdkit_utils
 from deepchem.utils import coordinate_box_utils as box_utils
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ class TestBindingPocket(unittest.TestCase):
     """Tests that binding pockets are detected."""
     current_dir = os.path.dirname(os.path.realpath(__file__))
     protein_file = os.path.join(current_dir, "1jld_protein.pdb")
-    coords = rdkit_util.load_molecule(protein_file)[0]
+    coords = rdkit_utils.load_molecule(protein_file)[0]
 
     boxes = box_utils.get_face_boxes(coords)
     assert isinstance(boxes, list)
@@ -53,9 +54,8 @@ class TestBindingPocket(unittest.TestCase):
     protein_file = os.path.join(current_dir, "1jld_protein.pdb")
     ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
 
-    active_site_box, active_site_coords = (
-        dc.dock.binding_pocket.extract_active_site(protein_file, ligand_file))
-    finder = dc.dock.ConvexHullPocketFinder()
-    pockets = finder.find_pockets(protein_file)
+    active_site_box, active_site_coords = \
+      dc.dock.binding_pocket.extract_active_site(protein_file, ligand_file)
 
-    assert len(pockets) > 0
+    assert isinstance(active_site_box, box_utils.CoordinateBox)
+    assert isinstance(active_site_coords, np.ndarray)

@@ -98,11 +98,11 @@ class HyperparamOpt(object):
       ints/floats/strings/lists/etc. Read the documentation for the
       concrete hyperparameter optimization subclass you're using to
       learn more about what's expected.
-    train_dataset: `dc.data.Dataset`
+    train_dataset: Dataset
       dataset used for training
-    valid_dataset: `dc.data.Dataset`
+    valid_dataset: Dataset
       dataset used for validation(optimization on valid scores)
-    metric: `dc.metrics.Metric`
+    metric: Metric
       metric used for evaluation
     use_max: bool, optional
       If True, return the model with the highest score. Else return

@@ -15,7 +15,7 @@ from deepchem.dock.binding_pocket import BindingPocketFinder
 from deepchem.utils import download_url, get_data_dir
 from deepchem.utils.typing import RDKitMol
 from deepchem.utils.geometry_utils import compute_centroid, compute_protein_range
-from deepchem.utils.rdkit_util import load_molecule, write_molecule
+from deepchem.utils.rdkit_utils import load_molecule, write_molecule
 from deepchem.utils.vina_utils import load_docked_ligands, write_vina_conf
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ class PoseGenerator(object):
 
     Parameters
     ----------
-    molecular_complexes: Tuple[str]
+    molecular_complexes: Tuple[str, str]
       A representation of a molecular complex. This tuple is
       (protein_file, ligand_file).
     centroid: np.ndarray, optional (default None)

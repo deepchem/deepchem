@@ -174,7 +174,7 @@ class MolecularFeaturizer(Featurizer):
 
     Parameters
     ----------
-    molecules: RDKit Mol / SMILES string /iterable
+    molecules: RDKit Mol / SMILES string / iterable
         RDKit Mol, or SMILES string or iterable sequence of RDKit mols/SMILES
         strings.
 

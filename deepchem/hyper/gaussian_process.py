@@ -150,11 +150,11 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       which is used as the center of a search with radius
       `search_range` since pyGPGO can only optimize numerical
       hyperparameters.
-    train_dataset: `dc.data.Dataset`
+    train_dataset: Dataset
       dataset used for training
-    valid_dataset: `dc.data.Dataset`
+    valid_dataset: Dataset
       dataset used for validation(optimization on valid scores)
-    metric: `dc.metrics.Metric`
+    metric: Metric
       metric used for evaluation
     use_max: bool, (default True)
       Specifies whether to maximize or minimize `metric`.

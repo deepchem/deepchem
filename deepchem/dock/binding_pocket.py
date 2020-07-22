@@ -6,7 +6,7 @@ import numpy as np
 from typing import Any, List, Optional, Tuple
 
 from deepchem.models import Model
-from deepchem.utils.rdkit_util import load_molecule
+from deepchem.utils.rdkit_utils import load_molecule
 from deepchem.utils.coordinate_box_utils \
   import CoordinateBox, get_face_boxes, merge_overlapping_boxes
 from deepchem.utils.fragment_utils import get_contact_atom_indices
@@ -50,7 +50,7 @@ def extract_active_site(protein_file: str,
   z_min = int(np.floor(np.amin(pocket_coords[:, 2])))
   z_max = int(np.ceil(np.amax(pocket_coords[:, 2])))
   box = CoordinateBox((x_min, x_max), (y_min, y_max), (z_min, z_max))
-  return (box, pocket_coords)
+  return box, pocket_coords
 
 
 class BindingPocketFinder(object):

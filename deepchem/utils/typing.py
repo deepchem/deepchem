@@ -18,3 +18,4 @@ Shape = Tuple[int, ...]
 
 # type of RDKit Mol object
 RDKitMol = Any
+RDKitAtom = Any
