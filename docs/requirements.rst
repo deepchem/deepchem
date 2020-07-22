@@ -70,6 +70,10 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `PyTorch Geometric`_           | Not Testing   | :code:`dc.utils.molecule_graph`                   |
+|                                |               |                                                   |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
 | `RDKit`_                       | 2020.03.4     | Many modules                                      |
 |                                |               | (we recommend you to instal)                      |
 |                                |               |                                                   |
@@ -108,6 +112,7 @@ DeepChem has a number of "soft" requirements.
 .. _`pyGPGO`: https://pygpgo.readthedocs.io/en/latest/
 .. _`Pymatgen`: https://pymatgen.org/
 .. _`PyTorch`: https://pytorch.org/
+.. _`PyTorch Geometric`: https://pytorch-geometric.readthedocs.io/en/latest/
 .. _`RDKit`: http://www.rdkit.org/ocs/Install.html
 .. _`simdna`: https://github.com/kundajelab/simdna
 .. _`Tensorflow Probability`: https://www.tensorflow.org/probability
