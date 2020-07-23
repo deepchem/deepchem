@@ -11,7 +11,6 @@ class TestGraph(unittest.TestCase):
     num_edges, num_edge_features = 6, 32
     node_features = np.random.random_sample((num_nodes, num_node_features))
     edge_features = np.random.random_sample((num_edges, num_edge_features))
-    targets = np.random.random_sample(5)
     edge_index = np.array([
         [0, 1, 2, 2, 3, 4],
         [1, 2, 0, 3, 4, 0],
@@ -21,7 +20,6 @@ class TestGraph(unittest.TestCase):
     graph = GraphData(
         node_features=node_features,
         edge_index=edge_index,
-        targets=targets,
         edge_features=edge_features,
         graph_features=graph_features)
 
@@ -29,7 +27,6 @@ class TestGraph(unittest.TestCase):
     assert graph.num_node_features == num_node_features
     assert graph.num_edges == num_edges
     assert graph.num_edge_features == num_edge_features
-    assert graph.targets.shape == (5,)
 
   def test_invalid_graph_data(self):
     with pytest.raises(ValueError):
@@ -38,11 +35,9 @@ class TestGraph(unittest.TestCase):
           [0, 1, 2, 2, 3, 4],
           [1, 2, 0, 3, 4, 0],
       ])
-      targets = np.random.random_sample(5)
-      graph = GraphData(
+      _ = GraphData(
           node_features=invalid_node_features_type,
           edge_index=edge_index,
-          targets=targets,
       )
 
     with pytest.raises(ValueError):
@@ -52,16 +47,14 @@ class TestGraph(unittest.TestCase):
           [1, 2, 0, 3, 4, 0],
           [2, 2, 1, 4, 0, 3],
       ])
-      targets = np.random.random_sample(5)
-      graph = GraphData(
+      _ = GraphData(
           node_features=node_features,
           edge_index=invalid_edge_index_shape,
-          targets=targets,
       )
 
     with pytest.raises(TypeError):
       node_features = np.random.random_sample((5, 5))
-      graph = GraphData(node_features=node_features)
+      _ = GraphData(node_features=node_features)
 
   def test_batch_graph_data(self):
     num_nodes_list, num_edge_list = [3, 4, 5], [2, 4, 5]
@@ -71,14 +64,12 @@ class TestGraph(unittest.TestCase):
         np.array([[0, 1, 2, 3], [1, 2, 0, 2]]),
         np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 5]])
     ]
-    targets = np.random.random_sample(5)
 
     graphs = [
         GraphData(
             node_features=np.random.random_sample((num_nodes_list[i],
                                                    num_node_features)),
             edge_index=edge_index_list[i],
-            targets=targets,
             edge_features=np.random.random_sample((num_edge_list[i],
                                                    num_edge_features)),
             graph_features=None) for i in range(len(num_edge_list))
@@ -89,5 +80,4 @@ class TestGraph(unittest.TestCase):
     assert batch.num_node_features == num_node_features
     assert batch.num_edges == sum(num_edge_list)
     assert batch.num_edge_features == num_edge_features
-    assert batch.targets.shape == (3, 5)
     assert batch.graph_index.shape == (sum(num_nodes_list),)
