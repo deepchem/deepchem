@@ -3,12 +3,9 @@ Tests for JsonLoader class.
 """
 
 import os
-import tempfile
-import shutil
 import numpy as np
-import deepchem as dc
 from deepchem.data.data_loader import JsonLoader
-from deepchem.feat.materials_featurizers import SineCoulombMatrix
+from deepchem.feat import SineCoulombMatrix
 
 
 def test_json_loader():
