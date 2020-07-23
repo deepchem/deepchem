@@ -16,6 +16,10 @@ OneOrMany = Union[T, Sequence[T]]
 # The shape of a NumPy array
 Shape = Tuple[int, ...]
 
-# type of RDKit Mol object
+# type of RDKit object
 RDKitMol = Any
 RDKitAtom = Any
+
+# type of Pymatgen object
+PymatgenStructure = Any
+PymatgenComposition = Any
