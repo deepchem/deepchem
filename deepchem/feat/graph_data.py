@@ -78,7 +78,7 @@ class GraphData:
     if self.node_features is not None:
       self.num_edge_features = self.edge_features.shape[1]
 
-  def to_pyg_data(self, target):
+  def to_pyg_data(self, target: np.ndarray):
     """Convert to PyTorch Geometric Data instance
 
     Parameters

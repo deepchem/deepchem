@@ -9,7 +9,7 @@ from deepchem.feat import MaterialStructureFeaturizer
 from deepchem.feat.graph_data import GraphData
 
 # FIXME: it is better to add this json to DeepChem AWS
-ATOM_JSON_URL = 'https://raw.githubusercontent.com/txie-93/cgcnn/master/data/sample-regression/atom_init.json'
+ATOM_INIT_JSON_URL = 'https://raw.githubusercontent.com/txie-93/cgcnn/master/data/sample-regression/atom_init.json'
 
 
 class CGCNNFeaturizer(MaterialStructureFeaturizer):
@@ -59,7 +59,7 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
 
     # load atom_init.json
     data_dir = get_data_dir()
-    download_url(ATOM_JSON_URL, data_dir)
+    download_url(ATOM_INIT_JSON_URL, data_dir)
     atom_init_json_path = os.path.join(data_dir, 'atom_init.json')
     with open(atom_init_json_path, 'r') as f:
       atom_init_json = json.load(f)
@@ -149,7 +149,7 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
       edge_distances.extend([site[1] for site in neighbor])
 
     edge_idx = np.array([src_idx, dest_idx], dtype=np.int)
-    edge_distances = np.asarray(edge_distances)
+    edge_distances = np.array(edge_distances, dtype=np.float)
     edge_features = self._gaussian_filter(edge_distances)
     return edge_idx, edge_features
 
