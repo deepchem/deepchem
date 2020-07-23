@@ -1,4 +1,3 @@
-# coding=utf-8
 """
 Contains an abstract base class that supports data transformations.
 """
@@ -254,8 +253,8 @@ class MinMaxTransformer(Transformer):
   >>> A_max = np.max(A, axis=0)
   >>> A_t = np.nan_to_num((A - A_min)/(A_max - A_min))
 
-  Example
-  -------
+  Examples
+  --------
 
   >>> n_samples = 10
   >>> n_features = 3
@@ -398,8 +397,8 @@ class NormalizationTransformer(Transformer):
   This transformer transforms datasets to have zero mean and unit standard
   deviation.
 
-  Example
-  -------
+  Examples
+  --------
 
   >>> n_samples = 10
   >>> n_features = 3
@@ -556,8 +555,8 @@ class NormalizationTransformer(Transformer):
 class ClippingTransformer(Transformer):
   """Clip large values in datasets.
 
-  Example
-  -------
+  Examples
+  --------
   >>> n_samples = 10
   >>> n_features = 3
   >>> n_tasks = 1
@@ -652,8 +651,8 @@ class LogTransformer(Transformer):
   Assuming that tasks/features are not specified. If specified, then
   transformations are only performed on specified tasks/features.
 
-  Example
-  -------
+  Examples
+  --------
   >>> n_samples = 10
   >>> n_features = 3
   >>> n_tasks = 1
@@ -781,15 +780,15 @@ class LogTransformer(Transformer):
 
 
 class BalancingTransformer(Transformer):
-  """Balance positive and negative examples for weights.
+  """Balance positive and negative (or multiclass) example weights.
 
   This class balances the sample weights so that the sum of all example
   weights from all classes is the same. This can be useful when you're
   working on an imbalanced dataset where there are far fewer examples of some
   classes than others.
 
-  Example
-  -------
+  Examples
+  --------
 
   Here's an example for a binary dataset.
 
@@ -819,6 +818,9 @@ class BalancingTransformer(Transformer):
   >>> transformer = dc.trans.BalancingTransformer(dataset=dataset)
   >>> dataset = transformer.transform(dataset)
 
+  See Also
+  --------
+  deepchem.trans.DuplicateBalancingTransformer: Balance by duplicating samples. 
   Note
   ----
   This transformer is only meaningful for classification datasets where `y`
@@ -848,7 +850,6 @@ class BalancingTransformer(Transformer):
       raise ValueError("y must be of shape (N,) or (N, n_tasks)")
     if len(w.shape) != 2:
       raise ValueError("w must be of shape (N,) or (N, n_tasks)")
-    # Ensure dataset is binary
     self.classes = sorted(np.unique(y))
     weights = []
     for ind, task in enumerate(dataset.get_task_names()):
@@ -858,7 +859,7 @@ class BalancingTransformer(Transformer):
       task_y = task_y[task_w != 0]
       N_task = len(task_y)
       class_counts = []
-      # Note that we may 0 elements of a given class since we remove those
+      # Note that we may have 0 elements of a given class since we remove those
       # labels with zero weight. This typically happens in multitask datasets
       # where some datapoints only have labels for some tasks.
       for c in self.classes:
