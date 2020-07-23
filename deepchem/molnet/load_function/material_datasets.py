@@ -4,12 +4,12 @@ Datasets for inorganic crystal structures.
 import os
 import logging
 import deepchem
-from deepchem.feat import Featurizer
+from deepchem.feat import Featurizer, MaterialStructureFeaturizer, MaterialCompositionFeaturizer
 from deepchem.trans import Transformer
 from deepchem.splits.splitters import Splitter
 from deepchem.molnet.defaults import get_defaults
 
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ DEFAULT_SPLITTERS = {k: DEFAULT_SPLITTERS[k] for k in splitters}
 
 
 def load_bandgap(
-    featurizer: Featurizer = DEFAULT_FEATURIZERS['ElementPropertyFingerprint'],
+    featurizer: MaterialCompositionFeaturizer = DEFAULT_FEATURIZERS['ElementPropertyFingerprint'],
     transformers: List[Transformer] = [
         DEFAULT_TRANSFORMERS['NormalizationTransformer']
     ],
@@ -64,15 +64,21 @@ def load_bandgap(
   """Load band gap dataset.
 
   Contains 4604 experimentally measured band gaps for inorganic
-  crystal structure compositions.
+  crystal structure compositions. In benchmark studies, random forest 
+  models achieved a mean average error of 0.45 eV during five-fold 
+  nested cross validation on this dataset. 
+
+  For more details on the dataset see [1]_. For more details
+  on previous benchmarks for this dataset, see [2]_.
   
   Parameters
   ----------
-  featurizer : ElementPropertyFingerprint
+  featurizer : MaterialCompositionFeaturizer 
+    (default ElementPropertyFingerprint)
     A featurizer that inherits from deepchem.feat.Featurizer.
-  transformers : List{List of allowed transformers for this dataset}
+  transformers : List[Transformer]
     A transformer that inherits from deepchem.trans.Transformer.
-  splitter : RandomSplitter
+  splitter : Splitter (default RandomSplitter)
     A splitter that inherits from deepchem.splits.splitters.Splitter.
   reload : bool (default True)
     Try to reload dataset from disk if already downloaded. Save to disk
@@ -224,6 +230,13 @@ def load_perovskite(
   """Load perovskite dataset.
 
   Contains 18928 perovskite structures and their formation energies.
+  In benchmark studies, random forest models and crystal graph
+  neural networks achieved mean average error of 0.23 and 0.05 eV/atom,
+  respectively, during five-fold nested cross validation on this
+  dataset. 
+
+  For more details on the dataset see [1]_. For more details
+  on previous benchmarks for this dataset, see [2]_.
   
   Parameters
   ----------

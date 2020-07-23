@@ -35,7 +35,11 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
 
   .. [3] Matminer: Ward, L. et al. Comput. Mater. Sci. 152, 60-69 (2018).
 
-  .. [4] Pymatgen: Ong, S.P. et al. Comput. Mater. Sci. 68, 314-319 (2013). 
+  .. [4] Pymatgen: Ong, S.P. et al. Comput. Mater. Sci. 68, 314-319 (2013).
+
+  Notes
+  -----
+  `NaN` feature values are automatically converted to 0 by this featurizer.  
 
   """
 
