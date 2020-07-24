@@ -17,7 +17,7 @@ def load_hiv(featurizer='ECFP',
              data_dir=None,
              save_dir=None,
              **kwargs):
-  """Load hiv datasets. Does not do train/test split
+  """Load HIV dataset
 
   The HIV dataset was introduced by the Drug Therapeutics
   Program (DTP) AIDS Antiviral Screen, which tested the ability
@@ -28,14 +28,18 @@ def load_hiv(featurizer='ECFP',
   latter two labels, making it a classification task between
   inactive (CI) and active (CA and CM).
 
-  The data file contains a csv table, in which columns below are used:
+  Scaffold splitting is recommended for this dataset.
+
+  The raw data csv file contains columns below:
+
   - "smiles": SMILES representation of the molecular structure
   - "activity": Three-class labels for screening results: CI/CM/CA
   - "HIV_active": Binary labels for screening results: 1 (CA/CM) and 0 (CI)
 
   References
   ----------
-  .. [1] AIDS Antiviral Screen Data. https://wiki.nci.nih.gov/display/NCIDTPdata/AIDS+Antiviral+Screen+Data
+  .. [1] AIDS Antiviral Screen Data. 
+     https://wiki.nci.nih.gov/display/NCIDTPdata/AIDS+Antiviral+Screen+Data
   """
   # Featurize hiv dataset
   logger.info("About to featurize hiv dataset.")

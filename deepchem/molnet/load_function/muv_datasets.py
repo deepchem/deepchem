@@ -18,7 +18,29 @@ def load_muv(featurizer='ECFP',
              data_dir=None,
              save_dir=None,
              **kwargs):
-  """Load MUV datasets. Does not do train/test split"""
+  """Load MUV dataset
+
+  The Maximum Unbiased Validation (MUV) group is a benchmark dataset selected
+  from PubChem BioAssay by applying a refined nearest neighbor analysis.
+
+  The MUV dataset contains 17 challenging tasks for around 90 thousand
+  compounds and is specifically designed for validation of virtual screening
+  techniques.
+
+  Random splitting is recommended for this dataset.
+
+  The raw data csv file contains columns below:
+
+  - "mol_id" - PubChem CID of the compound
+  - "smiles" - SMILES representation of the molecular structure
+  - "MUV-XXX" - Measured results (Active/Inactive) for bioassays
+
+  References
+  ----------
+  .. [1] Rohrer, Sebastian G., and Knut Baumann. "Maximum unbiased validation 
+     (MUV) data sets for virtual screening based on PubChem bioactivity data." 
+     Journal of chemical information and modeling 49.2 (2009): 169-184.
+  """
   # Load MUV dataset
   logger.info("About to load MUV dataset.")
 
