@@ -32,6 +32,36 @@ def test_binary_1d():
   assert np.isclose(np.sum(w_t[y_t == 0]), np.sum(w_t[y_t == 1]))
 
 
+def test_binary_weighted_1d():
+  """Test balancing transformer on a weighted single-task dataset without explicit task dimension."""
+  n_samples = 6
+  n_features = 3
+  n_classes = 2
+  np.random.seed(123)
+  ids = np.arange(n_samples)
+  X = np.random.rand(n_samples, n_features)
+  # Note that nothing should change in this dataset since weights balance!
+  y = np.array([1, 1, 0, 0, 0, 0])
+  w = np.array([2, 2, 1, 1, 1, 1])
+  dataset = dc.data.NumpyDataset(X, y, w)
+
+  duplicator = dc.trans.DuplicateBalancingTransformer(dataset=dataset)
+  dataset = duplicator.transform(dataset)
+  # Check that still we have length 6
+  assert len(dataset) == 6
+  X_t, y_t, w_t, ids_t = (dataset.X, dataset.y, dataset.w, dataset.ids)
+  # Check shapes
+  assert X_t.shape == (6, n_features)
+  assert y_t.shape == (6,)
+  assert w_t.shape == (6,)
+  assert ids_t.shape == (6,)
+  # Check that we have 2 positives and 4 negatives
+  assert np.sum(y_t == 0) == 4
+  assert np.sum(y_t == 1) == 2
+  # Check that sum of 0s equals sum of 1s in transformed for each task
+  assert np.isclose(np.sum(w_t[y_t == 0]), np.sum(w_t[y_t == 1]))
+
+
 def test_binary_singletask():
   """Test duplicate balancing transformer on single-task dataset."""
   n_samples = 6
