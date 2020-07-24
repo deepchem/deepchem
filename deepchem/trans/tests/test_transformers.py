@@ -9,32 +9,20 @@ import unittest
 import numpy as np
 import deepchem as dc
 import scipy.ndimage
+from deepchem.trans.transformers import DataTransforms
 
 
-def load_solubility_data():
-  """Loads solubility dataset"""
-  current_dir = os.path.dirname(os.path.abspath(__file__))
-  featurizer = dc.feat.CircularFingerprint(size=1024)
-  tasks = ["log-solubility"]
-  task_type = "regression"
-  input_file = os.path.join(current_dir, "../../models/tests/example.csv")
-  loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-
-  return loader.create_dataset(input_file)
-
-
-class TestTransformers(unittest.TestCase):
+class TestDataTransforms(unittest.TestCase):
   """
-  Test top-level API for transformer objects.
+  Test DataTransforms for images 
   """
 
   def setUp(self):
+    """
+     init to load the MNIST data for DataTransforms Tests
+    """
     super(TestTransformers, self).setUp()
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
-    '''
-       init to load the MNIST data for DataTransforms Tests
-      '''
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
     train = dc.data.NumpyDataset(x_train, y_train)
     # extract only the images (no need of the labels)
@@ -42,45 +30,6 @@ class TestTransformers(unittest.TestCase):
     # reshaping the vector to image
     data = np.reshape(data, (28, 28))
     self.d = data
-
-  def test_coulomb_fit_transformer(self):
-    """Test coulomb fit transformer on singletask dataset."""
-    n_samples = 10
-    n_features = 3
-    n_tasks = 1
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features, n_features)
-    y = np.zeros((n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y, w, ids)
-    fit_transformer = dc.trans.CoulombFitTransformer(dataset)
-    X_t = fit_transformer.X_transform(dataset.X)
-    assert len(X_t.shape) == 2
-
-  def test_IRV_transformer(self):
-    n_features = 128
-    n_samples = 20
-    test_samples = 5
-    n_tasks = 2
-    X = np.random.randint(2, size=(n_samples, n_features))
-    y = np.zeros((n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y, w, ids=None)
-    X_test = np.random.randint(2, size=(test_samples, n_features))
-    y_test = np.zeros((test_samples, n_tasks))
-    w_test = np.ones((test_samples, n_tasks))
-    test_dataset = dc.data.NumpyDataset(X_test, y_test, w_test, ids=None)
-    sims = np.sum(
-        X_test[0, :] * X, axis=1, dtype=float) / np.sum(
-            np.sign(X_test[0, :] + X), axis=1, dtype=float)
-    sims = sorted(sims, reverse=True)
-    IRV_transformer = dc.trans.IRVTransformer(10, n_tasks, dataset)
-    test_dataset_trans = IRV_transformer.transform(test_dataset)
-    dataset_trans = IRV_transformer.transform(dataset)
-    assert test_dataset_trans.X.shape == (test_samples, 20 * n_tasks)
-    assert np.allclose(test_dataset_trans.X[0, :10], sims[:10])
-    assert np.allclose(test_dataset_trans.X[0, 10:20], [0] * 10)
-    assert not np.isclose(dataset_trans.X[0, 0], 1.)
 
   def test_blurring(self):
     # Check Blurring

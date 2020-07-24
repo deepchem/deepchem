@@ -68,7 +68,7 @@ class Transformer(object):
 
   Transformers are designed to be chained, since data pipelines often
   chain multiple different transformations to a dataset. Transformers
-  are also designed to be scalable and can be applied to 
+  are also designed to be scalable and can be applied to
   large `dc.data.Dataset` objects. Not that Transformers are not
   usually thread-safe so you will have to be careful in processing
   very large datasets.
@@ -99,7 +99,7 @@ class Transformer(object):
     transform_w: bool, optional (default False)
       Whether to transform w
     transform_ids: bool, optional (default False)
-      Whether to transform ids 
+      Whether to transform ids
     dataset: dc.data.Dataset object, optional (default None)
       Dataset to be transformed
     """
@@ -139,7 +139,7 @@ class Transformer(object):
     wtrans: np.ndarray
       Transformed array of weights
     idstrans: np.ndarray
-      Transformed array of ids 
+      Transformed array of ids
     """
     raise NotImplementedError(
         "Each Transformer is responsible for its own transform_array method.")
@@ -227,7 +227,7 @@ class Transformer(object):
     wtrans: np.ndarray
       Transformed array of weights
     idstrans: np.ndarray
-      Transformed array of ids 
+      Transformed array of ids
     """
     warnings.warn(
         "transform_on_array() is deprecated and has been renamed to transform_array(). transform_on_array() will be removed in DeepChem 3.0",
@@ -378,7 +378,7 @@ class MinMaxTransformer(Transformer):
     wtrans: np.ndarray
       Transformed array of weights
     idstrans: np.ndarray
-      Transformed array of ids 
+      Transformed array of ids
     """
     if self.transform_X:
       # Handle division by zero
@@ -531,7 +531,7 @@ class NormalizationTransformer(Transformer):
     wtrans: np.ndarray
       Transformed array of weights
     idstrans: np.ndarray
-      Transformed array of ids 
+      Transformed array of ids
     """
     if self.transform_X:
       if not hasattr(self, 'move_mean') or self.move_mean:
@@ -673,7 +673,7 @@ class ClippingTransformer(Transformer):
     X: np.ndarray
       Array of Features
     y: np.ndarray
-      Array of labels 
+      Array of labels
     w: np.ndarray
       Array of weights
     ids: np.ndarray
@@ -688,7 +688,7 @@ class ClippingTransformer(Transformer):
     w: np.ndarray
       Transformed weights
     idstrans: np.ndarray
-      Transformed array of ids 
+      Transformed array of ids
     """
     if self.transform_X:
       X[X > self.x_max] = self.x_max
@@ -790,7 +790,7 @@ class LogTransformer(Transformer):
     wtrans: np.ndarray
       Transformed array of weights
     idstrans: np.ndarray
-      Transformed array of ids 
+      Transformed array of ids
     """
     if self.transform_X:
       num_features = len(X[0])
@@ -888,7 +888,9 @@ class BalancingTransformer(Transformer):
 
   See Also
   --------
-  deepchem.trans.DuplicateBalancingTransformer: Balance by duplicating samples. 
+  deepchem.trans.DuplicateBalancingTransformer: Balance by duplicating samples.
+
+
   Note
   ----
   This transformer is only meaningful for classification datasets where `y`
@@ -965,7 +967,7 @@ class BalancingTransformer(Transformer):
     wtrans: np.ndarray
       Transformed array of weights
     idstrans: np.ndarray
-      Transformed array of ids 
+      Transformed array of ids
     """
     w_balanced = np.zeros_like(w)
     if len(y.shape) == 1:
@@ -1001,7 +1003,7 @@ class CDFTransformer(Transformer):
   Examples
   --------
   Let's look at an example where we transform only features.
-  
+
   >>> N = 10
   >>> n_feat = 5
   >>> n_bins = 100
@@ -1071,7 +1073,7 @@ class CDFTransformer(Transformer):
     wtrans: np.ndarray
       Transformed array of weights
     idstrans: np.ndarray
-      Transformed array of ids 
+      Transformed array of ids
     """
     w_t = w
     if self.transform_X:
@@ -1146,7 +1148,7 @@ class PowerTransformer(Transformer):
   Examples
   --------
   Let's look at an example where we transform only `X`.
-  
+
   >>> N = 10
   >>> n_feat = 5
   >>> powers = [1, 2, 0.5]
@@ -1220,7 +1222,7 @@ class PowerTransformer(Transformer):
     wtrans: np.ndarray
       Transformed array of weights
     idstrans: np.ndarray
-      Transformed array of ids 
+      Transformed array of ids
     """
     if not (len(y.shape) == 1 or len(y.shape) == 2 and y.shape[1] == 1):
       raise ValueError("This transform is not defined for multitask y")
@@ -1385,19 +1387,51 @@ class CoulombFitTransformer(Transformer):
 
 
 class IRVTransformer(Transformer):
-  """Performs transform from ECFP to IRV features(K nearest neighbors)."""
+  """Performs transform from ECFP to IRV features(K nearest neighbors).
 
-  def __init__(self, K, n_tasks, dataset, transform_y=False, transform_x=False):
+  This transformer is required by `MultitaskIRVClassifier` as a preprocessing
+  step before training.
+
+  Examples
+  --------
+  Let's start by defining the parameters of the dataset we're about to
+  transform.
+
+  >>> n_feat = 128
+  >>> N = 20
+  >>> n_tasks = 2
+
+  Let's now make our dataset object
+
+  >>> import numpy as np
+  >>> import deepchem as dc
+  >>> X = np.random.randint(2, size=(N, n_feat))
+  >>> y = np.zeros((N, n_tasks))
+  >>> w = np.ones((N, n_tasks))
+  >>> dataset = dc.data.NumpyDataset(X, y, w)
+
+  And let's apply our transformer with 10 nearest neighbors.
+
+  >>> K = 10
+  >>> trans = dc.trans.IRVTransformer(K, n_tasks, dataset)
+  >>> dataset = trans.transform(dataset)
+
+  Note
+  ----
+  This class requires TensorFlow to be installed.
+  """
+
+  def __init__(self, K, n_tasks, dataset):
     """Initializes IRVTransformer.
 
     Parameters
     ----------
-    dataset: dc.data.Dataset object
-      train_dataset
     K: int
       number of nearest neighbours being count
     n_tasks: int
       number of tasks
+    dataset: dc.data.Dataset object
+      train_dataset
     """
     self.X = dataset.X
     self.n_tasks = n_tasks
@@ -1424,7 +1458,6 @@ class IRVTransformer(Transformer):
     features: list
       n_samples * np.array of size (2*K,)
       each array includes K similarity values and corresponding labels
-
     """
     features = []
     similarity_xs = similarity * np.sign(w)
@@ -1478,13 +1511,13 @@ class IRVTransformer(Transformer):
     """
     X_target2 = []
     n_features = X_target.shape[1]
-    print('start similarity calculation')
+    logger.info('start similarity calculation')
     time1 = time.time()
     similarity = IRVTransformer.matrix_mul(X_target, np.transpose(
         self.X)) / (n_features - IRVTransformer.matrix_mul(
             1 - X_target, np.transpose(1 - self.X)))
     time2 = time.time()
-    print('similarity calculation takes %i s' % (time2 - time1))
+    logger.info('similarity calculation takes %i s' % (time2 - time1))
     for i in range(self.n_tasks):
       X_target2.append(self.realize(similarity, self.y[:, i], self.w[:, i]))
     return np.concatenate([z for z in np.array(X_target2)], axis=1)
@@ -1526,6 +1559,21 @@ class IRVTransformer(Transformer):
     return all_result
 
   def transform(self, dataset, parallel=False, out_dir=None, **kwargs):
+    """Transforms a given dataset
+
+    Parameters
+    ----------
+    dataset: Dataset
+      Dataset to transform
+    parallel: bool, optional, (default False)
+      Whether to parallelize this transformation. Currently ignored.
+    out_dir: str, optional (default None)
+      Directory to write resulting dataset.
+
+    Returns
+    -------
+    `Dataset` object that is transformed.
+    """
     X_length = dataset.X.shape[0]
     X_trans = []
     for count in range(X_length // 5000 + 1):
@@ -1545,7 +1593,7 @@ class IRVTransformer(Transformer):
 
 class DAGTransformer(Transformer):
   """Performs transform from ConvMol adjacency lists to DAG calculation orders
-  
+
   This transformer is used by `DAGModel` before training to transform its
   inputs to the correct shape. This expansion turns a molecule with `n` atoms
   into `n` DAGs, each with root at a different atom in the molecule.
@@ -1601,7 +1649,7 @@ class DAGTransformer(Transformer):
     wtrans: np.ndarray
       Transformed array of weights
     idstrans: np.ndarray
-      Transformed array of ids 
+      Transformed array of ids
     """
     for idm, mol in enumerate(X):
       X[idm].parents = self.UG_to_DAG(mol)
@@ -1616,7 +1664,7 @@ class DAGTransformer(Transformer):
 
     Parameters
     ----------
-    sample: `ConvMol` 
+    sample: `ConvMol`
       Molecule to transform
 
     Returns
@@ -1733,6 +1781,10 @@ class ImageTransformer(Transformer):
 
 class ANITransformer(Transformer):
   """Performs transform from 3D coordinates to ANI symmetry functions
+
+  Note
+  ----
+  This class requires TensorFlow to be installed.
   """
 
   def __init__(self,
@@ -1777,7 +1829,7 @@ class ANITransformer(Transformer):
             [self.outputs], feed_dict={self.inputs: X_batch})[0]
         X_out.append(output)
         num_transformed = num_transformed + X_batch.shape[0]
-        print('%i samples transformed' % num_transformed)
+        logger.info('%i samples transformed' % num_transformed)
         start += 1
         if end >= len(X):
           break
@@ -1794,7 +1846,8 @@ class ANITransformer(Transformer):
     """ tensorflow computation graph for transform """
     graph = tf.Graph()
     with graph.as_default():
-      self.inputs = tf.placeholder(tf.float32, shape=(None, self.max_atoms, 4))
+      self.inputs = tf.keras.Input(
+          dtype=tf.float32, shape=(None, self.max_atoms, 4))
       atom_numbers = tf.cast(self.inputs[:, :, 0], tf.int32)
       flags = tf.sign(atom_numbers)
       flags = tf.cast(
@@ -1833,7 +1886,8 @@ class ANITransformer(Transformer):
     # Cutoff with threshold Rc
     d_flag = flags * tf.sign(cutoff - d)
     d_flag = tf.nn.relu(d_flag)
-    d_flag = d_flag * tf.expand_dims((1 - tf.eye(self.max_atoms)), 0)
+    d_flag = d_flag * tf.expand_dims(
+        tf.expand_dims((1 - tf.eye(self.max_atoms)), 0), -1)
     d = 0.5 * (tf.cos(np.pi * d / cutoff) + 1)
     return d * d_flag
 
@@ -1936,7 +1990,7 @@ class FeaturizationTransformer(Transformer):
   >>> X = np.array(smiles)
   >>> y = np.array([1, 0])
   >>> dataset = dc.data.NumpyDataset(X, y)
-  >>> trans = FeaturizerTransformer(dataset, dc.feat.CircularFingerprint())
+  >>> trans = dc.trans.FeaturizationTransformer(dataset, dc.feat.CircularFingerprint())
   >>> dataset = trans.transform(dataset)
   """
 
@@ -1981,7 +2035,7 @@ class FeaturizationTransformer(Transformer):
     wtrans: np.ndarray
       Transformed array of weights
     idstrans: np.ndarray
-      Transformed array of ids 
+      Transformed array of ids
     """
     X = self.featurizer.featurize(X)
     return X, y, w, ids
