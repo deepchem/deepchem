@@ -1,11 +1,10 @@
 """
 Test featurizers for inorganic crystals.
 """
-import numpy as np
 import unittest
+import numpy as np
 
-from deepchem.feat.material_featurizers \
-  import ElementPropertyFingerprint, SineCoulombMatrix, CGCNNFeaturizer
+from deepchem.feat import ElementPropertyFingerprint, SineCoulombMatrix, CGCNNFeaturizer
 
 
 class TestMaterialFeaturizers(unittest.TestCase):

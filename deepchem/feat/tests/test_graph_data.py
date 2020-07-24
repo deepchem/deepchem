@@ -28,6 +28,12 @@ class TestGraph(unittest.TestCase):
     assert graph.num_edges == num_edges
     assert graph.num_edge_features == num_edge_features
 
+    # check to_pyg_data function
+    target = np.array([1], dtype=np.float)
+    pyg_graph = graph.to_pyg_data(target)
+    from torch_geometric.data import Data
+    assert isinstance(pyg_graph, Data)
+
   def test_invalid_graph_data(self):
     with pytest.raises(ValueError):
       invalid_node_features_type = list(np.random.random_sample((5, 5)))
@@ -81,3 +87,9 @@ class TestGraph(unittest.TestCase):
     assert batch.num_edges == sum(num_edge_list)
     assert batch.num_edge_features == num_edge_features
     assert batch.graph_index.shape == (sum(num_nodes_list),)
+
+    # check to_pyg_data function
+    targets = np.array([1, 2, 3], dtype=np.float)
+    batch = BatchGraphData.to_pyg_data(graph_list=graphs, targets=targets)
+    from torch_geometric.data import Batch
+    assert isinstance(pyg_graph, Batch)
