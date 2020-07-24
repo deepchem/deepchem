@@ -1380,9 +1380,9 @@ class CoulombFitTransformer(Transformer):
     X = self.normalize(self.expand(self.realize(X)))
     return X
 
-  def transform_array(self, X, y, w):
+  def transform_array(self, X, y, w, ids):
     X = self.X_transform(X)
-    return (X, y, w)
+    return (X, y, w, ids)
 
   def untransform(self, z):
     raise NotImplementedError(

@@ -21,7 +21,8 @@ class TestDataTransforms(unittest.TestCase):
     """
      init to load the MNIST data for DataTransforms Tests
     """
-    super(TestTransformers, self).setUp()
+    import tensorflow as tf
+    super(TestDataTransforms, self).setUp()
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
     train = dc.data.NumpyDataset(x_train, y_train)
