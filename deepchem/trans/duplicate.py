@@ -1,6 +1,8 @@
 import logging
-from deepchem.trans.transformers import Transformer
+import numpy as np
 from typing import Tuple
+from deepchem.data import Dataset
+from deepchem.trans.transformers import Transformer
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +71,7 @@ class DuplicateBalancingTransformer(Transformer):
   """
 
   def __init__(self, dataset: Dataset):
-    # BalancingTransformer can only transform weights.
-    super(BalancingTransformer, self).__init__(
+    super(DuplicateBalancingTransformer, self).__init__(
         transform_X=True,
         transform_y=True,
         transform_w=True,
@@ -104,10 +105,12 @@ class DuplicateBalancingTransformer(Transformer):
       # this works because y is 1D
       num_c = len(np.where(y == c)[0])
       class_counts.append(num_c)
+    N_largest = max(class_counts)
     # This is the right ratio since int(N/num_c) * num_c \approx N
     # for all classes
     duplication_ratio = [
-        int(N_task / float(num_c)) if num_c > 0 else 0 for num_c in class_counts
+        int(N_largest / float(num_c)) if num_c > 0 else 0
+        for num_c in class_counts
     ]
     self.duplication_ratio = duplication_ratio
 
@@ -140,6 +143,11 @@ class DuplicateBalancingTransformer(Transformer):
     """
     if not (len(y.shape) == 1 or (len(y.shape) == 2 and y[1] == 1)):
       raise ValueError("y must be of shape (N,) or (N, 1)")
+    if not (len(w.shape) == 1 or (len(w.shape) == 2 and w[1] == 1)):
+      raise ValueError("w must be of shape (N,) or (N, 1)")
+    # Flattening is safe because of shape check above
+    y = y.flatten()
+    w = w.flatten()
     X_dups, y_dups, w_dups, ids_dups = [], [], [], []
     for i, c in enumerate(self.classes):
       duplication_ratio = self.duplication_ratio[i]
