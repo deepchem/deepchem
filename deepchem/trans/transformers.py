@@ -10,7 +10,7 @@ import time
 import deepchem as dc
 import tensorflow as tf
 import warnings
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Any
 from deepchem.data import Dataset
 from deepchem.data import NumpyDataset
 from deepchem.feat.mol_graphs import ConvMol
@@ -903,7 +903,7 @@ class BalancingTransformer(Transformer):
   `ValueError` if `y` or `w` aren't of shape `(N,)` or `(N, n_tasks)`.
   """
 
-  def __init__(self, dataset: Optional[Dataset] = None):
+  def __init__(self, dataset: Dataset):
     # BalancingTransformer can only transform weights.
     super(BalancingTransformer, self).__init__(
         transform_w=True, dataset=dataset)
@@ -1048,7 +1048,10 @@ class CDFTransformer(Transformer):
     super(CDFTransformer, self).__init__(
         transform_X=transform_X, transform_y=transform_y)
     self.bins = bins
-    self.y = dataset.y
+    if transform_y:
+      if dataset is None:
+        raise ValueError("dataset must be specified when transforming y")
+      self.y = dataset.y
 
   def transform_array(self, X, y, w, ids):
     """Performs CDF transform on data.
@@ -1687,7 +1690,7 @@ class DAGTransformer(Transformer):
       DAG = []
       # list of lists, elements represent the calculation orders
       # for atoms in the current graph
-      parent = [[] for i in range(n_atoms)]
+      parent: List[Any] = [[] for i in range(n_atoms)]
       # starting from the target atom with index `count`
       current_atoms = [count]
       # flags of whether the atom is already included in the DAG

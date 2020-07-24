@@ -1421,7 +1421,7 @@ class DiskDataset(Dataset):
     y = None if y_file is None else np.array(load_from_disk(y_file))
     w = None if w_file is None else np.array(load_from_disk(w_file))
     ids = np.array(load_from_disk(ids_file))
-    X, y, w = transformer.transform_array(X, y, w)
+    X, y, w, ids = transformer.transform_array(X, y, w, ids)
     basename = "shard-%d" % shard_num
     return DiskDataset.write_data_to_disk(out_dir, basename, tasks, X, y, w,
                                           ids)
@@ -2151,8 +2151,9 @@ class ImageDataset(Dataset):
     -------
     a newly constructed Dataset object
     """
-    newx, newy, neww = transformer.transform_array(self.X, self.y, self.w)
-    return NumpyDataset(newx, newy, neww, self.ids[:])
+    newx, newy, neww, newids = transformer.transform_array(
+        self.X, self.y, self.w, self.ids)
+    return NumpyDataset(newx, newy, neww, newids)
 
   def select(self, indices: Sequence[int],
              select_dir: str = None) -> "ImageDataset":
