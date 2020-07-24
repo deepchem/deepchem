@@ -1,3 +1,5 @@
+import numpy as np
+import tempfile
 import deepchem as dc
 
 
@@ -27,12 +29,12 @@ def test_binary_1d():
   assert np.sum(y_t == 0) == 4
   assert np.sum(y_t == 1) == 4
   # Check that sum of 0s equals sum of 1s in transformed for each task
-  assert np.isclose(np.sum(w_task[y_task == 0]), np.sum(w_task[y_task == 1]))
+  assert np.isclose(np.sum(w_t[y_t == 0]), np.sum(w_t[y_t == 1]))
 
 
 def test_binary_singletask():
   """Test duplicate balancing transformer on single-task dataset."""
-  n_samples = 20
+  n_samples = 6
   n_features = 3
   n_tasks = 1
   n_classes = 2
@@ -58,7 +60,7 @@ def test_binary_singletask():
   assert np.sum(y_t == 0) == 4
   assert np.sum(y_t == 1) == 4
   # Check that sum of 0s equals sum of 1s in transformed for each task
-  assert np.isclose(np.sum(w_task[y_task == 0]), np.sum(w_task[y_task == 1]))
+  assert np.isclose(np.sum(w_t[y_t == 0]), np.sum(w_t[y_t == 1]))
 
 
 def test_multiclass_singletask():
@@ -92,10 +94,10 @@ def test_multiclass_singletask():
   assert np.sum(y_t == 3) == 6
   assert np.sum(y_t == 4) == 6
   # Check that sum of all class weights is equal by comparing to 0 weight
-  assert np.isclose(np.sum(w_task[y_task == 0]), np.sum(w_task[y_task == 1]))
-  assert np.isclose(np.sum(w_task[y_task == 0]), np.sum(w_task[y_task == 2]))
-  assert np.isclose(np.sum(w_task[y_task == 0]), np.sum(w_task[y_task == 3]))
-  assert np.isclose(np.sum(w_task[y_task == 0]), np.sum(w_task[y_task == 4]))
+  assert np.isclose(np.sum(w_t[y_t == 0]), np.sum(w_t[y_t == 1]))
+  assert np.isclose(np.sum(w_t[y_t == 0]), np.sum(w_t[y_t == 2]))
+  assert np.isclose(np.sum(w_t[y_t == 0]), np.sum(w_t[y_t == 3]))
+  assert np.isclose(np.sum(w_t[y_t == 0]), np.sum(w_t[y_t == 4]))
 
 
 def test_transform_to_directory():
@@ -125,5 +127,5 @@ def test_transform_to_directory():
   assert w_t.shape == (13,)
   assert ids_t.shape == (13,)
   # Check that we have 6 positives and 7 negatives
-  assert np.sum(y_t == 0) == 6
-  assert np.sum(y_t == 1) == 7
+  assert np.sum(y_t == 0) == 7
+  assert np.sum(y_t == 1) == 6
