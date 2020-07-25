@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import unittest
 import deepchem as dc
 import itertools
 import tempfile
@@ -85,8 +84,6 @@ def test_binary_multitask():
   multitask_dataset = dc.data.NumpyDataset(X, y, w)
   balancing_transformer = dc.trans.BalancingTransformer(
       dataset=multitask_dataset)
-  #X, y, w, ids = (multitask_dataset.X, multitask_dataset.y,
-  #                multitask_dataset.w, multitask_dataset.ids)
   multitask_dataset = balancing_transformer.transform(multitask_dataset)
   X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y,
                           multitask_dataset.w, multitask_dataset.ids)

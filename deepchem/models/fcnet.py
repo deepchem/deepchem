@@ -395,7 +395,7 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
     for transformer in fit_transformers:
       assert transformer.transform_X and not (transformer.transform_y or
                                               transformer.transform_w)
-      X_b, _, _ = transformer.transform_array(X_b, None, None)
+      X_b, _, _, _ = transformer.transform_array(X_b, None, None, None)
     n_features = X_b.shape[1]
     logger.info("n_features after fit_transform: %d", int(n_features))
     super(MultitaskFitTransformRegressor, self).__init__(
@@ -418,7 +418,7 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
         if X_b is not None:
           if mode == 'fit':
             for transformer in self.fit_transformers:
-              X_b, _, _ = transformer.transform_array(X_b, None, None)
+              X_b, _, _, _ = transformer.transform_array(X_b, None, None, None)
         if mode == 'predict':
           dropout = np.array(0.0)
         else:
