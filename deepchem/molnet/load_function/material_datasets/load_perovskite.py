@@ -153,8 +153,9 @@ def load_perovskite(
       return my_tasks, all_dataset, transformers
 
   # First type of supported featurizers
-  supported_featurizers = ['StructureGraphFeaturizer',
-                           'SineCoulombMatrix']  # type: List[str]
+  supported_featurizers: List[str] = [
+      'StructureGraphFeaturizer', 'SineCoulombMatrix'
+  ]
 
   # Load .tar.gz file
   if featurizer.__class__.__name__ in supported_featurizers:

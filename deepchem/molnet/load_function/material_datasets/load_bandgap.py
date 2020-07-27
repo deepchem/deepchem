@@ -155,7 +155,7 @@ def load_bandgap(
       return my_tasks, all_dataset, transformers
 
   # First type of supported featurizers
-  supported_featurizers = ['ElementPropertyFingerprint']  # type: List[str]
+  supported_featurizers: List[str] = ['ElementPropertyFingerprint']
 
   # Load .tar.gz file
   if featurizer.__class__.__name__ in supported_featurizers:
