@@ -14,8 +14,8 @@ from typing import List, Tuple, Dict, Optional
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-MYDATASET_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/mydataset.tar.gz'
-MYDATASET_CSV_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/mydataset.csv'
+MYDATASET_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/mydataset.tar.gz"
+MYDATASET_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/mydataset.csv"
 
 # dict of accepted featurizers for this dataset
 # modify the returned dicts for your dataset
