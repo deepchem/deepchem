@@ -7,7 +7,7 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
-SAMPL_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/SAMPL.csv'
+SAMPL_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/SAMPL.csv"
 DEFAULT_DIR = deepchem.utils.get_data_dir()
 
 

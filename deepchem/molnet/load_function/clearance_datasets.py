@@ -8,7 +8,7 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-CLEARANCE_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/clearance.csv'
+CLEARANCE_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/clearance.csv"
 
 
 def load_clearance(featurizer='ECFP',
