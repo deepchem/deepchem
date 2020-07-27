@@ -19,5 +19,10 @@ else
     echo "Installing DeepChem in current env"
 }
 
+# Install dependencies except PyTorch Geometric
 $path = Join-Path $Pwd "requirements.yml"
 conda env update --file $path
+$path = Join-Path $Pwd "requirements.txt"
+pip install -r $path
+$path = Join-Path $Pwd "requirements-test.txt"
+pip install -r $path

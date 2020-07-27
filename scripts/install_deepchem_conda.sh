@@ -22,4 +22,27 @@ else
     conda activate $envname
 fi
 
+# Install dependencies except PyTorch Geometric
 conda env update --file $PWD/requirements.yml
+pip install -r $PWD/requirements.txt
+pip install -r $PWD/requirements-test.txt
+
+# For PyTorch
+list=(`cat $PWD/requirements-torch.txt | xargs`)
+for pkg in "${list[@]}" ; do
+    pkg=`echo ${pkg} | sed -e "s/[\r\n]\+//g"`
+    pip install ${pkg}+cpu -f https://download.pytorch.org/whl/torch_stable.html
+done
+
+# For PyTorch Geometric
+export TORCH=1.5.0
+list=(`cat $PWD/requirements-pyg.txt | xargs`)
+for pkg in "${list[@]}" ; do
+    pkg=`echo ${pkg} | sed -e "s/[\r\n]\+//g"`
+    if [[ $pkg =~ torch-geometric ]];
+    then
+        pip install ${pkg}
+    else
+        pip install ${pkg}+cpu -f https://pytorch-geometric.com/whl/torch-${TORCH}.html
+    fi
+done
