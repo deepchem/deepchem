@@ -59,13 +59,13 @@ def gen_kaggle(KAGGLE_tasks,
                             "KAGGLE_test2_disguised_combined_full.csv.gz")
   if not os.path.exists(train_files):
     deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/KAGGLE_training_disguised_combined_full.csv.gz',
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KAGGLE_training_disguised_combined_full.csv.gz",
         dest_dir=data_dir)
     deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/KAGGLE_test1_disguised_combined_full.csv.gz',
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KAGGLE_test1_disguised_combined_full.csv.gz",
         dest_dir=data_dir)
     deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/KAGGLE_test2_disguised_combined_full.csv.gz',
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KAGGLE_test2_disguised_combined_full.csv.gz",
         dest_dir=data_dir)
 
   # Featurize KAGGLE dataset

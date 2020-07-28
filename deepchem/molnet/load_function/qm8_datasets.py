@@ -8,8 +8,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-GDB8_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb8.tar.gz'
-QM8_CSV_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm8.csv'
+GDB8_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/gdb8.tar.gz"
+QM8_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm8.csv"
 
 
 def load_qm8(featurizer='CoulombMatrix',

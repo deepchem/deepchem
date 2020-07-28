@@ -8,7 +8,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-HPPB_URL = "http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/hppb.csv"
+HPPB_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/hppb.csv"
 DEFAULT_DATA_DIR = deepchem.utils.get_data_dir()
 
 

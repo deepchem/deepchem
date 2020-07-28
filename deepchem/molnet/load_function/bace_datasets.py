@@ -9,7 +9,7 @@ from deepchem.molnet.load_function.bace_features import bace_user_specified_feat
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-BACE_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/bace.csv'
+BACE_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/bace.csv"
 
 
 def load_bace_regression(featurizer='ECFP',
