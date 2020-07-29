@@ -140,7 +140,7 @@ class Model(BaseEstimator):
 
     Returns
     -------
-    The average losses over course of training. 
+    The average loss over the most recent checkpoint interval. 
     """
     for epoch in range(nb_epoch):
       logger.info("Starting epoch %s" % str(epoch + 1))
