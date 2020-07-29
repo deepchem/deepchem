@@ -273,7 +273,7 @@ class KerasModel(Model):
           variables: Optional[List[tf.Variable]] = None,
           loss: Optional[KerasLossFn] = None,
           callbacks: Union[Callable, List[Callable]] = [],
-          return_loss_curve: bool = False) -> Union[float, List[float]]:
+          all_losses: Optional[list] = None) -> float:
     """Train this model on a dataset.
 
     Parameters
@@ -303,31 +303,30 @@ class KerasModel(Model):
     callbacks: function or list of functions
       one or more functions of the form f(model, step) that will be invoked after
       every step.  This can be used to perform validation, logging, etc.
-    return_loss_curve: bool, optional (default False)
-      If `True` return the full set of average losses computed over the
-      process of fitting. Else return the last computed average loss.
+    all_losses: list, optional (default False)
+      If specified, all logged losses are appended into this list. Note that
+      you can call `fit()` repeatedly with the same list and losses will
+      continue to be appended.
 
     Returns
     -------
-    Either the average loss over the most recent checkpoint interval or a list
-    of all such average losses over the course of fitting.
+    The average loss over the most recent checkpoint interval
    """
     return self.fit_generator(
         self.default_generator(
-            dataset, epochs=nb_epoch, deterministic=deterministic),
-        max_checkpoints_to_keep, checkpoint_interval, restore, variables, loss,
-        callbacks, return_loss_curve)
+            dataset, epochs=nb_epoch,
+            deterministic=deterministic), max_checkpoints_to_keep,
+        checkpoint_interval, restore, variables, loss, callbacks, all_losses)
 
-  def fit_generator(
-      self,
-      generator: Iterable[Tuple[Any, Any, Any]],
-      max_checkpoints_to_keep: int = 5,
-      checkpoint_interval: int = 1000,
-      restore: bool = False,
-      variables: Optional[List[tf.Variable]] = None,
-      loss: Optional[KerasLossFn] = None,
-      callbacks: Union[Callable, List[Callable]] = [],
-      return_loss_curve: bool = False) -> Union[float, List[float]]:
+  def fit_generator(self,
+                    generator: Iterable[Tuple[Any, Any, Any]],
+                    max_checkpoints_to_keep: int = 5,
+                    checkpoint_interval: int = 1000,
+                    restore: bool = False,
+                    variables: Optional[List[tf.Variable]] = None,
+                    loss: Optional[KerasLossFn] = None,
+                    callbacks: Union[Callable, List[Callable]] = [],
+                    all_losses: Optional[list] = None) -> float:
     """Train this model on data from a generator.
 
     Parameters
@@ -353,14 +352,14 @@ class KerasModel(Model):
     callbacks: function or list of functions
       one or more functions of the form f(model, step) that will be invoked after
       every step.  This can be used to perform validation, logging, etc.
-    return_loss_curve: bool, optional (default False)
-      If `True` return the full set of average losses computed over the
-      process of fitting. Else return the last computed average loss.
+    all_losses: list, optional (default False)
+      If specified, all logged losses are appended into this list. Note that
+      you can call `fit()` repeatedly with the same list and losses will
+      continue to be appended.
 
     Returns
     -------
-    Either the average loss over the most recent checkpoint interval or a list
-    of all such average losses over the course of fitting.
+    The average loss over the most recent checkpoint interval
     """
     if not isinstance(callbacks, SequenceCollection):
       callbacks = [callbacks]
@@ -441,13 +440,12 @@ class KerasModel(Model):
 
     time2 = time.time()
     logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
-    if return_loss_curve:
-      return avg_losses
+    if all_losses is not None:
+      all_losses.extend(avg_losses)
+    if len(avg_losses) > 0:
+      return avg_losses[-1]
     else:
-      if len(avg_losses) > 0:
-        return avg_losses[-1]
-      else:
-        return 0.0
+      return 0.0
 
   def _create_gradient_fn(self,
                           variables: Optional[List[tf.Variable]]) -> Callable:
@@ -516,17 +514,14 @@ class KerasModel(Model):
     """
     self._ensure_built()
     dataset = NumpyDataset(X, y, w)
-    # We set return_loss_curve=False, so we know this is a float, but mypy
-    # can't automatically infer that.
-    return self.fit(  # type: ignore
+    return self.fit(
         dataset,
         nb_epoch=1,
         max_checkpoints_to_keep=max_checkpoints_to_keep,
         checkpoint_interval=self._global_step.numpy() + 2 if checkpoint else 0,
         variables=variables,
         loss=loss,
-        callbacks=callbacks,
-        return_loss_curve=False)
+        callbacks=callbacks)
 
   def _predict(
       self, generator: Iterable[Tuple[Any, Any, Any]],

@@ -58,7 +58,7 @@ def test_overfit_sequential_model():
   assert scores[metric.name] > 0.9
 
 
-def test_fit_return_loss_curve():
+def test_fit_use_all_losses():
   """Test fitting a KerasModel and getting a loss curve back."""
   n_data_points = 10
   n_features = 2
@@ -74,7 +74,8 @@ def test_fit_return_loss_curve():
       dc.models.losses.BinaryCrossEntropy(),
       learning_rate=0.005,
       log_frequency=10)
-  losses = model.fit(dataset, nb_epoch=1000, return_loss_curve=True)
+  losses = []
+  model.fit(dataset, nb_epoch=1000, all_losses=losses)
   # Each epoch is a single step for this model
   assert len(losses) == 100
 
