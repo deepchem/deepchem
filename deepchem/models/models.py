@@ -127,7 +127,7 @@ class Model(BaseEstimator):
     """
     raise NotImplementedError
 
-  def fit(self, dataset: Dataset, nb_epoch: int = 10) -> float:
+  def fit(self, dataset: Dataset, nb_epoch: int = 10) -> List[float]:
     """
     Fits a model on data in a Dataset object.
 
@@ -140,7 +140,7 @@ class Model(BaseEstimator):
 
     Returns
     -------
-    the average loss over the most recent epoch
+    The average losses over course of training. 
     """
     for epoch in range(nb_epoch):
       logger.info("Starting epoch %s" % str(epoch + 1))
