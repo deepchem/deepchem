@@ -272,7 +272,8 @@ class KerasModel(Model):
           restore: bool = False,
           variables: Optional[List[tf.Variable]] = None,
           loss: Optional[KerasLossFn] = None,
-          callbacks: Union[Callable, List[Callable]] = []) -> List[float]:
+          callbacks: Union[Callable, List[Callable]] = [],
+          return_loss_curve: bool = False) -> Union[float, List[float]]:
     """Train this model on a dataset.
 
     Parameters
@@ -302,16 +303,20 @@ class KerasModel(Model):
     callbacks: function or list of functions
       one or more functions of the form f(model, step) that will be invoked after
       every step.  This can be used to perform validation, logging, etc.
+    return_loss_curve: bool, optional (default False)
+      If `True` return the full set of average losses computed over the
+      process of fitting. Else return the last computed average loss.
 
     Returns
     -------
-    the average loss over the most recent checkpoint interval
+    Either the average loss over the most recent checkpoint interval or a list
+    of all such average losses over the course of fitting.
    """
     return self.fit_generator(
         self.default_generator(
-            dataset, epochs=nb_epoch,
-            deterministic=deterministic), max_checkpoints_to_keep,
-        checkpoint_interval, restore, variables, loss, callbacks)
+            dataset, epochs=nb_epoch, deterministic=deterministic),
+        max_checkpoints_to_keep, checkpoint_interval, restore, variables, loss,
+        callbacks, return_loss_curve)
 
   def fit_generator(
       self,
@@ -321,7 +326,8 @@ class KerasModel(Model):
       restore: bool = False,
       variables: Optional[List[tf.Variable]] = None,
       loss: Optional[KerasLossFn] = None,
-      callbacks: Union[Callable, List[Callable]] = []) -> List[float]:
+      callbacks: Union[Callable, List[Callable]] = [],
+      return_loss_curve: bool = False) -> Union[float, List[float]]:
     """Train this model on data from a generator.
 
     Parameters
@@ -347,10 +353,14 @@ class KerasModel(Model):
     callbacks: function or list of functions
       one or more functions of the form f(model, step) that will be invoked after
       every step.  This can be used to perform validation, logging, etc.
+    return_loss_curve: bool, optional (default False)
+      If `True` return the full set of average losses computed over the
+      process of fitting. Else return the last computed average loss.
 
     Returns
     -------
-    the average loss over the most recent checkpoint interval
+    Either the average loss over the most recent checkpoint interval or a list
+    of all such average losses over the course of fitting.
     """
     if not isinstance(callbacks, SequenceCollection):
       callbacks = [callbacks]
@@ -431,7 +441,13 @@ class KerasModel(Model):
 
     time2 = time.time()
     logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
-    return avg_losses
+    if return_loss_curve:
+      return avg_losses
+    else:
+      if len(avg_losses) > 0:
+        return avg_losses[-1]
+      else:
+        return 0.0
 
   def _create_gradient_fn(self,
                           variables: Optional[List[tf.Variable]]) -> Callable:
@@ -500,18 +516,17 @@ class KerasModel(Model):
     """
     self._ensure_built()
     dataset = NumpyDataset(X, y, w)
-    losses = self.fit(
+    # We set return_loss_curve=False, so we know this is a float, but mypy
+    # can't automatically infer that.
+    return self.fit(  # type: ignore
         dataset,
         nb_epoch=1,
         max_checkpoints_to_keep=max_checkpoints_to_keep,
         checkpoint_interval=self._global_step.numpy() + 2 if checkpoint else 0,
         variables=variables,
         loss=loss,
-        callbacks=callbacks)
-    if len(losses) != 1:
-      raise ValueError(
-          "Each batch should take only one global step to fit. Unknown error.")
-    return losses[0]
+        callbacks=callbacks,
+        return_loss_curve=False)
 
   def _predict(
       self, generator: Iterable[Tuple[Any, Any, Any]],

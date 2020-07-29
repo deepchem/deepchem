@@ -58,6 +58,27 @@ def test_overfit_sequential_model():
   assert scores[metric.name] > 0.9
 
 
+def test_fit_return_loss_curve():
+  """Test fitting a KerasModel and getting a loss curve back."""
+  n_data_points = 10
+  n_features = 2
+  X = np.random.rand(n_data_points, n_features)
+  y = (X[:, 0] > X[:, 1]).astype(np.float32)
+  dataset = dc.data.NumpyDataset(X, y)
+  keras_model = tf.keras.Sequential([
+      tf.keras.layers.Dense(10, activation='relu'),
+      tf.keras.layers.Dense(1, activation='sigmoid')
+  ])
+  model = dc.models.KerasModel(
+      keras_model,
+      dc.models.losses.BinaryCrossEntropy(),
+      learning_rate=0.005,
+      log_frequency=10)
+  losses = model.fit(dataset, nb_epoch=1000, return_loss_curve=True)
+  # Each epoch is a single step for this model
+  assert len(losses) == 100
+
+
 def test_fit_on_batch():
   """Test fitting a KerasModel to individual batches."""
   n_data_points = 10

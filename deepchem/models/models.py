@@ -21,7 +21,7 @@ from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.evaluate import Evaluator
 
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Union
 from deepchem.utils.typing import OneOrMany
 
 logger = logging.getLogger(__name__)
@@ -127,7 +127,8 @@ class Model(BaseEstimator):
     """
     raise NotImplementedError
 
-  def fit(self, dataset: Dataset, nb_epoch: int = 10) -> List[float]:
+  def fit(self, dataset: Dataset,
+          nb_epoch: int = 10) -> Union[float, List[float]]:
     """
     Fits a model on data in a Dataset object.
 
