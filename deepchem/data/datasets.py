@@ -1131,7 +1131,8 @@ class DiskDataset(Dataset):
     raise ValueError("No Metadata Found On Disk")
 
   @staticmethod
-  def _save_metadata(tasks, metadata_df, data_dir):
+  def _save_metadata(tasks: List[str], metadata_df: pd.DataFrame,
+                     data_dir: str) -> None:
     """Saves the metadata for a DiskDataset
 
     Parameters
@@ -1683,7 +1684,7 @@ class DiskDataset(Dataset):
       Tasks in this dataset
     data_dir: Optional[str], optional (default None)
       The directory to write this dataset to. If none is specified, will use
-      a temporary dataset instead.
+      a temporary directory instead.
     legacy_metadata: bool, optional (default False)
       If `True` use the legacy format for metadata without shape information
       in metadata.
