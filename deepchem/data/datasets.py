@@ -974,7 +974,7 @@ class DiskDataset(Dataset):
   @staticmethod
   def create_dataset(shard_generator: Iterable[Batch],
                      data_dir: Optional[str] = None,
-                     tasks: Optional[Sequence] = []):
+                     tasks: Optional[Sequence] = []) -> "DiskDataset":
     """Creates a new DiskDataset
 
     Parameters
@@ -986,6 +986,10 @@ class DiskDataset(Dataset):
       Filename for data directory. Creates a temp directory if none specified.
     tasks: list
       List of tasks for this dataset.
+
+    Returns
+    -------
+    A `DiskDataset` constructed from the given data
     """
     if data_dir is None:
       data_dir = tempfile.mkdtemp()
@@ -1046,6 +1050,31 @@ class DiskDataset(Dataset):
       y: Optional[np.ndarray] = None,
       w: Optional[np.ndarray] = None,
       ids: Optional[np.ndarray] = None) -> List[Optional[str]]:
+    """Static helper method to write data to disk.
+
+    This helper method is used to write a shard of data to disk.
+
+    Parameters
+    ----------
+    data_dir: str
+      Data directory to write shard to
+    basename: str
+      Basename for the shard in question.
+    tasks: np.ndarray
+      The names of the tasks in question.
+    X: Optional[np.ndarray]
+      The features array 
+    y: Optional[np.ndarray]
+      The labels array 
+    w: Optional[np.ndarray]
+      The weights array 
+    ids: Optional[np.ndarray]
+      The identifiers array 
+
+    Returns
+    -------
+    List with values `[out_ids, out_X, out_y, out_w]` with filenames of locations to disk which these respective arrays were written.
+    """
     if X is not None:
       out_X: Optional[str] = "%s-X.npy" % basename
       save_to_disk(X, os.path.join(data_dir, out_X))  # type: ignore
@@ -1125,6 +1154,7 @@ class DiskDataset(Dataset):
     shutil.rmtree(self.data_dir)
     shutil.move(reshard_dir, self.data_dir)
     self.metadata_df = resharded_dataset.metadata_df
+    # Note that this resets the cache internally
     self.save_to_disk()
 
   def get_data_shape(self) -> Shape:
@@ -1474,7 +1504,28 @@ class DiskDataset(Dataset):
                  ids: Optional[np.ndarray] = None,
                  tasks: Optional[Sequence] = None,
                  data_dir: Optional[str] = None) -> "DiskDataset":
-    """Creates a DiskDataset object from specified Numpy arrays."""
+    """Creates a DiskDataset object from specified Numpy arrays.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Feature array
+    y: Optional[np.ndarray], optional (default None)
+      labels array
+    w: Optional[np.ndarray], optional (default None)
+      weights array
+    ids: Optional[np.ndarray], optional (default None)
+      identifiers array
+    tasks: Optional[Sequence], optional (default None)
+      Tasks in this dataset
+    data_dir: Optional[str], optional (default None)
+      The directory to write this dataset to. If none is specified, will use
+      a temporary dataset instead.
+
+    Returns
+    -------
+    A `DiskDataset` constructed from the provided information.
+    """
     n_samples = len(X)
     if ids is None:
       ids = np.arange(n_samples)
@@ -1578,6 +1629,7 @@ class DiskDataset(Dataset):
     ids: List[np.ndarray] = []
     num_features = -1
     for i in range(num_shards):
+      logger.info("Sparsifying shard %d/%d" % (i, num_shards))
       (X_s, y_s, w_s, ids_s) = self.get_shard(i)
       if num_features == -1:
         num_features = X_s.shape[1]
@@ -1594,6 +1646,7 @@ class DiskDataset(Dataset):
                            w[permutation], ids[permutation])
     # Write shuffled shards out to disk
     for i in range(num_shards):
+      logger.info("Sparse shuffling shard %d/%d" % (i, num_shards))
       start, stop = i * shard_size, (i + 1) * shard_size
       (X_sparse_s, y_s, w_s, ids_s) = (X_sparse[start:stop], y[start:stop],
                                        w[start:stop], ids[start:stop])
@@ -1646,20 +1699,38 @@ class DiskDataset(Dataset):
 
     return DiskDataset.from_numpy(Xs, ys, ws, ids, data_dir=data_dir)
 
-  def shuffle_each_shard(self) -> None:
-    """Shuffles elements within each shard of the datset."""
+  def shuffle_each_shard(self,
+                         shard_basenames: Optional[List[str]] = None) -> None:
+    """Shuffles elements within each shard of the datset.
+
+    Parameters
+    ----------
+    shard_basenames: Optional[List[str]], optional (default None)
+      The basenames for each shard. If this isn't specified, will assume the
+       basenames of form "shard-i" used by `create_dataset` and
+      `reshard`.
+    """
     tasks = self.get_task_names()
     # Shuffle the arrays corresponding to each row in metadata_df
     n_rows = len(self.metadata_df.index)
-    n_rows = len(self.metadata_df.index)
-    for i in range(n_rows):
-      row = self.metadata_df.iloc[i]
+    if shard_basenames is not None:
+      if len(shard_basenames) != n_rows:
+        raise ValueError(
+            "shard_basenames must provide a basename for each shard in this DiskDataset."
+        )
+    else:
+      shard_basenames = ["shard-%d" % shard_num for shard_num in range(n_rows)]
+    for i, basename in zip(range(n_rows), shard_basenames):
+      logger.info("Shuffling shard %d/%d" % (i, n_rows))
       X, y, w, ids = self.get_shard(i)
       n = X.shape[0]
       permutation = np.random.permutation(n)
       X, y, w, ids = (X[permutation], y[permutation], w[permutation],
                       ids[permutation])
-      DiskDataset.write_data_to_disk(self.data_dir, "", tasks, X, y, w, ids)
+      DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w,
+                                     ids)
+    # Reset cache
+    self._cached_shards = None
 
   def shuffle_shards(self) -> None:
     """Shuffles the order of the shards for this dataset."""
