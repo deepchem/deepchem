@@ -1629,6 +1629,7 @@ class DiskDataset(Dataset):
     ids: List[np.ndarray] = []
     num_features = -1
     for i in range(num_shards):
+      logger.info("Sparsifying shard %d/%d" % (i, num_shards))
       (X_s, y_s, w_s, ids_s) = self.get_shard(i)
       if num_features == -1:
         num_features = X_s.shape[1]
@@ -1645,7 +1646,7 @@ class DiskDataset(Dataset):
                            w[permutation], ids[permutation])
     # Write shuffled shards out to disk
     for i in range(num_shards):
-      logger.info("Sparse shuffling shard %d" % i)
+      logger.info("Sparse shuffling shard %d/%d" % (i, num_shards))
       start, stop = i * shard_size, (i + 1) * shard_size
       (X_sparse_s, y_s, w_s, ids_s) = (X_sparse[start:stop], y[start:stop],
                                        w[start:stop], ids[start:stop])
@@ -1706,7 +1707,7 @@ class DiskDataset(Dataset):
     ----------
     shard_basenames: Optional[List[str]], optional (default None)
       The basenames for each shard. If this isn't specified, will assume the
-      default basenames of form "shard-i" used by `create_dataset` and
+       basenames of form "shard-i" used by `create_dataset` and
       `reshard`.
     """
     tasks = self.get_task_names()
