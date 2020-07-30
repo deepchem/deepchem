@@ -291,26 +291,6 @@ def encode_bio_sequence(fname, file_type="fasta", letters="ATCGN"):
   return encode_sequence(fname, file_type=file_type, letters=letters)
 
 
-def save_metadata(tasks, metadata_df, data_dir):
-  """Saves the metadata for a DiskDataset
-
-  Parameters
-  ----------
-  tasks: list of str
-    Tasks of DiskDataset
-  metadata_df: pd.DataFrame
-  data_dir: str
-    Directory to store metadata
-  """
-  if isinstance(tasks, np.ndarray):
-    tasks = tasks.tolist()
-  metadata_filename = os.path.join(data_dir, "metadata.csv.gzip")
-  tasks_filename = os.path.join(data_dir, "tasks.json")
-  with open(tasks_filename, 'w') as fout:
-    json.dump(tasks, fout)
-  metadata_df.to_csv(metadata_filename, index=False, compression='gzip')
-
-
 def load_from_disk(filename):
   """Load a dataset from file."""
   name = filename
