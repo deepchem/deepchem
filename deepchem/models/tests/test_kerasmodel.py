@@ -78,6 +78,7 @@ def test_fit_use_all_losses():
   model.fit(dataset, nb_epoch=1000, all_losses=losses)
   # Each epoch is a single step for this model
   assert len(losses) == 100
+  assert np.count_nonzero(np.array(losses)) == 100
 
 
 def test_fit_on_batch():
