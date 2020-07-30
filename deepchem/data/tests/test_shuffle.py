@@ -12,37 +12,37 @@ import unittest
 import deepchem as dc
 import numpy as np
 
+#def test_shuffle():
+#  """Test that datasets can be merged."""
+#  current_dir = os.path.dirname(os.path.realpath(__file__))
 
-  #def test_shuffle():
-  #  """Test that datasets can be merged."""
-  #  current_dir = os.path.dirname(os.path.realpath(__file__))
+#  dataset_file = os.path.join(
+#      current_dir, "../../models/tests/example.csv")
 
-  #  dataset_file = os.path.join(
-  #      current_dir, "../../models/tests/example.csv")
+#  featurizer = dc.feat.CircularFingerprint(size=1024)
+#  tasks = ["log-solubility"]
+#  loader = dc.data.CSVLoader(
+#      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+#  dataset = loader.featurize(dataset_file, shard_size=2)
 
-  #  featurizer = dc.feat.CircularFingerprint(size=1024)
-  #  tasks = ["log-solubility"]
-  #  loader = dc.data.CSVLoader(
-  #      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  #  dataset = loader.featurize(dataset_file, shard_size=2)
+#  X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w,
+#                                      dataset.ids)
+#  orig_len = len(dataset)
 
-  #  X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w,
-  #                                      dataset.ids)
-  #  orig_len = len(dataset)
+#  dataset.shuffle(iterations=5)
+#  X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w,
+#                                  dataset.ids)
+#
+#  assert len(dataset) == orig_len
+#  # The shuffling should have switched up the ordering
+#  assert not np.array_equal(orig_ids, new_ids)
+#  # But all the same entries should still be present
+#  assert sorted(orig_ids) == sorted(new_ids)
+#  # All the data should have same shape
+#  assert X_orig.shape == X_new.shape
+#  assert y_orig.shape == y_new.shape
+#  assert w_orig.shape == w_new.shape
 
-  #  dataset.shuffle(iterations=5)
-  #  X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w,
-  #                                  dataset.ids)
-  #
-  #  assert len(dataset) == orig_len
-  #  # The shuffling should have switched up the ordering
-  #  assert not np.array_equal(orig_ids, new_ids)
-  #  # But all the same entries should still be present
-  #  assert sorted(orig_ids) == sorted(new_ids)
-  #  # All the data should have same shape
-  #  assert X_orig.shape == X_new.shape
-  #  assert y_orig.shape == y_new.shape
-  #  assert w_orig.shape == w_new.shape
 
 def test_sparse_shuffle():
   """Test that sparse datasets can be shuffled quickly."""
@@ -61,8 +61,7 @@ def test_sparse_shuffle():
   orig_len = len(dataset)
 
   dataset.sparse_shuffle()
-  X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w,
-                                  dataset.ids)
+  X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
 
   assert len(dataset) == orig_len
   # The shuffling should have switched up the ordering
@@ -73,6 +72,7 @@ def test_sparse_shuffle():
   assert X_orig.shape == X_new.shape
   assert y_orig.shape == y_new.shape
   assert w_orig.shape == w_new.shape
+
 
 def test_shuffle_each_shard():
   """Test that shuffle_each_shard works."""
@@ -89,18 +89,10 @@ def test_shuffle_each_shard():
 
   dataset.shuffle_each_shard()
   X_s, y_s, w_s, ids_s = (dataset.X, dataset.y, dataset.w, dataset.ids)
-  ##############
-  print("ids_s")
-  print(ids_s)
-  ##############
   assert X_s.shape == X.shape
   assert y_s.shape == y.shape
   assert ids_s.shape == ids.shape
   assert w_s.shape == w.shape
-  ##############
-  print("ids")
-  print(ids)
-  ##############
   assert not (ids_s == ids).all()
 
   # The ids should now store the performed permutation. Check that the
@@ -110,6 +102,7 @@ def test_shuffle_each_shard():
     np.testing.assert_array_equal(y_s[i], y[ids_s[i]])
     np.testing.assert_array_equal(w_s[i], w[ids_s[i]])
     np.testing.assert_array_equal(ids_s[i], ids[ids_s[i]])
+
 
 def test_shuffle_shards():
   """Test that shuffle_shards works."""

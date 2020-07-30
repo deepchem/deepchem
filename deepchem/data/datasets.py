@@ -1154,6 +1154,7 @@ class DiskDataset(Dataset):
     shutil.rmtree(self.data_dir)
     shutil.move(reshard_dir, self.data_dir)
     self.metadata_df = resharded_dataset.metadata_df
+    # Note that this resets the cache internally
     self.save_to_disk()
 
   def get_data_shape(self) -> Shape:
@@ -1697,14 +1698,16 @@ class DiskDataset(Dataset):
 
     return DiskDataset.from_numpy(Xs, ys, ws, ids, data_dir=data_dir)
 
-  def shuffle_each_shard(self, shard_basenames: Optional[str] = None) -> None:
+  def shuffle_each_shard(self,
+                         shard_basenames: Optional[List[str]] = None) -> None:
     """Shuffles elements within each shard of the datset.
 
     Parameters
     ----------
-    shard_basenames: Optional[str], optional (default None)
+    shard_basenames: Optional[List[str]], optional (default None)
       The basenames for each shard. If this isn't specified, will assume the
-      default basenames of form "shard-i" used by `create_dataset`.
+      default basenames of form "shard-i" used by `create_dataset` and
+      `reshard`.
     """
     tasks = self.get_task_names()
     # Shuffle the arrays corresponding to each row in metadata_df
@@ -1712,7 +1715,9 @@ class DiskDataset(Dataset):
     n_rows = len(self.metadata_df.index)
     if shard_basenames is not None:
       if len(shard_basenames) != n_rows:
-        raise ValueError("shard_basenames must provide a basename for each shard in this DiskDataset.")
+        raise ValueError(
+            "shard_basenames must provide a basename for each shard in this DiskDataset."
+        )
     else:
       shard_basenames = ["shard-%d" % shard_num for shard_num in range(n_rows)]
     for i, basename in zip(range(n_rows), shard_basenames):
@@ -1723,13 +1728,10 @@ class DiskDataset(Dataset):
       permutation = np.random.permutation(n)
       X, y, w, ids = (X[permutation], y[permutation], w[permutation],
                       ids[permutation])
-      #########################
-      print("ids")
-      print(ids)
-      print("basename")
-      print(basename)
-      #########################
-      DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w, ids)
+      DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w,
+                                     ids)
+    # Reset cache
+    self._cached_shards = None
 
   def shuffle_shards(self) -> None:
     """Shuffles the order of the shards for this dataset."""
