@@ -28,11 +28,14 @@ class TestGraph(unittest.TestCase):
     assert graph.num_edges == num_edges
     assert graph.num_edge_features == num_edge_features
 
-    # check to_pyg_data function
-    target = np.array([1], dtype=np.float)
-    pyg_graph = graph.to_pyg_data(target)
+    # check convert function
+    pyg_graph = graph.to_pyg_graph()
     from torch_geometric.data import Data
     assert isinstance(pyg_graph, Data)
+
+    dgl_graph = graph.to_pyg_graph()
+    from dgl import DGLGraph
+    assert isinstance(dgl_graph, DGLGraph)
 
   def test_invalid_graph_data(self):
     with pytest.raises(ValueError):
@@ -87,9 +90,3 @@ class TestGraph(unittest.TestCase):
     assert batch.num_edges == sum(num_edge_list)
     assert batch.num_edge_features == num_edge_features
     assert batch.graph_index.shape == (sum(num_nodes_list),)
-
-    # check to_pyg_data function
-    targets = np.array([1, 2, 3], dtype=np.float)
-    batch = BatchGraphData.to_pyg_data(graphs=graphs, targets=targets)
-    from torch_geometric.data import Batch
-    assert isinstance(pyg_graph, Batch)

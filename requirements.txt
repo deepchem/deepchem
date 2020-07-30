@@ -1,4 +1,5 @@
 biopython==1.77
+dgl==0.4.3.post2
 matminer==0.6.3
 mdtraj==1.9.4
 networkx==2.4

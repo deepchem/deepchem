@@ -85,13 +85,8 @@ class GraphData:
     if self.node_features is not None:
       self.num_edge_features = self.edge_features.shape[1]
 
-  def to_pyg_data(self, target: np.ndarray):
-    """Convert to PyTorch Geometric Data instance
-
-    Parameters
-    ----------
-    target: np.ndarray
-      Graph or node targets with arbitrary shape
+  def to_pyg_graph(self):
+    """Convert to PyTorch Geometric graph data instance
 
     Returns
     -------
@@ -110,8 +105,30 @@ class GraphData:
       edge_index=torch.from_numpy(self.edge_index),
       edge_attr=None if self.edge_features is None \
         else torch.from_numpy(self.edge_features),
-      y=torch.from_numpy(target),
     )
+
+  def to_dgl_graph(self):
+    """Convert to DGL graph data instance
+
+    Returns
+    -------
+    dgl.DGLGraph
+      Graph data for PyTorch Geometric
+    """
+    try:
+      from dgl import DGLGraph
+    except ModuleNotFoundError:
+      raise ValueError("This function requires DGL to be installed.")
+
+    g = DGLGraph()
+    g.add_nodes(self.num_nodes)
+    g.add_edges(self.edge_index[0], self.edge_index[1])
+    g.ndata['x'] = torch.from_numpy(self.node_features)
+
+    if self.edge_features is not None:
+      g.edata['edge_attr'] = torch.from_numpy(self.edge_features)
+
+    return g
 
 
 class BatchGraphData(GraphData):
@@ -177,30 +194,3 @@ class BatchGraphData(GraphData):
         edge_features=batch_edge_features,
         graph_features=batch_graph_features,
     )
-
-    @staticmethod  # type: ignore
-    def to_pyg_data(graphs: Sequence[GraphData], targets: Sequence[np.ndarray]):
-      """Convert to PyTorch Geometric Batch instance
-
-      Parameters
-      ----------
-      graphs: Sequence[GraphData]
-        List of GraphData
-      targets: Sequence[np.ndarray]
-        List of graph or node targets with arbitrary shape
-
-      Returns
-      -------
-      torch_geometric.data.Batch
-        Batch data of graphs for PyTorch Geometric
-      """
-      try:
-        from torch_geometric.data import Batch
-      except ModuleNotFoundError:
-        raise ValueError(
-            "This function requires PyTorch Geometric to be installed.")
-
-      data_list = [
-          graph.to_pyg_data(target) for graph, target in zip(graphs, targets)
-      ]
-      return Batch.from_data_list(data_list=data_list)

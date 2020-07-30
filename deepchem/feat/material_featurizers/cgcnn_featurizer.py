@@ -8,7 +8,6 @@ from deepchem.utils.typing import PymatgenStructure
 from deepchem.feat import MaterialStructureFeaturizer
 from deepchem.feat.graph_data import GraphData
 
-
 ATOM_INIT_JSON_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/atom_init.json'
 
 
