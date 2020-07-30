@@ -1722,7 +1722,6 @@ class DiskDataset(Dataset):
       shard_basenames = ["shard-%d" % shard_num for shard_num in range(n_rows)]
     for i, basename in zip(range(n_rows), shard_basenames):
       logger.info("Shuffling shard %d/%d" % (i, n_rows))
-      row = self.metadata_df.iloc[i]
       X, y, w, ids = self.get_shard(i)
       n = X.shape[0]
       permutation = np.random.permutation(n)
