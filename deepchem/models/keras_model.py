@@ -303,7 +303,7 @@ class KerasModel(Model):
     callbacks: function or list of functions
       one or more functions of the form f(model, step) that will be invoked after
       every step.  This can be used to perform validation, logging, etc.
-    all_losses: Optional[List[float]], optional (default False)
+    all_losses: Optional[List[float]], optional (default None)
       If specified, all logged losses are appended into this list. Note that
       you can call `fit()` repeatedly with the same list and losses will
       continue to be appended.
@@ -352,7 +352,7 @@ class KerasModel(Model):
     callbacks: function or list of functions
       one or more functions of the form f(model, step) that will be invoked after
       every step.  This can be used to perform validation, logging, etc.
-    all_losses: Optional[List[float]], optional (default False)
+    all_losses: Optional[List[float]], optional (default None)
       If specified, all logged losses are appended into this list. Note that
       you can call `fit()` repeatedly with the same list and losses will
       continue to be appended.
