@@ -36,7 +36,7 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
   >>> import pymatgen as mg
   >>> lattice = mg.Lattice.cubic(4.2)
   >>> structure = mg.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
-  >>> featurizer = SineCoulombMatrix(max_atom=2)
+  >>> featurizer = SineCoulombMatrix(max_atoms=2)
   >>> features = featurizer.featurize([structure])
 
   Note
