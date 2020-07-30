@@ -8,8 +8,8 @@ from deepchem.utils.typing import PymatgenStructure
 from deepchem.feat import MaterialStructureFeaturizer
 from deepchem.feat.graph_data import GraphData
 
-# FIXME: it is better to add this json to DeepChem AWS
-ATOM_INIT_JSON_URL = 'https://raw.githubusercontent.com/txie-93/cgcnn/master/data/sample-regression/atom_init.json'
+
+ATOM_INIT_JSON_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/atom_init.json'
 
 
 class CGCNNFeaturizer(MaterialStructureFeaturizer):
@@ -32,6 +32,14 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
   References
   ----------
   .. [1] T. Xie and J. C. Grossman, Phys. Rev. Lett. 120, 2018.
+
+  Examples
+  --------
+  >>> import pymatgen as mg
+  >>> lattice = mg.Lattice.cubic(4.2)
+  >>> structure = mg.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
+  >>> featurizer = CGCNNFeaturizer()
+  >>> features = featurizer.featurize([structure])
 
   Note
   ----

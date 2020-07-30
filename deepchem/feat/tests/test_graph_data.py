@@ -90,6 +90,6 @@ class TestGraph(unittest.TestCase):
 
     # check to_pyg_data function
     targets = np.array([1, 2, 3], dtype=np.float)
-    batch = BatchGraphData.to_pyg_data(graph_list=graphs, targets=targets)
+    batch = BatchGraphData.to_pyg_data(graphs=graphs, targets=targets)
     from torch_geometric.data import Batch
     assert isinstance(pyg_graph, Batch)

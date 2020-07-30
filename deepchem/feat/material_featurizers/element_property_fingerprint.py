@@ -30,6 +30,13 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
   .. [3] Matminer: Ward, L. et al. Comput. Mater. Sci. 152, 60-69 (2018).
   .. [4] Pymatgen: Ong, S.P. et al. Comput. Mater. Sci. 68, 314-319 (2013).
 
+  Examples
+  --------
+  >>> import pymatgen as mg
+  >>> comp = mg.Composition("Fe2O3")
+  >>> featurizer = ElementPropertyFingerprint()
+  >>> features = featurizer.featurize([comp])
+
   Note
   ----
   This class requires matminer and Pymatgen to be installed.

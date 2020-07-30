@@ -31,6 +31,14 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
   ----------
   .. [1] Faber et al. Inter. J. Quantum Chem. 115, 16, 2015.
 
+  Examples
+  --------
+  >>> import pymatgen as mg
+  >>> lattice = mg.Lattice.cubic(4.2)
+  >>> structure = mg.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
+  >>> featurizer = SineCoulombMatrix(max_atom=2)
+  >>> features = featurizer.featurize([structure])
+
   Note
   ----
   This class requires matminer and Pymatgen to be installed.
@@ -47,7 +55,7 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
       Return flattened vector of matrix eigenvalues.
     """
 
-    self.max_atoms = int(max_atoms)
+    self.max_atoms = max_atoms
     self.flatten = flatten
 
   def _featurize(self, struct: PymatgenStructure) -> np.ndarray:

@@ -26,6 +26,13 @@ class GraphData:
     The number of edges in the graph
   num_edges_features: int, optional (default None)
     The number of features per edge in the graph
+
+  Examples
+  --------
+  >>> import numpy as np
+  >>> node_features = np.random.rand(5, 10)
+  >>> edge_index = np.array([[0, 1, 2, 2, 3], [1, 2, 3, 3, 4]], dtype=np.int)
+  >>> Graph(node_features=node_features, edge_index=edge_index)
   """
 
   def __init__(
@@ -114,6 +121,18 @@ class BatchGraphData(GraphData):
   ----------
   graph_index: np.ndarray, dtype int
     This vector indicates which graph the node belongs with shape [num_nodes,]
+
+  Examples
+  --------
+  >>> import numpy as np
+  >>> node_features_list = np.random.rand(2, 5, 10)
+  >>> edge_index_list = np.array([
+  ...    [[0, 1, 2, 2, 3], [1, 2, 3, 3, 4]],
+  ...    [[0, 1, 2, 2, 3], [1, 2, 3, 3, 4]],
+  ... ], dtype=np.int)
+  >>> graphs = [Graph(node_features, edge_index) for node_features, edge_index
+  ...           in zip(node_features_list, edge_index_list)]
+  >>> BatchGraphData(graphs=graphs)
   """
 
   def __init__(self, graphs: Sequence[GraphData]):
