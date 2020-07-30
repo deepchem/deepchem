@@ -1713,7 +1713,6 @@ class DiskDataset(Dataset):
     tasks = self.get_task_names()
     # Shuffle the arrays corresponding to each row in metadata_df
     n_rows = len(self.metadata_df.index)
-    n_rows = len(self.metadata_df.index)
     if shard_basenames is not None:
       if len(shard_basenames) != n_rows:
         raise ValueError(
