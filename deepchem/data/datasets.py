@@ -1051,7 +1051,6 @@ class DiskDataset(Dataset):
       Location on disk of an existing `DiskDataset`.
     """
     self.data_dir = data_dir
-    self.legacy_metadata = legacy_metadata
 
     logger.info("Loading dataset from disk.")
     self.tasks, self.metadata_df = self.load_metadata()
@@ -1114,7 +1113,7 @@ class DiskDataset(Dataset):
     DiskDataset._save_metadata(tasks, metadata_df, data_dir)
     time2 = time.time()
     logger.info("TIMING: dataset construction took %0.3f s" % (time2 - time1))
-    return DiskDataset(data_dir, legacy_metadata)
+    return DiskDataset(data_dir)
 
   def load_metadata(self) -> Tuple[List[str], pd.DataFrame]:
     """Helper method that loads metadata from disk."""
@@ -2193,23 +2192,23 @@ class DiskDataset(Dataset):
       for shard_num in range(n_rows):
         row = self.metadata_df.iloc[shard_num]
         if row['X_shape'] is not None:
-          shard_X_shape = make_tuple(row['X_shape'])
+          shard_X_shape = make_tuple(str(row['X_shape']))
         else:
           shard_X_shape = tuple()
         if n_tasks > 0:
           if row['y_shape'] is not None:
-            shard_y_shape = make_tuple(row['y_shape'])
+            shard_y_shape = make_tuple(str(row['y_shape']))
           else:
             shard_y_shape = tuple()
           if row['w_shape'] is not None:
-            shard_w_shape = make_tuple(row['w_shape'])
+            shard_w_shape = make_tuple(str(row['w_shape']))
           else:
             shard_w_shape = tuple()
         else:
           shard_y_shape = tuple()
           shard_w_shape = tuple()
         if row['ids_shape'] is not None:
-          shard_ids_shape = make_tuple(row['ids_shape'])
+          shard_ids_shape = make_tuple(str(row['ids_shape']))
         else:
           shard_ids_shape = tuple()
         if shard_num == 0:
