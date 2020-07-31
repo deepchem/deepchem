@@ -134,8 +134,8 @@ class GraphData:
     g = DGLGraph()
     g.add_nodes(self.num_nodes)
     g.add_edges(
-        torch.from_numpy(self.edge_index[0]),
-        torch.from_numpy(self.edge_index[1]))
+        torch.from_numpy(self.edge_index[0]).long(),
+        torch.from_numpy(self.edge_index[1]).long())
     g.ndata['x'] = torch.from_numpy(self.node_features)
 
     if self.edge_features is not None:
