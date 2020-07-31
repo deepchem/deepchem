@@ -1,10 +1,6 @@
 """
 Tests for dataset creation
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import random
 import math
 import unittest
