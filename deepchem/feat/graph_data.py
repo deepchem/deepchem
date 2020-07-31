@@ -32,7 +32,7 @@ class GraphData:
   >>> import numpy as np
   >>> node_features = np.random.rand(5, 10)
   >>> edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int64)
-  >>> GraphData(node_features=node_features, edge_index=edge_index)
+  >>> graph = GraphData(node_features=node_features, edge_index=edge_index)
   """
 
   def __init__(
@@ -163,7 +163,7 @@ class BatchGraphData(GraphData):
   ... ], dtype=np.int)
   >>> graph_list = [GraphData(node_features, edge_index) for node_features, edge_index
   ...           in zip(node_features_list, edge_index_list)]
-  >>> BatchGraphData(graph_list=graph_list)
+  >>> batch_graph = BatchGraphData(graph_list=graph_list)
   """
 
   def __init__(self, graph_list: Sequence[GraphData]):
