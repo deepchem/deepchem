@@ -25,7 +25,8 @@ import zipfile
 logger = logging.getLogger(__name__)
 
 
-def _convert_df_to_numpy(df, tasks):
+def _convert_df_to_numpy(df: pd.DataFrame,
+                         tasks: List[str]) -> Tuple[np.ndarray, np.ndarray]:
   """Transforms a dataframe containing deepchem input into numpy arrays
 
   This is a private helper method intended to help parse labels and
@@ -38,7 +39,7 @@ def _convert_df_to_numpy(df, tasks):
   ----------
   df: pd.DataFrame
     Pandas dataframe with columns for all tasks
-  tasks: list
+  tasks: List[str] 
     List of tasks
   """
   n_samples = df.shape[0]
@@ -55,7 +56,8 @@ def _convert_df_to_numpy(df, tasks):
   return y.astype(float), w.astype(float)
 
 
-def _get_user_specified_features(df, featurizer):
+def _get_user_specified_features(
+    df: pd.DataFrame, featurizer: UserDefinedFeaturizer) -> np.ndarray:
   """Extract and merge user specified features.
 
   Private helper methods that merges features included in dataset
@@ -76,6 +78,11 @@ def _get_user_specified_features(df, featurizer):
     DataFrame that holds SMILES strings
   featurizer: Featurizer
     A featurizer object
+
+  Returns
+  -------
+  np.ndarray
+    Array of features extracted from input dataframe.
   """
   time1 = time.time()
   df[featurizer.feature_fields] = df[featurizer.feature_fields].apply(
@@ -117,7 +124,11 @@ class DataLoader(object):
   for you by performing this work under the hood.
   """
 
-  def __init__(self, tasks, id_field=None, featurizer=None, log_every_n=1000):
+  def __init__(self,
+               tasks: List[str],
+               id_field: str = None,
+               featurizer: Featurizer = None,
+               log_every_n: int = 1000):
     """Construct a DataLoader object.
 
     This constructor is provided as a template mainly. You
@@ -248,7 +259,7 @@ class DataLoader(object):
 
     return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
 
-  def _get_shards(self, inputs, shard_size):
+  def _get_shards(self, inputs: List, shard_size: int) -> Iterator:
     """Stub for children classes.
 
     Should implement a generator that walks over the source data in
@@ -271,7 +282,7 @@ class DataLoader(object):
     """
     raise NotImplementedError
 
-  def _featurize_shard(self, shard):
+  def _featurize_shard(self, shard: Any):
     """Featurizes a shard of input data.
 
     Recall a shard is a chunk of input data that can reasonably be
@@ -323,14 +334,14 @@ class CSVLoader(DataLoader):
   """
 
   def __init__(self,
-               tasks: OneOrMany[str],
+               tasks: List[str],
                feature_field: Optional[str] = None,
                label_field: Optional[str] = None,
                weight_field: Optional[str] = None,
                smiles_field: Optional[str] = None,
-               id_field=None,
+               id_field: str = None,
                featurizer: Optional[Featurizer] = None,
-               log_every_n=1000):
+               log_every_n: int = 1000):
     """Initializes CSVLoader.
 
     Parameters
@@ -408,6 +419,9 @@ class CSVLoader(DataLoader):
       Indices of rows in source CSV with valid data.
     """
     logger.info("About to featurize shard.")
+    if self.featurizer is None:
+      raise ValueError(
+          "featurizer must be specified in constructor to featurizer data/")
     features = [elt for elt in self.featurizer(shard[self.feature_field])]
     valid_inds = np.array(
         [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
@@ -419,7 +433,7 @@ class CSVLoader(DataLoader):
 
 class UserCSVLoader(CSVLoader):
   """
-  Handles loading of CSV files with user-defined featurizers.
+  Handles loading of CSV files with user-defined features.
 
   This is a convenience class that allows for descriptors already present in a
   CSV file to be extracted without any featurization necessary.
@@ -530,7 +544,7 @@ class JsonLoader(DataLoader):
   """
 
   def __init__(self,
-               tasks: OneOrMany[str],
+               tasks: List[str],
                feature_field: str,
                label_field: Optional[str] = None,
                weight_field: Optional[str] = None,
@@ -643,7 +657,8 @@ class JsonLoader(DataLoader):
 
     return DiskDataset.create_dataset(shard_generator(), data_dir)
 
-  def _get_shards(self, input_files, shard_size):
+  def _get_shards(self, input_files: List[str],
+                  shard_size: int) -> Iterator[pd.DataFrame]:
     """Defines a generator which returns data for each shard"""
     return load_json_files(input_files, shard_size)
 
@@ -667,6 +682,9 @@ class JsonLoader(DataLoader):
       sample in the source.
     """
     logger.info("About to featurize shard.")
+    if self.featurizer is None:
+      raise ValueError(
+          "featurizer must be specified in constructor to featurizer data/")
     features = [elt for elt in self.featurizer(shard[self.feature_field])]
     valid_inds = np.array(
         [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
@@ -694,7 +712,11 @@ class SDFLoader(DataLoader):
   2
   """
 
-  def __init__(self, tasks, sanitize=False, featurizer=None, log_every_n=1000):
+  def __init__(self,
+               tasks: List[str],
+               sanitize: bool = False,
+               featurizer: Featurizer = None,
+               log_every_n: int = 1000):
     """Initialize SDF Loader
 
     Parameters
@@ -793,7 +815,7 @@ class ImageLoader(DataLoader):
   traverse subdirectories which contain images.
   """
 
-  def __init__(self, tasks: OneOrMany[str] = None):
+  def __init__(self, tasks: Optional[List[str]] = None):
     """Initialize image loader.
 
     At present, custom image featurizers aren't supported by this
@@ -914,7 +936,7 @@ class ImageLoader(DataLoader):
       return ImageDataset(image_files, y=labels, w=weights, ids=image_files)
 
   @staticmethod
-  def load_img(image_files) -> np.ndarray:
+  def load_img(image_files: List[str]) -> np.ndarray:
     """Loads a set of images from disk.
 
     Parameters
@@ -1051,7 +1073,8 @@ class InMemoryLoader(DataLoader):
 
     return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
 
-  def _get_shards(self, inputs, shard_size):
+  def _get_shards(self, inputs: List,
+                  shard_size: int) -> Iterator[pd.DataFrame]:
     """Break up input into shards.
 
     Parameters
@@ -1067,9 +1090,10 @@ class InMemoryLoader(DataLoader):
 
     Returns
     -------
-    Iterator which iterates over shards of data.
+    Iterator[pd.DataFrame]
+      Iterator which iterates over shards of data.
     """
-    current_shard = []
+    current_shard: List = []
     for i, datapoint in enumerate(inputs):
       if i != 0 and i % shard_size == 0:
         shard_data = current_shard

@@ -14,8 +14,9 @@ def test_unlabelled():
   input_file = os.path.join(current_dir, "../../data/tests/no_labels.csv")
   featurizer = dc.feat.CircularFingerprint(size=1024)
   loader = dc.data.CSVLoader(
-      tasks=[], smiles_field="smiles", featurizer=featurizer)
-  loader.create_dataset(input_file)
+      tasks=[], feature_field="smiles", featurizer=featurizer)
+  dataset = loader.create_dataset(input_file)
+  assert len(dataset.X)
 
 
 def test_scaffold_test_train_valid_test_split():
@@ -33,7 +34,7 @@ def test_scaffold_test_train_valid_test_split():
 
   input_file = os.path.join(current_dir, input_file)
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
 
   dataset = loader.create_dataset(input_file)
 
@@ -61,7 +62,7 @@ def test_scaffold_test_train_test_split():
 
   input_file = os.path.join(current_dir, input_file)
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
 
   dataset = loader.create_dataset(input_file)
 
@@ -86,7 +87,7 @@ def test_random_test_train_valid_test_split():
 
   input_file = os.path.join(current_dir, input_file)
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
 
   dataset = loader.create_dataset(input_file)
 
@@ -110,7 +111,7 @@ def test_random_test_train_test_split():
   input_file = os.path.join(current_dir, "../../models/tests/example.csv")
   featurizer = dc.feat.CircularFingerprint(size=1024)
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
 
   dataset = loader.create_dataset(input_file)
 
@@ -128,10 +129,9 @@ def test_log_solubility_dataset():
   input_file = os.path.join(current_dir, input_file)
 
   tasks = ["log-solubility"]
-  smiles_field = "smiles"
   loader = dc.data.CSVLoader(
       tasks=tasks,
-      smiles_field="smiles",
+      feature_field="smiles",
       featurizer=dc.feat.CircularFingerprint(size=1024))
   dataset = loader.create_dataset(input_file)
 
@@ -149,7 +149,7 @@ def test_dataset_move():
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
   featurized_dataset = loader.create_dataset(dataset_file, data_dir)
   n_dataset = len(featurized_dataset)
 

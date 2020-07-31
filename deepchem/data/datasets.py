@@ -19,7 +19,7 @@ import multiprocessing
 from deepchem.utils.save import save_to_disk, save_metadata
 from deepchem.utils.save import load_from_disk
 
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 from deepchem.utils.typing import OneOrMany, Shape
 
 Batch = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
@@ -2034,8 +2034,8 @@ class ImageDataset(Dataset):
   """A Dataset that loads data from image files on disk."""
 
   def __init__(self,
-               X: Sequence,
-               y: Optional[Sequence],
+               X: Union[np.ndarray, List[str]],
+               y: Optional[Union[np.ndarray, List[str]]],
                w: Optional[Sequence] = None,
                ids: Optional[Sequence] = None) -> None:
     """Create a dataset whose X and/or y array is defined by image files on disk.
@@ -2050,10 +2050,10 @@ class ImageDataset(Dataset):
       The dataset's labels.  This may be either a single NumPy array
       directly containing the data, or a list containing the paths to
       the image files
-    w: ndarray
+    w: ndarray, optional, (default, None)
       a 1D or 2D array containing the weights for each sample or
       sample/task pair
-    ids: ndarray
+    ids: ndarray, optional (default None)
       the sample IDs
     """
     n_samples = len(X)

@@ -12,7 +12,7 @@ def test_load_singleton_csv():
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["endpoint"]
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
 
   X = loader.create_dataset(fin.name)
   assert len(X) == 1
