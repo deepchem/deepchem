@@ -40,8 +40,8 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
   >>> featurizer = CGCNNFeaturizer()
   >>> features = featurizer.featurize([structure])
 
-  Note
-  ----
+  Notes
+  -----
   This class requires Pymatgen to be installed.
   """
 

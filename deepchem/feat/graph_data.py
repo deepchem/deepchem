@@ -31,7 +31,7 @@ class GraphData:
   --------
   >>> import numpy as np
   >>> node_features = np.random.rand(5, 10)
-  >>> edge_index = np.array([[0, 1, 2, 2, 3], [1, 2, 3, 3, 4]], dtype=np.int)
+  >>> edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int)
   >>> Graph(node_features=node_features, edge_index=edge_index)
   """
 
@@ -64,6 +64,8 @@ class GraphData:
       raise ValueError('edge_index.dtype must be np.int')
     elif edge_index.shape[0] != 2:
       raise ValueError('The shape of edge_index is [2, num_edges].')
+    elif np.max(edge_index) >= len(node_features):
+      raise ValueError('edge_index contains the invalid node number.')
 
     if edge_features is not None:
       if isinstance(edge_features, np.ndarray) is False:
@@ -92,6 +94,10 @@ class GraphData:
     -------
     torch_geometric.data.Data
       Graph data for PyTorch Geometric
+
+    Notes
+    -----
+    This method requires PyTorch Geometric to be installed.
     """
     try:
       import torch
@@ -114,15 +120,20 @@ class GraphData:
     -------
     dgl.DGLGraph
       Graph data for PyTorch Geometric
+
+    Notes
+    -----
+    This method requires DGL to be installed.
     """
     try:
+      import torch
       from dgl import DGLGraph
     except ModuleNotFoundError:
       raise ValueError("This function requires DGL to be installed.")
 
     g = DGLGraph()
     g.add_nodes(self.num_nodes)
-    g.add_edges(self.edge_index[0], self.edge_index[1])
+    g.add_edges(torch.from_numpy(self.edge_index[0]), torch.from_numpy(self.edge_index[1]))
     g.ndata['x'] = torch.from_numpy(self.node_features)
 
     if self.edge_features is not None:
@@ -144,8 +155,8 @@ class BatchGraphData(GraphData):
   >>> import numpy as np
   >>> node_features_list = np.random.rand(2, 5, 10)
   >>> edge_index_list = np.array([
-  ...    [[0, 1, 2, 2, 3], [1, 2, 3, 3, 4]],
-  ...    [[0, 1, 2, 2, 3], [1, 2, 3, 3, 4]],
+  ...    [[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]],
+  ...    [[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]],
   ... ], dtype=np.int)
   >>> graphs = [Graph(node_features, edge_index) for node_features, edge_index
   ...           in zip(node_features_list, edge_index_list)]

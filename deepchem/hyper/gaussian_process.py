@@ -121,8 +121,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   ...   )
   >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(model_builder)
 
-  Note
-  ----
+  Notes
+  -----
   This class requires pyGPGO to be installed.
   """
 

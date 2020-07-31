@@ -37,8 +37,8 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
   >>> featurizer = ElementPropertyFingerprint()
   >>> features = featurizer.featurize([comp])
 
-  Note
-  ----
+  Notes
+  -----
   This class requires matminer and Pymatgen to be installed.
   """
 

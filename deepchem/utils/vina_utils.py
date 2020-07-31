@@ -79,8 +79,8 @@ def load_docked_ligands(
     molecules with 3D information. `scores` is the associated vina
     score.
 
-  Note
-  ----
+  Notes
+  -----
   This function requires RDKit to be installed.
   """
   try:

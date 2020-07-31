@@ -39,8 +39,8 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
   >>> featurizer = SineCoulombMatrix(max_atoms=2)
   >>> features = featurizer.featurize([structure])
 
-  Note
-  ----
+  Notes
+  -----
   This class requires matminer and Pymatgen to be installed.
   """
 
