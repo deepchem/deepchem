@@ -31,8 +31,8 @@ class GraphData:
   --------
   >>> import numpy as np
   >>> node_features = np.random.rand(5, 10)
-  >>> edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int)
-  >>> Graph(node_features=node_features, edge_index=edge_index)
+  >>> edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int64)
+  >>> GraphData(node_features=node_features, edge_index=edge_index)
   """
 
   def __init__(
@@ -60,8 +60,8 @@ class GraphData:
 
     if isinstance(edge_index, np.ndarray) is False:
       raise ValueError('edge_index must be np.ndarray.')
-    elif edge_index.dtype != np.int:
-      raise ValueError('edge_index.dtype must be np.int')
+    elif edge_index.dtype != np.int64:
+      raise ValueError('edge_index.dtype must be np.int64')
     elif edge_index.shape[0] != 2:
       raise ValueError('The shape of edge_index is [2, num_edges].')
     elif np.max(edge_index) >= len(node_features):
@@ -84,7 +84,7 @@ class GraphData:
     self.graph_features = graph_features
     self.num_nodes, self.num_node_features = self.node_features.shape
     self.num_edges = edge_index.shape[1]
-    if self.node_features is not None:
+    if self.edge_features is not None:
       self.num_edge_features = self.edge_features.shape[1]
 
   def to_pyg_graph(self):
@@ -133,7 +133,9 @@ class GraphData:
 
     g = DGLGraph()
     g.add_nodes(self.num_nodes)
-    g.add_edges(torch.from_numpy(self.edge_index[0]), torch.from_numpy(self.edge_index[1]))
+    g.add_edges(
+        torch.from_numpy(self.edge_index[0]),
+        torch.from_numpy(self.edge_index[1]))
     g.ndata['x'] = torch.from_numpy(self.node_features)
 
     if self.edge_features is not None:
@@ -153,51 +155,54 @@ class BatchGraphData(GraphData):
   Examples
   --------
   >>> import numpy as np
+  >>> from deepchem.feat.graph_data import GraphData
   >>> node_features_list = np.random.rand(2, 5, 10)
   >>> edge_index_list = np.array([
   ...    [[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]],
   ...    [[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]],
   ... ], dtype=np.int)
-  >>> graphs = [Graph(node_features, edge_index) for node_features, edge_index
+  >>> graph_list = [GraphData(node_features, edge_index) for node_features, edge_index
   ...           in zip(node_features_list, edge_index_list)]
-  >>> BatchGraphData(graphs=graphs)
+  >>> BatchGraphData(graph_list=graph_list)
   """
 
-  def __init__(self, graphs: Sequence[GraphData]):
+  def __init__(self, graph_list: Sequence[GraphData]):
     """
     Parameters
     ----------
-    graphs: Sequence[GraphData]
+    graph_list: Sequence[GraphData]
       List of GraphData
     """
     # stack features
-    batch_node_features = np.vstack([graph.node_features for graph in graphs])
+    batch_node_features = np.vstack(
+        [graph.node_features for graph in graph_list])
 
     # before stacking edge_features or graph_features,
     # we should check whether these are None or not
-    if graphs[0].edge_features is not None:
-      batch_edge_features = np.vstack([graph.edge_features for graph in graphs])
+    if graph_list[0].edge_features is not None:
+      batch_edge_features = np.vstack(
+          [graph.edge_features for graph in graph_list])
     else:
       batch_edge_features = None
 
-    if graphs[0].graph_features is not None:
+    if graph_list[0].graph_features is not None:
       batch_graph_features = np.vstack(
-          [graph.graph_features for graph in graphs])
+          [graph.graph_features for graph in graph_list])
     else:
       batch_graph_features = None
 
     # create new edge index
-    num_nodes_list = [graph.num_nodes for graph in graphs]
+    num_nodes_list = [graph.num_nodes for graph in graph_list]
     batch_edge_index = np.hstack(
       [graph.edge_index + prev_num_node for prev_num_node, graph \
-        in zip([0] + num_nodes_list[:-1], graphs)]
-    ).astype(int)
+        in zip([0] + num_nodes_list[:-1], graph_list)]
+    ).astype(np.int64)
 
     # graph_index indicates which nodes belong to which graph
     graph_index = []
     for i, num_nodes in enumerate(num_nodes_list):
       graph_index.extend([i] * num_nodes)
-    self.graph_index = np.array(graph_index, dtype=int)
+    self.graph_index = np.array(graph_index, dtype=np.int64)
 
     super().__init__(
         node_features=batch_node_features,

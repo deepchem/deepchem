@@ -180,10 +180,10 @@ SineCoulombMatrix
 .. autoclass:: deepchem.feat.SineCoulombMatrix
   :members:
 
-StructureGraphFeaturizer
+CGCNNFeaturizer
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: deepchem.feat.StructureGraphFeaturizer
+.. autoclass:: deepchem.feat.CGCNNFeaturizer
   :members:
 
 MaterialCompositionFeaturizer
