@@ -60,8 +60,8 @@ class GraphData:
 
     if isinstance(edge_index, np.ndarray) is False:
       raise ValueError('edge_index must be np.ndarray.')
-    elif edge_index.dtype != np.int64:
-      raise ValueError('edge_index.dtype must be np.int64')
+    elif edge_index.dtype != np.int:
+      raise ValueError('edge_index.dtype must be np.int.')
     elif edge_index.shape[0] != 2:
       raise ValueError('The shape of edge_index is [2, num_edges].')
     elif np.max(edge_index) >= len(node_features):
@@ -108,7 +108,7 @@ class GraphData:
 
     return Data(
       x=torch.from_numpy(self.node_features),
-      edge_index=torch.from_numpy(self.edge_index),
+      edge_index=torch.from_numpy(self.edge_index).long(),
       edge_attr=None if self.edge_features is None \
         else torch.from_numpy(self.edge_features),
     )
@@ -196,13 +196,13 @@ class BatchGraphData(GraphData):
     batch_edge_index = np.hstack(
       [graph.edge_index + prev_num_node for prev_num_node, graph \
         in zip([0] + num_nodes_list[:-1], graph_list)]
-    ).astype(np.int64)
+    )
 
     # graph_index indicates which nodes belong to which graph
     graph_index = []
     for i, num_nodes in enumerate(num_nodes_list):
       graph_index.extend([i] * num_nodes)
-    self.graph_index = np.array(graph_index, dtype=np.int64)
+    self.graph_index = np.array(graph_index)
 
     super().__init__(
         node_features=batch_node_features,
