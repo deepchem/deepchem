@@ -30,6 +30,10 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `Deep Graph Library`_          | 0.4.3.post2   | :code:`dc.feat.graph_data`                        |
+|                                |               |                                                   |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
 | `OpenAI Gym`_                  | Not Testing   | :code:`dc.rl`                                     |
 |                                |               |                                                   |
 |                                |               |                                                   |
@@ -102,6 +106,7 @@ DeepChem has a number of "soft" requirements.
 .. _`SciPy`: https://www.scipy.org/
 .. _`TensorFlow`: https://www.tensorflow.org/
 .. _`BioPython`: https://biopython.org/wiki/Documentation
+.. _`Deep Graph Library`: https://www.dgl.ai/
 .. _`OpenAI Gym`: https://gym.openai.com/
 .. _`matminer`: https://hackingmaterials.lbl.gov/matminer/
 .. _`MDTraj`: http://mdtraj.org/
