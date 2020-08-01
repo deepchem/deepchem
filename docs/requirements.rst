@@ -26,7 +26,7 @@ DeepChem has a number of "soft" requirements.
 | Package name                   | Version       | Location where this package is imported           |
 |                                |               | (dc: deepchem)                                    |
 +================================+===============+===================================================+
-| `BioPython`_                   | 1.77          | :code:`dc.utlis.genomics_utils`                   |
+| `BioPython`_                   | latest        | :code:`dc.utlis.genomics_utils`                   |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
@@ -38,35 +38,35 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `matminer`_                    | 0.6.3         | :code:`dc.feat.materials_featurizers`             |
+| `matminer`_                    | latest        | :code:`dc.feat.materials_featurizers`             |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `MDTraj`_                      | 1.9.4         | :code:`dc.utils.pdbqt_utils`                      |
+| `MDTraj`_                      | latest        | :code:`dc.utils.pdbqt_utils`                      |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `NetworkX`_                    | 2.4           | :code:`dc.utils.rdkit_utils`                      |
+| `NetworkX`_                    | latest        | :code:`dc.utils.rdkit_utils`                      |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `OpenMM`_                      | 7.4.2         | :code:`dc.utils.rdkit_utils`                      |
+| `OpenMM`_                      | latest        | :code:`dc.utils.rdkit_utils`                      |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `PDBFixer`_                    | 1.6           | :code:`dc.utils.rdkit_utils`                      |
+| `PDBFixer`_                    | latest        | :code:`dc.utils.rdkit_utils`                      |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `Pillow`_                      | 7.1.2         | :code:`dc.data.data_loader`,                      |
+| `Pillow`_                      | latest        | :code:`dc.data.data_loader`,                      |
 |                                |               | :code:`dc.trans.transformers`                     |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `pyGPGO`_                      | 0.4.0.dev1    | :code:`dc.hyper.gaussian_process`                 |
+| `pyGPGO`_                      | latest        | :code:`dc.hyper.gaussian_process`                 |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `Pymatgen`_                    | 2020.7.18     | :code:`dc.feat.materials_featurizers`             |
+| `Pymatgen`_                    | latest        | :code:`dc.feat.materials_featurizers`             |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
@@ -78,19 +78,19 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `RDKit`_                       | 2020.03.4     | Many modules                                      |
+| `RDKit`_                       | latest        | Many modules                                      |
 |                                |               | (we recommend you to instal)                      |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `simdna`_                      | 0.4.3.2       | :code:`dc.metrics.genomic_metrics`,               |
+| `simdna`_                      | latest        | :code:`dc.metrics.genomic_metrics`,               |
 |                                |               | :code:`dc.molnet.dnasim`                          |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `Tensorflow Probability`_      | 0.10          | :code:`dc.rl`                                     |
+| `Tensorflow Probability`_      | 0.10.1        | :code:`dc.rl`                                     |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `XGBoost`_                     | 1.1.1         | :code:`dc.models.xgboost_models`                  |
+| `XGBoost`_                     | latest        | :code:`dc.models.xgboost_models`                  |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+

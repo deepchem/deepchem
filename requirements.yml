@@ -5,8 +5,17 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - openmm==7.4.2
-  - pdbfixer==1.6
-  - rdkit==2020.03.4
-  - simdna==0.4.3.2
+  - openmm
+  - pdbfixer
+  - rdkit
+  - simdna
   - pip
+  - pip:
+    biopython
+    matminer
+    mdtraj
+    networkx
+    pillow
+    pyGPGO
+    pymatgen
+    xgboost

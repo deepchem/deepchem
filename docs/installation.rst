@@ -141,6 +141,13 @@ Then, execute the shell script.
     bash scripts/install_deepchem_conda.sh deepchem
 
 
+If you want GPU support:
+
+.. code-block:: bash
+
+    bash scripts/install_deepchem_conda.sh deepchem gpu
+
+
 If you are using the Windows and the PowerShell:
 
 .. code-block:: ps1

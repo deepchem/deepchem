@@ -1,5 +1,0 @@
-torch-scatter==2.0.5
-torch-sparse==0.6.6
-torch-cluster==1.5.6
-torch-spline-conv==1.2.0
-torch-geometric==1.6.0
