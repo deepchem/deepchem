@@ -35,7 +35,7 @@ else
 # Install dependencies except PyTorch and TensorFlow
 $path = Join-Path $Pwd "requirements.yml"
 conda env update --file $path
-$path = Join-Path $Pwd "requirements.txt"
+$path = Join-Path $Pwd "requirements-test.txt"
 pip install -r $path
 
 # Fixed packages
