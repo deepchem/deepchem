@@ -11,11 +11,11 @@ dependencies:
   - simdna
   - pip
   - pip:
-    biopython
-    matminer
-    mdtraj
-    networkx
-    pillow
-    pyGPGO
-    pymatgen
-    xgboost
+    - biopython
+    - matminer
+    - mdtraj
+    - networkx
+    - pillow
+    - pyGPGO
+    - pymatgen
+    - xgboost
