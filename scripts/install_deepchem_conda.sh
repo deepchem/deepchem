@@ -49,7 +49,7 @@ torch_spline_conv=1.2.0
 torch_geometric=1.6.0
 dgl=0.4.3.post2
 
-# Install Tensorflow dependencies
+# Install TensorFlow dependencies
 pip install tensorflow==$tensorflow tensorflow-probability==$tensorflow_probability
 
 # Install PyTorch dependencies
