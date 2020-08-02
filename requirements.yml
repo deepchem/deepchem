@@ -1,6 +1,5 @@
 name: deepchem
 channels:
-  - deepchem
   - omnia
   - conda-forge
   - defaults
@@ -8,7 +7,6 @@ dependencies:
   - openmm
   - pdbfixer
   - rdkit
-  - simdna
   - pip
   - pip:
     - biopython
@@ -18,4 +16,5 @@ dependencies:
     - pillow
     - pyGPGO
     - pymatgen
+    - simdna
     - xgboost
