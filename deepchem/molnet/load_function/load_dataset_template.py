@@ -45,9 +45,9 @@ def load_mydataset(
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
-    featurizer_kwargs: Optional[Dict[str, object]] = {},
-    splitter_kwargs: Optional[Dict[str, object]] = {},
-    transformer_kwargs: Optional[Dict[str, Dict[str, object]]] = {},
+    featurizer_kwargs: Dict[str, object] = {},
+    splitter_kwargs: Dict[str, object] = {},
+    transformer_kwargs: Dict[str, Dict[str, object]] = {},
     **kwargs) -> Tuple[List, Tuple, List]:
   """Load mydataset.
 

@@ -83,9 +83,9 @@ def load_bandgap(
     Path to datasets.
   save_dir : str, optional
     Path to featurized datasets.
-  featurizer_kwargs : Optional[Dict[str, Any]]
+  featurizer_kwargs : Dict[str, Any]
     Specify parameters to featurizer, e.g. {"size": 1024}
-  splitter_kwargs : Optional[Dict[str, Any]]
+  splitter_kwargs : Dict[str, Any]
     Specify parameters to splitter, e.g. {"seed": 42}
   transformer_kwargs : dict
     Maps transformer names to constructor arguments, e.g.
