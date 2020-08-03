@@ -31,9 +31,11 @@ class TestNormalizingFlow(unittest.TestCase):
                 hidden_layers=[8, 8]))
     ]
     # 3D Multivariate Gaussian base distribution
-    self.nfm = NormalizingFlowModel(
+    self.nf = NormalizingFlow(
         base_distribution=tfd.MultivariateNormalDiag(loc=[0., 0., 0.]),
         flow_layers=flow_layers)
+
+    self.nfm = NormalizingFlowModel(self.nf, batch_size=1)
 
     # Must be float32 for RealNVP
     self.dataset = NumpyDataset(
@@ -53,7 +55,6 @@ class TestNormalizingFlow(unittest.TestCase):
     assert self.nfm.flow.log_prob(x1).numpy() < 0
     assert self.nfm.flow.log_prob(x2).numpy() < 0
 
-    # Build and fit model
-    self.nfm.build()
-    final, avg = self.nfm.fit(self.dataset, batch_size=1, nb_epoch=5)
-    assert final.numpy() < 5.0
+    # # Fit model
+    final = self.nfm.fit(self.dataset, nb_epoch=5)
+    assert final < 0

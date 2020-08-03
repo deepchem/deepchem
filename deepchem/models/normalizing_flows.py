@@ -9,9 +9,10 @@ from typing import List, Iterable, Optional, Tuple, Sequence, Any
 import tensorflow as tf
 
 import deepchem as dc
-from deepchem.models.losses import Loss
+from deepchem.models.losses import Loss, NegLogLoss
 from deepchem.models.models import Model
-from deepchem.models.optimizers import Adam
+from deepchem.models.keras_model import KerasModel
+from deepchem.models.optimizers import Optimizer, Adam
 
 logger = logging.getLogger(__name__)
 
@@ -32,48 +33,44 @@ class NormalizingFlow(tf.keras.models.Model):
 
   """
 
-  def __init__(self, **kwargs):
-    """Create a new NormalizingFlow."""
+  def __init__(self, base_distribution, flow_layers, **kwargs):
+    """Create a new NormalizingFlow.
 
-    super(NormalizingFlow, self).__init__(**kwargs)
-
-    # An instance of tfd.TransformedDistribution
-    self.flow = None
-
-  def __call__(self, *x):
-    return self.flow.bijector.forward(*x)
-
-  @tf.function
-  def fit_on_batch(self, x: np.ndarray,
-                   optimizer: tf.keras.optimizers.Optimizer,
-                   loss: dc.models.losses.Loss) -> float:
-    """Fit on batch of samples.
-    
     Parameters
     ----------
-    x: np.ndarray, shape (n_samples, n_dim)
-      Array of samples where each sample is a vector of length `n_dim`.
-    optimizer: dc.models.optimizers.Optimizer
-      An instance of Optimizer.
-    loss: dc.models.losses.Loss
-      An instance of Loss.
-
-    Returns
-    -------
-    batch_loss: float
-      Loss computed on this batch.
+    base_distribution : tfd.Distribution
+      Probability distribution to be transformed.
+      Typically an N dimensional multivariate Gaussian.
+    flow_layers : Sequence[tfb.Bijector]
+      An iterable of bijectors that comprise the flow.
 
     """
 
-    with tf.GradientTape() as tape:
-      dummy_labels = np.ones(len(x))
-      batch_loss = loss(x, dummy_labels)
-      grads = tape.gradient(batch_loss, self.trainable_variables)
-      optimizer.apply_gradients(zip(grads, self.trainable_variables))
-    return batch_loss
+    try:
+      import tensorflow_probability as tfp
+      tfd = tfp.distributions
+      tfb = tfp.bijectors
+    except ModuleNotFoundError:
+      raise ValueError(
+          "This class requires tensorflow-probability to be installed.")
+
+    self.base_distribution = base_distribution
+    self.flow_layers = flow_layers
+
+    # Chain of flows is also a normalizing flow
+    bijector = tfb.Chain(list(reversed(self.flow_layers)))
+
+    # An instance of tfd.TransformedDistribution
+    self.flow = tfd.TransformedDistribution(
+        distribution=self.base_distribution, bijector=bijector)
+
+    super(NormalizingFlow, self).__init__(**kwargs)
+
+  def __call__(self, *inputs, training=True):
+    return self.flow.bijector.forward(*inputs)
 
 
-class NormalizingFlowModel(NormalizingFlow):
+class NormalizingFlowModel(KerasModel):
   """A base distribution and normalizing flow for applying transformations.
 
   A distribution implements two main operations:
@@ -103,24 +100,25 @@ class NormalizingFlowModel(NormalizingFlow):
   """
 
   def __init__(self,
-               base_distribution,
-               flow_layers: Sequence,
-               optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
-               loss: Optional[Any] = None,
+               model: NormalizingFlow,
+               loss=NegLogLoss,
+               optimizer=Adam,
+               learning_rate: float = 1e-5,
+               batch_size: int = 64,
                **kwargs):
     """Creates a new NormalizingFlowModel.
 
     Parameters
     ----------
-    base_distribution : tfd.Distribution
-      Probability distribution to be transformed.
-      Typically an N dimensional multivariate Gaussian.
-    flow_layers : Sequence[tfb.Bijector]
-      An iterable of bijectors that comprise the flow.
-    optimizer: Optional[tf.keras.optimizers.Optimizer]
-      An instance of Optimizer.
-    loss: Optional[Any]
-      Loss function, e.g. an instance of dc.models.losses.Loss.
+    model: NormalizingFlow
+      An instance of NormalizingFlow.
+    loss: dc.models.losses.Loss, default NegLogLoss
+      Loss function
+    optimizer: dc.models.optimizers.Optimizer, default Adam
+      Optimizer.
+    learning_rate: float, default 1e-5
+      Learning rate for optimizer.
+    
 
     Examples
     --------
@@ -134,10 +132,13 @@ class NormalizingFlowModel(NormalizingFlow):
     ..            hidden_layers=[8, 8]))
     ..]
     >> base_distribution = tfd.MultivariateNormalDiag(loc=[0., 0., 0.])
-    >> nfm = NormalizingFlowModel(base_distribution, flow_layers)
-    >> X = np.random.rand(5, 3).astype(np.float32)
-    >> nfm.build()
-    >> nfm.fit(X)
+    >> nf = NormalizingFlow(base_distribution, flow_layers)
+    >> nfm = NormalizingFlowModel(nf)
+    >> dataset = NumpyDataset(
+    ..    X=np.random.rand(5, 3).astype(np.float32),
+    ..    y=np.random.rand(5,),
+    ..    ids=np.arange(5))
+    >> nfm.fit(dataset)
 
     """
 
@@ -149,28 +150,19 @@ class NormalizingFlowModel(NormalizingFlow):
       raise ValueError(
           "This class requires tensorflow-probability to be installed.")
 
-    super(NormalizingFlowModel, self).__init__(**kwargs)
+    self.model = model
+    self.flow = model.flow  # normalizing flow
+    self.loss = loss()
+    self.batch_size = batch_size
+    self.learning_rate = learning_rate
 
-    self.base_distribution = base_distribution
-    self.flow_layers = flow_layers
-    if optimizer is None:
-      self.optimizer = Adam(learning_rate=1e-5)._create_optimizer(
-          tf.Variable(0, trainable=False))
-    else:
-      self.optimizer = optimizer
-
-    # Chain of flows is also a normalizing flow
-    bijector = tfb.Chain(list(reversed(self.flow_layers)))
-
-    self.flow = tfd.TransformedDistribution(
-        distribution=self.base_distribution, bijector=bijector)
-
-    if loss is None:
-      self.loss = self.nll
-    else:
-      self.loss = loss
+    self.optimizer = optimizer(learning_rate=learning_rate)
 
     self.built = False
+    self.build()
+
+    super(NormalizingFlowModel, self).__init__(
+        model=self.model, loss=self.loss, optimizer=self.optimizer, **kwargs)
 
   def build(self):
     """Initialize tf network."""
@@ -180,53 +172,115 @@ class NormalizingFlowModel(NormalizingFlow):
 
     self.built = True
 
-  def fit(self,
-          dataset: dc.data.Dataset,
-          batch_size: int = 64,
-          nb_epoch: int = 10) -> Tuple[float, float]:
-    """Train on `dataset`.
+  # def fit_generator(self,
+  #                   generator,
+  #                   max_checkpoints_to_keep=5,
+  #                   checkpoint_interval=1000,
+  #                   restore=False,
+  #                   variables=None,
+  #                   loss=None,
+  #                   callbacks=[]):
 
-    Parameters
-    ----------
-    dataset: dc.data.Dataset
-      The Dataset to train on
-    batch_size: int, default 64
-      Number of elements in each batch
-    nb_epoch: int, default 10
-      the number of epochs to train for
+  #   for batch in generator:
+  #     X, y, w = self._prepare_batch(batch)
 
-    Returns
-    -------
-    final_loss: float
-      Final loss value after training.
-    avg_loss: float
-      Average loss during training.
+  #     # X = tf.convert_to_tensor(next(gen)[0], tf.float32)
+  #     batch_loss = self.fit_on_batch(x)
+  #     logger.info('Loss on epoch %i is %.4f' % (epoch, batch_loss))
+  #     avg_loss += batch_loss
+  #     nbatches += 1
 
-    """
+  #   avg_loss /= nbatches
+  #   final_loss = batch_loss
+  #   return (final_loss, avg_loss)
 
-    if not self.built:
-      self.build()
+  # def fit(self,
+  #         dataset,
+  #         nb_epoch=10,
+  #         max_checkpoints_to_keep=5,
+  #         checkpoint_interval=1000,
+  #         deterministic=False,
+  #         restore=False,
+  #         variables=None,
+  #         loss=None,
+  #         callbacks=[]):  # type: ignore
+  #   """Train on `dataset`.
 
-    avg_loss = 0.
-    nbatches = 0
+  #   Parameters
+  #   ----------
+  #   dataset: dc.data.Dataset
+  #     The Dataset to train on
+  #   batch_size: int, default 64
+  #     Number of elements in each batch
+  #   nb_epoch: int, default 10
+  #     the number of epochs to train for
 
-    # Generator of (X, y, w, ids) batches
-    gen = dataset.iterbatches(batch_size=batch_size)
-    for epoch in range(nb_epoch):
-      x = tf.convert_to_tensor(next(gen)[0], tf.float32)
-      batch_loss = self.fit_on_batch(x, self.optimizer, self.loss)
-      logger.info('Loss on epoch %i is %.4f' % (epoch, batch_loss))
-      avg_loss += batch_loss
-      nbatches += 1
+  #   Returns
+  #   -------
+  #   final_loss: float
+  #     Final loss value after training.
+  #   avg_loss: float
+  #     Average loss during training.
 
-    avg_loss /= nbatches
-    final_loss = batch_loss
-    return (final_loss, avg_loss)
+  #   """
 
-  def nll(self, X, labels):
-    """Negative log loss."""
+  #   if not self.built:
+  #     self.build()
 
-    return -tf.reduce_mean(self.flow.log_prob(X, training=True))
+  #   avg_loss = 0.
+  #   nbatches = 0
+
+  #   # Generator of (X, y, w, ids) batches
+  #   gen = dataset.iterbatches(batch_size=self.batch_size)
+  #   for epoch in range(nb_epoch):
+  #     x = tf.convert_to_tensor(next(gen)[0], tf.float32)
+  #     batch_loss = self.fit_on_batch(x)
+  #     logger.info('Loss on epoch %i is %.4f' % (epoch, batch_loss))
+  #     avg_loss += batch_loss
+  #     nbatches += 1
+
+  #   avg_loss /= nbatches
+  #   final_loss = batch_loss
+  #   return (final_loss, avg_loss)
+
+  # @tf.function
+  # def fit_on_batch(self,
+  #                  X,
+  #                  y=None,
+  #                  w=None,
+  #                  variables=None,
+  #                  loss=None,
+  #                  callbacks=[],
+  #                  checkpoint=True,
+  #                  max_checkpoints_to_keep=5):
+  #   """Fit on batch of samples.
+
+  #   Parameters
+  #   ----------
+  #   X: np.ndarray, shape (n_samples, n_dim)
+  #     Array of samples where each sample is a vector of length `n_dim`.
+
+  #   Returns
+  #   -------
+  #   batch_loss: float
+  #     Loss computed on this batch.
+
+  #   """
+
+  #   with tf.GradientTape() as tape:
+  #     dummy_labels = np.ones(len(X))
+  #     log_probs = self.log_prob(X)
+  #     loss = self.loss()
+  #     optimizer = self._tf_optimizer
+  #     batch_loss = loss(log_probs, dummy_labels)
+  #     grads = tape.gradient(batch_loss, self.model.trainable_variables)
+  #     optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+  #   return batch_loss
+
+  def log_prob(self, X):
+    """Log likelihoods."""
+
+    return self.flow.log_prob(X, training=True)
 
 
 class NormalizingFlowLayer(object):
