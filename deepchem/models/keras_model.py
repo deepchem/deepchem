@@ -227,7 +227,7 @@ class KerasModel(Model):
       return
     self._built = True
     self._global_step = tf.Variable(0, trainable=False)
-    self._tf_optimizer = self.optimizer._create_optimizer(self._global_step)
+    self._tf_optimizer = self.optimizer._create_tf_optimizer(self._global_step)
     self._checkpoint = tf.train.Checkpoint(
         optimizer=self._tf_optimizer, model=self.model)
 
