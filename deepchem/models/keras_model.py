@@ -1203,7 +1203,7 @@ class _StandardLoss(object):
       raise ValueError(
           "Loss functions expects exactly one each of outputs, labels, and weights"
       )
-    losses = self.loss(outputs[0], labels[0])
+    losses = self.loss._compute_tf_loss(outputs[0], labels[0])
     w = weights[0]
     if len(w.shape) < len(losses.shape):
       if isinstance(w, tf.Tensor):

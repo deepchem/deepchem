@@ -14,7 +14,7 @@ except:
   has_pytorch = False
 
 
-class TestLayers(unittest.TestCase):
+class TestOptimizers(unittest.TestCase):
   """Test optimizers and related classes."""
 
   @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
