@@ -29,7 +29,7 @@ class TestOptimizers(unittest.TestCase):
   def test_adam_pytorch(self):
     """Test creating an Adam optimizer."""
     opt = optimizers.Adam(learning_rate=0.01)
-    params = [torch.nn.parameter.Parameter(torch.Tensor([1.0]))]
+    params = [torch.nn.Parameter(torch.Tensor([1.0]))]
     torchopt = opt._create_pytorch_optimizer(params)
     assert isinstance(torchopt, torch.optim.Adam)
 
@@ -45,7 +45,7 @@ class TestOptimizers(unittest.TestCase):
   def test_adagrad_pytorch(self):
     """Test creating an AdaGrad optimizer."""
     opt = optimizers.AdaGrad(learning_rate=0.01)
-    params = [torch.nn.parameter.Parameter(torch.Tensor([1.0]))]
+    params = [torch.nn.Parameter(torch.Tensor([1.0]))]
     torchopt = opt._create_pytorch_optimizer(params)
     assert isinstance(torchopt, torch.optim.Adagrad)
 
@@ -61,7 +61,7 @@ class TestOptimizers(unittest.TestCase):
   def test_rmsprop_pytorch(self):
     """Test creating an RMSProp Optimizer."""
     opt = optimizers.RMSProp(learning_rate=0.01)
-    params = [torch.nn.parameter.Parameter(torch.Tensor([1.0]))]
+    params = [torch.nn.Parameter(torch.Tensor([1.0]))]
     torchopt = opt._create_pytorch_optimizer(params)
     assert isinstance(torchopt, torch.optim.RMSprop)
 
@@ -77,7 +77,7 @@ class TestOptimizers(unittest.TestCase):
   def test_gradient_descent_pytorch(self):
     """Test creating a Gradient Descent optimizer."""
     opt = optimizers.GradientDescent(learning_rate=0.01)
-    params = [torch.nn.parameter.Parameter(torch.Tensor([1.0]))]
+    params = [torch.nn.Parameter(torch.Tensor([1.0]))]
     torchopt = opt._create_pytorch_optimizer(params)
     assert isinstance(torchopt, torch.optim.SGD)
 
@@ -96,7 +96,7 @@ class TestOptimizers(unittest.TestCase):
     rate = optimizers.ExponentialDecay(
         initial_rate=0.001, decay_rate=0.99, decay_steps=10000)
     opt = optimizers.Adam(learning_rate=rate)
-    params = [torch.nn.parameter.Parameter(torch.Tensor([1.0]))]
+    params = [torch.nn.Parameter(torch.Tensor([1.0]))]
     torchopt = opt._create_pytorch_optimizer(params)
     schedule = rate._create_pytorch_schedule(torchopt)
 
@@ -115,7 +115,7 @@ class TestOptimizers(unittest.TestCase):
     rate = optimizers.PolynomialDecay(
         initial_rate=0.001, final_rate=0.0001, decay_steps=10000)
     opt = optimizers.Adam(learning_rate=rate)
-    params = [torch.nn.parameter.Parameter(torch.Tensor([1.0]))]
+    params = [torch.nn.Parameter(torch.Tensor([1.0]))]
     torchopt = opt._create_pytorch_optimizer(params)
     schedule = rate._create_pytorch_schedule(torchopt)
 
@@ -132,6 +132,6 @@ class TestOptimizers(unittest.TestCase):
     """test creating an optimizer with a linear cosine decay to the learning rate"""
     rate = optimizers.LinearCosineDecay(initial_rate=0.1, decay_steps=10000)
     opt = optimizers.Adam(learning_rate=rate)
-    params = [torch.nn.parameter.Parameter(torch.Tensor([1.0]))]
+    params = [torch.nn.Parameter(torch.Tensor([1.0]))]
     torchopt = opt._create_pytorch_optimizer(params)
     schedule = rate._create_pytorch_schedule(torchopt)
