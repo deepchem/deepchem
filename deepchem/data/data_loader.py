@@ -629,7 +629,7 @@ class JsonLoader(DataLoader):
         if self.id_field:
           ids = shard[self.id_field].values
         else:
-          ids = np.ones(len(X))
+          ids = np.ones(len(valid_inds))
         ids = ids[valid_inds]
 
         if len(self.tasks) > 0:

@@ -119,6 +119,21 @@ Lipo Datasets
 
 .. autofunction:: deepchem.molnet.load_lipo
 
+Materials Datasets
+------------------
+Materials datasets include inorganic crystal structures, chemical
+compositions, and target properties like formation energies and band
+gaps. Machine learning problems in materials science commonly include
+predicting the value of a continuous (regression) or categorical 
+(classification) property of a material based on its chemical composition
+or crystal structure. "Inverse design" is also of great interest, in which
+ML methods generate crystal structures that have a desired property. 
+Other areas where ML is applicable in materials include: discovering new 
+or modified phenomenological models that describe material behavior 
+
+.. autofunction:: deepchem.molnet.load_bandgap
+.. autofunction:: deepchem.molnet.load_perovskite
+
 MUV Datasets
 ------------
 

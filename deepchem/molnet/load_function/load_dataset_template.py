@@ -29,7 +29,7 @@ DEFAULT_FEATURIZERS = {k: DEFAULT_FEATURIZERS[k] for k in mydataset_featurizers}
 DEFAULT_TRANSFORMERS = get_defaults("trans")
 
 # dict of accepted splitters
-DEFAULT_SPLITTERS = get_defaults("split")
+DEFAULT_SPLITTERS = get_defaults("splits")
 
 # names of supported splitters
 mydataset_splitters = ['Splitter1', 'Splitter2', 'Splitter3']
@@ -38,15 +38,16 @@ DEFAULT_SPLITTERS = {k: DEFAULT_SPLITTERS[k] for k in mydataset_splitters}
 
 def load_mydataset(
     featurizer: Featurizer = DEFAULT_FEATURIZERS['RawFeaturizer'],
-    transformers: Tuple[Transformer] = (
-        DEFAULT_TRANSFORMERS['PowerTransformer']),
+    transformers: List[Transformer] = [
+        DEFAULT_TRANSFORMERS['PowerTransformer']
+    ],
     splitter: Splitter = DEFAULT_SPLITTERS['RandomSplitter'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
-    featurizer_kwargs: Optional[Dict[str, object]] = None,
-    splitter_kwargs: Optional[Dict[str, object]] = None,
-    transformer_kwargs: Optional[Dict[str, Dict[str, object]]] = None,
+    featurizer_kwargs: Dict[str, object] = {},
+    splitter_kwargs: Dict[str, object] = {},
+    transformer_kwargs: Dict[str, Dict[str, object]] = {},
     **kwargs) -> Tuple[List, Tuple, List]:
   """Load mydataset.
 
@@ -76,7 +77,7 @@ def load_mydataset(
   ----------
   featurizer : {List of allowed featurizers for this dataset}
     A featurizer that inherits from deepchem.feat.Featurizer.
-  transformers : Tuple{List of allowed transformers for this dataset}
+  transformers : List{List of allowed transformers for this dataset}
     A transformer that inherits from deepchem.trans.Transformer.
   splitter : {List of allowed splitters for this dataset}
     A splitter that inherits from deepchem.splits.splitters.Splitter.
@@ -153,9 +154,9 @@ def load_mydataset(
     featurizer = featurizer(**featurizer_kwargs)
 
   if isinstance(splitter, str):
-    splitter = DEFAULT_SPLITTERS[splitter](**splitter_kwargs)
+    splitter = DEFAULT_SPLITTERS[splitter]()
   elif issubclass(splitter, Splitter):
-    splitter = splitter(**splitter_kwargs)
+    splitter = splitter()
 
   # Reload from disk
   if reload:
@@ -198,16 +199,8 @@ def load_mydataset(
   # Featurize dataset
   dataset = loader.create_dataset(dataset_file)
 
-  # 80/10/10 train/val/test split is default
-  frac_train = kwargs.get("frac_train", 0.8)
-  frac_valid = kwargs.get('frac_valid', 0.1)
-  frac_test = kwargs.get('frac_test', 0.1)
-
   train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-      dataset,
-      frac_train=frac_train,
-      frac_valid=frac_valid,
-      frac_test=frac_test)
+      dataset, **splitter_kwargs)
 
   # Initialize transformers
   transformers = [
