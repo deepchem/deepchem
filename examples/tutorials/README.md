@@ -47,7 +47,7 @@ competition. Increased competition can help drive down the cost of medicine.
 * [Part 17: Training a Generative Adversarial Network on MNIST](17_Training_a_Generative_Adversarial_Network_on_MNIST.ipynb)
 * [Part 18: Using Reinforcement Learning to Play Pong](18_Using_Reinforcement_Learning_to_Play_Pong.ipynb)
 * [Part 19: Large Scale Chemical Screens](19_Large_Scale_Chemical_Screens.ipynb)
-* [Part 20: [WIP] ConvertingDeepChem Models to TensorFlow Estimators](WIP_20_Converting_DeepChem_Models_to_TensorFlow_Estimators.ipynb)
+* [Part 20: ConvertingDeepChem Models to TensorFlow Estimators](20_Converting_DeepChem_Models_to_TensorFlow_Estimators.ipynb)
 * [Part 21: Introduction to Bioinformatics](21_Introduction_to_Bioinformatics.ipynb)
 * [Part 22: Using HuggingFace + Transfer Learning for Toxicity Predictions](22_Transfer_Learning_With_HuggingFace_tox21.ipynb)
 
