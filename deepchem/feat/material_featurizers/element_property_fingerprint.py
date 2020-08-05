@@ -81,4 +81,3 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
       feats = []
 
     return np.nan_to_num(np.array(feats))
-
