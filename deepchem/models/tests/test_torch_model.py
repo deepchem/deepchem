@@ -10,28 +10,6 @@ except:
   has_pytorch = False
 
 
-class ExampleModel(torch.nn.Module):
-
-  def __init__(self, n_features, layer_sizes, prediction_activation=None):
-    super(ExampleModel, self).__init__()
-    self.layers = torch.nn.ModuleList()
-    self.prediction_activation = prediction_activation
-    in_size = n_features
-    for out_size in layer_sizes:
-      self.layers.append(torch.nn.Linear(in_size, out_size))
-      in_size = out_size
-
-  def forward(self, x):
-    import torch.nn.functional as F
-    for i, layer in enumerate(self.layers):
-      x = layer(x)
-      if i < len(self.layers) - 1:
-        x = F.relu(x)
-    if self.prediction_activation is None:
-      return x
-    return self.prediction_activation(x), x
-
-
 def test_overfit_subclass_model():
   """Test fitting a TorchModel defined by subclassing Module."""
   import torch.nn.functional as F
@@ -41,7 +19,25 @@ def test_overfit_subclass_model():
   X = np.random.rand(n_data_points, n_features)
   y = (X[:, 0] > X[:, 1]).astype(np.float32)
   dataset = dc.data.NumpyDataset(X, y)
-  pytorch_model = ExampleModel(n_features, [10, 1], F.sigmoid)
+
+  class ExampleModel(torch.nn.Module):
+
+    def __init__(self, layer_sizes):
+      super(ExampleModel, self).__init__()
+      self.layers = torch.nn.ModuleList()
+      in_size = n_features
+      for out_size in layer_sizes:
+        self.layers.append(torch.nn.Linear(in_size, out_size))
+        in_size = out_size
+
+    def forward(self, x):
+      for i, layer in enumerate(self.layers):
+        x = layer(x)
+        if i < len(self.layers) - 1:
+          x = F.relu(x)
+      return F.sigmoid(x), x
+
+  pytorch_model = ExampleModel([10, 1])
   model = dc.models.TorchModel(
       pytorch_model,
       dc.models.losses.SigmoidCrossEntropy(),
@@ -254,47 +250,56 @@ def test_uncertainty():
   assert noise < np.mean(std) < 1.0
 
 
-# def test_saliency_mapping():
-#   """Test computing a saliency map."""
-#   n_tasks = 3
-#   n_features = 5
-#   pytorch_model = tf.keras.Sequential([
-#       tf.keras.layers.Dense(20, activation='tanh'),
-#       tf.keras.layers.Dense(n_tasks)
-#   ])
-#   model = dc.models.TorchModel(pytorch_model, dc.models.losses.L2Loss())
-#   x = np.random.random(n_features)
-#   s = model.compute_saliency(x)
-#   assert s.shape[0] == n_tasks
-#   assert s.shape[1] == n_features
-#
-#   # Take a tiny step in the direction of s and see if the output changes by
-#   # the expected amount.
-#
-#   delta = 0.01
-#   for task in range(n_tasks):
-#     norm = np.sqrt(np.sum(s[task]**2))
-#     step = 0.5 * delta / norm
-#     pred1 = model.predict_on_batch((x + s[task] * step).reshape(
-#         (1, n_features))).flatten()
-#     pred2 = model.predict_on_batch((x - s[task] * step).reshape(
-#         (1, n_features))).flatten()
-#     assert np.allclose(pred1[task], (pred2 + norm * delta)[task])
-#
-#
-# def test_saliency_shapes():
-#   """Test computing saliency maps for multiple outputs with multiple dimensions."""
-#   inputs = tf.keras.Input(shape=(2, 3))
-#   flatten = tf.keras.layers.Flatten()(inputs)
-#   output1 = tf.keras.layers.Reshape((4, 1))(tf.keras.layers.Dense(4)(flatten))
-#   output2 = tf.keras.layers.Reshape((1, 5))(tf.keras.layers.Dense(5)(flatten))
-#   pytorch_model = tf.keras.Model(inputs=inputs, outputs=[output1, output2])
-#   model = dc.models.TorchModel(pytorch_model, dc.models.losses.L2Loss())
-#   x = np.random.random((2, 3))
-#   s = model.compute_saliency(x)
-#   assert len(s) == 2
-#   assert s[0].shape == (4, 1, 2, 3)
-#   assert s[1].shape == (1, 5, 2, 3)
+def test_saliency_mapping():
+  """Test computing a saliency map."""
+  n_tasks = 3
+  n_features = 5
+  pytorch_model = torch.nn.Sequential(
+      torch.nn.Linear(n_features, 20), torch.nn.Tanh(),
+      torch.nn.Linear(20, n_tasks))
+  model = dc.models.TorchModel(pytorch_model, dc.models.losses.L2Loss())
+  x = np.random.random(n_features)
+  s = model.compute_saliency(x)
+  assert s.shape[0] == n_tasks
+  assert s.shape[1] == n_features
+
+  # Take a tiny step in the direction of s and see if the output changes by
+  # the expected amount.
+
+  delta = 0.01
+  for task in range(n_tasks):
+    norm = np.sqrt(np.sum(s[task]**2))
+    step = 0.5 * delta / norm
+    pred1 = model.predict_on_batch((x + s[task] * step).reshape(
+        (1, n_features))).flatten()
+    pred2 = model.predict_on_batch((x - s[task] * step).reshape(
+        (1, n_features))).flatten()
+    assert np.allclose(pred1[task], (pred2 + norm * delta)[task])
+
+
+def test_saliency_shapes():
+  """Test computing saliency maps for multiple outputs with multiple dimensions."""
+
+  class SaliencyModel(torch.nn.Module):
+
+    def __init__(self):
+      super(SaliencyModel, self).__init__()
+      self.layer1 = torch.nn.Linear(6, 4)
+      self.layer2 = torch.nn.Linear(6, 5)
+
+    def forward(self, x):
+      x = torch.flatten(x)
+      output1 = self.layer1(x).reshape(1, 4, 1)
+      output2 = self.layer2(x).reshape(1, 1, 5)
+      return output1, output2
+
+  pytorch_model = SaliencyModel()
+  model = dc.models.TorchModel(pytorch_model, dc.models.losses.L2Loss())
+  x = np.random.random((2, 3))
+  s = model.compute_saliency(x)
+  assert len(s) == 2
+  assert s[0].shape == (4, 1, 2, 3)
+  assert s[1].shape == (1, 5, 2, 3)
 
 
 def test_tensorboard():

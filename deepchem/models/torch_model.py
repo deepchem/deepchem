@@ -811,54 +811,59 @@ class TorchModel(Model):
     evaluator = GeneratorEvaluator(self, generator, transformers)
     return evaluator.compute_model_performance(metrics, per_task_metrics)
 
-  # def compute_saliency(self, X: np.ndarray) -> OneOrMany[np.ndarray]:
-  #   """Compute the saliency map for an input sample.
-  #
-  #   This computes the Jacobian matrix with the derivative of each output element
-  #   with respect to each input element.  More precisely,
-  #
-  #   - If this model has a single output, it returns a matrix of shape
-  #     (output_shape, input_shape) with the derivatives.
-  #   - If this model has multiple outputs, it returns a list of matrices, one
-  #     for each output.
-  #
-  #   This method cannot be used on models that take multiple inputs.
-  #
-  #   Parameters
-  #   ----------
-  #   X: ndarray
-  #     the input data for a single sample
-  #
-  #   Returns
-  #   -------
-  #   the Jacobian matrix, or a list of matrices
-  #   """
-  #   input_shape = X.shape
-  #   X = np.reshape(X, [1] + list(X.shape))
-  #   self._ensure_built()
-  #   X, _, _ = self._prepare_batch(([X], None, None))
-  #
-  #   # Use a GradientTape to compute gradients.
-  #
-  #   X = tf.constant(X[0])
-  #   with tf.GradientTape(
-  #       persistent=True, watch_accessed_variables=False) as tape:
-  #     tape.watch(X)
-  #     outputs = self._compute_model(X)
-  #     if isinstance(outputs, tf.Tensor):
-  #       outputs = [outputs]
-  #     final_result = []
-  #     for output in outputs:
-  #       output_shape = tuple(output.shape.as_list()[1:])
-  #       output = tf.reshape(output, [-1])
-  #       result = []
-  #       for i in range(output.shape[0]):
-  #         result.append(tape.gradient(output[i], X))
-  #       final_result.append(
-  #           tf.reshape(tf.stack(result), output_shape + input_shape).numpy())
-  #   if len(final_result) == 1:
-  #     return final_result[0]
-  #   return final_result
+  def compute_saliency(self, X: np.ndarray) -> OneOrMany[np.ndarray]:
+    """Compute the saliency map for an input sample.
+
+    This computes the Jacobian matrix with the derivative of each output element
+    with respect to each input element.  More precisely,
+
+    - If this model has a single output, it returns a matrix of shape
+      (output_shape, input_shape) with the derivatives.
+    - If this model has multiple outputs, it returns a list of matrices, one
+      for each output.
+
+    This method cannot be used on models that take multiple inputs.
+
+    Parameters
+    ----------
+    X: ndarray
+      the input data for a single sample
+
+    Returns
+    -------
+    the Jacobian matrix, or a list of matrices
+    """
+    input_shape = X.shape
+    X = np.reshape(X, [1] + list(X.shape))
+    self._ensure_built()
+    X, _, _ = self._prepare_batch(([X], None, None))
+
+    # Use a GradientTape to compute gradients.
+
+    X = torch.Tensor(X[0])
+    X.requires_grad_(True)
+    outputs = self.model(X)
+    if isinstance(outputs, torch.Tensor):
+      outputs = [outputs]
+    final_result = []
+    for output in outputs:
+      print(output.shape)
+      output_shape = tuple(output.shape[1:])
+      output = output.reshape([-1])
+      result = []
+      grad_output = torch.zeros(output.shape[0])
+      for i in range(output.shape[0]):
+        grad_output.zero_()
+        grad_output[i] = 1
+        output.backward(grad_output, retain_graph=True)
+        result.append(X.grad.clone())
+        X.grad.zero_()
+      final_result.append(
+          torch.reshape(torch.stack(result),
+                        output_shape + input_shape).numpy())
+    if len(final_result) == 1:
+      return final_result[0]
+    return final_result
 
   def _prepare_batch(self,
                      batch: Tuple[Any, Any, Any]) -> Tuple[List, List, List]:
