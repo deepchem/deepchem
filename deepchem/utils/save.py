@@ -82,7 +82,8 @@ def load_data(input_files: List[str],
 
 def load_sdf_files(input_files: List[str],
                    clean_mols: bool = True,
-                   tasks: List[str] = []) -> List[pd.DataFrame]:
+                   tasks: List[str] = [],
+                   shard_size: Optional[int] = None) -> List[pd.DataFrame]:
   """Load SDF file into dataframe.
 
   Parameters
@@ -95,6 +96,8 @@ def load_sdf_files(input_files: List[str],
     Each entry in `tasks` is treated as a property in the SDF file and is
     retrieved with `mol.GetProp(str(task))` where `mol` is the RDKit mol
     loaded from a given SDF entry.
+  shard_size: int, optional (default None) 
+    The shard size to yield at one time.
 
   Note
   ----
@@ -107,14 +110,13 @@ def load_sdf_files(input_files: List[str],
     contain columns `('mol_id', 'smiles', 'mol')`.
   """
   from rdkit import Chem
-  dataframes = []
+  df_rows = []
   for input_file in input_files:
     # Tasks are either in .sdf.csv file or in the .sdf file itself
     has_csv = os.path.isfile(input_file + ".csv")
     # Structures are stored in .sdf file
-    print("Reading structures from %s." % input_file)
+    logger.info("Reading structures from %s." % input_file)
     suppl = Chem.SDMolSupplier(str(input_file), clean_mols, False, False)
-    df_rows = []
     for ind, mol in enumerate(suppl):
       if mol is None:
         continue
@@ -124,15 +126,28 @@ def load_sdf_files(input_files: List[str],
         for task in tasks:
           df_row.append(mol.GetProp(str(task)))
       df_rows.append(df_row)
-    if has_csv:
-      mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
-      raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
-      dataframes.append(pd.concat([mol_df, raw_df], axis=1, join='inner'))
-    else:
-      mol_df = pd.DataFrame(
-          df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks))
-      dataframes.append(mol_df)
-  return dataframes
+      if shard_size is not None and len(df_rows) == shard_size:
+        if has_csv:
+          mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
+          raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
+          yield pd.concat([mol_df, raw_df], axis=1, join='inner')
+        else:
+          mol_df = pd.DataFrame(
+              df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks))
+          yield mol_df
+        # Reset aggregator
+        df_rows = []
+    # Handle final leftovers for this file
+    if len(df_rows) > 0:
+      if has_csv:
+        mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
+        raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
+        yield pd.concat([mol_df, raw_df], axis=1, join='inner')
+      else:
+        mol_df = pd.DataFrame(
+            df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks))
+        yield mol_df
+      df_rows = []
 
 
 def load_csv_files(filenames: List[str],
