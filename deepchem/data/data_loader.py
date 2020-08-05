@@ -707,7 +707,6 @@ class SDFLoader(DataLoader):
   >>> featurizer = dc.feat.CircularFingerprint(size=16)
   >>> loader = dc.data.SDFLoader(["LogP(RRCK)"], featurizer=featurizer, sanitize=True)
   >>> dataset = loader.create_dataset(os.path.join(current_dir, "tests", "membrane_permeability.sdf")) # doctest:+ELLIPSIS
-  Reading ...
   >>> len(dataset)
   2
   """
@@ -743,7 +742,11 @@ class SDFLoader(DataLoader):
 
   def _get_shards(self, input_files, shard_size):
     """Defines a generator which returns data for each shard"""
-    return load_sdf_files(input_files, self.sanitize, tasks=self.tasks)
+    return load_sdf_files(
+        input_files=input_files,
+        clean_mols=self.sanitize,
+        tasks=self.tasks,
+        shard_size=shard_size)
 
   def _featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
