@@ -707,7 +707,6 @@ class SDFLoader(DataLoader):
   >>> featurizer = dc.feat.CircularFingerprint(size=16)
   >>> loader = dc.data.SDFLoader(["LogP(RRCK)"], featurizer=featurizer, sanitize=True)
   >>> dataset = loader.create_dataset(os.path.join(current_dir, "tests", "membrane_permeability.sdf")) # doctest:+ELLIPSIS
-  Reading ...
   >>> len(dataset)
   2
   """
