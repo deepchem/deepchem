@@ -43,35 +43,35 @@ def load_chembl(shard_size=2000,
   if not os.path.exists(dataset_path):
     deepchem.utils.download_url(
         url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_5thresh.csv.gz',
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_5thresh.csv.gz",
         dest_dir=data_dir)
     deepchem.utils.download_url(
         url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_sparse.csv.gz',
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_sparse.csv.gz",
         dest_dir=data_dir)
     deepchem.utils.download_url(
         url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_5thresh_ts_test.csv.gz',
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_5thresh_ts_test.csv.gz",
         dest_dir=data_dir)
     deepchem.utils.download_url(
         url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_5thresh_ts_train.csv.gz',
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_5thresh_ts_train.csv.gz",
         dest_dir=data_dir)
     deepchem.utils.download_url(
         url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_5thresh_ts_valid.csv.gz',
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_5thresh_ts_valid.csv.gz",
         dest_dir=data_dir)
     deepchem.utils.download_url(
         url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_sparse_ts_test.csv.gz',
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_sparse_ts_test.csv.gz",
         dest_dir=data_dir)
     deepchem.utils.download_url(
         url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_sparse_ts_train.csv.gz',
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_sparse_ts_train.csv.gz",
         dest_dir=data_dir)
     deepchem.utils.download_url(
         url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_sparse_ts_valid.csv.gz',
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_sparse_ts_valid.csv.gz",
         dest_dir=data_dir)
 
   if split == "year":

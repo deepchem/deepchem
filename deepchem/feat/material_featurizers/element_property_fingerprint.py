@@ -40,6 +40,7 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
   Notes
   -----
   This class requires matminer and Pymatgen to be installed.
+  `NaN` feature values are automatically converted to 0 by this featurizer.
   """
 
   def __init__(self, data_source: str = 'matminer'):
@@ -79,4 +80,5 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
     except:
       feats = []
 
-    return np.array(feats)
+    return np.nan_to_num(np.array(feats))
+

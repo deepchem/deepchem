@@ -12,9 +12,9 @@ from deepchem.molnet.load_function.uv_tasks import UV_tasks
 
 logger = logging.getLogger(__name__)
 
-TRAIN_URL = 'https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/UV_training_disguised_combined_full.csv.gz'
-VALID_URL = 'https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/UV_test1_disguised_combined_full.csv.gz'
-TEST_URL = 'https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/UV_test2_disguised_combined_full.csv.gz'
+TRAIN_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/UV_training_disguised_combined_full.csv.gz"
+VALID_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/UV_test1_disguised_combined_full.csv.gz"
+TEST_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/UV_test2_disguised_combined_full.csv.gz"
 
 TRAIN_FILENAME = "UV_training_disguised_combined_full.csv.gz"
 VALID_FILENAME = "UV_test1_disguised_combined_full.csv.gz"
