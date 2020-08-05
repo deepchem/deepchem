@@ -22,7 +22,7 @@ PEROVSKITE_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets
 DEFAULT_FEATURIZERS = get_defaults("feat")
 
 # Names of supported featurizers
-featurizers = ['SineCoulombMatrix', 'StructureGraphFeaturizer']
+featurizers = ['SineCoulombMatrix', 'CGCNNFeaturizer']
 DEFAULT_FEATURIZERS = {k: DEFAULT_FEATURIZERS[k] for k in featurizers}
 
 # dict of accepted transformers
@@ -153,9 +153,7 @@ def load_perovskite(
       return my_tasks, all_dataset, transformers
 
   # First type of supported featurizers
-  supported_featurizers: List[str] = [
-      'StructureGraphFeaturizer', 'SineCoulombMatrix'
-  ]
+  supported_featurizers: List[str] = ['CGCNNFeaturizer', 'SineCoulombMatrix']
 
   # Load .tar.gz file
   if featurizer.__class__.__name__ in supported_featurizers:

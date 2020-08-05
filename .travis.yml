@@ -14,10 +14,10 @@ jobs:
       language: c
       python: '3.7'
       os: windows
-
+cache: pip
 install:
   - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh; 
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
       export python_version=$TRAVIS_PYTHON_VERSION;
       bash miniconda.sh -b -p $HOME/miniconda;
       source "$HOME/miniconda/etc/profile.d/conda.sh";
@@ -33,8 +33,6 @@ install:
   - bash scripts/install_deepchem_conda.sh deepchem
   - conda activate deepchem
   - python setup.py install
-  - pip install coveralls mypy flake8 yapf==0.22.0
-
 script:
   - bash devtools/run_yapf.sh
   - bash devtools/run_flake8.sh
@@ -47,12 +45,9 @@ script:
   - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
       find ./deepchem -name "*.py" ! -name '*load_dataset_template.py' | xargs python -m doctest -v;
     fi
-
-
 after_success:
   - echo $TRAVIS_SECURE_ENV_VARS
   - coveralls
-
 deploy:
   provider: pypi
   username: __token__

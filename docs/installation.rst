@@ -42,7 +42,7 @@ The nightly version is built by the HEAD of DeepChem.
 
 .. code-block:: bash
 
-    pip install tensorflow==2.2
+    pip install tensorflow==2.2.0
     pip install --pre deepchem
 
 
@@ -139,6 +139,13 @@ Then, execute the shell script.
 .. code-block:: bash
 
     bash scripts/install_deepchem_conda.sh deepchem
+
+
+If you want GPU support:
+
+.. code-block:: bash
+
+    bash scripts/install_deepchem_conda.sh deepchem gpu
 
 
 If you are using the Windows and the PowerShell:

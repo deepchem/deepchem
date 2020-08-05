@@ -94,8 +94,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   `GridHyperparamOpt`. `param_dict[hp]` must be an int/float and is
   used as the center of a search range.
 
-  Example
-  -------
+  Examples
+  --------
   This example shows the type of constructor function expected.
 
   >>> import sklearn
@@ -121,8 +121,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   ...   )
   >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(model_builder)
 
-  Note
-  ----
+  Notes
+  -----
   This class requires pyGPGO to be installed.
   """
 

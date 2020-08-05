@@ -143,8 +143,8 @@ def get_partial_charge(atom: Union[RDKitAtom, AtomShim]) -> float:
   float
     A partial Gasteiger charge of a given atom.
 
-  Note
-  ----
+  Notes
+  -----
   This function requires RDKit to be installed.
 
   Examples
@@ -221,8 +221,8 @@ def get_mol_subset(
     A tuple of `(coords, mol_frag)` where `coords` is a numpy array of
     coordinates with hydrogen coordinates. `mol_frag` is a `MolecularFragment`.
 
-  Note
-  ----
+  Notes
+  -----
   This function requires RDKit to be installed.
   """
   try:
@@ -261,8 +261,8 @@ def strip_hydrogens(coords: np.ndarray, mol: Union[RDKitMol, MolecularFragment]
     A tuple of `(coords, mol_frag)` where `coords` is a numpy array of
     coordinates with hydrogen coordinates. `mol_frag` is a `MolecularFragment`.
 
-  Note
-  ----
+  Notes
+  -----
   This function requires RDKit to be installed.
   """
   mol_atoms = mol.GetAtoms()

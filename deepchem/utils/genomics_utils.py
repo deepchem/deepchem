@@ -109,8 +109,8 @@ def encode_bio_sequence(fname: str,
   np.ndarray
     A numpy array of shape `(N_sequences, N_letters, sequence_length, 1)`.
 
-  Note
-  ----
+  Notes
+  -----
   This function requires BioPython to be installed.
   """
   try:

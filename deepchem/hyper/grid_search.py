@@ -31,8 +31,8 @@ class GridHyperparamOpt(HyperparamOpt):
   a direct iteration over all possible hyperparameters and doesn't use
   parallelization to speed up the search.
 
-  Example
-  -------
+  Examples
+  --------
   This example shows the type of constructor function expected.
 
   >>> import sklearn

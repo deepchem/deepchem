@@ -83,8 +83,8 @@ def mol_to_graph(mol: RDKitMol):
   graph: networkx.Graph
     Contains atoms indices as nodes, edges as bonds.
 
-  Note
-  ----
+  Notes
+  -----
   This function requires NetworkX to be installed.
   """
   try:
@@ -119,8 +119,8 @@ def get_rotatable_bonds(mol: RDKitMol) -> List[Tuple[int, int]]:
   rotatable_bonds: List[List[int, int]]
     List of rotatable bonds in molecule
 
-  Note
-  ----
+  Notes
+  -----
   This function requires RDKit to be installed.
   """
   try:
@@ -153,8 +153,8 @@ def convert_mol_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
   outfile: str
     Filename for a valid pdb file with the extention .pdbqt
 
-  Note
-  ----
+  Notes
+  -----
   This function requires NetworkX to be installed.
   """
   try:
