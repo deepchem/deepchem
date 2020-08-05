@@ -11,6 +11,7 @@ except:
 
 
 class ExampleModel(torch.nn.Module):
+
   def __init__(self, n_features, layer_sizes, prediction_activation=None):
     super(ExampleModel, self).__init__()
     self.layers = torch.nn.ModuleList()
@@ -24,7 +25,7 @@ class ExampleModel(torch.nn.Module):
     import torch.nn.functional as F
     for i, layer in enumerate(self.layers):
       x = layer(x)
-      if i < len(self.layers)-1:
+      if i < len(self.layers) - 1:
         x = F.relu(x)
     if self.prediction_activation is None:
       return x
@@ -62,11 +63,8 @@ def test_overfit_sequential_model():
   y = (X[:, 0] > X[:, 1]).astype(np.float32)
   dataset = dc.data.NumpyDataset(X, y)
   pytorch_model = torch.nn.Sequential(
-      torch.nn.Linear(2, 10),
-      torch.nn.ReLU(),
-      torch.nn.Linear(10, 1),
-      torch.nn.Sigmoid()
-  )
+      torch.nn.Linear(2, 10), torch.nn.ReLU(), torch.nn.Linear(10, 1),
+      torch.nn.Sigmoid())
   model = dc.models.TorchModel(
       pytorch_model, dc.models.losses.BinaryCrossEntropy(), learning_rate=0.005)
   model.fit(dataset, nb_epoch=1000)
@@ -86,11 +84,8 @@ def test_fit_use_all_losses():
   y = (X[:, 0] > X[:, 1]).astype(np.float32)
   dataset = dc.data.NumpyDataset(X, y)
   pytorch_model = torch.nn.Sequential(
-      torch.nn.Linear(2, 10),
-      torch.nn.ReLU(),
-      torch.nn.Linear(10, 1),
-      torch.nn.Sigmoid()
-  )
+      torch.nn.Linear(2, 10), torch.nn.ReLU(), torch.nn.Linear(10, 1),
+      torch.nn.Sigmoid())
   model = dc.models.TorchModel(
       pytorch_model,
       dc.models.losses.BinaryCrossEntropy(),
@@ -111,11 +106,8 @@ def test_fit_on_batch():
   y = (X[:, 0] > X[:, 1]).astype(np.float32)
   dataset = dc.data.NumpyDataset(X, y)
   pytorch_model = torch.nn.Sequential(
-      torch.nn.Linear(2, 10),
-      torch.nn.ReLU(),
-      torch.nn.Linear(10, 1),
-      torch.nn.Sigmoid()
-  )
+      torch.nn.Linear(2, 10), torch.nn.ReLU(), torch.nn.Linear(10, 1),
+      torch.nn.Sigmoid())
   model = dc.models.TorchModel(
       pytorch_model, dc.models.losses.BinaryCrossEntropy(), learning_rate=0.005)
   i = 0
@@ -169,11 +161,8 @@ def test_fit_restore():
   # Train a model to overfit the dataset.
 
   pytorch_model = torch.nn.Sequential(
-      torch.nn.Linear(2, 10),
-      torch.nn.ReLU(),
-      torch.nn.Linear(10, 1),
-      torch.nn.Sigmoid()
-  )
+      torch.nn.Linear(2, 10), torch.nn.ReLU(), torch.nn.Linear(10, 1),
+      torch.nn.Sigmoid())
   model = dc.models.TorchModel(
       pytorch_model, dc.models.losses.BinaryCrossEntropy(), learning_rate=0.005)
   model.fit(dataset, nb_epoch=1000)
@@ -184,11 +173,8 @@ def test_fit_restore():
   # and make sure it got restored correctly.
 
   pytorch_model2 = torch.nn.Sequential(
-      torch.nn.Linear(2, 10),
-      torch.nn.ReLU(),
-      torch.nn.Linear(10, 1),
-      torch.nn.Sigmoid()
-  )
+      torch.nn.Linear(2, 10), torch.nn.ReLU(), torch.nn.Linear(10, 1),
+      torch.nn.Sigmoid())
   model2 = dc.models.TorchModel(
       pytorch_model2,
       dc.models.losses.BinaryCrossEntropy(),
@@ -309,30 +295,29 @@ def test_uncertainty():
 #   assert len(s) == 2
 #   assert s[0].shape == (4, 1, 2, 3)
 #   assert s[1].shape == (1, 5, 2, 3)
-#
-#
-# def test_tensorboard():
-#   """Test logging to Tensorboard."""
-#   n_data_points = 20
-#   n_features = 2
-#   X = np.random.rand(n_data_points, n_features)
-#   y = [[0.0, 1.0] for x in range(n_data_points)]
-#   dataset = dc.data.NumpyDataset(X, y)
-#   pytorch_model = tf.keras.Sequential([
-#       tf.keras.layers.Dense(2, activation='softmax'),
-#   ])
-#   model = dc.models.TorchModel(
-#       pytorch_model,
-#       dc.models.losses.CategoricalCrossEntropy(),
-#       tensorboard=True,
-#       log_frequency=1)
-#   model.fit(dataset, nb_epoch=10)
-#   files_in_dir = os.listdir(model.model_dir)
-#   event_file = list(filter(lambda x: x.startswith("events"), files_in_dir))
-#   assert len(event_file) > 0
-#   event_file = os.path.join(model.model_dir, event_file[0])
-#   file_size = os.stat(event_file).st_size
-#   assert file_size > 0
+
+
+def test_tensorboard():
+  """Test logging to Tensorboard."""
+  n_data_points = 20
+  n_features = 2
+  X = np.random.rand(n_data_points, n_features)
+  y = [[0.0, 1.0] for x in range(n_data_points)]
+  dataset = dc.data.NumpyDataset(X, y)
+  pytorch_model = torch.nn.Sequential(
+      torch.nn.Linear(n_features, 2), torch.nn.Softmax())
+  model = dc.models.TorchModel(
+      pytorch_model,
+      dc.models.losses.CategoricalCrossEntropy(),
+      tensorboard=True,
+      log_frequency=1)
+  model.fit(dataset, nb_epoch=10)
+  files_in_dir = os.listdir(model.model_dir)
+  event_file = list(filter(lambda x: x.startswith("events"), files_in_dir))
+  assert len(event_file) > 0
+  event_file = os.path.join(model.model_dir, event_file[0])
+  file_size = os.stat(event_file).st_size
+  assert file_size > 0
 
 
 def test_fit_variables():

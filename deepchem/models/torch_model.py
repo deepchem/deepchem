@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.utils.tensorboard
 import time
 import logging
 import os
@@ -19,7 +20,7 @@ from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
-from deepchem.utils.typing import KerasLossFn, OneOrMany
+from deepchem.utils.typing import LossFn, OneOrMany
 
 try:
   import wandb
@@ -40,22 +41,7 @@ def is_wandb_available():
 
 
 class TorchModel(Model):
-  """This is a DeepChem model implemented by a Keras model.
-
-  This class provides several advantages over using the Keras
-  model's fitting and prediction methods directly.
-
-  1. It provides better integration with the rest of DeepChem,
-     such as direct support for Datasets and Transformers.
-
-  2. It defines the loss in a more flexible way.  In particular,
-     Keras does not support multidimensional weight matrices,
-     which makes it impossible to implement most multitask
-     models with Keras.
-
-  3. It provides various additional features not found in the
-     Keras Model class, such as uncertainty prediction and
-     saliency mapping.
+  """This is a DeepChem model implemented by a PyTorch model.
 
   The loss function for a model can be defined in two different
   ways.  For models that have only a single output and use a
@@ -118,7 +104,7 @@ class TorchModel(Model):
 
   def __init__(self,
                model: torch.nn.Module,
-               loss: Union[Loss, KerasLossFn],
+               loss: Union[Loss, LossFn],
                output_types: Optional[List[str]] = None,
                batch_size: int = 100,
                model_dir: Optional[str] = None,
@@ -133,7 +119,7 @@ class TorchModel(Model):
     Parameters
     ----------
     model: torch.nn.Module
-      the Keras model implementing the calculation
+      the PyTorch model implementing the calculation
     loss: dc.models.losses.Loss or function
       a Loss or function defining how to compute the training loss for each
       batch, as described above
@@ -157,7 +143,8 @@ class TorchModel(Model):
     log_frequency: int
       The frequency at which to log data. Data is logged using
       `logging` by default. If `tensorboard` is set, data is also
-      logged to TensorBoard. Logging happens at global steps. Roughly,
+      logged to TensorBoard. If `wandb` is set, data is also logged
+      to Weights & Biases. Logging happens at global steps. Roughly,
       a global step corresponds to one batch of training. If you'd
       like a printout every 10 batch steps, you'd set
       `log_frequency=10` for example.
@@ -166,7 +153,7 @@ class TorchModel(Model):
         model_instance=model, model_dir=model_dir, **kwargs)
     self.model = model
     if isinstance(loss, Loss):
-      self._loss_fn: KerasLossFn = _StandardLoss(model, loss)
+      self._loss_fn: LossFn = _StandardLoss(model, loss)
     else:
       self._loss_fn = loss
     self.batch_size = batch_size
@@ -185,8 +172,9 @@ class TorchModel(Model):
     self.wandb = wandb and is_wandb_available()
 
     self.log_frequency = log_frequency
-    # if self.tensorboard:
-    #   self._summary_writer = tf.summary.create_file_writer(self.model_dir)
+    if self.tensorboard:
+      self._summary_writer = torch.utils.tensorboard.SummaryWriter(
+          self.model_dir)
     if output_types is None:
       self._prediction_outputs = None
       self._loss_outputs = None
@@ -209,8 +197,6 @@ class TorchModel(Model):
       if len(self._loss_outputs) == 0:
         self._loss_outputs = self._prediction_outputs
     self._built = False
-    self._inputs_built = False
-    self._training_ops_built = False
     self._output_functions: Dict[Any, Any] = {}
     self._optimizer_for_vars: Dict[Any, Any] = {}
 
@@ -220,39 +206,13 @@ class TorchModel(Model):
       return
     self._built = True
     self._global_step = 0
-    self._pytorch_optimizer = self.optimizer._create_pytorch_optimizer(self.model.parameters())
+    self._pytorch_optimizer = self.optimizer._create_pytorch_optimizer(
+        self.model.parameters())
     if isinstance(self.optimizer.learning_rate, LearningRateSchedule):
-      self._lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(self._pytorch_optimizer)
+      self._lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(
+          self._pytorch_optimizer)
     else:
       self._lr_schedule = None
-
-  def _create_inputs(self, example_inputs: List) -> None:
-    """The first time this is called, create tensors representing the inputs and outputs."""
-    if self._inputs_built:
-      return
-    self._ensure_built()
-    self._inputs_built = True
-    self._input_shapes = [(None,) + i.shape[1:] for i in example_inputs]
-    self._input_dtypes = [
-        np.float32 if x.dtype == np.float64 else x.dtype
-        for x in example_inputs
-    ]
-
-  def _create_training_ops(self,
-                           example_batch: Tuple[List, List, List]) -> None:
-    """The first time this is called, create tensors used in optimization."""
-    if self._training_ops_built:
-      return
-    self._create_inputs(example_batch[0])
-    self._training_ops_built = True
-    self._label_dtypes = [
-        np.float32 if x.dtype == np.float64 else x.dtype
-        for x in example_batch[1]
-    ]
-    self._weights_dtypes = [
-        np.float32 if x.dtype == np.float64 else x.dtype
-        for x in example_batch[2]
-    ]
 
   def fit(self,
           dataset: Dataset,
@@ -262,7 +222,7 @@ class TorchModel(Model):
           deterministic: bool = False,
           restore: bool = False,
           variables: Optional[List[torch.nn.Parameter]] = None,
-          loss: Optional[KerasLossFn] = None,
+          loss: Optional[LossFn] = None,
           callbacks: Union[Callable, List[Callable]] = [],
           all_losses: Optional[List[float]] = None) -> float:
     """Train this model on a dataset.
@@ -315,7 +275,7 @@ class TorchModel(Model):
                     checkpoint_interval: int = 1000,
                     restore: bool = False,
                     variables: Optional[List[torch.nn.Parameter]] = None,
-                    loss: Optional[KerasLossFn] = None,
+                    loss: Optional[LossFn] = None,
                     callbacks: Union[Callable, List[Callable]] = [],
                     all_losses: Optional[List[float]] = None) -> float:
     """Train this model on data from a generator.
@@ -372,7 +332,8 @@ class TorchModel(Model):
       else:
         optimizer = self.optimizer._create_pytorch_optimizer(variables)
         if isinstance(self.optimizer.learning_rate, LearningRateSchedule):
-          lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(optimizer)
+          lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(
+              optimizer)
         else:
           lr_schedule = None
         self._optimizer_for_vars[variables] = (optimizer, lr_schedule)
@@ -381,7 +342,6 @@ class TorchModel(Model):
     # Main training loop.
 
     for batch in generator:
-      self._create_training_ops(batch)
       if restore:
         self.restore()
         restore = False
@@ -426,9 +386,8 @@ class TorchModel(Model):
         self.save_checkpoint(max_checkpoints_to_keep)
       for c in callbacks:
         c(self, current_step)
-      # if self.tensorboard and should_log:
-      #   with self._summary_writer.as_default():
-      #     tf.summary.scalar('loss', batch_loss, current_step)
+      if self.tensorboard and should_log:
+        self._summary_writer.add_scalar('loss', batch_loss, current_step)
       if self.wandb and should_log:
         wandb.log({'loss': batch_loss}, step=current_step)
 
@@ -453,7 +412,7 @@ class TorchModel(Model):
                    y: Sequence,
                    w: Sequence,
                    variables: Optional[List[torch.nn.Parameter]] = None,
-                   loss: Optional[KerasLossFn] = None,
+                   loss: Optional[LossFn] = None,
                    callbacks: Union[Callable, List[Callable]] = [],
                    checkpoint: bool = True,
                    max_checkpoints_to_keep: int = 5) -> float:
@@ -498,7 +457,8 @@ class TorchModel(Model):
         callbacks=callbacks)
 
   def _predict(
-      self, generator: Iterable[Tuple[Any, Any, Any]],
+      self,
+      generator: Iterable[Tuple[Any, Any, Any]],
       transformers: List[Transformer],
       # outputs: Optional[OneOrMany[tf.Tensor]],
       uncertainty: bool,
@@ -563,10 +523,10 @@ class TorchModel(Model):
     #   )
     # if isinstance(outputs, tf.Tensor):
     #   outputs = [outputs]
+    self._ensure_built()
     self.model.eval()
     for batch in generator:
       inputs, labels, weights = batch
-      self._create_inputs(inputs)
       inputs, _, _ = self._prepare_batch((inputs, None, None))
 
       # Invoke the model.
@@ -661,10 +621,8 @@ class TorchModel(Model):
     """
     return self._predict(generator, transformers, False, output_types)
 
-  def predict_on_batch(
-      self,
-      X: Sequence,
-      transformers: List[Transformer] = []) -> OneOrMany[np.ndarray]:
+  def predict_on_batch(self, X: Sequence, transformers: List[Transformer] = []
+                      ) -> OneOrMany[np.ndarray]:
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
@@ -750,9 +708,7 @@ class TorchModel(Model):
     generator = self.default_generator(
         dataset, mode='predict', pad_batches=False)
     return self.predict_on_generator(
-        generator,
-        transformers=transformers,
-        output_types=output_types)
+        generator, transformers=transformers, output_types=output_types)
 
   def predict_embedding(self, dataset: Dataset) -> OneOrMany[np.ndarray]:
     """
@@ -879,7 +835,7 @@ class TorchModel(Model):
   #   """
   #   input_shape = X.shape
   #   X = np.reshape(X, [1] + list(X.shape))
-  #   self._create_inputs([X])
+  #   self._ensure_built()
   #   X, _, _ = self._prepare_batch(([X], None, None))
   #
   #   # Use a GradientTape to compute gradients.
@@ -908,29 +864,18 @@ class TorchModel(Model):
                      batch: Tuple[Any, Any, Any]) -> Tuple[List, List, List]:
     inputs, labels, weights = batch
     inputs = [
-        x if x.dtype == t else x.astype(t)
-        for x, t in zip(inputs, self._input_dtypes)
+        x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs
     ]
     if labels is not None:
       labels = [
-          x if x.dtype == t else x.astype(t)
-          for x, t in zip(labels, self._label_dtypes)
+          x.astype(np.float32) if x.dtype == np.float64 else x for x in labels
       ]
       labels = [torch.as_tensor(x) for x in labels]
     if weights is not None:
       weights = [
-          x if x.dtype == t else x.astype(t)
-          for x, t in zip(weights, self._weights_dtypes)
+          x.astype(np.float32) if x.dtype == np.float64 else x for x in weights
       ]
       weights = [torch.as_tensor(x) for x in weights]
-    for i in range(len(inputs)):
-      shape = inputs[i].shape
-      dims = len(shape)
-      expected_dims = len(self._input_shapes[i])
-      if dims < expected_dims:
-        inputs[i] = inputs[i].reshape(shape + (1,) * (expected_dims - dims))
-      elif dims > expected_dims and all(d == 1 for d in shape[expected_dims:]):
-        inputs[i] = inputs[i].reshape(shape[:expected_dims])
     inputs = [torch.as_tensor(x) for x in inputs]
 
     return (inputs, labels, weights)
@@ -1000,21 +945,24 @@ class TorchModel(Model):
     # Save the checkpoint to a file.
 
     data = {
-      'model_state_dict': self.model.state_dict(),
-      'optimizer_state_dict': self._pytorch_optimizer.state_dict(),
-      'global_step': self._global_step
+        'model_state_dict': self.model.state_dict(),
+        'optimizer_state_dict': self._pytorch_optimizer.state_dict(),
+        'global_step': self._global_step
     }
     temp_file = os.path.join(model_dir, 'temp_checkpoint.pt')
     torch.save(data, temp_file)
 
     # Rename and delete older files.
 
-    paths = [os.path.join(model_dir, 'checkpoint%d.pt' % (i+1)) for i in range(max_checkpoints_to_keep)]
+    paths = [
+        os.path.join(model_dir, 'checkpoint%d.pt' % (i + 1))
+        for i in range(max_checkpoints_to_keep)
+    ]
     if os.path.exists(paths[-1]):
       os.remove(paths[-1])
-    for i in reversed(range(max_checkpoints_to_keep-1)):
+    for i in reversed(range(max_checkpoints_to_keep - 1)):
       if os.path.exists(paths[i]):
-        os.rename(paths[i], paths[i+1])
+        os.rename(paths[i], paths[i + 1])
     os.rename(temp_file, paths[0])
 
   def get_checkpoints(self, model_dir: Optional[str] = None):
@@ -1029,7 +977,9 @@ class TorchModel(Model):
     if model_dir is None:
       model_dir = self.model_dir
     files = sorted(os.listdir(model_dir))
-    files = [f for f in files if f.startswith('checkpoint') and f.endswith('.pt')]
+    files = [
+        f for f in files if f.startswith('checkpoint') and f.endswith('.pt')
+    ]
     return [os.path.join(model_dir, f) for f in files]
 
   def restore(self,
