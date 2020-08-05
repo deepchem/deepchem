@@ -198,66 +198,76 @@ def test_fit_restore():
   assert np.array_equal(y, np.round(prediction))
 
 
-# def test_uncertainty():
-#   """Test estimating uncertainty a TorchModel."""
-#   n_samples = 30
-#   n_features = 1
-#   noise = 0.1
-#   X = np.random.rand(n_samples, n_features)
-#   y = (10 * X + np.random.normal(scale=noise, size=(n_samples, n_features)))
-#   dataset = dc.data.NumpyDataset(X, y)
-#
-#   # Build a model that predicts uncertainty.
-#
-#   inputs = tf.keras.Input(shape=(n_features,))
-#   switch = tf.keras.Input(shape=tuple())
-#   hidden = tf.keras.layers.Dense(200, activation='relu')(inputs)
-#   dropout = dc.models.layers.SwitchedDropout(rate=0.1)([hidden, switch])
-#   output = tf.keras.layers.Dense(n_features)(dropout)
-#   log_var = tf.keras.layers.Dense(n_features)(dropout)
-#   var = tf.keras.layers.Activation(tf.exp)(log_var)
-#   pytorch_model = tf.keras.Model(
-#       inputs=[inputs, switch], outputs=[output, var, output, log_var])
-#
-#   def loss(outputs, labels, weights):
-#     diff = labels[0] - outputs[0]
-#     log_var = outputs[1]
-#     var = tf.exp(log_var)
-#     return tf.reduce_mean(diff * diff / var + log_var)
-#
-#   class UncertaintyModel(dc.models.TorchModel):
-#
-#     def default_generator(self,
-#                           dataset,
-#                           epochs=1,
-#                           mode='fit',
-#                           deterministic=True,
-#                           pad_batches=True):
-#       for epoch in range(epochs):
-#         for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-#             batch_size=self.batch_size,
-#             deterministic=deterministic,
-#             pad_batches=pad_batches):
-#           if mode == 'predict':
-#             dropout = np.array(0.0)
-#           else:
-#             dropout = np.array(1.0)
-#           yield ([X_b, dropout], [y_b], [w_b])
-#
-#   model = UncertaintyModel(
-#       pytorch_model,
-#       loss,
-#       output_types=['prediction', 'variance', 'loss', 'loss'],
-#       learning_rate=0.003)
-#
-#   # Fit the model and see if its predictions are correct.
-#
-#   model.fit(dataset, nb_epoch=2500)
-#   pred, std = model.predict_uncertainty(dataset)
-#   assert np.mean(np.abs(y - pred)) < 1.0
-#   assert noise < np.mean(std) < 1.0
-#
-#
+def test_uncertainty():
+  """Test estimating uncertainty a TorchModel."""
+  n_samples = 30
+  n_features = 1
+  noise = 0.1
+  X = np.random.rand(n_samples, n_features)
+  y = (10 * X + np.random.normal(scale=noise, size=(n_samples, n_features)))
+  dataset = dc.data.NumpyDataset(X, y)
+
+  # Build a model that predicts uncertainty.
+
+  class PyTorchUncertainty(torch.nn.Module):
+
+    def __init__(self):
+      super(PyTorchUncertainty, self).__init__()
+      self.hidden = torch.nn.Linear(n_features, 200)
+      self.output = torch.nn.Linear(200, n_features)
+      self.log_var = torch.nn.Linear(200, n_features)
+
+    def forward(self, inputs):
+      import torch.nn.functional as F
+      x, use_dropout = inputs
+      x = self.hidden(x)
+      if use_dropout:
+        x = F.dropout(x, 0.1)
+      output = self.output(x)
+      log_var = self.log_var(x)
+      var = torch.exp(log_var)
+      return (output, var, output, log_var)
+
+  def loss(outputs, labels, weights):
+    diff = labels[0] - outputs[0]
+    log_var = outputs[1]
+    var = torch.exp(log_var)
+    return torch.mean(diff * diff / var + log_var)
+
+  class UncertaintyModel(dc.models.TorchModel):
+
+    def default_generator(self,
+                          dataset,
+                          epochs=1,
+                          mode='fit',
+                          deterministic=True,
+                          pad_batches=True):
+      for epoch in range(epochs):
+        for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+            batch_size=self.batch_size,
+            deterministic=deterministic,
+            pad_batches=pad_batches):
+          if mode == 'predict':
+            dropout = np.array(False)
+          else:
+            dropout = np.array(True)
+          yield ([X_b, dropout], [y_b], [w_b])
+
+  pytorch_model = PyTorchUncertainty()
+  model = UncertaintyModel(
+      pytorch_model,
+      loss,
+      output_types=['prediction', 'variance', 'loss', 'loss'],
+      learning_rate=0.003)
+
+  # Fit the model and see if its predictions are correct.
+
+  model.fit(dataset, nb_epoch=2500)
+  pred, std = model.predict_uncertainty(dataset)
+  assert np.mean(np.abs(y - pred)) < 1.0
+  assert noise < np.mean(std) < 1.0
+
+
 # def test_saliency_mapping():
 #   """Test computing a saliency map."""
 #   n_tasks = 3
@@ -361,35 +371,35 @@ def test_fit_variables():
   assert np.allclose(vars[1], 0.5)
 
 
-# def test_fit_loss():
-#   """Test specifying a different loss function when calling fit()."""
-#
-#   class VarModel(tf.keras.Model):
-#
-#     def __init__(self, **kwargs):
-#       super(VarModel, self).__init__(**kwargs)
-#       self.var1 = tf.Variable([0.5])
-#       self.var2 = tf.Variable([0.5])
-#
-#     def call(self, inputs, training=False):
-#       return [self.var1, self.var2]
-#
-#   def loss1(outputs, labels, weights):
-#     return (outputs[0] * outputs[1] - labels[0])**2
-#
-#   def loss2(outputs, labels, weights):
-#     return (outputs[0] + outputs[1] - labels[0])**2
-#
-#   pytorch_model = VarModel()
-#   model = dc.models.TorchModel(pytorch_model, loss1, learning_rate=0.01)
-#   x = np.ones((1, 1))
-#   vars = model.predict_on_batch(x)
-#   assert np.allclose(vars[0], 0.5)
-#   assert np.allclose(vars[1], 0.5)
-#   model.fit_generator([(x, x, x)] * 300)
-#   vars = model.predict_on_batch(x)
-#   assert np.allclose(vars[0], 1.0)
-#   assert np.allclose(vars[1], 1.0)
-#   model.fit_generator([(x, 3 * x, x)] * 300, loss=loss2)
-#   vars = model.predict_on_batch(x)
-#   assert np.allclose(vars[0] + vars[1], 3.0)
+def test_fit_loss():
+  """Test specifying a different loss function when calling fit()."""
+
+  class VarModel(torch.nn.Module):
+
+    def __init__(self):
+      super(VarModel, self).__init__()
+      self.var1 = torch.nn.Parameter(torch.Tensor([0.5]))
+      self.var2 = torch.nn.Parameter(torch.Tensor([0.5]))
+
+    def forward(self, inputs):
+      return [self.var1, self.var2]
+
+  def loss1(outputs, labels, weights):
+    return (outputs[0] * outputs[1] - labels[0])**2
+
+  def loss2(outputs, labels, weights):
+    return (outputs[0] + outputs[1] - labels[0])**2
+
+  pytorch_model = VarModel()
+  model = dc.models.TorchModel(pytorch_model, loss1, learning_rate=0.01)
+  x = np.ones((1, 1))
+  vars = model.predict_on_batch(x)
+  assert np.allclose(vars[0], 0.5)
+  assert np.allclose(vars[1], 0.5)
+  model.fit_generator([(x, x, x)] * 300)
+  vars = model.predict_on_batch(x)
+  assert np.allclose(vars[0], 1.0)
+  assert np.allclose(vars[1], 1.0)
+  model.fit_generator([(x, 3 * x, x)] * 300, loss=loss2)
+  vars = model.predict_on_batch(x)
+  assert np.allclose(vars[0] + vars[1], 3.0)

@@ -805,7 +805,7 @@ class TorchModel(Model):
     for i in range(masks):
       generator = self.default_generator(
           dataset, mode='uncertainty', pad_batches=False)
-      results = self._predict(generator, [], None, True, None)
+      results = self._predict(generator, [], True, None)
       if len(sum_pred) == 0:
         for p, v in results:
           sum_pred.append(p)
