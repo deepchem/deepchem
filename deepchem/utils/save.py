@@ -83,7 +83,7 @@ def load_data(input_files: List[str],
 def load_sdf_files(input_files: List[str],
                    clean_mols: bool = True,
                    tasks: List[str] = [],
-                   shard_size: Optional[int] = None) -> List[pd.DataFrame]:
+                   shard_size: Optional[int] = None) -> Iterator[pd.DataFrame]:
   """Load SDF file into dataframe.
 
   Parameters
