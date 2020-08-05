@@ -225,8 +225,6 @@ class TorchModel(Model):
       self._lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(self._pytorch_optimizer)
     else:
       self._lr_schedule = None
-    # self._checkpoint = tf.train.Checkpoint(
-    #     optimizer=self._pytorch_optimizer, model=self.model)
 
   def _create_inputs(self, example_inputs: List) -> None:
     """The first time this is called, create tensors representing the inputs and outputs."""
@@ -357,9 +355,7 @@ class TorchModel(Model):
     if not isinstance(callbacks, SequenceCollection):
       callbacks = [callbacks]
     self._ensure_built()
-    # if checkpoint_interval > 0:
-    #   manager = tf.train.CheckpointManager(self._checkpoint, self.model_dir,
-    #                                        max_checkpoints_to_keep)
+    self.model.train()
     avg_loss = 0.0
     last_avg_loss = 0.0
     averaged_batches = 0
@@ -380,19 +376,6 @@ class TorchModel(Model):
         else:
           lr_schedule = None
         self._optimizer_for_vars[variables] = (optimizer, lr_schedule)
-    # var_key = None
-    # if variables is not None:
-    #   var_key = tuple(v.ref() for v in variables)
-    #
-    #   # The optimizer creates internal variables the first time apply_gradients()
-    #   # is called for a new set of variables.  If that happens inside a function
-    #   # annotated with tf.function it throws an exception, so call it once here.
-    #
-    #   zero_grads = [tf.zeros(v.shape) for v in variables]
-    #   self._pytorch_optimizer.apply_gradients(zip(zero_grads, variables))
-    # if var_key not in self._optimizer_for_vars:
-    #   self._optimizer_for_vars[var_key] = self._create_gradient_fn(variables)
-    # apply_gradient_for_batch = self._optimizer_for_vars[var_key]
     time1 = time.time()
 
     # Main training loop.
@@ -434,14 +417,13 @@ class TorchModel(Model):
             'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
         if all_losses is not None:
           all_losses.append(avg_loss)
-        # Capture the last avg_loss in case of return since we're resetting to
-        # 0 now
+        # Capture the last avg_loss in case of return since we're resetting to 0 now
         last_avg_loss = avg_loss
         avg_loss = 0.0
         averaged_batches = 0
 
-      # if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
-      #   manager.save()
+      if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
+        self.save_checkpoint(max_checkpoints_to_keep)
       for c in callbacks:
         c(self, current_step)
       # if self.tensorboard and should_log:
@@ -459,39 +441,12 @@ class TorchModel(Model):
         all_losses.append(avg_loss)
       last_avg_loss = avg_loss
 
-    # if checkpoint_interval > 0:
-    #   manager.save()
+    if checkpoint_interval > 0:
+      self.save_checkpoint(max_checkpoints_to_keep)
 
     time2 = time.time()
     logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return last_avg_loss
-
-  # def _create_gradient_fn(self,
-  #                         variables: Optional[List[tf.Variable]]) -> Callable:
-  #   """Create a function that computes gradients and applies them to the model.
-  #   Because of the way TensorFlow function tracing works, we need to create a
-  #   separate function for each new set of variables.
-  #   """
-  #
-  #   @tf.function(experimental_relax_shapes=True)
-  #   def apply_gradient_for_batch(inputs, labels, weights, loss):
-  #     with tf.GradientTape() as tape:
-  #       outputs = self.model(inputs, training=True)
-  #       if isinstance(outputs, tf.Tensor):
-  #         outputs = [outputs]
-  #       if self._loss_outputs is not None:
-  #         outputs = [outputs[i] for i in self._loss_outputs]
-  #       batch_loss = loss(outputs, labels, weights)
-  #     if variables is None:
-  #       vars = self.model.trainable_variables
-  #     else:
-  #       vars = variables
-  #     grads = tape.gradient(batch_loss, vars)
-  #     self._pytorch_optimizer.apply_gradients(zip(grads, vars))
-  #     self._global_step += 1
-  #     return batch_loss
-  #
-  #   return apply_gradient_for_batch
 
   def fit_on_batch(self,
                    X: Sequence,
@@ -608,6 +563,7 @@ class TorchModel(Model):
     #   )
     # if isinstance(outputs, tf.Tensor):
     #   outputs = [outputs]
+    self.model.eval()
     for batch in generator:
       inputs, labels, weights = batch
       self._create_inputs(inputs)
@@ -672,11 +628,6 @@ class TorchModel(Model):
       return final_results[0]
     else:
       return final_results
-
-  # @tf.function(experimental_relax_shapes=True)
-  # def _compute_model(self, inputs: Sequence):
-  #   """Evaluate the model for a set of inputs."""
-  #   return self.model(inputs, training=False)
 
   def predict_on_generator(
       self,
@@ -1045,9 +996,26 @@ class TorchModel(Model):
       model_dir = self.model_dir
     if not os.path.exists(model_dir):
       os.makedirs(model_dir)
-    # manager = tf.train.CheckpointManager(self._checkpoint, model_dir,
-    #                                      max_checkpoints_to_keep)
-    # manager.save()
+
+    # Save the checkpoint to a file.
+
+    data = {
+      'model_state_dict': self.model.state_dict(),
+      'optimizer_state_dict': self._pytorch_optimizer.state_dict(),
+      'global_step': self._global_step
+    }
+    temp_file = os.path.join(model_dir, 'temp_checkpoint.pt')
+    torch.save(data, temp_file)
+
+    # Rename and delete older files.
+
+    paths = [os.path.join(model_dir, 'checkpoint%d.pt' % (i+1)) for i in range(max_checkpoints_to_keep)]
+    if os.path.exists(paths[-1]):
+      os.remove(paths[-1])
+    for i in reversed(range(max_checkpoints_to_keep-1)):
+      if os.path.exists(paths[i]):
+        os.rename(paths[i], paths[i+1])
+    os.rename(temp_file, paths[0])
 
   def get_checkpoints(self, model_dir: Optional[str] = None):
     """Get a list of all available checkpoint files.
@@ -1060,7 +1028,9 @@ class TorchModel(Model):
     """
     if model_dir is None:
       model_dir = self.model_dir
-    # return tf.train.get_checkpoint_state(model_dir).all_model_checkpoint_paths
+    files = sorted(os.listdir(model_dir))
+    files = [f for f in files if f.startswith('checkpoint') and f.endswith('.pt')]
+    return [os.path.join(model_dir, f) for f in files]
 
   def restore(self,
               checkpoint: Optional[str] = None,
@@ -1074,16 +1044,19 @@ class TorchModel(Model):
       checkpoint will be chosen automatically.  Call get_checkpoints() to get a
       list of all available checkpoints.
     model_dir: str, default None
-      Directory to restore checkpoint from. If None, use self.model_dir.
+      Directory to restore checkpoint from. If None, use self.model_dir.  If
+      checkpoint is not None, this is ignored.
     """
     self._ensure_built()
-    if model_dir is None:
-      model_dir = self.model_dir
-    # if checkpoint is None:
-    #   checkpoint = tf.train.latest_checkpoint(model_dir)
-    # if checkpoint is None:
-    #   raise ValueError('No checkpoint found')
-    # self._checkpoint.restore(checkpoint)
+    if checkpoint is None:
+      checkpoints = self.get_checkpoints(model_dir)
+      if len(checkpoints) == 0:
+        raise ValueError('No checkpoint found')
+      checkpoint = checkpoints[-1]
+    data = torch.load(checkpoint)
+    self.model.load_state_dict(data['model_state_dict'])
+    self._pytorch_optimizer.load_state_dict(data['optimizer_state_dict'])
+    self._global_step = data['global_step']
 
   def get_global_step(self) -> int:
     """Get the number of steps of fitting that have been performed."""

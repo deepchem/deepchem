@@ -128,72 +128,76 @@ def test_fit_on_batch():
   generator = model.default_generator(dataset, pad_batches=False)
   scores = model.evaluate_generator(generator, [metric])
   assert scores[metric.name] > 0.9
-#
-#
-# def test_checkpointing():
-#   """Test loading and saving checkpoints with TorchModel."""
-#   # Create two models using the same model directory.
-#
-#   pytorch_model1 = tf.keras.Sequential([tf.keras.layers.Dense(10)])
-#   pytorch_model2 = tf.keras.Sequential([tf.keras.layers.Dense(10)])
-#   model1 = dc.models.TorchModel(pytorch_model1, dc.models.losses.L2Loss())
-#   model2 = dc.models.TorchModel(
-#       pytorch_model2, dc.models.losses.L2Loss(), model_dir=model1.model_dir)
-#
-#   # Check that they produce different results.
-#
-#   X = np.random.rand(5, 5)
-#   y1 = model1.predict_on_batch(X)
-#   y2 = model2.predict_on_batch(X)
-#   assert not np.array_equal(y1, y2)
-#
-#   # Save a checkpoint from the first model and load it into the second one,
-#   # and make sure they now match.
-#
-#   model1.save_checkpoint()
-#   model2.restore()
-#   y3 = model1.predict_on_batch(X)
-#   y4 = model2.predict_on_batch(X)
-#   assert np.array_equal(y1, y3)
-#   assert np.array_equal(y1, y4)
-#
-#
-# def test_fit_restore():
-#   """Test specifying restore=True when calling fit()."""
-#   n_data_points = 10
-#   n_features = 2
-#   X = np.random.rand(n_data_points, n_features)
-#   y = (X[:, 0] > X[:, 1]).astype(np.float32)
-#   dataset = dc.data.NumpyDataset(X, y)
-#
-#   # Train a model to overfit the dataset.
-#
-#   pytorch_model = tf.keras.Sequential([
-#       tf.keras.layers.Dense(10, activation='relu'),
-#       tf.keras.layers.Dense(1, activation='sigmoid')
-#   ])
-#   model = dc.models.TorchModel(
-#       pytorch_model, dc.models.losses.BinaryCrossEntropy(), learning_rate=0.005)
-#   model.fit(dataset, nb_epoch=1000)
-#   prediction = np.squeeze(model.predict_on_batch(X))
-#   assert np.array_equal(y, np.round(prediction))
-#
-#   # Create an identical model, do a single step of fitting with restore=True,
-#   # and make sure it got restored correctly.
-#
-#   pytorch_model2 = tf.keras.Sequential([
-#       tf.keras.layers.Dense(10, activation='relu'),
-#       tf.keras.layers.Dense(1, activation='sigmoid')
-#   ])
-#   model2 = dc.models.TorchModel(
-#       pytorch_model2,
-#       dc.models.losses.BinaryCrossEntropy(),
-#       model_dir=model.model_dir)
-#   model2.fit(dataset, nb_epoch=1, restore=True)
-#   prediction = np.squeeze(model2.predict_on_batch(X))
-#   assert np.array_equal(y, np.round(prediction))
-#
-#
+
+
+def test_checkpointing():
+  """Test loading and saving checkpoints with TorchModel."""
+  # Create two models using the same model directory.
+
+  pytorch_model1 = torch.nn.Sequential(torch.nn.Linear(5, 10))
+  pytorch_model2 = torch.nn.Sequential(torch.nn.Linear(5, 10))
+  model1 = dc.models.TorchModel(pytorch_model1, dc.models.losses.L2Loss())
+  model2 = dc.models.TorchModel(
+      pytorch_model2, dc.models.losses.L2Loss(), model_dir=model1.model_dir)
+
+  # Check that they produce different results.
+
+  X = np.random.rand(5, 5)
+  y1 = model1.predict_on_batch(X)
+  y2 = model2.predict_on_batch(X)
+  assert not np.array_equal(y1, y2)
+
+  # Save a checkpoint from the first model and load it into the second one,
+  # and make sure they now match.
+
+  model1.save_checkpoint()
+  model2.restore()
+  y3 = model1.predict_on_batch(X)
+  y4 = model2.predict_on_batch(X)
+  assert np.array_equal(y1, y3)
+  assert np.array_equal(y1, y4)
+
+
+def test_fit_restore():
+  """Test specifying restore=True when calling fit()."""
+  n_data_points = 10
+  n_features = 2
+  X = np.random.rand(n_data_points, n_features)
+  y = (X[:, 0] > X[:, 1]).astype(np.float32)
+  dataset = dc.data.NumpyDataset(X, y)
+
+  # Train a model to overfit the dataset.
+
+  pytorch_model = torch.nn.Sequential(
+      torch.nn.Linear(2, 10),
+      torch.nn.ReLU(),
+      torch.nn.Linear(10, 1),
+      torch.nn.Sigmoid()
+  )
+  model = dc.models.TorchModel(
+      pytorch_model, dc.models.losses.BinaryCrossEntropy(), learning_rate=0.005)
+  model.fit(dataset, nb_epoch=1000)
+  prediction = np.squeeze(model.predict_on_batch(X))
+  assert np.array_equal(y, np.round(prediction))
+
+  # Create an identical model, do a single step of fitting with restore=True,
+  # and make sure it got restored correctly.
+
+  pytorch_model2 = torch.nn.Sequential(
+      torch.nn.Linear(2, 10),
+      torch.nn.ReLU(),
+      torch.nn.Linear(10, 1),
+      torch.nn.Sigmoid()
+  )
+  model2 = dc.models.TorchModel(
+      pytorch_model2,
+      dc.models.losses.BinaryCrossEntropy(),
+      model_dir=model.model_dir)
+  model2.fit(dataset, nb_epoch=1, restore=True)
+  prediction = np.squeeze(model2.predict_on_batch(X))
+  assert np.array_equal(y, np.round(prediction))
+
+
 # def test_uncertainty():
 #   """Test estimating uncertainty a TorchModel."""
 #   n_samples = 30
