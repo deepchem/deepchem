@@ -326,9 +326,9 @@ class TorchModel(Model):
       optimizer = self._pytorch_optimizer
       lr_schedule = self._lr_schedule
     else:
-      variables = tuple(variables)
-      if variables in self._optimizer_for_vars:
-        optimizer, lr_schedule = self._optimizer_for_vars[variables]
+      var_key = tuple(variables)
+      if var_key in self._optimizer_for_vars:
+        optimizer, lr_schedule = self._optimizer_for_vars[var_key]
       else:
         optimizer = self.optimizer._create_pytorch_optimizer(variables)
         if isinstance(self.optimizer.learning_rate, LearningRateSchedule):
@@ -336,7 +336,7 @@ class TorchModel(Model):
               optimizer)
         else:
           lr_schedule = None
-        self._optimizer_for_vars[variables] = (optimizer, lr_schedule)
+        self._optimizer_for_vars[var_key] = (optimizer, lr_schedule)
     time1 = time.time()
 
     # Main training loop.
@@ -457,11 +457,8 @@ class TorchModel(Model):
         callbacks=callbacks)
 
   def _predict(
-      self,
-      generator: Iterable[Tuple[Any, Any, Any]],
-      transformers: List[Transformer],
-      # outputs: Optional[OneOrMany[tf.Tensor]],
-      uncertainty: bool,
+      self, generator: Iterable[Tuple[Any, Any, Any]],
+      transformers: List[Transformer], uncertainty: bool,
       other_output_types: Optional[OneOrMany[str]]) -> OneOrMany[np.ndarray]:
     """
     Predict outputs for data provided by a generator.
@@ -478,11 +475,6 @@ class TorchModel(Model):
     transformers: list of dc.trans.Transformers
       Transformers that the input data has been transformed by.  The output
       is passed through these transformers to undo the transformations.
-    outputs: Tensor or list of Tensors
-      The outputs to return.  If this is None, the model's standard prediction
-      outputs will be returned.  Alternatively one or more Tensors within the
-      model may be specified, in which case the output of those Tensors will be
-      returned.
     uncertainty: bool
       specifies whether this is being called as part of estimating uncertainty.
       If True, it sets the training flag so that dropout will be enabled, and
@@ -495,34 +487,21 @@ class TorchModel(Model):
     """
     results: Optional[List[np.ndarray]] = None
     variances: Optional[List[np.ndarray]] = None
-    # if (outputs is not None) and (other_output_types is not None):
-    #   raise ValueError(
-    #       'This model cannot compute outputs and other output_types simultaneously. Please invoke one at a time.'
-    #   )
     if uncertainty and (other_output_types is not None):
       raise ValueError(
           'This model cannot compute uncertainties and other output types simultaneously. Please invoke one at a time.'
       )
     if uncertainty:
-      # assert outputs is None
       if self._variance_outputs is None or len(self._variance_outputs) == 0:
         raise ValueError('This model cannot compute uncertainties')
       if len(self._variance_outputs) != len(self._prediction_outputs):
         raise ValueError(
             'The number of variances must exactly match the number of outputs')
     if other_output_types:
-      # assert outputs is None
       if self._other_outputs is None or len(self._other_outputs) == 0:
         raise ValueError(
             'This model cannot compute other outputs since no other output_types were specified.'
         )
-    # if (outputs is not None and self.model.inputs is not None and
-    #     len(self.model.inputs) == 0):
-    #   raise ValueError(
-    #       "Cannot use 'outputs' argument with a model that does not specify its inputs. Note models defined in imperative subclassing style cannot specify outputs"
-    #   )
-    # if isinstance(outputs, tf.Tensor):
-    #   outputs = [outputs]
     self._ensure_built()
     self.model.eval()
     for batch in generator:
@@ -532,14 +511,6 @@ class TorchModel(Model):
       # Invoke the model.
       if len(inputs) == 1:
         inputs = inputs[0]
-      # if outputs is not None:
-      #   outputs = tuple(outputs)
-      #   key = tuple(t.ref() for t in outputs)
-      #   if key not in self._output_functions:
-      #     self._output_functions[key] = tf.keras.backend.function(
-      #         self.model.inputs, outputs)
-      #   output_values = self._output_functions[key](inputs)
-      # else:
       output_values = self.model(inputs)
       if isinstance(output_values, torch.Tensor):
         output_values = [output_values]
@@ -593,7 +564,6 @@ class TorchModel(Model):
       self,
       generator: Iterable[Tuple[Any, Any, Any]],
       transformers: List[Transformer] = [],
-      # outputs: Optional[OneOrMany[tf.Tensor]] = None,
       output_types: Optional[OneOrMany[str]] = None) -> OneOrMany[np.ndarray]:
     """
     Parameters
@@ -604,13 +574,6 @@ class TorchModel(Model):
     transformers: list of dc.trans.Transformers
       Transformers that the input data has been transformed by.  The output
       is passed through these transformers to undo the transformations.
-    outputs: Tensor or list of Tensors
-      The outputs to return.  If this is None, the model's
-      standard prediction outputs will be returned.
-      Alternatively one or more Tensors within the model may be
-      specified, in which case the output of those Tensors will
-      be returned. If outputs is specified, output_types must be
-      None.
     output_types: String or list of Strings
       If specified, all outputs of this type will be retrieved
       from the model. If output_types is specified, outputs must
@@ -632,11 +595,6 @@ class TorchModel(Model):
     transformers: list of dc.trans.Transformers
       Transformers that the input data has been transformed by.  The output
       is passed through these transformers to undo the transformations.
-    outputs: Tensor or list of Tensors
-      The outputs to return.  If this is None, the model's standard prediction
-      outputs will be returned.  Alternatively one or more Tensors within the
-      model may be specified, in which case the output of those Tensors will be
-      returned.
 
     Returns
     -------
@@ -678,7 +636,6 @@ class TorchModel(Model):
       self,
       dataset: Dataset,
       transformers: List[Transformer] = [],
-      # outputs: Optional[OneOrMany[tf.Tensor]] = None,
       output_types: Optional[List[str]] = None) -> OneOrMany[np.ndarray]:
     """
     Uses self to make predictions on provided Dataset object.
@@ -690,11 +647,6 @@ class TorchModel(Model):
     transformers: list of dc.trans.Transformers
       Transformers that the input data has been transformed by.  The output
       is passed through these transformers to undo the transformations.
-    outputs: Tensor or list of Tensors
-      The outputs to return.  If this is None, the model's standard prediction
-      outputs will be returned.  Alternatively one or more Tensors within the
-      model may be specified, in which case the output of those Tensors will be
-      returned.
     output_types: String or list of Strings
       If specified, all outputs of this type will be retrieved
       from the model. If output_types is specified, outputs must
@@ -840,7 +792,7 @@ class TorchModel(Model):
 
     # Compute the gradients.
 
-    X = torch.Tensor(X[0])
+    X = X[0]
     X.requires_grad_(True)
     outputs = self.model(X)
     if isinstance(outputs, torch.Tensor):

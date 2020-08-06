@@ -8,7 +8,7 @@ T = TypeVar("T")
 KerasActivationFn = Union[Callable, str]
 
 # A loss function for use with KerasModel or TorchModel: f(outputs, labels, weights)
-LossFn = Callable[[List, List, List], float]
+LossFn = Callable[[List, List, List], Any]
 
 # A single value of some type, or multiple values of that type
 OneOrMany = Union[T, Sequence[T]]

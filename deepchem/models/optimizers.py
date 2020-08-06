@@ -11,6 +11,16 @@ class Optimizer(object):
   This is an abstract class.  Subclasses represent specific optimization algorithms.
   """
 
+  def __init__(self, learning_rate: "Union[float, LearningRateSchedule]"):
+    """This constructor should only be called by subclasses.
+
+    Parameters
+    ----------
+    learning_rate: float or LearningRateSchedule
+      the learning rate to use for optimization
+    """
+    self.learning_rate = learning_rate
+
   def _create_tf_optimizer(self, global_step):
     """Construct a TensorFlow optimizer.
 
@@ -105,7 +115,7 @@ learning research 12.7 (2011).
       a parameter of the AdaGrad algorithm
 
     """
-    self.learning_rate = learning_rate
+    super(AdaGrad, self).__init__(learning_rate)
     self.initial_accumulator_value = initial_accumulator_value
     self.epsilon = epsilon
 
@@ -154,7 +164,7 @@ class Adam(Optimizer):
     epsilon: float
       a parameter of the Adam algorithm
     """
-    self.learning_rate = learning_rate
+    super(Adam, self).__init__(learning_rate)
     self.beta1 = beta1
     self.beta2 = beta2
     self.epsilon = epsilon
@@ -201,7 +211,7 @@ class RMSProp(Optimizer):
         epsilon: float, default 1e-10
             a parameter of the RMSProp algorithm
         """
-    self.learning_rate = learning_rate
+    super(RMSProp, self).__init__(learning_rate)
     self.momentum = momentum
     self.decay = decay
     self.epsilon = epsilon
@@ -239,7 +249,7 @@ class GradientDescent(Optimizer):
     learning_rate: float or LearningRateSchedule
       the learning rate to use for optimization
     """
-    self.learning_rate = learning_rate
+    super(GradientDescent, self).__init__(learning_rate)
 
   def _create_tf_optimizer(self, global_step):
     import tensorflow as tf
