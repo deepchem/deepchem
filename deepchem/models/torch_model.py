@@ -244,7 +244,7 @@ class TorchModel(Model):
     restore: bool
       if True, restore the model from the most recent checkpoint and continue training
       from there.  If False, retrain the model from scratch.
-    variables: list of tf.Variable
+    variables: list of torch.nn.Parameter
       the variables to train.  If None (the default), all trainable variables in
       the model are used.
     loss: function
@@ -293,7 +293,7 @@ class TorchModel(Model):
     restore: bool
       if True, restore the model from the most recent checkpoint and continue training
       from there.  If False, retrain the model from scratch.
-    variables: list of tf.Variable
+    variables: list of torch.nn.Parameter
       the variables to train.  If None (the default), all trainable variables in
       the model are used.
     loss: function
@@ -426,7 +426,7 @@ class TorchModel(Model):
       the labels for the batch
     w: ndarray
       the weights for the batch
-    variables: list of tf.Variable
+    variables: list of torch.nn.Parameter
       the variables to train.  If None (the default), all trainable variables in
       the model are used.
     loss: function
@@ -838,7 +838,7 @@ class TorchModel(Model):
     self._ensure_built()
     X, _, _ = self._prepare_batch(([X], None, None))
 
-    # Use a GradientTape to compute gradients.
+    # Compute the gradients.
 
     X = torch.Tensor(X[0])
     X.requires_grad_(True)
@@ -847,7 +847,6 @@ class TorchModel(Model):
       outputs = [outputs]
     final_result = []
     for output in outputs:
-      print(output.shape)
       output_shape = tuple(output.shape[1:])
       output = output.reshape([-1])
       result = []
@@ -1004,10 +1003,10 @@ class TorchModel(Model):
     """
     self._ensure_built()
     if checkpoint is None:
-      checkpoints = self.get_checkpoints(model_dir)
+      checkpoints = sorted(self.get_checkpoints(model_dir))
       if len(checkpoints) == 0:
         raise ValueError('No checkpoint found')
-      checkpoint = checkpoints[-1]
+      checkpoint = checkpoints[0]
     data = torch.load(checkpoint)
     self.model.load_state_dict(data['model_state_dict'])
     self._pytorch_optimizer.load_state_dict(data['optimizer_state_dict'])
@@ -1017,127 +1016,125 @@ class TorchModel(Model):
     """Get the number of steps of fitting that have been performed."""
     return self._global_step
 
-  # def _create_assignment_map(self,
-  #                            source_model: "TorchModel",
-  #                            include_top: bool = True,
-  #                            **kwargs) -> Dict[Any, Any]:
-  #   """
-  #   Creates a default assignment map between variables of source and current model.
-  #   This is used only when a custom assignment map is missing. This assumes the
-  #   model is made of different layers followed by a dense layer for mapping to
-  #   output tasks. include_top is used to control whether or not the final dense
-  #   layer is used. The default assignment map is useful in cases where the type
-  #   of task is different (classification vs regression) and/or number of tasks.
-  #
-  #   Parameters
-  #   ----------
-  #   source_model: dc.models.TorchModel
-  #       Source model to copy variable values from.
-  #   include_top: bool, default True
-  #       if true, copies the last dense layer
-  #   """
-  #   assignment_map: Dict[Any, Any] = {}
-  #   source_vars = source_model.model.trainable_variables
-  #   dest_vars = self.model.trainable_variables
-  #
-  #   if not include_top:
-  #     source_vars = source_vars[:-2]
-  #     dest_vars = dest_vars[:-2]
-  #
-  #   for source_var, dest_var in zip(source_vars, dest_vars):
-  #     assignment_map[source_var.ref()] = dest_var
-  #
-  #   return assignment_map
-  #
-  # def _create_value_map(self, source_model: "TorchModel",
-  #                       **kwargs) -> Dict[Any, Any]:
-  #   """
-  #   Creates a value map between variables in the source model and their
-  #   current values. This is used only when a custom value map is missing, and
-  #   assumes the restore method has been called under self.session.
-  #
-  #   Parameters
-  #   ----------
-  #   source_model: dc.models.TorchModel
-  #       Source model to create value map from
-  #   """
-  #   value_map: Dict[Any, Any] = {}
-  #   source_vars = source_model.model.trainable_variables
-  #
-  #   for source_var in source_vars:
-  #     value_map[source_var.ref()] = source_var.numpy()
-  #
-  #   return value_map
-  #
-  # def load_from_pretrained(self,
-  #                          source_model: "TorchModel",
-  #                          assignment_map: Optional[Dict[Any, Any]] = None,
-  #                          value_map: Optional[Dict[Any, Any]] = None,
-  #                          checkpoint: Optional[str] = None,
-  #                          model_dir: Optional[str] = None,
-  #                          include_top: bool = True,
-  #                          inputs: Optional[Sequence[Any]] = None,
-  #                          **kwargs) -> None:
-  #   """Copies variable values from a pretrained model. `source_model` can either
-  #   be a pretrained model or a model with the same architecture. `value_map`
-  #   is a variable-value dictionary. If no `value_map` is provided, the variable
-  #   values are restored to the `source_model` from a checkpoint and a default
-  #   `value_map` is created. `assignment_map` is a dictionary mapping variables
-  #   from the `source_model` to the current model. If no `assignment_map` is
-  #   provided, one is made from scratch and assumes the model is composed of
-  #   several different layers, with the final one being a dense layer. include_top
-  #   is used to control whether or not the final dense layer is used. The default
-  #   assignment map is useful in cases where the type of task is different
-  #   (classification vs regression) and/or number of tasks in the setting.
-  #
-  #   Parameters
-  #   ----------
-  #   source_model: dc.TorchModel, required
-  #     source_model can either be the pretrained model or a dc.TorchModel with
-  #     the same architecture as the pretrained model. It is used to restore from
-  #     a checkpoint, if value_map is None and to create a default assignment map
-  #     if assignment_map is None
-  #   assignment_map: Dict, default None
-  #     Dictionary mapping the source_model variables and current model variables
-  #   value_map: Dict, default None
-  #     Dictionary containing source_model trainable variables mapped to numpy
-  #     arrays. If value_map is None, the values are restored and a default
-  #     variable map is created using the restored values
-  #   checkpoint: str, default None
-  #     the path to the checkpoint file to load.  If this is None, the most recent
-  #     checkpoint will be chosen automatically.  Call get_checkpoints() to get a
-  #     list of all available checkpoints
-  #   model_dir: str, default None
-  #     Restore model from custom model directory if needed
-  #   include_top: bool, default True
-  #       if True, copies the weights and bias associated with the final dense
-  #       layer. Used only when assignment map is None
-  #   inputs: List, input tensors for model
-  #       if not None, then the weights are built for both the source and self.
-  #       This option is useful only for models that are built by
-  #       subclassing torch.nn.Module, and not using the functional API by tf.keras
-  #   """
-  #   if inputs is not None:
-  #     # Ensure weights for both models are built.
-  #     source_model.model(inputs)
-  #     self.model(inputs)
-  #
-  #   self._ensure_built()
-  #   if value_map is None:
-  #     logger.info(
-  #         "No value map provided. Creating default value map from restored model."
-  #     )
-  #     source_model.restore(model_dir=model_dir, checkpoint=checkpoint)
-  #     value_map = self._create_value_map(source_model=source_model)
-  #
-  #   if assignment_map is None:
-  #     logger.info("No assignment map provided. Creating custom assignment map.")
-  #     assignment_map = self._create_assignment_map(
-  #         source_model=source_model, include_top=include_top)
-  #
-  #   for source_var, dest_var in assignment_map.items():
-  #     assert source_var.deref().shape == dest_var.shape
-  #     dest_var.assign(value_map[source_var])
+  def _create_assignment_map(self,
+                             source_model: "TorchModel",
+                             include_top: bool = True,
+                             **kwargs) -> Dict[Any, Any]:
+    """
+    Creates a default assignment map between parameters of source and current model.
+    This is used only when a custom assignment map is missing. This assumes the
+    model is made of different layers followed by a dense layer for mapping to
+    output tasks. include_top is used to control whether or not the final dense
+    layer is used. The default assignment map is useful in cases where the type
+    of task is different (classification vs regression) and/or number of tasks.
+
+    Parameters
+    ----------
+    source_model: dc.models.TorchModel
+        Source model to copy parameter values from.
+    include_top: bool, default True
+        if true, copies the last dense layer
+    """
+    assignment_map: Dict[Any, Any] = {}
+    source_vars = list(source_model.model.parameters())
+    dest_vars = list(self.model.parameters())
+
+    if not include_top:
+      source_vars = source_vars[:-2]
+      dest_vars = dest_vars[:-2]
+
+    for source_var, dest_var in zip(source_vars, dest_vars):
+      assignment_map[source_var] = dest_var
+
+    return assignment_map
+
+  def _create_value_map(self, source_model: "TorchModel",
+                        **kwargs) -> Dict[Any, Any]:
+    """
+    Creates a value map between parameters in the source model and their
+    current values. This is used only when a custom value map is missing, and
+    assumes the restore method has been called.
+
+    Parameters
+    ----------
+    source_model: dc.models.TorchModel
+        Source model to create value map from
+    """
+    value_map: Dict[Any, Any] = {}
+    source_vars = list(source_model.model.parameters())
+
+    for source_var in source_vars:
+      value_map[source_var] = source_var.detach().numpy()
+
+    return value_map
+
+  def load_from_pretrained(self,
+                           source_model: "TorchModel",
+                           assignment_map: Optional[Dict[Any, Any]] = None,
+                           value_map: Optional[Dict[Any, Any]] = None,
+                           checkpoint: Optional[str] = None,
+                           model_dir: Optional[str] = None,
+                           include_top: bool = True,
+                           inputs: Optional[Sequence[Any]] = None,
+                           **kwargs) -> None:
+    """Copies parameter values from a pretrained model. `source_model` can either
+    be a pretrained model or a model with the same architecture. `value_map`
+    is a parameter-value dictionary. If no `value_map` is provided, the parameter
+    values are restored to the `source_model` from a checkpoint and a default
+    `value_map` is created. `assignment_map` is a dictionary mapping parameters
+    from the `source_model` to the current model. If no `assignment_map` is
+    provided, one is made from scratch and assumes the model is composed of
+    several different layers, with the final one being a dense layer. include_top
+    is used to control whether or not the final dense layer is used. The default
+    assignment map is useful in cases where the type of task is different
+    (classification vs regression) and/or number of tasks in the setting.
+
+    Parameters
+    ----------
+    source_model: dc.TorchModel, required
+      source_model can either be the pretrained model or a dc.TorchModel with
+      the same architecture as the pretrained model. It is used to restore from
+      a checkpoint, if value_map is None and to create a default assignment map
+      if assignment_map is None
+    assignment_map: Dict, default None
+      Dictionary mapping the source_model parameters and current model parameters
+    value_map: Dict, default None
+      Dictionary containing source_model trainable parameters mapped to numpy
+      arrays. If value_map is None, the values are restored and a default
+      parameter map is created using the restored values
+    checkpoint: str, default None
+      the path to the checkpoint file to load.  If this is None, the most recent
+      checkpoint will be chosen automatically.  Call get_checkpoints() to get a
+      list of all available checkpoints
+    model_dir: str, default None
+      Restore model from custom model directory if needed
+    include_top: bool, default True
+        if True, copies the weights and bias associated with the final dense
+        layer. Used only when assignment map is None
+    inputs: List, input tensors for model
+        if not None, then the weights are built for both the source and self.
+    """
+    if inputs is not None:
+      # Ensure weights for both models are built.
+      source_model.model(inputs)
+      self.model(inputs)
+
+    self._ensure_built()
+    if value_map is None:
+      logger.info(
+          "No value map provided. Creating default value map from restored model."
+      )
+      source_model.restore(model_dir=model_dir, checkpoint=checkpoint)
+      value_map = self._create_value_map(source_model=source_model)
+
+    if assignment_map is None:
+      logger.info("No assignment map provided. Creating custom assignment map.")
+      assignment_map = self._create_assignment_map(
+          source_model=source_model, include_top=include_top)
+
+    for source_var, dest_var in assignment_map.items():
+      assert source_var.shape == dest_var.shape
+      dest_var.data = torch.as_tensor(value_map[source_var])
 
 
 class _StandardLoss(object):
