@@ -73,7 +73,9 @@ class TestPretrainedTorch(unittest.TestCase):
   def test_restore_equivalency(self):
     """Test for restore based pretrained model loading."""
     source_model = MLP(
-        feature_dim=self.feature_dim, hidden_layer_size=self.hidden_layer_size)
+        feature_dim=self.feature_dim,
+        hidden_layer_size=self.hidden_layer_size,
+        learning_rate=0.003)
 
     source_model.fit(self.dataset, nb_epoch=1000)
 
