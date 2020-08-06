@@ -43,14 +43,22 @@ def is_wandb_available():
 class TorchModel(Model):
   """This is a DeepChem model implemented by a PyTorch model.
 
+  Here is a simple example of code that uses TorchModel to train
+  a PyTorch model on a DeepChem dataset.
+
+  >> pytorch_model = torch.nn.Sequential(
+  >>    torch.nn.Linear(100, 1000),
+  >>    torch.nn.Tanh(),
+  >>    torch.nn.Linear(1000, 1))
+  >> model = TorchModel(pytorch_model, loss=dc.models.losses.L2Loss())
+  >> model.fit(dataset)
+
   The loss function for a model can be defined in two different
   ways.  For models that have only a single output and use a
   standard loss function, you can simply provide a
   dc.models.losses.Loss object.  This defines the loss for each
   sample or sample/task pair.  The result is automatically
-  multiplied by the weights and averaged over the batch.  Any
-  additional losses computed by model layers, such as weight
-  decay penalties, are also added.
+  multiplied by the weights and averaged over the batch.
 
   For more complicated cases, you can instead provide a function
   that directly computes the total loss.  It must be of the form

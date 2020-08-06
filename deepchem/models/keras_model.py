@@ -57,6 +57,16 @@ class KerasModel(Model):
      Keras Model class, such as uncertainty prediction and
      saliency mapping.
 
+  Here is a simple example of code that uses KerasModel to train
+  a Keras model on a DeepChem dataset.
+
+  >> keras_model = tf.keras.Sequential([
+  >>    tf.keras.layers.Dense(1000, activation='tanh'),
+  >>    tf.keras.layers.Dense(1)
+  >> ])
+  >> model = KerasModel(keras_model, loss=dc.models.losses.L2Loss())
+  >> model.fit(dataset)
+
   The loss function for a model can be defined in two different
   ways.  For models that have only a single output and use a
   standard loss function, you can simply provide a
