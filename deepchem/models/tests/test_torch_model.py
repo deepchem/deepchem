@@ -281,7 +281,7 @@ def test_saliency_mapping():
         (1, n_features))).flatten()
     pred2 = model.predict_on_batch((x - s[task] * step).reshape(
         (1, n_features))).flatten()
-    assert np.allclose(pred1[task], (pred2 + norm * delta)[task])
+    assert np.allclose(pred1[task], (pred2 + norm * delta)[task], atol=1e-6)
 
 
 @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
