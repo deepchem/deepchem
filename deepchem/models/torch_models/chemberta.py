@@ -42,7 +42,7 @@ class ChemBERTaforSequenceClassification(BertPreTrainedModel):
     base_model_prefix = "roberta"
 
     def __init__(self, config, weight=None):
-        super(ChemBERTa, self).__init__(config)
+        super(ChemBERTaforSequenceClassification, self).__init__(config)
         self.num_labels = config.num_labels
 
         self.roberta = RobertaModel(config)
