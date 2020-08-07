@@ -1,5 +1,5 @@
 """
-Perovskite crystal structures and formation energies.
+Calculated formation energies for inorganic crystals from Materials Project.
 """
 import os
 import logging
@@ -9,19 +9,22 @@ from deepchem.trans import Transformer
 from deepchem.splits.splitters import Splitter
 from deepchem.molnet.defaults import get_defaults
 
-from typing import List, Tuple, Dict, Optional, Union, Any, Type, Callable
+from typing import List, Tuple, Dict, Optional, Union, Any, Type
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-PEROVSKITE_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/perovskite.tar.gz'
+MPFORME_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/mp_formation_energy.tar.gz'
 
 # dict of accepted featurizers for this dataset
 # modify the returned dicts for your dataset
 DEFAULT_FEATURIZERS = get_defaults("feat")
 
 # Names of supported featurizers
-featurizers = ['SineCoulombMatrix', 'CGCNNFeaturizer']
+featurizers = [
+    'CGCNNFeaturizer',
+    'SineCoulombMatrix',
+]
 DEFAULT_FEATURIZERS = {k: DEFAULT_FEATURIZERS[k] for k in featurizers}
 
 # dict of accepted transformers
@@ -35,7 +38,7 @@ splitters = ['RandomSplitter']
 DEFAULT_SPLITTERS = {k: DEFAULT_SPLITTERS[k] for k in splitters}
 
 
-def load_perovskite(
+def load_mp_formation_energy(
     featurizer=DEFAULT_FEATURIZERS['SineCoulombMatrix'],
     transformers: List = [DEFAULT_TRANSFORMERS['NormalizationTransformer']],
     splitter=DEFAULT_SPLITTERS['RandomSplitter'],
@@ -54,20 +57,21 @@ def load_perovskite(
         }
     },
     **kwargs) -> Tuple[List, Tuple, List]:
-  """Load perovskite dataset.
+  """Load mp formation energy dataset.
 
-  Contains 18928 perovskite structures and their formation energies.
-  In benchmark studies, random forest models and crystal graph
-  neural networks achieved mean average error of 0.23 and 0.05 eV/atom,
-  respectively, during five-fold nested cross validation on this
-  dataset. 
+  Contains 132752 calculated formation energies and inorganic
+  crystal structures from the Materials Project database. In benchmark
+  studies, random forest models achieved a mean average error of
+  0.116 eV/atom during five-folded nested cross validation on this
+  dataset.
 
   For more details on the dataset see [1]_. For more details
   on previous benchmarks for this dataset, see [2]_.
   
   Parameters
   ----------
-  featurizer : MaterialStructureFeaturizer
+  featurizer : MaterialCompositionFeaturizer 
+    (default CGCNNFeaturizer)
     A featurizer that inherits from deepchem.feat.Featurizer.
   transformers : List[Transformer]
     A transformer that inherits from deepchem.trans.Transformer.
@@ -103,14 +107,14 @@ def load_perovskite(
 
   References
   ----------
-  .. [1] Castelli, I. et al. "New cubic perovskites for one- and two-photon water splitting using the computational materials repository." Energy Environ. Sci., (2012), 5, 9034-9043 DOI: 10.1039/C2EE22341D.
+  .. [1] A. Jain*, S.P. Ong*, et al. (*=equal contributions) The Materials Project: A materials genome approach to accelerating materials innovation APL Materials, 2013, 1(1), 011002. doi:10.1063/1.4812323 (2013).
 
   .. [2] Dunn, A. et al. "Benchmarking Materials Property Prediction Methods: The Matbench Test Set and Automatminer Reference Algorithm." https://arxiv.org/abs/2005.00707 (2020)
 
   Examples
   --------
   >> import deepchem as dc
-  >> tasks, datasets, transformers = dc.molnet.load_perovskite(reload=False)
+  >> tasks, datasets, transformers = dc.molnet.load_mp_formation_energy(reload=False)
   >> train_dataset, val_dataset, test_dataset = datasets
   >> n_tasks = len(tasks)
   >> n_features = train_dataset.get_data_shape()[0]
@@ -119,7 +123,7 @@ def load_perovskite(
   """
 
   # Featurize
-  logger.info("About to featurize perovskite dataset.")
+  logger.info("About to featurize mp formation energy dataset.")
   my_tasks = ['formation_energy']  # machine learning targets
 
   # Get DeepChem data directory if needed
@@ -143,8 +147,8 @@ def load_perovskite(
   if reload:
     featurizer_name = str(featurizer.__class__.__name__)
     splitter_name = str(splitter.__class__.__name__)
-    save_folder = os.path.join(save_dir, "perovskite-featurized",
-                               featurizer_name, splitter_name)
+    save_folder = os.path.join(save_dir, "mp-forme-featurized", featurizer_name,
+                               splitter_name)
 
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
         save_folder)
@@ -152,18 +156,21 @@ def load_perovskite(
       return my_tasks, all_dataset, transformers
 
   # First type of supported featurizers
-  supported_featurizers: List[str] = ['CGCNNFeaturizer', 'SineCoulombMatrix']
+  supported_featurizers: List[str] = [
+      'CGCNNFeaturizer',
+      'SineCoulombMatrix',
+  ]
 
   # Load .tar.gz file
   if featurizer.__class__.__name__ in supported_featurizers:
-    dataset_file = os.path.join(data_dir, 'perovskite.tar.gz')
+    dataset_file = os.path.join(data_dir, 'mp_formation_energy.tar.gz')
     deepchem.utils.untargz_file(dataset_file, dest_dir=data_dir)
-    dataset_file = os.path.join(data_dir, 'perovskite.json')
+    dataset_file = os.path.join(data_dir, 'mp_formation_energy.json')
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=PEROVSKITE_URL, dest_dir=data_dir)
+      deepchem.utils.download_url(url=MPFORME_URL, dest_dir=data_dir)
       deepchem.utils.untargz_file(
-          os.path.join(data_dir, 'perovskite.tar.gz'), data_dir)
+          os.path.join(data_dir, 'mp_formation_energy.tar.gz'), data_dir)
 
     # Changer loader to match featurizer and data file type
     loader = deepchem.data.JsonLoader(

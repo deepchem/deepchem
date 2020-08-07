@@ -133,6 +133,8 @@ or modified phenomenological models that describe material behavior
 
 .. autofunction:: deepchem.molnet.load_bandgap
 .. autofunction:: deepchem.molnet.load_perovskite
+.. autofunction:: deepchem.molnet.load_mp_formation_energy
+.. autofunction:: deepchem.molnet.load_mp_metallicity
 
 MUV Datasets
 ------------

@@ -87,7 +87,7 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
     if self.flatten:
       eigs, _ = np.linalg.eig(sine_mat)
       zeros = np.zeros((1, self.max_atoms))
-      zeros[:len(eigs)] = eigs
+      zeros[0][:eigs.shape[1]] = eigs
       features = zeros
     else:
       features = pad_array(sine_mat, self.max_atoms)

@@ -13,7 +13,6 @@ from typing import List, Tuple, Dict, Optional, Union, Any, Type
 
 logger = logging.getLogger(__name__)
 
-# TODO: Change URLs
 DEFAULT_DIR = deepchem.utils.get_data_dir()
 BANDGAP_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/expt_gap.tar.gz'
 
