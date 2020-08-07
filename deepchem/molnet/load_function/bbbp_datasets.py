@@ -8,7 +8,7 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-BBBP_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/BBBP.csv'
+BBBP_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/BBBP.csv"
 
 
 def load_bbbp(featurizer='ECFP',
@@ -17,7 +17,33 @@ def load_bbbp(featurizer='ECFP',
               data_dir=None,
               save_dir=None,
               **kwargs):
-  """Load blood-brain barrier penetration datasets """
+  """Load BBBP dataset
+
+  The blood-brain barrier penetration (BBBP) dataset is designed for the
+  modeling and prediction of barrier permeability. As a membrane separating
+  circulating blood and brain extracellular fluid, the blood-brain barrier
+  blocks most drugs, hormones and neurotransmitters. Thus penetration of the
+  barrier forms a long-standing issue in development of drugs targeting
+  central nervous system.
+
+  This dataset includes binary labels for over 2000 compounds on their
+  permeability properties.
+
+  Scaffold splitting is recommended for this dataset.
+
+  The raw data csv file contains columns below:
+
+  - "name" - Name of the compound
+  - "smiles" - SMILES representation of the molecular structure
+  - "p_np" - Binary labels for penetration/non-penetration
+
+  References
+  ----------
+  .. [1] Martins, Ines Filipa, et al. "A Bayesian approach to in silico
+     blood-brain barrier penetration modeling." Journal of chemical
+     information and modeling 52.6 (2012): 1686-1697.
+  """
+
   # Featurize bbb dataset
   logger.info("About to featurize bbbp dataset.")
   if data_dir is None:
@@ -63,9 +89,7 @@ def load_bbbp(featurizer='ECFP',
 
   if split is None:
     # Initialize transformers
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-    ]
+    transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
 
     logger.info("Split is None, about to transform data")
     for transformer in transformers:
@@ -91,9 +115,7 @@ def load_bbbp(featurizer='ECFP',
       frac_test=frac_test)
 
   # Initialize transformers
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
-  ]
+  transformers = [deepchem.trans.BalancingTransformer(dataset=train)]
 
   for transformer in transformers:
     train = transformer.transform(train)

@@ -1,30 +1,52 @@
 """
 Geometric utility functions for 3D geometry.
 """
-import logging
 import numpy as np
 from scipy.spatial.distance import cdist
 
-logger = logging.getLogger(__name__)
 
+def unit_vector(vector: np.ndarray) -> np.ndarray:
+  """ Returns the unit vector of the vector.
+  
+  Parameters
+  ----------
+  vector: np.ndarray
+    A numpy array of shape `(3,)`, where `3` is (x,y,z).
 
-def unit_vector(vector):
-  """ Returns the unit vector of the vector.  """
+  Returns
+  ----------
+  np.ndarray
+    A numpy array of shape `(3,)`. The unit vector of the input vector.
+  """
   return vector / np.linalg.norm(vector)
 
 
-def angle_between(vector_i, vector_j):
-  """Returns the angle in radians between vectors "vector_i" and "vector_j"::
+def angle_between(vector_i: np.ndarray, vector_j: np.ndarray) -> np.ndarray:
+  """Returns the angle in radians between vectors "vector_i" and "vector_j"
 
+  Note that this function always returns the smaller of the two angles between
+  the vectors (value between 0 and pi).
+
+  Parameters
+  ----------
+  vector_i: np.ndarray
+    A numpy array of shape `(3,)`, where `3` is (x,y,z).
+  vector_j: np.ndarray
+    A numpy array of shape `(3,)`, where `3` is (x,y,z).
+
+  Returns
+  ----------
+  np.ndarray
+    The angle in radians between the two vectors.
+
+  Examples
+  --------
   >>> print("%0.06f" % angle_between((1, 0, 0), (0, 1, 0)))
   1.570796
   >>> print("%0.06f" % angle_between((1, 0, 0), (1, 0, 0)))
   0.000000
   >>> print("%0.06f" % angle_between((1, 0, 0), (-1, 0, 0)))
   3.141593
-
-  Note that this function always returns the smaller of the two angles between
-  the vectors (value between 0 and pi).
   """
   vector_i_u = unit_vector(vector_i)
   vector_j_u = unit_vector(vector_j)
@@ -37,7 +59,7 @@ def angle_between(vector_i, vector_j):
   return angle
 
 
-def generate_random_unit_vector():
+def generate_random_unit_vector() -> np.ndarray:
   """Generate a random unit vector on the sphere S^2.
 
   Citation: http://mathworld.wolfram.com/SpherePointPicking.html
@@ -46,16 +68,21 @@ def generate_random_unit_vector():
     a. Choose random theta \element [0, 2*pi]
     b. Choose random z \element [-1, 1]
     c. Compute output vector u: (x,y,z) = (sqrt(1-z^2)*cos(theta), sqrt(1-z^2)*sin(theta),z)
+
+  Returns
+  -------
+  u: np.ndarray
+    A numpy array of shape `(3,)`. u is an unit vector
   """
   theta = np.random.uniform(low=0.0, high=2 * np.pi)
   z = np.random.uniform(low=-1.0, high=1.0)
   u = np.array(
       [np.sqrt(1 - z**2) * np.cos(theta),
        np.sqrt(1 - z**2) * np.sin(theta), z])
-  return (u)
+  return u
 
 
-def generate_random_rotation_matrix():
+def generate_random_rotation_matrix() -> np.ndarray:
   """Generates a random rotation matrix.
 
   1. Generate a random unit vector u, randomly sampled from the
@@ -81,7 +108,7 @@ def generate_random_rotation_matrix():
   Returns
   -------
   R: np.ndarray
-    R is of shape (3, 3)
+    A numpy array of shape `(3, 3)`. R is a rotation matrix.
   """
   u = generate_random_unit_vector()
   v = generate_random_unit_vector()
@@ -90,42 +117,71 @@ def generate_random_rotation_matrix():
 
   vp = v - (np.dot(u, v) * u)
   vp /= np.linalg.norm(vp)
-
   w = np.cross(u, vp)
-
   R = np.column_stack((u, vp, w))
-  return (R)
+  return R
 
 
-def is_angle_within_cutoff(vector_i, vector_j, angle_cutoff):
-  """A utility function to compute whether two vectors are within a cutoff from 180 degrees apart. 
+def is_angle_within_cutoff(vector_i: np.ndarray, vector_j: np.ndarray,
+                           angle_cutoff: float) -> bool:
+  """A utility function to compute whether two vectors are within a cutoff from 180 degrees apart.
 
   Parameters
   ----------
   vector_i: np.ndarray
-    Of shape (3,)
+    A numpy array of shape (3,)`, where `3` is (x,y,z).
   vector_j: np.ndarray
-    Of shape (3,)
+    A numpy array of shape `(3,)`, where `3` is (x,y,z).
   cutoff: float
     The deviation from 180 (in degrees)
+
+  Returns
+  -------
+  bool
+    Whether two vectors are within a cutoff from 180 degrees apart
   """
   angle = angle_between(vector_i, vector_j) * 180. / np.pi
   return (angle > (180 - angle_cutoff) and angle < (180. + angle_cutoff))
 
 
-def compute_centroid(coordinates):
+def compute_centroid(coordinates: np.ndarray) -> np.ndarray:
   """Compute the (x,y,z) centroid of provided coordinates
 
   Parameters
   ----------
   coordinates: np.ndarray
-    Shape `(N, 3)`, where `N` is the number of atoms.
+    A numpy array of shape `(N, 3)`, where `N` is the number of atoms.
+
+  Returns
+  -------
+  centroid: np.ndarray
+    A numpy array of shape `(3,)`, where `3` is (x,y,z).
   """
   centroid = np.mean(coordinates, axis=0)
-  return (centroid)
+  return centroid
 
 
-def subtract_centroid(xyz, centroid):
+def compute_protein_range(coordinates: np.ndarray) -> np.ndarray:
+  """Compute the protein range of provided coordinates
+
+  Parameters
+  ----------
+  coordinates: np.ndarray
+    A numpy array of shape `(N, 3)`, where `N` is the number of atoms.
+
+  Returns
+  -------
+  protein_range: np.ndarray
+    A numpy array of shape `(3,)`, where `3` is (x,y,z).
+  """
+  protein_max = np.max(coordinates, axis=0)
+  protein_min = np.min(coordinates, axis=0)
+  protein_range = protein_max - protein_min
+  return protein_range
+
+
+def subtract_centroid(coordinates: np.ndarray,
+                      centroid: np.ndarray) -> np.ndarray:
   """Subtracts centroid from each coordinate.
 
   Subtracts the centroid, a numpy array of dim 3, from all coordinates
@@ -135,16 +191,22 @@ def subtract_centroid(xyz, centroid):
 
   Parameters
   ----------
-  xyz: numpy array
-    Of shape `(N, 3)`
-  centroid: numpy array
-    Of shape `(3,)`
+  coordinates: np.ndarray
+    A numpy array of shape `(N, 3)`, where `N` is the number of atoms.
+  centroid: np.ndarray
+    A numpy array of shape `(3,)`
+
+  Returns
+  -------
+  coordinates: np.ndarray
+    A numpy array of shape `(3,)`, where `3` is (x,y,z).
   """
-  xyz -= np.transpose(centroid)
-  return (xyz)
+  coordinates -= np.transpose(centroid)
+  return coordinates
 
 
-def compute_pairwise_distances(first_xyz, second_xyz):
+def compute_pairwise_distances(first_coordinate: np.ndarray,
+                               second_coordinate: np.ndarray) -> np.ndarray:
   """Computes pairwise distances between two molecules.
 
   Takes an input (m, 3) and (n, 3) numpy arrays of 3D coords of
@@ -155,15 +217,17 @@ def compute_pairwise_distances(first_xyz, second_xyz):
 
   Parameters
   ----------
-  first_xyz: np.ndarray
-    Of shape (m, 3)
-  seocnd_xyz: np.ndarray
-    Of shape (n, 3)
+  first_coordinate: np.ndarray
+    A numpy array of shape `(m, 3)`, where `m` is the number of atoms.
+  second_coordinate: np.ndarray
+    A numpy array of shape `(n, 3)`, where `n` is the number of atoms.
 
   Returns
   -------
-  np.ndarray of shape (m, n)
+  pairwise_distances: np.ndarray
+    A numpy array of shape `(m, n)`
   """
 
-  pairwise_distances = cdist(first_xyz, second_xyz, metric='euclidean')
+  pairwise_distances = cdist(
+      first_coordinate, second_coordinate, metric='euclidean')
   return pairwise_distances

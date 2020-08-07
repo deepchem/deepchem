@@ -10,6 +10,11 @@ import collections
 import logging
 from functools import reduce
 from operator import mul
+from typing import Dict, List, Optional
+
+from deepchem.data import Dataset
+from deepchem.trans import Transformer
+from deepchem.metrics import Metric
 from deepchem.utils.evaluate import Evaluator
 from deepchem.hyper.base_classes import HyperparamOpt
 from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
@@ -26,9 +31,9 @@ class GridHyperparamOpt(HyperparamOpt):
   a direct iteration over all possible hyperparameters and doesn't use
   parallelization to speed up the search.
 
-  Example
-  -------
-  This example shows the type of constructor function expected. 
+  Examples
+  --------
+  This example shows the type of constructor function expected.
 
   >>> import sklearn
   >>> import deepchem as dc
@@ -55,14 +60,18 @@ class GridHyperparamOpt(HyperparamOpt):
 
   """
 
-  def hyperparam_search(self,
-                        params_dict,
-                        train_dataset,
-                        valid_dataset,
-                        output_transformers,
-                        metric,
-                        use_max=True,
-                        logdir=None):
+  # NOTE: mypy prohibits changing the number of arguments
+  # FIXME: Signature of "hyperparam_search" incompatible with supertype "HyperparamOpt"
+  def hyperparam_search(  # type: ignore[override]
+      self,
+      params_dict: Dict[str, List],
+      train_dataset: Dataset,
+      valid_dataset: Dataset,
+      output_transformers: List[Transformer],
+      metric: Metric,
+      use_max: bool = True,
+      logdir: Optional[str] = None,
+  ):
     """Perform hyperparams search according to params_dict.
 
     Each key to hyperparams_dict is a model_param. The values should
@@ -70,16 +79,19 @@ class GridHyperparamOpt(HyperparamOpt):
 
     Parameters
     ----------
-    params_dict: Dict[str, list]
+    params_dict: Dict
       Maps hyperparameter names (strings) to lists of possible
       parameter values.
-    train_dataset: `dc.data.Dataset`
+    train_dataset: Dataset
       dataset used for training
-    valid_dataset: `dc.data.Dataset`
+    valid_dataset: Dataset
       dataset used for validation(optimization on valid scores)
-    output_transformers: list[dc.trans.Transformer]
-      transformers for evaluation
-    metric: dc.metrics.Metric
+    output_transformers: list[Transformer]
+      Transformers for evaluation. This argument is needed since
+      `train_dataset` and `valid_dataset` may have been transformed
+      for learning and need the transform to be inverted before
+      the metric can be evaluated on a model.
+    metric: Metric
       metric used for evaluation
     use_max: bool, optional
       If True, return the model with the highest score. Else return
@@ -90,11 +102,12 @@ class GridHyperparamOpt(HyperparamOpt):
 
     Returns
     -------
-    `(best_model, best_hyperparams, all_scores)` where `best_model` is
-    an instance of `dc.model.Models`, `best_hyperparams` is a
-    dictionary of parameters, and `all_scores` is a dictionary mapping
-    string representations of hyperparameter sets to validation
-    scores.
+    Tuple[`best_model`, `best_hyperparams`, `all_scores`]
+      `(best_model, best_hyperparams, all_scores)` where `best_model` is
+      an instance of `dc.model.Model`, `best_hyperparams` is a
+      dictionary of parameters, and `all_scores` is a dictionary mapping
+      string representations of hyperparameter sets to validation
+      scores.
     """
     hyperparams = params_dict.keys()
     hyperparam_vals = params_dict.values()

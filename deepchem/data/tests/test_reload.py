@@ -56,9 +56,7 @@ class TestReload(unittest.TestCase):
     # TODO(rbharath): Transformers don't play nice with reload! Namely,
     # reloading will cause the transform to be reapplied. This is undesirable in
     # almost all cases. Need to understand a method to fix this.
-    transformers = [
-        dc.trans.BalancingTransformer(transform_w=True, dataset=train_dataset)
-    ]
+    transformers = [dc.trans.BalancingTransformer(dataset=train_dataset)]
     logger.info("Transforming datasets")
     for dataset in [train_dataset, valid_dataset, test_dataset]:
       for transformer in transformers:

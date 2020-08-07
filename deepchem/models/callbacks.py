@@ -5,6 +5,10 @@ Callback functions that can be invoked while fitting a KerasModel.
 import tensorflow as tf
 import sys
 
+from deepchem.models.keras_model import is_wandb_available
+if is_wandb_available():
+  import wandb
+
 
 class ValidationCallback(object):
   """Performs validation while training a KerasModel.
@@ -81,6 +85,8 @@ class ValidationCallback(object):
     if model.tensorboard:
       for key in scores:
         model._log_value_to_tensorboard(tag=key, simple_value=scores[key])
+    if model.wandb:
+      wandb.log(scores, step=step)
     if self.save_dir is not None:
       score = scores[self.metrics[self.save_metric].name]
       if not self.save_on_minimum:

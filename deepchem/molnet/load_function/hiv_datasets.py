@@ -7,7 +7,7 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
-HIV_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/HIV.csv'
+HIV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/HIV.csv"
 DEFAULT_DIR = deepchem.utils.get_data_dir()
 
 
@@ -17,7 +17,7 @@ def load_hiv(featurizer='ECFP',
              data_dir=None,
              save_dir=None,
              **kwargs):
-  """Load hiv datasets. Does not do train/test split
+  """Load HIV dataset
 
   The HIV dataset was introduced by the Drug Therapeutics
   Program (DTP) AIDS Antiviral Screen, which tested the ability
@@ -28,14 +28,18 @@ def load_hiv(featurizer='ECFP',
   latter two labels, making it a classification task between
   inactive (CI) and active (CA and CM).
 
-  The data file contains a csv table, in which columns below
-  are used:
-     - "smiles": SMILES representation of the molecular structure
-     - "activity": Three-class labels for screening results: CI/CM/CA
-     - "HIV_active": Binary labels for screening results: 1 (CA/CM) and 0 (CI)
+  Scaffold splitting is recommended for this dataset.
 
-  References:
-  AIDS Antiviral Screen Data. https://wiki.nci.nih.gov/display/NCIDTPdata/AIDS+Antiviral+Screen+Data
+  The raw data csv file contains columns below:
+
+  - "smiles": SMILES representation of the molecular structure
+  - "activity": Three-class labels for screening results: CI/CM/CA
+  - "HIV_active": Binary labels for screening results: 1 (CA/CM) and 0 (CI)
+
+  References
+  ----------
+  .. [1] AIDS Antiviral Screen Data. 
+     https://wiki.nci.nih.gov/display/NCIDTPdata/AIDS+Antiviral+Screen+Data
   """
   # Featurize hiv dataset
   logger.info("About to featurize hiv dataset.")
@@ -82,9 +86,7 @@ def load_hiv(featurizer='ECFP',
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
   if split is None:
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-    ]
+    transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
 
     logger.info("Split is None, about to transform data")
     for transformer in transformers:
@@ -112,9 +114,7 @@ def load_hiv(featurizer='ECFP',
       frac_test=frac_test)
   train, valid, test = splitter.train_valid_test_split(dataset)
 
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
-  ]
+  transformers = [deepchem.trans.BalancingTransformer(dataset=train)]
 
   logger.info("About to transform data.")
   for transformer in transformers:

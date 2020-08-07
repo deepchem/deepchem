@@ -47,6 +47,12 @@ BalancingTransformer
 .. autoclass:: deepchem.trans.BalancingTransformer
   :members:
 
+DuplicateBalancingTransformer
+-----------------------------
+
+.. autoclass:: deepchem.trans.DuplicateBalancingTransformer
+  :members:
+
 CDFTransformer
 --------------
 
@@ -69,12 +75,6 @@ IRVTransformer
 --------------
 
 .. autoclass:: deepchem.trans.IRVTransformer
-  :members:
-
-DAGTransformer
---------------
-
-.. autoclass:: deepchem.trans.DAGTransformer
   :members:
 
 DAGTransformer

@@ -123,8 +123,7 @@ class TestAtomicConv(unittest.TestCase):
         neighbor_cutoff)
     # arbitrary label
     labels = np.array([0])
-    features, _ = complex_featurizer.featurize_complexes([ligand_file],
-                                                         [protein_file])
+    features, _ = complex_featurizer.featurize([ligand_file], [protein_file])
     dataset = deepchem.data.DiskDataset.from_numpy(features, labels)
 
     batch_size = 1

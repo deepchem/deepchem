@@ -1,0 +1,20 @@
+name: deepchem
+channels:
+  - omnia
+  - conda-forge
+  - defaults
+dependencies:
+  - openmm
+  - pdbfixer
+  - rdkit
+  - pip
+  - pip:
+    - biopython
+    - matminer
+    - mdtraj
+    - networkx
+    - pillow
+    - pyGPGO
+    - pymatgen
+    - simdna
+    - xgboost

@@ -9,7 +9,7 @@ from deepchem.molnet.load_function.bace_features import bace_user_specified_feat
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-BACE_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/bace.csv'
+BACE_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/bace.csv"
 
 
 def load_bace_regression(featurizer='ECFP',
@@ -19,7 +19,29 @@ def load_bace_regression(featurizer='ECFP',
                          data_dir=None,
                          save_dir=None,
                          **kwargs):
-  """Load bace datasets."""
+  """ Load BACE dataset, regression labels
+
+  The BACE dataset provides quantitative IC50 and qualitative (binary label)
+  binding results for a set of inhibitors of human beta-secretase 1 (BACE-1).
+
+  All data are experimental values reported in scientific literature over the
+  past decade, some with detailed crystal structures available. A collection
+  of 1522 compounds is provided, along with the regression labels of IC50.
+
+  Scaffold splitting is recommended for this dataset.
+
+  The raw data csv file contains columns below:
+
+  - "mol" - SMILES representation of the molecular structure
+  - "pIC50" - Negative log of the IC50 binding affinity
+  - "class" - Binary labels for inhibitor
+
+  References
+  ----------
+  .. [1] Subramanian, Govindan, et al. "Computational modeling of β-secretase 1
+     (BACE-1) inhibitors using ligand based approaches." Journal of chemical
+     information and modeling 56.10 (2016): 1936-1949.
+  """
   # Featurize bace dataset
   logger.info("About to featurize bace dataset.")
   if data_dir is None:
@@ -125,7 +147,10 @@ def load_bace_classification(featurizer='ECFP',
                              data_dir=None,
                              save_dir=None,
                              **kwargs):
-  """Load bace datasets."""
+  """ Load BACE dataset, classification labels
+
+  BACE dataset with classification labels ("class").
+  """
   # Featurize bace dataset
   logger.info("About to featurize bace dataset.")
   if data_dir is None:
@@ -175,9 +200,7 @@ def load_bace_classification(featurizer='ECFP',
 
   if split is None:
     # Initialize transformers
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-    ]
+    transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
 
     logger.info("Split is None, about to transform data")
     for transformer in transformers:
@@ -204,9 +227,7 @@ def load_bace_classification(featurizer='ECFP',
       frac_valid=frac_valid,
       frac_test=frac_test)
 
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
-  ]
+  transformers = [deepchem.trans.BalancingTransformer(dataset=train)]
 
   logger.info("About to transform data.")
   for transformer in transformers:

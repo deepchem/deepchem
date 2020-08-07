@@ -419,7 +419,7 @@ class TestSplitter(unittest.TestCase):
       assert np.count_nonzero(y_present[:split_index, task]) == int(
           task_actives / 2)
 
-  def test_singletask_stratified_split(self):
+  def test_random_stratified_split(self):
     """
     Test RandomStratifiedSplitter on a singletask split.
     """
@@ -581,7 +581,7 @@ class TestSplitter(unittest.TestCase):
       w = dataset.w
       # verify that there are no rows (samples) in weights matrix w
       # that have no hits.
-      assert len(np.where(~w.any(axis=1))[0]) == 0
+      assert len(np.where(w.any(axis=1) == 0)[0]) == 0
 
   def test_indice_split(self):
 

@@ -2,22 +2,24 @@
 Generates protein-ligand docked poses.
 """
 import platform
-import deepchem
 import logging
-import numpy as np
 import os
 import tempfile
 import tarfile
+import numpy as np
 from subprocess import call
-from deepchem.utils.rdkit_util import add_hydrogens_to_mol
 from subprocess import check_output
-from deepchem.utils import rdkit_util
-from deepchem.utils import mol_xyz_util
-from deepchem.utils import geometry_utils
-from deepchem.utils import vina_utils
-from deepchem.utils import download_url
+from typing import List, Optional, Tuple, Union
+
+from deepchem.dock.binding_pocket import BindingPocketFinder
+from deepchem.utils import download_url, get_data_dir
+from deepchem.utils.typing import RDKitMol
+from deepchem.utils.geometry_utils import compute_centroid, compute_protein_range
+from deepchem.utils.rdkit_utils import load_molecule, write_molecule
+from deepchem.utils.vina_utils import load_docked_ligands, write_vina_conf
 
 logger = logging.getLogger(__name__)
+DOCKED_POSES = List[Tuple[RDKitMol, RDKitMol]]
 
 
 class PoseGenerator(object):
@@ -33,24 +35,25 @@ class PoseGenerator(object):
   """
 
   def generate_poses(self,
-                     molecular_complex,
-                     centroid=None,
-                     box_dims=None,
-                     exhaustiveness=10,
-                     num_modes=9,
-                     num_pockets=None,
-                     out_dir=None,
-                     generate_scores=False):
+                     molecular_complex: Tuple[str, str],
+                     centroid: Optional[np.ndarray] = None,
+                     box_dims: Optional[np.ndarray] = None,
+                     exhaustiveness: int = 10,
+                     num_modes: int = 9,
+                     num_pockets: Optional[int] = None,
+                     out_dir: Optional[str] = None,
+                     generate_scores: bool = False):
     """Generates a list of low energy poses for molecular complex
 
     Parameters
     ----------
-    molecular_complexes: list
-      A representation of a molecular complex.
-    centroid: np.ndarray, optional
+    molecular_complexes: Tuple[str, str]
+      A representation of a molecular complex. This tuple is
+      (protein_file, ligand_file).
+    centroid: np.ndarray, optional (default None)
       The centroid to dock against. Is computed if not specified.
-    box_dims: np.ndarray, optional
-      Of shape `(3,)` holding the size of the box to dock. If not
+    box_dims: np.ndarray, optional (default None)
+      A numpy array of shape `(3,)` holding the size of the box to dock. If not
       specified is set to size of molecular complex plus 5 angstroms.
     exhaustiveness: int, optional (default 10)
       Tells pose generator how exhaustive it should be with pose
@@ -62,7 +65,7 @@ class PoseGenerator(object):
       If specified, `self.pocket_finder` must be set. Will only
       generate poses for the first `num_pockets` returned by
       `self.pocket_finder`.
-    out_dir: str, optional
+    out_dir: str, optional (default None)
       If specified, write generated poses to this directory.
     generate_score: bool, optional (default False)
       If `True`, the pose generator will return scores for complexes.
@@ -90,19 +93,21 @@ class VinaPoseGenerator(PoseGenerator):
   This class requires RDKit to be installed.
   """
 
-  def __init__(self, sixty_four_bits=True, pocket_finder=None):
+  def __init__(self,
+               sixty_four_bits: bool = True,
+               pocket_finder: Optional[BindingPocketFinder] = None):
     """Initializes Vina Pose Generator
 
-    Params
-    ------
+    Parameters
+    ----------
     sixty_four_bits: bool, optional (default True)
       Specifies whether this is a 64-bit machine. Needed to download
       the correct executable.
-    pocket_finder: object, optional (default None)
+    pocket_finder: BindingPocketFinder, optional (default None)
       If specified should be an instance of
       `dc.dock.BindingPocketFinder`.
     """
-    data_dir = deepchem.utils.get_data_dir()
+    data_dir = get_data_dir()
     if platform.system() == 'Linux':
       url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_linux_x86.tgz"
       filename = "autodock_vina_1_1_2_linux_x86.tgz"
@@ -145,26 +150,29 @@ class VinaPoseGenerator(PoseGenerator):
       os.remove(downloaded_file)
 
   def generate_poses(self,
-                     molecular_complex,
-                     centroid=None,
-                     box_dims=None,
-                     exhaustiveness=10,
-                     num_modes=9,
-                     num_pockets=None,
-                     out_dir=None,
-                     generate_scores=False):
+                     molecular_complex: Tuple[str, str],
+                     centroid: Optional[np.ndarray] = None,
+                     box_dims: Optional[np.ndarray] = None,
+                     exhaustiveness: int = 10,
+                     num_modes: int = 9,
+                     num_pockets: Optional[int] = None,
+                     out_dir: Optional[str] = None,
+                     generate_scores: bool = False
+                    ) -> Union[Tuple[DOCKED_POSES, List[float]], DOCKED_POSES]:
     """Generates the docked complex and outputs files for docked complex.
 
-    TODO: How can this work on Windows? We need to install a .msi file and invoke it correctly from Python for this to work.
+    TODO: How can this work on Windows? We need to install a .msi file and
+    invoke it correctly from Python for this to work.
 
     Parameters
     ----------
-    molecular_complexes: list
-      A representation of a molecular complex.
+    molecular_complexes: Tuple[str, str]
+      A representation of a molecular complex. This tuple is
+      (protein_file, ligand_file).
     centroid: np.ndarray, optional
       The centroid to dock against. Is computed if not specified.
     box_dims: np.ndarray, optional
-      Of shape `(3,)` holding the size of the box to dock. If not
+      A numpy array of shape `(3,)` holding the size of the box to dock. If not
       specified is set to size of molecular complex plus 5 angstroms.
     exhaustiveness: int, optional (default 10)
       Tells Autodock Vina how exhaustive it should be with pose
@@ -185,10 +193,11 @@ class VinaPoseGenerator(PoseGenerator):
 
     Returns
     -------
-    Tuple of `(docked_poses, scores)`. `docked_poses` is a list of
-    docked molecular complexes. Each entry in this list contains a
-    `(protein_mol, ligand_mol)` pair of RDKit molecules. `scores` is a
-    list of binding free energies predicted by Vina.
+    Tuple[`docked_poses`, `scores`] or `docked_poses`
+      Tuple of `(docked_poses, scores)` or `docked_poses`. `docked_poses`
+      is a list of docked molecular complexes. Each entry in this list
+      contains a `(protein_mol, ligand_mol)` pair of RDKit molecules.
+      `scores` is a list of binding free energies predicted by Vina.
 
     Raises
     ------
@@ -214,10 +223,10 @@ class VinaPoseGenerator(PoseGenerator):
     protein_name = os.path.basename(protein_file).split(".")[0]
     protein_hyd = os.path.join(out_dir, "%s_hyd.pdb" % protein_name)
     protein_pdbqt = os.path.join(out_dir, "%s.pdbqt" % protein_name)
-    protein_mol = rdkit_util.load_molecule(
+    protein_mol = load_molecule(
         protein_file, calc_charges=True, add_hydrogens=True)
-    rdkit_util.write_molecule(protein_mol[1], protein_hyd, is_protein=True)
-    rdkit_util.write_molecule(protein_mol[1], protein_pdbqt, is_protein=True)
+    write_molecule(protein_mol[1], protein_hyd, is_protein=True)
+    write_molecule(protein_mol[1], protein_pdbqt, is_protein=True)
 
     # Get protein centroid and range
     if centroid is not None and box_dims is not None:
@@ -226,8 +235,8 @@ class VinaPoseGenerator(PoseGenerator):
     else:
       if self.pocket_finder is None:
         logger.info("Pockets not specified. Will use whole protein to dock")
-        protein_centroid = geometry_utils.compute_centroid(protein_mol[0])
-        protein_range = mol_xyz_util.get_molecule_range(protein_mol[0])
+        protein_centroid = compute_centroid(protein_mol[0])
+        protein_range = compute_protein_range(protein_mol[0])
         box_dims = protein_range + 5.0
         centroids, dimensions = [protein_centroid], [box_dims]
       else:
@@ -258,9 +267,9 @@ class VinaPoseGenerator(PoseGenerator):
     ligand_name = os.path.basename(ligand_file).split(".")[0]
     ligand_pdbqt = os.path.join(out_dir, "%s.pdbqt" % ligand_name)
 
-    ligand_mol = rdkit_util.load_molecule(
+    ligand_mol = load_molecule(
         ligand_file, calc_charges=True, add_hydrogens=True)
-    rdkit_util.write_molecule(ligand_mol[1], ligand_pdbqt)
+    write_molecule(ligand_mol[1], ligand_pdbqt)
 
     docked_complexes = []
     all_scores = []
@@ -271,7 +280,7 @@ class VinaPoseGenerator(PoseGenerator):
       logger.info("Box dimensions: %s" % str(box_dims))
       # Write Vina conf file
       conf_file = os.path.join(out_dir, "conf.txt")
-      vina_utils.write_vina_conf(
+      write_vina_conf(
           protein_pdbqt,
           ligand_pdbqt,
           protein_centroid,
@@ -292,10 +301,12 @@ class VinaPoseGenerator(PoseGenerator):
       else:
         # I'm not sure why specifying the args as a list fails on other platforms,
         # but for some reason it only works if I pass it as a string.
-        args = "%s --config %s --log %s --out %s" % (self.vina_cmd, conf_file,
-                                                     log_file, out_pdbqt)
+        # FIXME: Incompatible types in assignment
+        args = "%s --config %s --log %s --out %s" % (  # type: ignore
+            self.vina_cmd, conf_file, log_file, out_pdbqt)
+      # FIXME: We should use `subprocess.run` instead of `call`
       call(args, shell=True)
-      ligands, scores = vina_utils.load_docked_ligands(out_pdbqt)
+      ligands, scores = load_docked_ligands(out_pdbqt)
       docked_complexes += [(protein_mol[1], ligand) for ligand in ligands]
       all_scores += scores
 

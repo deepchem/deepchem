@@ -8,7 +8,7 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-TOXCAST_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/toxcast_data.csv.gz'
+TOXCAST_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/toxcast_data.csv.gz"
 
 
 def load_toxcast(featurizer='ECFP',
@@ -17,7 +17,7 @@ def load_toxcast(featurizer='ECFP',
                  data_dir=None,
                  save_dir=None,
                  **kwargs):
-  """Loads the Toxcast datasets.
+  """Load Toxcast dataset
 
   ToxCast is an extended data collection from the same
   initiative as Tox21, providing toxicology data for a large
@@ -25,14 +25,21 @@ def load_toxcast(featurizer='ECFP',
   screening. The processed collection includes qualitative
   results of over 600 experiments on 8k compounds.
 
+  Random splitting is recommended for this dataset.
 
-  The source data file contains a csv table, in which columns
-  below are used:
+  The raw data csv file contains columns below:
 
   - "smiles": SMILES representation of the molecular structure
-  - "ACEA_T47D_80hr_Negative" ~ "Tanguay_ZF_120hpf_YSE_up": Bioassays results. Please refer to the section "high-throughput assay information" at https://www.epa.gov/chemical-research/toxicity-forecaster-toxcasttm-data for details.
+  - "ACEA_T47D_80hr_Negative" ~ "Tanguay_ZF_120hpf_YSE_up": Bioassays results.
+    Please refer to the section "high-throughput assay information" at 
+    https://www.epa.gov/chemical-research/toxicity-forecaster-toxcasttm-data 
+    for details.
 
-  Richard, Ann M., et al. "ToxCast chemical landscape: paving the road to 21st century toxicology." Chemical research in toxicology 29.8 (2016): 1225-1251.
+  References
+  ----------
+  .. [1] Richard, Ann M., et al. "ToxCast chemical landscape: paving the road 
+     to 21st century toxicology." Chemical research in toxicology 29.8 (2016):
+     1225-1251.
   """
   if data_dir is None:
     data_dir = DEFAULT_DIR
@@ -83,9 +90,7 @@ def load_toxcast(featurizer='ECFP',
   dataset = loader.featurize(dataset_file)
 
   if split == None:
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-    ]
+    transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
     logger.info("Split is None, about to transform data.")
     for transformer in transformers:
       dataset = transformer.transform(dataset)
@@ -109,9 +114,7 @@ def load_toxcast(featurizer='ECFP',
       frac_valid=frac_valid,
       frac_test=frac_test)
 
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
-  ]
+  transformers = [deepchem.trans.BalancingTransformer(dataset=train)]
 
   logger.info("About to transform dataset.")
   for transformer in transformers:

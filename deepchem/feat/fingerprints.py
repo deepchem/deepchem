@@ -1,16 +1,15 @@
 """
 Topological fingerprints.
 """
-__author__ = "Steven Kearnes"
-__copyright__ = "Copyright 2014, Stanford University"
-__license__ = "MIT"
-
-from deepchem.feat import Featurizer
+from deepchem.feat.base_classes import MolecularFeaturizer
 
 
-class CircularFingerprint(Featurizer):
-  """
-  Circular (Morgan) fingerprints.
+class CircularFingerprint(MolecularFeaturizer):
+  """Circular (Morgan) fingerprints.
+
+  Extended Connectivity Circular Fingerprints compute a bag-of-words style
+  representation of a molecule by breaking it into local neighborhoods and
+  hashing into a bit vector of the specified size. See [1]_ for more details.
 
   Parameters
   ----------
@@ -31,6 +30,15 @@ class CircularFingerprint(Featurizer):
   smiles : bool, optional (default False)
       Whether to calculate SMILES strings for fragment IDs (only applicable
       when calculating sparse fingerprints).
+
+  References
+  ----------
+  .. [1] Rogers, David, and Mathew Hahn. "Extended-connectivity fingerprints."
+         Journal of chemical information and modeling 50.5 (2010): 742-754.
+
+  Note
+  ----
+  This class requires RDKit to be installed.
   """
   name = 'circular'
 
@@ -42,6 +50,12 @@ class CircularFingerprint(Featurizer):
                features=False,
                sparse=False,
                smiles=False):
+    try:
+      from rdkit import Chem
+      from rdkit.Chem import rdMolDescriptors
+    except ModuleNotFoundError:
+      raise ValueError("This class requires RDKit to be installed.")
+
     self.radius = radius
     self.size = size
     self.chiral = chiral
@@ -51,8 +65,7 @@ class CircularFingerprint(Featurizer):
     self.smiles = smiles
 
   def _featurize(self, mol):
-    """
-    Calculate circular fingerprint.
+    """Calculate circular fingerprint.
 
     Parameters
     ----------

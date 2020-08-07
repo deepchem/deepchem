@@ -26,9 +26,9 @@ class TestHelperFunctions(unittest.TestCase):
   def setUp(self):
     # TODO test more formats for ligand
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    self.protein_file = os.path.join(current_dir,
+    self.protein_file = os.path.join(current_dir, 'data',
                                      '3ws9_protein_fixer_rdkit.pdb')
-    self.ligand_file = os.path.join(current_dir, '3ws9_ligand.sdf')
+    self.ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
 
   def test_load_molecule(self):
     # adding hydrogens and charges is tested in dc.utils
@@ -194,13 +194,13 @@ class TestPiInteractions(unittest.TestCase):
 
     # load and sanitize two real molecules
     _, self.prot = rgf.load_molecule(
-        os.path.join(current_dir, '3ws9_protein_fixer_rdkit.pdb'),
+        os.path.join(current_dir, 'data', '3ws9_protein_fixer_rdkit.pdb'),
         add_hydrogens=False,
         calc_charges=False,
         sanitize=True)
 
     _, self.lig = rgf.load_molecule(
-        os.path.join(current_dir, '3ws9_ligand.sdf'),
+        os.path.join(current_dir, 'data', '3ws9_ligand.sdf'),
         add_hydrogens=False,
         calc_charges=False,
         sanitize=True)
@@ -319,9 +319,9 @@ class TestFeaturizationFunctions(unittest.TestCase):
 
   def setUp(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    self.protein_file = os.path.join(current_dir,
+    self.protein_file = os.path.join(current_dir, 'data',
                                      '3ws9_protein_fixer_rdkit.pdb')
-    self.ligand_file = os.path.join(current_dir, '3ws9_ligand.sdf')
+    self.ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
 
   def test_compute_all_ecfp(self):
     _, mol = rgf.load_molecule(self.ligand_file)
@@ -470,8 +470,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     # test if default parameters work
     featurizer = rgf.RdkitGridFeaturizer()
     self.assertIsInstance(featurizer, rgf.RdkitGridFeaturizer)
-    feature_tensor, _ = featurizer.featurize_complexes([self.ligand_file],
-                                                       [self.protein_file])
+    feature_tensor, _ = featurizer.featurize([self.ligand_file],
+                                             [self.protein_file])
     self.assertIsInstance(feature_tensor, np.ndarray)
 
   def test_example_featurizer(self):
@@ -482,8 +482,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         ecfp_power=9,
         splif_power=9,
         flatten=True)
-    feature_tensor, _ = featurizer.featurize_complexes([self.ligand_file],
-                                                       [self.protein_file])
+    feature_tensor, _ = featurizer.featurize([self.ligand_file],
+                                             [self.protein_file])
     self.assertIsInstance(feature_tensor, np.ndarray)
 
   def test_force_flatten(self):
@@ -491,8 +491,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     featurizer = rgf.RdkitGridFeaturizer(
         feature_types=['ecfp_hashed'], flatten=False)
     featurizer.flatten = True  # False should be ignored with ecfp_hashed
-    feature_tensor, _ = featurizer.featurize_complexes([self.ligand_file],
-                                                       [self.protein_file])
+    feature_tensor, _ = featurizer.featurize([self.ligand_file],
+                                             [self.protein_file])
     self.assertIsInstance(feature_tensor, np.ndarray)
     self.assertEqual(feature_tensor.shape, (1, 2 * 2**featurizer.ecfp_power))
 
@@ -508,8 +508,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         splif_power=splif_power,
         flatten=False,
         sanitize=True)
-    feature_tensor, _ = featurizer.featurize_complexes([self.ligand_file],
-                                                       [self.protein_file])
+    feature_tensor, _ = featurizer.featurize([self.ligand_file],
+                                             [self.protein_file])
     self.assertIsInstance(feature_tensor, np.ndarray)
     voxel_total_len = (
         2**ecfp_power +
@@ -524,8 +524,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         ecfp_power=ecfp_power,
         splif_power=splif_power,
         sanitize=True)
-    feature_tensor, _ = featurizer.featurize_complexes([self.ligand_file],
-                                                       [self.protein_file])
+    feature_tensor, _ = featurizer.featurize([self.ligand_file],
+                                             [self.protein_file])
     self.assertIsInstance(feature_tensor, np.ndarray)
     flat_total_len = (
         3 * 2**ecfp_power +
@@ -544,8 +544,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
 
     self.assertTrue('pi_stack' not in featurizer.feature_types)
     self.assertTrue('cation_pi' not in featurizer.feature_types)
-    feature_tensor, _ = featurizer.featurize_complexes([self.ligand_file],
-                                                       [self.protein_file])
+    feature_tensor, _ = featurizer.featurize([self.ligand_file],
+                                             [self.protein_file])
     self.assertIsInstance(feature_tensor, np.ndarray)
     total_len = voxel_total_len + flat_total_len - 3 - 2**ecfp_power
     self.assertEqual(feature_tensor.shape, (1, total_len))
@@ -572,8 +572,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         feature_types=['voxel_combined'],
         flatten=False,
         sanitize=True)
-    feature_tensors, _ = featurizer.featurize_complexes([self.ligand_file],
-                                                        [self.protein_file])
+    feature_tensors, _ = featurizer.featurize([self.ligand_file],
+                                              [self.protein_file])
     self.assertEqual(feature_tensors.shape, (1, 4, 16, 16, 16, 40))
 
   def test_voxelize(self):

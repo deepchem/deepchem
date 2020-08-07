@@ -3,8 +3,9 @@ Featurizes proposed binding pockets.
 """
 import numpy as np
 import logging
-from deepchem.utils import rdkit_util
+
 from deepchem.feat import Featurizer
+from deepchem.utils.rdkit_utils import load_molecule
 
 logger = logging.getLogger(__name__)
 
@@ -70,8 +71,8 @@ class BindingPocketFeaturizer(Featurizer):
     """
     Calculate atomic coodinates.
 
-    Params
-    ------
+    Parameters
+    ----------
     protein_file: str
       Location of PDB file. Will be loaded by MDTraj
     pockets: list[CoordinateBox]
@@ -82,7 +83,7 @@ class BindingPocketFeaturizer(Featurizer):
     A numpy array of shale `(len(pockets), n_residues)`
     """
     import mdtraj
-    protein_coords = rdkit_util.load_molecule(
+    protein_coords = load_molecule(
         protein_file, add_hydrogens=False, calc_charges=False)[0]
     mapping = boxes_to_atoms(protein_coords, pockets)
     protein = mdtraj.load(protein_file)

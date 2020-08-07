@@ -10,13 +10,13 @@ import numpy as np
 import os
 import deepchem
 import warnings
-from deepchem.utils.genomics import encode_bio_sequence as encode_sequence, encode_fasta_sequence as fasta_sequence, seq_one_hot_encode as seq_one_hotencode
+import logging
+from typing import List, Optional, Iterator, Any
 
+from deepchem.utils.genomics_utils import encode_bio_sequence as encode_sequence, \
+  seq_one_hot_encode as seq_one_hotencode
 
-def log(string, verbose=True):
-  """Print string if verbose."""
-  if verbose:
-    print(string)
+logger = logging.getLogger(__name__)
 
 
 def save_to_disk(dataset, filename, compress=3):
@@ -47,38 +47,76 @@ def get_input_type(input_file):
     raise ValueError("Unrecognized extension %s" % file_extension)
 
 
-def load_data(input_files, shard_size=None, verbose=True):
+def load_data(input_files: List[str],
+              shard_size: Optional[int] = None) -> Iterator[Any]:
   """Loads data from disk.
 
   For CSV files, supports sharded loading for large files.
+
+  Parameters
+  ----------
+  input_files: list
+    List of filenames.
+  shard_size: int, optional (default None)
+    Size of shard to yield
+
+  Returns
+  -------
+  Iterator which iterates over provided files.
   """
   if not len(input_files):
     return
   input_type = get_input_type(input_files[0])
   if input_type == "sdf":
     if shard_size is not None:
-      log("Ignoring shard_size for sdf input.", verbose)
+      logger.info("Ignoring shard_size for sdf input.")
     for value in load_sdf_files(input_files):
       yield value
   elif input_type == "csv":
-    for value in load_csv_files(input_files, shard_size, verbose=verbose):
+    for value in load_csv_files(input_files, shard_size):
       yield value
   elif input_type == "pandas-pickle":
     for input_file in input_files:
       yield load_pickle_from_disk(input_file)
 
 
-def load_sdf_files(input_files, clean_mols, tasks=[]):
-  """Load SDF file into dataframe."""
+def load_sdf_files(input_files: List[str],
+                   clean_mols: bool = True,
+                   tasks: List[str] = [],
+                   shard_size: Optional[int] = None) -> Iterator[pd.DataFrame]:
+  """Load SDF file into dataframe.
+
+  Parameters
+  ----------
+  input_files: list[str]
+    List of filenames
+  clean_mols: bool
+    Whether to sanitize molecules.
+  tasks: list, optional (default [])
+    Each entry in `tasks` is treated as a property in the SDF file and is
+    retrieved with `mol.GetProp(str(task))` where `mol` is the RDKit mol
+    loaded from a given SDF entry.
+  shard_size: int, optional (default None) 
+    The shard size to yield at one time.
+
+  Note
+  ----
+  This function requires RDKit to be installed.
+
+  Returns
+  -------
+  dataframes: list
+    This function returns a list of pandas dataframes. Each dataframe will
+    contain columns `('mol_id', 'smiles', 'mol')`.
+  """
   from rdkit import Chem
-  dataframes = []
+  df_rows = []
   for input_file in input_files:
     # Tasks are either in .sdf.csv file or in the .sdf file itself
     has_csv = os.path.isfile(input_file + ".csv")
     # Structures are stored in .sdf file
-    print("Reading structures from %s." % input_file)
+    logger.info("Reading structures from %s." % input_file)
     suppl = Chem.SDMolSupplier(str(input_file), clean_mols, False, False)
-    df_rows = []
     for ind, mol in enumerate(suppl):
       if mol is None:
         continue
@@ -88,29 +126,94 @@ def load_sdf_files(input_files, clean_mols, tasks=[]):
         for task in tasks:
           df_row.append(mol.GetProp(str(task)))
       df_rows.append(df_row)
-    if has_csv:
-      mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
-      raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
-      dataframes.append(pd.concat([mol_df, raw_df], axis=1, join='inner'))
-    else:
-      mol_df = pd.DataFrame(
-          df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks))
-      dataframes.append(mol_df)
-  return dataframes
+      if shard_size is not None and len(df_rows) == shard_size:
+        if has_csv:
+          mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
+          raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
+          yield pd.concat([mol_df, raw_df], axis=1, join='inner')
+        else:
+          mol_df = pd.DataFrame(
+              df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks))
+          yield mol_df
+        # Reset aggregator
+        df_rows = []
+    # Handle final leftovers for this file
+    if len(df_rows) > 0:
+      if has_csv:
+        mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
+        raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
+        yield pd.concat([mol_df, raw_df], axis=1, join='inner')
+      else:
+        mol_df = pd.DataFrame(
+            df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks))
+        yield mol_df
+      df_rows = []
 
 
-def load_csv_files(filenames, shard_size=None, verbose=True):
-  """Load data as pandas dataframe."""
+def load_csv_files(filenames: List[str],
+                   shard_size: Optional[int] = None) -> Iterator[pd.DataFrame]:
+  """Load data as pandas dataframe.
+
+  Parameters
+  ----------
+  filenames: list[str]
+    List of filenames
+  shard_size: int, optional (default None) 
+    The shard size to yield at one time.
+
+  Returns
+  -------
+  Iterator which iterates over shards of data.
+  """
   # First line of user-specified CSV *must* be header.
   shard_num = 1
   for filename in filenames:
     if shard_size is None:
       yield pd.read_csv(filename)
     else:
-      log("About to start loading CSV from %s" % filename, verbose)
+      logger.info("About to start loading CSV from %s" % filename)
       for df in pd.read_csv(filename, chunksize=shard_size):
-        log("Loading shard %d of size %s." % (shard_num, str(shard_size)),
-            verbose)
+        logger.info(
+            "Loading shard %d of size %s." % (shard_num, str(shard_size)))
+        df = df.replace(np.nan, str(""), regex=True)
+        shard_num += 1
+        yield df
+
+
+def load_json_files(filenames: List[str],
+                    shard_size: Optional[int] = None) -> Iterator[pd.DataFrame]:
+  """Load data as pandas dataframe.
+
+  Parameters
+  ----------
+  filenames : List[str]
+    List of json filenames.
+  shard_size : int, optional
+    Chunksize for reading json files.
+
+  Yields
+  ------
+  df : pandas.DataFrame
+    Shard of dataframe.
+
+  Notes
+  -----
+  To load shards from a json file into a Pandas dataframe, the file
+    must be originally saved with
+  ``df.to_json('filename.json', orient='records', lines=True)``
+
+  """
+
+  shard_num = 1
+  for filename in filenames:
+    if shard_size is None:
+      yield pd.read_json(filename, orient='records', lines=True)
+    else:
+      logger.info("About to start loading json from %s." % filename)
+      for df in pd.read_json(
+          filename, orient='records', chunksize=shard_size, lines=True):
+        logger.info(
+            "Loading shard %d of size %s." % (shard_num, str(shard_size)))
         df = df.replace(np.nan, str(""), regex=True)
         shard_num += 1
         yield df
@@ -139,7 +242,7 @@ def seq_one_hot_encode(sequences, letters='ATCGN'):
   np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
   """
   warnings.warn(
-      "This Function has been deprecated and now resides in deepchem.utils.genomics ",
+      "This Function has been deprecated and now resides in deepchem.utils.genomics_utils ",
       DeprecationWarning)
   return seq_one_hotencode(sequences, letters=letters)
 
@@ -158,10 +261,10 @@ def encode_fasta_sequence(fname):
   np.ndarray: Shape (N_sequences, 5, sequence_length, 1).
   """
   warnings.warn(
-      "This Function has been deprecated and now resides in deepchem.utils.genomics",
+      "This Function has been deprecated and now resides in deepchem.utils.genomics_utils",
       DeprecationWarning)
 
-  return fasta_sequence(fname)
+  return encode_sequence(fname)
 
 
 def encode_bio_sequence(fname, file_type="fasta", letters="ATCGN"):
@@ -183,14 +286,14 @@ def encode_bio_sequence(fname, file_type="fasta", letters="ATCGN"):
   np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
   """
   warnings.warn(
-      "This Function has been deprecated and now resides in deepchem.utils.genomics ",
+      "This Function has been deprecated and now resides in deepchem.utils.genomics_utils ",
       DeprecationWarning)
   return encode_sequence(fname, file_type=file_type, letters=letters)
 
 
 def save_metadata(tasks, metadata_df, data_dir):
-  """
-  Saves the metadata for a DiskDataset
+  """Saves the metadata for a DiskDataset
+
   Parameters
   ----------
   tasks: list of str
@@ -198,8 +301,6 @@ def save_metadata(tasks, metadata_df, data_dir):
   metadata_df: pd.DataFrame
   data_dir: str
     Directory to store metadata
-  Returns
-  -------
   """
   if isinstance(tasks, np.ndarray):
     tasks = tasks.tolist()

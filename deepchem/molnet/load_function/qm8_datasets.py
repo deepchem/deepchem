@@ -8,8 +8,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-GDB8_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb8.tar.gz'
-QM8_CSV_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm8.csv'
+GDB8_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/gdb8.tar.gz"
+QM8_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm8.csv"
 
 
 def load_qm8(featurizer='CoulombMatrix',
@@ -19,9 +19,9 @@ def load_qm8(featurizer='CoulombMatrix',
              data_dir=None,
              save_dir=None,
              **kwargs):
-  """Load QM8 Datasets
+  """Load QM8 dataset
 
-  The QM8 is the dataset used in a study on modeling quantum
+  QM8 is the dataset used in a study on modeling quantum
   mechanical calculations of electronic spectra and excited
   state energy of small molecules. Multiple methods, including
   time-dependent density functional theories (TDDFT) and
@@ -31,21 +31,34 @@ def load_qm8(featurizer='CoulombMatrix',
   there are four excited state properties calculated by four
   different methods on 22 thousand samples:
 
-	S_0 -> S_1 transition energy E_1 and the corresponding oscillator strength f_1
-	S_0 -> S_2 transition energy E_2 and the corresponding oscillator strength f_2
+  S0 -> S1 transition energy E1 and the corresponding oscillator strength f1
 
-  The source data files (downloadable from moleculenet.ai):
-  qm8.sdf: molecular structures
-  qm8.sdf.csv: tables for molecular properties
-	Column 1:      Molecule ID (gdb9 index) mapping to the .sdf file
-	Columns 2-5:   RI-CC2/def2TZVP; 	E1, E2, f1, f2 in atomic units. f1, f2 in length representation
-	Columns 6-9:   LR-TDPBE0/def2SVP;	E1, E2, f1, f2 in atomic units. f1, f2 in length representation
-	Columns 10-13: LR-TDPBE0/def2TZVP;	E1, E2, f1, f2 in atomic units. f1, f2 in length representation
-	Columns 14-17: LR-TDCAM-B3LYP/def2TZVP;	E1, E2, f1, f2 in atomic units. f1, f2 in length representation
+  S0 -> S2 transition energy E2 and the corresponding oscillator strength f2
 
-  Reference:
-  Blum, Lorenz C., and Jean-Louis Reymond. "970 million druglike small molecules for virtual screening in the chemical universe database GDB-13." Journal of the American Chemical Society 131.25 (2009): 8732-8733.
-  Ramakrishnan, Raghunathan, et al. "Electronic spectra from TDDFT and machine learning in chemical space." The Journal of chemical physics 143.8 (2015): 084111.
+  E1, E2, f1, f2 are in atomic units. f1, f2 are in length representation
+
+  Random splitting is recommended for this dataset.
+
+  The source data contain:
+
+  - qm8.sdf: molecular structures
+  - qm8.sdf.csv: tables for molecular properties
+  
+    - Column 1: Molecule ID (gdb9 index) mapping to the .sdf file
+    - Columns 2-5: RI-CC2/def2TZVP
+    - Columns 6-9: LR-TDPBE0/def2SVP
+    - Columns 10-13: LR-TDPBE0/def2TZVP
+    - Columns 14-17: LR-TDCAM-B3LYP/def2TZVP
+
+  References
+  ----------
+  .. [1] Blum, Lorenz C., and Jean-Louis Reymond. "970 million druglike 
+     small molecules for virtual screening in the chemical universe database
+     GDB-13." Journal of the American Chemical Society 131.25 (2009): 
+     8732-8733.
+  .. [2] Ramakrishnan, Raghunathan, et al. "Electronic spectra from TDDFT 
+     and machine learning in chemical space." The Journal of chemical physics
+     143.8 (2015): 084111.
   """
   qm8_tasks = [
       "E1-CC2", "E2-CC2", "f1-CC2", "f2-CC2", "E1-PBE0", "E2-PBE0", "f1-PBE0",
