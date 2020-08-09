@@ -1,9 +1,8 @@
-from unittest import TestCase
-
+import unittest
 import deepchem as dc
 
 
-class TestOneHotFeaturizer(TestCase):
+class TestOneHotFeaturizer(unittest.TestCase):
   """Tests for the one-hot featurizer."""
 
   def test_featurize(self):

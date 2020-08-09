@@ -1,6 +1,8 @@
 """
 Topological fingerprints.
 """
+
+from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
 
 
@@ -14,47 +16,41 @@ class CircularFingerprint(MolecularFeaturizer):
   Parameters
   ----------
   radius: int, optional (default 2)
-      Fingerprint radius.
+    Fingerprint radius.
   size: int, optional (default 2048)
-      Length of generated bit vector.
+    Length of generated bit vector.
   chiral: bool, optional (default False)
-      Whether to consider chirality in fingerprint generation.
+    Whether to consider chirality in fingerprint generation.
   bonds: bool, optional (default True)
-      Whether to consider bond order in fingerprint generation.
+    Whether to consider bond order in fingerprint generation.
   features: bool, optional (default False)
-      Whether to use feature information instead of atom information; see
-      RDKit docs for more info.
+    Whether to use feature information instead of atom information; see
+    RDKit docs for more info.
   sparse: bool, optional (default False)
-      Whether to return a dict for each molecule containing the sparse
-      fingerprint.
+    Whether to return a dict for each molecule containing the sparse
+    fingerprint.
   smiles: bool, optional (default False)
-      Whether to calculate SMILES strings for fragment IDs (only applicable
-      when calculating sparse fingerprints).
+    Whether to calculate SMILES strings for fragment IDs (only applicable
+    when calculating sparse fingerprints).
 
   References
   ----------
   .. [1] Rogers, David, and Mathew Hahn. "Extended-connectivity fingerprints."
      Journal of chemical information and modeling 50.5 (2010): 742-754.
 
-  Note
-  ----
+  Notes
+  -----
   This class requires RDKit to be installed.
   """
 
   def __init__(self,
-               radius=2,
-               size=2048,
-               chiral=False,
-               bonds=True,
-               features=False,
-               sparse=False,
-               smiles=False):
-    try:
-      from rdkit import Chem
-      from rdkit.Chem import rdMolDescriptors
-    except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
-
+               radius: int = 2,
+               size: int = 2048,
+               chiral: bool = False,
+               bonds: bool = True,
+               features: bool = False,
+               sparse: bool = False,
+               smiles: bool = False):
     self.radius = radius
     self.size = size
     self.chiral = chiral
@@ -63,16 +59,20 @@ class CircularFingerprint(MolecularFeaturizer):
     self.sparse = sparse
     self.smiles = smiles
 
-  def _featurize(self, mol):
+  def _featurize(self, mol: RDKitMol):
     """Calculate circular fingerprint.
 
     Parameters
     ----------
-    mol : RDKit Mol
-        Molecule.
+    mol: rdkit.Chem.rdchem.Mol
+      RDKit Mol object
     """
-    from rdkit import Chem
-    from rdkit.Chem import rdMolDescriptors
+    try:
+      from rdkit import Chem
+      from rdkit.Chem import rdMolDescriptors
+    except ModuleNotFoundError:
+      raise ValueError("This class requires RDKit to be installed.")
+
     if self.sparse:
       info = {}
       fp = rdMolDescriptors.GetMorganFingerprint(

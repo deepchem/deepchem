@@ -3,6 +3,8 @@ Basic molecular features.
 """
 
 import numpy as np
+
+from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
 
 
@@ -11,16 +13,15 @@ class RDKitDescriptors(MolecularFeaturizer):
 
   This class comptues a list of chemical descriptors using RDKit.
 
-  See http://rdkit.org/docs/GettingStartedInPython.html
-  #list-of-available-descriptors.
+  See http://rdkit.org/docs/GettingStartedInPython.html#list-of-available-descriptors.
 
   Attributes
   ----------
-  descriptors: np.ndarray
+  descriptors: List[str]
     1D array of RDKit descriptor names used in this class.
 
-  Note
-  ----
+  Notes
+  -----
   This class requires RDKit to be installed.
   """
 
@@ -59,6 +60,7 @@ class RDKitDescriptors(MolecularFeaturizer):
       from rdkit.Chem import Descriptors
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
+
     self.descriptors = []
     self.descList = []
     for descriptor, function in Descriptors.descList:
@@ -66,18 +68,18 @@ class RDKitDescriptors(MolecularFeaturizer):
         self.descriptors.append(descriptor)
         self.descList.append((descriptor, function))
 
-  def _featurize(self, mol):
+  def _featurize(self, mol: RDKitMol) -> np.ndarray:
     """
     Calculate RDKit descriptors.
 
     Parameters
     ----------
-    mol : RDKit Mol
-        Molecule.
+    mol: rdkit.Chem.rdchem.Mol
+      RDKit Mol object
 
     Returns
     -------
-    rval: np.ndarray
+    np.ndarray
       1D array of RDKit descriptors for `mol`
     """
     rval = []

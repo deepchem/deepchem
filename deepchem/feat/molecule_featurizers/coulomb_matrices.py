@@ -4,6 +4,9 @@ Generate coulomb matrices for molecules.
 See Montavon et al., _New Journal of Physics_ __15__ (2013) 095003.
 """
 import numpy as np
+from typing import Any, List, Optional
+
+from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.utils import pad_array
 from deepchem.feat.atomic_coordinates import AtomicCoordinates
@@ -68,18 +71,18 @@ class CoulombMatrix(MolecularFeaturizer):
      molecules for atomization energy prediction." Advances in neural information
      processing systems. 2012.
 
-  Note
-  ----
+  Notes
+  -----
   This class requires RDKit to be installed.
   """
 
   def __init__(self,
-               max_atoms,
-               remove_hydrogens=False,
-               randomize=False,
-               upper_tri=False,
-               n_samples=1,
-               seed=None):
+               max_atoms: int,
+               remove_hydrogens: bool = False,
+               randomize: bool = False,
+               upper_tri: bool = False,
+               n_samples: int = 1,
+               seed: Optional[int] = None):
     """Initialize this featurizer.
 
     Parameters
@@ -107,7 +110,7 @@ class CoulombMatrix(MolecularFeaturizer):
       seed = int(seed)
     self.seed = seed
 
-  def _featurize(self, mol):
+  def _featurize(self, mol: RDKitMol) -> np.ndarray:
     """
     Calculate Coulomb matrices for molecules. If extra randomized
     matrices are generated, they are treated as if they are features
@@ -127,7 +130,7 @@ class CoulombMatrix(MolecularFeaturizer):
     features = np.asarray(features)
     return features
 
-  def coulomb_matrix(self, mol):
+  def coulomb_matrix(self, mol: RDKitMol) -> np.ndarray:
     """
     Generate Coulomb matrices for each conformer of the given molecule.
 
@@ -160,7 +163,7 @@ class CoulombMatrix(MolecularFeaturizer):
     rval = np.asarray(rval)
     return rval
 
-  def randomize_coulomb_matrix(self, m):
+  def randomize_coulomb_matrix(self, m: np.ndarray) -> List[np.ndarray]:
     """Randomize a Coulomb matrix as decribed in [1]_:
 
     1. Compute row norms for M in a vector row_norms.
@@ -189,19 +192,20 @@ class CoulombMatrix(MolecularFeaturizer):
     return rval
 
   @staticmethod
-  def get_interatomic_distances(conf):
+  def get_interatomic_distances(conf: Any) -> np.ndarray:
     """
     Get interatomic distances for atoms in a molecular conformer.
 
     Parameters
     ----------
-    conf: RDKit Conformer
+    conf: rdkit.Chem.rdchem.Conformer
       Molecule conformer.
     """
     n_atoms = conf.GetNumAtoms()
     coords = [
+        # Convert AtomPositions from Angstrom to bohr (atomic units)
         conf.GetAtomPosition(i).__idiv__(0.52917721092) for i in range(n_atoms)
-    ]  # Convert AtomPositions from Angstrom to bohr (atomic units)
+    ]
     d = np.zeros((n_atoms, n_atoms), dtype=float)
     for i in range(n_atoms):
       for j in range(i):

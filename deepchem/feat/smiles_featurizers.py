@@ -79,7 +79,7 @@ class SmilesToSeq(MolecularFeaturizer):
   """
 
   def __init__(self, char_to_idx, max_len=250, pad_len=10, **kwargs):
-    """Initialize this class. 
+    """Initialize this class.
 
     Parameters
     ----------
@@ -167,9 +167,9 @@ class SmilesToImage(MolecularFeaturizer):
   References
   ----------
   .. [1] Goh, Garrett B., et al. "Using rule-based labels for weak supervised
-         learning: a ChemNet for transferable chemical property prediction."
-         Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
-         Discovery & Data Mining. 2018.
+     learning: a ChemNet for transferable chemical property prediction."
+     Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
+     Discovery & Data Mining. 2018.
 
   Note
   ----
