@@ -156,7 +156,7 @@ class ConformerGenerator(object):
 
     Returns
     -------
-    ff: RDKit ForceField
+    ff: rdkit.ForceField.rdForceField.ForceField
       RDKit force field instance for a molecule.
     """
     try:
