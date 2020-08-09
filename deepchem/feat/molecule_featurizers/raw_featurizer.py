@@ -1,3 +1,6 @@
+from typing import Union
+
+from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
 
 
@@ -8,12 +11,12 @@ class RawFeaturizer(MolecularFeaturizer):
   collection of RDKit mol objects as Smiles strings, or alternatively as a
   "no-op" featurizer in your molecular pipeline.
 
-  Note
-  ----
+  Notes
+  -----
   This class requires RDKit to be installed.
   """
 
-  def __init__(self, smiles=False):
+  def __init__(self, smiles: bool = False):
     """Initialize this featurizer.
 
     Parameters
@@ -21,25 +24,26 @@ class RawFeaturizer(MolecularFeaturizer):
     smiles: bool, optional (default False)
       If True, encode this molecule as a SMILES string. Else as a RDKit mol.
     """
+    self.smiles = smiles
+
+  def _featurize(self, mol: RDKitMol) -> Union[str, RDKitMol]:
+    """Calculate either smiles string or pass through raw molecule.
+
+    Parameters
+    ----------
+    mol: rdkit.Chem.rdchem.Mol
+      RDKit Mol object
+
+    Returns
+    -------
+    str or rdkit.Chem.rdchem.Mol
+      Smiles string or RDKit Mol object.
+    """
     try:
       from rdkit import Chem
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
-    self.smiles = smiles
 
-  def _featurize(self, mol):
-    """Calculate either smiles string or pass through raw molecule. 
-
-    Parameters
-    ----------
-    mol : RDKit Mol
-        Molecule.
-
-    Returns
-    -------
-    Smiles string or raw molecule.
-    """
-    from rdkit import Chem
     if self.smiles:
       return Chem.MolToSmiles(mol)
     else:

@@ -209,7 +209,8 @@ class MolecularFeaturizer(Featurizer):
           mol = Chem.MolFromSmiles(mol)
         # canonicalize
         if canonical:
-          canonical_smiles = Chem.MolToSmiles(mol, isomericSmiles=False, canonical=True)
+          canonical_smiles = Chem.MolToSmiles(
+              mol, isomericSmiles=False, canonical=True)
           mol = Chem.MolFromSmiles(canonical_smiles)
 
         features.append(self._featurize(mol))

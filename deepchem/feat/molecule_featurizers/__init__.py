@@ -1,7 +1,11 @@
 # flake8: noqa
 from deepchem.feat.molecule_featurizers.adjacency_fingerprint import AdjacencyFingerprint
+from deepchem.feat.molecule_featurizers.coulomb_matrices import BPSymmetryFunctionInput
 from deepchem.feat.molecule_featurizers.morgan_fingerprint import CircularFingerprint
 from deepchem.feat.molecule_featurizers.coulomb_matrices import CoulombMatrix
 from deepchem.feat.molecule_featurizers.coulomb_matrices import CoulombMatrixEig
 from deepchem.feat.molecule_featurizers.one_hot_featurizer import OneHotFeaturizer
+from deepchem.feat.molecule_featurizers.raw_featurizer import RawFeaturizer
 from deepchem.feat.molecule_featurizers.rdkit_descriptors import RDKitDescriptors
+from deepchem.feat.molecule_featurizers.smiles_featurizers import SmilesToSeq
+from deepchem.feat.molecule_featurizers.smiles_featurizers import SmilesToImage
