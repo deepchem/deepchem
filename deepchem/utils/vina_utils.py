@@ -25,7 +25,7 @@ def write_vina_conf(protein_filename: str,
   Parameters
   ----------
   protein_filename: str
-    Filename for protein 
+    Filename for protein
   ligand_filename: str
     Filename for the ligand
   centroid: np.ndarray
@@ -74,7 +74,7 @@ def load_docked_ligands(
 
   Returns
   -------
-  Tuple[List[RDKit Mol], List[float]]
+  Tuple[List[rdkit.Chem.rdchem.Mol], List[float]]
     Tuple of `molecules, scores`. `molecules` is a list of rdkit
     molecules with 3D information. `scores` is the associated vina
     score.

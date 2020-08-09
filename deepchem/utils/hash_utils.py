@@ -18,7 +18,7 @@ def hash_ecfp(ecfp: str, size: int = 1024) -> int:
   ecfp: str
     String to hash. Usually an ECFP fragment.
   size: int, optional (default 1024)
-    Hash to an int in range [0, size) 
+    Hash to an int in range [0, size)
 
   Returns
   -------
@@ -84,7 +84,7 @@ def vectorize(hash_function: Callable[[str, int], int],
     hash, and `size` is an int. For example, if `size=1024`,
     then hashed values must fall in range `[0, 1024)`.
   feature_dict: Dict, optional (default None)
-    Maps unique keys to features computed. 
+    Maps unique keys to features computed.
   size: int, optional (default 1024)
     Length of generated bit vector
 
