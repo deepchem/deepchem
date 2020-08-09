@@ -8,18 +8,7 @@ else
     $python_version=3.6
 }
 
-if($args.Length -eq 1)
-{
-    $envname = $args[0]
-    conda create -y --name $envname python=$python_version
-    conda activate $envname
-}
-else
-{
-    echo "Installing DeepChem in current env"
-}
-
-if($args[1] -eq "gpu")
+if($args[0] -eq "gpu")
 {
     $cuda="cu101"
     dgl_pkg="dgl-cu101"
@@ -33,6 +22,8 @@ else
 }
 
 # Install dependencies except PyTorch and TensorFlow
+conda create -y --name deepchem python=$python_version
+conda activate deepchem
 $path = Join-Path $Pwd "requirements.yml"
 conda env update --file $path
 $path = Join-Path $Pwd "requirements-test.txt"
