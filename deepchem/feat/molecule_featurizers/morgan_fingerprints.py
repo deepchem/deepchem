@@ -13,34 +13,33 @@ class CircularFingerprint(MolecularFeaturizer):
 
   Parameters
   ----------
-  radius : int, optional (default 2)
+  radius: int, optional (default 2)
       Fingerprint radius.
-  size : int, optional (default 2048)
+  size: int, optional (default 2048)
       Length of generated bit vector.
-  chiral : bool, optional (default False)
+  chiral: bool, optional (default False)
       Whether to consider chirality in fingerprint generation.
-  bonds : bool, optional (default True)
+  bonds: bool, optional (default True)
       Whether to consider bond order in fingerprint generation.
-  features : bool, optional (default False)
+  features: bool, optional (default False)
       Whether to use feature information instead of atom information; see
       RDKit docs for more info.
-  sparse : bool, optional (default False)
+  sparse: bool, optional (default False)
       Whether to return a dict for each molecule containing the sparse
       fingerprint.
-  smiles : bool, optional (default False)
+  smiles: bool, optional (default False)
       Whether to calculate SMILES strings for fragment IDs (only applicable
       when calculating sparse fingerprints).
 
   References
   ----------
   .. [1] Rogers, David, and Mathew Hahn. "Extended-connectivity fingerprints."
-         Journal of chemical information and modeling 50.5 (2010): 742-754.
+     Journal of chemical information and modeling 50.5 (2010): 742-754.
 
   Note
   ----
   This class requires RDKit to be installed.
   """
-  name = 'circular'
 
   def __init__(self,
                radius=2,
