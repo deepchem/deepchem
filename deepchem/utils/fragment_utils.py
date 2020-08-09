@@ -90,7 +90,7 @@ class MolecularFragment(object):
 
     Parameters
     ----------
-    atoms: Iterable[RDKit Atom]
+    atoms: Iterable[rdkit.Chem.rdchem.Atom]
       Each entry in this list should be a RDKit Atom.
     coords: np.ndarray
       Array of locations for atoms of shape `(N, 3)` where `N ==
@@ -135,7 +135,7 @@ def get_partial_charge(atom: Union[RDKitAtom, AtomShim]) -> float:
 
   Parameters
   ----------
-  atom: RDKit Atom or AtomShim
+  atom: rdkit.Chem.rdchem.Atom or AtomShim
     Either a rdkit.Atom object or `AtomShim`
 
   Returns
