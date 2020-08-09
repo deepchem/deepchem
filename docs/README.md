@@ -21,5 +21,3 @@ You can generate docs in other formats as well if you like. To clean up past bui
 ```
 make clean
 ```
-
-
