@@ -9,17 +9,15 @@ import numpy as np
 import pandas as pd
 import random
 import logging
-from pandas import read_hdf
 import tempfile
 import time
 import shutil
-import json
 import warnings
 import multiprocessing
 from deepchem.utils.save import save_to_disk, save_metadata
 from deepchem.utils.save import load_from_disk
 
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 from deepchem.utils.typing import OneOrMany, Shape
 
 Batch = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
@@ -867,33 +865,20 @@ class NumpyDataset(Dataset):
       if True, the data is produced in order.  If False, a different random
       permutation of the data is used for each epoch.
     """
-    import torch
+    try:
+      from deepchem.data.pytorch_datasets import TorchNumpyDataset
+    except:
+      raise ValueError("This method requires PyTorch to be installed.")
 
-    def iterate():
-      n_samples = self._X.shape[0]
-      worker_info = torch.utils.data.get_worker_info()
-      if worker_info is None:
-        first_sample = 0
-        last_sample = n_samples
-      else:
-        first_sample = worker_info.id * n_samples // worker_info.num_workers
-        last_sample = (
-            worker_info.id + 1) * n_samples // worker_info.num_workers
-      for epoch in range(epochs):
-        if deterministic:
-          order = first_sample + np.arange(last_sample - first_sample)
-        else:
-          order = first_sample + np.random.permutation(last_sample -
-                                                       first_sample)
-        for i in order:
-          yield (self._X[i], self._y[i], self._w[i], self._ids[i])
-
-    class TorchDataset(torch.utils.data.IterableDataset):  # type: ignore
-
-      def __iter__(self):
-        return iterate()
-
-    return TorchDataset()
+    pytorch_ds = TorchNumpyDataset(
+        X=self._X,
+        y=self._y,
+        w=self._w,
+        ids=self._ids,
+        n_samples=self._X.shape[0],
+        epochs=epochs,
+        deterministic=deterministic)
+    return pytorch_ds
 
   @staticmethod
   def from_DiskDataset(ds: "DiskDataset") -> "NumpyDataset":
@@ -1017,7 +1002,7 @@ class DiskDataset(Dataset):
       metadata_df = pd.read_csv(metadata_filename, compression='gzip')
       metadata_df = metadata_df.where((pd.notnull(metadata_df)), None)
       return tasks, metadata_df
-    except Exception as e:
+    except Exception:
       pass
 
     # Load obsolete format -> save in new format
@@ -1063,13 +1048,13 @@ class DiskDataset(Dataset):
     tasks: np.ndarray
       The names of the tasks in question.
     X: Optional[np.ndarray]
-      The features array 
+      The features array
     y: Optional[np.ndarray]
-      The labels array 
+      The labels array
     w: Optional[np.ndarray]
-      The weights array 
+      The weights array
     ids: Optional[np.ndarray]
-      The identifiers array 
+      The identifiers array
 
     Returns
     -------
@@ -1248,8 +1233,8 @@ class DiskDataset(Dataset):
       # than process based pools, since process based pools need to pickle/serialize
       # objects as an extra overhead. Also, as hideously as un-thread safe this looks,
       # we're actually protected by the GIL.
-      pool = multiprocessing.dummy.Pool(
-          1)  # mp.dummy aliases ThreadPool to Pool
+      # mp.dummy aliases ThreadPool to Pool
+      pool = multiprocessing.dummy.Pool(1)
 
       if batch_size is None:
         num_global_batches = num_shards
@@ -1470,32 +1455,16 @@ class DiskDataset(Dataset):
       if True, the data is produced in order.  If False, a different random
       permutation of the data is used for each epoch.
     """
-    import torch
+    try:
+      from deepchem.data.pytorch_datasets import TorchDiskDataset
+    except:
+      raise ValueError("This method requires PyTorch to be installed.")
 
-    def iterate():
-      worker_info = torch.utils.data.get_worker_info()
-      n_shards = self.get_number_shards()
-      if worker_info is None:
-        first_shard = 0
-        last_shard = n_shards
-      else:
-        first_shard = worker_info.id * n_shards // worker_info.num_workers
-        last_shard = (worker_info.id + 1) * n_shards // worker_info.num_workers
-      if first_shard == last_shard:
-        return
-      shard_indices = list(range(first_shard, last_shard))
-      for epoch in range(epochs):
-        for X, y, w, ids in self._iterbatches_from_shards(
-            shard_indices, deterministic=deterministic):
-          for i in range(X.shape[0]):
-            yield (X[i], y[i], w[i], ids[i])
-
-    class TorchDataset(torch.utils.data.IterableDataset):  # type: ignore
-
-      def __iter__(self):
-        return iterate()
-
-    return TorchDataset()
+    pytorch_ds = TorchDiskDataset(
+        disk_dataset=self,
+        epochs=epochs,
+        deterministic=deterministic)
+    return pytorch_ds
 
   @staticmethod
   def from_numpy(X: np.ndarray,
@@ -2269,39 +2238,20 @@ class ImageDataset(Dataset):
     `torch.utils.data.IterableDataset` iterating over the same data as
     this dataset.
     """
-    import torch
+    try:
+      from deepchem.data.pytorch_datasets import TorchImageDataset
+    except:
+      raise ValueError("This method requires PyTorch to be installed.")
 
-    def get_image(array, index):
-      if isinstance(array, np.ndarray):
-        return array[index]
-      return dc.data.ImageLoader.load_img([array[index]])[0]
-
-    def iterate():
-      n_samples = self._X_shape[0]
-      worker_info = torch.utils.data.get_worker_info()
-      if worker_info is None:
-        first_sample = 0
-        last_sample = n_samples
-      else:
-        first_sample = worker_info.id * n_samples // worker_info.num_workers
-        last_sample = (
-            worker_info.id + 1) * n_samples // worker_info.num_workers
-      for epoch in range(epochs):
-        if deterministic:
-          order = first_sample + np.arange(last_sample - first_sample)
-        else:
-          order = first_sample + np.random.permutation(last_sample -
-                                                       first_sample)
-        for i in order:
-          yield (get_image(self._X, i), get_image(self._y, i), self._w[i],
-                 self._ids[i])
-
-    class TorchDataset(torch.utils.data.IterableDataset):  # type: ignore
-
-      def __iter__(self):
-        return iterate()
-
-    return TorchDataset()
+    pytorch_ds = TorchImageDataset(
+        X=self.X,
+        y=self.y,
+        w=self.w,
+        ids=self._ids,
+        n_samples=self._X_shape[0],
+        epochs=epochs,
+        deterministic=deterministic)
+    return pytorch_ds
 
 
 class Databag(object):
