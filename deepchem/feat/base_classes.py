@@ -73,24 +73,6 @@ class Featurizer(object):
     raise NotImplementedError('Featurizer is not defined.')
 
 
-def _featurize_callback(
-    featurizer,
-    mol_pdb_file,
-    protein_pdb_file,
-    log_message,
-):
-  """Callback function for apply_async in ComplexFeaturizer.
-
-  This callback function must be defined globally
-  because `apply_async` doesn't execute a nested function.
-
-  See the details from the following link.
-  https://stackoverflow.com/questions/56533827/pool-apply-async-nested-function-is-not-executed
-  """
-  logging.info(log_message)
-  return featurizer._featurize(mol_pdb_file, protein_pdb_file)
-
-
 class ComplexFeaturizer(object):
   """"
   Abstract class for calculating features for mol/protein complexes.
@@ -121,7 +103,7 @@ class ComplexFeaturizer(object):
     for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_pdbs)):
       log_message = "Featurizing %d / %d" % (i, len(mol_files))
       results.append(
-          pool.apply_async(_featurize_callback,
+          pool.apply_async(ComplexFeaturizer._featurize_callback,
                            (self, mol_file, protein_pdb, log_message)))
     pool.close()
     features = []
@@ -149,6 +131,12 @@ class ComplexFeaturizer(object):
     """
     raise NotImplementedError('Featurizer is not defined.')
 
+  @staticmethod
+  def _featurize_callback(featurizer, mol_pdb_file, protein_pdb_file,
+                          log_message):
+    logging.info(log_message)
+    return featurizer._featurize(mol_pdb_file, protein_pdb_file)
+
 
 class MolecularFeaturizer(Featurizer):
   """Abstract class for calculating a set of features for a
@@ -174,8 +162,8 @@ class MolecularFeaturizer(Featurizer):
     Parameters
     ----------
     molecules: RDKit Mol / SMILES string / iterable
-        RDKit Mol, or SMILES string or iterable sequence of RDKit mols/SMILES
-        strings.
+      RDKit Mol, or SMILES string or iterable sequence of RDKit mols/SMILES
+      strings.
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
     canonical: bool, default False
@@ -183,8 +171,8 @@ class MolecularFeaturizer(Featurizer):
 
     Returns
     -------
-    A numpy array containing a featurized representation of
-    `datapoints`.
+    features: np.ndarray
+      A numpy array containing a featurized representation of `datapoints`.
     """
     try:
       from rdkit import Chem
@@ -266,7 +254,6 @@ class MaterialStructureFeaturizer(Featurizer):
     features: np.ndarray
       A numpy array containing a featurized representation of
       `structures`.
-
     """
 
     structures = list(structures)
@@ -332,7 +319,6 @@ class MaterialCompositionFeaturizer(Featurizer):
     features: np.ndarray
       A numpy array containing a featurized representation of
       `compositions`.
-
     """
 
     compositions = list(compositions)

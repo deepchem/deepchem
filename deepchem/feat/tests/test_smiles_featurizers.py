@@ -1,8 +1,8 @@
-from unittest import TestCase
-import numpy as np
-from deepchem.feat import SmilesToSeq, SmilesToImage
-from deepchem.feat.smiles_featurizers import create_char_to_idx
 import os
+
+from unittest import TestCase
+from deepchem.feat import SmilesToSeq, SmilesToImage
+from deepchem.feat.molecule_featurizers.smiles_to_seq import create_char_to_idx
 
 
 class TestSmilesFeaturizers(TestCase):

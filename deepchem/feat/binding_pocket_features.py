@@ -101,6 +101,5 @@ class BindingPocketFeaturizer(Featurizer):
         if residue not in res_map:
           logger.info("Warning: Non-standard residue in PDB file")
           continue
-        atomtype = atom_name.split("-")[1]
         all_features[pocket_num, res_map[residue]] += 1
     return all_features

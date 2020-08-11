@@ -6,48 +6,9 @@ See Montavon et al., _New Journal of Physics_ __15__ (2013) 095003.
 import numpy as np
 from typing import Any, List, Optional
 
-from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
+from deepchem.utils.typing import RDKitMol
 from deepchem.utils import pad_array
-from deepchem.feat.atomic_coordinates import AtomicCoordinates
-
-
-class BPSymmetryFunctionInput(MolecularFeaturizer):
-  """Calculate Symmetry Function for each atom in the molecules
-
-  This method is described in [1]_
-
-  References
-  ----------
-  .. [1] Behler, Jörg, and Michele Parrinello. "Generalized neural-network
-         representation of high-dimensional potential-energy surfaces." Physical
-         review letters 98.14 (2007): 146401.
-
-  Note
-  ----
-  This class requires RDKit to be installed.
-  """
-
-  def __init__(self, max_atoms):
-    """Initialize this featurizer.
-
-    Parameters
-    ----------
-    max_atoms: int
-      The maximum number of atoms expected for molecules this featurizer will
-      process.
-    """
-    self.max_atoms = max_atoms
-
-  def _featurize(self, mol):
-    coordfeat = AtomicCoordinates()
-    coordinates = coordfeat._featurize(mol)[0]
-    atom_numbers = np.array([atom.GetAtomicNum() for atom in mol.GetAtoms()])
-    atom_numbers = np.expand_dims(atom_numbers, axis=1)
-    assert atom_numbers.shape[0] == coordinates.shape[0]
-    n_atoms = atom_numbers.shape[0]
-    features = np.concatenate([atom_numbers, coordinates], axis=1)
-    return np.pad(features, ((0, self.max_atoms - n_atoms), (0, 0)), 'constant')
 
 
 class CoulombMatrix(MolecularFeaturizer):
@@ -123,6 +84,12 @@ class CoulombMatrix(MolecularFeaturizer):
     ----------
     mol: rdkit.Chem.rdchem.Mol
       RDKit Mol object
+
+    Returns
+    -------
+    np.ndarray
+      The coulomb matrices of the given molecule.
+      The shape is `(num_confs, max_atoms, max_atoms)`.
     """
     features = self.coulomb_matrix(mol)
     if self.upper_tri:
@@ -138,6 +105,11 @@ class CoulombMatrix(MolecularFeaturizer):
     ----------
     mol: rdkit.Chem.rdchem.Mol
       RDKit Mol object
+
+    Returns
+    -------
+    np.ndarray
+      The coulomb matrices of the given molecule
     """
     try:
       from rdkit import Chem
@@ -177,6 +149,11 @@ class CoulombMatrix(MolecularFeaturizer):
     m: np.ndarray
       Coulomb matrix.
 
+    Returns
+    -------
+    List[np.ndarray]
+      List of the random coulomb matrix
+
     References
     ----------
     .. [1] Montavon et al., New Journal of Physics, 15, (2013), 095003
@@ -200,6 +177,11 @@ class CoulombMatrix(MolecularFeaturizer):
     ----------
     conf: rdkit.Chem.rdchem.Conformer
       Molecule conformer.
+
+    Returns
+    -------
+    np.ndarray
+      The distances matrix for all atoms in a molecule
     """
     n_atoms = conf.GetNumAtoms()
     coords = [
@@ -239,11 +221,11 @@ class CoulombMatrixEig(CoulombMatrix):
   name = 'coulomb_matrix'
 
   def __init__(self,
-               max_atoms,
-               remove_hydrogens=False,
-               randomize=False,
-               n_samples=1,
-               seed=None):
+               max_atoms: int,
+               remove_hydrogens: bool = False,
+               randomize: bool = False,
+               n_samples: int = 1,
+               seed: Optional[int] = None):
     """Initialize this featurizer.
 
     Parameters
@@ -268,7 +250,7 @@ class CoulombMatrixEig(CoulombMatrix):
       seed = int(seed)
     self.seed = seed
 
-  def _featurize(self, mol):
+  def _featurize(self, mol: RDKitMol) -> np.ndarray:
     """
     Calculate eigenvalues of Coulomb matrix for molecules. Eigenvalues
     are returned sorted by absolute value in descending order and padded
@@ -278,6 +260,12 @@ class CoulombMatrixEig(CoulombMatrix):
     ----------
     mol: rdkit.Chem.rdchem.Mol
       RDKit Mol object
+
+    Returns
+    -------
+    np.ndarray
+      The eigenvalues of Coulomb matrix for molecules.
+      The shape is `(num_confs, max_atoms)`.
     """
     cmat = self.coulomb_matrix(mol)
     features = []
