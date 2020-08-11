@@ -32,7 +32,7 @@ class L1Loss(Loss):
 
   def _compute_tf_loss(self, output, labels):
     import tensorflow as tf
-    output, labels = _make_shapes_consistent(output, labels)
+    output, labels = _make_tf_shapes_consistent(output, labels)
     output, labels = _ensure_float(output, labels)
     return tf.abs(output - labels)
 
@@ -46,7 +46,7 @@ class L2Loss(Loss):
 
   def _compute_tf_loss(self, output, labels):
     import tensorflow as tf
-    output, labels = _make_shapes_consistent(output, labels)
+    output, labels = _make_tf_shapes_consistent(output, labels)
     output, labels = _ensure_float(output, labels)
     return tf.square(output - labels)
 
@@ -64,13 +64,14 @@ class HingeLoss(Loss):
 
   def _compute_tf_loss(self, output, labels):
     import tensorflow as tf
-    output, labels = _make_shapes_consistent(output, labels)
+    output, labels = _make_tf_shapes_consistent(output, labels)
     return tf.keras.losses.hinge(labels, output)
 
   def _create_pytorch_loss(self):
     import torch
 
     def loss(output, labels):
+      output, labels = _make_pytorch_shapes_consistent(output, labels)
       return torch.mean(torch.clamp(1 - labels * output, min=0), dim=-1)
 
     return loss
@@ -85,7 +86,7 @@ class BinaryCrossEntropy(Loss):
 
   def _compute_tf_loss(self, output, labels):
     import tensorflow as tf
-    output, labels = _make_shapes_consistent(output, labels)
+    output, labels = _make_tf_shapes_consistent(output, labels)
     output, labels = _ensure_float(output, labels)
     return tf.keras.losses.binary_crossentropy(labels, output)
 
@@ -94,6 +95,7 @@ class BinaryCrossEntropy(Loss):
     bce = torch.nn.BCELoss(reduction='none')
 
     def loss(output, labels):
+      output, labels = _make_pytorch_shapes_consistent(output, labels)
       return torch.mean(bce(output, labels), dim=-1)
 
     return loss
@@ -109,7 +111,7 @@ class CategoricalCrossEntropy(Loss):
 
   def _compute_tf_loss(self, output, labels):
     import tensorflow as tf
-    output, labels = _make_shapes_consistent(output, labels)
+    output, labels = _make_tf_shapes_consistent(output, labels)
     output, labels = _ensure_float(output, labels)
     return tf.keras.losses.categorical_crossentropy(labels, output)
 
@@ -117,6 +119,7 @@ class CategoricalCrossEntropy(Loss):
     import torch
 
     def loss(output, labels):
+      output, labels = _make_pytorch_shapes_consistent(output, labels)
       return -torch.sum(labels * torch.log(output), dim=-1)
 
     return loss
@@ -132,7 +135,7 @@ class SigmoidCrossEntropy(Loss):
 
   def _compute_tf_loss(self, output, labels):
     import tensorflow as tf
-    output, labels = _make_shapes_consistent(output, labels)
+    output, labels = _make_tf_shapes_consistent(output, labels)
     output, labels = _ensure_float(output, labels)
     return tf.nn.sigmoid_cross_entropy_with_logits(labels, output)
 
@@ -141,6 +144,7 @@ class SigmoidCrossEntropy(Loss):
     bce = torch.nn.BCEWithLogitsLoss(reduction='none')
 
     def loss(output, labels):
+      output, labels = _make_pytorch_shapes_consistent(output, labels)
       return bce(output, labels)
 
     return loss
@@ -157,7 +161,7 @@ class SoftmaxCrossEntropy(Loss):
 
   def _compute_tf_loss(self, output, labels):
     import tensorflow as tf
-    output, labels = _make_shapes_consistent(output, labels)
+    output, labels = _make_tf_shapes_consistent(output, labels)
     output, labels = _ensure_float(output, labels)
     return tf.nn.softmax_cross_entropy_with_logits(labels, output)
 
@@ -166,6 +170,7 @@ class SoftmaxCrossEntropy(Loss):
     ls = torch.nn.LogSoftmax(dim=1)
 
     def loss(output, labels):
+      output, labels = _make_pytorch_shapes_consistent(output, labels)
       return -torch.sum(labels * ls(output), dim=-1)
 
     return loss
@@ -190,7 +195,7 @@ class SparseSoftmaxCrossEntropy(Loss):
     return torch.nn.CrossEntropyLoss(reduction='none')
 
 
-def _make_shapes_consistent(output, labels):
+def _make_tf_shapes_consistent(output, labels):
   """Try to make inputs have the same shape by adding dimensions of size 1."""
   import tensorflow as tf
   shape1 = output.shape
@@ -210,6 +215,29 @@ def _make_shapes_consistent(output, labels):
   if len2 > len1 and all(i == 1 for i in shape2[len1:]):
     for i in range(len2 - len1):
       output = tf.expand_dims(output, -1)
+    return (output, labels)
+  raise ValueError("Incompatible shapes for outputs and labels: %s versus %s" %
+                   (str(shape1), str(shape2)))
+
+
+def _make_pytorch_shapes_consistent(output, labels):
+  """Try to make inputs have the same shape by adding dimensions of size 1."""
+  import torch
+  shape1 = output.shape
+  shape2 = labels.shape
+  len1 = len(shape1)
+  len2 = len(shape2)
+  if len1 == len2:
+    return (output, labels)
+  shape1 = tuple(shape1)
+  shape2 = tuple(shape2)
+  if len1 > len2 and all(i == 1 for i in shape1[len2:]):
+    for i in range(len1 - len2):
+      labels = torch.unsqueeze(labels, -1)
+    return (output, labels)
+  if len2 > len1 and all(i == 1 for i in shape2[len1:]):
+    for i in range(len2 - len1):
+      output = torch.unsqueeze(output, -1)
     return (output, labels)
   raise ValueError("Incompatible shapes for outputs and labels: %s versus %s" %
                    (str(shape1), str(shape2)))

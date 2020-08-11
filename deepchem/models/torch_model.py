@@ -121,6 +121,7 @@ class TorchModel(Model):
                tensorboard: bool = False,
                wandb: bool = False,
                log_frequency: int = 100,
+               device: Optional[torch.device] = None,
                **kwargs) -> None:
     """Create a new TorchModel.
 
@@ -156,6 +157,9 @@ class TorchModel(Model):
       a global step corresponds to one batch of training. If you'd
       like a printout every 10 batch steps, you'd set
       `log_frequency=10` for example.
+    device: torch.device
+      the device on which to run computations.  If None, a device is
+      chosen automatically.
     """
     super(TorchModel, self).__init__(
         model_instance=model, model_dir=model_dir, **kwargs)
@@ -170,6 +174,16 @@ class TorchModel(Model):
     else:
       self.optimizer = optimizer
     self.tensorboard = tensorboard
+
+    # Select a device.
+
+    if device is None:
+      if torch.cuda.is_available():
+        device = torch.device('cuda')
+      else:
+        device = torch.device('cpu')
+    self.device = device
+    model.to(device)
 
     # W&B logging
     if wandb and not is_wandb_available():
@@ -522,7 +536,7 @@ class TorchModel(Model):
       output_values = self.model(inputs)
       if isinstance(output_values, torch.Tensor):
         output_values = [output_values]
-      output_values = [t.detach().numpy() for t in output_values]
+      output_values = [t.detach().cpu().numpy() for t in output_values]
 
       # Apply tranformers and record results.
       if uncertainty:
@@ -810,7 +824,7 @@ class TorchModel(Model):
       output_shape = tuple(output.shape[1:])
       output = output.reshape([-1])
       result = []
-      grad_output = torch.zeros(output.shape[0])
+      grad_output = torch.zeros(output.shape[0], device=self.device)
       for i in range(output.shape[0]):
         grad_output.zero_()
         grad_output[i] = 1
@@ -819,7 +833,7 @@ class TorchModel(Model):
         X.grad.zero_()
       final_result.append(
           torch.reshape(torch.stack(result),
-                        output_shape + input_shape).numpy())
+                        output_shape + input_shape).cpu().numpy())
     if len(final_result) == 1:
       return final_result[0]
     return final_result
@@ -834,13 +848,13 @@ class TorchModel(Model):
       labels = [
           x.astype(np.float32) if x.dtype == np.float64 else x for x in labels
       ]
-      labels = [torch.as_tensor(x) for x in labels]
+      labels = [torch.as_tensor(x, device=self.device) for x in labels]
     if weights is not None:
       weights = [
           x.astype(np.float32) if x.dtype == np.float64 else x for x in weights
       ]
-      weights = [torch.as_tensor(x) for x in weights]
-    inputs = [torch.as_tensor(x) for x in inputs]
+      weights = [torch.as_tensor(x, device=self.device) for x in weights]
+    inputs = [torch.as_tensor(x, device=self.device) for x in inputs]
 
     return (inputs, labels, weights)
 
@@ -1024,7 +1038,7 @@ class TorchModel(Model):
     source_vars = list(source_model.model.parameters())
 
     for source_var in source_vars:
-      value_map[source_var] = source_var.detach().numpy()
+      value_map[source_var] = source_var.detach().cpu().numpy()
 
     return value_map
 
@@ -1094,7 +1108,7 @@ class TorchModel(Model):
 
     for source_var, dest_var in assignment_map.items():
       assert source_var.shape == dest_var.shape
-      dest_var.data = torch.as_tensor(value_map[source_var])
+      dest_var.data = torch.as_tensor(value_map[source_var], device=self.device)
 
 
 class _StandardLoss(object):

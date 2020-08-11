@@ -36,7 +36,7 @@ def test_overfit_subclass_model():
         x = layer(x)
         if i < len(self.layers) - 1:
           x = F.relu(x)
-      return F.sigmoid(x), x
+      return torch.sigmoid(x), x
 
   pytorch_model = ExampleModel([10, 1])
   model = dc.models.TorchModel(
@@ -318,7 +318,7 @@ def test_tensorboard():
   y = [[0.0, 1.0] for x in range(n_data_points)]
   dataset = dc.data.NumpyDataset(X, y)
   pytorch_model = torch.nn.Sequential(
-      torch.nn.Linear(n_features, 2), torch.nn.Softmax())
+      torch.nn.Linear(n_features, 2), torch.nn.Softmax(dim=1))
   model = dc.models.TorchModel(
       pytorch_model,
       dc.models.losses.CategoricalCrossEntropy(),
