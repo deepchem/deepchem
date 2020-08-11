@@ -44,7 +44,7 @@ def load_bandgap(
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
-    featurizer_kwargs: Dict[str, Any] = {'data_source': 'matminer'},
+    featurizer_kwargs: Dict[str, Any] = {},
     splitter_kwargs: Dict[str, Any] = {
         'frac_train': 0.8,
         'frac_valid': 0.1,
