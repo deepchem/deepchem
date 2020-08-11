@@ -4,10 +4,11 @@ import multiprocessing
 import numpy as np
 import torch
 
-import deepchem as dc
+from deepchem.data.datasets import pad_batch
+from deepchem.data.data_loader import ImageLoader
 
 
-class TorchNumpyDataset(torch.utils.data.IterableDataset):
+class TorchNumpyDataset(torch.utils.data.IterableDataset):  # type: ignore
 
   def __init__(self, X, y, w, ids, n_samples, epochs, deterministic):
     self._X = X
@@ -36,7 +37,7 @@ class TorchNumpyDataset(torch.utils.data.IterableDataset):
         yield (self._X[i], self._y[i], self._w[i], self._ids[i])
 
 
-class TorchDiskDataset(torch.utils.data.IterableDataset):
+class TorchDiskDataset(torch.utils.data.IterableDataset):  # type: ignore
 
   def __init__(self, disk_dataset, epochs, deterministic):
     self.disk_dataset = disk_dataset
@@ -53,7 +54,7 @@ class TorchDiskDataset(torch.utils.data.IterableDataset):
       first_shard = worker_info.id * n_shards // worker_info.num_workers
       last_shard = (worker_info.id + 1) * n_shards // worker_info.num_workers
     if first_shard == last_shard:
-        return
+      return
 
     shard_indices = list(range(first_shard, last_shard))
     for epoch in range(self.epochs):
@@ -161,8 +162,8 @@ class TorchDiskDataset(torch.utils.data.IterableDataset):
 
               # (ytz): this skips everything except possibly the last shard
               if pad_batches:
-                (X_b, y_b, w_b, ids_b) = dc.data.datasets.pad_batch(
-                    shard_batch_size, X_b, y_b, w_b, ids_b)
+                (X_b, y_b, w_b, ids_b) = pad_batch(shard_batch_size, X_b, y_b,
+                                                   w_b, ids_b)
 
               yield X_b, y_b, w_b, ids_b
               cur_global_batch += 1
@@ -172,13 +173,7 @@ class TorchDiskDataset(torch.utils.data.IterableDataset):
     return iterate(self.disk_dataset, batch_size, epochs)
 
 
-def get_image(array, index):
-  if isinstance(array, np.ndarray):
-    return array[index]
-  return dc.data.ImageLoader.load_img([array[index]])[0]
-
-
-class TorchImageDataset(torch.utils.data.IterableDataset):
+class TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
 
   def __init__(self, X, y, w, ids, n_samples, epochs, deterministic):
     self._X = X
@@ -204,5 +199,10 @@ class TorchImageDataset(torch.utils.data.IterableDataset):
       else:
         order = first_sample + np.random.permutation(last_sample - first_sample)
       for i in order:
-        yield (get_image(self._X, i), get_image(self._y, i), self._w[i],
-               self._ids[i])
+        yield (self._get_image(self._X, i), self._get_image(self._y, i),
+               self._w[i], self._ids[i])
+
+  def _get_image(self, array, index):
+    if isinstance(array, np.ndarray):
+      return array[index]
+    return ImageLoader.load_img([array[index]])[0]

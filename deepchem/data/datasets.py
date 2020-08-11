@@ -939,6 +939,15 @@ class NumpyDataset(Dataset):
     return NumpyDataset(X, y, w, ids, n_tasks=y.shape[1])
 
 
+class Shard(object):
+
+  def __init__(self, X, y, w, ids):
+    self.X = X
+    self.y = y
+    self.w = w
+    self.ids = ids
+
+
 class DiskDataset(Dataset):
   """
   A Dataset that is stored as a set of files on disk.
@@ -1461,9 +1470,7 @@ class DiskDataset(Dataset):
       raise ValueError("This method requires PyTorch to be installed.")
 
     pytorch_ds = TorchDiskDataset(
-        disk_dataset=self,
-        epochs=epochs,
-        deterministic=deterministic)
+        disk_dataset=self, epochs=epochs, deterministic=deterministic)
     return pytorch_ds
 
   @staticmethod
@@ -1710,14 +1717,6 @@ class DiskDataset(Dataset):
 
   def get_shard(self, i: int) -> Batch:
     """Retrieves data for the i-th shard from disk."""
-
-    class Shard(object):
-
-      def __init__(self, X, y, w, ids):
-        self.X = X
-        self.y = y
-        self.w = w
-        self.ids = ids
 
     # See if we have a cached copy of this shard.
     if self._cached_shards is None:

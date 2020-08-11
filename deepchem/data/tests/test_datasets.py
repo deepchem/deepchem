@@ -8,14 +8,9 @@ __license__ = "MIT"
 import random
 import math
 import unittest
-import tempfile
 import os
-import shutil
 import numpy as np
 import deepchem as dc
-import tensorflow as tf
-import pandas as pd
-from tensorflow.python.framework import test_util
 
 try:
   import torch
@@ -29,7 +24,6 @@ def load_solubility_data():
   current_dir = os.path.dirname(os.path.abspath(__file__))
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]
-  task_type = "regression"
   input_file = os.path.join(current_dir, "../../models/tests/example.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, smiles_field="smiles", featurizer=featurizer)
@@ -111,7 +105,6 @@ def test_pad_features():
   """Test that pad_features pads features correctly."""
   batch_size = 100
   num_features = 10
-  num_tasks = 5
 
   # Test cases where n_samples < 2*n_samples < batch_size
   n_samples = 29
@@ -306,7 +299,6 @@ def test_select():
 
 def test_complete_shuffle():
   shard_sizes = [1, 2, 3, 4, 5]
-  batch_size = 10
 
   all_Xs, all_ys, all_ws, all_ids = [], [], [], []
 
@@ -550,7 +542,7 @@ def test_disk_iterate_y_w_None():
   shard_sizes = [21, 11, 41, 21, 51]
   batch_size = 10
 
-  all_Xs, all_ys, all_ws, all_ids = [], [], [], []
+  all_Xs, all_ids = [], []
 
   def shard_generator():
     for sz in shard_sizes:
@@ -839,7 +831,7 @@ def test_to_str():
   assert str(dataset) == ref_str
 
 
-class TestDatasets(test_util.TensorFlowTestCase):
+class TestDatasets(unittest.TestCase):
   """
   Test basic top-level API for dataset objects.
   """
