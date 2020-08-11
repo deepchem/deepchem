@@ -4,7 +4,6 @@ from deepchem.feat.molecule_featurizers.bp_symmetry_function_input import BPSymm
 from deepchem.feat.molecule_featurizers.morgan_fingerprint import CircularFingerprint
 from deepchem.feat.molecule_featurizers.coulomb_matrices import CoulombMatrix
 from deepchem.feat.molecule_featurizers.coulomb_matrices import CoulombMatrixEig
-from deepchem.feat.molecule_featurizers.atom_coordinates import NeighborListAtomicCoordinates
 from deepchem.feat.molecule_featurizers.one_hot_featurizer import OneHotFeaturizer
 from deepchem.feat.molecule_featurizers.raw_featurizer import RawFeaturizer
 from deepchem.feat.molecule_featurizers.rdkit_descriptors import RDKitDescriptors

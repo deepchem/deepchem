@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Optional
+from typing import List
 
 from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
@@ -23,12 +23,12 @@ class OneHotFeaturizer(MolecularFeaturizer):
   Note that this featurizer is not thread Safe in initialization of charset
   """
 
-  def __init__(self, charset: Optional[List[str]] = None, padlength: int = 120):
+  def __init__(self, charset: List[str] = ZINC_CHARSET, padlength: int = 120):
     """Initialize featurizer.
 
     Parameters
     ----------
-    charset: List[str], optional (default None)
+    charset: List[str]
       A list of strings, where each string is length 1.
     padlength: int, optional (default 120)
       length to pad the smile strings to.
@@ -141,7 +141,7 @@ class OneHotFeaturizer(MolecularFeaturizer):
       for j in range(len(one_hot[i])):
         char_bit = np.argmax(one_hot[i][j])
         smiles += self.charset[char_bit]
-      smiles_list.append([smiles.strip()])
+      smiles_list.append(smiles.strip())
     return smiles_list
 
   def _create_charset(self, smiles: List[str]) -> List[str]:

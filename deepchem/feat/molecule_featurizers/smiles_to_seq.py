@@ -97,7 +97,7 @@ class SmilesToSeq(MolecularFeaturizer):
     self.idx_to_char = {idx: letter for letter, idx in self.char_to_idx.items()}
     self.pad_len = pad_len
 
-  def to_seq(self, smile: str) -> np.ndarray:
+  def to_seq(self, smile: List[str]) -> np.ndarray:
     """Turns list of smiles characters into array of indices"""
     out_of_vocab_idx = self.char_to_idx[OUT_OF_VOCAB_TOKEN]
     seq = [

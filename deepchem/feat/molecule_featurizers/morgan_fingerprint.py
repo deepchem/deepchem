@@ -1,6 +1,7 @@
 """
 Topological fingerprints.
 """
+from typing import Dict
 
 from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
@@ -74,7 +75,7 @@ class CircularFingerprint(MolecularFeaturizer):
       raise ValueError("This class requires RDKit to be installed.")
 
     if self.sparse:
-      info = {}
+      info: Dict = {}
       fp = rdMolDescriptors.GetMorganFingerprint(
           mol,
           self.radius,

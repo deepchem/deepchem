@@ -22,6 +22,6 @@ class TestVinaUtils(unittest.TestCase):
     assert len(scores) == 9
 
     for ligand, score in zip(docked_ligands, scores):
-      xyz = rdkit_utils.get_coordinates_from_mol(ligand)
+      xyz = rdkit_utils.get_xyz_from_mol(ligand)
       assert score < 0  # This is a binding free energy
       assert np.count_nonzero(xyz) > 0
