@@ -44,11 +44,11 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
   This class requires matminer and Pymatgen to be installed.
   """
 
-  def __init__(self, max_atoms: int, flatten: bool = True):
+  def __init__(self, max_atoms: int = 100, flatten: bool = True):
     """
     Parameters
     ----------
-    max_atoms: int
+    max_atoms: int (deafult 100)
       Maximum number of atoms for any crystal in the dataset. Used to
       pad the Coulomb matrix.
     flatten: bool (default True)
@@ -86,8 +86,8 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
 
     if self.flatten:
       eigs, _ = np.linalg.eig(sine_mat)
-      zeros = np.zeros((1, self.max_atoms))
-      zeros[:len(eigs)] = eigs
+      zeros = np.zeros(self.max_atoms)
+      zeros[:len(eigs[0])] = eigs[0]
       features = zeros
     else:
       features = pad_array(sine_mat, self.max_atoms)

@@ -63,10 +63,11 @@ class TestMaterialFeaturizers(unittest.TestCase):
     Test SCM featurizer.
     """
 
-    featurizer = SineCoulombMatrix(max_atoms=1)
+    featurizer = SineCoulombMatrix(max_atoms=3)
     features = featurizer.featurize([self.struct_dict])
 
     assert len(features) == 1
+    assert features.shape == (1, 3)
     assert np.isclose(features[0], 1244, atol=.5)
 
   def test_cgcnn_featurizer(self):
