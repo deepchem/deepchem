@@ -83,7 +83,7 @@ class TestLosses(unittest.TestCase):
     """Test BinaryCrossEntropy."""
     loss = losses.BinaryCrossEntropy()
     outputs = tf.constant([[0.1, 0.8], [0.4, 0.6]])
-    labels = torch.tensor([[0.0, 1.0], [1.0, 0.0]])
+    labels = tf.constant([[0.0, 1.0], [1.0, 0.0]])
     result = loss._compute_tf_loss(outputs, labels).numpy()
     expected = [
         -np.mean([np.log(0.9), np.log(0.8)]),
@@ -109,7 +109,7 @@ class TestLosses(unittest.TestCase):
     """Test CategoricalCrossEntropy."""
     loss = losses.CategoricalCrossEntropy()
     outputs = tf.constant([[0.2, 0.8], [0.4, 0.6]])
-    labels = torch.tensor([[0.0, 1.0], [1.0, 0.0]])
+    labels = tf.constant([[0.0, 1.0], [1.0, 0.0]])
     result = loss._compute_tf_loss(outputs, labels).numpy()
     expected = [-np.log(0.8), -np.log(0.4)]
     assert np.allclose(expected, result)
@@ -130,7 +130,7 @@ class TestLosses(unittest.TestCase):
     loss = losses.SigmoidCrossEntropy()
     y = [[0.1, 0.8], [0.4, 0.6]]
     outputs = tf.constant(y)
-    labels = torch.tensor([[0.0, 1.0], [1.0, 0.0]])
+    labels = tf.constant([[0.0, 1.0], [1.0, 0.0]])
     result = loss._compute_tf_loss(outputs, labels).numpy()
     sigmoid = 1.0 / (1.0 + np.exp(-np.array(y)))
     expected = [[-np.log(1 - sigmoid[0, 0]), -np.log(sigmoid[0, 1])],
@@ -156,7 +156,7 @@ class TestLosses(unittest.TestCase):
     loss = losses.SoftmaxCrossEntropy()
     y = np.array([[0.1, 0.8], [0.4, 0.6]])
     outputs = tf.constant(y)
-    labels = torch.tensor([[0.0, 1.0], [1.0, 0.0]])
+    labels = tf.constant([[0.0, 1.0], [1.0, 0.0]])
     result = loss._compute_tf_loss(outputs, labels).numpy()
     softmax = np.exp(y) / np.expand_dims(np.sum(np.exp(y), axis=1), 1)
     expected = [-np.log(softmax[0, 1]), -np.log(softmax[1, 0])]
@@ -180,7 +180,7 @@ class TestLosses(unittest.TestCase):
     loss = losses.SparseSoftmaxCrossEntropy()
     y = np.array([[0.1, 0.8], [0.4, 0.6]])
     outputs = tf.constant(y)
-    labels = torch.tensor([1, 0])
+    labels = tf.constant([1, 0])
     result = loss._compute_tf_loss(outputs, labels).numpy()
     softmax = np.exp(y) / np.expand_dims(np.sum(np.exp(y), axis=1), 1)
     expected = [-np.log(softmax[0, 1]), -np.log(softmax[1, 0])]
