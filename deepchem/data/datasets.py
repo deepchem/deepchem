@@ -939,7 +939,7 @@ class NumpyDataset(Dataset):
     return NumpyDataset(X, y, w, ids, n_tasks=y.shape[1])
 
 
-class Shard(object):
+class _Shard(object):
 
   def __init__(self, X, y, w, ids):
     self.X = X
@@ -1758,7 +1758,7 @@ class DiskDataset(Dataset):
     # shard again before the next time we want this one.  So just cache as many
     # as we can and then stop.
 
-    shard = Shard(X, y, w, ids)
+    shard = _Shard(X, y, w, ids)
     shard_size = X.nbytes + ids.nbytes
     if y is not None:
       shard_size += y.nbytes
