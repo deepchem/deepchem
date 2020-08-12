@@ -14,7 +14,7 @@ class TorchNumpyDataset(torch.utils.data.IterableDataset):  # type: ignore
     Parameters
     ----------
     numpy_dataset: NumpyDataset
-      The original NumpyDataset which you want to convert to PyTorch
+      The original NumpyDataset which you want to convert to PyTorch Dataset
     epochs: int
       the number of times to iterate over the Dataset
     deterministic: bool
@@ -52,7 +52,7 @@ class TorchDiskDataset(torch.utils.data.IterableDataset):  # type: ignore
     Parameters
     ----------
     disk_dataset: DiskDataset
-      The original DiskDataset which you want to convert to PyTorch
+      The original DiskDataset which you want to convert to PyTorch Dataset
     epochs: int
       the number of times to iterate over the Dataset
     deterministic: bool
@@ -91,7 +91,7 @@ class TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
     Parameters
     ----------
     image_dataset: ImageDataset
-      The original ImageDataset which you want to convert to PyTorch
+      The original ImageDataset which you want to convert to PyTorch Dataset
     epochs: int
       the number of times to iterate over the Dataset
     deterministic: bool

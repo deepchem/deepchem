@@ -512,8 +512,9 @@ class Dataset(object):
 
     Returns
     -------
-    `torch.utils.data.IterableDataset` that iterates over the data in
-    this dataset.
+    torch.utils.data.IterableDataset
+      `torch.utils.data.IterableDataset` that iterates over the data in
+      this dataset.
     """
     raise NotImplementedError()
 
@@ -864,6 +865,12 @@ class NumpyDataset(Dataset):
     deterministic: bool
       if True, the data is produced in order.  If False, a different random
       permutation of the data is used for each epoch.
+
+    Returns
+    -------
+    torch.utils.data.IterableDataset
+      `torch.utils.data.IterableDataset` that iterates over the data in
+      this dataset.
     """
     try:
       from deepchem.data.pytorch_datasets import TorchNumpyDataset
@@ -1457,6 +1464,12 @@ class DiskDataset(Dataset):
     deterministic: bool
       if True, the data is produced in order.  If False, a different random
       permutation of the data is used for each epoch.
+
+    Returns
+    -------
+    torch.utils.data.IterableDataset
+      `torch.utils.data.IterableDataset` that iterates over the data in
+      this dataset.
     """
     try:
       from deepchem.data.pytorch_datasets import TorchDiskDataset
@@ -2228,8 +2241,9 @@ class ImageDataset(Dataset):
 
     Returns
     -------
-    `torch.utils.data.IterableDataset` iterating over the same data as
-    this dataset.
+    torch.utils.data.IterableDataset
+      `torch.utils.data.IterableDataset` that iterates over the data in
+      this dataset.
     """
     try:
       from deepchem.data.pytorch_datasets import TorchImageDataset
