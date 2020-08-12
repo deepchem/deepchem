@@ -33,7 +33,7 @@ class Optimizer(object):
     -------
     a new TensorFlow optimizer implementing the algorithm
     """
-    raise NotImplemented("Subclasses must implement this")
+    raise NotImplementedError("Subclasses must implement this")
 
   def _create_pytorch_optimizer(self, params):
     """Construct a PyTorch optimizer.
@@ -68,7 +68,7 @@ class LearningRateSchedule(object):
     -------
     a tensor that equals the learning rate
     """
-    raise NotImplemented("Subclasses must implement this")
+    raise NotImplementedError("Subclasses must implement this")
 
   def _create_pytorch_schedule(self, optimizer):
     """Construct a PyTorch learning rate scheduler.
@@ -126,7 +126,7 @@ learning research 12.7 (2011).
     else:
       learning_rate = self.learning_rate
     return tf.keras.optimizers.Adagrad(
-        learning_rate=self.learning_rate,
+        learning_rate=learning_rate,
         initial_accumulator_value=self.initial_accumulator_value,
         epsilon=self.epsilon)
 
