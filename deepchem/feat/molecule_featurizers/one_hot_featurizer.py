@@ -14,13 +14,13 @@ ZINC_CHARSET = [
 class OneHotFeaturizer(MolecularFeaturizer):
   """Encodes a molecule as a one-hot array.
 
-  This featurizer takes a molecule and encodes its Smiles string as a one-hot
-  array.
+  This featurizer takes a molecule and encodes its SMILES string
+  as a one-hot array.
 
   Notes
   -----
   This class requires RDKit to be installed.
-  Note that this featurizer is not thread Safe in initialization of charset
+  Note that this featurizer is not thread safe in initialization of charset.
   """
 
   def __init__(self, charset: List[str] = ZINC_CHARSET, padlength: int = 120):
@@ -47,7 +47,7 @@ class OneHotFeaturizer(MolecularFeaturizer):
     Returns
     -------
     np.ndarray
-      Vector of RDKit descriptors for `mol`
+      The one hot encoded arrays for each character in SMILES
     """
     try:
       from rdkit import Chem
@@ -90,50 +90,50 @@ class OneHotFeaturizer(MolecularFeaturizer):
     return self.charset.index(c)
 
   def pad_smile(self, smile: str) -> str:
-    """Pad a smile string to `self.pad_length`
+    """Pad a SMILES string to `self.pad_length`
 
     Parameters
     ----------
     smile: str
-      The smiles string to be padded.
+      The SMILES string to be padded.
 
     Returns
     -------
     str
-      smile string space padded to self.pad_length
+      SMILES string padded to self.pad_length
     """
 
     return smile.ljust(self.pad_length)
 
   def one_hot_encoded(self, smile: str) -> np.ndarray:
-    """One Hot Encode an entire SMILE string
+    """One Hot Encode an entire SMILES string
 
     Parameters
     ----------
     smile: str
-      smile string to encode
+      SMILES string to encode
 
     Returns
     -------
     np.ndarray
-      The one hot encoded arrays for each character in smile
+      The one hot encoded arrays for each character in SMILES
     """
     return np.array([
         self.one_hot_array(self.one_hot_index(x)) for x in self.pad_smile(smile)
     ])
 
   def untransform(self, one_hot: np.ndarray) -> List[str]:
-    """Convert from one hot representation back to SMILE
+    """Convert from one hot representation back to SMILES
 
     Parameters
     ----------
-    z: np.ndarray
+    one_hot: np.ndarray
       A numpy array of one hot encoded features
 
     Returns
     -------
     List[str]
-      The List smile Strings picking MAX for each one hot encoded array
+      The List SMILES strings picking MAX for each one hot encoded array
     """
     smiles_list = []
     for i in range(len(one_hot)):
@@ -145,17 +145,17 @@ class OneHotFeaturizer(MolecularFeaturizer):
     return smiles_list
 
   def _create_charset(self, smiles: List[str]) -> List[str]:
-    """Create the charset from smiles
+    """Create the charset from SMILES
 
     Parameters
     ----------
     smiles: List[str]
-      List of smile strings
+      List of SMILES strings
 
     Returns
     -------
     List[str]
-      List of length one strings that are characters in smiles. No duplicates
+      List of length one strings that are characters in SMILES. No duplicates
     """
     s = set()
     for smile in smiles:
