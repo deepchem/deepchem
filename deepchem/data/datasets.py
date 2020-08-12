@@ -871,13 +871,7 @@ class NumpyDataset(Dataset):
       raise ValueError("This method requires PyTorch to be installed.")
 
     pytorch_ds = TorchNumpyDataset(
-        X=self._X,
-        y=self._y,
-        w=self._w,
-        ids=self._ids,
-        n_samples=self._X.shape[0],
-        epochs=epochs,
-        deterministic=deterministic)
+        numpy_dataset=self, epochs=epochs, deterministic=deterministic)
     return pytorch_ds
 
   @staticmethod
@@ -2243,13 +2237,7 @@ class ImageDataset(Dataset):
       raise ValueError("This method requires PyTorch to be installed.")
 
     pytorch_ds = TorchImageDataset(
-        X=self.X,
-        y=self.y,
-        w=self.w,
-        ids=self._ids,
-        n_samples=self._X_shape[0],
-        epochs=epochs,
-        deterministic=deterministic)
+        image_dataset=self, epochs=epochs, deterministic=deterministic)
     return pytorch_ds
 
 
