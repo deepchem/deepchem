@@ -1091,8 +1091,7 @@ class DiskDataset(Dataset):
   @staticmethod
   def create_dataset(shard_generator: Iterable[Batch],
                      data_dir: Optional[str] = None,
-                     tasks: Optional[Sequence] = [],
-                     legacy_metadata: Optional[bool] = False) -> "DiskDataset":
+                     tasks: Optional[Sequence] = []) -> "DiskDataset":
     """Creates a new DiskDataset
 
     Parameters
@@ -1104,10 +1103,6 @@ class DiskDataset(Dataset):
       Filename for data directory. Creates a temp directory if none specified.
     tasks: Optional[sequence] 
       List of tasks for this dataset.
-    legacy_metadata: Optional[bool], (default False)
-      If `True` use the legacy format for metadata without shape information
-      in metadata. This option is not recommended since the legacy metadata
-      format will have worse performance.
 
     Returns
     -------
@@ -1124,9 +1119,8 @@ class DiskDataset(Dataset):
       basename = "shard-%d" % shard_num
       metadata_rows.append(
           DiskDataset.write_data_to_disk(data_dir, basename, tasks, X, y, w,
-                                         ids, legacy_metadata))
-    metadata_df = DiskDataset._construct_metadata(metadata_rows,
-                                                  legacy_metadata)
+                                         ids))
+    metadata_df = DiskDataset._construct_metadata(metadata_rows)
     DiskDataset._save_metadata(metadata_df, data_dir, tasks)
     time2 = time.time()
     logger.info("TIMING: dataset construction took %0.3f s" % (time2 - time1))
@@ -1180,9 +1174,7 @@ class DiskDataset(Dataset):
     metadata_df.to_csv(metadata_filename, index=False, compression='gzip')
 
   @staticmethod
-  def _construct_metadata(metadata_entries: List,
-                          legacy_metadata: Optional[bool] = False
-                         ) -> pd.DataFrame:
+  def _construct_metadata(metadata_entries: List) -> pd.DataFrame:
     """Construct a dataframe containing metadata.
 
     Parameters
@@ -1190,17 +1182,10 @@ class DiskDataset(Dataset):
     metadata_entries: list
       metadata_entries should have elements returned by write_data_to_disk
       above.
-    legacy_metadata: Optional[bool] (default False)
-      If `True` use the legacy format for metadata without shape information
-      in metadata.
     """
-    if not legacy_metadata:
-      columns = ('ids', 'X', 'y', 'w', 'ids_shape', 'X_shape', 'y_shape',
-                 'w_shape')
-      metadata_df = pd.DataFrame(metadata_entries, columns=columns)
-    else:
-      legacy_columns = ('ids', 'X', 'y', 'w')
-      metadata_df = pd.DataFrame(metadata_entries, columns=legacy_columns)
+    columns = ('ids', 'X', 'y', 'w', 'ids_shape', 'X_shape', 'y_shape',
+               'w_shape')
+    metadata_df = pd.DataFrame(metadata_entries, columns=columns)
     return metadata_df
 
   @staticmethod
@@ -1211,8 +1196,7 @@ class DiskDataset(Dataset):
       X: Optional[np.ndarray] = None,
       y: Optional[np.ndarray] = None,
       w: Optional[np.ndarray] = None,
-      ids: Optional[np.ndarray] = None,
-      legacy_metadata: Optional[bool] = False) -> List[Optional[str]]:
+      ids: Optional[np.ndarray] = None) -> List[Optional[str]]:
     """Static helper method to write data to disk.
 
     This helper method is used to write a shard of data to disk.
@@ -1233,18 +1217,12 @@ class DiskDataset(Dataset):
       The weights array 
     ids: Optional[np.ndarray]
       The identifiers array 
-    legacy_metadata: Optional[bool] (default False)
-      If `True` use the legacy format for metadata without shape information
-      in metadata. Setting this option is not recommended since legacy
-      metadata will have worse performance.
 
     Returns
     -------
     List with values `[out_ids, out_X, out_y, out_w, out_ids_shape,
     out_X_shape, out_y_shape, out_w_shape]` with filenames of locations to
-    disk which these respective arrays were written. If `legacy_metadata` is
-    set will return a list with values `[out_ids, out_X, out_y, out_w]`
-    without shape information.
+    disk which these respective arrays were written.
     """
     if X is not None:
       out_X: Optional[str] = "%s-X.npy" % basename
@@ -1279,13 +1257,10 @@ class DiskDataset(Dataset):
       out_ids_shape = None
 
     # note that this corresponds to the _construct_metadata column order
-    if not legacy_metadata:
-      return [
-          out_ids, out_X, out_y, out_w, out_ids_shape, out_X_shape, out_y_shape,
-          out_w_shape
-      ]
-    else:
-      return [out_ids, out_X, out_y, out_w]
+    return [
+        out_ids, out_X, out_y, out_w, out_ids_shape, out_X_shape, out_y_shape,
+        out_w_shape
+    ]
 
   def save_to_disk(self) -> None:
     """Save dataset to disk."""
@@ -1758,8 +1733,7 @@ class DiskDataset(Dataset):
                  w: Optional[np.ndarray] = None,
                  ids: Optional[np.ndarray] = None,
                  tasks: Optional[Sequence] = None,
-                 data_dir: Optional[str] = None,
-                 legacy_metadata: Optional[bool] = False) -> "DiskDataset":
+                 data_dir: Optional[str] = None) -> "DiskDataset":
     """Creates a DiskDataset object from specified Numpy arrays.
 
     Parameters
@@ -1777,9 +1751,6 @@ class DiskDataset(Dataset):
     data_dir: Optional[str], optional (default None)
       The directory to write this dataset to. If none is specified, will use
       a temporary directory instead.
-    legacy_metadata: Optional[bool], (default False)
-      If `True` use the legacy format for metadata without shape information
-      in metadata.
 
     Returns
     -------
@@ -1795,8 +1766,7 @@ class DiskDataset(Dataset):
     return DiskDataset.create_dataset(
         [(dataset.X, dataset.y, dataset.w, dataset.ids)],
         data_dir=data_dir,
-        tasks=tasks,
-        legacy_metadata=legacy_metadata)
+        tasks=tasks)
 
   @staticmethod
   def merge(datasets: Iterable["DiskDataset"],
