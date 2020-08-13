@@ -26,16 +26,17 @@ class Featurizer(object):
 
     Parameters
     ----------
-    datapoints: Iterable[Any]
+    datapoints : Iterable[Any]
       A sequence of objects that you'd like to featurize. Subclassses of
       `Featurizer` should instantiate the `_featurize` method that featurizes
       objects in the sequence.
-    log_every_n: int, default 1000
+    log_every_n : int, default 1000
       Logs featurization progress every `log_every_n` steps.
 
     Returns
     -------
-    A numpy array containing a featurized representation of `datapoints`.
+    np.ndarray
+      A numpy array containing a featurized representation of `datapoints`.
     """
     datapoints = list(datapoints)
     features = []
@@ -57,7 +58,7 @@ class Featurizer(object):
 
     Parameters
     ----------
-    datapoints: Iterable[Any]
+    datapoints : Iterable[Any]
       Any blob of data you like. Subclasss should instantiate this.
     """
     return self.featurize(datapoints)
@@ -67,7 +68,7 @@ class Featurizer(object):
 
     Parameters
     ----------
-    datapoint: Any
+    datapoint : Any
       Any blob of data you like. Subclass should instantiate this.
     """
     raise NotImplementedError('Featurizer is not defined.')
@@ -85,16 +86,16 @@ class ComplexFeaturizer(object):
 
     Parameters
     ----------
-    mols: List[str]
+    mols : List[str]
       List of PDB filenames for molecules.
-    protein_pdbs: List[str]
+    protein_pdbs : List[str]
       List of PDB filenames for proteins.
 
     Returns
     -------
-    features: np.ndarray
+    features : np.ndarray
       Array of features
-    failures: List
+    failures : List
       Indices of complexes that failed to featurize.
     """
 
@@ -124,10 +125,10 @@ class ComplexFeaturizer(object):
 
     Parameters
     ----------
-    mol_pdb: list
-      Should be a list of lines of the PDB file.
-    complex_pdb: list
-      Should be a list of lines of the PDB file.
+    mol_pdb : str
+      The PDB filename.
+    complex_pdb : str
+      The PDB filename.
     """
     raise NotImplementedError('Featurizer is not defined.')
 
@@ -161,17 +162,17 @@ class MolecularFeaturizer(Featurizer):
 
     Parameters
     ----------
-    molecules: RDKit Mol / SMILES string / iterable
+    molecules : RDKit Mol / SMILES string / iterable
       RDKit Mol, or SMILES string or iterable sequence of RDKit mols/SMILES
       strings.
-    log_every_n: int, default 1000
+    log_every_n : int, default 1000
       Logging messages reported every `log_every_n` samples.
-    canonical: bool, default False
+    canonical : bool, default False
       Whether to use a canonical order of atoms returned by RDKit
 
     Returns
     -------
-    features: np.ndarray
+    features : np.ndarray
       A numpy array containing a featurized representation of `datapoints`.
     """
     try:
@@ -240,16 +241,16 @@ class MaterialStructureFeaturizer(Featurizer):
 
     Parameters
     ----------
-    structures: Iterable[Dict[str, Any]]
+    structures : Iterable[Dict[str, Any]]
       Iterable sequence of pymatgen structure dictionaries.
       Dictionary representations of pymatgen.Structure
       https://pymatgen.org/pymatgen.core.structure.html
-    log_every_n: int, default 1000
+    log_every_n : int, default 1000
       Logging messages reported every `log_every_n` samples.
 
     Returns
     -------
-    features: np.ndarray
+    features : np.ndarray
       A numpy array containing a featurized representation of
       `structures`.
     """
@@ -304,14 +305,14 @@ class MaterialCompositionFeaturizer(Featurizer):
 
     Parameters
     ----------
-    compositions: Iterable[str]
+    compositions : Iterable[str]
       Iterable sequence of composition strings, e.g. "MoS2".
-    log_every_n: int, default 1000
+    log_every_n : int, default 1000
       Logging messages reported every `log_every_n` samples.
 
     Returns
     -------
-    features: np.ndarray
+    features : np.ndarray
       A numpy array containing a featurized representation of
       `compositions`.
     """
