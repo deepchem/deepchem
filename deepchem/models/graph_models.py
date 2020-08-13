@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 from typing import List, Union, Tuple, Iterable, Dict
-from deepchem.utils.typing import OneOrMany, KerasLossFn, KerasActivationFn
+from deepchem.utils.typing import OneOrMany, LossFn, KerasActivationFn
 from deepchem.data import Dataset, NumpyDataset, pad_features
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
@@ -53,7 +53,7 @@ class WeaveModel(KerasModel):
   --------
 
   Here's an example of how to fit a `WeaveModel` on a tiny sample dataset.
-  
+
   >>> import numpy as np
   >>> import deepchem as dc
   >>> featurizer = dc.feat.WeaveFeaturizer()
@@ -514,7 +514,7 @@ class DTNNModel(KerasModel):
 class DAGModel(KerasModel):
   """Directed Acyclic Graph models for molecular property prediction.
 
-    This model is based on the following paper: 
+    This model is based on the following paper:
 
     Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575.
 
@@ -528,7 +528,7 @@ class DAGModel(KerasModel):
 
    This model accepts ConvMols as input, just as GraphConvModel
    does, but these ConvMol objects must be transformed by
-   dc.trans.DAGTransformer. 
+   dc.trans.DAGTransformer.
 
    As a note, performance of this model can be a little
    sensitive to initialization. It might be worth training a few
@@ -549,7 +549,7 @@ class DAGModel(KerasModel):
                uncertainty=False,
                batch_size=100,
                **kwargs):
-    """   
+    """
     Parameters
     ----------
     n_tasks: int
@@ -853,7 +853,7 @@ class GraphConvModel(KerasModel):
 
     Note that since the underlying _GraphConvKerasModel class is
     specified using imperative subclassing style, this model
-    cannout make predictions for arbitrary outputs. 
+    cannout make predictions for arbitrary outputs.
 
     Parameters
     ----------
@@ -901,7 +901,7 @@ class GraphConvModel(KerasModel):
         batch_size=batch_size)
     if mode == "classification":
       output_types = ['prediction', 'loss', 'embedding']
-      loss: Union[Loss, KerasLossFn] = SoftmaxCrossEntropy()
+      loss: Union[Loss, LossFn] = SoftmaxCrossEntropy()
     else:
       if self.uncertainty:
         output_types = ['prediction', 'variance', 'loss', 'loss', 'embedding']
