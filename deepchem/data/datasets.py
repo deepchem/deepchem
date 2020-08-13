@@ -1290,7 +1290,11 @@ class DiskDataset(Dataset):
     if delete_if_exists and os.path.isdir(new_data_dir):
       shutil.rmtree(new_data_dir)
     shutil.move(self.data_dir, new_data_dir)
-    self.data_dir = os.path.join(new_data_dir, os.path.basename(self.data_dir))
+    if delete_if_exists:
+      self.data_dir = new_data_dir
+    else:
+      self.data_dir = os.path.join(new_data_dir,
+                                   os.path.basename(self.data_dir))
 
   def copy(self, new_data_dir: str) -> "DiskDataset":
     """Copies dataset to new directory.
