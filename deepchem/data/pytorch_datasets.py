@@ -6,7 +6,7 @@ from deepchem.data.data_loader import ImageLoader
 from deepchem.data.datasets import NumpyDataset, DiskDataset, ImageDataset
 
 
-class TorchNumpyDataset(torch.utils.data.IterableDataset):  # type: ignore
+class _TorchNumpyDataset(torch.utils.data.IterableDataset):  # type: ignore
 
   def __init__(self, numpy_dataset: NumpyDataset, epochs: int,
                deterministic: bool):
@@ -44,7 +44,7 @@ class TorchNumpyDataset(torch.utils.data.IterableDataset):  # type: ignore
                self.numpy_dataset._w[i], self.numpy_dataset._ids[i])
 
 
-class TorchDiskDataset(torch.utils.data.IterableDataset):  # type: ignore
+class _TorchDiskDataset(torch.utils.data.IterableDataset):  # type: ignore
 
   def __init__(self, disk_dataset: DiskDataset, epochs: int,
                deterministic: bool):
@@ -83,7 +83,7 @@ class TorchDiskDataset(torch.utils.data.IterableDataset):  # type: ignore
           yield (X[i], y[i], w[i], ids[i])
 
 
-class TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
+class _TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
 
   def __init__(self, image_dataset: ImageDataset, epochs: int,
                deterministic: bool):
@@ -123,7 +123,7 @@ class TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
 
   def _get_image(self, array: Union[np.ndarray, List[str]],
                  index: int) -> np.ndarray:
-    """Function for loading an image
+    """Method for loading an image
 
     Parameters
     ----------

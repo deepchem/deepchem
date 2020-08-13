@@ -873,11 +873,11 @@ class NumpyDataset(Dataset):
       this dataset.
     """
     try:
-      from deepchem.data.pytorch_datasets import TorchNumpyDataset
+      from deepchem.data.pytorch_datasets import _TorchNumpyDataset
     except:
       raise ValueError("This method requires PyTorch to be installed.")
 
-    pytorch_ds = TorchNumpyDataset(
+    pytorch_ds = _TorchNumpyDataset(
         numpy_dataset=self, epochs=epochs, deterministic=deterministic)
     return pytorch_ds
 
@@ -1472,11 +1472,11 @@ class DiskDataset(Dataset):
       this dataset.
     """
     try:
-      from deepchem.data.pytorch_datasets import TorchDiskDataset
+      from deepchem.data.pytorch_datasets import _TorchDiskDataset
     except:
       raise ValueError("This method requires PyTorch to be installed.")
 
-    pytorch_ds = TorchDiskDataset(
+    pytorch_ds = _TorchDiskDataset(
         disk_dataset=self, epochs=epochs, deterministic=deterministic)
     return pytorch_ds
 
@@ -2246,11 +2246,11 @@ class ImageDataset(Dataset):
       this dataset.
     """
     try:
-      from deepchem.data.pytorch_datasets import TorchImageDataset
+      from deepchem.data.pytorch_datasets import _TorchImageDataset
     except:
       raise ValueError("This method requires PyTorch to be installed.")
 
-    pytorch_ds = TorchImageDataset(
+    pytorch_ds = _TorchImageDataset(
         image_dataset=self, epochs=epochs, deterministic=deterministic)
     return pytorch_ds
 
