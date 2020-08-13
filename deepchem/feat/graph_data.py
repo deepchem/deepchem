@@ -107,10 +107,10 @@ class GraphData:
           "This function requires PyTorch Geometric to be installed.")
 
     return Data(
-      x=torch.from_numpy(self.node_features),
-      edge_index=torch.from_numpy(self.edge_index).long(),
-      edge_attr=None if self.edge_features is None \
-        else torch.from_numpy(self.edge_features),
+        x=torch.from_numpy(self.node_features),
+        edge_index=torch.from_numpy(self.edge_index).long(),
+        edge_attr=None
+        if self.edge_features is None else torch.from_numpy(self.edge_features),
     )
 
   def to_dgl_graph(self):
@@ -193,10 +193,10 @@ class BatchGraphData(GraphData):
 
     # create new edge index
     num_nodes_list = [graph.num_nodes for graph in graph_list]
-    batch_edge_index = np.hstack(
-      [graph.edge_index + prev_num_node for prev_num_node, graph \
-        in zip([0] + num_nodes_list[:-1], graph_list)]
-    )
+    batch_edge_index = np.hstack([
+        graph.edge_index + prev_num_node
+        for prev_num_node, graph in zip([0] + num_nodes_list[:-1], graph_list)
+    ])
 
     # graph_index indicates which nodes belong to which graph
     graph_index = []
