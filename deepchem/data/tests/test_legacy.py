@@ -1,5 +1,7 @@
+import os
 import deepchem as dc
 import numpy as np
+import tempfile
 
 
 def test_make_legacy_dataset_from_numpy():
@@ -7,13 +9,12 @@ def test_make_legacy_dataset_from_numpy():
   num_datapoints = 100
   num_features = 10
   num_tasks = 10
-  # Generate data
-  X = np.random.rand(num_datapoints, num_features)
-  y = np.random.randint(2, size=(num_datapoints, num_tasks))
-  w = np.random.randint(2, size=(num_datapoints, num_tasks))
-  ids = np.array(["id"] * num_datapoints)
 
-  dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids, legacy_metadata=True)
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  # legacy_dataset is a dataset in the legacy format kept around for testing
+  # purposes.
+  data_dir = os.path.join(current_dir, "legacy_dataset")
+  dataset = dc.data.DiskDataset(data_dir)
   assert dataset.legacy_metadata
   assert len(dataset.metadata_df.columns) == 4
   assert list(dataset.metadata_df.columns) == ['ids', 'X', 'y', 'w']
@@ -30,23 +31,29 @@ def test_reshard():
   num_datapoints = 100
   num_features = 10
   num_tasks = 10
-  # Generate data
-  X = np.random.rand(num_datapoints, num_features)
-  y = np.random.randint(2, size=(num_datapoints, num_tasks))
-  w = np.random.randint(2, size=(num_datapoints, num_tasks))
-  ids = np.array(["id"] * num_datapoints)
 
-  dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids, legacy_metadata=True)
+  # legacy_dataset_reshard is a shared dataset in the legacy format kept
+  # around for testing resharding.
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  data_dir = os.path.join(current_dir, "legacy_dataset_reshard")
+  dataset = dc.data.DiskDataset(data_dir)
   assert dataset.legacy_metadata
   assert len(dataset.metadata_df.columns) == 4
   assert list(dataset.metadata_df.columns) == ['ids', 'X', 'y', 'w']
 
-  # Reshard this dataset
-  dataset.reshard(shard_size=10)
-  assert dataset.get_number_shards() == 10
-  # Check metadata has been updated
-  assert not dataset.legacy_metadata
-  assert len(dataset.metadata_df.columns) == 8
-  assert list(dataset.metadata_df.columns) == [
-      'ids', 'X', 'y', 'w', 'ids_shape', 'X_shape', 'y_shape', 'w_shape'
-  ]
+  with tempfile.TemporaryDirectory() as tmpdirname:
+    copy = dataset.copy(tmpdirname)
+    assert np.all(copy.X == dataset.X)
+    assert np.all(copy.y == dataset.y)
+    assert np.all(copy.w == dataset.w)
+    assert np.all(copy.ids == dataset.ids)
+
+    # Reshard copy
+    copy.reshard(shard_size=10)
+    assert copy.get_number_shards() == 10
+    # Check metadata has been updated
+    assert not copy.legacy_metadata
+    assert len(copy.metadata_df.columns) == 8
+    assert list(copy.metadata_df.columns) == [
+        'ids', 'X', 'y', 'w', 'ids_shape', 'X_shape', 'y_shape', 'w_shape'
+    ]
