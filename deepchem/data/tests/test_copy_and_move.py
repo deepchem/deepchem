@@ -48,7 +48,7 @@ def test_move():
   data_dir = dataset.data_dir
 
   with tempfile.TemporaryDirectory() as tmpdirname:
-    dataset.move(tmpdirname)
+    dataset.move(tmpdirname, delete_if_exists=False)
     assert np.all(X == dataset.X)
     assert np.all(y == dataset.y)
     assert np.all(w == dataset.w)

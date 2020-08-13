@@ -6,6 +6,7 @@ import tempfile
 
 def test_make_legacy_dataset_from_numpy():
   """Test that legacy DiskDataset objects can be constructed."""
+  # This is the shape of legacy_data
   num_datapoints = 100
   num_features = 10
   num_tasks = 10
@@ -28,11 +29,12 @@ def test_make_legacy_dataset_from_numpy():
 
 def test_reshard():
   """Test that resharding updates legacy datasets."""
+  # This is the shape of legacy_data_reshard
   num_datapoints = 100
   num_features = 10
   num_tasks = 10
 
-  # legacy_dataset_reshard is a shared dataset in the legacy format kept
+  # legacy_dataset_reshard is a sharded dataset in the legacy format kept
   # around for testing resharding.
   current_dir = os.path.dirname(os.path.abspath(__file__))
   data_dir = os.path.join(current_dir, "legacy_dataset_reshard")

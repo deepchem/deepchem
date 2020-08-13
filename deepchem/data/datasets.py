@@ -1268,24 +1268,24 @@ class DiskDataset(Dataset):
     self._cached_shards = None
 
   def move(self, new_data_dir: str,
-           delete_if_exists: Optional[bool] = False) -> None:
+           delete_if_exists: Optional[bool] = True) -> None:
     """Moves dataset to new directory.
 
     Note
     ----
     This is a stateful operation! `self.data_dir` will be moved into
     `new_data_dir`. If `delete_if_exists` is set to `True` (by default this is
-    set `False`), then `new_data_dir` is deleted if it's a pre-existing
+    set `True`), then `new_data_dir` is deleted if it's a pre-existing
     directory.
 
     Parameters
     ----------
     new_data_dir: str
       The new directory name to move this to dataset to.
-    delete_if_exists: Optional[bool] (default False)
+    delete_if_exists: Optional[bool] (default True)
       If this option is set, delete the destination directory if it exists
-      before moving. This is set to False by default since by default one
-      directory does not delet another when calling the unix `mv` command.
+      before moving. This is set to True by default to be backwards compatible
+      with behavior in earlier versions of DeepChem.
     """
     if delete_if_exists and os.path.isdir(new_data_dir):
       shutil.rmtree(new_data_dir)
