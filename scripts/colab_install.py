@@ -80,7 +80,7 @@ def install(
     is_installed.append(os.path.isdir(os.path.join(python_path, package)))
 
   if all(is_installed):
-    logger.info("all packages is already installed")
+    logger.info("all packages are already installed")
     return
 
   url = url_base + file_name

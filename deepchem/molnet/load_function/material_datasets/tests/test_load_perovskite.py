@@ -3,10 +3,7 @@ Tests for perovskite loader.
 """
 
 import os
-import tempfile
-import shutil
 import numpy as np
-import deepchem as dc
 from deepchem.molnet import load_perovskite
 
 
@@ -25,11 +22,11 @@ def test_perovskite_loader():
       })
 
   assert tasks[0] == 'formation_energy'
-  assert datasets[0].X.shape == (3, 1, 5)
-  assert datasets[1].X.shape == (1, 1, 5)
-  assert datasets[2].X.shape == (1, 1, 5)
+  assert datasets[0].X.shape == (3, 5)
+  assert datasets[1].X.shape == (1, 5)
+  assert datasets[2].X.shape == (1, 5)
   assert np.allclose(
-      datasets[0].X[0][0],
+      datasets[0].X[0],
       [0.02444208, -0.4804022, -0.51238194, -0.20286038, 0.53483076],
       atol=0.01)
 

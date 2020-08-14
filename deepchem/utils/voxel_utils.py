@@ -18,18 +18,18 @@ def convert_atom_to_voxel(coordinates: np.ndarray, atom_index: int,
 
   Parameters
   -----------
-  coordinates: np.ndarray
+  coordinates : np.ndarray
     Array with coordinates of all atoms in the molecule, shape (N, 3).
-  atom_index: int
+  atom_index : int
     Index of an atom in the molecule.
-  box_width: float
+  box_width : float
     Size of the box in Angstroms.
-  voxel_width: float
+  voxel_width : float
     Size of a voxel in Angstroms
 
   Returns
   -------
-  indices: np.ndarray
+  indices : np.ndarray
     A 1D numpy array of length 3 with `[i, j, k]`, the voxel coordinates
     of specified atom.
   """
@@ -53,18 +53,18 @@ def convert_atom_pair_to_voxel(coordinates_tuple: Tuple[np.ndarray, np.ndarray],
 
   Parameters
   ----------
-  coordinates_tuple: Tuple[np.ndarray, np.ndarray]
+  coordinates_tuple : Tuple[np.ndarray, np.ndarray]
     A tuple containing two molecular coordinate arrays of shapes `(N, 3)` and `(M, 3)`.
-  atom_index_pair: Tuple[int, int]
+  atom_index_pair : Tuple[int, int]
     A tuple of indices for the atoms in the two molecules.
-  box_width: float
+  box_width : float
     Size of the box in Angstroms.
-  voxel_width: float
+  voxel_width : float
     Size of a voxel in Angstroms
 
   Returns
   -------
-  indices_list: np.ndarray
+  indices_list : np.ndarray
     A numpy array of shape `(2, 3)`, where `3` is `[i, j, k]` of the
     voxel coordinates of specified atom.
   """
@@ -94,18 +94,18 @@ def voxelize(get_voxels: Callable[..., Any],
 
   Parameters
   ----------
-  get_voxels: Function
+  get_voxels : Function
     Function that voxelizes inputs
-  hash_function: Function
-    Used to map feature choices to voxel channels.  
-  coordinates: np.ndarray
+  hash_function : Function
+    Used to map feature choices to voxel channels.
+  coordinates : np.ndarray
     Contains the 3D coordinates of a molecular system.
-  box_width: float, optional (default 16.0)
+  box_width : float, optional (default 16.0)
     Size of a box in which voxel features are calculated. Box
     is centered on a ligand centroid.
-  voxel_width: float, optional (default 1.0)
+  voxel_width : float, optional (default 1.0)
     Size of a 3D voxel in a grid in Angstroms.
-  feature_dict: Dict, optional (default None)
+  feature_dict : Dict, optional (default None)
     Keys are atom indices or tuples of atom indices, the values are
     computed features. If `hash_function is not None`, then the values
     are hashed using the hash function into `[0, nb_channels)` and
@@ -113,14 +113,14 @@ def voxelize(get_voxels: Callable[..., Any],
     for each dictionary entry. If `hash_function is None`, then the
     value must be a vector of size `(n_channels,)` which is added to
     the existing channel values at that voxel grid.
-  feature_list: List, optional (default None)
+  feature_list : List, optional (default None)
     List of atom indices or tuples of atom indices. This can only be
     used if `nb_channel==1`. Increments the voxels corresponding to
     these indices by `1` for each entry.
-  nb_channel: int, , optional (default 16)
+  nb_channel : int, , optional (default 16)
     The number of feature channels computed per voxel. Should
     be a power of 2.
-  dtype: str ('int' or 'float'), optional (default 'int')
+  dtype : str ('int' or 'float'), optional (default 'int')
     The type of the numpy ndarray created to hold features.
 
   Returns
