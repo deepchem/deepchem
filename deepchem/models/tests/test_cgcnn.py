@@ -3,9 +3,8 @@ from os import path, remove
 
 from deepchem.feat import CGCNNFeaturizer
 from deepchem.molnet import load_perovskite
-from deepchem.models import TorchModel, CGCNN, losses
 from deepchem.metrics import Metric, mae_score
-from deepchem.models.cgcnn import cgcnn_collate_fn
+from deepchem.models import TorchModel, CGCNN, cgcnn_collate_fn, losses
 
 try:
   import dgl  # noqa
