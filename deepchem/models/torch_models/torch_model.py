@@ -122,6 +122,7 @@ class TorchModel(Model):
                wandb: bool = False,
                log_frequency: int = 100,
                device: Optional[torch.device] = None,
+               collate_fn: Callable[..., Any] = None,
                **kwargs) -> None:
     """Create a new TorchModel.
 
@@ -160,6 +161,8 @@ class TorchModel(Model):
     device: torch.device
       the device on which to run computations.  If None, a device is
       chosen automatically.
+    collate_fn: Function, default None
+      This function makes specific batch data for each models.
     """
     super(TorchModel, self).__init__(
         model_instance=model, model_dir=model_dir, **kwargs)
@@ -174,6 +177,7 @@ class TorchModel(Model):
     else:
       self.optimizer = optimizer
     self.tensorboard = tensorboard
+    self.collate_fn = collate_fn
 
     # Select a device.
 
@@ -183,7 +187,7 @@ class TorchModel(Model):
       else:
         device = torch.device('cpu')
     self.device = device
-    model.to(device)
+    self.model.to(device)
 
     # W&B logging
     if wandb and not is_wandb_available():
@@ -341,7 +345,6 @@ class TorchModel(Model):
     avg_loss = 0.0
     last_avg_loss = 0.0
     averaged_batches = 0
-    train_op = None
     if loss is None:
       loss = self._loss_fn
     if variables is None:
@@ -840,10 +843,14 @@ class TorchModel(Model):
 
   def _prepare_batch(self,
                      batch: Tuple[Any, Any, Any]) -> Tuple[List, List, List]:
+    if self.collate_fn is not None:
+      return self.collate_fn(batch, self.device)
+
     inputs, labels, weights = batch
     inputs = [
         x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs
     ]
+    inputs = [torch.as_tensor(x, device=self.device) for x in inputs]
     if labels is not None:
       labels = [
           x.astype(np.float32) if x.dtype == np.float64 else x for x in labels
@@ -854,7 +861,6 @@ class TorchModel(Model):
           x.astype(np.float32) if x.dtype == np.float64 else x for x in weights
       ]
       weights = [torch.as_tensor(x, device=self.device) for x in weights]
-    inputs = [torch.as_tensor(x, device=self.device) for x in inputs]
 
     return (inputs, labels, weights)
 

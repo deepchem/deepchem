@@ -1,6 +1,8 @@
 """
 Gathers all models in one place for convenient imports
 """
+# flake8:noqa
+
 from deepchem.models.models import Model
 from deepchem.models.keras_model import KerasModel
 from deepchem.models.sklearn_models import SklearnModel
@@ -25,8 +27,10 @@ from deepchem.models.text_cnn import TextCNNModel
 from deepchem.models.atomic_conv import AtomicConvModel
 from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
 
+# PyTorch models
 try:
-  from deepchem.models.torch_model import TorchModel
+  from deepchem.models.torch_models import TorchModel
+  from deepchem.models.torch_models import CGCNN
 except ModuleNotFoundError:
   pass
 
