@@ -66,12 +66,12 @@ class ConformerGenerator(object):
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    mol : rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
     -------
-    mol: rdkit.Chem.rdchem.Mol
+    mol : rdkit.Chem.rdchem.Mol
       A new RDKit Mol object containing the chosen conformers, sorted by
       increasing energy.
     """
@@ -86,12 +86,12 @@ class ConformerGenerator(object):
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    mol : rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
     -------
-    mol: rdkit.Chem.rdchem.Mol
+    mol : rdkit.Chem.rdchem.Mol
       A new RDKit Mol object containing the chosen conformers, sorted by
       increasing energy.
     """
@@ -119,12 +119,12 @@ class ConformerGenerator(object):
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    mol : rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
     -------
-    mol: rdkit.Chem.rdchem.Mol
+    mol : rdkit.Chem.rdchem.Mol
       RDKit Mol object with embedded multiple conformers.
     """
     try:
@@ -147,7 +147,7 @@ class ConformerGenerator(object):
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    mol : rdkit.Chem.rdchem.Mol
       RDKit Mol object with embedded conformers.
     conf_id : int, optional
       ID of the conformer to associate with the force field.
@@ -156,7 +156,7 @@ class ConformerGenerator(object):
 
     Returns
     -------
-    ff: rdkit.ForceField.rdForceField.ForceField
+    ff : rdkit.ForceField.rdForceField.ForceField
       RDKit force field instance for a molecule.
     """
     try:
@@ -183,7 +183,7 @@ class ConformerGenerator(object):
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    mol : rdkit.Chem.rdchem.Mol
       RDKit Mol object with embedded conformers.
     """
     for conf in mol.GetConformers():
@@ -196,7 +196,7 @@ class ConformerGenerator(object):
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    mol : rdkit.Chem.rdchem.Mol
       RDKit Mol object with embedded conformers.
 
     Returns
@@ -219,12 +219,12 @@ class ConformerGenerator(object):
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    mol : rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
     -------
-    new_mol: rdkit.Chem.rdchem.Mol
+    new_mol : rdkit.Chem.rdchem.Mol
       A new rdkit.Chem.rdchem.Mol containing the chosen conformers, sorted by
       increasing energy.
     """
@@ -278,12 +278,12 @@ class ConformerGenerator(object):
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    mol : rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
     -------
-    rmsd: np.ndarray
+    rmsd : np.ndarray
       A conformer-conformer RMSD value. The shape is `(NumConformers, NumConformers)`
     """
     try:

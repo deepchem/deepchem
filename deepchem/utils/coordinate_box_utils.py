@@ -26,11 +26,11 @@ class CoordinateBox(object):
 
     Parameters
     ----------
-    x_range: Tuple[float, float]
+    x_range : Tuple[float, float]
       A tuple of `(x_min, x_max)` with max and min x-coordinates.
-    y_range: Tuple[float, float]
+    y_range : Tuple[float, float]
       A tuple of `(y_min, y_max)` with max and min y-coordinates.
-    z_range: Tuple[float, float]
+    z_range : Tuple[float, float]
       A tuple of `(z_min, z_max)` with max and min z-coordinates.
 
     Raises
@@ -75,7 +75,7 @@ class CoordinateBox(object):
 
     Parameters
     ----------
-    point: Sequence[float]
+    point : Sequence[float]
       3-tuple or list of length 3 or np.ndarray of shape `(3,)`.
       The `(x, y, z)` coordinates of a point in space.
 
@@ -98,7 +98,7 @@ class CoordinateBox(object):
 
     Parameters
     ----------
-    other: CoordinateBox
+    other : CoordinateBox
       Compare this coordinate box to the other one.
 
     Returns
@@ -175,7 +175,7 @@ class CoordinateBox(object):
 
     Parameters
     ----------
-    other: CoordinateBox
+    other : CoordinateBox
       The box to check is contained in this box.
 
     Returns
@@ -206,14 +206,14 @@ def intersect_interval(interval1: Tuple[float, float],
 
   Parameters
   ----------
-  interval1: Tuple[float, float]
+  interval1 : Tuple[float, float]
     Should be `(x1_min, x1_max)`
-  interval2: Tuple[float, float]
+  interval2 : Tuple[float, float]
     Should be `(x2_min, x2_max)`
 
   Returns
   -------
-  x_intersect: Tuple[float, float]
+  x_intersect : Tuple[float, float]
     Should be the intersection. If the intersection is empty returns
     `(0, 0)` to represent the empty set. Otherwise is `(max(x1_min,
     x2_min), min(x1_max, x2_max))`.
@@ -236,9 +236,9 @@ def intersection(box1: CoordinateBox, box2: CoordinateBox) -> CoordinateBox:
 
   Parameters
   ----------
-  box1: CoordinateBox
+  box1 : CoordinateBox
     First `CoordinateBox`
-  box2: CoordinateBox
+  box2 : CoordinateBox
     Another `CoordinateBox` to intersect first one with.
 
   Returns
@@ -260,9 +260,9 @@ def union(box1: CoordinateBox, box2: CoordinateBox) -> CoordinateBox:
 
   Parameters
   ----------
-  box1: CoordinateBox
+  box1 : CoordinateBox
     First box to merge in
-  box2: CoordinateBox
+  box2 : CoordinateBox
     Second box to merge into this box
 
   Returns
@@ -285,9 +285,9 @@ def merge_overlapping_boxes(boxes: List[CoordinateBox],
 
   Parameters
   ----------
-  boxes: list[CoordinateBox]
+  boxes : list[CoordinateBox]
     A list of `CoordinateBox` objects.
-  threshold: float, default 0.8
+  threshold : float, default 0.8
     The volume fraction of the boxes that must overlap for them to be
     merged together.
 
@@ -331,14 +331,14 @@ def get_face_boxes(coords: np.ndarray, pad: float = 5.0) -> List[CoordinateBox]:
 
   Parameters
   ----------
-  coords: np.ndarray
+  coords : np.ndarray
     A numpy array of shape `(N, 3)`. The coordinates of a molecule.
   pad: float, optional (default 5.0)
     The number of angstroms to pad.
 
   Returns
   -------
-  boxes: List[CoordinateBox]
+  boxes : List[CoordinateBox]
     List of `CoordinateBox`
 
   Examples

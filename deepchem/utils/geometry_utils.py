@@ -10,7 +10,7 @@ def unit_vector(vector: np.ndarray) -> np.ndarray:
 
   Parameters
   ----------
-  vector: np.ndarray
+  vector : np.ndarray
     A numpy array of shape `(3,)`, where `3` is (x,y,z).
 
   Returns
@@ -29,9 +29,9 @@ def angle_between(vector_i: np.ndarray, vector_j: np.ndarray) -> np.ndarray:
 
   Parameters
   ----------
-  vector_i: np.ndarray
+  vector_i : np.ndarray
     A numpy array of shape `(3,)`, where `3` is (x,y,z).
-  vector_j: np.ndarray
+  vector_j : np.ndarray
     A numpy array of shape `(3,)`, where `3` is (x,y,z).
 
   Returns
@@ -71,7 +71,7 @@ def generate_random_unit_vector() -> np.ndarray:
 
   Returns
   -------
-  u: np.ndarray
+  u : np.ndarray
     A numpy array of shape `(3,)`. u is an unit vector
   """
   theta = np.random.uniform(low=0.0, high=2 * np.pi)
@@ -107,7 +107,7 @@ def generate_random_rotation_matrix() -> np.ndarray:
 
   Returns
   -------
-  R: np.ndarray
+  R : np.ndarray
     A numpy array of shape `(3, 3)`. R is a rotation matrix.
   """
   u = generate_random_unit_vector()
@@ -128,11 +128,11 @@ def is_angle_within_cutoff(vector_i: np.ndarray, vector_j: np.ndarray,
 
   Parameters
   ----------
-  vector_i: np.ndarray
+  vector_i : np.ndarray
     A numpy array of shape (3,)`, where `3` is (x,y,z).
-  vector_j: np.ndarray
+  vector_j : np.ndarray
     A numpy array of shape `(3,)`, where `3` is (x,y,z).
-  cutoff: float
+  cutoff : float
     The deviation from 180 (in degrees)
 
   Returns
@@ -149,12 +149,12 @@ def compute_centroid(coordinates: np.ndarray) -> np.ndarray:
 
   Parameters
   ----------
-  coordinates: np.ndarray
+  coordinates : np.ndarray
     A numpy array of shape `(N, 3)`, where `N` is the number of atoms.
 
   Returns
   -------
-  centroid: np.ndarray
+  centroid : np.ndarray
     A numpy array of shape `(3,)`, where `3` is (x,y,z).
   """
   centroid = np.mean(coordinates, axis=0)
@@ -166,12 +166,12 @@ def compute_protein_range(coordinates: np.ndarray) -> np.ndarray:
 
   Parameters
   ----------
-  coordinates: np.ndarray
+  coordinates : np.ndarray
     A numpy array of shape `(N, 3)`, where `N` is the number of atoms.
 
   Returns
   -------
-  protein_range: np.ndarray
+  protein_range : np.ndarray
     A numpy array of shape `(3,)`, where `3` is (x,y,z).
   """
   protein_max = np.max(coordinates, axis=0)
@@ -191,14 +191,14 @@ def subtract_centroid(coordinates: np.ndarray,
 
   Parameters
   ----------
-  coordinates: np.ndarray
+  coordinates : np.ndarray
     A numpy array of shape `(N, 3)`, where `N` is the number of atoms.
-  centroid: np.ndarray
+  centroid : np.ndarray
     A numpy array of shape `(3,)`
 
   Returns
   -------
-  coordinates: np.ndarray
+  coordinates : np.ndarray
     A numpy array of shape `(3,)`, where `3` is (x,y,z).
   """
   coordinates -= np.transpose(centroid)
@@ -217,9 +217,9 @@ def compute_pairwise_distances(first_coordinate: np.ndarray,
 
   Parameters
   ----------
-  first_coordinate: np.ndarray
+  first_coordinate : np.ndarray
     A numpy array of shape `(m, 3)`, where `m` is the number of atoms.
-  second_coordinate: np.ndarray
+  second_coordinate : np.ndarray
     A numpy array of shape `(n, 3)`, where `n` is the number of atoms.
 
   Returns

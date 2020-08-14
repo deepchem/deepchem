@@ -209,7 +209,7 @@ def get_mol_subset(
   ----------
   coords: np.ndarray
     Must be of shape (N, 3) and correspond to coordinates of mol.
-  mol: rdkit.Chem.rdchem.Mol or MolecularFragment
+  mol : rdkit.Chem.rdchem.Mol or MolecularFragment
     The molecule to strip
   atom_indices_to_keep: list
     List of the indices of the atoms to keep. Each index is a unique
@@ -252,7 +252,7 @@ def strip_hydrogens(coords: np.ndarray, mol: Union[RDKitMol, MolecularFragment]
   ----------
   coords: np.ndarray
     The coords must be of shape (N, 3) and correspond to coordinates of mol.
-  mol: rdkit.Chem.rdchem.Mol or MolecularFragment
+  mol : rdkit.Chem.rdchem.Mol or MolecularFragment
     The molecule to strip
 
   Returns

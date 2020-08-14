@@ -14,9 +14,9 @@ def seq_one_hot_encode(sequences: Union[np.ndarray, Iterator[Iterable[str]]],
 
   Parameters
   ----------
-  sequences: np.ndarray or Iterator[Bio.SeqRecord]
+  sequences : np.ndarray or Iterator[Bio.SeqRecord]
     Iterable object of genetic sequences
-  letters: str, optional (default "ATCGN")
+  letters : str, optional (default "ATCGN")
     String with the set of possible letters in the sequences.
 
   Raises
@@ -68,13 +68,13 @@ def _seq_to_encoded(seq: Union[str, Iterable[str]],
 
   Parameters
   ----------
-  seq: str or Bio.SeqRecord
+  seq : str or Bio.SeqRecord
     a genetic sequence
-  letter_encoder: Dict[str, int]
+  letter_encoder : Dict[str, int]
     The keys are letters and the values are unique int values (like 0, 1, 2...).
-  alphabet_length: int
+  alphabet_length : int
     Length with the set of possible letters in the sequences.
-  sequence_length: int
+  sequence_length : int
     Length with a genetic sequence
 
   Returns
@@ -96,12 +96,12 @@ def encode_bio_sequence(fname: str,
 
   Parameters
   ----------
-  fname: str
+  fname : str
     Filename of fasta file.
-  file_type: str, optional (default "fasta")
+  file_type : str, optional (default "fasta")
     The type of file encoding to process, e.g. fasta or fastq, this
     is passed to Biopython.SeqIO.parse.
-  letters: str, optional (default "ATCGN")
+  letters : str, optional (default "ATCGN")
     The set of letters that the sequences consist of, e.g. ATCG.
 
   Returns
