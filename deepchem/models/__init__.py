@@ -25,6 +25,11 @@ from deepchem.models.text_cnn import TextCNNModel
 from deepchem.models.atomic_conv import AtomicConvModel
 from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
 
+try:
+  from deepchem.models.torch_model import TorchModel
+except ModuleNotFoundError:
+  pass
+
 #################### Compatibility imports for renamed TensorGraph models. Remove below with DeepChem 3.0. ####################
 
 from deepchem.models.text_cnn import TextCNNTensorGraph

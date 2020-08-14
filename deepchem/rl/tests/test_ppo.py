@@ -72,6 +72,7 @@ class TestPPO(unittest.TestCase):
         env,
         TestPolicy(),
         max_rollout_length=20,
+        optimization_epochs=8,
         optimizer=Adam(learning_rate=0.003))
     ppo.fit(80000)
 
