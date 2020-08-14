@@ -1,10 +1,6 @@
 """
 Tests for dataset creation
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import random
 import math
 import unittest
@@ -341,26 +337,6 @@ def test_complete_shuffle():
   np.testing.assert_array_equal(
       np.sort(dataset.w, axis=0), np.sort(res.w, axis=0))
   np.testing.assert_array_equal(np.sort(dataset.ids), np.sort(res.ids))
-
-
-def test_get_shape():
-  """Test that get_shape works."""
-  num_datapoints = 100
-  num_features = 10
-  num_tasks = 10
-  # Generate data
-  X = np.random.rand(num_datapoints, num_features)
-  y = np.random.randint(2, size=(num_datapoints, num_tasks))
-  w = np.random.randint(2, size=(num_datapoints, num_tasks))
-  ids = np.array(["id"] * num_datapoints)
-
-  dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-  X_shape, y_shape, w_shape, ids_shape = dataset.get_shape()
-  assert X_shape == X.shape
-  assert y_shape == y.shape
-  assert w_shape == w.shape
-  assert ids_shape == ids.shape
 
 
 def test_iterbatches():

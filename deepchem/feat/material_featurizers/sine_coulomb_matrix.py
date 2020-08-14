@@ -48,7 +48,7 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
     """
     Parameters
     ----------
-    max_atoms: int (deafult 100)
+    max_atoms: int (default 100)
       Maximum number of atoms for any crystal in the dataset. Used to
       pad the Coulomb matrix.
     flatten: bool (default True)
