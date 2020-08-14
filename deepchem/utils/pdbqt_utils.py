@@ -44,7 +44,7 @@ def convert_protein_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
 
   Parameters
   ----------
-  mol: RDKit Mol
+  mol : rdkit.Chem.rdchem.Mol
     Protein molecule
   outfile: str
     filename which already has a valid pdb representation of mol
@@ -75,8 +75,8 @@ def mol_to_graph(mol: RDKitMol):
 
   Parameters
   ----------
-  mol: RDKit Mol
-    The molecule to convert into a graph. 
+  mol : rdkit.Chem.rdchem.Mol
+    The molecule to convert into a graph.
 
   Returns
   -------
@@ -111,7 +111,7 @@ def get_rotatable_bonds(mol: RDKitMol) -> List[Tuple[int, int]]:
 
   Parameters
   ----------
-  mol: RDKit Mol
+  mol : rdkit.Chem.rdchem.Mol
     Ligand molecule
 
   Returns
@@ -144,11 +144,11 @@ def convert_mol_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
   """Writes the provided ligand molecule to specified file in pdbqt format.
 
   Creates a torsion tree and write to pdbqt file. The torsion tree
-  represents rotatable bonds in the molecule. 
+  represents rotatable bonds in the molecule.
 
   Parameters
   ----------
-  mol: RDKit Mol
+  mol : rdkit.Chem.rdchem.Mol
     The molecule whose value is stored in pdb format in outfile
   outfile: str
     Filename for a valid pdb file with the extention .pdbqt
@@ -245,8 +245,8 @@ def _create_component_map(mol: RDKitMol,
 
   Parameters
   ----------
-  mol: RDKit Mol
-    molecule to find disconnected compontents in 
+  mol : rdkit.Chem.rdchem.Mol
+    The molecule to find disconnected components in
   components: List[List[int]]
     List of connected components
 
@@ -348,4 +348,4 @@ def _valid_bond(used_partitions: Set[int], bond: Tuple[int, int],
     next_partition = part2
   else:
     next_partition = part1
-  return not next_partition in used_partitions, next_partition
+  return next_partition not in used_partitions, next_partition

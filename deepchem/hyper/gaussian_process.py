@@ -22,12 +22,12 @@ def compute_parameter_range(params_dict: PARAM_DICT,
 
   Parameters
   ----------
-  params_dict: Dict
+  params_dict : Dict
     Dictionary mapping strings to Ints/Floats. An explicit list of
     parameters is computed with `search_range`. The optimization range
     computed is specified in the documentation for `search_range`
     below.
-  search_range: int/float/Dict (default 4)
+  search_range : int/float/Dict (default 4)
     The `search_range` specifies the range of parameter values to
     search for. If `search_range` is an int/float, it is used as the
     global search range for parameters. This creates a search
@@ -48,7 +48,7 @@ def compute_parameter_range(params_dict: PARAM_DICT,
 
   Returns
   -------
-  param_range: Dict
+  param_range : Dict
     Dictionary mapping hyperparameter names to tuples. Each tuple is
     of form `(value_type, value_range)` where `value_type` is a string
     that is either "int" or "cont" and `value_range` is a list of two
@@ -143,28 +143,28 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
     Parameters
     ----------
-    params_dict: Dict
+    params_dict : Dict
       Maps hyperparameter names (strings) to possible parameter
       values. The semantics of this list are different than for
       `GridHyperparamOpt`. `params_dict[hp]` must map to an int/float,
       which is used as the center of a search with radius
       `search_range` since pyGPGO can only optimize numerical
       hyperparameters.
-    train_dataset: Dataset
+    train_dataset : Dataset
       dataset used for training
-    valid_dataset: Dataset
+    valid_dataset : Dataset
       dataset used for validation(optimization on valid scores)
-    metric: Metric
+    metric : Metric
       metric used for evaluation
-    use_max: bool, (default True)
+    use_max : bool, (default True)
       Specifies whether to maximize or minimize `metric`.
       maximization(True) or minimization(False)
-    logdir: str, optional, (default None)
+    logdir : str, optional, (default None)
       The directory in which to store created models. If not set, will
       use a temporary directory.
-    max_iter: int, (default 20)
+    max_iter : int, (default 20)
       number of optimization trials
-    search_range: int/float/Dict (default 4)
+    search_range : int/float/Dict (default 4)
       The `search_range` specifies the range of parameter values to
       search for. If `search_range` is an int/float, it is used as the
       global search range for parameters. This creates a search
@@ -182,7 +182,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
       optimization on hp on [initial value[hp] / search_range[hp],
                              initial value[hp] * search_range[hp]]
-    logfile: str, optional (default None)
+    logfile : str, optional (default None)
       Name of logfile to write results to. If specified, this is must
       be a valid file. If not specified, results of hyperparameter
       search will be written to `logdir/.txt`.
@@ -234,12 +234,12 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
       Parameters
       ----------
-      placeholders: keyword arguments
+      placeholders : keyword arguments
         Should be various hyperparameters as specified in `param_keys` above.
 
       Returns:
       --------
-      valid_scores: float
+      valid_scores : float
         valid set performances
       """
       hyper_parameters = {}
