@@ -22,11 +22,11 @@ def extract_active_site(protein_file: str,
 
   Parameters
   ----------
-  protein_file : str
+  protein_file: str
     Location of protein PDB
-  ligand_file : str
+  ligand_file: str
     Location of ligand input file
-  cutoff : float, optional (default 4.0)
+  cutoff: float, optional (default 4.0)
     The distance in angstroms from the protein pocket to
     consider for featurization.
 
@@ -73,7 +73,7 @@ class BindingPocketFinder(object):
 
     Parameters
     ----------
-    molecule : object
+    molecule: object
       Some representation of a molecule.
     """
     raise NotImplementedError
@@ -90,9 +90,9 @@ class ConvexHullPocketFinder(BindingPocketFinder):
 
     Parameters
     ----------
-    scoring_model : Model, optional (default None)
+    scoring_model: Model, optional (default None)
       If specified, use this model to prune pockets.
-    pad : float, optional (default 5.0)
+    pad: float, optional (default 5.0)
       The number of angstroms to pad around a binding pocket's atoms
       to get a binding pocket box.
     """
@@ -104,7 +104,7 @@ class ConvexHullPocketFinder(BindingPocketFinder):
 
     Parameters
     ----------
-    protein_file : str
+    protein_file: str
       Protein to load in.
 
     Returns
@@ -125,7 +125,7 @@ class ConvexHullPocketFinder(BindingPocketFinder):
 
     Parameters
     ----------
-    macromolecule_file : str
+    macromolecule_file: str
       Location of the macromolecule file to load
 
     Returns
