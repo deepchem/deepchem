@@ -2,4 +2,3 @@ pandas
 scikit-learn
 sphinx_rtd_theme
 tensorflow==2.3.0
-tensorflow_probability
