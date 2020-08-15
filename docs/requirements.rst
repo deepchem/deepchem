@@ -13,7 +13,7 @@ DeepChem currently supports Python 3.5 through 3.7 and requires these packages o
 - `SciPy`_
 - `TensorFlow`_
 
-  - `deepchem>=2.4.0` requires tensorflow v2 (2.3.0)
+  - `deepchem>=2.4.0` requires tensorflow v2 (2.2.0)
   - `deepchem<2.4.0` requires tensorflow v1 (>=1.14)
 
 

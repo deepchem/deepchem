@@ -34,9 +34,9 @@ pip install -r $PWD/requirements-test.txt
 
 # Fixed packages
 tensorflow=2.2.0
-torch=1.5.0
-torchvision=0.6.1
-pyg_torch=1.5.0
+torch=1.6.0
+torchvision=0.7.0
+pyg_torch=1.6.0
 
 # Install TensorFlow dependencies
 pip install tensorflow==$tensorflow tensorflow-probability
