@@ -42,7 +42,7 @@ The nightly version is built by the HEAD of DeepChem.
 
 .. code-block:: bash
 
-    pip install tensorflow==2.2.0
+    pip install tensorflow==2.3.0
     pip install --pre deepchem
 
 
