@@ -16,7 +16,7 @@ fi
 if [ "$0" = "gpu" ];
 then
     # We expect that the CUDA vesion is 10.1.
-    # This is because the 
+    # This is because TensorFlow mainly supports CUDA 10.1.
     cuda=cu101
     dgl_pkg=dgl-cu101
     echo "Installing DeepChem in the GPU envirionment"
@@ -33,10 +33,10 @@ conda env update --file $PWD/requirements.yml
 pip install -r $PWD/requirements-test.txt
 
 # Fixed packages
-tensorflow=2.3.0
-torch=1.6.0
-torchvision=0.7.0
-pyg_torch=1.6.0
+tensorflow=2.2.0
+torch=1.5.0
+torchvision=0.6.1
+pyg_torch=1.5.0
 
 # Install TensorFlow dependencies
 pip install tensorflow==$tensorflow tensorflow-probability

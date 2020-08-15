@@ -141,7 +141,7 @@ Then, execute the shell script.
     bash scripts/install_deepchem_conda.sh cpu
 
 
-If you want GPU support:
+If you want GPU support (we supports only CUDA 10.1):
 
 .. code-block:: bash
 
