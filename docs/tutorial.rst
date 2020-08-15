@@ -32,7 +32,7 @@ If you're new, you can install DeepChem on a new machine with the following comm
 
 .. code-block:: bash
 
-    pip install tensorflow==2.3.0
+    pip install tensorflow==2.2.0
     pip install --pre deepchem
 
 

@@ -33,8 +33,8 @@ conda env update --file $PWD/requirements.yml
 pip install -r $PWD/requirements-test.txt
 
 # Fixed packages
-tensorflow=2.3.0
-tensorflow_probability==0.11.0
+tensorflow=2.2.0
+tensorflow_probability==0.10.1
 torch=1.6.0
 torchvision=0.7.0
 pyg_torch=1.6.0
