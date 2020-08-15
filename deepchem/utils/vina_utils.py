@@ -24,19 +24,19 @@ def write_vina_conf(protein_filename: str,
 
   Parameters
   ----------
-  protein_filename: str
-    Filename for protein 
-  ligand_filename: str
+  protein_filename : str
+    Filename for protein
+  ligand_filename : str
     Filename for the ligand
-  centroid: np.ndarray
+  centroid : np.ndarray
     A numpy array with shape `(3,)` holding centroid of system
-  box_dims: np.ndarray
+  box_dims : np.ndarray
     A numpy array of shape `(3,)` holding the size of the box to dock
-  conf_filename: str
+  conf_filename : str
     Filename to write Autodock Vina configuration to.
-  num_modes: int, optional (default 9)
+  num_modes : int, optional (default 9)
     The number of binding modes Autodock Vina should find
-  exhaustiveness: int, optional
+  exhaustiveness : int, optional
     The exhaustiveness of the search to be performed by Vina
   """
   with open(conf_filename, "w") as f:
@@ -74,7 +74,7 @@ def load_docked_ligands(
 
   Returns
   -------
-  Tuple[List[RDKit Mol], List[float]]
+  Tuple[List[rdkit.Chem.rdchem.Mol], List[float]]
     Tuple of `molecules, scores`. `molecules` is a list of rdkit
     molecules with 3D information. `scores` is the associated vina
     score.

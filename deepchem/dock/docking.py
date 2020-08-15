@@ -38,11 +38,11 @@ class Docker(object):
 
     Parameters
     ----------
-    pose_generator: PoseGenerator
+    pose_generator : PoseGenerator
       The pose generator to use for this model
-    featurizer: ComplexFeaturizer, optional (default None)
+    featurizer : ComplexFeaturizer, optional (default None)
       Featurizer associated with `scoring_model`
-    scoring_model: Model, optional (default None)
+    scoring_model : Model, optional (default None)
       Should make predictions on molecular complex.
     """
     if ((featurizer is not None and scoring_model is None) or
@@ -73,27 +73,27 @@ class Docker(object):
 
     Parameters
     ----------
-    molecular_complex: Tuple[str, str]
+    molecular_complex : Tuple[str, str]
       A representation of a molecular complex. This tuple is
       (protein_file, ligand_file).
-    centroid: np.ndarray, optional (default None)
+    centroid : np.ndarray, optional (default None)
       The centroid to dock against. Is computed if not specified.
-    box_dims: np.ndarray, optional (default None)
+    box_dims : np.ndarray, optional (default None)
       A numpy array of shape `(3,)` holding the size of the box to dock. If not
       specified is set to size of molecular complex plus 5 angstroms.
-    exhaustiveness: int, optional (default 10)
+    exhaustiveness : int, optional (default 10)
       Tells pose generator how exhaustive it should be with pose
       generation.
-    num_modes: int, optional (default 9)
+    num_modes : int, optional (default 9)
       Tells pose generator how many binding modes it should generate at
       each invocation.
-    num_pockets: int, optional (default None)
+    num_pockets : int, optional (default None)
       If specified, `self.pocket_finder` must be set. Will only
       generate poses for the first `num_pockets` returned by
       `self.pocket_finder`.
-    out_dir: str, optional (default None)
+    out_dir : str, optional (default None)
       If specified, write generated poses to this directory.
-    use_pose_generator_scores: bool, optional (default False)
+    use_pose_generator_scores : bool, optional (default False)
       If `True`, ask pose generator to generate scores. This cannot be
       `True` if `self.featurizer` and `self.scoring_model` are set
       since those will be used to generate scores in that case.

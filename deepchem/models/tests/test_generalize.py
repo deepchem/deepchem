@@ -5,10 +5,7 @@ Tests to make sure deepchem models can fit models on easy datasets.
 import sklearn
 import sklearn.datasets
 import numpy as np
-import unittest
-import tempfile
 import deepchem as dc
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
 
@@ -180,7 +177,7 @@ def test_sklearn_multitask_classification():
   model.save()
   # Eval model on test
   scores = model.evaluate(test_dataset, [classification_metric])
-  assert scores['roc_auc_score'] > 0.5
+  assert scores[classification_metric.name] > .5
 
 
 def test_xgboost_regression():
@@ -247,7 +244,7 @@ def test_xgboost_multitask_regression():
   # Eval model on test
   scores = model.evaluate(test_dataset, [regression_metric])
   score = scores[regression_metric.name]
-  assert score < 50
+  assert score < 55
 
 
 def test_xgboost_classification():
