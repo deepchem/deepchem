@@ -122,7 +122,7 @@ class TorchModel(Model):
                wandb: bool = False,
                log_frequency: int = 100,
                device: Optional[torch.device] = None,
-               collate_fn: Callable[..., Any] = None,
+               create_custom_batch: Callable[[Tuple, torch.device], Tuple] = None,
                **kwargs) -> None:
     """Create a new TorchModel.
 
@@ -133,7 +133,7 @@ class TorchModel(Model):
     loss: dc.models.losses.Loss or function
       a Loss or function defining how to compute the training loss for each
       batch, as described above
-    output_types: list of strings
+    output_types: List[str]
       the type of each output from the model, as described above
     batch_size: int
       default batch size for training and evaluating
@@ -161,8 +161,9 @@ class TorchModel(Model):
     device: torch.device
       the device on which to run computations.  If None, a device is
       chosen automatically.
-    collate_fn: Function, default None
-      This function makes specific batch data for each models.
+    create_custom_batch: function, default None
+      This function makes user-defined batch data. This function takes two arguments,
+      `batch`, `device` and returns user-defined batch data.
     """
     super(TorchModel, self).__init__(
         model_instance=model, model_dir=model_dir, **kwargs)
@@ -177,7 +178,6 @@ class TorchModel(Model):
     else:
       self.optimizer = optimizer
     self.tensorboard = tensorboard
-    self.collate_fn = collate_fn
 
     # Select a device.
 
@@ -188,6 +188,7 @@ class TorchModel(Model):
         device = torch.device('cpu')
     self.device = device
     self.model.to(device)
+    self.create_custom_batch = create_custom_batch
 
     # W&B logging
     if wandb and not is_wandb_available():
@@ -843,8 +844,8 @@ class TorchModel(Model):
 
   def _prepare_batch(self,
                      batch: Tuple[Any, Any, Any]) -> Tuple[List, List, List]:
-    if self.collate_fn is not None:
-      return self.collate_fn(batch, self.device)
+    if self.create_custom_batch is not None:
+      return self.create_custom_batch(batch, self.device)
 
     inputs, labels, weights = batch
     inputs = [

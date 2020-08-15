@@ -4,21 +4,25 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def cgcnn_collate_fn(batch, device):
-  """Function for preparing batch of CGCNN
+def create_cgcnn_batch(batch, device):
+  """Create batch data for CGCNN.
 
   Parameters
   ----------
   batch: Tuple
-    The tuple are inputs, labels, weights. The inputs has 
-
+    The tuple are `(inputs, labels, weights)`.
   device: torch.device
-    the device on which to run computations.  If None, a device is
+    The device on which to run computations. If None, a device is
     chosen automatically.
 
   Returns
   -------
-
+  inputs: DGLGraph
+    DGLGraph for a batch of graphs.
+  labels: List[torch.Tensor] or None
+    The labels converted to torch.Tensor
+  weights: List[torch.Tensor] or None
+    The weights for each sample or sample/task pair converted to torch.Tensor
 
   Notes
   -----
@@ -49,10 +53,9 @@ class CGCNNLayer(nn.Module):
   """The convolutional layer of CGCNN.
 
   This class was implemented using DGLGraph methods.
-
+  Please confirm how to use DGLGraph methods from below link.
   See: https://docs.dgl.ai/en/0.4.x/tutorials/models/1_gnn/9_gat.html
   """
-
   def __init__(self,
                hidden_node_dim: int,
                edge_dim: int,
@@ -106,10 +109,31 @@ class CGCNNLayer(nn.Module):
 
 
 class CGCNN(nn.Module):
-  """Crystal Graph Convolutional Neural Network.
+  """Crystal Graph Convolutional Neural Network (CGCNN).
 
-  This class implements Crystal Graph Convolutional Neural Network.
-  Please confirm the detail algorithms from [1]_.
+  This class implements Crystal Graph Convolutional Neural Network (CGCNN).
+  Here is a simple example of code that uses the CGCNN model with TorchModel
+  and materials dataset.
+
+  >> import deepchem as dc
+  >> dataset_config = {"reload": False, "featurizer": dc.feat.CGCNNFeaturizer, "transformers": []}
+  >> tasks, datasets, transformers = dc.molnet.load_perovskite(reload=False)
+  >> train, valid, test = datasets
+  >> cgcnn = dc.models.CGCNN()
+  >> model = dc.models.TorchModel(cgcnn, loss=dc.models.losses.L2Loss(),
+  ..                              create_custom_batch=dc.models.create_cgcnn_batch)
+  >> model.fit(train, nb_epoch=50)
+
+  This model takes arbitary crystal structures as an input, and predict material properties
+  using the element information and connection of atoms in the crystal. If you want to get
+  some material properties which has a high computational cost like band gap in the case
+  of DFT, this model may be useful. This model is one of variants of Graph Convolutional
+  Networks. The main differences between other GCN models are how to construct graphs and
+  how to update node representations. This model defines the crystal graph from structures
+  using distances between atoms. The crystal graph is an undirected multigraph which is defined
+  by nodes representing atom properties and edges representing connections between atoms
+  in a crystal. And, this model updates the node representations using both neighbor node
+  and edge representations. Please confirm the detail algorithms from [1]_.
 
   References
   ----------
@@ -170,7 +194,7 @@ class CGCNN(nn.Module):
     Returns
     -------
     out: torch.Tensor
-      The output value, the shape is `(n_out,)`.
+      The output value, the shape is `(batch_size, n_out)`.
     """
     try:
       import dgl
@@ -186,7 +210,7 @@ class CGCNN(nn.Module):
       graph = conv(graph)
 
     # pooling
-    graph_feat = dgl.sum_nodes(graph, 'x')
+    graph_feat = dgl.mean_nodes(graph, 'x')
     graph_feat = self.fc(graph_feat)
     out = self.out(graph_feat)
     return out

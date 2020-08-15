@@ -30,7 +30,7 @@ from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
 # PyTorch models
 try:
   from deepchem.models.torch_models import TorchModel
-  from deepchem.models.torch_models import CGCNN, cgcnn_collate_fn
+  from deepchem.models.torch_models import CGCNN, create_cgcnn_batch
 except ModuleNotFoundError:
   pass
 

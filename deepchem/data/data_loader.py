@@ -2,17 +2,13 @@
 Process an input dataset into a format suitable for machine learning.
 """
 import os
-import gzip
 import pandas as pd
 import numpy as np
-import csv
-import numbers
 import tempfile
 import time
-import sys
 import logging
 import warnings
-from typing import List, Optional, Dict, Tuple, Any, Sequence, Union, Iterator
+from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
 
 from deepchem.utils.typing import OneOrMany
 from deepchem.utils.save import load_csv_files, load_json_files
@@ -353,7 +349,7 @@ class CSVLoader(DataLoader):
     id_field: str, optional, (default None)
       CSV column that holds sample identifier
     smiles_field: str, optional (DEPRECATED)
-      Name of field that holds smiles string 
+      Name of field that holds smiles string
     featurizer: dc.feat.Featurizer, optional
       Featurizer to use to process data
     log_every_n: int, optional
@@ -471,7 +467,7 @@ class UserCSVLoader(CSVLoader):
 
   The difference between `UserCSVLoader` and `CSVLoader` is that our
   descriptors (our features) have already been computed for us, but are spread
-  across multiple columns of the CSV file. 
+  across multiple columns of the CSV file.
 
   Of course in practice you should already have your data in a CSV file if
   you're using `UserCSVLoader`. If your data is already in memory, use
@@ -655,7 +651,7 @@ class JsonLoader(DataLoader):
                     (shard_num, time2 - time1))
         yield X, y, w, ids
 
-    return DiskDataset.create_dataset(shard_generator(), data_dir)
+    return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
 
   def _get_shards(self, input_files: List[str],
                   shard_size: int) -> Iterator[pd.DataFrame]:
