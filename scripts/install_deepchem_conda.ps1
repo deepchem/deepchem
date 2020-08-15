@@ -30,7 +30,7 @@ $path = Join-Path $Pwd "requirements-test.txt"
 pip install -r $path
 
 # Fixed packages
-$tensorflow=2.3.0
+$tensorflow=2.2.0
 $torch=1.6.0
 $torchvision=0.7.0
 $pyg_torch=1.6.0
