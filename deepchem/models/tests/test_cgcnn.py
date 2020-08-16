@@ -4,7 +4,7 @@ from os import path, remove
 from deepchem.feat import CGCNNFeaturizer
 from deepchem.molnet import load_perovskite
 from deepchem.metrics import Metric, mae_score
-from deepchem.models import TorchModel, CGCNN, create_cgcnn_batch, losses
+from deepchem.models import CGCNNModel, losses
 
 try:
   import dgl  # noqa
@@ -30,19 +30,16 @@ def test_cgcnn():
   train, valid, test = datasets
 
   # initialize models
-  cgcnn = CGCNN(
+  model = CGCNNModel(
       in_node_dim=92,
       hidden_node_dim=64,
       in_edge_dim=41,
       num_conv=3,
       predicator_hidden_feats=128,
-      n_out=1)
-  model = TorchModel(
-      model=cgcnn,
+      n_out=1,
       loss=losses.L2Loss(),
       batch_size=32,
-      learning_rate=0.001,
-      create_custom_batch=create_cgcnn_batch)
+      learning_rate=0.001)
 
   # train
   model.fit(train, nb_epoch=50)

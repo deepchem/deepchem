@@ -3,50 +3,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-def create_cgcnn_batch(batch, device):
-  """Create batch data for CGCNN.
-
-  Parameters
-  ----------
-  batch: Tuple
-    The tuple are `(inputs, labels, weights)`.
-  device: torch.device
-    The device on which to run computations. If None, a device is
-    chosen automatically.
-
-  Returns
-  -------
-  inputs: DGLGraph
-    DGLGraph for a batch of graphs.
-  labels: List[torch.Tensor] or None
-    The labels converted to torch.Tensor
-  weights: List[torch.Tensor] or None
-    The weights for each sample or sample/task pair converted to torch.Tensor
-
-  Notes
-  -----
-  This class requires DGL and PyTorch to be installed.
-  """
-  try:
-    import dgl
-  except:
-    raise ValueError("This class requires DGL to be installed.")
-
-  inputs, labels, weights = batch
-  inputs = dgl.batch([graph.to_dgl_graph() for graph in inputs[0]]).to(device)
-  if labels is not None:
-    labels = [
-        x.astype(np.float32) if x.dtype == np.float64 else x for x in labels
-    ]
-    labels = [torch.as_tensor(x, device=device) for x in labels]
-  if weights is not None:
-    weights = [
-        x.astype(np.float32) if x.dtype == np.float64 else x for x in weights
-    ]
-    weights = [torch.as_tensor(x, device=device) for x in weights]
-
-  return inputs, labels, weights
+from deepchem.models.torch_models.torch_model import TorchModel
 
 
 class CGCNNLayer(nn.Module):
@@ -56,6 +13,7 @@ class CGCNNLayer(nn.Module):
   Please confirm how to use DGLGraph methods from below link.
   See: https://docs.dgl.ai/en/0.4.x/tutorials/models/1_gnn/9_gat.html
   """
+
   def __init__(self,
                hidden_node_dim: int,
                edge_dim: int,
@@ -111,19 +69,6 @@ class CGCNNLayer(nn.Module):
 class CGCNN(nn.Module):
   """Crystal Graph Convolutional Neural Network (CGCNN).
 
-  This class implements Crystal Graph Convolutional Neural Network (CGCNN).
-  Here is a simple example of code that uses the CGCNN model with TorchModel
-  and materials dataset.
-
-  >> import deepchem as dc
-  >> dataset_config = {"reload": False, "featurizer": dc.feat.CGCNNFeaturizer, "transformers": []}
-  >> tasks, datasets, transformers = dc.molnet.load_perovskite(reload=False)
-  >> train, valid, test = datasets
-  >> cgcnn = dc.models.CGCNN()
-  >> model = dc.models.TorchModel(cgcnn, loss=dc.models.losses.L2Loss(),
-  ..                              create_custom_batch=dc.models.create_cgcnn_batch)
-  >> model.fit(train, nb_epoch=50)
-
   This model takes arbitary crystal structures as an input, and predict material properties
   using the element information and connection of atoms in the crystal. If you want to get
   some material properties which has a high computational cost like band gap in the case
@@ -159,11 +104,13 @@ class CGCNN(nn.Module):
     Parameters
     ----------
     in_node_dim: int, default 92
-      The length of the initial node feature vectors.
+      The length of the initial node feature vectors. The 92 is
+      based on length of vectors in the atom_init.json.
     hidden_node_dim: int, default 64
       The length of the hidden node feature vectors.
     in_edge_dim: int, default 41
-      The length of the initial edge feature vectors.
+      The length of the initial edge feature vectors. The 41 is
+      based on default setting of CGCNNFeaturizer.
     num_conv: int, default 3
       The number of convolutional layers.
     predicator_hidden_feats: int, default 128
@@ -214,3 +161,95 @@ class CGCNN(nn.Module):
     graph_feat = self.fc(graph_feat)
     out = self.out(graph_feat)
     return out
+
+
+class CGCNNModel(TorchModel):
+  """CGCNN wrapper model for converting PyTorch style to Keras style.
+
+  Please confirm the details about CGCNN from CGCNN class docstring.
+  Here is a simple example of code that uses the CGCNNModel with
+  materials dataset.
+
+  >> import deepchem as dc
+  >> dataset_config = {"reload": False, "featurizer": dc.feat.CGCNNFeaturizer, "transformers": []}
+  >> tasks, datasets, transformers = dc.molnet.load_perovskite(reload=False)
+  >> train, valid, test = datasets
+  >> model = dc.models.CGCNNModel(loss=dc.models.losses.L2Loss(), batch_size=32, learning_rate=0.001)
+  >> model.fit(train, nb_epoch=50)
+
+  Notes
+  -----
+  This class requires DGL and PyTorch to be installed.
+  """
+
+  def __init__(self,
+               in_node_dim: int = 92,
+               hidden_node_dim: int = 64,
+               in_edge_dim: int = 41,
+               num_conv: int = 3,
+               predicator_hidden_feats: int = 128,
+               n_out: int = 1,
+               **kwargs):
+    """
+    Parameters
+    ----------
+    in_node_dim: int, default 92
+      The length of the initial node feature vectors. The 92 is
+      based on length of vectors in the atom_init.json.
+    hidden_node_dim: int, default 64
+      The length of the hidden node feature vectors.
+    in_edge_dim: int, default 41
+      The length of the initial edge feature vectors. The 41 is
+      based on default setting of CGCNNFeaturizer.
+    num_conv: int, default 3
+      The number of convolutional layers.
+    predicator_hidden_feats: int, default 128
+      Size of hidden graph representations in the predicator, default to 128.
+    n_out: int
+      Number of the output size, default to 1.
+    """
+    model = CGCNN(in_node_dim, hidden_node_dim, in_edge_dim, num_conv,
+                  predicator_hidden_feats, n_out)
+    super(CGCNNModel, self).__init__(model, **kwargs)
+
+  def _prepare_batch(self, batch):
+    """Create batch data for CGCNN.
+
+    Parameters
+    ----------
+    batch: Tuple
+      The tuple are `(inputs, labels, weights)`.
+
+    Returns
+    -------
+    inputs: DGLGraph
+      DGLGraph for a batch of graphs.
+    labels: List[torch.Tensor] or None
+      The labels converted to torch.Tensor
+    weights: List[torch.Tensor] or None
+      The weights for each sample or sample/task pair converted to torch.Tensor
+
+    Notes
+    -----
+    This class requires DGL and PyTorch to be installed.
+    """
+    try:
+      import dgl
+    except:
+      raise ValueError("This class requires DGL to be installed.")
+
+    inputs, labels, weights = batch
+    inputs = dgl.batch([graph.to_dgl_graph() for graph in inputs[0]]).to(
+        self.device)
+    if labels is not None:
+      labels = [
+          x.astype(np.float32) if x.dtype == np.float64 else x for x in labels
+      ]
+      labels = [torch.as_tensor(x, device=self.device) for x in labels]
+    if weights is not None:
+      weights = [
+          x.astype(np.float32) if x.dtype == np.float64 else x for x in weights
+      ]
+      weights = [torch.as_tensor(x, device=self.device) for x in weights]
+
+    return inputs, labels, weights

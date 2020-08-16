@@ -122,7 +122,6 @@ class TorchModel(Model):
                wandb: bool = False,
                log_frequency: int = 100,
                device: Optional[torch.device] = None,
-               create_custom_batch: Callable[[Tuple, torch.device], Tuple] = None,
                **kwargs) -> None:
     """Create a new TorchModel.
 
@@ -161,9 +160,6 @@ class TorchModel(Model):
     device: torch.device
       the device on which to run computations.  If None, a device is
       chosen automatically.
-    create_custom_batch: function, default None
-      This function makes user-defined batch data. This function takes two arguments,
-      `batch`, `device` and returns user-defined batch data.
     """
     super(TorchModel, self).__init__(
         model_instance=model, model_dir=model_dir, **kwargs)
@@ -188,7 +184,6 @@ class TorchModel(Model):
         device = torch.device('cpu')
     self.device = device
     self.model.to(device)
-    self.create_custom_batch = create_custom_batch
 
     # W&B logging
     if wandb and not is_wandb_available():
@@ -844,9 +839,6 @@ class TorchModel(Model):
 
   def _prepare_batch(self,
                      batch: Tuple[Any, Any, Any]) -> Tuple[List, List, List]:
-    if self.create_custom_batch is not None:
-      return self.create_custom_batch(batch, self.device)
-
     inputs, labels, weights = batch
     inputs = [
         x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs
