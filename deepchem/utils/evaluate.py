@@ -172,11 +172,7 @@ class Evaluator(object):
   >>> multitask_scores = evaluator.compute_model_performance(metric)
   """
 
-  def __init__(
-      self,
-      model: "Model",  # noqa: F821
-      dataset: Dataset,
-      transformers: List[Transformer]):
+  def __init__(self, model, dataset: Dataset, transformers: List[Transformer]):
     """Initialize this evaluator
 
     Parameters
@@ -365,13 +361,12 @@ class GeneratorEvaluator(object):
   >>> multitask_scores = evaluator.compute_model_performance(metric)
   """
 
-  def __init__(
-      self,
-      model: "Model",  # noqa: F821
-      generator: Iterable[Tuple[Any, Any, Any]],
-      transformers: List[Transformer],
-      labels: Optional[List] = None,
-      weights: Optional[List] = None):
+  def __init__(self,
+               model,
+               generator: Iterable[Tuple[Any, Any, Any]],
+               transformers: List[Transformer],
+               labels: Optional[List] = None,
+               weights: Optional[List] = None):
     """
     Parameters
     ----------
