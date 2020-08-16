@@ -3,8 +3,6 @@ Tests for metricsT.
 """
 import numpy as np
 import deepchem as dc
-import unittest
-from deepchem import metrics
 
 
 def test_kappa_score():
@@ -33,7 +31,7 @@ def test_one_sample():
       dc.metrics.Metric(dc.metrics.roc_auc_score)
   ]
   for metric in all_metrics:
-    score = metric.compute_singletask_metric(y_true, y_pred, w)
+    _ = metric.compute_singletask_metric(y_true, y_pred, w)
 
 
 def test_r2_score():
