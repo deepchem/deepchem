@@ -68,7 +68,7 @@ def normalize_weight_shape(w: np.ndarray, n_samples: int,
   Examples
   --------
   >>> import numpy as np
-  >>> w_out = dc.metrics.normalize_weight_shape(None, n_samples, n_tasks)
+  >>> w_out = normalize_weight_shape(None, n_samples, n_tasks)
   >>> (w_out == np.ones((n_samples, n_tasks))).all()
   True
 
