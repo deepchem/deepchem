@@ -371,13 +371,13 @@ class Dataset(object):
 
     Parameters
     ----------
-    batch_size: int, optional
+    batch_size: int, default None
       Number of elements in each batch
-    epochs: int, optional
+    epochs: int, default 1
       Number of epochs to walk over dataset
-    deterministic: bool, optional
+    deterministic: bool, default False
       If True, follow deterministic order.
-    pad_batches: bool, optional
+    pad_batches: bool, default False
       If True, pad each batch to `batch_size`.
 
     Returns
@@ -535,9 +535,9 @@ class Dataset(object):
 
     Parameters
     ----------
-    epochs: int
+    epochs: int, default 1
       the number of times to iterate over the Dataset
-    deterministic: bool
+    deterministic: bool, default False
       if True, the data is produced in order.  If False, a different
       random permutation of the data is used for each epoch.
 
@@ -783,13 +783,13 @@ class NumpyDataset(Dataset):
 
     Parameters
     ----------
-    batch_size: int, optional
+    batch_size: int, default None
       Number of elements in each batch
-    epochs: int, optional
+    epochs: int, default 1
       Number of epochs to walk over dataset
-    deterministic: bool, optional
+    deterministic: bool, default False
       If True, follow deterministic order.
-    pad_batches: bool, optional
+    pad_batches: bool, default False
       If True, pad each batch to `batch_size`.
 
     Returns
@@ -1069,7 +1069,7 @@ class DiskDataset(Dataset):
   Once you have a dataset you can access its attributes as follows
 
   >>> X = np.random.rand(10, 10)
-  >>> y = np.random.rand(10,) 
+  >>> y = np.random.rand(10,)
   >>> w = np.ones_like(y)
   >>> dataset = dc.data.DiskDataset.from_numpy(X)
   >>> X, y, w = dataset.X, dataset.y, dataset.w
@@ -1090,8 +1090,8 @@ class DiskDataset(Dataset):
   legacy_metadata: bool
     Whether this `DiskDataset` uses legacy format.
 
-  Note
-  ----
+  Notes
+  -----
   `DiskDataset` originally had a simpler metadata format without shape
   information. Older `DiskDataset` objects had metadata files with columns
   `('ids', 'X', 'y', 'w') and not additional shape columns. `DiskDataset`
@@ -1144,17 +1144,18 @@ class DiskDataset(Dataset):
 
     Parameters
     ----------
-    shard_generator: Iterable
+    shard_generator: Iterable[Batch]
       An iterable (either a list or generator) that provides tuples of data
       (X, y, w, ids). Each tuple will be written to a separate shard on disk.
     data_dir: str
       Filename for data directory. Creates a temp directory if none specified.
-    tasks: Optional[sequence] 
+    tasks: Optional[Sequence]
       List of tasks for this dataset.
 
     Returns
     -------
-    A `DiskDataset` constructed from the given data
+    DiskDataset
+      A `DiskDataset` constructed from the given data
     """
     if data_dir is None:
       data_dir = tempfile.mkdtemp()
@@ -1319,21 +1320,21 @@ class DiskDataset(Dataset):
            delete_if_exists: Optional[bool] = True) -> None:
     """Moves dataset to new directory.
 
-    Note
-    ----
-    This is a stateful operation! `self.data_dir` will be moved into
-    `new_data_dir`. If `delete_if_exists` is set to `True` (by default this is
-    set `True`), then `new_data_dir` is deleted if it's a pre-existing
-    directory.
-
     Parameters
     ----------
     new_data_dir: str
       The new directory name to move this to dataset to.
-    delete_if_exists: Optional[bool] (default True)
+    delete_if_exists: bool, default True
       If this option is set, delete the destination directory if it exists
       before moving. This is set to True by default to be backwards compatible
       with behavior in earlier versions of DeepChem.
+
+    Notes
+    -----
+    This is a stateful operation! `self.data_dir` will be moved into
+    `new_data_dir`. If `delete_if_exists` is set to `True` (by default this is
+    set `True`), then `new_data_dir` is deleted if it's a pre-existing
+    directory.
     """
     if delete_if_exists and os.path.isdir(new_data_dir):
       shutil.rmtree(new_data_dir)
@@ -1347,15 +1348,15 @@ class DiskDataset(Dataset):
   def copy(self, new_data_dir: str) -> "DiskDataset":
     """Copies dataset to new directory.
 
-    Note
-    ----
-    This is a stateful operation! Any data at `new_data_dir` will be deleted
-    and `self.data_dir` will be deep copied into `new_data_dir`.
-
     Parameters
     ----------
     new_data_dir: str
       The new directory name to copy this to dataset to.
+
+    Notes
+    -----
+    This is a stateful operation! Any data at `new_data_dir` will be deleted
+    and `self.data_dir` will be deep copied into `new_data_dir`.
     """
     if os.path.isdir(new_data_dir):
       shutil.rmtree(new_data_dir)
@@ -1363,9 +1364,7 @@ class DiskDataset(Dataset):
     return DiskDataset(new_data_dir)
 
   def get_task_names(self) -> np.ndarray:
-    """
-    Gets learning tasks associated with this dataset.
-    """
+    """Gets learning tasks associated with this dataset."""
     return self.tasks
 
   def reshard(self, shard_size: int) -> None:
@@ -1381,8 +1380,8 @@ class DiskDataset(Dataset):
     >>> d.get_number_shards()
     10
 
-    Note
-    ----
+    Notes
+    -----
     If this `DiskDataset` is in `legacy_metadata` format, reshard will
     convert this dataset to have non-legacy metadata.
     """
@@ -1436,9 +1435,7 @@ class DiskDataset(Dataset):
     self.save_to_disk()
 
   def get_data_shape(self) -> Shape:
-    """
-    Gets array shape of datapoints in this dataset.
-    """
+    """Gets array shape of datapoints in this dataset."""
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
     if self.legacy_metadata:
@@ -1460,22 +1457,17 @@ class DiskDataset(Dataset):
     return len(sample_y)
 
   def _get_metadata_filename(self) -> Tuple[str, str]:
-    """
-    Get standard location for metadata file.
-    """
+    """Get standard location for metadata file."""
     metadata_filename = os.path.join(self.data_dir, "metadata.csv.gzip")
     tasks_filename = os.path.join(self.data_dir, "tasks.json")
     return tasks_filename, metadata_filename
 
   def get_number_shards(self) -> int:
-    """
-    Returns the number of shards for this dataset.
-    """
+    """Returns the number of shards for this dataset."""
     return self.metadata_df.shape[0]
 
   def itershards(self) -> Iterator[Batch]:
-    """
-    Return an object that iterates over all shards in dataset.
+    """Return an object that iterates over all shards in dataset.
 
     Datasets are stored in sharded fashion on disk. Each call to next() for the
     generator defined by this function returns the data from a particular shard.
