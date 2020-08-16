@@ -31,7 +31,7 @@ def get_motif_scores(encoded_sequences: np.ndarray,
   Returns
   -------
   np.ndarray
-    A numpy complete score array of shape `(N_sequences, num_motifs, seq_length)` by default.
+    A numpy array of complete score. The shape is `(N_sequences, num_motifs, seq_length)` by default.
     If max_scores, the shape of score array is `(N_sequences, num_motifs*max_scores)`.
     If max_scores and return_positions, the shape of score array with max scores and their positions.
     is `(N_sequences, 2*num_motifs*max_scores)`.
@@ -133,6 +133,8 @@ def in_silico_mutagenesis(model: Model,
   """
   # Shape (N_sequences, num_tasks)
   wild_type_predictions = model.predict(NumpyDataset(encoded_sequences))
+  # check whether wild_type_predictions is np.ndarray or not
+  assert isinstance(wild_type_predictions, np.ndarray)
   num_tasks = wild_type_predictions.shape[1]
   # Shape (N_sequences, N_letters, sequence_length, 1, num_tasks)
   mutagenesis_scores = np.empty(
@@ -162,6 +164,8 @@ def in_silico_mutagenesis(model: Model,
     mutated_sequences[arange, vertical_repeat, horizontal_cycle, :] = 1
     # make mutant predictions
     mutated_predictions = model.predict(NumpyDataset(mutated_sequences))
+    # check whether wild_type_predictions is np.ndarray or not
+    assert isinstance(mutated_predictions, np.ndarray)
     mutated_predictions = mutated_predictions.reshape(sequence.shape +
                                                       (num_tasks,))
     mutagenesis_scores[

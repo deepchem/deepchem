@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 import numpy as np
 
@@ -24,7 +24,7 @@ def threshold_predictions(y: np.ndarray,
   Returns
   -------
   y_out: np.ndarray
-    Of shape `(N,)` with class predictions as integers ranging from 0
+    A numpy array of shape `(N,)` with class predictions as integers ranging from 0
     to `n_classes-1`.
   """
   if not isinstance(y, np.ndarray) or not len(y.shape) == 2:
@@ -109,7 +109,7 @@ def normalize_weight_shape(w: np.ndarray, n_samples: int,
 
 def normalize_labels_shape(y: np.ndarray,
                            mode: Optional[str] = None,
-                           n_tasks: int = 1,
+                           n_tasks: Optional[int] = None,
                            n_classes: Optional[int] = None) -> np.ndarray:
   """A utility function to correct the shape of the labels.
 
@@ -120,7 +120,7 @@ def normalize_labels_shape(y: np.ndarray,
   mode: str, default None
     If `mode` is "classification" or "regression", attempts to apply
     data transformations.
-  n_tasks: int, default 1
+  n_tasks: int, default None
     The number of tasks this class is expected to handle.
   n_classes: int, default None
     If specified use this as the number of classes. Else will try to
@@ -171,12 +171,13 @@ def normalize_labels_shape(y: np.ndarray,
     if y.shape[-1] != 1:
       return y
     y_out = np.squeeze(y, axis=-1)
-  # Handle classification. We need to convert labels into one-hot
-  # representation.
+  # Handle classification. We need to convert labels into one-hot representation.
   if mode == "classification":
     all_y_task = []
     for task in range(n_tasks):
       y_task = y_out[:, task]
+      # check whether n_classes is int or not
+      assert isinstance(n_classes, int)
       y_hot = to_one_hot(y_task, n_classes=n_classes)
       y_hot = np.expand_dims(y_hot, 1)
       all_y_task.append(y_hot)
@@ -186,7 +187,7 @@ def normalize_labels_shape(y: np.ndarray,
 
 def normalize_prediction_shape(y: np.ndarray,
                                mode: Optional[str] = None,
-                               n_tasks: int = 1,
+                               n_tasks: Optional[int] = None,
                                n_classes: Optional[int] = None):
   """A utility function to correct the shape of provided predictions.
 
@@ -443,11 +444,11 @@ class Metric(object):
 
   def __init__(self,
                metric: Callable[..., float],
-               task_averager: Optional[Callable[..., any]] = None,
+               task_averager: Optional[Callable[..., Any]] = None,
                name: Optional[str] = None,
                threshold: Optional[float] = None,
                mode: Optional[str] = None,
-               n_tasks: int = 1,
+               n_tasks: Optional[int] = None,
                classification_handling_mode: Optional[str] = None,
                threshold_value: Optional[float] = None,
                compute_energy_metric: Optional[bool] = None):
@@ -469,7 +470,7 @@ class Metric(object):
       class.
     mode: str, default None
       Should usually be "classification" or "regression."
-    n_tasks: int, default 1
+    n_tasks: int, default None
       The number of tasks this class is expected to handle.
     classification_handling_mode: str, default None
       DeepChem models by default predict class probabilities for
@@ -583,7 +584,7 @@ class Metric(object):
                      y_true: np.ndarray,
                      y_pred: np.ndarray,
                      w: Optional[np.ndarray] = None,
-                     n_tasks: int = 1,
+                     n_tasks: Optional[int] = None,
                      n_classes: int = 2,
                      filter_nans: bool = False,
                      per_task_metrics: bool = False,
@@ -607,7 +608,7 @@ class Metric(object):
     w: np.ndarray, default None
       An np.ndarray containing weights for each datapoint. If
       specified,  must be of shape `(N, n_tasks)`.
-    n_tasks: int, default 1
+    n_tasks: int, default None
       The number of tasks this class is expected to handle.
     n_classes: int, default 2
       Number of classes in data for classification tasks.
@@ -634,6 +635,9 @@ class Metric(object):
           n_tasks = y_true.shape[1]
       else:
         n_tasks = self.n_tasks
+    # check whether n_tasks is int or not
+    assert isinstance(n_tasks, int)
+
     y_true = normalize_labels_shape(
         y_true, mode=self.mode, n_tasks=n_tasks, n_classes=n_classes)
     y_pred = normalize_prediction_shape(
@@ -661,7 +665,8 @@ class Metric(object):
       computed_metrics.append(metric_value)
     logger.info("computed_metrics: %s" % str(computed_metrics))
     if n_tasks == 1:
-      computed_metrics = computed_metrics[0]
+      # FIXME: Incompatible types in assignment
+      computed_metrics = computed_metrics[0]  # type: ignore
 
     # DEPRECATED. WILL BE REMOVED IN NEXT DEEPCHEM VERSION
     if filter_nans:
