@@ -2,8 +2,6 @@
 Testing singletask/multitask dataset merging
 """
 import os
-import shutil
-import tempfile
 import deepchem as dc
 import numpy as np
 

@@ -12,7 +12,6 @@ import logging
 import tempfile
 import time
 import shutil
-import warnings
 import multiprocessing
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
@@ -32,13 +31,14 @@ def sparsify_features(X: np.ndarray) -> np.ndarray:
   Parameters
   ----------
   X: np.ndarray
-    Of shape `(n_samples, ...)
+    A numpy array of shape `(n_samples, ...)`.
 
   Returns
   -------
-  X_sparse, a np.ndarray with `dtype=object` where `X_sparse[i]` is a
-  typle of `(nonzero_inds, nonzero_vals)` with nonzero indices and
-  values in the i-th sample of `X`.
+  X_sparse: np.ndarray
+    A numpy array with `dtype=object` where `X_sparse[i]` is a
+    typle of `(nonzero_inds, nonzero_vals)` with nonzero indices and
+    values in the i-th sample of `X`.
   """
   n_samples = len(X)
   X_sparse = []
@@ -67,7 +67,8 @@ def densify_features(X_sparse: np.ndarray, num_features: int) -> np.ndarray:
 
   Returns
   -------
-  X, a np.ndarray of shape `(n_samples, num_features)`.
+  X: np.ndarray
+    A numpy array of shape `(n_samples, num_features)`.
   """
   n_samples = len(X_sparse)
   X = np.zeros((n_samples, num_features))
@@ -106,7 +107,8 @@ def pad_features(batch_size: int, X_b: np.ndarray) -> np.ndarray:
 
   Returns
   -------
-  X_out, a np.ndarray with `len(X_out) == batch_size`.
+  X_out: np.ndarray
+    A numpy array with `len(X_out) == batch_size`.
   """
   num_samples = len(X_b)
   if num_samples > batch_size:
@@ -160,7 +162,9 @@ def pad_batch(batch_size: int, X_b: np.ndarray, y_b: np.ndarray,
 
   Returns
   -------
-  (X_out, y_out, w_out, ids_out), all np.ndarray with length `batch_size`.
+  Batch
+    The batch is a tuple of `(X_out, y_out, w_out, ids_out)`,
+    all np.ndarray with length `batch_size`.
   """
   num_samples = len(X_b)
   if num_samples == batch_size:
@@ -236,6 +240,11 @@ class Dataset(object):
   def __len__(self) -> int:
     """
     Get the number of elements in the dataset.
+
+    Returns
+    -------
+    int
+      The number of elements in the dataset.
     """
     raise NotImplementedError()
 
@@ -244,6 +253,12 @@ class Dataset(object):
 
     Returns four tuples, giving the shape of the X, y, w, and ids
     arrays.
+
+    Returns
+    -------
+    Tuple
+      The tuple contains four elements, which are the shapes of
+      the X, y, w, and ids arrays.
     """
     raise NotImplementedError()
 
@@ -257,10 +272,11 @@ class Dataset(object):
 
     Returns
     -------
-    Numpy array of features `X`.
+    np.ndarray
+      A numpy array of identifiers `X`.
 
-    Note
-    ----
+    Notes
+    -----
     If data is stored on disk, accesing this field may involve loading
     data from disk and could potentially be slow. Using
     `iterbatches()` or `itersamples()` may be more efficient for
@@ -274,10 +290,11 @@ class Dataset(object):
 
     Returns
     -------
-    Numpy array of labels `y`.
+    np.ndarray
+      A numpy array of identifiers `y`.
 
-    Note
-    ----
+    Notes
+    -----
     If data is stored on disk, accesing this field may involve loading
     data from disk and could potentially be slow. Using
     `iterbatches()` or `itersamples()` may be more efficient for
@@ -291,10 +308,11 @@ class Dataset(object):
 
     Returns
     -------
-    Numpy array of identifiers `ids`.
+    np.ndarray
+      A numpy array of identifiers `ids`.
 
-    Note
-    ----
+    Notes
+    -----
     If data is stored on disk, accesing this field may involve loading
     data from disk and could potentially be slow. Using
     `iterbatches()` or `itersamples()` may be more efficient for
@@ -309,10 +327,11 @@ class Dataset(object):
 
     Returns
     -------
-    Numpy array of weights `w`.
+    np.ndarray
+      A numpy array of weights `w`.
 
-    Note
-    ----
+    Notes
+    -----
     If data is stored on disk, accesing this field may involve loading
     data from disk and could potentially be slow. Using
     `iterbatches()` or `itersamples()` may be more efficient for
@@ -363,15 +382,16 @@ class Dataset(object):
 
     Returns
     -------
-    Generator which yields tuples of four numpy arrays `(X, y, w, ids)`
+    Iterator[Batch]
+      Generator which yields tuples of four numpy arrays `(X, y, w, ids)`
     """
     raise NotImplementedError()
 
   def itersamples(self) -> Iterator[Batch]:
     """Get an object that iterates over the samples in the dataset.
 
-    Example:
-
+    Examples
+    --------
     >>> dataset = NumpyDataset(np.ones((2,2)))
     >>> for x, y, w, id in dataset.itersamples():
     ...   print(x.tolist(), y.tolist(), w.tolist(), id)
@@ -384,7 +404,6 @@ class Dataset(object):
     """Construct a new dataset by applying a transformation to every sample in this dataset.
 
     The argument is a function that can be called as follows:
-
     >> newx, newy, neww = fn(x, y, w)
 
     It might be called only once with the whole dataset, or multiple
@@ -398,7 +417,8 @@ class Dataset(object):
 
     Returns
     -------
-    a newly constructed Dataset object
+    Dataset
+      a newly constructed Dataset object
     """
     raise NotImplementedError()
 
@@ -412,16 +432,17 @@ class Dataset(object):
 
     Parameters
     ----------
-    X_stats: bool, optional
+    X_stats: bool, default True
       If True, compute feature-level mean and standard deviations.
-    y_stats: bool, optional
+    y_stats: bool, default True
       If True, compute label-level mean and standard deviations.
 
     Returns
     -------
-    If `X_stats == True`, returns `(X_means, X_stds)`. If `y_stats == True`,
-    returns `(y_means, y_stds)`. If both are true, returns
-    `(X_means, X_stds, y_means, y_stds)`.
+    Tuple
+      If `X_stats == True`, returns `(X_means, X_stds)`. If `y_stats == True`,
+      returns `(y_means, y_stds)`. If both are true, returns
+      `(X_means, X_stds, y_means, y_stds)`.
     """
     X_means = 0.0
     X_m2 = 0.0
@@ -465,24 +486,32 @@ class Dataset(object):
 
     Parameters
     ----------
-    batch_size: int
+    batch_size: int, default 100
       the number of samples to include in each batch
-    epochs: int
+    epochs: int, default 1
       the number of times to iterate over the Dataset
-    deterministic: bool
+    deterministic: bool, default False
       if True, the data is produced in order.  If False, a different
       random permutation of the data is used for each epoch.
-    pad_batches: bool
+    pad_batches: bool, default False
       if True, batches are padded as necessary to make the size of
       each batch exactly equal batch_size.
 
     Returns
     -------
-    tf.Dataset that iterates over the same data.
-    """
-    # Retrieve the first sample so we can determine the dtypes.
+    tf.data.Dataset
+      TensorFlow Dataset that iterates over the same data.
 
-    import tensorflow as tf
+    Notes
+    -----
+    This class requires TensorFlow to be installed.
+    """
+    try:
+      import tensorflow as tf
+    except:
+      raise ValueError("This method requires TensorFlow to be installed.")
+
+    # Retrieve the first sample so we can determine the dtypes.
     X, y, w, ids = next(self.itersamples())
     dtypes = (tf.as_dtype(X.dtype), tf.as_dtype(y.dtype), tf.as_dtype(w.dtype))
     shapes = (tf.TensorShape([None] + list(X.shape)),
@@ -517,6 +546,10 @@ class Dataset(object):
     torch.utils.data.IterableDataset
       `torch.utils.data.IterableDataset` that iterates over the data in
       this dataset.
+
+    Notes
+    -----
+    This class requires PyTorch to be installed.
     """
     raise NotImplementedError()
 
@@ -525,13 +558,14 @@ class Dataset(object):
 
     Returns
     -------
-    pandas dataframe. If there is only a single feature per datapoint,
-    will have column "X" else will have columns "X1,X2,..." for
-    features.  If there is only a single label per datapoint, will
-    have column "y" else will have columns "y1,y2,..." for labels. If
-    there is only a single weight per datapoint will have column "w"
-    else will have columns "w1,w2,...". Will have column "ids" for
-    identifiers.
+    pd.DataFrame
+      pandas dataframe. If there is only a single feature per datapoint,
+      will have column "X" else will have columns "X1,X2,..." for
+      features.  If there is only a single label per datapoint, will
+      have column "y" else will have columns "y1,y2,..." for labels. If
+      there is only a single weight per datapoint will have column "w"
+      else will have columns "w1,w2,...". Will have column "ids" for
+      identifiers.
     """
     X = self.X
     y = self.y
@@ -567,19 +601,19 @@ class Dataset(object):
     ----------
     df: DataFrame
       the pandas DataFrame
-    X: string or list of strings
+    X: str or List[str], default None
       the name of the column or columns containing the X array.  If
       this is None, it will look for default column names that match
       those produced by to_dataframe().
-    y: string or list of strings
+    y: str or List[str], default None
       the name of the column or columns containing the y array.  If
       this is None, it will look for default column names that match
       those produced by to_dataframe().
-    w: string or list of strings
+    w: str or List[str], default None
       the name of the column or columns containing the w array.  If
       this is None, it will look for default column names that match
       those produced by to_dataframe().
-    ids: string
+    ids: str, default None
       the name of the column containing the ids.  If this is None, it
       will look for default column names that match those produced by
       to_dataframe().
@@ -668,15 +702,15 @@ class NumpyDataset(Dataset):
     ----------
     X: np.ndarray
       Input features. Of shape `(n_samples,...)`
-    y: np.ndarray, optional
+    y: np.ndarray, default None
       Labels. Of shape `(n_samples, ...)`. Note that each label can
       have an arbitrary shape.
-    w: np.ndarray, optional
+    w: np.ndarray, default None
       Weights. Should either be 1D of shape `(n_samples,)` or if
       there's more than one task, of shape `(n_samples, n_tasks)`.
-    ids: np.ndarray, optional
+    ids: np.ndarray, default None
       Identifiers. Of shape `(n_samples,)`
-    n_tasks: int, optional
+    n_tasks: int, default 1
       Number of learning tasks.
     """
     n_samples = len(X)
@@ -704,17 +738,11 @@ class NumpyDataset(Dataset):
     self._ids = np.array(ids, dtype=object)
 
   def __len__(self) -> int:
-    """
-    Get the number of elements in the dataset.
-    """
+    """Get the number of elements in the dataset."""
     return len(self._y)
 
   def get_shape(self) -> Tuple[Shape, Shape, Shape, Shape]:
-    """Get the shape of the dataset.
-
-    Returns four tuples, giving the shape of the X, y, w, and ids
-    arrays.
-    """
+    """Get the shape of the dataset."""
     return self._X.shape, self._y.shape, self._w.shape, self._ids.shape
 
   def get_task_names(self) -> np.ndarray:
@@ -750,8 +778,8 @@ class NumpyDataset(Dataset):
                   pad_batches: bool = False) -> Iterator[Batch]:
     """Get an object that iterates over minibatches from the dataset.
 
-    Each minibatch is returned as a tuple of four numpy arrays: (X, y,
-    w, ids).
+    Each minibatch is returned as a tuple of four numpy arrays: `(X,
+    y, w, ids)`.
 
     Parameters
     ----------
@@ -766,7 +794,8 @@ class NumpyDataset(Dataset):
 
     Returns
     -------
-    Generator which yields tuples of four numpy arrays `(X, y, w, ids)`
+    Iterator[Batch]
+      Generator which yields tuples of four numpy arrays `(X, y, w, ids)`
     """
 
     def iterate(dataset: NumpyDataset, batch_size: Optional[int], epochs: int,
@@ -801,8 +830,8 @@ class NumpyDataset(Dataset):
   def itersamples(self) -> Iterator[Batch]:
     """Get an object that iterates over the samples in the dataset.
 
-    Example:
-
+    Examples
+    --------
     >>> dataset = NumpyDataset(np.ones((2,2)))
     >>> for x, y, w, id in dataset.itersamples():
     ...   print(x.tolist(), y.tolist(), w.tolist(), id)
@@ -818,7 +847,6 @@ class NumpyDataset(Dataset):
     """Construct a new dataset by applying a transformation to every sample in this dataset.
 
     The argument is a function that can be called as follows:
-
     >> newx, newy, neww = fn(x, y, w)
 
     It might be called only once with the whole dataset, or multiple
@@ -832,7 +860,8 @@ class NumpyDataset(Dataset):
 
     Returns
     -------
-    a newly constructed Dataset object
+    Dataset
+      a newly constructed Dataset object
     """
     newx, newy, neww, newids = transformer.transform_array(
         self._X, self._y, self._w, self._ids)
@@ -844,9 +873,9 @@ class NumpyDataset(Dataset):
 
     Parameters
     ----------
-    indices: list
+    indices: List[int]
       List of indices to select.
-    select_dir: string
+    select_dir: str
       Used to provide same API as `DiskDataset`. Ignored since
       `NumpyDataset` is purely in-memory.
     """
@@ -864,9 +893,9 @@ class NumpyDataset(Dataset):
 
     Parameters
     ----------
-    epochs: int
+    epochs: int, default 1
       the number of times to iterate over the Dataset
-    deterministic: bool
+    deterministic: bool, default False
       if True, the data is produced in order.  If False, a different random
       permutation of the data is used for each epoch.
 
@@ -875,6 +904,10 @@ class NumpyDataset(Dataset):
     torch.utils.data.IterableDataset
       `torch.utils.data.IterableDataset` that iterates over the data in
       this dataset.
+
+    Notes
+    -----
+    This method requires PyTorch to be installed.
     """
     try:
       from deepchem.data.pytorch_datasets import _TorchNumpyDataset
@@ -887,23 +920,29 @@ class NumpyDataset(Dataset):
 
   @staticmethod
   def from_DiskDataset(ds: "DiskDataset") -> "NumpyDataset":
-    """
+    """Convert DiskDataset to NumpyDataset.
 
     Parameters
     ----------
-    ds : DiskDataset
-    DiskDataset to transorm to NumpyDataset
+    ds: DiskDataset
+      DiskDataset to transorm to NumpyDataset
 
     Returns
     -------
     NumpyDataset
       Data of ds as NumpyDataset
-
     """
     return NumpyDataset(ds.X, ds.y, ds.w, ds.ids)
 
   @staticmethod
   def to_json(self, fname: str) -> None:
+    """Dump NumpyDataset to the json file .
+
+    Parameters
+    ----------
+    fname: str
+      The name of the json file
+    """
     d = {
         'X': self.X.tolist(),
         'y': self.y.tolist(),
@@ -915,21 +954,35 @@ class NumpyDataset(Dataset):
 
   @staticmethod
   def from_json(fname: str) -> "NumpyDataset":
+    """Create NumpyDataset from the json file.
+
+    Parameters
+    ----------
+    fname: str
+      The name of the json file
+
+    Returns
+    -------
+    NumpyDataset
+      A new NumpyDataset created from the json file
+    """
     with open(fname) as fin:
       d = json.load(fin)
       return NumpyDataset(d['X'], d['y'], d['w'], d['ids'])
 
   @staticmethod
   def merge(datasets: Sequence[Dataset]) -> "NumpyDataset":
-    """
+    """Merge multiple NumpyDatasets.
+
     Parameters
     ----------
-    datasets: list of deepchem.data.Dataset
+    datasets: List[Dataset]
       list of datasets to merge
 
     Returns
     -------
-    Single deepchem.data.NumpyDataset with data concatenated over axis 0
+    NumpyDataset
+      A single deepchem.data.NumpyDataset with data concatenated over axis 0
     """
     X, y, w, ids = datasets[0].X, datasets[0].y, datasets[0].w, datasets[0].ids
     for dataset in datasets[1:]:
@@ -1704,6 +1757,10 @@ class DiskDataset(Dataset):
     torch.utils.data.IterableDataset
       `torch.utils.data.IterableDataset` that iterates over the data in
       this dataset.
+
+    Notes
+    -----
+    This method requires PyTorch to be installed.
     """
     try:
       from deepchem.data.pytorch_datasets import _TorchDiskDataset
@@ -2504,6 +2561,10 @@ class ImageDataset(Dataset):
     torch.utils.data.IterableDataset
       `torch.utils.data.IterableDataset` that iterates over the data in
       this dataset.
+
+    Notes
+    -----
+    This method requires PyTorch to be installed.
     """
     try:
       from deepchem.data.pytorch_datasets import _TorchImageDataset

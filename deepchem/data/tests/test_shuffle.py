@@ -1,14 +1,7 @@
 """
-Testing singletask/multitask dataset shuffling 
+Testing singletask/multitask dataset shuffling
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import os
-import shutil
-import tempfile
-import unittest
 import deepchem as dc
 import numpy as np
 
