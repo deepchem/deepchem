@@ -30,7 +30,7 @@ install:
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
-  - bash scripts/install_deepchem_conda.sh deepchem
+  - bash scripts/install_deepchem_conda.sh cpu
   - conda activate deepchem
   - python setup.py install
 script:

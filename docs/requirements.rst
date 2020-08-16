@@ -13,8 +13,8 @@ DeepChem currently supports Python 3.5 through 3.7 and requires these packages o
 - `SciPy`_
 - `TensorFlow`_
 
-  - `deepchem>=2.4.0` requires tensorflow v2
-  - `deepchem<2.4.0` requires tensorflow v1
+  - `deepchem>=2.4.0` requires tensorflow v2 (2.2.0)
+  - `deepchem<2.4.0` requires tensorflow v1 (>=1.14)
 
 
 Soft requirements
@@ -30,7 +30,7 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `Deep Graph Library`_          | 0.4.3.post2   | :code:`dc.feat.graph_data`                        |
+| `Deep Graph Library`_          | latset        | :code:`dc.feat.graph_data`                        |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
@@ -70,12 +70,12 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `PyTorch`_                     | 1.5.1         | :code:`dc.data.datasets`                          |
+| `PyTorch`_                     | 1.6.0         | :code:`dc.data.datasets`                          |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `PyTorch Geometric`_           | 1.6.0         | :code:`dc.feat.graph_data`                        |
-|                                |               |                                                   |
+| `PyTorch Geometric`_           | latest (with  | :code:`dc.feat.graph_data`                        |
+|                                | PyTorch 1.6.0)|                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `RDKit`_                       | latest        | Many modules                                      |
