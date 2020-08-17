@@ -11,7 +11,7 @@ from deepchem.metrics.metric import handle_classification_mode
 from deepchem.metrics.metric import to_one_hot
 from deepchem.metrics.metric import from_one_hot
 
-# sklearn & scipy scoring function
+# sklearn & scipy score function
 from deepchem.metrics.score_function import matthews_corrcoef
 from deepchem.metrics.score_function import recall_score
 from deepchem.metrics.score_function import kappa_score
@@ -29,7 +29,7 @@ from deepchem.metrics.score_function import accuracy_score
 from deepchem.metrics.score_function import balanced_accuracy_score
 from deepchem.metrics.score_function import pearsonr
 
-# original scoring function
+# original score function
 from deepchem.metrics.score_function import pearson_r2_score
 from deepchem.metrics.score_function import jaccard_index
 from deepchem.metrics.score_function import pixel_error
