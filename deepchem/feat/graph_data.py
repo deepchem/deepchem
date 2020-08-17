@@ -16,8 +16,8 @@ class GraphData:
     Graph connectivity in COO format with shape [2, num_edges]
   edge_features: np.ndarray, optional (default None)
     Edge feature matrix with shape [num_edges, num_edge_features]
-  graph_features: np.ndarray, optional (default None)
-    Graph feature vector with shape [num_graph_features,]
+  node_pos_features: np.ndarray, optional (default None)
+    Node position matrix with shape [num_nodes, num_dimensions].
   num_nodes: int
     The number of nodes in the graph
   num_node_features: int
@@ -40,7 +40,7 @@ class GraphData:
       node_features: np.ndarray,
       edge_index: np.ndarray,
       edge_features: Optional[np.ndarray] = None,
-      graph_features: Optional[np.ndarray] = None,
+      node_pos_features: Optional[np.ndarray] = None,
   ):
     """
     Parameters
@@ -51,8 +51,8 @@ class GraphData:
       Graph connectivity in COO format with shape [2, num_edges]
     edge_features: np.ndarray, optional (default None)
       Edge feature matrix with shape [num_edges, num_edge_features]
-    graph_features: np.ndarray, optional (default None)
-      Graph feature vector with shape [num_graph_features,]
+    node_pos_features: np.ndarray, optional (default None)
+      Node position matrix with shape [num_nodes, num_dimensions].
     """
     # validate params
     if isinstance(node_features, np.ndarray) is False:
@@ -72,16 +72,19 @@ class GraphData:
         raise ValueError('edge_features must be np.ndarray or None.')
       elif edge_index.shape[1] != edge_features.shape[0]:
         raise ValueError('The first dimension of edge_features must be the \
-                    same as the second dimension of edge_index.')
+                          same as the second dimension of edge_index.')
 
-    if graph_features is not None and isinstance(graph_features,
-                                                 np.ndarray) is False:
-      raise ValueError('graph_features must be np.ndarray or None.')
+    if node_pos_features is not None:
+      if isinstance(node_pos_features, np.ndarray) is False:
+        raise ValueError('pos must be np.ndarray or None.')
+      elif node_pos_features.shape[0] != node_features.shape[0]:
+        raise ValueError('The length of pos must be the same as the \
+                          length of node_features.')
 
     self.node_features = node_features
     self.edge_index = edge_index
     self.edge_features = edge_features
-    self.graph_features = graph_features
+    self.node_pos_features = node_pos_features
     self.num_nodes, self.num_node_features = self.node_features.shape
     self.num_edges = edge_index.shape[1]
     if self.edge_features is not None:
@@ -106,12 +109,18 @@ class GraphData:
       raise ValueError(
           "This function requires PyTorch Geometric to be installed.")
 
+    edge_features = self.edge_features
+    if edge_features is not None:
+      edge_features = torch.from_numpy(self.edge_features).float()
+    node_pos_features = self.node_pos_features
+    if node_pos_features is not None:
+      node_pos_features = torch.from_numpy(self.node_pos_features).float()
+
     return Data(
-      x=torch.from_numpy(self.node_features),
-      edge_index=torch.from_numpy(self.edge_index).long(),
-      edge_attr=None if self.edge_features is None \
-        else torch.from_numpy(self.edge_features),
-    )
+        x=torch.from_numpy(self.node_features).float(),
+        edge_index=torch.from_numpy(self.edge_index).long(),
+        edge_attr=edge_features,
+        pos=node_pos_features)
 
   def to_dgl_graph(self):
     """Convert to DGL graph data instance
@@ -136,10 +145,13 @@ class GraphData:
     g.add_edges(
         torch.from_numpy(self.edge_index[0]).long(),
         torch.from_numpy(self.edge_index[1]).long())
-    g.ndata['x'] = torch.from_numpy(self.node_features)
+    g.ndata['x'] = torch.from_numpy(self.node_features).float()
+
+    if self.node_pos_features is not None:
+      g.ndata['pos'] = torch.from_numpy(self.node_pos_features).float()
 
     if self.edge_features is not None:
-      g.edata['edge_attr'] = torch.from_numpy(self.edge_features)
+      g.edata['edge_attr'] = torch.from_numpy(self.edge_features).float()
 
     return g
 
@@ -177,7 +189,7 @@ class BatchGraphData(GraphData):
     batch_node_features = np.vstack(
         [graph.node_features for graph in graph_list])
 
-    # before stacking edge_features or graph_features,
+    # before stacking edge_features or node_pos_features,
     # we should check whether these are None or not
     if graph_list[0].edge_features is not None:
       batch_edge_features = np.vstack(
@@ -185,11 +197,11 @@ class BatchGraphData(GraphData):
     else:
       batch_edge_features = None
 
-    if graph_list[0].graph_features is not None:
-      batch_graph_features = np.vstack(
-          [graph.graph_features for graph in graph_list])
+    if graph_list[0].node_pos_features is not None:
+      batch_node_pos_features = np.vstack(
+          [graph.node_pos_features for graph in graph_list])
     else:
-      batch_graph_features = None
+      batch_node_pos_features = None
 
     # create new edge index
     num_nodes_list = [graph.num_nodes for graph in graph_list]
@@ -208,5 +220,5 @@ class BatchGraphData(GraphData):
         node_features=batch_node_features,
         edge_index=batch_edge_index,
         edge_features=batch_edge_features,
-        graph_features=batch_graph_features,
+        node_pos_features=batch_node_pos_features,
     )
