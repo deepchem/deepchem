@@ -4,20 +4,20 @@ Contains wrapper class for datasets.
 import json
 import os
 import math
-import deepchem as dc
-import numpy as np
-import pandas as pd
 import random
 import logging
 import tempfile
 import time
 import shutil
 import multiprocessing
-from deepchem.utils.save import save_to_disk
-from deepchem.utils.save import load_from_disk
 from ast import literal_eval as make_tuple
-
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+
+import numpy as np
+import pandas as pd
+
+import deepchem as dc
+from deepchem.utils.save import load_image_files, load_from_disk, save_to_disk
 from deepchem.utils.typing import OneOrMany, Shape
 
 Batch = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
@@ -2480,7 +2480,7 @@ class ImageDataset(Dataset):
   def _find_array_shape(self, array: Sequence) -> Shape:
     if isinstance(array, np.ndarray):
       return array.shape
-    image_shape = dc.data.ImageLoader.load_img([array[0]]).shape[1:]
+    image_shape = load_image_files([array[0]]).shape[1:]
     return np.concatenate([[len(array)], image_shape])
 
   def __len__(self) -> int:
@@ -2502,14 +2502,14 @@ class ImageDataset(Dataset):
     """Get the X vector for this dataset as a single numpy array."""
     if isinstance(self._X, np.ndarray):
       return self._X
-    return dc.data.ImageLoader.load_img(self._X)
+    return load_image_files(self._X)
 
   @property
   def y(self) -> np.ndarray:
     """Get the y vector for this dataset as a single numpy array."""
     if isinstance(self._y, np.ndarray):
       return self._y
-    return dc.data.ImageLoader.load_img(self._y)
+    return load_image_files(self._y)
 
   @property
   def ids(self) -> np.ndarray:
@@ -2584,6 +2584,26 @@ class ImageDataset(Dataset):
 
     return iterate(self, batch_size, epochs, deterministic, pad_batches)
 
+  def _get_image(self, array: Union[np.ndarray, List[str]],
+                 index: int) -> np.ndarray:
+    """Method for loading an image
+
+    Parameters
+    ----------
+    array: Union[np.ndarray, List[str]]
+      A numpy array which contains images or List of image filenames
+    index: int
+      Index you want to get the image
+
+    Returns
+    -------
+    np.ndarray
+      Loaded image
+    """
+    if isinstance(array, np.ndarray):
+      return array[index]
+    return load_image_files([array[index]])[0]
+
   def itersamples(self) -> Iterator[Batch]:
     """Get an object that iterates over the samples in the dataset.
 
@@ -2600,15 +2620,9 @@ class ImageDataset(Dataset):
     [1.0, 1.0] [0.0] [0.0] 0
     [1.0, 1.0] [0.0] [0.0] 1
     """
-
-    def get_image(array, index):
-      if isinstance(array, np.ndarray):
-        return array[index]
-      return dc.data.ImageLoader.load_img([array[index]])[0]
-
     n_samples = self._X_shape[0]
-    return ((get_image(self._X, i), get_image(self._y, i), self._w[i],
-             self._ids[i]) for i in range(n_samples))
+    return ((self._get_image(self._X, i), self._get_image(self._y, i),
+             self._w[i], self._ids[i]) for i in range(n_samples))
 
   def transform(self, transformer: "dc.trans.Transformer") -> "ImageDataset":
     """Construct a new dataset by applying a transformation to every sample in this dataset.

@@ -3,6 +3,7 @@ Process an input dataset into a format suitable for machine learning.
 """
 import os
 import tempfile
+import zipfile
 import time
 import logging
 import warnings
@@ -11,12 +12,10 @@ import pandas as pd
 import numpy as np
 
 from deepchem.utils.typing import OneOrMany
-from deepchem.utils.save import load_csv_files, load_json_files
-from deepchem.utils.save import load_sdf_files
+from deepchem.utils.save import load_image_files, load_csv_files, load_json_files, load_sdf_files
 from deepchem.utils.genomics_utils import encode_bio_sequence
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
-import zipfile
 
 logger = logging.getLogger(__name__)
 
@@ -940,10 +939,10 @@ class ImageLoader(DataLoader):
     if in_memory:
       if data_dir is None:
         return NumpyDataset(
-            self.load_img(image_files), y=labels, w=weights, ids=image_files)
+            load_image_files(image_files), y=labels, w=weights, ids=image_files)
       else:
         dataset = DiskDataset.from_numpy(
-            self.load_img(image_files),
+            load_image_files(image_files),
             y=labels,
             w=weights,
             ids=image_files,
@@ -954,40 +953,6 @@ class ImageLoader(DataLoader):
         return dataset
     else:
       return ImageDataset(image_files, y=labels, w=weights, ids=image_files)
-
-  @staticmethod
-  def load_img(image_files: List[str]) -> np.ndarray:
-    """Loads a set of images from disk.
-
-    Parameters
-    ----------
-    image_files: list[str]
-      List of image filenames to load
-
-    Returns
-    -------
-    np.ndarray
-      A numpy array that contains loaded images. The shape is, `(N,...)`.
-
-    Notes
-    -----
-    This method requires pillow to be installed.
-    """
-    from PIL import Image
-    images = []
-    for image_file in image_files:
-      _, extension = os.path.splitext(image_file)
-      extension = extension.lower()
-      if extension == ".png":
-        image = np.array(Image.open(image_file))
-        images.append(image)
-      elif extension == ".tif":
-        im = Image.open(image_file)
-        imarray = np.array(im)
-        images.append(imarray)
-      else:
-        raise ValueError("Unsupported image filetype for %s" % image_file)
-    return np.array(images)
 
 
 class InMemoryLoader(DataLoader):
