@@ -14,7 +14,7 @@ from typing import List, Tuple, Dict, Optional, Union, Any, Type
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-MPFORME_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/mp_formation_energy.tar.gz'
+MPFORME_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/mp_formation_energy.tar.gz'
 
 # dict of accepted featurizers for this dataset
 # modify the returned dicts for your dataset
@@ -163,12 +163,12 @@ def load_mp_formation_energy(
 
   # Load .tar.gz file
   if featurizer.__class__.__name__ in supported_featurizers:
-    dataset_file = os.path.join(data_dir, 'mp_formation_energy.tar.gz')
-    deepchem.utils.untargz_file(dataset_file, dest_dir=data_dir)
     dataset_file = os.path.join(data_dir, 'mp_formation_energy.json')
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=MPFORME_URL, dest_dir=data_dir)
+      targz_file = os.path.join(data_dir, 'mp_formation_energy.tar.gz')
+      if not os.path.exists(targz_file):
+        deepchem.utils.download_url(url=MPFORME_URL, dest_dir=data_dir)
       deepchem.utils.untargz_file(
           os.path.join(data_dir, 'mp_formation_energy.tar.gz'), data_dir)
 
