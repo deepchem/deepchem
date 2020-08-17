@@ -68,8 +68,8 @@ def normalize_weight_shape(w: np.ndarray, n_samples: int,
   Examples
   --------
   >>> import numpy as np
-  >>> w_out = normalize_weight_shape(None, n_samples, n_tasks)
-  >>> (w_out == np.ones((n_samples, n_tasks))).all()
+  >>> w_out = normalize_weight_shape(None, n_samples=10, n_tasks=1)
+  >>> (w_out == np.ones((10, 1))).all()
   True
 
   Returns
@@ -200,7 +200,7 @@ def normalize_prediction_shape(y: np.ndarray,
   --------
   >>> import numpy as np
   >>> y = np.random.rand(10)
-  >>> y_out = normalize_prediction_shape(y, "regression")
+  >>> y_out = normalize_prediction_shape(y, "regression", n_tasks=1)
   >>> y_out.shape
   (10, 1)
 
