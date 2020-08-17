@@ -2098,10 +2098,8 @@ class DiskDataset(Dataset):
     DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w, ids)
     self._cached_shards = None
 
-  def select(self,
-             indices: Sequence[int],
-             select_dir: Optional[str] = None,
-             sort_indices: Optional[bool] = True) -> "DiskDataset":
+  def select(self, indices: Sequence[int],
+             select_dir: Optional[str] = None) -> "DiskDataset":
     """Creates a new dataset from a selection of indices from self.
 
     Note
@@ -2117,8 +2115,6 @@ class DiskDataset(Dataset):
     select_dir: Optional[str], (default None)
       Path to new directory that the selected indices will be copied
       to.
-    sort_indices: Optional[bool], (default True)
-      If True, sort indices before returning them.
 
     Returns
     -------
