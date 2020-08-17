@@ -76,9 +76,10 @@ class GraphData:
 
     if node_pos_features is not None:
       if isinstance(node_pos_features, np.ndarray) is False:
-        raise ValueError('pos must be np.ndarray or None.')
+        raise ValueError('node_pos_features must be np.ndarray or None.')
       elif node_pos_features.shape[0] != node_features.shape[0]:
-        raise ValueError('The length of pos must be the same as the \
+        raise ValueError(
+            'The length of node_pos_features must be the same as the \
                           length of node_features.')
 
     self.node_features = node_features
