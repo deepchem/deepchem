@@ -30,7 +30,6 @@ class TestImageLoader(unittest.TestCase):
     Image.fromarray(self.face).save(self.face_copy_path)
 
     # Create zip of image file
-    # self.zip_path = "/home/rbharath/misc/cells.zip"
     self.zip_path = os.path.join(self.data_dir, "face.zip")
     zipf = zipfile.ZipFile(self.zip_path, "w", zipfile.ZIP_DEFLATED)
     zipf.write(self.face_path)

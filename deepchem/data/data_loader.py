@@ -661,10 +661,10 @@ class JsonLoader(DataLoader):
 
     Returns
     -------
-    features : np.ndarray
+    features: np.ndarray
       Array of feature vectors. Note that samples for which featurization has
       failed will be filtered out.
-    valid_inds : np.ndarray
+    valid_inds: np.ndarray
       Boolean values indicating successful featurization for corresponding
       sample in the source.
     """
@@ -760,10 +760,10 @@ class SDFLoader(DataLoader):
 
     Returns
     -------
-    features : np.ndarray
+    features: np.ndarray
       Array of feature vectors. Note that samples for which featurization has
       failed will be filtered out.
-    valid_inds : np.ndarray
+    valid_inds: np.ndarray
       Boolean values indicating successful featurization for corresponding
       sample in the source.
     """
@@ -784,6 +784,10 @@ class FASTALoader(DataLoader):
   one-hot encode the genomic sequences for use in downstream
   learning tasks.
   """
+
+  def __init__(self):
+    """Initialize loader."""
+    pass
 
   def create_dataset(self,
                      input_files: OneOrMany[str],
