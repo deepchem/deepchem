@@ -1352,7 +1352,7 @@ class DiskDataset(Dataset):
       w_next = np.zeros((0,) + w_shape[1:])
       ids_next = np.zeros((0,), dtype=object)
       for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
-        logger.info("Resharding shard %d/%d" % (shard_num, n_shards))
+        logger.info("Resharding shard %d/%d" % (shard_num + 1, n_shards))
         # Handle shapes
         X = np.reshape(X, (len(X),) + self.get_data_shape())
         # Note that this means that DiskDataset resharding currently doesn't
@@ -1815,9 +1815,19 @@ class DiskDataset(Dataset):
 
   def sparse_shuffle(self) -> None:
     """Shuffling that exploits data sparsity to shuffle large datasets.
+    
+    If feature vectors are sparse, say circular fingerprints or any other
+    representation that contains few nonzero values, it can be possible to
+    exploit the sparsity of the vector to simplify shuffles. This method
+    implements a sparse shuffle by compressing sparse feature vectors down
+    into a compressed representation, then shuffles this compressed dataset in
+    memory and writes the results to disk.
 
-    Only for 1-dimensional feature vectors (does not work for tensorial
-    featurizations).
+    Note
+    ----
+    This method only works for 1-dimensional feature vectors (does not work
+    for tensorial featurizations). Note that this shuffle is performed in
+    place.
     """
     time1 = time.time()
     shard_size = self.get_shard_size()
@@ -1855,52 +1865,84 @@ class DiskDataset(Dataset):
     logger.info("TIMING: sparse_shuffle took %0.3f s" % (time2 - time1))
 
   def complete_shuffle(self, data_dir: Optional[str] = None) -> "DiskDataset":
-    """
-    Completely shuffle across all data, across all shards.
+    """Completely shuffle across all data, across all shards.
 
-    Note: this loads all the data into ram, and can be prohibitively
-    expensive for larger datasets.
+    Note
+    ----
+    The algorithm used for this complete shuffle is O(N^2) where N is the
+    number of shards. It simply constructs each shard of the output dataset
+    one at a time. Since the complete shuffle can take a long time, it's
+    useful to watch the logging output. Each shuffled shard is constructed
+    using select() which logs as it selects from each original shard. This
+    will results in O(N^2) logging statements, one for each extraction of
+    shuffled shard i's contributions from original shard j.
 
     Parameters
     ----------
-    shard_size: int
-      size of the resulting dataset's size. If None, then the first
-      shard's shard_size will be used.
+    data_dir: Optional[str], (default None)
+      Directory to write the shuffled dataset to. If none is specified a
+      temporary directory will be used.
 
     Returns
     -------
     DiskDataset
-      A DiskDataset with a single shard.
-
+      A DiskDataset whose data is a randomly shuffled version of this dataset. 
     """
     # Create temp directory to store shuffled version
     shuffle_dir = tempfile.mkdtemp()
     n_shards = self.get_number_shards()
+    N = len(self)
+    perm = np.random.permutation(N)
+    shard_size = self.get_shard_size()
 
-    all_X = []
-    all_y = []
-    all_w = []
-    all_ids = []
-    for Xs, ys, ws, ids in self.itershards():
-      all_X.append(Xs)
-      if ys is not None:
-        all_y.append(ys)
-      if ws is not None:
-        all_w.append(ws)
-      all_ids.append(ids)
+    def generator():
+      start = 0
+      shard_num = 0
+      while start < N:
+        logger.info("Constructing shard %d" % shard_num)
+        if start + shard_size < N:
+          end = start + shard_size
+        else:
+          end = N
+        shard_indices = perm[start:end]
+        # Note that this is in sorted order which doesn't respect the random
+        # permutation.
+        shard_dataset = self.select(shard_indices)
+        # One bit of trickiness here is that select() will return in sorted
+        # order. For example, suppose we'd like these elements in our permuted
+        # shard:
+        #
+        # [12, 234, 1, 4]
+        #
+        # Then select would return elements in order
+        #
+        # [1, 4, 12, 234]
+        #
+        # We need to recover the original ordering. We can do this by using
+        # np.where to find the locatios of the original indices in the sorted
+        # indices.
+        sorted_indices = np.array(sorted(shard_indices))
+        reverted_indices = np.array(
+            # We know there's only one match for np.where since this is a
+            # permutation, so the [0][0] pulls out the exact match location.
+            [
+                np.where(sorted_indices == orig_index)[0][0]
+                for orig_index in shard_indices
+            ])
+        # Let's pull out shard elements
+        shard_X, shard_y, shard_w, shard_ids = (shard_dataset.X,
+                                                shard_dataset.y,
+                                                shard_dataset.w,
+                                                shard_dataset.ids)
 
-    Xs = np.concatenate(all_X)
-    ys = np.concatenate(all_y)
-    ws = np.concatenate(all_w)
-    ids = np.concatenate(all_ids)
+        yield (shard_X[reverted_indices], shard_y[reverted_indices],
+               shard_w[reverted_indices], shard_ids[reverted_indices])
 
-    perm = np.random.permutation(Xs.shape[0])
-    Xs = Xs[perm]
-    ys = ys[perm]
-    ws = ws[perm]
-    ids = ids[perm]
+        start = end
+        shard_num += 1
 
-    return DiskDataset.from_numpy(Xs, ys, ws, ids, data_dir=data_dir)
+    return DiskDataset.create_dataset(
+        generator(), data_dir=data_dir, tasks=self.get_task_names())
 
   def shuffle_each_shard(self,
                          shard_basenames: Optional[List[str]] = None) -> None:
@@ -2056,17 +2098,32 @@ class DiskDataset(Dataset):
     DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w, ids)
     self._cached_shards = None
 
-  def select(self, indices: Sequence[int],
-             select_dir: str = None) -> "DiskDataset":
+  def select(self,
+             indices: Sequence[int],
+             select_dir: Optional[str] = None,
+             sort_indices: Optional[bool] = True) -> "DiskDataset":
     """Creates a new dataset from a selection of indices from self.
+
+    Note
+    ----
+    The specified indices will be returned in sorted order. That is, if you
+    request that indices `[3, 1, 2]` are returned, you will get a
+    `DiskDataset` which contains elements in order `[1, 2, 3]`.
 
     Parameters
     ----------
     indices: list
       List of indices to select.
-    select_dir: string
+    select_dir: Optional[str], (default None)
       Path to new directory that the selected indices will be copied
       to.
+    sort_indices: Optional[bool], (default True)
+      If True, sort indices before returning them.
+
+    Returns
+    -------
+    DiskDataset
+      Contains selected indices.
     """
     if select_dir is not None:
       if not os.path.exists(select_dir):
