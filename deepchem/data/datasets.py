@@ -1668,10 +1668,12 @@ class DiskDataset(Dataset):
 
     return iterate(self)
 
-  def transform(self,
-                transformer: "dc.trans.Transformer",
-                parallel: bool = False,
-                out_dir: Optional[str] = None) -> "DiskDataset":
+  # FIXME: Signature of "transform" incompatible with supertype "Dataset"
+  def transform(  # type: ignore
+      self,
+      transformer: "dc.trans.Transformer",
+      parallel: bool = False,
+      out_dir: Optional[str] = None) -> "DiskDataset":
     """Construct a new dataset by applying a transformation to every sample in this dataset.
 
     The argument is a function that can be called as follows:
@@ -1744,7 +1746,7 @@ class DiskDataset(Dataset):
   @staticmethod
   def _transform_shard(transformer: "dc.trans.Transformer", shard_num: int,
                        X_file: str, y_file: str, w_file: str, ids_file: str,
-                       out_dir: str, tasks: np.ndarray) -> "DiskDataset":
+                       out_dir: str, tasks: np.ndarray) -> List[Optional[str]]:
     """This is called by transform() to transform a single shard."""
     X = None if X_file is None else np.array(load_from_disk(X_file))
     y = None if y_file is None else np.array(load_from_disk(y_file))
@@ -2567,13 +2569,11 @@ class ImageDataset(Dataset):
           if isinstance(dataset._X, np.ndarray):
             X_batch = dataset._X[perm_indices]
           else:
-            X_batch = dc.data.ImageLoader.load_img(
-                [dataset._X[i] for i in perm_indices])
+            X_batch = load_image_files([dataset._X[i] for i in perm_indices])
           if isinstance(dataset._y, np.ndarray):
             y_batch = dataset._y[perm_indices]
           else:
-            y_batch = dc.data.ImageLoader.load_img(
-                [dataset._y[i] for i in perm_indices])
+            y_batch = load_image_files([dataset._y[i] for i in perm_indices])
           w_batch = dataset._w[perm_indices]
           ids_batch = dataset._ids[perm_indices]
           if pad_batches:
@@ -2624,7 +2624,11 @@ class ImageDataset(Dataset):
     return ((self._get_image(self._X, i), self._get_image(self._y, i),
              self._w[i], self._ids[i]) for i in range(n_samples))
 
-  def transform(self, transformer: "dc.trans.Transformer") -> "ImageDataset":
+  # FIXME: Signature of "transform" incompatible with supertype "Dataset"
+  def transform(
+      self,
+      transformer: "dc.trans.Transformer"  # type: ignore
+  ) -> "ImageDataset":
     """Construct a new dataset by applying a transformation to every sample in this dataset.
 
     The argument is a function that can be called as follows:

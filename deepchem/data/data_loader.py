@@ -128,7 +128,7 @@ class DataLoader(object):
   def featurize(self,
                 inputs: OneOrMany[Any],
                 data_dir: Optional[str] = None,
-                shard_size: Optional[int] = 8192) -> Dataset:
+                shard_size: Optional[int] = None) -> Dataset:
     """Featurize provided files and write to specified location.
 
     DEPRECATED: This method is now a wrapper for `create_dataset()`
@@ -147,7 +147,7 @@ class DataLoader(object):
       List of inputs to process. Entries can be filenames or arbitrary objects.
     data_dir: str, default None
       Directory to store featurized dataset.
-    shard_size: int, default 8192
+    shard_size: int, default None
       Number of examples stored in each shard.
 
     Returns
@@ -164,7 +164,7 @@ class DataLoader(object):
   def create_dataset(self,
                      inputs: OneOrMany[Any],
                      data_dir: Optional[str] = None,
-                     shard_size: Optional[int] = 8192) -> Dataset:
+                     shard_size: Optional[int] = None) -> Dataset:
     """Creates and returns a `Dataset` object by featurizing provided files.
 
     Reads in `inputs` and uses `self.featurizer` to featurize the
@@ -183,7 +183,7 @@ class DataLoader(object):
       List of inputs to process. Entries can be filenames or arbitrary objects.
     data_dir: str, default None
       Directory to store featurized dataset.
-    shard_size: int, default 8192
+    shard_size: int, default None
       Number of examples stored in each shard.
 
     Returns
@@ -223,7 +223,7 @@ class DataLoader(object):
 
     return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
 
-  def _get_shards(self, inputs: List, shard_size: int) -> Iterator:
+  def _get_shards(self, inputs: List, shard_size: Optional[int]) -> Iterator:
     """Stub for children classes.
 
     Should implement a generator that walks over the source data in
@@ -241,7 +241,7 @@ class DataLoader(object):
     ----------
     inputs: list
       List of inputs to process. Entries can be filenames or arbitrary objects.
-    shard_size: int
+    shard_size: int, default None
       Number of examples stored in each shard.
     """
     raise NotImplementedError
@@ -353,14 +353,14 @@ class CSVLoader(DataLoader):
     self.log_every_n = log_every_n
 
   def _get_shards(self, input_files: List[str],
-                  shard_size: int) -> Iterator[pd.DataFrame]:
+                  shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
     """Defines a generator which returns data for each shard
 
     Parameters
     ----------
     input_files: List[str]
       List of filenames to process
-    shard_size: int
+    shard_size: int, default None
       The size of a shard of data to process at a time.
 
     Returns
@@ -447,14 +447,14 @@ class UserCSVLoader(CSVLoader):
   """
 
   def _get_shards(self, input_files: List[str],
-                  shard_size: int) -> Iterator[pd.DataFrame]:
+                  shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
     """Defines a generator which returns data for each shard
 
     Parameters
     ----------
     input_files: List[str]
       List of filenames to process
-    shard_size: int
+    shard_size: int, default None
       The size of a shard of data to process at a time.
 
     Returns
@@ -562,7 +562,7 @@ class JsonLoader(DataLoader):
   def create_dataset(self,
                      input_files: OneOrMany[str],
                      data_dir: Optional[str] = None,
-                     shard_size: int = 8192) -> DiskDataset:
+                     shard_size: Optional[int] = None) -> DiskDataset:
     """Creates a `Dataset` from input JSON files.
 
     Parameters
@@ -571,7 +571,7 @@ class JsonLoader(DataLoader):
       List of JSON filenames.
     data_dir: Optional[str], default None
       Name of directory where featurized data is stored.
-    shard_size: Optional[int], default 8192
+    shard_size: int, default None
       Shard size when loading data.
 
     Returns
@@ -630,7 +630,7 @@ class JsonLoader(DataLoader):
     return DiskDataset.create_dataset(shard_generator(), data_dir)
 
   def _get_shards(self, input_files: List[str],
-                  shard_size: int) -> Iterator[pd.DataFrame]:
+                  shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
     """Defines a generator which returns data for each shard
 
     Parameters
@@ -725,14 +725,14 @@ class SDFLoader(DataLoader):
     self.log_every_n = log_every_n
 
   def _get_shards(self, input_files: List[str],
-                  shard_size: int) -> Iterator[pd.DataFrame]:
+                  shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
     """Defines a generator which returns data for each shard
 
     Parameters
     ----------
     input_files: List[str]
       List of filenames to process
-    shard_size: int
+    shard_size: int, default None
       The size of a shard of data to process at a time.
 
     Returns
@@ -853,7 +853,7 @@ class ImageLoader(DataLoader):
   def create_dataset(self,
                      inputs: Union[OneOrMany[str], Tuple[Any]],
                      data_dir: Optional[str] = None,
-                     shard_size: int = 8192,
+                     shard_size: Optional[int] = None,
                      in_memory: bool = False) -> Dataset:
     """Creates and returns a `Dataset` object by featurizing provided image files and labels/weights.
 
@@ -872,7 +872,7 @@ class ImageLoader(DataLoader):
       one label/weight per file.
     data_dir: str, default None
       Directory to store featurized dataset.
-    shard_size: int, default 8192
+    shard_size: int, default None
       Shard size when loading data.
     in_memory: bool, default False
       If true, return in-memory NumpyDataset. Else return ImageDataset.
@@ -1008,7 +1008,7 @@ class InMemoryLoader(DataLoader):
   def create_dataset(self,
                      inputs: Sequence[Any],
                      data_dir: Optional[str] = None,
-                     shard_size: int = 8192) -> DiskDataset:
+                     shard_size: Optional[int] = None) -> DiskDataset:
     """Creates and returns a `Dataset` object by featurizing provided files.
 
     Reads in `inputs` and uses `self.featurizer` to featurize the
@@ -1028,7 +1028,7 @@ class InMemoryLoader(DataLoader):
       they are understood by `self.featurizer`
     data_dir: str, default None
       Directory to store featurized dataset.
-    shard_size: int, default 8192
+    shard_size: int, default None
       Number of examples stored in each shard.
 
     Returns
@@ -1061,7 +1061,7 @@ class InMemoryLoader(DataLoader):
     return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
 
   def _get_shards(self, inputs: List,
-                  shard_size: int) -> Iterator[pd.DataFrame]:
+                  shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
     """Break up input into shards.
 
     Parameters
@@ -1072,7 +1072,7 @@ class InMemoryLoader(DataLoader):
       `(featurization_input, label)` or `featurization_input` for one
       datapoint, where `featurization_input` is any input that is recognized
       by `self.featurizer`.
-    shard_size: int
+    shard_size: int, default None
       The size of shard to generate.
 
     Returns
@@ -1082,14 +1082,15 @@ class InMemoryLoader(DataLoader):
     """
     current_shard: List = []
     for i, datapoint in enumerate(inputs):
-      if i != 0 and i % shard_size == 0:
+      if i != 0 and shard_size is not None and i % shard_size == 0:
         shard_data = current_shard
         current_shard = []
         yield shard_data
       current_shard.append(datapoint)
     yield current_shard
 
-  def _featurize_shard(
+  # FIXME: Signature of "_featurize_shard" incompatible with supertype "DataLoader"
+  def _featurize_shard(  # type: ignore
       self, shard: List, global_index: int
   ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Featurizes a shard of an input data.
