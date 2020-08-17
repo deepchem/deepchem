@@ -118,7 +118,7 @@ DeepChem has a number of "soft" requirements.
 .. _`Pymatgen`: https://pymatgen.org/
 .. _`PyTorch`: https://pytorch.org/
 .. _`PyTorch Geometric`: https://pytorch-geometric.readthedocs.io/en/latest/
-.. _`RDKit`: http://www.rdkit.org/ocs/Install.html
+.. _`RDKit`: http://www.rdkit.org/docs/Install.html
 .. _`simdna`: https://github.com/kundajelab/simdna
 .. _`Tensorflow Probability`: https://www.tensorflow.org/probability
 .. _`XGBoost`: https://xgboost.readthedocs.io/en/latest/
