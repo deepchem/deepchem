@@ -30,24 +30,26 @@ def test_cgcnn():
   train, valid, test = datasets
 
   # initialize models
+  n_tasks = 1
   model = CGCNNModel(
       in_node_dim=92,
       hidden_node_dim=64,
       in_edge_dim=41,
       num_conv=3,
       predicator_hidden_feats=128,
-      n_out=1,
+      n_tasks=n_tasks,
       loss=losses.L2Loss(),
       batch_size=32,
       learning_rate=0.001)
 
-  # train
+  # check train
   model.fit(train, nb_epoch=50)
-  model.restore()
-  model.save_checkpoint()
-  # predict
-  model.predict_on_batch(valid.X)
-  model.predict_on_batch(test.X)
+
+  # check predict
+  valid_preds = model.predict_on_batch(valid.X)
+  assert valid_preds.shape == (10, n_tasks)
+  test_preds = model.predict(test)
+  assert test_preds.shape == (10, n_tasks)
 
   # eval model on test
   regression_metric = Metric(mae_score, n_tasks=1)

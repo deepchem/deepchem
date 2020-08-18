@@ -116,11 +116,11 @@ class CGCNN(nn.Module):
   >>> cgcnn_dgl_feat = cgcnn_feat.to_dgl_graph()
   >>> print(type(cgcnn_dgl_feat))
   <class 'dgl.graph.DGLGraph'>
-  >>> model = dc.models.CGCNN(n_out=1)
+  >>> model = dc.models.CGCNN(n_tasks=2)
   >>> out = model(cgcnn_dgl_feat)
   >>> print(type(out))
   <class 'torch.Tensor'>
-  >>> out.shape == (1, 1)
+  >>> out.shape == (1, 2)
   True
 
   References
@@ -141,7 +141,7 @@ class CGCNN(nn.Module):
       in_edge_dim: int = 41,
       num_conv: int = 3,
       predicator_hidden_feats: int = 128,
-      n_out: int = 1,
+      n_tasks: int = 1,
   ):
     """
     Parameters
@@ -157,20 +157,20 @@ class CGCNN(nn.Module):
     num_conv: int, default 3
       The number of convolutional layers.
     predicator_hidden_feats: int, default 128
-      Size of hidden graph representations in the predicator, default to 128.
-    n_out: int
+      Size for hidden representations in the output MLP predictor, default to 128.
+    n_tasks: int, default 1
       Number of the output size, default to 1.
     """
     super(CGCNN, self).__init__()
     self.embedding = nn.Linear(in_node_dim, hidden_node_dim)
-    self.convs = [
+    self.conv_layers = nn.ModuleList([
         CGCNNLayer(
             hidden_node_dim=hidden_node_dim,
             edge_dim=in_edge_dim,
             batch_norm=True) for _ in range(num_conv)
-    ]
+    ])
     self.fc = nn.Linear(hidden_node_dim, predicator_hidden_feats)
-    self.out = nn.Linear(predicator_hidden_feats, n_out)
+    self.out = nn.Linear(predicator_hidden_feats, n_tasks)
 
   def forward(self, dgl_graph):
     """Predict labels
@@ -184,7 +184,7 @@ class CGCNN(nn.Module):
     Returns
     -------
     out: torch.Tensor
-      The output value, the shape is `(batch_size, n_out)`.
+      The output value, the shape is `(batch_size, n_tasks)`.
     """
     try:
       import dgl
@@ -196,7 +196,7 @@ class CGCNN(nn.Module):
     graph.ndata['x'] = self.embedding(graph.ndata['x'])
 
     # convolutional layer
-    for conv in self.convs:
+    for conv in self.conv_layers:
       graph = conv(graph)
 
     # pooling
@@ -248,7 +248,7 @@ class CGCNNModel(TorchModel):
                in_edge_dim: int = 41,
                num_conv: int = 3,
                predicator_hidden_feats: int = 128,
-               n_out: int = 1,
+               n_tasks: int = 1,
                **kwargs):
     """
     Parameters
@@ -264,16 +264,17 @@ class CGCNNModel(TorchModel):
     num_conv: int, default 3
       The number of convolutional layers.
     predicator_hidden_feats: int, default 128
-      Size of hidden graph representations in the predicator, default to 128.
-    n_out: int, default 1
+      Size for hidden representations in the output MLP predictor, default to 128.
+    n_tasks: int, default 1
       Number of the output size, default to 1.
     loss: dc.models.losses.Loss or function
       A Loss or function defining how to compute the training loss for each
-      batch, as described above
+      batch, please confirm the details from `TorchModel` docstring.
     output_types: List[str], default None
-      The type of each output from the model, as described above
+      The type of each output from the model, please confirm the details
+      from `TorchModel` docstring.
     batch_size: int, default 100
-      Default batch size for training and evaluating
+      Default batch size for training and evaluating.
     model_dir: str, default None
       The directory on disk where the model will be stored.  If this is None,
       a temporary directory is created.
@@ -300,7 +301,7 @@ class CGCNNModel(TorchModel):
       chosen automatically.
     """
     model = CGCNN(in_node_dim, hidden_node_dim, in_edge_dim, num_conv,
-                  predicator_hidden_feats, n_out)
+                  predicator_hidden_feats, n_tasks)
     super(CGCNNModel, self).__init__(model, **kwargs)
 
   def _prepare_batch(self, batch):
@@ -332,5 +333,6 @@ class CGCNNModel(TorchModel):
     inputs, labels, weights = batch
     dgl_graphs = [graph.to_dgl_graph() for graph in inputs[0]]
     inputs = dgl.batch(dgl_graphs).to(self.device)
-    _, labels, weights = super(CGCNNModel, self)._prepare_batch(([], labels, weights))
+    _, labels, weights = super(CGCNNModel, self)._prepare_batch(([], labels,
+                                                                 weights))
     return inputs, labels, weights
