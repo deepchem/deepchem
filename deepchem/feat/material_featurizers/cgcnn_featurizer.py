@@ -39,6 +39,9 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
   >>> structure = mg.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
   >>> featurizer = CGCNNFeaturizer()
   >>> features = featurizer.featurize([structure])
+  >>> feature = features[0]
+  >>> print(type(feature))
+  <class 'deepchem.feat.graph_data.GraphData'>
 
   Notes
   -----

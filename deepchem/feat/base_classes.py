@@ -253,10 +253,10 @@ class MaterialStructureFeaturizer(Featurizer):
 
     Parameters
     ----------
-    structures: Iterable[Dict[str, Any]]
-      Iterable sequence of pymatgen structure dictionaries.
-      Dictionary representations of pymatgen.Structure
-      https://pymatgen.org/pymatgen.core.structure.html
+    structures: Iterable[Union[Dict, pymatgen.Structure]
+      Iterable sequence of pymatgen structure dictionaries
+      or pymatgen.Structure. Please confirm the dictionary representations
+      of pymatgen.Structure from https://pymatgen.org/pymatgen.core.structure.html.
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
 
@@ -265,23 +265,21 @@ class MaterialStructureFeaturizer(Featurizer):
     features: np.ndarray
       A numpy array containing a featurized representation of
       `structures`.
-
     """
-
-    structures = list(structures)
-
     try:
       from pymatgen import Structure
     except ModuleNotFoundError:
       raise ValueError("This class requires pymatgen to be installed.")
 
+    structures = list(structures)
     features = []
     for idx, structure in enumerate(structures):
       if idx % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % idx)
       try:
-        s = Structure.from_dict(structure)
-        features.append(self._featurize(s))
+        if isinstance(structure, Dict):
+          structure = Structure.from_dict(structure)
+        features.append(self._featurize(structure))
       except:
         logger.warning(
             "Failed to featurize datapoint %i. Appending empty array" % idx)

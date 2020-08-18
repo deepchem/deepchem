@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -12,6 +11,30 @@ class CGCNNLayer(nn.Module):
   This class was implemented using DGLGraph methods.
   Please confirm how to use DGLGraph methods from below link.
   See: https://docs.dgl.ai/en/0.4.x/tutorials/models/1_gnn/9_gat.html
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> import pymatgen as mg
+  >>> lattice = mg.Lattice.cubic(4.2)
+  >>> structure = mg.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
+  >>> featurizer = dc.feat.CGCNNFeaturizer()
+  >>> cgcnn_graph = featurizer.featurize([structure])[0]
+  >>> cgcnn_graph.num_node_features
+  92
+  >>> cgcnn_graph.num_edge_features
+  41
+  >>> cgcnn_dgl_graph = cgcnn_graph.to_dgl_graph()
+  >>> print(type(cgcnn_dgl_graph))
+  <class 'dgl.graph.DGLGraph'>
+  >>> layer = CGCNNLayer(hidden_node_dim=92, edge_dim=41)
+  >>> update_graph = layer(cgcnn_dgl_graph)
+  >>> print(type(update_graph))
+  <class 'dgl.graph.DGLGraph'>
+
+  Notes
+  -----
+  This class requires DGL and PyTorch to be installed.
   """
 
   def __init__(self,
@@ -79,6 +102,26 @@ class CGCNN(nn.Module):
   by nodes representing atom properties and edges representing connections between atoms
   in a crystal. And, this model updates the node representations using both neighbor node
   and edge representations. Please confirm the detail algorithms from [1]_.
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> import pymatgen as mg
+  >>> lattice = mg.Lattice.cubic(4.2)
+  >>> structure = mg.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
+  >>> featurizer = dc.feat.CGCNNFeaturizer()
+  >>> cgcnn_feat = featurizer.featurize([structure])[0]
+  >>> print(type(cgcnn_feat))
+  <class 'deepchem.feat.graph_data.GraphData'>
+  >>> cgcnn_dgl_feat = cgcnn_feat.to_dgl_graph()
+  >>> print(type(cgcnn_dgl_feat))
+  <class 'dgl.graph.DGLGraph'>
+  >>> model = dc.models.CGCNN(n_out=1)
+  >>> out = model(cgcnn_dgl_feat)
+  >>> print(type(out))
+  <class 'torch.Tensor'>
+  >>> out.shape == (1, 1)
+  True
 
   References
   ----------
@@ -172,10 +215,27 @@ class CGCNNModel(TorchModel):
 
   >> import deepchem as dc
   >> dataset_config = {"reload": False, "featurizer": dc.feat.CGCNNFeaturizer, "transformers": []}
-  >> tasks, datasets, transformers = dc.molnet.load_perovskite(reload=False)
+  >> tasks, datasets, transformers = dc.molnet.load_perovskite(**dataset_config)
   >> train, valid, test = datasets
   >> model = dc.models.CGCNNModel(loss=dc.models.losses.L2Loss(), batch_size=32, learning_rate=0.001)
   >> model.fit(train, nb_epoch=50)
+
+  This model takes arbitary crystal structures as an input, and predict material properties
+  using the element information and connection of atoms in the crystal. If you want to get
+  some material properties which has a high computational cost like band gap in the case
+  of DFT, this model may be useful. This model is one of variants of Graph Convolutional
+  Networks. The main differences between other GCN models are how to construct graphs and
+  how to update node representations. This model defines the crystal graph from structures
+  using distances between atoms. The crystal graph is an undirected multigraph which is defined
+  by nodes representing atom properties and edges representing connections between atoms
+  in a crystal. And, this model updates the node representations using both neighbor node
+  and edge representations. Please confirm the detail algorithms from [1]_.
+
+  References
+  ----------
+  .. [1] Xie, Tian, and Jeffrey C. Grossman. "Crystal graph convolutional neural networks
+     for an accurate and interpretable prediction of material properties." Physical review letters
+     120.14 (2018): 145301.
 
   Notes
   -----
@@ -205,8 +265,39 @@ class CGCNNModel(TorchModel):
       The number of convolutional layers.
     predicator_hidden_feats: int, default 128
       Size of hidden graph representations in the predicator, default to 128.
-    n_out: int
+    n_out: int, default 1
       Number of the output size, default to 1.
+    loss: dc.models.losses.Loss or function
+      A Loss or function defining how to compute the training loss for each
+      batch, as described above
+    output_types: List[str], default None
+      The type of each output from the model, as described above
+    batch_size: int, default 100
+      Default batch size for training and evaluating
+    model_dir: str, default None
+      The directory on disk where the model will be stored.  If this is None,
+      a temporary directory is created.
+    learning_rate: float or LearningRateSchedule, default 0.001
+      The learning rate to use for fitting.  If optimizer is specified, this is
+      ignored.
+    optimizer: Optimizer, default None
+      The optimizer to use for fitting.  If this is specified, learning_rate is
+      ignored.
+    tensorboard: bool, default False
+      Whether to log progress to TensorBoard during training
+    wandb: bool, default False
+      Whether to log progress to Weights & Biases during training
+    log_frequency: int, default 100
+      The frequency at which to log data. Data is logged using
+      `logging` by default. If `tensorboard` is set, data is also
+      logged to TensorBoard. If `wandb` is set, data is also logged
+      to Weights & Biases. Logging happens at global steps. Roughly,
+      a global step corresponds to one batch of training. If you'd
+      like a printout every 10 batch steps, you'd set
+      `log_frequency=10` for example.
+    device: torch.device, default None
+      The device on which to run computations.  If None, a device is
+      chosen automatically.
     """
     model = CGCNN(in_node_dim, hidden_node_dim, in_edge_dim, num_conv,
                   predicator_hidden_feats, n_out)
@@ -239,17 +330,7 @@ class CGCNNModel(TorchModel):
       raise ValueError("This class requires DGL to be installed.")
 
     inputs, labels, weights = batch
-    inputs = dgl.batch([graph.to_dgl_graph() for graph in inputs[0]]).to(
-        self.device)
-    if labels is not None:
-      labels = [
-          x.astype(np.float32) if x.dtype == np.float64 else x for x in labels
-      ]
-      labels = [torch.as_tensor(x, device=self.device) for x in labels]
-    if weights is not None:
-      weights = [
-          x.astype(np.float32) if x.dtype == np.float64 else x for x in weights
-      ]
-      weights = [torch.as_tensor(x, device=self.device) for x in weights]
-
+    dgl_graphs = [graph.to_dgl_graph() for graph in inputs[0]]
+    inputs = dgl.batch(dgl_graphs).to(self.device)
+    _, labels, weights = super(CGCNNModel, self)._prepare_batch(([], labels, weights))
     return inputs, labels, weights
