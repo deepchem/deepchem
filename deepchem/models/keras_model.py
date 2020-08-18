@@ -19,7 +19,7 @@ from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
-from deepchem.utils.typing import KerasLossFn, OneOrMany
+from deepchem.utils.typing import LossFn, OneOrMany
 
 try:
   import wandb
@@ -56,6 +56,16 @@ class KerasModel(Model):
   3. It provides various additional features not found in the
      Keras Model class, such as uncertainty prediction and
      saliency mapping.
+
+  Here is a simple example of code that uses KerasModel to train
+  a Keras model on a DeepChem dataset.
+
+  >> keras_model = tf.keras.Sequential([
+  >>    tf.keras.layers.Dense(1000, activation='tanh'),
+  >>    tf.keras.layers.Dense(1)
+  >> ])
+  >> model = KerasModel(keras_model, loss=dc.models.losses.L2Loss())
+  >> model.fit(dataset)
 
   The loss function for a model can be defined in two different
   ways.  For models that have only a single output and use a
@@ -118,7 +128,7 @@ class KerasModel(Model):
 
   def __init__(self,
                model: tf.keras.Model,
-               loss: Union[Loss, KerasLossFn],
+               loss: Union[Loss, LossFn],
                output_types: Optional[List[str]] = None,
                batch_size: int = 100,
                model_dir: Optional[str] = None,
@@ -157,7 +167,8 @@ class KerasModel(Model):
     log_frequency: int
       The frequency at which to log data. Data is logged using
       `logging` by default. If `tensorboard` is set, data is also
-      logged to TensorBoard. Logging happens at global steps. Roughly,
+      logged to TensorBoard. If `wandb` is set, data is also logged
+      to Weights & Biases. Logging happens at global steps. Roughly,
       a global step corresponds to one batch of training. If you'd
       like a printout every 10 batch steps, you'd set
       `log_frequency=10` for example.
@@ -166,7 +177,7 @@ class KerasModel(Model):
         model_instance=model, model_dir=model_dir, **kwargs)
     self.model = model
     if isinstance(loss, Loss):
-      self._loss_fn: KerasLossFn = _StandardLoss(model, loss)
+      self._loss_fn: LossFn = _StandardLoss(model, loss)
     else:
       self._loss_fn = loss
     self.batch_size = batch_size
@@ -227,7 +238,7 @@ class KerasModel(Model):
       return
     self._built = True
     self._global_step = tf.Variable(0, trainable=False)
-    self._tf_optimizer = self.optimizer._create_optimizer(self._global_step)
+    self._tf_optimizer = self.optimizer._create_tf_optimizer(self._global_step)
     self._checkpoint = tf.train.Checkpoint(
         optimizer=self._tf_optimizer, model=self.model)
 
@@ -271,7 +282,7 @@ class KerasModel(Model):
           deterministic: bool = False,
           restore: bool = False,
           variables: Optional[List[tf.Variable]] = None,
-          loss: Optional[KerasLossFn] = None,
+          loss: Optional[LossFn] = None,
           callbacks: Union[Callable, List[Callable]] = [],
           all_losses: Optional[List[float]] = None) -> float:
     """Train this model on a dataset.
@@ -324,7 +335,7 @@ class KerasModel(Model):
                     checkpoint_interval: int = 1000,
                     restore: bool = False,
                     variables: Optional[List[tf.Variable]] = None,
-                    loss: Optional[KerasLossFn] = None,
+                    loss: Optional[LossFn] = None,
                     callbacks: Union[Callable, List[Callable]] = [],
                     all_losses: Optional[List[float]] = None) -> float:
     """Train this model on data from a generator.
@@ -480,7 +491,7 @@ class KerasModel(Model):
                    y: Sequence,
                    w: Sequence,
                    variables: Optional[List[tf.Variable]] = None,
-                   loss: Optional[KerasLossFn] = None,
+                   loss: Optional[LossFn] = None,
                    callbacks: Union[Callable, List[Callable]] = [],
                    checkpoint: bool = True,
                    max_checkpoints_to_keep: int = 5) -> float:
@@ -1203,7 +1214,7 @@ class _StandardLoss(object):
       raise ValueError(
           "Loss functions expects exactly one each of outputs, labels, and weights"
       )
-    losses = self.loss(outputs[0], labels[0])
+    losses = self.loss._compute_tf_loss(outputs[0], labels[0])
     w = weights[0]
     if len(w.shape) < len(losses.shape):
       if isinstance(w, tf.Tensor):

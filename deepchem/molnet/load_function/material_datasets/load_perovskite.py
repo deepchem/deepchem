@@ -4,17 +4,16 @@ Perovskite crystal structures and formation energies.
 import os
 import logging
 import deepchem
-from deepchem.feat import Featurizer, MaterialStructureFeaturizer, MaterialCompositionFeaturizer
-from deepchem.trans import Transformer
+from deepchem.feat import MaterialStructureFeaturizer
 from deepchem.splits.splitters import Splitter
 from deepchem.molnet.defaults import get_defaults
 
-from typing import List, Tuple, Dict, Optional, Union, Any, Type, Callable
+from typing import List, Tuple, Dict, Optional, Any
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-PEROVSKITE_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/perovskite.tar.gz'
+PEROVSKITE_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/perovskite.tar.gz'
 
 # dict of accepted featurizers for this dataset
 # modify the returned dicts for your dataset
@@ -60,11 +59,11 @@ def load_perovskite(
   In benchmark studies, random forest models and crystal graph
   neural networks achieved mean average error of 0.23 and 0.05 eV/atom,
   respectively, during five-fold nested cross validation on this
-  dataset. 
+  dataset.
 
   For more details on the dataset see [1]_. For more details
   on previous benchmarks for this dataset, see [2]_.
-  
+
   Parameters
   ----------
   featurizer : MaterialStructureFeaturizer
@@ -103,9 +102,11 @@ def load_perovskite(
 
   References
   ----------
-  .. [1] Castelli, I. et al. "New cubic perovskites for one- and two-photon water splitting using the computational materials repository." Energy Environ. Sci., (2012), 5, 9034-9043 DOI: 10.1039/C2EE22341D.
-
-  .. [2] Dunn, A. et al. "Benchmarking Materials Property Prediction Methods: The Matbench Test Set and Automatminer Reference Algorithm." https://arxiv.org/abs/2005.00707 (2020)
+  .. [1] Castelli, I. et al. "New cubic perovskites for one- and two-photon water splitting
+     using the computational materials repository." Energy Environ. Sci., (2012), 5,
+     9034-9043 DOI: 10.1039/C2EE22341D.
+  .. [2] Dunn, A. et al. "Benchmarking Materials Property Prediction Methods:
+     The Matbench Test Set and Automatminer Reference Algorithm." https://arxiv.org/abs/2005.00707 (2020)
 
   Examples
   --------
@@ -156,12 +157,13 @@ def load_perovskite(
 
   # Load .tar.gz file
   if featurizer.__class__.__name__ in supported_featurizers:
-    dataset_file = os.path.join(data_dir, 'perovskite.tar.gz')
-    deepchem.utils.untargz_file(dataset_file, dest_dir=data_dir)
     dataset_file = os.path.join(data_dir, 'perovskite.json')
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=PEROVSKITE_URL, dest_dir=data_dir)
+      targz_file = os.path.join(data_dir, 'perovskite.tar.gz')
+      if not os.path.exists(targz_file):
+        deepchem.utils.download_url(url=PEROVSKITE_URL, dest_dir=data_dir)
+
       deepchem.utils.untargz_file(
           os.path.join(data_dir, 'perovskite.tar.gz'), data_dir)
 

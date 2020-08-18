@@ -3,10 +3,7 @@ Tests for bandgap loader.
 """
 
 import os
-import tempfile
-import shutil
 import numpy as np
-import deepchem as dc
 from deepchem.molnet import load_bandgap
 
 
