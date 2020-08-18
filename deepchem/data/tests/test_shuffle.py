@@ -1,16 +1,53 @@
 """
 Testing singletask/multitask dataset shuffling 
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import os
 import shutil
 import tempfile
 import unittest
 import deepchem as dc
 import numpy as np
+
+
+def test_complete_shuffle_one_shard():
+  """Test that complete shuffle works with only one shard."""
+  X = np.random.rand(10, 10)
+  dataset = dc.data.DiskDataset.from_numpy(X)
+  shuffled = dataset.complete_shuffle()
+  assert len(shuffled) == len(dataset)
+  assert not np.array_equal(shuffled.ids, dataset.ids)
+  assert sorted(shuffled.ids) == sorted(dataset.ids)
+  assert shuffled.X.shape == dataset.X.shape
+  assert shuffled.y.shape == dataset.y.shape
+  assert shuffled.w.shape == dataset.w.shape
+
+
+def test_complete_shuffle_multiple_shard():
+  """Test that complete shuffle works with multiple shards."""
+  X = np.random.rand(100, 10)
+  dataset = dc.data.DiskDataset.from_numpy(X)
+  dataset.reshard(shard_size=10)
+  shuffled = dataset.complete_shuffle()
+  assert len(shuffled) == len(dataset)
+  assert not np.array_equal(shuffled.ids, dataset.ids)
+  assert sorted(shuffled.ids) == sorted(dataset.ids)
+  assert shuffled.X.shape == dataset.X.shape
+  assert shuffled.y.shape == dataset.y.shape
+  assert shuffled.w.shape == dataset.w.shape
+
+
+def test_complete_shuffle_multiple_shard_uneven():
+  """Test that complete shuffle works with multiple shards and some shards not full size."""
+  X = np.random.rand(57, 10)
+  dataset = dc.data.DiskDataset.from_numpy(X)
+  dataset.reshard(shard_size=10)
+  shuffled = dataset.complete_shuffle()
+  assert len(shuffled) == len(dataset)
+  assert not np.array_equal(shuffled.ids, dataset.ids)
+  assert sorted(shuffled.ids) == sorted(dataset.ids)
+  assert shuffled.X.shape == dataset.X.shape
+  assert shuffled.y.shape == dataset.y.shape
+  assert shuffled.w.shape == dataset.w.shape
 
 
 def test_complete_shuffle():
@@ -22,8 +59,8 @@ def test_complete_shuffle():
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  dataset = loader.featurize(dataset_file, shard_size=2)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  dataset = loader.create_dataset(dataset_file, shard_size=2)
 
   X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w,
                                       dataset.ids)
@@ -52,8 +89,8 @@ def test_sparse_shuffle():
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  dataset = loader.featurize(dataset_file, shard_size=2)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  dataset = loader.create_dataset(dataset_file, shard_size=2)
 
   X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w,
                                       dataset.ids)

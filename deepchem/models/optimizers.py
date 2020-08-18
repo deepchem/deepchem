@@ -47,7 +47,7 @@ class Optimizer(object):
     -------
     a new PyTorch optimizer implementing the algorithm
     """
-    raise NotImplemented("Subclasses must implement this")
+    raise NotImplementedError("Subclasses must implement this")
 
 
 class LearningRateSchedule(object):
@@ -82,7 +82,7 @@ class LearningRateSchedule(object):
     -------
     a PyTorch scheduler implementing the schedule
     """
-    raise NotImplemented("Subclasses must implement this")
+    raise NotImplementedError("Subclasses must implement this")
 
 
 class AdaGrad(Optimizer):
@@ -91,13 +91,13 @@ class AdaGrad(Optimizer):
   Adagrad is an optimizer with parameter-specific learning rates, which are
   adapted relative to how frequently a parameter gets updated during training.
   The more updates a parameter receives, the smaller the updates. See [1]_ for
-a full reference for the algorithm.
+  a full reference for the algorithm.
 
-  Returns
-  -------
+  References
+  ----------
   .. [1] Duchi, John, Elad Hazan, and Yoram Singer. "Adaptive subgradient
-methods for online learning and stochastic optimization." Journal of machine
-learning research 12.7 (2011).
+     methods for online learning and stochastic optimization." Journal of machine
+     learning research 12.7 (2011).
   """
 
   def __init__(self,

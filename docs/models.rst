@@ -191,7 +191,7 @@ Optimizers
 .. autoclass:: deepchem.models.optimizers.LearningRateSchedule
   :members:
 
-.. autoclass:: deepchem.models.optimizers.Adagrad
+.. autoclass:: deepchem.models.optimizers.AdaGrad
   :members:
 
 .. autoclass:: deepchem.models.optimizers.Adam
