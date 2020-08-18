@@ -270,25 +270,24 @@ class CGCNNModel(TorchModel):
     loss: dc.models.losses.Loss or function
       A Loss or function defining how to compute the training loss for each
       batch, please confirm the details from `TorchModel` docstring.
-    output_types: List[str], default None
-      The type of each output from the model, please confirm the details
-      from `TorchModel` docstring.
-    batch_size: int, default 100
-      Default batch size for training and evaluating.
-    model_dir: str, default None
-      The directory on disk where the model will be stored.  If this is None,
+    output_types: list of strings, optional (default None)
+      the type of each output from the model, as described above
+    batch_size: int, optional (default 100)
+      default batch size for training and evaluating
+    model_dir: str, optional (default None)
+      the directory on disk where the model will be stored.  If this is None,
       a temporary directory is created.
-    learning_rate: float or LearningRateSchedule, default 0.001
-      The learning rate to use for fitting.  If optimizer is specified, this is
+    learning_rate: float or LearningRateSchedule, optional (default 0.001)
+      the learning rate to use for fitting.  If optimizer is specified, this is
       ignored.
-    optimizer: Optimizer, default None
-      The optimizer to use for fitting.  If this is specified, learning_rate is
+    optimizer: Optimizer, optional (default None)
+      the optimizer to use for fitting.  If this is specified, learning_rate is
       ignored.
-    tensorboard: bool, default False
-      Whether to log progress to TensorBoard during training
-    wandb: bool, default False
-      Whether to log progress to Weights & Biases during training
-    log_frequency: int, default 100
+    tensorboard: bool, optional (default False)
+      whether to log progress to TensorBoard during training
+    wandb: bool, optional (default False)
+      whether to log progress to Weights & Biases during training
+    log_frequency: int, optional (default 100)
       The frequency at which to log data. Data is logged using
       `logging` by default. If `tensorboard` is set, data is also
       logged to TensorBoard. If `wandb` is set, data is also logged
@@ -296,8 +295,8 @@ class CGCNNModel(TorchModel):
       a global step corresponds to one batch of training. If you'd
       like a printout every 10 batch steps, you'd set
       `log_frequency=10` for example.
-    device: torch.device, default None
-      The device on which to run computations.  If None, a device is
+    device: torch.device, optional (default None)
+      the device on which to run computations.  If None, a device is
       chosen automatically.
     """
     model = CGCNN(in_node_dim, hidden_node_dim, in_edge_dim, num_conv,
