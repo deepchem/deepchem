@@ -157,7 +157,7 @@ class MolecularFeaturizer(Featurizer):
   The subclasses of this class require RDKit to be installed.
   """
 
-  def featurize(self, molecules, log_every_n=1000, canonical=False):
+  def featurize(self, molecules, log_every_n=1000, canonical=True):
     """Calculate features for molecules.
 
     Parameters
@@ -167,7 +167,7 @@ class MolecularFeaturizer(Featurizer):
       strings.
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
-    canonical: bool, default False
+    canonical: bool, default True
       Whether to use a canonical order of atoms returned by RDKit
 
     Returns
