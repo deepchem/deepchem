@@ -1,16 +1,11 @@
 """
 Tests for hyperparam optimization.
 """
-import os
 import unittest
 import tempfile
-import shutil
 import numpy as np
-import tensorflow as tf
 import deepchem as dc
 import sklearn
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import RandomForestRegressor
 
 
 class TestGridHyperparamOpt(unittest.TestCase):
@@ -99,10 +94,10 @@ class TestGridHyperparamOpt(unittest.TestCase):
         np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
 
     optimizer = dc.hyper.GridHyperparamOpt(
-        lambda **p: dc.models.MultitaskRegressor(n_tasks=2,
-             n_features=3, dropouts=[0.],
-             weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
-             learning_rate=0.003, **p))
+        lambda **params: dc.models.MultitaskRegressor(n_tasks=2,
+                                                      n_features=3, dropouts=[0.],
+                                                      weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
+                                                      learning_rate=0.003, **params))
 
     params_dict = {"batch_size": [10, 20]}
     transformers = []
@@ -132,13 +127,12 @@ class TestGridHyperparamOpt(unittest.TestCase):
         np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
 
     optimizer = dc.hyper.GridHyperparamOpt(
-        lambda **p: dc.models.MultitaskRegressor(
+        lambda **params: dc.models.MultitaskRegressor(
             n_tasks=2,
             n_features=3,
             dropouts=[0.],
             weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
-            #learning_rate=0.003, **p))
-            **p))
+            **params))
 
     params_dict = {"learning_rate": [0.003, 0.03], "batch_size": [10, 50]}
     # These are per-example multiplier

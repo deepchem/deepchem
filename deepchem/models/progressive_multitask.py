@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 import collections
 
-from deepchem.utils.save import log
+import logging
 from deepchem.metrics import to_one_hot
 from deepchem.metrics import from_one_hot
 from deepchem.models import KerasModel, layers
@@ -11,16 +11,22 @@ from deepchem.models.losses import L2Loss, SparseSoftmaxCrossEntropy
 from deepchem.models.keras_model import _StandardLoss
 from tensorflow.keras.layers import Input, Dense, Dropout, ReLU, Concatenate, Add, Multiply, Softmax
 
+logger = logging.getLogger(__name__)
+
 
 class ProgressiveMultitaskRegressor(KerasModel):
   """Implements a progressive multitask neural network for regression.
-
-  Progressive Networks: https://arxiv.org/pdf/1606.04671v3.pdf
 
   Progressive networks allow for multitask learning where each task
   gets a new column of weights. As a result, there is no exponential
   forgetting where previous tasks are ignored.
 
+  References
+  ----------
+  See [1]_ for a full description of the progressive architecture
+
+  .. [1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
+         arXiv:1606.04671 (2016).
   """
 
   def __init__(self,

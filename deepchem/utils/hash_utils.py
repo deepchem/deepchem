@@ -1,14 +1,12 @@
 """
 Various utilities around hash functions.
 """
-import logging
+from typing import Callable, Dict, Optional, Tuple
 import numpy as np
 import hashlib
 
-logger = logging.getLogger(__name__)
 
-
-def hash_ecfp(ecfp, size):
+def hash_ecfp(ecfp: str, size: int = 1024) -> int:
   """
   Returns an int < size representing given ECFP fragment.
 
@@ -20,17 +18,22 @@ def hash_ecfp(ecfp, size):
   ecfp: str
     String to hash. Usually an ECFP fragment.
   size: int, optional (default 1024)
-    Hash to an int in range [0, size) 
+    Hash to an int in range [0, size)
+
+  Returns
+  -------
+  ecfp_hash: int
+    An int < size representing given ECFP fragment
   """
-  ecfp = ecfp.encode('utf-8')
+  bytes_ecfp = ecfp.encode('utf-8')
   md5 = hashlib.md5()
-  md5.update(ecfp)
+  md5.update(bytes_ecfp)
   digest = md5.hexdigest()
   ecfp_hash = int(digest, 16) % (size)
-  return (ecfp_hash)
+  return ecfp_hash
 
 
-def hash_ecfp_pair(ecfp_pair, size):
+def hash_ecfp_pair(ecfp_pair: Tuple[str, str], size: int = 1024) -> int:
   """Returns an int < size representing that ECFP pair.
 
   Input must be a tuple of strings. This utility is primarily used for
@@ -41,21 +44,28 @@ def hash_ecfp_pair(ecfp_pair, size):
 
   Parameters
   ----------
-  ecfp_pair: tuple
+  ecfp_pair: Tuple[str, str]
     Pair of ECFP fragment strings
   size: int, optional (default 1024)
-    Hash to an int in range [0, size) 
+    Hash to an int in range [0, size)
+
+  Returns
+  -------
+  ecfp_hash: int
+    An int < size representing given ECFP pair.
   """
   ecfp = "%s,%s" % (ecfp_pair[0], ecfp_pair[1])
-  ecfp = ecfp.encode('utf-8')
+  bytes_ecfp = ecfp.encode('utf-8')
   md5 = hashlib.md5()
-  md5.update(ecfp)
+  md5.update(bytes_ecfp)
   digest = md5.hexdigest()
   ecfp_hash = int(digest, 16) % (size)
-  return (ecfp_hash)
+  return ecfp_hash
 
 
-def vectorize(hash_function, feature_dict=None, size=1024):
+def vectorize(hash_function: Callable[[str, int], int],
+              feature_dict: Optional[Dict[int, str]] = None,
+              size: int = 1024) -> np.ndarray:
   """Helper function to vectorize a spatial description from a hash.
 
   Hash functions are used to perform spatial featurizations in
@@ -68,15 +78,20 @@ def vectorize(hash_function, feature_dict=None, size=1024):
 
   Parameters
   ----------
-  hash_function: function
+  hash_function: Function, Callable[[str, int], int]
     Should accept two arguments, `feature`, and `size` and
     return a hashed integer. Here `feature` is the item to
     hash, and `size` is an int. For example, if `size=1024`,
     then hashed values must fall in range `[0, 1024)`.
-  feature_dict: dict
-    Maps unique keys to features computed. 
+  feature_dict: Dict, optional (default None)
+    Maps unique keys to features computed.
   size: int, optional (default 1024)
     Length of generated bit vector
+
+  Returns
+  -------
+  feature_vector: np.ndarray
+    A numpy array of shape `(size,)`
   """
   feature_vector = np.zeros(size)
   if feature_dict is not None:

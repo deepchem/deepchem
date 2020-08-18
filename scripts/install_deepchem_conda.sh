@@ -13,30 +13,48 @@ else
     echo "Using python "$python_version". But recommended to use python 3.6."
 fi
 
-if [ -z "$1" ];
+if [ "$0" = "gpu" ];
 then
-    echo "Installing DeepChem in current env"
+    # We expect that the CUDA vesion is 10.1.
+    # This is because TensorFlow mainly supports CUDA 10.1.
+    cuda=cu101
+    dgl_pkg=dgl-cu101
+    echo "Installing DeepChem in the GPU envirionment"
 else
-    export envname=$1
-    conda create -y --name $envname python=$python_version
-    conda activate $envname
+    cuda=cpu
+    dgl_pkg=dgl
+    echo "Installing DeepChem in the CPU envirionment"
 fi
 
-yes | pip install --upgrade pip
-conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia \
-    biopython \
-    cloudpickle=1.4.1 \
-    mdtraj \
-    networkx \
-    openmm \
-    pdbfixer \
-    pillow \
-    py-xgboost \
-    rdkit \
-    simdna \
-    pymatgen \
-    pytest \
-    pytest-cov \
-    flaky
-yes | pip install pyGPGO
-yes | pip install -U matminer tensorflow==2.2 tensorflow-probability==0.10
+# Install dependencies except PyTorch and TensorFlow
+conda create -y --name deepchem python=$python_version
+conda activate deepchem
+conda env update --file $PWD/requirements.yml
+pip install -r $PWD/requirements-test.txt
+
+# Fixed packages
+tensorflow=2.2.0
+tensorflow_probability==0.10.1
+torch=1.6.0
+torchvision=0.7.0
+pyg_torch=1.6.0
+
+# Install TensorFlow dependencies
+pip install tensorflow==$tensorflow tensorflow-probability==$tensorflow_probability
+
+# Install PyTorch dependencies
+if [ "$(uname)" == 'Darwin' ];
+then
+    # For MacOSX
+    pip install torch==$torch torchvision==$torchvision
+else
+    pip install torch==$torch+$cuda torchvision==$torchvision+$cuda -f https://download.pytorch.org/whl/torch_stable.html
+fi
+
+# Install PyTorch Geometric and DGL dependencies
+pip install torch-scatter==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
+pip install torch-sparse==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
+pip install torch-cluster==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
+pip install torch-spline-conv==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
+pip install torch-geometric
+pip install $dgl_pkg

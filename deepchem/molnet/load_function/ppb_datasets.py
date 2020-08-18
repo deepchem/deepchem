@@ -8,7 +8,7 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-PPB_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/PPB.csv'
+PPB_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/PPB.csv"
 
 
 def load_ppb(featurizer='ECFP',

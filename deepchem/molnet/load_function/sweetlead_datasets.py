@@ -10,7 +10,7 @@ import deepchem as dc
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = dc.utils.get_data_dir()
-SWEETLEAD_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/sweet.csv.gz'
+SWEETLEAD_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/sweet.csv.gz"
 
 
 def load_sweet(featurizer='ECFP',
@@ -21,7 +21,7 @@ def load_sweet(featurizer='ECFP',
                save_dir=None,
                **kwargs):
   """Load sweet datasets.
-  
+
   Sweetlead is a dataset of chemical structures for approved drugs, chemical isolates from traditional medicinal herbs, and regulated chemicals. Resulting structures are filtered for the active pharmaceutical ingredient, standardized, and differing formulations of the same drug were combined in the final database.
 
   Novick, Paul A., et al. "SWEETLEAD: an in silico database of approved drugs, regulated chemicals, and herbal isolates for computer-aided drug discovery." PLoS One 8.11 (2013).
@@ -67,9 +67,7 @@ def load_sweet(featurizer='ECFP',
   dataset = loader.featurize(dataset_file)
 
   # Initialize transformers
-  transformers = [
-      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-  ]
+  transformers = [dc.trans.BalancingTransformer(dataset=dataset)]
   logger.info("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)

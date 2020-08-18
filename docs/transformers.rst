@@ -47,6 +47,12 @@ BalancingTransformer
 .. autoclass:: deepchem.trans.BalancingTransformer
   :members:
 
+DuplicateBalancingTransformer
+-----------------------------
+
+.. autoclass:: deepchem.trans.DuplicateBalancingTransformer
+  :members:
+
 CDFTransformer
 --------------
 

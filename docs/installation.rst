@@ -24,25 +24,25 @@ molnet depend on it.
 .. code-block:: bash
 
     pip install tensorflow-gpu==1.14
-    conda install -y -c rdkit -c conda-forge rdkit deepchem
+    conda install -y -c conda-forge rdkit deepchem
 
 For CPU only support instead run
 
 .. code-block:: bash
 
     pip install tensorflow==1.14
-    conda install -y -c rdkit -c conda-forge rdkit deepchem
+    conda install -y -c conda-forge rdkit deepchem
 
 
 Nightly build version
 ---------------------
 
 You install the nightly build version via pip.
-Nightly version is built by the HEAD of DeepChem.
+The nightly version is built by the HEAD of DeepChem.
 
 .. code-block:: bash
 
-    pip install tensorflow==2.2
+    pip install tensorflow==2.2.0
     pip install --pre deepchem
 
 
@@ -52,7 +52,7 @@ with deepchem if you use conda.
 
 .. code-block:: bash
 
-    conda install -y -c rdkit rdkit
+    conda install -y -c conda-forge rdkit
 
 
 Docker
@@ -138,14 +138,21 @@ Then, execute the shell script.
 
 .. code-block:: bash
 
-    bash scripts/install_deepchem_conda.sh deepchem
+    bash scripts/install_deepchem_conda.sh cpu
+
+
+If you want GPU support (we supports only CUDA 10.1):
+
+.. code-block:: bash
+
+    bash scripts/install_deepchem_conda.sh gpu
 
 
 If you are using the Windows and the PowerShell:
 
 .. code-block:: ps1
 
-    .\scripts\install_deepchem_conda.ps1 deepchem
+    .\scripts\install_deepchem_conda.ps1 cpu
 
 
 | Before activating deepchem environment, make sure conda has been initialized.

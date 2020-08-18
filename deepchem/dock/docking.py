@@ -1,14 +1,19 @@
 """
-Docks Molecular Complexes 
+Docks Molecular Complexes
 """
 import logging
-import numpy as np
-import os
 import tempfile
-from subprocess import call
+from typing import Generator, Optional, Tuple, Union
+import numpy as np
+
+from deepchem.utils.typing import RDKitMol
+from deepchem.models import Model
+from deepchem.feat import ComplexFeaturizer
 from deepchem.data import NumpyDataset
+from deepchem.dock import PoseGenerator
 
 logger = logging.getLogger(__name__)
+POSED_COMPLEX = Tuple[RDKitMol, RDKitMol]
 
 
 class Docker(object):
@@ -25,16 +30,19 @@ class Docker(object):
   generation and scoring classes that are provided to this class.
   """
 
-  def __init__(self, pose_generator, featurizer=None, scoring_model=None):
+  def __init__(self,
+               pose_generator: PoseGenerator,
+               featurizer: Optional[ComplexFeaturizer] = None,
+               scoring_model: Optional[Model] = None):
     """Builds model.
 
     Parameters
     ----------
-    pose_generator: `PoseGenerator`
+    pose_generator: PoseGenerator
       The pose generator to use for this model
-    featurizer: `ComplexFeaturizer`
+    featurizer: ComplexFeaturizer, optional (default None)
       Featurizer associated with `scoring_model`
-    scoring_model: `Model`
+    scoring_model: Model, optional (default None)
       Should make predictions on molecular complex.
     """
     if ((featurizer is not None and scoring_model is None) or
@@ -47,24 +55,32 @@ class Docker(object):
     self.scoring_model = scoring_model
 
   def dock(self,
-           molecular_complex,
-           centroid=None,
-           box_dims=None,
-           exhaustiveness=10,
-           num_modes=9,
-           num_pockets=None,
-           out_dir=None,
-           use_pose_generator_scores=False):
+           molecular_complex: Tuple[str, str],
+           centroid: Optional[np.ndarray] = None,
+           box_dims: Optional[np.ndarray] = None,
+           exhaustiveness: int = 10,
+           num_modes: int = 9,
+           num_pockets: Optional[int] = None,
+           out_dir: Optional[str] = None,
+           use_pose_generator_scores: bool = False
+          ) -> Union[Generator[POSED_COMPLEX, None, None], Generator[Tuple[
+              POSED_COMPLEX, float], None, None]]:
     """Generic docking function.
 
     This docking function uses this object's featurizer, pose
     generator, and scoring model to make docking predictions. This
-    function is written in generic style so  
+    function is written in generic style so
 
     Parameters
     ----------
-    molecular_complex: Object
-      Some representation of a molecular complex.
+    molecular_complex: Tuple[str, str]
+      A representation of a molecular complex. This tuple is
+      (protein_file, ligand_file).
+    centroid: np.ndarray, optional (default None)
+      The centroid to dock against. Is computed if not specified.
+    box_dims: np.ndarray, optional (default None)
+      A numpy array of shape `(3,)` holding the size of the box to dock. If not
+      specified is set to size of molecular complex plus 5 angstroms.
     exhaustiveness: int, optional (default 10)
       Tells pose generator how exhaustive it should be with pose
       generation.
@@ -80,18 +96,21 @@ class Docker(object):
     use_pose_generator_scores: bool, optional (default False)
       If `True`, ask pose generator to generate scores. This cannot be
       `True` if `self.featurizer` and `self.scoring_model` are set
-      since those will be used to generate scores in that case. 
+      since those will be used to generate scores in that case.
 
     Returns
     -------
-    A generator. If `use_pose_generator_scores==True` or
-    `self.scoring_model` is set, then will yield tuples
-    `(posed_complex, score)`. Else will yield `posed_complex`.
+    Generator[Tuple[`posed_complex`, `score`]] or Generator[`posed_complex`]
+      A generator. If `use_pose_generator_scores==True` or
+      `self.scoring_model` is set, then will yield tuples
+      `(posed_complex, score)`. Else will yield `posed_complex`.
     """
     if self.scoring_model is not None and use_pose_generator_scores:
       raise ValueError(
-          "Cannot set use_pose_generator_scores=True when self.scoring_model is set (since both generator scores for complexes)."
+          "Cannot set use_pose_generator_scores=True "
+          "when self.scoring_model is set (since both generator scores for complexes)."
       )
+
     outputs = self.pose_generator.generate_poses(
         molecular_complex,
         centroid=centroid,
@@ -105,11 +124,15 @@ class Docker(object):
       complexes, scores = outputs
     else:
       complexes = outputs
+
     # We know use_pose_generator_scores == False in this case
     if self.scoring_model is not None:
       for posed_complex in complexes:
+        # check whether self.featurizer is instance of ComplexFeaturizer or not
+        assert isinstance(self.featurizer, ComplexFeaturizer)
         # TODO: How to handle the failure here?
-        features, _ = self.featurizer.featurize_complexes([molecular_complex])
+        (protein_file, ligand_file) = molecular_complex
+        features, _ = self.featurizer.featurize([protein_file], [ligand_file])
         dataset = NumpyDataset(X=features)
         score = self.scoring_model.predict(dataset)
         yield (posed_complex, score)

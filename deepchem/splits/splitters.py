@@ -16,7 +16,6 @@ import deepchem as dc
 import logging
 from deepchem.data import DiskDataset
 from deepchem.utils import ScaffoldGenerator
-from deepchem.utils.save import log
 from deepchem.data import NumpyDataset
 from deepchem.utils.save import load_data
 

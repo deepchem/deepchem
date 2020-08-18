@@ -5,7 +5,6 @@ These tests fails every so often. I think it's when the Gaussian
 process optimizer doesn't find an optimal point. This is still a
 valuable test suite so leaving it in despite the flakiness.
 """
-import os
 import numpy as np
 import sklearn
 import deepchem as dc
@@ -43,12 +42,7 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
     metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
 
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
-        params_dict,
-        self.train_dataset,
-        self.valid_dataset,
-        transformers,
-        metric,
-        max_iter=2)
+        params_dict, self.train_dataset, self.valid_dataset, metric, max_iter=2)
 
     valid_score = best_model.evaluate(self.valid_dataset, [metric],
                                       transformers)
@@ -67,7 +61,6 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         params_dict,
         self.train_dataset,
         self.valid_dataset,
-        transformers,
         metric,
         use_max=False,
         max_iter=2)
@@ -88,7 +81,6 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
           params_dict,
           self.train_dataset,
           self.valid_dataset,
-          transformers,
           metric,
           logdir=tmpdirname,
           max_iter=2)
@@ -109,13 +101,12 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
 
     optimizer = dc.hyper.GaussianProcessHyperparamOpt(
-        lambda **p: dc.models.MultitaskRegressor(n_tasks=2,
-             n_features=3, dropouts=[0.],
-             weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
-             learning_rate=0.003, **p))
+        lambda **params: dc.models.MultitaskRegressor(n_tasks=2,
+                                                      n_features=3, dropouts=[0.],
+                                                      weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
+                                                      learning_rate=0.003, **params))
 
     params_dict = {"batch_size": 10}
-    transformers = []
     metric = dc.metrics.Metric(
         dc.metrics.mean_squared_error, task_averager=np.mean)
 
@@ -123,7 +114,6 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         params_dict,
         train_dataset,
         valid_dataset,
-        transformers,
         metric,
         max_iter=1,
         use_max=False)
@@ -144,17 +134,16 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
 
     optimizer = dc.hyper.GaussianProcessHyperparamOpt(
-        lambda **p: dc.models.MultitaskRegressor(
+        lambda **params: dc.models.MultitaskRegressor(
             n_tasks=2,
             n_features=3,
             dropouts=[0.],
             weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
-            **p))
+            **params))
 
     params_dict = {"learning_rate": 0.003, "batch_size": 10}
     # These are per-example multiplier
     search_range = {"learning_rate": 10, "batch_size": 4}
-    transformers = []
     metric = dc.metrics.Metric(
         dc.metrics.mean_squared_error, task_averager=np.mean)
 
@@ -163,7 +152,6 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
           params_dict,
           train_dataset,
           valid_dataset,
-          transformers,
           metric,
           max_iter=2,
           logdir=tmpdirname,

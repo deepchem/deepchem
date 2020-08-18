@@ -1,7 +1,9 @@
 """
 Imports all submodules
 """
-__version__ = '2.4.0-rc.1'
+
+# If you push the tag, please remove `.dev`
+__version__ = '2.4.0-rc1.dev'
 
 import deepchem.data
 import deepchem.feat

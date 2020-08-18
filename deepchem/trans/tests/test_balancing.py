@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import unittest
 import deepchem as dc
 import itertools
 import tempfile
@@ -18,8 +17,7 @@ def test_binary_1d():
   w = np.ones((n_samples,))
   dataset = dc.data.NumpyDataset(X, y, w)
 
-  balancing_transformer = dc.trans.BalancingTransformer(
-      transform_w=True, dataset=dataset)
+  balancing_transformer = dc.trans.BalancingTransformer(dataset=dataset)
   dataset = balancing_transformer.transform(dataset)
   X_t, y_t, w_t, ids_t = (dataset.X, dataset.y, dataset.w, dataset.ids)
   # Check ids are unchanged.
@@ -52,8 +50,7 @@ def test_binary_singletask():
   w = np.ones((n_samples, n_tasks))
   dataset = dc.data.NumpyDataset(X, y, w)
 
-  balancing_transformer = dc.trans.BalancingTransformer(
-      transform_w=True, dataset=dataset)
+  balancing_transformer = dc.trans.BalancingTransformer(dataset=dataset)
   dataset = balancing_transformer.transform(dataset)
   X_t, y_t, w_t, ids_t = (dataset.X, dataset.y, dataset.w, dataset.ids)
   # Check ids are unchanged.
@@ -86,9 +83,7 @@ def test_binary_multitask():
   w = np.ones((n_samples, n_tasks))
   multitask_dataset = dc.data.NumpyDataset(X, y, w)
   balancing_transformer = dc.trans.BalancingTransformer(
-      transform_w=True, dataset=multitask_dataset)
-  #X, y, w, ids = (multitask_dataset.X, multitask_dataset.y,
-  #                multitask_dataset.w, multitask_dataset.ids)
+      dataset=multitask_dataset)
   multitask_dataset = balancing_transformer.transform(multitask_dataset)
   X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y,
                           multitask_dataset.w, multitask_dataset.ids)
@@ -122,8 +117,7 @@ def test_multiclass_singletask():
   w = np.ones((n_samples, n_tasks))
   dataset = dc.data.NumpyDataset(X, y, w)
 
-  balancing_transformer = dc.trans.BalancingTransformer(
-      transform_w=True, dataset=dataset)
+  balancing_transformer = dc.trans.BalancingTransformer(dataset=dataset)
   dataset = balancing_transformer.transform(dataset)
   X_t, y_t, w_t, ids_t = (dataset.X, dataset.y, dataset.w, dataset.ids)
   # Check ids are unchanged.
@@ -157,8 +151,7 @@ def test_transform_to_directory():
   w = np.ones((n_samples,))
   dataset = dc.data.NumpyDataset(X, y, w)
 
-  balancing_transformer = dc.trans.BalancingTransformer(
-      transform_w=True, dataset=dataset)
+  balancing_transformer = dc.trans.BalancingTransformer(dataset=dataset)
   with tempfile.TemporaryDirectory() as tmpdirname:
     dataset = balancing_transformer.transform(dataset, out_dir=tmpdirname)
     balanced_dataset = dc.data.DiskDataset(tmpdirname)

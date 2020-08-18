@@ -9,9 +9,9 @@ import numpy as np
 import deepchem
 from deepchem.molnet.load_function.kaggle_features import merck_descriptors
 
-TRAIN_URL = 'https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/KINASE_training_disguised_combined_full.csv.gz'
-VALID_URL = 'https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/KINASE_test1_disguised_combined_full.csv.gz'
-TEST_URL = 'https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/KINASE_test2_disguised_combined_full.csv.gz'
+TRAIN_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KINASE_training_disguised_combined_full.csv.gz"
+VALID_UR = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KINASE_test1_disguised_combined_full.csv.gz"
+TEST_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KINASE_test2_disguised_combined_full.csv.gz"
 
 TRAIN_FILENAME = "KINASE_training_disguised_combined_full.csv.gz"
 VALID_FILENAME = "KINASE_test1_disguised_combined_full.csv.gz"

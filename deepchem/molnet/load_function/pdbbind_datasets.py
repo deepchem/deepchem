@@ -28,13 +28,13 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
 
   if not os.path.exists(dataset_dir):
     deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/core_grid.tar.gz'
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/featurized_datasets/core_grid.tar.gz"
     )
     deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/full_grid.tar.gz'
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/featurized_datasets/full_grid.tar.gz"
     )
     deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/refined_grid.tar.gz'
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/featurized_datasets/refined_grid.tar.gz"
     )
     if not os.path.exists(pdbbind_dir):
       os.system('mkdir ' + pdbbind_dir)
@@ -85,8 +85,8 @@ def load_pdbbind_grid(split="random",
 
     if not os.path.exists(dataset_file):
       deepchem.utils.download_url(
-          'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/' +
-          subset + "_smiles_labels.csv")
+          "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/" + subset +
+          "_smiles_labels.csv")
 
     tasks = ["-logKd/Ki"]
     if reload:
@@ -221,8 +221,7 @@ def load_pdbbind(reload=True,
   if not os.path.exists(dataset_file):
     logger.warning("About to download PDBBind full dataset. Large file, 2GB")
     deepchem.utils.download_url(
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/' +
-        "pdbbind_v2015.tar.gz",
+        "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbind_v2015.tar.gz",
         dest_dir=data_dir)
   if os.path.exists(data_folder):
     logger.info("PDBBind full dataset already exists.")
@@ -308,8 +307,7 @@ def load_pdbbind(reload=True,
 
   print("\nFeaturizing Complexes for \"%s\" ...\n" % data_folder)
   feat_t1 = time.time()
-  features, failures = featurizer.featurize_complexes(ligand_files,
-                                                      protein_files)
+  features, failures = featurizer.featurize(ligand_files, protein_files)
   feat_t2 = time.time()
   print("\nFeaturization finished, took %0.3f s." % (feat_t2 - feat_t1))
 
@@ -437,8 +435,7 @@ def load_pdbbind_from_dir(data_folder,
   else:
     raise ValueError("Featurizer not supported")
   print("Featurizing Complexes")
-  features, failures = featurizer.featurize_complexes(ligand_files,
-                                                      protein_files)
+  features, failures = featurizer.featurize(ligand_files, protein_files)
   # Delete labels for failing elements
   labels = np.delete(labels, failures)
   dataset = deepchem.data.DiskDataset.from_numpy(features, labels)

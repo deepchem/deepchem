@@ -8,7 +8,7 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-SIDER_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/sider.csv.gz'
+SIDER_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/sider.csv.gz"
 
 
 def load_sider(featurizer='ECFP',
@@ -18,7 +18,7 @@ def load_sider(featurizer='ECFP',
                data_dir=None,
                save_dir=None,
                **kwargs):
-  """Load SIDER datasets
+  """Load SIDER dataset
 
   The Side Effect Resource (SIDER) is a database of marketed
   drugs and adverse drug reactions (ADR). The version of the
@@ -26,20 +26,23 @@ def load_sider(featurizer='ECFP',
   27 system organ classes following MedDRA classifications
   measured for 1427 approved drugs.
 
-  The data file contains a csv table, in which columns below
-  are used:
+  Random splitting is recommended for this dataset.
+
+  The raw data csv file contains columns below:
 
   - "smiles": SMILES representation of the molecular structure
-  - "Hepatobiliary disorders" ~ "Injury, poisoning and procedural complications": Recorded side effects for the drug
+  - "Hepatobiliary disorders" ~ "Injury, poisoning and procedural 
+    complications": Recorded side effects for the drug. Please refer
+    to http://sideeffects.embl.de/se/?page=98 for details on ADRs.
 
-  Please refer to http://sideeffects.embl.de/se/?page=98 for details on ADRs.
-
-  References:
-  Kuhn, Michael, et al. "The SIDER database of drugs and side effects." Nucleic acids research 44.D1 (2015): D1075-D1079.
-  Altae-Tran, Han, et al. "Low data drug discovery with one-shot learning." ACS central science 3.4 (2017): 283-293.
-  Medical Dictionary for Regulatory Activities. http://www.meddra.org/
+  References
+  ----------
+  .. [1] Kuhn, Michael, et al. "The SIDER database of drugs and side effects."
+     Nucleic acids research 44.D1 (2015): D1075-D1079.
+  .. [2] Altae-Tran, Han, et al. "Low data drug discovery with one-shot 
+     learning." ACS central science 3.4 (2017): 283-293.
+  .. [3] Medical Dictionary for Regulatory Activities. http://www.meddra.org/
   """
-
   logger.info("About to load SIDER dataset.")
   if data_dir is None:
     data_dir = DEFAULT_DIR
@@ -93,9 +96,7 @@ def load_sider(featurizer='ECFP',
   logger.info("%d datapoints in SIDER dataset" % len(dataset))
 
   # Initialize transformers
-  transformers = [
-      deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-  ]
+  transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
   logger.info("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)

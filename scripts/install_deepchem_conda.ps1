@@ -8,32 +8,44 @@ else
     $python_version=3.6
 }
 
-if($args.Length -eq 1)
+if($args[0] -eq "gpu")
 {
-    $envname = $args[0]
-    conda create -y --name $envname python=$python_version
-    conda activate $envname
+    $cuda="cu101"
+    dgl_pkg="dgl-cu101"
+    echo "Installing DeepChem in the GPU envirionment"
 }
 else
 {
-    echo "Installing DeepChem in current env"
+    $cuda="cpu"
+    $dgl_pkg="dgl"
+    echo "Installing DeepChem in the CPU envirionment"
 }
 
-conda install -y -q -c deepchem -c rdkit -c conda-forge -c omnia `
-    biopython `
-    cloudpickle=1.4.1 `
-    mdtraj `
-    networkx `
-    openmm `
-    pdbfixer `
-    pillow `
-    py-xgboost `
-    rdkit `
-    simdna `
-    pymatgen `
-    pytest `
-    pytest-cov `
-    flaky
+# Install dependencies except PyTorch and TensorFlow
+conda create -y --name deepchem python=$python_version
+conda activate deepchem
+$path = Join-Path $Pwd "requirements.yml"
+conda env update --file $path
+$path = Join-Path $Pwd "requirements-test.txt"
+pip install -r $path
 
-pip install pyGPGO
-pip install -U matminer tensorflow==2.2 tensorflow-probability==0.10
+# Fixed packages
+$tensorflow=2.2.0
+$tensorflow_probability=0.10.1
+$torch=1.6.0
+$torchvision=0.7.0
+$pyg_torch=1.6.0
+
+# Install Tensorflow dependencies
+pip install tensorflow==$tensorflow tensorflow-probability==$tensorflow_probability
+
+# Install PyTorch dependencies
+pip install torch==$torch+$cuda torchvision==$torchvision+$cuda -f https://download.pytorch.org/whl/torch_stable.html
+
+# Install PyTorch Geometric and DGL dependencies
+pip install torch-scatter==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
+pip install torch-sparse==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
+pip install torch-cluster==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
+pip install torch-spline-conv==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
+pip install torch-geometric
+pip install $dgl_pkg

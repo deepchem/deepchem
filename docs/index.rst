@@ -52,27 +52,27 @@ Google Colab. Check out one of the `DeepChem Tutorials`_ or this
 `forum post`_ for Colab quick start guides.
 
 If you'd like to install DeepChem locally, we recommend using
-:code:`conda` and installing RDKit with deepchem. 
+:code:`conda` and installing RDKit with deepchem.
 RDKit is a soft requirement package, but many useful methods like
 molnet depend on it.
 
 .. code-block:: bash
 
     pip install tensorflow-gpu==1.14
-    conda install -y -c rdkit -c conda-forge rdkit deepchem
+    conda install -y -c conda-forge rdkit deepchem
 
 For CPU only support instead run
 
 .. code-block:: bash
 
     pip install tensorflow==1.14
-    conda install -y -c rdkit -c conda-forge rdkit deepchem
+    conda install -y -c conda-forge rdkit deepchem
 
 Then open your python and try running.
 
 .. code-block:: python
 
-    import deepchem 
+    import deepchem
 
 .. _`DeepChem Tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials
 .. _`forum post`: https://forum.deepchem.io/t/getting-deepchem-running-in-colab/81
@@ -108,7 +108,7 @@ That said, we would very much appreciate a citation if you find our tools useful
 Getting Involved
 ----------------
 
-Support the DeepChem project by starring us on `on GitHub`_.  
+Support the DeepChem project by starring us on `on GitHub`_.
 Join our forums at https://forum.deepchem.io to participate in
 discussions about research, development or any general questions. If you'd like to talk to real human beings involved in the project, say hi on our `Gitter`_ chatroom.
 
@@ -116,27 +116,42 @@ discussions about research, development or any general questions. If you'd like 
 .. _`on GitHub`: https://github.com/deepchem/deepchem
 .. _`Gitter`: https://gitter.im/deepchem/Lobby
 
-.. important:: Join our `community gitter <https://forms.gle/9TSdDYUgxYs8SA9e8>`_ to discuss DeepChem. Sign up for our `forums <https://forum.deepchem.io/>`_ to talk about research, development, and general questions. 
+.. important:: Join our `community gitter <https://forms.gle/9TSdDYUgxYs8SA9e8>`_ to discuss DeepChem. Sign up for our `forums <https://forum.deepchem.io/>`_ to talk about research, development, and general questions.
 
 .. toctree::
+   :glob:
    :maxdepth: 2
-   :caption: Table of Contents 
-   :name: mastertoc
 
-   Introduction <index>
-   Tutorial <tutorial>
-   Installation <installation>
-   Datasets <datasets>
-   Data Loaders <dataloaders>
-   Featurizers <featurizers>
-   Splitters <splitters>
-   Transformers <transformers>
-   Models <models>
-   Layers <layers>
-   Metrics <metrics>
-   Hyperparameter Tuning <hyper>
-   MoleculeNet <moleculenet>
-   Metalearning <metalearning>
-   Reinforcement Learning <rl>
-   Docking <docking>
-   Utilities <utils>
+   :caption: Get Started
+
+   tutorial
+   installation
+   requirements
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :caption: API Reference
+
+   datasets
+   dataloaders
+   dataclasses
+   moleculenet
+   featurizers
+   splitters
+   transformers
+   models
+   layers
+   metrics
+   hyper
+   metalearning
+   rl
+   docking
+   utils
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :caption: Contribution guide
+
+   coding

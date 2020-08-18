@@ -7,6 +7,7 @@ import tempfile
 from scipy import misc
 import deepchem as dc
 import zipfile
+import numpy as np
 
 
 class TestImageLoader(unittest.TestCase):
@@ -61,6 +62,13 @@ class TestImageLoader(unittest.TestCase):
     dataset = loader.featurize(self.face_path)
     # These are the known dimensions of face.png
     assert dataset.X.shape == (1, 768, 1024, 3)
+
+  def test_png_simple_load_with_labels(self):
+    loader = dc.data.ImageLoader()
+    dataset = loader.featurize((self.face_path, np.array(1)))
+    # These are the known dimensions of face.png
+    assert dataset.X.shape == (1, 768, 1024, 3)
+    assert (dataset.y == np.ones((1,))).all()
 
   def test_tif_simple_load(self):
     loader = dc.data.ImageLoader()

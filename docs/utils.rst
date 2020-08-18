@@ -54,7 +54,7 @@ File Handling
 
 .. autofunction:: deepchem.utils.save.load_csv_files
 
-.. autofunction:: deepchem.utils.save.save_metadata
+.. autofunction:: deepchem.utils.save.load_json_files
 
 .. autofunction:: deepchem.utils.save.load_from_disk
 
@@ -73,18 +73,37 @@ Molecular Utilities
 .. autoclass:: deepchem.utils.conformers.ConformerGenerator
   :members:
 
-.. autoclass:: deepchem.utils.rdkit_util.MoleculeLoadException
+.. autoclass:: deepchem.utils.rdkit_utils.MoleculeLoadException
   :members:
 
-.. autofunction:: deepchem.utils.rdkit_util.get_xyz_from_mol
+.. autofunction:: deepchem.utils.rdkit_utils.get_xyz_from_mol
 
-.. autofunction:: deepchem.utils.rdkit_util.add_hydrogens_to_mol
+.. autofunction:: deepchem.utils.rdkit_utils.add_hydrogens_to_mol
 
-.. autofunction:: deepchem.utils.rdkit_util.compute_charges
+.. autofunction:: deepchem.utils.rdkit_utils.compute_charges
 
-.. autofunction:: deepchem.utils.rdkit_util.load_molecule
+.. autofunction:: deepchem.utils.rdkit_utils.load_molecule
 
-.. autofunction:: deepchem.utils.rdkit_util.write_molecule
+.. autofunction:: deepchem.utils.rdkit_utils.write_molecule
+
+Molecular Fragment Utilities
+----------------------------
+
+It's often convenient to manipulate subsets of a molecule. The :code:`MolecularFragment` class aids in such manipulations.
+
+.. autoclass:: deepchem.utils.fragment_utils.MolecularFragment
+  :members:
+
+.. autoclass:: deepchem.utils.fragment_utils.AtomShim
+  :members:
+
+.. autofunction:: deepchem.utils.fragment_utils.strip_hydrogens
+
+.. autofunction:: deepchem.utils.fragment_utils.merge_molecular_fragments
+
+.. autofunction:: deepchem.utils.fragment_utils.get_contact_atom_indices
+
+.. autofunction:: deepchem.utils.fragment_utils.reduce_molecular_complex_to_contacts
 
 Coordinate Box Utilities
 ------------------------
@@ -111,16 +130,13 @@ Evaluation Utils
 
 .. autofunction:: deepchem.utils.evaluate.relative_difference
 
-.. autofunction:: deepchem.utils.evaluate.threshold_predictions
 
 Genomic Utilities
 -----------------
 
-.. autofunction:: deepchem.utils.genomics.seq_one_hot_encode
+.. autofunction:: deepchem.utils.genomics_utils.seq_one_hot_encode
 
-.. autofunction:: deepchem.utils.genomics.encode_fasta_sequence
-
-.. autofunction:: deepchem.utils.genomics.encode_bio_sequence
+.. autofunction:: deepchem.utils.genomics_utils.encode_bio_sequence
 
 
 Geometry Utilities

@@ -8,8 +8,8 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-GDB9_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb9.tar.gz'
-QM9_CSV_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm9.csv'
+GDB9_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/gdb9.tar.gz"
+QM9_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm9.csv"
 
 
 def load_qm9(featurizer='CoulombMatrix',
@@ -19,7 +19,55 @@ def load_qm9(featurizer='CoulombMatrix',
              data_dir=None,
              save_dir=None,
              **kwargs):
-  """Load qm9 datasets."""
+  """Load QM9 dataset
+
+  QM9 is a comprehensive dataset that provides geometric, energetic, 
+  electronic and thermodynamic properties for a subset of GDB-17 database, 
+  comprising 134 thousand stable organic molecules with up to 9 heavy atoms.
+  All moleucles are modeled using density functional theory
+  (B3LYP/6-31G(2df,p) based DFT).
+
+  Random splitting is recommended for this dataset.
+
+  The source data contain:
+
+  - qm9.sdf: molecular structures
+  - qm9.sdf.csv: tables for molecular properties
+
+    - "mol_id" - Molecule ID (gdb9 index) mapping to the .sdf file
+    - "A" - Rotational constant (unit: GHz)
+    - "B" - Rotational constant (unit: GHz)
+    - "C" - Rotational constant (unit: GHz)
+    - "mu" - Dipole moment (unit: D)
+    - "alpha" - Isotropic polarizability (unit: Bohr^3)
+    - "homo" - Highest occupied molecular orbital energy (unit: Hartree)
+    - "lumo" - Lowest unoccupied molecular orbital energy (unit: Hartree)
+    - "gap" - Gap between HOMO and LUMO (unit: Hartree)
+    - "r2" - Electronic spatial extent (unit: Bohr^2)
+    - "zpve" - Zero point vibrational energy (unit: Hartree)
+    - "u0" - Internal energy at 0K (unit: Hartree)
+    - "u298" - Internal energy at 298.15K (unit: Hartree)
+    - "h298" - Enthalpy at 298.15K (unit: Hartree)
+    - "g298" - Free energy at 298.15K (unit: Hartree)
+    - "cv" - Heat capavity at 298.15K (unit: cal/(mol*K))
+    - "u0_atom" - Atomization energy at 0K (unit: kcal/mol)
+    - "u298_atom" - Atomization energy at 298.15K (unit: kcal/mol)
+    - "h298_atom" - Atomization enthalpy at 298.15K (unit: kcal/mol)
+    - "g298_atom" - Atomization free energy at 298.15K (unit: kcal/mol)
+
+  "u0_atom" ~ "g298_atom" (used in MoleculeNet) are calculated from the 
+  differences between "u0" ~ "g298" and sum of reference energies of all 
+  atoms in the molecules, as given in
+  https://figshare.com/articles/Atomref%3A_Reference_thermochemical_energies_of_H%2C_C%2C_N%2C_O%2C_F_atoms./1057643
+
+  References
+  ----------
+  .. [1] Blum, Lorenz C., and Jean-Louis Reymond. "970 million druglike small
+     molecules for virtual screening in the chemical universe database GDB-13."
+     Journal of the American Chemical Society 131.25 (2009): 8732-8733.
+  .. [2] Ramakrishnan, Raghunathan, et al. "Quantum chemistry structures and 
+     properties of 134 kilo molecules." Scientific data 1 (2014): 140022.
+  """
   # Featurize qm9 dataset
   logger.info("About to featurize qm9 dataset.")
   qm9_tasks = [

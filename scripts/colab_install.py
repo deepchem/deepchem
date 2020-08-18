@@ -15,13 +15,13 @@ logger.addHandler(StreamHandler())
 logger.setLevel(INFO)
 
 default_channels = [
-    "-c",
-    "rdkit",
-    "-c",
     "conda-forge",
+    "omnia",
 ]
 default_packages = [
     "rdkit",
+    "openmm",
+    "pdbfixer",
 ]
 
 
@@ -31,38 +31,33 @@ def install(
     url_base="https://repo.continuum.io/miniconda/",
     conda_path=os.path.expanduser(os.path.join("~", "miniconda")),
     add_python_path=True,
-    version=None,
-    # default channels are "conda-forge" and "rdkit"
+    # default channels are "conda-forge" and "omnia"
     additional_channels=[],
-    # default packages are "rdkit" and "deepchem"
+    # default packages are "rdkit", "openmm" and "pdbfixer"
     additional_packages=[],
-    # whether to clean install or not
-    force=False):
-  """install deepchem on Google Colab
+):
+  """Install conda packages on Google Colab
 
     For GPU/CPU notebook
-    (if you don't set the version, this script will install the latest package)
     ```
-    import deepchem_installer
-    deepchem_installer.install(version='2.4.0')
+    import conda_installer
+    conda_installer.install()
     ```
 
-    If you want to add soft dependent packages, you can use additional_conda_channels and 
+    If you want to add other packages, you can use additional_conda_channels and 
     additional_conda_package arguments. Please see the example.
     ```
-    import deepchem_installer
-    deepchem_installer.install(
-      version='2.4.0',
+    import conda_installer
+    conda_installer.install(
       additional_conda_channels=[]
       additional_conda_packages=["mdtraj", "networkx"]
     )
 
     // add channel
-    import deepchem_installer
-    deepchem_installer.install(
-      version='2.4.0',
-      additional_conda_channels=["-c", "omnia"]
-      additional_conda_packages=["openmm"]
+    import conda_installer
+    conda_installer.install(
+      additional_conda_channels=["dglteam"]
+      additional_conda_packages=["dgl-cuda10.1"]
     )
     ```
   """
@@ -78,12 +73,15 @@ def install(
     logger.info("add {} to PYTHONPATH".format(python_path))
     sys.path.append(python_path)
 
-  if os.path.isdir(os.path.join(python_path, "deepchem")):
-    logger.info("deepchem is already installed")
-    if not force:
-      return
+  is_installed = []
+  packages = list(set(default_packages + additional_packages))
+  for package in packages:
+    package = "simtk" if package == "openmm" else package
+    is_installed.append(os.path.isdir(os.path.join(python_path, package)))
 
-    logger.info("force re-install")
+  if all(is_installed):
+    logger.info("all packages are already installed")
+    return
 
   url = url_base + file_name
   python_version = "{0}.{1}.{2}".format(*sys.version_info)
@@ -109,23 +107,23 @@ def install(
   subprocess.check_call(["bash", file_name, "-b", "-p", conda_path])
   logger.info('done')
 
-  logger.info("installing deepchem")
-  deepchem = "deepchem" if version is None else "deepchem=={}".format(version)
+  logger.info("installing rdkit, openmm, pdbfixer")
+  channels = list(set(default_channels + additional_channels))
+  for channel in channels:
+    subprocess.check_call([
+        os.path.join(conda_path, "bin", "conda"), "config", "--append",
+        "channels", channel
+    ])
+    logger.info("added {} to channels".format(channel))
   subprocess.check_call([
       os.path.join(conda_path, "bin", "conda"),
       "install",
       "--yes",
-      *default_channels,
-      *additional_channels,
       "python=={}".format(python_version),
-      *default_packages,
-      *additional_packages,
-      deepchem,
+      *packages,
   ])
   logger.info("done")
-
-  import deepchem
-  logger.info("deepchem-{} installation finished!".format(deepchem.__version__))
+  logger.info("conda packages installation finished!")
 
 
 if __name__ == "__main__":
