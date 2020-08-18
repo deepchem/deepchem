@@ -262,8 +262,8 @@ def normalize_prediction_shape(y: np.ndarray,
       all_y_task = []
       for task in range(n_tasks):
         y_task = y[:, task]
-        # Handle continuous class probabilites of positive class for binary
         if len(np.unique(y_task)) > n_classes:
+          # Handle continuous class probabilites of positive class for binary
           if n_classes > 2:
             raise ValueError(
                 "Cannot handle continuous probabilities for multiclass problems."
@@ -273,8 +273,8 @@ def normalize_prediction_shape(y: np.ndarray,
           # Add a task dimension to concatenate on
           y_task = np.expand_dims(y_task, 1)
           all_y_task.append(y_task)
-        # Handle binary labels
         else:
+          # Handle binary labels
           # make y_hot of shape (N, n_classes)
           y_task = to_one_hot(y_task, n_classes=n_classes)
           # Add a task dimension to concatenate on
@@ -636,6 +636,7 @@ class Metric(object):
       else:
         n_tasks = self.n_tasks
     # check whether n_tasks is int or not
+    # This is because `normalize_weight_shape` require int value.
     assert isinstance(n_tasks, int)
 
     y_true = normalize_labels_shape(

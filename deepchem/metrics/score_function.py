@@ -60,7 +60,7 @@ def jaccard_index(y: np.ndarray, y_pred: np.ndarray) -> float:
   return jaccard_score(y, y_pred)
 
 
-def pixel_error(y: np.ndarray, y_pred: np.ndarray):
+def pixel_error(y: np.ndarray, y_pred: np.ndarray) -> float:
   """An error metric in case y, y_pred are images.
 
   Defined as 1 - the maximal F-score of pixel similarity, or squared
@@ -110,7 +110,7 @@ def mae_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
   return mean_absolute_error(y_true, y_pred)
 
 
-def bedroc_score(y_true: np.ndarray, y_pred: np.ndarray, alpha=20.0):
+def bedroc_score(y_true: np.ndarray, y_pred: np.ndarray, alpha: float = 20.0):
   """Compute BEDROC metric.
 
   BEDROC metric implemented according to Truchon and Bayley that modifies
