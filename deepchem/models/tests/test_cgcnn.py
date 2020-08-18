@@ -52,7 +52,7 @@ def test_cgcnn():
   assert test_preds.shape == (10, n_tasks)
 
   # eval model on test
-  regression_metric = Metric(mae_score, n_tasks=1)
+  regression_metric = Metric(mae_score, n_tasks=n_tasks)
   scores = model.evaluate(test, [regression_metric])
   assert scores[regression_metric.name] < 1.0
 
