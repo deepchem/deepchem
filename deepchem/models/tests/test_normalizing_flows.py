@@ -57,4 +57,4 @@ class TestNormalizingFlow(unittest.TestCase):
 
     # # Fit model
     final = self.nfm.fit(self.dataset, nb_epoch=5)
-    assert final < 0
+    assert final > 0

@@ -7,9 +7,10 @@ import logging
 from typing import List, Iterable, Optional, Tuple, Sequence, Any
 
 import tensorflow as tf
+from tensorflow.keras.layers import Lambda
 
 import deepchem as dc
-from deepchem.models.losses import Loss, NegLogLoss
+from deepchem.models.losses import Loss
 from deepchem.models.models import Model
 from deepchem.models.keras_model import KerasModel
 from deepchem.models.optimizers import Optimizer, Adam
@@ -101,10 +102,6 @@ class NormalizingFlowModel(KerasModel):
 
   def __init__(self,
                model: NormalizingFlow,
-               loss=NegLogLoss,
-               optimizer=Adam,
-               learning_rate: float = 1e-5,
-               batch_size: int = 64,
                **kwargs):
     """Creates a new NormalizingFlowModel.
 
@@ -116,8 +113,6 @@ class NormalizingFlowModel(KerasModel):
       Loss function
     optimizer: dc.models.optimizers.Optimizer, default Adam
       Optimizer.
-    learning_rate: float, default 1e-5
-      Learning rate for optimizer.
     
 
     Examples
@@ -152,135 +147,38 @@ class NormalizingFlowModel(KerasModel):
 
     self.model = model
     self.flow = model.flow  # normalizing flow
-    self.loss = loss()
-    self.batch_size = batch_size
-    self.learning_rate = learning_rate
 
-    self.optimizer = optimizer(learning_rate=learning_rate)
-
-    self.built = False
-    self.build()
-
-    super(NormalizingFlowModel, self).__init__(
-        model=self.model, loss=self.loss, optimizer=self.optimizer, **kwargs)
-
-  def build(self):
     """Initialize tf network."""
     x = self.flow.distribution.sample(self.flow.distribution.batch_shape)
     for b in reversed(self.flow.bijector.bijectors):
       x = b.forward(x)
 
-    self.built = True
 
-  # def fit_generator(self,
-  #                   generator,
-  #                   max_checkpoints_to_keep=5,
-  #                   checkpoint_interval=1000,
-  #                   restore=False,
-  #                   variables=None,
-  #                   loss=None,
-  #                   callbacks=[]):
+    self.nll_loss_fn = lambda output, labels, weights: self.create_nll(output)
 
-  #   for batch in generator:
-  #     X, y, w = self._prepare_batch(batch)
+    super(NormalizingFlowModel, self).__init__(
+        model=self.model, loss=self.nll_loss_fn, **kwargs)
 
-  #     # X = tf.convert_to_tensor(next(gen)[0], tf.float32)
-  #     batch_loss = self.fit_on_batch(x)
-  #     logger.info('Loss on epoch %i is %.4f' % (epoch, batch_loss))
-  #     avg_loss += batch_loss
-  #     nbatches += 1
+  def create_nll(self, output):
+    """Create the negative log loss function for density estimation.
 
-  #   avg_loss /= nbatches
-  #   final_loss = batch_loss
-  #   return (final_loss, avg_loss)
+    The default implementation is appropriate for most cases. Subclasses can
+    override this if there is a need to customize it.
 
-  # def fit(self,
-  #         dataset,
-  #         nb_epoch=10,
-  #         max_checkpoints_to_keep=5,
-  #         checkpoint_interval=1000,
-  #         deterministic=False,
-  #         restore=False,
-  #         variables=None,
-  #         loss=None,
-  #         callbacks=[]):  # type: ignore
-  #   """Train on `dataset`.
+    Parameters
+    ----------
+    output: Tensor
+      the output from the normalizing flow on a batch of generated data.
+      This is its estimate of the probability that the sample was drawn
+      from the target distribution.
 
-  #   Parameters
-  #   ----------
-  #   dataset: dc.data.Dataset
-  #     The Dataset to train on
-  #   batch_size: int, default 64
-  #     Number of elements in each batch
-  #   nb_epoch: int, default 10
-  #     the number of epochs to train for
+    Returns
+    -------
+    A Tensor equal to the loss function to use for optimization.
 
-  #   Returns
-  #   -------
-  #   final_loss: float
-  #     Final loss value after training.
-  #   avg_loss: float
-  #     Average loss during training.
+    """
 
-  #   """
-
-  #   if not self.built:
-  #     self.build()
-
-  #   avg_loss = 0.
-  #   nbatches = 0
-
-  #   # Generator of (X, y, w, ids) batches
-  #   gen = dataset.iterbatches(batch_size=self.batch_size)
-  #   for epoch in range(nb_epoch):
-  #     x = tf.convert_to_tensor(next(gen)[0], tf.float32)
-  #     batch_loss = self.fit_on_batch(x)
-  #     logger.info('Loss on epoch %i is %.4f' % (epoch, batch_loss))
-  #     avg_loss += batch_loss
-  #     nbatches += 1
-
-  #   avg_loss /= nbatches
-  #   final_loss = batch_loss
-  #   return (final_loss, avg_loss)
-
-  # @tf.function
-  # def fit_on_batch(self,
-  #                  X,
-  #                  y=None,
-  #                  w=None,
-  #                  variables=None,
-  #                  loss=None,
-  #                  callbacks=[],
-  #                  checkpoint=True,
-  #                  max_checkpoints_to_keep=5):
-  #   """Fit on batch of samples.
-
-  #   Parameters
-  #   ----------
-  #   X: np.ndarray, shape (n_samples, n_dim)
-  #     Array of samples where each sample is a vector of length `n_dim`.
-
-  #   Returns
-  #   -------
-  #   batch_loss: float
-  #     Loss computed on this batch.
-
-  #   """
-
-  #   with tf.GradientTape() as tape:
-  #     dummy_labels = np.ones(len(X))
-  #     log_probs = self.log_prob(X)
-  #     loss = self.loss()
-  #     optimizer = self._tf_optimizer
-  #     batch_loss = loss(log_probs, dummy_labels)
-  #     grads = tape.gradient(batch_loss, self.model.trainable_variables)
-  #     optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-  #   return batch_loss
-
-  def log_prob(self, X):
-    """Log likelihoods."""
-
-    return self.flow.log_prob(X, training=True)
+    return Lambda(lambda x: -tf.reduce_mean(self.flow.log_prob(x + 1e-10, training=True)))(output)
 
 
 class NormalizingFlowLayer(object):

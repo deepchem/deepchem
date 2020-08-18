@@ -126,16 +126,6 @@ class SparseSoftmaxCrossEntropy(Loss):
     return tf.nn.sparse_softmax_cross_entropy_with_logits(labels, output)
 
 
-class NegLogLoss(Loss):
-  """Negative log loss.
-
-  `output` must be log likelihoods.
-  """
-
-  def __call__(self, output, labels):
-    return -tf.reduce_mean(output)
-
-
 def _make_shapes_consistent(output, labels):
   """Try to make inputs have the same shape by adding dimensions of size 1."""
   shape1 = output.shape
