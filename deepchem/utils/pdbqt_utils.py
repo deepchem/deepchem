@@ -44,7 +44,7 @@ def convert_protein_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
 
   Parameters
   ----------
-  mol : rdkit.Chem.rdchem.Mol
+  mol: rdkit.Chem.rdchem.Mol
     Protein molecule
   outfile: str
     filename which already has a valid pdb representation of mol
@@ -75,7 +75,7 @@ def mol_to_graph(mol: RDKitMol):
 
   Parameters
   ----------
-  mol : rdkit.Chem.rdchem.Mol
+  mol: rdkit.Chem.rdchem.Mol
     The molecule to convert into a graph.
 
   Returns
@@ -111,7 +111,7 @@ def get_rotatable_bonds(mol: RDKitMol) -> List[Tuple[int, int]]:
 
   Parameters
   ----------
-  mol : rdkit.Chem.rdchem.Mol
+  mol: rdkit.Chem.rdchem.Mol
     Ligand molecule
 
   Returns
@@ -148,7 +148,7 @@ def convert_mol_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
 
   Parameters
   ----------
-  mol : rdkit.Chem.rdchem.Mol
+  mol: rdkit.Chem.rdchem.Mol
     The molecule whose value is stored in pdb format in outfile
   outfile: str
     Filename for a valid pdb file with the extention .pdbqt
@@ -245,7 +245,7 @@ def _create_component_map(mol: RDKitMol,
 
   Parameters
   ----------
-  mol : rdkit.Chem.rdchem.Mol
+  mol: rdkit.Chem.rdchem.Mol
     The molecule to find disconnected components in
   components: List[List[int]]
     List of connected components

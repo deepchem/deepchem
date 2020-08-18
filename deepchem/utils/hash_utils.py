@@ -15,14 +15,14 @@ def hash_ecfp(ecfp: str, size: int = 1024) -> int:
 
   Parameters
   ----------
-  ecfp : str
+  ecfp: str
     String to hash. Usually an ECFP fragment.
-  size : int, optional (default 1024)
+  size: int, optional (default 1024)
     Hash to an int in range [0, size)
 
   Returns
   -------
-  ecfp_hash : int
+  ecfp_hash: int
     An int < size representing given ECFP fragment
   """
   bytes_ecfp = ecfp.encode('utf-8')
@@ -44,14 +44,14 @@ def hash_ecfp_pair(ecfp_pair: Tuple[str, str], size: int = 1024) -> int:
 
   Parameters
   ----------
-  ecfp_pair : Tuple[str, str]
+  ecfp_pair: Tuple[str, str]
     Pair of ECFP fragment strings
-  size : int, optional (default 1024)
+  size: int, optional (default 1024)
     Hash to an int in range [0, size)
 
   Returns
   -------
-  ecfp_hash : int
+  ecfp_hash: int
     An int < size representing given ECFP pair.
   """
   ecfp = "%s,%s" % (ecfp_pair[0], ecfp_pair[1])
@@ -78,19 +78,19 @@ def vectorize(hash_function: Callable[[str, int], int],
 
   Parameters
   ----------
-  hash_function : Function, Callable[[str, int], int]
+  hash_function: Function, Callable[[str, int], int]
     Should accept two arguments, `feature`, and `size` and
     return a hashed integer. Here `feature` is the item to
     hash, and `size` is an int. For example, if `size=1024`,
     then hashed values must fall in range `[0, 1024)`.
-  feature_dict : Dict, optional (default None)
+  feature_dict: Dict, optional (default None)
     Maps unique keys to features computed.
-  size : int, optional (default 1024)
+  size: int, optional (default 1024)
     Length of generated bit vector
 
   Returns
   -------
-  feature_vector : np.ndarray
+  feature_vector: np.ndarray
     A numpy array of shape `(size,)`
   """
   feature_vector = np.zeros(size)

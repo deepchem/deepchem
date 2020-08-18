@@ -13,12 +13,12 @@ def _convert_hyperparam_dict_to_filename(hyper_params: Dict[str, Any]) -> str:
 
   Parameters
   ----------
-  hyper_params : Dict
+  hyper_params: Dict
     Maps string of hyperparameter name to int/float/string/list etc.
 
   Returns
   -------
-  filename : str
+  filename: str
     A filename of form "_key1_value1_value2_..._key2..."
   """
   filename = ""
@@ -60,7 +60,7 @@ class HyperparamOpt(object):
 
     Parameters
     ----------
-    model_builder : constructor function.
+    model_builder: constructor function.
       This parameter must be constructor function which returns an
       object which is an instance of `dc.models.Model`. This function
       must accept two arguments, `model_params` of type `dict` and
@@ -90,7 +90,7 @@ class HyperparamOpt(object):
 
     Parameters
     ----------
-    params_dict : Dict
+    params_dict: Dict
       Dictionary mapping strings to values. Note that the
       precise semantics of `params_dict` will change depending on the
       optimizer that you're using. Depending on the type of
@@ -98,16 +98,16 @@ class HyperparamOpt(object):
       ints/floats/strings/lists/etc. Read the documentation for the
       concrete hyperparameter optimization subclass you're using to
       learn more about what's expected.
-    train_dataset : Dataset
+    train_dataset: Dataset
       dataset used for training
-    valid_dataset : Dataset
+    valid_dataset: Dataset
       dataset used for validation(optimization on valid scores)
-    metric : Metric
+    metric: Metric
       metric used for evaluation
-    use_max : bool, optional
+    use_max: bool, optional
       If True, return the model with the highest score. Else return
       model with the minimum score.
-    logdir : str, optional
+    logdir: str, optional
       The directory in which to store created models. If not set, will
       use a temporary directory.
 
