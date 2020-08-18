@@ -1,7 +1,6 @@
 """Unit tests for evaluators."""
 import deepchem as dc
 import numpy as np
-import unittest
 import sklearn
 from deepchem.utils.evaluate import Evaluator
 from deepchem.utils.evaluate import GeneratorEvaluator
@@ -85,7 +84,6 @@ def test_evaluate_multiclass_classification_singletask():
 
 def test_multitask_evaluator():
   """Test evaluation of a multitask metric."""
-  n_tasks = 2
   X = np.random.rand(10, 5)
   y = np.random.rand(10, 2, 1)
   dataset = dc.data.NumpyDataset(X, y)
@@ -116,7 +114,6 @@ def test_model_evaluate_dc_metric():
 
 def test_multitask_model_evaluate_sklearn():
   """Test evaluation of a multitask metric."""
-  n_tasks = 2
   X = np.random.rand(10, 5)
   y = np.random.rand(10, 2)
   dataset = dc.data.NumpyDataset(X, y)
@@ -133,7 +130,6 @@ def test_multitask_model_evaluate_sklearn():
 
 def test_multitask_model_evaluate():
   """Test evaluation of a multitask metric."""
-  n_tasks = 2
   X = np.random.rand(10, 5)
   y = np.random.rand(10, 2)
   dataset = dc.data.NumpyDataset(X, y)

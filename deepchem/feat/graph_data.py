@@ -119,7 +119,7 @@ class GraphData:
     Returns
     -------
     dgl.DGLGraph
-      Graph data for PyTorch Geometric
+      Graph data for DGL
 
     Notes
     -----

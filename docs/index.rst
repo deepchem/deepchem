@@ -119,26 +119,38 @@ discussions about research, development or any general questions. If you'd like 
 .. important:: Join our `community gitter <https://forms.gle/9TSdDYUgxYs8SA9e8>`_ to discuss DeepChem. Sign up for our `forums <https://forum.deepchem.io/>`_ to talk about research, development, and general questions.
 
 .. toctree::
+   :glob:
    :maxdepth: 2
-   :caption: Table of Contents
-   :name: mastertoc
+   :caption: Get Started
 
-   Tutorial <tutorial>
-   Installation <installation>
-   Requirements <requirements>
-   Datasets <datasets>
-   Data Loaders <dataloaders>
-   Featurizers <featurizers>
-   Data Classes <dataclasses>
-   Splitters <splitters>
-   Transformers <transformers>
-   Models <models>
-   Layers <layers>
-   Metrics <metrics>
-   Hyperparameter Tuning <hyper>
-   MoleculeNet <moleculenet>
-   Metalearning <metalearning>
-   Reinforcement Learning <rl>
-   Docking <docking>
-   Utilities <utils>
-   Coding Conventions <coding>
+   tutorial
+   installation
+   requirements
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :caption: API Reference
+
+   datasets
+   dataloaders
+   dataclasses
+   moleculenet
+   featurizers
+   splitters
+   transformers
+   models
+   layers
+   metrics
+   hyper
+   metalearning
+   rl
+   docking
+   utils
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :caption: Contribution guide
+
+   coding
