@@ -7,7 +7,7 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
-TOX21_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/tox21.csv.gz'
+TOX21_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/tox21.csv.gz"
 DEFAULT_DIR = deepchem.utils.get_data_dir()
 
 
@@ -18,7 +18,28 @@ def load_tox21(featurizer='ECFP',
                data_dir=None,
                save_dir=None,
                **kwargs):
-  """Load Tox21 datasets. Does not do train/test split"""
+  """Load Tox21 dataset
+
+  The "Toxicology in the 21st Century" (Tox21) initiative created a public
+  database measuring toxicity of compounds, which has been used in the 2014
+  Tox21 Data Challenge. This dataset contains qualitative toxicity measurements
+  for 8k compounds on 12 different targets, including nuclear receptors and
+  stress response pathways.
+
+  Random splitting is recommended for this dataset.
+
+  The raw data csv file contains columns below:
+
+  - "smiles" - SMILES representation of the molecular structure
+  - "NR-XXX" - Nuclear receptor signaling bioassays results
+  - "SR-XXX" - Stress response bioassays results
+
+  please refer to https://tripod.nih.gov/tox21/challenge/data.jsp for details.
+
+  References
+  ----------
+  .. [1] Tox21 Challenge. https://tripod.nih.gov/tox21/challenge/
+  """
   # Featurize Tox21 dataset
 
   tox21_tasks = [
@@ -70,9 +91,7 @@ def load_tox21(featurizer='ECFP',
 
   if split == None:
     # Initialize transformers
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-    ]
+    transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
 
     logger.info("About to transform data")
     for transformer in transformers:
@@ -104,9 +123,7 @@ def load_tox21(featurizer='ECFP',
         frac_test=frac_test)
     all_dataset = (train, valid, test)
 
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
-    ]
+    transformers = [deepchem.trans.BalancingTransformer(dataset=train)]
 
     logger.info("About to transform data")
     for transformer in transformers:

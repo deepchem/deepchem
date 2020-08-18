@@ -8,7 +8,7 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-LIPO_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/Lipophilicity.csv'
+LIPO_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/Lipophilicity.csv"
 
 
 def load_lipo(featurizer='ECFP',
@@ -18,7 +18,26 @@ def load_lipo(featurizer='ECFP',
               data_dir=None,
               save_dir=None,
               **kwargs):
-  """Load Lipophilicity datasets."""
+  """Load Lipophilicity dataset
+
+  Lipophilicity is an important feature of drug molecules that affects both 
+  membrane permeability and solubility. The lipophilicity dataset, curated 
+  from ChEMBL database, provides experimental results of octanol/water 
+  distribution coefficient (logD at pH 7.4) of 4200 compounds.
+
+  Random splitting is recommended for this dataset.
+
+  The raw data csv file contains columns below:
+
+  - "smiles" - SMILES representation of the molecular structure
+  - "exp" - Measured octanol/water distribution coefficient (logD) of the 
+    compound, used as label
+
+  References
+  ----------
+  .. [1] Hersey, A. ChEMBL Deposited Data Set - AZ dataset; 2015. 
+     https://doi.org/10.6019/chembl3301361
+  """
   # Featurize Lipophilicity dataset
   logger.info("About to featurize Lipophilicity dataset.")
   logger.info("About to load Lipophilicity dataset.")

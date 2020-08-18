@@ -1,8 +1,4 @@
-sphinx_rtd_theme
-numpy
 pandas
-sklearn
-tensorflow
-pillow
-cloudpickle==1.4.1
-tensorflow_probability
+scikit-learn
+sphinx_rtd_theme
+tensorflow==2.2.0

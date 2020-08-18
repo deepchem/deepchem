@@ -20,7 +20,7 @@ def _get_version():
         base = g['__version__']
         # nightly version string .devYearMonthDayHourMinute
         return base if IS_RELEASE else \
-          base + ".dev" + time.strftime("%Y%m%d%H%M%S")
+          base + time.strftime("%Y%m%d%H%M%S")
 
     raise ValueError('`__version__` not defined in `deepchem/__init__.py`')
 

@@ -8,7 +8,6 @@ __license__ = "MIT"
 import tempfile
 import numpy as np
 from deepchem.utils import ScaffoldGenerator
-from deepchem.utils.save import log
 from deepchem.data import NumpyDataset
 from deepchem.utils.save import load_data
 from deepchem.splits import Splitter

@@ -144,9 +144,80 @@ XGBoostModel
 .. autoclass:: deepchem.models.XGBoostModel
   :members:
 
+
+Keras Models
+============
+DeepChem extensively uses `Keras`_ to build powerful machine learning models.
+
+Losses
+------
+
+.. autoclass:: deepchem.models.losses.Loss
+  :members:
+
+.. autoclass:: deepchem.models.losses.L1Loss
+  :members:
+
+.. autoclass:: deepchem.models.losses.L2Loss
+  :members:
+
+.. autoclass:: deepchem.models.losses.HingeLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.BinaryCrossEntropy
+  :members:
+
+.. autoclass:: deepchem.models.losses.CategoricalCrossEntropy
+  :members:
+
+.. autoclass:: deepchem.models.losses.SigmoidCrossEntropy
+  :members:
+
+.. autoclass:: deepchem.models.losses.SoftmaxCrossEntropy
+  :members:
+
+.. autoclass:: deepchem.models.losses.SparseSoftmaxCrossEntropy
+  :members:
+
+.. autoclass:: deepchem.models.losses.SparseSoftmaxCrossEntropy
+  :members:
+
+Optimizers
+----------
+
+.. autoclass:: deepchem.models.optimizers.Optimizer
+  :members:
+
+.. autoclass:: deepchem.models.optimizers.LearningRateSchedule
+  :members:
+
+.. autoclass:: deepchem.models.optimizers.AdaGrad
+  :members:
+
+.. autoclass:: deepchem.models.optimizers.Adam
+  :members:
+
+.. autoclass:: deepchem.models.optimizers.RMSProp
+  :members:
+
+.. autoclass:: deepchem.models.optimizers.GradientDescent
+  :members:
+
+.. autoclass:: deepchem.models.optimizers.ExponentialDecay
+  :members:
+
+.. autoclass:: deepchem.models.optimizers.PolynomialDecay
+  :members:
+
+.. autoclass:: deepchem.models.optimizers.LinearCosineDecay
+  :members:
+
+.. autoclass:: deepchem.models.optimizers.LinearCosineDecay
+  :members:
+
+
 KerasModel
 ----------
-DeepChem extensively uses `Keras`_ to build powerful machine learning models.
 
 Training loss and validation metrics can be automatically logged to `Weights & Biases`_ with the following commands::
 

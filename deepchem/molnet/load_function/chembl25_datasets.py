@@ -12,7 +12,7 @@ import pickle
 from deepchem.feat import SmilesToSeq, SmilesToImage
 from deepchem.feat.smiles_featurizers import create_char_to_idx
 
-CHEMBL_URL = "https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/chembl_25.csv.gz"
+CHEMBL_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_25.csv.gz"
 DEFAULT_DIR = dc.utils.get_data_dir()
 
 logger = logging.getLogger(__name__)

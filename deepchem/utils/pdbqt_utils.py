@@ -1,7 +1,11 @@
 """Utilities for handling PDBQT files."""
 
+from typing import Dict, List, Optional, Set, Tuple
+from deepchem.utils.typing import RDKitMol
 
-def pdbqt_to_pdb(filename=None, pdbqt_data=None):
+
+def pdbqt_to_pdb(filename: Optional[str] = None,
+                 pdbqt_data: Optional[List[str]] = None) -> str:
   """Extracts the PDB part of a pdbqt file as a string.
 
   Either `filename` or `pdbqt_data` must be provided. This function
@@ -9,14 +13,15 @@ def pdbqt_to_pdb(filename=None, pdbqt_data=None):
 
   Parameters
   ----------
-  filename: str, optional
+  filename: str, optional  (default None)
     Filename of PDBQT file
-  pdbqt_data: list[str], optional
+  pdbqt_data: List[str], optional (default None)
     Raw list of lines containing data from PDBQT file.
 
   Returns
   -------
-  pdb_block: String containing the PDB portion of pdbqt file.
+  pdb_block: str
+    String containing the PDB portion of pdbqt file.
   """
   if filename is not None and pdbqt_data is not None:
     raise ValueError("Only one of filename or pdbqt_data can be provided")
@@ -24,20 +29,22 @@ def pdbqt_to_pdb(filename=None, pdbqt_data=None):
     raise ValueError("Either filename or pdbqt_data must be provided")
   elif filename is not None:
     pdbqt_data = open(filename).readlines()
+
   pdb_block = ""
-  for line in pdbqt_data:
+  # FIXME: Item "None" of "Optional[List[str]]" has no attribute "__iter__" (not iterable)
+  for line in pdbqt_data:  # type: ignore
     pdb_block += "%s\n" % line[:66]
   return pdb_block
 
 
-def convert_protein_to_pdbqt(mol, outfile):
+def convert_protein_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
   """Convert a protein PDB file into a pdbqt file.
 
   Writes the extra PDBQT terms directly to `outfile`.
 
   Parameters
   ----------
-  mol: rdkit Mol
+  mol: rdkit.Chem.rdchem.Mol
     Protein molecule
   outfile: str
     filename which already has a valid pdb representation of mol
@@ -60,7 +67,7 @@ def convert_protein_to_pdbqt(mol, outfile):
       fout.write(line)
 
 
-def mol_to_graph(mol):
+def mol_to_graph(mol: RDKitMol):
   """Convert RDKit Mol to NetworkX graph
 
   Convert mol into a graph representation atoms are nodes, and bonds
@@ -68,15 +75,23 @@ def mol_to_graph(mol):
 
   Parameters
   ----------
-  mol: rdkit Mol
-    The molecule to convert into a graph. 
+  mol: rdkit.Chem.rdchem.Mol
+    The molecule to convert into a graph.
 
   Returns
   -------
   graph: networkx.Graph
     Contains atoms indices as nodes, edges as bonds.
+
+  Notes
+  -----
+  This function requires NetworkX to be installed.
   """
-  import networkx as nx
+  try:
+    import networkx as nx
+  except ModuleNotFoundError:
+    raise ValueError("This function requires NetworkX to be installed.")
+
   G = nx.Graph()
   num_atoms = mol.GetNumAtoms()
   G.add_nodes_from(range(num_atoms))
@@ -87,7 +102,7 @@ def mol_to_graph(mol):
   return G
 
 
-def get_rotatable_bonds(mol):
+def get_rotatable_bonds(mol: RDKitMol) -> List[Tuple[int, int]]:
   """
   https://github.com/rdkit/rdkit/blob/f4529c910e546af590c56eba01f96e9015c269a6/Code/GraphMol/Descriptors/Lipinski.cpp#L107
 
@@ -96,16 +111,24 @@ def get_rotatable_bonds(mol):
 
   Parameters
   ----------
-  mol: rdkit Mol
+  mol: rdkit.Chem.rdchem.Mol
     Ligand molecule
 
   Returns
   -------
-  rotatable_bonds: list
+  rotatable_bonds: List[List[int, int]]
     List of rotatable bonds in molecule
+
+  Notes
+  -----
+  This function requires RDKit to be installed.
   """
-  from rdkit import Chem
-  from rdkit.Chem import rdmolops
+  try:
+    from rdkit import Chem
+    from rdkit.Chem import rdmolops
+  except ModuleNotFoundError:
+    raise ValueError("This function requires RDKit to be installed.")
+
   pattern = Chem.MolFromSmarts(
       "[!$(*#*)&!D1&!$(C(F)(F)F)&!$(C(Cl)(Cl)Cl)&!$(C(Br)(Br)Br)&!$(C([CH3])("
       "[CH3])[CH3])&!$([CD3](=[N,O,S])-!@[#7,O,S!D1])&!$([#7,O,S!D1]-!@[CD3]="
@@ -117,24 +140,28 @@ def get_rotatable_bonds(mol):
   return rotatable_bonds
 
 
-def convert_mol_to_pdbqt(mol, outfile):
+def convert_mol_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
   """Writes the provided ligand molecule to specified file in pdbqt format.
 
   Creates a torsion tree and write to pdbqt file. The torsion tree
-  represents rotatable bonds in the molecule. 
-
-  Note
-  ----
-  This function requires RDKit to be installed.
+  represents rotatable bonds in the molecule.
 
   Parameters
   ----------
-  mol: rdkit Mol
+  mol: rdkit.Chem.rdchem.Mol
     The molecule whose value is stored in pdb format in outfile
   outfile: str
     Filename for a valid pdb file with the extention .pdbqt
+
+  Notes
+  -----
+  This function requires NetworkX to be installed.
   """
-  import networkx as nx
+  try:
+    import networkx as nx
+  except ModuleNotFoundError:
+    raise ValueError("This function requires NetworkX to be installed.")
+
   # Walk through the original file and extract ATOM/HETATM lines and
   # add PDBQT charge annotations.
   pdb_map = _create_pdb_map(outfile)
@@ -172,7 +199,7 @@ def convert_mol_to_pdbqt(mol, outfile):
       fout.write(line)
 
 
-def _create_pdb_map(outfile):
+def _create_pdb_map(outfile: str) -> Dict[int, str]:
   """Create a mapping from atom numbers to lines to write to pdbqt
 
   This is a map from rdkit atom number to its line in the pdb
@@ -188,12 +215,12 @@ def _create_pdb_map(outfile):
 
   Returns
   -------
-  pdb_map: dict
+  pdb_map: Dict[int, str]
     Maps rdkit atom numbers to lines to be written to PDBQT file.
   """
   lines = [x.strip() for x in open(outfile).readlines()]
-  lines = filter(lambda x: x.startswith("HETATM") or x.startswith("ATOM"),
-                 lines)
+  lines = list(
+      filter(lambda x: x.startswith("HETATM") or x.startswith("ATOM"), lines))
   lines = [x[:66] for x in lines]
   pdb_map = {}
   for line in lines:
@@ -207,7 +234,8 @@ def _create_pdb_map(outfile):
   return pdb_map
 
 
-def _create_component_map(mol, components):
+def _create_component_map(mol: RDKitMol,
+                          components: List[List[int]]) -> Dict[int, int]:
   """Creates a map from atom ids to disconnected component id
 
   For each atom in `mol`, maps it to the id of the component in the
@@ -217,14 +245,14 @@ def _create_component_map(mol, components):
 
   Parameters
   ----------
-  mol: rdkit Mol
-    molecule to find disconnected compontents in 
-  components: list
+  mol: rdkit.Chem.rdchem.Mol
+    The molecule to find disconnected components in
+  components: List[List[int]]
     List of connected components
 
   Returns
   -------
-  comp_map: dict
+  comp_map: Dict[int, int]
     Maps atom ids to component ides
   """
   comp_map = {}
@@ -236,33 +264,35 @@ def _create_component_map(mol, components):
   return comp_map
 
 
-def _dfs(used_partitions, current_partition, bond, components, rotatable_bonds,
-         lines, pdb_map, comp_map):
+def _dfs(used_partitions: Set[int], current_partition: int,
+         bond: Tuple[int, int], components: List[List[int]],
+         rotatable_bonds: List[Tuple[int, int]], lines: List[str],
+         pdb_map: Dict[int, str], comp_map: Dict[int, int]) -> List[str]:
   """
   This function does a depth first search through the torsion tree
 
   Parameters
   ----------
-  used_partions: set
+  used_partions: Set[int]
     Partitions which have already been used
-  current_partition: object
+  current_partition: int
     The current partition to expand
-  bond: object
+  bond: Tuple[int, int]
     the bond which goes from the previous partition into this partition
-  components: list
+  components: List[List[int]]
     List of connected components
-  rotatable_bonds: list
-    List of rotatable bonds
-  lines: list
+  rotatable_bonds: List[Tuple[int, int]]
+    List of rotatable bonds. This tuple is (from_atom, to_atom).
+  lines: List[str]
     List of lines to write
-  pdb_map: dict
+  pdb_map: Dict[int, str]
     Maps atom numbers to PDBQT lines to write
-  comp_map: dict
+  comp_map: Dict[int, int]
     Maps atom numbers to component numbers
 
   Returns
   -------
-  lines: list
+  lines: List[str]
     List of lines to write. This has more appended lines.
   """
   if comp_map[bond[1]] != current_partition:
@@ -273,8 +303,8 @@ def _dfs(used_partitions, current_partition, bond, components, rotatable_bonds,
   for atom in components[current_partition]:
     lines.append(pdb_map[atom])
   for b in rotatable_bonds:
-    valid, next_partition = _valid_bond(used_partitions, b, current_partition,
-                                        comp_map)
+    valid, next_partition = \
+      _valid_bond(used_partitions, b, current_partition, comp_map)
     if not valid:
       continue
     lines = _dfs(used_partitions, next_partition, b, components,
@@ -283,7 +313,9 @@ def _dfs(used_partitions, current_partition, bond, components, rotatable_bonds,
   return lines
 
 
-def _valid_bond(used_partitions, bond, current_partition, comp_map):
+def _valid_bond(used_partitions: Set[int], bond: Tuple[int, int],
+                current_partition: int,
+                comp_map: Dict[int, int]) -> Tuple[bool, int]:
   """Helper method to find next partition to explore.
 
   Used to check if a bond goes from the current partition into a
@@ -291,18 +323,22 @@ def _valid_bond(used_partitions, bond, current_partition, comp_map):
 
   Parameters
   ----------
-  used_partions: set
+  used_partions: Set[int]
     Partitions which have already been used
-  bond: object
-    the bond to check if it goes to an unexplored partition
-  current_partition: object
-    the current partition of the DFS
-  comp_map: dict
+  bond: Tuple[int, int]
+    The bond to check if it goes to an unexplored partition.
+    This tuple is (from_atom, to_atom).
+  current_partition: int
+    The current partition of the DFS
+  comp_map: Dict[int, int]
     Maps atom ids to component ids
 
   Returns
   -------
-  is_valid, next_partition
+  is_valid: bool
+    Whether to exist the next partition or not
+  next_partition: int
+    The next partition to explore
   """
   part1 = comp_map[bond[0]]
   part2 = comp_map[bond[1]]
@@ -312,4 +348,4 @@ def _valid_bond(used_partitions, bond, current_partition, comp_map):
     next_partition = part2
   else:
     next_partition = part1
-  return not next_partition in used_partitions, next_partition
+  return next_partition not in used_partitions, next_partition

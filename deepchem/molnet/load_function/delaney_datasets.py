@@ -8,7 +8,7 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-DELANEY_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/delaney-processed.csv'
+DELANEY_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/delaney-processed.csv"
 
 
 def load_delaney(featurizer='ECFP',
@@ -18,15 +18,27 @@ def load_delaney(featurizer='ECFP',
                  data_dir=None,
                  save_dir=None,
                  **kwargs):
-  """Load delaney datasets.
+  """Load delaney dataset
 
-  The Delaney datasets are extracted from the following paper
+  The Delaney(ESOL) dataset a regression dataset containing structures and 
+  water solubility data for 1128 compounds. The dataset is widely used to 
+  validate machine learning models on estimating solubility directly from 
+  molecular structures (as encoded in SMILES strings).
 
-  Delaney, John S. "ESOL: estimating aqueous solubility directly from molecular structure." Journal of chemical information and computer sciences 44.3 (2004): 1000-1005.
+  Random splitting is recommended for this dataset.
 
-  This dataset contains 2874 measured aqueous solubility
-  values. The source dataset is available in the supplemental
-  material of the original paper.
+  The raw data csv file contains columns below:
+
+  - "Compound ID" - Name of the compound
+  - "smiles" - SMILES representation of the molecular structure
+  - "measured log solubility in mols per litre" - Log-scale water solubility 
+    of the compound, used as label
+
+  References
+  ----------
+  .. [1] Delaney, John S. "ESOL: estimating aqueous solubility directly from 
+     molecular structure." Journal of chemical information and computer 
+     sciences 44.3 (2004): 1000-1005.
   """
   # Featurize Delaney dataset
   logger.info("About to featurize Delaney dataset.")

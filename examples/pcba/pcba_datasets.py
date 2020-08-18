@@ -57,9 +57,7 @@ def load_pcba(featurizer='ECFP', split='random'):
 
   dataset = loader.featurize(dataset_file)
   # Initialize transformers
-  transformers = [
-      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-  ]
+  transformers = [dc.trans.BalancingTransformer(dataset=dataset)]
 
   print("About to transform data")
   for transformer in transformers:

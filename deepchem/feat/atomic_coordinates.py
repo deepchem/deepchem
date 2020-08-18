@@ -1,17 +1,13 @@
 """
 Atomic coordinate featurizer.
 """
-__author__ = "Joseph Gomes and Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import logging
 import numpy as np
-from deepchem.utils.save import log
 from deepchem.feat import Featurizer
 from deepchem.feat import ComplexFeaturizer
-from deepchem.utils import rdkit_util, pad_array
-from deepchem.utils.rdkit_util import MoleculeLoadException
+from deepchem.utils import pad_array
+from deepchem.utils.rdkit_utils import MoleculeLoadException, get_xyz_from_mol, \
+  load_molecule, merge_molecules_xyz, merge_molecules
 
 
 class AtomicCoordinates(Featurizer):
@@ -166,7 +162,7 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     self.dtype = object
     self.coordinates_featurizer = AtomicCoordinates()
 
-  def _featurize_complex(self, mol_pdb_file, protein_pdb_file):
+  def _featurize(self, mol_pdb_file, protein_pdb_file):
     """
     Compute neighbor list for complex.
 
@@ -177,9 +173,9 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     protein_pdb_file: Str 
       Filename for protein pdb file. 
     """
-    mol_coords, ob_mol = rdkit_util.load_molecule(mol_pdb_file)
-    protein_coords, protein_mol = rdkit_util.load_molecule(protein_pdb_file)
-    system_coords = rdkit_util.merge_molecules_xyz([mol_coords, protein_coords])
+    mol_coords, ob_mol = load_molecule(mol_pdb_file)
+    protein_coords, protein_mol = load_molecule(protein_pdb_file)
+    system_coords = merge_molecules_xyz([mol_coords, protein_coords])
 
     system_neighbor_list = compute_neighbor_list(
         system_coords, self.neighbor_cutoff, self.max_num_neighbors, None)
@@ -222,19 +218,19 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
     self.neighborlist_featurizer = NeighborListComplexAtomicCoordinates(
         self.max_num_neighbors, self.neighbor_cutoff)
 
-  def _featurize_complex(self, mol_pdb_file, protein_pdb_file):
+  def _featurize(self, mol_pdb_file, protein_pdb_file):
     try:
-      frag1_coords, frag1_mol = rdkit_util.load_molecule(
+      frag1_coords, frag1_mol = load_molecule(
           mol_pdb_file, is_protein=False, sanitize=True, add_hydrogens=False)
-      frag2_coords, frag2_mol = rdkit_util.load_molecule(
+      frag2_coords, frag2_mol = load_molecule(
           protein_pdb_file, is_protein=True, sanitize=True, add_hydrogens=False)
     except MoleculeLoadException:
       # Currently handles loading failures by returning None
       # TODO: Is there a better handling procedure?
       logging.warning("Some molecules cannot be loaded by Rdkit. Skipping")
       return None
-    system_mol = rdkit_util.merge_molecules([frag1_mol, frag2_mol])
-    system_coords = rdkit_util.get_xyz_from_mol(system_mol)
+    system_mol = merge_molecules([frag1_mol, frag2_mol])
+    system_coords = get_xyz_from_mol(system_mol)
 
     frag1_coords, frag1_mol = self._strip_hydrogens(frag1_coords, frag1_mol)
     frag2_coords, frag2_mol = self._strip_hydrogens(frag2_coords, frag2_mol)

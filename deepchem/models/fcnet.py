@@ -11,9 +11,11 @@ import collections
 import deepchem as dc
 from deepchem.models import KerasModel
 from deepchem.models.layers import SwitchedDropout
-from deepchem.utils.save import log
 from deepchem.metrics import to_one_hot
 from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Activation, Lambda
+
+from typing import Any, Callable, Iterable, List, Optional, Sequence, Tuple, Union
+from deepchem.utils.typing import KerasActivationFn, LossFn, OneOrMany
 
 logger = logging.getLogger(__name__)
 
@@ -34,18 +36,18 @@ class MultitaskClassifier(KerasModel):
   """
 
   def __init__(self,
-               n_tasks,
-               n_features,
-               layer_sizes=[1000],
-               weight_init_stddevs=0.02,
-               bias_init_consts=1.0,
-               weight_decay_penalty=0.0,
-               weight_decay_penalty_type="l2",
-               dropouts=0.5,
-               activation_fns=tf.nn.relu,
-               n_classes=2,
-               residual=False,
-               **kwargs):
+               n_tasks: int,
+               n_features: int,
+               layer_sizes: Sequence[int] = [1000],
+               weight_init_stddevs: OneOrMany[float] = 0.02,
+               bias_init_consts: OneOrMany[float] = 1.0,
+               weight_decay_penalty: float = 0.0,
+               weight_decay_penalty_type: str = "l2",
+               dropouts: OneOrMany[float] = 0.5,
+               activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
+               n_classes: int = 2,
+               residual: bool = False,
+               **kwargs) -> None:
     """Create a MultitaskClassifier.
 
     In addition to the following arguments, this class also accepts
@@ -66,7 +68,7 @@ class MultitaskClassifier(KerasModel):
       equal len(layer_sizes).  Alternatively this may be a single
       value instead of a list, in which case the same value is used
       for every layer.
-    bias_init_consts: list or loat
+    bias_init_consts: list or float
       the value to initialize the biases in each layer to.  The
       length of this list should equal len(layer_sizes).
       Alternatively this may be a single value instead of a list, in
@@ -150,12 +152,13 @@ class MultitaskClassifier(KerasModel):
         output_types=['prediction', 'loss'],
         **kwargs)
 
-  def default_generator(self,
-                        dataset,
-                        epochs=1,
-                        mode='fit',
-                        deterministic=True,
-                        pad_batches=True):
+  def default_generator(
+      self,
+      dataset: dc.data.Dataset,
+      epochs: int = 1,
+      mode: str = 'fit',
+      deterministic: bool = True,
+      pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
@@ -183,18 +186,18 @@ class MultitaskRegressor(KerasModel):
   """
 
   def __init__(self,
-               n_tasks,
-               n_features,
-               layer_sizes=[1000],
-               weight_init_stddevs=0.02,
-               bias_init_consts=1.0,
-               weight_decay_penalty=0.0,
-               weight_decay_penalty_type="l2",
-               dropouts=0.5,
-               activation_fns=tf.nn.relu,
-               uncertainty=False,
-               residual=False,
-               **kwargs):
+               n_tasks: int,
+               n_features: int,
+               layer_sizes: Sequence[int] = [1000],
+               weight_init_stddevs: OneOrMany[float] = 0.02,
+               bias_init_consts: OneOrMany[float] = 1.0,
+               weight_decay_penalty: float = 0.0,
+               weight_decay_penalty_type: str = "l2",
+               dropouts: OneOrMany[float] = 0.5,
+               activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
+               uncertainty: bool = False,
+               residual: bool = False,
+               **kwargs) -> None:
     """Create a MultitaskRegressor.
 
     In addition to the following arguments, this class also accepts all the keywork arguments
@@ -296,6 +299,7 @@ class MultitaskRegressor(KerasModel):
             stddev=weight_init_stddevs[-1]),
         bias_initializer=tf.constant_initializer(
             value=bias_init_consts[-1]))(prev_layer))
+    loss: Union[dc.models.losses.Loss, LossFn]
     if uncertainty:
       log_var = Reshape((n_tasks, 1))(Dense(
           n_tasks,
@@ -318,12 +322,13 @@ class MultitaskRegressor(KerasModel):
     super(MultitaskRegressor, self).__init__(
         model, loss, output_types=output_types, **kwargs)
 
-  def default_generator(self,
-                        dataset,
-                        epochs=1,
-                        mode='fit',
-                        deterministic=True,
-                        pad_batches=True):
+  def default_generator(
+      self,
+      dataset: dc.data.Dataset,
+      epochs: int = 1,
+      mode: str = 'fit',
+      deterministic: bool = True,
+      pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
@@ -358,10 +363,10 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
   """
 
   def __init__(self,
-               n_tasks,
-               n_features,
-               fit_transformers=[],
-               batch_size=50,
+               n_tasks: int,
+               n_features: int,
+               fit_transformers: Sequence[dc.trans.Transformer] = [],
+               batch_size: int = 50,
                **kwargs):
     """Create a MultitaskFitTransformRegressor.
 
@@ -388,18 +393,21 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
     else:
       raise ValueError("n_features should be list or int")
     for transformer in fit_transformers:
-      X_b = transformer.X_transform(X_b)
+      assert transformer.transform_X and not (transformer.transform_y or
+                                              transformer.transform_w)
+      X_b, _, _, _ = transformer.transform_array(X_b, None, None, None)
     n_features = X_b.shape[1]
     logger.info("n_features after fit_transform: %d", int(n_features))
     super(MultitaskFitTransformRegressor, self).__init__(
         n_tasks, n_features, batch_size=batch_size, **kwargs)
 
-  def default_generator(self,
-                        dataset,
-                        epochs=1,
-                        mode='fit',
-                        deterministic=True,
-                        pad_batches=True):
+  def default_generator(
+      self,
+      dataset: dc.data.Dataset,
+      epochs: int = 1,
+      mode: str = 'fit',
+      deterministic: bool = True,
+      pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
@@ -410,18 +418,19 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
         if X_b is not None:
           if mode == 'fit':
             for transformer in self.fit_transformers:
-              X_b = transformer.X_transform(X_b)
+              X_b, _, _, _ = transformer.transform_array(X_b, None, None, None)
         if mode == 'predict':
           dropout = np.array(0.0)
         else:
           dropout = np.array(1.0)
         yield ([X_b, dropout], [y_b], [w_b])
 
-  def predict_on_generator(self,
-                           generator,
-                           transformers=[],
-                           outputs=None,
-                           output_types=None):
+  def predict_on_generator(
+      self,
+      generator: Iterable[Tuple[Any, Any, Any]],
+      transformers: List[dc.trans.Transformer] = [],
+      outputs: Optional[OneOrMany[tf.Tensor]] = None,
+      output_types: Optional[OneOrMany[str]] = None) -> OneOrMany[np.ndarray]:
 
     def transform_generator():
       for inputs, labels, weights in generator:

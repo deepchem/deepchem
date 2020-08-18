@@ -7,7 +7,7 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
-SAMPL_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/SAMPL.csv'
+SAMPL_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/SAMPL.csv"
 DEFAULT_DIR = deepchem.utils.get_data_dir()
 
 
@@ -18,7 +18,31 @@ def load_sampl(featurizer='ECFP',
                data_dir=None,
                save_dir=None,
                **kwargs):
-  """Load SAMPL datasets."""
+  """Load SAMPL(FreeSolv) dataset
+
+  The Free Solvation Database, FreeSolv(SAMPL), provides experimental and 
+  calculated hydration free energy of small molecules in water. The calculated
+  values are derived from alchemical free energy calculations using molecular
+  dynamics simulations. The experimental values are included in the benchmark
+  collection.
+
+  Random splitting is recommended for this dataset.
+  
+  The raw data csv file contains columns below:
+
+  - "iupac" - IUPAC name of the compound
+  - "smiles" - SMILES representation of the molecular structure
+  - "expt" - Measured solvation energy (unit: kcal/mol) of the compound, 
+    used as label
+  - "calc" - Calculated solvation energy (unit: kcal/mol) of the compound
+
+
+  References
+  ----------
+  .. [1] Mobley, David L., and J. Peter Guthrie. "FreeSolv: a database of 
+     experimental and calculated hydration free energies, with input files."
+     Journal of computer-aided molecular design 28.7 (2014): 711-720.
+  """
   # Featurize SAMPL dataset
   logger.info("About to featurize SAMPL dataset.")
   logger.info("About to load SAMPL dataset.")

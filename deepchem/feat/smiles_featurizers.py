@@ -9,7 +9,7 @@ __license__ = "MIT"
 
 import numpy as np
 import pandas as pd
-from deepchem.feat import Featurizer
+from deepchem.feat.base_classes import MolecularFeaturizer
 
 PAD_TOKEN = "<pad>"
 OUT_OF_VOCAB_TOKEN = "<unk>"
@@ -21,17 +21,21 @@ def create_char_to_idx(filename,
                        verbose=False):
   """Creates a dictionary with character to index mapping.
 
-    Parameters
-    ----------
-    filename: str,
-        Name of the file containing the SMILES strings
-    max_len: int, default 250
-        Maximum allowed length of the SMILES string
-    smiles_field: str, default smiles
-        Field indicating the SMILES strings int the file.
-    verbose: bool, default True
-        Whether to print the progress
-    """
+  Parameters
+  ----------
+  filename: str,
+      Name of the file containing the SMILES strings
+  max_len: int, default 250
+      Maximum allowed length of the SMILES string
+  smiles_field: str, default smiles
+      Field indicating the SMILES strings int the file.
+  verbose: bool, default True
+      Whether to print the progress
+
+  Returns
+  -------
+  A dictionary mapping characters to their integer indexes.
+  """
   smiles_df = pd.read_csv(filename)
   char_set = set()
   for smile in smiles_df[smiles_field]:
@@ -50,10 +54,10 @@ def create_char_to_idx(filename,
   return char_to_idx
 
 
-class SmilesToSeq(Featurizer):
+class SmilesToSeq(MolecularFeaturizer):
   """
   SmilesToSeq Featurizer takes a SMILES string, and turns it into a sequence.
-  Details taken from https://arxiv.org/abs/1712.02734.
+  Details taken from [1]_.
 
   SMILES strings smaller than a specified max length (max_len) are padded using
   the PAD token while those larger than the max length are not considered. Based
@@ -62,10 +66,21 @@ class SmilesToSeq(Featurizer):
   mapping, the SMILES characters are turned into indices and the
   resulting sequence of indices serves as the input for an embedding layer.
 
+  References
+  ----------
+  .. [1] Goh, Garrett B., et al. "Using rule-based labels for weak supervised
+         learning: a ChemNet for transferable chemical property prediction."
+         Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
+         Discovery & Data Mining. 2018.
+
+  Note
+  ----
+  This class requires RDKit to be installed.
   """
 
   def __init__(self, char_to_idx, max_len=250, pad_len=10, **kwargs):
-    """
+    """Initialize this class. 
+
     Parameters
     ----------
     char_to_idx: dict
@@ -75,6 +90,10 @@ class SmilesToSeq(Featurizer):
     pad_len: int, default 10
         Amount of padding to add on either side of the SMILES seq
     """
+    try:
+      from rdkit import Chem
+    except ModuleNotFoundError:
+      raise ValueError("This class requires RDKit to be installed.")
     self.max_len = max_len
     self.char_to_idx = char_to_idx
     self.idx_to_char = {idx: letter for letter, idx in self.char_to_idx.items()}
@@ -128,10 +147,11 @@ class SmilesToSeq(Featurizer):
     return smile_seq
 
 
-class SmilesToImage(Featurizer):
-  """
+class SmilesToImage(MolecularFeaturizer):
+  """Convert Smiles string to an image.
+
   SmilesToImage Featurizer takes a SMILES string, and turns it into an image.
-  Details taken from https://arxiv.org/abs/1712.02734.
+  Details taken from [1]_.
 
   The default size of for the image is 80 x 80. Two image modes are currently
   supported - std & engd. std is the gray scale specification,
@@ -143,6 +163,17 @@ class SmilesToImage(Featurizer):
   The coordinates of all atoms are computed, and lines are drawn between atoms
   to indicate bonds. For the respective channels, the atom and bond positions are
   set to the property values as mentioned in the paper.
+
+  References
+  ----------
+  .. [1] Goh, Garrett B., et al. "Using rule-based labels for weak supervised
+         learning: a ChemNet for transferable chemical property prediction."
+         Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
+         Discovery & Data Mining. 2018.
+
+  Note
+  ----
+  This class requires RDKit to be installed.
   """
 
   def __init__(self,

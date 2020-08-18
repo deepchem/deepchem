@@ -2,10 +2,11 @@
 
 [![Build Status](https://travis-ci.org/deepchem/deepchem.svg?branch=master)](https://travis-ci.org/deepchem/deepchem)
 [![Coverage Status](https://coveralls.io/repos/github/deepchem/deepchem/badge.svg?branch=master)](https://coveralls.io/github/deepchem/deepchem?branch=master)
+[![Documentation Status](https://readthedocs.org/projects/deepchem/badge/?version=latest)](https://deepchem.readthedocs.io/en/latest/?badge=latest)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/deepchem/badges/version.svg)](https://anaconda.org/conda-forge/deepchem)
 [![PyPI version](https://badge.fury.io/py/deepchem.svg)](https://badge.fury.io/py/deepchem)
 
-[Website](https://deepchem.io/) | [Documentation (master)](https://deepchem.readthedocs.io/en/latest/) | [Colab Tutorial](https://github.com/deepchem/deepchem/tree/master/examples/tutorials) | [Discussion Forum](https://forum.deepchem.io/) | [Gitter](https://gitter.im/deepchem/Lobby)
+[Website](https://deepchem.io/) | [Documentation](https://deepchem.readthedocs.io/en/latest/) | [Colab Tutorial](https://github.com/deepchem/deepchem/tree/master/examples/tutorials) | [Discussion Forum](https://forum.deepchem.io/) | [Gitter](https://gitter.im/deepchem/Lobby)
 
 DeepChem aims to provide a high quality open-source toolchain
 that democratizes the use of deep-learning in drug discovery,
@@ -16,7 +17,7 @@ materials science, quantum chemistry, and biology.
 - [Requirements](#requirements)
 - [Installation](#installation)
   - [Stable version](#stable-version)
-  - [Nightly version](#nightly-build-version)
+  - [Nightly build version](#nightly-build-version)
   - [Docker](#docker)
   - [From source](#from-source)
 - [Getting Started](#getting-started)
@@ -42,59 +43,44 @@ DeepChem currently supports Python 3.5 through 3.7 and requires these packages o
 
 ### Soft Requirements
 
-DeepChem has a number of "soft" requirements. These are packages which are needed for various submodules of DeepChem but not for the package as a whole.
+DeepChem has a number of "soft" requirements.  
+If you face some errors like `ImportError: No module named XXXX`, you may need to install some packages.
 
-- [BioPython](https://biopython.org/wiki/Documentation)
-- [OpenAI Gym](https://gym.openai.com/)
-- [matminer](https://hackingmaterials.lbl.gov/matminer/)
-- [MDTraj](http://mdtraj.org/)
-- [NetworkX](https://networkx.github.io/documentation/stable/index.html)
-- [OpenMM](http://openmm.org/)
-- [PDBFixer](https://github.com/pandegroup/pdbfixer)
-- [Pillow](https://pypi.org/project/Pillow/)
-- [pyGPGO](https://pygpgo.readthedocs.io/en/latest/)
-- [Pymatgen](https://pymatgen.org/)
-- [PyTorch](https://pytorch.org/)
-- [RDKit](http://www.rdkit.org/docs/Install.html)
-- [simdna](https://github.com/kundajelab/simdna)
-- [XGBoost](https://xgboost.readthedocs.io/en/latest/)
-- [Weights & Biases](https://docs.wandb.com/)
-- [Tensorflow Probability](https://www.tensorflow.org/probability)
+Please check [the document](https://deepchem.readthedocs.io/en/latest/requirements.html##soft-requirements) about soft requirements.
 
 ## Installation
 
 ### Stable version
 
-**Caution!!:**  
-**The latest stable version was published nearly a year ago. If you are a pip user or you face some errors, we recommend the nightly build version.**
+**Caution!! : The latest stable version was published nearly a year ago. If you are a pip user or you face some errors, we recommend the nightly build version.**
 
 RDKit is a soft requirement package, but many useful methods like molnet depend on it. We recommend installing RDKit with deepchem.
 
 ```bash
 pip install tensorflow==1.14
-conda install -y -c rdkit -c conda-forge rdkit deepchem==2.3.0
+conda install -y -c conda-forge rdkit deepchem==2.3.0
 ```
 
 If you want GPU support:
 
 ```bash
 pip install tensorflow-gpu==1.14
-conda install -y -c rdkit -c conda-forge rdkit deepchem==2.3.0
+conda install -y -c conda-forge rdkit deepchem==2.3.0
 ```
 
 ### Nightly build version
 
-You install the nightly build version via pip. Nightly version is built by the HEAD of DeepChem.
+You install the nightly build version via pip. The nightly version is built by the HEAD of DeepChem.
 
 ```bash
-pip install tensorflow==2.2
+pip install tensorflow==2.2.0
 pip install --pre deepchem
 ```
 
 RDKit is a soft requirement package, but many useful methods like molnet depend on it. We recommend installing RDKit with deepchem if you use conda.
 
 ```bash
-conda install -y -c rdkit rdkit
+conda install -y -c conda-forge rdkit
 ```
 
 ### Docker

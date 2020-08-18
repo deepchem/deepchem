@@ -11,9 +11,9 @@ from deepchem.molnet.load_function.kaggle_features import merck_descriptors
 
 logger = logging.getLogger(__name__)
 
-TRAIN_URL = 'https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/FACTORS_training_disguised_combined_full.csv.gz'
-VALID_URL = 'https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/FACTORS_test1_disguised_combined_full.csv.gz'
-TEST_URL = 'https://s3-us-west-1.amazonaws.com/deepchem.io/datasets/FACTORS_test2_disguised_combined_full.csv.gz'
+TRAIN_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/FACTORS_training_disguised_combined_full.csv.gz"
+VALID_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/FACTORS_test1_disguised_combined_full.csv.gz"
+TEST_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/FACTORS_test2_disguised_combined_full.csv.gz"
 
 TRAIN_FILENAME = "FACTORS_training_disguised_combined_full.csv.gz"
 VALID_FILENAME = "FACTORS_test1_disguised_combined_full.csv.gz"

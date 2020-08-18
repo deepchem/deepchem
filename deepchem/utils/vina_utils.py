@@ -1,16 +1,20 @@
 """
 This file contains utilities to work with autodock vina.
 """
-from deepchem.utils import pdbqt_utils
+from typing import List, Optional, Tuple
+
+import numpy as np
+from deepchem.utils.typing import RDKitMol
+from deepchem.utils.pdbqt_utils import pdbqt_to_pdb
 
 
-def write_vina_conf(protein_filename,
-                    ligand_filename,
-                    centroid,
-                    box_dims,
-                    conf_filename,
-                    num_modes=9,
-                    exhaustiveness=None):
+def write_vina_conf(protein_filename: str,
+                    ligand_filename: str,
+                    centroid: np.ndarray,
+                    box_dims: np.ndarray,
+                    conf_filename: str,
+                    num_modes: int = 9,
+                    exhaustiveness: int = None) -> None:
   """Writes Vina configuration file to disk.
 
   Autodock Vina accepts a configuration file which provides options
@@ -21,13 +25,13 @@ def write_vina_conf(protein_filename,
   Parameters
   ----------
   protein_filename: str
-    Filename for protein 
+    Filename for protein
   ligand_filename: str
     Filename for the ligand
   centroid: np.ndarray
-    Of shape `(3,)` holding centroid of system
+    A numpy array with shape `(3,)` holding centroid of system
   box_dims: np.ndarray
-    Of shape `(3,)` holding the size of the box to dock
+    A numpy array of shape `(3,)` holding the size of the box to dock
   conf_filename: str
     Filename to write Autodock Vina configuration to.
   num_modes: int, optional (default 9)
@@ -52,7 +56,8 @@ def write_vina_conf(protein_filename,
       f.write("exhaustiveness = %d\n" % exhaustiveness)
 
 
-def load_docked_ligands(pdbqt_output):
+def load_docked_ligands(
+    pdbqt_output: str) -> Tuple[List[RDKitMol], List[float]]:
   """This function loads ligands docked by autodock vina.
 
   Autodock vina writes outputs to disk in a PDBQT file format. This
@@ -69,19 +74,24 @@ def load_docked_ligands(pdbqt_output):
 
   Returns
   -------
-  Tuple of `molecules, scores`. `molecules` is a list of rdkit
-  molecules with 3D information. `scores` is the associated vina
-  score.
+  Tuple[List[rdkit.Chem.rdchem.Mol], List[float]]
+    Tuple of `molecules, scores`. `molecules` is a list of rdkit
+    molecules with 3D information. `scores` is the associated vina
+    score.
 
-  Note
-  ----
+  Notes
+  -----
   This function requires RDKit to be installed.
   """
-  from rdkit import Chem
+  try:
+    from rdkit import Chem
+  except ModuleNotFoundError:
+    raise ValueError("This function requires RDKit to be installed.")
+
   lines = open(pdbqt_output).readlines()
   molecule_pdbqts = []
   scores = []
-  current_pdbqt = None
+  current_pdbqt: Optional[List[str]] = None
   for line in lines:
     if line[:5] == "MODEL":
       current_pdbqt = []
@@ -95,10 +105,12 @@ def load_docked_ligands(pdbqt_output):
       molecule_pdbqts.append(current_pdbqt)
       current_pdbqt = None
     else:
-      current_pdbqt.append(line)
+      # FIXME: Item "None" of "Optional[List[str]]" has no attribute "append"
+      current_pdbqt.append(line)  # type: ignore
+
   molecules = []
   for pdbqt_data in molecule_pdbqts:
-    pdb_block = pdbqt_utils.pdbqt_to_pdb(pdbqt_data=pdbqt_data)
+    pdb_block = pdbqt_to_pdb(pdbqt_data=pdbqt_data)
     mol = Chem.MolFromPDBBlock(str(pdb_block), sanitize=False, removeHs=False)
     molecules.append(mol)
   return molecules, scores

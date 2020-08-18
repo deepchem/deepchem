@@ -1,10 +1,10 @@
 """
 Test featurizers for inorganic crystals.
 """
-import numpy as np
 import unittest
+import numpy as np
 
-from deepchem.feat.materials_featurizers import ElementPropertyFingerprint, SineCoulombMatrix, StructureGraphFeaturizer
+from deepchem.feat import ElementPropertyFingerprint, SineCoulombMatrix, CGCNNFeaturizer
 
 
 class TestMaterialFeaturizers(unittest.TestCase):
@@ -63,20 +63,23 @@ class TestMaterialFeaturizers(unittest.TestCase):
     Test SCM featurizer.
     """
 
-    featurizer = SineCoulombMatrix(max_atoms=1)
+    featurizer = SineCoulombMatrix(max_atoms=3)
     features = featurizer.featurize([self.struct_dict])
 
     assert len(features) == 1
-    assert np.isclose(features[0], 1244, atol=.5)
+    assert features.shape == (1, 3)
+    assert np.isclose(features[0][0], 1244, atol=.5)
 
-  def test_structure_graph_featurizer(self):
+  def test_cgcnn_featurizer(self):
     """
-    Test StructureGraphFeaturizer.
+    Test CGCNNFeaturizer.
     """
 
-    featurizer = StructureGraphFeaturizer(radius=3.0, max_neighbors=6)
-    features = featurizer.featurize([self.struct_dict])
+    featurizer = CGCNNFeaturizer(radius=3.0, max_neighbors=6, step=0.3)
+    graph_features = featurizer.featurize([self.struct_dict])
 
-    assert len(features[0]) == 3
-    assert features[0][0] == 26
-    assert features[0][1].shape == (6, 16)
+    assert graph_features[0].num_nodes == 1
+    assert graph_features[0].num_edges == 6
+    assert graph_features[0].node_features.shape == (1, 92)
+    assert graph_features[0].edge_index.shape == (2, 6)
+    assert graph_features[0].edge_features.shape == (6, 11)

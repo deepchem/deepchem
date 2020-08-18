@@ -2,6 +2,7 @@
 Code for processing datasets using scikit-learn.
 """
 import numpy as np
+import logging
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
@@ -21,29 +22,41 @@ NON_WEIGHTED_MODELS = [
     LassoCV, BayesianRidge
 ]
 
+logger = logging.getLogger(__name__)
+
 
 class SklearnModel(Model):
-  """
-  Abstract base class for different ML models.
+  """Wrapper class that wraps scikit-learn models as DeepChem models.
+
+  When you're working with scikit-learn and DeepChem, at times it can
+  be useful to wrap a scikit-learn model as a DeepChem model. The
+  reason for this might be that you want to do an apples-to-apples
+  comparison of a scikit-learn model to another DeepChem model, or
+  perhaps you want to use the hyperparameter tuning capabilities in
+  `dc.hyper`. The `SklearnModel` class provides a wrapper around scikit-learn
+  models that allows scikit-learn models to be trained on `Dataset` objects
+  and evaluated with the same metrics as other DeepChem models.`
+
+  Note
+  ----
+  All `SklearnModels` perform learning solely in memory. This means that it
+  may not be possible to train `SklearnModel` on large `Dataset`s.
   """
 
-  def __init__(self,
-               model_instance=None,
-               model_dir=None,
-               verbose=True,
-               **kwargs):
+  def __init__(self, model_instance=None, model_dir=None, **kwargs):
     """
     Parameters
     ----------
-    model_instance: sklearn model
-    model_dir: str
-    verbose: bool
+    model_instance: `sklearn.base.BaseEstimator`
+      Must be a scikit-learn `BaseEstimator Class`.
+    model_dir: str, optional (default None)
+      If specified the model will be stored in this directory. Else, a
+      temporary directory will be used.
     kwargs: dict
       kwargs['use_weights'] is a bool which determines if we pass weights into
       self.model_instance.fit()
     """
-    super(SklearnModel, self).__init__(model_instance, model_dir, verbose,
-                                       **kwargs)
+    super(SklearnModel, self).__init__(model_instance, model_dir, **kwargs)
     if 'use_weights' in kwargs:
       self.use_weights = kwargs['use_weights']
     else:
@@ -53,13 +66,17 @@ class SklearnModel(Model):
         self.use_weights = False
 
   def fit(self, dataset, **kwargs):
-    """
-    Fits SKLearn model to data.
+    """Fits SKLearn model to data.
+
+    Parameters
+    ----------
+    dataset: `Dataset`
+      The `Dataset` to train this model on.
     """
     X = dataset.X
     y = np.squeeze(dataset.y)
     w = np.squeeze(dataset.w)
-    # Logistic regression doesn't support weights
+    # Some scikit-learn models don't use weights.
     if self.use_weights:
       self.model_instance.fit(X, y, w)
       return
