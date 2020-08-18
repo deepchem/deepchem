@@ -1,9 +1,6 @@
 """
 Tests that FASTA files can be loaded.
 """
-__author__ = "Bharath Ramsundar"
-__license__ = "MIT"
-
 import os
 import unittest
 
