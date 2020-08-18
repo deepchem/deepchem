@@ -15,13 +15,13 @@ class TestGraph(unittest.TestCase):
         [0, 1, 2, 2, 3, 4],
         [1, 2, 0, 3, 4, 0],
     ])
-    graph_features = None
+    node_pos_features = None
 
     graph = GraphData(
         node_features=node_features,
         edge_index=edge_index,
         edge_features=edge_features,
-        graph_features=graph_features)
+        node_pos_features=node_pos_features)
 
     assert graph.num_nodes == num_nodes
     assert graph.num_node_features == num_node_features
@@ -92,7 +92,7 @@ class TestGraph(unittest.TestCase):
             edge_index=edge_index_list[i],
             edge_features=np.random.random_sample((num_edge_list[i],
                                                    num_edge_features)),
-            graph_features=None) for i in range(len(num_edge_list))
+            node_pos_features=None) for i in range(len(num_edge_list))
     ]
     batch = BatchGraphData(graph_list)
 

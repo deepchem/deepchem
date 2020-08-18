@@ -144,10 +144,10 @@ class MolecularFeaturizer(Featurizer):
   molecule.
 
   The defining feature of a `MolecularFeaturizer` is that it
-  uses SMILES strings and RDKIT molecule objects to represent
+  uses SMILES strings and RDKit molecule objects to represent
   small molecules. All other featurizers which are subclasses of
   this class should plan to process input which comes as smiles
-  strings or RDKIT molecules.
+  strings or RDKit molecules.
 
   Child classes need to implement the _featurize method for
   calculating features for a single molecule.
@@ -157,7 +157,7 @@ class MolecularFeaturizer(Featurizer):
   The subclasses of this class require RDKit to be installed.
   """
 
-  def featurize(self, molecules, log_every_n=1000, canonical=True):
+  def featurize(self, molecules, log_every_n=1000):
     """Calculate features for molecules.
 
     Parameters
@@ -167,8 +167,6 @@ class MolecularFeaturizer(Featurizer):
       strings.
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
-    canonical: bool, default True
-      Whether to use a canonical order of atoms returned by RDKit
 
     Returns
     -------
@@ -177,6 +175,8 @@ class MolecularFeaturizer(Featurizer):
     """
     try:
       from rdkit import Chem
+      from rdkit.Chem import rdmolfiles
+      from rdkit.Chem import rdmolops
       from rdkit.Chem.rdchem import Mol
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
@@ -194,13 +194,11 @@ class MolecularFeaturizer(Featurizer):
         logger.info("Featurizing datapoint %i" % i)
       try:
         if isinstance(mol, str):
-          # mol must be a SMILES string so parse
+          # mol must be a RDKit Mol object, so parse a SMILES
           mol = Chem.MolFromSmiles(mol)
-        # canonicalize
-        if canonical:
-          canonical_smiles = Chem.MolToSmiles(mol)
-          mol = Chem.MolFromSmiles(canonical_smiles)
-
+          # SMILES is unique, so set a canonical order of atoms
+          new_order = rdmolfiles.CanonicalRankAtoms(mol)
+          mol = rdmolops.RenumberAtoms(mol, new_order)
         features.append(self._featurize(mol))
       except:
         logger.warning(
@@ -241,11 +239,11 @@ class MaterialStructureFeaturizer(Featurizer):
 
     Parameters
     ----------
-    structures : Iterable[Dict[str, Any]]
+    structures: Iterable[Dict[str, Any]]
       Iterable sequence of pymatgen structure dictionaries.
       Dictionary representations of pymatgen.Structure
       https://pymatgen.org/pymatgen.core.structure.html
-    log_every_n : int, default 1000
+    log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
 
     Returns
