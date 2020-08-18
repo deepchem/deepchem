@@ -9,9 +9,9 @@ def pairwise_distances(coords1: np.ndarray, coords2: np.ndarray) -> np.ndarray:
 
   Parameters
   ----------
-  coords1 : np.ndarray
+  coords1: np.ndarray
     A numpy array of shape `(N, 3)`
-  coords2 : np.ndarray
+  coords2: np.ndarray
     A numpy array of shape `(M, 3)`
 
   Returns
@@ -27,11 +27,11 @@ def cutoff_filter(d: np.ndarray, x: np.ndarray, cutoff=8.0) -> np.ndarray:
 
   Parameters
   ----------
-  d : np.ndarray
+  d: np.ndarray
     Pairwise distances matrix. A numpy array of shape `(N, M)`
-  x : np.ndarray
+  x: np.ndarray
     Matrix of shape `(N, M)`
-  cutoff : float, optional (default 8)
+  cutoff: float, optional (default 8)
     Cutoff for selection in Angstroms
 
   Returns
@@ -47,11 +47,11 @@ def vina_nonlinearity(c: np.ndarray, w: float, Nrot: int) -> np.ndarray:
 
   Parameters
   ----------
-  c : np.ndarray
+  c: np.ndarray
     A numpy array of shape `(N, M)`
-  w : float
+  w: float
     Weighting term
-  Nrot : int
+  Nrot: int
     Number of rotatable bonds in this molecule
 
   Returns
@@ -68,7 +68,7 @@ def vina_repulsion(d: np.ndarray) -> np.ndarray:
 
   Parameters
   ----------
-  d : np.ndarray
+  d: np.ndarray
     A numpy array of shape `(N, M)`.
 
   Returns
@@ -86,7 +86,7 @@ def vina_hydrophobic(d: np.ndarray) -> np.ndarray:
 
   Parameters
   ----------
-  d : np.ndarray
+  d: np.ndarray
     A numpy array of shape `(N, M)`.
 
   Returns
@@ -112,7 +112,7 @@ def vina_hbond(d: np.ndarray) -> np.ndarray:
 
   Parameters
   ----------
-  d : np.ndarray
+  d: np.ndarray
     A numpy array of shape `(N, M)`.
 
   Returns
@@ -139,7 +139,7 @@ def vina_gaussian_first(d: np.ndarray) -> np.ndarray:
 
   Parameters
   ----------
-  d : np.ndarray
+  d: np.ndarray
     A numpy array of shape `(N, M)`.
 
   Returns
@@ -164,7 +164,7 @@ def vina_gaussian_second(d: np.ndarray) -> np.ndarray:
 
   Parameters
   ----------
-  d : np.ndarray
+  d: np.ndarray
     A numpy array of shape `(N, M)`.
 
   Returns
@@ -187,9 +187,9 @@ def weighted_linear_sum(w: np.ndarray, x: np.ndarray) -> np.ndarray:
 
   Parameters
   ----------
-  w : np.ndarray
+  w: np.ndarray
     A numpy array of shape `(N,)`
-  x : np.ndarray
+  x: np.ndarray
     A numpy array of shape `(N,)`
 
   Returns
@@ -206,15 +206,15 @@ def vina_energy_term(coords1: np.ndarray, coords2: np.ndarray,
 
   Parameters
   ----------
-  coords1 : np.ndarray
+  coords1: np.ndarray
     Molecular coordinates of shape `(N, 3)`
-  coords2 : np.ndarray
+  coords2: np.ndarray
     Molecular coordinates of shape `(M, 3)`
-  weights : np.ndarray
+  weights: np.ndarray
     A numpy array of shape `(5,)`
-  wrot : float
+  wrot: float
     The scaling factor for nonlinearity
-  Nrot : int
+  Nrot: int
     Number of rotatable bonds in this calculation
 
   Returns

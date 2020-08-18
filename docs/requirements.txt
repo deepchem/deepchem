@@ -1,5 +1,4 @@
 pandas
-sklearn
+scikit-learn
 sphinx_rtd_theme
-tensorflow
-tensorflow_probability
+tensorflow==2.2.0
