@@ -56,8 +56,6 @@ File Handling
 
 .. autofunction:: deepchem.utils.save.load_json_files
 
-.. autofunction:: deepchem.utils.save.save_metadata
-
 .. autofunction:: deepchem.utils.save.load_from_disk
 
 .. autofunction:: deepchem.utils.save.load_pickle_from_disk
@@ -132,7 +130,6 @@ Evaluation Utils
 
 .. autofunction:: deepchem.utils.evaluate.relative_difference
 
-.. autofunction:: deepchem.utils.evaluate.threshold_predictions
 
 Genomic Utilities
 -----------------

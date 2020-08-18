@@ -41,8 +41,8 @@ class Model(BaseEstimator):
     This is intended only for convenience of subclass implementations
     and should not be invoked directly.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     model_instance: object
       Wrapper around ScikitLearn/Keras/Tensorflow model object.
     model_dir: str, optional (default None)
