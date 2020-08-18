@@ -1,6 +1,8 @@
 """
 Gathers all datasets in one place for convenient imports
 """
+# flake8: noqa
+
 # TODO(rbharath): Get rid of * import
 from deepchem.data.datasets import pad_features
 from deepchem.data.datasets import pad_batch
