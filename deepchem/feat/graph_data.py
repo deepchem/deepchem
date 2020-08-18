@@ -162,8 +162,28 @@ class BatchGraphData(GraphData):
 
   Attributes
   ----------
+  node_features: np.ndarray
+    Concatenated node feature matrix with shape [num_nodes, num_node_features].
+    `num_nodes` is total number of nodes in the batch graph.
+  edge_index: np.ndarray, dtype int
+    Concatenated graph connectivity in COO format with shape [2, num_edges].
+    `num_edges` is total number of edges in the batch graph.
+  edge_features: np.ndarray, optional (default None)
+    Concatenated edge feature matrix with shape [num_edges, num_edge_features].
+    `num_edges` is total number of edges in the batch graph.
+  node_pos_features: np.ndarray, optional (default None)
+    Concatenated node position matrix with shape [num_nodes, num_dimensions].
+    `num_nodes` is total number of edges in the batch graph.
+  num_nodes: int
+    The number of nodes in the batch graph.
+  num_node_features: int
+    The number of features per node in the graph.
+  num_edges: int
+    The number of edges in the batch graph.
+  num_edges_features: int, optional (default None)
+    The number of features per edge in the graph.
   graph_index: np.ndarray, dtype int
-    This vector indicates which graph the node belongs with shape [num_nodes,]
+    This vector indicates which graph the node belongs with shape [num_nodes,].
 
   Examples
   --------
