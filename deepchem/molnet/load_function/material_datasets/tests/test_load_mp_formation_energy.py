@@ -25,10 +25,10 @@ def test_mp_formation_energy_loader():
       })
 
   assert tasks[0] == 'formation_energy'
-  assert datasets[0].X.shape == (3, 1, 2)
-  assert datasets[1].X.shape == (1, 1, 2)
-  assert datasets[2].X.shape == (1, 1, 2)
-  assert np.allclose(datasets[0].X[0][0], [-0.80130437, -0.51393296], atol=0.01)
+  assert datasets[0].X.shape == (3, 2)
+  assert datasets[1].X.shape == (1, 2)
+  assert datasets[2].X.shape == (1, 2)
+  assert np.allclose(datasets[0].X[0], [-0.80130437, -0.51393296], atol=0.01)
 
   if os.path.exists(os.path.join(current_dir, 'mp_formation_energy.json')):
     os.remove(os.path.join(current_dir, 'mp_formation_energy.json'))
