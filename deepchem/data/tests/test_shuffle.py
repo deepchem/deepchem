@@ -1,10 +1,7 @@
 """
-Testing singletask/multitask dataset shuffling 
+Testing singletask/multitask dataset shuffling
 """
 import os
-import shutil
-import tempfile
-import unittest
 import deepchem as dc
 import numpy as np
 
