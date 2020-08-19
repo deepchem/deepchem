@@ -272,27 +272,6 @@ def test_reshard():
   np.testing.assert_array_equal(ids, ids_rr)
 
 
-def test_select():
-  """Test that dataset select works."""
-  num_datapoints = 10
-  num_features = 10
-  num_tasks = 1
-  X = np.random.rand(num_datapoints, num_features)
-  y = np.random.randint(2, size=(num_datapoints, num_tasks))
-  w = np.ones((num_datapoints, num_tasks))
-  ids = np.array(["id"] * num_datapoints)
-  dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
-
-  indices = [0, 4, 5, 8]
-  select_dataset = dataset.select(indices)
-  X_sel, y_sel, w_sel, ids_sel = (select_dataset.X, select_dataset.y,
-                                  select_dataset.w, select_dataset.ids)
-  np.testing.assert_array_equal(X[indices], X_sel)
-  np.testing.assert_array_equal(y[indices], y_sel)
-  np.testing.assert_array_equal(w[indices], w_sel)
-  np.testing.assert_array_equal(ids[indices], ids_sel)
-
-
 def test_complete_shuffle():
   shard_sizes = [1, 2, 3, 4, 5]
 
