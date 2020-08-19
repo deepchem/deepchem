@@ -2327,27 +2327,6 @@ class DiskDataset(Dataset):
     # metadata
     if not self.legacy_metadata:
       for shard_num in range(n_rows):
-        #row = self.metadata_df.iloc[shard_num]
-        #if row['X_shape'] is not None:
-        #  shard_X_shape = make_tuple(str(row['X_shape']))
-        #else:
-        #  shard_X_shape = tuple()
-        #if n_tasks > 0:
-        #  if row['y_shape'] is not None:
-        #    shard_y_shape = make_tuple(str(row['y_shape']))
-        #  else:
-        #    shard_y_shape = tuple()
-        #  if row['w_shape'] is not None:
-        #    shard_w_shape = make_tuple(str(row['w_shape']))
-        #  else:
-        #    shard_w_shape = tuple()
-        #else:
-        #  shard_y_shape = tuple()
-        #  shard_w_shape = tuple()
-        #if row['ids_shape'] is not None:
-        #  shard_ids_shape = make_tuple(str(row['ids_shape']))
-        #else:
-        #  shard_ids_shape = tuple()
         shard_X_shape, shard_y_shape, shard_w_shape, shard_ids_shape = self._get_shard_shape(
             shard_num)
         if shard_num == 0:
