@@ -3,7 +3,6 @@ Gathers all models in one place for convenient imports
 """
 from deepchem.models.models import Model
 from deepchem.models.keras_model import KerasModel
-from deepchem.models.sklearn_models import SklearnModel
 from deepchem.models.xgboost_models import XGBoostModel
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem.models.callbacks import ValidationCallback
@@ -24,6 +23,9 @@ from deepchem.models.cnn import CNN
 from deepchem.models.text_cnn import TextCNNModel
 from deepchem.models.atomic_conv import AtomicConvModel
 from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
+
+# scikit-learn model
+from deepchem.models.sklearn_models import SklearnModel
 
 try:
   from deepchem.models.torch_model import TorchModel
