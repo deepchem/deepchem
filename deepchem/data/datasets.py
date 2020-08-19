@@ -1319,7 +1319,8 @@ class DiskDataset(Dataset):
     DiskDataset._save_metadata(self.metadata_df, self.data_dir, self.tasks)
     self._cached_shards = None
 
-  def move(self, new_data_dir: str, delete_if_exists: Optional[bool] = True) -> None:
+  def move(self, new_data_dir: str,
+           delete_if_exists: Optional[bool] = True) -> None:
     """Moves dataset to new directory.
 
     Parameters
@@ -2664,14 +2665,6 @@ class ImageDataset(Dataset):
     -------
     Iterator[Batch]
       Iterator which yields tuples of four numpy arrays `(X, y, w, ids)`.
-
-    Examples
-    --------
-    >>> dataset = ImageDataset(np.ones((2,2)))
-    >>> for x, y, w, id in dataset.itersamples():
-    ...   print(x.tolist(), y.tolist(), w.tolist(), id)
-    [1.0, 1.0] [0.0] [0.0] 0
-    [1.0, 1.0] [0.0] [0.0] 1
     """
     n_samples = self._X_shape[0]
     return ((self._get_image(self._X, i), self._get_image(self._y, i),
