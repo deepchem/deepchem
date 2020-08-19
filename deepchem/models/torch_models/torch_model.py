@@ -132,24 +132,24 @@ class TorchModel(Model):
     loss: dc.models.losses.Loss or function
       a Loss or function defining how to compute the training loss for each
       batch, as described above
-    output_types: list of strings
+    output_types: list of strings, optional (default None)
       the type of each output from the model, as described above
-    batch_size: int
+    batch_size: int, optional (default 100)
       default batch size for training and evaluating
-    model_dir: str
+    model_dir: str, optional (default None)
       the directory on disk where the model will be stored.  If this is None,
       a temporary directory is created.
-    learning_rate: float or LearningRateSchedule
+    learning_rate: float or LearningRateSchedule, optional (default 0.001)
       the learning rate to use for fitting.  If optimizer is specified, this is
       ignored.
-    optimizer: Optimizer
+    optimizer: Optimizer, optional (default None)
       the optimizer to use for fitting.  If this is specified, learning_rate is
       ignored.
-    tensorboard: bool
+    tensorboard: bool, optional (default False)
       whether to log progress to TensorBoard during training
-    wandb: bool
+    wandb: bool, optional (default False)
       whether to log progress to Weights & Biases during training
-    log_frequency: int
+    log_frequency: int, optional (default 100)
       The frequency at which to log data. Data is logged using
       `logging` by default. If `tensorboard` is set, data is also
       logged to TensorBoard. If `wandb` is set, data is also logged
@@ -157,7 +157,7 @@ class TorchModel(Model):
       a global step corresponds to one batch of training. If you'd
       like a printout every 10 batch steps, you'd set
       `log_frequency=10` for example.
-    device: torch.device
+    device: torch.device, optional (default None)
       the device on which to run computations.  If None, a device is
       chosen automatically.
     """
@@ -183,7 +183,7 @@ class TorchModel(Model):
       else:
         device = torch.device('cpu')
     self.device = device
-    model.to(device)
+    self.model.to(device)
 
     # W&B logging
     if wandb and not is_wandb_available():
@@ -341,7 +341,6 @@ class TorchModel(Model):
     avg_loss = 0.0
     last_avg_loss = 0.0
     averaged_batches = 0
-    train_op = None
     if loss is None:
       loss = self._loss_fn
     if variables is None:
@@ -844,6 +843,7 @@ class TorchModel(Model):
     inputs = [
         x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs
     ]
+    inputs = [torch.as_tensor(x, device=self.device) for x in inputs]
     if labels is not None:
       labels = [
           x.astype(np.float32) if x.dtype == np.float64 else x for x in labels
@@ -854,7 +854,6 @@ class TorchModel(Model):
           x.astype(np.float32) if x.dtype == np.float64 else x for x in weights
       ]
       weights = [torch.as_tensor(x, device=self.device) for x in weights]
-    inputs = [torch.as_tensor(x, device=self.device) for x in inputs]
 
     return (inputs, labels, weights)
 

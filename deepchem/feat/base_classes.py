@@ -4,7 +4,9 @@ Feature calculations.
 import logging
 import numpy as np
 import multiprocessing
-from typing import Any, Dict, List, Iterable, Sequence, Tuple
+from typing import Any, Dict, List, Iterable, Sequence, Tuple, Union
+
+from deepchem.utils.typing import PymatgenStructure
 
 logger = logging.getLogger(__name__)
 
@@ -233,16 +235,16 @@ class MaterialStructureFeaturizer(Featurizer):
   """
 
   def featurize(self,
-                structures: Iterable[Dict[str, Any]],
+                structures: Iterable[Union[Dict[str, Any], PymatgenStructure]],
                 log_every_n: int = 1000) -> np.ndarray:
     """Calculate features for crystal structures.
 
     Parameters
     ----------
-    structures: Iterable[Dict[str, Any]]
-      Iterable sequence of pymatgen structure dictionaries.
-      Dictionary representations of pymatgen.Structure
-      https://pymatgen.org/pymatgen.core.structure.html
+    structures: Iterable[Union[Dict, pymatgen.Structure]]
+      Iterable sequence of pymatgen structure dictionaries
+      or pymatgen.Structure. Please confirm the dictionary representations
+      of pymatgen.Structure from https://pymatgen.org/pymatgen.core.structure.html.
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
 
@@ -263,8 +265,9 @@ class MaterialStructureFeaturizer(Featurizer):
       if idx % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % idx)
       try:
-        s = Structure.from_dict(structure)
-        features.append(self._featurize(s))
+        if isinstance(structure, Dict):
+          structure = Structure.from_dict(structure)
+        features.append(self._featurize(structure))
       except:
         logger.warning(
             "Failed to featurize datapoint %i. Appending empty array" % idx)
