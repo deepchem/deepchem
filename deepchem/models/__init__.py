@@ -1,9 +1,9 @@
 """
 Gathers all models in one place for convenient imports
 """
+# flake8: noqa
 from deepchem.models.models import Model
 from deepchem.models.keras_model import KerasModel
-from deepchem.models.xgboost_models import XGBoostModel
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem.models.callbacks import ValidationCallback
 
@@ -26,6 +26,12 @@ from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
 
 # scikit-learn model
 from deepchem.models.sklearn_models import SklearnModel
+
+# XGBoost model
+try:
+  from deepchem.models.xgboost_models import XGBoostModel
+except ModuleNotFoundError:
+  pass
 
 try:
   from deepchem.models.torch_model import TorchModel
