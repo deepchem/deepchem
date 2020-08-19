@@ -2,7 +2,7 @@ from typing import List, Union
 import numpy as np
 import torch
 
-from deepchem.data.data_loader import ImageLoader
+from deepchem.utils.save import load_image_files
 from deepchem.data.datasets import NumpyDataset, DiskDataset, ImageDataset
 
 
@@ -139,4 +139,4 @@ class _TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
     """
     if isinstance(array, np.ndarray):
       return array[index]
-    return ImageLoader.load_img([array[index]])[0]
+    return load_image_files([array[index]])[0]

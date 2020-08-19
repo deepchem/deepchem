@@ -2,21 +2,21 @@
 Process an input dataset into a format suitable for machine learning.
 """
 import os
-import pandas as pd
-import numpy as np
 import tempfile
+import zipfile
 import time
 import logging
 import warnings
 from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
 
+import pandas as pd
+import numpy as np
+
 from deepchem.utils.typing import OneOrMany
-from deepchem.utils.save import load_csv_files, load_json_files
-from deepchem.utils.save import load_sdf_files
+from deepchem.utils.save import load_image_files, load_csv_files, load_json_files, load_sdf_files
 from deepchem.utils.genomics_utils import encode_bio_sequence
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
-import zipfile
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +35,13 @@ def _convert_df_to_numpy(df: pd.DataFrame,
   ----------
   df: pd.DataFrame
     Pandas dataframe with columns for all tasks
-  tasks: List[str] 
+  tasks: List[str]
     List of tasks
+
+  Returns
+  -------
+  Tuple[np.ndarray, np.ndarray]
+    The tuple is `(w, y)`.
   """
   n_samples = df.shape[0]
   n_tasks = len(tasks)
@@ -50,44 +55,6 @@ def _convert_df_to_numpy(df: pd.DataFrame,
     w[missing] = 0
 
   return y.astype(float), w.astype(float)
-
-
-def _get_user_specified_features(
-    df: pd.DataFrame, featurizer: UserDefinedFeaturizer) -> np.ndarray:
-  """Extract and merge user specified features.
-
-  Private helper methods that merges features included in dataset
-  provided by user into final features dataframe
-
-  Three types of featurization here:
-
-    1) Molecule featurization
-      -) Smiles string featurization
-      -) Rdkit MOL featurization
-    2) Complex featurization
-      -) PDB files for interacting molecules.
-    3) User specified featurizations.
-
-  Parameters
-  ----------
-  df: pd.DataFrame
-    DataFrame that holds SMILES strings
-  featurizer: Featurizer
-    A featurizer object
-
-  Returns
-  -------
-  np.ndarray
-    Array of features extracted from input dataframe.
-  """
-  time1 = time.time()
-  df[featurizer.feature_fields] = df[featurizer.feature_fields].apply(
-      pd.to_numeric)
-  X_shard = df[featurizer.feature_fields].to_numpy()
-  time2 = time.time()
-  logger.info(
-      "TIMING: user specified processing took %0.3f s" % (time2 - time1))
-  return X_shard
 
 
 class DataLoader(object):
@@ -122,8 +89,8 @@ class DataLoader(object):
 
   def __init__(self,
                tasks: List[str],
-               id_field: str = None,
-               featurizer: Featurizer = None,
+               featurizer: Featurizer,
+               id_field: Optional[str] = None,
                log_every_n: int = 1000):
     """Construct a DataLoader object.
 
@@ -132,17 +99,17 @@ class DataLoader(object):
 
     Parameters
     ----------
-    tasks: list[str]
+    tasks: List[str]
       List of task names
-    id_field: str, optional
+    featurizer: Featurizer
+      Featurizer to use to process data.
+    id_field: str, optional (default None)
       Name of field that holds sample identifier. Note that the
       meaning of "field" depends on the input data type and can have a
       different meaning in different subclasses. For example, a CSV
       file could have a field as a column, and an SDF file could have
       a field as molecular property.
-    featurizer: dc.feat.Featurizer, optional
-      Featurizer to use to process data
-    log_every_n: int, optional
+    log_every_n: int, optional (default 1000)
       Writes a logging statement this often.
     """
     if self.__class__ is DataLoader:
@@ -160,7 +127,7 @@ class DataLoader(object):
     self.log_every_n = log_every_n
 
   def featurize(self,
-                inputs: Sequence[Any],
+                inputs: OneOrMany[Any],
                 data_dir: Optional[str] = None,
                 shard_size: Optional[int] = 8192) -> Dataset:
     """Featurize provided files and write to specified location.
@@ -177,25 +144,26 @@ class DataLoader(object):
 
     Parameters
     ----------
-    inputs: list
+    inputs: List
       List of inputs to process. Entries can be filenames or arbitrary objects.
-    data_dir: str, optional
+    data_dir: str, default None
       Directory to store featurized dataset.
-    shard_size: int, optional
+    shard_size: int, optional (default 8192)
       Number of examples stored in each shard.
 
     Returns
     -------
-    A `Dataset` object containing a featurized representation of data
-    from `input`.
+    Dataset
+      A `Dataset` object containing a featurized representation of data
+      from `inputs`.
     """
     warnings.warn(
-        "featurize() is deprecated and has been renamed to create_dataset(). featurize() will be removed in DeepChem 3.0",
-        FutureWarning)
+        "featurize() is deprecated and has been renamed to create_dataset()."
+        "featurize() will be removed in DeepChem 3.0", FutureWarning)
     return self.create_dataset(inputs, data_dir, shard_size)
 
   def create_dataset(self,
-                     inputs: Sequence[Any],
+                     inputs: OneOrMany[Any],
                      data_dir: Optional[str] = None,
                      shard_size: Optional[int] = 8192) -> Dataset:
     """Creates and returns a `Dataset` object by featurizing provided files.
@@ -212,21 +180,23 @@ class DataLoader(object):
 
     Parameters
     ----------
-    inputs: list
+    inputs: List
       List of inputs to process. Entries can be filenames or arbitrary objects.
-    data_dir: str, optional
+    data_dir: str, optional (default None)
       Directory to store featurized dataset.
-    shard_size: int, optional
+    shard_size: int, optional (default 8192)
       Number of examples stored in each shard.
 
     Returns
     -------
-    A `Dataset` object containing a featurized representation of data
-    from `inputs`.
+    DiskDataset
+      A `DiskDataset` object containing a featurized representation of data
+      from `inputs`.
     """
     logger.info("Loading raw samples now.")
     logger.info("shard_size: %s" % str(shard_size))
 
+    # Special case handling of single input
     if not isinstance(inputs, list):
       inputs = [inputs]
 
@@ -255,7 +225,7 @@ class DataLoader(object):
 
     return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
 
-  def _get_shards(self, inputs: List, shard_size: int) -> Iterator:
+  def _get_shards(self, inputs: List, shard_size: Optional[int]) -> Iterator:
     """Stub for children classes.
 
     Should implement a generator that walks over the source data in
@@ -285,13 +255,18 @@ class DataLoader(object):
     handled in memory. For example, this may be a set of rows from a
     CSV file or a set of molecules from a SDF file. Featurize this
     shard in memory and return the results.
+
+    Parameters
+    ----------
+    shard: Any
+      A chunk of input data
     """
     raise NotImplementedError
 
 
 class CSVLoader(DataLoader):
   """
-  Creates `Dataset` objects from input CSF files.
+  Creates `Dataset` objects from input CSV files.
 
   This class provides conveniences to load data from CSV files.
   It's possible to directly featurize data from CSV files using
@@ -331,36 +306,34 @@ class CSVLoader(DataLoader):
 
   def __init__(self,
                tasks: List[str],
+               featurizer: Featurizer,
                feature_field: Optional[str] = None,
-               label_field: Optional[str] = None,
-               weight_field: Optional[str] = None,
+               id_field: Optional[str] = None,
                smiles_field: Optional[str] = None,
-               id_field: str = None,
-               featurizer: Optional[Featurizer] = None,
                log_every_n: int = 1000):
     """Initializes CSVLoader.
 
     Parameters
     ----------
-    tasks : List[str]
+    tasks: List[str]
       List of task names
-    feature_field : str, optional (default None)
+    featurizer: Featurizer
+      Featurizer to use to process data.
+    feature_field: str, optional (default None)
       Field with data to be featurized.
     id_field: str, optional, (default None)
       CSV column that holds sample identifier
-    smiles_field: str, optional (DEPRECATED)
-      Name of field that holds smiles string
-    featurizer: dc.feat.Featurizer, optional
-      Featurizer to use to process data
-    log_every_n: int, optional
+    smiles_field: str, optional (default None) (DEPRECATED)
+      Name of field that holds smiles string.
+    log_every_n: int, optional (default 1000)
       Writes a logging statement this often.
     """
     if not isinstance(tasks, list):
       raise ValueError("tasks must be a list.")
     if smiles_field is not None:
       logger.warning(
-          "smiles_field is deprecated and will be removed in a future version of DeepChem. Use feature_field instead."
-      )
+          "smiles_field is deprecated and will be removed in a future version of DeepChem."
+          "Use feature_field instead.")
       if feature_field is not None and smiles_field != feature_field:
         raise ValueError(
             "smiles_field and feature_field if both set must have the same value."
@@ -382,19 +355,20 @@ class CSVLoader(DataLoader):
     self.log_every_n = log_every_n
 
   def _get_shards(self, input_files: List[str],
-                  shard_size: int) -> Iterator[pd.DataFrame]:
+                  shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
     """Defines a generator which returns data for each shard
 
     Parameters
     ----------
-    input_files: list[str]
+    input_files: List[str]
       List of filenames to process
-    shard_size: int
+    shard_size: int, optional
       The size of a shard of data to process at a time.
 
     Returns
     -------
-    Iterator over shards
+    Iterator[pd.DataFrame]
+      Iterator over shards
     """
     return load_csv_files(input_files, shard_size)
 
@@ -475,19 +449,20 @@ class UserCSVLoader(CSVLoader):
   """
 
   def _get_shards(self, input_files: List[str],
-                  shard_size: int) -> Iterator[pd.DataFrame]:
+                  shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
     """Defines a generator which returns data for each shard
 
     Parameters
     ----------
-    input_files: list[str]
+    input_files: List[str]
       List of filenames to process
-    shard_size: int
+    shard_size: int, optional
       The size of a shard of data to process at a time.
 
     Returns
     -------
-    Iterator over shards
+    Iterator[pd.DataFrame]
+      Iterator over shards
     """
     return load_csv_files(input_files, shard_size)
 
@@ -508,8 +483,14 @@ class UserCSVLoader(CSVLoader):
       Indices of rows in source CSV with valid data.
     """
     assert isinstance(self.featurizer, UserDefinedFeaturizer)
-    X = _get_user_specified_features(shard, self.featurizer)
-    return (X, np.ones(len(X), dtype=bool))
+    time1 = time.time()
+    feature_fields = self.featurizer.feature_fields
+    shard[feature_fields] = shard[feature_fields].apply(pd.to_numeric)
+    X_shard = shard[feature_fields].to_numpy()
+    time2 = time.time()
+    logger.info(
+        "TIMING: user specified processing took %0.3f s" % (time2 - time1))
+    return (X_shard, np.ones(len(X_shard), dtype=bool))
 
 
 class JsonLoader(DataLoader):
@@ -542,32 +523,30 @@ class JsonLoader(DataLoader):
   def __init__(self,
                tasks: List[str],
                feature_field: str,
+               featurizer: Featurizer,
                label_field: Optional[str] = None,
                weight_field: Optional[str] = None,
                id_field: Optional[str] = None,
-               featurizer: Optional[Featurizer] = None,
                log_every_n: int = 1000):
     """Initializes JsonLoader.
 
     Parameters
     ----------
-    tasks : List[str]
+    tasks: List[str]
       List of task names
-    feature_field : str
+    feature_field: str
       JSON field with data to be featurized.
-    label_field : str, default None
-      Field with target variables.
-    weight_field : str, default None
-      Field with weights.
-    id_field : str, default None
-      Field for identifying samples.
-    featurizer : dc.feat.Featurizer, optional
+    featurizer: Featurizer
       Featurizer to use to process data
-    log_every_n : int, optional
+    label_field: str, optional (default None)
+      Field with target variables.
+    weight_field: str, optional (default None)
+      Field with weights.
+    id_field: str, optional (default None)
+      Field for identifying samples.
+    log_every_n: int, optional (default 1000)
       Writes a logging statement this often.
-
     """
-
     if not isinstance(tasks, list):
       raise ValueError("Tasks must be a list.")
     self.tasks = tasks
@@ -594,15 +573,14 @@ class JsonLoader(DataLoader):
       List of JSON filenames.
     data_dir: Optional[str], default None
       Name of directory where featurized data is stored.
-    shard_size: Optional[int], default 8192
+    shard_size: int, optional (default 8192)
       Shard size when loading data.
 
     Returns
     -------
-    dataset: dc.data.Dataset
-      A `Dataset` object containing a featurized representation of data
+    DiskDataset
+      A `DiskDataset` object containing a featurized representation of data
       from `input_files`.
-
     """
     if not isinstance(input_files, list):
       try:
@@ -654,11 +632,25 @@ class JsonLoader(DataLoader):
     return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
 
   def _get_shards(self, input_files: List[str],
-                  shard_size: int) -> Iterator[pd.DataFrame]:
-    """Defines a generator which returns data for each shard"""
+                  shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
+    """Defines a generator which returns data for each shard
+
+    Parameters
+    ----------
+    input_files: List[str]
+      List of filenames to process
+    shard_size: int, optional
+      The size of a shard of data to process at a time.
+
+    Returns
+    -------
+    Iterator[pd.DataFrame]
+      Iterator over shards
+    """
     return load_json_files(input_files, shard_size)
 
-  def _featurize_shard(self, shard) -> Tuple[np.ndarray, np.ndarray]:
+  def _featurize_shard(self,
+                       shard: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
     """Featurizes a shard of an input dataframe.
 
     Helper that computes features for the given shard of data.
@@ -670,10 +662,10 @@ class JsonLoader(DataLoader):
 
     Returns
     -------
-    features : np.ndarray
+    features: np.ndarray
       Array of feature vectors. Note that samples for which featurization has
       failed will be filtered out.
-    valid_inds : np.ndarray
+    valid_inds: np.ndarray
       Boolean values indicating successful featurization for corresponding
       sample in the source.
     """
@@ -709,8 +701,8 @@ class SDFLoader(DataLoader):
 
   def __init__(self,
                tasks: List[str],
+               featurizer: Featurizer,
                sanitize: bool = False,
-               featurizer: Featurizer = None,
                log_every_n: int = 1000):
     """Initialize SDF Loader
 
@@ -718,34 +710,64 @@ class SDFLoader(DataLoader):
     ----------
     tasks: list[str]
       List of tasknames. These will be loaded from the SDF file.
-    sanitize: bool, optional
-      Whether to sanitize molecules.
-    featurizer: dc.feat.Featurizer, optional
+    featurizer: Featurizer
       Featurizer to use to process data
-    log_every_n: int, optional
+    sanitize: bool, optional (default False)
+      Whether to sanitize molecules.
+    log_every_n: int, optional (default 1000)
       Writes a logging statement this often.
     """
     self.featurizer = featurizer
     self.sanitize = sanitize
     self.tasks = tasks
-    # The field in which dc.utils.save.load_sdf_files stores
-    # RDKit mol objects
+    # The field in which dc.utils.save.load_sdf_files stores RDKit mol objects
     self.mol_field = "mol"
-    # The field in which load_sdf_files return value stores
-    # smiles
+    # The field in which load_sdf_files return value stores smiles
     self.id_field = "smiles"
     self.log_every_n = log_every_n
 
-  def _get_shards(self, input_files, shard_size):
-    """Defines a generator which returns data for each shard"""
+  def _get_shards(self, input_files: List[str],
+                  shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
+    """Defines a generator which returns data for each shard
+
+    Parameters
+    ----------
+    input_files: List[str]
+      List of filenames to process
+    shard_size: int, optional
+      The size of a shard of data to process at a time.
+
+    Returns
+    -------
+    Iterator[pd.DataFrame]
+      Iterator over shards
+    """
     return load_sdf_files(
         input_files=input_files,
         clean_mols=self.sanitize,
         tasks=self.tasks,
         shard_size=shard_size)
 
-  def _featurize_shard(self, shard):
-    """Featurizes a shard of an input dataframe."""
+  def _featurize_shard(self,
+                       shard: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+    """Featurizes a shard of an input dataframe.
+
+    Helper that computes features for the given shard of data.
+
+    Parameters
+    ----------
+    shard: pd.DataFrame
+      DataFrame that holds data to be featurized.
+
+    Returns
+    -------
+    features: np.ndarray
+      Array of feature vectors. Note that samples for which featurization has
+      failed will be filtered out.
+    valid_inds: np.ndarray
+      Boolean values indicating successful featurization for corresponding
+      sample in the source.
+    """
     features = [elt for elt in self.featurizer(shard[self.mol_field])]
     valid_inds = np.array(
         [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
@@ -779,18 +801,19 @@ class FASTALoader(DataLoader):
 
     Parameters
     ----------
-    input_files: list
+    input_files: List[str]
       List of fasta files.
-    data_dir: str, optional
+    data_dir: str, optional (default None)
       Name of directory where featurized data is stored.
-    shard_size: int, optional
+    shard_size: int, optional (default None)
       For now, this argument is ignored and each FASTA file gets its
       own shard.
 
     Returns
     -------
-    A `Dataset` object containing a featurized representation of data
-    from `input_files`.
+    DiskDataset
+      A `DiskDataset` object containing a featurized representation of data
+      from `input_files`.
     """
     if isinstance(input_files, str):
       input_files = [input_files]
@@ -822,7 +845,7 @@ class ImageLoader(DataLoader):
 
     Parameters
     ----------
-    tasks: list[str]
+    tasks: List[str], optional (default None)
       List of task names for image labels.
     """
     if tasks is None:
@@ -841,27 +864,28 @@ class ImageLoader(DataLoader):
     inputs: `Union[OneOrMany[str], Tuple[Any]]`
       The inputs provided should be one of the following
 
-      - filename
-      - list of filenames
-      - Tuple (list of filenames, labels)
-      - Tuple (list of filenames, labels, weights)
+        - filename
+        - list of filenames
+        - Tuple (list of filenames, labels)
+        - Tuple (list of filenames, labels, weights)
 
       Each file in a given list of filenames should either be of a supported
       image format (.png, .tif only for now) or of a compressed folder of
       image files (only .zip for now). If `labels` or `weights` are provided,
       they must correspond to the sorted order of all filenames provided, with
       one label/weight per file.
-
-    data_dir: str, optional
+    data_dir: str, optional (default None)
       Directory to store featurized dataset.
-    in_memory: bool
+    shard_size: int, optional (default 8192)
+      Shard size when loading data.
+    in_memory: bool, optioanl (default False)
       If true, return in-memory NumpyDataset. Else return ImageDataset.
 
     Returns
     -------
-    A `Dataset` object containing a featurized representation of data
-    from `input_files`, `labels`, and `weights`.
-
+    Dataset
+      A `Dataset` object containing a featurized representation of data
+      from `input_files`, `labels`, and `weights`.
     """
     labels, weights = None, None
     if isinstance(inputs, tuple):
@@ -919,10 +943,10 @@ class ImageLoader(DataLoader):
     if in_memory:
       if data_dir is None:
         return NumpyDataset(
-            self.load_img(image_files), y=labels, w=weights, ids=image_files)
+            load_image_files(image_files), y=labels, w=weights, ids=image_files)
       else:
         dataset = DiskDataset.from_numpy(
-            self.load_img(image_files),
+            load_image_files(image_files),
             y=labels,
             w=weights,
             ids=image_files,
@@ -933,39 +957,6 @@ class ImageLoader(DataLoader):
         return dataset
     else:
       return ImageDataset(image_files, y=labels, w=weights, ids=image_files)
-
-  @staticmethod
-  def load_img(image_files: List[str]) -> np.ndarray:
-    """Loads a set of images from disk.
-
-    Parameters
-    ----------
-    image_files: list[str]
-      List of image filenames to load
-
-    Returns
-    -------
-    np.ndarray that contains loaded images. Of shape `(N,...)`.
-
-    Note
-    ----
-    This method requires PIL to be installed.
-    """
-    from PIL import Image
-    images = []
-    for image_file in image_files:
-      _, extension = os.path.splitext(image_file)
-      extension = extension.lower()
-      if extension == ".png":
-        image = np.array(Image.open(image_file))
-        images.append(image)
-      elif extension == ".tif":
-        im = Image.open(image_file)
-        imarray = np.array(im)
-        images.append(imarray)
-      else:
-        raise ValueError("Unsupported image filetype for %s" % image_file)
-    return np.array(images)
 
 
 class InMemoryLoader(DataLoader):
@@ -1039,15 +1030,16 @@ class InMemoryLoader(DataLoader):
     inputs: Sequence[Any]
       List of inputs to process. Entries can be arbitrary objects so long as
       they are understood by `self.featurizer`
-    data_dir: str, optional
+    data_dir: str, optional (default None)
       Directory to store featurized dataset.
-    shard_size: int, optional
+    shard_size: int, optional (default 8192)
       Number of examples stored in each shard.
 
     Returns
     -------
-    A `Dataset` object containing a featurized representation of data
-    from `inputs`.
+    DiskDataset
+      A `DiskDataset` object containing a featurized representation of data
+      from `inputs`.
     """
     logger.info("Loading raw samples now.")
     logger.info("shard_size: %s" % str(shard_size))
@@ -1073,18 +1065,18 @@ class InMemoryLoader(DataLoader):
     return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
 
   def _get_shards(self, inputs: List,
-                  shard_size: int) -> Iterator[pd.DataFrame]:
+                  shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
     """Break up input into shards.
 
     Parameters
     ----------
-    inputs: list[object]
+    inputs: List
       Each entry in this list must be of the form `(featurization_input,
       label, weight, id)` or `(featurization_input, label, weight)` or
       `(featurization_input, label)` or `featurization_input` for one
       datapoint, where `featurization_input` is any input that is recognized
       by `self.featurizer`.
-    shard_size: int
+    shard_size: int, optional
       The size of shard to generate.
 
     Returns
@@ -1094,19 +1086,22 @@ class InMemoryLoader(DataLoader):
     """
     current_shard: List = []
     for i, datapoint in enumerate(inputs):
-      if i != 0 and i % shard_size == 0:
+      if i != 0 and shard_size is not None and i % shard_size == 0:
         shard_data = current_shard
         current_shard = []
         yield shard_data
       current_shard.append(datapoint)
     yield current_shard
 
-  def _featurize_shard(self, shard, global_index):
+  # FIXME: Signature of "_featurize_shard" incompatible with supertype "DataLoader"
+  def _featurize_shard(  # type: ignore[override]
+      self, shard: List, global_index: int
+  ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Featurizes a shard of an input data.
 
     Parameters
     ----------
-    shard: list
+    shard: List
       List each entry of which must be of the form `(featurization_input,
       label, weight, id)` or `(featurization_input, label, weight)` or
       `(featurization_input, label)` or `featurization_input` for one
@@ -1114,6 +1109,11 @@ class InMemoryLoader(DataLoader):
       by `self.featurizer`.
     global_index: int
       The starting index for this shard in the full set of provided inputs
+
+    Returns
+    ------
+    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+      The tuple is `(X, y, w, ids)`. All values are numpy arrays.
     """
     features = []
     labels = []
@@ -1125,8 +1125,8 @@ class InMemoryLoader(DataLoader):
         entry = (entry,)
       if len(entry) > 4:
         raise ValueError(
-            "Entry is malformed and must be of length 1-4 containing featurization_input and optionally label, weight, and id."
-        )
+            "Entry is malformed and must be of length 1-4 containing featurization_input"
+            "and optionally label, weight, and id.")
       if len(entry) == 4:
         featurization_input, label, weight, entry_id = entry
       elif len(entry) == 3:
