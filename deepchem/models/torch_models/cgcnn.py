@@ -207,9 +207,8 @@ class CGCNN(nn.Module):
 
 
 class CGCNNModel(TorchModel):
-  """CGCNN wrapper model for converting PyTorch style to Keras style.
+  """Crystal Graph Convolutional Neural Network (CGCNN).
 
-  Please confirm the details about CGCNN from CGCNN class docstring.
   Here is a simple example of code that uses the CGCNNModel with
   materials dataset.
 
@@ -251,6 +250,8 @@ class CGCNNModel(TorchModel):
                n_tasks: int = 1,
                **kwargs):
     """
+    This class accepts all the keyword arguments from TorchModel.
+
     Parameters
     ----------
     in_node_dim: int, default 92
@@ -267,37 +268,8 @@ class CGCNNModel(TorchModel):
       Size for hidden representations in the output MLP predictor, default to 128.
     n_tasks: int, default 1
       Number of the output size, default to 1.
-    loss: dc.models.losses.Loss or function
-      A Loss or function defining how to compute the training loss for each
-      batch, please confirm the details from `TorchModel` docstring.
-    output_types: list of strings, optional (default None)
-      the type of each output from the model, as described above
-    batch_size: int, optional (default 100)
-      default batch size for training and evaluating
-    model_dir: str, optional (default None)
-      the directory on disk where the model will be stored.  If this is None,
-      a temporary directory is created.
-    learning_rate: float or LearningRateSchedule, optional (default 0.001)
-      the learning rate to use for fitting.  If optimizer is specified, this is
-      ignored.
-    optimizer: Optimizer, optional (default None)
-      the optimizer to use for fitting.  If this is specified, learning_rate is
-      ignored.
-    tensorboard: bool, optional (default False)
-      whether to log progress to TensorBoard during training
-    wandb: bool, optional (default False)
-      whether to log progress to Weights & Biases during training
-    log_frequency: int, optional (default 100)
-      The frequency at which to log data. Data is logged using
-      `logging` by default. If `tensorboard` is set, data is also
-      logged to TensorBoard. If `wandb` is set, data is also logged
-      to Weights & Biases. Logging happens at global steps. Roughly,
-      a global step corresponds to one batch of training. If you'd
-      like a printout every 10 batch steps, you'd set
-      `log_frequency=10` for example.
-    device: torch.device, optional (default None)
-      the device on which to run computations.  If None, a device is
-      chosen automatically.
+    kwargs: Dict
+      This class accepts all the keyword arguments from TorchModel.
     """
     model = CGCNN(in_node_dim, hidden_node_dim, in_edge_dim, num_conv,
                   predicator_hidden_feats, n_tasks)
