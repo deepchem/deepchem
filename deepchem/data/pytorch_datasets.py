@@ -1,8 +1,6 @@
-from typing import List, Union
 import numpy as np
 import torch
 
-from deepchem.utils.save import load_image_files
 from deepchem.data.datasets import NumpyDataset, DiskDataset, ImageDataset
 
 
@@ -117,26 +115,6 @@ class _TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
       else:
         order = first_sample + np.random.permutation(last_sample - first_sample)
       for i in order:
-        yield (self._get_image(self.image_dataset._X, i),
-               self._get_image(self.image_dataset._y, i),
+        yield (self.image_dataset._get_image(self.image_dataset._X, i),
+               self.image_dataset._get_image(self.image_dataset._y, i),
                self.image_dataset._w[i], self.image_dataset._ids[i])
-
-  def _get_image(self, array: Union[np.ndarray, List[str]],
-                 index: int) -> np.ndarray:
-    """Method for loading an image
-
-    Parameters
-    ----------
-    array: Union[np.ndarray, List[str]]
-      A numpy array which contains images or List of image filenames
-    index: int
-      Index you want to get the image
-
-    Returns
-    -------
-    np.ndarray
-      Loaded image
-    """
-    if isinstance(array, np.ndarray):
-      return array[index]
-    return load_image_files([array[index]])[0]
