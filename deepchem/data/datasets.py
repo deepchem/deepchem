@@ -2136,7 +2136,8 @@ class DiskDataset(Dataset):
               "Selecting from input shard %d/%d for selection output shard %d" %
               (shard_num + 1, n_shards, select_shard_num + 1))
           if self.legacy_metadata:
-            shard_len = len(X)
+            ids = self.get_shard_ids(shard_num)
+            shard_len = len(ids)
           else:
             shard_X_shape, _, _, _ = self._get_shard_shape(shard_num)
             if len(shard_X_shape) > 0:
