@@ -1319,14 +1319,14 @@ class DiskDataset(Dataset):
     DiskDataset._save_metadata(self.metadata_df, self.data_dir, self.tasks)
     self._cached_shards = None
 
-  def move(self, new_data_dir: str, delete_if_exists: bool = True) -> None:
+  def move(self, new_data_dir: str, delete_if_exists: Optional[bool] = True) -> None:
     """Moves dataset to new directory.
 
     Parameters
     ----------
     new_data_dir: str
       The new directory name to move this to dataset to.
-    delete_if_exists: bool, default True
+    delete_if_exists: bool, optional (default True)
       If this option is set, delete the destination directory if it exists
       before moving. This is set to True by default to be backwards compatible
       with behavior in earlier versions of DeepChem.
