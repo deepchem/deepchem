@@ -178,7 +178,7 @@ class NormalizingFlowModel(KerasModel):
 
     """
 
-    return Lambda(lambda x: -tf.reduce_mean(self.flow.log_prob(x + 1e-10, training=True)))(output)
+    return Lambda(lambda x: -tf.reduce_mean(self.flow.log_prob(x, training=True)))(output)
 
 
 class NormalizingFlowLayer(object):
