@@ -80,6 +80,44 @@ def load_data(input_files: List[str],
       yield load_pickle_from_disk(input_file)
 
 
+def load_image_files(image_files: List[str]) -> np.ndarray:
+  """Loads a set of images from disk.
+
+  Parameters
+  ----------
+  image_files: List[str]
+    List of image filenames to load.
+
+  Returns
+  -------
+  np.ndarray
+    A numpy array that contains loaded images. The shape is, `(N,...)`.
+
+  Notes
+  -----
+  This method requires Pillow to be installed.
+  """
+  try:
+    from PIL import Image
+  except ModuleNotFoundError:
+    raise ValueError("This function requires Pillow to be installed.")
+
+  images = []
+  for image_file in image_files:
+    _, extension = os.path.splitext(image_file)
+    extension = extension.lower()
+    if extension == ".png":
+      image = np.array(Image.open(image_file))
+      images.append(image)
+    elif extension == ".tif":
+      im = Image.open(image_file)
+      imarray = np.array(im)
+      images.append(imarray)
+    else:
+      raise ValueError("Unsupported image filetype for %s" % image_file)
+  return np.array(images)
+
+
 def load_sdf_files(input_files: List[str],
                    clean_mols: bool = True,
                    tasks: List[str] = [],
