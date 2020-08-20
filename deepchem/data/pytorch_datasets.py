@@ -8,8 +8,11 @@ from deepchem.data.datasets import NumpyDataset, DiskDataset, ImageDataset
 
 class _TorchNumpyDataset(torch.utils.data.IterableDataset):  # type: ignore
 
-  def __init__(self, numpy_dataset: NumpyDataset, epochs: int,
-               deterministic: bool):
+  def __init__(self,
+               numpy_dataset: NumpyDataset,
+               epochs: int,
+               deterministic: bool,
+               batch_size: int = None):
     """
     Parameters
     ----------
@@ -20,10 +23,14 @@ class _TorchNumpyDataset(torch.utils.data.IterableDataset):  # type: ignore
     deterministic: bool
       if True, the data is produced in order.  If False, a different random
       permutation of the data is used for each epoch.
+    batch_size: int
+      the number of samples to return in each batch.  If None, each returned
+      value is a single sample.
     """
     self.numpy_dataset = numpy_dataset
     self.epochs = epochs
     self.deterministic = deterministic
+    self.batch_size = batch_size
 
   def __iter__(self):
     n_samples = self.numpy_dataset._X.shape[0]
@@ -38,16 +45,28 @@ class _TorchNumpyDataset(torch.utils.data.IterableDataset):  # type: ignore
       if self.deterministic:
         order = first_sample + np.arange(last_sample - first_sample)
       else:
-        order = first_sample + np.random.permutation(last_sample - first_sample)
-      for i in order:
-        yield (self.numpy_dataset._X[i], self.numpy_dataset._y[i],
-               self.numpy_dataset._w[i], self.numpy_dataset._ids[i])
+        # Ensure that every worker will pick the same random order for each epoch.
+        random = np.random.RandomState(epoch)
+        order = random.permutation(n_samples)[first_sample:last_sample]
+      if self.batch_size is None:
+        for i in order:
+          yield (self.numpy_dataset._X[i], self.numpy_dataset._y[i],
+                 self.numpy_dataset._w[i], self.numpy_dataset._ids[i])
+      else:
+        for i in range(0, len(order), self.batch_size):
+          indices = order[i:i + self.batch_size]
+          yield (self.numpy_dataset._X[indices], self.numpy_dataset._y[indices],
+                 self.numpy_dataset._w[indices],
+                 self.numpy_dataset._ids[indices])
 
 
 class _TorchDiskDataset(torch.utils.data.IterableDataset):  # type: ignore
 
-  def __init__(self, disk_dataset: DiskDataset, epochs: int,
-               deterministic: bool):
+  def __init__(self,
+               disk_dataset: DiskDataset,
+               epochs: int,
+               deterministic: bool,
+               batch_size: int = None):
     """
     Parameters
     ----------
@@ -58,10 +77,14 @@ class _TorchDiskDataset(torch.utils.data.IterableDataset):  # type: ignore
     deterministic: bool
       if True, the data is produced in order.  If False, a different random
       permutation of the data is used for each epoch.
+    batch_size: int
+      the number of samples to return in each batch.  If None, each returned
+      value is a single sample.
     """
     self.disk_dataset = disk_dataset
     self.epochs = epochs
     self.deterministic = deterministic
+    self.batch_size = batch_size
 
   def __iter__(self):
     worker_info = torch.utils.data.get_worker_info()
@@ -76,17 +99,25 @@ class _TorchDiskDataset(torch.utils.data.IterableDataset):  # type: ignore
       return
 
     shard_indices = list(range(first_shard, last_shard))
-    for epoch in range(self.epochs):
-      for X, y, w, ids in self.disk_dataset._iterbatches_from_shards(
-          shard_indices, deterministic=self.deterministic):
+    for X, y, w, ids in self.disk_dataset._iterbatches_from_shards(
+        shard_indices,
+        batch_size=self.batch_size,
+        epochs=self.epochs,
+        deterministic=self.deterministic):
+      if self.batch_size is None:
         for i in range(X.shape[0]):
           yield (X[i], y[i], w[i], ids[i])
+      else:
+        yield (X, y, w, ids)
 
 
 class _TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
 
-  def __init__(self, image_dataset: ImageDataset, epochs: int,
-               deterministic: bool):
+  def __init__(self,
+               image_dataset: ImageDataset,
+               epochs: int,
+               deterministic: bool,
+               batch_size: int = None):
     """
     Parameters
     ----------
@@ -97,10 +128,14 @@ class _TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
     deterministic: bool
       if True, the data is produced in order.  If False, a different random
       permutation of the data is used for each epoch.
+    batch_size: int
+      the number of samples to return in each batch.  If None, each returned
+      value is a single sample.
     """
     self.image_dataset = image_dataset
     self.epochs = epochs
     self.deterministic = deterministic
+    self.batch_size = batch_size
 
   def __iter__(self):
     n_samples = self.image_dataset._X_shape[0]
@@ -115,14 +150,24 @@ class _TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
       if self.deterministic:
         order = first_sample + np.arange(last_sample - first_sample)
       else:
-        order = first_sample + np.random.permutation(last_sample - first_sample)
-      for i in order:
-        yield (self._get_image(self.image_dataset._X, i),
-               self._get_image(self.image_dataset._y, i),
-               self.image_dataset._w[i], self.image_dataset._ids[i])
+        # Ensure that every worker will pick the same random order for each epoch.
+        random = np.random.RandomState(epoch)
+        order = random.permutation(n_samples)[first_sample:last_sample]
+      if self.batch_size is None:
+        for i in order:
+          yield (self._get_image(self.image_dataset._X, i),
+                 self._get_image(self.image_dataset._y, i),
+                 self.image_dataset._w[i], self.image_dataset._ids[i])
+      else:
+        for i in range(0, len(order), self.batch_size):
+          indices = order[i:i + self.batch_size]
+          yield (self._get_image(self.image_dataset._X, indices),
+                 self._get_image(self.image_dataset._y,
+                                 indices), self.image_dataset._w[indices],
+                 self.image_dataset._ids[indices])
 
   def _get_image(self, array: Union[np.ndarray, List[str]],
-                 index: int) -> np.ndarray:
+                 indices: int) -> np.ndarray:
     """Method for loading an image
 
     Parameters
@@ -138,5 +183,7 @@ class _TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
       Loaded image
     """
     if isinstance(array, np.ndarray):
-      return array[index]
-    return load_image_files([array[index]])[0]
+      return array[indices]
+    if isinstance(indices, np.ndarray):
+      return load_image_files([array[i] for i in indices])
+    return load_image_files([array[indices]])[0]

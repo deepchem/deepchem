@@ -721,9 +721,26 @@ def _validate_pytorch_dataset(dataset):
     id_count[iter_id] += 1
   assert all(id_count[id] == 2 for id in ids)
 
+  # Test iterating in batches.
+
+  ds = dataset.make_pytorch_dataset(epochs=2, deterministic=False, batch_size=7)
+  id_to_index = dict((id, i) for i, id in enumerate(ids))
+  id_count = dict((id, 0) for id in ids)
+  for iter_X, iter_y, iter_w, iter_id in ds:
+    size = len(iter_id)
+    assert size <= 7
+    for i in range(size):
+      j = id_to_index[iter_id[i]]
+      np.testing.assert_array_equal(X[j, :], iter_X[i])
+      np.testing.assert_array_equal(y[j, :], iter_y[i])
+      np.testing.assert_array_equal(w[j, :], iter_w[i])
+      id_count[iter_id[i]] += 1
+  assert all(id_count[id] == 2 for id in ids)
+
   # Test iterating with multiple workers.
 
   import torch
+  ds = dataset.make_pytorch_dataset(epochs=2, deterministic=False)
   loader = torch.utils.data.DataLoader(ds, num_workers=3)
   id_count = dict((id, 0) for id in ids)
   for iter_X, iter_y, iter_w, iter_id in loader:
