@@ -5,6 +5,8 @@ from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCo
 from deepchem.feat.mol_graphs import ConvMol, WeaveMol
 from deepchem.data import DiskDataset
 import logging
+from typing import Union, List
+from deepchem.utils.typing import RDKitMol, RDKitAtom
 
 
 def one_of_k_encoding(x, allowable_set):
@@ -398,12 +400,73 @@ def bond_features(bond, use_chirality=False):
   ]
   if use_chirality:
     bond_feats = bond_feats + one_of_k_encoding_unk(
-        str(bond.GetStereo()), possible_bond_stereo)
+        str(bond.GetStereo()), GraphConvCoonstants.possible_bond_stereo)
   return np.array(bond_feats)
 
 
-def pair_features(mol, edge_list, canon_adj_list, bt_len=6,
-                  graph_distance=True):
+def max_pair_distance_pairs(mol: RDKitMol,
+                            max_pair_distance: Union[int, str]) -> np.ndarray:
+  """Helper method which finds atom pairs within max_pair_distance graph distance.
+
+  This helper method is used to find atoms which are within max_pair_distance
+  graph_distance of one another. This is done by using the fact that the
+  powers of an adjacency matrix encode path connectivity information. In
+  particular, if `adj` is the adjacency matrix, then `adj**k` has a nonzero
+  value at `(i, j)` if and only if there exists a path of graph distance `k`
+  between `i` and `j`. To find all atoms within `max_pair_distance` of each
+  other, we can compute the adjacency matrix powers `[adj, adj**2,
+  ...,adj**max_pair_distance]` and find pairs which are nonzero in any of
+  these matrices. Since adjacency matrices and their powers are positive
+  numbers, this is simply the nonzero elements of `adj + adj**2 + ... +
+  adj**max_pair_distance`.
+
+  Parameters
+  ----------
+  mol: rdkit.Chem.rdchem.Mol
+    RDKit molecules
+  max_pair_distance: Union[int, str], (default 'infinity')
+    This value can be a positive integer or the string 'infinity'. This
+    parameter determines the maximum graph distance at which pair features
+    are computed. For example, if `max_pair_distance==2`, then pair features
+    are computed only for atoms at most graph distance 2 apart.
+
+
+  Returns
+  -------
+  np.ndarray
+    Of shape `(2, num_pairs)` where `num_pairs` is the total number of pairs
+    within `max_pair_distance` of one another.
+  """
+  from rdkit import Chem
+  from rdkit.Chem import rdmolops
+  N = len(mol.GetAtoms())
+  if max_pair_distance == "infinity" or max_pair_distance > N:
+    max_pair_distance = N
+  elif max_pair_distance <= 0:
+    raise ValueError(
+        "max_pair_distance must either be a positive integer or the string 'infinity'"
+    )
+  adj = rdmolops.GetAdjacencyMatrix(mol)
+  # Handle edge case of self-pairs (i, i)
+  sum_adj = np.eye(N)
+  for i in range(max_pair_distance):
+    # Increment by 1 since we don't want 0-indexing
+    power = i + 1
+    sum_adj += np.linalg.matrix_power(adj, power)
+  nonzero_locs = np.where(sum_adj != 0)
+  num_pairs = len(nonzero_locs[0])
+  # This creates a mstrix of shape (2, num_pairs)
+  pair_edges = np.reshape(np.array(list(zip(nonzero_locs))), (2, num_pairs))
+  return pair_edges
+
+
+def pair_features(
+    mol: RDKitMol,
+    bond_features_map: dict,
+    bond_adj_list: List,
+    bt_len: int = 6,
+    graph_distance: bool = True,
+    max_pair_distance: Union[int, str] = 'infinity') -> np.ndarray:
   """Helper method used to compute atom pair feature vectors.
 
   Many different featurization methods compute atom pair features
@@ -415,16 +478,24 @@ def pair_features(mol, edge_list, canon_adj_list, bt_len=6,
   ----------
   mol: RDKit Mol
     Molecule to compute features on.
-  edge_list: list
-    List of edges to consider
-  canon_adj_list: list of lists
-    `canon_adj_list[i]` is a list of the atom indices that atom `i` shares a
-    list. This list is symmetrical so if `j in canon_adj_list[i]` then `i in
-    canon_adj_list[j]`.
+  bond_features_map: dict 
+    Dictionary that maps pairs of atom ids (say `(2, 3)` for a bond between
+    atoms 2 and 3) to the features for the bond between them.
+  bond_adj_list: list of lists
+    `bond_adj_list[i]` is a list of the atom indices that atom `i` shares a
+    bond with . This list is symmetrical so if `j in bond_adj_list[i]` then `i
+    in bond_adj_list[j]`.
   bt_len: int, optional (default 6)
     The number of different bond types to consider.
   graph_distance: bool, optional (default True)
-    If true, use graph distance between molecules. Else use euclidean distance.
+    If true, use graph distance between molecules. Else use euclidean
+    distance. The specified `mol` must have a conformer. Atomic positions will
+    be retrieved by calling `mol.getConformer(0)`.
+  max_pair_distance: Union[int, str], (default 'infinity')
+    This value can be a positive integer or the string 'infinity'. This
+    parameter determines the maximum graph distance at which pair features
+    are computed. For example, if `max_pair_distance==2`, then pair features
+    are computed only for atoms at most graph distance 2 apart.
 
   Note
   ----
@@ -441,14 +512,18 @@ def pair_features(mol, edge_list, canon_adj_list, bt_len=6,
   else:
     max_distance = 1
   N = mol.GetNumAtoms()
-  features = np.zeros((N, N, bt_len + max_distance + 1))
+  pair_edges = max_pair_distance_pairs(mol, max_pair_distance)
+  num_pairs = pair_edges.shape[1]
+  # TODO(rbharath): Figure out how to rewrite this to use the pair_edges correctly
+  if max_pair_distance == "infinity":
+    features = np.zeros((N, N, bt_len + max_distance + 1))
   num_atoms = mol.GetNumAtoms()
   rings = mol.GetRingInfo().AtomRings()
   for a1 in range(num_atoms):
-    for a2 in canon_adj_list[a1]:
+    for a2 in bond_adj_list[a1]:
       # first `bt_len` features are bond features(if applicable)
       features[a1, a2, :bt_len] = np.asarray(
-          edge_list[tuple(sorted((a1, a2)))], dtype=float)
+          bond_features_map[tuple(sorted((a1, a2)))], dtype=float)
     for ring in rings:
       if a1 in ring:
         # `bt_len`-th feature is if the pair of atoms are in the same ring
@@ -456,8 +531,9 @@ def pair_features(mol, edge_list, canon_adj_list, bt_len=6,
         features[a1, a1, bt_len] = 0.
     # graph distance between two atoms
     if graph_distance:
+      # distance is a matrix of 1-hot encoded distances
       distance = find_distance(
-          a1, num_atoms, canon_adj_list, max_distance=max_distance)
+          a1, num_atoms, bond_adj_list, max_distance=max_distance)
       features[a1, :, bt_len + 1:] = distance
   # Euclidean distance between atoms
   if not graph_distance:
@@ -469,10 +545,15 @@ def pair_features(mol, edge_list, canon_adj_list, bt_len=6,
       np.stack([coords] * N, axis=1) - \
       np.stack([coords] * N, axis=0)), axis=2))
 
+  if max_pair_distance == "infinity":
+    features = np.reshape(features, (N * N, bt_len + max_distance + 1))
+    return features
+
   return features
 
 
-def find_distance(a1, num_atoms, canon_adj_list, max_distance=7):
+def find_distance(a1: RDKitAtom, num_atoms: int, bond_adj_list,
+                  max_distance=7) -> np.ndarray:
   """Computes distances from provided atom.
 
   Parameters
@@ -481,10 +562,10 @@ def find_distance(a1, num_atoms, canon_adj_list, max_distance=7):
     The source atom to compute distances from.
   num_atoms: int
     The total number of atoms.
-  canon_adj_list: list of lists
-    `canon_adj_list[i]` is a list of the atom indices that atom `i` shares a
-    list. This list is symmetrical so if `j in canon_adj_list[i]` then `i in
-    canon_adj_list[j]`.
+  bond_adj_list: list of lists
+    `bond_adj_list[i]` is a list of the atom indices that atom `i` shares a
+    bond with. This list is symmetrical so if `j in bond_adj_list[i]` then `i in
+    bond_adj_list[j]`.
   max_distance: int, optional (default 7)
     The max distance to search.
 
@@ -498,7 +579,7 @@ def find_distance(a1, num_atoms, canon_adj_list, max_distance=7):
   distance = np.zeros((num_atoms, max_distance))
   radial = 0
   # atoms `radial` bonds away from `a1`
-  adj_list = set(canon_adj_list[a1])
+  adj_list = set(bond_adj_list[a1])
   # atoms less than `radial` bonds away
   all_list = set([a1])
   while radial < max_distance:
@@ -507,7 +588,7 @@ def find_distance(a1, num_atoms, canon_adj_list, max_distance=7):
     # find atoms `radial`+1 bonds away
     next_adj = set()
     for adj in adj_list:
-      next_adj.update(canon_adj_list[adj])
+      next_adj.update(bond_adj_list[adj])
     adj_list = next_adj - all_list
     radial = radial + 1
   return distance
@@ -647,6 +728,14 @@ class WeaveFeaturizer(MolecularFeaturizer):
   descriptors for each pair of atoms. These extra descriptors may provide for
   additional descriptive power but at the cost of a larger featurized dataset.
 
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> mols = ["C", "CCC"]
+  >>> featurizer = dc.feat.WeaveFeaturizer()
+  >>> X = featurizer.featurize(mols)
+
   References
   ----------
   .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
@@ -660,18 +749,29 @@ class WeaveFeaturizer(MolecularFeaturizer):
 
   name = ['weave_mol']
 
-  def __init__(self, graph_distance=True, explicit_H=False,
-               use_chirality=False):
-    """
+  def __init__(self,
+               graph_distance: bool = True,
+               explicit_H: bool = False,
+               use_chirality: bool = False,
+               max_pair_distance: Union[int, str] = 'infinity'):
+    """Initialize this featurizer with set parameters.
+
     Parameters
     ----------
-    graph_distance: bool, optional
-      If true, use graph distance. Otherwise, use Euclidean
-      distance.
-    explicit_H: bool, optional
+    graph_distance: bool, (default True)
+      If True, use graph distance for distance features. Otherwise, use
+      Euclidean distance. Note that this means that molecules that this
+      featurizer is invoked on must have valid conformer information if this
+      option is set.
+    explicit_H: bool, (default False) 
       If true, model hydrogens in the molecule.
-    use_chirality: bool, optional
+    use_chirality: bool, (default False)
       If true, use chiral information in the featurization
+    max_pair_distance: Union[int, str], (default 'infinity')
+      This value can be a positive integer or the string 'infinity'. This
+      parameter determines the maximum graph distance at which pair features
+      are computed. For example, if `max_pair_distance==2`, then pair features
+      are computed only for atoms at most graph distance 2 apart.
     """
     # Distance is either graph distance(True) or Euclidean distance(False,
     # only support datasets providing Cartesian coordinates)
@@ -682,9 +782,16 @@ class WeaveFeaturizer(MolecularFeaturizer):
     self.explicit_H = explicit_H
     # If uses use_chirality
     self.use_chirality = use_chirality
+    if (isinstance(max_pair_distance, int) and
+        max_pair_distance <= 0) or (isinstance(max_pair_distance, str) and
+                                    max_pair_distance != "infinity"):
+      raise ValueError(
+          "max_pair_distance must either be a positive integer or the string 'infinity'"
+      )
+    self.max_pair_distance = max_pair_distance
     if self.use_chirality:
-      self.bt_len = int(
-          GraphConvConstants.bond_fdim_base) + len(possible_bond_stereo)
+      self.bt_len = int(GraphConvConstants.bond_fdim_base) + len(
+          GraphConvConstants.possible_bond_stereo)
     else:
       self.bt_len = int(GraphConvConstants.bond_fdim_base)
 
@@ -704,25 +811,26 @@ class WeaveFeaturizer(MolecularFeaturizer):
     nodes = np.vstack(nodes)
 
     # Get bond lists
-    edge_list = {}
+    bond_features_map = {}
     for b in mol.GetBonds():
-      edge_list[tuple(sorted([b.GetBeginAtomIdx(),
-                              b.GetEndAtomIdx()]))] = bond_features(
-                                  b, use_chirality=self.use_chirality)
+      bond_features_map[tuple(sorted([b.GetBeginAtomIdx(),
+                                      b.GetEndAtomIdx()]))] = bond_features(
+                                          b, use_chirality=self.use_chirality)
 
     # Get canonical adjacency list
-    canon_adj_list = [[] for mol_id in range(len(nodes))]
-    for edge in edge_list.keys():
-      canon_adj_list[edge[0]].append(edge[1])
-      canon_adj_list[edge[1]].append(edge[0])
+    bond_adj_list = [[] for mol_id in range(len(nodes))]
+    for bond in bond_features_map.keys():
+      bond_adj_list[bond[0]].append(bond[1])
+      bond_adj_list[bond[1]].append(bond[0])
 
     # Calculate pair features
     pairs = pair_features(
         mol,
-        edge_list,
-        canon_adj_list,
+        bond_features_map,
+        bond_adj_list,
         bt_len=self.bt_len,
-        graph_distance=self.graph_distance)
+        graph_distance=self.graph_distance,
+        max_pair_distance=self.max_pair_distance)
 
     return WeaveMol(nodes, pairs)
 
