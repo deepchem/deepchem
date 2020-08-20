@@ -497,11 +497,14 @@ class Dataset(object):
 
     return tf.data.Dataset.from_generator(gen_data, dtypes, shapes)
 
-  def make_pytorch_dataset(self, epochs: int = 1, deterministic: bool = False):
+  def make_pytorch_dataset(self,
+                           epochs: int = 1,
+                           deterministic: bool = False,
+                           batch_size: int = None):
     """Create a torch.utils.data.IterableDataset that iterates over the data in this Dataset.
 
-    Each value returned by the Dataset's iterator is a tuple of (X, y,
-    w, id) for one sample.
+    Each value returned by the Dataset's iterator is a tuple of (X, y, w, id)
+    containing the data for one batch, or for a single sample if batch_size is None.
 
     Parameters
     ----------
@@ -510,6 +513,9 @@ class Dataset(object):
     deterministic: bool
       if True, the data is produced in order.  If False, a different
       random permutation of the data is used for each epoch.
+    batch_size: int
+      the number of samples to return in each batch.  If None, each returned
+      value is a single sample.
 
     Returns
     -------
@@ -855,19 +861,25 @@ class NumpyDataset(Dataset):
     ids = self.ids[indices]
     return NumpyDataset(X, y, w, ids)
 
-  def make_pytorch_dataset(self, epochs: int = 1, deterministic: bool = False):
+  def make_pytorch_dataset(self,
+                           epochs: int = 1,
+                           deterministic: bool = False,
+                           batch_size: int = None):
     """Create a torch.utils.data.IterableDataset that iterates over the data in this Dataset.
 
-    Each value returned by the Dataset's iterator is a tuple of (X, y, w, id) for
-    one sample.
+    Each value returned by the Dataset's iterator is a tuple of (X, y, w, id)
+    containing the data for one batch, or for a single sample if batch_size is None.
 
     Parameters
     ----------
     epochs: int
       the number of times to iterate over the Dataset
     deterministic: bool
-      if True, the data is produced in order.  If False, a different random
-      permutation of the data is used for each epoch.
+      if True, the data is produced in order.  If False, a different
+      random permutation of the data is used for each epoch.
+    batch_size: int
+      the number of samples to return in each batch.  If None, each returned
+      value is a single sample.
 
     Returns
     -------
@@ -881,7 +893,10 @@ class NumpyDataset(Dataset):
       raise ValueError("This method requires PyTorch to be installed.")
 
     pytorch_ds = _TorchNumpyDataset(
-        numpy_dataset=self, epochs=epochs, deterministic=deterministic)
+        numpy_dataset=self,
+        epochs=epochs,
+        deterministic=deterministic,
+        batch_size=batch_size)
     return pytorch_ds
 
   @staticmethod
@@ -1015,7 +1030,7 @@ class DiskDataset(Dataset):
   Once you have a dataset you can access its attributes as follows
 
   >>> X = np.random.rand(10, 10)
-  >>> y = np.random.rand(10,) 
+  >>> y = np.random.rand(10,)
   >>> w = np.ones_like(y)
   >>> dataset = dc.data.DiskDataset.from_numpy(X)
   >>> X, y, w = dataset.X, dataset.y, dataset.w
@@ -1095,7 +1110,7 @@ class DiskDataset(Dataset):
       (X, y, w, ids). Each tuple will be written to a separate shard on disk.
     data_dir: str
       Filename for data directory. Creates a temp directory if none specified.
-    tasks: Optional[sequence] 
+    tasks: Optional[sequence]
       List of tasks for this dataset.
 
     Returns
@@ -1684,19 +1699,25 @@ class DiskDataset(Dataset):
     return DiskDataset.write_data_to_disk(out_dir, basename, tasks, X, y, w,
                                           ids)
 
-  def make_pytorch_dataset(self, epochs: int = 1, deterministic: bool = False):
+  def make_pytorch_dataset(self,
+                           epochs: int = 1,
+                           deterministic: bool = False,
+                           batch_size: int = None):
     """Create a torch.utils.data.IterableDataset that iterates over the data in this Dataset.
 
-    Each value returned by the Dataset's iterator is a tuple of (X, y, w, id) for
-    one sample.
+    Each value returned by the Dataset's iterator is a tuple of (X, y, w, id)
+    containing the data for one batch, or for a single sample if batch_size is None.
 
     Parameters
     ----------
     epochs: int
       the number of times to iterate over the Dataset
     deterministic: bool
-      if True, the data is produced in order.  If False, a different random
-      permutation of the data is used for each epoch.
+      if True, the data is produced in order.  If False, a different
+      random permutation of the data is used for each epoch.
+    batch_size: int
+      the number of samples to return in each batch.  If None, each returned
+      value is a single sample.
 
     Returns
     -------
@@ -1710,7 +1731,10 @@ class DiskDataset(Dataset):
       raise ValueError("This method requires PyTorch to be installed.")
 
     pytorch_ds = _TorchDiskDataset(
-        disk_dataset=self, epochs=epochs, deterministic=deterministic)
+        disk_dataset=self,
+        epochs=epochs,
+        deterministic=deterministic,
+        batch_size=batch_size)
     return pytorch_ds
 
   @staticmethod
@@ -2589,11 +2613,14 @@ class ImageDataset(Dataset):
     ids = self._ids[indices]
     return ImageDataset(X, y, w, ids)
 
-  def make_pytorch_dataset(self, epochs: int = 1, deterministic: bool = False):
+  def make_pytorch_dataset(self,
+                           epochs: int = 1,
+                           deterministic: bool = False,
+                           batch_size: int = None):
     """Create a torch.utils.data.IterableDataset that iterates over the data in this Dataset.
 
-    Each value returned by the Dataset's iterator is a tuple of (X, y,
-    w, id) for one sample.
+    Each value returned by the Dataset's iterator is a tuple of (X, y, w, id)
+    containing the data for one batch, or for a single sample if batch_size is None.
 
     Parameters
     ----------
@@ -2602,6 +2629,9 @@ class ImageDataset(Dataset):
     deterministic: bool
       if True, the data is produced in order.  If False, a different
       random permutation of the data is used for each epoch.
+    batch_size: int
+      the number of samples to return in each batch.  If None, each returned
+      value is a single sample.
 
     Returns
     -------
@@ -2615,7 +2645,10 @@ class ImageDataset(Dataset):
       raise ValueError("This method requires PyTorch to be installed.")
 
     pytorch_ds = _TorchImageDataset(
-        image_dataset=self, epochs=epochs, deterministic=deterministic)
+        image_dataset=self,
+        epochs=epochs,
+        deterministic=deterministic,
+        batch_size=batch_size)
     return pytorch_ds
 
 
