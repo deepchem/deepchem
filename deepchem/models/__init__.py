@@ -33,8 +33,10 @@ try:
 except ModuleNotFoundError:
   pass
 
+# PyTorch models
 try:
-  from deepchem.models.torch_model import TorchModel
+  from deepchem.models.torch_models import TorchModel
+  from deepchem.models.torch_models import CGCNN, CGCNNModel
 except ModuleNotFoundError:
   pass
 

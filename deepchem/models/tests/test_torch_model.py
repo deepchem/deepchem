@@ -310,6 +310,7 @@ def test_saliency_shapes():
   assert s[1].shape == (1, 5, 2, 3)
 
 
+@unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 def test_tensorboard():
   """Test logging to Tensorboard."""
   n_data_points = 20

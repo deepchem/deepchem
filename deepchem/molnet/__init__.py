@@ -33,6 +33,8 @@ from deepchem.molnet.load_function.hppb_datasets import load_hppb
 from deepchem.molnet.load_function.chembl25_datasets import load_chembl25
 from deepchem.molnet.load_function.material_datasets.load_bandgap import load_bandgap
 from deepchem.molnet.load_function.material_datasets.load_perovskite import load_perovskite
+from deepchem.molnet.load_function.material_datasets.load_mp_formation_energy import load_mp_formation_energy
+from deepchem.molnet.load_function.material_datasets.load_mp_metallicity import load_mp_metallicity
 
 from deepchem.molnet.dnasim import simulate_motif_density_localization
 from deepchem.molnet.dnasim import simulate_motif_counting

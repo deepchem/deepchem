@@ -8,6 +8,7 @@ import time
 import logging
 import warnings
 from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
+
 import pandas as pd
 import numpy as np
 
@@ -628,7 +629,7 @@ class JsonLoader(DataLoader):
                     (shard_num, time2 - time1))
         yield X, y, w, ids
 
-    return DiskDataset.create_dataset(shard_generator(), data_dir)
+    return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
 
   def _get_shards(self, input_files: List[str],
                   shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
