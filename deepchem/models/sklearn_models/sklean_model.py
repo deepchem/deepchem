@@ -68,8 +68,8 @@ class SklearnModel(Model):
       if isinstance(self.model_instance, model_instance):
         self.use_weights = False
 
-  # FIXME: Signature of "fit" incompatible with supertype "Model"
-  def fit(self, dataset: Dataset) -> None:  # type: ignore[override]
+  # FIXME: Return type "None" of "fit" incompatible with return type "float" in supertype "Model"
+  def fit(self, dataset: Dataset, **kwargs) -> None:  # type: ignore[override]
     """Fits scikit-learn model to data.
 
     Parameters
