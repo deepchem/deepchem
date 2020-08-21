@@ -1,2 +1,2 @@
 # flake8: ignore
-from deepchem.models.sklean_models.sklean_model import SklearnModel
+from deepchem.models.sklearn_models.sklearn_model import SklearnModel
