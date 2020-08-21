@@ -166,7 +166,12 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
 
     # Weave style
     # compute partial charges
-    AllChem.ComputeGasteigerCharges(mol)
+    try:
+      mol.GetAtomWithIdx(0).GetProp('_GasteigerCharge')
+      pass
+    except:
+      AllChem.ComputeGasteigerCharges(mol)
+
     dist_matrix = Chem.GetDistanceMatrix(mol)
     chiral_center = Chem.FindMolChiralCenters(mol)
     sssr = Chem.GetSymmSSSR(mol)

@@ -1,3 +1,6 @@
+"""
+This is a sample implementation for working DGL with DeepChem!
+"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -161,6 +164,10 @@ class CGCNN(nn.Module):
     n_tasks: int, default 1
       Number of the output size, default to 1.
     """
+    try:
+      import dgl
+    except:
+      raise ValueError("This class requires DGL to be installed.")
     super(CGCNN, self).__init__()
     self.embedding = nn.Linear(in_node_dim, hidden_node_dim)
     self.conv_layers = nn.ModuleList([
@@ -169,6 +176,7 @@ class CGCNN(nn.Module):
             edge_dim=in_edge_dim,
             batch_norm=True) for _ in range(num_conv)
     ])
+    self.pooling = dgl.mean_nodes
     self.fc = nn.Linear(hidden_node_dim, predicator_hidden_feats)
     self.out = nn.Linear(predicator_hidden_feats, n_tasks)
 
@@ -186,11 +194,6 @@ class CGCNN(nn.Module):
     out: torch.Tensor
       The output value, the shape is `(batch_size, n_tasks)`.
     """
-    try:
-      import dgl
-    except:
-      raise ValueError("This class requires DGL to be installed.")
-
     graph = dgl_graph
     # embedding node features
     graph.ndata['x'] = self.embedding(graph.ndata['x'])
@@ -200,7 +203,7 @@ class CGCNN(nn.Module):
       graph = conv(graph)
 
     # pooling
-    graph_feat = dgl.mean_nodes(graph, 'x')
+    graph_feat = self.pooling(graph, 'x')
     graph_feat = self.fc(graph_feat)
     out = self.out(graph_feat)
     return out

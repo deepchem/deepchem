@@ -31,6 +31,7 @@ from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
 try:
   from deepchem.models.torch_models import TorchModel
   from deepchem.models.torch_models import CGCNN, CGCNNModel
+  from deepchem.models.torch_models import GAT, GATModel
 except ModuleNotFoundError:
   pass
 
