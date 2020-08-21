@@ -1,7 +1,7 @@
 """A collection of utilities for dealing with Molecular Fragments"""
 import itertools
 import numpy as np
-from typing import Any, List, Iterable, Optional, Sequence, Set, Tuple, Union
+from typing import List, Optional, Sequence, Set, Tuple, Union
 
 from deepchem.utils.typing import RDKitAtom, RDKitMol
 from deepchem.utils.geometry_utils import compute_pairwise_distances
@@ -73,7 +73,7 @@ class MolecularFragment(object):
   that's close to the other molecule (in the contact region).
 
   Ideally, we'd be able to do this in RDKit direct, but manipulating
-  molecular fragments doesn't seem to be supported functionality. 
+  molecular fragments doesn't seem to be supported functionality.
 
   Examples
   --------
@@ -90,7 +90,7 @@ class MolecularFragment(object):
 
     Parameters
     ----------
-    atoms: Iterable[RDKit Atom]
+    atoms: Iterable[rdkit.Chem.rdchem.Atom]
       Each entry in this list should be a RDKit Atom.
     coords: np.ndarray
       Array of locations for atoms of shape `(N, 3)` where `N ==
@@ -135,7 +135,7 @@ def get_partial_charge(atom: Union[RDKitAtom, AtomShim]) -> float:
 
   Parameters
   ----------
-  atom: RDKit Atom or AtomShim
+  atom: rdkit.Chem.rdchem.Atom or AtomShim
     Either a rdkit.Atom object or `AtomShim`
 
   Returns
@@ -179,7 +179,7 @@ def merge_molecular_fragments(
   Parameters
   ----------
   molecules: List[MolecularFragment]
-    List of `MolecularFragment` objects. 
+    List of `MolecularFragment` objects.
 
   Returns
   -------
@@ -209,7 +209,7 @@ def get_mol_subset(
   ----------
   coords: np.ndarray
     Must be of shape (N, 3) and correspond to coordinates of mol.
-  mol: RDKit Mol or MolecularFragment
+  mol: rdkit.Chem.rdchem.Mol or MolecularFragment
     The molecule to strip
   atom_indices_to_keep: list
     List of the indices of the atoms to keep. Each index is a unique
@@ -252,7 +252,7 @@ def strip_hydrogens(coords: np.ndarray, mol: Union[RDKitMol, MolecularFragment]
   ----------
   coords: np.ndarray
     The coords must be of shape (N, 3) and correspond to coordinates of mol.
-  mol: RDKit Mol or MolecularFragment
+  mol: rdkit.Chem.rdchem.Mol or MolecularFragment
     The molecule to strip
 
   Returns
@@ -288,7 +288,7 @@ def get_contact_atom_indices(fragments: List[Tuple[np.ndarray, RDKitMol]],
 
   Parameters
   ----------
-  fragments: List[Tuple[np.ndarray, RDKit Mol]]
+  fragments: List[Tuple[np.ndarray, rdkit.Chem.rdchem.Mol]]
     As returned by `rdkit_utils.load_complex`, a list of tuples of
     `(coords, mol)` where `coords` is a `(N_atoms, 3)` array and `mol`
     is the rdkit molecule object.
@@ -335,7 +335,7 @@ def reduce_molecular_complex_to_contacts(
 
   Parameters
   ----------
-  fragments: List[Tuple[np.ndarray, RDKit Mol]]
+  fragments: List[Tuple[np.ndarray, rdkit.Chem.rdchem.Mol]]
     As returned by `rdkit_utils.load_complex`, a list of tuples of
     `(coords, mol)` where `coords` is a `(N_atoms, 3)` array and `mol`
     is the rdkit molecule object.
@@ -349,7 +349,7 @@ def reduce_molecular_complex_to_contacts(
     is a tuple of `(coords, MolecularFragment)`. The coords is stripped
     down to `(N_contact_atoms, 3)` where `N_contact_atoms` is the number
     of contact atoms for this complex. `MolecularFragment` is used since
-    it's tricky to make a RDKit sub-molecule. 
+    it's tricky to make a RDKit sub-molecule.
   """
   atoms_to_keep = get_contact_atom_indices(fragments, cutoff)
   reduced_complex = []

@@ -1,7 +1,5 @@
 import os
-from io import StringIO
 import tempfile
-import shutil
 import deepchem as dc
 
 

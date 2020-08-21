@@ -1,35 +1,51 @@
 """Evaluation Metrics for Genomics Datasets."""
 
+from typing import List, Optional
 import numpy as np
-from deepchem.data import NumpyDataset
 from scipy.signal import correlate2d
 
+from deepchem.models import Model
+from deepchem.data import NumpyDataset
 
-def get_motif_scores(encoded_sequences,
-                     motif_names,
-                     max_scores=None,
-                     return_positions=False,
-                     GC_fraction=0.4):
+
+def get_motif_scores(encoded_sequences: np.ndarray,
+                     motif_names: List[str],
+                     max_scores: Optional[int] = None,
+                     return_positions: bool = False,
+                     GC_fraction: float = 0.4) -> np.ndarray:
   """Computes pwm log odds.
 
   Parameters
   ----------
-  encoded_sequences : 4darray
-       (N_sequences, N_letters, sequence_length, 1) array
-  motif_names : list of strings
-  max_scores : int, optional
-  return_positions : boolean, optional
-  GC_fraction : float, optional
+  encoded_sequences: np.ndarray
+    A numpy array of shape `(N_sequences, N_letters, sequence_length, 1)`.
+  motif_names: List[str]
+    List of motif file names.
+  max_scores: int, optional
+    Get top `max_scores` scores.
+  return_positions: bool, default False
+    Whether to return postions or not.
+  GC_fraction: float, default 0.4
+    GC fraction in background sequence.
 
   Returns
   -------
-  (N_sequences, num_motifs, seq_length) complete score array by default.
-  If max_scores, (N_sequences, num_motifs*max_scores) max score array.
-  If max_scores and return_positions, (N_sequences, 2*num_motifs*max_scores)
-  array with max scores and their positions.
+  np.ndarray
+    A numpy array of complete score. The shape is `(N_sequences, num_motifs, seq_length)` by default.
+    If max_scores, the shape of score array is `(N_sequences, num_motifs*max_scores)`.
+    If max_scores and return_positions, the shape of score array with max scores and their positions.
+    is `(N_sequences, 2*num_motifs*max_scores)`.
+
+  Notes
+  -----
+  This method requires simdna to be installed.
   """
-  import simdna
-  from simdna import synthetic
+  try:
+    import simdna
+    from simdna import synthetic
+  except ModuleNotFoundError:
+    raise ValueError("This function requires simdna to be installed.")
+
   loaded_motifs = synthetic.LoadedEncodeMotifs(
       simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
   num_samples, _, seq_length, _ = encoded_sequences.shape
@@ -59,22 +75,23 @@ def get_motif_scores(encoded_sequences,
     return scores
 
 
-def get_pssm_scores(encoded_sequences, pssm):
+def get_pssm_scores(encoded_sequences: np.ndarray,
+                    pssm: np.ndarray) -> np.ndarray:
   """
   Convolves pssm and its reverse complement with encoded sequences
   and returns the maximum score at each position of each sequence.
 
   Parameters
   ----------
-  encoded_sequences: 3darray
-       (N_sequences, N_letters, sequence_length, 1) array
-  pssm: 2darray
-      (4, pssm_length) array
+  encoded_sequences: np.ndarray
+    A numpy array of shape `(N_sequences, N_letters, sequence_length, 1)`.
+  pssm: np.ndarray
+    A numpy array of shape `(4, pssm_length)`.
 
   Returns
   -------
-  scores: 2darray
-      (N_sequences, sequence_length)
+  scores: np.ndarray
+    A numpy array of shape `(N_sequences, sequence_length)`.
   """
   encoded_sequences = encoded_sequences.squeeze(axis=3)
   # initialize fwd and reverse scores to -infinity
@@ -97,36 +114,41 @@ def get_pssm_scores(encoded_sequences, pssm):
   return scores
 
 
-def in_silico_mutagenesis(model, X):
+def in_silico_mutagenesis(model: Model,
+                          encoded_sequences: np.ndarray) -> np.ndarray:
   """Computes in-silico-mutagenesis scores
 
   Parameters
   ----------
   model: Model
     This can be any model that accepts inputs of the required shape and produces
-    an output of shape (N_sequences, N_tasks).
-  X: ndarray
-    Shape (N_sequences, N_letters, sequence_length, 1)
+    an output of shape `(N_sequences, N_tasks)`.
+  encoded_sequences: np.ndarray
+    A numpy array of shape `(N_sequences, N_letters, sequence_length, 1)`
 
   Returns
   -------
-  (num_task, N_sequences, N_letters, sequence_length, 1) ISM score array.
+  np.ndarray
+    A numpy array of ISM scores. The shape is `(num_task, N_sequences, N_letters, sequence_length, 1)`.
   """
   # Shape (N_sequences, num_tasks)
-  wild_type_predictions = model.predict(NumpyDataset(X))
+  wild_type_predictions = model.predict(NumpyDataset(encoded_sequences))
+  # check whether wild_type_predictions is np.ndarray or not
+  assert isinstance(wild_type_predictions, np.ndarray)
   num_tasks = wild_type_predictions.shape[1]
-  #Shape (N_sequences, N_letters, sequence_length, 1, num_tasks)
-  mutagenesis_scores = np.empty(X.shape + (num_tasks,), dtype=np.float32)
+  # Shape (N_sequences, N_letters, sequence_length, 1, num_tasks)
+  mutagenesis_scores = np.empty(
+      encoded_sequences.shape + (num_tasks,), dtype=np.float32)
   # Shape (N_sequences, num_tasks, 1, 1, 1)
   wild_type_predictions = wild_type_predictions[:, np.newaxis, np.newaxis,
                                                 np.newaxis]
   for sequence_index, (sequence, wild_type_prediction) in enumerate(
-      zip(X, wild_type_predictions)):
+      zip(encoded_sequences, wild_type_predictions)):
 
     # Mutates every position of the sequence to every letter
     # Shape (N_letters * sequence_length, N_letters, sequence_length, 1)
     # Breakdown:
-    #  Shape of sequence[np.newaxis] (1, N_letters, sequence_length, 1)
+    # Shape of sequence[np.newaxis] (1, N_letters, sequence_length, 1)
     mutated_sequences = np.repeat(
         sequence[np.newaxis], np.prod(sequence.shape), axis=0)
 
@@ -142,6 +164,8 @@ def in_silico_mutagenesis(model, X):
     mutated_sequences[arange, vertical_repeat, horizontal_cycle, :] = 1
     # make mutant predictions
     mutated_predictions = model.predict(NumpyDataset(mutated_sequences))
+    # check whether wild_type_predictions is np.ndarray or not
+    assert isinstance(mutated_predictions, np.ndarray)
     mutated_predictions = mutated_predictions.reshape(sequence.shape +
                                                       (num_tasks,))
     mutagenesis_scores[

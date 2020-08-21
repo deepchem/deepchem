@@ -484,8 +484,8 @@ def cosine_dist(x, y):
   themselves could be different batches. Using vectors or tensors of all 0s
   should be avoided.
 
-  Method
-  ------
+  Methods
+  -------
   The vectors in the input tensors are first l2-normalized such that each vector
   has length or magnitude of 1. The inner product (dot product) is then taken 
   between corresponding pairs of row vectors in the input tensors and returned.

@@ -138,21 +138,21 @@ Then, execute the shell script.
 
 .. code-block:: bash
 
-    bash scripts/install_deepchem_conda.sh deepchem
+    bash scripts/install_deepchem_conda.sh cpu
 
 
-If you want GPU support:
+If you want GPU support (we supports only CUDA 10.1):
 
 .. code-block:: bash
 
-    bash scripts/install_deepchem_conda.sh deepchem gpu
+    bash scripts/install_deepchem_conda.sh gpu
 
 
 If you are using the Windows and the PowerShell:
 
 .. code-block:: ps1
 
-    .\scripts\install_deepchem_conda.ps1 deepchem
+    .\scripts\install_deepchem_conda.ps1 cpu
 
 
 | Before activating deepchem environment, make sure conda has been initialized.

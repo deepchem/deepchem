@@ -254,7 +254,7 @@ def intersection(box1: CoordinateBox, box2: CoordinateBox) -> CoordinateBox:
 
 
 def union(box1: CoordinateBox, box2: CoordinateBox) -> CoordinateBox:
-  """Merges provided boxes to find the smallest union box. 
+  """Merges provided boxes to find the smallest union box.
 
   This method merges the two provided boxes.
 
@@ -289,8 +289,8 @@ def merge_overlapping_boxes(boxes: List[CoordinateBox],
     A list of `CoordinateBox` objects.
   threshold: float, default 0.8
     The volume fraction of the boxes that must overlap for them to be
-    merged together. 
-  
+    merged together.
+
   Returns
   -------
   List[CoordinateBox]
@@ -366,10 +366,10 @@ def get_face_boxes(coords: np.ndarray, pad: float = 5.0) -> List[CoordinateBox]:
     x_min, x_max = int(np.floor(x_min)) - pad, int(np.ceil(x_max)) + pad
     x_bounds = (x_min, x_max)
 
-    y_min, y_max = np.amin(points[:, 1]), np.amax(points[:, 1])
+    y_min, y_max = np.amin(y_coords), np.amax(y_coords)
     y_min, y_max = int(np.floor(y_min)) - pad, int(np.ceil(y_max)) + pad
     y_bounds = (y_min, y_max)
-    z_min, z_max = np.amin(points[:, 2]), np.amax(points[:, 2])
+    z_min, z_max = np.amin(z_coords), np.amax(z_coords)
     z_min, z_max = int(np.floor(z_min)) - pad, int(np.ceil(z_max)) + pad
     z_bounds = (z_min, z_max)
     box = CoordinateBox(x_bounds, y_bounds, z_bounds)
