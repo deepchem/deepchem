@@ -160,6 +160,6 @@ class _TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
         for i in range(0, len(order), self.batch_size):
           indices = order[i:i + self.batch_size]
           yield (self.image_dataset._get_image(self.image_dataset._X, indices),
-                 self.image_dataset._get_image(self.image_dataset._y,
-                                 indices), self.image_dataset._w[indices],
+                 self.image_dataset._get_image(self.image_dataset._y, indices),
+                 self.image_dataset._w[indices],
                  self.image_dataset._ids[indices])
