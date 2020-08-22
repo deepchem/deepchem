@@ -149,3 +149,20 @@ class SmilesTokenizer(BertTokenizer):
                 writer.write(token + u"\n")
                 index += 1
         return (vocab_file,)
+
+class BasicSmilesTokenizer(object):
+    """Run basic SMILES tokenization"""
+
+    def __init__(self, regex_pattern=SMI_REGEX_PATTERN):
+        """ Constructs a BasicSMILESTokenizer.
+        Args:
+            **regex**: SMILES token regex
+        """
+        self.regex_pattern = regex_pattern
+        self.regex = re.compile(self.regex_pattern)
+
+    def tokenize(self, text):
+        """ Basic Tokenization of a SMILES.
+        """
+        tokens = [token for token in self.regex.findall(text)]
+        return tokens
