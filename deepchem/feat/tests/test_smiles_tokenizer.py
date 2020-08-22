@@ -9,13 +9,10 @@ class TestSmilesTokenizer(TestCase):
   """Tests the SmilesTokenizer to load the USPTO vocab file and a ChemBERTa Masked LM model with pre-trained weights.."""
 
 
-  def test_featurize(self):
-    from rdkit import Chem
-    smiles = ["Cn1c(=O)c2c(ncn2C)n(C)c1=O", "CC(=O)N1CN(C(C)=O)C(O)C1O"]
-    mols = [Chem.MolFromSmiles(smile) for smile in smiles]
-    featurizer = dc.feat.one_hot.OneHotFeaturizer(dc.feat.one_hot.zinc_charset)
-    one_hots = featurizer.featurize(mols)
-    untransformed = featurizer.untransform(one_hots)
-    assert len(smiles) == len(untransformed)
-    for i in range(len(smiles)):
-      assert smiles[i] == untransformed[i][0]
+  def test_tokenize(self):
+      model = RobertaForMaskedLM.from_pretrained('seyonec/SMILES_tokenized_PubChem_shard00_50k')
+      model.num_parameters()
+
+      tokenizer = SmilesTokenizer('tokenizers/vocab.txt', max_len=model.config.max_position_embeddings)
+      print(tokenizer.encode("CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@H]1O[C@](C#N)([C@H](O)[C@@H]1O)C1=CC=C2N1N=CN=C2N)OC1=CC=CC=C1"))
+
