@@ -1,3 +1,7 @@
+# Requriments - transformers, tokenizers
+# Right now, the Smiles Tokenizer uses an exiesting vocab file from rxnfp that is fairly comprehensive and from the USPTO dataset.
+# The vocab may be expanded in the near future
+
 import collections
 import logging
 import os
