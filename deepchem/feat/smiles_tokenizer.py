@@ -26,7 +26,7 @@ def get_default_tokenizer():
 class SmilesTokenizer(BertTokenizer):
     r"""
     Constructs a SmilesTokenizer.
-    Mostly copied from https://github.com/huggingface/transformers
+    Bulk of code is from https://github.com/huggingface/transformers and https://github.com/rxn4chemistry/rxnfp
     Args:
         vocab_file: Path to a SMILES character per line vocabulary file
     """
