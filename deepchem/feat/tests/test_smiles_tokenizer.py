@@ -10,7 +10,8 @@ class TestSmilesTokenizer(TestCase):
 
 
   def test_tokenize(self):
-      vocab_path = os.path.join(os.path.dirname(__file__), "data", "vocab.txt")
+      current_dir = os.path.dirname(os.path.realpath(__file__))
+      vocab_path = os.path.join(current_dir, 'data', 'vocab.txt')
 
       model = RobertaForMaskedLM.from_pretrained('seyonec/SMILES_tokenized_PubChem_shard00_50k')
       model.num_parameters()
