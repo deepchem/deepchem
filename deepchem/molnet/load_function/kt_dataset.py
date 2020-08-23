@@ -32,17 +32,17 @@ from typing import List, Tuple, Dict, Optional
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-MYDATASET_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KTparameterDataset.zip"
-MYDATASET_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KTparameterDataset.csv"
+KTDATASET_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KTparameterDataset.zip"
+KTDATASET_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KTparameterDataset.csv"
 
 # dict of accepted featurizers for this dataset
 # modify the returned dicts for your dataset
 DEFAULT_FEATURIZERS = get_defaults("feat")
 
 # Names of supported featurizers
-# mydataset_featurizers = ["RawFeaturizer", "SmilesToImage", "SmilesToSeq", "WeaveFeaturizer"]
-mydataset_featurizers = ['ECFP','GraphConv','Weave','Raw','AdjacencyConv']
-DEFAULT_FEATURIZERS = {k: DEFAULT_FEATURIZERS[k] for k in mydataset_featurizers}
+# ktdataset_featurizers = ["RawFeaturizer", "SmilesToImage", "SmilesToSeq", "WeaveFeaturizer"]
+ktdataset_featurizers = ['ECFP','GraphConv','Weave','Raw','AdjacencyConv']
+DEFAULT_FEATURIZERS = {k: DEFAULT_FEATURIZERS[k] for k in ktdataset_featurizers}
 
 # dict of accepted transformers
 DEFAULT_TRANSFORMERS = get_defaults("trans")
@@ -51,10 +51,10 @@ DEFAULT_TRANSFORMERS = get_defaults("trans")
 DEFAULT_SPLITTERS = get_defaults("splits")
 
 # names of supported splitters
-mydataset_splitters = [
+ktdataset_splitters = [
     'index', 'random', 'scaffold', 'butina', 'task', 'stratified'
 ]
-DEFAULT_SPLITTERS = {k: DEFAULT_SPLITTERS[k] for k in mydataset_splitters}
+DEFAULT_SPLITTERS = {k: DEFAULT_SPLITTERS[k] for k in ktdataset_splitters}
 
 
 def load_kt_dataset(
@@ -70,9 +70,10 @@ def load_kt_dataset(
     splitter_kwargs: Dict[str, object] = {},
     transformer_kwargs: Dict[str, Dict[str, object]] = {},
     **kwargs) -> Tuple[List, Tuple, List]:
-  """Load ktdataset.
+  """
+  Load ktdataset.
 
-  This has been adopted from the template for adding a function to load a dataset from
+  This has been modified from the template for adding a function to load a dataset from
   MoleculeNet. Global variable URL strings, default parameters,
   default featurizers, transformers, and splitters, and variable names have been modified as
   needed. All available featurizers, transformers, and
@@ -146,16 +147,16 @@ def load_kt_dataset(
 
   """
 
-  # Warning message about this template
-  raise ValueError("""
-    This is a template function and it doesn't do anything!
-    Use this function as a reference when implementing new
-    loaders for MoleculeNet datasets.
-    """)
+  # # Warning message about this template
+  # raise ValueError("""
+  #   This is a template function and it doesn't do anything!
+  #   Use this function as a reference when implementing new
+  #   loaders for MoleculeNet datasets.
+  #   """)
 
-  # Featurize mydataset
+  # Featurize ktdataset
   logger.info("About to featurize ktdataset.")
-  my_tasks = ["alpha", "beta"]  # machine learning targets
+  kt_tasks = ["alpha", "beta"]  # machine learning targets
 
   # Get DeepChem data directory if needed
   if data_dir is None:
@@ -178,39 +179,39 @@ def load_kt_dataset(
   if reload:
     featurizer_name = str(featurizer.__class__.__name__)
     splitter_name = str(splitter.__class__.__name__)
-    save_folder = os.path.join(save_dir, "mydataset-featurized",
+    save_folder = os.path.join(save_dir, "ktdataset-featurized",
                                featurizer_name, splitter_name)
 
     loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
         save_folder)
     if loaded:
-      return my_tasks, all_dataset, transformers
+      return kt_tasks, all_dataset, transformers
 
   # First type of supported featurizers
   supported_featurizers = []  # type: List[Featurizer]
 
   # If featurizer requires a non-CSV file format, load .tar.gz file
   if featurizer in supported_featurizers:
-    dataset_file = os.path.join(data_dir, 'mydataset.filetype')
+    dataset_file = os.path.join(data_dir, 'KTparameterDataset.csv')
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=MYDATASET_URL, dest_dir=data_dir)
+      deepchem.utils.download_url(url=KTDATASET_URL, dest_dir=data_dir)
       deepchem.utils.untargz_file(
-          os.path.join(data_dir, 'mydataset.tar.gz'), data_dir)
+          os.path.join(data_dir, 'ktdataset.tar.gz'), data_dir)
 
     # Changer loader to match featurizer and data file type
     loader = deepchem.data.DataLoader(
-        tasks=my_tasks,
+        tasks=kt_tasks,
         id_field="cid",  # column name holding sample identifier
         featurizer=featurizer)
 
   else:  # only load CSV file
     dataset_file = os.path.join(data_dir, "ktdataset.csv")
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=MYDATASET_CSV_URL, dest_dir=data_dir)
+      deepchem.utils.download_url(url=KTDATASET_CSV_URL, dest_dir=data_dir)
 
     loader = deepchem.data.CSVLoader(
-        tasks=my_tasks, smiles_field="csmiles", featurizer=featurizer)
+        tasks=kt_tasks, smiles_field="csmiles", featurizer=featurizer)
 
   # Featurize dataset
   dataset = loader.create_dataset(dataset_file)
@@ -235,4 +236,4 @@ def load_kt_dataset(
     deepchem.utils.save.save_dataset_to_disk(
         save_folder, train_dataset, valid_dataset, test_dataset, transformers)
 
-  return my_tasks, (train_dataset, valid_dataset, test_dataset), transformers
+  return kt_tasks, (train_dataset, valid_dataset, test_dataset), transformers

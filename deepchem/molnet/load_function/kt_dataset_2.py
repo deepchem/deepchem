@@ -1,4 +1,6 @@
 """
+This file does not adhere to the template, but is simpler to debug
+
 Loading Kamlet-Taft (KT) parameter dataset 
 
   KT parameters are scales to measure and quantify the Lewis acidity and basicity of molecules. The parameters are obtained through Nuclear Magnetic Resonance (NMR) spectra.
