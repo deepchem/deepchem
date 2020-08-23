@@ -40,8 +40,8 @@ MYDATASET_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KT
 DEFAULT_FEATURIZERS = get_defaults("feat")
 
 # Names of supported featurizers
-# mydataset_featurizers = ['ECFP','GraphConv','Weave','Raw','AdjacencyConv']
-mydataset_featurizers =["RawFeaturizer","SmilesToImage", "SmilesToSeq","WeaveFeaturizer"]
+# mydataset_featurizers = ["RawFeaturizer", "SmilesToImage", "SmilesToSeq", "WeaveFeaturizer"]
+mydataset_featurizers = ['ECFP','GraphConv','Weave','Raw','AdjacencyConv']
 DEFAULT_FEATURIZERS = {k: DEFAULT_FEATURIZERS[k] for k in mydataset_featurizers}
 
 # dict of accepted transformers
@@ -51,7 +51,9 @@ DEFAULT_TRANSFORMERS = get_defaults("trans")
 DEFAULT_SPLITTERS = get_defaults("splits")
 
 # names of supported splitters
-mydataset_splitters = ['index','random','scaffold','butina','task','stratified']
+mydataset_splitters = [
+    'index', 'random', 'scaffold', 'butina', 'task', 'stratified'
+]
 DEFAULT_SPLITTERS = {k: DEFAULT_SPLITTERS[k] for k in mydataset_splitters}
 
 
