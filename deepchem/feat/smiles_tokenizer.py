@@ -30,14 +30,12 @@ class SmilesTokenizer(BertTokenizer):
 
     References
     ----------
-    .. [1] Goh, Garrett B., et al. "Using rule-based labels for weak supervised
-         learning: a ChemNet for transferable chemical property prediction."
-         Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
-         Discovery & Data Mining. 2018.
+    .. [1]  Schwaller, Philippe; Probst, Daniel; Vaucher, Alain C.; Nair, Vishnu H; Kreutter, David;
+            Laino, Teodoro; et al. (2019): Mapping the Space of Chemical Reactions using Attention-Based Neural
+            Networks. ChemRxiv. Preprint. https://doi.org/10.26434/chemrxiv.9897365.v3
     Note
     ----
     This class requires huggingface's transformers and tokenizers libraries to be installed.
-
     """
 
     def __init__(
