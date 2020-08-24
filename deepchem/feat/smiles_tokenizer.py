@@ -24,11 +24,20 @@ def get_default_tokenizer():
     return SmilesTokenizer(default_vocab_path)
 
 class SmilesTokenizer(BertTokenizer):
-    r"""
+    """
     Constructs a SmilesTokenizer.
     Bulk of code is from https://github.com/huggingface/transformers and https://github.com/rxn4chemistry/rxnfp
-    Args:
-        vocab_file: Path to a SMILES character per line vocabulary file
+
+    References
+    ----------
+    .. [1] Goh, Garrett B., et al. "Using rule-based labels for weak supervised
+         learning: a ChemNet for transferable chemical property prediction."
+         Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
+         Discovery & Data Mining. 2018.
+    Note
+    ----
+    This class requires huggingface's transformers and tokenizers libraries to be installed.
+
     """
 
     def __init__(
@@ -41,10 +50,16 @@ class SmilesTokenizer(BertTokenizer):
             # mask_token="[MASK]",
             **kwargs
     ):
+
         """Constructs a BertTokenizer.
-        Args:
-            **vocab_file**: Path to a SMILES character per line vocabulary file
+
+        Parameters
+        ----------
+        vocab_file: string
+            Path to a SMILES character per line vocabulary file.
+            Default vocab file is found in deepchem/feat/tests/data/vocab.txt
         """
+
         super().__init__(vocab_file, **kwargs)
         # take into account special tokens in max length
         self.max_len_single_sentence = self.max_len - 2
