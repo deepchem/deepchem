@@ -57,7 +57,7 @@ class SmilesTokenizer(BertTokenizer):
 
         Parameters
         ----------
-        vocab_file: string
+        vocab_file: str
             Path to a SMILES character per line vocabulary file.
             Default vocab file is found in deepchem/feat/tests/data/vocab.txt
         """
@@ -93,19 +93,47 @@ class SmilesTokenizer(BertTokenizer):
         return list(self.vocab.keys())
 
     def _tokenize(self, text):
+        """
+        Tokenize a string into a list of tokens.
+
+        Parameters
+        ----------
+        text: str
+
+        """
+
         split_tokens = [token for token in self.basic_tokenizer.tokenize(text)]
         return split_tokens
 
     def _convert_token_to_id(self, token):
-        """ Converts a token (str/unicode) in an id using the vocab. """
+        """
+        Converts a token (str/unicode) in an id using the vocab.
+
+        Parameters
+        ----------
+        token: str
+        """
         return self.vocab.get(token, self.vocab.get(self.unk_token))
 
     def _convert_id_to_token(self, index):
-        """Converts an index (integer) in a token (string/unicode) using the vocab."""
+        """
+        Converts an index (integer) in a token (string/unicode) using the vocab.
+
+        Parameters
+        ----------
+        index: int
+
+        """
         return self.ids_to_tokens.get(index, self.unk_token)
 
     def convert_tokens_to_string(self, tokens):
-        """ Converts a sequence of tokens (string) in a single string. """
+        """ Converts a sequence of tokens (string) in a single string.
+
+        Parameters
+        ----------
+        tokens: List[str]
+
+        """
         out_string = " ".join(tokens).replace(" ##", "").strip()
         return out_string
 
@@ -113,6 +141,9 @@ class SmilesTokenizer(BertTokenizer):
         """
         Adds special tokens to the a sequence for sequence classification tasks.
         A BERT sequence has the following format: [CLS] X [SEP]
+
+
+
         """
         return [self.cls_token_id] + token_ids + [self.sep_token_id]
 
