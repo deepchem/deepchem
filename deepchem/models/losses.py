@@ -195,8 +195,6 @@ class SparseSoftmaxCrossEntropy(Loss):
     return torch.nn.CrossEntropyLoss(reduction='none')
 
 
-
-
 def _make_tf_shapes_consistent(output, labels):
   """Try to make inputs have the same shape by adding dimensions of size 1."""
   import tensorflow as tf
