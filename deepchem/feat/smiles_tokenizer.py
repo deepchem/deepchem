@@ -44,7 +44,7 @@ class SmilesTokenizer(BertTokenizer):
 
     def __init__(
             self,
-            vocab_file='',
+            vocab_file: str='',
             # unk_token="[UNK]",
             # sep_token="[SEP]",
             # pad_token="[PAD]",
@@ -174,10 +174,14 @@ class SmilesTokenizer(BertTokenizer):
 class BasicSmilesTokenizer(object):
     """Run basic SMILES tokenization"""
 
-    def __init__(self, regex_pattern=SMI_REGEX_PATTERN):
+    def __init__(self, regex_pattern: str=SMI_REGEX_PATTERN):
         """ Constructs a BasicSMILESTokenizer.
-        Args:
-            **regex**: SMILES token regex
+        Parameters
+        ----------
+
+        regex: string
+            SMILES token regex
+
         """
         self.regex_pattern = regex_pattern
         self.regex = re.compile(self.regex_pattern)
