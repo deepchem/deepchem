@@ -55,7 +55,7 @@ class TestLoad(unittest.TestCase):
     np.random.seed(123)
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    ##Make directories to store the raw and featurized datasets.
+    # Make directories to store the raw and featurized datasets.
     data_dir = tempfile.mkdtemp()
 
     # Load dataset
@@ -68,27 +68,25 @@ class TestLoad(unittest.TestCase):
     featurizer = dc.feat.CircularFingerprint(size=1024)
     all_tasks = ["task%d" % i for i in range(17)]
 
-    ####### Do featurization
+    # featurization
     loader = dc.data.CSVLoader(
         tasks=all_tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(dataset_file, data_dir)
 
-    # Do train/valid split.
-    X_multi, y_multi, w_multi, ids_multi = (dataset.X, dataset.y, dataset.w,
-                                            dataset.ids)
+    # train/valid split.
+    _, y_multi, w_multi, _ = (dataset.X, dataset.y, dataset.w, dataset.ids)
 
-    ####### Do singletask load
+    # singletask load
     y_tasks, w_tasks, = [], []
     dataset = dc.data.DiskDataset(data_dir)
     for ind, task in enumerate(all_tasks):
       logger.info("Processing task %s" % task)
 
-      X_task, y_task, w_task, ids_task = (dataset.X, dataset.y, dataset.w,
-                                          dataset.ids)
+      _, y_task, w_task, _ = (dataset.X, dataset.y, dataset.w, dataset.ids)
       y_tasks.append(y_task[:, ind])
       w_tasks.append(w_task[:, ind])
 
-    ################## Do comparison
+    # comparison
     for ind, task in enumerate(all_tasks):
       y_multi_task = y_multi[:, ind]
       w_multi_task = w_multi[:, ind]
@@ -104,11 +102,8 @@ class TestLoad(unittest.TestCase):
     # Only for debug!
     np.random.seed(123)
 
-    # Set some global variables up top
-    reload = True
-
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    #Make directories to store the raw and featurized datasets.
+    # Make directories to store the raw and featurized datasets.
     data_dir = tempfile.mkdtemp()
 
     # Load dataset
@@ -124,16 +119,15 @@ class TestLoad(unittest.TestCase):
     n_tasks = 17
     tasks = all_tasks[0:n_tasks]
 
-    ####### Do multitask load
+    # multitask load
     loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(dataset_file, data_dir)
 
     # Do train/valid split.
-    X_multi, y_multi, w_multi, ids_multi = (dataset.X, dataset.y, dataset.w,
-                                            dataset.ids)
+    _, y_multi, w_multi, _ = (dataset.X, dataset.y, dataset.w, dataset.ids)
 
-    ####### Do singletask load
+    # singletask load
     y_tasks, w_tasks, ids_tasks = [], [], []
     for task in tasks:
       logger.info("Processing task %s" % task)
@@ -143,13 +137,13 @@ class TestLoad(unittest.TestCase):
           tasks=[task], smiles_field="smiles", featurizer=featurizer)
       dataset = loader.featurize(dataset_file, data_dir)
 
-      X_task, y_task, w_task, ids_task = (dataset.X, dataset.y, dataset.w,
-                                          dataset.ids)
+      _, y_task, w_task, ids_task = (dataset.X, dataset.y, dataset.w,
+                                     dataset.ids)
       y_tasks.append(y_task)
       w_tasks.append(w_task)
       ids_tasks.append(ids_task)
 
-    ################## Do comparison
+    # comparison
     for ind, task in enumerate(tasks):
       y_multi_task = y_multi[:, ind]
       w_multi_task = w_multi[:, ind]

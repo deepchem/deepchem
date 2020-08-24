@@ -9,7 +9,7 @@ import numpy as np
 import deepchem as dc
 
 try:
-  import torch
+  import torch  # noqa
   PYTORCH_IMPORT_FAILED = False
 except ImportError:
   PYTORCH_IMPORT_FAILED = True
@@ -739,7 +739,7 @@ def _validate_pytorch_dataset(dataset):
 
   # Test iterating with multiple workers.
 
-  import torch
+  import torch  # noqa
   ds = dataset.make_pytorch_dataset(epochs=2, deterministic=False)
   loader = torch.utils.data.DataLoader(ds, num_workers=3)
   id_count = dict((id, 0) for id in ids)
