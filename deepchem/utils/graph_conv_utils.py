@@ -62,13 +62,13 @@ def one_hot_encode(val: Union[int, str],
   Examples
   --------
   >>> one_hot_encode("a", ["a", "b", "c"])
-  [1, 0, 0]
+  [1.0, 0.0, 0.0]
   >>> one_hot_encode(2, [0, 1, 2])
-  [0, 0, 1]
+  [0.0, 0.0, 1.0]
   >>> one_hot_encode(3, [0, 1, 2])
-  [0, 0, 0]
+  [0.0, 0.0, 0.0]
   >>> one_hot_encode(3, [0, 1, 2], True)
-  [0, 0, 0, 1]
+  [0.0, 0.0, 0.0, 1.0]
 
   Parameters
   ----------

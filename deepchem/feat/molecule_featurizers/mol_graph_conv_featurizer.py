@@ -78,7 +78,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
   `constrcut_atom_feature` or `constrcut_bond_feature`.
 
   The default node representation are constructed by concatenating the following values,
-  and the feature length is 25.
+  and the feature length is 38.
 
   - Atom type: A one-hot vector of this atom, "C", "N", "O", "F", "P", "S", "Br", "I", "other atoms".
   - Chirality: A one-hot vector of the chirality, "R" or "S".
@@ -92,7 +92,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
   - Number of Hydrogens: A one-hot vector of the number of hydrogens (0-4) that this atom connected.
 
   The default edge representation are constructed by concatenating the following values,
-  and the feature length is 6.
+  and the feature length is 11.
 
   - Bond type: A one-hot vector of the bond type, "single", "double", "triple", or "aromatic".
   - Same ring: A one-hot vector of whether the atoms in the pair are in the same ring.
@@ -109,6 +109,10 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
   >>> out = featurizer.featurize(smiles)
   >>> type(out[0])
   <class 'deepchem.feat.graph_data.GraphData'>
+  >>> out[0].num_node_features
+  38
+  >>> out[0].num_edge_features
+  11
 
   References
   ----------

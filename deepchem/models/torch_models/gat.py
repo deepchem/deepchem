@@ -9,11 +9,18 @@ from deepchem.models.torch_models.torch_model import TorchModel
 class GAT(nn.Module):
   """Graph Attention Networks.
 
-  TODO: add more docstring
+  This model takes arbitary graphs as an input, and predict graph properties. This model is
+  one of variants of Graph Convolutional Networks. The main difference between basic GCN models
+  is how to update node representations. The GAT uses multi head attention mechanisms which
+  outbroke in NLP like Transformer when updating node representations. The most important advantage
+  of this approach is that we can get the interpretability like how the model predict the value
+  or which part of the graph structure is important from attention-weight. Please confirm
+  the detail algorithms from [1]_.
 
   Examples
   --------
   >>> import deepchem as dc
+  >>> from torch_geometric.data import Batch
   >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
   >>> featurizer = dc.feat.MolGraphConvFeaturizer()
   >>> graphs = featurizer.featurize(smiles)
@@ -21,11 +28,12 @@ class GAT(nn.Module):
   <class 'deepchem.feat.graph_data.GraphData'>
   >>> pyg_graphs = [graph.to_pyg_graph() for graph in graphs]
   >>> print(type(pyg_graphs[0]))
-  >>> model = dc.models.GAT(n_out=1)
-  >>> out = model(pyg_graphs)
+  <class 'torch_geometric.data.data.Data'>
+  >>> model = dc.models.GAT(n_tasks=2)
+  >>> out = model(Batch.from_data_list(pyg_graphs))
   >>> print(type(out))
   <class 'torch.Tensor'>
-  >>> out.shape == (1, 1)
+  >>> out.shape == (2, 2)
   True
 
   References
@@ -40,7 +48,7 @@ class GAT(nn.Module):
 
   def __init__(
       self,
-      in_node_dim: int = 25,
+      in_node_dim: int = 38,
       hidden_node_dim: int = 64,
       heads: int = 4,
       dropout_rate: float = 0.0,
@@ -49,7 +57,23 @@ class GAT(nn.Module):
       n_tasks: int = 1,
   ):
     """
-    TODO: add docstring
+    Parameters
+    ----------
+    in_node_dim: int, default 38
+      The length of the initial node feature vectors. The 38 is
+      based on `MolGraphConvFeaturizer`.
+    hidden_node_dim: int, default 64
+      The length of the hidden node feature vectors.
+    heads: int, default 4
+      The number of multi-head-attentions.
+    dropout_rate: float, default 0.0
+      The dropout probability for each convolutional layer.
+    num_conv: int, default 3
+      The number of convolutional layers.
+    predicator_hidden_feats: int, default 32
+      The size for hidden representations in the output MLP predictor, default to 32.
+    n_tasks: int, default 1
+      The number of the output size, default to 1.
     """
     try:
       from torch_geometric.nn import GATConv, global_mean_pool
@@ -97,19 +121,26 @@ class GAT(nn.Module):
 
 
 class GATModel(TorchModel):
-  """Graph Attention Networks.
-
-  TODO: add more docstring
+  """Graph Attention Networks (GAT).
 
   Here is a simple example of code that uses the GATModel with
   molecules dataset.
 
   >> import deepchem as dc
-  >> dataset_config = {"reload": False, "featurizer": dc.feat.MolGraphConvFeaturizer, "transformers": []}
+  >> featurizer = dc.feat.MolGraphConvFeaturizer()
+  >> dataset_config = {"reload": False, "featurizer": featurizer, "transformers": []}
   >> tasks, datasets, transformers = dc.molnet.load_tox21(**dataset_config)
   >> train, valid, test = datasets
-  >> model = dc.models.GATModel(loss=dc.models.losses.(), batch_size=32, learning_rate=0.001)
+  >> model = dc.models.GATModel(loss=dc.models.losses.SoftmaxCrossEntropy(), batch_size=32, learning_rate=0.001)
   >> model.fit(train, nb_epoch=50)
+
+  This model takes arbitary graphs as an input, and predict graph properties. This model is
+  one of variants of Graph Convolutional Networks. The main difference between basic GCN models
+  is how to update node representations. The GAT uses multi head attention mechanisms which
+  outbroke in NLP like Transformer when updating node representations. The most important advantage
+  of this approach is that we can get the interpretability like how the model predict the value
+  or which part of the graph structure is important from attention-weight. Please confirm
+  the detail algorithms from [1]_.
 
   References
   ----------
@@ -122,7 +153,7 @@ class GATModel(TorchModel):
   """
 
   def __init__(self,
-               in_node_dim: int = 25,
+               in_node_dim: int = 38,
                hidden_node_dim: int = 64,
                heads: int = 4,
                dropout_rate: float = 0.0,
@@ -131,7 +162,27 @@ class GATModel(TorchModel):
                n_tasks: int = 1,
                **kwargs):
     """
-    TODO: add docstring
+    This class accepts all the keyword arguments from TorchModel.
+
+    Parameters
+    ----------
+    in_node_dim: int, default 38
+      The length of the initial node feature vectors. The 38 is
+      based on `MolGraphConvFeaturizer`.
+    hidden_node_dim: int, default 64
+      The length of the hidden node feature vectors.
+    heads: int, default 4
+      The number of multi-head-attentions.
+    dropout_rate: float, default 0.0
+      The dropout probability for each convolutional layer.
+    num_conv: int, default 3
+      The number of convolutional layers.
+    predicator_hidden_feats: int, default 32
+      The size for hidden representations in the output MLP predictor, default to 32.
+    n_tasks: int, default 1
+      The number of the output size, default to 1.
+    kwargs: Dict
+      This class accepts all the keyword arguments from TorchModel.
     """
     model = GAT(
         in_node_dim,
@@ -160,10 +211,6 @@ class GATModel(TorchModel):
       The labels converted to torch.Tensor.
     weights: List[torch.Tensor] or None
       The weights for each sample or sample/task pair converted to torch.Tensor.
-
-    Notes
-    -----
-    This class requires PyTorch Geometric to be installed.
     """
     try:
       from torch_geometric.data import Batch

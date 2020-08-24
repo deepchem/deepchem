@@ -294,10 +294,6 @@ class CGCNNModel(TorchModel):
       The labels converted to torch.Tensor
     weights: List[torch.Tensor] or None
       The weights for each sample or sample/task pair converted to torch.Tensor
-
-    Notes
-    -----
-    This class requires DGL and PyTorch to be installed.
     """
     try:
       import dgl

@@ -9,8 +9,6 @@ try:
 except:
   from collections import Sequence as SequenceCollection
 
-logger = logging.getLogger(__name__)
-
 from deepchem.data import Dataset, NumpyDataset
 from deepchem.metrics import Metric
 from deepchem.models.losses import Loss
@@ -38,6 +36,9 @@ except (ImportError, AttributeError):
 
 def is_wandb_available():
   return _has_wandb
+
+
+logger = logging.getLogger(__name__)
 
 
 class TorchModel(Model):

@@ -12,11 +12,13 @@ except:
   has_pytorch_and_pyg = False
 
 
-@unittest.skipIf(not has_pytorch_and_pyg, 'PyTorch and PyTorch Geometric are not installed')
+@unittest.skipIf(not has_pytorch_and_pyg,
+                 'PyTorch and PyTorch Geometric are not installed')
 def test_gat_classification():
   # load datasets
   featurizer = MolGraphConvFeaturizer()
-  tasks, dataset, transformers, metric = get_dataset('regression', featurizer=featurizer)
+  tasks, dataset, transformers, metric = get_dataset(
+      'regression', featurizer=featurizer)
   n_tasks = len(tasks)
 
   # initialize models
