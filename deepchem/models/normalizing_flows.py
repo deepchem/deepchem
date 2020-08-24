@@ -100,9 +100,7 @@ class NormalizingFlowModel(KerasModel):
 
   """
 
-  def __init__(self,
-               model: NormalizingFlow,
-               **kwargs):
+  def __init__(self, model: NormalizingFlow, **kwargs):
     """Creates a new NormalizingFlowModel.
 
     Parameters
@@ -147,12 +145,10 @@ class NormalizingFlowModel(KerasModel):
 
     self.model = model
     self.flow = model.flow  # normalizing flow
-
     """Initialize tf network."""
     x = self.flow.distribution.sample(self.flow.distribution.batch_shape)
     for b in reversed(self.flow.bijector.bijectors):
       x = b.forward(x)
-
 
     self.nll_loss_fn = lambda output, labels, weights: self.create_nll(output)
 
@@ -178,7 +174,9 @@ class NormalizingFlowModel(KerasModel):
 
     """
 
-    return Lambda(lambda x: -tf.reduce_mean(self.flow.log_prob(x, training=True)))(output)
+    return Lambda(
+        lambda x: -tf.reduce_mean(tf.math.add(self.flow.log_prob(x), 1e-10)))(
+            output)
 
 
 class NormalizingFlowLayer(object):
