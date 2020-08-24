@@ -12,7 +12,8 @@ from typing import List
 from transformers import BertTokenizer
 
 # export
-SMI_REGEX_PATTERN = r"(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\|\/|:|~|@|\?|>>?|\*|\$|\%[0-9]{2}|[0-9])"
+SMI_REGEX_PATTERN = r"""(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|
+#|-|\+|\\|\/|:|~|@|\?|>>?|\*|\$|\%[0-9]{2}|[0-9])"""
 
 def get_default_tokenizer():
     default_vocab_path = (
@@ -25,8 +26,11 @@ def get_default_tokenizer():
 
 class SmilesTokenizer(BertTokenizer):
     """
-    Constructs a SmilesTokenizer.
-    Bulk of code is from https://github.com/huggingface/transformers and https://github.com/rxn4chemistry/rxnfp
+    Constructs a SmilesTokenizer. The tokenizer heavily inherits from the BERT
+    WordPieceTokenizer implementation found in Huggingface's transformers library.
+
+    Please see https://github.com/huggingface/transformers
+    and https://github.com/rxn4chemistry/rxnfp for more details.
 
     References
     ----------
@@ -49,7 +53,7 @@ class SmilesTokenizer(BertTokenizer):
             **kwargs
     ):
 
-        """Constructs a BertTokenizer.
+        """Constructs a SmilesTokenizer.
 
         Parameters
         ----------
