@@ -4,12 +4,11 @@ Metal vs non-metal classification for inorganic crystals from Materials Project.
 import os
 import logging
 import deepchem
-from deepchem.feat import Featurizer, MaterialStructureFeaturizer, MaterialCompositionFeaturizer
-from deepchem.trans import Transformer
+from deepchem.feat import MaterialStructureFeaturizer
 from deepchem.splits.splitters import Splitter
 from deepchem.molnet.defaults import get_defaults
 
-from typing import List, Tuple, Dict, Optional, Union, Any, Type
+from typing import List, Tuple, Dict, Optional, Any
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +58,7 @@ def load_mp_metallicity(
     **kwargs) -> Tuple[List, Tuple, List]:
   """Load mp formation energy dataset.
 
-  Contains 106113 inorganic crystal structures from the Materials 
+  Contains 106113 inorganic crystal structures from the Materials
   Project database labeled as metals or nonmetals. In benchmark
   studies, random forest models achieved a mean ROC-AUC of
   0.9 during five-folded nested cross validation on this
@@ -67,22 +66,21 @@ def load_mp_metallicity(
 
   For more details on the dataset see [1]_. For more details
   on previous benchmarks for this dataset, see [2]_.
-  
+
   Parameters
   ----------
-  featurizer : MaterialCompositionFeaturizer 
-    (default CGCNNFeaturizer)
+  featurizer : MaterialStructureFeaturizer, default SineCoulombMatrix
     A featurizer that inherits from deepchem.feat.Featurizer.
-  transformers : List[Transformer]
+  transformers : List[Transformer], , default NormalizationTransformer
     A transformer that inherits from deepchem.trans.Transformer.
   splitter : Splitter (default RandomSplitter)
     A splitter that inherits from deepchem.splits.splitters.Splitter.
   reload : bool (default True)
     Try to reload dataset from disk if already downloaded. Save to disk
     after featurizing.
-  data_dir : str, optional
+  data_dir : str, optional (default None)
     Path to datasets.
-  save_dir : str, optional
+  save_dir : str, optional (default None)
     Path to featurized datasets.
   featurizer_kwargs : Dict[str, Any]
     Specify parameters to featurizer, e.g. {"size": 1024}
@@ -107,9 +105,11 @@ def load_mp_metallicity(
 
   References
   ----------
-  .. [1] A. Jain*, S.P. Ong*, et al. (*=equal contributions) The Materials Project: A materials genome approach to accelerating materials innovation APL Materials, 2013, 1(1), 011002. doi:10.1063/1.4812323 (2013).
-
-  .. [2] Dunn, A. et al. "Benchmarking Materials Property Prediction Methods: The Matbench Test Set and Automatminer Reference Algorithm." https://arxiv.org/abs/2005.00707 (2020)
+  .. [1] A. Jain*, S.P. Ong*, et al. (*=equal contributions) The Materials Project:
+     A materials genome approach to accelerating materials innovation APL Materials,
+     2013, 1(1), 011002. doi:10.1063/1.4812323 (2013).
+  .. [2] Dunn, A. et al. "Benchmarking Materials Property Prediction Methods: The Matbench
+     Test Set and Automatminer Reference Algorithm." https://arxiv.org/abs/2005.00707 (2020)
 
   Examples
   --------

@@ -4,12 +4,11 @@ Calculated formation energies for inorganic crystals from Materials Project.
 import os
 import logging
 import deepchem
-from deepchem.feat import Featurizer, MaterialStructureFeaturizer, MaterialCompositionFeaturizer
-from deepchem.trans import Transformer
+from deepchem.feat import MaterialStructureFeaturizer
 from deepchem.splits.splitters import Splitter
 from deepchem.molnet.defaults import get_defaults
 
-from typing import List, Tuple, Dict, Optional, Union, Any, Type
+from typing import List, Tuple, Dict, Optional, Any
 
 logger = logging.getLogger(__name__)
 
@@ -67,11 +66,10 @@ def load_mp_formation_energy(
 
   For more details on the dataset see [1]_. For more details
   on previous benchmarks for this dataset, see [2]_.
-  
+
   Parameters
   ----------
-  featurizer : MaterialCompositionFeaturizer 
-    (default CGCNNFeaturizer)
+  featurizer : MaterialStructureFeaturizer, default SineCoulombMatrix
     A featurizer that inherits from deepchem.feat.Featurizer.
   transformers : List[Transformer]
     A transformer that inherits from deepchem.trans.Transformer.
@@ -80,9 +78,9 @@ def load_mp_formation_energy(
   reload : bool (default True)
     Try to reload dataset from disk if already downloaded. Save to disk
     after featurizing.
-  data_dir : str, optional
+  data_dir : str, optional (default None)
     Path to datasets.
-  save_dir : str, optional
+  save_dir : str, optional (default None)
     Path to featurized datasets.
   featurizer_kwargs : Dict[str, Any]
     Specify parameters to featurizer, e.g. {"size": 1024}
@@ -90,7 +88,7 @@ def load_mp_formation_energy(
     Specify parameters to splitter, e.g. {"seed": 42}
   transformer_kwargs : dict
     Maps transformer names to constructor arguments, e.g.
-    {"BalancingTransformer": {"transform_x":True, "transform_y":False}}
+    {"BalancingTransformer": {"transform_X":True, "transform_y":False}}
   **kwargs : additional optional arguments.
 
   Returns
@@ -107,9 +105,11 @@ def load_mp_formation_energy(
 
   References
   ----------
-  .. [1] A. Jain*, S.P. Ong*, et al. (*=equal contributions) The Materials Project: A materials genome approach to accelerating materials innovation APL Materials, 2013, 1(1), 011002. doi:10.1063/1.4812323 (2013).
-
-  .. [2] Dunn, A. et al. "Benchmarking Materials Property Prediction Methods: The Matbench Test Set and Automatminer Reference Algorithm." https://arxiv.org/abs/2005.00707 (2020)
+  .. [1] A. Jain*, S.P. Ong*, et al. (*=equal contributions) The Materials Project:
+     A materials genome approach to accelerating materials innovation APL Materials,
+     2013, 1(1), 011002. doi:10.1063/1.4812323 (2013).
+  .. [2] Dunn, A. et al. "Benchmarking Materials Property Prediction Methods: The Matbench
+     Test Set and Automatminer Reference Algorithm." https://arxiv.org/abs/2005.00707 (2020)
 
   Examples
   --------

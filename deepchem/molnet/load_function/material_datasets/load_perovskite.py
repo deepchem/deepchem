@@ -66,7 +66,7 @@ def load_perovskite(
 
   Parameters
   ----------
-  featurizer : MaterialStructureFeaturizer
+  featurizer : MaterialStructureFeaturizer, default SineCoulombMatrix
     A featurizer that inherits from deepchem.feat.Featurizer.
   transformers : List[Transformer]
     A transformer that inherits from deepchem.trans.Transformer.
@@ -75,9 +75,9 @@ def load_perovskite(
   reload : bool (default True)
     Try to reload dataset from disk if already downloaded. Save to disk
     after featurizing.
-  data_dir : str, optional
+  data_dir : str, optional (default None)
     Path to datasets.
-  save_dir : str, optional
+  save_dir : str, optional (default None)
     Path to featurized datasets.
   featurizer_kwargs : Dict[str, Any]
     Specify parameters to featurizer, e.g. {"size": 1024}
