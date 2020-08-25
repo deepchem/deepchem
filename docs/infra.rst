@@ -49,7 +49,7 @@ Amazon's S3 allows for storage of data on "buckets" (Think of buckets like folke
   - deepchemdata: This bucket hosts the deepchem.io website, MoleculeNet datasets, pre-featurized datasets, and pretrained models. This bucket is set up to host a static website (at `static`_).
   - deepchemforum: This bucket hosts backups for the forums. The bucket is private for security reasons. The forums themselves are hosted on a digital ocean instance that only @rbharath currently has access to. Longer term, we should migrate the forums onto AWS so all DeepChem developers can access the forums. The forums themselves are a discord instance. The forums upload their backups to this S3 bucket once a day. If the forums crash, they can be restored from the backups in this bucket
 
-.. _`static`: https://deepchemdata.s3-us-west-1.amazonaws.com/index.htmlhttps://deepchemdata.s3-us-west-1.amazonaws.com/index.html
+.. _`static`: https://deepchemdata.s3-us-west-1.amazonaws.com/index.html
 
 Route 53
 ^^^^^^^^
