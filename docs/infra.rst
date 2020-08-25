@@ -19,6 +19,12 @@ DeepChem runs continuous integration tests on `Travis CI`_.
 
 .. _`Travis CI`: https://travis-ci.org/github/deepchem
 
+Conda Forge
+-----------
+The DeepChem `feedstock`_ repo maintains the build recipe for Conda-Forge.
+
+.. _`feedstock`: https://github.com/conda-forge/deepchem-feedstock
+
 
 Dockerhub
 ---------
@@ -44,7 +50,7 @@ longer term we should migrate this so other folks have access to the roles.
 S3
 ^^
 
-Amazon's S3 allows for storage of data on "buckets" (Think of buckets like folkers.) There are two core deepchem S3 buckets:
+Amazon's S3 allows for storage of data on "buckets" (Think of buckets like folders.) There are two core deepchem S3 buckets:
 
   - deepchemdata: This bucket hosts the deepchem.io website, MoleculeNet datasets, pre-featurized datasets, and pretrained models. This bucket is set up to host a static website (at `static`_).
   - deepchemforum: This bucket hosts backups for the forums. The bucket is private for security reasons. The forums themselves are hosted on a digital ocean instance that only @rbharath currently has access to. Longer term, we should migrate the forums onto AWS so all DeepChem developers can access the forums. The forums themselves are a discord instance. The forums upload their backups to this S3 bucket once a day. If the forums crash, they can be restored from the backups in this bucket
