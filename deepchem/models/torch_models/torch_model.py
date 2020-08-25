@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import torch.utils.tensorboard
 import time
 import logging
 import os
@@ -8,8 +7,6 @@ try:
   from collections.abc import Sequence as SequenceCollection
 except:
   from collections import Sequence as SequenceCollection
-
-logger = logging.getLogger(__name__)
 
 from deepchem.data import Dataset, NumpyDataset
 from deepchem.metrics import Metric
@@ -35,9 +32,7 @@ try:
 except (ImportError, AttributeError):
   _has_wandb = False
 
-
-def is_wandb_available():
-  return _has_wandb
+logger = logging.getLogger(__name__)
 
 
 class TorchModel(Model):
@@ -186,12 +181,12 @@ class TorchModel(Model):
     self.model.to(device)
 
     # W&B logging
-    if wandb and not is_wandb_available():
+    if wandb and not _has_wandb:
       logger.warning(
           "You set wandb to True but W&B is not installed. To use wandb logging, "
           "run `pip install wandb; wandb login` see https://docs.wandb.com/huggingface."
       )
-    self.wandb = wandb and is_wandb_available()
+    self.wandb = wandb and _has_wandb
 
     self.log_frequency = log_frequency
     if self.tensorboard:
