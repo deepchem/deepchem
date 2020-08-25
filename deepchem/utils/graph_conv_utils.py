@@ -302,7 +302,7 @@ def get_atom_formal_charge(atom: RDKitAtom) -> List[float]:
   List[float]
     A vector of the formal charge.
   """
-  return [atom.GetFormalCharge()]
+  return [float(atom.GetFormalCharge())]
 
 
 def get_atom_partial_charge(atom: RDKitAtom) -> List[float]:

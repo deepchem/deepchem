@@ -13,12 +13,12 @@ from deepchem.utils.graph_conv_utils import get_atom_type_one_hot, \
   get_bond_stereo_one_hot
 
 
-def constrcut_atom_feature(atom: RDKitAtom, h_bond_infos: List[Tuple[int, str]],
+def construct_atom_feature(atom: RDKitAtom, h_bond_infos: List[Tuple[int, str]],
                            sssr: List[Sequence]) -> List[float]:
   """Construct an atom feature from a RDKit atom object.
 
   Parameters
-  ---------
+  ----------
   atom: rdkit.Chem.rdchem.Atom
     RDKit atom object
   h_bond_infos: List[Tuple[int, str]]
@@ -32,7 +32,7 @@ def constrcut_atom_feature(atom: RDKitAtom, h_bond_infos: List[Tuple[int, str]],
 
   Returns
   -------
-  List[Union[int, float]]
+  List[float]
     A one-hot vector of the atom feature.
   """
   atom_type = get_atom_type_one_hot(atom)
@@ -59,7 +59,7 @@ def construct_bond_feature(bond: RDKitBond) -> List[float]:
 
   Returns
   -------
-  List[int]
+  List[float]
     A one-hot vector of the bond feature.
   """
   bond_type = get_bond_type_one_hot(bond)
@@ -72,10 +72,10 @@ def construct_bond_feature(bond: RDKitBond) -> List[float]:
 class MolGraphConvFeaturizer(MolecularFeaturizer):
   """This class is a featurizer of gerneral graph convolution networks for molecules.
 
-  The default node(atom) and edge(bond) representations are based on WeaveNet paper.
-  If you want to use your own representations, you could use this class as a guide
-  to define your original Featurizer. In many cases, it's enough to modify return values of
-  `constrcut_atom_feature` or `constrcut_bond_feature`.
+  The default node(atom) and edge(bond) representations are based on
+  `WeaveNet paper <https://arxiv.org/abs/1603.00856>`_. If you want to use your own representations,
+  you could use this class as a guide to define your original Featurizer. In many cases, it's enough
+  to modify return values of `construct_atom_feature` or `construct_bond_feature`.
 
   The default node representation are constructed by concatenating the following values,
   and the feature length is 38.
@@ -126,8 +126,8 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
 
   def __init__(self, add_self_loop: bool = False):
     """
-    Paramters
-    ---------
+    Parameters
+    ----------
     add_self_loop: bool, default False
       Whether to add self-connected edges or not. If you want to use DGL,
       you sometimes need to add explict self-connected edges.
@@ -137,8 +137,8 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
   def _featurize(self, mol: RDKitMol) -> GraphData:
     """Calculate molecule graph features from RDKit mol object.
 
-    Parametrs
-    ---------
+    Parameters
+    ----------
     mol: rdkit.Chem.rdchem.Mol
       RDKit mol object.
 
@@ -166,7 +166,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     # construct atom (node) feature
     atom_features = np.array(
         [
-            constrcut_atom_feature(atom, h_bond_infos, sssr)
+            construct_atom_feature(atom, h_bond_infos, sssr)
             for atom in mol.GetAtoms()
         ],
         dtype=np.float,
