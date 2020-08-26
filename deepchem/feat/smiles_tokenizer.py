@@ -26,7 +26,7 @@ def get_default_tokenizer():
 
 class SmilesTokenizer(BertTokenizer):
     """
-    Constructs a SmilesTokenizer. The tokenizer heavily inherits from the BERT
+    Creates the SmilesTokenizer class. The tokenizer heavily inherits from the BERT
     WordPieceTokenizer implementation found in Huggingface's transformers library.
 
     Please see https://github.com/huggingface/transformers
