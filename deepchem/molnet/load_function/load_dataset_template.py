@@ -75,11 +75,11 @@ def load_mydataset(
 
   Parameters
   ----------
-  featurizer : {List of allowed featurizers for this dataset}
+  featurizer : allowed featurizers for this dataset
     A featurizer that inherits from deepchem.feat.Featurizer.
-  transformers : {List of allowed transformers for this dataset}
+  transformers : List of allowed transformers for this dataset
     A transformer that inherits from deepchem.trans.Transformer.
-  splitter : {List of allowed splitters for this dataset}
+  splitter : allowed splitters for this dataset
     A splitter that inherits from deepchem.splits.splitters.Splitter.
   reload : bool (default True)
     Try to reload dataset from disk if already downloaded. Save to disk
@@ -111,9 +111,8 @@ def load_mydataset(
 
   References
   ----------
-  MLA style references for this dataset.
+  MLA style references for this dataset. The example is like this.
   Last, First et al. "Article title." Journal name, vol. #, no. #, year, pp. page range, DOI.
-
   ...[1] Wu, Zhenqin et al. "MoleculeNet: a benchmark for molecular machine learning."
      Chemical Science, vol. 9, 2018, pp. 513-530, 10.1039/c7sc02664a.
 
