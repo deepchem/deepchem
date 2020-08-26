@@ -50,7 +50,7 @@ class SmilesTokenizer(BertTokenizer):
     .. [1]  Schwaller, Philippe; Probst, Daniel; Vaucher, Alain C.; Nair, Vishnu H; Kreutter, David;
             Laino, Teodoro; et al. (2019): Mapping the Space of Chemical Reactions using Attention-Based Neural
             Networks. ChemRxiv. Preprint. https://doi.org/10.26434/chemrxiv.9897365.v3
-    Note
+    Notes
     ----
     This class requires huggingface's transformers and tokenizers libraries to be installed.
 
