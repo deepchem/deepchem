@@ -1,4 +1,4 @@
-Featurizers
+Tokenizers
 ===========
 
 A tokenizer is in charge of preparing the inputs for a model. The HuggingFace transformers library (which DeepChem tokenizers are built on top of) comprise tokenizers for all transformer models.
@@ -15,10 +15,18 @@ PreTrainedTokenizer and PreTrainedTokenizerFast thus implements the main methods
 
 BatchEncoding holds the output of the tokenizer’s encoding methods (__call__, encode_plus and batch_encode_plus) and is derived from a Python dictionary. When the tokenizer is a pure python tokenizer, this class behave just like a standard python dictionary and hold the various model inputs computed by these methodes (input_ids, attention_mask…).
 
-For more details on the base tokenizers which the DeepChem tokenizers inherit from, please refer to the following: `HuggingFace tokenizers<https://huggingface.co/transformers/main_classes/tokenizer.html>`_
+For more details on the base tokenizers which the DeepChem tokenizers inherit from, please refer to the following: `HuggingFace tokenizers docs <https://huggingface.co/transformers/main_classes/tokenizer.html>`_
+
 
 SmilesToSeq
 ^^^^^^^^^^^
 
-.. autoclass:: deepchem.feat.SmilesToSeq
+The :code:`dc.feat.SmilesTokenizer` module inherits from the BertTokenizer class. It runs a WordPiece tokenization algorithm over SMILES strings using the tokenisation SMILES regex developed by Schwaller et. al.
+
+References:
+
+-  `RXN Mapper: Unsupervised Attention-Guided Atom-Mapping <https://chemrxiv.org/articles/Unsupervised_Attention-Guided_Atom-Mapping/12298559>`_
+-  `Molecular Transformer: Unsupervised Attention-Guided Atom-Mapping <https://pubs.acs.org/doi/10.1021/acscentsci.9b00576>`_
+
+.. autoclass:: deepchem.feat.SmilesTokenizer
   :members:
