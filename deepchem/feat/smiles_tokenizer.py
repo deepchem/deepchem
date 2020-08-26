@@ -132,6 +132,7 @@ class SmilesTokenizer(BertTokenizer):
         Parameters
         ----------
         tokens: List[str]
+            List of tokens for a given string sequence.
 
         """
         out_string = " ".join(tokens).replace(" ##", "").strip()
@@ -142,7 +143,11 @@ class SmilesTokenizer(BertTokenizer):
         Adds special tokens to the a sequence for sequence classification tasks.
         A BERT sequence has the following format: [CLS] X [SEP]
 
+        Parameters
+        ----------
 
+        token_ids: list[int]
+            list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
 
         """
         return [self.cls_token_id] + token_ids + [self.sep_token_id]
@@ -151,6 +156,12 @@ class SmilesTokenizer(BertTokenizer):
         """
         Adds special tokens to the a sequence for sequence classification tasks.
         A BERT sequence has the following format: [CLS] X [SEP]
+
+        Parameters
+        ----------
+        tokens: List[str]
+            List of tokens for a given string sequence.
+
         """
         return [self.cls_token] + tokens + [self.sep_token]
 
