@@ -32,18 +32,18 @@ install:
   - conda update -q conda
   - bash scripts/install_deepchem_conda.sh cpu
   - conda activate deepchem
-  - python setup.py install
+  - pip install -e .
 script:
   - bash devtools/run_yapf.sh
   - bash devtools/run_flake8.sh
   - mypy -p deepchem
-  - pytest -m "not slow" --cov=deepchem deepchem
+  - pytest -v -m "not slow" --cov=deepchem deepchem
   - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
       cd docs && pip install -r requirements.txt;
       make clean html && cd ..;
     fi
   - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
-      find ./deepchem -name "*.py" ! -name '*load_dataset_template.py' | xargs python -m doctest -v;
+      pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem;
     fi
 after_success:
   - echo $TRAVIS_SECURE_ENV_VARS
