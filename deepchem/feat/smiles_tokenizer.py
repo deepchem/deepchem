@@ -32,6 +32,19 @@ class SmilesTokenizer(BertTokenizer):
     Please see https://github.com/huggingface/transformers
     and https://github.com/rxn4chemistry/rxnfp for more details.
 
+    Examples
+    --------
+
+    >>> from deepchem.feat.smiles_tokenizer import SmilesTokenizer
+    >>> from transformers import RobertaForMaskedLM
+
+    >>> current_dir = os.path.dirname(os.path.realpath(__file__))
+    >>> vocab_path = os.path.join(current_dir, 'data', 'vocab.txt')
+
+    >>> tokenizer = SmilesTokenizer(vocab_path)
+    >>> print(tokenizer.encode("CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@H]1O[C@](C#N)([C@H](O)[C@@H]1O)C1=CC=C2N1N=CN=C2N)OC1=CC=CC=C1"))
+
+
     References
     ----------
     .. [1]  Schwaller, Philippe; Probst, Daniel; Vaucher, Alain C.; Nair, Vishnu H; Kreutter, David;
@@ -40,8 +53,8 @@ class SmilesTokenizer(BertTokenizer):
     Note
     ----
     This class requires huggingface's transformers and tokenizers libraries to be installed.
-    """
 
+    """
     def __init__(
             self,
             vocab_file: str='',
