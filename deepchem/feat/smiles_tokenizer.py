@@ -99,7 +99,6 @@ class SmilesTokenizer(BertTokenizer):
         Parameters
         ----------
         text: str
-
         """
 
         split_tokens = [token for token in self.basic_tokenizer.tokenize(text)]
@@ -113,6 +112,7 @@ class SmilesTokenizer(BertTokenizer):
         ----------
         token: str
         """
+
         return self.vocab.get(token, self.vocab.get(self.unk_token))
 
     def _convert_id_to_token(self, index):
@@ -122,8 +122,8 @@ class SmilesTokenizer(BertTokenizer):
         Parameters
         ----------
         index: int
-
         """
+
         return self.ids_to_tokens.get(index, self.unk_token)
 
     def convert_tokens_to_string(self, tokens):
@@ -133,8 +133,8 @@ class SmilesTokenizer(BertTokenizer):
         ----------
         tokens: List[str]
             List of tokens for a given string sequence.
-
         """
+
         out_string = " ".join(tokens).replace(" ##", "").strip()
         return out_string
 
@@ -148,8 +148,8 @@ class SmilesTokenizer(BertTokenizer):
 
         token_ids: list[int]
             list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
-
         """
+
         return [self.cls_token_id] + token_ids + [self.sep_token_id]
 
     def add_special_tokens_single_sequence(self, tokens):
@@ -175,6 +175,7 @@ class SmilesTokenizer(BertTokenizer):
         token_0: str
         token_1: str
         """
+
         sep = [self.sep_token]
         cls = [self.cls_token]
         return cls + token_0 + sep + token_1 + sep
@@ -207,6 +208,10 @@ class SmilesTokenizer(BertTokenizer):
         token_ids: list[int]
             list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
 
+        length: int
+
+        right: bool (True by default)
+
         """
         padding = [self.pad_token_id] * (length - len(token_ids))
         if right:
@@ -215,7 +220,15 @@ class SmilesTokenizer(BertTokenizer):
             return padding + token_ids
 
     def save_vocabulary(self, vocab_path):
-        """Save the tokenizer vocabulary to a file."""
+        """
+        Save the tokenizer vocabulary to a file.
+
+        Parameters
+        ----------
+        vocab_path: str
+            Path to a SMILES character per line vocabulary file.
+            Default vocab file is found in deepchem/feat/tests/data/vocab.txt
+        """
         index = 0
         vocab_file = vocab_path
         with open(vocab_file, "w", encoding="utf-8") as writer:
