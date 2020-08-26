@@ -200,7 +200,10 @@ class CGCNN(nn.Module):
     Returns
     -------
     out: torch.Tensor
-      The output value, the shape is `(batch_size, n_tasks)`.
+      The output values of this model.
+      If mode == 'regression', the shape is `(batch_size, n_tasks)`.
+      If mode == 'classification', the shape is `(batch_size, n_tasks, n_classes)` (n_tasks > 1)
+      or `(batch_size, n_classes)` (n_tasks == 1) and the output values are probabilities of each class label.
     """
     try:
       import dgl

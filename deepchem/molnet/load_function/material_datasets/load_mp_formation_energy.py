@@ -69,7 +69,7 @@ def load_mp_formation_energy(
 
   Parameters
   ----------
-  featurizer : MaterialStructureFeaturizer, default SineCoulombMatrix
+  featurizer : MaterialStructureFeaturizer (default SineCoulombMatrix)
     A featurizer that inherits from deepchem.feat.Featurizer.
   transformers : List[Transformer]
     A transformer that inherits from deepchem.trans.Transformer.

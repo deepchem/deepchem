@@ -69,9 +69,9 @@ def load_mp_metallicity(
 
   Parameters
   ----------
-  featurizer : MaterialStructureFeaturizer, default SineCoulombMatrix
+  featurizer : MaterialStructureFeaturizer (default SineCoulombMatrix)
     A featurizer that inherits from deepchem.feat.Featurizer.
-  transformers : List[Transformer], , default NormalizationTransformer
+  transformers : List[Transformer]
     A transformer that inherits from deepchem.trans.Transformer.
   splitter : Splitter (default RandomSplitter)
     A splitter that inherits from deepchem.splits.splitters.Splitter.

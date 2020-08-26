@@ -45,7 +45,7 @@ def test_cgcnn():
   # check overfit
   regression_metric = Metric(mae_score, n_tasks=n_tasks)
   scores = model.evaluate(train, [regression_metric], transformers)
-  assert scores[regression_metric.name] < 0.5
+  assert scores[regression_metric.name] < 0.6
 
   # classification test
   tasks, datasets, transformers = load_mp_metallicity(**config)

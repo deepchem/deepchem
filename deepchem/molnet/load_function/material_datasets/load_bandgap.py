@@ -68,7 +68,7 @@ def load_bandgap(
 
   Parameters
   ----------
-  featurizer : MaterialCompositionFeaturizer, default ElementPropertyFingerprint
+  featurizer : MaterialCompositionFeaturizer (default ElementPropertyFingerprint)
     A featurizer that inherits from deepchem.feat.Featurizer.
   transformers : List[Transformer]
     A transformer that inherits from deepchem.trans.Transformer.
