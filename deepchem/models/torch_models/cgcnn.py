@@ -164,7 +164,7 @@ class CGCNN(nn.Module):
     n_tasks: int, default 1
       The number of the output size.
     mode: str, default 'regression'
-      Whether the model type is 'classification' or 'regression'.
+      The model type, 'classification' or 'regression'.
     n_classes: int, default 2
       The number of classes to predict (only used in classification mode).
     """
@@ -298,7 +298,7 @@ class CGCNNModel(TorchModel):
     n_tasks: int, default 1
       The number of the output size.
     mode: str, default 'regression'
-      Whether the model type is 'classification' or 'regression'.
+      The model type, 'classification' or 'regression'.
     n_classes: int, default 2
       The number of classes to predict (only used in classification mode).
     kwargs: Dict
