@@ -18,7 +18,7 @@ BatchEncoding holds the output of the tokenizer’s encoding methods (__call__, 
 For more details on the base tokenizers which the DeepChem tokenizers inherit from, please refer to the following: `HuggingFace tokenizers docs <https://huggingface.co/transformers/main_classes/tokenizer.html>`_
 
 
-SmilesToSeq
+SmilesTokenizer
 ^^^^^^^^^^^
 
 The :code:`dc.feat.SmilesTokenizer` module inherits from the BertTokenizer class. It runs a WordPiece tokenization algorithm over SMILES strings using the tokenisation SMILES regex developed by Schwaller et. al.
