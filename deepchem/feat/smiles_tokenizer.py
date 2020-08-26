@@ -169,6 +169,13 @@ class SmilesTokenizer(BertTokenizer):
         """
         Adds special tokens to a sequence pair for sequence classification tasks.
         A BERT sequence pair has the following format: [CLS] A [SEP] B [SEP]
+
+        Parameters
+        ----------
+        token_0: str
+
+        token_1: str
+
         """
         sep = [self.sep_token]
         cls = [self.cls_token]
@@ -187,6 +194,12 @@ class SmilesTokenizer(BertTokenizer):
         """
         Adds padding tokens to return a sequence of length max_length.
         By  default padding tokens are added to the right of the sequence.
+
+        Parameters
+        ----------
+        token_ids: list[int]
+            list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
+
         """
         padding = [self.pad_token_id] * (length - len(token_ids))
         if right:
