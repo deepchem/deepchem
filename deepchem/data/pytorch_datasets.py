@@ -1,8 +1,6 @@
-from typing import List, Union
 import numpy as np
 import torch
 
-from deepchem.utils.save import load_image_files
 from deepchem.data.datasets import NumpyDataset, DiskDataset, ImageDataset
 
 
@@ -155,35 +153,13 @@ class _TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
         order = random.permutation(n_samples)[first_sample:last_sample]
       if self.batch_size is None:
         for i in order:
-          yield (self._get_image(self.image_dataset._X, i),
-                 self._get_image(self.image_dataset._y, i),
+          yield (self.image_dataset._get_image(self.image_dataset._X, i),
+                 self.image_dataset._get_image(self.image_dataset._y, i),
                  self.image_dataset._w[i], self.image_dataset._ids[i])
       else:
         for i in range(0, len(order), self.batch_size):
           indices = order[i:i + self.batch_size]
-          yield (self._get_image(self.image_dataset._X, indices),
-                 self._get_image(self.image_dataset._y,
-                                 indices), self.image_dataset._w[indices],
+          yield (self.image_dataset._get_image(self.image_dataset._X, indices),
+                 self.image_dataset._get_image(self.image_dataset._y, indices),
+                 self.image_dataset._w[indices],
                  self.image_dataset._ids[indices])
-
-  def _get_image(self, array: Union[np.ndarray, List[str]],
-                 indices: int) -> np.ndarray:
-    """Method for loading an image
-
-    Parameters
-    ----------
-    array: Union[np.ndarray, List[str]]
-      A numpy array which contains images or List of image filenames
-    index: int
-      Index you want to get the image
-
-    Returns
-    -------
-    np.ndarray
-      Loaded image
-    """
-    if isinstance(array, np.ndarray):
-      return array[indices]
-    if isinstance(indices, np.ndarray):
-      return load_image_files([array[i] for i in indices])
-    return load_image_files([array[indices]])[0]
