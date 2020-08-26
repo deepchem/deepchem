@@ -173,9 +173,7 @@ class SmilesTokenizer(BertTokenizer):
         Parameters
         ----------
         token_0: str
-
         token_1: str
-
         """
         sep = [self.sep_token]
         cls = [self.cls_token]
@@ -185,7 +183,16 @@ class SmilesTokenizer(BertTokenizer):
         """
         Adds special tokens to a sequence pair for sequence classification tasks.
         A BERT sequence pair has the following format: [CLS] A [SEP] B [SEP]
+
+        Parameters
+        ----------
+        token_ids_0: List[str]
+            List of tokens for the first string sequence in the sequence pair (A).
+
+        token_ids_0: List[str]
+            List of tokens for the second string sequence in the sequence pair (B).
         """
+
         sep = [self.sep_token_id]
         cls = [self.cls_token_id]
         return cls + token_ids_0 + sep + token_ids_1 + sep
