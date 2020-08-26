@@ -43,7 +43,7 @@ script:
       make clean html && cd ..;
     fi
   - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
-      pytest -v --doctest-modules deepchem;
+      pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem;
     fi
 after_success:
   - echo $TRAVIS_SECURE_ENV_VARS

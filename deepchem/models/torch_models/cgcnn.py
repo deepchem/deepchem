@@ -61,7 +61,7 @@ class CGCNNLayer(nn.Module):
   def message_func(self, edges):
     z = torch.cat(
         [edges.src['x'], edges.dst['x'], edges.data['edge_attr']], dim=1)
-    gated_z = F.sigmoid(self.linear_with_sigmoid(z))
+    gated_z = torch.sigmoid(self.linear_with_sigmoid(z))
     message_z = F.softplus(self.linear_with_softplus(z))
     return {'gated_z': gated_z, 'message_z': message_z}
 
