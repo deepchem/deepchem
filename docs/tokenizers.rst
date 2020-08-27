@@ -19,7 +19,7 @@ For more details on the base tokenizers which the DeepChem tokenizers inherit fr
 
 
 SmilesTokenizer
-^^^^^^^^^^^
+^^^^^^^^^^^^^^^
 
 The :code:`dc.feat.SmilesTokenizer` module inherits from the BertTokenizer class. It runs a WordPiece tokenization algorithm over SMILES strings using the tokenisation SMILES regex developed by Schwaller et. al.
 
