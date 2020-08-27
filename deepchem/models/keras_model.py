@@ -8,8 +8,6 @@ try:
 except:
   from collections import Sequence as SequenceCollection
 
-logger = logging.getLogger(__name__)
-
 from deepchem.data import Dataset, NumpyDataset
 from deepchem.metrics import Metric
 from deepchem.models.losses import Loss
@@ -34,9 +32,7 @@ try:
 except (ImportError, AttributeError):
   _has_wandb = False
 
-
-def is_wandb_available():
-  return _has_wandb
+logger = logging.getLogger(__name__)
 
 
 class KerasModel(Model):
@@ -188,12 +184,12 @@ class KerasModel(Model):
     self.tensorboard = tensorboard
 
     # W&B logging
-    if wandb and not is_wandb_available():
+    if wandb and not _has_wandb:
       logger.warning(
           "You set wandb to True but W&B is not installed. To use wandb logging, "
           "run `pip install wandb; wandb login` see https://docs.wandb.com/huggingface."
       )
-    self.wandb = wandb and is_wandb_available()
+    self.wandb = wandb and _has_wandb
 
     # Backwards compatibility
     if "tensorboard_log_frequency" in kwargs:
@@ -381,7 +377,6 @@ class KerasModel(Model):
     avg_loss = 0.0
     last_avg_loss = 0.0
     averaged_batches = 0
-    train_op = None
     if loss is None:
       loss = self._loss_fn
     var_key = None
@@ -574,12 +569,12 @@ class KerasModel(Model):
     variances: Optional[List[np.ndarray]] = None
     if (outputs is not None) and (other_output_types is not None):
       raise ValueError(
-          'This model cannot compute outputs and other output_types simultaneously. Please invoke one at a time.'
-      )
+          'This model cannot compute outputs and other output_types simultaneously.'
+          'Please invoke one at a time.')
     if uncertainty and (other_output_types is not None):
       raise ValueError(
-          'This model cannot compute uncertainties and other output types simultaneously. Please invoke one at a time.'
-      )
+          'This model cannot compute uncertainties and other output types simultaneously.'
+          'Please invoke one at a time.')
     if uncertainty:
       assert outputs is None
       if self._variance_outputs is None or len(self._variance_outputs) == 0:
@@ -596,7 +591,8 @@ class KerasModel(Model):
     if (outputs is not None and self.model.inputs is not None and
         len(self.model.inputs) == 0):
       raise ValueError(
-          "Cannot use 'outputs' argument with a model that does not specify its inputs. Note models defined in imperative subclassing style cannot specify outputs"
+          "Cannot use 'outputs' argument with a model that does not specify its inputs."
+          "Note models defined in imperative subclassing style cannot specify outputs"
       )
     if isinstance(outputs, tf.Tensor):
       outputs = [outputs]
