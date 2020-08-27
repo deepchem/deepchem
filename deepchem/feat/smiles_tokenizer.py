@@ -36,7 +36,6 @@ class SmilesTokenizer(BertTokenizer):
     --------
 
     >>> from deepchem.feat.smiles_tokenizer import SmilesTokenizer
-    >>> from transformers import RobertaForMaskedLM
 
     >>> current_dir = os.path.dirname(os.path.realpath(__file__))
     >>> vocab_path = os.path.join(current_dir, 'data', 'vocab.txt')
