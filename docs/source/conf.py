@@ -38,13 +38,15 @@ extensions = [
     'sphinx.ext.linkcode', 'sphinx.ext.mathjax',
 ]
 
+# Options for autodoc directives
 autodoc_default_options = {
     'member-order': 'bysource',
     'special-members': True,
     'exclude-members': '__repr__, __str__, __weakref__',
 }
 
-autodoc_typehints = "description"
+# How to represents typehints.
+autodoc_typehints = "signature"
 
 mathjax_path = 'http://mathjax.connectmv.com/MathJax.js?config=default'
 
@@ -70,7 +72,6 @@ add_module_names = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-
 html_theme = 'sphinx_rtd_theme'
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
@@ -89,6 +90,7 @@ html_context = {
 # of the sidebar.
 html_logo = '_static/logo.png'
 
+# Customize the sphinx theme
 html_theme_options = {
     'collapse_navigation': False,
     'display_version': True,
