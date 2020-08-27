@@ -36,9 +36,6 @@ except (ImportError, AttributeError):
 logger = logging.getLogger(__name__)
 
 
-logger = logging.getLogger(__name__)
-
-
 class TorchModel(Model):
   """This is a DeepChem model implemented by a PyTorch model.
 
