@@ -82,11 +82,9 @@ class SklearnModel(Model):
     w = np.squeeze(dataset.w)
     # Some scikit-learn models don't use weights.
     if self.use_weights:
-      # FIXME: BaseEstimator doesn't guarantee the class has `fit` method.
-      self.model_instance.fit(X, y, w)  # type: ignore
+      self.model_instance.fit(X, y, w)
       return
-    # FIXME: BaseEstimator doesn't guarantee the class has `fit` method.
-    self.model_instance.fit(X, y)  # type: ignore
+    self.model_instance.fit(X, y)
 
   def predict_on_batch(self, X: np.ndarray) -> np.ndarray:
     """Makes predictions on batch of data.

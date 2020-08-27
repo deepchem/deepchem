@@ -25,7 +25,7 @@ class Model(BaseEstimator):
   """
 
   def __init__(self,
-               model_instance: Optional[Any] = None,
+               model_instance=None,
                model_dir: Optional[str] = None,
                **kwargs) -> None:
     """Abstract class for all models.

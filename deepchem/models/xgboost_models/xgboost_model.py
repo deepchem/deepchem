@@ -52,7 +52,8 @@ class XGBoostModel(SklearnModel):
     else:
       self.early_stopping_rounds = 50
 
-  def fit(self, dataset: Dataset, **kwargs) -> None:
+  # FIXME: Return type "None" of "fit" incompatible with return type "float" in supertype "Model"
+  def fit(self, dataset: Dataset, **kwargs) -> None:  # type: ignore[override]
     """Fits XGBoost model to data.
 
     dataset: Dataset
