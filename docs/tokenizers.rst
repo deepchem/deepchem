@@ -29,3 +29,14 @@ References:
 
 .. autoclass:: deepchem.feat.SmilesTokenizer
   :members:
+
+BasicSmilesTokenizer
+^^^^^^^^^^^^^^^^^^^^
+
+The :code:`dc.feat.BasicSmilesTokenizer` module uses a regex tokenization pattern to tokenise SMILES strings. The regex is developed by Schwaller et. al. The tokenizer is to be used on SMILES in cases where the user wishes to not rely on the transformers API.
+
+References:
+-  `Molecular Transformer: Unsupervised Attention-Guided Atom-Mapping <https://pubs.acs.org/doi/10.1021/acscentsci.9b00576>`_
+
+.. autoclass:: deepchem.feat.BasicSmilesTokenizer
+  :members:
