@@ -8,6 +8,7 @@ import os
 import re
 import numpy as np
 import pkg_resources
+import typing
 from typing import List
 from transformers import BertTokenizer
 
@@ -124,6 +125,7 @@ class SmilesTokenizer(BertTokenizer):
         Parameters
         ----------
         text: str
+            Input string sequence to be tokenized.
         """
 
         split_tokens = [token for token in self.basic_tokenizer.tokenize(text)]
@@ -218,17 +220,17 @@ class SmilesTokenizer(BertTokenizer):
 
         return sequence_pair
 
-    def add_special_tokens_ids_sequence_pair(self, token_ids_0, token_ids_1):
+    def add_special_tokens_ids_sequence_pair(self, token_ids_0 : List[int], token_ids_1: List[int]):
         """
         Adds special tokens to a sequence pair for sequence classification tasks.
         A BERT sequence pair has the following format: [CLS] A [SEP] B [SEP]
 
         Parameters
         ----------
-        token_ids_0: List[str]
-            List of tokens for the first string sequence in the sequence pair (A).
+        token_ids_0: List[int]
+            List of ids for the first string sequence in the sequence pair (A).
 
-        token_ids_0: List[str]
+        token_ids_1: List[int]
             List of tokens for the second string sequence in the sequence pair (B).
         """
 
@@ -265,19 +267,20 @@ class SmilesTokenizer(BertTokenizer):
         else:
             return padding + token_ids
 
-    def save_vocabulary(self, vocab_path) -> tuple[str]:
+    def save_vocabulary(self, vocab_path: str):# -> tuple[str]:
         """
         Save the tokenizer vocabulary to a file.
 
         Parameters
         ----------
-        vocab_path: str
-            Path to a SMILES character per line vocabulary file.
+        vocab_path: obj: str
+            The directory in which to save the SMILES character per line vocabulary file.
             Default vocab file is found in deepchem/feat/tests/data/vocab.txt
 
         Returns
         ----------
-        vocab_file: Tuple[str]
+        vocab_file: :obj:`Tuple(str)`:
+            Paths to the files saved.
             typle with string to a SMILES character per line vocabulary file.
             Default vocab file is found in deepchem/feat/tests/data/vocab.txt
 
@@ -310,7 +313,7 @@ class BasicSmilesTokenizer(object):
     --------
     >>> from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
 
-    >>> tokenizer = BasicSmilesTokenizer(vocab_path)
+    >>> tokenizer = BasicSmilesTokenizer()
     >>> print(tokenizer.tokenize("CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@H]1O[C@](C#N)([C@H](O)[C@@H]1O)C1=CC=C2N1N=CN=C2N)OC1=CC=CC=C1"))
 
 
