@@ -11,13 +11,15 @@ this directory. (Note that `deepchem` must be installed first.) To
 generate docs in html, run
 
 ```
-pip install -r requirements.txt
-make html
-open _build/html/index.html
+$ pip install -r ../requirements-docs.txt
+$ make html
+// clean build
+$ make clean html
+$ open build/html/index.html
 ```
 
-You can generate docs in other formats as well if you like. To clean up past builds run
+If you want to confirm logs in more detail
 
 ```
-make clean
+$ make clean html SPHINXOPTS=-vvv
 ```
