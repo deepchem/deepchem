@@ -13,8 +13,9 @@ from deepchem.utils.graph_conv_utils import get_atom_type_one_hot, \
   get_bond_stereo_one_hot
 
 
-def construct_atom_feature(atom: RDKitAtom, h_bond_infos: List[Tuple[int, str]],
-                           sssr: List[Sequence]) -> List[float]:
+def _construct_atom_feature(atom: RDKitAtom,
+                            h_bond_infos: List[Tuple[int, str]],
+                            sssr: List[Sequence]) -> List[float]:
   """Construct an atom feature from a RDKit atom object.
 
   Parameters
@@ -49,7 +50,7 @@ def construct_atom_feature(atom: RDKitAtom, h_bond_infos: List[Tuple[int, str]],
     ring_size + hybridization + acceptor_donor + aromatic + degree + total_num
 
 
-def construct_bond_feature(bond: RDKitBond) -> List[float]:
+def _construct_bond_feature(bond: RDKitBond) -> List[float]:
   """Construct a bond feature from a RDKit bond object.
 
   Parameters
@@ -166,7 +167,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     # construct atom (node) feature
     atom_features = np.array(
         [
-            construct_atom_feature(atom, h_bond_infos, sssr)
+            _construct_atom_feature(atom, h_bond_infos, sssr)
             for atom in mol.GetAtoms()
         ],
         dtype=np.float,
@@ -179,7 +180,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
       start, end = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
       src += [start, end]
       dist += [end, start]
-      bond_features += 2 * [construct_bond_feature(bond)]
+      bond_features += 2 * [_construct_bond_feature(bond)]
 
     if self.add_self_loop:
       num_atoms = mol.GetNumAtoms()
