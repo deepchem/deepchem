@@ -11,9 +11,22 @@ import pkg_resources
 from typing import List
 from transformers import BertTokenizer
 
-# export
+
+
 SMI_REGEX_PATTERN = r"""(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|
 #|-|\+|\\|\/|:|~|@|\?|>>?|\*|\$|\%[0-9]{2}|[0-9])"""
+
+"""
+SMILES regex pattern for tokenization. Designed by Schwaller et. al. 
+
+
+References
+
+.. [1]  Philippe Schwaller, Teodoro Laino, Théophile Gaudin, Peter Bolgar, Christopher A. Hunter, Costas Bekas, and Alpha A. Lee
+        ACS Central Science 2019 5 (9): Molecular Transformer: A Model for Uncertainty-Calibrated Chemical Reaction Prediction
+        1572-1583 DOI: 10.1021/acscentsci.9b00576
+
+"""
 
 def get_default_tokenizer():
     default_vocab_path = (
@@ -179,7 +192,7 @@ class SmilesTokenizer(BertTokenizer):
         """
         return [self.cls_token] + tokens + [self.sep_token]
 
-    def add_special_tokens_sequence_pair(self, token_0, token_1):
+    def add_special_tokens_sequence_pair(self, token_0: str, token_1: str) -> str:
         """
         Adds special tokens to a sequence pair for sequence classification tasks.
         A BERT sequence pair has the following format: [CLS] A [SEP] B [SEP]
@@ -187,14 +200,23 @@ class SmilesTokenizer(BertTokenizer):
         Parameters
         ----------
         token_0: str
-            The first special token (A) to append to the sequence for classification tasks.
+            The first token (A) in the sequence pair.
         token_1: str
-            The second special token (B) to append to the sequence for classification tasks.
+            The second token (B) in the sequence pair.
+
+        Returns
+        -------
+        Sequence with added special tokens, [SEP] and [CLS], in the following format:
+        [CLS] A [SEP] B [SEP]
+
         """
 
         sep = [self.sep_token]
         cls = [self.cls_token]
-        return cls + token_0 + sep + token_1 + sep
+
+        sequence_pair : str = cls + token_0 + sep + token_1 + sep
+
+        return sequence_pair
 
     def add_special_tokens_ids_sequence_pair(self, token_ids_0, token_ids_1):
         """
