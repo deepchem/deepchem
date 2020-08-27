@@ -17,6 +17,8 @@ BatchEncoding holds the output of the tokenizer’s encoding methods (__call__, 
 
 For more details on the base tokenizers which the DeepChem tokenizers inherit from, please refer to the following: `HuggingFace tokenizers docs <https://huggingface.co/transformers/main_classes/tokenizer.html>`_
 
+Tokenization methods on string-based corpuses in the life sciences are becoming increasingly popular for NLP-based applications to chemistry and biology. One such example is ChemBERTa, a transformer for molecular property prediction. DeepChem offers a tutorial for utilizing ChemBERTa using an alternate tokenizer, a Byte-Piece Encoder, which can be found `here. <https://github.com/deepchem/deepchem/blob/master/examples/tutorials/22_Transfer_Learning_With_HuggingFace_tox21.ipynb>`_
+
 SmilesTokenizer
 ^^^^^^^^^^^^^^^
 
