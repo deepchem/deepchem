@@ -32,8 +32,8 @@ References
 def get_default_tokenizer():
     default_vocab_path = (
         pkg_resources.resource_filename(
-            "chemberta",
-            "tokenizers/vocab.txt"
+            "deepchem",
+            "feat/tests/vocab.txt"
         )
     )
     return SmilesTokenizer(default_vocab_path)
@@ -52,10 +52,11 @@ class SmilesTokenizer(BertTokenizer):
     >>> from deepchem.feat.smiles_tokenizer import SmilesTokenizer
 
     >>> current_dir = os.path.dirname(os.path.realpath(__file__))
-    >>> vocab_path = os.path.join(current_dir, 'data', 'vocab.txt')
+    >>> vocab_path = os.path.join(current_dir, 'tests/data', 'vocab.txt')
 
     >>> tokenizer = SmilesTokenizer(vocab_path)
     >>> print(tokenizer.encode("CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@H]1O[C@](C#N)([C@H](O)[C@@H]1O)C1=CC=C2N1N=CN=C2N)OC1=CC=CC=C1"))
+    [12, 16, 16, 16, 17, 16, 16, 18, 16, 19, 16, 17, 22, 19, 18, 33, 17, 16, 18, 23, 181, 17, 22, 19, 18, 17, 19, 16, 33, 20, 19, 55, 17, 16, 23, 18, 17, 33, 17, 19, 18, 35, 20, 19, 18, 16, 20, 22, 16, 16, 22, 16, 21, 23, 20, 23, 22, 16, 23, 22, 16, 21, 23, 18, 19, 16, 20, 22, 16, 16, 22, 16, 16, 22, 16, 20, 13]
 
 
     References
