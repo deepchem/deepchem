@@ -315,6 +315,7 @@ class BasicSmilesTokenizer(object):
 
     >>> tokenizer = BasicSmilesTokenizer()
     >>> print(tokenizer.tokenize("CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@H]1O[C@](C#N)([C@H](O)[C@@H]1O)C1=CC=C2N1N=CN=C2N)OC1=CC=CC=C1"))
+    ['C', 'C', 'C', '(', 'C', 'C', ')', 'C', 'O', 'C', '(', '=', 'O', ')', '[C@H]', '(', 'C', ')', 'N', '[P@]', '(', '=', 'O', ')', '(', 'O', 'C', '[C@H]', '1', 'O', '[C@]', '(', 'C', 'N', ')', '(', '[C@H]', '(', 'O', ')', '[C@@H]', '1', 'O', ')', 'C', '1', '=', 'C', 'C', '=', 'C', '2', 'N', '1', 'N', '=', 'C', 'N', '=', 'C', '2', 'N', ')', 'O', 'C', '1', '=', 'C', 'C', '=', 'C', 'C', '=', 'C', '1']
 
 
     References
