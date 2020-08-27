@@ -660,7 +660,6 @@ class Metric(object):
           y_task,
           y_pred_task,
           w_task,
-          n_samples=n_samples,
           use_sample_weights=use_sample_weights,
           **kwargs)
       computed_metrics.append(metric_value)
