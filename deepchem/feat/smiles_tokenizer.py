@@ -104,7 +104,7 @@ class SmilesTokenizer(BertTokenizer):
     def vocab_list(self):
         return list(self.vocab.keys())
 
-    def _tokenize(self, text):
+    def _tokenize(self, text: str):
         """
         Tokenize a string into a list of tokens.
 
@@ -123,6 +123,7 @@ class SmilesTokenizer(BertTokenizer):
         Parameters
         ----------
         token: str
+            String token from a larger sequence to be converted to a numerical id.
         """
 
         return self.vocab.get(token, self.vocab.get(self.unk_token))
@@ -134,6 +135,7 @@ class SmilesTokenizer(BertTokenizer):
         Parameters
         ----------
         index: int
+            Integer index to be converted back to a string-based token as part of a larger sequence.
         """
 
         return self.ids_to_tokens.get(index, self.unk_token)
@@ -185,7 +187,9 @@ class SmilesTokenizer(BertTokenizer):
         Parameters
         ----------
         token_0: str
+            The first special token (A) to append to the sequence for classification tasks.
         token_1: str
+            The second special token (B) to append to the sequence for classification tasks.
         """
 
         sep = [self.sep_token]
@@ -213,7 +217,7 @@ class SmilesTokenizer(BertTokenizer):
     def add_padding_tokens(self, token_ids, length, right=True):
         """
         Adds padding tokens to return a sequence of length max_length.
-        By  default padding tokens are added to the right of the sequence.
+        By default padding tokens are added to the right of the sequence.
 
         Parameters
         ----------
@@ -224,6 +228,14 @@ class SmilesTokenizer(BertTokenizer):
 
         right: bool (True by default)
 
+        Returns
+        ----------
+        token_ids :
+            list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
+
+        padding: int
+            Integer to be added as padding token
+
         """
         padding = [self.pad_token_id] * (length - len(token_ids))
         if right:
@@ -231,7 +243,7 @@ class SmilesTokenizer(BertTokenizer):
         else:
             return padding + token_ids
 
-    def save_vocabulary(self, vocab_path):
+    def save_vocabulary(self, vocab_path) -> tuple[str]:
         """
         Save the tokenizer vocabulary to a file.
 
@@ -240,6 +252,13 @@ class SmilesTokenizer(BertTokenizer):
         vocab_path: str
             Path to a SMILES character per line vocabulary file.
             Default vocab file is found in deepchem/feat/tests/data/vocab.txt
+
+        Returns
+        ----------
+        vocab_file: Tuple[str]
+            typle with string to a SMILES character per line vocabulary file.
+            Default vocab file is found in deepchem/feat/tests/data/vocab.txt
+
         """
         index = 0
         vocab_file = vocab_path
@@ -259,7 +278,27 @@ class SmilesTokenizer(BertTokenizer):
         return (vocab_file,)
 
 class BasicSmilesTokenizer(object):
-    """Run basic SMILES tokenization"""
+
+    """
+
+    Run basic SMILES tokenization using a regex pattern developed by Schwaller et. al. This tokenizer is to be used
+    when a tokenizer that does not require the transformers library by HuggingFace is required.
+
+    Examples
+    --------
+    >>> from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
+
+    >>> tokenizer = BasicSmilesTokenizer(vocab_path)
+    >>> print(tokenizer.tokenize("CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@H]1O[C@](C#N)([C@H](O)[C@@H]1O)C1=CC=C2N1N=CN=C2N)OC1=CC=CC=C1"))
+
+
+    References
+
+    .. [1]  Philippe Schwaller, Teodoro Laino, Théophile Gaudin, Peter Bolgar, Christopher A. Hunter, Costas Bekas, and Alpha A. Lee
+            ACS Central Science 2019 5 (9): Molecular Transformer: A Model for Uncertainty-Calibrated Chemical Reaction Prediction
+            1572-1583 DOI: 10.1021/acscentsci.9b00576
+
+    """
 
     def __init__(self, regex_pattern: str=SMI_REGEX_PATTERN):
         """ Constructs a BasicSMILESTokenizer.
