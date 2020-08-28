@@ -246,7 +246,7 @@ class SmilesTokenizer(BertTokenizer):
 
         return cls + token_ids_0 + sep + token_ids_1 + sep
 
-    def add_padding_tokens(self, token_ids, length, right=True):
+    def add_padding_tokens(self, token_ids: List[int], length: int, right: bool=True) -> List[int]:
         """
         Adds padding tokens to return a sequence of length max_length.
         By default padding tokens are added to the right of the sequence.
@@ -270,12 +270,13 @@ class SmilesTokenizer(BertTokenizer):
 
         """
         padding = [self.pad_token_id] * (length - len(token_ids))
+
         if right:
             return token_ids + padding
         else:
             return padding + token_ids
 
-    def save_vocabulary(self, vocab_path: str):# -> tuple[str]:
+    def save_vocabulary(self, vocab_path: str): # -> tuple[str]: doctest issue raised with this return type annotation
         """
         Save the tokenizer vocabulary to a file.
 
@@ -327,7 +328,7 @@ class BasicSmilesTokenizer(object):
 
 
     References
-
+    ----------
     .. [1]  Philippe Schwaller, Teodoro Laino, Théophile Gaudin, Peter Bolgar, Christopher A. Hunter, Costas Bekas, and Alpha A. Lee
             ACS Central Science 2019 5 (9): Molecular Transformer: A Model for Uncertainty-Calibrated Chemical Reaction Prediction
             1572-1583 DOI: 10.1021/acscentsci.9b00576
