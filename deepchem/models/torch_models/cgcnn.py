@@ -144,7 +144,7 @@ class CGCNN(nn.Module):
       hidden_node_dim: int = 64,
       in_edge_dim: int = 41,
       num_conv: int = 3,
-      predicator_hidden_feats: int = 128,
+      predictor_hidden_feats: int = 128,
       n_tasks: int = 1,
       mode: str = 'regression',
       n_classes: int = 2,
@@ -162,7 +162,7 @@ class CGCNN(nn.Module):
       based on default setting of CGCNNFeaturizer.
     num_conv: int, default 3
       The number of convolutional layers.
-    predicator_hidden_feats: int, default 128
+    predictor_hidden_feats: int, default 128
       The size for hidden representations in the output MLP predictor.
     n_tasks: int, default 1
       The number of the output size.
@@ -190,11 +190,11 @@ class CGCNN(nn.Module):
             batch_norm=True) for _ in range(num_conv)
     ])
     self.pooling = dgl.mean_nodes
-    self.fc = nn.Linear(hidden_node_dim, predicator_hidden_feats)
+    self.fc = nn.Linear(hidden_node_dim, predictor_hidden_feats)
     if self.mode == 'regression':
-      self.out = nn.Linear(predicator_hidden_feats, n_tasks)
+      self.out = nn.Linear(predictor_hidden_feats, n_tasks)
     else:
-      self.out = nn.Linear(predicator_hidden_feats, n_tasks * n_classes)
+      self.out = nn.Linear(predictor_hidden_feats, n_tasks * n_classes)
 
   def forward(self, dgl_graph):
     """Predict labels
@@ -276,7 +276,7 @@ class CGCNNModel(TorchModel):
                hidden_node_dim: int = 64,
                in_edge_dim: int = 41,
                num_conv: int = 3,
-               predicator_hidden_feats: int = 128,
+               predictor_hidden_feats: int = 128,
                n_tasks: int = 1,
                mode: str = 'regression',
                n_classes: int = 2,
@@ -296,7 +296,7 @@ class CGCNNModel(TorchModel):
       based on default setting of CGCNNFeaturizer.
     num_conv: int, default 3
       The number of convolutional layers.
-    predicator_hidden_feats: int, default 128
+    predictor_hidden_feats: int, default 128
       The size for hidden representations in the output MLP predictor.
     n_tasks: int, default 1
       The number of the output size.
@@ -308,7 +308,7 @@ class CGCNNModel(TorchModel):
       This class accepts all the keyword arguments from TorchModel.
     """
     model = CGCNN(in_node_dim, hidden_node_dim, in_edge_dim, num_conv,
-                  predicator_hidden_feats, n_tasks, mode, n_classes)
+                  predictor_hidden_feats, n_tasks, mode, n_classes)
     if mode == "regression":
       loss: Loss = L2Loss()
       output_types = ['prediction']

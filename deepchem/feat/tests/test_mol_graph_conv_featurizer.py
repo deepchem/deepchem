@@ -25,7 +25,7 @@ class TestMolGraphConvFeaturizer(unittest.TestCase):
 
   def test_featurizer_with_self_loop(self):
     smiles = ["C1=CC=CN=C1", "O=C(NCc1cc(OC)c(O)cc1)CCCC/C=C/C(C)C"]
-    featurizer = MolGraphConvFeaturizer(add_self_loop=True)
+    featurizer = MolGraphConvFeaturizer(add_self_edges=True)
     graph_feat = featurizer.featurize(smiles)
     assert len(graph_feat) == 2
 

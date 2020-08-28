@@ -51,9 +51,9 @@ class GAT(nn.Module):
       in_node_dim: int = 38,
       hidden_node_dim: int = 64,
       heads: int = 4,
-      dropout_rate: float = 0.0,
+      dropout: float = 0.0,
       num_conv: int = 3,
-      predicator_hidden_feats: int = 32,
+      predictor_hidden_feats: int = 32,
       n_tasks: int = 1,
   ):
     """
@@ -66,11 +66,11 @@ class GAT(nn.Module):
       The length of the hidden node feature vectors.
     heads: int, default 4
       The number of multi-head-attentions.
-    dropout_rate: float, default 0.0
+    dropout: float, default 0.0
       The dropout probability for each convolutional layer.
     num_conv: int, default 3
       The number of convolutional layers.
-    predicator_hidden_feats: int, default 32
+    predictor_hidden_feats: int, default 32
       The size for hidden representations in the output MLP predictor, default to 32.
     n_tasks: int, default 1
       The number of the output size, default to 1.
@@ -87,7 +87,7 @@ class GAT(nn.Module):
             out_channels=hidden_node_dim,
             heads=heads,
             concat=False,
-            dropout=dropout_rate) for _ in range(num_conv)
+            dropout=dropout) for _ in range(num_conv)
     ])
     self.pooling = global_mean_pool
     self.fc = nn.Linear(hidden_node_dim, predicator_hidden_feats)
@@ -128,8 +128,7 @@ class GATModel(TorchModel):
 
   >> import deepchem as dc
   >> featurizer = dc.feat.MolGraphConvFeaturizer()
-  >> dataset_config = {"reload": False, "featurizer": featurizer, "transformers": []}
-  >> tasks, datasets, transformers = dc.molnet.load_tox21(**dataset_config)
+  >> tasks, datasets, transformers = dc.molnet.load_tox21(reload=False, featurizer=featurizer, transformers=[])
   >> train, valid, test = datasets
   >> model = dc.models.GATModel(loss=dc.models.losses.SoftmaxCrossEntropy(), batch_size=32, learning_rate=0.001)
   >> model.fit(train, nb_epoch=50)
@@ -156,7 +155,7 @@ class GATModel(TorchModel):
                in_node_dim: int = 38,
                hidden_node_dim: int = 64,
                heads: int = 4,
-               dropout_rate: float = 0.0,
+               dropout: float = 0.0,
                num_conv: int = 3,
                predicator_hidden_feats: int = 32,
                n_tasks: int = 1,
@@ -173,7 +172,7 @@ class GATModel(TorchModel):
       The length of the hidden node feature vectors.
     heads: int, default 4
       The number of multi-head-attentions.
-    dropout_rate: float, default 0.0
+    dropout: float, default 0.0
       The dropout probability for each convolutional layer.
     num_conv: int, default 3
       The number of convolutional layers.
@@ -188,7 +187,7 @@ class GATModel(TorchModel):
         in_node_dim,
         hidden_node_dim,
         heads,
-        dropout_rate,
+        dropout,
         num_conv,
         predicator_hidden_feats,
         n_tasks,

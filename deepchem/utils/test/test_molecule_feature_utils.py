@@ -1,7 +1,7 @@
 import unittest
 
 
-from deepchem.utils.graph_conv_utils import one_hot_encode, \
+from deepchem.utils.molecule_feature_utils import one_hot_encode, \
   get_atom_type_one_hot, construct_hydrogen_bonding_info, \
   get_atom_hydrogen_bonding_one_hot, get_atom_is_in_aromatic_one_hot, \
   get_atom_hybridization_one_hot, get_atom_total_num_Hs_one_hot, get_atom_chirality_one_hot, \

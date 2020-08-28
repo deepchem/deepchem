@@ -4,7 +4,7 @@ import numpy as np
 from deepchem.utils.typing import RDKitAtom, RDKitBond, RDKitMol
 from deepchem.feat.graph_data import GraphData
 from deepchem.feat.base_classes import MolecularFeaturizer
-from deepchem.utils.graph_conv_utils import get_atom_type_one_hot, \
+from deepchem.utils.molecule_feature_utils import get_atom_type_one_hot, \
   construct_hydrogen_bonding_info, get_atom_hydrogen_bonding_one_hot, \
   get_atom_is_in_aromatic_one_hot, get_atom_hybridization_one_hot, \
   get_atom_total_num_Hs_one_hot, get_atom_chirality_one_hot, get_atom_formal_charge, \
@@ -85,7 +85,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
   - Chirality: A one-hot vector of the chirality, "R" or "S".
   - Formal charge: Integer electronic charge.
   - Partial charge: Calculated partial charge.
-  - Ring sizes: A one-hot vector of the number of rings (3-8) that include this atom.
+  - Ring sizes: A one-hot vector of the size (3-8) of rings that include this atom.
   - Hybridization: A one-hot vector of "sp", "sp2", "sp3".
   - Hydrogen bonding: A one-hot vector of whether this atom is a hydrogen bond donor or acceptor.
   - Aromatic: A one-hot vector of whether the atom belongs to an aromatic ring.
@@ -101,7 +101,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
   - Stereo: A one-hot vector of the stereo configuration of a bond.
 
   If you want to know more details about features, please check the paper [1]_ and
-  utilities in deepchem.utils.graph_conv_utils.py.
+  utilities in deepchem.utils.molecule_feature_utils.py.
 
   Examples
   --------
@@ -125,15 +125,15 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
   This class requires RDKit to be installed.
   """
 
-  def __init__(self, add_self_loop: bool = False):
+  def __init__(self, add_self_edges: bool = False):
     """
     Parameters
     ----------
-    add_self_loop: bool, default False
+    add_self_edges: bool, default False
       Whether to add self-connected edges or not. If you want to use DGL,
       you sometimes need to add explict self-connected edges.
     """
-    self.add_self_loop = add_self_loop
+    self.add_self_edges = add_self_edges
 
   def _featurize(self, mol: RDKitMol) -> GraphData:
     """Calculate molecule graph features from RDKit mol object.
@@ -174,23 +174,23 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     )
 
     # construct edge (bond) information
-    src, dist, bond_features = [], [], []
+    src, dest, bond_features = [], [], []
     for bond in mol.GetBonds():
       # add edge list considering a directed graph
       start, end = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
       src += [start, end]
-      dist += [end, start]
+      dest += [end, start]
       bond_features += 2 * [_construct_bond_feature(bond)]
 
     if self.add_self_loop:
       num_atoms = mol.GetNumAtoms()
       src += [i for i in range(num_atoms)]
-      dist += [i for i in range(num_atoms)]
+      dest += [i for i in range(num_atoms)]
       # add dummy edge features
       bond_fea_length = len(bond_features[0])
       bond_features += num_atoms * [[0 for _ in range(bond_fea_length)]]
 
     return GraphData(
         node_features=atom_features,
-        edge_index=np.array([src, dist], dtype=np.int),
+        edge_index=np.array([src, dest], dtype=np.int),
         edge_features=np.array(bond_features, dtype=np.float))
