@@ -12,6 +12,12 @@ import typing
 from typing import List
 from transformers import BertTokenizer
 
+try:
+  from transformers import BertTokenizer
+except ModuleNotFoundError:
+  logger.warning(
+      "HuggingFace transformers is not available. Please install using 'pip install transformers' to use the SmilesTokenizer")
+
 
 
 """
