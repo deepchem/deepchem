@@ -182,7 +182,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
       dest += [end, start]
       bond_features += 2 * [_construct_bond_feature(bond)]
 
-    if self.add_self_loop:
+    if self.add_self_edges:
       num_atoms = mol.GetNumAtoms()
       src += [i for i in range(num_atoms)]
       dest += [i for i in range(num_atoms)]

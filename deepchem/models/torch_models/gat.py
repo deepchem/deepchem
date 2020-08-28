@@ -90,8 +90,8 @@ class GAT(nn.Module):
             dropout=dropout) for _ in range(num_conv)
     ])
     self.pooling = global_mean_pool
-    self.fc = nn.Linear(hidden_node_dim, predicator_hidden_feats)
-    self.out = nn.Linear(predicator_hidden_feats, n_tasks)
+    self.fc = nn.Linear(hidden_node_dim, predictor_hidden_feats)
+    self.out = nn.Linear(predictor_hidden_feats, n_tasks)
 
   def forward(self, data):
     """Predict labels
@@ -157,7 +157,7 @@ class GATModel(TorchModel):
                heads: int = 4,
                dropout: float = 0.0,
                num_conv: int = 3,
-               predicator_hidden_feats: int = 32,
+               predictor_hidden_feats: int = 32,
                n_tasks: int = 1,
                **kwargs):
     """
@@ -176,7 +176,7 @@ class GATModel(TorchModel):
       The dropout probability for each convolutional layer.
     num_conv: int, default 3
       The number of convolutional layers.
-    predicator_hidden_feats: int, default 32
+    predictor_hidden_feats: int, default 32
       The size for hidden representations in the output MLP predictor, default to 32.
     n_tasks: int, default 1
       The number of the output size, default to 1.
@@ -189,7 +189,7 @@ class GATModel(TorchModel):
         heads,
         dropout,
         num_conv,
-        predicator_hidden_feats,
+        predictor_hidden_feats,
         n_tasks,
     )
     super(GATModel, self).__init__(model, **kwargs)
