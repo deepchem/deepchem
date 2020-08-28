@@ -69,6 +69,7 @@ class SmilesTokenizer(BertTokenizer):
     This class requires huggingface's transformers and tokenizers libraries to be installed.
 
     """
+
     def __init__(
             self,
             vocab_file: str='',
