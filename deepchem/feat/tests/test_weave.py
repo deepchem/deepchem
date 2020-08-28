@@ -33,7 +33,7 @@ def test_max_pair_distance_pairs():
   assert pair_edges.shape == (2, 9)
 
 
-def test_single_carbon():
+def test_weave_single_carbon():
   """Test that single carbon atom is featurized properly."""
   mols = ['C']
   featurizer = dc.feat.WeaveFeaturizer()
@@ -52,7 +52,7 @@ def test_single_carbon():
   assert mol.get_pair_features().shape == (1 * 1, 14)
 
 
-def test_alkane():
+def test_weave_alkane():
   """Test on simple alkane"""
   mols = ['CCC']
   featurizer = dc.feat.WeaveFeaturizer()
@@ -67,6 +67,23 @@ def test_alkane():
 
   # Should be a 3x3 interaction grid
   assert mol.get_pair_features().shape == (3 * 3, 14)
+
+
+def test_weave_alkane_max_pairs():
+  """Test on simple alkane with max pairs distance cutoff"""
+  mols = ['CCC']
+  featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=1)
+  mol_list = featurizer.featurize(mols)
+  mol = mol_list[0]
+
+  # 3 carbonds in alkane
+  assert mol.get_num_atoms() == 3
+
+  # Test feature sizes
+  assert mol.get_num_features() == 75
+
+  # Should be a 3x3 interaction grid
+  assert mol.get_pair_features().shape == (7, 14)
 
 
 def test_carbon_nitrogen():
