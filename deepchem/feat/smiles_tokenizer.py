@@ -14,12 +14,9 @@ from transformers import BertTokenizer
 
 
 
-SMI_REGEX_PATTERN = r"""(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|
-#|-|\+|\\|\/|:|~|@|\?|>>?|\*|\$|\%[0-9]{2}|[0-9])"""
-
 """
-SMILES regex pattern for tokenization. Designed by Schwaller et. al. 
-
+SMI_REGEX_PATTERN: str
+    SMILES regex pattern for tokenization. Designed by Schwaller et. al. 
 
 References
 
@@ -28,6 +25,10 @@ References
         1572-1583 DOI: 10.1021/acscentsci.9b00576
 
 """
+
+SMI_REGEX_PATTERN = r"""(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|
+#|-|\+|\\|\/|:|~|@|\?|>>?|\*|\$|\%[0-9]{2}|[0-9])"""
+
 
 def get_default_tokenizer():
     default_vocab_path = (
