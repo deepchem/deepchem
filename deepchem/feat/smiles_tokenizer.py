@@ -157,19 +157,24 @@ class SmilesTokenizer(BertTokenizer):
 
         return self.ids_to_tokens.get(index, self.unk_token)
 
-    def convert_tokens_to_string(self, tokens):
+    def convert_tokens_to_string(self, tokens : List[str]):
         """ Converts a sequence of tokens (string) in a single string.
 
         Parameters
         ----------
         tokens: List[str]
             List of tokens for a given string sequence.
+
+        Returns
+        -------
+        out_string: str
+            Single string from combined tokens.
         """
 
-        out_string = " ".join(tokens).replace(" ##", "").strip()
+        out_string: str = " ".join(tokens).replace(" ##", "").strip()
         return out_string
 
-    def add_special_tokens_ids_single_sequence(self, token_ids):
+    def add_special_tokens_ids_single_sequence(self, token_ids : List[int]):
         """
         Adds special tokens to the a sequence for sequence classification tasks.
         A BERT sequence has the following format: [CLS] X [SEP]
@@ -183,7 +188,7 @@ class SmilesTokenizer(BertTokenizer):
 
         return [self.cls_token_id] + token_ids + [self.sep_token_id]
 
-    def add_special_tokens_single_sequence(self, tokens):
+    def add_special_tokens_single_sequence(self, tokens : List[str]):
         """
         Adds special tokens to the a sequence for sequence classification tasks.
         A BERT sequence has the following format: [CLS] X [SEP]
@@ -222,7 +227,7 @@ class SmilesTokenizer(BertTokenizer):
 
         return sequence_pair
 
-    def add_special_tokens_ids_sequence_pair(self, token_ids_0 : List[int], token_ids_1: List[int]):
+    def add_special_tokens_ids_sequence_pair(self, token_ids_0 : List[int], token_ids_1: List[int]) -> List[int]:
         """
         Adds special tokens to a sequence pair for sequence classification tasks.
         A BERT sequence pair has the following format: [CLS] A [SEP] B [SEP]
@@ -238,6 +243,7 @@ class SmilesTokenizer(BertTokenizer):
 
         sep = [self.sep_token_id]
         cls = [self.cls_token_id]
+
         return cls + token_ids_0 + sep + token_ids_1 + sep
 
     def add_padding_tokens(self, token_ids, length, right=True):
