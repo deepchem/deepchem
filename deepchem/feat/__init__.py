@@ -32,6 +32,6 @@ try:
 
   from deepchem.feat.smiles_tokenizer import SmilesTokenizer
   from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
-except ImportError:
+except ModuleNotFoundError:
   logger.warning(
       "HuggingFace transformers is not available. Please install using 'pip install transformers' to use the SmilesTokenizer")
