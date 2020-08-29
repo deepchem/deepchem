@@ -1,6 +1,7 @@
 """
 Feature calculations.
 """
+import inspect
 import logging
 import numpy as np
 import multiprocessing
@@ -74,6 +75,40 @@ class Featurizer(object):
       Any blob of data you like. Subclass should instantiate this.
     """
     raise NotImplementedError('Featurizer is not defined.')
+
+  def __str__(self) -> str:
+    """Convert class to string.
+
+    Returns
+    -------
+    str
+      The string represents the class.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> str(dc.feat.CircularFingerprint(size=1024, radius=4))
+    'CircularFingerprint_radius_4_size_1024'
+    """
+    args_spec = inspect.getfullargspec(self.__init__)  # type: ignore
+    args_names = [arg for arg in args_spec.args if arg != 'self']
+    args_default_values = list(args_spec.defaults) \
+      if args_spec.defaults is not None else []
+
+    # the case some arguments don't have the default value
+    args_num = len(args_names)
+    args_default_num = len(args_default_values)
+    if args_num > args_default_num:
+      diff = args_num - args_default_num
+      args_default_values = [None] * diff + args_default_values
+    assert len(args_names) == len(args_default_values)
+
+    override_args_info = ''
+    for arg_name, default in zip(args_names, args_default_values):
+      arg_value = self.__dict__[arg_name]
+      if default != arg_value:
+        override_args_info += '_' + arg_name + '_' + str(arg_value)
+    return self.__class__.__name__ + override_args_info
 
 
 class ComplexFeaturizer(object):
