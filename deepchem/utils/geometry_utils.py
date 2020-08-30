@@ -65,8 +65,8 @@ def generate_random_unit_vector() -> np.ndarray:
   Citation: http://mathworld.wolfram.com/SpherePointPicking.html
 
   Pseudocode:
-    a. Choose random theta \element [0, 2*pi]
-    b. Choose random z \element [-1, 1]
+    a. Choose random theta \\element [0, 2*pi]
+    b. Choose random z \\element [-1, 1]
     c. Compute output vector u: (x,y,z) = (sqrt(1-z^2)*cos(theta), sqrt(1-z^2)*sin(theta),z)
 
   Returns
@@ -83,7 +83,7 @@ def generate_random_unit_vector() -> np.ndarray:
 
 
 def generate_random_rotation_matrix() -> np.ndarray:
-  """Generates a random rotation matrix.
+  r"""Generates a random rotation matrix.
 
   1. Generate a random unit vector u, randomly sampled from the
      unit sphere (see function generate_random_unit_vector()

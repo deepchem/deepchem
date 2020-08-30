@@ -1882,7 +1882,7 @@ class ANIFeat(tf.keras.layers.Layer):
 
 
 class GraphEmbedPoolLayer(tf.keras.layers.Layer):
-  """
+  r"""
   GraphCNNPool Layer from Robust Spatial Filtering with Graph Convolutional Neural Networks
   https://arxiv.org/abs/1703.00792
 
@@ -1975,7 +1975,7 @@ class GraphEmbedPoolLayer(tf.keras.layers.Layer):
 
 
 class GraphCNN(tf.keras.layers.Layer):
-  """
+  r"""
   GraphCNN Layer from Robust Spatial Filtering with Graph Convolutional Neural Networks
   https://arxiv.org/abs/1703.00792
 
