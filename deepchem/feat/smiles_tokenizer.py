@@ -11,12 +11,18 @@ import pkg_resources
 import typing
 from typing import List
 from transformers import BertTokenizer
+from logging import getLogger
+
+logger = getLogger(__name__)
+
 
 try:
   from transformers import BertTokenizer
 except ModuleNotFoundError:
-  logger.warning(
-      "HuggingFace transformers is not available. Please install using 'pip install transformers' to use the SmilesTokenizer")
+  logger.warning("HuggingFace transformers is not available. Please install using 'pip install transformers' to use the SmilesTokenizer")
+  print("HuggingFace transformers is not available. Please install using 'pip install transformers' to use the SmilesTokenizer.")
+  pass
+
 """
 SMI_REGEX_PATTERN: str
     SMILES regex pattern for tokenization. Designed by Schwaller et. al. 
