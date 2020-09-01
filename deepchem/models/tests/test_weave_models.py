@@ -42,7 +42,7 @@ def get_dataset(mode='classification', featurizer='GraphConv', num_tasks=2):
 
 def test_compute_features_on_infinity_distance():
   """Test that WeaveModel correctly transforms WeaveMol objects into tensors with infinite max_pair_distance."""
-  featurizer = dc.feat.WeaveFeaturizer(max_pair_distance="infinity")
+  featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=None)
   X = featurizer(["C", "CCC"])
   batch_size = 20
   model = WeaveModel(
@@ -108,10 +108,6 @@ def test_compute_features_on_distance_1():
   assert np.all(atom_split == np.array([0, 1, 1, 1]))
   # 10 pairs in total
   assert pair_split.shape == (8,)
-  print("pair_split")
-  print(pair_split)
-  print("atom_to_pair")
-  print(atom_to_pair)
   # The center atom is self connected and to both neighbors so it appears
   # thrice. The canonical ranking used in MolecularFeaturizer means this
   # central atom is ranked last in ordering.
@@ -168,7 +164,7 @@ def test_weave_regression_model():
 
 
 def test_weave_fit_simple_infinity_distance():
-  featurizer = dc.feat.WeaveFeaturizer(max_pair_distance="infinity")
+  featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=None)
   X = featurizer(["C", "CCC"])
   y = np.array([0, 1.])
   dataset = dc.data.NumpyDataset(X, y)

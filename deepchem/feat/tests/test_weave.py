@@ -39,14 +39,14 @@ def test_max_pair_distance_infinity():
   # Test alkane
   mol = Chem.MolFromSmiles('CCC')
   # Test distance infinity
-  pair_edges = max_pair_distance_pairs(mol, "infinity")
+  pair_edges = max_pair_distance_pairs(mol, None)
   # Everything is connected at this distance
   assert pair_edges.shape == (2, 9)
 
   # Test pentane
   mol = Chem.MolFromSmiles('CCCCC')
   # Test distance infinity
-  pair_edges = max_pair_distance_pairs(mol, "infinity")
+  pair_edges = max_pair_distance_pairs(mol, None)
   # Everything is connected at this distance
   assert pair_edges.shape == (2, 25)
 

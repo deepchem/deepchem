@@ -5,7 +5,7 @@ from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCo
 from deepchem.feat.mol_graphs import ConvMol, WeaveMol
 from deepchem.data import DiskDataset
 import logging
-from typing import Union, List
+from typing import Optional, List
 from deepchem.utils.typing import RDKitMol, RDKitAtom
 
 
@@ -405,7 +405,7 @@ def bond_features(bond, use_chirality=False):
 
 
 def max_pair_distance_pairs(mol: RDKitMol,
-                            max_pair_distance: Union[int, str]) -> np.ndarray:
+                            max_pair_distance: Optional[int]) -> np.ndarray:
   """Helper method which finds atom pairs within max_pair_distance graph distance.
 
   This helper method is used to find atoms which are within max_pair_distance
@@ -424,11 +424,13 @@ def max_pair_distance_pairs(mol: RDKitMol,
   ----------
   mol: rdkit.Chem.rdchem.Mol
     RDKit molecules
-  max_pair_distance: Union[int, str], (default 'infinity')
-    This value can be a positive integer or the string 'infinity'. This
-    parameter determines the maximum graph distance at which pair features
-    are computed. For example, if `max_pair_distance==2`, then pair features
-    are computed only for atoms at most graph distance 2 apart.
+  max_pair_distance: Optional[int], (default None)
+    This value can be a positive integer or None. This
+    parameter determines the maximum graph distance at which pair
+    features are computed. For example, if `max_pair_distance==2`,
+    then pair features are computed only for atoms at most graph
+    distance 2 apart. If `max_pair_distance` is `None`, all pairs are
+    considered (effectively infinite `max_pair_distance`)
 
 
   Returns
@@ -440,17 +442,13 @@ def max_pair_distance_pairs(mol: RDKitMol,
   from rdkit import Chem
   from rdkit.Chem import rdmolops
   N = len(mol.GetAtoms())
-  if (isinstance(max_pair_distance, str) and
-      max_pair_distance == "infinity") or (isinstance(max_pair_distance, int)
-                                           and max_pair_distance >= N):
+  if (max_pair_distance is None or max_pair_distance >= N):
     max_distance = N
-  elif (
-      (isinstance(max_pair_distance, int) and max_pair_distance <= 0) or
-      (isinstance(max_pair_distance, str) and max_pair_distance != "infinity")):
+  elif max_pair_distance is not None and max_pair_distance <= 0:
     raise ValueError(
         "max_pair_distance must either be a positive integer or the string 'infinity'"
     )
-  elif isinstance(max_pair_distance, int):
+  elif max_pair_distance is not None:
     max_distance = max_pair_distance
   adj = rdmolops.GetAdjacencyMatrix(mol)
   # Handle edge case of self-pairs (i, i)
@@ -466,13 +464,12 @@ def max_pair_distance_pairs(mol: RDKitMol,
   return pair_edges
 
 
-def pair_features(
-    mol: RDKitMol,
-    bond_features_map: dict,
-    bond_adj_list: List,
-    bt_len: int = 6,
-    graph_distance: bool = True,
-    max_pair_distance: Union[int, str] = 'infinity') -> np.ndarray:
+def pair_features(mol: RDKitMol,
+                  bond_features_map: dict,
+                  bond_adj_list: List,
+                  bt_len: int = 6,
+                  graph_distance: bool = True,
+                  max_pair_distance: Optional[int] = None) -> np.ndarray:
   """Helper method used to compute atom pair feature vectors.
 
   Many different featurization methods compute atom pair features
@@ -497,12 +494,13 @@ def pair_features(
     If true, use graph distance between molecules. Else use euclidean
     distance. The specified `mol` must have a conformer. Atomic
     positions will be retrieved by calling `mol.getConformer(0)`.
-  max_pair_distance: Union[int, str], (default 'infinity')
-    This value can be a positive integer or the string 'infinity'.
-    This parameter determines the maximum graph distance at which pair
+  max_pair_distance: Optional[int], (default None)
+    This value can be a positive integer or None. This
+    parameter determines the maximum graph distance at which pair
     features are computed. For example, if `max_pair_distance==2`,
     then pair features are computed only for atoms at most graph
-    distance 2 apart.
+    distance 2 apart. If `max_pair_distance` is `None`, all pairs are
+    considered (effectively infinite `max_pair_distance`)
 
   Note
   ----
@@ -784,7 +782,7 @@ class WeaveFeaturizer(MolecularFeaturizer):
                graph_distance: bool = True,
                explicit_H: bool = False,
                use_chirality: bool = False,
-               max_pair_distance: Union[int, str] = 'infinity'):
+               max_pair_distance: Optional[int] = None):
     """Initialize this featurizer with set parameters.
 
     Parameters
@@ -798,11 +796,13 @@ class WeaveFeaturizer(MolecularFeaturizer):
       If true, model hydrogens in the molecule.
     use_chirality: bool, (default False)
       If true, use chiral information in the featurization
-    max_pair_distance: Union[int, str], (default 'infinity')
-      This value can be a positive integer or the string 'infinity'. This
-      parameter determines the maximum graph distance at which pair features
-      are computed. For example, if `max_pair_distance==2`, then pair features
-      are computed only for atoms at most graph distance 2 apart.
+    max_pair_distance: Optional[int], (default None)
+      This value can be a positive integer or None. This
+      parameter determines the maximum graph distance at which pair
+      features are computed. For example, if `max_pair_distance==2`,
+      then pair features are computed only for atoms at most graph
+      distance 2 apart. If `max_pair_distance` is `None`, all pairs are
+      considered (effectively infinite `max_pair_distance`)
     """
     # Distance is either graph distance(True) or Euclidean distance(False,
     # only support datasets providing Cartesian coordinates)
