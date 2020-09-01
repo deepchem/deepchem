@@ -50,14 +50,14 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
 
   def __init__(self,
                radius: float = 8.0,
-               max_neighbors: float = 8,
+               max_neighbors: float = 12,
                step: float = 0.2):
     """
     Parameters
     ----------
     radius: float (default 8.0)
       Radius of sphere for finding neighbors of atoms in unit cell.
-    max_neighbors: int (default 8)
+    max_neighbors: int (default 12)
       Maximum number of neighbors to consider when constructing graph.
     step: float (default 0.2)
       Step size for Gaussian filter. This value is used when building edge features.

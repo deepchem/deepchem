@@ -1,9 +1,12 @@
 """
 This is a sample implementation for working PyTorch Geometric with DeepChem!
 """
+import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from deepchem.models.torch_models.torch_model import TorchModel
+from deepchem.models.losses import Loss, L2Loss, SparseSoftmaxCrossEntropy
 
 
 class GAT(nn.Module):
@@ -55,6 +58,8 @@ class GAT(nn.Module):
       num_conv: int = 3,
       predictor_hidden_feats: int = 32,
       n_tasks: int = 1,
+      mode: str = 'classification',
+      n_classes: int = 2,
   ):
     """
     Parameters
@@ -74,12 +79,20 @@ class GAT(nn.Module):
       The size for hidden representations in the output MLP predictor, default to 32.
     n_tasks: int, default 1
       The number of the output size, default to 1.
+    mode: str, default 'regression'
+      The model type, 'classification' or 'regression'.
+    n_classes: int, default 2
+      The number of classes to predict (only used in classification mode).
     """
+    super(GAT, self).__init__()
     try:
       from torch_geometric.nn import GATConv, global_mean_pool
     except:
       raise ValueError("This class requires PyTorch Geometric to be installed.")
-    super(GAT, self).__init__()
+
+    self.n_tasks = n_tasks
+    self.mode = mode
+    self.n_classes = n_classes
     self.embedding = nn.Linear(in_node_dim, hidden_node_dim)
     self.conv_layers = nn.ModuleList([
         GATConv(
@@ -91,7 +104,10 @@ class GAT(nn.Module):
     ])
     self.pooling = global_mean_pool
     self.fc = nn.Linear(hidden_node_dim, predictor_hidden_feats)
-    self.out = nn.Linear(predictor_hidden_feats, n_tasks)
+    if self.mode == 'regression':
+      self.out = nn.Linear(predictor_hidden_feats, n_tasks)
+    else:
+      self.out = nn.Linear(predictor_hidden_feats, n_tasks * n_classes)
 
   def forward(self, data):
     """Predict labels
@@ -115,9 +131,17 @@ class GAT(nn.Module):
 
     # pooling
     graph_feat = self.pooling(node_feat, data.batch)
-    graph_feat = self.fc(graph_feat)
+    graph_feat = F.relu(self.fc(graph_feat))
     out = self.out(graph_feat)
-    return out
+
+    if self.mode == 'regression':
+      return out
+    else:
+      logits = out.view(-1, self.n_tasks, self.n_classes)
+      # for n_tasks == 1 case
+      logits = torch.squeeze(logits)
+      proba = F.softmax(logits)
+      return proba, logits
 
 
 class GATModel(TorchModel):
@@ -130,7 +154,7 @@ class GATModel(TorchModel):
   >> featurizer = dc.feat.MolGraphConvFeaturizer()
   >> tasks, datasets, transformers = dc.molnet.load_tox21(reload=False, featurizer=featurizer, transformers=[])
   >> train, valid, test = datasets
-  >> model = dc.models.GATModel(loss=dc.models.losses.SoftmaxCrossEntropy(), batch_size=32, learning_rate=0.001)
+  >> model = dc.models.GATModel(mode='classification', n_tasks=len(tasks), batch_size=32, learning_rate=0.001)
   >> model.fit(train, nb_epoch=50)
 
   This model takes arbitary graphs as an input, and predict graph properties. This model is
@@ -159,6 +183,8 @@ class GATModel(TorchModel):
                num_conv: int = 3,
                predictor_hidden_feats: int = 32,
                n_tasks: int = 1,
+               mode: str = 'regression',
+               n_classes: int = 2,
                **kwargs):
     """
     This class accepts all the keyword arguments from TorchModel.
@@ -180,19 +206,23 @@ class GATModel(TorchModel):
       The size for hidden representations in the output MLP predictor, default to 32.
     n_tasks: int, default 1
       The number of the output size, default to 1.
+    mode: str, default 'regression'
+      The model type, 'classification' or 'regression'.
+    n_classes: int, default 2
+      The number of classes to predict (only used in classification mode).
     kwargs: Dict
       This class accepts all the keyword arguments from TorchModel.
     """
-    model = GAT(
-        in_node_dim,
-        hidden_node_dim,
-        heads,
-        dropout,
-        num_conv,
-        predictor_hidden_feats,
-        n_tasks,
-    )
-    super(GATModel, self).__init__(model, **kwargs)
+    model = GAT(in_node_dim, hidden_node_dim, heads, dropout, num_conv,
+                predictor_hidden_feats, n_tasks, mode, n_classes)
+    if mode == "regression":
+      loss: Loss = L2Loss()
+      output_types = ['prediction']
+    else:
+      loss = SparseSoftmaxCrossEntropy()
+      output_types = ['prediction', 'loss']
+    super(GATModel, self).__init__(
+        model, loss=loss, output_types=output_types, **kwargs)
 
   def _prepare_batch(self, batch):
     """Create batch data for GAT.

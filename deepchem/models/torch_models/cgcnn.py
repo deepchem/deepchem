@@ -69,11 +69,11 @@ class CGCNNLayer(nn.Module):
     return {'gated_z': gated_z, 'message_z': message_z}
 
   def reduce_func(self, nodes):
-    new_h = nodes.data['x'] + torch.sum(
-        nodes.mailbox['gated_z'] * nodes.mailbox['message_z'], dim=1)
-    return {'x': new_h}
+    nbr_sumed = torch.sum(nodes.mailbox['gated_z'] * nodes.mailbox['message_z'], dim=1)
+    new_x = F.softplus(nodes.data['x'] + nbr_sumed)
+    return {'new_x': new_x}
 
-  def forward(self, dgl_graph):
+  def forward(self, dgl_graph, node_feats, edge_feats):
     """Update node representaions.
 
     Parameters
@@ -87,10 +87,13 @@ class CGCNNLayer(nn.Module):
     dgl_graph: DGLGraph
       DGLGraph for a batch of updated graphs.
     """
+    dgl_graph.ndata['x'] = node_feats
+    dgl_graph.edata['edge_attr'] = edge_feats
     dgl_graph.update_all(self.message_func, self.reduce_func)
+    node_feats = dgl_graph.ndata.pop('new_x')
     if self.batch_norm is not None:
-      dgl_graph.ndata['x'] = self.batch_norm(dgl_graph.ndata['x'])
-    return dgl_graph
+      node_feats = self.batch_norm(node_feats)
+    return node_feats, edge_feats
 
 
 class CGCNN(nn.Module):
@@ -215,15 +218,18 @@ class CGCNN(nn.Module):
     """
     graph = dgl_graph
     # embedding node features
-    graph.ndata['x'] = self.embedding(graph.ndata['x'])
+    node_feats = graph.ndata.pop('x')
+    edge_feats = graph.edata.pop('edge_attr')
+    node_feats = self.embedding(node_feats)
 
     # convolutional layer
     for conv in self.conv_layers:
-      graph = conv(graph)
+      node_feats, edge_feats = conv(graph, node_feats, edge_feats)
 
     # pooling
-    graph_feat = self.pooling(graph, 'x')
-    graph_feat = self.fc(graph_feat)
+    graph.ndata['updated_x'] = node_feats
+    graph_feat = F.softplus(self.pooling(graph, 'updated_x'))
+    graph_feat = F.softplus(self.fc(graph_feat))
     out = self.out(graph_feat)
 
     if self.mode == 'regression':

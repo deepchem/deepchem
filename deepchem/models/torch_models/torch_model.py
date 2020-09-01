@@ -159,7 +159,6 @@ class TorchModel(Model):
     """
     super(TorchModel, self).__init__(
         model_instance=model, model_dir=model_dir, **kwargs)
-    self.model = model
     if isinstance(loss, Loss):
       self._loss_fn: LossFn = _StandardLoss(model, loss)
     else:
@@ -179,7 +178,7 @@ class TorchModel(Model):
       else:
         device = torch.device('cpu')
     self.device = device
-    self.model.to(device)
+    self.model = model.to(device)
 
     # W&B logging
     if wandb and not _has_wandb:
@@ -844,12 +843,14 @@ class TorchModel(Model):
       labels = [
           x.astype(np.float32) if x.dtype == np.float64 else x for x in labels
       ]
-      labels = [torch.as_tensor(x, device=self.device).float() for x in labels]
+      labels = [torch.as_tensor(x, device=self.device) for x in labels]
     if weights is not None:
       weights = [
           x.astype(np.float32) if x.dtype == np.float64 else x for x in weights
       ]
-      weights = [torch.as_tensor(x, device=self.device).float() for x in weights]
+      weights = [
+          torch.as_tensor(x, device=self.device).float() for x in weights
+      ]
 
     return (inputs, labels, weights)
 
@@ -1110,8 +1111,8 @@ class _StandardLoss(object):
   """The implements the loss function for models that use a dc.models.losses.Loss."""
 
   def __init__(self, model: torch.nn.Module, loss: Loss) -> None:
-    self.model = model
-    self.loss = loss
+    self.model = model  # not used
+    self.loss = loss  # not used
     self.criterion = loss._create_pytorch_loss()
 
   def __call__(self, outputs: List, labels: List, weights: List) -> float:
