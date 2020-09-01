@@ -39,6 +39,88 @@ def get_dataset(mode='classification', featurizer='GraphConv', num_tasks=2):
   return tasks, ds, transformers, metric
 
 
+def test_compute_features_on_infinity_distance():
+  """Test that WeaveModel correctly transforms WeaveMol objects into tensors with infinite max_pair_distance."""
+  featurizer = dc.feat.WeaveFeaturizer(max_pair_distance="infinity")
+  X = featurizer(["C", "CCC"])
+  batch_size = 20
+  model = WeaveModel(
+      1,
+      batch_size=batch_size,
+      mode='classification',
+      fully_connected_layer_sizes=[2000, 1000],
+      batch_normalize=True,
+      batch_normalize_kwargs={
+          "fused": False,
+          "trainable": True,
+          "renorm": True
+      },
+      learning_rage=0.0005)
+  atom_feat, pair_feat, pair_split, atom_split, atom_to_pair = model.compute_features_on_batch(
+      X)
+
+  # There are 4 atoms each of which have 75 atom features
+  assert atom_feat.shape == (4, 75)
+  # There are 10 pairs with infinity distance and 14 pair features
+  assert pair_feat.shape == (10, 14)
+  # 4 atoms in total
+  assert atom_split.shape == (4,)
+  assert np.all(atom_split == np.array([0, 1, 1, 1]))
+  # 10 pairs in total
+  assert pair_split.shape == (10,)
+  assert np.all(pair_split == np.array([0, 1, 1, 1, 2, 2, 2, 3, 3, 3]))
+  # 10 pairs in total each with start/finish
+  assert atom_to_pair.shape == (10, 2)
+  assert np.all(
+      atom_to_pair == np.array([[0, 0], [1, 1], [1, 2], [1, 3], [2, 1], [2, 2],
+                                [2, 3], [3, 1], [3, 2], [3, 3]]))
+
+
+def test_compute_features_on_distance_1():
+  """Test that WeaveModel correctly transforms WeaveMol objects into tensors with finite max_pair_distance."""
+  featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=1)
+  X = featurizer(["C", "CCC"])
+  batch_size = 20
+  model = WeaveModel(
+      1,
+      batch_size=batch_size,
+      mode='classification',
+      fully_connected_layer_sizes=[2000, 1000],
+      batch_normalize=True,
+      batch_normalize_kwargs={
+          "fused": False,
+          "trainable": True,
+          "renorm": True
+      },
+      learning_rage=0.0005)
+  atom_feat, pair_feat, pair_split, atom_split, atom_to_pair = model.compute_features_on_batch(
+      X)
+
+  # There are 4 atoms each of which have 75 atom features
+  assert atom_feat.shape == (4, 75)
+  # There are 8 pairs with distance 1 and 14 pair features. (To see why 8,
+  # there's the self pair for "C". For "CCC" there are 7 pairs including self
+  # connections and accounting for symmetry.)
+  assert pair_feat.shape == (8, 14)
+  # 4 atoms in total
+  assert atom_split.shape == (4,)
+  assert np.all(atom_split == np.array([0, 1, 1, 1]))
+  # 10 pairs in total
+  assert pair_split.shape == (8,)
+  print("pair_split")
+  print(pair_split)
+  print("atom_to_pair")
+  print(atom_to_pair)
+  # The center atom is self connected and to both neighbors so it appears
+  # thrice. The canonical ranking used in MolecularFeaturizer means this
+  # central atom is ranked last in ordering.
+  assert np.all(pair_split == np.array([0, 1, 1, 2, 2, 3, 3, 3]))
+  # 10 pairs in total each with start/finish
+  assert atom_to_pair.shape == (8, 2)
+  assert np.all(atom_to_pair == np.array([[0, 0], [1, 1], [1, 3], [2, 2],
+                                          [2, 3], [3, 1], [3, 2], [3, 3]]))
+
+
 @flaky
 @pytest.mark.slow
 def test_weave_model():
@@ -84,16 +166,15 @@ def test_weave_regression_model():
   assert scores['mean_absolute_error'] < 0.1
 
 
-def test_weave_fit_simple():
-  featurizer = dc.feat.WeaveFeaturizer()
+def test_weave_fit_simple_infinity_distance():
+  featurizer = dc.feat.WeaveFeaturizer(max_pair_distance="infinity")
   X = featurizer(["C", "CCC"])
-  y = np.random.randint(2, size=(2,))
+  y = np.array([0, 1.])
   dataset = dc.data.NumpyDataset(X, y)
-  tasks, dataset, transformers, metric = get_dataset('classification', 'Weave')
 
   batch_size = 20
   model = WeaveModel(
-      len(tasks),
+      1,
       batch_size=batch_size,
       mode='classification',
       fully_connected_layer_sizes=[2000, 1000],
@@ -105,5 +186,35 @@ def test_weave_fit_simple():
       },
       learning_rage=0.0005)
   model.fit(dataset, nb_epoch=200)
+  transformers = []
+  metric = dc.metrics.Metric(
+      dc.metrics.roc_auc_score, np.mean, mode="classification")
+  scores = model.evaluate(dataset, [metric], transformers)
+  assert scores['mean-roc_auc_score'] >= 0.9
+
+
+def test_weave_fit_simple_distance_1():
+  featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=1)
+  X = featurizer(["C", "CCC"])
+  y = np.array([0, 1.])
+  dataset = dc.data.NumpyDataset(X, y)
+
+  batch_size = 20
+  model = WeaveModel(
+      1,
+      batch_size=batch_size,
+      mode='classification',
+      fully_connected_layer_sizes=[2000, 1000],
+      batch_normalize=True,
+      batch_normalize_kwargs={
+          "fused": False,
+          "trainable": True,
+          "renorm": True
+      },
+      learning_rage=0.0005)
+  model.fit(dataset, nb_epoch=200)
+  transformers = []
+  metric = dc.metrics.Metric(
+      dc.metrics.roc_auc_score, np.mean, mode="classification")
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.9

@@ -33,6 +33,24 @@ def test_max_pair_distance_pairs():
   assert pair_edges.shape == (2, 9)
 
 
+def test_max_pair_distance_infinity():
+  """Test that max pair distance pairs are computed properly with infinity distance."""
+  from rdkit import Chem
+  # Test alkane
+  mol = Chem.MolFromSmiles('CCC')
+  # Test distance infinity
+  pair_edges = max_pair_distance_pairs(mol, "infinity")
+  # Everything is connected at this distance
+  assert pair_edges.shape == (2, 9)
+
+  # Test pentane
+  mol = Chem.MolFromSmiles('CCCCC')
+  # Test distance infinity
+  pair_edges = max_pair_distance_pairs(mol, "infinity")
+  # Everything is connected at this distance
+  assert pair_edges.shape == (2, 25)
+
+
 def test_weave_single_carbon():
   """Test that single carbon atom is featurized properly."""
   mols = ['C']
@@ -73,8 +91,10 @@ def test_weave_alkane_max_pairs():
   """Test on simple alkane with max pairs distance cutoff"""
   mols = ['CCC']
   featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=1)
-  mol_list = featurizer.featurize(mols)
-  mol = mol_list[0]
+  #mol_list = featurizer.featurize(mols)
+  #mol = mol_list[0]
+  from rdkit import Chem
+  mol = featurizer._featurize(Chem.MolFromSmiles(mols[0]))
 
   # 3 carbonds in alkane
   assert mol.get_num_atoms() == 3
@@ -82,7 +102,9 @@ def test_weave_alkane_max_pairs():
   # Test feature sizes
   assert mol.get_num_features() == 75
 
-  # Should be a 3x3 interaction grid
+  # Should be a 7x14 interaction grid since there are 7 pairs within graph
+  # distance 1 (3 self interactions plus 2 bonds counted twice because of
+  # symmetry)
   assert mol.get_pair_features().shape == (7, 14)
 
 
@@ -105,20 +127,3 @@ def test_carbon_nitrogen():
 
   # Should be a 3x3 interaction grid
   assert mol.get_pair_features().shape == (5 * 5, 14)
-
-
-#def test_alkane_max_pair_distance():
-#  """Test on simple alkane with max_pair_distance < infinity"""
-#  mols = ['CCC']
-#  featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=1)
-#  mol_list = featurizer.featurize(mols)
-#  mol = mol_list[0]
-#
-#  # 3 carbonds in alkane
-#  assert mol.get_num_atoms() == 3
-#
-#  # Test feature sizes
-#  assert mol.get_num_features() == 75
-#
-#  # Should be a 3x3 interaction grid
-#  assert mol.get_pair_features().shape == (3, 1, 14)

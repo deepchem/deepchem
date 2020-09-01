@@ -379,11 +379,15 @@ class WeaveMol(object):
   .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints." Journal of computer-aided molecular design 30.8 (2016): 595-608.
   """
 
-  def __init__(self, nodes, pairs):
+  def __init__(self, nodes, pairs, pair_edges):
     self.nodes = nodes
     self.pairs = pairs
     self.num_atoms = self.nodes.shape[0]
     self.n_features = self.nodes.shape[1]
+    self.pair_edges = pair_edges
+
+  def get_pair_edges(self):
+    return self.pair_edges
 
   def get_pair_features(self):
     return self.pairs
