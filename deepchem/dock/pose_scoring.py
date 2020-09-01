@@ -211,7 +211,9 @@ def vina_energy_term(coords1: np.ndarray, coords2: np.ndarray,
   coords2: np.ndarray
     Molecular coordinates of shape `(M, 3)`
   weights: np.ndarray
-    A numpy array of shape `(5,)`. The 5 is the number of interaction term.
+    A numpy array of shape `(5,)`. The 5 values are weights for repulsion interaction term,
+    hydrophobic interaction term, hydrogen bond interaction term,
+    first Gaussian interaction term and second Gaussian interaction term.
   wrot: float
     The scaling factor for nonlinearity
   Nrot: int
