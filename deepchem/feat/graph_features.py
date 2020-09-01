@@ -440,16 +440,18 @@ def max_pair_distance_pairs(mol: RDKitMol,
   from rdkit import Chem
   from rdkit.Chem import rdmolops
   N = len(mol.GetAtoms())
-  if max_pair_distance == "infinity" or max_pair_distance > N:
-    max_pair_distance = N
-  elif max_pair_distance <= 0:
+  if (isinstance(max_pair_distance, str) and
+      max_pair_distance == "infinity") or (isinstance(max_pair_distance, int)
+                                           and max_pair_distance >= N):
+    max_distance = N
+  elif (isinstance(max_pair_distance, int) and max_pair_distance <= 0):
     raise ValueError(
         "max_pair_distance must either be a positive integer or the string 'infinity'"
     )
   adj = rdmolops.GetAdjacencyMatrix(mol)
   # Handle edge case of self-pairs (i, i)
   sum_adj = np.eye(N)
-  for i in range(max_pair_distance):
+  for i in range(max_distance):
     # Increment by 1 since we don't want 0-indexing
     power = i + 1
     sum_adj += np.linalg.matrix_power(adj, power)
@@ -522,9 +524,6 @@ def pair_features(
   num_pairs = pair_edges.shape[1]
   N_edges = pair_edges.shape[1]
   features = np.zeros((N_edges, bt_len + max_distance + 1))
-  #if max_pair_distance == "infinity":
-  #  features = np.zeros((N, N, bt_len + max_distance + 1))
-  #else:
   # Get mapping
   mapping = {}
   for n in range(N_edges):
@@ -555,8 +554,6 @@ def pair_features(
             features[n, bt_len] = 0
           else:
             features[n, bt_len] = 1
-        #features[a1, ring, bt_len] = 1
-        #features[a1, a1, bt_len] = 0.
     # graph distance between two atoms
     if graph_distance:
       # distance is a matrix of 1-hot encoded distances for all atoms
@@ -578,10 +575,6 @@ def pair_features(
     features[:, :, -1] = np.sqrt(np.sum(np.square(
       np.stack([coords] * N, axis=1) - \
       np.stack([coords] * N, axis=0)), axis=2))
-
-  #if max_pair_distance == "infinity":
-  #  features = np.reshape(features, (N * N, bt_len + max_distance + 1))
-  #  return features
 
   return features, pair_edges
 
