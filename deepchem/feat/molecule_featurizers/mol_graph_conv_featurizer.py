@@ -71,7 +71,7 @@ def _construct_bond_feature(bond: RDKitBond) -> List[float]:
 
 
 class MolGraphConvFeaturizer(MolecularFeaturizer):
-  """This class is a featurizer of gerneral graph convolution networks for molecules.
+  """This class is a featurizer of general graph convolution networks for molecules.
 
   The default node(atom) and edge(bond) representations are based on
   `WeaveNet paper <https://arxiv.org/abs/1603.00856>`_. If you want to use your own representations,
