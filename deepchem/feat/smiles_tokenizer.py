@@ -13,9 +13,6 @@ from typing import List
 from transformers import BertTokenizer
 from logging import getLogger
 
-logger = getLogger(__name__)
-
-
 try:
   from transformers import BertTokenizer
 except ModuleNotFoundError:
@@ -37,6 +34,11 @@ References
 
 SMI_REGEX_PATTERN = r"""(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|
 #|-|\+|\\|\/|:|~|@|\?|>>?|\*|\$|\%[0-9]{2}|[0-9])"""
+
+logger = getLogger(__name__)
+
+# add vocab_file dict
+VOCAB_FILES_NAMES = {"vocab_file": "vocab.txt"}
 
 
 def get_default_tokenizer():
@@ -76,6 +78,7 @@ class SmilesTokenizer(BertTokenizer):
     This class requires huggingface's transformers and tokenizers libraries to be installed.
 
     """
+  vocab_files_names = VOCAB_FILES_NAMES
 
   def __init__(
       self,
@@ -223,9 +226,7 @@ class SmilesTokenizer(BertTokenizer):
     sep = [self.sep_token]
     cls = [self.cls_token]
 
-    sequence_pair: str = cls + token_0 + sep + token_1 + sep
-
-    return sequence_pair
+    return cls + token_0 + sep + token_1 + sep
 
   def add_special_tokens_ids_sequence_pair(self, token_ids_0: List[int],
                                            token_ids_1: List[int]) -> List[int]:
@@ -301,17 +302,19 @@ class SmilesTokenizer(BertTokenizer):
 
         """
     index = 0
-    vocab_file = vocab_path
+    if os.path.isdir(vocab_path):
+      vocab_file = os.path.join(vocab_path, VOCAB_FILES_NAMES["vocab_file"])
+    else:
+      vocab_file = vocab_path
     with open(vocab_file, "w", encoding="utf-8") as writer:
-      for token, token_index in sorted(
-          self.vocab.items(), key=lambda kv: kv[1]):
+      for token, token_index in sorted(self.vocab.items(), key=lambda kv: kv[1]):
         if index != token_index:
           logger.warning(
-              "Saving vocabulary to {}: vocabulary indices are not consecutive."
-              " Please check that the vocabulary is not corrupted!".format(
-                  vocab_file))
+            "Saving vocabulary to {}: vocabulary indices are not consecutive."
+            " Please check that the vocabulary is not corrupted!".format(vocab_file)
+          )
           index = token_index
-        writer.write(token + u"\n")
+        writer.write(token + "\n")
         index += 1
     return (vocab_file,)
 
