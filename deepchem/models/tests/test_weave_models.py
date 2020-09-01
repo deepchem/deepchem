@@ -16,9 +16,10 @@ from flaky import flaky
 def get_dataset(mode='classification', featurizer='GraphConv', num_tasks=2):
   data_points = 20
   if mode == 'classification':
-    tasks, all_dataset, transformers = load_bace_classification(featurizer)
+    tasks, all_dataset, transformers = load_bace_classification(
+        featurizer, reload=False)
   else:
-    tasks, all_dataset, transformers = load_delaney(featurizer)
+    tasks, all_dataset, transformers = load_delaney(featurizer, reload=False)
 
   train, valid, test = all_dataset
   for i in range(1, num_tasks):

@@ -448,6 +448,8 @@ def max_pair_distance_pairs(mol: RDKitMol,
     raise ValueError(
         "max_pair_distance must either be a positive integer or the string 'infinity'"
     )
+  else:
+    max_distance = max_pair_distance
   adj = rdmolops.GetAdjacencyMatrix(mol)
   # Handle edge case of self-pairs (i, i)
   sum_adj = np.eye(N)
