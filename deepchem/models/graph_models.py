@@ -295,7 +295,7 @@ class WeaveModel(KerasModel):
     pair_feat: np.ndarray
       Of shape `(N_pairs, N_pair_feat)`. Note that `N_pairs` will depend on
       the number of pairs being considered. If `max_pair_distance` is
-      "infinity", then this will be `N_atoms**2`. Else it will be the number
+      `None`, then this will be `N_atoms**2`. Else it will be the number
       of pairs within the specifed graph distance.
     pair_split: np.ndarray
       Of shape `(N_pairs,)`. The i-th entry in this array will tell you the

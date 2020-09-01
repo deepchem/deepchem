@@ -446,8 +446,7 @@ def max_pair_distance_pairs(mol: RDKitMol,
     max_distance = N
   elif max_pair_distance is not None and max_pair_distance <= 0:
     raise ValueError(
-        "max_pair_distance must either be a positive integer or the string 'infinity'"
-    )
+        "max_pair_distance must either be a positive integer or None")
   elif max_pair_distance is not None:
     max_distance = max_pair_distance
   adj = rdmolops.GetAdjacencyMatrix(mol)
@@ -813,12 +812,9 @@ class WeaveFeaturizer(MolecularFeaturizer):
     self.explicit_H = explicit_H
     # If uses use_chirality
     self.use_chirality = use_chirality
-    if (isinstance(max_pair_distance, int) and
-        max_pair_distance <= 0) or (isinstance(max_pair_distance, str) and
-                                    max_pair_distance != "infinity"):
+    if isinstance(max_pair_distance, int) and max_pair_distance <= 0:
       raise ValueError(
-          "max_pair_distance must either be a positive integer or the string 'infinity'"
-      )
+          "max_pair_distance must either be a positive integer or None")
     self.max_pair_distance = max_pair_distance
     if self.use_chirality:
       self.bt_len = int(GraphConvConstants.bond_fdim_base) + len(
