@@ -13,12 +13,12 @@ from typing import List
 from transformers import BertTokenizer
 from logging import getLogger
 
+logger = getLogger(__name__)
+
 try:
   from transformers import BertTokenizer
 except ModuleNotFoundError:
   logger.warning("HuggingFace transformers is not available. Please install using 'pip install transformers' to use the SmilesTokenizer")
-  print("HuggingFace transformers is not available. Please install using 'pip install transformers' to use the SmilesTokenizer.")
-  pass
 
 """
 SMI_REGEX_PATTERN: str
@@ -34,8 +34,6 @@ References
 
 SMI_REGEX_PATTERN = r"""(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|
 #|-|\+|\\|\/|:|~|@|\?|>>?|\*|\$|\%[0-9]{2}|[0-9])"""
-
-logger = getLogger(__name__)
 
 # add vocab_file dict
 VOCAB_FILES_NAMES = {"vocab_file": "vocab.txt"}
