@@ -444,11 +444,13 @@ def max_pair_distance_pairs(mol: RDKitMol,
       max_pair_distance == "infinity") or (isinstance(max_pair_distance, int)
                                            and max_pair_distance >= N):
     max_distance = N
-  elif (isinstance(max_pair_distance, int) and max_pair_distance <= 0):
+  elif (
+      (isinstance(max_pair_distance, int) and max_pair_distance <= 0) or
+      (isinstance(max_pair_distance, str) and max_pair_distance != "infinity")):
     raise ValueError(
         "max_pair_distance must either be a positive integer or the string 'infinity'"
     )
-  else:
+  elif isinstance(max_pair_distance, int):
     max_distance = max_pair_distance
   adj = rdmolops.GetAdjacencyMatrix(mol)
   # Handle edge case of self-pairs (i, i)
