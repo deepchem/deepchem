@@ -15,6 +15,8 @@ fi
 
 if [ "$0" = "gpu" ];
 then
+    # We expect that the CUDA vesion is 10.1.
+    # This is because TensorFlow mainly supports CUDA 10.1.
     cuda=cu101
     dgl_pkg=dgl-cu101
     echo "Installing DeepChem in the GPU envirionment"
@@ -32,15 +34,10 @@ pip install -r $PWD/requirements-test.txt
 
 # Fixed packages
 tensorflow=2.2.0
-tensorflow_probability=0.10.1
-torch=1.5.1
-torchvision=0.6.1
-torch_scatter=2.0.5
-torch_sparse=0.6.6
-torch_cluster=1.5.6
-torch_spline_conv=1.2.0
-torch_geometric=1.6.0
-dgl=0.4.3.post2
+tensorflow_probability==0.10.1
+torch=1.6.0
+torchvision=0.7.0
+pyg_torch=1.6.0
 
 # Install TensorFlow dependencies
 pip install tensorflow==$tensorflow tensorflow-probability==$tensorflow_probability
@@ -55,10 +52,9 @@ else
 fi
 
 # Install PyTorch Geometric and DGL dependencies
-TORCH=1.5.0
-pip install torch-scatter==$torch_scatter+$cuda -f https://pytorch-geometric.com/whl/torch-$TORCH.html
-pip install torch-sparse==$torch_sparse+$cuda -f https://pytorch-geometric.com/whl/torch-$TORCH.html
-pip install torch-cluster==$torch_cluster+$cuda -f https://pytorch-geometric.com/whl/torch-$TORCH.html
-pip install torch-spline-conv==$torch_spline_conv+$cuda -f https://pytorch-geometric.com/whl/torch-$TORCH.html
-pip install torch-geometric==$torch_geometric
-pip install $dgl_pkg==$dgl
+pip install torch-scatter==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
+pip install torch-sparse==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
+pip install torch-cluster==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
+pip install torch-spline-conv==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
+pip install torch-geometric
+pip install $dgl_pkg

@@ -3,19 +3,18 @@ Experimental bandgaps for inorganic crystals.
 """
 import os
 import logging
+
 import deepchem
-from deepchem.feat import Featurizer, MaterialStructureFeaturizer, MaterialCompositionFeaturizer
-from deepchem.trans import Transformer
+from deepchem.feat import MaterialCompositionFeaturizer
 from deepchem.splits.splitters import Splitter
 from deepchem.molnet.defaults import get_defaults
 
-from typing import List, Tuple, Dict, Optional, Union, Any, Type
+from typing import List, Tuple, Dict, Optional, Any
 
 logger = logging.getLogger(__name__)
 
-# TODO: Change URLs
 DEFAULT_DIR = deepchem.utils.get_data_dir()
-BANDGAP_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/expt_gap.tar.gz'
+BANDGAP_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/expt_gap.tar.gz'
 
 # dict of accepted featurizers for this dataset
 # modify the returned dicts for your dataset
@@ -45,7 +44,7 @@ def load_bandgap(
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
-    featurizer_kwargs: Dict[str, Any] = {'data_source': 'matminer'},
+    featurizer_kwargs: Dict[str, Any] = {},
     splitter_kwargs: Dict[str, Any] = {
         'frac_train': 0.8,
         'frac_valid': 0.1,
@@ -60,17 +59,16 @@ def load_bandgap(
   """Load band gap dataset.
 
   Contains 4604 experimentally measured band gaps for inorganic
-  crystal structure compositions. In benchmark studies, random forest 
-  models achieved a mean average error of 0.45 eV during five-fold 
-  nested cross validation on this dataset. 
+  crystal structure compositions. In benchmark studies, random forest
+  models achieved a mean average error of 0.45 eV during five-fold
+  nested cross validation on this dataset.
 
   For more details on the dataset see [1]_. For more details
   on previous benchmarks for this dataset, see [2]_.
-  
+
   Parameters
   ----------
-  featurizer : MaterialCompositionFeaturizer 
-    (default ElementPropertyFingerprint)
+  featurizer : MaterialCompositionFeaturizer (default ElementPropertyFingerprint)
     A featurizer that inherits from deepchem.feat.Featurizer.
   transformers : List[Transformer]
     A transformer that inherits from deepchem.trans.Transformer.
@@ -79,9 +77,9 @@ def load_bandgap(
   reload : bool (default True)
     Try to reload dataset from disk if already downloaded. Save to disk
     after featurizing.
-  data_dir : str, optional
+  data_dir : str, optional (default None)
     Path to datasets.
-  save_dir : str, optional
+  save_dir : str, optional (default None)
     Path to featurized datasets.
   featurizer_kwargs : Dict[str, Any]
     Specify parameters to featurizer, e.g. {"size": 1024}
@@ -106,9 +104,10 @@ def load_bandgap(
 
   References
   ----------
-  .. [1] Zhuo, Y. et al. "Predicting the Band Gaps of Inorganic Solids by Machine Learning." J. Phys. Chem. Lett. (2018) DOI: 10.1021/acs.jpclett.8b00124.
-
-  .. [2] Dunn, A. et al. "Benchmarking Materials Property Prediction Methods: The Matbench Test Set and Automatminer Reference Algorithm." https://arxiv.org/abs/2005.00707 (2020)
+  .. [1] Zhuo, Y. et al. "Predicting the Band Gaps of Inorganic Solids by Machine Learning."
+     J. Phys. Chem. Lett. (2018) DOI: 10.1021/acs.jpclett.8b00124.
+  .. [2] Dunn, A. et al. "Benchmarking Materials Property Prediction Methods: The Matbench Test Set
+     and Automatminer Reference Algorithm." https://arxiv.org/abs/2005.00707 (2020)
 
   Examples
   --------
@@ -159,12 +158,13 @@ def load_bandgap(
 
   # Load .tar.gz file
   if featurizer.__class__.__name__ in supported_featurizers:
-    dataset_file = os.path.join(data_dir, 'expt_gap.tar.gz')
-    deepchem.utils.untargz_file(dataset_file, dest_dir=data_dir)
     dataset_file = os.path.join(data_dir, 'expt_gap.json')
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=BANDGAP_URL, dest_dir=data_dir)
+      targz_file = os.path.join(data_dir, 'expt_gap.tar.gz')
+      if not os.path.exists(targz_file):
+        deepchem.utils.download_url(url=BANDGAP_URL, dest_dir=data_dir)
+
       deepchem.utils.untargz_file(
           os.path.join(data_dir, 'expt_gap.tar.gz'), data_dir)
 

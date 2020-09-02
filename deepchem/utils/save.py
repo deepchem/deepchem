@@ -80,6 +80,44 @@ def load_data(input_files: List[str],
       yield load_pickle_from_disk(input_file)
 
 
+def load_image_files(image_files: List[str]) -> np.ndarray:
+  """Loads a set of images from disk.
+
+  Parameters
+  ----------
+  image_files: List[str]
+    List of image filenames to load.
+
+  Returns
+  -------
+  np.ndarray
+    A numpy array that contains loaded images. The shape is, `(N,...)`.
+
+  Notes
+  -----
+  This method requires Pillow to be installed.
+  """
+  try:
+    from PIL import Image
+  except ModuleNotFoundError:
+    raise ValueError("This function requires Pillow to be installed.")
+
+  images = []
+  for image_file in image_files:
+    _, extension = os.path.splitext(image_file)
+    extension = extension.lower()
+    if extension == ".png":
+      image = np.array(Image.open(image_file))
+      images.append(image)
+    elif extension == ".tif":
+      im = Image.open(image_file)
+      imarray = np.array(im)
+      images.append(imarray)
+    else:
+      raise ValueError("Unsupported image filetype for %s" % image_file)
+  return np.array(images)
+
+
 def load_sdf_files(input_files: List[str],
                    clean_mols: bool = True,
                    tasks: List[str] = [],
@@ -291,26 +329,6 @@ def encode_bio_sequence(fname, file_type="fasta", letters="ATCGN"):
   return encode_sequence(fname, file_type=file_type, letters=letters)
 
 
-def save_metadata(tasks, metadata_df, data_dir):
-  """Saves the metadata for a DiskDataset
-
-  Parameters
-  ----------
-  tasks: list of str
-    Tasks of DiskDataset
-  metadata_df: pd.DataFrame
-  data_dir: str
-    Directory to store metadata
-  """
-  if isinstance(tasks, np.ndarray):
-    tasks = tasks.tolist()
-  metadata_filename = os.path.join(data_dir, "metadata.csv.gzip")
-  tasks_filename = os.path.join(data_dir, "tasks.json")
-  with open(tasks_filename, 'w') as fout:
-    json.dump(tasks, fout)
-  metadata_df.to_csv(metadata_filename, index=False, compression='gzip')
-
-
 def load_from_disk(filename):
   """Load a dataset from file."""
   name = filename
@@ -367,7 +385,21 @@ def load_pickle_from_disk(filename):
 
 
 def load_dataset_from_disk(save_dir):
-  """
+  """Loads MoleculeNet train/valid/test/transformers from disk.
+
+  Expects that data was saved using `save_dataset_to_disk` below. Expects the
+  following directory structure for `save_dir`:
+  
+  save_dir/
+    |
+    ---> train_dir/
+    |
+    ---> valid_dir/
+    |
+    ---> test_dir/
+    |
+    ---> transformers.pkl
+
   Parameters
   ----------
   save_dir: str
@@ -381,6 +413,9 @@ def load_dataset_from_disk(save_dir):
   transformers: list of dc.trans.Transformer
     The transformers used for this dataset
 
+  See Also
+  --------
+  save_dataset_to_disk
   """
 
   train_dir = os.path.join(save_dir, "train_dir")
@@ -401,6 +436,39 @@ def load_dataset_from_disk(save_dir):
 
 
 def save_dataset_to_disk(save_dir, train, valid, test, transformers):
+  """Utility used by MoleculeNet to save train/valid/test datasets.
+
+  This utility function saves a train/valid/test split of a dataset along
+  with transformers in the same directory. The saved datasets will take the
+  following structure:
+  
+  save_dir/
+    |
+    ---> train_dir/
+    |
+    ---> valid_dir/
+    |
+    ---> test_dir/
+    |
+    ---> transformers.pkl
+
+  Parameters
+  ----------
+  save_dir: str
+    Filename of directory to save datasets to.
+  train: DiskDataset
+    Training dataset to save.
+  valid: DiskDataset
+    Validation dataset to save.
+  test: DiskDataset
+    Test dataset to save.
+  transformers: List
+    List of transformers to save to disk.
+
+  See Also
+  --------
+  load_dataset_from_disk 
+  """
   train_dir = os.path.join(save_dir, "train_dir")
   valid_dir = os.path.join(save_dir, "valid_dir")
   test_dir = os.path.join(save_dir, "test_dir")

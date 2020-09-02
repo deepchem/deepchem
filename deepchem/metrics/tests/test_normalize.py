@@ -1,7 +1,7 @@
 """Test normalization of input."""
 
 import numpy as np
-import unittest
+
 import deepchem as dc
 from deepchem.metrics import to_one_hot
 from deepchem.metrics import from_one_hot

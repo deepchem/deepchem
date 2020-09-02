@@ -56,8 +56,6 @@ File Handling
 
 .. autofunction:: deepchem.utils.save.load_json_files
 
-.. autofunction:: deepchem.utils.save.save_metadata
-
 .. autofunction:: deepchem.utils.save.load_from_disk
 
 .. autofunction:: deepchem.utils.save.load_pickle_from_disk
@@ -132,7 +130,6 @@ Evaluation Utils
 
 .. autofunction:: deepchem.utils.evaluate.relative_difference
 
-.. autofunction:: deepchem.utils.evaluate.threshold_predictions
 
 Genomic Utilities
 -----------------
@@ -172,3 +169,42 @@ Voxel Utils
 .. autofunction:: deepchem.utils.voxel_utils.convert_atom_pair_to_voxel
 
 .. autofunction:: deepchem.utils.voxel_utils.voxelize
+
+
+Graph Convolution Utilities
+---------------------------
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.one_hot_encode
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_atom_type_one_hot
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.construct_hydrogen_bonding_info
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_atom_hydrogen_bonding_one_hot
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_atom_is_in_aromatic_one_hot
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_atom_hybridization_one_hot
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_atom_total_num_Hs_one_hot
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_atom_chirality_one_hot
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_atom_formal_charge
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_atom_partial_charge
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_atom_ring_size_one_hot
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_atom_total_degree_one_hot
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_bond_type_one_hot
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_bond_is_in_same_ring_one_hot
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_bond_is_conjugated_one_hot
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_bond_stereo_one_hot
+
+.. autofunction:: deepchem.utils.molecule_feature_utils.get_bond_graph_distance_one_hot
+

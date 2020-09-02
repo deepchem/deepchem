@@ -141,51 +141,6 @@ def test_graph_conv_atom_features():
   y_pred1 = model.predict(dataset)
 
 
-@flaky
-@pytest.mark.slow
-def test_weave_model():
-  tasks, dataset, transformers, metric = get_dataset('classification', 'Weave')
-
-  batch_size = 20
-  model = WeaveModel(
-      len(tasks),
-      batch_size=batch_size,
-      mode='classification',
-      fully_connected_layer_sizes=[2000, 1000],
-      batch_normalize=True,
-      batch_normalize_kwargs={
-          "fused": False,
-          "trainable": True,
-          "renorm": True
-      },
-      learning_rage=0.0005)
-  model.fit(dataset, nb_epoch=200)
-  scores = model.evaluate(dataset, [metric], transformers)
-  assert scores['mean-roc_auc_score'] >= 0.9
-
-
-@pytest.mark.slow
-def test_weave_regression_model():
-  import numpy as np
-  import tensorflow as tf
-  tf.random.set_seed(123)
-  np.random.seed(123)
-  tasks, dataset, transformers, metric = get_dataset('regression', 'Weave')
-
-  batch_size = 10
-  model = WeaveModel(
-      len(tasks),
-      batch_size=batch_size,
-      mode='regression',
-      batch_normalize=False,
-      fully_connected_layer_sizes=[],
-      dropouts=0,
-      learning_rate=0.0005)
-  model.fit(dataset, nb_epoch=200)
-  scores = model.evaluate(dataset, [metric], transformers)
-  assert scores['mean_absolute_error'] < 0.1
-
-
 @pytest.mark.slow
 def test_dag_model():
   tasks, dataset, transformers, metric = get_dataset('classification',

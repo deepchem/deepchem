@@ -131,9 +131,9 @@ class MAML(object):
     # Create the optimizers for meta-optimization and task optimization.
 
     self._global_step = tf.Variable(0, trainable=False)
-    self._tf_optimizer = optimizer._create_optimizer(self._global_step)
+    self._tf_optimizer = optimizer._create_tf_optimizer(self._global_step)
     task_optimizer = GradientDescent(learning_rate=self.learning_rate)
-    self._tf_task_optimizer = task_optimizer._create_optimizer(
+    self._tf_task_optimizer = task_optimizer._create_tf_optimizer(
         self._global_step)
 
     # Create a Checkpoint for saving.

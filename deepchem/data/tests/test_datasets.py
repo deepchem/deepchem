@@ -1,24 +1,15 @@
 """
 Tests for dataset creation
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import random
 import math
 import unittest
-import tempfile
 import os
-import shutil
 import numpy as np
 import deepchem as dc
-import tensorflow as tf
-import pandas as pd
-from tensorflow.python.framework import test_util
 
 try:
-  import torch
+  import torch  # noqa
   PYTORCH_IMPORT_FAILED = False
 except ImportError:
   PYTORCH_IMPORT_FAILED = True
@@ -29,7 +20,6 @@ def load_solubility_data():
   current_dir = os.path.dirname(os.path.abspath(__file__))
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]
-  task_type = "regression"
   input_file = os.path.join(current_dir, "../../models/tests/example.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, smiles_field="smiles", featurizer=featurizer)
@@ -111,7 +101,6 @@ def test_pad_features():
   """Test that pad_features pads features correctly."""
   batch_size = 100
   num_features = 10
-  num_tasks = 5
 
   # Test cases where n_samples < 2*n_samples < batch_size
   n_samples = 29
@@ -283,30 +272,8 @@ def test_reshard():
   np.testing.assert_array_equal(ids, ids_rr)
 
 
-def test_select():
-  """Test that dataset select works."""
-  num_datapoints = 10
-  num_features = 10
-  num_tasks = 1
-  X = np.random.rand(num_datapoints, num_features)
-  y = np.random.randint(2, size=(num_datapoints, num_tasks))
-  w = np.ones((num_datapoints, num_tasks))
-  ids = np.array(["id"] * num_datapoints)
-  dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
-
-  indices = [0, 4, 5, 8]
-  select_dataset = dataset.select(indices)
-  X_sel, y_sel, w_sel, ids_sel = (select_dataset.X, select_dataset.y,
-                                  select_dataset.w, select_dataset.ids)
-  np.testing.assert_array_equal(X[indices], X_sel)
-  np.testing.assert_array_equal(y[indices], y_sel)
-  np.testing.assert_array_equal(w[indices], w_sel)
-  np.testing.assert_array_equal(ids[indices], ids_sel)
-
-
 def test_complete_shuffle():
   shard_sizes = [1, 2, 3, 4, 5]
-  batch_size = 10
 
   all_Xs, all_ys, all_ws, all_ids = [], [], [], []
 
@@ -341,26 +308,6 @@ def test_complete_shuffle():
   np.testing.assert_array_equal(
       np.sort(dataset.w, axis=0), np.sort(res.w, axis=0))
   np.testing.assert_array_equal(np.sort(dataset.ids), np.sort(res.ids))
-
-
-def test_get_shape():
-  """Test that get_shape works."""
-  num_datapoints = 100
-  num_features = 10
-  num_tasks = 10
-  # Generate data
-  X = np.random.rand(num_datapoints, num_features)
-  y = np.random.randint(2, size=(num_datapoints, num_tasks))
-  w = np.random.randint(2, size=(num_datapoints, num_tasks))
-  ids = np.array(["id"] * num_datapoints)
-
-  dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-  X_shape, y_shape, w_shape, ids_shape = dataset.get_shape()
-  assert X_shape == X.shape
-  assert y_shape == y.shape
-  assert w_shape == w.shape
-  assert ids_shape == ids.shape
 
 
 def test_iterbatches():
@@ -550,7 +497,7 @@ def test_disk_iterate_y_w_None():
   shard_sizes = [21, 11, 41, 21, 51]
   batch_size = 10
 
-  all_Xs, all_ys, all_ws, all_ids = [], [], [], []
+  all_Xs, all_ids = [], []
 
   def shard_generator():
     for sz in shard_sizes:
@@ -774,9 +721,26 @@ def _validate_pytorch_dataset(dataset):
     id_count[iter_id] += 1
   assert all(id_count[id] == 2 for id in ids)
 
+  # Test iterating in batches.
+
+  ds = dataset.make_pytorch_dataset(epochs=2, deterministic=False, batch_size=7)
+  id_to_index = dict((id, i) for i, id in enumerate(ids))
+  id_count = dict((id, 0) for id in ids)
+  for iter_X, iter_y, iter_w, iter_id in ds:
+    size = len(iter_id)
+    assert size <= 7
+    for i in range(size):
+      j = id_to_index[iter_id[i]]
+      np.testing.assert_array_equal(X[j, :], iter_X[i])
+      np.testing.assert_array_equal(y[j, :], iter_y[i])
+      np.testing.assert_array_equal(w[j, :], iter_w[i])
+      id_count[iter_id[i]] += 1
+  assert all(id_count[id] == 2 for id in ids)
+
   # Test iterating with multiple workers.
 
-  import torch
+  import torch  # noqa
+  ds = dataset.make_pytorch_dataset(epochs=2, deterministic=False)
   loader = torch.utils.data.DataLoader(ds, num_workers=3)
   id_count = dict((id, 0) for id in ids)
   for iter_X, iter_y, iter_w, iter_id in loader:
@@ -839,7 +803,7 @@ def test_to_str():
   assert str(dataset) == ref_str
 
 
-class TestDatasets(test_util.TensorFlowTestCase):
+class TestDatasets(unittest.TestCase):
   """
   Test basic top-level API for dataset objects.
   """

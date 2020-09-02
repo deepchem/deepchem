@@ -141,7 +141,7 @@ Then, execute the shell script.
     bash scripts/install_deepchem_conda.sh cpu
 
 
-If you want GPU support:
+If you want GPU support (we supports only CUDA 10.1):
 
 .. code-block:: bash
 
@@ -162,7 +162,7 @@ If you are using the Windows and the PowerShell:
 .. code-block:: bash
 
     conda activate deepchem
-    python setup.py install
+    pip install -e .
     pytest -m "not slow" deepchem # optional
 
 

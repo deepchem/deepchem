@@ -3,7 +3,7 @@ Docks Molecular Complexes
 """
 import logging
 import tempfile
-from typing import cast, Generator, Optional, Tuple, Union
+from typing import Generator, Optional, Tuple, Union
 import numpy as np
 
 from deepchem.utils.typing import RDKitMol
@@ -128,8 +128,8 @@ class Docker(object):
     # We know use_pose_generator_scores == False in this case
     if self.scoring_model is not None:
       for posed_complex in complexes:
-        # NOTE: this casting is workaround. This line doesn't effect anything to the runtime
-        self.featurizer = cast(ComplexFeaturizer, self.featurizer)
+        # check whether self.featurizer is instance of ComplexFeaturizer or not
+        assert isinstance(self.featurizer, ComplexFeaturizer)
         # TODO: How to handle the failure here?
         (protein_file, ligand_file) = molecular_complex
         features, _ = self.featurizer.featurize([protein_file], [ligand_file])
