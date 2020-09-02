@@ -13,10 +13,10 @@ class TestSmilesTokenizer(TestCase):
     vocab_path = os.path.join(current_dir, 'data', 'vocab.txt')
     tokenized_smiles = [12, 16, 16, 16, 17, 16, 16, 18, 16, 19, 16, 17, 22, 19,
                         18, 33, 17, 16, 18, 23, 181, 17, 22, 19, 18, 17, 19, 16,
-                        33, 20, 19, 55, 17, 16, 38, 23, 18, 17, 33, 17, 19, 18,
-                        35, 20, 19, 18, 16, 20, 22, 16, 16, 22, 16, 21, 23, 20,
-                        23, 22, 16, 23, 22, 16, 21, 23, 18, 19, 16, 20, 22, 16,
-                        16, 22, 16, 16, 22, 16, 20, 13]
+                        33, 20, 19, 55, 17, 16, 23, 18, 17, 33, 17, 19, 18, 35,
+                        20, 19, 18, 16, 20, 22, 16, 16, 22, 16, 21, 23, 20, 23,
+                        22, 16, 23, 22, 16, 21, 23, 18, 19, 16, 20, 22, 16, 16,
+                        22, 16, 16, 22, 16, 20, 13]
 
     model = RobertaForMaskedLM.from_pretrained(
         'seyonec/SMILES_tokenized_PubChem_shard00_50k')
@@ -27,3 +27,8 @@ class TestSmilesTokenizer(TestCase):
 
     assert tokenized_smiles == tokenizer.encode(
         "CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@H]1O[C@](C#N)([C@H](O)[C@@H]1O)C1=CC=C2N1N=CN=C2N)OC1=CC=CC=C1")
+
+
+if __name__ == '__main__':
+  test_tokenizer = TestSmilesTokenizer()
+  test_tokenizer.test_tokenize()
