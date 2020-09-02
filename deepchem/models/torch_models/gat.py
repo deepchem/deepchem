@@ -51,7 +51,7 @@ class GAT(nn.Module):
 
   def __init__(
       self,
-      in_node_dim: int = 38,
+      in_node_dim: int = 39,
       hidden_node_dim: int = 64,
       heads: int = 4,
       dropout: float = 0.0,
@@ -64,8 +64,8 @@ class GAT(nn.Module):
     """
     Parameters
     ----------
-    in_node_dim: int, default 38
-      The length of the initial node feature vectors. The 38 is
+    in_node_dim: int, default 39
+      The length of the initial node feature vectors. The 39 is
       based on `MolGraphConvFeaturizer`.
     hidden_node_dim: int, default 64
       The length of the hidden node feature vectors.
@@ -176,7 +176,7 @@ class GATModel(TorchModel):
   """
 
   def __init__(self,
-               in_node_dim: int = 38,
+               in_node_dim: int = 39,
                hidden_node_dim: int = 64,
                heads: int = 4,
                dropout: float = 0.0,
@@ -191,8 +191,8 @@ class GATModel(TorchModel):
 
     Parameters
     ----------
-    in_node_dim: int, default 38
-      The length of the initial node feature vectors. The 38 is
+    in_node_dim: int, default 39
+      The length of the initial node feature vectors. The 39 is
       based on `MolGraphConvFeaturizer`.
     hidden_node_dim: int, default 64
       The length of the hidden node feature vectors.

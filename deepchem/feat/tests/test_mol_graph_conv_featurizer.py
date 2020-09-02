@@ -13,13 +13,13 @@ class TestMolGraphConvFeaturizer(unittest.TestCase):
 
     # assert "C1=CC=CN=C1"
     assert graph_feat[0].num_nodes == 6
-    assert graph_feat[0].num_node_features == 38
+    assert graph_feat[0].num_node_features == 39
     assert graph_feat[0].num_edges == 12
     assert graph_feat[0].num_edge_features == 11
 
     # assert "O=C(NCc1cc(OC)c(O)cc1)CCCC/C=C/C(C)C"
     assert graph_feat[1].num_nodes == 22
-    assert graph_feat[1].num_node_features == 38
+    assert graph_feat[1].num_node_features == 39
     assert graph_feat[1].num_edges == 44
     assert graph_feat[1].num_edge_features == 11
 
@@ -31,12 +31,12 @@ class TestMolGraphConvFeaturizer(unittest.TestCase):
 
     # assert "C1=CC=CN=C1"
     assert graph_feat[0].num_nodes == 6
-    assert graph_feat[0].num_node_features == 38
+    assert graph_feat[0].num_node_features == 39
     assert graph_feat[0].num_edges == 12 + 6
     assert graph_feat[0].num_edge_features == 11
 
     # assert "O=C(NCc1cc(OC)c(O)cc1)CCCC/C=C/C(C)C"
     assert graph_feat[1].num_nodes == 22
-    assert graph_feat[1].num_node_features == 38
+    assert graph_feat[1].num_node_features == 39
     assert graph_feat[1].num_edges == 44 + 22
     assert graph_feat[1].num_edge_features == 11

@@ -33,15 +33,15 @@ class TestGraphConvUtils(unittest.TestCase):
     atoms = self.mol.GetAtoms()
     assert atoms[0].GetSymbol() == "C"
     one_hot = get_atom_type_one_hot(atoms[0])
-    assert one_hot == [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    assert one_hot == [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     # check unknown atoms
     atoms = self.mol_copper_sulfate.GetAtoms()
     assert atoms[0].GetSymbol() == "Cu"
     one_hot = get_atom_type_one_hot(atoms[0])
-    assert one_hot == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    assert one_hot == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
     one_hot = get_atom_type_one_hot(atoms[0], include_unknown_set=False)
-    assert one_hot == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    assert one_hot == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     # check original set
     atoms = self.mol.GetAtoms()

@@ -24,6 +24,7 @@ DEFAULT_ATOM_TYPE_SET = [
     "F",
     "P",
     "S",
+    "Cl",
     "Br",
     "I",
 ]
