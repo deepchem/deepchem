@@ -18,8 +18,8 @@ logger = getLogger(__name__)
 try:
   from transformers import BertTokenizer
 except ModuleNotFoundError:
-  logger.warning("HuggingFace transformers is not available. Please install using 'pip install transformers' to use the SmilesTokenizer")
-
+  logger.warning(
+      "HuggingFace transformers is not available. Please install using 'pip install transformers' to use the SmilesTokenizer")
 """
 SMI_REGEX_PATTERN: str
     SMILES regex pattern for tokenization. Designed by Schwaller et. al. 
@@ -306,12 +306,13 @@ class SmilesTokenizer(BertTokenizer):
     else:
       vocab_file = vocab_path
     with open(vocab_file, "w", encoding="utf-8") as writer:
-      for token, token_index in sorted(self.vocab.items(), key=lambda kv: kv[1]):
+      for token, token_index in sorted(
+          self.vocab.items(), key=lambda kv: kv[1]):
         if index != token_index:
           logger.warning(
-            "Saving vocabulary to {}: vocabulary indices are not consecutive."
-            " Please check that the vocabulary is not corrupted!".format(vocab_file)
-          )
+              "Saving vocabulary to {}: vocabulary indices are not consecutive."
+              " Please check that the vocabulary is not corrupted!".format(
+                  vocab_file))
           index = token_index
         writer.write(token + "\n")
         index += 1
