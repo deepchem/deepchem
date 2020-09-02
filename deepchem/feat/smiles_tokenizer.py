@@ -203,30 +203,6 @@ class SmilesTokenizer(BertTokenizer):
         """
     return [self.cls_token] + tokens + [self.sep_token]
 
-  def add_special_tokens_sequence_pair(self, token_0: str, token_1: str) -> str:
-    """
-        Adds special tokens to a sequence pair for sequence classification tasks.
-        A BERT sequence pair has the following format: [CLS] A [SEP] B [SEP]
-
-        Parameters
-        ----------
-        token_0: str
-            The first token (A) in the sequence pair.
-        token_1: str
-            The second token (B) in the sequence pair.
-
-        Returns
-        -------
-        Sequence with added special tokens, [SEP] and [CLS], in the following format:
-        [CLS] A [SEP] B [SEP]
-
-        """
-
-    sep = [self.sep_token]
-    cls = [self.cls_token]
-
-    return cls + token_0 + sep + token_1 + sep
-
   def add_special_tokens_ids_sequence_pair(self, token_ids_0: List[int],
                                            token_ids_1: List[int]) -> List[int]:
     """
