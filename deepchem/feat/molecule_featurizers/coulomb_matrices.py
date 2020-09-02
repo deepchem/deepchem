@@ -17,8 +17,9 @@ class CoulombMatrix(MolecularFeaturizer):
   Coulomb matrices provide a representation of the electronic structure of a
   molecule. This method is described in [1]_.
 
-  Example
-  -------
+  Examples
+  --------
+  >>> import deepchem as dc
   >>> featurizers = dc.feat.CoulombMatrix(max_atoms=23)
   >>> input_file = 'deepchem/feat/tests/data/water.sdf' # really backed by water.sdf.csv
   >>> tasks = ["atomization_energy"]

@@ -9,7 +9,7 @@ from deepchem.feat.base_classes import MolecularFeaturizer
 
 
 class SmilesToImage(MolecularFeaturizer):
-  """Convert Smiles string to an image.
+  """Convert SMILES string to an image.
 
   SmilesToImage Featurizer takes a SMILES string, and turns it into an image.
   Details taken from [1]_.
@@ -75,7 +75,8 @@ class SmilesToImage(MolecularFeaturizer):
     Returns
     -------
     np.ndarray
-      1D array of a SMILES sequence.
+      A 3D array of image, the default shape is `(80, 80, 1)`.
+      If the length of SMILES is longer than `max_len`, this value is an empty array.
     """
     try:
       from rdkit import Chem
@@ -85,7 +86,7 @@ class SmilesToImage(MolecularFeaturizer):
 
     smile = Chem.MolToSmiles(mol)
     if len(smile) > self.max_len:
-      return list()
+      return np.array([])
 
     cmol = Chem.Mol(mol.ToBinary())
     cmol.ComputeGasteigerCharges()

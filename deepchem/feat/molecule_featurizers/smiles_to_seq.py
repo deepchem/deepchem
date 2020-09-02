@@ -21,11 +21,11 @@ def create_char_to_idx(filename: str,
 
   Parameters
   ----------
-  filename: str,
+  filename: str
       Name of the file containing the SMILES strings
   max_len: int, default 250
       Maximum allowed length of the SMILES string
-  smiles_field: str, default smiles
+  smiles_field: str, default "smiles"
       Field indicating the SMILES strings int the file.
   verbose: bool, default True
       Whether to print the progress
@@ -68,9 +68,9 @@ class SmilesToSeq(MolecularFeaturizer):
   References
   ----------
   .. [1] Goh, Garrett B., et al. "Using rule-based labels for weak supervised
-         learning: a ChemNet for transferable chemical property prediction."
-         Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
-         Discovery & Data Mining. 2018.
+     learning: a ChemNet for transferable chemical property prediction."
+     Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
+     Discovery & Data Mining. 2018.
 
   Notes
   -----
@@ -88,7 +88,7 @@ class SmilesToSeq(MolecularFeaturizer):
     char_to_idx: Dict
       Dictionary containing character to index mappings for unique characters
     max_len: int, default 250
-      Maximum allowed length of the SMILES string
+      Maximum allowed length of the SMILES string.
     pad_len: int, default 10
       Amount of padding to add on either side of the SMILES seq
     """
@@ -135,7 +135,8 @@ class SmilesToSeq(MolecularFeaturizer):
     Returns
     -------
     np.ndarray
-      1D array of a SMILES sequence.
+      A 1D array of a SMILES sequence.
+      If the length of SMILES is longer than `max_len`, this value is an empty array.
     """
     try:
       from rdkit import Chem
@@ -144,7 +145,7 @@ class SmilesToSeq(MolecularFeaturizer):
 
     smile = Chem.MolToSmiles(mol)
     if len(smile) > self.max_len:
-      return list()
+      return np.array([])
 
     smile_list = list(smile)
     # Extend shorter strings with padding

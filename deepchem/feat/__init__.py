@@ -20,11 +20,9 @@ from deepchem.feat.atomic_coordinates import NeighborListComplexAtomicCoordinate
 
 # molecule featurizers
 from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
-from deepchem.feat.molecule_featurizers import AdjacencyFingerprint
 from deepchem.feat.molecule_featurizers import CircularFingerprint
 from deepchem.feat.molecule_featurizers import CoulombMatrix
 from deepchem.feat.molecule_featurizers import CoulombMatrixEig
-from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.feat.molecule_featurizers import RawFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitDescriptors
 from deepchem.feat.molecule_featurizers import SmilesToImage

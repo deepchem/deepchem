@@ -18,7 +18,7 @@ class RDKitDescriptors(MolecularFeaturizer):
   Attributes
   ----------
   descriptors: List[str]
-    1D array of RDKit descriptor names used in this class.
+    List of RDKit descriptor names used in this class.
 
   Notes
   -----

@@ -71,9 +71,6 @@ def load_hppb(featurizer="ECFP",
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
-  elif featurizer == 'AdjacencyConv':
-    featurizer = deepchem.feat.AdjacencyFingerprint(
-        max_n_atoms=150, max_valence=6)
   elif featurizer == "smiles2img":
     img_spec = kwargs.get("img_spec", "std")
     img_size = kwargs.get("img_size", 80)

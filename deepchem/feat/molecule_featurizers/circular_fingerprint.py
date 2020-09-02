@@ -3,6 +3,10 @@ Topological fingerprints.
 """
 from typing import Dict
 
+
+import numpy as np
+
+
 from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
 
@@ -60,13 +64,18 @@ class CircularFingerprint(MolecularFeaturizer):
     self.sparse = sparse
     self.smiles = smiles
 
-  def _featurize(self, mol: RDKitMol):
+  def _featurize(self, mol: RDKitMol) -> np.ndarray:
     """Calculate circular fingerprint.
 
     Parameters
     ----------
     mol: rdkit.Chem.rdchem.Mol
       RDKit Mol object
+
+    Returns
+    -------
+    np.ndarray
+      A numpy array of circular fingerprint.
     """
     try:
       from rdkit import Chem
@@ -103,6 +112,8 @@ class CircularFingerprint(MolecularFeaturizer):
           useChirality=self.chiral,
           useBondTypes=self.bonds,
           useFeatures=self.features)
+      fp = np.asarray(fp, dtype=np.float)
+
     return fp
 
   def __hash__(self):

@@ -37,7 +37,7 @@ class RawFeaturizer(MolecularFeaturizer):
     Returns
     -------
     str or rdkit.Chem.rdchem.Mol
-      Smiles string or RDKit Mol object.
+      SMILES string or RDKit Mol object.
     """
     try:
       from rdkit import Chem

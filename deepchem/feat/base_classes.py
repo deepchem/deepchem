@@ -5,7 +5,7 @@ import inspect
 import logging
 import numpy as np
 import multiprocessing
-from typing import Any, Dict, List, Iterable, Sequence, Tuple
+from typing import Any, Dict, List, Iterable, Sequence, Tuple, Union
 
 from deepchem.utils.typing import PymatgenStructure
 
@@ -214,7 +214,7 @@ class MolecularFeaturizer(Featurizer):
   The subclasses of this class require RDKit to be installed.
   """
 
-  def featurize(self, molecules, log_every_n=1000, canonical=False):
+  def featurize(self, molecules, log_every_n=1000):
     """Calculate features for molecules.
 
     Parameters
@@ -224,8 +224,6 @@ class MolecularFeaturizer(Featurizer):
       strings.
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
-    canonical: bool, default False
-      Whether to use a canonical order of atoms returned by RDKit
 
     Returns
     -------
@@ -235,6 +233,8 @@ class MolecularFeaturizer(Featurizer):
     try:
       from rdkit import Chem
       from rdkit.Chem.rdchem import Mol
+      from rdkit.Chem import rdmolfiles
+      from rdkit.Chem import rdmolops
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
 

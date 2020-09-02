@@ -122,12 +122,6 @@ AtomCoordinates
 .. autoclass:: deepchem.feat.AtomicCoordinates
   :members:
 
-AdjacencyFingerprint
-^^^^^^^^^^^^^^^^^^^^
-
-.. autoclass:: deepchem.feat.AdjacencyFingerprint
-  :members:
-
 SmilesToSeq
 ^^^^^^^^^^^
 
@@ -221,12 +215,6 @@ BPSymmetryFunctionInput
 -----------------------
 
 .. autoclass:: deepchem.feat.BPSymmetryFunctionInput
-  :members:
-
-OneHotFeaturizer
-----------------
-
-.. autoclass:: deepchem.feat.OneHotFeaturizer
   :members:
 
 RawFeaturizer

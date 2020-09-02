@@ -1,7 +1,18 @@
+from collections import deque
+
+import sys
+import tensorflow as tf
+import pickle
+
+import os
+import fnmatch
 import numpy as np
+from scipy.spatial.distance import pdist, squareform
+import pandas as pd
 
 from deepchem.feat.base_classes import Featurizer
 from deepchem.feat.graph_features import atom_features
+from scipy.sparse import csr_matrix
 
 
 def get_atom_type(atom):
