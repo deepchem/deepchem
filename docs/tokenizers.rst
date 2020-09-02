@@ -24,6 +24,12 @@ SmilesTokenizer
 
 The :code:`dc.feat.SmilesTokenizer` module inherits from the BertTokenizer class. It runs a WordPiece tokenization algorithm over SMILES strings using the tokenisation SMILES regex developed by Schwaller et. al.
 
+The SmilesTokenizer employs an atom-wise tokenization strategy using the following Regex expression:
+
+>>> SMI_REGEX_PATTERN = "(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.
+|¼|#||\+|\\\\\/|:||@|\?|>|\*|\$|\%[0–9]{2}|[0–9])"
+
+
 References:
 
 -  `RXN Mapper: Unsupervised Attention-Guided Atom-Mapping <https://chemrxiv.org/articles/Unsupervised_Attention-Guided_Atom-Mapping/12298559>`_
