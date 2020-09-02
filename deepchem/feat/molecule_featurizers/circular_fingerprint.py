@@ -3,9 +3,7 @@ Topological fingerprints.
 """
 from typing import Dict
 
-
 import numpy as np
-
 
 from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
