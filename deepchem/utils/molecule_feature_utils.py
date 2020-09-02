@@ -131,7 +131,7 @@ def get_atom_type_one_hot(atom: RDKitAtom,
     RDKit atom object
   allowable_set: List[str]
     The atom types to consider. The default set is
-    `["C", "N", "O", "F", "P", "S", "Br", "I"]`.
+    `["C", "N", "O", "F", "P", "S", "Cl", "Br", "I"]`.
   include_unknown_set: bool, default True
     If true, the index of all atom not in `allowable_set` is `len(allowable_set)`.
 
