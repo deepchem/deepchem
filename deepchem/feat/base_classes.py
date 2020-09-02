@@ -232,9 +232,9 @@ class MolecularFeaturizer(Featurizer):
     """
     try:
       from rdkit import Chem
-      from rdkit.Chem.rdchem import Mol
       from rdkit.Chem import rdmolfiles
       from rdkit.Chem import rdmolops
+      from rdkit.Chem.rdchem import Mol
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
 

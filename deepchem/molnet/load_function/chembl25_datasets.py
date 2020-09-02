@@ -5,8 +5,7 @@ import os
 import logging
 import deepchem as dc
 
-from deepchem.feat import SmilesToSeq, SmilesToImage
-from deepchem.feat.molecule_featurizers.smiles_to_seq import create_char_to_idx
+from deepchem.feat import create_char_to_idx, SmilesToSeq, SmilesToImage
 
 CHEMBL_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_25.csv.gz"
 DEFAULT_DIR = dc.utils.get_data_dir()

@@ -26,7 +26,7 @@ from deepchem.feat.molecule_featurizers import CoulombMatrixEig
 from deepchem.feat.molecule_featurizers import RawFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitDescriptors
 from deepchem.feat.molecule_featurizers import SmilesToImage
-from deepchem.feat.molecule_featurizers import SmilesToSeq
+from deepchem.feat.molecule_featurizers import SmilesToSeq, create_char_to_idx
 
 # material featurizers
 from deepchem.feat.material_featurizers import ElementPropertyFingerprint

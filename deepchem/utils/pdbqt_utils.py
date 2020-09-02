@@ -68,7 +68,7 @@ def convert_protein_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
 
 
 def mol_to_graph(mol: RDKitMol):
-  """Convert rdkit.Chem.rdchem.Mol to NetworkX graph
+  """Convert RDKit Mol to NetworkX graph
 
   Convert mol into a graph representation atoms are nodes, and bonds
   are vertices stored as graph
