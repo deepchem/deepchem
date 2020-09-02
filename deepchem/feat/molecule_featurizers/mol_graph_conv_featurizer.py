@@ -79,9 +79,9 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
   to modify return values of `construct_atom_feature` or `construct_bond_feature`.
 
   The default node representation are constructed by concatenating the following values,
-  and the feature length is 38.
+  and the feature length is 39.
 
-  - Atom type: A one-hot vector of this atom, "C", "N", "O", "F", "P", "S", "Br", "I", "other atoms".
+  - Atom type: A one-hot vector of this atom, "C", "N", "O", "F", "P", "S", "Cl", "Br", "I", "other atoms".
   - Chirality: A one-hot vector of the chirality, "R" or "S".
   - Formal charge: Integer electronic charge.
   - Partial charge: Calculated partial charge.
@@ -111,7 +111,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
   >>> type(out[0])
   <class 'deepchem.feat.graph_data.GraphData'>
   >>> out[0].num_node_features
-  38
+  39
   >>> out[0].num_edge_features
   11
 
