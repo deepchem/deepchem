@@ -1,3 +1,6 @@
+"""
+This is a sample implementation for working DGL with DeepChem!
+"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -141,7 +144,7 @@ class CGCNN(nn.Module):
       hidden_node_dim: int = 64,
       in_edge_dim: int = 41,
       num_conv: int = 3,
-      predicator_hidden_feats: int = 128,
+      predictor_hidden_feats: int = 128,
       n_tasks: int = 1,
       mode: str = 'regression',
       n_classes: int = 2,
@@ -159,7 +162,7 @@ class CGCNN(nn.Module):
       based on default setting of CGCNNFeaturizer.
     num_conv: int, default 3
       The number of convolutional layers.
-    predicator_hidden_feats: int, default 128
+    predictor_hidden_feats: int, default 128
       The size for hidden representations in the output MLP predictor.
     n_tasks: int, default 1
       The number of the output size.
@@ -168,6 +171,10 @@ class CGCNN(nn.Module):
     n_classes: int, default 2
       The number of classes to predict (only used in classification mode).
     """
+    try:
+      import dgl
+    except:
+      raise ValueError("This class requires DGL to be installed.")
     super(CGCNN, self).__init__()
     if mode not in ['classification', 'regression']:
       raise ValueError("mode must be either 'classification' or 'regression'")
@@ -182,11 +189,12 @@ class CGCNN(nn.Module):
             edge_dim=in_edge_dim,
             batch_norm=True) for _ in range(num_conv)
     ])
-    self.fc = nn.Linear(hidden_node_dim, predicator_hidden_feats)
+    self.pooling = dgl.mean_nodes
+    self.fc = nn.Linear(hidden_node_dim, predictor_hidden_feats)
     if self.mode == 'regression':
-      self.out = nn.Linear(predicator_hidden_feats, n_tasks)
+      self.out = nn.Linear(predictor_hidden_feats, n_tasks)
     else:
-      self.out = nn.Linear(predicator_hidden_feats, n_tasks * n_classes)
+      self.out = nn.Linear(predictor_hidden_feats, n_tasks * n_classes)
 
   def forward(self, dgl_graph):
     """Predict labels
@@ -205,11 +213,6 @@ class CGCNN(nn.Module):
       If mode == 'classification', the shape is `(batch_size, n_tasks, n_classes)` (n_tasks > 1)
       or `(batch_size, n_classes)` (n_tasks == 1) and the output values are probabilities of each class label.
     """
-    try:
-      import dgl
-    except:
-      raise ValueError("This class requires DGL to be installed.")
-
     graph = dgl_graph
     # embedding node features
     graph.ndata['x'] = self.embedding(graph.ndata['x'])
@@ -219,7 +222,7 @@ class CGCNN(nn.Module):
       graph = conv(graph)
 
     # pooling
-    graph_feat = dgl.mean_nodes(graph, 'x')
+    graph_feat = self.pooling(graph, 'x')
     graph_feat = self.fc(graph_feat)
     out = self.out(graph_feat)
 
@@ -273,7 +276,7 @@ class CGCNNModel(TorchModel):
                hidden_node_dim: int = 64,
                in_edge_dim: int = 41,
                num_conv: int = 3,
-               predicator_hidden_feats: int = 128,
+               predictor_hidden_feats: int = 128,
                n_tasks: int = 1,
                mode: str = 'regression',
                n_classes: int = 2,
@@ -293,7 +296,7 @@ class CGCNNModel(TorchModel):
       based on default setting of CGCNNFeaturizer.
     num_conv: int, default 3
       The number of convolutional layers.
-    predicator_hidden_feats: int, default 128
+    predictor_hidden_feats: int, default 128
       The size for hidden representations in the output MLP predictor.
     n_tasks: int, default 1
       The number of the output size.
@@ -305,7 +308,7 @@ class CGCNNModel(TorchModel):
       This class accepts all the keyword arguments from TorchModel.
     """
     model = CGCNN(in_node_dim, hidden_node_dim, in_edge_dim, num_conv,
-                  predicator_hidden_feats, n_tasks, mode, n_classes)
+                  predictor_hidden_feats, n_tasks, mode, n_classes)
     if mode == "regression":
       loss: Loss = L2Loss()
       output_types = ['prediction']
@@ -331,10 +334,6 @@ class CGCNNModel(TorchModel):
       The labels converted to torch.Tensor
     weights: List[torch.Tensor] or None
       The weights for each sample or sample/task pair converted to torch.Tensor
-
-    Notes
-    -----
-    This class requires DGL and PyTorch to be installed.
     """
     try:
       import dgl
