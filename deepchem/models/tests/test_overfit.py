@@ -2,10 +2,6 @@
 Tests to make sure deepchem models can overfit on tiny datasets.
 """
 
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import os
 
 import numpy as np

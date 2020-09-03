@@ -1,5 +1,4 @@
 import unittest
-import pytest
 import numpy as np
 from deepchem.feat.graph_data import GraphData, BatchGraphData
 
@@ -38,7 +37,7 @@ class TestGraph(unittest.TestCase):
     assert isinstance(dgl_graph, DGLGraph)
 
   def test_invalid_graph_data(self):
-    with pytest.raises(ValueError):
+    with self.assertRaises(ValueError):
       invalid_node_features_type = list(np.random.random_sample((5, 32)))
       edge_index = np.array([
           [0, 1, 2, 2, 3, 4],
@@ -49,7 +48,7 @@ class TestGraph(unittest.TestCase):
           edge_index=edge_index,
       )
 
-    with pytest.raises(ValueError):
+    with self.assertRaises(ValueError):
       node_features = np.random.random_sample((5, 32))
       invalid_edge_index_shape = np.array([
           [0, 1, 2, 2, 3, 4],
@@ -60,7 +59,7 @@ class TestGraph(unittest.TestCase):
           edge_index=invalid_edge_index_shape,
       )
 
-    with pytest.raises(ValueError):
+    with self.assertRaises(ValueError):
       node_features = np.random.random_sample((5, 5))
       invalid_edge_index_shape = np.array([
           [0, 1, 2, 2, 3, 4],
@@ -72,7 +71,7 @@ class TestGraph(unittest.TestCase):
           edge_index=invalid_edge_index_shape,
       )
 
-    with pytest.raises(TypeError):
+    with self.assertRaises(TypeError):
       node_features = np.random.random_sample((5, 32))
       _ = GraphData(node_features=node_features)
 

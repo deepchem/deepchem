@@ -2,9 +2,9 @@ import unittest
 from os import path, remove
 
 from deepchem.feat import CGCNNFeaturizer
-from deepchem.molnet import load_perovskite
-from deepchem.metrics import Metric, mae_score
-from deepchem.models import CGCNNModel, losses
+from deepchem.molnet import load_perovskite, load_mp_metallicity
+from deepchem.metrics import Metric, mae_score, roc_auc_score
+from deepchem.models import CGCNNModel
 
 try:
   import dgl  # noqa
@@ -16,6 +16,7 @@ except:
 
 @unittest.skipIf(not has_pytorch_and_dgl, 'PyTorch and DGL are not installed')
 def test_cgcnn():
+  # regression test
   # load datasets
   current_dir = path.dirname(path.abspath(__file__))
   config = {
@@ -23,38 +24,61 @@ def test_cgcnn():
       "featurizer": CGCNNFeaturizer,
       # disable transformer
       "transformers": [],
-      # load 'deepchem/models/test/perovskite.tar.gz'
       "data_dir": current_dir
   }
   tasks, datasets, transformers = load_perovskite(**config)
   train, valid, test = datasets
 
-  # initialize models
-  n_tasks = 1
+  n_tasks = len(tasks)
   model = CGCNNModel(
-      in_node_dim=92,
-      hidden_node_dim=64,
-      in_edge_dim=41,
-      num_conv=3,
-      predicator_hidden_feats=128,
+      n_tasks=n_tasks, mode='regression', batch_size=4, learning_rate=0.001)
+
+  # check train
+  model.fit(train, nb_epoch=20)
+
+  # check predict shape
+  valid_preds = model.predict_on_batch(valid.X)
+  assert valid_preds.shape == (2, n_tasks)
+  test_preds = model.predict(test)
+  assert test_preds.shape == (3, n_tasks)
+
+  # check overfit
+  regression_metric = Metric(mae_score, n_tasks=n_tasks)
+  scores = model.evaluate(train, [regression_metric], transformers)
+  assert scores[regression_metric.name] < 0.6
+
+  # classification test
+  tasks, datasets, transformers = load_mp_metallicity(**config)
+  train, valid, test = datasets
+
+  # load datasets
+  n_tasks = len(tasks)
+  n_classes = 2
+  model = CGCNNModel(
       n_tasks=n_tasks,
-      loss=losses.L2Loss(),
-      batch_size=32,
+      n_classes=n_classes,
+      mode='classification',
+      batch_size=4,
       learning_rate=0.001)
 
   # check train
-  model.fit(train, nb_epoch=50)
+  model.fit(train, nb_epoch=20)
 
-  # check predict
+  # check predict shape
   valid_preds = model.predict_on_batch(valid.X)
-  assert valid_preds.shape == (10, n_tasks)
+  assert valid_preds.shape == (2, n_classes)
   test_preds = model.predict(test)
-  assert test_preds.shape == (10, n_tasks)
+  assert test_preds.shape == (3, n_classes)
 
-  # eval model on test
-  regression_metric = Metric(mae_score, n_tasks=n_tasks)
-  scores = model.evaluate(test, [regression_metric])
-  assert scores[regression_metric.name] < 1.0
+  # check overfit
+  classification_metric = Metric(roc_auc_score, n_tasks=n_tasks)
+  scores = model.evaluate(
+      train, [classification_metric], transformers, n_classes=n_classes)
+  assert scores[classification_metric.name] > 0.8
+
+  # TODO: Multi task classification test
 
   if path.exists(path.join(current_dir, 'perovskite.json')):
     remove(path.join(current_dir, 'perovskite.json'))
+  if path.exists(path.join(current_dir, 'mp_is_metal.json')):
+    remove(path.join(current_dir, 'mp_is_metal.json'))

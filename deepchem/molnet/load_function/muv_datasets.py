@@ -37,8 +37,8 @@ def load_muv(featurizer='ECFP',
 
   References
   ----------
-  .. [1] Rohrer, Sebastian G., and Knut Baumann. "Maximum unbiased validation 
-     (MUV) data sets for virtual screening based on PubChem bioactivity data." 
+  .. [1] Rohrer, Sebastian G., and Knut Baumann. "Maximum unbiased validation
+     (MUV) data sets for virtual screening based on PubChem bioactivity data."
      Journal of chemical information and modeling 49.2 (2009): 169-184.
   """
   # Load MUV dataset
@@ -89,8 +89,8 @@ def load_muv(featurizer='ECFP',
         img_size=img_size, img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
-      tasks=MUV_tasks, smiles_field="smiles", featurizer=featurizer)
-  dataset = loader.featurize(dataset_file)
+      tasks=MUV_tasks, feature_field="smiles", featurizer=featurizer)
+  dataset = loader.create_dataset(dataset_file)
 
   if split == None:
     transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]

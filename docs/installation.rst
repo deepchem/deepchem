@@ -162,7 +162,7 @@ If you are using the Windows and the PowerShell:
 .. code-block:: bash
 
     conda activate deepchem
-    python setup.py install
+    pip install -e .
     pytest -m "not slow" deepchem # optional
 
 
