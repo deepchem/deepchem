@@ -71,7 +71,6 @@ class TaskSplitter(Splitter):
     n_tasks = len(dataset.get_task_names())
     n_train = int(np.round(frac_train * n_tasks))
     n_valid = int(np.round(frac_valid * n_tasks))
-    n_test = n_tasks - n_train - n_valid
 
     X, y, w, ids = dataset.X, dataset.y, dataset.w, dataset.ids
 

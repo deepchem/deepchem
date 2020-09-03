@@ -6,14 +6,13 @@ import random
 import tempfile
 import itertools
 import logging
-from typing import List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Iterator, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 import deepchem as dc
 from deepchem.data import Dataset, DiskDataset
-from deepchem.utils.save import load_data
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +75,7 @@ class Splitter(object):
     else:
       rem_dataset = DiskDataset.from_numpy(dataset.X, dataset.y, dataset.w,
                                            dataset.ids)
+
     for fold in range(k):
       # Note starts as 1/k since fold starts at 0. Ends at 1 since fold goes up
       # to k-1.
@@ -89,16 +89,17 @@ class Splitter(object):
           **kwargs)
       cv_dataset = rem_dataset.select(fold_inds, select_dir=cv_dir)
       cv_datasets.append(cv_dataset)
-      rem_dataset = rem_dataset.select(rem_inds)
+      # FIXME: Incompatible types in assignment (expression has type "Dataset", variable has type "DiskDataset")
+      rem_dataset = rem_dataset.select(rem_inds)  # type: ignore
 
-      train_ds_to_merge = filter(lambda x: x is not None,
-                                 [train_ds_base, rem_dataset])
+      train_ds_to_merge: Iterator[Dataset] = filter(
+          None, [train_ds_base, rem_dataset])
       train_ds_to_merge = filter(lambda x: len(x) > 0, train_ds_to_merge)
       train_dataset = DiskDataset.merge(train_ds_to_merge, merge_dir=train_dir)
       train_datasets.append(train_dataset)
 
-      update_train_base_merge = filter(lambda x: x is not None,
-                                       [train_ds_base, cv_dataset])
+      update_train_base_merge: Iterator[Dataset] = filter(
+          None, [train_ds_base, cv_dataset])
       train_ds_base = DiskDataset.merge(update_train_base_merge)
     return list(zip(train_datasets, cv_datasets))
 
@@ -159,8 +160,7 @@ class Splitter(object):
         frac_test=frac_test,
         frac_valid=frac_valid,
         seed=seed,
-        log_every_n=log_every_n,
-        **kwargs)
+        log_every_n=log_every_n)
     if train_dir is None:
       train_dir = tempfile.mkdtemp()
     if valid_dir is None:
@@ -322,7 +322,7 @@ class RandomGroupSplitter(Splitter):
   caution if the number of elements per group varies significantly.
   """
 
-  def __init__(self, groups: Sequence, *args, **kwargs):
+  def __init__(self, groups: Sequence):
     """Initialize this object.
 
     Parameters
@@ -342,7 +342,6 @@ class RandomGroupSplitter(Splitter):
     dataset.X : 0 1 2 3 4 5 6 7 8
     """
     self.groups = groups
-    super(RandomGroupSplitter, self).__init__(*args, **kwargs)
 
   def split(self,
             dataset: Dataset,
@@ -384,7 +383,7 @@ class RandomGroupSplitter(Splitter):
 
     # dict is needed in case groups aren't strictly flattened or
     # hashed by something non-integer like
-    group_dict = {}
+    group_dict: Dict[Any, List[int]] = {}
     for idx, g in enumerate(self.groups):
       if g not in group_dict:
         group_dict[g] = []
@@ -418,25 +417,21 @@ class RandomStratifiedSplitter(Splitter):
   For sparse multitask datasets, a standard split offers no guarantees
   that the splits will have any activate compounds. This class guarantees
   that each task will have a proportional split of the activates in a
-  split. TO do this, a ragged split is performed with different numbers
+  split. To do this, a ragged split is performed with different numbers
   of compounds taken from each task. Thus, the length of the split arrays
   may exceed the split of the original array. That said, no datapoint is
   copied to more than one split, so correctness is still ensured.
 
-  Note that this splitter is only valid for boolean label data.
-
   TODO(rbharath): This splitter should be refactored to match style of
   other splitter classes.
+
+  Notes
+  -----
+  This splitter is only valid for boolean label data.
   """
 
-  def __generate_required_hits(self, w, frac_split):
-    # returns list of per column sum of non zero elements
-    required_hits = (w != 0).sum(axis=0)
-    for col_hits in required_hits:
-      col_hits = int(frac_split * col_hits)
-    return required_hits
-
-  def get_task_split_indices(self, y, w, frac_split):
+  def get_task_split_indices(self, y: np.ndarray, w: np.ndarray,
+                             frac_split: float) -> List[int]:
     """Returns num datapoints needed per task to split properly."""
     w_present = (w != 0)
     y_present = y * w_present
@@ -462,7 +457,12 @@ class RandomStratifiedSplitter(Splitter):
 
   # TODO(rbharath): Refactor this split method to match API of other
   # splits (or potentially refactor those to match this).
-  def split(self, dataset, frac_split, split_dirs=None):
+  def split(  # type: ignore [override]
+      self,
+      dataset: Dataset,
+      frac_split: float,
+      split_dirs: Optional[List[str]] = None
+  ) -> Tuple[Dataset, Optional[Dataset]]:
     """
     Method that does bulk of splitting dataset.
     """
@@ -503,16 +503,20 @@ class RandomStratifiedSplitter(Splitter):
 
     return dataset_1, dataset_2
 
-  def train_valid_test_split(self,
-                             dataset,
-                             train_dir=None,
-                             valid_dir=None,
-                             test_dir=None,
-                             frac_train=.8,
-                             frac_valid=.1,
-                             frac_test=.1,
-                             seed=None,
-                             log_every_n=1000):
+  # FIXME: Signature of "train_valid_test_split" incompatible with supertype "Splitter"
+  def train_valid_test_split(  # type: ignore [override]
+      self,
+      dataset: Dataset,
+      train_dir: Optional[str] = None,
+      valid_dir: Optional[str] = None,
+      test_dir: Optional[str] = None,
+      frac_train: float = 0.8,
+      frac_valid: float = 0.1,
+      frac_test: float = 0.1,
+      seed: Optional[int] = None,
+      log_every_n: int = 1000,
+      **kwargs) -> Union[Tuple[Dataset, None, None], Tuple[Dataset, Dataset,
+                                                           Optional[Dataset]]]:
     """ Splits self into train/validation/test sets.
 
     Most splitters use the superclass implementation
@@ -521,20 +525,18 @@ class RandomStratifiedSplitter(Splitter):
 
     Parameters
     ----------
-    dataset: data like object. 
-      Dataset to be split. This should either be of type
-      `dc.data.Dataset` or a type that `dc.utils.data.datasetify` can
-      convert into a `Dataset`.
-    train_dir: str, optional
+    dataset: Dataset
+      Dataset to be split.
+    train_dir: str, optional (default None)
       If specified, the directory in which the generated
       training dataset should be stored. This is only
       considered if `isinstance(dataset, dc.data.DiskDataset)`
-    valid_dir: str, optional
+    valid_dir: str, optional (default None)
       If specified, the directory in which the generated
       valid dataset should be stored. This is only
       considered if `isinstance(dataset, dc.data.DiskDataset)`
       is True.
-    test_dir: str, optional
+    test_dir: str, optional (default None)
       If specified, the directory in which the generated
       test dataset should be stored. This is only
       considered if `isinstance(dataset, dc.data.DiskDataset)`
@@ -547,13 +549,15 @@ class RandomStratifiedSplitter(Splitter):
       The fraction of data to be used for the test split.
     seed: int, optional (default None)
       Random seed to use.
-    log_every_n: int, optional
+    log_every_n: int, optional (default 1000)
       Controls the logger by dictating how often logger outputs
       will be produced.
 
     Returns
     -------
-    Train and test datasets as dc.data.Dataset objects.
+    Tuple[Dataset, Optional[Dataset], Optional[Dataset]]
+      A tuple of train, valid and test datasets as dc.data.Dataset objects.
+      In some cases, valid or test dataset is None.
     """
     if train_dir is None:
       train_dir = tempfile.mkdtemp()
@@ -571,13 +575,38 @@ class RandomStratifiedSplitter(Splitter):
     else:
       return train_dataset, None, None
     # split remaining data into valid and test, treating sub test set also as sparse
-    valid_dataset, test_dataset = self.split(rem_dataset, valid_percentage,
-                                             [valid_dir, test_dir])
+    # FIXME: Argument 1 to "split" of "RandomStratifiedSplitter" has incompatible type
+    # "Optional[Dataset]"; expected "Dataset"
+    valid_dataset, test_dataset = self.split(
+        rem_dataset,  # type: ignore
+        valid_percentage,
+        [valid_dir, test_dir])
 
     return train_dataset, valid_dataset, test_dataset
 
-  def k_fold_split(self, dataset, k, directories=None, **kwargs):
-    """Needs custom implementation due to ragged splits for stratification."""
+  # FIXME: Signature of "k_fold_split" incompatible with supertype "Splitter"
+  def k_fold_split(  # type: ignore [override]
+      self,
+      dataset: Dataset,
+      k: int,
+      directories: Optional[List[str]] = None,
+      **kwargs) -> List[Dataset]:
+    """Needs custom implementation due to ragged splits for stratification.
+
+    Parameters
+    ----------
+    dataset: Dataset
+      Dataset to be split.
+    k: int
+      Number of folds to split `dataset` into.
+    directories: List[str], optional (default None)
+      List of length k filepaths to save the result disk-datasets.
+
+    Returns
+    -------
+    fold_datasets: List[Dataset]
+      List of dc.data.Dataset objects
+    """
     logger.info("Computing K-fold split")
     if directories is None:
       directories = [tempfile.mkdtemp() for _ in range(k)]
@@ -585,15 +614,19 @@ class RandomStratifiedSplitter(Splitter):
       assert len(directories) == k
     fold_datasets = []
     # rem_dataset is remaining portion of dataset
-    rem_dataset = dataset
+    rem_dataset: Optional[Dataset] = dataset
     for fold in range(k):
       # Note starts as 1/k since fold starts at 0. Ends at 1 since fold goes up
       # to k-1.
       frac_fold = 1. / (k - fold)
       fold_dir = directories[fold]
       rem_dir = tempfile.mkdtemp()
-      fold_dataset, rem_dataset = self.split(rem_dataset, frac_fold,
-                                             [fold_dir, rem_dir])
+      # FIXME: Argument 1 to "split" of "RandomStratifiedSplitter" has incompatible type
+      # "Optional[Dataset]"; expected "Dataset"
+      fold_dataset, rem_dataset = self.split(
+          rem_dataset,  # type: ignore
+          frac_fold,
+          [fold_dir, rem_dir])
       fold_datasets.append(fold_dataset)
     return fold_datasets
 
@@ -625,13 +658,15 @@ class SingletaskStratifiedSplitter(Splitter):
     """
     self.task_number = task_number
 
-  def k_fold_split(self,
-                   dataset: Dataset,
-                   k: int,
-                   directories: Optional[List[str]] = None,
-                   seed: Optional[int] = None,
-                   log_every_n: Optional[int] = None,
-                   **kwargs) -> List[Dataset]:
+  # FIXME: Signature of "k_fold_split" incompatible with supertype "Splitter"
+  def k_fold_split(  # type: ignore [override]
+      self,
+      dataset: Dataset,
+      k: int,
+      directories: Optional[List[str]] = None,
+      seed: Optional[int] = None,
+      log_every_n: Optional[int] = None,
+      **kwargs) -> List[Dataset]:
     """
     Splits compounds into k-folds using stratified sampling.
     Overriding base class k_fold_split.
@@ -643,7 +678,7 @@ class SingletaskStratifiedSplitter(Splitter):
     k: int
       Number of folds to split `dataset` into.
     directories: List[str], optional (default None)
-      List of length 2*k filepaths to save the result disk-datasets.
+      List of length k filepaths to save the result disk-datasets.
     seed: int, optional (default None)
       Random seed to use.
     log_every_n: int, optional (default None)
@@ -930,8 +965,8 @@ class MolecularWeightSplitter(Splitter):
     mws = np.array(mws)
     sortidx = np.argsort(mws)
 
-    train_cutoff = frac_train * len(sortidx)
-    valid_cutoff = (frac_train + frac_valid) * len(sortidx)
+    train_cutoff = int(frac_train * len(sortidx))
+    valid_cutoff = int((frac_train + frac_valid) * len(sortidx))
 
     return (sortidx[:train_cutoff], sortidx[train_cutoff:valid_cutoff],
             sortidx[valid_cutoff:])
@@ -1081,7 +1116,7 @@ class ButinaSplitter(Splitter):
     log_every_n: int, optional (default None)
       Log every n examples (not currently used).
     cutoff: float, optional (default 0.18)
-      The 
+      The cutoff value for similarity.
 
     Returns
     -------
@@ -1101,7 +1136,7 @@ class ButinaSplitter(Splitter):
     except ModuleNotFoundError:
       raise ValueError("This function requires RDKit to be installed.")
 
-    print("Performing butina clustering with cutoff of", cutoff)
+    logger.info("Performing butina clustering with cutoff of", cutoff)
     mols = []
     for ind, smiles in enumerate(dataset.ids):
       mols.append(Chem.MolFromSmiles(smiles))
@@ -1128,8 +1163,8 @@ class ButinaSplitter(Splitter):
       # TODO (Ytz): for regression tasks we'd stop after only one cluster.
       active_populations = np.sum(ys[valid_inds], axis=0)
       if np.all(active_populations):
-        print("# of actives per task in valid:", active_populations)
-        print("Total # of validation points:", len(valid_inds))
+        logger.info("# of actives per task in valid:", active_populations)
+        logger.info("Total # of validation points:", len(valid_inds))
         break
 
     train_inds = list(itertools.chain.from_iterable(scaffold_sets[c_idx + 1:]))
@@ -1189,7 +1224,8 @@ class ScaffoldSplitter(Splitter):
             frac_valid: float = 0.1,
             frac_test: float = 0.1,
             seed: Optional[int] = None,
-            log_every_n: int = 1000) -> Tuple[List[int], List[int], List[int]]:
+            log_every_n: Optional[int] = 1000
+           ) -> Tuple[List[int], List[int], List[int]]:
     """
     Splits internal compounds into train/validation/test by scaffold.
 
@@ -1220,7 +1256,9 @@ class ScaffoldSplitter(Splitter):
 
     train_cutoff = frac_train * len(dataset)
     valid_cutoff = (frac_train + frac_valid) * len(dataset)
-    train_inds, valid_inds, test_inds = [], [], []
+    train_inds: List[int] = []
+    valid_inds: List[int] = []
+    test_inds: List[int] = []
 
     logger.info("About to sort in scaffold sets")
     for scaffold_set in scaffold_sets:
@@ -1387,79 +1425,51 @@ class FingerprintSplitter(Splitter):
         cur_distances[i] = new_dist
 
 
-class SpecifiedSplitter(Splitter):
-  """
-  Class that splits data according to user specification.
-  """
-
-  def __init__(self, input_file, split_field):
-    """Provide input information for splits."""
-    raw_df = next(load_data([input_file], shard_size=None))
-    self.splits = raw_df[split_field].values
-
-  def split(self,
-            dataset,
-            seed=None,
-            frac_train=.8,
-            frac_valid=.1,
-            frac_test=.1,
-            log_every_n=1000):
-    """
-    Splits internal compounds into train/validation/test by user-specification.
-    """
-    train_inds, valid_inds, test_inds = [], [], []
-    for ind, split in enumerate(self.splits):
-      split = split.lower()
-      if split == "train":
-        train_inds.append(ind)
-      elif split in ["valid", "validation"]:
-        valid_inds.append(ind)
-      elif split == "test":
-        test_inds.append(ind)
-      else:
-        raise ValueError("Missing required split information.")
-    return train_inds, valid_inds, test_inds
-
-
-class SpecifiedIndexSplitter(Splitter):
-  """
-  Class that splits data according to user index specification
-  """
-
-  def __init__(self, train_inds, valid_inds, test_inds):
-    """Provide input information for splits."""
-    self.train_inds = train_inds
-    self.valid_inds = valid_inds
-    self.test_inds = test_inds
-
-  def split(self,
-            dataset,
-            seed=None,
-            frac_train=.8,
-            frac_valid=.1,
-            frac_test=.1,
-            log_every_n=1000):
-    """
-    Splits internal compounds into train/validation/test by user-specification.
-    """
-    return self.train_inds, self.valid_inds, self.test_inds
-
-
 class TimeSplitterPDBbind(Splitter):
 
-  def __init__(self, ids, year_file=None):
+  def __init__(self, ids, year_file: Optional[str] = None):
+    """
+    Parameters
+    ----------
+    ids: ....
+      WIP
+    year_file: str, optional (default None)
+      The file path of ....
+    """
     self.ids = ids
     self.year_file = year_file
 
   def split(self,
-            dataset,
-            seed=None,
-            frac_train=.8,
-            frac_valid=.1,
-            frac_test=.1,
-            log_every_n=None):
+            dataset: Dataset,
+            frac_train: float = 0.8,
+            frac_valid: float = 0.1,
+            frac_test: float = 0.1,
+            seed: Optional[int] = None,
+            log_every_n: Optional[int] = None
+           ) -> Tuple[List[int], List[int], List[int]]:
     """
     Splits protein-ligand pairs in PDBbind into train/validation/test in time order.
+
+    Parameters
+    ----------
+    dataset: Dataset
+      Dataset to be split.
+    frac_train: float, optional (default 0.8)
+      The fraction of data to be used for the training split.
+    frac_valid: float, optional (default 0.1)
+      The fraction of data to be used for the validation split.
+    frac_test: float, optional (default 0.1)
+      The fraction of data to be used for the test split.
+    seed: int, optional (default None)
+      Random seed to use.
+    log_every_n: int, optional (default None)
+      Log every n examples (not currently used).
+
+    Returns
+    -------
+    Tuple[List[int], List[int], List[int]]
+      A tuple of train indices, valid indices, and test indices.
+      Each indices is a list of integers.
     """
     if self.year_file is None:
       try:

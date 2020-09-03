@@ -1,12 +1,10 @@
 import unittest
-from unittest import TestCase
 
-import numpy as np
 import deepchem as dc
 from deepchem.splits.splitters import ScaffoldSplitter
 
 
-class TestScaffoldSplitter(TestCase):
+class TestScaffoldSplitter(unittest.TestCase):
 
   def test_scaffolds(self):
     tox21_tasks, tox21_datasets, transformers = \

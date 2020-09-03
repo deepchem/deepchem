@@ -420,6 +420,20 @@ class Dataset(object):
     """
     raise NotImplementedError()
 
+  def select(self,
+             indices: Sequence[int],
+             select_dir: Optional[str] = None):
+    """Creates a new dataset from a selection of indices from self.
+
+    Parameters
+    ----------
+    indices: Sequence
+      List of indices to select.
+    select_dir: str, optional (default None)
+      Path to new directory that the selected indices will be copied to.
+    """
+    raise NotImplementedError()
+
   def get_statistics(self, X_stats: bool = True,
                      y_stats: bool = True) -> Tuple[float, ...]:
     """Compute and return statistics of this dataset.
@@ -1868,13 +1882,13 @@ class DiskDataset(Dataset):
         tasks=tasks)
 
   @staticmethod
-  def merge(datasets: Iterable["DiskDataset"],
+  def merge(datasets: Iterable["Dataset"],
             merge_dir: Optional[str] = None) -> "DiskDataset":
     """Merges provided datasets into a merged dataset.
 
     Parameters
     ----------
-    datasets: Iterable[DiskDataset]
+    datasets: Iterable[Dataset]
       List of datasets to merge.
     merge_dir: str, optional (default None)
       The new directory path to store the merged DiskDataset.
@@ -1897,7 +1911,7 @@ class DiskDataset(Dataset):
     tasks = []
     for dataset in datasets:
       try:
-        tasks.append(dataset.tasks)
+        tasks.append(dataset.tasks)  # type: ignore
       except AttributeError:
         pass
     if tasks:
