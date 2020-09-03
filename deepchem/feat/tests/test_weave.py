@@ -55,10 +55,8 @@ def test_weave_single_carbon():
   """Test that single carbon atom is featurized properly."""
   mols = ['C']
   featurizer = dc.feat.WeaveFeaturizer()
-  #from rdkit import Chem
   mol_list = featurizer.featurize(mols)
   mol = mol_list[0]
-  #mol = featurizer._featurize(Chem.MolFromSmiles("C"))
 
   # Only one carbon
   assert mol.get_num_atoms() == 1
@@ -68,6 +66,20 @@ def test_weave_single_carbon():
 
   # No bonds, so only 1 pair feature (for the self interaction)
   assert mol.get_pair_features().shape == (1 * 1, 14)
+
+
+def test_chiral_weave():
+  """Test weave features on a molecule with chiral structure."""
+  mols = ["F\C=C\F"]
+  featurizer = dc.feat.WeaveFeaturizer(use_chirality=True)
+  mol_list = featurizer.featurize(mols)
+  mol = mol_list[0]
+
+  # Only 4 atoms
+  assert mol.get_num_atoms() == 4
+
+  # Test feature sizes for chirality
+  assert mol.get_num_features() == 78
 
 
 def test_weave_alkane():
