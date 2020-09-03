@@ -1,7 +1,11 @@
+"""
+This is a sample implementation for working DGL with DeepChem!
+"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from deepchem.models.losses import Loss, L2Loss, SparseSoftmaxCrossEntropy
 from deepchem.models.torch_models.torch_model import TorchModel
 
 
@@ -60,7 +64,7 @@ class CGCNNLayer(nn.Module):
   def message_func(self, edges):
     z = torch.cat(
         [edges.src['x'], edges.dst['x'], edges.data['edge_attr']], dim=1)
-    gated_z = F.sigmoid(self.linear_with_sigmoid(z))
+    gated_z = torch.sigmoid(self.linear_with_sigmoid(z))
     message_z = F.softplus(self.linear_with_softplus(z))
     return {'gated_z': gated_z, 'message_z': message_z}
 
@@ -116,7 +120,7 @@ class CGCNN(nn.Module):
   >>> cgcnn_dgl_feat = cgcnn_feat.to_dgl_graph()
   >>> print(type(cgcnn_dgl_feat))
   <class 'dgl.heterograph.DGLHeteroGraph'>
-  >>> model = dc.models.CGCNN(n_tasks=2)
+  >>> model = dc.models.CGCNN(mode='regression', n_tasks=2)
   >>> out = model(cgcnn_dgl_feat)
   >>> print(type(out))
   <class 'torch.Tensor'>
@@ -140,8 +144,10 @@ class CGCNN(nn.Module):
       hidden_node_dim: int = 64,
       in_edge_dim: int = 41,
       num_conv: int = 3,
-      predicator_hidden_feats: int = 128,
+      predictor_hidden_feats: int = 128,
       n_tasks: int = 1,
+      mode: str = 'regression',
+      n_classes: int = 2,
   ):
     """
     Parameters
@@ -156,12 +162,26 @@ class CGCNN(nn.Module):
       based on default setting of CGCNNFeaturizer.
     num_conv: int, default 3
       The number of convolutional layers.
-    predicator_hidden_feats: int, default 128
-      Size for hidden representations in the output MLP predictor, default to 128.
+    predictor_hidden_feats: int, default 128
+      The size for hidden representations in the output MLP predictor.
     n_tasks: int, default 1
-      Number of the output size, default to 1.
+      The number of the output size.
+    mode: str, default 'regression'
+      The model type, 'classification' or 'regression'.
+    n_classes: int, default 2
+      The number of classes to predict (only used in classification mode).
     """
+    try:
+      import dgl
+    except:
+      raise ValueError("This class requires DGL to be installed.")
     super(CGCNN, self).__init__()
+    if mode not in ['classification', 'regression']:
+      raise ValueError("mode must be either 'classification' or 'regression'")
+
+    self.n_tasks = n_tasks
+    self.mode = mode
+    self.n_classes = n_classes
     self.embedding = nn.Linear(in_node_dim, hidden_node_dim)
     self.conv_layers = nn.ModuleList([
         CGCNNLayer(
@@ -169,8 +189,12 @@ class CGCNN(nn.Module):
             edge_dim=in_edge_dim,
             batch_norm=True) for _ in range(num_conv)
     ])
-    self.fc = nn.Linear(hidden_node_dim, predicator_hidden_feats)
-    self.out = nn.Linear(predicator_hidden_feats, n_tasks)
+    self.pooling = dgl.mean_nodes
+    self.fc = nn.Linear(hidden_node_dim, predictor_hidden_feats)
+    if self.mode == 'regression':
+      self.out = nn.Linear(predictor_hidden_feats, n_tasks)
+    else:
+      self.out = nn.Linear(predictor_hidden_feats, n_tasks * n_classes)
 
   def forward(self, dgl_graph):
     """Predict labels
@@ -184,13 +208,11 @@ class CGCNN(nn.Module):
     Returns
     -------
     out: torch.Tensor
-      The output value, the shape is `(batch_size, n_tasks)`.
+      The output values of this model.
+      If mode == 'regression', the shape is `(batch_size, n_tasks)`.
+      If mode == 'classification', the shape is `(batch_size, n_tasks, n_classes)` (n_tasks > 1)
+      or `(batch_size, n_classes)` (n_tasks == 1) and the output values are probabilities of each class label.
     """
-    try:
-      import dgl
-    except:
-      raise ValueError("This class requires DGL to be installed.")
-
     graph = dgl_graph
     # embedding node features
     graph.ndata['x'] = self.embedding(graph.ndata['x'])
@@ -200,10 +222,18 @@ class CGCNN(nn.Module):
       graph = conv(graph)
 
     # pooling
-    graph_feat = dgl.mean_nodes(graph, 'x')
+    graph_feat = self.pooling(graph, 'x')
     graph_feat = self.fc(graph_feat)
     out = self.out(graph_feat)
-    return out
+
+    if self.mode == 'regression':
+      return out
+    else:
+      logits = out.view(-1, self.n_tasks, self.n_classes)
+      # for n_tasks == 1 case
+      logits = torch.squeeze(logits)
+      proba = F.softmax(logits)
+      return proba, logits
 
 
 class CGCNNModel(TorchModel):
@@ -216,7 +246,7 @@ class CGCNNModel(TorchModel):
   >> dataset_config = {"reload": False, "featurizer": dc.feat.CGCNNFeaturizer, "transformers": []}
   >> tasks, datasets, transformers = dc.molnet.load_perovskite(**dataset_config)
   >> train, valid, test = datasets
-  >> model = dc.models.CGCNNModel(loss=dc.models.losses.L2Loss(), batch_size=32, learning_rate=0.001)
+  >> model = dc.models.CGCNNModel(mode='regression', batch_size=32, learning_rate=0.001)
   >> model.fit(train, nb_epoch=50)
 
   This model takes arbitary crystal structures as an input, and predict material properties
@@ -246,8 +276,10 @@ class CGCNNModel(TorchModel):
                hidden_node_dim: int = 64,
                in_edge_dim: int = 41,
                num_conv: int = 3,
-               predicator_hidden_feats: int = 128,
+               predictor_hidden_feats: int = 128,
                n_tasks: int = 1,
+               mode: str = 'regression',
+               n_classes: int = 2,
                **kwargs):
     """
     This class accepts all the keyword arguments from TorchModel.
@@ -264,16 +296,27 @@ class CGCNNModel(TorchModel):
       based on default setting of CGCNNFeaturizer.
     num_conv: int, default 3
       The number of convolutional layers.
-    predicator_hidden_feats: int, default 128
-      Size for hidden representations in the output MLP predictor, default to 128.
+    predictor_hidden_feats: int, default 128
+      The size for hidden representations in the output MLP predictor.
     n_tasks: int, default 1
-      Number of the output size, default to 1.
+      The number of the output size.
+    mode: str, default 'regression'
+      The model type, 'classification' or 'regression'.
+    n_classes: int, default 2
+      The number of classes to predict (only used in classification mode).
     kwargs: Dict
       This class accepts all the keyword arguments from TorchModel.
     """
     model = CGCNN(in_node_dim, hidden_node_dim, in_edge_dim, num_conv,
-                  predicator_hidden_feats, n_tasks)
-    super(CGCNNModel, self).__init__(model, **kwargs)
+                  predictor_hidden_feats, n_tasks, mode, n_classes)
+    if mode == "regression":
+      loss: Loss = L2Loss()
+      output_types = ['prediction']
+    else:
+      loss = SparseSoftmaxCrossEntropy()
+      output_types = ['prediction', 'loss']
+    super(CGCNNModel, self).__init__(
+        model, loss=loss, output_types=output_types, **kwargs)
 
   def _prepare_batch(self, batch):
     """Create batch data for CGCNN.
@@ -291,10 +334,6 @@ class CGCNNModel(TorchModel):
       The labels converted to torch.Tensor
     weights: List[torch.Tensor] or None
       The weights for each sample or sample/task pair converted to torch.Tensor
-
-    Notes
-    -----
-    This class requires DGL and PyTorch to be installed.
     """
     try:
       import dgl
