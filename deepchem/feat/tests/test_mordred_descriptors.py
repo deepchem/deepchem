@@ -45,4 +45,5 @@ class TestMordredDescriptors(unittest.TestCase):
     descriptors = featurizer([mol_with_conf])
     assert descriptors.shape == (1, 1826)
     # not zero values
-    assert not np.allclose(descriptors[0][780:784], np.array([0.0, 0.0, 0.0, 0.0]))
+    assert not np.allclose(descriptors[0][780:784],
+                           np.array([0.0, 0.0, 0.0, 0.0]))

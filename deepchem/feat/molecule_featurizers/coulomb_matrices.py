@@ -216,6 +216,7 @@ class CoulombMatrixEig(CoulombMatrix):
 
   Examples
   --------
+  >>> import deepchem as dc
   >>> featurizers = dc.feat.CoulombMatrixEig(max_atoms=23)
   >>> input_file = 'deepchem/feat/tests/data/water.sdf' # really backed by water.sdf.csv
   >>> tasks = ["atomization_energy"]
