@@ -19,6 +19,7 @@ Shape = Tuple[int, ...]
 # type of RDKit object
 RDKitMol = Any
 RDKitAtom = Any
+RDKitBond = Any
 
 # type of Pymatgen object
 PymatgenStructure = Any

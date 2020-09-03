@@ -39,15 +39,15 @@ class ConformerGenerator(object):
     """
     Parameters
     ----------
-    max_conformers : int, optional (default 1)
+    max_conformers: int, optional (default 1)
       Maximum number of conformers to generate (after pruning).
-    rmsd_threshold : float, optional (default 0.5)
+    rmsd_threshold: float, optional (default 0.5)
       RMSD threshold for pruning conformers. If None or negative, no
       pruning is performed.
-    force_field : str, optional (default 'uff')
+    force_field: str, optional (default 'uff')
       Force field to use for conformer energy calculation and
       minimization. Options are 'uff', 'mmff94', and 'mmff94s'.
-    pool_multiplier : int, optional (default 10)
+    pool_multiplier: int, optional (default 10)
       Factor to multiply by max_conformers to generate the initial
       conformer pool. Since conformers are pruned after energy
       minimization, increasing the size of the pool increases the chance
@@ -149,9 +149,9 @@ class ConformerGenerator(object):
     ----------
     mol: rdkit.Chem.rdchem.Mol
       RDKit Mol object with embedded conformers.
-    conf_id : int, optional
+    conf_id: int, optional
       ID of the conformer to associate with the force field.
-    kwargs : dict, optional
+    kwargs: dict, optional
       Keyword arguments for force field constructor.
 
     Returns

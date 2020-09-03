@@ -197,7 +197,6 @@ class WeaveModel(KerasModel):
     self.n_classes = n_classes
 
     # Build the model.
-
     atom_features = Input(shape=(self.n_atom_feat[0],))
     pair_features = Input(shape=(self.n_pair_feat[0],))
     pair_split = Input(shape=tuple(), dtype=tf.int32)
@@ -277,6 +276,71 @@ class WeaveModel(KerasModel):
     super(WeaveModel, self).__init__(
         model, loss, output_types=output_types, batch_size=batch_size, **kwargs)
 
+  def compute_features_on_batch(self, X_b):
+    """Compute tensors that will be input into the model from featurized representation.
+
+    The featurized input to `WeaveModel` is instances of `WeaveMol` created by
+    `WeaveFeaturizer`. This method converts input `WeaveMol` objects into
+    tensors used by the Keras implementation to compute `WeaveModel` outputs.
+
+    Parameters
+    ----------
+    X_b: np.ndarray
+      A numpy array with dtype=object where elements are `WeaveMol` objects.
+
+    Returns
+    -------
+    atom_feat: np.ndarray
+      Of shape `(N_atoms, N_atom_feat)`.
+    pair_feat: np.ndarray
+      Of shape `(N_pairs, N_pair_feat)`. Note that `N_pairs` will depend on
+      the number of pairs being considered. If `max_pair_distance` is
+      `None`, then this will be `N_atoms**2`. Else it will be the number
+      of pairs within the specifed graph distance.
+    pair_split: np.ndarray
+      Of shape `(N_pairs,)`. The i-th entry in this array will tell you the
+      originating atom for this pair (the "source"). Note that pairs are
+      symmetric so for a pair `(a, b)`, both `a` and `b` will separately be
+      sources at different points in this array.
+    atom_split: np.ndarray
+      Of shape `(N_atoms,)`. The i-th entry in this array will be the molecule
+      with the i-th atom belongs to.
+    atom_to_pair: np.ndarray
+      Of shape `(N_pairs, 2)`. The i-th row in this array will be the array
+      `[a, b]` if `(a, b)` is a pair to be considered. (Note by symmetry, this
+      implies some other row will contain `[b, a]`.
+    """
+    atom_feat = []
+    pair_feat = []
+    atom_split = []
+    atom_to_pair = []
+    pair_split = []
+    start = 0
+    for im, mol in enumerate(X_b):
+      n_atoms = mol.get_num_atoms()
+      # pair_edges is of shape (2, N)
+      pair_edges = mol.get_pair_edges()
+      N_pairs = pair_edges[1]
+      # number of atoms in each molecule
+      atom_split.extend([im] * n_atoms)
+      # index of pair features
+      C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
+      atom_to_pair.append(pair_edges.T + start)
+      # Get starting pair atoms
+      pair_starts = pair_edges.T[:, 0]
+      # number of pairs for each atom
+      pair_split.extend(pair_starts + start)
+      start = start + n_atoms
+
+      # atom features
+      atom_feat.append(mol.get_atom_features())
+      # pair features
+      pair_feat.append(mol.get_pair_features())
+
+    return (np.concatenate(atom_feat, axis=0), np.concatenate(
+        pair_feat, axis=0), np.array(pair_split), np.array(atom_split),
+            np.concatenate(atom_to_pair, axis=0))
+
   def default_generator(
       self,
       dataset: Dataset,
@@ -313,40 +377,7 @@ class WeaveModel(KerasModel):
           if self.mode == 'classification':
             y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
                 -1, self.n_tasks, self.n_classes)
-        atom_feat = []
-        pair_feat = []
-        atom_split = []
-        atom_to_pair = []
-        pair_split = []
-        start = 0
-        for im, mol in enumerate(X_b):
-          n_atoms = mol.get_num_atoms()
-          # number of atoms in each molecule
-          atom_split.extend([im] * n_atoms)
-          # index of pair features
-          C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
-          atom_to_pair.append(
-              np.transpose(
-                  np.array([C1.flatten() + start,
-                            C0.flatten() + start])))
-          # number of pairs for each atom
-          pair_split.extend(C1.flatten() + start)
-          start = start + n_atoms
-
-          # atom features
-          atom_feat.append(mol.get_atom_features())
-          # pair features
-          pair_feat.append(
-              np.reshape(mol.get_pair_features(),
-                         (n_atoms * n_atoms, self.n_pair_feat[0])))
-
-        inputs = [
-            np.concatenate(atom_feat, axis=0),
-            np.concatenate(pair_feat, axis=0),
-            np.array(pair_split),
-            np.array(atom_split),
-            np.concatenate(atom_to_pair, axis=0)
-        ]
+        inputs = self.compute_features_on_batch(X_b)
         yield (inputs, [y_b], [w_b])
 
 

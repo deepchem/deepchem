@@ -179,7 +179,7 @@ class TorchModel(Model):
       else:
         device = torch.device('cpu')
     self.device = device
-    self.model.to(device)
+    self.model = model.to(device)
 
     # W&B logging
     if wandb and not _has_wandb:
