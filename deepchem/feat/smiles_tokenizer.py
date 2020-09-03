@@ -19,7 +19,8 @@ try:
   from transformers import BertTokenizer
 except ModuleNotFoundError:
   logger.warning(
-      "HuggingFace transformers is not available. Please install using 'pip install transformers' to use the SmilesTokenizer")
+      "HuggingFace transformers is not available. Please install using 'pip install transformers' to use the SmilesTokenizer"
+  )
 """
 SMI_REGEX_PATTERN: str
     SMILES regex pattern for tokenization. Designed by Schwaller et. al. 
@@ -81,7 +82,7 @@ class SmilesTokenizer(BertTokenizer):
 
   def __init__(
       self,
-      vocab_file: str='',
+      vocab_file: str = '',
       # unk_token="[UNK]",
       # sep_token="[SEP]",
       # pad_token="[PAD]",
@@ -103,12 +104,11 @@ class SmilesTokenizer(BertTokenizer):
     self.max_len_sentences_pair = self.max_len - 3
 
     if not os.path.isfile(vocab_file):
-      raise ValueError("Can't find a vocab file at path '{}'.".format(
-          vocab_file))
+      raise ValueError(
+          "Can't find a vocab file at path '{}'.".format(vocab_file))
     self.vocab = load_vocab(vocab_file)
-    self.highest_unused_index = max([
-        i for i, v in enumerate(self.vocab.keys()) if v.startswith("[unused")
-    ])
+    self.highest_unused_index = max(
+        [i for i, v in enumerate(self.vocab.keys()) if v.startswith("[unused")])
     self.ids_to_tokens = collections.OrderedDict(
         [(ids, tok) for tok, ids in self.vocab.items()])
     self.basic_tokenizer = BasicSmilesTokenizer()
@@ -226,7 +226,7 @@ class SmilesTokenizer(BertTokenizer):
   def add_padding_tokens(self,
                          token_ids: List[int],
                          length: int,
-                         right: bool=True) -> List[int]:
+                         right: bool = True) -> List[int]:
     """
         Adds padding tokens to return a sequence of length max_length.
         By default padding tokens are added to the right of the sequence.
@@ -318,7 +318,7 @@ class BasicSmilesTokenizer(object):
 
     """
 
-  def __init__(self, regex_pattern: str=SMI_REGEX_PATTERN):
+  def __init__(self, regex_pattern: str = SMI_REGEX_PATTERN):
     """ Constructs a BasicSMILESTokenizer.
         Parameters
         ----------
