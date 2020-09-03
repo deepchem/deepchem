@@ -90,12 +90,16 @@ class CoulombMatrix(MolecularFeaturizer):
     -------
     np.ndarray
       The coulomb matrices of the given molecule.
-      The shape is `(num_confs, max_atoms, max_atoms)`.
+      The default shape is `(num_confs, max_atoms, max_atoms)`.
+      If num_confs == 1, the shape is `(max_atoms, max_atoms)`.
     """
     features = self.coulomb_matrix(mol)
     if self.upper_tri:
       features = [f[np.triu_indices_from(f)] for f in features]
     features = np.asarray(features)
+    if features.shape[0] == 1:
+      # `(1, max_atoms, max_atoms)` -> `(max_atoms, max_atoms)`
+      features = np.squeeze(features, axis=0)
     return features
 
   def coulomb_matrix(self, mol: RDKitMol) -> np.ndarray:
@@ -114,8 +118,15 @@ class CoulombMatrix(MolecularFeaturizer):
     """
     try:
       from rdkit import Chem
+      from rdkit.Chem import AllChem
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
+
+    # Check whether num_confs >=1 or not
+    num_confs = len(mol.GetConformers())
+    if num_confs == 0:
+      mol = Chem.AddHs(mol)
+      AllChem.EmbedMolecule(mol, AllChem.ETKDG())
 
     if self.remove_hydrogens:
       mol = Chem.RemoveHs(mol)
@@ -203,8 +214,8 @@ class CoulombMatrixEig(CoulombMatrix):
   This featurizer computes the eigenvalues of the Coulomb matrices for provided
   molecules. Coulomb matrices are described in [1]_.
 
-  Example
-  -------
+  Examples
+  --------
   >>> featurizers = dc.feat.CoulombMatrixEig(max_atoms=23)
   >>> input_file = 'deepchem/feat/tests/data/water.sdf' # really backed by water.sdf.csv
   >>> tasks = ["atomization_energy"]
@@ -217,9 +228,6 @@ class CoulombMatrixEig(CoulombMatrix):
      molecules for atomization energy prediction." Advances in neural information
      processing systems. 2012.
   """
-
-  conformers = True
-  name = 'coulomb_matrix'
 
   def __init__(self,
                max_atoms: int,
@@ -266,10 +274,11 @@ class CoulombMatrixEig(CoulombMatrix):
     -------
     np.ndarray
       The eigenvalues of Coulomb matrix for molecules.
-      The shape is `(num_confs, max_atoms)`.
+      The default shape is `(num_confs, max_atoms)`.
+      If num_confs == 1, the shape is `(max_atoms,)`.
     """
     cmat = self.coulomb_matrix(mol)
-    features = []
+    features_list = []
     for f in cmat:
       w, v = np.linalg.eig(f)
       w_abs = np.abs(w)
@@ -277,6 +286,9 @@ class CoulombMatrixEig(CoulombMatrix):
       sortidx = sortidx[::-1]
       w = w[sortidx]
       f = pad_array(w, self.max_atoms)
-      features.append(f)
-    features = np.asarray(features)
+      features_list.append(f)
+    features = np.asarray(features_list)
+    if features.shape[0] == 1:
+      # `(1, max_atoms)` -> `(max_atoms,)`
+      features = np.squeeze(features, axis=0)
     return features

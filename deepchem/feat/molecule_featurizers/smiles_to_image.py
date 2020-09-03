@@ -75,7 +75,7 @@ class SmilesToImage(MolecularFeaturizer):
     Returns
     -------
     np.ndarray
-      A 3D array of image, the default shape is `(80, 80, 1)`.
+      A 3D array of image, the shape is `(img_size, img_size, 1)`.
       If the length of SMILES is longer than `max_len`, this value is an empty array.
     """
     try:

@@ -15,8 +15,7 @@ OUT_OF_VOCAB_TOKEN = "<unk>"
 
 def create_char_to_idx(filename: str,
                        max_len: int = 250,
-                       smiles_field: str = "smiles",
-                       verbose: bool = False) -> Dict[str, int]:
+                       smiles_field: str = "smiles") -> Dict[str, int]:
   """Creates a dictionary with character to index mapping.
 
   Parameters
@@ -27,8 +26,6 @@ def create_char_to_idx(filename: str,
       Maximum allowed length of the SMILES string
   smiles_field: str, default "smiles"
       Field indicating the SMILES strings int the file.
-  verbose: bool, default True
-      Whether to print the progress
 
   Returns
   -------
@@ -43,13 +40,7 @@ def create_char_to_idx(filename: str,
 
   unique_char_list = list(char_set)
   unique_char_list += [PAD_TOKEN, OUT_OF_VOCAB_TOKEN]
-  if verbose:
-    print("Number of unique characters: ", len(unique_char_list))
-
   char_to_idx = {letter: idx for idx, letter in enumerate(unique_char_list)}
-
-  if verbose:
-    print(unique_char_list)
   return char_to_idx
 
 

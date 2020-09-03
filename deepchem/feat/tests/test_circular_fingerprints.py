@@ -14,24 +14,32 @@ class TestCircularFingerprint(unittest.TestCase):
     """
         Set up tests.
         """
-    smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
     from rdkit import Chem
+    smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
     self.mol = Chem.MolFromSmiles(smiles)
-    self.engine = CircularFingerprint()
 
   def test_circular_fingerprints(self):
     """
         Test CircularFingerprint.
         """
-    rval = self.engine([self.mol])
-    assert rval.shape == (1, self.engine.size)
+    featurizer = CircularFingerprint()
+    rval = featurizer([self.mol])
+    assert rval.shape == (1, 2048)
+
+  def test_circular_fingerprints_with_1024(self):
+    """
+        Test CircularFingerprint with 1024 size.
+        """
+    featurizer = CircularFingerprint(size=1024)
+    rval = featurizer([self.mol])
+    assert rval.shape == (1, 1024)
 
   def test_sparse_circular_fingerprints(self):
     """
         Test CircularFingerprint with sparse encoding.
         """
-    self.engine = CircularFingerprint(sparse=True)
-    rval = self.engine([self.mol])
+    featurizer = CircularFingerprint(sparse=True)
+    rval = featurizer([self.mol])
     assert rval.shape == (1,)
     assert isinstance(rval[0], dict)
     assert len(rval[0])
@@ -41,8 +49,8 @@ class TestCircularFingerprint(unittest.TestCase):
         Test CircularFingerprint with sparse encoding and SMILES for each
         fragment.
         """
-    self.engine = CircularFingerprint(sparse=True, smiles=True)
-    rval = self.engine([self.mol])
+    featurizer = CircularFingerprint(sparse=True, smiles=True)
+    rval = featurizer([self.mol])
     assert rval.shape == (1,)
     assert isinstance(rval[0], dict)
     assert len(rval[0])
