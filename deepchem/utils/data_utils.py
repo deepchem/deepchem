@@ -3,119 +3,145 @@ Simple utils to save and load from disk.
 """
 import joblib
 import gzip
-import json
 import pickle
-import pandas as pd
-import numpy as np
 import os
-import deepchem
+import tempfile
+import tarfile
+import zipfile
 import warnings
 import logging
-from typing import List, Optional, Iterator, Any
+from urllib.request import urlretrieve
+from typing import Any, Iterator, List, Optional, Tuple, Union
 
-from deepchem.utils.genomics_utils import encode_bio_sequence as encode_sequence, \
-  seq_one_hot_encode as seq_one_hotencode
+import pandas as pd
+import numpy as np
+
+import deepchem as dc
 
 logger = logging.getLogger(__name__)
 
 
-def save_to_disk(dataset, filename, compress=3):
-  """Save a dataset to file."""
-  if filename.endswith('.joblib'):
-    joblib.dump(dataset, filename, compress=compress)
-  elif filename.endswith('.npy'):
-    np.save(filename, dataset)
-  else:
-    raise ValueError("Filename with unsupported extension: %s" % filename)
-
-
-def get_input_type(input_file):
-  """Get type of input file. Must be csv/pkl.gz/sdf file."""
-  filename, file_extension = os.path.splitext(input_file)
-  # If gzipped, need to compute extension again
-  if file_extension == ".gz":
-    filename, file_extension = os.path.splitext(filename)
-  if file_extension == ".csv":
-    return "csv"
-  elif file_extension == ".pkl":
-    return "pandas-pickle"
-  elif file_extension == ".joblib":
-    return "pandas-joblib"
-  elif file_extension == ".sdf":
-    return "sdf"
-  else:
-    raise ValueError("Unrecognized extension %s" % file_extension)
-
-
-def load_data(input_files: List[str],
-              shard_size: Optional[int] = None) -> Iterator[Any]:
-  """Loads data from disk.
-
-  For CSV files, supports sharded loading for large files.
-
-  Parameters
-  ----------
-  input_files: list
-    List of filenames.
-  shard_size: int, optional (default None)
-    Size of shard to yield
-
-  Returns
-  -------
-  Iterator which iterates over provided files.
+def pad_array(x: np.ndarray,
+              shape: Union[Tuple, int],
+              fill: float = 0.0,
+              both: bool = False) -> np.ndarray:
   """
-  if not len(input_files):
-    return
-  input_type = get_input_type(input_files[0])
-  if input_type == "sdf":
-    if shard_size is not None:
-      logger.info("Ignoring shard_size for sdf input.")
-    for value in load_sdf_files(input_files):
-      yield value
-  elif input_type == "csv":
-    for value in load_csv_files(input_files, shard_size):
-      yield value
-  elif input_type == "pandas-pickle":
-    for input_file in input_files:
-      yield load_pickle_from_disk(input_file)
-
-
-def load_image_files(image_files: List[str]) -> np.ndarray:
-  """Loads a set of images from disk.
+  Pad an array with a fill value.
 
   Parameters
   ----------
-  image_files: List[str]
-    List of image filenames to load.
+  x: np.ndarray
+    A numpy array.
+  shape: Tuple or int
+    Desired shape. If int, all dimensions are padded to that size.
+  fill: float, optional (default 0.0)
+    The padded value.
+  both: bool, optional (default False)
+    If True, split the padding on both sides of each axis. If False,
+    padding is applied to the end of each axis.
 
   Returns
   -------
   np.ndarray
-    A numpy array that contains loaded images. The shape is, `(N,...)`.
-
-  Notes
-  -----
-  This method requires Pillow to be installed.
+    A padded numpy array
   """
-  try:
-    from PIL import Image
-  except ModuleNotFoundError:
-    raise ValueError("This function requires Pillow to be installed.")
-
-  images = []
-  for image_file in image_files:
-    _, extension = os.path.splitext(image_file)
-    extension = extension.lower()
-    if extension == ".png":
-      image = np.array(Image.open(image_file))
-      images.append(image)
-    elif extension == ".tif":
-      im = Image.open(image_file)
-      imarray = np.array(im)
-      images.append(imarray)
+  x = np.asarray(x)
+  if not isinstance(shape, tuple):
+    shape = tuple(shape for _ in range(x.ndim))
+  pad = []
+  for i in range(x.ndim):
+    diff = shape[i] - x.shape[i]
+    assert diff >= 0
+    if both:
+      a, b = divmod(diff, 2)
+      b += a
+      pad.append((a, b))
     else:
-      raise ValueError("Unsupported image filetype for %s" % image_file)
-  return np.array(images)
+      pad.append((0, diff))
+  pad = tuple(pad)
+  x = np.pad(x, pad, mode='constant', constant_values=fill)
+  return x
+
+
+def get_data_dir() -> str:
+  """Get the DeepChem data directory.
+
+  Returns
+  -------
+  str
+    The default path to store DeepChem data. If you want to
+    change this path, please set your own path to `DEEPCHEM_DATA_DIR`
+    as an environment variable.
+  """
+  if 'DEEPCHEM_DATA_DIR' in os.environ:
+    return os.environ['DEEPCHEM_DATA_DIR']
+  return tempfile.gettempdir()
+
+
+def download_url(url: str,
+                 dest_dir: str = get_data_dir(),
+                 name: Optional[str] = None):
+  """Download a file to disk.
+
+  Parameters
+  ----------
+  url: str
+    The URL to download from
+  dest_dir: str
+    The directory to save the file in
+  name: str
+    The file name to save it as.  If omitted, it will try to extract a file name from the URL
+  """
+  if name is None:
+    name = url
+    if '?' in name:
+      name = name[:name.find('?')]
+    if '/' in name:
+      name = name[name.rfind('/') + 1:]
+  urlretrieve(url, os.path.join(dest_dir, name))
+
+
+def untargz_file(file: str,
+                 dest_dir: str = get_data_dir(),
+                 name: Optional[str] = None):
+  """Untar and unzip a .tar.gz file to disk.
+
+  Parameters
+  ----------
+  file: str
+    The filepath to decompress
+  dest_dir: str
+    The directory to save the file in
+  name: str
+    The file name to save it as.  If omitted, it will use the file name
+  """
+  if name is None:
+    name = file
+  tar = tarfile.open(name)
+  tar.extractall(path=dest_dir)
+  tar.close()
+
+
+def unzip_file(file: str,
+               dest_dir: str = get_data_dir(),
+               name: Optional[str] = None):
+  """Unzip a .zip file to disk.
+
+  Parameters
+  ----------
+  file: str
+    The filepath to decompress
+  dest_dir: str
+    The directory to save the file in
+  name: str
+    The directory name to unzip it to.  If omitted, it will use the file name
+  """
+  if name is None:
+    name = file
+  if dest_dir is None:
+    dest_dir = os.path.join(get_data_dir, name)
+  with zipfile.ZipFile(file, "r") as zip_ref:
+    zip_ref.extractall(dest_dir)
 
 
 def load_sdf_files(input_files: List[str],
@@ -126,28 +152,31 @@ def load_sdf_files(input_files: List[str],
 
   Parameters
   ----------
-  input_files: list[str]
+  input_files: List[str]
     List of filenames
-  clean_mols: bool
+  clean_mols: bool, default True
     Whether to sanitize molecules.
-  tasks: list, optional (default [])
+  tasks: List[str], default []
     Each entry in `tasks` is treated as a property in the SDF file and is
     retrieved with `mol.GetProp(str(task))` where `mol` is the RDKit mol
     loaded from a given SDF entry.
-  shard_size: int, optional (default None) 
+  shard_size: int, default None
     The shard size to yield at one time.
-
-  Note
-  ----
-  This function requires RDKit to be installed.
 
   Returns
   -------
-  dataframes: list
-    This function returns a list of pandas dataframes. Each dataframe will
-    contain columns `('mol_id', 'smiles', 'mol')`.
+  Iterator[pd.DataFrame]
+    Generator which yields the dataframe which is the same shard size.
+
+  Notes
+  -----
+  This function requires RDKit to be installed.
   """
-  from rdkit import Chem
+  try:
+    from rdkit import Chem
+  except ModuleNotFoundError:
+    raise ValueError("This function requires RDKit to be installed.")
+
   df_rows = []
   for input_file in input_files:
     # Tasks are either in .sdf.csv file or in the .sdf file itself
@@ -175,6 +204,7 @@ def load_sdf_files(input_files: List[str],
           yield mol_df
         # Reset aggregator
         df_rows = []
+
     # Handle final leftovers for this file
     if len(df_rows) > 0:
       if has_csv:
@@ -190,18 +220,19 @@ def load_sdf_files(input_files: List[str],
 
 def load_csv_files(filenames: List[str],
                    shard_size: Optional[int] = None) -> Iterator[pd.DataFrame]:
-  """Load data as pandas dataframe.
+  """Load data as pandas dataframe from CSV files.
 
   Parameters
   ----------
-  filenames: list[str]
+  filenames: List[str]
     List of filenames
-  shard_size: int, optional (default None) 
+  shard_size: int, default None
     The shard size to yield at one time.
 
   Returns
   -------
-  Iterator which iterates over shards of data.
+  Iterator[pd.DataFrame]
+    Generator which yields the dataframe which is the same shard size.
   """
   # First line of user-specified CSV *must* be header.
   shard_num = 1
@@ -224,24 +255,21 @@ def load_json_files(filenames: List[str],
 
   Parameters
   ----------
-  filenames : List[str]
+  filenames: List[str]
     List of json filenames.
-  shard_size : int, optional
+  shard_size: int, default None
     Chunksize for reading json files.
 
-  Yields
-  ------
-  df : pandas.DataFrame
-    Shard of dataframe.
+  Returns
+  -------
+  Iterator[pd.DataFrame]
+    Generator which yields the dataframe which is the same shard size.
 
   Notes
   -----
   To load shards from a json file into a Pandas dataframe, the file
-    must be originally saved with
-  ``df.to_json('filename.json', orient='records', lines=True)``
-
+  must be originally saved with ``df.to_json('filename.json', orient='records', lines=True)``
   """
-
   shard_num = 1
   for filename in filenames:
     if shard_size is None:
@@ -257,79 +285,27 @@ def load_json_files(filenames: List[str],
         yield df
 
 
-def seq_one_hot_encode(sequences, letters='ATCGN'):
-  """One hot encodes list of genomic sequences.
+def save_to_disk(dataset: Any, filename: str, compress: int = 3):
+  """Save a dataset to file.
 
-  Sequences encoded have shape (N_sequences, N_letters, sequence_length, 1).
-  These sequences will be processed as images with one color channel.
-
-  Parameters
-  ----------
-  sequences: np.ndarray
-    Array of genetic sequences
-  letters: str
-    String with the set of possible letters in the sequences.
-
-  Raises
-  ------
-  ValueError:
-    If sequences are of different lengths.
-
-  Returns
-  -------
-  np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
+  Paramters
+  ---------
+  dataset: str
+    A data saved
+  filename: str
+    Path to save data.
+  compress: int, default 3
+    The compress option when dumping joblib file.
   """
-  warnings.warn(
-      "This Function has been deprecated and now resides in deepchem.utils.genomics_utils ",
-      DeprecationWarning)
-  return seq_one_hotencode(sequences, letters=letters)
+  if filename.endswith('.joblib'):
+    joblib.dump(dataset, filename, compress=compress)
+  elif filename.endswith('.npy'):
+    np.save(filename, dataset)
+  else:
+    raise ValueError("Filename with unsupported extension: %s" % filename)
 
 
-def encode_fasta_sequence(fname):
-  """
-  Loads fasta file and returns an array of one-hot sequences.
-
-  Parameters
-  ----------
-  fname: str
-    Filename of fasta file.
-
-  Returns
-  -------
-  np.ndarray: Shape (N_sequences, 5, sequence_length, 1).
-  """
-  warnings.warn(
-      "This Function has been deprecated and now resides in deepchem.utils.genomics_utils",
-      DeprecationWarning)
-
-  return encode_sequence(fname)
-
-
-def encode_bio_sequence(fname, file_type="fasta", letters="ATCGN"):
-  """
-  Loads a sequence file and returns an array of one-hot sequences.
-
-  Parameters
-  ----------
-  fname: str
-    Filename of fasta file.
-  file_type: str
-    The type of file encoding to process, e.g. fasta or fastq, this
-    is passed to Biopython.SeqIO.parse.
-  letters: str
-    The set of letters that the sequences consist of, e.g. ATCG.
-
-  Returns
-  -------
-  np.ndarray: Shape (N_sequences, N_letters, sequence_length, 1).
-  """
-  warnings.warn(
-      "This Function has been deprecated and now resides in deepchem.utils.genomics_utils ",
-      DeprecationWarning)
-  return encode_sequence(fname, file_type=file_type, letters=letters)
-
-
-def load_from_disk(filename):
+def load_from_disk(filename: str) -> Any:
   """Load a dataset from file."""
   name = filename
   if os.path.splitext(name)[1] == ".gz":
@@ -350,7 +326,7 @@ def load_from_disk(filename):
     raise ValueError("Unrecognized filetype for %s" % filename)
 
 
-def load_sharded_csv(filenames):
+def load_sharded_csv(filenames) -> pd.DataFrame:
   """Load a dataset from multiple files. Each file MUST have same column headers"""
   dataframes = []
   for name in filenames:
@@ -363,7 +339,7 @@ def load_sharded_csv(filenames):
       df = df.replace(np.nan, str(""), regex=True)
       dataframes.append(df)
     else:
-      raise ValueError("Unrecognized filetype for %s" % filename)
+      raise ValueError("Unrecognized filetype for %s" % name)
 
   # combine dataframes
   combined_df = dataframes[0]
@@ -373,8 +349,20 @@ def load_sharded_csv(filenames):
   return combined_df
 
 
-def load_pickle_from_disk(filename):
-  """Load dataset from pickle file."""
+def load_pickle_from_disk(filename: str) -> Any:
+  """Load dataset from pickle file.
+
+  Parameters
+  ----------
+  filename: str
+    A filename of pickle file. This function can load from
+    gzipped pickle file like `XXXX.pkl.gz`.
+
+  Returns
+  -------
+  Any
+    A loaded object from pickle file.
+  """
   if ".gz" in filename:
     with gzip.open(filename, "rb") as f:
       df = pickle.load(f)
@@ -384,12 +372,14 @@ def load_pickle_from_disk(filename):
   return df
 
 
-def load_dataset_from_disk(save_dir):
+def load_dataset_from_disk(
+    save_dir: str
+) -> Tuple[bool, Tuple[dc.data.DiskDataset, dc.data.DiskDataset,
+                       dc.data.DiskDataset], List[dc.trains.Transformer]]:
   """Loads MoleculeNet train/valid/test/transformers from disk.
 
   Expects that data was saved using `save_dataset_to_disk` below. Expects the
   following directory structure for `save_dir`:
-  
   save_dir/
     |
     ---> train_dir/
@@ -403,14 +393,15 @@ def load_dataset_from_disk(save_dir):
   Parameters
   ----------
   save_dir: str
+    Directory name to load datasets.
 
   Returns
   -------
   loaded: bool
     Whether the load succeeded
-  all_dataset: (dc.data.Dataset, dc.data.Dataset, dc.data.Dataset)
+  all_dataset: Tuple[dc.data.DiskDataset, dc.data.DiskDataset, dc.data.DiskDataset]
     The train, valid, test datasets
-  transformers: list of dc.trans.Transformer
+  transformers: dc.trans.Transformer
     The transformers used for this dataset
 
   See Also
@@ -425,23 +416,24 @@ def load_dataset_from_disk(save_dir):
       valid_dir) or not os.path.exists(test_dir):
     return False, None, list()
   loaded = True
-  train = deepchem.data.DiskDataset(train_dir)
-  valid = deepchem.data.DiskDataset(valid_dir)
-  test = deepchem.data.DiskDataset(test_dir)
+  train = dc.data.DiskDataset(train_dir)
+  valid = dc.data.DiskDataset(valid_dir)
+  test = dc.data.DiskDataset(test_dir)
   train.memory_cache_size = 40 * (1 << 20)  # 40 MB
   all_dataset = (train, valid, test)
   with open(os.path.join(save_dir, "transformers.pkl"), 'rb') as f:
     transformers = pickle.load(f)
-    return loaded, all_dataset, transformers
+  return loaded, all_dataset, transformers
 
 
-def save_dataset_to_disk(save_dir, train, valid, test, transformers):
+def save_dataset_to_disk(save_dir: str, train: dc.data.DiskDataset,
+                         valid: dc.data.DiskDataset, test: dc.data.DiskDataset,
+                         transformers: List[dc.trans.Transformer]):
   """Utility used by MoleculeNet to save train/valid/test datasets.
 
   This utility function saves a train/valid/test split of a dataset along
   with transformers in the same directory. The saved datasets will take the
   following structure:
-  
   save_dir/
     |
     ---> train_dir/
@@ -455,7 +447,7 @@ def save_dataset_to_disk(save_dir, train, valid, test, transformers):
   Parameters
   ----------
   save_dir: str
-    Filename of directory to save datasets to.
+    Directory name to save datasets to.
   train: DiskDataset
     Training dataset to save.
   valid: DiskDataset
@@ -467,7 +459,7 @@ def save_dataset_to_disk(save_dir, train, valid, test, transformers):
 
   See Also
   --------
-  load_dataset_from_disk 
+  load_dataset_from_disk
   """
   train_dir = os.path.join(save_dir, "train_dir")
   valid_dir = os.path.join(save_dir, "valid_dir")
@@ -478,3 +470,54 @@ def save_dataset_to_disk(save_dir, train, valid, test, transformers):
   with open(os.path.join(save_dir, "transformers.pkl"), 'wb') as f:
     pickle.dump(transformers, f)
   return None
+
+
+def get_input_type(input_file: str) -> str:
+  """Get type of input file. Must be csv/pkl.gz/sdf file."""
+  filename, file_extension = os.path.splitext(input_file)
+  # If gzipped, need to compute extension again
+  if file_extension == ".gz":
+    filename, file_extension = os.path.splitext(filename)
+  if file_extension == ".csv":
+    return "csv"
+  elif file_extension == ".pkl":
+    return "pandas-pickle"
+  elif file_extension == ".joblib":
+    return "pandas-joblib"
+  elif file_extension == ".sdf":
+    return "sdf"
+  else:
+    raise ValueError("Unrecognized extension %s" % file_extension)
+
+
+def load_data(input_files: List[str],
+              shard_size: Optional[int] = None) -> Iterator[Any]:
+  """Loads data from disk.
+
+  For CSV files, supports sharded loading for large files.
+
+  Parameters
+  ----------
+  input_files: List[str]
+    List of filenames.
+  shard_size: int, default None
+    Size of shard to yield
+
+  Returns
+  -------
+  Iterator which iterates over provided files.
+  """
+  if not len(input_files):
+    return
+  input_type = get_input_type(input_files[0])
+  if input_type == "sdf":
+    if shard_size is not None:
+      logger.info("Ignoring shard_size for sdf input.")
+    for value in load_sdf_files(input_files):
+      yield value
+  elif input_type == "csv":
+    for value in load_csv_files(input_files, shard_size):
+      yield value
+  elif input_type == "pandas-pickle":
+    for input_file in input_files:
+      yield load_pickle_from_disk(input_file)

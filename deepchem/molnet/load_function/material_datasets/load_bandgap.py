@@ -149,7 +149,7 @@ def load_bandgap(
     save_folder = os.path.join(save_dir, "bandgap-featurized", featurizer_name,
                                splitter_name)
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return my_tasks, all_dataset, transformers
@@ -196,7 +196,7 @@ def load_bandgap(
     test_dataset = transformer.transform(test_dataset)
 
   if reload:  # save to disk
-    deepchem.utils.save.save_dataset_to_disk(
+    deepchem.utils.data_utils.save_dataset_to_disk(
         save_folder, train_dataset, valid_dataset, test_dataset, transformers)
 
   return my_tasks, (train_dataset, valid_dataset, test_dataset), transformers

@@ -34,7 +34,7 @@ def load_chembl(shard_size=2000,
       save_folder = os.path.join(save_folder, img_spec)
     save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return chembl_tasks, all_dataset, transformers
@@ -153,6 +153,6 @@ def load_chembl(shard_size=2000,
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
                                              transformers)
   return chembl_tasks, (train, valid, test), transformers

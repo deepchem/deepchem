@@ -14,8 +14,8 @@ from sklearn.linear_model import LassoCV
 from sklearn.linear_model import ElasticNetCV
 from sklearn.linear_model import LassoLarsCV
 from deepchem.models import Model
-from deepchem.utils.save import load_from_disk
-from deepchem.utils.save import save_to_disk
+from deepchem.utils.data_utils import load_from_disk
+from deepchem.utils.data_utils import save_to_disk
 
 NON_WEIGHTED_MODELS = [
     LogisticRegression, PLSRegression, GaussianProcessRegressor, ElasticNetCV,

@@ -73,13 +73,13 @@ def load_clintox(featurizer='ECFP',
     deepchem.utils.download_url(url=CLINTOX_URL, dest_dir=data_dir)
 
   logger.info("About to load clintox dataset.")
-  dataset = deepchem.utils.save.load_from_disk(dataset_file)
+  dataset = deepchem.utils.data_utils.load_from_disk(dataset_file)
   clintox_tasks = dataset.columns.values[1:].tolist()
   logger.info("Tasks in dataset: %s" % (clintox_tasks))
   logger.info("Number of tasks in dataset: %s" % str(len(clintox_tasks)))
   logger.info("Number of examples in dataset: %s" % str(dataset.shape[0]))
   if reload:
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return clintox_tasks, all_dataset, transformers
@@ -132,7 +132,7 @@ def load_clintox(featurizer='ECFP',
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
                                              transformers)
 
   return clintox_tasks, (train, valid, test), transformers

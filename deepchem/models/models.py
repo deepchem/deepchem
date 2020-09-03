@@ -17,8 +17,8 @@ import logging
 from deepchem.data import Dataset, pad_features
 from deepchem.metrics import Metric
 from deepchem.trans import Transformer, undo_transforms
-from deepchem.utils.save import load_from_disk
-from deepchem.utils.save import save_to_disk
+from deepchem.utils.data_utils import load_from_disk
+from deepchem.utils.data_utils import save_to_disk
 from deepchem.utils.evaluate import Evaluator
 
 from typing import Any, Dict, List, Optional, Sequence

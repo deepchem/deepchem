@@ -42,27 +42,27 @@ File Handling
 
 .. autofunction:: deepchem.utils.unzip_file
 
-.. autofunction:: deepchem.utils.save.save_to_disk
+.. autofunction:: deepchem.utils.data_utils.save_to_disk
 
-.. autofunction:: deepchem.utils.save.get_input_type
+.. autofunction:: deepchem.utils.data_utils.get_input_type
 
-.. autofunction:: deepchem.utils.save.load_data
+.. autofunction:: deepchem.utils.data_utils.load_data
 
-.. autofunction:: deepchem.utils.save.load_sharded_csv
+.. autofunction:: deepchem.utils.data_utils.load_sharded_csv
 
-.. autofunction:: deepchem.utils.save.load_sdf_files
+.. autofunction:: deepchem.utils.data_utils.load_sdf_files
 
-.. autofunction:: deepchem.utils.save.load_csv_files
+.. autofunction:: deepchem.utils.data_utils.load_csv_files
 
-.. autofunction:: deepchem.utils.save.load_json_files
+.. autofunction:: deepchem.utils.data_utils.load_json_files
 
-.. autofunction:: deepchem.utils.save.load_from_disk
+.. autofunction:: deepchem.utils.data_utils.load_from_disk
 
-.. autofunction:: deepchem.utils.save.load_pickle_from_disk
+.. autofunction:: deepchem.utils.data_utils.load_pickle_from_disk
 
-.. autofunction:: deepchem.utils.save.load_dataset_from_disk
+.. autofunction:: deepchem.utils.data_utils.load_dataset_from_disk
 
-.. autofunction:: deepchem.utils.save.save_dataset_to_disk
+.. autofunction:: deepchem.utils.data_utils.save_dataset_to_disk
 
 Molecular Utilities
 -------------------

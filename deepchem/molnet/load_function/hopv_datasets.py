@@ -50,7 +50,7 @@ def load_hopv(featurizer='ECFP',
       save_folder = os.path.join(save_folder, img_spec)
     save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return hopv_tasks, all_dataset, transformers
@@ -119,6 +119,6 @@ def load_hopv(featurizer='ECFP',
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
                                              transformers)
   return hopv_tasks, (train, valid, test), transformers

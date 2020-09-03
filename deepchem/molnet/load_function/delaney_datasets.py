@@ -65,7 +65,7 @@ def load_delaney(featurizer='ECFP',
 
   delaney_tasks = ['measured log solubility in mols per litre']
   if reload:
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return delaney_tasks, all_dataset, transformers
@@ -123,6 +123,6 @@ def load_delaney(featurizer='ECFP',
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
                                              transformers)
   return delaney_tasks, (train, valid, test), transformers

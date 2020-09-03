@@ -83,7 +83,7 @@ def load_qm8(featurizer='CoulombMatrix',
       save_folder = os.path.join(save_folder, img_spec)
     save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return qm8_tasks, all_dataset, transformers
@@ -153,6 +153,6 @@ def load_qm8(featurizer='CoulombMatrix',
     valid_dataset = transformer.transform(valid_dataset)
     test_dataset = transformer.transform(test_dataset)
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(
+    deepchem.utils.data_utils.save_dataset_to_disk(
         save_folder, train_dataset, valid_dataset, test_dataset, transformers)
   return qm8_tasks, (train_dataset, valid_dataset, test_dataset), transformers

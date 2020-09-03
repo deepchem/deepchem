@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 
 from deepchem.utils.typing import OneOrMany
-from deepchem.utils.save import load_image_files, load_csv_files, load_json_files, load_sdf_files
+from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files
 from deepchem.utils.genomics_utils import encode_bio_sequence
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset

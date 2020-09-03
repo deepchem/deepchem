@@ -90,7 +90,7 @@ def load_pdbbind_grid(split="random",
 
     tasks = ["-logKd/Ki"]
     if reload:
-      loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+      loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
           save_dir)
       if loaded:
         return tasks, all_dataset, transformers
@@ -142,7 +142,7 @@ def load_pdbbind_grid(split="random",
       test = transformer.transform(test)
 
     if reload:
-      deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+      deepchem.utils.data_utils.save_dataset_to_disk(save_dir, train, valid, test,
                                                transformers)
 
     return tasks, (train, valid, test), transformers
@@ -212,7 +212,7 @@ def load_pdbbind(reload=True,
     else:
       print(
           "\nLoading featurized and splitted dataset from:\n%s\n" % save_folder)
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return pdbbind_tasks, all_dataset, transformers
@@ -338,7 +338,7 @@ def load_pdbbind(reload=True,
 
   all_dataset = (train, valid, test)
   print("\nSaving dataset to \"%s\" ..." % save_folder)
-  deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
+  deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
                                            transformers)
   return pdbbind_tasks, all_dataset, transformers
 
@@ -454,6 +454,6 @@ def load_pdbbind_from_dir(data_folder,
   train, valid, test = splitter.train_valid_test_split(dataset)
   all_dataset = (train, valid, test)
   if save_dir:
-    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+    deepchem.utils.data_utils.save_dataset_to_disk(save_dir, train, valid, test,
                                              transformers)
   return pdbbind_tasks, all_dataset, transformers

@@ -9,7 +9,7 @@ import tempfile
 import numpy as np
 from deepchem.utils import ScaffoldGenerator
 from deepchem.data import NumpyDataset
-from deepchem.utils.save import load_data
+from deepchem.utils.data_utils import load_data
 from deepchem.splits import Splitter
 
 
