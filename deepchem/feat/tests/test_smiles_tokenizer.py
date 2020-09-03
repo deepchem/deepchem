@@ -27,8 +27,3 @@ class TestSmilesTokenizer(TestCase):
 
     assert tokenized_smiles == tokenizer.encode(
         "CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@H]1O[C@](C#N)([C@H](O)[C@@H]1O)C1=CC=C2N1N=CN=C2N)OC1=CC=CC=C1")
-
-
-if __name__ == '__main__':
-  test_tokenizer = TestSmilesTokenizer()
-  test_tokenizer.test_tokenize()
