@@ -16,13 +16,13 @@ from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCo
 from deepchem.feat.graph_features import AtomicConvFeaturizer
 
 logger = logging.getLogger(__name__)
-DEFAULT_DATA_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DATA_DIR = deepchem.utils.data_utils.get_data_dir()
 
 
 def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   """Featurizes pdbbind according to provided featurization"""
   tasks = ["-logKd/Ki"]
-  data_dir = deepchem.utils.get_data_dir()
+  data_dir = deepchem.utils.data_utils.get_data_dir()
   pdbbind_dir = os.path.join(data_dir, "pdbbind")
   dataset_dir = os.path.join(pdbbind_dir, "%s_%s" % (subset, feat))
 
@@ -76,7 +76,7 @@ def load_pdbbind_grid(split="random",
     return tasks, all_dataset, transformers
 
   else:
-    data_dir = deepchem.utils.get_data_dir()
+    data_dir = deepchem.utils.data_utils.get_data_dir()
     if reload:
       save_dir = os.path.join(
           data_dir, "pdbbind_" + subset + "/" + featurizer + "/" + str(split))
@@ -185,7 +185,7 @@ def load_pdbbind(reload=True,
 
   pdbbind_tasks = ["-logKd/Ki"]
 
-  deepchem_dir = deepchem.utils.get_data_dir()
+  deepchem_dir = deepchem.utils.data_utils.get_data_dir()
 
   if data_dir == None:
     data_dir = DEFAULT_DATA_DIR

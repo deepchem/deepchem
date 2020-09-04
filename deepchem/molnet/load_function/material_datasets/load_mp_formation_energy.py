@@ -12,7 +12,7 @@ from typing import List, Tuple, Dict, Optional, Any
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 MPFORME_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/mp_formation_energy.tar.gz'
 
 # dict of accepted featurizers for this dataset
@@ -55,7 +55,7 @@ def load_mp_formation_energy(
             'transform_X': True
         }
     },
-    **kwargs) -> Tuple[List, Tuple, List]:
+    **kwargs) -> Tuple[List, Optional[Tuple], List]:
   """Load mp formation energy dataset.
 
   Contains 132752 calculated formation energies and inorganic
@@ -168,8 +168,8 @@ def load_mp_formation_energy(
     if not os.path.exists(dataset_file):
       targz_file = os.path.join(data_dir, 'mp_formation_energy.tar.gz')
       if not os.path.exists(targz_file):
-        deepchem.utils.download_url(url=MPFORME_URL, dest_dir=data_dir)
-      deepchem.utils.untargz_file(
+        deepchem.utils.data_utils.download_url(url=MPFORME_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'mp_formation_energy.tar.gz'), data_dir)
 
     # Changer loader to match featurizer and data file type

@@ -2,7 +2,7 @@ import numpy as np
 
 from deepchem.utils.typing import PymatgenStructure
 from deepchem.feat import MaterialStructureFeaturizer
-from deepchem.utils import pad_array
+from deepchem.utils.data_utils import pad_array
 
 
 class SineCoulombMatrix(MaterialStructureFeaturizer):

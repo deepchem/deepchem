@@ -192,7 +192,7 @@ def load_kinase(shard_size=2000, featurizer=None, split=None, reload=True):
       'T_00109', 'T_00110', 'T_00111'
   ]
 
-  data_dir = deepchem.utils.get_data_dir()
+  data_dir = deepchem.utils.data_utils.get_data_dir()
   data_dir = os.path.join(data_dir, "kinase")
 
   if not os.path.exists(data_dir):

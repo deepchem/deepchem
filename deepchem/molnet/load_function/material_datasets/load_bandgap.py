@@ -13,7 +13,7 @@ from typing import List, Tuple, Dict, Optional, Any
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 BANDGAP_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/expt_gap.tar.gz'
 
 # dict of accepted featurizers for this dataset
@@ -55,7 +55,7 @@ def load_bandgap(
             'transform_X': True
         }
     },
-    **kwargs) -> Tuple[List, Tuple, List]:
+    **kwargs) -> Tuple[List, Optional[Tuple], List]:
   """Load band gap dataset.
 
   Contains 4604 experimentally measured band gaps for inorganic
@@ -163,9 +163,9 @@ def load_bandgap(
     if not os.path.exists(dataset_file):
       targz_file = os.path.join(data_dir, 'expt_gap.tar.gz')
       if not os.path.exists(targz_file):
-        deepchem.utils.download_url(url=BANDGAP_URL, dest_dir=data_dir)
+        deepchem.utils.data_utils.download_url(url=BANDGAP_URL, dest_dir=data_dir)
 
-      deepchem.utils.untargz_file(
+      deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'expt_gap.tar.gz'), data_dir)
 
     # Changer loader to match featurizer and data file type

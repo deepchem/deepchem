@@ -8,7 +8,6 @@ import os
 import tempfile
 import tarfile
 import zipfile
-import warnings
 import logging
 from urllib.request import urlretrieve
 from typing import Any, Iterator, List, Optional, Tuple, Union
@@ -16,7 +15,9 @@ from typing import Any, Iterator, List, Optional, Tuple, Union
 import pandas as pd
 import numpy as np
 
-import deepchem as dc
+
+from deepchem.trans import Transformer
+from deepchem.data import DiskDataset
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +143,41 @@ def unzip_file(file: str,
     dest_dir = os.path.join(get_data_dir, name)
   with zipfile.ZipFile(file, "r") as zip_ref:
     zip_ref.extractall(dest_dir)
+
+
+def load_image_files(image_files: List[str]) -> np.ndarray:
+  """Loads a set of images from disk.
+  Parameters
+  ----------
+  image_files: List[str]
+    List of image filenames to load.
+  Returns
+  -------
+  np.ndarray
+    A numpy array that contains loaded images. The shape is, `(N,...)`.
+  Notes
+  -----
+  This method requires Pillow to be installed.
+  """
+  try:
+    from PIL import Image
+  except ModuleNotFoundError:
+    raise ValueError("This function requires Pillow to be installed.")
+
+  images = []
+  for image_file in image_files:
+    _, extension = os.path.splitext(image_file)
+    extension = extension.lower()
+    if extension == ".png":
+      image = np.array(Image.open(image_file))
+      images.append(image)
+    elif extension == ".tif":
+      im = Image.open(image_file)
+      imarray = np.array(im)
+      images.append(imarray)
+    else:
+      raise ValueError("Unsupported image filetype for %s" % image_file)
+  return np.array(images)
 
 
 def load_sdf_files(input_files: List[str],
@@ -374,8 +410,8 @@ def load_pickle_from_disk(filename: str) -> Any:
 
 def load_dataset_from_disk(
     save_dir: str
-) -> Tuple[bool, Tuple[dc.data.DiskDataset, dc.data.DiskDataset,
-                       dc.data.DiskDataset], List[dc.trains.Transformer]]:
+) -> Tuple[bool, Optional[Tuple[DiskDataset, DiskDataset,
+                       DiskDataset]], List[Transformer]]:
   """Loads MoleculeNet train/valid/test/transformers from disk.
 
   Expects that data was saved using `save_dataset_to_disk` below. Expects the
@@ -399,9 +435,9 @@ def load_dataset_from_disk(
   -------
   loaded: bool
     Whether the load succeeded
-  all_dataset: Tuple[dc.data.DiskDataset, dc.data.DiskDataset, dc.data.DiskDataset]
+  all_dataset: Tuple[DiskDataset, DiskDataset, DiskDataset]
     The train, valid, test datasets
-  transformers: dc.trans.Transformer
+  transformers: Transformer
     The transformers used for this dataset
 
   See Also
@@ -416,9 +452,9 @@ def load_dataset_from_disk(
       valid_dir) or not os.path.exists(test_dir):
     return False, None, list()
   loaded = True
-  train = dc.data.DiskDataset(train_dir)
-  valid = dc.data.DiskDataset(valid_dir)
-  test = dc.data.DiskDataset(test_dir)
+  train = DiskDataset(train_dir)
+  valid = DiskDataset(valid_dir)
+  test = DiskDataset(test_dir)
   train.memory_cache_size = 40 * (1 << 20)  # 40 MB
   all_dataset = (train, valid, test)
   with open(os.path.join(save_dir, "transformers.pkl"), 'rb') as f:
@@ -426,9 +462,9 @@ def load_dataset_from_disk(
   return loaded, all_dataset, transformers
 
 
-def save_dataset_to_disk(save_dir: str, train: dc.data.DiskDataset,
-                         valid: dc.data.DiskDataset, test: dc.data.DiskDataset,
-                         transformers: List[dc.trans.Transformer]):
+def save_dataset_to_disk(save_dir: str, train: DiskDataset,
+                         valid: DiskDataset, test: DiskDataset,
+                         transformers: List[Transformer]):
   """Utility used by MoleculeNet to save train/valid/test datasets.
 
   This utility function saves a train/valid/test split of a dataset along

@@ -8,7 +8,7 @@ from deepchem.molnet.load_function.chembl_tasks import chembl_tasks
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 
 
 def load_chembl(shard_size=2000,

@@ -7,13 +7,13 @@ tricky aspects of processing scientific datatypes.
 Array Utilities
 ---------------
 
-.. autofunction:: deepchem.utils.pad_array
+.. autofunction:: deepchem.utils.data_utils.pad_array
 
 Data Directory
 --------------
 The DeepChem data directory is where downloaded MoleculeNet datasets are stored.
 
-.. autofunction:: deepchem.utils.get_data_dir
+.. autofunction:: deepchem.utils.data_utils.get_data_dir
 
 Print Threshold
 ---------------
@@ -33,14 +33,14 @@ represnted in the IPython repl.
 URL Handling
 ------------
 
-.. autofunction:: deepchem.utils.download_url
+.. autofunction:: deepchem.utils.data_utils.download_url
 
 File Handling
 -------------
 
-.. autofunction:: deepchem.utils.untargz_file
+.. autofunction:: deepchem.utils.data_utils.untargz_file
 
-.. autofunction:: deepchem.utils.unzip_file
+.. autofunction:: deepchem.utils.data_utils.unzip_file
 
 .. autofunction:: deepchem.utils.data_utils.save_to_disk
 

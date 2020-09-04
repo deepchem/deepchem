@@ -172,7 +172,7 @@ def load_factors(shard_size=2000, featurizer=None, split=None, reload=True):
       'T_00007', 'T_00008', 'T_00009', 'T_00010', 'T_00011', 'T_00012'
   ]
 
-  data_dir = deepchem.utils.get_data_dir()
+  data_dir = deepchem.utils.data_utils.get_data_dir()
   data_dir = os.path.join(data_dir, "factors")
 
   if not os.path.exists(data_dir):

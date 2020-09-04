@@ -12,7 +12,7 @@ from typing import List, Tuple, Dict, Optional, Any
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 MPMETAL_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/mp_is_metal.tar.gz'
 
 # dict of accepted featurizers for this dataset
@@ -55,7 +55,7 @@ def load_mp_metallicity(
             'transform_X': True
         }
     },
-    **kwargs) -> Tuple[List, Tuple, List]:
+    **kwargs) -> Tuple[List, Optional[Tuple], List]:
   """Load mp formation energy dataset.
 
   Contains 106113 inorganic crystal structures from the Materials
@@ -168,8 +168,8 @@ def load_mp_metallicity(
     if not os.path.exists(dataset_file):
       targz_file = os.path.join(data_dir, 'mp_is_metal.tar.gz')
       if not os.path.exists(targz_file):
-        deepchem.utils.download_url(url=MPMETAL_URL, dest_dir=data_dir)
-      deepchem.utils.untargz_file(
+        deepchem.utils.data_utils.download_url(url=MPMETAL_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'mp_is_metal.tar.gz'), data_dir)
 
     # Changer loader to match featurizer and data file type

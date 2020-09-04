@@ -12,7 +12,7 @@ from subprocess import check_output
 from typing import List, Optional, Tuple, Union
 
 from deepchem.dock.binding_pocket import BindingPocketFinder
-from deepchem.utils import download_url, get_data_dir
+from deepchem.utils.data_utils import download_url, get_data_dir
 from deepchem.utils.typing import RDKitMol
 from deepchem.utils.geometry_utils import compute_centroid, compute_protein_range
 from deepchem.utils.rdkit_utils import load_molecule, write_molecule

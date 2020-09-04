@@ -11,7 +11,7 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 DATASET_URL = 'http://www.robots.ox.ac.uk/~vgg/research/counting/cells.zip'
 
 

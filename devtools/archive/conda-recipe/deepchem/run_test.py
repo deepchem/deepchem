@@ -10,7 +10,7 @@ class TestDeepchemBuild(unittest.TestCase):
     import deepchem
     import os
     import shutil
-    data_dir = deepchem.utils.get_data_dir()
+    data_dir = deepchem.utils.data_utils.get_data_dir()
     bace_dir = os.path.join(data_dir, "bace_c")
     delaney_dir = os.path.join(data_dir, "delaney")
     try:

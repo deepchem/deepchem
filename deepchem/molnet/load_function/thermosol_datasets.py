@@ -9,7 +9,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 THERMOSOL_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/thermosol.csv"
-DEFAULT_DATA_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DATA_DIR = deepchem.utils.data_utils.get_data_dir()
 
 
 def remove_missing_entries(dataset):

@@ -9,7 +9,7 @@ import deepchem as dc
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = dc.utils.get_data_dir()
+DEFAULT_DIR = dc.utils.data_utils.get_data_dir()
 SWEETLEAD_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/sweet.csv.gz"
 
 
@@ -94,7 +94,7 @@ def load_sweet(featurizer='ECFP',
       frac_test=frac_test)
 
   if reload:
-    dc.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
+    dc.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
                                        transformers)
     all_dataset = (train, valid, test)
 
