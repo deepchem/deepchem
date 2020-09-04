@@ -16,7 +16,7 @@ def load_permeability(featurizer='ECFP', split='index'):
   print("About to load membrain permeability dataset.")
   current_dir = os.path.dirname(os.path.realpath(__file__))
   dataset_file = os.path.join(current_dir,
-                              "../../deepchem/data/tests/membrane_permeability.sdf")
+                              "../../datasets/membrane_permeability.sdf")
   # Featurize permeability dataset
   print("About to featurize membrain permeability dataset.")
 
