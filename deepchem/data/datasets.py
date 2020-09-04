@@ -420,9 +420,7 @@ class Dataset(object):
     """
     raise NotImplementedError()
 
-  def select(self,
-             indices: Sequence[int],
-             select_dir: Optional[str] = None):
+  def select(self, indices: Sequence[int], select_dir: Optional[str] = None):
     """Creates a new dataset from a selection of indices from self.
 
     Parameters
