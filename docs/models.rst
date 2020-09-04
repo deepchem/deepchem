@@ -421,4 +421,15 @@ You can wrap an arbitrary :code:`torch.nn.Module` in a :code:`TorchModel` object
 .. autoclass:: deepchem.models.TorchModel
   :members:
 
+CGCNNModel
+----------
 
+.. autoclass:: deepchem.models.CGCNNModel
+  :members:
+
+
+GATModel
+--------
+
+.. autoclass:: deepchem.models.GATModel
+  :members:

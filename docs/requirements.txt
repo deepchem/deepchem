@@ -4,3 +4,4 @@ sphinx_rtd_theme
 tensorflow==2.2.0
 transformers
 xgboost
+torch==1.6.0
