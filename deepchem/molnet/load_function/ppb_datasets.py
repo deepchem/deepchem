@@ -104,6 +104,6 @@ def load_ppb(featurizer='ECFP',
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
   return PPB_tasks, (train, valid, test), transformers

@@ -126,7 +126,7 @@ def load_sider(featurizer='ECFP',
         frac_valid=frac_valid,
         frac_test=frac_test)
     if reload:
-      deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
-                                               transformers)
+      deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                     test, transformers)
     all_dataset = (train, valid, test)
   return SIDER_tasks, all_dataset, transformers

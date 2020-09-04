@@ -136,8 +136,8 @@ def load_bace_regression(featurizer='ECFP',
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
   return bace_tasks, (train, valid, test), transformers
 
 
@@ -236,6 +236,6 @@ def load_bace_classification(featurizer='ECFP',
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
   return bace_tasks, (train, valid, test), transformers

@@ -126,6 +126,6 @@ def load_thermosol(featurizer="ECFP",
 
   if reload:
     logger.info("Saving file to {}.".format(save_folder))
-    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
   return thermosol_tasks, (train, valid, test), transformers

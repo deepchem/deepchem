@@ -95,7 +95,7 @@ def load_sweet(featurizer='ECFP',
 
   if reload:
     dc.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
-                                       transformers)
+                                             transformers)
     all_dataset = (train, valid, test)
 
   return SWEET_tasks, (train, valid, test), transformers

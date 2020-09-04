@@ -168,7 +168,8 @@ def load_mp_formation_energy(
     if not os.path.exists(dataset_file):
       targz_file = os.path.join(data_dir, 'mp_formation_energy.tar.gz')
       if not os.path.exists(targz_file):
-        deepchem.utils.data_utils.download_url(url=MPFORME_URL, dest_dir=data_dir)
+        deepchem.utils.data_utils.download_url(
+            url=MPFORME_URL, dest_dir=data_dir)
       deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'mp_formation_energy.tar.gz'), data_dir)
 

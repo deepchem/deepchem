@@ -123,7 +123,7 @@ def load_toxcast(featurizer='ECFP',
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
 
   return TOXCAST_tasks, (train, valid, test), transformers

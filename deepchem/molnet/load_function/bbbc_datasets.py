@@ -94,8 +94,8 @@ def load_bbbc001(split='index',
   transformers = []
   all_dataset = (train, valid, test)
   if reload:
-    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
   return bbbc001_tasks, all_dataset, transformers
 
 
@@ -177,6 +177,6 @@ def load_bbbc002(split='index',
   all_dataset = (train, valid, test)
   transformers = []
   if reload:
-    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
   return bbbc002_tasks, all_dataset, transformers

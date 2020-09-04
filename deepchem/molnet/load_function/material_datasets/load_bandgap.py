@@ -163,7 +163,8 @@ def load_bandgap(
     if not os.path.exists(dataset_file):
       targz_file = os.path.join(data_dir, 'expt_gap.tar.gz')
       if not os.path.exists(targz_file):
-        deepchem.utils.data_utils.download_url(url=BANDGAP_URL, dest_dir=data_dir)
+        deepchem.utils.data_utils.download_url(
+            url=BANDGAP_URL, dest_dir=data_dir)
 
       deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'expt_gap.tar.gz'), data_dir)

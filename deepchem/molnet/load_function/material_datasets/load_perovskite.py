@@ -162,7 +162,8 @@ def load_perovskite(
     if not os.path.exists(dataset_file):
       targz_file = os.path.join(data_dir, 'perovskite.tar.gz')
       if not os.path.exists(targz_file):
-        deepchem.utils.data_utils.download_url(url=PEROVSKITE_URL, dest_dir=data_dir)
+        deepchem.utils.data_utils.download_url(
+            url=PEROVSKITE_URL, dest_dir=data_dir)
 
       deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'perovskite.tar.gz'), data_dir)

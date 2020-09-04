@@ -15,7 +15,6 @@ from typing import Any, Iterator, List, Optional, Tuple, Union
 import pandas as pd
 import numpy as np
 
-
 from deepchem.trans import Transformer
 from deepchem.data import DiskDataset
 
@@ -59,7 +58,7 @@ def pad_array(x: np.ndarray,
       pad.append((a, b))
     else:
       pad.append((0, diff))
-  pad = tuple(pad)
+  pad = tuple(pad)  # type: ignore
   x = np.pad(x, pad, mode='constant', constant_values=fill)
   return x
 
@@ -408,10 +407,8 @@ def load_pickle_from_disk(filename: str) -> Any:
   return df
 
 
-def load_dataset_from_disk(
-    save_dir: str
-) -> Tuple[bool, Optional[Tuple[DiskDataset, DiskDataset,
-                       DiskDataset]], List[Transformer]]:
+def load_dataset_from_disk(save_dir: str) -> Tuple[bool, Optional[Tuple[
+    DiskDataset, DiskDataset, DiskDataset]], List[Transformer]]:
   """Loads MoleculeNet train/valid/test/transformers from disk.
 
   Expects that data was saved using `save_dataset_to_disk` below. Expects the
@@ -462,9 +459,8 @@ def load_dataset_from_disk(
   return loaded, all_dataset, transformers
 
 
-def save_dataset_to_disk(save_dir: str, train: DiskDataset,
-                         valid: DiskDataset, test: DiskDataset,
-                         transformers: List[Transformer]):
+def save_dataset_to_disk(save_dir: str, train: DiskDataset, valid: DiskDataset,
+                         test: DiskDataset, transformers: List[Transformer]):
   """Utility used by MoleculeNet to save train/valid/test datasets.
 
   This utility function saves a train/valid/test split of a dataset along
