@@ -2,3 +2,4 @@ pandas
 scikit-learn
 sphinx_rtd_theme
 tensorflow==2.2.0
+transformers
