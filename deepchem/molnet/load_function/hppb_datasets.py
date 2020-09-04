@@ -61,7 +61,7 @@ def load_hppb(featurizer="ECFP",
   dataset_file = os.path.join(data_dir, "hppb.csv")
   if not os.path.exists(dataset_file):
     logger.info("{} does not exist. Downloading it.".format(dataset_file))
-    deepchem.utils.download_url(url=hppb_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=hppb_URL, dest_dir=data_dir)
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)

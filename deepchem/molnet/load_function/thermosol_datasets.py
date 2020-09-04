@@ -60,7 +60,7 @@ def load_thermosol(featurizer="ECFP",
   dataset_file = os.path.join(data_dir, "thermosol.csv")
   if not os.path.exists(dataset_file):
     logger.info("{} does not exist. Downloading it.".format(dataset_file))
-    deepchem.utils.download_url(url=THERMOSOL_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=THERMOSOL_URL, dest_dir=data_dir)
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)

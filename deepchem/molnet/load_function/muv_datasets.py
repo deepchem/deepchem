@@ -69,7 +69,7 @@ def load_muv(featurizer='ECFP',
 
   dataset_file = os.path.join(data_dir, "muv.csv.gz")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=MUV_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=MUV_URL, dest_dir=data_dir)
 
   # Featurize MUV dataset
   logger.info("About to featurize MUV dataset.")

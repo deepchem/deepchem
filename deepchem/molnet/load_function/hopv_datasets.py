@@ -57,8 +57,9 @@ def load_hopv(featurizer='ECFP',
 
   dataset_file = os.path.join(data_dir, "hopv.csv")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=HOPV_URL, dest_dir=data_dir)
-    deepchem.utils.untargz_file(os.path.join(data_dir, 'hopv.tar.gz'), data_dir)
+    deepchem.utils.data_utils.download_url(url=HOPV_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.untargz_file(
+        os.path.join(data_dir, 'hopv.tar.gz'), data_dir)
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)

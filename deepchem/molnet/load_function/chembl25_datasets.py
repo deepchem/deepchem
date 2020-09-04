@@ -179,7 +179,7 @@ def load_chembl25(featurizer="smiles2seq",
     test = transformer.transform(test)
 
   if reload:
-    dc.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                       transformers)
+    dc.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
+                                             transformers)
 
   return chembl25_tasks, (train, valid, test), transformers

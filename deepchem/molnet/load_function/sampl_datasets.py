@@ -66,7 +66,7 @@ def load_sampl(featurizer='ECFP',
 
   dataset_file = os.path.join(data_dir, "SAMPL.csv")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=SAMPL_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=SAMPL_URL, dest_dir=data_dir)
 
   SAMPL_tasks = ['expt']
 

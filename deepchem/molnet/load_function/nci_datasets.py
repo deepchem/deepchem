@@ -56,7 +56,7 @@ def load_nci(featurizer='ECFP',
 
   dataset_file = os.path.join(data_dir, "nci_unique.csv")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=NCI_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=NCI_URL, dest_dir=data_dir)
 
   # Featurize nci dataset
   logger.info("About to featurize nci dataset.")

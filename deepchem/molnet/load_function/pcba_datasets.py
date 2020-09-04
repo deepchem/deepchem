@@ -106,7 +106,7 @@ def load_pcba_dataset(featurizer='ECFP',
   dataset_file = os.path.join(data_dir, assay_file_name)
 
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         url="https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/{0}".
         format(assay_file_name),
         dest_dir=data_dir)

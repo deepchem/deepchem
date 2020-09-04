@@ -42,7 +42,7 @@ def load_sweet(featurizer='ECFP',
       save_folder = os.path.join(save_folder, img_spec)
     save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = dc.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = dc.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return SWEET_tasks, all_dataset, transformers

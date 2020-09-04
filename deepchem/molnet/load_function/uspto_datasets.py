@@ -60,12 +60,12 @@ def load_uspto(featurizer="plain",
   dataset_file = os.path.join(data_dir,
                               "2008-2011_USPTO_reactionSmiles_filtered.zip")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=USPTO_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=USPTO_URL, dest_dir=data_dir)
 
   # Unzip
   unzip_dir = os.path.join(data_dir, "2008-2011_USPTO_reactionSmiles_filtered")
   if not os.path.exists(unzip_dir):
-    deepchem.utils.unzip_file(dataset_file, dest_dir=unzip_dir)
+    deepchem.utils.data_utils.unzip_file(dataset_file, dest_dir=unzip_dir)
   # Unzipped file is a tap seperated values file (despite the .txt)
   filename = os.path.join(unzip_dir,
                           "2008-2011_USPTO_reactionSmiles_filtered.txt")

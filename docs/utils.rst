@@ -4,39 +4,14 @@ DeepChem has a broad collection of utility functions. Many of these
 maybe be of independent interest to users since they deal with some
 tricky aspects of processing scientific datatypes.
 
-Array Utilities
----------------
+Data Utilities
+-------------
 
 .. autofunction:: deepchem.utils.data_utils.pad_array
 
-Data Directory
---------------
-The DeepChem data directory is where downloaded MoleculeNet datasets are stored.
-
 .. autofunction:: deepchem.utils.data_utils.get_data_dir
 
-Print Threshold
----------------
-
-The printing threshold controls how many dataset elements are printed
-when :code:`dc.data.Dataset` objects are converted to strings or
-represnted in the IPython repl.
-
-.. autofunction:: deepchem.utils.get_print_threshold
-
-.. autofunction:: deepchem.utils.set_print_threshold
-
-.. autofunction:: deepchem.utils.get_max_print_size
-
-.. autofunction:: deepchem.utils.set_max_print_size
-
-URL Handling
-------------
-
 .. autofunction:: deepchem.utils.data_utils.download_url
-
-File Handling
--------------
 
 .. autofunction:: deepchem.utils.data_utils.untargz_file
 

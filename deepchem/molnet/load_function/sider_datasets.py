@@ -58,7 +58,7 @@ def load_sider(featurizer='ECFP',
 
   dataset_file = os.path.join(data_dir, "sider.csv.gz")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=SIDER_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=SIDER_URL, dest_dir=data_dir)
 
   dataset = deepchem.utils.data_utils.load_from_disk(dataset_file)
   logger.info("Columns of dataset: %s" % str(dataset.columns.values))

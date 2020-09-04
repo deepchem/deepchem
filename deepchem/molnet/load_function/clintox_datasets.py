@@ -70,7 +70,7 @@ def load_clintox(featurizer='ECFP',
 
   dataset_file = os.path.join(data_dir, "clintox.csv.gz")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=CLINTOX_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=CLINTOX_URL, dest_dir=data_dir)
 
   logger.info("About to load clintox dataset.")
   dataset = deepchem.utils.data_utils.load_from_disk(dataset_file)

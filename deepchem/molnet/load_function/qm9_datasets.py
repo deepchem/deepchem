@@ -101,13 +101,13 @@ def load_qm9(featurizer='CoulombMatrix',
     dataset_file = os.path.join(data_dir, "gdb9.sdf")
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=GDB9_URL, dest_dir=data_dir)
-      deepchem.utils.untargz_file(
+      deepchem.utils.data_utils.download_url(url=GDB9_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'gdb9.tar.gz'), data_dir)
   else:
     dataset_file = os.path.join(data_dir, "qm9.csv")
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=QM9_CSV_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.download_url(url=QM9_CSV_URL, dest_dir=data_dir)
 
   if featurizer in ['CoulombMatrix', 'BPSymmetryFunctionInput', 'MP', 'Raw']:
     if featurizer == 'CoulombMatrix':

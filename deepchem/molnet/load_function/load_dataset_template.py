@@ -174,8 +174,9 @@ def load_mydataset(
     dataset_file = os.path.join(data_dir, 'mydataset.filetype')
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=MYDATASET_URL, dest_dir=data_dir)
-      deepchem.utils.untargz_file(
+      deepchem.utils.data_utils.download_url(
+          url=MYDATASET_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'mydataset.tar.gz'), data_dir)
 
     # Changer loader to match featurizer and data file type
@@ -187,7 +188,8 @@ def load_mydataset(
   else:  # only load CSV file
     dataset_file = os.path.join(data_dir, "mydataset.csv")
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=MYDATASET_CSV_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.download_url(
+          url=MYDATASET_CSV_URL, dest_dir=data_dir)
 
     loader = deepchem.data.CSVLoader(
         tasks=my_tasks, smiles_field="smiles", featurizer=featurizer)

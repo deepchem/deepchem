@@ -33,10 +33,10 @@ class TestFragmentUtil(unittest.TestCase):
 
   def test_strip_hydrogens(self):
     mol_xyz, mol_rdk = rdkit_utils.load_molecule(self.ligand_file)
-    fragment = MolecularFragment(mol_rdk.GetAtoms(), mol_xyz)
+    _ = MolecularFragment(mol_rdk.GetAtoms(), mol_xyz)
 
     # Test on RDKit
-    frag = strip_hydrogens(mol_xyz, mol_rdk)
+    _ = strip_hydrogens(mol_xyz, mol_rdk)
 
   def test_merge_molecular_fragments(self):
     mol_xyz, mol_rdk = rdkit_utils.load_molecule(self.ligand_file)

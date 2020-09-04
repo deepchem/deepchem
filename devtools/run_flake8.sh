@@ -5,6 +5,7 @@ items=(
     "deepchem/dock"
     "deepchem/metrics"
     "deepchem/data"
+    "deepchem/utils"
 )
 
 for item in "${items[@]}" ; do

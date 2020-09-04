@@ -48,9 +48,11 @@ def load_bbbc001(split='index',
   labels_file = os.path.join(data_dir, "BBBC001_v1_counts.txt")
 
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=BBBC1_IMAGE_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(
+        url=BBBC1_IMAGE_URL, dest_dir=data_dir)
   if not os.path.exists(labels_file):
-    deepchem.utils.download_url(url=BBBC1_LABEL_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(
+        url=BBBC1_LABEL_URL, dest_dir=data_dir)
   # Featurize Images into NumpyArrays
   loader = deepchem.data.ImageLoader()
   dataset = loader.featurize(dataset_file, in_memory=False)
@@ -130,9 +132,11 @@ def load_bbbc002(split='index',
   labels_file = os.path.join(data_dir, "BBBC002_v1_counts.txt")
 
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=BBBC2_IMAGE_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(
+        url=BBBC2_IMAGE_URL, dest_dir=data_dir)
   if not os.path.exists(labels_file):
-    deepchem.utils.download_url(url=BBBC2_LABEL_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(
+        url=BBBC2_LABEL_URL, dest_dir=data_dir)
   # Featurize Images into NumpyArrays
   loader = deepchem.data.ImageLoader()
   dataset = loader.featurize(dataset_file, in_memory=False)

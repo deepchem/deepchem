@@ -61,7 +61,7 @@ def load_delaney(featurizer='ECFP',
   dataset_file = os.path.join(data_dir, "delaney-processed.csv")
 
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=DELANEY_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=DELANEY_URL, dest_dir=data_dir)
 
   delaney_tasks = ['measured log solubility in mols per litre']
   if reload:

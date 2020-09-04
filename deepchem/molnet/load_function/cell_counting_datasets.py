@@ -40,7 +40,7 @@ def load_cell_counting(split=None,
       return cell_counting_tasks, all_dataset, transformers
   dataset_file = os.path.join(data_dir, "cells.zip")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=DATASET_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=DATASET_URL, dest_dir=data_dir)
 
   loader = deepchem.data.ImageLoader()
   dataset = loader.featurize(dataset_file)

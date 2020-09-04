@@ -91,13 +91,13 @@ def load_qm8(featurizer='CoulombMatrix',
   if featurizer in ['CoulombMatrix', 'BPSymmetryFunctionInput', 'MP', 'Raw']:
     dataset_file = os.path.join(data_dir, "qm8.sdf")
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=GDB8_URL, dest_dir=data_dir)
-      deepchem.utils.untargz_file(
+      deepchem.utils.data_utils.download_url(url=GDB8_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'gdb8.tar.gz'), data_dir)
   else:
     dataset_file = os.path.join(data_dir, "qm8.csv")
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=QM8_CSV_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.download_url(url=QM8_CSV_URL, dest_dir=data_dir)
 
   if featurizer in ['CoulombMatrix', 'BPSymmetryFunctionInput', 'MP', 'Raw']:
     if featurizer == 'CoulombMatrix':

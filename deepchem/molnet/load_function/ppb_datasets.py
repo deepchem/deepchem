@@ -43,7 +43,7 @@ def load_ppb(featurizer='ECFP',
 
   dataset_file = os.path.join(data_dir, "PPB.csv")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=PPB_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=PPB_URL, dest_dir=data_dir)
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)

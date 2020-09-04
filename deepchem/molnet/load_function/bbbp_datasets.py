@@ -67,7 +67,7 @@ def load_bbbp(featurizer='ECFP',
 
   dataset_file = os.path.join(data_dir, "BBBP.csv")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=BBBP_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=BBBP_URL, dest_dir=data_dir)
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)

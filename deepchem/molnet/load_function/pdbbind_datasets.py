@@ -27,22 +27,22 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   dataset_dir = os.path.join(pdbbind_dir, "%s_%s" % (subset, feat))
 
   if not os.path.exists(dataset_dir):
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         "https://deepchemdata.s3-us-west-1.amazonaws.com/featurized_datasets/core_grid.tar.gz"
     )
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         "https://deepchemdata.s3-us-west-1.amazonaws.com/featurized_datasets/full_grid.tar.gz"
     )
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         "https://deepchemdata.s3-us-west-1.amazonaws.com/featurized_datasets/refined_grid.tar.gz"
     )
     if not os.path.exists(pdbbind_dir):
       os.system('mkdir ' + pdbbind_dir)
-    deepchem.utils.untargz_file(
+    deepchem.utils.data_utils.untargz_file(
         os.path.join(data_dir, 'core_grid.tar.gz'), pdbbind_dir)
-    deepchem.utils.untargz_file(
+    deepchem.utils.data_utils.untargz_file(
         os.path.join(data_dir, 'full_grid.tar.gz'), pdbbind_dir)
-    deepchem.utils.untargz_file(
+    deepchem.utils.data_utils.untargz_file(
         os.path.join(data_dir, 'refined_grid.tar.gz'), pdbbind_dir)
 
   return deepchem.data.DiskDataset(dataset_dir), tasks
@@ -84,7 +84,7 @@ def load_pdbbind_grid(split="random",
     dataset_file = os.path.join(data_dir, subset + "_smiles_labels.csv")
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(
+      deepchem.utils.data_utils.download_url(
           "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/" + subset +
           "_smiles_labels.csv")
 
@@ -220,14 +220,14 @@ def load_pdbbind(reload=True,
   dataset_file = os.path.join(data_dir, "pdbbind_v2015.tar.gz")
   if not os.path.exists(dataset_file):
     logger.warning("About to download PDBBind full dataset. Large file, 2GB")
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbind_v2015.tar.gz",
         dest_dir=data_dir)
   if os.path.exists(data_folder):
     logger.info("PDBBind full dataset already exists.")
   else:
     print("Untarring full dataset...")
-    deepchem.utils.untargz_file(
+    deepchem.utils.data_utils.untargz_file(
         dataset_file, dest_dir=os.path.join(data_dir, "pdbbind"))
 
   print("\nRaw dataset:\n%s" % data_folder)
