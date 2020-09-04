@@ -65,8 +65,7 @@ class TestReload(unittest.TestCase):
     """Check num samples for loaded and reloaded datasets is equal."""
     reload = False
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    dataset_file = os.path.join(current_dir,
-                                "../../../datasets/mini_muv.csv.gz")
+    dataset_file = os.path.join(current_dir, "mini_muv.csv.gz")
     logger.info("Running experiment for first time without reload.")
     (len_train, len_valid, len_test) = self._run_muv_experiment(
         dataset_file, reload)
@@ -83,8 +82,7 @@ class TestReload(unittest.TestCase):
     """Check ability to repeatedly run experiments with reload set True."""
     reload = True
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    dataset_file = os.path.join(current_dir,
-                                "../../../datasets/mini_muv.csv.gz")
+    dataset_file = os.path.join(current_dir, "mini_muv.csv.gz")
     logger.info("Running experiment for first time with reload.")
     (len_train, len_valid, len_test) = self._run_muv_experiment(
         dataset_file, reload)
