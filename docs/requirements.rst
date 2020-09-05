@@ -98,6 +98,10 @@ DeepChem has a number of "soft" requirements.
 |                                |               | :code:`dc.models.callbacks`                       |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `HuggingFace Transformers`_    | Not Testing   | :code:`dc.feat.smiles_tokenizer`                  |
+|                                |               |                                                   |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
           
 .. _`joblib`: https://pypi.python.org/pypi/joblib
 .. _`NumPy`: https://numpy.org/
@@ -123,3 +127,5 @@ DeepChem has a number of "soft" requirements.
 .. _`Tensorflow Probability`: https://www.tensorflow.org/probability
 .. _`XGBoost`: https://xgboost.readthedocs.io/en/latest/
 .. _`Weights & Biases`: https://docs.wandb.com/
+.. _`HuggingFace Transformers`: https://huggingface.co/transformers/
+
