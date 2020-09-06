@@ -262,7 +262,7 @@ class MolecularFeaturizer(Featurizer):
             "Failed to featurize datapoint %d. Appending empty array")
         features.append(np.array([]))
 
-    features = np.asarray(features, dtype=np.float)
+    features = np.asarray(features)
     return features
 
 
