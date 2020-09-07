@@ -90,8 +90,3 @@ FingeprintSplitter
 .. autoclass:: deepchem.splits.FingerprintSplitter
   :members:
 
-TimeSplitterPDBbind
--------------------
-
-.. autoclass:: deepchem.splits.TimeSplitterPDBbind
-  :members:

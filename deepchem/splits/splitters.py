@@ -260,6 +260,38 @@ class Splitter(object):
     """
     raise NotImplementedError
 
+  def __str__(self) -> str:
+    """Convert self to str representation.
+
+    Returns
+    -------
+    str
+      The string represents the class.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> str(dc.feat.RandomSplitter()
+    'RandomSplitter'
+    """
+    return self.__class__.__name__
+
+  def __repr__(self) -> str:
+    """Convert self to repr representation.
+
+    Returns
+    -------
+    str
+      The string represents the class.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> dc.feat.RandomSplitter()
+    RandomSplitter
+    """
+    return self.__str__()
+
 
 class RandomSplitter(Splitter):
   """Class for doing random data splits."""
@@ -1426,16 +1458,21 @@ class FingerprintSplitter(Splitter):
         cur_distances[i] = new_dist
 
 
+#################################################################
+# Not well supported splitters
+#################################################################
+
+
 class TimeSplitterPDBbind(Splitter):
 
-  def __init__(self, ids, year_file: Optional[str] = None):
+  def __init__(self, ids: Sequence[int], year_file: Optional[str] = None):
     """
     Parameters
     ----------
-    ids: ....
-      WIP
+    ids: Sequence[int]
+      The PDB ids to be selected
     year_file: str, optional (default None)
-      The file path of ....
+      The filepath for the PDBBind year selection
     """
     self.ids = ids
     self.year_file = year_file

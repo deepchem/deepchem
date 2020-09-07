@@ -20,6 +20,5 @@ from deepchem.splits.splitters import FingerprintSplitter
 from deepchem.splits.splitters import ButinaSplitter
 
 # other splitter
-from deepchem.splits.splitters import TimeSplitterPDBbind
 from deepchem.splits.task_splitter import merge_fold_datasets
 from deepchem.splits.task_splitter import TaskSplitter
