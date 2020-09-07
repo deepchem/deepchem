@@ -11,7 +11,7 @@ from deepchem.feat.base_classes import MolecularFeaturizer
 class RDKitDescriptors(MolecularFeaturizer):
   """RDKit descriptors.
 
-  This class comptues a list of chemical descriptors using RDKit.
+  This class computes a list of chemical descriptors using RDKit.
 
   Attributes
   ----------

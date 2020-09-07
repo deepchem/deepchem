@@ -7,13 +7,13 @@ from deepchem.feat.base_classes import MolecularFeaturizer
 class MordredDescriptors(MolecularFeaturizer):
   """Mordred descriptors.
 
-  This class comptues a list of chemical descriptors using Mordred.
-  Please see the details about all descripors from [1]_, [2]_.
+  This class computes a list of chemical descriptors using Mordred.
+  Please see the details about all descriptors from [1]_, [2]_.
 
   Attributes
   ----------
   descriptors: List[str]
-    List of RDKit descriptor names used in this class.
+    List of Mordred descriptor names used in this class.
 
   References
   ----------
@@ -36,7 +36,7 @@ class MordredDescriptors(MolecularFeaturizer):
     try:
       from mordred import Calculator, descriptors, is_missing
     except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+      raise ValueError("This class requires Mordred to be installed.")
 
     self.calc = Calculator(descriptors, ignore_3D=ignore_3D)
     self.is_missing = is_missing

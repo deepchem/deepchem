@@ -98,10 +98,22 @@ CircularFingerprint
 .. autoclass:: deepchem.feat.CircularFingerprint
   :members:
 
+Mol2VecFingerprint
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.Mol2VecFingerprint
+  :members:
+
 RDKitDescriptors
 ^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.RDKitDescriptors
+  :members:
+
+MordredDescriptors
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.MordredDescriptors
   :members:
 
 CoulombMatrix
