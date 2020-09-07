@@ -271,7 +271,7 @@ class Splitter(object):
     Examples
     --------
     >>> import deepchem as dc
-    >>> str(dc.feat.RandomSplitter()
+    >>> str(dc.splits.RandomSplitter())
     'RandomSplitter'
     """
     return self.__class__.__name__
@@ -287,7 +287,7 @@ class Splitter(object):
     Examples
     --------
     >>> import deepchem as dc
-    >>> dc.feat.RandomSplitter()
+    >>> dc.splits.RandomSplitter()
     RandomSplitter
     """
     return self.__str__()
