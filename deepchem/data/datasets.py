@@ -339,11 +339,11 @@ class Dataset(object):
 
   def __repr__(self) -> str:
     """Convert self to REPL print representation."""
-    threshold = 10
+    threshold = dc.utils.get_print_threshold()
     task_str = np.array2string(
         np.array(self.get_task_names()), threshold=threshold)
     X_shape, y_shape, w_shape, _ = self.get_shape()
-    if self.__len__() < 1000:
+    if self.__len__() < dc.utils.get_max_print_size():
       id_str = np.array2string(self.ids, threshold=threshold)
       return "<%s X.shape: %s, y.shape: %s, w.shape: %s, ids: %s, task_names: %s>" % (
           self.__class__.__name__, str(X_shape), str(y_shape), str(w_shape),

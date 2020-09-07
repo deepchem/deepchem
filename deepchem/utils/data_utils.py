@@ -143,19 +143,23 @@ def unzip_file(file: str,
     zip_ref.extractall(dest_dir)
 
 
-def load_image_files(image_files: List[str]) -> np.ndarray:
+def load_image_files(input_files: List[str]) -> np.ndarray:
   """Loads a set of images from disk.
+
   Parameters
   ----------
-  image_files: List[str]
-    List of image filenames to load.
+  input_files: List[str]
+    List of image filenames.
+
   Returns
   -------
   np.ndarray
     A numpy array that contains loaded images. The shape is, `(N,...)`.
+
   Notes
   -----
   This method requires Pillow to be installed.
+  The supported file types are PNG and TIF.
   """
   try:
     from PIL import Image
@@ -163,18 +167,18 @@ def load_image_files(image_files: List[str]) -> np.ndarray:
     raise ValueError("This function requires Pillow to be installed.")
 
   images = []
-  for image_file in image_files:
-    _, extension = os.path.splitext(image_file)
+  for input_file in input_files:
+    _, extension = os.path.splitext(input_file)
     extension = extension.lower()
     if extension == ".png":
-      image = np.array(Image.open(image_file))
+      image = np.array(Image.open(input_file))
       images.append(image)
     elif extension == ".tif":
-      im = Image.open(image_file)
+      im = Image.open(input_file)
       imarray = np.array(im)
       images.append(imarray)
     else:
-      raise ValueError("Unsupported image filetype for %s" % image_file)
+      raise ValueError("Unsupported image filetype for %s" % input_file)
   return np.array(images)
 
 
@@ -252,13 +256,13 @@ def load_sdf_files(input_files: List[str],
       df_rows = []
 
 
-def load_csv_files(filenames: List[str],
+def load_csv_files(input_files: List[str],
                    shard_size: Optional[int] = None) -> Iterator[pd.DataFrame]:
   """Load data as pandas dataframe from CSV files.
 
   Parameters
   ----------
-  filenames: List[str]
+  input_files: List[str]
     List of filenames
   shard_size: int, default None
     The shard size to yield at one time.
@@ -270,12 +274,12 @@ def load_csv_files(filenames: List[str],
   """
   # First line of user-specified CSV *must* be header.
   shard_num = 1
-  for filename in filenames:
+  for input_file in input_files:
     if shard_size is None:
-      yield pd.read_csv(filename)
+      yield pd.read_csv(input_file)
     else:
-      logger.info("About to start loading CSV from %s" % filename)
-      for df in pd.read_csv(filename, chunksize=shard_size):
+      logger.info("About to start loading CSV from %s" % input_file)
+      for df in pd.read_csv(input_file, chunksize=shard_size):
         logger.info(
             "Loading shard %d of size %s." % (shard_num, str(shard_size)))
         df = df.replace(np.nan, str(""), regex=True)
@@ -283,13 +287,13 @@ def load_csv_files(filenames: List[str],
         yield df
 
 
-def load_json_files(filenames: List[str],
+def load_json_files(input_files: List[str],
                     shard_size: Optional[int] = None) -> Iterator[pd.DataFrame]:
   """Load data as pandas dataframe.
 
   Parameters
   ----------
-  filenames: List[str]
+  input_files: List[str]
     List of json filenames.
   shard_size: int, default None
     Chunksize for reading json files.
@@ -305,18 +309,99 @@ def load_json_files(filenames: List[str],
   must be originally saved with ``df.to_json('filename.json', orient='records', lines=True)``
   """
   shard_num = 1
-  for filename in filenames:
+  for input_file in input_files:
     if shard_size is None:
-      yield pd.read_json(filename, orient='records', lines=True)
+      yield pd.read_json(input_file, orient='records', lines=True)
     else:
-      logger.info("About to start loading json from %s." % filename)
+      logger.info("About to start loading json from %s." % input_file)
       for df in pd.read_json(
-          filename, orient='records', chunksize=shard_size, lines=True):
+          input_file, orient='records', chunksize=shard_size, lines=True):
         logger.info(
             "Loading shard %d of size %s." % (shard_num, str(shard_size)))
         df = df.replace(np.nan, str(""), regex=True)
         shard_num += 1
         yield df
+
+
+def load_pickle_files(input_files: List[str]) -> Iterator[Any]:
+  """Load dataset from pickle file.
+
+  Parameters
+  ----------
+  input_files: List[str]
+    The list of filenames of pickle file. This function can load from
+    gzipped pickle file like `XXXX.pkl.gz`.
+
+  Returns
+  -------
+  Iterator[Any]
+    Generator which yields the objects which is loaded from each pickle file.
+  """
+  for input_file in input_files:
+    if ".gz" in input_file:
+      with gzip.open(input_file, "rb") as f:
+        df = pickle.load(f)
+    else:
+      with open(input_file, "rb") as f:
+        df = pickle.load(f)
+    yield df
+
+
+def load_data(input_files: List[str],
+              shard_size: Optional[int] = None) -> Iterator[Any]:
+  """Loads data from files.
+
+  Parameters
+  ----------
+  input_files: List[str]
+    List of filenames.
+  shard_size: int, default None
+    Size of shard to yield
+
+  Returns
+  -------
+  Iterator[Any]
+    Iterator which iterates over provided files.
+
+  Notes
+  -----
+  The supported file types are SDF, CSV and Pickle.
+  """
+  if len(input_files) == 0:
+    raise ValueError("The length of `filenames` must be more than 1.")
+
+  file_type = _get_file_type(input_files[0])
+  if file_type == "sdf":
+    if shard_size is not None:
+      logger.info("Ignoring shard_size for sdf input.")
+    for value in load_sdf_files(input_files):
+      yield value
+  elif file_type == "csv":
+    for value in load_csv_files(input_files, shard_size):
+      yield value
+  elif file_type == "pickle":
+    if shard_size is not None:
+      logger.info("Ignoring shard_size for pickle input.")
+    for value in load_pickle_files(input_files):
+      yield value
+
+
+def _get_file_type(input_file: str) -> str:
+  """Get type of input file. Must be csv/pkl/sdf/joblib file."""
+  filename, file_extension = os.path.splitext(input_file)
+  # If gzipped, need to compute extension again
+  if file_extension == ".gz":
+    filename, file_extension = os.path.splitext(filename)
+  if file_extension == ".csv":
+    return "csv"
+  elif file_extension == ".pkl":
+    return "pickle"
+  elif file_extension == ".joblib":
+    return "joblib"
+  elif file_extension == ".sdf":
+    return "sdf"
+  else:
+    raise ValueError("Unrecognized extension %s" % file_extension)
 
 
 def save_to_disk(dataset: Any, filename: str, compress: int = 3):
@@ -340,13 +425,30 @@ def save_to_disk(dataset: Any, filename: str, compress: int = 3):
 
 
 def load_from_disk(filename: str) -> Any:
-  """Load a dataset from file."""
+  """Load a dataset from file.
+
+  Parameters
+  ----------
+  filename: str
+    A filename you want to load data.
+
+  Returns
+  -------
+  Any
+    A loaded object from file.
+  """
   name = filename
   if os.path.splitext(name)[1] == ".gz":
     name = os.path.splitext(name)[0]
   extension = os.path.splitext(name)[1]
   if extension == ".pkl":
-    return load_pickle_from_disk(filename)
+    if ".gz" in filename:
+      with gzip.open(filename, "rb") as f:
+        df = pickle.load(f)
+    else:
+      with open(filename, "rb") as f:
+        df = pickle.load(f)
+    return df
   elif extension == ".joblib":
     return joblib.load(filename)
   elif extension == ".csv":
@@ -358,52 +460,6 @@ def load_from_disk(filename: str) -> Any:
     return np.load(filename, allow_pickle=True)
   else:
     raise ValueError("Unrecognized filetype for %s" % filename)
-
-
-def load_sharded_csv(filenames) -> pd.DataFrame:
-  """Load a dataset from multiple files. Each file MUST have same column headers"""
-  dataframes = []
-  for name in filenames:
-    placeholder_name = name
-    if os.path.splitext(name)[1] == ".gz":
-      name = os.path.splitext(name)[0]
-    if os.path.splitext(name)[1] == ".csv":
-      # First line of user-specified CSV *must* be header.
-      df = pd.read_csv(placeholder_name, header=0)
-      df = df.replace(np.nan, str(""), regex=True)
-      dataframes.append(df)
-    else:
-      raise ValueError("Unrecognized filetype for %s" % name)
-
-  # combine dataframes
-  combined_df = dataframes[0]
-  for i in range(0, len(dataframes) - 1):
-    combined_df = combined_df.append(dataframes[i + 1])
-  combined_df = combined_df.reset_index(drop=True)
-  return combined_df
-
-
-def load_pickle_from_disk(filename: str) -> Any:
-  """Load dataset from pickle file.
-
-  Parameters
-  ----------
-  filename: str
-    A filename of pickle file. This function can load from
-    gzipped pickle file like `XXXX.pkl.gz`.
-
-  Returns
-  -------
-  Any
-    A loaded object from pickle file.
-  """
-  if ".gz" in filename:
-    with gzip.open(filename, "rb") as f:
-      df = pickle.load(f)
-  else:
-    with open(filename, "rb") as f:
-      df = pickle.load(f)
-  return df
 
 
 def load_dataset_from_disk(save_dir: str) -> Tuple[bool, Optional[Tuple[
@@ -503,54 +559,3 @@ def save_dataset_to_disk(
   with open(os.path.join(save_dir, "transformers.pkl"), 'wb') as f:
     pickle.dump(transformers, f)
   return None
-
-
-def get_input_type(input_file: str) -> str:
-  """Get type of input file. Must be csv/pkl.gz/sdf file."""
-  filename, file_extension = os.path.splitext(input_file)
-  # If gzipped, need to compute extension again
-  if file_extension == ".gz":
-    filename, file_extension = os.path.splitext(filename)
-  if file_extension == ".csv":
-    return "csv"
-  elif file_extension == ".pkl":
-    return "pandas-pickle"
-  elif file_extension == ".joblib":
-    return "pandas-joblib"
-  elif file_extension == ".sdf":
-    return "sdf"
-  else:
-    raise ValueError("Unrecognized extension %s" % file_extension)
-
-
-def load_data(input_files: List[str],
-              shard_size: Optional[int] = None) -> Iterator[Any]:
-  """Loads data from disk.
-
-  For CSV files, supports sharded loading for large files.
-
-  Parameters
-  ----------
-  input_files: List[str]
-    List of filenames.
-  shard_size: int, default None
-    Size of shard to yield
-
-  Returns
-  -------
-  Iterator which iterates over provided files.
-  """
-  if not len(input_files):
-    return
-  input_type = get_input_type(input_files[0])
-  if input_type == "sdf":
-    if shard_size is not None:
-      logger.info("Ignoring shard_size for sdf input.")
-    for value in load_sdf_files(input_files):
-      yield value
-  elif input_type == "csv":
-    for value in load_csv_files(input_files, shard_size):
-      yield value
-  elif input_type == "pandas-pickle":
-    for input_file in input_files:
-      yield load_pickle_from_disk(input_file)

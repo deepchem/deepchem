@@ -72,7 +72,7 @@ def vectorize(hash_function: Callable[[str, int], int],
   DeepChem. However, it's necessary to convert backwards from
   the hash function to feature vectors. This function aids in
   this conversion procedure. It creates a vector of zeros of length
-  `seize`. It then loops through `feature_dict`, uses `hash_function`
+  `size`. It then loops through `feature_dict`, uses `hash_function`
   to hash the stored value to an integer in range [0, size) and bumps
   that index.
 

@@ -17,13 +17,7 @@ Data Utilities
 
 .. autofunction:: deepchem.utils.data_utils.unzip_file
 
-.. autofunction:: deepchem.utils.data_utils.save_to_disk
-
-.. autofunction:: deepchem.utils.data_utils.get_input_type
-
 .. autofunction:: deepchem.utils.data_utils.load_data
-
-.. autofunction:: deepchem.utils.data_utils.load_sharded_csv
 
 .. autofunction:: deepchem.utils.data_utils.load_sdf_files
 
@@ -31,9 +25,11 @@ Data Utilities
 
 .. autofunction:: deepchem.utils.data_utils.load_json_files
 
+.. autofunction:: deepchem.utils.data_utils.load_pickle_files
+
 .. autofunction:: deepchem.utils.data_utils.load_from_disk
 
-.. autofunction:: deepchem.utils.data_utils.load_pickle_from_disk
+.. autofunction:: deepchem.utils.data_utils.save_to_disk
 
 .. autofunction:: deepchem.utils.data_utils.load_dataset_from_disk
 

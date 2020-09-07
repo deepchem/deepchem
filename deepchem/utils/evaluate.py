@@ -6,8 +6,7 @@ import logging
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
-from deepchem.trans import Transformer, undo_transforms
-from deepchem.data import Dataset
+import deepchem as dc
 from deepchem.metrics import Metric
 
 logger = logging.getLogger(__name__)
@@ -34,7 +33,7 @@ def output_statistics(scores: Score, stats_out: str) -> None:
     statsfile.write(str(scores) + "\n")
 
 
-def output_predictions(dataset: Dataset, y_preds: np.ndarray,
+def output_predictions(dataset: "dc.data.Dataset", y_preds: np.ndarray,
                        csv_out: str) -> None:
   """Writes predictions to file.
 
@@ -172,7 +171,8 @@ class Evaluator(object):
   >>> multitask_scores = evaluator.compute_model_performance(metric)
   """
 
-  def __init__(self, model, dataset: Dataset, transformers: List[Transformer]):
+  def __init__(self, model, dataset: "dc.data.Dataset",
+               transformers: List["dc.trans.Transformer"]):
     """Initialize this evaluator
 
     Parameters
@@ -295,7 +295,7 @@ class Evaluator(object):
     metrics = _process_metric_input(metrics)
 
     y = self.dataset.y
-    y = undo_transforms(y, self.output_transformers)
+    y = dc.trans.undo_transforms(y, self.output_transformers)
     w = self.dataset.w
 
     y_pred = self.model.predict(self.dataset, self.output_transformers)
@@ -364,7 +364,7 @@ class GeneratorEvaluator(object):
   def __init__(self,
                model,
                generator: Iterable[Tuple[Any, Any, Any]],
-               transformers: List[Transformer],
+               transformers: List["dc.trans.Transformer"],
                labels: Optional[List] = None,
                weights: Optional[List] = None):
     """
@@ -470,8 +470,8 @@ class GeneratorEvaluator(object):
     all_task_scores = {}
 
     # Undo data transformations.
-    y = undo_transforms(y, self.output_transformers)
-    y_pred = undo_transforms(y_pred, self.output_transformers)
+    y = dc.trans.undo_transforms(y, self.output_transformers)
+    y_pred = dc.trans.undo_transforms(y_pred, self.output_transformers)
 
     # Compute multitask metrics
     for metric in metrics:
