@@ -179,3 +179,14 @@ Graph Convolution Utilities
 
 .. autofunction:: deepchem.utils.molecule_feature_utils.get_bond_graph_distance_one_hot
 
+
+Debug Utilities
+---------------
+
+.. autofunction:: deepchem.utils.debug_utils.get_print_threshold
+
+.. autofunction:: deepchem.utils.debug_utils.set_print_threshold
+
+.. autofunction:: deepchem.utils.debug_utils.get_max_print_size
+
+.. autofunction:: deepchem.utils.debug_utils.set_max_print_size
