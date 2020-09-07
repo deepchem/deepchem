@@ -7,6 +7,7 @@ import numpy as np
 
 from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
+import numpy as np
 
 
 class CircularFingerprint(MolecularFeaturizer):
@@ -110,7 +111,7 @@ class CircularFingerprint(MolecularFeaturizer):
           useChirality=self.chiral,
           useBondTypes=self.bonds,
           useFeatures=self.features)
-
+      fp = np.asarray(fp, dtype=np.float)
     return fp
 
   def __hash__(self):

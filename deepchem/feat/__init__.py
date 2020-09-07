@@ -36,14 +36,10 @@ from deepchem.feat.material_featurizers import SineCoulombMatrix
 from deepchem.feat.material_featurizers import CGCNNFeaturizer
 
 try:
-  from logging import getLogger
-  logger = getLogger(__name__)
   import transformers
   from transformers import BertTokenizer
 
   from deepchem.feat.smiles_tokenizer import SmilesTokenizer
   from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
 except ModuleNotFoundError:
-  logger.warning(
-      "HuggingFace transformers is not available. Please install using 'pip install transformers' to use the SmilesTokenizer"
-  )
+  pass
