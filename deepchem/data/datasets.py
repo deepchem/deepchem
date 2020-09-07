@@ -420,7 +420,7 @@ class Dataset(object):
     """
     raise NotImplementedError()
 
-  def select(self, indices: Sequence[int], select_dir: Optional[str] = None):
+  def select(self, indices: Sequence[int], select_dir: Optional[str] = None) -> "Dataset":
     """Creates a new dataset from a selection of indices from self.
 
     Parameters
@@ -2294,8 +2294,9 @@ class DiskDataset(Dataset):
 
     Returns
     -------
-    DiskDataset
-      A Dataset containing the selected samples
+    Dataset
+      A dataset containing the selected samples. The default dataset is `DiskDataset`.
+      If `output_numpy_dataset` is True, the datset is `NumpyDataset`.
     """
     if output_numpy_dataset and (select_dir is not None or
                                  select_shard_size is not None):

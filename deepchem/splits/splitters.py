@@ -103,17 +103,18 @@ class Splitter(object):
       train_ds_base = DiskDataset.merge(update_train_base_merge)
     return list(zip(train_datasets, cv_datasets))
 
-  def train_valid_test_split(self,
-                             dataset: Dataset,
-                             train_dir: Optional[str] = None,
-                             valid_dir: Optional[str] = None,
-                             test_dir: Optional[str] = None,
-                             frac_train: float = 0.8,
-                             frac_valid: float = 0.1,
-                             frac_test: float = 0.1,
-                             seed: Optional[int] = None,
-                             log_every_n: int = 1000,
-                             **kwargs) -> Tuple[Dataset, Dataset, Dataset]:
+  def train_valid_test_split(
+      self,
+      dataset: Dataset,
+      train_dir: Optional[str] = None,
+      valid_dir: Optional[str] = None,
+      test_dir: Optional[str] = None,
+      frac_train: float = 0.8,
+      frac_valid: float = 0.1,
+      frac_test: float = 0.1,
+      seed: Optional[int] = None,
+      log_every_n: int = 1000,
+      **kwargs) -> Tuple[Dataset, Optional[Dataset], Dataset]:
     """ Splits self into train/validation/test sets.
 
     Returns Dataset objects for train, valid, test.
@@ -150,7 +151,7 @@ class Splitter(object):
 
     Returns
     -------
-    Tuple[Dataset, Dataset, Dataset]
+    Tuple[Dataset, Optional[Dataset], Dataset]
       A tuple of train, valid and test datasets as dc.data.Dataset objects.
     """
     logger.info("Computing train/valid/test indices")
@@ -169,7 +170,7 @@ class Splitter(object):
       test_dir = tempfile.mkdtemp()
     train_dataset = dataset.select(train_inds, train_dir)
     if frac_valid != 0:
-      valid_dataset = dataset.select(valid_inds, valid_dir)
+      valid_dataset: Optional[Dataset] = dataset.select(valid_inds, valid_dir)
     else:
       valid_dataset = None
     test_dataset = dataset.select(test_inds, test_dir)
