@@ -1,10 +1,7 @@
 """
-Testing singletask/multitask dataset shuffling 
+Testing singletask/multitask dataset shuffling
 """
 import os
-import shutil
-import tempfile
-import unittest
 import deepchem as dc
 import numpy as np
 
@@ -20,6 +17,14 @@ def test_complete_shuffle_one_shard():
   assert shuffled.X.shape == dataset.X.shape
   assert shuffled.y.shape == dataset.y.shape
   assert shuffled.w.shape == dataset.w.shape
+  original_indices = dict((id, i) for i, id in enumerate(dataset.ids))
+  shuffled_indices = dict((id, i) for i, id in enumerate(shuffled.ids))
+  for id in dataset.ids:
+    i = original_indices[id]
+    j = shuffled_indices[id]
+    assert np.array_equal(dataset.X[i], shuffled.X[j])
+    assert np.array_equal(dataset.y[i], shuffled.y[j])
+    assert np.array_equal(dataset.w[i], shuffled.w[j])
 
 
 def test_complete_shuffle_multiple_shard():
@@ -34,6 +39,14 @@ def test_complete_shuffle_multiple_shard():
   assert shuffled.X.shape == dataset.X.shape
   assert shuffled.y.shape == dataset.y.shape
   assert shuffled.w.shape == dataset.w.shape
+  original_indices = dict((id, i) for i, id in enumerate(dataset.ids))
+  shuffled_indices = dict((id, i) for i, id in enumerate(shuffled.ids))
+  for id in dataset.ids:
+    i = original_indices[id]
+    j = shuffled_indices[id]
+    assert np.array_equal(dataset.X[i], shuffled.X[j])
+    assert np.array_equal(dataset.y[i], shuffled.y[j])
+    assert np.array_equal(dataset.w[i], shuffled.w[j])
 
 
 def test_complete_shuffle_multiple_shard_uneven():
@@ -48,6 +61,14 @@ def test_complete_shuffle_multiple_shard_uneven():
   assert shuffled.X.shape == dataset.X.shape
   assert shuffled.y.shape == dataset.y.shape
   assert shuffled.w.shape == dataset.w.shape
+  original_indices = dict((id, i) for i, id in enumerate(dataset.ids))
+  shuffled_indices = dict((id, i) for i, id in enumerate(shuffled.ids))
+  for id in dataset.ids:
+    i = original_indices[id]
+    j = shuffled_indices[id]
+    assert np.array_equal(dataset.X[i], shuffled.X[j])
+    assert np.array_equal(dataset.y[i], shuffled.y[j])
+    assert np.array_equal(dataset.w[i], shuffled.w[j])
 
 
 def test_complete_shuffle():
@@ -66,10 +87,11 @@ def test_complete_shuffle():
                                       dataset.ids)
   orig_len = len(dataset)
 
-  dataset = dataset.complete_shuffle()
-  X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
+  shuffled = dataset.complete_shuffle()
+  X_new, y_new, w_new, new_ids = (shuffled.X, shuffled.y, shuffled.w,
+                                  shuffled.ids)
 
-  assert len(dataset) == orig_len
+  assert len(shuffled) == orig_len
   # The shuffling should have switched up the ordering
   assert not np.array_equal(orig_ids, new_ids)
   # But all the same entries should still be present
@@ -78,6 +100,14 @@ def test_complete_shuffle():
   assert X_orig.shape == X_new.shape
   assert y_orig.shape == y_new.shape
   assert w_orig.shape == w_new.shape
+  original_indices = dict((id, i) for i, id in enumerate(dataset.ids))
+  shuffled_indices = dict((id, i) for i, id in enumerate(shuffled.ids))
+  for id in dataset.ids:
+    i = original_indices[id]
+    j = shuffled_indices[id]
+    assert np.array_equal(dataset.X[i], shuffled.X[j])
+    assert np.array_equal(dataset.y[i], shuffled.y[j])
+    assert np.array_equal(dataset.w[i], shuffled.w[j])
 
 
 def test_sparse_shuffle():

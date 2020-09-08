@@ -20,9 +20,9 @@ def load_delaney(featurizer='ECFP',
                  **kwargs):
   """Load delaney dataset
 
-  The Delaney(ESOL) dataset a regression dataset containing structures and 
-  water solubility data for 1128 compounds. The dataset is widely used to 
-  validate machine learning models on estimating solubility directly from 
+  The Delaney(ESOL) dataset a regression dataset containing structures and
+  water solubility data for 1128 compounds. The dataset is widely used to
+  validate machine learning models on estimating solubility directly from
   molecular structures (as encoded in SMILES strings).
 
   Random splitting is recommended for this dataset.
@@ -31,13 +31,13 @@ def load_delaney(featurizer='ECFP',
 
   - "Compound ID" - Name of the compound
   - "smiles" - SMILES representation of the molecular structure
-  - "measured log solubility in mols per litre" - Log-scale water solubility 
+  - "measured log solubility in mols per litre" - Log-scale water solubility
     of the compound, used as label
 
   References
   ----------
-  .. [1] Delaney, John S. "ESOL: estimating aqueous solubility directly from 
-     molecular structure." Journal of chemical information and computer 
+  .. [1] Delaney, John S. "ESOL: estimating aqueous solubility directly from
+     molecular structure." Journal of chemical information and computer
      sciences 44.3 (2004): 1000-1005.
   """
   # Featurize Delaney dataset
@@ -86,8 +86,8 @@ def load_delaney(featurizer='ECFP',
         img_size=img_size, img_spec=img_spec, res=res)
 
   loader = deepchem.data.CSVLoader(
-      tasks=delaney_tasks, smiles_field="smiles", featurizer=featurizer)
-  dataset = loader.featurize(dataset_file, shard_size=8192)
+      tasks=delaney_tasks, feature_field="smiles", featurizer=featurizer)
+  dataset = loader.create_dataset(dataset_file, shard_size=8192)
 
   if split is None:
     transformers = [

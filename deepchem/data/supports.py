@@ -303,7 +303,7 @@ class EpisodeGenerator(object):
       raise StopIteration
     else:
       task = self.perm_tasks[self.task_num]  # Get id from permutation
-      #support = self.supports[task][self.trial_num]
+      # support = self.supports[task][self.trial_num]
       task_supports, task_tests = self.task_episodes[task]
       support, test = (task_supports[self.trial_num],
                        task_tests[self.trial_num])
@@ -367,7 +367,7 @@ class SupportGenerator(object):
       raise StopIteration
     else:
       task = self.perm_tasks[self.task_num]  # Get id from permutation
-      #support = self.supports[task][self.trial_num]
+      # support = self.supports[task][self.trial_num]
       support = get_single_task_support(
           self.dataset,
           n_pos=self.n_pos,

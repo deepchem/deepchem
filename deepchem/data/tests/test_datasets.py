@@ -9,7 +9,7 @@ import numpy as np
 import deepchem as dc
 
 try:
-  import torch
+  import torch  # noqa
   PYTORCH_IMPORT_FAILED = False
 except ImportError:
   PYTORCH_IMPORT_FAILED = True
@@ -270,27 +270,6 @@ def test_reshard():
   np.testing.assert_array_equal(y, y_rr)
   np.testing.assert_array_equal(w, w_rr)
   np.testing.assert_array_equal(ids, ids_rr)
-
-
-def test_select():
-  """Test that dataset select works."""
-  num_datapoints = 10
-  num_features = 10
-  num_tasks = 1
-  X = np.random.rand(num_datapoints, num_features)
-  y = np.random.randint(2, size=(num_datapoints, num_tasks))
-  w = np.ones((num_datapoints, num_tasks))
-  ids = np.array(["id"] * num_datapoints)
-  dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
-
-  indices = [0, 4, 5, 8]
-  select_dataset = dataset.select(indices)
-  X_sel, y_sel, w_sel, ids_sel = (select_dataset.X, select_dataset.y,
-                                  select_dataset.w, select_dataset.ids)
-  np.testing.assert_array_equal(X[indices], X_sel)
-  np.testing.assert_array_equal(y[indices], y_sel)
-  np.testing.assert_array_equal(w[indices], w_sel)
-  np.testing.assert_array_equal(ids[indices], ids_sel)
 
 
 def test_complete_shuffle():
@@ -742,9 +721,26 @@ def _validate_pytorch_dataset(dataset):
     id_count[iter_id] += 1
   assert all(id_count[id] == 2 for id in ids)
 
+  # Test iterating in batches.
+
+  ds = dataset.make_pytorch_dataset(epochs=2, deterministic=False, batch_size=7)
+  id_to_index = dict((id, i) for i, id in enumerate(ids))
+  id_count = dict((id, 0) for id in ids)
+  for iter_X, iter_y, iter_w, iter_id in ds:
+    size = len(iter_id)
+    assert size <= 7
+    for i in range(size):
+      j = id_to_index[iter_id[i]]
+      np.testing.assert_array_equal(X[j, :], iter_X[i])
+      np.testing.assert_array_equal(y[j, :], iter_y[i])
+      np.testing.assert_array_equal(w[j, :], iter_w[i])
+      id_count[iter_id[i]] += 1
+  assert all(id_count[id] == 2 for id in ids)
+
   # Test iterating with multiple workers.
 
-  import torch
+  import torch  # noqa
+  ds = dataset.make_pytorch_dataset(epochs=2, deterministic=False)
   loader = torch.utils.data.DataLoader(ds, num_workers=3)
   id_count = dict((id, 0) for id in ids)
   for iter_X, iter_y, iter_w, iter_id in loader:

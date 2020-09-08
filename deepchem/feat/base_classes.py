@@ -1,10 +1,13 @@
 """
 Feature calculations.
 """
+import inspect
 import logging
 import numpy as np
 import multiprocessing
-from typing import Any, Dict, List, Iterable, Sequence, Tuple
+from typing import Any, Dict, List, Iterable, Sequence, Tuple, Union
+
+from deepchem.utils.typing import PymatgenStructure
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +75,60 @@ class Featurizer(object):
       Any blob of data you like. Subclass should instantiate this.
     """
     raise NotImplementedError('Featurizer is not defined.')
+
+  def __repr__(self) -> str:
+    """Convert self to repr representation.
+
+    Returns
+    -------
+    str
+      The string represents the class.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> dc.feat.CircularFingerprint(size=1024, radius=4)
+    CircularFingerprint[radius=4, size=1024, chiral=False, bonds=True, features=False, sparse=False, smiles=False]
+    >>> dc.feat.CGCNNFeaturizer()
+    CGCNNFeaturizer[radius=8.0, max_neighbors=8, step=0.2]
+    """
+    args_spec = inspect.getfullargspec(self.__init__)  # type: ignore
+    args_names = [arg for arg in args_spec.args if arg != 'self']
+    args_info = ''
+    for arg_name in args_names:
+      args_info += arg_name + '=' + str(self.__dict__[arg_name]) + ', '
+    return self.__class__.__name__ + '[' + args_info[:-2] + ']'
+
+  def __str__(self) -> str:
+    """Convert self to str representation.
+
+    Returns
+    -------
+    str
+      The string represents the class.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> str(dc.feat.CircularFingerprint(size=1024, radius=4))
+    'CircularFingerprint_radius_4_size_1024'
+    >>> str(dc.feat.CGCNNFeaturizer())
+    'CGCNNFeaturizer'
+    """
+    args_spec = inspect.getfullargspec(self.__init__)  # type: ignore
+    args_names = [arg for arg in args_spec.args if arg != 'self']
+    args_num = len(args_names)
+    args_default_values = [None for _ in range(args_num)]
+    if args_spec.defaults is not None:
+      defaults = list(args_spec.defaults)
+      args_default_values[-len(defaults):] = defaults
+
+    override_args_info = ''
+    for arg_name, default in zip(args_names, args_default_values):
+      arg_value = self.__dict__[arg_name]
+      if default != arg_value:
+        override_args_info += '_' + arg_name + '_' + str(arg_value)
+    return self.__class__.__name__ + override_args_info
 
 
 class ComplexFeaturizer(object):
@@ -233,16 +290,16 @@ class MaterialStructureFeaturizer(Featurizer):
   """
 
   def featurize(self,
-                structures: Iterable[Dict[str, Any]],
+                structures: Iterable[Union[Dict[str, Any], PymatgenStructure]],
                 log_every_n: int = 1000) -> np.ndarray:
     """Calculate features for crystal structures.
 
     Parameters
     ----------
-    structures: Iterable[Dict[str, Any]]
-      Iterable sequence of pymatgen structure dictionaries.
-      Dictionary representations of pymatgen.Structure
-      https://pymatgen.org/pymatgen.core.structure.html
+    structures: Iterable[Union[Dict, pymatgen.Structure]]
+      Iterable sequence of pymatgen structure dictionaries
+      or pymatgen.Structure. Please confirm the dictionary representations
+      of pymatgen.Structure from https://pymatgen.org/pymatgen.core.structure.html.
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
 
@@ -263,8 +320,9 @@ class MaterialStructureFeaturizer(Featurizer):
       if idx % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % idx)
       try:
-        s = Structure.from_dict(structure)
-        features.append(self._featurize(s))
+        if isinstance(structure, Dict):
+          structure = Structure.from_dict(structure)
+        features.append(self._featurize(structure))
       except:
         logger.warning(
             "Failed to featurize datapoint %i. Appending empty array" % idx)

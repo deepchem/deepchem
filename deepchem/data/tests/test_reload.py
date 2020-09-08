@@ -6,12 +6,9 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
 import os
-import shutil
 import logging
 import unittest
-import tempfile
 import deepchem as dc
-import numpy as np
 
 logger = logging.getLogger(__name__)
 

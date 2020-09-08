@@ -138,6 +138,7 @@ discussions about research, development or any general questions. If you'd like 
    dataclasses
    moleculenet
    featurizers
+   tokenizers
    splitters
    transformers
    models
@@ -155,3 +156,4 @@ discussions about research, development or any general questions. If you'd like 
    :caption: Contribution guide
 
    coding
+   infra

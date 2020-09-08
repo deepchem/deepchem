@@ -1,10 +1,6 @@
 """
 Tests for ImageDataset class
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import unittest
 import numpy as np
 import deepchem as dc
