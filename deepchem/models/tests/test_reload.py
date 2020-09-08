@@ -532,6 +532,7 @@ def test_weave_classification_reload():
   assert scores[classification_metric.name] > .9
 
 
+# TODO: THIS IS FAILING!
 def test_MPNN_regression_reload():
   """Test MPNN can reload datasets."""
   np.random.seed(123)
@@ -600,6 +601,7 @@ def test_MPNN_regression_reload():
   assert scores[regression_metric.name] > .8
 
 
+# TODO: THIS IS FAILING!
 def test_textCNN_classification_reload():
   """Test textCNN model reloadinng."""
   np.random.seed(123)
@@ -717,6 +719,7 @@ def test_1d_cnn_regression_reload():
   assert scores[regression_metric.name] < 0.1
 
 
+# TODO: THIS IS FAILING!
 def test_graphconvmodel_reload():
   featurizer = dc.feat.ConvMolFeaturizer()
   tasks = ["outcome"]

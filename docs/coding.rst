@@ -63,6 +63,24 @@ that break them may sometimes slip through and get merged into the repository.
 We still try to run them regularly, so hopefully the problem will be discovered
 fairly soon.
 
+Testing Machine Learning Models
+-------------------------------
+
+Testing the correctness of a machine learning model can be quite tricky to do
+in practice. When adding a new machine learning model to DeepChem, you should
+add at least a few basic types of unit tests:
+
+- Overfitting test: Create a small synthetic dataset and test that your model
+  can learn this datasest with high accuracy. For regression and classification
+  task, this should correspond to low training error on the dataset. For
+  generative tasks, this should correspond to low loss on the dataset.
+- Reloading test: Check that a trained model can be saved to disk and reloaded
+  correctly. This should involve predictions from the saved and reloaded models
+  matching exactly.
+
+Note that unit tests are not sufficient to gauge the real performance of a
+model. You should benchmark your model on larger datasets as well and report
+your benchmarking tests in the PR comments.
 
 Type Annotations
 ----------------
