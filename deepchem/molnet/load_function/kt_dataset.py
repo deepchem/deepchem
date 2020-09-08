@@ -1,22 +1,5 @@
 """
 Loading Kamlet-Taft (KT) parameter dataset 
-
-  KT parameters are scales to measure and quantify the Lewis acidity and basicity of molecules. The parameters are obtained through Nuclear Magnetic Resonance (NMR) spectra.
-
-  Random splitting is recommended for this dataset.
-
-  The raw data csv file contains columns below:
-
-  - "csmiles" - canonical SMILES representation of the molecular structure
-  - "cid" - PubChem CID of molecules
-  - "alpha" - KT paramter that quantifies the acidity of a molecule
-  - "beta" - KT paramter that quantifies the basicity of a molecule
-
-  Please refer to https://arxiv.org/pdf/2008.08078 (2020) for which the dataset was hand curated.
-
-  References
-  ----------
-  [1] Marcus, Yizhak. "The properties of organic liquids that are relevant to their use as solvating solvents." Chemical Society Reviews 22, no. 6 (1993): 409-416.
 """
 
 import os
@@ -35,13 +18,12 @@ DEFAULT_DIR = deepchem.utils.get_data_dir()
 KTDATASET_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KTparameterDataset.zip"
 KTDATASET_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KTparameterDataset.csv"
 
-# dict of accepted featurizers for this dataset
-# modify the returned dicts for your dataset
+# dict of accepted featurizers for the KT dataset
 DEFAULT_FEATURIZERS = get_defaults("feat")
 
 # Names of supported featurizers
 # ktdataset_featurizers = ["RawFeaturizer", "SmilesToImage", "SmilesToSeq", "WeaveFeaturizer"]
-ktdataset_featurizers = ['ECFP','GraphConv','Weave','Raw','AdjacencyConv']
+ktdataset_featurizers = ['ECFP', 'GraphConv', 'Weave', 'Raw', 'AdjacencyConv']
 DEFAULT_FEATURIZERS = {k: DEFAULT_FEATURIZERS[k] for k in ktdataset_featurizers}
 
 # dict of accepted transformers
@@ -69,31 +51,24 @@ def load_kt_dataset(
     featurizer_kwargs: Dict[str, object] = {},
     splitter_kwargs: Dict[str, object] = {},
     transformer_kwargs: Dict[str, Dict[str, object]] = {},
-    **kwargs) -> Tuple[List, Tuple, List]:
-  """
-  Load ktdataset.
+    **kwargs) -> (Tuple[List, Tuple, List]):
 
-  This has been modified from the template for adding a function to load a dataset from
-  MoleculeNet. Global variable URL strings, default parameters,
-  default featurizers, transformers, and splitters, and variable names have been modified as
-  needed. All available featurizers, transformers, and
-  splitters are in the `DEFAULTS_X` global variables.
+"""
 
-  If `reload = True` and `data_dir` (`save_dir`) is specified, the loader
-  will attempt to load the raw dataset (featurized dataset) from disk.
-  Otherwise, the dataset will be downloaded from the DeepChem AWS bucket.
+  KT parameters are scales to measure and quantify the Lewis acidity and basicity of molecules. The parameters are obtained through Nuclear Magnetic Resonance (NMR) spectra. Random splitting is recommended for this dataset.
+  The raw data csv file contains columns below:
+  Please refer to https://arxiv.org/pdf/2008.08078 (2020) for which the dataset was hand curated. Benchmark training is also present in this work. Accuracy levels (rmse) reported here are of the order 0.01  for alpha and beta on unseen data. 
+   References
+  ----------
+  [1] Marcus, Yizhak. "The properties of organic liquids that are relevant to their use as solvating solvents." Chemical Society Reviews 22, no. 6 (1993): 409-416.
 
-  The dataset will be featurized with `featurizer` and separated into
-  train/val/test sets according to `splitter`. Some transformers (e.g.
-  `NormalizationTransformer`) must be initialized with a dataset. 
-  Set up kwargs to enable these transformations. Additional kwargs may
-  be given for specific featurizers, transformers, and splitters.
 
-  The load function must be modified with the appropriate DataLoaders
-  for all supported featurizers for your dataset.
+  Loading ktdataset.
 
-  Please refer to the MoleculeNet documentation for further information
-  https://deepchem.readthedocs.io/en/latest/moleculenet.html.
+  - "csmiles" - canonical SMILES representation of the molecular structure
+  - "cid" - PubChem CID of molecules
+  - "alpha" - KT paramter that quantifies the acidity of a molecule
+  - "beta" - KT paramter that quantifies the basicity of a molecule
   
   Parameters
   ----------
@@ -135,7 +110,6 @@ def load_kt_dataset(
   ----------
   MLA style references for the KT parameter dataset. 
     [1] Marcus, Yizhak. "The properties of organic liquids that are relevant to their use as solvating solvents." Chemical Society Reviews 22.6 (1993): 409-416.
-
   Examples
   --------
   >> import deepchem as dc
@@ -144,15 +118,11 @@ def load_kt_dataset(
   >> n_tasks = len(tasks)
   >> n_features = train_dataset.get_data_shape()[0]
   >> model = dc.models.MultitaskClassifier(n_tasks, n_features)
+"""
 
-  """
 
-  # # Warning message about this template
-  # raise ValueError("""
-  #   This is a template function and it doesn't do anything!
-  #   Use this function as a reference when implementing new
-  #   loaders for MoleculeNet datasets.
-  #   """)
+  
+  
 
   # Featurize ktdataset
   logger.info("About to featurize ktdataset.")
@@ -188,7 +158,7 @@ def load_kt_dataset(
       return kt_tasks, all_dataset, transformers
 
   # First type of supported featurizers
-  supported_featurizers = []  # type: List[Featurizer]
+  supported_featurizers = ['ECFP', 'GraphConv', 'Weave', 'Raw', 'AdjacencyConv']  # type: List[Featurizer]
 
   # If featurizer requires a non-CSV file format, load .tar.gz file
   if featurizer in supported_featurizers:
@@ -237,3 +207,4 @@ def load_kt_dataset(
         save_folder, train_dataset, valid_dataset, test_dataset, transformers)
 
   return kt_tasks, (train_dataset, valid_dataset, test_dataset), transformers
+
