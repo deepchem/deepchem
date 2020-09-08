@@ -73,9 +73,10 @@ add at least a few basic types of unit tests:
 - Overfitting test: Create a small synthetic dataset and test that your model
   can learn this datasest with high accuracy. For regression and classification
   task, this should correspond to low training error on the dataset. For
-  generative tasks, this should correspond to low loss on the dataset.
+  generative tasks, this should correspond to low training loss on the dataset.
 - Reloading test: Check that a trained model can be saved to disk and reloaded
-  correctly. This should involve predictions from the saved and reloaded models
+  correctly. This should involve checking that predictions from the saved and
+  reloaded models
   matching exactly.
 
 Note that unit tests are not sufficient to gauge the real performance of a
