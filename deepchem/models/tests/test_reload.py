@@ -525,6 +525,10 @@ def test_weave_classification_reload():
   predset = dc.data.NumpyDataset(Xpred)
   origpred = model.predict(predset)
   reloadpred = reloaded_model.predict(predset)
+
+  # Try re-restore
+  reloaded_model.restore()
+  reloadpred = reloaded_model.predict(predset)
   assert np.all(origpred == reloadpred)
 
   # Eval model on train
@@ -753,6 +757,57 @@ def test_graphconvmodel_reload():
       batch_normalize=False,
       mode='classification',
       model_dir=model_dir)
+  reloaded_model.restore()
+
+  # Check predictions match on random sample
+  predmols = ["CCCC", "CCCCCO", "CCCCC"]
+  Xpred = featurizer(predmols)
+  predset = dc.data.NumpyDataset(Xpred)
+  origpred = model.predict(predset)
+  reloadpred = reloaded_model.predict(predset)
+  #assert np.all(origpred == reloadpred)
+
+  # Try re-restore
+  reloaded_model.restore()
+  reloadpred = reloaded_model.predict(predset)
+  assert np.all(origpred == reloadpred)
+
+  # Eval model on train
+  scores = reloaded_model.evaluate(dataset, [classification_metric])
+  assert scores[classification_metric.name] > .9
+
+
+def test_chemception_reload():
+  """Test that chemception models can be saved and reloaded."""
+  img_size = 80
+  img_spec = "engd"
+  res = 0.5
+  n_tasks = 1
+  featurizer = dc.feat.SmilesToImage(
+      img_size=img_size, img_spec=img_spec, res=res)
+  mols = ["C", "CC", "CCC"]
+  X = featurizer(mols)
+  y = np.array([0, 1, 0])
+  dataset = dc.data.NumpyDataset(X, y, ids=mols)
+  classsification_metric = dc.metrics.Metric(
+      dc.metrics.roc_auc_score, np.mean, mode="classification")
+
+  model_dir = tempfile.mkdtemp()
+  model = dc.models.ChemCeption(
+      n_tasks=n_tasks,
+      img_spec="engd",
+      model_dir=model_dir,
+      mode="classification")
+  model.fit(dataset, nb_epoch=300)
+  scores = model.evaluate(dataset, [metric], [])
+  assert scores[classification_metric.name] >= 0.9
+
+  # Reload Trained Model
+  reloaded_model = dc.models.ChemCeption(
+      n_tasks=n_tasks,
+      img_spec="engd",
+      model_dir=model_dir,
+      mode="classification")
   reloaded_model.restore()
 
   # Check predictions match on random sample
