@@ -10,13 +10,13 @@ from deepchem.utils import conformers
 
 class TestCoulombMatrix(unittest.TestCase):
   """
-    Tests for CoulombMatrix.
-    """
+  Tests for CoulombMatrix.
+  """
 
   def setUp(self):
     """
-        Set up tests.
-        """
+    Set up tests.
+    """
     from rdkit import Chem
     from rdkit.Chem import AllChem
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
@@ -41,8 +41,8 @@ class TestCoulombMatrix(unittest.TestCase):
 
   def test_coulomb_matrix(self):
     """
-        Test CoulombMatrix.
-        """
+    Test CoulombMatrix.
+    """
     f = CoulombMatrix(self.num_atoms)
     rval = f([self.mol_with_no_conf])
     assert rval.shape == (1, self.num_atoms, self.num_atoms)
@@ -53,8 +53,8 @@ class TestCoulombMatrix(unittest.TestCase):
 
   def test_coulomb_matrix_padding(self):
     """
-        Test CoulombMatrix with padding.
-        """
+    Test CoulombMatrix with padding.
+    """
     max_atoms = self.num_atoms * 2
     f = CoulombMatrix(max_atoms=max_atoms)
     rval = f([self.mol_with_no_conf])
@@ -66,8 +66,8 @@ class TestCoulombMatrix(unittest.TestCase):
 
   def test_upper_tri_coulomb_matrix(self):
     """
-        Test upper triangular CoulombMatrix.
-        """
+    Test upper triangular CoulombMatrix.
+    """
     f = CoulombMatrix(self.num_atoms, upper_tri=True)
     size = np.triu_indices(self.num_atoms)[0].size
     rval = f([self.mol_with_no_conf])
@@ -93,8 +93,8 @@ class TestCoulombMatrix(unittest.TestCase):
 
   def test_coulomb_matrix_no_hydrogens(self):
     """
-        Test hydrogen removal.
-        """
+    Test hydrogen removal.
+    """
     num_atoms_with_no_H = self.mol_with_no_conf.GetNumAtoms()
     assert num_atoms_with_no_H < self.num_atoms
     f = CoulombMatrix(
@@ -109,8 +109,8 @@ class TestCoulombMatrix(unittest.TestCase):
 
   def test_coulomb_matrix_hydrogens(self):
     """
-        Test no hydrogen removal.
-        """
+    Test no hydrogen removal.
+    """
     f = CoulombMatrix(
         max_atoms=self.num_atoms, remove_hydrogens=False, upper_tri=True)
     size = np.triu_indices(self.num_atoms)[0].size
@@ -124,13 +124,13 @@ class TestCoulombMatrix(unittest.TestCase):
 
 class TestCoulombMatrixEig(unittest.TestCase):
   """
-    Tests for CoulombMatrixEig.
-    """
+  Tests for CoulombMatrixEig.
+  """
 
   def setUp(self):
     """
-        Set up tests.
-        """
+    Set up tests.
+    """
     from rdkit import Chem
     from rdkit.Chem import AllChem
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
@@ -155,8 +155,8 @@ class TestCoulombMatrixEig(unittest.TestCase):
 
   def test_coulomb_matrix_eig(self):
     """
-        Test CoulombMatrixEig.
-        """
+    Test CoulombMatrixEig.
+    """
     f = CoulombMatrixEig(self.num_atoms)
     rval = f([self.mol_with_one_conf])
     assert rval.shape == (1, self.num_atoms)

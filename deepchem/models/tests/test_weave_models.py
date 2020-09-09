@@ -117,7 +117,7 @@ def test_compute_features_on_distance_1():
   # 10 pairs in total each with start/finish
   assert atom_to_pair.shape == (8, 2)
   assert np.all(atom_to_pair == np.array([[0, 0], [1, 1], [1, 3], [2, 2],
-                                          [2, 3], [3, 1], [3, 2], [3, 3]]))
+                                          [3, 3], [3, 1], [3, 2], [3, 3]]))
 
 
 @flaky
