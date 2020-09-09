@@ -131,7 +131,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     ----------
     add_self_edges: bool, default False
       Whether to add self-connected edges or not. If you want to use DGL,
-      you sometimes need to add explict self-connected edges.
+      you sometimes need to add explicit self-connected edges.
     """
     self.add_self_edges = add_self_edges
 
