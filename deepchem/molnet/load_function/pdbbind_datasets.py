@@ -16,33 +16,33 @@ from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCo
 from deepchem.feat.graph_features import AtomicConvFeaturizer
 
 logger = logging.getLogger(__name__)
-DEFAULT_DATA_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DATA_DIR = deepchem.utils.data_utils.get_data_dir()
 
 
 def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   """Featurizes pdbbind according to provided featurization"""
   tasks = ["-logKd/Ki"]
-  data_dir = deepchem.utils.get_data_dir()
+  data_dir = deepchem.utils.data_utils.get_data_dir()
   pdbbind_dir = os.path.join(data_dir, "pdbbind")
   dataset_dir = os.path.join(pdbbind_dir, "%s_%s" % (subset, feat))
 
   if not os.path.exists(dataset_dir):
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         "https://deepchemdata.s3-us-west-1.amazonaws.com/featurized_datasets/core_grid.tar.gz"
     )
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         "https://deepchemdata.s3-us-west-1.amazonaws.com/featurized_datasets/full_grid.tar.gz"
     )
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         "https://deepchemdata.s3-us-west-1.amazonaws.com/featurized_datasets/refined_grid.tar.gz"
     )
     if not os.path.exists(pdbbind_dir):
       os.system('mkdir ' + pdbbind_dir)
-    deepchem.utils.untargz_file(
+    deepchem.utils.data_utils.untargz_file(
         os.path.join(data_dir, 'core_grid.tar.gz'), pdbbind_dir)
-    deepchem.utils.untargz_file(
+    deepchem.utils.data_utils.untargz_file(
         os.path.join(data_dir, 'full_grid.tar.gz'), pdbbind_dir)
-    deepchem.utils.untargz_file(
+    deepchem.utils.data_utils.untargz_file(
         os.path.join(data_dir, 'refined_grid.tar.gz'), pdbbind_dir)
 
   return deepchem.data.DiskDataset(dataset_dir), tasks
@@ -76,7 +76,7 @@ def load_pdbbind_grid(split="random",
     return tasks, all_dataset, transformers
 
   else:
-    data_dir = deepchem.utils.get_data_dir()
+    data_dir = deepchem.utils.data_utils.get_data_dir()
     if reload:
       save_dir = os.path.join(
           data_dir, "pdbbind_" + subset + "/" + featurizer + "/" + str(split))
@@ -84,13 +84,13 @@ def load_pdbbind_grid(split="random",
     dataset_file = os.path.join(data_dir, subset + "_smiles_labels.csv")
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(
+      deepchem.utils.data_utils.download_url(
           "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/" + subset +
           "_smiles_labels.csv")
 
     tasks = ["-logKd/Ki"]
     if reload:
-      loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+      loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
           save_dir)
       if loaded:
         return tasks, all_dataset, transformers
@@ -142,8 +142,8 @@ def load_pdbbind_grid(split="random",
       test = transformer.transform(test)
 
     if reload:
-      deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
-                                               transformers)
+      deepchem.utils.data_utils.save_dataset_to_disk(save_dir, train, valid,
+                                                     test, transformers)
 
     return tasks, (train, valid, test), transformers
 
@@ -185,7 +185,7 @@ def load_pdbbind(reload=True,
 
   pdbbind_tasks = ["-logKd/Ki"]
 
-  deepchem_dir = deepchem.utils.get_data_dir()
+  deepchem_dir = deepchem.utils.data_utils.get_data_dir()
 
   if data_dir == None:
     data_dir = DEFAULT_DATA_DIR
@@ -212,7 +212,7 @@ def load_pdbbind(reload=True,
     else:
       print(
           "\nLoading featurized and splitted dataset from:\n%s\n" % save_folder)
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return pdbbind_tasks, all_dataset, transformers
@@ -220,14 +220,14 @@ def load_pdbbind(reload=True,
   dataset_file = os.path.join(data_dir, "pdbbind_v2015.tar.gz")
   if not os.path.exists(dataset_file):
     logger.warning("About to download PDBBind full dataset. Large file, 2GB")
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbind_v2015.tar.gz",
         dest_dir=data_dir)
   if os.path.exists(data_folder):
     logger.info("PDBBind full dataset already exists.")
   else:
     print("Untarring full dataset...")
-    deepchem.utils.untargz_file(
+    deepchem.utils.data_utils.untargz_file(
         dataset_file, dest_dir=os.path.join(data_dir, "pdbbind"))
 
   print("\nRaw dataset:\n%s" % data_folder)
@@ -338,8 +338,8 @@ def load_pdbbind(reload=True,
 
   all_dataset = (train, valid, test)
   print("\nSaving dataset to \"%s\" ..." % save_folder)
-  deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                           transformers)
+  deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                 test, transformers)
   return pdbbind_tasks, all_dataset, transformers
 
 
@@ -454,6 +454,6 @@ def load_pdbbind_from_dir(data_folder,
   train, valid, test = splitter.train_valid_test_split(dataset)
   all_dataset = (train, valid, test)
   if save_dir:
-    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_dir, train, valid, test,
+                                                   transformers)
   return pdbbind_tasks, all_dataset, transformers

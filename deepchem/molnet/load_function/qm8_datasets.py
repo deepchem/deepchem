@@ -7,7 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 GDB8_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/gdb8.tar.gz"
 QM8_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm8.csv"
 
@@ -83,7 +83,7 @@ def load_qm8(featurizer='CoulombMatrix',
       save_folder = os.path.join(save_folder, img_spec)
     save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return qm8_tasks, all_dataset, transformers
@@ -91,13 +91,13 @@ def load_qm8(featurizer='CoulombMatrix',
   if featurizer in ['CoulombMatrix', 'BPSymmetryFunctionInput', 'MP', 'Raw']:
     dataset_file = os.path.join(data_dir, "qm8.sdf")
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=GDB8_URL, dest_dir=data_dir)
-      deepchem.utils.untargz_file(
+      deepchem.utils.data_utils.download_url(url=GDB8_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'gdb8.tar.gz'), data_dir)
   else:
     dataset_file = os.path.join(data_dir, "qm8.csv")
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=QM8_CSV_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.download_url(url=QM8_CSV_URL, dest_dir=data_dir)
 
   if featurizer in ['CoulombMatrix', 'BPSymmetryFunctionInput', 'MP', 'Raw']:
     if featurizer == 'CoulombMatrix':
@@ -153,6 +153,6 @@ def load_qm8(featurizer='CoulombMatrix',
     valid_dataset = transformer.transform(valid_dataset)
     test_dataset = transformer.transform(test_dataset)
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(
+    deepchem.utils.data_utils.save_dataset_to_disk(
         save_folder, train_dataset, valid_dataset, test_dataset, transformers)
   return qm8_tasks, (train_dataset, valid_dataset, test_dataset), transformers

@@ -8,7 +8,7 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 HOPV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/hopv.tar.gz"
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 
 
 def load_hopv(featurizer='ECFP',
@@ -50,15 +50,16 @@ def load_hopv(featurizer='ECFP',
       save_folder = os.path.join(save_folder, img_spec)
     save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return hopv_tasks, all_dataset, transformers
 
   dataset_file = os.path.join(data_dir, "hopv.csv")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=HOPV_URL, dest_dir=data_dir)
-    deepchem.utils.untargz_file(os.path.join(data_dir, 'hopv.tar.gz'), data_dir)
+    deepchem.utils.data_utils.download_url(url=HOPV_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.untargz_file(
+        os.path.join(data_dir, 'hopv.tar.gz'), data_dir)
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
@@ -119,6 +120,6 @@ def load_hopv(featurizer='ECFP',
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
   return hopv_tasks, (train, valid, test), transformers

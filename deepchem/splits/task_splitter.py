@@ -1,10 +1,6 @@
 """
 Contains an abstract base class that supports chemically aware data splits.
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import numpy as np
 from deepchem.data import NumpyDataset
 from deepchem.splits import Splitter

@@ -8,7 +8,7 @@ from deepchem.molnet.load_function.chembl_tasks import chembl_tasks
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 
 
 def load_chembl(shard_size=2000,
@@ -34,42 +34,42 @@ def load_chembl(shard_size=2000,
       save_folder = os.path.join(save_folder, img_spec)
     save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return chembl_tasks, all_dataset, transformers
 
   dataset_path = os.path.join(data_dir, "chembl_%s.csv.gz" % set)
   if not os.path.exists(dataset_path):
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         url=
         "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_5thresh.csv.gz",
         dest_dir=data_dir)
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         url=
         "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_sparse.csv.gz",
         dest_dir=data_dir)
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         url=
         "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_5thresh_ts_test.csv.gz",
         dest_dir=data_dir)
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         url=
         "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_5thresh_ts_train.csv.gz",
         dest_dir=data_dir)
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         url=
         "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_5thresh_ts_valid.csv.gz",
         dest_dir=data_dir)
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         url=
         "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_sparse_ts_test.csv.gz",
         dest_dir=data_dir)
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         url=
         "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_sparse_ts_train.csv.gz",
         dest_dir=data_dir)
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         url=
         "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_sparse_ts_valid.csv.gz",
         dest_dir=data_dir)
@@ -153,6 +153,6 @@ def load_chembl(shard_size=2000,
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
   return chembl_tasks, (train, valid, test), transformers

@@ -8,7 +8,7 @@ import gzip
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 
 
 def load_pcba(featurizer='ECFP',
@@ -106,7 +106,7 @@ def load_pcba_dataset(featurizer='ECFP',
   dataset_file = os.path.join(data_dir, assay_file_name)
 
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         url="https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/{0}".
         format(assay_file_name),
         dest_dir=data_dir)
@@ -135,7 +135,7 @@ def load_pcba_dataset(featurizer='ECFP',
     PCBA_tasks = columns
 
   if reload:
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return PCBA_tasks, all_dataset, transformers
@@ -181,7 +181,7 @@ def load_pcba_dataset(featurizer='ECFP',
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
 
   return PCBA_tasks, (train, valid, test), transformers

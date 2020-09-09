@@ -13,7 +13,7 @@ from deepchem.feat import SmilesToSeq, SmilesToImage
 from deepchem.feat.smiles_featurizers import create_char_to_idx
 
 CHEMBL_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_25.csv.gz"
-DEFAULT_DIR = dc.utils.get_data_dir()
+DEFAULT_DIR = dc.utils.data_utils.get_data_dir()
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ def load_chembl25(featurizer="smiles2seq",
           "{} does not exist. Reconstructing dataset.".format(save_folder))
     else:
       logger.info("{} exists. Restoring dataset.".format(save_folder))
-      loaded, dataset, transformers = dc.utils.save.load_dataset_from_disk(
+      loaded, dataset, transformers = dc.utils.data_utils.load_dataset_from_disk(
           save_folder)
       if loaded:
         return chembl25_tasks, dataset, transformers
@@ -94,7 +94,7 @@ def load_chembl25(featurizer="smiles2seq",
   if not os.path.exists(dataset_file):
     logger.warning("File {} not found. Downloading dataset. (~555 MB)".format(
         dataset_file))
-    dc.utils.download_url(url=CHEMBL_URL, dest_dir=data_dir)
+    dc.utils.data_utils.download_url(url=CHEMBL_URL, dest_dir=data_dir)
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
@@ -179,7 +179,7 @@ def load_chembl25(featurizer="smiles2seq",
     test = transformer.transform(test)
 
   if reload:
-    dc.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                       transformers)
+    dc.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
+                                             transformers)
 
   return chembl25_tasks, (train, valid, test), transformers

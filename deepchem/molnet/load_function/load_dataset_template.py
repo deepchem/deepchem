@@ -13,7 +13,7 @@ from typing import List, Tuple, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 MYDATASET_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/mydataset.tar.gz"
 MYDATASET_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/mydataset.csv"
 
@@ -161,7 +161,7 @@ def load_mydataset(
     save_folder = os.path.join(save_dir, "mydataset-featurized",
                                featurizer_name, splitter_name)
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return my_tasks, all_dataset, transformers
@@ -174,8 +174,9 @@ def load_mydataset(
     dataset_file = os.path.join(data_dir, 'mydataset.filetype')
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=MYDATASET_URL, dest_dir=data_dir)
-      deepchem.utils.untargz_file(
+      deepchem.utils.data_utils.download_url(
+          url=MYDATASET_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'mydataset.tar.gz'), data_dir)
 
     # Changer loader to match featurizer and data file type
@@ -187,7 +188,8 @@ def load_mydataset(
   else:  # only load CSV file
     dataset_file = os.path.join(data_dir, "mydataset.csv")
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=MYDATASET_CSV_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.download_url(
+          url=MYDATASET_CSV_URL, dest_dir=data_dir)
 
     loader = deepchem.data.CSVLoader(
         tasks=my_tasks, smiles_field="smiles", featurizer=featurizer)
@@ -212,7 +214,7 @@ def load_mydataset(
     test_dataset = transformer.transform(test_dataset)
 
   if reload:  # save to disk
-    deepchem.utils.save.save_dataset_to_disk(
+    deepchem.utils.data_utils.save_dataset_to_disk(
         save_folder, train_dataset, valid_dataset, test_dataset, transformers)
 
   return my_tasks, (train_dataset, valid_dataset, test_dataset), transformers

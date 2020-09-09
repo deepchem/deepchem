@@ -5,7 +5,7 @@ import logging
 import numpy as np
 from deepchem.feat import Featurizer
 from deepchem.feat import ComplexFeaturizer
-from deepchem.utils import pad_array
+from deepchem.utils.data_utils import pad_array
 from deepchem.utils.rdkit_utils import MoleculeLoadException, get_xyz_from_mol, \
   load_molecule, merge_molecules_xyz, merge_molecules
 

@@ -18,7 +18,7 @@ import pandas as pd
 
 import deepchem as dc
 from deepchem.utils.typing import OneOrMany, Shape
-from deepchem.utils.save import save_to_disk, load_from_disk, load_image_files
+from deepchem.utils.data_utils import save_to_disk, load_from_disk, load_image_files
 
 Batch = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 

@@ -11,7 +11,7 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 DATASET_URL = 'http://www.robots.ox.ac.uk/~vgg/research/counting/cells.zip'
 
 
@@ -34,13 +34,13 @@ def load_cell_counting(split=None,
   featurizer = ""
   if reload:
     save_folder = os.path.join(save_dir, "cell_counting-featurized", str(split))
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return cell_counting_tasks, all_dataset, transformers
   dataset_file = os.path.join(data_dir, "cells.zip")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=DATASET_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=DATASET_URL, dest_dir=data_dir)
 
   loader = deepchem.data.ImageLoader()
   dataset = loader.featurize(dataset_file)
@@ -72,6 +72,6 @@ def load_cell_counting(split=None,
   transformers = []
   all_dataset = (train, valid, test)
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
   return cell_counting_tasks, all_dataset, transformers

@@ -67,7 +67,7 @@ def convert_protein_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
       fout.write(line)
 
 
-def mol_to_graph(mol: RDKitMol):
+def _mol_to_graph(mol: RDKitMol):
   """Convert RDKit Mol to NetworkX graph
 
   Convert mol into a graph representation atoms are nodes, and bonds
@@ -102,7 +102,7 @@ def mol_to_graph(mol: RDKitMol):
   return G
 
 
-def get_rotatable_bonds(mol: RDKitMol) -> List[Tuple[int, int]]:
+def _get_rotatable_bonds(mol: RDKitMol) -> List[Tuple[int, int]]:
   """
   https://github.com/rdkit/rdkit/blob/f4529c910e546af590c56eba01f96e9015c269a6/Code/GraphMol/Descriptors/Lipinski.cpp#L107
 
@@ -165,8 +165,8 @@ def convert_mol_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
   # Walk through the original file and extract ATOM/HETATM lines and
   # add PDBQT charge annotations.
   pdb_map = _create_pdb_map(outfile)
-  graph = mol_to_graph(mol)
-  rotatable_bonds = get_rotatable_bonds(mol)
+  graph = _mol_to_graph(mol)
+  rotatable_bonds = _get_rotatable_bonds(mol)
 
   # Remove rotatable bonds from this molecule
   for bond in rotatable_bonds:

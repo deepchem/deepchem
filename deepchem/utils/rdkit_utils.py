@@ -9,17 +9,11 @@ properties of molecules.
 
 import os
 import logging
-import itertools
 import numpy as np
 from io import StringIO
-from copy import deepcopy
-from collections import Counter
 from deepchem.utils.pdbqt_utils import pdbqt_to_pdb
 from deepchem.utils.pdbqt_utils import convert_mol_to_pdbqt
 from deepchem.utils.pdbqt_utils import convert_protein_to_pdbqt
-from deepchem.utils.geometry_utils import angle_between
-from deepchem.utils.geometry_utils import is_angle_within_cutoff
-from deepchem.utils.geometry_utils import generate_random_rotation_matrix
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +96,7 @@ def apply_pdbfixer(mol,
   is_protein: bool, optional
     If false, then don't remove heterogens (since this molecule is
     itself a heterogen).
-  
+
   Returns
   -------
   Rdkit Mol
@@ -160,7 +154,7 @@ def compute_charges(mol):
   Returns
   -------
   No return since updates in place.
-  
+
   Note
   ----
   This function requires RDKit to be installed.
@@ -208,7 +202,7 @@ def load_complex(molecular_complex,
   This function requires RDKit to be installed.
   """
   if isinstance(molecular_complex, str):
-    molecule_complex = [molecular_complex]
+    molecular_complex = [molecular_complex]
   fragments = []
   for mol in molecular_complex:
     loaded = load_molecule(
@@ -274,7 +268,7 @@ def load_molecule(molecule_file,
   elif ".pdb" in molecule_file:
     my_mol = Chem.MolFromPDBFile(
         str(molecule_file), sanitize=False, removeHs=False)
-    from_pdb = True
+    from_pdb = True  # noqa: F841
   else:
     raise ValueError("Unrecognized file type for %s" % str(molecule_file))
 
@@ -344,7 +338,7 @@ def write_molecule(mol, outfile, is_protein=False):
 
 
 def merge_molecules_xyz(xyzs):
-  """Merges coordinates of multiple molecules. 
+  """Merges coordinates of multiple molecules.
 
   Parameters
   ----------
