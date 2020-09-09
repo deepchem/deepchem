@@ -15,7 +15,7 @@ from sklearn.linear_model import ElasticNetCV
 from deepchem.models import Model
 from deepchem.data import Dataset
 from deepchem.trans import Transformer
-from deepchem.utils.save import load_from_disk, save_to_disk
+from deepchem.utils.data_utils import load_from_disk, save_to_disk
 
 NON_WEIGHTED_MODELS = [
     LogisticRegression, PLSRegression, GaussianProcessRegressor, ElasticNetCV,

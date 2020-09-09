@@ -7,7 +7,7 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 DELANEY_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/delaney-processed.csv"
 
 
@@ -61,11 +61,11 @@ def load_delaney(featurizer='ECFP',
   dataset_file = os.path.join(data_dir, "delaney-processed.csv")
 
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=DELANEY_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=DELANEY_URL, dest_dir=data_dir)
 
   delaney_tasks = ['measured log solubility in mols per litre']
   if reload:
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return delaney_tasks, all_dataset, transformers
@@ -123,6 +123,6 @@ def load_delaney(featurizer='ECFP',
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
   return delaney_tasks, (train, valid, test), transformers

@@ -64,15 +64,15 @@ def gen_kinase(KINASE_tasks,
   if not os.path.exists(train_files):
 
     logger.info("Downloading training file...")
-    deepchem.utils.download_url(url=TRAIN_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=TRAIN_URL, dest_dir=data_dir)
     logger.info("Training file download complete.")
 
     logger.info("Downloading validation file...")
-    deepchem.utils.download_url(url=VALID_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=VALID_URL, dest_dir=data_dir)
     logger.info("Validation file download complete.")
 
     logger.info("Downloading test file...")
-    deepchem.utils.download_url(url=TEST_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=TEST_URL, dest_dir=data_dir)
     logger.info("Test file download complete")
 
   # Featurize the KINASE dataset
@@ -192,7 +192,7 @@ def load_kinase(shard_size=2000, featurizer=None, split=None, reload=True):
       'T_00109', 'T_00110', 'T_00111'
   ]
 
-  data_dir = deepchem.utils.get_data_dir()
+  data_dir = deepchem.utils.data_utils.get_data_dir()
   data_dir = os.path.join(data_dir, "kinase")
 
   if not os.path.exists(data_dir):

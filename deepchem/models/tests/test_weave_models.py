@@ -13,8 +13,10 @@ from deepchem.feat import ConvMolFeaturizer
 from flaky import flaky
 
 
-def get_dataset(mode='classification', featurizer='GraphConv', num_tasks=2):
-  data_points = 20
+def get_dataset(mode='classification',
+                featurizer='GraphConv',
+                num_tasks=2,
+                data_points=20):
   if mode == 'classification':
     tasks, all_dataset, transformers = load_bace_classification(
         featurizer, reload=False)
@@ -121,22 +123,18 @@ def test_compute_features_on_distance_1():
 @flaky
 @pytest.mark.slow
 def test_weave_model():
-  tasks, dataset, transformers, metric = get_dataset('classification', 'Weave')
+  tasks, dataset, transformers, metric = get_dataset(
+      'classification', 'Weave', data_points=10)
 
-  batch_size = 20
+  batch_size = 10
   model = WeaveModel(
       len(tasks),
       batch_size=batch_size,
       mode='classification',
-      fully_connected_layer_sizes=[2000, 1000],
-      batch_normalize=True,
-      batch_normalize_kwargs={
-          "fused": False,
-          "trainable": True,
-          "renorm": True
-      },
-      learning_rage=0.0005)
-  model.fit(dataset, nb_epoch=200)
+      final_conv_activation_fn=None,
+      dropouts=0,
+      learning_rage=0.0003)
+  model.fit(dataset, nb_epoch=100)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.9
 
@@ -147,18 +145,17 @@ def test_weave_regression_model():
   import tensorflow as tf
   tf.random.set_seed(123)
   np.random.seed(123)
-  tasks, dataset, transformers, metric = get_dataset('regression', 'Weave')
+  tasks, dataset, transformers, metric = get_dataset(
+      'regression', 'Weave', data_points=10)
 
   batch_size = 10
   model = WeaveModel(
       len(tasks),
       batch_size=batch_size,
       mode='regression',
-      batch_normalize=False,
-      fully_connected_layer_sizes=[],
       dropouts=0,
-      learning_rate=0.0005)
-  model.fit(dataset, nb_epoch=200)
+      learning_rate=0.00003)
+  model.fit(dataset, nb_epoch=400)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean_absolute_error'] < 0.1
 

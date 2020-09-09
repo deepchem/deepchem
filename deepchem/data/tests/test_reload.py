@@ -23,7 +23,7 @@ class TestReload(unittest.TestCase):
     # Load MUV dataset
     logger.info("About to featurize compounds")
     featurizer = dc.feat.CircularFingerprint(size=1024)
-    raw_dataset = dc.utils.save.load_from_disk(dataset_file)
+    raw_dataset = dc.utils.data_utils.load_from_disk(dataset_file)
     MUV_tasks = [
         'MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644', 'MUV-548',
         'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712', 'MUV-737', 'MUV-858',

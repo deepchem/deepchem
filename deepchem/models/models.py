@@ -6,7 +6,7 @@ import os
 import shutil
 import tempfile
 import logging
-from typing import Any, List, Optional, Sequence
+from typing import List, Optional, Sequence
 
 import numpy as np
 from sklearn.base import BaseEstimator

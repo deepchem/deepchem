@@ -6,9 +6,9 @@ See Montavon et al., _New Journal of Physics_ __15__ (2013) 095003.
 import numpy as np
 from typing import Any, List, Optional
 
-from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.utils.typing import RDKitMol
-from deepchem.utils import pad_array
+from deepchem.utils.data_utils import pad_array
+from deepchem.feat.base_classes import MolecularFeaturizer
 
 
 class CoulombMatrix(MolecularFeaturizer):

@@ -7,7 +7,7 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 GDB9_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/gdb9.tar.gz"
 QM9_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm9.csv"
 
@@ -92,7 +92,7 @@ def load_qm9(featurizer='CoulombMatrix',
       save_folder = os.path.join(save_folder, img_spec)
     save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return qm9_tasks, all_dataset, transformers
@@ -101,13 +101,13 @@ def load_qm9(featurizer='CoulombMatrix',
     dataset_file = os.path.join(data_dir, "gdb9.sdf")
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=GDB9_URL, dest_dir=data_dir)
-      deepchem.utils.untargz_file(
+      deepchem.utils.data_utils.download_url(url=GDB9_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'gdb9.tar.gz'), data_dir)
   else:
     dataset_file = os.path.join(data_dir, "qm9.csv")
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=QM9_CSV_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.download_url(url=QM9_CSV_URL, dest_dir=data_dir)
 
   if featurizer in ['CoulombMatrix', 'BPSymmetryFunctionInput', 'MP', 'Raw']:
     if featurizer == 'CoulombMatrix':
@@ -168,6 +168,6 @@ def load_qm9(featurizer='CoulombMatrix',
     test_dataset = transformer.transform(test_dataset)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(
+    deepchem.utils.data_utils.save_dataset_to_disk(
         save_folder, train_dataset, valid_dataset, test_dataset, transformers)
   return qm9_tasks, (train_dataset, valid_dataset, test_dataset), transformers

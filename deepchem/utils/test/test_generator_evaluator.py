@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 import numpy as np
 import tensorflow as tf
 from flaky import flaky
