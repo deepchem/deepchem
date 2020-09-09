@@ -41,7 +41,6 @@ def test_singletask_sklearn_rf_ECFP_regression_API():
 
 def test_singletask_sklearn_rf_user_specified_regression_API():
   """Test of singletask RF USF regression API."""
-  splittype = "specified"
   featurizer = dc.feat.UserDefinedFeaturizer(
       ["user-specified1", "user-specified2"])
   tasks = ["log-solubility"]
@@ -51,7 +50,7 @@ def test_singletask_sklearn_rf_user_specified_regression_API():
       tasks=tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)
 
-  splitter = dc.splits.SpecifiedSplitter(input_file, "split")
+  splitter = dc.splits.RandomSplitter()
   train_dataset, test_dataset = splitter.train_test_split(dataset)
 
   transformers = [

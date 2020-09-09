@@ -90,9 +90,9 @@ def load_bace_regression(featurizer='ECFP',
         img_size=img_size, img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
-      tasks=bace_tasks, smiles_field="mol", featurizer=featurizer)
+      tasks=bace_tasks, feature_field="mol", featurizer=featurizer)
 
-  dataset = loader.featurize(dataset_file, shard_size=8192)
+  dataset = loader.create_dataset(dataset_file, shard_size=8192)
   if split is None:
     # Initialize transformers
     transformers = [
@@ -194,9 +194,9 @@ def load_bace_classification(featurizer='ECFP',
         img_size=img_size, img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
-      tasks=bace_tasks, smiles_field="mol", featurizer=featurizer)
+      tasks=bace_tasks, feature_field="mol", featurizer=featurizer)
 
-  dataset = loader.featurize(dataset_file, shard_size=8192)
+  dataset = loader.create_dataset(dataset_file, shard_size=8192)
 
   if split is None:
     # Initialize transformers
