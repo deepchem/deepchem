@@ -121,6 +121,7 @@ discussions about research, development or any general questions. If you'd like 
 .. toctree::
    :glob:
    :maxdepth: 2
+
    :caption: Get Started
 
    tutorial
