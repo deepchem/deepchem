@@ -14,7 +14,12 @@ import time
 
 
 class PPOLoss(object):
-  """This class computes the loss function for PPO."""
+  """This class computes the loss function for PPO.
+
+  Note
+  ----
+  This class requires tensorflow to be installed.
+  """
 
   def __init__(self, value_weight, entropy_weight, clipping_width,
                action_prob_index, value_index):
@@ -138,6 +143,10 @@ class PPO(object):
       the directory in which the model will be saved.  If None, a temporary directory will be created.
     use_hindsight: bool
       if True, use Hindsight Experience Replay
+
+    Note
+    ----
+    This class requires tensorflow to be installed.
     """
     self._env = env
     self._policy = policy
@@ -405,7 +414,12 @@ class PPO(object):
 
 
 class _Worker(object):
-  """A Worker object is created for each training thread."""
+  """A Worker object is created for each training thread.
+
+  Note
+  ----
+  This class requires tensorflow to be installed.
+  """
 
   def __init__(self, ppo, index):
     self.ppo = ppo

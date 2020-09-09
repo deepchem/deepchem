@@ -1,9 +1,6 @@
 """Advantage Actor-Critic (A2C) algorithm for reinforcement learning."""
 
-from deepchem.models import KerasModel
-from deepchem.models.optimizers import Adam
 import numpy as np
-import tensorflow as tf
 import collections
 import copy
 import multiprocessing
@@ -11,13 +8,25 @@ import os
 import re
 import threading
 import time
+from deepchem.models import KerasModel
+from deepchem.models.optimizers import Adam
 
 
 class A2CLossDiscrete(object):
-  """This class computes the loss function for A2C with discrete action spaces."""
+  """This class computes the loss function for A2C with discrete action spaces.
+
+  Note
+  ----
+  This class requires tensorflow to be installed.
+  """
 
   def __init__(self, value_weight, entropy_weight, action_prob_index,
                value_index):
+
+    try:
+      import tensorflow as tf
+    except ModuleNotFoundError:
+      raise ValueError("This class requires tensorflow to be installed.")
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
     self.action_prob_index = action_prob_index
@@ -43,16 +52,18 @@ class A2CLossContinuous(object):
 
   Note
   ----
-  This class requires tensorflow-probability to be installed.
+  This class requires tensorflow, tensorflow-probability to be installed.
   """
 
   def __init__(self, value_weight, entropy_weight, mean_index, std_index,
                value_index):
     try:
+      import tensorflow as tf
       import tensorflow_probability as tfp
     except ModuleNotFoundError:
       raise ValueError(
-          "This class requires tensorflow-probability to be installed.")
+          "This class requires tensorflow, tensorflow-probability to be installed."
+      )
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
     self.mean_index = mean_index
@@ -126,7 +137,8 @@ class A2C(object):
 
   Note
   ----
-  Using this class on continuous action spaces requires that `tensorflow_probability` be installed.
+  This class requires tensorflow to be installed.  Using this class on
+  continuous action spaces requires that `tensorflow_probability` be installed.
   """
 
   def __init__(self,
@@ -166,6 +178,10 @@ class A2C(object):
       the directory in which the model will be saved.  If None, a temporary directory will be created.
     use_hindsight: bool
       if True, use Hindsight Experience Replay
+
+    Note
+    ----
+    This class requires tensorflow to be installed.
     """
     self._env = env
     self._policy = policy

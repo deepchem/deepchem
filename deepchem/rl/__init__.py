@@ -1,7 +1,19 @@
 """Interface for reinforcement learning."""
 
-from deepchem.rl.a2c import A2C
-from deepchem.rl.ppo import PPO
+from deepchem.utils import TensorFlowStub
+
+try:
+  import tensorflow as tf
+  import tensorflow_probability as tfp
+  from deepchem.rl.a2c import A2C
+  from deepchem.rl.ppo import PPO
+except ModuleNotFoundError:
+
+  class A2C(TensorFlowStub):
+    pass
+
+  class PPO(TensorFlowStub):
+    pass
 
 
 class Environment(object):
