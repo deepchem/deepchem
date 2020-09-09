@@ -2046,7 +2046,7 @@ class DiskDataset(Dataset):
 
   def shuffle_each_shard(self,
                          shard_basenames: Optional[List[str]] = None) -> None:
-    """Shuffles elements within each shard of the datset.
+    """Shuffles elements within each shard of the dataset.
 
     Parameters
     ----------
@@ -2297,7 +2297,7 @@ class DiskDataset(Dataset):
     -------
     Dataset
       A dataset containing the selected samples. The default dataset is `DiskDataset`.
-      If `output_numpy_dataset` is True, the datset is `NumpyDataset`.
+      If `output_numpy_dataset` is True, the dataset is `NumpyDataset`.
     """
     if output_numpy_dataset and (select_dir is not None or
                                  select_shard_size is not None):
