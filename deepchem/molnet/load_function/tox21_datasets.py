@@ -86,7 +86,7 @@ def load_tox21(featurizer='ECFP',
         img_size=img_size, img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
-      tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tox21_tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
   if split == None:
