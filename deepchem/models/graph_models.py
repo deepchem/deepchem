@@ -111,47 +111,48 @@ class WeaveModel(KerasModel):
     ----------
     n_tasks: int
       Number of tasks
-    n_atom_feat: int, optional
-      Number of features per atom.
-    n_pair_feat: int, optional
+    n_atom_feat: int, optional (default 75)
+      Number of features per atom. Note this is 75 by default and should be 78
+      if chirality is used by `WeaveFeaturizer`.
+    n_pair_feat: int, optional (default 14)
       Number of features per pair of atoms.
-    n_hidden: int, optional
+    n_hidden: int, optional (default 50)
       Number of units(convolution depths) in corresponding hidden layer
-    n_graph_feat: int, optional
+    n_graph_feat: int, optional (default 128)
       Number of output features for each molecule(graph)
-    n_weave: int, optional
+    n_weave: int, optional (default 2)
       The number of weave layers in this model.
-    fully_connected_layer_sizes: list
+    fully_connected_layer_sizes: list (default `[2000, 100]`)
       The size of each dense layer in the network.  The length of
       this list determines the number of layers.
-    conv_weight_init_stddevs: list or float
+    conv_weight_init_stddevs: list or float (default 0.03)
       The standard deviation of the distribution to use for weight
       initialization of each convolutional layer. The length of this lisst
       should equal `n_weave`. Alternatively, this may be a single value instead
       of a list, in which case the same value is used for each layer.
-    weight_init_stddevs: list or float
+    weight_init_stddevs: list or float (default 0.01)
       The standard deviation of the distribution to use for weight
       initialization of each fully connected layer.  The length of this list
       should equal len(layer_sizes).  Alternatively this may be a single value
       instead of a list, in which case the same value is used for every layer.
-    bias_init_consts: list or float
+    bias_init_consts: list or float (default 0.0)
       The value to initialize the biases in each fully connected layer.  The
       length of this list should equal len(layer_sizes).
       Alternatively this may be a single value instead of a list, in
       which case the same value is used for every layer.
-    weight_decay_penalty: float
+    weight_decay_penalty: float (default 0.0)
       The magnitude of the weight decay penalty to use
-    weight_decay_penalty_type: str
+    weight_decay_penalty_type: str (default "l2")
       The type of penalty to use for weight decay, either 'l1' or 'l2'
-    dropouts: list or float
+    dropouts: list or float (default 0.25)
       The dropout probablity to use for each fully connected layer.  The length of this list
       should equal len(layer_sizes).  Alternatively this may be a single value
       instead of a list, in which case the same value is used for every layer.
-    final_conv_activation_fn: Optional[KerasActivationFn]
+    final_conv_activation_fn: Optional[KerasActivationFn] (default `tf.nn.tanh`)
       The Tensorflow activation funcntion to apply to the final
       convolution at the end of the weave convolutions. If `None`, then no
-      convolution (linear) is applied.
-    activation_fns: list or object
+      activate is applied (hence linear).
+    activation_fns: list or object (default `tf.nn.relu`)
       The Tensorflow activation function to apply to each fully connected layer.  The length
       of this list should equal len(layer_sizes).  Alternatively this may be a
       single value instead of a list, in which case the same value is used for
@@ -170,10 +171,12 @@ class WeaveModel(KerasModel):
     compress_post_gaussian_expansion: bool, optional (default False)
       If True, compress the results of the Gaussian expansion back to the
       original dimensions of the input.
-    mode: str
+    mode: str (default "classification")
       Either "classification" or "regression" for type of model.
-    n_classes: int
+    n_classes: int (default 2)
       Number of classes to predict (only used in classification mode)
+    batch_size: int (default 100)
+      Batch size used by this model for training.
     """
     if mode not in ['classification', 'regression']:
       raise ValueError("mode must be either 'classification' or 'regression'")
