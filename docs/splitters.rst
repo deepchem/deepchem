@@ -41,18 +41,6 @@ IndiceSplitter
 .. autoclass:: deepchem.splits.IndiceSplitter
   :members:
 
-SpecifiedSplitter
------------------
-
-.. autoclass:: deepchem.splits.SpecifiedSplitter
-  :members:
-
-SpecifiedIndexSplitter
-----------------------
-
-.. autoclass:: deepchem.splits.SpecifiedIndexSplitter
-  :members:
-
 
 RandomGroupSplitter
 -------------------
@@ -102,8 +90,3 @@ FingeprintSplitter
 .. autoclass:: deepchem.splits.FingerprintSplitter
   :members:
 
-TimeSplitterPDBbind
--------------------
-
-.. autoclass:: deepchem.splits.TimeSplitterPDBbind
-  :members:

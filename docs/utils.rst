@@ -67,9 +67,6 @@ File Handling
 Molecular Utilities
 -------------------
 
-.. autoclass:: deepchem.utils.ScaffoldGenerator
-  :members:
-
 .. autoclass:: deepchem.utils.conformers.ConformerGenerator
   :members:
 
