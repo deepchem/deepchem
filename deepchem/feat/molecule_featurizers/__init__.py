@@ -5,6 +5,7 @@ from deepchem.feat.molecule_featurizers.coulomb_matrices import CoulombMatrix
 from deepchem.feat.molecule_featurizers.coulomb_matrices import CoulombMatrixEig
 from deepchem.feat.molecule_featurizers.mordred_descriptors import MordredDescriptors
 from deepchem.feat.molecule_featurizers.mol2vec_fingerprint import Mol2VecFingerprint
+from deepchem.feat.molecule_featurizers.one_hot_featurizer import OneHotFeaturizer
 from deepchem.feat.molecule_featurizers.raw_featurizer import RawFeaturizer
 from deepchem.feat.molecule_featurizers.rdkit_descriptors import RDKitDescriptors
 from deepchem.feat.molecule_featurizers.smiles_to_image import SmilesToImage
