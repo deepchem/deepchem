@@ -37,7 +37,7 @@ _max_print_size = 1000
 
 
 def get_max_print_size() -> int:
-  """Return the max print size for a datset.
+  """Return the max print size for a dataset.
 
   If a dataset is large, printing `self.ids` as part of a string
   representation can be very slow. This field controls the maximum

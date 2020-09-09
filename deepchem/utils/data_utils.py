@@ -407,8 +407,8 @@ def _get_file_type(input_file: str) -> str:
 def save_to_disk(dataset: Any, filename: str, compress: int = 3):
   """Save a dataset to file.
 
-  Paramters
-  ---------
+  Parameters
+  ----------
   dataset: str
     A data saved
   filename: str
