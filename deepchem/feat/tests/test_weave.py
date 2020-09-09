@@ -70,7 +70,7 @@ def test_weave_single_carbon():
 
 def test_chiral_weave():
   """Test weave features on a molecule with chiral structure."""
-  mols = ["F\C=C\F"]
+  mols = ["F\C=C\F"]  # noqa: W605
   featurizer = dc.feat.WeaveFeaturizer(use_chirality=True)
   mol_list = featurizer.featurize(mols)
   mol = mol_list[0]
@@ -103,8 +103,8 @@ def test_weave_alkane_max_pairs():
   """Test on simple alkane with max pairs distance cutoff"""
   mols = ['CCC']
   featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=1)
-  #mol_list = featurizer.featurize(mols)
-  #mol = mol_list[0]
+  # mol_list = featurizer.featurize(mols)
+  # mol = mol_list[0]
   from rdkit import Chem
   mol = featurizer._featurize(Chem.MolFromSmiles(mols[0]))
 
@@ -125,8 +125,8 @@ def test_carbon_nitrogen():
   # Note there is a central nitrogen of degree 4, with 4 carbons
   # of degree 1 (connected only to central nitrogen).
   mols = ['C[N+](C)(C)C']
-  #import rdkit.Chem
-  #mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
+  # import rdkit.Chem
+  # mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
   featurizer = dc.feat.WeaveFeaturizer()
   mols = featurizer.featurize(mols)
   mol = mols[0]

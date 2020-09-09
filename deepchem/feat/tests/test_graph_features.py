@@ -1,5 +1,5 @@
 """
-Tests for ConvMolFeaturizer. 
+Tests for ConvMolFeaturizer.
 """
 import unittest
 import os

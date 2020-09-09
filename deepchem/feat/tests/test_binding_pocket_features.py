@@ -1,5 +1,5 @@
 """
-Test Binding Pocket Features. 
+Test Binding Pocket Features.
 """
 import os
 import numpy as np

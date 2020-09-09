@@ -7,7 +7,6 @@ import numpy as np
 
 from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
-import numpy as np
 
 
 class CircularFingerprint(MolecularFeaturizer):
