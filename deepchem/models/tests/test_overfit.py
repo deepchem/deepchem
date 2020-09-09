@@ -737,23 +737,16 @@ def test_weave_singletask_classification_overfit():
 
   classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
 
-  n_atom_feat = 75
-  n_pair_feat = 14
-  n_feat = 128
   batch_size = 10
-
   model = dc.models.WeaveModel(
       n_tasks,
-      n_atom_feat=n_atom_feat,
-      n_pair_feat=n_pair_feat,
-      n_graph_feat=n_feat,
       batch_size=batch_size,
-      learning_rate=0.001,
-      use_queue=False,
+      learning_rate=0.0003,
+      dropout=0.0,
       mode="classification")
 
   # Fit trained model
-  model.fit(dataset, nb_epoch=20)
+  model.fit(dataset, nb_epoch=100)
 
   # Eval model on train
   scores = model.evaluate(dataset, [classification_metric])
@@ -761,6 +754,7 @@ def test_weave_singletask_classification_overfit():
   assert scores[classification_metric.name] > .65
 
 
+@pytest.mark.slow
 def test_weave_singletask_regression_overfit():
   """Test weave model overfits tiny data."""
   np.random.seed(123)
@@ -779,19 +773,13 @@ def test_weave_singletask_regression_overfit():
   regression_metric = dc.metrics.Metric(
       dc.metrics.pearson_r2_score, task_averager=np.mean)
 
-  n_atom_feat = 75
-  n_pair_feat = 14
-  n_feat = 128
   batch_size = 10
 
   model = dc.models.WeaveModel(
       n_tasks,
-      n_atom_feat=n_atom_feat,
-      n_pair_feat=n_pair_feat,
-      n_graph_feat=n_feat,
       batch_size=batch_size,
-      learning_rate=0.001,
-      use_queue=False,
+      learning_rate=0.0003,
+      dropout=0.0,
       mode="regression")
 
   # Fit trained model

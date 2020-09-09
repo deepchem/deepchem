@@ -4,7 +4,7 @@ import deepchem as dc
 import numpy as np
 import tensorflow as tf
 
-from typing import List, Union, Tuple, Iterable, Dict
+from typing import List, Union, Tuple, Iterable, Dict, Optional
 from deepchem.utils.typing import OneOrMany, LossFn, KerasActivationFn
 from deepchem.data import Dataset, NumpyDataset, pad_features
 from deepchem.feat.graph_features import ConvMolFeaturizer
@@ -78,70 +78,82 @@ class WeaveModel(KerasModel):
 
   """
 
-  def __init__(self,
-               n_tasks: int,
-               n_atom_feat: OneOrMany[int] = 75,
-               n_pair_feat: OneOrMany[int] = 14,
-               n_hidden: int = 50,
-               n_graph_feat: int = 128,
-               n_weave: int = 2,
-               fully_connected_layer_sizes: List[int] = [2000, 100],
-               weight_init_stddevs: OneOrMany[float] = [0.01, 0.04],
-               bias_init_consts: OneOrMany[float] = [0.5, 3.0],
-               weight_decay_penalty: float = 0.0,
-               weight_decay_penalty_type: str = "l2",
-               dropouts: OneOrMany[float] = 0.25,
-               activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
-               batch_normalize: bool = True,
-               batch_normalize_kwargs: Dict = {
-                   "renorm": True,
-                   "fused": False
-               },
-               gaussian_expand: bool = True,
-               compress_post_gaussian_expansion: bool = False,
-               mode: str = "classification",
-               n_classes: int = 2,
-               batch_size: int = 100,
-               **kwargs):
+  def __init__(
+      self,
+      n_tasks: int,
+      n_atom_feat: OneOrMany[int] = 75,
+      n_pair_feat: OneOrMany[int] = 14,
+      n_hidden: int = 50,
+      n_graph_feat: int = 128,
+      n_weave: int = 2,
+      fully_connected_layer_sizes: List[int] = [2000, 100],
+      conv_weight_init_stddevs: OneOrMany[float] = 0.03,
+      weight_init_stddevs: OneOrMany[float] = 0.01,
+      bias_init_consts: OneOrMany[float] = 0.0,
+      weight_decay_penalty: float = 0.0,
+      weight_decay_penalty_type: str = "l2",
+      dropouts: OneOrMany[float] = 0.25,
+      final_conv_activation_fn: Optional[KerasActivationFn] = tf.nn.tanh,
+      activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
+      batch_normalize: bool = True,
+      batch_normalize_kwargs: Dict = {
+          "renorm": True,
+          "fused": False
+      },
+      gaussian_expand: bool = True,
+      compress_post_gaussian_expansion: bool = False,
+      mode: str = "classification",
+      n_classes: int = 2,
+      batch_size: int = 100,
+      **kwargs):
     """
     Parameters
     ----------
     n_tasks: int
       Number of tasks
-    n_atom_feat: int, optional
-      Number of features per atom.
-    n_pair_feat: int, optional
+    n_atom_feat: int, optional (default 75)
+      Number of features per atom. Note this is 75 by default and should be 78
+      if chirality is used by `WeaveFeaturizer`.
+    n_pair_feat: int, optional (default 14)
       Number of features per pair of atoms.
-    n_hidden: int, optional
+    n_hidden: int, optional (default 50)
       Number of units(convolution depths) in corresponding hidden layer
-    n_graph_feat: int, optional
+    n_graph_feat: int, optional (default 128)
       Number of output features for each molecule(graph)
-    n_weave: int, optional
+    n_weave: int, optional (default 2)
       The number of weave layers in this model.
-    fully_connected_layer_sizes: list
+    fully_connected_layer_sizes: list (default `[2000, 100]`)
       The size of each dense layer in the network.  The length of
       this list determines the number of layers.
-    weight_init_stddevs: list or float
+    conv_weight_init_stddevs: list or float (default 0.03)
       The standard deviation of the distribution to use for weight
-      initialization of each layer.  The length of this list should
-      equal len(layer_sizes).  Alternatively this may be a single
-      value instead of a list, in which case the same value is used
-      for every layer.
-    bias_init_consts: list or float
-      The value to initialize the biases in each layer to.  The
+      initialization of each convolutional layer. The length of this lisst
+      should equal `n_weave`. Alternatively, this may be a single value instead
+      of a list, in which case the same value is used for each layer.
+    weight_init_stddevs: list or float (default 0.01)
+      The standard deviation of the distribution to use for weight
+      initialization of each fully connected layer.  The length of this list
+      should equal len(layer_sizes).  Alternatively this may be a single value
+      instead of a list, in which case the same value is used for every layer.
+    bias_init_consts: list or float (default 0.0)
+      The value to initialize the biases in each fully connected layer.  The
       length of this list should equal len(layer_sizes).
       Alternatively this may be a single value instead of a list, in
       which case the same value is used for every layer.
-    weight_decay_penalty: float
+    weight_decay_penalty: float (default 0.0)
       The magnitude of the weight decay penalty to use
-    weight_decay_penalty_type: str
+    weight_decay_penalty_type: str (default "l2")
       The type of penalty to use for weight decay, either 'l1' or 'l2'
-    dropouts: list or float
-      The dropout probablity to use for each layer.  The length of this list
+    dropouts: list or float (default 0.25)
+      The dropout probablity to use for each fully connected layer.  The length of this list
       should equal len(layer_sizes).  Alternatively this may be a single value
       instead of a list, in which case the same value is used for every layer.
-    activation_fns: list or object
-      The Tensorflow activation function to apply to each layer.  The length
+    final_conv_activation_fn: Optional[KerasActivationFn] (default `tf.nn.tanh`)
+      The Tensorflow activation funcntion to apply to the final
+      convolution at the end of the weave convolutions. If `None`, then no
+      activate is applied (hence linear).
+    activation_fns: list or object (default `tf.nn.relu`)
+      The Tensorflow activation function to apply to each fully connected layer.  The length
       of this list should equal len(layer_sizes).  Alternatively this may be a
       single value instead of a list, in which case the same value is used for
       every layer.
@@ -159,10 +171,12 @@ class WeaveModel(KerasModel):
     compress_post_gaussian_expansion: bool, optional (default False)
       If True, compress the results of the Gaussian expansion back to the
       original dimensions of the input.
-    mode: str
+    mode: str (default "classification")
       Either "classification" or "regression" for type of model.
-    n_classes: int
+    n_classes: int (default 2)
       Number of classes to predict (only used in classification mode)
+    batch_size: int (default 100)
+      Batch size used by this model for training.
     """
     if mode not in ['classification', 'regression']:
       raise ValueError("mode must be either 'classification' or 'regression'")
@@ -172,6 +186,8 @@ class WeaveModel(KerasModel):
     if not isinstance(n_pair_feat, collections.Sequence):
       n_pair_feat = [n_pair_feat] * n_weave
     n_layers = len(fully_connected_layer_sizes)
+    if not isinstance(conv_weight_init_stddevs, collections.Sequence):
+      conv_weight_init_stddevs = [conv_weight_init_stddevs] * n_weave
     if not isinstance(weight_init_stddevs, collections.Sequence):
       weight_init_stddevs = [weight_init_stddevs] * n_layers
     if not isinstance(bias_init_consts, collections.Sequence):
@@ -217,12 +233,16 @@ class WeaveModel(KerasModel):
           n_pair_input_feat=n_pair,
           n_atom_output_feat=n_atom_next,
           n_pair_output_feat=n_pair_next,
+          init=tf.keras.initializers.TruncatedNormal(
+              stddev=conv_weight_init_stddevs[ind]),
           batch_normalize=batch_normalize)(inputs)
       inputs = [weave_layer_ind_A, weave_layer_ind_P, pair_split, atom_to_pair]
     # Final atom-layer convolution. Note this differs slightly from the paper
-    # since we use a tanh activation. This seems necessary for numerical
+    # since we use a tanh activation as default. This seems necessary for numerical
     # stability.
-    dense1 = Dense(self.n_graph_feat, activation=tf.nn.tanh)(weave_layer_ind_A)
+    dense1 = Dense(
+        self.n_graph_feat,
+        activation=final_conv_activation_fn)(weave_layer_ind_A)
     if batch_normalize:
       dense1 = BatchNormalization(**batch_normalize_kwargs)(dense1)
     weave_gather = layers.WeaveGather(
