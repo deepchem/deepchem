@@ -1,12 +1,7 @@
 """
 Tests for splitter objects.
 """
-__author__ = "Bharath Ramsundar, Aneesh Pappu"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import os
-import tempfile
 import unittest
 import numpy as np
 import deepchem as dc
@@ -50,7 +45,6 @@ def load_solubility_data():
   current_dir = os.path.dirname(os.path.abspath(__file__))
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]
-  task_type = "regression"
   input_file = os.path.join(current_dir, "../../models/tests/example.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, smiles_field="smiles", featurizer=featurizer)
@@ -324,14 +318,11 @@ class TestSplitter(unittest.TestCase):
     # Test singletask case.
     n_samples = 100
     n_positives = 20
-    n_features = 10
     n_tasks = 1
 
-    X = np.random.rand(n_samples, n_features)
     y = np.zeros((n_samples, n_tasks))
     y[:n_positives] = 1
     w = np.ones((n_samples, n_tasks))
-    ids = np.arange(n_samples)
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
     column_indices = stratified_splitter.get_task_split_indices(
         y, w, frac_split=.5)
@@ -347,17 +338,14 @@ class TestSplitter(unittest.TestCase):
     # Test singletask case.
     n_samples = 100
     n_positives = 20
-    n_features = 10
     n_tasks = 1
 
     # Test case where some weights are zero (i.e. masked)
-    X = np.random.rand(n_samples, n_features)
     y = np.zeros((n_samples, n_tasks))
     y[:n_positives] = 1
     w = np.ones((n_samples, n_tasks))
     # Set half the positives to have zero weight
     w[:n_positives // 2] = 0
-    ids = np.arange(n_samples)
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
     column_indices = stratified_splitter.get_task_split_indices(
@@ -375,9 +363,7 @@ class TestSplitter(unittest.TestCase):
     Test RandomStratifiedSplitter split on multitask dataset.
     """
     n_samples = 100
-    n_features = 10
     n_tasks = 10
-    X = np.random.rand(n_samples, n_features)
     p = .05  # proportion actives
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
@@ -397,9 +383,7 @@ class TestSplitter(unittest.TestCase):
     Test RandomStratifiedSplitter split on multitask dataset.
     """
     n_samples = 200
-    n_features = 10
     n_tasks = 10
-    X = np.random.rand(n_samples, n_features)
     p = .05  # proportion actives
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
@@ -485,7 +469,6 @@ class TestSplitter(unittest.TestCase):
     n_samples = 100
     n_positives = 20
     n_features = 10
-    n_tasks = 1
 
     X = np.random.rand(n_samples, n_features)
     y = np.zeros(n_samples)
