@@ -16,26 +16,6 @@ class CircularFingerprint(MolecularFeaturizer):
   representation of a molecule by breaking it into local neighborhoods and
   hashing into a bit vector of the specified size. See [1]_ for more details.
 
-  Parameters
-  ----------
-  radius: int, optional (default 2)
-    Fingerprint radius.
-  size: int, optional (default 2048)
-    Length of generated bit vector.
-  chiral: bool, optional (default False)
-    Whether to consider chirality in fingerprint generation.
-  bonds: bool, optional (default True)
-    Whether to consider bond order in fingerprint generation.
-  features: bool, optional (default False)
-    Whether to use feature information instead of atom information; see
-    RDKit docs for more info.
-  sparse: bool, optional (default False)
-    Whether to return a dict for each molecule containing the sparse
-    fingerprint.
-  smiles: bool, optional (default False)
-    Whether to calculate SMILES strings for fragment IDs (only applicable
-    when calculating sparse fingerprints).
-
   References
   ----------
   .. [1] Rogers, David, and Mathew Hahn. "Extended-connectivity fingerprints."
@@ -54,6 +34,27 @@ class CircularFingerprint(MolecularFeaturizer):
                features: bool = False,
                sparse: bool = False,
                smiles: bool = False):
+    """
+    Parameters
+    ----------
+    radius: int, optional (default 2)
+      Fingerprint radius.
+    size: int, optional (default 2048)
+      Length of generated bit vector.
+    chiral: bool, optional (default False)
+      Whether to consider chirality in fingerprint generation.
+    bonds: bool, optional (default True)
+      Whether to consider bond order in fingerprint generation.
+    features: bool, optional (default False)
+      Whether to use feature information instead of atom information; see
+      RDKit docs for more info.
+    sparse: bool, optional (default False)
+      Whether to return a dict for each molecule containing the sparse
+      fingerprint.
+    smiles: bool, optional (default False)
+      Whether to calculate SMILES strings for fragment IDs (only applicable
+      when calculating sparse fingerprints).
+    """
     self.radius = radius
     self.size = size
     self.chiral = chiral

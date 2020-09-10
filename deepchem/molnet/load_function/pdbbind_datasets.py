@@ -11,8 +11,8 @@ import deepchem
 import numpy as np
 import pandas as pd
 import tarfile
-from deepchem.feat import rdkit_grid_featurizer as rgf
-from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
+from deepchem.feat import RdkitGridFeaturizer
+from deepchem.feat import ComplexNeighborListFragmentAtomicCoordinates
 from deepchem.feat.graph_features import AtomicConvFeaturizer
 
 logger = logging.getLogger(__name__)
@@ -266,7 +266,7 @@ def load_pdbbind(reload=True,
 
   # Featurize Data
   if featurizer == "grid":
-    featurizer = rgf.RdkitGridFeaturizer(
+    featurizer = RdkitGridFeaturizer(
         voxel_width=2.0,
         feature_types=[
             'ecfp', 'splif', 'hbond', 'salt_bridge', 'pi_stack', 'cation_pi',
@@ -412,7 +412,7 @@ def load_pdbbind_from_dir(data_folder,
   print(labels)
   # Featurize Data
   if featurizer == "grid":
-    featurizer = rgf.RdkitGridFeaturizer(
+    featurizer = RdkitGridFeaturizer(
         voxel_width=2.0,
         feature_types=[
             'ecfp', 'splif', 'hbond', 'salt_bridge', 'pi_stack', 'cation_pi',

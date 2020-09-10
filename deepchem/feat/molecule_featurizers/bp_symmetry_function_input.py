@@ -2,7 +2,7 @@ import numpy as np
 
 from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
-from deepchem.feat.atomic_coordinates import AtomicCoordinates
+from deepchem.feat.molecule_featurizers.atomic_coordinates import AtomicCoordinates
 
 
 class BPSymmetryFunctionInput(MolecularFeaturizer):
@@ -33,7 +33,7 @@ class BPSymmetryFunctionInput(MolecularFeaturizer):
     self.max_atoms = max_atoms
 
   def _featurize(self, mol: RDKitMol) -> np.ndarray:
-    coordfeat = AtomicCoordinates()
+    coordfeat = AtomicCoordinates(use_bohr=True)
     coordinates = coordfeat._featurize(mol)[0]
     atom_numbers = np.array([atom.GetAtomicNum() for atom in mol.GetAtoms()])
     atom_numbers = np.expand_dims(atom_numbers, axis=1)

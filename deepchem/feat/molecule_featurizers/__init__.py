@@ -1,4 +1,5 @@
 # flake8: noqa
+from deepchem.feat.molecule_featurizers.atomic_coordinates import AtomicCoordinates
 from deepchem.feat.molecule_featurizers.bp_symmetry_function_input import BPSymmetryFunctionInput
 from deepchem.feat.molecule_featurizers.circular_fingerprint import CircularFingerprint
 from deepchem.feat.molecule_featurizers.coulomb_matrices import CoulombMatrix
