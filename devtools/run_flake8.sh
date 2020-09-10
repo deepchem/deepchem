@@ -6,6 +6,7 @@ items=(
     "deepchem/metrics"
     "deepchem/data"
     "deepchem/splits"
+    "deepchem/feat"
     "deepchem/utils"
 )
 

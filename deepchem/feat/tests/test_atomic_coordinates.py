@@ -10,7 +10,6 @@ from deepchem.feat.atomic_coordinates import get_coords
 from deepchem.feat.atomic_coordinates import AtomicCoordinates
 from deepchem.feat.atomic_coordinates import NeighborListAtomicCoordinates
 from deepchem.feat.atomic_coordinates import NeighborListComplexAtomicCoordinates
-from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
 
 logger = logging.getLogger(__name__)
 

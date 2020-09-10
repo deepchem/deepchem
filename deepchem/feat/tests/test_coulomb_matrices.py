@@ -4,7 +4,7 @@ Tests for Coulomb matrix calculation.
 import numpy as np
 import unittest
 
-from deepchem.feat import coulomb_matrices as cm
+from deepchem.feat import CoulombMatrix, CoulombMatrixEig
 from deepchem.utils import conformers
 
 
@@ -17,73 +17,109 @@ class TestCoulombMatrix(unittest.TestCase):
     """
         Set up tests.
         """
-    smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
     from rdkit import Chem
+    from rdkit.Chem import AllChem
+    smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
     mol = Chem.MolFromSmiles(smiles)
-    engine = conformers.ConformerGenerator(max_conformers=1)
-    self.mol = engine.generate_conformers(mol)
-    assert self.mol.GetNumConformers() > 0
+    self.mol_with_no_conf = mol
+
+    # with one conformer
+    mol_with_one_conf = Chem.AddHs(mol)
+    AllChem.EmbedMolecule(mol_with_one_conf, AllChem.ETKDG())
+    self.mol_with_one_conf = mol_with_one_conf
+
+    # with multiple conformers
+    self.num_confs = 4
+    engine = conformers.ConformerGenerator(max_conformers=self.num_confs)
+    self.mol_with_multi_conf = engine.generate_conformers(mol)
+
+    # include explicit hydrogens
+    self.num_atoms = mol_with_one_conf.GetNumAtoms()
+    assert self.num_atoms == 21
+    assert self.mol_with_one_conf.GetNumConformers() == 1
+    assert self.mol_with_multi_conf.GetNumConformers() == self.num_confs
 
   def test_coulomb_matrix(self):
     """
         Test CoulombMatrix.
         """
-    f = cm.CoulombMatrix(self.mol.GetNumAtoms())
-    rval = f([self.mol])
-    assert rval.shape == (1, self.mol.GetNumConformers(),
-                          self.mol.GetNumAtoms(), self.mol.GetNumAtoms())
+    f = CoulombMatrix(self.num_atoms)
+    rval = f([self.mol_with_no_conf])
+    assert rval.shape == (1, self.num_atoms, self.num_atoms)
+    rval = f([self.mol_with_one_conf])
+    assert rval.shape == (1, self.num_atoms, self.num_atoms)
+    rval = f([self.mol_with_multi_conf])
+    assert rval.shape == (1, self.num_confs, self.num_atoms, self.num_atoms)
 
   def test_coulomb_matrix_padding(self):
     """
         Test CoulombMatrix with padding.
         """
-    max_atoms = self.mol.GetNumAtoms() * 2
-    f = cm.CoulombMatrix(max_atoms=max_atoms)
-    rval = f([self.mol])
-    assert rval.shape == (1, self.mol.GetNumConformers(), max_atoms, max_atoms)
+    max_atoms = self.num_atoms * 2
+    f = CoulombMatrix(max_atoms=max_atoms)
+    rval = f([self.mol_with_no_conf])
+    assert rval.shape == (1, max_atoms, max_atoms)
+    rval = f([self.mol_with_one_conf])
+    assert rval.shape == (1, max_atoms, max_atoms)
+    rval = f([self.mol_with_multi_conf])
+    assert rval.shape == (1, self.num_confs, max_atoms, max_atoms)
 
   def test_upper_tri_coulomb_matrix(self):
     """
         Test upper triangular CoulombMatrix.
         """
-    f = cm.CoulombMatrix(self.mol.GetNumAtoms(), upper_tri=True)
-    rval = f([self.mol])
-    size = np.triu_indices(self.mol.GetNumAtoms())[0].size
-    assert rval.shape == (1, self.mol.GetNumConformers(), size)
+    f = CoulombMatrix(self.num_atoms, upper_tri=True)
+    size = np.triu_indices(self.num_atoms)[0].size
+    rval = f([self.mol_with_no_conf])
+    assert rval.shape == (1, size)
+    rval = f([self.mol_with_one_conf])
+    assert rval.shape == (1, size)
+    rval = f([self.mol_with_multi_conf])
+    assert rval.shape == (1, self.num_confs, size)
 
   def test_upper_tri_coulomb_matrix_padding(self):
     """
         Test upper triangular CoulombMatrix with padding.
         """
-    f = cm.CoulombMatrix(max_atoms=self.mol.GetNumAtoms() * 2, upper_tri=True)
-    rval = f([self.mol])
-    size = np.triu_indices(self.mol.GetNumAtoms() * 2)[0].size
-    assert rval.shape == (1, self.mol.GetNumConformers(), size)
+    max_atoms = self.num_atoms * 2
+    f = CoulombMatrix(max_atoms=max_atoms, upper_tri=True)
+    size = np.triu_indices(max_atoms)[0].size
+    rval = f([self.mol_with_no_conf])
+    assert rval.shape == (1, size)
+    rval = f([self.mol_with_one_conf])
+    assert rval.shape == (1, size)
+    rval = f([self.mol_with_multi_conf])
+    assert rval.shape == (1, self.num_confs, size)
 
   def test_coulomb_matrix_no_hydrogens(self):
     """
         Test hydrogen removal.
         """
-    from rdkit import Chem
-    mol = Chem.RemoveHs(self.mol)
-    assert mol.GetNumAtoms() < self.mol.GetNumAtoms()
-    f = cm.CoulombMatrix(
-        max_atoms=mol.GetNumAtoms(), remove_hydrogens=True, upper_tri=True)
-    rval = f([self.mol])  # use the version with hydrogens
-    size = np.triu_indices(mol.GetNumAtoms())[0].size
-    assert rval.shape == (1, mol.GetNumConformers(), size)
+    num_atoms_with_no_H = self.mol_with_no_conf.GetNumAtoms()
+    assert num_atoms_with_no_H < self.num_atoms
+    f = CoulombMatrix(
+        max_atoms=num_atoms_with_no_H, remove_hydrogens=True, upper_tri=True)
+    size = np.triu_indices(num_atoms_with_no_H)[0].size
+    rval = f([self.mol_with_no_conf])
+    assert rval.shape == (1, size)
+    rval = f([self.mol_with_one_conf])
+    assert rval.shape == (1, size)
+    rval = f([self.mol_with_multi_conf])
+    assert rval.shape == (1, self.num_confs, size)
 
   def test_coulomb_matrix_hydrogens(self):
     """
         Test no hydrogen removal.
         """
-    f = cm.CoulombMatrix(
-        max_atoms=self.mol.GetNumAtoms(),
-        remove_hydrogens=False,
-        upper_tri=True)
-    rval = f([self.mol])
-    size = np.triu_indices(self.mol.GetNumAtoms())[0].size
-    assert rval.shape == (1, self.mol.GetNumConformers(), size)
+    f = CoulombMatrix(
+        max_atoms=self.num_atoms, remove_hydrogens=False, upper_tri=True)
+    size = np.triu_indices(self.num_atoms)[0].size
+    rval = f([self.mol_with_no_conf])
+    assert rval.shape == (1, size)
+    rval = f([self.mol_with_one_conf])
+    assert rval.shape == (1, size)
+    rval = f([self.mol_with_multi_conf])
+    assert rval.shape == (1, self.num_confs, size)
 
 
 class TestCoulombMatrixEig(unittest.TestCase):
@@ -95,28 +131,49 @@ class TestCoulombMatrixEig(unittest.TestCase):
     """
         Set up tests.
         """
-    smiles = '[H]C([H])([H])[H]'
     from rdkit import Chem
+    from rdkit.Chem import AllChem
+    smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
     mol = Chem.MolFromSmiles(smiles)
-    mol = Chem.AddHs(mol)
-    engine = conformers.ConformerGenerator(max_conformers=1)
-    self.mol = engine.generate_conformers(mol)
-    assert self.mol.GetNumConformers() > 0
+    self.mol_with_no_conf = mol
+
+    # with one conformer
+    mol_with_one_conf = Chem.AddHs(mol)
+    AllChem.EmbedMolecule(mol_with_one_conf, AllChem.ETKDG())
+    self.mol_with_one_conf = mol_with_one_conf
+
+    # with multiple conformers
+    self.num_confs = 4
+    engine = conformers.ConformerGenerator(max_conformers=self.num_confs)
+    self.mol_with_multi_conf = engine.generate_conformers(mol)
+
+    # include explicit hydrogens
+    self.num_atoms = mol_with_one_conf.GetNumAtoms()
+    assert self.num_atoms == 21
+    assert self.mol_with_one_conf.GetNumConformers() == 1
+    assert self.mol_with_multi_conf.GetNumConformers() == self.num_confs
 
   def test_coulomb_matrix_eig(self):
     """
         Test CoulombMatrixEig.
         """
-    f = cm.CoulombMatrixEig(self.mol.GetNumAtoms())
-    rval = f([self.mol])
-    assert rval.shape == (1, self.mol.GetNumConformers(),
-                          self.mol.GetNumAtoms())
+    f = CoulombMatrixEig(self.num_atoms)
+    rval = f([self.mol_with_one_conf])
+    assert rval.shape == (1, self.num_atoms)
+    rval = f([self.mol_with_one_conf])
+    assert rval.shape == (1, self.num_atoms)
+    rval = f([self.mol_with_multi_conf])
+    assert rval.shape == (1, self.num_confs, self.num_atoms)
 
   def test_coulomb_matrix_eig_padding(self):
     """
         Test padding of CoulombMatixEig
         """
-    self.max_atoms = 29
-    f = cm.CoulombMatrixEig(self.max_atoms)
-    rval = f([self.mol])
-    assert rval.shape == (1, self.mol.GetNumConformers(), self.max_atoms)
+    max_atoms = 2 * self.num_atoms
+    f = CoulombMatrixEig(max_atoms=max_atoms)
+    rval = f([self.mol_with_one_conf])
+    assert rval.shape == (1, max_atoms)
+    rval = f([self.mol_with_one_conf])
+    assert rval.shape == (1, max_atoms)
+    rval = f([self.mol_with_multi_conf])
+    assert rval.shape == (1, self.num_confs, max_atoms)

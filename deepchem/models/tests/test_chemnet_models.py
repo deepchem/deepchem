@@ -6,13 +6,9 @@ import tempfile
 import pytest
 
 import deepchem as dc
-from deepchem.data import NumpyDataset
 from deepchem.models import Smiles2Vec, ChemCeption
-from deepchem.feat import SmilesToSeq, SmilesToImage
+from deepchem.feat import create_char_to_idx, SmilesToSeq, SmilesToImage
 from deepchem.molnet.load_function.chembl25_datasets import chembl25_tasks
-from deepchem.feat.smiles_featurizers import create_char_to_idx
-
-from flaky import flaky
 
 
 @pytest.mark.skip(reason="Unknown")

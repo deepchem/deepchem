@@ -133,7 +133,6 @@ class NeighborListAtomicCoordinates(Featurizer):
       mol: rdkit Mol
         To be featurized.
     """
-    N = mol.GetNumAtoms()
     # TODO(rbharath): Should this return a list?
     bohr_coords = self.coordinates_featurizer._featurize(mol)[0]
     coords = get_coords(mol)
@@ -168,10 +167,10 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
 
     Parameters
     ----------
-    mol_pdb_file: Str 
-      Filename for ligand pdb file. 
-    protein_pdb_file: Str 
-      Filename for protein pdb file. 
+    mol_pdb_file: str
+      Filename for ligand pdb file.
+    protein_pdb_file: str
+      Filename for protein pdb file.
     """
     mol_coords, ob_mol = load_molecule(mol_pdb_file)
     protein_coords, protein_mol = load_molecule(protein_pdb_file)
@@ -245,7 +244,7 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
 
       system_coords, system_neighbor_list, system_z = self.featurize_mol(
           system_coords, system_mol, self.complex_num_atoms)
-    except ValueError as e:
+    except ValueError:
       logging.warning(
           "max_atoms was set too low. Some complexes too large and skipped")
       return None

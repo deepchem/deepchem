@@ -2,15 +2,10 @@
 ChEMBL dataset loader, for training ChemNet
 """
 import os
-import numpy as np
 import logging
-import gzip
-import shutil
 import deepchem as dc
-import pickle
 
-from deepchem.feat import SmilesToSeq, SmilesToImage
-from deepchem.feat.smiles_featurizers import create_char_to_idx
+from deepchem.feat import create_char_to_idx, SmilesToSeq, SmilesToImage
 
 CHEMBL_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_25.csv.gz"
 DEFAULT_DIR = dc.utils.data_utils.get_data_dir()

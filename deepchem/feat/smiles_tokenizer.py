@@ -3,12 +3,9 @@
 # The vocab may be expanded in the near future
 
 import collections
-import logging
 import os
 import re
-import numpy as np
 import pkg_resources
-import typing
 from typing import List
 from transformers import BertTokenizer
 from logging import getLogger
@@ -50,15 +47,12 @@ class SmilesTokenizer(BertTokenizer):
 
     Examples
     --------
-
     >>> from deepchem.feat.smiles_tokenizer import SmilesTokenizer
-
     >>> current_dir = os.path.dirname(os.path.realpath(__file__))
     >>> vocab_path = os.path.join(current_dir, 'tests/data', 'vocab.txt')
-
     >>> tokenizer = SmilesTokenizer(vocab_path)
-    >>> print(tokenizer.encode("CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@H]1O[C@](C#N)([C@H](O)[C@@H]1O)C1=CC=C2N1N=CN=C2N)OC1=CC=CC=C1"))
-    [12, 16, 16, 16, 17, 16, 16, 18, 16, 19, 16, 17, 22, 19, 18, 33, 17, 16, 18, 23, 181, 17, 22, 19, 18, 17, 19, 16, 33, 20, 19, 55, 17, 16, 23, 18, 17, 33, 17, 19, 18, 35, 20, 19, 18, 16, 20, 22, 16, 16, 22, 16, 21, 23, 20, 23, 22, 16, 23, 22, 16, 21, 23, 18, 19, 16, 20, 22, 16, 16, 22, 16, 16, 22, 16, 20, 13]
+    >>> print(tokenizer.encode("CC(=O)OC1=CC=CC=C1C(=O)O"))
+    [12, 16, 16, 17, 22, 19, 18, 19, 16, 20, 22, 16, 16, 22, 16, 16, 22, 16, 20, 16, 17, 22, 19, 18, 19, 13]
 
 
     References
@@ -66,10 +60,10 @@ class SmilesTokenizer(BertTokenizer):
     .. [1]  Schwaller, Philippe; Probst, Daniel; Vaucher, Alain C.; Nair, Vishnu H; Kreutter, David;
             Laino, Teodoro; et al. (2019): Mapping the Space of Chemical Reactions using Attention-Based Neural
             Networks. ChemRxiv. Preprint. https://doi.org/10.26434/chemrxiv.9897365.v3
+
     Notes
     ----
     This class requires huggingface's transformers and tokenizers libraries to be installed.
-
     """
   vocab_files_names = VOCAB_FILES_NAMES
 
@@ -297,10 +291,9 @@ class BasicSmilesTokenizer(object):
     Examples
     --------
     >>> from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
-
     >>> tokenizer = BasicSmilesTokenizer()
-    >>> print(tokenizer.tokenize("CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@H]1O[C@](C#N)([C@H](O)[C@@H]1O)C1=CC=C2N1N=CN=C2N)OC1=CC=CC=C1"))
-    ['C', 'C', 'C', '(', 'C', 'C', ')', 'C', 'O', 'C', '(', '=', 'O', ')', '[C@H]', '(', 'C', ')', 'N', '[P@]', '(', '=', 'O', ')', '(', 'O', 'C', '[C@H]', '1', 'O', '[C@]', '(', 'C', 'N', ')', '(', '[C@H]', '(', 'O', ')', '[C@@H]', '1', 'O', ')', 'C', '1', '=', 'C', 'C', '=', 'C', '2', 'N', '1', 'N', '=', 'C', 'N', '=', 'C', '2', 'N', ')', 'O', 'C', '1', '=', 'C', 'C', '=', 'C', 'C', '=', 'C', '1']
+    >>> print(tokenizer.tokenize("CC(=O)OC1=CC=CC=C1C(=O)O"))
+    ['C', 'C', '(', '=', 'O', ')', 'O', 'C', '1', '=', 'C', 'C', '=', 'C', 'C', '=', 'C', '1', 'C', '(', '=', 'O', ')', 'O']
 
 
     References

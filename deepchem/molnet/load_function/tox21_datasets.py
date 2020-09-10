@@ -76,9 +76,6 @@ def load_tox21(featurizer='ECFP',
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
-  elif featurizer == 'AdjacencyConv':
-    featurizer = deepchem.feat.AdjacencyFingerprint(
-        max_n_atoms=150, max_valence=6)
   elif featurizer == "smiles2img":
     img_size = kwargs.get("img_size", 80)
     img_spec = kwargs.get("img_spec", "std")

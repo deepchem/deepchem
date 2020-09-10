@@ -1,3 +1,5 @@
+# flake8: noqa
+
 import numpy as np
 import deepchem as dc
 from deepchem.feat.base_classes import MolecularFeaturizer
