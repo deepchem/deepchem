@@ -146,6 +146,12 @@ SmilesToImage
 .. autoclass:: deepchem.feat.SmilesToImage
   :members:
 
+OneHotFeaturizer
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.OneHotFeaturizer
+  :members:
+
 ComplexFeaturizer
 -----------------
 
