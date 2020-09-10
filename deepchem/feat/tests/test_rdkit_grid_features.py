@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 import pytest
 
-from deepchem.feat import rdkit_grid_featurizer as rgf
+from deepchem.feat.complex_featurizers import rdkit_grid_featurizer as rgf
 
 np.random.seed(123)
 
