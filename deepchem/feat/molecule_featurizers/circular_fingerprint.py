@@ -76,8 +76,8 @@ class CircularFingerprint(MolecularFeaturizer):
       when calculating sparse fingerprints).
     """
     try:
-      from rdkit import Chem # noqa
-      from rdkit.Chem import rdMolDescriptors # noqa
+      from rdkit import Chem  # noqa
+      from rdkit.Chem import rdMolDescriptors  # noqa
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
 

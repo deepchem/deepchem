@@ -25,7 +25,7 @@ class RawFeaturizer(MolecularFeaturizer):
       If True, encode this molecule as a SMILES string. Else as a RDKit mol.
     """
     try:
-      from rdkit import Chem # noqa
+      from rdkit import Chem  # noqa
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
 

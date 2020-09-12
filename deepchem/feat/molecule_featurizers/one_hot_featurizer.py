@@ -38,7 +38,7 @@ class OneHotFeaturizer(MolecularFeaturizer):
       shorter than max_length, the SMILES is padded using space.
     """
     try:
-      from rdkit import Chem # noqa
+      from rdkit import Chem  # noqa
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
 

@@ -124,6 +124,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
   -----
   This class requires RDKit to be installed.
   """
+
   def __init__(self, add_self_edges: bool = False):
     """
     Parameters
@@ -133,8 +134,8 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
       you sometimes need to add explicit self-connected edges.
     """
     try:
-      from rdkit import Chem # noqa
-      from rdkit.Chem import AllChem # noqa
+      from rdkit import Chem  # noqa
+      from rdkit.Chem import AllChem  # noqa
     except ModuleNotFoundError:
       raise ValueError("This method requires RDKit to be installed.")
 

@@ -84,7 +84,7 @@ class SmilesToSeq(MolecularFeaturizer):
       Amount of padding to add on either side of the SMILES seq
     """
     try:
-      from rdkit import Chem #noqa
+      from rdkit import Chem  # noqa
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
 

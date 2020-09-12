@@ -55,8 +55,8 @@ class SmilesToImage(MolecularFeaturizer):
       Indicates the channel organization of the image tensor
     """
     try:
-      from rdkit import Chem # noqa
-      from rdkit.Chem import AllChem # noqa
+      from rdkit import Chem  # noqa
+      from rdkit.Chem import AllChem  # noqa
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
 
