@@ -133,6 +133,12 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
       Whether to add self-connected edges or not. If you want to use DGL,
       you sometimes need to add explicit self-connected edges.
     """
+    try:
+      from rdkit import Chem  # noqa
+      from rdkit.Chem import AllChem  # noqa
+    except ModuleNotFoundError:
+      raise ValueError("This method requires RDKit to be installed.")
+
     self.add_self_edges = add_self_edges
 
   def _featurize(self, mol: RDKitMol) -> GraphData:
@@ -148,11 +154,8 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     graph: GraphData
       A molecule graph with some features.
     """
-    try:
-      from rdkit import Chem
-      from rdkit.Chem import AllChem
-    except ModuleNotFoundError:
-      raise ValueError("This method requires RDKit to be installed.")
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
 
     # construct atom and bond features
     try:

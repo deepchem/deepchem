@@ -54,10 +54,17 @@ class SmilesToImage(MolecularFeaturizer):
     img_spec: str, default std
       Indicates the channel organization of the image tensor
     """
+    try:
+      from rdkit import Chem  # noqa
+      from rdkit.Chem import AllChem  # noqa
+    except ModuleNotFoundError:
+      raise ValueError("This class requires RDKit to be installed.")
+
     if img_spec not in ["std", "engd"]:
       raise ValueError(
           "Image mode must be one of std or engd. {} is not supported".format(
               img_spec))
+
     self.img_size = img_size
     self.max_len = max_len
     self.res = res
@@ -78,11 +85,8 @@ class SmilesToImage(MolecularFeaturizer):
       A 3D array of image, the shape is `(img_size, img_size, 1)`.
       If the length of SMILES is longer than `max_len`, this value is an empty array.
     """
-    try:
-      from rdkit import Chem
-      from rdkit.Chem import AllChem
-    except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
 
     smile = Chem.MolToSmiles(mol)
     if len(smile) > self.max_len:
