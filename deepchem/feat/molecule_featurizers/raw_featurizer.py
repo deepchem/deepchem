@@ -24,6 +24,11 @@ class RawFeaturizer(MolecularFeaturizer):
     smiles: bool, optional (default False)
       If True, encode this molecule as a SMILES string. Else as a RDKit mol.
     """
+    try:
+      from rdkit import Chem  # noqa
+    except ModuleNotFoundError:
+      raise ValueError("This class requires RDKit to be installed.")
+
     self.smiles = smiles
 
   def _featurize(self, mol: RDKitMol) -> Union[str, RDKitMol]:
@@ -39,10 +44,7 @@ class RawFeaturizer(MolecularFeaturizer):
     str or rdkit.Chem.rdchem.Mol
       SMILES string or RDKit Mol object.
     """
-    try:
-      from rdkit import Chem
-    except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+    from rdkit import Chem
 
     if self.smiles:
       return Chem.MolToSmiles(mol)

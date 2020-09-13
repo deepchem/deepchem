@@ -17,6 +17,7 @@ from deepchem.feat.binding_pocket_features import BindingPocketFeaturizer
 
 # molecule featurizers
 from deepchem.feat.molecule_featurizers import AtomicCoordinates
+from deepchem.feat.molecule_featurizers import BPSymmetryFunctionInput
 from deepchem.feat.molecule_featurizers import CircularFingerprint
 from deepchem.feat.molecule_featurizers import CoulombMatrix
 from deepchem.feat.molecule_featurizers import CoulombMatrixEig

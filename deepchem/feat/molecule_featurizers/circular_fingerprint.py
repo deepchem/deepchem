@@ -55,6 +55,12 @@ class CircularFingerprint(MolecularFeaturizer):
       Whether to calculate SMILES strings for fragment IDs (only applicable
       when calculating sparse fingerprints).
     """
+    try:
+      from rdkit import Chem  # noqa
+      from rdkit.Chem import rdMolDescriptors  # noqa
+    except ModuleNotFoundError:
+      raise ValueError("This class requires RDKit to be installed.")
+
     self.radius = radius
     self.size = size
     self.chiral = chiral
@@ -76,11 +82,8 @@ class CircularFingerprint(MolecularFeaturizer):
     np.ndarray
       A numpy array of circular fingerprint.
     """
-    try:
-      from rdkit import Chem
-      from rdkit.Chem import rdMolDescriptors
-    except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+    from rdkit import Chem
+    from rdkit.Chem import rdMolDescriptors
 
     if self.sparse:
       info: Dict = {}
