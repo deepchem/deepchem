@@ -13,12 +13,10 @@ from deepchem.feat.base_classes import UserDefinedFeaturizer
 
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.graph_features import WeaveFeaturizer
-from deepchem.feat.rdkit_grid_featurizer import RdkitGridFeaturizer
 from deepchem.feat.binding_pocket_features import BindingPocketFeaturizer
-from deepchem.feat.atomic_coordinates import AtomicCoordinates
-from deepchem.feat.atomic_coordinates import NeighborListComplexAtomicCoordinates
 
 # molecule featurizers
+from deepchem.feat.molecule_featurizers import AtomicCoordinates
 from deepchem.feat.molecule_featurizers import BPSymmetryFunctionInput
 from deepchem.feat.molecule_featurizers import CircularFingerprint
 from deepchem.feat.molecule_featurizers import CoulombMatrix
@@ -31,6 +29,12 @@ from deepchem.feat.molecule_featurizers import RawFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitDescriptors
 from deepchem.feat.molecule_featurizers import SmilesToImage
 from deepchem.feat.molecule_featurizers import SmilesToSeq, create_char_to_idx
+
+# complex featurizers
+from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
+from deepchem.feat.complex_featurizers import NeighborListAtomicCoordinates
+from deepchem.feat.complex_featurizers import NeighborListComplexAtomicCoordinates
+from deepchem.feat.complex_featurizers import ComplexNeighborListFragmentAtomicCoordinates
 
 # material featurizers
 from deepchem.feat.material_featurizers import ElementPropertyFingerprint
