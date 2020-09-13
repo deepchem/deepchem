@@ -124,7 +124,6 @@ def load_pdbbind_grid(split="random",
         'index': deepchem.splits.IndexSplitter(),
         'random': deepchem.splits.RandomSplitter(),
         'scaffold': deepchem.splits.ScaffoldSplitter(),
-        'time': deepchem.splits.TimeSplitterPDBbind(np.array(df['id']))
     }
     splitter = splitters[split]
     logger.info("About to split dataset with {} splitter.".format(split))
