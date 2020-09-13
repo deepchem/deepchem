@@ -1,21 +1,78 @@
+# flake8: noqa
 import logging
 import time
+import hashlib
 from collections import Counter
 
-import numpy as np
-from copy import deepcopy
-
-from deepchem.feat.base_classes import ComplexFeaturizer
 from deepchem.utils.rdkit_utils import MoleculeLoadException, load_molecule
-from deepchem.utils.geometry_utils import angle_between
-from deepchem.utils.geometry_utils import compute_centroid, subtract_centroid
-from deepchem.utils.geometry_utils import generate_random_rotation_matrix
-from deepchem.utils.geometry_utils import compute_pairwise_distances
-from deepchem.utils.hash_utils import hash_ecfp, hash_ecfp_pair
-from deepchem.utils.voxel_utils import convert_atom_to_voxel
-from deepchem.utils.voxel_utils import convert_atom_pair_to_voxel
+
+import numpy as np
+from scipy.spatial.distance import cdist
+from copy import deepcopy
+from deepchem.feat import ComplexFeaturizer
 
 logger = logging.getLogger(__name__)
+
+
+def compute_centroid(coordinates):
+  """Compute the x,y,z centroid of provided coordinates
+
+  coordinates: np.ndarray
+    Shape (N, 3), where N is number atoms.
+  """
+  centroid = np.mean(coordinates, axis=0)
+  return (centroid)
+
+
+def generate_random__unit_vector():
+  """Generate a random unit vector on the 3-sphere.
+  citation:
+  http://mathworld.wolfram.com/SpherePointPicking.html
+
+  a. Choose random theta \element [0, 2*pi]
+  b. Choose random z \element [-1, 1]
+  c. Compute output vector u: (x,y,z) = (sqrt(1-z^2)*cos(theta), sqrt(1-z^2)*sin(theta),z)
+  """
+
+  theta = np.random.uniform(low=0.0, high=2 * np.pi)
+  z = np.random.uniform(low=-1.0, high=1.0)
+  u = np.array(
+      [np.sqrt(1 - z**2) * np.cos(theta),
+       np.sqrt(1 - z**2) * np.sin(theta), z])
+  return (u)
+
+
+def generate_random_rotation_matrix():
+  """Generate a random rotation matrix in 3D.
+
+  1. Generate a random unit vector u, randomly sampled from the unit
+     3-sphere (see function generate_random__unit_vector() for details)
+  2. Generate a second random unit vector v
+    a. If absolute value of u \dot v > 0.99, repeat.
+       (This is important for numerical stability. Intuition: we want them to
+       be as linearly independent as possible or else the orthogonalized
+       version of v will be much shorter in magnitude compared to u. I assume
+       in Stack they took this from Gram-Schmidt orthogonalization?)
+    b. v" = v - (u \dot v)*u, i.e. subtract out the component of v that's in
+       u's direction
+    c. normalize v" (this isn"t in Stack but I assume it must be done)
+  3. find w = u \cross v"
+  4. u, v", and w will form the columns of a rotation matrix, R. The
+     intuition is that u, v" and w are, respectively, what the standard basis
+     vectors e1, e2, and e3 will be mapped to under the transformation.
+  """
+  u = generate_random__unit_vector()
+  v = generate_random__unit_vector()
+  while np.abs(np.dot(u, v)) >= 0.99:
+    v = generate_random__unit_vector()
+
+  vp = v - (np.dot(u, v) * u)
+  vp /= np.linalg.norm(vp)
+
+  w = np.cross(u, vp)
+
+  R = np.column_stack((u, vp, w))
+  return (R)
 
 
 def rotate_molecules(mol_coordinates_list):
@@ -41,8 +98,79 @@ def rotate_molecules(mol_coordinates_list):
   return (rotated_coordinates_list)
 
 
+def compute_pairwise_distances(protein_xyz, ligand_xyz):
+  """Takes an input m x 3 and n x 3 np arrays of 3D coords of protein and ligand,
+  respectively, and outputs an m x n np array of pairwise distances in Angstroms
+  between protein and ligand atoms. entry (i,j) is dist between the i"th protein
+  atom and the j"th ligand atom.
+  """
+
+  pairwise_distances = cdist(protein_xyz, ligand_xyz, metric='euclidean')
+  return (pairwise_distances)
+
+
+"""following two functions adapted from:
+http://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
+"""
+
+
+def unit_vector(vector):
+  """ Returns the unit vector of the vector.  """
+  return vector / np.linalg.norm(vector)
+
+
+def angle_between(vector_i, vector_j):
+  """Returns the angle in radians between vectors "vector_i" and "vector_j"::
+
+  >>> print("%0.06f" % angle_between((1, 0, 0), (0, 1, 0)))
+  1.570796
+  >>> print("%0.06f" % angle_between((1, 0, 0), (1, 0, 0)))
+  0.000000
+  >>> print("%0.06f" % angle_between((1, 0, 0), (-1, 0, 0)))
+  3.141593
+
+  Note that this function always returns the smaller of the two angles between
+  the vectors (value between 0 and pi).
+  """
+  vector_i_u = unit_vector(vector_i)
+  vector_j_u = unit_vector(vector_j)
+  angle = np.arccos(np.dot(vector_i_u, vector_j_u))
+  if np.isnan(angle):
+    if np.allclose(vector_i_u, vector_j_u):
+      return 0.0
+    else:
+      return np.pi
+  return angle
+
+
 def hash_sybyl(sybyl, sybyl_types):
   return (sybyl_types.index(sybyl))
+
+
+def hash_ecfp(ecfp, power):
+  """
+  Returns an int of size 2^power representing that
+  ECFP fragment. Input must be a string.
+  """
+  ecfp = ecfp.encode('utf-8')
+  md5 = hashlib.md5()
+  md5.update(ecfp)
+  digest = md5.hexdigest()
+  ecfp_hash = int(digest, 16) % (2**power)
+  return (ecfp_hash)
+
+
+def hash_ecfp_pair(ecfp_pair, power):
+  """Returns an int of size 2^power representing that ECFP pair. Input must be
+  a tuple of strings.
+  """
+  ecfp = "%s,%s" % (ecfp_pair[0], ecfp_pair[1])
+  ecfp = ecfp.encode('utf-8')
+  md5 = hashlib.md5()
+  md5.update(ecfp)
+  digest = md5.hexdigest()
+  ecfp_hash = int(digest, 16) % (2**power)
+  return (ecfp_hash)
 
 
 def compute_all_ecfp(mol, indices=None, degree=2):
@@ -157,6 +285,8 @@ def featurize_binding_pocket_sybyl(protein_xyz,
   cutoff: float
     Cutoff distance for contact consideration.
   """
+  features_dict = {}
+
   if pairwise_distances is None:
     pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
   contacts = np.nonzero((pairwise_distances < cutoff))
@@ -608,6 +738,12 @@ def compute_salt_bridges(protein_xyz,
   return salt_bridge_contacts
 
 
+def is_angle_within_cutoff(vector_i, vector_j, hbond_angle_cutoff):
+  angle = angle_between(vector_i, vector_j) * 180. / np.pi
+  return (angle > (180 - hbond_angle_cutoff) and
+          angle < (180. + hbond_angle_cutoff))
+
+
 def is_hydrogen_bond(protein_xyz, protein, ligand_xyz, ligand, contact,
                      hbond_angle_cutoff):
   """
@@ -658,6 +794,52 @@ def compute_hydrogen_bonds(protein_xyz, protein, ligand_xyz, ligand,
   return (hbond_contacts)
 
 
+def convert_atom_to_voxel(molecule_xyz,
+                          atom_index,
+                          box_width,
+                          voxel_width,
+                          verbose=False):
+  """Converts atom coordinates to an i,j,k grid index.
+
+  Parameters
+  ----------
+  molecule_xyz: np.ndarray
+    Array with coordinates of all atoms in the molecule, shape (N, 3)
+  atom_index: int
+    Index of an atom
+  box_width: float
+    Size of a box
+  voxel_width: float
+    Size of a voxel
+  verbose: bool
+    Print warnings when atom is outside of a box
+  """
+
+  indices = np.floor(
+      (molecule_xyz[atom_index] + box_width / 2.0) / voxel_width).astype(int)
+  if ((indices < 0) | (indices >= box_width / voxel_width)).any():
+    if verbose:
+      logger.warning('Coordinates are outside of the box (atom id = %s,'
+                     ' coords xyz = %s, coords in box = %s' %
+                     (atom_index, molecule_xyz[atom_index], indices))
+
+  return ([indices])
+
+
+def convert_atom_pair_to_voxel(molecule_xyz_tuple, atom_index_pair, box_width,
+                               voxel_width):
+  """Converts a pair of atoms to a list of i,j,k tuples."""
+
+  indices_list = []
+  indices_list.append(
+      convert_atom_to_voxel(molecule_xyz_tuple[0], atom_index_pair[0],
+                            box_width, voxel_width)[0])
+  indices_list.append(
+      convert_atom_to_voxel(molecule_xyz_tuple[1], atom_index_pair[1],
+                            box_width, voxel_width)[0])
+  return (indices_list)
+
+
 def compute_charge_dictionary(molecule):
   """Create a dictionary with partial charges for each atom in the molecule.
 
@@ -669,6 +851,17 @@ def compute_charge_dictionary(molecule):
   for i, atom in enumerate(molecule.GetAtoms()):
     charge_dictionary[i] = get_partial_charge(atom)
   return charge_dictionary
+
+
+def subtract_centroid(xyz, centroid):
+  """Subtracts centroid from each coordinate.
+
+  Subtracts the centroid, a numpy array of dim 3, from all coordinates of all
+  atoms in the molecule
+  """
+
+  xyz -= np.transpose(centroid)
+  return (xyz)
 
 
 class RdkitGridFeaturizer(ComplexFeaturizer):
@@ -1026,50 +1219,50 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     This function then computes a featurization with scheme specified by the user.
     Parameters
     ----------
-    mol_pdb_file: Str
-      Filename for ligand pdb file.
-    protein_pdb_file: Str
-      Filename for protein pdb file.
+    mol_pdb_file: Str 
+      Filename for ligand pdb file. 
+    protein_pdb_file: Str 
+      Filename for protein pdb file. 
     """
     try:
-      # TIMING
+      ############################################################## TIMING
       time1 = time.time()
-      # TIMING
+      ############################################################## TIMING
 
       protein_xyz, protein_rdk = load_molecule(
           protein_pdb_file, calc_charges=True, sanitize=self.sanitize)
-      # TIMING
+      ############################################################## TIMING
       time2 = time.time()
       logger.info(
           "TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1),
           self.verbose)
-      # TIMING
-      # TIMING
+      ############################################################## TIMING
+      ############################################################## TIMING
       time1 = time.time()
-      # TIMING
+      ############################################################## TIMING
       ligand_xyz, ligand_rdk = load_molecule(
           mol_pdb_file, calc_charges=True, sanitize=self.sanitize)
-      # TIMING
+      ############################################################## TIMING
       time2 = time.time()
       logger.info(
           "TIMING: Loading ligand coordinates took %0.3f s" % (time2 - time1),
           self.verbose)
-      # TIMING
+      ############################################################## TIMING
     except MoleculeLoadException:
       logger.warning("Some molecules cannot be loaded by Rdkit. Skipping")
       return None
 
-    # TIMING
+    ############################################################## TIMING
     time1 = time.time()
-    # TIMING
+    ############################################################## TIMING
     centroid = compute_centroid(ligand_xyz)
     ligand_xyz = subtract_centroid(ligand_xyz, centroid)
     protein_xyz = subtract_centroid(protein_xyz, centroid)
-    # TIMING
+    ############################################################## TIMING
     time2 = time.time()
     logger.info("TIMING: Centroid processing took %0.3f s" % (time2 - time1),
                 self.verbose)
-    # TIMING
+    ############################################################## TIMING
 
     pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
 
@@ -1121,18 +1314,18 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     get_voxels: function
       Function that voxelizes inputs
     hash_function: function
-      Used to map feature choices to voxel channels.
+      Used to map feature choices to voxel channels.  
     coordinates: np.ndarray
       Contains the 3D coordinates of a molecular system.
     feature_dict: Dictionary
-      Keys are atom indices.
+      Keys are atom indices.  
     feature_list: list
-      List of available features.
+      List of available features. 
     channel_power: int
       If specified, nb_channel is set to 2**channel_power.
       TODO: This feels like a redundant parameter.
     nb_channel: int
-      The number of feature channels computed per voxel
+      The number of feature channels computed per voxel 
     dtype: type
       The dtype of the numpy ndarray created to hold features.
     """
