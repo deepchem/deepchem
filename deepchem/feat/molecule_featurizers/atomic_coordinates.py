@@ -20,7 +20,7 @@ class AtomicCoordinates(MolecularFeaturizer):
     Parameters
     ----------
     use_bohr: bool, optional (default False)
-      Whether to uss bohr or angstrom as a coordinate unit.
+      Whether to use bohr or angstrom as a coordinate unit.
     """
     try:
       from rdkit import Chem  # noqa
