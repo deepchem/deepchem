@@ -22,6 +22,12 @@ class AtomicCoordinates(MolecularFeaturizer):
     use_bohr: bool, optional (default False)
       Whether to uss bohr or angstrom as a coordinate unit.
     """
+    try:
+      from rdkit import Chem  # noqa
+      from rdkit.Chem import AllChem  # noqa
+    except ModuleNotFoundError:
+      raise ValueError("This class requires RDKit to be installed.")
+
     self.use_bohr = use_bohr
 
   def _featurize(self, mol: RDKitMol) -> np.ndarray:
@@ -37,11 +43,8 @@ class AtomicCoordinates(MolecularFeaturizer):
     np.ndarray
       A numpy array of atomic coordinates. The shape is `(n_atoms, 3)`.
     """
-    try:
-      from rdkit import Chem
-      from rdkit.Chem import AllChem
-    except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
 
     # Check whether num_confs >=1 or not
     num_confs = len(mol.GetConformers())

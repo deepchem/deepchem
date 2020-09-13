@@ -1,12 +1,13 @@
 import numpy as np
 
 from deepchem.utils.typing import RDKitMol
+from deepchem.utils.data_utils import pad_array
 from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.feat.molecule_featurizers.atomic_coordinates import AtomicCoordinates
 
 
 class BPSymmetryFunctionInput(MolecularFeaturizer):
-  """Calculate Symmetry Function for each atom in the molecules
+  """Calculate symmetry function for each atom in the molecules
 
   This method is described in [1]_
 
@@ -31,13 +32,24 @@ class BPSymmetryFunctionInput(MolecularFeaturizer):
       process.
     """
     self.max_atoms = max_atoms
+    self.coordfeat = AtomicCoordinates(use_bohr=True)
 
   def _featurize(self, mol: RDKitMol) -> np.ndarray:
-    coordfeat = AtomicCoordinates(use_bohr=True)
-    coordinates = coordfeat._featurize(mol)[0]
+    """Calculate symmetry function.
+
+    Parameters
+    ----------
+    mol: rdkit.Chem.rdchem.Mol
+      RDKit Mol object
+
+    Returns
+    -------
+    np.ndarray
+      A numpy array of symmetry function. The shape is `(max_atoms, 4)`.
+    """
+    coordinates = self.coordfeat._featurize(mol)
     atom_numbers = np.array([atom.GetAtomicNum() for atom in mol.GetAtoms()])
     atom_numbers = np.expand_dims(atom_numbers, axis=1)
     assert atom_numbers.shape[0] == coordinates.shape[0]
-    n_atoms = atom_numbers.shape[0]
     features = np.concatenate([atom_numbers, coordinates], axis=1)
-    return np.pad(features, ((0, self.max_atoms - n_atoms), (0, 0)), 'constant')
+    return pad_array(features, (self.max_atoms, 4))
