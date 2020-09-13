@@ -43,13 +43,6 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertIsInstance(mol_rdk, Mol)
         self.assertEqual(mol_xyz.shape, (num_atoms, 3))
 
-  def test_generate_random_unit_vector(self):
-    for _ in range(100):
-      u = rgf.generate_random__unit_vector()
-      # 3D vector with unit length
-      self.assertEqual(u.shape, (3,))
-      self.assertAlmostEqual(np.linalg.norm(u), 1.0)
-
   def test_generate_random_rotation_matrix(self):
     # very basic test, we check if rotations actually work in test_rotate_molecules
     for _ in range(100):
@@ -86,12 +79,6 @@ class TestHelperFunctions(unittest.TestCase):
     coords2 = np.array([[1, 0, 0], [2, 0, 0], [3, 0, 0]])
     distance = rgf.compute_pairwise_distances(coords1, coords2)
     self.assertTrue((distance == [[1, 2, 3], [0, 1, 2]]).all())
-
-  def test_unit_vector(self):
-    for _ in range(10):
-      vector = np.random.rand(3)
-      norm_vector = rgf.unit_vector(vector)
-      self.assertAlmostEqual(np.linalg.norm(norm_vector), 1.0)
 
   def test_angle_between(self):
     for _ in range(10):
@@ -130,18 +117,16 @@ class TestHelperFunctions(unittest.TestCase):
       for box_width in (10, 20, 40):
         for voxel_width in (0.5, 1, 2):
           voxel = rgf.convert_atom_to_voxel(xyz, idx, box_width, voxel_width)
-          self.assertIsInstance(voxel, list)
-          self.assertEqual(len(voxel), 1)
-          self.assertIsInstance(voxel[0], np.ndarray)
-          self.assertEqual(voxel[0].shape, (3,))
-          self.assertIs(voxel[0].dtype, np.dtype('int'))
+          self.assertIsInstance(voxel, np.ndarray)
+          self.assertEqual(voxel.shape, (3,))
+          self.assertIs(voxel.dtype, np.dtype('int'))
           # indices are positive
-          self.assertTrue((voxel[0] >= 0).all())
+          self.assertTrue((voxel >= 0).all())
           # coordinates were properly translated and scaled
           self.assertTrue(
-              (voxel[0] < (box_width + coords_range) / 2.0 / voxel_width).all())
+              (voxel < (box_width + coords_range) / 2.0 / voxel_width).all())
           self.assertTrue(
-              np.allclose(voxel[0],
+              np.allclose(voxel,
                           np.floor((xyz[idx] + box_width / 2.0) / voxel_width)))
 
     # for coordinates outside of the box function should properly transform them
@@ -152,7 +137,7 @@ class TestHelperFunctions(unittest.TestCase):
       # but it is not implemented in 2.7 and buggy in 3.5 (issue 29620)
       voxel = rgf.convert_atom_to_voxel(*args)
       self.assertTrue(
-          np.allclose(voxel[0], np.floor((args[0] + args[2] / 2.0) / args[3])))
+          np.allclose(voxel, np.floor((args[0] + args[2] / 2.0) / args[3])))
 
   def test_convert_atom_pair_to_voxel(self):
     # 20 points with coords between -5 and 5, centered at 0
@@ -346,8 +331,7 @@ class TestFeaturizationFunctions(unittest.TestCase):
   def test_featurize_binding_pocket_ecfp(self):
     prot_xyz, prot_rdk = rgf.load_molecule(self.protein_file)
     lig_xyz, lig_rdk = rgf.load_molecule(self.ligand_file)
-    distance = rgf.compute_pairwise_distances(
-        protein_xyz=prot_xyz, ligand_xyz=lig_xyz)
+    distance = rgf.compute_pairwise_distances(prot_xyz, lig_xyz)
 
     # check if results are the same if we provide precomputed distances
     prot_dict, lig_dict = rgf.featurize_binding_pocket_ecfp(
@@ -402,8 +386,7 @@ class TestFeaturizationFunctions(unittest.TestCase):
     lig_xyz, lig_rdk = rgf.load_molecule(self.ligand_file)
     prot_num_atoms = prot_rdk.GetNumAtoms()
     lig_num_atoms = lig_rdk.GetNumAtoms()
-    distance = rgf.compute_pairwise_distances(
-        protein_xyz=prot_xyz, ligand_xyz=lig_xyz)
+    distance = rgf.compute_pairwise_distances(prot_xyz, lig_xyz)
 
     for bins in ((0, 2), (2, 3)):
       splif_dict = rgf.compute_splif_features_in_range(
@@ -432,8 +415,7 @@ class TestFeaturizationFunctions(unittest.TestCase):
   def test_featurize_splif(self):
     prot_xyz, prot_rdk = rgf.load_molecule(self.protein_file)
     lig_xyz, lig_rdk = rgf.load_molecule(self.ligand_file)
-    distance = rgf.compute_pairwise_distances(
-        protein_xyz=prot_xyz, ligand_xyz=lig_xyz)
+    distance = rgf.compute_pairwise_distances(prot_xyz, lig_xyz)
 
     bins = [(1, 2), (2, 3)]
 
