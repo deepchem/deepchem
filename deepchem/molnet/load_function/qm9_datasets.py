@@ -24,7 +24,7 @@ def load_qm9(featurizer='CoulombMatrix',
   QM9 is a comprehensive dataset that provides geometric, energetic, 
   electronic and thermodynamic properties for a subset of GDB-17 database, 
   comprising 134 thousand stable organic molecules with up to 9 heavy atoms.
-  All moleucles are modeled using density functional theory
+  All molecules are modeled using density functional theory
   (B3LYP/6-31G(2df,p) based DFT).
 
   Random splitting is recommended for this dataset.
@@ -119,11 +119,7 @@ def load_qm9(featurizer='CoulombMatrix',
     elif featurizer == 'MP':
       featurizer = deepchem.feat.WeaveFeaturizer(
           graph_distance=False, explicit_H=True)
-    loader = deepchem.data.SDFLoader(
-        tasks=qm9_tasks,
-        smiles_field="smiles",
-        mol_field="mol",
-        featurizer=featurizer)
+    loader = deepchem.data.SDFLoader(tasks=qm9_tasks, featurizer=featurizer)
   else:
     if featurizer == 'ECFP':
       featurizer = deepchem.feat.CircularFingerprint(size=1024)
@@ -137,9 +133,9 @@ def load_qm9(featurizer='CoulombMatrix',
       featurizer = deepchem.feat.SmilesToImage(
           img_size=img_size, img_spec=img_spec)
     loader = deepchem.data.CSVLoader(
-        tasks=qm9_tasks, smiles_field="smiles", featurizer=featurizer)
+        tasks=qm9_tasks, feature_field="smiles", featurizer=featurizer)
 
-  dataset = loader.featurize(dataset_file)
+  dataset = loader.create_dataset(dataset_file)
   if split == None:
     raise ValueError()
 
