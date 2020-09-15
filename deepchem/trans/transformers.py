@@ -589,8 +589,7 @@ class NormalizationTransformer(Transformer):
   def untransform_grad(self, grad, tasks):
     """DEPRECATED. DO NOT USE."""
     logger.warning(
-      "NormalizationTransformer.untransform_grad is DEPRECATED and will be removed in a future version of DeepChem. Manually implement transforms to perform force calculations."
-    )
+        "NormalizationTransformer.untransform_grad is DEPRECATED and will be removed in a future version of DeepChem. Manually implement transforms to perform force calculations.")
     if self.transform_y:
 
       grad_means = self.y_means[1:]
