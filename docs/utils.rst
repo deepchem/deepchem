@@ -4,71 +4,52 @@ DeepChem has a broad collection of utility functions. Many of these
 maybe be of independent interest to users since they deal with some
 tricky aspects of processing scientific datatypes.
 
-Array Utilities
----------------
+Data Utilities
+--------------
 
-.. autofunction:: deepchem.utils.pad_array
+Array Utilities
+^^^^^^^^^^^^^^^
+
+.. autofunction:: deepchem.utils.data_utils.pad_array
 
 Data Directory
---------------
+^^^^^^^^^^^^^^^
 The DeepChem data directory is where downloaded MoleculeNet datasets are stored.
 
-.. autofunction:: deepchem.utils.get_data_dir
-
-Print Threshold
----------------
-
-The printing threshold controls how many dataset elements are printed
-when :code:`dc.data.Dataset` objects are converted to strings or
-represnted in the IPython repl.
-
-.. autofunction:: deepchem.utils.get_print_threshold
-
-.. autofunction:: deepchem.utils.set_print_threshold
-
-.. autofunction:: deepchem.utils.get_max_print_size
-
-.. autofunction:: deepchem.utils.set_max_print_size
+.. autofunction:: deepchem.utils.data_utils.get_data_dir
 
 URL Handling
-------------
+^^^^^^^^^^^^
 
-.. autofunction:: deepchem.utils.download_url
+.. autofunction:: deepchem.utils.data_utils.download_url
 
 File Handling
--------------
+^^^^^^^^^^^^^
 
-.. autofunction:: deepchem.utils.untargz_file
+.. autofunction:: deepchem.utils.data_utils.untargz_file
 
-.. autofunction:: deepchem.utils.unzip_file
+.. autofunction:: deepchem.utils.data_utils.unzip_file
 
-.. autofunction:: deepchem.utils.save.save_to_disk
+.. autofunction:: deepchem.utils.data_utils.load_data
 
-.. autofunction:: deepchem.utils.save.get_input_type
+.. autofunction:: deepchem.utils.data_utils.load_sdf_files
 
-.. autofunction:: deepchem.utils.save.load_data
+.. autofunction:: deepchem.utils.data_utils.load_csv_files
 
-.. autofunction:: deepchem.utils.save.load_sharded_csv
+.. autofunction:: deepchem.utils.data_utils.load_json_files
 
-.. autofunction:: deepchem.utils.save.load_sdf_files
+.. autofunction:: deepchem.utils.data_utils.load_pickle_files
 
-.. autofunction:: deepchem.utils.save.load_csv_files
+.. autofunction:: deepchem.utils.data_utils.load_from_disk
 
-.. autofunction:: deepchem.utils.save.load_json_files
+.. autofunction:: deepchem.utils.data_utils.save_to_disk
 
-.. autofunction:: deepchem.utils.save.load_from_disk
+.. autofunction:: deepchem.utils.data_utils.load_dataset_from_disk
 
-.. autofunction:: deepchem.utils.save.load_pickle_from_disk
-
-.. autofunction:: deepchem.utils.save.load_dataset_from_disk
-
-.. autofunction:: deepchem.utils.save.save_dataset_to_disk
+.. autofunction:: deepchem.utils.data_utils.save_dataset_to_disk
 
 Molecular Utilities
 -------------------
-
-.. autoclass:: deepchem.utils.ScaffoldGenerator
-  :members:
 
 .. autoclass:: deepchem.utils.conformers.ConformerGenerator
   :members:
@@ -208,3 +189,21 @@ Graph Convolution Utilities
 
 .. autofunction:: deepchem.utils.molecule_feature_utils.get_bond_graph_distance_one_hot
 
+
+Debug Utilities
+---------------
+
+Print Threshold
+^^^^^^^^^^^^^^^
+
+The printing threshold controls how many dataset elements are printed
+when :code:`dc.data.Dataset` objects are converted to strings or
+represnted in the IPython repl.
+
+.. autofunction:: deepchem.utils.debug_utils.get_print_threshold
+
+.. autofunction:: deepchem.utils.debug_utils.set_print_threshold
+
+.. autofunction:: deepchem.utils.debug_utils.get_max_print_size
+
+.. autofunction:: deepchem.utils.debug_utils.set_max_print_size

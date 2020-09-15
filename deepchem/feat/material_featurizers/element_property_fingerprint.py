@@ -50,8 +50,13 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
     data_source: str of "matminer", "magpie" or "deml" (default "matminer")
       Source for element property data.
     """
+    try:
+      from matminer.featurizers.composition import ElementProperty
+    except ModuleNotFoundError:
+      raise ValueError("This class requires matminer to be installed.")
 
     self.data_source = data_source
+    self.ep_featurizer = ElementProperty.from_preset(self.data_source)
 
   def _featurize(self, composition: PymatgenComposition) -> np.ndarray:
     """
@@ -69,14 +74,7 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
       stoichiometry. Some values may be NaN.
     """
     try:
-      from matminer.featurizers.composition import ElementProperty
-    except ModuleNotFoundError:
-      raise ValueError("This class requires matminer to be installed.")
-
-    ep = ElementProperty.from_preset(self.data_source)
-
-    try:
-      feats = ep.featurize(composition)
+      feats = self.ep_featurizer.featurize(composition)
     except:
       feats = []
 

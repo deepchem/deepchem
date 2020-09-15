@@ -3,7 +3,7 @@ import json
 import numpy as np
 from typing import Tuple
 
-from deepchem.utils import download_url, get_data_dir
+from deepchem.utils.data_utils import download_url, get_data_dir
 from deepchem.utils.typing import PymatgenStructure
 from deepchem.feat import MaterialStructureFeaturizer
 from deepchem.feat.graph_data import GraphData

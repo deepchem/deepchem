@@ -8,7 +8,7 @@ import deepchem
 logger = logging.getLogger(__name__)
 
 TOX21_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/tox21.csv.gz"
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 
 
 def load_tox21(featurizer='ECFP',
@@ -59,14 +59,14 @@ def load_tox21(featurizer='ECFP',
       save_folder = os.path.join(save_folder, img_spec)
     save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return tox21_tasks, all_dataset, transformers
 
   dataset_file = os.path.join(data_dir, "tox21.csv.gz")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=TOX21_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=TOX21_URL, dest_dir=data_dir)
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
@@ -76,9 +76,6 @@ def load_tox21(featurizer='ECFP',
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
-  elif featurizer == 'AdjacencyConv':
-    featurizer = deepchem.feat.AdjacencyFingerprint(
-        max_n_atoms=150, max_valence=6)
   elif featurizer == "smiles2img":
     img_size = kwargs.get("img_size", 80)
     img_spec = kwargs.get("img_spec", "std")
@@ -86,7 +83,7 @@ def load_tox21(featurizer='ECFP',
         img_size=img_size, img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
-      tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tox21_tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
   if split == None:
@@ -132,6 +129,6 @@ def load_tox21(featurizer='ECFP',
       test = transformer.transform(test)
 
     if reload:
-      deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                               transformers)
+      deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                     test, transformers)
   return tox21_tasks, all_dataset, transformers

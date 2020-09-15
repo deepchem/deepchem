@@ -18,7 +18,7 @@ import pandas as pd
 
 import deepchem as dc
 from deepchem.utils.typing import OneOrMany, Shape
-from deepchem.utils.save import save_to_disk, load_from_disk, load_image_files
+from deepchem.utils.data_utils import save_to_disk, load_from_disk, load_image_files
 
 Batch = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
@@ -417,6 +417,19 @@ class Dataset(object):
     -------
     Dataset
       A newly constructed Dataset object.
+    """
+    raise NotImplementedError()
+
+  def select(self, indices: Sequence[int],
+             select_dir: Optional[str] = None) -> "Dataset":
+    """Creates a new dataset from a selection of indices from self.
+
+    Parameters
+    ----------
+    indices: Sequence
+      List of indices to select.
+    select_dir: str, optional (default None)
+      Path to new directory that the selected indices will be copied to.
     """
     raise NotImplementedError()
 
@@ -1868,13 +1881,13 @@ class DiskDataset(Dataset):
         tasks=tasks)
 
   @staticmethod
-  def merge(datasets: Iterable["DiskDataset"],
+  def merge(datasets: Iterable["Dataset"],
             merge_dir: Optional[str] = None) -> "DiskDataset":
     """Merges provided datasets into a merged dataset.
 
     Parameters
     ----------
-    datasets: Iterable[DiskDataset]
+    datasets: Iterable[Dataset]
       List of datasets to merge.
     merge_dir: str, optional (default None)
       The new directory path to store the merged DiskDataset.
@@ -1897,7 +1910,7 @@ class DiskDataset(Dataset):
     tasks = []
     for dataset in datasets:
       try:
-        tasks.append(dataset.tasks)
+        tasks.append(dataset.tasks)  # type: ignore
       except AttributeError:
         pass
     if tasks:
@@ -2033,7 +2046,7 @@ class DiskDataset(Dataset):
 
   def shuffle_each_shard(self,
                          shard_basenames: Optional[List[str]] = None) -> None:
-    """Shuffles elements within each shard of the datset.
+    """Shuffles elements within each shard of the dataset.
 
     Parameters
     ----------
@@ -2282,8 +2295,9 @@ class DiskDataset(Dataset):
 
     Returns
     -------
-    DiskDataset
-      A Dataset containing the selected samples
+    Dataset
+      A dataset containing the selected samples. The default dataset is `DiskDataset`.
+      If `output_numpy_dataset` is True, the dataset is `NumpyDataset`.
     """
     if output_numpy_dataset and (select_dir is not None or
                                  select_shard_size is not None):

@@ -1,7 +1,9 @@
+# flake8: noqa
+
 import numpy as np
 import deepchem as dc
 from deepchem.feat.base_classes import MolecularFeaturizer
-from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
+from deepchem.feat.complex_featurizers import ComplexNeighborListFragmentAtomicCoordinates
 from deepchem.feat.mol_graphs import ConvMol, WeaveMol
 from deepchem.data import DiskDataset
 import logging
@@ -400,7 +402,7 @@ def bond_features(bond, use_chirality=False):
   ]
   if use_chirality:
     bond_feats = bond_feats + one_of_k_encoding_unk(
-        str(bond.GetStereo()), GraphConvCoonstants.possible_bond_stereo)
+        str(bond.GetStereo()), GraphConvConstants.possible_bond_stereo)
   return np.array(bond_feats)
 
 

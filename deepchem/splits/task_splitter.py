@@ -1,15 +1,8 @@
 """
 Contains an abstract base class that supports chemically aware data splits.
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
-import tempfile
 import numpy as np
-from deepchem.utils import ScaffoldGenerator
 from deepchem.data import NumpyDataset
-from deepchem.utils.save import load_data
 from deepchem.splits import Splitter
 
 
@@ -74,7 +67,6 @@ class TaskSplitter(Splitter):
     n_tasks = len(dataset.get_task_names())
     n_train = int(np.round(frac_train * n_tasks))
     n_valid = int(np.round(frac_valid * n_tasks))
-    n_test = n_tasks - n_train - n_valid
 
     X, y, w, ids = dataset.X, dataset.y, dataset.w, dataset.ids
 

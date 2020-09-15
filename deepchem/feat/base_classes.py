@@ -7,6 +7,7 @@ import numpy as np
 import multiprocessing
 from typing import Any, Dict, List, Iterable, Sequence, Tuple, Union
 
+from deepchem.utils import get_print_threshold
 from deepchem.utils.typing import PymatgenStructure
 
 logger = logging.getLogger(__name__)
@@ -96,7 +97,15 @@ class Featurizer(object):
     args_names = [arg for arg in args_spec.args if arg != 'self']
     args_info = ''
     for arg_name in args_names:
-      args_info += arg_name + '=' + str(self.__dict__[arg_name]) + ', '
+      value = self.__dict__[arg_name]
+      # for str
+      if isinstance(value, str):
+        value = "'" + value + "'"
+      # for list
+      if isinstance(value, list):
+        threshold = get_print_threshold()
+        value = np.array2string(np.array(value), threshold=threshold)
+      args_info += arg_name + '=' + str(value) + ', '
     return self.__class__.__name__ + '[' + args_info[:-2] + ']'
 
   def __str__(self) -> str:
@@ -126,6 +135,15 @@ class Featurizer(object):
     override_args_info = ''
     for arg_name, default in zip(args_names, args_default_values):
       arg_value = self.__dict__[arg_name]
+      # validation
+      # skip list
+      if isinstance(arg_value, list):
+        continue
+      if isinstance(arg_value, str):
+        # skip path string
+        if "\\/." in arg_value or "/" in arg_value or '.' in arg_value:
+          continue
+      # main logic
       if default != arg_value:
         override_args_info += '_' + arg_name + '_' + str(arg_value)
     return self.__class__.__name__ + override_args_info

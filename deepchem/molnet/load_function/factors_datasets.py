@@ -62,15 +62,15 @@ def gen_factors(FACTORS_tasks,
 
   if not os.path.exists(train_files):
     logger.info("Downloading train file...")
-    deepchem.utils.download_url(url=TRAIN_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=TRAIN_URL, dest_dir=data_dir)
     logger.info("Training file download complete.")
 
     logger.info("Downloading validation file...")
-    deepchem.utils.download_url(url=VALID_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=VALID_URL, dest_dir=data_dir)
     logger.info("Validation file download complete.")
 
     logger.info("Downloading test file...")
-    deepchem.utils.download_url(url=TEST_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=TEST_URL, dest_dir=data_dir)
     logger.info("Test file download complete")
 
   # Featurize the FACTORS dataset
@@ -172,7 +172,7 @@ def load_factors(shard_size=2000, featurizer=None, split=None, reload=True):
       'T_00007', 'T_00008', 'T_00009', 'T_00010', 'T_00011', 'T_00012'
   ]
 
-  data_dir = deepchem.utils.get_data_dir()
+  data_dir = deepchem.utils.data_utils.get_data_dir()
   data_dir = os.path.join(data_dir, "factors")
 
   if not os.path.exists(data_dir):

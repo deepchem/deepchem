@@ -7,8 +7,9 @@ import unittest
 import numpy as np
 import pytest
 
+from deepchem.feat.complex_featurizers import rdkit_grid_featurizer as rgf
+
 np.random.seed(123)
-from deepchem.feat import rdkit_grid_featurizer as rgf
 
 
 def random_string(length, chars=None):
@@ -290,8 +291,8 @@ class TestPiInteractions(unittest.TestCase):
 
   def test_compute_cation_pi(self):
     # TODO find better example, currently dicts are empty
-    dicts1 = rgf.compute_cation_pi(self.prot, self.lig)
-    dicts2 = rgf.compute_cation_pi(self.lig, self.prot)
+    _ = rgf.compute_cation_pi(self.prot, self.lig)
+    _ = rgf.compute_cation_pi(self.lig, self.prot)
 
   def test_compute_binding_pocket_cation_pi(self):
     # TODO find better example, currently dicts are empty

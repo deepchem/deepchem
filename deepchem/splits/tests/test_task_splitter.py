@@ -1,12 +1,7 @@
 """
 Tests for splitter objects.
 """
-__author__ = "Bharath Ramsundar, Aneesh Pappu"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import unittest
-import tempfile
 import numpy as np
 import deepchem as dc
 

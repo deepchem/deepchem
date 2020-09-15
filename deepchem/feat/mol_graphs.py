@@ -1,6 +1,8 @@
 """
 Data Structures used to represented molecules for convolutions.
 """
+# flake8: noqa
+
 import csv
 import random
 import numpy as np

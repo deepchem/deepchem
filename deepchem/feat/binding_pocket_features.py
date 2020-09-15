@@ -3,14 +3,17 @@ Featurizes proposed binding pockets.
 """
 import numpy as np
 import logging
+from typing import Dict, List
 
 from deepchem.feat import Featurizer
+from deepchem.utils.coordinate_box_utils import CoordinateBox
 from deepchem.utils.rdkit_utils import load_molecule
 
 logger = logging.getLogger(__name__)
 
 
-def boxes_to_atoms(coords, boxes):
+def boxes_to_atoms(coords: np.ndarray, boxes: List[CoordinateBox]
+                  ) -> Dict[CoordinateBox, List[int]]:
   """Maps each box to a list of atoms in that box.
 
   Given the coordinates of a macromolecule, and a collection of boxes,
@@ -20,13 +23,14 @@ def boxes_to_atoms(coords, boxes):
   Parameters
   ----------
   coords: np.ndarray
-    Of shape `(N, 3)
+    A numpy array of shape `(N, 3)`
   boxes: list
-    list of `CoordinateBox` objects.
+    List of `CoordinateBox` objects.
 
   Returns
   -------
-  dictionary mapping `CoordinateBox` objects to lists of atom coordinates
+  Dict[CoordinateBox, List[int]]
+    A dictionary mapping `CoordinateBox` objects to lists of atom indices.
   """
   mapping = {}
   for box_ind, box in enumerate(boxes):
@@ -57,6 +61,10 @@ class BindingPocketFeaturizer(Featurizer):
   implementation for more sophisticated downstream usecases. Note that
   this class's implementation will only work for proteins and not for
   other macromolecules
+
+  Notes
+  -----
+  This class requires mdtraj to be installed.
   """
 
   residues = [
@@ -67,7 +75,9 @@ class BindingPocketFeaturizer(Featurizer):
 
   n_features = len(residues)
 
-  def featurize(self, protein_file, pockets):
+  # FIXME: Signature of "featurize" incompatible with supertype "Featurizer"
+  def featurize(  # type: ignore[override]
+      self, protein_file: str, pockets: List[CoordinateBox]) -> np.ndarray:
     """
     Calculate atomic coodinates.
 
@@ -75,14 +85,19 @@ class BindingPocketFeaturizer(Featurizer):
     ----------
     protein_file: str
       Location of PDB file. Will be loaded by MDTraj
-    pockets: list[CoordinateBox]
+    pockets: List[CoordinateBox]
       List of `dc.utils.CoordinateBox` objects.
 
     Returns
     -------
-    A numpy array of shale `(len(pockets), n_residues)`
+    np.ndarray
+      A numpy array of shale `(len(pockets), n_residues)`
     """
-    import mdtraj
+    try:
+      import mdtraj
+    except ModuleNotFoundError:
+      raise ValueError("This class requires RDKit to be installed.")
+
     protein_coords = load_molecule(
         protein_file, add_hydrogens=False, calc_charges=False)[0]
     mapping = boxes_to_atoms(protein_coords, pockets)
@@ -101,6 +116,5 @@ class BindingPocketFeaturizer(Featurizer):
         if residue not in res_map:
           logger.info("Warning: Non-standard residue in PDB file")
           continue
-        atomtype = atom_name.split("-")[1]
         all_features[pocket_num, res_map[residue]] += 1
     return all_features

@@ -2,48 +2,14 @@
 Atomic coordinate featurizer.
 """
 import logging
+
 import numpy as np
-from deepchem.feat import Featurizer
-from deepchem.feat import ComplexFeaturizer
-from deepchem.utils import pad_array
+
+from deepchem.feat.base_classes import Featurizer, ComplexFeaturizer
+from deepchem.feat.molecule_featurizers import AtomicCoordinates
+from deepchem.utils.data_utils import pad_array
 from deepchem.utils.rdkit_utils import MoleculeLoadException, get_xyz_from_mol, \
   load_molecule, merge_molecules_xyz, merge_molecules
-
-
-class AtomicCoordinates(Featurizer):
-  """
-  Nx3 matrix of Cartesian coordinates [Angstrom]
-  """
-  name = ['atomic_coordinates']
-
-  def _featurize(self, mol):
-    """
-    Calculate atomic coodinates.
-
-    Parameters
-    ----------
-    mol : RDKit Mol
-          Molecule.
-    """
-
-    N = mol.GetNumAtoms()
-    coords = np.zeros((N, 3))
-
-    # RDKit stores atomic coordinates in Angstrom. Atomic unit of length is the
-    # bohr (1 bohr = 0.529177 Angstrom). Converting units makes gradient calculation
-    # consistent with most QM software packages.
-    coords_in_bohr = [
-        mol.GetConformer(0).GetAtomPosition(i).__idiv__(0.52917721092)
-        for i in range(N)
-    ]
-
-    for atom in range(N):
-      coords[atom, 0] = coords_in_bohr[atom].x
-      coords[atom, 1] = coords_in_bohr[atom].y
-      coords[atom, 2] = coords_in_bohr[atom].z
-
-    coords = [coords]
-    return coords
 
 
 def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
@@ -74,21 +40,6 @@ def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
     else:
       neighbor_list[i] = list(neighbors[i])
   return neighbor_list
-
-
-def get_coords(mol):
-  """
-  Gets coordinates in Angstrom for RDKit mol.
-  """
-  N = mol.GetNumAtoms()
-  coords = np.zeros((N, 3))
-
-  coords_raw = [mol.GetConformer(0).GetAtomPosition(i) for i in range(N)]
-  for atom in range(N):
-    coords[atom, 0] = coords_raw[atom].x
-    coords[atom, 1] = coords_raw[atom].y
-    coords[atom, 2] = coords_raw[atom].z
-  return coords
 
 
 class NeighborListAtomicCoordinates(Featurizer):
@@ -122,7 +73,8 @@ class NeighborListAtomicCoordinates(Featurizer):
     self.periodic_box_size = periodic_box_size
     # Type of data created by this featurizer
     self.dtype = object
-    self.coordinates_featurizer = AtomicCoordinates()
+    self.bohr_coords_featurizer = AtomicCoordinates(use_bohr=True)
+    self.coords_featurizer = AtomicCoordinates(use_bohr=False)
 
   def _featurize(self, mol):
     """
@@ -133,10 +85,9 @@ class NeighborListAtomicCoordinates(Featurizer):
       mol: rdkit Mol
         To be featurized.
     """
-    N = mol.GetNumAtoms()
     # TODO(rbharath): Should this return a list?
-    bohr_coords = self.coordinates_featurizer._featurize(mol)[0]
-    coords = get_coords(mol)
+    bohr_coords = self.bohr_coords_featurizer._featurize(mol)
+    coords = self.coords_featurizer._featurize(mol)
     neighbor_list = compute_neighbor_list(coords, self.neighbor_cutoff,
                                           self.max_num_neighbors,
                                           self.periodic_box_size)
@@ -160,7 +111,6 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     self.neighbor_cutoff = neighbor_cutoff
     # Type of data created by this featurizer
     self.dtype = object
-    self.coordinates_featurizer = AtomicCoordinates()
 
   def _featurize(self, mol_pdb_file, protein_pdb_file):
     """
@@ -168,10 +118,10 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
 
     Parameters
     ----------
-    mol_pdb_file: Str 
-      Filename for ligand pdb file. 
-    protein_pdb_file: Str 
-      Filename for protein pdb file. 
+    mol_pdb_file: str
+      Filename for ligand pdb file.
+    protein_pdb_file: str
+      Filename for protein pdb file.
     """
     mol_coords, ob_mol = load_molecule(mol_pdb_file)
     protein_coords, protein_mol = load_molecule(protein_pdb_file)
@@ -245,7 +195,7 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
 
       system_coords, system_neighbor_list, system_z = self.featurize_mol(
           system_coords, system_mol, self.complex_num_atoms)
-    except ValueError as e:
+    except ValueError:
       logging.warning(
           "max_atoms was set too low. Some complexes too large and skipped")
       return None

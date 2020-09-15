@@ -98,10 +98,22 @@ CircularFingerprint
 .. autoclass:: deepchem.feat.CircularFingerprint
   :members:
 
+Mol2VecFingerprint
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.Mol2VecFingerprint
+  :members:
+
 RDKitDescriptors
 ^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.RDKitDescriptors
+  :members:
+
+MordredDescriptors
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.MordredDescriptors
   :members:
 
 CoulombMatrix
@@ -122,12 +134,6 @@ AtomCoordinates
 .. autoclass:: deepchem.feat.AtomicCoordinates
   :members:
 
-AdjacencyFingerprint
-^^^^^^^^^^^^^^^^^^^^
-
-.. autoclass:: deepchem.feat.AdjacencyFingerprint
-  :members:
-
 SmilesToSeq
 ^^^^^^^^^^^
 
@@ -138,6 +144,12 @@ SmilesToImage
 ^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.SmilesToImage
+  :members:
+
+OneHotFeaturizer
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.OneHotFeaturizer
   :members:
 
 ComplexFeaturizer
@@ -221,12 +233,6 @@ BPSymmetryFunctionInput
 -----------------------
 
 .. autoclass:: deepchem.feat.BPSymmetryFunctionInput
-  :members:
-
-OneHotFeaturizer
-----------------
-
-.. autoclass:: deepchem.feat.OneHotFeaturizer
   :members:
 
 RawFeaturizer

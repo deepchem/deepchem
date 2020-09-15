@@ -1,6 +1,11 @@
 """
 Topological fingerprints.
 """
+from typing import Dict
+
+import numpy as np
+
+from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
 
 
@@ -11,48 +16,48 @@ class CircularFingerprint(MolecularFeaturizer):
   representation of a molecule by breaking it into local neighborhoods and
   hashing into a bit vector of the specified size. See [1]_ for more details.
 
-  Parameters
-  ----------
-  radius : int, optional (default 2)
-      Fingerprint radius.
-  size : int, optional (default 2048)
-      Length of generated bit vector.
-  chiral : bool, optional (default False)
-      Whether to consider chirality in fingerprint generation.
-  bonds : bool, optional (default True)
-      Whether to consider bond order in fingerprint generation.
-  features : bool, optional (default False)
-      Whether to use feature information instead of atom information; see
-      RDKit docs for more info.
-  sparse : bool, optional (default False)
-      Whether to return a dict for each molecule containing the sparse
-      fingerprint.
-  smiles : bool, optional (default False)
-      Whether to calculate SMILES strings for fragment IDs (only applicable
-      when calculating sparse fingerprints).
-
   References
   ----------
   .. [1] Rogers, David, and Mathew Hahn. "Extended-connectivity fingerprints."
-         Journal of chemical information and modeling 50.5 (2010): 742-754.
+     Journal of chemical information and modeling 50.5 (2010): 742-754.
 
-  Note
-  ----
+  Notes
+  -----
   This class requires RDKit to be installed.
   """
-  name = 'circular'
 
   def __init__(self,
-               radius=2,
-               size=2048,
-               chiral=False,
-               bonds=True,
-               features=False,
-               sparse=False,
-               smiles=False):
+               radius: int = 2,
+               size: int = 2048,
+               chiral: bool = False,
+               bonds: bool = True,
+               features: bool = False,
+               sparse: bool = False,
+               smiles: bool = False):
+    """
+    Parameters
+    ----------
+    radius: int, optional (default 2)
+      Fingerprint radius.
+    size: int, optional (default 2048)
+      Length of generated bit vector.
+    chiral: bool, optional (default False)
+      Whether to consider chirality in fingerprint generation.
+    bonds: bool, optional (default True)
+      Whether to consider bond order in fingerprint generation.
+    features: bool, optional (default False)
+      Whether to use feature information instead of atom information; see
+      RDKit docs for more info.
+    sparse: bool, optional (default False)
+      Whether to return a dict for each molecule containing the sparse
+      fingerprint.
+    smiles: bool, optional (default False)
+      Whether to calculate SMILES strings for fragment IDs (only applicable
+      when calculating sparse fingerprints).
+    """
     try:
-      from rdkit import Chem
-      from rdkit.Chem import rdMolDescriptors
+      from rdkit import Chem  # noqa
+      from rdkit.Chem import rdMolDescriptors  # noqa
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
 
@@ -64,18 +69,24 @@ class CircularFingerprint(MolecularFeaturizer):
     self.sparse = sparse
     self.smiles = smiles
 
-  def _featurize(self, mol):
+  def _featurize(self, mol: RDKitMol) -> np.ndarray:
     """Calculate circular fingerprint.
 
     Parameters
     ----------
-    mol : RDKit Mol
-        Molecule.
+    mol: rdkit.Chem.rdchem.Mol
+      RDKit Mol object
+
+    Returns
+    -------
+    np.ndarray
+      A numpy array of circular fingerprint.
     """
     from rdkit import Chem
     from rdkit.Chem import rdMolDescriptors
+
     if self.sparse:
-      info = {}
+      info: Dict = {}
       fp = rdMolDescriptors.GetMorganFingerprint(
           mol,
           self.radius,
@@ -103,6 +114,7 @@ class CircularFingerprint(MolecularFeaturizer):
           useChirality=self.chiral,
           useBondTypes=self.bonds,
           useFeatures=self.features)
+      fp = np.asarray(fp, dtype=np.float)
     return fp
 
   def __hash__(self):

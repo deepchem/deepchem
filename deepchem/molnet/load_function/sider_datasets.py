@@ -7,7 +7,7 @@ import deepchem
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 SIDER_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/sider.csv.gz"
 
 
@@ -58,15 +58,15 @@ def load_sider(featurizer='ECFP',
 
   dataset_file = os.path.join(data_dir, "sider.csv.gz")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=SIDER_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=SIDER_URL, dest_dir=data_dir)
 
-  dataset = deepchem.utils.save.load_from_disk(dataset_file)
+  dataset = deepchem.utils.data_utils.load_from_disk(dataset_file)
   logger.info("Columns of dataset: %s" % str(dataset.columns.values))
   logger.info("Number of examples in dataset: %s" % str(dataset.shape[0]))
   SIDER_tasks = dataset.columns.values[1:].tolist()
 
   if reload:
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return SIDER_tasks, all_dataset, transformers
@@ -126,7 +126,7 @@ def load_sider(featurizer='ECFP',
         frac_valid=frac_valid,
         frac_test=frac_test)
     if reload:
-      deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                               transformers)
+      deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                     test, transformers)
     all_dataset = (train, valid, test)
   return SIDER_tasks, all_dataset, transformers

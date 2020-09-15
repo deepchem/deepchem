@@ -1,5 +1,5 @@
 """
-Test Binding Pocket Features. 
+Test Binding Pocket Features.
 """
 import os
 import numpy as np
@@ -19,7 +19,6 @@ class TestBindingPocketFeatures(unittest.TestCase):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     protein_file = os.path.join(current_dir,
                                 "../../dock/tests/1jld_protein.pdb")
-    ligand_file = os.path.join(current_dir, "../../dock/tests/1jld_ligand.sdf")
 
     finder = dc.dock.ConvexHullPocketFinder()
     pocket_featurizer = dc.feat.BindingPocketFeaturizer()

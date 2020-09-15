@@ -108,7 +108,8 @@ def test_weave_layer():
   mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
   featurizer = dc.feat.WeaveFeaturizer()
   mols = featurizer.featurize(mols)
-  weave = layers.WeaveLayer()
+  weave = layers.WeaveLayer(
+      init=tf.keras.initializers.TruncatedNormal(stddev=0.03))
   atom_feat = []
   pair_feat = []
   atom_to_pair = []

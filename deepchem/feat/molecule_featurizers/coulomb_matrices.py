@@ -4,48 +4,11 @@ Generate coulomb matrices for molecules.
 See Montavon et al., _New Journal of Physics_ __15__ (2013) 095003.
 """
 import numpy as np
-import deepchem as dc
+from typing import Any, List, Optional
+
+from deepchem.utils.typing import RDKitMol
+from deepchem.utils.data_utils import pad_array
 from deepchem.feat.base_classes import MolecularFeaturizer
-from deepchem.utils import pad_array
-from deepchem.feat.atomic_coordinates import AtomicCoordinates
-
-
-class BPSymmetryFunctionInput(MolecularFeaturizer):
-  """Calculate Symmetry Function for each atom in the molecules
-
-  This method is described in [1]_
-
-  References
-  ----------
-  .. [1] Behler, Jörg, and Michele Parrinello. "Generalized neural-network
-         representation of high-dimensional potential-energy surfaces." Physical
-         review letters 98.14 (2007): 146401.
-
-  Note
-  ----
-  This class requires RDKit to be installed.
-  """
-
-  def __init__(self, max_atoms):
-    """Initialize this featurizer.
-
-    Parameters
-    ----------
-    max_atoms: int
-      The maximum number of atoms expected for molecules this featurizer will
-      process.
-    """
-    self.max_atoms = max_atoms
-
-  def _featurize(self, mol):
-    coordfeat = AtomicCoordinates()
-    coordinates = coordfeat._featurize(mol)[0]
-    atom_numbers = np.array([atom.GetAtomicNum() for atom in mol.GetAtoms()])
-    atom_numbers = np.expand_dims(atom_numbers, axis=1)
-    assert atom_numbers.shape[0] == coordinates.shape[0]
-    n_atoms = atom_numbers.shape[0]
-    features = np.concatenate([atom_numbers, coordinates], axis=1)
-    return np.pad(features, ((0, self.max_atoms - n_atoms), (0, 0)), 'constant')
 
 
 class CoulombMatrix(MolecularFeaturizer):
@@ -54,25 +17,9 @@ class CoulombMatrix(MolecularFeaturizer):
   Coulomb matrices provide a representation of the electronic structure of a
   molecule. This method is described in [1]_.
 
-  Parameters
-  ----------
-  max_atoms : int
-      Maximum number of atoms for any molecule in the dataset. Used to
-      pad the Coulomb matrix.
-  remove_hydrogens : bool, optional (default False)
-      Whether to remove hydrogens before constructing Coulomb matrix.
-  randomize : bool, optional (default False)
-      Whether to randomize Coulomb matrices to remove dependence on atom
-      index order.
-  upper_tri : bool, optional (default False)
-      Whether to return the upper triangular portion of the Coulomb matrix.
-  n_samples : int, optional (default 1)
-      Number of random Coulomb matrices to generate if randomize is True.
-  seed : int, optional
-      Random seed.
-
-  Example
-  -------
+  Examples
+  --------
+  >>> import deepchem as dc
   >>> featurizers = dc.feat.CoulombMatrix(max_atoms=23)
   >>> input_file = 'deepchem/feat/tests/data/water.sdf' # really backed by water.sdf.csv
   >>> tasks = ["atomization_energy"]
@@ -83,23 +30,21 @@ class CoulombMatrix(MolecularFeaturizer):
   References
   ----------
   .. [1] Montavon, Grégoire, et al. "Learning invariant representations of
-         molecules for atomization energy prediction." Advances in neural information
-         processing systems. 2012.
+     molecules for atomization energy prediction." Advances in neural information
+     processing systems. 2012.
 
-  Note
-  ----
+  Notes
+  -----
   This class requires RDKit to be installed.
   """
-  conformers = True
-  name = 'coulomb_matrix'
 
   def __init__(self,
-               max_atoms,
-               remove_hydrogens=False,
-               randomize=False,
-               upper_tri=False,
-               n_samples=1,
-               seed=None):
+               max_atoms: int,
+               remove_hydrogens: bool = False,
+               randomize: bool = False,
+               upper_tri: bool = False,
+               n_samples: int = 1,
+               seed: Optional[int] = None):
     """Initialize this featurizer.
 
     Parameters
@@ -119,9 +64,11 @@ class CoulombMatrix(MolecularFeaturizer):
       Random seed to use.
     """
     try:
-      from rdkit import Chem
+      from rdkit import Chem  # noqa
+      from rdkit.Chem import AllChem  # noqa
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
+
     self.max_atoms = int(max_atoms)
     self.remove_hydrogens = remove_hydrogens
     self.randomize = randomize
@@ -131,7 +78,7 @@ class CoulombMatrix(MolecularFeaturizer):
       seed = int(seed)
     self.seed = seed
 
-  def _featurize(self, mol):
+  def _featurize(self, mol: RDKitMol) -> np.ndarray:
     """
     Calculate Coulomb matrices for molecules. If extra randomized
     matrices are generated, they are treated as if they are features
@@ -142,25 +89,48 @@ class CoulombMatrix(MolecularFeaturizer):
 
     Parameters
     ----------
-    mol : RDKit Mol
-        Molecule.
+    mol: rdkit.Chem.rdchem.Mol
+      RDKit Mol object
+
+    Returns
+    -------
+    np.ndarray
+      The coulomb matrices of the given molecule.
+      The default shape is `(num_confs, max_atoms, max_atoms)`.
+      If num_confs == 1, the shape is `(max_atoms, max_atoms)`.
     """
     features = self.coulomb_matrix(mol)
     if self.upper_tri:
       features = [f[np.triu_indices_from(f)] for f in features]
     features = np.asarray(features)
+    if features.shape[0] == 1:
+      # `(1, max_atoms, max_atoms)` -> `(max_atoms, max_atoms)`
+      features = np.squeeze(features, axis=0)
     return features
 
-  def coulomb_matrix(self, mol):
+  def coulomb_matrix(self, mol: RDKitMol) -> np.ndarray:
     """
     Generate Coulomb matrices for each conformer of the given molecule.
 
     Parameters
     ----------
-    mol : RDKit Mol
-        Molecule.
+    mol: rdkit.Chem.rdchem.Mol
+      RDKit Mol object
+
+    Returns
+    -------
+    np.ndarray
+      The coulomb matrices of the given molecule
     """
     from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    # Check whether num_confs >=1 or not
+    num_confs = len(mol.GetConformers())
+    if num_confs == 0:
+      mol = Chem.AddHs(mol)
+      AllChem.EmbedMolecule(mol, AllChem.ETKDG())
+
     if self.remove_hydrogens:
       mol = Chem.RemoveHs(mol)
     n_atoms = mol.GetNumAtoms()
@@ -180,7 +150,7 @@ class CoulombMatrix(MolecularFeaturizer):
     rval = np.asarray(rval)
     return rval
 
-  def randomize_coulomb_matrix(self, m):
+  def randomize_coulomb_matrix(self, m: np.ndarray) -> List[np.ndarray]:
     """Randomize a Coulomb matrix as decribed in [1]_:
 
     1. Compute row norms for M in a vector row_norms.
@@ -191,12 +161,13 @@ class CoulombMatrix(MolecularFeaturizer):
 
     Parameters
     ----------
-    m : ndarray
-        Coulomb matrix.
-    n_samples : int, optional (default 1)
-        Number of random matrices to generate.
-    seed : int, optional
-        Random seed.
+    m: np.ndarray
+      Coulomb matrix.
+
+    Returns
+    -------
+    List[np.ndarray]
+      List of the random coulomb matrix
 
     References
     ----------
@@ -213,19 +184,25 @@ class CoulombMatrix(MolecularFeaturizer):
     return rval
 
   @staticmethod
-  def get_interatomic_distances(conf):
+  def get_interatomic_distances(conf: Any) -> np.ndarray:
     """
     Get interatomic distances for atoms in a molecular conformer.
 
     Parameters
     ----------
-    conf : RDKit Conformer
-        Molecule conformer.
+    conf: rdkit.Chem.rdchem.Conformer
+      Molecule conformer.
+
+    Returns
+    -------
+    np.ndarray
+      The distances matrix for all atoms in a molecule
     """
     n_atoms = conf.GetNumAtoms()
     coords = [
+        # Convert AtomPositions from Angstrom to bohr (atomic units)
         conf.GetAtomPosition(i).__idiv__(0.52917721092) for i in range(n_atoms)
-    ]  # Convert AtomPositions from Angstrom to bohr (atomic units)
+    ]
     d = np.zeros((n_atoms, n_atoms), dtype=float)
     for i in range(n_atoms):
       for j in range(i):
@@ -240,23 +217,9 @@ class CoulombMatrixEig(CoulombMatrix):
   This featurizer computes the eigenvalues of the Coulomb matrices for provided
   molecules. Coulomb matrices are described in [1]_.
 
-  Parameters
-  ----------
-  max_atoms : int
-      Maximum number of atoms for any molecule in the dataset. Used to
-      pad the Coulomb matrix.
-  remove_hydrogens : bool, optional (default False)
-      Whether to remove hydrogens before constructing Coulomb matrix.
-  randomize : bool, optional (default False)
-      Whether to randomize Coulomb matrices to remove dependence on atom
-      index order.
-  n_samples : int, optional (default 1)
-      Number of random Coulomb matrices to generate if randomize is True.
-  seed : int, optional
-      Random seed.
-
-  Example
-  -------
+  Examples
+  --------
+  >>> import deepchem as dc
   >>> featurizers = dc.feat.CoulombMatrixEig(max_atoms=23)
   >>> input_file = 'deepchem/feat/tests/data/water.sdf' # really backed by water.sdf.csv
   >>> tasks = ["atomization_energy"]
@@ -266,19 +229,16 @@ class CoulombMatrixEig(CoulombMatrix):
   References
   ----------
   .. [1] Montavon, Grégoire, et al. "Learning invariant representations of
-         molecules for atomization energy prediction." Advances in neural information
-         processing systems. 2012.
+     molecules for atomization energy prediction." Advances in neural information
+     processing systems. 2012.
   """
 
-  conformers = True
-  name = 'coulomb_matrix'
-
   def __init__(self,
-               max_atoms,
-               remove_hydrogens=False,
-               randomize=False,
-               n_samples=1,
-               seed=None):
+               max_atoms: int,
+               remove_hydrogens: bool = False,
+               randomize: bool = False,
+               n_samples: int = 1,
+               seed: Optional[int] = None):
     """Initialize this featurizer.
 
     Parameters
@@ -303,7 +263,7 @@ class CoulombMatrixEig(CoulombMatrix):
       seed = int(seed)
     self.seed = seed
 
-  def _featurize(self, mol):
+  def _featurize(self, mol: RDKitMol) -> np.ndarray:
     """
     Calculate eigenvalues of Coulomb matrix for molecules. Eigenvalues
     are returned sorted by absolute value in descending order and padded
@@ -311,11 +271,18 @@ class CoulombMatrixEig(CoulombMatrix):
 
     Parameters
     ----------
-    mol : RDKit Mol
-        Molecule.
+    mol: rdkit.Chem.rdchem.Mol
+      RDKit Mol object
+
+    Returns
+    -------
+    np.ndarray
+      The eigenvalues of Coulomb matrix for molecules.
+      The default shape is `(num_confs, max_atoms)`.
+      If num_confs == 1, the shape is `(max_atoms,)`.
     """
     cmat = self.coulomb_matrix(mol)
-    features = []
+    features_list = []
     for f in cmat:
       w, v = np.linalg.eig(f)
       w_abs = np.abs(w)
@@ -323,6 +290,9 @@ class CoulombMatrixEig(CoulombMatrix):
       sortidx = sortidx[::-1]
       w = w[sortidx]
       f = pad_array(w, self.max_atoms)
-      features.append(f)
-    features = np.asarray(features)
+      features_list.append(f)
+    features = np.asarray(features_list)
+    if features.shape[0] == 1:
+      # `(1, max_atoms)` -> `(max_atoms,)`
+      features = np.squeeze(features, axis=0)
     return features

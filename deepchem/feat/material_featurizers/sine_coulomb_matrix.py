@@ -2,7 +2,7 @@ import numpy as np
 
 from deepchem.utils.typing import PymatgenStructure
 from deepchem.feat import MaterialStructureFeaturizer
-from deepchem.utils import pad_array
+from deepchem.utils.data_utils import pad_array
 
 
 class SineCoulombMatrix(MaterialStructureFeaturizer):
@@ -54,9 +54,14 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
     flatten: bool (default True)
       Return flattened vector of matrix eigenvalues.
     """
+    try:
+      from matminer.featurizers.structure import SineCoulombMatrix as SCM
+    except ModuleNotFoundError:
+      raise ValueError("This class requires matminer to be installed.")
 
     self.max_atoms = max_atoms
     self.flatten = flatten
+    self.scm = SCM(flatten=False)
 
   def _featurize(self, struct: PymatgenStructure) -> np.ndarray:
     """
@@ -74,15 +79,8 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
       2D sine Coulomb matrix with shape (max_atoms, max_atoms),
       or 1D matrix eigenvalues with shape (max_atoms,).
     """
-
-    try:
-      from matminer.featurizers.structure import SineCoulombMatrix as SCM
-    except ModuleNotFoundError:
-      raise ValueError("This class requires matminer to be installed.")
-
     # Get full N x N SCM
-    scm = SCM(flatten=False)
-    sine_mat = scm.featurize(struct)
+    sine_mat = self.scm.featurize(struct)
 
     if self.flatten:
       eigs, _ = np.linalg.eig(sine_mat)

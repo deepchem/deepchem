@@ -1,6 +1,5 @@
 import numpy as np
 import unittest
-import deepchem as dc
 from deepchem.utils import voxel_utils
 from deepchem.utils import hash_utils
 
@@ -32,7 +31,6 @@ class TestVoxelUtils(unittest.TestCase):
   def test_voxelize_convert_atom(self):
     N = 5
     coordinates = np.random.rand(N, 3)
-    atom_index = 2
     box_width = 16
     voxel_width = 1
     voxels_per_edge = int(box_width / voxel_width)
@@ -57,7 +55,6 @@ class TestVoxelUtils(unittest.TestCase):
     coordinates1 = np.random.rand(N, 3)
     coordinates2 = np.random.rand(M, 3)
     coordinates = [coordinates1, coordinates2]
-    atom_index_pair = (2, 3)
     box_width = 16
     voxel_width = 1
     voxels_per_edge = int(box_width / voxel_width)

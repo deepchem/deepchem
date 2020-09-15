@@ -1,222 +1,91 @@
 """
 Miscellaneous utility functions.
 """
+# flake8: noqa
+from deepchem.utils.conformers import ConformerGenerator
+from deepchem.utils.evaluate import relative_difference
+from deepchem.utils.evaluate import Evaluator
+from deepchem.utils.evaluate import GeneratorEvaluator
 
-__author__ = "Steven Kearnes"
-__copyright__ = "Copyright 2014, Stanford University"
-__license__ = "BSD 3-clause"
+from deepchem.utils.coordinate_box_utils import CoordinateBox
+from deepchem.utils.coordinate_box_utils import intersect_interval
+from deepchem.utils.coordinate_box_utils import intersection
+from deepchem.utils.coordinate_box_utils import union
+from deepchem.utils.coordinate_box_utils import merge_overlapping_boxes
+from deepchem.utils.coordinate_box_utils import get_face_boxes
 
-import gzip
-import numpy as np
-import os
-import pandas as pd
-import sys
-import tempfile
-import tarfile
-import zipfile
+from deepchem.utils.data_utils import pad_array
+from deepchem.utils.data_utils import get_data_dir
+from deepchem.utils.data_utils import download_url
+from deepchem.utils.data_utils import untargz_file
+from deepchem.utils.data_utils import unzip_file
+from deepchem.utils.data_utils import load_image_files
+from deepchem.utils.data_utils import load_sdf_files
+from deepchem.utils.data_utils import load_csv_files
+from deepchem.utils.data_utils import load_json_files
+from deepchem.utils.data_utils import load_pickle_files
+from deepchem.utils.data_utils import load_data
+from deepchem.utils.data_utils import save_to_disk
+from deepchem.utils.data_utils import load_from_disk
+from deepchem.utils.data_utils import save_dataset_to_disk
+from deepchem.utils.data_utils import load_dataset_from_disk
 
-from urllib.request import urlretrieve
+from deepchem.utils.debug_utils import get_print_threshold
+from deepchem.utils.debug_utils import set_print_threshold
+from deepchem.utils.debug_utils import get_max_print_size
+from deepchem.utils.debug_utils import set_max_print_size
 
+from deepchem.utils.fragment_utils import AtomShim
+from deepchem.utils.fragment_utils import MolecularFragment
+from deepchem.utils.fragment_utils import get_partial_charge
+from deepchem.utils.fragment_utils import merge_molecular_fragments
+from deepchem.utils.fragment_utils import get_mol_subset
+from deepchem.utils.fragment_utils import strip_hydrogens
+from deepchem.utils.fragment_utils import get_contact_atom_indices
+from deepchem.utils.fragment_utils import reduce_molecular_complex_to_contacts
 
-def pad_array(x, shape, fill=0, both=False):
-  """
-  Pad an array with a fill value.
+from deepchem.utils.genomics_utils import seq_one_hot_encode
+from deepchem.utils.genomics_utils import encode_bio_sequence
 
-  Parameters
-  ----------
-  x : ndarray
-      Matrix.
-  shape : tuple or int
-      Desired shape. If int, all dimensions are padded to that size.
-  fill : object, optional (default 0)
-      Fill value.
-  both : bool, optional (default False)
-      If True, split the padding on both sides of each axis. If False,
-      padding is applied to the end of each axis.
-  """
-  x = np.asarray(x)
-  if not isinstance(shape, tuple):
-    shape = tuple(shape for _ in range(x.ndim))
-  pad = []
-  for i in range(x.ndim):
-    diff = shape[i] - x.shape[i]
-    assert diff >= 0
-    if both:
-      a, b = divmod(diff, 2)
-      b += a
-      pad.append((a, b))
-    else:
-      pad.append((0, diff))
-  pad = tuple(pad)
-  x = np.pad(x, pad, mode='constant', constant_values=fill)
-  return x
+from deepchem.utils.geometry_utils import unit_vector
+from deepchem.utils.geometry_utils import angle_between
+from deepchem.utils.geometry_utils import generate_random_unit_vector
+from deepchem.utils.geometry_utils import generate_random_rotation_matrix
+from deepchem.utils.geometry_utils import is_angle_within_cutoff
+from deepchem.utils.geometry_utils import compute_centroid
+from deepchem.utils.geometry_utils import subtract_centroid
+from deepchem.utils.geometry_utils import compute_protein_range
+from deepchem.utils.geometry_utils import compute_pairwise_distances
 
+from deepchem.utils.hash_utils import hash_ecfp
+from deepchem.utils.hash_utils import hash_ecfp_pair
+from deepchem.utils.hash_utils import vectorize
 
-def get_data_dir():
-  """Get the DeepChem data directory."""
-  if 'DEEPCHEM_DATA_DIR' in os.environ:
-    return os.environ['DEEPCHEM_DATA_DIR']
-  return tempfile.gettempdir()
+from deepchem.utils.molecule_feature_utils import one_hot_encode
+from deepchem.utils.molecule_feature_utils import get_atom_type_one_hot
+from deepchem.utils.molecule_feature_utils import construct_hydrogen_bonding_info
+from deepchem.utils.molecule_feature_utils import get_atom_hydrogen_bonding_one_hot
+from deepchem.utils.molecule_feature_utils import get_atom_is_in_aromatic_one_hot
+from deepchem.utils.molecule_feature_utils import get_atom_hybridization_one_hot
+from deepchem.utils.molecule_feature_utils import get_atom_total_num_Hs_one_hot
+from deepchem.utils.molecule_feature_utils import get_atom_chirality_one_hot
+from deepchem.utils.molecule_feature_utils import get_atom_formal_charge
+from deepchem.utils.molecule_feature_utils import get_atom_partial_charge
+from deepchem.utils.molecule_feature_utils import get_atom_ring_size_one_hot
+from deepchem.utils.molecule_feature_utils import get_atom_total_degree_one_hot
+from deepchem.utils.molecule_feature_utils import get_bond_type_one_hot
+from deepchem.utils.molecule_feature_utils import get_bond_is_in_same_ring_one_hot
+from deepchem.utils.molecule_feature_utils import get_bond_is_conjugated_one_hot
+from deepchem.utils.molecule_feature_utils import get_bond_stereo_one_hot
+from deepchem.utils.molecule_feature_utils import get_bond_graph_distance_one_hot
 
+from deepchem.utils.pdbqt_utils import pdbqt_to_pdb
+from deepchem.utils.pdbqt_utils import convert_protein_to_pdbqt
+from deepchem.utils.pdbqt_utils import convert_mol_to_pdbqt
 
-# The number of elements to print for dataset ids/tasks
-_print_threshold = 10
+from deepchem.utils.vina_utils import write_vina_conf
+from deepchem.utils.vina_utils import load_docked_ligands
 
-
-def get_print_threshold():
-  """Return the printing threshold for datasets.
-
-  The print threshold is the number of elements from ids/tasks to
-  print when printing representations of `Dataset` objects.
-
-  Returns
-  ----------
-  threshold: int
-    Number of elements that will be printed
-  """
-  return _print_threshold
-
-
-def set_print_threshold(threshold):
-  """Set print threshold
-
-  The print threshold is the number of elements from ids/tasks to
-  print when printing representations of `Dataset` objects.
-
-  Parameters
-  ----------
-  threshold: int
-    Number of elements to print.
-  """
-  global _print_threshold
-  _print_threshold = threshold
-
-
-# If a dataset contains more than this number of elements, it won't
-# print any dataset ids
-_max_print_size = 1000
-
-
-def get_max_print_size():
-  """Return the max print size for a datset.
-
-  If a dataset is large, printing `self.ids` as part of a string
-  representation can be very slow. This field controls the maximum
-  size for a dataset before ids are no longer printed.
-
-  Returns
-  -------
-  max_print_size: int
-    Maximum length of a dataset for ids to be printed in string
-    representation.
-  """
-  return _max_print_size
-
-
-def set_max_print_size(max_print_size):
-  """Set max_print_size
-
-  If a dataset is large, printing `self.ids` as part of a string
-  representation can be very slow. This field controls the maximum
-  size for a dataset before ids are no longer printed.
-
-  Parameters
-  ----------
-  max_print_size: int
-    Maximum length of a dataset for ids to be printed in string
-    representation.
-  """
-  global _max_print_size
-  _max_print_size = max_print_size
-
-
-def download_url(url, dest_dir=get_data_dir(), name=None):
-  """Download a file to disk.
-
-  Parameters
-  ----------
-  url: str
-    the URL to download from
-  dest_dir: str
-    the directory to save the file in
-  name: str
-    the file name to save it as.  If omitted, it will try to extract a file name from the URL
-  """
-  if name is None:
-    name = url
-    if '?' in name:
-      name = name[:name.find('?')]
-    if '/' in name:
-      name = name[name.rfind('/') + 1:]
-  urlretrieve(url, os.path.join(dest_dir, name))
-
-
-def untargz_file(file, dest_dir=get_data_dir(), name=None):
-  """Untar and unzip a .tar.gz file to disk.
-
-  Parameters
-  ----------
-  file: str
-    the filepath to decompress
-  dest_dir: str
-    the directory to save the file in
-  name: str
-    the file name to save it as.  If omitted, it will use the file name
-  """
-  if name is None:
-    name = file
-  tar = tarfile.open(name)
-  tar.extractall(path=dest_dir)
-  tar.close()
-
-
-def unzip_file(file, dest_dir=None, name=None):
-  """Unzip a .zip file to disk.
-
-  Parameters
-  ----------
-  file: str
-    the filepath to decompress
-  dest_dir: str
-    the directory to save the file in
-  name: str
-    the directory name to unzip it to.  If omitted, it will use the file
-    name
-  """
-  if name is None:
-    name = file
-  if dest_dir is None:
-    dest_dir = os.path.join(get_data_dir, name)
-  with zipfile.ZipFile(file, "r") as zip_ref:
-    zip_ref.extractall(dest_dir)
-
-
-class ScaffoldGenerator(object):
-  """
-  Generate molecular scaffolds.
-
-  Parameters
-  ----------
-  include_chirality : : bool, optional (default False)
-      Include chirality in scaffolds.
-  """
-
-  def __init__(self, include_chirality=False):
-    self.include_chirality = include_chirality
-
-  def get_scaffold(self, mol):
-    """
-    Get Murcko scaffolds for molecules.
-
-    Murcko scaffolds are described in DOI: 10.1021/jm9602928.
-    They are essentially that part of the molecule consisting of
-    rings and the linker atoms between them.
-
-    Parameters
-    ----------
-    mols : array_like
-        Molecules.
-    """
-    from rdkit.Chem.Scaffolds import MurckoScaffold
-    return MurckoScaffold.MurckoScaffoldSmiles(
-        mol=mol, includeChirality=self.include_chirality)
+from deepchem.utils.voxel_utils import convert_atom_to_voxel
+from deepchem.utils.voxel_utils import convert_atom_pair_to_voxel
+from deepchem.utils.voxel_utils import voxelize

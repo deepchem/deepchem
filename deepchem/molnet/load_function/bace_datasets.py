@@ -8,7 +8,7 @@ from deepchem.molnet.load_function.bace_features import bace_user_specified_feat
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 BACE_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/bace.csv"
 
 
@@ -63,14 +63,14 @@ def load_bace_regression(featurizer='ECFP',
       save_folder = os.path.join(save_folder, img_spec)
     save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return bace_tasks, all_dataset, transformers
 
   dataset_file = os.path.join(data_dir, "bace.csv")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=BACE_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=BACE_URL, dest_dir=data_dir)
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
@@ -90,9 +90,9 @@ def load_bace_regression(featurizer='ECFP',
         img_size=img_size, img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
-      tasks=bace_tasks, smiles_field="mol", featurizer=featurizer)
+      tasks=bace_tasks, feature_field="mol", featurizer=featurizer)
 
-  dataset = loader.featurize(dataset_file, shard_size=8192)
+  dataset = loader.create_dataset(dataset_file, shard_size=8192)
   if split is None:
     # Initialize transformers
     transformers = [
@@ -136,8 +136,8 @@ def load_bace_regression(featurizer='ECFP',
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
   return bace_tasks, (train, valid, test), transformers
 
 
@@ -167,14 +167,14 @@ def load_bace_classification(featurizer='ECFP',
       save_folder = os.path.join(save_folder, img_spec)
     save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return bace_tasks, all_dataset, transformers
 
   dataset_file = os.path.join(data_dir, "bace.csv")
   if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=BACE_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=BACE_URL, dest_dir=data_dir)
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
@@ -194,9 +194,9 @@ def load_bace_classification(featurizer='ECFP',
         img_size=img_size, img_spec=img_spec)
 
   loader = deepchem.data.CSVLoader(
-      tasks=bace_tasks, smiles_field="mol", featurizer=featurizer)
+      tasks=bace_tasks, feature_field="mol", featurizer=featurizer)
 
-  dataset = loader.featurize(dataset_file, shard_size=8192)
+  dataset = loader.create_dataset(dataset_file, shard_size=8192)
 
   if split is None:
     # Initialize transformers
@@ -236,6 +236,6 @@ def load_bace_classification(featurizer='ECFP',
     test = transformer.transform(test)
 
   if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
   return bace_tasks, (train, valid, test), transformers

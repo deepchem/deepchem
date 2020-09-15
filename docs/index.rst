@@ -121,6 +121,7 @@ discussions about research, development or any general questions. If you'd like 
 .. toctree::
    :glob:
    :maxdepth: 2
+
    :caption: Get Started
 
    tutorial
@@ -137,6 +138,7 @@ discussions about research, development or any general questions. If you'd like 
    dataclasses
    moleculenet
    featurizers
+   tokenizers
    splitters
    transformers
    models

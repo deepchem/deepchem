@@ -9,7 +9,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 HPPB_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/hppb.csv"
-DEFAULT_DATA_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DATA_DIR = deepchem.utils.data_utils.get_data_dir()
 
 
 def remove_missing_entries(dataset):
@@ -53,7 +53,7 @@ def load_hppb(featurizer="ECFP",
       save_folder = os.path.join(save_folder, img_spec)
     save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return hppb_tasks, all_dataset, transformers
@@ -61,7 +61,7 @@ def load_hppb(featurizer="ECFP",
   dataset_file = os.path.join(data_dir, "hppb.csv")
   if not os.path.exists(dataset_file):
     logger.info("{} does not exist. Downloading it.".format(dataset_file))
-    deepchem.utils.download_url(url=hppb_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=hppb_URL, dest_dir=data_dir)
 
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
@@ -71,9 +71,6 @@ def load_hppb(featurizer="ECFP",
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
-  elif featurizer == 'AdjacencyConv':
-    featurizer = deepchem.feat.AdjacencyFingerprint(
-        max_n_atoms=150, max_valence=6)
   elif featurizer == "smiles2img":
     img_spec = kwargs.get("img_spec", "std")
     img_size = kwargs.get("img_size", 80)
@@ -126,6 +123,6 @@ def load_hppb(featurizer="ECFP",
 
   if reload:
     logger.info("Saving file to {}.".format(save_folder))
-    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
+                                                   test, transformers)
   return hppb_tasks, (train, valid, test), transformers

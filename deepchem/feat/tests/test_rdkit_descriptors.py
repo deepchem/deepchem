@@ -4,7 +4,7 @@ Test basic molecular features.
 import numpy as np
 import unittest
 
-from deepchem.feat.rdkit_descriptors import RDKitDescriptors
+from deepchem.feat import RDKitDescriptors
 
 
 class TestRDKitDescriptors(unittest.TestCase):
@@ -16,37 +16,40 @@ class TestRDKitDescriptors(unittest.TestCase):
     """
     Set up tests.
     """
-    smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
     from rdkit import Chem
+    smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
     self.mol = Chem.MolFromSmiles(smiles)
-    self.engine = RDKitDescriptors()
+    self.featurizer = RDKitDescriptors()
 
-  def testRDKitDescriptors(self):
+  def test_rdkit_descriptors(self):
     """
     Test simple descriptors.
     """
-    descriptors = self.engine([self.mol])
+    descriptors = self.featurizer([self.mol])
+    assert descriptors.shape == (1, 200)
     assert np.allclose(
-        descriptors[0, self.engine.descriptors.index('ExactMolWt')],
+        descriptors[0, self.featurizer.descriptors.index('ExactMolWt')],
         180,
         atol=0.1)
 
-  def testRDKitDescriptorsOnSmiles(self):
+  def test_rdkit_descriptors_on_smiles(self):
     """
     Test invocation on raw smiles.
     """
-    descriptors = self.engine('CC(=O)OC1=CC=CC=C1C(=O)O')
+    descriptors = self.featurizer('CC(=O)OC1=CC=CC=C1C(=O)O')
+    assert descriptors.shape == (1, 200)
     assert np.allclose(
-        descriptors[0, self.engine.descriptors.index('ExactMolWt')],
+        descriptors[0, self.featurizer.descriptors.index('ExactMolWt')],
         180,
         atol=0.1)
 
-  def testRDKitDescriptorsOnMol(self):
+  def test_rdkit_descriptors_on_mol(self):
     """
     Test invocation on RDKit mol.
     """
-    descriptors = self.engine(self.mol)
+    descriptors = self.featurizer(self.mol)
+    assert descriptors.shape == (1, 200)
     assert np.allclose(
-        descriptors[0, self.engine.descriptors.index('ExactMolWt')],
+        descriptors[0, self.featurizer.descriptors.index('ExactMolWt')],
         180,
         atol=0.1)

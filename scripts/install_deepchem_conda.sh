@@ -19,11 +19,11 @@ then
     # This is because TensorFlow mainly supports CUDA 10.1.
     cuda=cu101
     dgl_pkg=dgl-cu101
-    echo "Installing DeepChem in the GPU envirionment"
+    echo "Installing DeepChem in the GPU environment"
 else
     cuda=cpu
     dgl_pkg=dgl
-    echo "Installing DeepChem in the CPU envirionment"
+    echo "Installing DeepChem in the CPU environment"
 fi
 
 # Install dependencies except PyTorch and TensorFlow
@@ -58,3 +58,5 @@ pip install torch-cluster==latest+$cuda -f https://pytorch-geometric.com/whl/tor
 pip install torch-spline-conv==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
 pip install torch-geometric
 pip install $dgl_pkg
+# install transformers package
+pip install transformers

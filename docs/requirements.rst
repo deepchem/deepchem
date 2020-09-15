@@ -46,6 +46,14 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `Mol2vec`_                     | latest        | :code:`dc.utils.molecule_featurizers`             |
+|                                |               |                                                   |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
+| `Mordred`_                     | latest        | :code:`dc.utils.molecule_featurizers`             |
+|                                |               |                                                   |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
 | `NetworkX`_                    | latest        | :code:`dc.utils.rdkit_utils`                      |
 |                                |               |                                                   |
 |                                |               |                                                   |
@@ -98,6 +106,10 @@ DeepChem has a number of "soft" requirements.
 |                                |               | :code:`dc.models.callbacks`                       |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `HuggingFace Transformers`_    | Not Testing   | :code:`dc.feat.smiles_tokenizer`                  |
+|                                |               |                                                   |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
           
 .. _`joblib`: https://pypi.python.org/pypi/joblib
 .. _`NumPy`: https://numpy.org/
@@ -110,6 +122,8 @@ DeepChem has a number of "soft" requirements.
 .. _`OpenAI Gym`: https://gym.openai.com/
 .. _`matminer`: https://hackingmaterials.lbl.gov/matminer/
 .. _`MDTraj`: http://mdtraj.org/
+.. _`Mol2vec`: https://github.com/samoturk/mol2vec
+.. _`Mordred`: http://mordred-descriptor.github.io/documentation/master/
 .. _`NetworkX`: https://networkx.github.io/documentation/stable/index.html
 .. _`OpenMM`: http://openmm.org/
 .. _`PDBFixer`: https://github.com/pandegroup/pdbfixer
@@ -123,3 +137,5 @@ DeepChem has a number of "soft" requirements.
 .. _`Tensorflow Probability`: https://www.tensorflow.org/probability
 .. _`XGBoost`: https://xgboost.readthedocs.io/en/latest/
 .. _`Weights & Biases`: https://docs.wandb.com/
+.. _`HuggingFace Transformers`: https://huggingface.co/transformers/
+
