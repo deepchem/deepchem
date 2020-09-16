@@ -98,8 +98,6 @@ class CGCNNLayer(nn.Module):
     dgl_graph.edata['edge_attr'] = edge_feats
     dgl_graph.update_all(self.message_func, self.reduce_func)
     node_feats = dgl_graph.ndata.pop('new_x')
-    if self.batch_norm is not None:
-      node_feats = self.batch_norm(node_feats)
     return node_feats
 
 
