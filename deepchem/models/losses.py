@@ -192,7 +192,17 @@ class SparseSoftmaxCrossEntropy(Loss):
 
   def _create_pytorch_loss(self):
     import torch
-    return torch.nn.CrossEntropyLoss(reduction='none')
+    ce_loss = torch.nn.CrossEntropyLoss(reduction='mean')
+
+    def loss(output, labels):
+      # Convert (batch_size, tasks, classes) to (batch_size, classes, tasks)
+      # CrossEntropyLoss only supports (batch_size, classes, tasks)
+      # This is for API consistency
+      if len(output.shape) == 3:
+        output = output.permute(0, 2, 1)
+      return ce_loss(output, labels.long())
+
+    return loss
 
 
 def _make_tf_shapes_consistent(output, labels):
@@ -251,3 +261,9 @@ def _ensure_float(output, labels):
   if labels.dtype not in (tf.float32, tf.float64):
     labels = tf.cast(labels, tf.float32)
   return (output, labels)
+
+
+def _ensure_long(labels):
+  """Make sure the outputs are Long types."""
+  labels = [val.long() for val in labels]
+  return labels
