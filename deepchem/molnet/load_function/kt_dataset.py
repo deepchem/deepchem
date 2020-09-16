@@ -52,19 +52,10 @@ def load_kt_dataset(
     splitter_kwargs: Dict[str, object] = {},
     transformer_kwargs: Dict[str, Dict[str, object]] = {},
     **kwargs) -> (Tuple[List, Tuple, List]):
-
-"""
-
+  """
   KT parameters are scales to measure and quantify the Lewis acidity and basicity of molecules. The parameters are obtained through Nuclear Magnetic Resonance (NMR) spectra. Random splitting is recommended for this dataset.
+  Please refer to reference-[2] for which the dataset was hand curated. Benchmark training is also present in this work. Accuracy levels (rmse) reported here are of the order 0.01  for alpha and beta on unseen data. 
   The raw data csv file contains columns below:
-  Please refer to https://arxiv.org/pdf/2008.08078 (2020) for which the dataset was hand curated. Benchmark training is also present in this work. Accuracy levels (rmse) reported here are of the order 0.01  for alpha and beta on unseen data. 
-   References
-  ----------
-  [1] Marcus, Yizhak. "The properties of organic liquids that are relevant to their use as solvating solvents." Chemical Society Reviews 22, no. 6 (1993): 409-416.
-
-
-  Loading ktdataset.
-
   - "csmiles" - canonical SMILES representation of the molecular structure
   - "cid" - PubChem CID of molecules
   - "alpha" - KT paramter that quantifies the acidity of a molecule
@@ -106,10 +97,12 @@ def load_kt_dataset(
       ``deepchem.trans.transformers.Transformer`` instances applied
       to dataset.
 
-  References
+ 
+ References
   ----------
-  MLA style references for the KT parameter dataset. 
-    [1] Marcus, Yizhak. "The properties of organic liquids that are relevant to their use as solvating solvents." Chemical Society Reviews 22.6 (1993): 409-416.
+  [1] Marcus, Yizhak. "The properties of organic liquids that are relevant to their use as solvating solvents." Chemical Society Reviews 22, no. 6 (1993): 409-416.
+  [2] Krishnamurthy, Dilip, et al. "Closed-Loop Design of Proton Donors for Lithium-Mediated Ammonia Production with Interpretable Models and Molecular Machine Learning." arXiv preprint arXiv:2008.08078 (2020).
+
   Examples
   --------
   >> import deepchem as dc
@@ -118,12 +111,7 @@ def load_kt_dataset(
   >> n_tasks = len(tasks)
   >> n_features = train_dataset.get_data_shape()[0]
   >> model = dc.models.MultitaskClassifier(n_tasks, n_features)
-"""
-
-
-  
-  
-
+  """
   # Featurize ktdataset
   logger.info("About to featurize ktdataset.")
   kt_tasks = ["alpha", "beta"]  # machine learning targets
@@ -158,7 +146,9 @@ def load_kt_dataset(
       return kt_tasks, all_dataset, transformers
 
   # First type of supported featurizers
-  supported_featurizers = ['ECFP', 'GraphConv', 'Weave', 'Raw', 'AdjacencyConv']  # type: List[Featurizer]
+  supported_featurizers = [
+      'ECFP', 'GraphConv', 'Weave', 'Raw', 'AdjacencyConv'
+  ]  # type: List[Featurizer]
 
   # If featurizer requires a non-CSV file format, load .tar.gz file
   if featurizer in supported_featurizers:
@@ -170,7 +160,7 @@ def load_kt_dataset(
           os.path.join(data_dir, 'ktdataset.tar.gz'), data_dir)
 
     # Changer loader to match featurizer and data file type
-    loader = deepchem.data.DataLoader(
+    loader = deepchem.data.CSVLoader(
         tasks=kt_tasks,
         id_field="cid",  # column name holding sample identifier
         featurizer=featurizer)
@@ -181,7 +171,7 @@ def load_kt_dataset(
       deepchem.utils.download_url(url=KTDATASET_CSV_URL, dest_dir=data_dir)
 
     loader = deepchem.data.CSVLoader(
-        tasks=kt_tasks, smiles_field="csmiles", featurizer=featurizer)
+        tasks=kt_tasks, feature_field="csmiles", featurizer=featurizer)
 
   # Featurize dataset
   dataset = loader.create_dataset(dataset_file)
@@ -207,4 +197,3 @@ def load_kt_dataset(
         save_folder, train_dataset, valid_dataset, test_dataset, transformers)
 
   return kt_tasks, (train_dataset, valid_dataset, test_dataset), transformers
-
