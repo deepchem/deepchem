@@ -31,5 +31,5 @@ def test_zinc15_loader():
   assert train.X.shape == (3, 100, 35)
   assert np.allclose(train.X[0][0], test_vec, atol=0.01)
 
-  if os.path.exists(os.path.join(current_dir, 'zinc15.csv')):
-    os.remove(os.path.join(current_dir, 'zinc15.csv'))
+  if os.path.exists(os.path.join(current_dir, 'zinc15_250K_2D.csv')):
+    os.remove(os.path.join(current_dir, 'zinc15_250K_2D.csv'))

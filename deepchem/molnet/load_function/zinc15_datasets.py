@@ -14,7 +14,6 @@ from typing import List, Tuple, Dict, Optional
 logger = logging.getLogger(__name__)
 
 DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
-zinc15_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/zinc15.tar.gz"
 
 # dict of accepted featurizers for this dataset
 DEFAULT_FEATURIZERS = get_defaults("feat")
@@ -52,24 +51,38 @@ def load_zinc15(
             'transform_X': True
         }
     },
+    zinc15_kwargs: Dict[str, str] = {
+        'dataset_size': '250K',
+        'dataset_dimension': '2D'
+    },
     **kwargs) -> Tuple[List, Optional[Tuple], List]:
   """Load zinc15.
 
   ZINC15 is a dataset of over 230 million purchasable compounds for
   virtual screening of small molecules to identify structures that
-  are likely to bind to drug targets. It is available with both 2D
-  (SMILES string) and 3D representations, although only the 2D data
-  is currently available through MolNet.
+  are likely to bind to drug targets. ZINC15 data is currently available
+  in 2D (SMILES string) format.
+
+  MolNet provides subsets of 250K, 1M, and 10M "lead-like" compounds
+  from ZINC15. Compounds in ZINC15 are labeled by their molecular weight 
+  and LogP (solubility) values. Each compound also has information about how
+  readily available (purchasable) it is and its reactivity. Lead-like
+  compounds have molecular weight between 300 and 350 Daltons and LogP
+  between -1 and 3.5.
 
   If `reload = True` and `data_dir` (`save_dir`) is specified, the loader
   will attempt to load the raw dataset (featurized dataset) from disk.
   Otherwise, the dataset will be downloaded from the DeepChem AWS bucket.
 
-  For more information on ZINC15, please see
+  For more information on ZINC15, please see [1]_ and
   https://zinc15.docking.org/.
 
   Parameters
   ----------
+  size : str (default '250K')
+    Size of dataset to download. Currently only '250K' is supported.
+  format : str (default '2D')
+    Format of data to download. 2D SMILES strings or 3D SDF files.
   featurizer : allowed featurizers for this dataset
     A featurizer that inherits from deepchem.feat.Featurizer.
   transformers : List of allowed transformers for this dataset
@@ -90,6 +103,9 @@ def load_zinc15(
   transformer_kwargs : dict
     Maps transformer names to constructor arguments, e.g.
     {"BalancingTransformer": {"transform_x":True, "transform_y":False}}
+  zinc15_kwargs : dict
+    Specify parameters for the ZINC15 dataset. Accepted keywords are
+    'dataset_size' and 'dataset_dimension'.
   **kwargs : additional optional arguments.
 
   Returns
@@ -104,9 +120,14 @@ def load_zinc15(
       ``deepchem.trans.transformers.Transformer`` instances applied
       to dataset.
 
+  Notes
+  -----
+  The total ZINC dataset with SMILES strings contains hundreds of millions
+  of compounds and is over 100GB! ZINC250K is recommended for experimentation.
+
   References
   ----------
-  ...[1] Sterling and Irwin. J. Chem. Inf. Model, 2015 http://pubs.acs.org/doi/abs/10.1021/acs.jcim.5b00559.
+  .. [1] Sterling and Irwin. J. Chem. Inf. Model, 2015 http://pubs.acs.org/doi/abs/10.1021/acs.jcim.5b00559.
 
   Examples
   --------
@@ -122,6 +143,24 @@ def load_zinc15(
   # Featurize zinc15
   logger.info("About to featurize zinc15.")
   my_tasks = ['mwt', 'logp', 'reactive']  # machine learning targets
+
+  # Get params specific to ZINC15
+  dataset_size = zinc15_kwargs.get('dataset_size', '250K')
+  dataset_dimension = zinc15_kwargs.get('dataset_dimension', '2D')
+
+  # Raise warnings and list other available options
+  if dataset_size not in ['250K', '1M', '10M']:
+    raise ValueError("""
+      Only '250K', '1M', and '10M' are supported for dataset_size.
+      """)
+  if dataset_dimension != '2D':
+    raise ValueError("""
+      Currently, only '2D' is supported for dataset_dimension.
+      """)
+
+  dataset_filename = 'zinc15_' + dataset_size + '_' + dataset_dimension + '.tar.gz'
+
+  zinc15_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/" + dataset_filename
 
   # Get DeepChem data directory if needed
   if data_dir is None:
@@ -153,14 +192,14 @@ def load_zinc15(
       return my_tasks, all_dataset, transformers
 
   if str(featurizer.__class__.__name__) in zinc15_featurizers:
-    dataset_file = os.path.join(data_dir, 'zinc15.tar.gz')
+    dataset_file = os.path.join(data_dir, dataset_filename)
 
     if not os.path.exists(dataset_file):
       deepchem.utils.data_utils.download_url(url=zinc15_URL, dest_dir=data_dir)
 
     deepchem.utils.data_utils.untargz_file(
-        os.path.join(data_dir, 'zinc15.tar.gz'), data_dir)
-    dataset_file = 'zinc15.csv'
+        os.path.join(data_dir, dataset_filename), data_dir)
+    dataset_file = 'zinc15_' + dataset_size + '_' + dataset_dimension + '.csv'
 
     loader = deepchem.data.CSVLoader(
         tasks=my_tasks,
