@@ -261,9 +261,3 @@ def _ensure_float(output, labels):
   if labels.dtype not in (tf.float32, tf.float64):
     labels = tf.cast(labels, tf.float32)
   return (output, labels)
-
-
-def _ensure_long(labels):
-  """Make sure the outputs are Long types."""
-  labels = [val.long() for val in labels]
-  return labels
