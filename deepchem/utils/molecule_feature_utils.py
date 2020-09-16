@@ -94,7 +94,7 @@ def one_hot_encode(val: Union[int, str],
   """
   if include_unknown_set is False:
     if val not in allowable_set:
-      logger.warning("input {0} not in allowable set {1}:".format(
+      logger.info("input {0} not in allowable set {1}:".format(
           val, allowable_set))
 
   # init an one-hot vector

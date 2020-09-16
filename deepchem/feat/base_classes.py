@@ -277,7 +277,7 @@ class MolecularFeaturizer(Featurizer):
         features.append(self._featurize(mol))
       except:
         logger.warning(
-            "Failed to featurize datapoint %d. Appending empty array")
+            "Failed to featurize datapoint %d. Appending empty array", i)
         features.append(np.array([]))
 
     features = np.asarray(features)
