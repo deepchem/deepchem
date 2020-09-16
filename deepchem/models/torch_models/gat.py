@@ -32,11 +32,11 @@ class GAT(nn.Module):
   >>> pyg_graphs = [graph.to_pyg_graph() for graph in graphs]
   >>> print(type(pyg_graphs[0]))
   <class 'torch_geometric.data.data.Data'>
-  >>> model = dc.models.GAT(n_tasks=2)
-  >>> out = model(Batch.from_data_list(pyg_graphs))
-  >>> print(type(out))
+  >>> model = dc.models.GAT(mode='classification', n_tasks=10, n_classes=2)
+  >>> preds, logits = model(Batch.from_data_list(pyg_graphs))
+  >>> print(type(preds))
   <class 'torch.Tensor'>
-  >>> out.shape == (2, 2)
+  >>> preds.shape == (2, 10, 2)
   True
 
   References
@@ -120,7 +120,9 @@ class GAT(nn.Module):
     Returns
     -------
     out: torch.Tensor
-      The output value, the shape is `(batch_size, n_out)`.
+      If mode == 'regression', the shape is `(batch_size, n_tasks)`.
+      If mode == 'classification', the shape is `(batch_size, n_tasks, n_classes)` (n_tasks > 1)
+      or `(batch_size, n_classes)` (n_tasks == 1) and the output values are probabilities of each class label.
     """
     node_feat, edge_index = data.x, data.edge_index
     node_feat = self.embedding(node_feat)
