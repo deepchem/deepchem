@@ -192,7 +192,7 @@ class SparseSoftmaxCrossEntropy(Loss):
 
   def _create_pytorch_loss(self):
     import torch
-    ce_loss = torch.nn.CrossEntropyLoss(reduction='mean')
+    ce_loss = torch.nn.CrossEntropyLoss(reduction='none')
 
     def loss(output, labels):
       # Convert (batch_size, tasks, classes) to (batch_size, classes, tasks)
