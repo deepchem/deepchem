@@ -788,7 +788,7 @@ class KerasModel(Model):
     if it produces multiple outputs
     """
     generator = self.default_generator(
-        dataset, mode='predict', pad_batches=False)
+        dataset, mode='predict', deterministic=True, pad_batches=False)
     return self.predict_on_generator(
         generator,
         transformers=transformers,
