@@ -34,5 +34,5 @@ logger = logging.getLogger(__name__)
 class IndiceSplitter:
 
   def __init__(self, valid_indices=None, test_indices=None):
-    raise ImportError("IndiceSplitter was renamed to SpecifiedSplitter.\n",
-                      "Please use SpecifiedSplitter instead of IndiceSplitter")
+    raise ImportError("IndiceSplitter was renamed to SpecifiedSplitter.\n"
+                      "Please use SpecifiedSplitter instead of IndiceSplitter.")
