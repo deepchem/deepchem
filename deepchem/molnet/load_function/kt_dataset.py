@@ -40,7 +40,7 @@ DEFAULT_SPLITTERS = {k: DEFAULT_SPLITTERS[k] for k in ktdataset_splitters}
 
 
 def load_kt_dataset(
-    featurizer: Featurizer = DEFAULT_FEATURIZERS['RawFeaturizer'],
+    featurizer: Featurizer = DEFAULT_FEATURIZERS['Raw'],
     transformers: List[Transformer] = [
         DEFAULT_TRANSFORMERS['PowerTransformer']
     ],
@@ -125,13 +125,13 @@ def load_kt_dataset(
   # Check for str args to featurizer and splitter
   if isinstance(featurizer, str):
     featurizer = DEFAULT_FEATURIZERS[featurizer](**featurizer_kwargs)
-  elif issubclass(featurizer, Featurizer):
-    featurizer = featurizer(**featurizer_kwargs)
+  # elif issubclass(featurizer, Featurizer):
+  #   featurizer = featurizer(**featurizer_kwargs)
 
   if isinstance(splitter, str):
     splitter = DEFAULT_SPLITTERS[splitter]()
-  elif issubclass(splitter, Splitter):
-    splitter = splitter()
+  # elif issubclass(splitter, Splitter):
+  #   splitter = splitter()
 
   # Reload from disk
   if reload:
@@ -146,9 +146,7 @@ def load_kt_dataset(
       return kt_tasks, all_dataset, transformers
 
   # First type of supported featurizers
-  supported_featurizers = [
-      'ECFP', 'GraphConv', 'Weave', 'Raw', 'AdjacencyConv'
-  ]  # type: List[Featurizer]
+  supported_featurizers = [DEFAULT_FEATURIZERS['ECFP'], DEFAULT_FEATURIZERS['GraphConv'], DEFAULT_FEATURIZERS['Weave'],DEFAULT_FEATURIZERS['Raw'],DEFAULT_FEATURIZERS['AdjacencyConv']]  # type: List[Featurizer]
 
   # If featurizer requires a non-CSV file format, load .tar.gz file
   if featurizer in supported_featurizers:
@@ -180,12 +178,11 @@ def load_kt_dataset(
       dataset, **splitter_kwargs)
 
   # Initialize transformers
-  transformers = [
-      DEFAULT_TRANSFORMERS[t](dataset=dataset, **transformer_kwargs[t])
-      if isinstance(t, str) else t(
-          dataset=dataset, **transformer_kwargs[str(t.__class__.__name__)])
-      for t in transformers
-  ]
+  #transformers = [DEFAULT_TRANSFORMERS[t](dataset=dataset, **transformer_kwargs[t])
+  #    if isinstance(t, str) else t(dataset=dataset, **transformer_kwargs[str(t.__class__.__name__)])
+  #    for t in transformers]
+  transformers = [DEFAULT_TRANSFORMERS[t](dataset=dataset, **transformer_kwargs[t])
+      if isinstance(t, str) else t for t in transformers]
 
   for transformer in transformers:
     train_dataset = transformer.transform(train_dataset)
