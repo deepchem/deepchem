@@ -566,7 +566,7 @@ class TestSplitter(unittest.TestCase):
       # that have no hits.
       assert len(np.where(w.any(axis=1) == 0)[0]) == 0
 
-  def test_indice_split(self):
+  def test_specified_split(self):
 
     solubility_dataset = load_solubility_data()
     random_splitter = dc.splits.SpecifiedSplitter(
