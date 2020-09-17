@@ -94,7 +94,7 @@ def one_hot_encode(val: Union[int, str],
   """
   if include_unknown_set is False:
     if val not in allowable_set:
-      logger.warning("input {0} not in allowable set {1}:".format(
+      logger.info("input {0} not in allowable set {1}:".format(
           val, allowable_set))
 
   # init an one-hot vector
@@ -131,7 +131,7 @@ def get_atom_type_one_hot(atom: RDKitAtom,
     RDKit atom object
   allowable_set: List[str]
     The atom types to consider. The default set is
-    `["C", "N", "O", "F", "P", "S", "Br", "I"]`.
+    `["C", "N", "O", "F", "P", "S", "Cl", "Br", "I"]`.
   include_unknown_set: bool, default True
     If true, the index of all atom not in `allowable_set` is `len(allowable_set)`.
 
