@@ -35,10 +35,10 @@ IndexSplitter
 .. autoclass:: deepchem.splits.IndexSplitter
   :members:
 
-IndiceSplitter
+SpecifiedSplitter
 --------------
 
-.. autoclass:: deepchem.splits.IndiceSplitter
+.. autoclass:: deepchem.splits.SpecifiedSplitter
   :members:
 
 
