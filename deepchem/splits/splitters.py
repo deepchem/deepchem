@@ -858,14 +858,14 @@ class IndexSplitter(Splitter):
             indices[valid_cutoff:])
 
 
-class IndiceSplitter(Splitter):
+class SpecifiedSplitter(Splitter):
   """Split data in the fashion specified by user.
 
   For some applications, you will already know how you'd like to split the
   dataset. In this splitter, you simplify specify `valid_indices` and
   `test_indices` and the datapoints at those indices are pulled out of the
   dataset. Note that this is different from `IndexSplitter` which only splits
-  based on the existing dataset ordering, while this `IndiceSplitter` can
+  based on the existing dataset ordering, while this `SpecifiedSplitter` can
   split on any specified ordering.
   """
 

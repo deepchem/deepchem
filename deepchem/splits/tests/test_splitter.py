@@ -569,7 +569,7 @@ class TestSplitter(unittest.TestCase):
   def test_indice_split(self):
 
     solubility_dataset = load_solubility_data()
-    random_splitter = dc.splits.IndiceSplitter(
+    random_splitter = dc.splits.SpecifiedSplitter(
         valid_indices=[7], test_indices=[8])
     train_data, valid_data, test_data = \
       random_splitter.split(
