@@ -27,7 +27,7 @@ def load_clearance(featurizer='ECFP',
   if save_dir is None:
     save_dir = DEFAULT_DIR
 
-  clearance_tasks = ['exp']
+  clearance_tasks = ['target']
 
   if reload:
     save_folder = os.path.join(save_dir, "clearance-featurized")

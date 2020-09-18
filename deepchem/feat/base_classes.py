@@ -91,7 +91,7 @@ class Featurizer(object):
     >>> dc.feat.CircularFingerprint(size=1024, radius=4)
     CircularFingerprint[radius=4, size=1024, chiral=False, bonds=True, features=False, sparse=False, smiles=False]
     >>> dc.feat.CGCNNFeaturizer()
-    CGCNNFeaturizer[radius=8.0, max_neighbors=8, step=0.2]
+    CGCNNFeaturizer[radius=8.0, max_neighbors=12, step=0.2]
     """
     args_spec = inspect.getfullargspec(self.__init__)  # type: ignore
     args_names = [arg for arg in args_spec.args if arg != 'self']
@@ -277,7 +277,7 @@ class MolecularFeaturizer(Featurizer):
         features.append(self._featurize(mol))
       except:
         logger.warning(
-            "Failed to featurize datapoint %d. Appending empty array")
+            "Failed to featurize datapoint %d. Appending empty array", i)
         features.append(np.array([]))
 
     features = np.asarray(features)
