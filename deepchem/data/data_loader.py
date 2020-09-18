@@ -685,7 +685,9 @@ class JsonLoader(DataLoader):
 class SDFLoader(DataLoader):
   """Creates a `Dataset` object from SDF input files.
 
-  This class provides conveniences to load and featurize data from SDF files.
+  This class provides conveniences to load and featurize data from
+  Structure Data Files (SDFs). SDF is a standard format for structural
+  information (3D coordinates of atoms and bonds) of molecular compounds.
 
   Examples
   --------
