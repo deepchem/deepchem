@@ -54,8 +54,7 @@ def load_zinc15(
     },
     dataset_size: str = '250K',
     dataset_dimension: str = '2D',
-    test_run: bool = False,
-    **kwargs) -> Tuple[List, Optional[Tuple], List]:
+    test_run: bool = False) -> Tuple[List, Optional[Tuple], List]:
   """Load zinc15.
 
   ZINC15 is a dataset of over 230 million purchasable compounds for
@@ -111,7 +110,6 @@ def load_zinc15(
     SMILES strings (2D) or 3D SDF files; '2D' or '3D'
   test_run : bool (default False)
     Flag to indicate tests, if True dataset is not downloaded.
-  **kwargs : additional optional arguments.
 
   Returns
   -------
@@ -157,7 +155,7 @@ def load_zinc15(
   # Raise warnings and list other available options
   if dataset_size not in ['250K', '1M', '10M', '270M']:
     raise ValueError("""
-      Only '250K', '1M', and '10M' are supported for dataset_size.
+      Only '250K', '1M', '10M', and '270M' are supported for dataset_size.
       """)
   if dataset_dimension != '2D':
     raise ValueError("""
