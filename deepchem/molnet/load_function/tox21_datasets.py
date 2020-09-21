@@ -84,7 +84,7 @@ def load_tox21(featurizer='ECFP',
 
   loader = deepchem.data.CSVLoader(
       tasks=tox21_tasks, feature_field="smiles", featurizer=featurizer)
-  dataset = loader.featurize(dataset_file, shard_size=8192)
+  dataset = loader.create_dataset(dataset_file, shard_size=8192)
 
   if split == None:
     # Initialize transformers
