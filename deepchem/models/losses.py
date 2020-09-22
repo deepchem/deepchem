@@ -208,9 +208,34 @@ class SparseSoftmaxCrossEntropy(Loss):
 class VAE_ELBO(Loss):
   """The Variational AutoEncoder loss, KL Divergence Regularize + marginal log-likelihood.
   
+  This losses basesd on "Auto-Encoding Variational Bayes" (https://arxiv.org/abs/1312.6114).
+  ELBO(Evidence lower bound) lexically replaced Variational lower bound. 
+  BCE means marginal log-likelihood, and KLD means KL divergence with normal distribution.
+  Added hyper parameter 'kl_scale' for KLD.
+  
   The logvar and mu should have shape (batch_size, hidden_space).
-  The x and reconstruction_x should have (batch_size, attribute).
-  kl_scale: KLD regularized weights.
+  The x and reconstruction_x should have (batch_size, attribute). 
+  The kl_scale should be float.
+  
+  Examples
+  --------
+  Examples for calculating loss using constant tensor.
+  
+  batch_size = 2,
+  hidden_space = 2,
+  num of original attribute = 3
+  >>> logvar = np.array([[1.0,1.3],[0.6,1.2]])
+  >>> mu = np.array([[0.2,0.7],[1.2,0.4]])
+  >>> x = np.array([[0.9,0.4,0.8],[0.3,0,1]])
+  >>> reconstruction = np.array([[0.8,0.3,0.7],[0.2,0,0.9]])
+  
+  Case tensorflow
+  >>> VAE_ELBO()._compute_tf_loss(tf.constant(logvar), tf.constant(mu), tf.constant(x), tf.constant(reconstruction_x))
+  <tf.Tensor: shape=(2,), dtype=float64, numpy=array([0.70165154, 0.76238271])>
+  
+  Case pytorch
+  >>> (VAE_ELBO()._create_pytorch_loss())(torch.tensor(logvar), torch.tensor(mu), torch.tensor(x), torch.tensor(reconstruction_x))
+  tensor([0.7017, 0.7624], dtype=torch.float64)
   """
 
   def _compute_tf_loss(self, logvar, mu, x, reconstruction_x, kl_scale = 1):
@@ -227,7 +252,7 @@ class VAE_ELBO(Loss):
 
     def loss(logvar, mu, x, reconstruction_x, kl_scale = 1):
       x, reconstruction_x = _make_pytorch_shapes_consistent(x, reconstruction_x)
-      BCE = torch.mean(bce(x, reconstruction_x), dim=-1)
+      BCE = torch.mean(bce(reconstruction_x, x), dim=-1)
       KLD = (VAE_KLDivergence()._create_pytorch_loss())(logvar, mu)
       return BCE + kl_scale*KLD
 
@@ -235,10 +260,31 @@ class VAE_ELBO(Loss):
 
 
 class VAE_KLDivergence(Loss):
-  """The KL_divergence between hidden distribution and normal distribution
+  """The KL_divergence between hidden distribution and normal distribution.
+  
+  This loss implements KL divergence losses with normal distribution 
+  based on "Auto-Encoding Variational Bayes" (https://arxiv.org/abs/1312.6114).
+  
   The logvar should have shape (batch_size, hidden_space) and each term represents
   standard deviation of hidden distribution. The mean shuold have 
   (batch_size, hidden_space) and each term represents mean of hidden distribtuon.
+  
+  Examples
+  --------
+  Examples for calculating loss using constant tensor.
+  
+  batch_size = 2,
+  hidden_space = 2,
+  >>> logvar = np.array([[1.0,1.3],[0.6,1.2]])
+  >>> mu = np.array([[0.2,0.7],[1.2,0.4]])
+  
+  Case tensorflow
+  >>> VAE_KLDivergence()._compute_tf_loss(tf.constant(logvar), tf.constant(mu))
+  tf.Tensor([0.52783368 0.24813068], shape=(2,), dtype=float64)
+  
+  Case pytorch
+  >>> (VAE_KLDivergence()._create_pytorch_loss())(torch.tensor(logvar), torch.tensor(mu))
+  tensor([0.1738, 0.5143], dtype=torch.float64)
   """
 
   def _compute_tf_loss(self, logvar, mu):
@@ -257,41 +303,30 @@ class VAE_KLDivergence(Loss):
     return loss
 
 
-class KLDivergence(Loss):
-  """The KL_divergence between two distribution D_KL(P||Q).
-  The argument should have shape (batch_size, num of variable) and represents
-  probabilites distribution. 
-  """
-
-  def _compute_tf_loss(self, P, Q):
-    import tensorflow as tf
-    P, Q = _make_tf_shapes_consistent(P, Q)
-    P, Q = _ensure_float(P, Q)
-    #extended one of probabilites to to binary distribution
-    if P.shape[-1] == 1:
-      P = tf.concat([P,1-P], axis = -1)
-      Q = tf.concat([Q,1-Q], axis = -1)
-    return tf.reduce_mean(P * tf.math.log((P+1e-20) / (Q+1e-20)), axis=-1)
-
-  def _create_pytorch_loss(self):
-    import torch
-
-    def loss(P, Q):
-      P, Q = _make_pytorch_shapes_consistent(P, Q)
-      #extended one of probabilites to binary distribution
-      if P.shape[-1] == 1:
-        P = torch.cat((P,1-P), dim = -1)
-        Q = torch.cat((Q,1-Q), dim = -1)
-      return torch.mean(P * torch.log((P+1e-20) / (Q+1e-20)),dim = -1)
-
-    return loss
-
-
 class ShannonEntropy(Loss):
   """The ShannonEntropy of discrete-distribution.
   
+  This loss implements shannon entropy based on
+  "A Brief Introduction to Shannon's Information Theory" (https://arxiv.org/abs/1612.09316).
+  
   The inputs should have shape (batch size, num of variable) and represents
   probabilites distribution.
+  
+  Examples
+  --------
+  Examples for calculating loss using constant tensor.
+  
+  batch_size = 2,
+  num_of variable = variable,
+  >>> inputs = np.array([[0.7,0.3],[0.9,0.1]])
+  
+  Case tensorflow
+  >>> ShannonEntropy()._compute_tf_loss(tf.constant(inputs))
+  tf.Tensor([0.52783368 0.24813068], shape=(2,), dtype=float64)
+  
+  Case pytorch
+  >>> (ShannonEntropy()._create_pytorch_loss())(torch.tensor(inputs))
+  tensor([0.1738, 0.5143], dtype=torch.float64)
   """
 
   def _compute_tf_loss(self, inputs):
