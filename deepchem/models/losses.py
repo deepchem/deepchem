@@ -262,7 +262,7 @@ class VAE_ELBO(Loss):
 class VAE_KLDivergence(Loss):
   """The KL_divergence between hidden distribution and normal distribution.
   
-  This loss implements KL divergence losses with normal distribution 
+  This loss represents KL divergence losses between normal distribution(using parameter of distribution)
   based on "Auto-Encoding Variational Bayes" (https://arxiv.org/abs/1312.6114).
   
   The logvar should have shape (batch_size, hidden_space) and each term represents
@@ -306,7 +306,7 @@ class VAE_KLDivergence(Loss):
 class ShannonEntropy(Loss):
   """The ShannonEntropy of discrete-distribution.
   
-  This loss implements shannon entropy based on
+  This loss represents shannon entropy based on
   "A Brief Introduction to Shannon's Information Theory" (https://arxiv.org/abs/1612.09316).
   
   The inputs should have shape (batch size, num of variable) and represents
