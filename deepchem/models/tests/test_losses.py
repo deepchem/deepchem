@@ -1,7 +1,4 @@
-#import deepchem.models.losses as losses
-import sys
-sys.path.append('C:/Users/hsjang/aa/deepchem/deepchem/models')
-import losses
+import deepchem.models.losses as losses
 import unittest
 import numpy as np
 
