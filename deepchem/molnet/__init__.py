@@ -31,6 +31,7 @@ from deepchem.molnet.load_function.kinase_datasets import load_kinase
 from deepchem.molnet.load_function.thermosol_datasets import load_thermosol
 from deepchem.molnet.load_function.hppb_datasets import load_hppb
 from deepchem.molnet.load_function.chembl25_datasets import load_chembl25
+from deepchem.molnet.load_function.zinc15_datasets import load_zinc15
 from deepchem.molnet.load_function.material_datasets.load_bandgap import load_bandgap
 from deepchem.molnet.load_function.material_datasets.load_perovskite import load_perovskite
 from deepchem.molnet.load_function.material_datasets.load_mp_formation_energy import load_mp_formation_energy
