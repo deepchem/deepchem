@@ -27,7 +27,8 @@ def test_cdf_X_transformer():
   bins = 1001
   cdf_transformer = dc.trans.CDFTransformer(
       transform_X=True, dataset=gaussian_dataset, bins=bins)
-  y, w, ids = (gaussian_dataset.y, gaussian_dataset.w, gaussian_dataset.ids)
+  _, y, w, ids = (gaussian_dataset.X, gaussian_dataset.y, gaussian_dataset.w,
+                  gaussian_dataset.ids)
   gaussian_dataset = cdf_transformer.transform(gaussian_dataset)
   X_t, y_t, w_t, ids_t = (gaussian_dataset.X, gaussian_dataset.y,
                           gaussian_dataset.w, gaussian_dataset.ids)
