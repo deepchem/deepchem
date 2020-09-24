@@ -267,6 +267,7 @@ class MolecularFeaturizer(Featurizer):
     for i, mol in enumerate(molecules):
       if i % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % i)
+
       try:
         if isinstance(mol, str):
           # mol must be a RDKit Mol object, so parse a SMILES
@@ -274,12 +275,14 @@ class MolecularFeaturizer(Featurizer):
           # SMILES is unique, so set a canonical order of atoms
           new_order = rdmolfiles.CanonicalRankAtoms(mol)
           mol = rdmolops.RenumberAtoms(mol, new_order)
+
         features.append(self._featurize(mol))
       except Exception as e:
-        smiles = Chem.MolToSmiles(mol) if not isinstance(mol, str) else mol
+        if isinstance(mol, Chem.rdchem.Mol):
+          mol = Chem.MolToSmiles(mol)
         logger.warning(
             "Failed to featurize datapoint %d, %s. Appending empty array", i,
-            smiles)
+            mol)
         logger.warning("Exception message: {}".format(e))
         features.append(np.array([]))
 
