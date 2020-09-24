@@ -36,7 +36,7 @@ IndexSplitter
   :members:
 
 SpecifiedSplitter
---------------
+-----------------
 
 .. autoclass:: deepchem.splits.SpecifiedSplitter
   :members:
