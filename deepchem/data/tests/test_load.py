@@ -32,8 +32,8 @@ class TestLoad(unittest.TestCase):
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
     loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(dataset_file, data_dir)
+        tasks=tasks, feature_field="smiles", featurizer=featurizer)
+    dataset = loader.create_dataset(dataset_file, data_dir)
 
     X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     shutil.move(data_dir, moved_data_dir)
@@ -70,8 +70,8 @@ class TestLoad(unittest.TestCase):
 
     # featurization
     loader = dc.data.CSVLoader(
-        tasks=all_tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(dataset_file, data_dir)
+        tasks=all_tasks, feature_field="smiles", featurizer=featurizer)
+    dataset = loader.create_dataset(dataset_file, data_dir)
 
     # train/valid split.
     _, y_multi, w_multi, _ = (dataset.X, dataset.y, dataset.w, dataset.ids)
@@ -121,8 +121,8 @@ class TestLoad(unittest.TestCase):
 
     # multitask load
     loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(dataset_file, data_dir)
+        tasks=tasks, feature_field="smiles", featurizer=featurizer)
+    dataset = loader.create_dataset(dataset_file, data_dir)
 
     # Do train/valid split.
     _, y_multi, w_multi, _ = (dataset.X, dataset.y, dataset.w, dataset.ids)
@@ -134,8 +134,8 @@ class TestLoad(unittest.TestCase):
       if os.path.exists(data_dir):
         shutil.rmtree(data_dir)
       loader = dc.data.CSVLoader(
-          tasks=[task], smiles_field="smiles", featurizer=featurizer)
-      dataset = loader.featurize(dataset_file, data_dir)
+          tasks=[task], feature_field="smiles", featurizer=featurizer)
+      dataset = loader.create_dataset(dataset_file, data_dir)
 
       _, y_task, w_task, ids_task = (dataset.X, dataset.y, dataset.w,
                                      dataset.ids)

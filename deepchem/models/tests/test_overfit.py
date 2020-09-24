@@ -692,8 +692,8 @@ def test_DAG_singletask_regression_overfit():
   tasks = ["outcome"]
   input_file = os.path.join(current_dir, "example_regression.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  dataset = loader.featurize(input_file)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  dataset = loader.create_dataset(input_file)
 
   regression_metric = dc.metrics.Metric(
       dc.metrics.pearson_r2_score, task_averager=np.mean)
@@ -732,8 +732,8 @@ def test_weave_singletask_classification_overfit():
   tasks = ["outcome"]
   input_file = os.path.join(current_dir, "example_classification.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  dataset = loader.featurize(input_file)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  dataset = loader.create_dataset(input_file)
 
   classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
 
@@ -767,8 +767,8 @@ def test_weave_singletask_regression_overfit():
   tasks = ["outcome"]
   input_file = os.path.join(current_dir, "example_regression.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  dataset = loader.featurize(input_file)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  dataset = loader.create_dataset(input_file)
 
   regression_metric = dc.metrics.Metric(
       dc.metrics.pearson_r2_score, task_averager=np.mean)
@@ -804,8 +804,8 @@ def test_MPNN_singletask_regression_overfit():
   tasks = ["outcome"]
   input_file = os.path.join(current_dir, "example_regression.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  dataset = loader.featurize(input_file)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  dataset = loader.create_dataset(input_file)
 
   regression_metric = dc.metrics.Metric(
       dc.metrics.pearson_r2_score, task_averager=np.mean)
@@ -844,8 +844,8 @@ def test_textCNN_singletask_classification_overfit():
   tasks = ["outcome"]
   input_file = os.path.join(current_dir, "example_classification.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  dataset = loader.featurize(input_file)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  dataset = loader.create_dataset(input_file)
 
   classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
 
@@ -883,8 +883,8 @@ def test_textCNN_singletask_regression_overfit():
   tasks = ["outcome"]
   input_file = os.path.join(current_dir, "example_regression.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  dataset = loader.featurize(input_file)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  dataset = loader.create_dataset(input_file)
 
   regression_metric = dc.metrics.Metric(
       dc.metrics.pearson_r2_score, task_averager=np.mean)

@@ -25,8 +25,8 @@ class TestDrop(unittest.TestCase):
     emols_tasks = ['activity']
 
     loader = dc.data.CSVLoader(
-        tasks=emols_tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(dataset_file)
+        tasks=emols_tasks, feature_field="smiles", featurizer=featurizer)
+    dataset = loader.create_dataset(dataset_file)
 
     X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     assert len(X) == len(y) == len(w) == len(ids)
