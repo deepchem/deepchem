@@ -238,23 +238,23 @@ class VAE_ELBO(Loss):
   tensor([0.7017, 0.7624], dtype=torch.float64)
   """
 
-  def _compute_tf_loss(self, logvar, mu, x, reconstruction_x, kl_scale = 1):
+  def _compute_tf_loss(self, logvar, mu, x, reconstruction_x, kl_scale=1):
     import tensorflow as tf
     x, reconstruction_x = _make_tf_shapes_consistent(x, reconstruction_x)
     x, reconstruction_x = _ensure_float(x, reconstruction_x)
     BCE = tf.keras.losses.binary_crossentropy(x, reconstruction_x)
     KLD = VAE_KLDivergence()._compute_tf_loss(logvar, mu)
-    return BCE + kl_scale*KLD
+    return BCE + kl_scale * KLD
 
   def _create_pytorch_loss(self):
     import torch
     bce = torch.nn.BCELoss(reduction='none')
 
-    def loss(logvar, mu, x, reconstruction_x, kl_scale = 1):
+    def loss(logvar, mu, x, reconstruction_x, kl_scale=1):
       x, reconstruction_x = _make_pytorch_shapes_consistent(x, reconstruction_x)
       BCE = torch.mean(bce(reconstruction_x, x), dim=-1)
       KLD = (VAE_KLDivergence()._create_pytorch_loss())(logvar, mu)
-      return BCE + kl_scale*KLD
+      return BCE + kl_scale * KLD
 
     return loss
 
@@ -291,14 +291,18 @@ class VAE_KLDivergence(Loss):
     import tensorflow as tf
     logvar, mu = _make_tf_shapes_consistent(logvar, mu)
     logvar, mu = _ensure_float(logvar, mu)
-    return 0.5 * tf.reduce_mean(tf.square(mu) + tf.square(logvar) - tf.math.log(1e-20 + tf.square(logvar)) - 1,-1)
+    return 0.5 * tf.reduce_mean(
+        tf.square(mu) + tf.square(logvar) -
+        tf.math.log(1e-20 + tf.square(logvar)) - 1, -1)
 
   def _create_pytorch_loss(self):
     import torch
 
     def loss(logvar, mu):
       logvar, mu = _make_pytorch_shapes_consistent(logvar, mu)
-      return 0.5 * torch.mean(torch.square(mu) + torch.square(logvar) - torch.log(1e-20 + torch.square(logvar)) - 1,-1)
+      return 0.5 * torch.mean(
+          torch.square(mu) + torch.square(logvar) -
+          torch.log(1e-20 + torch.square(logvar)) - 1, -1)
 
     return loss
 
@@ -333,8 +337,8 @@ class ShannonEntropy(Loss):
     import tensorflow as tf
     #extended one of probabilites to binary distribution
     if inputs.shape[-1] == 1:
-      inputs = tf.concat([inputs,1-inputs], axis = -1)
-    return tf.reduce_mean(-inputs*tf.math.log(1e-20+inputs), -1)
+      inputs = tf.concat([inputs, 1 - inputs], axis=-1)
+    return tf.reduce_mean(-inputs * tf.math.log(1e-20 + inputs), -1)
 
   def _create_pytorch_loss(self):
     import torch
@@ -342,8 +346,8 @@ class ShannonEntropy(Loss):
     def loss(inputs):
       #extended one of probabilites to binary distribution
       if inputs.shape[-1] == 1:
-        inputs = torch.cat((inputs,1-inputs), dim = -1)
-      return torch.mean(-inputs*torch.log(1e-20+inputs), -1)
+        inputs = torch.cat((inputs, 1 - inputs), dim=-1)
+      return torch.mean(-inputs * torch.log(1e-20 + inputs), -1)
 
     return loss
 
