@@ -27,7 +27,7 @@ class TestChemnetModel(unittest.TestCase):
       max_len = 250
       pad_len = 10
       self.char_to_idx = create_char_to_idx(
-          dataset_file, max_len=max_len, feature_field="smiles")
+          dataset_file, max_len=max_len, smiles_field="smiles")
       featurizer = SmilesToSeq(
           char_to_idx=self.char_to_idx, max_len=max_len, pad_len=pad_len)
 
