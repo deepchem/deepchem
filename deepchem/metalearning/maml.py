@@ -1,12 +1,13 @@
 """Model-Agnostic Meta-Learning (MAML) algorithm for low data learning."""
 
-from deepchem.models.optimizers import Adam, GradientDescent
-import numpy as np
 import os
 import shutil
 import tempfile
-import tensorflow as tf
 import time
+
+import tensorflow as tf
+
+from deepchem.models.optimizers import Adam, GradientDescent
 
 
 class MetaLearner(object):
@@ -37,12 +38,12 @@ class MetaLearner(object):
     (loss, outputs) where loss is the value of the model's loss function, and
     outputs is a list of the model's outputs
     """
-    raise NotImplemented("Subclasses must implement this")
+    raise NotImplementedError("Subclasses must implement this")
 
   @property
   def variables(self):
     """Get the list of Tensorflow variables to train."""
-    raise NotImplemented("Subclasses must implement this")
+    raise NotImplementedError("Subclasses must implement this")
 
   def select_task(self):
     """Select a new task to train on.
@@ -51,7 +52,7 @@ class MetaLearner(object):
     If there are infinitely many training tasks, this can simply select a new one each
     time it is called.
     """
-    raise NotImplemented("Subclasses must implement this")
+    raise NotImplementedError("Subclasses must implement this")
 
   def get_batch(self):
     """Get a batch of data for training.
@@ -60,7 +61,7 @@ class MetaLearner(object):
     inputs.  This will usually be called twice for each task, and should
     return a different batch on each call.
     """
-    raise NotImplemented("Subclasses must implement this")
+    raise NotImplementedError("Subclasses must implement this")
 
 
 class MAML(object):
