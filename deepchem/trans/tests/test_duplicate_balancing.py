@@ -7,9 +7,7 @@ def test_binary_1d():
   """Test balancing transformer on single-task dataset without explicit task dimension."""
   n_samples = 6
   n_features = 3
-  n_classes = 2
   np.random.seed(123)
-  ids = np.arange(n_samples)
   X = np.random.rand(n_samples, n_features)
   y = np.array([1, 1, 0, 0, 0, 0])
   w = np.ones((n_samples,))
@@ -36,9 +34,7 @@ def test_binary_weighted_1d():
   """Test balancing transformer on a weighted single-task dataset without explicit task dimension."""
   n_samples = 6
   n_features = 3
-  n_classes = 2
   np.random.seed(123)
-  ids = np.arange(n_samples)
   X = np.random.rand(n_samples, n_features)
   # Note that nothing should change in this dataset since weights balance!
   y = np.array([1, 1, 0, 0, 0, 0])
@@ -67,9 +63,7 @@ def test_binary_singletask():
   n_samples = 6
   n_features = 3
   n_tasks = 1
-  n_classes = 2
   np.random.seed(123)
-  ids = np.arange(n_samples)
   X = np.random.rand(n_samples, n_features)
   y = np.reshape(np.array([1, 1, 0, 0, 0, 0]), (n_samples, n_tasks))
   w = np.ones((n_samples, n_tasks))
@@ -97,8 +91,6 @@ def test_multiclass_singletask():
   """Test balancing transformer on single-task dataset."""
   n_samples = 10
   n_features = 3
-  n_classes = 5
-  ids = np.arange(n_samples)
   X = np.random.rand(n_samples, n_features)
   # 6-1 imbalance in favor of class 0
   y = np.array([0, 0, 0, 0, 0, 0, 1, 2, 3, 4])
@@ -134,9 +126,7 @@ def test_transform_to_directory():
   """Test that output can be written to a directory."""
   n_samples = 10
   n_features = 3
-  n_classes = 2
   np.random.seed(123)
-  ids = np.arange(n_samples)
   X = np.random.rand(n_samples, n_features)
   # Note class imbalance. This will round to 2x duplication for 1
   y = np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 0])

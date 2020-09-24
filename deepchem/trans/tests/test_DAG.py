@@ -1,12 +1,12 @@
 import os
-import deepchem as dc
 import numpy as np
+
+import deepchem as dc
 
 
 def test_DAG_transformer():
   """Tests the DAG transformer."""
   np.random.seed(123)
-  n_tasks = 1
 
   # Load mini log-solubility dataset.
   current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -15,7 +15,7 @@ def test_DAG_transformer():
   input_file = os.path.join(current_dir,
                             "../../models/tests/example_regression.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)
   transformer = dc.trans.DAGTransformer(max_atoms=50)
   dataset = transformer.transform(dataset)
