@@ -199,6 +199,15 @@ Losses
 .. autoclass:: deepchem.models.losses.SparseSoftmaxCrossEntropy
   :members:
 
+.. autoclass:: deepchem.models.losses.VAE_ELBO
+  :members:
+
+.. autoclass:: deepchem.models.losses.VAE_KLDivergence
+  :members:
+
+.. autoclass:: deepchem.models.losses.ShannonEntropy
+  :members:
+
 Optimizers
 ----------
 
