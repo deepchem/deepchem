@@ -243,7 +243,7 @@ class VAE_ELBO(Loss):
   
   References
   ----------
-  .. [1] Diederik P Kingma., and Max Welling. "Auto-encoding variational bayes." arXiv preprint arXiv:1312.6114 (2013).
+  .. [1] Kingma, Diederik P., and Max Welling. "Auto-encoding variational bayes." arXiv preprint arXiv:1312.6114 (2013).
   
   """
 
@@ -300,7 +300,7 @@ class VAE_KLDivergence(Loss):
   
   References
   ----------
-  .. [1] Diederik P Kingma., and Max Welling. "Auto-encoding variational bayes." arXiv preprint arXiv:1312.6114 (2013).
+  .. [1] Kingma, Diederik P., and Max Welling. "Auto-encoding variational bayes." arXiv preprint arXiv:1312.6114 (2013).
   
   """
 
@@ -353,7 +353,7 @@ class ShannonEntropy(Loss):
   
   References
   ----------
-  .. [1] Ricky Xiaofeng Chen. "A Brief Introduction to Shannon’s Information Theory." arXiv preprint arXiv:1612.09316 (2016).
+  .. [1] Chen, Ricky Xiaofeng. "A Brief Introduction to Shannon’s Information Theory." arXiv preprint arXiv:1612.09316 (2016).
   
   """
 
