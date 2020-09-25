@@ -47,7 +47,7 @@ def test_singletask_sklearn_rf_user_specified_regression_API():
   current_dir = os.path.dirname(os.path.abspath(__file__))
   input_file = os.path.join(current_dir, "user_specified_example.csv")
   loader = dc.data.UserCSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)
 
   splitter = dc.splits.RandomSplitter()
@@ -88,7 +88,7 @@ def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API():
   current_dir = os.path.dirname(os.path.abspath(__file__))
   input_file = os.path.join(current_dir, "example.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)
 
   splitter = dc.splits.ScaffoldSplitter()

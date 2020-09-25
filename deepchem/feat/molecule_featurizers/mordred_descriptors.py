@@ -28,7 +28,7 @@ class MordredDescriptors(MolecularFeaturizer):
 
   def __init__(self, ignore_3D: bool = True):
     """
-    Paremeters
+    Parameters
     ----------
     ignore_3D: bool, optional (default True)
       Whether to use 3D information or not.

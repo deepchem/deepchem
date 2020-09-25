@@ -45,7 +45,7 @@ class Mol2VecFingerprint(MolecularFeaturizer):
                unseen: str = 'UNK',
                gather_method: str = 'sum'):
     """
-    Paremeters
+    Parameters
     ----------
     pretrain_file: str, optional
       The path for pretrained model. If this value is None, we use the model which is put on

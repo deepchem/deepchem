@@ -22,7 +22,7 @@ def load_solubility_data():
   tasks = ["log-solubility"]
   input_file = os.path.join(current_dir, "../../models/tests/example.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
 
   return loader.create_dataset(input_file)
 
@@ -39,8 +39,8 @@ def load_multitask_data():
   input_file = os.path.join(current_dir,
                             "../../models/tests/multitask_example.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  return loader.featurize(input_file)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  return loader.create_dataset(input_file)
 
 
 class TestTransformer(dc.trans.Transformer):

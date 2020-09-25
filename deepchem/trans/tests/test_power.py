@@ -56,7 +56,6 @@ def test_power_y_transformer():
   X = np.random.rand(N, n_feat)
   y = np.random.rand(N)
   gaussian_dataset = dc.data.NumpyDataset(X, y)
-  #gaussian_dataset = load_gaussian_cdf_data()
   power_transformer = dc.trans.PowerTransformer(transform_y=True, powers=powers)
   X, y, w, ids = (gaussian_dataset.X, gaussian_dataset.y, gaussian_dataset.w,
                   gaussian_dataset.ids)

@@ -1,16 +1,12 @@
 """Advantage Actor-Critic (A2C) algorithm for reinforcement learning."""
+import time
+import collections
+
+import numpy as np
+import tensorflow as tf
 
 from deepchem.models import KerasModel
 from deepchem.models.optimizers import Adam
-import numpy as np
-import tensorflow as tf
-import collections
-import copy
-import multiprocessing
-import os
-import re
-import threading
-import time
 
 
 class A2CLossDiscrete(object):
@@ -49,7 +45,7 @@ class A2CLossContinuous(object):
   def __init__(self, value_weight, entropy_weight, mean_index, std_index,
                value_index):
     try:
-      import tensorflow_probability as tfp
+      import tensorflow_probability as tfp  # noqa: F401
     except ModuleNotFoundError:
       raise ValueError(
           "This class requires tensorflow-probability to be installed.")
@@ -384,7 +380,6 @@ class A2C(object):
 
   def _create_rollout(self, rnn_states):
     """Generate a rollout."""
-    n_actions = self._env.n_actions
     states = []
     actions = []
     rewards = []

@@ -111,7 +111,7 @@ RDKitDescriptors
   :members:
 
 MordredDescriptors
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.MordredDescriptors
   :members:

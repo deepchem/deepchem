@@ -1,12 +1,15 @@
 #!/bin/bash -e
 
 items=(
-    "deepchem/hyper"
-    "deepchem/dock"
-    "deepchem/metrics"
     "deepchem/data"
-    "deepchem/splits"
+    "deepchem/dock"
     "deepchem/feat"
+    "deepchem/hyper"
+    "deepchem/metalearning"
+    "deepchem/metrics"
+    "deepchem/rl"
+    "deepchem/splits"
+    "deepchem/trans"
     "deepchem/utils"
 )
 

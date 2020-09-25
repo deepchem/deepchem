@@ -39,7 +39,7 @@ class TestChemnetModel(unittest.TestCase):
 
     loader = dc.data.CSVLoader(
         tasks=chembl25_tasks, smiles_field='smiles', featurizer=featurizer)
-    dataset = loader.featurize(
+    dataset = loader.create_dataset(
         input_files=[dataset_file],
         shard_size=10000,
         data_dir=tempfile.mkdtemp())

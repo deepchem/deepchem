@@ -20,7 +20,7 @@ class TestFASTALoader(unittest.TestCase):
     input_file = os.path.join(self.current_dir,
                               "../../data/tests/example.fasta")
     loader = dc.data.FASTALoader()
-    sequences = loader.featurize(input_file)
+    sequences = loader.create_dataset(input_file)
 
     # example.fasta contains 3 sequences each of length 58.
     # The one-hot encoding turns base-pairs into vectors of length 5 (ATCGN).

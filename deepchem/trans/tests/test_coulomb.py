@@ -1,5 +1,6 @@
-import deepchem as dc
 import numpy as np
+
+import deepchem as dc
 
 
 def test_coulomb_fit_transformer():

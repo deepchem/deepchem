@@ -1,20 +1,18 @@
 """
 Tests for transformer objects.
 """
-from deepchem.molnet import load_delaney
-from deepchem.trans.transformers import DataTransforms
-
 import os
 import unittest
 import numpy as np
-import deepchem as dc
 import scipy.ndimage
+
+import deepchem as dc
 from deepchem.trans.transformers import DataTransforms
 
 
 class TestDataTransforms(unittest.TestCase):
   """
-  Test DataTransforms for images 
+  Test DataTransforms for images
   """
 
   def setUp(self):
@@ -53,7 +51,7 @@ class TestDataTransforms(unittest.TestCase):
     assert np.allclose(check_crop, crop)
 
   def test_crop(self):
-    #Check crop
+    # Check crop
     dt = DataTransforms(self.d)
     crop = dt.crop(0, 10, 0, 10)
     y = self.d.shape[0]
@@ -139,7 +137,7 @@ class TestDataTransforms(unittest.TestCase):
     assert np.allclose(random_noise, check_random_noise)
 
   def test_median_filter(self):
-    #Check median filter
+    # Check median filter
     from PIL import Image, ImageFilter
     dt = DataTransforms(self.d)
     filtered = dt.median_filter(size=3)

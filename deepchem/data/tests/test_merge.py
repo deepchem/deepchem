@@ -15,7 +15,7 @@ def test_merge():
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
   first_dataset = loader.create_dataset(dataset_file)
   second_dataset = loader.create_dataset(dataset_file)
 
@@ -33,7 +33,7 @@ def test_subset():
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(dataset_file, shard_size=2)
 
   shard_nums = [1, 2]

@@ -30,8 +30,8 @@ class TestReload(unittest.TestCase):
         'MUV-713', 'MUV-733', 'MUV-652', 'MUV-466', 'MUV-832'
     ]
     loader = dc.data.CSVLoader(
-        tasks=MUV_tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(dataset_file)
+        tasks=MUV_tasks, feature_field="smiles", featurizer=featurizer)
+    dataset = loader.create_dataset(dataset_file)
     assert len(dataset) == len(raw_dataset)
 
     logger.info("About to split compounds into train/valid/test")

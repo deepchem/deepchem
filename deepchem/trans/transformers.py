@@ -3,16 +3,17 @@ Contains an abstract base class that supports data transformations.
 """
 import os
 import logging
+import time
+import warnings
+from typing import Optional, Tuple, List, Any
+
 import numpy as np
 import scipy
 import scipy.ndimage
-import time
-import deepchem as dc
 import tensorflow as tf
-import warnings
-from typing import Optional, Tuple, List, Any
-from deepchem.data import Dataset
-from deepchem.data import NumpyDataset
+
+import deepchem as dc
+from deepchem.data import Dataset, NumpyDataset, DiskDataset
 from deepchem.feat.mol_graphs import ConvMol
 
 logger = logging.getLogger(__name__)
@@ -21,8 +22,8 @@ logger = logging.getLogger(__name__)
 def undo_grad_transforms(grad, tasks, transformers):
   """DEPRECATED. DO NOT USE."""
   logger.warning(
-      "undo_grad_transforms is DEPRECATED and will be removed in a future version of DeepChem. Manually implement transforms to perform force calculations."
-  )
+      "undo_grad_transforms is DEPRECATED and will be removed in a future version of DeepChem. "
+      "Manually implement transforms to perform force calculations.")
   for transformer in reversed(transformers):
     if transformer.transform_y:
       grad = transformer.untransform_grad(grad, tasks)
@@ -589,8 +590,8 @@ class NormalizationTransformer(Transformer):
   def untransform_grad(self, grad, tasks):
     """DEPRECATED. DO NOT USE."""
     logger.warning(
-        "NormalizationTransformer.untransform_grad is DEPRECATED and will be removed in a future version of DeepChem. Manually implement transforms to perform force calculations."
-    )
+        "NormalizationTransformer.untransform_grad is DEPRECATED and will be removed in a future version of DeepChem. "
+        "Manually implement transforms to perform force calculations.")
     if self.transform_y:
 
       grad_means = self.y_means[1:]
@@ -1818,7 +1819,6 @@ class ANITransformer(Transformer):
 
   def transform_array(self, X, y, w):
     if self.transform_X:
-      n_samples = X.shape[0]
 
       X_out = []
       num_transformed = 0

@@ -1,9 +1,10 @@
+import unittest
+
+import numpy as np
+import tensorflow as tf
 from flaky import flaky
 
 import deepchem as dc
-import numpy as np
-import tensorflow as tf
-import unittest
 
 
 class TestMAML(unittest.TestCase):

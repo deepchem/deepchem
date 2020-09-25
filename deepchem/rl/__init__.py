@@ -1,7 +1,7 @@
 """Interface for reinforcement learning."""
 
-from deepchem.rl.a2c import A2C
-from deepchem.rl.ppo import PPO
+from deepchem.rl.a2c import A2C  # noqa: F401
+from deepchem.rl.ppo import PPO  # noqa: F401
 
 
 class Environment(object):
@@ -120,7 +120,7 @@ class Environment(object):
     This must be called before calling step() or querying the state.  You can call it
     again later to reset the environment back to its original state.
     """
-    raise NotImplemented("Subclasses must implement this")
+    raise NotImplementedError("Subclasses must implement this")
 
   def step(self, action):
     """Take a time step by performing an action.
@@ -137,7 +137,7 @@ class Environment(object):
     the reward earned by taking the action, represented as a floating point number
     (higher values are better)
     """
-    raise NotImplemented("Subclasses must implement this")
+    raise NotImplementedError("Subclasses must implement this")
 
 
 class GymEnvironment(Environment):
@@ -225,4 +225,4 @@ class Policy(object):
     Depending on the algorithm being used, other inputs might get passed as
     well.  It is up to each algorithm to document that.
     """
-    raise NotImplemented("Subclasses must implement this")
+    raise NotImplementedError("Subclasses must implement this")

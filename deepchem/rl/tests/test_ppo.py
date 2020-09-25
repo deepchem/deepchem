@@ -1,12 +1,13 @@
-import pytest
-from flaky import flaky
+import unittest
 
-import deepchem as dc
-from deepchem.models.optimizers import Adam, PolynomialDecay
-from tensorflow.keras.layers import Input, Dense, GRU, Reshape, Softmax
+import pytest
 import numpy as np
 import tensorflow as tf
-import unittest
+from flaky import flaky
+from tensorflow.keras.layers import Input, Dense, GRU, Reshape, Softmax
+
+import deepchem as dc
+from deepchem.models.optimizers import Adam
 
 
 class TestPPO(unittest.TestCase):
@@ -230,8 +231,6 @@ class TestPPO(unittest.TestCase):
     # Optimize it.
 
     env = TestEnvironment()
-    learning_rate = PolynomialDecay(
-        initial_rate=0.0001, final_rate=0.00005, decay_steps=1500000)
     ppo = dc.rl.PPO(
         env,
         TestPolicy(),

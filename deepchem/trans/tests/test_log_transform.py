@@ -14,7 +14,7 @@ def load_feat_multitask_data():
                             "../../models/tests/feat_multitask_example.csv")
   loader = dc.data.UserCSVLoader(
       tasks=tasks, featurizer=featurizer, id_field="id")
-  return loader.featurize(input_file)
+  return loader.create_dataset(input_file)
 
 
 def load_solubility_data():
@@ -22,10 +22,9 @@ def load_solubility_data():
   current_dir = os.path.dirname(os.path.abspath(__file__))
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]
-  task_type = "regression"
   input_file = os.path.join(current_dir, "../../models/tests/example.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
 
   return loader.create_dataset(input_file)
 
