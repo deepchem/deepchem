@@ -71,7 +71,6 @@ from deepchem.utils.molecule_feature_utils import get_atom_total_num_Hs_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_chirality_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_formal_charge
 from deepchem.utils.molecule_feature_utils import get_atom_partial_charge
-from deepchem.utils.molecule_feature_utils import get_atom_ring_size_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_total_degree_one_hot
 from deepchem.utils.molecule_feature_utils import get_bond_type_one_hot
 from deepchem.utils.molecule_feature_utils import get_bond_is_in_same_ring_one_hot

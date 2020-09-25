@@ -1,13 +1,21 @@
 import unittest
 
-
-from deepchem.utils.molecule_feature_utils import one_hot_encode, \
-  get_atom_type_one_hot, construct_hydrogen_bonding_info, \
-  get_atom_hydrogen_bonding_one_hot, get_atom_is_in_aromatic_one_hot, \
-  get_atom_hybridization_one_hot, get_atom_total_num_Hs_one_hot, get_atom_chirality_one_hot, \
-  get_atom_formal_charge, get_atom_partial_charge, get_atom_ring_size_one_hot, \
-  get_atom_total_degree_one_hot, get_bond_type_one_hot, get_bond_is_in_same_ring_one_hot, \
-  get_bond_is_conjugated_one_hot, get_bond_stereo_one_hot, get_bond_graph_distance_one_hot
+from deepchem.utils.molecule_feature_utils import one_hot_encode
+from deepchem.utils.molecule_feature_utils import get_atom_type_one_hot
+from deepchem.utils.molecule_feature_utils import construct_hydrogen_bonding_info
+from deepchem.utils.molecule_feature_utils import get_atom_hydrogen_bonding_one_hot
+from deepchem.utils.molecule_feature_utils import get_atom_hybridization_one_hot
+from deepchem.utils.molecule_feature_utils import get_atom_total_num_Hs_one_hot
+from deepchem.utils.molecule_feature_utils import get_atom_is_in_aromatic_one_hot
+from deepchem.utils.molecule_feature_utils import get_atom_chirality_one_hot
+from deepchem.utils.molecule_feature_utils import get_atom_formal_charge
+from deepchem.utils.molecule_feature_utils import get_atom_partial_charge
+from deepchem.utils.molecule_feature_utils import get_atom_total_degree_one_hot
+from deepchem.utils.molecule_feature_utils import get_bond_type_one_hot
+from deepchem.utils.molecule_feature_utils import get_bond_is_in_same_ring_one_hot
+from deepchem.utils.molecule_feature_utils import get_bond_is_conjugated_one_hot
+from deepchem.utils.molecule_feature_utils import get_bond_stereo_one_hot
+from deepchem.utils.molecule_feature_utils import get_bond_graph_distance_one_hot
 
 
 class TestGraphConvUtils(unittest.TestCase):
@@ -121,20 +129,6 @@ class TestGraphConvUtils(unittest.TestCase):
     partial_charge = get_atom_partial_charge(atoms[0])
     assert len(partial_charge) == 1.0
     assert isinstance(partial_charge[0], float)
-
-  def test_get_atom_ring_size_one_hot(self):
-    from rdkit import Chem
-    atoms = self.mol.GetAtoms()
-    sssr = Chem.GetSymmSSSR(self.mol)
-    assert atoms[0].GetSymbol() == "C"
-    one_hot = get_atom_ring_size_one_hot(atoms[0], sssr)
-    assert one_hot == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-    atoms = self.mol_benzene.GetAtoms()
-    sssr = Chem.GetSymmSSSR(self.mol_benzene)
-    assert atoms[0].GetSymbol() == "C"
-    one_hot = get_atom_ring_size_one_hot(atoms[0], sssr)
-    assert one_hot == [0.0, 0.0, 0.0, 1.0, 0.0, 0.0]
 
   def test_get_atom_total_degree_one_hot(self):
     atoms = self.mol.GetAtoms()

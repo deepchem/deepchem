@@ -9,7 +9,7 @@ Repositories:
 
 import os
 import logging
-from typing import List, Union, Sequence, Tuple
+from typing import List, Union, Tuple
 
 import numpy as np
 
@@ -328,46 +328,6 @@ def get_atom_partial_charge(atom: RDKitAtom) -> List[float]:
   if gasteiger_charge in ['-nan', 'nan', '-inf', 'inf']:
     gasteiger_charge = 0.0
   return [float(gasteiger_charge)]
-
-
-def get_atom_ring_size_one_hot(
-    atom: RDKitAtom,
-    sssr: Sequence,
-    allowable_set: List[int] = DEFAULT_RING_SIZE_SET,
-    include_unknown_set: bool = False) -> List[float]:
-  """Get an one-hot feature about the ring size if an atom is in a ring.
-
-  Parameters
-  ---------
-  atom: rdkit.Chem.rdchem.Atom
-    RDKit atom object
-  sssr: Sequence
-    The return value of `Chem.GetSymmSSSR(mol)`.
-    The value is a sequence of rings.
-  allowable_set: List[int]
-    The ring size types to consider. The default set is `[3, 4, ..., 8]`.
-  include_unknown_set: bool, default False
-    If true, the index of all types not in `allowable_set` is `len(allowable_set)`.
-
-  Returns
-  -------
-  List[float]
-    A one-hot vector of the ring size type.
-    If `include_unknown_set` is False, the length is `len(allowable_set)`.
-    If `include_unknown_set` is True, the length is `len(allowable_set) + 1`.
-  """
-  one_hot = [0.0 for _ in range(len(allowable_set))]
-  atom_index = atom.GetIdx()
-  if atom.IsInRing():
-    for ring in sssr:
-      ring = list(ring)
-      if atom_index in ring:
-        ring_size = len(ring)
-        try:
-          one_hot[DEFAULT_RING_SIZE_SET.index(ring_size)] = 1.0
-        except:
-          pass
-  return one_hot
 
 
 def get_atom_total_degree_one_hot(
