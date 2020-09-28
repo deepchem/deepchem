@@ -197,3 +197,114 @@ class TestLosses(unittest.TestCase):
     softmax = np.exp(y) / np.expand_dims(np.sum(np.exp(y), axis=1), 1)
     expected = [-np.log(softmax[0, 1]), -np.log(softmax[1, 0])]
     assert np.allclose(expected, result)
+
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
+  def test_VAE_ELBO_tf(self):
+    """."""
+    loss = losses.VAE_ELBO()
+    logvar = tf.constant([[1.0, 1.3], [0.6, 1.2]])
+    mu = tf.constant([[0.2, 0.7], [1.2, 0.4]])
+    x = tf.constant([[0.9, 0.4, 0.8], [0.3, 0, 1]])
+    reconstruction_x = tf.constant([[0.8, 0.3, 0.7], [0.2, 0, 0.9]])
+    result = loss._compute_tf_loss(logvar, mu, x, reconstruction_x).numpy()
+    expected = [
+        0.5 * np.mean([
+            0.04 + 1.0 - np.log(1e-20 + 1.0) - 1,
+            0.49 + 1.69 - np.log(1e-20 + 1.69) - 1
+        ]) - np.mean(
+            np.array([0.9, 0.4, 0.8]) * np.log([0.8, 0.3, 0.7]) +
+            np.array([0.1, 0.6, 0.2]) * np.log([0.2, 0.7, 0.3])),
+        0.5 * np.mean([
+            1.44 + 0.36 - np.log(1e-20 + 0.36) - 1,
+            0.16 + 1.44 - np.log(1e-20 + 1.44) - 1
+        ]) - np.mean(
+            np.array([0.3, 0, 1]) * np.log([0.2, 1e-20, 0.9]) +
+            np.array([0.7, 1, 0]) * np.log([0.8, 1, 0.1]))
+    ]
+    assert np.allclose(expected, result)
+
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  def test_VAE_ELBO_pytorch(self):
+    """."""
+    loss = losses.VAE_ELBO()
+    logvar = torch.tensor([[1.0, 1.3], [0.6, 1.2]])
+    mu = torch.tensor([[0.2, 0.7], [1.2, 0.4]])
+    x = torch.tensor([[0.9, 0.4, 0.8], [0.3, 0, 1]])
+    reconstruction_x = torch.tensor([[0.8, 0.3, 0.7], [0.2, 0, 0.9]])
+    result = loss._create_pytorch_loss()(logvar, mu, x,
+                                         reconstruction_x).numpy()
+    expected = [
+        0.5 * np.mean([
+            0.04 + 1.0 - np.log(1e-20 + 1.0) - 1,
+            0.49 + 1.69 - np.log(1e-20 + 1.69) - 1
+        ]) - np.mean(
+            np.array([0.9, 0.4, 0.8]) * np.log([0.8, 0.3, 0.7]) +
+            np.array([0.1, 0.6, 0.2]) * np.log([0.2, 0.7, 0.3])),
+        0.5 * np.mean([
+            1.44 + 0.36 - np.log(1e-20 + 0.36) - 1,
+            0.16 + 1.44 - np.log(1e-20 + 1.44) - 1
+        ]) - np.mean(
+            np.array([0.3, 0, 1]) * np.log([0.2, 1e-20, 0.9]) +
+            np.array([0.7, 1, 0]) * np.log([0.8, 1, 0.1]))
+    ]
+    assert np.allclose(expected, result)
+
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
+  def test_VAE_KLDivergence_tf(self):
+    """."""
+    loss = losses.VAE_KLDivergence()
+    logvar = tf.constant([[1.0, 1.3], [0.6, 1.2]])
+    mu = tf.constant([[0.2, 0.7], [1.2, 0.4]])
+    result = loss._compute_tf_loss(logvar, mu).numpy()
+    expected = [
+        0.5 * np.mean([
+            0.04 + 1.0 - np.log(1e-20 + 1.0) - 1,
+            0.49 + 1.69 - np.log(1e-20 + 1.69) - 1
+        ]), 0.5 * np.mean([
+            1.44 + 0.36 - np.log(1e-20 + 0.36) - 1,
+            0.16 + 1.44 - np.log(1e-20 + 1.44) - 1
+        ])
+    ]
+    assert np.allclose(expected, result)
+
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  def test_VAE_KLDivergence_pytorch(self):
+    """."""
+    loss = losses.VAE_KLDivergence()
+    logvar = torch.tensor([[1.0, 1.3], [0.6, 1.2]])
+    mu = torch.tensor([[0.2, 0.7], [1.2, 0.4]])
+    result = loss._create_pytorch_loss()(logvar, mu).numpy()
+    expected = [
+        0.5 * np.mean([
+            0.04 + 1.0 - np.log(1e-20 + 1.0) - 1,
+            0.49 + 1.69 - np.log(1e-20 + 1.69) - 1
+        ]), 0.5 * np.mean([
+            1.44 + 0.36 - np.log(1e-20 + 0.36) - 1,
+            0.16 + 1.44 - np.log(1e-20 + 1.44) - 1
+        ])
+    ]
+    assert np.allclose(expected, result)
+
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
+  def test_ShannonEntropy_tf(self):
+    """."""
+    loss = losses.ShannonEntropy()
+    inputs = tf.constant([[0.7, 0.3], [0.9, 0.1]])
+    result = loss._compute_tf_loss(inputs).numpy()
+    expected = [
+        -np.mean([0.7 * np.log(0.7), 0.3 * np.log(0.3)]),
+        -np.mean([0.9 * np.log(0.9), 0.1 * np.log(0.1)])
+    ]
+    assert np.allclose(expected, result)
+
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  def test_ShannonEntropy_pytorch(self):
+    """."""
+    loss = losses.ShannonEntropy()
+    inputs = torch.tensor([[0.7, 0.3], [0.9, 0.1]])
+    result = loss._create_pytorch_loss()(inputs).numpy()
+    expected = [
+        -np.mean([0.7 * np.log(0.7), 0.3 * np.log(0.3)]),
+        -np.mean([0.9 * np.log(0.9), 0.1 * np.log(0.1)])
+    ]
+    assert np.allclose(expected, result)
