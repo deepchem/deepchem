@@ -525,7 +525,7 @@ class RandomStratifiedSplitter(Splitter):
     test_counts = np.zeros(n_tasks, np.int)
     set_target = [train_target, valid_target, test_target]
     set_counts = [train_counts, valid_counts, test_counts]
-    set_inds = [[], [], []]
+    set_inds: List[List[int]] = [[], [], []]
     assigned = set()
     max_count = np.max(count_for_task)
     for i in range(max_count):
