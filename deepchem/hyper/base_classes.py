@@ -29,7 +29,7 @@ def _convert_hyperparam_dict_to_filename(hyper_params: Dict[str, Any]) -> str:
     if isinstance(value, int):
       filename += "_%s" % str(value)
     elif isinstance(value, float):
-      filename += "_%.2f" % value
+      filename += "_%f" % value
     else:
       filename += "%s" % str(value)
   return filename
