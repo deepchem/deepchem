@@ -278,11 +278,7 @@ def load_qm7(featurizer='CoulombMatrix',
   qm7_tasks = ["u0_atom"]
   if featurizer == 'CoulombMatrix':
     featurizer = deepchem.feat.CoulombMatrixEig(23)
-  loader = deepchem.data.SDFLoader(
-      tasks=qm7_tasks,
-      smiles_field="smiles",
-      mol_field="mol",
-      featurizer=featurizer)
+  loader = deepchem.data.SDFLoader(tasks=qm7_tasks, featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
 
   if split == None:
