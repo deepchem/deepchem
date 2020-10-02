@@ -60,7 +60,7 @@ def angle_between(vector_i: np.ndarray, vector_j: np.ndarray) -> np.ndarray:
 
 
 def generate_random_unit_vector() -> np.ndarray:
-  """Generate a random unit vector on the sphere S^2.
+  r"""Generate a random unit vector on the sphere S^2.
 
   Citation: http://mathworld.wolfram.com/SpherePointPicking.html
 
@@ -83,7 +83,7 @@ def generate_random_unit_vector() -> np.ndarray:
 
 
 def generate_random_rotation_matrix() -> np.ndarray:
-  """Generates a random rotation matrix.
+  r"""Generates a random rotation matrix.
 
   1. Generate a random unit vector u, randomly sampled from the
      unit sphere (see function generate_random_unit_vector()

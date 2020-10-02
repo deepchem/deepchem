@@ -70,7 +70,7 @@ def test_weave_single_carbon():
 
 def test_chiral_weave():
   """Test weave features on a molecule with chiral structure."""
-  mols = ["F\C=C\F"]  # noqa: W605
+  mols = [r"F\C=C\F"]
   featurizer = dc.feat.WeaveFeaturizer(use_chirality=True)
   mol_list = featurizer.featurize(mols)
   mol = mol_list[0]

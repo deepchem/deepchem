@@ -394,7 +394,7 @@ def h(d):
 class VinaModel(Model):
 
   def __init__(self, logdir=None, batch_size=50):
-    """Vina models.
+    r"""Vina models.
 
     .. math:: c = \sum_{i < j} f_{t_i,t_j}(r_{ij})
 
