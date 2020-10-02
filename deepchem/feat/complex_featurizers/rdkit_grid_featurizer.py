@@ -25,7 +25,7 @@ def compute_centroid(coordinates):
 
 
 def generate_random__unit_vector():
-  """Generate a random unit vector on the 3-sphere.
+  r"""Generate a random unit vector on the 3-sphere.
   citation:
   http://mathworld.wolfram.com/SpherePointPicking.html
 
@@ -43,7 +43,7 @@ def generate_random__unit_vector():
 
 
 def generate_random_rotation_matrix():
-  """Generate a random rotation matrix in 3D.
+  r"""Generate a random rotation matrix in 3D.
 
   1. Generate a random unit vector u, randomly sampled from the unit
      3-sphere (see function generate_random__unit_vector() for details)

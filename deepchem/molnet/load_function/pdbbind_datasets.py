@@ -202,7 +202,7 @@ def load_pdbbind(reload=True,
   if save_timestamp:
     save_folder = "%s-%s-%s" % (save_folder,
                                 time.strftime("%Y%m%d", time.localtime()),
-                                re.search("\.(.*)", str(time.time())).group(1))
+                                re.search(r"\.(.*)", str(time.time())).group(1))
 
   if reload:
     if not os.path.exists(save_folder):
