@@ -204,9 +204,9 @@ class TestSplitter(unittest.TestCase):
     train_data, valid_data, test_data = \
       butina_splitter.train_valid_test_split(
         solubility_dataset)
-    assert len(train_data) == 7
-    assert len(valid_data) == 3
-    assert len(test_data) == 0
+    assert len(train_data) == 8
+    assert len(valid_data) == 1
+    assert len(test_data) == 1
 
   def test_k_fold_splitter(self):
     """
