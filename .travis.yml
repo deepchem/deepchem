@@ -40,7 +40,7 @@ install:
   - conda activate deepchem
   - pip install -e .
 script:
-  - if [[ "$DOCTEST_EXAMPLES" == "true" ]]; then
+  - if [ "$DOCTEST_EXAMPLES" == "true" ]; then
       cd docs && pip install -r requirements.txt;
       PYTHONWARNINGS= sphinx-build -M doctest ./ _build examples.rst
       travis_terminate
