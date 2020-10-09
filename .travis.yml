@@ -43,6 +43,7 @@ script:
   - if [[ "$DOCTEST_EXAMPLES" == "true" ]]; then
       cd docs && pip install -r requirements.txt;
       make doctest_examples;
+      travis_terminate $?;
     fi
   - bash devtools/run_yapf.sh
   - bash devtools/run_flake8.sh
