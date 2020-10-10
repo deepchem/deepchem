@@ -27,8 +27,9 @@ Before jumping in to examples, we'll import our libraries and ensure our `doctes
         tf.random.set_seed(123)
 
 Other notes:
-* We sometimes match against doctest's ellipsis wild card  on code that where output is usually ignored (e.g. :code:`0...` for :code:`model.fit`)
-* We often use heuristic assertions (e.g. :code:`score['mean-pearson_r2_score'] > 0.92`) as deterministic output is brittle and less important in model training code.
+
+* We match against doctest's :code:`...` wildcard on code where output is usually ignored
+* We often use threshold assertions (e.g: :code:`score['mean-pearson_r2_score'] > 0.92`), as this is what matters for model training code.
 
 SAMPL (FreeSolv)
 ----------------
