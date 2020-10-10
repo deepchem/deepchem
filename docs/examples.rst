@@ -26,6 +26,9 @@ Before jumping in to examples, we'll import our libraries and ensure our `doctes
         np.random.seed(123)
         tf.random.set_seed(123)
 
+Other notes:
+* We sometimes match against doctest's ellipsis wild card  on code that where output is usually ignored (e.g. :code:`0...` for :code:`model.fit`)
+* We often use heuristic assertions (e.g. :code:`score['mean-pearson_r2_score'] > 0.92`) as deterministic output is brittle and less important in model training code.
 
 SAMPL (FreeSolv)
 ----------------
@@ -59,16 +62,16 @@ First, we'll load the dataset with :func:`load_sampl() <deepchem.molnet.load_sam
     ...     dropouts=[.25],
     ...     learning_rate=0.001,
     ...     batch_size=50)
-    >>> 
-    >>> # Fit trained model (returns average loss over the most recent checkpoint interval)
+    >>>
     >>> model.fit(train_dataset)
-    0.1726440668106079
-    >>> 
+    0...
+    >>>
     >>> # We now evaluate our fitted model on our training and validation sets
-    >>> model.evaluate(train_dataset, [avg_pearson_r2], transformers)
-    {'mean-pearson_r2_score': 0.9244964295814636}
-    >>> model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
-    {'mean-pearson_r2_score': 0.7532658569385681}
+    >>> train_scores = model.evaluate(train_dataset, [avg_pearson_r2], transformers) 
+    >>> assert train_scores['mean-pearson_r2_score'] > 0.92
+    >>>
+    >>> valid_scores = model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
+    >>> assert valid_scores['mean-pearson_r2_score'] > 0.75
 
 
 GraphConvModel
@@ -87,15 +90,15 @@ For a :class:`GraphConvModel <deepchem.models.GraphConvModel>`, we'll reload our
     >>>
     >>> model = dc.models.GraphConvModel(len(SAMPL_tasks), mode='regression')
     >>> 
-    >>> # Fit trained model (returns average loss over the most recent checkpoint interval)
     >>> model.fit(train_dataset, nb_epoch=20)
-    0.05753047466278076
+    0...
     >>> 
     >>> # We now evaluate our fitted model on our training and validation sets
-    >>> model.evaluate(train_dataset, [avg_pearson_r2], transformers)
-    {'mean-pearson_r2_score': 0.5772751202910659}
-    >>> model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
-    {'mean-pearson_r2_score': 0.36771456280565507}
+    >>> train_scores = model.evaluate(train_dataset, [avg_pearson_r2], transformers)
+    >>> assert train_scores['mean-pearson_r2_score'] > 0.57
+    >>>
+    >>> valid_scores = model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
+    >>> assert valid_scores['mean-pearson_r2_score'] > 0.36
 
 
 ..
@@ -139,15 +142,15 @@ For a :class:`GraphConvModel <deepchem.models.GraphConvModel>`, we'll reload our
       ...     batch_size=100,
       ...     verbosity="high")
       >>>
-      >>> model.fit(train_dataset, nb_epoch=10) # orig. 20
-      0.04922508895397186
-      >>> # We now evaluate our fitted model on our training, validation, and test sets
-      >>> model.evaluate(train_dataset, [avg_pearson_r2], transformers)
-      {'mean-pearson_r2_score': nan}
-      >>> model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
-      {'mean-pearson_r2_score': nan}
-      >>> model.evaluate(test_dataset, [avg_pearson_r2], transformers)
-      {'mean-pearson_r2_score': nan}
+      >>> model.fit(train_dataset, nb_epoch=20)
+      0...
+      >>>
+      >>> # We now evaluate our fitted model on our training and validation sets
+      >>> train_scores = model.evaluate(train_dataset, [avg_pearson_r2], transformers)
+      >>> assert train_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
+      >>>
+      >>> valid_scores = model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
+      >>> assert valid_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
 
   GraphConvModel
   ^^^^^^^^^^^^^^
@@ -167,13 +170,12 @@ For a :class:`GraphConvModel <deepchem.models.GraphConvModel>`, we'll reload our
       >>>
       >>> # Fit trained model
       >>> model.fit(train_dataset, nb_epoch=20)
-      None
+      0...
       >>>
-      >>> # We now evaluate our fitted model on our training, validation, and test sets
-      >>> model.evaluate(train_dataset, [avg_pearson_r2], transformers)
-      {'mean-pearson_r2_score': nan}
-      >>> model.evaluate(valid_dataset, [avg_pearson_r2], transformers) and False
-      {'mean-pearson_r2_score': nan}
-      >>> model.evaluate(test_dataset, [avg_pearson_r2], transformers) and False
-      {'mean-pearson_r2_score': nan}
+      >>> # We now evaluate our fitted model on our training and validation sets
+      >>> train_scores = model.evaluate(train_dataset, [avg_pearson_r2], transformers)
+      >>> assert train_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
+      >>>
+      >>> valid_scores = model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
+      >>> assert valid_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
 
