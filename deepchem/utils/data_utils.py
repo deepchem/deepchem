@@ -322,6 +322,7 @@ def load_json_files(input_files: List[str],
         shard_num += 1
         yield df
 
+
 def load_pickle_file(input_file: str) -> Any:
   """Load from single, possibly gzipped, pickle file.
 
@@ -342,6 +343,7 @@ def load_pickle_file(input_file: str) -> Any:
   else:
     with open(input_file, "rb") as opened_file:
       return pickle.load(opened_file)
+
 
 def load_pickle_files(input_files: List[str]) -> Iterator[Any]:
   """Load dataset from pickle files.
