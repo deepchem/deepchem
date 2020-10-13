@@ -175,8 +175,6 @@ Graph Convolution Utilities
 
 .. autofunction:: deepchem.utils.molecule_feature_utils.get_atom_partial_charge
 
-.. autofunction:: deepchem.utils.molecule_feature_utils.get_atom_ring_size_one_hot
-
 .. autofunction:: deepchem.utils.molecule_feature_utils.get_atom_total_degree_one_hot
 
 .. autofunction:: deepchem.utils.molecule_feature_utils.get_bond_type_one_hot

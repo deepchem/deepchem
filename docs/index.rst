@@ -125,6 +125,7 @@ discussions about research, development or any general questions. If you'd like 
    :caption: Get Started
 
    tutorial
+   examples
    installation
    requirements
 

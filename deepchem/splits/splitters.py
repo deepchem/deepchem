@@ -6,7 +6,7 @@ import random
 import tempfile
 import itertools
 import logging
-from typing import Any, Dict, List, Iterator, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Iterator, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd

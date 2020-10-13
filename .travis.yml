@@ -14,6 +14,12 @@ jobs:
       language: c
       python: '3.7'
       os: windows
+    - name: DocTest Examples
+      language: python
+      python: '3.7'
+      sudo: required
+      dist: xenial
+      env: DOCTEST_EXAMPLES=true
 cache: pip
 install:
   - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then
@@ -34,6 +40,11 @@ install:
   - conda activate deepchem
   - pip install -e .
 script:
+  - if [[ "$DOCTEST_EXAMPLES" == "true" ]]; then
+      cd docs && pip install -r requirements.txt;
+      make doctest_examples;
+      travis_terminate $?;
+    fi
   - bash devtools/run_yapf.sh
   - bash devtools/run_flake8.sh
   - mypy -p deepchem
