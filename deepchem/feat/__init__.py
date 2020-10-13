@@ -37,6 +37,14 @@ from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
 from deepchem.feat.complex_featurizers import NeighborListAtomicCoordinates
 from deepchem.feat.complex_featurizers import NeighborListComplexAtomicCoordinates
 from deepchem.feat.complex_featurizers import ComplexNeighborListFragmentAtomicCoordinates
+from deepchem.feat.complex_featurizers import ContactCircularFingerprint
+from deepchem.feat.complex_featurizers import ContactCircularVoxelizer
+from deepchem.feat.complex_featurizers import ChargeVoxelizer
+from deepchem.feat.complex_featurizers import SaltBridgeVoxelizer
+from deepchem.feat.complex_featurizers import CationPiVoxelizer
+from deepchem.feat.complex_featurizers import PiStackVoxelizer
+from deepchem.feat.complex_featurizers import HydrogenBondVoxelizer
+from deepchem.feat.complex_featurizers import HydrogenBondCounter
 
 # material featurizers
 from deepchem.feat.material_featurizers import ElementPropertyFingerprint
