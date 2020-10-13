@@ -370,3 +370,68 @@ def merge_molecules(molecules):
     for nextmol in molecules[1:]:
       combined = rdmolops.CombineMols(combined, nextmol)
     return combined
+
+
+def compute_all_ecfp(mol, indices=None, degree=2):
+  """Obtain molecular fragment for all atoms emanating outward to given degree.
+
+  For each fragment, compute SMILES string (for now) and hash to
+  an int. Return a dictionary mapping atom index to hashed
+  SMILES.
+  """
+
+  ecfp_dict = {}
+  from rdkit import Chem
+  for i in range(mol.GetNumAtoms()):
+    if indices is not None and i not in indices:
+      continue
+    env = Chem.FindAtomEnvironmentOfRadiusN(mol, degree, i, useHs=True)
+    submol = Chem.PathToSubmol(mol, env)
+    smile = Chem.MolToSmiles(submol)
+    ecfp_dict[i] = "%s,%s" % (mol.GetAtoms()[i].GetAtomicNum(), smile)
+
+  return ecfp_dict
+
+
+def compute_contact_centroid(molecular_complex, cutoff=4.5):
+  """Computes the (x,y,z) centroid of the contact regions of this molecular complex.
+  For a molecular complex, it's necessary for various featurizations
+  that compute voxel grids to find a reasonable center for the
+  voxelization. This function computes the centroid of all the contact
+  atoms, defined as an atom that's within `cutoff` Angstroms of an
+  atom from a different molecule.
+  Parameters
+  ----------
+  molecular_complex: Object
+    A representation of a molecular complex, produced by
+    `rdkit_util.load_complex`.
+  cutoff: float, optional
+    The distance in Angstroms considered for computing contacts.
+  """
+  fragments = reduce_molecular_complex_to_contacts(molecular_complex, cutoff)
+  coords = [frag[0] for frag in fragments]
+  contact_coords = merge_molecules_xyz(coords)
+  centroid = np.mean(contact_coords, axis=0)
+  return (centroid)
+
+
+def compute_ring_center(mol, ring_indices):
+  """Computes 3D coordinates of a center of a given ring.
+  Parameters:
+  -----------
+  mol: rdkit.rdchem.Mol
+    Molecule containing a ring
+  ring_indices: array-like
+    Indices of atoms forming a ring
+  Returns:
+  --------
+    ring_centroid: np.ndarray
+      Position of a ring center
+  """
+  conformer = mol.GetConformer()
+  ring_xyz = np.zeros((len(ring_indices), 3))
+  for i, atom_idx in enumerate(ring_indices):
+    atom_position = conformer.GetAtomPosition(atom_idx)
+    ring_xyz[i] = np.array(atom_position)
+  ring_centroid = compute_centroid(ring_xyz)
+  return ring_centroid

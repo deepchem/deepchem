@@ -4,7 +4,7 @@ Compute various spatial fingerprints for macromolecular complexes.
 import itertools
 import logging
 import numpy as np
-from deepchem.utils import rdkit_util
+from deepchem.utils import rdkit_utils
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils.hash_utils import hash_ecfp_pair
 from deepchem.utils.voxel_utils import voxelize
@@ -14,12 +14,12 @@ from deepchem.utils.noncovalent_utils import compute_salt_bridges
 from deepchem.utils.noncovalent_utils import compute_binding_pocket_cation_pi
 from deepchem.utils.noncovalent_utils import compute_pi_stack
 from deepchem.utils.noncovalent_utils import compute_hydrogen_bonds
-from deepchem.utils.rdkit_util import MoleculeLoadException
-from deepchem.utils.rdkit_util import compute_contact_centroid
+from deepchem.utils.rdkit_utils import MoleculeLoadException
+from deepchem.utils.rdkit_utils import compute_contact_centroid
 from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.utils.geometry_utils import subtract_centroid
-from deepchem.utils.fragment_util import get_partial_charge
-from deepchem.utils.fragment_util import reduce_molecular_complex_to_contacts
+from deepchem.utils.fragment_utils import get_partial_charge
+from deepchem.utils.fragment_utils import reduce_molecular_complex_to_contacts
 
 logger = logging.getLogger(__name__)
 

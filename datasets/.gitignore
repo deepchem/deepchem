@@ -1,0 +1,9 @@
+PPB.csv
+SAMPL.csv
+bace.csv
+bace_c-featurized/
+clintox-featurized/
+clintox.csv.gz
+core_grid.json
+ppb-featurized/
+sampl-featurized/
