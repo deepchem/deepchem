@@ -9,11 +9,28 @@ import logging
 import json
 from typing import Dict, List, Any
 
+import deepchem as dc
 from deepchem.feat.base_classes import Featurizer
 from deepchem.trans.transformers import Transformer
 from deepchem.splits.splitters import Splitter
 
 logger = logging.getLogger(__name__)
+
+featurizers = {
+    'ECFP': dc.feat.CircularFingerprint(size=1024),
+    'GraphConv': dc.feat.ConvMolFeaturizer(),
+    'Weave': dc.feat.WeaveFeaturizer(),
+    'Raw': dc.feat.RawFeaturizer()
+}
+
+splitters = {
+    'index': dc.splits.IndexSplitter(),
+    'random': dc.splits.RandomSplitter(),
+    'scaffold': dc.splits.ScaffoldSplitter(),
+    'butina': dc.splits.ButinaSplitter(),
+    'task': dc.splits.TaskSplitter(),
+    'stratified': dc.splits.RandomStratifiedSplitter()
+}
 
 
 def get_defaults(module_name: str = None) -> Dict[str, Any]:
