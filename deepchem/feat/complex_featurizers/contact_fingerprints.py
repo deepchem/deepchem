@@ -7,6 +7,8 @@ import itertools
 from deepchem.utils.hash_utils import hash_ecfp
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils import rdkit_utils
+from deepchem.utils.rdkit_utils import load_complex
+from deepchem.utils.rdkit_utils import load_molecule
 from deepchem.utils.hash_utils import vectorize
 from deepchem.utils.voxel_utils import voxelize
 from deepchem.utils.voxel_utils import convert_atom_to_voxel
@@ -16,28 +18,35 @@ from deepchem.utils.rdkit_utils import MoleculeLoadException
 from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.utils.geometry_utils import subtract_centroid
 
+from typing import Tuple, Dict
+
 logger = logging.getLogger(__name__)
 
 
-def featurize_contacts_ecfp(frag1,
-                            frag2,
-                            pairwise_distances=None,
-                            cutoff=4.5,
-                            ecfp_degree=2):
+def featurize_contacts_ecfp(
+    frag1: Tuple,
+    frag2: Tuple,
+    pairwise_distances: np.ndarray = None,
+    cutoff: float = 4.5,
+    ecfp_degree: int = 2) -> Tuple[Dict[int, str], Dict[int, str]]:
   """Computes ECFP dicts for pairwise interaction between two molecular fragments.
 
   Parameters
   ----------
   frag1: Tuple
-    A tuple of (coords, mol) returned by `rdkit_util.load_molecule`.
+    A tuple of (coords, mol) returned by `load_molecule`.
   frag2: Tuple
-    A tuple of (coords, mol) returned by `rdkit_util.load_molecule`.
+    A tuple of (coords, mol) returned by `load_molecule`.
   pairwise_distances: np.ndarray
     Array of pairwise fragment-fragment distances (Angstroms)
   cutoff: float
     Cutoff distance for contact consideration
   ecfp_degree: int
     ECFP radius
+
+  Returns
+  -------
+  Tuple of dictionaries of ECFP contact fragments
   """
   if pairwise_distances is None:
     pairwise_distances = compute_pairwise_distances(frag1[0], frag2[0])
@@ -71,33 +80,34 @@ class ContactCircularFingerprint(ComplexFeaturizer):
   `(2*size,)`
   """
 
-  def __init__(self, cutoff=4.5, radius=2, size=8):
+  def __init__(self, cutoff: float = 4.5, radius: int = 2, size: int = 8):
     """
     Parameters
     ----------
     cutoff: float (default 4.5)
       Distance cutoff in angstroms for molecules in complex.
-    radius : int, optional (default 2)
+    radius: int, optional (default 2)
         Fingerprint radius.
-    size : int, optional (default 8)
+    size: int, optional (default 8)
       Length of generated bit vector.
     """
     self.cutoff = cutoff
     self.radius = radius
     self.size = size
 
-  def _featurize_complex(self, molecular_complex):
+  def _featurize(self, mol_pdb: str, complex_pdb: str):
     """
     Compute featurization for a molecular complex
 
     Parameters
     ----------
-    molecular_complex: Object
-      Some representation of a molecular complex.
+    mol_pdb: str
+      Filename for ligand molecule
+    complex_pdb: str
+      Filename for protein molecule
     """
     try:
-      fragments = rdkit_util.load_complex(
-          molecular_complex, add_hydrogens=False)
+      fragments = load_complex((mol_pdb, complex_pdb), add_hydrogens=False)
 
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
@@ -141,12 +151,12 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
   """
 
   def __init__(self,
-               cutoff=4.5,
-               radius=2,
-               size=8,
-               box_width=16.0,
-               voxel_width=1.0,
-               flatten=False):
+               cutoff: float = 4.5,
+               radius: int = 2,
+               size: int = 8,
+               box_width: float = 16.0,
+               voxel_width: float = 1.0,
+               flatten: bool = False):
     """
     Parameters
     ----------
@@ -173,19 +183,20 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
     self.flatten = flatten
 
-  def _featurize_complex(self, molecular_complex):
+  def _featurize(self, mol_pdb: str, complex_pdb: str):
     """
-    Compute featurization for a single mol/protein complex
+    Compute featurization for a molecular complex
 
     Parameters
     ----------
-    molecular_complex: Object
-      A representation of a molecular complex, produced by
-      `rdkit_util.load_complex`.
+    mol_pdb: str
+      Filename for ligand molecule
+    complex_pdb: str
+      Filename for protein molecule
     """
+    molecular_complex = (mol_pdb, complex_pdb)
     try:
-      fragments = rdkit_util.load_complex(
-          molecular_complex, add_hydrogens=False)
+      fragments = load_complex(molecular_complex, add_hydrogens=False)
 
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
@@ -202,10 +213,10 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
           sum([
               voxelize(
                   convert_atom_to_voxel,
-                  self.box_width,
-                  self.voxel_width,
                   hash_ecfp,
                   xyz,
+                  self.box_width,
+                  self.voxel_width,
                   feature_dict=ecfp_dict,
                   nb_channel=self.size) for xyz, ecfp_dict in zip(
                       xyzs,

@@ -9,11 +9,16 @@ properties of molecules.
 
 import os
 import logging
+import itertools
 import numpy as np
 from io import StringIO
 from deepchem.utils.pdbqt_utils import pdbqt_to_pdb
 from deepchem.utils.pdbqt_utils import convert_mol_to_pdbqt
 from deepchem.utils.pdbqt_utils import convert_protein_to_pdbqt
+from deepchem.utils.geometry_utils import compute_pairwise_distances
+from deepchem.utils.fragment_utils import MolecularFragment
+from typing import Any, List, Tuple, Set, Optional, Dict
+from deepchem.utils.typing import OneOrMany, RDKitMol
 
 logger = logging.getLogger(__name__)
 
@@ -168,10 +173,10 @@ def compute_charges(mol):
     raise MoleculeLoadException(e)
 
 
-def load_complex(molecular_complex,
-                 add_hydrogens=True,
-                 calc_charges=True,
-                 sanitize=True):
+def load_complex(molecular_complex: OneOrMany[str],
+                 add_hydrogens: bool = True,
+                 calc_charges: bool = True,
+                 sanitize: bool = True) -> List[Tuple]:
   """Loads a molecular complex.
 
   Given some representation of a molecular complex, returns a list of
@@ -372,12 +377,29 @@ def merge_molecules(molecules):
     return combined
 
 
-def compute_all_ecfp(mol, indices=None, degree=2):
+def compute_all_ecfp(mol: RDKitMol,
+                     indices: Optional[Set[int]] = None,
+                     degree: int = 2) -> Dict[int, str]:
   """Obtain molecular fragment for all atoms emanating outward to given degree.
 
   For each fragment, compute SMILES string (for now) and hash to
   an int. Return a dictionary mapping atom index to hashed
   SMILES.
+
+  Parameters
+  ----------
+  mol: rdkit Molecule
+    Molecule to compute ecfp fragments on
+  indices: Optional[Set[int]]
+    List of atom indices for molecule. Default is all indices. If
+    specified will only compute fragments for specified atoms.
+  degree: int
+    Graph degree to use when computing ECFP fingerprints
+
+  Parameters
+  ----------
+  
+
   """
 
   ecfp_dict = {}
@@ -393,13 +415,16 @@ def compute_all_ecfp(mol, indices=None, degree=2):
   return ecfp_dict
 
 
-def compute_contact_centroid(molecular_complex, cutoff=4.5):
+def compute_contact_centroid(molecular_complex: Any,
+                             cutoff: float = 4.5) -> np.ndarray:
   """Computes the (x,y,z) centroid of the contact regions of this molecular complex.
+
   For a molecular complex, it's necessary for various featurizations
   that compute voxel grids to find a reasonable center for the
   voxelization. This function computes the centroid of all the contact
   atoms, defined as an atom that's within `cutoff` Angstroms of an
   atom from a different molecule.
+
   Parameters
   ----------
   molecular_complex: Object
@@ -415,18 +440,57 @@ def compute_contact_centroid(molecular_complex, cutoff=4.5):
   return (centroid)
 
 
+def reduce_molecular_complex_to_contacts(fragments: List,
+                                         cutoff: float = 4.5) -> List:
+  """Reduce a molecular complex to only those atoms near a contact.
+
+  Molecular complexes can get very large. This can make it unwieldy to
+  compute functions on them. To improve memory usage, it can be very
+  useful to trim out atoms that aren't close to contact regions. This
+  function takes in a molecular complex and returns a new molecular
+  complex representation that contains only contact atoms. The contact
+  atoms are computed by calling `get_contact_atom_indices` under the
+  hood.
+
+  Parameters
+  ----------
+  fragments: List
+    As returned by `rdkit_util.load_complex`, a list of tuples of
+    `(coords, mol)` where `coords` is a `(N_atoms, 3)` array and `mol`
+    is the rdkit molecule object.
+  cutoff: float
+    The cutoff distance in angstroms.
+
+  Returns
+  -------
+  A list of length `len(molecular_complex)`. Each entry in this list
+  is a tuple of `(coords, MolecularShim)`. The coords is stripped down
+  to `(N_contact_atoms, 3)` where `N_contact_atoms` is the number of
+  contact atoms for this complex. `MolecularShim` is used since it's
+  tricky to make a RDKit sub-molecule. 
+  """
+  atoms_to_keep = get_contact_atom_indices(fragments, cutoff)
+  reduced_complex = []
+  for frag, keep in zip(fragments, atoms_to_keep):
+    contact_frag = get_mol_subset(frag[0], frag[1], keep)
+    reduced_complex.append(contact_frag)
+  return reduced_complex
+
+
 def compute_ring_center(mol, ring_indices):
   """Computes 3D coordinates of a center of a given ring.
+
   Parameters:
   -----------
   mol: rdkit.rdchem.Mol
     Molecule containing a ring
   ring_indices: array-like
     Indices of atoms forming a ring
+
   Returns:
   --------
-    ring_centroid: np.ndarray
-      Position of a ring center
+  ring_centroid: np.ndarray
+    Position of a ring center
   """
   conformer = mol.GetConformer()
   ring_xyz = np.zeros((len(ring_indices), 3))
@@ -435,3 +499,120 @@ def compute_ring_center(mol, ring_indices):
     ring_xyz[i] = np.array(atom_position)
   ring_centroid = compute_centroid(ring_xyz)
   return ring_centroid
+
+
+def get_contact_atom_indices(fragments: List, cutoff: float = 4.5) -> List:
+  """Compute that atoms close to contact region.
+
+  Molecular complexes can get very large. This can make it unwieldy to
+  compute functions on them. To improve memory usage, it can be very
+  useful to trim out atoms that aren't close to contact regions. This
+  function computes pairwise distances between all pairs of molecules
+  in the molecular complex. If an atom is within cutoff distance of
+  any atom on another molecule in the complex, it is regarded as a
+  contact atom. Otherwise it is trimmed.
+
+  Parameters
+  ----------
+  fragments: List
+    As returned by `rdkit_util.load_complex`, a list of tuples of
+    `(coords, mol)` where `coords` is a `(N_atoms, 3)` array and `mol`
+    is the rdkit molecule object.
+  cutoff: float
+    The cutoff distance in angstroms.
+
+  Returns
+  -------
+  A list of length `len(molecular_complex)`. Each entry in this list
+  is a list of atom indices from that molecule which should be kept, in
+  sorted order.
+  """
+  # indices to atoms to keep
+  keep_inds: List[Set] = [set([]) for _ in fragments]
+  for (ind1, ind2) in itertools.combinations(range(len(fragments)), 2):
+    frag1, frag2 = fragments[ind1], fragments[ind2]
+    pairwise_distances = compute_pairwise_distances(frag1[0], frag2[0])
+    # contacts is of form (x_coords, y_coords), a tuple of 2 lists
+    contacts = np.nonzero((pairwise_distances < cutoff))
+    # contacts[0] is the x_coords, that is the frag1 atoms that have
+    # nonzero contact.
+    frag1_atoms = set([int(c) for c in contacts[0].tolist()])
+    # contacts[1] is the y_coords, the frag2 atoms with nonzero contacts
+    frag2_atoms = set([int(c) for c in contacts[1].tolist()])
+    keep_inds[ind1] = keep_inds[ind1].union(frag1_atoms)
+    keep_inds[ind2] = keep_inds[ind2].union(frag2_atoms)
+  keep_ind_lists = [sorted(list(keep)) for keep in keep_inds]
+  return keep_ind_lists
+
+  # Now extract atoms
+  #atoms_to_keep = []
+  #for i, frag_keep_inds in enumerate(keep_inds):
+  #  frag = fragments[i]
+  #  mol = frag[1]
+  #  atoms = mol.GetAtoms()
+  #  frag_keep = [atoms[keep_ind] for keep_ind in frag_keep_inds]
+  #  atoms_to_keep.append(frag_keep)
+  #return atoms_to_keep
+
+
+def get_mol_subset(coords, mol, atom_indices_to_keep):
+  """Strip a subset of the atoms in this molecule
+
+  Parameters
+  ----------
+  coords: Numpy ndarray
+    Must be of shape (N, 3) and correspond to coordinates of mol.
+  mol: Rdkit mol or `MolecularFragment`
+    The molecule to strip
+  atom_indices_to_keep: list
+    List of the indices of the atoms to keep. Each index is a unique
+    number between `[0, N)`.
+
+  Returns
+  -------
+  A tuple of (coords, mol_frag) where coords is a Numpy array of
+  coordinates with hydrogen coordinates. mol_frag is a
+  `MolecularFragment`. 
+  """
+  from rdkit import Chem
+  indexes_to_keep = []
+  atoms_to_keep = []
+  #####################################################
+  # Compute partial charges on molecule if rdkit
+  if isinstance(mol, Chem.Mol):
+    compute_charges(mol)
+  #####################################################
+  atoms = list(mol.GetAtoms())
+  for index in atom_indices_to_keep:
+    indexes_to_keep.append(index)
+    atoms_to_keep.append(atoms[index])
+  coords = coords[indexes_to_keep]
+  mol_frag = MolecularFragment(atoms_to_keep, coords)
+  return coords, mol_frag
+
+
+def compute_ring_normal(mol, ring_indices):
+  """Computes normal to a plane determined by a given ring.
+
+  Parameters:
+  -----------
+  mol: rdkit.rdchem.Mol
+    Molecule containing a ring
+  ring_indices: array-like
+    Indices of atoms forming a ring
+
+  Returns:
+  --------
+  normal: np.ndarray
+    Normal vector
+  """
+  conformer = mol.GetConformer()
+  points = np.zeros((3, 3))
+  for i, atom_idx in enumerate(ring_indices[:3]):
+    atom_position = conformer.GetAtomPosition(atom_idx)
+    points[i] = np.array(atom_position)
+
+  v1 = points[1] - points[0]
+  v2 = points[2] - points[0]
+  normal = np.cross(v1, v2)
+  return normal
