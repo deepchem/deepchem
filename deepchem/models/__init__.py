@@ -26,7 +26,7 @@ from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
 
 # scikit-learn model
 from deepchem.models.sklearn_models import SklearnModel
-from deepchem.models.gdbt_models import GDBTModel
+from deepchem.models.gbdt_models import GBDTModel
 
 # PyTorch models
 try:
@@ -40,7 +40,7 @@ except ModuleNotFoundError:
 # Compatibility imports for renamed XGBoost models. Remove below with DeepChem 3.0.
 #####################################################################################
 
-from deepchem.models.gdbt_models.gdbt_model import XGBoostModel
+from deepchem.models.gbdt_models.gbdt_model import XGBoostModel
 
 ########################################################################################
 # Compatibility imports for renamed TensorGraph models. Remove below with DeepChem 3.0.

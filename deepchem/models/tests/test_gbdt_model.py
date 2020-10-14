@@ -29,7 +29,7 @@ def test_xgboost_regression():
 
   xgb_model = xgboost.XGBRegressor(
       n_estimators=50, random_state=123, verbose=False)
-  model = dc.models.GDBTModel(xgb_model, **esr)
+  model = dc.models.GBDTModel(xgb_model, **esr)
 
   # Fit trained model
   model.fit(train_dataset)
@@ -62,7 +62,7 @@ def test_xgboost_multitask_regression():
 
   def model_builder(model_dir):
     xgb_model = xgboost.XGBRegressor(n_estimators=50, seed=123, verbose=False)
-    return dc.models.GDBTModel(xgb_model, model_dir, **esr)
+    return dc.models.GBDTModel(xgb_model, model_dir, **esr)
 
   model = dc.models.SingletaskToMultitask(tasks, model_builder)
 
@@ -93,7 +93,7 @@ def test_xgboost_classification():
   classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
   esr = {'early_stopping_rounds': 50}
   xgb_model = xgboost.XGBClassifier(n_estimators=50, seed=123, verbose=False)
-  model = dc.models.GDBTModel(xgb_model, **esr)
+  model = dc.models.GBDTModel(xgb_model, **esr)
 
   # Fit trained model
   model.fit(train_dataset)
@@ -123,7 +123,7 @@ def test_lightgbm_regression():
 
   lgbm_model = lightgbm.LGBMRegressor(
       n_estimators=50, random_state=123, silent=True)
-  model = dc.models.GDBTModel(lgbm_model, **esr)
+  model = dc.models.GBDTModel(lgbm_model, **esr)
 
   # Fit trained model
   model.fit(train_dataset)
@@ -156,7 +156,7 @@ def test_lightgbm_multitask_regression():
 
   def model_builder(model_dir):
     lgbm_model = lightgbm.LGBMRegressor(n_estimators=50, seed=123, silent=True)
-    return dc.models.GDBTModel(lgbm_model, model_dir, **esr)
+    return dc.models.GBDTModel(lgbm_model, model_dir, **esr)
 
   model = dc.models.SingletaskToMultitask(tasks, model_builder)
 
@@ -187,7 +187,7 @@ def test_lightgbm_classification():
   classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
   esr = {'early_stopping_rounds': 50}
   lgbm_model = lightgbm.LGBMClassifier(n_estimators=50, seed=123, silent=True)
-  model = dc.models.GDBTModel(lgbm_model, **esr)
+  model = dc.models.GBDTModel(lgbm_model, **esr)
 
   # Fit trained model
   model.fit(train_dataset)

@@ -1,5 +1,5 @@
 """
-Gradient boosting wrapper interface
+Gradient Boosting Decision Tree wrapper interface
 """
 
 import os
@@ -18,8 +18,8 @@ from deepchem.models.sklearn_models import SklearnModel
 logger = logging.getLogger(__name__)
 
 
-class GDBTModel(SklearnModel):
-  """Wrapper class that wraps GDBT models as DeepChem models.
+class GBDTModel(SklearnModel):
+  """Wrapper class that wraps GBDT models as DeepChem models.
 
   This class supports LightGBM/XGBoost models.
   """
@@ -145,10 +145,10 @@ class GDBTModel(SklearnModel):
 #########################################
 
 
-class XGBoostModel(GDBTModel):
+class XGBoostModel(GBDTModel):
 
   def __init__(self, *args, **kwargs):
     warnings.warn(
-        "XGBoostModel is deprecated and has been renamed to GDBTModel.",
+        "XGBoostModel is deprecated and has been renamed to GBDTModel.",
         FutureWarning)
     super(XGBoostModel, self).__init__(*args, **kwargs)
