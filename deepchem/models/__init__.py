@@ -26,12 +26,7 @@ from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
 
 # scikit-learn model
 from deepchem.models.sklearn_models import SklearnModel
-
-# XGBoost model
-try:
-  from deepchem.models.xgboost_models import XGBoostModel
-except ModuleNotFoundError:
-  pass
+from deepchem.models.gdbt_models import GDBTModel
 
 # PyTorch models
 try:
@@ -41,7 +36,15 @@ try:
 except ModuleNotFoundError:
   pass
 
-#################### Compatibility imports for renamed TensorGraph models. Remove below with DeepChem 3.0. ####################
+#####################################################################################
+# Compatibility imports for renamed XGBoost models. Remove below with DeepChem 3.0.
+#####################################################################################
+
+from deepchem.models.gdbt_models.gdbt_model import XGBoostModel
+
+########################################################################################
+# Compatibility imports for renamed TensorGraph models. Remove below with DeepChem 3.0.
+########################################################################################
 
 from deepchem.models.text_cnn import TextCNNTensorGraph
 from deepchem.models.graph_models import WeaveTensorGraph, DTNNTensorGraph, DAGTensorGraph, GraphConvTensorGraph, MPNNTensorGraph

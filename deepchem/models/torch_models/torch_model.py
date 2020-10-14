@@ -157,8 +157,7 @@ class TorchModel(Model):
       the device on which to run computations.  If None, a device is
       chosen automatically.
     """
-    super(TorchModel, self).__init__(
-        model_instance=model, model_dir=model_dir, **kwargs)
+    super(TorchModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
     if isinstance(loss, Loss):
       self._loss_fn: LossFn = _StandardLoss(model, loss)
     else:

@@ -12,7 +12,7 @@ Model Cheatsheet
 If you're just getting started with DeepChem, you're probably interested in the
 basics. The place to get started is this "model cheatsheet" that lists various
 types of custom DeepChem models. Note that some wrappers like :code:`SklearnModel`
-and :code:`XGBoostModel` which wrap external machine learning libraries are excluded,
+and :code:`GDBTModel` which wrap external machine learning libraries are excluded,
 but this table is otherwise complete.
 
 As a note about how to read this table, each row describes what's needed to
@@ -146,15 +146,15 @@ SklearnModel
 .. autoclass:: deepchem.models.SklearnModel
   :members:
 
-Xgboost Models
-==============
+Gradient Boosting Models
+========================
 
-Xgboost models can be wrapped so they can interact with DeepChem.
+Gradient Boosting Models (LightGBM and XGBoost) can be wrapped so they can interact with DeepChem.
 
-XGBoostModel
+GDBTModel
 ------------
 
-.. autoclass:: deepchem.models.XGBoostModel
+.. autoclass:: deepchem.models.GDBTModel
   :members:
 
 

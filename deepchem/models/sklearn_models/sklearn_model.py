@@ -44,32 +44,44 @@ class SklearnModel(Model):
   """
 
   def __init__(self,
-               model_instance: BaseEstimator,
+               model: BaseEstimator,
                model_dir: Optional[str] = None,
+               model_instance: Optional[BaseEstimator] = None,
                **kwargs):
     """
     Parameters
     ----------
-    model_instance: BaseEstimator
+    model: BaseEstimator
       The model instance which inherits a scikit-learn `BaseEstimator` Class.
     model_dir: str, optional (default None)
       If specified the model will be stored in this directory. Else, a
       temporary directory will be used.
+    model_instance: BaseEstimator (DEPRECATED)
+      The model instance which inherits a scikit-learn `BaseEstimator` Class.
     kwargs: dict
       kwargs['use_weights'] is a bool which determines if we pass weights into
-      self.model_instance.fit().
+      self.model.fit().
     """
-    super(SklearnModel, self).__init__(model_instance, model_dir, **kwargs)
+    if model_instance is not None:
+      if model is not None:
+        raise ValueError(
+            "Can not use both model and model_instance argument at the same time."
+        )
+      logger.warning(
+          "model_instance argument is deprecated and will be removed in a future version of DeepChem."
+          "Use model argument instead.")
+      model = model_instance
+
+    super(SklearnModel, self).__init__(model, model_dir, **kwargs)
     if 'use_weights' in kwargs:
       self.use_weights = kwargs['use_weights']
     else:
       self.use_weights = True
-    for model_instance in NON_WEIGHTED_MODELS:
-      if isinstance(self.model_instance, model_instance):
+    for model in NON_WEIGHTED_MODELS:
+      if isinstance(self.model, model):
         self.use_weights = False
 
-  # FIXME: Return type "None" of "fit" incompatible with return type "float" in supertype "Model"
-  def fit(self, dataset: Dataset, **kwargs) -> None:  # type: ignore[override]
+  def fit(self, dataset: Dataset) -> None:
     """Fits scikit-learn model to data.
 
     Parameters
@@ -82,9 +94,9 @@ class SklearnModel(Model):
     w = np.squeeze(dataset.w)
     # Some scikit-learn models don't use weights.
     if self.use_weights:
-      self.model_instance.fit(X, y, w)
+      self.model.fit(X, y, w)
       return
-    self.model_instance.fit(X, y)
+    self.model.fit(X, y)
 
   def predict_on_batch(self, X: np.ndarray) -> np.ndarray:
     """Makes predictions on batch of data.
@@ -102,11 +114,9 @@ class SklearnModel(Model):
       the value is always a return value of `predict_proba`.
     """
     try:
-      # FIXME: BaseEstimator doesn't guarantee the class has `predict_proba` method.
-      return self.model_instance.predict_proba(X)  # type: ignore
+      return self.model.predict_proba(X)
     except AttributeError:
-      # FIXME: BaseEstimator doesn't guarantee the class has `predict` method.
-      return self.model_instance.predict(X)  # type: ignore
+      return self.model.predict(X)
 
   def predict(self, X: Dataset,
               transformers: List[Transformer] = []) -> np.ndarray:
@@ -124,9 +134,8 @@ class SklearnModel(Model):
 
   def save(self):
     """Saves scikit-learn model to disk using joblib."""
-    save_to_disk(self.model_instance, self.get_model_filename(self.model_dir))
+    save_to_disk(self.model, self.get_model_filename(self.model_dir))
 
   def reload(self):
     """Loads scikit-learn model from joblib file on disk."""
-    self.model_instance = load_from_disk(
-        self.get_model_filename(self.model_dir))
+    self.model = load_from_disk(self.get_model_filename(self.model_dir))

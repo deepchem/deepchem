@@ -42,6 +42,7 @@ install:
 script:
   - if [[ "$DOCTEST_EXAMPLES" == "true" ]]; then
       cd docs && pip install -r requirements.txt;
+      make clean html;
       make doctest_examples;
       travis_terminate $?;
     fi
@@ -49,10 +50,6 @@ script:
   - bash devtools/run_flake8.sh
   - mypy -p deepchem
   - pytest -v -m "not slow" --cov=deepchem deepchem
-  - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
-      cd docs && pip install -r requirements.txt;
-      make clean html && cd ..;
-    fi
   - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
       pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem;
     fi
