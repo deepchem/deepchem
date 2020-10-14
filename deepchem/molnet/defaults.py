@@ -16,23 +16,6 @@ from deepchem.splits.splitters import Splitter
 
 logger = logging.getLogger(__name__)
 
-featurizers = {
-    'ecfp': dc.feat.CircularFingerprint(size=1024),
-    'graphconv': dc.feat.ConvMolFeaturizer(),
-    'weave': dc.feat.WeaveFeaturizer(),
-    'raw': dc.feat.RawFeaturizer(),
-    'smiles2img': dc.feat.SmilesToImage(img_size=80, img_spec='std')
-}
-
-splitters = {
-    'index': dc.splits.IndexSplitter(),
-    'random': dc.splits.RandomSplitter(),
-    'scaffold': dc.splits.ScaffoldSplitter(),
-    'butina': dc.splits.ButinaSplitter(),
-    'task': dc.splits.TaskSplitter(),
-    'stratified': dc.splits.RandomStratifiedSplitter()
-}
-
 
 def get_defaults(module_name: str = None) -> Dict[str, Any]:
   """Get featurizers, transformers, and splitters.
