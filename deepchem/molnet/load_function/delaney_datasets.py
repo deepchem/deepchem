@@ -68,9 +68,9 @@ def load_delaney(
     splitter = kwargs['split']
     logger.warning("'split' is deprecated.  Use 'splitter' instead.")
   if isinstance(featurizer, str):
-    featurizer = dc.molnet.defaults.featurizers[featurizer]
+    featurizer = dc.molnet.defaults.featurizers[featurizer.lower()]
   if isinstance(splitter, str):
-    splitter = dc.molnet.defaults.splitters[splitter]
+    splitter = dc.molnet.defaults.splitters[splitter.lower()]
   if data_dir is None:
     data_dir = DEFAULT_DIR
   if save_dir is None:
@@ -80,8 +80,8 @@ def load_delaney(
   # Try to reload cached datasets.
 
   if reload:
-    featurizer_name = str(featurizer.__class__.__name__)
-    splitter_name = str(splitter.__class__.__name__)
+    featurizer_name = str(featurizer)
+    splitter_name = str(splitter)
     if not move_mean:
       featurizer_name = featurizer_name + "_mean_unmoved"
     save_folder = os.path.join(save_dir, "delaney-featurized", featurizer_name,

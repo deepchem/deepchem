@@ -17,10 +17,11 @@ from deepchem.splits.splitters import Splitter
 logger = logging.getLogger(__name__)
 
 featurizers = {
-    'ECFP': dc.feat.CircularFingerprint(size=1024),
-    'GraphConv': dc.feat.ConvMolFeaturizer(),
-    'Weave': dc.feat.WeaveFeaturizer(),
-    'Raw': dc.feat.RawFeaturizer()
+    'ecfp': dc.feat.CircularFingerprint(size=1024),
+    'graphconv': dc.feat.ConvMolFeaturizer(),
+    'weave': dc.feat.WeaveFeaturizer(),
+    'raw': dc.feat.RawFeaturizer(),
+    'smiles2img': dc.feat.SmilesToImage(img_size=80, img_spec='std')
 }
 
 splitters = {
