@@ -14,6 +14,7 @@ import pandas as pd
 
 import deepchem as dc
 from deepchem.data import Dataset, DiskDataset
+from deepchem.utils import get_print_threshold
 
 logger = logging.getLogger(__name__)
 
