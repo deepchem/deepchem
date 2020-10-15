@@ -106,22 +106,28 @@ and we rely on your good judgment and help!
 If I use DeepChem on my organization's data, do I have to release the data?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Not at all! DeepChem is released with a permissive MIT license. Any
-any analyses you perform belong entirely to you. You are under no
+analyses you perform belong entirely to you. You are under no
 obligation to release your proprietary data or inventions.
 
 What if I want to release data? Can DeepChem help?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you are interested in open sourcing data, the DeepChem
-project maintains the
+If you are interested in open sourcing data, the DeepChem project
+maintains the
 [MoleculeNet](https://deepchem.readthedocs.io/en/latest/moleculenet.html)
 suite of datasets. Adding your dataset to MoleculeNet can be a
 powerful way to ensure that a broad community of users can access your
 released data in convenient fashion. It's important to note that
 MoleculeNet provides programmatic access to data, which may not be
 appropriate for all types of data (especially for clinical or patient
-data which may be governed by regulators). Open source datasets can be
-a powerful resource, but need to be handled with care.
+data which may be governed by regulations/laws). Open source
+datasets can be a powerful resource, but need to be handled with care.
+
+Is MoleculeNet just about molecules?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Not anymore! Any scientific datasets are welcome in MoleculeNet. At
+some point in the future, we may rename the effort to avoid confusion,
+but for now, we emphasize that non-molecular datasets are welcome too.
 
 Does MoleculeNet allow for releasing data under different licenses?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
