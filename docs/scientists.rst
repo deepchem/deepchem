@@ -94,11 +94,36 @@ scientific resources and techniques that aren't locked up by patents.
 Our hope is to enable your company or organization to leverage
 techniques with less worry about patent infringement.
 
-We ask in return that you act as a responsible community member in
-return and put in as much as you get out. If you find DeepChem very
+We ask in return that you act as a responsible community member
+and put in as much as you get out. If you find DeepChem very
 valuable, please consider contributing back some innovations or
 improvements so others can benefit. If you're getting a patent on your
 invention, try to make sure that you don't infringe on anything in
 DeepChem. Lots of things sneak past patent review. As an open source
 community, we don't have the resources to actively defend ourselves
 and we rely on your good judgment and help!
+
+If I use DeepChem on my organization's data, do I have to release the data?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Not at all! DeepChem is released with a permissive MIT license. Any
+any analyses you perform belong entirely to you. You are under no
+obligation to release your proprietary data or inventions.
+
+What if I want to release data? Can DeepChem help?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you are interested in open sourcing data, the DeepChem
+project maintains the
+[MoleculeNet](https://deepchem.readthedocs.io/en/latest/moleculenet.html)
+suite of datasets. Adding your dataset to MoleculeNet can be a
+powerful way to ensure that a broad community of users can access your
+released data in convenient fashion. It's important to note that
+MoleculeNet provides programmatic access to data, which may not be
+appropriate for all types of data (especially for clinical or patient
+data which may be governed by regulators). Open source datasets can be
+a powerful resource, but need to be handled with care.
+
+Does MoleculeNet allow for releasing data under different licenses?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+MoleculeNet already supports datasets released under different
+licenses. We can make work with you to use your license of choice.
