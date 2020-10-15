@@ -91,7 +91,7 @@ What about intellectual property?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 One of the core goals for DeepChem is to build a shared set of
 scientific resources and techniques that aren't locked up by patents.
-Our hope is to enable your company or organization can leverage
+Our hope is to enable your company or organization to leverage
 techniques with less worry about patent infringement.
 
 We ask in return that you act as a responsible community member in
