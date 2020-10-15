@@ -538,8 +538,8 @@ def test_residual_regression_overfit():
   assert scores[regression_metric.name] < .02
 
 
-def test_tf_robust_multitask_regression_overfit():
-  """Test tf robust multitask overfits tiny data."""
+def test_robust_multitask_regression_overfit():
+  """Test robust multitask overfits tiny data."""
   np.random.seed(123)
   tf.random.set_seed(123)
   n_tasks = 10

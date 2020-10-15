@@ -3,10 +3,12 @@ import tensorflow as tf
 import collections
 
 import logging
+import deepchem as dc
 from deepchem.metrics import to_one_hot
 from deepchem.models import KerasModel
 from deepchem.models.layers import Stack
 from deepchem.models.losses import SoftmaxCrossEntropy, L2Loss
+from typing import Tuple, Iterable, List
 
 logger = logging.getLogger(__name__)
 
@@ -348,6 +350,21 @@ class RobustMultitaskRegressor(KerasModel):
       task_out = tf.keras.layers.Dense(1)(task_layer)
       task_outputs.append(task_out)
 
-    outputs = tf.keras.layers.Concatenate(axis=1)(task_outputs)
+    outputs = Stack(axis=1)(task_outputs)
     model = tf.keras.Model(inputs=mol_features, outputs=outputs)
-    super(RobustMultitaskRegressor, self).__init__(model, L2Loss(), **kwargs)
+    super(RobustMultitaskRegressor, self).__init__(
+        model, L2Loss(), output_types=['prediction'], **kwargs)
+
+  def default_generator(
+      self,
+      dataset: dc.data.Dataset,
+      epochs: int = 1,
+      mode: str = 'fit',
+      deterministic: bool = True,
+      pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
+    for epoch in range(epochs):
+      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+          batch_size=self.batch_size,
+          deterministic=deterministic,
+          pad_batches=pad_batches):
+        yield ([X_b], [y_b], [w_b])
