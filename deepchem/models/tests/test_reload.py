@@ -278,6 +278,65 @@ def test_robust_multitask_classification_reload():
   assert scores[classification_metric.name] > .9
 
 
+# TODO: THIS DOESN'T WORK!!
+#def test_robust_multitask_regressor_reload():
+#  """Test that RobustMultitaskRegressor can be reloaded correctly."""
+#  n_tasks = 10
+#  n_samples = 10
+#  n_features = 3
+#
+#  # Generate dummy dataset
+#  np.random.seed(123)
+#  ids = np.arange(n_samples)
+#  X = np.random.rand(n_samples, n_features)
+#  y = np.random.rand(n_samples, n_tasks)
+#  w = np.ones((n_samples, n_tasks))
+#
+#  dataset = dc.data.NumpyDataset(X, y, w, ids)
+#  regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
+#
+#  model_dir = tempfile.mkdtemp()
+#  model = dc.models.RobustMultitaskRegressor(
+#      n_tasks,
+#      n_features,
+#      layer_sizes=[50],
+#      bypass_layer_sizes=[10],
+#      dropouts=[0.],
+#      learning_rate=0.003,
+#      weight_init_stddevs=[.1],
+#      batch_size=n_samples)
+#
+#  # Fit trained model
+#  model.fit(dataset, nb_epoch=100)
+#
+#  # Eval model on train
+#  scores = model.evaluate(dataset, [regression_metric])
+#  assert scores[regression_metric.name] < .1
+#
+#  # Reload trained model
+#  reloaded_model = dc.models.RobustMultitaskRegressor(
+#      n_tasks,
+#      n_features,
+#      layer_sizes=[50],
+#      bypass_layer_sizes=[10],
+#      dropouts=[0.],
+#      learning_rate=0.003,
+#      weight_init_stddevs=[.1],
+#      batch_size=n_samples)
+#  reloaded_model.restore()
+#
+#  # Check predictions match on random sample
+#  Xpred = np.random.rand(n_samples, n_features)
+#  predset = dc.data.NumpyDataset(Xpred)
+#  origpred = model.predict(predset)
+#  reloadpred = reloaded_model.predict(predset)
+#  assert np.all(origpred == reloadpred)
+#
+#  # Eval model on train
+#  scores = reloaded_model.evaluate(dataset, [regression_metric])
+#  assert scores[regression_metric.name] < 0.1
+
+
 def test_IRV_multitask_classification_reload():
   """Test IRV classifier can be reloaded."""
   n_tasks = 5
@@ -396,6 +455,68 @@ def test_progressive_classification_reload():
   # Eval model on train
   scores = reloaded_model.evaluate(dataset, [classification_metric])
   assert scores[classification_metric.name] > .9
+
+
+def test_progressivemultitaskregressor_reload():
+  """Test that ProgressiveMultitaskRegressor can be reloaded correctly."""
+  n_samples = 10
+  n_features = 3
+  n_tasks = 1
+
+  # Generate dummy dataset
+  np.random.seed(123)
+  ids = np.arange(n_samples)
+  X = np.random.rand(n_samples, n_features)
+  y = np.random.rand(n_samples, n_tasks)
+  w = np.ones((n_samples, n_tasks))
+
+  dataset = dc.data.NumpyDataset(X, y, w, ids)
+  regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
+
+  model_dir = tempfile.mkdtemp()
+  model = dc.models.ProgressiveMultitaskRegressor(
+      n_tasks,
+      n_features,
+      layer_sizes=[50],
+      bypass_layer_sizes=[10],
+      dropouts=[0.],
+      learning_rate=0.001,
+      weight_init_stddevs=[.1],
+      alpha_init_stddevs=[.02],
+      batch_size=n_samples,
+      model_dir=model_dir)
+
+  # Fit trained model
+  model.fit(dataset, nb_epoch=100)
+
+  # Eval model on train
+  scores = model.evaluate(dataset, [regression_metric])
+  assert scores[regression_metric.name] < .1
+
+  # Reload trained model
+  reloaded_model = dc.models.ProgressiveMultitaskRegressor(
+      n_tasks,
+      n_features,
+      layer_sizes=[50],
+      bypass_layer_sizes=[10],
+      dropouts=[0.],
+      learning_rate=0.001,
+      weight_init_stddevs=[.1],
+      alpha_init_stddevs=[.02],
+      batch_size=n_samples,
+      model_dir=model_dir)
+  reloaded_model.restore()
+
+  # Check predictions match on random sample
+  Xpred = np.random.rand(n_samples, n_features)
+  predset = dc.data.NumpyDataset(Xpred)
+  origpred = model.predict(predset)
+  reloadpred = reloaded_model.predict(predset)
+  assert np.all(origpred == reloadpred)
+
+  # Eval model on train
+  scores = reloaded_model.evaluate(dataset, [regression_metric])
+  assert scores[regression_metric.name] < 0.1
 
 
 ## TODO: THIS IS FAILING!
