@@ -103,81 +103,80 @@ For a :class:`GraphConvModel <deepchem.models.GraphConvModel>`, we'll reload our
     >>> assert valid_scores['mean-pearson_r2_score'] > 0.3, valid_scores
 
 
-..
-  ChEMBL
-  -------
 
-  Examples of training models on `ChEMBL <https://www.ebi.ac.uk/chembl/>` dataset included in `MoleculeNet <./moleculenet.html>`_.
+ChEMBL
+-------
 
-    ChEMBL is a manually curated database of bioactive molecules with drug-like properties.
-    It brings together chemical, bioactivity and genomic data to aid the translation of genomic information into effective new drugs.
+Examples of training models on `ChEMBL <https://www.ebi.ac.uk/chembl/>` dataset included in `MoleculeNet <./moleculenet.html>`_.
 
-  MultitaskRegressor
-  ^^^^^^^^^^^^^^^^^^
+  ChEMBL is a manually curated database of bioactive molecules with drug-like properties.
+  It brings together chemical, bioactivity and genomic data to aid the translation of genomic information into effective new drugs.
 
-  .. doctest:: chembl
+MultitaskRegressor
+^^^^^^^^^^^^^^^^^^
 
-      >>> seed_all()
-      >>> # Load ChEMBL 5thresh dataset with random splitting
-      >>> chembl_tasks, datasets, transformers = dc.molnet.load_chembl(
-      ...     shard_size=2000, featurizer="ECFP", set="5thresh", split="random")
-      >>> train_dataset, valid_dataset, test_dataset = datasets
-      >>> len(chembl_tasks)
-      691
-      >>> f'Compound train/valid/test split: {len(train_dataset)}/{len(valid_dataset)}/{len(test_dataset)}'
-      'Compound train/valid/test split: 19096/2387/2388'
-      >>>
-      >>> # We want to know the pearson R squared score, averaged across tasks
-      >>> avg_pearson_r2 = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
-      >>>
-      >>> # Create our model
-      >>> n_layers = 3
-      >>> model = dc.models.MultitaskRegressor(
-      ...     len(chembl_tasks),
-      ...     train_dataset.get_data_shape()[0],
-      ...     layer_sizes=[1000] * n_layers,
-      ...     dropouts=[.25] * n_layers,
-      ...     weight_init_stddevs=[.02] * n_layers,
-      ...     bias_init_consts=[1.] * n_layers,
-      ...     learning_rate=.0003,
-      ...     weight_decay_penalty=.0001,
-      ...     batch_size=100,
-      ...     verbosity="high")
-      >>>
-      >>> model.fit(train_dataset, nb_epoch=20)
-      0...
-      >>>
-      >>> # We now evaluate our fitted model on our training and validation sets
-      >>> train_scores = model.evaluate(train_dataset, [avg_pearson_r2], transformers)
-      >>> assert train_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
-      >>>
-      >>> valid_scores = model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
-      >>> assert valid_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
+.. doctest:: chembl
 
-  GraphConvModel
-  ^^^^^^^^^^^^^^
+    >>> seed_all()
+    >>> # Load ChEMBL 5thresh dataset with random splitting
+    >>> chembl_tasks, datasets, transformers = dc.molnet.load_chembl(
+    ...     shard_size=2000, featurizer="ECFP", set="5thresh", split="random")
+    >>> train_dataset, valid_dataset, test_dataset = datasets
+    >>> len(chembl_tasks)
+    691
+    >>> f'Compound train/valid/test split: {len(train_dataset)}/{len(valid_dataset)}/{len(test_dataset)}'
+    'Compound train/valid/test split: 19096/2387/2388'
+    >>>
+    >>> # We want to know the pearson R squared score, averaged across tasks
+    >>> avg_pearson_r2 = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
+    >>>
+    >>> # Create our model
+    >>> n_layers = 3
+    >>> model = dc.models.MultitaskRegressor(
+    ...     len(chembl_tasks),
+    ...     n_features=1024,
+    ...     layer_sizes=[1000] * n_layers,
+    ...     dropouts=[.25] * n_layers,
+    ...     weight_init_stddevs=[.02] * n_layers,
+    ...     bias_init_consts=[1.] * n_layers,
+    ...     learning_rate=.0003,
+    ...     weight_decay_penalty=.0001,
+    ...     batch_size=100)
+    >>>
+    >>> model.fit(train_dataset, nb_epoch=20)
+    0...
+    >>>
+    >>> # We now evaluate our fitted model on our training and validation sets
+    >>> train_scores = model.evaluate(train_dataset, [avg_pearson_r2], transformers)
+    >>> assert train_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
+    >>>
+    >>> valid_scores = model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
+    >>> assert valid_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
 
-  .. doctest:: chembl
+GraphConvModel
+^^^^^^^^^^^^^^
 
-      >>> # Load ChEMBL dataset
-      >>> chembl_tasks, datasets, transformers = dc.molnet.load_chembl(
-      ...    shard_size=2000, featurizer="GraphConv", set="5thresh", split="random")
-      >>> train_dataset, valid_dataset, test_dataset = datasets
-      >>> 
-      >>> # pearson R squared score, averaged across tasks
-      >>> avg_pearson_r2 = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
-      >>>
-      >>> model = dc.models.GraphConvModel(
-      ...    len(chembl_tasks), batch_size=128, mode='regression')
-      >>>
-      >>> # Fit trained model
-      >>> model.fit(train_dataset, nb_epoch=20)
-      0...
-      >>>
-      >>> # We now evaluate our fitted model on our training and validation sets
-      >>> train_scores = model.evaluate(train_dataset, [avg_pearson_r2], transformers)
-      >>> assert train_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
-      >>>
-      >>> valid_scores = model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
-      >>> assert valid_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
+.. doctest:: chembl
+
+    >>> # Load ChEMBL dataset
+    >>> chembl_tasks, datasets, transformers = dc.molnet.load_chembl(
+    ...    shard_size=2000, featurizer="GraphConv", set="5thresh", split="random")
+    >>> train_dataset, valid_dataset, test_dataset = datasets
+    >>> 
+    >>> # pearson R squared score, averaged across tasks
+    >>> avg_pearson_r2 = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
+    >>>
+    >>> model = dc.models.GraphConvModel(
+    ...    len(chembl_tasks), batch_size=128, mode='regression')
+    >>>
+    >>> # Fit trained model
+    >>> model.fit(train_dataset, nb_epoch=20)
+    0...
+    >>>
+    >>> # We now evaluate our fitted model on our training and validation sets
+    >>> train_scores = model.evaluate(train_dataset, [avg_pearson_r2], transformers)
+    >>> assert train_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
+    >>>
+    >>> valid_scores = model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
+    >>> assert valid_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
 
