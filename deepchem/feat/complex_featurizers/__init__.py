@@ -14,3 +14,5 @@ from deepchem.feat.complex_featurizers.grid_featurizers import CationPiVoxelizer
 from deepchem.feat.complex_featurizers.grid_featurizers import PiStackVoxelizer
 from deepchem.feat.complex_featurizers.grid_featurizers import HydrogenBondVoxelizer
 from deepchem.feat.complex_featurizers.grid_featurizers import HydrogenBondCounter
+from deepchem.feat.complex_featurizers.splif_fingerprints import SplifFingerprint
+from deepchem.feat.complex_featurizers.splif_fingerprints import SplifVoxelizer

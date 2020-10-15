@@ -39,6 +39,8 @@ from deepchem.feat.complex_featurizers import NeighborListComplexAtomicCoordinat
 from deepchem.feat.complex_featurizers import ComplexNeighborListFragmentAtomicCoordinates
 from deepchem.feat.complex_featurizers import ContactCircularFingerprint
 from deepchem.feat.complex_featurizers import ContactCircularVoxelizer
+from deepchem.feat.complex_featurizers import SplifFingerprint
+from deepchem.feat.complex_featurizers import SplifVoxelizer
 from deepchem.feat.complex_featurizers import ChargeVoxelizer
 from deepchem.feat.complex_featurizers import SaltBridgeVoxelizer
 from deepchem.feat.complex_featurizers import CationPiVoxelizer

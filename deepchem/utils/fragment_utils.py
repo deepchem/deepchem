@@ -119,6 +119,16 @@ class MolecularFragment(object):
     """
     return self.atoms
 
+  def GetNumAtoms(self) -> int:
+    """Returns the number of atoms
+
+    Returns
+    -------
+    int
+      Number of atoms in this fragment.
+    """
+    return len(self.atoms)
+
   def GetCoords(self) -> np.ndarray:
     """Returns 3D coordinates for this fragment as numpy array.
 
