@@ -128,7 +128,7 @@ def test_classification():
   scores = model.evaluate(test_dataset, [classification_metric])
   assert scores[classification_metric.name] > .9
 
-  # xgboost test
+  # lightgbm test
   lgbm_model = lightgbm.LGBMClassifier(n_estimators=50, seed=123, silent=True)
   model = dc.models.GBDTModel(lgbm_model, **params)
   # fit trained model
