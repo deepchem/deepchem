@@ -42,12 +42,7 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
     metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
 
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
-        params_dict,
-        self.train_dataset,
-        self.valid_dataset,
-        transformers,
-        metric,
-        max_iter=2)
+        params_dict, self.train_dataset, self.valid_dataset, metric, max_iter=2)
 
     valid_score = best_model.evaluate(self.valid_dataset, [metric],
                                       transformers)
@@ -66,8 +61,8 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         params_dict,
         self.train_dataset,
         self.valid_dataset,
-        transformers,
         metric,
+        transformers,
         use_max=False,
         max_iter=2)
 
@@ -87,8 +82,8 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
           params_dict,
           self.train_dataset,
           self.valid_dataset,
-          transformers,
           metric,
+          transformers,
           logdir=tmpdirname,
           max_iter=2)
     valid_score = best_model.evaluate(self.valid_dataset, [metric],
@@ -122,8 +117,8 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         params_dict,
         train_dataset,
         valid_dataset,
-        transformers,
         metric,
+        transformers,
         max_iter=1,
         use_max=False)
 
@@ -162,8 +157,8 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
           params_dict,
           train_dataset,
           valid_dataset,
-          transformers,
           metric,
+          transformers,
           max_iter=2,
           logdir=tmpdirname,
           search_range=search_range,

@@ -131,8 +131,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
                         params_dict: Dict,
                         train_dataset: Dataset,
                         valid_dataset: Dataset,
-                        output_transformers: List[Transformer],
                         metric: Metric,
+                        output_transformers: List[Transformer] = [],
                         use_max: bool = True,
                         logdir: Optional[str] = None,
                         max_iter: int = 20,
@@ -154,13 +154,13 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       dataset used for training
     valid_dataset: Dataset
       dataset used for validation(optimization on valid scores)
+    metric: Metric
+      metric used for evaluation
     output_transformers: list[Transformer]
       Transformers for evaluation. This argument is needed since
       `train_dataset` and `valid_dataset` may have been transformed
       for learning and need the transform to be inverted before
       the metric can be evaluated on a model.
-    metric: Metric
-      metric used for evaluation
     use_max: bool, (default True)
       Specifies whether to maximize or minimize `metric`.
       maximization(True) or minimization(False)
