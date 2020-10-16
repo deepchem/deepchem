@@ -1,6 +1,7 @@
 """
 Test reload for trained models.
 """
+import os
 import pytest
 import unittest
 import tempfile
@@ -9,6 +10,7 @@ import deepchem as dc
 import tensorflow as tf
 from flaky import flaky
 from sklearn.ensemble import RandomForestClassifier
+from deepchem.molnet.load_function.chembl25_datasets import chembl25_tasks
 
 
 def test_sklearn_classifier_reload():
@@ -1007,47 +1009,46 @@ def test_1d_cnn_regression_reload():
 #  scores = reloaded_model.evaluate(dataset, [classification_metric])
 #  assert scores[classification_metric.name] > .9
 
-#def test_chemception_reload():
-#  """Test that chemception models can be saved and reloaded."""
-#  img_size = 80
-#  img_spec = "engd"
-#  res = 0.5
-#  n_tasks = 1
-#  featurizer = dc.feat.SmilesToImage(
-#      img_size=img_size, img_spec=img_spec, res=res)
-#  mols = ["C", "CC", "CCC"]
-#  X = featurizer(mols)
-#  y = np.array([0, 1, 0])
-#  dataset = dc.data.NumpyDataset(X, y, ids=mols)
-#  classsification_metric = dc.metrics.Metric(
-#      dc.metrics.roc_auc_score, np.mean, mode="classification")
-#
-#  model_dir = tempfile.mkdtemp()
-#  model = dc.models.ChemCeption(
-#      n_tasks=n_tasks,
-#      img_spec="engd",
-#      model_dir=model_dir,
-#      mode="classification")
-#  model.fit(dataset, nb_epoch=300)
-#  scores = model.evaluate(dataset, [metric], [])
-#  assert scores[classification_metric.name] >= 0.9
-#
-#  # Reload Trained Model
-#  reloaded_model = dc.models.ChemCeption(
-#      n_tasks=n_tasks,
-#      img_spec="engd",
-#      model_dir=model_dir,
-#      mode="classification")
-#  reloaded_model.restore()
-#
-#  # Check predictions match on random sample
-#  predmols = ["CCCC", "CCCCCO", "CCCCC"]
-#  Xpred = featurizer(predmols)
-#  predset = dc.data.NumpyDataset(Xpred)
-#  origpred = model.predict(predset)
-#  reloadpred = reloaded_model.predict(predset)
-#  assert np.all(origpred == reloadpred)
-#
-#  # Eval model on train
-#  scores = reloaded_model.evaluate(dataset, [classification_metric])
-#  assert scores[classification_metric.name] > .9
+
+def test_chemception_reload():
+  """Test that chemception models can be saved and reloaded."""
+  img_size = 80
+  img_spec = "engd"
+  res = 0.5
+  n_tasks = 1
+  featurizer = dc.feat.SmilesToImage(
+      img_size=img_size, img_spec=img_spec, res=res)
+
+  data_points = 10
+  mols = ["CCCCCCCC"] * data_points
+  X = featurizer(mols)
+
+  y = np.random.randint(0, 2, size=(data_points, n_tasks))
+  w = np.ones(shape=(data_points, n_tasks))
+  dataset = dc.data.NumpyDataset(X, y, w, mols)
+  classsification_metric = dc.metrics.Metric(
+      dc.metrics.roc_auc_score, np.mean, mode="classification")
+
+  model_dir = tempfile.mkdtemp()
+  model = dc.models.ChemCeption(
+      n_tasks=n_tasks,
+      img_spec="engd",
+      model_dir=model_dir,
+      mode="classification")
+  model.fit(dataset, nb_epoch=3)
+
+  # Reload Trained Model
+  reloaded_model = dc.models.ChemCeption(
+      n_tasks=n_tasks,
+      img_spec="engd",
+      model_dir=model_dir,
+      mode="classification")
+  reloaded_model.restore()
+
+  # Check predictions match on random sample
+  predmols = ["CCCC", "CCCCCO", "CCCCC"]
+  Xpred = featurizer(predmols)
+  predset = dc.data.NumpyDataset(Xpred)
+  origpred = model.predict(predset)
+  reloadpred = reloaded_model.predict(predset)
+  assert np.all(origpred == reloadpred)
