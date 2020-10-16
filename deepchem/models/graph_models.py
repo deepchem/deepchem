@@ -766,7 +766,7 @@ class _GraphConvKerasModel(tf.keras.Model):
   def __init__(self,
                n_tasks,
                graph_conv_layers,
-               dense_layer_size=128,
+               dense_layers, # changed dense_layer_size to dense_layers as a list instead
                dropout=0.0,
                mode="classification",
                number_atom_features=75,
@@ -791,8 +791,8 @@ class _GraphConvKerasModel(tf.keras.Model):
     self.uncertainty = uncertainty
 
     if not isinstance(dropout, collections.Sequence):
-      dropout = [dropout] * (len(graph_conv_layers) + 1)
-    if len(dropout) != len(graph_conv_layers) + 1:
+      dropout = [dropout] * (len(graph_conv_layers) + len(dense_layers))
+    if len(dropout) != len(graph_conv_layers) + len(dense_layers):
       raise ValueError('Wrong number of dropout probabilities provided')
     if uncertainty:
       if mode != "regression":
@@ -805,15 +805,18 @@ class _GraphConvKerasModel(tf.keras.Model):
         layers.GraphConv(layer_size, activation_fn=tf.nn.relu)
         for layer_size in graph_conv_layers
     ]
+    self.dense_layers = [
+        Dense(layer_size, activation = tf.nn.relu)
+        for layer_size in dense_layers
+    ]
     self.batch_norms = [
         BatchNormalization(fused=False) if batch_normalize else None
-        for _ in range(len(graph_conv_layers) + 1)
+        for _ in range(len(graph_conv_layers) + len(dense_layers))
     ]
     self.dropouts = [
         Dropout(rate=rate) if rate > 0.0 else None for rate in dropout
     ]
     self.graph_pools = [layers.GraphPool() for _ in graph_conv_layers]
-    self.dense = Dense(dense_layer_size, activation=tf.nn.relu)
     self.graph_gather = layers.GraphGather(
         batch_size=batch_size, activation_fn=tf.nn.tanh)
     self.trim = TrimGraphOutput()
@@ -845,12 +848,18 @@ class _GraphConvKerasModel(tf.keras.Model):
         gc1 = self.dropouts[i](gc1, training=training)
       gp_in = [gc1, degree_slice, membership] + deg_adjs
       in_layer = self.graph_pools[i](gp_in)
-    dense = self.dense(in_layer)
-    if self.batch_norms[-1] is not None:
-      dense = self.batch_norms[-1](dense, training=training)
-    if training and self.dropouts[-1] is not None:
-      dense = self.dropouts[-1](dense, training=training)
-    neural_fingerprint = self.graph_gather([dense, degree_slice, membership] +
+
+    startnum = len(self.graph_convs)
+    endnum = len(self.dense_layers) + len(self.graph_convs)
+    for i in range(startnum, endnum): # cont index for batchnorms and dropouts in dense layers
+        dense = self.dense_layers[i-startnum](in_layer)
+        if self.batch_norms[i] is not None:
+            dense = self.batch_norms[i](dense, training = training)
+        if training and self.dropouts[i] is not None:
+            dense = self.dropouts[i](dense, training = training)
+        in_layer = dense
+
+    neural_fingerprint = self.graph_gather([in_layer, degree_slice, membership] +
                                            deg_adjs)
     if self.mode == 'classification':
       logits = self.reshape(self.reshape_dense(neural_fingerprint))
@@ -891,7 +900,7 @@ class GraphConvModel(KerasModel):
   def __init__(self,
                n_tasks: int,
                graph_conv_layers: List[int] = [64, 64],
-               dense_layer_size: int = 128,
+               dense_layers: List[int] = [64, 64], # changed dense_layer_size to dense_layers as a list instead
                dropout: float = 0.0,
                mode: str = "classification",
                number_atom_features: int = 75,
@@ -912,12 +921,12 @@ class GraphConvModel(KerasModel):
       Number of tasks
     graph_conv_layers: list of int
       Width of channels for the Graph Convolution Layers
-    dense_layer_size: int
-      Width of channels for Atom Level Dense Layer before GraphPool
+    dense_layers: list of int
+      Width of channels for Atom Level Dense Layers before GraphPool
     dropout: list or float
       the dropout probablity to use for each layer.  The length of this list
-      should equal len(graph_conv_layers)+1 (one value for each convolution
-      layer, and one for the dense layer).  Alternatively this may be a single
+      should equal len(graph_conv_layers) + len(dense_layers) (one value for each convolution
+      layer, and one for each dense layer).  Alternatively this may be a single
       value instead of a list, in which case the same value is used for every
       layer.
     mode: str
@@ -942,7 +951,7 @@ class GraphConvModel(KerasModel):
     model = _GraphConvKerasModel(
         n_tasks,
         graph_conv_layers=graph_conv_layers,
-        dense_layer_size=dense_layer_size,
+        dense_layers=dense_layers,
         dropout=dropout,
         mode=mode,
         number_atom_features=number_atom_features,
