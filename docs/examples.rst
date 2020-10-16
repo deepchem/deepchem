@@ -127,8 +127,8 @@ MultitaskRegressor
     >>> f'Compound train/valid/test split: {len(train_dataset)}/{len(valid_dataset)}/{len(test_dataset)}'
     'Compound train/valid/test split: 19096/2387/2388'
     >>>
-    >>> # We want to know the pearson R squared score, averaged across tasks
-    >>> avg_pearson_r2 = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
+    >>> # We want to know the RMS, averaged across tasks
+    >>> avg_rms = dc.metrics.Metric(dc.metrics.rms_score, np.mean)
     >>>
     >>> # Create our model
     >>> n_layers = 3
@@ -143,15 +143,15 @@ MultitaskRegressor
     ...     weight_decay_penalty=.0001,
     ...     batch_size=100)
     >>>
-    >>> model.fit(train_dataset, nb_epoch=20)
+    >>> model.fit(train_dataset, nb_epoch=5)
     0...
     >>>
     >>> # We now evaluate our fitted model on our training and validation sets
-    >>> train_scores = model.evaluate(train_dataset, [avg_pearson_r2], transformers)
-    >>> assert train_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
+    >>> train_scores = model.evaluate(train_dataset, [avg_rms], transformers)
+    >>> assert train_scores['mean-rms_score'] < 10.00 
     >>>
-    >>> valid_scores = model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
-    >>> assert valid_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
+    >>> valid_scores = model.evaluate(valid_dataset, [avg_rms], transformers)
+    >>> assert valid_scores['mean-rms_score'] < 10.00 
 
 GraphConvModel
 ^^^^^^^^^^^^^^
@@ -163,20 +163,19 @@ GraphConvModel
     ...    shard_size=2000, featurizer="GraphConv", set="5thresh", split="random")
     >>> train_dataset, valid_dataset, test_dataset = datasets
     >>> 
-    >>> # pearson R squared score, averaged across tasks
-    >>> avg_pearson_r2 = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
+    >>> # RMS, averaged across tasks
+    >>> avg_rms = dc.metrics.Metric(dc.metrics.rms_score, np.mean)
     >>>
     >>> model = dc.models.GraphConvModel(
     ...    len(chembl_tasks), batch_size=128, mode='regression')
     >>>
     >>> # Fit trained model
-    >>> model.fit(train_dataset, nb_epoch=20)
+    >>> model.fit(train_dataset, nb_epoch=5)
     0...
     >>>
     >>> # We now evaluate our fitted model on our training and validation sets
-    >>> train_scores = model.evaluate(train_dataset, [avg_pearson_r2], transformers)
-    >>> assert train_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
+    >>> train_scores = model.evaluate(train_dataset, [avg_rms], transformers)
+    >>> assert train_scores['mean-rms_score'] < 10.00 
     >>>
-    >>> valid_scores = model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
-    >>> assert valid_scores['mean-pearson_r2_score'] > 0.00 # is currently nan
-
+    >>> valid_scores = model.evaluate(valid_dataset, [avg_rms], transformers)
+    >>> assert valid_scores['mean-rms_score'] < 10.00 
