@@ -9,9 +9,7 @@ from tensorflow.keras.layers import Dropout, BatchNormalization
 
 class InteratomicL2Distances(tf.keras.layers.Layer):
   """Compute (squared) L2 Distances between atoms given neighbors.
-
   This class computes pairwise distances between its inputs.
-
   Examples
   --------
   >>> import numpy as np
@@ -24,12 +22,10 @@ class InteratomicL2Distances(tf.keras.layers.Layer):
   >>> result = np.array(layer([coords, neighbor_list]))
   >>> result.shape
   (5, 2)
-
   """
 
   def __init__(self, N_atoms: int, M_nbrs: int, ndim: int, **kwargs):
     """Constructor for this layer.
-
     Parameters
     ----------
     N_atoms: int
@@ -54,13 +50,11 @@ class InteratomicL2Distances(tf.keras.layers.Layer):
 
   def call(self, inputs):
     """Invokes this layer.
-
     Parameters
     ----------
     inputs: list
       Should be of form `inputs=[coords, nbr_list]` where `coords` is a
       tensor of shape `(None, N, 3)` and `nbr_list` is a list.
-
     Returns
     -------
     Tensor of shape `(N_atoms, M_nbrs)` with interatomic distances.
@@ -72,8 +66,8 @@ class InteratomicL2Distances(tf.keras.layers.Layer):
     # Shape (N_atoms, M_nbrs, ndim)
     nbr_coords = tf.gather(coords, nbr_list)
     # Shape (N_atoms, M_nbrs, ndim)
-    tiled_coords = tf.tile(tf.reshape(coords, (N_atoms, 1, ndim)),
-                           (1, M_nbrs, 1))
+    tiled_coords = tf.tile(
+        tf.reshape(coords, (N_atoms, 1, ndim)), (1, M_nbrs, 1))
     # Shape (N_atoms, M_nbrs)
     return tf.reduce_sum((tiled_coords - nbr_coords)**2, axis=2)
 
@@ -85,7 +79,6 @@ class GraphConv(tf.keras.layers.Layer):
   convolution combines per-node feature vectures in a nonlinear fashion with
   the feature vectors for neighboring nodes.  This "blends" information in
   local neighborhoods of a graph.
-
   References
   ----------
   .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints." Advances in neural information processing systems. 2015. https://arxiv.org/abs/1509.09292
@@ -99,7 +92,6 @@ class GraphConv(tf.keras.layers.Layer):
                activation_fn: Callable = None,
                **kwargs):
     """Initialize a graph convolutional layer.
-
     Parameters
     ----------
     out_channel: int
@@ -126,16 +118,18 @@ class GraphConv(tf.keras.layers.Layer):
     # Generate the nb_affine weights and biases
     num_deg = 2 * self.max_degree + (1 - self.min_degree)
     self.W_list = [
-        self.add_weight(name='kernel',
-                        shape=(int(input_shape[0][-1]), self.out_channel),
-                        initializer='glorot_uniform',
-                        trainable=True) for k in range(num_deg)
+        self.add_weight(
+            name='kernel',
+            shape=(int(input_shape[0][-1]), self.out_channel),
+            initializer='glorot_uniform',
+            trainable=True) for k in range(num_deg)
     ]
     self.b_list = [
-        self.add_weight(name='bias',
-                        shape=(self.out_channel,),
-                        initializer='zeros',
-                        trainable=True) for k in range(num_deg)
+        self.add_weight(
+            name='bias',
+            shape=(self.out_channel,),
+            initializer='zeros',
+            trainable=True) for k in range(num_deg)
     ]
     self.built = True
 
@@ -213,12 +207,10 @@ class GraphConv(tf.keras.layers.Layer):
 
 class GraphPool(tf.keras.layers.Layer):
   """A GraphPool gathers data from local neighborhoods of a graph.
-
   This layer does a max-pooling over the feature vectors of atoms in a
   neighborhood. You can think of this layer as analogous to a max-pooling
   layer for 2D convolutions but which operates on graphs instead. This
   technique is described in [1]_.
-
   References
   ----------
   .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
@@ -229,7 +221,6 @@ class GraphPool(tf.keras.layers.Layer):
 
   def __init__(self, min_degree=0, max_degree=10, **kwargs):
     """Initialize this layer
-
     Parameters
     ----------
     min_deg: int, optional (default 0)
@@ -292,7 +283,6 @@ class GraphPool(tf.keras.layers.Layer):
 
 class GraphGather(tf.keras.layers.Layer):
   """A GraphGather layer pools node-level feature vectors to create a graph feature vector.
-
   Many graph convolutional networks manipulate feature vectors per
   graph-node. For a molecule for example, each node might represent an
   atom, and the network would manipulate atomic feature vectors that
@@ -300,13 +290,11 @@ class GraphGather(tf.keras.layers.Layer):
   the application, we will likely want to work with a molecule level
   feature representation. The `GraphGather` layer creates a graph level
   feature vector by combining all the node-level feature vectors.
-
   One subtlety about this layer is that it depends on the
   `batch_size`. This is done for internal implementation reasons. The
   `GraphConv`, and `GraphPool` layers pool all nodes from all graphs
   in a batch that's being processed. The `GraphGather` reassembles
   these jumbled node feature vectors into per-graph feature vectors.
-
   References
   ----------
   .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
@@ -316,7 +304,6 @@ class GraphGather(tf.keras.layers.Layer):
 
   def __init__(self, batch_size, activation_fn=None, **kwargs):
     """Initialize this layer.
-
     Parameters
     ---------
     batch_size: int
@@ -339,7 +326,6 @@ class GraphGather(tf.keras.layers.Layer):
 
   def call(self, inputs):
     """Invoking this layer.
-
     Parameters
     ----------
     inputs: list
@@ -367,7 +353,6 @@ class GraphGather(tf.keras.layers.Layer):
 
 class LSTMStep(tf.keras.layers.Layer):
   """Layer that performs a single step LSTM update.
-
   This layer performs a single step LSTM update. Note that it is *not*
   a full LSTM recurrent network. The LSTMStep layer is useful as a
   primitive for designing layers such as the AttnLSTMEmbedding or the
@@ -430,20 +415,18 @@ class LSTMStep(tf.keras.layers.Layer):
     self.W = init((self.input_dim, 4 * self.output_dim))
     self.U = inner_init((self.output_dim, 4 * self.output_dim))
 
-    self.b = tf.Variable(np.hstack(
-        (np.zeros(self.output_dim), np.ones(self.output_dim),
-         np.zeros(self.output_dim), np.zeros(self.output_dim))),
-                         dtype=tf.float32)
+    self.b = tf.Variable(
+        np.hstack((np.zeros(self.output_dim), np.ones(self.output_dim),
+                   np.zeros(self.output_dim), np.zeros(self.output_dim))),
+        dtype=tf.float32)
     self.built = True
 
   def call(self, inputs):
     """Execute this layer on input tensors.
-
     Parameters
     ----------
     inputs: list
       List of three tensors (x, h_tm1, c_tm1). h_tm1 means "h, t-1".
-
     Returns
     -------
     list
@@ -481,13 +464,11 @@ def cosine_dist(x, y):
   input tensors would be different test vectors or sentences. The input tensors
   themselves could be different batches. Using vectors or tensors of all 0s
   should be avoided.
-
   Methods
   -------
   The vectors in the input tensors are first l2-normalized such that each vector
   has length or magnitude of 1. The inner product (dot product) is then taken 
   between corresponding pairs of row vectors in the input tensors and returned.
-
   Examples
   --------
   The cosine similarity between two equivalent vectors will be 1. The cosine
@@ -501,22 +482,18 @@ def cosine_dist(x, y):
   >>> x = tf.ones((6, 4), dtype=tf.dtypes.float32, name=None)
   >>> y_same = tf.ones((6, 4), dtype=tf.dtypes.float32, name=None)
   >>> cos_sim_same = layers.cosine_dist(x,y_same)
-
   `x` and `y_same` are the same tensor (equivalent at every element, in this 
   case 1). As such, the pairwise inner product of the rows in `x` and `y` will
   always be 1. The output tensor will be of shape (6,6).
-
   >>> diff = cos_sim_same - tf.ones((6, 6), dtype=tf.dtypes.float32, name=None)
   >>> tf.reduce_sum(diff) == 0 # True
   <tf.Tensor: shape=(), dtype=bool, numpy=True>
   >>> cos_sim_same.shape
   TensorShape([6, 6])
-
   The cosine similarity between two orthogonal vectors will be 0 (by definition).
   If every row in `x` is orthogonal to every row in `y`, then the output will be a
   tensor of 0s. In the following example, each row in the tensor `x1` is orthogonal
   to each row in `x2` because they are halves of an identity matrix.
-
   >>> identity_tensor = tf.eye(512, dtype=tf.dtypes.float32)
   >>> x1 = identity_tensor[0:256,:]
   >>> x2 = identity_tensor[256:512,:]
@@ -531,7 +508,6 @@ def cosine_dist(x, y):
   <tf.Tensor: shape=(), dtype=bool, numpy=True>
   >>> cos_sim_orth.shape
   TensorShape([256, 256])
-
   Parameters
   ----------
   x: tf.Tensor
@@ -542,7 +518,6 @@ def cosine_dist(x, y):
     Input Tensor of shape `(m, p)`
     The shape of this input tensor should be `m` rows by `p` columns.
     Note that `m` need not equal `n` (the number of rows in `x`).
-
   Returns
   -------
   tf.Tensor
@@ -558,7 +533,6 @@ def cosine_dist(x, y):
 
 class AttnLSTMEmbedding(tf.keras.layers.Layer):
   """Implements AttnLSTM as in matching networks paper.
-
   The AttnLSTM embedding adjusts two sets of vectors, the "test" and
   "support" sets. The "support" consists of a set of evidence vectors.
   Think of these as the small training set for low-data machine
@@ -568,9 +542,7 @@ class AttnLSTMEmbedding(tf.keras.layers.Layer):
   the "support".  The AttnLSTMEmbedding is thus a type of learnable
   metric that allows a network to modify its internal notion of
   distance.
-
   See references [1]_ [2]_ for more details.
-
   References
   ----------
   .. [1] Vinyals, Oriol, et al. "Matching networks for one shot learning." 
@@ -616,7 +588,6 @@ class AttnLSTMEmbedding(tf.keras.layers.Layer):
 
   def call(self, inputs):
     """Execute this layer on input tensors.
-
     Parameters
     ----------
     inputs: list
@@ -624,7 +595,6 @@ class AttnLSTMEmbedding(tf.keras.layers.Layer):
       n_feat) and Xp should be of shape (n_support, n_feat) where
       n_test is the size of the test set, n_support that of the support
       set, and n_feat is the number of per-atom features.
-
     Returns
     -------
     list
@@ -655,7 +625,6 @@ class AttnLSTMEmbedding(tf.keras.layers.Layer):
 
 class IterRefLSTMEmbedding(tf.keras.layers.Layer):
   """Implements the Iterative Refinement LSTM.
-
   Much like AttnLSTMEmbedding, the IterRefLSTMEmbedding is another type
   of learnable metric which adjusts "test" and "support." Recall that
   "support" is the small amount of data available in a low data machine
@@ -672,7 +641,6 @@ class IterRefLSTMEmbedding(tf.keras.layers.Layer):
     additively, this model allows for an additive update to be
     performed to both test and support using information from each
     other.
-
     Parameters
     ----------
     n_support: int
@@ -716,7 +684,6 @@ class IterRefLSTMEmbedding(tf.keras.layers.Layer):
 
   def call(self, inputs):
     """Execute this layer on input tensors.
-
     Parameters
     ----------
     inputs: list
@@ -724,7 +691,6 @@ class IterRefLSTMEmbedding(tf.keras.layers.Layer):
       n_feat) and Xp should be of shape (n_support, n_feat) where
       n_test is the size of the test set, n_support that of the
       support set, and n_feat is the number of per-atom features.
-
     Returns
     -------
     Returns two tensors of same shape as input. Namely the output
@@ -771,7 +737,6 @@ class IterRefLSTMEmbedding(tf.keras.layers.Layer):
 
 class SwitchedDropout(tf.keras.layers.Layer):
   """Apply dropout based on an input.
-
   This is required for uncertainty prediction.  The standard Keras
   Dropout layer only performs dropout during training, but we
   sometimes need to do it during prediction.  The second input to this
@@ -798,7 +763,6 @@ class WeightedLinearCombo(tf.keras.layers.Layer):
 
   def __init__(self, std=0.3, **kwargs):
     """Initialize this layer.
-
     Parameters
     ----------
     std: float, optional (default 0.3)
@@ -815,9 +779,9 @@ class WeightedLinearCombo(tf.keras.layers.Layer):
   def build(self, input_shape):
     init = tf.keras.initializers.RandomNormal(stddev=self.std)
     self.input_weights = [
-        self.add_weight('weight_%d' % (i + 1), (1,),
-                        initializer=init,
-                        trainable=True) for i in range(len(input_shape))
+        self.add_weight(
+            'weight_%d' % (i + 1), (1,), initializer=init, trainable=True)
+        for i in range(len(input_shape))
     ]
     self.built = True
 
@@ -836,13 +800,11 @@ class CombineMeanStd(tf.keras.layers.Layer):
 
   def __init__(self, training_only=False, noise_epsilon=1.0, **kwargs):
     """Create a CombineMeanStd layer.
-
     This layer should have two inputs with the same shape, and its
     output also has the same shape.  Each element of the output is a
     Gaussian distributed random number whose mean is the corresponding
     element of the first input, and whose standard deviation is the
     corresponding element of the second input.
-
     Parameters
     ----------
     training_only: bool
@@ -868,10 +830,8 @@ class CombineMeanStd(tf.keras.layers.Layer):
     mean_parent, std_parent = inputs[0], inputs[1]
     noise_scale = tf.cast(training or not self.training_only, tf.float32)
     from tensorflow.python.ops import array_ops
-    sample_noise = tf.random.normal(array_ops.shape(mean_parent),
-                                    0,
-                                    self.noise_epsilon,
-                                    dtype=tf.float32)
+    sample_noise = tf.random.normal(
+        array_ops.shape(mean_parent), 0, self.noise_epsilon, dtype=tf.float32)
     return mean_parent + noise_scale * std_parent * sample_noise
 
 
@@ -893,7 +853,6 @@ class Stack(tf.keras.layers.Layer):
 
 class Variable(tf.keras.layers.Layer):
   """Output a trainable value.
-
   Due to a quirk of Keras, you must pass an input value when invoking
   this layer.  It doesn't matter what value you pass.  Keras assumes
   every layer that is not an Input will have at least one parent, and
@@ -902,7 +861,6 @@ class Variable(tf.keras.layers.Layer):
 
   def __init__(self, initial_value, **kwargs):
     """Construct a variable layer.
-
     Parameters
     ----------
     initial_value: array or Tensor
@@ -926,7 +884,6 @@ class Variable(tf.keras.layers.Layer):
 
 class VinaFreeEnergy(tf.keras.layers.Layer):
   """Computes free-energy as defined by Autodock Vina.
-
   TODO(rbharath): Make this layer support batching.
   """
 
@@ -1015,7 +972,6 @@ class VinaFreeEnergy(tf.keras.layers.Layer):
       Coordinates/features.
     Z: tf.Tensor of shape (N)
       Atomic numbers of neighbor atoms.
-
     Returns
     -------
     layer: tf.Tensor of shape (B)
@@ -1052,13 +1008,11 @@ class VinaFreeEnergy(tf.keras.layers.Layer):
 
 class NeighborList(tf.keras.layers.Layer):
   """Computes a neighbor-list in Tensorflow.
-
   Neighbor-lists (also called Verlet Lists) are a tool for grouping
   atoms which are close to each other spatially. This layer computes a
   Neighbor List from a provided tensor of atomic coordinates. You can
   think of this as a general "k-means" layer, but optimized for the
   case `k==3`.
-
   TODO(rbharath): Make this layer support batching.
   """
 
@@ -1109,14 +1063,11 @@ class NeighborList(tf.keras.layers.Layer):
 
   def compute_nbr_list(self, coords):
     """Get closest neighbors for atoms.
-
     Needs to handle padding for atoms with no neighbors.
-
     Parameters
     ----------
     coords: tf.Tensor
       Shape (N_atoms, ndim)
-
     Returns
     -------
     nbr_list: tf.Tensor
@@ -1136,8 +1087,8 @@ class NeighborList(tf.keras.layers.Layer):
     nbr_coords = [tf.gather(coords, atom_nbrs) for atom_nbrs in nbrs]
 
     # Add phantom atoms that exist far outside the box
-    coord_padding = tf.cast(tf.fill((self.M_nbrs, self.ndim), 2 * self.stop),
-                            tf.float32)
+    coord_padding = tf.cast(
+        tf.fill((self.M_nbrs, self.ndim), 2 * self.stop), tf.float32)
     padded_nbr_coords = [
         tf.concat([nbr_coord, coord_padding], 0) for nbr_coord in nbr_coords
     ]
@@ -1171,7 +1122,6 @@ class NeighborList(tf.keras.layers.Layer):
 
   def get_atoms_in_nbrs(self, coords, cells):
     """Get the atoms in neighboring cells for each cells.
-
     Returns
     -------
     atoms_in_nbrs = (N_atoms, n_nbr_cells, M_nbrs)
@@ -1212,16 +1162,13 @@ class NeighborList(tf.keras.layers.Layer):
 
   def get_closest_atoms(self, coords, cells):
     """For each cell, find M_nbrs closest atoms.
-
     Let N_atoms be the number of atoms.
-
     Parameters
     ----------
     coords: tf.Tensor
       (N_atoms, ndim) shape.
     cells: tf.Tensor
       (n_cells, ndim) shape.
-
     Returns
     -------
     closest_inds: tf.Tensor
@@ -1230,8 +1177,8 @@ class NeighborList(tf.keras.layers.Layer):
     N_atoms, n_cells, ndim, M_nbrs = (self.N_atoms, self.n_cells, self.ndim,
                                       self.M_nbrs)
     # Tile both cells and coords to form arrays of size (N_atoms*n_cells, ndim)
-    tiled_cells = tf.reshape(tf.tile(cells, (1, N_atoms)),
-                             (N_atoms * n_cells, ndim))
+    tiled_cells = tf.reshape(
+        tf.tile(cells, (1, N_atoms)), (N_atoms * n_cells, ndim))
 
     # Shape (N_atoms*n_cells, ndim) after tile
     tiled_coords = tf.tile(coords, (n_cells, 1))
@@ -1250,7 +1197,6 @@ class NeighborList(tf.keras.layers.Layer):
 
   def get_cells_for_atoms(self, coords, cells):
     """Compute the cells each atom belongs to.
-
     Parameters
     ----------
     coords: tf.Tensor
@@ -1268,8 +1214,8 @@ class NeighborList(tf.keras.layers.Layer):
     tiled_cells = tf.tile(cells, (N_atoms, 1))
 
     # Shape (N_atoms*n_cells, 1) after tile
-    tiled_coords = tf.reshape(tf.tile(coords, (1, n_cells)),
-                              (n_cells * N_atoms, ndim))
+    tiled_coords = tf.reshape(
+        tf.tile(coords, (1, n_cells)), (n_cells * N_atoms, ndim))
     coords_vec = tf.reduce_sum((tiled_coords - tiled_cells)**2, axis=1)
     coords_norm = tf.reshape(coords_vec, (N_atoms, n_cells))
 
@@ -1292,13 +1238,11 @@ class NeighborList(tf.keras.layers.Layer):
 
   def get_neighbor_cells(self, cells):
     """Compute neighbors of cells in grid.
-
     # TODO(rbharath): Do we need to handle periodic boundary conditions
     properly here?
     # TODO(rbharath): This doesn't handle boundaries well. We hard-code
     # looking for n_nbr_cells neighbors, which isn't right for boundary cells in
     # the cube.
-
     Parameters
     ----------
     cells: tf.Tensor
@@ -1313,8 +1257,8 @@ class NeighborList(tf.keras.layers.Layer):
     # Tile cells to form arrays of size (n_cells*n_cells, ndim)
     # Two tilings (a, b, c, a, b, c, ...) vs. (a, a, a, b, b, b, etc.)
     # Tile (a, a, a, b, b, b, etc.)
-    tiled_centers = tf.reshape(tf.tile(cells, (1, n_cells)),
-                               (n_cells * n_cells, ndim))
+    tiled_centers = tf.reshape(
+        tf.tile(cells, (1, n_cells)), (n_cells * n_cells, ndim))
     # Tile (a, b, c, a, b, c, ...)
     tiled_cells = tf.tile(cells, (n_cells, 1))
 
@@ -1326,11 +1270,9 @@ class NeighborList(tf.keras.layers.Layer):
 
   def get_cells(self):
     """Returns the locations of all grid points in box.
-
     Suppose start is -10 Angstrom, stop is 10 Angstrom, nbr_cutoff is 1.
     Then would return a list of length 20^3 whose entries would be
     [(-10, -10, -10), (-10, -10, -9), ..., (9, 9, 9)]
-
     Returns
     -------
     cells: tf.Tensor
@@ -1339,17 +1281,16 @@ class NeighborList(tf.keras.layers.Layer):
     start, stop, nbr_cutoff = self.start, self.stop, self.nbr_cutoff
     mesh_args = [tf.range(start, stop, nbr_cutoff) for _ in range(self.ndim)]
     return tf.cast(
-        tf.reshape(tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
-                   (self.n_cells, self.ndim)), tf.float32)
+        tf.reshape(
+            tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
+            (self.n_cells, self.ndim)), tf.float32)
 
 
 class AtomicConvolution(tf.keras.layers.Layer):
   """Implements the atomic convolutional transform introduced in
-
   Gomes, Joseph, et al. "Atomic convolutional networks for predicting
   protein-ligand binding affinity." arXiv preprint arXiv:1703.10603
   (2017).
-
   At a high level, this transform performs a graph convolution
   on the nearest neighbors graph in 3D space.
   """
@@ -1360,10 +1301,8 @@ class AtomicConvolution(tf.keras.layers.Layer):
                boxsize=None,
                **kwargs):
     """Atomic convolution layer
-
     N = max_num_atoms, M = max_num_neighbors, B = batch_size, d = num_features
     l = num_radial_filters * num_atom_types
-
     Parameters
     ----------
     atom_types: list or None
@@ -1405,7 +1344,6 @@ class AtomicConvolution(tf.keras.layers.Layer):
       Neighbor list.
     Nbrs_Z: tf.Tensor of shape (B, N, M)
       Atomic numbers of neighbor atoms.
-
     Returns
     -------
     layer: tf.Tensor of shape (B, N, l)
@@ -1448,9 +1386,7 @@ class AtomicConvolution(tf.keras.layers.Layer):
 
   def radial_symmetry_function(self, R, rc, rs, e):
     """Calculates radial symmetry function.
-
     B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_filters
-
     Parameters
     ----------
     R: tf.Tensor of shape (B, N, M)
@@ -1461,7 +1397,6 @@ class AtomicConvolution(tf.keras.layers.Layer):
       Gaussian distance matrix mean.
     e: float
       Gaussian distance matrix width.
-
     Returns
     -------
     retval: tf.Tensor of shape (B, N, M)
@@ -1473,16 +1408,13 @@ class AtomicConvolution(tf.keras.layers.Layer):
 
   def radial_cutoff(self, R, rc):
     """Calculates radial cutoff matrix.
-
     B = batch_size, N = max_num_atoms, M = max_num_neighbors
-
     Parameters
     ----------
       R [B, N, M]: tf.Tensor
         Distance matrix.
       rc: tf.Variable
         Interaction cutoff [Angstrom].
-
     Returns
     -------
     FC [B, N, M]: tf.Tensor
@@ -1496,9 +1428,7 @@ class AtomicConvolution(tf.keras.layers.Layer):
 
   def gaussian_distance_matrix(self, R, rs, e):
     """Calculates gaussian distance matrix.
-
     B = batch_size, N = max_num_atoms, M = max_num_neighbors
-
     Parameters
     ----------
     R [B, N, M]: tf.Tensor
@@ -1507,7 +1437,6 @@ class AtomicConvolution(tf.keras.layers.Layer):
       Gaussian distance matrix mean.
     e: tf.Variable
       Gaussian distance matrix width (e = .5/std**2).
-
     Returns
     -------
     retval [B, N, M]: tf.Tensor
@@ -1517,9 +1446,7 @@ class AtomicConvolution(tf.keras.layers.Layer):
 
   def distance_tensor(self, X, Nbrs, boxsize, B, N, M, d):
     """Calculates distance tensor for batch of molecules.
-
     B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_features
-
     Parameters
     ----------
     X: tf.Tensor of shape (B, N, d)
@@ -1528,7 +1455,6 @@ class AtomicConvolution(tf.keras.layers.Layer):
       Neighbor list tensor.
     boxsize: float or None
       Simulation box length [Angstrom].
-
     Returns
     -------
     D: tf.Tensor of shape (B, N, M, d)
@@ -1545,14 +1471,11 @@ class AtomicConvolution(tf.keras.layers.Layer):
 
   def distance_matrix(self, D):
     """Calcuates the distance matrix from the distance tensor
-
     B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_features
-
     Parameters
     ----------
     D: tf.Tensor of shape (B, N, M, d)
       Distance tensor.
-
     Returns
     -------
     R: tf.Tensor of shape (B, N, M)
@@ -1567,14 +1490,11 @@ class AlphaShareLayer(tf.keras.layers.Layer):
   """
   Part of a sluice network. Adds alpha parameters to control
   sharing between the main and auxillary tasks
-
   Factory method AlphaShare should be used for construction
-
   Parameters
   ----------
   in_layers: list of Layers or tensors
     tensors in list must be the same size and list must include two or more tensors
-
   Returns
   -------
   out_tensor: a tensor with shape [len(in_layers), x, y] where x, y were the original layer dimensions
@@ -1590,8 +1510,8 @@ class AlphaShareLayer(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     n_alphas = 2 * len(input_shape)
-    self.alphas = tf.Variable(tf.random.normal([n_alphas, n_alphas]),
-                              name='alphas')
+    self.alphas = tf.Variable(
+        tf.random.normal([n_alphas, n_alphas]), name='alphas')
     self.built = True
 
   def call(self, inputs):
@@ -1657,13 +1577,11 @@ class BetaShare(tf.keras.layers.Layer):
   """
   Part of a sluice network. Adds beta params to control which layer
   outputs are used for prediction
-
   Parameters
   ----------
   in_layers: list of Layers or tensors
     tensors in list must be the same size and list must include two or
     more tensors
-
   Returns
   -------
   output_layers: list of Layers or tensors with same size as in_layers
@@ -1752,11 +1670,12 @@ class ANIFeat(tf.keras.layers.Layer):
     radial_sym = self.radial_symmetry(d_radial_cutoff, d, atom_numbers)
     angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
                                         coordinates)
-    return tf.concat([
-        tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
-        angular_sym
-    ],
-                     axis=2)
+    return tf.concat(
+        [
+            tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
+            angular_sym
+        ],
+        axis=2)
 
   def distance_matrix(self, coordinates, flags):
     """ Generate distance matrix """
@@ -1810,9 +1729,9 @@ class ANIFeat(tf.keras.layers.Layer):
     if self.atomic_number_differentiated:
       out_tensors = []
       for atom_type in self.atom_cases:
-        selected_atoms = tf.expand_dims(tf.expand_dims(
-            atom_numbers_embedded[:, :, atom_type], axis=1),
-                                        axis=3)
+        selected_atoms = tf.expand_dims(
+            tf.expand_dims(atom_numbers_embedded[:, :, atom_type], axis=1),
+            axis=3)
         out_tensors.append(tf.reduce_sum(out * selected_atoms, axis=2))
       return tf.concat(out_tensors, axis=2)
     else:
@@ -1866,9 +1785,8 @@ class ANIFeat(tf.keras.layers.Layer):
         for atom_type_k in self.atom_cases[id_j:]:
           selected_atoms = tf.stack([atom_numbers_embedded[:, :, atom_type_j]] * max_atoms, axis=2) * \
                            tf.stack([atom_numbers_embedded[:, :, atom_type_k]] * max_atoms, axis=1)
-          selected_atoms = tf.expand_dims(tf.expand_dims(selected_atoms,
-                                                         axis=1),
-                                          axis=4)
+          selected_atoms = tf.expand_dims(
+              tf.expand_dims(selected_atoms, axis=1), axis=4)
           out_tensors.append(
               tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
       return tf.concat(out_tensors, axis=2)
@@ -1884,13 +1802,10 @@ class GraphEmbedPoolLayer(tf.keras.layers.Layer):
   r"""
   GraphCNNPool Layer from Robust Spatial Filtering with Graph Convolutional Neural Networks
   https://arxiv.org/abs/1703.00792
-
   This is a learnable pool operation It constructs a new adjacency
   matrix for a graph of specified number of nodes.
-
   This differs from our other pool operations which set vertices to a
   function value without altering the adjacency matrix.
-
   ..math:: V_{emb} = SpatialGraphCNN({V_{in}})
   ..math:: V_{out} = \sigma(V_{emb})^{T} * V_{in}
   ..math:: A_{out} = V_{emb}^{T} * A_{in} * V_{emb}
@@ -1907,10 +1822,12 @@ class GraphEmbedPoolLayer(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     no_features = int(input_shape[0][-1])
-    self.W = tf.Variable(tf.random.truncated_normal(
-        [no_features, self.num_vertices], stddev=1.0 / np.sqrt(no_features)),
-                         name='weights',
-                         dtype=tf.float32)
+    self.W = tf.Variable(
+        tf.random.truncated_normal(
+            [no_features, self.num_vertices],
+            stddev=1.0 / np.sqrt(no_features)),
+        name='weights',
+        dtype=tf.float32)
     self.b = tf.Variable(tf.constant(0.1), name='bias', dtype=tf.float32)
     self.built = True
 
@@ -1923,13 +1840,10 @@ class GraphEmbedPoolLayer(tf.keras.layers.Layer):
     in_layers: list of Layers or tensors
       [V, A, mask]
       V are the vertex features must be of shape (batch, vertex, channel)
-
       A are the adjacency matrixes for each graph
         Shape (batch, from_vertex, adj_matrix, to_vertex)
-
       mask is optional, to be used when not every graph has the
       same number of vertices
-
     Returns
     -------
     Returns a `tf.tensor` with a graph convolution applied
@@ -1975,18 +1889,14 @@ class GraphCNN(tf.keras.layers.Layer):
   r"""
   GraphCNN Layer from Robust Spatial Filtering with Graph Convolutional Neural Networks
   https://arxiv.org/abs/1703.00792
-
   Spatial-domain convolutions can be defined as
   H = h_0I + h_1A + h_2A^2 + ... + hkAk, H ∈ R**(N×N)
-
   We approximate it by
   H ≈ h_0I + h_1A
-
   We can define a convolution as applying multiple these linear filters
   over edges of different types (think up, down, left, right, diagonal in images)
   Where each edge type has its own adjacency matrix
   H ≈ h_0I + h_1A_1 + h_2A_2 + . . . h_(L−1)A_(L−1)
-
   V_out = \sum_{c=1}^{C} H^{c} V^{c} + b
   """
 
@@ -1996,17 +1906,13 @@ class GraphCNN(tf.keras.layers.Layer):
     ----------
     num_filters: int
       Number of filters to have in the output
-
     in_layers: list of Layers or tensors
       [V, A, mask]
       V are the vertex features must be of shape (batch, vertex, channel)
-
       A are the adjacency matrixes for each graph
         Shape (batch, from_vertex, adj_matrix, to_vertex)
-
       mask is optional, to be used when not every graph has the
       same number of vertices
-
     Returns: tf.tensor
     Returns a tf.tensor with a graph convolution applied
     The shape will be (batch, vertex, self.num_filters)
@@ -2022,16 +1928,18 @@ class GraphCNN(tf.keras.layers.Layer):
   def build(self, input_shape):
     no_features = int(input_shape[0][2])
     no_A = int(input_shape[1][2])
-    self.W = tf.Variable(tf.random.truncated_normal(
-        [no_features * no_A, self.num_filters],
-        stddev=np.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
-                         name='weights',
-                         dtype=tf.float32)
-    self.W_I = tf.Variable(tf.random.truncated_normal(
-        [no_features, self.num_filters],
-        stddev=np.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
-                           name='weights_I',
-                           dtype=tf.float32)
+    self.W = tf.Variable(
+        tf.random.truncated_normal(
+            [no_features * no_A, self.num_filters],
+            stddev=np.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
+        name='weights',
+        dtype=tf.float32)
+    self.W_I = tf.Variable(
+        tf.random.truncated_normal(
+            [no_features, self.num_filters],
+            stddev=np.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
+        name='weights_I',
+        dtype=tf.float32)
     self.b = tf.Variable(tf.constant(0.1), name='bias', dtype=tf.float32)
     self.built = True
 
@@ -2070,15 +1978,10 @@ class GraphCNN(tf.keras.layers.Layer):
 
 class Highway(tf.keras.layers.Layer):
   """ Create a highway layer. y = H(x) * T(x) + x * (1 - T(x))
-
   H(x) = activation_fn(matmul(W_H, x) + b_H) is the non-linear transformed output
   T(x) = sigmoid(matmul(W_T, x) + b_T) is the transform gate
-
   Implementation based on paper
-
   Srivastava, Rupesh Kumar, Klaus Greff, and Jürgen Schmidhuber. "Highway networks." arXiv preprint arXiv:1505.00387 (2015).
-
-
   This layer expects its input to be a two dimensional tensor
   of shape (batch size, # input features).  Outputs will be in
   the same shape.
@@ -2147,62 +2050,43 @@ class Highway(tf.keras.layers.Layer):
 class WeaveLayer(tf.keras.layers.Layer):
   """This class implements the core Weave convolution from the
   Google graph convolution paper [1]_
-
   This model contains atom features and bond features
   separately.Here, bond features are also called pair features.
   There are 2 types of transformation, atom->atom, atom->pair,
   pair->atom, pair->pair that this model implements.
-
   Examples
   --------
   This layer expects 4 inputs in a list of the form `[atom_features,
   pair_features, pair_split, atom_to_pair]`. We'll walk through the structure
   of these inputs. Let's start with some basic definitions.
-
   >>> import deepchem as dc
   >>> import numpy as np
-
   Suppose you have a batch of molecules
-
   >>> smiles = ["CCC", "C"]
-
   Note that there are 4 atoms in total in this system. This layer expects its
   input molecules to be batched together.
-
   >>> total_n_atoms = 4
-
   Let's suppose that we have a featurizer that computes `n_atom_feat` features
   per atom.
-
   >>> n_atom_feat = 75
-
   Then conceptually, `atom_feat` is the array of shape `(total_n_atoms,
   n_atom_feat)` of atomic features. For simplicity, let's just go with a
   random such matrix.
-
   >>> atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
-
   Let's suppose we have `n_pair_feat` pairwise features
-
   >>> n_pair_feat = 14
-
   For each molecule, we compute a matrix of shape `(n_atoms*n_atoms,
   n_pair_feat)` of pairwise features for each pair of atoms in the molecule.
   Let's construct this conceptually for our example.
-
   >>> pair_feat = [np.random.rand(3*3, n_pair_feat), np.random.rand(1*1, n_pair_feat)]
   >>> pair_feat = np.concatenate(pair_feat, axis=0)
   >>> pair_feat.shape
   (10, 14)
-
   `pair_split` is an index into `pair_feat` which tells us which atom each row belongs to. In our case, we hve
-
   >>> pair_split = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 3])
-
   That is, the first 9 entries belong to "CCC" and the last entry to "C". The
   final entry `atom_to_pair` goes in a little more in-depth than `pair_split`
   and tells us the precise pair each pair feature belongs to. In our case
-
   >>> atom_to_pair = np.array([[0, 0],
   ...                          [0, 1],
   ...                          [0, 2],
@@ -2213,34 +2097,25 @@ class WeaveLayer(tf.keras.layers.Layer):
   ...                          [2, 1],
   ...                          [2, 2],
   ...                          [3, 3]])
-
   Let's now define the actual layer
-
   >>> layer = WeaveLayer()
-
   And invoke it
-
   >>> [A, P] = layer([atom_feat, pair_feat, pair_split, atom_to_pair])
-
   The weave layer produces new atom/pair features. Let's check their shapes
-
   >>> A = np.array(A)
   >>> A.shape
   (4, 50)
   >>> P = np.array(P)
   >>> P.shape
   (10, 50)
-
   The 4 is `total_num_atoms` and the 10 is the total number of pairs. Where
   does `50` come from? It's from the default arguments `n_atom_input_feat` and
   `n_pair_input_feat`.
-
   References
   ----------
   .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
   fingerprints." Journal of computer-aided molecular design 30.8 (2016):
   595-608.
-
   """
 
   def __init__(self,
@@ -2333,7 +2208,6 @@ class WeaveLayer(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     """ Construct internal trainable weights.
-
     Parameters
     ----------
     input_shape: tuple
@@ -2381,7 +2255,6 @@ class WeaveLayer(tf.keras.layers.Layer):
 
   def call(self, inputs: List) -> List:
     """Creates weave tensors.
-
     Parameters
     ----------
     inputs: List
@@ -2415,14 +2288,16 @@ class WeaveLayer(tf.keras.layers.Layer):
       # Note that AP_ij and AP_ji share the same self.AP_bn batch
       # normalization
       AP_ij = tf.matmul(
-          tf.reshape(tf.gather(atom_features, atom_to_pair),
-                     [-1, 2 * self.n_atom_input_feat]), self.W_AP) + self.b_AP
+          tf.reshape(
+              tf.gather(atom_features, atom_to_pair),
+              [-1, 2 * self.n_atom_input_feat]), self.W_AP) + self.b_AP
       if self.batch_normalize:
         AP_ij = self.AP_bn(AP_ij)
       AP_ij = activation(AP_ij)
       AP_ji = tf.matmul(
-          tf.reshape(tf.gather(atom_features, tf.reverse(atom_to_pair, [1])),
-                     [-1, 2 * self.n_atom_input_feat]), self.W_AP) + self.b_AP
+          tf.reshape(
+              tf.gather(atom_features, tf.reverse(atom_to_pair, [1])),
+              [-1, 2 * self.n_atom_input_feat]), self.W_AP) + self.b_AP
       if self.batch_normalize:
         AP_ji = self.AP_bn(AP_ji)
       AP_ji = activation(AP_ji)
@@ -2443,59 +2318,42 @@ class WeaveLayer(tf.keras.layers.Layer):
 
 class WeaveGather(tf.keras.layers.Layer):
   """Implements the weave-gathering section of weave convolutions.
-
   Implements the gathering layer from [1]_. The weave gathering layer gathers
   per-atom features to create a molecule-level fingerprint in a weave
   convolutional network. This layer can also performs Gaussian histogram
   expansion as detailed in [1]_. Note that the gathering function here is
   simply addition as in [1]_>
-
   Examples
   --------
   This layer expects 2 inputs in a list of the form `[atom_features,
   pair_features]`. We'll walk through the structure
   of these inputs. Let's start with some basic definitions.
-
   >>> import deepchem as dc
   >>> import numpy as np
-
   Suppose you have a batch of molecules
-
   >>> smiles = ["CCC", "C"]
-
   Note that there are 4 atoms in total in this system. This layer expects its
   input molecules to be batched together.
-
   >>> total_n_atoms = 4
-
   Let's suppose that we have `n_atom_feat` features per atom. 
-
   >>> n_atom_feat = 75
-
   Then conceptually, `atom_feat` is the array of shape `(total_n_atoms,
   n_atom_feat)` of atomic features. For simplicity, let's just go with a
   random such matrix.
-
   >>> atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
-
   We then need to provide a mapping of indices to the atoms they belong to. In
   ours case this would be
-
   >>> atom_split = np.array([0, 0, 0, 1])
-
   Let's now define the actual layer
-
   >>> gather = WeaveGather(batch_size=2, n_input=n_atom_feat)
   >>> output_molecules = gather([atom_feat, atom_split])
   >>> len(output_molecules)
   2
-
   References
   ----------
   .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
   fingerprints." Journal of computer-aided molecular design 30.8 (2016):
   595-608.
-
   Note
   ----
   This class requires `tensorflow_probability` to be installed.
@@ -2566,12 +2424,10 @@ class WeaveGather(tf.keras.layers.Layer):
 
   def call(self, inputs: List) -> List:
     """Creates weave tensors.
-
     Parameters
     ----------
     inputs: List
       Should contain 2 tensors [atom_features, atom_split]
-
     Returns
     -------
     output_molecules: List 
@@ -2594,24 +2450,20 @@ class WeaveGather(tf.keras.layers.Layer):
 
   def gaussian_histogram(self, x):
     """Expands input into a set of gaussian histogram bins.
-
     Parameters
     ----------
     x: tf.Tensor
       Of shape `(N, n_feat)`
-
     Examples
     --------
     This method uses 11 bins spanning portions of a Gaussian with zero mean
     and unit standard deviation.
-
     >>> gaussian_memberships = [(-1.645, 0.283), (-1.080, 0.170),
     ...                         (-0.739, 0.134), (-0.468, 0.118),
     ...                         (-0.228, 0.114), (0., 0.114),
     ...                         (0.228, 0.114), (0.468, 0.118),
     ...                         (0.739, 0.134), (1.080, 0.170),
     ...                         (1.645, 0.283)]
-
     We construct a Gaussian at `gaussian_memberships[i][0]` with standard
     deviation `gaussian_memberships[i][1]`. Each feature in `x` is assigned
     the probability of falling in each Gaussian, and probabilities are
@@ -2930,31 +2782,31 @@ class DAGLayer(tf.keras.layers.Layer):
     self.dropouts = []
     prev_layer_size = self.n_inputs
     for layer_size in self.layer_sizes:
-      self.W_list.append(
-          self.add_weight(name='kernel',
-                          shape=(prev_layer_size, layer_size),
-                          initializer=self.init,
-                          trainable=True))
-      self.b_list.append(
-          self.add_weight(name='bias',
-                          shape=(layer_size,),
-                          initializer='zeros',
-                          trainable=True))
+      self.W_list.append(self.add_weight(
+            name='kernel',
+            shape=(prev_layer_size, layer_size),
+            initializer='glorot_uniform',
+            trainable=True))
+      self.b_list.append(self.add_weight(
+            name='bias',
+            shape=(layer_size,),
+            initializer='zeros',
+            trainable=True))
       if self.dropout is not None and self.dropout > 0.0:
         self.dropouts.append(Dropout(rate=self.dropout))
       else:
         self.dropouts.append(None)
       prev_layer_size = layer_size
-    self.W_list.append(
-        self.add_weight(name='kernel',
-                        shape=(prev_layer_size, self.n_outputs),
-                        initializer=self.init,
-                        trainable=True))
-    self.b_list.append(
-        self.add_weight(name='bias',
-                        shape=(self.n_outputs,),
-                        initializer='zeros',
-                        trainable=True))
+    self.W_list.append(self.add_weight(
+            name='kernel',
+            shape=(prev_layer_size,self.n_outputs),
+            initializer=self.init,
+            trainable=True))
+    self.b_list.append(self.add_weight(
+            name='bias',
+            shape=(self.n_outputs,),
+            initializer='zeros',
+            trainable=True))
     if self.dropout is not None and self.dropout > 0.0:
       self.dropouts.append(Dropout(rate=self.dropout))
     else:
@@ -2986,16 +2838,16 @@ class DAGLayer(tf.keras.layers.Layer):
 
       # generating index for graph features used in the inputs
       stack1 = tf.reshape(
-          tf.stack([tf.boolean_mask(tf.range(n_atoms), mask)] *
-                   (self.max_atoms - 1),
-                   axis=1), [-1])
+          tf.stack(
+              [tf.boolean_mask(tf.range(n_atoms), mask)] * (self.max_atoms - 1),
+              axis=1), [-1])
       stack2 = tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
       index = tf.stack([stack1, stack2], axis=1)
       # extracting graph features for parents of the target atoms, then flatten
       # shape: (batch_size*max_atoms) * [(max_atoms-1)*n_graph_features]
       batch_graph_features = tf.reshape(
-          tf.gather_nd(graph_features,
-                       index), [-1, (self.max_atoms - 1) * self.n_graph_feat])
+          tf.gather_nd(graph_features, index),
+          [-1, (self.max_atoms - 1) * self.n_graph_feat])
 
       # concat into the input tensor: (batch_size*max_atoms) * n_inputs
       batch_inputs = tf.concat(
@@ -3074,31 +2926,31 @@ class DAGGather(tf.keras.layers.Layer):
     self.dropouts = []
     prev_layer_size = self.n_graph_feat
     for layer_size in self.layer_sizes:
-      self.W_list.append(
-          self.add_weight(name='kernel',
-                          shape=(prev_layer_size, layer_size),
-                          initializer=self.init,
-                          trainable=True))
-      self.b_list.append(
-          self.add_weight(name='bias',
-                          shape=(layer_size,),
-                          initializer='zeros',
-                          trainable=True))
+      self.W_list.append(self.add_weight(
+            name='kernel',
+            shape=(prev_layer_size, layer_size),
+            initializer='glorot_uniform',
+            trainable=True))
+      self.b_list.append(self.add_weight(
+            name='bias',
+            shape=(layer_size,),
+            initializer='zeros',
+            trainable=True))
       if self.dropout is not None and self.dropout > 0.0:
         self.dropouts.append(Dropout(rate=self.dropout))
       else:
         self.dropouts.append(None)
       prev_layer_size = layer_size
-    self.W_list.append(
-        self.add_weight(name='kernel',
-                        shape=(prev_layer_size, self.n_outputs),
-                        initializer=self.init,
-                        trainable=True))
-    self.b_list.append(
-        self.add_weight(name='bias',
-                        shape=(self.n_outputs,),
-                        initializer='zeros',
-                        trainable=True))
+    self.W_list.append(self.add_weight(
+            name='kernel',
+            shape=(prev_layer_size,self.n_outputs),
+            initializer=self.init,
+            trainable=True))
+    self.b_list.append(self.add_weight(
+            name='bias',
+            shape=(self.n_outputs,),
+            initializer='zeros',
+            trainable=True))
     if self.dropout is not None and self.dropout > 0.0:
       self.dropouts.append(Dropout(rate=self.dropout))
     else:
@@ -3259,7 +3111,6 @@ class GatedRecurrentUnit(tf.keras.layers.Layer):
 
 class SetGather(tf.keras.layers.Layer):
   """set2set gather layer for graph-based model
-
   Models using this layer must set `pad_batches=True`.
   """
 
@@ -3291,15 +3142,14 @@ class SetGather(tf.keras.layers.Layer):
   def build(self, input_shape):
     init = initializers.get(self.init)
     self.U = init((2 * self.n_hidden, 4 * self.n_hidden))
-    self.b = tf.Variable(np.concatenate(
-        (np.zeros(self.n_hidden), np.ones(self.n_hidden),
-         np.zeros(self.n_hidden), np.zeros(self.n_hidden))),
-                         dtype=tf.float32)
+    self.b = tf.Variable(
+        np.concatenate((np.zeros(self.n_hidden), np.ones(self.n_hidden),
+                        np.zeros(self.n_hidden), np.zeros(self.n_hidden))),
+        dtype=tf.float32)
     self.built = True
 
   def call(self, inputs):
     """Perform M steps of set2set gather,
-
     Detailed descriptions in: https://arxiv.org/abs/1511.06391
     """
     atom_features, atom_split = inputs
