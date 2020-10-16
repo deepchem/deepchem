@@ -5,9 +5,46 @@ import os
 import logging
 import deepchem as dc
 from deepchem.data import Dataset, DiskDataset
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Type, Union
 
 logger = logging.getLogger(__name__)
+
+
+class TransformerGenerator(object):
+  """Create Transformers for Datasets.
+
+  When loading molnet datasets, you cannot directly pass in Transformers
+  to use because many Transformers require the Dataset they will be applied to
+  as a constructor argument.  Instead you pass in TransformerGenerator objects
+  which can create the Transformers once the Dataset is loaded.
+  """
+
+  def __init__(self, transformer_class: Type[dc.trans.Transformer], **kwargs):
+    """Construct an object for creating Transformers.
+
+    Parameters
+    ----------
+    transformer_class: Type[Transformer]
+      the class of Transformer to create
+    kwargs:
+      any additional arguments are passed to the Transformer's constructor
+    """
+    self.transformer_class = transformer_class
+    self.kwargs = kwargs
+
+  def create_transformer(self, dataset: Dataset) -> dc.trans.Transformer:
+    """Construct a Transformer for a Dataset."""
+    return self.transformer_class(dataset=dataset, **self.kwargs)
+
+  def get_directory_name(self) -> str:
+    """Get a name for directories on disk describing this Transformer."""
+    name = self.transformer_class.__name__
+    for key, value in self.kwargs.items():
+      if isinstance(value, list):
+        continue
+      name += '_' + key + '_' + str(value)
+    return name
+
 
 featurizers = {
     'ecfp': dc.feat.CircularFingerprint(size=1024),
@@ -26,6 +63,19 @@ splitters = {
     'stratified': dc.splits.RandomStratifiedSplitter()
 }
 
+transformers = {
+    'balancing':
+    TransformerGenerator(dc.trans.BalancingTransformer),
+    'normalization':
+    TransformerGenerator(dc.trans.NormalizationTransformer, transform_y=True),
+    'minmax':
+    TransformerGenerator(dc.trans.MinMaxTransformer, transform_y=True),
+    'clipping':
+    TransformerGenerator(dc.trans.ClippingTransformer, transform_y=True),
+    'log':
+    TransformerGenerator(dc.trans.LogTransformer, transform_y=True)
+}
+
 
 class _MolnetLoader(object):
   """The class provides common functionality used by many molnet loader functions.
@@ -34,6 +84,7 @@ class _MolnetLoader(object):
 
   def __init__(self, featurizer: Union[dc.feat.Featurizer, str],
                splitter: Union[dc.splits.Splitter, str, None],
+               transformer_generators: List[Union[TransformerGenerator, str]],
                data_dir: Optional[str], save_dir: Optional[str], **kwargs):
     """Construct an object for loading a dataset.
 
@@ -47,6 +98,10 @@ class _MolnetLoader(object):
       test sets.  Alternatively you can pass one of the names from
       dc.molnet.splitters as a shortcut.  If this is None, all the data
       will be included in a single dataset.
+    transformer_generators: list of TransformerGenerators or strings
+      the Transformers to apply to the data.  Each one is specified by a
+      TransformerGenerator or, as a shortcut, one of the names from
+      dc.molnet.transformers.
     data_dir: str
       a directory to save the raw data in
     save_dir: str
@@ -65,25 +120,40 @@ class _MolnetLoader(object):
       save_dir = dc.utils.data_utils.get_data_dir()
     self.featurizer = featurizer
     self.splitter = splitter
+    self.transformers = [
+        transformers[t.lower()] if isinstance(t, str) else t
+        for t in transformer_generators
+    ]
     self.data_dir = data_dir
     self.save_dir = save_dir
     self.args = kwargs
 
   def load_dataset(
-      self, tasks: List[str], save_folder: str, reload: bool
+      self, name: str, tasks: List[str], reload: bool
   ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
     """Load the dataset.
 
     Parameters
     ----------
+    name: str
+      the name of the dataset, used to identify the directory on disk
     tasks: List[str]
       the names of the tasks in this dataset
-    save_folder: str
-      the directory in which the dataset should be saved
     reload: bool
       if True, the first call for a particular featurizer and splitter will cache
       the datasets to disk, and subsequent calls will reload the cached datasets.
     """
+    # Build the path to the dataset on disk.
+
+    featurizer_name = str(self.featurizer)
+    splitter_name = 'None' if self.splitter is None else str(self.splitter)
+    save_folder = os.path.join(self.save_dir, name + "-featurized",
+                               featurizer_name, splitter_name)
+    if len(self.transformers) > 0:
+      transformer_name = '_'.join(
+          t.get_directory_name() for t in self.transformers)
+      save_folder = os.path.join(save_folder, transformer_name)
+
     # Try to reload cached datasets.
 
     if reload:
@@ -110,7 +180,9 @@ class _MolnetLoader(object):
           self.splitter.__class__.__name__))
       train, valid, test = self.splitter.train_valid_test_split(dataset)
       transformer_dataset = train
-    transformers = self.get_transformers(transformer_dataset)
+    transformers = [
+        t.create_transformer(transformer_dataset) for t in self.transformers
+    ]
     logger.info("About to transform data.")
     if self.splitter is None:
       for transformer in transformers:
@@ -132,8 +204,4 @@ class _MolnetLoader(object):
 
   def create_dataset(self) -> Dataset:
     """Subclasses must implement this to load the dataset."""
-    raise NotImplementedError()
-
-  def get_transformers(self, dataset: Dataset) -> List[dc.trans.Transformer]:
-    """Subclasses must implement this to create the transformers for the dataset."""
     raise NotImplementedError()
