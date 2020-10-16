@@ -6,7 +6,7 @@ import os
 import logging
 import tempfile
 import warnings
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Optional, Union
 
 import numpy as np
 from sklearn.base import BaseEstimator
@@ -28,7 +28,7 @@ class GBDTModel(SklearnModel):
                model: BaseEstimator,
                model_dir: Optional[str] = None,
                early_stopping_rounds: int = 50,
-               eval_metric: Optional[Union[str, Callable[..., Tuple]]] = None,
+               eval_metric: Optional[Union[str, Callable]] = None,
                **kwargs):
     """
     Parameters
@@ -57,11 +57,11 @@ class GBDTModel(SklearnModel):
 
     if eval_metric is None:
       if self.model_type == 'classification':
-        self.eval_metric: Union[str, Callable[..., Tuple]] = 'auc'
+        self.eval_metric: Optional[Union[str, Callable]] = 'auc'
       elif self.model_type == 'regression':
         self.eval_metric = 'mae'
       else:
-        self.eval_metric = None
+        self.eval_metric = eval_metric
     else:
       self.eval_metric = eval_metric
 
@@ -72,7 +72,7 @@ class GBDTModel(SklearnModel):
     elif class_name.endswith('Regressor'):
       return 'regression'
     elif class_name == 'NoneType':
-      return None
+      return 'none'
     else:
       raise ValueError(
           '{} is not a supported model instance.'.format(class_name))

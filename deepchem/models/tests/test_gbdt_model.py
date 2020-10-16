@@ -20,7 +20,8 @@ def test_signletask_regression():
   dataset = load_diabetes()
   X, y = dataset.data, dataset.target
   frac_train = .7
-  X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=frac_train)
+  X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, train_size=frac_train)
   train_dataset = dc.data.NumpyDataset(X_train, y_train)
   test_dataset = dc.data.NumpyDataset(X_test, y_test)
 
@@ -29,7 +30,8 @@ def test_signletask_regression():
   params = {'early_stopping_rounds': 25}
 
   # xgboost test
-  xgb_model = xgboost.XGBRegressor(n_estimators=50, random_state=123, verbose=False)
+  xgb_model = xgboost.XGBRegressor(
+      n_estimators=50, random_state=123, verbose=False)
   model = dc.models.GBDTModel(xgb_model, **params)
   # fit trained model
   model.fit(train_dataset)
@@ -39,7 +41,8 @@ def test_signletask_regression():
   assert scores[regression_metric.name] < 55
 
   # lightgbm test
-  lgbm_model = lightgbm.LGBMRegressor(n_estimators=50, random_state=123, silent=True)
+  lgbm_model = lightgbm.LGBMRegressor(
+      n_estimators=50, random_state=123, silent=True)
   model = dc.models.GBDTModel(lgbm_model, **params)
   # fit trained model
   model.fit(train_dataset)
@@ -60,7 +63,8 @@ def test_multitask_regression():
   y = np.reshape(y, (len(y), 1))
   y = np.hstack([y] * n_tasks)
   frac_train = .7
-  X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=frac_train)
+  X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, train_size=frac_train)
   train_dataset = dc.data.DiskDataset.from_numpy(X_train, y_train)
   test_dataset = dc.data.DiskDataset.from_numpy(X_test, y_test)
 
@@ -72,6 +76,7 @@ def test_multitask_regression():
   def xgboost_builder(model_dir):
     xgb_model = xgboost.XGBRegressor(n_estimators=50, seed=123, verbose=False)
     return dc.models.GBDTModel(xgb_model, model_dir, **params)
+
   model = dc.models.SingletaskToMultitask(tasks, xgboost_builder)
   # fit trained model
   model.fit(train_dataset)
@@ -85,6 +90,7 @@ def test_multitask_regression():
   def lightgbm_builder(model_dir):
     xgb_model = lightgbm.LGBMRegressor(n_estimators=50, seed=123, silent=False)
     return dc.models.GBDTModel(xgb_model, model_dir, **params)
+
   model = dc.models.SingletaskToMultitask(tasks, lightgbm_builder)
   # fit trained model
   model.fit(train_dataset)
@@ -103,7 +109,8 @@ def test_classification():
   dataset = load_digits(n_class=2)
   X, y = dataset.data, dataset.target
   frac_train = .7
-  X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=frac_train)
+  X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, train_size=frac_train)
   train_dataset = dc.data.NumpyDataset(X_train, y_train)
   test_dataset = dc.data.NumpyDataset(X_test, y_test)
 
@@ -139,7 +146,8 @@ def test_reload():
   dataset = load_diabetes()
   X, y = dataset.data, dataset.target
   frac_train = .7
-  X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=frac_train)
+  X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, train_size=frac_train)
   train_dataset = dc.data.NumpyDataset(X_train, y_train)
   test_dataset = dc.data.NumpyDataset(X_test, y_test)
 
@@ -149,7 +157,8 @@ def test_reload():
   params = {'early_stopping_rounds': 25, 'model_dir': model_dir}
 
   # xgboost test
-  xgb_model = xgboost.XGBRegressor(n_estimators=50, random_state=123, verbose=False)
+  xgb_model = xgboost.XGBRegressor(
+      n_estimators=50, random_state=123, verbose=False)
   model = dc.models.GBDTModel(xgb_model, **params)
   # fit trained model
   model.fit(train_dataset)
@@ -166,7 +175,8 @@ def test_reload():
   assert scores[regression_metric.name] < 55
 
   # lightgbm test
-  lgbm_model = lightgbm.LGBMRegressor(n_estimators=50, random_state=123, silent=True)
+  lgbm_model = lightgbm.LGBMRegressor(
+      n_estimators=50, random_state=123, silent=True)
   model = dc.models.GBDTModel(lgbm_model, **params)
   # fit trained model
   model.fit(train_dataset)
