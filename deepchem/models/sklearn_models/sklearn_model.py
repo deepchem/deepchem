@@ -46,7 +46,6 @@ class SklearnModel(Model):
   def __init__(self,
                model: BaseEstimator,
                model_dir: Optional[str] = None,
-               model_instance: Optional[BaseEstimator] = None,
                **kwargs):
     """
     Parameters
@@ -62,7 +61,8 @@ class SklearnModel(Model):
       kwargs['use_weights'] is a bool which determines if we pass weights into
       self.model.fit().
     """
-    if model_instance is not None:
+    if 'model_instance' in kwargs:
+      model_instance = kwargs['model_instance']
       if model is not None:
         raise ValueError(
             "Can not use both model and model_instance argument at the same time."

@@ -60,6 +60,8 @@ class GBDTModel(SklearnModel):
         self.eval_metric: Union[str, Callable[..., Tuple]] = 'auc'
       elif self.model_type == 'regression':
         self.eval_metric = 'mae'
+      else:
+        self.eval_metric = None
     else:
       self.eval_metric = eval_metric
 
@@ -69,6 +71,8 @@ class GBDTModel(SklearnModel):
       return 'classification'
     elif class_name.endswith('Regressor'):
       return 'regression'
+    elif class_name == 'NoneType':
+      return None
     else:
       raise ValueError(
           '{} is not a supported model instance.'.format(class_name))
