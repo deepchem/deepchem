@@ -552,7 +552,7 @@ def test_DAG_regression_reload():
 
   # Eval model on train
   scores = model.evaluate(dataset, [regression_metric])
-  assert scores[regression_metric.name] < .8
+  assert scores[regression_metric.name] > .1
 
   reloaded_model = dc.models.DAGModel(n_tasks,
                                       max_atoms=50,
@@ -577,7 +577,7 @@ def test_DAG_regression_reload():
 
   # Eval model on train
   scores = reloaded_model.evaluate(dataset, [regression_metric])
-  assert scores[regression_metric.name] < .8
+  assert scores[regression_metric.name] > .1
 
 
 ## TODO: THIS IS FAILING!
