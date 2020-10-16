@@ -233,7 +233,7 @@ class MolecularFeaturizer(Featurizer):
   The subclasses of this class require RDKit to be installed.
   """
 
-  def featurize(self, molecules, log_every_n=1000):
+  def featurize(self, molecules, log_every_n=1000) -> np.ndarray:
     """Calculate features for molecules.
 
     Parameters
@@ -315,7 +315,7 @@ class MaterialStructureFeaturizer(Featurizer):
   """
 
   def featurize(self,
-                structures: Iterable[Union[Dict[str, Any], PymatgenStructure]],
+                structures: Iterable[Union[Dict, PymatgenStructure]],
                 log_every_n: int = 1000) -> np.ndarray:
     """Calculate features for crystal structures.
 

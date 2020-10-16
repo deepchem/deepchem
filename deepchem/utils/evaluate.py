@@ -11,12 +11,10 @@ from deepchem.metrics import Metric
 
 logger = logging.getLogger(__name__)
 
-Score = Dict[str, float]
-Metric_Func = Callable[..., Any]
-Metrics = Union[Metric, Metric_Func, List[Metric], List[Metric_Func]]
+Metrics = Union[Metric, Callable, List[Metric], List[Callable]]
 
 
-def output_statistics(scores: Score, stats_out: str) -> None:
+def output_statistics(scores: Dict, stats_out: str):
   """Write computed stats to file.
 
   Statistics are written to specified `stats_out` file.
@@ -194,7 +192,7 @@ class Evaluator(object):
         transformer for transformer in transformers if transformer.transform_y
     ]
 
-  def output_statistics(self, scores: Score, stats_out: str):
+  def output_statistics(self, scores: Dict, stats_out: str):
     """ Write computed stats to file.
 
     Parameters
@@ -245,7 +243,7 @@ class Evaluator(object):
       stats_out: Optional[str] = None,
       per_task_metrics: bool = False,
       use_sample_weights: bool = False,
-      n_classes: int = 2) -> Union[Score, Tuple[Score, Score]]:
+      n_classes: int = 2) -> Union[Dict, Tuple[Dict, Dict]]:
     """
     Computes statistics of model on test data and saves results to csv.
 
@@ -399,7 +397,7 @@ class GeneratorEvaluator(object):
       metrics: Metrics,
       per_task_metrics: bool = False,
       use_sample_weights: bool = False,
-      n_classes: int = 2) -> Union[Score, Tuple[Score, Score]]:
+      n_classes: int = 2) -> Union[Dict, Tuple[Dict, Dict]]:
     """
     Computes statistics of model on test data and saves results to csv.
 

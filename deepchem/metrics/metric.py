@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -443,8 +443,8 @@ class Metric(object):
   """
 
   def __init__(self,
-               metric: Callable[..., float],
-               task_averager: Optional[Callable[..., Any]] = None,
+               metric: Callable,
+               task_averager: Optional[Callable] = None,
                name: Optional[str] = None,
                threshold: Optional[float] = None,
                mode: Optional[str] = None,

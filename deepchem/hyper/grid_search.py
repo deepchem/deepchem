@@ -60,17 +60,16 @@ class GridHyperparamOpt(HyperparamOpt):
 
   """
 
-  # NOTE: mypy prohibits changing the number of arguments
-  # FIXME: Signature of "hyperparam_search" incompatible with supertype "HyperparamOpt"
-  def hyperparam_search(  # type: ignore[override]
+  def hyperparam_search(
       self,
-      params_dict: Dict[str, List],
+      params_dict: Dict,
       train_dataset: Dataset,
       valid_dataset: Dataset,
       output_transformers: List[Transformer],
       metric: Metric,
       use_max: bool = True,
       logdir: Optional[str] = None,
+      **kwargs,
   ):
     """Perform hyperparams search according to params_dict.
 
@@ -156,7 +155,7 @@ class GridHyperparamOpt(HyperparamOpt):
       evaluator = Evaluator(model, valid_dataset, output_transformers)
       multitask_scores = evaluator.compute_model_performance([metric])
       # NOTE: this casting is workaround. This line doesn't effect anything to the runtime
-      multitask_scores = cast(Dict[str, float], multitask_scores)
+      multitask_scores = cast(Dict, multitask_scores)
       valid_score = multitask_scores[metric.name]
       hp_str = _convert_hyperparam_dict_to_filename(hyper_params)
       all_scores[hp_str] = valid_score
@@ -183,7 +182,7 @@ class GridHyperparamOpt(HyperparamOpt):
     train_evaluator = Evaluator(best_model, train_dataset, output_transformers)
     multitask_scores = train_evaluator.compute_model_performance([metric])
     # NOTE: this casting is workaround. This line doesn't effect anything to the runtime
-    multitask_scores = cast(Dict[str, float], multitask_scores)
+    multitask_scores = cast(Dict, multitask_scores)
     train_score = multitask_scores[metric.name]
     logger.info("Best hyperparameters: %s" % str(best_hyperparams))
     logger.info("train_score: %f" % train_score)
