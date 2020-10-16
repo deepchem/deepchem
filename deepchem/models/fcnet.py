@@ -344,8 +344,8 @@ class MultitaskRegressor(KerasModel):
 class MultitaskFitTransformRegressor(MultitaskRegressor):
   """Implements a MultitaskRegressor that performs on-the-fly transformation during fit/predict.
 
-  Example:
-
+  Examples
+  --------
   >>> n_samples = 10
   >>> n_features = 3
   >>> n_tasks = 1

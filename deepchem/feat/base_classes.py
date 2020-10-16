@@ -134,18 +134,19 @@ class Featurizer(object):
 
     override_args_info = ''
     for arg_name, default in zip(args_names, args_default_values):
-      arg_value = self.__dict__[arg_name]
-      # validation
-      # skip list
-      if isinstance(arg_value, list):
-        continue
-      if isinstance(arg_value, str):
-        # skip path string
-        if "\\/." in arg_value or "/" in arg_value or '.' in arg_value:
+      if arg_name in self.__dict__:
+        arg_value = self.__dict__[arg_name]
+        # validation
+        # skip list
+        if isinstance(arg_value, list):
           continue
-      # main logic
-      if default != arg_value:
-        override_args_info += '_' + arg_name + '_' + str(arg_value)
+        if isinstance(arg_value, str):
+          # skip path string
+          if "\\/." in arg_value or "/" in arg_value or '.' in arg_value:
+            continue
+        # main logic
+        if default != arg_value:
+          override_args_info += '_' + arg_name + '_' + str(arg_value)
     return self.__class__.__name__ + override_args_info
 
 

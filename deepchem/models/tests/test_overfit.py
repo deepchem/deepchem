@@ -266,7 +266,7 @@ def test_skewed_classification_overfit():
 
 
 def test_skewed_missing_classification_overfit():
-  """TG, skewed data, few actives
+  """MultitaskClassifier, skewed data, few actives
 
   Test MultitaskClassifier overfit 0/1 datasets with missing data and few
   actives. This is intended to be as close to singletask MUV datasets as
@@ -377,8 +377,8 @@ def test_multitask_classification_overfit():
   assert scores[classification_metric.name] > .9
 
 
-def test_tf_robust_multitask_classification_overfit():
-  """Test tf robust multitask overfits tiny data."""
+def test_robust_multitask_classification_overfit():
+  """Test robust multitask overfits tiny data."""
   n_tasks = 10
   n_samples = 10
   n_features = 3
@@ -538,8 +538,8 @@ def test_residual_regression_overfit():
   assert scores[regression_metric.name] < .02
 
 
-def test_tf_robust_multitask_regression_overfit():
-  """Test tf robust multitask overfits tiny data."""
+def test_robust_multitask_regression_overfit():
+  """Test robust multitask overfits tiny data."""
   np.random.seed(123)
   tf.random.set_seed(123)
   n_tasks = 10
