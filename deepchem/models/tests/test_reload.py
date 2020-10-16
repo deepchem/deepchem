@@ -126,15 +126,16 @@ def test_multitaskclassification_reload():
 
   classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
   model_dir = tempfile.mkdtemp()
-  model = dc.models.MultitaskClassifier(
-      n_tasks,
-      n_features,
-      dropouts=[0.],
-      weight_init_stddevs=[.1],
-      batch_size=n_samples,
-      optimizer=dc.models.optimizers.Adam(
-          learning_rate=0.0003, beta1=0.9, beta2=0.999),
-      model_dir=model_dir)
+  model = dc.models.MultitaskClassifier(n_tasks,
+                                        n_features,
+                                        dropouts=[0.],
+                                        weight_init_stddevs=[.1],
+                                        batch_size=n_samples,
+                                        optimizer=dc.models.optimizers.Adam(
+                                            learning_rate=0.0003,
+                                            beta1=0.9,
+                                            beta2=0.999),
+                                        model_dir=model_dir)
 
   # Fit trained model
   model.fit(dataset, nb_epoch=100)
@@ -146,8 +147,9 @@ def test_multitaskclassification_reload():
       dropouts=[0.],
       weight_init_stddevs=[.1],
       batch_size=n_samples,
-      optimizer=dc.models.optimizers.Adam(
-          learning_rate=0.0003, beta1=0.9, beta2=0.999),
+      optimizer=dc.models.optimizers.Adam(learning_rate=0.0003,
+                                          beta1=0.9,
+                                          beta2=0.999),
       model_dir=model_dir)
   reloaded_model.restore()
 
@@ -180,14 +182,13 @@ def test_residual_classification_reload():
 
   classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
   model_dir = tempfile.mkdtemp()
-  model = dc.models.MultitaskClassifier(
-      n_tasks,
-      n_features,
-      layer_sizes=[20] * 10,
-      dropouts=0.0,
-      batch_size=n_samples,
-      residual=True,
-      model_dir=model_dir)
+  model = dc.models.MultitaskClassifier(n_tasks,
+                                        n_features,
+                                        layer_sizes=[20] * 10,
+                                        dropouts=0.0,
+                                        batch_size=n_samples,
+                                        residual=True,
+                                        model_dir=model_dir)
 
   # Fit trained model
   model.fit(dataset, nb_epoch=500)
@@ -197,14 +198,13 @@ def test_residual_classification_reload():
   assert scores[classification_metric.name] > .9
 
   # Reload trained model
-  reloaded_model = dc.models.MultitaskClassifier(
-      n_tasks,
-      n_features,
-      layer_sizes=[20] * 10,
-      dropouts=0.0,
-      batch_size=n_samples,
-      residual=True,
-      model_dir=model_dir)
+  reloaded_model = dc.models.MultitaskClassifier(n_tasks,
+                                                 n_features,
+                                                 layer_sizes=[20] * 10,
+                                                 dropouts=0.0,
+                                                 batch_size=n_samples,
+                                                 residual=True,
+                                                 model_dir=model_dir)
   reloaded_model.restore()
 
   # Check predictions match on random sample
@@ -234,19 +234,18 @@ def test_robust_multitask_classification_reload():
   w = np.ones((n_samples, n_tasks))
   dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-  classification_metric = dc.metrics.Metric(
-      dc.metrics.accuracy_score, task_averager=np.mean)
+  classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score,
+                                            task_averager=np.mean)
   model_dir = tempfile.mkdtemp()
-  model = dc.models.RobustMultitaskClassifier(
-      n_tasks,
-      n_features,
-      layer_sizes=[50],
-      bypass_layer_sizes=[10],
-      dropouts=[0.],
-      learning_rate=0.003,
-      weight_init_stddevs=[.1],
-      batch_size=n_samples,
-      model_dir=model_dir)
+  model = dc.models.RobustMultitaskClassifier(n_tasks,
+                                              n_features,
+                                              layer_sizes=[50],
+                                              bypass_layer_sizes=[10],
+                                              dropouts=[0.],
+                                              learning_rate=0.003,
+                                              weight_init_stddevs=[.1],
+                                              batch_size=n_samples,
+                                              model_dir=model_dir)
 
   # Fit trained model
   model.fit(dataset, nb_epoch=25)
@@ -256,16 +255,15 @@ def test_robust_multitask_classification_reload():
   assert scores[classification_metric.name] > .9
 
   # Reloaded Trained Model
-  reloaded_model = dc.models.RobustMultitaskClassifier(
-      n_tasks,
-      n_features,
-      layer_sizes=[50],
-      bypass_layer_sizes=[10],
-      dropouts=[0.],
-      learning_rate=0.003,
-      weight_init_stddevs=[.1],
-      batch_size=n_samples,
-      model_dir=model_dir)
+  reloaded_model = dc.models.RobustMultitaskClassifier(n_tasks,
+                                                       n_features,
+                                                       layer_sizes=[50],
+                                                       bypass_layer_sizes=[10],
+                                                       dropouts=[0.],
+                                                       learning_rate=0.003,
+                                                       weight_init_stddevs=[.1],
+                                                       batch_size=n_samples,
+                                                       model_dir=model_dir)
   reloaded_model.restore()
 
   # Check predictions match on random sample
@@ -297,16 +295,15 @@ def test_robust_multitask_regressor_reload():
   regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
 
   model_dir = tempfile.mkdtemp()
-  model = dc.models.RobustMultitaskRegressor(
-      n_tasks,
-      n_features,
-      layer_sizes=[50],
-      bypass_layer_sizes=[10],
-      dropouts=[0.],
-      learning_rate=0.003,
-      weight_init_stddevs=[.1],
-      batch_size=n_samples,
-      model_dir=model_dir)
+  model = dc.models.RobustMultitaskRegressor(n_tasks,
+                                             n_features,
+                                             layer_sizes=[50],
+                                             bypass_layer_sizes=[10],
+                                             dropouts=[0.],
+                                             learning_rate=0.003,
+                                             weight_init_stddevs=[.1],
+                                             batch_size=n_samples,
+                                             model_dir=model_dir)
 
   # Fit trained model
   model.fit(dataset, nb_epoch=100)
@@ -316,16 +313,15 @@ def test_robust_multitask_regressor_reload():
   assert scores[regression_metric.name] < .1
 
   # Reload trained model
-  reloaded_model = dc.models.RobustMultitaskRegressor(
-      n_tasks,
-      n_features,
-      layer_sizes=[50],
-      bypass_layer_sizes=[10],
-      dropouts=[0.],
-      learning_rate=0.003,
-      weight_init_stddevs=[.1],
-      batch_size=n_samples,
-      model_dir=model_dir)
+  reloaded_model = dc.models.RobustMultitaskRegressor(n_tasks,
+                                                      n_features,
+                                                      layer_sizes=[50],
+                                                      bypass_layer_sizes=[10],
+                                                      dropouts=[0.],
+                                                      learning_rate=0.003,
+                                                      weight_init_stddevs=[.1],
+                                                      batch_size=n_samples,
+                                                      model_dir=model_dir)
   reloaded_model.restore()
 
   # Check predictions match on random sample
@@ -357,15 +353,14 @@ def test_IRV_multitask_classification_reload():
   IRV_transformer = dc.trans.IRVTransformer(5, n_tasks, dataset)
   dataset_trans = IRV_transformer.transform(dataset)
 
-  classification_metric = dc.metrics.Metric(
-      dc.metrics.accuracy_score, task_averager=np.mean)
+  classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score,
+                                            task_averager=np.mean)
   model_dir = tempfile.mkdtemp()
-  model = dc.models.MultitaskIRVClassifier(
-      n_tasks,
-      K=5,
-      learning_rate=0.01,
-      batch_size=n_samples,
-      model_dir=model_dir)
+  model = dc.models.MultitaskIRVClassifier(n_tasks,
+                                           K=5,
+                                           learning_rate=0.01,
+                                           batch_size=n_samples,
+                                           model_dir=model_dir)
 
   # Fit trained model
   model.fit(dataset_trans)
@@ -375,12 +370,11 @@ def test_IRV_multitask_classification_reload():
   assert scores[classification_metric.name] > .9
 
   # Reload Trained Model
-  reloaded_model = dc.models.MultitaskIRVClassifier(
-      n_tasks,
-      K=5,
-      learning_rate=0.01,
-      batch_size=n_samples,
-      model_dir=model_dir)
+  reloaded_model = dc.models.MultitaskIRVClassifier(n_tasks,
+                                                    K=5,
+                                                    learning_rate=0.01,
+                                                    batch_size=n_samples,
+                                                    model_dir=model_dir)
   reloaded_model.restore()
 
   # Check predictions match on random sample
@@ -412,20 +406,19 @@ def test_progressive_classification_reload():
 
   dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-  classification_metric = dc.metrics.Metric(
-      dc.metrics.accuracy_score, task_averager=np.mean)
+  classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score,
+                                            task_averager=np.mean)
   model_dir = tempfile.mkdtemp()
-  model = dc.models.ProgressiveMultitaskClassifier(
-      n_tasks,
-      n_features,
-      layer_sizes=[50],
-      bypass_layer_sizes=[10],
-      dropouts=[0.],
-      learning_rate=0.001,
-      weight_init_stddevs=[.1],
-      alpha_init_stddevs=[.02],
-      batch_size=n_samples,
-      model_dir=model_dir)
+  model = dc.models.ProgressiveMultitaskClassifier(n_tasks,
+                                                   n_features,
+                                                   layer_sizes=[50],
+                                                   bypass_layer_sizes=[10],
+                                                   dropouts=[0.],
+                                                   learning_rate=0.001,
+                                                   weight_init_stddevs=[.1],
+                                                   alpha_init_stddevs=[.02],
+                                                   batch_size=n_samples,
+                                                   model_dir=model_dir)
 
   # Fit trained model
   model.fit(dataset, nb_epoch=400)
@@ -477,17 +470,16 @@ def test_progressivemultitaskregressor_reload():
   regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
 
   model_dir = tempfile.mkdtemp()
-  model = dc.models.ProgressiveMultitaskRegressor(
-      n_tasks,
-      n_features,
-      layer_sizes=[50],
-      bypass_layer_sizes=[10],
-      dropouts=[0.],
-      learning_rate=0.001,
-      weight_init_stddevs=[.1],
-      alpha_init_stddevs=[.02],
-      batch_size=n_samples,
-      model_dir=model_dir)
+  model = dc.models.ProgressiveMultitaskRegressor(n_tasks,
+                                                  n_features,
+                                                  layer_sizes=[50],
+                                                  bypass_layer_sizes=[10],
+                                                  dropouts=[0.],
+                                                  learning_rate=0.001,
+                                                  weight_init_stddevs=[.1],
+                                                  alpha_init_stddevs=[.02],
+                                                  batch_size=n_samples,
+                                                  model_dir=model_dir)
 
   # Fit trained model
   model.fit(dataset, nb_epoch=100)
@@ -522,72 +514,71 @@ def test_progressivemultitaskregressor_reload():
   assert scores[regression_metric.name] < 0.1
 
 
-## TODO: THIS IS FAILING!
-#def test_DAG_regression_reload():
-#  """Test DAG regressor reloads."""
-#  np.random.seed(123)
-#  tf.random.set_seed(123)
-#  n_tasks = 1
-#  #current_dir = os.path.dirname(os.path.abspath(__file__))
-#
-#  # Load mini log-solubility dataset.
-#  featurizer = dc.feat.ConvMolFeaturizer()
-#  tasks = ["outcome"]
-#  mols = ["C", "CO", "CC"]
-#  n_samples = len(mols)
-#  X = featurizer(mols)
-#  y = np.random.rand(n_samples, n_tasks)
-#  dataset = dc.data.NumpyDataset(X, y)
-#
-#  regression_metric = dc.metrics.Metric(
-#      dc.metrics.pearson_r2_score, task_averager=np.mean)
-#
-#  n_feat = 75
-#  batch_size = 10
-#  transformer = dc.trans.DAGTransformer(max_atoms=50)
-#  dataset = transformer.transform(dataset)
-#
-#  model_dir = tempfile.mkdtemp()
-#  model = dc.models.DAGModel(
-#      n_tasks,
-#      max_atoms=50,
-#      n_atom_feat=n_feat,
-#      batch_size=batch_size,
-#      learning_rate=0.001,
-#      use_queue=False,
-#      mode="regression",
-#      model_dir=model_dir)
-#
-#  # Fit trained model
-#  model.fit(dataset, nb_epoch=1200)
-#
-#  # Eval model on train
-#  scores = model.evaluate(dataset, [regression_metric])
-#  assert scores[regression_metric.name] > .8
-#
-#  reloaded_model = dc.models.DAGModel(
-#      n_tasks,
-#      max_atoms=50,
-#      n_atom_feat=n_feat,
-#      batch_size=batch_size,
-#      learning_rate=0.001,
-#      use_queue=False,
-#      mode="regression",
-#      model_dir=model_dir)
-#  reloaded_model.restore()
-#
-#  # Check predictions match on random sample
-#  predmols = ["CCCC", "CCCCCO", "CCCCC"]
-#  Xpred = featurizer(predmols)
-#  predset = dc.data.NumpyDataset(Xpred)
-#  predset = transformer.transform(predset)
-#  origpred = model.predict(predset)
-#  reloadpred = reloaded_model.predict(predset)
-#  assert np.all(origpred == reloadpred)
-#
-#  # Eval model on train
-#  scores = reloaded_model.evaluate(dataset, [classification_metric])
-#  assert scores[classification_metric.name] > .9
+def test_DAG_regression_reload():
+  """Test DAG regressor reloads."""
+  np.random.seed(123)
+  tf.random.set_seed(123)
+  n_tasks = 1
+  #current_dir = os.path.dirname(os.path.abspath(__file__))
+
+  # Load mini log-solubility dataset.
+  featurizer = dc.feat.ConvMolFeaturizer()
+  mols = ["CCCCCC"] * 10
+  n_samples = len(mols)
+  X = featurizer(mols)
+  y = np.random.rand(n_samples, n_tasks)
+  dataset = dc.data.NumpyDataset(X, y)
+
+  regression_metric = dc.metrics.Metric(dc.metrics.pearson_r2_score,
+                                        task_averager=np.mean)
+
+  n_feat = 75
+  batch_size = 10
+  transformer = dc.trans.DAGTransformer(max_atoms=50)
+  dataset = transformer.transform(dataset)
+
+  model_dir = tempfile.mkdtemp()
+  model = dc.models.DAGModel(n_tasks,
+                             max_atoms=50,
+                             n_atom_feat=n_feat,
+                             batch_size=batch_size,
+                             learning_rate=0.001,
+                             use_queue=False,
+                             mode="regression",
+                             model_dir=model_dir)
+
+  # Fit trained model
+  model.fit(dataset, nb_epoch=100)
+
+  # Eval model on train
+  scores = model.evaluate(dataset, [regression_metric])
+  assert scores[regression_metric.name] < .8
+
+  reloaded_model = dc.models.DAGModel(n_tasks,
+                                      max_atoms=50,
+                                      n_atom_feat=n_feat,
+                                      batch_size=batch_size,
+                                      learning_rate=0.001,
+                                      use_queue=False,
+                                      mode="regression",
+                                      model_dir=model_dir)
+
+  reloaded_model.restore()
+
+  # Check predictions match on random sample
+  predmols = ["CCCC", "CCCCCO", "CCCCC"]
+  Xpred = featurizer(predmols)
+  predset = dc.data.NumpyDataset(Xpred)
+  predset = transformer.transform(predset)
+  origpred = model.predict(predset)
+  reloadpred = reloaded_model.predict(predset)
+
+  assert np.all(origpred == reloadpred)
+
+  # Eval model on train
+  scores = reloaded_model.evaluate(dataset, [regression_metric])
+  assert scores[regression_metric.name] < .8
+
 
 ## TODO: THIS IS FAILING!
 #def test_weave_classification_reload_alt():
@@ -908,15 +899,14 @@ def test_1d_cnn_regression_reload():
   regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
   model_dir = tempfile.mkdtemp()
 
-  model = dc.models.CNN(
-      n_tasks,
-      n_features,
-      dims=1,
-      dropouts=0,
-      kernel_size=3,
-      mode='regression',
-      learning_rate=0.003,
-      model_dir=model_dir)
+  model = dc.models.CNN(n_tasks,
+                        n_features,
+                        dims=1,
+                        dropouts=0,
+                        kernel_size=3,
+                        mode='regression',
+                        learning_rate=0.003,
+                        model_dir=model_dir)
 
   # Fit trained model
   model.fit(dataset, nb_epoch=200)
@@ -926,15 +916,14 @@ def test_1d_cnn_regression_reload():
   assert scores[regression_metric.name] < 0.1
 
   # Reload trained model
-  reloaded_model = dc.models.CNN(
-      n_tasks,
-      n_features,
-      dims=1,
-      dropouts=0,
-      kernel_size=3,
-      mode='regression',
-      learning_rate=0.003,
-      model_dir=model_dir)
+  reloaded_model = dc.models.CNN(n_tasks,
+                                 n_features,
+                                 dims=1,
+                                 dropouts=0,
+                                 kernel_size=3,
+                                 mode='regression',
+                                 learning_rate=0.003,
+                                 model_dir=model_dir)
   reloaded_model.restore()
 
   # Check predictions match on random sample
@@ -1016,8 +1005,9 @@ def test_chemception_reload():
   img_spec = "engd"
   res = 0.5
   n_tasks = 1
-  featurizer = dc.feat.SmilesToImage(
-      img_size=img_size, img_spec=img_spec, res=res)
+  featurizer = dc.feat.SmilesToImage(img_size=img_size,
+                                     img_spec=img_spec,
+                                     res=res)
 
   data_points = 10
   mols = ["CCCCCCCC"] * data_points
@@ -1026,23 +1016,22 @@ def test_chemception_reload():
   y = np.random.randint(0, 2, size=(data_points, n_tasks))
   w = np.ones(shape=(data_points, n_tasks))
   dataset = dc.data.NumpyDataset(X, y, w, mols)
-  classsification_metric = dc.metrics.Metric(
-      dc.metrics.roc_auc_score, np.mean, mode="classification")
+  classsification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
+                                             np.mean,
+                                             mode="classification")
 
   model_dir = tempfile.mkdtemp()
-  model = dc.models.ChemCeption(
-      n_tasks=n_tasks,
-      img_spec="engd",
-      model_dir=model_dir,
-      mode="classification")
+  model = dc.models.ChemCeption(n_tasks=n_tasks,
+                                img_spec="engd",
+                                model_dir=model_dir,
+                                mode="classification")
   model.fit(dataset, nb_epoch=3)
 
   # Reload Trained Model
-  reloaded_model = dc.models.ChemCeption(
-      n_tasks=n_tasks,
-      img_spec="engd",
-      model_dir=model_dir,
-      mode="classification")
+  reloaded_model = dc.models.ChemCeption(n_tasks=n_tasks,
+                                         img_spec="engd",
+                                         model_dir=model_dir,
+                                         mode="classification")
   reloaded_model.restore()
 
   # Check predictions match on random sample
