@@ -285,7 +285,6 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       except NotImplementedError:
         pass
 
-      # multitask_scores = model.evaluate(valid_dataset, [metric])
       evaluator = Evaluator(model, valid_dataset, output_transformers)
       multitask_scores = evaluator.compute_model_performance([metric])
       score = multitask_scores[metric.name]
