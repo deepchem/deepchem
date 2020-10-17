@@ -2941,7 +2941,7 @@ class DAGLayer(tf.keras.layers.Layer):
           self.add_weight(
               name='kernel',
               shape=(prev_layer_size, layer_size),
-              initializer='glorot_uniform',
+              initializer=self.init,
               trainable=True))
       self.b_list.append(
           self.add_weight(
@@ -3089,7 +3089,7 @@ class DAGGather(tf.keras.layers.Layer):
           self.add_weight(
               name='kernel',
               shape=(prev_layer_size, layer_size),
-              initializer='glorot_uniform',
+              initializer=self.init,
               trainable=True))
       self.b_list.append(
           self.add_weight(
