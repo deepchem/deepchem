@@ -538,7 +538,8 @@ def test_DAG_regression_reload():
   y = np.random.rand(n_samples, n_tasks)
   dataset = dc.data.NumpyDataset(X, y)
 
-  regression_metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)
+  regression_metric = dc.metrics.Metric(
+      dc.metrics.pearson_r2_score, task_averager=np.mean)
 
   n_feat = 75
   batch_size = 10
@@ -572,7 +573,7 @@ def test_DAG_regression_reload():
       use_queue=False,
       mode="regression",
       model_dir=model_dir)
-  
+
   reloaded_model.restore()
 
   # Check predictions match on random sample
@@ -588,6 +589,7 @@ def test_DAG_regression_reload():
   # Eval model on train
   scores = reloaded_model.evaluate(dataset, [regression_metric])
   assert scores[regression_metric.name] > .1
+
 
 ## TODO: THIS IS FAILING!
 #def test_weave_classification_reload_alt():
