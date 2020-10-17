@@ -542,7 +542,7 @@ def test_weave_classification_reload():
   batch_size = 5
 
   model_dir = tempfile.mkdtemp()
-  model = dc.models.eaveModel(
+  model = dc.models.WeaveModel(
       n_tasks,
       batch_size=batch_size,
       learning_rate=0.01,
