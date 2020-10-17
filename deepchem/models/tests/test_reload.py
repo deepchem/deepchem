@@ -522,141 +522,70 @@ def test_progressivemultitaskregressor_reload():
   assert scores[regression_metric.name] < 0.1
 
 
-def test_DAG_regression_reload():
-  """Test DAG regressor reloads."""
+def test_weave_classification_reload():
+  """Test weave model can be reloaded."""
   np.random.seed(123)
   tf.random.set_seed(123)
   n_tasks = 1
-  #current_dir = os.path.dirname(os.path.abspath(__file__))
 
   # Load mini log-solubility dataset.
-  featurizer = dc.feat.ConvMolFeaturizer()
+  featurizer = dc.feat.WeaveFeaturizer()
   tasks = ["outcome"]
-  mols = ["CC", "CCO", "CC", "CCC", "CCCCO", "CO", "CC", "CCCCC", "CCC", "CCCO"]
+  mols = ["CC", "CCCCC", "CCCCC", "CCC", "COOO", "COO", "OO"]
   n_samples = len(mols)
   X = featurizer(mols)
-  y = np.random.rand(n_samples, n_tasks)
+  y = [1, 1, 1, 1, 0, 0, 0]
   dataset = dc.data.NumpyDataset(X, y)
 
-  regression_metric = dc.metrics.Metric(
-      dc.metrics.pearson_r2_score, task_averager=np.mean)
+  classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
 
-  n_feat = 75
-  batch_size = 10
-  transformer = dc.trans.DAGTransformer(max_atoms=50)
-  dataset = transformer.transform(dataset)
+  batch_size = 5
 
   model_dir = tempfile.mkdtemp()
-  model = dc.models.DAGModel(
+  model = dc.models.eaveModel(
       n_tasks,
-      max_atoms=50,
-      n_atom_feat=n_feat,
       batch_size=batch_size,
-      learning_rate=0.001,
-      use_queue=False,
-      mode="regression",
+      learning_rate=0.01,
+      mode="classification",
+      dropouts=0.0,
       model_dir=model_dir)
 
   # Fit trained model
   model.fit(dataset, nb_epoch=100)
 
   # Eval model on train
-  scores = model.evaluate(dataset, [regression_metric])
-  assert scores[regression_metric.name] > .1
+  scores = model.evaluate(dataset, [classification_metric])
+  assert scores[classification_metric.name] > .6
 
-  reloaded_model = dc.models.DAGModel(
+  # Check predictions match on random sample
+  predmols = ["CCCC", "CCCCCO", "CCCCC"]
+  Xpred = featurizer(predmols)
+
+  predset = dc.data.NumpyDataset(Xpred)
+  origpred = model.predict(predset)
+
+  reloaded_model = dc.models.WeaveModel(
       n_tasks,
-      max_atoms=50,
-      n_atom_feat=n_feat,
       batch_size=batch_size,
-      learning_rate=0.001,
-      use_queue=False,
-      mode="regression",
+      learning_rate=0.003,
+      mode="classification",
+      dropouts=0.0,
       model_dir=model_dir)
-
   reloaded_model.restore()
 
   # Check predictions match on random sample
   predmols = ["CCCC", "CCCCCO", "CCCCC"]
   Xpred = featurizer(predmols)
   predset = dc.data.NumpyDataset(Xpred)
-  predset = transformer.transform(predset)
   origpred = model.predict(predset)
   reloadpred = reloaded_model.predict(predset)
-
   assert np.all(origpred == reloadpred)
 
-  # Eval model on train
-  scores = reloaded_model.evaluate(dataset, [regression_metric])
-  assert scores[regression_metric.name] > .1
+  #Eval model on train
+  scores = reloaded_model.evaluate(dataset, [classification_metric])
+  assert scores[classification_metric.name] > .6
 
 
-## TODO: THIS IS FAILING!
-#def test_weave_classification_reload_alt():
-#  """Test weave model can be reloaded."""
-#  np.random.seed(123)
-#  tf.random.set_seed(123)
-#  n_tasks = 1
-#
-#  # Load mini log-solubility dataset.
-#  featurizer = dc.feat.WeaveFeaturizer()
-#  tasks = ["outcome"]
-#  mols = ["C", "CO", "CC"]
-#  n_samples = len(mols)
-#  X = featurizer(mols)
-#  y = np.random.randint(2, size=(n_samples, n_tasks))
-#  dataset = dc.data.NumpyDataset(X, y)
-#
-#  classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
-#
-#  batch_size = 10
-#
-#  model_dir = tempfile.mkdtemp()
-#  model = dc.models.WeaveModel(
-#      n_tasks,
-#      batch_size=batch_size,
-#      learning_rate=0.0003,
-#      mode="classification",
-#      dropouts=0.0,
-#      model_dir=model_dir)
-#
-#  # Fit trained model
-#  model.fit(dataset, nb_epoch=30)
-#
-#  # Eval model on train
-#  scores = model.evaluate(dataset, [classification_metric])
-#  assert scores[classification_metric.name] > .9
-#
-#  # Custom save
-#  save_dir = tempfile.mkdtemp()
-#  model.model.save(save_dir)
-#
-#  from tensorflow import keras
-#  reloaded = keras.models.load_model(save_dir)
-#
-#  reloaded_model = dc.models.WeaveModel(
-#      n_tasks,
-#      batch_size=batch_size,
-#      learning_rate=0.0003,
-#      mode="classification",
-#      dropouts=0.0,
-#      model_dir=model_dir)
-#  #reloaded_model.restore()
-#  reloaded_model.model = reloaded
-#
-#  # Check predictions match on random sample
-#  predmols = ["CCCC", "CCCCCO", "CCCCC"]
-#  Xpred = featurizer(predmols)
-#  predset = dc.data.NumpyDataset(Xpred)
-#  origpred = model.predict(predset)
-#  reloadpred = reloaded_model.predict(predset)
-#  assert np.all(origpred == reloadpred)
-#
-#  # Eval model on train
-#  scores = reloaded_model.evaluate(dataset, [classification_metric])
-#  assert scores[classification_metric.name] > .9
-#
-#
 ## TODO: THIS IS FAILING!
 #@pytest.mark.slow
 #def test_weave_classification_reload():

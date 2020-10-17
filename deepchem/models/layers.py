@@ -2344,7 +2344,13 @@ class WeaveLayer(tf.keras.layers.Layer):
     input_shape: tuple
       Ignored since we don't need the input shape to create internal weights.
     """
-    init = initializers.get(self.init)  # Set weight initialization
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
 
     self.W_AA = init([self.n_atom_input_feat, self.n_hidden_AA])
     self.b_AA = backend.zeros(shape=[
@@ -2566,7 +2572,14 @@ class WeaveGather(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     if self.compress_post_gaussian_expansion:
-      init = initializers.get(self.init)
+
+      def init(input_shape):
+        return self.add_weight(
+            name='kernel',
+            shape=(input_shape[0], input_shape[1]),
+            initializer=self.init,
+            trainable=True)
+
       self.W = init([self.n_input * 11, self.n_input])
       self.b = backend.zeros(shape=[self.n_input])
     self.built = True
@@ -2935,37 +2948,22 @@ class DAGLayer(tf.keras.layers.Layer):
     self.W_list = []
     self.b_list = []
     self.dropouts = []
+    init = initializers.get(self.init)
     prev_layer_size = self.n_inputs
     for layer_size in self.layer_sizes:
-      self.W_list.append(
-          self.add_weight(
-              name='kernel',
-              shape=(prev_layer_size, layer_size),
-              initializer='glorot_uniform',
-              trainable=True))
-      self.b_list.append(
-          self.add_weight(
-              name='bias',
-              shape=(layer_size,),
-              initializer='zeros',
-              trainable=True))
+      self.W_list.append(init([prev_layer_size, layer_size]))
+      self.b_list.append(backend.zeros(shape=[
+          layer_size,
+      ]))
       if self.dropout is not None and self.dropout > 0.0:
         self.dropouts.append(Dropout(rate=self.dropout))
       else:
         self.dropouts.append(None)
       prev_layer_size = layer_size
-    self.W_list.append(
-        self.add_weight(
-            name='kernel',
-            shape=(prev_layer_size, self.n_outputs),
-            initializer=self.init,
-            trainable=True))
-    self.b_list.append(
-        self.add_weight(
-            name='bias',
-            shape=(self.n_outputs,),
-            initializer='zeros',
-            trainable=True))
+    self.W_list.append(init([prev_layer_size, self.n_outputs]))
+    self.b_list.append(backend.zeros(shape=[
+        self.n_outputs,
+    ]))
     if self.dropout is not None and self.dropout > 0.0:
       self.dropouts.append(Dropout(rate=self.dropout))
     else:
@@ -3083,37 +3081,22 @@ class DAGGather(tf.keras.layers.Layer):
     self.W_list = []
     self.b_list = []
     self.dropouts = []
+    init = initializers.get(self.init)
     prev_layer_size = self.n_graph_feat
     for layer_size in self.layer_sizes:
-      self.W_list.append(
-          self.add_weight(
-              name='kernel',
-              shape=(prev_layer_size, layer_size),
-              initializer='glorot_uniform',
-              trainable=True))
-      self.b_list.append(
-          self.add_weight(
-              name='bias',
-              shape=(layer_size,),
-              initializer='zeros',
-              trainable=True))
+      self.W_list.append(init([prev_layer_size, layer_size]))
+      self.b_list.append(backend.zeros(shape=[
+          layer_size,
+      ]))
       if self.dropout is not None and self.dropout > 0.0:
         self.dropouts.append(Dropout(rate=self.dropout))
       else:
         self.dropouts.append(None)
       prev_layer_size = layer_size
-    self.W_list.append(
-        self.add_weight(
-            name='kernel',
-            shape=(prev_layer_size, self.n_outputs),
-            initializer=self.init,
-            trainable=True))
-    self.b_list.append(
-        self.add_weight(
-            name='bias',
-            shape=(self.n_outputs,),
-            initializer='zeros',
-            trainable=True))
+    self.W_list.append(init([prev_layer_size, self.n_outputs]))
+    self.b_list.append(backend.zeros(shape=[
+        self.n_outputs,
+    ]))
     if self.dropout is not None and self.dropout > 0.0:
       self.dropouts.append(Dropout(rate=self.dropout))
     else:
