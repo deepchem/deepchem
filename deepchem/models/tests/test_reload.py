@@ -588,9 +588,9 @@ def test_DAG_regression_reload():
 
   # Eval model on train
   scores = reloaded_model.evaluate(dataset, [regression_metric])
-  assert scores[regression_metric.name] > .1  
-  
-  
+  assert scores[regression_metric.name] > .1
+
+
 def test_weave_classification_reload():
   """Test weave model can be reloaded."""
   np.random.seed(123)
