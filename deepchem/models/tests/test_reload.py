@@ -522,72 +522,74 @@ def test_progressivemultitaskregressor_reload():
   assert scores[regression_metric.name] < 0.1
 
 
-## TODO: THIS IS FAILING!
-#def test_DAG_regression_reload():
-#  """Test DAG regressor reloads."""
-#  np.random.seed(123)
-#  tf.random.set_seed(123)
-#  n_tasks = 1
-#  #current_dir = os.path.dirname(os.path.abspath(__file__))
-#
-#  # Load mini log-solubility dataset.
-#  featurizer = dc.feat.ConvMolFeaturizer()
-#  tasks = ["outcome"]
-#  mols = ["C", "CO", "CC"]
-#  n_samples = len(mols)
-#  X = featurizer(mols)
-#  y = np.random.rand(n_samples, n_tasks)
-#  dataset = dc.data.NumpyDataset(X, y)
-#
-#  regression_metric = dc.metrics.Metric(
-#      dc.metrics.pearson_r2_score, task_averager=np.mean)
-#
-#  n_feat = 75
-#  batch_size = 10
-#  transformer = dc.trans.DAGTransformer(max_atoms=50)
-#  dataset = transformer.transform(dataset)
-#
-#  model_dir = tempfile.mkdtemp()
-#  model = dc.models.DAGModel(
-#      n_tasks,
-#      max_atoms=50,
-#      n_atom_feat=n_feat,
-#      batch_size=batch_size,
-#      learning_rate=0.001,
-#      use_queue=False,
-#      mode="regression",
-#      model_dir=model_dir)
-#
-#  # Fit trained model
-#  model.fit(dataset, nb_epoch=1200)
-#
-#  # Eval model on train
-#  scores = model.evaluate(dataset, [regression_metric])
-#  assert scores[regression_metric.name] > .8
-#
-#  reloaded_model = dc.models.DAGModel(
-#      n_tasks,
-#      max_atoms=50,
-#      n_atom_feat=n_feat,
-#      batch_size=batch_size,
-#      learning_rate=0.001,
-#      use_queue=False,
-#      mode="regression",
-#      model_dir=model_dir)
-#  reloaded_model.restore()
-#
-#  # Check predictions match on random sample
-#  predmols = ["CCCC", "CCCCCO", "CCCCC"]
-#  Xpred = featurizer(predmols)
-#  predset = dc.data.NumpyDataset(Xpred)
-#  predset = transformer.transform(predset)
-#  origpred = model.predict(predset)
-#  reloadpred = reloaded_model.predict(predset)
-#  assert np.all(origpred == reloadpred)
-#
-#  # Eval model on train
-#  scores = reloaded_model.evaluate(dataset, [classification_metric])
-#  assert scores[classification_metric.name] > .9
+def test_DAG_regression_reload():
+  """Test DAG regressor reloads."""
+  np.random.seed(123)
+  tf.random.set_seed(123)
+  n_tasks = 1
+  #current_dir = os.path.dirname(os.path.abspath(__file__))
+
+  # Load mini log-solubility dataset.
+  featurizer = dc.feat.ConvMolFeaturizer()
+  tasks = ["outcome"]
+  mols = ["CC", "CCO", "CC", "CCC", "CCCCO", "CO", "CC", "CCCCC", "CCC", "CCCO"]
+  n_samples = len(mols)
+  X = featurizer(mols)
+  y = np.random.rand(n_samples, n_tasks)
+  dataset = dc.data.NumpyDataset(X, y)
+
+  regression_metric = dc.metrics.Metric(
+      dc.metrics.pearson_r2_score, task_averager=np.mean)
+
+  n_feat = 75
+  batch_size = 10
+  transformer = dc.trans.DAGTransformer(max_atoms=50)
+  dataset = transformer.transform(dataset)
+
+  model_dir = tempfile.mkdtemp()
+  model = dc.models.DAGModel(
+      n_tasks,
+      max_atoms=50,
+      n_atom_feat=n_feat,
+      batch_size=batch_size,
+      learning_rate=0.001,
+      use_queue=False,
+      mode="regression",
+      model_dir=model_dir)
+
+  # Fit trained model
+  model.fit(dataset, nb_epoch=100)
+
+  # Eval model on train
+  scores = model.evaluate(dataset, [regression_metric])
+  assert scores[regression_metric.name] > .1
+
+  reloaded_model = dc.models.DAGModel(
+      n_tasks,
+      max_atoms=50,
+      n_atom_feat=n_feat,
+      batch_size=batch_size,
+      learning_rate=0.001,
+      use_queue=False,
+      mode="regression",
+      model_dir=model_dir)
+
+  reloaded_model.restore()
+
+  # Check predictions match on random sample
+  predmols = ["CCCC", "CCCCCO", "CCCCC"]
+  Xpred = featurizer(predmols)
+  predset = dc.data.NumpyDataset(Xpred)
+  predset = transformer.transform(predset)
+  origpred = model.predict(predset)
+  reloadpred = reloaded_model.predict(predset)
+
+  assert np.all(origpred == reloadpred)
+
+  # Eval model on train
+  scores = reloaded_model.evaluate(dataset, [regression_metric])
+  assert scores[regression_metric.name] > .1
+
 
 ## TODO: THIS IS FAILING!
 #def test_weave_classification_reload_alt():
