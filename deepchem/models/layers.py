@@ -2344,7 +2344,13 @@ class WeaveLayer(tf.keras.layers.Layer):
     input_shape: tuple
       Ignored since we don't need the input shape to create internal weights.
     """
-    init = initializers.get(self.init)  # Set weight initialization
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
 
     self.W_AA = init([self.n_atom_input_feat, self.n_hidden_AA])
     self.b_AA = backend.zeros(shape=[
@@ -2566,7 +2572,14 @@ class WeaveGather(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     if self.compress_post_gaussian_expansion:
-      init = initializers.get(self.init)
+
+      def init(input_shape):
+        return self.add_weight(
+            name='kernel',
+            shape=(input_shape[0], input_shape[1]),
+            initializer=self.init,
+            trainable=True)
+
       self.W = init([self.n_input * 11, self.n_input])
       self.b = backend.zeros(shape=[self.n_input])
     self.built = True
