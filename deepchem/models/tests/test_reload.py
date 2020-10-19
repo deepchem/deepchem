@@ -521,7 +521,7 @@ def test_progressivemultitaskregressor_reload():
   scores = reloaded_model.evaluate(dataset, [regression_metric])
   assert scores[regression_metric.name] < 0.1
 
-  
+
 def test_DAG_regression_reload():
   """Test DAG regressor reloads."""
   np.random.seed(123)
