@@ -2948,7 +2948,6 @@ class DAGLayer(tf.keras.layers.Layer):
     self.W_list = []
     self.b_list = []
     self.dropouts = []
-    init = initializers.get(self.init)
     prev_layer_size = self.n_inputs
     for layer_size in self.layer_sizes:
       self.W_list.append(
@@ -2968,10 +2967,18 @@ class DAGLayer(tf.keras.layers.Layer):
       else:
         self.dropouts.append(None)
       prev_layer_size = layer_size
-    self.W_list.append(init([prev_layer_size, self.n_outputs]))
-    self.b_list.append(backend.zeros(shape=[
-        self.n_outputs,
-    ]))
+    self.W_list.append(
+        self.add_weight(
+            name='kernel',
+            shape=(prev_layer_size, self.n_outputs),
+            initializer=self.init,
+            trainable=True))
+    self.b_list.append(
+        self.add_weight(
+            name='bias',
+            shape=(self.n_outputs,),
+            initializer='zeros',
+            trainable=True))
     if self.dropout is not None and self.dropout > 0.0:
       self.dropouts.append(Dropout(rate=self.dropout))
     else:
@@ -3089,7 +3096,6 @@ class DAGGather(tf.keras.layers.Layer):
     self.W_list = []
     self.b_list = []
     self.dropouts = []
-    init = initializers.get(self.init)
     prev_layer_size = self.n_graph_feat
     for layer_size in self.layer_sizes:
       self.W_list.append(
@@ -3109,10 +3115,18 @@ class DAGGather(tf.keras.layers.Layer):
       else:
         self.dropouts.append(None)
       prev_layer_size = layer_size
-    self.W_list.append(init([prev_layer_size, self.n_outputs]))
-    self.b_list.append(backend.zeros(shape=[
-        self.n_outputs,
-    ]))
+    self.W_list.append(
+        self.add_weight(
+            name='kernel',
+            shape=(prev_layer_size, self.n_outputs),
+            initializer=self.init,
+            trainable=True))
+    self.b_list.append(
+        self.add_weight(
+            name='bias',
+            shape=(self.n_outputs,),
+            initializer='zeros',
+            trainable=True))
     if self.dropout is not None and self.dropout > 0.0:
       self.dropouts.append(Dropout(rate=self.dropout))
     else:
