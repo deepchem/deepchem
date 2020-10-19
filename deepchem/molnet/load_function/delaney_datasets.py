@@ -22,7 +22,7 @@ class _DelaneyLoader(_MolnetLoader):
     if not os.path.exists(dataset_file):
       dc.utils.data_utils.download_url(url=DELANEY_URL, dest_dir=self.data_dir)
     loader = dc.data.CSVLoader(
-        tasks=DELANEY_TASKS, feature_field="smiles", featurizer=self.featurizer)
+        tasks=self.tasks, feature_field="smiles", featurizer=self.featurizer)
     return loader.create_dataset(dataset_file, shard_size=8192)
 
 
@@ -79,6 +79,6 @@ def load_delaney(
      molecular structure." Journal of chemical information and computer
      sciences 44.3 (2004): 1000-1005.
   """
-  loader = _DelaneyLoader(featurizer, splitter, transformers, data_dir,
-                          save_dir, **kwargs)
-  return loader.load_dataset('delaney', DELANEY_TASKS, reload)
+  loader = _DelaneyLoader(featurizer, splitter, transformers, DELANEY_TASKS,
+                          data_dir, save_dir, **kwargs)
+  return loader.load_dataset('delaney', reload)
