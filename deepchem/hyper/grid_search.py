@@ -112,7 +112,7 @@ class GridHyperparamOpt(HyperparamOpt):
     hyperparams = params_dict.keys()
     hyperparam_vals = params_dict.values()
     for hyperparam_list in params_dict.values():
-      assert isinstance(hyperparam_list, collections.Iterable)
+      assert isinstance(hyperparam_list, collections.abc.Iterable)
 
     number_combinations = reduce(mul, [len(vals) for vals in hyperparam_vals])
 
