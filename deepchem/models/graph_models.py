@@ -1,4 +1,7 @@
-import collections
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
 
 import deepchem as dc
 import numpy as np
@@ -181,20 +184,20 @@ class WeaveModel(KerasModel):
     if mode not in ['classification', 'regression']:
       raise ValueError("mode must be either 'classification' or 'regression'")
 
-    if not isinstance(n_atom_feat, collections.Sequence):
+    if not isinstance(n_atom_feat, SequenceCollection):
       n_atom_feat = [n_atom_feat] * n_weave
-    if not isinstance(n_pair_feat, collections.Sequence):
+    if not isinstance(n_pair_feat, SequenceCollection):
       n_pair_feat = [n_pair_feat] * n_weave
     n_layers = len(fully_connected_layer_sizes)
-    if not isinstance(conv_weight_init_stddevs, collections.Sequence):
+    if not isinstance(conv_weight_init_stddevs, SequenceCollection):
       conv_weight_init_stddevs = [conv_weight_init_stddevs] * n_weave
-    if not isinstance(weight_init_stddevs, collections.Sequence):
+    if not isinstance(weight_init_stddevs, SequenceCollection):
       weight_init_stddevs = [weight_init_stddevs] * n_layers
-    if not isinstance(bias_init_consts, collections.Sequence):
+    if not isinstance(bias_init_consts, SequenceCollection):
       bias_init_consts = [bias_init_consts] * n_layers
-    if not isinstance(dropouts, collections.Sequence):
+    if not isinstance(dropouts, SequenceCollection):
       dropouts = [dropouts] * n_layers
-    if not isinstance(activation_fns, collections.Sequence):
+    if not isinstance(activation_fns, SequenceCollection):
       activation_fns = [activation_fns] * n_layers
     if weight_decay_penalty != 0.0:
       if weight_decay_penalty_type == 'l1':
@@ -790,7 +793,7 @@ class _GraphConvKerasModel(tf.keras.Model):
     self.mode = mode
     self.uncertainty = uncertainty
 
-    if not isinstance(dropout, collections.Sequence):
+    if not isinstance(dropout, SequenceCollection):
       dropout = [dropout] * (len(graph_conv_layers) + 1)
     if len(dropout) != len(graph_conv_layers) + 1:
       raise ValueError('Wrong number of dropout probabilities provided')

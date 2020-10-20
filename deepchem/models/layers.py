@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
 import numpy as np
-import collections
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
 from typing import Callable, Dict, List
 from tensorflow.keras import activations, initializers, backend
 from tensorflow.keras.layers import Dropout, BatchNormalization
@@ -1098,7 +1101,7 @@ class NeighborList(tf.keras.layers.Layer):
     return config
 
   def call(self, inputs):
-    if isinstance(inputs, collections.Sequence):
+    if isinstance(inputs, SequenceCollection):
       if len(inputs) != 1:
         raise ValueError("NeighborList can only have one input")
       inputs = inputs[0]
@@ -2118,7 +2121,7 @@ class Highway(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    if isinstance(input_shape, collections.Sequence):
+    if isinstance(input_shape, SequenceCollection):
       input_shape = input_shape[0]
     out_channels = input_shape[1]
 
@@ -2140,7 +2143,7 @@ class Highway(tf.keras.layers.Layer):
     self.built = True
 
   def call(self, inputs):
-    if isinstance(inputs, collections.Sequence):
+    if isinstance(inputs, SequenceCollection):
       parent = inputs[0]
     else:
       parent = inputs
