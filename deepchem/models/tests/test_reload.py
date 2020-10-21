@@ -8,6 +8,7 @@ import tempfile
 import numpy as np
 import deepchem as dc
 import tensorflow as tf
+import scipy
 from flaky import flaky
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.molnet.load_function.chembl25_datasets import chembl25_tasks
@@ -528,7 +529,6 @@ def test_DAG_regression_reload():
   np.random.seed(123)
   tf.random.set_seed(123)
   n_tasks = 1
-  #current_dir = os.path.dirname(os.path.abspath(__file__))
 
   # Load mini log-solubility dataset.
   featurizer = dc.feat.ConvMolFeaturizer()
@@ -656,158 +656,147 @@ def test_weave_classification_reload():
   assert scores[classification_metric.name] > .6
 
 
-# TODO: THIS IS FAILING!
-#def test_MPNN_regression_reload():
-#  """Test MPNN can reload datasets."""
-#  np.random.seed(123)
-#  tf.random.set_seed(123)
-#  n_tasks = 1
-#
-#  # Load mini log-solubility dataset.
-#  featurizer = dc.feat.WeaveFeaturizer()
-#  tasks = ["outcome"]
-#  mols = ["C", "CO", "CC"]
-#  n_samples = len(mols)
-#  X = featurizer(mols)
-#  y = np.random.rand(n_samples, n_tasks)
-#  dataset = dc.data.NumpyDataset(X, y)
-#
-#  regression_metric = dc.metrics.Metric(
-#      dc.metrics.pearson_r2_score, task_averager=np.mean)
-#
-#  n_atom_feat = 75
-#  n_pair_feat = 14
-#  batch_size = 10
-#  model_dir = tempfile.mkdtemp()
-#  model = dc.models.MPNNModel(
-#      n_tasks,
-#      n_atom_feat=n_atom_feat,
-#      n_pair_feat=n_pair_feat,
-#      T=2,
-#      M=3,
-#      batch_size=batch_size,
-#      learning_rate=0.001,
-#      use_queue=False,
-#      mode="regression",
-#      model_dir=model_dir)
-#
-#  # Fit trained model
-#  model.fit(dataset, nb_epoch=50)
-#
-#  # Eval model on train
-#  scores = model.evaluate(dataset, [regression_metric])
-#  assert scores[regression_metric.name] > .8
-#
-#  # Custom save
-#  save_dir = tempfile.mkdtemp()
-#  model.model.save(save_dir)
-#
-#  from tensorflow import keras
-#  reloaded = keras.models.load_model(save_dir)
-#
-#  # Reload trained model
-#  reloaded_model = dc.models.MPNNModel(
-#      n_tasks,
-#      n_atom_feat=n_atom_feat,
-#      n_pair_feat=n_pair_feat,
-#      T=2,
-#      M=3,
-#      batch_size=batch_size,
-#      learning_rate=0.001,
-#      use_queue=False,
-#      mode="regression",
-#      model_dir=model_dir)
-#  #reloaded_model.restore()
-#  reloaded_model.model = reloaded
-#
-#  # Eval model on train
-#  scores = reloaded_model.evaluate(dataset, [regression_metric])
-#  assert scores[regression_metric.name] > .8
-#
-#  # Check predictions match on random sample
-#  predmols = ["CCCC", "CCCCCO", "CCCCC"]
-#  Xpred = featurizer(predmols)
-#  predset = dc.data.NumpyDataset(Xpred)
-#  origpred = model.predict(predset)
-#  reloadpred = reloaded_model.predict(predset)
-#  print("np.amax(origpred - reloadpred)")
-#  print(np.amax(origpred - reloadpred))
-#  assert np.all(origpred == reloadpred)
+def test_MPNN_regression_reload():
+  """Test MPNN can reload datasets."""
+  np.random.seed(123)
+  tf.random.set_seed(123)
+  n_tasks = 1
 
-## TODO: THIS IS FAILING!
-#def test_textCNN_classification_reload():
-#  """Test textCNN model reloadinng."""
-#  np.random.seed(123)
-#  tf.random.set_seed(123)
-#  n_tasks = 1
-#
-#  featurizer = dc.feat.RawFeaturizer()
-#  tasks = ["outcome"]
-#  mols = ["C", "CO", "CC"]
-#  n_samples = len(mols)
-#  X = featurizer(mols)
-#  y = np.random.randint(2, size=(n_samples, n_tasks))
-#  dataset = dc.data.NumpyDataset(X, y, ids=mols)
-#
-#  classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
-#
-#  char_dict, length = dc.models.TextCNNModel.build_char_dict(dataset)
-#  batch_size = 3
-#
-#  model_dir = tempfile.mkdtemp()
-#  model = dc.models.TextCNNModel(
-#      n_tasks,
-#      char_dict,
-#      seq_length=length,
-#      batch_size=batch_size,
-#      learning_rate=0.001,
-#      use_queue=False,
-#      mode="classification",
-#      model_dir=model_dir)
-#
-#  # Fit trained model
-#  model.fit(dataset, nb_epoch=200)
-#
-#  # Eval model on train
-#  scores = model.evaluate(dataset, [classification_metric])
-#  assert scores[classification_metric.name] > .8
-#
-#  # Reload trained model
-#  reloaded_model = dc.models.TextCNNModel(
-#      n_tasks,
-#      char_dict,
-#      seq_length=length,
-#      batch_size=batch_size,
-#      learning_rate=0.001,
-#      use_queue=False,
-#      mode="classification",
-#      model_dir=model_dir)
-#  reloaded_model.restore()
-#
-#  assert len(reloaded_model.model.get_weights()) == len(
-#      model.model.get_weights())
-#  for (reloaded, orig) in zip(reloaded_model.model.get_weights(),
-#                              model.model.get_weights()):
-#    assert np.all(reloaded == orig)
-#
-#  # Check predictions match on random sample
-#  predmols = ["CCCC", "CCCCCO", "CCCCC"]
-#  Xpred = featurizer(predmols)
-#  predset = dc.data.NumpyDataset(Xpred, ids=predmols)
-#  origpred = model.predict(predset)
-#  reloadpred = reloaded_model.predict(predset)
-#
-#  Xproc = reloaded_model.smiles_to_seq_batch(np.array(predmols))
-#  reloadout = reloaded_model.model(Xproc)
-#  origout = model.model(Xproc)
-#
-#  assert len(model.model.layers) == len(reloaded_model.model.layers)
-#
-#  assert np.all(origpred == reloadpred)
-#
-#  # Eval model on train
-#  scores = reloaded_model.evaluate(dataset, [classification_metric])
-#  assert scores[classification_metric.name] > .8
+  # Load mini log-solubility dataset.
+  featurizer = dc.feat.WeaveFeaturizer()
+  tasks = ["outcome"]
+  mols = ["C", "CO", "CC"]
+  n_samples = len(mols)
+  X = featurizer(mols)
+  y = np.random.rand(n_samples, n_tasks)
+  dataset = dc.data.NumpyDataset(X, y)
+
+  regression_metric = dc.metrics.Metric(
+      dc.metrics.pearson_r2_score, task_averager=np.mean)
+
+  n_atom_feat = 75
+  n_pair_feat = 14
+  batch_size = 10
+  model_dir = tempfile.mkdtemp()
+  model = dc.models.MPNNModel(
+      n_tasks,
+      n_atom_feat=n_atom_feat,
+      n_pair_feat=n_pair_feat,
+      T=2,
+      M=3,
+      batch_size=batch_size,
+      learning_rate=0.001,
+      use_queue=False,
+      mode="regression",
+      model_dir=model_dir)
+
+  # Fit trained model
+  model.fit(dataset, nb_epoch=50)
+
+  # Eval model on train
+  scores = model.evaluate(dataset, [regression_metric])
+  assert scores[regression_metric.name] > .8
+
+  # Reload trained model
+  reloaded_model = dc.models.MPNNModel(
+      n_tasks,
+      n_atom_feat=n_atom_feat,
+      n_pair_feat=n_pair_feat,
+      T=2,
+      M=3,
+      batch_size=batch_size,
+      learning_rate=0.001,
+      use_queue=False,
+      mode="regression",
+      model_dir=model_dir)
+  reloaded_model.restore()
+
+  # Eval model on train
+  scores = reloaded_model.evaluate(dataset, [regression_metric])
+  assert scores[regression_metric.name] > .8
+
+  # Check predictions match on random sample
+  predmols = ["CCCC", "CCCCCO", "CCCCC"]
+  Xpred = featurizer(predmols)
+  predset = dc.data.NumpyDataset(Xpred)
+  origpred = model.predict(predset)
+  reloadpred = reloaded_model.predict(predset)
+  assert np.all(origpred == reloadpred)
+
+
+def test_textCNN_classification_reload():
+  """Test textCNN model reloadinng."""
+  np.random.seed(123)
+  tf.random.set_seed(123)
+  n_tasks = 1
+
+  featurizer = dc.feat.RawFeaturizer()
+  tasks = ["outcome"]
+  mols = ["C", "CO", "CC"]
+  n_samples = len(mols)
+  X = featurizer(mols)
+  y = np.random.randint(2, size=(n_samples, n_tasks))
+  dataset = dc.data.NumpyDataset(X, y, ids=mols)
+
+  classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
+
+  char_dict, length = dc.models.TextCNNModel.build_char_dict(dataset)
+  batch_size = 3
+
+  model_dir = tempfile.mkdtemp()
+  model = dc.models.TextCNNModel(
+      n_tasks,
+      char_dict,
+      seq_length=length,
+      batch_size=batch_size,
+      learning_rate=0.001,
+      use_queue=False,
+      mode="classification",
+      model_dir=model_dir)
+
+  # Fit trained model
+  model.fit(dataset, nb_epoch=200)
+
+  # Eval model on train
+  scores = model.evaluate(dataset, [classification_metric])
+  assert scores[classification_metric.name] > .8
+
+  # Reload trained model
+  reloaded_model = dc.models.TextCNNModel(
+      n_tasks,
+      char_dict,
+      seq_length=length,
+      batch_size=batch_size,
+      learning_rate=0.001,
+      use_queue=False,
+      mode="classification",
+      model_dir=model_dir)
+  reloaded_model.restore()
+
+  assert len(reloaded_model.model.get_weights()) == len(
+      model.model.get_weights())
+  for (reloaded, orig) in zip(reloaded_model.model.get_weights(),
+                              model.model.get_weights()):
+    assert np.all(reloaded == orig)
+
+  # Check predictions match on random sample
+  predmols = ["CCCC", "CCCCCO", "CCCCC"]
+  Xpred = featurizer(predmols)
+  predset = dc.data.NumpyDataset(Xpred, ids=predmols)
+  origpred = model.predict(predset)
+  reloadpred = reloaded_model.predict(predset)
+
+  Xproc = reloaded_model.smiles_to_seq_batch(np.array(predmols))
+  reloadout = reloaded_model.model(Xproc)
+  origout = model.model(Xproc)
+
+  assert len(model.model.layers) == len(reloaded_model.model.layers)
+
+  assert np.all(origpred == reloadpred)
+
+  # Eval model on train
+  scores = reloaded_model.evaluate(dataset, [classification_metric])
+  assert scores[classification_metric.name] > .8
 
 
 def test_1d_cnn_regression_reload():
@@ -865,7 +854,7 @@ def test_1d_cnn_regression_reload():
   assert scores[regression_metric.name] < 0.1
 
 
-## TODO: THIS IS FAILING!
+### TODO: THIS IS FAILING!
 #def test_graphconvmodel_reload():
 #  featurizer = dc.feat.ConvMolFeaturizer()
 #  tasks = ["outcome"]
@@ -892,12 +881,6 @@ def test_1d_cnn_regression_reload():
 #  scores = model.evaluate(dataset, [classification_metric])
 #  assert scores[classification_metric.name] >= 0.9
 #
-#  # Custom save
-#  save_dir = tempfile.mkdtemp()
-#  model.model.save(save_dir)
-#
-#  from tensorflow import keras
-#  reloaded = keras.models.load_model(save_dir)
 #
 #  # Reload trained Model
 #  reloaded_model = dc.models.GraphConvModel(
@@ -914,7 +897,7 @@ def test_1d_cnn_regression_reload():
 #  predset = dc.data.NumpyDataset(Xpred)
 #  origpred = model.predict(predset)
 #  reloadpred = reloaded_model.predict(predset)
-#  #assert np.all(origpred == reloadpred)
+#  assert np.all(origpred == reloadpred)
 #
 #  # Try re-restore
 #  reloaded_model.restore()
@@ -970,28 +953,35 @@ def test_chemception_reload():
   assert np.all(origpred == reloadpred)
 
 
+# TODO: This test is a little awkward. The Smiles2Vec model awkwardly depends on a dataset_file being available on disk. This needs to be cleaned up to match the standard model handling API.
 def test_smiles2vec_reload():
   """Test that smiles2vec models can be saved and reloaded."""
+  dataset_file = os.path.join(os.path.dirname(__file__), "chembl_25_small.csv")
   max_len = 250
   pad_len = 10
+  max_seq_len = 20
   char_to_idx = create_char_to_idx(
       dataset_file, max_len=max_len, smiles_field="smiles")
   feat = dc.feat.SmilesToSeq(
       char_to_idx=char_to_idx, max_len=max_len, pad_len=pad_len)
 
-  n_tasks = 1
+  n_tasks = 5
   data_points = 10
-  mols = ["CCCCCCCC"] * data_points
-  X = featurizer(mols)
 
+  loader = dc.data.CSVLoader(
+      tasks=chembl25_tasks, smiles_field='smiles', featurizer=feat)
+  dataset = loader.create_dataset(
+      inputs=[dataset_file], shard_size=10000, data_dir=tempfile.mkdtemp())
   y = np.random.randint(0, 2, size=(data_points, n_tasks))
   w = np.ones(shape=(data_points, n_tasks))
-  dataset = dc.data.NumpyDataset(X, y, w, mols)
+  dataset = dc.data.NumpyDataset(dataset.X[:data_points, :max_seq_len], y, w,
+                                 dataset.ids[:data_points])
+
   classsification_metric = dc.metrics.Metric(
       dc.metrics.roc_auc_score, np.mean, mode="classification")
 
   model_dir = tempfile.mkdtemp()
-  model = Smiles2Vec(
+  model = dc.models.Smiles2Vec(
       char_to_idx=char_to_idx,
       max_seq_len=max_seq_len,
       use_conv=True,
@@ -1000,18 +990,68 @@ def test_smiles2vec_reload():
       mode="classification")
   model.fit(dataset, nb_epoch=3)
 
-  ## Reload Trained Model
-  #reloaded_model = dc.models.ChemCeption(
-  #    n_tasks=n_tasks,
-  #    img_spec="engd",
-  #    model_dir=model_dir,
-  #    mode="classification")
-  #reloaded_model.restore()
+  # Reload Trained Model
+  reloaded_model = dc.models.Smiles2Vec(
+      char_to_idx=char_to_idx,
+      max_seq_len=max_seq_len,
+      use_conv=True,
+      n_tasks=n_tasks,
+      model_dir=model_dir,
+      mode="classification")
+  reloaded_model.restore()
 
-  ## Check predictions match on random sample
-  #predmols = ["CCCC", "CCCCCO", "CCCCC"]
-  #Xpred = featurizer(predmols)
-  #predset = dc.data.NumpyDataset(Xpred)
-  #origpred = model.predict(predset)
-  #reloadpred = reloaded_model.predict(predset)
-  #assert np.all(origpred == reloadpred)
+  # Check predictions match on original dataset
+  origpred = model.predict(dataset)
+  reloadpred = reloaded_model.predict(dataset)
+  assert np.all(origpred == reloadpred)
+
+
+# TODO: We need a cleaner usage example for this
+def test_DTNN_regression_reload():
+  """Test DTNN can reload datasets."""
+  np.random.seed(123)
+  tf.random.set_seed(123)
+  n_tasks = 1
+
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  input_file = os.path.join(current_dir, "example_DTNN.mat")
+  dataset = scipy.io.loadmat(input_file)
+  X = dataset['X']
+  y = dataset['T']
+  w = np.ones_like(y)
+  dataset = dc.data.NumpyDataset(X, y, w, ids=None)
+  n_tasks = y.shape[1]
+
+  regression_metric = dc.metrics.Metric(
+      dc.metrics.pearson_r2_score, task_averager=np.mean)
+
+  model_dir = tempfile.mkdtemp()
+  model = dc.models.DTNNModel(
+      n_tasks,
+      n_embedding=20,
+      n_distance=100,
+      learning_rate=1.0,
+      model_dir=model_dir,
+      mode="regression")
+
+  # Fit trained model
+  model.fit(dataset, nb_epoch=250)
+
+  # Eval model on train
+  pred = model.predict(dataset)
+  mean_rel_error = np.mean(np.abs(1 - pred / y))
+  assert mean_rel_error < 0.2
+
+  reloaded_model = dc.models.DTNNModel(
+      n_tasks,
+      n_embedding=20,
+      n_distance=100,
+      learning_rate=1.0,
+      model_dir=model_dir,
+      mode="regression")
+  reloaded_model.restore()
+
+  # Check predictions match on random sample
+  origpred = model.predict(dataset)
+  reloadpred = reloaded_model.predict(dataset)
+  assert np.all(origpred == reloadpred)
