@@ -127,14 +127,14 @@ class GraphConv(tf.keras.layers.Layer):
     num_deg = 2 * self.max_degree + (1 - self.min_degree)
     self.W_list = [
         self.add_weight(
-            name='kernel'+str(k),
+            name='kernel' + str(k),
             shape=(int(input_shape[0][-1]), self.out_channel),
             initializer='glorot_uniform',
             trainable=True) for k in range(num_deg)
     ]
     self.b_list = [
         self.add_weight(
-            name='bias'+str(k),
+            name='bias' + str(k),
             shape=(self.out_channel,),
             initializer='zeros',
             trainable=True) for k in range(num_deg)
