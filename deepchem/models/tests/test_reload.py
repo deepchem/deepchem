@@ -773,6 +773,10 @@ def test_textCNN_classification_reload():
       model_dir=model_dir)
   reloaded_model.restore()
 
+  # Eval model on train
+  scores = reloaded_model.evaluate(dataset, [classification_metric])
+  assert scores[classification_metric.name] > .8
+
   assert len(reloaded_model.model.get_weights()) == len(
       model.model.get_weights())
   for (reloaded, orig) in zip(reloaded_model.model.get_weights(),
@@ -785,18 +789,9 @@ def test_textCNN_classification_reload():
   predset = dc.data.NumpyDataset(Xpred, ids=predmols)
   origpred = model.predict(predset)
   reloadpred = reloaded_model.predict(predset)
-
-  Xproc = reloaded_model.smiles_to_seq_batch(np.array(predmols))
-  reloadout = reloaded_model.model(Xproc)
-  origout = model.model(Xproc)
-
-  assert len(model.model.layers) == len(reloaded_model.model.layers)
-
   assert np.all(origpred == reloadpred)
 
-  # Eval model on train
-  scores = reloaded_model.evaluate(dataset, [classification_metric])
-  assert scores[classification_metric.name] > .8
+  assert len(model.model.layers) == len(reloaded_model.model.layers)
 
 
 def test_1d_cnn_regression_reload():
