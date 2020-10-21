@@ -315,7 +315,7 @@ class MaterialStructureFeaturizer(Featurizer):
   """
 
   def featurize(self,
-                structures: Iterable[Union[Dict, PymatgenStructure]],
+                structures: Iterable[Union[Dict[str, Any], PymatgenStructure]],
                 log_every_n: int = 1000) -> np.ndarray:
     """Calculate features for crystal structures.
 
