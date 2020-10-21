@@ -42,10 +42,6 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `OpenAI Gym`_                  | Not Testing   | :code:`dc.rl`                                     |
-|                                |               |                                                   |
-|                                |               |                                                   |
-+--------------------------------+---------------+---------------------------------------------------+
 | `matminer`_                    | latest        | :code:`dc.feat.materials_featurizers`             |
 |                                |               |                                                   |
 |                                |               |                                                   |
@@ -63,6 +59,10 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `NetworkX`_                    | latest        | :code:`dc.utils.rdkit_utils`                      |
+|                                |               |                                                   |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
+| `OpenAI Gym`_                  | Not Testing   | :code:`dc.rl`                                     |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
@@ -125,12 +125,12 @@ DeepChem has a number of "soft" requirements.
 .. _`Deep Graph Library`: https://www.dgl.ai/
 .. _`HuggingFace Transformers`: https://huggingface.co/transformers/
 .. _`LightGBM`: https://lightgbm.readthedocs.io/en/latest/index.html
-.. _`OpenAI Gym`: https://gym.openai.com/
 .. _`matminer`: https://hackingmaterials.lbl.gov/matminer/
 .. _`MDTraj`: http://mdtraj.org/
 .. _`Mol2vec`: https://github.com/samoturk/mol2vec
 .. _`Mordred`: http://mordred-descriptor.github.io/documentation/master/
 .. _`NetworkX`: https://networkx.github.io/documentation/stable/index.html
+.. _`OpenAI Gym`: https://gym.openai.com/
 .. _`OpenMM`: http://openmm.org/
 .. _`PDBFixer`: https://github.com/pandegroup/pdbfixer
 .. _`Pillow`: https://pypi.org/project/Pillow/
