@@ -127,14 +127,14 @@ class GraphConv(tf.keras.layers.Layer):
     num_deg = 2 * self.max_degree + (1 - self.min_degree)
     self.W_list = [
         self.add_weight(
-            name='kernel',
+            name='kernel'+str(k),
             shape=(int(input_shape[0][-1]), self.out_channel),
             initializer='glorot_uniform',
             trainable=True) for k in range(num_deg)
     ]
     self.b_list = [
         self.add_weight(
-            name='bias',
+            name='bias'+str(k),
             shape=(self.out_channel,),
             initializer='zeros',
             trainable=True) for k in range(num_deg)
@@ -2344,7 +2344,13 @@ class WeaveLayer(tf.keras.layers.Layer):
     input_shape: tuple
       Ignored since we don't need the input shape to create internal weights.
     """
-    init = initializers.get(self.init)  # Set weight initialization
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
 
     self.W_AA = init([self.n_atom_input_feat, self.n_hidden_AA])
     self.b_AA = backend.zeros(shape=[
@@ -2566,7 +2572,14 @@ class WeaveGather(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     if self.compress_post_gaussian_expansion:
-      init = initializers.get(self.init)
+
+      def init(input_shape):
+        return self.add_weight(
+            name='kernel',
+            shape=(input_shape[0], input_shape[1]),
+            initializer=self.init,
+            trainable=True)
+
       self.W = init([self.n_input * 11, self.n_input])
       self.b = backend.zeros(shape=[self.n_input])
     self.built = True
@@ -2673,7 +2686,14 @@ class DTNNEmbedding(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    init = initializers.get(self.init)
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
+
     self.embedding_list = init([self.periodic_table_length, self.n_embedding])
     self.built = True
 
@@ -2726,7 +2746,14 @@ class DTNNStep(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    init = initializers.get(self.init)
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
+
     self.W_cf = init([self.n_embedding, self.n_hidden])
     self.W_df = init([self.n_distance, self.n_hidden])
     self.W_fc = init([self.n_hidden, self.n_embedding])
@@ -2811,7 +2838,14 @@ class DTNNGather(tf.keras.layers.Layer):
   def build(self, input_shape):
     self.W_list = []
     self.b_list = []
-    init = initializers.get(self.init)
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
+
     prev_layer_size = self.n_embedding
     for i, layer_size in enumerate(self.layer_sizes):
       self.W_list.append(init([prev_layer_size, layer_size]))
@@ -3217,9 +3251,16 @@ class EdgeNetwork(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
+
     n_pair_features = self.n_pair_features
     n_hidden = self.n_hidden
-    init = initializers.get(self.init)
     self.W = init([n_pair_features, n_hidden * n_hidden])
     self.b = backend.zeros(shape=(n_hidden * n_hidden,))
     self.built = True
@@ -3249,7 +3290,14 @@ class GatedRecurrentUnit(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     n_hidden = self.n_hidden
-    init = initializers.get(self.init)
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
+
     self.Wz = init([n_hidden, n_hidden])
     self.Wr = init([n_hidden, n_hidden])
     self.Wh = init([n_hidden, n_hidden])
@@ -3304,7 +3352,14 @@ class SetGather(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    init = initializers.get(self.init)
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
+
     self.U = init((2 * self.n_hidden, 4 * self.n_hidden))
     self.b = tf.Variable(
         np.concatenate((np.zeros(self.n_hidden), np.ones(self.n_hidden),
