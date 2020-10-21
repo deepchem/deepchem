@@ -520,8 +520,7 @@ def load_dataset_from_disk(save_dir: str) -> Tuple[bool, Optional[Tuple[
   test = dc.data.DiskDataset(test_dir)
   train.memory_cache_size = 40 * (1 << 20)  # 40 MB
   all_dataset = (train, valid, test)
-  with open(os.path.join(save_dir, "transformers.pkl"), 'rb') as f:
-    transformers = pickle.load(f)
+  transformers = load_transformers(save_dir)
   return loaded, all_dataset, transformers
 
 
@@ -566,6 +565,17 @@ def save_dataset_to_disk(
   train.move(train_dir)
   valid.move(valid_dir)
   test.move(test_dir)
+  save_transformers(save_dir, transformers)
+
+
+def load_transformers(save_dir: str) -> List["dc.trans.Transformer"]:
+  """Load the transformers for a MoleculeNet dataset from disk."""
+  with open(os.path.join(save_dir, "transformers.pkl"), 'rb') as f:
+    return pickle.load(f)
+
+
+def save_transformers(save_dir: str,
+                      transformers: List["dc.trans.Transformer"]):
+  """Save the transformers for a MoleculeNet dataset to disk."""
   with open(os.path.join(save_dir, "transformers.pkl"), 'wb') as f:
     pickle.dump(transformers, f)
-  return None
