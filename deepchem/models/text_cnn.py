@@ -54,24 +54,36 @@ default_dict = {
 
 class TextCNNModel(KerasModel):
   """ A Convolutional neural network on smiles strings
-  Reimplementation of the discriminator module in ORGAN: https://arxiv.org/abs/1705.10843
-  Originated from: http://emnlp2014.org/papers/pdf/EMNLP2014181.pdf
 
-  This model applies multiple 1D convolutional filters to the padded strings,
-  then max-over-time pooling is applied on all filters, extracting one feature per filter.
-  All features are concatenated and transformed through several hidden layers to form predictions.
+  Reimplementation of the discriminator module in ORGAN [1]_ .
+  Originated from [2]_. 
 
-  This model is initially developed for sentence-level classification tasks, with
-  words represented as vectors. In this implementation, SMILES strings are dissected
-  into characters and transformed to one-hot vectors in a similar way. The model can
-  be used for general molecular-level classification or regression tasks. It is also
-  used in the ORGAN model as discriminator.
+  This model applies multiple 1D convolutional filters to
+  the padded strings, then max-over-time pooling is applied on
+  all filters, extracting one feature per filter.  All
+  features are concatenated and transformed through several
+  hidden layers to form predictions.
 
-  Training of the model only requires SMILES strings input, all featurized datasets
-  that include SMILES in the `ids` attribute are accepted. PDBbind, QM7 and QM7b
-  are not supported. To use the model, `build_char_dict` should be called first
-  before defining the model to build character dict of input dataset, example can
-  be found in examples/delaney/delaney_textcnn.py
+  This model is initially developed for sentence-level
+  classification tasks, with words represented as vectors. In
+  this implementation, SMILES strings are dissected into
+  characters and transformed to one-hot vectors in a similar
+  way. The model can be used for general molecular-level
+  classification or regression tasks. It is also used in the
+  ORGAN model as discriminator.
+
+  Training of the model only requires SMILES strings input,
+  all featurized datasets that include SMILES in the `ids`
+  attribute are accepted. PDBbind, QM7 and QM7b are not
+  supported. To use the model, `build_char_dict` should be
+  called first before defining the model to build character
+  dict of input dataset, example can be found in
+  examples/delaney/delaney_textcnn.py
+
+  References
+  ----------
+  .. [1]  Guimaraes, Gabriel Lima, et al. "Objective-reinforced generative adversarial networks (ORGAN) for sequence generation models." arXiv preprint arXiv:1705.10843 (2017).
+  .. [2] Kim, Yoon. "Convolutional neural networks for sentence classification." arXiv preprint arXiv:1408.5882 (2014).
 
   """
 

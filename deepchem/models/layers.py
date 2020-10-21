@@ -2686,7 +2686,14 @@ class DTNNEmbedding(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    init = initializers.get(self.init)
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
+
     self.embedding_list = init([self.periodic_table_length, self.n_embedding])
     self.built = True
 
@@ -2739,7 +2746,14 @@ class DTNNStep(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    init = initializers.get(self.init)
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
+
     self.W_cf = init([self.n_embedding, self.n_hidden])
     self.W_df = init([self.n_distance, self.n_hidden])
     self.W_fc = init([self.n_hidden, self.n_embedding])
@@ -2824,7 +2838,14 @@ class DTNNGather(tf.keras.layers.Layer):
   def build(self, input_shape):
     self.W_list = []
     self.b_list = []
-    init = initializers.get(self.init)
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
+
     prev_layer_size = self.n_embedding
     for i, layer_size in enumerate(self.layer_sizes):
       self.W_list.append(init([prev_layer_size, layer_size]))
@@ -3230,9 +3251,16 @@ class EdgeNetwork(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
+
     n_pair_features = self.n_pair_features
     n_hidden = self.n_hidden
-    init = initializers.get(self.init)
     self.W = init([n_pair_features, n_hidden * n_hidden])
     self.b = backend.zeros(shape=(n_hidden * n_hidden,))
     self.built = True
@@ -3262,7 +3290,14 @@ class GatedRecurrentUnit(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     n_hidden = self.n_hidden
-    init = initializers.get(self.init)
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
+
     self.Wz = init([n_hidden, n_hidden])
     self.Wr = init([n_hidden, n_hidden])
     self.Wh = init([n_hidden, n_hidden])
@@ -3317,7 +3352,14 @@ class SetGather(tf.keras.layers.Layer):
     return config
 
   def build(self, input_shape):
-    init = initializers.get(self.init)
+
+    def init(input_shape):
+      return self.add_weight(
+          name='kernel',
+          shape=(input_shape[0], input_shape[1]),
+          initializer=self.init,
+          trainable=True)
+
     self.U = init((2 * self.n_hidden, 4 * self.n_hidden))
     self.b = tf.Variable(
         np.concatenate((np.zeros(self.n_hidden), np.ones(self.n_hidden),
