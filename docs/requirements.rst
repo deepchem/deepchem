@@ -34,6 +34,14 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `HuggingFace Transformers`_    | Not Testing   | :code:`dc.feat.smiles_tokenizer`                  |
+|                                |               |                                                   |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
+| `LightGBM`_                    | latest        | :code:`dc.models.gbdt_models`                     |
+|                                |               |                                                   |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
 | `OpenAI Gym`_                  | Not Testing   | :code:`dc.rl`                                     |
 |                                |               |                                                   |
 |                                |               |                                                   |
@@ -98,15 +106,11 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `XGBoost`_                     | latest        | :code:`dc.models.xgboost_models`                  |
-|                                |               |                                                   |
-|                                |               |                                                   |
-+--------------------------------+---------------+---------------------------------------------------+
 | `Weights & Biases`_            | Not Testing   | :code:`dc.models.keras_model`,                    |
 |                                |               | :code:`dc.models.callbacks`                       |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `HuggingFace Transformers`_    | Not Testing   | :code:`dc.feat.smiles_tokenizer`                  |
+| `XGBoost`_                     | latest        | :code:`dc.models.gbdt_models`                     |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
@@ -119,6 +123,8 @@ DeepChem has a number of "soft" requirements.
 .. _`TensorFlow`: https://www.tensorflow.org/
 .. _`BioPython`: https://biopython.org/wiki/Documentation
 .. _`Deep Graph Library`: https://www.dgl.ai/
+.. _`HuggingFace Transformers`: https://huggingface.co/transformers/
+.. _`LightGBM`: https://lightgbm.readthedocs.io/en/latest/index.html
 .. _`OpenAI Gym`: https://gym.openai.com/
 .. _`matminer`: https://hackingmaterials.lbl.gov/matminer/
 .. _`MDTraj`: http://mdtraj.org/
@@ -135,7 +141,5 @@ DeepChem has a number of "soft" requirements.
 .. _`RDKit`: http://www.rdkit.org/docs/Install.html
 .. _`simdna`: https://github.com/kundajelab/simdna
 .. _`Tensorflow Probability`: https://www.tensorflow.org/probability
-.. _`XGBoost`: https://xgboost.readthedocs.io/en/latest/
 .. _`Weights & Biases`: https://docs.wandb.com/
-.. _`HuggingFace Transformers`: https://huggingface.co/transformers/
-
+.. _`XGBoost`: https://xgboost.readthedocs.io/en/latest/

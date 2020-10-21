@@ -1,25 +1,26 @@
 jobs:
   include:
-    - name: Python 3.6
+    - name: Linux Python 3.6
       language: python
       python: '3.6'
       sudo: required
       dist: xenial
-    - name: Python 3.7
+    - name: Linux Python 3.7
       language: python
       python: '3.7'
       sudo: required
       dist: xenial
-    - name: Windows
+      env: NIGHTLY_PKG_PUBLISH=true
+    - name: Windows Python 3.7
       language: c
       python: '3.7'
       os: windows
-    - name: DocTest Examples
+    - name: Documentation
       language: python
       python: '3.7'
       sudo: required
       dist: xenial
-      env: DOCTEST_EXAMPLES=true
+      env: CHECK_ONLY_DOCS=true
 cache: pip
 install:
   - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then
@@ -40,8 +41,9 @@ install:
   - conda activate deepchem
   - pip install -e .
 script:
-  - if [[ "$DOCTEST_EXAMPLES" == "true" ]]; then
+  - if [[ "$CHECK_ONLY_DOCS" == "true" ]]; then
       cd docs && pip install -r requirements.txt;
+      make clean html;
       make doctest_examples;
       travis_terminate $?;
     fi
@@ -49,10 +51,6 @@ script:
   - bash devtools/run_flake8.sh
   - mypy -p deepchem
   - pytest -v -m "not slow" --cov=deepchem deepchem
-  - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
-      cd docs && pip install -r requirements.txt;
-      make clean html && cd ..;
-    fi
   - if [ $TRAVIS_PYTHON_VERSION == '3.7' ]; then
       pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem;
     fi
@@ -66,4 +64,4 @@ deploy:
     secure: b67LO8VZcoKEWo7gDlFdjS1yKUavCt578uAuXPyW6f+e+Tk/sEQRdkx1VYoZlQdfZQo8u4q+E3W184T+/j6ht65/cdy/HYH57LCQySjF/MY2M9+/lcP45aY7Z0F2QHeY9QgpRc8gKthGzgM/bHj2glxlEvT1diItEEoGqE2x/fw1K25cNOni08E4hqz0HPY1SXVwd8/9Z/t1YasrBcOjtJ8kcbyjnmeyhjfkaV/aTaAzuqh2MlqZTSz3dhwsBrZfZp86+8T2TgcoDSuIxCwb777QKW1QlvNyLEKlnfateKMYqrrP65oHrxXEEcHd/N3IH28Bz9wVnENjHLkGJ0vXyXyEWcJFe+V6T0k/8NkZamU4SZE5BM4v6mOdThs4l54vuFajctHDeGgIDjL55MfkDmkKd5lAvlWPwrdw8DERsmqetUfZ/TG7FE6/MT1puu2ffu3A9Ivcch5T46pojIggDWHHn9hUsc6iD3Ov7rVqd024Lzm9V8wXiDYU9EMqAu5lJQRIOO/hnr8Gn6zYRCE1n29MKuNJwauSHfdV/mBTRyOjZyWHSGNaiPw2hqE3tZrrIN4koEYaZiERRVnmVt8wMUTj40YglosTHYpL91SkDH/ResX1rtHKs4Am+R+MmcWULTUQ7UwEtqlsa3nVxTK9gfmJ0nX8Jhjtl2iRhVg5PP8=
   edge: true
   on:
-    condition: $TRAVIS_OS_NAME = linux && $TRAVIS_PYTHON_VERSION = 3.7
+    condition: $NIGHTLY_PKG_PUBLISH = true

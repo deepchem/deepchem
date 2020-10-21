@@ -10,6 +10,7 @@ dependencies:
   - pip
   - pip:
     - biopython
+    - lightgbm
     - matminer
     - mdtraj
     - mordred

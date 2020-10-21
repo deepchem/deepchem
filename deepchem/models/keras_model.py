@@ -169,9 +169,7 @@ class KerasModel(Model):
       like a printout every 10 batch steps, you'd set
       `log_frequency=10` for example.
     """
-    super(KerasModel, self).__init__(
-        model_instance=model, model_dir=model_dir, **kwargs)
-    self.model = model
+    super(KerasModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
     if isinstance(loss, Loss):
       self._loss_fn: LossFn = _StandardLoss(model, loss)
     else:
