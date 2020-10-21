@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 import deepchem as dc
 
 
-def test_signletask_regression_with_xgboost():
+def test_singletask_regression_with_xgboost():
   np.random.seed(123)
 
   # prepare dataset
@@ -41,7 +41,7 @@ def test_signletask_regression_with_xgboost():
   assert scores[regression_metric.name] < 55
 
 
-def test_signletask_regression_with_lightgbm():
+def test_singletask_regression_with_lightgbm():
   np.random.seed(123)
 
   # prepare dataset
