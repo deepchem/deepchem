@@ -155,7 +155,7 @@ class GridHyperparamOpt(HyperparamOpt):
       evaluator = Evaluator(model, valid_dataset, output_transformers)
       multitask_scores = evaluator.compute_model_performance([metric])
       # NOTE: this casting is workaround. This line doesn't effect anything to the runtime
-      multitask_scores = cast(Dict, multitask_scores)
+      multitask_scores = cast(Dict[str, float], multitask_scores)
       valid_score = multitask_scores[metric.name]
       hp_str = _convert_hyperparam_dict_to_filename(hyper_params)
       all_scores[hp_str] = valid_score
@@ -182,7 +182,7 @@ class GridHyperparamOpt(HyperparamOpt):
     train_evaluator = Evaluator(best_model, train_dataset, output_transformers)
     multitask_scores = train_evaluator.compute_model_performance([metric])
     # NOTE: this casting is workaround. This line doesn't effect anything to the runtime
-    multitask_scores = cast(Dict, multitask_scores)
+    multitask_scores = cast(Dict[str, float], multitask_scores)
     train_score = multitask_scores[metric.name]
     logger.info("Best hyperparameters: %s" % str(best_hyperparams))
     logger.info("train_score: %f" % train_score)
