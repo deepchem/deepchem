@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 import deepchem as dc
 
 
-def test_signletask_regression():
+def test_signletask_regression_with_xgboost():
   np.random.seed(123)
 
   # prepare dataset
@@ -40,6 +40,23 @@ def test_signletask_regression():
   scores = model.evaluate(test_dataset, [regression_metric])
   assert scores[regression_metric.name] < 55
 
+
+def test_signletask_regression_with_lightgbm():
+  np.random.seed(123)
+
+  # prepare dataset
+  dataset = load_diabetes()
+  X, y = dataset.data, dataset.target
+  frac_train = .7
+  X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, train_size=frac_train)
+  train_dataset = dc.data.NumpyDataset(X_train, y_train)
+  test_dataset = dc.data.NumpyDataset(X_test, y_test)
+
+  # global setting
+  regression_metric = dc.metrics.Metric(dc.metrics.mae_score)
+  params = {'early_stopping_rounds': 25}
+
   # lightgbm test
   lgbm_model = lightgbm.LGBMRegressor(
       n_estimators=50, random_state=123, silent=True)
@@ -52,7 +69,7 @@ def test_signletask_regression():
   assert scores[regression_metric.name] < 55
 
 
-def test_multitask_regression():
+def test_multitask_regression_with_xgboost():
   np.random.seed(123)
 
   # prepare dataset
@@ -86,10 +103,31 @@ def test_multitask_regression():
   score = scores[regression_metric.name]
   assert score < 55
 
+
+def test_multitask_regression_with_lightgbm():
+  np.random.seed(123)
+
+  # prepare dataset
+  n_tasks = 4
+  tasks = range(n_tasks)
+  dataset = load_diabetes()
+  X, y = dataset.data, dataset.target
+  y = np.reshape(y, (len(y), 1))
+  y = np.hstack([y] * n_tasks)
+  frac_train = .7
+  X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, train_size=frac_train)
+  train_dataset = dc.data.DiskDataset.from_numpy(X_train, y_train)
+  test_dataset = dc.data.DiskDataset.from_numpy(X_test, y_test)
+
+  # global setting
+  regression_metric = dc.metrics.Metric(dc.metrics.mae_score)
+  params = {'early_stopping_rounds': 25}
+
   # lightgbm test
   def lightgbm_builder(model_dir):
-    xgb_model = lightgbm.LGBMRegressor(n_estimators=50, seed=123, silent=False)
-    return dc.models.GBDTModel(xgb_model, model_dir, **params)
+    lgbm_model = lightgbm.LGBMRegressor(n_estimators=50, seed=123, silent=False)
+    return dc.models.GBDTModel(lgbm_model, model_dir, **params)
 
   model = dc.models.SingletaskToMultitask(tasks, lightgbm_builder)
   # fit trained model
@@ -101,7 +139,7 @@ def test_multitask_regression():
   assert score < 55
 
 
-def test_classification():
+def test_classification_with_xgboost():
   """Test that sklearn models can learn on simple classification datasets."""
   np.random.seed(123)
 
@@ -128,6 +166,24 @@ def test_classification():
   scores = model.evaluate(test_dataset, [classification_metric])
   assert scores[classification_metric.name] > .9
 
+
+def test_classification_with_lightgbm():
+  """Test that sklearn models can learn on simple classification datasets."""
+  np.random.seed(123)
+
+  # prepare dataset
+  dataset = load_digits(n_class=2)
+  X, y = dataset.data, dataset.target
+  frac_train = .7
+  X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, train_size=frac_train)
+  train_dataset = dc.data.NumpyDataset(X_train, y_train)
+  test_dataset = dc.data.NumpyDataset(X_test, y_test)
+
+  # global setting
+  classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
+  params = {'early_stopping_rounds': 25}
+
   # lightgbm test
   lgbm_model = lightgbm.LGBMClassifier(n_estimators=50, seed=123, silent=True)
   model = dc.models.GBDTModel(lgbm_model, **params)
@@ -139,7 +195,7 @@ def test_classification():
   assert scores[classification_metric.name] > .9
 
 
-def test_reload():
+def test_reload_with_xgboost():
   np.random.seed(123)
 
   # prepare dataset
@@ -173,6 +229,24 @@ def test_reload():
   # eval model on test
   scores = reloaded_model.evaluate(test_dataset, [regression_metric])
   assert scores[regression_metric.name] < 55
+
+
+def test_reload_with_lightgbm():
+  np.random.seed(123)
+
+  # prepare dataset
+  dataset = load_diabetes()
+  X, y = dataset.data, dataset.target
+  frac_train = .7
+  X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, train_size=frac_train)
+  train_dataset = dc.data.NumpyDataset(X_train, y_train)
+  test_dataset = dc.data.NumpyDataset(X_test, y_test)
+
+  # global setting
+  regression_metric = dc.metrics.Metric(dc.metrics.mae_score)
+  model_dir = tempfile.mkdtemp()
+  params = {'early_stopping_rounds': 25, 'model_dir': model_dir}
 
   # lightgbm test
   lgbm_model = lightgbm.LGBMRegressor(
