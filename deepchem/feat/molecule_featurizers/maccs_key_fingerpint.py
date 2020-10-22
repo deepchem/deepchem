@@ -24,7 +24,7 @@ class MACCSKeyFingerpint(MolecularFeaturizer):
   def __init__(self):
     """Initialize this featurizer."""
     try:
-      from rdkit.Chem.AllChem import GetMACCSKeysFingerprint # noqa
+      from rdkit.Chem.AllChem import GetMACCSKeysFingerprint  # noqa
     except ModuleNotFoundError:
       raise ValueError("This class requires RDKit to be installed.")
 

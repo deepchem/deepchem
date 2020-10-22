@@ -23,8 +23,8 @@ class PubChemFingerpint(MolecularFeaturizer):
   def __init__(self):
     """Initialize this featurizer."""
     try:
-      from rdkit import Chem # noqa
-      import pubchempy as pcp # noqa
+      from rdkit import Chem  # noqa
+      import pubchempy as pcp  # noqa
     except ModuleNotFoundError:
       raise ValueError("This class requires PubChemPy to be installed.")
 
