@@ -1043,3 +1043,82 @@ def test_DTNN_regression_reload():
   origpred = model.predict(dataset)
   reloadpred = reloaded_model.predict(dataset)
   assert np.all(origpred == reloadpred)
+
+
+def generate_sequences(sequence_length, num_sequences):
+  for i in range(num_sequences):
+    seq = [
+        np.random.randint(10)
+        for x in range(np.random.randint(1, sequence_length + 1))
+    ]
+    yield (seq, seq)
+
+
+def test_seq2seq_reload():
+  """Test reloading for seq2seq models."""
+
+  sequence_length = 8
+  tokens = list(range(10))
+  model_dir = tempfile.mkdtemp()
+  s = dc.models.SeqToSeq(
+      tokens,
+      tokens,
+      sequence_length,
+      encoder_layers=2,
+      decoder_layers=2,
+      embedding_dimension=150,
+      learning_rate=0.01,
+      dropout=0.1,
+      model_dir=model_dir)
+
+  # Train the model on random sequences.  We aren't training long enough to
+  # really make it reliable, but I want to keep this test fast, and it should
+  # still be able to reproduce a reasonable fraction of input sequences.
+
+  s.fit_sequences(generate_sequences(sequence_length, 25000))
+
+  # Test it out.
+
+  tests = [seq for seq, target in generate_sequences(sequence_length, 50)]
+  pred1 = s.predict_from_sequences(tests, beam_width=1)
+  pred4 = s.predict_from_sequences(tests, beam_width=4)
+
+  reloaded_s = dc.models.SeqToSeq(
+      tokens,
+      tokens,
+      sequence_length,
+      encoder_layers=2,
+      decoder_layers=2,
+      embedding_dimension=150,
+      learning_rate=0.01,
+      dropout=0.1,
+      model_dir=model_dir)
+  reloaded_s.restore()
+
+  reloaded_pred1 = reloaded_s.predict_from_sequences(tests, beam_width=1)
+  assert len(pred1) == len(reloaded_pred1)
+  for (p1, r1) in zip(pred1, reloaded_pred1):
+    assert p1 == r1
+  reloaded_pred4 = reloaded_s.predict_from_sequences(tests, beam_width=4)
+  assert len(pred4) == len(reloaded_pred4)
+  for (p4, r4) in zip(pred4, reloaded_pred4):
+    assert p4 == r4
+  embeddings = s.predict_embeddings(tests)
+  pred1e = s.predict_from_embeddings(embeddings, beam_width=1)
+  pred4e = s.predict_from_embeddings(embeddings, beam_width=4)
+
+  reloaded_embeddings = reloaded_s.predict_embeddings(tests)
+  reloaded_pred1e = reloaded_s.predict_from_embeddings(
+      reloaded_embeddings, beam_width=1)
+  reloaded_pred4e = reloaded_s.predict_from_embeddings(
+      reloaded_embeddings, beam_width=4)
+
+  assert np.all(embeddings == reloaded_embeddings)
+
+  assert len(pred1e) == len(reloaded_pred1e)
+  for (p1e, r1e) in zip(pred1e, reloaded_pred1e):
+    assert p1e == r1e
+
+  assert len(pred4e) == len(reloaded_pred4e)
+  for (p4e, r4e) in zip(pred4e, reloaded_pred4e):
+    assert p4e == r4e
