@@ -18,6 +18,7 @@ class PubChemFingerpint(MolecularFeaturizer):
   Notes
   -----
   This class requires RDKit and PubChemPy to be installed.
+  PubChemPy use REST API to get the fingerprint, so you need the internet access.
   """
 
   def __init__(self):
@@ -42,7 +43,7 @@ class PubChemFingerpint(MolecularFeaturizer):
     Returns
     -------
     np.ndarray
-      1D array of RDKit descriptors for `mol`. The length is 167.
+      1D array of RDKit descriptors for `mol`. The length is 881.
     """
     from rdkit import Chem
     smiles = Chem.MolToSmiles(mol)
