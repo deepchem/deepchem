@@ -92,10 +92,22 @@ WeaveFeaturizer
 .. autoclass:: deepchem.feat.WeaveFeaturizer
   :members:
 
+MACCSKeysFingerprint
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.MACCSKeysFingerprint
+  :members:
+
 CircularFingerprint
 ^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.CircularFingerprint
+  :members:
+
+PubChemFingerprint
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.PubChemFingerprint
   :members:
 
 Mol2VecFingerprint

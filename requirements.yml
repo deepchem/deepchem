@@ -16,9 +16,9 @@ dependencies:
     - mordred
     - networkx
     - pillow
+    - pubchempy
     - pyGPGO
     - pymatgen
-    - pubchempy
     - simdna
     - xgboost
     - -e git+https://github.com/samoturk/mol2vec#egg=mol2vec
