@@ -431,8 +431,7 @@ class KerasModel(Model):
       for c in callbacks:
         c(self, current_step)
       if self.tensorboard and should_log:
-        with self._summary_writer.as_default():
-          tf.summary.scalar('loss', batch_loss, current_step)
+        self._log_scalar_to_tensorboard('loss', batch_loss, current_step)
       if self.wandb and should_log:
         wandb.log({'loss': batch_loss}, step=current_step)
 
@@ -1074,6 +1073,11 @@ class KerasModel(Model):
   def get_global_step(self) -> int:
     """Get the number of steps of fitting that have been performed."""
     return int(self._global_step)
+
+  def _log_scalar_to_tensorboard(self, name: str, value: Any, step: int):
+    """Log a scalar value to Tensorboard."""
+    with self._summary_writer.as_default():
+      tf.summary.scalar(name, value, step)
 
   def _create_assignment_map(self,
                              source_model: "KerasModel",

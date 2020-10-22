@@ -78,7 +78,8 @@ class ValidationCallback(object):
     print(message, file=self.output_file)
     if model.tensorboard:
       for key in scores:
-        model._log_value_to_tensorboard(tag=key, simple_value=scores[key])
+        model._log_scalar_to_tensorboard(key, scores[key],
+                                         model.get_global_step())
     if model.wandb:
       import wandb
       wandb.log(scores, step=step)
