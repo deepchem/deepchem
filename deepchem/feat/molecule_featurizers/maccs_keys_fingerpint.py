@@ -4,8 +4,8 @@ from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
 
 
-class MACCSKeyFingerpint(MolecularFeaturizer):
-  """MACCS Key Fingerprint.
+class MACCSKeysFingerpint(MolecularFeaturizer):
+  """MACCS Keys Fingerprint.
 
   The MACCS (Molecular ACCess System) keys are one of the most commonly used structural keys.
   Please confirm the details in [1]_, [2]_.
@@ -32,7 +32,7 @@ class MACCSKeyFingerpint(MolecularFeaturizer):
 
   def _featurize(self, mol: RDKitMol) -> np.ndarray:
     """
-    Calculate MACCS key fingerpint.
+    Calculate MACCS keys fingerpint.
 
     Parameters
     ----------
