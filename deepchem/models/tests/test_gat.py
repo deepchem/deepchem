@@ -26,13 +26,14 @@ def test_gat_regression():
 
   # initialize models
   n_tasks = len(tasks)
-  model = GATModel(mode='regression', n_tasks=n_tasks, batch_size=10)
+  model = GATModel(
+      mode='regression', n_tasks=n_tasks, batch_size=10, learning_rate=0.001)
 
   # overfit test
   # GAT's convergence is a little slow
-  model.fit(dataset, nb_epoch=300)
+  model.fit(dataset, nb_epoch=1000)
   scores = model.evaluate(dataset, [metric], transformers)
-  assert scores['mean_absolute_error'] < 0.5
+  assert scores['mean_absolute_error'] < 0.15
 
 
 @unittest.skipIf(not has_pytorch_and_pyg,
