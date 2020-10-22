@@ -28,7 +28,7 @@ class PubChemFingerpint(MolecularFeaturizer):
     except ModuleNotFoundError:
       raise ValueError("This class requires PubChemPy to be installed.")
 
-    self.get_pubchem_compound = pcp.get_compounds
+    self.get_pubchem_compounds = pcp.get_compounds
 
   def _featurize(self, mol: RDKitMol) -> np.ndarray:
     """
@@ -46,6 +46,6 @@ class PubChemFingerpint(MolecularFeaturizer):
     """
     from rdkit import Chem
     smiles = Chem.MolToSmiles(mol)
-    pubchem_compound = self.get_pubchem_compound(smiles, 'smiles')[0]
+    pubchem_compound = self.get_pubchem_compounds(smiles, 'smiles')[0]
     feature = [int(bit) for bit in pubchem_compound.cactvs_fingerprint]
     return np.asarray(feature)
