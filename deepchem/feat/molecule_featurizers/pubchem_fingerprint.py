@@ -4,7 +4,7 @@ from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
 
 
-class PubChemFingerpint(MolecularFeaturizer):
+class PubChemFingerprint(MolecularFeaturizer):
   """PubChem Fingerprint.
 
   The PubChem fingerprint is a 881 bit structural key,

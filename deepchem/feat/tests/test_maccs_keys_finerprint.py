@@ -1,11 +1,11 @@
 import unittest
 
-from deepchem.feat import MACCSKeysFingerpint
+from deepchem.feat import MACCSKeysFingerprint
 
 
-class TestMACCSKeysFingerpintt(unittest.TestCase):
+class TestMACCSKeysFingerprint(unittest.TestCase):
   """
-  Test MACCSKeyFingerpint.
+  Test MACCSKeyFingerprint.
   """
 
   def setUp(self):
@@ -20,6 +20,6 @@ class TestMACCSKeysFingerpintt(unittest.TestCase):
     """
     Test simple fingerprint.
     """
-    featurizer = MACCSKeysFingerpint()
+    featurizer = MACCSKeysFingerprint()
     feature_sum = featurizer([self.mol])
     assert feature_sum.shape == (1, 167)

@@ -1,11 +1,11 @@
 import unittest
 
-from deepchem.feat import PubChemFingerpint
+from deepchem.feat import PubChemFingerprint
 
 
-class TestPubChemFingerpint(unittest.TestCase):
+class TestPubChemFingerprint(unittest.TestCase):
   """
-  Test PubChemFingerpint.
+  Test PubChemFingerprint.
   """
 
   def setUp(self):
@@ -20,6 +20,6 @@ class TestPubChemFingerpint(unittest.TestCase):
     """
     Test simple fingerprint.
     """
-    featurizer = PubChemFingerpint()
+    featurizer = PubChemFingerprint()
     feature_sum = featurizer([self.mol])
     assert feature_sum.shape == (1, 881)
