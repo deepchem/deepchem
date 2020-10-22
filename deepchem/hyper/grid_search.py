@@ -10,12 +10,11 @@ import collections
 import logging
 from functools import reduce
 from operator import mul
-from typing import cast, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from deepchem.data import Dataset
 from deepchem.trans import Transformer
 from deepchem.metrics import Metric
-from deepchem.utils.evaluate import Evaluator
 from deepchem.hyper.base_classes import HyperparamOpt
 from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
 
@@ -152,10 +151,8 @@ class GridHyperparamOpt(HyperparamOpt):
       except NotImplementedError:
         pass
 
-      evaluator = Evaluator(model, valid_dataset, output_transformers)
-      multitask_scores = evaluator.compute_model_performance([metric])
-      # NOTE: this casting is workaround. This line doesn't effect anything to the runtime
-      multitask_scores = cast(Dict[str, float], multitask_scores)
+      multitask_scores = model.evaluate(valid_dataset, [metric],
+                                        output_transformers)
       valid_score = multitask_scores[metric.name]
       hp_str = _convert_hyperparam_dict_to_filename(hyper_params)
       all_scores[hp_str] = valid_score
@@ -179,10 +176,8 @@ class GridHyperparamOpt(HyperparamOpt):
       # arbitrarily return last model
       best_model, best_hyperparams = model, hyperparameter_tuple
       return best_model, best_hyperparams, all_scores
-    train_evaluator = Evaluator(best_model, train_dataset, output_transformers)
-    multitask_scores = train_evaluator.compute_model_performance([metric])
-    # NOTE: this casting is workaround. This line doesn't effect anything to the runtime
-    multitask_scores = cast(Dict[str, float], multitask_scores)
+    multitask_scores = best_model.evaluate(train_dataset, [metric],
+                                           output_transformers)
     train_score = multitask_scores[metric.name]
     logger.info("Best hyperparameters: %s" % str(best_hyperparams))
     logger.info("train_score: %f" % train_score)

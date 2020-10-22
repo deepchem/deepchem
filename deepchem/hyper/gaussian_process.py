@@ -9,7 +9,6 @@ from typing import Dict, List, Optional, Tuple, Union
 from deepchem.data import Dataset
 from deepchem.trans import Transformer
 from deepchem.metrics import Metric
-from deepchem.utils.evaluate import Evaluator
 from deepchem.hyper.base_classes import HyperparamOpt
 from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
 
@@ -285,8 +284,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       except NotImplementedError:
         pass
 
-      evaluator = Evaluator(model, valid_dataset, output_transformers)
-      multitask_scores = evaluator.compute_model_performance([metric])
+      multitask_scores = model.evaluate(valid_dataset, [metric],
+                                        output_transformers)
       score = multitask_scores[metric.name]
 
       if log_file:
