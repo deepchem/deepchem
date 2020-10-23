@@ -36,8 +36,8 @@ class TestGridHyperparamOpt(unittest.TestCase):
     metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
 
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
-        params_dict, self.train_dataset, self.valid_dataset, transformers,
-        metric)
+        params_dict, self.train_dataset, self.valid_dataset, metric,
+        transformers)
     valid_score = best_model.evaluate(self.valid_dataset, [metric],
                                       transformers)
 
@@ -55,8 +55,8 @@ class TestGridHyperparamOpt(unittest.TestCase):
         params_dict,
         self.train_dataset,
         self.valid_dataset,
-        transformers,
         metric,
+        transformers,
         use_max=False)
     valid_score = best_model.evaluate(self.valid_dataset, [metric],
                                       transformers)
@@ -75,8 +75,8 @@ class TestGridHyperparamOpt(unittest.TestCase):
           params_dict,
           self.train_dataset,
           self.valid_dataset,
-          transformers,
           metric,
+          transformers,
           logdir=tmpdirname)
     valid_score = best_model.evaluate(self.valid_dataset, [metric],
                                       transformers)
@@ -108,8 +108,8 @@ class TestGridHyperparamOpt(unittest.TestCase):
         params_dict,
         train_dataset,
         valid_dataset,
-        transformers,
         metric,
+        transformers,
         use_max=False)
 
     valid_score = best_model.evaluate(valid_dataset, [metric])
@@ -145,8 +145,8 @@ class TestGridHyperparamOpt(unittest.TestCase):
           params_dict,
           train_dataset,
           valid_dataset,
-          transformers,
           metric,
+          transformers,
           logdir=tmpdirname,
           use_max=False)
       valid_score = best_model.evaluate(valid_dataset, [metric])
