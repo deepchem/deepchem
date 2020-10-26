@@ -33,6 +33,8 @@ class GCN(nn.Module):
     92
     >>> cgcnn_dgl_graph = cgcnn_graph.to_dgl_graph()
     >>> model = GCN(in_node_dim=92, hidden_node_dim=92, num_gnn_layers=2)
+    >>> # Call model.eval as batch norm is implemented
+    >>> model.eval()
     >>> model(cgcnn_dgl_graph)
 
     References
@@ -184,7 +186,14 @@ class GCNModel(TorchModel):
 
     Examples
     --------
-    # Todo
+
+    >>> import deepchem as dc
+    >>> from deepchem.models import GCNModel
+    >>> dataset_config = {"reload": False, "featurizer": dc.feat.CGCNNFeaturizer, "transformers": []}
+    >>> tasks, datasets, transformers = dc.molnet.load_perovskite(**dataset_config)
+    >>> train, valid, test = datasets
+    >>> model = dc.models.CGCNNModel(mode='regression', batch_size=32, learning_rate=0.001)
+    >>> model.fit(train, nb_epoch=50)
 
     References
     ----------
