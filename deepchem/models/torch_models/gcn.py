@@ -21,7 +21,19 @@ class GCN(nn.Module):
 
     Examples
     --------
-    # Todo
+
+    >>> import deepchem as dc
+    >>> import pymatgen as mg
+    >>> from deepchem.models import GCN
+    >>> lattice = mg.Lattice.cubic(4.2)
+    >>> structure = mg.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
+    >>> featurizer = dc.feat.CGCNNFeaturizer()
+    >>> cgcnn_graph = featurizer.featurize([structure])[0]
+    >>> cgcnn_graph.num_node_features
+    92
+    >>> cgcnn_dgl_graph = cgcnn_graph.to_dgl_graph()
+    >>> model = GCN(in_node_dim=92, hidden_node_dim=92, num_gnn_layers=2)
+    >>> model(cgcnn_dgl_graph)
 
     References
     ----------
@@ -39,7 +51,7 @@ class GCN(nn.Module):
                  num_gnn_layers: int,
                  activation = None,
                  residual: bool = True,
-                 batchnorm: bool = True,
+                 batchnorm: bool = False,
                  dropout: float = 0.,
                  predictor_hidden_feats: int = 128,
                  predictor_dropout: float = 0.,
@@ -62,7 +74,8 @@ class GCN(nn.Module):
         residual: bool
             Whether to add a residual connection within each GCN layer. Default to True.
         batchnorm: bool
-            Whether to apply batch normalization to the output of each GCN layer. Default to True.
+            Whether to apply batch normalization to the output of each GCN layer.
+            Default to False.
         dropout: float
             The dropout probability for the output of each GCN layer. Default to 0.
         predictor_hidden_feats: int
@@ -104,9 +117,13 @@ class GCN(nn.Module):
             out_size = n_tasks
 
         from dgllife.model import GCNPredictor as DGLGCNPredictor
+
+        if activation is not None:
+            activation = [activation] * num_gnn_layers
+
         self.model = DGLGCNPredictor(in_feats=in_node_dim,
                                      hidden_feats=[hidden_node_dim] * num_gnn_layers,
-                                     activation=[activation] * num_gnn_layers,
+                                     activation=activation,
                                      residual=[residual] * num_gnn_layers,
                                      batchnorm=[batchnorm] * num_gnn_layers,
                                      dropout=[dropout] * num_gnn_layers,
@@ -185,7 +202,7 @@ class GCNModel(TorchModel):
                  num_gnn_layers: int,
                  activation = None,
                  residual: bool = True,
-                 batchnorm: bool = True,
+                 batchnorm: bool = False,
                  dropout: float = 0.,
                  predictor_hidden_feats: int = 128,
                  predictor_dropout: float = 0.,
@@ -209,7 +226,8 @@ class GCNModel(TorchModel):
         residual: bool
             Whether to add a residual connection within each GCN layer. Default to True.
         batchnorm: bool
-            Whether to apply batch normalization to the output of each GCN layer. Default to True.
+            Whether to apply batch normalization to the output of each GCN layer.
+            Default to False.
         dropout: float
             The dropout probability for the output of each GCN layer. Default to 0.
         predictor_hidden_feats: int

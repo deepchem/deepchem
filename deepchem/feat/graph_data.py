@@ -136,16 +136,14 @@ class GraphData:
     This method requires DGL to be installed.
     """
     try:
+      import dgl
       import torch
-      from dgl import DGLGraph
     except ModuleNotFoundError:
       raise ValueError("This function requires DGL to be installed.")
 
-    g = DGLGraph()
-    g.add_nodes(self.num_nodes)
-    g.add_edges(
-        torch.from_numpy(self.edge_index[0]).long(),
-        torch.from_numpy(self.edge_index[1]).long())
+    g = dgl.graph((torch.from_numpy(self.edge_index[0]).long(),
+                   torch.from_numpy(self.edge_index[1]).long()),
+                  num_nodes=self.num_nodes)
     g.ndata['x'] = torch.from_numpy(self.node_features).float()
 
     if self.node_pos_features is not None:
