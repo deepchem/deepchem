@@ -117,14 +117,21 @@ If you want to check the tox21 benchmark:
     (deepchem) root@xxxxxxxxxxxxx:~/mydir# python benchmark.py -d tox21 -m graphconv -s random
 
 
-From Source
------------
+From Source with conda
+----------------------
 
 You can install deepchem in a new conda environment using the conda
 commands in :code:`scripts/install_deepchem_conda.sh`. Installing via this
 script will ensure that you are **installing from the source**.
-The following script requires **conda>=4.4** because it uses the
-:code:`conda activate` command.
+The following script requires **conda>=4.6**.
+
+
+Before staring, check weather to install `conda` correctly or not
+by using the following command.
+
+.. code-block:: bash
+
+    conda -V
 
 First, please clone the deepchem repository from GitHub.
 
@@ -138,21 +145,21 @@ Then, execute the shell script.
 
 .. code-block:: bash
 
-    bash scripts/install_deepchem_conda.sh cpu
+    source ./scripts/install_deepchem_conda.sh 3.7 cpu
 
 
 If you want GPU support (we supports only CUDA 10.1):
 
 .. code-block:: bash
 
-    bash scripts/install_deepchem_conda.sh gpu
+    source ./scripts/install_deepchem_conda.sh 3.7 gpu
 
 
-If you are using the Windows and the PowerShell:
+If you are using the PowerShell:
 
 .. code-block:: ps1
 
-    .\scripts\install_deepchem_conda.ps1 cpu
+    . .\scripts\install_deepchem_conda.ps1 3.7 cpu
 
 
 | Before activating deepchem environment, make sure conda has been initialized.

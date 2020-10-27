@@ -1,0 +1,40 @@
+name: Build with the powershell script
+on:
+  push: # ci work when pushing master branch
+    branches:
+      - master
+  pull_request: # ci work when creating a PR to master branch
+    branches:
+      - master
+jobs:
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache pypi for Windows
+      uses: actions/cache@v2
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-
+    - name: Install miniconda
+      uses: conda-incubator/setup-miniconda@v1
+      with:
+        miniconda-version: "latest"
+        auto-update-conda: true
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      shell: pwsh
+      run: |
+        . .\scripts\install_deepchem_conda.ps1 ${{ matrix.python-version }} cpu
+    - name: Install DeepChem from source
+      shell: pwsh
+      run: |
+        conda activate deepchem
+        pip install -e .
+        python -c 'import deepchem; print(deepchem.__version__)'
+        python -c 'import rdkit; print(rdkit.__version__)'
+        python -c 'import torch; print(torch.__version__)'
+        python -c 'import tensorflow; print(tensorflow.__version__)'

@@ -101,3 +101,4 @@ datasets/pdbbind_v2019_refined.tar.gz
 datasets/qm8.csv
 
 .vscode/
+env.yml
