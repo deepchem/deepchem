@@ -1,11 +1,11 @@
 # This script creates the new deepchem enviroment
 
-CMDNAME=`basename $0`
+CMDNAME=`basename $BASH_SOURCE`
 if [ $# -ne 2 ]; then
     echo "Please set two arguments."
-    echo "Usage) $CMDNAME python_version cpu_or_gpu" 1>&2
-    echo "Example) $CMDNAME 3.6 gpu" 1>&2
-    exit 1
+    echo "Usage) source $CMDNAME python_version cpu_or_gpu" 1>&2
+    echo "Example) source $CMDNAME 3.6 gpu" 1>&2
+    return 1
 fi
 
 # This command is nearly equal to `conda init` command
@@ -14,10 +14,10 @@ eval "$(conda shell.bash hook)"
 
 # Create deepchem environment
 conda config --set always_yes yes
-conda create --name deepchem python=$0
+conda create --name deepchem python=$1
 conda install -c conda-forge conda-merge
 
-if [ "$0" = "gpu" ];
+if [ "$2" = "gpu" ];
 then
     # We expect the CUDA vesion is 10.1.
     conda-merge $PWD/env.common.yml $PWD/env.gpu.yml $PWD/env.test.yml > $PWD/env.yml

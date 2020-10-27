@@ -6,7 +6,7 @@ if ($args.Count -ne 2)
     echo "Please set two arguments."
     echo "Usage) $CMDNAME python_version cpu_or_gpu"
     echo "Example) $CMDNAME 3.6 gpu"
-    exit 1
+    return 1
 }
 
 # This command is nearly equal to `conda init` command
