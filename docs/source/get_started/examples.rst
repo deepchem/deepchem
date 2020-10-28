@@ -37,8 +37,8 @@ Before jumping in to examples, we'll import our libraries and ensure our doctest
 SAMPL (FreeSolv)
 ----------------
 
-| Examples of training models on the SAMPL(FreeSolv) dataset included in MoleculeNet.
-| We'll be using its :code:`smiles` field to train models to predict its experimentally measured solvation energy (:code:`expt`).
+Examples of training models on the SAMPL(FreeSolv) dataset included in MoleculeNet.
+We'll be using its :code:`smiles` field to train models to predict its experimentally measured solvation energy (:code:`expt`).
 
 MultitaskRegressor
 ^^^^^^^^^^^^^^^^^^
