@@ -34,6 +34,7 @@ jobs:
       dist: xenial
       install: skip
       script: skip
+      after_success: skip
       deploy:
         edge: true
         provider: pypi

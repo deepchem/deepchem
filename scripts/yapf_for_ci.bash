@@ -1,14 +1,10 @@
 CHANGED_FILES=`git diff --name-only $TRAVIS_COMMIT_RANGE | grep .py$ | grep -v contrib/`
 
-exit_success () {
-  echo "Passed Formatting Test"
-  exit 0
-}
-
 if [ -z $CHANGED_FILES ]
 then
   echo "No Python Files Changed"
-  exit_success
+  echo "Passed Formatting Test"
+  return 1
 fi
 
 yapf -d $CHANGED_FILES > diff.txt
@@ -21,8 +17,6 @@ then
   echo "Please run yapf over the files changed"
   echo "pip install yapf==0.22.0"
   echo "yapf -i $CHANGED_FILES"
-  exit 1
 else
-  exit_success
+  echo "Passed Formatting Test"
 fi
-exit 1
