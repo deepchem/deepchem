@@ -18,7 +18,7 @@ RUN conda update -n base conda && \
     git clone --depth 1 https://github.com/deepchem/deepchem.git && \
     cd deepchem && \
     . /miniconda/etc/profile.d/conda.sh && \
-    bash scripts/install_deepchem_conda.sh gpu && \
+    . ./scripts/install_deepchem_conda.sh 3.7 gpu && \
     conda activate deepchem && \
     pip install -e . && \
     conda clean -afy && \
