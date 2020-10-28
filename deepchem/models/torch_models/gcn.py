@@ -46,30 +46,43 @@ class GCN(nn.Module):
     -----
     This class requires DGL (https://github.com/dmlc/dgl) and DGL-LifeSci
     (https://github.com/awslabs/dgl-lifesci) to be installed.
+
+    This model is different from deepchem.models.GraphConvModel as follows:
+
+    * For each graph convolution, the learnable weight in this model is shared across all nodes.
+      ``GraphConvModel`` employs separate learnable weights for nodes of different degrees. A
+      learnable weight is shared across all nodes of a particular degree.
+    * For ``GraphConvModel``, there is an additional GraphPool operation after each
+      graph convolution. The operation updates the representation of a node by applying an
+      element-wise maximum over the representations of its neighbors and itself.
+    * For computing graph-level representations, this model computes a weighted sum and an
+      element-wise maximum of the representations of all nodes in a graph and concatenates them.
+      The node weights are obtained by using a linear/dense layer followd by a sigmoid function.
+      For ``GraphConvModel``, the sum over node representations is unweighted.
+    * There are various minor differences in using dropout, skip connection and batch
+      normalization.
     """
     def __init__(self,
-                 in_node_dim: int,
-                 hidden_node_dim: int,
-                 num_gnn_layers: int,
+                 n_tasks: int,
+                 graph_conv_layers: list = None,
                  activation = None,
                  residual: bool = True,
                  batchnorm: bool = False,
                  dropout: float = 0.,
                  predictor_hidden_feats: int = 128,
                  predictor_dropout: float = 0.,
-                 n_tasks: int = 1,
                  mode: str = 'regression',
+                 number_atom_features: int = 75,
                  n_classes: int = 2,
                  nfeat_name: str = 'x'):
         """
         Parameters
         ----------
-        in_node_dim: int
-            The length of the initial node feature vectors.
-        hidden_node_dim: int
-            The length of the hidden node feature vectors.
-        num_gnn_layers: int
-            The number of GCN layers.
+        n_tasks: int
+            Number of tasks.
+        graph_conv_layers: list of int
+            Width of channels for GCN layers. graph_conv_layers[i] gives the width of channel
+            for the i-th GCN layer. If not specified, the default value will be [64, 64].
         activation: callable
             The activation function to apply to the output of each GCN layer.
             By default, no activation function will be applied.
@@ -84,10 +97,10 @@ class GCN(nn.Module):
             The size for hidden representations in the output MLP predictor. Default to 128.
         predictor_dropout: float
             The dropout probability in the output MLP predictor. Default to 0.
-        n_tasks: int
-            The output size.
         mode: str
             The model type, 'classification' or 'regression'.
+        number_atom_features: int
+            The length of the initial atom feature vectors. Default to 75.
         n_classes: int
             The number of classes to predict per task
             (only used when ``mode`` is 'classification').
@@ -120,11 +133,15 @@ class GCN(nn.Module):
 
         from dgllife.model import GCNPredictor as DGLGCNPredictor
 
+        if graph_conv_layers is None:
+            graph_conv_layers = [64, 64]
+        num_gnn_layers = len(graph_conv_layers)
+
         if activation is not None:
             activation = [activation] * num_gnn_layers
 
-        self.model = DGLGCNPredictor(in_feats=in_node_dim,
-                                     hidden_feats=[hidden_node_dim] * num_gnn_layers,
+        self.model = DGLGCNPredictor(in_feats=number_atom_features,
+                                     hidden_feats=graph_conv_layers,
                                      activation=activation,
                                      residual=[residual] * num_gnn_layers,
                                      batchnorm=[batchnorm] * num_gnn_layers,
@@ -204,31 +221,44 @@ class GCNModel(TorchModel):
     -----
     This class requires DGL (https://github.com/dmlc/dgl) and DGL-LifeSci
     (https://github.com/awslabs/dgl-lifesci) to be installed.
+
+    This model is different from deepchem.models.GraphConvModel as follows:
+
+    * For each graph convolution, the learnable weight in this model is shared across all nodes.
+      ``GraphConvModel`` employs separate learnable weights for nodes of different degrees. A
+      learnable weight is shared across all nodes of a particular degree.
+    * For ``GraphConvModel``, there is an additional GraphPool operation after each
+      graph convolution. The operation updates the representation of a node by applying an
+      element-wise maximum over the representations of its neighbors and itself.
+    * For computing graph-level representations, this model computes a weighted sum and an
+      element-wise maximum of the representations of all nodes in a graph and concatenates them.
+      The node weights are obtained by using a linear/dense layer followd by a sigmoid function.
+      For ``GraphConvModel``, the sum over node representations is unweighted.
+    * There are various minor differences in using dropout, skip connection and batch
+      normalization.
     """
     def __init__(self,
-                 in_node_dim: int,
-                 hidden_node_dim: int,
-                 num_gnn_layers: int,
+                 n_tasks: int,
+                 graph_conv_layers: list = None,
                  activation = None,
                  residual: bool = True,
                  batchnorm: bool = False,
                  dropout: float = 0.,
                  predictor_hidden_feats: int = 128,
                  predictor_dropout: float = 0.,
-                 n_tasks: int = 1,
                  mode: str = 'regression',
+                 number_atom_features=75,
                  n_classes: int = 2,
                  nfeat_name: str = 'x',
                  **kwargs):
         """
         Parameters
         ----------
-        in_node_dim: int
-            The length of the initial node feature vectors.
-        hidden_node_dim: int
-            The length of the hidden node feature vectors.
-        num_gnn_layers: int
-            The number of GCN layers.
+        n_tasks: int
+            Number of tasks.
+        graph_conv_layers: list of int
+            Width of channels for GCN layers. graph_conv_layers[i] gives the width of channel
+            for the i-th GCN layer. If not specified, the default value will be [64, 64].
         activation: callable
             The activation function to apply to the output of each GCN layer.
             By default, no activation function will be applied.
@@ -243,10 +273,10 @@ class GCNModel(TorchModel):
             The size for hidden representations in the output MLP predictor. Default to 128.
         predictor_dropout: float
             The dropout probability in the output MLP predictor. Default to 0.
-        n_tasks: int
-            The output size.
         mode: str
             The model type, 'classification' or 'regression'.
+        number_atom_features: int
+            The length of the initial atom feature vectors. Default to 75.
         n_classes: int
             The number of classes to predict per task
             (only used when ``mode`` is 'classification').
@@ -256,9 +286,7 @@ class GCNModel(TorchModel):
         kwargs
             This can include any keyword argument of TorchModel.
         """
-        model = GCN(in_node_dim=in_node_dim,
-                    hidden_node_dim=hidden_node_dim,
-                    num_gnn_layers=num_gnn_layers,
+        model = GCN(graph_conv_layers=graph_conv_layers,
                     activation=activation,
                     residual=residual,
                     batchnorm=batchnorm,
@@ -267,6 +295,7 @@ class GCNModel(TorchModel):
                     predictor_dropout=predictor_dropout,
                     n_tasks=n_tasks,
                     mode=mode,
+                    number_atom_features=number_atom_features,
                     n_classes=n_classes,
                     nfeat_name=nfeat_name)
         if mode == 'regression':
