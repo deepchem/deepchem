@@ -10,7 +10,7 @@ To build the docs, you can use the `Makefile` that's been added to
 this directory. To generate docs in html, run following commands.
 
 ```
-$ pip install -r ../requirements-docs.txt
+$ pip install -r requirements.txt
 $ make html
 // clean build
 $ make clean html
