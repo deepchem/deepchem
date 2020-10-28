@@ -39,6 +39,7 @@ jobs:
       run: |
         conda activate deepchem
         pip install -e .
+        python -V
         python -c 'import deepchem; print(deepchem.__version__)'
         python -c 'import rdkit; print(rdkit.__version__)'
         python -c 'import torch; print(torch.__version__)'
