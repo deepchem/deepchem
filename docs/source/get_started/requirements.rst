@@ -4,7 +4,7 @@ Requirements
 Hard requirements
 ^^^^^^^^^^^^^^^^^
 
-DeepChem currently supports Python 3.5 through 3.7 and requires these packages on any condition.
+DeepChem officially supports Python 3.6 through 3.7 and requires these packages on any condition.
 
 - `joblib`_
 - `NumPy`_
@@ -30,8 +30,8 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `Deep Graph Library`_          | latset        | :code:`dc.feat.graph_data`                        |
-|                                |               |                                                   |
+| `Deep Graph Library`_          | latset        | :code:`dc.feat.graph_data`,                       |
+|                                |               | :code:`dc.models.torch_models`                    |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `HuggingFace Transformers`_    | Not Testing   | :code:`dc.feat.smiles_tokenizer`                  |
@@ -91,7 +91,7 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `PyTorch Geometric`_           | latest (with  | :code:`dc.feat.graph_data`                        |
-|                                | PyTorch 1.6.0)|                                                   |
+|                                | PyTorch 1.6.0)| :code:`dc.models.torch_models`                    |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `RDKit`_                       | latest        | Many modules                                      |

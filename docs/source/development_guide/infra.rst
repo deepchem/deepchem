@@ -28,7 +28,7 @@ The DeepChem `feedstock`_ repo maintains the build recipe for Conda-Forge.
 
 Dockerhub
 ---------
-DeepChem hosts nightly docker build instances on `dockerhub`_.
+DeepChem hosts major releases and nightly docker build instances on `dockerhub`_.
 
 .. _`dockerhub`: https://hub.docker.com/r/deepchemio/deepchem
 

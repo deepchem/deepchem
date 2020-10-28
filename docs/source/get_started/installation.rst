@@ -1,5 +1,5 @@
-Installing DeepChem
-===================
+Installation
+============
 
 Google Colab
 ------------
@@ -167,7 +167,7 @@ If you are using the Windows and the PowerShell:
 
 
 .. _`DeepChem Tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials
-.. _`forum post`: https://forum.deepchem.io/t/getting-deepchem-running-in-colab/81
+.. _`forum post`: https://forum.deepchem.io/t/getting-deepchem-running-in-colab/81/7?u=nd-02110114
 .. _`DockerHub`: https://hub.docker.com/repository/docker/deepchemio/deepchem
 .. _`docker/conda-forge`: https://github.com/deepchem/deepchem/tree/master/docker/conda-forge
 .. _`docker/master`: https://github.com/deepchem/deepchem/tree/master/docker/master

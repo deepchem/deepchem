@@ -35,7 +35,7 @@ release = deepchem.__version__
 # ones.
 extensions = [
     'sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinx.ext.doctest',
-    'sphinx.ext.linkcode', 'sphinx.ext.mathjax',
+    'sphinx.ext.linkcode', 'sphinx.ext.mathjax', 'sphinx.ext.autosectionlabel',
 ]
 
 # Options for autodoc directives
@@ -58,6 +58,10 @@ source_suffix = '.rst'
 
 # The master toctree document.
 master_doc = 'index'
+
+# autosectionlabel setting
+autosectionlabel_prefix_document = True
+autosectionlabel_maxdepth = 3
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
