@@ -306,7 +306,8 @@ class MinMaxTransformer(Transformer):
 
   Raises
   ------
-  `ValueError` if `transform_X` and `transform_y` are both set.
+  ValueError
+    if `transform_X` and `transform_y` are both set.
   """
 
   def __init__(self, transform_X=False, transform_y=False, dataset=None):
@@ -454,7 +455,8 @@ class NormalizationTransformer(Transformer):
 
   Raises
   ------
-  `ValueError` if `transform_X` and `transform_y` are both set.
+  ValueError
+    if `transform_X` and `transform_y` are both set.
   """
 
   def __init__(self,
@@ -659,7 +661,8 @@ class ClippingTransformer(Transformer):
 
     Raises
     ------
-    `ValueError` if `transform_w` is set.
+    ValueError
+      if `transform_w` is set.
     """
     super(ClippingTransformer, self).__init__(
         transform_X=transform_X, transform_y=transform_y, dataset=dataset)
@@ -737,8 +740,8 @@ class LogTransformer(Transformer):
 
   Raises
   ------
-  `ValueError` if `transform_w` is set or `transform_X` and `transform_y` are
-  both set.
+  ValueError
+    if `transform_w` is set or `transform_X` and `transform_y` are both set.
   """
 
   def __init__(self,
@@ -901,8 +904,8 @@ class BalancingTransformer(Transformer):
 
   Raises
   ------
-  `ValueError` if `transform_X` or `transform_y` are set. Also raises
-  `ValueError` if `y` or `w` aren't of shape `(N,)` or `(N, n_tasks)`.
+  ValueError
+    if `transform_X` or `transform_y` are set. Also raises or if `y` or `w` aren't of shape `(N,)` or `(N, n_tasks)`.
   """
 
   def __init__(self, dataset: Dataset):
@@ -1026,7 +1029,6 @@ class CDFTransformer(Transformer):
   >>> dataset = dc.data.NumpyDataset(X, y)
   >>> cdftrans = dc.trans.CDFTransformer(transform_y=True, dataset=dataset, bins=n_bins)
   >>> dataset = cdftrans.transform(dataset)
-
   """
 
   def __init__(self,
@@ -1178,7 +1180,6 @@ class PowerTransformer(Transformer):
   >>> dataset = dc.data.NumpyDataset(X, y)
   >>> trans = dc.trans.PowerTransformer(transform_y=True, dataset=dataset, powers=powers)
   >>> dataset = trans.transform(dataset)
-
   """
 
   def __init__(self,
@@ -1265,9 +1266,8 @@ class PowerTransformer(Transformer):
 class CoulombFitTransformer(Transformer):
   """Performs randomization and binarization operations on batches of Coulomb Matrix features during fit.
 
-  Example
-  -------
-
+  Examples
+  --------
   >>> n_samples = 10
   >>> n_features = 3
   >>> n_tasks = 1
@@ -1288,8 +1288,8 @@ class CoulombFitTransformer(Transformer):
 
     Parameters
     ----------
-    dataset: dc.data.Dataset object
-
+    dataset: dc.data.Dataset
+      Dataset object to be transformed.
     """
     X = dataset.X
     num_atoms = X.shape[1]
@@ -1342,7 +1342,6 @@ class CoulombFitTransformer(Transformer):
     -------
     X: np.ndarray
       Normalized features
-
     """
     return (X - self.mean) / self.std
 
@@ -1577,7 +1576,8 @@ class IRVTransformer(Transformer):
 
     Returns
     -------
-    `Dataset` object that is transformed.
+    DiskDataset or NumpyDataset
+      `Dataset` object that is transformed.
     """
     X_length = dataset.X.shape[0]
     X_trans = []
@@ -1674,7 +1674,8 @@ class DAGTransformer(Transformer):
 
     Returns
     -------
-    List of parent adjacency matrices
+    List
+      List of parent adjacency matrices
     """
     # list of calculation orders for DAGs
     # stemming from one specific atom in the molecule
@@ -2048,7 +2049,7 @@ class FeaturizationTransformer(Transformer):
 class DataTransforms(object):
   """Applies different data transforms to images.
 
-  This utility class facilitates various image transformations thatmay be of
+  This utility class facilitates various image transformations that may be of
   use for handling image datasets.
 
   Note
@@ -2068,6 +2069,11 @@ class DataTransforms(object):
       Height of the images
     w: int
       Width of the images
+
+    Returns
+    -------
+    np.ndarray
+      The scaled image.
     """
     from PIL import Image
     return Image.fromarray(self.Image).resize((h, w))
@@ -2079,6 +2085,11 @@ class DataTransforms(object):
     ----------
     direction: str
       "lr" denotes left-right flip and "ud" denotes up-down flip.
+
+    Returns
+    -------
+    np.ndarray
+      The flipped image.
     """
     if direction == "lr":
       return np.fliplr(self.Image)
@@ -2099,7 +2110,8 @@ class DataTransforms(object):
 
     Returns
     -------
-    The rotated input array
+    np.ndarray
+      The rotated image.
     """
     return scipy.ndimage.rotate(self.Image, angle)
 
@@ -2110,6 +2122,11 @@ class DataTransforms(object):
     ----------
     sigma: float
       Std dev. of the gaussian distribution
+
+    Returns
+    -------
+    np.ndarray
+      The image added gaussian noise.
     """
     return scipy.ndimage.gaussian_filter(self.Image, sigma)
 
@@ -2125,8 +2142,8 @@ class DataTransforms(object):
 
     Returns
     -------
-    The center cropped input array
-
+    np.ndarray
+      The center cropped image.
     """
     y = self.Image.shape[0]
     x = self.Image.shape[1]
@@ -2150,7 +2167,8 @@ class DataTransforms(object):
 
     Returns
     -------
-    The cropped input array
+    np.ndarray
+      The cropped image.
     """
     y = self.Image.shape[0]
     x = self.Image.shape[1]
@@ -2161,7 +2179,8 @@ class DataTransforms(object):
 
     Returns
     -------
-    The grayscale image.
+    np.ndarray
+      The grayscale image.
     """
     return np.dot(self.Image[..., :3], [0.2989, 0.5870, 0.1140])
 
@@ -2180,6 +2199,11 @@ class DataTransforms(object):
       ‘constant’
     order: int
       The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
+
+    Returns
+    -------
+    np.ndarray
+      The shifted image.
     """
     if len(self.Image.shape) == 2:
       return scipy.ndimage.shift(
@@ -2197,6 +2221,11 @@ class DataTransforms(object):
       Mean of gaussian.
     std: float
       Standard deviation of gaussian.
+
+    Returns
+    -------
+    np.ndarray
+      The image added gaussian noise.
     """
 
     x = self.Image
@@ -2214,6 +2243,11 @@ class DataTransforms(object):
       value of salt noise.
     pepper: float
       value of pepper noise.
+
+    Returns
+    -------
+    np.ndarray
+      The image added salt and pepper noise.
     """
 
     noise = np.random.random(size=self.Image.shape)
@@ -2232,7 +2266,8 @@ class DataTransforms(object):
 
     Returns
     -------
-    The median filtered image.
+    np.ndarray
+      The median filtered image.
     """
     from PIL import Image, ImageFilter
     image = Image.fromarray(self.Image)

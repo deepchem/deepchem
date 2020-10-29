@@ -15,78 +15,105 @@ learning models more rigorously than standard deep models since we're
 looking for the ability to generalize to new domains. Some of the
 implemented splitters here may help.
 
-Splitter
---------
-The :code:`dc.splits.Splitter` class is the abstract parent class for
-all splitters. This class should never be directly instantiated.
+.. contents:: Contents
+    :local:
 
-.. autoclass:: deepchem.splits.Splitter
-  :members:
+General Splitters
+-----------------
 
 RandomSplitter
---------------
+^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.splits.RandomSplitter
   :members:
+  :inherited-members:
+  :exclude-members: __init__
 
 IndexSplitter
--------------
+^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.splits.IndexSplitter
   :members:
+  :inherited-members:
+  :exclude-members: __init__
 
 SpecifiedSplitter
------------------
+^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.splits.SpecifiedSplitter
   :members:
+  :inherited-members:
 
 
 RandomGroupSplitter
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.splits.RandomGroupSplitter
   :members:
+  :inherited-members:
 
 RandomStratifiedSplitter
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.splits.RandomStratifiedSplitter
   :members:
+  :inherited-members:
+  :exclude-members: __init__
 
 SingletaskStratifiedSplitter
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.splits.SingletaskStratifiedSplitter
   :members:
+  :inherited-members:
+
+TaskSplitter
+^^^^^^^^^^^^
+
+.. autoclass:: deepchem.splits.TaskSplitter
+  :members:
+  :inherited-members:
+
+
+Molecule Splitters
+------------------
 
 MolecularWeightSplitter
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.splits.MolecularWeightSplitter
   :members:
+  :inherited-members:
+  :exclude-members: __init__
 
 MaxMinSplitter
---------------
+^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.splits.MaxMinSplitter
   :members:
+  :inherited-members:
+  :exclude-members: __init__
 
 ButinaSplitter
---------------
+^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.splits.ButinaSplitter
   :members:
+  :inherited-members:
 
 ScaffoldSplitter
-----------------
+^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.splits.ScaffoldSplitter
   :members:
+  :inherited-members:
+  :exclude-members: __init__
 
 FingeprintSplitter
-------------------
+^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.splits.FingerprintSplitter
   :members:
+  :inherited-members:
+  :exclude-members: __init__
 

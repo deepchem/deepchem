@@ -8,101 +8,110 @@ distribution. Real data of course is wild and hard to control. What do
 you do if you have a crazy dataset and need to bring its statistics to
 heel? Fear not for you have :code:`Transformer` objects.
 
-Transformer
------------
-The :code:`dc.trans.Transformer` class is the abstract parent class
-for all transformers. This class should never be directly initialized,
-but contains a number of useful method implementations.
+.. contents:: Contents
+    :local:
 
-.. autoclass:: deepchem.trans.Transformer
-  :members:
+
+General Transformers
+--------------------
 
 MinMaxTransformer
------------------
+^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.trans.MinMaxTransformer
   :members:
+  :inherited-members:
 
 NormalizationTransformer
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.trans.NormalizationTransformer
   :members:
+  :inherited-members:
 
 ClippingTransformer
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.trans.ClippingTransformer
   :members:
+  :inherited-members:
 
 LogTransformer
---------------
+^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.trans.LogTransformer
   :members:
+  :inherited-members:
 
 BalancingTransformer
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.trans.BalancingTransformer
   :members:
+  :inherited-members:
 
 DuplicateBalancingTransformer
------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.trans.DuplicateBalancingTransformer
   :members:
+  :inherited-members:
 
 CDFTransformer
---------------
+^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.trans.CDFTransformer
   :members:
+  :inherited-members:
 
 PowerTransformer
-----------------
+^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.trans.PowerTransformer
   :members:
-
-CoulombFitTransformer
----------------------
-
-.. autoclass:: deepchem.trans.CoulombFitTransformer
-  :members:
-
-IRVTransformer
---------------
-
-.. autoclass:: deepchem.trans.IRVTransformer
-  :members:
-
-DAGTransformer
---------------
-
-.. autoclass:: deepchem.trans.DAGTransformer
-  :members:
+  :inherited-members:
 
 ImageTransformer
-----------------
+^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.trans.ImageTransformer
   :members:
-
-ANITransformer
---------------
-
-.. autoclass:: deepchem.trans.ANITransformer
-  :members:
+  :inherited-members:
 
 FeaturizationTransformer
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.trans.FeaturizationTransformer
   :members:
+  :inherited-members:
 
-DataTransforms
---------------
+Specified Usecase Transformers
+------------------------------
 
-.. autoclass:: deepchem.trans.DataTransforms
+CoulombFitTransformer
+^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.trans.CoulombFitTransformer
   :members:
+  :inherited-members:
+
+IRVTransformer
+^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.trans.IRVTransformer
+  :members:
+  :inherited-members:
+
+DAGTransformer
+^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.trans.DAGTransformer
+  :members:
+  :inherited-members:
+
+ANITransformer
+^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.trans.ANITransformer
+  :members:
+  :inherited-members:
