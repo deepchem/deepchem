@@ -1,5 +1,5 @@
-DeepChem Infrastructure
-=======================
+Infrastructures
+===============
 
 The DeepChem project maintains supporting infrastructure on a number of
 different services. This infrastructure is maintained by the DeepChem

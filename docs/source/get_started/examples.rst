@@ -114,7 +114,7 @@ Examples of training models on `ChEMBL`_ dataset included in MoleculeNet.
 ChEMBL is a manually curated database of bioactive molecules with drug-like properties.
 It brings together chemical, bioactivity and genomic data to aid the translation of genomic information into effective new drugs.
 
-.. _`ChEMBL`: <https://www.ebi.ac.uk/chembl>
+.. _`ChEMBL`: https://www.ebi.ac.uk/chembl
 
 MultitaskRegressor
 ^^^^^^^^^^^^^^^^^^
