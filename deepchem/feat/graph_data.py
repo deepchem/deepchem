@@ -99,8 +99,8 @@ class GraphData:
     torch_geometric.data.Data
       Graph data for PyTorch Geometric
 
-    Notes
-    -----
+    Note
+    ----
     This method requires PyTorch Geometric to be installed.
     """
     try:
@@ -134,8 +134,8 @@ class GraphData:
       Whether to add self loops for the nodes, i.e. edges from nodes
       to themselves. Default to False.
 
-    Notes
-    -----
+    Note
+    ----
     This method requires DGL to be installed.
     """
     try:

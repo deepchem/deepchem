@@ -129,3 +129,4 @@ def linkcode_resolve(domain, info):
 
   tag = 'master' if 'dev' in release else ('v' + release)
   return "https://github.com/deepchem/deepchem/blob/%s/%s" % (tag, filename)
+

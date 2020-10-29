@@ -316,8 +316,6 @@ class EpisodeGenerator(object):
 
       return (task, support, test)
 
-  __next__ = next  # Python 3.X compatibility
-
 
 class SupportGenerator(object):
   """Generate support sets from a dataset.
@@ -382,5 +380,3 @@ class SupportGenerator(object):
         self.trial_num += 1  # Upgrade trial index
 
       return (task, support)
-
-  __next__ = next  # Python 3.X compatibility
