@@ -61,7 +61,6 @@ master_doc = 'index'
 
 # autosectionlabel setting
 autosectionlabel_prefix_document = True
-autosectionlabel_maxdepth = 3
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.

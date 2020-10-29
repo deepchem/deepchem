@@ -11,9 +11,9 @@ library? Simply put, DeepChem maintains an extensive collection of utilities
 to enable scientific deep learning including classes for loading scientific
 datasets, processing them, transforming them, splitting them up, and learning
 from them. Behind the scenes DeepChem uses a variety of other machine
-learning frameworks such as `sklearn`_, `tensorflow`_, and `xgboost`_. We are
-also experimenting with adding additional models implemented in `pytorch`_
-and `jax`_. Our focus is to facilitate scientific experimentation using
+learning frameworks such as `scikit-learn`_, `TensorFlow`_, and `XGBoost`_. We are
+also experimenting with adding additional models implemented in `PyTorch`_
+and `JAX`_. Our focus is to facilitate scientific experimentation using
 whatever tools are available at hand.
 
 DeepChem maintains an extensive collection of addition `tutorials`_ that are meant to be run on `Google colab`_,
@@ -33,11 +33,11 @@ but we should give you enough to get started. We show the first 10 tutorials.
 
 Please try more tutorials!
 
-.. _`sklearn`: https://scikit-learn.org/stable/
-.. _`tensorflow`: https://www.tensorflow.org/
-.. _`xgboost`: https://xgboost.readthedocs.io/en/latest/
-.. _`pytorch`: https://pytorch.org/
-.. _`jax`: https://github.com/google/jax
+.. _`scikit-learn`: https://scikit-learn.org/stable/
+.. _`TensorFlow`: https://www.tensorflow.org/
+.. _`XGBoost`: https://xgboost.readthedocs.io/en/latest/
+.. _`PyTorch`: https://pytorch.org/
+.. _`JAX`: https://github.com/google/jax
 .. _`tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials
 .. _`Google colab`: https://colab.research.google.com/
 .. _`Basic Tools of the Deep Life Sciences`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/01_The_Basic_Tools_of_the_Deep_Life_Sciences.ipynb
