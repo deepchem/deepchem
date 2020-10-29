@@ -11,16 +11,16 @@ from transformers import BertTokenizer
 from logging import getLogger
 
 logger = getLogger(__name__)
+
 """
 SMI_REGEX_PATTERN: str
     SMILES regex pattern for tokenization. Designed by Schwaller et. al.
 
 References
-
+----------
 .. [1]  Philippe Schwaller, Teodoro Laino, Théophile Gaudin, Peter Bolgar, Christopher A. Hunter, Costas Bekas, and Alpha A. Lee
         ACS Central Science 2019 5 (9): Molecular Transformer: A Model for Uncertainty-Calibrated Chemical Reaction Prediction
         1572-1583 DOI: 10.1021/acscentsci.9b00576
-
 """
 
 SMI_REGEX_PATTERN = r"""(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|
@@ -38,33 +38,33 @@ def get_default_tokenizer():
 
 class SmilesTokenizer(BertTokenizer):
   """
-    Creates the SmilesTokenizer class. The tokenizer heavily inherits from the BertTokenizer
-    implementation found in Huggingface's transformers library. It runs a WordPiece tokenization
-    algorithm over SMILES strings using the tokenisation SMILES regex developed by Schwaller et. al.
+  Creates the SmilesTokenizer class. The tokenizer heavily inherits from the BertTokenizer
+  implementation found in Huggingface's transformers library. It runs a WordPiece tokenization
+  algorithm over SMILES strings using the tokenisation SMILES regex developed by Schwaller et. al.
 
-    Please see https://github.com/huggingface/transformers
-    and https://github.com/rxn4chemistry/rxnfp for more details.
+  Please see https://github.com/huggingface/transformers
+  and https://github.com/rxn4chemistry/rxnfp for more details.
 
-    Examples
-    --------
-    >>> from deepchem.feat.smiles_tokenizer import SmilesTokenizer
-    >>> current_dir = os.path.dirname(os.path.realpath(__file__))
-    >>> vocab_path = os.path.join(current_dir, 'tests/data', 'vocab.txt')
-    >>> tokenizer = SmilesTokenizer(vocab_path)
-    >>> print(tokenizer.encode("CC(=O)OC1=CC=CC=C1C(=O)O"))
-    [12, 16, 16, 17, 22, 19, 18, 19, 16, 20, 22, 16, 16, 22, 16, 16, 22, 16, 20, 16, 17, 22, 19, 18, 19, 13]
+  Examples
+  --------
+  >>> from deepchem.feat.smiles_tokenizer import SmilesTokenizer
+  >>> current_dir = os.path.dirname(os.path.realpath(__file__))
+  >>> vocab_path = os.path.join(current_dir, 'tests/data', 'vocab.txt')
+  >>> tokenizer = SmilesTokenizer(vocab_path)
+  >>> print(tokenizer.encode("CC(=O)OC1=CC=CC=C1C(=O)O"))
+  [12, 16, 16, 17, 22, 19, 18, 19, 16, 20, 22, 16, 16, 22, 16, 16, 22, 16, 20, 16, 17, 22, 19, 18, 19, 13]
 
 
-    References
-    ----------
-    .. [1]  Schwaller, Philippe; Probst, Daniel; Vaucher, Alain C.; Nair, Vishnu H; Kreutter, David;
-            Laino, Teodoro; et al. (2019): Mapping the Space of Chemical Reactions using Attention-Based Neural
-            Networks. ChemRxiv. Preprint. https://doi.org/10.26434/chemrxiv.9897365.v3
+  References
+  ----------
+  .. [1]  Schwaller, Philippe; Probst, Daniel; Vaucher, Alain C.; Nair, Vishnu H; Kreutter, David;
+          Laino, Teodoro; et al. (2019): Mapping the Space of Chemical Reactions using Attention-Based Neural
+          Networks. ChemRxiv. Preprint. https://doi.org/10.26434/chemrxiv.9897365.v3
 
-    Notes
-    ----
-    This class requires huggingface's transformers and tokenizers libraries to be installed.
-    """
+  Note
+  ----
+  This class requires huggingface's transformers and tokenizers libraries to be installed.
+  """
   vocab_files_names = VOCAB_FILES_NAMES
 
   def __init__(
@@ -78,12 +78,12 @@ class SmilesTokenizer(BertTokenizer):
       **kwargs):
     """Constructs a SmilesTokenizer.
 
-        Parameters
-        ----------
-        vocab_file: str
-            Path to a SMILES character per line vocabulary file.
-            Default vocab file is found in deepchem/feat/tests/data/vocab.txt
-        """
+    Parameters
+    ----------
+    vocab_file: str
+        Path to a SMILES character per line vocabulary file.
+        Default vocab file is found in deepchem/feat/tests/data/vocab.txt
+    """
 
     super().__init__(vocab_file, **kwargs)
     # take into account special tokens in max length
@@ -110,100 +110,92 @@ class SmilesTokenizer(BertTokenizer):
     return list(self.vocab.keys())
 
   def _tokenize(self, text: str):
-    """
-        Tokenize a string into a list of tokens.
+    """Tokenize a string into a list of tokens.
 
-        Parameters
-        ----------
-        text: str
-            Input string sequence to be tokenized.
-        """
+    Parameters
+    ----------
+    text: str
+        Input string sequence to be tokenized.
+    """
 
     split_tokens = [token for token in self.basic_tokenizer.tokenize(text)]
     return split_tokens
 
-  def _convert_token_to_id(self, token):
-    """
-        Converts a token (str/unicode) in an id using the vocab.
+  def _convert_token_to_id(self, token: str):
+    """Converts a token (str/unicode) in an id using the vocab.
 
-        Parameters
-        ----------
-        token: str
-            String token from a larger sequence to be converted to a numerical id.
-        """
+    Parameters
+    ----------
+    token: str
+        String token from a larger sequence to be converted to a numerical id.
+    """
 
     return self.vocab.get(token, self.vocab.get(self.unk_token))
 
-  def _convert_id_to_token(self, index):
-    """
-        Converts an index (integer) in a token (string/unicode) using the vocab.
+  def _convert_id_to_token(self, index: int):
+    """Converts an index (integer) in a token (string/unicode) using the vocab.
 
-        Parameters
-        ----------
-        index: int
-            Integer index to be converted back to a string-based token as part of a larger sequence.
-        """
+    Parameters
+    ----------
+    index: int
+        Integer index to be converted back to a string-based token as part of a larger sequence.
+    """
 
     return self.ids_to_tokens.get(index, self.unk_token)
 
   def convert_tokens_to_string(self, tokens: List[str]):
-    """ Converts a sequence of tokens (string) in a single string.
+    """Converts a sequence of tokens (string) in a single string.
 
-        Parameters
-        ----------
-        tokens: List[str]
-            List of tokens for a given string sequence.
+    Parameters
+    ----------
+    tokens: List[str]
+        List of tokens for a given string sequence.
 
-        Returns
-        -------
-        out_string: str
-            Single string from combined tokens.
-        """
+    Returns
+    -------
+    out_string: str
+        Single string from combined tokens.
+    """
 
     out_string: str = " ".join(tokens).replace(" ##", "").strip()
     return out_string
 
   def add_special_tokens_ids_single_sequence(self, token_ids: List[int]):
+    """Adds special tokens to the a sequence for sequence classification tasks.
+
+    A BERT sequence has the following format: [CLS] X [SEP]
+
+    Parameters
+    ----------
+    token_ids: list[int]
+        list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
     """
-        Adds special tokens to the a sequence for sequence classification tasks.
-        A BERT sequence has the following format: [CLS] X [SEP]
-
-        Parameters
-        ----------
-
-        token_ids: list[int]
-            list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
-        """
 
     return [self.cls_token_id] + token_ids + [self.sep_token_id]
 
   def add_special_tokens_single_sequence(self, tokens: List[str]):
+    """Adds special tokens to the a sequence for sequence classification tasks.
+    A BERT sequence has the following format: [CLS] X [SEP]
+
+    Parameters
+    ----------
+    tokens: List[str]
+        List of tokens for a given string sequence.
     """
-        Adds special tokens to the a sequence for sequence classification tasks.
-        A BERT sequence has the following format: [CLS] X [SEP]
-
-        Parameters
-        ----------
-        tokens: List[str]
-            List of tokens for a given string sequence.
-
-        """
     return [self.cls_token] + tokens + [self.sep_token]
 
   def add_special_tokens_ids_sequence_pair(self, token_ids_0: List[int],
                                            token_ids_1: List[int]) -> List[int]:
+    """Adds special tokens to a sequence pair for sequence classification tasks.
+    A BERT sequence pair has the following format: [CLS] A [SEP] B [SEP]
+
+    Parameters
+    ----------
+    token_ids_0: List[int]
+        List of ids for the first string sequence in the sequence pair (A).
+    token_ids_1: List[int]
+        List of tokens for the second string sequence in the sequence pair (B).
     """
-        Adds special tokens to a sequence pair for sequence classification tasks.
-        A BERT sequence pair has the following format: [CLS] A [SEP] B [SEP]
-
-        Parameters
-        ----------
-        token_ids_0: List[int]
-            List of ids for the first string sequence in the sequence pair (A).
-
-        token_ids_1: List[int]
-            List of tokens for the second string sequence in the sequence pair (B).
-        """
 
     sep = [self.sep_token_id]
     cls = [self.cls_token_id]
@@ -214,28 +206,23 @@ class SmilesTokenizer(BertTokenizer):
                          token_ids: List[int],
                          length: int,
                          right: bool = True) -> List[int]:
+    """Adds padding tokens to return a sequence of length max_length.
+    By default padding tokens are added to the right of the sequence.
+
+    Parameters
+    ----------
+    token_ids: list[int]
+        list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
+    length: int
+        TODO
+    right: bool, default True
+        TODO
+
+    Returns
+    -------
+    List[int]
+       TODO
     """
-        Adds padding tokens to return a sequence of length max_length.
-        By default padding tokens are added to the right of the sequence.
-
-        Parameters
-        ----------
-        token_ids: list[int]
-            list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
-
-        length: int
-
-        right: bool (True by default)
-
-        Returns
-        ----------
-        token_ids :
-            list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
-
-        padding: int
-            Integer to be added as padding token
-
-        """
     padding = [self.pad_token_id] * (length - len(token_ids))
 
     if right:
@@ -246,23 +233,21 @@ class SmilesTokenizer(BertTokenizer):
   def save_vocabulary(
       self, vocab_path: str
   ):  # -> tuple[str]: doctest issue raised with this return type annotation
+    """Save the tokenizer vocabulary to a file.
+
+    Parameters
+    ----------
+    vocab_path: obj: str
+        The directory in which to save the SMILES character per line vocabulary file.
+        Default vocab file is found in deepchem/feat/tests/data/vocab.txt
+
+    Returns
+    -------
+    vocab_file: Tuple
+        Paths to the files saved.
+        typle with string to a SMILES character per line vocabulary file.
+        Default vocab file is found in deepchem/feat/tests/data/vocab.txt
     """
-        Save the tokenizer vocabulary to a file.
-
-        Parameters
-        ----------
-        vocab_path: obj: str
-            The directory in which to save the SMILES character per line vocabulary file.
-            Default vocab file is found in deepchem/feat/tests/data/vocab.txt
-
-        Returns
-        ----------
-        vocab_file: :obj:`Tuple(str)`:
-            Paths to the files saved.
-            typle with string to a SMILES character per line vocabulary file.
-            Default vocab file is found in deepchem/feat/tests/data/vocab.txt
-
-        """
     index = 0
     if os.path.isdir(vocab_path):
       vocab_file = os.path.join(vocab_path, VOCAB_FILES_NAMES["vocab_file"])
@@ -284,41 +269,38 @@ class SmilesTokenizer(BertTokenizer):
 
 class BasicSmilesTokenizer(object):
   """
+  Run basic SMILES tokenization using a regex pattern developed by Schwaller et. al. 
+  This tokenizer is to be used when a tokenizer that does not require the transformers library by HuggingFace is required.
 
-    Run basic SMILES tokenization using a regex pattern developed by Schwaller et. al. This tokenizer is to be used
-    when a tokenizer that does not require the transformers library by HuggingFace is required.
-
-    Examples
-    --------
-    >>> from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
-    >>> tokenizer = BasicSmilesTokenizer()
-    >>> print(tokenizer.tokenize("CC(=O)OC1=CC=CC=C1C(=O)O"))
-    ['C', 'C', '(', '=', 'O', ')', 'O', 'C', '1', '=', 'C', 'C', '=', 'C', 'C', '=', 'C', '1', 'C', '(', '=', 'O', ')', 'O']
+  Examples
+  --------
+  >>> from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
+  >>> tokenizer = BasicSmilesTokenizer()
+  >>> print(tokenizer.tokenize("CC(=O)OC1=CC=CC=C1C(=O)O"))
+  ['C', 'C', '(', '=', 'O', ')', 'O', 'C', '1', '=', 'C', 'C', '=', 'C', 'C', '=', 'C', '1', 'C', '(', '=', 'O', ')', 'O']
 
 
-    References
-    ----------
-    .. [1]  Philippe Schwaller, Teodoro Laino, Théophile Gaudin, Peter Bolgar, Christopher A. Hunter, Costas Bekas, and Alpha A. Lee
-            ACS Central Science 2019 5 (9): Molecular Transformer: A Model for Uncertainty-Calibrated Chemical Reaction Prediction
-            1572-1583 DOI: 10.1021/acscentsci.9b00576
-
-    """
+  References
+  ----------
+  .. [1]  Philippe Schwaller, Teodoro Laino, Théophile Gaudin, Peter Bolgar, Christopher A. Hunter, Costas Bekas, and Alpha A. Lee
+          ACS Central Science 2019 5 (9): Molecular Transformer: A Model for Uncertainty-Calibrated Chemical Reaction Prediction
+          1572-1583 DOI: 10.1021/acscentsci.9b00576
+  """
 
   def __init__(self, regex_pattern: str = SMI_REGEX_PATTERN):
-    """ Constructs a BasicSMILESTokenizer.
-        Parameters
-        ----------
+    """Constructs a BasicSMILESTokenizer.
 
-        regex: string
-            SMILES token regex
-
-        """
+    Parameters
+    ----------
+    regex: string
+        SMILES token regex
+    """
     self.regex_pattern = regex_pattern
     self.regex = re.compile(self.regex_pattern)
 
   def tokenize(self, text):
-    """ Basic Tokenization of a SMILES.
-        """
+    """Basic Tokenization of a SMILES.
+    """
     tokens = [token for token in self.regex.findall(text)]
     return tokens
 

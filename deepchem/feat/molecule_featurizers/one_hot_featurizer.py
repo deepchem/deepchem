@@ -21,8 +21,8 @@ class OneHotFeaturizer(MolecularFeaturizer):
 
   This featurizer encodes SMILES string as a one-hot array.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 

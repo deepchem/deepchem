@@ -46,10 +46,10 @@ extensions = [
 autodoc_default_options = {
     'member-order': 'bysource',
     'special-members': True,
-    'exclude-members': '__repr__, __str__, __weakref__, __hash__, __eq__',
+    'exclude-members': '__repr__, __str__, __weakref__, __hash__, __eq__, __call__',
 }
 
-# How to represents typehints.
+# How to represents typehints
 autodoc_typehints = "signature"
 
 mathjax_path = 'http://mathjax.connectmv.com/MathJax.js?config=default'

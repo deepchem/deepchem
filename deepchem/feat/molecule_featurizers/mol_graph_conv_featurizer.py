@@ -135,8 +135,8 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
   .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints."
      Journal of computer-aided molecular design 30.8 (2016):595-608.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 

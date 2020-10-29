@@ -19,7 +19,7 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
   matminer. It may be useful when only crystal compositions are available
   (and not 3D coordinates).
 
-  See references [1]_ [2]_ [3]_ [4]_ for more details.
+  See references [1]_, [2]_, [3]_, [4]_ for more details.
 
   References
   ----------
@@ -37,8 +37,8 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
   >>> featurizer = ElementPropertyFingerprint()
   >>> features = featurizer.featurize([comp])
 
-  Notes
-  -----
+  Note
+  ----
   This class requires matminer and Pymatgen to be installed.
   `NaN` feature values are automatically converted to 0 by this featurizer.
   """

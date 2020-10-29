@@ -21,8 +21,8 @@ class CircularFingerprint(MolecularFeaturizer):
   .. [1] Rogers, David, and Mathew Hahn. "Extended-connectivity fingerprints."
      Journal of chemical information and modeling 50.5 (2010): 742-754.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 
