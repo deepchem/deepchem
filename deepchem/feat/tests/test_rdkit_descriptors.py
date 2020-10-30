@@ -25,10 +25,11 @@ class TestRDKitDescriptors(unittest.TestCase):
     """
     Test simple descriptors.
     """
-    descriptors = self.featurizer([self.mol])
-    assert descriptors.shape == (1, 200)
+    featurizer = RDKitDescriptors()
+    descriptors = featurizer([self.mol])
+    assert descriptors.shape == (1, len(featurizer.descriptors))
     assert np.allclose(
-        descriptors[0, self.featurizer.descriptors.index('ExactMolWt')],
+        descriptors[0, featurizer.descriptors.index('ExactMolWt')],
         180,
         atol=0.1)
 
@@ -36,20 +37,25 @@ class TestRDKitDescriptors(unittest.TestCase):
     """
     Test invocation on raw smiles.
     """
-    descriptors = self.featurizer('CC(=O)OC1=CC=CC=C1C(=O)O')
-    assert descriptors.shape == (1, 200)
+    featurizer = RDKitDescriptors()
+    descriptors = featurizer('CC(=O)OC1=CC=CC=C1C(=O)O')
+    assert descriptors.shape == (1, len(featurizer.descriptors))
     assert np.allclose(
-        descriptors[0, self.featurizer.descriptors.index('ExactMolWt')],
+        descriptors[0, featurizer.descriptors.index('ExactMolWt')],
         180,
         atol=0.1)
 
-  def test_rdkit_descriptors_on_mol(self):
+  def test_rdkit_descriptors_with_use_fragment(self):
     """
-    Test invocation on RDKit mol.
+    Test with use_fragment
     """
-    descriptors = self.featurizer(self.mol)
-    assert descriptors.shape == (1, 200)
+    from rdkit.Chem import Descriptors
+    featurizer = RDKitDescriptors(use_fragment=False)
+    descriptors = featurizer(self.mol)
+    assert descriptors.shape == (1, len(featurizer.descriptors))
+    all_descriptors = Descriptors.descList
+    assert len(featurizer.descriptors) < len(all_descriptors)
     assert np.allclose(
-        descriptors[0, self.featurizer.descriptors.index('ExactMolWt')],
+        descriptors[0, featurizer.descriptors.index('ExactMolWt')],
         180,
         atol=0.1)
