@@ -1,7 +1,8 @@
 import logging
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from deepchem.data import Dataset
+from deepchem.trans import Transformer
 from deepchem.models import Model
 from deepchem.metrics import Metric
 
@@ -73,15 +74,15 @@ class HyperparamOpt(object):
           You probably want to instantiate a concrete subclass instead.")
     self.model_builder = model_builder
 
-  def hyperparam_search(
-      self,
-      params_dict: Dict[str, Any],
-      train_dataset: Dataset,
-      valid_dataset: Dataset,
-      metric: Metric,
-      use_max: bool = True,
-      logdir: Optional[str] = None,
-      **kwargs) -> Tuple[Model, Dict[str, Any], Dict[str, float]]:
+  def hyperparam_search(self,
+                        params_dict: Dict,
+                        train_dataset: Dataset,
+                        valid_dataset: Dataset,
+                        metric: Metric,
+                        output_transformers: List[Transformer] = [],
+                        use_max: bool = True,
+                        logdir: Optional[str] = None,
+                        **kwargs) -> Tuple[Model, Dict, Dict]:
     """Conduct Hyperparameter search.
 
     This method defines the common API shared by all hyperparameter
@@ -104,6 +105,11 @@ class HyperparamOpt(object):
       dataset used for validation(optimization on valid scores)
     metric: Metric
       metric used for evaluation
+    output_transformers: list[Transformer]
+      Transformers for evaluation. This argument is needed since
+      `train_dataset` and `valid_dataset` may have been transformed
+      for learning and need the transform to be inverted before
+      the metric can be evaluated on a model.
     use_max: bool, optional
       If True, return the model with the highest score. Else return
       model with the minimum score.

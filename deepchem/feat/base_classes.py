@@ -233,7 +233,7 @@ class MolecularFeaturizer(Featurizer):
   The subclasses of this class require RDKit to be installed.
   """
 
-  def featurize(self, molecules, log_every_n=1000):
+  def featurize(self, molecules, log_every_n=1000) -> np.ndarray:
     """Calculate features for molecules.
 
     Parameters
