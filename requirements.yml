@@ -21,4 +21,4 @@ dependencies:
     - pymatgen
     - simdna
     - xgboost
-    - -e git+https://github.com/samoturk/mol2vec#egg=mol2vec
+    - git+https://github.com/samoturk/mol2vec
