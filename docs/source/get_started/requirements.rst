@@ -78,6 +78,10 @@ DeepChem has a number of "soft" requirements.
 |                                |               | :code:`dc.trans.transformers`                     |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `PubChemPy`_                   | latest        | :code:`dc.feat.molecule_featurizers`              |
+|                                |               |                                                   |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
 | `pyGPGO`_                      | latest        | :code:`dc.hyper.gaussian_process`                 |
 |                                |               |                                                   |
 |                                |               |                                                   |
@@ -134,6 +138,7 @@ DeepChem has a number of "soft" requirements.
 .. _`OpenMM`: http://openmm.org/
 .. _`PDBFixer`: https://github.com/pandegroup/pdbfixer
 .. _`Pillow`: https://pypi.org/project/Pillow/
+.. _`PubChemPy`: https://pubchempy.readthedocs.io/en/latest/
 .. _`pyGPGO`: https://pygpgo.readthedocs.io/en/latest/
 .. _`Pymatgen`: https://pymatgen.org/
 .. _`PyTorch`: https://pytorch.org/
