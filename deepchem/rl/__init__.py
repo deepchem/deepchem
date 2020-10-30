@@ -55,8 +55,11 @@ class Environment(object):
     if state_dtype is None:
       # Assume all arrays are float32.
       import numpy
-      import collections
-      if isinstance(state_shape[0], collections.Sequence):
+      try:
+        from collections.abc import Sequence as SequenceCollection
+      except:
+        from collections import Sequence as SequenceCollection
+      if isinstance(state_shape[0], SequenceCollection):
         self._state_dtype = [numpy.float32] * len(state_shape)
       else:
         self._state_dtype = numpy.float32
