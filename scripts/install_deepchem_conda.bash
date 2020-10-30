@@ -23,8 +23,7 @@ then
     conda-merge $PWD/env.common.yml $PWD/env.gpu.yml $PWD/env.test.yml > $PWD/env.yml
     echo "Installing DeepChem in the GPU environment"
 else
-    if [ "$(uname)" == 'Darwin' ];
-    then
+    if [ "$(uname)" == 'Darwin' ]; then
         conda-merge $PWD/env.common.yml $PWD/env.cpu.mac.yml $PWD/env.test.yml > $PWD/env.yml
     else
         conda-merge $PWD/env.common.yml $PWD/env.cpu.yml $PWD/env.test.yml > $PWD/env.yml

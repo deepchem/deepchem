@@ -9,8 +9,7 @@ fi
 
 yapf -d $CHANGED_FILES > diff.txt
 
-if [ -s diff.txt ]
-then
+if [ -s diff.txt ]; then
   cat diff.txt
   echo ""
   echo "Failing Formatting Test"

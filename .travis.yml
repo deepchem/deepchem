@@ -48,9 +48,8 @@ jobs:
 
 cache: pip
 before_install:
-  # `libomp` is needed for XGBoost and LightGBM
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-      brew update && brew install libomp
+      brew update && brew install libomp;
     fi
 install:
   - source ./scripts/install_miniconda.bash
