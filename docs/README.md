@@ -17,8 +17,14 @@ $ make clean html
 $ open build/html/index.html
 ```
 
-If you want to confirm logs in more details
+If you want to confirm logs in more details,
 
 ```
 $ make clean html SPHINXOPTS=-vvv
+```
+
+If you want to confirm the example tests,
+
+```
+$ make doctest_examples
 ```

@@ -129,16 +129,3 @@ def linkcode_resolve(domain, info):
 
   tag = 'master' if 'dev' in release else ('v' + release)
   return "https://github.com/deepchem/deepchem/blob/%s/%s" % (tag, filename)
-
-
-# Document __init__ methods
-def setup(app):
-
-  def skip(app, what, name, obj, skip, options):
-    members = [
-        '__init__',
-        '__call__',
-    ]
-    return False if name in members else skip
-
-  app.connect('autodoc-skip-member', skip)
