@@ -15,6 +15,7 @@ from deepchem.models.models import Model
 from deepchem.models.keras_model import KerasModel
 from deepchem.models.optimizers import Optimizer, Adam
 from deepchem.utils.typing import OneOrMany
+from deepchem.utils.data_utils import load_from_disk, save_to_disk
 
 logger = logging.getLogger(__name__)
 
@@ -182,6 +183,14 @@ class NormalizingFlowModel(KerasModel):
     """
 
     return -tf.reduce_mean(self.flow.log_prob(input, training=True))
+
+  def save(self):
+    """Saves model to disk using joblib."""
+    save_to_disk(self.model, self.get_model_filename(self.model_dir))
+
+  def reload(self):
+    """Loads model from joblib file on disk."""
+    self.model = load_from_disk(self.get_model_filename(self.model_dir))
 
   def _create_gradient_fn(self,
                           variables: Optional[List[tf.Variable]]) -> Callable:
