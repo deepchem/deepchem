@@ -16,37 +16,184 @@ also experimenting with adding additional models implemented in `PyTorch`_
 and `JAX`_. Our focus is to facilitate scientific experimentation using
 whatever tools are available at hand.
 
-DeepChem maintains an extensive collection of addition `tutorials`_ that are meant to be run on `Google colab`_,
-an online platform that allows you to execute Jupyter notebooks. DeepChem is a big library so we won't cover everything,
-but we should give you enough to get started. We show the first 10 tutorials.
+In the rest of this tutorials, we'll provide a rapid fire overview of DeepChem's API.
+DeepChem is a big library so we won't cover everything, but we should give you enough to get started.
 
-1. `Basic Tools of the Deep Life Sciences`_
-2. `Working with Datasets`_
-3. `MoleculeNet`_
-4. `Molecular Fingerprints`_
-5. `Creating Models with TensorFlow and PyTorch`_
-6. `Graph Convolutions`_
-7. `Featurizers`_
-8. `Splitters`_
-9. `Advanced Model Training`_
-10. `Creating Datasets`_
+.. contents:: Contents
+    :local:
 
-Please try more tutorials!
+Data Handling
+-------------
+
+The :code:`dc.data` module contains utilities to handle :code:`Dataset`
+objects. These :code:`Dataset` objects are the heart of DeepChem.
+A :code:`Dataset` is an abstraction of a dataset in machine learning. That is,
+a collection of features, labels, weights, alongside associated identifiers.
+Rather than explaining further, we'll just show you.
+
+.. doctest:: 
+
+   >>> import deepchem as dc
+   >>> import numpy as np
+   >>> N_samples = 50
+   >>> n_features = 10
+   >>> X = np.random.rand(N_samples, n_features)
+   >>> y = np.random.rand(N_samples)
+   >>> dataset = dc.data.NumpyDataset(X, y)
+   >>> dataset.X.shape
+   (50, 10)
+   >>> dataset.y.shape
+   (50,)
+
+Here we've used the :code:`NumpyDataset` class which stores datasets in memory.
+This works fine for smaller datasets and is very convenient for experimentation,
+but is less convenient for larger datasets. For that we have the :code:`DiskDataset` class.
+
+.. doctest::
+
+   >>> dataset = dc.data.DiskDataset.from_numpy(X, y)
+   >>> dataset.X.shape
+   (50, 10)
+   >>> dataset.y.shape
+   (50,)
+
+In this example we haven't specified a data directory, so this :code:`DiskDataset` is written
+to a temporary folder. Note that :code:`dataset.X` and :code:`dataset.y` load data
+from disk underneath the hood! So this can get very expensive for larger datasets.
+
+
+Feature Engineering
+-------------------
+
+"Featurizer" is a chunk of code which transforms raw input data into a processed
+form suitable for machine learning. The :code:`dc.feat` module contains an extensive collection
+of featurizers for molecules, molecular complexes and inorganic crystals.
+We'll show you the example about the usage of featurizers.
+
+.. doctest::
+
+   >>> smiles = [
+   ...   'O=Cc1ccc(O)c(OC)c1',
+   ...   'CN1CCC[C@H]1c2cccnc2',
+   ...   'C1CCCCC1',
+   ...   'c1ccccc1',
+   ...   'CC(=O)O',
+   ... ]
+   >>> properties = [0.4, -1.5, 3.2, -0.2, 1.7]
+   >>> featurizer = dc.feat.CircularFingerprint(size=1024)
+   >>> ecfp = featurizer.featurize(smiles)
+   >>> ecfp.shape
+   (5, 1024)
+   >>> dataset = dc.data.NumpyDataset(X=ecfp, y=np.array(properties))
+   >>> len(dataset)
+   5
+
+Here, we've used the :code:`CircularFingerprint` and converted SMILES to ECFP.
+The ECFP is a fingerprint which is a bit vector made by chemical structure information
+and we can use it as the input for various models.
+
+And then, you may have a CSV file which contains SMILES and property like HOMO-LUMO gap. 
+In such a case, by using :code:`DataLoader`, you can load and featurize your data at once.
+
+.. doctest::
+
+   >>> import pandas as pd
+   >>> # make a dataframe object for creating a CSV file
+   >>> df = pd.DataFrame(list(zip(smiles, properties)), columns=["SMILES", "property"])
+   >>> import tempfile
+   >>> with tempfile.NamedTemporaryFile(mode='w') as tmpfile:
+   ...   # dump the CSV file
+   ...   df.to_csv(tmpfile.name)
+   ...   # initizalize the featurizer
+   ...   featurizer = dc.feat.CircularFingerprint(size=1024)
+   ...   # initizalize the dataloader
+   ...   loader = dc.data.CSVLoader(["property"], feature_field="SMILES", featurizer=featurizer)
+   ...   # load and featurize the data from the CSV file
+   ...   dataset = loader.create_dataset(tmpfile.name)
+   ...   len(dataset)
+   5
+
+
+Data Splitting
+--------------
+
+The :code:`dc.splits` module contains a collection of scientifically aware splitters.
+Generally, we need to split the original data to training, validation and test data
+in order to tune the model and evaluate the model's performance.
+We'll show you the example about the usage of splitters.
+
+.. doctest::
+
+   >>> splitter = dc.split.RandomSplitter()
+   >>> # split 5 datapoints in the ratio of train:valid:test = 3:1:1
+   >>> train_dataset, valid_dataset, test_dataset = splitter.split(
+   >>>   dataset=dataset, frac_train=0.6, frac_valid=0.2, frac_valid=0.2
+   >>> )
+   >>> len(train_dataset)
+   >>> 3
+   >>> len(valid_dataset)
+   >>> 1
+   >>> len(test_dataset)
+   >>> 1
+
+Here, we've used the :code:`RandomSplitter` and splitted the data randomly
+in the ratio of train:valid:test = 3:1:1. But, the random splitting sometimes
+overestimates  model's performance, especially for small data or imbalance data.
+Please be careful for model evaluation. The :code:`dc.splits` provides more methods
+and algorithms to evaluate the model's performance appropriately, like cross validation or
+splitting using molecular scaffolds.
+
+
+Model Training and Evaluating
+-----------------------------
+
+The :code:`dc.models` conteins an extensive collection of models for scientific applications. 
+Most of all models inherits  :code:`dc.models.Model` and we can train them by just calling :code:`fit` method.
+You don't need to care about how to use specific framework APIs.
+We'll show you the example about the usage of models.
+
+.. doctest::
+
+   >>> from sklearn.ensemble import RandomForestRegressor
+   >>> rf = RandomForestRegressor()
+   >>> model = dc.models.SklearnModel(model=rf)
+   >>> # model training
+   >>> model.fit(train_dataset)
+   >>> valid_preds = model.predict(valid_dataset)
+   >>> valid_preds.shape
+   (1, 1)
+   >>> test_preds = model.predict(test_dataset)
+   >>> test_preds.shape
+   (1, 1)
+
+Here, we've used the :code:`SklearnModel` and trained the model.
+Even if you want to train a deep learning model which is implemented
+by TensorFlow or PyTorch, calling :code:`fit` method is all you need!
+
+And then, if you use :code:`dc.metrics.Metric`, you can evaluate your model
+by just calling :code:`evaluate` method.
+
+.. doctest::
+
+   >>> # initialze the metric
+   >>> metric = dc.metrics.Metric(dc.metrics.mae_score)
+   >>> # evaluate the model
+   >>> train_score = model.evaluate(train_dataset, [metric])
+   >>> valid_score = model.evaluate(valid_dataset, [metric])
+   >>> test_score = model.evaluate(test_dataset, [metric])
+
+
+More Tutorials
+--------------
+
+DeepChem maintains an extensive collection of addition `tutorials`_ that are meant to
+be run on Google `colab`_, an online platform that allows you to execute Jupyter notebooks.
+Once you've finished this introductory tutorial, we recommend working through these more involved tutorials.
 
 .. _`scikit-learn`: https://scikit-learn.org/stable/
 .. _`TensorFlow`: https://www.tensorflow.org/
 .. _`XGBoost`: https://xgboost.readthedocs.io/en/latest/
 .. _`PyTorch`: https://pytorch.org/
 .. _`JAX`: https://github.com/google/jax
-.. _`tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials
-.. _`Google colab`: https://colab.research.google.com/
-.. _`Basic Tools of the Deep Life Sciences`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/01_The_Basic_Tools_of_the_Deep_Life_Sciences.ipynb
-.. _`Working with Datasets`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/02_Working_With_Datasets.ipynb
-.. _`MoleculeNet`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/03_An_Introduction_To_MoleculeNet.ipynb
-.. _`Molecular Fingerprints`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/04_Molecular_Fingerprints.ipynb
-.. _`Creating Models with TensorFlow and PyTorch`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/05_Creating_Models_with_TensorFlow_and_PyTorch.ipynb
-.. _`Graph Convolutions`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/06_Introduction_to_Graph_Convolutions.ipynb
-.. _`Featurizers`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/07_Going_Deeper_on_Molecular_Featurizations.ipynb
-.. _`Splitters`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/08_Working_With_Splitters.ipynb
-.. _`Advanced Model Training`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/09_Advanced_Model_Training.ipynb
-.. _`Creating Datasets`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/10_Creating_a_high_fidelity_model_from_experimental_data.ipynb
+.. _`tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials	
+.. _`colab`: https://colab.research.google.com/
