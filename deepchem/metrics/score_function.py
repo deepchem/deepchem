@@ -183,8 +183,8 @@ def concordance_index(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
   References
   ----------
-  .. [3] Steck, Harald, et al. "On ranking in survival analysis: Bounds on the concordance index." 
-     Advances in neural information processing systems. (2008).
+  .. [1] Steck, Harald, et al. "On ranking in survival analysis: Bounds on the concordance index." 
+     Advances in neural information processing systems (2008).
   """
 
   idx = np.argsort(y_true)
