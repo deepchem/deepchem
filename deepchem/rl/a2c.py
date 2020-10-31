@@ -1,7 +1,9 @@
 """Advantage Actor-Critic (A2C) algorithm for reinforcement learning."""
 import time
-import collections
-
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
 import numpy as np
 import tensorflow as tf
 
@@ -171,7 +173,7 @@ class A2C(object):
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
     self.use_hindsight = use_hindsight
-    self._state_is_list = isinstance(env.state_shape[0], collections.Sequence)
+    self._state_is_list = isinstance(env.state_shape[0], SequenceCollection)
     if optimizer is None:
       self._optimizer = Adam(learning_rate=0.001, beta1=0.9, beta2=0.999)
     else:

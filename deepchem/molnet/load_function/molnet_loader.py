@@ -170,6 +170,7 @@ class _MolnetLoader(object):
 
     # Create the dataset
 
+    logger.info("About to featurize %s dataset." % name)
     dataset = self.create_dataset()
 
     # Split and transform the dataset.
