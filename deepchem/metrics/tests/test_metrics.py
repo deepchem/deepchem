@@ -1,5 +1,3 @@
-import sys
-sys.path.append('C:/Users/hsjang/vvv/deepchem')
 """
 Tests for metricsT.
 """
