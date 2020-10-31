@@ -162,3 +162,54 @@ def bedroc_score(y_true: np.ndarray, y_pred: np.ndarray, alpha: float = 20.0):
   scores = sorted(scores, key=lambda pair: pair[1], reverse=True)
 
   return CalcBEDROC(scores, 0, alpha)
+
+
+def concordance_index(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+  """Compute Concordance index.
+
+  Statistical metric indicates the quality of the predicted ranking.
+  Please confirm details from [1]_.
+
+  Parameters
+  ----------
+  y_true: np.ndarray
+    continous value
+  y_pred: np.ndarray
+    Predicted value
+
+  Returns
+  -------
+  float between [0,1]
+
+  References
+  ----------
+  .. [3] Steck, Harald, et al. "On ranking in survival analysis: Bounds on the concordance index." 
+     Advances in neural information processing systems. (2008).
+  """
+
+  idx = np.argsort(y_true)
+  y_true = y_true[idx]
+  y_pred = y_pred[idx]
+
+  pairs = 0
+  correct_pairs = 0.0
+
+  for i in range(len(y_true)):
+    true_a = y_true[i]
+    pred_a = y_pred[i]
+
+    for j in range(i + 1, len(y_true)):
+      true_b = y_true[j]
+      pred_b = y_pred[j]
+      if true_a != true_b:
+        pairs += 1
+        if pred_a == pred_b:
+          correct_pairs += 0.5
+        elif pred_a < pred_b:
+          correct_pairs += true_a < true_b
+        else:
+          correct_pairs += true_a > true_b
+
+  assert pairs > 0, 'No pairs for comparision'
+
+  return correct_pairs / pairs
