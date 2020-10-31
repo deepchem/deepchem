@@ -52,22 +52,15 @@ The fastest way to get up and running with DeepChem is to run it on
 Google Colab. Check out one of the `DeepChem Tutorials`_ or this
 `forum post`_ for Colab quick start guides.
 
-If you'd like to install DeepChem locally, we recommend using
-:code:`conda` and installing RDKit with deepchem.
-RDKit is a soft requirement package, but many useful methods like
-molnet depend on it.
+If you'd like to install DeepChem locally,
+we recommend installing deepchem which is nightly version and RDKit.
+RDKit is a soft requirement package, but many useful methods depend on it.
 
 .. code-block:: bash
 
-    pip install tensorflow-gpu==1.14
-    conda install -y -c conda-forge rdkit deepchem
-
-For CPU only support instead run
-
-.. code-block:: bash
-
-    pip install tensorflow==1.14
-    conda install -y -c conda-forge rdkit deepchem
+    pip install tensorflow==2.3.0
+    pip install --pre deepchem
+    conda install -y -c conda-forge rdkit
 
 Then open your python and try running.
 
@@ -76,7 +69,7 @@ Then open your python and try running.
     import deepchem
 
 .. _`DeepChem Tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials
-.. _`forum post`: https://forum.deepchem.io/t/getting-deepchem-running-in-colab/81
+.. _`forum post`: https://forum.deepchem.io/t/getting-deepchem-running-in-colab/81/7?u=nd-02110114
 
 About Us
 --------

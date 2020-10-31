@@ -196,9 +196,6 @@ Losses
 .. autoclass:: deepchem.models.losses.SparseSoftmaxCrossEntropy
   :members:
 
-.. autoclass:: deepchem.models.losses.SparseSoftmaxCrossEntropy
-  :members:
-
 .. autoclass:: deepchem.models.losses.VAE_ELBO
   :members:
 
@@ -233,9 +230,6 @@ Optimizers
   :members:
 
 .. autoclass:: deepchem.models.optimizers.PolynomialDecay
-  :members:
-
-.. autoclass:: deepchem.models.optimizers.LinearCosineDecay
   :members:
 
 .. autoclass:: deepchem.models.optimizers.LinearCosineDecay

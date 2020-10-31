@@ -38,7 +38,8 @@ SAMPL (FreeSolv)
 ----------------
 
 Examples of training models on the SAMPL(FreeSolv) dataset included in MoleculeNet.
-We'll be using its :code:`smiles` field to train models to predict its experimentally measured solvation energy (:code:`expt`).
+We'll be using its :code:`smiles` field to train models to
+predict its experimentally measured solvation energy (:code:`expt`).
 
 MultitaskRegressor
 ^^^^^^^^^^^^^^^^^^
@@ -112,7 +113,8 @@ ChEMBL
 Examples of training models on `ChEMBL`_ dataset included in MoleculeNet.
 
 ChEMBL is a manually curated database of bioactive molecules with drug-like properties.
-It brings together chemical, bioactivity and genomic data to aid the translation of genomic information into effective new drugs.
+It brings together chemical, bioactivity and genomic data to aid the translation 
+of genomic information into effective new drugs.
 
 .. _`ChEMBL`: https://www.ebi.ac.uk/chembl
 

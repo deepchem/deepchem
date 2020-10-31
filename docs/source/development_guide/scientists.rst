@@ -37,6 +37,9 @@ like to help you make sure that your algorithms have the most impact.
 Scientist FAQ
 -------------
 
+.. contents:: Contents
+    :local:
+
 Wouldn't it be better for my career to make my own package rather than use DeepChem?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
