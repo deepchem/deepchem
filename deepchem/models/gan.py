@@ -2,7 +2,10 @@
 
 from deepchem.models import KerasModel, layers, losses
 from tensorflow.keras.layers import Input, Lambda, Layer, Softmax, Reshape, Multiply
-from collections import Sequence
+try:
+  from collections.abc import Sequence
+except:
+  from collections import Sequence
 import numpy as np
 import tensorflow as tf
 import time

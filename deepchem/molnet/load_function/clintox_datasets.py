@@ -3,31 +3,45 @@ Clinical Toxicity (clintox) dataset loader.
 @author Caleb Geniesse
 """
 import os
-import logging
-import deepchem
+import deepchem as dc
+from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
+from deepchem.data import Dataset
+from typing import List, Optional, Tuple, Union
 
-logger = logging.getLogger(__name__)
-
-DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 CLINTOX_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/clintox.csv.gz"
+CLINTOX_TASKS = ['FDA_APPROVED', 'CT_TOX']
 
 
-def load_clintox(featurizer='ECFP',
-                 split='index',
-                 reload=True,
-                 data_dir=None,
-                 save_dir=None,
-                 **kwargs):
+class _ClintoxLoader(_MolnetLoader):
+
+  def create_dataset(self) -> Dataset:
+    dataset_file = os.path.join(self.data_dir, "clintox.csv.gz")
+    if not os.path.exists(dataset_file):
+      dc.utils.data_utils.download_url(url=CLINTOX_URL, dest_dir=self.data_dir)
+    loader = dc.data.CSVLoader(
+        tasks=self.tasks, feature_field="smiles", featurizer=self.featurizer)
+    return loader.create_dataset(dataset_file, shard_size=8192)
+
+
+def load_clintox(
+    featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',
+    splitter: Union[dc.splits.Splitter, str, None] = 'scaffold',
+    transformers: List[Union[TransformerGenerator, str]] = ['balancing'],
+    reload: bool = True,
+    data_dir: Optional[str] = None,
+    save_dir: Optional[str] = None,
+    **kwargs
+) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
   """Load ClinTox dataset
 
   The ClinTox dataset compares drugs approved by the FDA and
   drugs that have failed clinical trials for toxicity reasons.
   The dataset includes two classification tasks for 1491 drug
-  compounds with known chemical structures: 
-  
+  compounds with known chemical structures:
+
   #. clinical trial toxicity (or absence of toxicity)
   #. FDA approval status.
-  
+
   List of FDA-approved drugs are compiled from the SWEETLEAD
   database, and list of drugs that failed clinical trials for
   toxicity reasons are compiled from the Aggregate Analysis of
@@ -36,10 +50,32 @@ def load_clintox(featurizer='ECFP',
   Random splitting is recommended for this dataset.
 
   The raw data csv file contains columns below:
-  
+
   - "smiles" - SMILES representation of the molecular structure
   - "FDA_APPROVED" - FDA approval status
   - "CT_TOX" - Clinical trial results
+
+  Parameters
+  ----------
+  featurizer: Featurizer or str
+    the featurizer to use for processing the data.  Alternatively you can pass
+    one of the names from dc.molnet.featurizers as a shortcut.
+  splitter: Splitter or str
+    the splitter to use for splitting the data into training, validation, and
+    test sets.  Alternatively you can pass one of the names from
+    dc.molnet.splitters as a shortcut.  If this is None, all the data
+    will be included in a single dataset.
+  transformers: list of TransformerGenerators or strings
+    the Transformers to apply to the data.  Each one is specified by a
+    TransformerGenerator or, as a shortcut, one of the names from
+    dc.molnet.transformers.
+  reload: bool
+    if True, the first call for a particular featurizer and splitter will cache
+    the datasets to disk, and subsequent calls will reload the cached datasets.
+  data_dir: str
+    a directory to save the raw data in
+  save_dir: str
+    a directory to save the dataset in
 
   References
   ----------
@@ -48,91 +84,14 @@ def load_clintox(featurizer='ECFP',
      trials."
      Cell chemical biology 23.10 (2016): 1294-1301.
   .. [2] Artemov, Artem V., et al. "Integrated deep learned transcriptomic and
-     structure-based predictor of clinical trials outcomes." bioRxiv (2016): 
+     structure-based predictor of clinical trials outcomes." bioRxiv (2016):
      095653.
   .. [3] Novick, Paul A., et al. "SWEETLEAD: an in silico database of approved
-     drugs, regulated chemicals, and herbal isolates for computer-aided drug 
+     drugs, regulated chemicals, and herbal isolates for computer-aided drug
      discovery." PloS one 8.11 (2013): e79568.
   .. [4] Aggregate Analysis of ClincalTrials.gov (AACT) Database.
      https://www.ctti-clinicaltrials.org/aact-database
   """
-  if data_dir is None:
-    data_dir = DEFAULT_DIR
-  if save_dir is None:
-    save_dir = DEFAULT_DIR
-
-  if reload:
-    save_folder = os.path.join(save_dir, "clintox-featurized", featurizer)
-    if featurizer == "smiles2img":
-      img_spec = kwargs.get("img_spec", "std")
-      save_folder = os.path.join(save_folder, img_spec)
-    save_folder = os.path.join(save_folder, str(split))
-
-  dataset_file = os.path.join(data_dir, "clintox.csv.gz")
-  if not os.path.exists(dataset_file):
-    deepchem.utils.data_utils.download_url(url=CLINTOX_URL, dest_dir=data_dir)
-
-  logger.info("About to load clintox dataset.")
-  dataset = deepchem.utils.data_utils.load_from_disk(dataset_file)
-  clintox_tasks = dataset.columns.values[1:].tolist()
-  logger.info("Tasks in dataset: %s" % (clintox_tasks))
-  logger.info("Number of tasks in dataset: %s" % str(len(clintox_tasks)))
-  logger.info("Number of examples in dataset: %s" % str(dataset.shape[0]))
-  if reload:
-    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
-        save_folder)
-    if loaded:
-      return clintox_tasks, all_dataset, transformers
-  # Featurize clintox dataset
-  logger.info("About to featurize clintox dataset.")
-  if featurizer == 'ECFP':
-    featurizer = deepchem.feat.CircularFingerprint(size=1024)
-  elif featurizer == 'GraphConv':
-    featurizer = deepchem.feat.ConvMolFeaturizer()
-  elif featurizer == 'Weave':
-    featurizer = deepchem.feat.WeaveFeaturizer()
-  elif featurizer == 'Raw':
-    featurizer = deepchem.feat.RawFeaturizer()
-  elif featurizer == "smiles2img":
-    img_spec = kwargs.get("img_spec", "std")
-    img_size = kwargs.get("img_size", 80)
-    featurizer = deepchem.feat.SmilesToImage(
-        img_size=img_size, img_spec=img_spec)
-
-  loader = deepchem.data.CSVLoader(
-      tasks=clintox_tasks, smiles_field="smiles", featurizer=featurizer)
-  dataset = loader.featurize(dataset_file, shard_size=8192)
-
-  # Transform clintox dataset
-  if split is None:
-    transformers = [deepchem.trans.BalancingTransformer(dataset=dataset)]
-
-    logger.info("Split is None, about to transform data.")
-    for transformer in transformers:
-      dataset = transformer.transform(dataset)
-
-    return clintox_tasks, (dataset, None, None), transformers
-
-  splitters = {
-      'index': deepchem.splits.IndexSplitter(),
-      'random': deepchem.splits.RandomSplitter(),
-      'scaffold': deepchem.splits.ScaffoldSplitter(),
-      'stratified': deepchem.splits.RandomStratifiedSplitter()
-  }
-  splitter = splitters[split]
-  logger.info("About to split data with {} splitter.".format(split))
-  train, valid, test = splitter.train_valid_test_split(dataset)
-
-  transformers = [deepchem.trans.BalancingTransformer(dataset=train)]
-
-  logger.info("About to transform data.")
-  for transformer in transformers:
-    train = transformer.transform(train)
-    valid = transformer.transform(valid)
-    test = transformer.transform(test)
-
-  if reload:
-    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
-                                                   test, transformers)
-
-  return clintox_tasks, (train, valid, test), transformers
+  loader = _ClintoxLoader(featurizer, splitter, transformers, CLINTOX_TASKS,
+                          data_dir, save_dir, **kwargs)
+  return loader.load_dataset('clintox', reload)

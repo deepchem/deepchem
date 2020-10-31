@@ -110,6 +110,7 @@ To listen in, please email X.Y@gmail.com, where X=bharath and Y=ramsundar to int
    :caption: Development Guide
 
    development_guide/licence
+   development_guide/scientists
    development_guide/coding
    development_guide/infra
 
