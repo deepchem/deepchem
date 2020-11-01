@@ -255,6 +255,7 @@ class GCNModel(TorchModel):
                  number_atom_features=75,
                  n_classes: int = 2,
                  nfeat_name: str = 'x',
+                 self_loop: bool = True,
                  **kwargs):
         """
         Parameters
@@ -288,6 +289,9 @@ class GCNModel(TorchModel):
         nfeat_name: str
             For an input graph ``g``, the model assumes that it stores node features in
             ``g.ndata[nfeat_name]`` and will retrieve input node features from that.
+        self_loop: bool
+            Whether to add self loops for the nodes, i.e. edges from nodes to themselves.
+            Default to True.
         kwargs
             This can include any keyword argument of TorchModel.
         """
@@ -311,6 +315,8 @@ class GCNModel(TorchModel):
             output_types = ['prediction', 'loss']
         super(GCNModel, self).__init__(
             model, loss=loss, output_types=output_types, **kwargs)
+
+        self._self_loop = self_loop
 
     def _prepare_batch(self, batch):
         """Create batch data for GCN.
@@ -338,7 +344,7 @@ class GCNModel(TorchModel):
             raise ImportError('This class requires dgl.')
 
         inputs, labels, weights = batch
-        dgl_graphs = [graph.to_dgl_graph(self_loop=True) for graph in inputs[0]]
+        dgl_graphs = [graph.to_dgl_graph(self_loop=self._self_loop) for graph in inputs[0]]
         inputs = dgl.batch(dgl_graphs).to(self.device)
         _, labels, weights = super(GCNModel, self)._prepare_batch(([], labels, weights))
         return inputs, labels, weights
