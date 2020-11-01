@@ -34,7 +34,11 @@ class GCN(nn.Module):
     >>> # Batch two graphs into a graph of two connected components
     >>> batch_dgl_graph = dgl.batch(dgl_graphs)
     >>> model = GCN(n_tasks=1, number_atom_features=30, mode='regression')
-    >>> model(batch_dgl_graph)
+    >>> preds = model(batch_dgl_graph)
+    >>> print(type(preds))
+    <class 'torch.Tensor'>
+    >>> preds.shape == (2, 1)
+    True
 
     References
     ----------
@@ -205,10 +209,12 @@ class GCNModel(TorchModel):
 
     >>> import deepchem as dc
     >>> from deepchem.models import GCNModel
-    >>> dataset_config = {"reload": False, "featurizer": dc.feat.CGCNNFeaturizer, "transformers": []}
-    >>> tasks, datasets, transformers = dc.molnet.load_perovskite(**dataset_config)
+    >>> featurizer = dc.feat.MolGraphConvFeaturizer()
+    >>> tasks, datasets, transformers = dc.molnet.load_tox21(
+    ...     reload=False, featurizer=featurizer, transformers=[])
     >>> train, valid, test = datasets
-    >>> model = dc.models.CGCNNModel(mode='regression', batch_size=32, learning_rate=0.001)
+    >>> model = dc.models.GCNModel(mode='classification', n_tasks=len(tasks),
+    ...                            number_atom_features=30, batch_size=32, learning_rate=0.001)
     >>> model.fit(train, nb_epoch=50)
 
     References
@@ -306,13 +312,16 @@ class GCNModel(TorchModel):
         super(GCNModel, self).__init__(
             model, loss=loss, output_types=output_types, **kwargs)
 
-    def _prepare_batch(self, batch):
+    def _prepare_batch(self, batch, self_loop=True):
         """Create batch data for GCN.
 
         Parameters
         ----------
         batch: tuple
             The tuple is ``(inputs, labels, weights)``.
+        self_loop: bool
+            Whether to add self loops for the nodes, i.e. edges from nodes
+            to themselves. Default to False.
 
         Returns
         -------
@@ -329,7 +338,7 @@ class GCNModel(TorchModel):
             raise ImportError('This class requires dgl.')
 
         inputs, labels, weights = batch
-        dgl_graphs = [graph.to_dgl_graph() for graph in inputs[0]]
+        dgl_graphs = [graph.to_dgl_graph(self_loop=self_loop) for graph in inputs[0]]
         inputs = dgl.batch(dgl_graphs).to(self.device)
         _, labels, weights = super(GCNModel, self)._prepare_batch(([], labels, weights))
         return inputs, labels, weights
