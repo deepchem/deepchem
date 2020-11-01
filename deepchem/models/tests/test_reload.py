@@ -288,6 +288,8 @@ def test_normalizing_flow_model_reload():
   import tensorflow_probability as tfp
   tfd = tfp.distributions
   tfb = tfp.bijectors
+  tfk = tf.keras
+  tfk.backend.set_floatx('float64')
 
   model_dir = tempfile.mkdtemp()
 
@@ -322,6 +324,9 @@ def test_normalizing_flow_model_reload():
 
   # Check that density estimation is same for reloaded model
   assert np.all(lp1 == lp2)
+
+  # clear backend setting
+  tfk.backend.clear_session()
 
 
 def test_robust_multitask_regressor_reload():
