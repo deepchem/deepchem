@@ -179,7 +179,8 @@ def concordance_index(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
   Returns
   -------
-  float between [0,1]
+  float
+    score between [0,1]
 
   References
   ----------
