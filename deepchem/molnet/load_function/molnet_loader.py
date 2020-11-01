@@ -51,6 +51,7 @@ featurizers = {
     'weave': dc.feat.WeaveFeaturizer(),
 }
 
+# These featurizers depend on RDKit, so we need RDKit when globally instantiating.
 try:
   featurizers['ecfp'] = dc.feat.CircularFingerprint(size=1024)
   featurizers['raw'] = dc.feat.RawFeaturizer()
