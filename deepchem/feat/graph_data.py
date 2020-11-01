@@ -123,7 +123,7 @@ class GraphData:
         edge_attr=edge_features,
         pos=node_pos_features)
 
-  def to_dgl_graph(self, self_loop=False):
+  def to_dgl_graph(self, self_loop=True):
     """Convert to DGL graph data instance
 
     Returns
@@ -132,7 +132,7 @@ class GraphData:
       Graph data for DGL
     self_loop: bool
       Whether to add self loops for the nodes, i.e. edges from nodes
-      to themselves. Default to False.
+      to themselves. Default to True.
 
     Notes
     -----
