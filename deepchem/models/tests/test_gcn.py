@@ -29,7 +29,7 @@ def test_gcn_regression():
     model = GCNModel(mode='regression', n_tasks=n_tasks, number_atom_features=30, batch_size=10)
 
     # overfit test
-    model.fit(dataset, nb_epoch=300)
+    model.fit(dataset, nb_epoch=50)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean_absolute_error'] < 0.5
 
@@ -51,7 +51,7 @@ def test_gcn_classification():
         learning_rate=0.001)
 
     # overfit test
-    model.fit(dataset, nb_epoch=150)
+    model.fit(dataset, nb_epoch=50)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.85
 
@@ -74,7 +74,7 @@ def test_gcn_reload():
         batch_size=10,
         learning_rate=0.001)
 
-    model.fit(dataset, nb_epoch=150)
+    model.fit(dataset, nb_epoch=50)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.85
 
