@@ -312,7 +312,7 @@ class GCNModel(TorchModel):
         super(GCNModel, self).__init__(
             model, loss=loss, output_types=output_types, **kwargs)
 
-    def _prepare_batch(self, batch, self_loop=True):
+    def _prepare_batch(self, batch):
         """Create batch data for GCN.
 
         Parameters
@@ -338,7 +338,7 @@ class GCNModel(TorchModel):
             raise ImportError('This class requires dgl.')
 
         inputs, labels, weights = batch
-        dgl_graphs = [graph.to_dgl_graph(self_loop=self_loop) for graph in inputs[0]]
+        dgl_graphs = [graph.to_dgl_graph(self_loop=True) for graph in inputs[0]]
         inputs = dgl.batch(dgl_graphs).to(self.device)
         _, labels, weights = super(GCNModel, self)._prepare_batch(([], labels, weights))
         return inputs, labels, weights
