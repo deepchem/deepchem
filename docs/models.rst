@@ -126,7 +126,7 @@ read off what's needed to train the model from the table below.
 | :code:`GATModel`                       | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
 |                                        | Regressor  |                      |                        |                                                                |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
-| :code:`GCNModel`                       | Classifier/| :code:`GraphData`    |                        | :code:`CGCNNFeaturizer`                                        | :code:`fit`          |
+| :code:`GCNModel`                       | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
 |                                        | Regressor  |                      |                        |                                                                |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
 
