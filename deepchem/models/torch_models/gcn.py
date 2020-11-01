@@ -23,19 +23,18 @@ class GCN(nn.Module):
     --------
 
     >>> import deepchem as dc
-    >>> import pymatgen as mg
+    >>> import dgl
     >>> from deepchem.models import GCN
-    >>> lattice = mg.Lattice.cubic(4.2)
-    >>> structure = mg.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
-    >>> featurizer = dc.feat.CGCNNFeaturizer()
-    >>> cgcnn_graph = featurizer.featurize([structure])[0]
-    >>> cgcnn_graph.num_node_features
-    92
-    >>> cgcnn_dgl_graph = cgcnn_graph.to_dgl_graph()
-    >>> model = GCN(in_node_dim=92, hidden_node_dim=92, num_gnn_layers=2)
-    >>> # Call model.eval as batch norm is implemented
-    >>> model.eval()
-    >>> model(cgcnn_dgl_graph)
+    >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
+    >>> featurizer = dc.feat.MolGraphConvFeaturizer()
+    >>> graphs = featurizer.featurize(smiles)
+    >>> print(type(graphs[0]))
+    <class 'deepchem.feat.graph_data.GraphData'>
+    >>> dgl_graphs = [graphs[i].to_dgl_graph() for i in range(len(graphs))]
+    >>> # Batch two graphs into a graph of two connected components
+    >>> batch_dgl_graph = dgl.batch(dgl_graphs)
+    >>> model = GCN(n_tasks=1, number_atom_features=30, mode='regression')
+    >>> model(batch_dgl_graph)
 
     References
     ----------
@@ -174,7 +173,7 @@ class GCN(nn.Module):
             This is only returned when self.mode = 'classification', the output consists of the
             logits for classes before softmax.
         """
-        node_feats = g.ndata.pop(self.nfeat_name)
+        node_feats = g.ndata[self.nfeat_name]
         out = self.model(g, node_feats)
 
         if self.mode == 'classification':
