@@ -288,8 +288,6 @@ def test_normalizing_flow_model_reload():
   import tensorflow_probability as tfp
   tfd = tfp.distributions
   tfb = tfp.bijectors
-  tfk = tf.keras
-  tfk.backend.set_floatx('float64')
 
   model_dir = tempfile.mkdtemp()
 
