@@ -2551,7 +2551,7 @@ class WeaveGather(tf.keras.layers.Layer):
     try:
       import tensorflow_probability as tfp
     except ModuleNotFoundError:
-      raise ValueError(
+      raise ImportError(
           "This class requires tensorflow-probability to be installed.")
     super(WeaveGather, self).__init__(**kwargs)
     self.n_input = n_input

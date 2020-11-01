@@ -67,7 +67,7 @@ class CoulombMatrix(MolecularFeaturizer):
       from rdkit import Chem  # noqa
       from rdkit.Chem import AllChem  # noqa
     except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+      raise ImportError("This class requires RDKit to be installed.")
 
     self.max_atoms = int(max_atoms)
     self.remove_hydrogens = remove_hydrogens

@@ -107,7 +107,7 @@ class GraphData:
       import torch
       from torch_geometric.data import Data
     except ModuleNotFoundError:
-      raise ValueError(
+      raise ImportError(
           "This function requires PyTorch Geometric to be installed.")
 
     edge_features = self.edge_features
@@ -139,7 +139,7 @@ class GraphData:
       import torch
       from dgl import DGLGraph
     except ModuleNotFoundError:
-      raise ValueError("This function requires DGL to be installed.")
+      raise ImportError("This function requires DGL to be installed.")
 
     g = DGLGraph()
     g.add_nodes(self.num_nodes)

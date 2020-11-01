@@ -40,7 +40,7 @@ class OneHotFeaturizer(MolecularFeaturizer):
     try:
       from rdkit import Chem  # noqa
     except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+      raise ImportError("This class requires RDKit to be installed.")
 
     if len(charset) != len(set(charset)):
       raise ValueError("All values in charset must be unique.")

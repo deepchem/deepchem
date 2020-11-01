@@ -58,7 +58,7 @@ class SmilesToImage(MolecularFeaturizer):
       from rdkit import Chem  # noqa
       from rdkit.Chem import AllChem  # noqa
     except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+      raise ImportError("This class requires RDKit to be installed.")
 
     if img_spec not in ["std", "engd"]:
       raise ValueError(

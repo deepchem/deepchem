@@ -37,7 +37,7 @@ class RDKitDescriptors(MolecularFeaturizer):
     try:
       from rdkit.Chem import Descriptors
     except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+      raise ImportError("This class requires RDKit to be installed.")
 
     self.use_fragment = use_fragment
     self.ipc_avg = ipc_avg
