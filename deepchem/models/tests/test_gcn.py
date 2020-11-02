@@ -29,7 +29,7 @@ def test_gcn_regression():
     model = GCNModel(mode='regression', n_tasks=n_tasks, number_atom_features=30, batch_size=10)
 
     # overfit test
-    model.fit(dataset, nb_epoch=60)
+    model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean_absolute_error'] < 0.5
 
