@@ -123,7 +123,7 @@ class GraphData:
         edge_attr=edge_features,
         pos=node_pos_features)
 
-  def to_dgl_graph(self, self_loop=False):
+  def to_dgl_graph(self, self_loop: bool=False):
     """Convert to DGL graph data instance
 
     Returns
