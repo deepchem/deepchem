@@ -150,9 +150,9 @@ class GraphData:
       src = np.concatenate([src, np.arange(self.num_nodes)])
       dst = np.concatenate([dst, np.arange(self.num_nodes)])
 
-    g = dgl.graph((torch.from_numpy(src).long(),
-                   torch.from_numpy(dst).long()),
-                  num_nodes=self.num_nodes)
+    g = dgl.graph(
+        (torch.from_numpy(src).long(), torch.from_numpy(dst).long()),
+        num_nodes=self.num_nodes)
     g.ndata['x'] = torch.from_numpy(self.node_features).float()
 
     if self.node_pos_features is not None:
