@@ -132,7 +132,7 @@ class VinaPoseGenerator(PoseGenerator):
       self.vina_cmd = os.path.join(self.vina_dir, "vina.exe")
     else:
       raise ValueError(
-          "Unknown operating system.  Try using a cloud platform to run this code instead."
+          "Unknown operating system. Try using a cloud platform to run this code instead."
       )
     self.pocket_finder = pocket_finder
     if not os.path.exists(self.vina_dir):

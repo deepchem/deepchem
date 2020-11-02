@@ -131,7 +131,7 @@ class ConformerGenerator(object):
       from rdkit import Chem
       from rdkit.Chem import AllChem
     except ModuleNotFoundError:
-      raise ValueError("This function requires RDKit to be installed.")
+      raise ImportError("This function requires RDKit to be installed.")
 
     mol = Chem.AddHs(mol)  # add hydrogens
     n_confs = self.max_conformers * self.pool_multiplier
@@ -162,7 +162,7 @@ class ConformerGenerator(object):
     try:
       from rdkit.Chem import AllChem
     except ModuleNotFoundError:
-      raise ValueError("This function requires RDKit to be installed.")
+      raise ImportError("This function requires RDKit to be installed.")
 
     if self.force_field == 'uff':
       ff = AllChem.UFFGetMoleculeForceField(mol, confId=conf_id, **kwargs)
@@ -231,7 +231,7 @@ class ConformerGenerator(object):
     try:
       from rdkit import Chem
     except ModuleNotFoundError:
-      raise ValueError("This function requires RDKit to be installed.")
+      raise ImportError("This function requires RDKit to be installed.")
 
     if self.rmsd_threshold < 0 or mol.GetNumConformers() <= 1:
       return mol
@@ -289,7 +289,7 @@ class ConformerGenerator(object):
     try:
       from rdkit.Chem import AllChem
     except ModuleNotFoundError:
-      raise ValueError("This function requires RDKit to be installed.")
+      raise ImportError("This function requires RDKit to be installed.")
 
     rmsd = np.zeros(
         (mol.GetNumConformers(), mol.GetNumConformers()), dtype=float)

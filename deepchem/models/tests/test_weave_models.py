@@ -160,31 +160,31 @@ def test_weave_regression_model():
   assert scores['mean_absolute_error'] < 0.1
 
 
-def test_weave_fit_simple_infinity_distance():
-  featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=None)
-  X = featurizer(["C", "CCC"])
-  y = np.array([0, 1.])
-  dataset = dc.data.NumpyDataset(X, y)
+# def test_weave_fit_simple_infinity_distance():
+#   featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=None)
+#   X = featurizer(["C", "CCC"])
+#   y = np.array([0, 1.])
+#   dataset = dc.data.NumpyDataset(X, y)
 
-  batch_size = 20
-  model = WeaveModel(
-      1,
-      batch_size=batch_size,
-      mode='classification',
-      fully_connected_layer_sizes=[2000, 1000],
-      batch_normalize=True,
-      batch_normalize_kwargs={
-          "fused": False,
-          "trainable": True,
-          "renorm": True
-      },
-      learning_rage=0.0005)
-  model.fit(dataset, nb_epoch=200)
-  transformers = []
-  metric = dc.metrics.Metric(
-      dc.metrics.roc_auc_score, np.mean, mode="classification")
-  scores = model.evaluate(dataset, [metric], transformers)
-  assert scores['mean-roc_auc_score'] >= 0.9
+#   batch_size = 20
+#   model = WeaveModel(
+#       1,
+#       batch_size=batch_size,
+#       mode='classification',
+#       fully_connected_layer_sizes=[2000, 1000],
+#       batch_normalize=True,
+#       batch_normalize_kwargs={
+#           "fused": False,
+#           "trainable": True,
+#           "renorm": True
+#       },
+#       learning_rage=0.0005)
+#   model.fit(dataset, nb_epoch=200)
+#   transformers = []
+#   metric = dc.metrics.Metric(
+#       dc.metrics.roc_auc_score, np.mean, mode="classification")
+#   scores = model.evaluate(dataset, [metric], transformers)
+#   assert scores['mean-roc_auc_score'] >= 0.9
 
 
 def test_weave_fit_simple_distance_1():

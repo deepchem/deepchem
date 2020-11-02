@@ -36,7 +36,7 @@ class MordredDescriptors(MolecularFeaturizer):
     try:
       from mordred import Calculator, descriptors, is_missing
     except ModuleNotFoundError:
-      raise ValueError("This class requires Mordred to be installed.")
+      raise ImportError("This class requires Mordred to be installed.")
 
     self.calc = Calculator(descriptors, ignore_3D=ignore_3D)
     self.is_missing = is_missing

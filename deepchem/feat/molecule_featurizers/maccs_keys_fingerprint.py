@@ -26,7 +26,7 @@ class MACCSKeysFingerprint(MolecularFeaturizer):
     try:
       from rdkit.Chem.AllChem import GetMACCSKeysFingerprint  # noqa
     except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+      raise ImportError("This class requires RDKit to be installed.")
 
     self.calculator = GetMACCSKeysFingerprint
 

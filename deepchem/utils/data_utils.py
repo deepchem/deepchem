@@ -164,7 +164,7 @@ def load_image_files(input_files: List[str]) -> np.ndarray:
   try:
     from PIL import Image
   except ModuleNotFoundError:
-    raise ValueError("This function requires Pillow to be installed.")
+    raise ImportError("This function requires Pillow to be installed.")
 
   images = []
   for input_file in input_files:
@@ -213,7 +213,7 @@ def load_sdf_files(input_files: List[str],
   try:
     from rdkit import Chem
   except ModuleNotFoundError:
-    raise ValueError("This function requires RDKit to be installed.")
+    raise ImportError("This function requires RDKit to be installed.")
 
   df_rows = []
   for input_file in input_files:

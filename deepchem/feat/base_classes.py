@@ -255,7 +255,7 @@ class MolecularFeaturizer(Featurizer):
       from rdkit.Chem import rdmolops
       from rdkit.Chem.rdchem import Mol
     except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+      raise ImportError("This class requires RDKit to be installed.")
 
     # Special case handling of single molecule
     if isinstance(molecules, str) or isinstance(molecules, Mol):
@@ -337,7 +337,7 @@ class MaterialStructureFeaturizer(Featurizer):
     try:
       from pymatgen import Structure
     except ModuleNotFoundError:
-      raise ValueError("This class requires pymatgen to be installed.")
+      raise ImportError("This class requires pymatgen to be installed.")
 
     structures = list(structures)
     features = []
@@ -400,7 +400,7 @@ class MaterialCompositionFeaturizer(Featurizer):
     try:
       from pymatgen import Composition
     except ModuleNotFoundError:
-      raise ValueError("This class requires pymatgen to be installed.")
+      raise ImportError("This class requires pymatgen to be installed.")
 
     compositions = list(compositions)
     features = []

@@ -392,7 +392,7 @@ def bond_features(bond, use_chirality=False):
   try:
     from rdkit import Chem
   except ModuleNotFoundError:
-    raise ValueError("This method requires RDKit to be installed.")
+    raise ImportError("This method requires RDKit to be installed.")
   bt = bond.GetBondType()
   bond_feats = [
       bt == Chem.rdchem.BondType.SINGLE, bt == Chem.rdchem.BondType.DOUBLE,

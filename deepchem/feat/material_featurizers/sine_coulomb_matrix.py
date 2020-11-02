@@ -57,7 +57,7 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
     try:
       from matminer.featurizers.structure import SineCoulombMatrix as SCM
     except ModuleNotFoundError:
-      raise ValueError("This class requires matminer to be installed.")
+      raise ImportError("This class requires matminer to be installed.")
 
     self.max_atoms = max_atoms
     self.flatten = flatten

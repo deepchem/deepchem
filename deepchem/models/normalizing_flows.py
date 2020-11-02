@@ -61,7 +61,7 @@ class NormalizingFlow(tf.keras.models.Model):
       tfd = tfp.distributions
       tfb = tfp.bijectors
     except ModuleNotFoundError:
-      raise ValueError(
+      raise ImportError(
           "This class requires tensorflow-probability to be installed.")
 
     self.base_distribution = base_distribution
@@ -151,7 +151,7 @@ class NormalizingFlowModel(KerasModel):
       tfd = tfp.distributions
       tfb = tfp.bijectors
     except ModuleNotFoundError:
-      raise ValueError(
+      raise ImportError(
           "This class requires tensorflow-probability to be installed.")
 
     self.nll_loss_fn = lambda input, labels, weights: self.create_nll(input)

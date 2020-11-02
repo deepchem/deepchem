@@ -60,7 +60,7 @@ class Mol2VecFingerprint(MolecularFeaturizer):
       from gensim.models import word2vec
       from mol2vec.features import mol2alt_sentence, sentences2vec
     except ModuleNotFoundError:
-      raise ValueError("This class requires mol2vec to be installed.")
+      raise ImportError("This class requires mol2vec to be installed.")
 
     self.radius = radius
     self.unseen = unseen

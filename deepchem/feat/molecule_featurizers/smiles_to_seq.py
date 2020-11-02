@@ -86,7 +86,7 @@ class SmilesToSeq(MolecularFeaturizer):
     try:
       from rdkit import Chem  # noqa
     except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+      raise ImportError("This class requires RDKit to be installed.")
 
     self.max_len = max_len
     self.char_to_idx = char_to_idx
