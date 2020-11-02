@@ -4,7 +4,7 @@ DGL-based GCN for graph property prediction.
 import torch.nn as nn
 import torch.nn.functional as F
 
-from deepchem.models.losses import L2Loss, SparseSoftmaxCrossEntropy
+from deepchem.models.losses import Loss, L2Loss, SparseSoftmaxCrossEntropy
 from deepchem.models.torch_models.torch_model import TorchModel
 
 class GCN(nn.Module):
@@ -308,7 +308,7 @@ class GCNModel(TorchModel):
                     n_classes=n_classes,
                     nfeat_name=nfeat_name)
         if mode == 'regression':
-            loss = L2Loss()
+            loss: Loss = L2Loss()
             output_types = ['prediction']
         else:
             loss = SparseSoftmaxCrossEntropy()
