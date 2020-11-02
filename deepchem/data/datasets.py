@@ -520,7 +520,7 @@ class Dataset(object):
     try:
       import tensorflow as tf
     except:
-      raise ValueError("This method requires TensorFlow to be installed.")
+      raise ImportError("This method requires TensorFlow to be installed.")
 
     # Retrieve the first sample so we can determine the dtypes.
     X, y, w, ids = next(self.itersamples())
@@ -943,7 +943,7 @@ class NumpyDataset(Dataset):
     try:
       from deepchem.data.pytorch_datasets import _TorchNumpyDataset
     except:
-      raise ValueError("This method requires PyTorch to be installed.")
+      raise ImportError("This method requires PyTorch to be installed.")
 
     pytorch_ds = _TorchNumpyDataset(
         numpy_dataset=self,
@@ -1829,7 +1829,7 @@ class DiskDataset(Dataset):
     try:
       from deepchem.data.pytorch_datasets import _TorchDiskDataset
     except:
-      raise ValueError("This method requires PyTorch to be installed.")
+      raise ImportError("This method requires PyTorch to be installed.")
 
     pytorch_ds = _TorchDiskDataset(
         disk_dataset=self,

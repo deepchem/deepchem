@@ -44,7 +44,7 @@ def get_motif_scores(encoded_sequences: np.ndarray,
     import simdna
     from simdna import synthetic
   except ModuleNotFoundError:
-    raise ValueError("This function requires simdna to be installed.")
+    raise ImportError("This function requires simdna to be installed.")
 
   loaded_motifs = synthetic.LoadedEncodeMotifs(
       simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)

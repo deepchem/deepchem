@@ -6,7 +6,10 @@ from deepchem.models.layers import SwitchedDropout
 from deepchem.metrics import to_one_hot
 from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Activation, Lambda
 import tensorflow.keras.layers as layers
-import collections
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
 
 
 class CNN(KerasModel):
@@ -128,15 +131,15 @@ class CNN(KerasModel):
     n_layers = len(layer_filters)
     if not isinstance(kernel_size, list):
       kernel_size = [kernel_size] * n_layers
-    if not isinstance(strides, collections.Sequence):
+    if not isinstance(strides, SequenceCollection):
       strides = [strides] * n_layers
-    if not isinstance(weight_init_stddevs, collections.Sequence):
+    if not isinstance(weight_init_stddevs, SequenceCollection):
       weight_init_stddevs = [weight_init_stddevs] * (n_layers + 1)
-    if not isinstance(bias_init_consts, collections.Sequence):
+    if not isinstance(bias_init_consts, SequenceCollection):
       bias_init_consts = [bias_init_consts] * (n_layers + 1)
-    if not isinstance(dropouts, collections.Sequence):
+    if not isinstance(dropouts, SequenceCollection):
       dropouts = [dropouts] * n_layers
-    if not isinstance(activation_fns, collections.Sequence):
+    if not isinstance(activation_fns, SequenceCollection):
       activation_fns = [activation_fns] * n_layers
     if weight_decay_penalty != 0.0:
       if weight_decay_penalty_type == 'l1':

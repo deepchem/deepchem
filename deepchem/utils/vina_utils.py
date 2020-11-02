@@ -86,7 +86,7 @@ def load_docked_ligands(
   try:
     from rdkit import Chem
   except ModuleNotFoundError:
-    raise ValueError("This function requires RDKit to be installed.")
+    raise ImportError("This function requires RDKit to be installed.")
 
   lines = open(pdbqt_output).readlines()
   molecule_pdbqts = []

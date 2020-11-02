@@ -42,8 +42,7 @@ class Mol2VecFingerprint(MolecularFeaturizer):
   def __init__(self,
                pretrain_model_path: Optional[str] = None,
                radius: int = 1,
-               unseen: str = 'UNK',
-               gather_method: str = 'sum'):
+               unseen: str = 'UNK'):
     """
     Parameters
     ----------
@@ -56,19 +55,15 @@ class Mol2VecFingerprint(MolecularFeaturizer):
       github repository.
     unseen: str, optional (default 'UNK')
       The string to used to replace uncommon words/identifiers while training.
-    gather_method: str, optional (default 'sum')
-      How to aggregate vectors of identifiers are extracted from Mol2vec.
-      'sum' or 'mean' is supported.
     """
     try:
       from gensim.models import word2vec
       from mol2vec.features import mol2alt_sentence, sentences2vec
     except ModuleNotFoundError:
-      raise ValueError("This class requires mol2vec to be installed.")
+      raise ImportError("This class requires mol2vec to be installed.")
 
     self.radius = radius
     self.unseen = unseen
-    self.gather_method = gather_method
     self.sentences2vec = sentences2vec
     self.mol2alt_sentence = mol2alt_sentence
     if pretrain_model_path is None:
@@ -98,13 +93,5 @@ class Mol2VecFingerprint(MolecularFeaturizer):
       1D array of mol2vec fingerprint. The default length is 300.
     """
     sentence = self.mol2alt_sentence(mol, self.radius)
-    vec_identifiers = self.sentences2vec(
-        sentence, self.model, unseen=self.unseen)
-    if self.gather_method == 'sum':
-      feature = np.sum(vec_identifiers, axis=0)
-    elif self.gather_method == 'mean':
-      feature = np.mean(vec_identifiers, axis=0)
-    else:
-      raise ValueError(
-          'Not supported gather_method type. Please set "sum" or "mean"')
+    feature = self.sentences2vec([sentence], self.model, unseen=self.unseen)[0]
     return feature

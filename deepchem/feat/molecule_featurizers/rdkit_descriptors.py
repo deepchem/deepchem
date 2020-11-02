@@ -23,15 +23,29 @@ class RDKitDescriptors(MolecularFeaturizer):
   This class requires RDKit to be installed.
   """
 
-  def __init__(self):
+  def __init__(self, use_fragment=True, ipc_avg=True):
+    """Initialize this featurizer.
+
+    Parameters
+    ----------
+    use_fragment: bool, optional (default True)
+      If True, the return value includes the fragment binary descriptors like 'fr_XXX'.
+    ipc_avg: bool, optional (default True)
+      If True, the IPC descriptor calculates with avg=True option.
+      Please see this issue: https://github.com/rdkit/rdkit/issues/1527.
+    """
     try:
       from rdkit.Chem import Descriptors
     except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+      raise ImportError("This class requires RDKit to be installed.")
 
+    self.use_fragment = use_fragment
+    self.ipc_avg = ipc_avg
     self.descriptors = []
     self.descList = []
     for descriptor, function in Descriptors.descList:
+      if self.use_fragment is False and descriptor.startswith('fr_'):
+        continue
       self.descriptors.append(descriptor)
       self.descList.append((descriptor, function))
 
@@ -47,9 +61,14 @@ class RDKitDescriptors(MolecularFeaturizer):
     Returns
     -------
     np.ndarray
-      1D array of RDKit descriptors for `mol`. The length is 200.
+      1D array of RDKit descriptors for `mol`.
+      The length is `len(self.descriptors)`.
     """
-    rval = []
+    features = []
     for desc_name, function in self.descList:
-      rval.append(function(mol))
-    return np.asarray(rval)
+      if desc_name == 'Ipc' and self.ipc_avg:
+        feature = function(mol, avg=True)
+      else:
+        feature = function(mol)
+      features.append(feature)
+    return np.asarray(features)

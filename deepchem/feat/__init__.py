@@ -21,10 +21,12 @@ from deepchem.feat.molecule_featurizers import BPSymmetryFunctionInput
 from deepchem.feat.molecule_featurizers import CircularFingerprint
 from deepchem.feat.molecule_featurizers import CoulombMatrix
 from deepchem.feat.molecule_featurizers import CoulombMatrixEig
+from deepchem.feat.molecule_featurizers import MACCSKeysFingerprint
 from deepchem.feat.molecule_featurizers import MordredDescriptors
 from deepchem.feat.molecule_featurizers import Mol2VecFingerprint
 from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
+from deepchem.feat.molecule_featurizers import PubChemFingerprint
 from deepchem.feat.molecule_featurizers import RawFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitDescriptors
 from deepchem.feat.molecule_featurizers import SmilesToImage

@@ -2,13 +2,10 @@
 Delaney dataset loader.
 """
 import os
-import logging
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
-
-logger = logging.getLogger(__name__)
 
 DELANEY_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/delaney-processed.csv"
 DELANEY_TASKS = ['measured log solubility in mols per litre']
@@ -17,7 +14,6 @@ DELANEY_TASKS = ['measured log solubility in mols per litre']
 class _DelaneyLoader(_MolnetLoader):
 
   def create_dataset(self) -> Dataset:
-    logger.info("About to featurize Delaney dataset.")
     dataset_file = os.path.join(self.data_dir, "delaney-processed.csv")
     if not os.path.exists(dataset_file):
       dc.utils.data_utils.download_url(url=DELANEY_URL, dest_dir=self.data_dir)

@@ -96,7 +96,7 @@ class BindingPocketFeaturizer(Featurizer):
     try:
       import mdtraj
     except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+      raise ImportError("This class requires mdtraj to be installed.")
 
     protein_coords = load_molecule(
         protein_file, add_hydrogens=False, calc_charges=False)[0]

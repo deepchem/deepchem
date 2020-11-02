@@ -59,7 +59,7 @@ class CircularFingerprint(MolecularFeaturizer):
       from rdkit import Chem  # noqa
       from rdkit.Chem import rdMolDescriptors  # noqa
     except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+      raise ImportError("This class requires RDKit to be installed.")
 
     self.radius = radius
     self.size = size
