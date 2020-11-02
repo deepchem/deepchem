@@ -158,7 +158,7 @@ def get_partial_charge(atom: Union[RDKitAtom, AtomShim]) -> float:
   try:
     from rdkit import Chem
   except ModuleNotFoundError:
-    raise ValueError("This function requires RDKit to be installed.")
+    raise ImportError("This function requires RDKit to be installed.")
 
   if isinstance(atom, Chem.Atom):
     try:
@@ -228,7 +228,7 @@ def get_mol_subset(
   try:
     from rdkit import Chem
   except ModuleNotFoundError:
-    raise ValueError("This function requires RDKit to be installed.")
+    raise ImportError("This function requires RDKit to be installed.")
 
   indexes_to_keep = []
   atoms_to_keep = []

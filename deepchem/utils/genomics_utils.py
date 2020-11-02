@@ -116,7 +116,7 @@ def encode_bio_sequence(fname: str,
   try:
     from Bio import SeqIO
   except ModuleNotFoundError:
-    raise ValueError("This function requires BioPython to be installed.")
+    raise ImportError("This function requires BioPython to be installed.")
 
   sequences = SeqIO.parse(fname, file_type)
   return seq_one_hot_encode(sequences, letters)

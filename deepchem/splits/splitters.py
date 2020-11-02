@@ -915,7 +915,7 @@ class MolecularWeightSplitter(Splitter):
     try:
       from rdkit import Chem
     except ModuleNotFoundError:
-      raise ValueError("This function requires RDKit to be installed.")
+      raise ImportError("This function requires RDKit to be installed.")
 
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     if seed is not None:
@@ -988,7 +988,7 @@ class MaxMinSplitter(Splitter):
       from rdkit.Chem import AllChem
       from rdkit.SimDivFilters.rdSimDivPickers import MaxMinPicker
     except ModuleNotFoundError:
-      raise ValueError("This function requires RDKit to be installed.")
+      raise ImportError("This function requires RDKit to be installed.")
 
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     if seed is None:
@@ -1105,7 +1105,7 @@ class ButinaSplitter(Splitter):
       from rdkit.Chem import AllChem
       from rdkit.ML.Cluster import Butina
     except ModuleNotFoundError:
-      raise ValueError("This function requires RDKit to be installed.")
+      raise ImportError("This function requires RDKit to be installed.")
 
     logger.info("Performing butina clustering with cutoff of", self.cutoff)
     mols = []
@@ -1174,7 +1174,7 @@ def _generate_scaffold(smiles: str, include_chirality: bool = False) -> str:
     from rdkit import Chem
     from rdkit.Chem.Scaffolds.MurckoScaffold import MurckoScaffoldSmiles
   except ModuleNotFoundError:
-    raise ValueError("This function requires RDKit to be installed.")
+    raise ImportError("This function requires RDKit to be installed.")
 
   mol = Chem.MolFromSmiles(smiles)
   scaffold = MurckoScaffoldSmiles(mol=mol, includeChirality=include_chirality)
@@ -1326,7 +1326,7 @@ class FingerprintSplitter(Splitter):
       from rdkit import Chem, DataStructs
       from rdkit.Chem.Fingerprints import FingerprintMols
     except ModuleNotFoundError:
-      raise ValueError("This function requires RDKit to be installed.")
+      raise ImportError("This function requires RDKit to be installed.")
 
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     data_len = len(dataset)

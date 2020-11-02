@@ -144,7 +144,7 @@ def bedroc_score(y_true: np.ndarray, y_pred: np.ndarray, alpha: float = 20.0):
   try:
     from rdkit.ML.Scoring.Scoring import CalcBEDROC
   except ModuleNotFoundError:
-    raise ValueError("This function requires RDKit to be installed.")
+    raise ImportError("This function requires RDKit to be installed.")
 
   # validation
   assert len(y_true) == len(y_pred), 'Number of examples do not match'
