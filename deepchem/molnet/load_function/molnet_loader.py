@@ -57,7 +57,7 @@ try:
   featurizers['raw'] = dc.feat.RawFeaturizer()
   featurizers['smiles2img'] = dc.feat.SmilesToImage(img_size=80, img_spec='std')
   featurizers['onehot'] = dc.feat.OneHotFeaturizer()
-except:
+except ImportError:
   pass
 
 splitters = {
