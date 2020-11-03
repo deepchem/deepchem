@@ -36,6 +36,7 @@ from deepchem.molnet.load_function.material_datasets.load_bandgap import load_ba
 from deepchem.molnet.load_function.material_datasets.load_perovskite import load_perovskite
 from deepchem.molnet.load_function.material_datasets.load_mp_formation_energy import load_mp_formation_energy
 from deepchem.molnet.load_function.material_datasets.load_mp_metallicity import load_mp_metallicity
+from deepchem.molnet.load_function.kt_dataset import load_kt_dataset
 
 from deepchem.molnet.load_function.molnet_loader import featurizers, splitters, transformers, TransformerGenerator, _MolnetLoader
 

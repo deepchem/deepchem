@@ -219,6 +219,11 @@ UV Datasets
 
 .. autofunction:: deepchem.molnet.load_uv
 
+Kamlet-Taft (KT) Datasets
+-----------
+
+.. autofunction:: deepchem.molnet.load_kt_dataset
+
 
 .. _`datasets already available in MolNet`: http://moleculenet.ai/datasets-1
 .. _`Contribution guidelines`: https://github.com/deepchem/deepchem/blob/master/CONTRIBUTING.md
