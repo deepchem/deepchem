@@ -90,7 +90,7 @@ def _mol_to_graph(mol: RDKitMol):
   try:
     import networkx as nx
   except ModuleNotFoundError:
-    raise ValueError("This function requires NetworkX to be installed.")
+    raise ImportError("This function requires NetworkX to be installed.")
 
   G = nx.Graph()
   num_atoms = mol.GetNumAtoms()
@@ -127,7 +127,7 @@ def _get_rotatable_bonds(mol: RDKitMol) -> List[Tuple[int, int]]:
     from rdkit import Chem
     from rdkit.Chem import rdmolops
   except ModuleNotFoundError:
-    raise ValueError("This function requires RDKit to be installed.")
+    raise ImportError("This function requires RDKit to be installed.")
 
   pattern = Chem.MolFromSmarts(
       "[!$(*#*)&!D1&!$(C(F)(F)F)&!$(C(Cl)(Cl)Cl)&!$(C(Br)(Br)Br)&!$(C([CH3])("
@@ -160,7 +160,7 @@ def convert_mol_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
   try:
     import networkx as nx
   except ModuleNotFoundError:
-    raise ValueError("This function requires NetworkX to be installed.")
+    raise ImportError("This function requires NetworkX to be installed.")
 
   # Walk through the original file and extract ATOM/HETATM lines and
   # add PDBQT charge annotations.

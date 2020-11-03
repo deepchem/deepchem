@@ -47,7 +47,7 @@ class _ChemicalFeaturesFactory:
       from rdkit import RDConfig
       from rdkit.Chem import ChemicalFeatures
     except ModuleNotFoundError:
-      raise ValueError("This class requires RDKit to be installed.")
+      raise ImportError("This class requires RDKit to be installed.")
 
     if not cls._instance:
       fdefName = os.path.join(RDConfig.RDDataDir, 'BaseFeatures.fdef')

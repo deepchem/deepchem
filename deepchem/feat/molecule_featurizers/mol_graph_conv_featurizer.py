@@ -161,7 +161,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     try:
       from rdkit.Chem import AllChem  # noqa
     except ModuleNotFoundError:
-      raise ValueError("This method requires RDKit to be installed.")
+      raise ImportError("This method requires RDKit to be installed.")
 
     self.use_edges = use_edges
     self.use_partial_charge = use_partial_charge

@@ -5,20 +5,21 @@ import numpy as np
 
 import deepchem as dc
 from deepchem.feat import MolGraphConvFeaturizer
-from deepchem.models import GATModel
+from deepchem.models import GCNModel
 from deepchem.models.tests.test_graph_models import get_dataset
 
 try:
-  import torch  # noqa
-  import torch_geometric  # noqa
-  has_pytorch_and_pyg = True
+  import dgl
+  import dgllife
+  import torch
+  has_torch_and_dgl = True
 except:
-  has_pytorch_and_pyg = False
+  has_torch_and_dgl = False
 
 
-@unittest.skipIf(not has_pytorch_and_pyg,
-                 'PyTorch and PyTorch Geometric are not installed')
-def test_gat_regression():
+@unittest.skipIf(not has_torch_and_dgl,
+                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+def test_gcn_regression():
   # load datasets
   featurizer = MolGraphConvFeaturizer()
   tasks, dataset, transformers, metric = get_dataset(
@@ -26,18 +27,21 @@ def test_gat_regression():
 
   # initialize models
   n_tasks = len(tasks)
-  model = GATModel(mode='regression', n_tasks=n_tasks, batch_size=10)
+  model = GCNModel(
+      mode='regression',
+      n_tasks=n_tasks,
+      number_atom_features=30,
+      batch_size=10)
 
   # overfit test
-  # GAT's convergence is a little slow
-  model.fit(dataset, nb_epoch=300)
+  model.fit(dataset, nb_epoch=100)
   scores = model.evaluate(dataset, [metric], transformers)
-  assert scores['mean_absolute_error'] < 0.75
+  assert scores['mean_absolute_error'] < 0.5
 
 
-@unittest.skipIf(not has_pytorch_and_pyg,
-                 'PyTorch and PyTorch Geometric are not installed')
-def test_gat_classification():
+@unittest.skipIf(not has_torch_and_dgl,
+                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+def test_gcn_classification():
   # load datasets
   featurizer = MolGraphConvFeaturizer()
   tasks, dataset, transformers, metric = get_dataset(
@@ -45,22 +49,22 @@ def test_gat_classification():
 
   # initialize models
   n_tasks = len(tasks)
-  model = GATModel(
+  model = GCNModel(
       mode='classification',
       n_tasks=n_tasks,
+      number_atom_features=30,
       batch_size=10,
       learning_rate=0.001)
 
   # overfit test
-  # GAT's convergence is a little slow
-  model.fit(dataset, nb_epoch=150)
+  model.fit(dataset, nb_epoch=50)
   scores = model.evaluate(dataset, [metric], transformers)
-  assert scores['mean-roc_auc_score'] >= 0.70
+  assert scores['mean-roc_auc_score'] >= 0.85
 
 
-@unittest.skipIf(not has_pytorch_and_pyg,
-                 'PyTorch and PyTorch Geometric are not installed')
-def test_gat_reload():
+@unittest.skipIf(not has_torch_and_dgl,
+                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+def test_gcn_reload():
   # load datasets
   featurizer = MolGraphConvFeaturizer()
   tasks, dataset, transformers, metric = get_dataset(
@@ -69,20 +73,22 @@ def test_gat_reload():
   # initialize models
   n_tasks = len(tasks)
   model_dir = tempfile.mkdtemp()
-  model = GATModel(
+  model = GCNModel(
       mode='classification',
       n_tasks=n_tasks,
+      number_atom_features=30,
       model_dir=model_dir,
       batch_size=10,
       learning_rate=0.001)
 
-  model.fit(dataset, nb_epoch=150)
+  model.fit(dataset, nb_epoch=50)
   scores = model.evaluate(dataset, [metric], transformers)
-  assert scores['mean-roc_auc_score'] >= 0.70
+  assert scores['mean-roc_auc_score'] >= 0.85
 
-  reloaded_model = GATModel(
+  reloaded_model = GCNModel(
       mode='classification',
       n_tasks=n_tasks,
+      number_atom_features=30,
       model_dir=model_dir,
       batch_size=10,
       learning_rate=0.001)

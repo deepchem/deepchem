@@ -207,7 +207,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       from pyGPGO.surrogates.GaussianProcess import GaussianProcess
       from pyGPGO.GPGO import GPGO
     except ModuleNotFoundError:
-      raise ValueError("This class requires pyGPGO to be installed.")
+      raise ImportError("This class requires pyGPGO to be installed.")
 
     # Specify logfile
     log_file = None

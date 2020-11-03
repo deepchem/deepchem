@@ -27,7 +27,7 @@ class PubChemFingerprint(MolecularFeaturizer):
       from rdkit import Chem  # noqa
       import pubchempy as pcp  # noqa
     except ModuleNotFoundError:
-      raise ValueError("This class requires PubChemPy to be installed.")
+      raise ImportError("This class requires PubChemPy to be installed.")
 
     self.get_pubchem_compounds = pcp.get_compounds
 

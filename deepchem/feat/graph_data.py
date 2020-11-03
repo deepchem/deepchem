@@ -107,7 +107,7 @@ class GraphData:
       import torch
       from torch_geometric.data import Data
     except ModuleNotFoundError:
-      raise ValueError(
+      raise ImportError(
           "This function requires PyTorch Geometric to be installed.")
 
     edge_features = self.edge_features
@@ -123,29 +123,36 @@ class GraphData:
         edge_attr=edge_features,
         pos=node_pos_features)
 
-  def to_dgl_graph(self):
+  def to_dgl_graph(self, self_loop: bool = False):
     """Convert to DGL graph data instance
 
     Returns
     -------
     dgl.DGLGraph
       Graph data for DGL
+    self_loop: bool
+      Whether to add self loops for the nodes, i.e. edges from nodes
+      to themselves. Default to False.
 
     Notes
     -----
     This method requires DGL to be installed.
     """
     try:
+      import dgl
       import torch
-      from dgl import DGLGraph
     except ModuleNotFoundError:
-      raise ValueError("This function requires DGL to be installed.")
+      raise ImportError("This function requires DGL to be installed.")
 
-    g = DGLGraph()
-    g.add_nodes(self.num_nodes)
-    g.add_edges(
-        torch.from_numpy(self.edge_index[0]).long(),
-        torch.from_numpy(self.edge_index[1]).long())
+    src = self.edge_index[0]
+    dst = self.edge_index[1]
+    if self_loop:
+      src = np.concatenate([src, np.arange(self.num_nodes)])
+      dst = np.concatenate([dst, np.arange(self.num_nodes)])
+
+    g = dgl.graph(
+        (torch.from_numpy(src).long(), torch.from_numpy(dst).long()),
+        num_nodes=self.num_nodes)
     g.ndata['x'] = torch.from_numpy(self.node_features).float()
 
     if self.node_pos_features is not None:
