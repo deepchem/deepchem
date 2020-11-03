@@ -130,11 +130,11 @@ We'll show you the example about the usage of splitters.
    ...   dataset=dataset, frac_train=0.6, frac_valid=0.2, frac_test=0.2
    ... )
    >>> len(train_dataset)
-   >>> 3
+   3
    >>> len(valid_dataset)
-   >>> 1
+   1
    >>> len(test_dataset)
-   >>> 1
+   1
 
 Here, we've used the :code:`RandomSplitter` and splitted the data randomly
 in the ratio of train:valid:test = 3:1:1. But, the random splitting sometimes
