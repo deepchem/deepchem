@@ -2,14 +2,13 @@
 HPPB Dataset Loader.
 """
 import os
-import logging
-import deepchem
-import numpy as np
-
-logger = logging.getLogger(__name__)
+import deepchem as dc
+from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
+from deepchem.data import Dataset
+from typing import List, Optional, Tuple, Union
 
 HPPB_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/hppb.csv"
-DEFAULT_DATA_DIR = deepchem.utils.data_utils.get_data_dir()
+HPPB_TASKS = ["target"]  #Task is solubility in pH 7.4 buffer
 
 
 def remove_missing_entries(dataset):
@@ -20,8 +19,6 @@ def remove_missing_entries(dataset):
   """
   for i, (X, y, w, ids) in enumerate(dataset.itershards()):
     available_rows = X.any(axis=1)
-    logger.info("Shard %d has %d missing entries." %
-                (i, np.count_nonzero(~available_rows)))
     X = X[available_rows]
     y = y[available_rows]
     w = w[available_rows]
@@ -29,100 +26,52 @@ def remove_missing_entries(dataset):
     dataset.set_shard(i, X, y, w, ids)
 
 
-def load_hppb(featurizer="ECFP",
-              data_dir=None,
-              save_dir=None,
-              split=None,
-              split_seed=None,
-              reload=True,
-              **kwargs):
-  """Loads the thermodynamic solubility datasets."""
-  # Featurizer hppb dataset
-  logger.info("About to featurize hppb dataset...")
-  hppb_tasks = ["target"]  #Task is solubility in pH 7.4 buffer
+class _HPPBLoader(_MolnetLoader):
 
-  if data_dir is None:
-    data_dir = DEFAULT_DATA_DIR
-  if save_dir is None:
-    save_dir = DEFAULT_DATA_DIR
+  def create_dataset(self) -> Dataset:
+    dataset_file = os.path.join(self.data_dir, "hppb.csv")
+    if not os.path.exists(dataset_file):
+      dc.utils.data_utils.download_url(url=HPPB_URL, dest_dir=self.data_dir)
+    loader = dc.data.CSVLoader(
+        tasks=self.tasks, feature_field="smile", featurizer=self.featurizer)
+    dataset = loader.create_dataset(dataset_file, shard_size=2000)
+    remove_missing_entries(dataset)
+    return dataset
 
-  if reload:
-    save_folder = os.path.join(save_dir, "hppb-featurized", str(featurizer))
-    if featurizer == "smiles2img":
-      img_spec = kwargs.get("img_spec", "std")
-      save_folder = os.path.join(save_folder, img_spec)
-    save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
-        save_folder)
-    if loaded:
-      return hppb_tasks, all_dataset, transformers
+def load_hppb(
+    featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',
+    splitter: Union[dc.splits.Splitter, str, None] = 'scaffold',
+    transformers: List[Union[TransformerGenerator, str]] = [],
+    reload: bool = True,
+    data_dir: Optional[str] = None,
+    save_dir: Optional[str] = None,
+    **kwargs
+) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+  """Loads the thermodynamic solubility datasets.
 
-  dataset_file = os.path.join(data_dir, "hppb.csv")
-  if not os.path.exists(dataset_file):
-    logger.info("{} does not exist. Downloading it.".format(dataset_file))
-    deepchem.utils.data_utils.download_url(url=hppb_URL, dest_dir=data_dir)
-
-  if featurizer == 'ECFP':
-    featurizer = deepchem.feat.CircularFingerprint(size=1024)
-  elif featurizer == 'GraphConv':
-    featurizer = deepchem.feat.ConvMolFeaturizer()
-  elif featurizer == 'Weave':
-    featurizer = deepchem.feat.WeaveFeaturizer()
-  elif featurizer == 'Raw':
-    featurizer = deepchem.feat.RawFeaturizer()
-  elif featurizer == "smiles2img":
-    img_spec = kwargs.get("img_spec", "std")
-    img_size = kwargs.get("img_size", 80)
-    featurizer = deepchem.feat.SmilesToImage(
-        img_size=img_size, img_spec=img_spec)
-
-  logger.info("Featurizing datasets.")
-  loader = deepchem.data.CSVLoader(
-      tasks=hppb_tasks, smiles_field='smile', featurizer=featurizer)
-  dataset = loader.featurize(input_files=[dataset_file], shard_size=2000)
-
-  logger.info("Removing missing entries...")
-  remove_missing_entries(dataset)
-
-  if split == None:
-    logger.info("About to transform the data...")
-    transformers = []
-    for transformer in transformers:
-      logger.info("Transforming the dataset with transformer ",
-                  transformer.__class__.__name__)
-      dataset = transformer.transform(dataset)
-    return hppb_tasks, (dataset, None, None), transformers
-
-  splitters = {
-      'index': deepchem.splits.IndexSplitter(),
-      'random': deepchem.splits.RandomSplitter(),
-      'scaffold': deepchem.splits.ScaffoldSplitter(),
-      'butina': deepchem.splits.ButinaSplitter(),
-      'stratified': deepchem.splits.SingletaskStratifiedSplitter()
-  }
-  splitter = splitters[split]
-  frac_train = kwargs.get("frac_train", 0.8)
-  frac_valid = kwargs.get('frac_valid', 0.1)
-  frac_test = kwargs.get('frac_test', 0.1)
-
-  train, valid, test = splitter.train_valid_test_split(
-      dataset,
-      frac_train=frac_train,
-      frac_valid=frac_valid,
-      frac_test=frac_test)
-  transformers = []
-
-  logger.info("About to transform the data...")
-  for transformer in transformers:
-    logger.info("Transforming the data with transformer ",
-                transformer.__class__.__name__)
-    train = transformer.transform(train)
-    valid = transformer.transform(valid)
-    test = transformer.transform(test)
-
-  if reload:
-    logger.info("Saving file to {}.".format(save_folder))
-    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
-                                                   test, transformers)
-  return hppb_tasks, (train, valid, test), transformers
+  Parameters
+  ----------
+  featurizer: Featurizer or str
+    the featurizer to use for processing the data.  Alternatively you can pass
+    one of the names from dc.molnet.featurizers as a shortcut.
+  splitter: Splitter or str
+    the splitter to use for splitting the data into training, validation, and
+    test sets.  Alternatively you can pass one of the names from
+    dc.molnet.splitters as a shortcut.  If this is None, all the data
+    will be included in a single dataset.
+  transformers: list of TransformerGenerators or strings
+    the Transformers to apply to the data.  Each one is specified by a
+    TransformerGenerator or, as a shortcut, one of the names from
+    dc.molnet.transformers.
+  reload: bool
+    if True, the first call for a particular featurizer and splitter will cache
+    the datasets to disk, and subsequent calls will reload the cached datasets.
+  data_dir: str
+    a directory to save the raw data in
+  save_dir: str
+    a directory to save the dataset in
+  """
+  loader = _HPPBLoader(featurizer, splitter, transformers, HPPB_TASKS, data_dir,
+                       save_dir, **kwargs)
+  return loader.load_dataset('hppb', reload)
