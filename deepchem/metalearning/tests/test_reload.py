@@ -34,10 +34,6 @@ class SineLearner(dc.metalearning.MetaLearner):
     self.amplitude = 5.0 * np.random.random()
     self.phase = np.pi * np.random.random()
 
-  #def set_task(self, amplitude, phase):
-  #  self.amplitude = amplitude
-  #  self.phase = phase
-
   def get_batch(self):
     x = np.random.uniform(-5.0, 5.0, (self.batch_size, 1))
     return [x, self.amplitude * np.sin(x + self.phase)]
