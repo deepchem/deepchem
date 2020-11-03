@@ -51,11 +51,23 @@ featurizers = {
     'weave': dc.feat.WeaveFeaturizer(),
 }
 
-# These featurizers depend on RDKit, so we need RDKit when globally instantiating.
+# some featurizers require soft dependencies to instantiate
 try:
   featurizers['ecfp'] = dc.feat.CircularFingerprint(size=1024)
+except ImportError:
+  pass
+
+try:
   featurizers['raw'] = dc.feat.RawFeaturizer()
+except ImportError:
+  pass
+
+try:
   featurizers['smiles2img'] = dc.feat.SmilesToImage(img_size=80, img_spec='std')
+except ImportError:
+  pass
+
+try:
   featurizers['onehot'] = dc.feat.OneHotFeaturizer()
 except ImportError:
   pass
