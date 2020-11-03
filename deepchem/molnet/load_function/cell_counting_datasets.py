@@ -6,72 +6,59 @@ http://www.robots.ox.ac.uk/~vgg/research/counting/index_org.html. Labels aren't
 available for this dataset, so only raw images are provided.
 """
 import os
-import logging
-import deepchem
+import deepchem as dc
+from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
+from deepchem.data import Dataset
+from typing import List, Optional, Tuple, Union
 
-logger = logging.getLogger(__name__)
-
-DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
-DATASET_URL = 'http://www.robots.ox.ac.uk/~vgg/research/counting/cells.zip'
+CELL_COUNTING_URL = 'http://www.robots.ox.ac.uk/~vgg/research/counting/cells.zip'
+CELL_COUNTING_TASKS: List[str] = []
 
 
-def load_cell_counting(split=None,
-                       reload=True,
-                       data_dir=None,
-                       save_dir=None,
-                       **kwargs):
+class _CellCountingLoader(_MolnetLoader):
+
+  def create_dataset(self) -> Dataset:
+    dataset_file = os.path.join(self.data_dir, "cells.zip")
+    if not os.path.exists(dataset_file):
+      dc.utils.data_utils.download_url(
+          url=CELL_COUNTING_URL, dest_dir=self.data_dir)
+    loader = dc.data.ImageLoader()
+    return loader.featurize(dataset_file)
+
+
+def load_cell_counting(
+    splitter: Union[dc.splits.Splitter, str, None] = None,
+    transformers: List[Union[TransformerGenerator, str]] = [],
+    reload: bool = True,
+    data_dir: Optional[str] = None,
+    save_dir: Optional[str] = None,
+    **kwargs
+) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
   """Load Cell Counting dataset.
 
   Loads the cell counting dataset from http://www.robots.ox.ac.uk/~vgg/research/counting/index_org.html.
+
+  Parameters
+  ----------
+  splitter: Splitter or str
+    the splitter to use for splitting the data into training, validation, and
+    test sets.  Alternatively you can pass one of the names from
+    dc.molnet.splitters as a shortcut.  If this is None, all the data
+    will be included in a single dataset.
+  transformers: list of TransformerGenerators or strings
+    the Transformers to apply to the data.  Each one is specified by a
+    TransformerGenerator or, as a shortcut, one of the names from
+    dc.molnet.transformers.
+  reload: bool
+    if True, the first call for a particular featurizer and splitter will cache
+    the datasets to disk, and subsequent calls will reload the cached datasets.
+  data_dir: str
+    a directory to save the raw data in
+  save_dir: str
+    a directory to save the dataset in
   """
-  if data_dir is None:
-    data_dir = DEFAULT_DIR
-  if save_dir is None:
-    save_dir = DEFAULT_DIR
-  # No tasks since no labels provided.
-  cell_counting_tasks = []
-  # For now images are loaded directly by ImageLoader
-  featurizer = ""
-  if reload:
-    save_folder = os.path.join(save_dir, "cell_counting-featurized", str(split))
-    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
-        save_folder)
-    if loaded:
-      return cell_counting_tasks, all_dataset, transformers
-  dataset_file = os.path.join(data_dir, "cells.zip")
-  if not os.path.exists(dataset_file):
-    deepchem.utils.data_utils.download_url(url=DATASET_URL, dest_dir=data_dir)
-
-  loader = deepchem.data.ImageLoader()
-  dataset = loader.featurize(dataset_file)
-
-  transformers = []
-
-  if split == None:
-    logger.info("Split is None, no transformers used.")
-    return cell_counting_tasks, (dataset, None, None), transformers
-
-  splitters = {
-      'index': deepchem.splits.IndexSplitter(),
-      'random': deepchem.splits.RandomSplitter(),
-  }
-  if split not in splitters:
-    raise ValueError("Only index and random splits supported.")
-  splitter = splitters[split]
-
-  logger.info("About to split dataset with {} splitter.".format(split))
-  frac_train = kwargs.get("frac_train", 0.8)
-  frac_valid = kwargs.get('frac_valid', 0.1)
-  frac_test = kwargs.get('frac_test', 0.1)
-
-  train, valid, test = splitter.train_valid_test_split(
-      dataset,
-      frac_train=frac_train,
-      frac_valid=frac_valid,
-      frac_test=frac_test)
-  transformers = []
-  all_dataset = (train, valid, test)
-  if reload:
-    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train, valid,
-                                                   test, transformers)
-  return cell_counting_tasks, all_dataset, transformers
+  featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
+  loader = _CellCountingLoader(featurizer, splitter, transformers,
+                               CELL_COUNTING_TASKS, data_dir, save_dir,
+                               **kwargs)
+  return loader.load_dataset('cell_counting', reload)
