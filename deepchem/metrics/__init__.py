@@ -37,3 +37,4 @@ from deepchem.metrics.score_function import prc_auc_score
 from deepchem.metrics.score_function import rms_score
 from deepchem.metrics.score_function import mae_score
 from deepchem.metrics.score_function import bedroc_score
+from deepchem.metrics.score_function import concordance_index

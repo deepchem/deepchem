@@ -79,6 +79,8 @@ DeepChem has a variety of different metrics which are useful for measuring model
 
 .. autofunction:: deepchem.metrics.bedroc_score
 
+.. autofunction:: deepchem.metrics.concordance_index
+
 .. autofunction:: deepchem.metrics.genomic_metrics.get_motif_scores
 
 .. autofunction:: deepchem.metrics.genomic_metrics.get_pssm_scores
