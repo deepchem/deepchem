@@ -124,11 +124,11 @@ We'll show you the example about the usage of splitters.
 
 .. doctest::
 
-   >>> splitter = dc.split.RandomSplitter()
+   >>> splitter = dc.splits.RandomSplitter()
    >>> # split 5 datapoints in the ratio of train:valid:test = 3:1:1
-   >>> train_dataset, valid_dataset, test_dataset = splitter.split(
-   >>>   dataset=dataset, frac_train=0.6, frac_valid=0.2, frac_valid=0.2
-   >>> )
+   >>> train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+   ...   dataset=dataset, frac_train=0.6, frac_valid=0.2, frac_test=0.2
+   ... )
    >>> len(train_dataset)
    >>> 3
    >>> len(valid_dataset)
@@ -161,10 +161,10 @@ We'll show you the example about the usage of models.
    >>> model.fit(train_dataset)
    >>> valid_preds = model.predict(valid_dataset)
    >>> valid_preds.shape
-   (1, 1)
+   (1,)
    >>> test_preds = model.predict(test_dataset)
    >>> test_preds.shape
-   (1, 1)
+   (1,)
 
 Here, we've used the :code:`SklearnModel` and trained the model.
 Even if you want to train a deep learning model which is implemented

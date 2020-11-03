@@ -44,6 +44,7 @@ script:
   - if [[ "$CHECK_ONLY_DOCS" == "true" ]]; then
       cd docs && pip install -r requirements.txt;
       make clean html;
+      make doctest_tutorials;
       make doctest_examples;
       travis_terminate $?;
     fi

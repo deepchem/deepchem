@@ -69,7 +69,7 @@ Then open your python and try running.
     import deepchem
 
 .. _`DeepChem Tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials
-.. _`forum post`: https://forum.deepchem.io/t/getting-deepchem-running-in-colab/81/7?u=nd-02110114
+.. _`forum post`: https://forum.deepchem.io/t/getting-deepchem-running-in-colab/81/7
 
 About Us
 --------
@@ -94,7 +94,7 @@ To listen in, please email X.Y@gmail.com, where X=bharath and Y=ramsundar to int
 
    get_started/installation
    get_started/requirements
-   get_started/tutorial
+   get_started/tutorials
    get_started/examples
 
 .. toctree::

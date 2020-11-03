@@ -15,8 +15,10 @@ help:
 .PHONY: help Makefile
 
 doctest_examples:
-	export PYTHONWARNINGS= 
 	@$(SPHINXBUILD) -M doctest "$(SOURCEDIR)" "$(BUILDDIR)" source/get_started/examples.rst;
+
+doctest_tutorials:
+	@$(SPHINXBUILD) -M doctest "$(SOURCEDIR)" "$(BUILDDIR)" source/get_started/tutorials.rst;
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
