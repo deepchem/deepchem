@@ -4,7 +4,7 @@ DeepChem :code:`dc.splits.Splitter` objects are a tool to meaningfully
 split DeepChem datasets for machine learning testing. The core idea is
 that when evaluating a machine learning model, it's useful to creating
 training, validation and test splits of your source data. The training
-split is used to train models, the validatation is used to benchmark
+split is used to train models, the validation is used to benchmark
 different model architectures. The test is ideally held out till the
 very end when it's used to gauge a final estimate of the model's
 performance.

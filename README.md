@@ -30,7 +30,7 @@ materials science, quantum chemistry, and biology.
 
 ## Requirements
 
-DeepChem currently supports Python 3.5 through 3.7 and requires these packages on any condition.
+DeepChem currently supports Python 3.6 through 3.7 and requires these packages on any condition.
 
 - [joblib](https://pypi.python.org/pypi/joblib)
 - [NumPy](https://numpy.org/)

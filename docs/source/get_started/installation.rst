@@ -1,13 +1,5 @@
-Installing DeepChem
-===================
-
-Google Colab
-------------
-
-The fastest way to get up and running with DeepChem is to run it on
-Google Colab. Check out one of the `DeepChem Tutorials`_ or this
-`forum post`_ for Colab quick start guides.
-
+Installation
+============
 
 Stable version
 --------------
@@ -53,6 +45,14 @@ with deepchem if you use conda.
 .. code-block:: bash
 
     conda install -y -c conda-forge rdkit
+
+
+Google Colab
+------------
+
+The fastest way to get up and running with DeepChem is to run it on
+Google Colab. Check out one of the `DeepChem Tutorials`_ or this
+`forum post`_ for Colab quick start guides.
 
 
 Docker
@@ -167,7 +167,7 @@ If you are using the Windows and the PowerShell:
 
 
 .. _`DeepChem Tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials
-.. _`forum post`: https://forum.deepchem.io/t/getting-deepchem-running-in-colab/81
+.. _`forum post`: https://forum.deepchem.io/t/getting-deepchem-running-in-colab/81/7
 .. _`DockerHub`: https://hub.docker.com/repository/docker/deepchemio/deepchem
 .. _`docker/conda-forge`: https://github.com/deepchem/deepchem/tree/master/docker/conda-forge
 .. _`docker/master`: https://github.com/deepchem/deepchem/tree/master/docker/master

@@ -1,6 +1,6 @@
 Metrics
 =======
-Metrics are one of the most import parts of machine learning. Unlike
+Metrics are one of the most important parts of machine learning. Unlike
 traditional software, in which algorithms either work or don't work,
 machine learning models work in degrees. That is, there's a continuous
 range of "goodness" for a model. "Metrics" are functions which measure

@@ -1,7 +1,16 @@
 Examples
 ========
 
-Before jumping in to examples, we'll import our libraries and ensure our `doctests <https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html>`_ are reproducible:
+We show a bunch of examples for DeepChem by the doctest style.
+
+- We match against doctest's :code:`...` wildcard on code where output is usually ignored
+- We often use threshold assertions (e.g: :code:`score['mean-pearson_r2_score'] > 0.92`),
+  as this is what matters for model training code.
+
+.. contents:: Contents
+    :local:
+
+Before jumping in to examples, we'll import our libraries and ensure our doctests are reproducible:
 
 .. doctest:: *
 
@@ -13,7 +22,6 @@ Before jumping in to examples, we'll import our libraries and ensure our `doctes
     >>> def seed_all():
     ...     np.random.seed(123)
     ...     tf.random.set_seed(123)
-    >>>
 
 .. testsetup:: *
 
@@ -26,23 +34,18 @@ Before jumping in to examples, we'll import our libraries and ensure our `doctes
         np.random.seed(123)
         tf.random.set_seed(123)
 
-
-Other notes:
-
-* We match against doctest's :code:`...` wildcard on code where output is usually ignored
-* We often use threshold assertions (e.g: :code:`score['mean-pearson_r2_score'] > 0.92`), as this is what matters for model training code.
-
 SAMPL (FreeSolv)
 ----------------
 
-Examples of training models on the SAMPL(FreeSolv) dataset included in `MoleculeNet <./moleculenet.html>`_.
-
-We'll be using its :code:`smiles` field to train models to predict its experimentally measured solvation energy (:code:`expt`).
+Examples of training models on the SAMPL(FreeSolv) dataset included in MoleculeNet.
+We'll be using its :code:`smiles` field to train models to
+predict its experimentally measured solvation energy (:code:`expt`).
 
 MultitaskRegressor
 ^^^^^^^^^^^^^^^^^^
 
-First, we'll load the dataset with :func:`load_sampl() <deepchem.molnet.load_sampl>` and fit a :class:`MultitaskRegressor <deepchem.models.MultitaskRegressor>`:
+First, we'll load the dataset with :ref:`load_sampl <api_reference/moleculenet:SAMPL Datasets>`
+and fit a :ref:`MultitaskRegressor <api_reference/models:MultitaskRegressor>`.
 
 .. doctest:: sampl
 
@@ -78,9 +81,10 @@ First, we'll load the dataset with :func:`load_sampl() <deepchem.molnet.load_sam
 
 GraphConvModel
 ^^^^^^^^^^^^^^
-The default `featurizer <./featurizers.html>`_ for SAMPL is :code:`ECFP`, short for
-`"Extended-connectivity fingerprints." <./featurizers.html#circularfingerprint>`_
-For a :class:`GraphConvModel <deepchem.models.GraphConvModel>`, we'll reload our datasets with :code:`featurizer='GraphConv'`:
+The default featurizer for SAMPL is :code:`ECFP`,
+short for :ref:`Extended-Connectivity FingerPrints <api_reference/featurizers:CircularFingerprint>`.
+For a :ref:`GraphConvModel <api_reference/models:GraphConvModel>`,
+we'll reload our datasets with :code:`featurizer='GraphConv'`.
 
 .. doctest:: sampl
 
@@ -103,14 +107,16 @@ For a :class:`GraphConvModel <deepchem.models.GraphConvModel>`, we'll reload our
     >>> assert valid_scores['mean-pearson_r2_score'] > 0.3, valid_scores
 
 
-
 ChEMBL
--------
+------
 
-Examples of training models on `ChEMBL <https://www.ebi.ac.uk/chembl/>` dataset included in `MoleculeNet <./moleculenet.html>`_.
+Examples of training models on `ChEMBL`_ dataset included in MoleculeNet.
 
-  ChEMBL is a manually curated database of bioactive molecules with drug-like properties.
-  It brings together chemical, bioactivity and genomic data to aid the translation of genomic information into effective new drugs.
+ChEMBL is a manually curated database of bioactive molecules with drug-like properties.
+It brings together chemical, bioactivity and genomic data to aid the translation 
+of genomic information into effective new drugs.
+
+.. _`ChEMBL`: https://www.ebi.ac.uk/chembl
 
 MultitaskRegressor
 ^^^^^^^^^^^^^^^^^^
