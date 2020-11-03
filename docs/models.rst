@@ -126,6 +126,9 @@ read off what's needed to train the model from the table below.
 | :code:`GATModel`                       | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
 |                                        | Regressor  |                      |                        |                                                                |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
+| :code:`GCNModel`                       | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
+|                                        | Regressor  |                      |                        |                                                                |                      |
++----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
 
 Model
 -----
@@ -446,4 +449,10 @@ GATModel
 --------
 
 .. autoclass:: deepchem.models.GATModel
+  :members:
+
+GCNModel
+--------
+
+.. autoclass:: deepchem.models.GCNModel
   :members:
