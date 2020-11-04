@@ -31,6 +31,7 @@ from deepchem.models.gbdt_models import GBDTModel
 # PyTorch models
 try:
   from deepchem.models.torch_models import TorchModel
+  from deepchem.models.torch_models import AttentiveFP, AttentiveFPModel
   from deepchem.models.torch_models import CGCNN, CGCNNModel
   from deepchem.models.torch_models import GAT, GATModel
   from deepchem.models.torch_models import GCN, GCNModel
