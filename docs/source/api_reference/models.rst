@@ -129,6 +129,9 @@ read off what's needed to train the model from the table below.
 | :code:`GCNModel`                       | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
 |                                        | Regressor  |                      |                        |                                                                |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
+| :code:`AttentiveFPModel`               | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
+|                                        | Regressor  |                      |                        |                                                                |                      |
++----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
 
 Model
 -----
@@ -449,4 +452,10 @@ GCNModel
 --------
 
 .. autoclass:: deepchem.models.GCNModel
+  :members:
+
+AttentiveFPModel
+----------------
+
+.. autoclass:: deepchem.models.AttentiveFPModel
   :members:
