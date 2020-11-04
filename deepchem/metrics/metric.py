@@ -528,20 +528,11 @@ class Metric(object):
     if mode is None:
       # These are some smart defaults
       if self.metric.__name__ in [
-          "roc_auc_score",
-          "matthews_corrcoef",
-          "recall_score",
-          "accuracy_score",
-          "kappa_score",
-          "cohen_kappa_score",
-          "precision_score",
-          "balanced_accuracy_score",
-          "prc_auc_score",
-          "f1_score",
-          "bedroc_score",
-          "jaccard_score",
-          "jaccard_index",
-          "pixel_error",
+          "roc_auc_score", "matthews_corrcoef", "recall_score",
+          "accuracy_score", "kappa_score", "cohen_kappa_score",
+          "precision_score", "balanced_accuracy_score", "prc_auc_score",
+          "f1_score", "bedroc_score", "jaccard_score", "jaccard_index",
+          "pixel_error"
       ]:
         mode = "classification"
         # These are some smart defaults corresponding to sklearn's required
@@ -561,7 +552,8 @@ class Metric(object):
             classification_handling_mode = None
       elif self.metric.__name__ in [
           "pearson_r2_score", "r2_score", "mean_squared_error",
-          "mean_absolute_error", "rms_score", "mae_score", "pearsonr"
+          "mean_absolute_error", "rms_score", "mae_score", "pearsonr",
+          "concordance_index"
       ]:
         mode = "regression"
       else:

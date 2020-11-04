@@ -49,6 +49,7 @@ pip install torch-cluster==latest+$cuda -f https://pytorch-geometric.com/whl/tor
 pip install torch-spline-conv==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
 pip install torch-geometric
 pip install $dgl_pkg
+pip install dgllife
 # install transformers package
 pip install transformers
 

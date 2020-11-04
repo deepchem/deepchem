@@ -7,17 +7,24 @@ and examples.
 ## Building the Documentation
 
 To build the docs, you can use the `Makefile` that's been added to
-this directory. (Note that `deepchem` must be installed first.) To
-generate docs in html, run
+this directory. To generate docs in html, run following commands.
 
 ```
-pip install -r requirements.txt
-make html
-open _build/html/index.html
+$ pip install -r requirements.txt
+$ make html
+// clean build
+$ make clean html
+$ open build/html/index.html
 ```
 
-You can generate docs in other formats as well if you like. To clean up past builds run
+If you want to confirm logs in more details,
 
 ```
-make clean
+$ make clean html SPHINXOPTS=-vvv
+```
+
+If you want to confirm the example tests,
+
+```
+$ make doctest_examples
 ```

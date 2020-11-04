@@ -1,7 +1,11 @@
 Contibuting to DeepChem as a Scientist
 ======================================
 
-The scientific community in many ways is quite traditional. Students typically learn in apprenticeship from from advisors who teach a small number of students directly. This system has endured for centuries and allows for expert scientists to teach their ways of thinking to new students.
+The scientific community in many ways is quite traditional.
+Students typically learn in apprenticeship from from advisors who
+teach a small number of students directly. This system has endured
+for centuries and allows for expert scientists to teach their ways of
+thinking to new students.
 
 For more context, most scientific research today is done in "labs"
 run in this mostly traditional fashion. A principal investigator (PI)
@@ -33,6 +37,9 @@ like to help you make sure that your algorithms have the most impact.
 Scientist FAQ
 -------------
 
+.. contents:: Contents
+    :local:
+
 Wouldn't it be better for my career to make my own package rather than use DeepChem?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -59,15 +66,25 @@ and we'd love to make your package's features accessible to our users.
 
 Is there a DeepChem PI?
 ^^^^^^^^^^^^^^^^^^^^^^^
-While DeepChem was born in the Pande lab at Stanford, the project now lives as a "decentralized research organization." It would be more accurate to say that there are informally multiple "DeepChem PIs," who use it in their work. You too can be a DeepChem PI!
+While DeepChem was born in the Pande lab at Stanford,
+the project now lives as a "decentralized research organization."
+It would be more accurate to say that there are informally multiple "DeepChem PIs,"
+who use it in their work. You too can be a DeepChem PI!
 
 Do I need to add DeepChem team members as co-authors to my paper?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Our suggestion is to use good judgment and usual scientific etiquette. If a particular DeepChem team member has contributed a lot to your effort, adding them might make sense. If no one person has contributed sufficiently, an acknowledgment or citation would be great! 
+Our suggestion is to use good judgment and usual scientific etiquette.
+If a particular DeepChem team member has contributed a lot to your effort,
+adding them might make sense. If no one person has contributed sufficiently,
+an acknowledgment or citation would be great!
 
 I want to establish my scientific niche. How can I do that as a DeepChem contributor? Won't my contribution be lost in the noise?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-It's critically important for a new scientist to establish themselves and their contributions in order to launch a scientific career. We believe that DeepChem can help you do this! If you add a significant set of new features to DeepChem, it might be appropriate for you to write a paper (as lead or corresponding author or however makes sense) that introduces the new feature and your contribution.
+It's critically important for a new scientist to establish themselves and
+their contributions in order to launch a scientific career. We believe that
+DeepChem can help you do this! If you add a significant set of new features to DeepChem,
+it might be appropriate for you to write a paper (as lead or corresponding author or however makes sense)
+that introduces the new feature and your contribution.
 
 As a decentralized research organization, we want to help you launch
 your careers. We're very open to other collaboration structures that
@@ -75,17 +92,26 @@ work for your career needs.
 
 I'm an aspiring scientist, not part of a lab. Can I join DeepChem?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Yes! DeepChem's core mission is to democratize the use of deep learning for the sciences. This means no barriers, no walls. Anyone is welcome to join and contribute. Join our developer calls, chat one-on-one with our scientists, many of whom are glad to work with new students. You may form connections that help you join a more traditional lab, or you may choose to form your own path. We're glad to support either.
+Yes! DeepChem's core mission is to democratize the use of deep learning for the sciences.
+This means no barriers, no walls. Anyone is welcome to join and contribute.
+Join our developer calls, chat one-on-one with our scientists,
+many of whom are glad to work with new students. You may form connections that
+help you join a more traditional lab, or you may choose to form your own path.
+We're glad to support either.
 
 
 Is there DeepChem Grant Money?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Not yet, but we're actively looking into getting grants to support DeepChem researchers. If you're a PI who wants to collaborate with us, please get in touch!
+Not yet, but we're actively looking into getting grants to support DeepChem researchers.
+If you're a PI who wants to collaborate with us, please get in touch!
 
 
 I'm an industry researcher. Can I participate too?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Yes! The most powerful features of DeepChem is its community. Becoming part of the DeepChem project can let you build a network that lasts across jobs and roles. Lifelong employment at a corporation is less and less common. Joining our community will let you build bonds that cross jobs and could help you do your job today better too! 
+Yes! The most powerful features of DeepChem is its community.
+Becoming part of the DeepChem project can let you build a network that lasts across jobs and roles.
+Lifelong employment at a corporation is less and less common. Joining our community will
+let you build bonds that cross jobs and could help you do your job today better too! 
 
 What about intellectual property?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

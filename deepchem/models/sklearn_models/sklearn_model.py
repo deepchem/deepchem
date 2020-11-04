@@ -35,7 +35,7 @@ class SklearnModel(Model):
   perhaps you want to use the hyperparameter tuning capabilities in
   `dc.hyper`. The `SklearnModel` class provides a wrapper around scikit-learn
   models that allows scikit-learn models to be trained on `Dataset` objects
-  and evaluated with the same metrics as other DeepChem models.`
+  and evaluated with the same metrics as other DeepChem models.
 
   Notes
   -----

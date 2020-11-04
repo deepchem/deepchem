@@ -4,7 +4,7 @@ Requirements
 Hard requirements
 ^^^^^^^^^^^^^^^^^
 
-DeepChem currently supports Python 3.5 through 3.7 and requires these packages on any condition.
+DeepChem officially supports Python 3.6 through 3.7 and requires these packages on any condition.
 
 - `joblib`_
 - `NumPy`_
@@ -30,7 +30,11 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `Deep Graph Library`_          | latset        | :code:`dc.feat.graph_data`                        |
+| `Deep Graph Library`_          | latset        | :code:`dc.feat.graph_data`,                       |
+|                                |               | :code:`dc.models.torch_models`                    |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
+| `DGL-LifeSci`_                 | latest        | :code:`dc.models.torch_models`                    |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
@@ -95,7 +99,7 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `PyTorch Geometric`_           | latest (with  | :code:`dc.feat.graph_data`                        |
-|                                | PyTorch 1.6.0)|                                                   |
+|                                | PyTorch 1.6.0)| :code:`dc.models.torch_models`                    |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `RDKit`_                       | latest        | Many modules                                      |
@@ -127,6 +131,7 @@ DeepChem has a number of "soft" requirements.
 .. _`TensorFlow`: https://www.tensorflow.org/
 .. _`BioPython`: https://biopython.org/wiki/Documentation
 .. _`Deep Graph Library`: https://www.dgl.ai/
+.. _`DGL-LifeSci`: https://github.com/awslabs/dgl-lifesci
 .. _`HuggingFace Transformers`: https://huggingface.co/transformers/
 .. _`LightGBM`: https://lightgbm.readthedocs.io/en/latest/index.html
 .. _`matminer`: https://hackingmaterials.lbl.gov/matminer/

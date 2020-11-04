@@ -126,6 +126,9 @@ read off what's needed to train the model from the table below.
 | :code:`GATModel`                       | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
 |                                        | Regressor  |                      |                        |                                                                |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
+| :code:`GCNModel`                       | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
+|                                        | Regressor  |                      |                        |                                                                |                      |
++----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
 
 Model
 -----
@@ -196,9 +199,6 @@ Losses
 .. autoclass:: deepchem.models.losses.SparseSoftmaxCrossEntropy
   :members:
 
-.. autoclass:: deepchem.models.losses.SparseSoftmaxCrossEntropy
-  :members:
-
 .. autoclass:: deepchem.models.losses.VAE_ELBO
   :members:
 
@@ -233,9 +233,6 @@ Optimizers
   :members:
 
 .. autoclass:: deepchem.models.optimizers.PolynomialDecay
-  :members:
-
-.. autoclass:: deepchem.models.optimizers.LinearCosineDecay
   :members:
 
 .. autoclass:: deepchem.models.optimizers.LinearCosineDecay
@@ -446,4 +443,10 @@ GATModel
 --------
 
 .. autoclass:: deepchem.models.GATModel
+  :members:
+
+GCNModel
+--------
+
+.. autoclass:: deepchem.models.GCNModel
   :members:

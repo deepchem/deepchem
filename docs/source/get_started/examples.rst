@@ -1,7 +1,16 @@
 Examples
 ========
 
-Before jumping in to examples, we'll import our libraries and ensure our `doctests <https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html>`_ are reproducible:
+We show a bunch of examples for DeepChem by the doctest style.
+
+- We match against doctest's :code:`...` wildcard on code where output is usually ignored
+- We often use threshold assertions (e.g: :code:`score['mean-pearson_r2_score'] > 0.92`),
+  as this is what matters for model training code.
+
+.. contents:: Contents
+    :local:
+
+Before jumping in to examples, we'll import our libraries and ensure our doctests are reproducible:
 
 .. doctest:: *
 
@@ -13,7 +22,6 @@ Before jumping in to examples, we'll import our libraries and ensure our `doctes
     >>> def seed_all():
     ...     np.random.seed(123)
     ...     tf.random.set_seed(123)
-    >>>
 
 .. testsetup:: *
 
@@ -26,11 +34,6 @@ Before jumping in to examples, we'll import our libraries and ensure our `doctes
         np.random.seed(123)
         tf.random.set_seed(123)
 
-
-Other notes:
-
-* We match against doctest's :code:`...` wildcard on code where output is usually ignored
-* We often use threshold assertions (e.g: :code:`score['mean-pearson_r2_score'] > 0.92`), as this is what matters for model training code.
 
 Delaney (ESOL)
 ----------------
@@ -98,14 +101,16 @@ For a :class:`GraphConvModel <deepchem.models.GraphConvModel>`, we'll reload our
     >>> assert valid_scores['mean-pearson_r2_score'] > 0.3, valid_scores
 
 
-
 ChEMBL
--------
+------
 
-Examples of training models on `ChEMBL <https://www.ebi.ac.uk/chembl/>` dataset included in `MoleculeNet <./moleculenet.html>`_.
+Examples of training models on `ChEMBL`_ dataset included in MoleculeNet.
 
-  ChEMBL is a manually curated database of bioactive molecules with drug-like properties.
-  It brings together chemical, bioactivity and genomic data to aid the translation of genomic information into effective new drugs.
+ChEMBL is a manually curated database of bioactive molecules with drug-like properties.
+It brings together chemical, bioactivity and genomic data to aid the translation
+of genomic information into effective new drugs.
+
+.. _`ChEMBL`: https://www.ebi.ac.uk/chembl
 
 MultitaskRegressor
 ^^^^^^^^^^^^^^^^^^
