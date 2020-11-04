@@ -34,7 +34,7 @@ class GCN(nn.Module):
     >>> dgl_graphs = [graphs[i].to_dgl_graph() for i in range(len(graphs))]
     >>> # Batch two graphs into a graph of two connected components
     >>> batch_dgl_graph = dgl.batch(dgl_graphs)
-    >>> model = GCN(n_tasks=1, number_atom_features=30, mode='regression')
+    >>> model = GCN(n_tasks=1, mode='regression')
     >>> preds = model(batch_dgl_graph)
     >>> print(type(preds))
     <class 'torch.Tensor'>
@@ -77,7 +77,7 @@ class GCN(nn.Module):
                predictor_hidden_feats: int = 128,
                predictor_dropout: float = 0.,
                mode: str = 'regression',
-               number_atom_features: int = 75,
+               number_atom_features: int = 30,
                n_classes: int = 2,
                nfeat_name: str = 'x'):
     """
@@ -103,15 +103,16 @@ class GCN(nn.Module):
         predictor_dropout: float
             The dropout probability in the output MLP predictor. Default to 0.
         mode: str
-            The model type, 'classification' or 'regression'.
+            The model type, 'classification' or 'regression'. Default to 'regression'.
         number_atom_features: int
-            The length of the initial atom feature vectors. Default to 75.
+            The length of the initial atom feature vectors. Default to 30.
         n_classes: int
             The number of classes to predict per task
-            (only used when ``mode`` is 'classification').
+            (only used when ``mode`` is 'classification'). Default to 2.
         nfeat_name: str
             For an input graph ``g``, the model assumes that it stores node features in
             ``g.ndata[nfeat_name]`` and will retrieve input node features from that.
+            Default to 'x'.
         """
     try:
       import dgl
@@ -219,7 +220,7 @@ class GCNModel(TorchModel):
     ..     reload=False, featurizer=featurizer, transformers=[])
     >> train, valid, test = datasets
     >> model = dc.models.GCNModel(mode='classification', n_tasks=len(tasks),
-    ..                            number_atom_features=30, batch_size=32, learning_rate=0.001)
+    ..                            batch_size=32, learning_rate=0.001)
     >> model.fit(train, nb_epoch=50)
 
     References
@@ -258,7 +259,7 @@ class GCNModel(TorchModel):
                predictor_hidden_feats: int = 128,
                predictor_dropout: float = 0.,
                mode: str = 'regression',
-               number_atom_features=75,
+               number_atom_features=30,
                n_classes: int = 2,
                nfeat_name: str = 'x',
                self_loop: bool = True,
@@ -286,15 +287,16 @@ class GCNModel(TorchModel):
         predictor_dropout: float
             The dropout probability in the output MLP predictor. Default to 0.
         mode: str
-            The model type, 'classification' or 'regression'.
+            The model type, 'classification' or 'regression'. Default to 'regression'.
         number_atom_features: int
-            The length of the initial atom feature vectors. Default to 75.
+            The length of the initial atom feature vectors. Default to 30.
         n_classes: int
             The number of classes to predict per task
-            (only used when ``mode`` is 'classification').
+            (only used when ``mode`` is 'classification'). Default to 2.
         nfeat_name: str
             For an input graph ``g``, the model assumes that it stores node features in
             ``g.ndata[nfeat_name]`` and will retrieve input node features from that.
+            Default to 'x'.
         self_loop: bool
             Whether to add self loops for the nodes, i.e. edges from nodes to themselves.
             Default to True.
