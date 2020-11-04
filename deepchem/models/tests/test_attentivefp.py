@@ -27,10 +27,7 @@ def test_attentivefp_regression():
 
   # initialize models
   n_tasks = len(tasks)
-  model = AttentiveFPModel(
-      mode='regression',
-      n_tasks=n_tasks,
-      batch_size=10)
+  model = AttentiveFPModel(mode='regression', n_tasks=n_tasks, batch_size=10)
 
   # overfit test
   model.fit(dataset, nb_epoch=100)
