@@ -54,7 +54,7 @@ class _Zinc15Loader(_MolnetLoader):
 
 
 def load_zinc15(
-    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.OneHotFeaturizer(),
+    featurizer: Union[dc.feat.Featurizer, str] = 'OneHot',
     splitter: Union[dc.splits.Splitter, str, None] = 'random',
     transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
     reload: bool = True,
