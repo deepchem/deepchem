@@ -302,6 +302,7 @@ class GCNModel(TorchModel):
             This can include any keyword argument of TorchModel.
         """
     model = GCN(
+        n_tasks=n_tasks,
         graph_conv_layers=graph_conv_layers,
         activation=activation,
         residual=residual,
@@ -309,7 +310,6 @@ class GCNModel(TorchModel):
         dropout=dropout,
         predictor_hidden_feats=predictor_hidden_feats,
         predictor_dropout=predictor_dropout,
-        n_tasks=n_tasks,
         mode=mode,
         number_atom_features=number_atom_features,
         n_classes=n_classes,
