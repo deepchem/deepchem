@@ -15,17 +15,17 @@ heel? Fear not for you have :code:`Transformer` objects.
 General Transformers
 --------------------
 
-MinMaxTransformer
-^^^^^^^^^^^^^^^^^
-
-.. autoclass:: deepchem.trans.MinMaxTransformer
-  :members:
-  :inherited-members:
-
 NormalizationTransformer
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.trans.NormalizationTransformer
+  :members:
+  :inherited-members:
+
+MinMaxTransformer
+^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.trans.MinMaxTransformer
   :members:
   :inherited-members:
 
@@ -43,20 +43,6 @@ LogTransformer
   :members:
   :inherited-members:
 
-BalancingTransformer
-^^^^^^^^^^^^^^^^^^^^
-
-.. autoclass:: deepchem.trans.BalancingTransformer
-  :members:
-  :inherited-members:
-
-DuplicateBalancingTransformer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. autoclass:: deepchem.trans.DuplicateBalancingTransformer
-  :members:
-  :inherited-members:
-
 CDFTransformer
 ^^^^^^^^^^^^^^
 
@@ -68,6 +54,20 @@ PowerTransformer
 ^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.trans.PowerTransformer
+  :members:
+  :inherited-members:
+
+BalancingTransformer
+^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.trans.BalancingTransformer
+  :members:
+  :inherited-members:
+
+DuplicateBalancingTransformer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.trans.DuplicateBalancingTransformer
   :members:
   :inherited-members:
 

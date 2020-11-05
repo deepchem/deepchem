@@ -29,21 +29,6 @@ RandomSplitter
   :inherited-members:
   :exclude-members: __init__
 
-IndexSplitter
-^^^^^^^^^^^^^
-
-.. autoclass:: deepchem.splits.IndexSplitter
-  :members:
-  :inherited-members:
-  :exclude-members: __init__
-
-SpecifiedSplitter
-^^^^^^^^^^^^^^^^^
-
-.. autoclass:: deepchem.splits.SpecifiedSplitter
-  :members:
-  :inherited-members:
-
 
 RandomGroupSplitter
 ^^^^^^^^^^^^^^^^^^^
@@ -67,6 +52,21 @@ SingletaskStratifiedSplitter
   :members:
   :inherited-members:
 
+IndexSplitter
+^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.splits.IndexSplitter
+  :members:
+  :inherited-members:
+  :exclude-members: __init__
+
+SpecifiedSplitter
+^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.splits.SpecifiedSplitter
+  :members:
+  :inherited-members:
+
 TaskSplitter
 ^^^^^^^^^^^^
 
@@ -77,6 +77,14 @@ TaskSplitter
 
 Molecule Splitters
 ------------------
+
+ScaffoldSplitter
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.splits.ScaffoldSplitter
+  :members:
+  :inherited-members:
+  :exclude-members: __init__
 
 MolecularWeightSplitter
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -100,14 +108,6 @@ ButinaSplitter
 .. autoclass:: deepchem.splits.ButinaSplitter
   :members:
   :inherited-members:
-
-ScaffoldSplitter
-^^^^^^^^^^^^^^^^
-
-.. autoclass:: deepchem.splits.ScaffoldSplitter
-  :members:
-  :inherited-members:
-  :exclude-members: __init__
 
 FingeprintSplitter
 ^^^^^^^^^^^^^^^^^^
