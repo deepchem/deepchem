@@ -81,7 +81,7 @@ def voxelize(get_voxels: Callable[..., Any],
              coordinates: np.ndarray,
              box_width: float = 16.0,
              voxel_width: float = 1.0,
-             feature_dict: Optional[Dict[Union[int, Tuple[int]], Any]] = None,
+             feature_dict: Optional[Dict[Any, Any]] = None,
              feature_list: Optional[List[Union[int, Tuple[int]]]] = None,
              nb_channel: int = 16,
              dtype: str = 'int') -> np.ndarray:
