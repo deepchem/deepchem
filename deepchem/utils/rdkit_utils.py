@@ -16,6 +16,7 @@ from deepchem.utils.pdbqt_utils import pdbqt_to_pdb
 from deepchem.utils.pdbqt_utils import convert_mol_to_pdbqt
 from deepchem.utils.pdbqt_utils import convert_protein_to_pdbqt
 from deepchem.utils.geometry_utils import compute_pairwise_distances
+from deepchem.utils.geometry_utils import compute_centroid
 from deepchem.utils.fragment_utils import MolecularFragment
 from typing import Any, List, Tuple, Set, Optional, Dict
 from deepchem.utils.typing import OneOrMany, RDKitMol

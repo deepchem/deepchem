@@ -186,12 +186,7 @@ class SplifVoxelizer(ComplexFeaturizer):
   """Computes SPLIF voxel grid for a macromolecular complex.
 
   SPLIF fingerprints are based on a technique introduced in the
-  following paper. 
-
-  Da, C., and D. Kireev. "Structural protein–ligand interaction
-  fingerprints (SPLIF) for structure-based virtual screening:
-  method and benchmark study." Journal of chemical information
-  and modeling 54.9 (2014): 2555-2561.
+  following paper [1]_.
 
   The SPLIF voxelizer localizes local SPLIF descriptors in
   space, by assigning features to the voxel in which they
@@ -201,6 +196,13 @@ class SplifVoxelizer(ComplexFeaturizer):
   Featurizes a macromolecular complex into a tensor of shape
   `(voxels_per_edge, voxels_per_edge, voxels_per_edge, size)`
   where `voxels_per_edge = int(box_width/voxel_width)`.
+
+  References
+  ----------
+  .. [1] Da, C., and D. Kireev. "Structural protein–ligand interaction
+  fingerprints (SPLIF) for structure-based virtual screening:
+  method and benchmark study." Journal of chemical information
+  and modeling 54.9 (2014): 2555-2561.
   """
 
   def __init__(self,
@@ -270,10 +272,10 @@ class SplifVoxelizer(ComplexFeaturizer):
               [
                   voxelize(
                       convert_atom_pair_to_voxel,
-                      self.box_width,
-                      self.voxel_width,
-                      hash_ecfp_pair,
-                      xyzs,
+                      hash_function=hash_ecfp_pair,
+                      coordinates=xyzs,
+                      box_width=self.box_width,
+                      voxel_width=self.voxel_width,
                       feature_dict=splif_dict,
                       nb_channel=self.size)
                   for splif_dict in featurize_splif(

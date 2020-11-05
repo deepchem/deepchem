@@ -1,5 +1,6 @@
 import os
 import unittest
+import numpy as np
 from deepchem.utils.rdkit_utils import load_molecule
 from deepchem.utils.rdkit_utils import compute_ring_center
 from deepchem.utils.rdkit_utils import compute_ring_normal
@@ -26,13 +27,13 @@ class TestPiInteractions(unittest.TestCase):
     # load and sanitize two real molecules
     _, self.prot = load_molecule(
         os.path.join(current_dir,
-                     '../../feat/tests/3ws9_protein_fixer_rdkit.pdb'),
+                     '../../feat/tests/data/3ws9_protein_fixer_rdkit.pdb'),
         add_hydrogens=False,
         calc_charges=False,
         sanitize=True)
 
     _, self.lig = load_molecule(
-        os.path.join(current_dir, '../../feat/tests/3ws9_ligand.sdf'),
+        os.path.join(current_dir, '../../feat//tests/data/3ws9_ligand.sdf'),
         add_hydrogens=False,
         calc_charges=False,
         sanitize=True)

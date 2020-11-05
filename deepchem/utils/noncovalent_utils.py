@@ -1,7 +1,11 @@
 """The functions in these utilities check that noncovalent interactions happen"""
 import numpy as np
+from collections import Counter
 from deepchem.utils.fragment_utils import get_partial_charge
 from deepchem.utils.rdkit_utils import compute_ring_center
+from deepchem.utils.rdkit_utils import compute_ring_normal
+from deepchem.utils.geometry_utils import angle_between
+from deepchem.utils.geometry_utils import compute_centroid
 
 
 def is_salt_bridge(atom_i, atom_j):

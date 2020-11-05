@@ -24,11 +24,11 @@ class TestSplifFingerprints(unittest.TestCase):
   def test_splif_voxels_shape(self):
     box_width = 48
     voxel_width = 2
-    voxels_per_edge = box_width / voxel_width
+    voxels_per_edge = int(box_width / voxel_width)
     size = 8
     voxelizer = dc.feat.SplifVoxelizer(
         box_width=box_width, voxel_width=voxel_width, size=size)
-    features, failures = voxelizer._featurize(self.ligand_file,
-                                              self.protein_file)
+    features, failures = voxelizer.featurize([self.ligand_file],
+                                             [self.protein_file])
     assert features.shape == (1, voxels_per_edge, voxels_per_edge,
-                              voxels_per_edge, size)
+                              voxels_per_edge, size * 3)
