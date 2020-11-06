@@ -81,17 +81,20 @@ class ChargeVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize_complex(self, molecular_complex):
+  def _featurize(self, mol_pdb: str, protein_pdb: str):
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    molecular_complex: Object
-      Some representation of a molecular complex.
+    mol_pdb: str
+      Filename for ligand molecule
+    protein_pdb: str
+      Filename for protein molecule
     """
+    molecular_complex = (mol_pdb, protein_pdb)
     try:
-      fragments = rdkit_util.load_complex(
+      fragments = rdkit_utils.load_complex(
           molecular_complex, add_hydrogens=False)
 
     except MoleculeLoadException:
@@ -114,10 +117,10 @@ class ChargeVoxelizer(ComplexFeaturizer):
           sum([
               voxelize(
                   convert_atom_to_voxel,
-                  self.box_width,
-                  self.voxel_width,
-                  None,
-                  xyz,
+                  hash_function=hash_ecfp_pair,
+                  coordinates=xyz,
+                  box_width=self.box_width,
+                  voxel_width=self.voxel_width,
                   feature_dict=compute_charge_dictionary(mol),
                   nb_channel=1,
                   dtype="np.float16") for xyz, mol in zip(xyzs, rdks)
@@ -168,7 +171,7 @@ class SaltBridgeVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize_complex(self, molecular_complex):
+  def _featurize(self, mol_pdb: str, protein_pdb: str):
     """
     Compute featurization for a single mol/protein complex
 
@@ -177,8 +180,9 @@ class SaltBridgeVoxelizer(ComplexFeaturizer):
     molecular_complex: Object
       Some representation of a molecular complex.
     """
+    molecular_complex = (mol_pdb, protein_pdb)
     try:
-      fragments = rdkit_util.load_complex(
+      fragments = rdkit_utils.load_complex(
           molecular_complex, add_hydrogens=False)
 
     except MoleculeLoadException:
@@ -256,17 +260,20 @@ class CationPiVoxelizer(ComplexFeaturizer):
     self.box_width = box_width
     self.voxel_width = voxel_width
 
-  def _featurize_complex(self, molecular_complex):
+  def _featurize(self, mol_pdb: str, protein_pdb: str):
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    molecular_complex: Object
-      Some representation of a molecular complex.
+    mol_pdb: str
+      Filename for ligand molecule
+    protein_pdb: str
+      Filename for protein molecule
     """
+    molecular_complex = (mol_pdb, protein_pdb)
     try:
-      fragments = rdkit_util.load_complex(
+      fragments = rdkit_utils.load_complex(
           molecular_complex, add_hydrogens=False)
 
     except MoleculeLoadException:
@@ -348,17 +355,20 @@ class PiStackVoxelizer(ComplexFeaturizer):
     self.box_width = box_width
     self.voxel_width = voxel_width
 
-  def _featurize_complex(self, molecular_complex):
+  def _featurize(self, mol_pdb: str, protein_pdb: str):
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    molecular_complex: Object
-      Some representation of a molecular complex.
+    mol_pdb: str
+      Filename for ligand molecule
+    protein_pdb: str
+      Filename for protein molecule
     """
+    molecular_complex = (mol_pdb, protein_pdb)
     try:
-      fragments = rdkit_util.load_complex(
+      fragments = rdkit_utils.load_complex(
           molecular_complex, add_hydrogens=False)
 
     except MoleculeLoadException:
@@ -479,7 +489,7 @@ class HydrogenBondCounter(ComplexFeaturizer):
       Some representation of a molecular complex.
     """
     try:
-      fragments = rdkit_util.load_complex(
+      fragments = rdkit_utils.load_complex(
           molecular_complex, add_hydrogens=False)
 
     except MoleculeLoadException:
@@ -585,7 +595,7 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
       Some representation of a molecular complex.
     """
     try:
-      fragments = rdkit_util.load_complex(
+      fragments = rdkit_utils.load_complex(
           molecular_complex, add_hydrogens=False)
 
     except MoleculeLoadException:

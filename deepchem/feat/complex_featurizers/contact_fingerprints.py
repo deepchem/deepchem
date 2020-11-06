@@ -87,7 +87,7 @@ class ContactCircularFingerprint(ComplexFeaturizer):
     cutoff: float (default 4.5)
       Distance cutoff in angstroms for molecules in complex.
     radius: int, optional (default 2)
-        Fingerprint radius.
+      Fingerprint radius.
     size: int, optional (default 8)
       Length of generated bit vector.
     """
@@ -95,7 +95,7 @@ class ContactCircularFingerprint(ComplexFeaturizer):
     self.radius = radius
     self.size = size
 
-  def _featurize(self, mol_pdb: str, complex_pdb: str):
+  def _featurize(self, mol_pdb: str, protein_pdb: str):
     """
     Compute featurization for a molecular complex
 
@@ -103,11 +103,11 @@ class ContactCircularFingerprint(ComplexFeaturizer):
     ----------
     mol_pdb: str
       Filename for ligand molecule
-    complex_pdb: str
+    protein_pdb: str
       Filename for protein molecule
     """
     try:
-      fragments = load_complex((mol_pdb, complex_pdb), add_hydrogens=False)
+      fragments = load_complex((mol_pdb, protein_pdb), add_hydrogens=False)
 
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
@@ -183,7 +183,7 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
     self.flatten = flatten
 
-  def _featurize(self, mol_pdb: str, complex_pdb: str):
+  def _featurize(self, mol_pdb: str, protein_pdb: str):
     """
     Compute featurization for a molecular complex
 
@@ -191,10 +191,10 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
     ----------
     mol_pdb: str
       Filename for ligand molecule
-    complex_pdb: str
+    protein_pdb: str
       Filename for protein molecule
     """
-    molecular_complex = (mol_pdb, complex_pdb)
+    molecular_complex = (mol_pdb, protein_pdb)
     try:
       fragments = load_complex(molecular_complex, add_hydrogens=False)
 
