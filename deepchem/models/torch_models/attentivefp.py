@@ -11,48 +11,48 @@ from deepchem.models.torch_models.torch_model import TorchModel
 class AttentiveFP(nn.Module):
   """Model for Graph Property Prediction.
 
-    This model proceeds as follows:
+  This model proceeds as follows:
 
-    * Combine node features and edge features for initializing node representations,
-      which involves a round of message passing
-    * Update node representations with multiple rounds of message passing
-    * For each graph, compute its representation by combining the representations
-      of all nodes in it, which involves a gated recurrent unit (GRU).
-    * Perform the final prediction using a linear layer
+  * Combine node features and edge features for initializing node representations,
+    which involves a round of message passing
+  * Update node representations with multiple rounds of message passing
+  * For each graph, compute its representation by combining the representations
+    of all nodes in it, which involves a gated recurrent unit (GRU).
+  * Perform the final prediction using a linear layer
 
-    Examples
-    --------
+  Examples
+  --------
 
-    >>> import deepchem as dc
-    >>> import dgl
-    >>> from deepchem.models import AttentiveFP
-    >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
-    >>> featurizer = dc.feat.MolGraphConvFeaturizer(use_edges=True)
-    >>> graphs = featurizer.featurize(smiles)
-    >>> print(type(graphs[0]))
-    <class 'deepchem.feat.graph_data.GraphData'>
-    >>> dgl_graphs = [graphs[i].to_dgl_graph() for i in range(len(graphs))]
-    >>> # Batch two graphs into a graph of two connected components
-    >>> batch_dgl_graph = dgl.batch(dgl_graphs)
-    >>> model = AttentiveFP(n_tasks=1, mode='regression')
-    >>> preds = model(batch_dgl_graph)
-    >>> print(type(preds))
-    <class 'torch.Tensor'>
-    >>> preds.shape == (2, 1)
-    True
+  >>> import deepchem as dc
+  >>> import dgl
+  >>> from deepchem.models import AttentiveFP
+  >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
+  >>> featurizer = dc.feat.MolGraphConvFeaturizer(use_edges=True)
+  >>> graphs = featurizer.featurize(smiles)
+  >>> print(type(graphs[0]))
+  <class 'deepchem.feat.graph_data.GraphData'>
+  >>> dgl_graphs = [graphs[i].to_dgl_graph() for i in range(len(graphs))]
+  >>> # Batch two graphs into a graph of two connected components
+  >>> batch_dgl_graph = dgl.batch(dgl_graphs)
+  >>> model = AttentiveFP(n_tasks=1, mode='regression')
+  >>> preds = model(batch_dgl_graph)
+  >>> print(type(preds))
+  <class 'torch.Tensor'>
+  >>> preds.shape == (2, 1)
+  True
 
-    References
-    ----------
-    .. [1] Zhaoping Xiong, Dingyan Wang, Xiaohong Liu, Feisheng Zhong, Xiaozhe Wan, Xutong Li,
-           Zhaojun Li, Xiaomin Luo, Kaixian Chen, Hualiang Jiang, and Mingyue Zheng. "Pushing
-           the Boundaries of Molecular Representation for Drug Discovery with the Graph Attention
-           Mechanism." Journal of Medicinal Chemistry. 2020, 63, 16, 8749–8760.
+  References
+  ----------
+  .. [1] Zhaoping Xiong, Dingyan Wang, Xiaohong Liu, Feisheng Zhong, Xiaozhe Wan, Xutong Li,
+         Zhaojun Li, Xiaomin Luo, Kaixian Chen, Hualiang Jiang, and Mingyue Zheng. "Pushing
+         the Boundaries of Molecular Representation for Drug Discovery with the Graph Attention
+         Mechanism." Journal of Medicinal Chemistry. 2020, 63, 16, 8749–8760.
 
-    Notes
-    -----
-    This class requires DGL (https://github.com/dmlc/dgl) and DGL-LifeSci
-    (https://github.com/awslabs/dgl-lifesci) to be installed.
-    """
+  Notes
+  -----
+  This class requires DGL (https://github.com/dmlc/dgl) and DGL-LifeSci
+  (https://github.com/awslabs/dgl-lifesci) to be installed.
+  """
 
   def __init__(self,
                n_tasks: int,
@@ -67,37 +67,37 @@ class AttentiveFP(nn.Module):
                nfeat_name: str = 'x',
                efeat_name: str = 'edge_attr'):
     """
-        Parameters
-        ----------
-        n_tasks: int
-            Number of tasks.
-        num_layers: int
-            Number of graph neural network layers, i.e. number of rounds of message passing.
-            Default to 2.
-        num_timesteps: int
-            Number of time steps for updating graph representations with a GRU. Default to 2.
-        graph_feat_size: int
-            Size for graph representations. Default to 200.
-        dropout: float
-            Dropout probability. Default to 0.
-        mode: str
-            The model type, 'classification' or 'regression'. Default to 'regression'.
-        number_atom_features: int
-            The length of the initial atom feature vectors. Default to 30.
-        number_bond_features: int
-            The length of the initial bond feature vectors. Default to 11.
-        n_classes: int
-            The number of classes to predict per task
-            (only used when ``mode`` is 'classification'). Default to 2.
-        nfeat_name: str
-            For an input graph ``g``, the model assumes that it stores node features in
-            ``g.ndata[nfeat_name]`` and will retrieve input node features from that.
-            Default to 'x'.
-        efeat_name: str
-            For an input graph ``g``, the model assumes that it stores edge features in
-            ``g.edata[efeat_name]`` and will retrieve input edge features from that.
-            Default to 'edge_attr'.
-        """
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks.
+    num_layers: int
+      Number of graph neural network layers, i.e. number of rounds of message passing.
+      Default to 2.
+    num_timesteps: int
+      Number of time steps for updating graph representations with a GRU. Default to 2.
+    graph_feat_size: int
+      Size for graph representations. Default to 200.
+    dropout: float
+      Dropout probability. Default to 0.
+    mode: str
+      The model type, 'classification' or 'regression'. Default to 'regression'.
+    number_atom_features: int
+      The length of the initial atom feature vectors. Default to 30.
+    number_bond_features: int
+      The length of the initial bond feature vectors. Default to 11.
+    n_classes: int
+      The number of classes to predict per task
+      (only used when ``mode`` is 'classification'). Default to 2.
+    nfeat_name: str
+      For an input graph ``g``, the model assumes that it stores node features in
+      ``g.ndata[nfeat_name]`` and will retrieve input node features from that.
+      Default to 'x'.
+    efeat_name: str
+      For an input graph ``g``, the model assumes that it stores edge features in
+      ``g.edata[efeat_name]`` and will retrieve input edge features from that.
+      Default to 'edge_attr'.
+    """
     try:
       import dgl
     except:
@@ -136,28 +136,28 @@ class AttentiveFP(nn.Module):
   def forward(self, g):
     """Predict graph labels
 
-        Parameters
-        ----------
-        g: DGLGraph
-            A DGLGraph for a batch of graphs. It stores the node features in
-            ``dgl_graph.ndata[self.nfeat_name]`` and edge features in
-            ``dgl_graph.edata[self.efeat_name]``.
+    Parameters
+    ----------
+    g: DGLGraph
+      A DGLGraph for a batch of graphs. It stores the node features in
+      ``dgl_graph.ndata[self.nfeat_name]`` and edge features in
+      ``dgl_graph.edata[self.efeat_name]``.
 
-        Returns
-        -------
-        torch.Tensor
-            The model output.
+    Returns
+    -------
+    torch.Tensor
+      The model output.
 
-            * When self.mode = 'regression',
-              its shape will be ``(dgl_graph.batch_size, self.n_tasks)``.
-            * When self.mode = 'classification', the output consists of probabilities
-              for classes. Its shape will be
-              ``(dgl_graph.batch_size, self.n_tasks, self.n_classes)`` if self.n_tasks > 1;
-              its shape will be ``(dgl_graph.batch_size, self.n_classes)`` if self.n_tasks is 1.
-        torch.Tensor, optional
-            This is only returned when self.mode = 'classification', the output consists of the
-            logits for classes before softmax.
-        """
+      * When self.mode = 'regression',
+        its shape will be ``(dgl_graph.batch_size, self.n_tasks)``.
+      * When self.mode = 'classification', the output consists of probabilities
+        for classes. Its shape will be
+        ``(dgl_graph.batch_size, self.n_tasks, self.n_classes)`` if self.n_tasks > 1;
+        its shape will be ``(dgl_graph.batch_size, self.n_classes)`` if self.n_tasks is 1.
+    torch.Tensor, optional
+      This is only returned when self.mode = 'classification', the output consists of the
+      logits for classes before softmax.
+    """
     node_feats = g.ndata[self.nfeat_name]
     edge_feats = g.edata[self.efeat_name]
     out = self.model(g, node_feats, edge_feats)
@@ -178,41 +178,41 @@ class AttentiveFP(nn.Module):
 class AttentiveFPModel(TorchModel):
   """Model for Graph Property Prediction.
 
-      This model proceeds as follows:
+  This model proceeds as follows:
 
-      * Combine node features and edge features for initializing node representations,
-        which involves a round of message passing
-      * Update node representations with multiple rounds of message passing
-      * For each graph, compute its representation by combining the representations
-        of all nodes in it, which involves a gated recurrent unit (GRU).
-      * Perform the final prediction using a linear layer
+  * Combine node features and edge features for initializing node representations,
+    which involves a round of message passing
+  * Update node representations with multiple rounds of message passing
+  * For each graph, compute its representation by combining the representations
+    of all nodes in it, which involves a gated recurrent unit (GRU).
+  * Perform the final prediction using a linear layer
 
-      Examples
-      --------
+  Examples
+  --------
 
-      >>>
-      >> import deepchem as dc
-      >> from deepchem.models import AttentiveFPModel
-      >> featurizer = dc.feat.MolGraphConvFeaturizer(use_edges=True)
-      >> tasks, datasets, transformers = dc.molnet.load_tox21(
-      ..     reload=False, featurizer=featurizer, transformers=[])
-      >> train, valid, test = datasets
-      >> model = dc.models.AttentiveFPModel(mode='classification', n_tasks=len(tasks),
-      ..                                    batch_size=32, learning_rate=0.001)
-      >> model.fit(train, nb_epoch=50)
+  >>>
+  >> import deepchem as dc
+  >> from deepchem.models import AttentiveFPModel
+  >> featurizer = dc.feat.MolGraphConvFeaturizer(use_edges=True)
+  >> tasks, datasets, transformers = dc.molnet.load_tox21(
+  ..     reload=False, featurizer=featurizer, transformers=[])
+  >> train, valid, test = datasets
+  >> model = dc.models.AttentiveFPModel(mode='classification', n_tasks=len(tasks),
+  ..                                    batch_size=32, learning_rate=0.001)
+  >> model.fit(train, nb_epoch=50)
 
-      References
-      ----------
-      .. [1] Zhaoping Xiong, Dingyan Wang, Xiaohong Liu, Feisheng Zhong, Xiaozhe Wan, Xutong Li,
-             Zhaojun Li, Xiaomin Luo, Kaixian Chen, Hualiang Jiang, and Mingyue Zheng. "Pushing
-             the Boundaries of Molecular Representation for Drug Discovery with the Graph
-             Attention Mechanism." Journal of Medicinal Chemistry. 2020, 63, 16, 8749–8760.
+  References
+  ----------
+  .. [1] Zhaoping Xiong, Dingyan Wang, Xiaohong Liu, Feisheng Zhong, Xiaozhe Wan, Xutong Li,
+         Zhaojun Li, Xiaomin Luo, Kaixian Chen, Hualiang Jiang, and Mingyue Zheng. "Pushing
+         the Boundaries of Molecular Representation for Drug Discovery with the Graph
+         Attention Mechanism." Journal of Medicinal Chemistry. 2020, 63, 16, 8749–8760.
 
-      Notes
-      -----
-      This class requires DGL (https://github.com/dmlc/dgl) and DGL-LifeSci
-      (https://github.com/awslabs/dgl-lifesci) to be installed.
-      """
+  Notes
+  -----
+  This class requires DGL (https://github.com/dmlc/dgl) and DGL-LifeSci
+  (https://github.com/awslabs/dgl-lifesci) to be installed.
+  """
 
   def __init__(self,
                n_tasks: int,
@@ -229,42 +229,42 @@ class AttentiveFPModel(TorchModel):
                self_loop: bool = True,
                **kwargs):
     """
-            Parameters
-            ----------
-            n_tasks: int
-                Number of tasks.
-            num_layers: int
-                Number of graph neural network layers, i.e. number of rounds of message passing.
-                Default to 2.
-            num_timesteps: int
-                Number of time steps for updating graph representations with a GRU. Default to 2.
-            graph_feat_size: int
-                Size for graph representations. Default to 200.
-            dropout: float
-                Dropout probability. Default to 0.
-            mode: str
-                The model type, 'classification' or 'regression'. Default to 'regression'.
-            number_atom_features: int
-                The length of the initial atom feature vectors. Default to 30.
-            number_bond_features: int
-                The length of the initial bond feature vectors. Default to 11.
-            n_classes: int
-                The number of classes to predict per task
-                (only used when ``mode`` is 'classification'). Default to 2.
-            nfeat_name: str
-                For an input graph ``g``, the model assumes that it stores node features in
-                ``g.ndata[nfeat_name]`` and will retrieve input node features from that.
-                Default to 'x'.
-            efeat_name: str
-                For an input graph ``g``, the model assumes that it stores edge features in
-                ``g.edata[efeat_name]`` and will retrieve input edge features from that.
-                Default to 'edge_attr'.
-            self_loop: bool
-                Whether to add self loops for the nodes, i.e. edges from nodes to themselves.
-                Default to True.
-            kwargs
-                This can include any keyword argument of TorchModel.
-            """
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks.
+    num_layers: int
+      Number of graph neural network layers, i.e. number of rounds of message passing.
+      Default to 2.
+    num_timesteps: int
+      Number of time steps for updating graph representations with a GRU. Default to 2.
+    graph_feat_size: int
+      Size for graph representations. Default to 200.
+    dropout: float
+      Dropout probability. Default to 0.
+    mode: str
+      The model type, 'classification' or 'regression'. Default to 'regression'.
+    number_atom_features: int
+      The length of the initial atom feature vectors. Default to 30.
+    number_bond_features: int
+      The length of the initial bond feature vectors. Default to 11.
+    n_classes: int
+      The number of classes to predict per task
+      (only used when ``mode`` is 'classification'). Default to 2.
+    nfeat_name: str
+      For an input graph ``g``, the model assumes that it stores node features in
+      ``g.ndata[nfeat_name]`` and will retrieve input node features from that.
+      Default to 'x'.
+    efeat_name: str
+      For an input graph ``g``, the model assumes that it stores edge features in
+      ``g.edata[efeat_name]`` and will retrieve input edge features from that.
+      Default to 'edge_attr'.
+    self_loop: bool
+      Whether to add self loops for the nodes, i.e. edges from nodes to themselves.
+      Default to True.
+    kwargs
+      This can include any keyword argument of TorchModel.
+    """
     model = AttentiveFP(
         n_tasks=n_tasks,
         num_layers=num_layers,
@@ -291,23 +291,23 @@ class AttentiveFPModel(TorchModel):
   def _prepare_batch(self, batch):
     """Create batch data for AttentiveFP.
 
-            Parameters
-            ----------
-            batch: tuple
-                The tuple is ``(inputs, labels, weights)``.
-            self_loop: bool
-                Whether to add self loops for the nodes, i.e. edges from nodes
-                to themselves. Default to False.
+    Parameters
+    ----------
+    batch: tuple
+      The tuple is ``(inputs, labels, weights)``.
+    self_loop: bool
+      Whether to add self loops for the nodes, i.e. edges from nodes
+      to themselves. Default to False.
 
-            Returns
-            -------
-            inputs: DGLGraph
-                DGLGraph for a batch of graphs.
-            labels: list of torch.Tensor or None
-                The graph labels.
-            weights: list of torch.Tensor or None
-                The weights for each sample or sample/task pair converted to torch.Tensor.
-            """
+    Returns
+    -------
+    inputs: DGLGraph
+      DGLGraph for a batch of graphs.
+    labels: list of torch.Tensor or None
+      The graph labels.
+    weights: list of torch.Tensor or None
+      The weights for each sample or sample/task pair converted to torch.Tensor.
+    """
     try:
       import dgl
     except:
