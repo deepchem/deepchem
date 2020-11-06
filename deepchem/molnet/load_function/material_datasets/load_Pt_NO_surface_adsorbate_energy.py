@@ -1,4 +1,3 @@
-
 """
 Platinum Adsorbtion structure for N and NO along with their formation energies
 """
@@ -10,7 +9,7 @@ from deepchem.splits.splitters import Splitter
 from deepchem.molnet.defaults import get_defaults
 import numpy as np
 
-from typing import List, Tuple, Dict, Optional , Any
+from typing import List, Tuple, Dict, Optional, Any
 
 logger = logging.getLogger(__name__)
 
@@ -36,21 +35,20 @@ mydataset_splitters = ['RandomSplitter']
 DEFAULT_SPLITTERS = {k: DEFAULT_SPLITTERS[k] for k in mydataset_splitters}
 
 
-def load_Platinum_Adsorption(
-    featurizer= DEFAULT_FEATURIZERS['LCNNFeaturizer'],
-    transformers: List = [],
-    splitter= DEFAULT_SPLITTERS['RandomSplitter'],
-    reload: bool = True,
-    data_dir: Optional[str] = None,
-    save_dir: Optional[str] = None,
-    featurizer_kwargs: Dict[str, object] = {},
-    splitter_kwargs: Dict[str, Any] = {
-        'frac_train': 0.8,
-        'frac_valid': 0.1,
-        'frac_test': 0.1
-    },
-    transformer_kwargs: Dict[str, Any] = {},
-    **kwargs) -> Tuple[List, Optional[Tuple], List]:
+def load_Platinum_Adsorption(featurizer=DEFAULT_FEATURIZERS['LCNNFeaturizer'],
+                             transformers: List = [],
+                             splitter=DEFAULT_SPLITTERS['RandomSplitter'],
+                             reload: bool = True,
+                             data_dir: Optional[str] = None,
+                             save_dir: Optional[str] = None,
+                             featurizer_kwargs: Dict[str, object] = {},
+                             splitter_kwargs: Dict[str, Any] = {
+                                 'frac_train': 0.8,
+                                 'frac_valid': 0.1,
+                                 'frac_test': 0.1
+                             },
+                             transformer_kwargs: Dict[str, Any] = {},
+                             **kwargs) -> Tuple[List, Optional[Tuple], List]:
   """Load mydataset.
   Contains 
   Parameters
@@ -96,14 +94,16 @@ def load_Platinum_Adsorption(
   Examples
   --------
   >> import deepchem as dc
-  >> tasks, datasets, transformers = dc.molnet.load_Platinum_Adsorption(reload=False)
+  >> feat_args = {"cutoff": np.around(6.00, 2), "input_file_path": os.join.path(data_path,'input.in') }
+
+  >> tasks, datasets, transformers = load_Platinum_Adsorption(
+      reload=True,
+      data_dir=data_path,
+      save_dir=data_path,
+      featurizer_kwargs=feat_args)
   >> train_dataset, val_dataset, test_dataset = datasets
-  >> n_tasks = len(tasks)
-  >> n_features = train_dataset.get_data_shape()[0]
-  >> model = dc.models.LCNNRegressor()
+
   """
-
-
 
   # Featurize mydataset
   logger.info("About to featurize Platinum Adsorption dataset.")
@@ -116,40 +116,35 @@ def load_Platinum_Adsorption(
     save_dir = DEFAULT_DIR
 
   if 'cutoff' not in featurizer_kwargs:
-    raise TypeError("Cuttoff not there")
+    raise TypeError("cutoff argument needs to be given")
   if 'input_file_path' not in featurizer_kwargs:
-    raise TypeError("input_file_path not there")
+    raise TypeError("input_file_path argument needs to be given")
 
   #Download the data if does'nt exist
   dataset_file = os.path.join(data_dir, 'Platinum_Adsorption.json')
   if not os.path.exists(dataset_file):
 
-    deepchem.utils.data_utils.download_url(
-        url=PLATINUM_URL, dest_dir=data_dir)
+    deepchem.utils.data_utils.download_url(url=PLATINUM_URL, dest_dir=data_dir)
     deepchem.utils.data_utils.untargz_file(
         os.path.join(data_dir, 'platinum_adsorption.tar.gz'), data_dir)
-        
+
   # Check for str args to featurizer and splitter
   if issubclass(featurizer, Featurizer):
     featurizer = featurizer(**featurizer_kwargs)
   else:
-    raise TypeError(
-        "featurizer must be a subclass of Featurizer.")
+    raise TypeError("featurizer must be a subclass of Featurizer.")
 
-    
   if issubclass(splitter, Splitter):
     splitter = splitter()
   else:
     raise TypeError("splitter must be a subclass of Splitter.")
 
-
-
   # Reload from disk
   if reload:
     featurizer_name = str(featurizer.__class__.__name__)
     splitter_name = str(splitter.__class__.__name__)
-    save_folder = os.path.join(save_dir, "Platinum_dataset",
-                               featurizer_name, splitter_name)
+    save_folder = os.path.join(save_dir, "Platinum_dataset", featurizer_name,
+                               splitter_name)
 
     loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
@@ -157,13 +152,13 @@ def load_Platinum_Adsorption(
       return my_tasks, all_dataset, transformers
 
   # First type of supported featurizers
-  supported_featurizers: List[str] = ['LCNNFeaturizer']  # type: List[Featurizer]
+  supported_featurizers: List[str] = ['LCNNFeaturizer'
+                                     ]  # type: List[Featurizer]
 
   # If featurizer requires a non-CSV file format, load .tar.gz file
   if featurizer.__class__.__name__ in supported_featurizers:
     dataset_file = os.path.join(data_dir, 'Platinum_Adsorption.json')
 
-    
     # Changer loader to match featurizer and data file type
     loader = deepchem.data.JsonLoader(
         tasks=my_tasks,
@@ -200,15 +195,3 @@ def load_Platinum_Adsorption(
   return my_tasks, (train_dataset, valid_dataset, test_dataset), transformers
 
 
-if __name__ == "__main__":
-
-    data_path = "/home/vignesh/Desktop/making_tars/"
-    input_file = "/home/vignesh/Desktop/making_tars" #temp.json 
-    cutoff = 6.00
-    cutoff = np.around(cutoff,2)
-    
-    submit_args = {"cutoff": cutoff, "input_file_path":  data_path + 'input.in' }
-
-    _ , train_sample , _ = load_Platinum_Adsorption(reload=True , data_dir= input_file ,save_dir = input_file , featurizer_kwargs = submit_args)
-train , val , test = train_sample
-print(test)
