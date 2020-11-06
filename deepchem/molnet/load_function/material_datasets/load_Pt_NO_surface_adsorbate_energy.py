@@ -94,7 +94,7 @@ def load_Platinum_Adsorption(featurizer=DEFAULT_FEATURIZERS['LCNNFeaturizer'],
   Examples
   --------
   >> import deepchem as dc
-  >> feat_args = {"cutoff": np.around(6.00, 2), "input_file_path": os.join.path(data_path,'input.in') }
+  >> feat_args = {"cutoff": np.around(6.00, 2), "input_file_path": os.path.join(data_path,'input.in') }
 
   >> tasks, datasets, transformers = load_Platinum_Adsorption(
       reload=True,
@@ -193,5 +193,3 @@ def load_Platinum_Adsorption(featurizer=DEFAULT_FEATURIZERS['LCNNFeaturizer'],
         save_folder, train_dataset, valid_dataset, test_dataset, transformers)
 
   return my_tasks, (train_dataset, valid_dataset, test_dataset), transformers
-
-
