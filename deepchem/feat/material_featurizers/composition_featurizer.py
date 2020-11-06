@@ -36,26 +36,7 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
   >>> comp = mg.Composition("Fe2O3")
   >>> featurizer = CompositionFeaturizer()
   >>> features = featurizer.featurize([comp])
-
-  Notes
-  -----
-  This class requires Pymatgen to be installed.
   """
-
-  def __init__(self, data_source: str = 'matminer'):
-    """
-    Parameters
-    ----------
-    data_source: str of "matminer", "magpie" or "deml" (default "matminer")
-      Source for element property data.
-    """
-    try:
-      from matminer.featurizers.composition import ElementProperty
-    except ModuleNotFoundError:
-      raise ImportError("This class requires matminer to be installed.")
-
-    self.data_source = data_source
-    self.ep_featurizer = ElementProperty.from_preset(self.data_source)
 
   def get_fractions(self, comp):
     if all(e in elements_tl for e in comp):
