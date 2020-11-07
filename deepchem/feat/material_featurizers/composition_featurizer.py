@@ -2,7 +2,7 @@ import re
 import numpy as np
 from collections import defaultdict
 
-from deepchem.utils.typing import PymatgenComposition
+from deepchem.utils.typing import PymatgenComposition, DefaultDict
 from deepchem.feat import MaterialCompositionFeaturizer
 
 elements_tl = [
@@ -40,14 +40,14 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
   >>> features = featurizer.featurize([comp])
   """
 
-  def get_fractions(self, comp):
+  def get_fractions(self, comp: DefaultDict) -> np.ndarray:
     if all(e in elements_tl for e in comp):
       return np.array([comp[e] if e in comp else 0 for e in elements_tl],
                       np.float32)
     else:
       return None
 
-  def parse_fractions(self, form):
+  def parse_fractions(self, form: str) -> str:
     while '/' in form:
       di = form.index('/')
       num1 = [x for x in re.findall(r'\d*\.*\d*', form[:di]) if x != ''][-1]
@@ -56,7 +56,7 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
       form = form[:di - len(num1)] + fract + form[di + len(num2) + 1:]
     return form
 
-  def parse_formula(self, formula):
+  def parse_formula(self, formula: str) -> DefaultDict:
     stack = []
     curr_str = ''
     i = 0
