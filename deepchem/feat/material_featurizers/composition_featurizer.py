@@ -2,8 +2,9 @@ import re
 import numpy as np
 from collections import defaultdict
 
-from deepchem.utils.typing import PymatgenComposition, DefaultDict
+from deepchem.utils.typing import PymatgenComposition, DefaultDict, Union
 from deepchem.feat import MaterialCompositionFeaturizer
+
 
 elements_tl = [
     'H', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Na', 'Mg', 'Al', 'Si', 'P', 'S',
@@ -20,12 +21,12 @@ formulare = re.compile(r'([A-Z][a-z]*)(\d*\.*\d*)')
 
 class CompositionFeaturizer(MaterialCompositionFeaturizer):
   """
-  Fixed size vector containing raw elemental compositions in the compound.
+  Fixed size vector of length 85 containing raw fractional elemental
+  compositions in the compound. The 85 chosen elements are based on the
+  original implementation at https://github.com/NU-CUCIS/ElemNet.
 
   Returns a vector containing fractional compositions of each element
   in the compound.
-
-  This featurizer requires the optional dependency pymatgen.
 
   References
   ----------
@@ -38,16 +39,51 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
   >>> comp = mg.Composition("Fe2O3")
   >>> featurizer = CompositionFeaturizer()
   >>> features = featurizer.featurize([comp])
+
+  Notes
+  -----
+  This class requires Pymatgen to be installed.
   """
 
-  def get_fractions(self, comp: DefaultDict) -> np.ndarray:
+  def get_fractions(self, comp: DefaultDict) -> Union[np.ndarray, None]:
+    """
+    Converts a dictionary containing element names and corresponding
+    compositional fractions into a vector of fractions.
+
+    Parameters
+    ----------
+    comp: collections.defaultdict object
+      Dictionary mapping element names to fractional compositions.
+
+    Returns
+    -------
+    fractions: np.ndarray
+      Vector of fractional compositions of each element.
+    """
     if all(e in elements_tl for e in comp):
-      return np.array([comp[e] if e in comp else 0 for e in elements_tl],
+      fractions = np.array([comp[e] if e in comp else 0 for e in elements_tl],
                       np.float32)
     else:
-      return None
+      fractions = None
+    return fractions
 
   def parse_fractions(self, form: str) -> str:
+    """
+    Convert fractional quantities (ex. 2/3) in the composition string
+    into float values.
+
+    Parameters
+    ----------
+    form: str
+      String containing elemental composition of the compound
+      (Might contain fractional quantities).
+
+    Returns
+    -------
+    form: str
+      String containing elemental composition of compound with fractions converted
+      into decimal equivalents.
+    """
     while '/' in form:
       di = form.index('/')
       num1 = [x for x in re.findall(r'\d*\.*\d*', form[:di]) if x != ''][-1]
@@ -57,6 +93,20 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
     return form
 
   def parse_formula(self, formula: str) -> DefaultDict:
+    """
+    Convert composition string into a dictionary mapping element names
+    to corresponding fractions.
+
+    Parameters
+    ----------
+    formula: str
+      String containing the reduced elemental composition of the compound.
+
+    Returns
+    -------
+    res: collections.defaultdict
+      Dictionary containing element names and corresponding fractions.
+    """
     stack = []
     curr_str = ''
     i = 0
@@ -131,7 +181,8 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
 
   def _featurize(self, composition: PymatgenComposition) -> np.ndarray:
     """
-    Calculate composition vector from composition.
+    Calculate 85 dimensional vector containing fractional compositions of
+    each element in the compound.
 
     Parameters
     ----------
@@ -141,12 +192,8 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
     Returns
     -------
     feats: np.ndarray
-      Vector of fractional compositions of each element.
+      85 dimensional vector containing fractional compositions of elements.
     """
-    try:
-      pretty_comp = composition.reduced_formula
-      feats = self.get_fractions(self.parse_formula(pretty_comp))
-    except:
-      feats = []
-
+    pretty_comp = composition.reduced_formula
+    feats = self.get_fractions(self.parse_formula(pretty_comp))
     return np.array(feats)
