@@ -24,7 +24,21 @@ class MPNN(nn.Module):
 
   >>> import deepchem as dc
   >>> import dgl
-  TODO
+  >>> from deepchem.models.torch_models import MPNN
+  >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
+  >>> featurizer = dc.feat.MolGraphConvFeaturizer(use_edges=True)
+  >>> graphs = featurizer.featurize(smiles)
+  >>> print(type(graphs[0]))
+  <class 'deepchem.feat.graph_data.GraphData'>
+  >>> dgl_graphs = [graphs[i].to_dgl_graph() for i in range(len(graphs))]
+  >>> # Batch two graphs into a graph of two connected components
+  >>> batch_dgl_graph = dgl.batch(dgl_graphs)
+  >>> model = MPNN(n_tasks=1, mode='regression')
+  >>> preds = model(batch_dgl_graph)
+  >>> print(type(preds))
+  <class 'torch.Tensor'>
+  >>> preds.shape == (2, 1)
+  True
 
   References
   ----------
@@ -117,8 +131,7 @@ class MPNN(nn.Module):
         n_tasks=out_size,
         num_step_message_passing=num_step_message_passing,
         num_step_set2set=num_step_set2set,
-        num_layer_set2set=num_layer_set2set
-    )
+        num_layer_set2set=num_layer_set2set)
 
   def forward(self, g):
     """Predict graph labels
@@ -160,3 +173,19 @@ class MPNN(nn.Module):
       return proba, logits
     else:
       return out
+
+
+class MPNNModel(nn.Module):
+  """Model for graph property prediction
+
+  This model proceeds as follows:
+
+  * Combine latest node representations and edge features in updating node representations,
+    which involves multiple rounds of message passing
+  * For each graph, compute its representation by combining the representations
+    of all nodes in it, which involves a Set2Set layer.
+  * Perform the final prediction using an MLP
+
+  Examples
+  --------
+  """

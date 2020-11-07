@@ -31,7 +31,7 @@ class GCN(nn.Module):
   >>> graphs = featurizer.featurize(smiles)
   >>> print(type(graphs[0]))
   <class 'deepchem.feat.graph_data.GraphData'>
-  >>> dgl_graphs = [graphs[i].to_dgl_graph() for i in range(len(graphs))]
+  >>> dgl_graphs = [graphs[i].to_dgl_graph(self_loop=True) for i in range(len(graphs))]
   >>> # Batch two graphs into a graph of two connected components
   >>> batch_dgl_graph = dgl.batch(dgl_graphs)
   >>> model = GCN(n_tasks=1, mode='regression')
