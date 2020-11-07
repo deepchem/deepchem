@@ -1,10 +1,10 @@
 import re
 import numpy as np
 from collections import defaultdict
+from typing import DefaultDict, Union, List
 
-from deepchem.utils.typing import PymatgenComposition, DefaultDict, Union
+from deepchem.utils.typing import PymatgenComposition
 from deepchem.feat import MaterialCompositionFeaturizer
-
 
 elements_tl = [
     'H', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Na', 'Mg', 'Al', 'Si', 'P', 'S',
@@ -62,7 +62,7 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
     """
     if all(e in elements_tl for e in comp):
       fractions = np.array([comp[e] if e in comp else 0 for e in elements_tl],
-                      np.float32)
+                           np.float32)
     else:
       fractions = None
     return fractions
@@ -107,10 +107,10 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
     res: collections.defaultdict
       Dictionary containing element names and corresponding fractions.
     """
-    stack = []
+    stack: List[str] = []
     curr_str = ''
     i = 0
-    res = defaultdict(int)
+    res: DefaultDict = defaultdict(int)
     formula = formula.replace('-', '').replace('@', '').replace(
         ' ', '').replace('[', '(').replace(']', ')').replace('{', '(').replace(
             '}', ')').replace('@', '').replace('x', '').replace(' ', '')
@@ -170,8 +170,8 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
             res[k] = temp_res[k] if k not in res else res[k] + temp_res[k]
         else:
           for i, v in temp_res.items():
-            stack.append(i)
-            stack.append(v)
+            stack.append(str(i))
+            stack.append(str(v))
     if any([e for e in res if e in ['T', 'D', 'G', 'M', 'Q']]):
       print(formula, res)
     sum_nums = 1. * sum(res.values())
