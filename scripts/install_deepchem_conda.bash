@@ -1,6 +1,6 @@
 # This script creates the new deepchem enviroment
 
-CMDNAME=`basename $BASH_SOURCE`
+CMDNAME=`basename ${BASH_SOURCE:-$0}`
 if [ $# -ne 2 ]; then
     echo "Please set two arguments."
     echo "Usage) source $CMDNAME python_version cpu_or_gpu" 1>&2
