@@ -1,0 +1,83 @@
+name: Test for DeepChem core modules
+on:
+  push: # ci work when pushing master branch
+    branches:
+      - master
+  pull_request: # ci work when creating a PR to master branch
+    branches:
+      - master
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.7]
+        include:
+          - os: ubuntu-latest
+            python-version: 3.6
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache pip packages for Linux
+      if: startsWith(runner.os, 'Linux')
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('env.*.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Cache pip packages for MacOS
+      if: startsWith(runner.os, 'macOS')
+      uses: actions/cache@v2
+      with:
+        path: ~/Library/Caches/pip
+        key: ${{ matrix.os }}-pip-${{ hashFiles('env.*.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Cache pip packages for Windows
+      if: startsWith(runner.os, 'Windows')
+      uses: actions/cache@v2
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ matrix.os }}-pip-${{ hashFiles('env.*.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install prerequisites for XGBoost and LightGBM (MacOS)
+      if: startsWith(runner.os, 'macOS')
+      run: brew update && brew install libomp
+    - name: Create env.yml
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip;
+        pip install conda-merge;
+        if [ "$(uname)" == 'Darwin' ]; then
+          conda-merge env.common.yml env.cpu.mac.yml env.test.yml > env.yml
+        else
+          conda-merge env.common.yml env.cpu.yml env.test.yml > env.yml
+        fi;
+    - name: Install all dependencies
+      uses: conda-incubator/setup-miniconda@v1
+      with:
+        miniconda-version: "latest"
+        auto-update-conda: true
+        activate-environment: deepchem
+        channels: omnia,conda-forge,defaults
+        python-version: ${{ matrix.python-version }}
+        environment-file: env.yml
+    - name: Install DeepChem
+      shell: bash -l {0}
+      run: pip install -e .
+    - name: mypy
+      shell: bash -l {0}
+      run: mypy -p deepchem
+    - name: doctest
+      shell: bash -l {0}
+      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem
+    - name: pytest
+      shell: bash -l {0}
+      run: pytest -v -m "not slow" --cov=deepchem deepchem

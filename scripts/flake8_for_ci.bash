@@ -1,5 +1,3 @@
-#!/bin/bash -e
-
 items=(
     "deepchem/data"
     "deepchem/dock"
@@ -14,5 +12,5 @@ items=(
 )
 
 for item in "${items[@]}" ; do
-  flake8 ${item} --count --show-source --statistics
+    flake8 ${item} --count --show-source --statistics
 done

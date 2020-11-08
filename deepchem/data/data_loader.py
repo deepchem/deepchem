@@ -291,7 +291,7 @@ class CSVLoader(DataLoader):
 
   >>> import tempfile
   >>> import deepchem as dc
-  >>> with tempfile.NamedTemporaryFile(mode='w') as tmpfile:
+  >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
   ...   df.to_csv(tmpfile.name)
   ...   loader = dc.data.CSVLoader(["task1"], feature_field="smiles",
   ...                              featurizer=dc.feat.CircularFingerprint())
@@ -429,7 +429,7 @@ class UserCSVLoader(CSVLoader):
   >>> import tempfile
   >>> import deepchem as dc
   >>> featurizer = dc.feat.UserDefinedFeaturizer(["desc1", "desc2"])
-  >>> with tempfile.NamedTemporaryFile(mode='w') as tmpfile:
+  >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
   ...   df.to_csv(tmpfile.name)
   ...   loader = dc.data.UserCSVLoader(["task1"], id_field="id",
   ...                              featurizer=featurizer)

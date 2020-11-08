@@ -136,18 +136,21 @@ class VinaPoseGenerator(PoseGenerator):
       )
     self.pocket_finder = pocket_finder
     if not os.path.exists(self.vina_dir):
-      logger.info("Vina not available. Downloading")
-      download_url(url, data_dir)
-      downloaded_file = os.path.join(data_dir, filename)
-      logger.info("Downloaded Vina. Extracting")
-      if platform.system() == 'Windows':
-        msi_cmd = "msiexec /i %s" % downloaded_file
-        check_output(msi_cmd.split())
-      else:
+      if platform.system() != 'Windows':
+        logger.info("Vina not available. Downloading")
+        download_url(url, data_dir)
+        downloaded_file = os.path.join(data_dir, filename)
+        logger.info("Downloaded Vina. Extracting")
         with tarfile.open(downloaded_file) as tar:
           tar.extractall(data_dir)
-      logger.info("Cleanup: removing downloaded vina tar.gz")
-      os.remove(downloaded_file)
+        logger.info("Cleanup: removing downloaded vina tar.gz")
+        os.remove(downloaded_file)
+      else:
+        logger.warn(
+          "Your OS is Windows. Please install Vina by yourself."
+          "Check how to install from this link : http://vina.scripps.edu/manual.html#windows."
+        )
+
 
   def generate_poses(self,
                      molecular_complex: Tuple[str, str],
