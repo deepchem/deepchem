@@ -69,11 +69,11 @@ jobs:
       continue-on-error: true
       shell: bash -l {0}
       run: |
-        source scripts/install_deepchem_conda.bash
+        source scripts/install_deepchem_conda.sh
     - name: Install all dependencies
       shell: bash -l {0}
       run: |
-        source scripts/install_deepchem_conda.bash ${{ matrix.python-version }} cpu
+        source scripts/install_deepchem_conda.sh ${{ matrix.python-version }} cpu
     - name: Build DeepChem from source
       shell: bash -l {0}
       run: |

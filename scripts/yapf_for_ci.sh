@@ -1,7 +1,9 @@
-CHANGED_FILES=`git diff --name-only $TRAVIS_COMMIT_RANGE | grep .py$ | grep -v contrib/`
+# This script may work on only Bash and Zsh
+# usage: source scripts/yapf_for_ci.sh
 
-if [ -z $CHANGED_FILES ]
-then
+CHANGED_FILES=`git diff --name-only $COMMIT_RANGE | grep .py$ | grep -v contrib/`
+
+if [ -z $CHANGED_FILES ]; then
   echo "No Python Files Changed"
   echo "Passed Formatting Test"
   return 0

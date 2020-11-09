@@ -17,8 +17,32 @@ jobs:
         include:
           - os: ubuntu-latest
             python-version: 3.6
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON_VERSION: ${{ matrix.python-version }}
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    # This 
+    # The range of commits to check for changes is:
+    # - `origin/master...` for all events happening on a feature branch
+    # - for events on the master branch we compare against the sha before the event
+    #   (note that this does not work for feature branch events since we want all
+    #   commits on the feature branch and not just the commits of the last event)
+    # - for pull requests we compare against the 1st ancestor, given the current
+    #   HEAD is the merge between the PR branch and the base branch
+    - name: Set commit range (push to the feature branch)
+      if: github.ref != 'refs/heads/master' && github.event_name == 'push'
+      run: |
+        git fetch origin master
+        echo "COMMIT_RANGE=origin/master..." >> $GITHUB_ENV
+    - name: Set commit range (push to the master branch, e.g. merge)
+      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+      run: echo "COMMIT_RANGE=${{ github.event.before }}.." >> $GITHUB_ENV
+    - name: Set commit range (pull request)
+      if: github.event_name == 'pull_request'
+      run: echo "COMMIT_RANGE=HEAD~.." >> $GITHUB_ENV
     - name: Cache pip packages for Linux
       if: startsWith(runner.os, 'Linux')
       uses: actions/cache@v2
@@ -72,12 +96,27 @@ jobs:
     - name: Install DeepChem
       shell: bash -l {0}
       run: pip install -e .
-    - name: mypy
+    - name: Yapf
+      shell: bash -l {0}
+      run: source scripts/yapf_for_ci.sh
+    - name: Flake8
+      shell: bash -l {0}
+      run: source scripts/flake8_for_ci.sh
+    - name: Mypy
       shell: bash -l {0}
       run: mypy -p deepchem
-    - name: doctest
+    - name: Doctest
       shell: bash -l {0}
       run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem
-    - name: pytest
+    - name: PyTest
       shell: bash -l {0}
-      run: pytest -v -m "not slow" --cov=deepchem deepchem
+      run: pytest -v -m "not slow" --cov=deepchem --cov-report=xml deepchem
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        file: ./coverage.xml
+        env_vars: OS,PYTHON_VERSION
+        fail_ci_if_error: true
+        verbose: true
+
+

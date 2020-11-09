@@ -1,4 +1,5 @@
 # This script creates the new deepchem enviroment
+# This script works on only Bash and Zsh
 
 CMDNAME=`basename ${BASH_SOURCE:-$0}`
 if [ $# -ne 2 ]; then
