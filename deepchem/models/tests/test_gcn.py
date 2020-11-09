@@ -79,9 +79,9 @@ def test_gcn_reload():
       number_atom_features=30,
       model_dir=model_dir,
       batch_size=10,
-      learning_rate=0.001)
+      learning_rate=0.0003)
 
-  model.fit(dataset, nb_epoch=60)
+  model.fit(dataset, nb_epoch=70)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.85
 
