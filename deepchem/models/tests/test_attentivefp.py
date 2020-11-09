@@ -52,7 +52,7 @@ def test_attentivefp_classification():
       learning_rate=0.001)
 
   # overfit test
-  model.fit(dataset, nb_epoch=70)
+  model.fit(dataset, nb_epoch=100)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.85
 

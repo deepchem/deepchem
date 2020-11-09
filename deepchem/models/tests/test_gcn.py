@@ -32,7 +32,7 @@ def test_gcn_regression():
       n_tasks=n_tasks,
       number_atom_features=30,
       batch_size=10,
-      learning_rate=0.02)
+      learning_rate=0.003)
 
   # overfit test
   model.fit(dataset, nb_epoch=150)
@@ -55,10 +55,10 @@ def test_gcn_classification():
       n_tasks=n_tasks,
       number_atom_features=30,
       batch_size=10,
-      learning_rate=0.001)
+      learning_rate=0.0003)
 
   # overfit test
-  model.fit(dataset, nb_epoch=50)
+  model.fit(dataset, nb_epoch=70)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.85
 
@@ -92,7 +92,7 @@ def test_gcn_reload():
       number_atom_features=30,
       model_dir=model_dir,
       batch_size=10,
-      learning_rate=0.001)
+      learning_rate=0.0003)
   reloaded_model.restore()
 
   pred_mols = ["CCCC", "CCCCCO", "CCCCC"]
