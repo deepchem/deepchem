@@ -31,7 +31,8 @@ def test_gcn_regression():
       mode='regression',
       n_tasks=n_tasks,
       number_atom_features=30,
-      batch_size=10)
+      batch_size=10,
+      learning_rate=0.02)
 
   # overfit test
   model.fit(dataset, nb_epoch=150)
