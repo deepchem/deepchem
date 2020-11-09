@@ -55,53 +55,54 @@ def load_Platinum_Adsorption(
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
   """
-    Load mydataset.
-    Contains 
+    Load Platinum Adsorption Dataset
+
+    The dataset consist of diffrent configurations of Adsorbates (i.e N and NO)
+    on Platinum surface represented as Lattice and their formation energy. There
+    are 648 diffrent adsorbate configuration in this datasets given in this format
+    
+    [ax][ay][az]
+    [bx][by][bz]
+    [cx][cy][cz]
+    [number sites]
+    [site1a][site1b][site1c][site type][occupation state if active site]
+    [site2a][site2b][site2c][site type][occupation state if active site]
+
+    - ax,ay, ... are cell basis vector
+    - site1a,site1b,site1c are the scaled coordinates of site 1
+
+     
     Parameters
     ----------
     featurizer : Featurizer (default LCNNFeaturizer)
-        A featurizer that inherits from deepchem.feat.Featurizer.
-    transformers : List[]
-    Does'nt require any transformation
+        the featurizer to use for processing the data. Reccomended to use
+        the LCNNFeaturiser.
     splitter : Splitter (default RandomSplitter)
-        A splitter that inherits from deepchem.splits.splitters.Splitter.
-    reload : bool (default True)
-        Try to reload dataset from disk if already downloaded. Save to disk
-        after featurizing.
-    data_dir : str, optional (default None)
-        Path to datasets.
+        the splitter to use for splitting the data into training, validation, and
+        test sets.  Alternatively you can pass one of the names from
+        dc.molnet.splitters as a shortcut.  If this is None, all the data will 
+        be included in a single dataset.
+    transformers : list of TransformerGenerators or strings. the Transformers to
+        apply to the data and appropritate featuriser. Does'nt require any
+        transformation for LCNN_featuriser    
+    reload : bool
+        if True, the first call for a particular featurizer and splitter will cache
+        the datasets to disk, and subsequent calls will reload the cached datasets.    
+    data_dir : str
+        a directory to save the raw data in
     save_dir : str, optional (default None)
-        Path to featurized datasets.
-    featurizer_kwargs : dict
-        Specify parameters to featurizer, e.g. {"cutoff": 6.00}
-    splitter_kwargs : dict
-        Specify parameters to splitter, e.g. {"seed": 42}
-    transformer_kwargs : dict
-        Maps transformer names to constructor arguments, e.g.
-        {"BalancingTransformer": {"transform_x":True, "transform_y":False}}
-    **kwargs : additional optional arguments.
-    Returns
-    -------
-    tasks, datasets, transformers : tuple
-        tasks : list
-        Column names corresponding to machine learning target variables.
-        datasets : tuple
-        train, validation, test splits of data as
-        ``deepchem.data.datasets.Dataset`` instances.
-        transformers : list
-        ``deepchem.trans.transformers.Transformer`` instances applied
-        to dataset.
+        a directory to save the dataset in
+
     References
     ----------
-    MLA style references for this dataset. The example is like this.
-    Last, First et al. "Article title." Journal name, vol. #, no. #, year, pp. page range, DOI.
-    ...[1] Lym, J et al. "Lattice Convolutional Neural Network Modeling of Adsorbate
-            Coverage Effects"J. Phys. Chem. C 2019, 123, 18951−18959
+    .. [1] Jonathan Lym, Geun Ho G. "Lattice Convolutional Neural Network Modeling of Adsorbate
+       Coverage Effects"J. Phys. Chem. C 2019, 123, 18951−18959
+    
     Examples
     --------
+    >>>
     >> import deepchem as dc
     >> feat_args = {"cutoff": np.around(6.00, 2), "input_file_path": os.path.join(data_path,'input.in') }
-
     >> tasks, datasets, transformers = load_Platinum_Adsorption(
         reload=True,
         data_dir=data_path,

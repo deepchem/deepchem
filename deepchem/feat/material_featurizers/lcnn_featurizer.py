@@ -1,11 +1,6 @@
 import numpy as np
 from deepchem.feat import Featurizer
 from collections import defaultdict
-from pymatgen import Element, Structure, Molecule, Lattice
-from pymatgen.symmetry.analyzer import PointGroupAnalyzer
-import networkx as nx
-import networkx.algorithms.isomorphism as iso
-from scipy.spatial.distance import cdist, pdist, squareform
 
 
 class LCNNFeaturizer(Featurizer):
@@ -24,8 +19,7 @@ class LCNNFeaturizer(Featurizer):
   for featurization.
   
   [1] The Primitive Template file must be passed as raw text string or path file
-  [2] The datapoint must be passed as raw text string. If a text file is present use
-  >>> open(input_file_path).read() 
+  [2] The datapoint must be passed as raw text string. 
   
   References
   ----------
@@ -216,6 +210,15 @@ class SiteEnvironment(object):
         environment are the same
     grtol : tolerance for deciding symmetric nodes
     """
+    try:
+        import networkx.algorithms.isomorphism as iso
+    except:
+        raise ImportError("This class requires networkx to be installed.")
+    try:
+        from scipy.spatial.distance import pdist, squareform
+    except:
+        raise ImportError("This class requires scipy to be installed.")
+    
     self.pos = pos
     self.sitetypes = sitetypes
     self.activesiteidx = [i for i, s in enumerate(self.sitetypes) if 'A' in s]
@@ -270,6 +273,16 @@ class SiteEnvironment(object):
     networkx graph used for matching site positions in
     datum. 
     """
+    try:
+        import networkx as nx
+    except:
+        raise ImportError("This class requires networkx to be installed.")
+
+    try:
+        from scipy.spatial.distance import cdist, pdist
+    except:
+        raise ImportError("This class requires scipy to be installed.")
+
     # construct graph
     G = nx.Graph()
     dists = cdist([[0, 0, 0]], pos - np.mean(pos, 0))[0]
@@ -335,6 +348,10 @@ class SiteEnvironment(object):
     -------
     dict : atom mapping. None if there is no mapping
     """
+    try:
+        import networkx.algorithms.isomorphism as iso
+    except:
+        raise ImportError("This class requires networkx to be installed.")
     # construct graph
     G = self._ConstructGraph(env['pos'], env['sitetypes'])
     if len(self.G.nodes) != len(G.nodes):
@@ -582,6 +599,17 @@ class SiteEnvironments(object):
     ------
     list of local_env : list of local_env class
     """
+    try:
+        from pymatgen import Element, Structure, Molecule, Lattice
+        from pymatgen.symmetry.analyzer import PointGroupAnalyzer
+
+    except:
+        raise ImportError("This class requires pymatgen to be installed.")
+
+    try:
+        from scipy.spatial.distance import cdist
+    except:
+        raise ImportError("This class requires scipy to be installed.")
     # %% Check error
     assert isinstance(coord, (list, np.ndarray))
     assert isinstance(cell, (list, np.ndarray))
