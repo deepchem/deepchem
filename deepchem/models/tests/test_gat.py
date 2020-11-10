@@ -35,7 +35,7 @@ def test_gat_regression():
       learning_rate=0.001)
 
   # overfit test
-  model.fit(dataset, nb_epoch=300)
+  model.fit(dataset, nb_epoch=400)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean_absolute_error'] < 0.5
 
@@ -58,7 +58,7 @@ def test_gat_classification():
       learning_rate=0.001)
 
   # overfit test
-  model.fit(dataset, nb_epoch=80)
+  model.fit(dataset, nb_epoch=100)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.85
 
@@ -82,7 +82,7 @@ def test_gat_reload():
       batch_size=10,
       learning_rate=0.001)
 
-  model.fit(dataset, nb_epoch=80)
+  model.fit(dataset, nb_epoch=100)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.85
 
