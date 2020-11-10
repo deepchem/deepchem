@@ -2,7 +2,7 @@ name: Release PyPI packages
 on:
   push:
     tags:
-      - '*'
+      - '*' # ci work when pushing a tag
 jobs:
   release:
     runs-on: ubuntu-latest
