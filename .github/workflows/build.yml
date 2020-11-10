@@ -17,7 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Cache pip modules for Linux
-      if: startsWith(runner.os, 'Linux')
+      if: runner.os == 'Linux'
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
@@ -25,7 +25,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Cache pip modules for MacOS
-      if: startsWith(runner.os, 'macOS')
+      if: runner.os == 'macOS'
       uses: actions/cache@v2
       with:
         path: ~/Library/Caches/pip

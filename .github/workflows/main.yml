@@ -67,7 +67,7 @@ jobs:
         git fetch origin master
         echo "COMMIT_RANGE=origin/master..." >> $GITHUB_ENV
     - name: Cache pip packages for Linux
-      if: startsWith(runner.os, 'Linux')
+      if: runner.os == 'Linux' 
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
@@ -75,7 +75,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Cache pip packages for MacOS
-      if: startsWith(runner.os, 'macOS')
+      if: runner.os == 'macOS'
       uses: actions/cache@v2
       with:
         path: ~/Library/Caches/pip
@@ -83,7 +83,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Cache pip packages for Windows
-      if: startsWith(runner.os, 'Windows')
+      if: runner.os == 'Windows'
       uses: actions/cache@v2
       with:
         path: ~\AppData\Local\pip\Cache
@@ -120,6 +120,8 @@ jobs:
       shell: bash -l {0}
       run: pip install -e .
     - name: Yapf (version 0.22.0)
+      # on Windows, yapf raise the strange error..., so ignore
+      if: runner.os == 'Linux' || runner.os == 'macOS'
       shell: bash -l {0}
       run: |
         CHANGED_FILES=`git diff --name-only $COMMIT_RANGE | grep .py$ | grep -v contrib/`
