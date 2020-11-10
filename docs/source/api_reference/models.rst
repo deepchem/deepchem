@@ -132,6 +132,9 @@ read off what's needed to train the model from the table below.
 | :code:`AttentiveFPModel`               | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
 |                                        | Regressor  |                      |                        |                                                                |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
+| :code:`MPNNModel`                      | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
+|                                        | Regressor  |                      |                        |                                                                |                      |
++----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
 
 Model
 -----
@@ -458,4 +461,10 @@ AttentiveFPModel
 ----------------
 
 .. autoclass:: deepchem.models.AttentiveFPModel
+  :members:
+
+MPNNModel
+---------
+
+.. autoclass:: deepchem.models.MPNNModel
   :members:

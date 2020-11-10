@@ -219,8 +219,8 @@ class GCNModel(TorchModel):
   >> tasks, datasets, transformers = dc.molnet.load_tox21(
   ..     reload=False, featurizer=featurizer, transformers=[])
   >> train, valid, test = datasets
-  >> model = dc.models.GCNModel(mode='classification', n_tasks=len(tasks),
-  ..                            batch_size=32, learning_rate=0.001)
+  >> model = GCNModel(mode='classification', n_tasks=len(tasks),
+  ..                  batch_size=32, learning_rate=0.001)
   >> model.fit(train, nb_epoch=50)
 
   References
