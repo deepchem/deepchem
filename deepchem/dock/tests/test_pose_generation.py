@@ -14,6 +14,7 @@ class TestPoseGeneration(unittest.TestCase):
   """
   Does sanity checks on pose generation.
   """
+
   def test_vina_initialization(self):
     """Test that VinaPoseGenerator can be initialized."""
     dc.dock.VinaPoseGenerator()

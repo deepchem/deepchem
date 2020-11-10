@@ -7,33 +7,6 @@ on:
     branches:
       - master
 jobs:
-  minimum-build:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [3.7]
-    steps:
-    - uses: actions/checkout@v2
-    - name: Cache pip modules for Linux
-      uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('env.*.yml') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Build DeepChem
-      run: |
-        python -m pip install --upgrade pip
-        pip install tensorflow==2.3.0
-        pip install -e .
-    - name: Import checking
-      run: python -c "import deepchem"
-
   bash-build:
     runs-on: ${{ matrix.os }}
     strategy:

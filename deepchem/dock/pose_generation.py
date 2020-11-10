@@ -8,7 +8,6 @@ import tempfile
 import tarfile
 import numpy as np
 from subprocess import call
-from subprocess import check_output
 from typing import List, Optional, Tuple, Union
 
 from deepchem.dock.binding_pocket import BindingPocketFinder
@@ -147,10 +146,9 @@ class VinaPoseGenerator(PoseGenerator):
         os.remove(downloaded_file)
       else:
         logger.warn(
-          "Your OS is Windows. Please install Vina by yourself."
-          "Check how to install from this link : http://vina.scripps.edu/manual.html#windows."
+            "Your OS is Windows. Please install Vina by yourself."
+            "Check how to install from this link : http://vina.scripps.edu/manual.html#windows."
         )
-
 
   def generate_poses(self,
                      molecular_complex: Tuple[str, str],
