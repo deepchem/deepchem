@@ -135,14 +135,11 @@ jobs:
       run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem
     - name: PyTest
       shell: bash -l {0}
-      run: pytest -v -m "not slow" --cov=deepchem --cov-report=xml deepchem
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
+      run: pytest -v -m "not slow" --cov=deepchem deepchem
+    - name: Coveralls
+      uses: coverallsapp/github-action@master
       with:
-        file: ./coverage.xml
-        env_vars: OS,PYTHON_VERSION
-        fail_ci_if_error: true
-        verbose: true
+        github-token: ${{ secrets.github_token }}
 
   deploy:
     if: ${{ github.ref == 'master' }}
