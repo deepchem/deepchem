@@ -503,7 +503,7 @@ def compute_ring_center(mol, ring_indices):
 
 
 def get_contact_atom_indices(fragments: List, cutoff: float = 4.5) -> List:
-  """Compute that atoms close to contact region.
+  """Compute the atoms close to contact region.
 
   Molecular complexes can get very large. This can make it unwieldy to
   compute functions on them. To improve memory usage, it can be very
@@ -528,7 +528,7 @@ def get_contact_atom_indices(fragments: List, cutoff: float = 4.5) -> List:
   is a list of atom indices from that molecule which should be kept, in
   sorted order.
   """
-  # indices to atoms to keep
+  # indices of atoms to keep
   keep_inds: List[Set] = [set([]) for _ in fragments]
   for (ind1, ind2) in itertools.combinations(range(len(fragments)), 2):
     frag1, frag2 = fragments[ind1], fragments[ind2]
@@ -544,16 +544,6 @@ def get_contact_atom_indices(fragments: List, cutoff: float = 4.5) -> List:
     keep_inds[ind2] = keep_inds[ind2].union(frag2_atoms)
   keep_ind_lists = [sorted(list(keep)) for keep in keep_inds]
   return keep_ind_lists
-
-  # Now extract atoms
-  #atoms_to_keep = []
-  #for i, frag_keep_inds in enumerate(keep_inds):
-  #  frag = fragments[i]
-  #  mol = frag[1]
-  #  atoms = mol.GetAtoms()
-  #  frag_keep = [atoms[keep_ind] for keep_ind in frag_keep_inds]
-  #  atoms_to_keep.append(frag_keep)
-  #return atoms_to_keep
 
 
 def get_mol_subset(coords, mol, atom_indices_to_keep):

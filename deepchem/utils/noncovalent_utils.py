@@ -61,9 +61,9 @@ def is_hydrogen_bond(frag1,
   Parameters
   ----------
   frag1: tuple
-    Tuple of (coords, rdkit mol / MolecularFragment
+    Tuple of (coords, rdkit mol / MolecularFragment)
   frag2: tuple
-    Tuple of (coords, rdkit mol / MolecularFragment
+    Tuple of (coords, rdkit mol / MolecularFragment)
   contact: Tuple
     Tuple of indices for (atom_i, atom_j) contact. 
   hbond_distance_cutoff: float, optional
@@ -277,7 +277,7 @@ def compute_pi_stack(mol1,
     mol1: rdkit.rdchem.Mol
       First molecule.
     mol2: rdkit.rdchem.Mol
-      First molecule.
+      Second molecule.
     pairwise_distances: np.ndarray (optional)
       Array of pairwise interatomic distances (Angstroms)
     dist_cutoff: float
@@ -390,27 +390,32 @@ def is_pi_t(ring1_center,
   return False
 
 
-def is_pi_parallel(ring1_center,
-                   ring1_normal,
-                   ring2_center,
-                   ring2_normal,
-                   dist_cutoff=8.0,
-                   angle_cutoff=30.0):
+def is_pi_parallel(ring1_center: np.ndarray,
+                   ring1_normal: np.ndarray,
+                   ring2_center: np.ndarray,
+                   ring2_normal: np.ndarray,
+                   dist_cutoff: float = 8.0,
+                   angle_cutoff: float = 30.0) -> bool:
   """Check if two aromatic rings form a parallel pi-pi contact.
 
-  Parameters:
-  -----------
-    ring1_center, ring2_center: np.ndarray
-      Positions of centers of the two rings. Can be computed with the
-      compute_ring_center function.
-    ring1_normal, ring2_normal: np.ndarray
-      Normals of the two rings. Can be computed with the compute_ring_normal
-      function.
-    dist_cutoff: float
-      Distance cutoff. Max allowed distance between the ring center (Angstroms).
-    angle_cutoff: float
-      Angle cutoff. Max allowed deviation from the ideal (0deg) angle between
-      the rings (in degrees).
+  Parameters
+  ----------
+  ring1_center, ring2_center: np.ndarray
+    Positions of centers of the two rings. Can be computed with the
+    compute_ring_center function.
+  ring1_normal, ring2_normal: np.ndarray
+    Normals of the two rings. Can be computed with the compute_ring_normal
+    function.
+  dist_cutoff: float
+    Distance cutoff. Max allowed distance between the ring center (Angstroms).
+  angle_cutoff: float
+    Angle cutoff. Max allowed deviation from the ideal (0deg) angle between
+    the rings (in degrees).
+
+  Returns
+  -------
+  bool
+    True if two aromatic rings form a parallel pi-pi.
   """
 
   dist = np.linalg.norm(ring1_center - ring2_center)
