@@ -17,8 +17,8 @@ elements_tl = [
 
 class CompositionFeaturizer(MaterialCompositionFeaturizer):
   """
-  Fixed size vector of length 85 containing raw fractional elemental
-  compositions in the compound. The 85 chosen elements are based on the
+  Fixed size vector of length 86 containing raw fractional elemental
+  compositions in the compound. The 86 chosen elements are based on the
   original implementation at https://github.com/NU-CUCIS/ElemNet.
 
   Returns a vector containing fractional compositions of each element
@@ -65,7 +65,7 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
 
   def _featurize(self, composition: PymatgenComposition) -> np.ndarray:
     """
-    Calculate 85 dimensional vector containing fractional compositions of
+    Calculate 86 dimensional vector containing fractional compositions of
     each element in the compound.
 
     Parameters
@@ -76,7 +76,7 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
     Returns
     -------
     feats: np.ndarray
-      85 dimensional vector containing fractional compositions of elements.
+      86 dimensional vector containing fractional compositions of elements.
     """
     fractions = composition.fractional_composition.get_el_amt_dict()
     feat = self.get_vector(fractions)
