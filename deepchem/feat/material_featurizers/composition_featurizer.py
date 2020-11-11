@@ -36,7 +36,7 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
   Examples
   --------
   >>> import pymatgen as mg
-  >>> comp = mg.Composition("Fe2O3")
+  >>> comp = "Fe2O3"
   >>> featurizer = CompositionFeaturizer()
   >>> features = featurizer.featurize([comp])
 
@@ -45,7 +45,7 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
   This class requires Pymatgen to be installed.
   """
 
-  def get_fractions(self, comp: DefaultDict) -> Union[np.ndarray, None]:
+  def get_vector(self, comp: DefaultDict) -> Union[np.ndarray, None]:
     """
     Converts a dictionary containing element names and corresponding
     compositional fractions into a vector of fractions.
@@ -67,118 +67,6 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
       fractions = None
     return fractions
 
-  def parse_fractions(self, form: str) -> str:
-    """
-    Convert fractional quantities (ex. 2/3) in the composition string
-    into float values.
-
-    Parameters
-    ----------
-    form: str
-      String containing elemental composition of the compound
-      (Might contain fractional quantities).
-
-    Returns
-    -------
-    form: str
-      String containing elemental composition of compound with fractions converted
-      into decimal equivalents.
-    """
-    while '/' in form:
-      di = form.index('/')
-      num1 = [x for x in re.findall(r'\d*\.*\d*', form[:di]) if x != ''][-1]
-      num2 = [x for x in re.findall(r'\d*\.*\d*', form[di + 1:]) if x != ''][0]
-      fract = '%.3f' % (float(num1) / float(num2))
-      form = form[:di - len(num1)] + fract + form[di + len(num2) + 1:]
-    return form
-
-  def parse_formula(self, formula: str) -> DefaultDict:
-    """
-    Convert composition string into a dictionary mapping element names
-    to corresponding fractions.
-
-    Parameters
-    ----------
-    formula: str
-      String containing the reduced elemental composition of the compound.
-
-    Returns
-    -------
-    res: collections.defaultdict
-      Dictionary containing element names and corresponding fractions.
-    """
-    stack: List[str] = []
-    curr_str = ''
-    i = 0
-    res: DefaultDict = defaultdict(int)
-    formula = formula.replace('-', '').replace('@', '').replace(
-        ' ', '').replace('[', '(').replace(']', ')').replace('{', '(').replace(
-            '}', ')').replace('@', '').replace('x', '').replace(' ', '')
-
-    def parse_simple_formula(x):
-      x = self.parse_fractions(x)
-      pairs = formulare.findall(x)
-      length = sum((len(p[0]) + len(p[1]) for p in pairs))
-      assert length == len(x)
-      formula_dict = defaultdict(int)
-      for el, sub in pairs:
-        formula_dict[el] += float(sub) if sub else 1
-      return formula_dict
-
-    while i < len(formula):
-      if formula[i] not in ['(', ')'] and not stack:
-        curr_str = ''
-        while i < len(formula) and formula[i] != '(':
-          curr_str += formula[i]
-          i += 1
-        fract = re.findall(r'\d*\.*\d*', curr_str)[0]
-        curr_str = curr_str[len(fract):]
-        if not len(fract):
-          fract = 1.
-        else:
-          fract = float(fract)
-        temp_res = parse_simple_formula(curr_str)
-        for k, v in temp_res.items():
-          res[k] = temp_res[k] if k not in res else res[k] + temp_res[k]
-      elif formula[i] not in [')']:
-        stack.append(formula[i])
-        i += 1
-      else:
-        i += 1
-        fract = re.findall(r'\d*\.*\d*', formula[i:])[0]
-        i = i + len(fract)
-        if not len(fract):
-          fract = 1.
-        else:
-          fract = float(fract)
-        curr_str = ''
-        while stack[-1] != '(':
-          curr_str += stack.pop()
-        stack.pop()
-        curr_str = curr_str[::-1]
-        fract1 = re.findall(r'\d*\.*\d*', curr_str)[0]
-        if not len(fract1):
-          fract *= 1.
-        else:
-          fract *= float(fract1)
-        curr_str = curr_str[len(fract1):]
-        temp_res = parse_simple_formula(curr_str)
-        for k, v in temp_res.items():
-          temp_res[k] *= fract
-        if not stack:
-          for k, v in temp_res.items():
-            res[k] = temp_res[k] if k not in res else res[k] + temp_res[k]
-        else:
-          for i, v in temp_res.items():
-            stack.append(str(i))
-            stack.append(str(v))
-    if any([e for e in res if e in ['T', 'D', 'G', 'M', 'Q']]):
-      print(formula, res)
-    sum_nums = 1. * sum(res.values())
-    for k in res:
-      res[k] = 1. * res[k] / sum_nums
-    return res
-
   def _featurize(self, composition: PymatgenComposition) -> np.ndarray:
     """
     Calculate 85 dimensional vector containing fractional compositions of
@@ -194,6 +82,6 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
     feats: np.ndarray
       85 dimensional vector containing fractional compositions of elements.
     """
-    pretty_comp = composition.reduced_formula
-    feats = self.get_fractions(self.parse_formula(pretty_comp))
-    return np.array(feats)
+    fractions = composition.fractional_composition.get_el_amt_dict()
+    feat = self.get_vector(fractions)
+    return feat
