@@ -47,9 +47,11 @@ jobs:
       shell: bash -l {0}
       working-directory: ./docs
       run: make clean html
-    - name: DocTest
+    - name: DocTest (Tutorials)
       shell: bash -l {0}
       working-directory: ./docs
-      run: |
-        make doctest_tutorials
-        make doctest_examples
+      run: make doctest_tutorials
+    - name: DocTest (Examples)
+      shell: bash -l {0}
+      working-directory: ./docs
+      run: make doctest_examples

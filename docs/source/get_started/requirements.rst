@@ -13,7 +13,7 @@ DeepChem officially supports Python 3.6 through 3.7 and requires these packages 
 - `SciPy`_
 - `TensorFlow`_
 
-  - `deepchem>=2.4.0` requires tensorflow v2 (2.3.0)
+  - `deepchem>=2.4.0` requires tensorflow v2 (2.3.x)
   - `deepchem<2.4.0` requires tensorflow v1 (>=1.14)
 
 
@@ -30,11 +30,11 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `Deep Graph Library`_          | latset        | :code:`dc.feat.graph_data`,                       |
+| `Deep Graph Library`_          | 0.5.x         | :code:`dc.feat.graph_data`,                       |
 |                                |               | :code:`dc.models.torch_models`                    |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `DGL-LifeSci`_                 | latest        | :code:`dc.models.torch_models`                    |
+| `DGL-LifeSci`_                 | 0.2.x         | :code:`dc.models.torch_models`                    |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
@@ -110,7 +110,7 @@ DeepChem has a number of "soft" requirements.
 |                                |               | :code:`dc.molnet.dnasim`                          |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `Tensorflow Probability`_      | 0.10.1        | :code:`dc.rl`                                     |
+| `Tensorflow Probability`_      | 0.11.x        | :code:`dc.rl`                                     |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
