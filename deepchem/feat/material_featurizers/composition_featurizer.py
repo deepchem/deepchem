@@ -1,7 +1,5 @@
-import re
 import numpy as np
-from collections import defaultdict
-from typing import DefaultDict, Union, List
+from typing import DefaultDict, Union
 
 from deepchem.utils.typing import PymatgenComposition
 from deepchem.feat import MaterialCompositionFeaturizer
@@ -15,8 +13,6 @@ elements_tl = [
     'Tm', 'Yb', 'Lu', 'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', 'Tl',
     'Pb', 'Bi', 'Ac', 'Th', 'Pa', 'U', 'Np', 'Pu'
 ]
-
-formulare = re.compile(r'([A-Z][a-z]*)(\d*\.*\d*)')
 
 
 class CompositionFeaturizer(MaterialCompositionFeaturizer):
