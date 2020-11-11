@@ -5,7 +5,7 @@ import numpy as np
 
 import deepchem as dc
 from deepchem.feat import MolGraphConvFeaturizer
-from deepchem.models import GCNModel
+from deepchem.models import AttentiveFPModel
 from deepchem.models.tests.test_graph_models import get_dataset
 
 try:
@@ -19,80 +19,72 @@ except:
 
 @unittest.skipIf(not has_torch_and_dgl,
                  'PyTorch, DGL, or DGL-LifeSci are not installed')
-def test_gcn_regression():
+def test_attentivefp_regression():
   # load datasets
-  featurizer = MolGraphConvFeaturizer()
+  featurizer = MolGraphConvFeaturizer(use_edges=True)
   tasks, dataset, transformers, metric = get_dataset(
       'regression', featurizer=featurizer)
 
   # initialize models
   n_tasks = len(tasks)
-  model = GCNModel(
-      mode='regression',
-      n_tasks=n_tasks,
-      number_atom_features=30,
-      batch_size=10,
-      learning_rate=0.003)
+  model = AttentiveFPModel(mode='regression', n_tasks=n_tasks, batch_size=10)
 
   # overfit test
-  model.fit(dataset, nb_epoch=200)
+  model.fit(dataset, nb_epoch=100)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean_absolute_error'] < 0.5
 
 
 @unittest.skipIf(not has_torch_and_dgl,
                  'PyTorch, DGL, or DGL-LifeSci are not installed')
-def test_gcn_classification():
+def test_attentivefp_classification():
   # load datasets
-  featurizer = MolGraphConvFeaturizer()
+  featurizer = MolGraphConvFeaturizer(use_edges=True)
   tasks, dataset, transformers, metric = get_dataset(
       'classification', featurizer=featurizer)
 
   # initialize models
   n_tasks = len(tasks)
-  model = GCNModel(
+  model = AttentiveFPModel(
       mode='classification',
       n_tasks=n_tasks,
-      number_atom_features=30,
       batch_size=10,
-      learning_rate=0.0003)
+      learning_rate=0.001)
 
   # overfit test
-  model.fit(dataset, nb_epoch=70)
+  model.fit(dataset, nb_epoch=100)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.85
 
 
 @unittest.skipIf(not has_torch_and_dgl,
                  'PyTorch, DGL, or DGL-LifeSci are not installed')
-def test_gcn_reload():
+def test_attentivefp_reload():
   # load datasets
-  featurizer = MolGraphConvFeaturizer()
+  featurizer = MolGraphConvFeaturizer(use_edges=True)
   tasks, dataset, transformers, metric = get_dataset(
       'classification', featurizer=featurizer)
 
   # initialize models
   n_tasks = len(tasks)
   model_dir = tempfile.mkdtemp()
-  model = GCNModel(
+  model = AttentiveFPModel(
       mode='classification',
       n_tasks=n_tasks,
-      number_atom_features=30,
       model_dir=model_dir,
       batch_size=10,
-      learning_rate=0.0003)
+      learning_rate=0.001)
 
-  model.fit(dataset, nb_epoch=70)
+  model.fit(dataset, nb_epoch=100)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.85
 
-  reloaded_model = GCNModel(
+  reloaded_model = AttentiveFPModel(
       mode='classification',
       n_tasks=n_tasks,
-      number_atom_features=30,
       model_dir=model_dir,
       batch_size=10,
-      learning_rate=0.0003)
+      learning_rate=0.001)
   reloaded_model.restore()
 
   pred_mols = ["CCCC", "CCCCCO", "CCCCC"]
