@@ -306,6 +306,6 @@ class MPNNModel(TorchModel):
         graph.to_dgl_graph(self_loop=self._self_loop) for graph in inputs[0]
     ]
     inputs = dgl.batch(dgl_graphs).to(self.device)
-    _, labels, weights = super(MPNNModel, self)._prepare_batch(
-        ([], labels, weights))
+    _, labels, weights = super(MPNNModel, self)._prepare_batch(([], labels,
+                                                                weights))
     return inputs, labels, weights
