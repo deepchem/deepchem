@@ -224,8 +224,6 @@ class AttentiveFPModel(TorchModel):
                number_atom_features: int = 30,
                number_bond_features: int = 11,
                n_classes: int = 2,
-               nfeat_name: str = 'x',
-               efeat_name: str = 'edge_attr',
                self_loop: bool = True,
                **kwargs):
     """
@@ -251,14 +249,6 @@ class AttentiveFPModel(TorchModel):
     n_classes: int
       The number of classes to predict per task
       (only used when ``mode`` is 'classification'). Default to 2.
-    nfeat_name: str
-      For an input graph ``g``, the model assumes that it stores node features in
-      ``g.ndata[nfeat_name]`` and will retrieve input node features from that.
-      Default to 'x'.
-    efeat_name: str
-      For an input graph ``g``, the model assumes that it stores edge features in
-      ``g.edata[efeat_name]`` and will retrieve input edge features from that.
-      Default to 'edge_attr'.
     self_loop: bool
       Whether to add self loops for the nodes, i.e. edges from nodes to themselves.
       Default to True.
@@ -274,9 +264,7 @@ class AttentiveFPModel(TorchModel):
         mode=mode,
         number_atom_features=number_atom_features,
         number_bond_features=number_bond_features,
-        n_classes=n_classes,
-        nfeat_name=nfeat_name,
-        efeat_name=efeat_name)
+        n_classes=n_classes)
     if mode == 'regression':
       loss: Loss = L2Loss()
       output_types = ['prediction']

@@ -261,7 +261,6 @@ class GCNModel(TorchModel):
                mode: str = 'regression',
                number_atom_features=30,
                n_classes: int = 2,
-               nfeat_name: str = 'x',
                self_loop: bool = True,
                **kwargs):
     """
@@ -293,10 +292,6 @@ class GCNModel(TorchModel):
     n_classes: int
       The number of classes to predict per task
       (only used when ``mode`` is 'classification'). Default to 2.
-    nfeat_name: str
-      For an input graph ``g``, the model assumes that it stores node features in
-      ``g.ndata[nfeat_name]`` and will retrieve input node features from that.
-      Default to 'x'.
     self_loop: bool
       Whether to add self loops for the nodes, i.e. edges from nodes to themselves.
       Default to True.
@@ -314,8 +309,7 @@ class GCNModel(TorchModel):
         predictor_dropout=predictor_dropout,
         mode=mode,
         number_atom_features=number_atom_features,
-        n_classes=n_classes,
-        nfeat_name=nfeat_name)
+        n_classes=n_classes)
     if mode == 'regression':
       loss: Loss = L2Loss()
       output_types = ['prediction']
