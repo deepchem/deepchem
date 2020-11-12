@@ -114,3 +114,72 @@ def load_docked_ligands(
     mol = Chem.MolFromPDBBlock(str(pdb_block), sanitize=False, removeHs=False)
     molecules.append(mol)
   return molecules, scores
+
+
+def prepare_inputs(protein: str, ligand: str,
+                   pdb_name: Optional[str] = None) -> Tuple[RDKitMol, RDKitMol]:
+  """This prepares protein-ligand complexes for docking.
+
+  Autodock Vina requires PDB files for proteins and ligands with
+  sensible inputs. This function uses PDBFixer and RDKit to ensure
+  that inputs are reasonable and ready for docking.
+
+  Parameters
+  ----------
+  protein: str
+    Filename for protein PDB file or a PDBID.
+  ligand: str
+    Either a filename for a ligand PDB file or a SMILES string.
+  pdb_name: Optional[str]
+    If given, write sanitized protein and ligand to files called
+    "pdb_name.pdb" and "ligand_pdb_name.pdb"
+
+  Returns
+  -------
+  Tuple[RDKitMol, RDKitMol]
+    Tuple of `protein_molecule, ligand_molecule` with 3D information.
+
+  Notes
+  -----
+  This function requires RDKit and OpenMM to be installed.
+  Read more about PDBFixer here: https://github.com/openmm/pdbfixer.
+
+  """
+
+  try:
+    from rdkit import Chem
+    from pdbfixer import PDBFixer
+    from simtk.openmm.app import PDBFile
+  except ModuleNotFoundError:
+    raise ImportError(
+        "This function requires RDKit and OpenMM to be installed.")
+
+  if protein.endswith('.pdb'):
+    fixer = PDBFixer(protein)
+  else:
+    fixer = PDBFixer(url='https://files.rcsb.org/download/%s.pdb' % (protein))
+
+  if ligand.endswith('.pdb'):
+    m = Chem.MolFromPDBFile(ligand)
+  else:
+    m = Chem.MolFromSmiles(ligand, sanitize=True)
+
+  # Apply common fixes to PDB files
+  fixer.findMissingResidues()
+  fixer.findNonstandardResidues()
+  fixer.replaceNonstandardResidues()
+  fixer.removeHeterogens(False)  # remove water
+  fixer.addMissingHydrogens(7.0)
+  PDBFile.writeFile(fixer.topology, fixer.positions, open('tmp.pdb', 'w'))
+  p = Chem.MolFromPDBFile('tmp.pdb', sanitize=True)
+
+  # Optimize ligand
+  m = Chem.AddHs(m)  # need hydrogens for optimization
+  Chem.AllChem.EmbedMolecule(m)
+  Chem.AllChem.MMFFOptimizeMolecule(m)
+
+  if pdb_name:
+    Chem.rdmolfiles.MolToPDBFile(p, '%s.pdb' % (pdb_name))
+    Chem.rdmolfiles.MolToPDBFile(m, 'ligand_%s.pdb' % (pdb_name))
+
+  return (p, m)
