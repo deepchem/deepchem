@@ -283,9 +283,6 @@ class AttentiveFPModel(TorchModel):
     ----------
     batch: tuple
       The tuple is ``(inputs, labels, weights)``.
-    self_loop: bool
-      Whether to add self loops for the nodes, i.e. edges from nodes
-      to themselves. Default to False.
 
     Returns
     -------
