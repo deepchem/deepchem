@@ -15,7 +15,7 @@ elements_tl = [
 ]
 
 
-class CompositionFeaturizer(MaterialCompositionFeaturizer):
+class ElemNetFeaturizer(MaterialCompositionFeaturizer):
   """
   Fixed size vector of length 86 containing raw fractional elemental
   compositions in the compound. The 86 chosen elements are based on the
@@ -33,7 +33,7 @@ class CompositionFeaturizer(MaterialCompositionFeaturizer):
   --------
   >>> import pymatgen as mg
   >>> comp = "Fe2O3"
-  >>> featurizer = CompositionFeaturizer()
+  >>> featurizer = ElemNetFeaturizer()
   >>> features = featurizer.featurize([comp])
 
   Notes

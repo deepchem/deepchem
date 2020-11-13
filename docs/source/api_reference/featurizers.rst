@@ -229,10 +229,10 @@ ElementPropertyFingerprint
 .. autoclass:: deepchem.feat.ElementPropertyFingerprint
   :members:
 
-CompositionFeaturizer
+ElemNetFeaturizer
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: deepchem.feat.CompositionFeaturizer
+.. autoclass:: deepchem.feat.ElemNetFeaturizer
   :members:
 
 BindingPocketFeaturizer

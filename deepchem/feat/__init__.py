@@ -42,7 +42,7 @@ from deepchem.feat.complex_featurizers import ComplexNeighborListFragmentAtomicC
 from deepchem.feat.material_featurizers import ElementPropertyFingerprint
 from deepchem.feat.material_featurizers import SineCoulombMatrix
 from deepchem.feat.material_featurizers import CGCNNFeaturizer
-from deepchem.feat.material_featurizers import CompositionFeaturizer
+from deepchem.feat.material_featurizers import ElemNetFeaturizer
 
 try:
   import transformers
