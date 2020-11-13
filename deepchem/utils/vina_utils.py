@@ -116,13 +116,23 @@ def load_docked_ligands(
   return molecules, scores
 
 
-def prepare_inputs(protein: str, ligand: str,
+def prepare_inputs(protein: str,
+                   ligand: str,
+                   replace_nonstandard_residues: bool = True,
+                   remove_heterogens: bool = True,
+                   remove_water: bool = True,
+                   add_hydrogens: bool = True,
+                   pH: float = 7.0,
+                   optimize_ligand: bool = True,
                    pdb_name: Optional[str] = None) -> Tuple[RDKitMol, RDKitMol]:
   """This prepares protein-ligand complexes for docking.
 
   Autodock Vina requires PDB files for proteins and ligands with
   sensible inputs. This function uses PDBFixer and RDKit to ensure
-  that inputs are reasonable and ready for docking.
+  that inputs are reasonable and ready for docking. Default values
+  are given for convenience, but fixing PDB files is complicated and
+  human judgement is required to produce protein structures suitable
+  for docking.
 
   Parameters
   ----------
@@ -130,6 +140,18 @@ def prepare_inputs(protein: str, ligand: str,
     Filename for protein PDB file or a PDBID.
   ligand: str
     Either a filename for a ligand PDB file or a SMILES string.
+  replace_nonstandard_residues: bool (default True)
+    Replace nonstandard residues with standard residues.
+  remove_heterogens: bool (default True)
+    Removes residues that are not standard amino acids or nucleotides.
+  remove_water: bool (default True)
+    Remove water molecules.
+  add_hydrogens: bool (default True)
+    Add missing hydrogens at the protonation state given by `pH`.
+  pH: float (default 7.0)
+    Most common form of each residue at given `pH` value is used.
+  optimize_ligand: bool (default True)
+    If True, optimize ligand with RDKit. Required for SMILES inputs.
   pdb_name: Optional[str]
     If given, write sanitized protein and ligand to files called
     "pdb_name.pdb" and "ligand_pdb_name.pdb"
@@ -139,10 +161,22 @@ def prepare_inputs(protein: str, ligand: str,
   Tuple[RDKitMol, RDKitMol]
     Tuple of `protein_molecule, ligand_molecule` with 3D information.
 
-  Notes
-  -----
+  Note
+  ----
   This function requires RDKit and OpenMM to be installed.
   Read more about PDBFixer here: https://github.com/openmm/pdbfixer.
+
+  Examples
+  --------
+  >>> p, m = prepare_inputs('3cyx', 'CCC')
+  >>> p.GetNumAtoms()
+  1415
+  >>> m.GetNumAtoms()
+  11
+
+  >>> p, m = prepare_inputs('3cyx', 'CCC', remove_heterogens=False)
+  >>> p.GetNumAtoms()
+  1720
 
   """
 
@@ -165,18 +199,25 @@ def prepare_inputs(protein: str, ligand: str,
     m = Chem.MolFromSmiles(ligand, sanitize=True)
 
   # Apply common fixes to PDB files
-  fixer.findMissingResidues()
-  fixer.findNonstandardResidues()
-  fixer.replaceNonstandardResidues()
-  fixer.removeHeterogens(False)  # remove water
-  fixer.addMissingHydrogens(7.0)
+  if replace_nonstandard_residues:
+    fixer.findMissingResidues()
+    fixer.findNonstandardResidues()
+    fixer.replaceNonstandardResidues()
+  if remove_heterogens and not remove_water:
+    fixer.removeHeterogens(True)
+  if remove_heterogens and remove_water:
+    fixer.removeHeterogens(False)
+  if add_hydrogens:
+    fixer.addMissingHydrogens(pH)
+
   PDBFile.writeFile(fixer.topology, fixer.positions, open('tmp.pdb', 'w'))
   p = Chem.MolFromPDBFile('tmp.pdb', sanitize=True)
 
   # Optimize ligand
-  m = Chem.AddHs(m)  # need hydrogens for optimization
-  Chem.AllChem.EmbedMolecule(m)
-  Chem.AllChem.MMFFOptimizeMolecule(m)
+  if optimize_ligand:
+    m = Chem.AddHs(m)  # need hydrogens for optimization
+    Chem.AllChem.EmbedMolecule(m)
+    Chem.AllChem.MMFFOptimizeMolecule(m)
 
   if pdb_name:
     Chem.rdmolfiles.MolToPDBFile(p, '%s.pdb' % (pdb_name))
