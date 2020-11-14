@@ -222,7 +222,7 @@ class MPNNModel(TorchModel):
                number_atom_features: int = 30,
                number_bond_features: int = 11,
                n_classes: int = 2,
-               self_loop: bool = True,
+               self_loop: bool = False,
                **kwargs):
     """
     Parameters
@@ -250,7 +250,7 @@ class MPNNModel(TorchModel):
       (only used when ``mode`` is 'classification'). Default to 2.
     self_loop: bool
       Whether to add self loops for the nodes, i.e. edges from nodes to themselves.
-      Default to True.
+      Generally, an MPNNModel does not require self loops. Default to False.
     kwargs
       This can include any keyword argument of TorchModel.
     """

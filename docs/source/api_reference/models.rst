@@ -465,3 +465,6 @@ MPNNModel
 
 .. autoclass:: deepchem.models.torch_models.MPNNModel
   :members:
+
+Note that this is an alternative implementation for MPNN and currently you can only import it from
+``deepchem.models.torch_models``.

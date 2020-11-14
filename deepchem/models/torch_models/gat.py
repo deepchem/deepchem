@@ -308,7 +308,8 @@ class GATModel(TorchModel):
       (only used when ``mode`` is 'classification'). Default to 2.
     self_loop: bool
       Whether to add self loops for the nodes, i.e. edges from nodes to themselves.
-      Default to True.
+      When input graphs have isolated nodes, self loops allow preserving the original feature
+      of them in message passing. Default to True.
     kwargs
       This can include any keyword argument of TorchModel.
     """
