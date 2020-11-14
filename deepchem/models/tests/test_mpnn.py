@@ -30,7 +30,7 @@ def test_mpnn_regression():
   model = MPNNModel(mode='regression', n_tasks=n_tasks, batch_size=10)
 
   # overfit test
-  model.fit(dataset, nb_epoch=300)
+  model.fit(dataset, nb_epoch=400)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean_absolute_error'] < 0.5
 
