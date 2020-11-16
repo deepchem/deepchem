@@ -132,7 +132,7 @@ def prepare_inputs(protein: str,
   that inputs are reasonable and ready for docking. Default values
   are given for convenience, but fixing PDB files is complicated and
   human judgement is required to produce protein structures suitable
-  for docking. Always inspect the results carefully before trying to 
+  for docking. Always inspect the results carefully before trying to
   perform docking.
 
   Parameters
