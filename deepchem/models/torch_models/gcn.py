@@ -219,8 +219,8 @@ class GCNModel(TorchModel):
   >> tasks, datasets, transformers = dc.molnet.load_tox21(
   ..     reload=False, featurizer=featurizer, transformers=[])
   >> train, valid, test = datasets
-  >> model = dc.models.GCNModel(mode='classification', n_tasks=len(tasks),
-  ..                            batch_size=32, learning_rate=0.001)
+  >> model = GCNModel(mode='classification', n_tasks=len(tasks),
+  ..                  batch_size=32, learning_rate=0.001)
   >> model.fit(train, nb_epoch=50)
 
   References
@@ -261,7 +261,6 @@ class GCNModel(TorchModel):
                mode: str = 'regression',
                number_atom_features=30,
                n_classes: int = 2,
-               nfeat_name: str = 'x',
                self_loop: bool = True,
                **kwargs):
     """
@@ -293,13 +292,10 @@ class GCNModel(TorchModel):
     n_classes: int
       The number of classes to predict per task
       (only used when ``mode`` is 'classification'). Default to 2.
-    nfeat_name: str
-      For an input graph ``g``, the model assumes that it stores node features in
-      ``g.ndata[nfeat_name]`` and will retrieve input node features from that.
-      Default to 'x'.
     self_loop: bool
       Whether to add self loops for the nodes, i.e. edges from nodes to themselves.
-      Default to True.
+      When input graphs have isolated nodes, self loops allow preserving the original feature
+      of them in message passing. Default to True.
     kwargs
       This can include any keyword argument of TorchModel.
     """
@@ -314,8 +310,7 @@ class GCNModel(TorchModel):
         predictor_dropout=predictor_dropout,
         mode=mode,
         number_atom_features=number_atom_features,
-        n_classes=n_classes,
-        nfeat_name=nfeat_name)
+        n_classes=n_classes)
     if mode == 'regression':
       loss: Loss = L2Loss()
       output_types = ['prediction']
@@ -334,9 +329,6 @@ class GCNModel(TorchModel):
     ----------
     batch: tuple
       The tuple is ``(inputs, labels, weights)``.
-    self_loop: bool
-      Whether to add self loops for the nodes, i.e. edges from nodes
-      to themselves. Default to False.
 
     Returns
     -------

@@ -1,5 +1,5 @@
 """
-DGL-based AttentiveFP for graph property prediction.
+DGL-based MPNN for graph property prediction.
 """
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,24 +8,23 @@ from deepchem.models.losses import Loss, L2Loss, SparseSoftmaxCrossEntropy
 from deepchem.models.torch_models.torch_model import TorchModel
 
 
-class AttentiveFP(nn.Module):
+class MPNN(nn.Module):
   """Model for Graph Property Prediction.
 
   This model proceeds as follows:
 
-  * Combine node features and edge features for initializing node representations,
-    which involves a round of message passing
-  * Update node representations with multiple rounds of message passing
+  * Combine latest node representations and edge features in updating node representations,
+    which involves multiple rounds of message passing
   * For each graph, compute its representation by combining the representations
-    of all nodes in it, which involves a gated recurrent unit (GRU).
-  * Perform the final prediction using a linear layer
+    of all nodes in it, which involves a Set2Set layer.
+  * Perform the final prediction using an MLP
 
   Examples
   --------
 
   >>> import deepchem as dc
   >>> import dgl
-  >>> from deepchem.models import AttentiveFP
+  >>> from deepchem.models.torch_models import MPNN
   >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
   >>> featurizer = dc.feat.MolGraphConvFeaturizer(use_edges=True)
   >>> graphs = featurizer.featurize(smiles)
@@ -34,7 +33,7 @@ class AttentiveFP(nn.Module):
   >>> dgl_graphs = [graphs[i].to_dgl_graph(self_loop=True) for i in range(len(graphs))]
   >>> # Batch two graphs into a graph of two connected components
   >>> batch_dgl_graph = dgl.batch(dgl_graphs)
-  >>> model = AttentiveFP(n_tasks=1, mode='regression')
+  >>> model = MPNN(n_tasks=1, mode='regression')
   >>> preds = model(batch_dgl_graph)
   >>> print(type(preds))
   <class 'torch.Tensor'>
@@ -43,10 +42,8 @@ class AttentiveFP(nn.Module):
 
   References
   ----------
-  .. [1] Zhaoping Xiong, Dingyan Wang, Xiaohong Liu, Feisheng Zhong, Xiaozhe Wan, Xutong Li,
-         Zhaojun Li, Xiaomin Luo, Kaixian Chen, Hualiang Jiang, and Mingyue Zheng. "Pushing
-         the Boundaries of Molecular Representation for Drug Discovery with the Graph Attention
-         Mechanism." Journal of Medicinal Chemistry. 2020, 63, 16, 8749–8760.
+  .. [1] Justin Gilmer, Samuel S. Schoenholz, Patrick F. Riley, Oriol Vinyals, George E. Dahl.
+         "Neural Message Passing for Quantum Chemistry." ICML 2017.
 
   Notes
   -----
@@ -56,10 +53,11 @@ class AttentiveFP(nn.Module):
 
   def __init__(self,
                n_tasks: int,
-               num_layers: int = 2,
-               num_timesteps: int = 2,
-               graph_feat_size: int = 200,
-               dropout: float = 0.,
+               node_out_feats: int = 64,
+               edge_hidden_feats: int = 128,
+               num_step_message_passing: int = 3,
+               num_step_set2set: int = 6,
+               num_layer_set2set: int = 3,
                mode: str = 'regression',
                number_atom_features: int = 30,
                number_bond_features: int = 11,
@@ -71,15 +69,16 @@ class AttentiveFP(nn.Module):
     ----------
     n_tasks: int
       Number of tasks.
-    num_layers: int
-      Number of graph neural network layers, i.e. number of rounds of message passing.
-      Default to 2.
-    num_timesteps: int
-      Number of time steps for updating graph representations with a GRU. Default to 2.
-    graph_feat_size: int
-      Size for graph representations. Default to 200.
-    dropout: float
-      Dropout probability. Default to 0.
+    node_out_feats: int
+      The length of the final node representation vectors. Default to 64.
+    edge_hidden_feats: int
+      The length of the hidden edge representation vectors. Default to 128.
+    num_step_message_passing: int
+      The number of rounds of message passing. Default to 3.
+    num_step_set2set: int
+      The number of set2set steps. Default to 6.
+    num_layer_set2set: int
+      The number of set2set layers. Default to 3.
     mode: str
       The model type, 'classification' or 'regression'. Default to 'regression'.
     number_atom_features: int
@@ -110,7 +109,7 @@ class AttentiveFP(nn.Module):
     if mode not in ['classification', 'regression']:
       raise ValueError("mode must be either 'classification' or 'regression'")
 
-    super(AttentiveFP, self).__init__()
+    super(MPNN, self).__init__()
 
     self.n_tasks = n_tasks
     self.mode = mode
@@ -122,16 +121,17 @@ class AttentiveFP(nn.Module):
     else:
       out_size = n_tasks
 
-    from dgllife.model import AttentiveFPPredictor as DGLAttentiveFPPredictor
+    from dgllife.model import MPNNPredictor as DGLMPNNPredictor
 
-    self.model = DGLAttentiveFPPredictor(
-        node_feat_size=number_atom_features,
-        edge_feat_size=number_bond_features,
-        num_layers=num_layers,
-        num_timesteps=num_timesteps,
-        graph_feat_size=graph_feat_size,
+    self.model = DGLMPNNPredictor(
+        node_in_feats=number_atom_features,
+        edge_in_feats=number_bond_features,
+        node_out_feats=node_out_feats,
+        edge_hidden_feats=edge_hidden_feats,
         n_tasks=out_size,
-        dropout=dropout)
+        num_step_message_passing=num_step_message_passing,
+        num_step_set2set=num_step_set2set,
+        num_layer_set2set=num_layer_set2set)
 
   def forward(self, g):
     """Predict graph labels
@@ -175,38 +175,35 @@ class AttentiveFP(nn.Module):
       return out
 
 
-class AttentiveFPModel(TorchModel):
-  """Model for Graph Property Prediction.
+class MPNNModel(TorchModel):
+  """Model for graph property prediction
 
   This model proceeds as follows:
 
-  * Combine node features and edge features for initializing node representations,
-    which involves a round of message passing
-  * Update node representations with multiple rounds of message passing
+  * Combine latest node representations and edge features in updating node representations,
+    which involves multiple rounds of message passing
   * For each graph, compute its representation by combining the representations
-    of all nodes in it, which involves a gated recurrent unit (GRU).
-  * Perform the final prediction using a linear layer
+    of all nodes in it, which involves a Set2Set layer.
+  * Perform the final prediction using an MLP
 
   Examples
   --------
 
   >>>
   >> import deepchem as dc
-  >> from deepchem.models import AttentiveFPModel
+  >> from deepchem.models.torch_models import MPNNModel
   >> featurizer = dc.feat.MolGraphConvFeaturizer(use_edges=True)
   >> tasks, datasets, transformers = dc.molnet.load_tox21(
   ..     reload=False, featurizer=featurizer, transformers=[])
   >> train, valid, test = datasets
-  >> model = AttentiveFPModel(mode='classification', n_tasks=len(tasks),
-  ..                          batch_size=32, learning_rate=0.001)
+  >> model = MPNNModel(mode='classification', n_tasks=len(tasks),
+  ..                   batch_size=32, learning_rate=0.001)
   >> model.fit(train, nb_epoch=50)
 
   References
   ----------
-  .. [1] Zhaoping Xiong, Dingyan Wang, Xiaohong Liu, Feisheng Zhong, Xiaozhe Wan, Xutong Li,
-         Zhaojun Li, Xiaomin Luo, Kaixian Chen, Hualiang Jiang, and Mingyue Zheng. "Pushing
-         the Boundaries of Molecular Representation for Drug Discovery with the Graph
-         Attention Mechanism." Journal of Medicinal Chemistry. 2020, 63, 16, 8749–8760.
+  .. [1] Justin Gilmer, Samuel S. Schoenholz, Patrick F. Riley, Oriol Vinyals, George E. Dahl.
+         "Neural Message Passing for Quantum Chemistry." ICML 2017.
 
   Notes
   -----
@@ -216,30 +213,32 @@ class AttentiveFPModel(TorchModel):
 
   def __init__(self,
                n_tasks: int,
-               num_layers: int = 2,
-               num_timesteps: int = 2,
-               graph_feat_size: int = 200,
-               dropout: float = 0.,
+               node_out_feats: int = 64,
+               edge_hidden_feats: int = 128,
+               num_step_message_passing: int = 3,
+               num_step_set2set: int = 6,
+               num_layer_set2set: int = 3,
                mode: str = 'regression',
                number_atom_features: int = 30,
                number_bond_features: int = 11,
                n_classes: int = 2,
-               self_loop: bool = True,
+               self_loop: bool = False,
                **kwargs):
     """
     Parameters
     ----------
     n_tasks: int
       Number of tasks.
-    num_layers: int
-      Number of graph neural network layers, i.e. number of rounds of message passing.
-      Default to 2.
-    num_timesteps: int
-      Number of time steps for updating graph representations with a GRU. Default to 2.
-    graph_feat_size: int
-      Size for graph representations. Default to 200.
-    dropout: float
-      Dropout probability. Default to 0.
+    node_out_feats: int
+      The length of the final node representation vectors. Default to 64.
+    edge_hidden_feats: int
+      The length of the hidden edge representation vectors. Default to 128.
+    num_step_message_passing: int
+      The number of rounds of message passing. Default to 3.
+    num_step_set2set: int
+      The number of set2set steps. Default to 6.
+    num_layer_set2set: int
+      The number of set2set layers. Default to 3.
     mode: str
       The model type, 'classification' or 'regression'. Default to 'regression'.
     number_atom_features: int
@@ -251,17 +250,17 @@ class AttentiveFPModel(TorchModel):
       (only used when ``mode`` is 'classification'). Default to 2.
     self_loop: bool
       Whether to add self loops for the nodes, i.e. edges from nodes to themselves.
-      When input graphs have isolated nodes, self loops allow preserving the original feature
-      of them in message passing. Default to True.
+      Generally, an MPNNModel does not require self loops. Default to False.
     kwargs
       This can include any keyword argument of TorchModel.
     """
-    model = AttentiveFP(
+    model = MPNN(
         n_tasks=n_tasks,
-        num_layers=num_layers,
-        num_timesteps=num_timesteps,
-        graph_feat_size=graph_feat_size,
-        dropout=dropout,
+        node_out_feats=node_out_feats,
+        edge_hidden_feats=edge_hidden_feats,
+        num_step_message_passing=num_step_message_passing,
+        num_step_set2set=num_step_set2set,
+        num_layer_set2set=num_layer_set2set,
         mode=mode,
         number_atom_features=number_atom_features,
         number_bond_features=number_bond_features,
@@ -272,13 +271,13 @@ class AttentiveFPModel(TorchModel):
     else:
       loss = SparseSoftmaxCrossEntropy()
       output_types = ['prediction', 'loss']
-    super(AttentiveFPModel, self).__init__(
+    super(MPNNModel, self).__init__(
         model, loss=loss, output_types=output_types, **kwargs)
 
     self._self_loop = self_loop
 
   def _prepare_batch(self, batch):
-    """Create batch data for AttentiveFP.
+    """Create batch data for MPNN.
 
     Parameters
     ----------
@@ -304,6 +303,6 @@ class AttentiveFPModel(TorchModel):
         graph.to_dgl_graph(self_loop=self._self_loop) for graph in inputs[0]
     ]
     inputs = dgl.batch(dgl_graphs).to(self.device)
-    _, labels, weights = super(AttentiveFPModel, self)._prepare_batch(
-        ([], labels, weights))
+    _, labels, weights = super(MPNNModel, self)._prepare_batch(([], labels,
+                                                                weights))
     return inputs, labels, weights
