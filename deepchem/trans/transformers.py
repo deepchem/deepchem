@@ -1826,7 +1826,7 @@ class ImageTransformer(Transformer):
 
   def __init__(self, size: Tuple[int]):
     """Initializes transformation based on dataset statistics.
-    
+
     Parameters
     ----------
     size: int
