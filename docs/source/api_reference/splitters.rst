@@ -117,7 +117,7 @@ FingerprintSplitter
   :inherited-members:
   :exclude-members: __init__
 
-Base Splitters (for develop)
+Base Splitter (for develop)
 ----------------------------
 
 The :code:`dc.splits.Splitter` class is the abstract parent class for
