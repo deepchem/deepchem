@@ -1824,13 +1824,13 @@ class ImageTransformer(Transformer):
   This class require Pillow to be installed.
   """
 
-  def __init__(self, size: Tuple[int]):
-    """Initializes transformation based on dataset statistics.
+  def __init__(self, size: Tuple[int, int]):
+    """Initializes ImageTransformer.
 
     Parameters
     ----------
-    size: int
-      The image size
+    size: Tuple[int, int]
+      The image size, a tuple of (width, height).
     """
     self.size = size
     super(ImageTransformer, self).__init__(transform_X=True)
