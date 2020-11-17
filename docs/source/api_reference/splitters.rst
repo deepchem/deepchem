@@ -109,11 +109,19 @@ ButinaSplitter
   :members:
   :inherited-members:
 
-FingeprintSplitter
-^^^^^^^^^^^^^^^^^^
+FingerprintSplitter
+^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.splits.FingerprintSplitter
   :members:
   :inherited-members:
   :exclude-members: __init__
 
+Base Splitters (for develop)
+----------------------------
+
+The :code:`dc.splits.Splitter` class is the abstract parent class for
+all splitters. This class should never be directly instantiated.
+
+.. autoclass:: deepchem.splits.Splitter
+  :members:

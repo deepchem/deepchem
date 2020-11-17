@@ -11,7 +11,6 @@ heel? Fear not for you have :code:`Transformer` objects.
 .. contents:: Contents
     :local:
 
-
 General Transformers
 --------------------
 
@@ -115,3 +114,13 @@ ANITransformer
 .. autoclass:: deepchem.trans.ANITransformer
   :members:
   :inherited-members:
+
+Base Transformer (for develop)
+-------------------------------
+
+The :code:`dc.trans.Transformer` class is the abstract parent class
+for all transformers. This class should never be directly initialized,
+but contains a number of useful method implementations.
+
+.. autoclass:: deepchem.trans.Transformer
+  :members:
