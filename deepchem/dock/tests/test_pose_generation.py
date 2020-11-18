@@ -12,10 +12,12 @@ import pytest
 
 IS_WINDOWS = platform.system() == 'Windows'
 
+
 class TestPoseGeneration(unittest.TestCase):
   """
   Does sanity checks on pose generation.
   """
+
   @unittest.skipIf(IS_WINDOWS, 'Skip the test on Windows')
   def test_vina_initialization(self):
     """Test that VinaPoseGenerator can be initialized."""
