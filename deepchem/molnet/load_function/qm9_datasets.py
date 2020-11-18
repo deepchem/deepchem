@@ -28,7 +28,7 @@ class _QM9Loader(_MolnetLoader):
 
 
 def load_qm9(
-    featurizer: Union[dc.feat.Featurizer, str] = 'ColumbMatrix',
+    featurizer: Union[dc.feat.Featurizer, str] = 'CoulombMatrix',
     splitter: Union[dc.splits.Splitter, str, None] = 'random',
     transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
     reload: bool = True,
