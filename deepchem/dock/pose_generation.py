@@ -8,6 +8,7 @@ import tempfile
 import tarfile
 import numpy as np
 from subprocess import call
+from subprocess import check_output
 from typing import List, Optional, Tuple, Union
 
 from deepchem.dock.binding_pocket import BindingPocketFinder
@@ -135,20 +136,18 @@ class VinaPoseGenerator(PoseGenerator):
       )
     self.pocket_finder = pocket_finder
     if not os.path.exists(self.vina_dir):
-      if platform.system() != 'Windows':
-        logger.info("Vina not available. Downloading")
-        download_url(url, data_dir)
-        downloaded_file = os.path.join(data_dir, filename)
-        logger.info("Downloaded Vina. Extracting")
+      logger.info("Vina not available. Downloading")
+      download_url(url, data_dir)
+      downloaded_file = os.path.join(data_dir, filename)
+      logger.info("Downloaded Vina. Extracting")
+      if platform.system() == 'Windows':
+        msi_cmd = "msiexec /i %s" % downloaded_file
+        check_output(msi_cmd.split())
+      else:
         with tarfile.open(downloaded_file) as tar:
           tar.extractall(data_dir)
-        logger.info("Cleanup: removing downloaded vina tar.gz")
-        os.remove(downloaded_file)
-      else:
-        logger.warn(
-            "Your OS is Windows. Please install Vina by yourself."
-            "Check how to install from this link : http://vina.scripps.edu/manual.html#windows."
-        )
+      logger.info("Cleanup: removing downloaded vina tar.gz")
+      os.remove(downloaded_file)
 
   def generate_poses(self,
                      molecular_complex: Tuple[str, str],
