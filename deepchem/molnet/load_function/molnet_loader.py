@@ -47,30 +47,14 @@ class TransformerGenerator(object):
 
 
 featurizers = {
-    'graphconv': dc.feat.ConvMolFeaturizer(),
-    'weave': dc.feat.WeaveFeaturizer(),
+    'coulombmatrix': lambda: dc.feat.CoulombMatrix(29),
+    'ecfp': lambda: dc.feat.CircularFingerprint(size=1024),
+    'graphconv': lambda: dc.feat.ConvMolFeaturizer(),
+    'raw': lambda: dc.feat.RawFeaturizer(),
+    'onehot': lambda: dc.feat.OneHotFeaturizer(),
+    'smiles2img': lambda: dc.feat.SmilesToImage(img_size=80, img_spec='std'),
+    'weave': lambda: dc.feat.WeaveFeaturizer(),
 }
-
-# some featurizers require soft dependencies to instantiate
-try:
-  featurizers['ecfp'] = dc.feat.CircularFingerprint(size=1024)
-except ImportError:
-  pass
-
-try:
-  featurizers['raw'] = dc.feat.RawFeaturizer()
-except ImportError:
-  pass
-
-try:
-  featurizers['smiles2img'] = dc.feat.SmilesToImage(img_size=80, img_spec='std')
-except ImportError:
-  pass
-
-try:
-  featurizers['onehot'] = dc.feat.OneHotFeaturizer()
-except ImportError:
-  pass
 
 splitters = {
     'index': dc.splits.IndexSplitter(),
@@ -132,7 +116,7 @@ class _MolnetLoader(object):
       splitter = kwargs['split']
       logger.warning("'split' is deprecated.  Use 'splitter' instead.")
     if isinstance(featurizer, str):
-      featurizer = featurizers[featurizer.lower()]
+      featurizer = featurizers[featurizer.lower()]()
     if isinstance(splitter, str):
       splitter = splitters[splitter.lower()]
     if data_dir is None:

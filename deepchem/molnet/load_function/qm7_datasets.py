@@ -27,7 +27,7 @@ class _QM7Loader(_MolnetLoader):
 
 
 def load_qm7(
-    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.CoulombMatrix(23),
+    featurizer: Union[dc.feat.Featurizer, str] = 'CoulombMatrix',
     splitter: Union[dc.splits.Splitter, str, None] = 'random',
     transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
     reload: bool = True,
