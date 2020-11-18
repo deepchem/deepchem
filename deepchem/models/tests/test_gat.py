@@ -35,7 +35,7 @@ def test_gat_regression():
       learning_rate=0.001)
 
   # overfit test
-  model.fit(dataset, nb_epoch=400)
+  model.fit(dataset, nb_epoch=500)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean_absolute_error'] < 0.5
 
