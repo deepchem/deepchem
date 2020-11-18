@@ -972,6 +972,8 @@ class BalancingTransformer(Transformer):
       Transformed array of ids
     """
     w_balanced = np.zeros_like(w)
+    if len(y.shape) == 1 and len(w.shape) == 2 and w.shape[1] == 1:
+      y = np.expand_dims(y, 1)
     if len(y.shape) == 1:
       n_tasks = 1
     elif len(y.shape) == 2:
