@@ -31,7 +31,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install conda-merge
         conda-merge env.common.yml env.cpu.yml env.test.yml > env.yml
-    - uses: conda-incubator/setup-miniconda@v1
+    - uses: conda-incubator/setup-miniconda@v2
       with:
         miniconda-version: "latest"
         auto-update-conda: true
