@@ -15,10 +15,12 @@ class TestPoseGeneration(unittest.TestCase):
   Does sanity checks on pose generation.
   """
 
+  @pytest.mark.linux_only
   def test_vina_initialization(self):
     """Test that VinaPoseGenerator can be initialized."""
     dc.dock.VinaPoseGenerator()
 
+  @pytest.mark.linux_only
   def test_pocket_vina_initialization(self):
     """Test that VinaPoseGenerator can be initialized."""
     pocket_finder = dc.dock.ConvexHullPocketFinder()
