@@ -11,7 +11,6 @@ from transformers import BertTokenizer
 from logging import getLogger
 
 logger = getLogger(__name__)
-
 """
 SMI_REGEX_PATTERN: str
     SMILES regex pattern for tokenization. Designed by Schwaller et. al.
@@ -57,9 +56,9 @@ class SmilesTokenizer(BertTokenizer):
 
   References
   ----------
-  .. [1]  Schwaller, Philippe; Probst, Daniel; Vaucher, Alain C.; Nair, Vishnu H; Kreutter, David;
-          Laino, Teodoro; et al. (2019): Mapping the Space of Chemical Reactions using Attention-Based Neural
-          Networks. ChemRxiv. Preprint. https://doi.org/10.26434/chemrxiv.9897365.v3
+  .. [1] Schwaller, Philippe; Probst, Daniel; Vaucher, Alain C.; Nair, Vishnu H; Kreutter, David;
+     Laino, Teodoro; et al. (2019): Mapping the Space of Chemical Reactions using Attention-Based Neural
+     Networks. ChemRxiv. Preprint. https://doi.org/10.26434/chemrxiv.9897365.v3
 
   Note
   ----
@@ -81,8 +80,8 @@ class SmilesTokenizer(BertTokenizer):
     Parameters
     ----------
     vocab_file: str
-        Path to a SMILES character per line vocabulary file.
-        Default vocab file is found in deepchem/feat/tests/data/vocab.txt
+      Path to a SMILES character per line vocabulary file.
+      Default vocab file is found in deepchem/feat/tests/data/vocab.txt
     """
 
     super().__init__(vocab_file, **kwargs)
@@ -115,7 +114,7 @@ class SmilesTokenizer(BertTokenizer):
     Parameters
     ----------
     text: str
-        Input string sequence to be tokenized.
+      Input string sequence to be tokenized.
     """
 
     split_tokens = [token for token in self.basic_tokenizer.tokenize(text)]
@@ -127,7 +126,7 @@ class SmilesTokenizer(BertTokenizer):
     Parameters
     ----------
     token: str
-        String token from a larger sequence to be converted to a numerical id.
+      String token from a larger sequence to be converted to a numerical id.
     """
 
     return self.vocab.get(token, self.vocab.get(self.unk_token))
@@ -138,7 +137,7 @@ class SmilesTokenizer(BertTokenizer):
     Parameters
     ----------
     index: int
-        Integer index to be converted back to a string-based token as part of a larger sequence.
+      Integer index to be converted back to a string-based token as part of a larger sequence.
     """
 
     return self.ids_to_tokens.get(index, self.unk_token)
@@ -149,12 +148,12 @@ class SmilesTokenizer(BertTokenizer):
     Parameters
     ----------
     tokens: List[str]
-        List of tokens for a given string sequence.
+      List of tokens for a given string sequence.
 
     Returns
     -------
     out_string: str
-        Single string from combined tokens.
+      Single string from combined tokens.
     """
 
     out_string: str = " ".join(tokens).replace(" ##", "").strip()
@@ -168,7 +167,7 @@ class SmilesTokenizer(BertTokenizer):
     Parameters
     ----------
     token_ids: list[int]
-        list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
+      list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
     """
 
     return [self.cls_token_id] + token_ids + [self.sep_token_id]
@@ -180,7 +179,7 @@ class SmilesTokenizer(BertTokenizer):
     Parameters
     ----------
     tokens: List[str]
-        List of tokens for a given string sequence.
+      List of tokens for a given string sequence.
     """
     return [self.cls_token] + tokens + [self.sep_token]
 
@@ -192,9 +191,9 @@ class SmilesTokenizer(BertTokenizer):
     Parameters
     ----------
     token_ids_0: List[int]
-        List of ids for the first string sequence in the sequence pair (A).
+      List of ids for the first string sequence in the sequence pair (A).
     token_ids_1: List[int]
-        List of tokens for the second string sequence in the sequence pair (B).
+      List of tokens for the second string sequence in the sequence pair (B).
     """
 
     sep = [self.sep_token_id]
@@ -212,16 +211,16 @@ class SmilesTokenizer(BertTokenizer):
     Parameters
     ----------
     token_ids: list[int]
-        list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
+      list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
     length: int
-        TODO
+      TODO
     right: bool, default True
-        TODO
+      TODO
 
     Returns
     -------
     List[int]
-       TODO
+      TODO
     """
     padding = [self.pad_token_id] * (length - len(token_ids))
 
@@ -238,15 +237,15 @@ class SmilesTokenizer(BertTokenizer):
     Parameters
     ----------
     vocab_path: obj: str
-        The directory in which to save the SMILES character per line vocabulary file.
-        Default vocab file is found in deepchem/feat/tests/data/vocab.txt
+      The directory in which to save the SMILES character per line vocabulary file.
+      Default vocab file is found in deepchem/feat/tests/data/vocab.txt
 
     Returns
     -------
     vocab_file: Tuple
-        Paths to the files saved.
-        typle with string to a SMILES character per line vocabulary file.
-        Default vocab file is found in deepchem/feat/tests/data/vocab.txt
+      Paths to the files saved.
+      typle with string to a SMILES character per line vocabulary file.
+      Default vocab file is found in deepchem/feat/tests/data/vocab.txt
     """
     index = 0
     if os.path.isdir(vocab_path):
@@ -269,7 +268,7 @@ class SmilesTokenizer(BertTokenizer):
 
 class BasicSmilesTokenizer(object):
   """
-  Run basic SMILES tokenization using a regex pattern developed by Schwaller et. al. 
+  Run basic SMILES tokenization using a regex pattern developed by Schwaller et. al.
   This tokenizer is to be used when a tokenizer that does not require the transformers library by HuggingFace is required.
 
   Examples
@@ -282,9 +281,9 @@ class BasicSmilesTokenizer(object):
 
   References
   ----------
-  .. [1]  Philippe Schwaller, Teodoro Laino, Théophile Gaudin, Peter Bolgar, Christopher A. Hunter, Costas Bekas, and Alpha A. Lee
-          ACS Central Science 2019 5 (9): Molecular Transformer: A Model for Uncertainty-Calibrated Chemical Reaction Prediction
-          1572-1583 DOI: 10.1021/acscentsci.9b00576
+  .. [1] Philippe Schwaller, Teodoro Laino, Théophile Gaudin, Peter Bolgar, Christopher A. Hunter, Costas Bekas, and Alpha A. Lee
+     ACS Central Science 2019 5 (9): Molecular Transformer: A Model for Uncertainty-Calibrated Chemical Reaction Prediction
+     1572-1583 DOI: 10.1021/acscentsci.9b00576
   """
 
   def __init__(self, regex_pattern: str = SMI_REGEX_PATTERN):
