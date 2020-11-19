@@ -113,6 +113,7 @@ To listen in, please email X.Y@gmail.com, where X=bharath and Y=ramsundar to int
    :caption: API Reference
 
    api_reference/data
+   api_reference/moleculenet
    api_reference/featurizers
    api_reference/tokenizers
    api_reference/splitters

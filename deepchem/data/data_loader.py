@@ -516,7 +516,7 @@ class JsonLoader(DataLoader):
   >>> import pandas as pd
   >>> df = pd.DataFrame(list(zip(composition, labels)), columns=["composition", "task"])
 
-  Dump the dataframe to the JSON file formatted as "records" in line delimited format and 
+  Dump the dataframe to the JSON file formatted as "records" in line delimited format and
   load the json file by JsonLoader.
   >>> import tempfile
   >>> import deepchem as dc
