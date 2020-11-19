@@ -4,7 +4,7 @@ Data
 DeepChem :code:`dc.data` provides the APIs for handling your data.
 
 If your data is stored by the file like CSV and SDF, you can use the **Data Loaders**.
-The Data Loader reads your data, converts them to features (ex: SMILES to ECFP) and save the features to Dataset class.
+The Data Loaders read your data, convert them to features (ex: SMILES to ECFP) and save the features to Dataset class.
 If your data is python objects like Numpy arrays or Pandas DataFrames, you can use the **Datasets** directly.
 
 .. contents:: Contents
