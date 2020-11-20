@@ -20,6 +20,7 @@ from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.utils.geometry_utils import subtract_centroid
 from deepchem.utils.fragment_utils import get_partial_charge
 from deepchem.utils.fragment_utils import reduce_molecular_complex_to_contacts
+from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
 

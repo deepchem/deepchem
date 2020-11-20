@@ -160,6 +160,11 @@ def compute_hydrogen_bonds(frag1, frag2, pairwise_distances, hbond_dist_bins,
     List of tuples of hbond distance ranges.
   hbond_angle_cutoffs: list[float]
     List of angles of deviances allowed for hbonds
+
+  Returns
+  -------
+  List
+    A list of hydrogen bond contacts.
   """
 
   hbond_contacts = []

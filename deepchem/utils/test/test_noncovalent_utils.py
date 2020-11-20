@@ -139,3 +139,6 @@ class TestPiInteractions(unittest.TestCase):
 
     self.assertEqual(prot_dict, exp_prot_dict)
     self.assertEqual(lig_dict, exp_lig_dict)
+
+  def test_compute_hydrogen_bonds(self):
+    pass
