@@ -1,224 +1,333 @@
 """
-This is a sample implementation for working PyTorch Geometric with DeepChem!
+DGL-based GAT for graph property prediction.
 """
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.losses import Loss, L2Loss, SparseSoftmaxCrossEntropy
+from deepchem.models.torch_models.torch_model import TorchModel
 
 
 class GAT(nn.Module):
-  """Graph Attention Networks.
+  """Model for Graph Property Prediction Based on Graph Attention Networks (GAT).
 
-  This model takes arbitary graphs as an input, and predict graph properties. This model is
-  one of variants of Graph Convolutional Networks. The main difference between basic GCN models
-  is how to update node representations. The GAT uses multi head attention mechanisms which
-  outbroke in NLP like Transformer when updating node representations. The most important advantage
-  of this approach is that we can get the interpretability like how the model predict the value
-  or which part of the graph structure is important from attention-weight. Please confirm
-  the detail algorithms from [1]_.
+  This model proceeds as follows:
+
+  * Update node representations in graphs with a variant of GAT
+  * For each graph, compute its representation by 1) a weighted sum of the node
+    representations in the graph, where the weights are computed by applying a
+    gating function to the node representations 2) a max pooling of the node
+    representations 3) concatenating the output of 1) and 2)
+  * Perform the final prediction using an MLP
 
   Examples
   --------
+
   >>> import deepchem as dc
-  >>> from torch_geometric.data import Batch
+  >>> import dgl
+  >>> from deepchem.models import GAT
   >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
   >>> featurizer = dc.feat.MolGraphConvFeaturizer()
   >>> graphs = featurizer.featurize(smiles)
   >>> print(type(graphs[0]))
   <class 'deepchem.feat.graph_data.GraphData'>
-  >>> pyg_graphs = [graph.to_pyg_graph() for graph in graphs]
-  >>> print(type(pyg_graphs[0]))
-  <class 'torch_geometric.data.data.Data'>
-  >>> model = dc.models.GAT(mode='classification', n_tasks=10, n_classes=2)
-  >>> preds, logits = model(Batch.from_data_list(pyg_graphs))
+  >>> dgl_graphs = [graphs[i].to_dgl_graph(self_loop=True) for i in range(len(graphs))]
+  >>> # Batch two graphs into a graph of two connected components
+  >>> batch_dgl_graph = dgl.batch(dgl_graphs)
+  >>> model = GAT(n_tasks=1, mode='regression')
+  >>> preds = model(batch_dgl_graph)
   >>> print(type(preds))
   <class 'torch.Tensor'>
-  >>> preds.shape == (2, 10, 2)
+  >>> preds.shape == (2, 1)
   True
 
   References
   ----------
-  .. [1] Veličković, Petar, et al. "Graph attention networks." arXiv preprint
-     arXiv:1710.10903 (2017).
+  .. [1] Petar Veličković, Guillem Cucurull, Arantxa Casanova, Adriana Romero, Pietro Liò,
+         and Yoshua Bengio. "Graph Attention Networks." ICLR 2018.
 
   Notes
   -----
-  This class requires PyTorch Geometric to be installed.
+  This class requires DGL (https://github.com/dmlc/dgl) and DGL-LifeSci
+  (https://github.com/awslabs/dgl-lifesci) to be installed.
   """
 
-  def __init__(
-      self,
-      in_node_dim: int = 30,
-      hidden_node_dim: int = 32,
-      heads: int = 1,
-      dropout: float = 0.0,
-      num_conv: int = 2,
-      predictor_hidden_feats: int = 64,
-      n_tasks: int = 1,
-      mode: str = 'classification',
-      n_classes: int = 2,
-  ):
+  def __init__(self,
+               n_tasks: int,
+               graph_attention_layers: list = None,
+               n_attention_heads: int = 8,
+               agg_modes: list = None,
+               activation=F.elu,
+               residual: bool = True,
+               dropout: float = 0.,
+               alpha: float = 0.2,
+               predictor_hidden_feats: int = 128,
+               predictor_dropout: float = 0.,
+               mode: str = 'regression',
+               number_atom_features: int = 30,
+               n_classes: int = 2,
+               nfeat_name: str = 'x'):
     """
     Parameters
     ----------
-    in_node_dim: int, default 30
-      The length of the initial node feature vectors. The 30 is
-      based on `MolGraphConvFeaturizer`.
-    hidden_node_dim: int, default 32
-      The length of the hidden node feature vectors.
-    heads: int, default 1
-      The number of multi-head-attentions.
-    dropout: float, default 0.0
-      The dropout probability for each convolutional layer.
-    num_conv: int, default 2
-      The number of convolutional layers.
-    predictor_hidden_feats: int, default 64
-      The size for hidden representations in the output MLP predictor, default to 64.
-    n_tasks: int, default 1
-      The number of the output size, default to 1.
-    mode: str, default 'classification'
-      The model type, 'classification' or 'regression'.
-    n_classes: int, default 2
-      The number of classes to predict (only used in classification mode).
+    n_tasks: int
+      Number of tasks.
+    graph_attention_layers: list of int
+      Width of channels per attention head for GAT layers. graph_attention_layers[i]
+      gives the width of channel for each attention head for the i-th GAT layer. If
+      both ``graph_attention_layers`` and ``agg_modes`` are specified, they should have
+      equal length. If not specified, the default value will be [8, 8].
+    n_attention_heads: int
+      Number of attention heads in each GAT layer.
+    agg_modes: list of str
+      The way to aggregate multi-head attention results for each GAT layer, which can be
+      either 'flatten' for concatenating all-head results or 'mean' for averaging all-head
+      results. ``agg_modes[i]`` gives the way to aggregate multi-head attention results for
+      the i-th GAT layer. If both ``graph_attention_layers`` and ``agg_modes`` are
+      specified, they should have equal length. If not specified, the model will flatten
+      multi-head results for intermediate GAT layers and compute mean of multi-head results
+      for the last GAT layer.
+    activation: activation function or None
+      The activation function to apply to the aggregated multi-head results for each GAT
+      layer. If not specified, the default value will be ELU.
+    residual: bool
+      Whether to add a residual connection within each GAT layer. Default to True.
+    dropout: float
+      The dropout probability within each GAT layer. Default to 0.
+    alpha: float
+      A hyperparameter in LeakyReLU, which is the slope for negative values. Default to 0.2.
+    predictor_hidden_feats: int
+      The size for hidden representations in the output MLP predictor. Default to 128.
+    predictor_dropout: float
+      The dropout probability in the output MLP predictor. Default to 0.
+    mode: str
+      The model type, 'classification' or 'regression'. Default to 'regression'.
+    number_atom_features: int
+      The length of the initial atom feature vectors. Default to 30.
+    n_classes: int
+      The number of classes to predict per task
+      (only used when ``mode`` is 'classification'). Default to 2.
+    nfeat_name: str
+      For an input graph ``g``, the model assumes that it stores node features in
+      ``g.ndata[nfeat_name]`` and will retrieve input node features from that.
+      Default to 'x'.
     """
-    super(GAT, self).__init__()
     try:
-      from torch_geometric.nn import GATConv, global_mean_pool
+      import dgl
     except:
-      raise ImportError(
-          "This class requires PyTorch Geometric to be installed.")
+      raise ImportError('This class requires dgl.')
+    try:
+      import dgllife
+    except:
+      raise ImportError('This class requires dgllife.')
+
+    if mode not in ['classification', 'regression']:
+      raise ValueError("mode must be either 'classification' or 'regression'")
+
+    super(GAT, self).__init__()
 
     self.n_tasks = n_tasks
     self.mode = mode
     self.n_classes = n_classes
-    self.embedding = nn.Linear(in_node_dim, hidden_node_dim)
-    self.conv_layers = nn.ModuleList([
-        GATConv(
-            in_channels=hidden_node_dim,
-            out_channels=hidden_node_dim,
-            heads=heads,
-            concat=False,
-            dropout=dropout) for _ in range(num_conv)
-    ])
-    self.pooling = global_mean_pool
-    self.fc = nn.Linear(hidden_node_dim, predictor_hidden_feats)
-    if self.mode == 'regression':
-      self.out = nn.Linear(predictor_hidden_feats, n_tasks)
+    self.nfeat_name = nfeat_name
+    if mode == 'classification':
+      out_size = n_tasks * n_classes
     else:
-      self.out = nn.Linear(predictor_hidden_feats, n_tasks * n_classes)
+      out_size = n_tasks
 
-  def forward(self, data):
-    """Predict labels
+    from dgllife.model import GATPredictor as DGLGATPredictor
+
+    if isinstance(graph_attention_layers, list) and isinstance(agg_modes, list):
+      assert len(graph_attention_layers) == len(agg_modes), \
+        'Expect graph_attention_layers and agg_modes to have equal length, ' \
+        'got {:d} and {:d}'.format(len(graph_attention_layers), len(agg_modes))
+
+    # Decide first number of GAT layers
+    if graph_attention_layers is not None:
+      num_gnn_layers = len(graph_attention_layers)
+    elif agg_modes is not None:
+      num_gnn_layers = len(agg_modes)
+    else:
+      num_gnn_layers = 2
+
+    if graph_attention_layers is None:
+      graph_attention_layers = [8] * num_gnn_layers
+    if agg_modes is None:
+      agg_modes = ['flatten' for _ in range(num_gnn_layers - 1)]
+      agg_modes.append('mean')
+
+    if activation is not None:
+      activation = [activation] * num_gnn_layers
+
+    self.model = DGLGATPredictor(
+        in_feats=number_atom_features,
+        hidden_feats=graph_attention_layers,
+        num_heads=[n_attention_heads] * num_gnn_layers,
+        feat_drops=[dropout] * num_gnn_layers,
+        attn_drops=[dropout] * num_gnn_layers,
+        alphas=[alpha] * num_gnn_layers,
+        residuals=[residual] * num_gnn_layers,
+        agg_modes=agg_modes,
+        activations=activation,
+        n_tasks=out_size,
+        predictor_hidden_feats=predictor_hidden_feats,
+        predictor_dropout=predictor_dropout)
+
+  def forward(self, g):
+    """Predict graph labels
 
     Parameters
     ----------
-    data: torch_geometric.data.Batch
-      A mini-batch graph data for PyTorch Geometric models.
+    g: DGLGraph
+      A DGLGraph for a batch of graphs. It stores the node features in
+      ``dgl_graph.ndata[self.nfeat_name]``.
 
     Returns
     -------
-    out: torch.Tensor
-      If mode == 'regression', the shape is `(batch_size, n_tasks)`.
-      If mode == 'classification', the shape is `(batch_size, n_tasks, n_classes)` (n_tasks > 1)
-      or `(batch_size, n_classes)` (n_tasks == 1) and the output values are probabilities of each class label.
+    torch.Tensor
+      The model output.
+
+      * When self.mode = 'regression',
+        its shape will be ``(dgl_graph.batch_size, self.n_tasks)``.
+      * When self.mode = 'classification', the output consists of probabilities
+        for classes. Its shape will be
+        ``(dgl_graph.batch_size, self.n_tasks, self.n_classes)`` if self.n_tasks > 1;
+        its shape will be ``(dgl_graph.batch_size, self.n_classes)`` if self.n_tasks is 1.
+    torch.Tensor, optional
+      This is only returned when self.mode = 'classification', the output consists of the
+      logits for classes before softmax.
     """
-    node_feat, edge_index = data.x, data.edge_index
-    node_feat = self.embedding(node_feat)
+    node_feats = g.ndata[self.nfeat_name]
+    out = self.model(g, node_feats)
 
-    # convolutional layer
-    for conv in self.conv_layers:
-      node_feat = conv(node_feat, edge_index)
-
-    # pooling
-    graph_feat = self.pooling(node_feat, data.batch)
-    graph_feat = F.leaky_relu(self.fc(graph_feat))
-    out = self.out(graph_feat)
-
-    if self.mode == 'regression':
-      return out
-    else:
-      logits = out.view(-1, self.n_tasks, self.n_classes)
-      # for n_tasks == 1 case
-      logits = torch.squeeze(logits)
-      proba = F.softmax(logits, dim=-1)
+    if self.mode == 'classification':
+      if self.n_tasks == 1:
+        logits = out.view(-1, self.n_classes)
+        softmax_dim = 1
+      else:
+        logits = out.view(-1, self.n_tasks, self.n_classes)
+        softmax_dim = 2
+      proba = F.softmax(logits, dim=softmax_dim)
       return proba, logits
+    else:
+      return out
 
 
 class GATModel(TorchModel):
-  """Graph Attention Networks (GAT).
+  """Model for Graph Property Prediction Based on Graph Attention Networks (GAT).
 
-  Here is a simple example of code that uses the GATModel with
-  molecules dataset.
+  This model proceeds as follows:
 
+  * Update node representations in graphs with a variant of GAT
+  * For each graph, compute its representation by 1) a weighted sum of the node
+    representations in the graph, where the weights are computed by applying a
+    gating function to the node representations 2) a max pooling of the node
+    representations 3) concatenating the output of 1) and 2)
+  * Perform the final prediction using an MLP
+
+  Examples
+  --------
+
+  >>>
   >> import deepchem as dc
+  >> from deepchem.models import GATModel
   >> featurizer = dc.feat.MolGraphConvFeaturizer()
-  >> tasks, datasets, transformers = dc.molnet.load_tox21(reload=False, featurizer=featurizer, transformers=[])
+  >> tasks, datasets, transformers = dc.molnet.load_tox21(
+  ..     reload=False, featurizer=featurizer, transformers=[])
   >> train, valid, test = datasets
-  >> model = dc.models.GATModel(mode='classification', n_tasks=len(tasks), batch_size=32, learning_rate=0.001)
+  >> model = GATModel(mode='classification', n_tasks=len(tasks),
+  ..                  batch_size=32, learning_rate=0.001)
   >> model.fit(train, nb_epoch=50)
-
-  This model takes arbitary graphs as an input, and predict graph properties. This model is
-  one of variants of Graph Convolutional Networks. The main difference between basic GCN models
-  is how to update node representations. The GAT uses multi head attention mechanisms which
-  outbroke in NLP like Transformer when updating node representations. The most important advantage
-  of this approach is that we can get the interpretability like how the model predict the value
-  or which part of the graph structure is important from attention-weight. Please confirm
-  the detail algorithms from [1]_.
 
   References
   ----------
-  .. [1] Veličković, Petar, et al. "Graph attention networks." arXiv preprint
-     arXiv:1710.10903 (2017).
+  .. [1] Petar Veličković, Guillem Cucurull, Arantxa Casanova, Adriana Romero, Pietro Liò,
+         and Yoshua Bengio. "Graph Attention Networks." ICLR 2018.
 
   Notes
   -----
-  This class requires PyTorch Geometric to be installed.
+  This class requires DGL (https://github.com/dmlc/dgl) and DGL-LifeSci
+  (https://github.com/awslabs/dgl-lifesci) to be installed.
   """
 
   def __init__(self,
-               in_node_dim: int = 30,
-               hidden_node_dim: int = 32,
-               heads: int = 1,
-               dropout: float = 0.0,
-               num_conv: int = 2,
-               predictor_hidden_feats: int = 64,
-               n_tasks: int = 1,
+               n_tasks: int,
+               graph_attention_layers: list = None,
+               n_attention_heads: int = 8,
+               agg_modes: list = None,
+               activation=F.elu,
+               residual: bool = True,
+               dropout: float = 0.,
+               alpha: float = 0.2,
+               predictor_hidden_feats: int = 128,
+               predictor_dropout: float = 0.,
                mode: str = 'regression',
+               number_atom_features: int = 30,
                n_classes: int = 2,
+               self_loop: bool = True,
                **kwargs):
     """
-    This class accepts all the keyword arguments from TorchModel.
-
     Parameters
     ----------
-    in_node_dim: int, default 30
-      The length of the initial node feature vectors. The 30 is
-      based on `MolGraphConvFeaturizer`.
-    hidden_node_dim: int, default 32
-      The length of the hidden node feature vectors.
-    heads: int, default 1
-      The number of multi-head-attentions.
-    dropout: float, default 0.0
-      The dropout probability for each convolutional layer.
-    num_conv: int, default 2
-      The number of convolutional layers.
-    predictor_hidden_feats: int, default 64
-      The size for hidden representations in the output MLP predictor, default to 64.
-    n_tasks: int, default 1
-      The number of the output size, default to 1.
-    mode: str, default 'regression'
-      The model type, 'classification' or 'regression'.
-    n_classes: int, default 2
-      The number of classes to predict (only used in classification mode).
-    kwargs: Dict
-      This class accepts all the keyword arguments from TorchModel.
+    n_tasks: int
+      Number of tasks.
+    graph_attention_layers: list of int
+      Width of channels per attention head for GAT layers. graph_attention_layers[i]
+      gives the width of channel for each attention head for the i-th GAT layer. If
+      both ``graph_attention_layers`` and ``agg_modes`` are specified, they should have
+      equal length. If not specified, the default value will be [8, 8].
+    n_attention_heads: int
+      Number of attention heads in each GAT layer.
+    agg_modes: list of str
+      The way to aggregate multi-head attention results for each GAT layer, which can be
+      either 'flatten' for concatenating all-head results or 'mean' for averaging all-head
+      results. ``agg_modes[i]`` gives the way to aggregate multi-head attention results for
+      the i-th GAT layer. If both ``graph_attention_layers`` and ``agg_modes`` are
+      specified, they should have equal length. If not specified, the model will flatten
+      multi-head results for intermediate GAT layers and compute mean of multi-head results
+      for the last GAT layer.
+    activation: activation function or None
+      The activation function to apply to the aggregated multi-head results for each GAT
+      layer. If not specified, the default value will be ELU.
+    residual: bool
+      Whether to add a residual connection within each GAT layer. Default to True.
+    dropout: float
+      The dropout probability within each GAT layer. Default to 0.
+    alpha: float
+      A hyperparameter in LeakyReLU, which is the slope for negative values. Default to 0.2.
+    predictor_hidden_feats: int
+      The size for hidden representations in the output MLP predictor. Default to 128.
+    predictor_dropout: float
+      The dropout probability in the output MLP predictor. Default to 0.
+    mode: str
+      The model type, 'classification' or 'regression'. Default to 'regression'.
+    number_atom_features: int
+      The length of the initial atom feature vectors. Default to 30.
+    n_classes: int
+      The number of classes to predict per task
+      (only used when ``mode`` is 'classification'). Default to 2.
+    self_loop: bool
+      Whether to add self loops for the nodes, i.e. edges from nodes to themselves.
+      When input graphs have isolated nodes, self loops allow preserving the original feature
+      of them in message passing. Default to True.
+    kwargs
+      This can include any keyword argument of TorchModel.
     """
-    model = GAT(in_node_dim, hidden_node_dim, heads, dropout, num_conv,
-                predictor_hidden_feats, n_tasks, mode, n_classes)
-    if mode == "regression":
+    model = GAT(
+        n_tasks=n_tasks,
+        graph_attention_layers=graph_attention_layers,
+        n_attention_heads=n_attention_heads,
+        agg_modes=agg_modes,
+        activation=activation,
+        residual=residual,
+        dropout=dropout,
+        alpha=alpha,
+        predictor_hidden_feats=predictor_hidden_feats,
+        predictor_dropout=predictor_dropout,
+        mode=mode,
+        number_atom_features=number_atom_features,
+        n_classes=n_classes)
+    if mode == 'regression':
       loss: Loss = L2Loss()
       output_types = ['prediction']
     else:
@@ -227,33 +336,35 @@ class GATModel(TorchModel):
     super(GATModel, self).__init__(
         model, loss=loss, output_types=output_types, **kwargs)
 
+    self._self_loop = self_loop
+
   def _prepare_batch(self, batch):
     """Create batch data for GAT.
 
     Parameters
     ----------
-    batch: Tuple
-      The tuple are `(inputs, labels, weights)`.
+    batch: tuple
+      The tuple is ``(inputs, labels, weights)``.
 
     Returns
     -------
-    inputs: torch_geometric.data.Batch
-      A mini-batch graph data for PyTorch Geometric models.
-    labels: List[torch.Tensor] or None
-      The labels converted to torch.Tensor.
-    weights: List[torch.Tensor] or None
+    inputs: DGLGraph
+      DGLGraph for a batch of graphs.
+    labels: list of torch.Tensor or None
+      The graph labels.
+    weights: list of torch.Tensor or None
       The weights for each sample or sample/task pair converted to torch.Tensor.
     """
     try:
-      from torch_geometric.data import Batch
+      import dgl
     except:
-      raise ImportError(
-          "This class requires PyTorch Geometric to be installed.")
+      raise ImportError('This class requires dgl.')
 
     inputs, labels, weights = batch
-    pyg_graphs = [graph.to_pyg_graph() for graph in inputs[0]]
-    inputs = Batch.from_data_list(pyg_graphs)
-    inputs = inputs.to(self.device)
+    dgl_graphs = [
+        graph.to_dgl_graph(self_loop=self._self_loop) for graph in inputs[0]
+    ]
+    inputs = dgl.batch(dgl_graphs).to(self.device)
     _, labels, weights = super(GATModel, self)._prepare_batch(([], labels,
                                                                weights))
     return inputs, labels, weights

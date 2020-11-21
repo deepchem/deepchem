@@ -11,7 +11,7 @@ import tensorflow as tf
 import scipy
 from flaky import flaky
 from sklearn.ensemble import RandomForestClassifier
-from deepchem.molnet.load_function.chembl25_datasets import chembl25_tasks
+from deepchem.molnet.load_function.chembl25_datasets import CHEMBL25_TASKS
 from deepchem.feat import create_char_to_idx
 
 
@@ -1000,7 +1000,7 @@ def test_smiles2vec_reload():
   data_points = 10
 
   loader = dc.data.CSVLoader(
-      tasks=chembl25_tasks, smiles_field='smiles', featurizer=feat)
+      tasks=CHEMBL25_TASKS, smiles_field='smiles', featurizer=feat)
   dataset = loader.create_dataset(
       inputs=[dataset_file], shard_size=10000, data_dir=tempfile.mkdtemp())
   y = np.random.randint(0, 2, size=(data_points, n_tasks))
