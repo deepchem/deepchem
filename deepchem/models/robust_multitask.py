@@ -1,12 +1,17 @@
 import numpy as np
 import tensorflow as tf
-import collections
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
 
 import logging
+import deepchem as dc
 from deepchem.metrics import to_one_hot
 from deepchem.models import KerasModel
 from deepchem.models.layers import Stack
 from deepchem.models.losses import SoftmaxCrossEntropy, L2Loss
+from typing import Tuple, Iterable, List
 
 logger = logging.getLogger(__name__)
 
@@ -89,13 +94,13 @@ class RobustMultitaskClassifier(KerasModel):
     self.n_features = n_features
     self.n_classes = n_classes
     n_layers = len(layer_sizes)
-    if not isinstance(weight_init_stddevs, collections.Sequence):
+    if not isinstance(weight_init_stddevs, SequenceCollection):
       weight_init_stddevs = [weight_init_stddevs] * n_layers
-    if not isinstance(bias_init_consts, collections.Sequence):
+    if not isinstance(bias_init_consts, SequenceCollection):
       bias_init_consts = [bias_init_consts] * n_layers
-    if not isinstance(dropouts, collections.Sequence):
+    if not isinstance(dropouts, SequenceCollection):
       dropouts = [dropouts] * n_layers
-    if not isinstance(activation_fns, collections.Sequence):
+    if not isinstance(activation_fns, SequenceCollection):
       activation_fns = [activation_fns] * n_layers
     if weight_decay_penalty != 0.0:
       if weight_decay_penalty_type == 'l1':
@@ -106,12 +111,12 @@ class RobustMultitaskClassifier(KerasModel):
       regularizer = None
 
     n_bypass_layers = len(bypass_layer_sizes)
-    if not isinstance(bypass_weight_init_stddevs, collections.Sequence):
+    if not isinstance(bypass_weight_init_stddevs, SequenceCollection):
       bypass_weight_init_stddevs = [bypass_weight_init_stddevs
                                    ] * n_bypass_layers
-    if not isinstance(bypass_bias_init_consts, collections.Sequence):
+    if not isinstance(bypass_bias_init_consts, SequenceCollection):
       bypass_bias_init_consts = [bypass_bias_init_consts] * n_bypass_layers
-    if not isinstance(bypass_dropouts, collections.Sequence):
+    if not isinstance(bypass_dropouts, SequenceCollection):
       bypass_dropouts = [bypass_dropouts] * n_bypass_layers
     bypass_activation_fns = [activation_fns[0]] * n_bypass_layers
 
@@ -274,13 +279,13 @@ class RobustMultitaskRegressor(KerasModel):
     self.n_tasks = n_tasks
     self.n_features = n_features
     n_layers = len(layer_sizes)
-    if not isinstance(weight_init_stddevs, collections.Sequence):
+    if not isinstance(weight_init_stddevs, SequenceCollection):
       weight_init_stddevs = [weight_init_stddevs] * n_layers
-    if not isinstance(bias_init_consts, collections.Sequence):
+    if not isinstance(bias_init_consts, SequenceCollection):
       bias_init_consts = [bias_init_consts] * n_layers
-    if not isinstance(dropouts, collections.Sequence):
+    if not isinstance(dropouts, SequenceCollection):
       dropouts = [dropouts] * n_layers
-    if not isinstance(activation_fns, collections.Sequence):
+    if not isinstance(activation_fns, SequenceCollection):
       activation_fns = [activation_fns] * n_layers
     if weight_decay_penalty != 0.0:
       if weight_decay_penalty_type == 'l1':
@@ -291,12 +296,12 @@ class RobustMultitaskRegressor(KerasModel):
       regularizer = None
 
     n_bypass_layers = len(bypass_layer_sizes)
-    if not isinstance(bypass_weight_init_stddevs, collections.Sequence):
+    if not isinstance(bypass_weight_init_stddevs, SequenceCollection):
       bypass_weight_init_stddevs = [bypass_weight_init_stddevs
                                    ] * n_bypass_layers
-    if not isinstance(bypass_bias_init_consts, collections.Sequence):
+    if not isinstance(bypass_bias_init_consts, SequenceCollection):
       bypass_bias_init_consts = [bypass_bias_init_consts] * n_bypass_layers
-    if not isinstance(bypass_dropouts, collections.Sequence):
+    if not isinstance(bypass_dropouts, SequenceCollection):
       bypass_dropouts = [bypass_dropouts] * n_bypass_layers
     bypass_activation_fns = [activation_fns[0]] * n_bypass_layers
 
@@ -348,6 +353,21 @@ class RobustMultitaskRegressor(KerasModel):
       task_out = tf.keras.layers.Dense(1)(task_layer)
       task_outputs.append(task_out)
 
-    outputs = tf.keras.layers.Concatenate(axis=1)(task_outputs)
+    outputs = Stack(axis=1)(task_outputs)
     model = tf.keras.Model(inputs=mol_features, outputs=outputs)
-    super(RobustMultitaskRegressor, self).__init__(model, L2Loss(), **kwargs)
+    super(RobustMultitaskRegressor, self).__init__(
+        model, L2Loss(), output_types=['prediction'], **kwargs)
+
+  def default_generator(
+      self,
+      dataset: dc.data.Dataset,
+      epochs: int = 1,
+      mode: str = 'fit',
+      deterministic: bool = True,
+      pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
+    for epoch in range(epochs):
+      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+          batch_size=self.batch_size,
+          deterministic=deterministic,
+          pad_batches=pad_batches):
+        yield ([X_b], [y_b], [w_b])

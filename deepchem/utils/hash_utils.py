@@ -18,7 +18,7 @@ def hash_ecfp(ecfp: str, size: int = 1024) -> int:
   ecfp: str
     String to hash. Usually an ECFP fragment.
   size: int, optional (default 1024)
-    Hash to an int in range [0, size) 
+    Hash to an int in range [0, size)
 
   Returns
   -------
@@ -72,7 +72,7 @@ def vectorize(hash_function: Callable[[str, int], int],
   DeepChem. However, it's necessary to convert backwards from
   the hash function to feature vectors. This function aids in
   this conversion procedure. It creates a vector of zeros of length
-  `seize`. It then loops through `feature_dict`, uses `hash_function`
+  `size`. It then loops through `feature_dict`, uses `hash_function`
   to hash the stored value to an integer in range [0, size) and bumps
   that index.
 
@@ -84,7 +84,7 @@ def vectorize(hash_function: Callable[[str, int], int],
     hash, and `size` is an int. For example, if `size=1024`,
     then hashed values must fall in range `[0, 1024)`.
   feature_dict: Dict, optional (default None)
-    Maps unique keys to features computed. 
+    Maps unique keys to features computed.
   size: int, optional (default 1024)
     Length of generated bit vector
 

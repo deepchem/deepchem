@@ -34,8 +34,8 @@ class TestMultitask(unittest.TestCase):
     featurizer = dc.feat.CircularFingerprint(size=1024)
 
     loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(input_file)
+        tasks=tasks, feature_field="smiles", featurizer=featurizer)
+    dataset = loader.create_dataset(input_file)
 
     splitter = dc.splits.ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(dataset)

@@ -1,12 +1,7 @@
 """
 Tests for splitter objects.
 """
-__author__ = "Bharath Ramsundar, Aneesh Pappu"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import os
-import tempfile
 import unittest
 import numpy as np
 import deepchem as dc
@@ -25,8 +20,8 @@ def load_sparse_multitask_dataset():
   input_file = os.path.join(current_dir,
                             "../../models/tests/sparse_multitask_example.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  return loader.featurize(input_file)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  return loader.create_dataset(input_file)
 
 
 def load_multitask_data():
@@ -41,8 +36,8 @@ def load_multitask_data():
   input_file = os.path.join(current_dir,
                             "../../models/tests/multitask_example.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  return loader.featurize(input_file)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  return loader.create_dataset(input_file)
 
 
 def load_solubility_data():
@@ -50,12 +45,11 @@ def load_solubility_data():
   current_dir = os.path.dirname(os.path.abspath(__file__))
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]
-  task_type = "regression"
   input_file = os.path.join(current_dir, "../../models/tests/example.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
 
-  return loader.featurize(input_file)
+  return loader.create_dataset(input_file)
 
 
 def load_butina_data():
@@ -67,9 +61,9 @@ def load_butina_data():
   input_file = os.path.join(current_dir,
                             "../../models/tests/butina_example.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
 
-  return loader.featurize(input_file)
+  return loader.create_dataset(input_file)
 
 
 class TestSplitter(unittest.TestCase):
@@ -210,9 +204,9 @@ class TestSplitter(unittest.TestCase):
     train_data, valid_data, test_data = \
       butina_splitter.train_valid_test_split(
         solubility_dataset)
-    assert len(train_data) == 7
-    assert len(valid_data) == 3
-    assert len(test_data) == 0
+    assert len(train_data) == 8
+    assert len(valid_data) == 1
+    assert len(test_data) == 1
 
   def test_k_fold_splitter(self):
     """
@@ -324,21 +318,22 @@ class TestSplitter(unittest.TestCase):
     # Test singletask case.
     n_samples = 100
     n_positives = 20
-    n_features = 10
     n_tasks = 1
 
-    X = np.random.rand(n_samples, n_features)
+    X = np.ones(n_samples)
     y = np.zeros((n_samples, n_tasks))
     y[:n_positives] = 1
     w = np.ones((n_samples, n_tasks))
-    ids = np.arange(n_samples)
+    dataset = dc.data.NumpyDataset(X, y, w)
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
-    column_indices = stratified_splitter.get_task_split_indices(
-        y, w, frac_split=.5)
+    train, valid, test = stratified_splitter.split(dataset, 0.5, 0, 0.5)
 
-    split_index = column_indices[0]
     # The split index should partition dataset in half.
-    assert np.count_nonzero(y[:split_index]) == 10
+    assert len(train) == 50
+    assert len(valid) == 0
+    assert len(test) == 50
+    assert np.count_nonzero(y[train]) == 10
+    assert np.count_nonzero(y[test]) == 10
 
   def test_singletask_stratified_column_indices_mask(self):
     """
@@ -347,77 +342,72 @@ class TestSplitter(unittest.TestCase):
     # Test singletask case.
     n_samples = 100
     n_positives = 20
-    n_features = 10
     n_tasks = 1
 
     # Test case where some weights are zero (i.e. masked)
-    X = np.random.rand(n_samples, n_features)
+    X = np.ones(n_samples)
     y = np.zeros((n_samples, n_tasks))
     y[:n_positives] = 1
     w = np.ones((n_samples, n_tasks))
     # Set half the positives to have zero weight
     w[:n_positives // 2] = 0
-    ids = np.arange(n_samples)
+    dataset = dc.data.NumpyDataset(X, y, w)
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
-    column_indices = stratified_splitter.get_task_split_indices(
-        y, w, frac_split=.5)
+    train, valid, test = stratified_splitter.split(dataset, 0.5, 0, 0.5)
 
-    split_index = column_indices[0]
     # There are 10 nonzero actives.
     # The split index should partition this into half, so expect 5
     w_present = (w != 0)
     y_present = y * w_present
-    assert np.count_nonzero(y_present[:split_index]) == 5
+    assert np.count_nonzero(y_present[train]) == 5
 
   def test_multitask_stratified_column_indices(self):
     """
     Test RandomStratifiedSplitter split on multitask dataset.
     """
     n_samples = 100
-    n_features = 10
     n_tasks = 10
-    X = np.random.rand(n_samples, n_features)
     p = .05  # proportion actives
+    X = np.ones(n_samples)
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w)
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
-    split_indices = stratified_splitter.get_task_split_indices(
-        y, w, frac_split=.5)
+    train, valid, test = stratified_splitter.split(dataset, 0.5, 0, 0.5)
 
     for task in range(n_tasks):
-      split_index = split_indices[task]
       task_actives = np.count_nonzero(y[:, task])
-      # The split index should partition dataset in half.
-      assert np.count_nonzero(y[:split_index, task]) == int(task_actives / 2)
+      # The split index should partition the positives for each task roughly in half.
+      target = task_actives / 2
+      assert target - 2 <= np.count_nonzero(y[train, task]) <= target + 2
 
   def test_multitask_stratified_column_indices_masked(self):
     """
     Test RandomStratifiedSplitter split on multitask dataset.
     """
     n_samples = 200
-    n_features = 10
     n_tasks = 10
-    X = np.random.rand(n_samples, n_features)
     p = .05  # proportion actives
+    X = np.ones(n_samples)
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
     # Mask half the examples
     w[:n_samples // 2] = 0
+    dataset = dc.data.NumpyDataset(X, y, w)
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
-    split_indices = stratified_splitter.get_task_split_indices(
-        y, w, frac_split=.5)
+    train, valid, test = stratified_splitter.split(dataset, 0.5, 0, 0.5)
 
     w_present = (w != 0)
     y_present = y * w_present
     for task in range(n_tasks):
-      split_index = split_indices[task]
       task_actives = np.count_nonzero(y_present[:, task])
+      target = task_actives / 2
       # The split index should partition dataset in half.
-      assert np.count_nonzero(y_present[:split_index, task]) == int(
-          task_actives / 2)
+      assert target - 1 <= np.count_nonzero(
+          y_present[train, task]) <= target + 1
 
   def test_random_stratified_split(self):
     """
@@ -438,7 +428,10 @@ class TestSplitter(unittest.TestCase):
     dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
-    dataset_1, dataset_2 = stratified_splitter.split(dataset, frac_split=.5)
+    dataset_1, dataset_2 = stratified_splitter.train_test_split(
+        dataset, frac_train=.5)
+    print(dataset_1.get_shape())
+    print(dataset_2.get_shape())
 
     # Should have split cleanly in half (picked random seed to ensure this)
     assert len(dataset_1) == 10
@@ -485,7 +478,6 @@ class TestSplitter(unittest.TestCase):
     n_samples = 100
     n_positives = 20
     n_features = 10
-    n_tasks = 1
 
     X = np.random.rand(n_samples, n_features)
     y = np.zeros(n_samples)
@@ -500,6 +492,7 @@ class TestSplitter(unittest.TestCase):
 
     K = 5
     fold_datasets = stratified_splitter.k_fold_split(dataset, K)
+    fold_datasets = [f[1] for f in fold_datasets]
 
     for fold in range(K):
       fold_dataset = fold_datasets[fold]
@@ -563,30 +556,10 @@ class TestSplitter(unittest.TestCase):
     assert len(valid_data) == 1
     assert len(test_data) == 1
 
-  def test_stratified_multitask_split(self):
-    """
-    Test multitask RandomStratifiedSplitter class
-    """
-    # sparsity is determined by number of w weights that are 0 for a given
-    # task structure of w np array is such that each row corresponds to a
-    # sample. The loaded sparse dataset has many rows with only zeros
-    sparse_dataset = load_sparse_multitask_dataset()
-
-    stratified_splitter = dc.splits.RandomStratifiedSplitter()
-    datasets = stratified_splitter.train_valid_test_split(
-        sparse_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
-    train_data, valid_data, test_data = datasets
-
-    for dataset_index, dataset in enumerate(datasets):
-      w = dataset.w
-      # verify that there are no rows (samples) in weights matrix w
-      # that have no hits.
-      assert len(np.where(w.any(axis=1) == 0)[0]) == 0
-
-  def test_indice_split(self):
+  def test_specified_split(self):
 
     solubility_dataset = load_solubility_data()
-    random_splitter = dc.splits.IndiceSplitter(
+    random_splitter = dc.splits.SpecifiedSplitter(
         valid_indices=[7], test_indices=[8])
     train_data, valid_data, test_data = \
       random_splitter.split(

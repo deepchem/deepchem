@@ -4,18 +4,16 @@ Perovskite crystal structures and formation energies.
 import os
 import logging
 import deepchem
-from deepchem.feat import Featurizer, MaterialStructureFeaturizer, MaterialCompositionFeaturizer
-from deepchem.trans import Transformer
+from deepchem.feat import MaterialStructureFeaturizer
 from deepchem.splits.splitters import Splitter
 from deepchem.molnet.defaults import get_defaults
 
-from typing import List, Tuple, Dict, Optional, Union, Any, Type, Callable
+from typing import List, Tuple, Dict, Optional, Any
 
 logger = logging.getLogger(__name__)
 
-# TODO: Change URLs
-DEFAULT_DIR = deepchem.utils.get_data_dir()
-PEROVSKITE_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/perovskite.tar.gz'
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
+PEROVSKITE_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/perovskite.tar.gz'
 
 # dict of accepted featurizers for this dataset
 # modify the returned dicts for your dataset
@@ -54,21 +52,21 @@ def load_perovskite(
             'transform_X': True
         }
     },
-    **kwargs) -> Tuple[List, Tuple, List]:
+    **kwargs) -> Tuple[List, Optional[Tuple], List]:
   """Load perovskite dataset.
 
   Contains 18928 perovskite structures and their formation energies.
   In benchmark studies, random forest models and crystal graph
   neural networks achieved mean average error of 0.23 and 0.05 eV/atom,
   respectively, during five-fold nested cross validation on this
-  dataset. 
+  dataset.
 
   For more details on the dataset see [1]_. For more details
   on previous benchmarks for this dataset, see [2]_.
-  
+
   Parameters
   ----------
-  featurizer : MaterialStructureFeaturizer
+  featurizer : MaterialStructureFeaturizer (default SineCoulombMatrix)
     A featurizer that inherits from deepchem.feat.Featurizer.
   transformers : List[Transformer]
     A transformer that inherits from deepchem.trans.Transformer.
@@ -77,9 +75,9 @@ def load_perovskite(
   reload : bool (default True)
     Try to reload dataset from disk if already downloaded. Save to disk
     after featurizing.
-  data_dir : str, optional
+  data_dir : str, optional (default None)
     Path to datasets.
-  save_dir : str, optional
+  save_dir : str, optional (default None)
     Path to featurized datasets.
   featurizer_kwargs : Dict[str, Any]
     Specify parameters to featurizer, e.g. {"size": 1024}
@@ -104,9 +102,11 @@ def load_perovskite(
 
   References
   ----------
-  .. [1] Castelli, I. et al. "New cubic perovskites for one- and two-photon water splitting using the computational materials repository." Energy Environ. Sci., (2012), 5, 9034-9043 DOI: 10.1039/C2EE22341D.
-
-  .. [2] Dunn, A. et al. "Benchmarking Materials Property Prediction Methods: The Matbench Test Set and Automatminer Reference Algorithm." https://arxiv.org/abs/2005.00707 (2020)
+  .. [1] Castelli, I. et al. "New cubic perovskites for one- and two-photon water splitting
+     using the computational materials repository." Energy Environ. Sci., (2012), 5,
+     9034-9043 DOI: 10.1039/C2EE22341D.
+  .. [2] Dunn, A. et al. "Benchmarking Materials Property Prediction Methods:
+     The Matbench Test Set and Automatminer Reference Algorithm." https://arxiv.org/abs/2005.00707 (2020)
 
   Examples
   --------
@@ -147,7 +147,7 @@ def load_perovskite(
     save_folder = os.path.join(save_dir, "perovskite-featurized",
                                featurizer_name, splitter_name)
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return my_tasks, all_dataset, transformers
@@ -157,13 +157,15 @@ def load_perovskite(
 
   # Load .tar.gz file
   if featurizer.__class__.__name__ in supported_featurizers:
-    dataset_file = os.path.join(data_dir, 'perovskite.tar.gz')
-    deepchem.utils.untargz_file(dataset_file, dest_dir=data_dir)
     dataset_file = os.path.join(data_dir, 'perovskite.json')
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=PEROVSKITE_URL, dest_dir=data_dir)
-      deepchem.utils.untargz_file(
+      targz_file = os.path.join(data_dir, 'perovskite.tar.gz')
+      if not os.path.exists(targz_file):
+        deepchem.utils.data_utils.download_url(
+            url=PEROVSKITE_URL, dest_dir=data_dir)
+
+      deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'perovskite.tar.gz'), data_dir)
 
     # Changer loader to match featurizer and data file type
@@ -193,7 +195,7 @@ def load_perovskite(
     test_dataset = transformer.transform(test_dataset)
 
   if reload:  # save to disk
-    deepchem.utils.save.save_dataset_to_disk(
+    deepchem.utils.data_utils.save_dataset_to_disk(
         save_folder, train_dataset, valid_dataset, test_dataset, transformers)
 
   return my_tasks, (train_dataset, valid_dataset, test_dataset), transformers

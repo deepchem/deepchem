@@ -1,6 +1,8 @@
 """
 Gathers all transformers in one place for convenient imports
 """
+# flake8: noqa
+
 from deepchem.trans.transformers import undo_transforms
 from deepchem.trans.transformers import undo_grad_transforms
 from deepchem.trans.transformers import Transformer

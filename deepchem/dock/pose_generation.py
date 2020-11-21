@@ -12,7 +12,7 @@ from subprocess import check_output
 from typing import List, Optional, Tuple, Union
 
 from deepchem.dock.binding_pocket import BindingPocketFinder
-from deepchem.utils import download_url, get_data_dir
+from deepchem.utils.data_utils import download_url, get_data_dir
 from deepchem.utils.typing import RDKitMol
 from deepchem.utils.geometry_utils import compute_centroid, compute_protein_range
 from deepchem.utils.rdkit_utils import load_molecule, write_molecule
@@ -132,7 +132,7 @@ class VinaPoseGenerator(PoseGenerator):
       self.vina_cmd = os.path.join(self.vina_dir, "vina.exe")
     else:
       raise ValueError(
-          "Unknown operating system.  Try using a cloud platform to run this code instead."
+          "Unknown operating system. Try using a cloud platform to run this code instead."
       )
     self.pocket_finder = pocket_finder
     if not os.path.exists(self.vina_dir):

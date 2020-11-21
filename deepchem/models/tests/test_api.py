@@ -41,17 +41,16 @@ def test_singletask_sklearn_rf_ECFP_regression_API():
 
 def test_singletask_sklearn_rf_user_specified_regression_API():
   """Test of singletask RF USF regression API."""
-  splittype = "specified"
   featurizer = dc.feat.UserDefinedFeaturizer(
       ["user-specified1", "user-specified2"])
   tasks = ["log-solubility"]
   current_dir = os.path.dirname(os.path.abspath(__file__))
   input_file = os.path.join(current_dir, "user_specified_example.csv")
   loader = dc.data.UserCSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)
 
-  splitter = dc.splits.SpecifiedSplitter(input_file, "split")
+  splitter = dc.splits.RandomSplitter()
   train_dataset, test_dataset = splitter.train_test_split(dataset)
 
   transformers = [
@@ -89,7 +88,7 @@ def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API():
   current_dir = os.path.dirname(os.path.abspath(__file__))
   input_file = os.path.join(current_dir, "example.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)
 
   splitter = dc.splits.ScaffoldSplitter()

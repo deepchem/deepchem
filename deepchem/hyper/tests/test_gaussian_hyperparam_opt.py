@@ -62,6 +62,7 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         self.train_dataset,
         self.valid_dataset,
         metric,
+        transformers,
         use_max=False,
         max_iter=2)
 
@@ -82,6 +83,7 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
           self.train_dataset,
           self.valid_dataset,
           metric,
+          transformers,
           logdir=tmpdirname,
           max_iter=2)
     valid_score = best_model.evaluate(self.valid_dataset, [metric],
@@ -99,6 +101,7 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         np.arange(10))
     valid_dataset = dc.data.NumpyDataset(
         np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
+    transformers = []
 
     optimizer = dc.hyper.GaussianProcessHyperparamOpt(
         lambda **params: dc.models.MultitaskRegressor(n_tasks=2,
@@ -115,10 +118,11 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         train_dataset,
         valid_dataset,
         metric,
+        transformers,
         max_iter=1,
         use_max=False)
 
-    valid_score = best_model.evaluate(valid_dataset, [metric])
+    valid_score = best_model.evaluate(valid_dataset, [metric], transformers)
     assert valid_score["mean-mean_squared_error"] == min(all_results.values())
     assert valid_score["mean-mean_squared_error"] > 0
 
@@ -132,6 +136,7 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         np.arange(10))
     valid_dataset = dc.data.NumpyDataset(
         np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
+    transformers = []
 
     optimizer = dc.hyper.GaussianProcessHyperparamOpt(
         lambda **params: dc.models.MultitaskRegressor(
@@ -153,11 +158,12 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
           train_dataset,
           valid_dataset,
           metric,
+          transformers,
           max_iter=2,
           logdir=tmpdirname,
           search_range=search_range,
           use_max=False)
-      valid_score = best_model.evaluate(valid_dataset, [metric])
+      valid_score = best_model.evaluate(valid_dataset, [metric], transformers)
     # Test that 2 parameters were optimized
     for hp_str in all_results.keys():
       # Recall that the key is a string of the form _batch_size_39_learning_rate_0.01 for example

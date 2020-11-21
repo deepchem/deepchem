@@ -10,8 +10,8 @@ def load_unlabelled_data():
   tasks = []
   input_file = os.path.join(current_dir, "../../data/tests/no_labels.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  return loader.featurize(input_file)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  return loader.create_dataset(input_file)
 
 
 def load_solubility_data():
@@ -19,10 +19,9 @@ def load_solubility_data():
   current_dir = os.path.dirname(os.path.abspath(__file__))
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]
-  task_type = "regression"
   input_file = os.path.join(current_dir, "../../models/tests/example.csv")
   loader = dc.data.CSVLoader(
-      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      tasks=tasks, feature_field="smiles", featurizer=featurizer)
 
   return loader.create_dataset(input_file)
 

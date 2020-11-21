@@ -1,6 +1,7 @@
 import os
-import deepchem as dc
 import numpy as np
+
+import deepchem as dc
 
 
 def load_gaussian_cdf_data():
@@ -26,7 +27,7 @@ def test_cdf_X_transformer():
   bins = 1001
   cdf_transformer = dc.trans.CDFTransformer(
       transform_X=True, dataset=gaussian_dataset, bins=bins)
-  X, y, w, ids = (gaussian_dataset.X, gaussian_dataset.y, gaussian_dataset.w,
+  _, y, w, ids = (gaussian_dataset.X, gaussian_dataset.y, gaussian_dataset.w,
                   gaussian_dataset.ids)
   gaussian_dataset = cdf_transformer.transform(gaussian_dataset)
   X_t, y_t, w_t, ids_t = (gaussian_dataset.X, gaussian_dataset.y,
@@ -85,4 +86,3 @@ def test_cdf_y_transformer():
   # Check that untransform does the right thing.
   y_restored = cdf_transformer.untransform(y_t)
   assert np.max(y_restored - y) < 1e-5
-  #np.testing.assert_allclose(y_restored, y)

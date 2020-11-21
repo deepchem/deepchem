@@ -7,7 +7,7 @@ from scipy.spatial.distance import cdist
 
 def unit_vector(vector: np.ndarray) -> np.ndarray:
   """ Returns the unit vector of the vector.
-  
+
   Parameters
   ----------
   vector: np.ndarray
@@ -60,7 +60,7 @@ def angle_between(vector_i: np.ndarray, vector_j: np.ndarray) -> np.ndarray:
 
 
 def generate_random_unit_vector() -> np.ndarray:
-  """Generate a random unit vector on the sphere S^2.
+  r"""Generate a random unit vector on the sphere S^2.
 
   Citation: http://mathworld.wolfram.com/SpherePointPicking.html
 
@@ -83,7 +83,7 @@ def generate_random_unit_vector() -> np.ndarray:
 
 
 def generate_random_rotation_matrix() -> np.ndarray:
-  """Generates a random rotation matrix.
+  r"""Generates a random rotation matrix.
 
   1. Generate a random unit vector u, randomly sampled from the
      unit sphere (see function generate_random_unit_vector()
@@ -212,7 +212,7 @@ def compute_pairwise_distances(first_coordinate: np.ndarray,
   Takes an input (m, 3) and (n, 3) numpy arrays of 3D coords of
   two molecules respectively, and outputs an m x n numpy
   array of pairwise distances in Angstroms between the first and
-  second molecule. entry (i,j) is dist between the i"th 
+  second molecule. entry (i,j) is dist between the i"th
   atom of first molecule and the j"th atom of second molecule.
 
   Parameters

@@ -2,7 +2,7 @@ import numpy as np
 
 from deepchem.utils.typing import PymatgenStructure
 from deepchem.feat import MaterialStructureFeaturizer
-from deepchem.utils import pad_array
+from deepchem.utils.data_utils import pad_array
 
 
 class SineCoulombMatrix(MaterialStructureFeaturizer):
@@ -44,19 +44,24 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
   This class requires matminer and Pymatgen to be installed.
   """
 
-  def __init__(self, max_atoms: int, flatten: bool = True):
+  def __init__(self, max_atoms: int = 100, flatten: bool = True):
     """
     Parameters
     ----------
-    max_atoms: int
+    max_atoms: int (default 100)
       Maximum number of atoms for any crystal in the dataset. Used to
       pad the Coulomb matrix.
     flatten: bool (default True)
       Return flattened vector of matrix eigenvalues.
     """
+    try:
+      from matminer.featurizers.structure import SineCoulombMatrix as SCM
+    except ModuleNotFoundError:
+      raise ImportError("This class requires matminer to be installed.")
 
     self.max_atoms = max_atoms
     self.flatten = flatten
+    self.scm = SCM(flatten=False)
 
   def _featurize(self, struct: PymatgenStructure) -> np.ndarray:
     """
@@ -74,20 +79,13 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
       2D sine Coulomb matrix with shape (max_atoms, max_atoms),
       or 1D matrix eigenvalues with shape (max_atoms,).
     """
-
-    try:
-      from matminer.featurizers.structure import SineCoulombMatrix as SCM
-    except ModuleNotFoundError:
-      raise ValueError("This class requires matminer to be installed.")
-
     # Get full N x N SCM
-    scm = SCM(flatten=False)
-    sine_mat = scm.featurize(struct)
+    sine_mat = self.scm.featurize(struct)
 
     if self.flatten:
       eigs, _ = np.linalg.eig(sine_mat)
-      zeros = np.zeros((1, self.max_atoms))
-      zeros[:len(eigs)] = eigs
+      zeros = np.zeros(self.max_atoms)
+      zeros[:len(eigs[0])] = eigs[0]
       features = zeros
     else:
       features = pad_array(sine_mat, self.max_atoms)

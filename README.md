@@ -30,7 +30,7 @@ materials science, quantum chemistry, and biology.
 
 ## Requirements
 
-DeepChem currently supports Python 3.5 through 3.7 and requires these packages on any condition.
+DeepChem currently supports Python 3.6 through 3.7 and requires these packages on any condition.
 
 - [joblib](https://pypi.python.org/pypi/joblib)
 - [NumPy](https://numpy.org/)
@@ -73,7 +73,7 @@ conda install -y -c conda-forge rdkit deepchem==2.3.0
 You install the nightly build version via pip. The nightly version is built by the HEAD of DeepChem.
 
 ```bash
-pip install tensorflow==2.2.0
+pip install tensorflow==2.3.0
 pip install --pre deepchem
 ```
 

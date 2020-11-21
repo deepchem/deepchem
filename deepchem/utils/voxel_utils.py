@@ -97,7 +97,7 @@ def voxelize(get_voxels: Callable[..., Any],
   get_voxels: Function
     Function that voxelizes inputs
   hash_function: Function
-    Used to map feature choices to voxel channels.  
+    Used to map feature choices to voxel channels.
   coordinates: np.ndarray
     Contains the 3D coordinates of a molecular system.
   box_width: float, optional (default 16.0)

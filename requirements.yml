@@ -10,11 +10,15 @@ dependencies:
   - pip
   - pip:
     - biopython
+    - lightgbm
     - matminer
     - mdtraj
+    - mordred
     - networkx
     - pillow
+    - pubchempy
     - pyGPGO
     - pymatgen
     - simdna
     - xgboost
+    - git+https://github.com/samoturk/mol2vec

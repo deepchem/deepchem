@@ -3,8 +3,6 @@ Tests for metricsT.
 """
 import numpy as np
 import deepchem as dc
-import unittest
-from deepchem import metrics
 
 
 def test_kappa_score():
@@ -33,7 +31,7 @@ def test_one_sample():
       dc.metrics.Metric(dc.metrics.roc_auc_score)
   ]
   for metric in all_metrics:
-    score = metric.compute_singletask_metric(y_true, y_pred, w)
+    _ = metric.compute_singletask_metric(y_true, y_pred, w)
 
 
 def test_r2_score():
@@ -70,3 +68,23 @@ def test_bedroc_score():
       np.concatenate([worst_pred_actives, worst_pred_inactives]))
   worst_score = dc.metrics.bedroc_score(y_true, y_pred_worst)
   np.testing.assert_almost_equal(worst_score, 0.0, 4)
+
+
+def test_concordance_index():
+  """Test concordance index."""
+
+  metric = dc.metrics.Metric(dc.metrics.concordance_index)
+
+  y_true = np.array([1, 3, 5, 4, 2])
+  y_pred = np.array([3, 1, 5, 4, 2])
+  assert metric.compute_singletask_metric(y_true, y_pred) == 0.7
+
+  # best case
+  y_true = np.array([1, 3, 5, 4, 2])
+  y_pred = np.array([1, 3, 5, 4, 2])
+  assert metric.compute_singletask_metric(y_true, y_pred) == 1.0
+
+  # duplicate prediction value
+  y_true = np.array([1, 3, 5, 4, 2])
+  y_pred = np.array([1, 3, 4, 4, 2])
+  assert metric.compute_singletask_metric(y_true, y_pred) == 0.95

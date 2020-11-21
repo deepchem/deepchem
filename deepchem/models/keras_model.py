@@ -8,8 +8,6 @@ try:
 except:
   from collections import Sequence as SequenceCollection
 
-logger = logging.getLogger(__name__)
-
 from deepchem.data import Dataset, NumpyDataset
 from deepchem.metrics import Metric
 from deepchem.models.losses import Loss
@@ -19,7 +17,7 @@ from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
-from deepchem.utils.typing import KerasLossFn, OneOrMany
+from deepchem.utils.typing import LossFn, OneOrMany
 
 try:
   import wandb
@@ -34,9 +32,7 @@ try:
 except (ImportError, AttributeError):
   _has_wandb = False
 
-
-def is_wandb_available():
-  return _has_wandb
+logger = logging.getLogger(__name__)
 
 
 class KerasModel(Model):
@@ -56,6 +52,16 @@ class KerasModel(Model):
   3. It provides various additional features not found in the
      Keras Model class, such as uncertainty prediction and
      saliency mapping.
+
+  Here is a simple example of code that uses KerasModel to train
+  a Keras model on a DeepChem dataset.
+
+  >> keras_model = tf.keras.Sequential([
+  >>    tf.keras.layers.Dense(1000, activation='tanh'),
+  >>    tf.keras.layers.Dense(1)
+  >> ])
+  >> model = KerasModel(keras_model, loss=dc.models.losses.L2Loss())
+  >> model.fit(dataset)
 
   The loss function for a model can be defined in two different
   ways.  For models that have only a single output and use a
@@ -118,7 +124,7 @@ class KerasModel(Model):
 
   def __init__(self,
                model: tf.keras.Model,
-               loss: Union[Loss, KerasLossFn],
+               loss: Union[Loss, LossFn],
                output_types: Optional[List[str]] = None,
                batch_size: int = 100,
                model_dir: Optional[str] = None,
@@ -157,16 +163,15 @@ class KerasModel(Model):
     log_frequency: int
       The frequency at which to log data. Data is logged using
       `logging` by default. If `tensorboard` is set, data is also
-      logged to TensorBoard. Logging happens at global steps. Roughly,
+      logged to TensorBoard. If `wandb` is set, data is also logged
+      to Weights & Biases. Logging happens at global steps. Roughly,
       a global step corresponds to one batch of training. If you'd
       like a printout every 10 batch steps, you'd set
       `log_frequency=10` for example.
     """
-    super(KerasModel, self).__init__(
-        model_instance=model, model_dir=model_dir, **kwargs)
-    self.model = model
+    super(KerasModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
     if isinstance(loss, Loss):
-      self._loss_fn: KerasLossFn = _StandardLoss(model, loss)
+      self._loss_fn: LossFn = _StandardLoss(model, loss)
     else:
       self._loss_fn = loss
     self.batch_size = batch_size
@@ -177,12 +182,12 @@ class KerasModel(Model):
     self.tensorboard = tensorboard
 
     # W&B logging
-    if wandb and not is_wandb_available():
+    if wandb and not _has_wandb:
       logger.warning(
           "You set wandb to True but W&B is not installed. To use wandb logging, "
           "run `pip install wandb; wandb login` see https://docs.wandb.com/huggingface."
       )
-    self.wandb = wandb and is_wandb_available()
+    self.wandb = wandb and _has_wandb
 
     # Backwards compatibility
     if "tensorboard_log_frequency" in kwargs:
@@ -227,7 +232,7 @@ class KerasModel(Model):
       return
     self._built = True
     self._global_step = tf.Variable(0, trainable=False)
-    self._tf_optimizer = self.optimizer._create_optimizer(self._global_step)
+    self._tf_optimizer = self.optimizer._create_tf_optimizer(self._global_step)
     self._checkpoint = tf.train.Checkpoint(
         optimizer=self._tf_optimizer, model=self.model)
 
@@ -271,7 +276,7 @@ class KerasModel(Model):
           deterministic: bool = False,
           restore: bool = False,
           variables: Optional[List[tf.Variable]] = None,
-          loss: Optional[KerasLossFn] = None,
+          loss: Optional[LossFn] = None,
           callbacks: Union[Callable, List[Callable]] = [],
           all_losses: Optional[List[float]] = None) -> float:
     """Train this model on a dataset.
@@ -324,7 +329,7 @@ class KerasModel(Model):
                     checkpoint_interval: int = 1000,
                     restore: bool = False,
                     variables: Optional[List[tf.Variable]] = None,
-                    loss: Optional[KerasLossFn] = None,
+                    loss: Optional[LossFn] = None,
                     callbacks: Union[Callable, List[Callable]] = [],
                     all_losses: Optional[List[float]] = None) -> float:
     """Train this model on data from a generator.
@@ -370,7 +375,6 @@ class KerasModel(Model):
     avg_loss = 0.0
     last_avg_loss = 0.0
     averaged_batches = 0
-    train_op = None
     if loss is None:
       loss = self._loss_fn
     var_key = None
@@ -427,8 +431,7 @@ class KerasModel(Model):
       for c in callbacks:
         c(self, current_step)
       if self.tensorboard and should_log:
-        with self._summary_writer.as_default():
-          tf.summary.scalar('loss', batch_loss, current_step)
+        self._log_scalar_to_tensorboard('loss', batch_loss, current_step)
       if self.wandb and should_log:
         wandb.log({'loss': batch_loss}, step=current_step)
 
@@ -480,7 +483,7 @@ class KerasModel(Model):
                    y: Sequence,
                    w: Sequence,
                    variables: Optional[List[tf.Variable]] = None,
-                   loss: Optional[KerasLossFn] = None,
+                   loss: Optional[LossFn] = None,
                    callbacks: Union[Callable, List[Callable]] = [],
                    checkpoint: bool = True,
                    max_checkpoints_to_keep: int = 5) -> float:
@@ -555,20 +558,22 @@ class KerasModel(Model):
       returns the values of the uncertainty outputs.
     other_output_types: list, optional
       Provides a list of other output_types (strings) to predict from model.
-    Returns:
-      a NumPy array of the model produces a single output, or a list of arrays
-      if it produces multiple outputs
+
+    Returns
+    -------
+    a NumPy array of the model produces a single output, or a list of arrays
+    if it produces multiple outputs
     """
     results: Optional[List[np.ndarray]] = None
     variances: Optional[List[np.ndarray]] = None
     if (outputs is not None) and (other_output_types is not None):
       raise ValueError(
-          'This model cannot compute outputs and other output_types simultaneously. Please invoke one at a time.'
-      )
+          'This model cannot compute outputs and other output_types simultaneously.'
+          'Please invoke one at a time.')
     if uncertainty and (other_output_types is not None):
       raise ValueError(
-          'This model cannot compute uncertainties and other output types simultaneously. Please invoke one at a time.'
-      )
+          'This model cannot compute uncertainties and other output types simultaneously.'
+          'Please invoke one at a time.')
     if uncertainty:
       assert outputs is None
       if self._variance_outputs is None or len(self._variance_outputs) == 0:
@@ -585,7 +590,8 @@ class KerasModel(Model):
     if (outputs is not None and self.model.inputs is not None and
         len(self.model.inputs) == 0):
       raise ValueError(
-          "Cannot use 'outputs' argument with a model that does not specify its inputs. Note models defined in imperative subclassing style cannot specify outputs"
+          "Cannot use 'outputs' argument with a model that does not specify its inputs."
+          "Note models defined in imperative subclassing style cannot specify outputs"
       )
     if isinstance(outputs, tf.Tensor):
       outputs = [outputs]
@@ -779,7 +785,7 @@ class KerasModel(Model):
     if it produces multiple outputs
     """
     generator = self.default_generator(
-        dataset, mode='predict', pad_batches=False)
+        dataset, mode='predict', deterministic=True, pad_batches=False)
     return self.predict_on_generator(
         generator,
         transformers=transformers,
@@ -1068,6 +1074,11 @@ class KerasModel(Model):
     """Get the number of steps of fitting that have been performed."""
     return int(self._global_step)
 
+  def _log_scalar_to_tensorboard(self, name: str, value: Any, step: int):
+    """Log a scalar value to Tensorboard."""
+    with self._summary_writer.as_default():
+      tf.summary.scalar(name, value, step)
+
   def _create_assignment_map(self,
                              source_model: "KerasModel",
                              include_top: bool = True,
@@ -1203,7 +1214,7 @@ class _StandardLoss(object):
       raise ValueError(
           "Loss functions expects exactly one each of outputs, labels, and weights"
       )
-    losses = self.loss(outputs[0], labels[0])
+    losses = self.loss._compute_tf_loss(outputs[0], labels[0])
     w = weights[0]
     if len(w.shape) < len(losses.shape):
       if isinstance(w, tf.Tensor):

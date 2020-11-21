@@ -3,18 +3,20 @@ Utility functions to evaluate models on datasets.
 """
 import csv
 import logging
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+
 import numpy as np
-import warnings
-import pandas as pd
-import sklearn
-from deepchem.trans import undo_transforms
-from deepchem.metrics import from_one_hot
+import deepchem as dc
 from deepchem.metrics import Metric
 
 logger = logging.getLogger(__name__)
 
+Score = Dict[str, float]
+Metric_Func = Callable[..., Any]
+Metrics = Union[Metric, Metric_Func, List[Metric], List[Metric_Func]]
 
-def output_statistics(scores, stats_out):
+
+def output_statistics(scores: Score, stats_out: str) -> None:
   """Write computed stats to file.
 
   Statistics are written to specified `stats_out` file.
@@ -31,7 +33,8 @@ def output_statistics(scores, stats_out):
     statsfile.write(str(scores) + "\n")
 
 
-def output_predictions(dataset, y_preds, csv_out):
+def output_predictions(dataset: "dc.data.Dataset", y_preds: np.ndarray,
+                       csv_out: str) -> None:
   """Writes predictions to file.
 
   Writes predictions made on `dataset` to a specified file on
@@ -62,7 +65,7 @@ def output_predictions(dataset, y_preds, csv_out):
       csvwriter.writerow([mol_id] + list(y_pred))
 
 
-def _process_metric_input(metrics):
+def _process_metric_input(metrics: Metrics) -> List[Metric]:
   """A private helper method which processes metrics correctly.
 
   Metrics can be input as `dc.metrics.Metric` objects, lists of
@@ -90,9 +93,12 @@ def _process_metric_input(metrics):
   """
   # Make sure input is a list
   if not isinstance(metrics, list):
-    metrics = [metrics]
+    # FIXME: Incompatible types in assignment
+    metrics = [metrics]  # type: ignore
+
   final_metrics = []
-  for i, metric in enumerate(metrics):
+  # FIXME: Argument 1 to "enumerate" has incompatible type
+  for i, metric in enumerate(metrics):  # type: ignore
     # Ensure that metric is wrapped in a list.
     if isinstance(metric, Metric):
       final_metrics.append(metric)
@@ -103,12 +109,12 @@ def _process_metric_input(metrics):
       final_metrics.append(wrap_metric)
     else:
       raise ValueError(
-          "metrics must be one of metric function / dc.metrics.Metric object / list of dc.metrics.Metric or metric functions."
-      )
+          "metrics must be one of metric function / dc.metrics.Metric object /"
+          "list of dc.metrics.Metric or metric functions.")
   return final_metrics
 
 
-def relative_difference(x, y):
+def relative_difference(x: np.ndarray, y: np.ndarray) -> np.ndarray:
   """Compute the relative difference between x and y
 
   The two argument arrays must have the same shape.
@@ -137,8 +143,8 @@ class Evaluator(object):
   `dc.trans.Transformer` objects so will automatically undo any
   transformations which have been applied.
 
-  Example
-  -------
+  Examples
+  --------
   Evaluators allow for a model to be evaluated directly on a Metric
   for `sklearn`. Let's do a bit of setup constructing our dataset and
   model.
@@ -151,31 +157,32 @@ class Evaluator(object):
   >>> model = dc.models.MultitaskRegressor(1, 5)
   >>> transformers = []
 
-  Then you can evaluate this model as follows 
+  Then you can evaluate this model as follows
   >>> import sklearn
   >>> evaluator = Evaluator(model, dataset, transformers)
   >>> multitask_scores = evaluator.compute_model_performance(
   ...     sklearn.metrics.mean_absolute_error)
 
   Evaluators can also be used with `dc.metrics.Metric` objects as well
-  in case you want to customize your metric further. 
+  in case you want to customize your metric further.
 
   >>> evaluator = Evaluator(model, dataset, transformers)
   >>> metric = dc.metrics.Metric(dc.metrics.mae_score)
   >>> multitask_scores = evaluator.compute_model_performance(metric)
   """
 
-  def __init__(self, model, dataset, transformers):
+  def __init__(self, model, dataset: "dc.data.Dataset",
+               transformers: List["dc.trans.Transformer"]):
     """Initialize this evaluator
 
     Parameters
     ----------
-    model: dc.models.Model 
+    model: Model
       Model to evaluate. Note that this must be a regression or
       classification model and not a generative model.
-    dataset: dc.data.Dataset
+    dataset: Dataset
       Dataset object to evaluate `model` on.
-    transformers: list
+    transformers: List[Transformer]
       List of `dc.trans.Transformer` objects. These transformations
       must have been applied to `dataset` previously. The dataset will
       be untransformed for metric evaluation.
@@ -187,7 +194,7 @@ class Evaluator(object):
         transformer for transformer in transformers if transformer.transform_y
     ]
 
-  def output_statistics(self, scores, stats_out):
+  def output_statistics(self, scores: Score, stats_out: str):
     """ Write computed stats to file.
 
     Parameters
@@ -198,12 +205,13 @@ class Evaluator(object):
       Name of file to write scores to.
     """
     logger.warning(
-        "Evaluator.output_statistics is deprecated. Please use dc.utils.evaluate.output_statistics instead. This method will be removed in a future version of DeepChem."
-    )
+        "Evaluator.output_statistics is deprecated."
+        "Please use dc.utils.evaluate.output_statistics instead."
+        "This method will be removed in a future version of DeepChem.")
     with open(stats_out, "w") as statsfile:
       statsfile.write(str(scores) + "\n")
 
-  def output_predictions(self, y_preds, csv_out):
+  def output_predictions(self, y_preds: np.ndarray, csv_out: str):
     """Writes predictions to file.
 
     Writes predictions made on `self.dataset` to a specified file on
@@ -217,8 +225,9 @@ class Evaluator(object):
       Name of file to write predictions to.
     """
     logger.warning(
-        "Evaluator.output_predictions is deprecated. Please use dc.utils.evaluate.output_predictions instead. This method will be removed in a future version of DeepChem."
-    )
+        "Evaluator.output_predictions is deprecated."
+        "Please use dc.utils.evaluate.output_predictions instead."
+        "This method will be removed in a future version of DeepChem.")
     data_ids = self.dataset.ids
     n_tasks = len(self.dataset.get_task_names())
     y_preds = np.reshape(y_preds, (len(y_preds), n_tasks))
@@ -229,13 +238,14 @@ class Evaluator(object):
       for mol_id, y_pred in zip(data_ids, y_preds):
         csvwriter.writerow([mol_id] + list(y_pred))
 
-  def compute_model_performance(self,
-                                metrics,
-                                csv_out=None,
-                                stats_out=None,
-                                per_task_metrics=False,
-                                use_sample_weights=False,
-                                n_classes=2):
+  def compute_model_performance(
+      self,
+      metrics: Metrics,
+      csv_out: Optional[str] = None,
+      stats_out: Optional[str] = None,
+      per_task_metrics: bool = False,
+      use_sample_weights: bool = False,
+      n_classes: int = 2) -> Union[Score, Tuple[Score, Score]]:
     """
     Computes statistics of model on test data and saves results to csv.
 
@@ -275,17 +285,17 @@ class Evaluator(object):
     """
     if csv_out is not None:
       logger.warning(
-          "csv_out is deprecated as an argument and will be removed in a future version of DeepChem. Output is not written to CSV; manually write output instead."
-      )
+          "csv_out is deprecated as an argument and will be removed in a future version of DeepChem."
+          "Output is not written to CSV; manually write output instead.")
     if stats_out is not None:
       logger.warning(
-          "stats_out is deprecated as an argument and will be removed in a future version of DeepChem. Stats output is not written; please manually write output instead"
-      )
+          "stats_out is deprecated as an argument and will be removed in a future version of DeepChem."
+          "Stats output is not written; please manually write output instead")
     # Process input metrics
     metrics = _process_metric_input(metrics)
 
     y = self.dataset.y
-    y = undo_transforms(y, self.output_transformers)
+    y = dc.trans.undo_transforms(y, self.output_transformers)
     w = self.dataset.w
 
     y_pred = self.model.predict(self.dataset, self.output_transformers)
@@ -323,8 +333,8 @@ class GeneratorEvaluator(object):
   over datasets this class operates over a generator which yields
   batches of data to feed into provided model.
 
-  Example
-  -------
+  Examples
+  --------
   >>> import deepchem as dc
   >>> import numpy as np
   >>> X = np.random.rand(10, 5)
@@ -334,7 +344,7 @@ class GeneratorEvaluator(object):
   >>> generator = model.default_generator(dataset, pad_batches=False)
   >>> transformers = []
 
-  Then you can evaluate this model as follows 
+  Then you can evaluate this model as follows
 
   >>> import sklearn
   >>> evaluator = GeneratorEvaluator(model, generator, transformers)
@@ -351,18 +361,23 @@ class GeneratorEvaluator(object):
   >>> multitask_scores = evaluator.compute_model_performance(metric)
   """
 
-  def __init__(self, model, generator, transformers, labels=None, weights=None):
+  def __init__(self,
+               model,
+               generator: Iterable[Tuple[Any, Any, Any]],
+               transformers: List["dc.trans.Transformer"],
+               labels: Optional[List] = None,
+               weights: Optional[List] = None):
     """
     Parameters
     ----------
     model: Model
       Model to evaluate.
-    generator: Generator
+    generator: generator
       Generator which yields batches to feed into the model. For a
       KerasModel, it should be a tuple of the form (inputs, labels,
       weights). The "correct" way to create this generator is to use
       `model.default_generator` as shown in the example above.
-    transformers:
+    transformers: List[Transformer]
       Tranformers to "undo" when applied to the models outputs
     labels: list of Layer
       layers which are keys in the generator to compare to outputs
@@ -379,11 +394,12 @@ class GeneratorEvaluator(object):
     if labels is not None and len(labels) != 1:
       raise ValueError("GeneratorEvaluator currently only supports one label")
 
-  def compute_model_performance(self,
-                                metrics,
-                                per_task_metrics=False,
-                                use_sample_weights=False,
-                                n_classes=2):
+  def compute_model_performance(
+      self,
+      metrics: Metrics,
+      per_task_metrics: bool = False,
+      use_sample_weights: bool = False,
+      n_classes: int = 2) -> Union[Score, Tuple[Score, Score]]:
     """
     Computes statistics of model on test data and saves results to csv.
 
@@ -454,8 +470,8 @@ class GeneratorEvaluator(object):
     all_task_scores = {}
 
     # Undo data transformations.
-    y = undo_transforms(y, self.output_transformers)
-    y_pred = undo_transforms(y_pred, self.output_transformers)
+    y = dc.trans.undo_transforms(y, self.output_transformers)
+    y_pred = dc.trans.undo_transforms(y_pred, self.output_transformers)
 
     # Compute multitask metrics
     for metric in metrics:

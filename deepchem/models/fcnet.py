@@ -6,7 +6,10 @@ import time
 import numpy as np
 import tensorflow as tf
 import threading
-import collections
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
 
 import deepchem as dc
 from deepchem.models import KerasModel
@@ -15,7 +18,7 @@ from deepchem.metrics import to_one_hot
 from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Activation, Lambda
 
 from typing import Any, Callable, Iterable, List, Optional, Sequence, Tuple, Union
-from deepchem.utils.typing import KerasActivationFn, KerasLossFn, OneOrMany
+from deepchem.utils.typing import KerasActivationFn, LossFn, OneOrMany
 
 logger = logging.getLogger(__name__)
 
@@ -94,13 +97,13 @@ class MultitaskClassifier(KerasModel):
     self.n_features = n_features
     self.n_classes = n_classes
     n_layers = len(layer_sizes)
-    if not isinstance(weight_init_stddevs, collections.Sequence):
+    if not isinstance(weight_init_stddevs, SequenceCollection):
       weight_init_stddevs = [weight_init_stddevs] * n_layers
-    if not isinstance(bias_init_consts, collections.Sequence):
+    if not isinstance(bias_init_consts, SequenceCollection):
       bias_init_consts = [bias_init_consts] * n_layers
-    if not isinstance(dropouts, collections.Sequence):
+    if not isinstance(dropouts, SequenceCollection):
       dropouts = [dropouts] * n_layers
-    if not isinstance(activation_fns, collections.Sequence):
+    if not isinstance(activation_fns, SequenceCollection):
       activation_fns = [activation_fns] * n_layers
     if weight_decay_penalty != 0.0:
       if weight_decay_penalty_type == 'l1':
@@ -240,13 +243,13 @@ class MultitaskRegressor(KerasModel):
     self.n_tasks = n_tasks
     self.n_features = n_features
     n_layers = len(layer_sizes)
-    if not isinstance(weight_init_stddevs, collections.Sequence):
+    if not isinstance(weight_init_stddevs, SequenceCollection):
       weight_init_stddevs = [weight_init_stddevs] * (n_layers + 1)
-    if not isinstance(bias_init_consts, collections.Sequence):
+    if not isinstance(bias_init_consts, SequenceCollection):
       bias_init_consts = [bias_init_consts] * (n_layers + 1)
-    if not isinstance(dropouts, collections.Sequence):
+    if not isinstance(dropouts, SequenceCollection):
       dropouts = [dropouts] * n_layers
-    if not isinstance(activation_fns, collections.Sequence):
+    if not isinstance(activation_fns, SequenceCollection):
       activation_fns = [activation_fns] * n_layers
     if weight_decay_penalty != 0.0:
       if weight_decay_penalty_type == 'l1':
@@ -299,7 +302,7 @@ class MultitaskRegressor(KerasModel):
             stddev=weight_init_stddevs[-1]),
         bias_initializer=tf.constant_initializer(
             value=bias_init_consts[-1]))(prev_layer))
-    loss: Union[dc.models.losses.Loss, KerasLossFn]
+    loss: Union[dc.models.losses.Loss, LossFn]
     if uncertainty:
       log_var = Reshape((n_tasks, 1))(Dense(
           n_tasks,
@@ -344,8 +347,8 @@ class MultitaskRegressor(KerasModel):
 class MultitaskFitTransformRegressor(MultitaskRegressor):
   """Implements a MultitaskRegressor that performs on-the-fly transformation during fit/predict.
 
-  Example:
-
+  Examples
+  --------
   >>> n_samples = 10
   >>> n_features = 3
   >>> n_tasks = 1

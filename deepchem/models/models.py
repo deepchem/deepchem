@@ -2,27 +2,19 @@
 Contains an abstract base class that supports different ML models.
 """
 
-import sys
-import numpy as np
-import pandas as pd
-import joblib
 import os
 import shutil
 import tempfile
-import sklearn
 import logging
+from typing import List, Optional, Sequence
+
+import numpy as np
 from sklearn.base import BaseEstimator
 
-import logging
-from deepchem.data import Dataset, pad_features
+from deepchem.data import Dataset
 from deepchem.metrics import Metric
 from deepchem.trans import Transformer, undo_transforms
-from deepchem.utils.save import load_from_disk
-from deepchem.utils.save import save_to_disk
 from deepchem.utils.evaluate import Evaluator
-
-from typing import Any, Dict, List, Optional, Sequence
-from deepchem.utils.typing import OneOrMany
 
 logger = logging.getLogger(__name__)
 
@@ -32,18 +24,16 @@ class Model(BaseEstimator):
   Abstract base class for DeepChem models.
   """
 
-  def __init__(self,
-               model_instance: Optional[Any] = None,
-               model_dir: Optional[str] = None,
+  def __init__(self, model=None, model_dir: Optional[str] = None,
                **kwargs) -> None:
     """Abstract class for all models.
 
     This is intended only for convenience of subclass implementations
     and should not be invoked directly.
 
-    Parameters:
-    -----------
-    model_instance: object
+    Parameters
+    ----------
+    model: object
       Wrapper around ScikitLearn/Keras/Tensorflow model object.
     model_dir: str, optional (default None)
       Path to directory where model will be stored. If not specified,
@@ -51,8 +41,9 @@ class Model(BaseEstimator):
     """
     if self.__class__.__name__ == "Model":
       raise ValueError(
-          "This constructor is for an abstract class and should never be called directly. Can only call from subclass constructors."
-      )
+          "This constructor is for an abstract class and should never be called directly."
+          "Can only call from subclass constructors.")
+
     self.model_dir_is_temp = False
     if model_dir is not None:
       if not os.path.exists(model_dir):
@@ -61,28 +52,24 @@ class Model(BaseEstimator):
       model_dir = tempfile.mkdtemp()
       self.model_dir_is_temp = True
     self.model_dir = model_dir
-    self.model_instance = model_instance
-    self.model_class = model_instance.__class__
+    self.model = model
+    self.model_class = model.__class__
 
   def __del__(self):
     if 'model_dir_is_temp' in dir(self) and self.model_dir_is_temp:
       shutil.rmtree(self.model_dir)
 
-  def fit_on_batch(self, X: Sequence, y: Sequence, w: Sequence) -> float:
+  def fit_on_batch(self, X: Sequence, y: Sequence, w: Sequence):
     """Perform a single step of training.
 
     Parameters
     ----------
-    X: ndarray
+    X: np.ndarray
       the inputs for the batch
-    y: ndarray
+    y: np.ndarray
       the labels for the batch
-    w: ndarray
+    w: np.ndarray
       the weights for the batch
-
-    Returns
-    -------
-    the loss on the batch
     """
     raise NotImplementedError(
         "Each model is responsible for its own fit_on_batch method.")
@@ -127,7 +114,7 @@ class Model(BaseEstimator):
     """
     raise NotImplementedError
 
-  def fit(self, dataset: Dataset, nb_epoch: int = 10) -> float:
+  def fit(self, dataset: Dataset):
     """
     Fits a model on data in a Dataset object.
 
@@ -135,45 +122,29 @@ class Model(BaseEstimator):
     ----------
     dataset: Dataset
       the Dataset to train on
-    nb_epoch: int
-      the number of epochs to train for
-
-    Returns
-    -------
-    The average loss over the most recent checkpoint interval. 
     """
-    for epoch in range(nb_epoch):
-      logger.info("Starting epoch %s" % str(epoch + 1))
-      losses = []
-      for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches():
-        losses.append(self.fit_on_batch(X_batch, y_batch, w_batch))
-      logger.info(
-          "Avg loss for epoch %d: %f" % (epoch + 1, np.array(losses).mean()))
-    return np.array(losses).mean()
+    raise NotImplementedError(
+        "Each model is responsible for its own fit method.")
 
   def predict(self, dataset: Dataset,
-              transformers: List[Transformer] = []) -> OneOrMany[np.ndarray]:
+              transformers: List[Transformer] = []) -> np.ndarray:
     """
     Uses self to make predictions on provided Dataset object.
 
-
     Parameters
     ----------
-    dataset: dc.data.Dataset
+    dataset: Dataset
       Dataset to make prediction on
-    transformers: list of dc.trans.Transformers
-      Transformers that the input data has been transformed by.  The output
+    transformers: List[Transformer]
+      Transformers that the input data has been transformed by. The output
       is passed through these transformers to undo the transformations.
 
     Returns
     -------
-    a NumPy array of the model produces a single output, or a list of arrays
-    if it produces multiple outputs
+    np.ndarray
+      A numpy array of predictions the model produces.
     """
     y_preds = []
-    n_tasks = self.get_num_tasks()
-    ind = 0
-
     for (X_batch, _, _, ids_batch) in dataset.iterbatches(deterministic=True):
       n_samples = len(X_batch)
       y_pred_batch = self.predict_on_batch(X_batch)
@@ -205,9 +176,9 @@ class Model(BaseEstimator):
 
     Parameters
     ----------
-    dataset: `dc.data.Dataset`
+    dataset: Dataset
       Dataset object.
-    metrics: dc.metrics.Metric/list[dc.metrics.Metric]/function
+    metrics: Metric / List[Metric] / function
       The set of metrics provided. This class attempts to do some
       intelligent handling of input. If a single `dc.metrics.Metric`
       object is provided or a list is provided, it will evaluate
@@ -218,11 +189,11 @@ class Model(BaseEstimator):
       `np.ndarray` objects and return a floating point score. The
       metric function may also accept a keyword argument
       `sample_weight` to account for per-sample weights.
-    transformers: list
+    transformers: List[Transformer]
       List of `dc.trans.Transformer` objects. These transformations
       must have been applied to `dataset` previously. The dataset will
       be untransformed for metric evaluation.
-    per_task_metrics: bool, optional
+    per_task_metrics: bool, optional (default False)
       If true, return computed metric for each task on multitask dataset.
     use_sample_weights: bool, optional (default False)
       If set, use per-sample weights `w`.

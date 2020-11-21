@@ -7,16 +7,16 @@ import tempfile
 from typing import Dict, List, Optional, Tuple, Union
 
 from deepchem.data import Dataset
+from deepchem.trans import Transformer
 from deepchem.metrics import Metric
 from deepchem.hyper.base_classes import HyperparamOpt
 from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
 
 logger = logging.getLogger(__name__)
-PARAM_DICT = Dict[str, Union[int, float]]
 
 
-def compute_parameter_range(params_dict: PARAM_DICT,
-                            search_range: Union[int, float, PARAM_DICT]
+def compute_parameter_range(params_dict: Dict,
+                            search_range: Union[int, float, Dict]
                            ) -> Dict[str, Tuple[str, List[float]]]:
   """Convenience Function to compute parameter search space.
 
@@ -126,19 +126,18 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   This class requires pyGPGO to be installed.
   """
 
-  # NOTE: mypy prohibits changing the number of arguments
-  # FIXME: Signature of "hyperparam_search" incompatible with supertype "HyperparamOpt"
-  def hyperparam_search(  # type: ignore[override]
-      self,
-      params_dict: PARAM_DICT,
-      train_dataset: Dataset,
-      valid_dataset: Dataset,
-      metric: Metric,
-      use_max: bool = True,
-      logdir: Optional[str] = None,
-      max_iter: int = 20,
-      search_range: Union[int, float, PARAM_DICT] = 4,
-      logfile: Optional[str] = None):
+  def hyperparam_search(self,
+                        params_dict: Dict,
+                        train_dataset: Dataset,
+                        valid_dataset: Dataset,
+                        metric: Metric,
+                        output_transformers: List[Transformer] = [],
+                        use_max: bool = True,
+                        logdir: Optional[str] = None,
+                        max_iter: int = 20,
+                        search_range: Union[int, float, Dict] = 4,
+                        logfile: Optional[str] = None,
+                        **kwargs):
     """Perform hyperparameter search using a gaussian process.
 
     Parameters
@@ -156,6 +155,11 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       dataset used for validation(optimization on valid scores)
     metric: Metric
       metric used for evaluation
+    output_transformers: list[Transformer]
+      Transformers for evaluation. This argument is needed since
+      `train_dataset` and `valid_dataset` may have been transformed
+      for learning and need the transform to be inverted before
+      the metric can be evaluated on a model.
     use_max: bool, (default True)
       Specifies whether to maximize or minimize `metric`.
       maximization(True) or minimization(False)
@@ -203,7 +207,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       from pyGPGO.surrogates.GaussianProcess import GaussianProcess
       from pyGPGO.GPGO import GPGO
     except ModuleNotFoundError:
-      raise ValueError("This class requires pyGPGO to be installed.")
+      raise ImportError("This class requires pyGPGO to be installed.")
 
     # Specify logfile
     log_file = None
@@ -280,7 +284,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       except NotImplementedError:
         pass
 
-      multitask_scores = model.evaluate(valid_dataset, [metric])
+      multitask_scores = model.evaluate(valid_dataset, [metric],
+                                        output_transformers)
       score = multitask_scores[metric.name]
 
       if log_file:

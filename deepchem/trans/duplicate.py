@@ -14,7 +14,7 @@ class DuplicateBalancingTransformer(Transformer):
   that the sum of all example weights from all classes is the same. (Up to
   integer rounding of course). This can be useful when you're working on an
   imabalanced dataset where there are far fewer examples of some classes than
-  others. 
+  others.
 
   This class differs from `BalancingTransformer` in that it actually
   duplicates rarer class samples rather than just increasing their sample
@@ -56,12 +56,12 @@ class DuplicateBalancingTransformer(Transformer):
   See Also
   --------
   deepchem.trans.BalancingTransformer: Balance by changing sample weights.
-  
+
   Note
   ----
   This transformer is only well-defined for singletask datasets. (Since
   examples are actually duplicated, there's no meaningful way to duplicate
-  across multiple tasks in a way that preserves the balance.) 
+  across multiple tasks in a way that preserves the balance.)
 
   This transformer is only meaningful for classification datasets where `y`
   takes on a limited set of values. This class transforms all of `X`, `y`,
@@ -99,7 +99,6 @@ class DuplicateBalancingTransformer(Transformer):
     self.classes = sorted(np.unique(y))
     # Remove labels with zero weights
     y = y[w != 0]
-    N = len(y)
     class_weights = []
     # Note that we may have 0 elements of a given class since we remove those
     # labels with zero weight.

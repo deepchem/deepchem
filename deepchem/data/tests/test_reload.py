@@ -6,12 +6,9 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
 import os
-import shutil
 import logging
 import unittest
-import tempfile
 import deepchem as dc
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -26,15 +23,15 @@ class TestReload(unittest.TestCase):
     # Load MUV dataset
     logger.info("About to featurize compounds")
     featurizer = dc.feat.CircularFingerprint(size=1024)
-    raw_dataset = dc.utils.save.load_from_disk(dataset_file)
+    raw_dataset = dc.utils.data_utils.load_from_disk(dataset_file)
     MUV_tasks = [
         'MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644', 'MUV-548',
         'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712', 'MUV-737', 'MUV-858',
         'MUV-713', 'MUV-733', 'MUV-652', 'MUV-466', 'MUV-832'
     ]
     loader = dc.data.CSVLoader(
-        tasks=MUV_tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(dataset_file)
+        tasks=MUV_tasks, feature_field="smiles", featurizer=featurizer)
+    dataset = loader.create_dataset(dataset_file)
     assert len(dataset) == len(raw_dataset)
 
     logger.info("About to split compounds into train/valid/test")

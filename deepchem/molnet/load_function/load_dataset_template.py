@@ -13,7 +13,7 @@ from typing import List, Tuple, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
 MYDATASET_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/mydataset.tar.gz"
 MYDATASET_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/mydataset.csv"
 
@@ -22,7 +22,7 @@ MYDATASET_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/my
 DEFAULT_FEATURIZERS = get_defaults("feat")
 
 # Names of supported featurizers
-mydataset_featurizers = ['Featurizer1', 'Featurizer2', 'Featurizer3']
+mydataset_featurizers = ['CircularFingerprint', 'ConvMolFeaturizer']
 DEFAULT_FEATURIZERS = {k: DEFAULT_FEATURIZERS[k] for k in mydataset_featurizers}
 
 # dict of accepted transformers
@@ -32,14 +32,14 @@ DEFAULT_TRANSFORMERS = get_defaults("trans")
 DEFAULT_SPLITTERS = get_defaults("splits")
 
 # names of supported splitters
-mydataset_splitters = ['Splitter1', 'Splitter2', 'Splitter3']
+mydataset_splitters = ['RandomSplitter', 'RandomStratifiedSplitter']
 DEFAULT_SPLITTERS = {k: DEFAULT_SPLITTERS[k] for k in mydataset_splitters}
 
 
 def load_mydataset(
-    featurizer: Featurizer = DEFAULT_FEATURIZERS['RawFeaturizer'],
+    featurizer: Featurizer = DEFAULT_FEATURIZERS['CircularFingerprint'],
     transformers: List[Transformer] = [
-        DEFAULT_TRANSFORMERS['PowerTransformer']
+        DEFAULT_TRANSFORMERS['NormalizationTransformer']
     ],
     splitter: Splitter = DEFAULT_SPLITTERS['RandomSplitter'],
     reload: bool = True,
@@ -72,21 +72,21 @@ def load_mydataset(
 
   Please refer to the MoleculeNet documentation for further information
   https://deepchem.readthedocs.io/en/latest/moleculenet.html.
-  
+
   Parameters
   ----------
-  featurizer : {List of allowed featurizers for this dataset}
+  featurizer : allowed featurizers for this dataset
     A featurizer that inherits from deepchem.feat.Featurizer.
-  transformers : List{List of allowed transformers for this dataset}
+  transformers : List of allowed transformers for this dataset
     A transformer that inherits from deepchem.trans.Transformer.
-  splitter : {List of allowed splitters for this dataset}
+  splitter : allowed splitters for this dataset
     A splitter that inherits from deepchem.splits.splitters.Splitter.
   reload : bool (default True)
     Try to reload dataset from disk if already downloaded. Save to disk
     after featurizing.
-  data_dir : str, optional
+  data_dir : str, optional (default None)
     Path to datasets.
-  save_dir : str, optional
+  save_dir : str, optional (default None)
     Path to featurized datasets.
   featurizer_kwargs : dict
     Specify parameters to featurizer, e.g. {"size": 1024}
@@ -111,13 +111,10 @@ def load_mydataset(
 
   References
   ----------
-  MLA style references for this dataset. E.g.
-    Wu, Zhenqin et al. "MoleculeNet: a benchmark for molecular
-      machine learning." Chemical Science, vol. 9, 2018, 
-      pp. 513-530, 10.1039/c7sc02664a.
-
-    Last, First et al. "Article title." Journal name, vol. #,
-      no. #, year, pp. page range, DOI. 
+  MLA style references for this dataset. The example is like this.
+  Last, First et al. "Article title." Journal name, vol. #, no. #, year, pp. page range, DOI.
+  ...[1] Wu, Zhenqin et al. "MoleculeNet: a benchmark for molecular machine learning."
+     Chemical Science, vol. 9, 2018, pp. 513-530, 10.1039/c7sc02664a.
 
   Examples
   --------
@@ -127,7 +124,6 @@ def load_mydataset(
   >> n_tasks = len(tasks)
   >> n_features = train_dataset.get_data_shape()[0]
   >> model = dc.models.MultitaskClassifier(n_tasks, n_features)
-
   """
 
   # Warning message about this template
@@ -165,7 +161,7 @@ def load_mydataset(
     save_folder = os.path.join(save_dir, "mydataset-featurized",
                                featurizer_name, splitter_name)
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+    loaded, all_dataset, transformers = deepchem.utils.data_utils.load_dataset_from_disk(
         save_folder)
     if loaded:
       return my_tasks, all_dataset, transformers
@@ -178,8 +174,9 @@ def load_mydataset(
     dataset_file = os.path.join(data_dir, 'mydataset.filetype')
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=MYDATASET_URL, dest_dir=data_dir)
-      deepchem.utils.untargz_file(
+      deepchem.utils.data_utils.download_url(
+          url=MYDATASET_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'mydataset.tar.gz'), data_dir)
 
     # Changer loader to match featurizer and data file type
@@ -191,7 +188,8 @@ def load_mydataset(
   else:  # only load CSV file
     dataset_file = os.path.join(data_dir, "mydataset.csv")
     if not os.path.exists(dataset_file):
-      deepchem.utils.download_url(url=MYDATASET_CSV_URL, dest_dir=data_dir)
+      deepchem.utils.data_utils.download_url(
+          url=MYDATASET_CSV_URL, dest_dir=data_dir)
 
     loader = deepchem.data.CSVLoader(
         tasks=my_tasks, smiles_field="smiles", featurizer=featurizer)
@@ -216,7 +214,7 @@ def load_mydataset(
     test_dataset = transformer.transform(test_dataset)
 
   if reload:  # save to disk
-    deepchem.utils.save.save_dataset_to_disk(
+    deepchem.utils.data_utils.save_dataset_to_disk(
         save_folder, train_dataset, valid_dataset, test_dataset, transformers)
 
   return my_tasks, (train_dataset, valid_dataset, test_dataset), transformers

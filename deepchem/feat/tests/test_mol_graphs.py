@@ -1,16 +1,9 @@
 """
-Tests for Molecular Graph data structures. 
+Tests for Molecular Graph data structures.
 """
-__author__ = "Han Altae-Tran and Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import unittest
-import os
-import sys
 import numpy as np
 from deepchem.feat.mol_graphs import ConvMol
-from deepchem.feat.mol_graphs import MultiConvMol
 
 
 class TestMolGraphs(unittest.TestCase):
@@ -20,11 +13,10 @@ class TestMolGraphs(unittest.TestCase):
 
   def test_construct_conv_mol(self):
     """Tests that ConvMols can be constructed without crash."""
-    N_feat = 4
     # Artificial feature array.
     atom_features = np.array([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]])
     adj_list = [[1], [0, 2], [1]]
-    mol = ConvMol(atom_features, adj_list)
+    _ = ConvMol(atom_features, adj_list)
 
   def test_conv_mol_deg_slice(self):
     """Tests that deg_slice works properly."""
@@ -86,20 +78,19 @@ class TestMolGraphs(unittest.TestCase):
     """Test AggrMol.agglomerate_mols."""
     molecules = []
 
-    #### First example molecule
-    N_feat = 4
+    # First example molecule
     # Artificial feature array.
     atom_features = np.array([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]])
     adj_list = [[1], [0, 2], [1]]
     molecules.append(ConvMol(atom_features, adj_list))
 
-    #### Second example molecule
+    # Second example molecule
     atom_features = np.array([[20, 21, 22, 23], [24, 25, 26, 27],
                               [28, 29, 30, 31], [32, 33, 34, 35]])
     adj_list = [[1, 2], [0, 3], [0, 3], [1, 2]]
     molecules.append(ConvMol(atom_features, adj_list))
 
-    ### Third example molecule
+    # Third example molecule
     atom_features = np.array([[40, 41, 42, 43], [44, 45, 46, 47],
                               [48, 49, 50, 51], [52, 53, 54,
                                                  55], [56, 57, 58, 59]])
@@ -137,7 +128,6 @@ class TestMolGraphs(unittest.TestCase):
   def test_null_conv_mol(self):
     """Running Null AggrMol Test. Only works when max_deg=6 and min_deg=0"""
     num_feat = 4
-    min_deg = 0
     null_mol = ConvMol.get_null_mol(num_feat)
 
     deg_adj_lists = null_mol.get_deg_adjacency_lists()

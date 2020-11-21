@@ -44,7 +44,7 @@ def convert_protein_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
 
   Parameters
   ----------
-  mol: RDKit Mol
+  mol: rdkit.Chem.rdchem.Mol
     Protein molecule
   outfile: str
     filename which already has a valid pdb representation of mol
@@ -67,7 +67,7 @@ def convert_protein_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
       fout.write(line)
 
 
-def mol_to_graph(mol: RDKitMol):
+def _mol_to_graph(mol: RDKitMol):
   """Convert RDKit Mol to NetworkX graph
 
   Convert mol into a graph representation atoms are nodes, and bonds
@@ -75,8 +75,8 @@ def mol_to_graph(mol: RDKitMol):
 
   Parameters
   ----------
-  mol: RDKit Mol
-    The molecule to convert into a graph. 
+  mol: rdkit.Chem.rdchem.Mol
+    The molecule to convert into a graph.
 
   Returns
   -------
@@ -90,7 +90,7 @@ def mol_to_graph(mol: RDKitMol):
   try:
     import networkx as nx
   except ModuleNotFoundError:
-    raise ValueError("This function requires NetworkX to be installed.")
+    raise ImportError("This function requires NetworkX to be installed.")
 
   G = nx.Graph()
   num_atoms = mol.GetNumAtoms()
@@ -102,7 +102,7 @@ def mol_to_graph(mol: RDKitMol):
   return G
 
 
-def get_rotatable_bonds(mol: RDKitMol) -> List[Tuple[int, int]]:
+def _get_rotatable_bonds(mol: RDKitMol) -> List[Tuple[int, int]]:
   """
   https://github.com/rdkit/rdkit/blob/f4529c910e546af590c56eba01f96e9015c269a6/Code/GraphMol/Descriptors/Lipinski.cpp#L107
 
@@ -111,7 +111,7 @@ def get_rotatable_bonds(mol: RDKitMol) -> List[Tuple[int, int]]:
 
   Parameters
   ----------
-  mol: RDKit Mol
+  mol: rdkit.Chem.rdchem.Mol
     Ligand molecule
 
   Returns
@@ -127,7 +127,7 @@ def get_rotatable_bonds(mol: RDKitMol) -> List[Tuple[int, int]]:
     from rdkit import Chem
     from rdkit.Chem import rdmolops
   except ModuleNotFoundError:
-    raise ValueError("This function requires RDKit to be installed.")
+    raise ImportError("This function requires RDKit to be installed.")
 
   pattern = Chem.MolFromSmarts(
       "[!$(*#*)&!D1&!$(C(F)(F)F)&!$(C(Cl)(Cl)Cl)&!$(C(Br)(Br)Br)&!$(C([CH3])("
@@ -144,11 +144,11 @@ def convert_mol_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
   """Writes the provided ligand molecule to specified file in pdbqt format.
 
   Creates a torsion tree and write to pdbqt file. The torsion tree
-  represents rotatable bonds in the molecule. 
+  represents rotatable bonds in the molecule.
 
   Parameters
   ----------
-  mol: RDKit Mol
+  mol: rdkit.Chem.rdchem.Mol
     The molecule whose value is stored in pdb format in outfile
   outfile: str
     Filename for a valid pdb file with the extention .pdbqt
@@ -160,13 +160,13 @@ def convert_mol_to_pdbqt(mol: RDKitMol, outfile: str) -> None:
   try:
     import networkx as nx
   except ModuleNotFoundError:
-    raise ValueError("This function requires NetworkX to be installed.")
+    raise ImportError("This function requires NetworkX to be installed.")
 
   # Walk through the original file and extract ATOM/HETATM lines and
   # add PDBQT charge annotations.
   pdb_map = _create_pdb_map(outfile)
-  graph = mol_to_graph(mol)
-  rotatable_bonds = get_rotatable_bonds(mol)
+  graph = _mol_to_graph(mol)
+  rotatable_bonds = _get_rotatable_bonds(mol)
 
   # Remove rotatable bonds from this molecule
   for bond in rotatable_bonds:
@@ -245,8 +245,8 @@ def _create_component_map(mol: RDKitMol,
 
   Parameters
   ----------
-  mol: RDKit Mol
-    molecule to find disconnected compontents in 
+  mol: rdkit.Chem.rdchem.Mol
+    The molecule to find disconnected components in
   components: List[List[int]]
     List of connected components
 
@@ -348,4 +348,4 @@ def _valid_bond(used_partitions: Set[int], bond: Tuple[int, int],
     next_partition = part2
   else:
     next_partition = part1
-  return not next_partition in used_partitions, next_partition
+  return next_partition not in used_partitions, next_partition

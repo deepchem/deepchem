@@ -1,7 +1,10 @@
 import time
 import numpy as np
 import tensorflow as tf
-import collections
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
 
 import logging
 from deepchem.metrics import to_one_hot
@@ -90,15 +93,15 @@ class ProgressiveMultitaskRegressor(KerasModel):
     self.n_outputs = n_outputs
 
     n_layers = len(layer_sizes)
-    if not isinstance(weight_init_stddevs, collections.Sequence):
+    if not isinstance(weight_init_stddevs, SequenceCollection):
       self.weight_init_stddevs = [weight_init_stddevs] * n_layers
-    if not isinstance(alpha_init_stddevs, collections.Sequence):
+    if not isinstance(alpha_init_stddevs, SequenceCollection):
       self.alpha_init_stddevs = [alpha_init_stddevs] * n_layers
-    if not isinstance(bias_init_consts, collections.Sequence):
+    if not isinstance(bias_init_consts, SequenceCollection):
       self.bias_init_consts = [bias_init_consts] * n_layers
-    if not isinstance(dropouts, collections.Sequence):
+    if not isinstance(dropouts, SequenceCollection):
       self.dropouts = [dropouts] * n_layers
-    if not isinstance(activation_fns, collections.Sequence):
+    if not isinstance(activation_fns, SequenceCollection):
       self.activation_fns = [activation_fns] * n_layers
 
     # Add the input features.

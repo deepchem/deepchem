@@ -6,11 +6,9 @@ import logging
 import numpy as np
 import unittest
 from deepchem.utils import conformers
-from deepchem.feat.atomic_coordinates import get_coords
-from deepchem.feat.atomic_coordinates import AtomicCoordinates
-from deepchem.feat.atomic_coordinates import NeighborListAtomicCoordinates
-from deepchem.feat.atomic_coordinates import NeighborListComplexAtomicCoordinates
-from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
+from deepchem.feat import AtomicCoordinates
+from deepchem.feat import NeighborListAtomicCoordinates
+from deepchem.feat import NeighborListComplexAtomicCoordinates
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +27,7 @@ class TestAtomicCoordinates(unittest.TestCase):
     mol = Chem.MolFromSmiles(smiles)
     engine = conformers.ConformerGenerator(max_conformers=1)
     self.mol = engine.generate_conformers(mol)
+    self.get_angstrom_coords = AtomicCoordinates()._featurize
     assert self.mol.GetNumConformers() > 0
 
   def test_atomic_coordinates(self):
@@ -37,9 +36,7 @@ class TestAtomicCoordinates(unittest.TestCase):
     """
     N = self.mol.GetNumAtoms()
     atomic_coords_featurizer = AtomicCoordinates()
-    # TODO(rbharath, joegomes): Why does AtomicCoordinates return a list? Is
-    # this expected behavior? Need to think about API.
-    coords = atomic_coords_featurizer._featurize(self.mol)[0]
+    coords = atomic_coords_featurizer._featurize(self.mol)
     assert isinstance(coords, np.ndarray)
     assert coords.shape == (N, 3)
 
@@ -49,7 +46,7 @@ class TestAtomicCoordinates(unittest.TestCase):
     """
     nblist_featurizer = NeighborListAtomicCoordinates()
     N = self.mol.GetNumAtoms()
-    coords = get_coords(self.mol)
+    coords = self.get_angstrom_coords(self.mol)
 
     nblist_featurizer = NeighborListAtomicCoordinates()
     nblist = nblist_featurizer._featurize(self.mol)[1]
@@ -103,7 +100,7 @@ class TestAtomicCoordinates(unittest.TestCase):
 
     # Do a manual distance computation and ensure that selected neighbor is
     # closest since we set max_num_neighbors = 1
-    coords = get_coords(self.mol)
+    coords = self.get_angstrom_coords(self.mol)
     for i in range(N):
       closest_dist = np.inf
       closest_nbr = None
@@ -127,7 +124,7 @@ class TestAtomicCoordinates(unittest.TestCase):
     cutoff = 4.0
     box_size = np.array([10.0, 8.0, 9.0])
     N = self.mol.GetNumAtoms()
-    coords = get_coords(self.mol)
+    coords = self.get_angstrom_coords(self.mol)
     featurizer = NeighborListAtomicCoordinates(
         neighbor_cutoff=cutoff, periodic_box_size=box_size)
     neighborlist = featurizer._featurize(self.mol)[1]

@@ -1,8 +1,16 @@
 #!/bin/bash -e
 
 items=(
-    "deepchem/hyper"
+    "deepchem/data"
     "deepchem/dock"
+    "deepchem/feat"
+    "deepchem/hyper"
+    "deepchem/metalearning"
+    "deepchem/metrics"
+    "deepchem/rl"
+    "deepchem/splits"
+    "deepchem/trans"
+    "deepchem/utils"
 )
 
 for item in "${items[@]}" ; do

@@ -1,11 +1,14 @@
-import collections
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
 
 import deepchem as dc
 import numpy as np
 import tensorflow as tf
 
-from typing import List, Union, Tuple, Iterable, Dict
-from deepchem.utils.typing import OneOrMany, KerasLossFn, KerasActivationFn
+from typing import List, Union, Tuple, Iterable, Dict, Optional
+from deepchem.utils.typing import OneOrMany, LossFn, KerasActivationFn
 from deepchem.data import Dataset, NumpyDataset, pad_features
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
@@ -53,7 +56,7 @@ class WeaveModel(KerasModel):
   --------
 
   Here's an example of how to fit a `WeaveModel` on a tiny sample dataset.
-  
+
   >>> import numpy as np
   >>> import deepchem as dc
   >>> featurizer = dc.feat.WeaveFeaturizer()
@@ -78,70 +81,82 @@ class WeaveModel(KerasModel):
 
   """
 
-  def __init__(self,
-               n_tasks: int,
-               n_atom_feat: OneOrMany[int] = 75,
-               n_pair_feat: OneOrMany[int] = 14,
-               n_hidden: int = 50,
-               n_graph_feat: int = 128,
-               n_weave: int = 2,
-               fully_connected_layer_sizes: List[int] = [2000, 100],
-               weight_init_stddevs: OneOrMany[float] = [0.01, 0.04],
-               bias_init_consts: OneOrMany[float] = [0.5, 3.0],
-               weight_decay_penalty: float = 0.0,
-               weight_decay_penalty_type: str = "l2",
-               dropouts: OneOrMany[float] = 0.25,
-               activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
-               batch_normalize: bool = True,
-               batch_normalize_kwargs: Dict = {
-                   "renorm": True,
-                   "fused": False
-               },
-               gaussian_expand: bool = True,
-               compress_post_gaussian_expansion: bool = False,
-               mode: str = "classification",
-               n_classes: int = 2,
-               batch_size: int = 100,
-               **kwargs):
+  def __init__(
+      self,
+      n_tasks: int,
+      n_atom_feat: OneOrMany[int] = 75,
+      n_pair_feat: OneOrMany[int] = 14,
+      n_hidden: int = 50,
+      n_graph_feat: int = 128,
+      n_weave: int = 2,
+      fully_connected_layer_sizes: List[int] = [2000, 100],
+      conv_weight_init_stddevs: OneOrMany[float] = 0.03,
+      weight_init_stddevs: OneOrMany[float] = 0.01,
+      bias_init_consts: OneOrMany[float] = 0.0,
+      weight_decay_penalty: float = 0.0,
+      weight_decay_penalty_type: str = "l2",
+      dropouts: OneOrMany[float] = 0.25,
+      final_conv_activation_fn: Optional[KerasActivationFn] = tf.nn.tanh,
+      activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
+      batch_normalize: bool = True,
+      batch_normalize_kwargs: Dict = {
+          "renorm": True,
+          "fused": False
+      },
+      gaussian_expand: bool = True,
+      compress_post_gaussian_expansion: bool = False,
+      mode: str = "classification",
+      n_classes: int = 2,
+      batch_size: int = 100,
+      **kwargs):
     """
     Parameters
     ----------
     n_tasks: int
       Number of tasks
-    n_atom_feat: int, optional
-      Number of features per atom.
-    n_pair_feat: int, optional
+    n_atom_feat: int, optional (default 75)
+      Number of features per atom. Note this is 75 by default and should be 78
+      if chirality is used by `WeaveFeaturizer`.
+    n_pair_feat: int, optional (default 14)
       Number of features per pair of atoms.
-    n_hidden: int, optional
+    n_hidden: int, optional (default 50)
       Number of units(convolution depths) in corresponding hidden layer
-    n_graph_feat: int, optional
+    n_graph_feat: int, optional (default 128)
       Number of output features for each molecule(graph)
-    n_weave: int, optional
+    n_weave: int, optional (default 2)
       The number of weave layers in this model.
-    fully_connected_layer_sizes: list
+    fully_connected_layer_sizes: list (default `[2000, 100]`)
       The size of each dense layer in the network.  The length of
       this list determines the number of layers.
-    weight_init_stddevs: list or float
+    conv_weight_init_stddevs: list or float (default 0.03)
       The standard deviation of the distribution to use for weight
-      initialization of each layer.  The length of this list should
-      equal len(layer_sizes).  Alternatively this may be a single
-      value instead of a list, in which case the same value is used
-      for every layer.
-    bias_init_consts: list or float
-      The value to initialize the biases in each layer to.  The
+      initialization of each convolutional layer. The length of this lisst
+      should equal `n_weave`. Alternatively, this may be a single value instead
+      of a list, in which case the same value is used for each layer.
+    weight_init_stddevs: list or float (default 0.01)
+      The standard deviation of the distribution to use for weight
+      initialization of each fully connected layer.  The length of this list
+      should equal len(layer_sizes).  Alternatively this may be a single value
+      instead of a list, in which case the same value is used for every layer.
+    bias_init_consts: list or float (default 0.0)
+      The value to initialize the biases in each fully connected layer.  The
       length of this list should equal len(layer_sizes).
       Alternatively this may be a single value instead of a list, in
       which case the same value is used for every layer.
-    weight_decay_penalty: float
+    weight_decay_penalty: float (default 0.0)
       The magnitude of the weight decay penalty to use
-    weight_decay_penalty_type: str
+    weight_decay_penalty_type: str (default "l2")
       The type of penalty to use for weight decay, either 'l1' or 'l2'
-    dropouts: list or float
-      The dropout probablity to use for each layer.  The length of this list
+    dropouts: list or float (default 0.25)
+      The dropout probablity to use for each fully connected layer.  The length of this list
       should equal len(layer_sizes).  Alternatively this may be a single value
       instead of a list, in which case the same value is used for every layer.
-    activation_fns: list or object
-      The Tensorflow activation function to apply to each layer.  The length
+    final_conv_activation_fn: Optional[KerasActivationFn] (default `tf.nn.tanh`)
+      The Tensorflow activation funcntion to apply to the final
+      convolution at the end of the weave convolutions. If `None`, then no
+      activate is applied (hence linear).
+    activation_fns: list or object (default `tf.nn.relu`)
+      The Tensorflow activation function to apply to each fully connected layer.  The length
       of this list should equal len(layer_sizes).  Alternatively this may be a
       single value instead of a list, in which case the same value is used for
       every layer.
@@ -159,26 +174,30 @@ class WeaveModel(KerasModel):
     compress_post_gaussian_expansion: bool, optional (default False)
       If True, compress the results of the Gaussian expansion back to the
       original dimensions of the input.
-    mode: str
+    mode: str (default "classification")
       Either "classification" or "regression" for type of model.
-    n_classes: int
+    n_classes: int (default 2)
       Number of classes to predict (only used in classification mode)
+    batch_size: int (default 100)
+      Batch size used by this model for training.
     """
     if mode not in ['classification', 'regression']:
       raise ValueError("mode must be either 'classification' or 'regression'")
 
-    if not isinstance(n_atom_feat, collections.Sequence):
+    if not isinstance(n_atom_feat, SequenceCollection):
       n_atom_feat = [n_atom_feat] * n_weave
-    if not isinstance(n_pair_feat, collections.Sequence):
+    if not isinstance(n_pair_feat, SequenceCollection):
       n_pair_feat = [n_pair_feat] * n_weave
     n_layers = len(fully_connected_layer_sizes)
-    if not isinstance(weight_init_stddevs, collections.Sequence):
+    if not isinstance(conv_weight_init_stddevs, SequenceCollection):
+      conv_weight_init_stddevs = [conv_weight_init_stddevs] * n_weave
+    if not isinstance(weight_init_stddevs, SequenceCollection):
       weight_init_stddevs = [weight_init_stddevs] * n_layers
-    if not isinstance(bias_init_consts, collections.Sequence):
+    if not isinstance(bias_init_consts, SequenceCollection):
       bias_init_consts = [bias_init_consts] * n_layers
-    if not isinstance(dropouts, collections.Sequence):
+    if not isinstance(dropouts, SequenceCollection):
       dropouts = [dropouts] * n_layers
-    if not isinstance(activation_fns, collections.Sequence):
+    if not isinstance(activation_fns, SequenceCollection):
       activation_fns = [activation_fns] * n_layers
     if weight_decay_penalty != 0.0:
       if weight_decay_penalty_type == 'l1':
@@ -197,7 +216,6 @@ class WeaveModel(KerasModel):
     self.n_classes = n_classes
 
     # Build the model.
-
     atom_features = Input(shape=(self.n_atom_feat[0],))
     pair_features = Input(shape=(self.n_pair_feat[0],))
     pair_split = Input(shape=tuple(), dtype=tf.int32)
@@ -218,12 +236,16 @@ class WeaveModel(KerasModel):
           n_pair_input_feat=n_pair,
           n_atom_output_feat=n_atom_next,
           n_pair_output_feat=n_pair_next,
+          init=tf.keras.initializers.TruncatedNormal(
+              stddev=conv_weight_init_stddevs[ind]),
           batch_normalize=batch_normalize)(inputs)
       inputs = [weave_layer_ind_A, weave_layer_ind_P, pair_split, atom_to_pair]
     # Final atom-layer convolution. Note this differs slightly from the paper
-    # since we use a tanh activation. This seems necessary for numerical
+    # since we use a tanh activation as default. This seems necessary for numerical
     # stability.
-    dense1 = Dense(self.n_graph_feat, activation=tf.nn.tanh)(weave_layer_ind_A)
+    dense1 = Dense(
+        self.n_graph_feat,
+        activation=final_conv_activation_fn)(weave_layer_ind_A)
     if batch_normalize:
       dense1 = BatchNormalization(**batch_normalize_kwargs)(dense1)
     weave_gather = layers.WeaveGather(
@@ -277,6 +299,71 @@ class WeaveModel(KerasModel):
     super(WeaveModel, self).__init__(
         model, loss, output_types=output_types, batch_size=batch_size, **kwargs)
 
+  def compute_features_on_batch(self, X_b):
+    """Compute tensors that will be input into the model from featurized representation.
+
+    The featurized input to `WeaveModel` is instances of `WeaveMol` created by
+    `WeaveFeaturizer`. This method converts input `WeaveMol` objects into
+    tensors used by the Keras implementation to compute `WeaveModel` outputs.
+
+    Parameters
+    ----------
+    X_b: np.ndarray
+      A numpy array with dtype=object where elements are `WeaveMol` objects.
+
+    Returns
+    -------
+    atom_feat: np.ndarray
+      Of shape `(N_atoms, N_atom_feat)`.
+    pair_feat: np.ndarray
+      Of shape `(N_pairs, N_pair_feat)`. Note that `N_pairs` will depend on
+      the number of pairs being considered. If `max_pair_distance` is
+      `None`, then this will be `N_atoms**2`. Else it will be the number
+      of pairs within the specifed graph distance.
+    pair_split: np.ndarray
+      Of shape `(N_pairs,)`. The i-th entry in this array will tell you the
+      originating atom for this pair (the "source"). Note that pairs are
+      symmetric so for a pair `(a, b)`, both `a` and `b` will separately be
+      sources at different points in this array.
+    atom_split: np.ndarray
+      Of shape `(N_atoms,)`. The i-th entry in this array will be the molecule
+      with the i-th atom belongs to.
+    atom_to_pair: np.ndarray
+      Of shape `(N_pairs, 2)`. The i-th row in this array will be the array
+      `[a, b]` if `(a, b)` is a pair to be considered. (Note by symmetry, this
+      implies some other row will contain `[b, a]`.
+    """
+    atom_feat = []
+    pair_feat = []
+    atom_split = []
+    atom_to_pair = []
+    pair_split = []
+    start = 0
+    for im, mol in enumerate(X_b):
+      n_atoms = mol.get_num_atoms()
+      # pair_edges is of shape (2, N)
+      pair_edges = mol.get_pair_edges()
+      N_pairs = pair_edges[1]
+      # number of atoms in each molecule
+      atom_split.extend([im] * n_atoms)
+      # index of pair features
+      C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
+      atom_to_pair.append(pair_edges.T + start)
+      # Get starting pair atoms
+      pair_starts = pair_edges.T[:, 0]
+      # number of pairs for each atom
+      pair_split.extend(pair_starts + start)
+      start = start + n_atoms
+
+      # atom features
+      atom_feat.append(mol.get_atom_features())
+      # pair features
+      pair_feat.append(mol.get_pair_features())
+
+    return (np.concatenate(atom_feat, axis=0), np.concatenate(
+        pair_feat, axis=0), np.array(pair_split), np.array(atom_split),
+            np.concatenate(atom_to_pair, axis=0))
+
   def default_generator(
       self,
       dataset: Dataset,
@@ -313,40 +400,7 @@ class WeaveModel(KerasModel):
           if self.mode == 'classification':
             y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
                 -1, self.n_tasks, self.n_classes)
-        atom_feat = []
-        pair_feat = []
-        atom_split = []
-        atom_to_pair = []
-        pair_split = []
-        start = 0
-        for im, mol in enumerate(X_b):
-          n_atoms = mol.get_num_atoms()
-          # number of atoms in each molecule
-          atom_split.extend([im] * n_atoms)
-          # index of pair features
-          C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
-          atom_to_pair.append(
-              np.transpose(
-                  np.array([C1.flatten() + start,
-                            C0.flatten() + start])))
-          # number of pairs for each atom
-          pair_split.extend(C1.flatten() + start)
-          start = start + n_atoms
-
-          # atom features
-          atom_feat.append(mol.get_atom_features())
-          # pair features
-          pair_feat.append(
-              np.reshape(mol.get_pair_features(),
-                         (n_atoms * n_atoms, self.n_pair_feat[0])))
-
-        inputs = [
-            np.concatenate(atom_feat, axis=0),
-            np.concatenate(pair_feat, axis=0),
-            np.array(pair_split),
-            np.array(atom_split),
-            np.concatenate(atom_to_pair, axis=0)
-        ]
+        inputs = self.compute_features_on_batch(X_b)
         yield (inputs, [y_b], [w_b])
 
 
@@ -514,7 +568,7 @@ class DTNNModel(KerasModel):
 class DAGModel(KerasModel):
   """Directed Acyclic Graph models for molecular property prediction.
 
-    This model is based on the following paper: 
+    This model is based on the following paper:
 
     Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575.
 
@@ -528,7 +582,7 @@ class DAGModel(KerasModel):
 
    This model accepts ConvMols as input, just as GraphConvModel
    does, but these ConvMol objects must be transformed by
-   dc.trans.DAGTransformer. 
+   dc.trans.DAGTransformer.
 
    As a note, performance of this model can be a little
    sensitive to initialization. It might be worth training a few
@@ -549,7 +603,7 @@ class DAGModel(KerasModel):
                uncertainty=False,
                batch_size=100,
                **kwargs):
-    """   
+    """
     Parameters
     ----------
     n_tasks: int
@@ -739,7 +793,7 @@ class _GraphConvKerasModel(tf.keras.Model):
     self.mode = mode
     self.uncertainty = uncertainty
 
-    if not isinstance(dropout, collections.Sequence):
+    if not isinstance(dropout, SequenceCollection):
       dropout = [dropout] * (len(graph_conv_layers) + 1)
     if len(dropout) != len(graph_conv_layers) + 1:
       raise ValueError('Wrong number of dropout probabilities provided')
@@ -853,7 +907,7 @@ class GraphConvModel(KerasModel):
 
     Note that since the underlying _GraphConvKerasModel class is
     specified using imperative subclassing style, this model
-    cannout make predictions for arbitrary outputs. 
+    cannout make predictions for arbitrary outputs.
 
     Parameters
     ----------
@@ -901,7 +955,7 @@ class GraphConvModel(KerasModel):
         batch_size=batch_size)
     if mode == "classification":
       output_types = ['prediction', 'loss', 'embedding']
-      loss: Union[Loss, KerasLossFn] = SoftmaxCrossEntropy()
+      loss: Union[Loss, LossFn] = SoftmaxCrossEntropy()
     else:
       if self.uncertainty:
         output_types = ['prediction', 'variance', 'loss', 'loss', 'embedding']

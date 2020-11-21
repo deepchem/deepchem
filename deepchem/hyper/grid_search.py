@@ -15,7 +15,6 @@ from typing import Dict, List, Optional
 from deepchem.data import Dataset
 from deepchem.trans import Transformer
 from deepchem.metrics import Metric
-from deepchem.utils.evaluate import Evaluator
 from deepchem.hyper.base_classes import HyperparamOpt
 from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
 
@@ -60,17 +59,16 @@ class GridHyperparamOpt(HyperparamOpt):
 
   """
 
-  # NOTE: mypy prohibits changing the number of arguments
-  # FIXME: Signature of "hyperparam_search" incompatible with supertype "HyperparamOpt"
-  def hyperparam_search(  # type: ignore[override]
+  def hyperparam_search(
       self,
-      params_dict: Dict[str, List],
+      params_dict: Dict,
       train_dataset: Dataset,
       valid_dataset: Dataset,
-      output_transformers: List[Transformer],
       metric: Metric,
+      output_transformers: List[Transformer] = [],
       use_max: bool = True,
       logdir: Optional[str] = None,
+      **kwargs,
   ):
     """Perform hyperparams search according to params_dict.
 
@@ -86,13 +84,13 @@ class GridHyperparamOpt(HyperparamOpt):
       dataset used for training
     valid_dataset: Dataset
       dataset used for validation(optimization on valid scores)
+    metric: Metric
+      metric used for evaluation
     output_transformers: list[Transformer]
       Transformers for evaluation. This argument is needed since
       `train_dataset` and `valid_dataset` may have been transformed
       for learning and need the transform to be inverted before
       the metric can be evaluated on a model.
-    metric: Metric
-      metric used for evaluation
     use_max: bool, optional
       If True, return the model with the highest score. Else return
       model with the minimum score.
@@ -112,7 +110,7 @@ class GridHyperparamOpt(HyperparamOpt):
     hyperparams = params_dict.keys()
     hyperparam_vals = params_dict.values()
     for hyperparam_list in params_dict.values():
-      assert isinstance(hyperparam_list, collections.Iterable)
+      assert isinstance(hyperparam_list, collections.abc.Iterable)
 
     number_combinations = reduce(mul, [len(vals) for vals in hyperparam_vals])
 
@@ -153,8 +151,8 @@ class GridHyperparamOpt(HyperparamOpt):
       except NotImplementedError:
         pass
 
-      evaluator = Evaluator(model, valid_dataset, output_transformers)
-      multitask_scores = evaluator.compute_model_performance([metric])
+      multitask_scores = model.evaluate(valid_dataset, [metric],
+                                        output_transformers)
       valid_score = multitask_scores[metric.name]
       hp_str = _convert_hyperparam_dict_to_filename(hyper_params)
       all_scores[hp_str] = valid_score
@@ -178,8 +176,8 @@ class GridHyperparamOpt(HyperparamOpt):
       # arbitrarily return last model
       best_model, best_hyperparams = model, hyperparameter_tuple
       return best_model, best_hyperparams, all_scores
-    train_evaluator = Evaluator(best_model, train_dataset, output_transformers)
-    multitask_scores = train_evaluator.compute_model_performance([metric])
+    multitask_scores = best_model.evaluate(train_dataset, [metric],
+                                           output_transformers)
     train_score = multitask_scores[metric.name]
     logger.info("Best hyperparameters: %s" % str(best_hyperparams))
     logger.info("train_score: %f" % train_score)

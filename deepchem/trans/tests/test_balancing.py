@@ -1,8 +1,9 @@
-import os
-import numpy as np
-import deepchem as dc
 import itertools
 import tempfile
+
+import numpy as np
+
+import deepchem as dc
 
 
 def test_binary_1d():
@@ -130,7 +131,6 @@ def test_multiclass_singletask():
   for ind, task in enumerate(dataset.get_task_names()):
     y_task = y_t[:, ind]
     w_task = w_t[:, ind]
-    w_orig_task = w[:, ind]
     # Check that sum of 0s equals sum of 1s in transformed for each task
     for i, j in itertools.product(range(n_classes), range(n_classes)):
       if i == j:

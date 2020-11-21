@@ -58,13 +58,13 @@ def gen_kaggle(KAGGLE_tasks,
   test_files = os.path.join(data_dir,
                             "KAGGLE_test2_disguised_combined_full.csv.gz")
   if not os.path.exists(train_files):
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KAGGLE_training_disguised_combined_full.csv.gz",
         dest_dir=data_dir)
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KAGGLE_test1_disguised_combined_full.csv.gz",
         dest_dir=data_dir)
-    deepchem.utils.download_url(
+    deepchem.utils.data_utils.download_url(
         "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KAGGLE_test2_disguised_combined_full.csv.gz",
         dest_dir=data_dir)
 
@@ -153,7 +153,7 @@ def load_kaggle(shard_size=2000, featurizer=None, split=None, reload=True):
       '3A4', 'CB1', 'DPP4', 'HIVINT', 'HIV_PROT', 'LOGD', 'METAB', 'NK1', 'OX1',
       'OX2', 'PGP', 'PPB', 'RAT_F', 'TDI', 'THROMBIN'
   ]
-  data_dir = deepchem.utils.get_data_dir()
+  data_dir = deepchem.utils.data_utils.get_data_dir()
 
   data_dir = os.path.join(data_dir, "kaggle")
   if not os.path.exists(data_dir):
