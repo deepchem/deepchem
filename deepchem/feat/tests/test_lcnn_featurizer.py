@@ -87,7 +87,3 @@ def test_LCNNFeaturizer():
     assert np.all(data['X_NSs'] == check2)
     assert data['X_Sites'].shape == (4, 3)
     assert data['X_NSs'].shape == (1, 4, 6, 19)
-
-
-if __name__ == "__main__":
-    test_LCNNFeaturizer()
