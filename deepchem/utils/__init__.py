@@ -84,6 +84,7 @@ from deepchem.utils.pdbqt_utils import convert_mol_to_pdbqt
 
 from deepchem.utils.vina_utils import write_vina_conf
 from deepchem.utils.vina_utils import load_docked_ligands
+from deepchem.utils.vina_utils import prepare_inputs
 
 from deepchem.utils.voxel_utils import convert_atom_to_voxel
 from deepchem.utils.voxel_utils import convert_atom_pair_to_voxel

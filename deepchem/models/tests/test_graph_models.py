@@ -50,7 +50,7 @@ def test_graph_conv_model():
       batch_normalize=False,
       mode='classification')
 
-  model.fit(dataset, nb_epoch=10)
+  model.fit(dataset, nb_epoch=20)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.9
 

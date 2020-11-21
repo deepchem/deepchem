@@ -25,3 +25,23 @@ class TestVinaUtils(unittest.TestCase):
       xyz = rdkit_utils.get_xyz_from_mol(ligand)
       assert score < 0  # This is a binding free energy
       assert np.count_nonzero(xyz) > 0
+
+  def test_prepare_inputs(self):
+    pdbid = '3cyx'
+    ligand_smiles = 'CC(C)(C)NC(O)C1CC2CCCCC2C[NH+]1CC(O)C(CC1CCCCC1)NC(O)C(CC(N)O)NC(O)C1CCC2CCCCC2N1'
+
+    protein, ligand = vina_utils.prepare_inputs(
+        pdbid, ligand_smiles, pdb_name=pdbid)
+
+    assert np.isclose(protein.GetNumAtoms(), 1415, atol=3)
+    assert np.isclose(ligand.GetNumAtoms(), 124, atol=3)
+
+    protein, ligand = vina_utils.prepare_inputs(pdbid + '.pdb',
+                                                'ligand_' + pdbid + '.pdb')
+
+    assert np.isclose(protein.GetNumAtoms(), 1415, atol=3)
+    assert np.isclose(ligand.GetNumAtoms(), 124, atol=3)
+
+    os.remove(pdbid + '.pdb')
+    os.remove('ligand_' + pdbid + '.pdb')
+    os.remove('tmp.pdb')

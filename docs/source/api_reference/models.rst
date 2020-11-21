@@ -129,6 +129,9 @@ read off what's needed to train the model from the table below.
 | :code:`GCNModel`                       | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
 |                                        | Regressor  |                      |                        |                                                                |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
+| :code:`AttentiveFPModel`               | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
+|                                        | Regressor  |                      |                        |                                                                |                      |
++----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
 
 Model
 -----
@@ -449,4 +452,19 @@ GCNModel
 --------
 
 .. autoclass:: deepchem.models.GCNModel
+  :members:
+
+AttentiveFPModel
+----------------
+
+.. autoclass:: deepchem.models.AttentiveFPModel
+  :members:
+
+MPNNModel
+---------
+
+Note that this is an alternative implementation for MPNN and currently you can only import it from
+``deepchem.models.torch_models``.
+
+.. autoclass:: deepchem.models.torch_models.MPNNModel
   :members:
