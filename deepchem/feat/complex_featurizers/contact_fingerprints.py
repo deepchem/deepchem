@@ -6,9 +6,7 @@ import logging
 import itertools
 from deepchem.utils.hash_utils import hash_ecfp
 from deepchem.feat import ComplexFeaturizer
-from deepchem.utils import rdkit_utils
 from deepchem.utils.rdkit_utils import load_complex
-from deepchem.utils.rdkit_utils import load_molecule
 from deepchem.utils.hash_utils import vectorize
 from deepchem.utils.voxel_utils import voxelize
 from deepchem.utils.voxel_utils import convert_atom_to_voxel

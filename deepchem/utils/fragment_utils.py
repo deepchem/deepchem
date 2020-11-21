@@ -3,10 +3,17 @@ import itertools
 import numpy as np
 from typing import List, Optional, Sequence, Set, Tuple, Union
 
+import logging
 from deepchem.utils.typing import RDKitAtom, RDKitMol
 from deepchem.utils.geometry_utils import compute_pairwise_distances
 
-#from deepchem.utils.rdkit_utils import compute_charges
+logger = logging.getLogger(__name__)
+
+
+class MoleculeLoadException(Exception):
+
+  def __init__(self, *args, **kwargs):
+    Exception.__init__(*args, **kwargs)
 
 
 class AtomShim(object):
@@ -394,5 +401,5 @@ def compute_charges(mol):
     # Updates charges in place
     AllChem.ComputeGasteigerCharges(mol)
   except Exception as e:
-    logging.exception("Unable to compute charges for mol")
+    logger.exception("Unable to compute charges for mol")
     raise MoleculeLoadException(e)

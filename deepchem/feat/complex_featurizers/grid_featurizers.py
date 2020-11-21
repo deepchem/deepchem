@@ -6,7 +6,6 @@ import logging
 import numpy as np
 from deepchem.utils import rdkit_utils
 from deepchem.feat import ComplexFeaturizer
-from deepchem.utils.hash_utils import hash_ecfp_pair
 from deepchem.utils.voxel_utils import voxelize
 from deepchem.utils.voxel_utils import convert_atom_to_voxel
 from deepchem.utils.voxel_utils import convert_atom_pair_to_voxel
@@ -203,7 +202,7 @@ class SaltBridgeVoxelizer(ComplexFeaturizer):
       frag1_xyz = subtract_centroid(frag1[0], centroid)
       frag2_xyz = subtract_centroid(frag2[0], centroid)
       xyzs = [frag1_xyz, frag2_xyz]
-      rdks = [frag1[1], frag2[1]]
+      # rdks = [frag1[1], frag2[1]]
       pairwise_features.append(
           sum([
               voxelize(
@@ -286,11 +285,11 @@ class CationPiVoxelizer(ComplexFeaturizer):
     for (frag1_ind, frag2_ind) in itertools.combinations(
         range(len(fragments)), 2):
       frag1, frag2 = fragments[frag1_ind], fragments[frag2_ind]
-      distances = compute_pairwise_distances(frag1[0], frag2[0])
+      # distances = compute_pairwise_distances(frag1[0], frag2[0])
       frag1_xyz = subtract_centroid(frag1[0], centroid)
       frag2_xyz = subtract_centroid(frag2[0], centroid)
       xyzs = [frag1_xyz, frag2_xyz]
-      rdks = [frag1[1], frag2[1]]
+      # rdks = [frag1[1], frag2[1]]
       pairwise_features.append(
           sum([
               voxelize(
@@ -385,7 +384,7 @@ class PiStackVoxelizer(ComplexFeaturizer):
       frag1_xyz = subtract_centroid(frag1[0], centroid)
       frag2_xyz = subtract_centroid(frag2[0], centroid)
       xyzs = [frag1_xyz, frag2_xyz]
-      rdks = [frag1[1], frag2[1]]
+      # rdks = [frag1[1], frag2[1]]
       protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel = (
           compute_pi_stack(
               frag1[1],
@@ -446,7 +445,7 @@ class HydrogenBondCounter(ComplexFeaturizer):
     ----------
     cutoff: float (default 4.5)
       Distance cutoff in angstroms for molecules in complex.
-    distance_bins: list[tuple] 
+    distance_bins: list[tuple]
       List of hydgrogen bond distance bins. If not specified is
       set to default
       `[(2.2, 2.5), (2.5, 3.2), (3.2, 4.0)]`.
@@ -491,7 +490,7 @@ class HydrogenBondCounter(ComplexFeaturizer):
       return None
     pairwise_features = []
     # We compute pairwise contact fingerprints
-    centroid = compute_contact_centroid(fragments, cutoff=self.cutoff)
+    # centroid = compute_contact_centroid(fragments, cutoff=self.cutoff)
     if self.reduce_to_contacts:
       fragments = reduce_molecular_complex_to_contacts(fragments, self.cutoff)
     # We compute pairwise contact fingerprints
@@ -499,10 +498,10 @@ class HydrogenBondCounter(ComplexFeaturizer):
         range(len(fragments)), 2):
       frag1, frag2 = fragments[frag1_ind], fragments[frag2_ind]
       distances = compute_pairwise_distances(frag1[0], frag2[0])
-      frag1_xyz = subtract_centroid(frag1[0], centroid)
-      frag2_xyz = subtract_centroid(frag2[0], centroid)
-      xyzs = [frag1_xyz, frag2_xyz]
-      rdks = [frag1[1], frag2[1]]
+      # frag1_xyz = subtract_centroid(frag1[0], centroid)
+      # frag2_xyz = subtract_centroid(frag2[0], centroid)
+      # xyzs = [frag1_xyz, frag2_xyz]
+      # rdks = [frag1[1], frag2[1]]
       pairwise_features.append(
           np.concatenate(
               [
@@ -546,7 +545,7 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
     ----------
     cutoff: float (default 4.5)
       Distance cutoff in angstroms for contact atoms in complex.
-    distance_bins: list[tuple] 
+    distance_bins: list[tuple]
       List of hydgrogen bond distance bins. If not specified is
       set to default
       `[(2.2, 2.5), (2.5, 3.2), (3.2, 4.0)]`.
@@ -608,7 +607,7 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
       frag1_xyz = subtract_centroid(frag1[0], centroid)
       frag2_xyz = subtract_centroid(frag2[0], centroid)
       xyzs = [frag1_xyz, frag2_xyz]
-      rdks = [frag1[1], frag2[1]]
+      # rdks = [frag1[1], frag2[1]]
       pairwise_features.append(
           np.concatenate(
               [

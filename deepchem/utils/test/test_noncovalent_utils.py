@@ -21,7 +21,7 @@ class TestPiInteractions(unittest.TestCase):
     from rdkit.Chem import MolFromSmiles
     from rdkit.Chem.rdDepictor import Compute2DCoords
     self.cycle4 = MolFromSmiles('C1CCC1')
-    #self.cycle4.Compute2DCoords()
+    # self.cycle4.Compute2DCoords()
     Compute2DCoords(self.cycle4)
 
     # load and sanitize two real molecules
@@ -118,10 +118,10 @@ class TestPiInteractions(unittest.TestCase):
     self.assertFalse(
         is_cation_pi(cation_position, ring_center_false, ring_normal_true))
 
-  def test_compute_cation_pi(self):
-    # TODO(rbharath): find better example, currently dicts are empty
-    dicts1 = compute_cation_pi(self.prot, self.lig)
-    dicts2 = compute_cation_pi(self.lig, self.prot)
+  # def test_compute_cation_pi(self):
+  #   # TODO(rbharath): find better example, currently dicts are empty
+  #   dicts1 = compute_cation_pi(self.prot, self.lig)
+  #   dicts2 = compute_cation_pi(self.lig, self.prot)
 
   def test_compute_binding_pocket_cation_pi(self):
     # TODO find better example, currently dicts are empty

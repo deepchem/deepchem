@@ -5,7 +5,7 @@ from deepchem.utils.fragment_utils import get_partial_charge
 from deepchem.utils.rdkit_utils import compute_ring_center
 from deepchem.utils.rdkit_utils import compute_ring_normal
 from deepchem.utils.geometry_utils import angle_between
-from deepchem.utils.geometry_utils import compute_centroid
+from deepchem.utils.geometry_utils import is_angle_within_cutoff
 
 
 def is_salt_bridge(atom_i, atom_j):
@@ -17,7 +17,7 @@ def is_salt_bridge(atom_i, atom_j):
 
 
 def compute_salt_bridges(first, second, pairwise_distances, cutoff=5.0):
-  """Find salt bridge contacts between two molecules. 
+  """Find salt bridge contacts between two molecules.
 
   Parameters:
   -----------
@@ -65,11 +65,11 @@ def is_hydrogen_bond(frag1,
   frag2: tuple
     Tuple of (coords, rdkit mol / MolecularFragment)
   contact: Tuple
-    Tuple of indices for (atom_i, atom_j) contact. 
+    Tuple of indices for (atom_i, atom_j) contact.
   hbond_distance_cutoff: float, optional
-    Distance cutoff for hbond. 
+    Distance cutoff for hbond.
   hbond_angle_cutoff: float, optional
-    Angle deviance cutoff for hbond 
+    Angle deviance cutoff for hbond
   """
   frag1_xyz, frag2_xyz = frag1[0], frag2[0]
   frag1_mol, frag2_mol = frag1[1], frag2[1]
@@ -124,7 +124,7 @@ def compute_hbonds_in_range(frag1, frag2, pairwise_distances, hbond_dist_bin,
   pairwise_distances:
     Matrix of shape `(N, M)` with pairwise distances between frag1/frag2.
   hbond_dist_bin: tuple
-    Tuple of floats `(min_dist, max_dist)` in angstroms. 
+    Tuple of floats `(min_dist, max_dist)` in angstroms.
   hbond_angle_cutoffs: list[float]
     List of angles of deviances allowed for hbonds
   """

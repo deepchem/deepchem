@@ -18,16 +18,11 @@ from deepchem.utils.pdbqt_utils import convert_protein_to_pdbqt
 from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.utils.geometry_utils import compute_centroid
 from deepchem.utils.fragment_utils import MolecularFragment
+from deepchem.utils.fragment_utils import MoleculeLoadException
 from typing import Any, List, Tuple, Set, Optional, Dict
 from deepchem.utils.typing import OneOrMany, RDKitMol
 
 logger = logging.getLogger(__name__)
-
-
-class MoleculeLoadException(Exception):
-
-  def __init__(self, *args, **kwargs):
-    Exception.__init__(*args, **kwargs)
 
 
 def get_xyz_from_mol(mol):
@@ -397,10 +392,10 @@ def compute_all_ecfp(mol: RDKitMol,
   degree: int
     Graph degree to use when computing ECFP fingerprints
 
-  Parameters
+  Returns
   ----------
-  
-
+  dict
+    Dictionary mapping atom index to hashed smiles.
   """
 
   ecfp_dict = {}
@@ -468,7 +463,7 @@ def reduce_molecular_complex_to_contacts(fragments: List,
   is a tuple of `(coords, MolecularShim)`. The coords is stripped down
   to `(N_contact_atoms, 3)` where `N_contact_atoms` is the number of
   contact atoms for this complex. `MolecularShim` is used since it's
-  tricky to make a RDKit sub-molecule. 
+  tricky to make a RDKit sub-molecule.
   """
   atoms_to_keep = get_contact_atom_indices(fragments, cutoff)
   reduced_complex = []
@@ -563,7 +558,7 @@ def get_mol_subset(coords, mol, atom_indices_to_keep):
   -------
   A tuple of (coords, mol_frag) where coords is a Numpy array of
   coordinates with hydrogen coordinates. mol_frag is a
-  `MolecularFragment`. 
+  `MolecularFragment`.
   """
   from rdkit import Chem
   indexes_to_keep = []

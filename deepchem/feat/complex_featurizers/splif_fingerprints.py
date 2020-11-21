@@ -9,11 +9,9 @@ from deepchem.utils.rdkit_utils import load_complex
 from deepchem.utils.rdkit_utils import compute_all_ecfp
 from deepchem.utils.rdkit_utils import MoleculeLoadException
 from deepchem.utils.rdkit_utils import compute_contact_centroid
-from deepchem.utils.rdkit_utils import reduce_molecular_complex_to_contacts
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils.hash_utils import vectorize
 from deepchem.utils.voxel_utils import voxelize
-from deepchem.utils.voxel_utils import convert_atom_to_voxel
 from deepchem.utils.voxel_utils import convert_atom_pair_to_voxel
 from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.utils.geometry_utils import subtract_centroid
@@ -106,7 +104,7 @@ class SplifFingerprint(ComplexFeaturizer):
   """Computes SPLIF Fingerprints for a macromolecular complex.
 
   SPLIF fingerprints are based on a technique introduced in the
-  following paper. 
+  following paper.
 
   Da, C., and D. Kireev. "Structural protein–ligand interaction
   fingerprints (SPLIF) for structure-based virtual screening:
@@ -133,7 +131,7 @@ class SplifFingerprint(ComplexFeaturizer):
     """
     Parameters
     ----------
-    contact_bins: list[tuple] 
+    contact_bins: list[tuple]
       List of contact bins. If not specified is set to default
       `[(0, 2.0), (2.0, 3.0), (3.0, 4.5)]`.
     radius : int, optional (default 2)
@@ -171,7 +169,7 @@ class SplifFingerprint(ComplexFeaturizer):
     for (frag1, frag2) in itertools.combinations(fragments, 2):
       # Get coordinates
       distances = compute_pairwise_distances(frag1[0], frag2[0])
-      #distances = compute_pairwise_distances(prot_xyz, lig_xyz)
+      # distances = compute_pairwise_distances(prot_xyz, lig_xyz)
       vectors = [
           vectorize(hash_ecfp_pair, feature_dict=splif_dict,
                     size=self.size) for splif_dict in featurize_splif(
@@ -217,7 +215,7 @@ class SplifVoxelizer(ComplexFeaturizer):
     ----------
     cutoff: float (default 4.5)
       Distance cutoff in angstroms for molecules in complex.
-    contact_bins: list[tuple] 
+    contact_bins: list[tuple]
       List of contact bins. If not specified is set to default
       `[(0, 2.0), (2.0, 3.0), (3.0, 4.5)]`.
     radius : int, optional (default 2)
