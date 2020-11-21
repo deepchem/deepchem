@@ -7,7 +7,7 @@ class LCNNFeaturizer(Featurizer):
   """
   Calculates the 2-D Surface graph features in 6 diffrent permutaions-
 
-  Based on the implementation of Lattice Graph Convolution Nueral 
+  Based on the implementation of Lattice Graph Convolution Nueral
   Network (LCNN) . This method produces the Atom wise features ( One Hot Enconding)
   and Ajacent neighbor in the specificed order of permutations. Neighbors are determined
   distance metric and Each Permutation of the Neighbors are calculated
@@ -17,19 +17,18 @@ class LCNNFeaturizer(Featurizer):
   First the template of the Primitive cell needs to be defined and then Each
   structure(Data Point or diffrent condifuration of adsorbate atoms) is passed
   for featurization.
-  
+
   [1] The Primitive Template file must be passed as raw text string or path file
-  [2] The datapoint must be passed as raw text string. 
-  
+  [2] The datapoint must be passed as raw text string.
+
   References
   ----------
   [1] Jonathan Lym and Geun Ho Gu, J. Phys. Chem. C 2019, 123, 18951−18959
-  
+
   Examples
   ----------
-      
   The input format for primitive cell Template is stored in a file named
-  
+
   [comment]
   [ax][ay][az][pbc]
   [bx][by][bz][pbc]
@@ -39,15 +38,15 @@ class LCNNFeaturizer(Featurizer):
   [number sites]
   [site1a][site1b][site1c][site type]
   [site2a][site2b][site2c][site type]
-  
+
   - ax,ay, ... are cell basis vector
   - pbc is either T or F indication of the periodic boundary condition
   - os# is the name of the possible occupation state (interpretted as string)
   - site1a,site1b,site1c are the scaled coordinates of site 1
-  - site type can be either S1, S2, ... or A1, A2,... indicating spectator 
+  - site type can be either S1, S2, ... or A1, A2,... indicating spectator
   ...
   Example:
-  #Primitive Cell 
+  #Primitive Cell
   2.81859800e+00  0.00000000e+00  0.00000000e+00 T
   -1.40929900e+00  2.44097800e+00  0.00000000e+00 T
   0.00000000e+00  0.00000000e+00  2.55082550e+01 T
@@ -70,7 +69,7 @@ class LCNNFeaturizer(Featurizer):
   [number sites]
   [site1a][site1b][site1c][site type][occupation state if active site]
   [site2a][site2b][site2c][site type][occupation state if active site]
-  ...  
+  ...
   - property value indicates the trained value. It must start with #y=...
   ...
   Example:
@@ -90,7 +89,7 @@ class LCNNFeaturizer(Featurizer):
   ...
   >>> template_file_path = os.join.path(data_dir , "input.in")
   >>> Featurizer =  np.around(6.00,2)
-  >>> Data_point_path = "Structure1.txt" 
+  >>> Data_point_path = "Structure1.txt"
   >>> Data_point_text = open(Data_point_path).read()
   >>> graph_ob = Featurizer._featurize(Data_point_text)
   >>> print(graph_ob)
@@ -100,9 +99,9 @@ class LCNNFeaturizer(Featurizer):
     """
     Parameters
     ----------
-    cutoff: cutoff of radius for getting local environment.Only 
+    cutoff: cutoff of radius for getting local environment.Only
         used down to 2 digits.
-    
+
     input_file_path: Template primitive stucture file path
     """
     self.cutoff = np.around(cutoff, 2)
@@ -112,13 +111,13 @@ class LCNNFeaturizer(Featurizer):
     """
     Parameters
     ----------
-    structure: Raw text data input as a string 
+    structure: Raw text data input as a string
 
     Returns
     -------
     obj.X_Sites: Node features
     obj.X_NSs: All edges for each node in diffrent permutations. Node 1 consist of
-            6 diffrent permutation , each consisting of neighbors. 
+            6 diffrent permutation , each consisting of neighbors.
     """
     xSites, xNSs = self.setup_env.ReadDatum(structure)
     return {"X_Sites": np.array(xSites), "X_NSs": np.array(xNSs)}
@@ -186,7 +185,7 @@ def InputReader(text, template=False):
 class SiteEnvironment(object):
   def __init__(self, pos, sitetypes, env2config, permutations, cutoff,\
                Grtol=0.0, Gatol=0.01, rtol=0.01, atol=0.0, tol=0.01, grtol=0.01):
-    """ 
+    """
     Initialize site environment
 
     This class contains local site enrivonment information. This is used
@@ -194,19 +193,19 @@ class SiteEnvironment(object):
 
     Parameters
     ----------
-    pos : n x 3 list or numpy array of (non-scaled) positions. n is the 
+    pos : n x 3 list or numpy array of (non-scaled) positions. n is the
         number of atom.
-    sitetypes : n list of string. String must be S or A followed by a 
-        number. S indicates a spectator sites and A indicates a active 
+    sitetypes : n list of string. String must be S or A followed by a
+        number. S indicates a spectator sites and A indicates a active
         sites.
-    permutations : p x n list of list of integer. p is the permutation 
+    permutations : p x n list of list of integer. p is the permutation
         index and n is the number of sites.
     cutoff : float. cutoff used for pooling neighbors. for aesthetics only
     Grtol : relative tolerance in distance for forming an edge in graph
     Gatol : absolute tolerance in distance for forming an edge in graph
     rtol : relative tolerance in rmsd in distance for graph matching
     atol : absolute tolerance in rmsd in distance for graph matching
-    tol : maximum tolerance of position RMSD to decide whether two 
+    tol : maximum tolerance of position RMSD to decide whether two
         environment are the same
     grtol : tolerance for deciding symmetric nodes
     """
@@ -218,7 +217,6 @@ class SiteEnvironment(object):
         from scipy.spatial.distance import pdist, squareform
     except:
         raise ImportError("This class requires scipy to be installed.")
-    
     self.pos = pos
     self.sitetypes = sitetypes
     self.activesiteidx = [i for i, s in enumerate(self.sitetypes) if 'A' in s]
@@ -271,7 +269,7 @@ class SiteEnvironment(object):
     Returns
     ------
     networkx graph used for matching site positions in
-    datum. 
+    datum.
     """
     try:
         import networkx as nx
@@ -305,42 +303,20 @@ class SiteEnvironment(object):
         n += 1
     return G
 
-  def __repr__(self):
-    s = '<' + self.sitetypes[0] + \
-        '|%i active neighbors' % (len([s for s in self.sitetypes if 'A' in s]) - 1) + \
-        '|%i spectator neighbors' % len([s for s in self.sitetypes if 'S' in s]) + \
-        '|%4.2f Ang Cutoff' % self.cutoff + '| %i permutations>' % len(self.permutations)
-    return s
-
-  def __eq__(self, o):
-    """
-    Local environment comparison is done by comparing represented site
-    """
-    if not isinstance(o, SiteEnvironment):
-      raise ValueError
-    return self.sitetypes[0] == o.sitetypes[0]
-
-  def __ne__(self, o):
-    """
-    Local environment comparison is done by comparing represented site
-    """
-    if isinstance(o, SiteEnvironment):
-      raise ValueError
-    return not self.__eq__(o)
-
   def GetMapping(self, env, path=None):
     """
     Returns mapping of sites from input to this object
 
     Pymatgen molecule_matcher does not work unfortunately as it needs to be
     a reasonably physical molecule.
-    Here, the graph is constructed by connecting the nearest neighbor, and 
+    Here, the graph is constructed by connecting the nearest neighbor, and
     isomorphism is performed to find matches, then kabsch algorithm is
     performed to make sure it is a match. NetworkX is used for portability.
 
     Parameters
-    ----------
-    env : dictionary that contains information of local environment of a 
+    ----------any discussion during Thursday 8 Oct. Lect . ok
+
+    env : dictionary that contains information of local environment of a
         site in datum. See _GetSiteEnvironments defintion in the class
         SiteEnvironments for what this variable should be.
 
@@ -401,7 +377,7 @@ class SiteEnvironment(object):
   def _kabsch(self, P, Q):
     """
     Returns rotation matrix to align coordinates using
-    Kabsch algorithm. 
+    Kabsch algorithm.
     """
     C = np.dot(np.transpose(P), Q)
     V, S, W = np.linalg.svd(C)
@@ -430,8 +406,8 @@ class SiteEnvironments(object):
     eigen_tol : tolerance for eigenanalysis of point group analysis in
         pymatgen.
     pbc : periodic boundary condition.
-    cutoff : float. Cutoff radius in angstrom for pooling sites to 
-        construct local environment 
+    cutoff : float. Cutoff radius in angstrom for pooling sites to
+        construct local environment
     """
     self.site_envs = site_envs
     self.unique_site_types = [env.sitetypes[0] for env in self.site_envs]
@@ -442,16 +418,6 @@ class SiteEnvironments(object):
     self.pbc = pbc
     self.cutoff = cutoff
 
-  def __repr__(self):
-    s = '<%i active sites' % (self.na) + '|%i spectator sites' % (self.ns) + '>'
-    return s
-
-  def __getitem__(self, el):
-    """
-    Returns a site environment
-    """
-    return self.site_envs[el]
-
   def ReadDatum(self, text, cutoff_factor=1.1):
     """
     Load structure data and return neighbor information
@@ -459,14 +425,14 @@ class SiteEnvironments(object):
     Parameters
     ----------
     path : path of the structure
-    cutoff_factor : float. this is extra buffer factor multiplied 
-        to cutoff to ensure pooling all relevant sites. 
-            
+    cutoff_factor : float. this is extra buffer factor multiplied
+        to cutoff to ensure pooling all relevant sites.
+
     Return
     ------
     XSites : one hot encoding of the site. See DataLoader in Data.py
         for detailed instruction.
-    neighborlist : s x n x p x i. s is the type of site index, 
+    neighborlist : s x n x p x i. s is the type of site index,
         n is the site index, p is the permutation,
         index and i is the neighbor sites index (0 being the site itself).
         See DataLoader in Data.py for detailed instruction.
@@ -582,11 +548,11 @@ class SiteEnvironments(object):
 
     Parameters
     ----------
-    coord : n x 3 list or numpy array of scaled positions. n is the number 
+    coord : n x 3 list or numpy array of scaled positions. n is the number
         of atom.
     cell : 3 x 3 list or numpy array
-    SiteTypes : n list of string. String must be S or A followed by a 
-        number. S indicates a spectator sites and A indicates a active 
+    SiteTypes : n list of string. String must be S or A followed by a
+        number. S indicates a spectator sites and A indicates a active
         sites.
     cutoff : float. cutoff distance in angstrom for collecting local
         environment.
@@ -632,16 +598,16 @@ class SiteEnvironments(object):
     SiteSymMap = {}  # mapping
     SymSiteMap = {}
     for i, SiteType in enumerate(SiteTypes):
-      if SiteType not in SiteSymMap:
-        symbol = Element.from_Z(availableAN.pop())
-        SiteSymMap[SiteType] = symbol
-        SymSiteMap[symbol] = SiteType
+        if SiteType not in SiteSymMap:
+            symbol = Element.from_Z(availableAN.pop())
+            SiteSymMap[SiteType] = symbol
+            SymSiteMap[symbol] = SiteType
 
-      else:
-        symbol = SiteSymMap[SiteType]
-      symbols.append(symbol)
-      if 'A' in SiteType:
-        site_idxs.append(i)
+        else:
+            symbol = SiteSymMap[SiteType]
+        symbols.append(symbol)
+        if 'A' in SiteType:
+            site_idxs.append(i)
     # %% Get local environments of each site
     # Find neighbors and permutations using pymatgen
     lattice = Lattice(cell)
@@ -682,11 +648,3 @@ class SiteEnvironments(object):
       }
       site_envs.append(site_env)
     return site_envs
-
-
-def _chunks(length, number):
-  """
-  Yield successive n-sized chunks from length.
-  """
-  for i in range(0, len(length), number):
-    yield length[i:i + number]
