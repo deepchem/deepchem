@@ -2,6 +2,7 @@ import numpy as np
 
 from deepchem.utils.typing import PymatgenComposition
 from deepchem.feat import MaterialCompositionFeaturizer
+from typing import Any
 
 
 class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
@@ -51,7 +52,7 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
       Source for element property data.
     """
     self.data_source = data_source
-    self.ep_featurizer = None
+    self.ep_featurizer: Any = None
 
   def _featurize(self, composition: PymatgenComposition) -> np.ndarray:
     """

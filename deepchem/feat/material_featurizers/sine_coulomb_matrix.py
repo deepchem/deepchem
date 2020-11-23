@@ -3,6 +3,7 @@ import numpy as np
 from deepchem.utils.typing import PymatgenStructure
 from deepchem.feat import MaterialStructureFeaturizer
 from deepchem.utils.data_utils import pad_array
+from typing import Any
 
 
 class SineCoulombMatrix(MaterialStructureFeaturizer):
@@ -56,7 +57,7 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
     """
     self.max_atoms = max_atoms
     self.flatten = flatten
-    self.scm = None
+    self.scm: Any = None
 
   def _featurize(self, struct: PymatgenStructure) -> np.ndarray:
     """
