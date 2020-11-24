@@ -93,6 +93,7 @@ def load_perovskite(
 
   Examples
   --------
+  >>>
   >> import deepchem as dc
   >> tasks, datasets, transformers = dc.molnet.load_perovskite()
   >> train_dataset, val_dataset, test_dataset = datasets

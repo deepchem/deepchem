@@ -92,6 +92,7 @@ def load_bandgap(
 
   Examples
   --------
+  >>>
   >> import deepchem as dc
   >> tasks, datasets, transformers = dc.molnet.load_bandgap()
   >> train_dataset, val_dataset, test_dataset = datasets
