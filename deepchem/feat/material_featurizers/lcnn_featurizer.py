@@ -18,6 +18,9 @@ class LCNNFeaturizer(Featurizer):
   structure(Data Point or diffrent condifuration of adsorbate atoms) is passed
   for featurization.
 
+  The permuted neighbors are calculated using the Primitive cells i.e periodic cells
+  in all the data points are built via lattice transformation of the primitive cell.
+
   [1] The Primitive Template file must be passed as raw text string or path file
   [2] The datapoint must be passed as raw text string.
 
@@ -34,7 +37,7 @@ class LCNNFeaturizer(Featurizer):
   [bx][by][bz][pbc]
   [cx][cy][cz][pbc]
   [number of spectator site type][number of active site type]
-  [os1][os2][os3]...
+  [os1][os2][os3]
   [number sites]
   [site1a][site1b][site1c][site type]
   [site2a][site2b][site2c][site type]
@@ -73,7 +76,6 @@ class LCNNFeaturizer(Featurizer):
   - property value indicates the trained value. It must start with #y=...
   ...
   Example:
-  #y=-1.209352
   2.81859800e+00  0.00000000e+00  0.00000000e+00
   -1.40929900e+00  2.44097800e+00  0.00000000e+00
   0.00000000e+00  0.00000000e+00  2.55082550e+01
@@ -95,14 +97,14 @@ class LCNNFeaturizer(Featurizer):
   >>> print(graph_ob)
   """
 
-  def __init__(self, cutoff, template=None):
+  def __init__(self, cutoff, template):
     """
     Parameters
     ----------
     cutoff: cutoff of radius for getting local environment.Only
         used down to 2 digits.
 
-    input_file_path: Template primitive stucture file path
+    template: Template primitive stucture file path
     """
     self.cutoff = np.around(cutoff, 2)
     self.setup_env = SiteEnvironments.Load(template, cutoff)
@@ -125,7 +127,10 @@ class LCNNFeaturizer(Featurizer):
 
 def InputReader(text, template=False):
   """
-  Read Input Files
+  Read Input Files in a format which can produces the coordinate dimensions
+  and axes. If it is a primitive cell , it return the lattice cell , coordinates
+  , site types and occupation state . Else if it is a primitive cell , it returns
+  the additional periodic boundary and type of occupation state.
 
   Parameters
   ----------
@@ -342,10 +347,9 @@ class SiteEnvironment(object):
         s += path
       raise ValueError(s)
     GM = iso.GraphMatcher(self.G, G, self._nm, self._em)
-    # ####################### Most Time Consuming Part #####################
+    # Gets the isomorphic mapping. Also the most time consuming part of the code
     ams = list(GM.isomorphisms_iter())
-    # Perhaps parallelize it?
-    # ####################### Most Time Consuming Part #####################
+
     if not ams:
       s = 'No isomorphism found.\n'
       s += "- Is the data point's cell a redefined lattice of primitive cell?\n"
@@ -510,7 +514,9 @@ class SiteEnvironments(object):
   @classmethod
   def Load(cls, path, cutoff, eigen_tol=1e-5):
     """
-    Load Primitive cell and return SiteEnvironments
+    This loads the primitive cell, along with all the permutations
+    required for creating a neighbor. This produces the site environments of
+    the primitive cell.
 
     Parameters
     ----------
@@ -544,7 +550,9 @@ class SiteEnvironments(object):
                            get_permutations=True,
                            eigen_tol=1e-5):
     """
-    Extract local environments from primitive cell
+    Used to extract information about both primitve cells and data points.
+    Extract local environments from primitive cell. Using the two diffrent types
+    site types ,
 
     Parameters
     ----------
@@ -576,19 +584,17 @@ class SiteEnvironments(object):
         from scipy.spatial.distance import cdist
     except:
         raise ImportError("This class requires scipy to be installed.")
-    # %% Check error
+
     assert isinstance(coord, (list, np.ndarray))
     assert isinstance(cell, (list, np.ndarray))
     assert len(coord) == len(SiteTypes)
-    # %% Initialize
-    # TODO: Technically, user doesn't even have to supply site index, because
-    #       pymatgen can be used to automatically categorize sites..
+
     coord = np.mod(coord, 1)
     pbc = np.array(pbc)
-    # %% Map sites to other elements..
-    # TODO: Available pymatgne functions are very limited when DummySpecie is
-    #       involved. This may be perhaps fixed in the future. Until then, we
-    #       simply bypass this by mapping site to an element
+
+    # Available pymatgne functions are very limited when DummySpecie is
+    # involved. This may be perhaps fixed in the future. Until then, we
+    # simply bypass this by mapping site to an element
     # Find available atomic number to map site to it
     availableAN = [i + 1 for i in reversed(range(0, 118))]
 
@@ -608,7 +614,7 @@ class SiteEnvironments(object):
         symbols.append(symbol)
         if 'A' in SiteType:
             site_idxs.append(i)
-    # %% Get local environments of each site
+
     # Find neighbors and permutations using pymatgen
     lattice = Lattice(cell)
     structure = Structure(lattice, symbols, coord)

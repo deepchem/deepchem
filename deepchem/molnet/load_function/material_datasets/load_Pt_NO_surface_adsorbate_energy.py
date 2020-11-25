@@ -60,7 +60,7 @@ def load_Platinum_Adsorption(
     The dataset consist of diffrent configurations of Adsorbates (i.e N and NO)
     on Platinum surface represented as Lattice and their formation energy. There
     are 648 diffrent adsorbate configuration in this datasets given in this format
-    
+
     [ax][ay][az]
     [bx][by][bz]
     [cx][cy][cz]
@@ -71,7 +71,7 @@ def load_Platinum_Adsorption(
     - ax,ay, ... are cell basis vector
     - site1a,site1b,site1c are the scaled coordinates of site 1
 
-     
+
     Parameters
     ----------
     featurizer : Featurizer (default LCNNFeaturizer)
@@ -80,14 +80,14 @@ def load_Platinum_Adsorption(
     splitter : Splitter (default RandomSplitter)
         the splitter to use for splitting the data into training, validation, and
         test sets.  Alternatively you can pass one of the names from
-        dc.molnet.splitters as a shortcut.  If this is None, all the data will 
+        dc.molnet.splitters as a shortcut.  If this is None, all the data will
         be included in a single dataset.
     transformers : list of TransformerGenerators or strings. the Transformers to
         apply to the data and appropritate featuriser. Does'nt require any
-        transformation for LCNN_featuriser    
+        transformation for LCNN_featuriser
     reload : bool
         if True, the first call for a particular featurizer and splitter will cache
-        the datasets to disk, and subsequent calls will reload the cached datasets.    
+        the datasets to disk, and subsequent calls will reload the cached datasets.
     data_dir : str
         a directory to save the raw data in
     save_dir : str, optional (default None)
@@ -97,7 +97,7 @@ def load_Platinum_Adsorption(
     ----------
     .. [1] Jonathan Lym, Geun Ho G. "Lattice Convolutional Neural Network Modeling of Adsorbate
        Coverage Effects"J. Phys. Chem. C 2019, 123, 18951−18959
-    
+
     Examples
     --------
     >>>
