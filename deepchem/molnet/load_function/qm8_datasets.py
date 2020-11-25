@@ -29,7 +29,7 @@ class _QM8Loader(_MolnetLoader):
 
 
 def load_qm8(
-    featurizer: Union[dc.feat.Featurizer, str] = 'CoulombMatrix',
+    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.CoulombMatrix(26),
     splitter: Union[dc.splits.Splitter, str, None] = 'random',
     transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
     reload: bool = True,

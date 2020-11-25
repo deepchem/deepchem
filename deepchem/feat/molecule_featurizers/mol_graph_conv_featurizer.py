@@ -158,11 +158,6 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
       Therefore, there is a possibility to fail to featurize for some molecules
       and featurization becomes slow.
     """
-    try:
-      from rdkit.Chem import AllChem  # noqa
-    except ModuleNotFoundError:
-      raise ImportError("This method requires RDKit to be installed.")
-
     self.use_edges = use_edges
     self.use_partial_charge = use_partial_charge
     self.use_chirality = use_chirality
@@ -185,8 +180,11 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
         mol.GetAtomWithIdx(0).GetProp('_GasteigerCharge')
       except:
         # If partial charges were not computed
-        from rdkit.Chem import AllChem
-        AllChem.ComputeGasteigerCharges(mol)
+        try:
+          from rdkit.Chem import AllChem
+          AllChem.ComputeGasteigerCharges(mol)
+        except ModuleNotFoundError:
+          raise ImportError("This method requires RDKit to be installed.")
 
     # construct atom (node) feature
     h_bond_infos = construct_hydrogen_bonding_info(mol)

@@ -47,7 +47,6 @@ class TransformerGenerator(object):
 
 
 featurizers = {
-    'coulombmatrix': lambda: dc.feat.CoulombMatrix(29),
     'ecfp': lambda: dc.feat.CircularFingerprint(size=1024),
     'graphconv': lambda: dc.feat.ConvMolFeaturizer(),
     'raw': lambda: dc.feat.RawFeaturizer(),
