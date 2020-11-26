@@ -5,39 +5,34 @@ The DeepChem project maintains supporting infrastructure on a number of
 different services. This infrastructure is maintained by the DeepChem
 development team.
 
-Github
+GitHub
 ------
 The core DeepChem repositories are maintained in the `deepchem`_ GitHub organization.
+And, we use GitHub Actions to build a continuous integration pipeline.
 
 .. _`deepchem`: https://github.com/deepchem
 
 DeepChem developers have write access to the repositories on this repo and 
 technical steering committee members have admin access.
 
-Travis CI
----------
-DeepChem runs continuous integration tests on `Travis CI`_.
-
-.. _`Travis CI`: https://travis-ci.org/github/deepchem
-
 Conda Forge
 -----------
-The DeepChem `feedstock`_ repo maintains the build recipe for Conda-Forge.
+The DeepChem `feedstock`_ repo maintains the build recipe for conda-forge.
 
 .. _`feedstock`: https://github.com/conda-forge/deepchem-feedstock
 
 
-Dockerhub
----------
-DeepChem hosts major releases and nightly docker build instances on `dockerhub`_.
+Docker Hub
+----------
+DeepChem hosts major releases and nightly docker build instances on `Docker Hub`_.
 
-.. _`dockerhub`: https://hub.docker.com/r/deepchemio/deepchem
+.. _`Docker Hub`: https://hub.docker.com/r/deepchemio/deepchem
 
-PyPi
+PyPI
 ----
-DeepChem hosts major releases and nightly builds on `pypi`_.
+DeepChem hosts major releases and nightly builds on `PyPI`_.
 
-.. _`pypi`: https://pypi.org/project/deepchem/
+.. _`PyPI`: https://pypi.org/project/deepchem/
 
 Amazon Web Services
 -------------------
