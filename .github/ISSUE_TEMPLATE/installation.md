@@ -10,7 +10,7 @@ about: Report an installation problem with DeepChem
 ## Environment
 
 * OS:
-* Pacakge manager (PyPI or Conda):
+* Package manager (PyPI or Conda):
 * Python version:
 * TensorFlow version:
 * DeepChem version:
