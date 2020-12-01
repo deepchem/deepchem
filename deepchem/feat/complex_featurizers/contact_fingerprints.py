@@ -211,10 +211,10 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
           sum([
               voxelize(
                   convert_atom_to_voxel,
-                  hash_ecfp,
                   xyz,
                   self.box_width,
                   self.voxel_width,
+                  hash_function=hash_ecfp,
                   feature_dict=ecfp_dict,
                   nb_channel=self.size) for xyz, ecfp_dict in zip(
                       xyzs,

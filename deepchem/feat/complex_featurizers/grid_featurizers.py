@@ -19,12 +19,12 @@ from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.utils.geometry_utils import subtract_centroid
 from deepchem.utils.fragment_utils import get_partial_charge
 from deepchem.utils.fragment_utils import reduce_molecular_complex_to_contacts
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 logger = logging.getLogger(__name__)
 
 HBOND_DIST_BINS = [(2.2, 2.5), (2.5, 3.2), (3.2, 4.0)]
-HBOND_ANGLE_CUTOFFS = [5, 50, 90]
+HBOND_ANGLE_CUTOFFS = [5., 50., 90.]
 
 
 def compute_charge_dictionary(molecule):
@@ -435,16 +435,21 @@ class HydrogenBondCounter(ComplexFeaturizer):
   that computes the total number of hydrogen bonds.
   """
 
-  def __init__(self,
-               cutoff: float = 4.5,
-               distance_bins: List[Tuple] = None,
-               angle_cutoffs: List[float] = None,
-               reduce_to_contacts: bool = True):
+  def __init__(
+      self,
+      cutoff: float = 4.5,
+      reduce_to_contacts: bool = True,
+      distance_bins: Optional[List[Tuple[float, float]]] = None,
+      angle_cutoffs: Optional[List[float]] = None,
+  ):
     """
     Parameters
     ----------
     cutoff: float (default 4.5)
       Distance cutoff in angstroms for molecules in complex.
+    reduce_to_contacts: bool, optional
+      If True, reduce the atoms in the complex to those near a contact
+      region.
     distance_bins: list[tuple]
       List of hydgrogen bond distance bins. If not specified is
       set to default
@@ -454,9 +459,6 @@ class HydrogenBondCounter(ComplexFeaturizer):
       deviation from the ideal (180 deg) angle between
       hydrogen-atom1, hydrogen-atom2 vectors.If not specified
       is set to default `[5, 50, 90]`
-    reduce_to_contacts: bool, optional
-      If True, reduce the atoms in the complex to those near a contact
-      region.
     """
     self.cutoff = cutoff
     if distance_bins is None:
@@ -533,18 +535,28 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
   of hydrogen bonds at each voxel.
   """
 
-  def __init__(self,
-               cutoff: float = 4.5,
-               distance_bins: List[Tuple] = None,
-               angle_cutoffs: List[float] = None,
-               box_width: float = 16.0,
-               voxel_width: float = 1.0,
-               reduce_to_contacts: bool = True):
+  def __init__(
+      self,
+      cutoff: float = 4.5,
+      box_width: float = 16.0,
+      voxel_width: float = 1.0,
+      reduce_to_contacts: bool = True,
+      distance_bins: Optional[List[Tuple[float, float]]] = None,
+      angle_cutoffs: Optional[List[float]] = None,
+  ):
     """
     Parameters
     ----------
     cutoff: float (default 4.5)
       Distance cutoff in angstroms for contact atoms in complex.
+    box_width: float, optional (default 16.0)
+      Size of a box in which voxel features are calculated. Box
+      is centered on a ligand centroid.
+    voxel_width: float, optional (default 1.0)
+      Size of a 3D voxel in a grid.
+    reduce_to_contacts: bool, optional
+      If True, reduce the atoms in the complex to those near a contact
+      region.
     distance_bins: list[tuple]
       List of hydgrogen bond distance bins. If not specified is
       set to default
@@ -554,14 +566,6 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
       deviation from the ideal (180 deg) angle between
       hydrogen-atom1, hydrogen-atom2 vectors.If not specified
       is set to default `[5, 50, 90]`
-    box_width: float, optional (default 16.0)
-      Size of a box in which voxel features are calculated. Box
-      is centered on a ligand centroid.
-    voxel_width: float, optional (default 1.0)
-      Size of a 3D voxel in a grid.
-    reduce_to_contacts: bool, optional
-      If True, reduce the atoms in the complex to those near a contact
-      region.
     """
     self.cutoff = cutoff
     if distance_bins is None:

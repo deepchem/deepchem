@@ -172,7 +172,7 @@ def compute_charges(mol):
 def load_complex(molecular_complex: OneOrMany[str],
                  add_hydrogens: bool = True,
                  calc_charges: bool = True,
-                 sanitize: bool = True) -> List[Tuple]:
+                 sanitize: bool = True) -> List[Tuple[np.ndarray, RDKitMol]]:
   """Loads a molecular complex.
 
   Given some representation of a molecular complex, returns a list of
