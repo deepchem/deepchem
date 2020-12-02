@@ -207,7 +207,7 @@ class _SiteEnvironment(object):
     """
     Initialize site environment
 
-    This class contains local site enrivonment information. This is used
+    This class contains local site environment information. This is used
     to find neighborlist in the datum.
 
     Parameters
