@@ -233,3 +233,8 @@ ZINC15 Datasets
 ---------------
 
 .. autofunction:: deepchem.molnet.load_zinc15
+
+Platinum Adsorption Dataset
+---------------------------
+
+.. autofunction:: deepchem.molnet.load_Platinum_Adsorption

@@ -59,17 +59,19 @@ def load_Platinum_Adsorption(
 
     The dataset consist of diffrent configurations of Adsorbates (i.e N and NO)
     on Platinum surface represented as Lattice and their formation energy. There
-    are 648 diffrent adsorbate configuration in this datasets given in this format
+    are 648 diffrent adsorbate configuration in this datasets.
 
-    [ax][ay][az]
-    [bx][by][bz]
-    [cx][cy][cz]
-    [number sites]
-    [site1a][site1b][site1c][site type][occupation state if active site]
-    [site2a][site2b][site2c][site type][occupation state if active site]
+    Structure Format-
 
-    - ax,ay, ... are cell basis vector
-    - site1a,site1b,site1c are the scaled coordinates of site 1
+    - [ax][ay][az]
+    - [bx][by][bz]
+    - [cx][cy][cz]
+    - [number sites]
+    - [site1a][site1b][site1c][site type][occupation state if active site]
+    - [site2a][site2b][site2c][site type][occupation state if active site]
+
+    [1] ax,ay, ... are cell basis vectorn\n
+    [2] site1a,site1b,site1c are the scaled coordinates of site 1\n
 
 
     Parameters

@@ -210,6 +210,12 @@ CGCNNFeaturizer
 .. autoclass:: deepchem.feat.CGCNNFeaturizer
   :members:
 
+LCNNFeaturizer
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.LCNNFeaturizer
+  :members:
+
 MaterialCompositionFeaturizer
 -----------------------------
 

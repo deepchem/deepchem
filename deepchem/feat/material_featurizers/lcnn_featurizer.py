@@ -1,140 +1,143 @@
 import numpy as np
-from deepchem.feat import Featurizer
+from deepchem.feat import MaterialStructureFeaturizer
 from collections import defaultdict
+from typing import List, Dict, Tuple, Iterable, Union, Any
 
 
-class LCNNFeaturizer(Featurizer):
+class LCNNFeaturizer(MaterialStructureFeaturizer):
   """
   Calculates the 2-D Surface graph features in 6 diffrent permutaions-
 
-  Based on the implementation of Lattice Graph Convolution Nueral
-  Network (LCNN) . This method produces the Atom wise features ( One Hot Enconding)
-  and Ajacent neighbor in the specificed order of permutations. Neighbors are determined
-  distance metric and Each Permutation of the Neighbors are calculated
-  is manner in which , First element is the node itself followed by a randomly
-  selected neighboring site. The next site shares a surface Pt atom with the previous
-  site. And they are picked consecutively.
-  First the template of the Primitive cell needs to be defined and then Each
-  structure(Data Point or diffrent condifuration of adsorbate atoms) is passed
+  Based on the implementation of Lattice Graph Convolution Neural
+  Network (LCNN). This method produces the Atom wise features ( One Hot Encoding)
+  and Adjacent neighbour in the specified order of permutations. Neighbors are
+  determined using a distance metric and Each Permutation of the Neighbors are
+  calculated such a manner in which, first element is the node itself followed
+  by a randomly selected neighboring site. The next site shares a surface Pt atom
+  with the previous site. And they are picked consecutively.
+
+  First, the template of the Primitive cell needs to be defined and then each
+  structure(Data Point i.e different configuration of adsorbate atoms) is passed
   for featurization.
 
   The permuted neighbors are calculated using the Primitive cells i.e periodic cells
   in all the data points are built via lattice transformation of the primitive cell.
 
-  [1] The Primitive Template file must be passed as raw text string or path file
-  [2] The datapoint must be passed as raw text string.
+  [1] The Primitive Template file must be passed as raw text string or path file.\n
+  [2] The datapoint must be passed as raw text string.\n
 
   References
   ----------
-  [1] Jonathan Lym and Geun Ho Gu, J. Phys. Chem. C 2019, 123, 18951−18959
+  .. [1] Jonathan Lym and Geun Ho Gu, J. Phys. Chem. C 2019, 123, 18951−18959
 
   Examples
-  ----------
-  The input format for primitive cell Template is stored in a file named
+  --------
+  >>> primitive_cell = '''#Primitive Cell
+  >>> 2.81852800e+00  0.00000000e+00  0.00000000e+00 T
+  >>> -1.40926400e+00  2.44091700e+00  0.00000000e+00 T
+  >>> 0.00000000e+00  0.00000000e+00  2.55082550e+01 F
+  >>> 1 1
+  >>> 1 0 2
+  >>> 6
+  >>> 0.666670000000  0.333330000000  0.090220999986 S1
+  >>> 0.333330000000  0.666670000000  0.180439359180 S1
+  >>> 0.000000000000  0.000000000000  0.270657718374 S1
+  >>> 0.666670000000  0.333330000000  0.360876077568 S1
+  >>> 0.333330000000  0.666670000000  0.451094436762 S1
+  >>> 0.000000000000  0.000000000000  0.496569911270 A1
+  >>> '''
+  >>> structure = '''2.81859800e+00  0.00000000e+00  0.00000000e+00
+  >>> -1.40929900e+00  2.44097800e+00  0.00000000e+00
+  >>> 0.00000000e+00  0.00000000e+00  2.55082550e+01
+  >>> 6
+  >>> 0.666670000000  0.333330000000  0.090220999986 S1
+  >>> 0.333330000000  0.666670000000  0.180439359180 S1
+  >>> 0.000000000000  0.000000000000  0.270657718374 S1
+  >>> 0.666670000000  0.333330000000  0.360876077568 S1
+  >>> 0.333330000000  0.666670000000  0.451094436762 S1
+  >>> 0.000000000000  0.000000000000  0.496569911270 A1 0
+  >>> '''
+  >>> featuriser = LCNNFeaturizer(np.around(6.00), primitive_cell)
+  >>> data = featuriser._featurize(structure)
+  >>> print(data.keys())
+  dict_keys(['X_Sites', 'X_NSs'])
 
-  [comment]
-  [ax][ay][az][pbc]
-  [bx][by][bz][pbc]
-  [cx][cy][cz][pbc]
-  [number of spectator site type][number of active site type]
-  [os1][os2][os3]
-  [number sites]
-  [site1a][site1b][site1c][site type]
-  [site2a][site2b][site2c][site type]
+  Notes
+  -----
+  This Class requires pymatgen , networkx , scipy installed.
 
-  - ax,ay, ... are cell basis vector
-  - pbc is either T or F indication of the periodic boundary condition
-  - os# is the name of the possible occupation state (interpretted as string)
-  - site1a,site1b,site1c are the scaled coordinates of site 1
-  - site type can be either S1, S2, ... or A1, A2,... indicating spectator
-  ...
-  Example:
-  #Primitive Cell
-  2.81859800e+00  0.00000000e+00  0.00000000e+00 T
-  -1.40929900e+00  2.44097800e+00  0.00000000e+00 T
-  0.00000000e+00  0.00000000e+00  2.55082550e+01 T
-  1 1
-  -1 0 1
-  6
-  0.00000000e+00  0.00000000e+00  9.02210000e-02 S1
-  6.66666666e-01  3.33333333e-01  1.80442000e-01 S1
-  3.33333333e-01  6.66666666e-01  2.69674534e-01 S1
-  0.00000000e+00  0.00000000e+00  3.58978557e-01 S1
-  6.66666666e-01  3.33333333e-01  4.49958662e-01 S1
-  3.33333333e-01  6.66666666e-01  5.01129144e-01 A1
+  `Primitive cell Format:`
 
+  - [comment]
+  - [ax][ay][az][pbc]
+  - [bx][by][bz][pbc]
+  - [cx][cy][cz][pbc]
+  - [number of spectator site type][number of active site type]
+  - [os1][os2][os3]
+  - [number sites]
+  - [site1a][site1b][site1c][site type]
+  - [site2a][site2b][site2c][site type]
 
-  The input format for a data point Structure (Configuration of Atoms):
-  ...
-  [ax][ay][az]
-  [bx][by][bz]
-  [cx][cy][cz]
-  [number sites]
-  [site1a][site1b][site1c][site type][occupation state if active site]
-  [site2a][site2b][site2c][site type][occupation state if active site]
-  ...
-  - property value indicates the trained value. It must start with #y=...
-  ...
-  Example:
-  2.81859800e+00  0.00000000e+00  0.00000000e+00
-  -1.40929900e+00  2.44097800e+00  0.00000000e+00
-  0.00000000e+00  0.00000000e+00  2.55082550e+01
-  6
-  0.000000000000  0.000000000000  0.090220999986 S1
-  0.500000499894  0.622008360788  0.180442000011 S1
-  0.999999500106  0.666666711253  0.270892474701 S1
-  0.000000000000  0.000000000000  0.361755713893 S1
-  0.500000499894  0.622008360788  0.454395429618 S1
-  0.000000000000  0.666667212896  0.502346789304 A1 1
-  ...
-  Python Script:
-  ...
-  >>> template_file_path = os.join.path(data_dir , "input.in")
-  >>> Featurizer =  np.around(6.00,2)
-  >>> Data_point_path = "Structure1.txt"
-  >>> Data_point_text = open(Data_point_path).read()
-  >>> graph_ob = Featurizer._featurize(Data_point_text)
-  >>> print(graph_ob)
+  `Data point Structure Format(Configuration of Atoms):`
+
+  - [ax][ay][az]
+  - [bx][by][bz]
+  - [cx][cy][cz]
+  - [number sites]
+  - [site1a][site1b][site1c][site type][occupation state if active site]
+  - [site2a][site2b][site2c][site type][occupation state if active site]
+
+  [1] ax,ay, ... are cell basis vector\n
+  [2] pbc is either T or F indication of the periodic boundary condition\n
+  [3] os# is the name of the possible occupation state (interpretted as string)\n
+  [4] site1a,site1b,site1c are the scaled coordinates of site 1\n
+  [5] site type can be either S1, S2, ... or A1, A2,... indicating spectator\n
+
   """
 
-  def __init__(self, cutoff, template):
+  def __init__(self, cutoff: float, template: str):
     """
     Parameters
     ----------
-    cutoff: cutoff of radius for getting local environment.Only
-        used down to 2 digits.
+    cutoff: float
+      Cutoff of radius for getting local environment.Only
+      used down to 2 digits.
 
-    template: Template primitive stucture file path
+    template: str
+      Template primitive stucture in string format
     """
     self.cutoff = np.around(cutoff, 2)
-    self.setup_env = SiteEnvironments.Load(template, cutoff)
+    self.setup_env = _SiteEnvironments.load_primitive_cell(template, cutoff)
 
-  def _featurize(self, structure):
+  def _featurize(self, structure) -> Dict[str, np.ndarray]:
     """
     Parameters
     ----------
-    structure: Raw text data input as a string
+    structure: str
+      Structure information as raw text data input as a string
 
     Returns
     -------
-    obj.X_Sites: Node features
-    obj.X_NSs: All edges for each node in diffrent permutations. Node 1 consist of
-            6 diffrent permutation , each consisting of neighbors.
+    dict: Dict[str, np.ndarray]
+      Node features, All edges for each node in diffrent permutations
     """
-    xSites, xNSs = self.setup_env.ReadDatum(structure)
+    xSites, xNSs = self.setup_env.read_datum(structure)
     return {"X_Sites": np.array(xSites), "X_NSs": np.array(xNSs)}
 
 
-def InputReader(text, template=False):
+def input_reader(text: str, template: bool = False) -> Iterable[list]:
   """
-  Read Input Files in a format which can produces the coordinate dimensions
-  and axes. If it is a primitive cell , it return the lattice cell , coordinates
-  , site types and occupation state . Else if it is a primitive cell , it returns
+  Read Input structures in a format which can produce the coordinate dimensions
+  and axes. If it is a primitive cell, it returns the lattice cell, coordinates,
+  site types and occupation state. Else if it is a data point, it returns
   the additional periodic boundary and type of occupation state.
 
   Parameters
   ----------
-  path : input text file
+  text : str
+    structure as a string
+  template: bool(default False)
+    Set to true for primitive cell, and false for data point
 
   Returns
   -------
@@ -187,41 +190,62 @@ def InputReader(text, template=False):
     return cell, pbc, coord, st, ns, na, aos
 
 
-class SiteEnvironment(object):
-  def __init__(self, pos, sitetypes, env2config, permutations, cutoff,\
-               Grtol=0.0, Gatol=0.01, rtol=0.01, atol=0.0, tol=0.01, grtol=0.01):
+class _SiteEnvironment(object):
+
+  def __init__(self,
+               pos: Union[list, np.ndarray],
+               sitetypes: list,
+               env2config: Union[list, np.ndarray],
+               permutations: list,
+               cutoff: float,
+               Grtol: float = 0.0,
+               Gatol: float = 0.01,
+               rtol: float = 0.01,
+               atol: float = 0.0,
+               tol: float = 0.01,
+               grtol: float = 0.01):
     """
     Initialize site environment
 
     This class contains local site enrivonment information. This is used
-    to find neighborlist in the datum (see GetMapping).
+    to find neighborlist in the datum.
 
     Parameters
     ----------
-    pos : n x 3 list or numpy array of (non-scaled) positions. n is the
-        number of atom.
-    sitetypes : n list of string. String must be S or A followed by a
-        number. S indicates a spectator sites and A indicates a active
-        sites.
-    permutations : p x n list of list of integer. p is the permutation
-        index and n is the number of sites.
-    cutoff : float. cutoff used for pooling neighbors. for aesthetics only
-    Grtol : relative tolerance in distance for forming an edge in graph
-    Gatol : absolute tolerance in distance for forming an edge in graph
-    rtol : relative tolerance in rmsd in distance for graph matching
-    atol : absolute tolerance in rmsd in distance for graph matching
-    tol : maximum tolerance of position RMSD to decide whether two
-        environment are the same
-    grtol : tolerance for deciding symmetric nodes
+    pos : Union[list, np.ndarray]
+      n x 3 list or numpy array of (non-scaled) positions. n is the
+      number of atom.
+    sitetypes : list
+      n list of string. String must be S or A followed by a
+      number. S indicates a spectator sites and A indicates a active
+      sites.
+    permutations : list
+      p x n list of list of integer. p is the permutation
+      index and n is the number of sites.
+    cutoff : float
+      cutoff used for pooling neighbors. for aesthetics only
+    Grtol : float (default 0.0)
+      relative tolerance in distance for forming an edge in graph
+    Gatol : float (default 0.01)
+      absolute tolerance in distance for forming an edge in graph
+    rtol : float (default 0.01)
+      relative tolerance in rmsd in distance for graph matching
+    atol : float (default 0.0)
+      absolute tolerance in rmsd in distance for graph matching
+    tol : float (default 0.01)
+      maximum tolerance of position RMSD to decide whether two
+      environment are the same
+    grtol : float (default 0.01)
+      tolerance for deciding symmetric nodes
     """
     try:
-        import networkx.algorithms.isomorphism as iso
+      import networkx.algorithms.isomorphism as iso
     except:
-        raise ImportError("This class requires networkx to be installed.")
+      raise ImportError("This class requires networkx to be installed.")
     try:
-        from scipy.spatial.distance import pdist, squareform
+      from scipy.spatial.distance import pdist, squareform
     except:
-        raise ImportError("This class requires scipy to be installed.")
+      raise ImportError("This class requires scipy to be installed.")
     self.pos = pos
     self.sitetypes = sitetypes
     self.activesiteidx = [i for i, s in enumerate(self.sitetypes) if 'A' in s]
@@ -256,41 +280,42 @@ class SiteEnvironment(object):
     for pair in mindists:
       self.mindists[pair] = np.max(mindists[pair])
     # construct graph
-    self.G = self._ConstructGraph(pos, sitetypes)
+    self.G = self._construct_graph(pos, sitetypes)
     # matcher options
     self._nm = iso.categorical_node_match('n', '')
     self._em = iso.numerical_edge_match('d', 0, rtol, 0)
 
-  def _ConstructGraph(self, pos, sitetypes):
+  def _construct_graph(self, pos: list, sitetypes: str):
     """
     Returns local environment graph using networkx and
     tolerance specified.
 
-    parameters
+    Parameters
     ----------
-    pos: ns x 3. coordinates of positions. ns is the number of sites.
-    sitetypes: ns. sitetype for each site
+    pos: list
+      ns x 3. coordinates of positions. ns is the number of sites.
+      sitetypes: ns. sitetype for each site
 
     Returns
     ------
+    G: networkx.classes.graph.Graph
     networkx graph used for matching site positions in
     datum.
     """
     try:
-        import networkx as nx
+      import networkx as nx
     except:
-        raise ImportError("This class requires networkx to be installed.")
+      raise ImportError("This class requires networkx to be installed.")
 
     try:
-        from scipy.spatial.distance import cdist, pdist
+      from scipy.spatial.distance import cdist, pdist
     except:
-        raise ImportError("This class requires scipy to be installed.")
+      raise ImportError("This class requires scipy to be installed.")
 
     # construct graph
     G = nx.Graph()
     dists = cdist([[0, 0, 0]], pos - np.mean(pos, 0))[0]
     sdists = np.sort(dists)
-    # https://stackoverflow.com/questions/37847053/uniquify-an-array-list-with-a-tolerance-in-python-uniquetol-equivalent
     uniquedists = sdists[
         ~(np.triu(np.abs(sdists[:, None] - sdists) <= self.grtol, 1)).any(0)]
     orderfromcenter = np.digitize(dists, uniquedists)
@@ -308,7 +333,7 @@ class SiteEnvironment(object):
         n += 1
     return G
 
-  def GetMapping(self, env, path=None):
+  def get_mapping(self, env: Dict[str, list]) -> Union[Dict[int, int], None]:
     """
     Returns mapping of sites from input to this object
 
@@ -319,22 +344,24 @@ class SiteEnvironment(object):
     performed to make sure it is a match. NetworkX is used for portability.
 
     Parameters
-    ----------any discussion during Thursday 8 Oct. Lect . ok
+    ----------
 
-    env : dictionary that contains information of local environment of a
-        site in datum. See _GetSiteEnvironments defintion in the class
-        SiteEnvironments for what this variable should be.
+    env : Dict[str, list]
+      dictionary that contains information of local environment of a
+      site in datum. See _get_SiteEnvironments defintion in the class
+      _SiteEnvironments for what this variable should be.
 
     Returns
     -------
-    dict : atom mapping. None if there is no mapping
+    dict : Union[Dict[int, int], None]
+      Atom mapping. None if there is no mapping
     """
     try:
-        import networkx.algorithms.isomorphism as iso
+      import networkx.algorithms.isomorphism as iso
     except:
-        raise ImportError("This class requires networkx to be installed.")
+      raise ImportError("This class requires networkx to be installed.")
     # construct graph
-    G = self._ConstructGraph(env['pos'], env['sitetypes'])
+    G = self._construct_graph(env['pos'], env['sitetypes'])
     if len(self.G.nodes) != len(G.nodes):
       s = 'Number of nodes is not equal.\n'
       raise ValueError(s)
@@ -343,8 +370,6 @@ class SiteEnvironment(object):
       s = 'Number of edges is not equal.\n'
       s += "- Is the data point's cell a redefined lattice of primitive cell?\n"
       s += '- If relaxed structure is used, you may want to check structure or increase Gatol\n'
-      if path:
-        s += path
       raise ValueError(s)
     GM = iso.GraphMatcher(self.G, G, self._nm, self._em)
     # Gets the isomorphic mapping. Also the most time consuming part of the code
@@ -354,8 +379,6 @@ class SiteEnvironment(object):
       s = 'No isomorphism found.\n'
       s += "- Is the data point's cell a redefined lattice of primitive cell?\n"
       s += '- If relaxed structure is used, you may want to check structure or increase rtol\n'
-      if path:
-        s += path
       raise ValueError(s)
 
     rmsd = []
@@ -378,10 +401,20 @@ class SiteEnvironment(object):
       s += '-Consider increasing neighbor finding tolerance'
       raise ValueError(s)
 
-  def _kabsch(self, P, Q):
+  def _kabsch(self, P: np.ndarray, Q: np.ndarray) -> np.ndarray:
     """
     Returns rotation matrix to align coordinates using
     Kabsch algorithm.
+
+    Parameters
+    ----------
+    P: np.ndarray
+    Q: np.ndarray
+
+    Returns
+    -------
+    R: np.ndarray
+      Rotation matrix
     """
     C = np.dot(np.transpose(P), Q)
     V, S, W = np.linalg.svd(C)
@@ -393,25 +426,31 @@ class SiteEnvironment(object):
     return R
 
 
-class SiteEnvironments(object):
+class _SiteEnvironments(object):
 
-  def __init__(self, site_envs, ns, na, aos, eigen_tol, pbc, cutoff):
+  def __init__(self, site_envs: List[_SiteEnvironment], ns: int, na: int,
+               aos: List[str], eigen_tol: float, pbc: List[str], cutoff: float):
     """
     Initialize
     Use Load to intialize this class.
 
     Parameters
     ----------
-    site_envs : list of SiteEnvironment object
-    ns : int. number of spectator sites types
-    na : int. number of active sites types
-    aos : list of string. avilable occupational states for active sites
-        string should be the name of the occupancy. (consistent with the input data)
-    eigen_tol : tolerance for eigenanalysis of point group analysis in
-        pymatgen.
-    pbc : periodic boundary condition.
-    cutoff : float. Cutoff radius in angstrom for pooling sites to
-        construct local environment
+    site_envs : List[_SiteEnvironment]
+      list of _SiteEnvironment object
+    ns : int
+      number of spectator sites types
+    na : int
+      number of active sites types
+    aos : List[str]
+      Avilable occupational states for active sites
+      string should be the name of the occupancy. (consistent with the input data)
+    eigen_tol : float
+      tolerance for eigenanalysis of point group analysis in pymatgen.
+    pbc : List[str]
+      periodic boundary condition.
+    cutoff : float
+      Cutoff radius in angstrom for pooling sites to construct local environment
     """
     self.site_envs = site_envs
     self.unique_site_types = [env.sitetypes[0] for env in self.site_envs]
@@ -422,26 +461,27 @@ class SiteEnvironments(object):
     self.pbc = pbc
     self.cutoff = cutoff
 
-  def ReadDatum(self, text, cutoff_factor=1.1):
+  def read_datum(self, text: str,
+                 cutoff_factor: float = 1.1) -> Tuple[List[float], List[list]]:
     """
     Load structure data and return neighbor information
 
     Parameters
     ----------
-    path : path of the structure
-    cutoff_factor : float. this is extra buffer factor multiplied
-        to cutoff to ensure pooling all relevant sites.
+    text : str
+      raw string of the structure
+    cutoff_factor : float
+      this is extra buffer factor multiplied to cutoff to
+      ensure pooling all relevant sites.
 
     Return
     ------
-    XSites : one hot encoding of the site. See DataLoader in Data.py
-        for detailed instruction.
-    neighborlist : s x n x p x i. s is the type of site index,
-        n is the site index, p is the permutation,
-        index and i is the neighbor sites index (0 being the site itself).
-        See DataLoader in Data.py for detailed instruction.
+    XSites : List[float]
+      One hot encoding features of the site.
+    XNSs : List[list]
+      Neighbors calculated in diffrent permutations
     """
-    cell, coord, st, oss = InputReader(text)
+    cell, coord, st, oss = input_reader(text)
     # Construct one hot encoding
     XSites = np.zeros((len(oss), len(self.aos)))
     for i, o in enumerate(oss):
@@ -455,7 +495,7 @@ class SiteEnvironments(object):
         n += 1
     # Get Neighbors
     # Read Data
-    site_envs = self._GetSiteEnvironments(
+    site_envs = self._get_SiteEnvironments(
         coord,
         cell,
         st,
@@ -469,7 +509,7 @@ class SiteEnvironments(object):
       env = self._truncate(self.site_envs[i], env)
 
       # get map between two environment
-      mapping = self.site_envs[i].GetMapping(env)
+      mapping = self.site_envs[i].get_mapping(env)
       # align input to the primitive cell (reference)
       aligned_idx = [
           env['env2config'][mapping[i]] for i in range(len(env['env2config']))
@@ -484,10 +524,20 @@ class SiteEnvironments(object):
     return XSites.tolist(), XNSs
 
   @classmethod
-  def _truncate(cls, env_ref, env):
+  def _truncate(cls, env_ref: _SiteEnvironment,
+                env: _SiteEnvironment) -> Dict[str, np.ndarray]:
     """
     When cutoff_factor is used, it will pool more site than cutoff factor specifies.
     This will rule out nonrelevant sites by distance.
+
+    Parameters
+    ----------
+    env_ref: _SiteEnvironment
+    env: _SiteEnvironment
+
+    Returns
+    -------
+    env: Dict[str, np.ndarray]
     """
     # Extract the right number of sites by distance
     dists = defaultdict(list)
@@ -512,7 +562,10 @@ class SiteEnvironments(object):
     return env
 
   @classmethod
-  def Load(cls, path, cutoff, eigen_tol=1e-5):
+  def load_primitive_cell(cls,
+                          path: str,
+                          cutoff: float,
+                          eigen_tol: float = 1e-5) -> Any:
     """
     This loads the primitive cell, along with all the permutations
     required for creating a neighbor. This produces the site environments of
@@ -520,19 +573,26 @@ class SiteEnvironments(object):
 
     Parameters
     ----------
-    path : input file path
-    cutoff : float. cutoff distance in angstrom for collecting local
-    environment.
-    eigen_tol : tolerance for eigenanalysis of point group analysis in
-    pymatgen.
+    path : str
+      Primitive Cell as a raw string
+    cutoff : float.
+      cutoff distance in angstrom for collecting local
+      environment.
+    eigen_tol : float
+      tolerance for eigenanalysis of point group analysis in
+      pymatgen.
 
+    Returns
+    -------
+    SiteEnvironments: _SiteEnvironments
+      Instance of the _SiteEnvironments object
     """
-    cell, pbc, coord, st, ns, na, aos = InputReader(path, template=True)
-    site_envs = cls._GetSiteEnvironments(
+    cell, pbc, coord, st, ns, na, aos = input_reader(path, template=True)
+    site_envs = cls._get_SiteEnvironments(
         coord, cell, st, cutoff, pbc, True, eigen_tol=eigen_tol)
     site_envs = [
-        SiteEnvironment(e['pos'], e['sitetypes'], e['env2config'],
-                        e['permutations'], cutoff) for e in site_envs
+        _SiteEnvironment(e['pos'], e['sitetypes'], e['env2config'],
+                         e['permutations'], cutoff) for e in site_envs
     ]
 
     ust = [env.sitetypes[0] for env in site_envs]
@@ -541,14 +601,14 @@ class SiteEnvironments(object):
     return cls(site_envs, ns, na, aos, eigen_tol, pbc, cutoff)
 
   @classmethod
-  def _GetSiteEnvironments(cls,
-                           coord,
-                           cell,
-                           SiteTypes,
-                           cutoff,
-                           pbc,
-                           get_permutations=True,
-                           eigen_tol=1e-5):
+  def _get_SiteEnvironments(cls,
+                            coord: Union[list, np.ndarray],
+                            cell: np.ndarray,
+                            SiteTypes: List[str],
+                            cutoff: float,
+                            pbc: List[str],
+                            get_permutations: bool = True,
+                            eigen_tol: float = 1e-5) -> List[_SiteEnvironment]:
     """
     Used to extract information about both primitve cells and data points.
     Extract local environments from primitive cell. Using the two diffrent types
@@ -556,34 +616,42 @@ class SiteEnvironments(object):
 
     Parameters
     ----------
-    coord : n x 3 list or numpy array of scaled positions. n is the number
-        of atom.
-    cell : 3 x 3 list or numpy array
-    SiteTypes : n list of string. String must be S or A followed by a
-        number. S indicates a spectator sites and A indicates a active
-        sites.
-    cutoff : float. cutoff distance in angstrom for collecting local
-        environment.
-    pbc : list of boolean. Periodic boundary condition
-    get_permutations : boolean. Whether to find permutatated neighbor list or not.
-    eigen_tol : tolerance for eigenanalysis of point group analysis in
-        pymatgen.
+    coord : Union[list, np.ndarray]
+      n x 3 list or numpy array of scaled positions. n is the number
+      of atom.
+    cell : np.ndarray
+      3 x 3 list or numpy array
+    SiteTypes : List[str]
+      n list of string. String must be S or A followed by a
+      number. S indicates a spectator sites and A indicates a active
+      sites.
+    cutoff : float
+      cutoff distance in angstrom for collecting local
+      environment.
+    pbc : list[str]
+      Periodic boundary condition
+    get_permutations : bool (default True)
+      Whether to find permutatated neighbor list or not.
+    eigen_tol : float
+      Tolerance for eigenanalysis of point group analysis in
+      pymatgen.
 
     Returns
     ------
-    list of local_env : list of local_env class
+    site_envs : List[_SiteEnvironment]
+      list of local_env class
     """
     try:
-        from pymatgen import Element, Structure, Molecule, Lattice
-        from pymatgen.symmetry.analyzer import PointGroupAnalyzer
+      from pymatgen import Element, Structure, Molecule, Lattice
+      from pymatgen.symmetry.analyzer import PointGroupAnalyzer
 
     except:
-        raise ImportError("This class requires pymatgen to be installed.")
+      raise ImportError("This class requires pymatgen to be installed.")
 
     try:
-        from scipy.spatial.distance import cdist
+      from scipy.spatial.distance import cdist
     except:
-        raise ImportError("This class requires scipy to be installed.")
+      raise ImportError("This class requires scipy to be installed.")
 
     assert isinstance(coord, (list, np.ndarray))
     assert isinstance(cell, (list, np.ndarray))
@@ -604,16 +672,16 @@ class SiteEnvironments(object):
     SiteSymMap = {}  # mapping
     SymSiteMap = {}
     for i, SiteType in enumerate(SiteTypes):
-        if SiteType not in SiteSymMap:
-            symbol = Element.from_Z(availableAN.pop())
-            SiteSymMap[SiteType] = symbol
-            SymSiteMap[symbol] = SiteType
+      if SiteType not in SiteSymMap:
+        symbol = Element.from_Z(availableAN.pop())
+        SiteSymMap[SiteType] = symbol
+        SymSiteMap[symbol] = SiteType
 
-        else:
-            symbol = SiteSymMap[SiteType]
-        symbols.append(symbol)
-        if 'A' in SiteType:
-            site_idxs.append(i)
+      else:
+        symbol = SiteSymMap[SiteType]
+      symbols.append(symbol)
+      if 'A' in SiteType:
+        site_idxs.append(i)
 
     # Find neighbors and permutations using pymatgen
     lattice = Lattice(cell)
