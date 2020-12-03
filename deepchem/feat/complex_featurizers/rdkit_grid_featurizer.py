@@ -637,7 +637,7 @@ def compute_cation_pi(mol1, mol2, charge_tolerance=0.01, **kwargs):
           if is_cation_pi(cation_position, ring_center, ring_normal, **kwargs):
             # count atoms forming a contact
             mol1_pi.update(ring)
-            mol2_cation.update([atom.GetIndex()])
+            mol2_cation.update([atom.GetIdx()])
   return mol1_pi, mol2_cation
 
 
