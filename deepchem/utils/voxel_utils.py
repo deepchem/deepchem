@@ -77,11 +77,11 @@ def convert_atom_pair_to_voxel(coordinates_tuple: Tuple[np.ndarray, np.ndarray],
 
 
 def voxelize(get_voxels: Callable[..., Any],
-             hash_function: Callable[..., Any],
              coordinates: np.ndarray,
              box_width: float = 16.0,
              voxel_width: float = 1.0,
-             feature_dict: Optional[Dict[Union[int, Tuple[int]], Any]] = None,
+             hash_function: Optional[Callable[..., Any]] = None,
+             feature_dict: Optional[Dict[Any, Any]] = None,
              feature_list: Optional[List[Union[int, Tuple[int]]]] = None,
              nb_channel: int = 16,
              dtype: str = 'int') -> np.ndarray:
@@ -96,8 +96,6 @@ def voxelize(get_voxels: Callable[..., Any],
   ----------
   get_voxels: Function
     Function that voxelizes inputs
-  hash_function: Function
-    Used to map feature choices to voxel channels.
   coordinates: np.ndarray
     Contains the 3D coordinates of a molecular system.
   box_width: float, optional (default 16.0)
@@ -105,6 +103,8 @@ def voxelize(get_voxels: Callable[..., Any],
     is centered on a ligand centroid.
   voxel_width: float, optional (default 1.0)
     Size of a 3D voxel in a grid in Angstroms.
+  hash_function: Function
+    Used to map feature choices to voxel channels.
   feature_dict: Dict, optional (default None)
     Keys are atom indices or tuples of atom indices, the values are
     computed features. If `hash_function is not None`, then the values

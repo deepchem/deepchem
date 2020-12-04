@@ -40,10 +40,10 @@ class TestVoxelUtils(unittest.TestCase):
     nb_channel = 16
     features = voxel_utils.voxelize(
         get_voxels,
-        hash_function,
         coordinates,
         box_width,
         voxel_width,
+        hash_function,
         feature_dict,
         nb_channel=nb_channel)
     assert features.shape == (voxels_per_edge, voxels_per_edge, voxels_per_edge,
@@ -64,10 +64,10 @@ class TestVoxelUtils(unittest.TestCase):
     nb_channel = 16
     features = voxel_utils.voxelize(
         get_voxels,
-        hash_function,
         coordinates,
         box_width,
         voxel_width,
+        hash_function,
         feature_dict,
         nb_channel=nb_channel)
     assert features.shape == (voxels_per_edge, voxels_per_edge, voxels_per_edge,
