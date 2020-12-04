@@ -1,12 +1,18 @@
+import os
+import json
 import numpy as np
 from deepchem.feat.material_featurizers.lcnn_featurizer import LCNNFeaturizer
-from data.lcnn_test_data import primitive_cell, structure, check_edges, check_feature
 
 
 def test_LCNNFeaturizer():
-  featuriser = LCNNFeaturizer(np.around(6.00), primitive_cell)
-  data = featuriser._featurize(structure)
-  assert np.all(data['X_Sites'] == np.array(check_feature))
-  assert np.all(data['X_NSs'] == np.array(check_edges))
-  assert data['X_Sites'].shape == (4, 3)
-  assert data['X_NSs'].shape == (1, 4, 6, 19)
+  current_dir = os.path.dirname(os.path.realpath(__file__))
+  strucutre_file = os.path.join(current_dir,
+                                'platinum_absorption_strucutre.json')
+  with open(strucutre_file, 'r') as f:
+    test_data = json.load(f)
+    featuriser = LCNNFeaturizer(np.around(6.00), test_data["primitive_cell"])
+    data = featuriser._featurize(test_data["structure"])
+    assert np.all(data['X_Sites'] == np.array(test_data["node_feature"]))
+    assert np.all(data['X_NSs'] == test_data["edges"])
+    assert data['X_Sites'].shape == (4, 3)
+    assert data['X_NSs'].shape == (1, 4, 6, 19)
