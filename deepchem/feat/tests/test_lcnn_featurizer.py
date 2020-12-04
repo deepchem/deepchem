@@ -6,7 +6,7 @@ from deepchem.feat.material_featurizers.lcnn_featurizer import LCNNFeaturizer
 
 def test_LCNNFeaturizer():
   current_dir = os.path.dirname(os.path.realpath(__file__))
-  strucutre_file = os.path.join(current_dir,
+  strucutre_file = os.path.join(current_dir, 'data',
                                 'platinum_absorption_strucutre.json')
   with open(strucutre_file, 'r') as f:
     test_data = json.load(f)
