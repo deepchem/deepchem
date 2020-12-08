@@ -8,12 +8,10 @@ from __future__ import unicode_literals
 import os
 import deepchem as dc
 import numpy as np
-from deepchem.molnet import load_qm7_from_mat
 from deepchem.models.optimizers import ExponentialDecay
 
 np.random.seed(123)
-qm7_tasks, datasets, transformers = load_qm7_from_mat(
-    split='stratified', move_mean=True)
+qm7_tasks, datasets, transformers = dc.molnet.load_qm7(splitter='stratified')
 train_dataset, valid_dataset, test_dataset = datasets
 fit_transformers = [dc.trans.CoulombFitTransformer(train_dataset)]
 metric = [

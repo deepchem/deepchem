@@ -10,19 +10,21 @@ import os
 import shutil
 import numpy as np
 import deepchem as dc
-from sider_datasets import load_sider
 from sklearn.ensemble import RandomForestClassifier
 
-sider_tasks, datasets, transformers = load_sider()
+sider_tasks, datasets, transformers = dc.molnet.load_sider()
 train_dataset, valid_dataset, test_dataset = datasets
 
-metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean,
-                           mode="classification")
+metric = dc.metrics.Metric(
+    dc.metrics.roc_auc_score, np.mean, mode="classification")
+
 
 def model_builder(model_dir):
   sklearn_model = RandomForestClassifier(
       class_weight="balanced", n_estimators=100)
   return dc.models.SklearnModel(sklearn_model, model_dir)
+
+
 model = dc.models.SingletaskToMultitask(sider_tasks, model_builder)
 
 # Fit trained model

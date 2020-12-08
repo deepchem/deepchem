@@ -14,7 +14,7 @@ from deepchem.molnet import load_muv
 np.random.seed(123)
 
 # Load MUV data
-muv_tasks, muv_datasets, transformers = load_muv()
+muv_tasks, muv_datasets, transformers = load_muv(splitter='stratified')
 train_dataset, valid_dataset, test_dataset = muv_datasets
 
 # Build model

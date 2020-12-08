@@ -1,17 +1,14 @@
 """Advantage Actor-Critic (A2C) algorithm for reinforcement learning."""
+import time
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
+import numpy as np
+import tensorflow as tf
 
 from deepchem.models import KerasModel
 from deepchem.models.optimizers import Adam
-import numpy as np
-import tensorflow as tf
-import tensorflow_probability as tfp
-import collections
-import copy
-import multiprocessing
-import os
-import re
-import threading
-import time
 
 
 class A2CLossDiscrete(object):
@@ -40,10 +37,20 @@ class A2CLossDiscrete(object):
 
 
 class A2CLossContinuous(object):
-  """This class computes the loss function for A2C with continuous action spaces."""
+  """This class computes the loss function for A2C with continuous action spaces.
+
+  Note
+  ----
+  This class requires tensorflow-probability to be installed.
+  """
 
   def __init__(self, value_weight, entropy_weight, mean_index, std_index,
                value_index):
+    try:
+      import tensorflow_probability as tfp  # noqa: F401
+    except ModuleNotFoundError:
+      raise ValueError(
+          "This class requires tensorflow-probability to be installed.")
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
     self.mean_index = mean_index
@@ -51,6 +58,7 @@ class A2CLossContinuous(object):
     self.value_index = value_index
 
   def __call__(self, outputs, labels, weights):
+    import tensorflow_probability as tfp
     mean = outputs[self.mean_index]
     std = outputs[self.std_index]
     value = outputs[self.value_index]
@@ -112,6 +120,11 @@ class A2C(object):
   except specifying the new goal.  It should return that list of states, and the rewards that would
   have been received for taking the specified actions from those states.  The output arrays may be
   shorter than the input ones, if the modified rollout would have terminated sooner.
+
+
+  Note
+  ----
+  Using this class on continuous action spaces requires that `tensorflow_probability` be installed.
   """
 
   def __init__(self,
@@ -160,7 +173,7 @@ class A2C(object):
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
     self.use_hindsight = use_hindsight
-    self._state_is_list = isinstance(env.state_shape[0], collections.Sequence)
+    self._state_is_list = isinstance(env.state_shape[0], SequenceCollection)
     if optimizer is None:
       self._optimizer = Adam(learning_rate=0.001, beta1=0.9, beta2=0.999)
     else:
@@ -369,7 +382,6 @@ class A2C(object):
 
   def _create_rollout(self, rnn_states):
     """Generate a rollout."""
-    n_actions = self._env.n_actions
     states = []
     actions = []
     rewards = []

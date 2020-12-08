@@ -1,9 +1,7 @@
 """
 Data Structures used to represented molecules for convolutions.
 """
-__author__ = "Han Altae-Tran and Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
+# flake8: noqa
 
 import csv
 import random
@@ -375,16 +373,23 @@ class WeaveMol(object):
   """Molecular featurization object for weave convolutions.
 
   These objects are produced by WeaveFeaturizer, and feed into
-  WeaveModel. The underlying implementation is inspired by:
+  WeaveModel. The underlying implementation is inspired by [1]_.
 
-  Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints." Journal of computer-aided molecular design 30.8 (2016): 595-608.
+
+  References
+  ----------
+  .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints." Journal of computer-aided molecular design 30.8 (2016): 595-608.
   """
 
-  def __init__(self, nodes, pairs):
+  def __init__(self, nodes, pairs, pair_edges):
     self.nodes = nodes
     self.pairs = pairs
     self.num_atoms = self.nodes.shape[0]
     self.n_features = self.nodes.shape[1]
+    self.pair_edges = pair_edges
+
+  def get_pair_edges(self):
+    return self.pair_edges
 
   def get_pair_features(self):
     return self.pairs

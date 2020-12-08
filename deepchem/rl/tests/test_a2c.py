@@ -1,12 +1,13 @@
+import unittest
+
+import pytest
+import numpy as np
+import tensorflow as tf
 from flaky import flaky
+from tensorflow.keras.layers import Input, Dense, GRU, Reshape, Softmax
 
 import deepchem as dc
 from deepchem.models.optimizers import Adam, PolynomialDecay
-from tensorflow.keras.layers import Input, Dense, GRU, Reshape, Softmax
-import numpy as np
-import tensorflow as tf
-import unittest
-import pytest
 
 
 class TestA2C(unittest.TestCase):

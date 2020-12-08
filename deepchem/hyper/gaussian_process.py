@@ -1,307 +1,338 @@
 """
 Contains class for gaussian process hyperparameter optimizations.
 """
-import logging
-import numpy as np
-import tempfile
 import os
-from deepchem.hyper.grid_search import HyperparamOpt
-from deepchem.utils.evaluate import Evaluator
-from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
+import logging
+import tempfile
+from typing import Dict, List, Optional, Tuple, Union
+
+from deepchem.data import Dataset
+from deepchem.trans import Transformer
+from deepchem.metrics import Metric
+from deepchem.hyper.base_classes import HyperparamOpt
+from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
 
 logger = logging.getLogger(__name__)
+
+
+def compute_parameter_range(params_dict: Dict,
+                            search_range: Union[int, float, Dict]
+                           ) -> Dict[str, Tuple[str, List[float]]]:
+  """Convenience Function to compute parameter search space.
+
+  Parameters
+  ----------
+  params_dict: Dict
+    Dictionary mapping strings to Ints/Floats. An explicit list of
+    parameters is computed with `search_range`. The optimization range
+    computed is specified in the documentation for `search_range`
+    below.
+  search_range: int/float/Dict (default 4)
+    The `search_range` specifies the range of parameter values to
+    search for. If `search_range` is an int/float, it is used as the
+    global search range for parameters. This creates a search
+    problem on the following space:
+
+    optimization on [initial value / search_range,
+                     initial value * search_range]
+
+    If `search_range` is a dict, it must contain the same keys as
+    for `params_dict`. In this case, `search_range` specifies a
+    per-parameter search range. This is useful in case some
+    parameters have a larger natural range than others. For a given
+    hyperparameter `hp` this would create the following search
+    range:
+
+    optimization on hp on [initial value[hp] / search_range[hp],
+                           initial value[hp] * search_range[hp]]
+
+  Returns
+  -------
+  param_range: Dict
+    Dictionary mapping hyperparameter names to tuples. Each tuple is
+    of form `(value_type, value_range)` where `value_type` is a string
+    that is either "int" or "cont" and `value_range` is a list of two
+    elements of the form `[low, hi]`. This format is expected by
+    pyGPGO which `GaussianProcessHyperparamOpt` uses to perform
+    optimization.
+  """
+  # Range of optimization
+  param_range = {}
+  if isinstance(search_range, dict):
+    if sorted(params_dict.keys()) != sorted(search_range.keys()):
+      raise ValueError(
+          "If search_range is provided as a dictionary, it must have the same keys as params_dict."
+      )
+  elif (not isinstance(search_range, int)) and (not isinstance(
+      search_range, float)):
+    raise ValueError("search_range must be a dict or int or float.")
+  for hp, value in params_dict.items():
+    if isinstance(search_range, dict):
+      hp_search_range = search_range[hp]
+    else:
+      # We know from guard above that this is an int/float
+      hp_search_range = search_range
+    if isinstance(value, int):
+      value_range = [value // hp_search_range, value * hp_search_range]
+      param_range[hp] = ("int", value_range)
+    elif isinstance(value, float):
+      value_range = [value / hp_search_range, value * hp_search_range]
+      param_range[hp] = ("cont", value_range)
+  return param_range
 
 
 class GaussianProcessHyperparamOpt(HyperparamOpt):
   """
   Gaussian Process Global Optimization(GPGO)
+
+  This class uses Gaussian Process optimization to select
+  hyperparameters. Underneath the hood it uses pyGPGO to optimize
+  models. If you don't have pyGPGO installed, you won't be able to use
+  this class.
+
+  Note that `params_dict` has a different semantics than for
+  `GridHyperparamOpt`. `param_dict[hp]` must be an int/float and is
+  used as the center of a search range.
+
+  Examples
+  --------
+  This example shows the type of constructor function expected.
+
+  >>> import sklearn
+  >>> import deepchem as dc
+  >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(lambda **p: dc.models.GraphConvModel(n_tasks=1, **p))
+
+  Here's a more sophisticated example that shows how to optimize only
+  some parameters of a model. In this case, we have some parameters we
+  want to optimize, and others which we don't. To handle this type of
+  search, we create a `model_builder` which hard codes some arguments
+  (in this case, `n_tasks` and `n_features` which are properties of a
+  dataset and not hyperparameters to search over.)
+
+  >>> def model_builder(**model_params):
+  ...   n_layers = model_params['layers']
+  ...   layer_width = model_params['width']
+  ...   dropout = model_params['dropout']
+  ...   return dc.models.MultitaskClassifier(
+  ...     n_tasks=5,
+  ...     n_features=100,
+  ...     layer_sizes=[layer_width]*n_layers,
+  ...     dropouts=dropout
+  ...   )
+  >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(model_builder)
+
+  Notes
+  -----
+  This class requires pyGPGO to be installed.
   """
 
-  def hyperparam_search(
-      self,
-      params_dict,
-      train_dataset,
-      valid_dataset,
-      output_transformers,
-      metric,
-      direction=True,
-      n_features=1024,
-      n_tasks=1,
-      max_iter=20,
-      search_range=4,
-      hp_invalid_list=[
-          'seed', 'nb_epoch', 'penalty_type', 'dropouts', 'bypass_dropouts',
-          'n_pair_feat', 'fit_transformers', 'min_child_weight',
-          'max_delta_step', 'subsample', 'colsample_bylevel',
-          'colsample_bytree', 'reg_alpha', 'reg_lambda', 'scale_pos_weight',
-          'base_score'
-      ],
-      log_file='GPhypersearch.log'):
-    """Perform hyperparams search using a gaussian process assumption
-
-    params_dict include single-valued parameters being optimized,
-    which should only contain int, float and list of int(float)
-
-    parameters with names in hp_invalid_list will not be changed.
-
-    For Molnet models, self.model_class is model name in string,
-    params_dict = dc.molnet.preset_hyper_parameters.hps[self.model_class]
+  def hyperparam_search(self,
+                        params_dict: Dict,
+                        train_dataset: Dataset,
+                        valid_dataset: Dataset,
+                        metric: Metric,
+                        output_transformers: List[Transformer] = [],
+                        use_max: bool = True,
+                        logdir: Optional[str] = None,
+                        max_iter: int = 20,
+                        search_range: Union[int, float, Dict] = 4,
+                        logfile: Optional[str] = None,
+                        **kwargs):
+    """Perform hyperparameter search using a gaussian process.
 
     Parameters
     ----------
-    params_dict: dict
-      dict including parameters and their initial values
-      parameters not suitable for optimization can be added to hp_invalid_list
-    train_dataset: dc.data.Dataset struct
+    params_dict: Dict
+      Maps hyperparameter names (strings) to possible parameter
+      values. The semantics of this list are different than for
+      `GridHyperparamOpt`. `params_dict[hp]` must map to an int/float,
+      which is used as the center of a search with radius
+      `search_range` since pyGPGO can only optimize numerical
+      hyperparameters.
+    train_dataset: Dataset
       dataset used for training
-    valid_dataset: dc.data.Dataset struct
+    valid_dataset: Dataset
       dataset used for validation(optimization on valid scores)
-    output_transformers: list of dc.trans.Transformer
-      transformers for evaluation
-    metric: list of dc.metrics.Metric
+    metric: Metric
       metric used for evaluation
-    direction: bool
+    output_transformers: list[Transformer]
+      Transformers for evaluation. This argument is needed since
+      `train_dataset` and `valid_dataset` may have been transformed
+      for learning and need the transform to be inverted before
+      the metric can be evaluated on a model.
+    use_max: bool, (default True)
+      Specifies whether to maximize or minimize `metric`.
       maximization(True) or minimization(False)
-    n_features: int
-      number of input features
-    n_tasks: int
-      number of tasks
-    max_iter: int
+    logdir: str, optional, (default None)
+      The directory in which to store created models. If not set, will
+      use a temporary directory.
+    max_iter: int, (default 20)
       number of optimization trials
-    search_range: int(float)
-      optimization on [initial values / search_range,
-                       initial values * search_range]
-    hp_invalid_list: list
-      names of parameters that should not be optimized
-    logfile: string
-      name of log file, hyperparameters and results for each trial will be recorded
+    search_range: int/float/Dict (default 4)
+      The `search_range` specifies the range of parameter values to
+      search for. If `search_range` is an int/float, it is used as the
+      global search range for parameters. This creates a search
+      problem on the following space:
+
+      optimization on [initial value / search_range,
+                       initial value * search_range]
+
+      If `search_range` is a dict, it must contain the same keys as
+      for `params_dict`. In this case, `search_range` specifies a
+      per-parameter search range. This is useful in case some
+      parameters have a larger natural range than others. For a given
+      hyperparameter `hp` this would create the following search
+      range:
+
+      optimization on hp on [initial value[hp] / search_range[hp],
+                             initial value[hp] * search_range[hp]]
+    logfile: str, optional (default None)
+      Name of logfile to write results to. If specified, this is must
+      be a valid file. If not specified, results of hyperparameter
+      search will be written to `logdir/.txt`.
+
 
     Returns
     -------
-    hyper_parameters: dict
-      params_dict with all optimized values
-    valid_performance_opt: float
-      best performance on valid dataset
-
+    Tuple[`best_model`, `best_hyperparams`, `all_scores`]
+      `(best_model, best_hyperparams, all_scores)` where `best_model` is
+      an instance of `dc.model.Model`, `best_hyperparams` is a
+      dictionary of parameters, and `all_scores` is a dictionary mapping
+      string representations of hyperparameter sets to validation
+      scores.
     """
+    try:
+      from pyGPGO.covfunc import matern32
+      from pyGPGO.acquisition import Acquisition
+      from pyGPGO.surrogates.GaussianProcess import GaussianProcess
+      from pyGPGO.GPGO import GPGO
+    except ModuleNotFoundError:
+      raise ImportError("This class requires pyGPGO to be installed.")
 
-    assert len(metric) == 1, 'Only use one metric'
-    hyper_parameters = params_dict
-    hp_list = list(hyper_parameters.keys())
-    for hp in hp_invalid_list:
-      if hp in hp_list:
-        hp_list.remove(hp)
+    # Specify logfile
+    log_file = None
+    if logfile:
+      log_file = logfile
+    elif logdir is not None:
+      # Make logdir if it doesn't exist.
+      if not os.path.exists(logdir):
+        os.makedirs(logdir, exist_ok=True)
+      log_file = os.path.join(logdir, "results.txt")
 
-    hp_list_class = [hyper_parameters[hp].__class__ for hp in hp_list]
-    assert set(hp_list_class) <= set([list, int, float])
-    # Float or int hyper parameters(ex. batch_size, learning_rate)
-    hp_list_single = [
-        hp_list[i] for i in range(len(hp_list)) if not hp_list_class[i] is list
-    ]
-    # List of float or int hyper parameters(ex. layer_sizes)
-    hp_list_multiple = [(hp_list[i], len(hyper_parameters[hp_list[i]]))
-                        for i in range(len(hp_list))
-                        if hp_list_class[i] is list]
+    # setup range
+    param_range = compute_parameter_range(params_dict, search_range)
+    param_keys = list(param_range.keys())
 
-    # Number of parameters
-    n_param = len(hp_list_single)
-    if len(hp_list_multiple) > 0:
-      n_param = n_param + sum([hp[1] for hp in hp_list_multiple])
-    # Range of optimization
-    param_range = []
-    for hp in hp_list_single:
-      if hyper_parameters[hp].__class__ is int:
-        param_range.append((('int'), [
-            hyper_parameters[hp] // search_range,
-            hyper_parameters[hp] * search_range
-        ]))
-      else:
-        param_range.append((('cont'), [
-            hyper_parameters[hp] / search_range,
-            hyper_parameters[hp] * search_range
-        ]))
-    for hp in hp_list_multiple:
-      if hyper_parameters[hp[0]][0].__class__ is int:
-        param_range.extend([(('int'), [
-            hyper_parameters[hp[0]][i] // search_range,
-            hyper_parameters[hp[0]][i] * search_range
-        ]) for i in range(hp[1])])
-      else:
-        param_range.extend([(('cont'), [
-            hyper_parameters[hp[0]][i] / search_range,
-            hyper_parameters[hp[0]][i] * search_range
-        ]) for i in range(hp[1])])
+    # Stores all results
+    all_results = {}
+    # Store all model references so we don't have to reload
+    all_models = {}
+    # Stores all model locations
+    model_locations = {}
 
-    # Dummy names
-    param_name = ['l' + format(i, '02d') for i in range(20)]
-    param = dict(zip(param_name[:n_param], param_range))
+    # Demarcating internal function for readability
+    def optimizing_function(**placeholders):
+      """Private Optimizing function
 
-    data_dir = os.environ['DEEPCHEM_DATA_DIR']
-    log_file = os.path.join(data_dir, log_file)
-
-    def f(l00=0,
-          l01=0,
-          l02=0,
-          l03=0,
-          l04=0,
-          l05=0,
-          l06=0,
-          l07=0,
-          l08=0,
-          l09=0,
-          l10=0,
-          l11=0,
-          l12=0,
-          l13=0,
-          l14=0,
-          l15=0,
-          l16=0,
-          l17=0,
-          l18=0,
-          l19=0):
-      """ Optimizing function
       Take in hyper parameter values and return valid set performances
 
       Parameters
       ----------
-      l00~l19: int or float
-        placeholders for hyperparameters being optimized,
-        hyper_parameters dict is rebuilt based on input values of placeholders
+      placeholders: keyword arguments
+        Should be various hyperparameters as specified in `param_keys` above.
 
       Returns:
       --------
       valid_scores: float
         valid set performances
       """
-      args = locals()
-      # Input hyper parameters
-      i = 0
-      for hp in hp_list_single:
-        hyper_parameters[hp] = float(args[param_name[i]])
-        if param_range[i][0] == 'int':
-          hyper_parameters[hp] = int(hyper_parameters[hp])
-        i = i + 1
-      for hp in hp_list_multiple:
-        hyper_parameters[hp[0]] = [
-            float(args[param_name[j]]) for j in range(i, i + hp[1])
-        ]
-        if param_range[i][0] == 'int':
-          hyper_parameters[hp[0]] = map(int, hyper_parameters[hp[0]])
-        i = i + hp[1]
+      hyper_parameters = {}
+      for hp in param_keys:
+        if param_range[hp][0] == "int":
+          # param values are always float in BO, so this line converts float to int
+          # see : https://github.com/josejimenezluna/pyGPGO/issues/10
+          hyper_parameters[hp] = int(placeholders[hp])
+        else:
+          hyper_parameters[hp] = float(placeholders[hp])
+      logger.info("Running hyperparameter set: %s" % str(hyper_parameters))
+      if log_file:
+        with open(log_file, 'w+') as f:
+          # Record hyperparameters
+          f.write("Parameters: %s" % str(hyper_parameters))
+          f.write('\n')
 
-      logger.info(hyper_parameters)
-      # Run benchmark
-      with open(log_file, 'a') as f:
-        # Record hyperparameters
-        f.write(str(hyper_parameters))
-        f.write('\n')
-      if isinstance(self.model_class, str) or isinstance(
-          self.model_class, unicode):
+      hp_str = _convert_hyperparam_dict_to_filename(hyper_parameters)
+      if logdir is not None:
+        filename = "model%s" % hp_str
+        model_dir = os.path.join(logdir, filename)
+        logger.info("model_dir is %s" % model_dir)
         try:
-          train_scores, valid_scores, _ = benchmark_classification(
-              train_dataset,
-              valid_dataset,
-              valid_dataset, ['task_placeholder'] * n_tasks,
-              output_transformers,
-              n_features,
-              metric,
-              self.model_class,
-              hyper_parameters=hyper_parameters)
-        except AssertionError:
-          train_scores, valid_scores, _ = benchmark_regression(
-              train_dataset,
-              valid_dataset,
-              valid_dataset, ['task_placeholder'] * n_tasks,
-              output_transformers,
-              n_features,
-              metric,
-              self.model_class,
-              hyper_parameters=hyper_parameters)
-        score = valid_scores[self.model_class][metric[0].name]
+          os.makedirs(model_dir)
+        except OSError:
+          if not os.path.isdir(model_dir):
+            logger.info("Error creating model_dir, using tempfile directory")
+            model_dir = tempfile.mkdtemp()
       else:
         model_dir = tempfile.mkdtemp()
-        model = self.model_class(hyper_parameters, model_dir)
-        model.fit(train_dataset, **hyper_parameters)
+      # Add it on to the information needed for the constructor
+      hyper_parameters["model_dir"] = model_dir
+      model = self.model_builder(**hyper_parameters)
+      model.fit(train_dataset)
+      try:
         model.save()
-        evaluator = Evaluator(model, valid_dataset, output_transformers)
-        multitask_scores = evaluator.compute_model_performance(metric)
-        score = multitask_scores[metric[0].name]
+      # Some models autosave
+      except NotImplementedError:
+        pass
 
-      with open(log_file, 'a') as f:
-        # Record performances
-        f.write(str(score))
-        f.write('\n')
-      # GPGO maximize performance by default, set performance to its negative value for minimization
-      if direction:
+      multitask_scores = model.evaluate(valid_dataset, [metric],
+                                        output_transformers)
+      score = multitask_scores[metric.name]
+
+      if log_file:
+        with open(log_file, 'a') as f:
+          # Record performances
+          f.write("Score: %s" % str(score))
+          f.write('\n')
+      # Store all results
+      all_results[hp_str] = score
+      # Store reference to model
+      all_models[hp_str] = model
+      model_locations[hp_str] = model_dir
+      # GPGO maximize performance by default
+      # set performance to its negative value for minimization
+      if use_max:
         return score
       else:
         return -score
 
-    import pyGPGO
-    from pyGPGO.covfunc import matern32
-    from pyGPGO.acquisition import Acquisition
-    from pyGPGO.surrogates.GaussianProcess import GaussianProcess
-    from pyGPGO.GPGO import GPGO
+    # execute GPGO
     cov = matern32()
     gp = GaussianProcess(cov)
     acq = Acquisition(mode='ExpectedImprovement')
-    gpgo = GPGO(gp, acq, f, param)
+    gpgo = GPGO(gp, acq, optimizing_function, param_range)
     logger.info("Max number of iteration: %i" % max_iter)
     gpgo.run(max_iter=max_iter)
 
     hp_opt, valid_performance_opt = gpgo.getResult()
-    # Readout best hyper parameters
-    i = 0
-    for hp in hp_list_single:
-      hyper_parameters[hp] = float(hp_opt[param_name[i]])
-      if param_range[i][0] == 'int':
-        hyper_parameters[hp] = int(hyper_parameters[hp])
-      i = i + 1
-    for hp in hp_list_multiple:
-      hyper_parameters[hp[0]] = [
-          float(hp_opt[param_name[j]]) for j in range(i, i + hp[1])
-      ]
-      if param_range[i][0] == 'int':
-        hyper_parameters[hp[0]] = map(int, hyper_parameters[hp[0]])
-      i = i + hp[1]
+    hyper_parameters = {}
+    for hp in param_keys:
+      if param_range[hp][0] == "int":
+        hyper_parameters[hp] = int(hp_opt[hp])
+      else:
+        # FIXME: Incompatible types in assignment
+        hyper_parameters[hp] = float(hp_opt[hp])  # type: ignore
+    hp_str = _convert_hyperparam_dict_to_filename(hyper_parameters)
+
+    # Let's fetch the model with the best parameters
+    best_model = all_models[hp_str]
 
     # Compare best model to default hyperparameters
-    with open(log_file, 'a') as f:
-      # Record hyperparameters
-      f.write(str(params_dict))
-      f.write('\n')
-    if isinstance(self.model_class, str) or isinstance(self.model_class,
-                                                       unicode):
-      try:
-        train_scores, valid_scores, _ = benchmark_classification(
-            train_dataset,
-            valid_dataset,
-            valid_dataset, ['task_placeholder'] * n_tasks,
-            output_transformers,
-            n_features,
-            metric,
-            self.model_class,
-            hyper_parameters=params_dict)
-      except AssertionError:
-        train_scores, valid_scores, _ = benchmark_regression(
-            train_dataset,
-            valid_dataset,
-            valid_dataset, ['task_placeholder'] * n_tasks,
-            output_transformers,
-            n_features,
-            metric,
-            self.model_class,
-            hyper_parameters=params_dict)
-      score = valid_scores[self.model_class][metric[0].name]
+    if log_file:
       with open(log_file, 'a') as f:
-        # Record performances
-        f.write(str(score))
+        # Record hyperparameters
+        f.write("params_dict:")
+        f.write(str(params_dict))
         f.write('\n')
-      if not direction:
-        score = -score
-      if score > valid_performance_opt:
-        # Optimized model is better, return hyperparameters
-        return params_dict, score
 
     # Return default hyperparameters
-    return hyper_parameters, valid_performance_opt
+    return best_model, hyper_parameters, all_results

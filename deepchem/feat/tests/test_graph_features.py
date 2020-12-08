@@ -1,10 +1,6 @@
 """
-Tests for ConvMolFeaturizer. 
+Tests for ConvMolFeaturizer.
 """
-__author__ = "Han Altae-Tran and Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import unittest
 import os
 import numpy as np
@@ -123,5 +119,5 @@ class TestAtomicConvFeaturizer(unittest.TestCase):
         max_num_neighbors=max_num_neighbors,
         neighbor_cutoff=neighbor_cutoff)
 
-    features, _ = featurizer.featurize_complexes([ligand_file, ligand_file],
-                                                 [protein_file, protein_file])
+    features, _ = featurizer.featurize([ligand_file, ligand_file],
+                                       [protein_file, protein_file])

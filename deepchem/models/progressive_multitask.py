@@ -1,9 +1,12 @@
 import time
 import numpy as np
 import tensorflow as tf
-import collections
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
 
-from deepchem.utils.save import log
+import logging
 from deepchem.metrics import to_one_hot
 from deepchem.metrics import from_one_hot
 from deepchem.models import KerasModel, layers
@@ -11,16 +14,22 @@ from deepchem.models.losses import L2Loss, SparseSoftmaxCrossEntropy
 from deepchem.models.keras_model import _StandardLoss
 from tensorflow.keras.layers import Input, Dense, Dropout, ReLU, Concatenate, Add, Multiply, Softmax
 
+logger = logging.getLogger(__name__)
+
 
 class ProgressiveMultitaskRegressor(KerasModel):
   """Implements a progressive multitask neural network for regression.
-
-  Progressive Networks: https://arxiv.org/pdf/1606.04671v3.pdf
 
   Progressive networks allow for multitask learning where each task
   gets a new column of weights. As a result, there is no exponential
   forgetting where previous tasks are ignored.
 
+  References
+  ----------
+  See [1]_ for a full description of the progressive architecture
+
+  .. [1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
+         arXiv:1606.04671 (2016).
   """
 
   def __init__(self,
@@ -84,15 +93,15 @@ class ProgressiveMultitaskRegressor(KerasModel):
     self.n_outputs = n_outputs
 
     n_layers = len(layer_sizes)
-    if not isinstance(weight_init_stddevs, collections.Sequence):
+    if not isinstance(weight_init_stddevs, SequenceCollection):
       self.weight_init_stddevs = [weight_init_stddevs] * n_layers
-    if not isinstance(alpha_init_stddevs, collections.Sequence):
+    if not isinstance(alpha_init_stddevs, SequenceCollection):
       self.alpha_init_stddevs = [alpha_init_stddevs] * n_layers
-    if not isinstance(bias_init_consts, collections.Sequence):
+    if not isinstance(bias_init_consts, SequenceCollection):
       self.bias_init_consts = [bias_init_consts] * n_layers
-    if not isinstance(dropouts, collections.Sequence):
+    if not isinstance(dropouts, SequenceCollection):
       self.dropouts = [dropouts] * n_layers
-    if not isinstance(activation_fns, collections.Sequence):
+    if not isinstance(activation_fns, SequenceCollection):
       self.activation_fns = [activation_fns] * n_layers
 
     # Add the input features.

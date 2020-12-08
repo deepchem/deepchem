@@ -1,16 +1,17 @@
 """Proximal Policy Optimization (PPO) algorithm for reinforcement learning."""
+import copy
+import time
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
+from multiprocessing.dummy import Pool
+
+import numpy as np
+import tensorflow as tf
 
 from deepchem.models import KerasModel
 from deepchem.models.optimizers import Adam
-import numpy as np
-import tensorflow as tf
-import collections
-import copy
-import multiprocessing
-from multiprocessing.dummy import Pool
-import os
-import re
-import time
 
 
 class PPOLoss(object):
@@ -151,7 +152,7 @@ class PPO(object):
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
     self.use_hindsight = use_hindsight
-    self._state_is_list = isinstance(env.state_shape[0], collections.Sequence)
+    self._state_is_list = isinstance(env.state_shape[0], SequenceCollection)
     if optimizer is None:
       self._optimizer = Adam(learning_rate=0.001, beta1=0.9, beta2=0.999)
     else:
@@ -209,7 +210,6 @@ class PPO(object):
     """
     step_count = 0
     workers = []
-    threads = []
     for i in range(self.optimization_rollouts):
       workers.append(_Worker(self, i))
     if restore:
@@ -435,7 +435,6 @@ class _Worker(object):
 
   def create_rollout(self):
     """Generate a rollout."""
-    n_actions = self.env.n_actions
     states = []
     action_prob = []
     actions = []

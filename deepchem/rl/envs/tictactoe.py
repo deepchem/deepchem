@@ -9,7 +9,7 @@ class TicTacToeEnvironment(deepchem.rl.Environment):
     Play tictactoe against a randomly acting opponent
     """
   X = np.array([1.0, 0.0])
-  O = np.array([0.0, 1.0])
+  O = np.array([0.0, 1.0])  # noqa: E741
   EMPTY = np.array([0.0, 0.0])
 
   ILLEGAL_MOVE_PENALTY = -3.0

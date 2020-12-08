@@ -1,7 +1,7 @@
-sphinx_rtd_theme
-numpy
 pandas
-sklearn
-tensorflow
-pillow
-tensorflow_probability
+scikit-learn
+sphinx>=3.2,<4
+sphinx_rtd_theme>=0.5,<1
+tensorflow==2.3.0
+transformers
+torch==1.6.0

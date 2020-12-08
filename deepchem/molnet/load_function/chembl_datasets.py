@@ -2,157 +2,84 @@
 ChEMBL dataset loader.
 """
 import os
-import logging
-import deepchem
+import deepchem as dc
+from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
+from deepchem.data import Dataset
 from deepchem.molnet.load_function.chembl_tasks import chembl_tasks
 
-logger = logging.getLogger(__name__)
+from typing import List, Optional, Tuple, Union
 
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+CHEMBL_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_%s.csv.gz"
 
 
-def load_chembl(shard_size=2000,
-                featurizer="ECFP",
-                set="5thresh",
-                split="random",
-                reload=True,
-                data_dir=None,
-                save_dir=None,
-                **kwargs):
+class _ChemblLoader(_MolnetLoader):
 
-  if data_dir is None:
-    data_dir = DEFAULT_DIR
-  if save_dir is None:
-    save_dir = DEFAULT_DIR
+  def __init__(self, *args, set: str, **kwargs):
+    super(_ChemblLoader, self).__init__(*args, **kwargs)
+    self.set = set
 
-  logger.info("About to load ChEMBL dataset.")
+  def create_dataset(self) -> Dataset:
+    dataset_file = os.path.join(self.data_dir, "chembl_%s.csv.gz" % self.set)
+    if not os.path.exists(dataset_file):
+      dc.utils.data_utils.download_url(
+          url=CHEMBL_URL % self.set, dest_dir=self.data_dir)
+    loader = dc.data.CSVLoader(
+        tasks=self.tasks, feature_field="smiles", featurizer=self.featurizer)
+    return loader.create_dataset(dataset_file, shard_size=8192)
 
-  if reload:
-    save_folder = os.path.join(save_dir, "chembl-featurized", featurizer)
-    if featurizer == "smiles2img":
-      img_spec = kwargs.get("img_spec", "std")
-      save_folder = os.path.join(save_folder, img_spec)
-    save_folder = os.path.join(save_folder, str(split))
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
-        save_folder)
-    if loaded:
-      return chembl_tasks, all_dataset, transformers
+def load_chembl(
+    featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',
+    splitter: Union[dc.splits.Splitter, str, None] = 'scaffold',
+    transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
+    set: str = "5thresh",
+    reload: bool = True,
+    data_dir: Optional[str] = None,
+    save_dir: Optional[str] = None,
+    **kwargs
+) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+  """Load the ChEMBL dataset.
 
-  dataset_path = os.path.join(data_dir, "chembl_%s.csv.gz" % set)
-  if not os.path.exists(dataset_path):
-    deepchem.utils.download_url(
-        url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_5thresh.csv.gz',
-        dest_dir=data_dir)
-    deepchem.utils.download_url(
-        url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_sparse.csv.gz',
-        dest_dir=data_dir)
-    deepchem.utils.download_url(
-        url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_5thresh_ts_test.csv.gz',
-        dest_dir=data_dir)
-    deepchem.utils.download_url(
-        url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_5thresh_ts_train.csv.gz',
-        dest_dir=data_dir)
-    deepchem.utils.download_url(
-        url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_5thresh_ts_valid.csv.gz',
-        dest_dir=data_dir)
-    deepchem.utils.download_url(
-        url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_sparse_ts_test.csv.gz',
-        dest_dir=data_dir)
-    deepchem.utils.download_url(
-        url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_sparse_ts_train.csv.gz',
-        dest_dir=data_dir)
-    deepchem.utils.download_url(
-        url=
-        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_year_sets/chembl_sparse_ts_valid.csv.gz',
-        dest_dir=data_dir)
+  This dataset is based on release 22.1 of the data from https://www.ebi.ac.uk/chembl/.
+  Two subsets of the data are available, depending on the "set" argument.  "sparse"
+  is a large dataset with 244,245 compounds.  As the name suggests, the data is
+  extremely sparse, with most compounds having activity data for only one target.
+  "5thresh" is a much smaller set (23,871 compounds) that includes only compounds
+  with activity data for at least five targets.
 
-  if split == "year":
-    train_files = os.path.join(
-        data_dir, "./chembl_year_sets/chembl_%s_ts_train.csv.gz" % set)
-    valid_files = os.path.join(
-        data_dir, "./chembl_year_sets/chembl_%s_ts_valid.csv.gz" % set)
-    test_files = os.path.join(
-        data_dir, "./chembl_year_sets/chembl_%s_ts_test.csv.gz" % set)
-
-  # Featurize ChEMBL dataset
-  logger.info("About to featurize ChEMBL dataset.")
-  if featurizer == 'ECFP':
-    featurizer = deepchem.feat.CircularFingerprint(size=1024)
-  elif featurizer == 'GraphConv':
-    featurizer = deepchem.feat.ConvMolFeaturizer()
-  elif featurizer == 'Weave':
-    featurizer = deepchem.feat.WeaveFeaturizer()
-  elif featurizer == 'Raw':
-    featurizer = deepchem.feat.RawFeaturizer()
-  elif featurizer == "smiles2img":
-    img_spec = kwargs.get("img_spec", "std")
-    img_size = kwargs.get("img_size", 80)
-    featurizer = deepchem.feat.SmilesToImage(
-        img_size=img_size, img_spec=img_spec)
-
-  loader = deepchem.data.CSVLoader(
-      tasks=chembl_tasks, smiles_field="smiles", featurizer=featurizer)
-
-  if split == "year":
-    logger.info("Featurizing train datasets")
-    train = loader.featurize(train_files, shard_size=shard_size)
-    logger.info("Featurizing valid datasets")
-    valid = loader.featurize(valid_files, shard_size=shard_size)
-    logger.info("Featurizing test datasets")
-    test = loader.featurize(test_files, shard_size=shard_size)
-  else:
-    dataset = loader.featurize(dataset_path, shard_size=shard_size)
-
-  if split is None:
-    transformers = [
-        deepchem.trans.NormalizationTransformer(
-            transform_y=True, dataset=dataset)
-    ]
-
-    logger.info("Split is None, about to transform data.")
-    for transformer in transformers:
-      dataset = transformer.transform(dataset)
-
-    return chembl_tasks, (dataset, None, None), transformers
-
-  if split != "year":
-    splitters = {
-        'index': deepchem.splits.IndexSplitter(),
-        'random': deepchem.splits.RandomSplitter(),
-        'scaffold': deepchem.splits.ScaffoldSplitter(),
-    }
-
-    splitter = splitters[split]
-    logger.info("Performing new split.")
-    frac_train = kwargs.get("frac_train", 0.8)
-    frac_valid = kwargs.get('frac_valid', 0.1)
-    frac_test = kwargs.get('frac_test', 0.1)
-
-    train, valid, test = splitter.train_valid_test_split(
-        dataset,
-        frac_train=frac_train,
-        frac_valid=frac_valid,
-        frac_test=frac_test)
-
-  transformers = [
-      deepchem.trans.NormalizationTransformer(transform_y=True, dataset=train)
-  ]
-
-  logger.info("About to transform data.")
-  for transformer in transformers:
-    train = transformer.transform(train)
-    valid = transformer.transform(valid)
-    test = transformer.transform(test)
-
-  if reload:
-    deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
-  return chembl_tasks, (train, valid, test), transformers
+  Parameters
+  ----------
+  featurizer: Featurizer or str
+    the featurizer to use for processing the data.  Alternatively you can pass
+    one of the names from dc.molnet.featurizers as a shortcut.
+  splitter: Splitter or str
+    the splitter to use for splitting the data into training, validation, and
+    test sets.  Alternatively you can pass one of the names from
+    dc.molnet.splitters as a shortcut.  If this is None, all the data
+    will be included in a single dataset.
+  transformers: list of TransformerGenerators or strings
+    the Transformers to apply to the data.  Each one is specified by a
+    TransformerGenerator or, as a shortcut, one of the names from
+    dc.molnet.transformers.
+  set: str
+    the subset to load, either "sparse" or "5thresh"
+  reload: bool
+    if True, the first call for a particular featurizer and splitter will cache
+    the datasets to disk, and subsequent calls will reload the cached datasets.
+  data_dir: str
+    a directory to save the raw data in
+  save_dir: str
+    a directory to save the dataset in
+  """
+  if set not in ("5thresh", "sparse"):
+    raise ValueError("set must be either '5thresh' or 'sparse'")
+  loader = _ChemblLoader(
+      featurizer,
+      splitter,
+      transformers,
+      chembl_tasks,
+      data_dir,
+      save_dir,
+      set=set,
+      **kwargs)
+  return loader.load_dataset('chembl-%s' % set, reload)

@@ -1,14 +1,12 @@
 """
-Tests for Docking 
+Tests for Docking
 """
 import os
-import sys
 import unittest
 import pytest
 import logging
 import numpy as np
 import deepchem as dc
-from deepchem.dock.binding_pocket import ConvexHullPocketFinder
 from deepchem.feat import ComplexFeaturizer
 from deepchem.models import Model
 from deepchem.dock.pose_generation import PoseGenerator
@@ -28,7 +26,7 @@ class TestDocking(unittest.TestCase):
   def test_docker_init(self):
     """Test that Docker can be initialized."""
     vpg = dc.dock.VinaPoseGenerator()
-    docker = dc.dock.Docker(vpg)
+    dc.dock.Docker(vpg)
 
   @pytest.mark.slow
   def test_docker_dock(self):
@@ -86,7 +84,7 @@ class TestDocking(unittest.TestCase):
     """Test that Docker can find pockets and dock dock."""
     # Let's turn on logging since this test will run for a while
     logging.basicConfig(level=logging.INFO)
-    pocket_finder = ConvexHullPocketFinder()
+    pocket_finder = dc.dock.ConvexHullPocketFinder()
     vpg = dc.dock.VinaPoseGenerator(pocket_finder=pocket_finder)
     docker = dc.dock.Docker(vpg)
     docked_outputs = docker.dock(
@@ -105,7 +103,7 @@ class TestDocking(unittest.TestCase):
 
     class DummyFeaturizer(ComplexFeaturizer):
 
-      def featurize_complexes(self, complexes, *args, **kwargs):
+      def featurize(self, complexes, *args, **kwargs):
         return np.zeros((len(complexes), 5)), None
 
     class DummyModel(Model):

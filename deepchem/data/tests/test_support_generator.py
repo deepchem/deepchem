@@ -1,14 +1,9 @@
 """
 Simple Tests for Support Generation
 """
-__author__ = "Han Altae-Tran and Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
-__license__ = "MIT"
-
 import logging
 import numpy as np
 import unittest
-import tensorflow as tf
 import deepchem as dc
 
 logger = logging.getLogger(__name__)
@@ -45,7 +40,6 @@ class TestSupports(unittest.TestCase):
     n_samples = 20
     n_features = 3
     n_tasks = 1
-    n_trials = 10
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -71,7 +65,6 @@ class TestSupports(unittest.TestCase):
     n_samples = 20
     n_features = 3
     n_tasks = 1
-    n_trials = 10
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -102,7 +95,6 @@ class TestSupports(unittest.TestCase):
     n_samples = 20
     n_features = 3
     n_tasks = 1
-    n_trials = 10
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -139,7 +131,7 @@ class TestSupports(unittest.TestCase):
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     # Create support generator
-    supp_gen = dc.data.SupportGenerator(dataset, n_pos, n_neg, n_trials)
+    _ = dc.data.SupportGenerator(dataset, n_pos, n_neg, n_trials)
 
   def test_simple_episode_generator(self):
     """Conducts simple test that episode generator runs."""

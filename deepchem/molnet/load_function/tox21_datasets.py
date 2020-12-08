@@ -2,119 +2,82 @@
 Tox21 dataset loader.
 """
 import os
-import logging
-import deepchem
+import deepchem as dc
+from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
+from deepchem.data import Dataset
+from typing import List, Optional, Tuple, Union
 
-logger = logging.getLogger(__name__)
+TOX21_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/tox21.csv.gz"
+TOX21_TASKS = [
+    'NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER', 'NR-ER-LBD',
+    'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5', 'SR-HSE', 'SR-MMP', 'SR-p53'
+]
 
-TOX21_URL = 'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/tox21.csv.gz'
-DEFAULT_DIR = deepchem.utils.get_data_dir()
+
+class _Tox21Loader(_MolnetLoader):
+
+  def create_dataset(self) -> Dataset:
+    dataset_file = os.path.join(self.data_dir, "tox21.csv.gz")
+    if not os.path.exists(dataset_file):
+      dc.utils.data_utils.download_url(url=TOX21_URL, dest_dir=self.data_dir)
+    loader = dc.data.CSVLoader(
+        tasks=self.tasks, feature_field="smiles", featurizer=self.featurizer)
+    return loader.create_dataset(dataset_file, shard_size=8192)
 
 
-def load_tox21(featurizer='ECFP',
-               split='index',
-               reload=True,
-               K=4,
-               data_dir=None,
-               save_dir=None,
-               **kwargs):
-  """Load Tox21 datasets. Does not do train/test split"""
-  # Featurize Tox21 dataset
+def load_tox21(
+    featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',
+    splitter: Union[dc.splits.Splitter, str, None] = 'scaffold',
+    transformers: List[Union[TransformerGenerator, str]] = ['balancing'],
+    reload: bool = True,
+    data_dir: Optional[str] = None,
+    save_dir: Optional[str] = None,
+    **kwargs
+) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+  """Load Tox21 dataset
 
-  tox21_tasks = [
-      'NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER', 'NR-ER-LBD',
-      'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5', 'SR-HSE', 'SR-MMP', 'SR-p53'
-  ]
+  The "Toxicology in the 21st Century" (Tox21) initiative created a public
+  database measuring toxicity of compounds, which has been used in the 2014
+  Tox21 Data Challenge. This dataset contains qualitative toxicity measurements
+  for 8k compounds on 12 different targets, including nuclear receptors and
+  stress response pathways.
 
-  if data_dir is None:
-    data_dir = DEFAULT_DIR
-  if save_dir is None:
-    save_dir = DEFAULT_DIR
+  Random splitting is recommended for this dataset.
 
-  if reload:
-    save_folder = os.path.join(save_dir, "tox21-featurized", str(featurizer))
-    if featurizer == "smiles2img":
-      img_spec = kwargs.get("img_spec", "std")
-      save_folder = os.path.join(save_folder, img_spec)
-    save_folder = os.path.join(save_folder, str(split))
+  The raw data csv file contains columns below:
 
-    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
-        save_folder)
-    if loaded:
-      return tox21_tasks, all_dataset, transformers
+  - "smiles" - SMILES representation of the molecular structure
+  - "NR-XXX" - Nuclear receptor signaling bioassays results
+  - "SR-XXX" - Stress response bioassays results
 
-  dataset_file = os.path.join(data_dir, "tox21.csv.gz")
-  if not os.path.exists(dataset_file):
-    deepchem.utils.download_url(url=TOX21_URL, dest_dir=data_dir)
+  please refer to https://tripod.nih.gov/tox21/challenge/data.jsp for details.
 
-  if featurizer == 'ECFP':
-    featurizer = deepchem.feat.CircularFingerprint(size=1024)
-  elif featurizer == 'GraphConv':
-    featurizer = deepchem.feat.ConvMolFeaturizer()
-  elif featurizer == 'Weave':
-    featurizer = deepchem.feat.WeaveFeaturizer()
-  elif featurizer == 'Raw':
-    featurizer = deepchem.feat.RawFeaturizer()
-  elif featurizer == 'AdjacencyConv':
-    featurizer = deepchem.feat.AdjacencyFingerprint(
-        max_n_atoms=150, max_valence=6)
-  elif featurizer == "smiles2img":
-    img_size = kwargs.get("img_size", 80)
-    img_spec = kwargs.get("img_spec", "std")
-    featurizer = deepchem.feat.SmilesToImage(
-        img_size=img_size, img_spec=img_spec)
+  Parameters
+  ----------
+  featurizer: Featurizer or str
+    the featurizer to use for processing the data.  Alternatively you can pass
+    one of the names from dc.molnet.featurizers as a shortcut.
+  splitter: Splitter or str
+    the splitter to use for splitting the data into training, validation, and
+    test sets.  Alternatively you can pass one of the names from
+    dc.molnet.splitters as a shortcut.  If this is None, all the data
+    will be included in a single dataset.
+  transformers: list of TransformerGenerators or strings
+    the Transformers to apply to the data.  Each one is specified by a
+    TransformerGenerator or, as a shortcut, one of the names from
+    dc.molnet.transformers.
+  reload: bool
+    if True, the first call for a particular featurizer and splitter will cache
+    the datasets to disk, and subsequent calls will reload the cached datasets.
+  data_dir: str
+    a directory to save the raw data in
+  save_dir: str
+    a directory to save the dataset in
 
-  loader = deepchem.data.CSVLoader(
-      tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer)
-  dataset = loader.featurize(dataset_file, shard_size=8192)
-
-  if split == None:
-    # Initialize transformers
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-    ]
-
-    logger.info("About to transform data")
-    for transformer in transformers:
-      dataset = transformer.transform(dataset)
-
-    return tox21_tasks, (dataset, None, None), transformers
-
-  splitters = {
-      'index': deepchem.splits.IndexSplitter(),
-      'random': deepchem.splits.RandomSplitter(),
-      'scaffold': deepchem.splits.ScaffoldSplitter(),
-      'butina': deepchem.splits.ButinaSplitter(),
-      'task': deepchem.splits.TaskSplitter(),
-      'stratified': deepchem.splits.RandomStratifiedSplitter()
-  }
-  splitter = splitters[split]
-  if split == 'task':
-    fold_datasets = splitter.k_fold_split(dataset, K)
-    all_dataset = fold_datasets
-  else:
-    frac_train = kwargs.get("frac_train", 0.8)
-    frac_valid = kwargs.get('frac_valid', 0.1)
-    frac_test = kwargs.get('frac_test', 0.1)
-
-    train, valid, test = splitter.train_valid_test_split(
-        dataset,
-        frac_train=frac_train,
-        frac_valid=frac_valid,
-        frac_test=frac_test)
-    all_dataset = (train, valid, test)
-
-    transformers = [
-        deepchem.trans.BalancingTransformer(transform_w=True, dataset=train)
-    ]
-
-    logger.info("About to transform data")
-    for transformer in transformers:
-      train = transformer.transform(train)
-      valid = transformer.transform(valid)
-      test = transformer.transform(test)
-
-    if reload:
-      deepchem.utils.save.save_dataset_to_disk(save_folder, train, valid, test,
-                                               transformers)
-  return tox21_tasks, all_dataset, transformers
+  References
+  ----------
+  .. [1] Tox21 Challenge. https://tripod.nih.gov/tox21/challenge/
+  """
+  loader = _Tox21Loader(featurizer, splitter, transformers, TOX21_TASKS,
+                        data_dir, save_dir, **kwargs)
+  return loader.load_dataset('tox21', reload)
