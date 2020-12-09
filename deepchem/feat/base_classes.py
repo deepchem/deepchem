@@ -151,7 +151,7 @@ class Featurizer(object):
 
 
 class ComplexFeaturizer(object):
-  """"
+  """
   Abstract class for calculating features for mol/protein complexes.
   """
 
