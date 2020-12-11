@@ -9,12 +9,12 @@ def test_charge_voxelizer():
   ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
 
   cutoff = 4.5
-  box_width = 16
+  box_width = 20
   voxel_width = 1.0
   voxelizer = dc.feat.ChargeVoxelizer(
       cutoff=cutoff, box_width=box_width, voxel_width=voxel_width)
-  features, failures = voxelizer.featurize([ligand_file], [protein_file])
-  # TODO: Add shape test
+  features = voxelizer.featurize((ligand_file, protein_file))
+  assert features.shape == (1, box_width, box_width, box_width, 1)
 
 
 def test_salt_bridge_voxelizer():
@@ -24,12 +24,12 @@ def test_salt_bridge_voxelizer():
   ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
 
   cutoff = 4.5
-  box_width = 16
+  box_width = 20
   voxel_width = 1.0
   voxelizer = dc.feat.SaltBridgeVoxelizer(
       cutoff=cutoff, box_width=box_width, voxel_width=voxel_width)
-  features, failures = voxelizer.featurize([ligand_file], [protein_file])
-  # TODO: Add shape test
+  features = voxelizer.featurize((ligand_file, protein_file))
+  assert features.shape == (1, box_width, box_width, box_width, 1)
 
 
 def test_cation_pi_voxelizer():
@@ -39,12 +39,12 @@ def test_cation_pi_voxelizer():
   ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
 
   cutoff = 4.5
-  box_width = 16
+  box_width = 20
   voxel_width = 1.0
   voxelizer = dc.feat.CationPiVoxelizer(
       cutoff=cutoff, box_width=box_width, voxel_width=voxel_width)
-  features, failures = voxelizer.featurize([ligand_file], [protein_file])
-  # TODO: Add shape test
+  features = voxelizer.featurize((ligand_file, protein_file))
+  assert features.shape == (1, box_width, box_width, box_width, 1)
 
 
 def test_pi_stack_voxelizer():
@@ -54,12 +54,12 @@ def test_pi_stack_voxelizer():
   ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
 
   cutoff = 4.5
-  box_width = 16
+  box_width = 20
   voxel_width = 1.0
   voxelizer = dc.feat.PiStackVoxelizer(
       cutoff=cutoff, box_width=box_width, voxel_width=voxel_width)
-  features, failures = voxelizer.featurize([ligand_file], [protein_file])
-  # TODO: Add shape test
+  features = voxelizer.featurize((ligand_file, protein_file))
+  assert features.shape == (1, box_width, box_width, box_width, 2)
 
 
 # # TODO: This is failing, something about the hydrogen bond counting?
