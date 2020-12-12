@@ -1410,7 +1410,7 @@ class DiskDataset(Dataset):
     shutil.copytree(self.data_dir, new_data_dir)
     return DiskDataset(new_data_dir)
 
-  def get_task_names(self) -> np.ndarray:
+  def get_task_names(self) -> List[str]:
     """Gets learning tasks associated with this dataset."""
     return self.tasks
 
