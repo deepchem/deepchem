@@ -21,11 +21,8 @@ materials science, quantum chemistry, and biology.
   - [Docker](#docker)
   - [From source](#from-source)
 - [Getting Started](#getting-started)
-- [Contributing to DeepChem](/CONTRIBUTING.md)
-  - [Code Style Guidelines](/CONTRIBUTING.md#code-style-guidelines)
-  - [Documentation Style Guidelines](/CONTRIBUTING.md#documentation-style-guidelines)
-  - [Gitter](#gitter)
 - [About Us](#about-us)
+- [Contributing to DeepChem](/.github/CONTRIBUTING.md)
 - [Citing DeepChem](#citing-deepchem)
 
 ## Requirements

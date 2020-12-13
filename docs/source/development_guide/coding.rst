@@ -4,9 +4,9 @@ Coding Conventions
 Code Formatting
 ---------------
 
-.. _`yapf`: https://github.com/google/yapf
+.. _`YAPF`: https://github.com/google/yapf
 
-We use `yapf`_ to format all of the code in DeepChem.  Although it sometimes
+We use `YAPF`_ to format all of the code in DeepChem.  Although it sometimes
 produces slightly awkward formatting, it does have two major benefits.  First,
 it ensures complete consistency throughout the entire codebase.  And second, it
 avoids disagreements about how a piece of code should be formatted.
@@ -18,12 +18,29 @@ checking it in.
 
   yapf -i <modified file>
 
-Yapf is run on every pull request to make sure the formatting is correct, so if
+YAPF is run on every pull request to make sure the formatting is correct, so if
 you forget to do this the continuous integration system will remind you.
-Because different versions of yapf can produce different results, it is
+Because different versions of YAPF can produce different results, it is
 essential to use the same version that is being run on CI.  At present, that
 is 0.22.  We periodically update it to newer versions.
 
+Linting
+-------
+
+.. _`Flake8`: https://github.com/google/yapf
+
+We use `Flake8` to check our code syntax. Lint tools basically provide these benefits.
+
+- Prevent things like syntax errors or typos
+- Save our review time (no need to check unused codes or typos)
+
+Whenever you modify a file, run :code:`flake8` on it.
+
+.. code-block:: bash
+
+  flake8 <modified file> --count
+
+If the command return 0, it means your code pass Flake8 check.
 
 Docstrings
 ----------
