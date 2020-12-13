@@ -127,5 +127,5 @@ def linkcode_resolve(domain, info):
   except Exception:
     filename = info['module'].replace('.', '/') + '.py'
 
-  tag = 'master' if 'dev' in release else ('v' + release)
+  tag = 'master' if 'dev' in release else release
   return "https://github.com/deepchem/deepchem/blob/%s/%s" % (tag, filename)
