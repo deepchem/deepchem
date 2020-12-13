@@ -22,7 +22,7 @@ materials science, quantum chemistry, and biology.
   - [From source](#from-source)
 - [Getting Started](#getting-started)
 - [About Us](#about-us)
-- [Contributing to DeepChem](/.github/CONTRIBUTING.md)
+- [Contributing to DeepChem](/CONTRIBUTING.md)
 - [Citing DeepChem](#citing-deepchem)
 
 ## Requirements
