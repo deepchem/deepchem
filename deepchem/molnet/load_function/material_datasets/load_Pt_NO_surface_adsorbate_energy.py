@@ -8,32 +8,39 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.feat.material_featurizers.lcnn_featurizer import LCNNFeaturizer
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
+from pymatgen import Structure
 
-PLATINUM_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/platinum_adsorption.tar.gz"
+PLATINUM_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/Platinum_adsorption.tar.gz"
 PLATINUM_TASKS = ["Formation Energy"]
-PRIMITIVE_CELL_TEMPLATE = """#Primitive Cell
-2.81852800e+00  0.00000000e+00  0.00000000e+00 T
--1.40926400e+00  2.44091700e+00  0.00000000e+00 T
-0.00000000e+00  0.00000000e+00  2.55082550e+01 F
-1 1
-1 0 2
-6
-0.666670000000  0.333330000000  0.090220999986 S1
-0.333330000000  0.666670000000  0.180439359180 S1
-0.000000000000  0.000000000000  0.270657718374 S1
-0.666670000000  0.333330000000  0.360876077568 S1
-0.333330000000  0.666670000000  0.451094436762 S1
-0.000000000000  0.000000000000  0.496569911270 A1"""
+PRIMITIVE_CELL = {
+    "lattice": [[2.818528, 0.0, 0.0], [-1.409264, 2.440917, 0.0],
+                [0.0, 0.0, 25.508255]],
+    "coords": [[0.66667, 0.33333, 0.090221], [0.33333, 0.66667, 0.18043936],
+               [0.0, 0.0, 0.27065772], [0.66667, 0.33333, 0.36087608],
+               [0.33333, 0.66667, 0.45109444], [0.0, 0.0, 0.49656991]],
+    "species": ['H', 'H', 'H', 'H', 'H', 'He'],
+    "site_properties": {
+        'SiteTypes': ['S1', 'S1', 'S1', 'S1', 'S1', 'A1']
+    }
+}
+PRIMITIVE_CELL_INF0 = {
+    "cutoff": np.around(6.00),
+    "structure": Structure(**PRIMITIVE_CELL),
+    "aos": ['1', '0', '2'],
+    "pbc": [True, True, False],
+    "ns": 1,
+    "na": 1
+}
 
 
 class _PtAdsorptionLoader(_MolnetLoader):
 
   def create_dataset(self) -> Dataset:
-    dataset_file = os.path.join(self.data_dir, 'Platinum_Adsorption.json')
+    dataset_file = os.path.join(self.data_dir, 'Platinum_adsorption.json')
     if not os.path.exists(dataset_file):
       dc.utils.data_utils.download_url(url=PLATINUM_URL, dest_dir=self.data_dir)
       dc.utils.data_utils.untargz_file(
-          os.path.join(self.data_dir, 'platinum_adsorption.tar.gz'),
+          os.path.join(self.data_dir, 'Platinum_adsorption.tar.gz'),
           self.data_dir)
     loader = dc.data.JsonLoader(
         tasks=PLATINUM_TASKS,
@@ -46,7 +53,7 @@ class _PtAdsorptionLoader(_MolnetLoader):
 
 def load_Platinum_Adsorption(
     featurizer: Union[dc.feat.Featurizer, str] = LCNNFeaturizer(
-        np.around(6.00), PRIMITIVE_CELL_TEMPLATE),
+        **PRIMITIVE_CELL_INF0),
     splitter: Union[dc.splits.Splitter, str, None] = 'random',
     transformers: List[Union[TransformerGenerator, str]] = [],
     reload: bool = True,
@@ -59,19 +66,13 @@ def load_Platinum_Adsorption(
 
     The dataset consist of diffrent configurations of Adsorbates (i.e N and NO)
     on Platinum surface represented as Lattice and their formation energy. There
-    are 648 diffrent adsorbate configuration in this datasets.
+    are 648 diffrent adsorbate configuration in this datasets represented as Pymatgen
+    Structure objects.
 
-    Structure Format-
-
-    - [ax][ay][az]
-    - [bx][by][bz]
-    - [cx][cy][cz]
-    - [number sites]
-    - [site1a][site1b][site1c][site type][occupation state if active site]
-    - [site2a][site2b][site2c][site type][occupation state if active site]
-
-    [1] ax,ay, ... are cell basis vectorn\n
-    [2] site1a,site1b,site1c are the scaled coordinates of site 1\n
+    1. Pymatgen structure object with site_properties with following key value.
+     - "SiteTypes", mentioning if it is a active site "A1" or spectator
+       site "S1".
+     - "oss", diffrent occupational sites. For spectator sites make it -1.
 
 
     Parameters
