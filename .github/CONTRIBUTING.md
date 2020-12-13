@@ -19,18 +19,16 @@ DeepChem uses these tools or styles for keeping our codes healthy.
 - [YAPF](https://github.com/google/yapf) (code format)
 - [Flake8](https://flake8.pycqa.org/en/latest/) (code style check)
 - [mypy](http://mypy-lang.org/) (type check)
-- [Numpy Doctsring](https://numpydoc.readthedocs.io/en/latest/index.html) (API documents)
 - [doctest](https://docs.python.org/3/library/doctest.html) (interactive examples)
 
 Before making a PR, please check your codes using them.
 You can confirm how to check your codes from [Coding Conventions](https://deepchem.readthedocs.io/en/latest/development_guide/coding.html).
 
-
 ## Document Conventions
 
 DeepChem use [Sphinx](https://www.sphinx-doc.org/en/master/) to build [the document](https://deepchem.readthedocs.io/en/latest/index.html).
 The document is automatically built by [Numpy style docstrings](https://numpydoc.readthedocs.io/en/latest/format.html#numpydoc-docstring-guide) in source codes and [Napoleon extension](http://www.sphinx-doc.org/en/stable/ext/napoleon.html).
-It means you must add or modify Numpy style docstrings if you modify our codes.
+It means you must add or modify Numpy style docstrings if you modify our codes or add new codes.
 
 Before making a PR, please don't forget to modify not only codes but also docstrings.
 
