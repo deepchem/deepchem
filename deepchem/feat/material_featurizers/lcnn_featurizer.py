@@ -277,6 +277,8 @@ class _SiteEnvironment(object):
       ns x 3. coordinates of positions. ns is the number of sites.
       sitetypes: ns. sitetype for each site
     sitetypes: List[str]
+      List of site properties mentioning if it is a active site "Ai"
+      or spectator site "Si".
 
     Returns
     ------

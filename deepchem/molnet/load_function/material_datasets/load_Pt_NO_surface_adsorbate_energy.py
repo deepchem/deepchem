@@ -105,12 +105,11 @@ def load_Platinum_Adsorption(
     --------
     >>>
     >> import deepchem as dc
-    >> feat_args = {"cutoff": np.around(6.00, 2), "input_file_path": os.path.join(data_path,'input.in') }
     >> tasks, datasets, transformers = load_Platinum_Adsorption(
-        reload=True,
-        data_dir=data_path,
-        save_dir=data_path,
-        featurizer_kwargs=feat_args)
+    >>    reload=True,
+    >>    data_dir=data_path,
+    >>    save_dir=data_path,
+    >>    featurizer_kwargs=feat_args)
     >> train_dataset, val_dataset, test_dataset = datasets
     """
 
