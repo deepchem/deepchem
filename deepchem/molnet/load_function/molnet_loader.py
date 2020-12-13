@@ -47,12 +47,12 @@ class TransformerGenerator(object):
 
 
 featurizers = {
-    'ecfp': lambda: dc.feat.CircularFingerprint(size=1024),
-    'graphconv': lambda: dc.feat.ConvMolFeaturizer(),
-    'raw': lambda: dc.feat.RawFeaturizer(),
-    'onehot': lambda: dc.feat.OneHotFeaturizer(),
-    'smiles2img': lambda: dc.feat.SmilesToImage(img_size=80, img_spec='std'),
-    'weave': lambda: dc.feat.WeaveFeaturizer(),
+    'ecfp': dc.feat.CircularFingerprint(size=1024),
+    'graphconv': dc.feat.ConvMolFeaturizer(),
+    'raw': dc.feat.RawFeaturizer(),
+    'onehot': dc.feat.OneHotFeaturizer(),
+    'smiles2img': dc.feat.SmilesToImage(img_size=80, img_spec='std'),
+    'weave': dc.feat.WeaveFeaturizer(),
 }
 
 splitters = {
@@ -115,7 +115,7 @@ class _MolnetLoader(object):
       splitter = kwargs['split']
       logger.warning("'split' is deprecated.  Use 'splitter' instead.")
     if isinstance(featurizer, str):
-      featurizer = featurizers[featurizer.lower()]()
+      featurizer = featurizers[featurizer.lower()]
     if isinstance(splitter, str):
       splitter = splitters[splitter.lower()]
     if data_dir is None:
