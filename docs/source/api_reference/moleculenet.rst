@@ -227,7 +227,7 @@ UV Datasets
 .. _`deepchem.molnet.load_function.load_dataset_template`: https://github.com/deepchem/deepchem/blob/master/deepchem/molnet/load_function/load_dataset_template.py
 .. _`deepchem.molnet.defaults`: https://github.com/deepchem/deepchem/tree/master/deepchem/molnet/defaults.py
 .. _`deepchem.molnet.__init__.py`: https://github.com/deepchem/deepchem/blob/master/deepchem/molnet/__init__.py
-.. _`template`: https://github.com/deepchem/deepchem/blob/master/.github/MOLNET_PR_TEMPLATE.md
+.. _`template`: https://github.com/deepchem/deepchem/blob/master/.github/PULL_REQUEST_TEMPLATE/molnet_pr_template.md
 
 ZINC15 Datasets
 ---------------

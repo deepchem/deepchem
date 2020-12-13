@@ -23,7 +23,7 @@ Soft requirements
 DeepChem has a number of "soft" requirements.
 
 +--------------------------------+---------------+---------------------------------------------------+
-| Package name                   | Version       | Location where this package is used               |
+| Package name                   | Version       | Location where this package is imported           |
 |                                |               | (dc: deepchem)                                    |
 +================================+===============+===================================================+
 | `BioPython`_                   | latest        | :code:`dc.utlis.genomics_utils`                   |

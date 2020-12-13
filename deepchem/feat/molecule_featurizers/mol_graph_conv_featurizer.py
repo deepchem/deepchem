@@ -184,7 +184,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
           from rdkit.Chem import AllChem
           AllChem.ComputeGasteigerCharges(mol)
         except ModuleNotFoundError:
-          raise ImportError("This class requires RDKit to be installed.")
+          raise ImportError("This method requires RDKit to be installed.")
 
     # construct atom (node) feature
     h_bond_infos = construct_hydrogen_bonding_info(mol)

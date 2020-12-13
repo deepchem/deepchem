@@ -21,8 +21,11 @@ materials science, quantum chemistry, and biology.
   - [Docker](#docker)
   - [From source](#from-source)
 - [Getting Started](#getting-started)
+- [Contributing to DeepChem](/CONTRIBUTING.md)
+  - [Code Style Guidelines](/CONTRIBUTING.md#code-style-guidelines)
+  - [Documentation Style Guidelines](/CONTRIBUTING.md#documentation-style-guidelines)
+  - [Gitter](#gitter)
 - [About Us](#about-us)
-- [Contributing to DeepChem](/.github/CONTRIBUTING.md)
 - [Citing DeepChem](#citing-deepchem)
 
 ## Requirements
@@ -41,7 +44,7 @@ DeepChem currently supports Python 3.6 through 3.7 and requires these packages o
 ### Soft Requirements
 
 DeepChem has a number of "soft" requirements.  
-If you face some errors like `ImportError: This class requires XXXX`, you may need to install some packages.
+If you face some errors like `ImportError: No module named XXXX`, you may need to install some packages.
 
 Please check [the document](https://deepchem.readthedocs.io/en/latest/requirements.html##soft-requirements) about soft requirements.
 
@@ -137,3 +140,7 @@ To cite this book, please use this bibtex entry:
     year={2019}
 }
 ```
+
+## Version
+
+2.4.0-rc
