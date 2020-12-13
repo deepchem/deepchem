@@ -43,13 +43,12 @@ pip install tensorflow==$tensorflow tensorflow-probability==$tensorflow_probabil
 pip install torch==$torch+$cuda torchvision==$torchvision+$cuda -f https://download.pytorch.org/whl/torch_stable.html
 
 # Install PyTorch Geometric and DGL dependencies
-pip install torch-scatter==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
-pip install torch-sparse==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
-pip install torch-cluster==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
-pip install torch-spline-conv==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
+pip install torch-scatter -f https://pytorch-geometric.com/whl/torch-${torch}+${cuda}.html
+pip install torch-sparse -f https://pytorch-geometric.com/whl/torch-${torch}+${cuda}.html
+pip install torch-cluster -f https://pytorch-geometric.com/whl/torch-${torch}+${cuda}.html
+pip install torch-spline-conv -f https://pytorch-geometric.com/whl/torch-${torch}+${cuda}.html
 pip install torch-geometric
 pip install $dgl_pkg
 pip install dgllife
 # install transformers package
 pip install transformers
-
