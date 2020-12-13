@@ -23,7 +23,7 @@ def test_cgcnn_regression():
   current_dir = path.dirname(path.abspath(__file__))
   config = {
       "reload": False,
-      "featurizer": CGCNNFeaturizer,
+      "featurizer": CGCNNFeaturizer(),
       # disable transformer
       "transformers": [],
       "data_dir": current_dir
@@ -59,7 +59,7 @@ def test_cgcnn_classification():
   current_dir = path.dirname(path.abspath(__file__))
   config = {
       "reload": False,
-      "featurizer": CGCNNFeaturizer,
+      "featurizer": CGCNNFeaturizer(),
       # disable transformer
       "transformers": [],
       "data_dir": current_dir
@@ -101,7 +101,7 @@ def test_cgcnn_reload():
   current_dir = path.dirname(path.abspath(__file__))
   config = {
       "reload": False,
-      "featurizer": CGCNNFeaturizer,
+      "featurizer": CGCNNFeaturizer(),
       # disable transformer
       "transformers": [],
       "data_dir": current_dir

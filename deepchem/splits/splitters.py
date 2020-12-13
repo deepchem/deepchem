@@ -398,15 +398,15 @@ class RandomGroupSplitter(Splitter):
       An array indicating the group of each item.
       The length is equals to `len(dataset.X)`
 
-    Notes
-    -----
+    Note
+    ----
     The examples of groups is the following.
 
-    groups    : 3 2 2 0 1 1 2 4 3
-    dataset.X : 0 1 2 3 4 5 6 7 8
+    | groups    : 3 2 2 0 1 1 2 4 3
+    | dataset.X : 0 1 2 3 4 5 6 7 8
 
-    groups    : a b b e q x a a r
-    dataset.X : 0 1 2 3 4 5 6 7 8
+    | groups    : a b b e q x a a r
+    | dataset.X : 0 1 2 3 4 5 6 7 8
     """
     self.groups = groups
 
@@ -488,8 +488,8 @@ class RandomStratifiedSplitter(Splitter):
   sparse multitask datasets it usually manages to produces a fairly accurate
   division of the actives for each task.
 
-  Notes
-  -----
+  Note
+  ----
   This splitter is primarily designed for boolean labeled data. It considers
   only whether a label is zero or non-zero. When labels can take on multiple
   non-zero values, it does not try to give each split a proportional fraction
@@ -873,8 +873,8 @@ class MolecularWeightSplitter(Splitter):
   """
   Class for doing data splits by molecular weight.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 
@@ -946,8 +946,8 @@ class MaxMinSplitter(Splitter):
   Furthermore, the validation set is comprised of diverse compounds under
   the test set.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 
@@ -1044,8 +1044,8 @@ class ButinaSplitter(Splitter):
   """Class for doing data splits based on the butina clustering of a bulk tanimoto
   fingerprint matrix.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 
@@ -1166,8 +1166,8 @@ def _generate_scaffold(smiles: str, include_chirality: bool = False) -> str:
   .. [1] Bemis, Guy W., and Mark A. Murcko. "The properties of known drugs.
      1. Molecular frameworks." Journal of medicinal chemistry 39.15 (1996): 2887-2893.
 
-  Notes
-  -----
+  Note
+  ----
   This function requires RDKit to be installed.
   """
   try:
@@ -1184,8 +1184,8 @@ def _generate_scaffold(smiles: str, include_chirality: bool = False) -> str:
 class ScaffoldSplitter(Splitter):
   """Class for doing data splits based on the scaffold of small molecules.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 
@@ -1285,8 +1285,8 @@ class FingerprintSplitter(Splitter):
   """Class for doing data splits based on the fingerprints of small
   molecules O(N**2) algorithm.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 
