@@ -20,7 +20,7 @@ def _get_version():
         base = g['__version__']
         if IS_RELEASE:
           return base
-        else
+        else:
           # nightly version : .devYearMonthDayHourMinute
           if base.endswith('.dev') is False:
             # Force to add `.dev` if `--release` option isn't passed when building
