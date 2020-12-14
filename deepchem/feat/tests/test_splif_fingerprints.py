@@ -12,7 +12,7 @@ class TestSplifFingerprints(unittest.TestCase):
     self.protein_file = os.path.join(current_dir, 'data',
                                      '3ws9_protein_fixer_rdkit.pdb')
     self.ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
-    self.complex_files = (self.ligand_file, self.protein_file)
+    self.complex_files = [(self.ligand_file, self.protein_file)]
 
   def test_splif_shape(self):
     size = 8

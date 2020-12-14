@@ -155,8 +155,9 @@ class ComplexFeaturizer(Featurizer):
   Abstract class for calculating features for mol/protein complexes.
   """
 
-  def featurize(self, complexes: Iterable[Tuple[str, str]],
-    log_every_n: int = 100) -> np.ndarray:
+  def featurize(self,
+                complexes: Iterable[Tuple[str, str]],
+                log_every_n: int = 100) -> np.ndarray:
     """
     Calculate features for mol/protein complexes.
 
@@ -164,13 +165,13 @@ class ComplexFeaturizer(Featurizer):
     ----------
     complexes: Iterable[Tuple[str, str]]
       List of filenames (PDB, SDF, etc.) for ligand molecules and proteins.
+      Each element should be a tuple of the form (ligand_filename,
+      protein_filename).
 
     Returns
     -------
     features: np.ndarray
       Array of features
-    failures: List
-      Indices of complexes that failed to featurize.
     """
 
     if not isinstance(complexes, Iterable):

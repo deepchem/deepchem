@@ -13,7 +13,7 @@ def test_charge_voxelizer():
   voxel_width = 1.0
   voxelizer = dc.feat.ChargeVoxelizer(
       cutoff=cutoff, box_width=box_width, voxel_width=voxel_width)
-  features = voxelizer.featurize((ligand_file, protein_file))
+  features = voxelizer.featurize([(ligand_file, protein_file)])
   assert features.shape == (1, box_width, box_width, box_width, 1)
 
 
@@ -28,7 +28,7 @@ def test_salt_bridge_voxelizer():
   voxel_width = 1.0
   voxelizer = dc.feat.SaltBridgeVoxelizer(
       cutoff=cutoff, box_width=box_width, voxel_width=voxel_width)
-  features = voxelizer.featurize((ligand_file, protein_file))
+  features = voxelizer.featurize([(ligand_file, protein_file)])
   assert features.shape == (1, box_width, box_width, box_width, 1)
 
 
@@ -43,7 +43,7 @@ def test_cation_pi_voxelizer():
   voxel_width = 1.0
   voxelizer = dc.feat.CationPiVoxelizer(
       cutoff=cutoff, box_width=box_width, voxel_width=voxel_width)
-  features = voxelizer.featurize((ligand_file, protein_file))
+  features = voxelizer.featurize([(ligand_file, protein_file)])
   assert features.shape == (1, box_width, box_width, box_width, 1)
 
 
@@ -58,7 +58,7 @@ def test_pi_stack_voxelizer():
   voxel_width = 1.0
   voxelizer = dc.feat.PiStackVoxelizer(
       cutoff=cutoff, box_width=box_width, voxel_width=voxel_width)
-  features = voxelizer.featurize((ligand_file, protein_file))
+  features = voxelizer.featurize([(ligand_file, protein_file)])
   assert features.shape == (1, box_width, box_width, box_width, 2)
 
 
