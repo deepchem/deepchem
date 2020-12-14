@@ -4,8 +4,7 @@ Feature calculations.
 import inspect
 import logging
 import numpy as np
-import multiprocessing
-from typing import Any, Dict, List, Iterable, Sequence, Tuple, Union, cast
+from typing import Any, Dict, Iterable, Tuple, Union, cast
 
 from deepchem.utils import get_print_threshold
 from deepchem.utils.typing import PymatgenStructure
@@ -197,7 +196,7 @@ class ComplexFeaturizer(Featurizer):
     Parameters
     ----------
     complex: Tuple[str, str]
-      Filenames for molecule and protein. 
+      Filenames for molecule and protein.
     """
     raise NotImplementedError('Featurizer is not defined.')
 

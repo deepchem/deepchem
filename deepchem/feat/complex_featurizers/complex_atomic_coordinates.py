@@ -121,7 +121,7 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     Parameters
     ----------
     complex: Tuple[str, str]
-      Filenames for molecule and protein. 
+      Filenames for molecule and protein.
     """
     mol_pdb_file, protein_pdb_file = complex
     mol_coords, ob_mol = load_molecule(mol_pdb_file)
