@@ -77,6 +77,7 @@ splitters = {
     'random': dc.splits.RandomSplitter(),
     'scaffold': dc.splits.ScaffoldSplitter(),
     'butina': dc.splits.ButinaSplitter(),
+    'fingerprint': dc.splits.FingerprintSplitter(),
     'task': dc.splits.TaskSplitter(),
     'stratified': dc.splits.RandomStratifiedSplitter()
 }
