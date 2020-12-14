@@ -1281,7 +1281,7 @@ def _split_fingerprints(fps: List, size1: int,
   # Begin by assigning the first molecule to the first group.
 
   fp_in_group = [[fps[0]], []]
-  indices_in_group = [[0], []]
+  indices_in_group: Tuple[List[int], List[int]] = ([0], [])
   remaining_fp = fps[1:]
   remaining_indices = list(range(1, len(fps)))
   max_similarity_to_group = [
@@ -1314,7 +1314,7 @@ def _split_fingerprints(fps: List, size1: int,
         max_similarity_to_group[1 - group], i)
     del remaining_fp[i]
     del remaining_indices[i]
-  return tuple(indices_in_group)
+  return indices_in_group
 
 
 class ScaffoldSplitter(Splitter):
