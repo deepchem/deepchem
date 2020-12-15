@@ -19,7 +19,7 @@ class _PDBBindLoader(_MolnetLoader):
     super(_PDBBindLoader, self).__init__(*args, **kwargs)
     self.set_name = set_name
     if set_name == 'general':
-      self.name = 'pdbbind_v2019_other_PL'  # 'general' set folder name 
+      self.name = 'pdbbind_v2019_other_PL'  # 'general' set folder name
     else:
       self.name = 'pdbbind_v2019_refined'
 
@@ -47,12 +47,12 @@ class _PDBBindLoader(_MolnetLoader):
   def _process_pdbs(self) -> Tuple[List[str], List[str], np.array, List[str]]:
     if self.set_name == 'general':
       data_folder = os.path.join(self.data_dir, 'v2019-other-PL')
-      index_labels_file = os.path.join(
-        data_folder, 'index/INDEX_general_PL_data.2019')
+      index_labels_file = os.path.join(data_folder,
+                                       'index/INDEX_general_PL_data.2019')
     elif self.set_name == 'refined':
       data_folder = os.path.join(self.data_dir, 'refined-set')
-      index_labels_file = os.path.join(
-        data_folder, 'index/INDEX_refined_data.2019')
+      index_labels_file = os.path.join(data_folder,
+                                       'index/INDEX_refined_data.2019')
 
     # Extract locations of data
     with open(index_labels_file, "r") as g:
