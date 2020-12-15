@@ -22,7 +22,7 @@ Please check the option that is related to your PR.
 ## Checklist
 
 - [ ] My code follows [the style guidelines of this project](https://deepchem.readthedocs.io/en/latest/development_guide/coding.html)
-  - [ ] Run `yapf -i <modified file>` and check no errors
+  - [ ] Run `yapf -i <modified file>` and check no errors (**yapf version must be  0.22.0**)
   - [ ] Run `mypy -p deepchem` and check no errors
   - [ ] Run `flake8 <modified file> --count` and check no errors
 - [ ] I have performed a self-review of my own code
