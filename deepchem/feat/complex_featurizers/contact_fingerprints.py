@@ -93,19 +93,17 @@ class ContactCircularFingerprint(ComplexFeaturizer):
     self.radius = radius
     self.size = size
 
-  def _featurize(self, mol_pdb: str, protein_pdb: str):
+  def _featurize(self, complex: Tuple[str, str]):
     """
     Compute featurization for a molecular complex
 
     Parameters
     ----------
-    mol_pdb: str
-      Filename for ligand molecule
-    protein_pdb: str
-      Filename for protein molecule
+    complex: Tuple[str, str]
+      Filenames for molecule and protein.
     """
     try:
-      fragments = load_complex((mol_pdb, protein_pdb), add_hydrogens=False)
+      fragments = load_complex(complex, add_hydrogens=False)
 
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
@@ -181,20 +179,17 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
     self.flatten = flatten
 
-  def _featurize(self, mol_pdb: str, protein_pdb: str):
+  def _featurize(self, complex):
     """
     Compute featurization for a molecular complex
 
     Parameters
     ----------
-    mol_pdb: str
-      Filename for ligand molecule
-    protein_pdb: str
-      Filename for protein molecule
+    complex: Tuple[str, str]
+      Filenames for molecule and protein.
     """
-    molecular_complex = (mol_pdb, protein_pdb)
     try:
-      fragments = load_complex(molecular_complex, add_hydrogens=False)
+      fragments = load_complex(complex, add_hydrogens=False)
 
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
