@@ -19,6 +19,11 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
 
+import mo_tf
+import subprocess
+from openvino.inference_engine import IECore, StatusCode
+from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
+
 try:
   import wandb
   wandb.ensure_configured()
@@ -225,6 +230,11 @@ class KerasModel(Model):
     self._training_ops_built = False
     self._output_functions: Dict[Any, Any] = {}
     self._gradient_fn_for_vars: Dict[Any, Any] = {}
+
+    # Intel OpenVINO backend
+    self.openvino_core = IECore()
+    self.use_openvino = kwargs.get('use_openvino', False)
+    self.exec_net = None
 
   def _ensure_built(self) -> None:
     """The first time this is called, create internal data structures."""
@@ -614,7 +624,11 @@ class KerasModel(Model):
         output_values = self._compute_model(inputs)
         if tf.is_tensor(output_values):
           output_values = [output_values]
-        output_values = [t.numpy() for t in output_values]
+        else:
+          output_values = self._compute_model(inputs)
+          if isinstance(output_values, tf.Tensor):
+            output_values = [output_values]
+          output_values = [t.numpy() for t in output_values]
 
       # Apply tranformers and record results.
       if uncertainty:
@@ -664,6 +678,51 @@ class KerasModel(Model):
   def _compute_model(self, inputs: Sequence):
     """Evaluate the model for a set of inputs."""
     return self.model(inputs, training=False)
+
+  def compute_model_openvino(self, inputs):
+    assert(len(self.exec_net.input_info) == 1)
+    assert(len(self.exec_net.outputs) == 1)
+    inp_name = next(iter(self.exec_net.input_info.keys()))
+    out_name = next(iter(self.exec_net.outputs.keys()))
+    out_shape = self.exec_net.outputs[out_name].shape
+    
+    infer_request_input_id = [-1] * len(self.exec_net.requests)
+    batch_size = inputs.shape[0]
+    output = np.zeros([batch_size] + out_shape[1:], dtype=np.float32)
+
+    for inp_id in range(batch_size):
+      # Get idle infer request
+      infer_request_id = self.exec_net.get_idle_request_id()
+      if infer_request_id < 0:
+        status = self.exec_net.wait(num_requests=1)
+        if status != StatusCode.OK:
+          raise Exception('Wait for idle request failed!')
+        infer_request_id = self.exec_net.get_idle_request_id()
+        if infer_request_id < 0:
+          raise Exception('Invalid request id!')
+
+      out_id = infer_request_input_id[infer_request_id]
+      request = self.exec_net.requests[infer_request_id]
+
+      # Copy output prediction
+      if out_id != -1:
+        output[out_id:out_id+1] = request.output_blobs[out_name].buffer
+      
+      # Start this request on new data
+      infer_request_input_id[infer_request_id] = inp_id
+      request.async_infer({inp_name: inputs[inp_id:inp_id+1]})
+
+    # Wait for the rest of requests
+    status = self.exec_net.wait()
+    if status != StatusCode.OK:
+      raise Exception("Wait for idle request failed!")
+    for infer_request_id, out_id in enumerate(infer_request_input_id):
+      if out_id == -1:
+          continue
+      request = self.exec_net.requests[infer_request_id]
+      output[out_id:out_id+1] = request.output_blobs[out_name].buffer
+
+    return output
 
   def predict_on_generator(
       self,
@@ -784,6 +843,44 @@ class KerasModel(Model):
     a NumPy array of the model produces a single output, or a list of arrays
     if it produces multiple outputs
     """
+    if self.use_openvino and not self.exec_net:
+      tf.keras.backend.set_learning_phase(0)
+      # Freeze Keras model
+      func = tf.function(lambda x: self.model(x))
+      inps = [tf.TensorSpec(inp.shape, inp.dtype) for inp in self.model.inputs]
+      func = func.get_concrete_function(inps)
+      frozen_func = convert_variables_to_constants_v2(func)
+      graph_def = frozen_func.graph.as_graph_def()
+      # Use batch size 1
+      for node in graph_def.node:
+        if node.op == 'Placeholder':
+          if len(node.attr['shape'].shape.dim) and node.attr['shape'].shape.dim[0].size == -1:
+            node.attr['shape'].shape.dim[0].size = 1
+
+      # Save frozen graph
+      pb_model_path = os.path.join(self.model_dir, 'model.pb')
+      with tf.io.gfile.GFile(pb_model_path, 'wb') as f:
+        f.write(graph_def.SerializeToString())
+
+      # Convert to OpenVINO IR
+      # shape = list(self.model.inputs[0].shape)
+      # shape[0] = 1  # Batch size
+      subprocess.run([mo_tf.__file__,
+                      '--input_model', pb_model_path,
+                      '--output_dir', self.model_dir],
+                      check=True)
+      os.remove(pb_model_path)
+
+      # Load network to device
+      net = self.openvino_core.read_network(os.path.join(self.model_dir, 'model.xml'),
+                                            os.path.join(self.model_dir, 'model.bin'))
+      self.exec_net = self.openvino_core.load_network(
+          net,
+          'CPU',
+          config={'CPU_THROUGHPUT_STREAMS': 'CPU_THROUGHPUT_AUTO'},
+          num_requests=0)
+
+
     generator = self.default_generator(
         dataset, mode='predict', deterministic=True, pad_batches=False)
     return self.predict_on_generator(

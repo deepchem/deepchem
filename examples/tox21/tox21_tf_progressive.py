@@ -5,6 +5,9 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import tensorflow as tf
+tf.random.set_seed(124)
+
 import os
 import shutil
 import numpy as np
@@ -28,17 +31,22 @@ model = dc.models.ProgressiveMultitaskClassifier(
     layer_sizes=[1000],
     dropouts=[.25],
     learning_rate=0.001,
-    batch_size=50)
+    batch_size=50,
+    use_openvino=True)
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=10)
+# model.fit(train_dataset, nb_epoch=10)
 
 print("Evaluating model")
-train_scores = model.evaluate(train_dataset, [metric], transformers)
-valid_scores = model.evaluate(valid_dataset, [metric], transformers)
+# train_scores = model.evaluate(train_dataset, [metric], transformers)
+import time
+for i in range(3):
+    start = time.time()
+    valid_scores = model.evaluate(valid_dataset, [metric], transformers)
+    print(time.time() - start, valid_scores)
 
-print("Train scores")
-print(train_scores)
+# print("Train scores")
+# print(train_scores)
 
-print("Validation scores")
-print(valid_scores)
+# print("Validation scores")
+# {'mean-roc_auc_score': 0.5315314298546935}
