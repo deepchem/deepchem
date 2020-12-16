@@ -104,7 +104,7 @@ class TestDocking(unittest.TestCase):
     class DummyFeaturizer(ComplexFeaturizer):
 
       def featurize(self, complexes, *args, **kwargs):
-        return np.zeros((len(complexes), 5)), None
+        return np.zeros((len(complexes), 5))
 
     class DummyModel(Model):
 

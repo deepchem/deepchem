@@ -81,21 +81,17 @@ class ChargeVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize(self, mol_pdb: str, protein_pdb: str) -> np.ndarray:
+  def _featurize(self, complex: Tuple[str, str]) -> np.ndarray:
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    mol_pdb: str
-      Filename for ligand molecule
-    protein_pdb: str
-      Filename for protein molecule
+    complex: Tuple[str, str]
+      Filenames for molecule and protein.
     """
-    molecular_complex = (mol_pdb, protein_pdb)
     try:
-      fragments = rdkit_utils.load_complex(
-          molecular_complex, add_hydrogens=False)
+      fragments = rdkit_utils.load_complex(complex, add_hydrogens=False)
 
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
@@ -171,21 +167,17 @@ class SaltBridgeVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize(self, mol_pdb: str, protein_pdb: str) -> np.ndarray:
+  def _featurize(self, complex: Tuple[str, str]) -> np.ndarray:
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    mol_pdb: str
-      Filename for ligand molecule
-    protein_pdb: str
-      Filename for protein molecule
+    complex: Tuple[str, str]
+      Filenames for molecule and protein.
     """
-    molecular_complex = (mol_pdb, protein_pdb)
     try:
-      fragments = rdkit_utils.load_complex(
-          molecular_complex, add_hydrogens=False)
+      fragments = rdkit_utils.load_complex(complex, add_hydrogens=False)
 
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
@@ -260,21 +252,17 @@ class CationPiVoxelizer(ComplexFeaturizer):
     self.box_width = box_width
     self.voxel_width = voxel_width
 
-  def _featurize(self, mol_pdb: str, protein_pdb: str) -> np.ndarray:
+  def _featurize(self, complex: Tuple[str, str]) -> np.ndarray:
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    mol_pdb: str
-      Filename for ligand molecule
-    protein_pdb: str
-      Filename for protein molecule
+    complex: Tuple[str, str]
+      Filenames for molecule and protein.
     """
-    molecular_complex = (mol_pdb, protein_pdb)
     try:
-      fragments = rdkit_utils.load_complex(
-          molecular_complex, add_hydrogens=False)
+      fragments = rdkit_utils.load_complex(complex, add_hydrogens=False)
 
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
@@ -355,21 +343,17 @@ class PiStackVoxelizer(ComplexFeaturizer):
     self.box_width = box_width
     self.voxel_width = voxel_width
 
-  def _featurize(self, mol_pdb: str, protein_pdb: str) -> np.ndarray:
+  def _featurize(self, complex) -> np.ndarray:
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    mol_pdb: str
-      Filename for ligand molecule
-    protein_pdb: str
-      Filename for protein molecule
+    complex: Tuple[str, str]
+      Filenames for molecule and protein.
     """
-    molecular_complex = (mol_pdb, protein_pdb)
     try:
-      fragments = rdkit_utils.load_complex(
-          molecular_complex, add_hydrogens=False)
+      fragments = rdkit_utils.load_complex(complex, add_hydrogens=False)
 
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
@@ -471,21 +455,17 @@ class HydrogenBondCounter(ComplexFeaturizer):
       self.angle_cutoffs = angle_cutoffs
     self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize(self, mol_pdb: str, protein_pdb: str) -> np.ndarray:
+  def _featurize(self, complex: Tuple[str, str]) -> np.ndarray:
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    mol_pdb: str
-      Filename for ligand molecule
-    protein_pdb: str
-      Filename for protein molecule
+    complex: Tuple[str, str]
+      Filenames for molecule and protein.
     """
-    molecular_complex = (mol_pdb, protein_pdb)
     try:
-      fragments = rdkit_utils.load_complex(
-          molecular_complex, add_hydrogens=False)
+      fragments = rdkit_utils.load_complex(complex, add_hydrogens=False)
 
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
@@ -580,21 +560,17 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize(self, mol_pdb: str, protein_pdb: str) -> np.ndarray:
+  def _featurize(self, complex: Tuple[str, str]) -> np.ndarray:
     """
     Compute featurization for a single mol/protein complex
 
     Parameters
     ----------
-    mol_pdb: str
-      Filename for ligand molecule
-    protein_pdb: str
-      Filename for protein molecule
+    complex: Tuple[str, str]
+      Filenames for molecule and protein.
     """
-    molecular_complex = (mol_pdb, protein_pdb)
     try:
-      fragments = rdkit_utils.load_complex(
-          molecular_complex, add_hydrogens=False)
+      fragments = rdkit_utils.load_complex(complex, add_hydrogens=False)
 
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")

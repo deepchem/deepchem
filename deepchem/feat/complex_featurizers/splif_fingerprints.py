@@ -146,20 +146,17 @@ class SplifFingerprint(ComplexFeaturizer):
     self.size = size
     self.radius = radius
 
-  def _featurize(self, mol_pdb: str, complex_pdb: str):
+  def _featurize(self, complex: Tuple[str, str]):
     """
     Compute featurization for a molecular complex
 
     Parameters
     ----------
-    mol_pdb: str
-      Filename for ligand molecule
-    complex_pdb: str
-      Filename for protein molecule
+    complex: Tuple[str, str]
+      Filenames for molecule and protein.
     """
-    molecular_complex = (mol_pdb, complex_pdb)
     try:
-      fragments = load_complex(molecular_complex, add_hydrogens=False)
+      fragments = load_complex(complex, add_hydrogens=False)
 
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
@@ -239,20 +236,17 @@ class SplifVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
 
-  def _featurize(self, mol_pdb: str, complex_pdb: str):
+  def _featurize(self, complex: Tuple[str, str]):
     """
     Compute featurization for a molecular complex
 
     Parameters
     ----------
-    mol_pdb: str
-      Filename for ligand molecule
-    complex_pdb: str
-      Filename for protein molecule
+    complex: Tuple[str, str]
+      Filenames for molecule and protein.
     """
-    molecular_complex = (mol_pdb, complex_pdb)
     try:
-      fragments = load_complex(molecular_complex, add_hydrogens=False)
+      fragments = load_complex(complex, add_hydrogens=False)
 
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
