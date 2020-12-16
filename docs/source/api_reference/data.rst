@@ -124,9 +124,12 @@ Graph Data
 ^^^^^^^^^^
 
 These classes document the data classes for graph convolutions. 
-We plan to simplify these classes into a joint data representation
-for all graph convolutions in a future version of DeepChem,
+We plan to simplify these classes (:code:`ConvMol`, :code:`MultiConvMol`, :code:`WeaveMol`)
+into a joint data representation (:code:`GraphData`) for all graph convolutions in a future version of DeepChem,
 so these APIs may not remain stable.
+
+The graph convolution models which inherit :code:`KerasModel` depend on :code:`ConvMol`, :code:`MultiConvMol`, or :code:`WeaveMol`.
+On the other hand, the graph convolution models which inherit :code:`TorchModel` depend on :code:`GraphData`.
 
 .. autoclass:: deepchem.feat.mol_graphs.ConvMol
   :members:
@@ -140,4 +143,27 @@ so these APIs may not remain stable.
   :undoc-members:
 
 .. autoclass:: deepchem.feat.graph_data.GraphData
+  :members:
+
+
+Base Classes (for develop)
+--------------------------
+
+Dataset
+^^^^^^^
+The :code:`dc.data.Dataset` class is the abstract parent class for all
+datasets. This class should never be directly initialized, but
+contains a number of useful method implementations.
+
+.. autoclass:: deepchem.data.Dataset
+  :members:
+
+DataLoader
+^^^^^^^^^^
+
+The :code:`dc.data.DataLoader` class is the abstract parent class for all
+dataloaders. This class should never be directly initialized, but
+contains a number of useful method implementations.
+
+.. autoclass:: deepchem.data.DataLoader
   :members:

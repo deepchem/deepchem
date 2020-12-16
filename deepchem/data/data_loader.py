@@ -518,6 +518,7 @@ class JsonLoader(DataLoader):
 
   Dump the dataframe to the JSON file formatted as "records" in line delimited format and
   load the json file by JsonLoader.
+
   >>> import tempfile
   >>> import deepchem as dc
   >>> with tempfile.NamedTemporaryFile(mode='w') as tmpfile:
