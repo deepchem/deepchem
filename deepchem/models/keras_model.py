@@ -684,45 +684,60 @@ class KerasModel(Model):
     assert(len(self.exec_net.outputs) == 1)
     inp_name = next(iter(self.exec_net.input_info.keys()))
     out_name = next(iter(self.exec_net.outputs.keys()))
-    out_shape = self.exec_net.outputs[out_name].shape
+
+    if inputs.shape[0] != self.batch_size:
+      assert(inputs.shape[0] < self.batch_size)
+      inp = np.zeros([self.batch_size] + list(inputs.shape[1:]), dtype=np.float32)
+      inp[:inputs.shape[0]] = inputs
+      output = self.exec_net.infer({inp_name: inp})[out_name]
+      return output[:inputs.shape[0]]
+    else:
+      return self.exec_net.infer({inp_name: inputs})[out_name]
+
+    # Async inference
+    # assert(len(self.exec_net.input_info) == 1)
+    # assert(len(self.exec_net.outputs) == 1)
+    # inp_name = next(iter(self.exec_net.input_info.keys()))
+    # out_name = next(iter(self.exec_net.outputs.keys()))
+    # out_shape = self.exec_net.outputs[out_name].shape
     
-    infer_request_input_id = [-1] * len(self.exec_net.requests)
-    batch_size = inputs.shape[0]
-    output = np.zeros([batch_size] + out_shape[1:], dtype=np.float32)
+    # infer_request_input_id = [-1] * len(self.exec_net.requests)
+    # batch_size = inputs.shape[0]
+    # output = np.zeros([batch_size] + out_shape[1:], dtype=np.float32)
 
-    for inp_id in range(batch_size):
-      # Get idle infer request
-      infer_request_id = self.exec_net.get_idle_request_id()
-      if infer_request_id < 0:
-        status = self.exec_net.wait(num_requests=1)
-        if status != StatusCode.OK:
-          raise Exception('Wait for idle request failed!')
-        infer_request_id = self.exec_net.get_idle_request_id()
-        if infer_request_id < 0:
-          raise Exception('Invalid request id!')
+    # for inp_id in range(batch_size):
+    #   # Get idle infer request
+    #   infer_request_id = self.exec_net.get_idle_request_id()
+    #   if infer_request_id < 0:
+    #     status = self.exec_net.wait(num_requests=1)
+    #     if status != StatusCode.OK:
+    #       raise Exception('Wait for idle request failed!')
+    #     infer_request_id = self.exec_net.get_idle_request_id()
+    #     if infer_request_id < 0:
+    #       raise Exception('Invalid request id!')
 
-      out_id = infer_request_input_id[infer_request_id]
-      request = self.exec_net.requests[infer_request_id]
+    #   out_id = infer_request_input_id[infer_request_id]
+    #   request = self.exec_net.requests[infer_request_id]
 
-      # Copy output prediction
-      if out_id != -1:
-        output[out_id:out_id+1] = request.output_blobs[out_name].buffer
+    #   # Copy output prediction
+    #   if out_id != -1:
+    #     output[out_id:out_id+1] = request.output_blobs[out_name].buffer
       
-      # Start this request on new data
-      infer_request_input_id[infer_request_id] = inp_id
-      request.async_infer({inp_name: inputs[inp_id:inp_id+1]})
+    #   # Start this request on new data
+    #   infer_request_input_id[infer_request_id] = inp_id
+    #   request.async_infer({inp_name: inputs[inp_id:inp_id+1]})
 
-    # Wait for the rest of requests
-    status = self.exec_net.wait()
-    if status != StatusCode.OK:
-      raise Exception("Wait for idle request failed!")
-    for infer_request_id, out_id in enumerate(infer_request_input_id):
-      if out_id == -1:
-          continue
-      request = self.exec_net.requests[infer_request_id]
-      output[out_id:out_id+1] = request.output_blobs[out_name].buffer
+    # # Wait for the rest of requests
+    # status = self.exec_net.wait()
+    # if status != StatusCode.OK:
+    #   raise Exception("Wait for idle request failed!")
+    # for infer_request_id, out_id in enumerate(infer_request_input_id):
+    #   if out_id == -1:
+    #       continue
+    #   request = self.exec_net.requests[infer_request_id]
+    #   output[out_id:out_id+1] = request.output_blobs[out_name].buffer
 
-    return output
+    # return output
 
   def predict_on_generator(
       self,
@@ -847,15 +862,18 @@ class KerasModel(Model):
       tf.keras.backend.set_learning_phase(0)
       # Freeze Keras model
       func = tf.function(lambda x: self.model(x))
-      inps = [tf.TensorSpec(inp.shape, inp.dtype) for inp in self.model.inputs]
-      func = func.get_concrete_function(inps)
+      func = func.get_concrete_function(self.model.inputs)
       frozen_func = convert_variables_to_constants_v2(func)
       graph_def = frozen_func.graph.as_graph_def()
+
       # Use batch size 1
-      for node in graph_def.node:
+      for i in reversed(range(len(graph_def.node))):
+        node = graph_def.node[i]
         if node.op == 'Placeholder':
-          if len(node.attr['shape'].shape.dim) and node.attr['shape'].shape.dim[0].size == -1:
-            node.attr['shape'].shape.dim[0].size = 1
+          if node.name.startswith('unused_control_flow_input'):
+            del graph_def.node[i]
+          elif node.attr['shape'].shape.dim[0].size == -1:
+            node.attr['shape'].shape.dim[0].size = self.batch_size
 
       # Save frozen graph
       pb_model_path = os.path.join(self.model_dir, 'model.pb')
@@ -874,11 +892,12 @@ class KerasModel(Model):
       # Load network to device
       net = self.openvino_core.read_network(os.path.join(self.model_dir, 'model.xml'),
                                             os.path.join(self.model_dir, 'model.bin'))
-      self.exec_net = self.openvino_core.load_network(
-          net,
-          'CPU',
-          config={'CPU_THROUGHPUT_STREAMS': 'CPU_THROUGHPUT_AUTO'},
-          num_requests=0)
+      self.exec_net = self.openvino_core.load_network(net, 'CPU')
+      # self.exec_net = self.openvino_core.load_network(
+      #     net,
+      #     'CPU',
+      #     config={'CPU_THROUGHPUT_STREAMS': 'CPU_THROUGHPUT_AUTO'},
+      #     num_requests=0)
 
 
     generator = self.default_generator(
