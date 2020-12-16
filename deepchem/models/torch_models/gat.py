@@ -367,4 +367,8 @@ class GATModel(TorchModel):
     inputs = dgl.batch(dgl_graphs).to(self.device)
     _, labels, weights = super(GATModel, self)._prepare_batch(([], labels,
                                                                weights))
+
+    if labels[0].shape[-1] == 1:
+      labels = [lbl.squeeze(-1) for lbl in labels]
+
     return inputs, labels, weights
