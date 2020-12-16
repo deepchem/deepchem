@@ -307,7 +307,7 @@ class MPNNModel(TorchModel):
                                                                 weights))
 
     # torch.nn.CrossEntropy expects the last dimension of labels to be non-singleton
-    if labels[0].shape[-1] == 1:
+    if labels[0].shape[-1] == 1 and self.model.mode == 'classification':
       labels = [lbl.squeeze(-1) for lbl in labels]
 
     return inputs, labels, weights
