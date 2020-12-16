@@ -307,6 +307,7 @@ class AttentiveFPModel(TorchModel):
     _, labels, weights = super(AttentiveFPModel, self)._prepare_batch(
         ([], labels, weights))
 
+    # torch.nn.CrossEntropy expects the last dimension of labels to be non-singleton
     if labels[0].shape[-1] == 1:
       labels = [lbl.squeeze(-1) for lbl in labels]
 

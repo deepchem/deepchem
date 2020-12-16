@@ -352,7 +352,8 @@ class GCNModel(TorchModel):
     _, labels, weights = super(GCNModel, self)._prepare_batch(([], labels,
                                                                weights))
 
-    if labels[0].shape[-1] == 1:
+    # torch.nn.CrossEntropy expects the last dimension of labels to be non-singleton
+    if labels[0].shape[-1] == 1 and self.model.mode == 'classification':
       labels = [lbl.squeeze(-1) for lbl in labels]
 
     return inputs, labels, weights
