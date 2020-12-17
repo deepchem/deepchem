@@ -108,9 +108,10 @@ def load_pdbbind(
 
   Parameters
   ----------
-  featurizer: Featurizer or str
-    the featurizer to use for processing the data.  Alternatively you can pass
-    one of the names from dc.molnet.featurizers as a shortcut.
+  featurizer: ComplexFeaturizer or str
+    the complex featurizer to use for processing the data. 
+    Alternatively you can pass one of the names from 
+    dc.molnet.featurizers as a shortcut.
   splitter: Splitter or str
     the splitter to use for splitting the data into training, validation, and
     test sets.  Alternatively you can pass one of the names from
