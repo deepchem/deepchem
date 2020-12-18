@@ -581,3 +581,16 @@ class TestSplitter(unittest.TestCase):
     assert not np.array_equal(train1.X, train2.X)
     assert not np.array_equal(valid1.X, valid2.X)
     assert not np.array_equal(test1.X, test2.X)
+
+  def test_fingerprint_split(self):
+    """
+    Test FingerprintSplitter.
+    """
+    multitask_dataset = load_multitask_data()
+    splitter = dc.splits.FingerprintSplitter()
+    train_data, valid_data, test_data = \
+      splitter.train_valid_test_split(
+        multitask_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+    assert len(train_data) == 8
+    assert len(valid_data) == 1
+    assert len(test_data) == 1
