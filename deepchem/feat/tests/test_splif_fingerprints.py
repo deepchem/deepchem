@@ -12,13 +12,12 @@ class TestSplifFingerprints(unittest.TestCase):
     self.protein_file = os.path.join(current_dir, 'data',
                                      '3ws9_protein_fixer_rdkit.pdb')
     self.ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
-    self.complex_files = [(self.protein_file, self.ligand_file)]
+    self.complex_files = [(self.ligand_file, self.protein_file)]
 
   def test_splif_shape(self):
     size = 8
     featurizer = dc.feat.SplifFingerprint(size=size)
-    features, failures = featurizer.featurize([self.ligand_file],
-                                              [self.protein_file])
+    features = featurizer.featurize(self.complex_files)
     assert features.shape == (1, 3 * size)
 
   def test_splif_voxels_shape(self):
@@ -28,7 +27,6 @@ class TestSplifFingerprints(unittest.TestCase):
     size = 8
     voxelizer = dc.feat.SplifVoxelizer(
         box_width=box_width, voxel_width=voxel_width, size=size)
-    features, failures = voxelizer.featurize([self.ligand_file],
-                                             [self.protein_file])
+    features = voxelizer.featurize(self.complex_files)
     assert features.shape == (1, voxels_per_edge, voxels_per_edge,
                               voxels_per_edge, size * 3)
