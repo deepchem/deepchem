@@ -305,9 +305,4 @@ class MPNNModel(TorchModel):
     inputs = dgl.batch(dgl_graphs).to(self.device)
     _, labels, weights = super(MPNNModel, self)._prepare_batch(([], labels,
                                                                 weights))
-
-    # torch.nn.CrossEntropy expects the last dimension of labels to be non-singleton
-    if labels[0].shape[-1] == 1 and self.model.mode == 'classification':
-      labels = [lbl.squeeze(-1) for lbl in labels]
-
     return inputs, labels, weights

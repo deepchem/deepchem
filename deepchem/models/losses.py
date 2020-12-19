@@ -200,6 +200,8 @@ class SparseSoftmaxCrossEntropy(Loss):
       # This is for API consistency
       if len(output.shape) == 3:
         output = output.permute(0, 2, 1)
+      if labels.shape[-1] == 1:
+        labels = labels.squeeze(-1)
       return ce_loss(output, labels.long())
 
     return loss
