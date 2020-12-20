@@ -144,7 +144,7 @@ jobs:
         file: ./coverage.xml
 
   deploy:
-    if: ${{ github.ref == 'master' }}
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: [build]
     runs-on: ubuntu-latest
     steps:

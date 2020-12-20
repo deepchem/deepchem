@@ -13,6 +13,8 @@ RUN MINICONDA="Miniconda3-latest-Linux-x86_64.sh" && \
     echo ". /miniconda/etc/profile.d/conda.sh" >> ~/.bashrc
 ENV PATH /miniconda/bin:$PATH
 
+SHELL ["/bin/bash", "-c"]
+
 # install deepchem with master branch
 RUN conda update -n base conda && \
     git clone --depth 1 https://github.com/deepchem/deepchem.git && \
