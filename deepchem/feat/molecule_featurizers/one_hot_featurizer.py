@@ -37,11 +37,6 @@ class OneHotFeaturizer(MolecularFeaturizer):
       The max length for SMILES string. If the length of SMILES string is
       shorter than max_length, the SMILES is padded using space.
     """
-    try:
-      from rdkit import Chem  # noqa
-    except ModuleNotFoundError:
-      raise ImportError("This class requires RDKit to be installed.")
-
     if len(charset) != len(set(charset)):
       raise ValueError("All values in charset must be unique.")
     self.charset = charset
@@ -62,7 +57,10 @@ class OneHotFeaturizer(MolecularFeaturizer):
       The shape is `(max_length, len(charset) + 1)`.
       The index of unknown character is `len(charset)`.
     """
-    from rdkit import Chem
+    try:
+      from rdkit import Chem
+    except ModuleNotFoundError:
+      raise ImportError("This class requires RDKit to be installed.")
 
     smiles = Chem.MolToSmiles(mol)
     # validation

@@ -47,30 +47,13 @@ class TransformerGenerator(object):
 
 
 featurizers = {
+    'ecfp': dc.feat.CircularFingerprint(size=1024),
     'graphconv': dc.feat.ConvMolFeaturizer(),
+    'raw': dc.feat.RawFeaturizer(),
+    'onehot': dc.feat.OneHotFeaturizer(),
+    'smiles2img': dc.feat.SmilesToImage(img_size=80, img_spec='std'),
     'weave': dc.feat.WeaveFeaturizer(),
 }
-
-# some featurizers require soft dependencies to instantiate
-try:
-  featurizers['ecfp'] = dc.feat.CircularFingerprint(size=1024)
-except ImportError:
-  pass
-
-try:
-  featurizers['raw'] = dc.feat.RawFeaturizer()
-except ImportError:
-  pass
-
-try:
-  featurizers['smiles2img'] = dc.feat.SmilesToImage(img_size=80, img_spec='std')
-except ImportError:
-  pass
-
-try:
-  featurizers['onehot'] = dc.feat.OneHotFeaturizer()
-except ImportError:
-  pass
 
 splitters = {
     'index': dc.splits.IndexSplitter(),

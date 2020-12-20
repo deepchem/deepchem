@@ -1,4 +1,5 @@
-#!/bin/bash -e
+# This script may work on only Bash and Zsh
+# usage: source scripts/flake8_for_ci.sh
 
 items=(
     "deepchem/data"
@@ -14,5 +15,5 @@ items=(
 )
 
 for item in "${items[@]}" ; do
-  flake8 ${item} --count --show-source --statistics
+    flake8 ${item} --count --show-source --statistics
 done

@@ -1,7 +1,0 @@
-coveralls
-flake8
-flaky
-mypy
-pytest
-pytest-cov
-yapf==0.22.0
