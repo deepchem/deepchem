@@ -198,7 +198,7 @@ class TestLosses(unittest.TestCase):
     expected = [-np.log(softmax[0, 1]), -np.log(softmax[1, 0])]
     assert np.allclose(expected, result)
 
-    labels = torch.tensor([[1, 0]])
+    labels = torch.tensor([[1], [0]])
     result = loss._create_pytorch_loss()(outputs, labels).numpy()
     softmax = np.exp(y) / np.expand_dims(np.sum(np.exp(y), axis=1), 1)
     expected = [-np.log(softmax[0, 1]), -np.log(softmax[1, 0])]
