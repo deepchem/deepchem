@@ -30,16 +30,15 @@ complex_num_atoms = frag1_num_atoms + frag2_num_atoms
 model = dc.models.AtomicConvModel(
     frag1_num_atoms=frag1_num_atoms,
     frag2_num_atoms=frag2_num_atoms,
-    complex_num_atoms=complex_num_atoms,
-    use_openvino=True)
+    complex_num_atoms=complex_num_atoms)
 
 # Fit trained model
-# print("Fitting model on train dataset")
-# model.fit(train_dataset)
-# model.save()
+print("Fitting model on train dataset")
+model.fit(train_dataset)
+model.save()
 
 print("Evaluating model")
-# train_scores = model.evaluate(train_dataset, [metric], transformers)
+train_scores = model.evaluate(train_dataset, [metric], transformers)
 valid_scores = model.evaluate(valid_dataset, [metric], transformers)
 
 print("Train scores")

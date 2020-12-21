@@ -298,9 +298,7 @@ class Evaluator(object):
     y = dc.trans.undo_transforms(y, self.output_transformers)
     w = self.dataset.w
 
-    print('self.model.predict start')
     y_pred = self.model.predict(self.dataset, self.output_transformers)
-    print('self.model.predict end')
     n_tasks = len(self.dataset.get_task_names())
 
     multitask_scores = {}
