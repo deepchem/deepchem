@@ -63,12 +63,6 @@ class CoulombMatrix(MolecularFeaturizer):
     seed: int, optional (default None)
       Random seed to use.
     """
-    try:
-      from rdkit import Chem  # noqa
-      from rdkit.Chem import AllChem  # noqa
-    except ModuleNotFoundError:
-      raise ImportError("This class requires RDKit to be installed.")
-
     self.max_atoms = int(max_atoms)
     self.remove_hydrogens = remove_hydrogens
     self.randomize = randomize
@@ -122,8 +116,11 @@ class CoulombMatrix(MolecularFeaturizer):
     np.ndarray
       The coulomb matrices of the given molecule
     """
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
+    try:
+      from rdkit import Chem
+      from rdkit.Chem import AllChem
+    except ModuleNotFoundError:
+      raise ImportError("This class requires RDKit to be installed.")
 
     # Check whether num_confs >=1 or not
     num_confs = len(mol.GetConformers())

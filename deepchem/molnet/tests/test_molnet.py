@@ -10,6 +10,7 @@ import os
 import pytest
 
 import deepchem as dc
+from deepchem.molnet.run_benchmark import run_benchmark
 
 
 class TestMolnet(unittest.TestCase):
@@ -29,7 +30,7 @@ class TestMolnet(unittest.TestCase):
     split = 'random'
     out_path = tempfile.mkdtemp()
     metric = [dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)]
-    dc.molnet.run_benchmark(
+    run_benchmark(
         datasets, str(model), metric=metric, split=split, out_path=out_path)
     with open(os.path.join(out_path, 'results.csv'), newline='\n') as f:
       reader = csv.reader(f)
@@ -47,7 +48,7 @@ class TestMolnet(unittest.TestCase):
     split = 'random'
     out_path = tempfile.mkdtemp()
     metric = [dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)]
-    dc.molnet.run_benchmark(
+    run_benchmark(
         datasets, str(model), metric=metric, split=split, out_path=out_path)
     with open(os.path.join(out_path, 'results.csv'), newline='\n') as f:
       reader = csv.reader(f)
@@ -64,7 +65,7 @@ class TestMolnet(unittest.TestCase):
     split = 'random'
     out_path = tempfile.mkdtemp()
     metric = [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)]
-    dc.molnet.run_benchmark(
+    run_benchmark(
         datasets,
         str(model),
         metric=metric,

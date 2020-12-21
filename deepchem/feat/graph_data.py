@@ -60,8 +60,8 @@ class GraphData:
 
     if isinstance(edge_index, np.ndarray) is False:
       raise ValueError('edge_index must be np.ndarray.')
-    elif edge_index.dtype != np.int:
-      raise ValueError('edge_index.dtype must be np.int.')
+    elif issubclass(edge_index.dtype.type, np.integer) is False:
+      raise ValueError('edge_index.dtype must contains integers.')
     elif edge_index.shape[0] != 2:
       raise ValueError('The shape of edge_index is [2, num_edges].')
     elif np.max(edge_index) >= len(node_features):
