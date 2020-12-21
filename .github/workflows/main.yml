@@ -125,7 +125,9 @@ jobs:
       shell: bash -l {0}
       run: |
         CHANGED_FILES=`git diff --name-only $COMMIT_RANGE | grep .py$ | grep -v contrib/`
-        yapf -d $CHANGED_FILES
+        if [ -n "$CHANGED_FILES" ]; then
+          yapf -d $CHANGED_FILES
+        fi
     - name: Flake8
       shell: bash -l {0}
       run: source scripts/flake8_for_ci.sh
