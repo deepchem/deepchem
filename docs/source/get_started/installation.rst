@@ -34,7 +34,7 @@ The nightly version is built by the HEAD of DeepChem.
 
 .. code-block:: bash
 
-    pip install tensorflow==2.3.0
+    pip install tensorflow==2.3.*
     pip install --pre deepchem
 
 
@@ -63,13 +63,13 @@ you can pull two kinds of images from `DockerHub`_.
 
 - **deepchemio/deepchem:x.x.x**
 
-  - Image built by using a conda package manager (x.x.x is a version of deepchem)
+  - Image built by using a conda (x.x.x is a version of deepchem)
   - This image is built when we push x.x.x. tag
   - Dockerfile is put in `docker/conda-forge`_ directory
 
 - **deepchemio/deepchem:latest**
 
-  - Image built by the master branch of deepchem source codes
+  - Image built from source codes
   - This image is built every time we commit to the master branch
   - Dockerfile is put in `docker/master`_ directory
 
@@ -123,6 +123,7 @@ From source with conda
 **Installing via these steps will ensure you are installing from the source**.
 
 **Prerequisite**
+
 - Shell: Bash, Zsh, PowerShell
 - Conda: >4.6
 
