@@ -11,6 +11,11 @@ try:
 except:
   is_available = False
   pass
+"""
+Class which wraps Intel OpenVINO toolkit for deep learning inference.
+To enable optimization, pass `use_openvino=True` flag when create a model.
+Read more at https://software.intel.com/content/www/us/en/develop/tools/openvino-toolkit.html
+"""
 
 
 class OpenVINOModel:
@@ -23,8 +28,11 @@ class OpenVINOModel:
     self.batch_size = batch_size
 
   """
-  Prepare model for OpenVINO inference.
-  We do not load model in __init__ method because of training.
+  Prepare model for OpenVINO inference:
+    1. Freeze model to .pb file
+    2. Run Model Optimizer tool to get OpenVINO Intermediate Representation (IR)
+    3. Load model to device
+  NOTE: We do not load model in __init__ method because of training.
   """
 
   def _load_model(self):
@@ -63,6 +71,10 @@ class OpenVINOModel:
         os.path.join(self.model_dir, 'model.bin'))
     self.exec_net = self.ie.load_network(net, 'CPU')
 
+  """
+  Process input data.
+  """
+
   def __call__(self, inputs):
     if not self.exec_net:
       self._load_model()
@@ -81,6 +93,10 @@ class OpenVINOModel:
       return output[:inputs.shape[0]]
     else:
       return self.exec_net.infer({inp_name: inputs})[out_name]
+
+  """
+  Returns true if OpenVINO is imported correctly and can be used.
+  """
 
   def is_available(self):
     return is_available
