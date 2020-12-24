@@ -602,6 +602,10 @@ class KerasModel(Model):
       )
     if tf.is_tensor(outputs):
       outputs = [outputs]
+
+    if self._use_openvino:
+      openvino_predictions, generator = self._openvino_model(generator, self)
+
     for batch in generator:
       inputs, labels, weights = batch
       self._create_inputs(inputs)
@@ -619,7 +623,7 @@ class KerasModel(Model):
         output_values = self._output_functions[key](inputs)
       else:
         if self._use_openvino:
-          output_values = self._openvino_model(inputs)
+          output_values = next(openvino_predictions)
           output_values = [output_values]
         else:
           output_values = self._compute_model(inputs)
