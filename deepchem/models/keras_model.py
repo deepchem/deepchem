@@ -228,8 +228,10 @@ class KerasModel(Model):
     self._output_functions: Dict[Any, Any] = {}
     self._gradient_fn_for_vars: Dict[Any, Any] = {}
 
-    self._openvino_model = OpenVINOModel(self.model, self.model_dir,
-                                         self.batch_size)
+    self._use_openvino = kwargs.get('use_openvino', False)
+    if self._use_openvino:
+      self._openvino_model = OpenVINOModel(self.model, self.model_dir,
+                                           self.batch_size)
 
   def _ensure_built(self) -> None:
     """The first time this is called, create internal data structures."""
@@ -616,7 +618,7 @@ class KerasModel(Model):
               self.model.inputs, outputs)
         output_values = self._output_functions[key](inputs)
       else:
-        if self._openvino_model.is_available():
+        if self._use_openvino:
           output_values = self._openvino_model(inputs)
           output_values = [output_values]
         else:

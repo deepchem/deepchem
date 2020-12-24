@@ -1,11 +1,17 @@
 import os
+import sys
 import subprocess
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 
 try:
-  import mo_tf
+  try:
+    # Import for pip package
+    from model_optimizer import mo_tf
+  except:
+    # Import for OpenVINO distribution
+    import mo_tf
   from openvino.inference_engine import IECore
   is_available = True
 except:
@@ -59,8 +65,8 @@ class OpenVINOModel:
     # Convert to OpenVINO IR
     subprocess.run(
         [
-            mo_tf.__file__, '--input_model', pb_model_path, '--output_dir',
-            self.model_dir
+            sys.executable, mo_tf.__file__, '--input_model', pb_model_path,
+            '--output_dir', self.model_dir
         ],
         check=True)
     os.remove(pb_model_path)
