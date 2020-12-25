@@ -9,8 +9,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 
-import torch
-
 try:
   try:
     # Import for pip package
@@ -48,6 +46,8 @@ class OpenVINOModel:
   """
 
   def _read_torch_model(self, generator):
+    import torch
+
     # We need to serialize ONNX model with real input shape.
     # So we create a copy of the generator to take first input.
     generator_copy, generator = itertools.tee(generator, 2)
@@ -58,11 +58,7 @@ class OpenVINOModel:
 
     buf = io.BytesIO()
     inp = torch.randn(inp_shape)
-    torch.onnx.export(
-        self.model,
-        inp,
-        buf,
-        opset_version=11)
+    torch.onnx.export(self.model, inp, buf, opset_version=11)
 
     # Import network from memory buffer
     return self.ie.read_network(buf.getvalue(), b'', init_from_buffer=True), \
@@ -109,12 +105,12 @@ class OpenVINOModel:
         os.path.join(self.model_dir, 'model.xml'),
         os.path.join(self.model_dir, 'model.bin'))
 
-  def _load_model(self, generator):
+  def _load_model(self, generator, keras_model, torch_model):
     assert (self.is_available())
-    if isinstance(self.model, torch.nn.modules.module.Module):
-      net, generator = self._read_torch_model(generator)
-    else:
+    if keras_model is not None:
       net = self._read_tf_model()
+    elif torch_model is not None:
+      net, generator = self._read_torch_model(generator)
 
     # Load network to the device
     self.exec_net = self.ie.load_network(
@@ -131,7 +127,7 @@ class OpenVINOModel:
 
   def __call__(self, generator, keras_model=None, torch_model=None):
     if not self.exec_net:
-      generator = self._load_model(generator)
+      generator = self._load_model(generator, keras_model, torch_model)
 
     assert (len(self.exec_net.input_info) == 1), 'Not implemented'
     assert (len(self.exec_net.outputs) == 1), 'Not implemented'
