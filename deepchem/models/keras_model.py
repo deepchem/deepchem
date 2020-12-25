@@ -604,7 +604,8 @@ class KerasModel(Model):
       outputs = [outputs]
 
     if self._use_openvino:
-      openvino_predictions, generator = self._openvino_model(generator, self)
+      openvino_predictions, generator = self._openvino_model(
+          generator, keras_model=self)
 
     for batch in generator:
       inputs, labels, weights = batch

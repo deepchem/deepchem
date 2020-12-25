@@ -1,4 +1,5 @@
 import os
+import io
 import sys
 import itertools
 import subprocess
@@ -7,6 +8,8 @@ import numpy as np
 
 import tensorflow as tf
 from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
+
+import torch
 
 try:
   try:
@@ -38,14 +41,41 @@ class OpenVINOModel:
     self.outputs = []
 
   """
-  Prepare model for OpenVINO inference:
-    1. Freeze model to .pb file
-    2. Run Model Optimizer tool to get OpenVINO Intermediate Representation (IR)
-    3. Load model to device
+  Prepare PyTorch model for OpenVINO inference:
+    1. Convert into ONNX format
+    2. Read network from memory
   NOTE: We do not load model in __init__ method because of training.
   """
 
-  def _load_model(self):
+  def _read_torch_model(self, generator):
+    # We need to serialize ONNX model with real input shape.
+    # So we create a copy of the generator to take first input.
+    generator_copy, generator = itertools.tee(generator, 2)
+    inputs, _, _ = next(generator_copy)
+    assert (len(inputs) == 1), 'Not implemented'
+    inp_shape = list(inputs[0].shape)
+    inp_shape[0] = self.batch_size
+
+    buf = io.BytesIO()
+    inp = torch.randn(inp_shape)
+    torch.onnx.export(
+        self.model,
+        inp,
+        buf,
+        opset_version=11)
+
+    # Import network from memory buffer
+    return self.ie.read_network(buf.getvalue(), b'', init_from_buffer=True), \
+           generator
+
+  """
+  Prepare TensorFlow/Keras model for OpenVINO inference:
+    1. Freeze model to .pb file
+    2. Run Model Optimizer tool to get OpenVINO Intermediate Representation (IR)
+  NOTE: We do not load model in __init__ method because of training.
+  """
+
+  def _read_tf_model(self):
     # Freeze Keras model
     func = tf.function(lambda x: self.model(x))
     func = func.get_concrete_function(self.model.inputs)
@@ -75,29 +105,36 @@ class OpenVINOModel:
         check=True)
     os.remove(pb_model_path)
 
-    # Load network to device
-    net = self.ie.read_network(
+    return self.ie.read_network(
         os.path.join(self.model_dir, 'model.xml'),
         os.path.join(self.model_dir, 'model.bin'))
+
+  def _load_model(self, generator):
+    assert (self.is_available())
+    if isinstance(self.model, torch.nn.modules.module.Module):
+      net, generator = self._read_torch_model(generator)
+    else:
+      net = self._read_tf_model()
+
+    # Load network to the device
     self.exec_net = self.ie.load_network(
         net,
         'CPU',
         config={'CPU_THROUGHPUT_STREAMS': 'CPU_THROUGHPUT_AUTO'},
         num_requests=0)
+    return generator
 
   """
   OpenVINO can process data asynchronously.
   Initialize an iterator for data generator and get outputs by readiness.
   """
 
-  def __call__(self, generator, keras_model):
+  def __call__(self, generator, keras_model=None, torch_model=None):
     if not self.exec_net:
-      self._load_model()
+      generator = self._load_model(generator)
 
-    assert (len(self.exec_net.input_info) == 1
-           ), 'Not implemented: OpenVINO backend for multiple inputs'
-    assert (len(self.exec_net.outputs) == 1
-           ), 'Not implemented: OpenVINO backend for multiple outputs'
+    assert (len(self.exec_net.input_info) == 1), 'Not implemented'
+    assert (len(self.exec_net.outputs) == 1), 'Not implemented'
     inp_name = next(iter(self.exec_net.input_info.keys()))
     out_name = next(iter(self.exec_net.outputs.keys()))
 
@@ -108,8 +145,11 @@ class OpenVINOModel:
 
     for inp_id, batch in enumerate(generator_copy):
       inputs, labels, weights = batch
-      keras_model._create_inputs(inputs)
-      inputs, _, _ = keras_model._prepare_batch((inputs, None, None))
+      if keras_model is not None:
+        keras_model._create_inputs(inputs)
+        inputs, _, _ = keras_model._prepare_batch((inputs, None, None))
+      elif torch_model is not None:
+        inputs, _, _ = torch_model._prepare_batch((inputs, None, None))
       inputs = inputs[0]
 
       # Last batch size may be less or equal than overall batch size.

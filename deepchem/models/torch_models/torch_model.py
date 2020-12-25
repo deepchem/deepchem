@@ -20,6 +20,8 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
 
+from deepchem.models.openvino_model import OpenVINOModel
+
 try:
   import wandb
   wandb.ensure_configured()
@@ -215,6 +217,11 @@ class TorchModel(Model):
     self._built = False
     self._output_functions: Dict[Any, Any] = {}
     self._optimizer_for_vars: Dict[Any, Any] = {}
+
+    self._use_openvino = kwargs.get('use_openvino', False)
+    if self._use_openvino:
+      self._openvino_model = OpenVINOModel(self.model, self.model_dir,
+                                           self.batch_size)
 
   def _ensure_built(self) -> None:
     """The first time this is called, create internal data structures."""
@@ -520,6 +527,11 @@ class TorchModel(Model):
         )
     self._ensure_built()
     self.model.eval()
+
+    if self._use_openvino:
+      openvino_predictions, generator = self._openvino_model(
+          generator, torch_model=self)
+
     for batch in generator:
       inputs, labels, weights = batch
       inputs, _, _ = self._prepare_batch((inputs, None, None))
@@ -527,7 +539,10 @@ class TorchModel(Model):
       # Invoke the model.
       if isinstance(inputs, list) and len(inputs) == 1:
         inputs = inputs[0]
-      output_values = self.model(inputs)
+      if self._use_openvino:
+        output_values = [torch.Tensor(next(openvino_predictions))]
+      else:
+        output_values = self.model(inputs)
       if isinstance(output_values, torch.Tensor):
         output_values = [output_values]
       output_values = [t.detach().cpu().numpy() for t in output_values]
