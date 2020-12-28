@@ -3,9 +3,17 @@ on:
   push: # ci work when pushing master branch
     branches:
       - master
+    paths:
+      - "scripts/install_deepchem_conda.ps1"
+      - "scripts/install_deepchem_conda.sh"
+      - "env.*.yml"
   pull_request: # ci work when creating a PR to master branch
     branches:
       - master
+    paths:
+      - "scripts/install_deepchem_conda.ps1"
+      - "scripts/install_deepchem_conda.sh"
+      - "env.*.yml"
 jobs:
   bash-build:
     runs-on: ${{ matrix.os }}

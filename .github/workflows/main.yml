@@ -124,8 +124,10 @@ jobs:
       if: runner.os == 'Linux' || runner.os == 'macOS'
       shell: bash -l {0}
       run: |
-        CHANGED_FILES=`git diff --name-only $COMMIT_RANGE | grep .py$ | grep -v contrib/`
-        yapf -d $CHANGED_FILES
+        CHANGED_FILES=`git diff --name-only $COMMIT_RANGE | grep .py$ | grep -v contrib/ || true`
+        if [ -n "$CHANGED_FILES" ]; then
+          yapf -d $CHANGED_FILES
+        fi
     - name: Flake8
       shell: bash -l {0}
       run: source scripts/flake8_for_ci.sh
@@ -144,7 +146,7 @@ jobs:
         file: ./coverage.xml
 
   deploy:
-    if: ${{ github.ref == 'master' }}
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: [build]
     runs-on: ubuntu-latest
     steps:
