@@ -214,8 +214,8 @@ class MolecularFeaturizer(Featurizer):
   Child classes need to implement the _featurize method for
   calculating features for a single molecule.
 
-  Notes
-  -----
+  Note
+  ----
   The subclasses of this class require RDKit to be installed.
   """
 
@@ -294,8 +294,8 @@ class MaterialStructureFeaturizer(Featurizer):
   classes need to implement the _featurize method for calculating
   features for a single crystal structure.
 
-  Notes
-  -----
+  Note
+  ----
   Some subclasses of this class will require pymatgen and matminer to be
   installed.
   """
@@ -360,8 +360,8 @@ class MaterialCompositionFeaturizer(Featurizer):
   classes need to implement the _featurize method for calculating
   features for a single crystal composition.
 
-  Notes
-  -----
+  Note
+  ----
   Some subclasses of this class will require pymatgen and matminer to be
   installed.
   """

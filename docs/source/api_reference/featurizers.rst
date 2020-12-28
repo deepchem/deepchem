@@ -34,12 +34,12 @@ These featurizers work with datasets of molecules.
 Graph Convolution Featurizers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-MolGraphConvFeaturizer
-**********************
+We are simplifying our graph convolution models by a joint data representation (:code:`GraphData`)
+in a future version of DeepChem, so we provide several featurizers.
 
-.. autoclass:: deepchem.feat.MolGraphConvFeaturizer
-  :members:
-  :inherited-members:
+:code:`ConvMolFeaturizer` and :code:`WeaveFeaturizer` are used with graph convolution models
+which inherited :code:`KerasModel`. On the other hand, :code:`MolGraphConvFeaturizer` is used
+with graph convolution models which inherited :code;`TorchModel`.
 
 ConvMolFeaturizer
 *****************
@@ -52,6 +52,13 @@ WeaveFeaturizer
 ***************
 
 .. autoclass:: deepchem.feat.WeaveFeaturizer
+  :members:
+  :inherited-members:
+
+MolGraphConvFeaturizer
+**********************
+
+.. autoclass:: deepchem.feat.MolGraphConvFeaturizer
   :members:
   :inherited-members:
 
@@ -366,3 +373,38 @@ UserDefinedFeaturizer
 .. autoclass:: deepchem.feat.UserDefinedFeaturizer
   :members:
   :inherited-members:
+
+Base Featurizers (for develop)
+------------------------------
+
+Featurizer
+^^^^^^^^^^
+
+The :code:`dc.feat.Featurizer` class is the abstract parent class for all featurizers.
+
+.. autoclass:: deepchem.feat.Featurizer
+  :members:
+
+MolecularFeaturizer
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.MolecularFeaturizer
+  :members:
+
+MaterialCompositionFeaturizer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.MaterialCompositionFeaturizer
+  :members:
+
+MaterialStructureFeaturizer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.MaterialStructureFeaturizer
+  :members:
+
+ComplexFeaturizer
+^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.ComplexFeaturizer
+  :members:
