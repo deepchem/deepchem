@@ -471,8 +471,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     # test if default parameters work
     featurizer = rgf.RdkitGridFeaturizer()
     self.assertIsInstance(featurizer, rgf.RdkitGridFeaturizer)
-    feature_tensor, _ = featurizer.featurize([self.ligand_file],
-                                             [self.protein_file])
+    feature_tensor = featurizer.featurize([(self.ligand_file,
+                                            self.protein_file)])
     self.assertIsInstance(feature_tensor, np.ndarray)
 
   def test_example_featurizer(self):
@@ -483,8 +483,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         ecfp_power=9,
         splif_power=9,
         flatten=True)
-    feature_tensor, _ = featurizer.featurize([self.ligand_file],
-                                             [self.protein_file])
+    feature_tensor = featurizer.featurize([(self.ligand_file,
+                                            self.protein_file)])
     self.assertIsInstance(feature_tensor, np.ndarray)
 
   def test_force_flatten(self):
@@ -492,8 +492,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     featurizer = rgf.RdkitGridFeaturizer(
         feature_types=['ecfp_hashed'], flatten=False)
     featurizer.flatten = True  # False should be ignored with ecfp_hashed
-    feature_tensor, _ = featurizer.featurize([self.ligand_file],
-                                             [self.protein_file])
+    feature_tensor = featurizer.featurize([(self.ligand_file,
+                                            self.protein_file)])
     self.assertIsInstance(feature_tensor, np.ndarray)
     self.assertEqual(feature_tensor.shape, (1, 2 * 2**featurizer.ecfp_power))
 
@@ -509,8 +509,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         splif_power=splif_power,
         flatten=False,
         sanitize=True)
-    feature_tensor, _ = featurizer.featurize([self.ligand_file],
-                                             [self.protein_file])
+    feature_tensor = featurizer.featurize([(self.ligand_file,
+                                            self.protein_file)])
     self.assertIsInstance(feature_tensor, np.ndarray)
     voxel_total_len = (
         2**ecfp_power +
@@ -525,8 +525,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         ecfp_power=ecfp_power,
         splif_power=splif_power,
         sanitize=True)
-    feature_tensor, _ = featurizer.featurize([self.ligand_file],
-                                             [self.protein_file])
+    feature_tensor = featurizer.featurize([(self.ligand_file,
+                                            self.protein_file)])
     self.assertIsInstance(feature_tensor, np.ndarray)
     flat_total_len = (
         3 * 2**ecfp_power +
@@ -545,8 +545,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
 
     self.assertTrue('pi_stack' not in featurizer.feature_types)
     self.assertTrue('cation_pi' not in featurizer.feature_types)
-    feature_tensor, _ = featurizer.featurize([self.ligand_file],
-                                             [self.protein_file])
+    feature_tensor = featurizer.featurize([(self.ligand_file,
+                                            self.protein_file)])
     self.assertIsInstance(feature_tensor, np.ndarray)
     total_len = voxel_total_len + flat_total_len - 3 - 2**ecfp_power
     self.assertEqual(feature_tensor.shape, (1, total_len))
@@ -573,8 +573,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         feature_types=['voxel_combined'],
         flatten=False,
         sanitize=True)
-    feature_tensors, _ = featurizer.featurize([self.ligand_file],
-                                              [self.protein_file])
+    feature_tensors = featurizer.featurize([(self.ligand_file,
+                                             self.protein_file)])
     self.assertEqual(feature_tensors.shape, (1, 4, 16, 16, 16, 40))
 
   def test_voxelize(self):

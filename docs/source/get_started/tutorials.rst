@@ -101,7 +101,7 @@ In such a case, by using :code:`DataLoader`, you can load and featurize your dat
    >>> # make a dataframe object for creating a CSV file
    >>> df = pd.DataFrame(list(zip(smiles, properties)), columns=["SMILES", "property"])
    >>> import tempfile
-   >>> with tempfile.NamedTemporaryFile(mode='w') as tmpfile:
+   >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
    ...   # dump the CSV file
    ...   df.to_csv(tmpfile.name)
    ...   # initizalize the featurizer

@@ -1,10 +1,12 @@
 ﻿# DeepChem
 
-[![Build Status](https://travis-ci.org/deepchem/deepchem.svg?branch=master)](https://travis-ci.org/deepchem/deepchem)
-[![Coverage Status](https://coveralls.io/repos/github/deepchem/deepchem/badge.svg?branch=master)](https://coveralls.io/github/deepchem/deepchem?branch=master)
-[![Documentation Status](https://readthedocs.org/projects/deepchem/badge/?version=latest)](https://deepchem.readthedocs.io/en/latest/?badge=latest)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/deepchem/badges/version.svg)](https://anaconda.org/conda-forge/deepchem)
-[![PyPI version](https://badge.fury.io/py/deepchem.svg)](https://badge.fury.io/py/deepchem)
+[![PyPI version](https://badge.fury.io/py/deepchem.svg)](https://pypi.org/project/deepchem/)
+[![Documentation Status](https://readthedocs.org/projects/deepchem/badge/?version=latest)](https://deepchem.readthedocs.io/en/latest/?badge=latest)  
+[![Test for DeepChem Core](https://github.com/deepchem/deepchem/workflows/Test%20for%20DeepChem%20Core/badge.svg)](https://github.com/deepchem/deepchem/actions?query=workflow%3A%22Test+for+DeepChem+Core%22)
+[![Test for documents](https://github.com/deepchem/deepchem/workflows/Test%20for%20documents/badge.svg)](https://github.com/deepchem/deepchem/actions?query=workflow%3A%22Test+for+documents%22)
+[![Test for build scripts](https://github.com/deepchem/deepchem/workflows/Test%20for%20build%20scripts/badge.svg)](https://github.com/deepchem/deepchem/actions?query=workflow%3A%22Test+for+build+scripts%22)
+[![codecov](https://codecov.io/gh/deepchem/deepchem/branch/master/graph/badge.svg?token=5rOZB2BY3h)](https://codecov.io/gh/deepchem/deepchem)  
 
 [Website](https://deepchem.io/) | [Documentation](https://deepchem.readthedocs.io/en/latest/) | [Colab Tutorial](https://github.com/deepchem/deepchem/tree/master/examples/tutorials) | [Discussion Forum](https://forum.deepchem.io/) | [Gitter](https://gitter.im/deepchem/Lobby)
 
@@ -21,11 +23,9 @@ materials science, quantum chemistry, and biology.
   - [Docker](#docker)
   - [From source](#from-source)
 - [Getting Started](#getting-started)
-- [Contributing to DeepChem](/CONTRIBUTING.md)
-  - [Code Style Guidelines](/CONTRIBUTING.md#code-style-guidelines)
-  - [Documentation Style Guidelines](/CONTRIBUTING.md#documentation-style-guidelines)
   - [Gitter](#gitter)
 - [About Us](#about-us)
+- [Contributing to DeepChem](/CONTRIBUTING.md)
 - [Citing DeepChem](#citing-deepchem)
 
 ## Requirements
@@ -38,15 +38,15 @@ DeepChem currently supports Python 3.6 through 3.7 and requires these packages o
 - [scikit-learn](https://scikit-learn.org/stable/)
 - [SciPy](https://www.scipy.org/)
 - [TensorFlow](https://www.tensorflow.org/)
-  - `deepchem>=2.4.0` requires tensorflow v2
-  - `deepchem<2.4.0` requires tensorflow v1
+  - `deepchem>=2.4.0` depends on TensorFlow v2
+  - `deepchem<2.4.0` depends on TensorFlow v1
 
 ### Soft Requirements
 
-DeepChem has a number of "soft" requirements.  
-If you face some errors like `ImportError: No module named XXXX`, you may need to install some packages.
+DeepChem has a number of "soft" requirements.
+If you face some errors like `ImportError: This class requires XXXX`, you may need to install some packages.
 
-Please check [the document](https://deepchem.readthedocs.io/en/latest/requirements.html##soft-requirements) about soft requirements.
+Please check [the document](https://deepchem.readthedocs.io/en/latest/requirements.html#soft-requirements) about soft requirements.
 
 ## Installation
 
@@ -73,7 +73,7 @@ conda install -y -c conda-forge rdkit deepchem==2.3.0
 You install the nightly build version via pip. The nightly version is built by the HEAD of DeepChem.
 
 ```bash
-pip install tensorflow==2.3.0
+pip install tensorflow==2.3.*
 pip install --pre deepchem
 ```
 
@@ -89,11 +89,11 @@ If you want to install deepchem using a docker, you can pull two kinds of images
 DockerHub : https://hub.docker.com/repository/docker/deepchemio/deepchem
 
 - `deepchemio/deepchem:x.x.x`
-  - Image built by using a conda package manager (x.x.x is a version of deepchem)
+  - Image built by using a conda (x.x.x is a version of deepchem)
   - The x.x.x image is built when we push x.x.x. tag
   - Dockerfile is put in `docker/conda-forge` directory
 - `deepchemio/deepchem:latest`
-  - Image built by the master branch of deepchem source codes
+  - Image built from source codes
   - The latest image is built every time we commit to the master branch
   - Dockerfile is put in `docker/master` directory
 
@@ -109,7 +109,7 @@ If you want to know docker usages with deepchem in more detail, please check [th
 
 If you try install all soft dependencies at once or contribute to deepchem, we recommend you should install deepchem from source.
 
-Please check [this introduction](https://deepchem.readthedocs.io/en/latest/installation.html#from-source).
+Please check [this introduction](https://deepchem.readthedocs.io/en/latest/installation.html#from-source-with-conda).
 
 ## Getting Started
 
@@ -140,7 +140,3 @@ To cite this book, please use this bibtex entry:
     year={2019}
 }
 ```
-
-## Version
-
-2.4.0-rc
