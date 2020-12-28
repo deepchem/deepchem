@@ -521,7 +521,7 @@ class JsonLoader(DataLoader):
 
   >>> import tempfile
   >>> import deepchem as dc
-  >>> with tempfile.NamedTemporaryFile(mode='w') as tmpfile:
+  >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
   ...   df.to_json(tmpfile.name, orient='records', lines=True)
   ...   featurizer = dc.feat.ElementPropertyFingerprint()
   ...   loader = dc.data.JsonLoader(["task"], feature_field="composition", featurizer=featurizer)
