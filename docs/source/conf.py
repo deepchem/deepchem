@@ -46,7 +46,8 @@ extensions = [
 autodoc_default_options = {
     'member-order': 'bysource',
     'special-members': True,
-    'exclude-members': '__repr__, __str__, __weakref__, __hash__, __eq__, __dict__',
+    'exclude-members':
+    '__repr__, __str__, __weakref__, __hash__, __eq__, __dict__',
 }
 
 # How to represents typehints.
@@ -129,4 +130,3 @@ def linkcode_resolve(domain, info):
 
   tag = 'master' if 'dev' in release else release
   return "https://github.com/deepchem/deepchem/blob/%s/%s" % (tag, filename)
-

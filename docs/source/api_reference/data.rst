@@ -1,7 +1,7 @@
 Data
 ====
 
-DeepChem :code:`dc.data` provides the APIs for handling your data.
+DeepChem :code:`dc.data` provides APIs for handling your data.
 
 If your data is stored by the file like CSV and SDF, you can use the **Data Loaders**.
 The Data Loaders read your data, convert them to features (ex: SMILES to ECFP) and save the features to Dataset class.
