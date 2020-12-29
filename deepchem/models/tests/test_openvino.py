@@ -6,6 +6,7 @@ import torch
 import deepchem as dc
 from deepchem.molnet import load_tox21
 from deepchem.data import NumpyDataset
+from deepchem.models.torch_models import TorchModel
 
 
 def test_tox21_tf_progressive():
@@ -47,8 +48,7 @@ def test_torch_model():
     pytorch_model = torch.nn.Sequential(
         torch.nn.Linear(1024, 1000), torch.nn.ReLU(), torch.nn.Dropout(0.5),
         torch.nn.Linear(1000, 1))
-    return dc.models.TorchModel(pytorch_model, dc.models.losses.L2Loss(),
-                                **kwargs)
+    return TorchModel(pytorch_model, dc.models.losses.L2Loss(), **kwargs)
 
   ref_model = init(batch_size=8)
   model = init(batch_size=8, use_openvino=True)

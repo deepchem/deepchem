@@ -15,11 +15,10 @@ from deepchem.models.models import Model
 from deepchem.models.optimizers import Adam, Optimizer, LearningRateSchedule
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
+from deepchem.utils.openvino_model import OpenVINOModel
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
-
-from deepchem.models.openvino_model import OpenVINOModel
 
 try:
   import wandb
@@ -230,8 +229,8 @@ class KerasModel(Model):
 
     self._use_openvino = kwargs.get('use_openvino', False)
     if self._use_openvino:
-      self._openvino_model = OpenVINOModel(self.model, self.model_dir,
-                                           self.batch_size)
+      self._openvino_model = OpenVINOModel(
+          self.model_dir, self.batch_size, keras_model=self)
 
   def _ensure_built(self) -> None:
     """The first time this is called, create internal data structures."""
@@ -604,8 +603,7 @@ class KerasModel(Model):
       outputs = [outputs]
 
     if self._use_openvino:
-      openvino_predictions, generator = self._openvino_model(
-          generator, keras_model=self)
+      openvino_predictions, generator = self._openvino_model(generator)
 
     for batch in generator:
       inputs, labels, weights = batch
