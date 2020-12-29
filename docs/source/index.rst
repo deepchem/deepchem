@@ -112,9 +112,7 @@ To listen in, please email X.Y@gmail.com, where X=bharath and Y=ramsundar to int
    :maxdepth: 1
    :caption: API Reference
 
-   api_reference/datasets
-   api_reference/dataloaders
-   api_reference/dataclasses
+   api_reference/data
    api_reference/moleculenet
    api_reference/featurizers
    api_reference/tokenizers
