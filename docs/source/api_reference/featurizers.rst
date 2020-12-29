@@ -297,7 +297,7 @@ PreTrainedTokenizer `(transformers.PreTrainedTokenizer)`_ thus implements
 the main methods for using all the tokenizers:
 
 - Tokenizing (spliting strings in sub-word token strings), converting tokens strings to ids and back, and encoding/decoding (i.e. tokenizing + convert to integers)
-- Adding new tokens to the vocabulary in a way that is independant of the underlying structure (BPE, SentencePiece…)
+- Adding new tokens to the vocabulary in a way that is independent of the underlying structure (BPE, SentencePiece…)
 - Managing special tokens like mask, beginning-of-sentence, etc tokens (adding them, assigning them to attributes in the tokenizer for easy access and making sure they are not split during tokenization)
 
 BatchEncoding holds the output of the tokenizer’s encoding methods
@@ -388,11 +388,18 @@ The :code:`dc.feat.Featurizer` class is the abstract parent class for all featur
 MolecularFeaturizer
 ^^^^^^^^^^^^^^^^^^^
 
+If you're creating a new featurizer that featurizes molecules,
+you will want to inherit from the abstract :code:`MolecularFeaturizer` base class.
+This featurizer can take RDKit mol objects or SMILES as inputs.
+
 .. autoclass:: deepchem.feat.MolecularFeaturizer
   :members:
 
 MaterialCompositionFeaturizer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you're creating a new featurizer that featurizes compositional formulas,
+you will want to inherit from the abstract :code:`MaterialCompositionFeaturizer` base class.
 
 .. autoclass:: deepchem.feat.MaterialCompositionFeaturizer
   :members:
@@ -400,11 +407,19 @@ MaterialCompositionFeaturizer
 MaterialStructureFeaturizer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+If you're creating a new featurizer that featurizes inorganic crystal structure,
+you will want to inherit from the abstract :code:`MaterialCompositionFeaturizer` base class.
+This featurizer can take pymatgen structure objects or dictionaries as inputs.
+
 .. autoclass:: deepchem.feat.MaterialStructureFeaturizer
   :members:
 
 ComplexFeaturizer
 ^^^^^^^^^^^^^^^^^
+
+If you're creating a new featurizer that featurizes a pair of ligand molecules and proteins,
+you will want to inherit from the abstract :code:`ComplexFeaturizer` base class.
+This featurizer can take a pair of PDB or SDF files which contain ligand molecules and proteins.
 
 .. autoclass:: deepchem.feat.ComplexFeaturizer
   :members:
