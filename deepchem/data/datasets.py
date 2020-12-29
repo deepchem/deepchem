@@ -1372,7 +1372,7 @@ class DiskDataset(Dataset):
       with behavior in earlier versions of DeepChem.
 
     Note
-    -----
+    ----
     This is a stateful operation! `self.data_dir` will be moved into
     `new_data_dir`. If `delete_if_exists` is set to `True` (by default this is
     set `True`), then `new_data_dir` is deleted if it's a pre-existing
@@ -1401,7 +1401,7 @@ class DiskDataset(Dataset):
       A copied DiskDataset object.
 
     Note
-    -----
+    ----
     This is a stateful operation! Any data at `new_data_dir` will be deleted
     and `self.data_dir` will be deep copied into `new_data_dir`.
     """
@@ -1433,7 +1433,7 @@ class DiskDataset(Dataset):
     10
 
     Note
-    -----
+    ----
     If this `DiskDataset` is in `legacy_metadata` format, reshard will
     convert this dataset to have non-legacy metadata.
     """
@@ -1823,7 +1823,7 @@ class DiskDataset(Dataset):
       this dataset.
 
     Note
-    -----
+    ----
     This method requires PyTorch to be installed.
     """
     try:
@@ -1975,7 +1975,7 @@ class DiskDataset(Dataset):
     memory and writes the results to disk.
 
     Note
-    -----
+    ----
     This method only works for 1-dimensional feature vectors (does not work
     for tensorial featurizations). Note that this shuffle is performed in
     place.
