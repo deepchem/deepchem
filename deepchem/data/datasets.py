@@ -274,8 +274,8 @@ class Dataset(object):
     np.ndarray
       A numpy array of identifiers `X`.
 
-    Notes
-    -----
+    Note
+    ----
     If data is stored on disk, accessing this field may involve loading
     data from disk and could potentially be slow. Using
     `iterbatches()` or `itersamples()` may be more efficient for
@@ -292,8 +292,8 @@ class Dataset(object):
     np.ndarray
       A numpy array of identifiers `y`.
 
-    Notes
-    -----
+    Note
+    ----
     If data is stored on disk, accessing this field may involve loading
     data from disk and could potentially be slow. Using
     `iterbatches()` or `itersamples()` may be more efficient for
@@ -310,8 +310,8 @@ class Dataset(object):
     np.ndarray
       A numpy array of identifiers `ids`.
 
-    Notes
-    -----
+    Note
+    ----
     If data is stored on disk, accessing this field may involve loading
     data from disk and could potentially be slow. Using
     `iterbatches()` or `itersamples()` may be more efficient for
@@ -328,8 +328,8 @@ class Dataset(object):
     np.ndarray
       A numpy array of weights `w`.
 
-    Notes
-    -----
+    Note
+    ----
     If data is stored on disk, accessing this field may involve loading
     data from disk and could potentially be slow. Using
     `iterbatches()` or `itersamples()` may be more efficient for
@@ -451,9 +451,9 @@ class Dataset(object):
     Returns
     -------
     Tuple
-      If `X_stats == True`, returns `(X_means, X_stds)`. If `y_stats == True`,
-      returns `(y_means, y_stds)`. If both are true, returns
-      `(X_means, X_stds, y_means, y_stds)`.
+      - If `X_stats == True`, returns `(X_means, X_stds)`.
+      - If `y_stats == True`, returns `(y_means, y_stds)`.
+      - If both are true, returns `(X_means, X_stds, y_means, y_stds)`.
     """
     X_means = 0.0
     X_m2 = 0.0
@@ -513,8 +513,8 @@ class Dataset(object):
     tf.data.Dataset
       TensorFlow Dataset that iterates over the same data.
 
-    Notes
-    -----
+    Note
+    ----
     This class requires TensorFlow to be installed.
     """
     try:
@@ -563,8 +563,8 @@ class Dataset(object):
       `torch.utils.data.IterableDataset` that iterates over the data in
       this dataset.
 
-    Notes
-    -----
+    Note
+    ----
     This class requires PyTorch to be installed.
     """
     raise NotImplementedError()
@@ -936,8 +936,8 @@ class NumpyDataset(Dataset):
       `torch.utils.data.IterableDataset` that iterates over the data in
       this dataset.
 
-    Notes
-    -----
+    Note
+    ----
     This method requires PyTorch to be installed.
     """
     try:
@@ -1052,24 +1052,24 @@ class DiskDataset(Dataset):
   `DiskDataset` are stored in a `data_dir`. The contents of `data_dir` should
   be laid out as follows:
 
-  data_dir/
-    |
-    ---> metadata.csv.gzip
-    |
-    ---> tasks.json
-    |
-    ---> shard-0-X.npy
-    |
-    ---> shard-0-y.npy
-    |
-    ---> shard-0-w.npy
-    |
-    ---> shard-0-ids.npy
-    |
-    ---> shard-1-X.npy
-    .
-    .
-    .
+  | data_dir/
+  |   |
+  |   ---> metadata.csv.gzip
+  |   |
+  |   ---> tasks.json
+  |   |
+  |   ---> shard-0-X.npy
+  |   |
+  |   ---> shard-0-y.npy
+  |   |
+  |   ---> shard-0-w.npy
+  |   |
+  |   ---> shard-0-ids.npy
+  |   |
+  |   ---> shard-1-X.npy
+  |   .
+  |   .
+  |   .
 
   The metadata is constructed by static method
   `DiskDataset._construct_metadata` and saved to disk by
@@ -1124,11 +1124,11 @@ class DiskDataset(Dataset):
   legacy_metadata: bool
     Whether this `DiskDataset` uses legacy format.
 
-  Notes
-  -----
+  Note
+  ----
   `DiskDataset` originally had a simpler metadata format without shape
   information. Older `DiskDataset` objects had metadata files with columns
-  `('ids', 'X', 'y', 'w') and not additional shape columns. `DiskDataset`
+  `('ids', 'X', 'y', 'w')` and not additional shape columns. `DiskDataset`
   maintains backwards compatibility with this older metadata format, but we
   recommend for performance reasons not using legacy metadata for new
   projects.
@@ -1371,8 +1371,8 @@ class DiskDataset(Dataset):
       before moving. This is set to True by default to be backwards compatible
       with behavior in earlier versions of DeepChem.
 
-    Notes
-    -----
+    Note
+    ----
     This is a stateful operation! `self.data_dir` will be moved into
     `new_data_dir`. If `delete_if_exists` is set to `True` (by default this is
     set `True`), then `new_data_dir` is deleted if it's a pre-existing
@@ -1400,8 +1400,8 @@ class DiskDataset(Dataset):
     DiskDataset
       A copied DiskDataset object.
 
-    Notes
-    -----
+    Note
+    ----
     This is a stateful operation! Any data at `new_data_dir` will be deleted
     and `self.data_dir` will be deep copied into `new_data_dir`.
     """
@@ -1432,8 +1432,8 @@ class DiskDataset(Dataset):
     >>> d.get_number_shards()
     10
 
-    Notes
-    -----
+    Note
+    ----
     If this `DiskDataset` is in `legacy_metadata` format, reshard will
     convert this dataset to have non-legacy metadata.
     """
@@ -1822,8 +1822,8 @@ class DiskDataset(Dataset):
       `torch.utils.data.IterableDataset` that iterates over the data in
       this dataset.
 
-    Notes
-    -----
+    Note
+    ----
     This method requires PyTorch to be installed.
     """
     try:
@@ -1974,8 +1974,8 @@ class DiskDataset(Dataset):
     into a compressed representation, then shuffles this compressed dataset in
     memory and writes the results to disk.
 
-    Notes
-    -----
+    Note
+    ----
     This method only works for 1-dimensional feature vectors (does not work
     for tensorial featurizations). Note that this shuffle is performed in
     place.
@@ -2018,8 +2018,8 @@ class DiskDataset(Dataset):
   def complete_shuffle(self, data_dir: Optional[str] = None) -> Dataset:
     """Completely shuffle across all data, across all shards.
 
-    Notes
-    -----
+    Note
+    ----
     The algorithm used for this complete shuffle is O(N^2) where N is the
     number of shards. It simply constructs each shard of the output dataset
     one at a time. Since the complete shuffle can take a long time, it's
@@ -2864,8 +2864,8 @@ class ImageDataset(Dataset):
       `torch.utils.data.IterableDataset` that iterates over the data in
       this dataset.
 
-    Notes
-    -----
+    Note
+    ----
     This method requires PyTorch to be installed.
     """
     try:
