@@ -124,10 +124,11 @@ def test_graph_conv_model_no_task():
   model.fit(dataset, nb_epoch=20)
   # predict datset with no y (ensured by tasks = [])
   bace_url = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/bace.csv"
-  dc.utils.data_utils.download_url(url=bace_url)
+  dc.utils.data_utils.download_url(url=bace_url, name="bace_tmp.csv")
   loader = dc.data.CSVLoader(
-      tasks=[], smiles_field='smi', featurizer=dc.feat.ConvMolFeaturizer())
-  td = loader.featurize(dataset_file)
+      tasks=[], smiles_field='mol', featurizer=dc.feat.ConvMolFeaturizer())
+  td = loader.featurize(
+      os.path.join(dc.utils.data_utils.get_data_dir(), "bace_tmp.csv"))
   model.predict(td)
 
 
