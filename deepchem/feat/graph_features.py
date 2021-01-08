@@ -643,8 +643,11 @@ class ConvMolFeaturizer(MolecularFeaturizer):
   """
   name = ['conv_mol']
 
-  def __init__(self, master_atom=False, use_chirality=False,
-               atom_properties=[]):
+  def __init__(self,
+               master_atom=False,
+               use_chirality=False,
+               atom_properties=[],
+               per_atom_fragmentation=False):
     """
     Parameters
     ----------
@@ -668,6 +671,10 @@ class ConvMolFeaturizer(MolecularFeaturizer):
       provided in atom_properties.  So "atom 00000000 sasa" would be the
       name of the molecule level property in mol where the solvent
       accessible surface area of atom 0 would be stored.
+    per_atom_fragmentation: Boolean
+      If True, then multiple "atom-deprived" featurizations will be possible to do for each molecule. It will be
+      possible to remove atoms  one by one, and then, featurize each atom-deprived molecule.
+      Thus, applying featurize method  will produce a set of ConvMol objects for each molecule.
 
     Since ConvMol is an object and not a numpy array, need to set dtype to
     object.
@@ -676,6 +683,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     self.master_atom = master_atom
     self.use_chirality = use_chirality
     self.atom_properties = list(atom_properties)
+    self.per_atom_fragmentation = per_atom_fragmentation
 
   def _get_atom_properties(self, atom):
     """
@@ -700,7 +708,31 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     return np.array(values)
 
   def _featurize(self, mol):
-    """Encodes mol as a ConvMol object."""
+    """Encodes mol as a ConvMol object.
+    If per_atom_fragmentation is True,
+    then for each molecule a list of ConvMolObjects
+    will be created"""
+
+    def per_atom(n, a):
+      """	
+      Enumerates fragments resulting from mol object,
+      s.t. each fragment = mol with single atom removed	(all possible removals are enumerated)
+      n - list of nodes, a - adjacency list	
+      """
+      for i in range(n.shape[0]):
+        new_n = np.delete(n, (i), axis=0)
+        new_a = []
+        for j, vertices in enumerate(a):
+          if i != j:
+            tmp_v = []
+            for v in vertices:
+              if v < i:
+                tmp_v.append(v)
+              elif v > i:
+                tmp_v.append(v - 1)
+            new_a.append(tmp_v)
+        yield new_n, new_a
+
     # Get the node features
     idx_nodes = [(a.GetIdx(),
                   np.concatenate((atom_features(
@@ -718,9 +750,8 @@ class ConvMolFeaturizer(MolecularFeaturizer):
       nodes = np.concatenate([nodes, master_atom_features], axis=0)
 
     # Get bond lists with reverse edges included
-    edge_list = [
-        (b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()
-    ]
+    edge_list = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx())
+                 for b in mol.GetBonds()]
 
     # Get canonical adjacency list
     canon_adj_list = [[] for mol_id in range(len(nodes))]
@@ -733,7 +764,10 @@ class ConvMolFeaturizer(MolecularFeaturizer):
       for index in range(len(nodes) - 1):
         canon_adj_list[index].append(fake_atom_index)
 
-    return ConvMol(nodes, canon_adj_list)
+    if not self.per_atom_fragmentation:
+      return ConvMol(nodes, canon_adj_list)
+    else:
+      return [ConvMol(n, a) for n, a in per_atom(nodes, canon_adj_list)]
 
   def feature_length(self):
     return 75 + len(self.atom_properties)
