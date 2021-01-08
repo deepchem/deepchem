@@ -420,7 +420,7 @@ class CSVLoader(DataLoader):
                   for (l, m) in zip(valid_inds, features) if any(l)]
     else:
       valid_inds = np.array(
-          [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
+        [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
       features = [
           elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
       ]
@@ -815,7 +815,7 @@ class SDFLoader(DataLoader):
                   for (l, m) in zip(valid_inds, features) if any(l)]
     else:
       valid_inds = np.array(
-          [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
+        [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
       features = [
           elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
       ]
