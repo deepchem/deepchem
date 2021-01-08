@@ -751,9 +751,8 @@ class ConvMolFeaturizer(MolecularFeaturizer):
 
     # Get bond lists with reverse edges included
     edge_list = [
-      (b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()
+        (b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()
     ]
-
     # Get canonical adjacency list
     canon_adj_list = [[] for mol_id in range(len(nodes))]
     for edge in edge_list:
