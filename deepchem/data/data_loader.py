@@ -422,7 +422,7 @@ class CSVLoader(DataLoader):
       valid_inds = np.array(
         [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
       features = [
-          elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
+        elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
       ]
     if isinstance(self.featurizer, ConvMolFeaturizer):
       if self.featurizer.per_atom_fragmentation:
@@ -817,7 +817,7 @@ class SDFLoader(DataLoader):
       valid_inds = np.array(
         [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
       features = [
-          elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
+        elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
       ]
     if isinstance(self.featurizer,
                   ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
