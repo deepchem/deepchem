@@ -12,12 +12,7 @@ import tensorflow as tf
 from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 
 try:
-  try:
-    # Import for pip package
-    from model_optimizer import mo_tf
-  except:
-    # Import for OpenVINO distribution
-    import mo_tf
+  import mo_tf
   from openvino.inference_engine import IECore, StatusCode, ExecutableNetwork
   is_available = True
 except:
