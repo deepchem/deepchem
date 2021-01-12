@@ -39,10 +39,10 @@ def load_qm9(
   """Load QM9 dataset
 
   QM9 is a comprehensive dataset that provides geometric, energetic,
-  electronic and thermodynamic properties for a subset of GDB-17 database,
-  comprising 134 thousand stable organic molecules with up to 9 heavy atoms.
-  All molecules are modeled using density functional theory
-  (B3LYP/6-31G(2df,p) based DFT).
+  electronic and thermodynamic properties for a subset of GDB-17
+  database, comprising 134 thousand stable organic molecules with up
+  to 9 heavy atoms.  All molecules are modeled using density
+  functional theory (B3LYP/6-31G(2df,p) based DFT).
 
   Random splitting is recommended for this dataset.
 
@@ -98,6 +98,16 @@ def load_qm9(
     a directory to save the raw data in
   save_dir: str
     a directory to save the dataset in
+
+  Note
+  ----
+  DeepChem 2.4.0 has turned on sanitization for SDF files by default.
+  For the QM9 dataset, this means that calling this function will
+  return a list of 132480 compounds instead of 133885 in the source
+  dataset file. This appears to be due to valence specification
+  mismatches in the dataset that weren't caught in earlier more lax
+  versions of RDKit. Note that this may subtly affect benchmarking
+  results on this dataset.
 
   References
   ----------
