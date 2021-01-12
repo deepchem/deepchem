@@ -714,7 +714,7 @@ class SDFLoader(DataLoader):
   def __init__(self,
                tasks: List[str],
                featurizer: Featurizer,
-               sanitize: bool = False,
+               sanitize: bool = True,
                log_every_n: int = 1000):
     """Initialize SDF Loader
 
