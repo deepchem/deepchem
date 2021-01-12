@@ -23,7 +23,8 @@ class _QM9Loader(_MolnetLoader):
       dc.utils.data_utils.download_url(url=GDB9_URL, dest_dir=self.data_dir)
       dc.utils.data_utils.untargz_file(
           os.path.join(self.data_dir, "gdb9.tar.gz"), self.data_dir)
-    loader = dc.data.SDFLoader(tasks=self.tasks, featurizer=self.featurizer)
+    loader = dc.data.SDFLoader(
+        tasks=self.tasks, featurizer=self.featurizer, sanitize=True)
     return loader.create_dataset(dataset_file, shard_size=8192)
 
 
@@ -103,11 +104,11 @@ def load_qm9(
   ----
   DeepChem 2.4.0 has turned on sanitization for SDF files by default.
   For the QM9 dataset, this means that calling this function will
-  return a list of 132480 compounds instead of 133885 in the source
-  dataset file. This appears to be due to valence specification
-  mismatches in the dataset that weren't caught in earlier more lax
-  versions of RDKit. Note that this may subtly affect benchmarking
-  results on this dataset.
+  return 132480 compounds instead of 133885 in the source dataset
+  file. This appears to be due to valence specification mismatches in
+  the dataset that weren't caught in earlier more lax versions of
+  RDKit. Note that this may subtly affect benchmarking results on
+  this dataset.
 
   References
   ----------
