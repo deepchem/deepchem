@@ -93,13 +93,13 @@ def load_qm8(
 
   Note
   ----
-  DeepChem 2.4.0 has turned on sanitization for SDF files by default.
-  For the QM8 dataset, this means that calling this function will
-  return 21747 compounds instead of 21786 in the source dataset file.
-  This appears to be due to valence specification mismatches in the
-  dataset that weren't caught in earlier more lax versions of RDKit.
-  Note that this may subtly affect benchmarking results on this
-  dataset.
+  DeepChem 2.4.0 has turned on sanitization for this dataset by
+  default.  For the QM8 dataset, this means that calling this
+  function will return 21747 compounds instead of 21786 in the source
+  dataset file.  This appears to be due to valence specification
+  mismatches in the dataset that weren't caught in earlier more lax
+  versions of RDKit.  Note that this may subtly affect benchmarking
+  results on this dataset.
 
   References
   ----------
