@@ -54,6 +54,9 @@ from deepchem.feat.material_featurizers import SineCoulombMatrix
 from deepchem.feat.material_featurizers import CGCNNFeaturizer
 from deepchem.feat.material_featurizers import ElemNetFeaturizer
 
+from deepchem.feat.atomic_conformation import AtomicConformation
+from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer
+
 try:
   import transformers
   from transformers import BertTokenizer
