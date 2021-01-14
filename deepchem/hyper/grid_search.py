@@ -45,7 +45,7 @@ class GridHyperparamOpt(HyperparamOpt):
   (in this case, `n_tasks` and `n_features` which are properties of a
   dataset and not hyperparameters to search over.)
 
-  >>> def model_builder(**model_params):
+  >>> def model_builder(model_dir, **model_params):
   ...   n_layers = model_params['layers']
   ...   layer_width = model_params['width']
   ...   dropout = model_params['dropout']
