@@ -4,27 +4,30 @@ Installation
 Stable version
 --------------
 
-**Caution!! : The latest stable version was published nearly a year ago.
-If you are a pip user or you face some errors, we recommend 
-the nightly build version.**
-
-If you'd like to install DeepChem locally, we recommend using
-:code:`conda` and installing RDKit with deepchem. 
-RDKit is a soft requirement package, but many useful methods like
-molnet depend on it.
+Please install tensorflow v2.3.* before installing deepchem.
 
 .. code-block:: bash
 
-    pip install tensorflow-gpu==1.14
-    conda install -y -c conda-forge rdkit deepchem
+    pip install tensorflow==2.3.*
 
-For CPU only support instead run
+Then, you install deepchem via pip or conda.  
 
 .. code-block:: bash
 
-    pip install tensorflow==1.14
-    conda install -y -c conda-forge rdkit deepchem
+    pip install deepchem
 
+or 
+
+.. code-block:: bash
+
+    conda install -c conda-forge deepchem
+
+RDKit is a soft requirement package, but many useful methods like molnet depend on it.
+We recommend installing RDKit with deepchem if you use conda.
+
+.. code-block:: bash
+
+    conda install -y -c conda-forge rdkit
 
 Nightly build version
 ---------------------
@@ -36,15 +39,6 @@ The nightly version is built by the HEAD of DeepChem.
 
     pip install tensorflow==2.3.*
     pip install --pre deepchem
-
-
-RDKit is a soft requirement package, but many useful methods
-like molnet depend on it. We recommend installing RDKit
-with deepchem if you use conda.
-
-.. code-block:: bash
-
-    conda install -y -c conda-forge rdkit
 
 
 Google Colab
@@ -77,25 +71,25 @@ First, you pull the image you want to use.
 
 .. code-block:: bash
 
-    docker pull deepchemio/deepchem:2.3.0
+    docker pull deepchemio/deepchem:latest
 
 
 Then, you create a container based on the image.
 
 .. code-block:: bash
 
-    docker run --rm -it deepchemio/deepchem:2.3.0
+    docker run --rm -it deepchemio/deepchem:latest
 
 If you want GPU support:
 
 .. code-block:: bash
 
     # If nvidia-docker is installed
-    nvidia-docker run --rm -it deepchemio/deepchem:2.3.0
-    docker run --runtime nvidia --rm -it deepchemio/deepchem:2.3.0
+    nvidia-docker run --rm -it deepchemio/deepchem:latest
+    docker run --runtime nvidia --rm -it deepchemio/deepchem:latest
 
     # If nvidia-container-toolkit is installed
-    docker run --gpus all --rm -it deepchemio/deepchem:2.3.0
+    docker run --gpus all --rm -it deepchemio/deepchem:latest
 
 You are now in a docker container which deepchem was installed.
 You can start playing with it in the command line.
