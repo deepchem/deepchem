@@ -92,11 +92,11 @@ DockerHub : https://hub.docker.com/repository/docker/deepchemio/deepchem
 - `deepchemio/deepchem:x.x.x`
   - Image built by using a conda (x.x.x is a version of deepchem)
   - The x.x.x image is built when we push x.x.x. tag
-  - Dockerfile is put in `docker/conda-forge` directory
+  - Dockerfile is put in `docker/tag` directory
 - `deepchemio/deepchem:latest`
   - Image built from source codes
   - The latest image is built every time we commit to the master branch
-  - Dockerfile is put in `docker/master` directory
+  - Dockerfile is put in `docker/nightly` directory
 
 You pull the image like this.
 

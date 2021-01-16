@@ -59,13 +59,13 @@ you can pull two kinds of images from `DockerHub`_.
 
   - Image built by using a conda (x.x.x is a version of deepchem)
   - This image is built when we push x.x.x. tag
-  - Dockerfile is put in `docker/conda-forge`_ directory
+  - Dockerfile is put in `docker/tag`_ directory
 
 - **deepchemio/deepchem:latest**
 
   - Image built from source codes
   - This image is built every time we commit to the master branch
-  - Dockerfile is put in `docker/master`_ directory
+  - Dockerfile is put in `docker/nightly`_ directory
 
 First, you pull the image you want to use.
 
