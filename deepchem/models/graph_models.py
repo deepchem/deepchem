@@ -980,7 +980,7 @@ class GraphConvModel(KerasModel):
           batch_size=self.batch_size,
           deterministic=deterministic,
           pad_batches=pad_batches):
-        if self.mode == 'classification':
+        if y_b is not None and self.mode == 'classification':
           y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
               -1, self.n_tasks, self.n_classes)
         multiConvMol = ConvMol.agglomerate_mols(X_b)
