@@ -1,13 +1,12 @@
-name: Release PyPI packages
+name: Release
 on:
   push:
     tags:
       - '*' # ci work when pushing a tag
 jobs:
-  release:
+  pypi:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
         python-version: [3.7]
     steps:
@@ -41,3 +40,26 @@ jobs:
       run: |
         python setup.py sdist bdist_wheel --release
         twine upload dist/*
+
+  docker:
+    needs: [pypi]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Get the tag version
+      id: get_tag_version
+      run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+    - name: Login to DockerHub
+      uses: docker/login-action@v1 
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+    - name: Build and push
+      id: docker_build
+      uses: docker/build-push-action@v2
+      with:
+        context: ./docker/tag
+        push: true
+        tags: deepchemio/deepchem:${{ steps.get_tag_version.outputs.VERSION }}
+    - name: Image digest
+      run: echo ${{ steps.docker_build.outputs.digest }}

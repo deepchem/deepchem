@@ -1,51 +1,52 @@
-# Release (WIP)
+# Release
 
 This note explains how to release deepchem packages.
 
 ## How to release
 
-1. Create and merge a release PR (just modify the version in `deepchem/__init__.py`)
-2. Push a new tag in the merge commit -> release in PyPI
-3. Create and merge a release PR in the [feedstock repository](https://github.com/conda-forge/deepchem-feedstock) -> release in conda forge
-4. Create and merge a PR for updating the Dockerfile (`docker/conda-forge/Dockerfile`)
-5. Build and publish a new docker image -> release in DockerHub 
-6. Fix the version in README.md and Documentation
+1. Create and merge a release PR
+    - Modify the version in `deepchem/__init__.py` (Remove `.dev`)
+    - Update the documents for installing a new package in `README.md` and `docs`
+2. Push a new tag to the merge commit -> release new PyPI package and docker image
+3. Create and merge a release PR in the [feedstock repository](https://github.com/conda-forge/deepchem-feedstock) -> release new Conda Forge package
+4. Publish the documents for a new tag in [ReadTheDocs](https://readthedocs.org/projects/deepchem/versions/).
+5. Create and merge a final PR
+    - Add a `.dev` to the version in `deepchem/__init__.py` again
 
 ## PyPI
 
-### Nightly build
+### Nightly build version
 
-We publish a nightly build only when merging a PR to the master and passing all CI checks in a merge commit.
-**If some CI check doesn't pass in a merge commit, the nightly build package will not be published.**
-The publish process is automated by GitHub Actions and it is in `deploy` section of `.github/workflows/main.yml`.
+We publish nightly build packages only when merging PRs to the master.
+The publish process is automated by GitHub Actions and it is in `pypi-build` section of `.github/workflows/main.yml`.
 
-### Major version build
+### Major version
 
-We publish a major version build only when pushing a new tag.
-The publish process is automated by GitHub Actions and it is in `.github/workflows/release.yml`.
+We publish a major version package only when pushing a new tag.
+The publish process is automated by GitHub Actions and it is in `pypi` section of `.github/workflows/release.yml`.
 
 ## Conda Forge
 
 We have [the feedstock repository](https://github.com/conda-forge/deepchem-feedstock) for managing the build recipe for conda-forge.
-After pushing a new tag, we create a PR for publishing a new build.
+After pushing a new tag, we create a PR for publishing a new package.
 Basically, we need to modify the version of deepchem and dependencies like TensorFlow in `recipe/meta.yml`.
-After merging a PR, we could publish a new package.
+After merging the PR, we could publish a new package.
 
 ## Docker
 
-### Nightly build
+### Nightly build version
 
-The latest tag (deepchemio/deepchem:latest) is a nightly build and the image is built by `docker/master/Dockerfile`.
-We publish a nightly build only when merging a PR to the master.
-The publish process is automated by [Docker Hub](https://docs.docker.com/docker-hub/builds/).
+The latest tag (deepchemio/deepchem:latest) is a nightly build and the image is built by `docker/nightly/Dockerfile`.
+We publish nightly build images only when merging PRs to the master.
+The publish process is automated by GitHub Actions and it is in `docker-build` section of `.github/workflows/main.yml`.
 
-### Major version build
+### Major version
 
-The specific tag (deepchemio/deepchem:2.3.0) is a major version build and the image is built by `docker/conda-forge/Dockerfile`.
-After publishing a new conda package, we need to modify `docker/conda-forge/Dockerfile`, build and publish a new image manually.
+We publish a major version image only when pushing a new tag.
+The publish process is automated by GitHub Actions and it is in `docker` section of `.github/workflows/release.yml`.
 
-```bash
-$ cd docker/conda-forge
-$ docker build . -t deepchem:X.X.X
-$ docker push deepchem:X.X.X
-```
+## Docs
+
+We should manually modify documents for installing a new package before pushing a new tag.
+Basically, we modify `README.md` and `docs/get_started/installation.rst`. (include `docs/index.rst` in some cases)
+After pushing a new tag, we go to [the project page](https://readthedocs.org/projects/deepchem/versions) in ReadTheDocs and publish the documents for a new tag.
