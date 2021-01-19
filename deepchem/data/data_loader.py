@@ -15,7 +15,7 @@ import numpy as np
 from deepchem.utils.typing import OneOrMany
 from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files
 from deepchem.utils.genomics_utils import encode_bio_sequence
-from deepchem.feat import UserDefinedFeaturizer, Featurizer
+from deepchem.feat import UserDefinedFeaturizer, Featurizer, ConvMolFeaturizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 
 logger = logging.getLogger(__name__)
@@ -205,7 +205,19 @@ class DataLoader(object):
         time1 = time.time()
         X, valid_inds = self._featurize_shard(shard)
         ids = shard[self.id_field].values
-        ids = ids[valid_inds]
+        #  special case when we deal with  dataset of molecular fragments:
+        #  each fragment should recieve id: parent mol id
+        # also, x should be flattened, because it is list of lists (one list of frags per mol)
+        if isinstance(
+            self.featurizer,
+            ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
+          ids = ids[[
+              any(i) for i in valid_inds
+          ]]  # keep an id if at least one frag was generated from the mol
+          ids = np.repeat(ids, [len(i) for i in X], axis=0)
+          X = np.array([j for i in X for j in i])  # flatten
+        else:
+          ids = ids[valid_inds]
         if len(self.tasks) > 0:
           # Featurize task results iff they exist.
           y, w = _convert_df_to_numpy(shard, self.tasks)
@@ -353,6 +365,11 @@ class CSVLoader(DataLoader):
       self.user_specified_features = featurizer.feature_fields
     self.featurizer = featurizer
     self.log_every_n = log_every_n
+    if isinstance(self.featurizer, ConvMolFeaturizer):
+      if self.featurizer.per_atom_fragmentation and len(self.tasks) > 0:
+        self.tasks = []  # no sense in y and w for fragments
+        warnings.warn(
+            "Tasks and weights will be ignored, fragments can't have them")
 
   def _get_shards(self, input_files: List[str],
                   shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
@@ -393,11 +410,23 @@ class CSVLoader(DataLoader):
       raise ValueError(
           "featurizer must be specified in constructor to featurizer data/")
     features = [elt for elt in self.featurizer(shard[self.feature_field])]
-    valid_inds = np.array(
-        [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
-    features = [
-        elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
-    ]
+    if isinstance(self.featurizer,
+                  ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
+      # special case when we deal with fragments dataset:
+      # ids and features should be cleaned from failed elements, but retain nested structure
+      valid_inds = [[True if np.array(elt).size > 0 else False for elt in f]
+                    for f in features]
+      features = [[elt for (is_valid, elt) in zip(l, m) if is_valid]
+                  for (l, m) in zip(valid_inds, features) if any(l)]
+    else:
+      valid_inds = np.array(
+          [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
+      features = [
+          elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
+      ]
+    if isinstance(self.featurizer, ConvMolFeaturizer):
+      if self.featurizer.per_atom_fragmentation:
+        return features, valid_inds  # we dont convert to array, the structure is nested
     return np.array(features), valid_inds
 
 
@@ -737,6 +766,11 @@ class SDFLoader(DataLoader):
     # The field in which load_sdf_files return value stores smiles
     self.id_field = "smiles"
     self.log_every_n = log_every_n
+    if isinstance(self.featurizer, ConvMolFeaturizer):
+      if self.featurizer.per_atom_fragmentation and len(self.tasks) > 0:
+        self.tasks = []  # no sense in y and w for fragments
+        warnings.warn(
+            "Tasks and weights will be ignored, fragments can't have them")
 
   def _get_shards(self, input_files: List[str],
                   shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
@@ -781,11 +815,23 @@ class SDFLoader(DataLoader):
       sample in the source.
     """
     features = [elt for elt in self.featurizer(shard[self.mol_field])]
-    valid_inds = np.array(
-        [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
-    features = [
-        elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
-    ]
+    if isinstance(self.featurizer,
+                  ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
+      # special case when we deal with fragments dataset:
+      # ids and features should be cleaned from failed elements, but retain nested structure
+      valid_inds = [[True if np.array(elt).size > 0 else False for elt in f]
+                    for f in features]
+      features = [[elt for (is_valid, elt) in zip(l, m) if is_valid]
+                  for (l, m) in zip(valid_inds, features) if any(l)]
+    else:
+      valid_inds = np.array(
+          [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
+      features = [
+          elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
+      ]
+    if isinstance(self.featurizer,
+                  ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
+      return features, valid_inds  # we dont convert to array, the structure is nested with variable length
     return np.array(features), valid_inds
 
 
