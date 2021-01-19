@@ -37,9 +37,12 @@ Graph Convolution Featurizers
 We are simplifying our graph convolution models by a joint data representation (:code:`GraphData`)
 in a future version of DeepChem, so we provide several featurizers.
 
-:code:`ConvMolFeaturizer` and :code:`WeaveFeaturizer` are used with graph convolution models
-which inherited :code:`KerasModel`. On the other hand, :code:`MolGraphConvFeaturizer` is used
-with graph convolution models which inherited :code;`TorchModel`.
+:code:`ConvMolFeaturizer` and :code:`WeaveFeaturizer` are used
+with graph convolution models  which inherited :code:`KerasModel`.
+:code:`ConvMolFeaturizer` is used with graph convolution models
+except :code:`WeaveModel`. :code:`WeaveFeaturizer` are only used with :code:`WeaveModel`.
+On the other hand, :code:`MolGraphConvFeaturizer` is used
+with graph convolution models which inherited :code:`TorchModel`.
 
 ConvMolFeaturizer
 *****************
