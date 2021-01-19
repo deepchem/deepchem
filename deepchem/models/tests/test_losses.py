@@ -186,6 +186,12 @@ class TestLosses(unittest.TestCase):
     expected = [-np.log(softmax[0, 1]), -np.log(softmax[1, 0])]
     assert np.allclose(expected, result)
 
+    labels = tf.constant([[1], [0]])
+    result = loss._compute_tf_loss(outputs, labels).numpy()
+    softmax = np.exp(y) / np.expand_dims(np.sum(np.exp(y), axis=1), 1)
+    expected = [-np.log(softmax[0, 1]), -np.log(softmax[1, 0])]
+    assert np.allclose(expected, result)
+
   @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_sparse_softmax_cross_entropy_pytorch(self):
     """Test SparseSoftmaxCrossEntropy."""
@@ -193,6 +199,12 @@ class TestLosses(unittest.TestCase):
     y = np.array([[0.1, 0.8], [0.4, 0.6]])
     outputs = torch.tensor(y)
     labels = torch.tensor([1, 0])
+    result = loss._create_pytorch_loss()(outputs, labels).numpy()
+    softmax = np.exp(y) / np.expand_dims(np.sum(np.exp(y), axis=1), 1)
+    expected = [-np.log(softmax[0, 1]), -np.log(softmax[1, 0])]
+    assert np.allclose(expected, result)
+
+    labels = torch.tensor([[1], [0]])
     result = loss._create_pytorch_loss()(outputs, labels).numpy()
     softmax = np.exp(y) / np.expand_dims(np.sum(np.exp(y), axis=1), 1)
     expected = [-np.log(softmax[0, 1]), -np.log(softmax[1, 0])]

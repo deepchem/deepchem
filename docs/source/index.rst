@@ -58,7 +58,7 @@ RDKit is a soft requirement package, but many useful methods depend on it.
 
 .. code-block:: bash
 
-    pip install tensorflow==2.3.0
+    pip install tensorflow==2.3.*
     pip install --pre deepchem
     conda install -y -c conda-forge rdkit
 
@@ -112,9 +112,7 @@ To listen in, please email X.Y@gmail.com, where X=bharath and Y=ramsundar to int
    :maxdepth: 1
    :caption: API Reference
 
-   api_reference/datasets
-   api_reference/dataloaders
-   api_reference/dataclasses
+   api_reference/data
    api_reference/moleculenet
    api_reference/featurizers
    api_reference/tokenizers

@@ -39,6 +39,18 @@ def test_gcn_regression():
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean_absolute_error'] < 0.5
 
+  # test on a small MoleculeNet dataset
+  from deepchem.molnet import load_delaney
+
+  tasks, all_dataset, transformers = load_delaney(featurizer=featurizer)
+  train_set, _, _ = all_dataset
+  model = dc.models.GCNModel(
+      n_tasks=len(tasks),
+      graph_conv_layers=[2],
+      residual=False,
+      predictor_hidden_feats=2)
+  model.fit(train_set, nb_epoch=1)
+
 
 @unittest.skipIf(not has_torch_and_dgl,
                  'PyTorch, DGL, or DGL-LifeSci are not installed')
@@ -61,6 +73,20 @@ def test_gcn_classification():
   model.fit(dataset, nb_epoch=70)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.85
+
+  # test on a small MoleculeNet dataset
+  from deepchem.molnet import load_bace_classification
+
+  tasks, all_dataset, transformers = load_bace_classification(
+      featurizer=featurizer)
+  train_set, _, _ = all_dataset
+  model = dc.models.GCNModel(
+      mode='classification',
+      n_tasks=len(tasks),
+      graph_conv_layers=[2],
+      residual=False,
+      predictor_hidden_feats=2)
+  model.fit(train_set, nb_epoch=1)
 
 
 @unittest.skipIf(not has_torch_and_dgl,

@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.0-cudnn7-devel
+FROM nvidia/cuda:10.1-cudnn7-devel
 
 # Install some utilities
 RUN apt-get update && \
@@ -13,13 +13,15 @@ RUN MINICONDA="Miniconda3-latest-Linux-x86_64.sh" && \
     echo ". /miniconda/etc/profile.d/conda.sh" >> ~/.bashrc
 ENV PATH /miniconda/bin:$PATH
 
-# install latest version deepchem
+SHELL ["/bin/bash", "-c"]
+
+# install deepchem with master branch
 RUN conda update -n base conda && \
-    conda create -y --name deepchem python=3.6 && \
-    . /miniconda/etc/profile.d/conda.sh && \
+    git clone --depth 1 https://github.com/deepchem/deepchem.git && \
+    cd deepchem && \
+    source scripts/install_deepchem_conda.sh 3.7 gpu && \
     conda activate deepchem && \
-    pip install tensorflow-gpu==1.14 && \
-    conda install -c conda-forge rdkit deepchem==2.3.0 && \
+    pip install -e . && \
     conda clean -afy && \
     rm -rf ~/.cache/pip
 
