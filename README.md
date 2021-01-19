@@ -52,35 +52,36 @@ Please check [the document](https://deepchem.readthedocs.io/en/latest/requiremen
 
 ### Stable version
 
-**Caution!! : The latest stable version was published nearly a year ago. If you are a pip user or you face some errors, we recommend the nightly build version.**
-
-RDKit is a soft requirement package, but many useful methods like molnet depend on it. We recommend installing RDKit with deepchem.
+Please install tensorflow v2.3.* before installing deepchem.
 
 ```bash
-pip install tensorflow==1.14
-conda install -y -c conda-forge rdkit deepchem==2.3.0
+pip install tensorflow==2.3.*
 ```
 
-If you want GPU support:
+Then, you install deepchem via pip or conda.  
 
 ```bash
-pip install tensorflow-gpu==1.14
-conda install -y -c conda-forge rdkit deepchem==2.3.0
+pip install deepchem
+```
+or 
+```
+conda install -c conda-forge deepchem
+```
+
+RDKit is a soft requirement package, but many useful methods like molnet depend on it.
+We recommend installing RDKit with deepchem if you use conda.
+
+```bash
+conda install -y -c conda-forge rdkit
 ```
 
 ### Nightly build version
 
-You install the nightly build version via pip. The nightly version is built by the HEAD of DeepChem.
+The nightly version is built by the HEAD of DeepChem.
 
 ```bash
 pip install tensorflow==2.3.*
 pip install --pre deepchem
-```
-
-RDKit is a soft requirement package, but many useful methods like molnet depend on it. We recommend installing RDKit with deepchem if you use conda.
-
-```bash
-conda install -y -c conda-forge rdkit
 ```
 
 ### Docker
@@ -91,16 +92,16 @@ DockerHub : https://hub.docker.com/repository/docker/deepchemio/deepchem
 - `deepchemio/deepchem:x.x.x`
   - Image built by using a conda (x.x.x is a version of deepchem)
   - The x.x.x image is built when we push x.x.x. tag
-  - Dockerfile is put in `docker/conda-forge` directory
+  - Dockerfile is put in `docker/tag` directory
 - `deepchemio/deepchem:latest`
   - Image built from source codes
   - The latest image is built every time we commit to the master branch
-  - Dockerfile is put in `docker/master` directory
+  - Dockerfile is put in `docker/nightly` directory
 
 You pull the image like this.
 
 ```bash
-docker pull deepchemio/deepchem:2.3.0
+docker pull deepchemio/deepchem:2.4.0
 ```
 
 If you want to know docker usages with deepchem in more detail, please check [the document](https://deepchem.readthedocs.io/en/latest/installation.html#docker).

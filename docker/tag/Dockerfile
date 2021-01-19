@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.0-cudnn7-devel
+FROM nvidia/cuda:10.1-cudnn7-devel
 
 # Install some utilities
 RUN apt-get update && \
@@ -18,8 +18,8 @@ RUN conda update -n base conda && \
     conda create -y --name deepchem python=3.6 && \
     . /miniconda/etc/profile.d/conda.sh && \
     conda activate deepchem && \
-    pip install tensorflow-gpu==1.14 && \
-    conda install -c conda-forge rdkit deepchem==2.3.0 && \
+    pip install tensorflow==2.3.* deepchem && \
+    conda install -c conda-forge rdkit && \
     conda clean -afy && \
     rm -rf ~/.cache/pip
 
