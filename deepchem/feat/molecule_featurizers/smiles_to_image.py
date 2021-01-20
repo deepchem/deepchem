@@ -32,8 +32,8 @@ class SmilesToImage(MolecularFeaturizer):
      Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
      Discovery & Data Mining. 2018.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 

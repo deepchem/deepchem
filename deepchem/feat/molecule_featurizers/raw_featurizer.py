@@ -11,8 +11,8 @@ class RawFeaturizer(MolecularFeaturizer):
   collection of RDKit mol objects as Smiles strings, or alternatively as a
   "no-op" featurizer in your molecular pipeline.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 

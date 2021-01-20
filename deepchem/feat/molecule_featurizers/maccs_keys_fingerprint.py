@@ -16,8 +16,8 @@ class MACCSKeysFingerprint(MolecularFeaturizer):
      Journal of chemical information and computer sciences 42.6 (2002): 1273-1280.
   .. [2] https://github.com/rdkit/rdkit/blob/master/rdkit/Chem/MACCSkeys.py
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 

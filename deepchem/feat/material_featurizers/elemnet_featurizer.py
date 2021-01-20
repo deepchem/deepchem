@@ -36,8 +36,8 @@ class ElemNetFeaturizer(MaterialCompositionFeaturizer):
   >>> featurizer = ElemNetFeaturizer()
   >>> features = featurizer.featurize([comp])
 
-  Notes
-  -----
+  Note
+  ----
   This class requires Pymatgen to be installed.
   """
 

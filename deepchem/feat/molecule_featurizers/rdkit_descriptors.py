@@ -18,8 +18,8 @@ class RDKitDescriptors(MolecularFeaturizer):
   descriptors: List[str]
     List of RDKit descriptor names used in this class.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 

@@ -33,8 +33,8 @@ class CoulombMatrix(MolecularFeaturizer):
      molecules for atomization energy prediction." Advances in neural information
      processing systems. 2012.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 
