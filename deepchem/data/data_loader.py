@@ -411,7 +411,7 @@ class CSVLoader(DataLoader):
           "featurizer must be specified in constructor to featurizer data/")
     features = [elt for elt in self.featurizer(shard[self.feature_field])]
     if isinstance(self.featurizer,
-                  ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
+                ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
       # special case when we deal with fragments dataset:
       # ids and features should be cleaned from failed elements, but retain nested structure
       valid_inds = [[True if np.array(elt).size > 0 else False for elt in f]
@@ -816,7 +816,7 @@ class SDFLoader(DataLoader):
     """
     features = [elt for elt in self.featurizer(shard[self.mol_field])]
     if isinstance(self.featurizer,
-                  ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
+                ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
       # special case when we deal with fragments dataset:
       # ids and features should be cleaned from failed elements, but retain nested structure
       valid_inds = [[True if np.array(elt).size > 0 else False for elt in f]
@@ -830,7 +830,7 @@ class SDFLoader(DataLoader):
         elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
       ]
     if isinstance(self.featurizer,
-                  ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
+                ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
       return features, valid_inds  # we dont convert to array, the structure is nested with variable length
     return np.array(features), valid_inds
 
