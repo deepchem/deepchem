@@ -6,6 +6,7 @@ import tempfile
 import numpy as np
 import deepchem as dc
 import sklearn
+import sklearn.ensemble
 
 
 class TestGridHyperparamOpt(unittest.TestCase):
@@ -156,5 +157,39 @@ class TestGridHyperparamOpt(unittest.TestCase):
       assert "batch_size" in hp_str
       assert "learning_rate" in hp_str
 
+    assert valid_score["mean-mean_squared_error"] == min(all_results.values())
+    assert valid_score["mean-mean_squared_error"] > 0
+
+  def test_multitask_nb_epoch(self):
+    """Test a simple example of optimizing a multitask model with a grid search."""
+    # Generate dummy dataset
+    np.random.seed(123)
+    train_dataset = dc.data.NumpyDataset(
+        np.random.rand(10, 3), np.zeros((10, 2)), np.ones((10, 2)),
+        np.arange(10))
+    valid_dataset = dc.data.NumpyDataset(
+        np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
+
+    optimizer = dc.hyper.GridHyperparamOpt(
+        lambda **params: dc.models.MultitaskRegressor(n_tasks=2,
+                                                      n_features=3, dropouts=[0.],
+                                                      weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
+                                                      learning_rate=0.003, **params))
+
+    params_dict = {"batch_size": [10, 20]}
+    transformers = []
+    metric = dc.metrics.Metric(
+        dc.metrics.mean_squared_error, task_averager=np.mean)
+
+    best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
+        params_dict,
+        train_dataset,
+        valid_dataset,
+        metric,
+        transformers,
+        nb_epoch=3,
+        use_max=False)
+
+    valid_score = best_model.evaluate(valid_dataset, [metric])
     assert valid_score["mean-mean_squared_error"] == min(all_results.values())
     assert valid_score["mean-mean_squared_error"] > 0
