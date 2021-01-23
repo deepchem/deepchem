@@ -147,7 +147,11 @@ class GridHyperparamOpt(HyperparamOpt):
         model_dir = tempfile.mkdtemp()
       model_params['model_dir'] = model_dir
       model = self.model_builder(**model_params)
-      model.fit(train_dataset, nb_epoch=nb_epoch)
+      try:
+        model.fit(train_dataset, nb_epoch=nb_epoch)
+      # Not all models have nb_epoch
+      except TypeError:
+        model.fit(train_dataset)
       try:
         model.save()
       # Some models autosave

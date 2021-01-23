@@ -266,7 +266,11 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       # Add it on to the information needed for the constructor
       hyper_parameters["model_dir"] = model_dir
       model = self.model_builder(**hyper_parameters)
-      model.fit(train_dataset, nb_epoch=nb_epoch)
+      try:
+        model.fit(train_dataset, nb_epoch=nb_epoch)
+      # Not all models have nb_epoch
+      except TypeError:
+        model.fit(train_dataset)
       try:
         model.save()
       # Some models autosave
