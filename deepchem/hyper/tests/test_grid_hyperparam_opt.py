@@ -193,4 +193,3 @@ class TestGridHyperparamOpt(unittest.TestCase):
     valid_score = best_model.evaluate(valid_dataset, [metric])
     assert valid_score["mean-mean_squared_error"] == min(all_results.values())
     assert valid_score["mean-mean_squared_error"] > 0
-    
