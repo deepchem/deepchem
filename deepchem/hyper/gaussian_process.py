@@ -162,7 +162,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       for learning and need the transform to be inverted before
       the metric can be evaluated on a model.
     nb_epoch: int, (default 5)
-      Specifies the number of epochs during each iteration of optimization
+      Specifies the number of training epochs during each iteration of optimization.
     use_max: bool, (default True)
       Specifies whether to maximize or minimize `metric`.
       maximization(True) or minimization(False)
