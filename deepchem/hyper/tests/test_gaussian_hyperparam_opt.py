@@ -175,7 +175,7 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
 
   @flaky
   def test_multitask_example_nb_epoch(self):
-    """Test a simple example of optimizing a multitask model with a gaussian process search."""
+    """Test a simple example of optimizing a multitask model with a gaussian process search with a different number of training epochs."""
     # Generate dummy dataset
     np.random.seed(123)
     train_dataset = dc.data.NumpyDataset(

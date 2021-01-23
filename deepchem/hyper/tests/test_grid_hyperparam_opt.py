@@ -161,7 +161,7 @@ class TestGridHyperparamOpt(unittest.TestCase):
     assert valid_score["mean-mean_squared_error"] > 0
 
   def test_multitask_nb_epoch(self):
-    """Test a simple example of optimizing a multitask model with a grid search."""
+    """Test a simple example of optimizing a multitask model with a grid search with a different number of training epochs."""
     # Generate dummy dataset
     np.random.seed(123)
     train_dataset = dc.data.NumpyDataset(
@@ -181,6 +181,7 @@ class TestGridHyperparamOpt(unittest.TestCase):
     metric = dc.metrics.Metric(
         dc.metrics.mean_squared_error, task_averager=np.mean)
 
+    # Define nb_epoch in hyperparam_search function call
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
         params_dict,
         train_dataset,
