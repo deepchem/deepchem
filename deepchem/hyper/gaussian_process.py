@@ -315,7 +315,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         valid set performances
       """
       return _optimize(nb_epoch=nb_epoch, **placeholders)
-    
+
     # execute GPGO
     cov = matern32()
     gp = GaussianProcess(cov)
@@ -344,6 +344,6 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         f.write("params_dict:")
         f.write(str(params_dict))
         f.write('\n')
-    
+
     # Return default hyperparameters
     return best_model, hyper_parameters, all_results
