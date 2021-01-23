@@ -234,7 +234,6 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     # Stores all model locations
     model_locations = {}
 
-    # Private opt_func to pass nb_epoch for optimizing_function
     def _optimize(nb_epoch, **placeholders):
       """Private Optimizing function
 
