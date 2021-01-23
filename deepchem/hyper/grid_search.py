@@ -94,6 +94,7 @@ class GridHyperparamOpt(HyperparamOpt):
       the metric can be evaluated on a model.
     nb_epoch: int, (default 5)
       Specifies the number of training epochs during each iteration of optimization.
+      Not used by all model types.
     use_max: bool, optional
       If True, return the model with the highest score. Else return
       model with the minimum score.

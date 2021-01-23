@@ -163,6 +163,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       the metric can be evaluated on a model.
     nb_epoch: int, (default 5)
       Specifies the number of training epochs during each iteration of optimization.
+      Not used by all model types.
     use_max: bool, (default True)
       Specifies whether to maximize or minimize `metric`.
       maximization(True) or minimization(False)
@@ -235,6 +236,24 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
     # Private opt_func to pass nb_epoch for optimizing_function
     def _optimize(nb_epoch, **placeholders):
+      """Private Optimizing function
+
+      Take in hyper parameter values and number of training epochs.
+      Return valid set performances.
+
+      Parameters
+      ----------
+      nb_epoch: int
+        Number of epochs to train model being optimized during each iteration.
+        Not used by all model types.
+      placeholders: keyword arguments
+        Should be various hyperparameters as specified in `param_keys` above.
+
+      Returns:
+      --------
+      valid_scores: float
+        valid set performances
+      """
       hyper_parameters = {}
       for hp in param_keys:
         if param_range[hp][0] == "int":
@@ -300,9 +319,11 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
     # Demarcating internal function for readability
     def optimizing_function(**placeholders):
-      """Private Optimizing function
+      """Wrapper function
 
-      Take in hyper parameter values and return valid set performances
+      Take in hyper parameter values. 
+      Calls a private optimize function (_optimize) with number of epochs.
+      Returns valid set performances.
 
       Parameters
       ----------
