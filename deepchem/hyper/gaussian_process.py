@@ -320,7 +320,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     def optimizing_function(**placeholders):
       """Wrapper function
 
-      Take in hyper parameter values. 
+      Take in hyper parameter values.
       Calls a private optimize function (_optimize) with number of epochs.
       Returns valid set performances.
 
