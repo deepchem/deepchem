@@ -150,7 +150,7 @@ class GridHyperparamOpt(HyperparamOpt):
       model = self.model_builder(**model_params)
       # mypy test throws error, so ignoring it in try
       try:
-        model.fit(train_dataset, nb_epoch=nb_epoch) # type: ignore
+        model.fit(train_dataset, nb_epoch=nb_epoch)  # type: ignore
       # Not all models have nb_epoch
       except TypeError:
         model.fit(train_dataset)
