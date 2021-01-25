@@ -25,6 +25,7 @@ from deepchem.feat.molecule_featurizers import MACCSKeysFingerprint
 from deepchem.feat.molecule_featurizers import MordredDescriptors
 from deepchem.feat.molecule_featurizers import Mol2VecFingerprint
 from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
+from deepchem.feat.molecule_featurizers import molgan_featurizer
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.feat.molecule_featurizers import PubChemFingerprint
 from deepchem.feat.molecule_featurizers import RawFeaturizer
@@ -36,7 +37,9 @@ from deepchem.feat.molecule_featurizers import SmilesToSeq, create_char_to_idx
 from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
 from deepchem.feat.complex_featurizers import NeighborListAtomicCoordinates
 from deepchem.feat.complex_featurizers import NeighborListComplexAtomicCoordinates
-from deepchem.feat.complex_featurizers import ComplexNeighborListFragmentAtomicCoordinates
+from deepchem.feat.complex_featurizers import (
+    ComplexNeighborListFragmentAtomicCoordinates,
+)
 from deepchem.feat.complex_featurizers import ContactCircularFingerprint
 from deepchem.feat.complex_featurizers import ContactCircularVoxelizer
 from deepchem.feat.complex_featurizers import SplifFingerprint
@@ -55,10 +58,10 @@ from deepchem.feat.material_featurizers import CGCNNFeaturizer
 from deepchem.feat.material_featurizers import ElemNetFeaturizer
 
 try:
-  import transformers
-  from transformers import BertTokenizer
+    import transformers
+    from transformers import BertTokenizer
 
-  from deepchem.feat.smiles_tokenizer import SmilesTokenizer
-  from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
+    from deepchem.feat.smiles_tokenizer import SmilesTokenizer
+    from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
 except ModuleNotFoundError:
-  pass
+    pass
