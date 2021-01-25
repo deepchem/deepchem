@@ -66,7 +66,7 @@ class GridHyperparamOpt(HyperparamOpt):
       valid_dataset: Dataset,
       metric: Metric,
       output_transformers: List[Transformer] = [],
-      nb_epoch: int = 5,
+      nb_epoch: int = 10,
       use_max: bool = True,
       logdir: Optional[str] = None,
       **kwargs,
