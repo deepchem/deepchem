@@ -148,8 +148,9 @@ class GridHyperparamOpt(HyperparamOpt):
         model_dir = tempfile.mkdtemp()
       model_params['model_dir'] = model_dir
       model = self.model_builder(**model_params)
+      # mypy test throws error, so ignoring it in try
       try:
-        model.fit(train_dataset, nb_epoch=nb_epoch)
+        model.fit(train_dataset, nb_epoch=nb_epoch) # type: ignore
       # Not all models have nb_epoch
       except TypeError:
         model.fit(train_dataset)
