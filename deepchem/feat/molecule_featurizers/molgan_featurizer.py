@@ -200,7 +200,7 @@ class MolGanFeaturizer(MolecularFeaturizer):
     def defeaturize(self,
                     graphs: GraphMatrix,
                     log_every_n: int = 1000) -> np.ndarray:
-        """Calculates molecules from correspoing GraphMatrix objects.
+        """Calculates molecules from corresponding GraphMatrix objects.
         Parameters
         ----------
         graphs: GraphMatrix / iterable
