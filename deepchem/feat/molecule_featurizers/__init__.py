@@ -14,3 +14,4 @@ from deepchem.feat.molecule_featurizers.rdkit_descriptors import RDKitDescriptor
 from deepchem.feat.molecule_featurizers.smiles_to_image import SmilesToImage
 from deepchem.feat.molecule_featurizers.smiles_to_seq import SmilesToSeq, create_char_to_idx
 from deepchem.feat.molecule_featurizers.mol_graph_conv_featurizer import MolGraphConvFeaturizer
+from deepchem.feat.molecule_featurizers.molgan_featurizer import MolGanFeaturizer

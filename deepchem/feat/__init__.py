@@ -25,7 +25,7 @@ from deepchem.feat.molecule_featurizers import MACCSKeysFingerprint
 from deepchem.feat.molecule_featurizers import MordredDescriptors
 from deepchem.feat.molecule_featurizers import Mol2VecFingerprint
 from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
-from deepchem.feat.molecule_featurizers import molgan_featurizer
+from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.feat.molecule_featurizers import PubChemFingerprint
 from deepchem.feat.molecule_featurizers import RawFeaturizer
