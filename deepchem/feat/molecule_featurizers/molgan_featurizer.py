@@ -23,6 +23,7 @@ class GraphMatrix:
     graph: GraphMatrix
       A molecule graph with some features.
     """
+
     def __init__(self, adjacency_matrix: np.ndarray,
                  node_features: np.ndarray):
         self.adjacency_matrix = adjacency_matrix
@@ -33,7 +34,7 @@ class MolGanFeaturizer(MolecularFeaturizer):
     """Featurizer for MolGAN de-novo molecular generation [1]_.
     The default representation is in form of GraphMatrix object.
     It is wrapper for two matrices containing atom and bond type information.
-    The class also provides reverse capabilities"""
+    The class also provides reverse capabilities """
     def __init__(
         self,
         max_atom_count: int = 9,
@@ -41,6 +42,7 @@ class MolGanFeaturizer(MolecularFeaturizer):
         bond_labels: List[RDKitBond] = None,
         atom_labels: List[int] = None,
     ):
+
         """
         Parameters
         ----------
@@ -61,6 +63,7 @@ class MolGanFeaturizer(MolecularFeaturizer):
         .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
         for small molecular graphs`<https://arxiv.org/abs/1805.11973>`"
         """
+
         self.max_atom_count = max_atom_count
         self.kekulize = kekulize
 
@@ -201,6 +204,7 @@ class MolGanFeaturizer(MolecularFeaturizer):
                     graphs: GraphMatrix,
                     log_every_n: int = 1000) -> np.ndarray:
         """Calculates molecules from corresponding GraphMatrix objects.
+
         Parameters
         ----------
         graphs: GraphMatrix / iterable
@@ -212,6 +216,7 @@ class MolGanFeaturizer(MolecularFeaturizer):
         features: np.ndarray
           A numpy array containing RDKitMol objext.
         """
+
         # Special case handling of single molecule
         if isinstance(graphs, GraphMatrix):
             graphs = [graphs]
