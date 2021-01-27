@@ -9,7 +9,7 @@ class TestAtomicConformation(unittest.TestCase):
   def test_featurize(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     sdf_file = os.path.join(current_dir, 'data', 'water.sdf')
-    pdb_file = os.path.join(current_dir, 'data', '3bwf_ligand_hyd.pdb')
+    pdb_file = os.path.join(current_dir, 'data', '3zso_ligand_hyd.pdb')
     smiles = 'CCC'
     featurizer = dc.feat.AtomicConformationFeaturizer()
     features = featurizer.featurize([sdf_file, pdb_file, smiles])
@@ -26,12 +26,12 @@ class TestAtomicConformation(unittest.TestCase):
 
     # Check the PDB file.
 
-    assert features[1].num_atoms == 33
-    assert features[1].atomic_number[0] == 8
-    assert features[1].atomic_number[1] == 6
-    assert features[1].atomic_number[32] == 1
-    for i in range(33):
-      if i == 8:
+    assert features[1].num_atoms == 47
+    assert features[1].atomic_number[0] == 6
+    assert features[1].atomic_number[35] == 7
+    assert features[1].atomic_number[46] == 1
+    for i in range(47):
+      if i == 36:
         assert features[1].formal_charge[i] == 1
       else:
         assert features[1].formal_charge[i] == 0
