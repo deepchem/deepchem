@@ -1,13 +1,9 @@
-__author__ = "Joseph Gomes"
-__copyright__ = "Copyright 2017, Stanford University"
-__license__ = "MIT"
-
 import sys
 
 from deepchem.models import KerasModel
 from deepchem.models.layers import AtomicConvolution
 from deepchem.models.losses import L2Loss
-from tensorflow.keras.layers import Input, Layer
+from tensorflow.keras.layers import Input, Layer, Dense, Flatten, Concatenate
 
 import numpy as np
 import tensorflow as tf
@@ -224,19 +220,29 @@ class AtomicConvModel(KerasModel):
     self._frag1_conv = AtomicConvolution(
         atom_types=self.atom_types, radial_params=rp,
         boxsize=None)([frag1_X, frag1_nbrs, frag1_nbrs_z])
+    flattened1 = Flatten()(self._frag1_conv)
 
     self._frag2_conv = AtomicConvolution(
         atom_types=self.atom_types, radial_params=rp,
         boxsize=None)([frag2_X, frag2_nbrs, frag2_nbrs_z])
+    flattened2 = Flatten()(self._frag2_conv)
 
     self._complex_conv = AtomicConvolution(
         atom_types=self.atom_types, radial_params=rp,
         boxsize=None)([complex_X, complex_nbrs, complex_nbrs_z])
+    flattened3 = Flatten()(self._complex_conv)
 
-    score = AtomicConvScore(self.atom_types, layer_sizes)([
-        self._frag1_conv, self._frag2_conv, self._complex_conv, frag1_z,
-        frag2_z, complex_z
-    ])
+    concat = Concatenate()([flattened1, flattened2, flattened3])
+
+    #score = AtomicConvScore(self.atom_types, layer_sizes)([
+    #    self._frag1_conv, self._frag2_conv, self._complex_conv, frag1_z,
+    #    frag2_z, complex_z
+    #])
+    layer = Dense(100)(concat)
+    output = Dense(1)(layer)
+    print("output")
+    print(output)
+    #loss = dc.models.losses.L2Loss()
 
     model = tf.keras.Model(
         inputs=[
@@ -244,7 +250,8 @@ class AtomicConvModel(KerasModel):
             frag2_nbrs_z, frag2_z, complex_X, complex_nbrs, complex_nbrs_z,
             complex_z
         ],
-        outputs=score)
+        #outputs=score)
+        outputs=output)
     super(AtomicConvModel, self).__init__(
         model, L2Loss(), batch_size=batch_size, **kwargs)
 
