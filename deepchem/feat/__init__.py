@@ -38,8 +38,7 @@ from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
 from deepchem.feat.complex_featurizers import NeighborListAtomicCoordinates
 from deepchem.feat.complex_featurizers import NeighborListComplexAtomicCoordinates
 from deepchem.feat.complex_featurizers import (
-    ComplexNeighborListFragmentAtomicCoordinates,
-)
+    ComplexNeighborListFragmentAtomicCoordinates,)
 from deepchem.feat.complex_featurizers import ContactCircularFingerprint
 from deepchem.feat.complex_featurizers import ContactCircularVoxelizer
 from deepchem.feat.complex_featurizers import SplifFingerprint
@@ -58,10 +57,13 @@ from deepchem.feat.material_featurizers import CGCNNFeaturizer
 from deepchem.feat.material_featurizers import ElemNetFeaturizer
 
 try:
-    import transformers
-    from transformers import BertTokenizer
+  import transformers
+  from transformers import BertTokenizer
 
-    from deepchem.feat.smiles_tokenizer import SmilesTokenizer
-    from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
+  from deepchem.feat.smiles_tokenizer import SmilesTokenizer
+  from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
 except ModuleNotFoundError:
-    pass
+  pass
+
+# support classes
+from deepchem.feat.molecule_featurizers import GraphMatrix
