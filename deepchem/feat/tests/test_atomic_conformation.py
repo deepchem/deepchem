@@ -35,6 +35,10 @@ class TestAtomicConformation(unittest.TestCase):
         assert features[1].formal_charge[i] == 1
       else:
         assert features[1].formal_charge[i] == 0
+      if features[1].atomic_number[i] in (7, 8):  # N and O should be negative
+        assert features[1].partial_charge[i] < 0
+      elif features[1].atomic_number[i] == 1:  # H should be positive
+        assert features[1].partial_charge[i] > 0
 
     # Check the SMILES string.
 
