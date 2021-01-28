@@ -3,12 +3,11 @@ import numpy as np
 from deepchem.utils.typing import RDKitBond, RDKitMol, List
 from deepchem.feat.base_classes import MolecularFeaturizer
 
-
 logger = logging.getLogger(__name__)
 
 
 class GraphMatrix:
-    """
+  """
     This is class used to store data for MolGAN neural networks.
 
     Parameters
@@ -24,26 +23,25 @@ class GraphMatrix:
       A molecule graph with some features.
     """
 
-    def __init__(self, adjacency_matrix: np.ndarray,
-                 node_features: np.ndarray):
-        self.adjacency_matrix = adjacency_matrix
-        self.node_features = node_features
+  def __init__(self, adjacency_matrix: np.ndarray, node_features: np.ndarray):
+    self.adjacency_matrix = adjacency_matrix
+    self.node_features = node_features
 
 
 class MolGanFeaturizer(MolecularFeaturizer):
-    """Featurizer for MolGAN de-novo molecular generation [1]_.
+  """Featurizer for MolGAN de-novo molecular generation [1]_.
     The default representation is in form of GraphMatrix object.
     It is wrapper for two matrices containing atom and bond type information.
     The class also provides reverse capabilities """
-    def __init__(
-        self,
-        max_atom_count: int = 9,
-        kekulize: bool = True,
-        bond_labels: List[RDKitBond] = None,
-        atom_labels: List[int] = None,
-    ):
 
-        """
+  def __init__(
+      self,
+      max_atom_count: int = 9,
+      kekulize: bool = True,
+      bond_labels: List[RDKitBond] = None,
+      atom_labels: List[int] = None,
+  ):
+    """
         Parameters
         ----------
         max_atom_count: int, default 9
@@ -64,41 +62,41 @@ class MolGanFeaturizer(MolecularFeaturizer):
         for small molecular graphs`<https://arxiv.org/abs/1805.11973>`"
         """
 
-        self.max_atom_count = max_atom_count
-        self.kekulize = kekulize
+    self.max_atom_count = max_atom_count
+    self.kekulize = kekulize
 
-        try:
-            from rdkit import Chem
-        except ModuleNotFoundError:
-            raise ImportError("This class requires RDKit to be installed.")
+    try:
+      from rdkit import Chem
+    except ModuleNotFoundError:
+      raise ImportError("This class requires RDKit to be installed.")
 
-        # bond labels
-        if bond_labels is None:
-            self.bond_labels = [
-                Chem.rdchem.BondType.ZERO,
-                Chem.rdchem.BondType.SINGLE,
-                Chem.rdchem.BondType.DOUBLE,
-                Chem.rdchem.BondType.TRIPLE,
-                Chem.rdchem.BondType.AROMATIC,
-            ]
-        else:
-            self.bond_labels = bond_labels
+    # bond labels
+    if bond_labels is None:
+      self.bond_labels = [
+          Chem.rdchem.BondType.ZERO,
+          Chem.rdchem.BondType.SINGLE,
+          Chem.rdchem.BondType.DOUBLE,
+          Chem.rdchem.BondType.TRIPLE,
+          Chem.rdchem.BondType.AROMATIC,
+      ]
+    else:
+      self.bond_labels = bond_labels
 
-        # atom labels
-        if atom_labels is None:
-            self.atom_labels = [0, 6, 7, 8, 9]  # C,N,O,F
-        else:
-            self.atom_labels = atom_labels
+    # atom labels
+    if atom_labels is None:
+      self.atom_labels = [0, 6, 7, 8, 9]  # C,N,O,F
+    else:
+      self.atom_labels = atom_labels
 
-        # create bond encoders and decoders
-        self.bond_encoder = {l: i for i, l in enumerate(self.bond_labels)}
-        self.bond_decoder = {i: l for i, l in enumerate(self.bond_labels)}
-        # create atom encoders and decoders
-        self.atom_encoder = {l: i for i, l in enumerate(self.atom_labels)}
-        self.atom_decoder = {i: l for i, l in enumerate(self.atom_labels)}
+    # create bond encoders and decoders
+    self.bond_encoder = {l: i for i, l in enumerate(self.bond_labels)}
+    self.bond_decoder = {i: l for i, l in enumerate(self.bond_labels)}
+    # create atom encoders and decoders
+    self.atom_encoder = {l: i for i, l in enumerate(self.atom_labels)}
+    self.atom_decoder = {i: l for i, l in enumerate(self.atom_labels)}
 
-    def _featurize(self, mol: RDKitMol) -> GraphMatrix:
-        """Calculate adjacency matrix and nodes features for RDKitMol.
+  def _featurize(self, mol: RDKitMol) -> GraphMatrix:
+    """Calculate adjacency matrix and nodes features for RDKitMol.
 
         Parameters
         ----------
@@ -110,42 +108,41 @@ class MolGanFeaturizer(MolecularFeaturizer):
           A molecule graph with some features.
         """
 
-        try:
-            from rdkit import Chem
-        except ModuleNotFoundError:
-            raise ImportError("This method requires RDKit to be installed.")
+    try:
+      from rdkit import Chem
+    except ModuleNotFoundError:
+      raise ImportError("This method requires RDKit to be installed.")
 
-        if self.kekulize:
-            Chem.Kekulize(mol)
+    if self.kekulize:
+      Chem.Kekulize(mol)
 
-        A = np.zeros(shape=(self.max_atom_count, self.max_atom_count),
-                     dtype=np.float32)
-        bonds = mol.GetBonds()
+    A = np.zeros(
+        shape=(self.max_atom_count, self.max_atom_count), dtype=np.float32)
+    bonds = mol.GetBonds()
 
-        begin, end = [b.GetBeginAtomIdx()
-                      for b in bonds], [b.GetEndAtomIdx() for b in bonds]
-        bond_type = [self.bond_encoder[b.GetBondType()] for b in bonds]
+    begin, end = [b.GetBeginAtomIdx() for b in bonds], [
+        b.GetEndAtomIdx() for b in bonds
+    ]
+    bond_type = [self.bond_encoder[b.GetBondType()] for b in bonds]
 
-        A[begin, end] = bond_type
-        A[end, begin] = bond_type
+    A[begin, end] = bond_type
+    A[end, begin] = bond_type
 
-        degree = np.sum(A[:mol.GetNumAtoms(), :mol.GetNumAtoms()], axis=-1)
-        X = np.array(
-            [
-                self.atom_encoder[atom.GetAtomicNum()]
-                for atom in mol.GetAtoms()
-            ] + [0] * (self.max_atom_count - mol.GetNumAtoms()),
-            dtype=np.int32,
-        )
-        graph = GraphMatrix(A, X)
+    degree = np.sum(A[:mol.GetNumAtoms(), :mol.GetNumAtoms()], axis=-1)
+    X = np.array(
+        [self.atom_encoder[atom.GetAtomicNum()] for atom in mol.GetAtoms()] +
+        [0] * (self.max_atom_count - mol.GetNumAtoms()),
+        dtype=np.int32,
+    )
+    graph = GraphMatrix(A, X)
 
-        return graph if (degree > 0).all() else None
+    return graph if (degree > 0).all() else None
 
-    def _defeaturize(self,
-                     graph_matrix: GraphMatrix,
-                     sanitize: bool = True,
-                     cleanup: bool = True) -> RDKitMol:
-        """Recreate RDKitMol from GraphMatrix object.
+  def _defeaturize(self,
+                   graph_matrix: GraphMatrix,
+                   sanitize: bool = True,
+                   cleanup: bool = True) -> RDKitMol:
+    """Recreate RDKitMol from GraphMatrix object.
         Same object needs to be used for featurization and defeaturization.
 
         Parameters
@@ -163,47 +160,49 @@ class MolGanFeaturizer(MolecularFeaturizer):
             RDKitMol object representing molecule.
         """
 
-        try:
-            from rdkit import Chem
-        except ModuleNotFoundError:
-            raise ImportError("This method requires RDKit to be installed.")
+    try:
+      from rdkit import Chem
+    except ModuleNotFoundError:
+      raise ImportError("This method requires RDKit to be installed.")
 
-        node_labels = graph_matrix.node_features
-        edge_labels = graph_matrix.adjacency_matrix
+    if not isinstance(graph_matrix, GraphMatrix):
+      return None
 
-        mol = Chem.RWMol()
+    node_labels = graph_matrix.node_features
+    edge_labels = graph_matrix.adjacency_matrix
 
-        for node_label in node_labels:
-            mol.AddAtom(Chem.Atom(self.atom_decoder[node_label]))
+    mol = Chem.RWMol()
 
-        for start, end in zip(*np.nonzero(edge_labels)):
-            if start > end:
-                mol.AddBond(int(start), int(end),
-                            self.bond_decoder[edge_labels[start, end]])
+    for node_label in node_labels:
+      mol.AddAtom(Chem.Atom(self.atom_decoder[node_label]))
 
-        if sanitize:
-            try:
-                Chem.SanitizeMol(mol)
-            except Exception:
-                mol = None
+    for start, end in zip(*np.nonzero(edge_labels)):
+      if start > end:
+        mol.AddBond(
+            int(start), int(end), self.bond_decoder[edge_labels[start, end]])
 
-        if cleanup:
-            try:
-                smiles = Chem.MolToSmiles(mol)
-                smiles = max(smiles.split("."), key=len)
-                if "*" not in smiles:
-                    mol = Chem.MolFromSmiles(smiles)
-                else:
-                    mol = None
-            except Exception:
-                mol = None
+    if sanitize:
+      try:
+        Chem.SanitizeMol(mol)
+      except Exception:
+        mol = None
 
-        return mol
+    if cleanup:
+      try:
+        smiles = Chem.MolToSmiles(mol)
+        smiles = max(smiles.split("."), key=len)
+        if "*" not in smiles:
+          mol = Chem.MolFromSmiles(smiles)
+        else:
+          mol = None
+      except Exception:
+        mol = None
 
-    def defeaturize(self,
-                    graphs: GraphMatrix,
-                    log_every_n: int = 1000) -> np.ndarray:
-        """Calculates molecules from corresponding GraphMatrix objects.
+    return mol
+
+  def defeaturize(self, graphs: GraphMatrix,
+                  log_every_n: int = 1000) -> np.ndarray:
+    """Calculates molecules from corresponding GraphMatrix objects.
 
         Parameters
         ----------
@@ -217,28 +216,28 @@ class MolGanFeaturizer(MolecularFeaturizer):
           A numpy array containing RDKitMol objext.
         """
 
-        # Special case handling of single molecule
-        if isinstance(graphs, GraphMatrix):
-            graphs = [graphs]
-        else:
-            # Convert iterables to list
-            graphs = list(graphs)
+    # Special case handling of single molecule
+    if isinstance(graphs, GraphMatrix):
+      graphs = [graphs]
+    else:
+      # Convert iterables to list
+      graphs = list(graphs)
 
-        molecules = []
-        for i, gr in enumerate(graphs):
-            if i % log_every_n == 0:
-                logger.info("Featurizing datapoint %i" % i)
+    molecules = []
+    for i, gr in enumerate(graphs):
+      if i % log_every_n == 0:
+        logger.info("Featurizing datapoint %i" % i)
 
-            try:
-                molecules.append(self._defeaturize(gr))
-            except Exception as e:
-                logger.warning(
-                    "Failed to defeaturize datapoint %d, %s. Appending empty array",
-                    i,
-                    gr,
-                )
-                logger.warning("Exception message: {}".format(e))
-                molecules.append(np.array([]))
+      try:
+        molecules.append(self._defeaturize(gr))
+      except Exception as e:
+        logger.warning(
+            "Failed to defeaturize datapoint %d, %s. Appending empty array",
+            i,
+            gr,
+        )
+        logger.warning("Exception message: {}".format(e))
+        molecules.append(np.array([]))
 
-        molecules = np.asarray(molecules)
-        return molecules
+    molecules = np.asarray(molecules)
+    return molecules
