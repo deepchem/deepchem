@@ -8,20 +8,20 @@ logger = logging.getLogger(__name__)
 
 class GraphMatrix:
   """
-    This is class used to store data for MolGAN neural networks.
+  This is class used to store data for MolGAN neural networks.
 
-    Parameters
-    ----------
-    node_features: np.ndarray
-      Node feature matrix with shape [num_nodes, num_node_features]
-    edge_features: np.ndarray,
-      Edge feature matrix with shape [num_nodes, num_nodes]
+  Parameters
+  ----------
+  node_features: np.ndarray
+    Node feature matrix with shape [num_nodes, num_node_features]
+  edge_features: np.ndarray,
+    Edge feature matrix with shape [num_nodes, num_nodes]
 
-    Returns
-    -------
-    graph: GraphMatrix
-      A molecule graph with some features.
-    """
+  Returns
+  -------
+  graph: GraphMatrix
+    A molecule graph with some features.
+  """
 
   def __init__(self, adjacency_matrix: np.ndarray, node_features: np.ndarray):
     self.adjacency_matrix = adjacency_matrix
@@ -30,9 +30,9 @@ class GraphMatrix:
 
 class MolGanFeaturizer(MolecularFeaturizer):
   """Featurizer for MolGAN de-novo molecular generation [1]_.
-    The default representation is in form of GraphMatrix object.
-    It is wrapper for two matrices containing atom and bond type information.
-    The class also provides reverse capabilities """
+  The default representation is in form of GraphMatrix object.
+  It is wrapper for two matrices containing atom and bond type information.
+  The class also provides reverse capabilities."""
 
   def __init__(
       self,
@@ -42,25 +42,25 @@ class MolGanFeaturizer(MolecularFeaturizer):
       atom_labels: List[int] = None,
   ):
     """
-        Parameters
-        ----------
-        max_atom_count: int, default 9
-            Maximum number of atoms used for creation of adjacency matrix.
-            Molecules cannot have more atoms than this number
-            Implicit hydrogens do not count.
-        kekulize: bool, default True
-            Should molecules be kekulized.
-            Solves number of issues with defeaturization when used.
-        bond_labels: List[RDKitBond]
-            List of types of bond used for generation of adjacency matrix
-        atom_labels: List[int]
-            List of atomic numbers used for generation of node features
+    Parameters
+    ----------
+    max_atom_count: int, default 9
+      Maximum number of atoms used for creation of adjacency matrix.
+      Molecules cannot have more atoms than this number
+      Implicit hydrogens do not count.
+    kekulize: bool, default True
+      Should molecules be kekulized.
+      Solves number of issues with defeaturization when used.
+    bond_labels: List[RDKitBond]
+      List of types of bond used for generation of adjacency matrix
+    atom_labels: List[int]
+      List of atomic numbers used for generation of node features
 
-        References
-        ---------
-        .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
-        for small molecular graphs`<https://arxiv.org/abs/1805.11973>`"
-        """
+    References
+    ---------
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+    for small molecular graphs`<https://arxiv.org/abs/1805.11973>`"
+    """
 
     self.max_atom_count = max_atom_count
     self.kekulize = kekulize
@@ -97,16 +97,17 @@ class MolGanFeaturizer(MolecularFeaturizer):
 
   def _featurize(self, mol: RDKitMol) -> GraphMatrix:
     """Calculate adjacency matrix and nodes features for RDKitMol.
+    It strips any chirality and charges
 
-        Parameters
-        ----------
-        mol: rdkit.Chem.rdchem.Mol
-          RDKit mol object.
-        Returns
-        -------
-        graph: GraphMatrix
-          A molecule graph with some features.
-        """
+    Parameters
+    ----------
+    mol: rdkit.Chem.rdchem.Mol
+      RDKit mol object.
+    Returns
+    -------
+    graph: GraphMatrix
+      A molecule graph with some features.
+    """
 
     try:
       from rdkit import Chem
@@ -143,22 +144,26 @@ class MolGanFeaturizer(MolecularFeaturizer):
                    sanitize: bool = True,
                    cleanup: bool = True) -> RDKitMol:
     """Recreate RDKitMol from GraphMatrix object.
-        Same object needs to be used for featurization and defeaturization.
+    Same featurizer need to be used for featurization and defeaturization.
+    It only recreates bond and atom types, any kind of additional features
+    like chirality or charge are not included.
+    Therefore, any checks of type: original_smiles == defeaturized_smiles
+    will fail on chiral or charged compounds.
 
-        Parameters
-        ----------
-        graph_matrix: GraphMatrix
-            GraphMatrix object.
-        sanitize: bool, default True
-            Should RDKit sanitization be included in the process.
-        cleanup: bool, default True
-            Splits salts and removes compounds with "*" atom types
+    Parameters
+    ----------
+    graph_matrix: GraphMatrix
+      GraphMatrix object.
+    sanitize: bool, default True
+      Should RDKit sanitization be included in the process.
+    cleanup: bool, default True
+      Splits salts and removes compounds with "*" atom types
 
-        Returns
-        -------
-        mol: RDKitMol object
-            RDKitMol object representing molecule.
-        """
+    Returns
+    -------
+    mol: RDKitMol object
+      RDKitMol object representing molecule.
+    """
 
     try:
       from rdkit import Chem
@@ -204,17 +209,17 @@ class MolGanFeaturizer(MolecularFeaturizer):
                   log_every_n: int = 1000) -> np.ndarray:
     """Calculates molecules from corresponding GraphMatrix objects.
 
-        Parameters
-        ----------
-        graphs: GraphMatrix / iterable
-          GraphMatrix object or corresponding iterable
-        log_every_n: int, default 1000
-          Logging messages reported every `log_every_n` samples.
-        Returns
-        -------
-        features: np.ndarray
-          A numpy array containing RDKitMol objext.
-        """
+    Parameters
+    ----------
+    graphs: GraphMatrix / iterable
+      GraphMatrix object or corresponding iterable
+    log_every_n: int, default 1000
+      Logging messages reported every `log_every_n` samples.
+    Returns
+    -------
+    features: np.ndarray
+      A numpy array containing RDKitMol objext.
+    """
 
     # Special case handling of single molecule
     if isinstance(graphs, GraphMatrix):

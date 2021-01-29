@@ -12,66 +12,89 @@ class TestMolganFeaturizer(unittest.TestCase):
       raise ImportError("This method requires RDKit to be installed.")
 
     smiles = [
-        'C#C[C@@]1(C)[NH2+][CH+]N[C@@H]1C', '[NH-][CH+]Oc1nnon1',
-        'Cn1ncc2c1C=CC2', 'O=C[C@@H]1[C@H]2[C@H]3[C@@H]1[C@H]1[C@@H]2[N@@H+]31',
-        'C#Cc1[nH]cnc1C#N', 'N#C[C@]1(N)CO[C@H]1CO',
-        'C[C@@H]1C(NO)C[C@@H]2O[C@@H]21', 'OC1CC=CC1', 'Cn1c(O)ccc1CO',
-        '[NH-]C1OC[C@@]2(C=O)N[C@@H]12', 'incorrect smiles'
+        'Cc1ccccc1CO', 'CC1CCC(C)C(N)C1', 'CCC(N)=O', 'Fc1cccc(F)c1', 'CC(C)F',
+        'C1COC2NCCC2C1', 'C1=NCc2ccccc21'
     ]
 
+    invalid_smiles = ['axa', 'xyz', 'inv']
+
     featurizer = MolGanFeaturizer()
-    data = featurizer.featurize(smiles)
+    valid_data = featurizer.featurize(smiles)
+    invalid_data = featurizer.featurize(invalid_smiles)
 
     # test featurization
-    valid_graph = list(filter(lambda x: isinstance(x, GraphMatrix), data))
-    invalid_graph = list(filter(lambda x: not isinstance(x, GraphMatrix), data))
-    assert len(data) == len(smiles)
-    assert len(valid_graph) == len(smiles) - 1
-    assert len(invalid_graph) == 1
+    valid_graphs = list(
+        filter(lambda x: isinstance(x, GraphMatrix), valid_data))
+    invalid_graphs = list(
+        filter(lambda x: not isinstance(x, GraphMatrix), invalid_data))
+    assert len(valid_graphs) == len(smiles)
+    assert len(invalid_graphs) == len(invalid_smiles)
 
     # test defeaturization
-    mols = featurizer.defeaturize(data)
-    valid_mols = list(filter(lambda x: isinstance(x, Chem.rdchem.Mol), mols))
+    valid_mols = featurizer.defeaturize(valid_graphs)
+    invalid_mols = featurizer.defeaturize(invalid_graphs)
+    valid_mols = list(
+        filter(lambda x: isinstance(x, Chem.rdchem.Mol), valid_mols))
     invalid_mols = list(
-        filter(lambda x: not isinstance(x, Chem.rdchem.Mol), mols))
-    assert len(valid_mols) == len(valid_mols)
-    assert len(invalid_mols) == len(invalid_graph)
+        filter(lambda x: not isinstance(x, Chem.rdchem.Mol), invalid_mols))
+    assert len(valid_graphs) == len(valid_mols)
+    assert len(invalid_graphs) == len(invalid_mols)
 
-    def test_featurizer_rdkit(self):
+    mols = list(map(Chem.MolFromSmiles, smiles))
+    redone_smiles = list(map(Chem.MolToSmiles, mols))
+    # sanity check; see if something weird does not happen with rdkit
+    assert redone_smiles == smiles
 
-      try:
-        from rdkit import Chem
-      except ModuleNotFoundError:
-        raise ImportError("This method requires RDKit to be installed.")
+    # check if original smiles match defeaturized smiles
+    defe_smiles = list(map(Chem.MolToSmiles, valid_mols))
+    assert defe_smiles == smiles
 
-      smiles = [
-          'C#C[C@@]1(C)[NH2+][CH+]N[C@@H]1C', '[NH-][CH+]Oc1nnon1',
-          'Cn1ncc2c1C=CC2',
-          'O=C[C@@H]1[C@H]2[C@H]3[C@@H]1[C@H]1[C@@H]2[N@@H+]31',
-          'C#Cc1[nH]cnc1C#N', 'N#C[C@]1(N)CO[C@H]1CO',
-          'C[C@@H]1C(NO)C[C@@H]2O[C@@H]21', 'OC1CC=CC1', 'Cn1c(O)ccc1CO',
-          '[NH-]C1OC[C@@]2(C=O)N[C@@H]12', 'incorrect smiles'
-      ]
-      mols = list(map(Chem.MolFromSmiles, smiles))
-      featurizer = MolGanFeaturizer()
-      data = featurizer.featurize(mols)
+  def test_featurizer_rdkit(self):
 
-      # test featurization
+    try:
+      from rdkit import Chem
+    except ModuleNotFoundError:
+      raise ImportError("This method requires RDKit to be installed.")
 
-      valid_graph = list(filter(lambda x: isinstance(x, GraphMatrix), data))
-      invalid_graph = list(
-          filter(lambda x: not isinstance(x, GraphMatrix), data))
-      assert len(data) == len(smiles)
-      assert len(valid_graph) == len(smiles) - 1
-      assert len(invalid_graph) == 1
+    smiles = [
+        'Cc1ccccc1CO', 'CC1CCC(C)C(N)C1', 'CCC(N)=O', 'Fc1cccc(F)c1', 'CC(C)F',
+        'C1COC2NCCC2C1', 'C1=NCc2ccccc21'
+    ]
 
-      # test defeaturization
-      mols = featurizer.defeaturize(data)
-      valid_mols = list(filter(lambda x: isinstance(x, Chem.rdchem.Mol), mols))
-      invalid_mols = list(
-          filter(lambda x: not isinstance(x, Chem.rdchem.Mol), mols))
-      assert len(valid_mols) == len(valid_mols)
-      assert len(invalid_mols) == len(invalid_graph)
+    invalid_smiles = ['axa', 'xyz', 'inv']
+
+    valid_molecules = list(map(Chem.MolFromSmiles, smiles))
+    invalid_molecules = list(map(Chem.MolFromSmiles, invalid_smiles))
+
+    redone_smiles = list(map(Chem.MolToSmiles, valid_molecules))
+    # sanity check; see if something weird does not happen with rdkit
+    assert redone_smiles == smiles
+
+    featurizer = MolGanFeaturizer()
+    valid_data = featurizer.featurize(valid_molecules)
+    invalid_data = featurizer.featurize(invalid_molecules)
+
+    # test featurization
+    valid_graphs = list(
+        filter(lambda x: isinstance(x, GraphMatrix), valid_data))
+    invalid_graphs = list(
+        filter(lambda x: not isinstance(x, GraphMatrix), invalid_data))
+    assert len(valid_graphs) == len(valid_molecules)
+    assert len(invalid_graphs) == len(invalid_molecules)
+
+    # test defeaturization
+    valid_mols = featurizer.defeaturize(valid_graphs)
+    invalid_mols = featurizer.defeaturize(invalid_graphs)
+    valid_mols = list(
+        filter(lambda x: isinstance(x, Chem.rdchem.Mol), valid_mols))
+    invalid_mols = list(
+        filter(lambda x: not isinstance(x, Chem.rdchem.Mol), invalid_mols))
+    assert len(valid_mols) == len(valid_graphs)
+    assert len(invalid_mols) == len(invalid_graphs)
+
+    # check if original smiles match defeaturized smiles
+    defe_smiles = list(map(Chem.MolToSmiles, valid_mols))
+    assert defe_smiles == smiles
 
 
 if __name__ == '__main__':
