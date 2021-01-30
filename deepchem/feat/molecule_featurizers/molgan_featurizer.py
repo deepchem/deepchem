@@ -29,7 +29,8 @@ class GraphMatrix:
 
 
 class MolGanFeaturizer(MolecularFeaturizer):
-  """Featurizer for MolGAN de-novo molecular generation [1]_.
+  """
+  Featurizer for MolGAN de-novo molecular generation [1]_.
   The default representation is in form of GraphMatrix object.
   It is wrapper for two matrices containing atom and bond type information.
   The class also provides reverse capabilities."""
@@ -96,13 +97,15 @@ class MolGanFeaturizer(MolecularFeaturizer):
     self.atom_decoder = {i: l for i, l in enumerate(self.atom_labels)}
 
   def _featurize(self, mol: RDKitMol) -> GraphMatrix:
-    """Calculate adjacency matrix and nodes features for RDKitMol.
+    """
+    Calculate adjacency matrix and nodes features for RDKitMol.
     It strips any chirality and charges
 
     Parameters
     ----------
     mol: rdkit.Chem.rdchem.Mol
       RDKit mol object.
+
     Returns
     -------
     graph: GraphMatrix
@@ -143,7 +146,8 @@ class MolGanFeaturizer(MolecularFeaturizer):
                    graph_matrix: GraphMatrix,
                    sanitize: bool = True,
                    cleanup: bool = True) -> RDKitMol:
-    """Recreate RDKitMol from GraphMatrix object.
+    """
+    Recreate RDKitMol from GraphMatrix object.
     Same featurizer need to be used for featurization and defeaturization.
     It only recreates bond and atom types, any kind of additional features
     like chirality or charge are not included.
@@ -207,7 +211,8 @@ class MolGanFeaturizer(MolecularFeaturizer):
 
   def defeaturize(self, graphs: GraphMatrix,
                   log_every_n: int = 1000) -> np.ndarray:
-    """Calculates molecules from corresponding GraphMatrix objects.
+    """
+    Calculates molecules from corresponding GraphMatrix objects.
 
     Parameters
     ----------
@@ -215,6 +220,7 @@ class MolGanFeaturizer(MolecularFeaturizer):
       GraphMatrix object or corresponding iterable
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
+      
     Returns
     -------
     features: np.ndarray
