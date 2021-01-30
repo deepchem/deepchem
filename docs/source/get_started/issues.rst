@@ -34,8 +34,8 @@ Experimental features
 ^^^^^^^^^^^^^^^^^^^^^
 
 Deepchem features usually undergo rigorous code review and testing to ensure that 
-they are ready for production environments. The following Deepchem features have not
-been thoroughly tested to the level of other Deepchem modules, and could be
+they are ready for production environments. The following Deepchem features have not 
+been thoroughly tested to the level of other Deepchem modules, and could be 
 potentially problematic in production environments.
 
 *Note: This list is likely to be non-exhaustive. If we missed something,
