@@ -148,7 +148,7 @@ class TestAtomicCoordinates(unittest.TestCase):
     complex_featurizer = NeighborListComplexAtomicCoordinates(max_num_neighbors)
 
     system_coords, system_neighbor_list = complex_featurizer._featurize(
-        ligand_file, protein_file)
+        (ligand_file, protein_file))
 
     N = system_coords.shape[0]
     assert len(system_neighbor_list.keys()) == N

@@ -43,8 +43,8 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
   >>> print(type(feature))
   <class 'deepchem.feat.graph_data.GraphData'>
 
-  Notes
-  -----
+  Note
+  ----
   This class requires Pymatgen to be installed.
   """
 

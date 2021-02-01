@@ -23,7 +23,8 @@ class _QM9Loader(_MolnetLoader):
       dc.utils.data_utils.download_url(url=GDB9_URL, dest_dir=self.data_dir)
       dc.utils.data_utils.untargz_file(
           os.path.join(self.data_dir, "gdb9.tar.gz"), self.data_dir)
-    loader = dc.data.SDFLoader(tasks=self.tasks, featurizer=self.featurizer)
+    loader = dc.data.SDFLoader(
+        tasks=self.tasks, featurizer=self.featurizer, sanitize=True)
     return loader.create_dataset(dataset_file, shard_size=8192)
 
 
@@ -39,10 +40,10 @@ def load_qm9(
   """Load QM9 dataset
 
   QM9 is a comprehensive dataset that provides geometric, energetic,
-  electronic and thermodynamic properties for a subset of GDB-17 database,
-  comprising 134 thousand stable organic molecules with up to 9 heavy atoms.
-  All molecules are modeled using density functional theory
-  (B3LYP/6-31G(2df,p) based DFT).
+  electronic and thermodynamic properties for a subset of GDB-17
+  database, comprising 134 thousand stable organic molecules with up
+  to 9 heavy atoms.  All molecules are modeled using density
+  functional theory (B3LYP/6-31G(2df,p) based DFT).
 
   Random splitting is recommended for this dataset.
 
@@ -98,6 +99,16 @@ def load_qm9(
     a directory to save the raw data in
   save_dir: str
     a directory to save the dataset in
+
+  Note
+  ----
+  DeepChem 2.4.0 has turned on sanitization for this dataset by
+  default.  For the QM9 dataset, this means that calling this
+  function will return 132480 compounds instead of 133885 in the
+  source dataset file. This appears to be due to valence
+  specification mismatches in the dataset that weren't caught in
+  earlier more lax versions of RDKit. Note that this may subtly
+  affect benchmarking results on this dataset.
 
   References
   ----------

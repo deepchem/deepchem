@@ -1206,7 +1206,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       ]
     raise ValueError('Unknown feature type "%s"' % feature_name)
 
-  def _featurize(self, mol_pdb_file, protein_pdb_file):
+  def _featurize(self, complex):
     """Computes grid featurization of protein/ligand complex.
 
     Takes as input filenames pdb of the protein, pdb of the ligand.
@@ -1219,12 +1219,11 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     This function then computes a featurization with scheme specified by the user.
     Parameters
     ----------
-    mol_pdb_file: Str 
-      Filename for ligand pdb file. 
-    protein_pdb_file: Str 
-      Filename for protein pdb file. 
+    complex: Tuple[str, str]
+      Filenames for molecule and protein.
     """
     try:
+      mol_pdb_file, protein_pdb_file = complex
       ############################################################## TIMING
       time1 = time.time()
       ############################################################## TIMING

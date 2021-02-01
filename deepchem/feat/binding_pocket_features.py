@@ -62,8 +62,8 @@ class BindingPocketFeaturizer(Featurizer):
   this class's implementation will only work for proteins and not for
   other macromolecules
 
-  Notes
-  -----
+  Note
+  ----
   This class requires mdtraj to be installed.
   """
 

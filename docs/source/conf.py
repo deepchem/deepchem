@@ -44,12 +44,15 @@ extensions = [
 
 # Options for autodoc directives
 autodoc_default_options = {
-    'member-order': 'bysource',
-    'special-members': True,
-    'exclude-members': '__repr__, __str__, __weakref__, __hash__, __eq__',
+    'member-order':
+    'bysource',
+    'special-members':
+    True,
+    'exclude-members':
+    '__repr__, __str__, __weakref__, __hash__, __eq__, __call__, __dict__',
 }
 
-# How to represents typehints.
+# How to represents typehints
 autodoc_typehints = "signature"
 
 mathjax_path = 'http://mathjax.connectmv.com/MathJax.js?config=default'
@@ -127,5 +130,5 @@ def linkcode_resolve(domain, info):
   except Exception:
     filename = info['module'].replace('.', '/') + '.py'
 
-  tag = 'master' if 'dev' in release else ('v' + release)
+  tag = 'master' if 'dev' in release else release
   return "https://github.com/deepchem/deepchem/blob/%s/%s" % (tag, filename)

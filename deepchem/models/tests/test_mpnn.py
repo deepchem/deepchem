@@ -34,6 +34,21 @@ def test_mpnn_regression():
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean_absolute_error'] < 0.5
 
+  # test on a small MoleculeNet dataset
+  from deepchem.molnet import load_delaney
+
+  tasks, all_dataset, transformers = load_delaney(featurizer=featurizer)
+  train_set, _, _ = all_dataset
+  model = MPNNModel(
+      mode='regression',
+      n_tasks=len(tasks),
+      node_out_feats=2,
+      edge_hidden_feats=2,
+      num_step_message_passing=1,
+      num_step_set2set=1,
+      num_layer_set2set=1)
+  model.fit(train_set, nb_epoch=1)
+
 
 @unittest.skipIf(not has_torch_and_dgl,
                  'PyTorch, DGL, or DGL-LifeSci are not installed')
@@ -55,6 +70,22 @@ def test_mpnn_classification():
   model.fit(dataset, nb_epoch=200)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.85
+
+  # test on a small MoleculeNet dataset
+  from deepchem.molnet import load_bace_classification
+
+  tasks, all_dataset, transformers = load_bace_classification(
+      featurizer=featurizer)
+  train_set, _, _ = all_dataset
+  model = MPNNModel(
+      mode='classification',
+      n_tasks=len(tasks),
+      node_out_feats=2,
+      edge_hidden_feats=2,
+      num_step_message_passing=1,
+      num_step_set2set=1,
+      num_layer_set2set=1)
+  model.fit(train_set, nb_epoch=1)
 
 
 @unittest.skipIf(not has_torch_and_dgl,
