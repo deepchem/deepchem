@@ -1,7 +1,7 @@
 """
 Various utilities around hash functions.
 """
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple, Any
 import numpy as np
 import hashlib
 
@@ -63,7 +63,7 @@ def hash_ecfp_pair(ecfp_pair: Tuple[str, str], size: int = 1024) -> int:
   return ecfp_hash
 
 
-def vectorize(hash_function: Callable[[str, int], int],
+def vectorize(hash_function: Callable[[Any, int], int],
               feature_dict: Optional[Dict[int, str]] = None,
               size: int = 1024) -> np.ndarray:
   """Helper function to vectorize a spatial description from a hash.

@@ -19,6 +19,7 @@ from deepchem.utils.data_utils import get_data_dir
 from deepchem.utils.data_utils import download_url
 from deepchem.utils.data_utils import untargz_file
 from deepchem.utils.data_utils import unzip_file
+from deepchem.utils.data_utils import UniversalNamedTemporaryFile
 from deepchem.utils.data_utils import load_image_files
 from deepchem.utils.data_utils import load_sdf_files
 from deepchem.utils.data_utils import load_csv_files

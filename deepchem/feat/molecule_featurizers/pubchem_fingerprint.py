@@ -15,7 +15,7 @@ class PubChemFingerprint(MolecularFeaturizer):
   ----------
   .. [1] ftp://ftp.ncbi.nlm.nih.gov/pubchem/specifications/pubchem_fingerprints.pdf
 
-  Notes
+  Note
   -----
   This class requires RDKit and PubChemPy to be installed.
   PubChemPy use REST API to get the fingerprint, so you need the internet access.
@@ -45,8 +45,13 @@ class PubChemFingerprint(MolecularFeaturizer):
     np.ndarray
       1D array of RDKit descriptors for `mol`. The length is 881.
     """
-    from rdkit import Chem
+    try:
+      from rdkit import Chem
+      import pubchempy as pcp
+    except ModuleNotFoundError:
+      raise ImportError("This class requires PubChemPy to be installed.")
+
     smiles = Chem.MolToSmiles(mol)
-    pubchem_compound = self.get_pubchem_compounds(smiles, 'smiles')[0]
+    pubchem_compound = pcp.get_compounds(smiles, 'smiles')[0]
     feature = [int(bit) for bit in pubchem_compound.cactvs_fingerprint]
     return np.asarray(feature)

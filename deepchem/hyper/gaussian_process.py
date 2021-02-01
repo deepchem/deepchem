@@ -132,6 +132,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
                         valid_dataset: Dataset,
                         metric: Metric,
                         output_transformers: List[Transformer] = [],
+                        nb_epoch: int = 10,
                         use_max: bool = True,
                         logdir: Optional[str] = None,
                         max_iter: int = 20,
@@ -160,6 +161,9 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       `train_dataset` and `valid_dataset` may have been transformed
       for learning and need the transform to be inverted before
       the metric can be evaluated on a model.
+    nb_epoch: int, (default 10)
+      Specifies the number of training epochs during each iteration of optimization.
+      Not used by all model types.
     use_max: bool, (default True)
       Specifies whether to maximize or minimize `metric`.
       maximization(True) or minimization(False)
@@ -230,14 +234,17 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     # Stores all model locations
     model_locations = {}
 
-    # Demarcating internal function for readability
-    def optimizing_function(**placeholders):
+    def _optimize(nb_epoch, **placeholders):
       """Private Optimizing function
 
-      Take in hyper parameter values and return valid set performances
+      Take in hyper parameter values and number of training epochs.
+      Return valid set performances.
 
       Parameters
       ----------
+      nb_epoch: int
+        Number of epochs to train model being optimized during each iteration.
+        Not used by all model types.
       placeholders: keyword arguments
         Should be various hyperparameters as specified in `param_keys` above.
 
@@ -277,7 +284,11 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       # Add it on to the information needed for the constructor
       hyper_parameters["model_dir"] = model_dir
       model = self.model_builder(**hyper_parameters)
-      model.fit(train_dataset)
+      try:
+        model.fit(train_dataset, nb_epoch=nb_epoch)
+      # Not all models have nb_epoch
+      except TypeError:
+        model.fit(train_dataset)
       try:
         model.save()
       # Some models autosave
@@ -304,6 +315,26 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         return score
       else:
         return -score
+
+    # Demarcating internal function for readability
+    def optimizing_function(**placeholders):
+      """Wrapper function
+
+      Take in hyper parameter values.
+      Calls a private optimize function (_optimize) with number of epochs.
+      Returns valid set performances.
+
+      Parameters
+      ----------
+      placeholders: keyword arguments
+        Should be various hyperparameters as specified in `param_keys` above.
+
+      Returns:
+      --------
+      valid_scores: float
+        valid set performances
+      """
+      return _optimize(nb_epoch=nb_epoch, **placeholders)
 
     # execute GPGO
     cov = matern32()

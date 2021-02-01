@@ -3,9 +3,17 @@ import itertools
 import numpy as np
 from typing import List, Optional, Sequence, Set, Tuple, Union
 
+import logging
 from deepchem.utils.typing import RDKitAtom, RDKitMol
 from deepchem.utils.geometry_utils import compute_pairwise_distances
-from deepchem.utils.rdkit_utils import compute_charges
+
+logger = logging.getLogger(__name__)
+
+
+class MoleculeLoadException(Exception):
+
+  def __init__(self, *args, **kwargs):
+    Exception.__init__(*args, **kwargs)
 
 
 class AtomShim(object):
@@ -117,6 +125,16 @@ class MolecularFragment(object):
       list of atoms in this fragment.
     """
     return self.atoms
+
+  def GetNumAtoms(self) -> int:
+    """Returns the number of atoms
+
+    Returns
+    -------
+    int
+      Number of atoms in this fragment.
+    """
+    return len(self.atoms)
 
   def GetCoords(self) -> np.ndarray:
     """Returns 3D coordinates for this fragment as numpy array.
@@ -357,3 +375,31 @@ def reduce_molecular_complex_to_contacts(
     contact_frag = get_mol_subset(frag[0], frag[1], keep)
     reduced_complex.append(contact_frag)
   return reduced_complex
+
+
+# TODO: This is duplicated! Clean up
+def compute_charges(mol):
+  """Attempt to compute Gasteiger Charges on Mol
+
+  This also has the side effect of calculating charges on mol.  The
+  mol passed into this function has to already have been sanitized
+
+  Parameters
+  ----------
+  mol: rdkit molecule
+
+  Returns
+  -------
+  No return since updates in place.
+
+  Note
+  ----
+  This function requires RDKit to be installed.
+  """
+  from rdkit.Chem import AllChem
+  try:
+    # Updates charges in place
+    AllChem.ComputeGasteigerCharges(mol)
+  except Exception as e:
+    logger.exception("Unable to compute charges for mol")
+    raise MoleculeLoadException(e)

@@ -25,6 +25,7 @@ from deepchem.feat.molecule_featurizers import MACCSKeysFingerprint
 from deepchem.feat.molecule_featurizers import MordredDescriptors
 from deepchem.feat.molecule_featurizers import Mol2VecFingerprint
 from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
+from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.feat.molecule_featurizers import PubChemFingerprint
 from deepchem.feat.molecule_featurizers import RawFeaturizer
@@ -36,13 +37,27 @@ from deepchem.feat.molecule_featurizers import SmilesToSeq, create_char_to_idx
 from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
 from deepchem.feat.complex_featurizers import NeighborListAtomicCoordinates
 from deepchem.feat.complex_featurizers import NeighborListComplexAtomicCoordinates
-from deepchem.feat.complex_featurizers import ComplexNeighborListFragmentAtomicCoordinates
+from deepchem.feat.complex_featurizers import (
+    ComplexNeighborListFragmentAtomicCoordinates,)
+from deepchem.feat.complex_featurizers import ContactCircularFingerprint
+from deepchem.feat.complex_featurizers import ContactCircularVoxelizer
+from deepchem.feat.complex_featurizers import SplifFingerprint
+from deepchem.feat.complex_featurizers import SplifVoxelizer
+from deepchem.feat.complex_featurizers import ChargeVoxelizer
+from deepchem.feat.complex_featurizers import SaltBridgeVoxelizer
+from deepchem.feat.complex_featurizers import CationPiVoxelizer
+from deepchem.feat.complex_featurizers import PiStackVoxelizer
+from deepchem.feat.complex_featurizers import HydrogenBondVoxelizer
+from deepchem.feat.complex_featurizers import HydrogenBondCounter
 
 # material featurizers
 from deepchem.feat.material_featurizers import ElementPropertyFingerprint
 from deepchem.feat.material_featurizers import SineCoulombMatrix
 from deepchem.feat.material_featurizers import CGCNNFeaturizer
 from deepchem.feat.material_featurizers import ElemNetFeaturizer
+
+from deepchem.feat.atomic_conformation import AtomicConformation
+from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer
 
 try:
   import transformers
@@ -52,3 +67,6 @@ try:
   from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
 except ModuleNotFoundError:
   pass
+
+# support classes
+from deepchem.feat.molecule_featurizers import GraphMatrix
