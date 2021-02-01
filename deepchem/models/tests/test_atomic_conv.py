@@ -71,6 +71,7 @@ def test_atomic_conv():
   print(atomic_convnet.predict(train))
   assert np.allclose(labels, atomic_convnet.predict(train), atol=0.01)
 
+
 @pytest.mark.slow
 def test_atomic_conv_variable():
   """A simple test that initializes and fits an AtomicConvModel on variable input size."""
@@ -108,6 +109,7 @@ def test_atomic_conv_variable():
   train = NumpyDataset(features, labels)
   atomic_convnet.fit(train, nb_epoch=1)
 
+
 @pytest.mark.slow
 def test_atomic_conv_with_feat():
   """A simple test for running an atomic convolution on featurized data."""
@@ -144,6 +146,3 @@ def test_atomic_conv_with_feat():
   print("About to call fit")
   # Run a fitting operation
   atomic_convnet.fit(dataset)
-#class TestAtomicConv(unittest.TestCase):
-#
-#
