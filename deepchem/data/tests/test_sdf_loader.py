@@ -57,15 +57,3 @@ def test_sdf_load_with_csv():
   assert len(dataset) == 10
   assert dataset.get_number_shards() == 10
   assert dataset.get_task_names() == ["atomization_energy"]
-
-
-def test_sdf_load_with_per_atom_fragmentation():
-  """Test a case where special form of  dataaset is created from SDF:
-   dataset of fragments of molecules  for subsequent model interpretation """
-  current_dir = os.path.dirname(os.path.realpath(__file__))
-  featurizer = dc.feat.ConvMolFeaturizer(per_atom_fragmentation=True)
-  loader = dc.data.SDFLoader(
-      ["LogP(RRCK)"], featurizer=featurizer, sanitize=True)
-  dataset = loader.create_dataset(
-      os.path.join(current_dir, "membrane_permeability.sdf"))
-  assert len(dataset) == 98

@@ -15,7 +15,7 @@ import numpy as np
 from deepchem.utils.typing import OneOrMany
 from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files
 from deepchem.utils.genomics_utils import encode_bio_sequence
-from deepchem.feat import UserDefinedFeaturizer, Featurizer, ConvMolFeaturizer
+from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 
 logger = logging.getLogger(__name__)
@@ -205,19 +205,7 @@ class DataLoader(object):
         time1 = time.time()
         X, valid_inds = self._featurize_shard(shard)
         ids = shard[self.id_field].values
-        #  special case when we deal with  dataset of molecular fragments:
-        #  each fragment should recieve id: parent mol id
-        # also, x should be flattened, because it is list of lists (one list of frags per mol)
-        if isinstance(
-            self.featurizer,
-            ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
-          ids = ids[[
-              any(i) for i in valid_inds
-          ]]  # keep an id if at least one frag was generated from the mol
-          ids = np.repeat(ids, [len(i) for i in X], axis=0)
-          X = np.array([j for i in X for j in i])  # flatten
-        else:
-          ids = ids[valid_inds]
+        ids = ids[valid_inds]
         if len(self.tasks) > 0:
           # Featurize task results iff they exist.
           y, w = _convert_df_to_numpy(shard, self.tasks)
@@ -305,7 +293,7 @@ class CSVLoader(DataLoader):
   >>> import deepchem as dc
   >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
   ...   df.to_csv(tmpfile.name)
-  ...   loader = dc.data.CSVLoader(["task1"], feature_field="smiles",
+  ...   loader = dc.data.CSVFragmentLoader(["task1"], feature_field="smiles",
   ...                              featurizer=dc.feat.CircularFingerprint())
   ...   dataset = loader.create_dataset(tmpfile.name)
   >>> len(dataset)
@@ -365,11 +353,6 @@ class CSVLoader(DataLoader):
       self.user_specified_features = featurizer.feature_fields
     self.featurizer = featurizer
     self.log_every_n = log_every_n
-    if isinstance(self.featurizer, ConvMolFeaturizer):
-      if self.featurizer.per_atom_fragmentation and len(self.tasks) > 0:
-        self.tasks = []  # no sense in y and w for fragments
-        warnings.warn(
-            "Tasks and weights will be ignored, fragments can't have them")
 
   def _get_shards(self, input_files: List[str],
                   shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
@@ -410,24 +393,142 @@ class CSVLoader(DataLoader):
       raise ValueError(
           "featurizer must be specified in constructor to featurizer data/")
     features = [elt for elt in self.featurizer(shard[self.feature_field])]
-    if isinstance(self.featurizer,
-                  ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
-      # special case when we deal with fragments dataset:
-      # ids and features should be cleaned from failed elements, but retain nested structure
-      valid_inds = [[True if np.array(elt).size > 0 else False for elt in f]
-                    for f in features]
-      features = [[elt for (is_valid, elt) in zip(l, m) if is_valid]
-                  for (l, m) in zip(valid_inds, features) if any(l)]
-    else:
-      valid_inds = np.array(
-          [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
-      features = [
-          elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
-      ]
-    if isinstance(self.featurizer, ConvMolFeaturizer):
-      if self.featurizer.per_atom_fragmentation:
-        return features, valid_inds  # we dont convert to array, the structure is nested
+    valid_inds = np.array(
+        [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
+    features = [
+        elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
+    ]
     return np.array(features), valid_inds
+
+
+class FragmentLoader(DataLoader):
+  """The  usecase of `FragmentLoader` and its child classes is to
+    load fragment datasets for  model structural interpretation
+    (method described in [1]_ ).
+    Fragment datasets are loaded into `Dataset` objects.
+    Molecules of interest (from sdf/csv files) should serve as the source of fragments,
+    subsequently used for prediction by models. Upon prediction
+    atoms responsible for the activity modelled can be detected.
+
+    `FragmentLoader` is an abstract subclass of `DataLoader`. This class should
+    never be instantiated directly.  To load  dataset of fragments, use
+    subclasses (CSVFragmentLoader, SDFFragmentLoader) with
+    `ConvMolFeaturizer(per_atom_fragmentation=True)`. Then
+    call the `create_dataset()` method on (a list of) input
+    file(s) that hold the source data. Under the hood molecules
+    will be  fragmented, so that each fragment will represent
+    an atom-depleted version of  parent molecule (repeat for each atom). Fragments
+    featurized will be returned.
+
+    References
+    ---------
+
+    .. [1] Polishchuk, P., et al. J. Chem. Inf. Model. 2016, 56, 8, 1455–1469
+
+    Note
+    _________
+    Detailed examples of `GraphConvModel` interpretation are provided in Tutorial #28
+   """
+  def create_dataset(self,
+                     inputs: OneOrMany[Any],
+                     data_dir: Optional[str] = None,
+                     shard_size: Optional[int] = 8192) -> Dataset:
+    """Overrides `DataLoader`'s  `create_dataset()` method.
+    The only difference from parent is that it "parses"
+    fragmented molecules and assigns ids to fragments.
+    Creates and returns a `Dataset` object by featurizing provided files.
+
+    Reads in `inputs` and uses `self.featurizer` to featurize the
+    data in these inputs.  For large files, automatically shards
+    into smaller chunks of `shard_size` datapoints for convenience.
+    Returns a `Dataset` object that contains the featurized dataset.
+
+    This implementation assumes that the helper methods `_get_shards`
+    and `_featurize_shard` are implemented and that each shard
+    returned by `_get_shards` is a pandas dataframe.  You may choose
+    to reuse or override this method in your subclass implementations.
+
+    Parameters
+    ----------
+    inputs: List
+      List of inputs to process. Entries can be filenames or arbitrary objects.
+    data_dir: str, optional (default None)
+      Directory to store featurized dataset.
+    shard_size: int, optional (default 8192)
+      Number of examples stored in each shard.
+
+    Returns
+    -------
+    DiskDataset
+      A `DiskDataset` object containing a featurized representation of data
+      from `inputs`.
+    """
+    logger.info("Loading raw samples now.")
+    logger.info("shard_size: %s" % str(shard_size))
+
+    # Special case handling of single input
+    if not isinstance(inputs, list):
+      inputs = [inputs]
+
+    def shard_generator():
+      for shard_num, shard in enumerate(self._get_shards(inputs, shard_size)):
+        time1 = time.time()
+        X, valid_inds = self._featurize_shard(shard)
+        ids = shard[self.id_field].values
+        ids = ids[valid_inds]
+        ids = np.repeat(
+            ids, [len(i) for i in X],
+            axis=0)  # each fragment should recieve parent mol id
+        X = np.array([j for i in X for j in i])  # flatten
+        if len(self.tasks) > 0:
+          warnings.warn(
+              "Tasks and weights will be ignored, fragments can't have them")
+        # For fragments  where results are unknown, it
+        # makes no sense to have y values or weights.
+        y, w = (None, None)
+        assert len(X) == len(ids)
+        time2 = time.time()
+        logger.info("TIMING: featurizing shard %d took %0.3f s" %
+                    (shard_num, time2 - time1))
+        yield X, y, w, ids
+
+    return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
+
+
+class CSVFragmentLoader(CSVLoader, FragmentLoader):
+  """
+  Creates `Dataset` objects from input CSV files, when you are interested in
+  fragment dataset (initialize the loader with `ConvMolFeaturizer(per_atom_fragmentation=True)`).
+
+  This class provides exact same functionality as `CSVLoader`, except it uses `create_dataset()`
+   method able to handle fragments.
+
+  Examples
+  --------
+  Let's suppose we have some smiles and labels and we want to fragment these mols.
+
+  >>> smiles = ["C", "CCC"]
+  >>> labels = [1.5, 2.3]
+
+  Let's put these in a dataframe.
+
+  >>> import pandas as pd
+  >>> df = pd.DataFrame(list(zip(smiles, labels)), columns=["smiles", "task1"])
+
+  Let's now write this to disk somewhere. We can now use `CSVLoader` to
+  process this CSV dataset.
+
+  >>> import tempfile
+  >>> import deepchem as dc
+  >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
+  ...   df.to_csv(tmpfile.name)
+  ...   loader = dc.data.CSVLoader([], feature_field="smiles",
+  ...                              featurizer=dc.feat.ConvMolFeaturizer(per_atom_fragmentation=True))
+  ...   dataset = loader.create_dataset(tmpfile.name)
+  >>> len(dataset) # equals sum of all fragments from molecules, that is 0 + 3
+  3
+  """
+  pass
 
 
 class UserCSVLoader(CSVLoader):
@@ -766,11 +867,6 @@ class SDFLoader(DataLoader):
     # The field in which load_sdf_files return value stores smiles
     self.id_field = "smiles"
     self.log_every_n = log_every_n
-    if isinstance(self.featurizer, ConvMolFeaturizer):
-      if self.featurizer.per_atom_fragmentation and len(self.tasks) > 0:
-        self.tasks = []  # no sense in y and w for fragments
-        warnings.warn(
-            "Tasks and weights will be ignored, fragments can't have them")
 
   def _get_shards(self, input_files: List[str],
                   shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
@@ -815,24 +911,32 @@ class SDFLoader(DataLoader):
       sample in the source.
     """
     features = [elt for elt in self.featurizer(shard[self.mol_field])]
-    if isinstance(self.featurizer,
-                  ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
-      # special case when we deal with fragments dataset:
-      # ids and features should be cleaned from failed elements, but retain nested structure
-      valid_inds = [[True if np.array(elt).size > 0 else False for elt in f]
-                    for f in features]
-      features = [[elt for (is_valid, elt) in zip(l, m) if is_valid]
-                  for (l, m) in zip(valid_inds, features) if any(l)]
-    else:
-      valid_inds = np.array(
-          [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
-      features = [
-          elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
-      ]
-    if isinstance(self.featurizer,
-                  ConvMolFeaturizer) and self.featurizer.per_atom_fragmentation:
-      return features, valid_inds  # we dont convert to array, the structure is nested with variable length
+    valid_inds = np.array(
+        [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
+    features = [
+        elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
+    ]
     return np.array(features), valid_inds
+
+
+class SDFFragmentLoader(SDFLoader, FragmentLoader):
+  """Creates a `Dataset` object from SDF input files, when you are interested in
+  fragment dataset (initialize the loader with `ConvMolFeaturizer(per_atom_fragmentation=True)`).
+
+  This class provides exact same functionality as `SDFLoader`, except it uses `create_dataset()`
+   method able to handle fragments.
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> import os
+  >>> current_dir = os.path.dirname(os.path.realpath(__file__))
+  >>> featurizer = dc.feat.ConvMolFeaturizer(per_atom_fragmentation=True)
+  >>> loader = dc.data.SDFFragmentLoader([], featurizer=featurizer, sanitize=True)
+  >>> dataset = loader.create_dataset(os.path.join(current_dir, "tests", "membrane_permeability.sdf")) # doctest:+ELLIPSIS
+  >>> len(dataset) # equals sum of fragments resulting from all molecules
+  """
+  pass
 
 
 class FASTALoader(DataLoader):

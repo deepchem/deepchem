@@ -685,6 +685,35 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     self.atom_properties = list(atom_properties)
     self.per_atom_fragmentation = per_atom_fragmentation
 
+  def featurize(self, molecules, log_every_n=1000) -> np.ndarray:
+    """
+    Override parent: aim is to add handling atom-depleted molecules featurization
+    
+    Parameters
+    ----------
+    molecules: rdkit.Chem.rdchem.Mol / SMILES string / iterable
+      RDKit Mol, or SMILES string or iterable sequence of RDKit mols/SMILES
+      strings.
+    log_every_n: int, default 1000
+      Logging messages reported every `log_every_n` samples.
+
+    Returns
+    -------
+    features: np.ndarray
+      A numpy array containing a featurized representation of `datapoints`.
+    """
+    features = super(ConvMolFeaturizer, self).featurize(
+        molecules, log_every_n=1000)
+    if self.per_atom_fragmentation:
+      valid_frag_inds = [[
+          True if np.array(elt).size > 0 else False for elt in f
+      ] for f in features]
+      features = np.array(
+          [[elt for (is_valid, elt) in zip(l, m) if is_valid]
+           for (l, m) in zip(valid_frag_inds, features) if any(l)],
+          dtype=object)
+    return features
+
   def _get_atom_properties(self, atom):
     """
     For a given input RDKit atom return the values of the properties
@@ -717,20 +746,28 @@ class ConvMolFeaturizer(MolecularFeaturizer):
       """
       Enumerates fragments resulting from mol object,
       s.t. each fragment = mol with single atom removed (all possible removals are enumerated)
-      n - list of nodes, a - adjacency list
+      Goes over nodes, deletes one at a time and updates adjacency list of lists (removes connections to that node)
+
+      Parameters
+      ----------
+      n: array of nodes (number_of_nodes X number_of_features)
+      a: list of nested lists of adjacent node pairs
+
       """
       for i in range(n.shape[0]):
         new_n = np.delete(n, (i), axis=0)
         new_a = []
-        for j, vertices in enumerate(a):
-          if i != j:
-            tmp_v = []
-            for v in vertices:
+        for j, node_pair in enumerate(a):
+          if i != j:  # don't need this pair, no more connections to deleted node
+            tmp_node_pair = []
+            for v in node_pair:
               if v < i:
-                tmp_v.append(v)
+                tmp_node_pair.append(v)
               elif v > i:
-                tmp_v.append(v - 1)
-            new_a.append(tmp_v)
+                tmp_node_pair.append(
+                    v -
+                    1)  # renumber node, because of offset after node deletion
+            new_a.append(tmp_node_pair)
         yield new_n, new_a
 
     # Get the node features
@@ -750,9 +787,8 @@ class ConvMolFeaturizer(MolecularFeaturizer):
       nodes = np.concatenate([nodes, master_atom_features], axis=0)
 
     # Get bond lists with reverse edges included
-    edge_list = [
-        (b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()
-    ]
+    edge_list = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx())
+                 for b in mol.GetBonds()]
     # Get canonical adjacency list
     canon_adj_list = [[] for mol_id in range(len(nodes))]
     for edge in edge_list:
