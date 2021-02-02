@@ -75,8 +75,8 @@ class InteratomicL2Distances(tf.keras.layers.Layer):
     # Shape (N_atoms, M_nbrs, ndim)
     nbr_coords = tf.gather(coords, nbr_list)
     # Shape (N_atoms, M_nbrs, ndim)
-    tiled_coords = tf.tile(
-        tf.reshape(coords, (N_atoms, 1, ndim)), (1, M_nbrs, 1))
+    tiled_coords = tf.tile(tf.reshape(coords, (N_atoms, 1, ndim)),
+                           (1, M_nbrs, 1))
     # Shape (N_atoms, M_nbrs)
     return tf.reduce_sum((tiled_coords - nbr_coords)**2, axis=2)
 
@@ -129,18 +129,16 @@ class GraphConv(tf.keras.layers.Layer):
     # Generate the nb_affine weights and biases
     num_deg = 2 * self.max_degree + (1 - self.min_degree)
     self.W_list = [
-        self.add_weight(
-            name='kernel' + str(k),
-            shape=(int(input_shape[0][-1]), self.out_channel),
-            initializer='glorot_uniform',
-            trainable=True) for k in range(num_deg)
+        self.add_weight(name='kernel' + str(k),
+                        shape=(int(input_shape[0][-1]), self.out_channel),
+                        initializer='glorot_uniform',
+                        trainable=True) for k in range(num_deg)
     ]
     self.b_list = [
-        self.add_weight(
-            name='bias' + str(k),
-            shape=(self.out_channel,),
-            initializer='zeros',
-            trainable=True) for k in range(num_deg)
+        self.add_weight(name='bias' + str(k),
+                        shape=(self.out_channel,),
+                        initializer='zeros',
+                        trainable=True) for k in range(num_deg)
     ]
     self.built = True
 
@@ -669,8 +667,10 @@ class MolGANMultiConvolutionLayer(tf.keras.layers.Layer):
     self.dropout_rate = dropout_rate
     self.edges = edges
 
-    self.first_convolution = MolGANConvolutionLayer(
-        self.units[0], self.activation, self.dropout_rate, self.edges)
+    self.first_convolution = MolGANConvolutionLayer(self.units[0],
+                                                    self.activation,
+                                                    self.dropout_rate,
+                                                    self.edges)
     self.gcl = [
         MolGANConvolutionLayer(u, self.activation, self.dropout_rate,
                                self.edges) for u in self.units[1:]
@@ -907,10 +907,10 @@ class LSTMStep(tf.keras.layers.Layer):
     self.W = init((self.input_dim, 4 * self.output_dim))
     self.U = inner_init((self.output_dim, 4 * self.output_dim))
 
-    self.b = tf.Variable(
-        np.hstack((np.zeros(self.output_dim), np.ones(self.output_dim),
-                   np.zeros(self.output_dim), np.zeros(self.output_dim))),
-        dtype=tf.float32)
+    self.b = tf.Variable(np.hstack(
+        (np.zeros(self.output_dim), np.ones(self.output_dim),
+         np.zeros(self.output_dim), np.zeros(self.output_dim))),
+                         dtype=tf.float32)
     self.built = True
 
   def call(self, inputs):
@@ -1292,9 +1292,9 @@ class WeightedLinearCombo(tf.keras.layers.Layer):
   def build(self, input_shape):
     init = tf.keras.initializers.RandomNormal(stddev=self.std)
     self.input_weights = [
-        self.add_weight(
-            'weight_%d' % (i + 1), (1,), initializer=init, trainable=True)
-        for i in range(len(input_shape))
+        self.add_weight('weight_%d' % (i + 1), (1,),
+                        initializer=init,
+                        trainable=True) for i in range(len(input_shape))
     ]
     self.built = True
 
@@ -1345,8 +1345,10 @@ class CombineMeanStd(tf.keras.layers.Layer):
     mean_parent, std_parent = inputs[0], inputs[1]
     noise_scale = tf.cast(training or not self.training_only, tf.float32)
     from tensorflow.python.ops import array_ops
-    sample_noise = tf.random.normal(
-        array_ops.shape(mean_parent), 0, self.noise_epsilon, dtype=tf.float32)
+    sample_noise = tf.random.normal(array_ops.shape(mean_parent),
+                                    0,
+                                    self.noise_epsilon,
+                                    dtype=tf.float32)
     return mean_parent + noise_scale * std_parent * sample_noise
 
 
@@ -1611,8 +1613,8 @@ class NeighborList(tf.keras.layers.Layer):
     nbr_coords = [tf.gather(coords, atom_nbrs) for atom_nbrs in nbrs]
 
     # Add phantom atoms that exist far outside the box
-    coord_padding = tf.cast(
-        tf.fill((self.M_nbrs, self.ndim), 2 * self.stop), tf.float32)
+    coord_padding = tf.cast(tf.fill((self.M_nbrs, self.ndim), 2 * self.stop),
+                            tf.float32)
     padded_nbr_coords = [
         tf.concat([nbr_coord, coord_padding], 0) for nbr_coord in nbr_coords
     ]
@@ -1705,8 +1707,8 @@ class NeighborList(tf.keras.layers.Layer):
     N_atoms, n_cells, ndim, M_nbrs = (self.N_atoms, self.n_cells, self.ndim,
                                       self.M_nbrs)
     # Tile both cells and coords to form arrays of size (N_atoms*n_cells, ndim)
-    tiled_cells = tf.reshape(
-        tf.tile(cells, (1, N_atoms)), (N_atoms * n_cells, ndim))
+    tiled_cells = tf.reshape(tf.tile(cells, (1, N_atoms)),
+                             (N_atoms * n_cells, ndim))
 
     # Shape (N_atoms*n_cells, ndim) after tile
     tiled_coords = tf.tile(coords, (n_cells, 1))
@@ -1743,8 +1745,8 @@ class NeighborList(tf.keras.layers.Layer):
     tiled_cells = tf.tile(cells, (N_atoms, 1))
 
     # Shape (N_atoms*n_cells, 1) after tile
-    tiled_coords = tf.reshape(
-        tf.tile(coords, (1, n_cells)), (n_cells * N_atoms, ndim))
+    tiled_coords = tf.reshape(tf.tile(coords, (1, n_cells)),
+                              (n_cells * N_atoms, ndim))
     coords_vec = tf.reduce_sum((tiled_coords - tiled_cells)**2, axis=1)
     coords_norm = tf.reshape(coords_vec, (N_atoms, n_cells))
 
@@ -1788,8 +1790,8 @@ class NeighborList(tf.keras.layers.Layer):
     # Tile cells to form arrays of size (n_cells*n_cells, ndim)
     # Two tilings (a, b, c, a, b, c, ...) vs. (a, a, a, b, b, b, etc.)
     # Tile (a, a, a, b, b, b, etc.)
-    tiled_centers = tf.reshape(
-        tf.tile(cells, (1, n_cells)), (n_cells * n_cells, ndim))
+    tiled_centers = tf.reshape(tf.tile(cells, (1, n_cells)),
+                               (n_cells * n_cells, ndim))
     # Tile (a, b, c, a, b, c, ...)
     tiled_cells = tf.tile(cells, (n_cells, 1))
 
@@ -1814,9 +1816,8 @@ class NeighborList(tf.keras.layers.Layer):
     start, stop, nbr_cutoff = self.start, self.stop, self.nbr_cutoff
     mesh_args = [tf.range(start, stop, nbr_cutoff) for _ in range(self.ndim)]
     return tf.cast(
-        tf.reshape(
-            tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
-            (self.n_cells, self.ndim)), tf.float32)
+        tf.reshape(tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
+                   (self.n_cells, self.ndim)), tf.float32)
 
 
 class AtomicConvolution(tf.keras.layers.Layer):
@@ -2066,8 +2067,8 @@ class AlphaShareLayer(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     n_alphas = 2 * len(input_shape)
-    self.alphas = tf.Variable(
-        tf.random.normal([n_alphas, n_alphas]), name='alphas')
+    self.alphas = tf.Variable(tf.random.normal([n_alphas, n_alphas]),
+                              name='alphas')
     self.built = True
 
   def call(self, inputs):
@@ -2228,12 +2229,11 @@ class ANIFeat(tf.keras.layers.Layer):
     radial_sym = self.radial_symmetry(d_radial_cutoff, d, atom_numbers)
     angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
                                         coordinates)
-    return tf.concat(
-        [
-            tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
-            angular_sym
-        ],
-        axis=2)
+    return tf.concat([
+        tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
+        angular_sym
+    ],
+                     axis=2)
 
   def distance_matrix(self, coordinates, flags):
     """ Generate distance matrix """
@@ -2287,9 +2287,9 @@ class ANIFeat(tf.keras.layers.Layer):
     if self.atomic_number_differentiated:
       out_tensors = []
       for atom_type in self.atom_cases:
-        selected_atoms = tf.expand_dims(
-            tf.expand_dims(atom_numbers_embedded[:, :, atom_type], axis=1),
-            axis=3)
+        selected_atoms = tf.expand_dims(tf.expand_dims(
+            atom_numbers_embedded[:, :, atom_type], axis=1),
+                                        axis=3)
         out_tensors.append(tf.reduce_sum(out * selected_atoms, axis=2))
       return tf.concat(out_tensors, axis=2)
     else:
@@ -2343,8 +2343,9 @@ class ANIFeat(tf.keras.layers.Layer):
         for atom_type_k in self.atom_cases[id_j:]:
           selected_atoms = tf.stack([atom_numbers_embedded[:, :, atom_type_j]] * max_atoms, axis=2) * \
                            tf.stack([atom_numbers_embedded[:, :, atom_type_k]] * max_atoms, axis=1)
-          selected_atoms = tf.expand_dims(
-              tf.expand_dims(selected_atoms, axis=1), axis=4)
+          selected_atoms = tf.expand_dims(tf.expand_dims(selected_atoms,
+                                                         axis=1),
+                                          axis=4)
           out_tensors.append(
               tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
       return tf.concat(out_tensors, axis=2)
@@ -2383,12 +2384,10 @@ class GraphEmbedPoolLayer(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     no_features = int(input_shape[0][-1])
-    self.W = tf.Variable(
-        tf.random.truncated_normal(
-            [no_features, self.num_vertices],
-            stddev=1.0 / np.sqrt(no_features)),
-        name='weights',
-        dtype=tf.float32)
+    self.W = tf.Variable(tf.random.truncated_normal(
+        [no_features, self.num_vertices], stddev=1.0 / np.sqrt(no_features)),
+                         name='weights',
+                         dtype=tf.float32)
     self.b = tf.Variable(tf.constant(0.1), name='bias', dtype=tf.float32)
     self.built = True
 
@@ -2500,18 +2499,16 @@ class GraphCNN(tf.keras.layers.Layer):
   def build(self, input_shape):
     no_features = int(input_shape[0][2])
     no_A = int(input_shape[1][2])
-    self.W = tf.Variable(
-        tf.random.truncated_normal(
-            [no_features * no_A, self.num_filters],
-            stddev=np.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
-        name='weights',
-        dtype=tf.float32)
-    self.W_I = tf.Variable(
-        tf.random.truncated_normal(
-            [no_features, self.num_filters],
-            stddev=np.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
-        name='weights_I',
-        dtype=tf.float32)
+    self.W = tf.Variable(tf.random.truncated_normal(
+        [no_features * no_A, self.num_filters],
+        stddev=np.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
+                         name='weights',
+                         dtype=tf.float32)
+    self.W_I = tf.Variable(tf.random.truncated_normal(
+        [no_features, self.num_filters],
+        stddev=np.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
+                           name='weights_I',
+                           dtype=tf.float32)
     self.b = tf.Variable(tf.constant(0.1), name='bias', dtype=tf.float32)
     self.built = True
 
@@ -2821,11 +2818,10 @@ class WeaveLayer(tf.keras.layers.Layer):
     """
 
     def init(input_shape):
-      return self.add_weight(
-          name='kernel',
-          shape=(input_shape[0], input_shape[1]),
-          initializer=self.init,
-          trainable=True)
+      return self.add_weight(name='kernel',
+                             shape=(input_shape[0], input_shape[1]),
+                             initializer=self.init,
+                             trainable=True)
 
     self.W_AA = init([self.n_atom_input_feat, self.n_hidden_AA])
     self.b_AA = backend.zeros(shape=[
@@ -2901,16 +2897,14 @@ class WeaveLayer(tf.keras.layers.Layer):
       # Note that AP_ij and AP_ji share the same self.AP_bn batch
       # normalization
       AP_ij = tf.matmul(
-          tf.reshape(
-              tf.gather(atom_features, atom_to_pair),
-              [-1, 2 * self.n_atom_input_feat]), self.W_AP) + self.b_AP
+          tf.reshape(tf.gather(atom_features, atom_to_pair),
+                     [-1, 2 * self.n_atom_input_feat]), self.W_AP) + self.b_AP
       if self.batch_normalize:
         AP_ij = self.AP_bn(AP_ij)
       AP_ij = activation(AP_ij)
       AP_ji = tf.matmul(
-          tf.reshape(
-              tf.gather(atom_features, tf.reverse(atom_to_pair, [1])),
-              [-1, 2 * self.n_atom_input_feat]), self.W_AP) + self.b_AP
+          tf.reshape(tf.gather(atom_features, tf.reverse(atom_to_pair, [1])),
+                     [-1, 2 * self.n_atom_input_feat]), self.W_AP) + self.b_AP
       if self.batch_normalize:
         AP_ji = self.AP_bn(AP_ji)
       AP_ji = activation(AP_ji)
@@ -3049,11 +3043,10 @@ class WeaveGather(tf.keras.layers.Layer):
     if self.compress_post_gaussian_expansion:
 
       def init(input_shape):
-        return self.add_weight(
-            name='kernel',
-            shape=(input_shape[0], input_shape[1]),
-            initializer=self.init,
-            trainable=True)
+        return self.add_weight(name='kernel',
+                               shape=(input_shape[0], input_shape[1]),
+                               initializer=self.init,
+                               trainable=True)
 
       self.W = init([self.n_input * 11, self.n_input])
       self.b = backend.zeros(shape=[self.n_input])
@@ -3163,11 +3156,10 @@ class DTNNEmbedding(tf.keras.layers.Layer):
   def build(self, input_shape):
 
     def init(input_shape):
-      return self.add_weight(
-          name='kernel',
-          shape=(input_shape[0], input_shape[1]),
-          initializer=self.init,
-          trainable=True)
+      return self.add_weight(name='kernel',
+                             shape=(input_shape[0], input_shape[1]),
+                             initializer=self.init,
+                             trainable=True)
 
     self.embedding_list = init([self.periodic_table_length, self.n_embedding])
     self.built = True
@@ -3223,11 +3215,10 @@ class DTNNStep(tf.keras.layers.Layer):
   def build(self, input_shape):
 
     def init(input_shape):
-      return self.add_weight(
-          name='kernel',
-          shape=(input_shape[0], input_shape[1]),
-          initializer=self.init,
-          trainable=True)
+      return self.add_weight(name='kernel',
+                             shape=(input_shape[0], input_shape[1]),
+                             initializer=self.init,
+                             trainable=True)
 
     self.W_cf = init([self.n_embedding, self.n_hidden])
     self.W_df = init([self.n_distance, self.n_hidden])
@@ -3315,11 +3306,10 @@ class DTNNGather(tf.keras.layers.Layer):
     self.b_list = []
 
     def init(input_shape):
-      return self.add_weight(
-          name='kernel',
-          shape=(input_shape[0], input_shape[1]),
-          initializer=self.init,
-          trainable=True)
+      return self.add_weight(name='kernel',
+                             shape=(input_shape[0], input_shape[1]),
+                             initializer=self.init,
+                             trainable=True)
 
     prev_layer_size = self.n_embedding
     for i, layer_size in enumerate(self.layer_sizes):
@@ -3447,34 +3437,30 @@ class DAGLayer(tf.keras.layers.Layer):
     prev_layer_size = self.n_inputs
     for layer_size in self.layer_sizes:
       self.W_list.append(
-          self.add_weight(
-              name='kernel',
-              shape=(prev_layer_size, layer_size),
-              initializer=self.init,
-              trainable=True))
+          self.add_weight(name='kernel',
+                          shape=(prev_layer_size, layer_size),
+                          initializer=self.init,
+                          trainable=True))
       self.b_list.append(
-          self.add_weight(
-              name='bias',
-              shape=(layer_size,),
-              initializer='zeros',
-              trainable=True))
+          self.add_weight(name='bias',
+                          shape=(layer_size,),
+                          initializer='zeros',
+                          trainable=True))
       if self.dropout is not None and self.dropout > 0.0:
         self.dropouts.append(Dropout(rate=self.dropout))
       else:
         self.dropouts.append(None)
       prev_layer_size = layer_size
     self.W_list.append(
-        self.add_weight(
-            name='kernel',
-            shape=(prev_layer_size, self.n_outputs),
-            initializer=self.init,
-            trainable=True))
+        self.add_weight(name='kernel',
+                        shape=(prev_layer_size, self.n_outputs),
+                        initializer=self.init,
+                        trainable=True))
     self.b_list.append(
-        self.add_weight(
-            name='bias',
-            shape=(self.n_outputs,),
-            initializer='zeros',
-            trainable=True))
+        self.add_weight(name='bias',
+                        shape=(self.n_outputs,),
+                        initializer='zeros',
+                        trainable=True))
     if self.dropout is not None and self.dropout > 0.0:
       self.dropouts.append(Dropout(rate=self.dropout))
     else:
@@ -3506,16 +3492,16 @@ class DAGLayer(tf.keras.layers.Layer):
 
       # generating index for graph features used in the inputs
       stack1 = tf.reshape(
-          tf.stack(
-              [tf.boolean_mask(tf.range(n_atoms), mask)] * (self.max_atoms - 1),
-              axis=1), [-1])
+          tf.stack([tf.boolean_mask(tf.range(n_atoms), mask)] *
+                   (self.max_atoms - 1),
+                   axis=1), [-1])
       stack2 = tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
       index = tf.stack([stack1, stack2], axis=1)
       # extracting graph features for parents of the target atoms, then flatten
       # shape: (batch_size*max_atoms) * [(max_atoms-1)*n_graph_features]
       batch_graph_features = tf.reshape(
-          tf.gather_nd(graph_features, index),
-          [-1, (self.max_atoms - 1) * self.n_graph_feat])
+          tf.gather_nd(graph_features,
+                       index), [-1, (self.max_atoms - 1) * self.n_graph_feat])
 
       # concat into the input tensor: (batch_size*max_atoms) * n_inputs
       batch_inputs = tf.concat(
@@ -3595,34 +3581,30 @@ class DAGGather(tf.keras.layers.Layer):
     prev_layer_size = self.n_graph_feat
     for layer_size in self.layer_sizes:
       self.W_list.append(
-          self.add_weight(
-              name='kernel',
-              shape=(prev_layer_size, layer_size),
-              initializer=self.init,
-              trainable=True))
+          self.add_weight(name='kernel',
+                          shape=(prev_layer_size, layer_size),
+                          initializer=self.init,
+                          trainable=True))
       self.b_list.append(
-          self.add_weight(
-              name='bias',
-              shape=(layer_size,),
-              initializer='zeros',
-              trainable=True))
+          self.add_weight(name='bias',
+                          shape=(layer_size,),
+                          initializer='zeros',
+                          trainable=True))
       if self.dropout is not None and self.dropout > 0.0:
         self.dropouts.append(Dropout(rate=self.dropout))
       else:
         self.dropouts.append(None)
       prev_layer_size = layer_size
     self.W_list.append(
-        self.add_weight(
-            name='kernel',
-            shape=(prev_layer_size, self.n_outputs),
-            initializer=self.init,
-            trainable=True))
+        self.add_weight(name='kernel',
+                        shape=(prev_layer_size, self.n_outputs),
+                        initializer=self.init,
+                        trainable=True))
     self.b_list.append(
-        self.add_weight(
-            name='bias',
-            shape=(self.n_outputs,),
-            initializer='zeros',
-            trainable=True))
+        self.add_weight(name='bias',
+                        shape=(self.n_outputs,),
+                        initializer='zeros',
+                        trainable=True))
     if self.dropout is not None and self.dropout > 0.0:
       self.dropouts.append(Dropout(rate=self.dropout))
     else:
@@ -3728,11 +3710,10 @@ class EdgeNetwork(tf.keras.layers.Layer):
   def build(self, input_shape):
 
     def init(input_shape):
-      return self.add_weight(
-          name='kernel',
-          shape=(input_shape[0], input_shape[1]),
-          initializer=self.init,
-          trainable=True)
+      return self.add_weight(name='kernel',
+                             shape=(input_shape[0], input_shape[1]),
+                             initializer=self.init,
+                             trainable=True)
 
     n_pair_features = self.n_pair_features
     n_hidden = self.n_hidden
@@ -3767,11 +3748,10 @@ class GatedRecurrentUnit(tf.keras.layers.Layer):
     n_hidden = self.n_hidden
 
     def init(input_shape):
-      return self.add_weight(
-          name='kernel',
-          shape=(input_shape[0], input_shape[1]),
-          initializer=self.init,
-          trainable=True)
+      return self.add_weight(name='kernel',
+                             shape=(input_shape[0], input_shape[1]),
+                             initializer=self.init,
+                             trainable=True)
 
     self.Wz = init([n_hidden, n_hidden])
     self.Wr = init([n_hidden, n_hidden])
@@ -3829,17 +3809,16 @@ class SetGather(tf.keras.layers.Layer):
   def build(self, input_shape):
 
     def init(input_shape):
-      return self.add_weight(
-          name='kernel',
-          shape=(input_shape[0], input_shape[1]),
-          initializer=self.init,
-          trainable=True)
+      return self.add_weight(name='kernel',
+                             shape=(input_shape[0], input_shape[1]),
+                             initializer=self.init,
+                             trainable=True)
 
     self.U = init((2 * self.n_hidden, 4 * self.n_hidden))
-    self.b = tf.Variable(
-        np.concatenate((np.zeros(self.n_hidden), np.ones(self.n_hidden),
-                        np.zeros(self.n_hidden), np.zeros(self.n_hidden))),
-        dtype=tf.float32)
+    self.b = tf.Variable(np.concatenate(
+        (np.zeros(self.n_hidden), np.ones(self.n_hidden),
+         np.zeros(self.n_hidden), np.zeros(self.n_hidden))),
+                         dtype=tf.float32)
     self.built = True
 
   def call(self, inputs):
