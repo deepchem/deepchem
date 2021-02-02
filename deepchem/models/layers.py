@@ -7,7 +7,7 @@ except:
   from collections import Sequence as SequenceCollection
 from typing import Callable, Dict, List
 from tensorflow.keras import activations, initializers, backend
-from tensorflow.keras.layers import Dropout, BatchNormalization
+from tensorflow.keras.layers import Dropout, BatchNormalization, Dense, Activation
 
 
 class InteratomicL2Distances(tf.keras.layers.Layer):
@@ -368,6 +368,367 @@ class GraphGather(tf.keras.layers.Layer):
     if self.activation_fn is not None:
       mol_features = self.activation_fn(mol_features)
     return mol_features
+
+
+class GraphConvolutionLayer(tf.keras.layers.Layer):
+  """
+  Graph convolution layer used in MolGAN model.
+  MolGAN is a WGAN type model for generation of small molecules.
+  Not used directly but used by higher level layers like MultiGraphConvolutionLayer. 
+
+  References
+  ----------
+  .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+  for small molecular graphs", https://arxiv.org/abs/1805.11973
+  """
+
+  def __init__(self,
+               units,
+               activation=None,
+               dropout_rate=0.0,
+               edges=5,
+               name="",
+               **kwargs):
+    """
+    Initialize this layer.
+
+    Parameters
+    ---------
+    units: int
+      Dimesion of dense layers used for convolution
+    activation: function, optional (default=None)
+      Tanh is default option provided by GraphEncoderLayer
+    dropout_rate: float, optional (default=0.0)
+     Dropout rate used by dropout layer
+    edges: int, optional (default=5)
+      How many dense layers to use in convolution.
+      Typically equal to number of bond types used in the model.
+    name: string, optional (default="")
+      Name of the layer
+    """
+
+    super(GraphConvolutionLayer, self).__init__(name=name, **kwargs)
+    self.activation = activation
+    self.dropout_rate = dropout_rate
+    self.units = units
+    self.edges = edges
+
+    self.dense1 = [Dense(units=self.units) for _ in range(edges - 1)]
+    self.dense2 = Dense(units=self.units)
+    self.dropout = Dropout(self.dropout_rate)
+    self.activation = Activation(self.activation)
+
+  def call(self, inputs, training=False):
+    """
+    Invoke this layer
+
+    Parameters
+    ----------
+    inputs: list
+      List of two input matrices, adjacency tensor and node features tensors
+      in one-hot encoding format.
+    training: bool
+      Should this layer be run in training mode.
+      Typically decided by main model, influences things like dropout.
+    """
+
+    ic = len(inputs)
+    assert ic > 1, "GraphConvolutionLayer requires at least two inputs: [adjacency_tensor, node_features_tensor]"
+
+    adjacency_tensor = inputs[0]
+    node_tensor = inputs[1]
+
+    # means that this is second loop of convolution
+    if ic > 2:
+      hidden_tensor = inputs[2]
+      annotations = tf.concat((hidden_tensor, node_tensor), -1)
+    else:
+      annotations = node_tensor
+
+    output = tf.stack([dense(annotations) for dense in self.dense1], 1)
+
+    adj = tf.transpose(adjacency_tensor[:, :, :, 1:], (0, 3, 1, 2))
+
+    output = tf.matmul(adj, output)
+    output = tf.reduce_sum(output, 1) + self.dense2(node_tensor)
+    output = self.activation(output)
+    output = self.dropout(output)
+    return adjacency_tensor, node_tensor, output
+
+  def get_config(self) -> Dict:
+    """
+    Returns config dictionary for this layer.
+    """
+
+    config = super(GraphConvolutionLayer, self).get_config()
+    config["activation"] = self.activation
+    config["dropout_rate"] = self.dropout_rate
+    config["units"] = self.units
+    config["edges"] = self.edges
+    return config
+
+
+class GraphAggregationLayer(tf.keras.layers.Layer):
+  """
+  Graph Aggregation layer used in MolGAN model.
+  MolGAN is a WGAN type model for generation of small molecules.
+
+  References
+  ----------
+  .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+  for small molecular graphs", https://arxiv.org/abs/1805.11973
+  """
+
+  def __init__(self,
+               units,
+               activation=None,
+               dropout_rate=0.0,
+               name="",
+               **kwargs):
+    """
+    Initialize the layer
+
+    Parameters
+    ---------
+    units: int
+      Dimesion of dense layers used for aggregation
+    activation: function, optional (default=None)
+      Tanh is default option provided by GraphEncoderLayer
+    dropout_rate: float, optional (default=0.0)
+      Used by dropout layer
+    name: string, optional (default="")
+      Name of the layer
+    """
+
+    super(GraphAggregationLayer, self).__init__(name=name, **kwargs)
+    self.units = units
+    self.activation = activation
+    self.dropout_rate = dropout_rate
+
+    self.d1 = Dense(units=units, activation="sigmoid")
+    self.d2 = Dense(units=units, activation=activation)
+    self.dropout_layer = Dropout(dropout_rate)
+    self.activation_layer = Activation(activation)
+
+  def call(self, inputs, training=False):
+    """
+    Invoke this layer
+
+    Parameters
+    ----------
+    inputs: list
+      Single tensor resulting from graph convolution layer
+    training: bool
+      Should this layer be run in training mode.
+      Typically decided by main model, influences things like dropout.
+    """
+
+    i = self.d1(inputs)
+    j = self.d2(inputs)
+    output = tf.reduce_sum(i * j, 1)
+    output = self.activation_layer(output)
+    output = self.dropout_layer(output)
+    return output
+
+  def get_config(self) -> Dict:
+    """
+    Returns config dictionary for this layer.
+    """
+
+    config = super(GraphAggregationLayer, self).get_config()
+    config["units"] = self.units
+    config["activation"] = self.activation
+    config["dropout_rate"] = self.dropout_rate
+    config["edges"] = self.edges
+    return config
+
+
+class MultiGraphConvolutionLayer(tf.keras.layers.Layer):
+  """
+  Multiple pass convolution layer used in MolGAN model.
+  MolGAN is a WGAN type model for generation of small molecules.
+  It takes outputs of previous convolution layer and uses
+  them as inputs for the next one. It simplifies the overall framework.
+
+  References
+  ----------
+  .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+  for small molecular graphs", https://arxiv.org/abs/1805.11973
+  """
+
+  def __init__(self,
+               units,
+               activation=None,
+               dropout_rate=0.0,
+               edges=5,
+               name="",
+               **kwargs):
+    """
+    Initialize the layer
+
+    Parameters
+    ---------
+    units: list, min_length=2
+      List of dimensions used by consecutive convolution layers.
+      The more values the more convolution layers invoked.
+    activation: function, optional (default=None)
+      Tanh is default option provided by GraphEncoderLayer
+    dropout_rate: float, optional (default=0.0)
+      Used by dropout layer
+    edges: int, optional (default=0)
+      Controls how many dense layers use for single convolution unit.
+      Typically matches number of bond types used in the molecule.
+    name: string, optional (default="")
+      Name of the layer
+    """
+
+    super(MultiGraphConvolutionLayer, self).__init__(name=name, **kwargs)
+    assert len(units) > 1, "Layer requires at least two values"
+
+    self.units = units
+    self.activation = activation
+    self.dropout_rate = dropout_rate
+    self.edges = edges
+
+    self.first_convolution = GraphConvolutionLayer(
+        self.units[0], self.activation, self.dropout_rate, self.edges)
+    self.gcl = [
+        GraphConvolutionLayer(u, self.activation, self.dropout_rate, self.edges)
+        for u in self.units[1:]
+    ]
+
+  def call(self, inputs, training=False):
+    """
+    Invoke this layer
+
+    Parameters
+    ----------
+    inputs: list
+      List of two input matrices, adjacency tensor and node features tensors
+      in one-hot encoding format.
+    training: bool
+      Should this layer be run in training mode.
+      Typically decided by main model, influences things like dropout.
+    """
+
+    adjacency_tensor = inputs[0]
+    node_tensor = inputs[1]
+
+    tensors = self.first_convolution([adjacency_tensor, node_tensor])
+
+    for layer in self.gcl:
+      tensors = layer(tensors)
+
+    _, _, hidden_tensor = tensors
+
+    return hidden_tensor
+
+  def get_config(self) -> Dict:
+    """
+    Returns config dictionary for this layer.
+    """
+
+    config = super(MultiGraphConvolutionLayer, self).get_config()
+    config["units"] = self.units
+    config["activation"] = self.activation
+    config["dropout_rate"] = self.dropout_rate
+    config["edges"] = self.edges
+    return config
+
+
+class GraphEncoderLayer(tf.keras.layers.Layer):
+  """
+  Main learning layer used by MolGAN model.
+  MolGAN is a WGAN type model for generation of small molecules.
+  It role is to further simplify model. This layer can be manually
+  built by stacking graph convolution layers followed by graph aggregation.
+
+  References
+  ----------
+  .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+  for small molecular graphs", https://arxiv.org/abs/1805.11973
+  """
+
+  def __init__(self,
+               units,
+               activation="tanh",
+               dropout_rate=0.0,
+               edges=5,
+               name="",
+               **kwargs):
+    """
+    Initialize the layer.
+
+    Parameters
+    ---------
+    units: list, length=2
+      List of units for MultiGraphConvolutionLayer and GraphAggregationLayer
+      i.e. [(128,64),128] means two convolution layers dims = [128,64]
+      followed by aggregation layer dims=128
+    activation: function, optional (default=Tanh)
+      activation function used across model, default is Tanh
+    dropout_rate: float, optional (default=0.0)
+      Used by dropout layer
+    edges: int, optional (default=0)
+      Controls how many dense layers use for single convolution unit.
+      Typically matches number of bond types used in the molecule.
+    name: string, optional (default="")
+      Name of the layer
+    """
+
+    super(GraphEncoderLayer, self).__init__(name=name, **kwargs)
+    assert len(units) == 2
+    self.graph_convolution_units, self.auxiliary_units = units
+    self.activation = activation
+    self.dropout_rate = dropout_rate
+    self.edges = edges
+
+    self.multi_graph_convolution_layer = MultiGraphConvolutionLayer(
+        self.graph_convolution_units, self.activation, self.dropout_rate,
+        self.edges)
+    self.graph_aggregation_layer = GraphAggregationLayer(
+        self.auxiliary_units, self.activation, self.dropout_rate)
+
+  def call(self, inputs, training=False):
+    """
+    Invoke this layer
+
+    Parameters
+    ----------
+    inputs: list
+      List of two input matrices, adjacency tensor and node features tensors
+      in one-hot encoding format.
+    training: bool
+      Should this layer be run in training mode.
+      Typically decided by main model, influences things like dropout.
+    """
+
+    output = self.multi_graph_convolution_layer(inputs)
+
+    node_tensor = inputs[1]
+
+    if len(inputs) > 2:
+      hidden_tensor = inputs[2]
+      annotations = tf.concat((output, hidden_tensor, node_tensor), -1)
+    else:
+      _, node_tensor = inputs
+      annotations = tf.concat((output, node_tensor), -1)
+
+    output = self.graph_aggregation_layer(annotations)
+    return output
+
+  def get_config(self) -> Dict:
+    """
+    Returns config dictionary for this layer.
+    """
+
+    config = super(GraphEncoderLayer, self).get_config()
+    config["graph_convolution_units"] = self.graph_convolution_units
+    config["auxiliary_units"] = self.auxiliary_units
+    config["activation"] = self.activation
+    config["dropout_rate"] = self.dropout_rate
+    config["edges"] = self.edges
+    return config
 
 
 class LSTMStep(tf.keras.layers.Layer):
