@@ -293,7 +293,7 @@ class CSVLoader(DataLoader):
   >>> import deepchem as dc
   >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
   ...   df.to_csv(tmpfile.name)
-  ...   loader = dc.data.CSVFragmentLoader(["task1"], feature_field="smiles",
+  ...   loader = dc.data.CSVLoader(["task1"], feature_field="smiles",
   ...                              featurizer=dc.feat.CircularFingerprint())
   ...   dataset = loader.create_dataset(tmpfile.name)
   >>> len(dataset)
@@ -522,7 +522,7 @@ class CSVFragmentLoader(CSVLoader, FragmentLoader):
   >>> import deepchem as dc
   >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
   ...   df.to_csv(tmpfile.name)
-  ...   loader = dc.data.CSVLoader([], feature_field="smiles",
+  ...   loader = dc.data.CSVFragmentLoader([], feature_field="smiles",
   ...                              featurizer=dc.feat.ConvMolFeaturizer(per_atom_fragmentation=True))
   ...   dataset = loader.create_dataset(tmpfile.name)
   >>> len(dataset) # equals sum of all fragments from molecules, that is 0 + 3

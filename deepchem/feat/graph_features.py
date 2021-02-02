@@ -630,6 +630,15 @@ class ConvMolFeaturizer(MolecularFeaturizer):
   Duvenaud graph convolutions [1]_ construct a vector of descriptors for each
   atom in a molecule. The featurizer computes that vector of local descriptors.
 
+  Examples
+  ---------
+  Using ConvMolFeaturizer to create featurized fragments derived from molecules of interest
+  >>> import deepchem as dc
+  >>> smiles = ["C", "CCC"]
+  >>> featurizer=dc.feat.ConvMolFeaturizer(per_atom_fragmentation=True)
+  >>> f = featurizer.featurize(smiles)
+  >>> len(f) # contains 2 lists with  featurized fragments from 2 mols
+
   References
   ---------
 
@@ -672,9 +681,10 @@ class ConvMolFeaturizer(MolecularFeaturizer):
       name of the molecule level property in mol where the solvent
       accessible surface area of atom 0 would be stored.
     per_atom_fragmentation: Boolean
-      If True, then multiple "atom-deprived" featurizations will be possible to do for each molecule. It will be
-      possible to remove atoms  one by one, and then, featurize each atom-deprived molecule.
-      Thus, applying featurize method  will produce a set of ConvMol objects for each molecule.
+      If True, then multiple "atom-depleted" featurizations will be possible to do for each molecule. It will be
+      possible to remove atoms  one by one, and then, featurize each atom-depleted molecule.
+      Thus, applying featurize method  will produce a set of ConvMol objects for each molecule. This is useful for
+      subsequent model interpretation: finding atoms favorable/unfavorable for (modelled) activity.
 
     Since ConvMol is an object and not a numpy array, need to set dtype to
     object.
