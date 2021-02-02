@@ -35,7 +35,7 @@ class RNN(KerasModel):
                dropouts=0.5,
                activation_fns=tf.nn.relu,
                dense_layer_size=1000,
-               pool_type='max',
+               layerType='LSTM',
                mode='classification',
                n_classes=2,
                uncertainty=False,
@@ -97,7 +97,23 @@ class RNN(KerasModel):
     prev_filters = n_features
     next_activation = None
 
-    # Add the convolutional layers
+    # TODO Add the RNN cellls
+
+    if layerType == 'LSTM':
+      recurrentLayer = layers.LSTM
+
+    elif layerType == 'GRU':
+      recurrentLayer = layers.GRU
+
+    elif layerType == 'SimpleRNN':
+      recurrentLayer = layers.SimpleRNN
+
+    else:
+      raise ValueError('layerType must be "LSTM," "GRU," or "SimpleRNN."')
+    
+
+
+    # Add the convolutional layers ( TODO Remove )
 
     ConvLayer = (layers.Conv1D, layers.Conv2D, layers.Conv3D)[dims - 1]
     if pool_type == 'average':
