@@ -12,8 +12,8 @@ class TestVinaUtils(unittest.TestCase):
 
   def setUp(self):
     # TODO test more formats for ligand
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    self.docked_ligands = os.path.join(current_dir, 'data',
+    self.current_dir = os.path.dirname(os.path.realpath(__file__))
+    self.docked_ligands = os.path.join(self.current_dir, 'data',
                                        '1jld_ligand_docked.pdbqt')
 
   def test_load_docked_ligand(self):
@@ -25,6 +25,21 @@ class TestVinaUtils(unittest.TestCase):
       xyz = rdkit_utils.get_xyz_from_mol(ligand)
       assert score < 0  # This is a binding free energy
       assert np.count_nonzero(xyz) > 0
+
+  def test_write_gnina_conf(self):
+    vina_utils.write_gnina_conf(
+        'protein.pdb',
+        'ligand.sdf',
+        'conf.txt',
+    )
+    assert os.path.exists('conf.txt')
+    os.remove('conf.txt')
+
+  def test_read_gnina_log(self):
+    log_file = os.path.join(self.current_dir, 'data', 'gnina_log.txt')
+    scores = vina_utils.read_gnina_log(log_file)
+    assert np.array_equal(
+        scores, np.array([[-4.37, 0.6392, 4.336], [-3.56, 0.6202, 4.162]]))
 
   def test_prepare_inputs(self):
     pdbid = '3cyx'

@@ -199,9 +199,13 @@ docking.
 
 .. autofunction:: deepchem.utils.vina_utils.write_vina_conf
 
+.. autofunction:: deepchem.utils.vina_utils.write_gnina_conf
+
 .. autofunction:: deepchem.utils.vina_utils.load_docked_ligands
 
 .. autofunction:: deepchem.utils.vina_utils.prepare_inputs
+
+.. autofunction:: deepchem.utils.vina_utils.read_gnina_log
 
 
 Print Threshold

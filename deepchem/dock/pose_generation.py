@@ -7,7 +7,7 @@ import os
 import tempfile
 import tarfile
 import numpy as np
-from subprocess import call
+from subprocess import call, Popen, PIPE
 from subprocess import check_output
 from typing import List, Optional, Tuple, Union
 
@@ -16,7 +16,7 @@ from deepchem.utils.data_utils import download_url, get_data_dir
 from deepchem.utils.typing import RDKitMol
 from deepchem.utils.geometry_utils import compute_centroid, compute_protein_range
 from deepchem.utils.rdkit_utils import load_molecule, write_molecule
-from deepchem.utils.vina_utils import load_docked_ligands, write_vina_conf
+from deepchem.utils.vina_utils import load_docked_ligands, write_vina_conf, write_gnina_conf, read_gnina_log
 
 logger = logging.getLogger(__name__)
 DOCKED_POSES = List[Tuple[RDKitMol, RDKitMol]]
@@ -53,8 +53,8 @@ class PoseGenerator(object):
     centroid: np.ndarray, optional (default None)
       The centroid to dock against. Is computed if not specified.
     box_dims: np.ndarray, optional (default None)
-      A numpy array of shape `(3,)` holding the size of the box to dock. If not
-      specified is set to size of molecular complex plus 5 angstroms.
+      A numpy array of shape `(3,)` holding the size of the box to dock.
+      If not specified is set to size of molecular complex plus 5 angstroms.
     exhaustiveness: int, optional (default 10)
       Tells pose generator how exhaustive it should be with pose
       generation.
@@ -77,6 +77,167 @@ class PoseGenerator(object):
     A list of molecular complexes in energetically favorable poses.
     """
     raise NotImplementedError
+
+
+class GninaPoseGenerator(PoseGenerator):
+  """Use GNINA to generate binding poses.
+
+  This class uses GNINA (a deep learning framework for molecular
+  docking) to generate binding poses. It downloads the GNINA
+  executable to DEEPCHEM_DATA_DIR (an environment variable you set)
+  and invokes the executable to perform pose generation.
+
+  GNINA uses pre-trained convolutional neural network (CNN) scoring
+  functions to rank binding poses based on learned representations of
+  3D protein-ligand interactions. It has been shown to outperform
+  AutoDock Vina in virtual screening applications [1]_.
+
+  If you use the GNINA molecular docking engine, please cite the relevant
+  papers: https://github.com/gnina/gnina#citation
+  The primary citation for GNINA is [1]_.
+
+  References
+  ----------
+  .. [1] M Ragoza, J Hochuli, E Idrobo, J Sunseri, DR Koes.
+  "Protein–Ligand Scoring with Convolutional Neural Networks."
+  Journal of chemical information and modeling (2017).
+
+  Notes
+  -----
+  * GNINA requires CUDA >= 10.1 for fast CNN scoring.
+  * Almost all dependencies are included in the most compatible way
+    possible, which reduces performance. Build GNINA from source
+    for production use.
+
+  """
+
+  def __init__(self):
+    """Initialize GNINA pose generator."""
+
+    data_dir = get_data_dir()
+    if platform.system() == 'Linux':
+      url = "https://github.com/gnina/gnina/releases/download/v1.0/gnina"
+      filename = 'gnina'
+      self.gnina_dir = data_dir
+      self.gnina_cmd = os.path.join(self.gnina_dir, filename)
+    else:
+      raise ValueError(
+          "Unknown operating system. Try using a cloud platform to run this code instead."
+      )
+
+    if not os.path.exists(self.gnina_cmd):
+      logger.info("GNINA not available. Downloading...")
+      download_url(url, data_dir)
+      downloaded_file = os.path.join(data_dir, filename)
+      os.chmod(downloaded_file, 755)
+      logger.info("Downloaded GNINA.")
+
+  def generate_poses(
+      self,
+      molecular_complex: Tuple[str, str],
+      centroid: Optional[np.ndarray] = None,
+      box_dims: Optional[np.ndarray] = None,
+      exhaustiveness: int = 10,
+      num_modes: int = 9,
+      num_pockets: Optional[int] = None,
+      out_dir: Optional[str] = None,
+      generate_scores: bool = True,
+      **kwargs) -> Union[Tuple[DOCKED_POSES, List[float]], DOCKED_POSES]:
+    """Generates the docked complex and outputs files for docked complex.
+
+    Parameters
+    ----------
+    molecular_complexes: Tuple[str, str]
+      A representation of a molecular complex. This tuple is
+      (protein_file, ligand_file).
+    centroid: np.ndarray, optional (default None)
+      The centroid to dock against. Is computed if not specified.
+    box_dims: np.ndarray, optional (default None)
+      A numpy array of shape `(3,)` holding the size of the box to dock.
+      If not specified is set to size of molecular complex plus 4 angstroms.
+    exhaustiveness: int (default 8)
+      Tells GNINA how exhaustive it should be with pose
+      generation.
+    num_modes: int (default 9)
+      Tells GNINA how many binding modes it should generate at
+      each invocation.
+    out_dir: str, optional
+      If specified, write generated poses to this directory.
+    generate_scores: bool, optional (default True)
+      If `True`, the pose generator will return scores for complexes.
+      This is used typically when invoking external docking programs
+      that compute scores.
+    kwargs:
+      Any args supported by GNINA as documented
+      https://github.com/gnina/gnina#usage
+
+    Returns
+    -------
+    Tuple[`docked_poses`, `scores`] or `docked_poses`
+      Tuple of `(docked_poses, scores)` or `docked_poses`. `docked_poses`
+      is a list of docked molecular complexes. Each entry in this list
+      contains a `(protein_mol, ligand_mol)` pair of RDKit molecules.
+      `scores` is an array of binding affinities (kcal/mol),
+      CNN pose scores, and CNN affinities predicted by GNINA.
+
+    """
+
+    if out_dir is None:
+      out_dir = tempfile.mkdtemp()
+    if not os.path.exists(out_dir):
+      os.makedirs(out_dir)
+
+    # Parse complex
+    if len(molecular_complex) > 2:
+      raise ValueError(
+          "GNINA can only dock protein-ligand complexes and not more general molecular complexes."
+      )
+
+    (protein_file, ligand_file) = molecular_complex
+
+    # check filetypes
+    if not protein_file.endswith('.pdb'):
+      raise ValueError('Protein file must be in .pdb format.')
+    if not ligand_file.endswith('.sdf'):
+      raise ValueError('Ligand file must be in .sdf format.')
+
+    protein_mol = load_molecule(
+        protein_file, calc_charges=True, add_hydrogens=True)
+    ligand_name = os.path.basename(ligand_file).split(".")[0]
+
+    # Define locations of log and output files
+    log_file = os.path.join(out_dir, "%s_log.txt" % ligand_name)
+    out_file = os.path.join(out_dir, "%s_docked.pdbqt" % ligand_name)
+    logger.info("About to call GNINA.")
+
+    # Write GNINA conf file
+    conf_file = os.path.join(out_dir, "conf.txt")
+    write_gnina_conf(
+        protein_filename=protein_file,
+        ligand_filename=ligand_file,
+        conf_filename=conf_file,
+        num_modes=num_modes,
+        exhaustiveness=exhaustiveness,
+        **kwargs)
+
+    # Run GNINA
+    args = [
+        self.gnina_cmd, "--config", conf_file, "--log", log_file, "--out",
+        out_file
+    ]
+    process = Popen(args, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = process.communicate()
+    stdout_decoded = stdout.decode()
+
+    # read output and log
+    ligands, _ = load_docked_ligands(out_file)
+    docked_complexes = [(protein_mol[1], ligand) for ligand in ligands]
+    scores = read_gnina_log(log_file)
+
+    if generate_scores:
+      return docked_complexes, scores
+    else:
+      return docked_complexes
 
 
 class VinaPoseGenerator(PoseGenerator):
@@ -157,7 +318,7 @@ class VinaPoseGenerator(PoseGenerator):
                      num_modes: int = 9,
                      num_pockets: Optional[int] = None,
                      out_dir: Optional[str] = None,
-                     generate_scores: bool = False
+                     generate_scores: Optional[bool] = False
                     ) -> Union[Tuple[DOCKED_POSES, List[float]], DOCKED_POSES]:
     """Generates the docked complex and outputs files for docked complex.
 
@@ -168,7 +329,8 @@ class VinaPoseGenerator(PoseGenerator):
     ----------
     molecular_complexes: Tuple[str, str]
       A representation of a molecular complex. This tuple is
-      (protein_file, ligand_file).
+      (protein_file, ligand_file). The protein should be a pdb file
+      and the ligand should be an sdf file.
     centroid: np.ndarray, optional
       The centroid to dock against. Is computed if not specified.
     box_dims: np.ndarray, optional
@@ -263,7 +425,7 @@ class VinaPoseGenerator(PoseGenerator):
       centroids = centroids[:num_pockets]
       dimensions = dimensions[:num_pockets]
 
-    # Prepare protein
+    # Prepare ligand
     ligand_name = os.path.basename(ligand_file).split(".")[0]
     ligand_pdbqt = os.path.join(out_dir, "%s.pdbqt" % ligand_name)
 
