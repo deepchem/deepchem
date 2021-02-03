@@ -227,7 +227,6 @@ class GninaPoseGenerator(PoseGenerator):
     ]
     process = Popen(args, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    stdout_decoded = stdout.decode()
 
     # read output and log
     ligands, _ = load_docked_ligands(out_file)
