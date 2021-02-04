@@ -58,6 +58,9 @@ class LCNNFeaturizer(MaterialStructureFeaturizer):
 
   Examples
   --------
+  >>> import deepchem as dc
+  >>> from pymatgen import Structure
+  >>> import numpy as np
   >>> PRIMITIVE_CELL = {
   >>>   "lattice": [[2.818528, 0.0, 0.0],
   >>>               [-1.409264, 2.440917, 0.0],
@@ -105,7 +108,7 @@ class LCNNFeaturizer(MaterialStructureFeaturizer):
   >>>             '-1', '-1', '-1', '-1', '0', '2']
   >>>                   }
   >>> }
-  >>> featuriser = LCNNFeaturizer(**PRIMITIVE_CELL_INF0)
+  >>> featuriser = dc.feat.LCNNFeaturizer(**PRIMITIVE_CELL_INF0)
   >>> print(type(featuriser._featurize(Structure(**DATA_POINT))))
   <class 'deepchem.feat.graph_data.GraphData'>
 
