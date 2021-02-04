@@ -253,5 +253,4 @@ class MolGanFeaturizer(MolecularFeaturizer):
         logger.warning("Exception message: {}".format(e))
         molecules.append(np.array([]))
 
-    molecules = np.asarray(molecules)
-    return molecules
+    return np.asarray(molecules)

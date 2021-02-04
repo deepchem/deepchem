@@ -16,6 +16,7 @@ from deepchem.models import Model
 from deepchem.data import Dataset
 from deepchem.trans import Transformer
 from deepchem.utils.data_utils import load_from_disk, save_to_disk
+from deepchem.utils.typing import ArrayLike
 
 NON_WEIGHTED_MODELS = [
     LogisticRegression, PLSRegression, GaussianProcessRegressor, ElasticNetCV,
@@ -98,7 +99,7 @@ class SklearnModel(Model):
       return
     self.model.fit(X, y)
 
-  def predict_on_batch(self, X: np.ndarray) -> np.ndarray:
+  def predict_on_batch(self, X: ArrayLike) -> np.ndarray:
     """Makes predictions on batch of data.
 
     Parameters

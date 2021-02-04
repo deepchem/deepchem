@@ -1,6 +1,7 @@
 """Type annotations that are widely used in DeepChem"""
 
 from typing import Any, Callable, List, Sequence, Tuple, TypeVar, Union
+import numpy as np
 
 T = TypeVar("T")
 
@@ -15,6 +16,10 @@ OneOrMany = Union[T, Sequence[T]]
 
 # The shape of a NumPy array
 Shape = Tuple[int, ...]
+
+# A NumPy array, or an object that can be converted to one.  Once we move to
+# requiring NumPy 1.20, we should replace this with numpy.typing.ArrayLike.
+ArrayLike = Union[np.ndarray, Sequence]
 
 # type of RDKit object
 RDKitMol = Any

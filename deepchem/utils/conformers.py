@@ -209,8 +209,7 @@ class ConformerGenerator(object):
       ff = self.get_molecule_force_field(mol, conf_id=conf.GetId())
       energy = ff.CalcEnergy()
       energies.append(energy)
-    energies = np.asarray(energies, dtype=float)
-    return energies
+    return np.asarray(energies, dtype=float)
 
   def prune_conformers(self, mol: RDKitMol) -> RDKitMol:
     """
