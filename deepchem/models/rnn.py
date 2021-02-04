@@ -25,8 +25,9 @@ class RNN(KerasModel):
                n_tasks,
                n_features,
                n_dims,
-               layer_filters=[100],
-               kernel_size=5,
+               bidirectional=True,
+               layer_filters=[100], #TODO Remove
+               kernel_size=5, #TODO Remove
                strides=1,
                weight_init_stddevs=0.02,
                bias_init_consts=1.0,
@@ -47,7 +48,7 @@ class RNN(KerasModel):
     In addition to the following arguments, this class also accepts
     all the keyword arguments from TensorGraph.
 
-   """
+    """
 
     if n_dims != 3:
       raise ValueError("Only 3-dimensional RNNs supported at this time.")
@@ -100,37 +101,20 @@ class RNN(KerasModel):
     # TODO Add the RNN cellls
 
     if layerType == 'LSTM':
-      recurrentLayer = layers.LSTM
-
+      RecurrentLayer = layers.LSTM
     elif layerType == 'GRU':
-      recurrentLayer = layers.GRU
-
+      RecurrentLayer = layers.GRU
     elif layerType == 'SimpleRNN':
-      recurrentLayer = layers.SimpleRNN
-
+      RecurrentLayer = layers.SimpleRNN
     else:
       raise ValueError('layerType must be "LSTM," "GRU," or "SimpleRNN."')
-    
-
-
-    # Add the convolutional layers ( TODO Remove )
-
-    ConvLayer = (layers.Conv1D, layers.Conv2D, layers.Conv3D)[dims - 1]
-    if pool_type == 'average':
-      PoolLayer = (layers.GlobalAveragePooling1D, layers.GlobalAveragePooling2D,
-                   layers.GlobalAveragePooling3D)[dims - 1]
-    elif pool_type == 'max':
-      PoolLayer = (layers.GlobalMaxPool1D, layers.GlobalMaxPool2D,
-                   layers.GlobalMaxPool2D)[dims - 1]
-    else:
-      raise ValueError('pool_type must be either "average" or "max"')
     for filters, size, stride, weight_stddev, bias_const, dropout, activation_fn in zip(
         layer_filters, kernel_size, strides, weight_init_stddevs,
         bias_init_consts, dropouts, activation_fns):
       layer = prev_layer
       if next_activation is not None:
         layer = Activation(next_activation)(layer)
-      layer = ConvLayer(
+      layer = RecurrentLayer(
           filters,
           size,
           stride,
@@ -151,7 +135,7 @@ class RNN(KerasModel):
       next_activation = activation_fn
     if next_activation is not None:
       prev_layer = Activation(activation_fn)(prev_layer)
-    prev_layer = PoolLayer()(prev_layer)
+    prev_layer = PoolLayer()(prev_layer) #TODO FIX
     if mode == 'classification':
       logits = Reshape((n_tasks,
                         n_classes))(Dense(n_tasks * n_classes)(prev_layer))
@@ -184,7 +168,7 @@ class RNN(KerasModel):
         output_types = ['prediction']
         loss = dc.models.losses.L2Loss()
     model = tf.keras.Model(inputs=[features, dropout_switch], outputs=outputs)
-    super(CNN, self).__init__(model, loss, output_types=output_types, **kwargs)
+    super(RNN, self).__init__(model, loss, output_types=output_types, **kwargs)
 
   def default_generator(self,
                         dataset,
