@@ -129,6 +129,9 @@ read off what's needed to train the model from the table below.
 | :code:`GCNModel`                       | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
 |                                        | Regressor  |                      |                        |                                                                |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
+| :code:`LCCNModel`                      | Regressor  | :code:`GraphData`    |                        | :code:`LCNNFeaturizer`                                         | :code:`fit`          |
+|                                        |            |                      |                        |                                                                |                      |
++----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
 | :code:`AttentiveFPModel`               | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
 |                                        | Regressor  |                      |                        |                                                                |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
@@ -467,4 +470,10 @@ Note that this is an alternative implementation for MPNN and currently you can o
 ``deepchem.models.torch_models``.
 
 .. autoclass:: deepchem.models.torch_models.MPNNModel
+  :members:
+
+LCNNModel
+---------
+
+.. autoclass:: deepchem.models.LCNNModel
   :members:

@@ -35,6 +35,8 @@ try:
   from deepchem.models.torch_models import CGCNN, CGCNNModel
   from deepchem.models.torch_models import GAT, GATModel
   from deepchem.models.torch_models import GCN, GCNModel
+  from deepchem.models.torch_models import LCNN, LCNNModel
+
 except ModuleNotFoundError:
   pass
 
