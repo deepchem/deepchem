@@ -2048,7 +2048,6 @@ class DiskDataset(Dataset):
       The basenames for each shard. If this isn't specified, will assume the
       basenames of form "shard-i" used by `create_dataset` and `reshard`.
     """
-    tasks = self.get_task_names()
     # Shuffle the arrays corresponding to each row in metadata_df
     n_rows = len(self.metadata_df.index)
     if shard_basenames is not None:
@@ -2225,7 +2224,6 @@ class DiskDataset(Dataset):
     metadata_rows = self.metadata_df.values.tolist()
     shard_num = len(metadata_rows)
     basename = "shard-%d" % shard_num
-    tasks = self.get_task_names()
     metadata_rows.append(
         DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w, ids))
     self.metadata_df = DiskDataset._construct_metadata(metadata_rows)
@@ -2253,7 +2251,6 @@ class DiskDataset(Dataset):
       Identifiers array.
     """
     basename = "shard-%d" % shard_num
-    tasks = self.get_task_names()
     DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w, ids)
     self._cached_shards = None
 
