@@ -456,11 +456,7 @@ class RandomGroupSplitter(Splitter):
         group_dict[g] = []
       group_dict[g].append(idx)
 
-    group_idxs = []
-    for g in group_dict.values():
-      group_idxs.append(g)
-
-    group_idxs = np.array(group_idxs)
+    group_idxs = np.array([g for g in group_dict.values()])
 
     num_groups = len(group_idxs)
     train_cutoff = int(frac_train * num_groups)
@@ -545,18 +541,18 @@ class RandomStratifiedSplitter(Splitter):
         for i in range(n_tasks)
     ]
     count_for_task = np.array([len(x) for x in indices_for_task])
-    train_target = np.round(frac_train * count_for_task).astype(np.int)
-    valid_target = np.round(frac_valid * count_for_task).astype(np.int)
-    test_target = np.round(frac_test * count_for_task).astype(np.int)
+    train_target = np.round(frac_train * count_for_task).astype(int)
+    valid_target = np.round(frac_valid * count_for_task).astype(int)
+    test_target = np.round(frac_test * count_for_task).astype(int)
 
     # Assign the positive samples to datasets.  Since a sample may be positive
     # on more than one task, we need to keep track of the effect of each added
     # sample on each task.  To try to keep everything balanced, we cycle through
     # tasks, assigning one positive sample for each one.
 
-    train_counts = np.zeros(n_tasks, np.int)
-    valid_counts = np.zeros(n_tasks, np.int)
-    test_counts = np.zeros(n_tasks, np.int)
+    train_counts = np.zeros(n_tasks, int)
+    valid_counts = np.zeros(n_tasks, int)
+    test_counts = np.zeros(n_tasks, int)
     set_target = [train_target, valid_target, test_target]
     set_counts = [train_counts, valid_counts, test_counts]
     set_inds: List[List[int]] = [[], [], []]
@@ -786,7 +782,7 @@ class IndexSplitter(Splitter):
     num_datapoints = len(dataset)
     train_cutoff = int(frac_train * num_datapoints)
     valid_cutoff = int((frac_train + frac_valid) * num_datapoints)
-    indices = range(num_datapoints)
+    indices = np.arange(num_datapoints)
     return (indices[:train_cutoff], indices[train_cutoff:valid_cutoff],
             indices[valid_cutoff:])
 
@@ -861,7 +857,8 @@ class SpecifiedSplitter(Splitter):
       if indice not in valid_test:
         train_indices.append(indice)
 
-    return (train_indices, self.valid_indices, self.test_indices)
+    return (np.array(train_indices), np.array(self.valid_indices),
+            np.array(self.test_indices))
 
 
 #################################################################
@@ -928,7 +925,6 @@ class MolecularWeightSplitter(Splitter):
       mws.append(mw)
 
     # Sort by increasing MW
-    mws = np.array(mws)
     sortidx = np.argsort(mws)
 
     train_cutoff = int(frac_train * len(sortidx))
@@ -1245,7 +1241,7 @@ class FingerprintSplitter(Splitter):
     mols = [Chem.MolFromSmiles(smiles) for smiles in dataset.ids]
     fps = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in mols]
 
-    # Split into two groups: test training set and everything else.
+    # Split into two groups: training set and everything else.
 
     train_size = int(frac_train * len(dataset))
     valid_size = int(frac_valid * len(dataset))

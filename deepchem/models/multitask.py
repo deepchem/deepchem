@@ -61,7 +61,7 @@ class SingletaskToMultitask(Model):
     assert len(tasks) == len(task_dirs)
     logger.info("Splitting multitask dataset into singletask datasets")
     task_datasets = [
-        DiskDataset.create_dataset([], task_dirs[task_num], [task])
+        DiskDataset.create_dataset([], task_dirs[task_num], [task.item()])
         for (task_num, task) in enumerate(tasks)
     ]
     #task_metadata_rows = {task: [] for task in tasks}

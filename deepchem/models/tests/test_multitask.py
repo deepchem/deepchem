@@ -40,8 +40,8 @@ class TestMultitask(unittest.TestCase):
     splitter = dc.splits.ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(dataset)
 
-    assert train_dataset.get_task_names() == tasks
-    assert test_dataset.get_task_names() == tasks
+    assert np.array_equal(train_dataset.get_task_names(), tasks)
+    assert np.array_equal(test_dataset.get_task_names(), tasks)
 
   def test_multitask_data(self):
     """Test that data associated with a tasks stays associated with it."""
