@@ -26,9 +26,6 @@ class RNN(KerasModel):
                n_features,
                n_dims,
                bidirectional=True,
-               layer_filters=[100], #TODO Remove
-               kernel_size=5, #TODO Remove
-               strides=1,
                weight_init_stddevs=0.02,
                bias_init_consts=1.0,
                weight_decay_penalty=0.0,
