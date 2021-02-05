@@ -16,7 +16,7 @@ from deepchem.utils.data_utils import download_url, get_data_dir
 from deepchem.utils.typing import RDKitMol
 from deepchem.utils.geometry_utils import compute_centroid, compute_protein_range
 from deepchem.utils.rdkit_utils import load_molecule, write_molecule
-from deepchem.utils.vina_utils import load_docked_ligands, write_vina_conf, write_gnina_conf, read_gnina_log
+from deepchem.utils.docking_utils import load_docked_ligands, write_vina_conf, write_gnina_conf, read_gnina_log
 
 logger = logging.getLogger(__name__)
 DOCKED_POSES = List[Tuple[RDKitMol, RDKitMol]]
@@ -102,8 +102,9 @@ class GninaPoseGenerator(PoseGenerator):
   "Protein–Ligand Scoring with Convolutional Neural Networks."
   Journal of chemical information and modeling (2017).
 
-  Notes
-  -----
+  Note
+  ----
+  * GNINA currently only works on Linux operating systems.
   * GNINA requires CUDA >= 10.1 for fast CNN scoring.
   * Almost all dependencies are included in the most compatible way
     possible, which reduces performance. Build GNINA from source
@@ -122,7 +123,7 @@ class GninaPoseGenerator(PoseGenerator):
       self.gnina_cmd = os.path.join(self.gnina_dir, filename)
     else:
       raise ValueError(
-          "Unknown operating system. Try using a cloud platform to run this code instead."
+          "GNINA currently only runs on Linux. Try using a cloud platform to run this code instead."
       )
 
     if not os.path.exists(self.gnina_cmd):

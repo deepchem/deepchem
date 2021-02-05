@@ -197,15 +197,15 @@ Docking Utilities
 These utilities assist in file preparation and processing for molecular
 docking.
 
-.. autofunction:: deepchem.utils.vina_utils.write_vina_conf
+.. autofunction:: deepchem.utils.docking_utils.write_vina_conf
 
-.. autofunction:: deepchem.utils.vina_utils.write_gnina_conf
+.. autofunction:: deepchem.utils.docking_utils.write_gnina_conf
 
-.. autofunction:: deepchem.utils.vina_utils.load_docked_ligands
+.. autofunction:: deepchem.utils.docking_utils.load_docked_ligands
 
-.. autofunction:: deepchem.utils.vina_utils.prepare_inputs
+.. autofunction:: deepchem.utils.docking_utils.prepare_inputs
 
-.. autofunction:: deepchem.utils.vina_utils.read_gnina_log
+.. autofunction:: deepchem.utils.docking_utils.read_gnina_log
 
 
 Print Threshold

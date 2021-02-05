@@ -11,6 +11,7 @@ import deepchem as dc
 import pytest
 
 IS_WINDOWS = platform.system() == 'Windows'
+IS_LINUX = platform.system() == 'Linux'
 
 
 class TestPoseGeneration(unittest.TestCase):
@@ -23,7 +24,7 @@ class TestPoseGeneration(unittest.TestCase):
     """Test that VinaPoseGenerator can be initialized."""
     dc.dock.VinaPoseGenerator()
 
-  @unittest.skipIf(IS_WINDOWS, 'Skip the test on Windows')
+  @unittest.skipIf(not IS_LINUX, 'Skip the test on Windows and Mac.')
   def test_gnina_initialization(self):
     """Test that GninaPoseGenerator can be initialized."""
     dc.dock.GninaPoseGenerator()
@@ -64,6 +65,7 @@ class TestPoseGeneration(unittest.TestCase):
     assert isinstance(ligand, Chem.Mol)
 
   @pytest.mark.slow
+  @unittest.skipIf(not IS_LINUX, 'Skip the test on Windows and Mac.')
   def test_gnina_poses_and_scores(self):
     """Test that GninaPoseGenerator generates poses and scores
 

@@ -83,11 +83,11 @@ from deepchem.utils.pdbqt_utils import pdbqt_to_pdb
 from deepchem.utils.pdbqt_utils import convert_protein_to_pdbqt
 from deepchem.utils.pdbqt_utils import convert_mol_to_pdbqt
 
-from deepchem.utils.vina_utils import write_vina_conf
-from deepchem.utils.vina_utils import write_gnina_conf
-from deepchem.utils.vina_utils import read_gnina_log
-from deepchem.utils.vina_utils import load_docked_ligands
-from deepchem.utils.vina_utils import prepare_inputs
+from deepchem.utils.docking_utils import write_vina_conf
+from deepchem.utils.docking_utils import write_gnina_conf
+from deepchem.utils.docking_utils import read_gnina_log
+from deepchem.utils.docking_utils import load_docked_ligands
+from deepchem.utils.docking_utils import prepare_inputs
 
 from deepchem.utils.voxel_utils import convert_atom_to_voxel
 from deepchem.utils.voxel_utils import convert_atom_pair_to_voxel
