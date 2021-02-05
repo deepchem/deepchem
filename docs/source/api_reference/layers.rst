@@ -16,6 +16,18 @@ another tensor. DeepChem maintains an extensive collection of layers which perfo
 .. autoclass:: deepchem.models.layers.GraphGather
   :members:
 
+.. autoclass:: deepchem.models.layers.GraphConvolutionLayer
+  :members:
+
+.. autoclass:: deepchem.models.layers.GraphAggregationLayer
+  :members:
+
+.. autoclass:: deepchem.models.layers.MultiGraphConvolutionLayer
+  :members:
+
+.. autoclass:: deepchem.models.layers.GraphEncoderLayer
+  :members:
+
 .. autoclass:: deepchem.models.layers.LSTMStep
   :members:
 
