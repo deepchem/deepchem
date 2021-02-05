@@ -5,7 +5,7 @@ try:
   from collections.abc import Sequence as SequenceCollection
 except:
   from collections import Sequence as SequenceCollection
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Tuple
 from tensorflow.keras import activations, initializers, backend
 from tensorflow.keras.layers import Dropout, BatchNormalization, Dense, Activation
 
@@ -374,7 +374,14 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
   """
   Graph convolution layer used in MolGAN model.
   MolGAN is a WGAN type model for generation of small molecules.
-  Not used directly, higher level layers like MultiGraphConvolutionLayer.
+  Not used directly, higher level layers like MultiGraphConvolutionLayer use it.
+  This layer performs basic convolution on one-hot encoded matrices containing
+  atom and bond information. This layer also accepts three inputs for the case
+  when convolution is performed more than once and results of previous convolution
+  need to used. It was done in such a way to avoid creating another layer that
+  accepts three inputs rather than two. The last input layer is so-called
+  hidden_layer and it hold results of the convolution while first two are unchanged
+  input tensors.
 
   References
   ----------
@@ -383,11 +390,11 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
   """
 
   def __init__(self,
-               units,
-               activation="tanh",
-               dropout_rate=0.0,
-               edges=5,
-               name="",
+               units: int,
+               activation: Callable = "tanh",
+               dropout_rate: float = 0.0,
+               edges: int = 5,
+               name: str = "",
                **kwargs):
     """
     Initialize this layer.
@@ -472,6 +479,9 @@ class GraphAggregationLayer(tf.keras.layers.Layer):
   """
   Graph Aggregation layer used in MolGAN model.
   MolGAN is a WGAN type model for generation of small molecules.
+  Performs aggregation on tensor resulting from convolution layers.
+  Given its simple nature it might be removed in future and to 
+  GraphEncoderLayer.
 
   References
   ----------
@@ -480,17 +490,17 @@ class GraphAggregationLayer(tf.keras.layers.Layer):
   """
 
   def __init__(self,
-               units,
-               activation="tanh",
-               dropout_rate=0.0,
-               name="",
+               units: int = 128,
+               activation: Callable = "tanh",
+               dropout_rate: float = 0.0,
+               name: str = "",
                **kwargs):
     """
     Initialize the layer
 
     Parameters
     ---------
-    units: int
+    units: int, optional (default=128)
       Dimesion of dense layers used for aggregation
     activation: function, optional (default=Tanh)
       activation function used across model, default is Tanh
@@ -516,7 +526,7 @@ class GraphAggregationLayer(tf.keras.layers.Layer):
 
     Parameters
     ----------
-    inputs: list
+    inputs: List
       Single tensor resulting from graph convolution layer
     training: bool
       Should this layer be run in training mode.
@@ -548,7 +558,9 @@ class MultiGraphConvolutionLayer(tf.keras.layers.Layer):
   Multiple pass convolution layer used in MolGAN model.
   MolGAN is a WGAN type model for generation of small molecules.
   It takes outputs of previous convolution layer and uses
-  them as inputs for the next one. It simplifies the overall framework.
+  them as inputs for the next one.
+  It simplifies the overall framework, but might be moved to
+  GraphEncoderLayer in the future in order to reduce number of layers.
 
   References
   ----------
@@ -557,18 +569,18 @@ class MultiGraphConvolutionLayer(tf.keras.layers.Layer):
   """
 
   def __init__(self,
-               units,
-               activation="tanh",
-               dropout_rate=0.0,
-               edges=5,
-               name="",
+               units: Tuple = (128, 64),
+               activation: Callable = "tanh",
+               dropout_rate: float = 0.0,
+               edges: int = 5,
+               name: str = "",
                **kwargs):
     """
     Initialize the layer
 
     Parameters
     ---------
-    units: list, min_length=2
+    units: Tuple, optional (default=(128,64)), min_length=2
       List of dimensions used by consecutive convolution layers.
       The more values the more convolution layers invoked.
     activation: function, optional (default=tanh)
@@ -640,8 +652,9 @@ class GraphEncoderLayer(tf.keras.layers.Layer):
   """
   Main learning layer used by MolGAN model.
   MolGAN is a WGAN type model for generation of small molecules.
-  It role is to further simplify model. This layer can be manually
-  built by stacking graph convolution layers followed by graph aggregation.
+  It role is to further simplify model.
+  This layer can be manually built by stacking graph convolution layers
+  followed by graph aggregation.
 
   References
   ----------
@@ -650,18 +663,18 @@ class GraphEncoderLayer(tf.keras.layers.Layer):
   """
 
   def __init__(self,
-               units,
-               activation="tanh",
-               dropout_rate=0.0,
-               edges=5,
-               name="",
+               units: List = [(128, 64), 128],
+               activation: Callable = "tanh",
+               dropout_rate: float = 0.0,
+               edges: int = 5,
+               name: str = "",
                **kwargs):
     """
     Initialize the layer.
 
     Parameters
     ---------
-    units: list, length=2
+    units: List, optional (default=[(128, 64), 128])
       List of units for MultiGraphConvolutionLayer and GraphAggregationLayer
       i.e. [(128,64),128] means two convolution layers dims = [128,64]
       followed by aggregation layer dims=128
