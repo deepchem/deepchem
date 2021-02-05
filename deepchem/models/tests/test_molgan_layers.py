@@ -2,6 +2,7 @@ import unittest
 
 from tensorflow import keras
 from tensorflow.keras.layers import Input
+from tensorflow.keras import activations
 from deepchem.models.layers import GraphConvolutionLayer, MultiGraphConvolutionLayer, GraphAggregationLayer, GraphEncoderLayer
 
 
@@ -27,7 +28,7 @@ class test_molgan_layers(unittest.TestCase):
                                    (None, vertices, nodes), (None, vertices,
                                                              units))]
     assert layer.units == units
-    assert layer.activation == 'tanh'
+    assert layer.activation == activations.tanh
     assert layer.edges == 5
     assert layer.dropout_rate == 0.0
 
@@ -42,7 +43,7 @@ class test_molgan_layers(unittest.TestCase):
 
     assert model.output_shape == (None, units)
     assert layer.units == units
-    assert layer.activation == 'tanh'
+    assert layer.activation == activations.tanh
     assert layer.dropout_rate == 0.0
 
   def test_multigraph_convolution_layer(self):
@@ -62,7 +63,7 @@ class test_molgan_layers(unittest.TestCase):
 
     assert model.output_shape == (None, vertices, second_convolution_unit)
     assert layer.units == units
-    assert layer.activation == 'tanh'
+    assert layer.activation == activations.tanh
     assert layer.edges == 5
     assert layer.dropout_rate == 0.0
 
@@ -87,7 +88,7 @@ class test_molgan_layers(unittest.TestCase):
     assert layer.graph_convolution_units == (first_convolution_unit,
                                              second_convolution_unit)
     assert layer.auxiliary_units == aggregation_unit
-    assert layer.activation == 'tanh'
+    assert layer.activation == activations.tanh
     assert layer.edges == 5
     assert layer.dropout_rate == 0.0
 

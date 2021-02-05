@@ -391,7 +391,7 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
 
   def __init__(self,
                units: int,
-               activation: Callable = "tanh",
+               activation: Callable = activations.tanh,
                dropout_rate: float = 0.0,
                edges: int = 5,
                name: str = "",
@@ -491,7 +491,7 @@ class GraphAggregationLayer(tf.keras.layers.Layer):
 
   def __init__(self,
                units: int = 128,
-               activation: Callable = "tanh",
+               activation: Callable = activations.tanh,
                dropout_rate: float = 0.0,
                name: str = "",
                **kwargs):
@@ -570,7 +570,7 @@ class MultiGraphConvolutionLayer(tf.keras.layers.Layer):
 
   def __init__(self,
                units: Tuple = (128, 64),
-               activation: Callable = "tanh",
+               activation: Callable = activations.tanh,
                dropout_rate: float = 0.0,
                edges: int = 5,
                name: str = "",
@@ -664,7 +664,7 @@ class GraphEncoderLayer(tf.keras.layers.Layer):
 
   def __init__(self,
                units: List = [(128, 64), 128],
-               activation: Callable = "tanh",
+               activation: Callable = activations.tanh,
                dropout_rate: float = 0.0,
                edges: int = 5,
                name: str = "",
