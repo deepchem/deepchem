@@ -94,8 +94,6 @@ class RNN(KerasModel):
     prev_filters = n_features
     next_activation = None
 
-    # TODO Add the RNN cellls
-
     if layerType == 'LSTM':
       RecurrentLayer = layers.LSTM
     elif layerType == 'GRU':
@@ -107,7 +105,7 @@ class RNN(KerasModel):
 
     if bidirectional == True:
       RecurrentLayer = layers.Bidirectional(RecurrentLayer)
-    for filters, size, stride, weight_stddev, bias_const, dropout, activation_fn in zip(
+    for filters, size, stride, weight_stddev, bias_const, dropout, activation_fn in zip( #TODO REWRITE FOR LOOP CONDITIONS
         layer_filters, kernel_size, strides, weight_init_stddevs,
         bias_init_consts, dropouts, activation_fns):
       layer = prev_layer
@@ -124,7 +122,7 @@ class RNN(KerasModel):
           kernel_regularizer=regularizer)(layer)
       if dropout > 0.0:
         layer = SwitchedDropout(rate=dropout)([layer, dropout_switch])
-      if residual and prev_filters == filters:
+      if residual and prev_filters == filters: #TODO Cleanup
         prev_layer = Lambda(lambda x: x[0] + x[1])([prev_layer, layer])
       else:
         prev_layer = layer
