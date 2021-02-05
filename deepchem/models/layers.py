@@ -83,7 +83,7 @@ class InteratomicL2Distances(tf.keras.layers.Layer):
 
 class GraphConv(tf.keras.layers.Layer):
   """Graph Convolutional Layers
-  
+
   This layer implements the graph convolution introduced in [1]_.  The graph
   convolution combines per-node feature vectures in a nonlinear fashion with
   the feature vectors for neighboring nodes.  This "blends" information in
@@ -92,7 +92,7 @@ class GraphConv(tf.keras.layers.Layer):
   References
   ----------
   .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints." Advances in neural information processing systems. 2015. https://arxiv.org/abs/1509.09292
-  
+
   """
 
   def __init__(self,
@@ -229,7 +229,7 @@ class GraphPool(tf.keras.layers.Layer):
   .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
   learning molecular fingerprints." Advances in neural information processing
   systems. 2015. https://arxiv.org/abs/1509.09292
-  
+
   """
 
   def __init__(self, min_degree=0, max_degree=10, **kwargs):
@@ -374,7 +374,7 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
   """
   Graph convolution layer used in MolGAN model.
   MolGAN is a WGAN type model for generation of small molecules.
-  Not used directly but used by higher level layers like MultiGraphConvolutionLayer. 
+  Not used directly, higher level layers like MultiGraphConvolutionLayer.
 
   References
   ----------
@@ -384,7 +384,7 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
 
   def __init__(self,
                units,
-               activation=None,
+               activation="tanh",
                dropout_rate=0.0,
                edges=5,
                name="",
@@ -396,8 +396,8 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
     ---------
     units: int
       Dimesion of dense layers used for convolution
-    activation: function, optional (default=None)
-      Tanh is default option provided by GraphEncoderLayer
+    activation: function, optional (default=Tanh)
+      activation function used across model, default is Tanh
     dropout_rate: float, optional (default=0.0)
      Dropout rate used by dropout layer
     edges: int, optional (default=5)
@@ -416,7 +416,7 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
     self.dense1 = [Dense(units=self.units) for _ in range(edges - 1)]
     self.dense2 = Dense(units=self.units)
     self.dropout = Dropout(self.dropout_rate)
-    self.activation = Activation(self.activation)
+    self.activation_layer = Activation(self.activation)
 
   def call(self, inputs, training=False):
     """
@@ -451,7 +451,7 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
 
     output = tf.matmul(adj, output)
     output = tf.reduce_sum(output, 1) + self.dense2(node_tensor)
-    output = self.activation(output)
+    output = self.activation_layer(output)
     output = self.dropout(output)
     return adjacency_tensor, node_tensor, output
 
@@ -481,7 +481,7 @@ class GraphAggregationLayer(tf.keras.layers.Layer):
 
   def __init__(self,
                units,
-               activation=None,
+               activation="tanh",
                dropout_rate=0.0,
                name="",
                **kwargs):
@@ -492,8 +492,8 @@ class GraphAggregationLayer(tf.keras.layers.Layer):
     ---------
     units: int
       Dimesion of dense layers used for aggregation
-    activation: function, optional (default=None)
-      Tanh is default option provided by GraphEncoderLayer
+    activation: function, optional (default=Tanh)
+      activation function used across model, default is Tanh
     dropout_rate: float, optional (default=0.0)
       Used by dropout layer
     name: string, optional (default="")
@@ -558,7 +558,7 @@ class MultiGraphConvolutionLayer(tf.keras.layers.Layer):
 
   def __init__(self,
                units,
-               activation=None,
+               activation="tanh",
                dropout_rate=0.0,
                edges=5,
                name="",
@@ -571,8 +571,8 @@ class MultiGraphConvolutionLayer(tf.keras.layers.Layer):
     units: list, min_length=2
       List of dimensions used by consecutive convolution layers.
       The more values the more convolution layers invoked.
-    activation: function, optional (default=None)
-      Tanh is default option provided by GraphEncoderLayer
+    activation: function, optional (default=tanh)
+      activation function used across model, default is Tanh
     dropout_rate: float, optional (default=0.0)
       Used by dropout layer
     edges: int, optional (default=0)
@@ -836,8 +836,8 @@ class LSTMStep(tf.keras.layers.Layer):
 
 def cosine_dist(x, y):
   """Computes the inner product (cosine similarity) between two tensors.
-  
-  This assumes that the two input tensors contain rows of vectors where 
+
+  This assumes that the two input tensors contain rows of vectors where
   each column represents a different feature. The output tensor will have
   elements that represent the inner product between pairs of normalized vectors
   in the rows of `x` and `y`. The two tensors need to have the same number of
@@ -851,7 +851,7 @@ def cosine_dist(x, y):
   Methods
   -------
   The vectors in the input tensors are first l2-normalized such that each vector
-  has length or magnitude of 1. The inner product (dot product) is then taken 
+  has length or magnitude of 1. The inner product (dot product) is then taken
   between corresponding pairs of row vectors in the input tensors and returned.
 
   Examples
@@ -861,14 +861,14 @@ def cosine_dist(x, y):
   the same) will be a tensor of 1s. In this scenario, if the input tensors `x` and
   `y` are each of shape `(n,p)`, where each element in `x` and `y` is the same, then
   the output tensor would be a tensor of shape `(n,n)` with 1 in every entry.
-  
+
   >>> import tensorflow as tf
   >>> import deepchem.models.layers as layers
   >>> x = tf.ones((6, 4), dtype=tf.dtypes.float32, name=None)
   >>> y_same = tf.ones((6, 4), dtype=tf.dtypes.float32, name=None)
   >>> cos_sim_same = layers.cosine_dist(x,y_same)
 
-  `x` and `y_same` are the same tensor (equivalent at every element, in this 
+  `x` and `y_same` are the same tensor (equivalent at every element, in this
   case 1). As such, the pairwise inner product of the rows in `x` and `y` will
   always be 1. The output tensor will be of shape (6,6).
 
@@ -887,12 +887,12 @@ def cosine_dist(x, y):
   >>> x1 = identity_tensor[0:256,:]
   >>> x2 = identity_tensor[256:512,:]
   >>> cos_sim_orth = layers.cosine_dist(x1,x2)
-  
+
   Each row in `x1` is orthogonal to each row in `x2`. As such, the pairwise inner
   product of the rows in `x1`and `x2` will always be 0. Furthermore, because the
   shape of the input tensors are both of shape `(256,512)`, the output tensor will
   be of shape `(256,256)`.
-  
+
   >>> tf.reduce_sum(cos_sim_orth) == 0 # True
   <tf.Tensor: shape=(), dtype=bool, numpy=True>
   >>> cos_sim_orth.shape
@@ -912,7 +912,7 @@ def cosine_dist(x, y):
   Returns
   -------
   tf.Tensor
-    Returns a tensor of shape `(n, m)`, that is, `n` rows by `m` columns. 
+    Returns a tensor of shape `(n, m)`, that is, `n` rows by `m` columns.
     Each `i,j`-th entry of this output tensor is the inner product between
     the l2-normalized `i`-th row of the input tensor `x` and the
     the l2-normalized `j`-th row of the output tensor `y`.
@@ -939,7 +939,7 @@ class AttnLSTMEmbedding(tf.keras.layers.Layer):
 
   References
   ----------
-  .. [1] Vinyals, Oriol, et al. "Matching networks for one shot learning." 
+  .. [1] Vinyals, Oriol, et al. "Matching networks for one shot learning."
          Advances in neural information processing systems. 2016.
   .. [2] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters:
          Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
@@ -2845,7 +2845,7 @@ class WeaveGather(tf.keras.layers.Layer):
 
   >>> total_n_atoms = 4
 
-  Let's suppose that we have `n_atom_feat` features per atom. 
+  Let's suppose that we have `n_atom_feat` features per atom.
 
   >>> n_atom_feat = 75
 
@@ -2958,9 +2958,9 @@ class WeaveGather(tf.keras.layers.Layer):
 
     Returns
     -------
-    output_molecules: List 
+    output_molecules: List
       Each entry in this list is of shape `(self.n_inputs,)`
-    
+
     """
     outputs = inputs[0]
     atom_split = inputs[1]
@@ -3000,7 +3000,7 @@ class WeaveGather(tf.keras.layers.Layer):
     deviation `gaussian_memberships[i][1]`. Each feature in `x` is assigned
     the probability of falling in each Gaussian, and probabilities are
     normalized across the 11 different Gaussians.
-    
+
     Returns
     -------
     outputs: tf.Tensor
