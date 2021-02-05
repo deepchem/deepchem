@@ -21,8 +21,8 @@ class test_molgan_layers(unittest.TestCase):
     adjacency_tensor = Input(shape=(vertices, vertices, edges))
     node_tensor = Input(shape=(vertices, nodes))
     output = layer([adjacency_tensor, node_tensor])
-    model = keras.Model(
-        inputs=[adjacency_tensor, node_tensor], outputs=[output])
+    model = keras.Model(inputs=[adjacency_tensor, node_tensor],
+                        outputs=[output])
 
     assert model.output_shape == [((None, vertices, vertices, edges),
                                    (None, vertices, nodes), (None, vertices,
@@ -58,8 +58,8 @@ class test_molgan_layers(unittest.TestCase):
     adjacency_tensor = Input(shape=(vertices, vertices, edges))
     node_tensor = Input(shape=(vertices, nodes))
     hidden_tensor = layer([adjacency_tensor, node_tensor])
-    model = keras.Model(
-        inputs=[adjacency_tensor, node_tensor], outputs=[hidden_tensor])
+    model = keras.Model(inputs=[adjacency_tensor, node_tensor],
+                        outputs=[hidden_tensor])
 
     assert model.output_shape == (None, vertices, second_convolution_unit)
     assert layer.units == units
@@ -81,8 +81,8 @@ class test_molgan_layers(unittest.TestCase):
     adjacency_tensor = Input(shape=(vertices, vertices, edges))
     node_tensor = Input(shape=(vertices, nodes))
     output = layer([adjacency_tensor, node_tensor])
-    model = keras.Model(
-        inputs=[adjacency_tensor, node_tensor], outputs=[output])
+    model = keras.Model(inputs=[adjacency_tensor, node_tensor],
+                        outputs=[output])
 
     assert model.output_shape == (None, aggregation_unit)
     assert layer.graph_convolution_units == (first_convolution_unit,
