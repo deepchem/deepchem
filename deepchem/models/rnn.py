@@ -47,7 +47,6 @@ class RNN(KerasModel):
 
     In addition to the following arguments, this class also accepts
     all the keyword arguments from TensorGraph.
-
     """
 
     if n_dims != 3:
@@ -108,6 +107,9 @@ class RNN(KerasModel):
       RecurrentLayer = layers.SimpleRNN
     else:
       raise ValueError('layerType must be "LSTM," "GRU," or "SimpleRNN."')
+
+    if bidirectional == True:
+      RecurrentLayer = layers.Bidirectional(RecurrentLayer)
     for filters, size, stride, weight_stddev, bias_const, dropout, activation_fn in zip(
         layer_filters, kernel_size, strides, weight_init_stddevs,
         bias_init_consts, dropouts, activation_fns):
@@ -115,10 +117,8 @@ class RNN(KerasModel):
       if next_activation is not None:
         layer = Activation(next_activation)(layer)
       layer = RecurrentLayer(
-          filters,
           size,
-          stride,
-          padding=padding,
+          return_sequences=True,
           data_format='channels_last',
           use_bias=(bias_init_consts is not None),
           kernel_initializer=tf.keras.initializers.TruncatedNormal(
@@ -131,7 +131,6 @@ class RNN(KerasModel):
         prev_layer = Lambda(lambda x: x[0] + x[1])([prev_layer, layer])
       else:
         prev_layer = layer
-      prev_filters = filters
       next_activation = activation_fn
     if next_activation is not None:
       prev_layer = Activation(activation_fn)(prev_layer)
