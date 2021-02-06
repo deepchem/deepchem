@@ -214,8 +214,7 @@ def merge_molecular_fragments(
     for mol_frag in molecules:
       all_atoms += mol_frag.GetAtoms()
       all_coords.append(mol_frag.GetCoords())
-    all_coords = np.concatenate(all_coords)
-    return MolecularFragment(all_atoms, all_coords)
+    return MolecularFragment(all_atoms, np.concatenate(all_coords))
 
 
 def get_mol_subset(

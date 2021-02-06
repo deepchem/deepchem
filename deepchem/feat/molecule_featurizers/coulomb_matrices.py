@@ -144,8 +144,7 @@ class CoulombMatrix(MolecularFeaturizer):
       else:
         m = pad_array(m, self.max_atoms)
         rval.append(m)
-    rval = np.asarray(rval)
-    return rval
+    return np.asarray(rval)
 
   def randomize_coulomb_matrix(self, m: np.ndarray) -> List[np.ndarray]:
     """Randomize a Coulomb matrix as decribed in [1]_:

@@ -183,6 +183,7 @@ def prepare_inputs(protein: str,
 
   try:
     from rdkit import Chem
+    from rdkit.Chem import AllChem
     from pdbfixer import PDBFixer
     from simtk.openmm.app import PDBFile
   except ModuleNotFoundError:
@@ -217,8 +218,8 @@ def prepare_inputs(protein: str,
   # Optimize ligand
   if optimize_ligand:
     m = Chem.AddHs(m)  # need hydrogens for optimization
-    Chem.AllChem.EmbedMolecule(m)
-    Chem.AllChem.MMFFOptimizeMolecule(m)
+    AllChem.EmbedMolecule(m)
+    AllChem.MMFFOptimizeMolecule(m)
 
   if pdb_name:
     Chem.rdmolfiles.MolToPDBFile(p, '%s.pdb' % (pdb_name))

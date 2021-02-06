@@ -169,7 +169,7 @@ class AtomicConformationFeaturizer(Featurizer):
 
     # Create the output object.
 
-    positions = np.concatenate(positions).astype(np.float32)
-    properties = np.array(properties, dtype=np.float32)
     names = ['atomic number', 'formal charge', 'partial charge']
-    return AtomicConformation(positions, properties, names)
+    return AtomicConformation(
+        np.concatenate(positions).astype(np.float32),
+        np.array(properties, dtype=np.float32), names)

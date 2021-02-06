@@ -38,14 +38,12 @@ def threshold_predictions(y: np.ndarray,
     raise ValueError(
         "y must be a class probability matrix with rows summing to 1.")
   if n_classes != 2:
-    y_out = np.argmax(y, axis=1)
-    return y_out
+    return np.argmax(y, axis=1)
   else:
-    y_out = np.where(y[:, 1] >= threshold, np.ones(N), np.zeros(N))
-    return y_out
+    return np.where(y[:, 1] >= threshold, np.ones(N), np.zeros(N))
 
 
-def normalize_weight_shape(w: np.ndarray, n_samples: int,
+def normalize_weight_shape(w: Optional[np.ndarray], n_samples: int,
                            n_tasks: int) -> np.ndarray:
   """A utility function to correct the shape of the weight array.
 
@@ -450,8 +448,7 @@ class Metric(object):
                mode: Optional[str] = None,
                n_tasks: Optional[int] = None,
                classification_handling_mode: Optional[str] = None,
-               threshold_value: Optional[float] = None,
-               compute_energy_metric: Optional[bool] = None):
+               threshold_value: Optional[float] = None):
     """
     Parameters
     ----------
@@ -490,21 +487,11 @@ class Metric(object):
       "threshold-one-hot" apply a thresholding operation to values with this
       threshold. This option is only sensible on binary classification tasks.
       If float, this will be applied as a binary classification value.
-    compute_energy_metric: bool, default None (DEPRECATED)
-      Deprecated metric. Will be removed in a future version of
-      DeepChem. Do not use.
     """
     if threshold is not None:
       logger.warn(
           "threshold is deprecated and will be removed in a future version of DeepChem."
           "Set threshold in compute_metric instead.")
-    if compute_energy_metric is not None:
-      self.compute_energy_metric = compute_energy_metric
-      logger.warn(
-          "compute_energy_metric is deprecated and will be removed in a future version of DeepChem."
-      )
-    else:
-      self.compute_energy_metric = False
 
     self.metric = metric
     if task_averager is None:
@@ -578,10 +565,9 @@ class Metric(object):
                      w: Optional[np.ndarray] = None,
                      n_tasks: Optional[int] = None,
                      n_classes: int = 2,
-                     filter_nans: bool = False,
                      per_task_metrics: bool = False,
                      use_sample_weights: bool = False,
-                     **kwargs) -> np.ndarray:
+                     **kwargs) -> Any:
     """Compute a performance metric for each task.
 
     Parameters
@@ -604,8 +590,6 @@ class Metric(object):
       The number of tasks this class is expected to handle.
     n_classes: int, default 2
       Number of classes in data for classification tasks.
-    filter_nans: bool, default False (DEPRECATED)
-      Remove NaN values in computed metrics
     per_task_metrics: bool, default False
       If true, return computed metric for each task on multitask dataset.
     use_sample_weights: bool, default False
@@ -660,17 +644,7 @@ class Metric(object):
       # FIXME: Incompatible types in assignment
       computed_metrics = computed_metrics[0]  # type: ignore
 
-    # DEPRECATED. WILL BE REMOVED IN NEXT DEEPCHEM VERSION
-    if filter_nans:
-      computed_metrics = np.array(computed_metrics)
-      computed_metrics = computed_metrics[~np.isnan(computed_metrics)]
-    # DEPRECATED. WILL BE REMOVED IN NEXT DEEPCHEM VERSION
-    if self.compute_energy_metric:
-      force_error = self.task_averager(computed_metrics[1:]) * 4961.47596096
-      logger.info("Force error (metric: np.mean(%s)): %f kJ/mol/A" %
-                  (self.name, force_error))
-      return computed_metrics[0]
-    elif not per_task_metrics:
+    if not per_task_metrics:
       return self.task_averager(computed_metrics)
     else:
       return self.task_averager(computed_metrics), computed_metrics

@@ -122,8 +122,7 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
       # check whether the atom feature exists or not
       assert site.specie.number in self.valid_atom_number
       node_features.append(self.atom_features[site.specie.number])
-    node_features = np.vstack(node_features).astype(np.float)
-    return node_features
+    return np.vstack(node_features).astype(float)
 
   def _get_edge_features_and_index(
       self, struct: PymatgenStructure) -> Tuple[np.ndarray, np.ndarray]:
@@ -158,9 +157,8 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
       dest_idx.extend([site[2] for site in neighbor])
       edge_distances.extend([site[1] for site in neighbor])
 
-    edge_idx = np.array([src_idx, dest_idx], dtype=np.int)
-    edge_distances = np.array(edge_distances, dtype=np.float)
-    edge_features = self._gaussian_filter(edge_distances)
+    edge_idx = np.array([src_idx, dest_idx], dtype=int)
+    edge_features = self._gaussian_filter(np.array(edge_distances, dtype=float))
     return edge_idx, edge_features
 
   def _gaussian_filter(self, distances: np.ndarray) -> np.ndarray:

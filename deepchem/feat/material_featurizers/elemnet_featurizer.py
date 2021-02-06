@@ -1,5 +1,5 @@
 import numpy as np
-from typing import DefaultDict, Union
+from typing import DefaultDict, Optional
 
 from deepchem.utils.typing import PymatgenComposition
 from deepchem.feat import MaterialCompositionFeaturizer
@@ -41,7 +41,7 @@ class ElemNetFeaturizer(MaterialCompositionFeaturizer):
   This class requires Pymatgen to be installed.
   """
 
-  def get_vector(self, comp: DefaultDict) -> Union[np.ndarray, None]:
+  def get_vector(self, comp: DefaultDict) -> Optional[np.ndarray]:
     """
     Converts a dictionary containing element names and corresponding
     compositional fractions into a vector of fractions.
@@ -57,13 +57,13 @@ class ElemNetFeaturizer(MaterialCompositionFeaturizer):
       Vector of fractional compositions of each element.
     """
     if all(e in elements_tl for e in comp):
-      fractions = np.array([comp[e] if e in comp else 0 for e in elements_tl],
-                           np.float32)
+      return np.array([comp[e] if e in comp else 0 for e in elements_tl],
+                      np.float32)
     else:
-      fractions = None
-    return fractions
+      return None
 
-  def _featurize(self, composition: PymatgenComposition) -> np.ndarray:
+  def _featurize(self,
+                 composition: PymatgenComposition) -> Optional[np.ndarray]:
     """
     Calculate 86 dimensional vector containing fractional compositions of
     each element in the compound.
@@ -79,5 +79,4 @@ class ElemNetFeaturizer(MaterialCompositionFeaturizer):
       86 dimensional vector containing fractional compositions of elements.
     """
     fractions = composition.fractional_composition.get_el_amt_dict()
-    feat = self.get_vector(fractions)
-    return feat
+    return self.get_vector(fractions)

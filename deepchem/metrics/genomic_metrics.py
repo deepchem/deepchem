@@ -107,11 +107,10 @@ def get_pssm_scores(encoded_sequences: np.ndarray,
     rc_scores[:, base_indx, :] = correlate2d(
         encoded_sequences[:, -(base_indx + 1), :], base_pssm_rc, mode='same')
   # sum over the bases
-  fwd_scores = fwd_scores.sum(axis=1)
-  rc_scores = rc_scores.sum(axis=1)
+  fwd_scores_sum = fwd_scores.sum(axis=1)
+  rc_scores_sum = rc_scores.sum(axis=1)
   # take max of fwd and reverse scores at each position
-  scores = np.maximum(fwd_scores, rc_scores)
-  return scores
+  return np.maximum(fwd_scores_sum, rc_scores_sum)
 
 
 def in_silico_mutagenesis(model: Model,
