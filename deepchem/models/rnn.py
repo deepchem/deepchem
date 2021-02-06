@@ -13,18 +13,22 @@ except:
 
 
 class RNN(KerasModel):
-  """A 3 dimensional recurrent neural network for either regression or classification.
+  """A recurrent neural network for either regression or classification.
 
-  Based on deepchem/models/cnn.py.
+  Heavily based on deepchem/models/cnn.py and Keras.io RNN documentation (Zhu, Chollet)
+  Parts of code are taken from deepchem/models/cnn.py and Keras.io RNN documentation
 
-  The network consists of a configurable number of RNN cells.
-
+  The network consists of the following sequence of layers:
+  - An embedding layer
+  - A configurable number of RNN layers
+  - A final dense layer to compute the output
   """
 
   def __init__(self,
                n_tasks,
                n_features,
                n_dims,
+               layer_input_dims,
                bidirectional=True,
                weight_init_stddevs=0.02,
                bias_init_consts=1.0,
@@ -37,8 +41,9 @@ class RNN(KerasModel):
                mode='classification',
                n_classes=2,
                uncertainty=False,
-               residual=False,
                padding='valid',
+               encoder_vocab = 1000,
+               decoder_vocab = 2000,
                **kwargs):
     """Create a RNN.
 
@@ -46,24 +51,19 @@ class RNN(KerasModel):
     all the keyword arguments from TensorGraph.
     """
 
-    if n_dims != 3:
-      raise ValueError("Only 3-dimensional RNNs supported at this time.")
+    if dims not in (1, 2, 3):
+      raise ValueError("n_dims must be 1, 2, or 3 at this time.")
     if mode not in ['classification', 'regression']:
       raise ValueError("mode must be either 'classification' or 'regression'")
-    if residual and padding.lower() != 'same':
-      raise ValueError(
-          "Residual blocks can only be used when padding is 'same'")
     self.n_tasks = n_tasks
     self.n_features = n_features
     self.dims = n_dims
     self.mode = mode
     self.n_classes = n_classes
     self.uncertainty = uncertainty
-    n_layers = len(layer_filters)
+    n_layers = len(layer_input_dims)
     if not isinstance(kernel_size, list):
       kernel_size = [kernel_size] * n_layers
-    if not isinstance(strides, SequenceCollection):
-      strides = [strides] * n_layers
     if not isinstance(weight_init_stddevs, SequenceCollection):
       weight_init_stddevs = [weight_init_stddevs] * (n_layers + 1)
     if not isinstance(bias_init_consts, SequenceCollection):
@@ -90,46 +90,51 @@ class RNN(KerasModel):
 
     features = Input(shape=(None,) * dims + (n_features,))
     dropout_switch = Input(shape=tuple())
-    prev_layer = features
-    prev_filters = n_features
     next_activation = None
+
+    prev_layer = layers.Embedding(input_dim=encoder_vocab, output_dim=layer_input_dims[0])(
+        features
+    )
 
     if layerType == 'LSTM':
       RecurrentLayer = layers.LSTM
     elif layerType == 'GRU':
       RecurrentLayer = layers.GRU
+      print("Warning: GRU support is experimental at this time.")
     elif layerType == 'SimpleRNN':
       RecurrentLayer = layers.SimpleRNN
+      print("Warning: SimpleRNN support is experimental at this time.")
     else:
       raise ValueError('layerType must be "LSTM," "GRU," or "SimpleRNN."')
 
     if bidirectional == True:
       RecurrentLayer = layers.Bidirectional(RecurrentLayer)
-    for filters, size, stride, weight_stddev, bias_const, dropout, activation_fn in zip( #TODO REWRITE FOR LOOP CONDITIONS
-        layer_filters, kernel_size, strides, weight_init_stddevs,
-        bias_init_consts, dropouts, activation_fns):
+
+    for dim, size, weight_stddev, bias_const, dropout, activation_fn in zip( 
+        layer_input_dims, kernel_size, weight_init_stddevs, bias_init_consts, 
+        dropouts, activation_fns):
       layer = prev_layer
       if next_activation is not None:
         layer = Activation(next_activation)(layer)
-      layer = RecurrentLayer(
-          size,
-          return_sequences=True,
-          data_format='channels_last',
-          use_bias=(bias_init_consts is not None),
-          kernel_initializer=tf.keras.initializers.TruncatedNormal(
-              stddev=weight_stddev),
-          bias_initializer=tf.constant_initializer(value=bias_const),
-          kernel_regularizer=regularizer)(layer)
+      output, state_h, state_c = recurrentLayer(
+                                     dim,
+                                     return_state=True,
+                                     return_sequences=True,
+                                     use_bias=(bias_init_consts is not None),
+                                     kernel_initializer=tf.keras.initializers.TruncatedNormal(
+                                         stddev=weight_stddev),
+                                     bias_initializer=tf.constant_initializer(
+                                         value=bias_const),
+                                     kernel_regularizer=regularizer)(layer)
+                                 )
+      state = [state_h, state_c]
       if dropout > 0.0:
         layer = SwitchedDropout(rate=dropout)([layer, dropout_switch])
-      if residual and prev_filters == filters: #TODO Cleanup
-        prev_layer = Lambda(lambda x: x[0] + x[1])([prev_layer, layer])
-      else:
-        prev_layer = layer
+      prev_layer = layer
       next_activation = activation_fn
+    
     if next_activation is not None:
       prev_layer = Activation(activation_fn)(prev_layer)
-    prev_layer = PoolLayer()(prev_layer) #TODO FIX
     if mode == 'classification':
       logits = Reshape((n_tasks,
                         n_classes))(Dense(n_tasks * n_classes)(prev_layer))
