@@ -1,6 +1,5 @@
 import logging
 import numpy as np
-from typing import Iterable
 from deepchem.utils.typing import RDKitBond, RDKitMol, List
 from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.utils.typing import OneOrMany
