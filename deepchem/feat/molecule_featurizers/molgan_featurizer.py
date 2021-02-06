@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+from typing import Iterable
 from deepchem.utils.typing import RDKitBond, RDKitMol, List
 from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.utils.typing import OneOrMany
@@ -223,7 +224,6 @@ class MolGanFeaturizer(MolecularFeaturizer):
       GraphMatrix object or corresponding iterable
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
-
     Returns
     -------
     features: np.ndarray
