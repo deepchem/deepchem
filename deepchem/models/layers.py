@@ -437,6 +437,12 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
     training: bool
       Should this layer be run in training mode.
       Typically decided by main model, influences things like dropout.
+
+    Returns
+    --------
+    tuple(tf.Tensor,tf.Tensor,tf.Tensor)
+      First and second are original input tensors
+      Third is the result of convolution
     """
 
     ic = len(inputs)
@@ -480,7 +486,7 @@ class GraphAggregationLayer(tf.keras.layers.Layer):
   Graph Aggregation layer used in MolGAN model.
   MolGAN is a WGAN type model for generation of small molecules.
   Performs aggregation on tensor resulting from convolution layers.
-  Given its simple nature it might be removed in future and to 
+  Given its simple nature it might be removed in future and to
   GraphEncoderLayer.
 
   References
@@ -531,6 +537,11 @@ class GraphAggregationLayer(tf.keras.layers.Layer):
     training: bool
       Should this layer be run in training mode.
       Typically decided by main model, influences things like dropout.
+
+    Returns
+    --------
+    aggregation tensor: tf.Tensor
+      Result of aggregation function on input convolution tensor.
     """
 
     i = self.d1(inputs)
@@ -621,6 +632,11 @@ class MultiGraphConvolutionLayer(tf.keras.layers.Layer):
     training: bool
       Should this layer be run in training mode.
       Typically decided by main model, influences things like dropout.
+
+    Returns
+    --------
+    convolution tensor: tf.Tensor
+      Result of input tensors going through convolution a number of times.
     """
 
     adjacency_tensor = inputs[0]
@@ -714,6 +730,12 @@ class GraphEncoderLayer(tf.keras.layers.Layer):
     training: bool
       Should this layer be run in training mode.
       Typically decided by main model, influences things like dropout.
+
+    Returns
+    --------
+    encoder tensor: tf.Tensor
+      Tensor that been through number of convolutions followed
+      by aggregation.
     """
 
     output = self.multi_graph_convolution_layer(inputs)

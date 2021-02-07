@@ -67,7 +67,7 @@ class test_molgan_layers(unittest.TestCase):
     assert layer.edges == 5
     assert layer.dropout_rate == 0.0
 
-  def test_graph_encoder_later(self):
+  def test_graph_encoder_layer(self):
     vertices = 9
     nodes = 5
     edges = 5
