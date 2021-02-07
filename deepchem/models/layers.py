@@ -505,6 +505,24 @@ class GraphAggregationLayer(tf.keras.layers.Layer):
   Given its simple nature it might be removed in future and to
   GraphEncoderLayer.
 
+
+  Example
+  --------
+  vertices = 9
+  nodes = 5
+  edges = 5
+  units = 128
+
+  layer_1 = GraphConvolutionLayer(units=units,edges=edges)
+  layer_2 = GraphConvolutionLayer(units=units,edges=edges)
+  layer_3 = GraphAggregationLayer(units=128)
+  adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
+  node_tensor = layers.Input(shape=(vertices,nodes))
+  hidden_1 = layer_1([adjacency_tensor,node_tensor])
+  hidden_2 = layer_2(hidden_1)
+  output = layer_3(hidden_2[2])
+  model = keras.Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
+
   References
   ----------
   .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
