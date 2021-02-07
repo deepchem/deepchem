@@ -2,17 +2,13 @@
 ChEMBL dataset loader, for training ChemNet
 """
 import os
-import logging
 import deepchem as dc
+from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
+from deepchem.data import Dataset
+from typing import List, Optional, Tuple, Union
 
-from deepchem.feat import create_char_to_idx, SmilesToSeq, SmilesToImage
-
-CHEMBL_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_25.csv.gz"
-DEFAULT_DIR = dc.utils.data_utils.get_data_dir()
-
-logger = logging.getLogger(__name__)
-
-chembl25_tasks = [
+CHEMBL25_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_25.csv.gz"
+CHEMBL25_TASKS = [
     "MolWt", "HeavyAtomMolWt", "MolLogP", "MolMR", "TPSA", "LabuteASA",
     "HeavyAtomCount", "NHOHCount", "NOCount", "NumHAcceptors", "NumHDonors",
     "NumHeteroatoms", "NumRotatableBonds", "NumRadicalElectrons",
@@ -37,144 +33,50 @@ chembl25_tasks = [
 ]
 
 
-def load_chembl25(featurizer="smiles2seq",
-                  split="random",
-                  data_dir=None,
-                  save_dir=None,
-                  split_seed=None,
-                  reload=True,
-                  transformer_type='minmax',
-                  **kwargs):
+class _Chembl25Loader(_MolnetLoader):
+
+  def create_dataset(self) -> Dataset:
+    dataset_file = os.path.join(self.data_dir, "chembl_25.csv.gz")
+    if not os.path.exists(dataset_file):
+      dc.utils.data_utils.download_url(url=CHEMBL25_URL, dest_dir=self.data_dir)
+    loader = dc.data.CSVLoader(
+        tasks=self.tasks, feature_field="smiles", featurizer=self.featurizer)
+    return loader.create_dataset(dataset_file, shard_size=8192)
+
+
+def load_chembl25(
+    featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',
+    splitter: Union[dc.splits.Splitter, str, None] = 'scaffold',
+    transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
+    reload: bool = True,
+    data_dir: Optional[str] = None,
+    save_dir: Optional[str] = None,
+    **kwargs
+) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
   """Loads the ChEMBL25 dataset, featurizes it, and does a split.
+
   Parameters
   ----------
-  featurizer: str, default smiles2seq
-    Featurizer to use
-  split: str, default None
-    Splitter to use
-  data_dir: str, default None
-    Directory to download data to, or load dataset from. (TODO: If None, make tmp)
-  save_dir: str, default None
-    Directory to save the featurized dataset to. (TODO: If None, make tmp)
-  split_seed: int, default None
-    Seed to be used for splitting the dataset
-  reload: bool, default True
-    Whether to reload saved dataset
-  transformer_type: str, default minmax:
-    Transformer to use
+  featurizer: Featurizer or str
+    the featurizer to use for processing the data.  Alternatively you can pass
+    one of the names from dc.molnet.featurizers as a shortcut.
+  splitter: Splitter or str
+    the splitter to use for splitting the data into training, validation, and
+    test sets.  Alternatively you can pass one of the names from
+    dc.molnet.splitters as a shortcut.  If this is None, all the data
+    will be included in a single dataset.
+  transformers: list of TransformerGenerators or strings
+    the Transformers to apply to the data.  Each one is specified by a
+    TransformerGenerator or, as a shortcut, one of the names from
+    dc.molnet.transformers.
+  reload: bool
+    if True, the first call for a particular featurizer and splitter will cache
+    the datasets to disk, and subsequent calls will reload the cached datasets.
+  data_dir: str
+    a directory to save the raw data in
+  save_dir: str
+    a directory to save the dataset in
   """
-  if data_dir is None:
-    data_dir = DEFAULT_DIR
-  if save_dir is None:
-    save_dir = DEFAULT_DIR
-
-  save_folder = os.path.join(save_dir, "chembl_25-featurized", str(featurizer))
-  if featurizer == "smiles2img":
-    img_spec = kwargs.get("img_spec", "std")
-    save_folder = os.path.join(save_folder, img_spec)
-
-  if reload:
-    if not os.path.exists(save_folder):
-      logger.warning(
-          "{} does not exist. Reconstructing dataset.".format(save_folder))
-    else:
-      logger.info("{} exists. Restoring dataset.".format(save_folder))
-      loaded, dataset, transformers = dc.utils.data_utils.load_dataset_from_disk(
-          save_folder)
-      if loaded:
-        return chembl25_tasks, dataset, transformers
-
-  dataset_file = os.path.join(data_dir, "chembl_25.csv.gz")
-
-  if not os.path.exists(dataset_file):
-    logger.warning("File {} not found. Downloading dataset. (~555 MB)".format(
-        dataset_file))
-    dc.utils.data_utils.download_url(url=CHEMBL_URL, dest_dir=data_dir)
-
-  if featurizer == 'ECFP':
-    featurizer = deepchem.feat.CircularFingerprint(size=1024)
-  elif featurizer == 'GraphConv':
-    featurizer = deepchem.feat.ConvMolFeaturizer()
-  elif featurizer == 'Weave':
-    featurizer = deepchem.feat.WeaveFeaturizer()
-  elif featurizer == 'Raw':
-    featurizer = deepchem.feat.RawFeaturizer()
-  elif featurizer == "smiles2seq":
-    max_len = kwargs.get('max_len', 250)
-    pad_len = kwargs.get('pad_len', 10)
-    char_to_idx = create_char_to_idx(
-        dataset_file, max_len=max_len, smiles_field="smiles")
-    featurizer = SmilesToSeq(
-        char_to_idx=char_to_idx, max_len=max_len, pad_len=pad_len)
-  elif featurizer == "smiles2img":
-    img_size = kwargs.get("img_size", 80)
-    img_spec = kwargs.get("img_spec", "engd")
-    res = kwargs.get("res", 0.5)
-    featurizer = SmilesToImage(img_size=img_size, img_spec=img_spec, res=res)
-
-  else:
-    raise ValueError(
-        "Featurizer of type {} is not supported".format(featurizer))
-
-  loader = dc.data.CSVLoader(
-      tasks=chembl25_tasks, smiles_field='smiles', featurizer=featurizer)
-  dataset = loader.featurize(
-      input_files=[dataset_file], shard_size=10000, data_dir=save_folder)
-
-  if split is None:
-    if transformer_type == "minmax":
-      transformers = [
-          dc.trans.MinMaxTransformer(
-              transform_X=False, transform_y=True, dataset=dataset)
-      ]
-    else:
-      transformers = [
-          dc.trans.NormalizationTransformer(
-              transform_X=False, transform_y=True, dataset=dataset)
-      ]
-
-    logger.info("Split is None, about to transform dataset.")
-    for transformer in transformers:
-      dataset = transformer.transform(dataset)
-    return chembl25_tasks, (dataset, None, None), transformers
-
-  splitters = {
-      'index': dc.splits.IndexSplitter(),
-      'random': dc.splits.RandomSplitter(),
-      'scaffold': dc.splits.ScaffoldSplitter(),
-  }
-
-  logger.info("About to split data with {} splitter.".format(split))
-  splitter = splitters[split]
-
-  frac_train = kwargs.get('frac_train', 4 / 6)
-  frac_valid = kwargs.get('frac_valid', 1 / 6)
-  frac_test = kwargs.get('frac_test', 1 / 6)
-
-  train, valid, test = splitter.train_valid_test_split(
-      dataset,
-      seed=split_seed,
-      frac_train=frac_train,
-      frac_test=frac_test,
-      frac_valid=frac_valid)
-  if transformer_type == "minmax":
-    transformers = [
-        dc.trans.MinMaxTransformer(
-            transform_X=False, transform_y=True, dataset=train)
-    ]
-  else:
-    transformers = [
-        dc.trans.NormalizationTransformer(
-            transform_X=False, transform_y=True, dataset=train)
-    ]
-
-  for transformer in transformers:
-    train = transformer.transform(train)
-    valid = transformer.transform(valid)
-    test = transformer.transform(test)
-
-  if reload:
-    dc.utils.data_utils.save_dataset_to_disk(save_folder, train, valid, test,
-                                             transformers)
-
-  return chembl25_tasks, (train, valid, test), transformers
+  loader = _Chembl25Loader(featurizer, splitter, transformers, CHEMBL25_TASKS,
+                           data_dir, save_dir, **kwargs)
+  return loader.load_dataset('chembl25', reload)

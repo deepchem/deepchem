@@ -291,7 +291,7 @@ class CSVLoader(DataLoader):
 
   >>> import tempfile
   >>> import deepchem as dc
-  >>> with tempfile.NamedTemporaryFile(mode='w') as tmpfile:
+  >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
   ...   df.to_csv(tmpfile.name)
   ...   loader = dc.data.CSVLoader(["task1"], feature_field="smiles",
   ...                              featurizer=dc.feat.CircularFingerprint())
@@ -429,7 +429,7 @@ class UserCSVLoader(CSVLoader):
   >>> import tempfile
   >>> import deepchem as dc
   >>> featurizer = dc.feat.UserDefinedFeaturizer(["desc1", "desc2"])
-  >>> with tempfile.NamedTemporaryFile(mode='w') as tmpfile:
+  >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
   ...   df.to_csv(tmpfile.name)
   ...   loader = dc.data.UserCSVLoader(["task1"], id_field="id",
   ...                              featurizer=featurizer)
@@ -509,15 +509,25 @@ class JsonLoader(DataLoader):
 
   Examples
   --------
-  >> import pandas as pd
-  >> df = pd.DataFrame(some_data)
-  >> df.columns.tolist()
-  .. ['sample_data', 'sample_name', 'weight', 'task']
-  >> df.to_json('file.json', orient='records', lines=True)
-  >> loader = JsonLoader(tasks=['task'], feature_field='sample_data',
-      label_field='task', weight_field='weight', id_field='sample_name')
-  >> dataset = loader.create_dataset('file.json')
+  Let's create the sample dataframe.
 
+  >>> composition = ["LiCoO2", "MnO2"]
+  >>> labels = [1.5, 2.3]
+  >>> import pandas as pd
+  >>> df = pd.DataFrame(list(zip(composition, labels)), columns=["composition", "task"])
+
+  Dump the dataframe to the JSON file formatted as "records" in line delimited format and
+  load the json file by JsonLoader.
+
+  >>> import tempfile
+  >>> import deepchem as dc
+  >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
+  ...   df.to_json(tmpfile.name, orient='records', lines=True)
+  ...   featurizer = dc.feat.ElementPropertyFingerprint()
+  ...   loader = dc.data.JsonLoader(["task"], feature_field="composition", featurizer=featurizer)
+  ...   dataset = loader.create_dataset(tmpfile.name)
+  >>> len(dataset)
+  2
   """
 
   def __init__(self,
@@ -885,9 +895,10 @@ class ImageLoader(DataLoader):
 
     Returns
     -------
-    Dataset
-      A `Dataset` object containing a featurized representation of data
-      from `input_files`, `labels`, and `weights`.
+    ImageDataset or NumpyDataset or DiskDataset
+      - if `in_memory == False`, the return value is ImageDataset.
+      - if `in_memory == True` and `data_dir is None`, the return value is NumpyDataset.
+      - if `in_memory == True` and `data_dir is not None`, the return value is DiskDataset.
     """
     labels, weights = None, None
     if isinstance(inputs, tuple):
@@ -1149,7 +1160,4 @@ class InMemoryLoader(DataLoader):
       labels.append(label)
       ids.append(entry_id)
     X = np.concatenate(features, axis=0)
-    y = np.array(labels)
-    w = np.array(weights)
-    ids = np.array(ids)
-    return X, y, w, ids
+    return X, np.array(labels), np.array(weights), np.array(ids)

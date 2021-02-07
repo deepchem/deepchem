@@ -21,7 +21,7 @@ def unit_vector(vector: np.ndarray) -> np.ndarray:
   return vector / np.linalg.norm(vector)
 
 
-def angle_between(vector_i: np.ndarray, vector_j: np.ndarray) -> np.ndarray:
+def angle_between(vector_i: np.ndarray, vector_j: np.ndarray) -> float:
   """Returns the angle in radians between vectors "vector_i" and "vector_j"
 
   Note that this function always returns the smaller of the two angles between

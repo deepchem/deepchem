@@ -63,8 +63,8 @@ class SmilesToSeq(MolecularFeaturizer):
      Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
      Discovery & Data Mining. 2018.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 
@@ -83,11 +83,6 @@ class SmilesToSeq(MolecularFeaturizer):
     pad_len: int, default 10
       Amount of padding to add on either side of the SMILES seq
     """
-    try:
-      from rdkit import Chem  # noqa
-    except ModuleNotFoundError:
-      raise ImportError("This class requires RDKit to be installed.")
-
     self.max_len = max_len
     self.char_to_idx = char_to_idx
     self.idx_to_char = {idx: letter for letter, idx in self.char_to_idx.items()}
@@ -134,7 +129,10 @@ class SmilesToSeq(MolecularFeaturizer):
       A 1D array of a SMILES sequence.
       If the length of SMILES is longer than `max_len`, this value is an empty array.
     """
-    from rdkit import Chem
+    try:
+      from rdkit import Chem
+    except ModuleNotFoundError:
+      raise ImportError("This class requires RDKit to be installed.")
 
     smile = Chem.MolToSmiles(mol)
     if len(smile) > self.max_len:

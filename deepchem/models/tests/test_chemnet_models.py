@@ -7,7 +7,7 @@ import pytest
 import deepchem as dc
 from deepchem.models import Smiles2Vec, ChemCeption
 from deepchem.feat import create_char_to_idx, SmilesToSeq, SmilesToImage
-from deepchem.molnet.load_function.chembl25_datasets import chembl25_tasks
+from deepchem.molnet.load_function.chembl25_datasets import CHEMBL25_TASKS
 
 
 def get_dataset(mode="classification",
@@ -32,7 +32,7 @@ def get_dataset(mode="classification",
     feat = SmilesToImage(img_size=img_size, img_spec=img_spec, res=res)
 
   loader = dc.data.CSVLoader(
-      tasks=chembl25_tasks, smiles_field='smiles', featurizer=feat)
+      tasks=CHEMBL25_TASKS, smiles_field='smiles', featurizer=feat)
   dataset = loader.create_dataset(
       inputs=[dataset_file], shard_size=10000, data_dir=tempfile.mkdtemp())
 

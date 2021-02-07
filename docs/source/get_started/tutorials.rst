@@ -101,7 +101,7 @@ In such a case, by using :code:`DataLoader`, you can load and featurize your dat
    >>> # make a dataframe object for creating a CSV file
    >>> df = pd.DataFrame(list(zip(smiles, properties)), columns=["SMILES", "property"])
    >>> import tempfile
-   >>> with tempfile.NamedTemporaryFile(mode='w') as tmpfile:
+   >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
    ...   # dump the CSV file
    ...   df.to_csv(tmpfile.name)
    ...   # initizalize the featurizer
@@ -186,8 +186,8 @@ by just calling :code:`evaluate` method.
 More Tutorials
 --------------
 
-DeepChem maintains an extensive collection of addition `tutorials`_ that are meant to
-be run on Google `colab`_, an online platform that allows you to execute Jupyter notebooks.
+DeepChem maintains `an extensive collection of addition tutorials`_ that are meant to
+be run on `Google Colab`_, an online platform that allows you to execute Jupyter notebooks.
 Once you've finished this introductory tutorial, we recommend working through these more involved tutorials.
 
 .. _`scikit-learn`: https://scikit-learn.org/stable/
@@ -195,5 +195,5 @@ Once you've finished this introductory tutorial, we recommend working through th
 .. _`XGBoost`: https://xgboost.readthedocs.io/en/latest/
 .. _`PyTorch`: https://pytorch.org/
 .. _`JAX`: https://github.com/google/jax
-.. _`tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials	
-.. _`colab`: https://colab.research.google.com/
+.. _`an extensive collection of addition tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials	
+.. _`Google Colab`: https://colab.research.google.com/

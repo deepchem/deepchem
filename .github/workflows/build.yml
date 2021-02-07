@@ -1,0 +1,106 @@
+name: Test for build scripts
+on:
+  push: # ci work when pushing master branch
+    branches:
+      - master
+    paths:
+      - "scripts/install_deepchem_conda.ps1"
+      - "scripts/install_deepchem_conda.sh"
+      - "env.*.yml"
+  pull_request: # ci work when creating a PR to master branch
+    branches:
+      - master
+    paths:
+      - "scripts/install_deepchem_conda.ps1"
+      - "scripts/install_deepchem_conda.sh"
+      - "env.*.yml"
+jobs:
+  bash-build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: [3.7]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache pip modules for Linux
+      if: runner.os == 'Linux'
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('env.*.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Cache pip modules for MacOS
+      if: runner.os == 'macOS'
+      uses: actions/cache@v2
+      with:
+        path: ~/Library/Caches/pip
+        key: ${{ matrix.os }}-pip-${{ hashFiles('env.*.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Install miniconda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        miniconda-version: "latest"
+        auto-update-conda: true
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies (failure check)
+      continue-on-error: true
+      shell: bash -l {0}
+      run: |
+        source scripts/install_deepchem_conda.sh
+    - name: Install all dependencies
+      shell: bash -l {0}
+      run: |
+        source scripts/install_deepchem_conda.sh ${{ matrix.python-version }} cpu
+    - name: Build DeepChem from source
+      shell: bash -l {0}
+      run: |
+        conda activate deepchem
+        pip install -e .
+        python -V
+        python -c 'import deepchem; print(deepchem.__version__)'
+        python -c 'import rdkit; print(rdkit.__version__)'
+        python -c 'import torch; print(torch.__version__)'
+        python -c 'import tensorflow; print(tensorflow.__version__)'
+
+  powershell-build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.7]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache pip packages for Windows
+      uses: actions/cache@v2
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ matrix.os }}-pip-${{ hashFiles('env.*.yml') }}
+    - name: Install miniconda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        miniconda-version: "latest"
+        auto-update-conda: true
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies (failure check)
+      continue-on-error: true
+      shell: pwsh
+      run: |
+        . .\scripts\install_deepchem_conda.ps1
+    - name: Install dependencies
+      shell: pwsh
+      run: |
+        . .\scripts\install_deepchem_conda.ps1 ${{ matrix.python-version }} cpu
+    - name: Build DeepChem from source
+      shell: pwsh
+      run: |
+        conda activate deepchem
+        pip install -e .
+        python -V
+        python -c 'import deepchem; print(deepchem.__version__)'
+        python -c 'import rdkit; print(rdkit.__version__)'
+        python -c 'import torch; print(torch.__version__)'
+        python -c 'import tensorflow; print(tensorflow.__version__)'

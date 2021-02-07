@@ -131,8 +131,7 @@ class Docker(object):
         # check whether self.featurizer is instance of ComplexFeaturizer or not
         assert isinstance(self.featurizer, ComplexFeaturizer)
         # TODO: How to handle the failure here?
-        (protein_file, ligand_file) = molecular_complex
-        features, _ = self.featurizer.featurize([protein_file], [ligand_file])
+        features = self.featurizer.featurize([molecular_complex])
         dataset = NumpyDataset(X=features)
         score = self.scoring_model.predict(dataset)
         yield (posed_complex, score)

@@ -191,6 +191,19 @@ Graph Convolution Utilities
 Debug Utilities
 ---------------
 
+Docking Utilities
+-----------------
+
+These utilities assist in file preparation and processing for molecular
+docking.
+
+.. autofunction:: deepchem.utils.vina_utils.write_vina_conf
+
+.. autofunction:: deepchem.utils.vina_utils.load_docked_ligands
+
+.. autofunction:: deepchem.utils.vina_utils.prepare_inputs
+
+
 Print Threshold
 ^^^^^^^^^^^^^^^
 

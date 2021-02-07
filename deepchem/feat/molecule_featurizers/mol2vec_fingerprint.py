@@ -34,8 +34,8 @@ class Mol2VecFingerprint(MolecularFeaturizer):
      approach with chemical intuition." Journal of chemical information and modeling 58.1 (2018): 27-35.
   .. [2] https://github.com/samoturk/mol2vec/
 
-  Notes
-  -----
+  Note
+  ----
   This class requires mol2vec to be installed.
   """
 

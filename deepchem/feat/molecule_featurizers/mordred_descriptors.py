@@ -1,3 +1,4 @@
+from typing import Callable, List, Optional
 import numpy as np
 
 from deepchem.utils.typing import RDKitMol
@@ -21,8 +22,8 @@ class MordredDescriptors(MolecularFeaturizer):
      Journal of cheminformatics 10.1 (2018): 4.
   .. [2] http://mordred-descriptor.github.io/documentation/master/descriptors.html
 
-  Notes
-  -----
+  Note
+  ----
   This class requires Mordred to be installed.
   """
 
@@ -33,14 +34,9 @@ class MordredDescriptors(MolecularFeaturizer):
     ignore_3D: bool, optional (default True)
       Whether to use 3D information or not.
     """
-    try:
-      from mordred import Calculator, descriptors, is_missing
-    except ModuleNotFoundError:
-      raise ImportError("This class requires Mordred to be installed.")
-
-    self.calc = Calculator(descriptors, ignore_3D=ignore_3D)
-    self.is_missing = is_missing
-    self.descriptors = list(descriptors.__all__)
+    self.ignore_3D = ignore_3D
+    self.calc: Optional[Callable] = None
+    self.descriptors: Optional[List] = None
 
   def _featurize(self, mol: RDKitMol) -> np.ndarray:
     """
@@ -58,6 +54,15 @@ class MordredDescriptors(MolecularFeaturizer):
       If ignore_3D is True, the length is 1613.
       If ignore_3D is False, the length is 1826.
     """
+    if self.calc is None:
+      try:
+        from mordred import Calculator, descriptors, is_missing
+        self.is_missing = is_missing
+        self.calc = Calculator(descriptors, ignore_3D=self.ignore_3D)
+        self.descriptors = list(descriptors.__all__)
+      except ModuleNotFoundError:
+        raise ImportError("This class requires Mordred to be installed.")
+
     feature = self.calc(mol)
     # convert errors to zero
     feature = [

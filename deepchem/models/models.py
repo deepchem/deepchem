@@ -15,6 +15,7 @@ from deepchem.data import Dataset
 from deepchem.metrics import Metric
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import Evaluator
+from deepchem.utils.typing import ArrayLike
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ class Model(BaseEstimator):
     raise NotImplementedError(
         "Each model is responsible for its own fit_on_batch method.")
 
-  def predict_on_batch(self, X: Sequence):
+  def predict_on_batch(self, X: ArrayLike):
     """
     Makes predictions on given batch of new data.
 

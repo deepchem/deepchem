@@ -1,55 +1,39 @@
-if ($python_version)
+# This script creates the new deepchem enviroment
+
+$CMDNAME = $myInvocation.MyCommand.name
+if ($args.Count -ne 2)
 {
-    echo "Using python "$python_version". But recommended to use python 3.6."
+    echo "Please set two arguments."
+    echo "Usage) $CMDNAME python_version cpu_or_gpu"
+    echo "Example) $CMDNAME 3.6 gpu"
+    return 1
+}
+
+# This command is nearly equal to `conda init` command
+# Need to use `conda activate` command
+(& "conda" "shell.powershell" "hook") | Out-String | Invoke-Expression
+
+# create deepchem environment
+conda config --set always_yes yes
+conda create --name deepchem python=$args[0]
+conda install -c conda-forge conda-merge
+
+$common = Join-Path (pwd).PATH "env.common.yml"
+$test = Join-Path (pwd).PATH "env.test.yml"
+$out = Join-Path (pwd).PATH "env.yml"
+if($args[1] -eq "gpu")
+{
+    # We expect the CUDA vesion is 10.1.
+    $gpu = Join-Path (pwd).PATH "env.gpu.yml"
+    conda-merge $common $gpu $test > $out
+    echo "Installing DeepChem in the GPU environment"
 }
 else
 {
-    echo "Using python 3.6 by default"
-    $python_version=3.6
+    $cpu = Join-Path (pwd).PATH "env.cpu.yml"
+    conda-merge $common $cpu $test > $out
+    echo "Installing DeepChem in the CPU environment"
 }
 
-if($args[0] -eq "gpu")
-{
-    $cuda="cu101"
-    dgl_pkg="dgl-cu101"
-    echo "Installing DeepChem in the GPU envirionment"
-}
-else
-{
-    $cuda="cpu"
-    $dgl_pkg="dgl"
-    echo "Installing DeepChem in the CPU envirionment"
-}
-
-# Install dependencies except PyTorch and TensorFlow
-conda create -y --name deepchem python=$python_version
-conda activate deepchem
-$path = Join-Path $Pwd "requirements.yml"
-conda env update --file $path
-$path = Join-Path $Pwd "requirements-test.txt"
-pip install -r $path
-
-# Fixed packages
-$tensorflow=2.3.0
-$tensorflow_probability=0.11.0
-$torch=1.6.0
-$torchvision=0.7.0
-$pyg_torch=1.6.0
-
-# Install Tensorflow dependencies
-pip install tensorflow==$tensorflow tensorflow-probability==$tensorflow_probability
-
-# Install PyTorch dependencies
-pip install torch==$torch+$cuda torchvision==$torchvision+$cuda -f https://download.pytorch.org/whl/torch_stable.html
-
-# Install PyTorch Geometric and DGL dependencies
-pip install torch-scatter==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
-pip install torch-sparse==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
-pip install torch-cluster==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
-pip install torch-spline-conv==latest+$cuda -f https://pytorch-geometric.com/whl/torch-$pyg_torch.html
-pip install torch-geometric
-pip install $dgl_pkg
-pip install dgllife
-# install transformers package
-pip install transformers
-
+# Install all dependencies
+conda env update --file $out

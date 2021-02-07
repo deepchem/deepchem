@@ -2,6 +2,7 @@ import numpy as np
 
 from deepchem.utils.typing import PymatgenComposition
 from deepchem.feat import MaterialCompositionFeaturizer
+from typing import Any
 
 
 class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
@@ -19,7 +20,7 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
   matminer. It may be useful when only crystal compositions are available
   (and not 3D coordinates).
 
-  See references [1]_ [2]_ [3]_ [4]_ for more details.
+  See references [1]_, [2]_, [3]_, [4]_ for more details.
 
   References
   ----------
@@ -37,8 +38,8 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
   >>> featurizer = ElementPropertyFingerprint()
   >>> features = featurizer.featurize([comp])
 
-  Notes
-  -----
+  Note
+  ----
   This class requires matminer and Pymatgen to be installed.
   `NaN` feature values are automatically converted to 0 by this featurizer.
   """
@@ -50,13 +51,8 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
     data_source: str of "matminer", "magpie" or "deml" (default "matminer")
       Source for element property data.
     """
-    try:
-      from matminer.featurizers.composition import ElementProperty
-    except ModuleNotFoundError:
-      raise ImportError("This class requires matminer to be installed.")
-
     self.data_source = data_source
-    self.ep_featurizer = ElementProperty.from_preset(self.data_source)
+    self.ep_featurizer: Any = None
 
   def _featurize(self, composition: PymatgenComposition) -> np.ndarray:
     """
@@ -73,6 +69,13 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
       Vector of properties and statistics derived from chemical
       stoichiometry. Some values may be NaN.
     """
+    if self.ep_featurizer is None:
+      try:
+        from matminer.featurizers.composition import ElementProperty
+        self.ep_featurizer = ElementProperty.from_preset(self.data_source)
+      except ModuleNotFoundError:
+        raise ImportError("This class requires matminer to be installed.")
+
     try:
       feats = self.ep_featurizer.featurize(composition)
     except:

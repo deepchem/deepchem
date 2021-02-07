@@ -470,13 +470,13 @@ class GeneratorEvaluator(object):
     all_task_scores = {}
 
     # Undo data transformations.
-    y = dc.trans.undo_transforms(y, self.output_transformers)
+    y_true = dc.trans.undo_transforms(y, self.output_transformers)
     y_pred = dc.trans.undo_transforms(y_pred, self.output_transformers)
 
     # Compute multitask metrics
     for metric in metrics:
       results = metric.compute_metric(
-          y,
+          y_true,
           y_pred,
           w,
           per_task_metrics=per_task_metrics,

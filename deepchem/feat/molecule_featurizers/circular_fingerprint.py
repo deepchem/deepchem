@@ -21,8 +21,8 @@ class CircularFingerprint(MolecularFeaturizer):
   .. [1] Rogers, David, and Mathew Hahn. "Extended-connectivity fingerprints."
      Journal of chemical information and modeling 50.5 (2010): 742-754.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 
@@ -55,12 +55,6 @@ class CircularFingerprint(MolecularFeaturizer):
       Whether to calculate SMILES strings for fragment IDs (only applicable
       when calculating sparse fingerprints).
     """
-    try:
-      from rdkit import Chem  # noqa
-      from rdkit.Chem import rdMolDescriptors  # noqa
-    except ModuleNotFoundError:
-      raise ImportError("This class requires RDKit to be installed.")
-
     self.radius = radius
     self.size = size
     self.chiral = chiral
@@ -82,8 +76,11 @@ class CircularFingerprint(MolecularFeaturizer):
     np.ndarray
       A numpy array of circular fingerprint.
     """
-    from rdkit import Chem
-    from rdkit.Chem import rdMolDescriptors
+    try:
+      from rdkit import Chem
+      from rdkit.Chem import rdMolDescriptors
+    except ModuleNotFoundError:
+      raise ImportError("This class requires RDKit to be installed.")
 
     if self.sparse:
       info: Dict = {}
@@ -114,7 +111,7 @@ class CircularFingerprint(MolecularFeaturizer):
           useChirality=self.chiral,
           useBondTypes=self.bonds,
           useFeatures=self.features)
-      fp = np.asarray(fp, dtype=np.float)
+      fp = np.asarray(fp, dtype=float)
     return fp
 
   def __hash__(self):

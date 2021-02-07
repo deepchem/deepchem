@@ -19,6 +19,7 @@ from deepchem.utils.data_utils import get_data_dir
 from deepchem.utils.data_utils import download_url
 from deepchem.utils.data_utils import untargz_file
 from deepchem.utils.data_utils import unzip_file
+from deepchem.utils.data_utils import UniversalNamedTemporaryFile
 from deepchem.utils.data_utils import load_image_files
 from deepchem.utils.data_utils import load_sdf_files
 from deepchem.utils.data_utils import load_csv_files
@@ -84,6 +85,7 @@ from deepchem.utils.pdbqt_utils import convert_mol_to_pdbqt
 
 from deepchem.utils.vina_utils import write_vina_conf
 from deepchem.utils.vina_utils import load_docked_ligands
+from deepchem.utils.vina_utils import prepare_inputs
 
 from deepchem.utils.voxel_utils import convert_atom_to_voxel
 from deepchem.utils.voxel_utils import convert_atom_pair_to_voxel

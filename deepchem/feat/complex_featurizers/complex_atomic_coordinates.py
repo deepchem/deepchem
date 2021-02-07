@@ -11,6 +11,8 @@ from deepchem.utils.data_utils import pad_array
 from deepchem.utils.rdkit_utils import MoleculeLoadException, get_xyz_from_mol, \
   load_molecule, merge_molecules_xyz, merge_molecules
 
+from typing import Tuple
+
 
 def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
                           periodic_box_size):
@@ -98,7 +100,7 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
   """
   Adjacency list of neighbors for protein-ligand complexes in 3-space.
 
-  Neighbors dtermined by user-dfined distance cutoff.
+  Neighbors determined by user-defined distance cutoff.
   """
 
   def __init__(self, max_num_neighbors=None, neighbor_cutoff=4):
@@ -112,17 +114,16 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     # Type of data created by this featurizer
     self.dtype = object
 
-  def _featurize(self, mol_pdb_file, protein_pdb_file):
+  def _featurize(self, complex: Tuple[str, str]):
     """
     Compute neighbor list for complex.
 
     Parameters
     ----------
-    mol_pdb_file: str
-      Filename for ligand pdb file.
-    protein_pdb_file: str
-      Filename for protein pdb file.
+    complex: Tuple[str, str]
+      Filenames for molecule and protein.
     """
+    mol_pdb_file, protein_pdb_file = complex
     mol_coords, ob_mol = load_molecule(mol_pdb_file)
     protein_coords, protein_mol = load_molecule(protein_pdb_file)
     system_coords = merge_molecules_xyz([mol_coords, protein_coords])
@@ -168,7 +169,8 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
     self.neighborlist_featurizer = NeighborListComplexAtomicCoordinates(
         self.max_num_neighbors, self.neighbor_cutoff)
 
-  def _featurize(self, mol_pdb_file, protein_pdb_file):
+  def _featurize(self, complex):
+    mol_pdb_file, protein_pdb_file = complex
     try:
       frag1_coords, frag1_mol = load_molecule(
           mol_pdb_file, is_protein=False, sanitize=True, add_hydrogens=False)

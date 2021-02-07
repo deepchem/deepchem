@@ -118,7 +118,7 @@ class GAN(KerasModel):
       discrim_train_outputs.append(
           self._call_discriminator(discriminator, self.data_input_layers, True))
       for gen_output in generator_outputs:
-        if isinstance(gen_output, tf.Tensor):
+        if tf.is_tensor(gen_output):
           gen_output = [gen_output]
         discrim_gen_outputs.append(
             self._call_discriminator(discriminator, gen_output, False))

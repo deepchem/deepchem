@@ -17,8 +17,8 @@ class BPSymmetryFunctionInput(MolecularFeaturizer):
      representation of high-dimensional potential-energy surfaces." Physical
      review letters 98.14 (2007): 146401.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 

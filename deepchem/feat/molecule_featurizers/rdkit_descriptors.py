@@ -18,8 +18,8 @@ class RDKitDescriptors(MolecularFeaturizer):
   descriptors: List[str]
     List of RDKit descriptor names used in this class.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 
@@ -34,20 +34,10 @@ class RDKitDescriptors(MolecularFeaturizer):
       If True, the IPC descriptor calculates with avg=True option.
       Please see this issue: https://github.com/rdkit/rdkit/issues/1527.
     """
-    try:
-      from rdkit.Chem import Descriptors
-    except ModuleNotFoundError:
-      raise ImportError("This class requires RDKit to be installed.")
-
     self.use_fragment = use_fragment
     self.ipc_avg = ipc_avg
     self.descriptors = []
     self.descList = []
-    for descriptor, function in Descriptors.descList:
-      if self.use_fragment is False and descriptor.startswith('fr_'):
-        continue
-      self.descriptors.append(descriptor)
-      self.descList.append((descriptor, function))
 
   def _featurize(self, mol: RDKitMol) -> np.ndarray:
     """
@@ -64,6 +54,21 @@ class RDKitDescriptors(MolecularFeaturizer):
       1D array of RDKit descriptors for `mol`.
       The length is `len(self.descriptors)`.
     """
+    # initialize
+    if len(self.descList) == 0:
+      try:
+        from rdkit.Chem import Descriptors
+        for descriptor, function in Descriptors.descList:
+          if self.use_fragment is False and descriptor.startswith('fr_'):
+            continue
+          self.descriptors.append(descriptor)
+          self.descList.append((descriptor, function))
+      except ModuleNotFoundError:
+        raise ImportError("This class requires RDKit to be installed.")
+
+    # check initialization
+    assert len(self.descriptors) == len(self.descList)
+
     features = []
     for desc_name, function in self.descList:
       if desc_name == 'Ipc' and self.ipc_avg:

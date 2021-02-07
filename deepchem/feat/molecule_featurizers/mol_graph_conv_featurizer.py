@@ -135,8 +135,8 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
   .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints."
      Journal of computer-aided molecular design 30.8 (2016):595-608.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 
@@ -158,11 +158,6 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
       Therefore, there is a possibility to fail to featurize for some molecules
       and featurization becomes slow.
     """
-    try:
-      from rdkit.Chem import AllChem  # noqa
-    except ModuleNotFoundError:
-      raise ImportError("This method requires RDKit to be installed.")
-
     self.use_edges = use_edges
     self.use_partial_charge = use_partial_charge
     self.use_chirality = use_chirality
@@ -185,8 +180,11 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
         mol.GetAtomWithIdx(0).GetProp('_GasteigerCharge')
       except:
         # If partial charges were not computed
-        from rdkit.Chem import AllChem
-        AllChem.ComputeGasteigerCharges(mol)
+        try:
+          from rdkit.Chem import AllChem
+          AllChem.ComputeGasteigerCharges(mol)
+        except ModuleNotFoundError:
+          raise ImportError("This class requires RDKit to be installed.")
 
     # construct atom (node) feature
     h_bond_infos = construct_hydrogen_bonding_info(mol)
@@ -196,7 +194,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
                                     self.use_partial_charge)
             for atom in mol.GetAtoms()
         ],
-        dtype=np.float,
+        dtype=float,
     )
 
     # construct edge (bond) index
@@ -210,12 +208,12 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     # construct edge (bond) feature
     bond_features = None  # deafult None
     if self.use_edges:
-      bond_features = []
+      features = []
       for bond in mol.GetBonds():
-        bond_features += 2 * [_construct_bond_feature(bond)]
-      bond_features = np.asarray(bond_features, dtype=np.float)
+        features += 2 * [_construct_bond_feature(bond)]
+      bond_features = np.asarray(features, dtype=float)
 
     return GraphData(
         node_features=atom_features,
-        edge_index=np.asarray([src, dest], dtype=np.int),
+        edge_index=np.asarray([src, dest], dtype=int),
         edge_features=bond_features)

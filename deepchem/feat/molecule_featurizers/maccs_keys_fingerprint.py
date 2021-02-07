@@ -16,19 +16,14 @@ class MACCSKeysFingerprint(MolecularFeaturizer):
      Journal of chemical information and computer sciences 42.6 (2002): 1273-1280.
   .. [2] https://github.com/rdkit/rdkit/blob/master/rdkit/Chem/MACCSkeys.py
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 
   def __init__(self):
     """Initialize this featurizer."""
-    try:
-      from rdkit.Chem.AllChem import GetMACCSKeysFingerprint  # noqa
-    except ModuleNotFoundError:
-      raise ImportError("This class requires RDKit to be installed.")
-
-    self.calculator = GetMACCSKeysFingerprint
+    self.calculator = None
 
   def _featurize(self, mol: RDKitMol) -> np.ndarray:
     """
@@ -44,4 +39,11 @@ class MACCSKeysFingerprint(MolecularFeaturizer):
     np.ndarray
       1D array of RDKit descriptors for `mol`. The length is 167.
     """
+    if self.calculator is None:
+      try:
+        from rdkit.Chem.AllChem import GetMACCSKeysFingerprint
+        self.calculator = GetMACCSKeysFingerprint
+      except ModuleNotFoundError:
+        raise ImportError("This class requires RDKit to be installed.")
+
     return self.calculator(mol)

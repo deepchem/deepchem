@@ -4,8 +4,7 @@ Feature calculations.
 import inspect
 import logging
 import numpy as np
-import multiprocessing
-from typing import Any, Dict, List, Iterable, Sequence, Tuple, Union
+from typing import Any, Dict, Iterable, Tuple, Union, cast
 
 from deepchem.utils import get_print_threshold
 from deepchem.utils.typing import PymatgenStructure
@@ -54,8 +53,7 @@ class Featurizer(object):
             "Failed to featurize datapoint %d. Appending empty array")
         features.append(np.array([]))
 
-    features = np.asarray(features)
-    return features
+    return np.asarray(features)
 
   def __call__(self, datapoints: Iterable[Any]):
     """Calculate features for datapoints.
@@ -150,69 +148,55 @@ class Featurizer(object):
     return self.__class__.__name__ + override_args_info
 
 
-class ComplexFeaturizer(object):
+class ComplexFeaturizer(Featurizer):
   """"
   Abstract class for calculating features for mol/protein complexes.
   """
 
-  def featurize(self, mol_files: Sequence[str],
-                protein_pdbs: Sequence[str]) -> Tuple[np.ndarray, List]:
+  def featurize(self,
+                complexes: Iterable[Tuple[str, str]],
+                log_every_n: int = 100) -> np.ndarray:
     """
     Calculate features for mol/protein complexes.
 
     Parameters
     ----------
-    mols: List[str]
-      List of PDB filenames for molecules.
-    protein_pdbs: List[str]
-      List of PDB filenames for proteins.
+    complexes: Iterable[Tuple[str, str]]
+      List of filenames (PDB, SDF, etc.) for ligand molecules and proteins.
+      Each element should be a tuple of the form (ligand_filename,
+      protein_filename).
 
     Returns
     -------
     features: np.ndarray
       Array of features
-    failures: List
-      Indices of complexes that failed to featurize.
     """
 
-    pool = multiprocessing.Pool()
-    results = []
-    for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_pdbs)):
-      log_message = "Featurizing %d / %d" % (i, len(mol_files))
-      results.append(
-          pool.apply_async(ComplexFeaturizer._featurize_callback,
-                           (self, mol_file, protein_pdb, log_message)))
-    pool.close()
+    if not isinstance(complexes, Iterable):
+      complexes = [cast(Tuple[str, str], complexes)]
     features = []
-    failures = []
-    for ind, result in enumerate(results):
-      new_features = result.get()
-      # Handle loading failures which return None
-      if new_features is not None:
-        features.append(new_features)
-      else:
-        failures.append(ind)
-    features = np.asarray(features)
-    return features, failures
+    for i, point in enumerate(complexes):
+      if i % log_every_n == 0:
+        logger.info("Featurizing datapoint %i" % i)
+      try:
+        features.append(self._featurize(point))
+      except:
+        logger.warning(
+            "Failed to featurize datapoint %i. Appending empty array." % i)
+        features.append(np.array([]))
 
-  def _featurize(self, mol_pdb: str, complex_pdb: str):
+    return np.asarray(features)
+
+  def _featurize(self, complex: Tuple[str, str]):
     """
     Calculate features for single mol/protein complex.
 
     Parameters
     ----------
-    mol_pdb : str
-      The PDB filename.
-    complex_pdb : str
-      The PDB filename.
+    complex: Tuple[str, str]
+      Filenames for molecule and protein.
     """
     raise NotImplementedError('Featurizer is not defined.')
-
-  @staticmethod
-  def _featurize_callback(featurizer, mol_pdb_file, protein_pdb_file,
-                          log_message):
-    logging.info(log_message)
-    return featurizer._featurize(mol_pdb_file, protein_pdb_file)
 
 
 class MolecularFeaturizer(Featurizer):
@@ -228,8 +212,8 @@ class MolecularFeaturizer(Featurizer):
   Child classes need to implement the _featurize method for
   calculating features for a single molecule.
 
-  Notes
-  -----
+  Note
+  ----
   The subclasses of this class require RDKit to be installed.
   """
 
@@ -287,8 +271,7 @@ class MolecularFeaturizer(Featurizer):
         logger.warning("Exception message: {}".format(e))
         features.append(np.array([]))
 
-    features = np.asarray(features)
-    return features
+    return np.asarray(features)
 
 
 class MaterialStructureFeaturizer(Featurizer):
@@ -308,8 +291,8 @@ class MaterialStructureFeaturizer(Featurizer):
   classes need to implement the _featurize method for calculating
   features for a single crystal structure.
 
-  Notes
-  -----
+  Note
+  ----
   Some subclasses of this class will require pymatgen and matminer to be
   installed.
   """
@@ -353,8 +336,7 @@ class MaterialStructureFeaturizer(Featurizer):
             "Failed to featurize datapoint %i. Appending empty array" % idx)
         features.append(np.array([]))
 
-    features = np.asarray(features)
-    return features
+    return np.asarray(features)
 
 
 class MaterialCompositionFeaturizer(Featurizer):
@@ -374,8 +356,8 @@ class MaterialCompositionFeaturizer(Featurizer):
   classes need to implement the _featurize method for calculating
   features for a single crystal composition.
 
-  Notes
-  -----
+  Note
+  ----
   Some subclasses of this class will require pymatgen and matminer to be
   installed.
   """
@@ -415,8 +397,7 @@ class MaterialCompositionFeaturizer(Featurizer):
             "Failed to featurize datapoint %i. Appending empty array" % idx)
         features.append(np.array([]))
 
-    features = np.asarray(features)
-    return features
+    return np.asarray(features)
 
 
 class UserDefinedFeaturizer(Featurizer):
