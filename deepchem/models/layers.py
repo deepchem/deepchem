@@ -383,6 +383,22 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
   hidden_layer and it hold results of the convolution while first two are unchanged
   input tensors.
 
+  Example
+  --------
+  See: MultiGraphConvolutionLayer for using in layers.
+
+  vertices = 9
+  nodes = 5
+  edges = 5
+  units = 128
+
+  layer = GraphConvolutionLayer(units=units,edges=edges)
+  adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
+  node_tensor = layers.Input(shape=(vertices,nodes))
+  hidden1 = layer([adjacency_tensor,node_tensor])
+  output = layer(hidden1)
+  model = keras.Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
+
   References
   ----------
   .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
@@ -672,6 +688,26 @@ class GraphEncoderLayer(tf.keras.layers.Layer):
   This layer can be manually built by stacking graph convolution layers
   followed by graph aggregation.
 
+  Example
+  --------
+  def create_discriminator(adjacency_tensor, node_tensor):
+    vertices = 9
+    edges = 5
+    dropout_rate = .0
+    adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
+    node_tensor = layers.Input(shape=(vertices, nodes))
+
+    graph = GraphEncoderLayer(units = [(128,64),128],
+                              dropout_rate= dropout_rate,
+                              edges=edges)([adjacency_tensor,node_tensor])
+    dense = layers.Dense(units=128, activation='tanh')(graph)
+    dense = layers.Dropout(dropout_rate)(dense)
+    dense = layers.Dense(units=64, activation='tanh')(dense)
+    dense = layers.Dropout(dropout_rate)(dense)
+    output = layers.Dense(units=1)(dense)
+
+    return keras.Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
+
   References
   ----------
   .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
@@ -703,26 +739,6 @@ class GraphEncoderLayer(tf.keras.layers.Layer):
       Typically matches number of bond types used in the molecule.
     name: string, optional (default="")
       Name of the layer
-
-    Example
-    --------
-    def create_discriminator(adjacency_tensor, node_tensor):
-      vertices = 9
-      edges = 5
-      dropout_rate = .0
-      adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
-      node_tensor = layers.Input(shape=(vertices, nodes))
-
-      graph = GraphEncoderLayer(units = [(128,64),128],
-                                dropout_rate= dropout_rate,
-                                edges=edges)([adjacency_tensor,node_tensor])
-      dense = layers.Dense(units=128, activation='tanh')(graph)
-      dense = layers.Dropout(dropout_rate)(dense)
-      dense = layers.Dense(units=64, activation='tanh')(dense)
-      dense = layers.Dropout(dropout_rate)(dense)
-      output = layers.Dense(units=1)(dense)
-
-      return keras.Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
     """
 
     super(GraphEncoderLayer, self).__init__(name=name, **kwargs)
