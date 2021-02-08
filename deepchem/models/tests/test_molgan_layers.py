@@ -3,7 +3,7 @@ import unittest
 from tensorflow import keras
 from tensorflow.keras.layers import Input
 from tensorflow.keras import activations
-from deepchem.models.layers import GraphConvolutionLayer, MultiGraphConvolutionLayer, GraphAggregationLayer, GraphEncoderLayer
+from deepchem.models.layers import MolGANConvolutionLayer, MolGANMultiConvolutionLayer, MolGANAggregationLayer, MolGANEncoderLayer
 
 
 class test_molgan_layers(unittest.TestCase):
@@ -17,7 +17,7 @@ class test_molgan_layers(unittest.TestCase):
     edges = 5
     units = 128
 
-    layer = GraphConvolutionLayer(units=units, edges=edges)
+    layer = MolGANConvolutionLayer(units=units, edges=edges)
     adjacency_tensor = Input(shape=(vertices, vertices, edges))
     node_tensor = Input(shape=(vertices, nodes))
     output = layer([adjacency_tensor, node_tensor])
@@ -36,7 +36,7 @@ class test_molgan_layers(unittest.TestCase):
     vertices = 9
     units = 128
 
-    layer = GraphAggregationLayer(units=units)
+    layer = MolGANAggregationLayer(units=units)
     hidden_tensor = Input(shape=(vertices, units))
     output = layer(hidden_tensor)
     model = keras.Model(inputs=[hidden_tensor], outputs=[output])
@@ -54,7 +54,7 @@ class test_molgan_layers(unittest.TestCase):
     second_convolution_unit = 64
     units = [first_convolution_unit, second_convolution_unit]
 
-    layer = MultiGraphConvolutionLayer(units=units, edges=edges)
+    layer = MolGANMultiConvolutionLayer(units=units, edges=edges)
     adjacency_tensor = Input(shape=(vertices, vertices, edges))
     node_tensor = Input(shape=(vertices, nodes))
     hidden_tensor = layer([adjacency_tensor, node_tensor])
@@ -77,7 +77,7 @@ class test_molgan_layers(unittest.TestCase):
     units = [(first_convolution_unit, second_convolution_unit),
              aggregation_unit]
 
-    layer = GraphEncoderLayer(units=units, edges=edges)
+    layer = MolGANEncoderLayer(units=units, edges=edges)
     adjacency_tensor = Input(shape=(vertices, vertices, edges))
     node_tensor = Input(shape=(vertices, nodes))
     output = layer([adjacency_tensor, node_tensor])

@@ -370,11 +370,11 @@ class GraphGather(tf.keras.layers.Layer):
     return mol_features
 
 
-class GraphConvolutionLayer(tf.keras.layers.Layer):
+class MolGANConvolutionLayer(tf.keras.layers.Layer):
   """
   Graph convolution layer used in MolGAN model.
   MolGAN is a WGAN type model for generation of small molecules.
-  Not used directly, higher level layers like MultiGraphConvolutionLayer use it.
+  Not used directly, higher level layers like MolGANMultiConvolutionLayer use it.
   This layer performs basic convolution on one-hot encoded matrices containing
   atom and bond information. This layer also accepts three inputs for the case
   when convolution is performed more than once and results of previous convolution
@@ -385,14 +385,14 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
 
   Example
   --------
-  See: MultiGraphConvolutionLayer for using in layers.
+  See: MolGANMultiConvolutionLayer for using in layers.
 
   vertices = 9
   nodes = 5
   edges = 5
   units = 128
 
-  layer = GraphConvolutionLayer(units=units,edges=edges)
+  layer = MolGANConvolutionLayer(units=units,edges=edges)
   adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
   node_tensor = layers.Input(shape=(vertices,nodes))
   hidden1 = layer([adjacency_tensor,node_tensor])
@@ -430,7 +430,7 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
       Name of the layer
     """
 
-    super(GraphConvolutionLayer, self).__init__(name=name, **kwargs)
+    super(MolGANConvolutionLayer, self).__init__(name=name, **kwargs)
     self.activation = activation
     self.dropout_rate = dropout_rate
     self.units = units
@@ -462,7 +462,7 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
     """
 
     ic = len(inputs)
-    assert ic > 1, "GraphConvolutionLayer requires at least two inputs: [adjacency_tensor, node_features_tensor]"
+    assert ic > 1, "MolGANConvolutionLayer requires at least two inputs: [adjacency_tensor, node_features_tensor]"
 
     adjacency_tensor = inputs[0]
     node_tensor = inputs[1]
@@ -489,7 +489,7 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
     Returns config dictionary for this layer.
     """
 
-    config = super(GraphConvolutionLayer, self).get_config()
+    config = super(MolGANConvolutionLayer, self).get_config()
     config["activation"] = self.activation
     config["dropout_rate"] = self.dropout_rate
     config["units"] = self.units
@@ -497,13 +497,13 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
     return config
 
 
-class GraphAggregationLayer(tf.keras.layers.Layer):
+class MolGANAggregationLayer(tf.keras.layers.Layer):
   """
   Graph Aggregation layer used in MolGAN model.
   MolGAN is a WGAN type model for generation of small molecules.
   Performs aggregation on tensor resulting from convolution layers.
-  Given its simple nature it might be removed in future and to
-  GraphEncoderLayer.
+  Given its simple nature it might be removed in future and moved to
+  MolGANEncoderLayer.
 
 
   Example
@@ -513,9 +513,9 @@ class GraphAggregationLayer(tf.keras.layers.Layer):
   edges = 5
   units = 128
 
-  layer_1 = GraphConvolutionLayer(units=units,edges=edges)
-  layer_2 = GraphConvolutionLayer(units=units,edges=edges)
-  layer_3 = GraphAggregationLayer(units=128)
+  layer_1 = MolGANConvolutionLayer(units=units,edges=edges)
+  layer_2 = MolGANConvolutionLayer(units=units,edges=edges)
+  layer_3 = MolGANAggregationLayer(units=128)
   adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
   node_tensor = layers.Input(shape=(vertices,nodes))
   hidden_1 = layer_1([adjacency_tensor,node_tensor])
@@ -550,7 +550,7 @@ class GraphAggregationLayer(tf.keras.layers.Layer):
       Name of the layer
     """
 
-    super(GraphAggregationLayer, self).__init__(name=name, **kwargs)
+    super(MolGANAggregationLayer, self).__init__(name=name, **kwargs)
     self.units = units
     self.activation = activation
     self.dropout_rate = dropout_rate
@@ -590,7 +590,7 @@ class GraphAggregationLayer(tf.keras.layers.Layer):
     Returns config dictionary for this layer.
     """
 
-    config = super(GraphAggregationLayer, self).get_config()
+    config = super(MolGANAggregationLayer, self).get_config()
     config["units"] = self.units
     config["activation"] = self.activation
     config["dropout_rate"] = self.dropout_rate
@@ -598,14 +598,14 @@ class GraphAggregationLayer(tf.keras.layers.Layer):
     return config
 
 
-class MultiGraphConvolutionLayer(tf.keras.layers.Layer):
+class MolGANMultiConvolutionLayer(tf.keras.layers.Layer):
   """
   Multiple pass convolution layer used in MolGAN model.
   MolGAN is a WGAN type model for generation of small molecules.
   It takes outputs of previous convolution layer and uses
   them as inputs for the next one.
   It simplifies the overall framework, but might be moved to
-  GraphEncoderLayer in the future in order to reduce number of layers.
+  MolGANEncoderLayer in the future in order to reduce number of layers.
 
   Example
   --------
@@ -614,8 +614,8 @@ class MultiGraphConvolutionLayer(tf.keras.layers.Layer):
   edges = 5
   units = 128
 
-  layer_1 = MultiGraphConvolutionLayer(units=(128,64))
-  layer_2 = GraphAggregationLayer(units=128)
+  layer_1 = MolGANMultiConvolutionLayer(units=(128,64))
+  layer_2 = MolGANAggregationLayer(units=128)
   adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
   node_tensor = layers.Input(shape=(vertices,nodes))
   hidden = layer_1([adjacency_tensor,node_tensor])
@@ -654,7 +654,7 @@ class MultiGraphConvolutionLayer(tf.keras.layers.Layer):
       Name of the layer
     """
 
-    super(MultiGraphConvolutionLayer, self).__init__(name=name, **kwargs)
+    super(MolGANMultiConvolutionLayer, self).__init__(name=name, **kwargs)
     assert len(units) > 1, "Layer requires at least two values"
 
     self.units = units
@@ -662,11 +662,11 @@ class MultiGraphConvolutionLayer(tf.keras.layers.Layer):
     self.dropout_rate = dropout_rate
     self.edges = edges
 
-    self.first_convolution = GraphConvolutionLayer(
+    self.first_convolution = MolGANConvolutionLayer(
         self.units[0], self.activation, self.dropout_rate, self.edges)
     self.gcl = [
-        GraphConvolutionLayer(u, self.activation, self.dropout_rate, self.edges)
-        for u in self.units[1:]
+        MolGANConvolutionLayer(u, self.activation, self.dropout_rate,
+                               self.edges) for u in self.units[1:]
     ]
 
   def call(self, inputs, training=False):
@@ -705,7 +705,7 @@ class MultiGraphConvolutionLayer(tf.keras.layers.Layer):
     Returns config dictionary for this layer.
     """
 
-    config = super(MultiGraphConvolutionLayer, self).get_config()
+    config = super(MolGANMultiConvolutionLayer, self).get_config()
     config["units"] = self.units
     config["activation"] = self.activation
     config["dropout_rate"] = self.dropout_rate
@@ -713,7 +713,7 @@ class MultiGraphConvolutionLayer(tf.keras.layers.Layer):
     return config
 
 
-class GraphEncoderLayer(tf.keras.layers.Layer):
+class MolGANEncoderLayer(tf.keras.layers.Layer):
   """
   Main learning layer used by MolGAN model.
   MolGAN is a WGAN type model for generation of small molecules.
@@ -730,7 +730,7 @@ class GraphEncoderLayer(tf.keras.layers.Layer):
     adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
     node_tensor = layers.Input(shape=(vertices, nodes))
 
-    graph = GraphEncoderLayer(units = [(128,64),128],
+    graph = MolGANEncoderLayer(units = [(128,64),128],
                               dropout_rate= dropout_rate,
                               edges=edges)([adjacency_tensor,node_tensor])
     dense = layers.Dense(units=128, activation='tanh')(graph)
@@ -760,7 +760,7 @@ class GraphEncoderLayer(tf.keras.layers.Layer):
     Parameters
     ---------
     units: List, optional (default=[(128, 64), 128])
-      List of units for MultiGraphConvolutionLayer and GraphAggregationLayer
+      List of units for MolGANMultiConvolutionLayer and GraphAggregationLayer
       i.e. [(128,64),128] means two convolution layers dims = [128,64]
       followed by aggregation layer dims=128
     activation: function, optional (default=Tanh)
@@ -774,17 +774,17 @@ class GraphEncoderLayer(tf.keras.layers.Layer):
       Name of the layer
     """
 
-    super(GraphEncoderLayer, self).__init__(name=name, **kwargs)
+    super(MolGANEncoderLayer, self).__init__(name=name, **kwargs)
     assert len(units) == 2
     self.graph_convolution_units, self.auxiliary_units = units
     self.activation = activation
     self.dropout_rate = dropout_rate
     self.edges = edges
 
-    self.multi_graph_convolution_layer = MultiGraphConvolutionLayer(
+    self.multi_graph_convolution_layer = MolGANMultiConvolutionLayer(
         self.graph_convolution_units, self.activation, self.dropout_rate,
         self.edges)
-    self.graph_aggregation_layer = GraphAggregationLayer(
+    self.graph_aggregation_layer = MolGANAggregationLayer(
         self.auxiliary_units, self.activation, self.dropout_rate)
 
   def call(self, inputs, training=False):
@@ -826,7 +826,7 @@ class GraphEncoderLayer(tf.keras.layers.Layer):
     Returns config dictionary for this layer.
     """
 
-    config = super(GraphEncoderLayer, self).get_config()
+    config = super(MolGANEncoderLayer, self).get_config()
     config["graph_convolution_units"] = self.graph_convolution_units
     config["auxiliary_units"] = self.auxiliary_units
     config["activation"] = self.activation
