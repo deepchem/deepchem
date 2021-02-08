@@ -534,9 +534,9 @@ class MolGANAggregationLayer(tf.keras.layers.Layer):
   edges = 5
   units = 128
 
-  layer_1 = GraphConvolutionLayer(units=units,edges=edges)
-  layer_2 = GraphConvolutionLayer(units=units,edges=edges)
-  layer_3 = GraphAggregationLayer(units=128)
+  layer_1 = MolGANConvolutionLayer(units=units,edges=edges)
+  layer_2 = MolGANConvolutionLayer(units=units,edges=edges)
+  layer_3 = MolGANAggregationLayer(units=128)
   adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
   node_tensor = layers.Input(shape=(vertices,nodes))
   hidden_1 = layer_1([adjacency_tensor,node_tensor])
@@ -652,8 +652,8 @@ class MolGANMultiConvolutionLayer(tf.keras.layers.Layer):
   edges = 5
   units = 128
 
-  layer_1 = MultiGraphConvolutionLayer(units=(128,64))
-  layer_2 = GraphAggregationLayer(units=128)
+  layer_1 = MolGANMultiConvolutionLayer(units=(128,64))
+  layer_2 = MolGANAggregationLayer(units=128)
   adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
   node_tensor = layers.Input(shape=(vertices,nodes))
   hidden = layer_1([adjacency_tensor,node_tensor])
