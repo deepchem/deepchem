@@ -387,17 +387,20 @@ class MolGANConvolutionLayer(tf.keras.layers.Layer):
   --------
   See: MolGANMultiConvolutionLayer for using in layers.
 
+  >>> from tensorflow.keras import Model
+  >>> from tensorflow.keras.layers import Input
   >>> vertices = 9
   >>> nodes = 5
   >>> edges = 5
   >>> units = 128
 
-  >>> layer = MolGANConvolutionLayer(units=units,edges=edges)
-  >>> adjacency_tensor= tensorflow.keras.layers.Input(shape=(vertices, vertices, edges))
-  >>> node_tensor = tensorflow.keras.layers.Input(shape=(vertices,nodes))
-  >>> hidden1 = layer([adjacency_tensor,node_tensor])
-  >>> output = layer(hidden1)
-  >>> model = keras.Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
+  >>> layer1 = MolGANConvolutionLayer(units=units,edges=edges)
+  >>> layer2 = MolGANConvolutionLayer(units=units,edges=edges)
+  >>> adjacency_tensor= Input(shape=(vertices, vertices, edges))
+  >>> node_tensor = Input(shape=(vertices,nodes))
+  >>> hidden1 = layer1([adjacency_tensor,node_tensor])
+  >>> output = layer2(hidden1)
+  >>> model = Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
 
   References
   ----------
@@ -508,6 +511,8 @@ class MolGANAggregationLayer(tf.keras.layers.Layer):
 
   Example
   --------
+  >>> from tensorflow.keras import Model
+  >>> from tensorflow.keras.layers import Input
   >>> vertices = 9
   >>> nodes = 5
   >>> edges = 5
@@ -516,12 +521,12 @@ class MolGANAggregationLayer(tf.keras.layers.Layer):
   >>> layer_1 = MolGANConvolutionLayer(units=units,edges=edges)
   >>> layer_2 = MolGANConvolutionLayer(units=units,edges=edges)
   >>> layer_3 = MolGANAggregationLayer(units=128)
-  >>> adjacency_tensor= tensorflow.keras.layers.Input(shape=(vertices, vertices, edges))
-  >>> node_tensor = tensorflow.keras.layers.Input(shape=(vertices,nodes))
+  >>> adjacency_tensor= Input(shape=(vertices, vertices, edges))
+  >>> node_tensor = Input(shape=(vertices,nodes))
   >>> hidden_1 = layer_1([adjacency_tensor,node_tensor])
   >>> hidden_2 = layer_2(hidden_1)
   >>> output = layer_3(hidden_2[2])
-  >>> model = keras.Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
+  >>> model = Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
 
   References
   ----------
@@ -609,6 +614,8 @@ class MolGANMultiConvolutionLayer(tf.keras.layers.Layer):
 
   Example
   --------
+  >>> from tensorflow.keras import Model
+  >>> from tensorflow.keras.layers import Input
   >>> vertices = 9
   >>> nodes = 5
   >>> edges = 5
@@ -616,11 +623,11 @@ class MolGANMultiConvolutionLayer(tf.keras.layers.Layer):
 
   >>> layer_1 = MolGANMultiConvolutionLayer(units=(128,64))
   >>> layer_2 = MolGANAggregationLayer(units=128)
-  >>> adjacency_tensor= tensorflow.keras.layers.Input(shape=(vertices, vertices, edges))
-  >>> node_tensor = tensorflow.keras.layers.Input(shape=(vertices,nodes))
+  >>> adjacency_tensor= Input(shape=(vertices, vertices, edges))
+  >>> node_tensor = Input(shape=(vertices,nodes))
   >>> hidden = layer_1([adjacency_tensor,node_tensor])
   >>> output = layer_2(hidden)
-  >>> model = keras.Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
+  >>> model = Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
 
   References
   ----------
@@ -723,23 +730,23 @@ class MolGANEncoderLayer(tf.keras.layers.Layer):
 
   Example
   --------
-
+  >>> from tensorflow.keras import Model
+  >>> from tensorflow.keras.layers import Input, Dropout,Dense
   >>> vertices = 9
   >>> edges = 5
+  >>> nodes = 5
   >>> dropout_rate = .0
-  >>> adjacency_tensor= tensorflow.keras.layers.Input(shape=(vertices, vertices, edges))
-  >>> node_tensor = tensorflow.keras.layers.Input(shape=(vertices, nodes))
+  >>> adjacency_tensor= Input(shape=(vertices, vertices, edges))
+  >>> node_tensor = Input(shape=(vertices, nodes))
 
-  >>> graph = MolGANEncoderLayer(units = [(128,64),128],
-  >>>                           dropout_rate= dropout_rate,
-  >>>                           edges=edges)([adjacency_tensor,node_tensor])
+  >>> graph = MolGANEncoderLayer(units = [(128,64),128], dropout_rate= dropout_rate, edges=edges)([adjacency_tensor,node_tensor])
   >>> dense = Dense(units=128, activation='tanh')(graph)
   >>> dense = Dropout(dropout_rate)(dense)
   >>> dense = Dense(units=64, activation='tanh')(dense)
   >>> dense = Dropout(dropout_rate)(dense)
   >>> output = Dense(units=1)(dense)
 
-  >>> keras.Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
+  >>> model = Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
 
   References
   ----------
