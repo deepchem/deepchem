@@ -387,17 +387,17 @@ class MolGANConvolutionLayer(tf.keras.layers.Layer):
   --------
   See: MolGANMultiConvolutionLayer for using in layers.
 
-  vertices = 9
-  nodes = 5
-  edges = 5
-  units = 128
+  >>> vertices = 9
+  >>> nodes = 5
+  >>> edges = 5
+  >>> units = 128
 
-  layer = MolGANConvolutionLayer(units=units,edges=edges)
-  adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
-  node_tensor = layers.Input(shape=(vertices,nodes))
-  hidden1 = layer([adjacency_tensor,node_tensor])
-  output = layer(hidden1)
-  model = keras.Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
+  >>> layer = MolGANConvolutionLayer(units=units,edges=edges)
+  >>> adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
+  >>> node_tensor = layers.Input(shape=(vertices,nodes))
+  >>> hidden1 = layer([adjacency_tensor,node_tensor])
+  >>> output = layer(hidden1)
+  >>> model = keras.Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
 
   References
   ----------
@@ -723,23 +723,23 @@ class MolGANEncoderLayer(tf.keras.layers.Layer):
 
   Example
   --------
-  >>> def create_discriminator(adjacency_tensor, node_tensor):
-        vertices = 9
-        edges = 5
-        dropout_rate = .0
-        adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
-        node_tensor = layers.Input(shape=(vertices, nodes))
+  
+  vertices = 9
+  edges = 5
+  dropout_rate = .0
+  adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
+  node_tensor = layers.Input(shape=(vertices, nodes))
 
-        graph = MolGANEncoderLayer(units = [(128,64),128],
-                                  dropout_rate= dropout_rate,
-                                  edges=edges)([adjacency_tensor,node_tensor])
-        dense = layers.Dense(units=128, activation='tanh')(graph)
-        dense = layers.Dropout(dropout_rate)(dense)
-        dense = layers.Dense(units=64, activation='tanh')(dense)
-        dense = layers.Dropout(dropout_rate)(dense)
-        output = layers.Dense(units=1)(dense)
+  graph = MolGANEncoderLayer(units = [(128,64),128],
+                            dropout_rate= dropout_rate,
+                            edges=edges)([adjacency_tensor,node_tensor])
+  dense = layers.Dense(units=128, activation='tanh')(graph)
+  dense = layers.Dropout(dropout_rate)(dense)
+  dense = layers.Dense(units=64, activation='tanh')(dense)
+  dense = layers.Dropout(dropout_rate)(dense)
+  output = layers.Dense(units=1)(dense)
 
-        return keras.Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
+  keras.Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
 
   References
   ----------
