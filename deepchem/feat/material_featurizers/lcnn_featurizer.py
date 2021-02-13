@@ -5,6 +5,8 @@ from collections import defaultdict
 from typing import List, Dict, Tuple, DefaultDict, Any
 from deepchem.utils.typing import PymatgenStructure
 from deepchem.feat.graph_data import GraphData
+from scipy.spatial.distance import pdist, squareform, cdist
+from scipy.spatial.transform import Rotation
 
 
 class LCNNFeaturizer(MaterialStructureFeaturizer):
@@ -17,10 +19,10 @@ class LCNNFeaturizer(MaterialStructureFeaturizer):
   determined by first extracting a site local environment from the primitive cell,
   and perform graph matching and distance matching to find neighbors.
   First, the template of the Primitive cell needs to be defined along with periodic
-  boundary conditions and active and specator site details. structure(Data Point
+  boundary conditions and active and spectator site details. structure(Data Point
   i.e different configuration of adsorbate atoms) is passed for featurization.
 
-  This particular featurisation produces a regular-graph (equal number of Neighbors)
+  This particular featurization produces a regular-graph (equal number of Neighbors)
   along with its permutation in 6 symmetric axis. This transformation can be
   applied when orderering of neighboring of nodes around a site play an important role
   in the propert predictions. Due to consideration of local neighbor environment,
@@ -226,10 +228,6 @@ class _SiteEnvironment(object):
       import networkx.algorithms.isomorphism as iso
     except:
       raise ImportError("This class requires networkx to be installed.")
-    try:
-      from scipy.spatial.distance import pdist, squareform
-    except:
-      raise ImportError("This class requires scipy to be installed.")
     self.pos = pos
     self.sitetypes = sitetypes
     self.activesiteidx = [i for i, s in enumerate(self.sitetypes) if 'A' in s]
@@ -286,18 +284,13 @@ class _SiteEnvironment(object):
     Returns
     ------
     G: networkx.classes.graph.Graph
-    networkx graph used for matching site positions in
-    datum.
+      networkx graph used for matching site positions in
+      datum.
     """
     try:
       import networkx as nx
     except:
       raise ImportError("This class requires networkx to be installed.")
-
-    try:
-      from scipy.spatial.distance import cdist, pdist
-    except:
-      raise ImportError("This class requires scipy to be installed.")
 
     # construct graph
     G = nx.Graph()
@@ -347,10 +340,6 @@ class _SiteEnvironment(object):
       import networkx.algorithms.isomorphism as iso
     except:
       raise ImportError("This class requires networkx to be installed.")
-    try:
-      from scipy.spatial.transform import Rotation
-    except:
-      raise ImportError("This class requires scipy to be installed.")
     # construct graph
 
     G = self._construct_graph(env['pos'], env['sitetypes'])
@@ -635,10 +624,6 @@ def _get_SiteEnvironments(struct: PymatgenStructure,
   except:
     raise ImportError("This class requires pymatgen to be installed.")
 
-  try:
-    from scipy.spatial.distance import cdist
-  except:
-    raise ImportError("This class requires scipy to be installed.")
   pbc = np.array(PBC)
   structure = struct
   neighbors = structure.get_all_neighbors(cutoff, include_index=True)

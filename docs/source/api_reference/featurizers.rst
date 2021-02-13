@@ -290,10 +290,12 @@ CGCNNFeaturizer
   :inherited-members:
 
 LCNNFeaturizer
-^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.LCNNFeaturizer
   :members:
+  :inherited-members:
+
 
 MaterialCompositionFeaturizer
 -----------------------------
