@@ -17,7 +17,7 @@ from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
-from deepchem.utils.typing import LossFn, OneOrMany
+from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
 
 try:
   import wandb
@@ -564,8 +564,8 @@ class KerasModel(Model):
     a NumPy array of the model produces a single output, or a list of arrays
     if it produces multiple outputs
     """
-    results: Optional[List[np.ndarray]] = None
-    variances: Optional[List[np.ndarray]] = None
+    results: Optional[List[List[np.ndarray]]] = None
+    variances: Optional[List[List[np.ndarray]]] = None
     if (outputs is not None) and (other_output_types is not None):
       raise ValueError(
           'This model cannot compute outputs and other output_types simultaneously.'
@@ -699,7 +699,7 @@ class KerasModel(Model):
 
   def predict_on_batch(
       self,
-      X: Sequence,
+      X: ArrayLike,
       transformers: List[Transformer] = [],
       outputs: Optional[OneOrMany[tf.Tensor]] = None) -> OneOrMany[np.ndarray]:
     """Generates predictions for input samples, processing samples in a batch.

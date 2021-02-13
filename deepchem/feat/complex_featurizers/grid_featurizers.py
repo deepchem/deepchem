@@ -81,7 +81,7 @@ class ChargeVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize(self, complex: Tuple[str, str]) -> np.ndarray:
+  def _featurize(self, complex: Tuple[str, str]) -> Optional[np.ndarray]:
     """
     Compute featurization for a single mol/protein complex
 
@@ -167,7 +167,7 @@ class SaltBridgeVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize(self, complex: Tuple[str, str]) -> np.ndarray:
+  def _featurize(self, complex: Tuple[str, str]) -> Optional[np.ndarray]:
     """
     Compute featurization for a single mol/protein complex
 
@@ -252,7 +252,7 @@ class CationPiVoxelizer(ComplexFeaturizer):
     self.box_width = box_width
     self.voxel_width = voxel_width
 
-  def _featurize(self, complex: Tuple[str, str]) -> np.ndarray:
+  def _featurize(self, complex: Tuple[str, str]) -> Optional[np.ndarray]:
     """
     Compute featurization for a single mol/protein complex
 
@@ -343,7 +343,7 @@ class PiStackVoxelizer(ComplexFeaturizer):
     self.box_width = box_width
     self.voxel_width = voxel_width
 
-  def _featurize(self, complex) -> np.ndarray:
+  def _featurize(self, complex) -> Optional[np.ndarray]:
     """
     Compute featurization for a single mol/protein complex
 
@@ -455,7 +455,7 @@ class HydrogenBondCounter(ComplexFeaturizer):
       self.angle_cutoffs = angle_cutoffs
     self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize(self, complex: Tuple[str, str]) -> np.ndarray:
+  def _featurize(self, complex: Tuple[str, str]) -> Optional[np.ndarray]:
     """
     Compute featurization for a single mol/protein complex
 
@@ -560,7 +560,7 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize(self, complex: Tuple[str, str]) -> np.ndarray:
+  def _featurize(self, complex: Tuple[str, str]) -> Optional[np.ndarray]:
     """
     Compute featurization for a single mol/protein complex
 

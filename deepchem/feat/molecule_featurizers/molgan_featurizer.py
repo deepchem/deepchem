@@ -2,6 +2,9 @@ import logging
 import numpy as np
 from deepchem.utils.typing import RDKitBond, RDKitMol, List
 from deepchem.feat.base_classes import MolecularFeaturizer
+from deepchem.utils.typing import OneOrMany
+
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +99,7 @@ class MolGanFeaturizer(MolecularFeaturizer):
     self.atom_encoder = {l: i for i, l in enumerate(self.atom_labels)}
     self.atom_decoder = {i: l for i, l in enumerate(self.atom_labels)}
 
-  def _featurize(self, mol: RDKitMol) -> GraphMatrix:
+  def _featurize(self, mol: RDKitMol) -> Optional[GraphMatrix]:
     """
     Calculate adjacency matrix and nodes features for RDKitMol.
     It strips any chirality and charges
@@ -209,7 +212,7 @@ class MolGanFeaturizer(MolecularFeaturizer):
 
     return mol
 
-  def defeaturize(self, graphs: GraphMatrix,
+  def defeaturize(self, graphs: OneOrMany[GraphMatrix],
                   log_every_n: int = 1000) -> np.ndarray:
     """
     Calculates molecules from corresponding GraphMatrix objects.
@@ -220,7 +223,7 @@ class MolGanFeaturizer(MolecularFeaturizer):
       GraphMatrix object or corresponding iterable
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
-      
+
     Returns
     -------
     features: np.ndarray
@@ -250,5 +253,4 @@ class MolGanFeaturizer(MolecularFeaturizer):
         logger.warning("Exception message: {}".format(e))
         molecules.append(np.array([]))
 
-    molecules = np.asarray(molecules)
-    return molecules
+    return np.asarray(molecules)
