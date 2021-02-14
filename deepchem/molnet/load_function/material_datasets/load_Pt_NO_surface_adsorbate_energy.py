@@ -8,32 +8,28 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.feat.material_featurizers.lcnn_featurizer import LCNNFeaturizer
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
-try:
-  from pymatgen import Structure
 
-  PLATINUM_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/Platinum_adsorption.tar.gz"
-  PLATINUM_TASKS = ["Formation Energy"]
-  PRIMITIVE_CELL = {
-      "lattice": [[2.818528, 0.0, 0.0], [-1.409264, 2.440917, 0.0],
-                  [0.0, 0.0, 25.508255]],
-      "coords": [[0.66667, 0.33333, 0.090221], [0.33333, 0.66667, 0.18043936],
-                 [0.0, 0.0, 0.27065772], [0.66667, 0.33333, 0.36087608],
-                 [0.33333, 0.66667, 0.45109444], [0.0, 0.0, 0.49656991]],
-      "species": ['H', 'H', 'H', 'H', 'H', 'He'],
-      "site_properties": {
-          'SiteTypes': ['S1', 'S1', 'S1', 'S1', 'S1', 'A1']
-      }
-  }
-  PRIMITIVE_CELL_INF0 = {
-      "cutoff": np.around(6.00),
-      "structure": Structure(**PRIMITIVE_CELL),
-      "aos": ['1', '0', '2'],
-      "pbc": [True, True, False],
-      "ns": 1,
-      "na": 1
-  }
-except:
-  raise ImportError("This class requires pymatgen to be installed.")
+PLATINUM_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/Platinum_adsorption.tar.gz"
+PLATINUM_TASKS = ["Formation Energy"]
+PRIMITIVE_CELL = {
+    "lattice": [[2.818528, 0.0, 0.0], [-1.409264, 2.440917, 0.0],
+                [0.0, 0.0, 25.508255]],
+    "coords": [[0.66667, 0.33333, 0.090221], [0.33333, 0.66667, 0.18043936],
+               [0.0, 0.0, 0.27065772], [0.66667, 0.33333, 0.36087608],
+               [0.33333, 0.66667, 0.45109444], [0.0, 0.0, 0.49656991]],
+    "species": ['H', 'H', 'H', 'H', 'H', 'He'],
+    "site_properties": {
+        'SiteTypes': ['S1', 'S1', 'S1', 'S1', 'S1', 'A1']
+    }
+}
+PRIMITIVE_CELL_INF0 = {
+    "cutoff": np.around(6.00),
+    "structure": PRIMITIVE_CELL,
+    "aos": ['1', '0', '2'],
+    "pbc": [True, True, False],
+    "ns": 1,
+    "na": 1
+}
 
 
 class _PtAdsorptionLoader(_MolnetLoader):

@@ -64,52 +64,52 @@ class LCNNFeaturizer(MaterialStructureFeaturizer):
   >>> from pymatgen import Structure
   >>> import numpy as np
   >>> PRIMITIVE_CELL = {
-  >>>   "lattice": [[2.818528, 0.0, 0.0],
-  >>>               [-1.409264, 2.440917, 0.0],
-  >>>               [0.0, 0.0, 25.508255]],
-  >>>   "coords": [[0.66667, 0.33333, 0.090221],
-  >>>              [0.33333, 0.66667, 0.18043936],
-  >>>              [0.0, 0.0, 0.27065772],
-  >>>              [0.66667, 0.33333, 0.36087608],
-  >>>              [0.33333, 0.66667, 0.45109444],
-  >>>              [0.0, 0.0, 0.49656991]],
-  >>>   "species": ['H', 'H', 'H', 'H', 'H', 'He'],
-  >>>   "site_properties": {'SiteTypes': ['S1', 'S1', 'S1', 'S1', 'S1', 'A1']}
-  >>> }
+  ...   "lattice": [[2.818528, 0.0, 0.0],
+  ...               [-1.409264, 2.440917, 0.0],
+  ...               [0.0, 0.0, 25.508255]],
+  ...   "coords": [[0.66667, 0.33333, 0.090221],
+  ...              [0.33333, 0.66667, 0.18043936],
+  ...              [0.0, 0.0, 0.27065772],
+  ...              [0.66667, 0.33333, 0.36087608],
+  ...              [0.33333, 0.66667, 0.45109444],
+  ...              [0.0, 0.0, 0.49656991]],
+  ...   "species": ['H', 'H', 'H', 'H', 'H', 'He'],
+  ...   "site_properties": {'SiteTypes': ['S1', 'S1', 'S1', 'S1', 'S1', 'A1']}
+  ... }
   >>> PRIMITIVE_CELL_INF0 = {
-  >>>    "cutoff": np.around(6.00),
-  >>>    "structure": Structure(**PRIMITIVE_CELL),
-  >>>    "aos": ['1', '0', '2'],
-  >>>    "pbc": [True, True, False],
-  >>>    "ns": 1,
-  >>>    "na": 1
-  >>> }
+  ...    "cutoff": np.around(6.00),
+  ...    "structure": Structure(**PRIMITIVE_CELL),
+  ...    "aos": ['1', '0', '2'],
+  ...    "pbc": [True, True, False],
+  ...    "ns": 1,
+  ...    "na": 1
+  ... }
   >>> DATA_POINT = {
-  >>>   "lattice": [[1.409264, -2.440917, 0.0],
-  >>>               [4.227792, 2.440917, 0.0],
-  >>>               [0.0, 0.0, 23.17559]],
-  >>>   "coords": [[0.0, 0.0, 0.099299],
-  >>>              [0.0, 0.33333, 0.198598],
-  >>>              [0.5, 0.16667, 0.297897],
-  >>>              [0.0, 0.0, 0.397196],
-  >>>              [0.0, 0.33333, 0.496495],
-  >>>              [0.5, 0.5, 0.099299],
-  >>>              [0.5, 0.83333, 0.198598],
-  >>>              [0.0, 0.66667, 0.297897],
-  >>>              [0.5, 0.5, 0.397196],
-  >>>              [0.5, 0.83333, 0.496495],
-  >>>              [0.0, 0.66667, 0.54654766],
-  >>>              [0.5, 0.16667, 0.54654766]],
-  >>>   "species": ['H', 'H', 'H', 'H', 'H', 'H',
-  >>>               'H', 'H', 'H', 'H', 'He', 'He'],
-  >>>   "site_properties": {
-  >>>     "SiteTypes": ['S1', 'S1', 'S1', 'S1', 'S1',
-  >>>                   'S1', 'S1', 'S1', 'S1', 'S1',
-  >>>                   'A1', 'A1'],
-  >>>     "oss": ['-1', '-1', '-1', '-1', '-1', '-1',
-  >>>             '-1', '-1', '-1', '-1', '0', '2']
-  >>>                   }
-  >>> }
+  ...   "lattice": [[1.409264, -2.440917, 0.0],
+  ...               [4.227792, 2.440917, 0.0],
+  ...               [0.0, 0.0, 23.17559]],
+  ...   "coords": [[0.0, 0.0, 0.099299],
+  ...              [0.0, 0.33333, 0.198598],
+  ...              [0.5, 0.16667, 0.297897],
+  ...              [0.0, 0.0, 0.397196],
+  ...              [0.0, 0.33333, 0.496495],
+  ...              [0.5, 0.5, 0.099299],
+  ...              [0.5, 0.83333, 0.198598],
+  ...              [0.0, 0.66667, 0.297897],
+  ...              [0.5, 0.5, 0.397196],
+  ...              [0.5, 0.83333, 0.496495],
+  ...              [0.0, 0.66667, 0.54654766],
+  ...              [0.5, 0.16667, 0.54654766]],
+  ...   "species": ['H', 'H', 'H', 'H', 'H', 'H',
+  ...               'H', 'H', 'H', 'H', 'He', 'He'],
+  ...   "site_properties": {
+  ...     "SiteTypes": ['S1', 'S1', 'S1', 'S1', 'S1',
+  ...                   'S1', 'S1', 'S1', 'S1', 'S1',
+  ...                   'A1', 'A1'],
+  ...     "oss": ['-1', '-1', '-1', '-1', '-1', '-1',
+  ...             '-1', '-1', '-1', '-1', '0', '2']
+  ...                   }
+  ... }
   >>> featuriser = dc.feat.LCNNFeaturizer(**PRIMITIVE_CELL_INF0)
   >>> print(type(featuriser._featurize(Structure(**DATA_POINT))))
   <class 'deepchem.feat.graph_data.GraphData'>
@@ -146,6 +146,13 @@ class LCNNFeaturizer(MaterialStructureFeaturizer):
       Cutoff of radius for getting local environment.Only
       used down to 2 digits.
     """
+    try:
+      from pymatgen import Structure
+    except:
+      raise ImportError("This class requires pymatgen to be installed.")
+
+    if type(structure) is not Structure:
+      structure = Structure(**structure)
     self.aos = aos
     self.cutoff = np.around(cutoff, 2)
     self.setup_env = _load_primitive_cell(structure, aos, pbc, ns, na, cutoff)
