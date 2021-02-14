@@ -5,7 +5,6 @@ import numpy as np
 import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
-from deepchem.feat.material_featurizers.lcnn_featurizer import LCNNFeaturizer
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
@@ -51,8 +50,7 @@ class _PtAdsorptionLoader(_MolnetLoader):
 
 
 def load_Platinum_Adsorption(
-    featurizer: Union[dc.feat.Featurizer, str] = LCNNFeaturizer(
-        **PRIMITIVE_CELL_INF0),
+    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.SineCoulombMatrix(),
     splitter: Union[dc.splits.Splitter, str, None] = 'random',
     transformers: List[Union[TransformerGenerator, str]] = [],
     reload: bool = True,
