@@ -223,7 +223,7 @@ class MolGanFeaturizer(MolecularFeaturizer):
       GraphMatrix object or corresponding iterable
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
-      
+    
     Returns
     -------
     features: np.ndarray
