@@ -1000,6 +1000,79 @@ class BalancingTransformer(Transformer):
     return (X, y, w_balanced, ids)
 
 
+class FlatteningTransformer(Transformer):
+  """ This transformer is required for a `Dataset` consisting of fragments as a preprocessing
+  step before prediction. This is used only in the context of performing interpretation of models using atomic
+  contributions (atom-based model interpretation) [1]_
+  Examples
+  --------
+
+  Here's an example of preparation to atom-based model interpretation.
+
+  >>> import tempfile
+  >>> import deepchem as dc
+  >>> fin = tempfile.NamedTemporaryFile(mode='w', delete=False)
+  >>> fin.write("smiles,endpoint\nc1ccccc1,1")
+  >>> fin.close()
+  >>> loader = dc.data.CSVLoader([], feature_field="smiles",
+              featurizer = dc.feat.ConvMolFeaturizer(per_atom_fragmentation=False))
+  >>> dataset = loader.create_dataset(fin.name) # dataset of molecules ready for prediction stage
+
+  >>> loader = dc.data.CSVLoader([], feature_field="smiles",
+  ...                              featurizer=dc.feat.ConvMolFeaturizer(per_atom_fragmentation=True))
+  >>> frag_dataset = loader.create_dataset(fin.name)
+  >>> transformer = dc.trans.FlatteningTransformer(dataset=frag_dataset)
+  >>> frag_dataset = transformer.transform(frag_dataset) # dataset of fragments ready for prediction stage
+
+  See Also
+  --------
+  Detailed examples of `GraphConvModel` interpretation are provided in Tutorial #28
+
+  References
+  ---------
+
+  .. [1] Polishchuk, P., et al. J. Chem. Inf. Model. 2016, 56, 8, 1455–1469
+  """
+
+  def __init__(self, dataset: Dataset):
+    super(FlatteningTransformer, self).__init__(
+        transform_X=True, transform_ids=True, dataset=dataset)
+
+  def transform_array(
+      self, X: np.ndarray, y: np.ndarray, w: np.ndarray,
+      ids: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Transform the data in a set of (X, y, w) arrays.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Array of features
+    y: np.ndarray
+      Array of labels
+    w: np.ndarray
+      Array of weights.
+    ids: np.ndarray
+      Array of weights.
+
+    Returns
+    -------
+    Xtrans: np.ndarray
+      Transformed array of features
+    ytrans: np.ndarray
+      Transformed array of labels
+    wtrans: np.ndarray
+      Transformed array of weights
+    idstrans: np.ndarray
+      Transformed array of ids
+    """
+
+    ids = np.repeat(
+        ids, [len(i)
+              for i in X], axis=0)  # each fragment should recieve parent mol id
+    X = np.array([j for i in X for j in i])  # flatten
+    return (X, y, w, ids)
+
+
 class CDFTransformer(Transformer):
   """Histograms the data and assigns values based on sorted list.
 

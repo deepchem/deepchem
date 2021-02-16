@@ -7,7 +7,7 @@ from deepchem.feat.complex_featurizers import ComplexNeighborListFragmentAtomicC
 from deepchem.feat.mol_graphs import ConvMol, WeaveMol
 from deepchem.data import DiskDataset
 import logging
-from typing import Optional, List
+from typing import Optional, List, Union, Iterable
 from deepchem.utils.typing import RDKitMol, RDKitAtom
 
 
@@ -653,10 +653,10 @@ class ConvMolFeaturizer(MolecularFeaturizer):
   name = ['conv_mol']
 
   def __init__(self,
-               master_atom=False,
-               use_chirality=False,
-               atom_properties=[],
-               per_atom_fragmentation=False):
+               master_atom: bool = False,
+               use_chirality: bool = False,
+               atom_properties: Iterable[str] = [],
+               per_atom_fragmentation: bool = False):
     """
     Parameters
     ----------
@@ -695,7 +695,10 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     self.atom_properties = list(atom_properties)
     self.per_atom_fragmentation = per_atom_fragmentation
 
-  def featurize(self, molecules, log_every_n=1000) -> np.ndarray:
+  def featurize(
+      self,
+      molecules: Union[RDKitMol, str, Iterable[RDKitMol], Iterable[str]],
+      log_every_n: int = 1000) -> np.ndarray:
     """
     Override parent: aim is to add handling atom-depleted molecules featurization
     
@@ -715,13 +718,14 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     features = super(ConvMolFeaturizer, self).featurize(
         molecules, log_every_n=1000)
     if self.per_atom_fragmentation:
+      # create temporary valid ids seving to filter out failed featurizations from every sublist
+      # of features (i.e. every molecules' frags list), and also totally failed sublists.
+      # This makes output digestable by Loaders
       valid_frag_inds = [[
           True if np.array(elt).size > 0 else False for elt in f
       ] for f in features]
-      features = np.array(
-          [[elt for (is_valid, elt) in zip(l, m) if is_valid]
-           for (l, m) in zip(valid_frag_inds, features) if any(l)],
-          dtype=object)
+      features = [[elt for (is_valid, elt) in zip(l, m) if is_valid]
+                  for (l, m) in zip(valid_frag_inds, features) if any(l)]
     return features
 
   def _get_atom_properties(self, atom):
@@ -760,7 +764,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
 
       Parameters
       ----------
-      n: array of nodes (number_of_nodes X number_of_features)
+      n: np.array of nodes (number_of_nodes X number_of_features)
       a: list of nested lists of adjacent node pairs
 
       """
