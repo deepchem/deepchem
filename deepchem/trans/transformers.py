@@ -1012,7 +1012,7 @@ class FlatteningTransformer(Transformer):
   >>> import tempfile
   >>> import deepchem as dc
   >>> fin = tempfile.NamedTemporaryFile(mode='w', delete=False)
-  >>> fin.write("smiles,endpoint\nc1ccccc1,1")
+  >>> fin.write("smiles,endpoint\\nc1ccccc1,1")
   >>> fin.close()
   >>> loader = dc.data.CSVLoader([], feature_field="smiles",
               featurizer = dc.feat.ConvMolFeaturizer(per_atom_fragmentation=False))
@@ -1071,7 +1071,6 @@ class FlatteningTransformer(Transformer):
               for i in X], axis=0)  # each fragment should recieve parent mol id
     X = np.array([j for i in X for j in i])  # flatten
     return (X, y, w, ids)
-
 
 class CDFTransformer(Transformer):
   """Histograms the data and assigns values based on sorted list.
