@@ -632,12 +632,18 @@ class ConvMolFeaturizer(MolecularFeaturizer):
 
   Examples
   ---------
-  Using ConvMolFeaturizer to create featurized fragments derived from molecules of interest
+  Using ConvMolFeaturizer to create featurized fragments derived from molecules of interest.
+  This is used only in the context of performing interpretation of models using atomic
+  contributions (atom-based model interpretation)
   >>> import deepchem as dc
   >>> smiles = ["C", "CCC"]
   >>> featurizer=dc.feat.ConvMolFeaturizer(per_atom_fragmentation=True)
   >>> f = featurizer.featurize(smiles)
   >>> len(f) # contains 2 lists with  featurized fragments from 2 mols
+
+  See Also
+  --------
+  Detailed examples of `GraphConvModel` interpretation are provided in Tutorial #28
 
   References
   ---------

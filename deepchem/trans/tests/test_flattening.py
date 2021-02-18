@@ -1,6 +1,5 @@
 import tempfile
 import os
-import numpy as np
 import deepchem as dc
 
 
