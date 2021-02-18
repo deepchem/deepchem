@@ -138,7 +138,7 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
   """This class computes the featurization that corresponds to AtomicConvModel.
 
   This class computes featurizations needed for AtomicConvModel.
-  Given a two molecular structures, it computes a number of useful
+  Given two molecular structures, it computes a number of useful
   geometric features. In particular, for each molecule and the global
   complex, it computes a coordinates matrix of size (N_atoms, 3)
   where N_atoms is the number of atoms. It also computes a
@@ -153,6 +153,7 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
   returned for each complex. Note that for efficiency, fragments of
   the molecules can be provided rather than the full molecules
   themselves.
+
   """
 
   def __init__(self,
@@ -180,7 +181,9 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
       this cutoff, the closest `max_num_neighbors` will be used.
     strip_hydrogens: bool (default True)
       Remove hydrogens before computing featurization.
+
     """
+
     self.frag1_num_atoms = frag1_num_atoms
     self.frag2_num_atoms = frag2_num_atoms
     self.complex_num_atoms = complex_num_atoms
@@ -197,6 +200,7 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
           mol_pdb_file, is_protein=False, sanitize=True, add_hydrogens=False)
       frag2_coords, frag2_mol = load_molecule(
           protein_pdb_file, is_protein=True, sanitize=True, add_hydrogens=False)
+
     except MoleculeLoadException:
       # Currently handles loading failures by returning None
       # TODO: Is there a better handling procedure?
@@ -237,6 +241,11 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
     logging.info("Featurizing molecule of size: %d", len(mol.GetAtoms()))
     neighbor_list = compute_neighbor_list(coords, self.neighbor_cutoff,
                                           self.max_num_neighbors, None)
+    # pad outputs
+    if len(neighbor_list.keys()) < max_num_atoms:
+      s = range(max_num_atoms) - neighbor_list.keys()
+      for k in s:
+        neighbor_list[k] = []
     z = self.get_Z_matrix(mol, max_num_atoms)
     z = pad_array(z, max_num_atoms)
     coords = pad_array(coords, (max_num_atoms, 3))

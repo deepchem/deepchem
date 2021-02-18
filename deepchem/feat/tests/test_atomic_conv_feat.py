@@ -4,8 +4,7 @@ Test atomic conv featurizer.
 
 import os
 import logging
-import numpy as np
-import unittest
+
 from deepchem.feat import AtomicConvFeaturizer
 
 logger = logging.getLogger(__name__)
@@ -37,17 +36,14 @@ def test_atomic_conv_featurization():
   assert frag1_z.shape == (frag1_num_atoms,)
 
   assert frag2_coords.shape == (frag2_num_atoms, 3)
-  ##################
-  print("len(sorted(list(frag2_neighbor_list.keys())))")
-  print(len(sorted(list(frag2_neighbor_list.keys()))))
-  print("len(list(range(frag2_num_atoms)))")
-  print(len(list(range(frag2_num_atoms))))
-  ##################
+
   assert (sorted(list(frag2_neighbor_list.keys())) == list(
       range(frag2_num_atoms)))
-  assert frag2_z.shape == (frag2_num_atoms,)
 
+  assert frag2_z.shape == (frag2_num_atoms,)
   assert complex_coords.shape == (complex_num_atoms, 3)
+
   assert (sorted(list(complex_neighbor_list.keys())) == list(
       range(complex_num_atoms)))
+
   assert (complex_z.shape == (complex_num_atoms,))
