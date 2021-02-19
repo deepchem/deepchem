@@ -289,6 +289,16 @@ CGCNNFeaturizer
   :members:
   :inherited-members:
 
+LCNNFeaturizer
+^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.LCNNFeaturizer
+  :members:
+  :inherited-members:
+
+
+MaterialCompositionFeaturizer
+-----------------------------
 
 Molecule Tokenizers
 -------------------
