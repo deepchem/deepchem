@@ -1072,6 +1072,7 @@ class FlatteningTransformer(Transformer):
     X = np.array([j for i in X for j in i])  # flatten
     return (X, y, w, ids)
 
+
 class CDFTransformer(Transformer):
   """Histograms the data and assigns values based on sorted list.
 
