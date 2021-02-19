@@ -11,6 +11,7 @@ import deepchem as dc
 import pytest
 
 IS_WINDOWS = platform.system() == 'Windows'
+IS_LINUX = platform.system() == 'Linux'
 
 
 class TestPoseGeneration(unittest.TestCase):
@@ -22,6 +23,11 @@ class TestPoseGeneration(unittest.TestCase):
   def test_vina_initialization(self):
     """Test that VinaPoseGenerator can be initialized."""
     dc.dock.VinaPoseGenerator()
+
+  @unittest.skipIf(not IS_LINUX, 'Skip the test on Windows and Mac.')
+  def test_gnina_initialization(self):
+    """Test that GninaPoseGenerator can be initialized."""
+    dc.dock.GninaPoseGenerator()
 
   @unittest.skipIf(IS_WINDOWS, 'Skip the test on Windows')
   def test_pocket_vina_initialization(self):
@@ -50,6 +56,35 @@ class TestPoseGeneration(unittest.TestCase):
           num_modes=1,
           out_dir=tmp,
           generate_scores=True)
+
+    assert len(poses) == 1
+    assert len(scores) == 1
+    protein, ligand = poses[0]
+    from rdkit import Chem
+    assert isinstance(protein, Chem.Mol)
+    assert isinstance(ligand, Chem.Mol)
+
+  @pytest.mark.slow
+  @unittest.skipIf(not IS_LINUX, 'Skip the test on Windows and Mac.')
+  def test_gnina_poses_and_scores(self):
+    """Test that GninaPoseGenerator generates poses and scores
+
+    This test takes some time to run, about 3 minutes on
+    development laptop.
+    """
+    # Let's turn on logging since this test will run for a while
+    logging.basicConfig(level=logging.INFO)
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    protein_file = os.path.join(current_dir, "1jld_protein.pdb")
+    ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
+
+    gpg = dc.dock.GninaPoseGenerator()
+    with tempfile.TemporaryDirectory() as tmp:
+      poses, scores = gpg.generate_poses(
+          (protein_file, ligand_file),
+          exhaustiveness=1,
+          num_modes=1,
+          out_dir=tmp)
 
     assert len(poses) == 1
     assert len(scores) == 1

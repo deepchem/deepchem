@@ -1160,7 +1160,4 @@ class InMemoryLoader(DataLoader):
       labels.append(label)
       ids.append(entry_id)
     X = np.concatenate(features, axis=0)
-    y = np.array(labels)
-    w = np.array(weights)
-    ids = np.array(ids)
-    return X, y, w, ids
+    return X, np.array(labels), np.array(weights), np.array(ids)

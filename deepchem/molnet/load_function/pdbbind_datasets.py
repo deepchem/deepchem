@@ -44,7 +44,7 @@ class _PDBBindLoader(_MolnetLoader):
 
     return dataset
 
-  def _process_pdbs(self) -> Tuple[List[str], List[str], np.array, List[str]]:
+  def _process_pdbs(self) -> Tuple[List[str], List[str], np.ndarray, List[str]]:
     if self.set_name == 'general':
       data_folder = os.path.join(self.data_dir, 'v2019-other-PL')
       index_labels_file = os.path.join(data_folder,
@@ -109,8 +109,8 @@ def load_pdbbind(
   Parameters
   ----------
   featurizer: ComplexFeaturizer or str
-    the complex featurizer to use for processing the data. 
-    Alternatively you can pass one of the names from 
+    the complex featurizer to use for processing the data.
+    Alternatively you can pass one of the names from
     dc.molnet.featurizers as a shortcut.
   splitter: Splitter or str
     the splitter to use for splitting the data into training, validation, and

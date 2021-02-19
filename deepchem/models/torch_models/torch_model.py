@@ -18,7 +18,7 @@ from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
-from deepchem.utils.typing import LossFn, OneOrMany
+from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
 
 try:
   import wandb
@@ -360,6 +360,7 @@ class TorchModel(Model):
       if restore:
         self.restore()
         restore = False
+      inputs: OneOrMany[torch.Tensor]
       inputs, labels, weights = self._prepare_batch(batch)
 
       # Execute the loss function, accumulating the gradients.
@@ -500,8 +501,8 @@ class TorchModel(Model):
       a NumPy array of the model produces a single output, or a list of arrays
       if it produces multiple outputs
     """
-    results: Optional[List[np.ndarray]] = None
-    variances: Optional[List[np.ndarray]] = None
+    results: Optional[List[List[np.ndarray]]] = None
+    variances: Optional[List[List[np.ndarray]]] = None
     if uncertainty and (other_output_types is not None):
       raise ValueError(
           'This model cannot compute uncertainties and other output types simultaneously. Please invoke one at a time.'
@@ -599,7 +600,7 @@ class TorchModel(Model):
     """
     return self._predict(generator, transformers, False, output_types)
 
-  def predict_on_batch(self, X: Sequence, transformers: List[Transformer] = []
+  def predict_on_batch(self, X: ArrayLike, transformers: List[Transformer] = []
                       ) -> OneOrMany[np.ndarray]:
     """Generates predictions for input samples, processing samples in a batch.
 
@@ -803,13 +804,13 @@ class TorchModel(Model):
     input_shape = X.shape
     X = np.reshape(X, [1] + list(X.shape))
     self._ensure_built()
-    X, _, _ = self._prepare_batch(([X], None, None))
+    X_batch, _, _ = self._prepare_batch(([X], None, None))
 
     # Compute the gradients.
 
-    X = X[0]
-    X.requires_grad_(True)
-    outputs = self.model(X)
+    X_tensor = X_batch[0]
+    X_tensor.requires_grad_(True)
+    outputs = self.model(X_tensor)
     if isinstance(outputs, torch.Tensor):
       outputs = [outputs]
     final_result = []
@@ -822,8 +823,8 @@ class TorchModel(Model):
         grad_output.zero_()
         grad_output[i] = 1
         output.backward(grad_output, retain_graph=True)
-        result.append(X.grad.clone())
-        X.grad.zero_()
+        result.append(X_tensor.grad.clone())
+        X_tensor.grad.zero_()
       final_result.append(
           torch.reshape(torch.stack(result),
                         output_shape + input_shape).cpu().numpy())
@@ -831,25 +832,30 @@ class TorchModel(Model):
       return final_result[0]
     return final_result
 
-  def _prepare_batch(self,
-                     batch: Tuple[Any, Any, Any]) -> Tuple[List, List, List]:
+  def _prepare_batch(
+      self, batch: Tuple[Any, Any, Any]
+  ) -> Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]:
     inputs, labels, weights = batch
     inputs = [
         x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs
     ]
-    inputs = [torch.as_tensor(x, device=self.device) for x in inputs]
+    input_tensors = [torch.as_tensor(x, device=self.device) for x in inputs]
     if labels is not None:
       labels = [
           x.astype(np.float32) if x.dtype == np.float64 else x for x in labels
       ]
-      labels = [torch.as_tensor(x, device=self.device) for x in labels]
+      label_tensors = [torch.as_tensor(x, device=self.device) for x in labels]
+    else:
+      label_tensors = []
     if weights is not None:
       weights = [
           x.astype(np.float32) if x.dtype == np.float64 else x for x in weights
       ]
-      weights = [torch.as_tensor(x, device=self.device) for x in weights]
+      weight_tensors = [torch.as_tensor(x, device=self.device) for x in weights]
+    else:
+      weight_tensors = []
 
-    return (inputs, labels, weights)
+    return (input_tensors, label_tensors, weight_tensors)
 
   def default_generator(
       self,

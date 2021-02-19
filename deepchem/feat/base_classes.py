@@ -53,8 +53,7 @@ class Featurizer(object):
             "Failed to featurize datapoint %d. Appending empty array")
         features.append(np.array([]))
 
-    features = np.asarray(features)
-    return features
+    return np.asarray(features)
 
   def __call__(self, datapoints: Iterable[Any]):
     """Calculate features for datapoints.
@@ -186,8 +185,7 @@ class ComplexFeaturizer(Featurizer):
             "Failed to featurize datapoint %i. Appending empty array." % i)
         features.append(np.array([]))
 
-    features = np.asarray(features)
-    return features
+    return np.asarray(features)
 
   def _featurize(self, complex: Tuple[str, str]):
     """
@@ -273,8 +271,7 @@ class MolecularFeaturizer(Featurizer):
         logger.warning("Exception message: {}".format(e))
         features.append(np.array([]))
 
-    features = np.asarray(features)
-    return features
+    return np.asarray(features)
 
 
 class MaterialStructureFeaturizer(Featurizer):
@@ -339,8 +336,7 @@ class MaterialStructureFeaturizer(Featurizer):
             "Failed to featurize datapoint %i. Appending empty array" % idx)
         features.append(np.array([]))
 
-    features = np.asarray(features)
-    return features
+    return np.asarray(features)
 
 
 class MaterialCompositionFeaturizer(Featurizer):
@@ -401,8 +397,7 @@ class MaterialCompositionFeaturizer(Featurizer):
             "Failed to featurize datapoint %i. Appending empty array" % idx)
         features.append(np.array([]))
 
-    features = np.asarray(features)
-    return features
+    return np.asarray(features)
 
 
 class UserDefinedFeaturizer(Featurizer):
