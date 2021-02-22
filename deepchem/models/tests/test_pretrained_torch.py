@@ -58,7 +58,7 @@ class TestPretrainedTorch(unittest.TestCase):
     for idx, dest_var in enumerate(dest_vars):
       source_var = source_vars[idx]
       assignment_map[source_var] = dest_var
-      value_map[source_var] = source_var.detach().numpy()
+      value_map[source_var] = source_var.detach().cpu().numpy()
 
     dest_model.load_from_pretrained(
         source_model=source_model,
@@ -66,8 +66,8 @@ class TestPretrainedTorch(unittest.TestCase):
         value_map=value_map)
 
     for source_var, dest_var in assignment_map.items():
-      source_val = source_var.detach().numpy()
-      dest_val = dest_var.detach().numpy()
+      source_val = source_var.detach().cpu().numpy()
+      dest_val = dest_var.detach().cpu().numpy()
       np.testing.assert_array_almost_equal(source_val, dest_val)
 
   def test_restore_equivalency(self):
