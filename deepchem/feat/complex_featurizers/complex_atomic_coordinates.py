@@ -2,6 +2,7 @@
 Atomic coordinate featurizer.
 """
 import logging
+import warnings
 
 import numpy as np
 
@@ -242,10 +243,6 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
     neighbor_list = compute_neighbor_list(coords, self.neighbor_cutoff,
                                           self.max_num_neighbors, None)
     # pad outputs
-    if len(neighbor_list.keys()) < max_num_atoms:
-      s = range(max_num_atoms) - neighbor_list.keys()
-      for k in s:
-        neighbor_list[k] = []
     z = self.get_Z_matrix(mol, max_num_atoms)
     z = pad_array(z, max_num_atoms)
     coords = pad_array(coords, (max_num_atoms, 3))
@@ -285,7 +282,7 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
     return coords, mol
 
 
-#################### Deprecation warnings for old atomic conv featurizer name ####################
+# Deprecation warnings for old atomic conv featurizer name #
 
 ATOMICCONV_DEPRECATION = "{} is deprecated and has been renamed to {} and will be removed in DeepChem 3.0."
 
