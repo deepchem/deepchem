@@ -441,12 +441,6 @@ class LCNNModel(TorchModel):
   Here is a simple example of code that uses the LCNNModel with
   Platinum 2d Adsorption dataset.
 
-  >> import deepchem as dc
-  >> tasks, datasets, transformers = dc.molnet.load_Platinum_Adsorption()
-  >> train, valid, test = datasets
-  >> model = dc.models.LCNNModel(mode='regression', batch_size=8, learning_rate=0.001)
-  >> model.fit(train, nb_epoch=10)
-
   This model takes arbitrary configurations of Molecules on an adsorbate and predicts
   their formation energy. These formation energies are found using DFT calculations and
   LCNNModel is to automate that process. This model defines a crystal graph using the
