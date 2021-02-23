@@ -1,148 +1,117 @@
-__author__ = "Joseph Gomes"
-__copyright__ = "Copyright 2017, Stanford University"
-__license__ = "MIT"
-
-import sys
-
+import logging
+import deepchem as dc
 from deepchem.models import KerasModel
 from deepchem.models.layers import AtomicConvolution
 from deepchem.models.losses import L2Loss
-from tensorflow.keras.layers import Input, Layer
+from tensorflow.keras.layers import Input, Dense, Reshape, Dropout, Activation, Lambda, Flatten, Concatenate
 
 import numpy as np
 import tensorflow as tf
 import itertools
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
+from typing import Sequence, Union
+from deepchem.utils.typing import KerasActivationFn, LossFn, OneOrMany
 
+logger = logging.getLogger(__name__)
 
-def initializeWeightsBiases(prev_layer_size,
-                            size,
-                            weights=None,
-                            biases=None,
-                            name=None):
-  """Initializes weights and biases to be used in a fully-connected layer.
+# class AtomicConvScore(Layer):
+#   """The scoring function used by the atomic convolution models."""
 
-  Parameters
-  ----------
-  prev_layer_size: int
-    Number of features in previous layer.
-  size: int
-    Number of nodes in this layer.
-  weights: tf.Tensor, optional (Default None)
-    Weight tensor.
-  biases: tf.Tensor, optional (Default None)
-    Bias tensor.
-  name: str
-    Name for this op, optional (Defaults to 'fully_connected' if None)
+#   def __init__(self, atom_types, layer_sizes, **kwargs):
+#     super(AtomicConvScore, self).__init__(**kwargs)
+#     self.atom_types = atom_types
+#     self.layer_sizes = layer_sizes
 
-  Returns
-  -------
-  weights: tf.Variable
-    Initialized weights.
-  biases: tf.Variable
-    Initialized biases.
+#   def build(self, input_shape):
+#     self.type_weights = []
+#     self.type_biases = []
+#     self.output_weights = []
+#     self.output_biases = []
+#     n_features = int(input_shape[0][-1])
+#     layer_sizes = self.layer_sizes
+#     num_layers = len(layer_sizes)
+#     weight_init_stddevs = [1 / np.sqrt(x) for x in layer_sizes]
+#     bias_init_consts = [0.0] * num_layers
+#     for ind, atomtype in enumerate(self.atom_types):
+#       prev_layer_size = n_features
+#       self.type_weights.append([])
+#       self.type_biases.append([])
+#       self.output_weights.append([])
+#       self.output_biases.append([])
+#       for i in range(num_layers):
+#         weight, bias = initializeWeightsBiases(
+#             prev_layer_size=prev_layer_size,
+#             size=layer_sizes[i],
+#             weights=tf.random.truncated_normal(
+#                 shape=[prev_layer_size, layer_sizes[i]],
+#                 stddev=weight_init_stddevs[i]),
+#             biases=tf.constant(
+#                 value=bias_init_consts[i], shape=[layer_sizes[i]]))
+#         self.type_weights[ind].append(weight)
+#         self.type_biases[ind].append(bias)
+#         prev_layer_size = layer_sizes[i]
+#       weight, bias = initializeWeightsBiases(prev_layer_size, 1)
+#       self.output_weights[ind].append(weight)
+#       self.output_biases[ind].append(bias)
 
-  """
+#   def call(self, inputs):
+#     frag1_layer, frag2_layer, complex_layer, frag1_z, frag2_z, complex_z = inputs
+#     atom_types = self.atom_types
+#     num_layers = len(self.layer_sizes)
 
-  if weights is None:
-    weights = tf.random.truncated_normal([prev_layer_size, size], stddev=0.01)
-  if biases is None:
-    biases = tf.zeros([size])
+#     def atomnet(current_input, atomtype):
+#       prev_layer = current_input
+#       for i in range(num_layers):
+#         #layer = tf.nn.bias_add(
+#         #    tf.matmul(prev_layer, self.type_weights[atomtype][i]),
+#         #    self.type_biases[atomtype][i])
+#         #layer = tf.nn.relu(layer)
+#         layer = Dense(100)(prev_layer)
+#         prev_layer = layer
 
-  w = tf.Variable(weights, name='w')
-  b = tf.Variable(biases, name='b')
-  return w, b
+#       #output_layer = tf.squeeze(
+#       #    tf.nn.bias_add(
+#       #        tf.matmul(prev_layer, self.output_weights[atomtype][0]),
+#       #        self.output_biases[atomtype][0]))
+#       print("self.output_weights[atomtype][0].shape")
+#       print(self.output_weights[atomtype][0].shape)
+#       output_layer = Dense(
+#           self.output_weights[atomtype][0].shape[0])(prev_layer)
+#       return output_layer
 
+#     frag1_zeros = tf.zeros_like(frag1_z, dtype=tf.float32)
+#     frag2_zeros = tf.zeros_like(frag2_z, dtype=tf.float32)
+#     complex_zeros = tf.zeros_like(complex_z, dtype=tf.float32)
 
-class AtomicConvScore(Layer):
-  """The scoring function used by the atomic convolution models."""
+#     frag1_atomtype_energy = []
+#     frag2_atomtype_energy = []
+#     complex_atomtype_energy = []
 
-  def __init__(self, atom_types, layer_sizes, **kwargs):
-    super(AtomicConvScore, self).__init__(**kwargs)
-    self.atom_types = atom_types
-    self.layer_sizes = layer_sizes
+#     for ind, atomtype in enumerate(atom_types):
+#       frag1_outputs = tf.map_fn(lambda x: atomnet(x, ind), frag1_layer)
+#       frag2_outputs = tf.map_fn(lambda x: atomnet(x, ind), frag2_layer)
+#       complex_outputs = tf.map_fn(lambda x: atomnet(x, ind), complex_layer)
 
-  def build(self, input_shape):
-    self.type_weights = []
-    self.type_biases = []
-    self.output_weights = []
-    self.output_biases = []
-    n_features = int(input_shape[0][-1])
-    layer_sizes = self.layer_sizes
-    num_layers = len(layer_sizes)
-    weight_init_stddevs = [1 / np.sqrt(x) for x in layer_sizes]
-    bias_init_consts = [0.0] * num_layers
-    for ind, atomtype in enumerate(self.atom_types):
-      prev_layer_size = n_features
-      self.type_weights.append([])
-      self.type_biases.append([])
-      self.output_weights.append([])
-      self.output_biases.append([])
-      for i in range(num_layers):
-        weight, bias = initializeWeightsBiases(
-            prev_layer_size=prev_layer_size,
-            size=layer_sizes[i],
-            weights=tf.random.truncated_normal(
-                shape=[prev_layer_size, layer_sizes[i]],
-                stddev=weight_init_stddevs[i]),
-            biases=tf.constant(
-                value=bias_init_consts[i], shape=[layer_sizes[i]]))
-        self.type_weights[ind].append(weight)
-        self.type_biases[ind].append(bias)
-        prev_layer_size = layer_sizes[i]
-      weight, bias = initializeWeightsBiases(prev_layer_size, 1)
-      self.output_weights[ind].append(weight)
-      self.output_biases[ind].append(bias)
+#       cond = tf.equal(frag1_z, atomtype)
+#       frag1_atomtype_energy.append(tf.where(cond, frag1_outputs, frag1_zeros))
+#       cond = tf.equal(frag2_z, atomtype)
+#       frag2_atomtype_energy.append(tf.where(cond, frag2_outputs, frag2_zeros))
+#       cond = tf.equal(complex_z, atomtype)
+#       complex_atomtype_energy.append(
+#           tf.where(cond, complex_outputs, complex_zeros))
 
-  def call(self, inputs):
-    frag1_layer, frag2_layer, complex_layer, frag1_z, frag2_z, complex_z = inputs
-    atom_types = self.atom_types
-    num_layers = len(self.layer_sizes)
+#     frag1_outputs = tf.add_n(frag1_atomtype_energy)
+#     frag2_outputs = tf.add_n(frag2_atomtype_energy)
+#     complex_outputs = tf.add_n(complex_atomtype_energy)
 
-    def atomnet(current_input, atomtype):
-      prev_layer = current_input
-      for i in range(num_layers):
-        layer = tf.nn.bias_add(
-            tf.matmul(prev_layer, self.type_weights[atomtype][i]),
-            self.type_biases[atomtype][i])
-        layer = tf.nn.relu(layer)
-        prev_layer = layer
-
-      output_layer = tf.squeeze(
-          tf.nn.bias_add(
-              tf.matmul(prev_layer, self.output_weights[atomtype][0]),
-              self.output_biases[atomtype][0]))
-      return output_layer
-
-    frag1_zeros = tf.zeros_like(frag1_z, dtype=tf.float32)
-    frag2_zeros = tf.zeros_like(frag2_z, dtype=tf.float32)
-    complex_zeros = tf.zeros_like(complex_z, dtype=tf.float32)
-
-    frag1_atomtype_energy = []
-    frag2_atomtype_energy = []
-    complex_atomtype_energy = []
-
-    for ind, atomtype in enumerate(atom_types):
-      frag1_outputs = tf.map_fn(lambda x: atomnet(x, ind), frag1_layer)
-      frag2_outputs = tf.map_fn(lambda x: atomnet(x, ind), frag2_layer)
-      complex_outputs = tf.map_fn(lambda x: atomnet(x, ind), complex_layer)
-
-      cond = tf.equal(frag1_z, atomtype)
-      frag1_atomtype_energy.append(tf.where(cond, frag1_outputs, frag1_zeros))
-      cond = tf.equal(frag2_z, atomtype)
-      frag2_atomtype_energy.append(tf.where(cond, frag2_outputs, frag2_zeros))
-      cond = tf.equal(complex_z, atomtype)
-      complex_atomtype_energy.append(
-          tf.where(cond, complex_outputs, complex_zeros))
-
-    frag1_outputs = tf.add_n(frag1_atomtype_energy)
-    frag2_outputs = tf.add_n(frag2_atomtype_energy)
-    complex_outputs = tf.add_n(complex_atomtype_energy)
-
-    frag1_energy = tf.reduce_sum(frag1_outputs, 1)
-    frag2_energy = tf.reduce_sum(frag2_outputs, 1)
-    complex_energy = tf.reduce_sum(complex_outputs, 1)
-    binding_energy = complex_energy - (frag1_energy + frag2_energy)
-    return tf.expand_dims(binding_energy, axis=1)
+#     frag1_energy = tf.reduce_sum(frag1_outputs, 1)
+#     frag2_energy = tf.reduce_sum(frag2_outputs, 1)
+#     complex_energy = tf.reduce_sum(complex_outputs, 1)
+#     binding_energy = complex_energy - (frag1_energy + frag2_energy)
+#     return tf.expand_dims(binding_energy, axis=1)
 
 
 class AtomicConvModel(KerasModel):
@@ -160,26 +129,37 @@ class AtomicConvModel(KerasModel):
   geometry of the model.
   """
 
-  def __init__(self,
-               frag1_num_atoms=70,
-               frag2_num_atoms=634,
-               complex_num_atoms=701,
-               max_num_neighbors=12,
-               batch_size=24,
-               atom_types=[
-                   6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35.,
-                   53., -1.
-               ],
-               radial=[[
-                   1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0,
-                   7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0
-               ], [0.0, 4.0, 8.0], [0.4]],
-               layer_sizes=[32, 32, 16],
-               learning_rate=0.001,
-               **kwargs):
+  def __init__(
+      self,
+      n_tasks: int,
+      frag1_num_atoms: int = 70,
+      frag2_num_atoms: int = 634,
+      complex_num_atoms: int = 701,
+      max_num_neighbors: int = 12,
+      batch_size: int = 24,
+      atom_types: Sequence[float] = [
+          6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35., 53., -1.
+      ],
+      radial: Sequence[Sequence[float]] = [[
+          1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0,
+          8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0
+      ], [0.0, 4.0, 8.0], [0.4]],
+      # layer_sizes=[32, 32, 16],
+      layer_sizes=[100],
+      weight_init_stddevs: OneOrMany[float] = 0.02,
+      bias_init_consts: OneOrMany[float] = 1.0,
+      weight_decay_penalty: float = 0.0,
+      weight_decay_penalty_type: str = "l2",
+      dropouts: OneOrMany[float] = 0.5,
+      activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
+      residual: bool = False,
+      learning_rate=0.001,
+      **kwargs) -> None:
     """
     Parameters
     ----------
+    n_tasks: int
+      number of tasks
     frag1_num_atoms: int
       Number of atoms in first fragment
     frag2_num_atoms: int
@@ -191,9 +171,35 @@ class AtomicConvModel(KerasModel):
       List of atoms recognized by model. Atoms are indicated by their
       nuclear numbers.
     radial: list
-      TODO: add description
+      Radial parameters used in the atomic convolution transformation.
     layer_sizes: list
-      TODO: add description
+      the size of each dense layer in the network.  The length of
+      this list determines the number of layers.
+    weight_init_stddevs: list or float
+      the standard deviation of the distribution to use for weight
+      initialization of each layer.  The length of this list should
+      equal len(layer_sizes).  Alternatively this may be a single
+      value instead of a list, in which case the same value is used
+      for every layer.
+    bias_init_consts: list or float
+      the value to initialize the biases in each layer to.  The
+      length of this list should equal len(layer_sizes).
+      Alternatively this may be a single value instead of a list, in
+      which case the same value is used for every layer.
+    weight_decay_penalty: float
+      the magnitude of the weight decay penalty to use
+    weight_decay_penalty_type: str
+      the type of penalty to use for weight decay, either 'l1' or 'l2'
+    dropouts: list or float
+      the dropout probablity to use for each layer.  The length of this list should equal len(layer_sizes).
+      Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
+    activation_fns: list or object
+      the Tensorflow activation function to apply to each layer.  The length of this list should equal
+      len(layer_sizes).  Alternatively this may be a single value instead of a list, in which case the
+      same value is used for every layer.
+    residual: bool
+      if True, the model will be composed of pre-activation residual blocks instead
+      of a simple stack of dense layers.
     learning_rate: float
       Learning rate for the model.
     """
@@ -224,19 +230,86 @@ class AtomicConvModel(KerasModel):
     self._frag1_conv = AtomicConvolution(
         atom_types=self.atom_types, radial_params=rp,
         boxsize=None)([frag1_X, frag1_nbrs, frag1_nbrs_z])
+    flattened1 = Flatten()(self._frag1_conv)
 
     self._frag2_conv = AtomicConvolution(
         atom_types=self.atom_types, radial_params=rp,
         boxsize=None)([frag2_X, frag2_nbrs, frag2_nbrs_z])
+    flattened2 = Flatten()(self._frag2_conv)
 
     self._complex_conv = AtomicConvolution(
         atom_types=self.atom_types, radial_params=rp,
         boxsize=None)([complex_X, complex_nbrs, complex_nbrs_z])
+    flattened3 = Flatten()(self._complex_conv)
 
-    score = AtomicConvScore(self.atom_types, layer_sizes)([
-        self._frag1_conv, self._frag2_conv, self._complex_conv, frag1_z,
-        frag2_z, complex_z
-    ])
+    concat = Concatenate()([flattened1, flattened2, flattened3])
+
+    n_layers = len(layer_sizes)
+    if not isinstance(weight_init_stddevs, SequenceCollection):
+      weight_init_stddevs = [weight_init_stddevs] * n_layers
+    if not isinstance(bias_init_consts, SequenceCollection):
+      bias_init_consts = [bias_init_consts] * n_layers
+    if not isinstance(dropouts, SequenceCollection):
+      dropouts = [dropouts] * n_layers
+    if not isinstance(activation_fns, SequenceCollection):
+      activation_fns = [activation_fns] * n_layers
+    if weight_decay_penalty != 0.0:
+      if weight_decay_penalty_type == 'l1':
+        regularizer = tf.keras.regularizers.l1(weight_decay_penalty)
+      else:
+        regularizer = tf.keras.regularizers.l2(weight_decay_penalty)
+    else:
+      regularizer = None
+    # score = AtomicConvScore(self.atom_types, layer_sizes)([
+    #    self._frag1_conv, self._frag2_conv, self._complex_conv, frag1_z,
+    #    frag2_z, complex_z
+    # ])
+    # print("score")
+    # print(score)
+    prev_layer = concat
+    # dropout_switch = Input(shape=tuple())
+    prev_size = concat.shape[0]
+    next_activation = None
+    # Add the dense layers
+
+    for size, weight_stddev, bias_const, dropout, activation_fn in zip(
+        layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
+        activation_fns):
+      layer = prev_layer
+      if next_activation is not None:
+        layer = Activation(next_activation)(layer)
+      print("size")
+      print(size)
+      # layer = Dense(100)(layer)
+      layer = Dense(
+          size,
+          kernel_initializer=tf.keras.initializers.TruncatedNormal(
+              stddev=weight_stddev),
+          bias_initializer=tf.constant_initializer(value=bias_const),
+          kernel_regularizer=regularizer)(layer)
+      if dropout > 0.0:
+        layer = Dropout(rate=dropout)(layer)
+      if residual and prev_size == size:
+        prev_layer = Lambda(lambda x: x[0] + x[1])([prev_layer, layer])
+      else:
+        prev_layer = layer
+      prev_size = size
+      next_activation = activation_fn
+      if next_activation is not None:
+        prev_layer = Activation(activation_fn)(prev_layer)
+    self.neural_fingerprint = prev_layer
+    output = Reshape((n_tasks, 1))(Dense(
+        n_tasks,
+        kernel_initializer=tf.keras.initializers.TruncatedNormal(
+            stddev=weight_init_stddevs[-1]),
+        bias_initializer=tf.constant_initializer(
+            value=bias_init_consts[-1]))(prev_layer))
+    loss: Union[dc.models.losses.Loss, LossFn]
+    # prev_layer = Dense(100)(prev_layer)
+    # output = Dense(1)(prev_layer)
+    # print("output")
+    # print(output)
+    # loss = dc.models.losses.L2Loss()
 
     model = tf.keras.Model(
         inputs=[
@@ -244,7 +317,8 @@ class AtomicConvModel(KerasModel):
             frag2_nbrs_z, frag2_z, complex_X, complex_nbrs, complex_nbrs_z,
             complex_z
         ],
-        outputs=score)
+        # outputs=score)
+        outputs=output)
     super(AtomicConvModel, self).__init__(
         model, L2Loss(), batch_size=batch_size, **kwargs)
 
