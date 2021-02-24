@@ -229,10 +229,10 @@ RdkitGridFeaturizer
   :members:
   :inherited-members:
 
-AtomConvFeaturizer
-^^^^^^^^^^^^^^^^^^
+AtomicConvFeaturizer
+^^^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: deepchem.feat.NeighborListComplexAtomicCoordinates
+.. autoclass:: deepchem.feat.AtomicConvFeaturizer
   :members:
   :inherited-members:
 
