@@ -1014,7 +1014,7 @@ class FlatteningTransformer(Transformer):
   >>> with tempfile.NamedTemporaryFile(mode='wt', delete=False) as fin:
   ...     tmp = fin.write("smiles,endpoint\\nc1ccccc1,1")
   >>> loader = dc.data.CSVLoader([], feature_field="smiles",
-              featurizer = dc.feat.ConvMolFeaturizer(per_atom_fragmentation=False))
+  ...    featurizer = dc.feat.ConvMolFeaturizer(per_atom_fragmentation=False))
   >>> # prepare dataset of molecules ready for prediction stage
   ... dataset = loader.create_dataset(fin.name)
 
