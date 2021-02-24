@@ -18,11 +18,11 @@ def test_flattening_with_csv_load():
 
 
 def test_flattening_with_sdf_load():
-  current_dir = os.path.dirname(os.path.realpath(__file__))
+  cur_dir = os.path.dirname(os.path.realpath(__file__))
   featurizer = dc.feat.ConvMolFeaturizer(per_atom_fragmentation=True)
   loader = dc.data.SDFLoader([], featurizer=featurizer, sanitize=True)
   dataset = loader.create_dataset(
-      os.path.join(current_dir, "membrane_permeability.sdf"))
+      os.path.join(cur_dir, "membrane_permeability.sdf"))
   transformer = dc.trans.FlatteningTransformer(dataset=dataset)
   frag_dataset = transformer.transform(dataset)
-  assert len(frag_dataset) == 96
+  assert len(frag_dataset) == 98
