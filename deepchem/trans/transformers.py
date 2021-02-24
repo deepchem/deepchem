@@ -1011,18 +1011,20 @@ class FlatteningTransformer(Transformer):
 
   >>> import tempfile
   >>> import deepchem as dc
-  >>> fin = tempfile.NamedTemporaryFile(mode='w', delete=False)
-  >>> fin.write("smiles,endpoint\\nc1ccccc1,1")
-  >>> fin.close()
+  >>> with tempfile.NamedTemporaryFile(mode='wt', delete=False) as fin:
+  ...     tmp = fin.write("smiles,endpoint\\nc1ccccc1,1")
   >>> loader = dc.data.CSVLoader([], feature_field="smiles",
               featurizer = dc.feat.ConvMolFeaturizer(per_atom_fragmentation=False))
-  >>> dataset = loader.create_dataset(fin.name) # dataset of molecules ready for prediction stage
+  >>> # prepare dataset of molecules ready for prediction stage
+  ... dataset = loader.create_dataset(fin.name)
 
   >>> loader = dc.data.CSVLoader([], feature_field="smiles",
-  ...                              featurizer=dc.feat.ConvMolFeaturizer(per_atom_fragmentation=True))
+  ...    featurizer=dc.feat.ConvMolFeaturizer(per_atom_fragmentation=True))
   >>> frag_dataset = loader.create_dataset(fin.name)
   >>> transformer = dc.trans.FlatteningTransformer(dataset=frag_dataset)
-  >>> frag_dataset = transformer.transform(frag_dataset) # dataset of fragments ready for prediction stage
+  >>> # prepare dataset of fragments ready for prediction stage,
+  ... # thereafter difference with molecules' predictions can be calculated
+  ... frag_dataset = transformer.transform(frag_dataset)
 
   See Also
   --------

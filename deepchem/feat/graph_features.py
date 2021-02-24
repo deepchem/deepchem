@@ -640,6 +640,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
   >>> featurizer=dc.feat.ConvMolFeaturizer(per_atom_fragmentation=True)
   >>> f = featurizer.featurize(smiles)
   >>> len(f) # contains 2 lists with  featurized fragments from 2 mols
+  2
 
   See Also
   --------
