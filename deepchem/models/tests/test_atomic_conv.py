@@ -53,7 +53,6 @@ def test_atomic_conv():
   frag1_z = np.random.randint(10, size=(N_atoms))
   frag2_coords = np.random.rand(N_atoms, 3)
   frag2_nbr_list = {0: [], 1: [], 2: [], 3: [], 4: []}
-  # frag2_z = np.random.rand(N_atoms, 3)
   frag2_z = np.random.randint(10, size=(N_atoms))
   system_coords = np.random.rand(2 * N_atoms, 3)
   system_nbr_list = {
@@ -77,10 +76,6 @@ def test_atomic_conv():
   labels = np.random.rand(batch_size)
   train = NumpyDataset(features, labels)
   atomic_convnet.fit(train, nb_epoch=150)
-  print("labels")
-  print(labels)
-  print("atomic_convnet.predict(train)")
-  print(atomic_convnet.predict(train))
   assert np.allclose(labels, atomic_convnet.predict(train), atol=0.01)
 
 

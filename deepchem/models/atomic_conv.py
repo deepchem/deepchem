@@ -107,7 +107,7 @@ class AtomicConvModel(KerasModel):
     learning_rate: float
       Learning rate for the model.
     """
-    # TODO: Turning off queue for now. Safe to re-activate?
+
     self.complex_num_atoms = complex_num_atoms
     self.frag1_num_atoms = frag1_num_atoms
     self.frag2_num_atoms = frag2_num_atoms
@@ -166,9 +166,9 @@ class AtomicConvModel(KerasModel):
       regularizer = None
 
     prev_layer = concat
-    # dropout_switch = Input(shape=tuple())
     prev_size = concat.shape[0]
     next_activation = None
+
     # Add the dense layers
 
     for size, weight_stddev, bias_const, dropout, activation_fn in zip(
@@ -177,7 +177,6 @@ class AtomicConvModel(KerasModel):
       layer = prev_layer
       if next_activation is not None:
         layer = Activation(next_activation)(layer)
-      # layer = Dense(100)(layer)
       layer = Dense(
           size,
           kernel_initializer=tf.keras.initializers.TruncatedNormal(
@@ -202,11 +201,6 @@ class AtomicConvModel(KerasModel):
         bias_initializer=tf.constant_initializer(
             value=bias_init_consts[-1]))(prev_layer))
     loss: Union[dc.models.losses.Loss, LossFn]
-    # prev_layer = Dense(100)(prev_layer)
-    # output = Dense(1)(prev_layer)
-    # print("output")
-    # print(output)
-    # loss = dc.models.losses.L2Loss()
 
     model = tf.keras.Model(
         inputs=[
@@ -214,7 +208,6 @@ class AtomicConvModel(KerasModel):
             frag2_nbrs_z, frag2_z, complex_X, complex_nbrs, complex_nbrs_z,
             complex_z
         ],
-        # outputs=score)
         outputs=output)
     super(AtomicConvModel, self).__init__(
         model, L2Loss(), batch_size=batch_size, **kwargs)
