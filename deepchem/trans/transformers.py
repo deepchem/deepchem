@@ -1037,8 +1037,23 @@ class FlatteningTransformer(Transformer):
   """
 
   def __init__(self, dataset: Dataset):
-    super(FlatteningTransformer, self).__init__(
-        transform_X=True, transform_ids=True, dataset=dataset)
+    """Initializes flattening transformation.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset object to be transformed
+    """
+    if self.__class__.__name__ == "Transformer":
+      raise ValueError(
+          "Transformer is an abstract superclass and cannot be directly instantiated. You probably want to instantiate a concrete subclass instead."
+      )
+    self.transform_X = True
+    self.transform_y = (
+        dataset.get_shape()[1] != tuple())  # iff y passed, then transform it
+    self.transform_w = (
+        dataset.get_shape()[2] != tuple())  # iff w passed, then transform it
+    self.transform_ids = True
 
   def transform_array(
       self, X: np.ndarray, y: np.ndarray, w: np.ndarray,
@@ -1067,10 +1082,17 @@ class FlatteningTransformer(Transformer):
     idstrans: np.ndarray
       Transformed array of ids
     """
-
     ids = np.repeat(
         ids, [len(i)
               for i in X], axis=0)  # each fragment should recieve parent mol id
+    if self.transform_y:
+      y = np.repeat(
+          y, [len(i) for i in X], axis=0
+      )  # for consistency of shapes each fragment should recieve parent mol y
+    if self.transform_w:
+      w = np.repeat(
+          w, [len(i) for i in X], axis=0
+      )  # for consistency of shapes each fragment should recieve parent mol w
     X = np.array([j for i in X for j in i])  # flatten
     return (X, y, w, ids)
 

@@ -632,6 +632,10 @@ class ConvMolFeaturizer(MolecularFeaturizer):
 
   Examples
   ---------
+  >>> import deepchem as dc
+  >>> smiles = ["C", "CCC"]
+  >>> featurizer=dc.feat.ConvMolFeaturizer(per_atom_fragmentation=False)
+  >>> f = featurizer.featurize(smiles)
   Using ConvMolFeaturizer to create featurized fragments derived from molecules of interest.
   This is used only in the context of performing interpretation of models using atomic
   contributions (atom-based model interpretation)
@@ -688,10 +692,12 @@ class ConvMolFeaturizer(MolecularFeaturizer):
       name of the molecule level property in mol where the solvent
       accessible surface area of atom 0 would be stored.
     per_atom_fragmentation: Boolean
-      If True, then multiple "atom-depleted" featurizations will be possible to do for each molecule. It will be
-      possible to remove atoms  one by one, and then, featurize each atom-depleted molecule.
-      Thus, applying featurize method  will produce a set of ConvMol objects for each molecule. This is useful for
-      subsequent model interpretation: finding atoms favorable/unfavorable for (modelled) activity.
+      If True, then multiple "atom-depleted" versions of each molecule will be created (using featurize() method). 
+      For each molecule, atoms are removed one at a time and the resulting molecule is featurized. 
+      The result is a list of ConvMol objects,
+      one with each heavy atom removed. This is useful for subsequent model interpretation: finding atoms
+      favorable/unfavorable for (modelled) activity. This option is typically used in combination
+      with a FlatteningTransformer to split the lists into separate samples.
 
     Since ConvMol is an object and not a numpy array, need to set dtype to
     object.
