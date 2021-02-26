@@ -165,7 +165,6 @@ def test_dag_model():
   tasks, dataset, transformers, metric = get_dataset('classification',
                                                      'GraphConv')
 
-  batch_size = 10
   max_atoms = max([mol.get_num_atoms() for mol in dataset.X])
   transformer = dc.trans.DAGTransformer(max_atoms=max_atoms)
   dataset = transformer.transform(dataset)
@@ -174,11 +173,9 @@ def test_dag_model():
       len(tasks),
       max_atoms=max_atoms,
       mode='classification',
-      learning_rate=0.03,
-      batch_size=batch_size,
-      use_queue=False)
+      learning_rate=0.001)
 
-  model.fit(dataset, nb_epoch=40)
+  model.fit(dataset, nb_epoch=30)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.9
 
@@ -190,20 +187,14 @@ def test_dag_regression_model():
   tf.random.set_seed(1234)
   tasks, dataset, transformers, metric = get_dataset('regression', 'GraphConv')
 
-  batch_size = 10
   max_atoms = max([mol.get_num_atoms() for mol in dataset.X])
   transformer = dc.trans.DAGTransformer(max_atoms=max_atoms)
   dataset = transformer.transform(dataset)
 
   model = DAGModel(
-      len(tasks),
-      max_atoms=max_atoms,
-      mode='regression',
-      learning_rate=0.03,
-      batch_size=batch_size,
-      use_queue=False)
+      len(tasks), max_atoms=max_atoms, mode='regression', learning_rate=0.003)
 
-  model.fit(dataset, nb_epoch=1200)
+  model.fit(dataset, nb_epoch=100)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean_absolute_error'] < 0.15
 
@@ -250,7 +241,6 @@ def test_dag_regression_uncertainty():
 def test_mpnn_model():
   tasks, dataset, transformers, metric = get_dataset('classification', 'Weave')
 
-  batch_size = 10
   model = MPNNModel(
       len(tasks),
       mode='classification',
@@ -259,9 +249,9 @@ def test_mpnn_model():
       n_pair_feat=14,
       T=1,
       M=1,
-      batch_size=batch_size)
+      learning_rate=0.0005)
 
-  model.fit(dataset, nb_epoch=40)
+  model.fit(dataset, nb_epoch=150)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.9
 
