@@ -122,6 +122,29 @@ def generate_random_rotation_matrix() -> np.ndarray:
   return R
 
 
+def rotate_molecules(mol_coordinates_list):
+  """Rotates provided molecular coordinates.
+
+  Pseudocode:
+  1. Generate random rotation matrix. This matrix applies a random
+     transformation to any 3-vector such that, were the random transformation
+     repeatedly applied, it would randomly sample along the surface of a sphere
+     with radius equal to the norm of the given 3-vector cf.
+     _generate_random_rotation_matrix() for details
+  2. Apply R to all atomic coordinatse.
+  3. Return rotated molecule
+  """
+  R = generate_random_rotation_matrix()
+  rotated_coordinates_list = []
+
+  for mol_coordinates in mol_coordinates_list:
+    coordinates = deepcopy(mol_coordinates)
+    rotated_coordinates = np.transpose(np.dot(R, np.transpose(coordinates)))
+    rotated_coordinates_list.append(rotated_coordinates)
+
+  return (rotated_coordinates_list)
+
+
 def is_angle_within_cutoff(vector_i: np.ndarray, vector_j: np.ndarray,
                            angle_cutoff: float) -> bool:
   """A utility function to compute whether two vectors are within a cutoff from 180 degrees apart.

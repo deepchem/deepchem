@@ -228,3 +228,43 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
       # voxels_per_edge, num_feat) so we should concatenate on the last
       # axis.
       return np.concatenate(pairwise_features, axis=-1)
+
+
+def compute_all_sybyl(mol, indices=None):
+  """Computes Sybyl atom types for atoms in molecule."""
+  raise NotImplementedError("This function is not implemented yet")
+
+
+def featurize_binding_pocket_sybyl(protein_xyz,
+                                   protein,
+                                   ligand_xyz,
+                                   ligand,
+                                   pairwise_distances=None,
+                                   cutoff=7.0):
+  """Computes Sybyl dicts for ligand and binding pocket of the protein.
+
+  Parameters
+  ----------
+  protein_xyz: np.ndarray
+    Of shape (N_protein_atoms, 3)
+  protein: Rdkit Molecule
+    Contains more metadata.
+  ligand_xyz: np.ndarray
+    Of shape (N_ligand_atoms, 3)
+  ligand: Rdkit Molecule
+    Contains more metadata
+  pairwise_distances: np.ndarray
+    Array of pairwise protein-ligand distances (Angstroms)
+  cutoff: float
+    Cutoff distance for contact consideration.
+  """
+  features_dict = {}
+
+  if pairwise_distances is None:
+    pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
+  contacts = np.nonzero((pairwise_distances < cutoff))
+  protein_atoms = set([int(c) for c in contacts[0].tolist()])
+
+  protein_sybyl_dict = compute_all_sybyl(protein, indices=protein_atoms)
+  ligand_sybyl_dict = compute_all_sybyl(ligand)
+  return (protein_sybyl_dict, ligand_sybyl_dict)

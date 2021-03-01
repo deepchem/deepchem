@@ -411,6 +411,30 @@ def compute_all_ecfp(mol: RDKitMol,
   return ecfp_dict
 
 
+def compute_ecfp_features(mol, ecfp_degree=2, ecfp_power=11):
+  """Computes ECFP features for provided rdkit molecule.
+  Parameters
+  ----------
+  mol: rdkit molecule
+    Molecule to featurize.
+  ecfp_degree: int
+    ECFP radius
+  ecfp_power: int
+    Number of bits to store ECFP features (2^ecfp_power will be length of
+    ECFP array)
+  Returns
+  -------
+  ecfp_array: np.ndarray
+    Returns an array of size 2^ecfp_power where array at index i has a 1 if
+    that ECFP fragment is found in the molecule and array at index j has a 0
+    if ECFP fragment not in molecule.
+  """
+  from rdkit.Chem import AllChem
+  bv = AllChem.GetMorganFingerprintAsBitVect(
+      mol, ecfp_degree, nBits=2**ecfp_power)
+  return np.array(bv)
+
+
 def compute_contact_centroid(molecular_complex: Any,
                              cutoff: float = 4.5) -> np.ndarray:
   """Computes the (x,y,z) centroid of the contact regions of this molecular complex.

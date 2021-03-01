@@ -33,6 +33,10 @@ def hash_ecfp(ecfp: str, size: int = 1024) -> int:
   return ecfp_hash
 
 
+def hash_sybyl(sybyl, sybyl_types):
+  return (sybyl_types.index(sybyl))
+
+
 def hash_ecfp_pair(ecfp_pair: Tuple[str, str], size: int = 1024) -> int:
   """Returns an int < size representing that ECFP pair.
 
