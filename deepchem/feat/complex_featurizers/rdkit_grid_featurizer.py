@@ -237,16 +237,17 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
           self._vectorize(
               hash_ecfp_pair,
               feature_dict=splif_dict,
-              channel_power=self.splif_power) for splif_dict in featurize_splif(
-                  (prot_xyz, prot_rdk), (lig_xyz, lig_rdk), self.cutoffs[
-                      'splif_contact_bins'], distances, self.ecfp_degree)
+              channel_power=self.splif_power)
+          for splif_dict in featurize_splif((prot_xyz, prot_rdk), (
+              lig_xyz, lig_rdk
+          ), self.cutoffs['splif_contact_bins'], distances, self.ecfp_degree)
       ]
     if feature_name == 'hbond_count':
       return [
           self._vectorize(
               hash_ecfp_pair, feature_list=hbond_list, channel_power=0)
-          for hbond_list in compute_hydrogen_bonds(
-              (prot_xyz, prot_rdk), (lig_xyz, lig_rdk), distances, self.cutoffs[
+          for hbond_list in compute_hydrogen_bonds((prot_xyz, prot_rdk), (
+              lig_xyz, lig_rdk), distances, self.cutoffs[
                   'hbond_dist_bins'], self.cutoffs['hbond_angle_cutoffs'])
       ]
     if feature_name == 'ecfp':
@@ -273,9 +274,10 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
               convert_atom_pair_to_voxel,
               hash_ecfp_pair, (prot_xyz, lig_xyz),
               feature_dict=splif_dict,
-              channel_power=self.splif_power) for splif_dict in featurize_splif(
-                  (prot_xyz, prot_rdk), (lig_xyz, lig_rdk), self.cutoffs[
-                      'splif_contact_bins'], distances, self.ecfp_degree)
+              channel_power=self.splif_power)
+          for splif_dict in featurize_splif((prot_xyz, prot_rdk), (
+              lig_xyz, lig_rdk
+          ), self.cutoffs['splif_contact_bins'], distances, self.ecfp_degree)
       ]
     if feature_name == 'sybyl':
       return [
@@ -327,9 +329,10 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
               convert_atom_pair_to_voxel,
               None, (prot_xyz, lig_xyz),
               feature_list=hbond_list,
-              channel_power=0) for hbond_list in compute_hydrogen_bonds(
-                  (prot_xyz, prot_rdk), (lig_xyz, lig_rdk), distances, self.cutoffs[
-                      'hbond_dist_bins'], self.cutoffs['hbond_angle_cutoffs'])
+              channel_power=0)
+          for hbond_list in compute_hydrogen_bonds((prot_xyz, prot_rdk), (
+              lig_xyz, lig_rdk), distances, self.cutoffs[
+                  'hbond_dist_bins'], self.cutoffs['hbond_angle_cutoffs'])
       ]
     if feature_name == 'pi_stack':
       return self._voxelize_pi_stack(prot_xyz, prot_rdk, lig_xyz, lig_rdk,
