@@ -37,7 +37,6 @@ def convert_atom_to_voxel(coordinates: np.ndarray, atom_index: int,
   indices = np.floor(
       (coordinates[atom_index] + box_width / 2.0) / voxel_width).astype(int)
 
-
   if ((indices < 0) | (indices >= box_width / voxel_width)).any():
     logger.warning('Coordinates are outside of the box (atom id = %s,'
                    ' coords xyz = %s, coords in box = %s' %

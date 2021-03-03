@@ -258,7 +258,6 @@ def featurize_binding_pocket_sybyl(protein_xyz,
   cutoff: float
     Cutoff distance for contact consideration.
   """
-  features_dict = {}
 
   if pairwise_distances is None:
     pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)

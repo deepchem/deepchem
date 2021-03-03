@@ -3,6 +3,7 @@ Geometric utility functions for 3D geometry.
 """
 import numpy as np
 from scipy.spatial.distance import cdist
+from copy import deepcopy
 
 
 def unit_vector(vector: np.ndarray) -> np.ndarray:
