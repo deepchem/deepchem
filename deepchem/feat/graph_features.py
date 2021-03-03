@@ -730,7 +730,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     features = super(ConvMolFeaturizer, self).featurize(
         molecules, log_every_n=1000)
     if self.per_atom_fragmentation:
-      # create temporary valid ids seving to filter out failed featurizations from every sublist
+      # create temporary valid ids serving to filter out failed featurizations from every sublist
       # of features (i.e. every molecules' frags list), and also totally failed sublists.
       # This makes output digestable by Loaders
       valid_frag_inds = [[

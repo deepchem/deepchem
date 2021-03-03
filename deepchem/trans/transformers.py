@@ -1087,12 +1087,10 @@ class FlatteningTransformer(Transformer):
               for i in X], axis=0)  # each fragment should recieve parent mol id
     if self.transform_y:
       y = np.repeat(
-          y, [len(i) for i in X], axis=0
-      )  # for consistency of shapes each fragment should recieve parent mol y
+          y, [len(i) for i in X], axis=0)  # for consistency of shapes each fragment should recieve parent mol y
     if self.transform_w:
       w = np.repeat(
-          w, [len(i) for i in X], axis=0
-      )  # for consistency of shapes each fragment should recieve parent mol w
+          w, [len(i) for i in X], axis=0)  # for consistency of shapes each fragment should recieve parent mol w
     X = np.array([j for i in X for j in i])  # flatten
     return (X, y, w, ids)
 
