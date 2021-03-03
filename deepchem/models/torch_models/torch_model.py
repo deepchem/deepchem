@@ -823,8 +823,8 @@ class TorchModel(Model):
         grad_output.zero_()
         grad_output[i] = 1
         output.backward(grad_output, retain_graph=True)
-        result.append(X_tensor.grad.clone())
-        X_tensor.grad.zero_()
+        result.append(X_tensor.grad.clone()) # type: ignore
+        X_tensor.grad.zero_() # type: ignore
       final_result.append(
           torch.reshape(torch.stack(result),
                         output_shape + input_shape).cpu().numpy())
