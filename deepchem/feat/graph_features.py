@@ -736,8 +736,11 @@ class ConvMolFeaturizer(MolecularFeaturizer):
       valid_frag_inds = [[
           True if np.array(elt).size > 0 else False for elt in f
       ] for f in features]
-      features = [[elt for (is_valid, elt) in zip(l, m) if is_valid]
-                  for (l, m) in zip(valid_frag_inds, features) if any(l)]
+      features = [[elt
+                   for (is_valid, elt) in zip(l, m)
+                   if is_valid]
+                  for (l, m) in zip(valid_frag_inds, features)
+                  if any(l)]
     return features
 
   def _get_atom_properties(self, atom):
@@ -813,8 +816,9 @@ class ConvMolFeaturizer(MolecularFeaturizer):
       nodes = np.concatenate([nodes, master_atom_features], axis=0)
 
     # Get bond lists with reverse edges included
-    edge_list = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx())
-                 for b in mol.GetBonds()]
+    edge_list = [
+        (b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()
+    ]
     # Get canonical adjacency list
     canon_adj_list = [[] for mol_id in range(len(nodes))]
     for edge in edge_list:
