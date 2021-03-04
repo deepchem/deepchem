@@ -5,9 +5,8 @@ import os
 import unittest
 
 import numpy as np
-import pytest
 
-from deepchem.feat.complex_featurizers import rdkit_grid_featurizer as rgf
+from deepchem.feat import RdkitGridFeaturizer
 
 np.random.seed(123)
 
@@ -28,15 +27,15 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
 
   def test_default_featurizer(self):
     # test if default parameters work
-    featurizer = rgf.RdkitGridFeaturizer()
-    self.assertIsInstance(featurizer, rgf.RdkitGridFeaturizer)
+    featurizer = RdkitGridFeaturizer()
+    self.assertIsInstance(featurizer, RdkitGridFeaturizer)
     feature_tensor = featurizer.featurize([(self.ligand_file,
                                             self.protein_file)])
     self.assertIsInstance(feature_tensor, np.ndarray)
 
   def test_example_featurizer(self):
     # check if use-case from examples works
-    featurizer = rgf.RdkitGridFeaturizer(
+    featurizer = RdkitGridFeaturizer(
         voxel_width=16.0,
         feature_types=['ecfp', 'splif', 'hbond', 'salt_bridge'],
         ecfp_power=9,
@@ -48,7 +47,7 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
 
   def test_force_flatten(self):
     # test if input is flattened when flat features are used
-    featurizer = rgf.RdkitGridFeaturizer(
+    featurizer = RdkitGridFeaturizer(
         feature_types=['ecfp_hashed'], flatten=False)
     featurizer.flatten = True  # False should be ignored with ecfp_hashed
     feature_tensor = featurizer.featurize([(self.ligand_file,
@@ -56,14 +55,17 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     self.assertIsInstance(feature_tensor, np.ndarray)
     self.assertEqual(feature_tensor.shape, (1, 2 * 2**featurizer.ecfp_power))
 
-  @pytest.mark.skip(reason="TODO: debug")
   def test_combined(self):
     ecfp_power = 5
     splif_power = 5
+    box_width = 75.0
+    voxel_width = 1.0
+    voxels_per_edge = int(box_width / voxel_width)
+
     # test voxel features
-    featurizer = rgf.RdkitGridFeaturizer(
-        voxel_width=1.0,
-        box_width=20.0,
+    featurizer = RdkitGridFeaturizer(
+        voxel_width=voxel_width,
+        box_width=box_width,
         feature_types=['voxel_combined'],
         ecfp_power=ecfp_power,
         splif_power=splif_power,
@@ -76,10 +78,12 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         2**ecfp_power +
         len(featurizer.cutoffs['splif_contact_bins']) * 2**splif_power + len(
             featurizer.cutoffs['hbond_dist_bins']) + 5)
-    self.assertEqual(feature_tensor.shape, (1, 20, 20, 20, voxel_total_len))
+    self.assertEqual(
+        feature_tensor.shape,
+        (1, voxels_per_edge, voxels_per_edge, voxels_per_edge, voxel_total_len))
 
     # test flat features
-    featurizer = rgf.RdkitGridFeaturizer(
+    featurizer = RdkitGridFeaturizer(
         voxel_width=1.0,
         feature_types=['flat_combined'],
         ecfp_power=ecfp_power,
@@ -94,8 +98,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
             featurizer.cutoffs['hbond_dist_bins']))
     self.assertEqual(feature_tensor.shape, (1, flat_total_len))
 
-    # check if aromatic features are ignores if sanitize=False
-    featurizer = rgf.RdkitGridFeaturizer(
+    # check if aromatic features are ignored if sanitize=False
+    featurizer = RdkitGridFeaturizer(
         voxel_width=16.0,
         feature_types=['all_combined'],
         ecfp_power=ecfp_power,
@@ -124,16 +128,16 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         'cation_pi_dist_cutoff': 5.5,
         'cation_pi_angle_cutoff': 20.0,
     }
-    rgf_featurizer = rgf.RdkitGridFeaturizer(**custom_cutoffs)
+    rgf_featurizer = RdkitGridFeaturizer(**custom_cutoffs)
     self.assertEqual(rgf_featurizer.cutoffs, custom_cutoffs)
 
-  @pytest.mark.skip(reason="TODO: debug")
   def test_rotations(self):
-    featurizer = rgf.RdkitGridFeaturizer(
+    featurizer = RdkitGridFeaturizer(
         nb_rotations=3,
         feature_types=['voxel_combined'],
         flatten=False,
         sanitize=True)
     feature_tensors = featurizer.featurize([(self.ligand_file,
                                              self.protein_file)])
+    print('!!!', feature_tensors.shape)
     self.assertEqual(feature_tensors.shape, (1, 4, 16, 16, 16, 40))
