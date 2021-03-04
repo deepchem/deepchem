@@ -783,7 +783,7 @@ def test_weave_singletask_regression_overfit():
       mode="regression")
 
   # Fit trained model
-  model.fit(dataset, nb_epoch=120)
+  model.fit(dataset, nb_epoch=200)
 
   # Eval model on train
   scores = model.evaluate(dataset, [regression_metric])

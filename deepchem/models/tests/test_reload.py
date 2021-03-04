@@ -429,14 +429,14 @@ def test_IRV_multitask_classification_reload():
   reloaded_model.restore()
 
   # Check predictions match on random sample
-  Xpred = np.random.rand(n_samples, n_features)
+  Xpred = np.random.random(dataset_trans.X.shape)
   predset = dc.data.NumpyDataset(Xpred)
   origpred = model.predict(predset)
   reloadpred = reloaded_model.predict(predset)
   assert np.all(origpred == reloadpred)
 
   # Eval model on train
-  scores = reloaded_model.evaluate(dataset, [classification_metric])
+  scores = reloaded_model.evaluate(dataset_trans, [classification_metric])
   assert scores[classification_metric.name] > .9
 
 

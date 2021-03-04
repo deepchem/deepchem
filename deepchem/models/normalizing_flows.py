@@ -36,10 +36,7 @@ class NormalizingFlow(tf.keras.models.Model):
 
   """
 
-  def __init__(self,
-               base_distribution,
-               flow_layers: Sequence,
-               event_shape: Optional[List[int]] = None,
+  def __init__(self, base_distribution, flow_layers: Sequence,
                **kwargs) -> None:
     """Create a new NormalizingFlow.
 
@@ -50,8 +47,6 @@ class NormalizingFlow(tf.keras.models.Model):
       Typically an N dimensional multivariate Gaussian.
     flow_layers: Sequence[tfb.Bijector]
       An iterable of bijectors that comprise the flow.
-    event_shape: Optional[List[int]]
-      Dimensionality of inputs, e.g. [2] for 2D inputs.
     **kwargs
 
     """
@@ -66,16 +61,13 @@ class NormalizingFlow(tf.keras.models.Model):
 
     self.base_distribution = base_distribution
     self.flow_layers = flow_layers
-    self.event_shape = event_shape
 
     # Chain of flows is also a normalizing flow
     bijector = tfb.Chain(list(reversed(self.flow_layers)))
 
     # An instance of tfd.TransformedDistribution
     self.flow = tfd.TransformedDistribution(
-        distribution=self.base_distribution,
-        bijector=bijector,
-        event_shape=self.event_shape)
+        distribution=self.base_distribution, bijector=bijector)
 
     super(NormalizingFlow, self).__init__(**kwargs)
 
