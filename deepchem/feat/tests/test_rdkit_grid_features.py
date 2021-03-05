@@ -139,5 +139,4 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         sanitize=True)
     feature_tensors = featurizer.featurize([(self.ligand_file,
                                              self.protein_file)])
-    print('!!!', feature_tensors.shape)
     self.assertEqual(feature_tensors.shape, (1, 4, 16, 16, 16, 40))
