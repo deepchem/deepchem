@@ -1,7 +1,7 @@
 """
 Various utilities around hash functions.
 """
-from typing import Callable, Dict, Optional, Tuple, Any
+from typing import Callable, Dict, Optional, Tuple, Any, List
 import numpy as np
 import hashlib
 
@@ -69,7 +69,8 @@ def hash_ecfp_pair(ecfp_pair: Tuple[str, str], size: int = 1024) -> int:
 
 def vectorize(hash_function: Callable[[Any, int], int],
               feature_dict: Optional[Dict[int, str]] = None,
-              size: int = 1024) -> np.ndarray:
+              size: int = 1024,
+              feature_list: Optional[List] = None) -> np.ndarray:
   """Helper function to vectorize a spatial description from a hash.
 
   Hash functions are used to perform spatial featurizations in
@@ -89,8 +90,10 @@ def vectorize(hash_function: Callable[[Any, int], int],
     then hashed values must fall in range `[0, 1024)`.
   feature_dict: Dict, optional (default None)
     Maps unique keys to features computed.
-  size: int, optional (default 1024)
+  size: int (default 1024)
     Length of generated bit vector
+  feature_list: List, optional (default None)
+    List of features.
 
   Returns
   -------
@@ -103,5 +106,7 @@ def vectorize(hash_function: Callable[[Any, int], int],
         hash_function(feature, size) for key, feature in feature_dict.items()
     ]
     feature_vector[on_channels] += 1
+  elif feature_list is not None:
+    feature_vector[0] += len(feature_list)
 
   return feature_vector
