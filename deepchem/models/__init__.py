@@ -15,6 +15,7 @@ from deepchem.models.robust_multitask import RobustMultitaskClassifier
 from deepchem.models.robust_multitask import RobustMultitaskRegressor
 from deepchem.models.progressive_multitask import ProgressiveMultitaskRegressor, ProgressiveMultitaskClassifier
 from deepchem.models.graph_models import WeaveModel, DTNNModel, DAGModel, GraphConvModel, MPNNModel
+from deepchem.models.molgan import BasicMolGANModel
 from deepchem.models.scscore import ScScoreModel
 
 from deepchem.models.seqtoseq import SeqToSeq

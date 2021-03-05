@@ -353,6 +353,12 @@ MPNNModel
 .. autoclass:: deepchem.models.MPNNModel
   :members:
 
+BasicMolGANModel
+---------
+
+.. autoclass:: deepchem.models.BasicMolGANModel
+  :members:
+
 ScScoreModel
 ------------
 
