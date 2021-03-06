@@ -36,7 +36,15 @@ class BasicMolGANModel(WGAN):
   >>>       adjacency_tensor = one_hot(batch[0], gan.edges)
   >>>       node_tensor = one_hot(batch[1], gan.nodes)
   >>>       yield {gan.data_inputs[0]: adjacency_tensor, gan.data_inputs[1]:node_tensor}
-  >>> gan.fit_gan(iterbatches(10), generator_steps=0.2, checkpoint_interval=5000)
+  >>> gan.fit_gan(iterbatches(8), generator_steps=0.2, checkpoint_interval=5000)
+  >>> generated_data = gan.predict_gan_generator(1000)
+  >>> # convert graphs to RDKitmolecules
+  >>> nmols = feat.defeaturize(g)
+  >>> print("{} molecules generated".format(len(nmols)))
+  >>> # remove invalid moles
+  >>> nmols = list(filter(lambda x: x is not None, nmols))
+  >>> # currently training is unstable so 0 is a common outcome
+  >>> print ("{} valid molecules".format(len(nmols)))
 
   References
   ----------
