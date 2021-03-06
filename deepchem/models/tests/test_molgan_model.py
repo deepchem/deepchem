@@ -16,7 +16,6 @@ class test_molgan_model(unittest.TestCase):
     self.embedding_dim = 10
     self.dropout_rate = 0.0
     self.batch_size = 100
-    self.name = 'test_name'
     self.first_convolution_unit = 128
     self.second_convolution_unit = 64
     self.aggregation_unit = 128
@@ -25,8 +24,7 @@ class test_molgan_model(unittest.TestCase):
         vertices=self.vertices,
         nodes=self.nodes,
         embedding_dim=self.embedding_dim,
-        dropout_rate=self.dropout_rate,
-        name=self.name)
+        dropout_rate=self.dropout_rate)
 
   def test_build(self):
     """
@@ -38,7 +36,6 @@ class test_molgan_model(unittest.TestCase):
     assert model.nodes == self.nodes
     assert model.vertices == self.vertices
     assert model.dropout_rate == self.dropout_rate
-    assert model.name == self.name
     assert len(model.generators) == 1
     assert len(model.discriminators) == 1
 

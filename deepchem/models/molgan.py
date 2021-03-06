@@ -1,30 +1,42 @@
 from typing import List, Tuple
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
 
+import tensorflow as tf
+from deepchem.feat.molecule_featurizers.molgan_featurizer import GraphMatrix
 from deepchem.models import WGAN
 from deepchem.models.layers import MolGANEncoderLayer
-from deepchem.feat.molecule_featurizers.molgan_featurizer import GraphMatrix
+from tensorflow import keras
+from tensorflow.keras import layers
 
 
 class BasicMolGANModel(WGAN):
   """
   Model for de-novo generation of small molecules based on work of Nicola De Cao et al. [1]_.
-  The model is based on WGAN infrastructure; uses adjacency matrix and node features as inputs
-  Both need to be converted to one-hot representation before used an an input for the model.
+  Utilizes WGAN infrastructure; uses adjacency matrix and node features as inputs.
+  Inputs need to be one-hot representation.
 
   Examples
   --------
-  gan = MolGAN(learning_rate=ExponentialDecay(0.001, 0.9, 5000))
-  dataset = dc.data.NumpyDataset([x.adjacency_matrix for x in limited],[x.node_features for x in limited])
-  def iterbatches(epochs):
-      for i in range(epochs):
-          for batch in dataset.iterbatches(batch_size=gan.batch_size, pad_batches=True):
-              adjacency_tensor = tf.one_hot(batch[0], gan.edges)
-              node_tesor = tf.one_hot(batch[1], gan.nodes)
-              yield {gan.data_inputs[0]: adjacency_tensor, gan.data_inputs[1]:node_tesor}
-  gan.fit_gan(iterbatches(10), generator_steps=0.2, checkpoint_interval=5000)
+  >>> import deepchem as dc
+  >>> from deepchem.models import BasicMolGANModel as MolGAN
+  >>> from deepchem.models.optimizers import ExponentialDecay
+  >>> from tensorflow import one_hot
+  >>> smiles = ['CCC', 'C1=CC=CC=C1', 'CNC' ]
+  >>> # create featurizer
+  >>> feat = dc.feat.MolGanFeaturizer()
+  >>> # featurize molecules
+  >>> features = feat.featurize(smiles)
+  >>> # Remove empty objects
+  >>> features = list(filter(lambda x: x is not None, features))
+  >>> # create model
+  >>> gan = MolGAN(learning_rate=ExponentialDecay(0.001, 0.9, 5000)) 0.9, 5000))
+  >>> dataset = dc.data.NumpyDataset([x.adjacency_matrix for x in limited],[x.node_features for x in limited])
+  >>> def iterbatches(epochs):
+  >>>   for i in range(epochs):
+  >>>     batch in dataset.iterbatches(batch_size=gan.batch_size, pad_batches=True):
+  >>>       adjacency_tensor = one_hot(batch[0], gan.edges)
+  >>>       node_tensor = one_hot(batch[1], gan.nodes)
+  >>>       yield {gan.data_inputs[0]: adjacency_tensor, gan.data_inputs[1]:node_tensor}
+  >>> gan.fit_gan(iterbatches(10), generator_steps=0.2, checkpoint_interval=5000)
 
   References
   ----------
@@ -64,9 +76,8 @@ class BasicMolGANModel(WGAN):
     self.nodes = nodes
     self.embedding_dim = embedding_dim
     self.dropout_rate = dropout_rate
-    self.name = name
 
-    super(BasicMolGANModel, self).__init__(name=self.name, **kwargs)
+    super(BasicMolGANModel, self).__init__(name=name, **kwargs)
 
   def get_noise_input_shape(self) -> Tuple[int]:
     """
