@@ -694,7 +694,7 @@ class DAGModel(KerasModel):
 
         def loss(outputs, labels, weights):
           diff = labels[0] - outputs[0]
-          return tf.reduce_mean(diff * diff / tf.exp(outputs[1]) + outputs[1])
+          return tf.reduce_mean(diff * diff / tf.exp(outputs[3]) + outputs[3])
       else:
         outputs = [output]
         output_types = ['prediction']
@@ -962,7 +962,7 @@ class GraphConvModel(KerasModel):
 
         def loss(outputs, labels, weights):
           diff = labels[0] - outputs[0]
-          return tf.reduce_mean(diff * diff / tf.exp(outputs[1]) + outputs[1])
+          return tf.reduce_mean(diff * diff / tf.exp(outputs[3]) + outputs[3])
       else:
         output_types = ['prediction', 'embedding']
         loss = L2Loss()
@@ -1103,7 +1103,7 @@ class MPNNModel(KerasModel):
 
         def loss(outputs, labels, weights):
           diff = labels[0] - outputs[0]
-          return tf.reduce_mean(diff * diff / tf.exp(outputs[1]) + outputs[1])
+          return tf.reduce_mean(diff * diff / tf.exp(outputs[3]) + outputs[3])
       else:
         outputs = [output]
         output_types = ['prediction']

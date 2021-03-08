@@ -193,7 +193,7 @@ def test_uncertainty():
 
   def loss(outputs, labels, weights):
     diff = labels[0] - outputs[0]
-    log_var = outputs[1]
+    log_var = outputs[3]
     var = tf.exp(log_var)
     return tf.reduce_mean(diff * diff / var + log_var)
 
