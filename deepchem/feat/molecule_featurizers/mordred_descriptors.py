@@ -22,8 +22,8 @@ class MordredDescriptors(MolecularFeaturizer):
      Journal of cheminformatics 10.1 (2018): 4.
   .. [2] http://mordred-descriptor.github.io/documentation/master/descriptors.html
 
-  Notes
-  -----
+  Note
+  ----
   This class requires Mordred to be installed.
   """
 

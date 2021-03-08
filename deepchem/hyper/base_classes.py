@@ -80,6 +80,7 @@ class HyperparamOpt(object):
                         valid_dataset: Dataset,
                         metric: Metric,
                         output_transformers: List[Transformer] = [],
+                        nb_epoch: int = 10,
                         use_max: bool = True,
                         logdir: Optional[str] = None,
                         **kwargs) -> Tuple[Model, Dict, Dict]:
@@ -110,6 +111,8 @@ class HyperparamOpt(object):
       `train_dataset` and `valid_dataset` may have been transformed
       for learning and need the transform to be inverted before
       the metric can be evaluated on a model.
+    nb_epoch: int, (default 10)
+      Specifies the number of training epochs during each iteration of optimization.
     use_max: bool, optional
       If True, return the model with the highest score. Else return
       model with the minimum score.

@@ -17,7 +17,7 @@ from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
-from deepchem.utils.typing import LossFn, OneOrMany
+from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
 
 try:
   import wandb
@@ -462,7 +462,7 @@ class KerasModel(Model):
     def apply_gradient_for_batch(inputs, labels, weights, loss):
       with tf.GradientTape() as tape:
         outputs = self.model(inputs, training=True)
-        if isinstance(outputs, tf.Tensor):
+        if tf.is_tensor(outputs):
           outputs = [outputs]
         if self._loss_outputs is not None:
           outputs = [outputs[i] for i in self._loss_outputs]
@@ -564,8 +564,8 @@ class KerasModel(Model):
     a NumPy array of the model produces a single output, or a list of arrays
     if it produces multiple outputs
     """
-    results: Optional[List[np.ndarray]] = None
-    variances: Optional[List[np.ndarray]] = None
+    results: Optional[List[List[np.ndarray]]] = None
+    variances: Optional[List[List[np.ndarray]]] = None
     if (outputs is not None) and (other_output_types is not None):
       raise ValueError(
           'This model cannot compute outputs and other output_types simultaneously.'
@@ -593,7 +593,7 @@ class KerasModel(Model):
           "Cannot use 'outputs' argument with a model that does not specify its inputs."
           "Note models defined in imperative subclassing style cannot specify outputs"
       )
-    if isinstance(outputs, tf.Tensor):
+    if tf.is_tensor(outputs):
       outputs = [outputs]
     for batch in generator:
       inputs, labels, weights = batch
@@ -612,7 +612,7 @@ class KerasModel(Model):
         output_values = self._output_functions[key](inputs)
       else:
         output_values = self._compute_model(inputs)
-        if isinstance(output_values, tf.Tensor):
+        if tf.is_tensor(output_values):
           output_values = [output_values]
         output_values = [t.numpy() for t in output_values]
 
@@ -699,7 +699,7 @@ class KerasModel(Model):
 
   def predict_on_batch(
       self,
-      X: Sequence,
+      X: ArrayLike,
       transformers: List[Transformer] = [],
       outputs: Optional[OneOrMany[tf.Tensor]] = None) -> OneOrMany[np.ndarray]:
     """Generates predictions for input samples, processing samples in a batch.
@@ -927,7 +927,7 @@ class KerasModel(Model):
         persistent=True, watch_accessed_variables=False) as tape:
       tape.watch(X)
       outputs = self._compute_model(X)
-      if isinstance(outputs, tf.Tensor):
+      if tf.is_tensor(outputs):
         outputs = [outputs]
       final_result = []
       for output in outputs:
@@ -1217,7 +1217,7 @@ class _StandardLoss(object):
     losses = self.loss._compute_tf_loss(outputs[0], labels[0])
     w = weights[0]
     if len(w.shape) < len(losses.shape):
-      if isinstance(w, tf.Tensor):
+      if tf.is_tensor(w):
         shape = tuple(w.shape.as_list())
       else:
         shape = w.shape

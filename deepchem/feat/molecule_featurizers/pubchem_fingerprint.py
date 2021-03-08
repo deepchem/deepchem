@@ -15,7 +15,7 @@ class PubChemFingerprint(MolecularFeaturizer):
   ----------
   .. [1] ftp://ftp.ncbi.nlm.nih.gov/pubchem/specifications/pubchem_fingerprints.pdf
 
-  Notes
+  Note
   -----
   This class requires RDKit and PubChemPy to be installed.
   PubChemPy use REST API to get the fingerprint, so you need the internet access.

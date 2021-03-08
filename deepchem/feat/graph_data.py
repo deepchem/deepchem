@@ -202,7 +202,7 @@ class BatchGraphData(GraphData):
   >>> edge_index_list = np.array([
   ...    [[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]],
   ...    [[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]],
-  ... ], dtype=np.int)
+  ... ], dtype=int)
   >>> graph_list = [GraphData(node_features, edge_index) for node_features, edge_index
   ...           in zip(node_features_list, edge_index_list)]
   >>> batch_graph = BatchGraphData(graph_list=graph_list)
@@ -222,13 +222,13 @@ class BatchGraphData(GraphData):
     # before stacking edge_features or node_pos_features,
     # we should check whether these are None or not
     if graph_list[0].edge_features is not None:
-      batch_edge_features = np.vstack(
+      batch_edge_features: Optional[np.ndarray] = np.vstack(
           [graph.edge_features for graph in graph_list])
     else:
       batch_edge_features = None
 
     if graph_list[0].node_pos_features is not None:
-      batch_node_pos_features = np.vstack(
+      batch_node_pos_features: Optional[np.ndarray] = np.vstack(
           [graph.node_pos_features for graph in graph_list])
     else:
       batch_node_pos_features = None

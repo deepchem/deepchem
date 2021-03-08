@@ -96,6 +96,7 @@ To listen in, please email X.Y@gmail.com, where X=bharath and Y=ramsundar to int
    get_started/requirements
    get_started/tutorials
    get_started/examples
+   get_started/issues
 
 .. toctree::
    :glob:
@@ -115,7 +116,6 @@ To listen in, please email X.Y@gmail.com, where X=bharath and Y=ramsundar to int
    api_reference/data
    api_reference/moleculenet
    api_reference/featurizers
-   api_reference/tokenizers
    api_reference/splitters
    api_reference/transformers
    api_reference/models

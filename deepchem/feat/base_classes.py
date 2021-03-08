@@ -53,8 +53,7 @@ class Featurizer(object):
             "Failed to featurize datapoint %d. Appending empty array")
         features.append(np.array([]))
 
-    features = np.asarray(features)
-    return features
+    return np.asarray(features)
 
   def __call__(self, datapoints: Iterable[Any]):
     """Calculate features for datapoints.
@@ -186,8 +185,7 @@ class ComplexFeaturizer(Featurizer):
             "Failed to featurize datapoint %i. Appending empty array." % i)
         features.append(np.array([]))
 
-    features = np.asarray(features)
-    return features
+    return np.asarray(features)
 
   def _featurize(self, complex: Tuple[str, str]):
     """
@@ -214,8 +212,8 @@ class MolecularFeaturizer(Featurizer):
   Child classes need to implement the _featurize method for
   calculating features for a single molecule.
 
-  Notes
-  -----
+  Note
+  ----
   The subclasses of this class require RDKit to be installed.
   """
 
@@ -273,8 +271,7 @@ class MolecularFeaturizer(Featurizer):
         logger.warning("Exception message: {}".format(e))
         features.append(np.array([]))
 
-    features = np.asarray(features)
-    return features
+    return np.asarray(features)
 
 
 class MaterialStructureFeaturizer(Featurizer):
@@ -294,8 +291,8 @@ class MaterialStructureFeaturizer(Featurizer):
   classes need to implement the _featurize method for calculating
   features for a single crystal structure.
 
-  Notes
-  -----
+  Note
+  ----
   Some subclasses of this class will require pymatgen and matminer to be
   installed.
   """
@@ -339,8 +336,7 @@ class MaterialStructureFeaturizer(Featurizer):
             "Failed to featurize datapoint %i. Appending empty array" % idx)
         features.append(np.array([]))
 
-    features = np.asarray(features)
-    return features
+    return np.asarray(features)
 
 
 class MaterialCompositionFeaturizer(Featurizer):
@@ -360,8 +356,8 @@ class MaterialCompositionFeaturizer(Featurizer):
   classes need to implement the _featurize method for calculating
   features for a single crystal composition.
 
-  Notes
-  -----
+  Note
+  ----
   Some subclasses of this class will require pymatgen and matminer to be
   installed.
   """
@@ -401,8 +397,7 @@ class MaterialCompositionFeaturizer(Featurizer):
             "Failed to featurize datapoint %i. Appending empty array" % idx)
         features.append(np.array([]))
 
-    features = np.asarray(features)
-    return features
+    return np.asarray(features)
 
 
 class UserDefinedFeaturizer(Featurizer):

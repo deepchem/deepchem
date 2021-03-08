@@ -135,8 +135,8 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
   .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints."
      Journal of computer-aided molecular design 30.8 (2016):595-608.
 
-  Notes
-  -----
+  Note
+  ----
   This class requires RDKit to be installed.
   """
 
@@ -194,7 +194,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
                                     self.use_partial_charge)
             for atom in mol.GetAtoms()
         ],
-        dtype=np.float,
+        dtype=float,
     )
 
     # construct edge (bond) index
@@ -208,12 +208,12 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     # construct edge (bond) feature
     bond_features = None  # deafult None
     if self.use_edges:
-      bond_features = []
+      features = []
       for bond in mol.GetBonds():
-        bond_features += 2 * [_construct_bond_feature(bond)]
-      bond_features = np.asarray(bond_features, dtype=np.float)
+        features += 2 * [_construct_bond_feature(bond)]
+      bond_features = np.asarray(features, dtype=float)
 
     return GraphData(
         node_features=atom_features,
-        edge_index=np.asarray([src, dest], dtype=np.int),
+        edge_index=np.asarray([src, dest], dtype=int),
         edge_features=bond_features)

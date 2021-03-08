@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 
 import deepchem as dc
-from deepchem.utils.typing import OneOrMany, Shape
+from deepchem.utils.typing import ArrayLike, OneOrMany, Shape
 from deepchem.utils.data_utils import save_to_disk, load_from_disk, load_image_files
 
 Batch = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
@@ -46,8 +46,7 @@ def sparsify_features(X: np.ndarray) -> np.ndarray:
     nonzero_inds = np.nonzero(X[i])[0]
     nonzero_vals = X[i][nonzero_inds]
     X_sparse.append((nonzero_inds, nonzero_vals))
-  X_sparse = np.array(X_sparse, dtype=object)
-  return X_sparse
+  return np.array(X_sparse, dtype=object)
 
 
 def densify_features(X_sparse: np.ndarray, num_features: int) -> np.ndarray:
@@ -703,10 +702,10 @@ class NumpyDataset(Dataset):
   """
 
   def __init__(self,
-               X: np.ndarray,
-               y: Optional[np.ndarray] = None,
-               w: Optional[np.ndarray] = None,
-               ids: Optional[np.ndarray] = None,
+               X: ArrayLike,
+               y: Optional[ArrayLike] = None,
+               w: Optional[ArrayLike] = None,
+               ids: Optional[ArrayLike] = None,
                n_tasks: int = 1) -> None:
     """Initialize this object.
 
@@ -824,7 +823,7 @@ class NumpyDataset(Dataset):
         if not deterministic:
           sample_perm = np.random.permutation(n_samples)
         batch_idx = 0
-        num_batches = np.math.ceil(n_samples / batch_size)
+        num_batches = math.ceil(n_samples / batch_size)
         while batch_idx < num_batches:
           start = batch_idx * batch_size
           end = min(n_samples, (batch_idx + 1) * batch_size)
@@ -1150,7 +1149,8 @@ class DiskDataset(Dataset):
     self.data_dir = data_dir
 
     logger.info("Loading dataset from disk.")
-    self.tasks, self.metadata_df = self.load_metadata()
+    tasks, self.metadata_df = self.load_metadata()
+    self.tasks = np.array(tasks)
     if len(self.metadata_df.columns) == 4 and list(
         self.metadata_df.columns) == ['ids', 'X', 'y', 'w']:
       logger.info(
@@ -1175,7 +1175,7 @@ class DiskDataset(Dataset):
   @staticmethod
   def create_dataset(shard_generator: Iterable[Batch],
                      data_dir: Optional[str] = None,
-                     tasks: Optional[Sequence] = []) -> "DiskDataset":
+                     tasks: Optional[ArrayLike] = []) -> "DiskDataset":
     """Creates a new DiskDataset
 
     Parameters
@@ -1203,8 +1203,7 @@ class DiskDataset(Dataset):
     for shard_num, (X, y, w, ids) in enumerate(shard_generator):
       basename = "shard-%d" % shard_num
       metadata_rows.append(
-          DiskDataset.write_data_to_disk(data_dir, basename, tasks, X, y, w,
-                                         ids))
+          DiskDataset.write_data_to_disk(data_dir, basename, X, y, w, ids))
     metadata_df = DiskDataset._construct_metadata(metadata_rows)
     DiskDataset._save_metadata(metadata_df, data_dir, tasks)
     time2 = time.time()
@@ -1235,7 +1234,7 @@ class DiskDataset(Dataset):
 
   @staticmethod
   def _save_metadata(metadata_df: pd.DataFrame, data_dir: str,
-                     tasks: Optional[Sequence]) -> None:
+                     tasks: Optional[ArrayLike]) -> None:
     """Saves the metadata for a DiskDataset
 
     Parameters
@@ -1279,14 +1278,12 @@ class DiskDataset(Dataset):
     return metadata_df
 
   @staticmethod
-  def write_data_to_disk(
-      data_dir: str,
-      basename: str,
-      tasks: np.ndarray,
-      X: Optional[np.ndarray] = None,
-      y: Optional[np.ndarray] = None,
-      w: Optional[np.ndarray] = None,
-      ids: Optional[np.ndarray] = None) -> List[Optional[str]]:
+  def write_data_to_disk(data_dir: str,
+                         basename: str,
+                         X: Optional[np.ndarray] = None,
+                         y: Optional[np.ndarray] = None,
+                         w: Optional[np.ndarray] = None,
+                         ids: Optional[np.ndarray] = None) -> List[Any]:
     """Static helper method to write data to disk.
 
     This helper method is used to write a shard of data to disk.
@@ -1297,8 +1294,6 @@ class DiskDataset(Dataset):
       Data directory to write shard to.
     basename: str
       Basename for the shard in question.
-    tasks: np.ndarray
-      The names of the tasks in question.
     X: np.ndarray, optional (default None)
       The features array.
     y: np.ndarray, optional (default None)
@@ -1318,7 +1313,7 @@ class DiskDataset(Dataset):
     if X is not None:
       out_X: Optional[str] = "%s-X.npy" % basename
       save_to_disk(X, os.path.join(data_dir, out_X))  # type: ignore
-      out_X_shape = X.shape
+      out_X_shape: Optional[Tuple[int, ...]] = X.shape
     else:
       out_X = None
       out_X_shape = None
@@ -1326,7 +1321,7 @@ class DiskDataset(Dataset):
     if y is not None:
       out_y: Optional[str] = "%s-y.npy" % basename
       save_to_disk(y, os.path.join(data_dir, out_y))  # type: ignore
-      out_y_shape = y.shape
+      out_y_shape: Optional[Tuple[int, ...]] = y.shape
     else:
       out_y = None
       out_y_shape = None
@@ -1334,7 +1329,7 @@ class DiskDataset(Dataset):
     if w is not None:
       out_w: Optional[str] = "%s-w.npy" % basename
       save_to_disk(w, os.path.join(data_dir, out_w))  # type: ignore
-      out_w_shape = w.shape
+      out_w_shape: Optional[Tuple[int, ...]] = w.shape
     else:
       out_w = None
       out_w_shape = None
@@ -1342,7 +1337,7 @@ class DiskDataset(Dataset):
     if ids is not None:
       out_ids: Optional[str] = "%s-ids.npy" % basename
       save_to_disk(ids, os.path.join(data_dir, out_ids))  # type: ignore
-      out_ids_shape = ids.shape
+      out_ids_shape: Optional[Tuple[int, ...]] = ids.shape
     else:
       out_ids = None
       out_ids_shape = None
@@ -1410,7 +1405,7 @@ class DiskDataset(Dataset):
     shutil.copytree(self.data_dir, new_data_dir)
     return DiskDataset(new_data_dir)
 
-  def get_task_names(self) -> List[str]:
+  def get_task_names(self) -> np.ndarray:
     """Gets learning tasks associated with this dataset."""
     return self.tasks
 
@@ -1793,8 +1788,7 @@ class DiskDataset(Dataset):
     ids = np.array(load_from_disk(ids_file))
     X, y, w, ids = transformer.transform_array(X, y, w, ids)
     basename = "shard-%d" % shard_num
-    return DiskDataset.write_data_to_disk(out_dir, basename, tasks, X, y, w,
-                                          ids)
+    return DiskDataset.write_data_to_disk(out_dir, basename, X, y, w, ids)
 
   def make_pytorch_dataset(self,
                            epochs: int = 1,
@@ -1839,11 +1833,11 @@ class DiskDataset(Dataset):
     return pytorch_ds
 
   @staticmethod
-  def from_numpy(X: np.ndarray,
-                 y: Optional[np.ndarray] = None,
-                 w: Optional[np.ndarray] = None,
-                 ids: Optional[np.ndarray] = None,
-                 tasks: Optional[Sequence] = None,
+  def from_numpy(X: ArrayLike,
+                 y: Optional[ArrayLike] = None,
+                 w: Optional[ArrayLike] = None,
+                 ids: Optional[ArrayLike] = None,
+                 tasks: Optional[ArrayLike] = None,
                  data_dir: Optional[str] = None) -> "DiskDataset":
     """Creates a DiskDataset object from specified Numpy arrays.
 
@@ -2054,7 +2048,6 @@ class DiskDataset(Dataset):
       The basenames for each shard. If this isn't specified, will assume the
       basenames of form "shard-i" used by `create_dataset` and `reshard`.
     """
-    tasks = self.get_task_names()
     # Shuffle the arrays corresponding to each row in metadata_df
     n_rows = len(self.metadata_df.index)
     if shard_basenames is not None:
@@ -2071,8 +2064,7 @@ class DiskDataset(Dataset):
       permutation = np.random.permutation(n)
       X, y, w, ids = (X[permutation], y[permutation], w[permutation],
                       ids[permutation])
-      DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w,
-                                     ids)
+      DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w, ids)
     # Reset cache
     self._cached_shards = None
 
@@ -2110,7 +2102,8 @@ class DiskDataset(Dataset):
     X = np.array(load_from_disk(os.path.join(self.data_dir, row['X'])))
 
     if row['y'] is not None:
-      y = np.array(load_from_disk(os.path.join(self.data_dir, row['y'])))
+      y: Optional[np.ndarray] = np.array(
+          load_from_disk(os.path.join(self.data_dir, row['y'])))
     else:
       y = None
 
@@ -2118,12 +2111,14 @@ class DiskDataset(Dataset):
       # TODO (ytz): Under what condition does this exist but the file itself doesn't?
       w_filename = os.path.join(self.data_dir, row['w'])
       if os.path.exists(w_filename):
-        w = np.array(load_from_disk(w_filename))
-      else:
+        w: Optional[np.ndarray] = np.array(load_from_disk(w_filename))
+      elif y is not None:
         if len(y.shape) == 1:
           w = np.ones(y.shape[0], np.float32)
         else:
           w = np.ones((y.shape[0], 1), np.float32)
+      else:
+        w = None
     else:
       w = None
 
@@ -2185,8 +2180,7 @@ class DiskDataset(Dataset):
     if self._cached_shards is not None and self._cached_shards[i] is not None:
       return self._cached_shards[i].y
     row = self.metadata_df.iloc[i]
-    return np.array(
-        load_from_disk(os.path.join(self.data_dir, row['y'])), dtype=object)
+    return np.array(load_from_disk(os.path.join(self.data_dir, row['y'])))
 
   def get_shard_w(self, i: int) -> np.ndarray:
     """Retrieves the weights for the i-th shard from disk.
@@ -2205,8 +2199,7 @@ class DiskDataset(Dataset):
     if self._cached_shards is not None and self._cached_shards[i] is not None:
       return self._cached_shards[i].w
     row = self.metadata_df.iloc[i]
-    return np.array(
-        load_from_disk(os.path.join(self.data_dir, row['w'])), dtype=object)
+    return np.array(load_from_disk(os.path.join(self.data_dir, row['w'])))
 
   def add_shard(self,
                 X: np.ndarray,
@@ -2229,10 +2222,8 @@ class DiskDataset(Dataset):
     metadata_rows = self.metadata_df.values.tolist()
     shard_num = len(metadata_rows)
     basename = "shard-%d" % shard_num
-    tasks = self.get_task_names()
     metadata_rows.append(
-        DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w,
-                                       ids))
+        DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w, ids))
     self.metadata_df = DiskDataset._construct_metadata(metadata_rows)
     self.save_to_disk()
 
@@ -2258,8 +2249,7 @@ class DiskDataset(Dataset):
       Identifiers array.
     """
     basename = "shard-%d" % shard_num
-    tasks = self.get_task_names()
-    DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w, ids)
+    DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w, ids)
     self._cached_shards = None
 
   def select(self,
@@ -2324,7 +2314,6 @@ class DiskDataset(Dataset):
             np.array([]), np.array([]), np.array([]), np.array([]))
 
     N = len(indices)
-    indices = np.array(indices).astype(int)
     tasks = self.get_task_names()
     n_shards = self.get_number_shards()
 
@@ -2591,8 +2580,8 @@ class ImageDataset(Dataset):
   def __init__(self,
                X: Union[np.ndarray, List[str]],
                y: Optional[Union[np.ndarray, List[str]]],
-               w: Optional[np.ndarray] = None,
-               ids: Optional[np.ndarray] = None) -> None:
+               w: Optional[ArrayLike] = None,
+               ids: Optional[ArrayLike] = None) -> None:
     """Create a dataset whose X and/or y array is defined by image files on disk.
 
     Parameters

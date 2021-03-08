@@ -417,6 +417,9 @@ class MinMaxTransformer(Transformer):
       y = z * (y_max - y_min) + y_min
       return y
 
+    else:
+      return z
+
 
 class NormalizationTransformer(Transformer):
   """Normalizes dataset to have zero mean and unit standard deviation
@@ -576,6 +579,8 @@ class NormalizationTransformer(Transformer):
         return z * y_stds + y_means
       else:
         return z * y_stds
+    else:
+      return z
 
   def untransform_grad(self, grad, tasks):
     """DEPRECATED. DO NOT USE."""
@@ -848,6 +853,8 @@ class LogTransformer(Transformer):
           else:
             z[:, j] = z[:, j]
         return z
+    else:
+      return z
 
 
 class BalancingTransformer(Transformer):
@@ -1731,11 +1738,10 @@ class IRVTransformer(Transformer):
       X_trans.append(
           self.X_transform(
               dataset.X[count * 5000:min((count + 1) * 5000, X_length), :]))
-    X_trans = np.concatenate(X_trans, axis=0)
+    X = np.concatenate(X_trans, axis=0)
     if out_dir is None:
-      return NumpyDataset(X_trans, dataset.y, dataset.w, ids=None)
-    return DiskDataset.from_numpy(
-        X_trans, dataset.y, dataset.w, data_dir=out_dir)
+      return NumpyDataset(X, dataset.y, dataset.w, ids=None)
+    return DiskDataset.from_numpy(X, dataset.y, dataset.w, data_dir=out_dir)
 
   def untransform(self, z):
     "Not implemented."

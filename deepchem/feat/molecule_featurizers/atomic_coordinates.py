@@ -10,7 +10,7 @@ from deepchem.utils.typing import RDKitMol
 class AtomicCoordinates(MolecularFeaturizer):
   """Calculate atomic coordinates.
 
-  Notes
+  Note
   ----
   This class requires RDKit to be installed.
   """
