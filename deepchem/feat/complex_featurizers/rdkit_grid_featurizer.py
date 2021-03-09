@@ -449,6 +449,5 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         else:
           features_dict[system_id] = np.concatenate(feature_arrays, axis=-1)
 
-    # TODO(rbharath): Is this squeeze OK?
-    features = np.squeeze(np.array(list(features_dict.values())))
+    features = np.concatenate(list(features_dict.values()))
     return features
