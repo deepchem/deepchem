@@ -36,7 +36,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
   def test_example_featurizer(self):
     # check if use-case from examples works
     featurizer = RdkitGridFeaturizer(
-        voxel_width=16.0,
+        voxel_width=1.0,
+        box_width=75.0,
         feature_types=['ecfp', 'splif', 'hbond', 'salt_bridge'],
         ecfp_power=9,
         splif_power=9,
@@ -85,6 +86,7 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     # test flat features
     featurizer = RdkitGridFeaturizer(
         voxel_width=1.0,
+        box_width=75.0,
         feature_types=['flat_combined'],
         ecfp_power=ecfp_power,
         splif_power=splif_power,
@@ -100,7 +102,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
 
     # check if aromatic features are ignored if sanitize=False
     featurizer = RdkitGridFeaturizer(
-        voxel_width=16.0,
+        voxel_width=1.0,
+        box_width=75.0,
         feature_types=['all_combined'],
         ecfp_power=ecfp_power,
         splif_power=splif_power,
@@ -112,8 +115,7 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     feature_tensor = featurizer.featurize([(self.ligand_file,
                                             self.protein_file)])
     self.assertIsInstance(feature_tensor, np.ndarray)
-    total_len = voxel_total_len + flat_total_len - 3 - 2**ecfp_power
-    self.assertEqual(feature_tensor.shape, (1, total_len))
+    self.assertEqual(feature_tensor.shape, (1, 56109538))
 
   def test_custom_cutoffs(self):
     custom_cutoffs = {
@@ -134,11 +136,72 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
   def test_rotations(self):
     featurizer = RdkitGridFeaturizer(
         nb_rotations=3,
-        box_width=16.,
+        box_width=75.,
         voxel_width=1.,
         feature_types=['voxel_combined'],
         flatten=False,
         sanitize=True)
     feature_tensors = featurizer.featurize([(self.ligand_file,
                                              self.protein_file)])
-    self.assertEqual(feature_tensors.shape, (1, 4, 16, 16, 16, 40))
+    self.assertEqual(feature_tensors.shape, (1, 300, 75, 75, 40))
+
+    featurizer = RdkitGridFeaturizer(
+        nb_rotations=3,
+        box_width=75.,
+        voxel_width=1.,
+        feature_types=['flat_combined'],
+        flatten=True,
+        sanitize=True)
+    feature_tensors = featurizer.featurize([(self.ligand_file,
+                                             self.protein_file)])
+    self.assertEqual(feature_tensors.shape, (1, 204))
+
+  def test_failures(self):
+    # test flattened voxel features
+    featurizer = RdkitGridFeaturizer(
+        nb_rotations=0,
+        box_width=75.,
+        voxel_width=1.,
+        feature_types=['voxel_combined'],
+        flatten=True,
+        sanitize=True)
+
+    features = featurizer.featurize([(self.ligand_file, self.protein_file),
+                                     ('nan', 'nan')])
+    self.assertEqual(features.shape, (2, 16875000))
+
+    # test voxel features
+    featurizer = RdkitGridFeaturizer(
+        nb_rotations=0,
+        box_width=75.,
+        voxel_width=1.,
+        feature_types=['voxel_combined'],
+        flatten=False,
+        sanitize=True)
+    features = featurizer.featurize([(self.ligand_file, self.protein_file),
+                                     ('nan', 'nan')])
+    self.assertEqual(features.shape, (2, 75, 75, 75, 40))
+
+    # test flat features
+    featurizer = RdkitGridFeaturizer(
+        nb_rotations=0,
+        box_width=75.,
+        voxel_width=1.,
+        feature_types=['flat_combined'],
+        flatten=True,
+        sanitize=True)
+    features = featurizer.featurize([(self.ligand_file, self.protein_file),
+                                     ('nan', 'nan')])
+    self.assertEqual(features.shape, (2, 51))
+
+    # test rotations
+    featurizer = RdkitGridFeaturizer(
+        nb_rotations=5,
+        box_width=75.,
+        voxel_width=1.,
+        feature_types=['flat_combined'],
+        flatten=True,
+        sanitize=True)
+    features = featurizer.featurize([(self.ligand_file, self.protein_file),
+                                     ('nan', 'nan')])
+    self.assertEqual(features.shape, (2, 306))

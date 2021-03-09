@@ -449,7 +449,5 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         else:
           features_dict[system_id] = np.concatenate(feature_arrays, axis=-1)
 
-    features = np.array(list(features_dict.values()))
-    if self.nb_rotations == 0:  # squeeze out axis with dimension 1
-      features = np.squeeze(features, axis=0)
+    features = np.concatenate(list(features_dict.values()))
     return features
