@@ -134,6 +134,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
   def test_rotations(self):
     featurizer = RdkitGridFeaturizer(
         nb_rotations=3,
+        box_width=16.,
+        voxel_width=1.,
         feature_types=['voxel_combined'],
         flatten=False,
         sanitize=True)
