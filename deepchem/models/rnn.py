@@ -11,7 +11,6 @@ try:
 except:
   from collections import Sequence as SequenceCollection
 
-
 class RNN(KerasModel):
   """A recurrent neural network for either regression or classification.
 
@@ -29,7 +28,7 @@ class RNN(KerasModel):
                n_features,
                n_dims,
                layer_input_dims=(256, 128, 64),
-               bidirectional=True,
+               bidirectional=False,
                weight_init_stddevs=0.02,
                bias_init_consts=1.0,
                weight_decay_penalty=0.0,
@@ -51,10 +50,11 @@ class RNN(KerasModel):
     all the keyword arguments from TensorGraph.
     """
 
-    if dims not in (1, 2, 3):
+    if n_dims not in (1, 2, 3):
       raise ValueError("n_dims must be 1, 2, or 3 at this time.")
     if mode not in ['classification', 'regression']:
       raise ValueError("mode must be either 'classification' or 'regression'")
+
     self.n_tasks = n_tasks
     self.n_features = n_features
     self.dims = n_dims
@@ -62,8 +62,6 @@ class RNN(KerasModel):
     self.n_classes = n_classes
     self.uncertainty = uncertainty
     n_layers = len(layer_input_dims)
-    if not isinstance(kernel_size, list):
-      kernel_size = [kernel_size] * n_layers
     if not isinstance(weight_init_stddevs, SequenceCollection):
       weight_init_stddevs = [weight_init_stddevs] * (n_layers + 1)
     if not isinstance(bias_init_consts, SequenceCollection):
@@ -88,14 +86,12 @@ class RNN(KerasModel):
 
     # Add the input features.
 
-    features = Input(shape=(None,) * dims + (n_features,))
+    features = Input(shape=(None,) * n_dims + (n_features,))
     dropout_switch = Input(shape=tuple())
+    prev_layer = features
     next_activation = None
 
-    prev_layer = layers.Embedding(input_dim=encoder_vocab, output_dim=layer_input_dims[0])(
-        features
-    )
-
+    # Pick type of RNN
     if layerType == 'LSTM':
       RecurrentLayer = layers.LSTM
     elif layerType == 'GRU':
@@ -107,16 +103,17 @@ class RNN(KerasModel):
     else:
       raise ValueError('layerType must be "LSTM," "GRU," or "SimpleRNN."')
 
+    # Bidirectional
     if bidirectional == True:
-      RecurrentLayer = layers.Bidirectional(RecurrentLayer)
+      RecurrentLayer = layers.Bidirectional(RecurrentLayer(10)) # TODO remove magic number
 
-    for dim, size, weight_stddev, bias_const, dropout, activation_fn in zip( 
-        layer_input_dims, kernel_size, weight_init_stddevs, bias_init_consts, 
+    for dim, weight_stddev, bias_const, dropout, activation_fn in zip( 
+        layer_input_dims, weight_init_stddevs, bias_init_consts, 
         dropouts, activation_fns):
       layer = prev_layer
       if next_activation is not None:
         layer = Activation(next_activation)(layer)
-      output, state_h, state_c = recurrentLayer(
+      output, state_h, state_c = RecurrentLayer(
                                      dim,
                                      return_state=True,
                                      return_sequences=True,
@@ -125,8 +122,7 @@ class RNN(KerasModel):
                                          stddev=weight_stddev),
                                      bias_initializer=tf.constant_initializer(
                                          value=bias_const),
-                                     kernel_regularizer=regularizer)(layer)
-                                 )
+                                     kernel_regularizer=regularizer)(layer) # Var layer is problematic.
       state = [state_h, state_c]
       if dropout > 0.0:
         layer = SwitchedDropout(rate=dropout)([layer, dropout_switch])

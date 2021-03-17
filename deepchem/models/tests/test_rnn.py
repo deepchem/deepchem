@@ -36,24 +36,23 @@ def test_rnn_regression():
   n_tasks = len(tasks)
   model = RNN(
       mode='regression',
-      n_dims=3,
-      n_features=30,
+      n_dims=1,
+      n_features=3,
+      n_tasks=len(tasks),
       batch_size=10,
       learning_rate=0.003)
 
   # overfit test
+  print("dataset", dataset);
   model.fit(dataset, nb_epoch=300)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean_absolute_error'] < 0.5
-
   # test on a small MoleculeNet dataset
   from deepchem.molnet import load_delaney
 
   tasks, all_dataset, transformers = load_delaney(featurizer=featurizer)
   train_set, _, _ = all_dataset
-  model = dc.models.RNN(n_tasks=len(tasks))
   model.fit(train_set, nb_epoch=1)
-
 """
 @unittest.skipIf(not has_dependencies,
                  'Please make sure tensorflow and collections are installed.')
