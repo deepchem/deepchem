@@ -55,7 +55,7 @@ Please check [the document](https://deepchem.readthedocs.io/en/latest/requiremen
 Please install tensorflow v2.4.* before installing deepchem.
 
 ```bash
-pip install tensorflow==2.4.*
+pip install tensorflow~=2.4
 ```
 
 Then, you install deepchem via pip or conda.  
