@@ -13,11 +13,12 @@ class TestSmilesToSeq(unittest.TestCase):
     """Setup."""
     pad_len = 5
     max_len = 35
-    filename = os.path.join(
-        os.path.dirname(__file__), "data", "chembl_25_small.csv")
+    filename = os.path.join(os.path.dirname(__file__), "data",
+                            "chembl_25_small.csv")
     char_to_idx = create_char_to_idx(filename, max_len=max_len)
-    self.feat = SmilesToSeq(
-        char_to_idx=char_to_idx, max_len=max_len, pad_len=pad_len)
+    self.feat = SmilesToSeq(char_to_idx=char_to_idx,
+                            max_len=max_len,
+                            pad_len=pad_len)
 
   def test_smiles_to_seq_featurize(self):
     """Test SmilesToSeq featurization."""
@@ -43,7 +44,9 @@ class TestSmilesToImage(unittest.TestCase):
   def setUp(self):
     """Setup."""
     self.smiles = ["Cn1c(=O)c2c(ncn2C)n(C)c1=O", "CC(=O)N1CN(C(C)=O)C(O)C1O"]
-    self.long_molecule_smiles = ["CCCCCCCCCCCCCCCCCCCC(=O)OCCCNC(=O)c1ccccc1SSc1ccccc1C(=O)NCCCOC(=O)CCCCCCCCCCCCCCCCCCC"]
+    self.long_molecule_smiles = [
+        "CCCCCCCCCCCCCCCCCCCC(=O)OCCCNC(=O)c1ccccc1SSc1ccccc1C(=O)NCCCOC(=O)CCCCCCCCCCCCCCCCCCC"
+    ]
 
   def test_smiles_to_image(self):
     """Test default SmilesToImage"""
@@ -92,10 +95,9 @@ class TestSmilesToImage(unittest.TestCase):
 
   def test_smiles_to_image_long_molecule(self):
     """Test SmilesToImage for a molecule which does not fit the image"""
-    featurizer = SmilesToImage(
-               img_size=80,
-               res=0.5,
-               max_len=250,
-               img_spec="std")
+    featurizer = SmilesToImage(img_size=80,
+                               res=0.5,
+                               max_len=250,
+                               img_spec="std")
     features = featurizer.featurize(self.long_molecule_smiles)
     assert features.shape == (1, 0)
