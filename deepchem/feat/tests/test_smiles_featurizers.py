@@ -43,6 +43,13 @@ class TestSmilesToImage(unittest.TestCase):
   def setUp(self):
     """Setup."""
     self.smiles = ["Cn1c(=O)c2c(ncn2C)n(C)c1=O", "CC(=O)N1CN(C(C)=O)C(O)C1O"]
+    self.long_molecule_smiles = ["CCCCCCCCCCCCCCCCCCCC(=O)OCCCNC(=O)c1ccccc1SSc1ccccc1C(=O)NCCCOC(=O)CCCCCCCCCCCCCCCCCCC"]
+
+  def test_smiles_to_image(self):
+    """Test default SmilesToImage"""
+    featurizer = SmilesToImage()
+    features = featurizer.featurize(self.smiles)
+    assert features.shape == (2, 80, 80, 1)
 
   def test_smiles_to_image(self):
     """Test default SmilesToImage"""
@@ -82,3 +89,13 @@ class TestSmilesToImage(unittest.TestCase):
     features = featurizer.featurize(self.smiles)
     assert features.shape == (2, 80, 80, 4)
     assert not np.allclose(base_features, features)
+
+  def test_smiles_to_image_long_molecule(self):
+    """Test SmilesToImage for a molecule which does not fit the image"""
+    featurizer = SmilesToImage(
+               img_size=80,
+               res=0.5,
+               max_len=250,
+               img_spec="std")
+    features = featurizer.featurize(self.long_molecule_smiles)
+    assert features.shape == (1, 0)

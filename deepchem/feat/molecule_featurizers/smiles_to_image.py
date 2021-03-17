@@ -7,7 +7,6 @@ import numpy as np
 from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
 
-
 class SmilesToImage(MolecularFeaturizer):
   """Convert SMILES string to an image.
 
@@ -152,14 +151,20 @@ class SmilesToImage(MolecularFeaturizer):
         (line_coords[:, 0] + self.embed) / self.res).astype(int)
     bond_line_idys = np.ceil(
         (line_coords[:, 1] + self.embed) / self.res).astype(int)
-    # Set the bond line coordinates to the bond property used.
-    img[bond_line_idxs, bond_line_idys, 0] = bond_props[:, 0]
-
     # Turn atomic coordinates into image positions
     atom_idxs = np.round(
-        (atom_coords[:, 0] + self.embed) / self.res).astype(int)
+      (atom_coords[:, 0] + self.embed) / self.res).astype(int)
     atom_idys = np.round(
-        (atom_coords[:, 1] + self.embed) / self.res).astype(int)
-    # Set the atom positions in image to different atomic properties in channels
-    img[atom_idxs, atom_idys, :] = atom_props
+      (atom_coords[:, 1] + self.embed) / self.res).astype(int)
+
+    try:
+      # Set the bond line coordinates to the bond property used.
+      img[bond_line_idxs, bond_line_idys, 0] = bond_props[:, 0]
+
+      # Set the atom positions in image to different atomic properties in channels
+      img[atom_idxs, atom_idys, :] = atom_props
+
+    except IndexError:
+      # With fixed res and img_size some molecules (e.g. long chains) may not fit.
+      raise IndexError("The molecule does not fit into the image. Consider increasing img_size or res of the SmilesToImage featurizer.")
     return img
