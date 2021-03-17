@@ -4,11 +4,11 @@ Installation
 Stable version
 --------------
 
-Please install tensorflow v2.4.* before installing deepchem.
+Please install tensorflow ~2.4 before installing deepchem.
 
 .. code-block:: bash
 
-    pip install tensorflow==2.4.*
+    pip install tensorflow~=2.4
 
 Then, you install deepchem via pip or conda.  
 
@@ -37,7 +37,7 @@ The nightly version is built by the HEAD of DeepChem.
 
 .. code-block:: bash
 
-    pip install tensorflow==2.4.*
+    pip install tensorflow~=2.4
     pip install --pre deepchem
 
 
