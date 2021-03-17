@@ -52,7 +52,7 @@ Please check [the document](https://deepchem.readthedocs.io/en/latest/requiremen
 
 ### Stable version
 
-Please install tensorflow v2.4.* before installing deepchem.
+Please install tensorflow ~2.4 before installing deepchem.
 
 ```bash
 pip install tensorflow~=2.4
@@ -80,7 +80,7 @@ conda install -y -c conda-forge rdkit
 The nightly version is built by the HEAD of DeepChem.
 
 ```bash
-pip install tensorflow==2.4.*
+pip install tensorflow~=2.4
 pip install --pre deepchem
 ```
 
