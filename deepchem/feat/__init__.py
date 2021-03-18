@@ -37,6 +37,7 @@ from deepchem.feat.molecule_featurizers import SmilesToSeq, create_char_to_idx
 from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
 from deepchem.feat.complex_featurizers import NeighborListAtomicCoordinates
 from deepchem.feat.complex_featurizers import NeighborListComplexAtomicCoordinates
+from deepchem.feat.complex_featurizers import AtomicConvFeaturizer
 from deepchem.feat.complex_featurizers import (
     ComplexNeighborListFragmentAtomicCoordinates,)
 from deepchem.feat.complex_featurizers import ContactCircularFingerprint
@@ -55,6 +56,7 @@ from deepchem.feat.material_featurizers import ElementPropertyFingerprint
 from deepchem.feat.material_featurizers import SineCoulombMatrix
 from deepchem.feat.material_featurizers import CGCNNFeaturizer
 from deepchem.feat.material_featurizers import ElemNetFeaturizer
+from deepchem.feat.material_featurizers import LCNNFeaturizer
 
 from deepchem.feat.atomic_conformation import AtomicConformation
 from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer

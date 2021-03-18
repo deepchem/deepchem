@@ -19,7 +19,7 @@ default_channels = [
     "omnia",
 ]
 default_packages = [
-    "rdkit",
+    "rdkit=2020.09.02",
     "openmm",
     "pdbfixer",
 ]

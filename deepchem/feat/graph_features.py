@@ -7,7 +7,7 @@ from deepchem.feat.complex_featurizers import ComplexNeighborListFragmentAtomicC
 from deepchem.feat.mol_graphs import ConvMol, WeaveMol
 from deepchem.data import DiskDataset
 import logging
-from typing import Optional, List
+from typing import Optional, List, Union, Iterable
 from deepchem.utils.typing import RDKitMol, RDKitAtom
 
 
@@ -17,14 +17,14 @@ def one_of_k_encoding(x, allowable_set):
   Parameters
   ----------
   x: object
-    Must be present in `allowable_set`. 
+    Must be present in `allowable_set`.
   allowable_set: list
     List of allowable quantities.
 
   Example
   -------
   >>> import deepchem as dc
-  >>> dc.feat.graph_features.one_of_k_encoding("a", ["a", "b", "c"])         
+  >>> dc.feat.graph_features.one_of_k_encoding("a", ["a", "b", "c"])
   [True, False, False]
 
   Raises
@@ -46,13 +46,13 @@ def one_of_k_encoding_unk(x, allowable_set):
   Parameters
   ----------
   x: object
-    Must be present in `allowable_set`. 
+    Must be present in `allowable_set`.
   allowable_set: list
     List of allowable quantities.
 
   Examples
   --------
-  >>> dc.feat.graph_features.one_of_k_encoding_unk("s", ["a", "b", "c"])    
+  >>> dc.feat.graph_features.one_of_k_encoding_unk("s", ["a", "b", "c"])
   [False, False, True]
   """
   if x not in allowable_set:
@@ -73,10 +73,10 @@ def get_intervals(l):
 
   Examples
   --------
-  >>> dc.feat.graph_features.get_intervals([[1], [1, 2], [1, 2, 3]])        
+  >>> dc.feat.graph_features.get_intervals([[1], [1, 2], [1, 2, 3]])
   [1, 3, 12]
 
-  >>> dc.feat.graph_features.get_intervals([[1], [], [1, 2], [1, 2, 3]])    
+  >>> dc.feat.graph_features.get_intervals([[1], [], [1, 2], [1, 2, 3]])
   [1, 1, 3, 12]
   """
   intervals = len(l) * [0]
@@ -100,9 +100,9 @@ def safe_index(l, e):
 
   Examples
   --------
-  >>> dc.feat.graph_features.safe_index([1, 2, 3], 1)                       
+  >>> dc.feat.graph_features.safe_index([1, 2, 3], 1)
   0
-  >>> dc.feat.graph_features.safe_index([1, 2, 3], 7)                       
+  >>> dc.feat.graph_features.safe_index([1, 2, 3], 7)
   3
   """
   try:
@@ -209,11 +209,11 @@ def features_to_id(features, intervals):
   features: list
     List of features as returned by `get_feature_list()`
   intervals: list
-    List of intervals as returned by `get_intervals()`  
+    List of intervals as returned by `get_intervals()`
 
   Returns
   -------
-  id: int 
+  id: int
     The index in a feature vector given by the given set of features.
   """
   id = 0
@@ -230,10 +230,10 @@ def id_to_features(id, intervals):
 
   Parameters
   ----------
-  id: int 
+  id: int
     The index in a feature vector given by the given set of features.
   intervals: list
-    List of intervals as returned by `get_intervals()`  
+    List of intervals as returned by `get_intervals()`
 
   Returns
   -------
@@ -264,7 +264,7 @@ def atom_to_id(atom):
 
   Returns
   -------
-  id: int 
+  id: int
     The index in a feature vector given by the given set of features.
   """
   features = get_feature_list(atom)
@@ -482,7 +482,7 @@ def pair_features(mol: RDKitMol,
   ----------
   mol: RDKit Mol
     Molecule to compute features on.
-  bond_features_map: dict 
+  bond_features_map: dict
     Dictionary that maps pairs of atom ids (say `(2, 3)` for a bond between
     atoms 2 and 3) to the features for the bond between them.
   bond_adj_list: list of lists
@@ -630,6 +630,25 @@ class ConvMolFeaturizer(MolecularFeaturizer):
   Duvenaud graph convolutions [1]_ construct a vector of descriptors for each
   atom in a molecule. The featurizer computes that vector of local descriptors.
 
+  Examples
+  ---------
+  >>> import deepchem as dc
+  >>> smiles = ["C", "CCC"]
+  >>> featurizer=dc.feat.ConvMolFeaturizer(per_atom_fragmentation=False)
+  >>> f = featurizer.featurize(smiles)
+  >>> # Using ConvMolFeaturizer to create featurized fragments derived from molecules of interest.
+  ... # This is used only in the context of performing interpretation of models using atomic
+  ... # contributions (atom-based model interpretation)
+  ... smiles = ["C", "CCC"]
+  >>> featurizer=dc.feat.ConvMolFeaturizer(per_atom_fragmentation=True)
+  >>> f = featurizer.featurize(smiles)
+  >>> len(f) # contains 2 lists with  featurized fragments from 2 mols
+  2
+
+  See Also
+  --------
+  Detailed examples of `GraphConvModel` interpretation are provided in Tutorial #28
+
   References
   ---------
 
@@ -643,8 +662,11 @@ class ConvMolFeaturizer(MolecularFeaturizer):
   """
   name = ['conv_mol']
 
-  def __init__(self, master_atom=False, use_chirality=False,
-               atom_properties=[]):
+  def __init__(self,
+               master_atom: bool = False,
+               use_chirality: bool = False,
+               atom_properties: Iterable[str] = [],
+               per_atom_fragmentation: bool = False):
     """
     Parameters
     ----------
@@ -668,6 +690,13 @@ class ConvMolFeaturizer(MolecularFeaturizer):
       provided in atom_properties.  So "atom 00000000 sasa" would be the
       name of the molecule level property in mol where the solvent
       accessible surface area of atom 0 would be stored.
+    per_atom_fragmentation: Boolean
+      If True, then multiple "atom-depleted" versions of each molecule will be created (using featurize() method). 
+      For each molecule, atoms are removed one at a time and the resulting molecule is featurized. 
+      The result is a list of ConvMol objects,
+      one with each heavy atom removed. This is useful for subsequent model interpretation: finding atoms
+      favorable/unfavorable for (modelled) activity. This option is typically used in combination
+      with a FlatteningTransformer to split the lists into separate samples.
 
     Since ConvMol is an object and not a numpy array, need to set dtype to
     object.
@@ -676,6 +705,43 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     self.master_atom = master_atom
     self.use_chirality = use_chirality
     self.atom_properties = list(atom_properties)
+    self.per_atom_fragmentation = per_atom_fragmentation
+
+  def featurize(
+      self,
+      molecules: Union[RDKitMol, str, Iterable[RDKitMol], Iterable[str]],
+      log_every_n: int = 1000) -> np.ndarray:
+    """
+    Override parent: aim is to add handling atom-depleted molecules featurization
+    
+    Parameters
+    ----------
+    molecules: rdkit.Chem.rdchem.Mol / SMILES string / iterable
+      RDKit Mol, or SMILES string or iterable sequence of RDKit mols/SMILES
+      strings.
+    log_every_n: int, default 1000
+      Logging messages reported every `log_every_n` samples.
+
+    Returns
+    -------
+    features: np.ndarray
+      A numpy array containing a featurized representation of `datapoints`.
+    """
+    features = super(ConvMolFeaturizer, self).featurize(
+        molecules, log_every_n=1000)
+    if self.per_atom_fragmentation:
+      # create temporary valid ids serving to filter out failed featurizations from every sublist
+      # of features (i.e. every molecules' frags list), and also totally failed sublists.
+      # This makes output digestable by Loaders
+      valid_frag_inds = [[
+          True if np.array(elt).size > 0 else False for elt in f
+      ] for f in features]
+      features = [[elt
+                   for (is_valid, elt) in zip(l, m)
+                   if is_valid]
+                  for (l, m) in zip(valid_frag_inds, features)
+                  if any(l)]
+    return features
 
   def _get_atom_properties(self, atom):
     """
@@ -700,7 +766,39 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     return np.array(values)
 
   def _featurize(self, mol):
-    """Encodes mol as a ConvMol object."""
+    """Encodes mol as a ConvMol object.
+    If per_atom_fragmentation is True,
+    then for each molecule a list of ConvMolObjects
+    will be created"""
+
+    def per_atom(n, a):
+      """
+      Enumerates fragments resulting from mol object,
+      s.t. each fragment = mol with single atom removed (all possible removals are enumerated)
+      Goes over nodes, deletes one at a time and updates adjacency list of lists (removes connections to that node)
+
+      Parameters
+      ----------
+      n: np.array of nodes (number_of_nodes X number_of_features)
+      a: list of nested lists of adjacent node pairs
+
+      """
+      for i in range(n.shape[0]):
+        new_n = np.delete(n, (i), axis=0)
+        new_a = []
+        for j, node_pair in enumerate(a):
+          if i != j:  # don't need this pair, no more connections to deleted node
+            tmp_node_pair = []
+            for v in node_pair:
+              if v < i:
+                tmp_node_pair.append(v)
+              elif v > i:
+                tmp_node_pair.append(
+                    v -
+                    1)  # renumber node, because of offset after node deletion
+            new_a.append(tmp_node_pair)
+        yield new_n, new_a
+
     # Get the node features
     idx_nodes = [(a.GetIdx(),
                   np.concatenate((atom_features(
@@ -721,7 +819,6 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     edge_list = [
         (b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()
     ]
-
     # Get canonical adjacency list
     canon_adj_list = [[] for mol_id in range(len(nodes))]
     for edge in edge_list:
@@ -733,7 +830,10 @@ class ConvMolFeaturizer(MolecularFeaturizer):
       for index in range(len(nodes) - 1):
         canon_adj_list[index].append(fake_atom_index)
 
-    return ConvMol(nodes, canon_adj_list)
+    if not self.per_atom_fragmentation:
+      return ConvMol(nodes, canon_adj_list)
+    else:
+      return [ConvMol(n, a) for n, a in per_atom(nodes, canon_adj_list)]
 
   def feature_length(self):
     return 75 + len(self.atom_properties)
@@ -752,7 +852,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
 
 class WeaveFeaturizer(MolecularFeaturizer):
   """This class implements the featurization to implement Weave convolutions.
-  
+
   Weave convolutions were introduced in [1]_. Unlike Duvenaud graph
   convolutions, weave convolutions require a quadratic matrix of interaction
   descriptors for each pair of atoms. These extra descriptors may provide for
@@ -793,7 +893,7 @@ class WeaveFeaturizer(MolecularFeaturizer):
       Euclidean distance. Note that this means that molecules that this
       featurizer is invoked on must have valid conformer information if this
       option is set.
-    explicit_H: bool, (default False) 
+    explicit_H: bool, (default False)
       If true, model hydrogens in the molecule.
     use_chirality: bool, (default False)
       If true, use chiral information in the featurization

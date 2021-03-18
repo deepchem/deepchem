@@ -88,6 +88,17 @@ class TestConvMolFeaturizer(unittest.TestCase):
     assert np.array_equal(deg_adj_lists[5], np.zeros([0, 5], dtype=np.int32))
     assert np.array_equal(deg_adj_lists[6], np.zeros([0, 6], dtype=np.int32))
 
+  def test_per_atom_fragmentation(self):
+    """checks if instantiating featurizer with per_atom_fragmentation=True
+    leads to  as many fragments' features, as many atoms mol has for any mol"""
+    import rdkit.Chem
+    raw_smiles = ['CC(CO)Cc1ccccc1', 'CC']
+    mols = [rdkit.Chem.MolFromSmiles(m) for m in raw_smiles]
+    featurizer = ConvMolFeaturizer(per_atom_fragmentation=True)
+    feat = featurizer.featurize(mols)
+    for i, j in zip(feat, mols):
+      assert len(i) == j.GetNumHeavyAtoms()
+
 
 class TestAtomicConvFeaturizer(unittest.TestCase):
 

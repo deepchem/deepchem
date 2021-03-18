@@ -229,10 +229,10 @@ RdkitGridFeaturizer
   :members:
   :inherited-members:
 
-AtomConvFeaturizer
-^^^^^^^^^^^^^^^^^^
+AtomicConvFeaturizer
+^^^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: deepchem.feat.NeighborListComplexAtomicCoordinates
+.. autoclass:: deepchem.feat.AtomicConvFeaturizer
   :members:
   :inherited-members:
 
@@ -289,6 +289,16 @@ CGCNNFeaturizer
   :members:
   :inherited-members:
 
+LCNNFeaturizer
+^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.LCNNFeaturizer
+  :members:
+  :inherited-members:
+
+
+MaterialCompositionFeaturizer
+-----------------------------
 
 Molecule Tokenizers
 -------------------
