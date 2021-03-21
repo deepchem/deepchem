@@ -7,8 +7,8 @@ from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 from deepchem.models import BasicMolGANModel as MolGAN
 from deepchem.models.optimizers import ExponentialDecay
 from tensorflow import one_hot
-from tensorflow.keras.backend import clear_session as keras_clear_session
 from tensorflow.errors import InternalError
+from tensorflow.keras.backend import clear_session as keras_clear_session
 
 
 class test_molgan_model(unittest.TestCase):
@@ -101,7 +101,7 @@ class test_molgan_model(unittest.TestCase):
         def iterbatches(epochs):
           for __ in range(epochs):
             for batch in dataset.iterbatches(
-                batch_size=gan.batch_size, pad_batches=True):
+                    batch_size=gan.batch_size, pad_batches=True):
               adjacency_tensor = one_hot(batch[0], gan.edges)
               node_tesor = one_hot(batch[1], gan.nodes)
 
