@@ -16,35 +16,36 @@ class BasicMolGANModel(WGAN):
 
   Examples
   --------
-  import deepchem as dc
-  from deepchem.models import BasicMolGANModel as MolGAN
-  from deepchem.models.optimizers import ExponentialDecay
-  from tensorflow import one_hot
-  smiles = ['CCC', 'C1=CC=CC=C1', 'CNC' ]
-  # create featurizer
-  feat = dc.feat.MolGanFeaturizer()
-  # featurize molecules
-  features = feat.featurize(smiles)
-  # Remove empty objects
-  features = list(filter(lambda x: x is not None, features))
-  # create model
-  gan = MolGAN(learning_rate=ExponentialDecay(0.001, 0.9, 5000))
-  dataset = dc.data.NumpyDataset([x.adjacency_matrix for x in features],[x.node_features for x in features])
-  def iterbatches(epochs):
-      for i in range(epochs):
-          for batch in dataset.iterbatches(batch_size=gan.batch_size, pad_batches=True):
-              adjacency_tensor = one_hot(batch[0], gan.edges)
-              node_tensor = one_hot(batch[1], gan.nodes)
-              yield {gan.data_inputs[0]: adjacency_tensor, gan.data_inputs[1]:node_tensor}
-  gan.fit_gan(iterbatches(8), generator_steps=0.2, checkpoint_interval=5000)
-  generated_data = gan.predict_gan_generator(1000)
-  # convert graphs to RDKitmolecules
-  nmols = feat.defeaturize(generated_data)
-  print("{} molecules generated".format(len(nmols)))
-  # remove invalid moles
-  nmols = list(filter(lambda x: x is not None, nmols))
-  # currently training is unstable so 0 is a common outcome
-  print ("{} valid molecules".format(len(nmols)))
+  >>>
+  >> import deepchem as dc
+  >> from deepchem.models import BasicMolGANModel as MolGAN
+  >> from deepchem.models.optimizers import ExponentialDecay
+  >> from tensorflow import one_hot
+  >> smiles = ['CCC', 'C1=CC=CC=C1', 'CNC' ]
+  >> # create featurizer
+  >> feat = dc.feat.MolGanFeaturizer()
+  >> # featurize molecules
+  >> features = feat.featurize(smiles)
+  >> # Remove empty objects
+  >> features = list(filter(lambda x: x is not None, features))
+  >> # create model
+  >> gan = MolGAN(learning_rate=ExponentialDecay(0.001, 0.9, 5000))
+  >> dataset = dc.data.NumpyDataset([x.adjacency_matrix for x in features],[x.node_features for x in features])
+  >> def iterbatches(epochs):
+  >>     for i in range(epochs):
+  >>         for batch in dataset.iterbatches(batch_size=gan.batch_size, pad_batches=True):
+  >>             adjacency_tensor = one_hot(batch[0], gan.edges)
+  >>             node_tensor = one_hot(batch[1], gan.nodes)
+  >>             yield {gan.data_inputs[0]: adjacency_tensor, gan.data_inputs[1]:node_tensor}
+  >> gan.fit_gan(iterbatches(8), generator_steps=0.2, checkpoint_interval=5000)
+  >> generated_data = gan.predict_gan_generator(1000)
+  >> # convert graphs to RDKitmolecules
+  >> nmols = feat.defeaturize(generated_data)
+  >> print("{} molecules generated".format(len(nmols)))
+  >> # remove invalid moles
+  >> nmols = list(filter(lambda x: x is not None, nmols))
+  >> # currently training is unstable so 0 is a common outcome
+  >> print ("{} valid molecules".format(len(nmols)))
 
   References
   ----------
