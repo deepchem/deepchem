@@ -8,8 +8,7 @@ class test_molgan_model(unittest.TestCase):
   Unit testing for MolGAN basic layers
   """
 
-  def __init__(self, *args, **kwargs):
-    super(test_molgan_model, self).__init__(*args, **kwargs)
+  def setUp(self):
     self.vertices = 9
     self.nodes = 5
     self.edges = 5
