@@ -738,6 +738,86 @@ class SDFLoader(DataLoader):
     self.id_field = "smiles"
     self.log_every_n = log_every_n
 
+  def create_dataset(self,
+                     inputs: OneOrMany[Any],
+                     data_dir: Optional[str] = None,
+                     shard_size: Optional[int] = 8192) -> Dataset:
+    """Creates and returns a `Dataset` object by featurizing provided sdf files.
+
+    Parameters
+    ----------
+    inputs: List
+      List of inputs to process. Entries can be filenames or arbitrary objects.
+      Each file should be supported format (.sdf) or compressed folder of
+      .sdf files
+    data_dir: str, optional (default None)
+      Directory to store featurized dataset.
+    shard_size: int, optional (default 8192)
+      Number of examples stored in each shard.
+
+    Returns
+    -------
+    DiskDataset
+      A `DiskDataset` object containing a featurized representation of data
+      from `inputs`.
+    """
+    logger.info("Loading raw samples now.")
+    logger.info("shard_size: %s" % str(shard_size))
+
+    # Special case handling of single input
+    if not isinstance(inputs, list):
+      inputs = [inputs]
+
+
+    processed_files = []
+    for input_file in inputs:
+      filename, extension = os.path.splitext(input_file)
+      extension = extension.lower()
+      if extension == ".sdf":
+        processed_files.append(input_file)
+      elif extension == ".zip":
+        zip_dir = tempfile.mkdtemp()
+        zip_ref = zipfile.ZipFile(input_file, 'r')
+        zip_ref.extractall(path=zip_dir)
+        zip_ref.close()
+        zip_files = [
+            os.path.join(zip_dir, name) for name in zip_ref.namelist()
+        ]
+        for zip_file in zip_files:
+          _, extension = os.path.splitext(zip_file)
+          extension = extension.lower()
+          if extension in [".sdf"]:
+            processed_files.append(zip_file)
+      else:
+          raise ValueError("unsupported file format")
+
+    inputs = processed_files
+
+    def shard_generator():
+      for shard_num, shard in enumerate(self._get_shards(inputs, shard_size)):
+        time1 = time.time()
+        X, valid_inds = self._featurize_shard(shard)
+        ids = shard[self.id_field].values
+        ids = ids[valid_inds]
+        if len(self.tasks) > 0:
+          # Featurize task results iff they exist.
+          y, w = _convert_df_to_numpy(shard, self.tasks)
+          # Filter out examples where featurization failed.
+          y, w = (y[valid_inds], w[valid_inds])
+          assert len(X) == len(ids) == len(y) == len(w)
+        else:
+          # For prospective data where results are unknown, it
+          # makes no sense to have y values or weights.
+          y, w = (None, None)
+          assert len(X) == len(ids)
+
+        time2 = time.time()
+        logger.info("TIMING: featurizing shard %d took %0.3f s" %
+                    (shard_num, time2 - time1))
+        yield X, y, w, ids
+
+    return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
+
   def _get_shards(self, input_files: List[str],
                   shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
     """Defines a generator which returns data for each shard
