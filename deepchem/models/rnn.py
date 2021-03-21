@@ -18,7 +18,7 @@ class RNN(KerasModel):
   Parts of code are taken from deepchem/models/cnn.py and Keras.io RNN documentation
 
   The network consists of the following sequence of layers:
-  - An embedding layer
+  - An input layer
   - A configurable number of RNN layers
   - A final dense layer to compute the output
   """
@@ -49,6 +49,8 @@ class RNN(KerasModel):
     In addition to the following arguments, this class also accepts
     all the keyword arguments from TensorGraph.
     """
+    print("INITIALIZING...")
+
 
     if n_dims not in (1, 2, 3):
       raise ValueError("n_dims must be 1, 2, or 3 at this time.")
@@ -85,7 +87,6 @@ class RNN(KerasModel):
             'Dropout must be included in every layer to predict uncertainty')
 
     # Add the input features.
-
     features = Input(shape=(None,) * n_dims + (n_features,))
     dropout_switch = Input(shape=tuple())
     prev_layer = features
@@ -107,9 +108,16 @@ class RNN(KerasModel):
     if bidirectional == True:
       RecurrentLayer = layers.Bidirectional(RecurrentLayer(10)) # TODO remove magic number
 
+    print("Got it! I will be making a ",end="")
+    if bidirectional:
+      print("bidirectional ",end="")
+    print(layerType,end=" ")
+    print("model. Please be patient while I work my magic...")
+
     for dim, weight_stddev, bias_const, dropout, activation_fn in zip( 
         layer_input_dims, weight_init_stddevs, bias_init_consts, 
         dropouts, activation_fns):
+      print("WHEEE! MAKING A NEW LAYER!")  
       layer = prev_layer
       if next_activation is not None:
         layer = Activation(next_activation)(layer)
@@ -132,6 +140,7 @@ class RNN(KerasModel):
     if next_activation is not None:
       prev_layer = Activation(activation_fn)(prev_layer)
     if mode == 'classification':
+      print("Classification!") 
       logits = Reshape((n_tasks,
                         n_classes))(Dense(n_tasks * n_classes)(prev_layer))
       output = Softmax()(logits)
@@ -139,6 +148,7 @@ class RNN(KerasModel):
       output_types = ['prediction', 'loss']
       loss = dc.models.losses.SoftmaxCrossEntropy()
     else:
+      print("Regression!")
       output = Reshape((n_tasks,))(Dense(
           n_tasks,
           kernel_initializer=tf.keras.initializers.TruncatedNormal(
@@ -146,6 +156,7 @@ class RNN(KerasModel):
           bias_initializer=tf.constant_initializer(
               value=bias_init_consts[-1]))(prev_layer))
       if uncertainty:
+        print("Calculating uncertainty!")
         log_var = Reshape((n_tasks, 1))(Dense(
             n_tasks,
             kernel_initializer=tf.keras.initializers.TruncatedNormal(
@@ -162,8 +173,15 @@ class RNN(KerasModel):
         outputs = [output]
         output_types = ['prediction']
         loss = dc.models.losses.L2Loss()
+    print("Creating model...")
     model = tf.keras.Model(inputs=[features, dropout_switch], outputs=outputs)
+    print("Model created:", model)
+    print("... With inputs", features)
+    print("... And dropout switch", dropout_switch)
+    print("... And outputs", outputs)
+    print("Calling super...")
     super(RNN, self).__init__(model, loss, output_types=output_types, **kwargs)
+    print("Success.")
 
   def default_generator(self,
                         dataset,
@@ -171,17 +189,24 @@ class RNN(KerasModel):
                         mode='fit',
                         deterministic=True,
                         pad_batches=True):
+    print("Generator is working...")
     for epoch in range(epochs):
+      print("New epoch!")
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,
           pad_batches=pad_batches):
+        print("  New batch!")
         if self.mode == 'classification':
+          print("  Classification")
           if y_b is not None:
             y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
                 -1, self.n_tasks, self.n_classes)
         if mode == 'predict':
+          print("  Setting dropout to np.array(0.0)")
           dropout = np.array(0.0)
         else:
+          print("  Setting dropout to np.array(1.0)")
           dropout = np.array(1.0)
-        yield ([X_b, dropout], [y_b], [w_b])
+        yield ((X_b, dropout), (y_b), (w_b))
+        print("Continuing...")

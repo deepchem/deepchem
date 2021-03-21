@@ -26,33 +26,35 @@ except:
 
 @unittest.skipIf(not has_dependencies,
                  'Please make sure tensorflow and collections are installed.')
-def test_rnn_regression():
-  # load datasets
-  featurizer = MolGraphConvFeaturizer() #TODO Possibly change featurizer
-  tasks, dataset, transformers, metric = get_dataset(
-      'regression', featurizer=featurizer)
-
-  # initialize models
-  n_tasks = len(tasks)
+def test_1d_rnn_regression():
+  # Initialize models
+  n_samples = 10
+  n_features = 3
+  n_tasks = 1
   model = RNN(
+      n_tasks=n_tasks,
+      n_features=n_features,
       mode='regression',
       n_dims=1,
-      n_features=3,
-      n_tasks=len(tasks),
+      dropouts=0,
       batch_size=10,
       learning_rate=0.003)
 
-  # overfit test
-  print("dataset", dataset);
-  model.fit(dataset, nb_epoch=300)
-  scores = model.evaluate(dataset, [metric], transformers)
-  assert scores['mean_absolute_error'] < 0.5
-  # test on a small MoleculeNet dataset
-  from deepchem.molnet import load_delaney
+  # Create dataset to test overfitting
+  np.random.seed(123)
+  X = np.random.rand(n_samples, 10, n_features)
+  y = np.random.randint(2, size=(n_samples, n_tasks)).astype(np.float32)
+  dataset = dc.data.NumpyDataset(X, y)
+ 
+  regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
 
-  tasks, all_dataset, transformers = load_delaney(featurizer=featurizer)
-  train_set, _, _ = all_dataset
-  model.fit(train_set, nb_epoch=1)
+  # Fit trained model
+  model.fit(dataset, nb_epoch=200)
+
+  # Eval model on train
+  scores = model.evaluate(dataset, [regression_metric])
+  assert scores[regression_metric.name] < 0.1
+
 """
 @unittest.skipIf(not has_dependencies,
                  'Please make sure tensorflow and collections are installed.')
