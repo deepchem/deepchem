@@ -488,8 +488,8 @@ class UserCSVLoader(CSVLoader):
     shard[feature_fields] = shard[feature_fields].apply(pd.to_numeric)
     X_shard = shard[feature_fields].to_numpy()
     time2 = time.time()
-    logger.info("TIMING: user specified processing took %0.3f s" %
-                (time2 - time1))
+    logger.info(
+        "TIMING: user specified processing took %0.3f s" % (time2 - time1))
     return (X_shard, np.ones(len(X_shard), dtype=bool))
 
 
@@ -831,10 +831,11 @@ class SDFLoader(DataLoader):
     Iterator[pd.DataFrame]
       Iterator over shards
     """
-    return load_sdf_files(input_files=input_files,
-                          clean_mols=self.sanitize,
-                          tasks=self.tasks,
-                          shard_size=shard_size)
+    return load_sdf_files(
+        input_files=input_files,
+        clean_mols=self.sanitize,
+        tasks=self.tasks,
+        shard_size=shard_size)
 
   def _featurize_shard(self,
                        shard: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
@@ -1031,17 +1032,16 @@ class ImageLoader(DataLoader):
 
     if in_memory:
       if data_dir is None:
-        return NumpyDataset(load_image_files(image_files),
-                            y=labels,
-                            w=weights,
-                            ids=image_files)
+        return NumpyDataset(
+            load_image_files(image_files), y=labels, w=weights, ids=image_files)
       else:
-        dataset = DiskDataset.from_numpy(load_image_files(image_files),
-                                         y=labels,
-                                         w=weights,
-                                         ids=image_files,
-                                         tasks=self.tasks,
-                                         data_dir=data_dir)
+        dataset = DiskDataset.from_numpy(
+            load_image_files(image_files),
+            y=labels,
+            w=weights,
+            ids=image_files,
+            tasks=self.tasks,
+            data_dir=data_dir)
         if shard_size is not None:
           dataset.reshard(shard_size)
         return dataset
@@ -1185,8 +1185,8 @@ class InMemoryLoader(DataLoader):
 
   # FIXME: Signature of "_featurize_shard" incompatible with supertype "DataLoader"
   def _featurize_shard(  # type: ignore[override]
-      self, shard: List, global_index: int) -> Tuple[np.ndarray, np.ndarray,
-                                                     np.ndarray, np.ndarray]:
+      self, shard: List, global_index: int
+  ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Featurizes a shard of an input data.
 
     Parameters
