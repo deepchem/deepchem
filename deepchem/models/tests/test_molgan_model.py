@@ -90,44 +90,37 @@ class test_molgan_model(unittest.TestCase):
                            [x.node_features for x in featurized])
     valid_attempts = 0
     for _ in range(10):
-      # try to catch tensorflow internal errors
-      try:
-        # force clear tensor flow backend
-        keras_clear_session()
-        # create new model
-        gan = MolGAN(learning_rate=ExponentialDecay(0.001, 0.9, 5000))
+      # force clear tensor flow backend
+      keras_clear_session()
+      # create new model
+      gan = MolGAN(learning_rate=ExponentialDecay(0.001, 0.9, 5000))
 
-        # generate input
-        def iterbatches(epochs):
-          for __ in range(epochs):
-            for batch in dataset.iterbatches(
-                    batch_size=gan.batch_size, pad_batches=True):
-              adjacency_tensor = one_hot(batch[0], gan.edges)
-              node_tesor = one_hot(batch[1], gan.nodes)
+      # to avoid flake8 E125/yapf incompatibility
+      s = gan.batch_size
 
-              yield {
-                  gan.data_inputs[0]: adjacency_tensor,
-                  gan.data_inputs[1]: node_tesor
-              }
+      # generate input
+      def iterbatches(epochs):
+        for __ in range(epochs):
+          for batch in dataset.iterbatches(batch_size=s, pad_batches=True):
+            adjacency_tensor = one_hot(batch[0], gan.edges)
+            node_tesor = one_hot(batch[1], gan.nodes)
 
-        # train model
-        gan.fit_gan(
-            iterbatches(1000), generator_steps=0.2, checkpoint_interval=0)
+            yield {
+                gan.data_inputs[0]: adjacency_tensor,
+                gan.data_inputs[1]: node_tesor
+            }
 
-        # generate sample
-        g = gan.predict_gan_generator(1000)
-        # check how many valid molecules were created and add to list
-        generated_molecules = feat.defeaturize(g)
-        valid_molecules_count = len(
-            list(filter(lambda x: x is not None, generated_molecules)))
-        if valid_molecules_count:
-          valid_attempts = valid_attempts + 1
-      except InternalError:
-        print(
-            'Tensor flow internal error raised. Make sure no other instance of tensorflow e.g. jupyter notebook, is running.'
-        )
-        break
+      # train model
+      gan.fit_gan(iterbatches(1000), generator_steps=0.2, checkpoint_interval=0)
 
+      # generate sample
+      g = gan.predict_gan_generator(1000)
+      # check how many valid molecules were created and add to list
+      generated_molecules = feat.defeaturize(g)
+      valid_molecules_count = len(
+          list(filter(lambda x: x is not None, generated_molecules)))
+      if valid_molecules_count:
+        valid_attempts = valid_attempts + 1
     assert valid_attempts > 0
 
 
