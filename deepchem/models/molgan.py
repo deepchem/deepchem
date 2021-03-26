@@ -118,16 +118,11 @@ class BasicMolGANModel(WGAN):
     Take noise data as an input and processes it through number of
     dense and dropout layers. Then data is converted into two forms
     one used for training and other for generation of compounds.
-
-    Returns
-    -------
-    keras.Model
-        Returns generator model.
-        There are four output of this model:
-          1. edges logits used during training
-          2. nodes logits used during training
-          3. edges logits used for compound generation
-          4. nodes logits used for compound generation
+    The model has four outputs:
+      1. edges logits used during training
+      2. nodes logits used during training
+      3. edges logits used for compound generation
+      4. nodes logits used for compound generation
     """
     input_layer = layers.Input(shape=(self.embedding_dim,))
     x = layers.Dense(128, activation="tanh")(input_layer)
@@ -190,11 +185,6 @@ class BasicMolGANModel(WGAN):
     The input vectors need to be in one-hot encoding format.
     Use MolGAN featurizer for that purpose. It will be simplified
     in the future release.
-
-    Returns
-    -------
-    keras.Model
-        Returns disctriminator model
     """
     adjacency_tensor = layers.Input(
         shape=(self.vertices, self.vertices, self.edges))

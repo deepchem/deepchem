@@ -7,7 +7,6 @@ from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 from deepchem.models import BasicMolGANModel as MolGAN
 from deepchem.models.optimizers import ExponentialDecay
 from tensorflow import one_hot
-from tensorflow.errors import InternalError
 from tensorflow.keras.backend import clear_session as keras_clear_session
 
 
@@ -115,12 +114,16 @@ class test_molgan_model(unittest.TestCase):
 
       # generate sample
       g = gan.predict_gan_generator(1000)
+
       # check how many valid molecules were created and add to list
       generated_molecules = feat.defeaturize(g)
       valid_molecules_count = len(
           list(filter(lambda x: x is not None, generated_molecules)))
       if valid_molecules_count:
         valid_attempts = valid_attempts + 1
+
+    # finally test if there was at least one valid training session
+    # as the model structure improves this should become more and more strict
     assert valid_attempts > 0
 
 
