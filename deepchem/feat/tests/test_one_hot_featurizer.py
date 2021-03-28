@@ -11,23 +11,51 @@ class TestOneHotFeaturizert(unittest.TestCase):
   Test OneHotFeaturizer.
   """
 
-  def test_onehot_featurizer(self):
+  def test_onehot_featurizer_arbitrary(self):
     """
-    Test simple one hot encoding.
+    Test simple one hot encoding for arbitrary string.
+    """
+    string = "abcdefghijklmnopqrstuvwxyz"
+    length = len(string) + 1
+    featurizer = OneHotFeaturizer()
+    feature = featurizer(string) # Implicit call to _featurize()
+    assert feature.shape == (1, 100, length)
+
+    # untransform
+    undo_string = featurizer.untransform(feature[0])
+    assert string == undo_string
+
+  def test_onehot_featurizer_SMILES(self):
+    """
+    Test simple one hot encoding for SMILES strings.
     """
     from rdkit import Chem
     length = len(ZINC_CHARSET) + 1
     smiles = 'CC(=O)Oc1ccccc1C(=O)O'
     mol = Chem.MolFromSmiles(smiles)
     featurizer = OneHotFeaturizer()
-    feature = featurizer([mol])
+    feature = featurizer([mol]) # Implicit call to _featurizeMol()--why []?
     assert feature.shape == (1, 100, length)
 
     # untranform
     undo_smiles = featurizer.untransform(feature[0])
     assert smiles == undo_smiles
 
-  def test_onehot_featurizer_with_max_length(self):
+  def test_onehot_featurizer_arbitrary_with_max_length(self):
+    """
+    Test one hot encoding with max_length.
+    """
+    string = "abcdefghijklmnopqrstuvwxyz"
+    length = len(string) + 1
+    featurizer = OneHotFeaturizer(max_length=120)
+    feature = featurizer(string)
+    assert feature.shape == (1, 120, length)
+
+    # untranform
+    undo_string = featurizer.untransform(feature[0])
+    assert string == undo_string
+
+  def test_onehot_featurizer_SMIELS_with_max_length(self):
     """
     Test one hot encoding with max_length.
     """
@@ -43,7 +71,7 @@ class TestOneHotFeaturizert(unittest.TestCase):
     undo_smiles = featurizer.untransform(feature[0])
     assert smiles == undo_smiles
 
-  def test_correct_transformation(self):
+  def test_correct_transformation_SMILES(self):
     """
     Test correct one hot encoding.
     """
@@ -62,3 +90,9 @@ class TestOneHotFeaturizert(unittest.TestCase):
     # untranform
     undo_smiles = featurizer.untransform(feature[0])
     assert smiles == undo_smiles
+
+  def test_correct_transformation_arbitrary(self):
+    """
+    Test correct one hot encoding.
+    """
+    assert "This test case has not yet been written."

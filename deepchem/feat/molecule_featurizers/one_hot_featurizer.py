@@ -42,20 +42,47 @@ class OneHotFeaturizer(MolecularFeaturizer):
     self.charset = charset
     self.max_length = max_length
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
-    """Compute one-hot featurization of this molecule.
+  def _featurize(self, string: str) -> np.ndarray:
+    """Compute one-hot featurization of string.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
-      RDKit Mol object
+    str: An arbitrary string to be featurized.
 
     Returns
     -------
     np.ndarray
-      An one hot vector encoded from SMILES.
+      An one hot vector encoded from arbitrary input string.
       The shape is `(max_length, len(charset) + 1)`.
       The index of unknown character is `len(charset)`.
+    """
+    # validation
+    if len(string) > self.max_length:
+      logger.info(
+          "The length of {} is longer than `max_length`. So we return an empty array."
+      )
+      return np.array([])
+
+    string = self.pad_string(string)
+    return np.array([
+        one_hot_encode(val, self.charset, include_unknown_set=True)
+        for val in string 
+    ])
+
+  def _featurizeMol(self, mol: RDKitMol) -> np.ndarray:
+    """Compute one-hot featurization of this molecule.
+
+    Parameters
+    ----------
+    mol: rdKit.Chem.rdchem.Mol
+      RDKit Mol object
+    
+    Returns
+    -------
+    np.ndarray
+      An one hot vector encoded from SMILES.
+      The shape is '(max_length, len(charset) + 1)'
+      The index of unknown character is 'len(charset)'.
     """
     try:
       from rdkit import Chem
@@ -63,36 +90,25 @@ class OneHotFeaturizer(MolecularFeaturizer):
       raise ImportError("This class requires RDKit to be installed.")
 
     smiles = Chem.MolToSmiles(mol)
-    # validation
-    if len(smiles) > self.max_length:
-      logger.info(
-          "The length of {} is longer than `max_length`. So we return an empty array."
-      )
-      return np.array([])
+    return _featurize(smiles)
 
-    smiles = self.pad_smile(smiles)
-    return np.array([
-        one_hot_encode(val, self.charset, include_unknown_set=True)
-        for val in smiles
-    ])
-
-  def pad_smile(self, smiles: str) -> str:
+  def pad_string(self, string: str) -> str:
     """Pad SMILES string to `self.pad_length`
 
     Parameters
     ----------
-    smiles: str
-      The smiles string to be padded.
+    string: str
+      The string to be padded.
 
     Returns
     -------
     str
-      SMILES string space padded to self.pad_length
+      String space padded to self.pad_length
     """
-    return smiles.ljust(self.max_length)
+    return string.ljust(self.max_length)
 
   def untransform(self, one_hot_vectors: np.ndarray) -> str:
-    """Convert from one hot representation back to SMILES
+    """Convert from one hot representation back to original string
 
     Parameters
     ----------
@@ -102,13 +118,13 @@ class OneHotFeaturizer(MolecularFeaturizer):
     Returns
     -------
     str
-      SMILES string for an one hot encoded array.
+      Original string for an one hot encoded array.
     """
-    smiles = ""
+    string = ""
     for one_hot in one_hot_vectors:
       try:
         idx = np.argmax(one_hot)
-        smiles += self.charset[idx]
+        string += self.charset[idx]
       except IndexError:
-        smiles += ""
-    return smiles
+        string += ""
+    return string
