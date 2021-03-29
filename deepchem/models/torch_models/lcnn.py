@@ -242,7 +242,7 @@ class LCNN(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
-  >>> from pymatgen import Structure
+  >>> from pymatgen.core import Structure
   >>> import numpy as np
   >>> PRIMITIVE_CELL = {
   ...   "lattice": [[2.818528, 0.0, 0.0],
@@ -406,7 +406,7 @@ class LCNNModel(TorchModel):
   --------
   >>>
   >> import deepchem as dc
-  >> from pymatgen import Structure
+  >> from pymatgen.core import Structure
   >> import numpy as np
   >> from deepchem.feat import LCNNFeaturizer
   >> from deepchem.molnet import load_Platinum_Adsorption
