@@ -20,7 +20,6 @@ class TestOneHotFeaturizert(unittest.TestCase):
     featurizer = OneHotFeaturizer()
     feature = featurizer(string) # Implicit call to _featurize()
     assert feature.shape == (1, 100, length)
-
     # untransform
     undo_string = featurizer.untransform(feature[0])
     assert string == undo_string
@@ -34,9 +33,8 @@ class TestOneHotFeaturizert(unittest.TestCase):
     smiles = 'CC(=O)Oc1ccccc1C(=O)O'
     mol = Chem.MolFromSmiles(smiles)
     featurizer = OneHotFeaturizer()
-    feature = featurizer([mol]) # Implicit call to _featurizeMol()--why []?
+    feature = featurizer.featurizeMol(mol) # Implicit call to _featurizeMol()--why []?
     assert feature.shape == (1, 100, length)
-
     # untranform
     undo_smiles = featurizer.untransform(feature[0])
     assert smiles == undo_smiles
@@ -50,12 +48,11 @@ class TestOneHotFeaturizert(unittest.TestCase):
     featurizer = OneHotFeaturizer(max_length=120)
     feature = featurizer(string)
     assert feature.shape == (1, 120, length)
-
     # untranform
     undo_string = featurizer.untransform(feature[0])
     assert string == undo_string
 
-  def test_onehot_featurizer_SMIELS_with_max_length(self):
+  def test_onehot_featurizer_SMILES_with_max_length(self):
     """
     Test one hot encoding with max_length.
     """
@@ -64,9 +61,8 @@ class TestOneHotFeaturizert(unittest.TestCase):
     smiles = 'CC(=O)Oc1ccccc1C(=O)O'
     mol = Chem.MolFromSmiles(smiles)
     featurizer = OneHotFeaturizer(max_length=120)
-    feature = featurizer([mol])
+    feature = featurizer.featurizeMol(mol)
     assert feature.shape == (1, 120, length)
-
     # untranform
     undo_smiles = featurizer.untransform(feature[0])
     assert smiles == undo_smiles
@@ -80,7 +76,7 @@ class TestOneHotFeaturizert(unittest.TestCase):
     smiles = 'CN=C=O'
     mol = Chem.MolFromSmiles(smiles)
     featurizer = OneHotFeaturizer(charset=charset, max_length=100)
-    feature = featurizer([mol])
+    feature = featurizer(mol)
     assert np.allclose(feature[0][0], np.array([1, 0, 0, 0, 0, 0, 0]))
     assert np.allclose(feature[0][1], np.array([0, 1, 0, 0, 0, 0, 0]))
     assert np.allclose(feature[0][2], np.array([0, 0, 1, 0, 0, 0, 0]))

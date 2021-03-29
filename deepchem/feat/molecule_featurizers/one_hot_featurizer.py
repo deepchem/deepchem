@@ -5,7 +5,7 @@ import numpy as np
 
 from deepchem.utils.typing import RDKitMol
 from deepchem.utils.molecule_feature_utils import one_hot_encode
-from deepchem.feat.base_classes import MolecularFeaturizer
+from deepchem.feat.base_classes import Featurizer 
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ ZINC_CHARSET = [
 ]
 
 
-class OneHotFeaturizer(MolecularFeaturizer):
+class OneHotFeaturizer(Featurizer):
   """Encodes SMILES as a one-hot array.
 
   This featurizer encodes SMILES string as a one-hot array.
@@ -69,7 +69,7 @@ class OneHotFeaturizer(MolecularFeaturizer):
         for val in string 
     ])
 
-  def _featurizeMol(self, mol: RDKitMol) -> np.ndarray:
+  def featurizeMol(self, mol: RDKitMol) -> np.ndarray:
     """Compute one-hot featurization of this molecule.
 
     Parameters
@@ -88,9 +88,8 @@ class OneHotFeaturizer(MolecularFeaturizer):
       from rdkit import Chem
     except ModuleNotFoundError:
       raise ImportError("This class requires RDKit to be installed.")
-
     smiles = Chem.MolToSmiles(mol)
-    return _featurize(smiles)
+    return self._featurize(smiles)
 
   def pad_string(self, string: str) -> str:
     """Pad SMILES string to `self.pad_length`
