@@ -18,7 +18,7 @@ class TestOneHotFeaturizert(unittest.TestCase):
     string = "abcdefghijklmnopqrstuvwxyz"
     length = len(string) + 1
     featurizer = OneHotFeaturizer()
-    feature = featurizer(string) # Implicit call to _featurize()
+    feature = featurizer(string)  # Implicit call to _featurize()
     assert feature.shape == (1, 100, length)
     # untransform
     undo_string = featurizer.untransform(feature[0])
@@ -33,7 +33,8 @@ class TestOneHotFeaturizert(unittest.TestCase):
     smiles = 'CC(=O)Oc1ccccc1C(=O)O'
     mol = Chem.MolFromSmiles(smiles)
     featurizer = OneHotFeaturizer()
-    feature = featurizer.featurizeMol(mol) # Implicit call to _featurizeMol()--why []?
+    feature = featurizer.featurizeMol(
+        mol)  # Implicit call to _featurizeMol()--why []?
     assert feature.shape == (1, 100, length)
     # untranform
     undo_smiles = featurizer.untransform(feature[0])

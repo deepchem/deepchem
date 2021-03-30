@@ -5,7 +5,7 @@ import numpy as np
 
 from deepchem.utils.typing import RDKitMol
 from deepchem.utils.molecule_feature_utils import one_hot_encode
-from deepchem.feat.base_classes import Featurizer 
+from deepchem.feat.base_classes import Featurizer
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ class OneHotFeaturizer(Featurizer):
     string = self.pad_string(string)
     return np.array([
         one_hot_encode(val, self.charset, include_unknown_set=True)
-        for val in string 
+        for val in string
     ])
 
   def featurizeMol(self, mol: RDKitMol) -> np.ndarray:
@@ -76,7 +76,7 @@ class OneHotFeaturizer(Featurizer):
     ----------
     mol: rdKit.Chem.rdchem.Mol
       RDKit Mol object
-    
+
     Returns
     -------
     np.ndarray
