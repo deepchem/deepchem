@@ -33,8 +33,7 @@ class TestOneHotFeaturizert(unittest.TestCase):
     smiles = 'CC(=O)Oc1ccccc1C(=O)O'
     mol = Chem.MolFromSmiles(smiles)
     featurizer = OneHotFeaturizer()
-    feature = featurizer.featurizeMol(
-        mol)  # Implicit call to _featurizeMol()--why []?
+    feature = featurizer.featurizeMol(mol)
     assert feature.shape == (1, 100, length)
     # untranform
     undo_smiles = featurizer.untransform(feature[0])
