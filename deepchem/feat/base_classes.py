@@ -319,7 +319,7 @@ class MaterialStructureFeaturizer(Featurizer):
 
     Parameters
     ----------
-    structures: Iterable[Union[Dict, pymatgen.Structure]]
+    structures: Iterable[Union[Dict, pymatgen.core.Structure]]
       Iterable sequence of pymatgen structure dictionaries
       or pymatgen.core.Structure. Please confirm the dictionary representations
       of pymatgen.core.Structure from https://pymatgen.org/pymatgen.core.structure.html.
