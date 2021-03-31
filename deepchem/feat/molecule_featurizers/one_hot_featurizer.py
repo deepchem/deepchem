@@ -45,31 +45,37 @@ class OneHotFeaturizer(MolecularFeaturizer):
     self.charset = charset
     self.max_length = max_length
 
-  def featurize(self, datapoints: Iterable[Any], 
+  def featurize(self, datapoints: Iterable[Any],
                 log_every_n: int = 1000) -> np.ndarray:
     datapoints = list(datapoints)
     if (len(datapoints) < 1):
-      print("No datapoints are present in the parameter Iterable, so we return an empty array.")
+      print(
+          "No datapoints are present in the parameter Iterable, so we return an empty array."
+      )
       return np.array([])
-    ic(type(datapoints[0]))
+
     # Featurize Mol data
-    if (type(datapoints[0]) == RDKitMol): # Mol
+    if (type(datapoints[0]) == RDKitMol):  # Mol
       return MolecularFeaturizer.featurize(self, datapoints, log_every_n)
     # Featurize str data
-    elif (type(datapoints[0]) == str): # String
+    elif (type(datapoints[0]) == str):  # String
       return Featurizer.featurize(self, datapoints, log_every_n)
     else:
-      print("One hot featurizer only supports strings and mols at this time, so returning {}")
+      print(
+          "One hot featurizer only supports strings and mols at this time, so returning {}"
+      )
       return np.array([])
 
   def _featurize(self, datapoint: Any):
     ic(datapoint)
-    if (type(datapoint)==str):
+    if (type(datapoint) == str):
       return self._featurizeString(datapoint)
-    elif (type(datapoint)==RDKitMol):
+    elif (type(datapoint) == RDKitMol):
       return self._featurizeMol(datapoint)
     else:
-      print("One hot featurizer only supports strings and mols at this time, so returning {}")
+      print(
+          "One hot featurizer only supports strings and mols at this time, so returning {}"
+      )
       return np.array([])
 
   def _featurizeString(self, string: str) -> np.ndarray:
