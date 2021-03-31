@@ -6,6 +6,9 @@ import numpy as np
 from deepchem.utils.typing import RDKitMol
 from deepchem.utils.molecule_feature_utils import one_hot_encode
 from deepchem.feat.base_classes import Featurizer
+from deepchem.feat.base_classes import MolecularFeaturizer
+from typing import Any, Iterable
+from icecream import ic
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +19,7 @@ ZINC_CHARSET = [
 ]
 
 
-class OneHotFeaturizer(Featurizer):
+class OneHotFeaturizer(MolecularFeaturizer):
   """Encodes SMILES as a one-hot array.
 
   This featurizer encodes SMILES string as a one-hot array.
@@ -42,7 +45,34 @@ class OneHotFeaturizer(Featurizer):
     self.charset = charset
     self.max_length = max_length
 
-  def _featurize(self, string: str) -> np.ndarray:
+  def featurize(self, datapoints: Iterable[Any], 
+                log_every_n: int = 1000) -> np.ndarray:
+    datapoints = list(datapoints)
+    if (len(datapoints) < 1):
+      print("No datapoints are present in the parameter Iterable, so we return an empty array.")
+      return np.array([])
+    ic(type(datapoints[0]))
+    # Featurize Mol data
+    if (type(datapoints[0]) == RDKitMol): # Mol
+      return MolecularFeaturizer.featurize(self, datapoints, log_every_n)
+    # Featurize str data
+    elif (type(datapoints[0]) == str): # String
+      return Featurizer.featurize(self, datapoints, log_every_n)
+    else:
+      print("One hot featurizer only supports strings and mols at this time, so returning {}")
+      return np.array([])
+
+  def _featurize(self, datapoint: Any):
+    ic(datapoint)
+    if (type(datapoint)==str):
+      return self._featurizeString(datapoint)
+    elif (type(datapoint)==RDKitMol):
+      return self._featurizeMol(datapoint)
+    else:
+      print("One hot featurizer only supports strings and mols at this time, so returning {}")
+      return np.array([])
+
+  def _featurizeString(self, string: str) -> np.ndarray:
     """Compute one-hot featurization of string.
 
     Parameters
@@ -57,19 +87,20 @@ class OneHotFeaturizer(Featurizer):
       The index of unknown character is `len(charset)`.
     """
     # validation
-    if len(string) > self.max_length:
+    if (len(string) > self.max_length):
       logger.info(
           "The length of {} is longer than `max_length`. So we return an empty array."
       )
       return np.array([])
 
     string = self.pad_string(string)
+    ic(string)
     return np.array([
         one_hot_encode(val, self.charset, include_unknown_set=True)
         for val in string
     ])
 
-  def featurizeMol(self, mol: RDKitMol) -> np.ndarray:
+  def _featurizeMol(self, mol: RDKitMol) -> np.ndarray:
     """Compute one-hot featurization of this molecule.
 
     Parameters

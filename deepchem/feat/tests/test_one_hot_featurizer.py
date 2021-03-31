@@ -18,7 +18,7 @@ class TestOneHotFeaturizert(unittest.TestCase):
     string = "abcdefghijklmnopqrstuvwxyz"
     length = len(string) + 1
     featurizer = OneHotFeaturizer()
-    feature = featurizer(string)  # Implicit call to _featurize()
+    feature = featurizer([string])  # Implicit call to featurize()
     assert feature.shape == (1, 100, length)
     # untransform
     undo_string = featurizer.untransform(feature[0])
@@ -33,7 +33,7 @@ class TestOneHotFeaturizert(unittest.TestCase):
     smiles = 'CC(=O)Oc1ccccc1C(=O)O'
     mol = Chem.MolFromSmiles(smiles)
     featurizer = OneHotFeaturizer()
-    feature = featurizer.featurizeMol(mol)
+    feature = featurizer([mol])
     assert feature.shape == (1, 100, length)
     # untranform
     undo_smiles = featurizer.untransform(feature[0])
@@ -46,7 +46,7 @@ class TestOneHotFeaturizert(unittest.TestCase):
     string = "abcdefghijklmnopqrstuvwxyz"
     length = len(string) + 1
     featurizer = OneHotFeaturizer(max_length=120)
-    feature = featurizer(string)
+    feature = featurizer([string])
     assert feature.shape == (1, 120, length)
     # untranform
     undo_string = featurizer.untransform(feature[0])
@@ -61,7 +61,7 @@ class TestOneHotFeaturizert(unittest.TestCase):
     smiles = 'CC(=O)Oc1ccccc1C(=O)O'
     mol = Chem.MolFromSmiles(smiles)
     featurizer = OneHotFeaturizer(max_length=120)
-    feature = featurizer.featurizeMol(mol)
+    feature = featurizer([mol])
     assert feature.shape == (1, 120, length)
     # untranform
     undo_smiles = featurizer.untransform(feature[0])
@@ -76,7 +76,7 @@ class TestOneHotFeaturizert(unittest.TestCase):
     smiles = 'CN=C=O'
     mol = Chem.MolFromSmiles(smiles)
     featurizer = OneHotFeaturizer(charset=charset, max_length=100)
-    feature = featurizer(mol)
+    feature = featurizer([mol])
     assert np.allclose(feature[0][0], np.array([1, 0, 0, 0, 0, 0, 0]))
     assert np.allclose(feature[0][1], np.array([0, 1, 0, 0, 0, 0, 0]))
     assert np.allclose(feature[0][2], np.array([0, 0, 1, 0, 0, 0, 0]))
