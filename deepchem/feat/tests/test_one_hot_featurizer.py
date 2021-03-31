@@ -4,7 +4,7 @@ import numpy as np
 
 from deepchem.feat import OneHotFeaturizer
 from deepchem.feat.molecule_featurizers.one_hot_featurizer import ZINC_CHARSET
-
+from icecream import ic
 
 class TestOneHotFeaturizert(unittest.TestCase):
   """
@@ -15,10 +15,14 @@ class TestOneHotFeaturizert(unittest.TestCase):
     """
     Test simple one hot encoding for arbitrary string.
     """
-    string = "abcdefghijklmnopqrstuvwxyz"
-    length = len(string) + 1
-    featurizer = OneHotFeaturizer()
+    string = "abcdefghijklmnopqrstuvwxyzwebhasw"
+    charset = "abcdefghijklmnopqrstuvwxyz"
+    length = len(charset) + 1
+    featurizer = OneHotFeaturizer(charset)
     feature = featurizer([string])  # Implicit call to featurize()
+    ic(len(feature))
+    ic(len(feature[0]))
+    ic(len(feature[0][0]))
     assert feature.shape == (1, 100, length)
     # untransform
     undo_string = featurizer.untransform(feature[0])
@@ -44,9 +48,13 @@ class TestOneHotFeaturizert(unittest.TestCase):
     Test one hot encoding with max_length.
     """
     string = "abcdefghijklmnopqrstuvwxyz"
-    length = len(string) + 1
-    featurizer = OneHotFeaturizer(max_length=120)
+    charset = "abcdefghijklmnopqrstuvwxyz"
+    length = len(charset) + 1
+    featurizer = OneHotFeaturizer(charset, max_length=120)
     feature = featurizer([string])
+    ic(len(feature))
+    ic(len(feature[0]))
+    ic(len(feature[0][0]))
     assert feature.shape == (1, 120, length)
     # untranform
     undo_string = featurizer.untransform(feature[0])
