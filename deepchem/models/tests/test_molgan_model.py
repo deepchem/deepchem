@@ -2,7 +2,7 @@ import os
 import unittest
 
 import pandas as pd
-from deepchem.data import NumpyDataset
+from deepchem.datasets import NumpyDataset
 from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 from deepchem.models import BasicMolGANModel as MolGAN
 from deepchem.models.optimizers import ExponentialDecay
@@ -16,6 +16,7 @@ class test_molgan_model(unittest.TestCase):
   """
 
   def setUp(self):
+    self.training_attempts = 6
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
     self.vertices = 9
     self.nodes = 5
@@ -87,8 +88,11 @@ class test_molgan_model(unittest.TestCase):
     featurized = feat.featurize(molecules)
     dataset = NumpyDataset([x.adjacency_matrix for x in featurized],
                            [x.node_features for x in featurized])
-    valid_attempts = 0
-    for _ in range(10):
+
+    # True will be assigned up successful training attempt
+    success = False
+
+    for _ in range(self.training_attempts):
       # force clear tensor flow backend
       keras_clear_session()
       # create new model
@@ -120,11 +124,12 @@ class test_molgan_model(unittest.TestCase):
       valid_molecules_count = len(
           list(filter(lambda x: x is not None, generated_molecules)))
       if valid_molecules_count:
-        valid_attempts = valid_attempts + 1
+        success = True
+        break
 
     # finally test if there was at least one valid training session
     # as the model structure improves this should become more and more strict
-    assert valid_attempts > 0
+    assert success
 
 
 if __name__ == '__main__':
