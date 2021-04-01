@@ -213,7 +213,6 @@ class ComplexFeaturizer(Featurizer):
     """
     raise NotImplementedError('Featurizer is not defined.')
 
-
 class MolecularFeaturizer(Featurizer):
   """Abstract class for calculating a set of features for a
   molecule.
@@ -288,6 +287,56 @@ class MolecularFeaturizer(Featurizer):
 
     return np.asarray(features)
 
+class StringFeaturizer(Featurizer):
+  """Abstract class for calculating a set of features for a
+  string.
+
+  The defining feature of a `StringFeaturizer` is that it
+  uses strings. All other featurizers which are subclasses of
+  this class should plan to process input which comes as strings.
+
+  Child classes need to implement the _featurize method for
+  calculating features for a single string.
+  """
+
+  def featurize(self, strings, log_every_n=1000) -> np.ndarray:
+    """Calculate features for strings.
+
+    Parameters
+    ----------
+    strings: string / iterable
+      String or iterable sequence of strings.
+    log_every_n: int, default 1000
+      Logging messages reported every `log_every_n` samples.
+
+    Returns
+    -------
+    features: np.ndarray
+      A numpy array containing a featurized representation of `datapoints`.
+    """
+
+    # Special case handling of single molecule
+    if isinstance(strings, str):
+      strings = [strings]
+    else:
+      # Convert iterables to list
+      strings = list(strings)
+
+    features = []
+    for i, string in enumerate(strings):
+      if i % log_every_n == 0:
+        logger.info("Featurizing datapoint %i" % i)
+
+      try:
+        features.append(self._featurize(string))
+      except Exception as e:
+        logger.warning(
+            "Failed to featurize datapoint %d, %s. Appending empty array", i,
+            string)
+        logger.warning("Exception message: {}".format(e))
+        features.append(np.array([]))
+
+    return np.asarray(features)
 
 class MaterialStructureFeaturizer(Featurizer):
   """
