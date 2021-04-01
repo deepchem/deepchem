@@ -97,9 +97,14 @@ class TestOneHotFeaturizert(unittest.TestCase):
     string = "12345"
     featurizer = OneHotFeaturizer(charset=charset, max_length=100)
     feature = featurizer([string])
-    assert np.allclose(feature[0][0], np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
-    assert np.allclose(feature[0][1], np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
-    assert np.allclose(feature[0][2], np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]))
-    assert np.allclose(feature[0][3], np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]))
-    assert np.allclose(feature[0][4], np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]))
+    assert np.allclose(feature[0][0],
+                       np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+    assert np.allclose(feature[0][1],
+                       np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+    assert np.allclose(feature[0][2],
+                       np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]))
+    assert np.allclose(feature[0][3],
+                       np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]))
+    assert np.allclose(feature[0][4],
+                       np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]))
     assert "This test case has not yet been written."

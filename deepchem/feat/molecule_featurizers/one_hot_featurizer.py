@@ -17,6 +17,7 @@ ZINC_CHARSET = [
     'n', 'p', 's', 'r'
 ]
 
+
 class OneHotFeaturizer(MolecularFeaturizer):
   """Encodes SMILES as a one-hot array.
 
@@ -97,8 +98,8 @@ class OneHotFeaturizer(MolecularFeaturizer):
           "The length of {} is longer than `max_length`. So we return an empty array."
       )
       return np.array([])
-    
-    string = self.pad_string(string) # Padding
+
+    string = self.pad_string(string)  # Padding
     return np.array([
         one_hot_encode(val, self.charset, include_unknown_set=True)
         for val in string
@@ -123,8 +124,8 @@ class OneHotFeaturizer(MolecularFeaturizer):
       from rdkit import Chem
     except ModuleNotFoundError:
       raise ImportError("This class requires RDKit to be installed.")
-    smiles = Chem.MolToSmiles(mol) # Convert mol to SMILES string.
-    return self._featurizeString(smiles) # Use string featurization.
+    smiles = Chem.MolToSmiles(mol)  # Convert mol to SMILES string.
+    return self._featurizeString(smiles)  # Use string featurization.
 
   def pad_smile(self, smiles: str) -> str:
     """Pad smile string to `self.pad_length`
@@ -139,7 +140,7 @@ class OneHotFeaturizer(MolecularFeaturizer):
     str
       SMILES string space padded to self.pad_length
     """
-    return pad_string(smiles)
+    return self.pad_string(smiles)
 
   def pad_string(self, string: str) -> str:
     """Pad string to `self.pad_length`
