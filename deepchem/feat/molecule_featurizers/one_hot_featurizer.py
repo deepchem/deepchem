@@ -6,7 +6,6 @@ import numpy as np
 from deepchem.utils.typing import RDKitMol
 from deepchem.utils.molecule_feature_utils import one_hot_encode
 from deepchem.feat.base_classes import Featurizer
-from deepchem.feat.base_classes import MolecularFeaturizer
 from typing import Any, Iterable
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,7 @@ ZINC_CHARSET = [
 ]
 
 
-class OneHotFeaturizer(MolecularFeaturizer):
+class OneHotFeaturizer(Featurizer):
   """Encodes SMILES or any arbitrary string as a one-hot array.
 
   This featurizer encodes either a SMILES string or any arbitrary string as a one-hot array.
