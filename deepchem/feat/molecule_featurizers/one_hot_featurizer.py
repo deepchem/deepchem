@@ -8,7 +8,6 @@ from deepchem.utils.molecule_feature_utils import one_hot_encode
 from deepchem.feat.base_classes import Featurizer
 from deepchem.feat.base_classes import MolecularFeaturizer
 from typing import Any, Iterable
-from icecream import ic
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +16,6 @@ ZINC_CHARSET = [
     '@', 'C', 'B', 'F', 'I', 'H', 'O', 'N', 'S', '[', ']', '\\', 'c', 'l', 'o',
     'n', 'p', 's', 'r'
 ]
-
 
 class OneHotFeaturizer(MolecularFeaturizer):
   """Encodes SMILES as a one-hot array.
@@ -47,6 +45,14 @@ class OneHotFeaturizer(MolecularFeaturizer):
 
   def featurize(self, datapoints: Iterable[Any],
                 log_every_n: int = 1000) -> np.ndarray:
+    """Featurize strings or mols.
+
+    Parameters
+    ----------
+    datapoints: A list of either strings or RDKit molecules.
+    log_every_n: int, optional (default 1000)
+      How many elements are featurized every time a featurization is logged.
+    """
     datapoints = list(datapoints)
     if (len(datapoints) < 1):
       print(
@@ -54,29 +60,22 @@ class OneHotFeaturizer(MolecularFeaturizer):
       )
       return np.array([])
 
-    # Featurize Mol data
-    if (type(datapoints[0]) == RDKitMol):  # Mol
-      return MolecularFeaturizer.featurize(self, datapoints, log_every_n)
     # Featurize str data
-    elif (type(datapoints[0]) == str):  # String
+    if (type(datapoints[0]) == str):
+      # Calls featurize() in grandparent class, which takes Iterable[Any].
       return Featurizer.featurize(self, datapoints, log_every_n)
+    # Featurize mol data
     else:
-      print(
-          "One hot featurizer only supports strings and mols at this time, so returning {}"
-      )
-      return np.array([])
+      # Calls featurize() in parent class, which takes molecules.
+      return MolecularFeaturizer.featurize(self, datapoints, log_every_n)
 
   def _featurize(self, datapoint: Any):
-    ic(datapoint)
+    # Featurize str data
     if (type(datapoint) == str):
       return self._featurizeString(datapoint)
-    elif (type(datapoint) == RDKitMol):
-      return self._featurizeMol(datapoint)
+    # Featurize mol data
     else:
-      print(
-          "One hot featurizer only supports strings and mols at this time, so returning {}"
-      )
-      return np.array([])
+      return self._featurizeMol(datapoint)
 
   def _featurizeString(self, string: str) -> np.ndarray:
     """Compute one-hot featurization of string.
@@ -98,9 +97,8 @@ class OneHotFeaturizer(MolecularFeaturizer):
           "The length of {} is longer than `max_length`. So we return an empty array."
       )
       return np.array([])
-
-    string = self.pad_string(string)
-    ic(string)
+    
+    string = self.pad_string(string) # Padding
     return np.array([
         one_hot_encode(val, self.charset, include_unknown_set=True)
         for val in string
@@ -125,11 +123,26 @@ class OneHotFeaturizer(MolecularFeaturizer):
       from rdkit import Chem
     except ModuleNotFoundError:
       raise ImportError("This class requires RDKit to be installed.")
-    smiles = Chem.MolToSmiles(mol)
-    return self._featurize(smiles)
+    smiles = Chem.MolToSmiles(mol) # Convert mol to SMILES string.
+    return self._featurizeString(smiles) # Use string featurization.
+
+  def pad_smile(self, smiles: str) -> str:
+    """Pad smile string to `self.pad_length`
+
+    Parameters
+    ----------
+    smile: str
+      The smile string to be padded.
+
+    Returns
+    -------
+    str
+      SMILES string space padded to self.pad_length
+    """
+    return pad_string(smiles)
 
   def pad_string(self, string: str) -> str:
-    """Pad SMILES string to `self.pad_length`
+    """Pad string to `self.pad_length`
 
     Parameters
     ----------
