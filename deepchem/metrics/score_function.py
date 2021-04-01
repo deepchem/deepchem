@@ -34,7 +34,7 @@ def pearsonr(y: np.ndarray, y_pred: np.ndarray) -> float:
   Returns
   -------
   float
-    The Pearson-R^2 score.
+    The Pearson correlation coefficient.
   """
   return scipy.stats.pearsonr(y, y_pred)[0]
 
