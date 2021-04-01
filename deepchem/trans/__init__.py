@@ -21,4 +21,5 @@ from deepchem.trans.transformers import FeaturizationTransformer
 from deepchem.trans.transformers import ImageTransformer
 from deepchem.trans.transformers import DataTransforms
 from deepchem.trans.transformers import Transformer
+from deepchem.trans.transformers import FlatteningTransformer
 from deepchem.trans.duplicate import DuplicateBalancingTransformer

@@ -5,6 +5,8 @@ import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 
+from deepchem.utils.noncovalent_utils import compute_pi_stack
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,10 +39,6 @@ def convert_atom_to_voxel(coordinates: np.ndarray, atom_index: int,
   indices = np.floor(
       (coordinates[atom_index] + box_width / 2.0) / voxel_width).astype(int)
 
-  if ((indices < 0) | (indices >= box_width / voxel_width)).any():
-    logger.warning('Coordinates are outside of the box (atom id = %s,'
-                   ' coords xyz = %s, coords in box = %s' %
-                   (atom_index, coordinates[atom_index], indices))
   return indices
 
 
@@ -159,3 +157,52 @@ def voxelize(get_voxels: Callable[..., Any],
           feature_tensor[voxel[0], voxel[1], voxel[2], 0] += 1.0
 
   return feature_tensor
+
+
+def voxelize_pi_stack(prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances,
+                      pi_stack_dist_cutoff, pi_stack_angle_cutoff, box_width,
+                      voxel_width):
+  protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel = (
+      compute_pi_stack(
+          prot_rdk,
+          lig_rdk,
+          distances,
+          dist_cutoff=pi_stack_dist_cutoff,
+          angle_cutoff=pi_stack_angle_cutoff))
+  pi_parallel_tensor = voxelize(
+      convert_atom_to_voxel,
+      prot_xyz,
+      box_width=box_width,
+      voxel_width=voxel_width,
+      feature_dict=protein_pi_parallel,
+      nb_channel=1,
+  )
+
+  pi_parallel_tensor += voxelize(
+      convert_atom_to_voxel,
+      lig_xyz,
+      box_width=box_width,
+      voxel_width=voxel_width,
+      feature_dict=ligand_pi_parallel,
+      nb_channel=1,
+  )
+
+  pi_t_tensor = voxelize(
+      convert_atom_to_voxel,
+      prot_xyz,
+      box_width=box_width,
+      voxel_width=voxel_width,
+      feature_dict=protein_pi_t,
+      nb_channel=1,
+  )
+
+  pi_t_tensor += voxelize(
+      convert_atom_to_voxel,
+      lig_xyz,
+      box_width=box_width,
+      voxel_width=voxel_width,
+      feature_dict=ligand_pi_t,
+      nb_channel=1,
+  )
+
+  return [pi_parallel_tensor, pi_t_tensor]

@@ -174,16 +174,31 @@ class ComplexFeaturizer(Featurizer):
 
     if not isinstance(complexes, Iterable):
       complexes = [cast(Tuple[str, str], complexes)]
-    features = []
-    for i, point in enumerate(complexes):
-      if i % log_every_n == 0:
-        logger.info("Featurizing datapoint %i" % i)
+    features, failures, successes = [], [], []
+    for idx, point in enumerate(complexes):
+      if idx % log_every_n == 0:
+        logger.info("Featurizing datapoint %i" % idx)
       try:
         features.append(self._featurize(point))
+        successes.append(idx)
       except:
         logger.warning(
-            "Failed to featurize datapoint %i. Appending empty array." % i)
-        features.append(np.array([]))
+            "Failed to featurize datapoint %i. Appending empty array." % idx)
+        features.append(np.zeros(1))
+        failures.append(idx)
+
+    # Find a successful featurization
+    try:
+      i = np.argmax([f.shape[0] for f in features])
+      dtype = features[i].dtype
+      shape = features[i].shape
+      dummy_array = np.zeros(shape, dtype=dtype)
+    except AttributeError:
+      dummy_array = features[successes[0]]
+
+    # Replace failed featurizations with appropriate array
+    for idx in failures:
+      features[idx] = dummy_array
 
     return np.asarray(features)
 
