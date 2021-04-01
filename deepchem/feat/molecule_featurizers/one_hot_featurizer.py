@@ -19,13 +19,13 @@ ZINC_CHARSET = [
 
 
 class OneHotFeaturizer(MolecularFeaturizer):
-  """Encodes SMILES as a one-hot array.
+  """Encodes SMILES or any arbitrary string as a one-hot array.
 
-  This featurizer encodes SMILES string as a one-hot array.
+  This featurizer encodes a string or any arbitrary string as a one-hot array.
 
   Note
   ----
-  This class requires RDKit to be installed.
+  This class requires RDKit to be installed to work with RDKit molecules.
   """
 
   def __init__(self, charset: List[str] = ZINC_CHARSET, max_length: int = 100):
