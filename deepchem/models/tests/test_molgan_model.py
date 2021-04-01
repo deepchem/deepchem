@@ -2,7 +2,7 @@ import os
 import unittest
 
 import pandas as pd
-from deepchem.datasets import NumpyDataset
+from deepchem.data import NumpyDataset
 from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 from deepchem.models import BasicMolGANModel as MolGAN
 from deepchem.models.optimizers import ExponentialDecay
