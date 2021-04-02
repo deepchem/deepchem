@@ -20,13 +20,13 @@ ZINC_CHARSET = [
 class OneHotFeaturizer(Featurizer):
   """Encodes any arbitrary string or molecule as a one-hot array.
 
-  This featurizer encodes the characters within any given string as a one-hot 
-  array. It also works with RDKit molecules: it can convert RDKit molecules to 
+  This featurizer encodes the characters within any given string as a one-hot
+  array. It also works with RDKit molecules: it can convert RDKit molecules to
   SMILES strings and then one-hot encode the characters in said strings.
 
   Note
   ----
-  This class needs RDKit to be installed in order to accept RDKit molecules as 
+  This class needs RDKit to be installed in order to accept RDKit molecules as
   inputs.
 
   It does not need RDKit to be installed to work with arbitrary strings.
