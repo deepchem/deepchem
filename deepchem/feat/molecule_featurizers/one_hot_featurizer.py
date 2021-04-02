@@ -26,7 +26,9 @@ class OneHotFeaturizer(Featurizer):
 
   Note
   ----
-  This class needs RDKit to be installed in order to work with RDKit molecules.
+  This class needs RDKit to be installed in order to accept RDKit molecules as 
+  inputs.
+
   It does not need RDKit to be installed to work with arbitrary strings.
   """
 
