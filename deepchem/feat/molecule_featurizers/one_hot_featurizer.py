@@ -119,12 +119,12 @@ class OneHotFeaturizer(Featurizer):
     return self._featurize_string(smiles)  # Use string featurization.
 
   def pad_smile(self, smiles: str) -> str:
-    """Pad smile string to `self.pad_length`
+    """Pad SMILES string to `self.pad_length`
 
     Parameters
     ----------
-    smile: str
-      The smile string to be padded.
+    smiles: str
+      The SMILES string to be padded.
 
     Returns
     -------
