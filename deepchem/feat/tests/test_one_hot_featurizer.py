@@ -18,9 +18,10 @@ class TestOneHotFeaturizert(unittest.TestCase):
     string = "abcdefghijklmnopqrstuvwxyzwebhasw"
     charset = "abcdefghijklmnopqrstuvwxyz"
     length = len(charset) + 1
+    defaultMaxLength = 100
     featurizer = OneHotFeaturizer(charset)
     feature = featurizer([string])  # Implicit call to featurize()
-    assert feature.shape == (1, 100, length)
+    assert feature.shape == (1, defaultMaxLength, length)
     # untransform
     undo_string = featurizer.untransform(feature[0])
     assert string == undo_string
@@ -35,7 +36,8 @@ class TestOneHotFeaturizert(unittest.TestCase):
     mol = Chem.MolFromSmiles(smiles)
     featurizer = OneHotFeaturizer()
     feature = featurizer([mol])
-    assert feature.shape == (1, 100, length)
+    defaultMaxLength = 100
+    assert feature.shape == (1, defaultMaxLength, length)
     # untranform
     undo_smiles = featurizer.untransform(feature[0])
     assert smiles == undo_smiles
