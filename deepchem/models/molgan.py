@@ -109,8 +109,9 @@ class BasicMolGANModel(WGAN):
     List
         List of shapes used as an input for distriminator.
     """
-    return [(self.vertices, self.vertices, self.edges), (self.vertices,
-                                                         self.nodes)]
+    return [(self.vertices, self.vertices, self.edges),
+            (self.vertices, self.nodes), (self.vertices,
+                                          self.vertices), (self.vertices)]
 
   def create_generator(self) -> keras.Model:
     """
