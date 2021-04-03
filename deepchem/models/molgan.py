@@ -59,7 +59,6 @@ class BasicMolGANModel(WGAN):
                nodes: int = 5,
                embedding_dim: int = 10,
                dropout_rate: float = 0.0,
-               name: str = '',
                **kwargs):
     """
     Initialize the model
@@ -86,7 +85,7 @@ class BasicMolGANModel(WGAN):
     self.embedding_dim = embedding_dim
     self.dropout_rate = dropout_rate
 
-    super(BasicMolGANModel, self).__init__(name=name, **kwargs)
+    super(BasicMolGANModel, self).__init__(**kwargs)
 
   def get_noise_input_shape(self) -> Tuple[int]:
     """
