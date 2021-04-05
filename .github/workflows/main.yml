@@ -120,6 +120,7 @@ jobs:
       shell: bash -l {0}
       run: pip install -e .
     - name: Yapf (version 0.22.0)
+      id: yapf
       # on Windows, yapf raise the strange error..., so ignore
       if: runner.os == 'Linux' || runner.os == 'macOS'
       shell: bash -l {0}
@@ -129,22 +130,27 @@ jobs:
           yapf -d $CHANGED_FILES
         fi
     - name: Flake8
-      continue-on-error: true
+      id: flake8
+      if: ${{ (success() || failure()) && (steps.yapf.outcome == 'failure' || steps.yapf.outcome == 'success') }}
       shell: bash -l {0}
       run: source scripts/flake8_for_ci.sh
     - name: Mypy
-      continue-on-error: true
+      id: mypy
+      if: ${{ (success() || failure()) && (steps.flake8.outcome == 'failure' || steps.flake8.outcome == 'success') }}
       shell: bash -l {0}
       run: mypy -p deepchem
     - name: Doctest
-      continue-on-error: true
+      id: doctest
+      if: ${{ (success() || failure()) && (steps.mypy.outcome == 'failure' || steps.mypy.outcome == 'success') }}
       shell: bash -l {0}
       run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem
     - name: PyTest
-      continue-on-error: true
+      id: pytest
+      if: ${{ (success() || failure()) && (steps.doctest.outcome == 'failure' || steps.doctest.outcome == 'success') }}
       shell: bash -l {0}
       run: pytest -v -m "not slow" --cov=deepchem --cov-report=xml deepchem
     - name: Upload coverage to Codecov
+      if: ${{ (success() || failure()) && (steps.pytest.outcome == 'failure' || steps.pytest.outcome == 'success') }}
       uses: codecov/codecov-action@v1
       with:
         file: ./coverage.xml
