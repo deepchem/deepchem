@@ -117,6 +117,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
         environment-file: env.yml
     - name: Install DeepChem
+      id: install
       shell: bash -l {0}
       run: pip install -e .
     - name: Yapf (version 0.22.0)
@@ -130,27 +131,23 @@ jobs:
           yapf -d $CHANGED_FILES
         fi
     - name: Flake8
-      id: flake8
-      if: ${{ (success() || failure()) && (steps.yapf.outcome == 'failure' || steps.yapf.outcome == 'success') }}
+      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
       run: source scripts/flake8_for_ci.sh
     - name: Mypy
-      id: mypy
-      if: ${{ (success() || failure()) && (steps.flake8.outcome == 'failure' || steps.flake8.outcome == 'success') }}
+      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
       run: mypy -p deepchem
     - name: Doctest
-      id: doctest
-      if: ${{ (success() || failure()) && (steps.mypy.outcome == 'failure' || steps.mypy.outcome == 'success') }}
+      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
       run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem
     - name: PyTest
-      id: pytest
-      if: ${{ (success() || failure()) && (steps.doctest.outcome == 'failure' || steps.doctest.outcome == 'success') }}
+      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
       run: pytest -v -m "not slow" --cov=deepchem --cov-report=xml deepchem
     - name: Upload coverage to Codecov
-      if: ${{ (success() || failure()) && (steps.pytest.outcome == 'failure' || steps.pytest.outcome == 'success') }}
+      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       uses: codecov/codecov-action@v1
       with:
         file: ./coverage.xml
