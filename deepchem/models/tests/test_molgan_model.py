@@ -67,11 +67,6 @@ class test_molgan_model(unittest.TestCase):
     # check training nodes logits shapes
     assert model.generators[0].output_shape[1] == (None, self.vertices,
                                                    self.nodes)
-    # check molecule generation edges logits shapes
-    assert model.generators[0].output_shape[2] == (None, self.vertices,
-                                                   self.vertices)
-    # check molecule generation nodes logits shapes
-    assert model.generators[0].output_shape[3] == (None, self.vertices)
 
   def test_training(self):
     """
@@ -123,6 +118,7 @@ class test_molgan_model(unittest.TestCase):
       generated_molecules = feat.defeaturize(g)
       valid_molecules_count = len(
           list(filter(lambda x: x is not None, generated_molecules)))
+      print(valid_molecules_count)
       if valid_molecules_count:
         success = True
         break
