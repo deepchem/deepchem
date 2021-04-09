@@ -1,0 +1,7 @@
+pandas
+scikit-learn
+sphinx>=3.2,<4
+sphinx_rtd_theme>=0.5,<1
+tensorflow>=2.3,<2.4
+transformers
+torch==1.6.0

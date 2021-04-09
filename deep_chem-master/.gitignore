@@ -1,0 +1,105 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+AUTHORS
+ChangeLog
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+.hypothesis/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# IDE files
+.idea
+*.iml
+
+# Vim swap
+*.swp
+
+# Dataset files
+datasets/2008-2011_USPTO_reactionSmiles_filtered.zip
+datasets/2008-2011_USPTO_reactionSmiles_filtered/
+datasets/autodock_vina_1_1_2_mac_catalina_64bit/
+datasets/chembl_25-featurized/
+datasets/chembl_25.csv.gz
+datasets/delaney-featurized/  
+datasets/from-pdbbind/
+datasets/kinase/
+datasets/pdbbind/
+datasets/pdbbind_v2015.tar.gz
+datasets/qm7-featurized/ 
+datasets/qm7.csv
+datasets/qm7.mat
+datasets/sider-featurized/
+datasets/sider.csv.gz
+datasets/sweet-featurized/
+datasets/sweet.csv.gz
+datasets/tox21-featurized/
+datasets/toxcast-featurized/
+datasets/toxcast_data.csv.gz
+datasets/gdb8.tar.gz
+datasets/qm8-featurized/
+datasets/qm8.sdf
+datasets/qm8.sdf.csv
+datasets/PDBbind_2019_plain_text_index.tar.gz
+datasets/pdbbind_v2019_NL.tar.gz
+datasets/pdbbind_v2019_PN.tar.gz
+datasets/pdbbind_v2019_PP.tar.gz
+datasets/pdbbind_v2019_other_PL.tar.gz
+datasets/pdbbind_v2019_refined.tar.gz
+datasets/qm8.csv
+
+.vscode/
+env.yml
+.python-version

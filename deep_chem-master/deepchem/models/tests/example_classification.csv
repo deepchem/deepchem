@@ -1,0 +1,11 @@
+Compound ID,outcome,smiles
+Amigdalin,0,OCC3OC(OCC2OC(OC(C#N)c1ccccc1)C(O)C(O)C2O)C(O)C(O)C3O 
+Fenfuram,0,Cc1occc1C(=O)Nc2ccccc2
+citral,0,CC(C)=CCCC(C)=CC(=O)
+Picene,0,c1ccc2c(c1)ccc3c2ccc4c5ccccc5ccc43
+Thiophene,1,c1ccsc1
+benzothiazole,1,c2ccc1scnc1c2 
+"2,2,4,6,6'-PCB",1,Clc1cc(Cl)c(c(Cl)c1)c2c(Cl)cccc2Cl
+Estradiol,1,CC12CCC3C(CCc4cc(O)ccc34)C2CCC1O
+Dieldrin,1,ClC4=C(Cl)C5(Cl)C3C1CC(C2OC12)C3C4(Cl)C5(Cl)Cl
+Rotenone,1,COc5cc4OCC3Oc2c1CC(Oc1ccc2C(=O)C3c4cc5OC)C(C)=C 
