@@ -5,7 +5,8 @@ import numpy as np
 
 from deepchem.utils.typing import RDKitMol
 from deepchem.utils.molecule_feature_utils import one_hot_encode
-from deepchem.feat.base_classes import MolecularFeaturizer
+from deepchem.feat.base_classes import Featurizer
+from typing import Any, Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -16,14 +17,19 @@ ZINC_CHARSET = [
 ]
 
 
-class OneHotFeaturizer(MolecularFeaturizer):
-  """Encodes SMILES as a one-hot array.
+class OneHotFeaturizer(Featurizer):
+  """Encodes any arbitrary string or molecule as a one-hot array.
 
-  This featurizer encodes SMILES string as a one-hot array.
+  This featurizer encodes the characters within any given string as a one-hot
+  array. It also works with RDKit molecules: it can convert RDKit molecules to
+  SMILES strings and then one-hot encode the characters in said strings.
 
   Note
   ----
-  This class requires RDKit to be installed.
+  This class needs RDKit to be installed in order to accept RDKit molecules as
+  inputs.
+
+  It does not need RDKit to be installed to work with arbitrary strings.
   """
 
   def __init__(self, charset: List[str] = ZINC_CHARSET, max_length: int = 100):
@@ -42,39 +48,80 @@ class OneHotFeaturizer(MolecularFeaturizer):
     self.charset = charset
     self.max_length = max_length
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def featurize(self, datapoints: Iterable[Any],
+                log_every_n: int = 1000) -> np.ndarray:
+    """Featurize strings or mols.
+
+    Parameters
+    ----------
+    datapoints: list
+      A list of either strings or RDKit molecules.
+    log_every_n: int, optional (default 1000)
+      How many elements are featurized every time a featurization is logged.
+    """
+    datapoints = list(datapoints)
+    if (len(datapoints) < 1):
+      return np.array([])
+    # Featurize data using featurize() in grandparent class
+    return Featurizer.featurize(self, datapoints, log_every_n)
+
+  def _featurize(self, datapoint: Any):
+    # Featurize str data
+    if (type(datapoint) == str):
+      return self._featurize_string(datapoint)
+    # Featurize mol data
+    else:
+      return self._featurize_mol(datapoint)
+
+  def _featurize_string(self, string: str) -> np.ndarray:
+    """Compute one-hot featurization of string.
+
+    Parameters
+    ----------
+    string: str
+      An arbitrary string to be featurized.
+
+    Returns
+    -------
+    np.ndarray
+      An one hot vector encoded from arbitrary input string.
+      The shape is `(max_length, len(charset) + 1)`.
+      The index of unknown character is `len(charset)`.
+    """
+    # validation
+    if (len(string) > self.max_length):
+      logger.info(
+          "The length of {} is longer than `max_length`. So we return an empty array."
+      )
+      return np.array([])
+
+    string = self.pad_string(string)  # Padding
+    return np.array([
+        one_hot_encode(val, self.charset, include_unknown_set=True)
+        for val in string
+    ])
+
+  def _featurize_mol(self, mol: RDKitMol) -> np.ndarray:
     """Compute one-hot featurization of this molecule.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    mol: rdKit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
     -------
     np.ndarray
       An one hot vector encoded from SMILES.
-      The shape is `(max_length, len(charset) + 1)`.
-      The index of unknown character is `len(charset)`.
+      The shape is '(max_length, len(charset) + 1)'
+      The index of unknown character is 'len(charset)'.
     """
     try:
       from rdkit import Chem
     except ModuleNotFoundError:
       raise ImportError("This class requires RDKit to be installed.")
-
-    smiles = Chem.MolToSmiles(mol)
-    # validation
-    if len(smiles) > self.max_length:
-      logger.info(
-          "The length of {} is longer than `max_length`. So we return an empty array."
-      )
-      return np.array([])
-
-    smiles = self.pad_smile(smiles)
-    return np.array([
-        one_hot_encode(val, self.charset, include_unknown_set=True)
-        for val in smiles
-    ])
+    smiles = Chem.MolToSmiles(mol)  # Convert mol to SMILES string.
+    return self._featurize_string(smiles)  # Use string featurization.
 
   def pad_smile(self, smiles: str) -> str:
     """Pad SMILES string to `self.pad_length`
@@ -82,17 +129,32 @@ class OneHotFeaturizer(MolecularFeaturizer):
     Parameters
     ----------
     smiles: str
-      The smiles string to be padded.
+      The SMILES string to be padded.
 
     Returns
     -------
     str
       SMILES string space padded to self.pad_length
     """
-    return smiles.ljust(self.max_length)
+    return self.pad_string(smiles)
+
+  def pad_string(self, string: str) -> str:
+    """Pad string to `self.pad_length`
+
+    Parameters
+    ----------
+    string: str
+      The string to be padded.
+
+    Returns
+    -------
+    str
+      String space padded to self.pad_length
+    """
+    return string.ljust(self.max_length)
 
   def untransform(self, one_hot_vectors: np.ndarray) -> str:
-    """Convert from one hot representation back to SMILES
+    """Convert from one hot representation back to original string
 
     Parameters
     ----------
@@ -102,13 +164,13 @@ class OneHotFeaturizer(MolecularFeaturizer):
     Returns
     -------
     str
-      SMILES string for an one hot encoded array.
+      Original string for an one hot encoded array.
     """
-    smiles = ""
+    string = ""
     for one_hot in one_hot_vectors:
       try:
         idx = np.argmax(one_hot)
-        smiles += self.charset[idx]
+        string += self.charset[idx]
       except IndexError:
-        smiles += ""
-    return smiles
+        string += ""
+    return string
