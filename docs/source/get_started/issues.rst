@@ -17,14 +17,6 @@ please let us know [here](https://github.com/deepchem/deepchem/issues/2376).*
 | Feature                        | Deepchem response | Tracker and notes                                 |
 |                                |                   |                                                   |
 +================================+===================+===================================================+
-| AtomicConvModel                | Severe            | [pull#2374](https://github.com/deepchem/deepchem/pull/2374)                   |
-|                                | Will fix          |                                                   |
-|                                |                   |                                                   |
-+--------------------------------+-------------------+---------------------------------------------------+
-| RdkitGridFeaturizer            | Severe            | [issue#2366](https://github.com/deepchem/deepchem/issues/2366)                      |
-|                                | Will fix          |                                                   |
-|                                |                   |                                                   |
-+--------------------------------+-------------------+---------------------------------------------------+
 | ANIFeaturizer/ANIModel         | Low Priority      | The Deepchem team recommends using TorchANI       |
 |                                | Likely deprecate  | instead.                                          |
 |                                |                   |                                                   |
