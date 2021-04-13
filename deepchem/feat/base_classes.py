@@ -319,10 +319,10 @@ class MaterialStructureFeaturizer(Featurizer):
 
     Parameters
     ----------
-    structures: Iterable[Union[Dict, pymatgen.Structure]]
+    structures: Iterable[Union[Dict, pymatgen.core.Structure]]
       Iterable sequence of pymatgen structure dictionaries
-      or pymatgen.Structure. Please confirm the dictionary representations
-      of pymatgen.Structure from https://pymatgen.org/pymatgen.core.structure.html.
+      or pymatgen.core.Structure. Please confirm the dictionary representations
+      of pymatgen.core.Structure from https://pymatgen.org/pymatgen.core.structure.html.
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
 
@@ -333,7 +333,7 @@ class MaterialStructureFeaturizer(Featurizer):
       `structures`.
     """
     try:
-      from pymatgen import Structure
+      from pymatgen.core import Structure
     except ModuleNotFoundError:
       raise ImportError("This class requires pymatgen to be installed.")
 
@@ -395,7 +395,7 @@ class MaterialCompositionFeaturizer(Featurizer):
       `compositions`.
     """
     try:
-      from pymatgen import Composition
+      from pymatgen.core import Composition
     except ModuleNotFoundError:
       raise ImportError("This class requires pymatgen to be installed.")
 

@@ -35,8 +35,8 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
   Examples
   --------
   >>> import pymatgen as mg
-  >>> lattice = mg.Lattice.cubic(4.2)
-  >>> structure = mg.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
+  >>> lattice = mg.core.Lattice.cubic(4.2)
+  >>> structure = mg.core.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
   >>> featurizer = CGCNNFeaturizer()
   >>> features = featurizer.featurize([structure])
   >>> feature = features[0]
@@ -86,7 +86,7 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
 
     Parameters
     ----------
-    struct: pymatgen.Structure
+    struct: pymatgen.core.Structure
       A periodic crystal composed of a lattice and a sequence of atomic
       sites with 3D coordinates and elements.
 
@@ -108,7 +108,7 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
 
     Parameters
     ----------
-    struct: pymatgen.Structure
+    struct: pymatgen.core.Structure
       A periodic crystal composed of a lattice and a sequence of atomic
       sites with 3D coordinates and elements.
 
@@ -131,7 +131,7 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
 
     Parameters
     ----------
-    struct: pymatgen.Structure
+    struct: pymatgen.core.Structure
       A periodic crystal composed of a lattice and a sequence of atomic
       sites with 3D coordinates and elements.
 
