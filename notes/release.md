@@ -51,3 +51,8 @@ The publish process is automated by GitHub Actions and it is in `docker` section
 We should manually modify documents for installing a new package before pushing a new tag.
 Basically, we modify `README.md` and `docs/get_started/installation.rst`. (include `docs/index.rst` in some cases)
 After pushing a new tag, we go to [the project page](https://readthedocs.org/projects/deepchem/versions) in ReadTheDocs and publish the documents for a new tag.
+
+## Website
+
+We should manually modify the DeepChem website's installation instructions after each new stable release.
+This can be done by modifying the text strings in the jQuery code at the bottom of deepchem.io/website/index.html. When the changes are pushed to github.com/deepchem/deepchem.io, the website will automatically update.
