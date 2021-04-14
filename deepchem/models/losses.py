@@ -42,7 +42,11 @@ class L1Loss(Loss):
 
 
 class HuberLoss(Loss):
-  """Modified version of L1 Loss, also known as Smooth L1 loss. Less sensitive to small errors, linear for larger errors."""
+  """Modified version of L1 Loss, also known as Smooth L1 loss.
+  Less sensitive to small errors, linear for larger errors.
+  Huber loss is generally better for cases where are are both large outliers as well as small, as compared to the L1 loss.
+  By default, Delta = 1.0 and reduction = 'none'.
+  """
 
   def _compute_tf_loss(self, output, labels):
     import tensorflow as tf
