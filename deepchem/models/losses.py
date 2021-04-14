@@ -40,6 +40,16 @@ class L1Loss(Loss):
     import torch
     return torch.nn.L1Loss(reduction='none')
 
+class HuberLoss(Loss):
+  """Modified version of L1 Loss, also known as Smooth L1 loss. Less sensitive to small errors, linear for larger errors."""
+  def _compute_tf_loss(self, output, labels):
+    import tensorflow as tf
+    output, labels = _make_tf_shapes_consistent(output, labels)
+    return tf.keras.losses.Huber(reduction='none')(output, labels)
+
+  def _create_pytorch_loss(self):
+    import torch
+    return torch.nn.SmoothL1Loss(reduction='none')
 
 class L2Loss(Loss):
   """The squared difference between the true and predicted values."""
@@ -280,7 +290,7 @@ class VAE_KLDivergence(Loss):
   """The KL_divergence between hidden distribution and normal distribution.
   
   This loss represents KL divergence losses between normal distribution(using parameter of distribution)
-  based on  _[1].
+  based on  _[1].z
   
   The logvar should have shape (batch_size, hidden_space) and each term represents
   standard deviation of hidden distribution. The mean shuold have 
