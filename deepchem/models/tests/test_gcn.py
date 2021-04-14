@@ -22,17 +22,16 @@ except:
 def test_gcn_regression():
   # load datasets
   featurizer = MolGraphConvFeaturizer()
-  tasks, dataset, transformers, metric = get_dataset(
-      'regression', featurizer=featurizer)
+  tasks, dataset, transformers, metric = get_dataset('regression',
+                                                     featurizer=featurizer)
 
   # initialize models
   n_tasks = len(tasks)
-  model = GCNModel(
-      mode='regression',
-      n_tasks=n_tasks,
-      number_atom_features=30,
-      batch_size=10,
-      learning_rate=0.003)
+  model = GCNModel(mode='regression',
+                   n_tasks=n_tasks,
+                   number_atom_features=30,
+                   batch_size=10,
+                   learning_rate=0.003)
 
   # overfit test
   model.fit(dataset, nb_epoch=300)
@@ -44,11 +43,10 @@ def test_gcn_regression():
 
   tasks, all_dataset, transformers = load_delaney(featurizer=featurizer)
   train_set, _, _ = all_dataset
-  model = dc.models.GCNModel(
-      n_tasks=len(tasks),
-      graph_conv_layers=[2],
-      residual=False,
-      predictor_hidden_feats=2)
+  model = dc.models.GCNModel(n_tasks=len(tasks),
+                             graph_conv_layers=[2],
+                             residual=False,
+                             predictor_hidden_feats=2)
   model.fit(train_set, nb_epoch=1)
 
 
@@ -57,17 +55,16 @@ def test_gcn_regression():
 def test_gcn_classification():
   # load datasets
   featurizer = MolGraphConvFeaturizer()
-  tasks, dataset, transformers, metric = get_dataset(
-      'classification', featurizer=featurizer)
+  tasks, dataset, transformers, metric = get_dataset('classification',
+                                                     featurizer=featurizer)
 
   # initialize models
   n_tasks = len(tasks)
-  model = GCNModel(
-      mode='classification',
-      n_tasks=n_tasks,
-      number_atom_features=30,
-      batch_size=10,
-      learning_rate=0.0003)
+  model = GCNModel(mode='classification',
+                   n_tasks=n_tasks,
+                   number_atom_features=30,
+                   batch_size=10,
+                   learning_rate=0.0003)
 
   # overfit test
   model.fit(dataset, nb_epoch=70)
@@ -80,12 +77,11 @@ def test_gcn_classification():
   tasks, all_dataset, transformers = load_bace_classification(
       featurizer=featurizer)
   train_set, _, _ = all_dataset
-  model = dc.models.GCNModel(
-      mode='classification',
-      n_tasks=len(tasks),
-      graph_conv_layers=[2],
-      residual=False,
-      predictor_hidden_feats=2)
+  model = dc.models.GCNModel(mode='classification',
+                             n_tasks=len(tasks),
+                             graph_conv_layers=[2],
+                             residual=False,
+                             predictor_hidden_feats=2)
   model.fit(train_set, nb_epoch=1)
 
 
@@ -94,31 +90,29 @@ def test_gcn_classification():
 def test_gcn_reload():
   # load datasets
   featurizer = MolGraphConvFeaturizer()
-  tasks, dataset, transformers, metric = get_dataset(
-      'classification', featurizer=featurizer)
+  tasks, dataset, transformers, metric = get_dataset('classification',
+                                                     featurizer=featurizer)
 
   # initialize models
   n_tasks = len(tasks)
   model_dir = tempfile.mkdtemp()
-  model = GCNModel(
-      mode='classification',
-      n_tasks=n_tasks,
-      number_atom_features=30,
-      model_dir=model_dir,
-      batch_size=10,
-      learning_rate=0.0003)
+  model = GCNModel(mode='classification',
+                   n_tasks=n_tasks,
+                   number_atom_features=30,
+                   model_dir=model_dir,
+                   batch_size=10,
+                   learning_rate=0.0003)
 
   model.fit(dataset, nb_epoch=70)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.85
 
-  reloaded_model = GCNModel(
-      mode='classification',
-      n_tasks=n_tasks,
-      number_atom_features=30,
-      model_dir=model_dir,
-      batch_size=10,
-      learning_rate=0.0003)
+  reloaded_model = GCNModel(mode='classification',
+                            n_tasks=n_tasks,
+                            number_atom_features=30,
+                            model_dir=model_dir,
+                            batch_size=10,
+                            learning_rate=0.0003)
   reloaded_model.restore()
 
   pred_mols = ["CCCC", "CCCCCO", "CCCCC"]
