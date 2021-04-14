@@ -47,7 +47,7 @@ class TestLosses(unittest.TestCase):
     result = np.mean(loss._compute_tf_loss(outputs, labels).numpy())
     expected = 0.67125
     assert np.allclose(expected, result)
- 
+
   @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_huber_loss_pytorch(self):
     """Test HuberLoss."""
