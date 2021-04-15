@@ -184,6 +184,9 @@ Losses
 .. autoclass:: deepchem.models.losses.L1Loss
   :members:
 
+.. autoclass:: deepchem.models.losses.HuberLoss
+  :members:
+
 .. autoclass:: deepchem.models.losses.L2Loss
   :members:
 
