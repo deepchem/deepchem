@@ -97,7 +97,6 @@ class HingeLoss(Loss):
 class PoissonLoss(Loss):
   """The Poisson loss function is defined as the mean of the elements of y_pred - (y_true * log(y_pred) for an input of (y_true, y_pred).
   Poisson loss is generally used for regression tasks where the data follows the poisson
-
   """
 
   def _compute_tf_loss(self, output, labels):
