@@ -93,6 +93,7 @@ class HingeLoss(Loss):
 
     return loss
 
+
 class PoissonLoss(Loss):
   """The Poisson loss function is defined as the mean of the elements of y_pred - (y_true * log(y_pred) for an input of (y_true, y_pred).
   Poisson loss is generally used for regression tasks where the data follows the poisson
@@ -113,6 +114,7 @@ class PoissonLoss(Loss):
       return torch.mean(output - labels * torch.log(output))
 
     return loss
+
 
 class BinaryCrossEntropy(Loss):
   """The cross entropy between pairs of probabilities.
