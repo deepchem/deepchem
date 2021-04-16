@@ -396,7 +396,7 @@ def get_atom_explicit_valence_one_hot(
   atom: rdkit.Chem.rdchem.Atom
     RDKit atom object
   allowable_set: List[int]
-    Atom implicit valence to consider. The default set is `[0, 1, ..., 6]`
+    Atom explicit valence to consider. The default set is `[1, ..., 6]`
   include_unknown_set: bool, default True
     If true, the index of all types not in `allowable_set` is `len(allowable_set)`.
 
