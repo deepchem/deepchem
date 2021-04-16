@@ -628,7 +628,8 @@ def compute_ring_normal(mol, ring_indices):
   return normal
 
 
-def compute_all_pairs_shortest_path(mol) -> Dict[Tuple[int], Tuple[int]]:
+def compute_all_pairs_shortest_path(
+    mol) -> Dict[Tuple[int, int], Tuple[int, int]]:
   """Computes the All pair shortest between every pair of nodes
   in terms of Rdkit Atom indexes.
 

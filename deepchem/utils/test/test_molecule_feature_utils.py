@@ -142,16 +142,6 @@ class TestGraphConvUtils(unittest.TestCase):
     one_hot = get_atom_total_degree_one_hot(atoms[3])
     assert one_hot == [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
-  def test_get_atom_total_degree_one_hot(self):
-    atoms = self.mol.GetAtoms()
-    assert atoms[0].GetSymbol() == "C"
-    one_hot = get_atom_total_degree_one_hot(atoms[0])
-    assert one_hot == [0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0]
-
-    assert atoms[3].GetSymbol() == "O"
-    one_hot = get_atom_total_degree_one_hot(atoms[3])
-    assert one_hot == [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
   def test_get_atom_implicit_valence_one_hot(self):
     atoms = self.mol.GetAtoms()
     assert atoms[0].GetSymbol() == "C"
