@@ -35,6 +35,8 @@ DEFAULT_RING_SIZE_SET = [3, 4, 5, 6, 7, 8]
 DEFAULT_BOND_TYPE_SET = ["SINGLE", "DOUBLE", "TRIPLE", "AROMATIC"]
 DEFAULT_BOND_STEREO_SET = ["STEREONONE", "STEREOANY", "STEREOZ", "STEREOE"]
 DEFAULT_GRAPH_DISTANCE_SET = [1, 2, 3, 4, 5, 6, 7]
+DEFAULT_ATOM_IMPLICIT_VALENCE_SET = [0, 1, 2, 3, 4, 5, 6]
+DEFAULT_ATOM_EXPLICIT_VALENCE_SET = [1, 2, 3, 4, 5, 6]
 
 
 class _ChemicalFeaturesFactory:
@@ -353,6 +355,60 @@ def get_atom_total_degree_one_hot(
     If `include_unknown_set` is True, the length is `len(allowable_set) + 1`.
   """
   return one_hot_encode(atom.GetTotalDegree(), allowable_set,
+                        include_unknown_set)
+
+
+def get_atom_implicit_valence_one_hot(
+    atom: RDKitAtom,
+    allowable_set: List[int] = DEFAULT_ATOM_IMPLICIT_VALENCE_SET,
+    include_unknown_set: bool = True) -> List[float]:
+  """Get an one-hot feature of implicit valence of an atom.
+
+  Parameters
+  ---------
+  atom: rdkit.Chem.rdchem.Atom
+    RDKit atom object
+  allowable_set: List[int]
+    Atom implicit valence to consider. The default set is `[0, 1, ..., 6]`
+  include_unknown_set: bool, default True
+    If true, the index of all types not in `allowable_set` is `len(allowable_set)`.
+
+  Returns
+  -------
+  List[float]
+    A one-hot vector of implicit valence an atom has.
+    If `include_unknown_set` is False, the length is `len(allowable_set)`.
+    If `include_unknown_set` is True, the length is `len(allowable_set) + 1`.
+
+  """
+  return one_hot_encode(atom.GetImplicitValence(), allowable_set,
+                        include_unknown_set)
+
+
+def get_atom_explicit_valence_one_hot(
+    atom: RDKitAtom,
+    allowable_set: List[int] = DEFAULT_ATOM_EXPLICIT_VALENCE_SET,
+    include_unknown_set: bool = True) -> List[float]:
+  """Get an one-hot feature of explicit valence of an atom.
+
+  Parameters
+  ---------
+  atom: rdkit.Chem.rdchem.Atom
+    RDKit atom object
+  allowable_set: List[int]
+    Atom implicit valence to consider. The default set is `[0, 1, ..., 6]`
+  include_unknown_set: bool, default True
+    If true, the index of all types not in `allowable_set` is `len(allowable_set)`.
+
+  Returns
+  -------
+  List[float]
+    A one-hot vector of explicit valence an atom has.
+    If `include_unknown_set` is False, the length is `len(allowable_set)`.
+    If `include_unknown_set` is True, the length is `len(allowable_set) + 1`.
+
+  """
+  return one_hot_encode(atom.GetExplicitValence(), allowable_set,
                         include_unknown_set)
 
 
