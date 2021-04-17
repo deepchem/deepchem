@@ -218,6 +218,8 @@ class AdamW(Optimizer):
       a parameter of the Adam algorithm
     epsilon: float
       a parameter of the Adam algorithm
+    amsgrad: bool
+      If True, will use the AMSGrad variant of AdamW (from "On the Convergence of Adam and Beyond"), else will use the original algorithm.
     """
     super(AdamW, self).__init__(learning_rate)
     self.weight_decay = weight_decay
