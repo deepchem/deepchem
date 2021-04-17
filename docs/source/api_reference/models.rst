@@ -235,6 +235,9 @@ Optimizers
 .. autoclass:: deepchem.models.optimizers.Adam
   :members:
 
+.. autoclass:: deepchem.models.optimizers.AdamW
+  :members:
+
 .. autoclass:: deepchem.models.optimizers.RMSProp
   :members:
 
