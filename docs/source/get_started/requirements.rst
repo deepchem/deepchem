@@ -122,7 +122,7 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `Tensorflow Addons`_           | latest        | :code:`dc.models.optimizers`                      |
+| `Tensorflow Addons`_           | latest        | :code:`dc.models.optimizers.AdamW`                |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
