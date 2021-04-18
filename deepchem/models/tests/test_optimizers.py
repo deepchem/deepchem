@@ -47,7 +47,7 @@ class TestOptimizers(unittest.TestCase):
     tfopt = opt._create_tf_optimizer(global_step)
     assert isinstance(tfopt, tfa.optimizers.AdamW)
 
-  @unittest.skipIf(not has_tensorflow_addons, 'TensorFlow Addons is not installed')
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_adamw_pytorch(self):
     """Test creating an AdamW optimizer."""
     opt = optimizers.AdamW(learning_rate=0.01)
