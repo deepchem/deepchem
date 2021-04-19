@@ -39,7 +39,7 @@ Amazon Web Services
 DeepChem's website infrastructure is all managed on AWS through different AWS
 services. All DeepChem developers have access to these services through the
 deepchem-developers IAM role. (An IAM role controls access permissions.) At
-present, @rbharath is the only developer with access to the IAM role, but
+present, @rbharath is the only developer with admin access to the IAM role, but
 longer term we should migrate this so other folks have access to the roles.
 
 S3
@@ -48,8 +48,9 @@ S3
 Amazon's S3 allows for storage of data on "buckets" (Think of buckets like folders.)
 There are two core deepchem S3 buckets:
 
-  - deepchemdata: This bucket hosts the deepchem.io website, MoleculeNet datasets, pre-featurized datasets, 
-    and pretrained models. This bucket is set up to host a static website (at `static`_).
+  - deepchemdata: This bucket hosts the MoleculeNet datasets, pre-featurized datasets, 
+    and pretrained models. This bucket was set up to host a static website (at `static`_),
+    which is no longer in use and will be removed.
 
   - deepchemforum: This bucket hosts backups for the forums. The bucket is private for security reasons.
     The forums themselves are hosted on a digital ocean instance that only @rbharath currently has access to.
@@ -70,13 +71,13 @@ Certificate Manager
 The AWS certificate manager issues the SSL/TLS certificate for the
 \*.deepchem.io and deepchem.io domains.
 
-
-Cloudfront
+GitHub Pages
 ^^^^^^^^^^
-We make use of a cloudfront distribution to serve our static website. The
-cloudfront distribution connects to the certificate in Certificate Manager and
-uses the deepchemdata bucket as the origin domain. We set CNAME for
-www.deepchem.io and deepchem.io
+We make use of GitHub Pages to serve our static website. GitHub Pages
+connects to the certificate in Certificate Manager. We set CNAME for
+www.deepchem.io, and an A-record for deepchem.io.
+
+The GitHub Pages repository is [deepchem/deepchem.github.io](https://github.com/deepchem/deepchem.github.io).
 
 GoDaddy
 -------
