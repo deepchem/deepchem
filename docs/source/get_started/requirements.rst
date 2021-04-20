@@ -122,6 +122,10 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `Tensorflow Addons`_           | latest        | :code:`dc.models.optimizers`                      |
+|                                |               |                                                   |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
           
 .. _`joblib`: https://pypi.python.org/pypi/joblib
 .. _`NumPy`: https://numpy.org/
@@ -153,3 +157,4 @@ DeepChem has a number of "soft" requirements.
 .. _`Tensorflow Probability`: https://www.tensorflow.org/probability
 .. _`Weights & Biases`: https://docs.wandb.com/
 .. _`XGBoost`: https://xgboost.readthedocs.io/en/latest/
+.. _`Tensorflow Addons`: https://www.tensorflow.org/addons
