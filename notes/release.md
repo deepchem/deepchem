@@ -56,4 +56,4 @@ After pushing a new tag, we go to [the project page](https://readthedocs.org/pro
 ## Website
 
 We should manually modify the DeepChem website's installation instructions after each new stable release.
-This can be done by modifying the text strings in the jQuery code at the bottom of deepchem.io/website/index.html. When the changes are pushed to github.com/deepchem/deepchem.io, the website will automatically update.
+This can be done by modifying the text strings in the jQuery code at the bottom of github.com/deepchem.github.io/index.html. When the changes are pushed to github.com/deepchem/deepchem.github.io, the website will automatically update.
