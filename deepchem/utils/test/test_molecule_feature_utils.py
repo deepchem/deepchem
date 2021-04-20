@@ -11,6 +11,8 @@ from deepchem.utils.molecule_feature_utils import get_atom_chirality_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_formal_charge
 from deepchem.utils.molecule_feature_utils import get_atom_partial_charge
 from deepchem.utils.molecule_feature_utils import get_atom_total_degree_one_hot
+from deepchem.utils.molecule_feature_utils import get_atom_implicit_valence_one_hot
+from deepchem.utils.molecule_feature_utils import get_atom_explicit_valence_one_hot
 from deepchem.utils.molecule_feature_utils import get_bond_type_one_hot
 from deepchem.utils.molecule_feature_utils import get_bond_is_in_same_ring_one_hot
 from deepchem.utils.molecule_feature_utils import get_bond_is_conjugated_one_hot
@@ -138,6 +140,26 @@ class TestGraphConvUtils(unittest.TestCase):
 
     assert atoms[3].GetSymbol() == "O"
     one_hot = get_atom_total_degree_one_hot(atoms[3])
+    assert one_hot == [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+  def test_get_atom_implicit_valence_one_hot(self):
+    atoms = self.mol.GetAtoms()
+    assert atoms[0].GetSymbol() == "C"
+    one_hot = get_atom_implicit_valence_one_hot(atoms[0])
+    assert one_hot == [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]
+
+    assert atoms[3].GetSymbol() == "O"
+    one_hot = get_atom_implicit_valence_one_hot(atoms[3])
+    assert one_hot == [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+  def test_get_atom_explicit_valence_one_hot(self):
+    atoms = self.mol.GetAtoms()
+    assert atoms[0].GetSymbol() == "C"
+    one_hot = get_atom_explicit_valence_one_hot(atoms[0])
+    assert one_hot == [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+    assert atoms[3].GetSymbol() == "O"
+    one_hot = get_atom_explicit_valence_one_hot(atoms[3])
     assert one_hot == [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
   def test_get_bond_type_one_hot(self):

@@ -162,3 +162,28 @@ class TestRdkitUtil(unittest.TestCase):
 
   def test_strip_hydrogens(self):
     pass
+
+  def test_all_shortest_pairs(self):
+    from rdkit import Chem
+    mol = Chem.MolFromSmiles("CN=C=O")
+    valid_dict = {
+        (0, 1): (0, 1),
+        (0, 2): (0, 1, 2),
+        (0, 3): (0, 1, 2, 3),
+        (1, 2): (1, 2),
+        (1, 3): (1, 2, 3),
+        (2, 3): (2, 3)
+    }
+    assert rdkit_utils.compute_all_pairs_shortest_path(mol) == valid_dict
+
+  def test_pairwise_ring_info(self):
+    from rdkit import Chem
+    mol = Chem.MolFromSmiles("c1ccccc1")
+    predict_dict = rdkit_utils.compute_pairwise_ring_info(mol)
+    assert all(pair == [(6, True)] for pair in predict_dict.values())
+    mol = Chem.MolFromSmiles("c1c2ccccc2ccc1")
+    predict_dict = rdkit_utils.compute_pairwise_ring_info(mol)
+    assert all(pair == [(6, True)] for pair in predict_dict.values())
+    mol = Chem.MolFromSmiles("CN=C=O")
+    predict_dict = rdkit_utils.compute_pairwise_ring_info(mol)
+    assert not predict_dict
