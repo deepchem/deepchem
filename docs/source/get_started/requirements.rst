@@ -157,4 +157,4 @@ DeepChem has a number of "soft" requirements.
 .. _`Tensorflow Probability`: https://www.tensorflow.org/probability
 .. _`Weights & Biases`: https://docs.wandb.com/
 .. _`XGBoost`: https://xgboost.readthedocs.io/en/latest/
-.. _`Tensorflow Addons`: https://www.tensorflow.org/addons
+.. _`Tensorflow Addons`: https://www.tensorflow.org/addons/overview
