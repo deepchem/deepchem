@@ -41,6 +41,23 @@ class L1Loss(Loss):
     return torch.nn.L1Loss(reduction='none')
 
 
+class HuberLoss(Loss):
+  """Modified version of L1 Loss, also known as Smooth L1 loss.
+  Less sensitive to small errors, linear for larger errors.
+  Huber loss is generally better for cases where are are both large outliers as well as small, as compared to the L1 loss.
+  By default, Delta = 1.0 and reduction = 'none'.
+  """
+
+  def _compute_tf_loss(self, output, labels):
+    import tensorflow as tf
+    output, labels = _make_tf_shapes_consistent(output, labels)
+    return tf.keras.losses.Huber(reduction='none')(output, labels)
+
+  def _create_pytorch_loss(self):
+    import torch
+    return torch.nn.SmoothL1Loss(reduction='none')
+
+
 class L2Loss(Loss):
   """The squared difference between the true and predicted values."""
 
