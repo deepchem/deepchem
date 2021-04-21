@@ -225,7 +225,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
         edge_features=bond_features)
 
 
-class PAGTNFeaturizer(MolecularFeaturizer):
+class PagtnMolGraphFeaturizer(MolecularFeaturizer):
 
   def __init__(self, max_length=5):
 
@@ -242,7 +242,7 @@ class PAGTNFeaturizer(MolecularFeaturizer):
     self.ordered_pair = lambda a, b: (a, b) if a < b else (b, a)
     self.max_length = max_length
 
-  def PAGTNAtomFeaturizer(self, atom):
+  def PagtnAtomFeaturizer(self, atom):
     atom_type = get_atom_type_one_hot(atom, self.SYMBOLS, False)
     formal_charge = get_atom_formal_charge_one_hot(
         atom, include_unknown_set=False)
@@ -255,7 +255,7 @@ class PAGTNFeaturizer(MolecularFeaturizer):
     ])
     return atom_feat
 
-  def bond_features(self, mol, path_atoms, ring_info):
+  def _bond_features(self, mol, path_atoms, ring_info):
     """Computes the edge features for a given pair of nodes.
         Parameters
         ----------
@@ -285,7 +285,6 @@ class PAGTNFeaturizer(MolecularFeaturizer):
         features.append(np.concatenate([bond_type, conjugacy, ring_attach]))
       else:
         features.append(np.zeros(6))
-        #features.append([0, 0, 0, 0, 0, 0])
 
     if path_length + 1 > self.max_length:
       path_length = self.max_length + 1
@@ -304,7 +303,7 @@ class PAGTNFeaturizer(MolecularFeaturizer):
                       one_hot_encode(ring_info, allowable_set=self.RING_TYPES))
     return np.concatenate(features, axis=0)
 
-  def PAGTNBondFeaturizer(self, mol):
+  def PagtnBondFeaturizer(self, mol):
     """Featurizes the input molecule.
         Parameters
         ----------
@@ -335,14 +334,14 @@ class PAGTNFeaturizer(MolecularFeaturizer):
           feats.append(np.zeros(7 * self.max_length + 7))
           continue
         ring_info = rings_dict.get(self.ordered_pair(i, j), [])
-        feats.append(self.bond_features(mol, paths_dict[(i, j)], ring_info))
+        feats.append(self._bond_features(mol, paths_dict[(i, j)], ring_info))
 
     return np.array([src, dest], dtype=np.int), np.array(feats, dtype=np.float)
 
   def _featurize(self, mol):
     node_features = np.asarray(
-        [self.PAGTNAtomFeaturizer(atom) for atom in mol.GetAtoms()],
+        [self.PagtnAtomFeaturizer(atom) for atom in mol.GetAtoms()],
         dtype=np.float)
-    edge_index, edge_features = self.PAGTNBondFeaturizer(mol)
+    edge_index, edge_features = self.PagtnBondFeaturizer(mol)
     graph = GraphData(node_features, edge_index, edge_features)
     return graph
