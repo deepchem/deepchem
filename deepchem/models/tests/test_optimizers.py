@@ -39,7 +39,8 @@ class TestOptimizers(unittest.TestCase):
     torchopt = opt._create_pytorch_optimizer(params)
     assert isinstance(torchopt, torch.optim.Adam)
 
-  @unittest.skipIf(not has_tensorflow_addons, 'TensorFlow Addons is not installed')
+  @unittest.skipIf(not has_tensorflow_addons,
+                   'TensorFlow Addons is not installed')
   def test_sparseadam_tf(self):
     """Test creating a SparseAdam optimizer."""
     opt = optimizers.SparseAdam(learning_rate=0.01)
