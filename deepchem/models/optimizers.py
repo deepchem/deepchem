@@ -409,3 +409,50 @@ class LinearCosineDecay(LearningRateSchedule):
 
     import torch
     return torch.optim.lr_scheduler.LambdaLR(optimizer, f)
+
+class ReduceLRonPlateau(LearningRateSchedule):
+  """Reduces the Learning Rate when the chosen metric has stopped improving."""
+
+  def __init__(self,
+               initial_rate: float,
+               decay_steps: int,
+               alpha: float = 0.0,
+               beta: float = 0.001,
+               num_periods: float = 0.5):
+    """
+    Parameters
+    ----------
+    learning_rate : float
+    initial learning rate
+    decay_steps : int
+    number of steps to decay over
+    num_periods : number of periods in the cosine part of the decay
+    """
+
+    self.initial_rate = initial_rate
+    self.decay_steps = decay_steps
+    self.alpha = alpha
+    self.beta = beta
+    self.num_periods = num_periods
+
+  def _create_tf_tensor(self, global_step):
+    import tensorflow as tf
+    return tf.compat.v1.train.linear_cosine_decay(
+        learning_rate=self.initial_rate,
+        global_step=global_step,
+        decay_steps=self.decay_steps,
+        alpha=self.alpha,
+        beta=self.beta,
+        num_periods=self.num_periods)
+
+  def _create_pytorch_schedule(self, optimizer):
+
+    def f(step):
+      t = min(step, self.decay_steps) / self.decay_steps
+      linear_decay = 1 - t
+      cosine_decay = 0.5 * (1 + math.cos(math.pi * 2 * self.num_periods * t))
+      decayed = (self.alpha + linear_decay) * cosine_decay + self.beta
+      return self.initial_rate * decayed
+
+    import torch
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, f)
