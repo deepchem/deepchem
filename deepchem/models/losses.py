@@ -97,7 +97,7 @@ class HingeLoss(Loss):
 class SquaredHingeLoss(Loss):
   """The Squared Hinge loss function.
   
-  Defined as the square of the hinge loss between y_true and y_pred.
+  Defined as the square of the hinge loss between y_true and y_pred. The Squared Hinge Loss is also differentiable.
   """
 
   def _compute_tf_loss(self, output, labels):
