@@ -23,8 +23,8 @@ class Pagtn(nn.Module):
 
   def __init__(self,
                n_tasks: int,
-               number_atom_features: int,
-               number_bond_features: int,
+               number_atom_features: int = 94,
+               number_bond_features: int = 42,
                mode: str = 'regression',
                n_classes: int = 2,
                ouput_node_features: int = 256,
@@ -92,3 +92,56 @@ class Pagtn(nn.Module):
       return proba, logits
     else:
       return out
+
+
+class PagtnModel(TorchModel):
+  """Model for Graph Property Prediction.
+
+    """
+
+  def __init__(self,
+               n_tasks: int,
+               number_atom_features: int = 94,
+               number_bond_features: int = 42,
+               mode: str = 'regression',
+               n_classes: int = 2,
+               num_layers: int = 5,
+               num_heads: int = 1,
+               dropout: float = 0.1,
+               pool_mode: str = 'sum',
+               **kwargs):
+    """
+        """
+    model = Pagtn(
+        n_tasks=n_tasks,
+        number_atom_features=number_atom_features,
+        number_bond_features=number_bond_features,
+        mode=mode,
+        n_classes=n_classes,
+        num_layers=num_layers,
+        num_heads=num_heads,
+        dropout=dropout,
+        pool_mode=pool_mode)
+    if mode == 'regression':
+      loss: Loss = L2Loss()
+      output_types = ['prediction']
+    else:
+      loss = SparseSoftmaxCrossEntropy()
+      output_types = ['prediction', 'loss']
+    super(PagtnModel, self).__init__(
+        model, loss=loss, output_types=output_types, **kwargs)
+
+  def _prepare_batch(self, batch):
+    try:
+      import dgl
+    except:
+      raise ImportError('This class requires dgl.')
+
+    inputs, labels, weights = batch
+    dgl_graphs = [
+        graph.to_dgl_graph(self_loop=self._self_loop) for graph in inputs[0]
+    ]
+    inputs = dgl.batch(dgl_graphs).to(self.device)
+    _, labels, weights = super(PagtnModel, self)._prepare_batch(([], labels,
+                                                                 weights))
+    return inputs, labels, weights
