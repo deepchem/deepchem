@@ -626,7 +626,7 @@ class KerasModel(Model):
           output_values = [output_values]
         else:
           output_values = self._compute_model(inputs)
-          if isinstance(output_values, tf.Tensor):
+          if tf.is_tensor(output_values):
             output_values = [output_values]
           output_values = [t.numpy() for t in output_values]
 

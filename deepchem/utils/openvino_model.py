@@ -4,7 +4,7 @@ import sys
 import itertools
 import subprocess
 
-from typing import Any, Iterable, List, Tuple
+from typing import Any, Iterable, List, Tuple, Union
 
 import numpy as np
 
@@ -13,10 +13,58 @@ from tensorflow.python.framework.convert_to_constants import convert_variables_t
 
 try:
   import mo_tf
-  from openvino.inference_engine import IECore, StatusCode, ExecutableNetwork
+  from openvino.inference_engine import IECore, StatusCode, ExecutableNetwork, IENetwork
   is_available = True
 except:
   is_available = False
+
+
+def softplus(x):
+  import torch
+  return torch.where(x < np.log(np.finfo(np.float32).max),
+                     torch.log(torch.exp(x) + 1), x)
+
+
+def get_cgcnn_ov(args):
+  import torch.nn as nn
+
+  class CGCNN_OV(nn.Module):
+    """Version of Crystal Graph Convolutional Neural Network (CGCNN) adapted for conversion to IR."""
+
+    def __init__(self, cgcnn_model):
+      super().__init__()
+      self.model = cgcnn_model
+      self.model.pooling = self.pooling
+      self.model.graph = None
+
+    def forward(self, inputs):
+      import torch
+      from deepchem.models.torch_models.cgcnn import CGCNNLayer
+      CGCNNLayer.origin_message_func = CGCNNLayer.message_func
+      graph = self.model.graph
+
+      def message_func(self, edges):
+        srcdata = graph._node_frames[0].subframe(inputs[2])['x']
+        dstdata = graph._node_frames[0].subframe(inputs[3])['x']
+
+        from collections import namedtuple
+        Edges = namedtuple('Edges', ['src', 'dst', 'data'])
+        new_edges = Edges({'x': srcdata}, {'x': dstdata}, edges.data)
+        return self.origin_message_func(new_edges)
+
+      CGCNNLayer.message_func = message_func
+      return self.model.forward(self.model.graph)
+
+    def pooling(self, graph, feat, weight=None, *, op='sum', ntype=None):
+      x = graph.nodes[ntype].data[feat]
+
+      if weight is not None:
+        x = x * graph.nodes[ntype].data[weight]
+
+      value = x.view(-1, graph.batch_num_nodes(ntype)[0], x.shape[1])
+      return value.mean(1)
+
+  return CGCNN_OV(args)
 
 
 class OpenVINOModel:
@@ -70,6 +118,9 @@ class OpenVINOModel:
     self._model_dir = model_dir
     self._batch_size = batch_size
     self._outputs: List = []
+    self._last_input_shapes: dict = {}
+    self._net: IENetwork = None
+    self._input_names: List = []
 
   def _read_torch_model(self, generator: Iterable[Tuple[Any, Any, Any]]):
     """
@@ -79,18 +130,46 @@ class OpenVINOModel:
     NOTE: We do not load model in __init__ method because of training.
     """
     import torch
+    import torch.nn.functional as F
 
     # We need to serialize ONNX model with real input shape.
     # So we create a copy of the generator to take first input.
     generator_copy, generator = itertools.tee(generator, 2)
     inputs, _, _ = next(generator_copy)
-    assert (len(inputs) == 1), 'Not implemented'
-    inp_shape = list(inputs[0].shape)
-    inp_shape[0] = self._batch_size
+
+    inp: Union[torch.Tensor, List]
+    if (type(self._torch_model).__name__ == 'CGCNNModel'):
+      # Create Graph object
+      inputs, _, _ = self._torch_model._prepare_batch((inputs, None, None))
+
+      u, v = inputs.edges(form='uv')
+      node_feats = inputs.ndata['x']
+      edge_feats = inputs.edata['edge_attr']
+      inp = [node_feats, edge_feats, u, v]
+      self._input_names = ['node_feats', 'edge_feats', 'u', 'v']
+
+      assert (self._batch_size == 1), 'Not implemented'
+
+      torch_model = get_cgcnn_ov(self._torch_model.model)
+      torch_model.model.graph = inputs
+    else:
+      assert (len(inputs) == 1), 'Not implemented'
+      inp_shape = list(inputs[0].shape)
+      inp = torch.randn(inp_shape)
+      self._input_names = ['input']
+
+      torch_model = self._torch_model.model
+
+    # There is a bug in OpenVINO for Softplus
+    # It will be fixed with this changes: https://github.com/openvinotoolkit/openvino/pull/4932
+    torch_softplus = F.softplus
+    F.softplus = softplus
 
     buf = io.BytesIO()
-    inp = torch.randn(inp_shape)
-    torch.onnx.export(self._torch_model.model, inp, buf, opset_version=11)
+    torch.onnx.export(
+        torch_model, inp, buf, input_names=self._input_names, opset_version=11)
+
+    F.softplus = torch_softplus
 
     # Import network from memory buffer
     return self._ie.read_network(buf.getvalue(), b'', init_from_buffer=True), \
@@ -157,6 +236,7 @@ class OpenVINOModel:
     elif self._torch_model is not None:
       net, generator = self._read_torch_model(generator)
 
+    self._net = net
     # Load network to the device
     self._exec_net = self._ie.load_network(
         net,
@@ -183,9 +263,7 @@ class OpenVINOModel:
     if not self._exec_net:
       generator = self._load_model(generator)
 
-    assert (len(self._exec_net.input_info) == 1), 'Not implemented'
     assert (len(self._exec_net.outputs) == 1), 'Not implemented'
-    inp_name = next(iter(self._exec_net.input_info.keys()))
     out_name = next(iter(self._exec_net.outputs.keys()))
 
     infer_request_input_id = [-1] * len(self._exec_net.requests)
@@ -200,17 +278,41 @@ class OpenVINOModel:
         inputs, _, _ = self._keras_model._prepare_batch((inputs, None, None))
       elif self._torch_model is not None:
         inputs, _, _ = self._torch_model._prepare_batch((inputs, None, None))
-      inputs = inputs[0]
 
-      # Last batch size may be less or equal than overall batch size.
-      # Pad extra values by zeros and cut at the end.
-      last_batch_size = inputs.shape[0]
-      if last_batch_size != self._batch_size:
-        assert (last_batch_size < self._batch_size)
-        inp = np.zeros(
-            [self._batch_size] + list(inputs.shape[1:]), dtype=np.float32)
-        inp[:last_batch_size] = inputs
-        inputs = inp
+      if (type(self._torch_model).__name__ == 'CGCNNModel'):
+        self._torch_model.model.graph = inputs
+        u, v = inputs.edges(form='uv')
+        node_feats = inputs.ndata['x']
+        edge_feats = inputs.edata['edge_attr']
+        inputs = [node_feats, edge_feats, u, v]
+      else:
+        assert (len(self._exec_net.input_info) == 1), 'Not implemented'
+
+      # For TF models
+      if (len(self._input_names) == 0):
+        self._input_names = list(self._exec_net.input_info.keys())
+
+      self._last_input_shapes = {
+          name: list(inp.shape) for name, inp in zip(self._input_names, inputs)
+      }
+      is_inp_reshape = False
+
+      for i, name in enumerate(self._input_names):
+        if self._last_input_shapes[name] != self._net.inputs[name].shape:
+          assert (self._last_input_shapes[name] < self._net.inputs[name].shape)
+
+          pad = [(0, self._net.inputs[name].shape[j] -
+                  self._last_input_shapes[name][j])
+                 for j in range(len(self._net.inputs[name].shape))]
+          inputs[i] = np.pad(inputs[i], pad_width=pad, mode='constant')
+
+          is_inp_reshape = True
+
+      if len(self._input_names) != len(inputs):
+        sys.exit('Error: number of input names is ' \
+                  + str(len(self._input_names)) + ', but number of inputs is ' + str(len(inputs)))
+
+      inp_dict = dict(zip(self._input_names, inputs))
 
       # Get idle infer request
       infer_request_id = self._exec_net.get_idle_request_id()
@@ -232,7 +334,7 @@ class OpenVINOModel:
       infer_request_input_id[infer_request_id] = inp_id
 
       self._outputs.append(None)
-      request.async_infer({inp_name: inputs})
+      request.async_infer(inp_dict)
 
     # Copy rest of outputs
     status = self._exec_net.wait()
@@ -243,10 +345,12 @@ class OpenVINOModel:
         request = self._exec_net.requests[infer_request_id]
         output = request.output_blobs[out_name].buffer
         if out_id == len(self._outputs) - 1:
-          self._outputs[out_id] = output[:last_batch_size]
+          if is_inp_reshape:
+            self._net.reshape(self._last_input_shapes)
+          last_size = self._net.outputs[out_name].shape[0]
+          self._outputs[out_id] = output[:last_size]
         else:
           self._outputs[out_id] = output
-
     return self, generator
 
   def __next__(self):

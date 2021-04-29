@@ -2,11 +2,53 @@ import pytest
 import numpy as np
 import tensorflow as tf
 import torch
+import os
 
 import deepchem as dc
-from deepchem.molnet import load_tox21
+from deepchem.molnet import load_tox21, load_perovskite
 from deepchem.data import NumpyDataset
 from deepchem.models.torch_models import TorchModel
+
+
+def test_cgcnn_regression():
+  np.random.seed(123)
+  torch.manual_seed(124)
+
+  # load datasets
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  config = {
+      "reload": False,
+      "featurizer": dc.feat.CGCNNFeaturizer(),
+      # disable transformer
+      "transformers": [],
+      "data_dir": current_dir
+  }
+
+  tasks, datasets, transformers = load_perovskite(**config)
+  train, valid, _ = datasets
+  n_tasks = len(tasks)
+
+  def init(**kwargs):
+    torch.manual_seed(124)
+    return dc.models.CGCNNModel(
+        n_tasks=n_tasks,
+        mode='regression',
+        batch_size=1,
+        learning_rate=0.001,
+        **kwargs)
+
+  ref_model = init()
+  model = init(use_openvino=True)
+
+  # check overfit
+  metric = dc.metrics.Metric(dc.metrics.mae_score, n_tasks=n_tasks)
+  ref_scores = ref_model.evaluate(train, [metric], transformers)
+  scores = model.evaluate(train, [metric], transformers)
+
+  if os.path.exists(os.path.join(current_dir, 'perovskite.json')):
+    os.remove(os.path.join(current_dir, 'perovskite.json'))
+
+  assert abs(scores['mae_score'] - ref_scores['mae_score']) < 0.2
 
 
 def test_tox21_tf_progressive():
@@ -35,6 +77,7 @@ def test_tox21_tf_progressive():
 
   ref_scores = ref_model.evaluate(valid_dataset, [metric], transformers)
   scores = model.evaluate(valid_dataset, [metric], transformers)
+
   assert scores['mean-roc_auc_score'] == pytest.approx(
       ref_scores['mean-roc_auc_score'], 1e-5)
   assert model._openvino_model.is_available()
