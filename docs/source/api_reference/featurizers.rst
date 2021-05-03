@@ -74,6 +74,13 @@ MolGraphConvFeaturizer
   :members:
   :inherited-members:
 
+PagtnMolGraphFeaturizer
+**********************
+
+.. autoclass:: deepchem.feat.PagtnMolGraphFeaturizer
+  :members:
+  :inherited-members:
+
 Utilities
 *********
 

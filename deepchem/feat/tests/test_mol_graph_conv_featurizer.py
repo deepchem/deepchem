@@ -1,6 +1,7 @@
 import unittest
 
 from deepchem.feat import MolGraphConvFeaturizer
+from deepchem.feat import PagtnMolGraphFeaturizer
 
 
 class TestMolGraphConvFeaturizer(unittest.TestCase):
@@ -70,3 +71,24 @@ class TestMolGraphConvFeaturizer(unittest.TestCase):
     assert graph_feat[1].num_nodes == 22
     assert graph_feat[1].num_node_features == 31
     assert graph_feat[1].num_edges == 44
+
+
+class TestPagtnMolGraphConvFeaturizer(unittest.TestCase):
+
+  def test_default_featurizer(self):
+    smiles = ["C1=CC=CN=C1", "O=C(NCc1cc(OC)c(O)cc1)CCCC/C=C/C(C)C"]
+    featurizer = PagtnMolGraphFeaturizer(max_length=5)
+    graph_feat = featurizer.featurize(smiles)
+    assert len(graph_feat) == 2
+
+    # assert "C1=CC=CN=C1"
+    assert graph_feat[0].num_nodes == 6
+    assert graph_feat[0].num_node_features == 94
+    assert graph_feat[0].num_edges == 36
+    assert graph_feat[0].num_edge_features == 42
+
+    # assert "O=C(NCc1cc(OC)c(O)cc1)CCCC/C=C/C(C)C"
+    assert graph_feat[1].num_nodes == 22
+    assert graph_feat[1].num_node_features == 94
+    assert graph_feat[1].num_edges == 484
+    assert graph_feat[0].num_edge_features == 42

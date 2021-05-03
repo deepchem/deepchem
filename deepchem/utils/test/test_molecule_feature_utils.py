@@ -9,6 +9,8 @@ from deepchem.utils.molecule_feature_utils import get_atom_total_num_Hs_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_is_in_aromatic_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_chirality_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_formal_charge
+from deepchem.utils.molecule_feature_utils import get_atom_formal_charge_one_hot
+
 from deepchem.utils.molecule_feature_utils import get_atom_partial_charge
 from deepchem.utils.molecule_feature_utils import get_atom_total_degree_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_implicit_valence_one_hot
@@ -118,6 +120,12 @@ class TestGraphConvUtils(unittest.TestCase):
     assert atoms[0].GetSymbol() == "C"
     formal_charge = get_atom_formal_charge(atoms[0])
     assert formal_charge == [0.0]
+
+  def test_get_atom_formal_charge_one_hot(self):
+    atoms = self.mol.GetAtoms()
+    assert atoms[0].GetSymbol() == "C"
+    formal_charge = get_atom_formal_charge_one_hot(atoms[0])
+    assert formal_charge == [0.0, 0.0, 1.0, 0.0, 0.0, 0.0]
 
   def test_get_atom_partial_charge(self):
     from rdkit.Chem import AllChem

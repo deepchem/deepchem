@@ -30,6 +30,7 @@ DEFAULT_ATOM_TYPE_SET = [
 ]
 DEFAULT_HYBRIDIZATION_SET = ["SP", "SP2", "SP3"]
 DEFAULT_TOTAL_NUM_Hs_SET = [0, 1, 2, 3, 4]
+DEFAULT_FORMAL_CHARGE_SET = [-2, -1, 0, 1, 2]
 DEFAULT_TOTAL_DEGREE_SET = [0, 1, 2, 3, 4, 5]
 DEFAULT_RING_SIZE_SET = [3, 4, 5, 6, 7, 8]
 DEFAULT_BOND_TYPE_SET = ["SINGLE", "DOUBLE", "TRIPLE", "AROMATIC"]
@@ -306,6 +307,31 @@ def get_atom_formal_charge(atom: RDKitAtom) -> List[float]:
     A vector of the formal charge.
   """
   return [float(atom.GetFormalCharge())]
+
+
+def get_atom_formal_charge_one_hot(
+    atom: RDKitAtom,
+    allowable_set: List[int] = DEFAULT_FORMAL_CHARGE_SET,
+    include_unknown_set: bool = True) -> List[float]:
+  """Get one hot encoding of formal charge of an atom.
+
+  Parameters
+  ---------
+  atom: rdkit.Chem.rdchem.Atom
+    RDKit atom object
+  allowable_set: List[int]
+    The degree to consider. The default set is `[-2, -1, ..., 2]`
+  include_unknown_set: bool, default True
+    If true, the index of all types not in `allowable_set` is `len(allowable_set)`.
+
+
+  Returns
+  -------
+  List[float]
+    A vector of the formal charge.
+  """
+  return one_hot_encode(atom.GetFormalCharge(), allowable_set,
+                        include_unknown_set)
 
 
 def get_atom_partial_charge(atom: RDKitAtom) -> List[float]:
