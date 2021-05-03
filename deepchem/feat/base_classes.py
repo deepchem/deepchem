@@ -23,9 +23,13 @@ class Featurizer(object):
   new datatype.
   """
 
-  def featurize(self, datapoints: Iterable[Any],
-                log_every_n: int = 1000) -> np.ndarray:
+  def featurize(self,
+                datapoints: Iterable[Any],
+                log_every_n: int = 1000,
+                **kwargs) -> np.ndarray:
     """Calculate features for datapoints.
+
+    `**kwargs` will get passed directly to `Featurizer._featurize`
 
     Parameters
     ----------
@@ -47,7 +51,7 @@ class Featurizer(object):
       if i % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % i)
       try:
-        features.append(self._featurize(point))
+        features.append(self._featurize(point, **kwargs))
       except:
         logger.warning(
             "Failed to featurize datapoint %d. Appending empty array")
@@ -65,7 +69,7 @@ class Featurizer(object):
     """
     return self.featurize(datapoints)
 
-  def _featurize(self, datapoint: Any):
+  def _featurize(self, datapoint: Any, **kwargs):
     """Calculate features for a single datapoint.
 
     Parameters
