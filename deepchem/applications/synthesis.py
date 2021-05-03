@@ -93,10 +93,13 @@ class RetrosynthesisEngine:
   def find_routes(self, target: str) -> List[Dict[str, Any]]:
     """ Find routes for a given target molecule
 
-    The method will return a dictionary with tree items
-    1. Statistics on the search
-    2. The top-ranked routes as list of dictionaries
-    3. The top-ranked routes as a list of PIL images
+    The method will return a list of dictionaries, one for each route.
+    The dictionaries contain the following fields:
+      * tree: the complete tree as a dictionary
+      * scores: the computed scores for the route
+      * image: if "graphviz" is installed, this will be a PIL image of the route, otherwise None
+      * in_stock: the SMILES of the leaf molecules that are in stock
+      * not_in_stock: the SMILES of the leaf molecules that are not in stock
 
     Parameters
     ----------
