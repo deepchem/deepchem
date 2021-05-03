@@ -59,15 +59,17 @@ class Featurizer(object):
 
     return np.asarray(features)
 
-  def __call__(self, datapoints: Iterable[Any]):
+  def __call__(self, datapoints: Iterable[Any], **kwargs):
     """Calculate features for datapoints.
+
+    `**kwargs` will get passed directly to `Featurizer.featurize`
 
     Parameters
     ----------
     datapoints: Iterable[Any]
       Any blob of data you like. Subclasss should instantiate this.
     """
-    return self.featurize(datapoints)
+    return self.featurize(datapoints, **kwargs)
 
   def _featurize(self, datapoint: Any, **kwargs):
     """Calculate features for a single datapoint.
