@@ -8,6 +8,12 @@ except:
   has_tensorflow = False
 
 try:
+  import tensorflow_addons as tfa
+  has_tensorflow_addons = True
+except:
+  has_tensorflow_addons = False
+
+try:
   import torch
   has_pytorch = True
 except:
@@ -32,6 +38,23 @@ class TestOptimizers(unittest.TestCase):
     params = [torch.nn.Parameter(torch.Tensor([1.0]))]
     torchopt = opt._create_pytorch_optimizer(params)
     assert isinstance(torchopt, torch.optim.Adam)
+
+  @unittest.skipIf(not has_tensorflow_addons,
+                   'TensorFlow Addons is not installed')
+  def test_sparseadam_tf(self):
+    """Test creating a SparseAdam optimizer."""
+    opt = optimizers.SparseAdam(learning_rate=0.01)
+    global_step = tf.Variable(0)
+    tfopt = opt._create_tf_optimizer(global_step)
+    assert isinstance(tfopt, tfa.optimizers.LazyAdam)
+
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  def test_sparseadam_pytorch(self):
+    """Test creating a SparseAdam optimizer."""
+    opt = optimizers.SparseAdam(learning_rate=0.01)
+    params = [torch.nn.Parameter(torch.Tensor([1.0]))]
+    torchopt = opt._create_pytorch_optimizer(params)
+    assert isinstance(torchopt, torch.optim.SparseAdam)
 
   @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_adagrad_tf(self):
