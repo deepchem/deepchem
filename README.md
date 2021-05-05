@@ -16,7 +16,7 @@ materials science, quantum chemistry, and biology.
 
 ### Table of contents:
 
-- [Requirements](#requirements)
+- [Requirements](#requirements) 
 - [Installation](#installation)
   - [Stable version](#stable-version)
   - [Nightly build version](#nightly-build-version)
@@ -41,7 +41,6 @@ DeepChem currently supports Python 3.6 through 3.7 and requires these packages o
   - `deepchem>=2.4.0` depends on TensorFlow v2
   - `deepchem<2.4.0` depends on TensorFlow v1
 - [Tensorflow Addons](https://www.tensorflow.org/addons) for Tensorflow v2 if you want to use advanced optimizers such as AdamW and Sparse Adam. (Optional)
-
 
 ### Soft Requirements
 
