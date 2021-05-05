@@ -202,6 +202,7 @@ class SparseAdam(Optimizer):
                beta2: float = 0.999,
                epsilon: float = 1e-08):
     """Construct an Adam optimizer.
+    
     Parameters
     ----------
     learning_rate: float or LearningRateSchedule

@@ -16,7 +16,7 @@ materials science, quantum chemistry, and biology.
 
 ### Table of contents:
 
-- [Requirements](#requirements) 
+- [Requirements](#requirements)
 - [Installation](#installation)
   - [Stable version](#stable-version)
   - [Nightly build version](#nightly-build-version)
