@@ -190,6 +190,57 @@ class Adam(Optimizer):
     return torch.optim.Adam(params, lr, (self.beta1, self.beta2), self.epsilon)
 
 
+class SparseAdam(Optimizer):
+  """The Sparse Adam optimization algorithm, also known as Lazy Adam.
+  Sparse Adam is suitable for sparse tensors. It handles sparse updates more efficiently. 
+  It only updates moving-average accumulators for sparse variable indices that appear in the current batch, rather than updating the accumulators for all indices.
+  """
+
+  def __init__(self,
+               learning_rate: Union[float, LearningRateSchedule] = 0.001,
+               beta1: float = 0.9,
+               beta2: float = 0.999,
+               epsilon: float = 1e-08):
+    """Construct an Adam optimizer.
+    Parameters
+    ----------
+    learning_rate: float or LearningRateSchedule
+      the learning rate to use for optimization
+    beta1: float
+      a parameter of the SparseAdam algorithm
+    beta2: float
+      a parameter of the SparseAdam algorithm
+    epsilon: float
+      a parameter of the SparseAdam algorithm
+    """
+    super(SparseAdam, self).__init__(learning_rate)
+    self.beta1 = beta1
+    self.beta2 = beta2
+    self.epsilon = epsilon
+
+  def _create_tf_optimizer(self, global_step):
+    import tensorflow as tf
+    import tensorflow_addons as tfa
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      learning_rate = self.learning_rate._create_tf_tensor(global_step)
+    else:
+      learning_rate = self.learning_rate
+    return tfa.optimizers.LazyAdam(
+        learning_rate=learning_rate,
+        beta_1=self.beta1,
+        beta_2=self.beta2,
+        epsilon=self.epsilon)
+
+  def _create_pytorch_optimizer(self, params):
+    import torch
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      lr = self.learning_rate.initial_rate
+    else:
+      lr = self.learning_rate
+    return torch.optim.SparseAdam(params, lr, (self.beta1, self.beta2),
+                                  self.epsilon)
+
+
 class AdamW(Optimizer):
   """The AdamW optimization algorithm.
   AdamW is a variant of Adam, with improved weight decay.
@@ -205,7 +256,6 @@ class AdamW(Optimizer):
                epsilon: float = 1e-08,
                amsgrad: bool = False):
     """Construct an AdamW optimizer.
-
     Parameters
     ----------
     learning_rate: float or LearningRateSchedule
