@@ -193,6 +193,9 @@ Losses
 .. autoclass:: deepchem.models.losses.HingeLoss
   :members:
 
+.. autoclass:: deepchem.models.losses.PoissonLoss
+  :members:
+
 .. autoclass:: deepchem.models.losses.BinaryCrossEntropy
   :members:
 
@@ -232,6 +235,9 @@ Optimizers
 .. autoclass:: deepchem.models.optimizers.Adam
   :members:
 
+.. autoclass:: deepchem.models.optimizers.AdamW
+  :members:
+  
 .. autoclass:: deepchem.models.optimizers.SparseAdam
   :members:
 

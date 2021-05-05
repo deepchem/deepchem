@@ -103,7 +103,7 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `RDKit`_                       | latest        | Many modules                                      |
-|                                |               | (we recommend you to instal)                      |
+|                                |               | (we recommend you to install)                     |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `simdna`_                      | latest        | :code:`dc.metrics.genomic_metrics`,               |
