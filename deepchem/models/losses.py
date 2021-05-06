@@ -94,6 +94,27 @@ class HingeLoss(Loss):
     return loss
 
 
+class PoissonLoss(Loss):
+  """The Poisson loss function is defined as the mean of the elements of y_pred - (y_true * log(y_pred) for an input of (y_true, y_pred).
+  Poisson loss is generally used for regression tasks where the data follows the poisson
+  """
+
+  def _compute_tf_loss(self, output, labels):
+    import tensorflow as tf
+    output, labels = _make_tf_shapes_consistent(output, labels)
+    loss = tf.keras.losses.Poisson(reduction='auto')
+    return loss(labels, output)
+
+  def _create_pytorch_loss(self):
+    import torch
+
+    def loss(output, labels):
+      output, labels = _make_pytorch_shapes_consistent(output, labels)
+      return torch.mean(output - labels * torch.log(output))
+
+    return loss
+
+
 class BinaryCrossEntropy(Loss):
   """The cross entropy between pairs of probabilities.
 
