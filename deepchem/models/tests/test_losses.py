@@ -118,6 +118,25 @@ class TestLosses(unittest.TestCase):
     expected = [np.mean([0.8100, 3.2400]), np.mean([1.9600, 0.1600])]
     assert np.allclose(expected, result)
 
+  def test_poisson_loss_tf(self):
+    """Test PoissonLoss."""
+    loss = losses.PoissonLoss()
+    outputs = tf.constant([[0.1, 0.8], [0.4, 0.6]])
+    labels = tf.constant([[0.0, 1.0], [1.0, 0.0]])
+    result = loss._compute_tf_loss(outputs, labels).numpy()
+    expected = 0.75986
+    assert np.allclose(expected, result)
+
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  def test_poisson_loss_pytorch(self):
+    """Test PoissonLoss."""
+    loss = losses.PoissonLoss()
+    outputs = torch.tensor([[0.1, 0.8], [0.4, 0.6]])
+    labels = torch.tensor([[0.0, 1.0], [1.0, 0.0]])
+    result = loss._create_pytorch_loss()(outputs, labels).numpy()
+    expected = 0.75986
+    assert np.allclose(expected, result)
+
   @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_binary_cross_entropy_tf(self):
     """Test BinaryCrossEntropy."""
