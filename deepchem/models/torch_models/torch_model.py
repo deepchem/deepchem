@@ -1,8 +1,11 @@
 import numpy as np
 import torch
-import torch.utils.tensorboard
+import pytorch_lightning as pl
+import wandb
+import warnings
+from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.callbacks import ModelCheckpoint
 import time
-import logging
 import os
 try:
   from collections.abc import Sequence as SequenceCollection
@@ -19,43 +22,83 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
+#wandb.login()
+warnings.filterwarnings('ignore')
 
-try:
-  import wandb
-  wandb.ensure_configured()
-  if wandb.api.api_key is None:
-    _has_wandb = False
-    wandb.termwarn(
-        "W&B installed but not logged in.  Run `wandb login` or set the WANDB_API_KEY env variable."
-    )
-  else:
-    _has_wandb = True
-except (ImportError, AttributeError):
-  _has_wandb = False
+class TorchLitModel(pl.LightningModule):
+  def __init__(self,
+               loss: Union[Loss, LossFn],
+               learning_rate: Union[float, LearningRateSchedule] = 0.001,
+               optimizer: Optional[Optimizer] = None
+               ):
+    super().__init__()
+    if isinstance(loss, Loss):
+      self._loss_fn: LossFn = _StandardLoss(loss)
+    else:
+      self._loss_fn = loss
+    if optimizer is None:
+      self.optimizer: Optimizer = Adam(learning_rate=learning_rate)
+    else:
+      self.optimizer = optimizer
+    self._loss_outputs = None
+    self.lr_scheduler = None
+    self.start_time = time.time()
+    self.outputs = []
+    self.losses = []
+    self.all_losses = None
+    
+    # log hyperparameters
+    self.save_hyperparameters()
+    
+  def configure_optimizers(self):
+    if not self.lr_scheduler:
+      return [self.optimizer]
+    return [self.optimizer], [self.lr_scheduler]
+  
+  def training_step(self, train_batch, batch_idx):
+    inputs: OneOrMany[torch.Tensor]
+    inputs, labels, weights = train_batch
 
-logger = logging.getLogger(__name__)
+    if isinstance(inputs, list) and len(inputs) == 1:
+      inputs = inputs[0]
 
-
+    self.outputs = self(inputs)
+    if isinstance(self.outputs, torch.Tensor):
+      self.outputs = [self.outputs]
+    if self._loss_outputs is not None:
+      self.outputs = [self.outputs[i] for i in self._loss_outputs]
+    batch_loss = self._loss_fn(self.outputs, labels, weights)
+    self.log('loss', batch_loss, on_step=True, prog_bar=True,on_epoch=False,logger=True)
+    return {"loss":batch_loss}
+  
+  def training_step_end(self, batch_parts):
+    if self.trainer.global_step % self.trainer.log_every_n_steps == 0:
+      avg_loss = torch.stack([batch_parts['loss'] for x in  batch_parts]).mean()
+      if self.all_losses is not None:
+            self.all_losses.append(avg_loss)
+      self.log('Ending global_step %d: Average loss' % (self.trainer.global_step), avg_loss, on_step=True,on_epoch=False, logger=True)
+  
+  def training_epoch_end(self, step_outputs):
+       if self.current_epoch==self.trainer.max_epochs-1:
+           end_time=time.time()
+           self.log("TIMING: model fitting took time in seconds",round(end_time - self.start_time,3),logger=True)
+    
 class TorchModel(Model):
   """This is a DeepChem model implemented by a PyTorch model.
-
   Here is a simple example of code that uses TorchModel to train
   a PyTorch model on a DeepChem dataset.
-
   >> pytorch_model = torch.nn.Sequential(
   >>    torch.nn.Linear(100, 1000),
   >>    torch.nn.Tanh(),
   >>    torch.nn.Linear(1000, 1))
   >> model = TorchModel(pytorch_model, loss=dc.models.losses.L2Loss())
   >> model.fit(dataset)
-
   The loss function for a model can be defined in two different
   ways.  For models that have only a single output and use a
   standard loss function, you can simply provide a
   dc.models.losses.Loss object.  This defines the loss for each
   sample or sample/task pair.  The result is automatically
   multiplied by the weights and averaged over the batch.
-
   For more complicated cases, you can instead provide a function
   that directly computes the total loss.  It must be of the form
   f(outputs, labels, weights), taking the list of outputs from
@@ -64,17 +107,14 @@ class TorchModel(Model):
   for the batch.  No additional processing is done to the
   result; it is up to you to do any weighting, averaging, adding
   of penalty terms, etc.
-
   You can optionally provide an output_types argument, which
   describes how to interpret the model's outputs.  This should
   be a list of strings, one for each output. You can use an
   arbitrary output_type for a output, but some output_types are
   special and will undergo extra processing:
-
   - 'prediction': This is a normal output, and will be returned by predict().
     If output types are not specified, all outputs are assumed
     to be of this type.
-
   - 'loss': This output will be used in place of the normal
     outputs for computing the loss function.  For example,
     models that output probability distributions usually do it
@@ -89,7 +129,6 @@ class TorchModel(Model):
     probabilities) will be returned.  But during training, it is
     the second output (the logits) that will be passed to the
     loss function.
-
   - 'variance': This output is used for estimating the
     uncertainty in another output.  To create a model that can
     estimate uncertainty, there must be the same number of
@@ -100,7 +139,6 @@ class TorchModel(Model):
     supports uncertainty, it MUST use dropout on every layer,
     and dropout most be enabled during uncertainty prediction.
     Otherwise, the uncertainties it computes will be inaccurate.
-
   - other: Arbitrary output_types can be used to extract outputs
     produced by the model, but will have no additional
     processing performed.
@@ -108,19 +146,15 @@ class TorchModel(Model):
 
   def __init__(self,
                model: torch.nn.Module,
-               loss: Union[Loss, LossFn],
                output_types: Optional[List[str]] = None,
                batch_size: int = 100,
                model_dir: Optional[str] = None,
-               learning_rate: Union[float, LearningRateSchedule] = 0.001,
-               optimizer: Optional[Optimizer] = None,
                tensorboard: bool = False,
                wandb: bool = False,
                log_frequency: int = 100,
                device: Optional[torch.device] = None,
                **kwargs) -> None:
     """Create a new TorchModel.
-
     Parameters
     ----------
     model: torch.nn.Module
@@ -158,16 +192,7 @@ class TorchModel(Model):
       chosen automatically.
     """
     super(TorchModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
-    if isinstance(loss, Loss):
-      self._loss_fn: LossFn = _StandardLoss(model, loss)
-    else:
-      self._loss_fn = loss
     self.batch_size = batch_size
-    if optimizer is None:
-      self.optimizer: Optimizer = Adam(learning_rate=learning_rate)
-    else:
-      self.optimizer = optimizer
-    self.tensorboard = tensorboard
 
     # Select a device.
 
@@ -178,19 +203,11 @@ class TorchModel(Model):
         device = torch.device('cpu')
     self.device = device
     self.model = model.to(device)
-
-    # W&B logging
-    if wandb and not _has_wandb:
-      logger.warning(
-          "You set wandb to True but W&B is not installed. To use wandb logging, "
-          "run `pip install wandb; wandb login` see https://docs.wandb.com/huggingface."
-      )
-    self.wandb = wandb and _has_wandb
-
+    if wandb:
+        self.wandb = WandbLogger(project="lit-wandb")
+    else:
+        self.wandb = False 
     self.log_frequency = log_frequency
-    if self.tensorboard:
-      self._summary_writer = torch.utils.tensorboard.SummaryWriter(
-          self.model_dir)
     if output_types is None:
       self._prediction_outputs = None
       self._loss_outputs = None
@@ -221,28 +238,25 @@ class TorchModel(Model):
     if self._built:
       return
     self._built = True
-    self._global_step = 0
-    self._pytorch_optimizer = self.optimizer._create_pytorch_optimizer(
+    self._pytorch_optimizer = self.model.optimizer._create_pytorch_optimizer(
         self.model.parameters())
-    if isinstance(self.optimizer.learning_rate, LearningRateSchedule):
-      self._lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(
+    if isinstance(self.model.optimizer.learning_rate, LearningRateSchedule):
+      self._lr_schedule = self.model.optimizer.learning_rate._create_pytorch_schedule(
           self._pytorch_optimizer)
     else:
       self._lr_schedule = None
-
+  
   def fit(self,
           dataset: Dataset,
           nb_epoch: int = 10,
           max_checkpoints_to_keep: int = 5,
-          checkpoint_interval: int = 1000,
+          checkpoint_interval: int = 100,
           deterministic: bool = False,
           restore: bool = False,
           variables: Optional[List[torch.nn.Parameter]] = None,
           loss: Optional[LossFn] = None,
-          callbacks: Union[Callable, List[Callable]] = [],
           all_losses: Optional[List[float]] = None) -> float:
     """Train this model on a dataset.
-
     Parameters
     ----------
     dataset: Dataset
@@ -274,69 +288,11 @@ class TorchModel(Model):
       If specified, all logged losses are appended into this list. Note that
       you can call `fit()` repeatedly with the same list and losses will
       continue to be appended.
-
     Returns
     -------
     The average loss over the most recent checkpoint interval
    """
-    return self.fit_generator(
-        self.default_generator(
-            dataset, epochs=nb_epoch,
-            deterministic=deterministic), max_checkpoints_to_keep,
-        checkpoint_interval, restore, variables, loss, callbacks, all_losses)
-
-  def fit_generator(self,
-                    generator: Iterable[Tuple[Any, Any, Any]],
-                    max_checkpoints_to_keep: int = 5,
-                    checkpoint_interval: int = 1000,
-                    restore: bool = False,
-                    variables: Optional[List[torch.nn.Parameter]] = None,
-                    loss: Optional[LossFn] = None,
-                    callbacks: Union[Callable, List[Callable]] = [],
-                    all_losses: Optional[List[float]] = None) -> float:
-    """Train this model on data from a generator.
-
-    Parameters
-    ----------
-    generator: generator
-      this should generate batches, each represented as a tuple of the form
-      (inputs, labels, weights).
-    max_checkpoints_to_keep: int
-      the maximum number of checkpoints to keep.  Older checkpoints are discarded.
-    checkpoint_interval: int
-      the frequency at which to write checkpoints, measured in training steps.
-      Set this to 0 to disable automatic checkpointing.
-    restore: bool
-      if True, restore the model from the most recent checkpoint and continue training
-      from there.  If False, retrain the model from scratch.
-    variables: list of torch.nn.Parameter
-      the variables to train.  If None (the default), all trainable variables in
-      the model are used.
-    loss: function
-      a function of the form f(outputs, labels, weights) that computes the loss
-      for each batch.  If None (the default), the model's standard loss function
-      is used.
-    callbacks: function or list of functions
-      one or more functions of the form f(model, step) that will be invoked after
-      every step.  This can be used to perform validation, logging, etc.
-    all_losses: Optional[List[float]], optional (default None)
-      If specified, all logged losses are appended into this list. Note that
-      you can call `fit()` repeatedly with the same list and losses will
-      continue to be appended.
-
-    Returns
-    -------
-    The average loss over the most recent checkpoint interval
-    """
-    if not isinstance(callbacks, SequenceCollection):
-      callbacks = [callbacks]
     self._ensure_built()
-    self.model.train()
-    avg_loss = 0.0
-    last_avg_loss = 0.0
-    averaged_batches = 0
-    if loss is None:
-      loss = self._loss_fn
     if variables is None:
       optimizer = self._pytorch_optimizer
       lr_schedule = self._lr_schedule
@@ -345,83 +301,63 @@ class TorchModel(Model):
       if var_key in self._optimizer_for_vars:
         optimizer, lr_schedule = self._optimizer_for_vars[var_key]
       else:
-        optimizer = self.optimizer._create_pytorch_optimizer(variables)
-        if isinstance(self.optimizer.learning_rate, LearningRateSchedule):
-          lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(
+        optimizer = self.model.optimizer._create_pytorch_optimizer(variables)
+        if isinstance(self.model.optimizer.learning_rate, LearningRateSchedule):
+          lr_schedule = self.model.optimizer.learning_rate._create_pytorch_schedule(
               optimizer)
         else:
           lr_schedule = None
         self._optimizer_for_vars[var_key] = (optimizer, lr_schedule)
-    time1 = time.time()
 
-    # Main training loop.
+    # temporarily sets the model attribute
+    if loss is not None:
+      self.model._loss_fn = loss
+    self.model.lr_scheduler = lr_schedule
+    self.model.optimizer = optimizer
+    self.model._loss_outputs = self._loss_outputs
+    if all_losses is not None:
+        self.model.all_losses = all_losses
+    self.model.nb_epoch = nb_epoch
+    
+    if not os.path.exists(self.model_dir):
+      os.makedirs(self.model_dir)
 
-    for batch in generator:
-      if restore:
-        self.restore()
-        restore = False
-      inputs: OneOrMany[torch.Tensor]
-      inputs, labels, weights = self._prepare_batch(batch)
-
-      # Execute the loss function, accumulating the gradients.
-
-      if isinstance(inputs, list) and len(inputs) == 1:
-        inputs = inputs[0]
-
-      optimizer.zero_grad()
-      outputs = self.model(inputs)
-      if isinstance(outputs, torch.Tensor):
-        outputs = [outputs]
-      if self._loss_outputs is not None:
-        outputs = [outputs[i] for i in self._loss_outputs]
-      batch_loss = loss(outputs, labels, weights)
-      batch_loss.backward()
-      optimizer.step()
-      if lr_schedule is not None:
-        lr_schedule.step()
-      self._global_step += 1
-      current_step = self._global_step
-
-      avg_loss += batch_loss
-
-      # Report progress and write checkpoints.
-      averaged_batches += 1
-      should_log = (current_step % self.log_frequency == 0)
-      if should_log:
-        avg_loss = float(avg_loss) / averaged_batches
-        logger.info(
-            'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
-        if all_losses is not None:
-          all_losses.append(avg_loss)
-        # Capture the last avg_loss in case of return since we're resetting to 0 now
-        last_avg_loss = avg_loss
-        avg_loss = 0.0
-        averaged_batches = 0
-
-      if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
-        self.save_checkpoint(max_checkpoints_to_keep)
-      for c in callbacks:
-        c(self, current_step)
-      if self.tensorboard and should_log:
-        self._log_scalar_to_tensorboard('loss', batch_loss, current_step)
-      if self.wandb and should_log:
-        wandb.log({'loss': batch_loss}, step=current_step)
-
-    # Report final results.
-    if averaged_batches > 0:
-      avg_loss = float(avg_loss) / averaged_batches
-      logger.info(
-          'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
-      if all_losses is not None:
-        all_losses.append(avg_loss)
-      last_avg_loss = avg_loss
-
-    if checkpoint_interval > 0:
-      self.save_checkpoint(max_checkpoints_to_keep)
-
-    time2 = time.time()
-    logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
-    return last_avg_loss
+    checkpoint_callback = ModelCheckpoint(
+      monitor='loss',
+      dirpath=self.model_dir,
+      filename='checkpoint',
+      save_last=True,
+      save_top_k=max_checkpoints_to_keep,
+      every_n_train_steps = checkpoint_interval
+    )
+    checkpoint_callback.FILE_EXTENSION = ".pt"
+    checkpoint_callback.CHECKPOINT_NAME_LAST = "checkpoint0"
+    checkpoint_callback.CHECKPOINT_JOIN_CHAR = ""
+    
+    if self.wandb:
+        self.wandb.watch(self.model, log='gradients', log_freq=self.log_frequency)
+    
+    trainer = pl.Trainer(
+               default_root_dir=os.getcwd(),
+               resume_from_checkpoint=f'{self.model_dir}/checkpoint0.pt' if restore else None,
+               callbacks=[checkpoint_callback],
+               log_every_n_steps=self.log_frequency,
+               logger=self.wandb if self.wandb else True,
+               max_epochs=nb_epoch,
+               gpus=-1,
+               #num_nodes=1,
+               #precision=16,
+               #limit_train_batches=0.5,
+               #fast_dev_run=True
+              )
+    dataset = dataset.make_pytorch_dataset(batch_size=self.batch_size)
+    data_loader = torch.utils.data.DataLoader(dataset,collate_fn=self._prepare_batch)
+    trainer.fit(
+                self.model, 
+                data_loader
+               )
+    wandb.finish()  
+               
 
   def fit_on_batch(self,
                    X: Sequence,
@@ -433,7 +369,6 @@ class TorchModel(Model):
                    checkpoint: bool = True,
                    max_checkpoints_to_keep: int = 5) -> float:
     """Perform a single step of training.
-
     Parameters
     ----------
     X: ndarray
@@ -456,7 +391,6 @@ class TorchModel(Model):
       if true, save a checkpoint after performing the training step
     max_checkpoints_to_keep: int
       the maximum number of checkpoints to keep.  Older checkpoints are discarded.
-
     Returns
     -------
     the loss on the batch
@@ -478,11 +412,9 @@ class TorchModel(Model):
       other_output_types: Optional[OneOrMany[str]]) -> OneOrMany[np.ndarray]:
     """
     Predict outputs for data provided by a generator.
-
     This is the private implementation of prediction.  Do not
     call it directly.  Instead call one of the public prediction
     methods.
-
     Parameters
     ----------
     generator: generator
@@ -603,7 +535,6 @@ class TorchModel(Model):
   def predict_on_batch(self, X: ArrayLike, transformers: List[Transformer] = []
                       ) -> OneOrMany[np.ndarray]:
     """Generates predictions for input samples, processing samples in a batch.
-
     Parameters
     ----------
     X: ndarray
@@ -611,7 +542,6 @@ class TorchModel(Model):
     transformers: list of dc.trans.Transformers
       Transformers that the input data has been transformed by.  The output
       is passed through these transformers to undo the transformations.
-
     Returns
     -------
     a NumPy array of the model produces a single output, or a list of arrays
@@ -624,21 +554,18 @@ class TorchModel(Model):
                                   ) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:
     """
     Predict the model's outputs, along with the uncertainty in each one.
-
     The uncertainty is computed as described in https://arxiv.org/abs/1703.04977.
     It involves repeating the prediction many times with different dropout masks.
     The prediction is computed as the average over all the predictions.  The
     uncertainty includes both the variation among the predicted values (epistemic
     uncertainty) and the model's own estimates for how well it fits the data
     (aleatoric uncertainty).  Not all models support uncertainty prediction.
-
     Parameters
     ----------
     X: ndarray
       the input data, as a Numpy array.
     masks: int
       the number of dropout masks to average over
-
     Returns
     -------
     for each output, a tuple (y_pred, y_std) where y_pred is the predicted
@@ -655,7 +582,6 @@ class TorchModel(Model):
       output_types: Optional[List[str]] = None) -> OneOrMany[np.ndarray]:
     """
     Uses self to make predictions on provided Dataset object.
-
     Parameters
     ----------
     dataset: dc.data.Dataset
@@ -667,7 +593,6 @@ class TorchModel(Model):
       If specified, all outputs of this type will be retrieved
       from the model. If output_types is specified, outputs must
       be None.
-
     Returns
     -------
     a NumPy array of the model produces a single output, or a list of arrays
@@ -683,12 +608,10 @@ class TorchModel(Model):
     Predicts embeddings created by underlying model if any exist.
     An embedding must be specified to have `output_type` of
     `'embedding'` in the model definition.
-
     Parameters
     ----------
     dataset: dc.data.Dataset
       Dataset to make prediction on
-
     Returns
     -------
     a NumPy array of the embeddings model produces, or a list
@@ -702,21 +625,18 @@ class TorchModel(Model):
                          ) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:
     """
     Predict the model's outputs, along with the uncertainty in each one.
-
     The uncertainty is computed as described in https://arxiv.org/abs/1703.04977.
     It involves repeating the prediction many times with different dropout masks.
     The prediction is computed as the average over all the predictions.  The
     uncertainty includes both the variation among the predicted values (epistemic
     uncertainty) and the model's own estimates for how well it fits the data
     (aleatoric uncertainty).  Not all models support uncertainty prediction.
-
     Parameters
     ----------
     dataset: dc.data.Dataset
       Dataset to make prediction on
     masks: int
       the number of dropout masks to average over
-
     Returns
     -------
     for each output, a tuple (y_pred, y_std) where y_pred is the predicted
@@ -757,7 +677,6 @@ class TorchModel(Model):
                          transformers: List[Transformer] = [],
                          per_task_metrics: bool = False):
     """Evaluate the performance of this model on the data produced by a generator.
-
     Parameters
     ----------
     generator: generator
@@ -770,7 +689,6 @@ class TorchModel(Model):
       is passed through these transformers to undo the transformations.
     per_task_metrics: bool
       If True, return per-task scores.
-
     Returns
     -------
     dict
@@ -781,22 +699,17 @@ class TorchModel(Model):
 
   def compute_saliency(self, X: np.ndarray) -> OneOrMany[np.ndarray]:
     """Compute the saliency map for an input sample.
-
     This computes the Jacobian matrix with the derivative of each output element
     with respect to each input element.  More precisely,
-
     - If this model has a single output, it returns a matrix of shape
       (output_shape, input_shape) with the derivatives.
     - If this model has multiple outputs, it returns a list of matrices, one
       for each output.
-
     This method cannot be used on models that take multiple inputs.
-
     Parameters
     ----------
     X: ndarray
       the input data for a single sample
-
     Returns
     -------
     the Jacobian matrix, or a list of matrices
@@ -831,10 +744,10 @@ class TorchModel(Model):
     if len(final_result) == 1:
       return final_result[0]
     return final_result
-
+  
   def _prepare_batch(
       self, batch: Tuple[Any, Any, Any]
-  ) -> Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]:
+    ) -> Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]:
     inputs, labels, weights = batch
     inputs = [
         x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs
@@ -854,7 +767,6 @@ class TorchModel(Model):
       weight_tensors = [torch.as_tensor(x, device=self.device) for x in weights]
     else:
       weight_tensors = []
-
     return (input_tensors, label_tensors, weight_tensors)
 
   def default_generator(
@@ -865,10 +777,8 @@ class TorchModel(Model):
       deterministic: bool = True,
       pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
     """Create a generator that iterates batches for a dataset.
-
     Subclasses may override this method to customize how model inputs are
     generated from the data.
-
     Parameters
     ----------
     dataset: Dataset
@@ -884,7 +794,6 @@ class TorchModel(Model):
       data for each epoch
     pad_batches: bool
       whether to pad each batch up to this model's preferred batch size
-
     Returns
     -------
     a generator that iterates batches, each represented as a tuple of lists:
@@ -892,20 +801,18 @@ class TorchModel(Model):
     """
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
-        yield ([X_b], [y_b], [w_b])
+            batch_size=10,
+            deterministic=deterministic,
+            pad_batches=pad_batches):
+            yield ([X_b], [y_b], [w_b])
 
   def save_checkpoint(self,
                       max_checkpoints_to_keep: int = 5,
                       model_dir: Optional[str] = None) -> None:
     """Save a checkpoint to disk.
-
     Usually you do not need to call this method, since fit() saves checkpoints
     automatically.  If you have disabled automatic checkpointing during fitting,
     this can be called to manually write checkpoints.
-
     Parameters
     ----------
     max_checkpoints_to_keep: int
@@ -944,12 +851,10 @@ class TorchModel(Model):
 
   def get_checkpoints(self, model_dir: Optional[str] = None):
     """Get a list of all available checkpoint files.
-
     Parameters
     ----------
     model_dir: str, default None
       Directory to get list of checkpoints from. Reverts to self.model_dir if None
-
     """
     if model_dir is None:
       model_dir = self.model_dir
@@ -963,7 +868,6 @@ class TorchModel(Model):
               checkpoint: Optional[str] = None,
               model_dir: Optional[str] = None) -> None:
     """Reload the values of all variables from a checkpoint file.
-
     Parameters
     ----------
     checkpoint: str
@@ -987,11 +891,10 @@ class TorchModel(Model):
 
   def get_global_step(self) -> int:
     """Get the number of steps of fitting that have been performed."""
+    if not self._global_step:
+      self._global_step = self.model._global_step
     return self._global_step
 
-  def _log_scalar_to_tensorboard(self, name: str, value: Any, step: int):
-    """Log a scalar value to Tensorboard."""
-    self._summary_writer.add_scalar(name, value, step)
 
   def _create_assignment_map(self,
                              source_model: "TorchModel",
@@ -1004,7 +907,6 @@ class TorchModel(Model):
     output tasks. include_top is used to control whether or not the final dense
     layer is used. The default assignment map is useful in cases where the type
     of task is different (classification vs regression) and/or number of tasks.
-
     Parameters
     ----------
     source_model: dc.models.TorchModel
@@ -1031,7 +933,6 @@ class TorchModel(Model):
     Creates a value map between parameters in the source model and their
     current values. This is used only when a custom value map is missing, and
     assumes the restore method has been called.
-
     Parameters
     ----------
     source_model: dc.models.TorchModel
@@ -1065,7 +966,6 @@ class TorchModel(Model):
     is used to control whether or not the final dense layer is used. The default
     assignment map is useful in cases where the type of task is different
     (classification vs regression) and/or number of tasks in the setting.
-
     Parameters
     ----------
     source_model: dc.TorchModel, required
@@ -1117,9 +1017,7 @@ class TorchModel(Model):
 class _StandardLoss(object):
   """The implements the loss function for models that use a dc.models.losses.Loss."""
 
-  def __init__(self, model: torch.nn.Module, loss: Loss) -> None:
-    self.model = model  # not used
-    self.loss = loss  # not used
+  def __init__(self, loss: Loss) -> None:
     self.criterion = loss._create_pytorch_loss()
 
   def __call__(self, outputs: List, labels: List, weights: List) -> float:
