@@ -80,9 +80,6 @@ class ValidationCallback(object):
       for key in scores:
         model._log_scalar_to_tensorboard(key, scores[key],
                                          model.get_global_step())
-    if model.wandb:
-      import wandb
-      wandb.log(scores, step=step)
     if self.save_dir is not None:
       score = scores[self.metrics[self.save_metric].name]
       if not self.save_on_minimum:
