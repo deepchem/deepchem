@@ -45,7 +45,7 @@ def test_pagtn_regression():
 
 @unittest.skipIf(not has_torch_and_dgl,
                  'PyTorch, DGL, or DGL-LifeSci are not installed')
-def test_attentivefp_classification():
+def test_pagtn_classification():
   # load datasets
   featurizer = PagtnMolGraphFeaturizer(max_length=5)
   tasks, dataset, transformers, metric = get_dataset(
@@ -72,7 +72,7 @@ def test_attentivefp_classification():
 
 @unittest.skipIf(not has_torch_and_dgl,
                  'PyTorch, DGL, or DGL-LifeSci are not installed')
-def test_attentivefp_reload():
+def test_pagtn_reload():
   # load datasets
   featurizer = PagtnMolGraphFeaturizer(max_length=5)
   tasks, dataset, transformers, metric = get_dataset(
