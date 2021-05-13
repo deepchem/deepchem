@@ -66,7 +66,7 @@ def test_pagtn_classification():
   tasks, all_dataset, transformers = load_bace_classification(
       featurizer=featurizer)
   train_set, _, _ = all_dataset
-  model = PagtnModel(mode='classification', n_tasks=n_tasks, batch_size=16)
+  model = PagtnModel(mode='classification', n_tasks=len(tasks), batch_size=16)
   model.fit(train_set, nb_epoch=1)
 
 
