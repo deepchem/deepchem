@@ -196,6 +196,9 @@ Losses
 .. autoclass:: deepchem.models.losses.HingeLoss
   :members:
 
+.. autoclass:: deepchem.models.losses.SquaredHingeLoss
+  :members:
+  
 .. autoclass:: deepchem.models.losses.PoissonLoss
   :members:
 
