@@ -30,9 +30,9 @@ def test_pagtn_regression():
   model = PagtnModel(mode='regression', n_tasks=n_tasks, batch_size=16)
 
   # overfit test
-  model.fit(dataset, nb_epoch=100)
+  model.fit(dataset, nb_epoch=150)
   scores = model.evaluate(dataset, [metric], transformers)
-  assert scores['mean_absolute_error'] < 0.5
+  assert scores['mean_absolute_error'] < 0.65
 
   # test on a small MoleculeNet dataset
   from deepchem.molnet import load_delaney
