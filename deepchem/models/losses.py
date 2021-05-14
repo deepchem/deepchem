@@ -112,8 +112,7 @@ class SquaredHingeLoss(Loss):
       output, labels = _make_pytorch_shapes_consistent(output, labels)
       return torch.mean(
           torch.pow(
-              torch.maximum(1 - torch.multiply(labels, output),
-                            torch.tensor(0)), 2),
+              torch.max(1 - torch.mul(labels, output), torch.tensor(0.0)), 2),
           dim=-1)
 
     return loss
