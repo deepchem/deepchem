@@ -59,11 +59,11 @@ def benchmark_classification(train_dataset,
   Returns
   -------
   train_scores : dict
-	predicting results(AUC) on training set
+  predicting results(AUC) on training set
   valid_scores : dict
-	predicting results(AUC) on valid set
+  predicting results(AUC) on valid set
   test_scores : dict
-	predicting results(AUC) on test set
+  predicting results(AUC) on test set
 
 
   """
@@ -424,11 +424,11 @@ def benchmark_regression(train_dataset,
   Returns
   -------
   train_scores : dict
-	predicting results(R2) on training set
+  predicting results(R2) on training set
   valid_scores : dict
-	predicting results(R2) on valid set
+  predicting results(R2) on valid set
   test_scores : dict
-	predicting results(R2) on test set
+  predicting results(R2) on test set
 
   """
   train_scores = {}
@@ -798,7 +798,7 @@ def low_data_benchmark_classification(train_dataset,
   Returns
   -------
   valid_scores : dict
-	predicting results(AUC) on valid set
+  predicting results(AUC) on valid set
 
   """
   train_scores = {}  # train set not evaluated in low data model
