@@ -31,7 +31,7 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
       raise ImportError("This class requires RDKit to be installed.")
     smiles_string = Chem.MolToSmiles(mol)
     # the encoding is natively a dictionary with keys 'input_ids' and 'attention_mask'
-    # -> make this a list of two arrays to allow np to handle it
+    # -> make this a list of two lists to allow np to handle it
     encoding = list(self(smiles_string, **kwargs).values())
     return encoding
 
