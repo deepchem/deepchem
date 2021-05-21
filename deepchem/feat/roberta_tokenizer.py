@@ -2,8 +2,6 @@ from deepchem.feat.base_classes import MolecularFeaturizer
 from transformers import RobertaTokenizerFast
 from deepchem.utils.typing import RDKitMol
 
-from torch.utils.data import Dataset
-
 
 class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
 
