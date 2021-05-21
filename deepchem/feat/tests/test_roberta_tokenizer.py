@@ -1,3 +1,4 @@
+import unittest
 from deepchem.feat import RobertaFeaturizer
 
 
@@ -9,20 +10,31 @@ class TestRobertaFeaturizer(unittest.TestCase):
     self.long_molecule_smiles = [
         "CCCCCCCCCCCCCCCCCCCC(=O)OCCCNC(=O)c1ccccc1SSc1ccccc1C(=O)NCCCOC(=O)CCCCCCCCCCCCCCCCCCC"
     ]
-    self.tokenizer = RobertaFeaturizer.from_pretrained(
+    self.featurizer = RobertaFeaturizer.from_pretrained(
         "seyonec/SMILES_tokenized_PubChem_shard00_160k")
 
   def test_smiles_call(self):
-    embedding = self.tokenizer(
+    """Test __call__ method for the featurizer, which is inherited from HuggingFace's RobertaTokenizerFast"""
+    embedding = self.featurizer(
         self.smiles, add_special_tokens=True, truncation=True)
-    embedding_long = self.tokenizer(
+    embedding_long = self.featurizer(
         self.long_molecule_smiles * 2, add_special_tokens=True, truncation=True)
     for emb in [embedding, embedding_long]:
-      assert 'input_ids' in emb.keys and 'attention_mask' in emb.keys
-      assert len(emb['input_ids'] == 2) and len(emb['attention_mask'] == 2)
+      assert 'input_ids' in emb.keys() and 'attention_mask' in emb.keys()
+      assert len(emb['input_ids']) == 2 and len(emb['attention_mask']) == 2
 
   def test_smiles_featurize(self):
-    feats = self.tokenizer(
+    """Test the .featurize method, which will convert the dictionary output to an array
+
+    Checks that all SMILES are featurized and that each featurization
+    contains input_ids and attention_mask
+    """
+    feats = self.featurizer.featurize(
         self.smiles, add_special_tokens=True, truncation=True)
     assert (len(feats) == 2)
     assert (all([len(f) == 2 for f in feats]))
+
+    long_feat = self.featurizer.featurize(
+        self.long_molecule_smiles, add_special_tokens=True, truncation=True)
+    assert (len(long_feat) == 1)
+    assert (len(long_feat[0] == 2))
