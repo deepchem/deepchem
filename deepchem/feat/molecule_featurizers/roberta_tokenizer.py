@@ -1,4 +1,4 @@
-from deepchem.feat.base_classes import MolecularFeaturizer
+from deepchem.feat import MolecularFeaturizer
 from transformers import RobertaTokenizerFast
 from deepchem.utils.typing import RDKitMol
 
