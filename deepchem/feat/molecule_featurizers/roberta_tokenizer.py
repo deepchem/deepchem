@@ -2,6 +2,8 @@ from deepchem.feat import MolecularFeaturizer
 from transformers import RobertaTokenizerFast
 from deepchem.utils.typing import RDKitMol
 
+from typing import Dict, List
+
 
 class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
 
@@ -9,7 +11,7 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
     super().__init__(**kwargs)
     return
 
-  def _featurize(self, mol: RDKitMol, **kwargs):
+  def _featurize(self, mol: RDKitMol, **kwargs) -> List[List[int]]:
     """Calculate encoding using HuggingFace's RobertaTokenizerFast
 
         Parameters
@@ -19,8 +21,8 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
 
         Returns
         -------
-        np.ndarray
-          1D array of RDKit descriptors for `mol`. The length is 881.
+        encoding: List
+          List containing two lists; the `input_ids` and the `attention_mask`
 
         """
     try:
@@ -33,5 +35,5 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
     encoding = list(self(smiles_string, **kwargs).values())
     return encoding
 
-  def __call__(self, *args, **kwargs):
+  def __call__(self, *args, **kwargs) -> Dict[str, List[int]]:
     return super().__call__(*args, **kwargs)
