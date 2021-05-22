@@ -19,6 +19,7 @@ from deepchem.models.scscore import ScScoreModel
 
 from deepchem.models.seqtoseq import SeqToSeq
 from deepchem.models.gan import GAN, WGAN
+from deepchem.models.molgan import BasicMolGANModel
 from deepchem.models.cnn import CNN
 from deepchem.models.text_cnn import TextCNNModel
 from deepchem.models.atomic_conv import AtomicConvModel
@@ -36,6 +37,7 @@ try:
   from deepchem.models.torch_models import GAT, GATModel
   from deepchem.models.torch_models import GCN, GCNModel
   from deepchem.models.torch_models import LCNN, LCNNModel
+  from deepchem.models.torch_models import Pagtn, PagtnModel
 except ModuleNotFoundError:
   pass
 
