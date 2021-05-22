@@ -38,8 +38,8 @@ def simple_motif_embedding(motif_name, seq_length, num_seqs, GC_fraction):
   if motif_name is None:
     embedders = []
   else:
-    loaded_motifs = synthetic.LoadedEncodeMotifs(
-        simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
+    loaded_motifs = synthetic.LoadedEncodeMotifs(simdna.ENCODE_MOTIFS_PATH,
+                                                 pseudocountProb=0.001)
     substring_generator = synthetic.PwmSamplerFromLoadedMotifs(
         loaded_motifs, motif_name)
     embedders = [
@@ -73,8 +73,8 @@ def motif_density(motif_name,
   """
   import simdna
   from simdna import synthetic
-  loaded_motifs = synthetic.LoadedEncodeMotifs(
-      simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
+  loaded_motifs = synthetic.LoadedEncodeMotifs(simdna.ENCODE_MOTIFS_PATH,
+                                               pseudocountProb=0.001)
   substring_generator = synthetic.PwmSamplerFromLoadedMotifs(
       loaded_motifs, motif_name)
   if central_bp is not None:
@@ -175,8 +175,8 @@ def simulate_motif_counting(motif_name, seq_length, pos_counts, neg_counts,
   neg_count_sequence_array, negative_embedding_arr = motif_density(
       motif_name, seq_length, num_pos, neg_counts[0], neg_counts[1],
       GC_fraction)
-  sequence_arr = np.concatenate((pos_count_sequence_array,
-                                 neg_count_sequence_array))
+  sequence_arr = np.concatenate(
+      (pos_count_sequence_array, neg_count_sequence_array))
   y = np.array([[True]] * num_pos + [[False]] * num_neg)
   embedding_arr = positive_embedding_arr + negative_embedding_arr
   return sequence_arr, y, embedding_arr
@@ -228,8 +228,8 @@ def simulate_motif_density_localization(motif_name, seq_length, center_size,
   unlocalized_density_sequence_array, negative_embedding_arr = motif_density(
       motif_name, seq_length, num_neg, min_motif_counts, max_motif_counts,
       GC_fraction)
-  sequence_arr = np.concatenate((localized_density_sequence_array,
-                                 unlocalized_density_sequence_array))
+  sequence_arr = np.concatenate(
+      (localized_density_sequence_array, unlocalized_density_sequence_array))
   y = np.array([[True]] * num_pos + [[False]] * num_neg)
   embedding_arr = positive_embedding_arr + negative_embedding_arr
   return sequence_arr, y, embedding_arr
@@ -262,8 +262,8 @@ def simulate_multi_motif_embedding(motif_names, seq_length, min_num_motifs,
 
   import simdna
   from simdna import synthetic
-  loaded_motifs = synthetic.LoadedEncodeMotifs(
-      simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
+  loaded_motifs = synthetic.LoadedEncodeMotifs(simdna.ENCODE_MOTIFS_PATH,
+                                               pseudocountProb=0.001)
 
   def get_embedder(motif_name):
     substring_generator = synthetic.PwmSamplerFromLoadedMotifs(
@@ -288,21 +288,21 @@ def simulate_multi_motif_embedding(motif_names, seq_length, min_num_motifs,
   sequence_arr = np.array(
       [generated_seq.seq for generated_seq in generated_sequences])
   label_generator = synthetic.IsInTraceLabelGenerator(np.asarray(motif_names))
-  y = np.array(
-      [
-          label_generator.generateLabels(generated_seq)
-          for generated_seq in generated_sequences
-      ],
-      dtype=bool)
+  y = np.array([
+      label_generator.generateLabels(generated_seq)
+      for generated_seq in generated_sequences
+  ],
+               dtype=bool)
   embedding_arr = [
       generated_seq.embeddings for generated_seq in generated_sequences
   ]
   return sequence_arr, y, embedding_arr
 
 
-def simulate_differential_accessibility(
-    pos_motif_names, neg_motif_names, seq_length, min_num_motifs,
-    max_num_motifs, num_pos, num_neg, GC_fraction):
+def simulate_differential_accessibility(pos_motif_names, neg_motif_names,
+                                        seq_length, min_num_motifs,
+                                        max_num_motifs, num_pos, num_neg,
+                                        GC_fraction):
   """
     Generates data for differential accessibility task.
 
@@ -334,8 +334,8 @@ def simulate_differential_accessibility(
   neg_motif_sequence_arr, _, negative_embedding_arr = simulate_multi_motif_embedding(
       neg_motif_names, seq_length, min_num_motifs, max_num_motifs, num_neg,
       GC_fraction)
-  sequence_arr = np.concatenate((pos_motif_sequence_arr,
-                                 neg_motif_sequence_arr))
+  sequence_arr = np.concatenate(
+      (pos_motif_sequence_arr, neg_motif_sequence_arr))
   y = np.array([[True]] * num_pos + [[False]] * num_neg)
   embedding_arr = positive_embedding_arr + negative_embedding_arr
   return sequence_arr, y, embedding_arr
@@ -372,8 +372,8 @@ def simulate_heterodimer_grammar(motif1, motif2, seq_length, min_spacing,
     """
   import simdna
   from simdna import synthetic
-  loaded_motifs = synthetic.LoadedEncodeMotifs(
-      simdna.ENCODE_MOTIFS_PATH, pseudocountProb=0.001)
+  loaded_motifs = synthetic.LoadedEncodeMotifs(simdna.ENCODE_MOTIFS_PATH,
+                                               pseudocountProb=0.001)
   motif1_generator = synthetic.ReverseComplementWrapper(
       synthetic.PwmSamplerFromLoadedMotifs(loaded_motifs, motif1))
   motif2_generator = synthetic.ReverseComplementWrapper(

@@ -32,8 +32,9 @@ class _HPPBLoader(_MolnetLoader):
     dataset_file = os.path.join(self.data_dir, "hppb.csv")
     if not os.path.exists(dataset_file):
       dc.utils.data_utils.download_url(url=HPPB_URL, dest_dir=self.data_dir)
-    loader = dc.data.CSVLoader(
-        tasks=self.tasks, feature_field="smile", featurizer=self.featurizer)
+    loader = dc.data.CSVLoader(tasks=self.tasks,
+                               feature_field="smile",
+                               featurizer=self.featurizer)
     dataset = loader.create_dataset(dataset_file, shard_size=2000)
     remove_missing_entries(dataset)
     return dataset

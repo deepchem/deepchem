@@ -145,11 +145,10 @@ def benchmark_classification(train_dataset,
 
     # Building scikit logistic regression model
     def model_builder(model_dir):
-      sklearn_model = LogisticRegression(
-          penalty=penalty_type,
-          C=1. / penalty,
-          class_weight="balanced",
-          n_jobs=-1)
+      sklearn_model = LogisticRegression(penalty=penalty_type,
+                                         C=1. / penalty,
+                                         class_weight="balanced",
+                                         n_jobs=-1)
       return deepchem.models.sklearn_models.SklearnModel(
           sklearn_model, model_dir)
 
@@ -219,17 +218,16 @@ def benchmark_classification(train_dataset,
       test_dataset.reshard(reshard_size)
       test_dataset = transformer.transform(test_dataset)
 
-    model = deepchem.models.DAGModel(
-        len(tasks),
-        max_atoms=max_atoms,
-        n_atom_feat=n_features,
-        n_graph_feat=n_graph_feat,
-        n_outputs=30,
-        batch_size=batch_size,
-        learning_rate=learning_rate,
-        random_seed=seed,
-        use_queue=False,
-        mode='classification')
+    model = deepchem.models.DAGModel(len(tasks),
+                                     max_atoms=max_atoms,
+                                     n_atom_feat=n_features,
+                                     n_graph_feat=n_graph_feat,
+                                     n_outputs=30,
+                                     batch_size=batch_size,
+                                     learning_rate=learning_rate,
+                                     random_seed=seed,
+                                     use_queue=False,
+                                     mode='classification')
 
   elif model_name == 'weave':
     batch_size = hyper_parameters['batch_size']
@@ -238,17 +236,16 @@ def benchmark_classification(train_dataset,
     n_graph_feat = hyper_parameters['n_graph_feat']
     n_pair_feat = hyper_parameters['n_pair_feat']
 
-    model = deepchem.models.WeaveModel(
-        len(tasks),
-        n_atom_feat=n_features,
-        n_pair_feat=n_pair_feat,
-        n_hidden=50,
-        n_graph_feat=n_graph_feat,
-        batch_size=batch_size,
-        learning_rate=learning_rate,
-        use_queue=False,
-        random_seed=seed,
-        mode='classification')
+    model = deepchem.models.WeaveModel(len(tasks),
+                                       n_atom_feat=n_features,
+                                       n_pair_feat=n_pair_feat,
+                                       n_hidden=50,
+                                       n_graph_feat=n_graph_feat,
+                                       batch_size=batch_size,
+                                       learning_rate=learning_rate,
+                                       use_queue=False,
+                                       random_seed=seed,
+                                       mode='classification')
 
   elif model_name == 'textcnn':
     batch_size = hyper_parameters['batch_size']
@@ -262,18 +259,17 @@ def benchmark_classification(train_dataset,
         [train_dataset, valid_dataset, test_dataset])
     char_dict, length = deepchem.models.TextCNNModel.build_char_dict(all_data)
 
-    model = deepchem.models.TextCNNModel(
-        len(tasks),
-        char_dict,
-        seq_length=length,
-        n_embedding=n_embedding,
-        filter_sizes=filter_sizes,
-        num_filters=num_filters,
-        learning_rate=learning_rate,
-        batch_size=batch_size,
-        use_queue=False,
-        random_seed=seed,
-        mode='classification')
+    model = deepchem.models.TextCNNModel(len(tasks),
+                                         char_dict,
+                                         seq_length=length,
+                                         n_embedding=n_embedding,
+                                         filter_sizes=filter_sizes,
+                                         num_filters=num_filters,
+                                         learning_rate=learning_rate,
+                                         batch_size=batch_size,
+                                         use_queue=False,
+                                         random_seed=seed,
+                                         mode='classification')
 
   elif model_name == 'mpnn':
     batch_size = hyper_parameters['batch_size']
@@ -282,17 +278,16 @@ def benchmark_classification(train_dataset,
     T = hyper_parameters['T']
     M = hyper_parameters['M']
 
-    model = deepchem.models.MPNNModel(
-        len(tasks),
-        n_atom_feat=n_features[0],
-        n_pair_feat=n_features[1],
-        n_hidden=n_features[0],
-        T=T,
-        M=M,
-        batch_size=batch_size,
-        learning_rate=learning_rate,
-        use_queue=False,
-        mode="classification")
+    model = deepchem.models.MPNNModel(len(tasks),
+                                      n_atom_feat=n_features[0],
+                                      n_pair_feat=n_features[1],
+                                      n_hidden=n_features[0],
+                                      T=T,
+                                      M=M,
+                                      batch_size=batch_size,
+                                      learning_rate=learning_rate,
+                                      use_queue=False,
+                                      mode="classification")
 
   elif model_name == 'rf':
     n_estimators = hyper_parameters['n_estimators']
@@ -300,8 +295,9 @@ def benchmark_classification(train_dataset,
 
     # Building scikit random forest model
     def model_builder(model_dir):
-      sklearn_model = RandomForestClassifier(
-          class_weight="balanced", n_estimators=n_estimators, n_jobs=-1)
+      sklearn_model = RandomForestClassifier(class_weight="balanced",
+                                             n_estimators=n_estimators,
+                                             n_jobs=-1)
       return deepchem.models.sklearn_models.SklearnModel(
           sklearn_model, model_dir)
 
@@ -315,8 +311,10 @@ def benchmark_classification(train_dataset,
 
     # Building scikit learn Kernel SVM model
     def model_builder(model_dir):
-      sklearn_model = SVC(
-          C=C, gamma=gamma, class_weight="balanced", probability=True)
+      sklearn_model = SVC(C=C,
+                          gamma=gamma,
+                          class_weight="balanced",
+                          probability=True)
       return deepchem.models.SklearnModel(sklearn_model, model_dir)
 
     model = deepchem.models.multitask.SingletaskToMultitask(
@@ -345,21 +343,20 @@ def benchmark_classification(train_dataset,
     # Building xgboost classification model
     def model_builder(model_dir):
       import xgboost
-      xgboost_model = xgboost.XGBClassifier(
-          max_depth=max_depth,
-          learning_rate=learning_rate,
-          n_estimators=n_estimators,
-          gamma=gamma,
-          min_child_weight=min_child_weight,
-          max_delta_step=max_delta_step,
-          subsample=subsample,
-          colsample_bytree=colsample_bytree,
-          colsample_bylevel=colsample_bylevel,
-          reg_alpha=reg_alpha,
-          reg_lambda=reg_lambda,
-          scale_pos_weight=scale_pos_weight,
-          base_score=base_score,
-          seed=seed)
+      xgboost_model = xgboost.XGBClassifier(max_depth=max_depth,
+                                            learning_rate=learning_rate,
+                                            n_estimators=n_estimators,
+                                            gamma=gamma,
+                                            min_child_weight=min_child_weight,
+                                            max_delta_step=max_delta_step,
+                                            subsample=subsample,
+                                            colsample_bytree=colsample_bytree,
+                                            colsample_bylevel=colsample_bylevel,
+                                            reg_alpha=reg_alpha,
+                                            reg_lambda=reg_lambda,
+                                            scale_pos_weight=scale_pos_weight,
+                                            base_score=base_score,
+                                            seed=seed)
       return deepchem.models.xgboost_models.XGBoostModel(
           xgboost_model, model_dir, **esr)
 
@@ -519,16 +516,15 @@ def benchmark_regression(train_dataset,
     n_distance = hyper_parameters['n_distance']
     assert len(n_features) == 2, 'DTNN is only applicable to qm datasets'
 
-    model = deepchem.models.DTNNModel(
-        len(tasks),
-        n_embedding=n_embedding,
-        n_distance=n_distance,
-        batch_size=batch_size,
-        learning_rate=learning_rate,
-        random_seed=seed,
-        output_activation=False,
-        use_queue=False,
-        mode='regression')
+    model = deepchem.models.DTNNModel(len(tasks),
+                                      n_embedding=n_embedding,
+                                      n_distance=n_distance,
+                                      batch_size=batch_size,
+                                      learning_rate=learning_rate,
+                                      random_seed=seed,
+                                      output_activation=False,
+                                      use_queue=False,
+                                      mode='regression')
 
   elif model_name == 'dag_regression':
     batch_size = hyper_parameters['batch_size']
@@ -553,17 +549,16 @@ def benchmark_regression(train_dataset,
       test_dataset.reshard(reshard_size)
       test_dataset = transformer.transform(test_dataset)
 
-    model = deepchem.models.DAGModel(
-        len(tasks),
-        max_atoms=max_atoms,
-        n_atom_feat=n_features,
-        n_graph_feat=n_graph_feat,
-        n_outputs=30,
-        batch_size=batch_size,
-        learning_rate=learning_rate,
-        random_seed=seed,
-        use_queue=False,
-        mode='regression')
+    model = deepchem.models.DAGModel(len(tasks),
+                                     max_atoms=max_atoms,
+                                     n_atom_feat=n_features,
+                                     n_graph_feat=n_graph_feat,
+                                     n_outputs=30,
+                                     batch_size=batch_size,
+                                     learning_rate=learning_rate,
+                                     random_seed=seed,
+                                     use_queue=False,
+                                     mode='regression')
 
   elif model_name == 'weave_regression':
     batch_size = hyper_parameters['batch_size']
@@ -572,17 +567,16 @@ def benchmark_regression(train_dataset,
     n_graph_feat = hyper_parameters['n_graph_feat']
     n_pair_feat = hyper_parameters['n_pair_feat']
 
-    model = deepchem.models.WeaveModel(
-        len(tasks),
-        n_atom_feat=n_features,
-        n_pair_feat=n_pair_feat,
-        n_hidden=50,
-        n_graph_feat=n_graph_feat,
-        batch_size=batch_size,
-        learning_rate=learning_rate,
-        use_queue=False,
-        random_seed=seed,
-        mode='regression')
+    model = deepchem.models.WeaveModel(len(tasks),
+                                       n_atom_feat=n_features,
+                                       n_pair_feat=n_pair_feat,
+                                       n_hidden=50,
+                                       n_graph_feat=n_graph_feat,
+                                       batch_size=batch_size,
+                                       learning_rate=learning_rate,
+                                       use_queue=False,
+                                       random_seed=seed,
+                                       mode='regression')
 
   elif model_name == 'textcnn_regression':
     batch_size = hyper_parameters['batch_size']
@@ -595,18 +589,17 @@ def benchmark_regression(train_dataset,
     char_dict, length = deepchem.models.TextCNNModel.build_char_dict(
         train_dataset)
 
-    model = deepchem.models.TextCNNModel(
-        len(tasks),
-        char_dict,
-        seq_length=length,
-        n_embedding=n_embedding,
-        filter_sizes=filter_sizes,
-        num_filters=num_filters,
-        learning_rate=learning_rate,
-        batch_size=batch_size,
-        use_queue=False,
-        random_seed=seed,
-        mode='regression')
+    model = deepchem.models.TextCNNModel(len(tasks),
+                                         char_dict,
+                                         seq_length=length,
+                                         n_embedding=n_embedding,
+                                         filter_sizes=filter_sizes,
+                                         num_filters=num_filters,
+                                         learning_rate=learning_rate,
+                                         batch_size=batch_size,
+                                         use_queue=False,
+                                         random_seed=seed,
+                                         mode='regression')
 
   elif model_name == 'ani':
     batch_size = hyper_parameters['batch_size']
@@ -628,25 +621,24 @@ def benchmark_regression(train_dataset,
       atom_number_cases.remove(0)
     except:
       pass
-    ANItransformer = deepchem.trans.ANITransformer(
-        max_atoms=max_atoms, atom_cases=atom_number_cases)
+    ANItransformer = deepchem.trans.ANITransformer(max_atoms=max_atoms,
+                                                   atom_cases=atom_number_cases)
     train_dataset = ANItransformer.transform(train_dataset)
     valid_dataset = ANItransformer.transform(valid_dataset)
     if test:
       test_dataset = ANItransformer.transform(test_dataset)
     n_feat = ANItransformer.get_num_feats() - 1
 
-    model = deepchem.models.ANIRegression(
-        len(tasks),
-        max_atoms,
-        n_feat,
-        layer_structures=layer_structures,
-        atom_number_cases=atom_number_cases,
-        batch_size=batch_size,
-        learning_rate=learning_rate,
-        use_queue=False,
-        mode="regression",
-        random_seed=seed)
+    model = deepchem.models.ANIRegression(len(tasks),
+                                          max_atoms,
+                                          n_feat,
+                                          layer_structures=layer_structures,
+                                          atom_number_cases=atom_number_cases,
+                                          batch_size=batch_size,
+                                          learning_rate=learning_rate,
+                                          use_queue=False,
+                                          mode="regression",
+                                          random_seed=seed)
 
   elif model_name == 'mpnn':
     batch_size = hyper_parameters['batch_size']
@@ -655,17 +647,16 @@ def benchmark_regression(train_dataset,
     T = hyper_parameters['T']
     M = hyper_parameters['M']
 
-    model = deepchem.models.MPNNModel(
-        len(tasks),
-        n_atom_feat=n_features[0],
-        n_pair_feat=n_features[1],
-        n_hidden=n_features[0],
-        T=T,
-        M=M,
-        batch_size=batch_size,
-        learning_rate=learning_rate,
-        use_queue=False,
-        mode="regression")
+    model = deepchem.models.MPNNModel(len(tasks),
+                                      n_atom_feat=n_features[0],
+                                      n_pair_feat=n_features[1],
+                                      n_hidden=n_features[0],
+                                      T=T,
+                                      M=M,
+                                      batch_size=batch_size,
+                                      learning_rate=learning_rate,
+                                      use_queue=False,
+                                      mode="regression")
 
   elif model_name == 'rf_regression':
     n_estimators = hyper_parameters['n_estimators']
@@ -673,8 +664,8 @@ def benchmark_regression(train_dataset,
 
     # Building scikit random forest model
     def model_builder(model_dir):
-      sklearn_model = RandomForestRegressor(
-          n_estimators=n_estimators, n_jobs=-1)
+      sklearn_model = RandomForestRegressor(n_estimators=n_estimators,
+                                            n_jobs=-1)
       return deepchem.models.sklearn_models.SklearnModel(
           sklearn_model, model_dir)
 
@@ -732,21 +723,20 @@ def benchmark_regression(train_dataset,
 
     # Building xgboost regression model
     def model_builder(model_dir):
-      xgboost_model = xgboost.XGBRegressor(
-          max_depth=max_depth,
-          learning_rate=learning_rate,
-          n_estimators=n_estimators,
-          gamma=gamma,
-          min_child_weight=min_child_weight,
-          max_delta_step=max_delta_step,
-          subsample=subsample,
-          colsample_bytree=colsample_bytree,
-          colsample_bylevel=colsample_bylevel,
-          reg_alpha=reg_alpha,
-          reg_lambda=reg_lambda,
-          scale_pos_weight=scale_pos_weight,
-          base_score=base_score,
-          seed=seed)
+      xgboost_model = xgboost.XGBRegressor(max_depth=max_depth,
+                                           learning_rate=learning_rate,
+                                           n_estimators=n_estimators,
+                                           gamma=gamma,
+                                           min_child_weight=min_child_weight,
+                                           max_delta_step=max_delta_step,
+                                           subsample=subsample,
+                                           colsample_bytree=colsample_bytree,
+                                           colsample_bylevel=colsample_bylevel,
+                                           reg_alpha=reg_alpha,
+                                           reg_lambda=reg_lambda,
+                                           scale_pos_weight=scale_pos_weight,
+                                           base_score=base_score,
+                                           seed=seed)
       return deepchem.models.xgboost_models.XGBoostModel(
           xgboost_model, model_dir, **esr)
 

@@ -16,10 +16,11 @@ class _ThermosolLoader(_MolnetLoader):
   def create_dataset(self) -> Dataset:
     dataset_file = os.path.join(self.data_dir, "thermosol.csv")
     if not os.path.exists(dataset_file):
-      dc.utils.data_utils.download_url(
-          url=THERMOSOL_URL, dest_dir=self.data_dir)
-    loader = dc.data.CSVLoader(
-        tasks=self.tasks, feature_field="smile", featurizer=self.featurizer)
+      dc.utils.data_utils.download_url(url=THERMOSOL_URL,
+                                       dest_dir=self.data_dir)
+    loader = dc.data.CSVLoader(tasks=self.tasks,
+                               feature_field="smile",
+                               featurizer=self.featurizer)
     return loader.create_dataset(dataset_file, shard_size=8192)
 
 
