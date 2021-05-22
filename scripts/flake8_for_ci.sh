@@ -16,5 +16,5 @@ items=(
 )
 
 for item in "${items[@]}" ; do
-    flake8 ${item} --count --show-source --statistics
+    flake8 ${item} --exclude=__init__.py --count --show-source --statistics
 done

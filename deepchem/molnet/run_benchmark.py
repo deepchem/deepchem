@@ -8,7 +8,6 @@ import os
 import time
 import csv
 import numpy as np
-import tensorflow as tf
 import deepchem
 import pickle
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression

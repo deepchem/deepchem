@@ -6,7 +6,6 @@ Created on Mon Mar  6 23:41:26 2017
 @author: zqwu
 """
 import numpy as np
-import tensorflow as tf
 import deepchem
 from deepchem.molnet.preset_hyper_parameters import hps
 from sklearn.ensemble import RandomForestClassifier
