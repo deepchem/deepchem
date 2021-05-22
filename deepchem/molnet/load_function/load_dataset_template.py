@@ -174,8 +174,8 @@ def load_mydataset(
     dataset_file = os.path.join(data_dir, 'mydataset.filetype')
 
     if not os.path.exists(dataset_file):
-      deepchem.utils.data_utils.download_url(url=MYDATASET_URL,
-                                             dest_dir=data_dir)
+      deepchem.utils.data_utils.download_url(
+          url=MYDATASET_URL, dest_dir=data_dir)
       deepchem.utils.data_utils.untargz_file(
           os.path.join(data_dir, 'mydataset.tar.gz'), data_dir)
 
@@ -188,12 +188,11 @@ def load_mydataset(
   else:  # only load CSV file
     dataset_file = os.path.join(data_dir, "mydataset.csv")
     if not os.path.exists(dataset_file):
-      deepchem.utils.data_utils.download_url(url=MYDATASET_CSV_URL,
-                                             dest_dir=data_dir)
+      deepchem.utils.data_utils.download_url(
+          url=MYDATASET_CSV_URL, dest_dir=data_dir)
 
-    loader = deepchem.data.CSVLoader(tasks=my_tasks,
-                                     smiles_field="smiles",
-                                     featurizer=featurizer)
+    loader = deepchem.data.CSVLoader(
+        tasks=my_tasks, smiles_field="smiles", featurizer=featurizer)
 
   # Featurize dataset
   dataset = loader.create_dataset(dataset_file)
@@ -203,9 +202,9 @@ def load_mydataset(
 
   # Initialize transformers
   transformers = [
-      DEFAULT_TRANSFORMERS[t](dataset=dataset, **transformer_kwargs[t]) if
-      isinstance(t, str) else t(dataset=dataset,
-                                **transformer_kwargs[str(t.__class__.__name__)])
+      DEFAULT_TRANSFORMERS[t](dataset=dataset, **transformer_kwargs[t])
+      if isinstance(t, str) else t(
+          dataset=dataset, **transformer_kwargs[str(t.__class__.__name__)])
       for t in transformers
   ]
 
@@ -215,8 +214,7 @@ def load_mydataset(
     test_dataset = transformer.transform(test_dataset)
 
   if reload:  # save to disk
-    deepchem.utils.data_utils.save_dataset_to_disk(save_folder, train_dataset,
-                                                   valid_dataset, test_dataset,
-                                                   transformers)
+    deepchem.utils.data_utils.save_dataset_to_disk(
+        save_folder, train_dataset, valid_dataset, test_dataset, transformers)
 
   return my_tasks, (train_dataset, valid_dataset, test_dataset), transformers

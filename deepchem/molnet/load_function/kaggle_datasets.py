@@ -72,9 +72,8 @@ def gen_kaggle(KAGGLE_tasks,
   logger.info("About to featurize KAGGLE dataset.")
   featurizer = deepchem.feat.UserDefinedFeaturizer(merck_descriptors)
 
-  loader = deepchem.data.UserCSVLoader(tasks=KAGGLE_tasks,
-                                       id_field="Molecule",
-                                       featurizer=featurizer)
+  loader = deepchem.data.UserCSVLoader(
+      tasks=KAGGLE_tasks, id_field="Molecule", featurizer=featurizer)
 
   logger.info("Featurizing train datasets")
   train_dataset = loader.featurize(train_files, shard_size=shard_size)
@@ -97,8 +96,8 @@ def gen_kaggle(KAGGLE_tasks,
   transformers = get_transformers(train_dataset)
 
   for transformer in transformers:
-    logger.info("Performing transformations with %s" %
-                transformer.__class__.__name__)
+    logger.info(
+        "Performing transformations with %s" % transformer.__class__.__name__)
     logger.info("Transforming datasets")
     train_dataset = transformer.transform(train_dataset)
     valid_dataset = transformer.transform(valid_dataset)

@@ -75,17 +75,16 @@ def gen_uv(UV_tasks, data_dir, train_dir, valid_dir, test_dir, shard_size=2000):
   # Featurizing datasets
   logger.info("About to featurize UV dataset.")
   featurizer = deepchem.feat.UserDefinedFeaturizer(merck_descriptors)
-  loader = deepchem.data.UserCSVLoader(tasks=UV_tasks,
-                                       id_field="Molecule",
-                                       featurizer=featurizer)
+  loader = deepchem.data.UserCSVLoader(
+      tasks=UV_tasks, id_field="Molecule", featurizer=featurizer)
 
   logger.info("Featurizing train datasets...")
-  train_dataset = loader.featurize(input_files=train_files,
-                                   shard_size=shard_size)
+  train_dataset = loader.featurize(
+      input_files=train_files, shard_size=shard_size)
 
   logger.info("Featurizing validation datasets...")
-  valid_dataset = loader.featurize(input_files=valid_files,
-                                   shard_size=shard_size)
+  valid_dataset = loader.featurize(
+      input_files=valid_files, shard_size=shard_size)
 
   logger.info("Featurizing test datasets....")
   test_dataset = loader.featurize(input_files=test_files, shard_size=shard_size)
@@ -189,12 +188,13 @@ def load_uv(shard_size=2000, featurizer=None, split=None, reload=True):
 
   else:
     logger.info("Featurizing datasets")
-    train_dataset, valid_dataset, test_dataset = gen_uv(UV_tasks=UV_tasks,
-                                                        data_dir=data_dir,
-                                                        train_dir=train_dir,
-                                                        valid_dir=valid_dir,
-                                                        test_dir=test_dir,
-                                                        shard_size=shard_size)
+    train_dataset, valid_dataset, test_dataset = gen_uv(
+        UV_tasks=UV_tasks,
+        data_dir=data_dir,
+        train_dir=train_dir,
+        valid_dir=valid_dir,
+        test_dir=test_dir,
+        shard_size=shard_size)
 
   transformers = get_transformers(train_dataset)
 

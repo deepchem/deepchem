@@ -79,17 +79,16 @@ def gen_kinase(KINASE_tasks,
   logger.info("About to featurize KINASE dataset.")
   featurizer = deepchem.feat.UserDefinedFeaturizer(merck_descriptors)
 
-  loader = deepchem.data.UserCSVLoader(tasks=KINASE_tasks,
-                                       id_field="Molecule",
-                                       featurizer=featurizer)
+  loader = deepchem.data.UserCSVLoader(
+      tasks=KINASE_tasks, id_field="Molecule", featurizer=featurizer)
 
   logger.info("Featurizing train datasets...")
-  train_dataset = loader.featurize(input_files=train_files,
-                                   shard_size=shard_size)
+  train_dataset = loader.featurize(
+      input_files=train_files, shard_size=shard_size)
 
   logger.info("Featurizing validation datasets...")
-  valid_dataset = loader.featurize(input_files=valid_files,
-                                   shard_size=shard_size)
+  valid_dataset = loader.featurize(
+      input_files=valid_files, shard_size=shard_size)
 
   logger.info("Featurizing test datasets....")
   test_dataset = loader.featurize(input_files=test_files, shard_size=shard_size)

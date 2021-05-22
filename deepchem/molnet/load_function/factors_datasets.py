@@ -76,9 +76,8 @@ def gen_factors(FACTORS_tasks,
   # Featurize the FACTORS dataset
   logger.info("About to featurize the FACTORS dataset")
   featurizer = deepchem.feat.UserDefinedFeaturizer(merck_descriptors)
-  loader = deepchem.data.UserCSVLoader(tasks=FACTORS_tasks,
-                                       id_field="Molecule",
-                                       featurizer=featurizer)
+  loader = deepchem.data.UserCSVLoader(
+      tasks=FACTORS_tasks, id_field="Molecule", featurizer=featurizer)
 
   logger.info("Featurizing the train dataset...")
   train_dataset = loader.featurize(train_files, shard_size=shard_size)
