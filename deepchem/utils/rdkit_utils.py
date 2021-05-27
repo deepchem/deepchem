@@ -277,6 +277,7 @@ def load_molecule(molecule_file,
     raise ValueError("Unable to read non None Molecule Object")
 
   if add_hydrogens or calc_charges:
+    my_mol.UpdatePropertyCache(strict=False)
     my_mol = apply_pdbfixer(
         my_mol, hydrogenate=add_hydrogens, is_protein=is_protein)
   if sanitize:
