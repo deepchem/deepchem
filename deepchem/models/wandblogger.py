@@ -1,4 +1,5 @@
 import math
+import copy
 import logging
 import importlib.util
 from typing import List, Optional, Union
@@ -7,6 +8,7 @@ from deepchem.metrics import Metric
 from deepchem.models.callbacks import ValidationCallback
 
 logger = logging.getLogger(__name__)
+
 
 def is_wandb_available():
   return importlib.util.find_spec("wandb") is not None
@@ -40,6 +42,7 @@ class WandbLogger(object):
                anonymous: Optional[str] = "never",
                log_model: Optional[bool] = False,
                log_dataset: Optional[bool] = False,
+               save_run_history: Optional[bool] = False,
                **kwargs):
     """Parameters
     ----------
@@ -71,6 +74,8 @@ class WandbLogger(object):
       whether to log the model to W&B
     log_dataset: bool
       whether to log the dataset to W&B
+    save_run_history: bool
+      whether to save the run history to the logger at the end (for testing purposes)
     """
 
     assert is_wandb_available(
@@ -104,6 +109,7 @@ class WandbLogger(object):
     self.log_model = log_model
     self.log_dataset = log_dataset
     self.save_dir = save_dir
+    self.save_run_history = save_run_history
 
     # set wandb init arguments
     self.wandb_init_params = dict(name=name,
@@ -199,7 +205,10 @@ class WandbLogger(object):
 
   def finish(self):
     """Finishes and closes the W&B run.
+    Save run history data as field if configured to do that.
     """
+    if self.save_run_history:
+      self.run_history = copy.deepcopy(self.wandb_run.history)
     self.wandb_run.finish()
 
   def update_config(self, config_data):

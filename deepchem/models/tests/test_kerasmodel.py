@@ -1,5 +1,5 @@
 import os
-import unittest
+import math
 import deepchem as dc
 import numpy as np
 import tensorflow as tf
@@ -18,11 +18,10 @@ def test_overfit_graph_model():
   logits = tf.keras.layers.Dense(1)(hidden)
   outputs = tf.keras.layers.Activation('sigmoid')(logits)
   keras_model = tf.keras.Model(inputs=inputs, outputs=[outputs, logits])
-  model = dc.models.KerasModel(
-      keras_model,
-      dc.models.losses.SigmoidCrossEntropy(),
-      output_types=['prediction', 'loss'],
-      learning_rate=0.005)
+  model = dc.models.KerasModel(keras_model,
+                               dc.models.losses.SigmoidCrossEntropy(),
+                               output_types=['prediction', 'loss'],
+                               learning_rate=0.005)
   model.fit(dataset, nb_epoch=1000)
   prediction = np.squeeze(model.predict_on_batch(X))
   assert np.array_equal(y, np.round(prediction))
@@ -47,8 +46,9 @@ def test_overfit_sequential_model():
       tf.keras.layers.Dense(10, activation='relu'),
       tf.keras.layers.Dense(1, activation='sigmoid')
   ])
-  model = dc.models.KerasModel(
-      keras_model, dc.models.losses.BinaryCrossEntropy(), learning_rate=0.005)
+  model = dc.models.KerasModel(keras_model,
+                               dc.models.losses.BinaryCrossEntropy(),
+                               learning_rate=0.005)
   model.fit(dataset, nb_epoch=1000)
   prediction = np.squeeze(model.predict_on_batch(X))
   assert np.array_equal(y, np.round(prediction))
@@ -69,11 +69,10 @@ def test_fit_use_all_losses():
       tf.keras.layers.Dense(10, activation='relu'),
       tf.keras.layers.Dense(1, activation='sigmoid')
   ])
-  model = dc.models.KerasModel(
-      keras_model,
-      dc.models.losses.BinaryCrossEntropy(),
-      learning_rate=0.005,
-      log_frequency=10)
+  model = dc.models.KerasModel(keras_model,
+                               dc.models.losses.BinaryCrossEntropy(),
+                               learning_rate=0.005,
+                               log_frequency=10)
   losses = []
   model.fit(dataset, nb_epoch=1000, all_losses=losses)
   # Each epoch is a single step for this model
@@ -92,8 +91,9 @@ def test_fit_on_batch():
       tf.keras.layers.Dense(10, activation='relu'),
       tf.keras.layers.Dense(1, activation='sigmoid')
   ])
-  model = dc.models.KerasModel(
-      keras_model, dc.models.losses.BinaryCrossEntropy(), learning_rate=0.005)
+  model = dc.models.KerasModel(keras_model,
+                               dc.models.losses.BinaryCrossEntropy(),
+                               learning_rate=0.005)
   i = 0
   for X, y, w, ids in dataset.iterbatches(model.batch_size, 500):
     i += 1
@@ -113,8 +113,9 @@ def test_checkpointing():
   keras_model1 = tf.keras.Sequential([tf.keras.layers.Dense(10)])
   keras_model2 = tf.keras.Sequential([tf.keras.layers.Dense(10)])
   model1 = dc.models.KerasModel(keras_model1, dc.models.losses.L2Loss())
-  model2 = dc.models.KerasModel(
-      keras_model2, dc.models.losses.L2Loss(), model_dir=model1.model_dir)
+  model2 = dc.models.KerasModel(keras_model2,
+                                dc.models.losses.L2Loss(),
+                                model_dir=model1.model_dir)
 
   # Check that they produce different results.
 
@@ -148,8 +149,9 @@ def test_fit_restore():
       tf.keras.layers.Dense(10, activation='relu'),
       tf.keras.layers.Dense(1, activation='sigmoid')
   ])
-  model = dc.models.KerasModel(
-      keras_model, dc.models.losses.BinaryCrossEntropy(), learning_rate=0.005)
+  model = dc.models.KerasModel(keras_model,
+                               dc.models.losses.BinaryCrossEntropy(),
+                               learning_rate=0.005)
   model.fit(dataset, nb_epoch=1000)
   prediction = np.squeeze(model.predict_on_batch(X))
   assert np.array_equal(y, np.round(prediction))
@@ -161,10 +163,9 @@ def test_fit_restore():
       tf.keras.layers.Dense(10, activation='relu'),
       tf.keras.layers.Dense(1, activation='sigmoid')
   ])
-  model2 = dc.models.KerasModel(
-      keras_model2,
-      dc.models.losses.BinaryCrossEntropy(),
-      model_dir=model.model_dir)
+  model2 = dc.models.KerasModel(keras_model2,
+                                dc.models.losses.BinaryCrossEntropy(),
+                                model_dir=model.model_dir)
   model2.fit(dataset, nb_epoch=1, restore=True)
   prediction = np.squeeze(model2.predict_on_batch(X))
   assert np.array_equal(y, np.round(prediction))
@@ -188,8 +189,8 @@ def test_uncertainty():
   output = tf.keras.layers.Dense(n_features)(dropout)
   log_var = tf.keras.layers.Dense(n_features)(dropout)
   var = tf.keras.layers.Activation(tf.exp)(log_var)
-  keras_model = tf.keras.Model(
-      inputs=[inputs, switch], outputs=[output, var, output, log_var])
+  keras_model = tf.keras.Model(inputs=[inputs, switch],
+                               outputs=[output, var, output, log_var])
 
   def loss(outputs, labels, weights):
     diff = labels[0] - outputs[0]
@@ -206,10 +207,10 @@ def test_uncertainty():
                           deterministic=True,
                           pad_batches=True):
       for epoch in range(epochs):
-        for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-            batch_size=self.batch_size,
-            deterministic=deterministic,
-            pad_batches=pad_batches):
+        for (X_b, y_b, w_b,
+             ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                           deterministic=deterministic,
+                                           pad_batches=pad_batches):
           if mode == 'predict':
             dropout = np.array(0.0)
           else:
@@ -283,11 +284,10 @@ def test_tensorboard():
   keras_model = tf.keras.Sequential([
       tf.keras.layers.Dense(2, activation='softmax'),
   ])
-  model = dc.models.KerasModel(
-      keras_model,
-      dc.models.losses.CategoricalCrossEntropy(),
-      tensorboard=True,
-      log_frequency=1)
+  model = dc.models.KerasModel(keras_model,
+                               dc.models.losses.CategoricalCrossEntropy(),
+                               tensorboard=True,
+                               log_frequency=1)
   model.fit(dataset, nb_epoch=10)
   files_in_dir = os.listdir(model.model_dir)
   event_file = list(filter(lambda x: x.startswith("events"), files_in_dir))
@@ -295,6 +295,35 @@ def test_tensorboard():
   event_file = os.path.join(model.model_dir, event_file[0])
   file_size = os.stat(event_file).st_size
   assert file_size > 0
+
+
+def test_wandblogger():
+  """Test logging to Weights & Biases."""
+  # Load dataset and Models
+  tasks, datasets, transformers = dc.molnet.load_delaney(featurizer='ECFP',
+                                                         splitter='random')
+  train_dataset, valid_dataset, test_dataset = datasets
+  keras_model = tf.keras.Sequential(
+      [tf.keras.layers.Dense(10, activation='relu'),
+       tf.keras.layers.Dense(1)])
+  metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
+  wandblogger = dc.models.WandbLogger(train_dataset=train_dataset,
+                                      eval_dataset=valid_dataset,
+                                      metrics=[metric],
+                                      logging_strategy="step",
+                                      anonymous="allow",
+                                      save_run_history=True)
+  model = dc.models.KerasModel(keras_model,
+                               dc.models.losses.L2Loss(),
+                               wandb_logger=wandblogger)
+  model.fit(train_dataset, nb_epoch=10)
+
+  run_data = wandblogger.run_history._data
+  valid_score = model.evaluate(valid_dataset, [metric], transformers)
+
+  assert math.isclose(valid_score["pearson_r2_score"],
+                      run_data['eval/pearson_r2_score'],
+                      abs_tol=0.0005)
 
 
 def test_fit_variables():
