@@ -125,8 +125,12 @@ class WandbLogger(object):
 
   def setup(self):
     """Initializes a W&B run and create a run object.
+    If a pre-existing run is already initialized, use that instead.
     """
-    self.wandb_run = self._wandb.init(**self.wandb_init_params)
+    if self._wandb.run is None:
+      self.wandb_run = self._wandb.init(**self.wandb_init_params)
+    else:
+      self.wandb_run = self._wandb.run
     self.initialized = True
 
   def check_other_loggers(self, callbacks):
