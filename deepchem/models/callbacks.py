@@ -2,16 +2,15 @@
 Callback functions that can be invoked while fitting a KerasModel.
 """
 import sys
+import math
 
 
 class ValidationCallback(object):
   """Performs validation while training a KerasModel.
-
   This is a callback that can be passed to fit().  It periodically computes a
   set of metrics over a validation set and writes them to a file.  In addition,
   it can save the best model parameters found so far to a directory on disk,
   updating them every time it finds a new best validation score.
-
   If Tensorboard logging is enabled on the KerasModel, the metrics are also
   logged to Tensorboard.  This only happens when validation coincides with a
   step on which the model writes to the log.  You should therefore make sure
@@ -26,9 +25,9 @@ class ValidationCallback(object):
                output_file=sys.stdout,
                save_dir=None,
                save_metric=0,
-               save_on_minimum=True):
+               save_on_minimum=True,
+               logging_strategy="step"):
     """Create a ValidationCallback.
-
     Parameters
     ----------
     dataset: dc.data.Dataset
@@ -49,6 +48,10 @@ class ValidationCallback(object):
       if True, the best model is considered to be the one that minimizes the
       validation metric.  If False, the best model is considered to be the one
       that maximizes it.
+    logging_strategy: str
+      the logging strategy used for logging (step or epoch). If "step",
+      logging interval will be the value provided for `interval`. If "epoch",
+      then logging will happen at the end of every training epoch.
     """
     self.dataset = dataset
     self.interval = interval
@@ -58,10 +61,15 @@ class ValidationCallback(object):
     self.save_metric = save_metric
     self.save_on_minimum = save_on_minimum
     self._best_score = None
+    if logging_strategy != "step" and logging_strategy != "epoch":
+      print(
+          "ValidationCallback: `logging_strategy` needs to be either 'step' or 'epoch'. Defaulting to 'step'."
+      )
+      logging_strategy = "step"
+    self.logging_strategy = logging_strategy
 
   def __call__(self, model, step):
     """This is invoked by the KerasModel after every step of fitting.
-
     Parameters
     ----------
     model: KerasModel
@@ -69,7 +77,15 @@ class ValidationCallback(object):
     step: int
       the index of the training step that has just completed
     """
-    if step % self.interval != 0:
+
+    # Check if we should log to Wandb on this iteration
+    steps_per_epoch = math.ceil(len(model.dataset) / model.batch_size)
+    should_log = False
+    if (self.logging_strategy == "step" and step % self.interval == 0) or \
+            (self.logging_strategy == "epoch" and step % steps_per_epoch == 0):
+      should_log = True
+
+    if should_log is False:
       return
     scores = model.evaluate(self.dataset, self.metrics)
     message = 'Step %d validation:' % step
@@ -80,6 +96,10 @@ class ValidationCallback(object):
       for key in scores:
         model._log_scalar_to_tensorboard(key, scores[key],
                                          model.get_global_step())
+    if model.wandb:
+      import wandb
+      wandb.log(scores, step=step)
+
     if self.save_dir is not None:
       score = scores[self.metrics[self.save_metric].name]
       if not self.save_on_minimum:
@@ -87,3 +107,8 @@ class ValidationCallback(object):
       if self._best_score is None or score < self._best_score:
         model.save_checkpoint(model_dir=self.save_dir)
         self._best_score = score
+
+    if model.wandb_logger is not None:
+      # Log data to Wandb
+      data = {'eval/' + k: v for k, v in scores.items()}
+      model.wandb_logger.log_data(data, step)

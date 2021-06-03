@@ -1,11 +1,7 @@
-import math
 import copy
 import logging
 import importlib.util
-from typing import List, Optional, Union
-from deepchem.data import Dataset
-from deepchem.metrics import Metric
-from deepchem.models.callbacks import ValidationCallback
+from typing import Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +24,6 @@ class WandbLogger(object):
     """
 
   def __init__(self,
-               train_dataset: Dataset,
-               eval_dataset: Optional[Dataset] = None,
-               metrics: Optional[List[Metric]] = None,
-               logging_strategy: Optional[str] = "step",
                name: Optional[str] = None,
                entity: Optional[str] = None,
                project: Optional[str] = None,
@@ -40,20 +32,10 @@ class WandbLogger(object):
                id: Optional[str] = None,
                resume: Optional[Union[bool, str]] = None,
                anonymous: Optional[str] = "never",
-               log_model: Optional[bool] = False,
-               log_dataset: Optional[bool] = False,
                save_run_history: Optional[bool] = False,
                **kwargs):
     """Parameters
     ----------
-    train_dataset: dc.data.Dataset
-      the training set on which the model is run on
-    eval_dataset: dc.data.Dataset
-      the validation set on which to compute the metrics
-    metrics: list of dc.metrics.Metric
-      metrics to compute on eval_dataset
-    logging_strategy: str
-      the logging strategy used for logging (step or epoch)
     name: str
       a display name for the run in the W&B dashboard
     entity: str
@@ -70,10 +52,6 @@ class WandbLogger(object):
       sets the resuming behavior
     anonymous: str
       controls anonymous data logging
-    log_model: bool
-      whether to log the model to W&B
-    log_dataset: bool
-      whether to log the dataset to W&B
     save_run_history: bool
       whether to save the run history to the logger at the end (for testing purposes)
     """
@@ -83,31 +61,11 @@ class WandbLogger(object):
     import wandb
     self._wandb = wandb
 
-    if mode == "offline" and log_model:
-      raise Exception(
-          f'Providing log_model={log_model} and mode={mode} is an invalid configuration'
-          ' since model checkpoints cannot be uploaded in offline mode.\n'
-          'Hint: Set `mode="online"` to log your model.')
-
-    # Check for metrics and logging strategy
-    if ((metrics is None) or (not metrics)) and (eval_dataset is not None):
+    if mode == "offline":
       logger.warning(
-          "Warning: No metrics are provided. "
-          "Please provide a list of metrics to be calculated on the datasets.")
+          'Note: Model checkpoints will not be uploaded to W&B in offline mode.\n'
+          'Please set `mode="online"` if you need to log your model.')
 
-    if logging_strategy != "step" and logging_strategy != "epoch":
-      logger.warning(
-          "Warning: `logging_strategy` needs to be either 'step' or 'epoch'. Defaulting to 'step'."
-      )
-      logging_strategy = "step"
-
-    self.datasets = {"train": train_dataset, "eval": eval_dataset}
-    self.train_dataset_size = len(self.datasets["train"])
-    self.metrics = metrics
-    self.logging_strategy = logging_strategy
-
-    self.log_model = log_model
-    self.log_dataset = log_dataset
     self.save_dir = save_dir
     self.save_run_history = save_run_history
 
@@ -133,79 +91,17 @@ class WandbLogger(object):
       self.wandb_run = self._wandb.run
     self.initialized = True
 
-  def check_other_loggers(self, callbacks):
-    """Check for different callbacks and warn for redundant logging behaviour.
-    Parameters
-    ----------
-    callbacks: function or list of functions
-      one or more functions of the form f(model, step) that will be passed into fit().
-
-    """
-    for c in callbacks:
-      if isinstance(c, ValidationCallback):
-        logger.warning(
-            "Note: You are using both WandbLogger and ValidationCallback. "
-            "This will result in evaluation metrics being calculated twice and may increase runtime."
-        )
-
-  def calculate_epoch_and_sample_count(self, current_step):
-    """Calculates the steps per epoch, current epoch number,
-    and the number of samples seen by the model.
+  def log_data(self, data, step):
+    """Log data to W&B.
 
     Parameters
     ----------
-    current_step: int
-      the training step of the model
-
-    """
-    self.steps_per_epoch = math.ceil(self.train_dataset_size /
-                                     self.wandb_run.config.batch_size)
-    self.epoch_num = current_step / self.steps_per_epoch
-    self.sample_count = current_step * self.wandb_run.config.batch_size
-
-  def log(self, model, extra_data, step):
-    """Logs the metrics and other extra data to W&B.
-
-    Parameters
-    ----------
-    model: tf.keras.Model
-     the Keras model implementing the calculation
-    extra_data: dict
-     extra data to be logged alongside calculated metrics
+    data: dict
+      the data to be logged to W&B
     step: int
-     the step number
+      the step number at which the data is to be logged
     """
-
-    all_data = dict({})
-    all_data.update(extra_data)
-    all_data.update({
-        'train/epoch': self.epoch_num,
-        'train/sample_count': self.sample_count
-    })
-
-    if self.metrics is not None and self.metrics:
-      # Get Training Metrics (interval dependent)
-      if self.logging_strategy == "step" and step % self.wandb_run.config.log_frequency == 0:
-        scores = model.evaluate(self.datasets["train"], self.metrics)
-        scores = {'train/' + k: v for k, v in scores.items()}
-        all_data.update(scores)
-      elif self.logging_strategy == "epoch" and step % self.steps_per_epoch == 0:
-        scores = model.evaluate(self.datasets["train"], self.metrics)
-        scores = {'train/' + k: v for k, v in scores.items()}
-        all_data.update(scores)
-
-      # Get Eval Metrics (interval dependent)
-      if self.datasets["eval"] is not None:
-        if self.logging_strategy == "step" and step % self.wandb_run.config.log_frequency == 0:
-          scores = model.evaluate(self.datasets["eval"], self.metrics)
-          scores = {'eval/' + k: v for k, v in scores.items()}
-          all_data.update(scores)
-        elif self.logging_strategy == "epoch" and step % self.steps_per_epoch == 0:
-          scores = model.evaluate(self.datasets["eval"], self.metrics)
-          scores = {'eval/' + k: v for k, v in scores.items()}
-          all_data.update(scores)
-
-    self.wandb_run.log(all_data, step=step)
+    self.wandb_run.log(data, step=step)
 
   def finish(self):
     """Finishes and closes the W&B run.
