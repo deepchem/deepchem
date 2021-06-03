@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pytest
 
-from deepchem.feat.graph_features import ConvMolFeaturizer, AtomicConvFeaturizer
+from deepchem.feat.graph_features import ConvMolFeaturizer
 
 
 class TestConvMolFeaturizer(unittest.TestCase):
