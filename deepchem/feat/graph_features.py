@@ -542,8 +542,9 @@ def pair_features(mol: RDKitMol,
             "Malformed molecule with bonds not in specified graph distance.")
       else:
         n = mapping[(int(a1), int(a2))]
-      features[n, :bt_len] = np.asarray(
-          bond_features_map[tuple(sorted((a1, a2)))], dtype=float)
+      features[n, :bt_len] = np.asarray(bond_features_map[tuple(sorted(
+          (a1, a2)))],
+                                        dtype=float)
     for ring in rings:
       if a1 in ring:
         for a2 in ring:
@@ -560,8 +561,10 @@ def pair_features(mol: RDKitMol,
     # graph distance between two atoms
     if graph_distance:
       # distance is a matrix of 1-hot encoded distances for all atoms
-      distance = find_distance(
-          a1, num_atoms, bond_adj_list, max_distance=max_distance)
+      distance = find_distance(a1,
+                               num_atoms,
+                               bond_adj_list,
+                               max_distance=max_distance)
       for a2 in range(num_atoms):
         if (int(a1), int(a2)) not in mapping:
           # For ring pairs outside max pairs distance continue
@@ -582,7 +585,9 @@ def pair_features(mol: RDKitMol,
   return features, pair_edges
 
 
-def find_distance(a1: RDKitAtom, num_atoms: int, bond_adj_list,
+def find_distance(a1: RDKitAtom,
+                  num_atoms: int,
+                  bond_adj_list,
                   max_distance=7) -> np.ndarray:
   """Computes distances from provided atom.
 
@@ -707,10 +712,10 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     self.atom_properties = list(atom_properties)
     self.per_atom_fragmentation = per_atom_fragmentation
 
-  def featurize(
-      self,
-      molecules: Union[RDKitMol, str, Iterable[RDKitMol], Iterable[str]],
-      log_every_n: int = 1000) -> np.ndarray:
+  def featurize(self,
+                molecules: Union[RDKitMol, str, Iterable[RDKitMol],
+                                 Iterable[str]],
+                log_every_n: int = 1000) -> np.ndarray:
     """
     Override parent: aim is to add handling atom-depleted molecules featurization
     
@@ -727,8 +732,8 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     features: np.ndarray
       A numpy array containing a featurized representation of `datapoints`.
     """
-    features = super(ConvMolFeaturizer, self).featurize(
-        molecules, log_every_n=1000)
+    features = super(ConvMolFeaturizer, self).featurize(molecules,
+                                                        log_every_n=1000)
     if self.per_atom_fragmentation:
       # create temporary valid ids serving to filter out failed featurizations from every sublist
       # of features (i.e. every molecules' frags list), and also totally failed sublists.
@@ -801,10 +806,9 @@ class ConvMolFeaturizer(MolecularFeaturizer):
 
     # Get the node features
     idx_nodes = [(a.GetIdx(),
-                  np.concatenate((atom_features(
-                      a, use_chirality=self.use_chirality),
-                                  self._get_atom_properties(a))))
-                 for a in mol.GetAtoms()]
+                  np.concatenate(
+                      (atom_features(a, use_chirality=self.use_chirality),
+                       self._get_atom_properties(a)))) for a in mol.GetAtoms()]
 
     idx_nodes.sort()  # Sort by ind to ensure same order as rd_kit
     idx, nodes = list(zip(*idx_nodes))
@@ -928,10 +932,9 @@ class WeaveFeaturizer(MolecularFeaturizer):
     """Encodes mol as a WeaveMol object."""
     # Atom features
     idx_nodes = [(a.GetIdx(),
-                  atom_features(
-                      a,
-                      explicit_H=self.explicit_H,
-                      use_chirality=self.use_chirality))
+                  atom_features(a,
+                                explicit_H=self.explicit_H,
+                                use_chirality=self.use_chirality))
                  for a in mol.GetAtoms()]
     idx_nodes.sort()  # Sort by ind to ensure same order as rd_kit
     idx, nodes = list(zip(*idx_nodes))
@@ -953,145 +956,144 @@ class WeaveFeaturizer(MolecularFeaturizer):
       bond_adj_list[bond[1]].append(bond[0])
 
     # Calculate pair features
-    pairs, pair_edges = pair_features(
-        mol,
-        bond_features_map,
-        bond_adj_list,
-        bt_len=self.bt_len,
-        graph_distance=self.graph_distance,
-        max_pair_distance=self.max_pair_distance)
+    pairs, pair_edges = pair_features(mol,
+                                      bond_features_map,
+                                      bond_adj_list,
+                                      bt_len=self.bt_len,
+                                      graph_distance=self.graph_distance,
+                                      max_pair_distance=self.max_pair_distance)
 
     return WeaveMol(nodes, pairs, pair_edges)
 
 
-class AtomicConvFeaturizer(ComplexNeighborListFragmentAtomicCoordinates):
-  """This class computes the Atomic Convolution features"""
-
-  # TODO (VIGS25): Complete the description
-
-  name = ['atomic_conv']
-
-  def __init__(self,
-               labels,
-               neighbor_cutoff,
-               frag1_num_atoms=70,
-               frag2_num_atoms=634,
-               complex_num_atoms=701,
-               max_num_neighbors=12,
-               batch_size=24,
-               atom_types=[
-                   6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35.,
-                   53., -1.
-               ],
-               radial=[[
-                   1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0,
-                   7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0
-               ], [0.0, 4.0, 8.0], [0.4]],
-               layer_sizes=[32, 32, 16],
-               strip_hydrogens=True,
-               learning_rate=0.001,
-               epochs=10):
-    """
-    Parameters
-
-    labels: numpy.ndarray
-      Labels which we want to predict using the model
-    neighbor_cutoff: int
-      TODO (VIGS25): Add description
-    frag1_num_atoms: int
-      Number of atoms in first fragment
-    frag2_num_atoms: int
-      Number of atoms in second fragment
-    complex_num_atoms: int
-      TODO (VIGS25) : Add description
-    max_num_neighbors: int
-      Maximum number of neighbors possible for an atom
-    batch_size: int
-      Batch size used for training and evaluation
-    atom_types: list
-      List of atoms recognized by model. Atoms are indicated by their
-      nuclear numbers.
-    radial: list
-      TODO (VIGS25): Add description
-    layer_sizes: list
-      List of layer sizes for the AtomicConvolutional Network
-    strip_hydrogens: bool
-      Whether to remove hydrogens while computing neighbor features
-    learning_rate: float
-      Learning rate for training the model
-    epochs: int
-      Number of epochs to train the model for
-    """
-
-    self.atomic_conv_model = dc.models.atomic_conv.AtomicConvModel(
-        frag1_num_atoms=frag1_num_atoms,
-        frag2_num_atoms=frag2_num_atoms,
-        complex_num_atoms=complex_num_atoms,
-        max_num_neighbors=max_num_neighbors,
-        batch_size=batch_size,
-        atom_types=atom_types,
-        radial=radial,
-        layer_sizes=layer_sizes,
-        learning_rate=learning_rate)
-
-    super(AtomicConvFeaturizer, self).__init__(
-        frag1_num_atoms=frag1_num_atoms,
-        frag2_num_atoms=frag2_num_atoms,
-        complex_num_atoms=complex_num_atoms,
-        max_num_neighbors=max_num_neighbors,
-        neighbor_cutoff=neighbor_cutoff,
-        strip_hydrogens=strip_hydrogens)
-
-    self.epochs = epochs
-    self.labels = labels
-
-  def featurize(self, mol_files, protein_files):
-    features = []
-    failures = []
-    for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_files)):
-      logging.info("Featurizing %d / %d" % (i, len(mol_files)))
-      new_features = self._featurize(mol_file, protein_pdb)
-      # Handle loading failures which return None
-      if new_features is not None:
-        features.append(new_features)
-      else:
-        failures.append(ind)
-
-    features = np.asarray(features)
-    labels = np.delete(self.labels, failures)
-    dataset = DiskDataset.from_numpy(features, labels)
-
-    # Fit atomic conv model
-    self.atomic_conv_model.fit(dataset, nb_epoch=self.epochs)
-
-    # Add the Atomic Convolution layers to fetches
-    layers_to_fetch = [
-        self.atomic_conv_model._frag1_conv, self.atomic_conv_model._frag2_conv,
-        self.atomic_conv_model._complex_conv
-    ]
-
-    # Extract the atomic convolution features
-    atomic_conv_features = list()
-    batch_generator = self.atomic_conv_model.default_generator(
-        dataset=dataset, epochs=1)
-
-    for X, y, w in batch_generator:
-      frag1_conv, frag2_conv, complex_conv = self.atomic_conv_model.predict_on_generator(
-          [(X, y, w)], outputs=layers_to_fetch)
-      concatenated = np.concatenate(
-          [frag1_conv, frag2_conv, complex_conv], axis=1)
-      atomic_conv_features.append(concatenated)
-
-    batch_size = self.atomic_conv_model.batch_size
-
-    if len(features) % batch_size != 0:
-      num_batches = (len(features) // batch_size) + 1
-      num_to_skip = num_batches * batch_size - len(features)
-    else:
-      num_to_skip = 0
-
-    atomic_conv_features = np.asarray(atomic_conv_features)
-    atomic_conv_features = atomic_conv_features[-num_to_skip:]
-    atomic_conv_features = np.squeeze(atomic_conv_features)
-
-    return atomic_conv_features, failures
+#class AtomicConvFeaturizer(ComplexNeighborListFragmentAtomicCoordinates):
+#  """This class computes the Atomic Convolution features"""
+#
+#  # TODO (VIGS25): Complete the description
+#
+#  name = ['atomic_conv']
+#
+#  def __init__(self,
+#               labels,
+#               neighbor_cutoff,
+#               frag1_num_atoms=70,
+#               frag2_num_atoms=634,
+#               complex_num_atoms=701,
+#               max_num_neighbors=12,
+#               batch_size=24,
+#               atom_types=[
+#                   6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35.,
+#                   53., -1.
+#               ],
+#               radial=[[
+#                   1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0,
+#                   7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0
+#               ], [0.0, 4.0, 8.0], [0.4]],
+#               layer_sizes=[32, 32, 16],
+#               strip_hydrogens=True,
+#               learning_rate=0.001,
+#               epochs=10):
+#    """
+#    Parameters
+#
+#    labels: numpy.ndarray
+#      Labels which we want to predict using the model
+#    neighbor_cutoff: int
+#      TODO (VIGS25): Add description
+#    frag1_num_atoms: int
+#      Number of atoms in first fragment
+#    frag2_num_atoms: int
+#      Number of atoms in second fragment
+#    complex_num_atoms: int
+#      TODO (VIGS25) : Add description
+#    max_num_neighbors: int
+#      Maximum number of neighbors possible for an atom
+#    batch_size: int
+#      Batch size used for training and evaluation
+#    atom_types: list
+#      List of atoms recognized by model. Atoms are indicated by their
+#      nuclear numbers.
+#    radial: list
+#      TODO (VIGS25): Add description
+#    layer_sizes: list
+#      List of layer sizes for the AtomicConvolutional Network
+#    strip_hydrogens: bool
+#      Whether to remove hydrogens while computing neighbor features
+#    learning_rate: float
+#      Learning rate for training the model
+#    epochs: int
+#      Number of epochs to train the model for
+#    """
+#
+#    self.atomic_conv_model = dc.models.atomic_conv.AtomicConvModel(
+#        frag1_num_atoms=frag1_num_atoms,
+#        frag2_num_atoms=frag2_num_atoms,
+#        complex_num_atoms=complex_num_atoms,
+#        max_num_neighbors=max_num_neighbors,
+#        batch_size=batch_size,
+#        atom_types=atom_types,
+#        radial=radial,
+#        layer_sizes=layer_sizes,
+#        learning_rate=learning_rate)
+#
+#    super(AtomicConvFeaturizer, self).__init__(
+#        frag1_num_atoms=frag1_num_atoms,
+#        frag2_num_atoms=frag2_num_atoms,
+#        complex_num_atoms=complex_num_atoms,
+#        max_num_neighbors=max_num_neighbors,
+#        neighbor_cutoff=neighbor_cutoff,
+#        strip_hydrogens=strip_hydrogens)
+#
+#    self.epochs = epochs
+#    self.labels = labels
+#
+#  def featurize(self, mol_files, protein_files):
+#    features = []
+#    failures = []
+#    for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_files)):
+#      logging.info("Featurizing %d / %d" % (i, len(mol_files)))
+#      new_features = self._featurize(mol_file, protein_pdb)
+#      # Handle loading failures which return None
+#      if new_features is not None:
+#        features.append(new_features)
+#      else:
+#        failures.append(ind)
+#
+#    features = np.asarray(features)
+#    labels = np.delete(self.labels, failures)
+#    dataset = DiskDataset.from_numpy(features, labels)
+#
+#    # Fit atomic conv model
+#    self.atomic_conv_model.fit(dataset, nb_epoch=self.epochs)
+#
+#    # Add the Atomic Convolution layers to fetches
+#    layers_to_fetch = [
+#        self.atomic_conv_model._frag1_conv, self.atomic_conv_model._frag2_conv,
+#        self.atomic_conv_model._complex_conv
+#    ]
+#
+#    # Extract the atomic convolution features
+#    atomic_conv_features = list()
+#    batch_generator = self.atomic_conv_model.default_generator(
+#        dataset=dataset, epochs=1)
+#
+#    for X, y, w in batch_generator:
+#      frag1_conv, frag2_conv, complex_conv = self.atomic_conv_model.predict_on_generator(
+#          [(X, y, w)], outputs=layers_to_fetch)
+#      concatenated = np.concatenate(
+#          [frag1_conv, frag2_conv, complex_conv], axis=1)
+#      atomic_conv_features.append(concatenated)
+#
+#    batch_size = self.atomic_conv_model.batch_size
+#
+#    if len(features) % batch_size != 0:
+#      num_batches = (len(features) // batch_size) + 1
+#      num_to_skip = num_batches * batch_size - len(features)
+#    else:
+#      num_to_skip = 0
+#
+#    atomic_conv_features = np.asarray(atomic_conv_features)
+#    atomic_conv_features = atomic_conv_features[-num_to_skip:]
+#    atomic_conv_features = np.squeeze(atomic_conv_features)
+#
+#    return atomic_conv_features, failures

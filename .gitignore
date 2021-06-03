@@ -92,6 +92,12 @@ datasets/gdb8.tar.gz
 datasets/qm8-featurized/
 datasets/qm8.sdf
 datasets/qm8.sdf.csv
+datasets/gdb7.sdf
+datasets/gdb7.sdf.csv
+datasets/gdb7.tar.gz
+datasets/gdb9.sdf
+datasets/gdb9.sdf.csv
+datasets/gdb9.tar.gz
 datasets/PDBbind_2019_plain_text_index.tar.gz
 datasets/pdbbind_v2019_NL.tar.gz
 datasets/pdbbind_v2019_PN.tar.gz
