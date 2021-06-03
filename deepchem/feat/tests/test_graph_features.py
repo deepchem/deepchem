@@ -4,7 +4,7 @@ Tests for ConvMolFeaturizer.
 import unittest
 # import os
 import numpy as np
-import pytest
+# import pytest
 
 from deepchem.feat.graph_features import ConvMolFeaturizer
 
