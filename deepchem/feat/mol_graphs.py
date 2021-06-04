@@ -264,8 +264,11 @@ class ConvMol(object):
     num_mols = len(mols)
 
     # Combine the features, then sort them by (atom_degree, mol_index)
-    atoms_by_deg = np.concatenate([x.atom_features for x in mols])
-    degree_vector = np.concatenate([x.degree_list for x in mols], axis=0)
+    try:
+      atoms_by_deg = np.concatenate([x.atom_features for x in mols])
+      degree_vector = np.concatenate([x.degree_list for x in mols], axis=0)
+    except:
+      raise RuntimeError('Incorrect featurization used for Convolution model')
     # Mergesort is a "stable" sort, so the array maintains it's secondary sort of mol_index
     order = degree_vector.argsort(kind='mergesort')
     ordered = np.empty(order.shape, np.int32)
