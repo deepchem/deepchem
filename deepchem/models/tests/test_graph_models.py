@@ -159,6 +159,7 @@ def test_graph_conv_atom_features():
   model.fit(dataset, nb_epoch=1)
   y_pred1 = model.predict(dataset)
 
+
 def test_incorrect_featurization_exception():
   tasks, dataset, transformers, metric = get_dataset('classification', 'ECFP')
   model = GraphConvModel(n_tasks=len(tasks), mode='classification')
