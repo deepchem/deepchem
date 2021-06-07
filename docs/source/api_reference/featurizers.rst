@@ -43,7 +43,7 @@ with graph convolution models  which inherited :code:`KerasModel`.
 except :code:`WeaveModel`. :code:`WeaveFeaturizer` are only used with :code:`WeaveModel`.
 On the other hand, :code:`MolGraphConvFeaturizer` is used
 with graph convolution models which inherited :code:`TorchModel`.
-:code: `MolGanFeaturizer` will be used with MolGAN model,
+:code:`MolGanFeaturizer` will be used with MolGAN model,
 a GAN model for generation of small molecules.
 
 ConvMolFeaturizer
@@ -71,6 +71,13 @@ MolGraphConvFeaturizer
 **********************
 
 .. autoclass:: deepchem.feat.MolGraphConvFeaturizer
+  :members:
+  :inherited-members:
+
+PagtnMolGraphFeaturizer
+**********************
+
+.. autoclass:: deepchem.feat.PagtnMolGraphFeaturizer
   :members:
   :inherited-members:
 

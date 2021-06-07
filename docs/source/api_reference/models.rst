@@ -132,6 +132,9 @@ read off what's needed to train the model from the table below.
 | :code:`AttentiveFPModel`               | Classifier/| :code:`GraphData`    |                        | :code:`MolGraphConvFeaturizer`                                 | :code:`fit`          |
 |                                        | Regressor  |                      |                        |                                                                |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
+| :code:`PagtnModel`                     | Classifier/| :code:`GraphData`    |                        | :code:`PagtnMolGraphFeaturizer`                                | :code:`fit`          |
+|                                        | Regressor  |                      |                        | :code:`MolGraphConvFeaturizer`                                 |                      |
++----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
 | :code:`LCCNModel`                      | Regressor  | :code:`GraphData`    |                        | :code:`LCNNFeaturizer`                                         | :code:`fit`          |
 |                                        |            |                      |                        |                                                                |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
@@ -184,10 +187,19 @@ Losses
 .. autoclass:: deepchem.models.losses.L1Loss
   :members:
 
+.. autoclass:: deepchem.models.losses.HuberLoss
+  :members:
+
 .. autoclass:: deepchem.models.losses.L2Loss
   :members:
 
 .. autoclass:: deepchem.models.losses.HingeLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.SquaredHingeLoss
+  :members:
+  
+.. autoclass:: deepchem.models.losses.PoissonLoss
   :members:
 
 .. autoclass:: deepchem.models.losses.BinaryCrossEntropy
@@ -227,6 +239,12 @@ Optimizers
   :members:
 
 .. autoclass:: deepchem.models.optimizers.Adam
+  :members:
+
+.. autoclass:: deepchem.models.optimizers.AdamW
+  :members:
+  
+.. autoclass:: deepchem.models.optimizers.SparseAdam
   :members:
 
 .. autoclass:: deepchem.models.optimizers.RMSProp
@@ -353,6 +371,12 @@ MPNNModel
 .. autoclass:: deepchem.models.MPNNModel
   :members:
 
+BasicMolGANModel
+---------
+
+.. autoclass:: deepchem.models.BasicMolGANModel
+  :members:
+
 ScScoreModel
 ------------
 
@@ -461,6 +485,12 @@ AttentiveFPModel
 ----------------
 
 .. autoclass:: deepchem.models.AttentiveFPModel
+  :members:
+
+PagtnModel
+----------------
+
+.. autoclass:: deepchem.models.PagtnModel
   :members:
 
 MPNNModel

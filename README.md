@@ -40,6 +40,7 @@ DeepChem currently supports Python 3.6 through 3.7 and requires these packages o
 - [TensorFlow](https://www.tensorflow.org/)
   - `deepchem>=2.4.0` depends on TensorFlow v2
   - `deepchem<2.4.0` depends on TensorFlow v1
+- [Tensorflow Addons](https://www.tensorflow.org/addons) for Tensorflow v2 if you want to use advanced optimizers such as AdamW and Sparse Adam. (Optional)
 
 ### Soft Requirements
 
@@ -52,10 +53,10 @@ Please check [the document](https://deepchem.readthedocs.io/en/latest/requiremen
 
 ### Stable version
 
-Please install tensorflow v2.3.* before installing deepchem.
+Please install tensorflow ~2.4 before installing deepchem.
 
 ```bash
-pip install tensorflow==2.3.*
+pip install tensorflow~=2.4
 ```
 
 Then, you install deepchem via pip or conda.  
@@ -80,7 +81,7 @@ conda install -y -c conda-forge rdkit
 The nightly version is built by the HEAD of DeepChem.
 
 ```bash
-pip install tensorflow==2.3.*
+pip install tensorflow~=2.4
 pip install --pre deepchem
 ```
 

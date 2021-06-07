@@ -61,7 +61,7 @@ class LCNNFeaturizer(MaterialStructureFeaturizer):
   Examples
   --------
   >>> import deepchem as dc
-  >>> from pymatgen import Structure
+  >>> from pymatgen.core import Structure
   >>> import numpy as np
   >>> PRIMITIVE_CELL = {
   ...   "lattice": [[2.818528, 0.0, 0.0],
@@ -147,7 +147,7 @@ class LCNNFeaturizer(MaterialStructureFeaturizer):
       used down to 2 digits.
     """
     try:
-      from pymatgen import Structure
+      from pymatgen.core import Structure
     except:
       raise ImportError("This class requires pymatgen to be installed.")
 
@@ -626,7 +626,7 @@ def _get_SiteEnvironments(struct: PymatgenStructure,
     list of local_env class
   """
   try:
-    from pymatgen import Molecule
+    from pymatgen.core import Molecule
     from pymatgen.symmetry.analyzer import PointGroupAnalyzer
   except:
     raise ImportError("This class requires pymatgen to be installed.")

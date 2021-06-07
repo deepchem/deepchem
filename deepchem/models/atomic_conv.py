@@ -14,6 +14,7 @@ except:
   from collections import Sequence as SequenceCollection
 from typing import Sequence, Union
 from deepchem.utils.typing import KerasActivationFn, LossFn, OneOrMany
+from deepchem.utils.data_utils import load_from_disk, save_to_disk
 
 logger = logging.getLogger(__name__)
 
@@ -298,3 +299,11 @@ class AtomicConvModel(KerasModel):
         ]
         y_b = np.reshape(y_b, newshape=(batch_size, 1))
         yield (inputs, [y_b], [w_b])
+
+  def save(self):
+    """Saves model to disk using joblib."""
+    save_to_disk(self.model, self.get_model_filename(self.model_dir))
+
+  def reload(self):
+    """Loads model from joblib file on disk."""
+    self.model = load_from_disk(self.get_model_filename(self.model_dir))

@@ -103,7 +103,7 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `RDKit`_                       | latest        | Many modules                                      |
-|                                |               | (we recommend you to instal)                      |
+|                                |               | (we recommend you to install)                     |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `simdna`_                      | latest        | :code:`dc.metrics.genomic_metrics`,               |
@@ -119,6 +119,10 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `XGBoost`_                     | latest        | :code:`dc.models.gbdt_models`                     |
+|                                |               |                                                   |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
+| `Tensorflow Addons`_           | latest        | :code:`dc.models.optimizers`                      |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
@@ -153,3 +157,4 @@ DeepChem has a number of "soft" requirements.
 .. _`Tensorflow Probability`: https://www.tensorflow.org/probability
 .. _`Weights & Biases`: https://docs.wandb.com/
 .. _`XGBoost`: https://xgboost.readthedocs.io/en/latest/
+.. _`Tensorflow Addons`: https://www.tensorflow.org/addons/overview

@@ -19,7 +19,10 @@ def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
                           periodic_box_size):
   """Computes a neighbor list from atom coordinates."""
   N = coords.shape[0]
-  import mdtraj
+  try:
+    import mdtraj
+  except ModuleNotFoundError:
+    raise ImportError("This function requires mdtraj to be installed.")
   traj = mdtraj.Trajectory(coords.reshape((1, N, 3)), None)
   box_size = None
   if periodic_box_size is not None:
