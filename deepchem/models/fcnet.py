@@ -314,8 +314,19 @@ class MultitaskRegressor(KerasModel):
       output_types = ['prediction', 'variance', 'loss', 'loss']
 
       def loss(outputs, labels, weights):
-        diff = labels[0] - outputs[0]
-        return tf.reduce_mean(diff * diff / tf.exp(outputs[1]) + outputs[1])
+        output, labels = dc.models.losses._make_tf_shapes_consistent(
+            outputs[0], labels[0])
+        output, labels = dc.models.losses._ensure_float(output, labels)
+        losses = tf.square(output - labels) / tf.exp(outputs[1]) + outputs[1]
+        w = weights[0]
+        if len(w.shape) < len(losses.shape):
+          if tf.is_tensor(w):
+            shape = tuple(w.shape.as_list())
+          else:
+            shape = w.shape
+          shape = tuple(-1 if x is None else x for x in shape)
+          w = tf.reshape(w, shape + (1,) * (len(losses.shape) - len(w.shape)))
+        return tf.reduce_mean(losses * w) + sum(self.model.losses)
     else:
       outputs = [output]
       output_types = ['prediction']
