@@ -1,0 +1,2034 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 0 items
+
+============================ no tests ran in 0.07s =============================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 1 item
+
+test_atomic_conformation.py .                                            [100%]
+
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+======================== 1 passed, 1 warning in 10.25s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 6 items
+
+test_atomic_coordinates.py .FFFFF                                        [100%]
+
+=================================== FAILURES ===================================
+___________ TestAtomicCoordinates.test_complex_featurization_simple ____________
+
+self = <deepchem.feat.tests.test_atomic_coordinates.TestAtomicCoordinates testMethod=test_complex_featurization_simple>
+
+    def test_complex_featurization_simple(self):
+      """Test Neighbor List computation on protein-ligand complex."""
+      dir_path = os.path.dirname(os.path.realpath(__file__))
+      ligand_file = os.path.join(dir_path, "data/3zso_ligand_hyd.pdb")
+      protein_file = os.path.join(dir_path, "data/3zso_protein.pdb")
+      max_num_neighbors = 4
+      complex_featurizer = NeighborListComplexAtomicCoordinates(max_num_neighbors)
+    
+>     system_coords, system_neighbor_list = complex_featurizer._featurize(
+          (ligand_file, protein_file))
+
+test_atomic_coordinates.py:150: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../complex_featurizers/complex_atomic_coordinates.py:127: in _featurize
+    mol_coords, ob_mol = load_molecule(mol_pdb_file)
+../../utils/rdkit_utils.py:280: in load_molecule
+    my_mol = apply_pdbfixer(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+mol = <rdkit.Chem.rdchem.Mol object at 0x7f805bc2f2b0>, add_missing = True
+hydrogenate = True, pH = 7.4, remove_heterogens = True, is_protein = False
+
+    def apply_pdbfixer(mol,
+                       add_missing=True,
+                       hydrogenate=True,
+                       pH=7.4,
+                       remove_heterogens=True,
+                       is_protein=True):
+      """
+      Apply PDBFixer to a molecule to try to clean it up.
+    
+      Parameters
+      ----------
+      mol: Rdkit Mol
+        Molecule to clean up.
+      add_missing: bool, optional
+        If true, add in missing residues and atoms
+      hydrogenate: bool, optional
+        If true, add hydrogens at specified pH
+      pH: float, optional
+        The pH at which hydrogens will be added if `hydrogenate==True`. Set to 7.4 by default.
+      remove_heterogens: bool, optional
+        Often times, PDB files come with extra waters and salts attached.
+        If this field is set, remove these heterogens.
+      is_protein: bool, optional
+        If false, then don't remove heterogens (since this molecule is
+        itself a heterogen).
+    
+      Returns
+      -------
+      Rdkit Mol
+    
+      Note
+      ----
+      This function requires RDKit and PDBFixer to be installed.
+      """
+      molecule_file = None
+      try:
+        from rdkit import Chem
+        pdbblock = Chem.MolToPDBBlock(mol)
+        pdb_stringio = StringIO()
+        pdb_stringio.write(pdbblock)
+        pdb_stringio.seek(0)
+>       import pdbfixer
+E       ModuleNotFoundError: No module named 'pdbfixer'
+
+../../utils/rdkit_utils.py:116: ModuleNotFoundError
+______________ TestAtomicCoordinates.test_neighbor_list_extremes _______________
+
+self = <deepchem.feat.tests.test_atomic_coordinates.TestAtomicCoordinates testMethod=test_neighbor_list_extremes>
+
+    def test_neighbor_list_extremes(self):
+      """
+      Test Neighbor Lists with large/small boxes.
+      """
+      N = self.mol.GetNumAtoms()
+    
+      # Test with cutoff 0 angstroms. There should be no neighbors in this case.
+      nblist_featurizer = NeighborListAtomicCoordinates(neighbor_cutoff=.1)
+>     nblist = nblist_featurizer._featurize(self.mol)[1]
+
+test_atomic_coordinates.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../complex_featurizers/complex_atomic_coordinates.py:93: in _featurize
+    neighbor_list = compute_neighbor_list(coords, self.neighbor_cutoff,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+coords = array([[ 3.48816046,  1.08974224,  0.66791483],
+       [ 2.40441378,  0.2480853 ,  0.08555414],
+       [ 2.69830381, -...7159756, -0.59822931],
+       [-3.37286003, -0.13632874, -0.63404833],
+       [-2.92161563,  3.2971581 , -0.46339409]])
+neighbor_cutoff = 0.1, max_num_neighbors = None, periodic_box_size = None
+
+    def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
+                              periodic_box_size):
+      """Computes a neighbor list from atom coordinates."""
+      N = coords.shape[0]
+>     import mdtraj
+E     ModuleNotFoundError: No module named 'mdtraj'
+
+../complex_featurizers/complex_atomic_coordinates.py:21: ModuleNotFoundError
+__________ TestAtomicCoordinates.test_neighbor_list_max_num_neighbors __________
+
+self = <deepchem.feat.tests.test_atomic_coordinates.TestAtomicCoordinates testMethod=test_neighbor_list_max_num_neighbors>
+
+    def test_neighbor_list_max_num_neighbors(self):
+      """
+      Test that neighbor lists return only max_num_neighbors.
+      """
+      N = self.mol.GetNumAtoms()
+    
+      max_num_neighbors = 1
+      nblist_featurizer = NeighborListAtomicCoordinates(max_num_neighbors)
+>     nblist = nblist_featurizer._featurize(self.mol)[1]
+
+test_atomic_coordinates.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../complex_featurizers/complex_atomic_coordinates.py:93: in _featurize
+    neighbor_list = compute_neighbor_list(coords, self.neighbor_cutoff,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+coords = array([[ 3.40653527, -1.18951005,  0.88401994],
+       [ 2.37944568, -0.41314103,  0.13277138],
+       [ 2.7257972 ,  ...1463802, -1.14381936],
+       [-3.364222  ,  0.26077089, -0.64093199],
+       [-3.17498487, -3.07600506,  0.2819433 ]])
+neighbor_cutoff = 4, max_num_neighbors = 1, periodic_box_size = None
+
+    def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
+                              periodic_box_size):
+      """Computes a neighbor list from atom coordinates."""
+      N = coords.shape[0]
+>     import mdtraj
+E     ModuleNotFoundError: No module named 'mdtraj'
+
+../complex_featurizers/complex_atomic_coordinates.py:21: ModuleNotFoundError
+______________ TestAtomicCoordinates.test_neighbor_list_periodic _______________
+
+self = <deepchem.feat.tests.test_atomic_coordinates.TestAtomicCoordinates testMethod=test_neighbor_list_periodic>
+
+    def test_neighbor_list_periodic(self):
+      """Test building a neighbor list with periodic boundary conditions."""
+      cutoff = 4.0
+      box_size = np.array([10.0, 8.0, 9.0])
+      N = self.mol.GetNumAtoms()
+      coords = self.get_angstrom_coords(self.mol)
+      featurizer = NeighborListAtomicCoordinates(
+          neighbor_cutoff=cutoff, periodic_box_size=box_size)
+>     neighborlist = featurizer._featurize(self.mol)[1]
+
+test_atomic_coordinates.py:130: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../complex_featurizers/complex_atomic_coordinates.py:93: in _featurize
+    neighbor_list = compute_neighbor_list(coords, self.neighbor_cutoff,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+coords = array([[ 3.71340892e+00,  4.40376461e-02,  9.77930947e-02],
+       [ 2.32857356e+00,  9.68821158e-02,  6.46860682e-01]...      [-3.29583098e+00, -6.55053837e-01, -7.10767141e-01],
+       [-1.74939109e+00, -2.81677739e+00, -2.93721044e+00]])
+neighbor_cutoff = 4.0, max_num_neighbors = None
+periodic_box_size = array([10.,  8.,  9.])
+
+    def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
+                              periodic_box_size):
+      """Computes a neighbor list from atom coordinates."""
+      N = coords.shape[0]
+>     import mdtraj
+E     ModuleNotFoundError: No module named 'mdtraj'
+
+../complex_featurizers/complex_atomic_coordinates.py:21: ModuleNotFoundError
+________________ TestAtomicCoordinates.test_neighbor_list_shape ________________
+
+self = <deepchem.feat.tests.test_atomic_coordinates.TestAtomicCoordinates testMethod=test_neighbor_list_shape>
+
+    def test_neighbor_list_shape(self):
+      """
+      Simple test that Neighbor Lists have right shape.
+      """
+      nblist_featurizer = NeighborListAtomicCoordinates()
+      N = self.mol.GetNumAtoms()
+      coords = self.get_angstrom_coords(self.mol)
+    
+      nblist_featurizer = NeighborListAtomicCoordinates()
+>     nblist = nblist_featurizer._featurize(self.mol)[1]
+
+test_atomic_coordinates.py:52: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../complex_featurizers/complex_atomic_coordinates.py:93: in _featurize
+    neighbor_list = compute_neighbor_list(coords, self.neighbor_cutoff,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+coords = array([[ 3.70421632e+00,  2.71154119e-01,  5.99109184e-02],
+       [ 2.37712883e+00, -2.23390107e-01, -4.05171122e-01]...      [-3.37753576e+00,  6.18623057e-01,  6.10323637e-02],
+       [-2.15802013e+00,  3.80665254e+00,  6.69991820e-01]])
+neighbor_cutoff = 4, max_num_neighbors = None, periodic_box_size = None
+
+    def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
+                              periodic_box_size):
+      """Computes a neighbor list from atom coordinates."""
+      N = coords.shape[0]
+>     import mdtraj
+E     ModuleNotFoundError: No module named 'mdtraj'
+
+../complex_featurizers/complex_atomic_coordinates.py:21: ModuleNotFoundError
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+FAILED test_atomic_coordinates.py::TestAtomicCoordinates::test_complex_featurization_simple
+FAILED test_atomic_coordinates.py::TestAtomicCoordinates::test_neighbor_list_extremes
+FAILED test_atomic_coordinates.py::TestAtomicCoordinates::test_neighbor_list_max_num_neighbors
+FAILED test_atomic_coordinates.py::TestAtomicCoordinates::test_neighbor_list_periodic
+FAILED test_atomic_coordinates.py::TestAtomicCoordinates::test_neighbor_list_shape
+==================== 5 failed, 1 passed, 1 warning in 7.58s ====================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 1 item
+
+test_binding_pocket_features.py F                                        [100%]
+
+=================================== FAILURES ===================================
+________________ TestBindingPocketFeatures.test_pocket_features ________________
+
+self = BindingPocketFeaturizer[]
+protein_file = '/Users/alana/deepchem/deepchem/feat/tests/../../dock/tests/1jld_protein.pdb'
+pockets = [Box[x_bounds=(31.0, 64.0), y_bounds=(14.0, 53.0), z_bounds=(-10.0, 29.0)], Box[x_bounds=(57.0, 78.0), y_bounds=(19.0,...ds=(4.0, 31.0), z_bounds=(-13.0, 18.0)], Box[x_bounds=(61.0, 81.0), y_bounds=(4.0, 31.0), z_bounds=(-17.0, 15.0)], ...]
+
+    def featurize(  # type: ignore[override]
+        self, protein_file: str, pockets: List[CoordinateBox]) -> np.ndarray:
+      """
+      Calculate atomic coodinates.
+    
+      Parameters
+      ----------
+      protein_file: str
+        Location of PDB file. Will be loaded by MDTraj
+      pockets: List[CoordinateBox]
+        List of `dc.utils.CoordinateBox` objects.
+    
+      Returns
+      -------
+      np.ndarray
+        A numpy array of shale `(len(pockets), n_residues)`
+      """
+      try:
+>       import mdtraj
+E       ModuleNotFoundError: No module named 'mdtraj'
+
+../binding_pocket_features.py:97: ModuleNotFoundError
+
+During handling of the above exception, another exception occurred:
+
+self = <deepchem.feat.tests.test_binding_pocket_features.TestBindingPocketFeatures testMethod=test_pocket_features>
+
+    def test_pocket_features(self):
+      """
+      Simple test that pocket_features return right shapes.
+      """
+      current_dir = os.path.dirname(os.path.realpath(__file__))
+      protein_file = os.path.join(current_dir,
+                                  "../../dock/tests/1jld_protein.pdb")
+    
+      finder = dc.dock.ConvexHullPocketFinder()
+      pocket_featurizer = dc.feat.BindingPocketFeaturizer()
+      pockets = finder.find_pockets(protein_file)
+      n_pockets = len(pockets)
+    
+>     pocket_features = pocket_featurizer.featurize(protein_file, pockets)
+
+test_binding_pocket_features.py:28: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = BindingPocketFeaturizer[]
+protein_file = '/Users/alana/deepchem/deepchem/feat/tests/../../dock/tests/1jld_protein.pdb'
+pockets = [Box[x_bounds=(31.0, 64.0), y_bounds=(14.0, 53.0), z_bounds=(-10.0, 29.0)], Box[x_bounds=(57.0, 78.0), y_bounds=(19.0,...ds=(4.0, 31.0), z_bounds=(-13.0, 18.0)], Box[x_bounds=(61.0, 81.0), y_bounds=(4.0, 31.0), z_bounds=(-17.0, 15.0)], ...]
+
+    def featurize(  # type: ignore[override]
+        self, protein_file: str, pockets: List[CoordinateBox]) -> np.ndarray:
+      """
+      Calculate atomic coodinates.
+    
+      Parameters
+      ----------
+      protein_file: str
+        Location of PDB file. Will be loaded by MDTraj
+      pockets: List[CoordinateBox]
+        List of `dc.utils.CoordinateBox` objects.
+    
+      Returns
+      -------
+      np.ndarray
+        A numpy array of shale `(len(pockets), n_residues)`
+      """
+      try:
+        import mdtraj
+      except ModuleNotFoundError:
+>       raise ImportError("This class requires mdtraj to be installed.")
+E       ImportError: This class requires mdtraj to be installed.
+
+../binding_pocket_features.py:99: ImportError
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+FAILED test_binding_pocket_features.py::TestBindingPocketFeatures::test_pocket_features
+======================== 1 failed, 1 warning in 22.10s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 4 items
+
+test_circular_fingerprints.py ....                                       [100%]
+
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+======================== 4 passed, 1 warning in 18.07s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 3 items
+
+test_contact_fingerprints.py FFF                                         [100%]
+
+=================================== FAILURES ===================================
+____________ TestContactFeaturizers.test_contact_fingerprint_shape _____________
+
+self = <deepchem.feat.tests.test_contact_fingerprints.TestContactFeaturizers testMethod=test_contact_fingerprint_shape>
+
+    def test_contact_fingerprint_shape(self):
+      size = 8
+      featurizer = dc.feat.ContactCircularFingerprint(size=size)
+      features = featurizer.featurize(self.complex_files)
+>     assert features.shape == (1, 2 * size)
+E     AssertionError: assert (1, 0) == (1, 16)
+E       At index 1 diff: 0 != 16
+E       Use -v to get the full diff
+
+test_contact_fingerprints.py:21: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.base_classes:base_classes.py:184 Failed to featurize datapoint 0. Appending empty array.
+_____________ TestContactFeaturizers.test_contact_voxels_flattened _____________
+
+self = <deepchem.feat.tests.test_contact_fingerprints.TestContactFeaturizers testMethod=test_contact_voxels_flattened>
+
+    def test_contact_voxels_flattened(self):
+      box_width = 48
+      voxel_width = 2
+      voxels_per_edge = box_width / voxel_width
+      size = 8
+      voxelizer = dc.feat.ContactCircularVoxelizer(
+          box_width=box_width, voxel_width=voxel_width, size=size, flatten=True)
+      features = voxelizer.featurize(self.complex_files)
+>     assert features.shape == (1, int(size * voxels_per_edge**3))
+E     AssertionError: assert (1, 0) == (1, 110592)
+E       At index 1 diff: 0 != 110592
+E       Use -v to get the full diff
+
+test_contact_fingerprints.py:42: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.base_classes:base_classes.py:184 Failed to featurize datapoint 0. Appending empty array.
+_______________ TestContactFeaturizers.test_contact_voxels_shape _______________
+
+self = <deepchem.feat.tests.test_contact_fingerprints.TestContactFeaturizers testMethod=test_contact_voxels_shape>
+
+    def test_contact_voxels_shape(self):
+      box_width = 48
+      voxel_width = 2
+      voxels_per_edge = box_width / voxel_width
+      size = 8
+      voxelizer = dc.feat.ContactCircularVoxelizer(
+          box_width=box_width, voxel_width=voxel_width, size=size)
+      features = voxelizer.featurize(self.complex_files)
+>     assert features.shape == (1, voxels_per_edge, voxels_per_edge,
+                                voxels_per_edge, size)
+E     AssertionError: assert (1, 0) == (1, 24.0, 24.0, 24.0, 8)
+E       At index 1 diff: 0 != 24.0
+E       Right contains 3 more items, first extra item: 24.0
+E       Use -v to get the full diff
+
+test_contact_fingerprints.py:31: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.base_classes:base_classes.py:184 Failed to featurize datapoint 0. Appending empty array.
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+FAILED test_contact_fingerprints.py::TestContactFeaturizers::test_contact_fingerprint_shape
+FAILED test_contact_fingerprints.py::TestContactFeaturizers::test_contact_voxels_flattened
+FAILED test_contact_fingerprints.py::TestContactFeaturizers::test_contact_voxels_shape
+======================== 3 failed, 1 warning in 13.98s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 1 item
+
+test_convmol.py .                                                        [100%]
+
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+======================== 1 passed, 1 warning in 12.82s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 8 items
+
+test_coulomb_matrices.py ........                                        [100%]
+
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+deepchem/feat/tests/test_coulomb_matrices.py::TestCoulombMatrix::test_coulomb_matrix
+deepchem/feat/tests/test_coulomb_matrices.py::TestCoulombMatrix::test_coulomb_matrix_hydrogens
+deepchem/feat/tests/test_coulomb_matrices.py::TestCoulombMatrix::test_coulomb_matrix_no_hydrogens
+deepchem/feat/tests/test_coulomb_matrices.py::TestCoulombMatrix::test_coulomb_matrix_padding
+deepchem/feat/tests/test_coulomb_matrices.py::TestCoulombMatrix::test_upper_tri_coulomb_matrix
+deepchem/feat/tests/test_coulomb_matrices.py::TestCoulombMatrix::test_upper_tri_coulomb_matrix_padding
+deepchem/feat/tests/test_coulomb_matrices.py::TestCoulombMatrixEig::test_coulomb_matrix_eig
+deepchem/feat/tests/test_coulomb_matrices.py::TestCoulombMatrixEig::test_coulomb_matrix_eig_padding
+  /Users/alana/deepchem/deepchem/feat/molecule_featurizers/coulomb_matrices.py:138: RuntimeWarning: divide by zero encountered in true_divide
+    m = np.outer(z, z) / d
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+======================== 8 passed, 9 warnings in 14.45s ========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 3 items
+
+test_graph_data.py .F.                                                   [100%]
+
+=================================== FAILURES ===================================
+__________________________ TestGraph.test_graph_data ___________________________
+
+self = <deepchem.feat.graph_data.GraphData object at 0x7fb7b8bad6d0>
+
+    def to_pyg_graph(self):
+      """Convert to PyTorch Geometric graph data instance
+    
+      Returns
+      -------
+      torch_geometric.data.Data
+        Graph data for PyTorch Geometric
+    
+      Note
+      ----
+      This method requires PyTorch Geometric to be installed.
+      """
+      try:
+>       import torch
+E       ModuleNotFoundError: No module named 'torch'
+
+../graph_data.py:107: ModuleNotFoundError
+
+During handling of the above exception, another exception occurred:
+
+self = <deepchem.feat.tests.test_graph_data.TestGraph testMethod=test_graph_data>
+
+    def test_graph_data(self):
+      num_nodes, num_node_features = 5, 32
+      num_edges, num_edge_features = 6, 32
+      node_features = np.random.random_sample((num_nodes, num_node_features))
+      edge_features = np.random.random_sample((num_edges, num_edge_features))
+      edge_index = np.array([
+          [0, 1, 2, 2, 3, 4],
+          [1, 2, 0, 3, 4, 0],
+      ])
+      node_pos_features = None
+    
+      graph = GraphData(
+          node_features=node_features,
+          edge_index=edge_index,
+          edge_features=edge_features,
+          node_pos_features=node_pos_features)
+    
+      assert graph.num_nodes == num_nodes
+      assert graph.num_node_features == num_node_features
+      assert graph.num_edges == num_edges
+      assert graph.num_edge_features == num_edge_features
+    
+      # check convert function
+>     pyg_graph = graph.to_pyg_graph()
+
+test_graph_data.py:31: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <deepchem.feat.graph_data.GraphData object at 0x7fb7b8bad6d0>
+
+    def to_pyg_graph(self):
+      """Convert to PyTorch Geometric graph data instance
+    
+      Returns
+      -------
+      torch_geometric.data.Data
+        Graph data for PyTorch Geometric
+    
+      Note
+      ----
+      This method requires PyTorch Geometric to be installed.
+      """
+      try:
+        import torch
+        from torch_geometric.data import Data
+      except ModuleNotFoundError:
+>       raise ImportError(
+            "This function requires PyTorch Geometric to be installed.")
+E       ImportError: This function requires PyTorch Geometric to be installed.
+
+../graph_data.py:110: ImportError
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+FAILED test_graph_data.py::TestGraph::test_graph_data - ImportError: This fun...
+=================== 1 failed, 2 passed, 1 warning in 14.68s ====================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 4 items
+
+test_graph_features.py ...F                                              [100%]
+
+=================================== FAILURES ===================================
+_______________ TestAtomicConvFeaturizer.test_feature_generation _______________
+
+self = <deepchem.feat.tests.test_graph_features.TestAtomicConvFeaturizer testMethod=test_feature_generation>
+
+    @pytest.mark.slow
+    def test_feature_generation(self):
+      """Test if featurization works using AtomicConvFeaturizer."""
+      dir_path = os.path.dirname(os.path.realpath(__file__))
+      ligand_file = os.path.join(dir_path, "data/3zso_ligand_hyd.pdb")
+      protein_file = os.path.join(dir_path, "data/3zso_protein.pdb")
+      # Pulled from PDB files. For larger datasets with more PDBs, would use
+      # max num atoms instead of exact.
+    
+      frag1_num_atoms = 44  # for ligand atoms
+      frag2_num_atoms = 2336  # for protein atoms
+      complex_num_atoms = 2380  # in total
+      max_num_neighbors = 4
+      # Cutoff in angstroms
+      neighbor_cutoff = 4
+    
+      labels = np.array([0, 0])
+    
+      featurizer = AtomicConvFeaturizer(
+          labels=labels,
+          batch_size=1,
+          epochs=1,
+          frag1_num_atoms=frag1_num_atoms,
+          frag2_num_atoms=frag2_num_atoms,
+          complex_num_atoms=complex_num_atoms,
+          max_num_neighbors=max_num_neighbors,
+          neighbor_cutoff=neighbor_cutoff)
+    
+>     features, _ = featurizer.featurize([ligand_file, ligand_file],
+                                         [protein_file, protein_file])
+
+test_graph_features.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <[KeyError('batch_size') raised in repr()] AtomicConvFeaturizer object at 0x7fdeb3b8d3d0>
+mol_files = ['/Users/alana/deepchem/deepchem/feat/tests/data/3zso_ligand_hyd.pdb', '/Users/alana/deepchem/deepchem/feat/tests/data/3zso_ligand_hyd.pdb']
+protein_files = ['/Users/alana/deepchem/deepchem/feat/tests/data/3zso_protein.pdb', '/Users/alana/deepchem/deepchem/feat/tests/data/3zso_protein.pdb']
+
+    def featurize(self, mol_files, protein_files):
+      features = []
+      failures = []
+      for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_files)):
+        logging.info("Featurizing %d / %d" % (i, len(mol_files)))
+>       new_features = self._featurize(mol_file, protein_pdb)
+E       TypeError: _featurize() takes 2 positional arguments but 3 were given
+
+../graph_features.py:953: TypeError
+----------------------------- Captured stderr call -----------------------------
+2021-04-03 08:47:20.464060: I tensorflow/compiler/jit/xla_cpu_device.cc:41] Not creating XLA devices, tf_xla_enable_xla_devices not set
+2021-04-03 08:47:20.465716: I tensorflow/core/platform/cpu_feature_guard.cc:142] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+FAILED test_graph_features.py::TestAtomicConvFeaturizer::test_feature_generation
+=================== 1 failed, 3 passed, 1 warning in 21.12s ====================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 1 item
+
+test_graph_matrix.py .                                                   [100%]
+
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+======================== 1 passed, 1 warning in 10.48s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 4 items
+
+test_grid_featurizers.py FFFF                                            [100%]
+
+=================================== FAILURES ===================================
+____________________________ test_charge_voxelizer _____________________________
+
+    def test_charge_voxelizer():
+      current_dir = os.path.dirname(os.path.realpath(__file__))
+      protein_file = os.path.join(current_dir, 'data',
+                                  '3ws9_protein_fixer_rdkit.pdb')
+      ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
+    
+      cutoff = 4.5
+      box_width = 20
+      voxel_width = 1.0
+      voxelizer = dc.feat.ChargeVoxelizer(
+          cutoff=cutoff, box_width=box_width, voxel_width=voxel_width)
+      features = voxelizer.featurize([(ligand_file, protein_file)])
+>     assert features.shape == (1, box_width, box_width, box_width, 1)
+E     assert (1, 0) == (1, 20, 20, 20, 1)
+E       At index 1 diff: 0 != 20
+E       Right contains 3 more items, first extra item: 20
+E       Use -v to get the full diff
+
+test_grid_featurizers.py:17: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.base_classes:base_classes.py:184 Failed to featurize datapoint 0. Appending empty array.
+__________________________ test_salt_bridge_voxelizer __________________________
+
+    def test_salt_bridge_voxelizer():
+      current_dir = os.path.dirname(os.path.realpath(__file__))
+      protein_file = os.path.join(current_dir, 'data',
+                                  '3ws9_protein_fixer_rdkit.pdb')
+      ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
+    
+      cutoff = 4.5
+      box_width = 20
+      voxel_width = 1.0
+      voxelizer = dc.feat.SaltBridgeVoxelizer(
+          cutoff=cutoff, box_width=box_width, voxel_width=voxel_width)
+      features = voxelizer.featurize([(ligand_file, protein_file)])
+>     assert features.shape == (1, box_width, box_width, box_width, 1)
+E     assert (1, 0) == (1, 20, 20, 20, 1)
+E       At index 1 diff: 0 != 20
+E       Right contains 3 more items, first extra item: 20
+E       Use -v to get the full diff
+
+test_grid_featurizers.py:32: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.base_classes:base_classes.py:184 Failed to featurize datapoint 0. Appending empty array.
+___________________________ test_cation_pi_voxelizer ___________________________
+
+    def test_cation_pi_voxelizer():
+      current_dir = os.path.dirname(os.path.realpath(__file__))
+      protein_file = os.path.join(current_dir, 'data',
+                                  '3ws9_protein_fixer_rdkit.pdb')
+      ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
+    
+      cutoff = 4.5
+      box_width = 20
+      voxel_width = 1.0
+      voxelizer = dc.feat.CationPiVoxelizer(
+          cutoff=cutoff, box_width=box_width, voxel_width=voxel_width)
+      features = voxelizer.featurize([(ligand_file, protein_file)])
+>     assert features.shape == (1, box_width, box_width, box_width, 1)
+E     assert (1, 0) == (1, 20, 20, 20, 1)
+E       At index 1 diff: 0 != 20
+E       Right contains 3 more items, first extra item: 20
+E       Use -v to get the full diff
+
+test_grid_featurizers.py:47: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.base_classes:base_classes.py:184 Failed to featurize datapoint 0. Appending empty array.
+___________________________ test_pi_stack_voxelizer ____________________________
+
+    def test_pi_stack_voxelizer():
+      current_dir = os.path.dirname(os.path.realpath(__file__))
+      protein_file = os.path.join(current_dir, 'data',
+                                  '3ws9_protein_fixer_rdkit.pdb')
+      ligand_file = os.path.join(current_dir, 'data', '3ws9_ligand.sdf')
+    
+      cutoff = 4.5
+      box_width = 20
+      voxel_width = 1.0
+      voxelizer = dc.feat.PiStackVoxelizer(
+          cutoff=cutoff, box_width=box_width, voxel_width=voxel_width)
+      features = voxelizer.featurize([(ligand_file, protein_file)])
+>     assert features.shape == (1, box_width, box_width, box_width, 2)
+E     assert (1, 0) == (1, 20, 20, 20, 2)
+E       At index 1 diff: 0 != 20
+E       Right contains 3 more items, first extra item: 20
+E       Use -v to get the full diff
+
+test_grid_featurizers.py:62: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.base_classes:base_classes.py:184 Failed to featurize datapoint 0. Appending empty array.
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+FAILED test_grid_featurizers.py::test_charge_voxelizer - assert (1, 0) == (1,...
+FAILED test_grid_featurizers.py::test_salt_bridge_voxelizer - assert (1, 0) =...
+FAILED test_grid_featurizers.py::test_cation_pi_voxelizer - assert (1, 0) == ...
+FAILED test_grid_featurizers.py::test_pi_stack_voxelizer - assert (1, 0) == (...
+======================== 4 failed, 1 warning in 11.82s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 1 item
+
+test_maccs_keys_finerprint.py .                                          [100%]
+
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+======================== 1 passed, 1 warning in 10.57s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 4 items
+
+test_materials_featurizers.py FFFF                                       [100%]
+
+=================================== FAILURES ===================================
+________________ TestMaterialFeaturizers.test_cgcnn_featurizer _________________
+
+self = CGCNNFeaturizer[radius=3.0, max_neighbors=6, step=0.3]
+structures = [{'@class': 'Structure', '@module': 'pymatgen.core.structure', 'charge': None, 'lattice': {'a': 1.0, 'alpha': 90.0, 'b': 1.0, 'beta': 90.0, ...}, ...}]
+log_every_n = 1000
+
+    def featurize(self,
+                  structures: Iterable[Union[Dict[str, Any], PymatgenStructure]],
+                  log_every_n: int = 1000) -> np.ndarray:
+      """Calculate features for crystal structures.
+    
+      Parameters
+      ----------
+      structures: Iterable[Union[Dict, pymatgen.Structure]]
+        Iterable sequence of pymatgen structure dictionaries
+        or pymatgen.Structure. Please confirm the dictionary representations
+        of pymatgen.Structure from https://pymatgen.org/pymatgen.core.structure.html.
+      log_every_n: int, default 1000
+        Logging messages reported every `log_every_n` samples.
+    
+      Returns
+      -------
+      features: np.ndarray
+        A numpy array containing a featurized representation of
+        `structures`.
+      """
+      try:
+>       from pymatgen import Structure
+E       ModuleNotFoundError: No module named 'pymatgen'
+
+../base_classes.py:321: ModuleNotFoundError
+
+During handling of the above exception, another exception occurred:
+
+self = <deepchem.feat.tests.test_materials_featurizers.TestMaterialFeaturizers testMethod=test_cgcnn_featurizer>
+
+    def test_cgcnn_featurizer(self):
+      """
+      Test CGCNNFeaturizer.
+      """
+    
+      featurizer = CGCNNFeaturizer(radius=3.0, max_neighbors=6, step=0.3)
+>     graph_features = featurizer.featurize([self.struct_dict])
+
+test_materials_featurizers.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = CGCNNFeaturizer[radius=3.0, max_neighbors=6, step=0.3]
+structures = [{'@class': 'Structure', '@module': 'pymatgen.core.structure', 'charge': None, 'lattice': {'a': 1.0, 'alpha': 90.0, 'b': 1.0, 'beta': 90.0, ...}, ...}]
+log_every_n = 1000
+
+    def featurize(self,
+                  structures: Iterable[Union[Dict[str, Any], PymatgenStructure]],
+                  log_every_n: int = 1000) -> np.ndarray:
+      """Calculate features for crystal structures.
+    
+      Parameters
+      ----------
+      structures: Iterable[Union[Dict, pymatgen.Structure]]
+        Iterable sequence of pymatgen structure dictionaries
+        or pymatgen.Structure. Please confirm the dictionary representations
+        of pymatgen.Structure from https://pymatgen.org/pymatgen.core.structure.html.
+      log_every_n: int, default 1000
+        Logging messages reported every `log_every_n` samples.
+    
+      Returns
+      -------
+      features: np.ndarray
+        A numpy array containing a featurized representation of
+        `structures`.
+      """
+      try:
+        from pymatgen import Structure
+      except ModuleNotFoundError:
+>       raise ImportError("This class requires pymatgen to be installed.")
+E       ImportError: This class requires pymatgen to be installed.
+
+../base_classes.py:323: ImportError
+__________ TestMaterialFeaturizers.test_element_property_fingerprint ___________
+
+self = ElementPropertyFingerprint[data_source='matminer']
+compositions = ['MoS2'], log_every_n = 1000
+
+    def featurize(self, compositions: Iterable[str],
+                  log_every_n: int = 1000) -> np.ndarray:
+      """Calculate features for crystal compositions.
+    
+      Parameters
+      ----------
+      compositions: Iterable[str]
+        Iterable sequence of composition strings, e.g. "MoS2".
+      log_every_n: int, default 1000
+        Logging messages reported every `log_every_n` samples.
+    
+      Returns
+      -------
+      features: np.ndarray
+        A numpy array containing a featurized representation of
+        `compositions`.
+      """
+      try:
+>       from pymatgen import Composition
+E       ModuleNotFoundError: No module named 'pymatgen'
+
+../base_classes.py:383: ModuleNotFoundError
+
+During handling of the above exception, another exception occurred:
+
+self = <deepchem.feat.tests.test_materials_featurizers.TestMaterialFeaturizers testMethod=test_element_property_fingerprint>
+
+    def test_element_property_fingerprint(self):
+      """
+      Test Element Property featurizer.
+      """
+    
+      featurizer = ElementPropertyFingerprint(data_source='matminer')
+>     features = featurizer.featurize([self.formula])
+
+test_materials_featurizers.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = ElementPropertyFingerprint[data_source='matminer']
+compositions = ['MoS2'], log_every_n = 1000
+
+    def featurize(self, compositions: Iterable[str],
+                  log_every_n: int = 1000) -> np.ndarray:
+      """Calculate features for crystal compositions.
+    
+      Parameters
+      ----------
+      compositions: Iterable[str]
+        Iterable sequence of composition strings, e.g. "MoS2".
+      log_every_n: int, default 1000
+        Logging messages reported every `log_every_n` samples.
+    
+      Returns
+      -------
+      features: np.ndarray
+        A numpy array containing a featurized representation of
+        `compositions`.
+      """
+      try:
+        from pymatgen import Composition
+      except ModuleNotFoundError:
+>       raise ImportError("This class requires pymatgen to be installed.")
+E       ImportError: This class requires pymatgen to be installed.
+
+../base_classes.py:385: ImportError
+_______________ TestMaterialFeaturizers.test_elemnet_featurizer ________________
+
+self = ElemNetFeaturizer[], compositions = ['MoS2'], log_every_n = 1000
+
+    def featurize(self, compositions: Iterable[str],
+                  log_every_n: int = 1000) -> np.ndarray:
+      """Calculate features for crystal compositions.
+    
+      Parameters
+      ----------
+      compositions: Iterable[str]
+        Iterable sequence of composition strings, e.g. "MoS2".
+      log_every_n: int, default 1000
+        Logging messages reported every `log_every_n` samples.
+    
+      Returns
+      -------
+      features: np.ndarray
+        A numpy array containing a featurized representation of
+        `compositions`.
+      """
+      try:
+>       from pymatgen import Composition
+E       ModuleNotFoundError: No module named 'pymatgen'
+
+../base_classes.py:383: ModuleNotFoundError
+
+During handling of the above exception, another exception occurred:
+
+self = <deepchem.feat.tests.test_materials_featurizers.TestMaterialFeaturizers testMethod=test_elemnet_featurizer>
+
+    def test_elemnet_featurizer(self):
+      """
+      Test ElemNetFeaturizer.
+      """
+    
+      featurizer = ElemNetFeaturizer()
+>     features = featurizer.featurize([self.formula])
+
+test_materials_featurizers.py:93: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = ElemNetFeaturizer[], compositions = ['MoS2'], log_every_n = 1000
+
+    def featurize(self, compositions: Iterable[str],
+                  log_every_n: int = 1000) -> np.ndarray:
+      """Calculate features for crystal compositions.
+    
+      Parameters
+      ----------
+      compositions: Iterable[str]
+        Iterable sequence of composition strings, e.g. "MoS2".
+      log_every_n: int, default 1000
+        Logging messages reported every `log_every_n` samples.
+    
+      Returns
+      -------
+      features: np.ndarray
+        A numpy array containing a featurized representation of
+        `compositions`.
+      """
+      try:
+        from pymatgen import Composition
+      except ModuleNotFoundError:
+>       raise ImportError("This class requires pymatgen to be installed.")
+E       ImportError: This class requires pymatgen to be installed.
+
+../base_classes.py:385: ImportError
+_______________ TestMaterialFeaturizers.test_sine_coulomb_matrix _______________
+
+self = SineCoulombMatrix[max_atoms=3, flatten=True]
+structures = [{'@class': 'Structure', '@module': 'pymatgen.core.structure', 'charge': None, 'lattice': {'a': 1.0, 'alpha': 90.0, 'b': 1.0, 'beta': 90.0, ...}, ...}]
+log_every_n = 1000
+
+    def featurize(self,
+                  structures: Iterable[Union[Dict[str, Any], PymatgenStructure]],
+                  log_every_n: int = 1000) -> np.ndarray:
+      """Calculate features for crystal structures.
+    
+      Parameters
+      ----------
+      structures: Iterable[Union[Dict, pymatgen.Structure]]
+        Iterable sequence of pymatgen structure dictionaries
+        or pymatgen.Structure. Please confirm the dictionary representations
+        of pymatgen.Structure from https://pymatgen.org/pymatgen.core.structure.html.
+      log_every_n: int, default 1000
+        Logging messages reported every `log_every_n` samples.
+    
+      Returns
+      -------
+      features: np.ndarray
+        A numpy array containing a featurized representation of
+        `structures`.
+      """
+      try:
+>       from pymatgen import Structure
+E       ModuleNotFoundError: No module named 'pymatgen'
+
+../base_classes.py:321: ModuleNotFoundError
+
+During handling of the above exception, another exception occurred:
+
+self = <deepchem.feat.tests.test_materials_featurizers.TestMaterialFeaturizers testMethod=test_sine_coulomb_matrix>
+
+    def test_sine_coulomb_matrix(self):
+      """
+      Test SCM featurizer.
+      """
+    
+      featurizer = SineCoulombMatrix(max_atoms=3)
+>     features = featurizer.featurize([self.struct_dict])
+
+test_materials_featurizers.py:67: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = SineCoulombMatrix[max_atoms=3, flatten=True]
+structures = [{'@class': 'Structure', '@module': 'pymatgen.core.structure', 'charge': None, 'lattice': {'a': 1.0, 'alpha': 90.0, 'b': 1.0, 'beta': 90.0, ...}, ...}]
+log_every_n = 1000
+
+    def featurize(self,
+                  structures: Iterable[Union[Dict[str, Any], PymatgenStructure]],
+                  log_every_n: int = 1000) -> np.ndarray:
+      """Calculate features for crystal structures.
+    
+      Parameters
+      ----------
+      structures: Iterable[Union[Dict, pymatgen.Structure]]
+        Iterable sequence of pymatgen structure dictionaries
+        or pymatgen.Structure. Please confirm the dictionary representations
+        of pymatgen.Structure from https://pymatgen.org/pymatgen.core.structure.html.
+      log_every_n: int, default 1000
+        Logging messages reported every `log_every_n` samples.
+    
+      Returns
+      -------
+      features: np.ndarray
+        A numpy array containing a featurized representation of
+        `structures`.
+      """
+      try:
+        from pymatgen import Structure
+      except ModuleNotFoundError:
+>       raise ImportError("This class requires pymatgen to be installed.")
+E       ImportError: This class requires pymatgen to be installed.
+
+../base_classes.py:323: ImportError
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+FAILED test_materials_featurizers.py::TestMaterialFeaturizers::test_cgcnn_featurizer
+FAILED test_materials_featurizers.py::TestMaterialFeaturizers::test_element_property_fingerprint
+FAILED test_materials_featurizers.py::TestMaterialFeaturizers::test_elemnet_featurizer
+FAILED test_materials_featurizers.py::TestMaterialFeaturizers::test_sine_coulomb_matrix
+======================== 4 failed, 1 warning in 10.13s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 1 item
+
+test_mol2vec_fingerprint.py F                                            [100%]
+
+=================================== FAILURES ===================================
+_______________ TestMol2VecFingerprint.test_mol2vec_fingerprint ________________
+
+self = <deepchem.feat.tests.test_mol2vec_fingerprint.TestMol2VecFingerprint testMethod=test_mol2vec_fingerprint>
+
+    def test_mol2vec_fingerprint(self):
+      """
+      Test simple fingerprint.
+      """
+      featurizer = Mol2VecFingerprint()
+      feature = featurizer([self.mol])
+>     assert feature.shape == (1, 300)
+E     AssertionError: assert (1, 0) == (1, 300)
+E       At index 1 diff: 0 != 300
+E       Use -v to get the full diff
+
+test_mol2vec_fingerprint.py:25: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.base_classes:base_classes.py:268 Failed to featurize datapoint 0, CC(=O)Oc1ccccc1C(=O)O. Appending empty array
+WARNING  deepchem.feat.base_classes:base_classes.py:271 Exception message: The vocab attribute was removed from KeyedVector in Gensim 4.0.0.
+Use KeyedVector's .key_to_index dict, .index_to_key list, and methods .get_vecattr(key, attr) and .set_vecattr(key, attr, new_val) instead.
+See https://github.com/RaRe-Technologies/gensim/wiki/Migrating-from-Gensim-3.x-to-4
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+deepchem/feat/tests/test_mol2vec_fingerprint.py::TestMol2VecFingerprint::test_mol2vec_fingerprint
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/scipy/sparse/sparsetools.py:21: DeprecationWarning: `scipy.sparse.sparsetools` is deprecated!
+  scipy.sparse.sparsetools is a private module for scipy.sparse, and should not be used.
+    _deprecated()
+
+deepchem/feat/tests/test_mol2vec_fingerprint.py::TestMol2VecFingerprint::test_mol2vec_fingerprint
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/gensim/similarities/__init__.py:15: UserWarning: The gensim.similarities.levenshtein submodule is disabled, because the optional Levenshtein package <https://pypi.org/project/python-Levenshtein/> is unavailable. Install Levenhstein (e.g. `pip install python-Levenshtein`) to suppress this warning.
+    warnings.warn(msg)
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+FAILED test_mol2vec_fingerprint.py::TestMol2VecFingerprint::test_mol2vec_fingerprint
+======================== 1 failed, 3 warnings in 10.96s ========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 4 items
+
+test_mol_graph_conv_featurizer.py ....                                   [100%]
+
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+========================= 4 passed, 1 warning in 7.56s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 6 items
+
+test_mol_graphs.py ......                                                [100%]
+
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+======================== 6 passed, 1 warning in 11.42s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 2 items
+
+test_molgan_featurizer.py ..                                             [100%]
+
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+========================= 2 passed, 1 warning in 8.10s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 2 items
+
+test_mordred_descriptors.py FF                                           [100%]
+
+=================================== FAILURES ===================================
+_______________ TestMordredDescriptors.test_mordred_descriptors ________________
+
+self = <deepchem.feat.tests.test_mordred_descriptors.TestMordredDescriptors testMethod=test_mordred_descriptors>
+
+    def test_mordred_descriptors(self):
+      """
+      Test simple descriptors.
+      """
+      featurizer = MordredDescriptors()
+      descriptors = featurizer([self.mol])
+>     assert descriptors.shape == (1, 1613)
+E     AssertionError: assert (1, 0) == (1, 1613)
+E       At index 1 diff: 0 != 1613
+E       Use -v to get the full diff
+
+test_mordred_descriptors.py:26: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.base_classes:base_classes.py:268 Failed to featurize datapoint 0, CC(=O)Oc1ccccc1C(=O)O. Appending empty array
+WARNING  deepchem.feat.base_classes:base_classes.py:271 Exception message: This class requires Mordred to be installed.
+_________ TestMordredDescriptors.test_mordred_descriptors_with_3D_info _________
+
+self = <deepchem.feat.tests.test_mordred_descriptors.TestMordredDescriptors testMethod=test_mordred_descriptors_with_3D_info>
+
+    def test_mordred_descriptors_with_3D_info(self):
+      """
+      Test simple descriptors with 3D info
+      """
+      from rdkit import Chem
+      from rdkit.Chem import AllChem
+      featurizer = MordredDescriptors(ignore_3D=False)
+      descriptors = featurizer([self.mol])
+>     assert descriptors.shape == (1, 1826)
+E     AssertionError: assert (1, 0) == (1, 1826)
+E       At index 1 diff: 0 != 1826
+E       Use -v to get the full diff
+
+test_mordred_descriptors.py:38: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.base_classes:base_classes.py:268 Failed to featurize datapoint 0, CC(=O)Oc1ccccc1C(=O)O. Appending empty array
+WARNING  deepchem.feat.base_classes:base_classes.py:271 Exception message: This class requires Mordred to be installed.
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+FAILED test_mordred_descriptors.py::TestMordredDescriptors::test_mordred_descriptors
+FAILED test_mordred_descriptors.py::TestMordredDescriptors::test_mordred_descriptors_with_3D_info
+========================= 2 failed, 1 warning in 9.36s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 6 items
+
+test_one_hot_featurizer.py ......                                        [100%]
+
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+========================= 6 passed, 1 warning in 8.77s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 1 item
+
+test_puchem_fingerprint.py F                                             [100%]
+
+=================================== FAILURES ===================================
+_______________ TestPubChemFingerprint.test_pubchem_fingerprint ________________
+
+self = PubChemFingerprint[]
+
+    def __init__(self):
+      """Initialize this featurizer."""
+      try:
+        from rdkit import Chem  # noqa
+>       import pubchempy as pcp  # noqa
+E       ModuleNotFoundError: No module named 'pubchempy'
+
+../molecule_featurizers/pubchem_fingerprint.py:28: ModuleNotFoundError
+
+During handling of the above exception, another exception occurred:
+
+self = <deepchem.feat.tests.test_puchem_fingerprint.TestPubChemFingerprint testMethod=test_pubchem_fingerprint>
+
+    def test_pubchem_fingerprint(self):
+      """
+      Test simple fingerprint.
+      """
+>     featurizer = PubChemFingerprint()
+
+test_puchem_fingerprint.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PubChemFingerprint[]
+
+    def __init__(self):
+      """Initialize this featurizer."""
+      try:
+        from rdkit import Chem  # noqa
+        import pubchempy as pcp  # noqa
+      except ModuleNotFoundError:
+>       raise ImportError("This class requires PubChemPy to be installed.")
+E       ImportError: This class requires PubChemPy to be installed.
+
+../molecule_featurizers/pubchem_fingerprint.py:30: ImportError
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+FAILED test_puchem_fingerprint.py::TestPubChemFingerprint::test_pubchem_fingerprint
+======================== 1 failed, 1 warning in 17.35s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 3 items
+
+test_rdkit_descriptors.py ...                                            [100%]
+
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+========================= 3 passed, 1 warning in 9.58s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 31 items
+
+test_rdkit_grid_features.py .F.......F..........FFFFF...FFF              [100%]
+
+=================================== FAILURES ===================================
+______________ TestHelperFunctions.test_compute_charge_dictionary ______________
+
+self = <deepchem.feat.tests.test_rdkit_grid_features.TestHelperFunctions testMethod=test_compute_charge_dictionary>
+
+    def test_compute_charge_dictionary(self):
+      from rdkit.Chem.AllChem import ComputeGasteigerCharges
+      for fname in (self.ligand_file, self.protein_file):
+>       _, mol = rgf.load_molecule(fname)
+
+test_rdkit_grid_features.py:177: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../utils/rdkit_utils.py:280: in load_molecule
+    my_mol = apply_pdbfixer(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+mol = <rdkit.Chem.rdchem.Mol object at 0x7f8ca5d141c0>, add_missing = True
+hydrogenate = True, pH = 7.4, remove_heterogens = True, is_protein = False
+
+    def apply_pdbfixer(mol,
+                       add_missing=True,
+                       hydrogenate=True,
+                       pH=7.4,
+                       remove_heterogens=True,
+                       is_protein=True):
+      """
+      Apply PDBFixer to a molecule to try to clean it up.
+    
+      Parameters
+      ----------
+      mol: Rdkit Mol
+        Molecule to clean up.
+      add_missing: bool, optional
+        If true, add in missing residues and atoms
+      hydrogenate: bool, optional
+        If true, add hydrogens at specified pH
+      pH: float, optional
+        The pH at which hydrogens will be added if `hydrogenate==True`. Set to 7.4 by default.
+      remove_heterogens: bool, optional
+        Often times, PDB files come with extra waters and salts attached.
+        If this field is set, remove these heterogens.
+      is_protein: bool, optional
+        If false, then don't remove heterogens (since this molecule is
+        itself a heterogen).
+    
+      Returns
+      -------
+      Rdkit Mol
+    
+      Note
+      ----
+      This function requires RDKit and PDBFixer to be installed.
+      """
+      molecule_file = None
+      try:
+        from rdkit import Chem
+        pdbblock = Chem.MolToPDBBlock(mol)
+        pdb_stringio = StringIO()
+        pdb_stringio.write(pdbblock)
+        pdb_stringio.seek(0)
+>       import pdbfixer
+E       ModuleNotFoundError: No module named 'pdbfixer'
+
+../../utils/rdkit_utils.py:116: ModuleNotFoundError
+____________________ TestHelperFunctions.test_load_molecule ____________________
+
+self = <deepchem.feat.tests.test_rdkit_grid_features.TestHelperFunctions testMethod=test_load_molecule>
+
+    def test_load_molecule(self):
+      # adding hydrogens and charges is tested in dc.utils
+      from rdkit.Chem.AllChem import Mol
+      for add_hydrogens in (True, False):
+        for calc_charges in (True, False):
+>         mol_xyz, mol_rdk = rgf.load_molecule(self.ligand_file, add_hydrogens,
+                                               calc_charges)
+
+test_rdkit_grid_features.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../utils/rdkit_utils.py:280: in load_molecule
+    my_mol = apply_pdbfixer(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+mol = <rdkit.Chem.rdchem.Mol object at 0x7f8ca6029120>, add_missing = True
+hydrogenate = True, pH = 7.4, remove_heterogens = True, is_protein = False
+
+    def apply_pdbfixer(mol,
+                       add_missing=True,
+                       hydrogenate=True,
+                       pH=7.4,
+                       remove_heterogens=True,
+                       is_protein=True):
+      """
+      Apply PDBFixer to a molecule to try to clean it up.
+    
+      Parameters
+      ----------
+      mol: Rdkit Mol
+        Molecule to clean up.
+      add_missing: bool, optional
+        If true, add in missing residues and atoms
+      hydrogenate: bool, optional
+        If true, add hydrogens at specified pH
+      pH: float, optional
+        The pH at which hydrogens will be added if `hydrogenate==True`. Set to 7.4 by default.
+      remove_heterogens: bool, optional
+        Often times, PDB files come with extra waters and salts attached.
+        If this field is set, remove these heterogens.
+      is_protein: bool, optional
+        If false, then don't remove heterogens (since this molecule is
+        itself a heterogen).
+    
+      Returns
+      -------
+      Rdkit Mol
+    
+      Note
+      ----
+      This function requires RDKit and PDBFixer to be installed.
+      """
+      molecule_file = None
+      try:
+        from rdkit import Chem
+        pdbblock = Chem.MolToPDBBlock(mol)
+        pdb_stringio = StringIO()
+        pdb_stringio.write(pdbblock)
+        pdb_stringio.seek(0)
+>       import pdbfixer
+E       ModuleNotFoundError: No module named 'pdbfixer'
+
+../../utils/rdkit_utils.py:116: ModuleNotFoundError
+_______________ TestFeaturizationFunctions.test_compute_all_ecfp _______________
+
+self = <deepchem.feat.tests.test_rdkit_grid_features.TestFeaturizationFunctions testMethod=test_compute_all_ecfp>
+
+    def test_compute_all_ecfp(self):
+>     _, mol = rgf.load_molecule(self.ligand_file)
+
+test_rdkit_grid_features.py:328: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../utils/rdkit_utils.py:280: in load_molecule
+    my_mol = apply_pdbfixer(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+mol = <rdkit.Chem.rdchem.Mol object at 0x7f8ca5da2120>, add_missing = True
+hydrogenate = True, pH = 7.4, remove_heterogens = True, is_protein = False
+
+    def apply_pdbfixer(mol,
+                       add_missing=True,
+                       hydrogenate=True,
+                       pH=7.4,
+                       remove_heterogens=True,
+                       is_protein=True):
+      """
+      Apply PDBFixer to a molecule to try to clean it up.
+    
+      Parameters
+      ----------
+      mol: Rdkit Mol
+        Molecule to clean up.
+      add_missing: bool, optional
+        If true, add in missing residues and atoms
+      hydrogenate: bool, optional
+        If true, add hydrogens at specified pH
+      pH: float, optional
+        The pH at which hydrogens will be added if `hydrogenate==True`. Set to 7.4 by default.
+      remove_heterogens: bool, optional
+        Often times, PDB files come with extra waters and salts attached.
+        If this field is set, remove these heterogens.
+      is_protein: bool, optional
+        If false, then don't remove heterogens (since this molecule is
+        itself a heterogen).
+    
+      Returns
+      -------
+      Rdkit Mol
+    
+      Note
+      ----
+      This function requires RDKit and PDBFixer to be installed.
+      """
+      molecule_file = None
+      try:
+        from rdkit import Chem
+        pdbblock = Chem.MolToPDBBlock(mol)
+        pdb_stringio = StringIO()
+        pdb_stringio.write(pdbblock)
+        pdb_stringio.seek(0)
+>       import pdbfixer
+E       ModuleNotFoundError: No module named 'pdbfixer'
+
+../../utils/rdkit_utils.py:116: ModuleNotFoundError
+_______ TestFeaturizationFunctions.test_compute_splif_features_in_range ________
+
+self = <deepchem.feat.tests.test_rdkit_grid_features.TestFeaturizationFunctions testMethod=test_compute_splif_features_in_range>
+
+    def test_compute_splif_features_in_range(self):
+>     prot_xyz, prot_rdk = rgf.load_molecule(self.protein_file)
+
+test_rdkit_grid_features.py:401: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../utils/rdkit_utils.py:280: in load_molecule
+    my_mol = apply_pdbfixer(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+mol = <rdkit.Chem.rdchem.Mol object at 0x7f8ca5ca5da0>, add_missing = True
+hydrogenate = True, pH = 7.4, remove_heterogens = True, is_protein = False
+
+    def apply_pdbfixer(mol,
+                       add_missing=True,
+                       hydrogenate=True,
+                       pH=7.4,
+                       remove_heterogens=True,
+                       is_protein=True):
+      """
+      Apply PDBFixer to a molecule to try to clean it up.
+    
+      Parameters
+      ----------
+      mol: Rdkit Mol
+        Molecule to clean up.
+      add_missing: bool, optional
+        If true, add in missing residues and atoms
+      hydrogenate: bool, optional
+        If true, add hydrogens at specified pH
+      pH: float, optional
+        The pH at which hydrogens will be added if `hydrogenate==True`. Set to 7.4 by default.
+      remove_heterogens: bool, optional
+        Often times, PDB files come with extra waters and salts attached.
+        If this field is set, remove these heterogens.
+      is_protein: bool, optional
+        If false, then don't remove heterogens (since this molecule is
+        itself a heterogen).
+    
+      Returns
+      -------
+      Rdkit Mol
+    
+      Note
+      ----
+      This function requires RDKit and PDBFixer to be installed.
+      """
+      molecule_file = None
+      try:
+        from rdkit import Chem
+        pdbblock = Chem.MolToPDBBlock(mol)
+        pdb_stringio = StringIO()
+        pdb_stringio.write(pdbblock)
+        pdb_stringio.seek(0)
+>       import pdbfixer
+E       ModuleNotFoundError: No module named 'pdbfixer'
+
+../../utils/rdkit_utils.py:116: ModuleNotFoundError
+________ TestFeaturizationFunctions.test_featurize_binding_pocket_ecfp _________
+
+self = <deepchem.feat.tests.test_rdkit_grid_features.TestFeaturizationFunctions testMethod=test_featurize_binding_pocket_ecfp>
+
+    def test_featurize_binding_pocket_ecfp(self):
+>     prot_xyz, prot_rdk = rgf.load_molecule(self.protein_file)
+
+test_rdkit_grid_features.py:347: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../utils/rdkit_utils.py:280: in load_molecule
+    my_mol = apply_pdbfixer(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+mol = <rdkit.Chem.rdchem.Mol object at 0x7f8ca604a850>, add_missing = True
+hydrogenate = True, pH = 7.4, remove_heterogens = True, is_protein = False
+
+    def apply_pdbfixer(mol,
+                       add_missing=True,
+                       hydrogenate=True,
+                       pH=7.4,
+                       remove_heterogens=True,
+                       is_protein=True):
+      """
+      Apply PDBFixer to a molecule to try to clean it up.
+    
+      Parameters
+      ----------
+      mol: Rdkit Mol
+        Molecule to clean up.
+      add_missing: bool, optional
+        If true, add in missing residues and atoms
+      hydrogenate: bool, optional
+        If true, add hydrogens at specified pH
+      pH: float, optional
+        The pH at which hydrogens will be added if `hydrogenate==True`. Set to 7.4 by default.
+      remove_heterogens: bool, optional
+        Often times, PDB files come with extra waters and salts attached.
+        If this field is set, remove these heterogens.
+      is_protein: bool, optional
+        If false, then don't remove heterogens (since this molecule is
+        itself a heterogen).
+    
+      Returns
+      -------
+      Rdkit Mol
+    
+      Note
+      ----
+      This function requires RDKit and PDBFixer to be installed.
+      """
+      molecule_file = None
+      try:
+        from rdkit import Chem
+        pdbblock = Chem.MolToPDBBlock(mol)
+        pdb_stringio = StringIO()
+        pdb_stringio.write(pdbblock)
+        pdb_stringio.seek(0)
+>       import pdbfixer
+E       ModuleNotFoundError: No module named 'pdbfixer'
+
+../../utils/rdkit_utils.py:116: ModuleNotFoundError
+_______________ TestFeaturizationFunctions.test_featurize_splif ________________
+
+self = <deepchem.feat.tests.test_rdkit_grid_features.TestFeaturizationFunctions testMethod=test_featurize_splif>
+
+    def test_featurize_splif(self):
+>     prot_xyz, prot_rdk = rgf.load_molecule(self.protein_file)
+
+test_rdkit_grid_features.py:433: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../utils/rdkit_utils.py:280: in load_molecule
+    my_mol = apply_pdbfixer(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+mol = <rdkit.Chem.rdchem.Mol object at 0x7f8ca6039e40>, add_missing = True
+hydrogenate = True, pH = 7.4, remove_heterogens = True, is_protein = False
+
+    def apply_pdbfixer(mol,
+                       add_missing=True,
+                       hydrogenate=True,
+                       pH=7.4,
+                       remove_heterogens=True,
+                       is_protein=True):
+      """
+      Apply PDBFixer to a molecule to try to clean it up.
+    
+      Parameters
+      ----------
+      mol: Rdkit Mol
+        Molecule to clean up.
+      add_missing: bool, optional
+        If true, add in missing residues and atoms
+      hydrogenate: bool, optional
+        If true, add hydrogens at specified pH
+      pH: float, optional
+        The pH at which hydrogens will be added if `hydrogenate==True`. Set to 7.4 by default.
+      remove_heterogens: bool, optional
+        Often times, PDB files come with extra waters and salts attached.
+        If this field is set, remove these heterogens.
+      is_protein: bool, optional
+        If false, then don't remove heterogens (since this molecule is
+        itself a heterogen).
+    
+      Returns
+      -------
+      Rdkit Mol
+    
+      Note
+      ----
+      This function requires RDKit and PDBFixer to be installed.
+      """
+      molecule_file = None
+      try:
+        from rdkit import Chem
+        pdbblock = Chem.MolToPDBBlock(mol)
+        pdb_stringio = StringIO()
+        pdb_stringio.write(pdbblock)
+        pdb_stringio.seek(0)
+>       import pdbfixer
+E       ModuleNotFoundError: No module named 'pdbfixer'
+
+../../utils/rdkit_utils.py:116: ModuleNotFoundError
+____________________ TestRdkitGridFeaturizer.test_combined _____________________
+
+self = <deepchem.feat.tests.test_rdkit_grid_features.TestRdkitGridFeaturizer testMethod=test_combined>
+
+    def test_combined(self):
+      ecfp_power = 5
+      splif_power = 5
+      # test voxel features
+      featurizer = rgf.RdkitGridFeaturizer(
+          voxel_width=1.0,
+          box_width=20.0,
+          feature_types=['voxel_combined'],
+          ecfp_power=ecfp_power,
+          splif_power=splif_power,
+          flatten=False,
+          sanitize=True)
+      feature_tensor = featurizer.featurize([(self.ligand_file,
+                                              self.protein_file)])
+      self.assertIsInstance(feature_tensor, np.ndarray)
+      voxel_total_len = (
+          2**ecfp_power +
+          len(featurizer.cutoffs['splif_contact_bins']) * 2**splif_power + len(
+              featurizer.cutoffs['hbond_dist_bins']) + 5)
+>     self.assertEqual(feature_tensor.shape, (1, 20, 20, 20, voxel_total_len))
+E     AssertionError: Tuples differ: (1, 0) != (1, 20, 20, 20, 136)
+E     
+E     First differing element 1:
+E     0
+E     20
+E     
+E     Second tuple contains 3 additional elements.
+E     First extra element 2:
+E     20
+E     
+E     - (1, 0)
+E     + (1, 20, 20, 20, 136)
+
+test_rdkit_grid_features.py:519: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.base_classes:base_classes.py:184 Failed to featurize datapoint 0. Appending empty array.
+__________________ TestRdkitGridFeaturizer.test_force_flatten __________________
+
+self = <deepchem.feat.tests.test_rdkit_grid_features.TestRdkitGridFeaturizer testMethod=test_force_flatten>
+
+    def test_force_flatten(self):
+      # test if input is flattened when flat features are used
+      featurizer = rgf.RdkitGridFeaturizer(
+          feature_types=['ecfp_hashed'], flatten=False)
+      featurizer.flatten = True  # False should be ignored with ecfp_hashed
+      feature_tensor = featurizer.featurize([(self.ligand_file,
+                                              self.protein_file)])
+      self.assertIsInstance(feature_tensor, np.ndarray)
+>     self.assertEqual(feature_tensor.shape, (1, 2 * 2**featurizer.ecfp_power))
+E     AssertionError: Tuples differ: (1, 0) != (1, 16)
+E     
+E     First differing element 1:
+E     0
+E     16
+E     
+E     - (1, 0)
+E     ?     ^
+E     
+E     + (1, 16)
+E     ?     ^^
+
+test_rdkit_grid_features.py:498: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.complex_featurizers.rdkit_grid_featurizer:rdkit_grid_featurizer.py:1034 ecfp_hashed feature is used, output will be flattened
+WARNING  deepchem.feat.base_classes:base_classes.py:184 Failed to featurize datapoint 0. Appending empty array.
+____________________ TestRdkitGridFeaturizer.test_rotations ____________________
+
+self = <deepchem.feat.tests.test_rdkit_grid_features.TestRdkitGridFeaturizer testMethod=test_rotations>
+
+    def test_rotations(self):
+      featurizer = rgf.RdkitGridFeaturizer(
+          nb_rotations=3,
+          feature_types=['voxel_combined'],
+          flatten=False,
+          sanitize=True)
+      feature_tensors = featurizer.featurize([(self.ligand_file,
+                                               self.protein_file)])
+>     self.assertEqual(feature_tensors.shape, (1, 4, 16, 16, 16, 40))
+E     AssertionError: Tuples differ: (1, 0) != (1, 4, 16, 16, 16, 40)
+E     
+E     First differing element 1:
+E     0
+E     4
+E     
+E     Second tuple contains 4 additional elements.
+E     First extra element 2:
+E     16
+E     
+E     - (1, 0)
+E     + (1, 4, 16, 16, 16, 40)
+
+test_rdkit_grid_features.py:578: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.base_classes:base_classes.py:184 Failed to featurize datapoint 0. Appending empty array.
+____________________ TestRdkitGridFeaturizer.test_voxelize _____________________
+
+self = <deepchem.feat.tests.test_rdkit_grid_features.TestRdkitGridFeaturizer testMethod=test_voxelize>
+
+    def test_voxelize(self):
+>     prot_xyz, prot_rdk = rgf.load_molecule(self.protein_file)
+
+test_rdkit_grid_features.py:581: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../utils/rdkit_utils.py:280: in load_molecule
+    my_mol = apply_pdbfixer(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+mol = <rdkit.Chem.rdchem.Mol object at 0x7f8ca600ccb0>, add_missing = True
+hydrogenate = True, pH = 7.4, remove_heterogens = True, is_protein = False
+
+    def apply_pdbfixer(mol,
+                       add_missing=True,
+                       hydrogenate=True,
+                       pH=7.4,
+                       remove_heterogens=True,
+                       is_protein=True):
+      """
+      Apply PDBFixer to a molecule to try to clean it up.
+    
+      Parameters
+      ----------
+      mol: Rdkit Mol
+        Molecule to clean up.
+      add_missing: bool, optional
+        If true, add in missing residues and atoms
+      hydrogenate: bool, optional
+        If true, add hydrogens at specified pH
+      pH: float, optional
+        The pH at which hydrogens will be added if `hydrogenate==True`. Set to 7.4 by default.
+      remove_heterogens: bool, optional
+        Often times, PDB files come with extra waters and salts attached.
+        If this field is set, remove these heterogens.
+      is_protein: bool, optional
+        If false, then don't remove heterogens (since this molecule is
+        itself a heterogen).
+    
+      Returns
+      -------
+      Rdkit Mol
+    
+      Note
+      ----
+      This function requires RDKit and PDBFixer to be installed.
+      """
+      molecule_file = None
+      try:
+        from rdkit import Chem
+        pdbblock = Chem.MolToPDBBlock(mol)
+        pdb_stringio = StringIO()
+        pdb_stringio.write(pdbblock)
+        pdb_stringio.seek(0)
+>       import pdbfixer
+E       ModuleNotFoundError: No module named 'pdbfixer'
+
+../../utils/rdkit_utils.py:116: ModuleNotFoundError
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+test_rdkit_grid_features.py:456
+  /Users/alana/deepchem/deepchem/feat/tests/test_rdkit_grid_features.py:456: PytestUnknownMarkWarning: Unknown pytest.mark.linux_only - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/mark.html
+    @pytest.mark.linux_only
+
+deepchem/feat/tests/test_rdkit_grid_features.py::TestHelperFunctions::test_angle_between
+  /Users/alana/deepchem/deepchem/feat/complex_featurizers/rdkit_grid_featurizer.py:137: RuntimeWarning: invalid value encountered in arccos
+    angle = np.arccos(np.dot(vector_i_u, vector_j_u))
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+FAILED test_rdkit_grid_features.py::TestHelperFunctions::test_compute_charge_dictionary
+FAILED test_rdkit_grid_features.py::TestHelperFunctions::test_load_molecule
+FAILED test_rdkit_grid_features.py::TestFeaturizationFunctions::test_compute_all_ecfp
+FAILED test_rdkit_grid_features.py::TestFeaturizationFunctions::test_compute_splif_features_in_range
+FAILED test_rdkit_grid_features.py::TestFeaturizationFunctions::test_featurize_binding_pocket_ecfp
+FAILED test_rdkit_grid_features.py::TestFeaturizationFunctions::test_featurize_splif
+FAILED test_rdkit_grid_features.py::TestRdkitGridFeaturizer::test_combined - ...
+FAILED test_rdkit_grid_features.py::TestRdkitGridFeaturizer::test_force_flatten
+FAILED test_rdkit_grid_features.py::TestRdkitGridFeaturizer::test_rotations
+FAILED test_rdkit_grid_features.py::TestRdkitGridFeaturizer::test_voxelize - ...
+================== 10 failed, 21 passed, 3 warnings in 11.02s ==================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 7 items
+
+test_smiles_featurizers.py .......                                       [100%]
+
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+deepchem/feat/tests/test_smiles_featurizers.py::TestSmilesToImage::test_smiles_to_image_with_max_len
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/numpy/core/_asarray.py:83: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray
+    return array(a, dtype, copy=False, order=order)
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+======================== 7 passed, 2 warnings in 21.06s ========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 0 items / 1 error
+
+==================================== ERRORS ====================================
+________ ERROR collecting deepchem/feat/tests/test_smiles_tokenizer.py _________
+ImportError while importing test module '/Users/alana/deepchem/deepchem/feat/tests/test_smiles_tokenizer.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/anaconda3/envs/deepchem/lib/python3.8/importlib/__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+test_smiles_tokenizer.py:4: in <module>
+    from deepchem.feat.smiles_tokenizer import SmilesTokenizer
+../smiles_tokenizer.py:10: in <module>
+    from transformers import BertTokenizer
+E   ModuleNotFoundError: No module named 'transformers'
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+ERROR test_smiles_tokenizer.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+========================= 1 warning, 1 error in 20.33s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 2 items
+
+test_splif_fingerprints.py FF                                            [100%]
+
+=================================== FAILURES ===================================
+____________________ TestSplifFingerprints.test_splif_shape ____________________
+
+self = <deepchem.feat.tests.test_splif_fingerprints.TestSplifFingerprints testMethod=test_splif_shape>
+
+    def test_splif_shape(self):
+      size = 8
+      featurizer = dc.feat.SplifFingerprint(size=size)
+      features = featurizer.featurize(self.complex_files)
+>     assert features.shape == (1, 3 * size)
+E     AssertionError: assert (1, 0) == (1, 24)
+E       At index 1 diff: 0 != 24
+E       Use -v to get the full diff
+
+test_splif_fingerprints.py:21: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.base_classes:base_classes.py:184 Failed to featurize datapoint 0. Appending empty array.
+________________ TestSplifFingerprints.test_splif_voxels_shape _________________
+
+self = <deepchem.feat.tests.test_splif_fingerprints.TestSplifFingerprints testMethod=test_splif_voxels_shape>
+
+    def test_splif_voxels_shape(self):
+      box_width = 48
+      voxel_width = 2
+      voxels_per_edge = int(box_width / voxel_width)
+      size = 8
+      voxelizer = dc.feat.SplifVoxelizer(
+          box_width=box_width, voxel_width=voxel_width, size=size)
+      features = voxelizer.featurize(self.complex_files)
+>     assert features.shape == (1, voxels_per_edge, voxels_per_edge,
+                                voxels_per_edge, size * 3)
+E     AssertionError: assert (1, 0) == (1, 24, 24, 24, 24)
+E       At index 1 diff: 0 != 24
+E       Right contains 3 more items, first extra item: 24
+E       Use -v to get the full diff
+
+test_splif_fingerprints.py:31: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  deepchem.feat.base_classes:base_classes.py:184 Failed to featurize datapoint 0. Appending empty array.
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+FAILED test_splif_fingerprints.py::TestSplifFingerprints::test_splif_shape - ...
+FAILED test_splif_fingerprints.py::TestSplifFingerprints::test_splif_voxels_shape
+======================== 2 failed, 1 warning in 38.11s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.8.5, pytest-6.2.2, py-1.10.0, pluggy-0.12.0
+rootdir: /Users/alana/deepchem, configfile: setup.cfg
+plugins: anyio-2.2.0, flaky-3.7.0
+collected 7 items
+
+test_weave.py .......                                                    [100%]
+
+=============================== warnings summary ===============================
+../../../../../../opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22
+  /opt/anaconda3/envs/deepchem/lib/python3.8/site-packages/tensorflow/python/autograph/impl/api.py:22: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+======================== 7 passed, 1 warning in 31.29s =========================
