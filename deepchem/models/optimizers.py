@@ -190,6 +190,120 @@ class Adam(Optimizer):
     return torch.optim.Adam(params, lr, (self.beta1, self.beta2), self.epsilon)
 
 
+class SparseAdam(Optimizer):
+  """The Sparse Adam optimization algorithm, also known as Lazy Adam.
+  Sparse Adam is suitable for sparse tensors. It handles sparse updates more efficiently. 
+  It only updates moving-average accumulators for sparse variable indices that appear in the current batch, rather than updating the accumulators for all indices.
+  """
+
+  def __init__(self,
+               learning_rate: Union[float, LearningRateSchedule] = 0.001,
+               beta1: float = 0.9,
+               beta2: float = 0.999,
+               epsilon: float = 1e-08):
+    """Construct an Adam optimizer.
+    
+    Parameters
+    ----------
+    learning_rate: float or LearningRateSchedule
+      the learning rate to use for optimization
+    beta1: float
+      a parameter of the SparseAdam algorithm
+    beta2: float
+      a parameter of the SparseAdam algorithm
+    epsilon: float
+      a parameter of the SparseAdam algorithm
+    """
+    super(SparseAdam, self).__init__(learning_rate)
+    self.beta1 = beta1
+    self.beta2 = beta2
+    self.epsilon = epsilon
+
+  def _create_tf_optimizer(self, global_step):
+    import tensorflow as tf
+    import tensorflow_addons as tfa
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      learning_rate = self.learning_rate._create_tf_tensor(global_step)
+    else:
+      learning_rate = self.learning_rate
+    return tfa.optimizers.LazyAdam(
+        learning_rate=learning_rate,
+        beta_1=self.beta1,
+        beta_2=self.beta2,
+        epsilon=self.epsilon)
+
+  def _create_pytorch_optimizer(self, params):
+    import torch
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      lr = self.learning_rate.initial_rate
+    else:
+      lr = self.learning_rate
+    return torch.optim.SparseAdam(params, lr, (self.beta1, self.beta2),
+                                  self.epsilon)
+
+
+class AdamW(Optimizer):
+  """The AdamW optimization algorithm.
+  AdamW is a variant of Adam, with improved weight decay.
+  In Adam, weight decay is implemented as: weight_decay (float, optional) – weight decay (L2 penalty) (default: 0)
+  In AdamW, weight decay is implemented as: weight_decay (float, optional) – weight decay coefficient (default: 1e-2)
+  """
+
+  def __init__(self,
+               learning_rate: Union[float, LearningRateSchedule] = 0.001,
+               weight_decay: Union[float, LearningRateSchedule] = 0.01,
+               beta1: float = 0.9,
+               beta2: float = 0.999,
+               epsilon: float = 1e-08,
+               amsgrad: bool = False):
+    """Construct an AdamW optimizer.
+    Parameters
+    ----------
+    learning_rate: float or LearningRateSchedule
+      the learning rate to use for optimization
+    weight_decay: float or LearningRateSchedule
+      weight decay coefficient for AdamW
+    beta1: float
+      a parameter of the Adam algorithm
+    beta2: float
+      a parameter of the Adam algorithm
+    epsilon: float
+      a parameter of the Adam algorithm
+    amsgrad: bool
+      If True, will use the AMSGrad variant of AdamW (from "On the Convergence of Adam and Beyond"), else will use the original algorithm.
+    """
+    super(AdamW, self).__init__(learning_rate)
+    self.weight_decay = weight_decay
+    self.beta1 = beta1
+    self.beta2 = beta2
+    self.epsilon = epsilon
+    self.amsgrad = amsgrad
+
+  def _create_tf_optimizer(self, global_step):
+    import tensorflow as tf
+    import tensorflow_addons as tfa
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      learning_rate = self.learning_rate._create_tf_tensor(global_step)
+    else:
+      learning_rate = self.learning_rate
+    return tfa.optimizers.AdamW(
+        weight_decay=self.weight_decay,
+        learning_rate=learning_rate,
+        beta_1=self.beta1,
+        beta_2=self.beta2,
+        epsilon=self.epsilon,
+        amsgrad=self.amsgrad)
+
+  def _create_pytorch_optimizer(self, params):
+    import torch
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      lr = self.learning_rate.initial_rate
+    else:
+      lr = self.learning_rate
+    return torch.optim.AdamW(params, lr, (self.beta1, self.beta2), self.epsilon,
+                             self.weight_decay, self.amsgrad)
+
+
 class RMSProp(Optimizer):
   """RMSProp Optimization algorithm."""
 

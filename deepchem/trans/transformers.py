@@ -1007,6 +1007,103 @@ class BalancingTransformer(Transformer):
     return (X, y, w_balanced, ids)
 
 
+class FlatteningTransformer(Transformer):
+  """ This transformer is required for a `Dataset` consisting of fragments as a preprocessing
+  step before prediction. This is used only in the context of performing interpretation of models using atomic
+  contributions (atom-based model interpretation) [1]_
+  Examples
+  --------
+
+  Here's an example of preparation to atom-based model interpretation.
+
+  >>> import tempfile
+  >>> import deepchem as dc
+  >>> with tempfile.NamedTemporaryFile(mode='wt', delete=False) as fin:
+  ...     tmp = fin.write("smiles,endpoint\\nc1ccccc1,1")
+  >>> loader = dc.data.CSVLoader([], feature_field="smiles",
+  ...    featurizer = dc.feat.ConvMolFeaturizer(per_atom_fragmentation=False))
+  >>> # prepare dataset of molecules ready for prediction stage
+  ... dataset = loader.create_dataset(fin.name)
+
+  >>> loader = dc.data.CSVLoader([], feature_field="smiles",
+  ...    featurizer=dc.feat.ConvMolFeaturizer(per_atom_fragmentation=True))
+  >>> frag_dataset = loader.create_dataset(fin.name)
+  >>> transformer = dc.trans.FlatteningTransformer(dataset=frag_dataset)
+  >>> # prepare dataset of fragments ready for prediction stage,
+  ... # thereafter difference with molecules' predictions can be calculated
+  ... frag_dataset = transformer.transform(frag_dataset)
+
+  See Also
+  --------
+  Detailed examples of `GraphConvModel` interpretation are provided in Tutorial #28
+
+  References
+  ---------
+
+  .. [1] Polishchuk, P., et al. J. Chem. Inf. Model. 2016, 56, 8, 1455–1469
+  """
+
+  def __init__(self, dataset: Dataset):
+    """Initializes flattening transformation.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset object to be transformed
+    """
+    if self.__class__.__name__ == "Transformer":
+      raise ValueError(
+          "Transformer is an abstract superclass and cannot be directly instantiated. You probably want to instantiate a concrete subclass instead."
+      )
+    self.transform_X = True
+    self.transform_y = (
+        dataset.get_shape()[1] != tuple())  # iff y passed, then transform it
+    self.transform_w = (
+        dataset.get_shape()[2] != tuple())  # iff w passed, then transform it
+    self.transform_ids = True
+
+  def transform_array(
+      self, X: np.ndarray, y: np.ndarray, w: np.ndarray,
+      ids: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Transform the data in a set of (X, y, w) arrays.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Array of features
+    y: np.ndarray
+      Array of labels
+    w: np.ndarray
+      Array of weights.
+    ids: np.ndarray
+      Array of weights.
+
+    Returns
+    -------
+    Xtrans: np.ndarray
+      Transformed array of features
+    ytrans: np.ndarray
+      Transformed array of labels
+    wtrans: np.ndarray
+      Transformed array of weights
+    idstrans: np.ndarray
+      Transformed array of ids
+    """
+    ids = np.repeat(
+        ids, [len(i) for i in X],
+        axis=0)  # each fragment should recieve parent mol id
+    if self.transform_y:
+      y = np.repeat(
+          y, [len(i) for i in X], axis=0
+      )  # for consistency of shapes each fragment should recieve parent mol y
+    if self.transform_w:
+      w = np.repeat(
+          w, [len(i) for i in X], axis=0
+      )  # for consistency of shapes each fragment should recieve parent mol w
+    X = np.array([j for i in X for j in i])  # flatten
+    return (X, y, w, ids)
+
+
 class CDFTransformer(Transformer):
   """Histograms the data and assigns values based on sorted list.
 

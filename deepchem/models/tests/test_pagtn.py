@@ -1,79 +1,62 @@
-"""
-This is an RNN unit test written for deepchem/models/rnn.py based heavily on
-the GCNModel tests in Deepchem.
-"""
-
 import unittest
 import tempfile
 
 import numpy as np
 
 import deepchem as dc
-from deepchem.feat import MolGraphConvFeaturizer
-from deepchem.models import RNN
+from deepchem.feat import PagtnMolGraphFeaturizer
+from deepchem.models import PagtnModel
 from deepchem.models.tests.test_graph_models import get_dataset
 
 try:
-  from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Activation, Lambda
-  import tensorflow.keras.layers as layers
-  try:
-    from collections.abc import Sequence as SequenceCollection
-  except:
-    from collections import Sequence as SequenceCollection
-  has_dependencies = True
+  import dgl
+  import dgllife
+  import torch
+  has_torch_and_dgl = True
 except:
-  has_dependencies = False
+  has_torch_and_dgl = False
 
-@unittest.skipIf(not has_dependencies,
-                 'Please make sure tensorflow and collections are installed.')
-def test_rnn_regression():
+
+@unittest.skipIf(not has_torch_and_dgl,
+                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+def test_pagtn_regression():
   # load datasets
-  featurizer = MolGraphConvFeaturizer() #TODO Possibly change featurizer
+  featurizer = PagtnMolGraphFeaturizer(max_length=5)
   tasks, dataset, transformers, metric = get_dataset(
       'regression', featurizer=featurizer)
 
   # initialize models
   n_tasks = len(tasks)
-  model = RNN(
-      mode='regression',
-      n_dims=3,
-      n_features=30,
-      batch_size=10,
-      learning_rate=0.003)
+  model = PagtnModel(mode='regression', n_tasks=n_tasks, batch_size=16)
 
   # overfit test
-  model.fit(dataset, nb_epoch=300)
+  model.fit(dataset, nb_epoch=150)
   scores = model.evaluate(dataset, [metric], transformers)
-  assert scores['mean_absolute_error'] < 0.5
+  assert scores['mean_absolute_error'] < 0.65
 
   # test on a small MoleculeNet dataset
   from deepchem.molnet import load_delaney
 
   tasks, all_dataset, transformers = load_delaney(featurizer=featurizer)
   train_set, _, _ = all_dataset
-  model = dc.models.RNN(n_tasks=len(tasks))
+  model = PagtnModel(mode='regression', n_tasks=n_tasks, batch_size=16)
   model.fit(train_set, nb_epoch=1)
 
-"""
-@unittest.skipIf(not has_dependencies,
-                 'Please make sure tensorflow and collections are installed.')
-def test_rnn_classification():
+
+@unittest.skipIf(not has_torch_and_dgl,
+                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+def test_pagtn_classification():
   # load datasets
-  featurizer = MolGraphConvFeaturizer()
+  featurizer = PagtnMolGraphFeaturizer(max_length=5)
   tasks, dataset, transformers, metric = get_dataset(
       'classification', featurizer=featurizer)
 
   # initialize models
   n_tasks = len(tasks)
-  model = GCNModel(
-      mode='classification',
-      n_tasks=n_tasks,
-      number_atom_features=30,
-      batch_size=10,
-      learning_rate=0.0003)
+  model = PagtnModel(mode='classification', n_tasks=n_tasks, batch_size=16)
 
   # overfit test
-  model.fit(dataset, nb_epoch=70)
+  model.fit(dataset, nb_epoch=100)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.85
 
@@ -83,45 +66,36 @@ def test_rnn_classification():
   tasks, all_dataset, transformers = load_bace_classification(
       featurizer=featurizer)
   train_set, _, _ = all_dataset
-  model = dc.models.GCNModel(
-      mode='classification',
-      n_tasks=len(tasks),
-      graph_conv_layers=[2],
-      residual=False,
-      predictor_hidden_feats=2)
+  model = PagtnModel(mode='classification', n_tasks=len(tasks), batch_size=16)
   model.fit(train_set, nb_epoch=1)
-"""
-"""
+
+
 @unittest.skipIf(not has_torch_and_dgl,
                  'PyTorch, DGL, or DGL-LifeSci are not installed')
-def test_rnn_reload():
+def test_pagtn_reload():
   # load datasets
-  featurizer = MolGraphConvFeaturizer()
+  featurizer = PagtnMolGraphFeaturizer(max_length=5)
   tasks, dataset, transformers, metric = get_dataset(
       'classification', featurizer=featurizer)
 
   # initialize models
   n_tasks = len(tasks)
   model_dir = tempfile.mkdtemp()
-  model = GCNModel(
+  model = PagtnModel(
       mode='classification',
       n_tasks=n_tasks,
-      number_atom_features=30,
       model_dir=model_dir,
-      batch_size=10,
-      learning_rate=0.0003)
+      batch_size=16)
 
-  model.fit(dataset, nb_epoch=70)
+  model.fit(dataset, nb_epoch=100)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.85
 
-  reloaded_model = GCNModel(
+  reloaded_model = PagtnModel(
       mode='classification',
       n_tasks=n_tasks,
-      number_atom_features=30,
       model_dir=model_dir,
-      batch_size=10,
-      learning_rate=0.0003)
+      batch_size=16)
   reloaded_model.restore()
 
   pred_mols = ["CCCC", "CCCCCO", "CCCCC"]
@@ -130,4 +104,3 @@ def test_rnn_reload():
   original_pred = model.predict(random_dataset)
   reload_pred = reloaded_model.predict(random_dataset)
   assert np.all(original_pred == reload_pred)
-"""

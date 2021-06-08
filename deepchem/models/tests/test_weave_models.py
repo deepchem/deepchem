@@ -58,7 +58,7 @@ def test_compute_features_on_infinity_distance():
           "trainable": True,
           "renorm": True
       },
-      learning_rage=0.0005)
+      learning_rate=0.0005)
   atom_feat, pair_feat, pair_split, atom_split, atom_to_pair = model.compute_features_on_batch(
       X)
 
@@ -95,7 +95,7 @@ def test_compute_features_on_distance_1():
           "trainable": True,
           "renorm": True
       },
-      learning_rage=0.0005)
+      learning_rate=0.0005)
   atom_feat, pair_feat, pair_split, atom_split, atom_to_pair = model.compute_features_on_batch(
       X)
 
@@ -131,10 +131,9 @@ def test_weave_model():
       len(tasks),
       batch_size=batch_size,
       mode='classification',
-      final_conv_activation_fn=None,
       dropouts=0,
-      learning_rage=0.0003)
-  model.fit(dataset, nb_epoch=100)
+      learning_rate=0.002)
+  model.fit(dataset, nb_epoch=250)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.9
 
@@ -178,7 +177,7 @@ def test_weave_regression_model():
 #           "trainable": True,
 #           "renorm": True
 #       },
-#       learning_rage=0.0005)
+#       learning_rate=0.0005)
 #   model.fit(dataset, nb_epoch=200)
 #   transformers = []
 #   metric = dc.metrics.Metric(
@@ -205,7 +204,7 @@ def test_weave_fit_simple_distance_1():
           "trainable": True,
           "renorm": True
       },
-      learning_rage=0.0005)
+      learning_rate=0.0005)
   model.fit(dataset, nb_epoch=200)
   transformers = []
   metric = dc.metrics.Metric(

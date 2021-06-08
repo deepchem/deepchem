@@ -3,36 +3,50 @@ PDBBind dataset loader.
 """
 import os
 import numpy as np
+import pandas as pd
 
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-PDBBIND_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/pdbbindv2019/"
+DATASETS_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/"
+PDBBIND_URL = DATASETS_URL + "pdbbindv2019/"
 PDBBIND_TASKS = ['-logKd/Ki']
 
 
 class _PDBBindLoader(_MolnetLoader):
 
-  def __init__(self, *args, set_name: str = 'refined', **kwargs):
+  def __init__(self,
+               *args,
+               pocket: bool = True,
+               set_name: str = 'core',
+               **kwargs):
     super(_PDBBindLoader, self).__init__(*args, **kwargs)
+    self.pocket = pocket
     self.set_name = set_name
     if set_name == 'general':
       self.name = 'pdbbind_v2019_other_PL'  # 'general' set folder name
-    else:
+    elif set_name == 'refined':
       self.name = 'pdbbind_v2019_refined'
+    elif set_name == 'core':
+      self.name = 'pdbbind_v2013_core_set'
 
   def create_dataset(self) -> Dataset:
-    if self.set_name not in ['refined', 'general']:
+    if self.set_name not in ['refined', 'general', 'core']:
       raise ValueError(
-          "Only 'refined' and 'general' are supported for set_name.")
+          "Only 'refined', 'general', and 'core' are supported for set_name.")
+
     filename = self.name + '.tar.gz'
     data_folder = os.path.join(self.data_dir, self.name)
     dataset_file = os.path.join(self.data_dir, filename)
     if not os.path.exists(data_folder):
-      dc.utils.data_utils.download_url(
-          url=PDBBIND_URL + filename, dest_dir=self.data_dir)
+      if self.set_name in ['refined', 'general']:
+        dc.utils.data_utils.download_url(
+            url=PDBBIND_URL + filename, dest_dir=self.data_dir)
+      else:
+        dc.utils.data_utils.download_url(
+            url=DATASETS_URL + filename, dest_dir=self.data_dir)
       dc.utils.data_utils.untargz_file(dataset_file, dest_dir=self.data_dir)
 
     # get pdb and sdf filenames, labels and pdbids
@@ -53,26 +67,38 @@ class _PDBBindLoader(_MolnetLoader):
       data_folder = os.path.join(self.data_dir, 'refined-set')
       index_labels_file = os.path.join(data_folder,
                                        'index/INDEX_refined_data.2019')
+    elif self.set_name == 'core':
+      data_folder = os.path.join(self.data_dir, 'v2013-core')
+      index_labels_file = os.path.join(data_folder, 'pdbbind_v2013_core.csv')
 
-    # Extract locations of data
-    with open(index_labels_file, "r") as g:
-      pdbs = [line[:4] for line in g.readlines() if line[0] != "#"]
+    if self.set_name in ['general', 'refined']:
+      # Extract locations of data
+      with open(index_labels_file, "r") as g:
+        pdbs = [line[:4] for line in g.readlines() if line[0] != "#"]
+      # Extract labels
+      with open(index_labels_file, "r") as g:
+        labels = np.array([
+            # Lines have format
+            # PDB code, resolution, release year, -logKd/Ki, Kd/Ki, reference, ligand name
+            # The base-10 logarithm, -log kd/pk
+            float(line.split()[3]) for line in g.readlines() if line[0] != "#"
+        ])
+    else:
+      df = pd.read_csv(index_labels_file)
+      pdbs = df.pdb_id.tolist()
+      labels = np.array(df.label.tolist())
 
-    protein_files = [
-        os.path.join(data_folder, pdb, "%s_protein.pdb" % pdb) for pdb in pdbs
-    ]
+    if self.pocket:  # only load binding pocket
+      protein_files = [
+          os.path.join(data_folder, pdb, "%s_pocket.pdb" % pdb) for pdb in pdbs
+      ]
+    else:
+      protein_files = [
+          os.path.join(data_folder, pdb, "%s_protein.pdb" % pdb) for pdb in pdbs
+      ]
     ligand_files = [
         os.path.join(data_folder, pdb, "%s_ligand.sdf" % pdb) for pdb in pdbs
     ]
-
-    # Extract labels
-    with open(index_labels_file, "r") as g:
-      labels = np.array([
-          # Lines have format
-          # PDB code, resolution, release year, -logKd/Ki, Kd/Ki, reference, ligand name
-          # The base-10 logarithm, -log kd/pk
-          float(line.split()[3]) for line in g.readlines() if line[0] != "#"
-      ])
 
     return (protein_files, ligand_files, labels, pdbs)
 
@@ -84,19 +110,22 @@ def load_pdbbind(
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
-    set_name: str = 'refined',
+    pocket: bool = True,
+    set_name: str = 'core',
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
   """Load PDBBind dataset.
 
   The PDBBind dataset includes experimental binding affinity data
   and structures for 4852 protein-ligand complexes from the "refined set"
-  and 12800 complexes from the "general set" in PDBBind v2019.
+  and 12800 complexes from the "general set" in PDBBind v2019 and 193
+  complexes from the "core set" in PDBBind v2013.
   The refined set removes data with obvious problems
   in 3D structure, binding data, or other aspects and should therefore
   be a better starting point for docking/scoring studies. Details on
   the criteria used to construct the refined set can be found in [4]_.
-  The general set does not include the refined set.
+  The general set does not include the refined set. The core set is
+  a subset of the refined set that is not updated annually.
 
   Random splitting is recommended for this dataset.
 
@@ -128,8 +157,10 @@ def load_pdbbind(
     a directory to save the raw data in
   save_dir: str
     a directory to save the dataset in
-  set_name: str (default 'refined')
-    Name of dataset to download. 'refined' and 'general' are supported.
+  pocket: bool (default True)
+    If true, use only the binding pocket for featurization.
+  set_name: str (default 'core')
+    Name of dataset to download. 'refined', 'general', and 'core' are supported.
 
   Returns
   -------
@@ -160,6 +191,7 @@ def load_pdbbind(
       PDBBIND_TASKS,
       data_dir,
       save_dir,
+      pocket=pocket,
       set_name=set_name,
       **kwargs)
   return loader.load_dataset(loader.name, reload)

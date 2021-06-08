@@ -16,19 +16,17 @@ Please review the `datasets already available in MolNet`_ before contributing.
 
 1. Open an `issue`_ to discuss the dataset you want to add to MolNet.
 
-2. Implement a function in the `deepchem.molnet.load_function`_ 
-   module following the template function `deepchem.molnet.load_function.load_dataset_template`_.
-   Specify which featurizers, transformers, and splitters (available from
-   `deepchem.molnet.defaults`_) are supported for your dataset. 
+2. Write a `DatasetLoader` class that inherits from `deepchem.molnet.load_function.molnet_loader._MolnetLoader`_ and implements a `create_dataset` method. See the `_QM9Loader`_ for a simple example.
 
-3. Add your load function to `deepchem.molnet.__init__.py`_ for easy importing.
+3. Write a `load_dataset` function that documents the dataset and add your load function to `deepchem.molnet.__init__.py`_ for easy importing.
 
 4. Prepare your dataset as a .tar.gz or .zip file. Accepted filetypes include CSV, JSON, and SDF.
 
-5. Ask a member of the technical steering committee to add your .tar.gz or .zip file 
-   to the DeepChem AWS bucket. Modify your load function to pull down the dataset from AWS.
+5. Ask a member of the technical steering committee to add your .tar.gz or .zip file to the DeepChem AWS bucket. Modify your load function to pull down the dataset from AWS.
 
-6. Submit a [WIP] PR (Work in progress pull request) following the PR `template`_.
+6. Add documentation for your loader to the `MoleculeNet docs`_.
+
+7. Submit a [WIP] PR (Work in progress pull request) following the PR `template`_.
 
 
 BACE Dataset
@@ -223,13 +221,21 @@ UV Datasets
 .. _`datasets already available in MolNet`: http://moleculenet.ai/datasets-1
 .. _`Contribution guidelines`: https://github.com/deepchem/deepchem/blob/master/CONTRIBUTING.md
 .. _`issue`: https://github.com/deepchem/deepchem/issues
+.. _`_QM9Loader`: https://github.com/deepchem/deepchem/blob/master/deepchem/molnet/load_function/qm9_datasets.py
+.. _`deepchem.molnet.load_function.molnet_loader._MolnetLoader`: https://github.com/deepchem/deepchem/blob/master/deepchem/molnet/load_function/molnet_loader.py#L82
 .. _`deepchem.molnet.load_function`: https://github.com/deepchem/deepchem/tree/master/deepchem/molnet/load_function
 .. _`deepchem.molnet.load_function.load_dataset_template`: https://github.com/deepchem/deepchem/blob/master/deepchem/molnet/load_function/load_dataset_template.py
 .. _`deepchem.molnet.defaults`: https://github.com/deepchem/deepchem/tree/master/deepchem/molnet/defaults.py
 .. _`deepchem.molnet.__init__.py`: https://github.com/deepchem/deepchem/blob/master/deepchem/molnet/__init__.py
+.. _`MoleculeNet docs`: https://github.com/deepchem/deepchem/blob/master/docs/source/api_reference/moleculenet.rst
 .. _`template`: https://github.com/deepchem/deepchem/blob/master/.github/MOLNET_PR_TEMPLATE.md
 
 ZINC15 Datasets
 ---------------
 
 .. autofunction:: deepchem.molnet.load_zinc15
+
+Platinum Adsorption Dataset
+---------------------------
+
+.. autofunction:: deepchem.molnet.load_Platinum_Adsorption
