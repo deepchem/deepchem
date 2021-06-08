@@ -1,13 +1,8 @@
 import unittest
 
-<<<<<<< HEAD
 from deepchem.feat.protein_featurizers import ProteinSequenceFeaturizer
 
-=======
-import numpy as np
-
 from deepchem.feat.protein_featurizers import ProteinSequenceFeaturizer
->>>>>>> 3bfb2dc90783acccd156761c9aa9b79937e6e5bb
 
 class TestProteinSequenceFeaturizer(unittest.TestCase):
   """
