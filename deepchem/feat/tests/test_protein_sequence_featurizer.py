@@ -1,13 +1,13 @@
 import unittest
 
-from deepchem.feat.protein_featurizers import ProteinSequenceFeaturizer
+from deepchem.feat import CodonFeaturizer
 
-class TestProteinSequenceFeaturizer(unittest.TestCase):
+class TestCodonFeaturizer(unittest.TestCase):
   """
-  Test ProteinSequenceFeaturizer
+  Test CodonFeaturizer
   """
 
-  def test_protein_sequence_featurizer(self):
+  def test_protein_sequence_featurization(self):
     """
     Test correct protein to integer conversion and untransform
     """
