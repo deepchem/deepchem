@@ -1,8 +1,16 @@
 import unittest
 
+<<<<<<< HEAD
 from deepchem.feat import CodonFeaturizer
 
 class TestCodonFeaturizer(unittest.TestCase):
+=======
+from deepchem.feat.protein_featurizers import ProteinSequenceFeaturizer
+
+from deepchem.feat.protein_featurizers import ProteinSequenceFeaturizer
+
+class TestProteinSequenceFeaturizer(unittest.TestCase):
+>>>>>>> 339f622615156c795ef90d523056b068403db73f
   """
   Test CodonFeaturizer
   """
