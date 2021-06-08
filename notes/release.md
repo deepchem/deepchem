@@ -7,6 +7,7 @@ This note explains how to release deepchem packages.
 1. Create and merge a release PR
     - Modify the version in `deepchem/__init__.py` (Remove `.dev`, e.g. `2.4.0.dev` -> `2.4.0`)
     - Update the documents for installing a new package in `README.md` and `docs`
+    - Update the dockerfile at `deepchem/docker/tag/Dockerfile`
 2. Push a new tag to the merge commit -> release new PyPI package and docker image
 3. Create and merge a release PR in the [feedstock repository](https://github.com/conda-forge/deepchem-feedstock) -> release new Conda Forge package
 4. Publish the documents for a new tag in [ReadTheDocs](https://readthedocs.org/projects/deepchem/versions/).
@@ -55,4 +56,4 @@ After pushing a new tag, we go to [the project page](https://readthedocs.org/pro
 ## Website
 
 We should manually modify the DeepChem website's installation instructions after each new stable release.
-This can be done by modifying the text strings in the jQuery code at the bottom of deepchem.io/website/index.html. When the changes are pushed to github.com/deepchem/deepchem.io, the website will automatically update.
+This can be done by modifying the text strings in the jQuery code at the bottom of github.com/deepchem.github.io/index.html. When the changes are pushed to github.com/deepchem/deepchem.github.io, the website will automatically update.

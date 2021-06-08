@@ -70,7 +70,7 @@ class ElemNetFeaturizer(MaterialCompositionFeaturizer):
 
     Parameters
     ----------
-    composition: pymatgen.Composition object
+    composition: pymatgen.core.Composition object
       Composition object.
 
     Returns

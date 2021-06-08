@@ -34,6 +34,20 @@ def test_one_sample():
     _ = metric.compute_singletask_metric(y_true, y_pred, w)
 
 
+def test_pearsonr():
+  """Test the Pearson correlation coefficient is correct."""
+  metric = dc.metrics.Metric(dc.metrics.pearsonr)
+  r = metric.compute_metric(
+      np.array([1.0, 2.0, 3.0]), np.array([2.0, 3.0, 4.0]))
+  np.testing.assert_almost_equal(1.0, r)
+  r = metric.compute_metric(
+      np.array([1.0, 2.0, 3.0]), np.array([-2.0, -3.0, -4.0]))
+  np.testing.assert_almost_equal(-1.0, r)
+  r = metric.compute_metric(
+      np.array([1.0, 2.0, 3.0, 4.0]), np.array([1.0, 2.0, 2.0, 1.0]))
+  np.testing.assert_almost_equal(0.0, r)
+
+
 def test_r2_score():
   """Test that R^2 metric passes basic sanity tests"""
   np.random.seed(123)

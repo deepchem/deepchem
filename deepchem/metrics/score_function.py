@@ -1,6 +1,7 @@
 """Evaluation metrics."""
 
 import numpy as np
+import scipy.stats
 from sklearn.metrics import matthews_corrcoef  # noqa
 from sklearn.metrics import recall_score  # noqa
 from sklearn.metrics import cohen_kappa_score
@@ -15,10 +16,27 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import roc_auc_score  # noqa
 from sklearn.metrics import accuracy_score  # noqa
 from sklearn.metrics import balanced_accuracy_score  # noqa
-from scipy.stats import pearsonr
 
 # kappa_score is an alias for `sklearn.metrics.cohen_kappa_score`
 kappa_score = cohen_kappa_score
+
+
+def pearsonr(y: np.ndarray, y_pred: np.ndarray) -> float:
+  """Computes Pearson correlation coefficient.
+
+  Parameters
+  ----------
+  y: np.ndarray
+    ground truth array
+  y_pred: np.ndarray
+    predicted array
+
+  Returns
+  -------
+  float
+    The Pearson correlation coefficient.
+  """
+  return scipy.stats.pearsonr(y, y_pred)[0]
 
 
 def pearson_r2_score(y: np.ndarray, y_pred: np.ndarray) -> float:
@@ -36,7 +54,7 @@ def pearson_r2_score(y: np.ndarray, y_pred: np.ndarray) -> float:
   float
     The Pearson-R^2 score.
   """
-  return pearsonr(y, y_pred)[0]**2
+  return scipy.stats.pearsonr(y, y_pred)[0]**2
 
 
 def jaccard_index(y: np.ndarray, y_pred: np.ndarray) -> float:

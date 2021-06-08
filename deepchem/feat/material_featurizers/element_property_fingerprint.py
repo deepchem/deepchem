@@ -34,7 +34,7 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
   Examples
   --------
   >>> import pymatgen as mg
-  >>> comp = mg.Composition("Fe2O3")
+  >>> comp = mg.core.Composition("Fe2O3")
   >>> featurizer = ElementPropertyFingerprint()
   >>> features = featurizer.featurize([comp])
 
@@ -60,7 +60,7 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
 
     Parameters
     ----------
-    composition: pymatgen.Composition object
+    composition: pymatgen.core.Composition object
       Composition object.
 
     Returns

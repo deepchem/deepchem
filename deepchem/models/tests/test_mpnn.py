@@ -27,7 +27,7 @@ def test_mpnn_regression():
 
   # initialize models
   n_tasks = len(tasks)
-  model = MPNNModel(mode='regression', n_tasks=n_tasks, batch_size=10)
+  model = MPNNModel(mode='regression', n_tasks=n_tasks, learning_rate=0.0005)
 
   # overfit test
   model.fit(dataset, nb_epoch=400)
@@ -61,10 +61,7 @@ def test_mpnn_classification():
   # initialize models
   n_tasks = len(tasks)
   model = MPNNModel(
-      mode='classification',
-      n_tasks=n_tasks,
-      batch_size=10,
-      learning_rate=0.001)
+      mode='classification', n_tasks=n_tasks, learning_rate=0.0005)
 
   # overfit test
   model.fit(dataset, nb_epoch=200)

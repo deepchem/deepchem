@@ -41,6 +41,23 @@ class L1Loss(Loss):
     return torch.nn.L1Loss(reduction='none')
 
 
+class HuberLoss(Loss):
+  """Modified version of L1 Loss, also known as Smooth L1 loss.
+  Less sensitive to small errors, linear for larger errors.
+  Huber loss is generally better for cases where are are both large outliers as well as small, as compared to the L1 loss.
+  By default, Delta = 1.0 and reduction = 'none'.
+  """
+
+  def _compute_tf_loss(self, output, labels):
+    import tensorflow as tf
+    output, labels = _make_tf_shapes_consistent(output, labels)
+    return tf.keras.losses.Huber(reduction='none')(output, labels)
+
+  def _create_pytorch_loss(self):
+    import torch
+    return torch.nn.SmoothL1Loss(reduction='none')
+
+
 class L2Loss(Loss):
   """The squared difference between the true and predicted values."""
 
@@ -73,6 +90,51 @@ class HingeLoss(Loss):
     def loss(output, labels):
       output, labels = _make_pytorch_shapes_consistent(output, labels)
       return torch.mean(torch.clamp(1 - labels * output, min=0), dim=-1)
+
+    return loss
+
+
+class SquaredHingeLoss(Loss):
+  """The Squared Hinge loss function.
+  
+  Defined as the square of the hinge loss between y_true and y_pred. The Squared Hinge Loss is differentiable.
+  """
+
+  def _compute_tf_loss(self, output, labels):
+    import tensorflow as tf
+    output, labels = _make_tf_shapes_consistent(output, labels)
+    return tf.keras.losses.SquaredHinge(reduction='none')(labels, output)
+
+  def _create_pytorch_loss(self):
+    import torch
+
+    def loss(output, labels):
+      output, labels = _make_pytorch_shapes_consistent(output, labels)
+      return torch.mean(
+          torch.pow(
+              torch.max(1 - torch.mul(labels, output), torch.tensor(0.0)), 2),
+          dim=-1)
+
+    return loss
+
+
+class PoissonLoss(Loss):
+  """The Poisson loss function is defined as the mean of the elements of y_pred - (y_true * log(y_pred) for an input of (y_true, y_pred).
+  Poisson loss is generally used for regression tasks where the data follows the poisson
+  """
+
+  def _compute_tf_loss(self, output, labels):
+    import tensorflow as tf
+    output, labels = _make_tf_shapes_consistent(output, labels)
+    loss = tf.keras.losses.Poisson(reduction='auto')
+    return loss(labels, output)
+
+  def _create_pytorch_loss(self):
+    import torch
+
+    def loss(output, labels):
+      output, labels = _make_pytorch_shapes_consistent(output, labels)
+      return torch.mean(output - labels * torch.log(output))
 
     return loss
 

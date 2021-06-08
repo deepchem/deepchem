@@ -39,6 +39,9 @@ and installed under the hood.
 .. autoclass:: deepchem.dock.pose_generation.VinaPoseGenerator
   :members:
 
+.. autoclass:: deepchem.dock.pose_generation.GninaPoseGenerator
+  :members:
+
 Docking
 -------
 The :code:`dc.dock.docking` module provides a generic docking

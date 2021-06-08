@@ -58,13 +58,12 @@ class Mol2VecFingerprint(MolecularFeaturizer):
     """
     try:
       from gensim.models import word2vec
-      from mol2vec.features import mol2alt_sentence, sentences2vec
+      from mol2vec.features import mol2alt_sentence
     except ModuleNotFoundError:
       raise ImportError("This class requires mol2vec to be installed.")
 
     self.radius = radius
     self.unseen = unseen
-    self.sentences2vec = sentences2vec
     self.mol2alt_sentence = mol2alt_sentence
     if pretrain_model_path is None:
       data_dir = get_data_dir()
@@ -77,6 +76,44 @@ class Mol2VecFingerprint(MolecularFeaturizer):
             path.join(data_dir, 'mol2vec_model_300dim.tar.gz'), data_dir)
     # load pretrained models
     self.model = word2vec.Word2Vec.load(pretrain_model_path)
+
+  def sentences2vec(self, sentences: list, model, unseen=None) -> np.ndarray:
+    """Generate vectors for each sentence (list) in a list of sentences. Vector is simply a
+    sum of vectors for individual words.
+
+    Parameters
+    ----------
+    sentences : list, array
+        List with sentences
+    model : word2vec.Word2Vec
+        Gensim word2vec model
+    unseen : None, str
+        Keyword for unseen words. If None, those words are skipped.
+        https://stats.stackexchange.com/questions/163005/how-to-set-the-dictionary-for-text-analysis-using-neural-networks/163032#163032
+    Returns
+    -------
+    np.array
+    """
+    keys = set(model.wv.key_to_index.keys())
+    vec = []
+    if unseen:
+      unseen_vec = model.wv.get_vector(unseen)
+
+    for sentence in sentences:
+      if unseen:
+        vec.append(
+            sum([
+                model.wv.get_vector(y)
+                if y in set(sentence) & keys else unseen_vec for y in sentence
+            ]))
+      else:
+        vec.append(
+            sum([
+                model.wv.get_vector(y)
+                for y in sentence
+                if y in set(sentence) & keys
+            ]))
+    return np.array(vec)
 
   def _featurize(self, mol: RDKitMol) -> np.ndarray:
     """

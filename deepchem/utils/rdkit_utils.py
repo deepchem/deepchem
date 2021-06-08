@@ -411,6 +411,30 @@ def compute_all_ecfp(mol: RDKitMol,
   return ecfp_dict
 
 
+def compute_ecfp_features(mol, ecfp_degree=2, ecfp_power=11):
+  """Computes ECFP features for provided rdkit molecule.
+  Parameters
+  ----------
+  mol: rdkit molecule
+    Molecule to featurize.
+  ecfp_degree: int
+    ECFP radius
+  ecfp_power: int
+    Number of bits to store ECFP features (2^ecfp_power will be length of
+    ECFP array)
+  Returns
+  -------
+  ecfp_array: np.ndarray
+    Returns an array of size 2^ecfp_power where array at index i has a 1 if
+    that ECFP fragment is found in the molecule and array at index j has a 0
+    if ECFP fragment not in molecule.
+  """
+  from rdkit.Chem import AllChem
+  bv = AllChem.GetMorganFingerprintAsBitVect(
+      mol, ecfp_degree, nBits=2**ecfp_power)
+  return np.array(bv)
+
+
 def compute_contact_centroid(molecular_complex: Any,
                              cutoff: float = 4.5) -> np.ndarray:
   """Computes the (x,y,z) centroid of the contact regions of this molecular complex.
@@ -602,3 +626,71 @@ def compute_ring_normal(mol, ring_indices):
   v2 = points[2] - points[0]
   normal = np.cross(v1, v2)
   return normal
+
+
+def compute_all_pairs_shortest_path(
+    mol) -> Dict[Tuple[int, int], Tuple[int, int]]:
+  """Computes the All pair shortest between every pair of nodes
+  in terms of Rdkit Atom indexes.
+
+  Parameters:
+  -----------
+  mol: rdkit.rdchem.Mol
+    Molecule containing a ring
+
+  Returns:
+  --------
+  paths_dict: Dict representing every atom-atom pair as key in Rdkit index
+  and value as the shortest path between each atom pair in terms of Atom index.
+  """
+  try:
+    from rdkit import Chem
+  except:
+    raise ImportError("This class requires RDkit installed")
+  n_atoms = mol.GetNumAtoms()
+  paths_dict = {(i, j): Chem.rdmolops.GetShortestPath(mol, i, j)
+                for i in range(n_atoms) for j in range(n_atoms) if i < j}
+  return paths_dict
+
+
+def compute_pairwise_ring_info(mol):
+  """ Computes all atom-atom pair belong to same ring with
+  its ring size and its aromaticity.
+
+  Parameters:
+  -----------
+  mol: rdkit.rdchem.Mol
+    Molecule containing a ring
+
+  Returns:
+  --------
+  rings_dict: Key consisting of all node-node pair sharing the same ring
+  and value as a tuple of size of ring and its aromaticity.
+  """
+  try:
+    from rdkit import Chem
+  except:
+    raise ImportError("This class requires RDkit installed")
+  rings_dict = {}
+
+  def ordered_pair(a, b):
+    return (a, b) if a < b else (b, a)
+
+  ssr = [list(x) for x in Chem.GetSymmSSSR(mol)]
+  for ring in ssr:
+    ring_sz = len(ring)
+    is_aromatic = True
+    for atom_idx in ring:
+      if not mol.GetAtoms()[atom_idx].GetIsAromatic():
+        is_aromatic = False
+        break
+    for ring_idx, atom_idx in enumerate(ring):
+      for other_idx in ring[ring_idx:]:
+        atom_pair = ordered_pair(atom_idx, other_idx)
+        if atom_pair not in rings_dict:
+          rings_dict[atom_pair] = [(ring_sz, is_aromatic)]
+        else:
+          if (ring_sz, is_aromatic) not in rings_dict[atom_pair]:
+            rings_dict[atom_pair].append((ring_sz, is_aromatic))
+
+  return rings_dict
