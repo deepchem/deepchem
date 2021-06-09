@@ -20,3 +20,9 @@ class TestCodonFeaturizer(unittest.TestCase):
     # untransform
     seq = featurizer.untransform(int_seq)
     assert ref_seq == seq
+
+  def test_RNA_featurization(self):
+    """
+    Test correct RNA to integer conversion and untransform
+    """
+    ref_seq = 
