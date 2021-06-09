@@ -1,7 +1,6 @@
 """Unit tests for evaluators."""
 import deepchem as dc
 import numpy as np
-import sklearn
 from deepchem.utils.evaluate import Evaluator
 from deepchem.utils.evaluate import GeneratorEvaluator
 from sklearn.ensemble import RandomForestClassifier
@@ -77,9 +76,8 @@ def test_evaluate_multiclass_classification_singletask():
   y = np.random.randint(5, size=(100,))
   dataset = dc.data.NumpyDataset(X, y)
   model = dc.models.MultitaskClassifier(1, 5, n_classes=5)
-  multitask_scores = model.evaluate(dataset,
-                                    dc.metrics.roc_auc_score,
-                                    n_classes=5)
+  multitask_scores = model.evaluate(
+      dataset, dc.metrics.roc_auc_score, n_classes=5)
   assert len(multitask_scores) == 1
   assert multitask_scores["metric-1"] >= 0
 
@@ -296,8 +294,8 @@ def test_gc_binary_kappa_classification():
   model = dc.models.GraphConvModel(1, mode="classification")
   # TODO: Fix this case with correct thresholding
   evaluator = Evaluator(model, dataset, [])
-  multitask_scores = evaluator.compute_model_performance(dc.metrics.kappa_score,
-                                                         n_classes=2)
+  multitask_scores = evaluator.compute_model_performance(
+      dc.metrics.kappa_score, n_classes=2)
   assert len(multitask_scores) == 1
   assert multitask_scores["metric-1"] <= 1
   assert multitask_scores["metric-1"] >= -1
