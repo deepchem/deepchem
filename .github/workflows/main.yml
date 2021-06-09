@@ -13,9 +13,9 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.7, 3.8]
-        #    steps:
-        #    - uses: actions/checkout@v2
-        #    - name: Cache pip modules for Linux
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache pip modules for Linux
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
