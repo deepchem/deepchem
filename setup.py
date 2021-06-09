@@ -42,9 +42,9 @@ setup(
         'Intended Audience :: Information Technology',
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
     license='MIT',
     description='Deep learning models for drug discovery, \
@@ -69,4 +69,4 @@ setup(
         'scikit-learn',
         'scipy',
     ],
-    python_requires='>=3.5')
+    python_requires='>=3.7')

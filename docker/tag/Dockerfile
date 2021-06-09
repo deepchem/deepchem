@@ -15,7 +15,7 @@ ENV PATH /miniconda/bin:$PATH
 
 # install latest version deepchem
 RUN conda update -n base conda && \
-    conda create -y --name deepchem python=3.6 && \
+    conda create -y --name deepchem python=3.9 && \
     . /miniconda/etc/profile.d/conda.sh && \
     conda activate deepchem && \
     pip install tensorflow~=2.4 deepchem && \

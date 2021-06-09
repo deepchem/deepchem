@@ -19,7 +19,7 @@ SHELL ["/bin/bash", "-c"]
 RUN conda update -n base conda && \
     git clone --depth 1 https://github.com/deepchem/deepchem.git && \
     cd deepchem && \
-    source scripts/install_deepchem_conda.sh 3.7 gpu && \
+    source scripts/install_deepchem_conda.sh 3.9 gpu && \
     conda activate deepchem && \
     pip install -e . && \
     conda clean -afy && \
