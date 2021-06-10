@@ -21,17 +21,3 @@ class TestCodonFeaturizer(unittest.TestCase):
     seq = featurizer.untransform(int_seq)
     assert ref_seq == seq
 
-  def test_RNA_featurization(self):
-    """
-    Test correct RNA to integer conversion and untransform
-    """
-    ref_seq = "AUGAGUAGGGGUGAUGAGUAG"
-    ref_int_seq = (-2, 35, 44, 47, 60, 56, 59, 11) # Last digit indicates sequence is RNA
-    featurizer = CodonFeaturizer()
-    int_seq = featurizer(ref_seq)
-    assert ref_int_seq == int_seq
-
-    # untransform
-    seq = featurizer.untransform(int_seq)
-    assert ref_seq == seq
-
