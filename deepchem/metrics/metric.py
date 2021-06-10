@@ -2,6 +2,7 @@ import logging
 from typing import Any, Callable, Optional
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 logger = logging.getLogger(__name__)
 
@@ -560,9 +561,9 @@ class Metric(object):
     self.threshold_value = threshold_value
 
   def compute_metric(self,
-                     y_true: np.ndarray,
-                     y_pred: np.ndarray,
-                     w: Optional[np.ndarray] = None,
+                     y_true: ArrayLike,
+                     y_pred: ArrayLike,
+                     w: Optional[ArrayLike] = None,
                      n_tasks: Optional[int] = None,
                      n_classes: int = 2,
                      per_task_metrics: bool = False,
@@ -572,19 +573,19 @@ class Metric(object):
 
     Parameters
     ----------
-    y_true: np.ndarray
-      An np.ndarray containing true values for each task. Must be of shape
+    y_true: ArrayLike
+      An ArrayLike containing true values for each task. Must be of shape
       `(N,)` or `(N, n_tasks)` or `(N, n_tasks, n_classes)` if a
       classification metric. If of shape `(N, n_tasks)` values can either be
       class-labels or probabilities of the positive class for binary
       classification problems. If a regression problem, must be of shape
       `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` if a regression metric.
-    y_pred: np.ndarray
-      An np.ndarray containing predicted values for each task. Must be
+    y_pred: ArrayLike
+      An ArrayLike containing predicted values for each task. Must be
       of shape `(N, n_tasks, n_classes)` if a classification metric,
       else must be of shape `(N, n_tasks)` if a regression metric.
-    w: np.ndarray, default None
-      An np.ndarray containing weights for each datapoint. If
+    w: ArrayLike, default None
+      An ArrayLike containing weights for each datapoint. If
       specified,  must be of shape `(N, n_tasks)`.
     n_tasks: int, default None
       The number of tasks this class is expected to handle.
@@ -650,9 +651,9 @@ class Metric(object):
       return self.task_averager(computed_metrics), computed_metrics
 
   def compute_singletask_metric(self,
-                                y_true: np.ndarray,
-                                y_pred: np.ndarray,
-                                w: Optional[np.ndarray] = None,
+                                y_true: ArrayLike,
+                                y_pred: ArrayLike,
+                                w: Optional[ArrayLike] = None,
                                 n_samples: Optional[int] = None,
                                 use_sample_weights: bool = False,
                                 **kwargs) -> float:
@@ -660,13 +661,13 @@ class Metric(object):
 
     Parameters
     ----------
-    y_true: `np.ndarray`
+    y_true: ArrayLike
       True values array. This array must be of shape `(N,
       n_classes)` if classification and `(N,)` if regression.
-    y_pred: `np.ndarray`
+    y_pred: ArrayLike
       Predictions array. This array must be of shape `(N, n_classes)`
       if classification and `(N,)` if regression.
-    w: `np.ndarray`, default None
+    w: ArrayLike, default None
       Sample weight array. This array must be of shape `(N,)`
     n_samples: int, default None (DEPRECATED)
       The number of samples in the dataset. This is `N`. This argument is

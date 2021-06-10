@@ -146,7 +146,7 @@ class Transformer(object):
     raise NotImplementedError(
         "Each Transformer is responsible for its own transform_array method.")
 
-  def untransform(self, transformed):
+  def untransform(self, transformed: np.ndarray) -> np.ndarray:
     """Reverses stored transformation on provided data.
 
     Depending on whether `transform_X` or `transform_y` or `transform_w` was
@@ -237,7 +237,7 @@ class Transformer(object):
     return X, y, w, ids
 
 
-def undo_transforms(y: np.ndarray,
+def undo_transforms(y: np.typing.ArrayLike,
                     transformers: List[Transformer]) -> np.ndarray:
   """Undoes all transformations applied.
 
@@ -261,10 +261,11 @@ def undo_transforms(y: np.ndarray,
     The array with all transformations reversed.
   """
   # Note that transformers have to be undone in reversed order
+  y_out = np.asarray(y)
   for transformer in reversed(transformers):
     if transformer.transform_y:
-      y = transformer.untransform(y)
-  return y
+      y_out = transformer.untransform(y_out)
+  return y_out
 
 
 class MinMaxTransformer(Transformer):
@@ -698,7 +699,7 @@ class ClippingTransformer(Transformer):
       y[y < (-1.0 * self.y_max)] = -1.0 * self.y_max
     return (X, y, w, ids)
 
-  def untransform(self, z):
+  def untransform(self, z: np.ndarray) -> np.ndarray:
     """Not implemented."""
     raise NotImplementedError(
         "Cannot untransform datasets with ClippingTransformer.")
@@ -1531,7 +1532,7 @@ class CoulombFitTransformer(Transformer):
     X = self.X_transform(X)
     return (X, y, w, ids)
 
-  def untransform(self, z):
+  def untransform(self, z: np.ndarray) -> np.ndarray:
     "Not implemented."
     raise NotImplementedError(
         "Cannot untransform datasets with FitTransformer.")
@@ -1743,7 +1744,7 @@ class IRVTransformer(Transformer):
       return NumpyDataset(X, dataset.y, dataset.w, ids=None)
     return DiskDataset.from_numpy(X, dataset.y, dataset.w, data_dir=out_dir)
 
-  def untransform(self, z):
+  def untransform(self, z: np.ndarray) -> np.ndarray:
     "Not implemented."
     raise NotImplementedError(
         "Cannot untransform datasets with IRVTransformer.")
@@ -1813,7 +1814,7 @@ class DAGTransformer(Transformer):
       X[idm].parents = self.UG_to_DAG(mol)
     return (X, y, w, ids)
 
-  def untransform(self, z):
+  def untransform(self, z: np.ndarray) -> np.ndarray:
     "Not implemented."
     raise NotImplementedError(
         "Cannot untransform datasets with DAGTransformer.")
@@ -2032,7 +2033,7 @@ class ANITransformer(Transformer):
       assert X_new.shape[0] == X.shape[0]
     return (X_new, y, w)
 
-  def untransform(self, z):
+  def untransform(self, z: np.ndarray) -> np.ndarray:
     raise NotImplementedError(
         "Cannot untransform datasets with ANITransformer.")
 

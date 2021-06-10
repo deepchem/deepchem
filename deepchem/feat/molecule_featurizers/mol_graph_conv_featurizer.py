@@ -418,7 +418,7 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
         ring_info = rings_dict.get(self.ordered_pair(i, j), [])
         feats.append(self._edge_features(mol, paths_dict[(i, j)], ring_info))
 
-    return np.array([src, dest], dtype=np.int), np.array(feats, dtype=np.float)
+    return np.array([src, dest], dtype=int), np.array(feats, dtype=float)
 
   def _featurize(self, mol: RDKitMol) -> GraphData:
     """Calculate molecule graph features from RDKit mol object.
@@ -435,7 +435,7 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
     """
     node_features = np.asarray(
         [self._pagtn_atom_featurizer(atom) for atom in mol.GetAtoms()],
-        dtype=np.float)
+        dtype=float)
     edge_index, edge_features = self._pagtn_edge_featurizer(mol)
     graph = GraphData(node_features, edge_index, edge_features)
     return graph

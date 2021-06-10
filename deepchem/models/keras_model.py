@@ -17,7 +17,7 @@ from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
-from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
+from deepchem.utils.typing import LossFn, OneOrMany
 
 try:
   import wandb
@@ -527,11 +527,10 @@ class KerasModel(Model):
         loss=loss,
         callbacks=callbacks)
 
-  def _predict(
-      self, generator: Iterable[Tuple[Any, Any, Any]],
-      transformers: List[Transformer], outputs: Optional[OneOrMany[tf.Tensor]],
-      uncertainty: bool,
-      other_output_types: Optional[OneOrMany[str]]) -> OneOrMany[np.ndarray]:
+  def _predict(self, generator: Iterable[Tuple[Any, Any, Any]],
+               transformers: List[Transformer],
+               outputs: Optional[OneOrMany[tf.Tensor]], uncertainty: bool,
+               other_output_types: Optional[OneOrMany[str]]):
     """
     Predict outputs for data provided by a generator.
 
@@ -699,7 +698,7 @@ class KerasModel(Model):
 
   def predict_on_batch(
       self,
-      X: ArrayLike,
+      X: np.typing.ArrayLike,
       transformers: List[Transformer] = [],
       outputs: Optional[OneOrMany[tf.Tensor]] = None) -> OneOrMany[np.ndarray]:
     """Generates predictions for input samples, processing samples in a batch.
@@ -918,15 +917,15 @@ class KerasModel(Model):
     input_shape = X.shape
     X = np.reshape(X, [1] + list(X.shape))
     self._create_inputs([X])
-    X, _, _ = self._prepare_batch(([X], None, None))
+    X_b, _, _ = self._prepare_batch(([X], None, None))
 
     # Use a GradientTape to compute gradients.
 
-    X = tf.constant(X[0])
+    X_c = tf.constant(X_b[0])
     with tf.GradientTape(
         persistent=True, watch_accessed_variables=False) as tape:
-      tape.watch(X)
-      outputs = self._compute_model(X)
+      tape.watch(X_c)
+      outputs = self._compute_model(X_c)
       if tf.is_tensor(outputs):
         outputs = [outputs]
       final_result = []
@@ -935,7 +934,7 @@ class KerasModel(Model):
         output = tf.reshape(output, [-1])
         result = []
         for i in range(output.shape[0]):
-          result.append(tape.gradient(output[i], X))
+          result.append(tape.gradient(output[i], X_c))
         final_result.append(
             tf.reshape(tf.stack(result), output_shape + input_shape).numpy())
     if len(final_result) == 1:

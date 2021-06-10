@@ -14,10 +14,11 @@ from ast import literal_eval as make_tuple
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
+from numpy.typing import ArrayLike
 import pandas as pd
 
 import deepchem as dc
-from deepchem.utils.typing import ArrayLike, OneOrMany, Shape
+from deepchem.utils.typing import OneOrMany, Shape
 from deepchem.utils.data_utils import save_to_disk, load_from_disk, load_image_files
 
 Batch = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
@@ -524,9 +525,10 @@ class Dataset(object):
     # Retrieve the first sample so we can determine the dtypes.
     X, y, w, ids = next(self.itersamples())
     dtypes = (tf.as_dtype(X.dtype), tf.as_dtype(y.dtype), tf.as_dtype(w.dtype))
-    shapes = (tf.TensorShape([None] + list(X.shape)),
-              tf.TensorShape([None] + list(y.shape)),
-              tf.TensorShape([None] + list(w.shape)))
+    shapes = (
+        tf.TensorShape([None] + list(X.shape)),  # type: ignore
+        tf.TensorShape([None] + list(y.shape)),  # type: ignore
+        tf.TensorShape([None] + list(w.shape)))  # type: ignore
 
     # Create a Tensorflow Dataset.
     def gen_data():
@@ -724,7 +726,7 @@ class NumpyDataset(Dataset):
     n_tasks: int, default 1
       Number of learning tasks.
     """
-    n_samples = len(X)
+    n_samples = np.shape(X)[0]
     if n_samples > 0:
       if y is None:
         # Set labels to be zero, with zero weights
@@ -1977,10 +1979,10 @@ class DiskDataset(Dataset):
     time1 = time.time()
     shard_size = self.get_shard_size()
     num_shards = self.get_number_shards()
-    X_sparses: List[np.ndarray] = []
-    ys: List[np.ndarray] = []
-    ws: List[np.ndarray] = []
-    ids: List[np.ndarray] = []
+    X_sparse_list: List[np.ndarray] = []
+    y_list: List[np.ndarray] = []
+    w_list: List[np.ndarray] = []
+    ids_list: List[np.ndarray] = []
     num_features = -1
     for i in range(num_shards):
       logger.info("Sparsifying shard %d/%d" % (i, num_shards))
@@ -1988,11 +1990,12 @@ class DiskDataset(Dataset):
       if num_features == -1:
         num_features = X_s.shape[1]
       X_sparse = sparsify_features(X_s)
-      X_sparses, ys, ws, ids = (X_sparses + [X_sparse], ys + [y_s], ws + [w_s],
-                                ids + [np.atleast_1d(np.squeeze(ids_s))])
+      X_sparse_list, y_list, w_list, ids_list = (
+          X_sparse_list + [X_sparse], y_list + [y_s], w_list + [w_s],
+          ids_list + [np.atleast_1d(np.squeeze(ids_s))])
     # Get full dataset in memory
-    (X_sparse, y, w, ids) = (np.vstack(X_sparses), np.vstack(ys), np.vstack(ws),
-                             np.concatenate(ids))
+    (X_sparse, y, w, ids) = (np.vstack(X_sparse_list), np.vstack(y_list),
+                             np.vstack(w_list), np.concatenate(ids_list))
     # Shuffle in memory
     num_samples = len(X_sparse)
     permutation = np.random.permutation(num_samples)
@@ -2554,8 +2557,8 @@ class DiskDataset(Dataset):
             y_shape = np.array(y.shape)
             w_shape = np.array(w.shape)
           else:
-            y_shape = tuple()
-            w_shape = tuple()
+            y_shape = np.array([])
+            w_shape = np.array([])
           ids_shape = np.array(ids.shape)
         else:
           X_shape[0] += np.array(X.shape)[0]
@@ -2624,10 +2627,10 @@ class ImageDataset(Dataset):
         ids = np.arange(n_samples)
     self._X = X
     self._y = y
-    self._w: np.ndarray = w
+    self._w = np.asarray(w)
     self._ids = np.array(ids, dtype=object)
 
-  def _find_array_shape(self, array: Sequence) -> Shape:
+  def _find_array_shape(self, array: Union[np.ndarray, List[str]]) -> Shape:
     if isinstance(array, np.ndarray):
       return array.shape
     image_shape = load_image_files([array[0]]).shape[1:]

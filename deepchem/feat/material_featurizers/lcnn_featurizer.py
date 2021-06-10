@@ -395,7 +395,7 @@ class _SiteEnvironment(object):
 class _SiteEnvironments(object):
 
   def __init__(self, site_envs: List[_SiteEnvironment], ns: int, na: int,
-               aos: List[str], eigen_tol: float, pbc: np.ndarray,
+               aos: List[str], eigen_tol: float, pbc: np.typing.ArrayLike,
                cutoff: float):
     """
     Initialize
@@ -414,7 +414,7 @@ class _SiteEnvironments(object):
       string should be the name of the occupancy. (consistent with the input data)
     eigen_tol : float
       tolerance for eigenanalysis of point group analysis in pymatgen.
-    pbc : List[str]
+    pbc : ArrayLike
       Boolean array, periodic boundary condition.
     cutoff : float
       Cutoff radius in angstrom for pooling sites to construct local environment
@@ -592,7 +592,7 @@ def _load_primitive_cell(struct: PymatgenStructure,
 
 def _get_SiteEnvironments(struct: PymatgenStructure,
                           cutoff: float,
-                          PBC: List[bool],
+                          PBC: np.typing.ArrayLike,
                           get_permutations: bool = True,
                           eigen_tol: float = 1e-5) -> List[Dict[str, Any]]:
   """
@@ -612,7 +612,7 @@ def _get_SiteEnvironments(struct: PymatgenStructure,
   cutoff : float
     cutoff distance in angstrom for collecting local
     environment.
-  pbc : np.ndarray
+  pbc : ArrayLike
     Periodic boundary condition
   get_permutations : bool (default True)
     Whether to find permuted neighbor list or not.

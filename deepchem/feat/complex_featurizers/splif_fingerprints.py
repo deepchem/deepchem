@@ -52,14 +52,13 @@ def compute_splif_features_in_range(frag1: Tuple,
   contacts = np.nonzero((pairwise_distances > contact_bin[0]) &
                         (pairwise_distances < contact_bin[1]))
   frag1_atoms = set([int(c) for c in contacts[0].tolist()])
-  contacts = zip(contacts[0], contacts[1])
 
   frag1_ecfp_dict = compute_all_ecfp(
       frag1[1], indices=frag1_atoms, degree=ecfp_degree)
   frag2_ecfp_dict = compute_all_ecfp(frag2[1], degree=ecfp_degree)
   splif_dict = {
       contact: (frag1_ecfp_dict[contact[0]], frag2_ecfp_dict[contact[1]])
-      for contact in contacts
+      for contact in zip(contacts[0], contacts[1])
   }
   return splif_dict
 

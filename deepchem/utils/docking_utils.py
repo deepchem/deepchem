@@ -102,7 +102,7 @@ def write_gnina_conf(protein_filename: str,
       f.write("%s = %s\n" % (str(k), str(v)))
 
 
-def read_gnina_log(log_file: str) -> np.array:
+def read_gnina_log(log_file: str) -> np.ndarray:
   """Read GNINA logfile and get docking scores.
 
   GNINA writes computed binding affinities to a logfile.
@@ -131,8 +131,7 @@ def read_gnina_log(log_file: str) -> np.array:
       score = [float(x) for x in mode[1:]]
       scores.append(score)
 
-  scores = np.array(scores)
-  return scores
+  return np.array(scores)
 
 
 def load_docked_ligands(

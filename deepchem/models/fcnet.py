@@ -395,10 +395,11 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
       X_b = np.ones([batch_size, n_features])
     else:
       raise ValueError("n_features should be list or int")
+    empty = np.array([])
     for transformer in fit_transformers:
       assert transformer.transform_X and not (transformer.transform_y or
                                               transformer.transform_w)
-      X_b, _, _, _ = transformer.transform_array(X_b, None, None, None)
+      X_b, _, _, _ = transformer.transform_array(X_b, empty, empty, empty)
     n_features = X_b.shape[1]
     logger.info("n_features after fit_transform: %d", int(n_features))
     super(MultitaskFitTransformRegressor, self).__init__(
@@ -411,6 +412,7 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
       mode: str = 'fit',
       deterministic: bool = True,
       pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
+    empty = np.array([])
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
@@ -421,7 +423,8 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
         if X_b is not None:
           if mode == 'fit':
             for transformer in self.fit_transformers:
-              X_b, _, _, _ = transformer.transform_array(X_b, None, None, None)
+              X_b, _, _, _ = transformer.transform_array(
+                  X_b, empty, empty, empty)
         if mode == 'predict':
           dropout = np.array(0.0)
         else:
