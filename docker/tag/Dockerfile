@@ -18,7 +18,7 @@ RUN conda update -n base conda && \
     conda create -y --name deepchem python=3.9 && \
     . /miniconda/etc/profile.d/conda.sh && \
     conda activate deepchem && \
-    pip install tensorflow~=2.4 deepchem && \
+    pip install tensorflow~=2.5 deepchem && \
     conda install -c conda-forge rdkit && \
     conda clean -afy && \
     rm -rf ~/.cache/pip
