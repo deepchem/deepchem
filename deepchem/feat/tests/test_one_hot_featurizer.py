@@ -6,7 +6,7 @@ from deepchem.feat import OneHotFeaturizer
 from deepchem.feat.molecule_featurizers.one_hot_featurizer import ZINC_CHARSET
 
 
-class TestOneHotFeaturizert(unittest.TestCase):
+class TestOneHotFeaturizer(unittest.TestCase):
   """
   Test OneHotFeaturizer.
   """
