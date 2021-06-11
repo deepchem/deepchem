@@ -12,7 +12,6 @@ from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
 # JAX depend
 import jax.numpy as jnp
 import jax
-from jax import random
 import haiku as hk
 import optax
 
@@ -21,7 +20,21 @@ logger = logging.getLogger(__name__)
 
 class JaxModel(Model):
   """This is a DeepChem model implemented by a Jax Model
-    """
+  
+  Here is a simple example of that uses JaxModel to train a
+  Haiku (JAX Nueral Network Library) based model on deepchem
+  dataset.
+
+  >> def f(x):
+  >>   net = hk.nets.MLP([512, 256, 128, 1])
+  >>   return net(x)
+  >> model = hk.without_apply_rng(hk.transform(f))
+  >> rng = jax.random.PRNGKey(500)
+  >> x, _, _, _ = next(iter(train_dataset.iterbatches(batch_size=256)))
+  >> params = model.init(rng, x)
+  >> j_m = JaxModel(model, params, 256, 0.001, 100)
+  >> j_m.fit(train_dataset)
+  """
 
   def __init__(self,
                model,
@@ -33,17 +46,16 @@ class JaxModel(Model):
                optimizer_state,
                log_frequency: int = 100):
     """
-        model = hk.without_apply_rng(hk.transform(f))
-        rng = jax.random.PRNGKey(500)
-        params = model.init(rng, x)
+    model = hk.without_apply_rng(hk.transform(f))
+    rng = jax.random.PRNGKey(500)
+    params = model.init(rng, x)
 
-        pass model.apply for model here
-        """
+    pass model.apply for model here
+    """
 
-    self.loss = lambda pred, tar: jnp.mean(optax.l2_loss(pred, tar))
+    self.loss = loss  #lambda pred, tar: jnp.mean(optax.l2_loss(pred, tar))
     self.batch_size = batch_size
-
-    self.optimizer = optax.adam(learning_rate)
+    self.optimizer = optimizer
     self.model = model  # this is a function, hk.apply
     self.params = params
     self._built = False
@@ -77,7 +89,8 @@ class JaxModel(Model):
     averaged_batches = 0
 
     loss = self.loss
-    grad_update = self._create_gradient_fn(self.loss, self.optimizer)
+    grad_update = self._create_gradient_fn(self.loss, self.model,
+                                           self.optimizer)
     params, opt_state = self._get_trainable_params()
 
     for batch in generator:
@@ -126,10 +139,14 @@ class JaxModel(Model):
     self.params = params
     self.opt_state = opt_state
 
-  def _create_gradient_fn(self, loss, optimizer, p=None):
+  def _create_gradient_fn(self, loss, model, optimizer, p=None):
     """
-        This function calls the update function, to implement the backpropogation
-        """
+    This function calls the update function, to implement the backpropogation
+    """
+
+    def model_loss(params, batch, target):
+      predict = model.apply(params, batch)
+      return loss(predict, target)
 
     @jax.jit
     def update(params, opt_state, batch, target):
