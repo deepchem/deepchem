@@ -1,7 +1,7 @@
 """
 Loads synthetic reaction datasets from USPTO.
 
-This file contains loaders for synthetic reaction datasets from the US Patenent Office. http://nextmovesoftware.com/blog/2014/02/27/unleashing-over-a-million-reactions-into-the-wild/.
+This file contains loaders for synthetic reaction datasets from the US Patent Office. http://nextmovesoftware.com/blog/2014/02/27/unleashing-over-a-million-reactions-into-the-wild/.
 """
 import os
 import logging
@@ -34,7 +34,7 @@ class _USPTOLoader(_MolnetLoader):
     self.name = 'USPTO_' + subset
 
   def create_dataset(self) -> Tuple[Dataset, ...]:
-    #####INCOMPLETE/INCORRECT: I don'd think this is the right way to bypass the splitter!
+    #####INCOMPLETE/INCORRECT: I don't think this is the right way to bypass the splitter!
     if self.subset not in ['MIT', 'STEREO']:
       raise ValueError("Valid Subset names are MIT and STEREO.")
 
@@ -44,7 +44,6 @@ class _USPTOLoader(_MolnetLoader):
       valid_file = os.path.join(self.data_dir, USPTO_MIT_VALID)
 
       if not os.path.exists(train_file):
-
         logger.info("Downloading training file...")
         dc.utils.data_utils.download_url(
             url=USPTO_MIT_TRAIN, dest_dir=self.data_dir)
@@ -59,27 +58,27 @@ class _USPTOLoader(_MolnetLoader):
         dc.utils.data_utils.download_url(
             url=USPTO_MIT_VALID, dest_dir=self.data_dir)
         logger.info("Validation file download complete.")
-      if self.subset == 'STEREO':
-        train_file = os.path.join(self.data_dir, USPTO_STEREO_TRAIN)
-        test_file = os.path.join(self.data_dir, USPTO_STEREO_TEST)
-        valid_file = os.path.join(self.data_dir, USPTO_STEREO_VALID)
 
-        if not os.path.exists(train_file):
+    if self.subset == 'STEREO':
+      train_file = os.path.join(self.data_dir, USPTO_STEREO_TRAIN)
+      test_file = os.path.join(self.data_dir, USPTO_STEREO_TEST)
+      valid_file = os.path.join(self.data_dir, USPTO_STEREO_VALID)
 
-          logger.info("Downloading training file...")
-          dc.utils.data_utils.download_url(
-              url=USPTO_STEREO_TRAIN, dest_dir=self.data_dir)
-          logger.info("Training file download complete.")
+      if not os.path.exists(train_file):
+        logger.info("Downloading training file...")
+        dc.utils.data_utils.download_url(
+            url=USPTO_STEREO_TRAIN, dest_dir=self.data_dir)
+        logger.info("Training file download complete.")
 
-          logger.info("Downloading test file...")
-          dc.utils.data_utils.download_url(
-              url=USPTO_STEREO_TEST, dest_dir=self.data_dir)
-          logger.info("Test file download complete.")
+        logger.info("Downloading test file...")
+        dc.utils.data_utils.download_url(
+            url=USPTO_STEREO_TEST, dest_dir=self.data_dir)
+        logger.info("Test file download complete.")
 
-          logger.info("Downloading validation file...")
-          dc.utils.data_utils.download_url(
-              url=USPTO_STEREO_VALID, dest_dir=self.data_dir)
-          logger.info("Validation file download complete.")
+        logger.info("Downloading validation file...")
+        dc.utils.data_utils.download_url(
+            url=USPTO_STEREO_VALID, dest_dir=self.data_dir)
+        logger.info("Validation file download complete.")
 
     loader = dc.data.CSVLoader(
         tasks=self.tasks, feature_field="smiles", featurizer=self.featurizer)
@@ -93,7 +92,7 @@ class _USPTOLoader(_MolnetLoader):
     logger.info("Loading successful!")
 
     #need to figure out how to return the train, test and valid files!
-    return (train_file, test_file, valid_file)  
+    return (train_file, test_file, valid_file)
 
 
 def load_uspto(
