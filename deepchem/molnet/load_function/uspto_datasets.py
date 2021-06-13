@@ -33,7 +33,7 @@ class _USPTOLoader(_MolnetLoader):
     self.sep_reagent = sep_reagent
     self.name = 'USPTO_' + subset
 
-  def create_dataset(self) -> Tuple[Dataset, ...]:
+  def create_dataset(self) -> Dataset:
     #####INCOMPLETE/INCORRECT: I don't think this is the right way to bypass the splitter!
     if self.subset not in ['MIT', 'STEREO']:
       raise ValueError("Valid Subset names are MIT and STEREO.")
@@ -93,6 +93,9 @@ class _USPTOLoader(_MolnetLoader):
 
     #need to figure out how to return the train, test and valid files!
     return (train_file, test_file, valid_file)
+
+    def load_precomputed_splits(self) -> List[Dataset, ...]:
+      pass
 
 
 def load_uspto(
