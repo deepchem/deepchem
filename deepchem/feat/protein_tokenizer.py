@@ -23,7 +23,6 @@ class ProteinTokenizer(Featurizer):
   (spaces, newlines, commas, etc.).
 
   eg. ["EMV[CLS]ABCDE[SEP]X", "WMY[CLS]FGH[SEP]XAB"] -> [[0, 1, 2, 3, 4], [5, 6, 7]]
-
   """
 
   def featurize(self, proteins: Iterable[str],
@@ -38,6 +37,11 @@ class ProteinTokenizer(Featurizer):
       Newlines, spaces, and commas in protein sequence strings are safely ignored.
     log_every_n: int, optional (default 1000)
       How many proteins are tokenized every time a tokenization is logged.
+
+    Returns
+    -------
+    np.ndarray
+      An array of arrays of integer tokens (one array for every sequence).
     """
     # Return empty array if no proteins are provided as input
     if (len(proteins) <= 0): 
@@ -72,6 +76,21 @@ class ProteinTokenizer(Featurizer):
     return output_acid_codes
 
   def _extract_relevant_sequence(self, protein: str) -> str:
+    """Extracts the relevant part of a protein sequence between the first
+    [CLS] mark and the first [SEP] mark following the first [CLS] mark.
+
+    eg. "AB[CLS]ABCD[SEP]A" -> "ABCD"
+
+    Parameters
+    ----------
+    protein: str
+      A FASTA-format protein sequence with start and end annotations.
+
+    Returns
+    -------
+    str
+      A FASTA-format protein sequence without start and end annotations.
+    """
     first_idx = -1 # Will be set to first string index after [CLS]
     for i in range(len(protein)-4):
       if (first_idx == -1 and protein[i:i+5] == "[CLS]"):
@@ -83,6 +102,18 @@ class ProteinTokenizer(Featurizer):
     return("")
 
   def _featurize(self, protein: str) -> np.array:
+    """Tokenizes a protein sequence
+
+    Parameters
+    ----------
+      protein: str
+        A FASTA-format string representation of a protein sequence.
+
+    Returns
+    -------
+    str
+      An array of integer tokens for the protein sequence.
+    """
     protein = protein.upper()
     protein = self._extract_relevant_sequence(protein)
     protein = protein.split()
