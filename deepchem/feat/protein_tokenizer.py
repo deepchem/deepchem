@@ -89,7 +89,8 @@ class ProteinTokenizer(Featurizer):
     acid_codes = list(FASTA_tokens.keys())  # List of all keys in FASTA_tokens
     all_tokens = list(
         FASTA_tokens.values())  # List of all values in FASTA_tokens
-    output_acid_codes: tuple = tuple()  # FASTA amino acid codes for values in input
+    output_acid_codes: tuple = tuple(
+    )  # FASTA amino acid codes for values in input
     # Iterating through input_tokens
     for sequence in input_sequences:
       token_codes = "[CLS]"
