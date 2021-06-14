@@ -49,7 +49,16 @@ class MATFeaturizer(MolecularFeaturizer):
     ])
 
     adjacency_matrix = Chem.rdmolops.getAdjacencyMatrix(mol)
-    distance_matrix = Chem.rdmolops.GetDistanceMatrix(mol)
+
+    conformer = mol.GetConformer()
+    positional_matrix = np.array([[
+        conformer.GetAtomPosition(k).x,
+        conformer.GetAtomPosition(k).y,
+        conformer.GetAtomPosition(k).z
+    ] for k in range(mol.GetNumAtoms())])
+    distance_matrix = pairwise_distances(positional_matrix)
+
+   
 
     if self.add_dummy_node:
       m = np.zeros((node_features.shape[0] + 1, node_features.shape[1] + 1))
