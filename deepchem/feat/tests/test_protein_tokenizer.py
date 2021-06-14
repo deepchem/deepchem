@@ -19,4 +19,4 @@ class TestProteinTokenizer(unittest.TestCase):
 
     # untransform
     seq = tokenizer.untransform(int_seq)
-    assert (int_seq == "ABCDEFG")
+    assert (seq == "ABCDEFG")

@@ -18,15 +18,16 @@ class ProteinTokenizer(Featurizer):
     # Calls featurize() in parent class, which will call _featurize() for each protein in proteins
     return Featurizer.featurize(self, proteins, log_every_n)
 
-  def untransform(self, input_tokens: Iterable):
+  def untransform(self, input_sequences: Iterable) -> str:
     acid_codes = list(FASTA_tokens.keys()) # List of all keys in FASTA_tokens
     all_tokens = list(FASTA_tokens.values()) # List of all values in FASTA_tokens
-    output_acid_codes = np.array([]) # FASTA amino acid codes for values in input 
+    output_acid_codes = "" # FASTA amino acid codes for values in input
     # Iterating through input_tokens
-    for token in input_tokens:
-      idx = all_tokens.index(token) # Get index of token
-      code = acid_codes[idx] # Get corresponding key (FASTA amino acid code)
-      output_acid_codes.append(code)
+    for sequence in input_sequences:
+      for token in sequence:
+        idx = all_tokens.index(token) # Get index of token
+        code = acid_codes[idx] # Get corresponding key (FASTA amino acid code)
+        output_acid_codes = output_acid_codes + code
     return output_acid_codes
 
   def _purify(self, protein: str) -> str:
