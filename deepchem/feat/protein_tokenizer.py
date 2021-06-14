@@ -30,7 +30,7 @@ class ProteinTokenizer(Featurizer):
         output_acid_codes = output_acid_codes + code
     return output_acid_codes
 
-  def _purify(self, protein: str) -> str:
+  def _extract_relevant_sequence(self, protein: str) -> str:
     first_idx = -1
     for i in range(len(protein)-4):
       if (first_idx == -1 and protein[i:i+5] == "[CLS]"):
@@ -43,7 +43,7 @@ class ProteinTokenizer(Featurizer):
 
   def _featurize(self, protein: str) -> np.array:
     protein = protein.upper()
-    protein = self._purify(protein)
+    protein = self._extract_relevant_sequence(protein)
     protein = protein.split()
     tokens = np.array([])
     for acid in protein:

@@ -21,19 +21,20 @@ class TestProteinTokenizer(unittest.TestCase):
     seq = tokenizer.untransform(int_seq)
     assert (seq == "ABCDEFG")
 
-  def test_protein_tokeznier_multiple_sequences(self):
+  def test_protein_tokenizer_multiple_sequences(self):
     """
     Test correct protein to integer conversion and untransform for multiple
     FASTA strings.
     """
-
     ref_seq = np.array(["[CLS] A B C D E F G [SEP]", "[CLS] H I J K L [SEP]"])
     tokenizer = ProteinTokenizer()
     int_seq = tokenizer(ref_seq)
-    print(int_seq)
     ref_int_seq = []
     ref_int_seq.append(np.array([0., 1., 2., 3., 4., 5., 6.]))
     ref_int_seq.append(np.array([7., 8., 9., 10., 11.]))
     ref_int_seq_asarray = np.asarray(ref_int_seq)
-    print(ref_int_seq_asarray)
-    assert np.array_equal(int_seq, ref_int_seq_asarray)
+    assert str(int_seq) == str(ref_int_seq_asarray)
+
+    # untransform
+    seq = tokenizer.untransform(int_seq)
+    assert (seq == "ABCDEFGHIJKL")
