@@ -15,17 +15,30 @@ except:
 
 
 class MATFeaturizer(MolecularFeaturizer):
-
+  """
+  This class is a featurizer for the Molecule Attention Transformer.
+  """
   def __init__(
       self,
       add_dummy_node=True,
       one_hot_formal_charge=True,
   ):
+  """
+  Parameters
+  ----------
+  mol (rdchem.Mol): An RDKit Mol object.
+  add_dummy_node (bool): If True, a dummy node will be added to the molecular graph.
+  one_hot_formal_charge (bool): If True, formal charges on atoms are one-hot encoded.
+  """
+
     self.mol = mol
     self.add_dummy_node = add_dummy_node
     self.one_hot_formal_charge = one_hot_formal_charge
 
   def atom_features(self, atom, one_hot_formal_charge=True):
+    """
+    Deepchem already contains an atom_features function, however we are defining a new one here due to the need to handle features specific to MAT.
+    """
     attrib = []
     attrib += one_hot_encode(atom.GetAtomicNumber(),
                              [5, 6, 7, 8, 9, 15, 16, 17, 35, 53, 999])
