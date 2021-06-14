@@ -152,5 +152,4 @@ class ProteinTokenizer(Featurizer):
         tokens = np.append(tokens, token)
       else:  # Ignore invalid FASTA code
         logger.info(f"Invalid FASTA amino acid code {acid}, skipping...")
-    print(tokens)
     return tokens
