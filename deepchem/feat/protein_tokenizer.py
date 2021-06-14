@@ -92,11 +92,12 @@ class ProteinTokenizer(Featurizer):
     output_acid_codes: tuple = tuple()  # FASTA amino acid codes for values in input
     # Iterating through input_tokens
     for sequence in input_sequences:
-      token_codes = ""
+      token_codes = "[CLS]"
       for token in sequence:
         idx = all_tokens.index(token)  # Get index of token
         code = acid_codes[idx]  # Get corresponding key (FASTA amino acid code)
         token_codes = token_codes + code
+      token_codes = token_codes + "[SEP]"
       output_acid_codes = output_acid_codes + (token_codes,)
     return output_acid_codes
 

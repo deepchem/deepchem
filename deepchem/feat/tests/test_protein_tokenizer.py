@@ -20,7 +20,7 @@ class TestProteinTokenizer(unittest.TestCase):
 
     # untransform
     seq = tokenizer.untransform(int_seq)
-    assert (seq == ("ABCDEFG",))
+    assert (seq == ("[CLS]ABCDEFG[SEP]",))
 
   def test_protein_tokenizer_multiple_sequences(self):
     """
@@ -39,4 +39,4 @@ class TestProteinTokenizer(unittest.TestCase):
 
     # untransform
     seq = tokenizer.untransform(int_seq)
-    assert (seq == ("ABCDEFG", "HIJKL"))
+    assert (seq == ("[CLS]ABCDEFG[SEP]", "[CLS]HIJKL[SEP]"))
