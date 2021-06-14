@@ -13,6 +13,7 @@ try:
 except:
   raise ImportError("Required Modules not found.")
 
+
 class MATFeaturizer(MolecularFeaturizer):
 
   def __init__(
@@ -26,8 +27,8 @@ class MATFeaturizer(MolecularFeaturizer):
 
   def atom_features(self, atom, one_hot_formal_charge=True):
     attrib = []
-    attrib += one_hot_encode(atom.getAtomicNum(),
-                       [5, 6, 7, 8, 9, 15, 16, 17, 35, 53, 999])
+    attrib += one_hot_encode(atom.getAtomicNumber(),
+                             [5, 6, 7, 8, 9, 15, 16, 17, 35, 53, 999])
     attrib += one_hot_encode(len(atom.GetNeighbors()), [0, 1, 2, 3, 4, 5])
     attrib += one_hot_encode(atom.GetTotalNumHs(), [0, 1, 2, 3, 4])
 
@@ -41,14 +42,16 @@ class MATFeaturizer(MolecularFeaturizer):
 
     return np.array(attrib, dtype=np.float32)
 
-  def _featurize(self, mol, add_dummy_node, one_hot_formal_charge):
-    node_features = np.array(
-        [atom_features(atom, one_hot_formal_charge) for atom in mol.getAtoms()])
-        
+  def _featurize(self, mol):
+    node_features = np.array([
+        atom_features(atom, self.one_hot_formal_charge)
+        for atom in mol.getAtoms()
+    ])
+
     adjacency_matrix = Chem.rdmolops.getAdjacencyMatrix(mol)
     distance_matrix = Chem.rdmolops.GetDistanceMatrix(mol)
 
-    if add_dummy_node:
+    if self.add_dummy_node:
       m = np.zeros((node_features.shape[0] + 1, node_features.shape[1] + 1))
       m[1:, 1:] = node_features
       m[0, 0] = 1.0
