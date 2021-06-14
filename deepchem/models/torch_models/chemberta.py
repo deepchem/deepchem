@@ -2,8 +2,10 @@
 Huggingface/transformers RoBERTa model for sequence-based property prediction.
 """
 
+from numpy.lib.npyio import save
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import random_split
 import os
 
 class ChemBERTaMaskedLM(nn.Module):
@@ -94,12 +96,23 @@ class ChemBERTaMaskedLMModel(TorchModel):
                 dataset_path: str = '',
                 mode='pre-trained',
                 model_path='DeepChem/SmilesTokenizer_PubChem_1M',
-
-
-                model_output_dir = 'model/',
+                mlm_probability: float = 0.15,
+                output_dir = 'model/',
+                frac_train: int = 0.95,
+                eval_steps: int = 1000,
+                logging_steps: int = 100,
+                overwrite_output_dir: boolean = True,
+                num_train_epochs: int = 10,
+                per_device_train_batch_size: int = 64,
+                save_steps :int = 10000,
+                save_total_limit: int = 2,
+                fp16: bool= True,
+                run_name: str = 'chemberta_lm'
                 **kwargs):
         
         from transformers import LineByLineTextDataset
+        from transformers import DataCollatorForLanguageModeling
+        from transformers import TrainingArguments
 
         model = ChemBERTa(
             vocab_size=vocab_size,
@@ -112,31 +125,50 @@ class ChemBERTaMaskedLMModel(TorchModel):
             model_output_dir = model_output_dir,
             **kwargs)
                 
-        self.dataset = LineByLineTextDataset(file_path=dataset_path, 
+        dataset = LineByLineTextDataset(file_path=dataset_path, 
                                             block_size=512)
 
-'''
-ChemBERTa(vocab_size=600, max_position_embedddings=515, 
-number_attention_heads=12, num_hidden_layers=6, type_vocab_size=1, 
-dataset_path: str = '', mode='pre-trained', 
-model_path='DeepChem/SmilesTokenizer_PubChem_1M', 
-tokenizer_output_dir='tokenizer/', tokenizer_type=0, 
-max_tokenizer_len=512, BPE_min_frequency=2, **kwargs)
+        train_size = max(int(frac_train * len(dataset)), 1)
+        eval_size = len(dataset) - train_size
+        print(f"Train size: {train_size}")
+        print(f"Eval size: {eval_size}")
 
+        self.train_dataset, self.eval_dataset = random_split(dataset, [train_size, eval_size])
 
-  def __init__(self,
-               n_tasks: int,
-               node_out_feats: int = 64,
-               edge_hidden_feats: int = 128,
-               num_step_message_passing: int = 3,
-               num_step_set2set: int = 6,
-               num_layer_set2set: int = 3,
-               mode: str = 'regression',
-               number_atom_features: int = 30,
-               number_bond_features: int = 11,
-               n_classes: int = 2,
-               self_loop: bool = False,
-               **kwargs):
+        self.data_collator = DataCollatorForLanguageModeling(
+                            tokenizer=model.tokenizer, mlm=True, 
+                            mlm_probability=mlm_probability)
 
+        is_gpu = torch.cuda.is_available()
+        
+        self.training_args = TrainingArguments(
+            evaluation_strategy="steps",
+            eval_steps=eval_steps,
+            load_best_model_at_end=True,
+            logging_steps=logging_steps,
+            output_dir=os.path.join(output_dir, FLAGS.run_name),
+            overwrite_output_dir=overwrite_output_dir,
+            num_train_epochs=num_train_epochs,
+            per_device_train_batch_size=per_device_train_batch_size,
+            save_steps=save_steps,
+            save_total_limit=save_total_limit,
+            fp16 = is_gpu and fp16, # fp16 only works on CUDA devices
+            report_to="wandb",
+            run_name=run_name,
+        )
+    
+    def _fit(self):
+        from transformers.trainer_callback import EarlyStoppingCallback
+        from transformers import Trainer
 
-'''
+        trainer = Trainer(
+            model=self.model,
+            args=self.training_args,
+            data_collator=self.data_collator,
+            train_dataset=self.train_dataset,
+            eval_dataset=self.eval_dataset,
+            callbacks=[EarlyStoppingCallback(early_stopping_patience=1)],
+        )
+
+        trainer.train()
+        trainer.save_model(os.path.join(self.output_dir, self.run_name, "final"))
