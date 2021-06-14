@@ -1,4 +1,5 @@
 from deepchem.feat.base_classes import MolecularFeaturizer
+from deepchem.utils.molecule_feature_utils import one_hot_encode
 try:
   import logging
   import numpy as np
@@ -12,20 +13,6 @@ try:
 except:
   raise ImportError("Required Modules not found.")
 
-use_cuda = torch.cuda.is_available()
-
-if use_cuda:
-  FloatTensor = torch.cuda.FloatTensor
-  LongTensor = torch.cuda.LongTensor
-  IntTensor = torch.cuda.IntTensor
-  DoubleTensor = torch.cuda.DoubleTensor
-else:
-  FloatTensor = torch.FloatTensor
-  LongTensor = torch.LongTensor
-  IntTensor = torch.cuda.IntTensor
-  DoubleTensor = torch.cuda.DoubleTensor
-
-
 class MATFeaturizer(MolecularFeaturizer):
 
   def __init__(
@@ -37,20 +24,15 @@ class MATFeaturizer(MolecularFeaturizer):
     self.add_dummy_node = add_dummy_node
     self.one_hot_formal_charge = one_hot_formal_charge
 
-  def OHVector(value, array):
-    if value not in array:
-      value = array[-1]
-    return map(lambda x: x == value, array)
-
   def atom_features(self, atom, one_hot_formal_charge=True):
     attrib = []
-    attrib += OHVector(atom.getAtomicNum(),
+    attrib += one_hot_encode(atom.getAtomicNum(),
                        [5, 6, 7, 8, 9, 15, 16, 17, 35, 53, 999])
-    attrib += OHVector(len(atom.GetNeighbors()), [0, 1, 2, 3, 4, 5])
-    attrib += OHVector(atom.GetTotalNumHs(), [0, 1, 2, 3, 4])
+    attrib += one_hot_encode(len(atom.GetNeighbors()), [0, 1, 2, 3, 4, 5])
+    attrib += one_hot_encode(atom.GetTotalNumHs(), [0, 1, 2, 3, 4])
 
     if one_hot_formal_charge:
-      attrib += OHVector(atom.GetFormalCharge(), [-1, 0, 1])
+      attrib += one_hot_encode(atom.GetFormalCharge(), [-1, 0, 1])
     else:
       attrib.append(atom.GetFormalCharge())
 
@@ -62,20 +44,9 @@ class MATFeaturizer(MolecularFeaturizer):
   def _featurize(self, mol, add_dummy_node, one_hot_formal_charge):
     node_features = np.array(
         [atom_features(atom, one_hot_formal_charge) for atom in mol.getAtoms()])
-    adjacency_matrix = np.eye(mol.GetNumAtoms())
-    for bond in mol.GetBonds():
-      starting_atom = bond.GetBeginAtom().GetIdx()
-      ending_atom = bond.getEndAtom().GetIdx()
-      adjacency_matrix[starting_atom, ending_atom] = adjacency_matrix[
-          ending_atom, starting_atom] = 1
-
-    conformer = mol.GetConformer()
-    positional_matrix = np.array([[
-        conformer.GetAtomPosition(k).x,
-        conformer.GetAtomPosition(k).y,
-        conformer.GetAtomPosition(k).z
-    ] for k in range(mol.GetNumAtoms())])
-    distance_matrix = pairwise_distances(positional_matrix)
+        
+    adjacency_matrix = Chem.rdmolops.getAdjacencyMatrix(mol)
+    distance_matrix = Chem.rdmolops.GetDistanceMatrix(mol)
 
     if add_dummy_node:
       m = np.zeros((node_features.shape[0] + 1, node_features.shape[1] + 1))
