@@ -195,6 +195,13 @@ BPSymmetryFunctionInput
   :members:
   :inherited-members:
 
+ProteinTokenizer
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.ProteinTokenizer
+  :members:
+  :inherited-members:
+
 SmilesToSeq
 ^^^^^^^^^^^
 
