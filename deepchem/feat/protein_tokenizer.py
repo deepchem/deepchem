@@ -1,10 +1,8 @@
-import numpy as np
-
-import logging
-logger = logging.getLogger(__name__)
-
 from deepchem.feat.base_classes import Featurizer
 from typing import Iterable
+import numpy as np
+import logging
+logger = logging.getLogger(__name__)
 
 # Integer tokens for every amino acid code in the FASTA format.
 FASTA_tokens = {
@@ -43,11 +41,11 @@ class ProteinTokenizer(Featurizer):
   """Tokenizes protein sequences in FASTA-format with start and end annotations
   into integer arrays.
 
-  This tokenizer takes in an array of FASTA-format protein sequence strings 
+  This tokenizer takes in an array of FASTA-format protein sequence strings
   that are terminated on both ends with [CLS] and [SEP] annotations, and
   converts each string into a matching array of integer tokens.
 
-  The tokenizer is case-insensitive and safely ignores all non-FASTA characters 
+  The tokenizer is case-insensitive and safely ignores all non-FASTA characters
   (spaces, newlines, commas, etc.).
 
   eg. ["EMV[CLS]ABCDE[SEP]X", "WMY[CLS]FGH[SEP]XAB"] -> [[0, 1, 2, 3, 4], [5, 6, 7]]
@@ -82,7 +80,7 @@ class ProteinTokenizer(Featurizer):
     ----------
     input_sequences: Iterable[int]
       Iterable of the token arrays to be untransformed.
-    
+
     Returns
     -------
     tuple
