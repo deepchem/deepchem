@@ -62,6 +62,8 @@ from deepchem.feat.material_featurizers import LCNNFeaturizer
 from deepchem.feat.atomic_conformation import AtomicConformation
 from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer
 
+from deepchem.feat.protein_tokenizer import ProteinTokenizer
+
 try:
   import transformers
   from transformers import BertTokenizer
