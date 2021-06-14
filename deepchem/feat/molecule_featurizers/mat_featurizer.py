@@ -27,7 +27,7 @@ class MATFeaturizer(MolecularFeaturizer):
 
   def atom_features(self, atom, one_hot_formal_charge=True):
     attrib = []
-    attrib += one_hot_encode(atom.getAtomicNumber(),
+    attrib += one_hot_encode(atom.GetAtomicNumber(),
                              [5, 6, 7, 8, 9, 15, 16, 17, 35, 53, 999])
     attrib += one_hot_encode(len(atom.GetNeighbors()), [0, 1, 2, 3, 4, 5])
     attrib += one_hot_encode(atom.GetTotalNumHs(), [0, 1, 2, 3, 4])
