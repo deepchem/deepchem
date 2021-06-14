@@ -8,8 +8,36 @@ from typing import Iterable
 
 # Integer tokens for every amino acid code in the FASTA format.
 FASTA_tokens = {
-  "A":0, "B":1, "C":2, "D":3, "E":4, "F":5, "G":6, "H":7, "I":8, "J":9, "K":10, "L":11, "M":12, "N":13, "O":14, "P":15, "Q":16, "R":17, "S":18, "T":19, "U":20, "V":21, "W":22, "Y":23, "Z":24, "X":25, "*":26, "-":27
+    "A": 0,
+    "B": 1,
+    "C": 2,
+    "D": 3,
+    "E": 4,
+    "F": 5,
+    "G": 6,
+    "H": 7,
+    "I": 8,
+    "J": 9,
+    "K": 10,
+    "L": 11,
+    "M": 12,
+    "N": 13,
+    "O": 14,
+    "P": 15,
+    "Q": 16,
+    "R": 17,
+    "S": 18,
+    "T": 19,
+    "U": 20,
+    "V": 21,
+    "W": 22,
+    "Y": 23,
+    "Z": 24,
+    "X": 25,
+    "*": 26,
+    "-": 27
 }
+
 
 class ProteinTokenizer(Featurizer):
   """Tokenizes protein sequences in FASTA-format with start and end annotations
@@ -25,7 +53,8 @@ class ProteinTokenizer(Featurizer):
   eg. ["EMV[CLS]ABCDE[SEP]X", "WMY[CLS]FGH[SEP]XAB"] -> [[0, 1, 2, 3, 4], [5, 6, 7]]
   """
 
-  def featurize(self, proteins: Iterable[str],
+  def featurize(self,
+                proteins: Iterable[str],
                 log_every_n: int = 1000) -> np.ndarray:
     """Tokenizes protein sequences.
 
@@ -43,9 +72,6 @@ class ProteinTokenizer(Featurizer):
     np.ndarray
       An array of arrays of integer tokens (one array for every sequence).
     """
-    # Return empty array if no proteins are provided as input
-    if (len(proteins) <= 0): 
-      return np.ndarray([])
     # Calls featurize() in parent class, which will call _featurize() for each protein in proteins
     return Featurizer.featurize(self, proteins, log_every_n)
 
@@ -62,15 +88,16 @@ class ProteinTokenizer(Featurizer):
     tuple
       Tuple of strings, where each element is a protein sequence.
     """
-    acid_codes = list(FASTA_tokens.keys()) # List of all keys in FASTA_tokens
-    all_tokens = list(FASTA_tokens.values()) # List of all values in FASTA_tokens
-    output_acid_codes = tuple() # FASTA amino acid codes for values in input
+    acid_codes = list(FASTA_tokens.keys())  # List of all keys in FASTA_tokens
+    all_tokens = list(
+        FASTA_tokens.values())  # List of all values in FASTA_tokens
+    output_acid_codes = tuple()  # FASTA amino acid codes for values in input
     # Iterating through input_tokens
     for sequence in input_sequences:
       token_codes = ""
       for token in sequence:
-        idx = all_tokens.index(token) # Get index of token
-        code = acid_codes[idx] # Get corresponding key (FASTA amino acid code)
+        idx = all_tokens.index(token)  # Get index of token
+        code = acid_codes[idx]  # Get corresponding key (FASTA amino acid code)
         token_codes = token_codes + code
       output_acid_codes = output_acid_codes + (token_codes,)
     return output_acid_codes
@@ -91,15 +118,16 @@ class ProteinTokenizer(Featurizer):
     str
       A FASTA-format protein sequence without start and end annotations.
     """
-    first_idx = -1 # Will be set to first string index after [CLS]
-    for i in range(len(protein)-4):
-      if (first_idx == -1 and protein[i:i+5] == "[CLS]"):
-        first_idx = i+5
+    first_idx = -1  # Will be set to first string index after [CLS]
+    for i in range(len(protein) - 4):
+      if (first_idx == -1 and protein[i:i + 5] == "[CLS]"):
+        first_idx = i + 5
         i = first_idx
-      elif (first_idx != -1 and protein[i:i+5] == "[SEP]"):
-        return(protein[first_idx:i]) # Note: i is index of "[" in "[SEP]"
-    logger.info(f"[CLS] [SEP] pair not found for protein {protein}. Skipping...")
-    return("")
+      elif (first_idx != -1 and protein[i:i + 5] == "[SEP]"):
+        return (protein[first_idx:i])  # Note: i is index of "[" in "[SEP]"
+    logger.info(
+        f"[CLS] [SEP] pair not found for protein {protein}. Skipping...")
+    return ("")
 
   def _featurize(self, protein: str) -> np.array:
     """Tokenizes a protein sequence
@@ -117,12 +145,12 @@ class ProteinTokenizer(Featurizer):
     protein = protein.upper()
     protein = self._extract_relevant_sequence(protein)
     protein = protein.split()
-    tokens = np.array([], dtype=int) # Array of tokens for the protein sequence
-    for acid in protein: # Loops through amino acid codes in protein sequence
-      if acid in FASTA_tokens: # Tokenize amino acid
+    tokens = np.array([], dtype=int)  # Array of tokens for the protein sequence
+    for acid in protein:  # Loops through amino acid codes in protein sequence
+      if acid in FASTA_tokens:  # Tokenize amino acid
         token = FASTA_tokens.get(acid)
         tokens = np.append(tokens, token)
-      else: # Ignore invalid FASTA code
+      else:  # Ignore invalid FASTA code
         logger.info(f"Invalid FASTA amino acid code {acid}, skipping...")
     print(tokens)
     return tokens
