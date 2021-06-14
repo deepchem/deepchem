@@ -75,7 +75,7 @@ class ProteinTokenizer(Featurizer):
     # Calls featurize() in parent class, which will call _featurize() for each protein in proteins
     return Featurizer.featurize(self, proteins, log_every_n)
 
-  def untransform(self, input_sequences: Iterable[int]) -> tuple:
+  def untransform(self, input_sequences: Iterable[Iterable[int]]) -> tuple:
     """Convert from tokenized arrays back into original string.
 
     Parameters
@@ -91,7 +91,7 @@ class ProteinTokenizer(Featurizer):
     acid_codes = list(FASTA_tokens.keys())  # List of all keys in FASTA_tokens
     all_tokens = list(
         FASTA_tokens.values())  # List of all values in FASTA_tokens
-    output_acid_codes = tuple()  # FASTA amino acid codes for values in input
+    output_acid_codes: tuple = tuple()  # FASTA amino acid codes for values in input
     # Iterating through input_tokens
     for sequence in input_sequences:
       token_codes = ""
@@ -144,9 +144,9 @@ class ProteinTokenizer(Featurizer):
     """
     protein = protein.upper()
     protein = self._extract_relevant_sequence(protein)
-    protein = protein.split()
+    splitProtein = protein.split()
     tokens = np.array([], dtype=int)  # Array of tokens for the protein sequence
-    for acid in protein:  # Loops through amino acid codes in protein sequence
+    for acid in splitProtein:  # Loops through amino acid codes in protein sequence
       if acid in FASTA_tokens:  # Tokenize amino acid
         token = FASTA_tokens.get(acid)
         tokens = np.append(tokens, token)

@@ -3,6 +3,7 @@ import numpy as np
 
 from deepchem.feat import ProteinTokenizer
 
+
 class TestProteinTokenizer(unittest.TestCase):
   """
   Test ProteinTokenizer
@@ -26,7 +27,8 @@ class TestProteinTokenizer(unittest.TestCase):
     Test correct protein to integer conversion and untransform for multiple
     FASTA strings.
     """
-    ref_seq = np.array(["[CLS] A B C D E F G [SEP] EH", "ABC[CLS] H I J K L [SEP]"])
+    ref_seq = np.array(
+        ["[CLS] A B C D E F G [SEP] EH", "ABC[CLS] H I J K L [SEP]"])
     tokenizer = ProteinTokenizer()
     int_seq = tokenizer(ref_seq)
     ref_int_seq = []
@@ -37,4 +39,4 @@ class TestProteinTokenizer(unittest.TestCase):
 
     # untransform
     seq = tokenizer.untransform(int_seq)
-    assert (seq == ("ABCDEFG","HIJKL"))
+    assert (seq == ("ABCDEFG", "HIJKL"))
