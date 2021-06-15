@@ -95,9 +95,12 @@ class ProteinTokenizer(Featurizer):
     for sequence in input_sequences:
       token_codes = "[CLS]"
       for token in sequence:
-        idx = all_tokens.index(token)  # Get index of token
-        code = acid_codes[idx]  # Get corresponding key (FASTA amino acid code)
-        token_codes = token_codes + code
+        try:
+          idx = all_tokens.index(token)  # Get index of token
+          code = acid_codes[idx]  # Get corresponding key (FASTA amino acid code)
+          token_codes = token_codes + code
+        except ValueError as e:
+          logger.info(f"Invalid FASTA token {token}, skipping...")
       token_codes = token_codes + "[SEP]"
       output_acid_codes = output_acid_codes + (token_codes,)
     return output_acid_codes
