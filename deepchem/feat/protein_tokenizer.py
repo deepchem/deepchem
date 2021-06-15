@@ -71,7 +71,7 @@ class ProteinTokenizer(Featurizer):
       An array of arrays of integer tokens (one array for every sequence).
     """
     # Calls featurize() in parent class, which will call _featurize() for each protein in proteins
-    return Featurizer.featurize(self, proteins, log_every_n)
+    return super().featurize(proteins, log_every_n)
 
   def untransform(self, input_sequences: Iterable[Iterable[int]]) -> tuple:
     """Convert from tokenized arrays back into original string.
