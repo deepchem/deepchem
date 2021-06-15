@@ -13,7 +13,7 @@ class TestProteinTokenizer(unittest.TestCase):
     """
     Test correct protein to integer conversion and untransform
     """
-    ref_seq = np.array(["AMC[CLS] A B C D E F G [SEP] E R"])
+    ref_seq = np.array(["AMC g $4[CLS] A B $C D E Fg[SEP] E R"])
     tokenizer = ProteinTokenizer()
     int_seq = tokenizer(ref_seq)
     assert np.all(int_seq == [[0, 1, 2, 3, 4, 5, 6]])
