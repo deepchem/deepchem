@@ -271,6 +271,22 @@ KerasModel
 
 Training loss and validation metrics can be automatically logged to `Weights & Biases`_ with the following commands::
 
+  # NEW METHOD
+  # Install wandb in shell
+  pip install wandb
+
+  # Login in shell (required only once)
+  wandb login
+
+  # Initialize a WandbLogger
+  logger = WandbLogger(…)
+
+  # Set `wandb_logger` when creating `KerasModel`
+  model = KerasModel(…, wandb_logger=logger)
+
+  #############################
+
+  #OLD METHOD (deprecated)
   # Install wandb in shell
   pip install wandb
 

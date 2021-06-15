@@ -4,9 +4,6 @@ import deepchem as dc
 import numpy as np
 import tensorflow as tf
 
-from deepchem.models import ValidationCallback
-
-
 def test_overfit_graph_model():
   """Test fitting a KerasModel defined as a graph."""
   n_data_points = 10
@@ -305,16 +302,17 @@ def test_wandblogger():
   tasks, datasets, transformers = dc.molnet.load_delaney(featurizer='ECFP',
                                                          splitter='random')
   train_dataset, valid_dataset, test_dataset = datasets
+  metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
+  wandblogger = dc.models.WandbLogger(anonymous="allow", save_run_history=True)
+
   keras_model = tf.keras.Sequential(
       [tf.keras.layers.Dense(10, activation='relu'),
        tf.keras.layers.Dense(1)])
-  metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
-  wandblogger = dc.models.WandbLogger(anonymous="allow", save_run_history=True)
   model = dc.models.KerasModel(keras_model,
                                dc.models.losses.L2Loss(),
                                wandb_logger=wandblogger)
-  vc = ValidationCallback(valid_dataset, 1, [metric])
-  model.fit(train_dataset, nb_epoch=10, metrics=[metric], callbacks=[vc])
+  vc = dc.models.ValidationCallback(valid_dataset, 1, [metric])
+  model.fit(train_dataset, nb_epoch=10, callbacks=[vc])
 
   run_data = wandblogger.run_history._data
   valid_score = model.evaluate(valid_dataset, [metric], transformers)

@@ -11,14 +11,14 @@ def is_wandb_available():
 
 
 class WandbLogger(object):
-  """Weights & Biases Logger for KerasModel.
+  """Weights & Biases Logger.
 
     This is a logger class that can be passed into the initialization
-    of a KerasModel. It initializes and sets up a wandb logger which
+    of a KerasModel or TorchModel. It initializes and sets up a wandb logger which
     will log the specified metrics calculated on the specific datasets
     to the user's W&B dashboard.
 
-    If a WandbLogger is provided to the wandb_logger flag in KerasModel,
+    If a WandbLogger is provided to the wandb_logger flag,
     the metrics are logged to Weights & Biases, along with other information
     such as epoch number, losses, sample counts, and model configuration data.
     """

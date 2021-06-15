@@ -3,7 +3,6 @@ import tensorflow as tf
 import time
 import logging
 import os
-import math
 
 try:
   from collections.abc import Sequence as SequenceCollection
@@ -136,7 +135,6 @@ class KerasModel(Model):
                tensorboard: bool = False,
                wandb: bool = False,
                log_frequency: int = 100,
-               logging_strategy: Optional[str] = "step",
                wandb_logger: Optional[WandbLogger] = None,
                **kwargs) -> None:
     """Create a new KerasModel.
@@ -174,7 +172,7 @@ class KerasModel(Model):
       like a printout every 10 batch steps, you'd set
       `log_frequency=10` for example.
     wandb_logger: WandbLogger
-      the Weights & Biases logger to log data and metrics
+      the Weights & Biases logger object used to log data and metrics
     """
     super(KerasModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
     if isinstance(loss, Loss):
@@ -191,7 +189,7 @@ class KerasModel(Model):
     # W&B flag support (DEPRECATED)
     if wandb:
       logger.warning(
-          "'wandb' argument is deprecated. Please use wandb_logger instead. "
+          "`wandb` argument is deprecated. Please use `wandb_logger` instead. "
           "This argument will be removed in a future release of DeepChem.")
     if wandb and not _has_wandb:
       logger.warning(
@@ -218,14 +216,6 @@ class KerasModel(Model):
 
     if self.wandb_logger is not None:
       self.wandb_logger.update_config(wandb_logger_config)
-
-    # Check for valid logging strategy
-    if logging_strategy != "step" and logging_strategy != "epoch":
-      logger.warning(
-          "Warning: `logging_strategy` needs to be either 'step' or 'epoch'. Defaulting to 'step'."
-      )
-      logging_strategy = "step"
-    self.logging_strategy = logging_strategy
 
     # Backwards compatibility
     if "tensorboard_log_frequency" in kwargs:
@@ -316,8 +306,7 @@ class KerasModel(Model):
           variables: Optional[List[tf.Variable]] = None,
           loss: Optional[LossFn] = None,
           callbacks: Union[Callable, List[Callable]] = [],
-          all_losses: Optional[List[float]] = None,
-          metrics: Optional[List[Metric]] = None) -> float:
+          all_losses: Optional[List[float]] = None) -> float:
     """Train this model on a dataset.
 
     Parameters
@@ -351,16 +340,11 @@ class KerasModel(Model):
       If specified, all logged losses are appended into this list. Note that
       you can call `fit()` repeatedly with the same list and losses will
       continue to be appended.
-    metrics: Optional[List[Metric]], optional (default None)
-      metrics to compute on the dataset used during training. If None,
-      no metrics and scores will be computed and only training loss will be logged.
 
     Returns
     -------
     The average loss over the most recent checkpoint interval
    """
-    self.dataset = dataset
-    self.metrics = metrics
     return self.fit_generator(
         self.default_generator(dataset,
                                epochs=nb_epoch,
@@ -439,9 +423,6 @@ class KerasModel(Model):
 
     # Main training loop.
 
-    # Calculate the number of steps in a training epoch
-    steps_per_epoch = math.ceil(len(self.dataset) / self.batch_size)
-
     for batch in generator:
       self._create_training_ops(batch)
       if restore:
@@ -474,17 +455,6 @@ class KerasModel(Model):
         avg_loss = 0.0
         averaged_batches = 0
 
-      # Calculate epoch number, sample count, and metrics
-      epoch_num = self._get_epoch_num(current_step)
-      sample_count = self._get_sample_count(current_step)
-
-      # Decide whether to calculate metrics at this current step
-      scores = None
-      if self.metrics is not None and self.metrics:
-        if (self.logging_strategy == "step" and current_step % self.log_frequency == 0) or \
-           (self.logging_strategy == "epoch" and current_step % steps_per_epoch == 0):
-          scores = self.evaluate(self.dataset, self.metrics)
-
       if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
         manager.save()
       for c in callbacks:
@@ -494,24 +464,18 @@ class KerasModel(Model):
       # Wandb flag support (DEPRECATED)
       if self.wandb and should_log:
         wandb.log({'loss': batch_loss}, step=current_step)
-
-      if self.wandb_logger is not None:
+      if (self.wandb_logger is not None) and should_log:
         all_data = dict({
-            'train/epoch': epoch_num,
-            'train/sample_count': sample_count,
             'train/loss': batch_loss
         })
-        if scores is not None:
-          scores = {'train/' + k: v for k, v in scores.items()}
-          all_data.update(scores)
         self.wandb_logger.log_data(all_data, step=current_step)
+
+    if self.wandb:
+      wandb.finish()
 
     # Close WandbLogger
     if self.wandb_logger is not None:
       self.wandb_logger.finish()
-
-    if self.wandb:
-      wandb.finish()
 
     # Report final results.
     if averaged_batches > 0:
@@ -1158,38 +1122,6 @@ class KerasModel(Model):
   def get_global_step(self) -> int:
     """Get the number of steps of fitting that have been performed."""
     return int(self._global_step)
-
-  def _get_epoch_num(self, step):
-    """Get the epoch number corresponding to current step.
-
-    Parameters
-    ----------
-    step: int
-    the current step during training
-
-    Returns
-    -------
-    the current step's epoch number (does not have to be an int)
-    """
-    dataset_size = len(self.dataset)
-    steps_per_epoch = math.ceil(dataset_size / self.batch_size)
-    epoch_num = step / steps_per_epoch
-    return epoch_num
-
-  def _get_sample_count(self, step):
-    """Get the number of samples seen during training at step.
-
-    Parameters
-    ----------
-    step: int
-    the current step during training
-
-    Returns
-    -------
-    the number of samples seen by the model by the current step
-    """
-    sample_count = step * self.batch_size
-    return sample_count
 
   def _log_scalar_to_tensorboard(self, name: str, value: Any, step: int):
     """Log a scalar value to Tensorboard."""
