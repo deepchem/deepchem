@@ -1,43 +1,60 @@
 from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.utils.molecule_feature_utils import one_hot_encode
-try:
-  import logging
-  import numpy as np
-  import pandas as pd
-  import torch
-  from rdkit import Chem
-  from rdkit.Chem import AllChem
-  from rdkit.Chem import MolFromSmiles
-  from sklearn.metrics import pairwise_distances
-  from torch.utils import datasets
-except:
-  raise ImportError("Required Modules not found.")
+import numpy as np
+from rdkit import Chem
+from sklearn.metrics import pairwise_distances
 
 
 class MATFeaturizer(MolecularFeaturizer):
   """
-  This class is a featurizer for the Molecule Attention Transformer.
+  This class is a featurizer for the Molecule Attention Transformer [1]_.
+  The featurizer accepts an RDKit Molecule, and 2 booleans (add_dummy_node and one_hot_formal_charge) as arguments.
+  The returned value is a tuple which consists of molecular graph descriptions:
+    - Node Features
+    - Adjacency Matrix
+    - Distance Matrix
   """
+
   def __init__(
       self,
-      add_dummy_node=True,
-      one_hot_formal_charge=True,
+      mol: Chem.rdchem.Mol,
+      add_dummy_node: bool = True,
+      one_hot_formal_charge: bool = True,
   ):
-  """
-  Parameters
-  ----------
-  mol (rdchem.Mol): An RDKit Mol object.
-  add_dummy_node (bool): If True, a dummy node will be added to the molecular graph.
-  one_hot_formal_charge (bool): If True, formal charges on atoms are one-hot encoded.
-  """
+    """
+    Parameters
+    ----------
+    mol (rdchem.Mol): rdkit.Chem.rdchem.Mol
+      RDKit Mol object.
+    add_dummy_node: bool, default True
+      If True, a dummy node will be added to the molecular graph.
+    one_hot_formal_charge: bool, default True
+      If True, formal charges on atoms are one-hot encoded.
+
+    References
+    ---------
+    .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer`<https://arxiv.org/abs/2002.08264>`"
+    """
 
     self.mol = mol
     self.add_dummy_node = add_dummy_node
     self.one_hot_formal_charge = one_hot_formal_charge
 
-  def atom_features(self, atom, one_hot_formal_charge=True):
+  def atom_features(self, atom):
     """
     Deepchem already contains an atom_features function, however we are defining a new one here due to the need to handle features specific to MAT.
+    Since we need new features like Mol GetNeighbors and IsInRing, and the number of features required for MAT is a fraction of what the Deepchem atom_features function computes, we can speed up computation by defining a custom function.
+    
+    Parameters
+    ----------
+    mol: rdkit.Chem.rdchem.Mol
+      RDKit mol object.
+
+    Returns
+    ----------
+    Atom_features: ndarray
+      Numpy array containing atom features.
+    
     """
     attrib = []
     attrib += one_hot_encode(atom.GetAtomicNumber(),
@@ -45,7 +62,7 @@ class MATFeaturizer(MolecularFeaturizer):
     attrib += one_hot_encode(len(atom.GetNeighbors()), [0, 1, 2, 3, 4, 5])
     attrib += one_hot_encode(atom.GetTotalNumHs(), [0, 1, 2, 3, 4])
 
-    if one_hot_formal_charge:
+    if self.one_hot_formal_charge:
       attrib += one_hot_encode(atom.GetFormalCharge(), [-1, 0, 1])
     else:
       attrib.append(atom.GetFormalCharge())
@@ -56,8 +73,21 @@ class MATFeaturizer(MolecularFeaturizer):
     return np.array(attrib, dtype=np.float32)
 
   def _featurize(self, mol):
+    """
+    Featurize the molecule.
+
+    Parameters
+    ----------
+    mol: rdkit.Chem.rdchem.Mol
+      RDKit mol object.
+    
+    Returns
+    -------
+    tuple: (node_features, adjacency_matrix, distance_matrix)
+    """
+
     node_features = np.array([
-        atom_features(atom, self.one_hot_formal_charge)
+        self.atom_features(atom, self.one_hot_formal_charge)
         for atom in mol.getAtoms()
     ])
 
@@ -70,8 +100,6 @@ class MATFeaturizer(MolecularFeaturizer):
         conformer.GetAtomPosition(k).z
     ] for k in range(mol.GetNumAtoms())])
     distance_matrix = pairwise_distances(positional_matrix)
-
-   
 
     if self.add_dummy_node:
       m = np.zeros((node_features.shape[0] + 1, node_features.shape[1] + 1))
