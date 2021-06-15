@@ -147,9 +147,8 @@ class ProteinTokenizer(Featurizer):
     """
     protein = protein.upper()
     protein = self._extract_relevant_sequence(protein)
-    splitProtein = protein.split()
     tokens = np.array([], dtype=int)  # Array of tokens for the protein sequence
-    for acid in splitProtein:  # Loops through amino acid codes in protein sequence
+    for acid in protein:  # Loops through amino acid codes in protein sequence
       if acid in FASTA_tokens:  # Tokenize amino acid
         token = FASTA_tokens.get(acid)
         tokens = np.append(tokens, token)
