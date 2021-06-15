@@ -118,12 +118,12 @@ class ProteinTokenizer(Featurizer):
     str
       A FASTA-format protein sequence without start and end annotations.
     """
-    first_idx = -1  # Will be set to first string index after [CLS]
+    first_idx = 0  # Will be set to first string index after [CLS]
     for i in range(len(protein) - 4):
-      if (first_idx == -1 and protein[i:i + 5] == "[CLS]"):
+      if (first_idx == 0 and protein[i:i + 5] == "[CLS]"):
         first_idx = i + 5
         i = first_idx
-      elif (first_idx != -1 and protein[i:i + 5] == "[SEP]"):
+      elif (first_idx != 0 and protein[i:i + 5] == "[SEP]"):
         return (protein[first_idx:i])  # Note: i is index of "[" in "[SEP]"
     logger.info(
         f"[CLS] [SEP] pair not found for protein {protein}. Skipping...")
