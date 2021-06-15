@@ -8,14 +8,14 @@ try:
   import jax.numpy as jnp
   import haiku as hk
   import optax
-  import deepchem.models as JaxModel
+  from deepchem.models import JaxModel
   has_haiku_and_optax = True
 except:
   has_haiku_and_optax = False
 
 
 @unittest.skipIf(not has_haiku_and_optax,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+                 'Jax, Haiku, or Optax are not installed')
 def test_jax_model_for_regression():
   tasks, dataset, transformers, metric = get_dataset(
       'regression', featurizer='ECFP')
@@ -52,7 +52,7 @@ def test_jax_model_for_regression():
 
 
 @unittest.skipIf(not has_haiku_and_optax,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+                 'Jax, Haiku, or Optax are not installed')
 def test_jax_model_for_classification():
   tasks, dataset, transformers, metric = get_dataset(
       'classification', featurizer='ECFP')
@@ -73,6 +73,8 @@ def test_jax_model_for_classification():
     return net(x)
 
   def bce_loss(pred, tar, w):
+    tar = jnp.array(
+        [x.astype(np.float32) if x.dtype != np.float32 else x for x in tar])
     return jnp.mean(optax.sigmoid_binary_cross_entropy(pred[0], tar))
 
   # Model Initilisation

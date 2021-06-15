@@ -92,7 +92,7 @@ class JaxModel(Model):
     [1] Integerate the optax losses, optimizers, schedulers with Deepchem
     [2] Support for saving & loading the model.
     """
-
+    super(JaxModel, self).__init__(model=model, **kwargs)
     self._loss_fn = loss  # lambda pred, tar: jnp.mean(optax.l2_loss(pred, tar))
     self.batch_size = batch_size
     self.learning_rate = learning_rate
