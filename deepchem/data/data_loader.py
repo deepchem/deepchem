@@ -305,7 +305,7 @@ class CSVLoader(DataLoader):
   >>> loader = dc.data.CSVLoader([], feature_field="smiles",ud_field="IDS",
   ...                              featurizer=dc.feat.CircularFingerprint())
 
-  Note that in the tasks argument and empty list could be used to only create a
+  Note that in the tasks argument an empty list could be used to only create a
   dataset with only the smiles entries.
 
   Of course in practice you should already have your data in a CSV file if
