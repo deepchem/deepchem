@@ -98,4 +98,4 @@ def test_jax_model_for_classification():
       learning_rate=0.001,
       log_frequency=2)
   results = j_m.fit(dataset, nb_epochs=50, deterministic=True)
-  assert results < 0.5
+  assert results < 1.0
