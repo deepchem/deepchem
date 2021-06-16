@@ -18,6 +18,8 @@ from deepchem.utils.genomics_utils import encode_bio_sequence
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 
+from more-itertools import peekable
+
 logger = logging.getLogger(__name__)
 
 
@@ -875,12 +877,15 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self):
-    """Initialize loader."""
-    pass
+  def __init__(self, featurizer: Featurizer):
+    self.user_specified_features = None
+    if isinstance(featurizer, UserDefinedFeaturizer):
+      self.user_specified_features = featurizer.feature_fields
+    self.featurizer = featurizer
 
   def create_dataset(self,
                      input_files: OneOrMany[str],
+                     auto_add_annotations: bool = False,
                      data_dir: Optional[str] = None,
                      shard_size: Optional[int] = None) -> DiskDataset:
     """Creates a `Dataset` from input FASTA files.
@@ -908,14 +913,52 @@ class FASTALoader(DataLoader):
       input_files = [input_files]
 
     def shard_generator():
+      sequences = np.array([])
       for input_file in input_files:
-        X = encode_bio_sequence(input_file)
-        ids = np.ones(len(X))
-        # (X, y, w, ids)
-        yield X, None, None, ids
+        np.append(sequences, _read_file(input_file))
+      yield self.featurizer(sequences)
+      """
+      X = encode_bio_sequence(input_file)
+      ids = np.ones(len(X))
+      # (X, y, w, ids)
+      yield X, None, None, ids
+      """
+
+    def _read_file(input_file: str, auto_add_annotations: bool=False):
+      """
+      Convert the FASTA file to a numpy array of FASTA-format strings.
+      """
+      def _generate_sequences(fasta_file, header_mark = ">") -> numpy.array:
+        """
+        Uses a fasta_file to create a numpy array of annotated FASTA-format strings 
+        """
+        sequences = np.array([])
+        protein = ""
+        for line in peekable(fasta_file):
+          # Check if line is a header
+          if line.startswith(header_mark): # New header line
+            protein = ""
+          else: # Line contains protein sequence in FASTA format 
+            protein = protein + line
+          
+          # Peek ahead to see whether to end this protein sequence.
+          try:
+            next_line = line.peek() # Peek ahead
+            is_end_of_sequence = next_line.startswith(header_mark)
+          except StopIteration:
+            is_end_of_sequence = True # End of sequence if line is the last line in fasta_file
+          
+          if is_end_of_sequence:
+            if auto_add_annotations:
+              protein = "[CLS]" + protein + "[SEP]" # Annotate start/stop of protein
+            np.append(sequences, protein)
+        
+        return sequences
+
+      with open(input_file, 'r') as f: # Read FASTA file
+        return _generate_sequences(f)
 
     return DiskDataset.create_dataset(shard_generator(), data_dir)
-
 
 class ImageLoader(DataLoader):
   """Handles loading of image files.
