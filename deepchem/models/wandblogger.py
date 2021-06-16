@@ -1,4 +1,3 @@
-import copy
 import logging
 import importlib.util
 from typing import Optional, Union
@@ -70,14 +69,15 @@ class WandbLogger(object):
     self.save_run_history = save_run_history
 
     # set wandb init arguments
-    self.wandb_init_params = dict(name=name,
-                                  project=project,
-                                  entity=entity,
-                                  mode=mode,
-                                  id=id,
-                                  dir=save_dir,
-                                  resume=resume,
-                                  anonymous=anonymous)
+    self.wandb_init_params = dict(
+        name=name,
+        project=project,
+        entity=entity,
+        mode=mode,
+        id=id,
+        dir=save_dir,
+        resume=resume,
+        anonymous=anonymous)
     self.wandb_init_params.update(**kwargs)
     self.initialized = False
 
@@ -108,7 +108,8 @@ class WandbLogger(object):
     Save run history data as field if configured to do that.
     """
     if self.save_run_history:
-      self.run_history = copy.deepcopy(self.wandb_run.history)
+      history = self.wandb_run.history._data
+      self.run_history = history
     self.wandb_run.finish()
 
   def update_config(self, config_data):

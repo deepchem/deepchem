@@ -196,14 +196,15 @@ class TorchModel(Model):
       self.wandb_logger.setup()
 
     # Update config with KerasModel params
-    wandb_logger_config = dict(loss=loss,
-                               output_types=output_types,
-                               batch_size=batch_size,
-                               model_dir=model_dir,
-                               learning_rate=learning_rate,
-                               optimizer=optimizer,
-                               tensorboard=tensorboard,
-                               log_frequency=log_frequency)
+    wandb_logger_config = dict(
+        loss=loss,
+        output_types=output_types,
+        batch_size=batch_size,
+        model_dir=model_dir,
+        learning_rate=learning_rate,
+        optimizer=optimizer,
+        tensorboard=tensorboard,
+        log_frequency=log_frequency)
     wandb_logger_config.update(**kwargs)
 
     if self.wandb_logger is not None:
@@ -429,9 +430,7 @@ class TorchModel(Model):
       if self.wandb and should_log:
         wandb.log({'loss': batch_loss}, step=current_step)
       if (self.wandb_logger is not None) and should_log:
-        all_data = dict({
-          'train/loss': batch_loss
-        })
+        all_data = dict({'train/loss': batch_loss})
         self.wandb_logger.log_data(all_data, step=current_step)
 
     if self.wandb:
