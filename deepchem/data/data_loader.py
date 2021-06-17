@@ -924,7 +924,6 @@ class FASTALoader(DataLoader):
       yield X, None, None, ids # TODO discuss shape
 
     def _read_file(input_file: str, auto_add_annotations: bool=False):
-      sequences = np.array([])
       """
       Convert the FASTA file to a numpy array of FASTA-format strings.
       """
@@ -932,20 +931,21 @@ class FASTALoader(DataLoader):
         """
         Uses a fasta_file to create a numpy array of annotated FASTA-format strings 
         """
+        sequences = np.array([])
         protein = []
         header_read = False
         for line in fasta_file:
           # Check if line is a header
           if line.startswith(header_mark): # New header line
             header_read = True
-            sequences = _add_sequence(protein)
+            sequences = _add_sequence(sequences, protein)
             protein = []
           elif header_read == True: # Line contains protein sequence in FASTA format 
             protein.append(line)
-        sequences = _add_sequence(protein)
+        sequences = _add_sequence(sequences, protein)
         return sequences
 
-      def _add_sequence(protein: list) -> np.array:
+      def _add_sequence(sequences: np.array, protein: list) -> np.array:
         if protein == None or len(protein) <= 0:
           logger.warning("Attempting to add empty protein sequence, returning empty array...")
           return np.array([])
