@@ -17,6 +17,7 @@ from deepchem.utils.data_utils import load_image_files, load_csv_files, load_jso
 from deepchem.utils.genomics_utils import encode_bio_sequence
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
+from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 
 from more-itertools import peekable
 
@@ -877,7 +878,7 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self, featurizer: Featurizer):
+  def __init__(self, featurizer: Featurizer = OneHotFeaturizer()):
     self.user_specified_features = None
     if isinstance(featurizer, UserDefinedFeaturizer):
       self.user_specified_features = featurizer.feature_fields
@@ -916,7 +917,7 @@ class FASTALoader(DataLoader):
       sequences = np.array([])
       for input_file in input_files:
         np.append(sequences, _read_file(input_file))
-      yield self.featurizer(sequences)
+      yield self.featurizer(sequences), None, None, ids # TODO discuss shape
       """
       X = encode_bio_sequence(input_file)
       ids = np.ones(len(X))
