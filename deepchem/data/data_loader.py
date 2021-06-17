@@ -938,7 +938,7 @@ class FASTALoader(DataLoader):
           # Check if line is a header
           if line.startswith(header_mark): # New header line
             header_read = True
-            _add_sequence(protein)
+            sequences = _add_sequence(protein)
             protein = []
           elif header_read == True: # Line contains protein sequence in FASTA format 
             protein.append(line)
