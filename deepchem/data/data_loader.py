@@ -933,7 +933,7 @@ class FASTALoader(DataLoader):
       """
       Convert the FASTA file to a numpy array of FASTA-format strings.
       """
-      def _generate_sequences(fasta_file, header_mark = ">") -> numpy.array:
+      def _generate_sequences(fasta_file, header_mark = ">") -> np.array:
         """
         Uses a fasta_file to create a numpy array of annotated FASTA-format strings 
         """
