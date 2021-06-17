@@ -29,7 +29,7 @@ class _SWISSPROTLoader(_MolnetLoader):
   def load_swissprot(
     featurizer: Union[dc.feat.Featurizer, str] = dc.feat.OneHotFeaturizer(codes),
     splitter: Union[dc.splits.Splitter, str, None] = 'random',
-    #transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
+    transformers: List[Union[TransformerGenerator, str]] = [],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
@@ -72,7 +72,7 @@ class _SWISSPROTLoader(_MolnetLoader):
      Nucleic Acids Res 2018, 46 (5), 2699–2699. https://doi.org/10.1093/nar/gky092.
 
     """
-    loader = _SWISSPROTLoader(featurizer, splitter,SWISSP_TASK, data_dir,
+    loader = _SWISSPROTLoader(featurizer, splitter,transformers,SWISSP_TASK, data_dir,
                       save_dir, **kwargs)
     return loader.load_dataset('swissprot', reload)
 

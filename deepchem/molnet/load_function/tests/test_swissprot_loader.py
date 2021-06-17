@@ -4,7 +4,10 @@ Tests for swissprot loader.
 
 import os
 import numpy as np
-from deepchem.molnet import load_swissprot
+
+#from deepchem.molnet import load_swissprot
+from swissprot_datasets import load_swissprot
+@slow
 def test_swissprot_loader():
   current_dir = os.path.dirname(os.path.abspath(__file__))
   codes = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L',
