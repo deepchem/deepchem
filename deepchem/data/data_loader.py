@@ -19,10 +19,7 @@ from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 
-from more_itertools import peekable
-
 logger = logging.getLogger(__name__)
-
 
 def _convert_df_to_numpy(df: pd.DataFrame,
                          tasks: List[str]) -> Tuple[np.ndarray, np.ndarray]:
@@ -920,16 +917,14 @@ class FASTALoader(DataLoader):
     def shard_generator():
       sequences = np.array([])
       for input_file in input_files:
-        np.append(sequences, _read_file(input_file))
-      yield self.featurizer(sequences), None, None, ids # TODO discuss shape
-      """
-      X = encode_bio_sequence(input_file)
+        sequences = np.append(sequences, _read_file(input_file))
+      X = self.featurizer(sequences)
       ids = np.ones(len(X))
       # (X, y, w, ids)
-      yield X, None, None, ids
-      """
+      yield X, None, None, ids # TODO discuss shape
 
     def _read_file(input_file: str, auto_add_annotations: bool=False):
+      sequences = np.array([])
       """
       Convert the FASTA file to a numpy array of FASTA-format strings.
       """
@@ -937,28 +932,29 @@ class FASTALoader(DataLoader):
         """
         Uses a fasta_file to create a numpy array of annotated FASTA-format strings 
         """
-        sequences = np.array([])
-        protein = ""
-        for line in peekable(fasta_file):
+        protein = []
+        header_read = False
+        for line in fasta_file:
           # Check if line is a header
           if line.startswith(header_mark): # New header line
-            protein = ""
-          else: # Line contains protein sequence in FASTA format 
-            protein = protein + line
-          
-          # Peek ahead to see whether to end this protein sequence.
-          try:
-            next_line = line.peek() # Peek ahead
-            is_end_of_sequence = next_line.startswith(header_mark)
-          except StopIteration:
-            is_end_of_sequence = True # End of sequence if line is the last line in fasta_file
-          
-          if is_end_of_sequence:
-            if auto_add_annotations:
-              protein = "[CLS]" + protein + "[SEP]" # Annotate start/stop of protein
-            np.append(sequences, protein)
-        
+            header_read = True
+            _add_sequence(protein)
+            protein = []
+          elif header_read == True: # Line contains protein sequence in FASTA format 
+            protein.append(line)
+        sequences = _add_sequence(protein)
         return sequences
+
+      def _add_sequence(protein: list) -> np.array:
+        if protein == None or len(protein) <= 0:
+          logger.warning("Attempting to add empty protein sequence, returning empty array...")
+          return np.array([])
+        if auto_add_annotations: # Annotate start/stop of protein
+          protein.insert(0, "[CLS]")
+          protein.append("[SEP]")
+        new_sequence = ''.join(protein)
+        logger.warning(sequences)
+        return np.append(sequences, new_sequence)
 
       with open(input_file, 'r') as f: # Read FASTA file
         return _generate_sequences(f)
