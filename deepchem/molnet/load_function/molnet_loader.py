@@ -88,8 +88,7 @@ class _MolnetLoader(object):
                splitter: Union[dc.splits.Splitter, str, None],
                transformer_generators: List[Union[TransformerGenerator, str]],
                tasks: List[str], data_dir: Optional[str],
-               save_dir: Optional[str],
-               precomputed_splits: Optional[bool], **kwargs):
+               save_dir: Optional[str], **kwargs):
     """Construct an object for loading a dataset.
 
     Parameters
@@ -133,7 +132,6 @@ class _MolnetLoader(object):
     self.tasks = list(tasks)
     self.data_dir = data_dir
     self.save_dir = save_dir
-    self.precomputed_splits = precomputed_splits
     self.args = kwargs
 
   def load_dataset(
@@ -172,13 +170,6 @@ class _MolnetLoader(object):
             save_folder)
         if all_dataset is not None:
           return self.tasks, all_dataset, transformers
-    
-    # Try to load precomputed splits.
-
-    if self.precomputed_splits is True:
-      train, valid, test = self.load_precomputed_splits()
-      return (train, valid, test)
-
     # Create the dataset
 
     logger.info("About to featurize %s dataset." % name)
@@ -217,8 +208,4 @@ class _MolnetLoader(object):
 
   def create_dataset(self) -> Dataset:
     """Subclasses must implement this to load the dataset."""
-    raise NotImplementedError()
-
-  def load_precomputed_splits(self) -> Tuple[Dataset, ...]:
-    """Subclasses must implement this to load precomputed train/test/eval splits."""
     raise NotImplementedError()
