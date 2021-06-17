@@ -19,7 +19,7 @@ from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 
-from more-itertools import peekable
+from more_itertools import peekable
 
 logger = logging.getLogger(__name__)
 
