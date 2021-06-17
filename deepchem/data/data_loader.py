@@ -898,6 +898,10 @@ class FASTALoader(DataLoader):
     ----------
     input_files: List[str]
       List of fasta files.
+    auto_add_annotations: bool (default False)
+      Whether create_dataset will automatically add [CLS] and [SEP] annotations
+      to the protein sequences it reads in order to assist tokenization.
+      Keep False if your FASTA file already includes [CLS] and [SEP] annotations.
     data_dir: str, optional (default None)
       Name of directory where featurized data is stored.
     shard_size: int, optional (default None)
