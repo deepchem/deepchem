@@ -947,20 +947,23 @@ class FASTALoader(DataLoader):
             header_read = True
             sequences = _add_sequence(sequences, protein)
             protein = []
-          elif header_read == True: # Line contains protein sequence in FASTA format 
+          elif header_read == True: # Line contains protein sequence in FASTA format
+            if line[-1:] == '\n': # Check last character in string
+              line = line[0:-1] # Remove last character
             protein.append(line)
         sequences = _add_sequence(sequences, protein)
         return sequences
 
       def _add_sequence(sequences: np.array, protein: list) -> np.array:
+        # Handle empty sequence
         if protein == None or len(protein) <= 0:
           logger.warning("Attempting to add empty protein sequence, returning empty array...")
           return np.array([])
-        if auto_add_annotations: # Annotate start/stop of protein
+        # Annotate start/stop of protein
+        if auto_add_annotations:
           protein.insert(0, "[CLS]")
           protein.append("[SEP]")
         new_sequence = ''.join(protein)
-        logger.warning(sequences)
         return np.append(sequences, new_sequence)
 
       with open(input_file, 'r') as f: # Read FASTA file
