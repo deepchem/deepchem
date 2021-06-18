@@ -959,7 +959,7 @@ class FASTALoader(DataLoader):
         if sequence == None or len(sequence) <= 0:
           logger.warning("Attempting to add empty sequence, returning empty array...")
           return np.array([])
-        # Annotate start/stop of sequence 
+        # Annotate start/stop of sequence
         if auto_add_annotations:
           sequence.insert(0, "[CLS]")
           sequence.append("[SEP]")
