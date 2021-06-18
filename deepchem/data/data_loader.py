@@ -876,6 +876,13 @@ class FASTALoader(DataLoader):
   """
 
   def __init__(self, featurizer: Featurizer = OneHotFeaturizer()):
+    """Initialize FASTALoader.
+
+    Parameters
+    ----------
+    featurizer: Featurizer (default: OneHotFeaturizer())
+      The Featurizer to be used for the loaded FASTA data.
+    """
     self.user_specified_features = None
     if isinstance(featurizer, UserDefinedFeaturizer):
       self.user_specified_features = featurizer.feature_fields
