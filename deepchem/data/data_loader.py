@@ -904,7 +904,7 @@ class FASTALoader(DataLoader):
       List of fasta files.
     auto_add_annotations: bool (default False)
       Whether create_dataset will automatically add [CLS] and [SEP] annotations
-      to the protein sequences it reads in order to assist tokenization.
+      to the sequences it reads in order to assist tokenization.
       Keep False if your FASTA file already includes [CLS] and [SEP] annotations.
     data_dir: str, optional (default None)
       Name of directory where featurized data is stored.
@@ -939,31 +939,31 @@ class FASTALoader(DataLoader):
         Uses a fasta_file to create a numpy array of annotated FASTA-format strings 
         """
         sequences = np.array([])
-        protein = []
+        sequence = []
         header_read = False
         for line in fasta_file:
           # Check if line is a header
           if line.startswith(header_mark): # New header line
             header_read = True
-            sequences = _add_sequence(sequences, protein)
-            protein = []
-          elif header_read == True: # Line contains protein sequence in FASTA format
+            sequences = _add_sequence(sequences, sequence)
+            sequence = []
+          elif header_read == True: # Line contains sequence in FASTA format
             if line[-1:] == '\n': # Check last character in string
               line = line[0:-1] # Remove last character
-            protein.append(line)
-        sequences = _add_sequence(sequences, protein)
+            sequence.append(line)
+        sequences = _add_sequence(sequences, sequence)
         return sequences
 
-      def _add_sequence(sequences: np.array, protein: list) -> np.array:
+      def _add_sequence(sequences: np.array, sequence: list) -> np.array:
         # Handle empty sequence
-        if protein == None or len(protein) <= 0:
-          logger.warning("Attempting to add empty protein sequence, returning empty array...")
+        if sequence == None or len(sequence) <= 0:
+          logger.warning("Attempting to add empty sequence, returning empty array...")
           return np.array([])
-        # Annotate start/stop of protein
+        # Annotate start/stop of sequence 
         if auto_add_annotations:
-          protein.insert(0, "[CLS]")
-          protein.append("[SEP]")
-        new_sequence = ''.join(protein)
+          sequence.insert(0, "[CLS]")
+          sequence.append("[SEP]")
+        new_sequence = ''.join(sequence)
         return np.append(sequences, new_sequence)
 
       with open(input_file, 'r') as f: # Read FASTA file
