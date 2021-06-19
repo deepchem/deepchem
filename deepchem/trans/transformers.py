@@ -10,7 +10,6 @@ from typing import Any, List, Optional, Tuple, Union
 import numpy as np
 import scipy
 import scipy.ndimage
-import tensorflow as tf
 
 import deepchem as dc
 from deepchem.data import Dataset, NumpyDataset, DiskDataset
@@ -1611,6 +1610,7 @@ class IRVTransformer(Transformer):
       n_samples * np.array of size (2*K,)
       each array includes K similarity values and corresponding labels
     """
+    import tensorflow as tf
     features = []
     similarity_xs = similarity * np.sign(w)
     [target_len, reference_len] = similarity_xs.shape
@@ -1994,6 +1994,7 @@ class ANITransformer(Transformer):
     """
     Only X can be transformed
     """
+    import tensorflow as tf
     self.max_atoms = max_atoms
     self.radial_cutoff = radial_cutoff
     self.angular_cutoff = angular_cutoff
@@ -2038,6 +2039,7 @@ class ANITransformer(Transformer):
 
   def build(self):
     """ tensorflow computation graph for transform """
+    import tensorflow as tf
     graph = tf.Graph()
     with graph.as_default():
       self.inputs = tf.keras.Input(
@@ -2065,6 +2067,7 @@ class ANITransformer(Transformer):
 
   def distance_matrix(self, coordinates, flags):
     """ Generate distance matrix """
+    import tensorflow as tf
     max_atoms = self.max_atoms
     tensor1 = tf.stack([coordinates] * max_atoms, axis=1)
     tensor2 = tf.stack([coordinates] * max_atoms, axis=2)
@@ -2077,6 +2080,7 @@ class ANITransformer(Transformer):
 
   def distance_cutoff(self, d, cutoff, flags):
     """ Generate distance matrix with trainable cutoff """
+    import tensorflow as tf
     # Cutoff with threshold Rc
     d_flag = flags * tf.sign(cutoff - d)
     d_flag = tf.nn.relu(d_flag)
@@ -2087,6 +2091,7 @@ class ANITransformer(Transformer):
 
   def radial_symmetry(self, d_cutoff, d, atom_numbers):
     """ Radial Symmetry Function """
+    import tensorflow as tf
     embedding = tf.eye(np.max(self.atom_cases) + 1)
     atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
 
@@ -2113,7 +2118,7 @@ class ANITransformer(Transformer):
 
   def angular_symmetry(self, d_cutoff, d, atom_numbers, coordinates):
     """ Angular Symmetry Function """
-
+    import tensorflow as tf
     max_atoms = self.max_atoms
     embedding = tf.eye(np.max(self.atom_cases) + 1)
     atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)

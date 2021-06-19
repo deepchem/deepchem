@@ -10,9 +10,7 @@ else:
   IS_RELEASE = False
 
 # Environment-specific dependencies.
-extras = {
-  'jax': ['git+https://github.com/deepmind/dm-haiku', 'git+git://github.com/deepmind/optax.git']
-}
+extras = {'jax': ['dm-haiku==0.0.3', 'optax==0.0.8']}
 
 
 # get the version from deepchem/__init__.py
