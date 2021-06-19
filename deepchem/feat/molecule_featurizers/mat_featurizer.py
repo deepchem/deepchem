@@ -1,9 +1,7 @@
 from deepchem.feat.base_classes import MolecularFeaturizer
-from deepchem.utils.typing import RDKitMol
 from deepchem.utils.molecule_feature_utils import one_hot_encode
 import numpy as np
 from rdkit import Chem
-from sklearn.metrics import pairwise_distances
 
 
 class MATFeaturizer(MolecularFeaturizer):
@@ -33,8 +31,6 @@ class MATFeaturizer(MolecularFeaturizer):
     """
     Parameters
     ----------
-    add_dummy_node: bool, default True
-      If True, a dummy node will be added to the molecular graph.
     one_hot_formal_charge: bool, default True
       If True, formal charges on atoms are one-hot encoded.
     """
@@ -89,22 +85,10 @@ class MATFeaturizer(MolecularFeaturizer):
 
     node_features = np.array(
         [self.atom_features(atom) for atom in mol.GetAtoms()])
-
     adjacency_matrix = Chem.rdmolops.GetAdjacencyMatrix(mol)
-
     distance_matrix = Chem.rdmolops.GetDistanceMatrix(mol)
 
-    result = node_features
-
-    result = np.zeros((node_features.shape[0], node_features.shape[1] +
-                       adjacency_matrix.shape[1] + distance_matrix.shape[1]))
-
-    for i in range(node_features.shape[0]):
-      result[i, :node_features.shape[1]] = node_features[i]
-      result[i, node_features.shape[1]:node_features.shape[1] +
-             adjacency_matrix.shape[1]] = adjacency_matrix[i]
-      result[i, node_features.shape[1] + adjacency_matrix.shape[1]:
-             node_features.shape[1] + adjacency_matrix.shape[1] +
-             distance_matrix.shape[1]] = distance_matrix[i]
+    result = np.concatenate(
+        [node_features, adjacency_matrix, distance_matrix], axis=1)
 
     return result
