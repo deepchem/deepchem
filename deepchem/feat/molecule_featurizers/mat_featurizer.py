@@ -97,7 +97,7 @@ class MATFeaturizer(MolecularFeaturizer):
     result = node_features
 
     result = np.zeros((node_features.shape[0],
-                       node_features.shape[1] + 2 * adjacency_matrix.shape[1]))
+                       node_features.shape[1] + adjacency_matrix.shape[1] + distance_matrix.shape[1]))
 
     for i in range(node_features.shape[0]):
       result[i, :node_features.shape[1]] = node_features[i]
