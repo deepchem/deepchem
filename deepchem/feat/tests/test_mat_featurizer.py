@@ -2,6 +2,7 @@ import unittest
 from deepchem.feat import MATFeaturizer
 import numpy as np
 
+
 class TestMATFeaturizer(unittest.TestCase):
   """
   Test MATFeaturizer.
