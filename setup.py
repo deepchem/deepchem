@@ -9,6 +9,11 @@ else:
   # Build a nightly package by default.
   IS_RELEASE = False
 
+# Environment-specific dependencies.
+extras = {
+  'jax': ['git+https://github.com/deepmind/dm-haiku', 'git+git://github.com/deepmind/optax.git']
+}
+
 
 # get the version from deepchem/__init__.py
 def _get_version():
@@ -69,4 +74,5 @@ setup(
         'scikit-learn',
         'scipy',
     ],
+    extras_require=extras,
     python_requires='>=3.5')
