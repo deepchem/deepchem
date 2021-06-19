@@ -84,7 +84,7 @@ class MATFeaturizer(MolecularFeaturizer):
     
     Returns
     -------
-    Tuple[np.ndarray]: (node_features, adjacency_matrix, distance_matrix)
+    np.ndarray: A concatenated matrix consisting of node_features, adjacency_matrix and distance_matrix.
     """
 
     try:
