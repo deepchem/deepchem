@@ -1,7 +1,8 @@
 from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.utils.molecule_feature_utils import one_hot_encode
+from deepchem.utils.typing import RDKitMol, RDKitAtom
 import numpy as np
-from rdkit import Chem
+#from rdkit import Chem
 
 
 class MATFeaturizer(MolecularFeaturizer):
@@ -22,6 +23,10 @@ class MATFeaturizer(MolecularFeaturizer):
   >>> import deepchem as dc
   >>> feat = dc.feat.MATFeaturizer()
   >>> out = feat.featurize("CCC")
+
+  Note
+  ----
+  This class requires RDKit to be installed.
   """
 
   def __init__(
@@ -37,7 +42,7 @@ class MATFeaturizer(MolecularFeaturizer):
 
     self.one_hot_formal_charge = one_hot_formal_charge
 
-  def atom_features(self, atom):
+  def atom_features(self, atom : RDKitAtom) -> np.ndarray:
     """
     Deepchem already contains an atom_features function, however we are defining a new one here due to the need to handle features specific to MAT.
     Since we need new features like Atom GetNeighbors and IsInRing, and the number of features required for MAT is a fraction of what the Deepchem atom_features function computes, we can speed up computation by defining a custom function.
@@ -69,7 +74,7 @@ class MATFeaturizer(MolecularFeaturizer):
 
     return np.array(attrib, dtype=np.float32)
 
-  def _featurize(self, mol):
+  def _featurize(self, mol : RDKitMol) -> np.ndarray:
     """
     Featurize the molecule.
 
@@ -82,6 +87,11 @@ class MATFeaturizer(MolecularFeaturizer):
     -------
     Tuple[np.ndarray]: (node_features, adjacency_matrix, distance_matrix)
     """
+
+    try:
+      from rdkit import Chem
+    except:
+      raise ImportError("This class requires RDKit to be installed.")
 
     node_features = np.array(
         [self.atom_features(atom) for atom in mol.GetAtoms()])
