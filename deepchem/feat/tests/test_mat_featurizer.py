@@ -24,10 +24,11 @@ class TestMATFeaturizer(unittest.TestCase):
     out = featurizer.featurize(self.mol)
     assert (type(out) == np.ndarray)
     assert (out.shape == (1, 2, 31))
-    assert (out == np.array([[[
+    correct_array = np.array([[[
         0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.,
         0., 0., 1., 0., 0., 1., 0., 0., 0., 0., 1., 0., 1.
     ], [
         0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.,
         0., 0., 1., 0., 0., 1., 0., 0., 0., 1., 0., 1., 0.
-    ]]]))
+    ]]])
+    assert (np.array_equal(out, correct_array))
