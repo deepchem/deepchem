@@ -13,7 +13,7 @@ class TestMATFeaturizer(unittest.TestCase):
         Set up tests.
         """
     from rdkit import Chem
-    smiles = 'CC(C)CC(=O)'
+    smiles = 'CCC'
     self.mol = Chem.MolFromSmiles(smiles)
 
   def test_mat_featurizer(self):
@@ -23,4 +23,11 @@ class TestMATFeaturizer(unittest.TestCase):
     featurizer = MATFeaturizer()
     out = featurizer.featurize(self.mol)
     assert (type(out) == np.ndarray)
-    assert (out.shape == (1, 3, 6, 27))
+    assert (out.shape == (1, 2, 31))
+    assert (out == np.array([[[
+        0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.,
+        0., 0., 1., 0., 0., 1., 0., 0., 0., 0., 1., 0., 1.
+    ], [
+        0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.,
+        0., 0., 1., 0., 0., 1., 0., 0., 0., 1., 0., 1., 0.
+    ]]]))
