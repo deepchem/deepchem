@@ -10,7 +10,7 @@ else:
   IS_RELEASE = False
 
 # Environment-specific dependencies.
-extras = {'jax': ['dm-haiku==0.0.3', 'optax==0.0.8']}
+extras = {'jax': ['dm-haiku==0.0.4', 'optax==0.0.8']}
 
 
 # get the version from deepchem/__init__.py
