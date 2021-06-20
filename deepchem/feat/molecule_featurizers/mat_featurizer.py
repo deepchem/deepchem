@@ -45,7 +45,7 @@ class MATFeaturizer(MolecularFeaturizer):
     """
     Deepchem already contains an atom_features function, however we are defining a new one here due to the need to handle features specific to MAT.
     Since we need new features like Atom GetNeighbors and IsInRing, and the number of features required for MAT is a fraction of what the Deepchem atom_features function computes, we can speed up computation by defining a custom function.
-    
+
     Parameters
     ----------
     atom: RDKitAtom
@@ -55,7 +55,7 @@ class MATFeaturizer(MolecularFeaturizer):
     ----------
     Atom_features: ndarray
       Numpy array containing atom features.
-    
+
     """
     attrib = []
     attrib += one_hot_encode(atom.GetAtomicNum(),
@@ -81,7 +81,7 @@ class MATFeaturizer(MolecularFeaturizer):
     ----------
     mol: RDKitMol
       RDKit mol object.
-    
+
     Returns
     -------
     np.ndarray: A concatenated matrix consisting of node_features, adjacency_matrix and distance_matrix.
