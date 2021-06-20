@@ -1,4 +1,4 @@
-"""TensorFlow implementation of fully connected networks.
+"""PyTorch implementation of fully connected networks.
 """
 import logging
 import numpy as np
