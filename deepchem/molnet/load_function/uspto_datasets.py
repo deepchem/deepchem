@@ -71,17 +71,20 @@ def load_uspto(
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
   """Load USPTO Datasets.
 
-  USPTO is a dataset of over 1.8 Million organic chemical reactions extracted from
-  US patents and patent applications. The dataset is stored in the from of src and
-  tgt . The src contains the SMILES for the reactants and reagent in the form reactant>reagent
-  the tgt contains the SMILES for the product SMILES.
+  USPTO is a dataset of over 1.8 Million organic chemical reactions extracted
+  from US patents and patent applications. The dataset is stored in the from
+  of src and tgt . The src contains the SMILES for the reactants and reagent
+  in the form reactant>reagent the tgt contains the SMILES for the product
+  SMILES.
 
   Molnet provides ability to load subsets of USPTO such as MIT, STEREO and 50K.
   The MIT dataset contains around 480k reactions
   The STEREO dataset contains around 1 Million Reactions.
-  The 50K dataset contatins 50,000 reactions with an additional label indicating the class of reaction to which it belongs.
-  The loader uses the specified splitter to use the same splits as used by Schwaller and Coley. Custom splitters could also be used. 
-  There is also a toggle to load the dataset with the reagents separated or mixed.
+  The 50K dataset contatins 50,000 reactions with an additional label
+  indicating the class of reaction to which it belongs. The loader uses the
+  specified splitter to use the same splits as used by Schwaller and Coley.
+  Custom splitters could also be used. There is also a toggle to load the
+  dataset with the reagents separated or mixed.
 
   Parameters
   ----------
@@ -118,7 +121,18 @@ def load_uspto(
       ``deepchem.trans.transformers.Transformer`` instances applied
       to dataset.
   ----------
-  .. [1] 
+  .. [1] Lowe, D.. (2017). Chemical reactions from US patents (1976-Sep2016)
+        (Version 1). figshare. https://doi.org/10.6084/m9.figshare.5104873.v1 ([]) 
+  .. [2] Schwaller, P., Laino, T., Gaudin, T., Bolgar, P., Hunter, C. A., Bekas,
+         C., & Lee, A. A. (2019). Molecular transformer: a model for
+         uncertainty-calibrated chemical reaction prediction.
+         ACS central science, 5(9), 1572-1583.
+  .. [3] Somnath, V. R., Bunne, C., Coley, C. W., Krause, A., & Barzilay, R.
+         (2020). Learning Graph Models for Template-Free Retrosynthesis.
+         arXiv preprint arXiv:2006.07038.
+  .. [4] Dai, H., Li, C., Coley, C. W., Dai, B., & Song, L. (2020).
+         Retrosynthesis prediction with conditional graph logic network.
+         arXiv preprint arXiv:2001.01408.
   """
   #get test and valid lists if subset is MIT, 50K, STEREO and splitter = specified.
   #if subset is Full use splitter passed by the user.
