@@ -875,17 +875,32 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self, featurizer: Featurizer = OneHotFeaturizer()):
+  def __init__(self, featurizer: Featurizer = OneHotFeaturizer, protein = True):
     """Initialize FASTALoader.
 
     Parameters
     ----------
-    featurizer: Featurizer (default: OneHotFeaturizer())
+    featurizer: Featurizer (default: OneHotFeaturizer)
       The Featurizer to be used for the loaded FASTA data.
+
+    protein: bool (default: True)
+      Whether or not the sequence passed in is a protein sequence. If False,
+      it is treated as a nucleic acid sequence.
     """
+    protein_charset = ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
+                       'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
+                       'W', 'X', 'Y', 'Z', '*', '-')
+    nucleic_charset = ('A', 'C', 'G', 'T', 'U', '(i)', 'R', 'Y', 'K', 'M', 'S',
+                       'W', 'B', 'D', 'H', 'V', 'N', '-')
+
     self.user_specified_features = None
     if isinstance(featurizer, UserDefinedFeaturizer):
       self.user_specified_features = featurizer.feature_fields
+    if (featurizer == OneHotFeaturizer):
+      if (protein):
+        featurizer = OneHotFeaturizer(protein_charset)
+      else:
+        featurizer = OneHotFeaturizer(nucleic_charset)
     self.featurizer = featurizer
 
   def create_dataset(self,
@@ -925,10 +940,12 @@ class FASTALoader(DataLoader):
       sequences = np.array([])
       for input_file in input_files:
         sequences = np.append(sequences, _read_file(input_file))
+      logger.warning(f"**TESTING** FEATURIZING ARRAY: {sequences}")
       X = self.featurizer(sequences)
+      logger.warning(f"**TESTING** FINAL FEATURIZED ARRAY: {X}")
       ids = np.ones(len(X))
-      # (X, y, w, ids)
-      yield X, None, None, ids # TODO discuss shape
+      # (X, y, w, ids) TODO discuss shape
+      yield X, None, None, ids 
 
     def _read_file(input_file: str, auto_add_annotations: bool=False):
       """
