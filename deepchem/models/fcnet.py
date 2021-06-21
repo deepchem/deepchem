@@ -1,29 +1,27 @@
-"""TensorFlow implementation of fully connected networks.
+"""PyTorch implementation of fully connected networks.
 """
 import logging
-import warnings
-import time
 import numpy as np
-import tensorflow as tf
-import threading
+import torch
+import torch.nn.functional as F
 try:
   from collections.abc import Sequence as SequenceCollection
 except:
   from collections import Sequence as SequenceCollection
 
 import deepchem as dc
-from deepchem.models import KerasModel
-from deepchem.models.layers import SwitchedDropout
+from deepchem.models.torch_models.torch_model import TorchModel
+from deepchem.models.losses import _make_pytorch_shapes_consistent
 from deepchem.metrics import to_one_hot
-from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Activation, Lambda
 
 from typing import Any, Callable, Iterable, List, Optional, Sequence, Tuple, Union
-from deepchem.utils.typing import KerasActivationFn, LossFn, OneOrMany
+from deepchem.utils.typing import ActivationFn, LossFn, OneOrMany
+from deepchem.utils.pytorch_utils import get_activation
 
 logger = logging.getLogger(__name__)
 
 
-class MultitaskClassifier(KerasModel):
+class MultitaskClassifier(TorchModel):
   """A fully connected network for multitask classification.
 
   This class provides lots of options for customizing aspects of the model: the
@@ -45,9 +43,9 @@ class MultitaskClassifier(KerasModel):
                weight_init_stddevs: OneOrMany[float] = 0.02,
                bias_init_consts: OneOrMany[float] = 1.0,
                weight_decay_penalty: float = 0.0,
-               weight_decay_penalty_type: str = "l2",
+               weight_decay_penalty_type: str = 'l2',
                dropouts: OneOrMany[float] = 0.5,
-               activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
+               activation_fns: OneOrMany[ActivationFn] = 'relu',
                n_classes: int = 2,
                residual: bool = False,
                **kwargs) -> None:
@@ -84,9 +82,9 @@ class MultitaskClassifier(KerasModel):
       the dropout probablity to use for each layer.  The length of this list should equal len(layer_sizes).
       Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
     activation_fns: list or object
-      the Tensorflow activation function to apply to each layer.  The length of this list should equal
+      the PyTorch activation function to apply to each layer.  The length of this list should equal
       len(layer_sizes).  Alternatively this may be a single value instead of a list, in which case the
-      same value is used for every layer.
+      same value is used for every layer.  Standard activation functions from torch.nn.functional can be specified by name.
     n_classes: int
       the number of classes
     residual: bool
@@ -103,56 +101,68 @@ class MultitaskClassifier(KerasModel):
       bias_init_consts = [bias_init_consts] * n_layers
     if not isinstance(dropouts, SequenceCollection):
       dropouts = [dropouts] * n_layers
-    if not isinstance(activation_fns, SequenceCollection):
+    if isinstance(activation_fns,
+                  str) or not isinstance(activation_fns, SequenceCollection):
       activation_fns = [activation_fns] * n_layers
-    if weight_decay_penalty != 0.0:
+    activation_fns = [get_activation(f) for f in activation_fns]
+
+    # Define the PyTorch Module that implements the model.
+
+    class PytorchImpl(torch.nn.Module):
+
+      def __init__(self):
+        super(PytorchImpl, self).__init__()
+        self.layers = torch.nn.ModuleList()
+        prev_size = n_features
+        for size, weight_stddev, bias_const in zip(
+            layer_sizes, weight_init_stddevs, bias_init_consts):
+          layer = torch.nn.Linear(prev_size, size)
+          torch.nn.init.normal_(layer.weight, 0, weight_stddev)
+          torch.nn.init.constant_(layer.bias, bias_const)
+          self.layers.append(layer)
+          prev_size = size
+        self.output_layer = torch.nn.Linear(prev_size, n_tasks * n_classes)
+        torch.nn.init.xavier_uniform_(self.output_layer.weight)
+        torch.nn.init.constant_(self.output_layer.bias, 0)
+
+      def forward(self, x):
+        prev_size = n_features
+        next_activation = None
+        for size, layer, dropout, activation_fn, in zip(
+            layer_sizes, self.layers, dropouts, activation_fns):
+          y = x
+          if next_activation is not None:
+            y = next_activation(x)
+          y = layer(y)
+          if dropout > 0.0 and self.training:
+            y = F.dropout(y, dropout)
+          if residual and prev_size == size:
+            y = x + y
+          x = y
+          prev_size = size
+          next_activation = activation_fn
+        if next_activation is not None:
+          y = next_activation(y)
+        neural_fingerprint = y
+        y = self.output_layer(y)
+        logits = torch.reshape(y, (-1, n_tasks, n_classes))
+        output = F.softmax(logits, dim=2)
+        return (output, logits, neural_fingerprint)
+
+    model = PytorchImpl()
+    if weight_decay_penalty != 0:
+      weights = [layer.weight for layer in model.layers]
       if weight_decay_penalty_type == 'l1':
-        regularizer = tf.keras.regularizers.l1(weight_decay_penalty)
+        regularization_loss = lambda: weight_decay_penalty * sum(torch.abs(w).sum() for w in weights)
       else:
-        regularizer = tf.keras.regularizers.l2(weight_decay_penalty)
+        regularization_loss = lambda: weight_decay_penalty * sum(torch.square(w).sum() for w in weights)
     else:
-      regularizer = None
-
-    # Add the input features.
-
-    mol_features = Input(shape=(n_features,))
-    prev_layer = mol_features
-    prev_size = n_features
-    next_activation = None
-
-    # Add the dense layers
-
-    for size, weight_stddev, bias_const, dropout, activation_fn in zip(
-        layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
-        activation_fns):
-      layer = prev_layer
-      if next_activation is not None:
-        layer = Activation(next_activation)(layer)
-      layer = Dense(
-          size,
-          kernel_initializer=tf.keras.initializers.TruncatedNormal(
-              stddev=weight_stddev),
-          bias_initializer=tf.constant_initializer(value=bias_const),
-          kernel_regularizer=regularizer)(layer)
-      if dropout > 0.0:
-        layer = Dropout(rate=dropout)(layer)
-      if residual and prev_size == size:
-        prev_layer = Lambda(lambda x: x[0] + x[1])([prev_layer, layer])
-      else:
-        prev_layer = layer
-      prev_size = size
-      next_activation = activation_fn
-    if next_activation is not None:
-      prev_layer = Activation(activation_fn)(prev_layer)
-    self.neural_fingerprint = prev_layer
-    logits = Reshape((n_tasks,
-                      n_classes))(Dense(n_tasks * n_classes)(prev_layer))
-    output = Softmax()(logits)
-    model = tf.keras.Model(inputs=mol_features, outputs=[output, logits])
+      regularization_loss = None
     super(MultitaskClassifier, self).__init__(
         model,
         dc.models.losses.SoftmaxCrossEntropy(),
-        output_types=['prediction', 'loss'],
+        output_types=['prediction', 'loss', 'embedding'],
+        regularization_loss=regularization_loss,
         **kwargs)
 
   def default_generator(
@@ -173,7 +183,7 @@ class MultitaskClassifier(KerasModel):
         yield ([X_b], [y_b], [w_b])
 
 
-class MultitaskRegressor(KerasModel):
+class MultitaskRegressor(TorchModel):
   """A fully connected network for multitask regression.
 
   This class provides lots of options for customizing aspects of the model: the
@@ -195,9 +205,9 @@ class MultitaskRegressor(KerasModel):
                weight_init_stddevs: OneOrMany[float] = 0.02,
                bias_init_consts: OneOrMany[float] = 1.0,
                weight_decay_penalty: float = 0.0,
-               weight_decay_penalty_type: str = "l2",
+               weight_decay_penalty_type: str = 'l2',
                dropouts: OneOrMany[float] = 0.5,
-               activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
+               activation_fns: OneOrMany[ActivationFn] = 'relu',
                uncertainty: bool = False,
                residual: bool = False,
                **kwargs) -> None:
@@ -230,9 +240,9 @@ class MultitaskRegressor(KerasModel):
       the dropout probablity to use for each layer.  The length of this list should equal len(layer_sizes).
       Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
     activation_fns: list or object
-      the Tensorflow activation function to apply to each layer.  The length of this list should equal
+      the PyTorch activation function to apply to each layer.  The length of this list should equal
       len(layer_sizes).  Alternatively this may be a single value instead of a list, in which case the
-      same value is used for every layer.
+      same value is used for every layer.  Standard activation functions from torch.nn.functional can be specified by name.
     uncertainty: bool
       if True, include extra outputs and loss terms to enable the uncertainty
       in outputs to be predicted
@@ -249,92 +259,107 @@ class MultitaskRegressor(KerasModel):
       bias_init_consts = [bias_init_consts] * (n_layers + 1)
     if not isinstance(dropouts, SequenceCollection):
       dropouts = [dropouts] * n_layers
-    if not isinstance(activation_fns, SequenceCollection):
+    if isinstance(activation_fns,
+                  str) or not isinstance(activation_fns, SequenceCollection):
       activation_fns = [activation_fns] * n_layers
-    if weight_decay_penalty != 0.0:
-      if weight_decay_penalty_type == 'l1':
-        regularizer = tf.keras.regularizers.l1(weight_decay_penalty)
-      else:
-        regularizer = tf.keras.regularizers.l2(weight_decay_penalty)
-    else:
-      regularizer = None
+    activation_fns = [get_activation(f) for f in activation_fns]
     if uncertainty:
       if any(d == 0.0 for d in dropouts):
         raise ValueError(
             'Dropout must be included in every layer to predict uncertainty')
 
-    # Add the input features.
+    # Define the PyTorch Module that implements the model.
 
-    mol_features = Input(shape=(n_features,))
-    dropout_switch = Input(shape=tuple())
-    prev_layer = mol_features
-    prev_size = n_features
-    next_activation = None
+    class PytorchImpl(torch.nn.Module):
 
-    # Add the dense layers
+      def __init__(self):
+        super(PytorchImpl, self).__init__()
+        self.layers = torch.nn.ModuleList()
+        prev_size = n_features
+        for size, weight_stddev, bias_const in zip(
+            layer_sizes, weight_init_stddevs, bias_init_consts):
+          layer = torch.nn.Linear(prev_size, size)
+          torch.nn.init.normal_(layer.weight, 0, weight_stddev)
+          torch.nn.init.constant_(layer.bias, bias_const)
+          self.layers.append(layer)
+          prev_size = size
+        self.output_layer = torch.nn.Linear(prev_size, n_tasks)
+        torch.nn.init.normal_(self.output_layer.weight, 0,
+                              weight_init_stddevs[-1])
+        torch.nn.init.constant_(self.output_layer.bias, bias_init_consts[-1])
+        self.uncertainty_layer = torch.nn.Linear(prev_size, n_tasks)
+        torch.nn.init.normal_(self.output_layer.weight, 0,
+                              weight_init_stddevs[-1])
+        torch.nn.init.constant_(self.output_layer.bias, 0)
 
-    for size, weight_stddev, bias_const, dropout, activation_fn in zip(
-        layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
-        activation_fns):
-      layer = prev_layer
-      if next_activation is not None:
-        layer = Activation(next_activation)(layer)
-      layer = Dense(
-          size,
-          kernel_initializer=tf.keras.initializers.TruncatedNormal(
-              stddev=weight_stddev),
-          bias_initializer=tf.constant_initializer(value=bias_const),
-          kernel_regularizer=regularizer)(layer)
-      if dropout > 0.0:
-        layer = SwitchedDropout(rate=dropout)([layer, dropout_switch])
-      if residual and prev_size == size:
-        prev_layer = Lambda(lambda x: x[0] + x[1])([prev_layer, layer])
+      def forward(self, inputs):
+        x, dropout_switch = inputs
+        prev_size = n_features
+        next_activation = None
+        for size, layer, dropout, activation_fn, in zip(
+            layer_sizes, self.layers, dropouts, activation_fns):
+          y = x
+          if next_activation is not None:
+            y = next_activation(x)
+          y = layer(y)
+          if dropout > 0.0 and dropout_switch:
+            y = F.dropout(y, dropout)
+          if residual and prev_size == size:
+            y = x + y
+          x = y
+          prev_size = size
+          next_activation = activation_fn
+        if next_activation is not None:
+          y = next_activation(y)
+        neural_fingerprint = y
+        output = torch.reshape(self.output_layer(y), (-1, n_tasks, 1))
+        if uncertainty:
+          log_var = torch.reshape(self.uncertainty_layer(y), (-1, n_tasks, 1))
+          var = torch.exp(log_var)
+          return (output, var, output, log_var, neural_fingerprint)
+        else:
+          return (output, neural_fingerprint)
+
+    model = PytorchImpl()
+    if weight_decay_penalty != 0:
+      weights = [layer.weight for layer in model.layers]
+      if weight_decay_penalty_type == 'l1':
+        regularization_loss = lambda: weight_decay_penalty * sum(torch.abs(w).sum() for w in weights)
       else:
-        prev_layer = layer
-      prev_size = size
-      next_activation = activation_fn
-    if next_activation is not None:
-      prev_layer = Activation(activation_fn)(prev_layer)
-    self.neural_fingerprint = prev_layer
-    output = Reshape((n_tasks, 1))(Dense(
-        n_tasks,
-        kernel_initializer=tf.keras.initializers.TruncatedNormal(
-            stddev=weight_init_stddevs[-1]),
-        bias_initializer=tf.constant_initializer(
-            value=bias_init_consts[-1]))(prev_layer))
+        regularization_loss = lambda: weight_decay_penalty * sum(torch.square(w).sum() for w in weights)
+    else:
+      regularization_loss = None
     loss: Union[dc.models.losses.Loss, LossFn]
     if uncertainty:
-      log_var = Reshape((n_tasks, 1))(Dense(
-          n_tasks,
-          kernel_initializer=tf.keras.initializers.TruncatedNormal(
-              stddev=weight_init_stddevs[-1]),
-          bias_initializer=tf.constant_initializer(value=0.0))(prev_layer))
-      var = Activation(tf.exp)(log_var)
-      outputs = [output, var, output, log_var]
-      output_types = ['prediction', 'variance', 'loss', 'loss']
+      output_types = ['prediction', 'variance', 'loss', 'loss', 'embedding']
 
       def loss(outputs, labels, weights):
-        output, labels = dc.models.losses._make_tf_shapes_consistent(
-            outputs[0], labels[0])
-        output, labels = dc.models.losses._ensure_float(output, labels)
-        losses = tf.square(output - labels) / tf.exp(outputs[1]) + outputs[1]
+        output, labels = _make_pytorch_shapes_consistent(outputs[0], labels[0])
+        diff = labels - output
+        losses = diff * diff / torch.exp(outputs[1]) + outputs[1]
         w = weights[0]
         if len(w.shape) < len(losses.shape):
-          if tf.is_tensor(w):
-            shape = tuple(w.shape.as_list())
+          if isinstance(w, torch.Tensor):
+            shape = tuple(w.shape)
           else:
             shape = w.shape
           shape = tuple(-1 if x is None else x for x in shape)
-          w = tf.reshape(w, shape + (1,) * (len(losses.shape) - len(w.shape)))
-        return tf.reduce_mean(losses * w) + sum(self.model.losses)
+          w = w.reshape(shape + (1,) * (len(losses.shape) - len(w.shape)))
+
+        loss = losses * w
+        loss = loss.mean()
+        if regularization_loss is not None:
+          loss += regularization_loss()
+        return loss
     else:
-      outputs = [output]
-      output_types = ['prediction']
+      output_types = ['prediction', 'embedding']
       loss = dc.models.losses.L2Loss()
-    model = tf.keras.Model(
-        inputs=[mol_features, dropout_switch], outputs=outputs)
     super(MultitaskRegressor, self).__init__(
-        model, loss, output_types=output_types, **kwargs)
+        model,
+        loss,
+        output_types=output_types,
+        regularization_loss=regularization_loss,
+        **kwargs)
 
   def default_generator(
       self,
@@ -443,7 +468,6 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
       self,
       generator: Iterable[Tuple[Any, Any, Any]],
       transformers: List[dc.trans.Transformer] = [],
-      outputs: Optional[OneOrMany[tf.Tensor]] = None,
       output_types: Optional[OneOrMany[str]] = None) -> OneOrMany[np.ndarray]:
 
     def transform_generator():
@@ -454,4 +478,4 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
         yield ([X_t] + inputs[1:], labels, weights)
 
     return super(MultitaskFitTransformRegressor, self).predict_on_generator(
-        transform_generator(), transformers, outputs, output_types)
+        transform_generator(), transformers, output_types)
