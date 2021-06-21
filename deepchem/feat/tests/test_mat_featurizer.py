@@ -13,7 +13,7 @@ class TestMATFeaturizer(unittest.TestCase):
     Set up tests.
     """
     from rdkit import Chem
-    smiles = 'CCC'
+    smiles = 'CC'
     self.mol = Chem.MolFromSmiles(smiles)
 
   def test_mat_featurizer(self):
