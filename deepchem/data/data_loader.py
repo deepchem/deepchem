@@ -875,7 +875,7 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self, featurizer: Featurizer = OneHotFeaturizer, protein = True):
+  def __init__(self, featurizer: Featurizer = OneHotFeaturizer, protein = False):
     """Initialize FASTALoader.
 
     Parameters
@@ -883,7 +883,7 @@ class FASTALoader(DataLoader):
     featurizer: Featurizer (default: OneHotFeaturizer)
       The Featurizer to be used for the loaded FASTA data.
 
-    protein: bool (default: True)
+    protein: bool (default: False)
       Whether or not the sequence passed in is a protein sequence. If False,
       it is treated as a nucleic acid sequence.
     """
