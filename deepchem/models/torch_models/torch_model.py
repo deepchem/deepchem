@@ -119,6 +119,7 @@ class TorchModel(Model):
                wandb: bool = False,
                log_frequency: int = 100,
                device: Optional[torch.device] = None,
+               regularization_loss: Optional[Callable] = None,
                wandb_logger: Optional[WandbLogger] = None,
                **kwargs) -> None:
     """Create a new TorchModel.
@@ -158,10 +159,13 @@ class TorchModel(Model):
     device: torch.device, optional (default None)
       the device on which to run computations.  If None, a device is
       chosen automatically.
+    regularization_loss: Callable, optional
+      a function that takes no arguments, and returns an extra contribution to add
+      to the loss function
     """
     super(TorchModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
     if isinstance(loss, Loss):
-      self._loss_fn: LossFn = _StandardLoss(model, loss)
+      self._loss_fn: LossFn = _StandardLoss(self, loss)
     else:
       self._loss_fn = loss
     self.batch_size = batch_size
@@ -170,6 +174,7 @@ class TorchModel(Model):
     else:
       self.optimizer = optimizer
     self.tensorboard = tensorboard
+    self.regularization_loss = regularization_loss
 
     # Select a device.
 
@@ -1148,8 +1153,8 @@ class TorchModel(Model):
 class _StandardLoss(object):
   """The implements the loss function for models that use a dc.models.losses.Loss."""
 
-  def __init__(self, model: torch.nn.Module, loss: Loss) -> None:
-    self.model = model  # not used
+  def __init__(self, model: TorchModel, loss: Loss) -> None:
+    self.model = model
     self.loss = loss  # not used
     self.criterion = loss._create_pytorch_loss()
 
@@ -1169,4 +1174,7 @@ class _StandardLoss(object):
       w = w.reshape(shape + (1,) * (len(losses.shape) - len(w.shape)))
 
     loss = losses * w
-    return loss.mean()
+    loss = loss.mean()
+    if self.model.regularization_loss is not None:
+      loss += self.model.regularization_loss()
+    return loss
