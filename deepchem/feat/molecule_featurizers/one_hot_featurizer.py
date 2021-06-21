@@ -62,7 +62,7 @@ class OneHotFeaturizer(Featurizer):
     datapoints = list(datapoints)
     if (len(datapoints) < 1):
       return np.array([])
-    # Featurize data using featurize() in grandparent class
+    # Featurize data using featurize() in parent class
     return Featurizer.featurize(self, datapoints, log_every_n)
 
   def _featurize(self, datapoint: Any):
