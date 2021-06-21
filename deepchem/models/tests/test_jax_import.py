@@ -1,11 +1,16 @@
 """
 checking jax imports for new CI build
 """
-import jax.numpy as jnp
-from jax import random
-import numpy as np
 import deepchem as dc
 import pytest
+
+try:
+  import jax.numpy as jnp
+  from jax import random
+  import numpy as np
+  has_jax = True
+except:
+  has_jax = False
 
 
 @pytest.mark.jax
