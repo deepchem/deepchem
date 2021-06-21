@@ -198,6 +198,9 @@ class KerasModel(Model):
     self.wandb = wandb and _has_wandb
 
     self.wandb_logger = wandb_logger
+    # If `wandb=True` and no logger is provided, initialize default logger
+    if self.wandb and (self.wandb_logger is None):
+      self.wandb_logger = WandbLogger()
 
     # Setup and initialize W&B logging
     if (self.wandb_logger is not None) and (not self.wandb_logger.initialized):
@@ -461,15 +464,9 @@ class KerasModel(Model):
         c(self, current_step)
       if self.tensorboard and should_log:
         self._log_scalar_to_tensorboard('loss', batch_loss, current_step)
-      # Wandb flag support (DEPRECATED)
-      if self.wandb and should_log:
-        wandb.log({'loss': batch_loss}, step=current_step)
       if (self.wandb_logger is not None) and should_log:
         all_data = dict({'train/loss': batch_loss})
         self.wandb_logger.log_data(all_data, step=current_step)
-
-    if self.wandb:
-      wandb.finish()
 
     # Close WandbLogger
     if self.wandb_logger is not None:

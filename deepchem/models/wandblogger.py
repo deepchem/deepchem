@@ -33,7 +33,9 @@ class WandbLogger(object):
                anonymous: Optional[str] = "never",
                save_run_history: Optional[bool] = False,
                **kwargs):
-    """Parameters
+    """Creates a WandbLogger.
+
+    Parameters
     ----------
     name: str
       a display name for the run in the W&B dashboard

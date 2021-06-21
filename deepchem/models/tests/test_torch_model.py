@@ -11,6 +11,12 @@ try:
 except:
   has_pytorch = False
 
+try:
+  import wandb
+  has_wandb = True
+except:
+  has_wandb = False
+
 
 @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 def test_overfit_subclass_model():
@@ -335,7 +341,8 @@ def test_tensorboard():
   assert file_size > 0
 
 
-@unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+@unittest.skipIf((not has_pytorch) or (not has_wandb),
+                 'PyTorch and/or Wandb is not installed')
 def test_wandblogger():
   """Test logging to Weights & Biases."""
   # Load dataset and Models
