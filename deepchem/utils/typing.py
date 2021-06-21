@@ -5,8 +5,8 @@ import numpy as np
 
 T = TypeVar("T")
 
-# An activation function for a Keras layer: either a TensorFlow function or the name of a standard activation
-KerasActivationFn = Union[Callable, str]
+# An activation function for a layer: either a function or the name of a standard activation
+ActivationFn = Union[Callable, str]
 
 # A loss function for use with KerasModel or TorchModel: f(outputs, labels, weights)
 LossFn = Callable[[List, List, List], Any]
