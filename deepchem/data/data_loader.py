@@ -875,7 +875,7 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self, featurizer: Featurizer = OneHotFeaturizer, charset: str = "ATCGN"):
+  def __init__(self, featurizer = OneHotFeaturizer, charset: str = "ATCGN"):
     """Initialize FASTALoader.
 
     Parameters
