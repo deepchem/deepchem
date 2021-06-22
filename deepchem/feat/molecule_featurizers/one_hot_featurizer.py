@@ -40,8 +40,8 @@ class OneHotFeaturizer(Featurizer):
     charset: List[str], optional (default ZINC_CHARSET)
       A list of strings, where each string is length 1 and unique.
     max_length: int, optional (default 100)
-      The max length for SMILES string. If the length of SMILES string is
-      shorter than max_length, the SMILES is padded using space.
+      The max length for string. If the length of string is shorter than
+      max_length, the SMILES is padded using space.
     """
     if len(charset) != len(set(charset)):
       raise ValueError("All values in charset must be unique.")
