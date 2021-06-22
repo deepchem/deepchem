@@ -906,8 +906,8 @@ class FASTALoader(DataLoader):
     try:
       self.charset = charsets[charset]
     except:
-      logger.exception("charset is invalid. Charset must be "protein", "nucleic", or "ATCGN".")
-    max_length = len(self.charset)
+      logger.exception("charset is invalid. charset must be 'protein', 'nucleic', or 'ATCGN'.")
+    max_length = len(self.charset)  # TODO: Figure out how to set max length
 
     self.user_specified_features = None
     if isinstance(featurizer, UserDefinedFeaturizer):
