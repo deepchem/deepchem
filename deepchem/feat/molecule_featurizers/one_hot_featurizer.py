@@ -41,7 +41,7 @@ class OneHotFeaturizer(Featurizer):
       A list of strings, where each string is length 1 and unique.
     max_length: Optional[int], optional (default 100)
       The max length for string. If the length of string is shorter than
-      max_length, the SMILES is padded using space.
+      max_length, the string is padded using space.
     """
     if len(charset) != len(set(charset)):
       raise ValueError("All values in charset must be unique.")
