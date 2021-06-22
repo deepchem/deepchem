@@ -11,7 +11,7 @@ else:
 
 # Environment-specific dependencies.
 extras = {
-    'jax': ['jax==0.2.14', 'jaxlib==0.1.66', 'dm-haiku==0.0.4', 'optax==0.0.8']
+    'jax': ['jax==0.2.14', 'jaxlib==0.1.66', 'dm-haiku==0.0.4', 'optax==0.0.8'],
 }
 
 
