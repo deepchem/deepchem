@@ -7,20 +7,23 @@ from deepchem.feat.mol_graphs import ConvMol
 
 try:
   import torch
+
+  class MLP(dc.models.TorchModel):
+
+    def __init__(self,
+                 n_tasks=1,
+                 feature_dim=100,
+                 hidden_layer_size=64,
+                 **kwargs):
+      pytorch_model = torch.nn.Sequential(
+          torch.nn.Linear(feature_dim, hidden_layer_size), torch.nn.ReLU(),
+          torch.nn.Linear(hidden_layer_size, n_tasks), torch.nn.Sigmoid())
+      loss = dc.models.losses.BinaryCrossEntropy()
+      super(MLP, self).__init__(model=pytorch_model, loss=loss, **kwargs)
+
   has_pytorch = True
 except:
   has_pytorch = False
-
-
-class MLP(dc.models.TorchModel):
-
-  def __init__(self, n_tasks=1, feature_dim=100, hidden_layer_size=64,
-               **kwargs):
-    pytorch_model = torch.nn.Sequential(
-        torch.nn.Linear(feature_dim, hidden_layer_size), torch.nn.ReLU(),
-        torch.nn.Linear(hidden_layer_size, n_tasks), torch.nn.Sigmoid())
-    loss = dc.models.losses.BinaryCrossEntropy()
-    super(MLP, self).__init__(model=pytorch_model, loss=loss, **kwargs)
 
 
 @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
