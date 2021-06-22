@@ -162,6 +162,8 @@ class TorchModel(Model):
     regularization_loss: Callable, optional
       a function that takes no arguments, and returns an extra contribution to add
       to the loss function
+    wandb_logger: WandbLogger
+      the Weights & Biases logger object used to log data and metrics
     """
     super(TorchModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
     if isinstance(loss, Loss):
@@ -187,6 +189,10 @@ class TorchModel(Model):
     self.model = model.to(device)
 
     # W&B logging
+    if wandb:
+      logger.warning(
+          "`wandb` argument is deprecated. Please use `wandb_logger` instead. "
+          "This argument will be removed in a future release of DeepChem.")
     if wandb and not _has_wandb:
       logger.warning(
           "You set wandb to True but W&B is not installed. To use wandb logging, "
@@ -212,7 +218,8 @@ class TorchModel(Model):
         learning_rate=learning_rate,
         optimizer=optimizer,
         tensorboard=tensorboard,
-        log_frequency=log_frequency)
+        log_frequency=log_frequency,
+        regularization_loss=regularization_loss)
     wandb_logger_config.update(**kwargs)
 
     if self.wandb_logger is not None:

@@ -3,6 +3,13 @@ import math
 import deepchem as dc
 import numpy as np
 import tensorflow as tf
+import unittest
+
+try:
+  import wandb
+  has_wandb = True
+except:
+  has_wandb = False
 
 
 def test_overfit_graph_model():
@@ -297,6 +304,7 @@ def test_tensorboard():
   assert file_size > 0
 
 
+@unittest.skipIf(not has_wandb, 'Wandb is not installed')
 def test_wandblogger():
   """Test logging to Weights & Biases."""
   # Load dataset and Models
