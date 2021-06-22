@@ -72,7 +72,7 @@ class OneHotFeaturizer(Featurizer):
 
   def _featurize(self, datapoint: Any):
     # Featurize str data
-    if (isinstance(datapoint, (str, np.str_))):
+    if isinstance(datapoint, (str, np.str_)):
       return self._featurize_string(datapoint)
     # Featurize mol data
     else:
