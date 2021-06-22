@@ -48,7 +48,8 @@ class OneHotFeaturizer(Featurizer):
     self.charset = charset
     self.max_length = max_length
 
-  def featurize(self, datapoints: Iterable[Any],
+  def featurize(self,
+                datapoints: Iterable[Any],
                 log_every_n: int = 1000) -> np.ndarray:
     """Featurize strings or mols.
 
@@ -64,7 +65,9 @@ class OneHotFeaturizer(Featurizer):
       return np.array([])
 
     if (len(self.charset) > self.max_length):
-      logger.warning("Invalid for max_length to be larger than len(charset). Returning empty array.")
+      logger.warning(
+          "Invalid for max_length to be larger than len(charset). Returning empty array."
+      )
       return np.array([])
 
     # Featurize data using featurize() in parent class
