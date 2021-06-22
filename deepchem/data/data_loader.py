@@ -875,7 +875,7 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self, featurizer: Featurizer = OneHotFeaturizer, protein = False):
+  def __init__(self, featurizer: Featurizer = OneHotFeaturizer, protein = False, max_length = 100):
     """Initialize FASTALoader.
 
     Parameters
@@ -886,6 +886,10 @@ class FASTALoader(DataLoader):
     protein: bool (default: False)
       Whether or not the sequence passed in is a protein sequence. If False,
       it is treated as a nucleic acid sequence.
+
+    max_length: int (default: 100)
+      The maximum length of a string in the FASTA file. If Featurizer = OneHotFeaturizer,
+      all one hot encodings will be padded to this length.
     """
     protein_charset = ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
                        'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
@@ -898,9 +902,11 @@ class FASTALoader(DataLoader):
       self.user_specified_features = featurizer.feature_fields
     if (featurizer == OneHotFeaturizer):
       if (protein):
-        featurizer = OneHotFeaturizer(protein_charset)
+        featurizer = OneHotFeaturizer(protein_charset, max_length)
       else:
-        featurizer = OneHotFeaturizer(nucleic_charset)
+        featurizer = OneHotFeaturizer(nucleic_charset, max_length)
+    else:
+      featurizer = featurizer()
     self.featurizer = featurizer
 
   def create_dataset(self,
@@ -944,7 +950,7 @@ class FASTALoader(DataLoader):
       X = self.featurizer(sequences)
       logger.warning(f"**TESTING** FINAL FEATURIZED ARRAY: {X}")
       ids = np.ones(len(X))
-      # (X, y, w, ids) TODO discuss shape
+      # (X, y, w, ids)
       yield X, None, None, ids 
 
     def _read_file(input_file: str, auto_add_annotations: bool=False):
