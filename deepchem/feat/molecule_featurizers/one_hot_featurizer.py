@@ -55,7 +55,7 @@ class OneHotFeaturizer(Featurizer):
     Parameters
     ----------
     datapoints: list
-      A list of either strings or RDKit molecules.
+      A list of either strings (str or numpy.str_) or RDKit molecules.
     log_every_n: int, optional (default 1000)
       How many elements are featurized every time a featurization is logged.
     """
