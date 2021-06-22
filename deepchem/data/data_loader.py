@@ -14,7 +14,6 @@ import numpy as np
 
 from deepchem.utils.typing import OneOrMany
 from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files
-from deepchem.utils.genomics_utils import encode_bio_sequence
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
@@ -489,8 +488,8 @@ class UserCSVLoader(CSVLoader):
     shard[feature_fields] = shard[feature_fields].apply(pd.to_numeric)
     X_shard = shard[feature_fields].to_numpy()
     time2 = time.time()
-    logger.info("TIMING: user specified processing took %0.3f s" %
-                (time2 - time1))
+    logger.info(
+        "TIMING: user specified processing took %0.3f s" % (time2 - time1))
     return (X_shard, np.ones(len(X_shard), dtype=bool))
 
 
@@ -832,10 +831,11 @@ class SDFLoader(DataLoader):
     Iterator[pd.DataFrame]
       Iterator over shards
     """
-    return load_sdf_files(input_files=input_files,
-                          clean_mols=self.sanitize,
-                          tasks=self.tasks,
-                          shard_size=shard_size)
+    return load_sdf_files(
+        input_files=input_files,
+        clean_mols=self.sanitize,
+        tasks=self.tasks,
+        shard_size=shard_size)
 
   def _featurize_shard(self,
                        shard: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
@@ -875,9 +875,7 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self,
-               featurizer: Featurizer = OneHotFeaturizer,
-               charset: str = "ATCGN"):
+  def __init__(self, featurizer: Featurizer = OneHotFeaturizer, charset: str = "ATCGN"):
     """Initialize FASTALoader.
 
     Parameters
@@ -897,12 +895,12 @@ class FASTALoader(DataLoader):
       Currently acceptable charsets are: "protein", "nucleic", and "ATCGN".
     """
     charsets = {
-        "protein": ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
-                    'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-                    'Y', 'Z', '*', '-'),
-        "nucleic": ('A', 'C', 'G', 'T', 'U', '(i)', 'R', 'Y', 'K', 'M', 'S',
-                    'W', 'B', 'D', 'H', 'V', 'N', '-'),
-        "ATCGN": ('A', 'T', 'C', 'G', 'N')
+      "protein": ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
+                  'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+                  'Y', 'Z', '*', '-'),
+      "nucleic": ('A', 'C', 'G', 'T', 'U', '(i)', 'R', 'Y', 'K', 'M', 'S', 'W',
+                  'B', 'D', 'H', 'V', 'N', '-'),
+      "ATCGN": ('A', 'T', 'C', 'G', 'N')
     }
 
     self.charset = charsets.get(charset)
@@ -913,6 +911,7 @@ class FASTALoader(DataLoader):
       self.user_specified_features = featurizer.feature_fields
 
     if (featurizer == OneHotFeaturizer):
+      logger.warning(f"CHARSET IS {self.charset}")
       featurizer = OneHotFeaturizer(self.charset, max_length)
     else:
       featurizer = featurizer()
@@ -957,6 +956,7 @@ class FASTALoader(DataLoader):
       for input_file in input_files:
         sequences = np.append(sequences, _read_file(input_file))
       X = self.featurizer(sequences)
+      logger.warning(X)
       ids = np.ones(len(X))
       # (X, y, w, ids)
       yield X, None, None, ids
@@ -965,10 +965,9 @@ class FASTALoader(DataLoader):
       """
       Convert the FASTA file to a numpy array of FASTA-format strings.
       """
-
       def _generate_sequences(fasta_file, header_mark=">") -> np.array:
         """
-        Uses a fasta_file to create a numpy array of annotated FASTA-format strings 
+        Uses a fasta_file to create a numpy array of annotated FASTA-format strings
         """
         sequences = np.array([])
         sequence = []
@@ -979,7 +978,7 @@ class FASTALoader(DataLoader):
             header_read = True
             sequences = _add_sequence(sequences, sequence)
             sequence = []
-          elif header_read == True:  # Line contains sequence in FASTA format
+          elif header_read:  # Line contains sequence in FASTA format
             if line[-1:] == '\n':  # Check last character in string
               line = line[0:-1]  # Remove last character
             sequence.append(line)
@@ -988,9 +987,8 @@ class FASTALoader(DataLoader):
 
       def _add_sequence(sequences: np.array, sequence: list) -> np.array:
         # Handle empty sequence
-        if sequence == None or len(sequence) <= 0:
-          logger.warning(
-              "Attempting to add empty sequence, returning empty array...")
+        if sequence is None or len(sequence) <= 0:
+          logger.warning("Attempting to add empty sequence, returning empty array...")
           return np.array([])
         # Annotate start/stop of sequence
         if auto_add_annotations:
@@ -1120,17 +1118,16 @@ class ImageLoader(DataLoader):
 
     if in_memory:
       if data_dir is None:
-        return NumpyDataset(load_image_files(image_files),
-                            y=labels,
-                            w=weights,
-                            ids=image_files)
+        return NumpyDataset(
+            load_image_files(image_files), y=labels, w=weights, ids=image_files)
       else:
-        dataset = DiskDataset.from_numpy(load_image_files(image_files),
-                                         y=labels,
-                                         w=weights,
-                                         ids=image_files,
-                                         tasks=self.tasks,
-                                         data_dir=data_dir)
+        dataset = DiskDataset.from_numpy(
+            load_image_files(image_files),
+            y=labels,
+            w=weights,
+            ids=image_files,
+            tasks=self.tasks,
+            data_dir=data_dir)
         if shard_size is not None:
           dataset.reshard(shard_size)
         return dataset
@@ -1274,8 +1271,8 @@ class InMemoryLoader(DataLoader):
 
   # FIXME: Signature of "_featurize_shard" incompatible with supertype "DataLoader"
   def _featurize_shard(  # type: ignore[override]
-      self, shard: List, global_index: int) -> Tuple[np.ndarray, np.ndarray,
-                                                     np.ndarray, np.ndarray]:
+      self, shard: List, global_index: int
+  ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Featurizes a shard of an input data.
 
     Parameters
