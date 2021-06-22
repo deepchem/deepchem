@@ -97,7 +97,13 @@ class OneHotFeaturizer(Featurizer):
       The index of unknown character is `len(charset)`.
     """
     if max_length is not none:
+      if (len(string) > self.max_length):
+        logger.info(
+            "The length of {} is longer than `max_length`. So we return an empty array."
+        )
+        return np.array([])
       string = self.pad_string(string)  # Padding
+
     return np.array([
         one_hot_encode(val, self.charset, include_unknown_set=True)
         for val in string
