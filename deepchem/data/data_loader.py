@@ -955,7 +955,6 @@ class FASTALoader(DataLoader):
       for input_file in input_files:
         sequences = np.append(sequences, _read_file(input_file))
       X = self.featurizer(sequences)
-      logger.warning(X)
       ids = np.ones(len(X))
       # (X, y, w, ids)
       yield X, None, None, ids 
