@@ -32,14 +32,14 @@ class OneHotFeaturizer(Featurizer):
   It does not need RDKit to be installed to work with arbitrary strings.
   """
 
-  def __init__(self, charset: List[str] = ZINC_CHARSET, max_length: int = 100):
+  def __init__(self, charset: List[str] = ZINC_CHARSET, max_length: Optional[int] = 100):
     """Initialize featurizer.
 
     Parameters
     ----------
-    charset: List[str], optional (default ZINC_CHARSET)
+    charset: List[str] (default ZINC_CHARSET)
       A list of strings, where each string is length 1 and unique.
-    max_length: int, optional (default 100)
+    max_length: Optional[int], optional (default 100)
       The max length for string. If the length of string is shorter than
       max_length, the SMILES is padded using space.
     """
