@@ -1,5 +1,4 @@
-import unittest
-
+import pytest
 from deepchem.models.tests.test_graph_models import get_dataset
 import numpy as np
 
@@ -14,8 +13,7 @@ except:
   has_haiku_and_optax = False
 
 
-@unittest.skipIf(not has_haiku_and_optax,
-                 'Jax, Haiku, or Optax are not installed')
+@pytest.mark.jax
 def test_jax_model_for_regression():
   tasks, dataset, transformers, metric = get_dataset(
       'regression', featurizer='ECFP')
@@ -51,8 +49,7 @@ def test_jax_model_for_regression():
   assert results < 0.5
 
 
-@unittest.skipIf(not has_haiku_and_optax,
-                 'Jax, Haiku, or Optax are not installed')
+@pytest.mark.jax
 def test_jax_model_for_classification():
   tasks, dataset, transformers, metric = get_dataset(
       'classification', featurizer='ECFP')
