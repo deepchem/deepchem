@@ -875,7 +875,7 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self, featurizer = OneHotFeaturizer, charset: Optional[str] = "ATCGN", max_length: Optional[int] = None):
+  def __init__(self, featurizer = OneHotFeaturizer, charset: Optional[str] = "ATCGN", max_length: Optional[int] = None, validate: bool = True):
     """Initialize FASTALoader.
 
     Parameters
@@ -892,7 +892,6 @@ class FASTALoader(DataLoader):
       full FASTA-format protein sequences, and full FASTA format nucleic acid
       sequences.
       Currently acceptable charsets are: "protein", "nucleic", and "ATCGN".
-      This argument is currently only used if featurizer = OneHotFeaturizer.
 
     max_length: Optional[int] (default: None)
       max_length is only used if featurizer = OneHotFeaturizer.
@@ -920,10 +919,7 @@ class FASTALoader(DataLoader):
     if isinstance(featurizer, UserDefinedFeaturizer):
       self.user_specified_features = featurizer.feature_fields
 
-    if (featurizer == OneHotFeaturizer):
-      featurizer = OneHotFeaturizer(self.charset, max_length)
-    else:
-      featurizer = featurizer()
+    featurizer = featurizer(charset = self.charset, max_length = max_length)
 
     self.featurizer = featurizer
 
