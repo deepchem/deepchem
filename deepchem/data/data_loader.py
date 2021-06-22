@@ -875,7 +875,7 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self, featurizer = OneHotFeaturizer, charset: Optional[str] = "ATCGN", max_length: Optional[int] = None, validate: bool = True):
+  def __init__(self, featurizer = OneHotFeaturizer, charset: Optional[str] = "ATCGN", max_length: Optional[int] = None):
     """Initialize FASTALoader.
 
     Parameters
@@ -920,7 +920,6 @@ class FASTALoader(DataLoader):
       self.user_specified_features = featurizer.feature_fields
 
     featurizer = featurizer(charset = self.charset, max_length = max_length)
-
     self.featurizer = featurizer
 
   def create_dataset(self,
