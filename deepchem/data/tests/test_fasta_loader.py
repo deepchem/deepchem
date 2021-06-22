@@ -17,7 +17,7 @@ class TestFASTALoader(unittest.TestCase):
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
   def test_fasta_load(self):
-    legacy = False
+    legacy = False # Whether to assume legacy one hot encoding shape from FASTA loader.
 
     input_file = os.path.join(self.current_dir,
                               "../../data/tests/example.fasta")
