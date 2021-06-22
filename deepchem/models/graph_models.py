@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from typing import List, Union, Tuple, Iterable, Dict, Optional
-from deepchem.utils.typing import OneOrMany, LossFn, KerasActivationFn
+from deepchem.utils.typing import OneOrMany, LossFn, ActivationFn
 from deepchem.data import Dataset, NumpyDataset, pad_features
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
@@ -81,34 +81,33 @@ class WeaveModel(KerasModel):
 
   """
 
-  def __init__(
-      self,
-      n_tasks: int,
-      n_atom_feat: OneOrMany[int] = 75,
-      n_pair_feat: OneOrMany[int] = 14,
-      n_hidden: int = 50,
-      n_graph_feat: int = 128,
-      n_weave: int = 2,
-      fully_connected_layer_sizes: List[int] = [2000, 100],
-      conv_weight_init_stddevs: OneOrMany[float] = 0.03,
-      weight_init_stddevs: OneOrMany[float] = 0.01,
-      bias_init_consts: OneOrMany[float] = 0.0,
-      weight_decay_penalty: float = 0.0,
-      weight_decay_penalty_type: str = "l2",
-      dropouts: OneOrMany[float] = 0.25,
-      final_conv_activation_fn: Optional[KerasActivationFn] = tf.nn.tanh,
-      activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
-      batch_normalize: bool = True,
-      batch_normalize_kwargs: Dict = {
-          "renorm": True,
-          "fused": False
-      },
-      gaussian_expand: bool = True,
-      compress_post_gaussian_expansion: bool = False,
-      mode: str = "classification",
-      n_classes: int = 2,
-      batch_size: int = 100,
-      **kwargs):
+  def __init__(self,
+               n_tasks: int,
+               n_atom_feat: OneOrMany[int] = 75,
+               n_pair_feat: OneOrMany[int] = 14,
+               n_hidden: int = 50,
+               n_graph_feat: int = 128,
+               n_weave: int = 2,
+               fully_connected_layer_sizes: List[int] = [2000, 100],
+               conv_weight_init_stddevs: OneOrMany[float] = 0.03,
+               weight_init_stddevs: OneOrMany[float] = 0.01,
+               bias_init_consts: OneOrMany[float] = 0.0,
+               weight_decay_penalty: float = 0.0,
+               weight_decay_penalty_type: str = "l2",
+               dropouts: OneOrMany[float] = 0.25,
+               final_conv_activation_fn: Optional[ActivationFn] = tf.nn.tanh,
+               activation_fns: OneOrMany[ActivationFn] = tf.nn.relu,
+               batch_normalize: bool = True,
+               batch_normalize_kwargs: Dict = {
+                   "renorm": True,
+                   "fused": False
+               },
+               gaussian_expand: bool = True,
+               compress_post_gaussian_expansion: bool = False,
+               mode: str = "classification",
+               n_classes: int = 2,
+               batch_size: int = 100,
+               **kwargs):
     """
     Parameters
     ----------
@@ -151,7 +150,7 @@ class WeaveModel(KerasModel):
       The dropout probablity to use for each fully connected layer.  The length of this list
       should equal len(layer_sizes).  Alternatively this may be a single value
       instead of a list, in which case the same value is used for every layer.
-    final_conv_activation_fn: Optional[KerasActivationFn] (default `tf.nn.tanh`)
+    final_conv_activation_fn: Optional[ActivationFn] (default `tf.nn.tanh`)
       The Tensorflow activation funcntion to apply to the final
       convolution at the end of the weave convolutions. If `None`, then no
       activate is applied (hence linear).
