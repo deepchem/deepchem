@@ -911,7 +911,6 @@ class FASTALoader(DataLoader):
       self.user_specified_features = featurizer.feature_fields
 
     if (featurizer == OneHotFeaturizer):
-      logger.warning(f"CHARSET IS {self.charset}")
       featurizer = OneHotFeaturizer(self.charset, max_length)
     else:
       featurizer = featurizer()
