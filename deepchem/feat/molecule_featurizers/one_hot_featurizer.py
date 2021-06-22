@@ -62,12 +62,17 @@ class OneHotFeaturizer(Featurizer):
     datapoints = list(datapoints)
     if (len(datapoints) < 1):
       return np.array([])
+
+    if (len(self.charset) > self.max_length):
+      logger.warning("Invalid for max_length to be larger than len(charset). Returning empty array.")
+      return np.array([])
+
     # Featurize data using featurize() in parent class
     return Featurizer.featurize(self, datapoints, log_every_n)
 
   def _featurize(self, datapoint: Any):
     # Featurize str data
-    if (type(datapoint) == str):
+    if (isinstance(datapoint, (str, numpy.str_)):
       return self._featurize_string(datapoint)
     # Featurize mol data
     else:
@@ -88,13 +93,6 @@ class OneHotFeaturizer(Featurizer):
       The shape is `(max_length, len(charset) + 1)`.
       The index of unknown character is `len(charset)`.
     """
-    # validation
-    if (len(string) > self.max_length):
-      logger.info(
-          "The length of {} is longer than `max_length`. So we return an empty array."
-      )
-      return np.array([])
-
     string = self.pad_string(string)  # Padding
     return np.array([
         one_hot_encode(val, self.charset, include_unknown_set=True)
