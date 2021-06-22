@@ -6,7 +6,7 @@ import numpy as np
 from deepchem.utils.typing import RDKitMol
 from deepchem.utils.molecule_feature_utils import one_hot_encode
 from deepchem.feat.base_classes import Featurizer
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 logger = logging.getLogger(__name__)
 
