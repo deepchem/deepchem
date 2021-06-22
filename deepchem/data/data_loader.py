@@ -903,7 +903,10 @@ class FASTALoader(DataLoader):
       "ATCGN": ('A', 'T', 'C', 'G', 'N')
     }
 
-    self.charset = charsets.get(charset)
+    try:
+      self.charset = charsets[charset]
+    except:
+      logger.exception("charset is invalid. Charset must be "protein", "nucleic", or "ATCGN".")
     max_length = len(self.charset)
 
     self.user_specified_features = None
