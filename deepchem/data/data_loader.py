@@ -875,7 +875,7 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self, featurizer = OneHotFeaturizer, charset: str = "ATCGN", max_length = 58):
+  def __init__(self, featurizer = OneHotFeaturizer, charset: str = "ATCGN", max_length = 58): # TODO: REMOVE MAX_LENGTH ARGUMENT BEFORE PR MERGE
     """Initialize FASTALoader.
 
     Parameters
