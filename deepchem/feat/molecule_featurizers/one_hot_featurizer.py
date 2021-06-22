@@ -64,12 +64,6 @@ class OneHotFeaturizer(Featurizer):
     if (len(datapoints) < 1):
       return np.array([])
 
-    if (len(self.charset) > self.max_length):
-      logger.warning(
-          "Invalid for max_length to be larger than len(charset). Returning empty array."
-      )
-      return np.array([])
-
     # Featurize data using featurize() in parent class
     return Featurizer.featurize(self, datapoints, log_every_n)
 

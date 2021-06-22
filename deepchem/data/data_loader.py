@@ -875,7 +875,7 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self, featurizer = OneHotFeaturizer, charset: str = "ATCGN", max_length = 58): # TODO: REMOVE MAX_LENGTH ARGUMENT BEFORE PR MERGE
+  def __init__(self, featurizer = OneHotFeaturizer, charset: Optional[str] = "ATCGN", max_length: Optional[int] = None):
     """Initialize FASTALoader.
 
     Parameters
@@ -887,12 +887,18 @@ class FASTALoader(DataLoader):
       Whether or not the sequence passed in is a protein sequence. If False,
       it is treated as a nucleic acid sequence.
 
-    charset: str (default: ATCGN)
+    charset: Optional[str] (default: "ATCGN")
       The charset used in the loaded FASTA file. Currently, we support ATCGN,
       full FASTA-format protein sequences, and full FASTA format nucleic acid
       sequences.
-
       Currently acceptable charsets are: "protein", "nucleic", and "ATCGN".
+      This argument is currently only used if featurizer = OneHotFeaturizer.
+
+    max_length: Optional[int] (default: None)
+      max_length is only used if featurizer = OneHotFeaturizer.
+      The length that all strings are padded to before featurization.
+      max_length must be larger than the length of the longest string that is
+      being featurized.
     """
     charsets = {
       "protein": ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
@@ -904,8 +910,11 @@ class FASTALoader(DataLoader):
     }
     try:
       self.charset = charsets[charset]
-    except:
-      logger.exception("charset is invalid. charset must be 'protein', 'nucleic', or 'ATCGN'.")
+    except KeyError:
+      if (featurizer == OneHotFeaturizer):
+        logger.exception("charset is invalid. charset must be 'protein', 'nucleic', or 'ATCGN'.")
+      else:
+        logger.warning("charset is invalid, ignoring...")
 
     self.user_specified_features = None
     if isinstance(featurizer, UserDefinedFeaturizer):
