@@ -96,9 +96,9 @@ class OneHotFeaturizer(Featurizer):
       The shape is `(max_length, len(charset) + 1)`.
       The index of unknown character is `len(charset)`.
     """
-    if max_length is not none:
-      if (len(string) > self.max_length):
-        logger.info(
+    if self.max_length is not None:
+      if (len(string) > self.max_length):  # Validation
+        logger.warning(
             "The length of {} is longer than `max_length`. So we return an empty array."
         )
         return np.array([])
