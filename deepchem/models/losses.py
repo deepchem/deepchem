@@ -38,7 +38,12 @@ class L1Loss(Loss):
 
   def _create_pytorch_loss(self):
     import torch
-    return torch.nn.L1Loss(reduction='none')
+
+    def loss(output, labels):
+      output, labels = _make_pytorch_shapes_consistent(output, labels)
+      return torch.nn.functional.l1_loss(output, labels, reduction='none')
+
+    return loss
 
 
 class HuberLoss(Loss):
@@ -55,7 +60,13 @@ class HuberLoss(Loss):
 
   def _create_pytorch_loss(self):
     import torch
-    return torch.nn.SmoothL1Loss(reduction='none')
+
+    def loss(output, labels):
+      output, labels = _make_pytorch_shapes_consistent(output, labels)
+      return torch.nn.functional.smooth_l1_loss(
+          output, labels, reduction='none')
+
+    return loss
 
 
 class L2Loss(Loss):
@@ -69,7 +80,12 @@ class L2Loss(Loss):
 
   def _create_pytorch_loss(self):
     import torch
-    return torch.nn.MSELoss(reduction='none')
+
+    def loss(output, labels):
+      output, labels = _make_pytorch_shapes_consistent(output, labels)
+      return torch.nn.functional.mse_loss(output, labels, reduction='none')
+
+    return loss
 
 
 class HingeLoss(Loss):
@@ -229,7 +245,7 @@ class SoftmaxCrossEntropy(Loss):
 
   def _create_pytorch_loss(self):
     import torch
-    ls = torch.nn.LogSoftmax(dim=1)
+    ls = torch.nn.LogSoftmax(dim=-1)
 
     def loss(output, labels):
       output, labels = _make_pytorch_shapes_consistent(output, labels)
