@@ -875,7 +875,7 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self, featurizer = OneHotFeaturizer, charset: str = "ATCGN"):
+  def __init__(self, featurizer = OneHotFeaturizer, charset: str = "ATCGN", max_length = 58):
     """Initialize FASTALoader.
 
     Parameters
@@ -902,12 +902,10 @@ class FASTALoader(DataLoader):
                   'B', 'D', 'H', 'V', 'N', '-'),
       "ATCGN": ('A', 'T', 'C', 'G', 'N')
     }
-
     try:
       self.charset = charsets[charset]
     except:
       logger.exception("charset is invalid. charset must be 'protein', 'nucleic', or 'ATCGN'.")
-    max_length = len(self.charset)  # TODO: Figure out how to set max length
 
     self.user_specified_features = None
     if isinstance(featurizer, UserDefinedFeaturizer):
