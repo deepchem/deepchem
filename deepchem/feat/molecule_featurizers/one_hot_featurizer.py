@@ -96,7 +96,8 @@ class OneHotFeaturizer(Featurizer):
       The shape is `(max_length, len(charset) + 1)`.
       The index of unknown character is `len(charset)`.
     """
-    string = self.pad_string(string)  # Padding
+    if max_length is not none:
+      string = self.pad_string(string)  # Padding
     return np.array([
         one_hot_encode(val, self.charset, include_unknown_set=True)
         for val in string
