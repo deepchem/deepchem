@@ -905,7 +905,7 @@ class FASTALoader(DataLoader):
 
     try:
       self.charset = charsets[charset]
-    except KeyError:
+    except:
       logger.exception("charset is invalid. Charset must be "protein", "nucleic", or "ATCGN".")
     max_length = len(self.charset)
 
