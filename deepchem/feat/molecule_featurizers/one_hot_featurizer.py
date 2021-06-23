@@ -48,7 +48,10 @@ class OneHotFeaturizer(Featurizer):
     if len(charset) != len(set(charset)):
       raise ValueError("All values in charset must be unique.")
     self.charset = charset
-    self.max_length = max_length
+    if max_length is not None:
+      self.max_length = int(max_length)
+    else:
+      self.max_length = None
 
   def featurize(self,
                 datapoints: Iterable[Any],
@@ -65,7 +68,6 @@ class OneHotFeaturizer(Featurizer):
     datapoints = list(datapoints)
     if (len(datapoints) < 1):
       return np.array([])
-
     # Featurize data using featurize() in parent class
     return Featurizer.featurize(self, datapoints, log_every_n)
 
@@ -155,7 +157,11 @@ class OneHotFeaturizer(Featurizer):
     str
       String space padded to self.pad_length
     """
-    return string.ljust(self.max_length)
+    if isinstance(self.max_length, int):
+      return string.ljust(self.max_length)
+    else:
+      logger.info("DID NOT PAD: max_length is not int.")
+      return string
 
   def untransform(self, one_hot_vectors: np.ndarray) -> str:
     """Convert from one hot representation back to original string
