@@ -197,7 +197,7 @@ class TorchModel(Model):
     self.wandb = wandb and _has_wandb
 
     self.log_frequency = log_frequency
-    if self.tensorboard and not _has_wandb:
+    if self.tensorboard and not _has_tensorboard:
       raise ImportError("This class requires tensorboard to be installed.")
     if self.tensorboard:
       self._summary_writer = torch.utils.tensorboard.SummaryWriter(
