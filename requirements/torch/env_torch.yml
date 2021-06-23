@@ -13,5 +13,5 @@ dependencies:
     - pymatgen==2020.12.31
     - matminer
     - networkx
-    - torch-geometric==1.7.0
+    - torch-geometric==1.7.1
     - tensorboard
