@@ -16,7 +16,7 @@ class TestFASTALoader(unittest.TestCase):
     super(TestFASTALoader, self).setUp()
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
-  def test_fasta_load(self):
+  def test_fasta_one_hot(self):
     legacy = False  # Whether to assume legacy one hot encoding shape from FASTA loader.
 
     input_file = os.path.join(self.current_dir,
@@ -30,4 +30,14 @@ class TestFASTALoader(unittest.TestCase):
     if legacy:
       assert sequences.X.shape == (3, 5, 58, 1)
     else:
+      assert False
       assert sequences.X.shape == (3, 58, 5)
+
+  def test_fasta_one_hot_big(self):
+    input_file = os.path.join(self.current_dir,
+                              "../../data/tests/uniprot_truncated.fasta")
+    loader = dc.data.FASTALoader(charset="protein", max_length = 1000)
+    sequences = loader.create_dataset(input_file)
+
+    print(sequences.X.shape)
+    assert False
