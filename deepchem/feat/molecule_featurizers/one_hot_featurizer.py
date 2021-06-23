@@ -32,7 +32,9 @@ class OneHotFeaturizer(Featurizer):
   It does not need RDKit to be installed to work with arbitrary strings.
   """
 
-  def __init__(self, charset: List[str] = ZINC_CHARSET, max_length: Optional[int] = 100):
+  def __init__(self,
+               charset: List[str] = ZINC_CHARSET,
+               max_length: Optional[int] = 100):
     """Initialize featurizer.
 
     Parameters

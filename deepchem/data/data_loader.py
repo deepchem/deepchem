@@ -488,8 +488,8 @@ class UserCSVLoader(CSVLoader):
     shard[feature_fields] = shard[feature_fields].apply(pd.to_numeric)
     X_shard = shard[feature_fields].to_numpy()
     time2 = time.time()
-    logger.info(
-        "TIMING: user specified processing took %0.3f s" % (time2 - time1))
+    logger.info("TIMING: user specified processing took %0.3f s" %
+                (time2 - time1))
     return (X_shard, np.ones(len(X_shard), dtype=bool))
 
 
@@ -831,11 +831,10 @@ class SDFLoader(DataLoader):
     Iterator[pd.DataFrame]
       Iterator over shards
     """
-    return load_sdf_files(
-        input_files=input_files,
-        clean_mols=self.sanitize,
-        tasks=self.tasks,
-        shard_size=shard_size)
+    return load_sdf_files(input_files=input_files,
+                          clean_mols=self.sanitize,
+                          tasks=self.tasks,
+                          shard_size=shard_size)
 
   def _featurize_shard(self,
                        shard: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
@@ -875,7 +874,11 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self, featurizer = OneHotFeaturizer, charset: Union[str, tuple, None] = "ATCGN", max_length: Optional[int] = None):
+  def __init__(self,
+               featurizer=OneHotFeaturizer,
+               charset: Union[str, tuple, None] = "ATCGN",
+               max_length: Optional[int] = None,
+               auto_add_annotations: bool = False):
     """Initialize FASTALoader.
 
     Parameters
@@ -904,18 +907,24 @@ class FASTALoader(DataLoader):
       string that is being featurized. max_length is passed to the featurizer.
 
       OneHotFeaturizer pads all strings to max_length with spaces.
-    """
+
+    auto_add_annotations: bool (default False)
+      Whether create_dataset will automatically add [CLS] and [SEP] annotations
+      to the sequences it reads in order to assist tokenization.
+      Keep False if your FASTA file already includes [CLS] and [SEP] annotations.
+   """
     charsets = {
-      "protein": ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
-                  'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-                  'Y', 'Z', '*', '-'),
-      "nucleic": ('A', 'C', 'G', 'T', 'U', '(i)', 'R', 'Y', 'K', 'M', 'S', 'W',
-                  'B', 'D', 'H', 'V', 'N', '-'),
-      "ATCGN": ('A', 'T', 'C', 'G')
+        "protein": ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
+                    'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+                    'Y', 'Z', '*', '-'),
+        "nucleic": ('A', 'C', 'G', 'T', 'U', '(i)', 'R', 'Y', 'K', 'M', 'S',
+                    'W', 'B', 'D', 'H', 'V', 'N', '-'),
+        "ATCGN": ('A', 'T', 'C', 'G')
     }
 
-    # Initialize self.max_length and self.charset
+    # Initialize instance variables
     self.max_length = max_length
+    self.auto_add_annotations = auto_add_annotations
     if isinstance(charset, str):
       try:
         self.charset = charsets[charset]
@@ -934,7 +943,7 @@ class FASTALoader(DataLoader):
 
     # Initialize featurizer
     try:
-      featurizer = featurizer(charset = self.charset, max_length = self.max_length)
+      featurizer = featurizer(charset=self.charset, max_length=self.max_length)
     except:
       logger.exception("Sorry! Your featurizer may not be supported yet.")
 
@@ -942,7 +951,6 @@ class FASTALoader(DataLoader):
 
   def create_dataset(self,
                      input_files: OneOrMany[str],
-                     auto_add_annotations: bool = False,
                      data_dir: Optional[str] = None,
                      shard_size: Optional[int] = None) -> DiskDataset:
     """Creates a `Dataset` from input FASTA files.
@@ -954,10 +962,6 @@ class FASTALoader(DataLoader):
     ----------
     input_files: List[str]
       List of fasta files.
-    auto_add_annotations: bool (default False)
-      Whether create_dataset will automatically add [CLS] and [SEP] annotations
-      to the sequences it reads in order to assist tokenization.
-      Keep False if your FASTA file already includes [CLS] and [SEP] annotations.
     data_dir: str, optional (default None)
       Name of directory where featurized data is stored.
     shard_size: int, optional (default None)
@@ -987,6 +991,7 @@ class FASTALoader(DataLoader):
       """
       Convert the FASTA file to a numpy array of FASTA-format strings.
       """
+
       def _generate_sequences(fasta_file, header_mark=">") -> np.array:
         """
         Uses a fasta_file to create a numpy array of annotated FASTA-format strings
@@ -1010,7 +1015,8 @@ class FASTALoader(DataLoader):
       def _add_sequence(sequences: np.array, sequence: list) -> np.array:
         # Handle empty sequence
         if sequence is None or len(sequence) <= 0:
-          logger.warning("Attempting to add empty sequence, returning empty array...")
+          logger.warning(
+              "Attempting to add empty sequence, returning empty array...")
           return np.array([])
         # Annotate start/stop of sequence
         if auto_add_annotations:
@@ -1140,16 +1146,17 @@ class ImageLoader(DataLoader):
 
     if in_memory:
       if data_dir is None:
-        return NumpyDataset(
-            load_image_files(image_files), y=labels, w=weights, ids=image_files)
+        return NumpyDataset(load_image_files(image_files),
+                            y=labels,
+                            w=weights,
+                            ids=image_files)
       else:
-        dataset = DiskDataset.from_numpy(
-            load_image_files(image_files),
-            y=labels,
-            w=weights,
-            ids=image_files,
-            tasks=self.tasks,
-            data_dir=data_dir)
+        dataset = DiskDataset.from_numpy(load_image_files(image_files),
+                                         y=labels,
+                                         w=weights,
+                                         ids=image_files,
+                                         tasks=self.tasks,
+                                         data_dir=data_dir)
         if shard_size is not None:
           dataset.reshard(shard_size)
         return dataset
@@ -1293,8 +1300,8 @@ class InMemoryLoader(DataLoader):
 
   # FIXME: Signature of "_featurize_shard" incompatible with supertype "DataLoader"
   def _featurize_shard(  # type: ignore[override]
-      self, shard: List, global_index: int
-  ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+      self, shard: List, global_index: int) -> Tuple[np.ndarray, np.ndarray,
+                                                     np.ndarray, np.ndarray]:
     """Featurizes a shard of an input data.
 
     Parameters
