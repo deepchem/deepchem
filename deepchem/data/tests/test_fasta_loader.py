@@ -30,4 +30,4 @@ class TestFASTALoader(unittest.TestCase):
     if legacy:
       assert sequences.X.shape == (3, 5, 58, 1)
     else:
-      assert sequences.X.shape == (3, 58, 6)
+      assert sequences.X.shape == (3, 58, 5)

@@ -905,12 +905,12 @@ class FASTALoader(DataLoader):
                   'Y', 'Z', '*', '-'),
       "nucleic": ('A', 'C', 'G', 'T', 'U', '(i)', 'R', 'Y', 'K', 'M', 'S', 'W',
                   'B', 'D', 'H', 'V', 'N', '-'),
-      "ATCGN": ('A', 'T', 'C', 'G', 'N')
+      "ATCGN": ('A', 'T', 'C', 'G')
     }
     try:
       self.charset = charsets[charset]
     except KeyError:
-      if (featurizer == OneHotFeaturizer):
+      if (featurizer == OneHotFeaturizer): # TODO EXPLICITLY CHECK IF FEATURIZER USES CHARSET
         logger.exception("charset is invalid. charset must be 'protein', 'nucleic', or 'ATCGN'.")
       else:
         logger.warning("charset is invalid, ignoring...")
@@ -919,7 +919,7 @@ class FASTALoader(DataLoader):
     if isinstance(featurizer, UserDefinedFeaturizer):
       self.user_specified_features = featurizer.feature_fields
 
-    featurizer = featurizer(charset = self.charset, max_length = max_length)
+    featurizer = featurizer(charset = self.charset, max_length = max_length) # TODO EXPLICITLY CHECK IF MAX_LENGTH IS DESIRED
     self.featurizer = featurizer
 
   def create_dataset(self,
