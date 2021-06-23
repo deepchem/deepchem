@@ -902,11 +902,14 @@ class FASTALoader(DataLoader):
       If you pass in None, self.charset will be set to None. This is not
       recommended.
 
+      Pass "DONOTUSE" to charset not pass a charset to the featurizer.
+
     max_length: Optional[int] (default: None)
       max_length should be equal to or larger than the length of the longest
       string that is being featurized. max_length is passed to the featurizer.
-
       OneHotFeaturizer pads all strings to max_length with spaces.
+
+      Pass -1 to max_length for the loader to not pass a max_length to the featurizer.
 
     auto_add_annotations: bool (default False)
       Whether create_dataset will automatically add [CLS] and [SEP] annotations
@@ -919,7 +922,8 @@ class FASTALoader(DataLoader):
                     'Y', 'Z', '*', '-'),
         "nucleic": ('A', 'C', 'G', 'T', 'U', '(i)', 'R', 'Y', 'K', 'M', 'S',
                     'W', 'B', 'D', 'H', 'V', 'N', '-'),
-        "ATCGN": ('A', 'T', 'C', 'G')
+        "ATCGN": ('A', 'T', 'C', 'G'),
+        "DONOTUSE": "DONOTUSE"
     }
 
     # Initialize instance variables
@@ -929,8 +933,8 @@ class FASTALoader(DataLoader):
       try:
         self.charset = charsets[charset]
       except KeyError:
-        logger.warning("Charset is invalid string. Treating as None...")
-        self.charset = None
+        logger.warning("Charset is invalid string. Treating as DONOTUSE...")
+        self.charset = "DONOTUSE"
     elif isinstance(charset, tuple):
       self.charset = charset
     else:
@@ -943,7 +947,15 @@ class FASTALoader(DataLoader):
 
     # Initialize featurizer
     try:
-      featurizer = featurizer(charset=self.charset, max_length=self.max_length)
+      if self.charset != "DONOTUSE" and self.max_length != -1:
+        featurizer = featurizer(charset=self.charset,
+                                max_length=self.max_length)
+      elif self.charset != "DONOTUSE" and self.max_length == -1:
+        featurizer = featurizer(charset=self.charset)
+      elif self.charset == "DONOTUSE" and self.max_length != -1:
+        featurizer = featurizer(max_length=self.max_length)
+      elif self.charset == "DONOTUSE" and self.max_length == -1:
+        featurizer = featurizer()
     except:
       logger.exception("Sorry! Your featurizer may not be supported yet.")
 
