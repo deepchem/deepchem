@@ -153,13 +153,14 @@ def load_uspto(
   # if subset is Full use splitter passed by the user.
   # splitter = dc.splits.SpecifiedSplitter(valid_indices=,test_indices=)
 
-  loader = _USPTOLoader(featurizer,
-                        splitter,
-                        transformers,
-                        USPTO_TASK,
-                        data_dir,
-                        save_dir,
-                        subset=subset,
-                        sep_reagent=sep_reagent,
-                        **kwargs)
+  loader = _USPTOLoader(
+      featurizer,
+      splitter,
+      transformers,
+      USPTO_TASK,
+      data_dir,
+      save_dir,
+      subset=subset,
+      sep_reagent=sep_reagent,
+      **kwargs)
   return loader.load_dataset(loader.name, reload)
