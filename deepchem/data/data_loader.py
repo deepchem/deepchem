@@ -875,7 +875,7 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self, featurizer = OneHotFeaturizer, charset: Optional[str] = "ATCGN", max_length: Optional[int] = None):
+  def __init__(self, featurizer = OneHotFeaturizer, charset: Union[str, tuple, None] = "ATCGN", max_length: Optional[int] = None):
     """Initialize FASTALoader.
 
     Parameters
@@ -887,17 +887,25 @@ class FASTALoader(DataLoader):
       Whether or not the sequence passed in is a protein sequence. If False,
       it is treated as a nucleic acid sequence.
 
-    charset: Optional[str] (default: "ATCGN")
-      The charset used in the loaded FASTA file. Currently, we support ATCGN,
-      full FASTA-format protein sequences, and full FASTA format nucleic acid
-      sequences.
-      Currently acceptable charsets are: "protein", "nucleic", and "ATCGN".
+    charset: Union[str, tuple, None] (default: "ATCGN")
+      The charset used in the loaded FASTA file.
+      str arguments "protein", "nucleic", and "ATCGN" will respectively load
+      a FASTA format protein sequence character set, FASTA format nucleic acid
+      sequence character set, and ATCG character set.
+
+      If you choose to pass in a tuple, the tuple will be directly used as the
+      charset during featurization.
+
+      If charset is None, no charset will be passed to your featurizer. This
+      is not recommended unless your featurizer doesn't have a charset parameter.
 
     max_length: Optional[int] (default: None)
-      max_length is only used if featurizer = OneHotFeaturizer.
-      The length that all strings are padded to before featurization.
-      max_length must be larger than the length of the longest string that is
-      being featurized.
+      max_length should be equal to or larger than the length of the longest
+      string that is being featurized. max_length is passed to the featurizer.
+
+      OneHotFeaturizer pads all strings to max_length with spaces.
+
+      If max_length is None, it is not passed to the featurizer.
     """
     charsets = {
       "protein": ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
@@ -907,19 +915,38 @@ class FASTALoader(DataLoader):
                   'B', 'D', 'H', 'V', 'N', '-'),
       "ATCGN": ('A', 'T', 'C', 'G')
     }
-    try:
-      self.charset = charsets[charset]
-    except KeyError:
-      if (featurizer == OneHotFeaturizer): # TODO EXPLICITLY CHECK IF FEATURIZER USES CHARSET
-        logger.exception("charset is invalid. charset must be 'protein', 'nucleic', or 'ATCGN'.")
-      else:
-        logger.warning("charset is invalid, ignoring...")
 
+    # Initialize self.max_length and self.charset
+    self.max_length = max_length
+    if isinstance(charset, str):
+      try:
+        self.charset = charsets[charset]
+      except KeyError:
+        logger.warning("Charset is invalid. Treating as None...")
+        self.charset = None
+    elif isinstance(charset, tuple):
+      self.charset = charset
+    else:
+      self.charset = None
+
+    # Set user defined featurizer
     self.user_specified_features = None
     if isinstance(featurizer, UserDefinedFeaturizer):
       self.user_specified_features = featurizer.feature_fields
 
-    featurizer = featurizer(charset = self.charset, max_length = max_length) # TODO EXPLICITLY CHECK IF MAX_LENGTH IS DESIRED
+    # Initialize featurizer
+    try:
+      if self.charset is None and self.max_length is None:
+        featurizer = featurizer()
+      elif self.charset is not None and self.max_length is None:
+        featurizer = featurizer(charset = self.charset)
+      elif self.charset is None and self.max_length is not None:
+        featurizer = featurizer(max_length = self.max_length)
+      else:
+        featurizer = featurizer(charset = self.charset, max_length = self.max_length)
+    except:
+      logger.exception("Sorry! Your featurizer may not be supported yet.")
+
     self.featurizer = featurizer
 
   def create_dataset(self,
