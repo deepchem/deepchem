@@ -7,11 +7,11 @@ import numpy as np
 from deepchem.feat import CGCNNFeaturizer
 from deepchem.molnet import load_perovskite, load_mp_metallicity
 from deepchem.metrics import Metric, mae_score, roc_auc_score
-from deepchem.models import CGCNNModel
 
 try:
   import dgl  # noqa
   import torch  # noqa
+  from deepchem.models import CGCNNModel
   has_pytorch_and_dgl = True
 except:
   has_pytorch_and_dgl = False

@@ -13,7 +13,7 @@ try:
 except:
   from collections import Sequence as SequenceCollection
 from typing import Sequence, Union
-from deepchem.utils.typing import KerasActivationFn, LossFn, OneOrMany
+from deepchem.utils.typing import ActivationFn, LossFn, OneOrMany
 from deepchem.utils.data_utils import load_from_disk, save_to_disk
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class AtomicConvModel(KerasModel):
       weight_decay_penalty: float = 0.0,
       weight_decay_penalty_type: str = "l2",
       dropouts: OneOrMany[float] = 0.5,
-      activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
+      activation_fns: OneOrMany[ActivationFn] = tf.nn.relu,
       residual: bool = False,
       learning_rate=0.001,
       **kwargs) -> None:
