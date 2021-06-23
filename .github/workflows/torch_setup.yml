@@ -1,4 +1,4 @@
-name: Test for DeepChem Jax
+name: Test for DeepChem Torch
 on:
   push: # ci work when pushing master branch
     branches:
