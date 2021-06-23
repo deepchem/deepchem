@@ -78,13 +78,19 @@ def load_uspto(
   reactant>reagent. The tgt contains the SMILES of the product molecules.
 
   Molnet provides ability to load subsets of the USPTO dataset namely MIT,
-  STEREO and 50K. The MIT dataset contains around 480k reactions
-  The STEREO dataset contains around 1 Million Reactions.
-  The 50K dataset contatins 50,000 reactions with an additional label
-  indicating the class of reaction to which it belongs. The loader uses the
-  specified splitter to use the same splits as used by Schwaller and Coley.
-  Custom splitters could also be used. There is also a toggle to load the
-  dataset with the reagents separated or mixed.
+  STEREO and 50K. The MIT dataset contains around 479K reactions, curated by
+  jin et al. The STEREO dataset contains around 1 Million Reactions, it does
+  not have duplicates and the reactions include stereochemical information.
+  The 50K dataset contatins 50,000 reactions and is the benchmark for
+  retrosynthesis predictions. The reactions are additionally classified into 10
+  reaction classes. The canonicalized version of the dataset used by the loader
+  is the same as that used by somnath et. al.
+  
+  The loader uses the SpecifiedSplitter to use the same splits as specified 
+  by Schwaller and Coley. Custom splitters could also be used. There is also a
+  toggle to load the dataset with the reagents separated or mixed. This alters
+  the entries in src by replacing the '>' with '.', effectively loading them as
+  a unified SMILES string. 
 
   Parameters
   ----------
@@ -109,7 +115,9 @@ def load_uspto(
     a directory to save the dataset in
   subset : str (default 'MIT')
     Subset of dataset to download. 'FULL', 'MIT', 'STEREO', and '50K' are supported.
-
+  sep_reagent : bool (default True)
+    Toggle to load dataset with reactants and reagents separated or mixed.
+    
   Returns
   -------
   tasks, datasets, transformers : tuple
