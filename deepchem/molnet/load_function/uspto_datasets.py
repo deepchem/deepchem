@@ -23,6 +23,7 @@ USPTO_FULL_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/USPTO
 
 USPTO_TASK = []
 
+
 class _USPTOLoader(_MolnetLoader):
 
   def __init__(self, *args, subset: str, sep_reagent: bool, **kwargs):
@@ -47,7 +48,9 @@ class _USPTOLoader(_MolnetLoader):
     if self.subset == 'FULL':
       dataset_url = USPTO_FULL_URL
       if self.splitter == 'SpecifiedSplitter':
-        raise ValueError("There is no pre computed split for the full dataset, use a custom split instead!")
+        raise ValueError(
+            "There is no pre computed split for the full dataset, use a custom split instead!"
+        )
 
     dataset_file = os.path.join(self.data_dir, self.name + '.csv')
 
@@ -62,7 +65,8 @@ class _USPTOLoader(_MolnetLoader):
 
 
 def load_uspto(
-    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.UserDefinedFeaturizer([]),  # This will be changed to dummy featurizer!
+    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.UserDefinedFeaturizer(
+        []),  # This will be changed to dummy featurizer!
     splitter: Union[dc.splits.Splitter, str, None] = 'SpecifiedSplitter',
     transformers: List[Union[TransformerGenerator, str]] = [],
     reload: bool = True,
@@ -149,16 +153,13 @@ def load_uspto(
   # if subset is Full use splitter passed by the user.
   # splitter = dc.splits.SpecifiedSplitter(valid_indices=,test_indices=)
 
-
- 
-  loader = _USPTOLoader(
-      featurizer,
-      splitter,
-      transformers,
-      USPTO_TASK,
-      data_dir,
-      save_dir,
-      subset=subset,
-      sep_reagent=sep_reagent,
-      **kwargs)
+  loader = _USPTOLoader(featurizer,
+                        splitter,
+                        transformers,
+                        USPTO_TASK,
+                        data_dir,
+                        save_dir,
+                        subset=subset,
+                        sep_reagent=sep_reagent,
+                        **kwargs)
   return loader.load_dataset(loader.name, reload)
