@@ -899,8 +899,8 @@ class FASTALoader(DataLoader):
       If you choose to pass in a tuple, the tuple will be directly used as the
       charset during featurization.
 
-      If you pass in None, self.charset will be set to None. This is not
-      recommended.
+      If you pass in None, the charset passed to the featurizer will be None.
+      This is not recommended.
 
       Pass "DONOTUSE" to charset not pass a charset to the featurizer.
 
