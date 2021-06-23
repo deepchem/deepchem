@@ -4,11 +4,11 @@ from os import path
 import numpy as np
 from deepchem.utils import load_dataset_from_disk, download_url, untargz_file
 from deepchem.metrics import Metric, mae_score
-from deepchem.models import LCNNModel
 
 try:
   import dgl
   import torch
+  from deepchem.models import LCNNModel
   has_pytorch_and_dgl = True
 except:
   has_pytorch_and_dgl = False
