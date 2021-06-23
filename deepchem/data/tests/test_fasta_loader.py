@@ -30,7 +30,6 @@ class TestFASTALoader(unittest.TestCase):
     if legacy:
       assert sequences.X.shape == (3, 5, 58, 1)
     else:
-      assert False
       assert sequences.X.shape == (3, 58, 5)
 
   def test_fasta_one_hot_big(self):
@@ -39,5 +38,4 @@ class TestFASTALoader(unittest.TestCase):
     loader = dc.data.FASTALoader(charset="protein", max_length = 1000)
     sequences = loader.create_dataset(input_file)
 
-    print(sequences.X.shape)
-    assert False
+    assert sequences.X.shape
