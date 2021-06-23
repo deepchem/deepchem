@@ -35,7 +35,7 @@ class TestFASTALoader(unittest.TestCase):
   def test_fasta_one_hot_big(self):
     input_file = os.path.join(self.current_dir,
                               "../../data/tests/uniprot_truncated.fasta")
-    loader = dc.data.FASTALoader(charset="protein", max_length = 1000)
+    loader = dc.data.FASTALoader(charset="protein", max_length=1000)
     sequences = loader.create_dataset(input_file)
 
     assert sequences.X.shape
