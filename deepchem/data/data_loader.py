@@ -896,16 +896,14 @@ class FASTALoader(DataLoader):
       If you choose to pass in a tuple, the tuple will be directly used as the
       charset during featurization.
 
-      If charset is None, no charset will be passed to your featurizer. This
-      is not recommended unless your featurizer doesn't have a charset parameter.
+      If you pass in None, self.charset will be set to None. This is not
+      recommended.
 
     max_length: Optional[int] (default: None)
       max_length should be equal to or larger than the length of the longest
       string that is being featurized. max_length is passed to the featurizer.
 
       OneHotFeaturizer pads all strings to max_length with spaces.
-
-      If max_length is None, it is not passed to the featurizer.
     """
     charsets = {
       "protein": ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
@@ -922,7 +920,7 @@ class FASTALoader(DataLoader):
       try:
         self.charset = charsets[charset]
       except KeyError:
-        logger.warning("Charset is invalid. Treating as None...")
+        logger.warning("Charset is invalid string. Treating as None...")
         self.charset = None
     elif isinstance(charset, tuple):
       self.charset = charset
@@ -936,14 +934,7 @@ class FASTALoader(DataLoader):
 
     # Initialize featurizer
     try:
-      if self.charset is None and self.max_length is None:
-        featurizer = featurizer()
-      elif self.charset is not None and self.max_length is None:
-        featurizer = featurizer(charset = self.charset)
-      elif self.charset is None and self.max_length is not None:
-        featurizer = featurizer(max_length = self.max_length)
-      else:
-        featurizer = featurizer(charset = self.charset, max_length = self.max_length)
+      featurizer = featurizer(charset = self.charset, max_length = self.max_length)
     except:
       logger.exception("Sorry! Your featurizer may not be supported yet.")
 
