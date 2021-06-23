@@ -72,13 +72,13 @@ def load_uspto(
   """Load USPTO Datasets.
 
   USPTO is a dataset of over 1.8 Million organic chemical reactions extracted
-  from US patents and patent applications. The dataset is stored in the from
-  of src and tgt . The src contains the SMILES for the reactants and reagent
-  in the form reactant>reagent the tgt contains the SMILES for the product
-  SMILES.
+  from US patents and patent applications. The reactions present in the dataset
+  are split into the source(src) and target(tgt) columns. The src column
+  contains the SMILES of the reactant and reagent molecules in the form
+  reactant>reagent. The tgt contains the SMILES of the product molecules. 
 
-  Molnet provides ability to load subsets of USPTO such as MIT, STEREO and 50K.
-  The MIT dataset contains around 480k reactions
+  Molnet provides ability to load subsets of the USPTO dataset namely MIT,
+  STEREO and 50K. The MIT dataset contains around 480k reactions
   The STEREO dataset contains around 1 Million Reactions.
   The 50K dataset contatins 50,000 reactions with an additional label
   indicating the class of reaction to which it belongs. The loader uses the
@@ -94,10 +94,10 @@ def load_uspto(
   splitter: Splitter or str
     the splitter to use for splitting the data into training, validation, and
     test sets.  Alternatively you can pass one of the names from
-    dc.molnet.splitters as a shortcut.  If this is None, all the data
+    dc.molnet.splitters as a shortcut. If this is None, all the data
     will be included in a single dataset.
   transformers: list of TransformerGenerators or strings
-    the Transformers to apply to the data.  Each one is specified by a
+    the Transformers to apply to the data. Each one is specified by a
     TransformerGenerator or, as a shortcut, one of the names from
     dc.molnet.transformers.
   reload: bool
@@ -109,6 +109,7 @@ def load_uspto(
     a directory to save the dataset in
   subset : str (default 'MIT')
     Subset of dataset to download. 'FULL', 'MIT', 'STEREO', and '50K' are supported.
+
   Returns
   -------
   tasks, datasets, transformers : tuple
@@ -122,7 +123,7 @@ def load_uspto(
       to dataset.
   ----------
   .. [1] Lowe, D.. (2017). Chemical reactions from US patents (1976-Sep2016)
-        (Version 1). figshare. https://doi.org/10.6084/m9.figshare.5104873.v1 ([]) 
+        (Version 1). figshare. https://doi.org/10.6084/m9.figshare.5104873.v1
   .. [2] Schwaller, P., Laino, T., Gaudin, T., Bolgar, P., Hunter, C. A., Bekas,
          C., & Lee, A. A. (2019). Molecular transformer: a model for
          uncertainty-calibrated chemical reaction prediction.
@@ -134,9 +135,9 @@ def load_uspto(
          Retrosynthesis prediction with conditional graph logic network.
          arXiv preprint arXiv:2001.01408.
   """
-  #get test and valid lists if subset is MIT, 50K, STEREO and splitter = specified.
-  #if subset is Full use splitter passed by the user.
-  #splitter = dc.splits.SpecifiedSplitter(valid_indices=,test_indices=)
+  # get test and valid lists if subset is MIT, 50K, STEREO and splitter = specified.
+  # if subset is Full use splitter passed by the user.
+  # splitter = dc.splits.SpecifiedSplitter(valid_indices=,test_indices=)
   featurizer = dc.feat.UserDefinedFeaturizer([])
   loader = _USPTOLoader(
       featurizer,
