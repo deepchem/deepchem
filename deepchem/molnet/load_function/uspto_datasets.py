@@ -75,7 +75,7 @@ def load_uspto(
   from US patents and patent applications. The reactions present in the dataset
   are split into the source(src) and target(tgt) columns. The src column
   contains the SMILES of the reactant and reagent molecules in the form
-  reactant>reagent. The tgt contains the SMILES of the product molecules. 
+  reactant>reagent. The tgt contains the SMILES of the product molecules.
 
   Molnet provides ability to load subsets of the USPTO dataset namely MIT,
   STEREO and 50K. The MIT dataset contains around 480k reactions
