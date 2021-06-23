@@ -5,13 +5,13 @@ import numpy as np
 
 import deepchem as dc
 from deepchem.feat import MolGraphConvFeaturizer
-from deepchem.models.torch_models import MPNNModel
 from deepchem.models.tests.test_graph_models import get_dataset
 
 try:
   import dgl
   import dgllife
   import torch
+  from deepchem.models.torch_models import MPNNModel
   has_torch_and_dgl = True
 except:
   has_torch_and_dgl = False
