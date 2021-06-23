@@ -769,6 +769,17 @@ def test_multitask_regressor_uncertainty():
   assert noise < np.mean(std) < 1.0
 
 
+def test_multitask_regressor_delaney_uncertainty():
+  """Test computing uncertainty on a larger dataset."""
+  tasks, datasets, transformers = dc.molnet.load_delaney('ECFP')
+  train_dataset, valid_dataset, test_dataset = datasets
+  model = dc.models.MultitaskRegressor(len(tasks), 1024, uncertainty=True)
+  model.fit(train_dataset, nb_epoch=20)
+  metric = dc.metrics.Metric(dc.metrics.pearsonr)
+  scores = model.evaluate(test_dataset, [metric], transformers)
+  assert scores['pearsonr'] > 0.5
+
+
 @pytest.mark.slow
 def test_DAG_singletask_regression_overfit():
   """Test DAG regressor multitask overfits tiny data."""
