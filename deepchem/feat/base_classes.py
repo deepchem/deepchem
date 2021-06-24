@@ -421,3 +421,8 @@ class UserDefinedFeaturizer(Featurizer):
   def __init__(self, feature_fields):
     """Creates user-defined-featurizer."""
     self.feature_fields = feature_fields
+
+class DummyFeaturizer(Featurizer):
+
+  def featurize(self, datapoints: Iterable[Any], log_every_n: int) -> np.ndarray:
+      return 
