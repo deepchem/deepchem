@@ -1,0 +1,8 @@
+name: deepchem
+channels:
+  - omnia
+  - conda-forge
+  - defaults
+dependencies:
+  - numpy==1.19.*
+  - pip==20.2.*

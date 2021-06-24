@@ -1,13 +1,19 @@
 # Requirements - transformers, tokenizers
 import os
+import unittest
 from unittest import TestCase
-from deepchem.feat.smiles_tokenizer import SmilesTokenizer
-from transformers import RobertaForMaskedLM
+try:
+  from transformers import RobertaForMaskedLM
+  from deepchem.feat.smiles_tokenizer import SmilesTokenizer
+  has_transformers = True
+except:
+  has_transformers = False
 
 
 class TestSmilesTokenizer(TestCase):
   """Tests the SmilesTokenizer to load the USPTO vocab file and a ChemBERTa Masked LM model with pre-trained weights.."""
 
+  @unittest.skipIf(not has_transformers, 'transformers are not installed')
   def test_tokenize(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     vocab_path = os.path.join(current_dir, 'data', 'vocab.txt')

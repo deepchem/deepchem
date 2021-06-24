@@ -2,15 +2,12 @@
 Gathers all models in one place for convenient imports
 """
 # flake8: noqa
+from deepchem.models.models import Model
 try:
-  from deepchem.models.models import Model
   from deepchem.models.keras_model import KerasModel
   from deepchem.models.multitask import SingletaskToMultitask
   from deepchem.models.callbacks import ValidationCallback
 
-  from deepchem.models.fcnet import MultitaskRegressor
-  from deepchem.models.fcnet import MultitaskClassifier
-  from deepchem.models.fcnet import MultitaskFitTransformRegressor
   from deepchem.models.IRV import MultitaskIRVClassifier
   from deepchem.models.robust_multitask import RobustMultitaskClassifier
   from deepchem.models.robust_multitask import RobustMultitaskRegressor
@@ -41,6 +38,7 @@ try:
   from deepchem.models.torch_models import GCN, GCNModel
   from deepchem.models.torch_models import LCNN, LCNNModel
   from deepchem.models.torch_models import Pagtn, PagtnModel
+  from deepchem.models.fcnet import MultitaskRegressor, MultitaskClassifier, MultitaskFitTransformRegressor
 except ModuleNotFoundError:
   pass
 
