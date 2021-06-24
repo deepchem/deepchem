@@ -425,4 +425,4 @@ class UserDefinedFeaturizer(Featurizer):
 class DummyFeaturizer(Featurizer):
 
   def featurize(self, datapoints: Iterable[Any], log_every_n: int) -> np.ndarray:
-      return 
+      return datapoints
