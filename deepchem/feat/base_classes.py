@@ -423,6 +423,7 @@ class UserDefinedFeaturizer(Featurizer):
     self.feature_fields = feature_fields
 
 class DummyFeaturizer(Featurizer):
+  """Abstract class for plain featurization."""
 
-  def featurize(self, datapoints: Iterable[Any], log_every_n: int) -> np.ndarray:
-      return datapoints
+  def featurize(self, datapoints: Iterable[Any]) -> np.ndarray:
+    return np.asarray(datapoints)
