@@ -426,4 +426,17 @@ class DummyFeaturizer(Featurizer):
   """Abstract class for plain featurization."""
 
   def featurize(self, datapoints: Iterable[Any]) -> np.ndarray:
+    """Passes through dataset, and returns the datapoint.
+    
+    Parameters
+    ----
+    datapoints: Iterable[Any]
+      A sequence of objects that you'd like to featurize.
+    
+    Returns
+    ----
+    datapoints: np.ndarray
+      A numpy array containing a featurized representation of
+      the datapoints.
+    """
     return np.asarray(datapoints)
