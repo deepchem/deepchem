@@ -1105,6 +1105,7 @@ def test_smiles2vec_reload():
 
 
 # TODO: We need a cleaner usage example for this
+@flaky
 def test_DTNN_regression_reload():
   """Test DTNN can reload datasets."""
   np.random.seed(123)
