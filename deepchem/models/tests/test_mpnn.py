@@ -66,7 +66,7 @@ def test_mpnn_classification():
   # overfit test
   model.fit(dataset, nb_epoch=200)
   scores = model.evaluate(dataset, [metric], transformers)
-  assert scores['mean-roc_auc_score'] >= 0.85
+  assert scores['mean-roc_auc_score'] >= 0.8
 
   # test on a small MoleculeNet dataset
   from deepchem.molnet import load_bace_classification
