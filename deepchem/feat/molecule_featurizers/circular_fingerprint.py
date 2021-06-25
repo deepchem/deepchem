@@ -14,7 +14,8 @@ class CircularFingerprint(MolecularFeaturizer):
 
   Extended Connectivity Circular Fingerprints compute a bag-of-words style
   representation of a molecule by breaking it into local neighborhoods and
-  hashing into a bit vector of the specified size. See [1]_ for more details.
+  hashing into a bit vector of the specified size. It is used specifically
+  for structure-activity modelling. See [1]_ for more details.
 
   References
   ----------
@@ -24,6 +25,27 @@ class CircularFingerprint(MolecularFeaturizer):
   Note
   ----
   This class requires RDKit to be installed.
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> from rdkit import Chem
+  >>> smiles = 'C1=CC=CC=C1'
+  >>> mol = Chem.MolFromSmiles(smiles)
+
+  >>> # Example 1: (size = 2048, radius = 4)
+  >>> featurizer = dc.feat.CircularFingerprint(size=2048, radius=4)
+  >>> fingerprint = featurizer([mol])
+  >>> fingerprint.shape
+  (1, 2048)
+
+  >>> # Example 2: (size = 2048, radius = 4, sparse = True, smiles = True)
+  >>> featurizer = dc.feat.CircularFingerprint(size=2048, radius=8,
+  ...                                          sparse=True, smiles=True)
+  >>> featurizer([mol])
+  array([{98513984: {'smiles': 'ccc', 'count': 6}, 2763854213: {'smiles':
+    'ccccc', 'count': 6}, 3218693969: {'smiles': '', 'count': 6}, 3741631696:
+    {'smiles': 'c1ccccc1', 'count': 1}}], dtype=object)
   """
 
   def __init__(self,

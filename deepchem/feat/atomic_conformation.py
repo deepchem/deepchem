@@ -125,6 +125,25 @@ class AtomicConformationFeaturizer(Featurizer):
 
   Otherwise, it is assumed to be a SMILES string.  RDKit is used to generate a
   3D conformation and to compute formal and partial charges.
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> smiles = ['CCC']
+  >>> featurizer = dc.feat.AtomicConformationFeaturizer()
+  >>> features = featurizer.featurize()
+  >>> features[0].num_atoms
+  11
+  >>> sum(features[0].atomic_number == 6)
+  3
+  >>> sum(features[0].atmoic_number == 1)
+  8
+  >>> features[0].formal_charge
+  array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.], dtype=float32)
+  >>> features[0].partial_charge
+  array([-0.06564544, -0.06564544, -0.05903836,  0.02302528,  0.02302528,
+        0.02302528,  0.02302528,  0.02302528,  0.02302528,  0.0260888 ,
+        0.0260888 ], dtype=float32)
   """
 
   def _featurize(self, datapoint: str) -> AtomicConformation:
