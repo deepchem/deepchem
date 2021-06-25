@@ -569,7 +569,7 @@ def test_progressive_classification_reload():
 
   # Eval model on train
   scores = reloaded_model.evaluate(dataset, [classification_metric])
-  assert scores[classification_metric.name] > .9
+  assert scores[classification_metric.name] > .85
 
 
 def test_progressivemultitaskregressor_reload():
