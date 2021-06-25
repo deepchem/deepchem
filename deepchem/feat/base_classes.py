@@ -422,17 +422,18 @@ class UserDefinedFeaturizer(Featurizer):
     """Creates user-defined-featurizer."""
     self.feature_fields = feature_fields
 
+
 class DummyFeaturizer(Featurizer):
   """Abstract class for plain featurization."""
 
   def featurize(self, datapoints: Iterable[Any]) -> np.ndarray:
     """Passes through dataset, and returns the datapoint.
-    
+
     Parameters
     ----
     datapoints: Iterable[Any]
       A sequence of objects that you'd like to featurize.
-    
+
     Returns
     ----
     datapoints: np.ndarray
