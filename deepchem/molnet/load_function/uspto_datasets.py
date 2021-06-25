@@ -9,8 +9,9 @@ import deepchem
 import numpy as np
 from deepchem.data import Dataset
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Iterable, Any
 import deepchem as dc
+from deepchem.feat import Featurizer
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +60,13 @@ class _USPTOLoader(_MolnetLoader):
       dc.utils.data_utils.download_url(url=dataset_url, dest_dir=self.data_dir)
       logger.info("Dataset download complete.")
 
-    loader = dc.data.CSVLoader(tasks=self.tasks, featurizer=self.featurizer)
+    loader = dc.data.CSVLoader(tasks=self.tasks, feature_field=["src", "tgt"], featurizer=self.featurizer)
 
     return loader.create_dataset(dataset_file, shard_size=8192)
 
 
 def load_uspto(
-    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.UserDefinedFeaturizer(
-        []),  # This will be changed to dummy featurizer!
+    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.DummyFeaturizer(),  # This will be changed to dummy featurizer!
     splitter: Union[dc.splits.Splitter, str, None] = 'SpecifiedSplitter',
     transformers: List[Union[TransformerGenerator, str]] = [],
     reload: bool = True,
