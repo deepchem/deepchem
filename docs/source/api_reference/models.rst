@@ -279,12 +279,24 @@ Training loss and validation metrics can be automatically logged to `Weights & B
 
   # Login in shell (required only once)
   wandb login
+  # Login in notebook (required only once)
+  import wandb
+  wandb.login()
 
-  # Start a W&B run in your script (refer to docs for optional parameters)
-  wandb.init(project="my project")
+  # Initialize a WandbLogger
+  logger = WandbLogger(…)
 
-  # Set `wandb` arg when creating `KerasModel`
-  model = KerasModel(…, wandb=True)
+  # Set `wandb_logger` when creating `KerasModel`
+  import deepchem as dc
+  # Log training loss to wandb
+  model = dc.models.KerasModel(…, wandb_logger=logger)
+  model.fit(…)
+
+  # Log validation metrics to wandb using ValidationCallback
+  import deepchem as dc
+  vc = dc.models.ValidationCallback(…)
+  model = KerasModel(…, wandb_logger=logger)
+  model.fit(…, callbacks=[vc])
 
 .. _`Keras`: https://keras.io/
 
