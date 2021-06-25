@@ -137,7 +137,7 @@ jobs:
     - name: Mypy
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: mypy -p deepchem
+      run: mypy -p deepchem --ignore-missing-imports
     - name: Doctest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
