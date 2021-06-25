@@ -6,12 +6,11 @@ This file contains loaders for synthetic reaction datasets from the US Patent Of
 import os
 import logging
 import deepchem
-import numpy as np
 from deepchem.data import Dataset
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
-from typing import List, Optional, Tuple, Union, Iterable, Any
+from typing import List, Optional, Tuple, Union
 import deepchem as dc
-from deepchem.feat import Featurizer
+
 
 logger = logging.getLogger(__name__)
 
@@ -92,12 +91,12 @@ def load_uspto(
   retrosynthesis predictions. The reactions are additionally classified into 10
   reaction classes. The canonicalized version of the dataset used by the loader
   is the same as that used by somnath et. al.
-  
-  The loader uses the SpecifiedSplitter to use the same splits as specified 
+
+  The loader uses the SpecifiedSplitter to use the same splits as specified
   by Schwaller and Coley. Custom splitters could also be used. There is also a
   toggle to load the dataset with the reagents separated or mixed. This alters
   the entries in src by replacing the '>' with '.', effectively loading them as
-  a unified SMILES string. 
+  a unified SMILES string.
 
   Parameters
   ----------
@@ -123,7 +122,7 @@ def load_uspto(
   subset : str (default 'MIT')
     Subset of dataset to download. 'FULL', 'MIT', 'STEREO', and '50K' are supported.
   sep_reagent : bool (default True)
-    Toggle to load dataset with reactants and reado I call it 
+    Toggle to load dataset with reactants and reado I call it
   Returns
   -------
   tasks, datasets, transformers : tuple
