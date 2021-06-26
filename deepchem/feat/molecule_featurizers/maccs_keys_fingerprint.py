@@ -19,6 +19,16 @@ class MACCSKeysFingerprint(MolecularFeaturizer):
   Note
   ----
   This class requires RDKit to be installed.
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
+  >>> featurizer = dc.feat.MACCSKeysFingerprint()
+  >>> features = featurizer.featurize([smiles])
+  >>> features.shape
+  (1, 167)
+
   """
 
   def __init__(self):
