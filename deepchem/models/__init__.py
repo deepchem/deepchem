@@ -6,6 +6,7 @@ from deepchem.models.models import Model
 from deepchem.models.keras_model import KerasModel
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem.models.callbacks import ValidationCallback
+from deepchem.models.wandblogger import WandbLogger
 
 from deepchem.models.IRV import MultitaskIRVClassifier
 from deepchem.models.robust_multitask import RobustMultitaskClassifier
