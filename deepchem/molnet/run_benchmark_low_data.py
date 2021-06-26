@@ -27,13 +27,13 @@ def run_benchmark_low_data(datasets,
                            cross_valid=False,
                            seed=123):
   """
-  Run low data benchmark test on designated datasets 
+  Run low data benchmark test on designated datasets
   with deepchem(or user-defined) model
-  
+
   Parameters
   ----------
   datasets: list of string
-      choice of which datasets to use, should be: muv, tox21, sider 
+      choice of which datasets to use, should be: muv, tox21, sider
   model: string or user-defined model stucture
       choice of which model to use, should be: siamese, attn, res
   split: string,  optional (default='task')

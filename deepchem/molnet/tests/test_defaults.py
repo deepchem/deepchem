@@ -1,15 +1,7 @@
 """
 Tests for getting featurizer, transformer, and splitter classes.
 """
-import csv
-import tempfile
 import unittest
-
-import numpy as np
-import os
-import pytest
-
-import deepchem as dc
 from deepchem.feat.base_classes import Featurizer
 from deepchem.trans.transformers import Transformer
 from deepchem.splits.splitters import Splitter

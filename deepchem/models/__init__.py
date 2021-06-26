@@ -3,6 +3,9 @@ Gathers all models in one place for convenient imports
 """
 # flake8: noqa
 from deepchem.models.models import Model
+from deepchem.models.wandblogger import WandbLogger
+
+# Tensorflow Depedency Models
 try:
   from deepchem.models.keras_model import KerasModel
   from deepchem.models.multitask import SingletaskToMultitask
