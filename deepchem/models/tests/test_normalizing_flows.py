@@ -24,6 +24,7 @@ except:
 
 @unittest.skipIf(not has_tensorflow_probablity,
                  'tensorflow_probability not installed')
+@pytest.mark.tensorflow
 def test_normalizing_flow():
 
   flow_layers = [

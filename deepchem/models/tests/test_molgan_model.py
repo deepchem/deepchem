@@ -1,13 +1,18 @@
 import os
 import unittest
-
+import pytest
 import pandas as pd
 from deepchem.data import NumpyDataset
 from deepchem.feat.molecule_featurizers import MolGanFeaturizer
-from deepchem.models import BasicMolGANModel as MolGAN
 from deepchem.models.optimizers import ExponentialDecay
-from tensorflow import one_hot
-from tensorflow.keras.backend import clear_session as keras_clear_session
+try:
+  import tensorflow as tf
+  from deepchem.models import BasicMolGANModel as MolGAN
+  from tensorflow import one_hot
+  from tensorflow.keras.backend import clear_session as keras_clear_session
+  has_tensorflow = True
+except:
+  has_tensorflow = False
 
 
 class test_molgan_model(unittest.TestCase):
@@ -15,6 +20,7 @@ class test_molgan_model(unittest.TestCase):
   Unit testing for MolGAN basic layers
   """
 
+  @pytest.mark.tensorflow
   def setUp(self):
     self.training_attempts = 6
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -34,6 +40,7 @@ class test_molgan_model(unittest.TestCase):
         embedding_dim=self.embedding_dim,
         dropout_rate=self.dropout_rate)
 
+  @pytest.mark.tensorflow
   def test_build(self):
     """
     Test if initialization data is set-up correctly
@@ -47,6 +54,7 @@ class test_molgan_model(unittest.TestCase):
     assert len(model.generators) == 1
     assert len(model.discriminators) == 1
 
+  @pytest.mark.tensorflow
   def test_shapes(self):
     """
     Check if input and output shapes are correct
@@ -68,6 +76,7 @@ class test_molgan_model(unittest.TestCase):
     assert model.generators[0].output_shape[1] == (None, self.vertices,
                                                    self.nodes)
 
+  @pytest.mark.tensorflow
   def test_training(self):
     """
     Check training of the basicMolGANmodel on small number of compounds.
