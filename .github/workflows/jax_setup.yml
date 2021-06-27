@@ -99,9 +99,9 @@ jobs:
         python -m pip install --upgrade pip;
         pip install conda-merge;
         if [ "$(uname)" == 'Darwin' ]; then
-          conda-merge env_jax.yml env.test.yml > env.yml
+          conda-merge requirements/jax/env_jax.yml env.test.yml > env.yml
         else
-          conda-merge env_jax.yml env.test.yml > env.yml
+          conda-merge requirements/jax/env_jax.yml env.test.yml > env.yml
         fi;
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v2
