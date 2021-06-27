@@ -29,7 +29,6 @@ jobs:
     - name: Build DeepChem
       run: |
         python -m pip install --upgrade pip
-        pip install tensorflow==2.4
         pip install -e '.[jax]'
     - name: Import checking
       run: python -c "import deepchem; import jax;"
