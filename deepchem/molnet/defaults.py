@@ -2,14 +2,11 @@
 Featurizers, transformers, and splitters for MolNet.
 """
 
-import os
 import importlib
 import inspect
 import logging
-import json
-from typing import Dict, List, Any
+from typing import Dict, Any
 
-import deepchem as dc
 from deepchem.feat.base_classes import Featurizer
 from deepchem.trans.transformers import Transformer
 from deepchem.splits.splitters import Splitter

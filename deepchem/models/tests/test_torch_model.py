@@ -2,6 +2,8 @@ import os
 import pytest
 import deepchem as dc
 import numpy as np
+import math
+import unittest
 
 try:
   import torch
@@ -9,6 +11,12 @@ try:
   has_pytorch = True
 except:
   has_pytorch = False
+
+try:
+  import wandb
+  has_wandb = True
+except:
+  has_wandb = False
 
 
 @pytest.mark.torch
@@ -332,6 +340,36 @@ def test_tensorboard():
   event_file = os.path.join(model.model_dir, event_file[0])
   file_size = os.stat(event_file).st_size
   assert file_size > 0
+
+
+@pytest.mark.torch
+@unittest.skipIf((not has_pytorch) or (not has_wandb),
+                 'PyTorch and/or Wandb is not installed')
+def test_wandblogger():
+  """Test logging to Weights & Biases."""
+  # Load dataset and Models
+  tasks, datasets, transformers = dc.molnet.load_delaney(
+      featurizer='ECFP', splitter='random')
+  train_dataset, valid_dataset, test_dataset = datasets
+  metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
+  wandblogger = dc.models.WandbLogger(anonymous="allow", save_run_history=True)
+
+  pytorch_model = torch.nn.Sequential(
+      torch.nn.Linear(1024, 1000),
+      torch.nn.Dropout(p=0.5),
+      torch.nn.Linear(1000, 1))
+  model = dc.models.TorchModel(
+      pytorch_model, dc.models.losses.L2Loss(), wandb_logger=wandblogger)
+  vc = dc.models.ValidationCallback(valid_dataset, 1, [metric])
+  model.fit(train_dataset, nb_epoch=10, callbacks=[vc])
+
+  run_data = wandblogger.run_history
+  valid_score = model.evaluate(valid_dataset, [metric], transformers)
+
+  assert math.isclose(
+      valid_score["pearson_r2_score"],
+      run_data['eval/pearson_r2_score'],
+      abs_tol=0.0005)
 
 
 @pytest.mark.torch
