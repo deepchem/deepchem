@@ -119,6 +119,7 @@ class TestLosses(unittest.TestCase):
     expected = [np.mean([0.8100, 3.2400]), np.mean([1.9600, 0.1600])]
     assert np.allclose(expected, result)
 
+  @pytest.mark.tensorflow
   def test_poisson_loss_tf(self):
     """Test PoissonLoss."""
     loss = losses.PoissonLoss()

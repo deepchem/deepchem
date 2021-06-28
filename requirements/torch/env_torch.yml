@@ -8,10 +8,11 @@ dependencies:
   - numpy==1.21.*
   - pip==20.2.*
   - pip:
-    - tensorflow~=2.4
+    - transformers==4.6.*
     - dgllife==0.2.8
     - pymatgen==2020.12.31
     - matminer
     - networkx
     - torch-geometric==1.7.1
     - tensorboard
+    - pyGPGO

@@ -1074,6 +1074,7 @@ def test_chemception_reload():
 
 
 # TODO: This test is a little awkward. The Smiles2Vec model awkwardly depends on a dataset_file being available on disk. This needs to be cleaned up to match the standard model handling API.
+@pytest.mark.tensorflow
 def test_smiles2vec_reload():
   """Test that smiles2vec models can be saved and reloaded."""
   dataset_file = os.path.join(os.path.dirname(__file__), "chembl_25_small.csv")
