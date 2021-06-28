@@ -115,7 +115,7 @@ jobs:
     - name: Install DeepChem
       id: install
       shell: bash -l {0}
-      run: pip install -e '.[torch]'
+      run: pip install -e .
     - name: Yapf (version 0.22.0)
       id: yapf
       # on Windows, yapf raise the strange error..., so ignore
