@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 import deepchem as dc
 import pytest
 try:

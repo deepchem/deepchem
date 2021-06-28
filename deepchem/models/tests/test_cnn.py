@@ -1,15 +1,15 @@
 import deepchem as dc
 import numpy as np
 import pytest
+import unittest
 try:
   import tensorflow as tf
-  from tensorflow.python.framework import test_util
   has_tensorflow = True
 except:
   has_tensorflow = False
 
 
-class TestCNN(test_util.TensorFlowTestCase):
+class TestCNN(unittest.TestCase):
 
   @pytest.mark.tensorflow
   def test_1d_cnn_regression(self):

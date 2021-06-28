@@ -1,4 +1,4 @@
-name: Test for DeepChem Torch
+name: Test for DeepChem Common
 on:
   push: # ci work when pushing master branch
     branches:
