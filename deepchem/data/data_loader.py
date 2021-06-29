@@ -876,86 +876,58 @@ class FASTALoader(DataLoader):
   """
 
   def __init__(self,
-               featurizer=OneHotFeaturizer,
-               charset: Union[str, tuple, None] = "ATCGN",
-               max_length: Optional[int] = None,
-               auto_add_annotations: bool = False):
+               featurizer: Optional[Featurizer] = None,
+               auto_add_annotations: bool = False,
+               legacy: bool = True):
     """Initialize FASTALoader.
 
     Parameters
     ----------
-    featurizer: Featurizer (default: OneHotFeaturizer)
+    featurizer: Featurizer (default: None)
       The Featurizer to be used for the loaded FASTA data.
 
-    protein: bool (default: False)
-      Whether or not the sequence passed in is a protein sequence. If False,
-      it is treated as a nucleic acid sequence.
+      If featurizer is None and legacy is True, the original featurization
+      logic is used, creating a one hot encoding of all included FASTA strings
+      of shape
+      (number of FASTA sequences, number of channels + 1, sequence length, 1).
 
-    charset: Union[str, tuple, None] (default: "ATCGN")
-      The charset used in the loaded FASTA file.
-      str arguments "protein", "nucleic", and "ATCGN" will respectively load
-      a FASTA format protein sequence character set, FASTA format nucleic acid
-      sequence character set, and ATCG character set.
-
-      If you choose to pass in a tuple, the tuple will be directly used as the
-      charset during featurization.
-
-      Pass None to charset not pass a charset to the featurizer.
-
-    max_length: Optional[int] (default: None)
-      max_length should be equal to or larger than the length of the longest
-      string that is being featurized. max_length is passed to the featurizer.
-      OneHotFeaturizer pads all strings to max_length with spaces.
-
-      Pass -1 to max_length for the loader to not pass a max_length to the featurizer.
+      If featurizer is None and legacy is False, the featurizer is initialized
+      as a OneHotFeaturizer object with charset ("A", "C", "T", "G") and
+      max_length = None.
 
     auto_add_annotations: bool (default False)
       Whether create_dataset will automatically add [CLS] and [SEP] annotations
       to the sequences it reads in order to assist tokenization.
       Keep False if your FASTA file already includes [CLS] and [SEP] annotations.
+
+    legacy: bool (default True)
+      Whether to use legacy logic for featurization. Legacy mode will create
+      a one hot encoding of the FASTA content of shape 
+      (number of FASTA sequences, number of channels + 1, max length, 1).
+
+      Legacy mode is only tested for ACTGN charsets, and will be deprecated.
    """
-    charsets = {
-        "protein":
-        ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
-         'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '*', '-'),
-        "nucleic": ('A', 'C', 'G', 'T', 'U', '(i)', 'R', 'Y', 'K', 'M', 'S',
-                    'W', 'B', 'D', 'H', 'V', 'N', '-'),
-        "ATCGN": ('A', 'T', 'C', 'G'),
-    }
 
-    # Initialize instance variables
-    self.max_length = max_length
-    self.auto_add_annotations = auto_add_annotations
-    if isinstance(charset, str):
-      try:
-        self.charset = charsets[charset]
-      except KeyError:
-        logger.warning("Charset is invalid string. Treating as None...")
-        self.charset = None
-    elif isinstance(charset, tuple):
-      self.charset = charset
-    else:
-      self.charset = None
+    # Process legacy toggle
+    if legacy:
+      logger.info("Deprecation warning: Legacy mode will soon be deprecated.")
+      if not isinstance(featurizer, None) or auto_add_annotations:
+        logger.warning(f"featurizer option must be None and 
+        auto_add_annotations must be false when legacy mode is enabled. You set
+        featurizer to {featurizer} and auto_add_annotations to
+        {auto_add_annotations}. So we set legacy = False.")
+        legacy = False
 
-    # Set user defined featurizer
-    self.user_specified_features = None
-    if isinstance(featurizer, UserDefinedFeaturizer):
+    self.user_specified_features = None 
+
+    # Handle special featurizer cases
+    if isinstance(featurizer, UserDefinedFeaturizer): # User defined featurizer
       self.user_specified_features = featurizer.feature_fields
+    elif isinstance(featurizer, None): # Default featurizer
+      featurizer = featurizer(charset = ("A", "C", "T", "G"),
+                              max_length = None)
 
-    # Initialize featurizer
-    try:
-      if self.charset is not None and self.max_length != -1:
-        featurizer = featurizer(
-            charset=self.charset, max_length=self.max_length)
-      elif self.charset is not None and self.max_length == -1:
-        featurizer = featurizer(charset=self.charset)
-      elif self.charset is None and self.max_length != -1:
-        featurizer = featurizer(max_length=self.max_length)
-      elif self.charset is None and self.max_length == -1:
-        featurizer = featurizer()
-    except:
-      logger.exception("Sorry! Your featurizer may not be supported yet.")
-
+    # Set self.featurizer
     self.featurizer = featurizer
 
   def create_dataset(self,
@@ -986,52 +958,61 @@ class FASTALoader(DataLoader):
     if isinstance(input_files, str):
       input_files = [input_files]
 
-    def shard_generator():
+    def shard_generator():  # TODO Enable sharding with shard size parameter
       sequences = np.array([])
       for input_file in input_files:
-        sequences = np.append(sequences, _read_file(input_file))
-      X = self.featurizer(sequences)
-      ids = np.ones(len(X))
-      # (X, y, w, ids)
-      yield X, None, None, ids
+        if self.legacy:
+          X = encode_bio_sequence(input_file)
+          ids = np.ones(len(X))
+        else:
+          sequences = np.append(sequences, _read_file(input_file))
+          X = self.featurizer(sequences)
+          ids = np.ones(len(X))
+        # (X, y, w, ids)
+        yield X, None, None, ids
 
     def _read_file(input_file: str, auto_add_annotations: bool = False):
       """
       Convert the FASTA file to a numpy array of FASTA-format strings.
       """
 
+      # TODO don't convert all sequences into np array (allow shards)
       def _generate_sequences(fasta_file, header_mark=">") -> np.array:
         """
         Uses a fasta_file to create a numpy array of annotated FASTA-format strings
         """
         sequences = np.array([])
-        sequence: List[str] = []
+        sequence = np.array([])
         header_read = False
         for line in fasta_file:
           # Check if line is a header
           if line.startswith(header_mark):  # New header line
             header_read = True
             sequences = _add_sequence(sequences, sequence)
-            sequence = []
+            sequence = np.array([])
           elif header_read:  # Line contains sequence in FASTA format
             if line[-1:] == '\n':  # Check last character in string
               line = line[0:-1]  # Remove last character
-            sequence.append(line)
+            sequence = np.append(sequence, line)
         sequences = _add_sequence(sequences, sequence)
-        return sequences
+        yield sequences
 
-      def _add_sequence(sequences: np.array, sequence: list) -> np.array:
+      def _add_sequence(sequences: np.array, sequence: np.array) -> np.array:
         # Handle empty sequence
         if sequence is None or len(sequence) <= 0:
-          logger.warning(
+          # TODO log attempts to add empty sequences every shard
+          """
+          logger.info(
               "Attempting to add empty sequence, returning empty array...")
+          """
           return np.array([])
         # Annotate start/stop of sequence
         if auto_add_annotations:
-          sequence.insert(0, "[CLS]")
-          sequence.append("[SEP]")
+          sequence = np.insert(sequence, 0, "[CLS]")
+          sequence = np.append(sequence, "[SEP]")
         new_sequence = ''.join(sequence)
-        return np.append(sequences, new_sequence)
+        new_sequences = np.append(sequences, new_sequence)
+        return new_sequences
 
       with open(input_file, 'r') as f:  # Read FASTA file
         return _generate_sequences(f)

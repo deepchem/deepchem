@@ -17,8 +17,6 @@ class TestFASTALoader(unittest.TestCase):
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
   def test_fasta_one_hot(self):
-    legacy = False  # Whether to assume legacy one hot encoding shape from FASTA loader.
-
     input_file = os.path.join(self.current_dir,
                               "../../data/tests/example.fasta")
     loader = dc.data.FASTALoader()
@@ -27,10 +25,10 @@ class TestFASTALoader(unittest.TestCase):
     # example.fasta contains 3 sequences each of length 58.
     # The one-hot encoding turns base-pairs into vectors of length 5 (ATCGN).
     # There is one "image channel".
-    if legacy:
-      assert sequences.X.shape == (3, 5, 58, 1)
-    else:
-      assert sequences.X.shape == (3, 58, 5)
+
+    # Previously expected shape was (3, 5, 58, 1).
+    # Due to FASTALoader redesign, expected shape is now (3, 58, 5).
+    assert sequences.X.shape == (3, 58, 5)
 
   def test_fasta_one_hot_big(self):
     input_file = os.path.join(self.current_dir,
@@ -39,3 +37,5 @@ class TestFASTALoader(unittest.TestCase):
     sequences = loader.create_dataset(input_file)
 
     assert sequences.X.shape
+
+  # TODO: test with full uniprot file once sharding support is added.

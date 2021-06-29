@@ -44,6 +44,9 @@ class OneHotFeaturizer(Featurizer):
     max_length: Optional[int], optional (default 100)
       The max length for string. If the length of string is shorter than
       max_length, the string is padded using space.
+
+      If max_length is None, no padding is performed and arbitrary length
+      strings are allowed.
     """
     if len(charset) != len(set(charset)):
       raise ValueError("All values in charset must be unique.")
@@ -159,7 +162,6 @@ class OneHotFeaturizer(Featurizer):
     if isinstance(self.max_length, int):
       return string.ljust(self.max_length)
     else:
-      logger.info("DID NOT PAD: max_length is not int.")
       return string
 
   def untransform(self, one_hot_vectors: np.ndarray) -> str:
