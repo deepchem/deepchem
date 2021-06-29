@@ -5,13 +5,13 @@ import numpy as np
 
 class TestDummyFeaturizer(unittest.TestCase):
   """
-    Test for DummyFeaturizer.
-    """
+  Test for DummyFeaturizer.
+  """
 
   def test_featurize(self):
     """
-        Test the featurize method on a list of inputs.
-        """
+    Test the featurize method on an array of inputs.
+    """
     input_array = np.array([[
         "N#C[S-].O=C(CBr)c1ccc(C(F)(F)F)cc1>CCO.[K+]",
         "N#CSCC(=O)c1ccc(C(F)(F)F)cc1"
