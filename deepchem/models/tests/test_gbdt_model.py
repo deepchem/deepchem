@@ -3,16 +3,22 @@ Tests to make sure deepchem models can fit models on easy datasets.
 """
 
 import tempfile
-
+import unittest
 import numpy as np
-import xgboost
-import lightgbm
 from sklearn.datasets import load_diabetes, load_digits
 from sklearn.model_selection import train_test_split
+try:
+  import xgboost
+  import lightgbm
+  has_xgboost_and_lightgbm = True
+except:
+  has_xgboost_and_lightgbm = False
 
 import deepchem as dc
 
 
+@unittest.skipIf(not has_xgboost_and_lightgbm,
+                 'xgboost or lightgbm are not installed')
 def test_singletask_regression_with_xgboost():
   np.random.seed(123)
 
@@ -41,6 +47,8 @@ def test_singletask_regression_with_xgboost():
   assert scores[regression_metric.name] < 55
 
 
+@unittest.skipIf(not has_xgboost_and_lightgbm,
+                 'xgboost or lightgbm are not installed')
 def test_singletask_regression_with_lightgbm():
   np.random.seed(123)
 
@@ -69,6 +77,8 @@ def test_singletask_regression_with_lightgbm():
   assert scores[regression_metric.name] < 55
 
 
+@unittest.skipIf(not has_xgboost_and_lightgbm,
+                 'xgboost or lightgbm are not installed')
 def test_multitask_regression_with_xgboost():
   np.random.seed(123)
 
@@ -104,6 +114,8 @@ def test_multitask_regression_with_xgboost():
   assert score < 55
 
 
+@unittest.skipIf(not has_xgboost_and_lightgbm,
+                 'xgboost or lightgbm are not installed')
 def test_multitask_regression_with_lightgbm():
   np.random.seed(123)
 
@@ -139,6 +151,8 @@ def test_multitask_regression_with_lightgbm():
   assert score < 55
 
 
+@unittest.skipIf(not has_xgboost_and_lightgbm,
+                 'xgboost or lightgbm are not installed')
 def test_classification_with_xgboost():
   """Test that sklearn models can learn on simple classification datasets."""
   np.random.seed(123)
@@ -167,6 +181,8 @@ def test_classification_with_xgboost():
   assert scores[classification_metric.name] > .9
 
 
+@unittest.skipIf(not has_xgboost_and_lightgbm,
+                 'xgboost or lightgbm are not installed')
 def test_classification_with_lightgbm():
   """Test that sklearn models can learn on simple classification datasets."""
   np.random.seed(123)
@@ -195,6 +211,8 @@ def test_classification_with_lightgbm():
   assert scores[classification_metric.name] > .9
 
 
+@unittest.skipIf(not has_xgboost_and_lightgbm,
+                 'xgboost or lightgbm are not installed')
 def test_reload_with_xgboost():
   np.random.seed(123)
 
@@ -231,6 +249,8 @@ def test_reload_with_xgboost():
   assert scores[regression_metric.name] < 55
 
 
+@unittest.skipIf(not has_xgboost_and_lightgbm,
+                 'xgboost or lightgbm are not installed')
 def test_reload_with_lightgbm():
   np.random.seed(123)
 

@@ -19,6 +19,7 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
+from deepchem.models.wandblogger import WandbLogger
 
 try:
   import wandb
@@ -118,6 +119,8 @@ class TorchModel(Model):
                wandb: bool = False,
                log_frequency: int = 100,
                device: Optional[torch.device] = None,
+               regularization_loss: Optional[Callable] = None,
+               wandb_logger: Optional[WandbLogger] = None,
                **kwargs) -> None:
     """Create a new TorchModel.
 
@@ -156,10 +159,15 @@ class TorchModel(Model):
     device: torch.device, optional (default None)
       the device on which to run computations.  If None, a device is
       chosen automatically.
+    regularization_loss: Callable, optional
+      a function that takes no arguments, and returns an extra contribution to add
+      to the loss function
+    wandb_logger: WandbLogger
+      the Weights & Biases logger object used to log data and metrics
     """
     super(TorchModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
     if isinstance(loss, Loss):
-      self._loss_fn: LossFn = _StandardLoss(model, loss)
+      self._loss_fn: LossFn = _StandardLoss(self, loss)
     else:
       self._loss_fn = loss
     self.batch_size = batch_size
@@ -168,6 +176,7 @@ class TorchModel(Model):
     else:
       self.optimizer = optimizer
     self.tensorboard = tensorboard
+    self.regularization_loss = regularization_loss
 
     # Select a device.
 
@@ -180,12 +189,41 @@ class TorchModel(Model):
     self.model = model.to(device)
 
     # W&B logging
+    if wandb:
+      logger.warning(
+          "`wandb` argument is deprecated. Please use `wandb_logger` instead. "
+          "This argument will be removed in a future release of DeepChem.")
     if wandb and not _has_wandb:
       logger.warning(
           "You set wandb to True but W&B is not installed. To use wandb logging, "
           "run `pip install wandb; wandb login` see https://docs.wandb.com/huggingface."
       )
     self.wandb = wandb and _has_wandb
+
+    self.wandb_logger = wandb_logger
+    # If `wandb=True` and no logger is provided, initialize default logger
+    if self.wandb and (self.wandb_logger is None):
+      self.wandb_logger = WandbLogger()
+
+    # Setup and initialize W&B logging
+    if (self.wandb_logger is not None) and (not self.wandb_logger.initialized):
+      self.wandb_logger.setup()
+
+    # Update config with KerasModel params
+    wandb_logger_config = dict(
+        loss=loss,
+        output_types=output_types,
+        batch_size=batch_size,
+        model_dir=model_dir,
+        learning_rate=learning_rate,
+        optimizer=optimizer,
+        tensorboard=tensorboard,
+        log_frequency=log_frequency,
+        regularization_loss=regularization_loss)
+    wandb_logger_config.update(**kwargs)
+
+    if self.wandb_logger is not None:
+      self.wandb_logger.update_config(wandb_logger_config)
 
     self.log_frequency = log_frequency
     if self.tensorboard:
@@ -404,8 +442,13 @@ class TorchModel(Model):
         c(self, current_step)
       if self.tensorboard and should_log:
         self._log_scalar_to_tensorboard('loss', batch_loss, current_step)
-      if self.wandb and should_log:
-        wandb.log({'loss': batch_loss}, step=current_step)
+      if (self.wandb_logger is not None) and should_log:
+        all_data = dict({'train/loss': batch_loss})
+        self.wandb_logger.log_data(all_data, step=current_step)
+
+    # Close WandbLogger
+    if self.wandb_logger is not None:
+      self.wandb_logger.finish()
 
     # Report final results.
     if averaged_batches > 0:
@@ -1117,8 +1160,8 @@ class TorchModel(Model):
 class _StandardLoss(object):
   """The implements the loss function for models that use a dc.models.losses.Loss."""
 
-  def __init__(self, model: torch.nn.Module, loss: Loss) -> None:
-    self.model = model  # not used
+  def __init__(self, model: TorchModel, loss: Loss) -> None:
+    self.model = model
     self.loss = loss  # not used
     self.criterion = loss._create_pytorch_loss()
 
@@ -1138,4 +1181,7 @@ class _StandardLoss(object):
       w = w.reshape(shape + (1,) * (len(losses.shape) - len(w.shape)))
 
     loss = losses * w
-    return loss.mean()
+    loss = loss.mean()
+    if self.model.regularization_loss is not None:
+      loss += self.model.regularization_loss()
+    return loss

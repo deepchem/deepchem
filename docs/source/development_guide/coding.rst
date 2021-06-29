@@ -27,9 +27,9 @@ is 0.22.  We periodically update it to newer versions.
 Linting
 -------
 
-.. _`Flake8`: https://github.com/google/yapf
+.. _`Flake8`: https://github.com/pycqa/flake8
 
-We use `Flake8` to check our code syntax. Lint tools basically provide these benefits.
+We use `Flake8`_ to check our code syntax. Lint tools basically provide these benefits.
 
 - Prevent things like syntax errors or typos
 - Save our review time (no need to check unused codes or typos)

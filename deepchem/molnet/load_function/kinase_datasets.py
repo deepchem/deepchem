@@ -10,7 +10,7 @@ import deepchem
 from deepchem.molnet.load_function.kaggle_features import merck_descriptors
 
 TRAIN_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KINASE_training_disguised_combined_full.csv.gz"
-VALID_UR = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KINASE_test1_disguised_combined_full.csv.gz"
+VALID_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KINASE_test1_disguised_combined_full.csv.gz"
 TEST_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KINASE_test2_disguised_combined_full.csv.gz"
 
 TRAIN_FILENAME = "KINASE_training_disguised_combined_full.csv.gz"
@@ -39,7 +39,7 @@ def remove_missing_entries(dataset):
 
 def get_transformers(train_dataset):
   """Gets transformers applied to the dataset"""
-  #TODO: Check for this
+  # TODO: Check for this
 
   transformers = list()
 
@@ -133,7 +133,7 @@ def gen_kinase(KINASE_tasks,
 
   time2 = time.time()
 
-  ##### TIMING ######
+  # TIMING
 
   logger.info("TIMING: KINASE fitting took %0.3f s" % (time2 - time1))
 
@@ -212,10 +212,13 @@ def load_kinase(shard_size=2000, featurizer=None, split=None, reload=True):
 
   else:
     logger.info("Featurizing datasets")
-    train_dataset, valid_dataset, test_dataset = \
-    gen_kinase(KINASE_tasks=KINASE_tasks, train_dir=train_dir,
-               valid_dir=valid_dir, test_dir=test_dir, data_dir=data_dir,
-               shard_size=shard_size)
+    train_dataset, valid_dataset, test_dataset = gen_kinase(
+        KINASE_tasks=KINASE_tasks,
+        train_dir=train_dir,
+        valid_dir=valid_dir,
+        test_dir=test_dir,
+        data_dir=data_dir,
+        shard_size=shard_size)
 
   transformers = get_transformers(train_dataset)
 
