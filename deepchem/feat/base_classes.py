@@ -424,9 +424,15 @@ class UserDefinedFeaturizer(Featurizer):
 
 
 class DummyFeaturizer(Featurizer):
-  """Abstract class for plain featurization."""
+  """Class that implements a no-op featurization.
+  This is useful when the raw dataset has to be used without
+  featurizing the examples.
 
-  def featurize(self, datapoints: Iterable[Any]) -> np.ndarray:
+
+  """
+
+  def featurize(self, datapoints: Iterable[Any],
+                log_every_n: int = 1000) -> np.ndarray:
     """Passes through dataset, and returns the datapoint.
 
     Parameters
