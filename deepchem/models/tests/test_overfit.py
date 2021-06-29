@@ -213,7 +213,6 @@ def test_fittransform_regression_overfit():
 
   # Generate dummy dataset
   np.random.seed(123)
-  tf.random.set_seed(123)
   ids = np.arange(n_samples)
   X = np.random.rand(n_samples, n_features, n_features)
   y = np.zeros((n_samples, n_tasks))

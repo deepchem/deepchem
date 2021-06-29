@@ -17,7 +17,7 @@ except:
 
 class TestCallbacks(unittest.TestCase):
 
-  @pytest.mark.tensorflow
+  @pytest.mark.torch
   def test_validation(self):
     """Test ValidationCallback."""
     tasks, datasets, transformers = dc.molnet.load_clintox()

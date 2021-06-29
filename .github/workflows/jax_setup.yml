@@ -133,4 +133,4 @@ jobs:
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: pytest -v -m jax deepchem
+      run: pytest -v -m 'jax and not slow' deepchem
