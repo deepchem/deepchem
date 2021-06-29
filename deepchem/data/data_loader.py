@@ -17,6 +17,7 @@ from deepchem.utils.data_utils import load_image_files, load_csv_files, load_jso
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
+from deepchem.utils.genomics_utils import encode_bio_sequence
 
 logger = logging.getLogger(__name__)
 
@@ -902,7 +903,7 @@ class FASTALoader(DataLoader):
 
     legacy: bool (default True)
       Whether to use legacy logic for featurization. Legacy mode will create
-      a one hot encoding of the FASTA content of shape 
+      a one hot encoding of the FASTA content of shape
       (number of FASTA sequences, number of channels + 1, max length, 1).
 
       Legacy mode is only tested for ACTGN charsets, and will be deprecated.
@@ -910,22 +911,33 @@ class FASTALoader(DataLoader):
 
     # Process legacy toggle
     if legacy:
-      logger.info("Deprecation warning: Legacy mode will soon be deprecated.")
-      if not isinstance(featurizer, None) or auto_add_annotations:
-        logger.warning(f"featurizer option must be None and 
-        auto_add_annotations must be false when legacy mode is enabled. You set
-        featurizer to {featurizer} and auto_add_annotations to
-        {auto_add_annotations}. So we set legacy = False.")
+      logger.info("""
+                  Deprecation warning: Legacy mode will soon be deprecated.
+                  Disable legacy mode by passing legacy=False during
+                  construction of FASTALoader object.
+                  """)
+      if featurizer is not None or auto_add_annotations:
+        logger.warning(f"""
+                       featurizer option must be None and
+                       auto_add_annotations must be false when legacy mode is
+                       enabled. You set featurizer to {featurizer} and
+                       auto_add_annotations to {auto_add_annotations}.
+                       So we set legacy = False.
+                       """)
         legacy = False
 
-    self.user_specified_features = None 
+    # Set attributes
+    self.legacy = legacy
+    self.auto_add_annotations = auto_add_annotations
+
+    self.user_specified_features = None
 
     # Handle special featurizer cases
-    if isinstance(featurizer, UserDefinedFeaturizer): # User defined featurizer
+    if isinstance(featurizer, UserDefinedFeaturizer):  # User defined featurizer
       self.user_specified_features = featurizer.feature_fields
-    elif isinstance(featurizer, None): # Default featurizer
-      featurizer = featurizer(charset = ("A", "C", "T", "G"),
-                              max_length = None)
+    elif featurizer is None:  # Default featurizer
+      featurizer = OneHotFeaturizer(
+          charset=["A", "C", "T", "G"], max_length=None)
 
     # Set self.featurizer
     self.featurizer = featurizer
@@ -959,15 +971,13 @@ class FASTALoader(DataLoader):
       input_files = [input_files]
 
     def shard_generator():  # TODO Enable sharding with shard size parameter
-      sequences = np.array([])
       for input_file in input_files:
         if self.legacy:
           X = encode_bio_sequence(input_file)
-          ids = np.ones(len(X))
         else:
-          sequences = np.append(sequences, _read_file(input_file))
+          sequences = _read_file(input_file)
           X = self.featurizer(sequences)
-          ids = np.ones(len(X))
+        ids = np.ones(len(X))
         # (X, y, w, ids)
         yield X, None, None, ids
 
@@ -981,6 +991,7 @@ class FASTALoader(DataLoader):
         """
         Uses a fasta_file to create a numpy array of annotated FASTA-format strings
         """
+        self.generate_ran = True
         sequences = np.array([])
         sequence = np.array([])
         header_read = False
@@ -995,7 +1006,7 @@ class FASTALoader(DataLoader):
               line = line[0:-1]  # Remove last character
             sequence = np.append(sequence, line)
         sequences = _add_sequence(sequences, sequence)
-        yield sequences
+        return sequences
 
       def _add_sequence(sequences: np.array, sequence: np.array) -> np.array:
         # Handle empty sequence
