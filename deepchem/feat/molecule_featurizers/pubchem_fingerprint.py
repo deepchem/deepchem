@@ -23,13 +23,14 @@ class PubChemFingerprint(MolecularFeaturizer):
   Examples
   --------
   >>> import deepchem as dc
-  >>> smiles = 'CCC'
+  >>> smiles = ['CCC']
   >>> featurizer = dc.feat.PubChemFingerprint()
-  >>> features = featurizer.featurize([smiles])
-  >>> features.shape
-  (1, 881)
-  >>> type(features)
-  numpy.ndarray
+  >>> features = featurizer.featurize(smiles)
+  >>> type(features[0])
+  <class 'numpy.ndarray'>
+  >>> features[0].shape
+  (881,)
+
   """
 
   def __init__(self):

@@ -30,22 +30,23 @@ class CircularFingerprint(MolecularFeaturizer):
   --------
   >>> import deepchem as dc
   >>> from rdkit import Chem
-  >>> smiles = 'C1=CC=CC=C1'
-  >>> mol = Chem.MolFromSmiles(smiles)
-
+  >>> smiles = ['C1=CC=CC=C1']
+  
   >>> # Example 1: (size = 2048, radius = 4)
   >>> featurizer = dc.feat.CircularFingerprint(size=2048, radius=4)
-  >>> fingerprint = featurizer([mol])
-  >>> fingerprint.shape
-  (1, 2048)
+  >>> features = featurizer.featurize(smiles)
+  >>> type(features[0])
+  <class 'numpy.ndarray'>
+  >>> features[0].shape
+  (2048,)
 
   >>> # Example 2: (size = 2048, radius = 4, sparse = True, smiles = True)
   >>> featurizer = dc.feat.CircularFingerprint(size=2048, radius=8,
   ...                                          sparse=True, smiles=True)
-  >>> featurizer([mol])
-  array([{98513984: {'smiles': 'ccc', 'count': 6}, 2763854213: {'smiles':
-    'ccccc', 'count': 6}, 3218693969: {'smiles': '', 'count': 6}, 3741631696:
-    {'smiles': 'c1ccccc1', 'count': 1}}], dtype=object)
+  >>> features = featurizer.featurize(smiles)
+  >>> type(features[0]) # dict containing fingerprints
+  <class 'dict'>
+
   """
 
   def __init__(self,

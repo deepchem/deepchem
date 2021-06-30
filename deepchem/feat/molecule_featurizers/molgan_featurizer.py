@@ -46,11 +46,14 @@ class MolGanFeaturizer(MolecularFeaturizer):
   >>> molecules = [rdkit_mol, smiles_mol]
   >>> featurizer = dc.feat.MolGanFeaturizer()
   >>> features = featurizer.featurize(molecules)
+  >>> len(features) # 2 molecules
+  2
   >>> type(features[0])
-  deepchem.feat.molecule_featurizers.molgan_featurizer.GraphMatrix
-  >>> molecules = featurizer.defeaturize(features)
+  <class 'deepchem.feat.molecule_featurizers.molgan_featurizer.GraphMatrix'>
+  >>> molecules = featurizer.defeaturize(features) # defeaturization
   >>> type(molecules[0])
-  rdkit.Chem.rdchem.Mol
+  <class 'rdkit.Chem.rdchem.Mol'>
+
   """
 
   def __init__(
@@ -77,8 +80,8 @@ class MolGanFeaturizer(MolecularFeaturizer):
 
     References
     ---------
-    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
-    for small molecular graphs`<https://arxiv.org/abs/1805.11973>`_"
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model for
+       small molecular graphs" (2018), https://arxiv.org/abs/1805.11973
     """
 
     self.max_atom_count = max_atom_count
