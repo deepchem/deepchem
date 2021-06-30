@@ -1,6 +1,9 @@
 import logging
 import importlib.util
 from typing import Optional, Union
+import shutil
+import os
+from distutils.dir_util import copy_tree
 
 logger = logging.getLogger(__name__)
 
@@ -122,3 +125,15 @@ class WandbLogger(object):
       additional configuration data to add
     """
     self.wandb_run.config.update(config_data)
+
+  def save_model(self, path, dest_folder_name):
+    dest = self.wandb_run.dir + "/" + dest_folder_name
+    shutil.rmtree(dest, ignore_errors=True) #clear dest folder to avoid file already exist error
+    checkpoint_names = ["ckpt", "checkpoint"]
+    for file in os.listdir(path):
+        if any(substring in file.lower() for substring in checkpoint_names):
+
+            if not os.path.exists(dest):
+                os.makedirs(dest)
+
+            shutil.copy2(os.path.join(path, file), os.path.join(dest, file))
