@@ -129,8 +129,6 @@ class ChemBERTaMaskedLMModel(TorchModel):
             model_output_dir = output_dir,
             **kwargs)
 
-
-    
     def _fit(self):
         from transformers import LineByLineTextDataset
         from transformers import DataCollatorForLanguageModeling
