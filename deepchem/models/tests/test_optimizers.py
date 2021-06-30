@@ -1,5 +1,6 @@
 import deepchem.models.optimizers as optimizers
 import unittest
+import pytest
 
 try:
   import tensorflow as tf
@@ -31,7 +32,7 @@ class TestOptimizers(unittest.TestCase):
     tfopt = opt._create_tf_optimizer(global_step)
     assert isinstance(tfopt, tf.keras.optimizers.Adam)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_adam_pytorch(self):
     """Test creating an Adam optimizer."""
     opt = optimizers.Adam(learning_rate=0.01)
@@ -48,7 +49,7 @@ class TestOptimizers(unittest.TestCase):
     tfopt = opt._create_tf_optimizer(global_step)
     assert isinstance(tfopt, tfa.optimizers.AdamW)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_adamw_pytorch(self):
     """Test creating an AdamW optimizer."""
     opt = optimizers.AdamW(learning_rate=0.01)
@@ -65,7 +66,7 @@ class TestOptimizers(unittest.TestCase):
     tfopt = opt._create_tf_optimizer(global_step)
     assert isinstance(tfopt, tfa.optimizers.LazyAdam)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_sparseadam_pytorch(self):
     """Test creating a SparseAdam optimizer."""
     opt = optimizers.SparseAdam(learning_rate=0.01)
@@ -81,7 +82,7 @@ class TestOptimizers(unittest.TestCase):
     tfopt = opt._create_tf_optimizer(global_step)
     assert isinstance(tfopt, tf.keras.optimizers.Adagrad)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_adagrad_pytorch(self):
     """Test creating an AdaGrad optimizer."""
     opt = optimizers.AdaGrad(learning_rate=0.01)
@@ -97,7 +98,7 @@ class TestOptimizers(unittest.TestCase):
     tfopt = opt._create_tf_optimizer(global_step)
     assert isinstance(tfopt, tf.keras.optimizers.RMSprop)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_rmsprop_pytorch(self):
     """Test creating an RMSProp Optimizer."""
     opt = optimizers.RMSProp(learning_rate=0.01)
@@ -113,7 +114,7 @@ class TestOptimizers(unittest.TestCase):
     tfopt = opt._create_tf_optimizer(global_step)
     assert isinstance(tfopt, tf.keras.optimizers.SGD)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_gradient_descent_pytorch(self):
     """Test creating a Gradient Descent optimizer."""
     opt = optimizers.GradientDescent(learning_rate=0.01)
@@ -130,7 +131,7 @@ class TestOptimizers(unittest.TestCase):
     global_step = tf.Variable(0)
     tfopt = opt._create_tf_optimizer(global_step)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_exponential_decay_pytorch(self):
     """Test creating an optimizer with an exponentially decaying learning rate."""
     rate = optimizers.ExponentialDecay(
@@ -149,7 +150,7 @@ class TestOptimizers(unittest.TestCase):
     global_step = tf.Variable(0)
     tfopt = opt._create_tf_optimizer(global_step)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_polynomial_decay_pytorch(self):
     """Test creating an optimizer with a polynomially decaying learning rate."""
     rate = optimizers.PolynomialDecay(
@@ -167,7 +168,7 @@ class TestOptimizers(unittest.TestCase):
     global_step = tf.Variable(0)
     tfopt = opt._create_tf_optimizer(global_step)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_linearCosine_decay_pytorch(self):
     """test creating an optimizer with a linear cosine decay to the learning rate"""
     rate = optimizers.LinearCosineDecay(initial_rate=0.1, decay_steps=10000)

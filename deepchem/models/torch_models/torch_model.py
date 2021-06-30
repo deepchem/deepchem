@@ -1,6 +1,10 @@
 import numpy as np
 import torch
-import torch.utils.tensorboard
+try:
+  import torch.utils.tensorboard
+  _has_tensorboard = True
+except:
+  _has_tensorboard = False
 import time
 import logging
 import os
@@ -226,6 +230,8 @@ class TorchModel(Model):
       self.wandb_logger.update_config(wandb_logger_config)
 
     self.log_frequency = log_frequency
+    if self.tensorboard and not _has_tensorboard:
+      raise ImportError("This class requires tensorboard to be installed.")
     if self.tensorboard:
       self._summary_writer = torch.utils.tensorboard.SummaryWriter(
           self.model_dir)
