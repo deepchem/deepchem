@@ -67,6 +67,9 @@ target/
 # Vim swap
 *.swp
 
+# Weights & Biases
+wandb/
+
 # Dataset files
 datasets/2008-2011_USPTO_reactionSmiles_filtered.zip
 datasets/2008-2011_USPTO_reactionSmiles_filtered/

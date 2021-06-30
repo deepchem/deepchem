@@ -108,13 +108,6 @@ DAGTransformer
   :members:
   :inherited-members:
 
-ANITransformer
-^^^^^^^^^^^^^^
-
-.. autoclass:: deepchem.trans.ANITransformer
-  :members:
-  :inherited-members:
-
 Base Transformer (for develop)
 -------------------------------
 

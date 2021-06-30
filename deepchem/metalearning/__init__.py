@@ -1,3 +1,5 @@
 # flake8: noqa
-
-from deepchem.metalearning.maml import MAML, MetaLearner
+try:
+  from deepchem.metalearning.maml import MAML, MetaLearner
+except ModuleNotFoundError:
+  pass

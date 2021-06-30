@@ -5,13 +5,13 @@ import numpy as np
 
 import deepchem as dc
 from deepchem.feat import MolGraphConvFeaturizer
-from deepchem.models import GCNModel
 from deepchem.models.tests.test_graph_models import get_dataset
 
 try:
   import dgl
   import dgllife
   import torch
+  from deepchem.models import GCNModel
   has_torch_and_dgl = True
 except:
   has_torch_and_dgl = False
@@ -32,7 +32,7 @@ def test_gcn_regression():
       n_tasks=n_tasks,
       number_atom_features=30,
       batch_size=10,
-      learning_rate=0.003)
+      learning_rate=0.001)
 
   # overfit test
   model.fit(dataset, nb_epoch=300)
