@@ -425,8 +425,9 @@ class UserDefinedFeaturizer(Featurizer):
 
 class DummyFeaturizer(Featurizer):
   """Class that implements a no-op featurization.
-  This is useful when the raw dataset has to be used without
-  featurizing the examples.
+  This is useful when the raw dataset has to be used without featurizing the
+  examples. The Molnet loader requires a featurizer input and such datasets
+  can be used in their original form by passing the raw featurizer.
 
   Examples
   --------
