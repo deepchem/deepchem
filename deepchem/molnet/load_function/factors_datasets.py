@@ -41,7 +41,7 @@ def get_transformers(train_dataset):
   """Gets transformers applied to the dataset"""
 
   transformers = list()
-  #TODO: Check if anything needs to be added
+  # TODO: Check if anything needs to be added
 
   return transformers
 
@@ -128,7 +128,7 @@ def gen_factors(FACTORS_tasks,
 
   time2 = time.time()
 
-  ########## TIMING ################
+  # TIMING
   logger.info("TIMING: FACTORS fitting took %0.3f s" % (time2 - time1))
 
   return train_dataset, valid_dataset, test_dataset
@@ -142,7 +142,7 @@ def load_factors(shard_size=2000, featurizer=None, split=None, reload=True):
 
   It contains 1500 Merck in-house compounds that were measured
   for IC50 of inhibition on 12 serine proteases. Unlike most of
-  the other datasets featured in MoleculeNet, the Factors 
+  the other datasets featured in MoleculeNet, the Factors
   collection does not have structures for the compounds tested
   since they were proprietary Merck compounds. However, the
   collection does feature pre-computed descriptors for these
@@ -192,9 +192,13 @@ def load_factors(shard_size=2000, featurizer=None, split=None, reload=True):
 
   else:
     logger.info("Featurizing datasets")
-    train_dataset, valid_dataset, test_dataset = \
-    gen_factors(FACTORS_tasks=FACTORS_tasks, data_dir=data_dir, train_dir=train_dir,
-                valid_dir=valid_dir, test_dir=test_dir, shard_size=shard_size)
+    train_dataset, valid_dataset, test_dataset = gen_factors(
+        FACTORS_tasks=FACTORS_tasks,
+        data_dir=data_dir,
+        train_dir=train_dir,
+        valid_dir=valid_dir,
+        test_dir=test_dir,
+        shard_size=shard_size)
 
   transformers = get_transformers(train_dataset)
 
