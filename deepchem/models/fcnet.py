@@ -150,12 +150,13 @@ class MultitaskClassifier(TorchModel):
         return (output, logits, neural_fingerprint)
 
     model = PytorchImpl()
+    regularization_loss: Optional[Callable]
     if weight_decay_penalty != 0:
       weights = [layer.weight for layer in model.layers]
       if weight_decay_penalty_type == 'l1':
-        regularization_loss = lambda: weight_decay_penalty * sum(torch.abs(w).sum() for w in weights)
+        regularization_loss = lambda: weight_decay_penalty * torch.sum(torch.stack([torch.abs(w).sum() for w in weights]))
       else:
-        regularization_loss = lambda: weight_decay_penalty * sum(torch.square(w).sum() for w in weights)
+        regularization_loss = lambda: weight_decay_penalty * torch.sum(torch.stack([torch.square(w).sum() for w in weights]))
     else:
       regularization_loss = None
     super(MultitaskClassifier, self).__init__(
@@ -321,12 +322,13 @@ class MultitaskRegressor(TorchModel):
           return (output, neural_fingerprint)
 
     model = PytorchImpl()
+    regularization_loss: Optional[Callable]
     if weight_decay_penalty != 0:
       weights = [layer.weight for layer in model.layers]
       if weight_decay_penalty_type == 'l1':
-        regularization_loss = lambda: weight_decay_penalty * sum(torch.abs(w).sum() for w in weights)
+        regularization_loss = lambda: weight_decay_penalty * torch.sum(torch.stack([torch.abs(w).sum() for w in weights]))
       else:
-        regularization_loss = lambda: weight_decay_penalty * sum(torch.square(w).sum() for w in weights)
+        regularization_loss = lambda: weight_decay_penalty * torch.sum(torch.stack([torch.square(w).sum() for w in weights]))
     else:
       regularization_loss = None
     loss: Union[dc.models.losses.Loss, LossFn]

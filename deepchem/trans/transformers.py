@@ -10,7 +10,6 @@ from typing import Any, List, Optional, Tuple, Union
 import numpy as np
 import scipy
 import scipy.ndimage
-import tensorflow as tf
 
 import deepchem as dc
 from deepchem.data import Dataset, NumpyDataset, DiskDataset
@@ -1622,8 +1621,9 @@ class IRVTransformer(Transformer):
                                                  100, target_len), :]
       # generating batch of data by slicing similarity matrix
       # into 100*reference_dataset_length
-      value, indice = tf.nn.top_k(similarity, k=self.K + 1, sorted=True)
-      top_label = tf.gather(y, indice)
+      indice = np.argsort(similarity)[:, -(self.K + 1):][:, ::-1]
+      value = np.take_along_axis(similarity, indice, axis=1)
+      top_label = np.take(y, indice)
       values.append(value)
       top_labels.append(top_label)
     values_np = np.concatenate(values, axis=0)
@@ -1974,201 +1974,206 @@ class ImageTransformer(Transformer):
     return np.array(images), y, w
 
 
-class ANITransformer(Transformer):
-  """Performs transform from 3D coordinates to ANI symmetry functions
+# class ANITransformer(Transformer):
+#   """Performs transform from 3D coordinates to ANI symmetry functions
 
-  Note
-  ----
-  This class requires TensorFlow to be installed.
-  """
+#   Note
+#   ----
+#   This class requires TensorFlow to be installed.
+#   """
 
-  def __init__(self,
-               max_atoms=23,
-               radial_cutoff=4.6,
-               angular_cutoff=3.1,
-               radial_length=32,
-               angular_length=8,
-               atom_cases=[1, 6, 7, 8, 16],
-               atomic_number_differentiated=True,
-               coordinates_in_bohr=True):
-    """
-    Only X can be transformed
-    """
-    self.max_atoms = max_atoms
-    self.radial_cutoff = radial_cutoff
-    self.angular_cutoff = angular_cutoff
-    self.radial_length = radial_length
-    self.angular_length = angular_length
-    self.atom_cases = atom_cases
-    self.atomic_number_differentiated = atomic_number_differentiated
-    self.coordinates_in_bohr = coordinates_in_bohr
-    self.compute_graph = self.build()
-    self.sess = tf.Session(graph=self.compute_graph)
-    self.transform_batch_size = 32
-    super(ANITransformer, self).__init__(transform_X=True)
+#   def __init__(self,
+#                max_atoms=23,
+#                radial_cutoff=4.6,
+#                angular_cutoff=3.1,
+#                radial_length=32,
+#                angular_length=8,
+#                atom_cases=[1, 6, 7, 8, 16],
+#                atomic_number_differentiated=True,
+#                coordinates_in_bohr=True):
+#     """
+#     Only X can be transformed
+#     """
+#     import tensorflow as tf
+#     self.max_atoms = max_atoms
+#     self.radial_cutoff = radial_cutoff
+#     self.angular_cutoff = angular_cutoff
+#     self.radial_length = radial_length
+#     self.angular_length = angular_length
+#     self.atom_cases = atom_cases
+#     self.atomic_number_differentiated = atomic_number_differentiated
+#     self.coordinates_in_bohr = coordinates_in_bohr
+#     self.compute_graph = self.build()
+#     self.sess = tf.Session(graph=self.compute_graph)
+#     self.transform_batch_size = 32
+#     super(ANITransformer, self).__init__(transform_X=True)
 
-  def transform_array(self, X, y, w):
-    if self.transform_X:
+#   def transform_array(self, X, y, w):
+#     if self.transform_X:
 
-      X_out = []
-      num_transformed = 0
-      start = 0
+#       X_out = []
+#       num_transformed = 0
+#       start = 0
 
-      batch_size = self.transform_batch_size
+#       batch_size = self.transform_batch_size
 
-      while True:
-        end = min((start + 1) * batch_size, X.shape[0])
-        X_batch = X[(start * batch_size):end]
-        output = self.sess.run(
-            [self.outputs], feed_dict={self.inputs: X_batch})[0]
-        X_out.append(output)
-        num_transformed = num_transformed + X_batch.shape[0]
-        logger.info('%i samples transformed' % num_transformed)
-        start += 1
-        if end >= len(X):
-          break
+#       while True:
+#         end = min((start + 1) * batch_size, X.shape[0])
+#         X_batch = X[(start * batch_size):end]
+#         output = self.sess.run(
+#             [self.outputs], feed_dict={self.inputs: X_batch})[0]
+#         X_out.append(output)
+#         num_transformed = num_transformed + X_batch.shape[0]
+#         logger.info('%i samples transformed' % num_transformed)
+#         start += 1
+#         if end >= len(X):
+#           break
 
-      X_new = np.concatenate(X_out, axis=0)
-      assert X_new.shape[0] == X.shape[0]
-    return (X_new, y, w)
+#       X_new = np.concatenate(X_out, axis=0)
+#       assert X_new.shape[0] == X.shape[0]
+#     return (X_new, y, w)
 
-  def untransform(self, z):
-    raise NotImplementedError(
-        "Cannot untransform datasets with ANITransformer.")
+#   def untransform(self, z):
+#     raise NotImplementedError(
+#         "Cannot untransform datasets with ANITransformer.")
 
-  def build(self):
-    """ tensorflow computation graph for transform """
-    graph = tf.Graph()
-    with graph.as_default():
-      self.inputs = tf.keras.Input(
-          dtype=tf.float32, shape=(None, self.max_atoms, 4))
-      atom_numbers = tf.cast(self.inputs[:, :, 0], tf.int32)
-      flags = tf.sign(atom_numbers)
-      flags = tf.cast(
-          tf.expand_dims(flags, 1) * tf.expand_dims(flags, 2), tf.float32)
-      coordinates = self.inputs[:, :, 1:]
-      if self.coordinates_in_bohr:
-        coordinates = coordinates * 0.52917721092
-      d = self.distance_matrix(coordinates, flags)
-      d_radial_cutoff = self.distance_cutoff(d, self.radial_cutoff, flags)
-      d_angular_cutoff = self.distance_cutoff(d, self.angular_cutoff, flags)
-      radial_sym = self.radial_symmetry(d_radial_cutoff, d, atom_numbers)
-      angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
-                                          coordinates)
-      self.outputs = tf.concat(
-          [
-              tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
-              angular_sym
-          ],
-          axis=2)
-    return graph
+#   def build(self):
+#     """ tensorflow computation graph for transform """
+#     import tensorflow as tf
+#     graph = tf.Graph()
+#     with graph.as_default():
+#       self.inputs = tf.keras.Input(
+#           dtype=tf.float32, shape=(None, self.max_atoms, 4))
+#       atom_numbers = tf.cast(self.inputs[:, :, 0], tf.int32)
+#       flags = tf.sign(atom_numbers)
+#       flags = tf.cast(
+#           tf.expand_dims(flags, 1) * tf.expand_dims(flags, 2), tf.float32)
+#       coordinates = self.inputs[:, :, 1:]
+#       if self.coordinates_in_bohr:
+#         coordinates = coordinates * 0.52917721092
+#       d = self.distance_matrix(coordinates, flags)
+#       d_radial_cutoff = self.distance_cutoff(d, self.radial_cutoff, flags)
+#       d_angular_cutoff = self.distance_cutoff(d, self.angular_cutoff, flags)
+#       radial_sym = self.radial_symmetry(d_radial_cutoff, d, atom_numbers)
+#       angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
+#                                           coordinates)
+#       self.outputs = tf.concat(
+#           [
+#               tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
+#               angular_sym
+#           ],
+#           axis=2)
+#     return graph
 
-  def distance_matrix(self, coordinates, flags):
-    """ Generate distance matrix """
-    max_atoms = self.max_atoms
-    tensor1 = tf.stack([coordinates] * max_atoms, axis=1)
-    tensor2 = tf.stack([coordinates] * max_atoms, axis=2)
+#   def distance_matrix(self, coordinates, flags):
+#     """ Generate distance matrix """
+#     import tensorflow as tf
+#     max_atoms = self.max_atoms
+#     tensor1 = tf.stack([coordinates] * max_atoms, axis=1)
+#     tensor2 = tf.stack([coordinates] * max_atoms, axis=2)
 
-    # Calculate pairwise distance
-    d = tf.sqrt(tf.reduce_sum(tf.square(tensor1 - tensor2), axis=3))
-    # Masking for valid atom index
-    d = d * flags
-    return d
+#     # Calculate pairwise distance
+#     d = tf.sqrt(tf.reduce_sum(tf.square(tensor1 - tensor2), axis=3))
+#     # Masking for valid atom index
+#     d = d * flags
+#     return d
 
-  def distance_cutoff(self, d, cutoff, flags):
-    """ Generate distance matrix with trainable cutoff """
-    # Cutoff with threshold Rc
-    d_flag = flags * tf.sign(cutoff - d)
-    d_flag = tf.nn.relu(d_flag)
-    d_flag = d_flag * tf.expand_dims(
-        tf.expand_dims((1 - tf.eye(self.max_atoms)), 0), -1)
-    d = 0.5 * (tf.cos(np.pi * d / cutoff) + 1)
-    return d * d_flag
+#   def distance_cutoff(self, d, cutoff, flags):
+#     """ Generate distance matrix with trainable cutoff """
+#     import tensorflow as tf
+#     # Cutoff with threshold Rc
+#     d_flag = flags * tf.sign(cutoff - d)
+#     d_flag = tf.nn.relu(d_flag)
+#     d_flag = d_flag * tf.expand_dims(
+#         tf.expand_dims((1 - tf.eye(self.max_atoms)), 0), -1)
+#     d = 0.5 * (tf.cos(np.pi * d / cutoff) + 1)
+#     return d * d_flag
 
-  def radial_symmetry(self, d_cutoff, d, atom_numbers):
-    """ Radial Symmetry Function """
-    embedding = tf.eye(np.max(self.atom_cases) + 1)
-    atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
+#   def radial_symmetry(self, d_cutoff, d, atom_numbers):
+#     """ Radial Symmetry Function """
+#     import tensorflow as tf
+#     embedding = tf.eye(np.max(self.atom_cases) + 1)
+#     atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
 
-    Rs = np.linspace(0., self.radial_cutoff, self.radial_length)
-    ita = np.ones_like(Rs) * 3 / (Rs[1] - Rs[0])**2
-    Rs = tf.cast(np.reshape(Rs, (1, 1, 1, -1)), tf.float32)
-    ita = tf.cast(np.reshape(ita, (1, 1, 1, -1)), tf.float32)
-    length = ita.get_shape().as_list()[-1]
+#     Rs = np.linspace(0., self.radial_cutoff, self.radial_length)
+#     ita = np.ones_like(Rs) * 3 / (Rs[1] - Rs[0])**2
+#     Rs = tf.cast(np.reshape(Rs, (1, 1, 1, -1)), tf.float32)
+#     ita = tf.cast(np.reshape(ita, (1, 1, 1, -1)), tf.float32)
+#     length = ita.get_shape().as_list()[-1]
 
-    d_cutoff = tf.stack([d_cutoff] * length, axis=3)
-    d = tf.stack([d] * length, axis=3)
+#     d_cutoff = tf.stack([d_cutoff] * length, axis=3)
+#     d = tf.stack([d] * length, axis=3)
 
-    out = tf.exp(-ita * tf.square(d - Rs)) * d_cutoff
-    if self.atomic_number_differentiated:
-      out_tensors = []
-      for atom_type in self.atom_cases:
-        selected_atoms = tf.expand_dims(
-            tf.expand_dims(atom_numbers_embedded[:, :, atom_type], axis=1),
-            axis=3)
-        out_tensors.append(tf.reduce_sum(out * selected_atoms, axis=2))
-      return tf.concat(out_tensors, axis=2)
-    else:
-      return tf.reduce_sum(out, axis=2)
+#     out = tf.exp(-ita * tf.square(d - Rs)) * d_cutoff
+#     if self.atomic_number_differentiated:
+#       out_tensors = []
+#       for atom_type in self.atom_cases:
+#         selected_atoms = tf.expand_dims(
+#             tf.expand_dims(atom_numbers_embedded[:, :, atom_type], axis=1),
+#             axis=3)
+#         out_tensors.append(tf.reduce_sum(out * selected_atoms, axis=2))
+#       return tf.concat(out_tensors, axis=2)
+#     else:
+#       return tf.reduce_sum(out, axis=2)
 
-  def angular_symmetry(self, d_cutoff, d, atom_numbers, coordinates):
-    """ Angular Symmetry Function """
+#   def angular_symmetry(self, d_cutoff, d, atom_numbers, coordinates):
+#     """ Angular Symmetry Function """
+#     import tensorflow as tf
+#     max_atoms = self.max_atoms
+#     embedding = tf.eye(np.max(self.atom_cases) + 1)
+#     atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
 
-    max_atoms = self.max_atoms
-    embedding = tf.eye(np.max(self.atom_cases) + 1)
-    atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
+#     Rs = np.linspace(0., self.angular_cutoff, self.angular_length)
+#     ita = 3 / (Rs[1] - Rs[0])**2
+#     thetas = np.linspace(0., np.pi, self.angular_length)
+#     zeta = float(self.angular_length**2)
 
-    Rs = np.linspace(0., self.angular_cutoff, self.angular_length)
-    ita = 3 / (Rs[1] - Rs[0])**2
-    thetas = np.linspace(0., np.pi, self.angular_length)
-    zeta = float(self.angular_length**2)
+#     ita, zeta, Rs, thetas = np.meshgrid(ita, zeta, Rs, thetas)
+#     zeta = tf.cast(np.reshape(zeta, (1, 1, 1, 1, -1)), tf.float32)
+#     ita = tf.cast(np.reshape(ita, (1, 1, 1, 1, -1)), tf.float32)
+#     Rs = tf.cast(np.reshape(Rs, (1, 1, 1, 1, -1)), tf.float32)
+#     thetas = tf.cast(np.reshape(thetas, (1, 1, 1, 1, -1)), tf.float32)
+#     length = zeta.get_shape().as_list()[-1]
 
-    ita, zeta, Rs, thetas = np.meshgrid(ita, zeta, Rs, thetas)
-    zeta = tf.cast(np.reshape(zeta, (1, 1, 1, 1, -1)), tf.float32)
-    ita = tf.cast(np.reshape(ita, (1, 1, 1, 1, -1)), tf.float32)
-    Rs = tf.cast(np.reshape(Rs, (1, 1, 1, 1, -1)), tf.float32)
-    thetas = tf.cast(np.reshape(thetas, (1, 1, 1, 1, -1)), tf.float32)
-    length = zeta.get_shape().as_list()[-1]
+#     vector_distances = tf.stack([coordinates] * max_atoms, 1) - tf.stack(
+#         [coordinates] * max_atoms, 2)
+#     R_ij = tf.stack([d] * max_atoms, axis=3)
+#     R_ik = tf.stack([d] * max_atoms, axis=2)
+#     f_R_ij = tf.stack([d_cutoff] * max_atoms, axis=3)
+#     f_R_ik = tf.stack([d_cutoff] * max_atoms, axis=2)
 
-    vector_distances = tf.stack([coordinates] * max_atoms, 1) - tf.stack(
-        [coordinates] * max_atoms, 2)
-    R_ij = tf.stack([d] * max_atoms, axis=3)
-    R_ik = tf.stack([d] * max_atoms, axis=2)
-    f_R_ij = tf.stack([d_cutoff] * max_atoms, axis=3)
-    f_R_ik = tf.stack([d_cutoff] * max_atoms, axis=2)
+#     # Define angle theta = arccos(R_ij(Vector) dot R_ik(Vector)/R_ij(distance)/R_ik(distance))
+#     vector_mul = tf.reduce_sum(tf.stack([vector_distances] * max_atoms, axis=3) * \
+#                                tf.stack([vector_distances] * max_atoms, axis=2), axis=4)
+#     vector_mul = vector_mul * tf.sign(f_R_ij) * tf.sign(f_R_ik)
+#     theta = tf.acos(tf.math.divide(vector_mul, R_ij * R_ik + 1e-5))
 
-    # Define angle theta = arccos(R_ij(Vector) dot R_ik(Vector)/R_ij(distance)/R_ik(distance))
-    vector_mul = tf.reduce_sum(tf.stack([vector_distances] * max_atoms, axis=3) * \
-                               tf.stack([vector_distances] * max_atoms, axis=2), axis=4)
-    vector_mul = vector_mul * tf.sign(f_R_ij) * tf.sign(f_R_ik)
-    theta = tf.acos(tf.math.divide(vector_mul, R_ij * R_ik + 1e-5))
+#     R_ij = tf.stack([R_ij] * length, axis=4)
+#     R_ik = tf.stack([R_ik] * length, axis=4)
+#     f_R_ij = tf.stack([f_R_ij] * length, axis=4)
+#     f_R_ik = tf.stack([f_R_ik] * length, axis=4)
+#     theta = tf.stack([theta] * length, axis=4)
 
-    R_ij = tf.stack([R_ij] * length, axis=4)
-    R_ik = tf.stack([R_ik] * length, axis=4)
-    f_R_ij = tf.stack([f_R_ij] * length, axis=4)
-    f_R_ik = tf.stack([f_R_ik] * length, axis=4)
-    theta = tf.stack([theta] * length, axis=4)
+#     out_tensor = tf.pow((1. + tf.cos(theta - thetas)) / 2., zeta) * \
+#                  tf.exp(-ita * tf.square((R_ij + R_ik) / 2. - Rs)) * f_R_ij * f_R_ik * 2
 
-    out_tensor = tf.pow((1. + tf.cos(theta - thetas)) / 2., zeta) * \
-                 tf.exp(-ita * tf.square((R_ij + R_ik) / 2. - Rs)) * f_R_ij * f_R_ik * 2
+#     if self.atomic_number_differentiated:
+#       out_tensors = []
+#       for id_j, atom_type_j in enumerate(self.atom_cases):
+#         for atom_type_k in self.atom_cases[id_j:]:
+#           selected_atoms = tf.stack([atom_numbers_embedded[:, :, atom_type_j]] * max_atoms, axis=2) * \
+#                            tf.stack([atom_numbers_embedded[:, :, atom_type_k]] * max_atoms, axis=1)
+#           selected_atoms = tf.expand_dims(
+#               tf.expand_dims(selected_atoms, axis=1), axis=4)
+#           out_tensors.append(
+#               tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
+#       return tf.concat(out_tensors, axis=2)
+#     else:
+#       return tf.reduce_sum(out_tensor, axis=(2, 3))
 
-    if self.atomic_number_differentiated:
-      out_tensors = []
-      for id_j, atom_type_j in enumerate(self.atom_cases):
-        for atom_type_k in self.atom_cases[id_j:]:
-          selected_atoms = tf.stack([atom_numbers_embedded[:, :, atom_type_j]] * max_atoms, axis=2) * \
-                           tf.stack([atom_numbers_embedded[:, :, atom_type_k]] * max_atoms, axis=1)
-          selected_atoms = tf.expand_dims(
-              tf.expand_dims(selected_atoms, axis=1), axis=4)
-          out_tensors.append(
-              tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
-      return tf.concat(out_tensors, axis=2)
-    else:
-      return tf.reduce_sum(out_tensor, axis=(2, 3))
-
-  def get_num_feats(self):
-    n_feat = self.outputs.get_shape().as_list()[-1]
-    return n_feat
+#   def get_num_feats(self):
+#     n_feat = self.outputs.get_shape().as_list()[-1]
+#     return n_feat
 
 
 class FeaturizationTransformer(Transformer):
