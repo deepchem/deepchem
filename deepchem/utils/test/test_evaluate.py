@@ -6,13 +6,13 @@ import sklearn
 from deepchem.utils.evaluate import Evaluator
 from deepchem.utils.evaluate import GeneratorEvaluator
 try:
-  import tensorflow as tf
+  import tensorflow as tf  # noqa
   has_tensorflow = True
 except:
   has_tensorflow = False
 
 try:
-  import torch
+  import torch  # noqa
   has_pytorch = True
 except:
   has_pytorch = False
