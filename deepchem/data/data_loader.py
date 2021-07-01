@@ -990,7 +990,6 @@ class FASTALoader(DataLoader):
         """
         Uses a fasta_file to create a numpy array of annotated FASTA-format strings
         """
-        self.generate_ran = True
         sequences = np.array([])
         sequence = np.array([])
         header_read = False
