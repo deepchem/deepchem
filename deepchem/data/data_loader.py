@@ -911,20 +911,19 @@ class FASTALoader(DataLoader):
 
     # Process legacy toggle
     if legacy:
-      logger.info("""
-                  Deprecation warning: Legacy mode will soon be deprecated.
-                  Disable legacy mode by passing legacy=False during
-                  construction of FASTALoader object.
-                  """)
+      warnings.warn(
+          """
+                    Legacy mode is deprecated and will be removed in
+                    DeepChem 3.0. Disable legacy mode by passing legacy=False
+                    during construction of FASTALoader object.
+                    """, FutureWarning)
       if featurizer is not None or auto_add_annotations:
-        logger.warning(f"""
-                       featurizer option must be None and
-                       auto_add_annotations must be false when legacy mode is
-                       enabled. You set featurizer to {featurizer} and
-                       auto_add_annotations to {auto_add_annotations}.
-                       So we set legacy = False.
-                       """)
-        legacy = False
+        raise ValueError(f"""
+                          featurizer option must be None and
+                          auto_add_annotations must be false when legacy mode
+                          is enabled. You set featurizer to {featurizer} and
+                          auto_add_annotations to {auto_add_annotations}.
+                          """)
 
     # Set attributes
     self.legacy = legacy
@@ -1012,10 +1011,6 @@ class FASTALoader(DataLoader):
         # Handle empty sequence
         if sequence is None or len(sequence) <= 0:
           # TODO log attempts to add empty sequences every shard
-          """
-          logger.info(
-              "Attempting to add empty sequence, returning empty array...")
-          """
           return np.array([])
         # Annotate start/stop of sequence
         if auto_add_annotations:

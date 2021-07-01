@@ -98,10 +98,7 @@ class OneHotFeaturizer(Featurizer):
     """
     if self.max_length is not None:
       if (len(string) > self.max_length):  # Validation
-        logger.warning(
-            "The length of {} is longer than `max_length`. So we return an empty array."
-        )
-        return np.array([])
+        raise ValueError("The length of {} is longer than `max_length`.")
       string = self.pad_string(string)  # Padding
 
     return np.array([
