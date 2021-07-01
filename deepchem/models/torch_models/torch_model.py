@@ -438,6 +438,9 @@ class TorchModel(Model):
 
       if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
         self.save_checkpoint(max_checkpoints_to_keep)
+        # Save checkpoint to Wandb
+        if (self.wandb_logger is not None):
+          self.wandb_logger.save_model(self.model_dir)
       for c in callbacks:
         c(self, current_step)
       if self.tensorboard and should_log:
@@ -445,10 +448,6 @@ class TorchModel(Model):
       if (self.wandb_logger is not None) and should_log:
         all_data = dict({'train/loss': batch_loss})
         self.wandb_logger.log_data(all_data, step=current_step)
-
-    # Close WandbLogger
-    if self.wandb_logger is not None:
-      self.wandb_logger.finish()
 
     # Report final results.
     if averaged_batches > 0:
@@ -461,6 +460,13 @@ class TorchModel(Model):
 
     if checkpoint_interval > 0:
       self.save_checkpoint(max_checkpoints_to_keep)
+      # Save checkpoint to Wandb
+      if (self.wandb_logger is not None):
+        self.wandb_logger.save_model(self.model_dir)
+
+    # Close WandbLogger
+    if self.wandb_logger is not None:
+      self.wandb_logger.finish()
 
     time2 = time.time()
     logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))

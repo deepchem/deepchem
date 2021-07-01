@@ -126,10 +126,14 @@ class WandbLogger(object):
     """
     self.wandb_run.config.update(config_data)
 
-  def save_model(self, path, dest_folder_name):
-    dest = self.wandb_run.dir + "/" + dest_folder_name
-    shutil.rmtree(dest, ignore_errors=True) #clear dest folder to avoid file already exist error
-    checkpoint_names = ["ckpt", "checkpoint"]
+  def save_model(self, path):
+    path = os.path.abspath(path)
+    path_list = path.split(os.sep)
+    # destination folder will have same name as save directory
+    dest = os.path.join(self.wandb_run.dir, path_list[-1])
+    shutil.rmtree(dest, ignore_errors=True) # clear dest folder to avoid file already exist error
+    checkpoint_names = ["ckpt", "checkpoint", ".pt", ".pth"]
+    # Copy all checkpoint files to wandb.run.dir for upload when run finishes
     for file in os.listdir(path):
         if any(substring in file.lower() for substring in checkpoint_names):
 

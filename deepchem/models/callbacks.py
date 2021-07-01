@@ -87,9 +87,9 @@ class ValidationCallback(object):
       if self._best_score is None or score < self._best_score:
         model.save_checkpoint(model_dir=self.save_dir)
         self._best_score = score
-        # Save checkpoints to Wandb
+        # Save checkpoint to Wandb
         if model.wandb or (model.wandb_logger is not None):
-          model.wandb_logger.save_model(self.save_dir, "validationcallback_ckpts")
+          model.wandb_logger.save_model(self.save_dir)
     if model.wandb or (model.wandb_logger is not None):
       # Log data to Wandb
       data = {'eval/' + k: v for k, v in scores.items()}
