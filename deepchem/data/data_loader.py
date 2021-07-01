@@ -947,8 +947,7 @@ class FASTALoader(DataLoader):
                      shard_size: Optional[int] = None) -> DiskDataset:
     """Creates a `Dataset` from input FASTA files.
 
-    At present, FASTA support is limited and only allows for one-hot
-    featurization, and doesn't allow for sharding.
+    At present, FASTA support is limited and doesn't allow for sharding.
 
     Parameters
     ----------
