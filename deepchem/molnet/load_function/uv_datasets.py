@@ -130,7 +130,7 @@ def gen_uv(UV_tasks, data_dir, train_dir, valid_dir, test_dir, shard_size=2000):
 
   time2 = time.time()
 
-  ##### TIMING ###########
+  # TIMING
   logger.info("TIMING: UV fitting took %0.3f s" % (time2 - time1))
 
   return train_dataset, valid_dataset, test_dataset
@@ -188,9 +188,13 @@ def load_uv(shard_size=2000, featurizer=None, split=None, reload=True):
 
   else:
     logger.info("Featurizing datasets")
-    train_dataset, valid_dataset, test_dataset = \
-    gen_uv(UV_tasks=UV_tasks, data_dir=data_dir, train_dir=train_dir,
-           valid_dir=valid_dir, test_dir=test_dir, shard_size=shard_size)
+    train_dataset, valid_dataset, test_dataset = gen_uv(
+        UV_tasks=UV_tasks,
+        data_dir=data_dir,
+        train_dir=train_dir,
+        valid_dir=valid_dir,
+        test_dir=test_dir,
+        shard_size=shard_size)
 
   transformers = get_transformers(train_dataset)
 

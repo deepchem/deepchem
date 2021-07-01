@@ -8,7 +8,6 @@ import os
 import time
 import csv
 import numpy as np
-import tensorflow as tf
 import deepchem
 import pickle
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
@@ -81,7 +80,7 @@ def run_benchmark(datasets,
         'pcba_2475', 'sider', 'tox21', 'toxcast'
     ]:
       mode = 'classification'
-      if metric == None:
+      if metric is None:
         metric = [
             deepchem.metrics.Metric(deepchem.metrics.roc_auc_score, np.mean),
         ]
@@ -91,14 +90,14 @@ def run_benchmark(datasets,
         'thermosol'
     ]:
       mode = 'regression'
-      if metric == None:
+      if metric is None:
         metric = [
             deepchem.metrics.Metric(deepchem.metrics.pearson_r2_score, np.mean)
         ]
     else:
       raise ValueError('Dataset not supported')
 
-    if featurizer == None and isinstance(model, str):
+    if featurizer is None and isinstance(model, str):
       # Assigning featurizer if not user defined
       pair = (dataset, model)
       if pair in CheckFeaturizer:
@@ -107,7 +106,7 @@ def run_benchmark(datasets,
       else:
         continue
 
-    if not split in [None] + CheckSplit[dataset]:
+    if split not in [None] + CheckSplit[dataset]:
       continue
 
     loading_functions = {
