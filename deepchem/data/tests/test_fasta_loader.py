@@ -50,15 +50,4 @@ class TestFASTALoader(unittest.TestCase):
 
     assert sequences.X.shape
 
-  def test_fasta_legacy_soft_fail(self):
-    protein = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-               'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-               '*', '-']
-    input_file = os.path.join(self.current_dir,
-                              "../../data/tests/uniprot_truncated.fasta")
-    loader = dc.data.FASTALoader(OneHotFeaturizer(charset=protein, max_length=1000))
-    sequences = loader.create_dataset(input_file)
-
-    assert sequences.X.shape
-
   # TODO: test with full uniprot file once sharding support is added.
