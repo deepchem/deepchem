@@ -1,6 +1,10 @@
 import numpy as np
 import torch
-import torch.utils.tensorboard
+try:
+  import torch.utils.tensorboard
+  _has_tensorboard = True
+except:
+  _has_tensorboard = False
 import time
 import logging
 import os
@@ -19,6 +23,7 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
+from deepchem.models.wandblogger import WandbLogger
 
 try:
   import wandb
@@ -119,6 +124,7 @@ class TorchModel(Model):
                log_frequency: int = 100,
                device: Optional[torch.device] = None,
                regularization_loss: Optional[Callable] = None,
+               wandb_logger: Optional[WandbLogger] = None,
                **kwargs) -> None:
     """Create a new TorchModel.
 
@@ -160,6 +166,8 @@ class TorchModel(Model):
     regularization_loss: Callable, optional
       a function that takes no arguments, and returns an extra contribution to add
       to the loss function
+    wandb_logger: WandbLogger
+      the Weights & Biases logger object used to log data and metrics
     """
     super(TorchModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
     if isinstance(loss, Loss):
@@ -185,6 +193,10 @@ class TorchModel(Model):
     self.model = model.to(device)
 
     # W&B logging
+    if wandb:
+      logger.warning(
+          "`wandb` argument is deprecated. Please use `wandb_logger` instead. "
+          "This argument will be removed in a future release of DeepChem.")
     if wandb and not _has_wandb:
       logger.warning(
           "You set wandb to True but W&B is not installed. To use wandb logging, "
@@ -192,7 +204,34 @@ class TorchModel(Model):
       )
     self.wandb = wandb and _has_wandb
 
+    self.wandb_logger = wandb_logger
+    # If `wandb=True` and no logger is provided, initialize default logger
+    if self.wandb and (self.wandb_logger is None):
+      self.wandb_logger = WandbLogger()
+
+    # Setup and initialize W&B logging
+    if (self.wandb_logger is not None) and (not self.wandb_logger.initialized):
+      self.wandb_logger.setup()
+
+    # Update config with KerasModel params
+    wandb_logger_config = dict(
+        loss=loss,
+        output_types=output_types,
+        batch_size=batch_size,
+        model_dir=model_dir,
+        learning_rate=learning_rate,
+        optimizer=optimizer,
+        tensorboard=tensorboard,
+        log_frequency=log_frequency,
+        regularization_loss=regularization_loss)
+    wandb_logger_config.update(**kwargs)
+
+    if self.wandb_logger is not None:
+      self.wandb_logger.update_config(wandb_logger_config)
+
     self.log_frequency = log_frequency
+    if self.tensorboard and not _has_tensorboard:
+      raise ImportError("This class requires tensorboard to be installed.")
     if self.tensorboard:
       self._summary_writer = torch.utils.tensorboard.SummaryWriter(
           self.model_dir)
@@ -409,8 +448,13 @@ class TorchModel(Model):
         c(self, current_step)
       if self.tensorboard and should_log:
         self._log_scalar_to_tensorboard('loss', batch_loss, current_step)
-      if self.wandb and should_log:
-        wandb.log({'loss': batch_loss}, step=current_step)
+      if (self.wandb_logger is not None) and should_log:
+        all_data = dict({'train/loss': batch_loss})
+        self.wandb_logger.log_data(all_data, step=current_step)
+
+    # Close WandbLogger
+    if self.wandb_logger is not None:
+      self.wandb_logger.finish()
 
     # Report final results.
     if averaged_batches > 0:

@@ -1,5 +1,6 @@
 import os
 import unittest
+import pytest
 import deepchem as dc
 import numpy as np
 from deepchem.models.losses import L2Loss
@@ -29,6 +30,7 @@ except:
 @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 class TestPretrainedTorch(unittest.TestCase):
 
+  @pytest.mark.torch
   def setUp(self):
     self.feature_dim = 2
     self.hidden_layer_size = 10
@@ -39,6 +41,7 @@ class TestPretrainedTorch(unittest.TestCase):
 
     self.dataset = dc.data.NumpyDataset(X, y)
 
+  @pytest.mark.torch
   def test_load_from_pretrained(self):
     """Tests loading pretrained model."""
     source_model = MLP(
@@ -73,6 +76,7 @@ class TestPretrainedTorch(unittest.TestCase):
       dest_val = dest_var.detach().cpu().numpy()
       np.testing.assert_array_almost_equal(source_val, dest_val)
 
+  @pytest.mark.torch
   def test_restore_equivalency(self):
     """Test for restore based pretrained model loading."""
     source_model = MLP(

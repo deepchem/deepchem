@@ -14,7 +14,7 @@ def test_cosine_dist():
   # the output tensor will be of shape (5,5)
   cos_sim_same = layers.cosine_dist(x, y_same)
   diff = cos_sim_same - tf.ones((5, 5), dtype=tf.dtypes.float32, name=None)
-  assert tf.reduce_sum(diff) == 0  # True
+  assert tf.abs(tf.reduce_sum(diff)) < 1e-5  # True
 
   identity_tensor = tf.eye(
       512, dtype=tf.dtypes.float32)  # identity matrix of shape (512,512)
@@ -24,7 +24,7 @@ def test_cosine_dist():
   # the pairwise inner product of the rows in x and y will always be 0
   # the output tensor will be of shape (256,256)
   cos_sim_orth = layers.cosine_dist(x1, x2)
-  assert tf.reduce_sum(cos_sim_orth) == 0  # True
+  assert tf.abs(tf.reduce_sum(cos_sim_orth)) < 1e-5  # True
   assert all([cos_sim_orth.shape[dim] == 256 for dim in range(2)])  # True
 
 
