@@ -24,6 +24,19 @@ class OneHotFeaturizer(Featurizer):
   array. It also works with RDKit molecules: it can convert RDKit molecules to
   SMILES strings and then one-hot encode the characters in said strings.
 
+  Standalone Usage:
+
+  >>> import deepchem as dc
+  >>> featurizer = dc.feat.OneHotFeaturizer()
+  >>> smiles = ['CCC']
+  >>> encodings = featurizer.featurize(smiles)
+  >>> type(encodings[0])
+  <class 'numpy.ndarray'>
+  >>> encodings[0].shape
+  (100, 35)
+  >>> featurizer.untransform(encodings[0])
+  'CCC'
+
   Note
   ----
   This class needs RDKit to be installed in order to accept RDKit molecules as

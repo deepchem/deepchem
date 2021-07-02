@@ -10,6 +10,17 @@ class MACCSKeysFingerprint(MolecularFeaturizer):
   The MACCS (Molecular ACCess System) keys are one of the most commonly used structural keys.
   Please confirm the details in [1]_, [2]_.
 
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
+  >>> featurizer = dc.feat.MACCSKeysFingerprint()
+  >>> features = featurizer.featurize([smiles])
+  >>> type(features[0])
+  <class 'numpy.ndarray'>
+  >>> features[0].shape
+  (167,)
+
   References
   ----------
   .. [1] Durant, Joseph L., et al. "Reoptimization of MDL keys for use in drug discovery."
@@ -19,6 +30,7 @@ class MACCSKeysFingerprint(MolecularFeaturizer):
   Note
   ----
   This class requires RDKit to be installed.
+
   """
 
   def __init__(self):
