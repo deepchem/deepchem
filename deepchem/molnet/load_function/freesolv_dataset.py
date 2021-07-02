@@ -33,10 +33,10 @@ def load_freesolv(
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
   """Load Freesolv dataset
 
-  The FreeSolv dataset is a collection of experimental and calculated hydration 
-  free energies for small molecules in water, along with their experiemental values. 
-  Here, we are using a modified version of the dataset with the molecule smile string 
-  and the corresponding experimental hydration free energies. 
+  The FreeSolv dataset is a collection of experimental and calculated hydration
+  free energies for small molecules in water, along with their experiemental values.
+  Here, we are using a modified version of the dataset with the molecule smile string
+  and the corresponding experimental hydration free energies.
 
 
   Random splitting is recommended for this dataset.
@@ -72,8 +72,8 @@ def load_freesolv(
   ----------
   .. [1] Łukasz Maziarka, et al. "Molecule Attention Transformer." NeurIPS 2019
      arXiv:2002.08264v1 [cs.LG].
-  .. [2] Mobley DL, Guthrie JP. FreeSolv: 
-     a database of experimental and calculated hydration free energies, with input files. 
+  .. [2] Mobley DL, Guthrie JP. FreeSolv:
+     a database of experimental and calculated hydration free energies, with input files.
      J Comput Aided Mol Des. 2014;28(7):711-720. doi:10.1007/s10822-014-9747-x
   """
   loader = _FreesolvLoader(featurizer, splitter, transformers, FREESOLV_TASKS,
