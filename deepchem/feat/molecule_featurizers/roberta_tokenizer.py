@@ -38,7 +38,8 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
 
   #def __init__(self, **kwargs):
   def __init__(self, input_ids, attention_mask):
-    super().__init__(**kwargs)
+    # super().__init__(**kwargs)
+    super().__init__(input_ids, attention_mask)
     return
   
 
@@ -64,7 +65,7 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
     # the encoding is natively a dictionary with keys 'input_ids' and 'attention_mask'
     # -> make this a list of two lists to allow np to handle it
     # encoding = list(self(smiles_string, **kwargs).values())
-    encoding = list(self(smiles_string, input_ids, attention_mask).values())
+    encoding = list(self(smiles_string, self.input_ids, self.attention_mask).values())
 
     return encoding
 
