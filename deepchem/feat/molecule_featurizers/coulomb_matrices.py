@@ -14,8 +14,11 @@ from deepchem.feat.base_classes import MolecularFeaturizer
 class CoulombMatrix(MolecularFeaturizer):
   """Calculate Coulomb matrices for molecules.
 
-  Coulomb matrices provide a representation of the electronic structure of a
-  molecule. This method is described in [1]_.
+  Coulomb matrices provide a representation of the electronic structure of
+  a molecule. For a molecule with `N` atoms, the Coulomb matrix is a
+  `N X N` matrix where each element gives the strength of the
+  electrostatic interaction between two atoms. The method is described
+  in more detail in [1]_.
 
   Examples
   --------
@@ -25,7 +28,6 @@ class CoulombMatrix(MolecularFeaturizer):
   >>> tasks = ["atomization_energy"]
   >>> loader = dc.data.SDFLoader(tasks, featurizer=featurizers)
   >>> dataset = loader.create_dataset(input_file)
-
 
   References
   ----------

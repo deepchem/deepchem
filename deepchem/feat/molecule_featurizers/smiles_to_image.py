@@ -25,6 +25,17 @@ class SmilesToImage(MolecularFeaturizer):
   to indicate bonds. For the respective channels, the atom and bond positions are
   set to the property values as mentioned in the paper.
 
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> smiles = ['CC(=O)OC1=CC=CC=C1C(=O)O']
+  >>> featurizer = dc.feat.SmilesToImage(img_size=80, img_spec='std')
+  >>> images = featurizer.featurize(smiles)
+  >>> type (images[0])
+  <class 'numpy.ndarray'>
+  >>> images[0].shape # (img_size, img_size, 1)
+  (80, 80, 1)
+
   References
   ----------
   .. [1] Goh, Garrett B., et al. "Using rule-based labels for weak supervised
