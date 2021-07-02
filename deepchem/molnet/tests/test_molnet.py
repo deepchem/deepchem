@@ -28,6 +28,7 @@ class TestMolnet(unittest.TestCase):
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
   @pytest.mark.slow
+  @pytest.mark.tensorflow
   def test_delaney_graphconvreg(self):
     """Tests molnet benchmarking on delaney with graphconvreg."""
     datasets = ['delaney']
@@ -46,6 +47,7 @@ class TestMolnet(unittest.TestCase):
     os.remove(os.path.join(out_path, 'results.csv'))
 
   @pytest.mark.slow
+  @pytest.mark.torch
   def test_qm7_multitask(self):
     """Tests molnet benchmarking on qm7 with multitask network."""
     datasets = ['qm7']
