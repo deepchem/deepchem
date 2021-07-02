@@ -34,11 +34,8 @@ from deepchem.feat.molecule_featurizers import RawFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitDescriptors
 from deepchem.feat.molecule_featurizers import SmilesToImage
 from deepchem.feat.molecule_featurizers import SmilesToSeq, create_char_to_idx
-<<<<<<< HEAD
 from deepchem.feat.molecule_featurizers import RobertaFeaturizer
-=======
 from deepchem.feat.molecule_featurizers import MATFeaturizer
->>>>>>> 692a2ed74a622c2beeb58494c37b553a8a98e3d2
 
 # complex featurizers
 from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
