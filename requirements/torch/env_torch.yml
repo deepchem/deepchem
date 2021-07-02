@@ -8,6 +8,7 @@ dependencies:
   - numpy==1.21.*
   - pip==20.2.*
   - pip:
+    - transformers==4.6.*
     - tensorflow~=2.4
     - dgllife==0.2.8
     - pymatgen==2020.12.31
