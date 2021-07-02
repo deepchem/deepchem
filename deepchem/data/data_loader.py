@@ -1002,7 +1002,7 @@ class FASTALoader(DataLoader):
             if line[-1:] == '\n':  # Check last character in string
               line = line[0:-1]  # Remove last character
             sequence = np.append(sequence, line)
-        sequences = _add_sequence(sequences, sequence) # Add last sequence
+        sequences = _add_sequence(sequences, sequence)  # Add last sequence
         return sequences
 
       def _add_sequence(sequences: np.array, sequence: np.array) -> np.array:
