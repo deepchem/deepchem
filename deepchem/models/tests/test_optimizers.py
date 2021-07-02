@@ -40,8 +40,7 @@ class TestOptimizers(unittest.TestCase):
     torchopt = opt._create_pytorch_optimizer(params)
     assert isinstance(torchopt, torch.optim.Adam)
 
-  @unittest.skipIf(not has_tensorflow_addons,
-                   'TensorFlow Addons is not installed')
+  @pytest.mark.tensorflow
   def test_adamw_tf(self):
     """Test creating an AdamW optimizer."""
     opt = optimizers.AdamW(learning_rate=0.01)
@@ -57,8 +56,7 @@ class TestOptimizers(unittest.TestCase):
     torchopt = opt._create_pytorch_optimizer(params)
     assert isinstance(torchopt, torch.optim.AdamW)
 
-  @unittest.skipIf(not has_tensorflow_addons,
-                   'TensorFlow Addons is not installed')
+  @pytest.mark.tensorflow
   def test_sparseadam_tf(self):
     """Test creating a SparseAdam optimizer."""
     opt = optimizers.SparseAdam(learning_rate=0.01)
