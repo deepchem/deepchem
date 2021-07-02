@@ -2,6 +2,7 @@
 import os
 import unittest
 from unittest import TestCase
+import pytest
 try:
   from transformers import RobertaForMaskedLM
   from deepchem.feat.smiles_tokenizer import SmilesTokenizer
