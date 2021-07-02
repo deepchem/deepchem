@@ -54,6 +54,11 @@ Cell Counting Datasets
 
 .. autofunction:: deepchem.molnet.load_cell_counting
 
+Freesolv Dataset
+----------------------
+
+.. autofunction:: deepchem.molnet.load_freesolv
+
 Chembl Datasets
 ---------------
 
