@@ -1,24 +1,23 @@
-import unittest
+import pytest
 import tempfile
 
 import numpy as np
 
 import deepchem as dc
 from deepchem.feat import MolGraphConvFeaturizer
-from deepchem.models.torch_models import MPNNModel
 from deepchem.models.tests.test_graph_models import get_dataset
 
 try:
   import dgl
   import dgllife
   import torch
+  from deepchem.models.torch_models import MPNNModel
   has_torch_and_dgl = True
 except:
   has_torch_and_dgl = False
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_mpnn_regression():
   # load datasets
   featurizer = MolGraphConvFeaturizer(use_edges=True)
@@ -50,8 +49,7 @@ def test_mpnn_regression():
   model.fit(train_set, nb_epoch=1)
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_mpnn_classification():
   # load datasets
   featurizer = MolGraphConvFeaturizer(use_edges=True)
@@ -66,7 +64,7 @@ def test_mpnn_classification():
   # overfit test
   model.fit(dataset, nb_epoch=200)
   scores = model.evaluate(dataset, [metric], transformers)
-  assert scores['mean-roc_auc_score'] >= 0.85
+  assert scores['mean-roc_auc_score'] >= 0.80
 
   # test on a small MoleculeNet dataset
   from deepchem.molnet import load_bace_classification
@@ -85,8 +83,7 @@ def test_mpnn_classification():
   model.fit(train_set, nb_epoch=1)
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_mpnn_reload():
   # load datasets
   featurizer = MolGraphConvFeaturizer(use_edges=True)
@@ -105,7 +102,7 @@ def test_mpnn_reload():
 
   model.fit(dataset, nb_epoch=200)
   scores = model.evaluate(dataset, [metric], transformers)
-  assert scores['mean-roc_auc_score'] >= 0.85
+  assert scores['mean-roc_auc_score'] >= 0.80
 
   reloaded_model = MPNNModel(
       mode='classification',

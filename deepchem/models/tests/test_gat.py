@@ -1,24 +1,23 @@
-import unittest
+import pytest
 import tempfile
 
 import numpy as np
 
 import deepchem as dc
 from deepchem.feat import MolGraphConvFeaturizer
-from deepchem.models import GATModel
 from deepchem.models.tests.test_graph_models import get_dataset
 
 try:
   import dgl
   import dgllife
   import torch
+  from deepchem.models import GATModel
   has_torch_and_dgl = True
 except:
   has_torch_and_dgl = False
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_gat_regression():
   # load datasets
   featurizer = MolGraphConvFeaturizer()
@@ -54,8 +53,7 @@ def test_gat_regression():
   model.fit(train_set, nb_epoch=1)
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_gat_classification():
   # load datasets
   featurizer = MolGraphConvFeaturizer()
@@ -92,8 +90,7 @@ def test_gat_classification():
   model.fit(train_set, nb_epoch=1)
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_gat_reload():
   # load datasets
   featurizer = MolGraphConvFeaturizer()

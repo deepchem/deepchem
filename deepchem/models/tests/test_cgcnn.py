@@ -1,4 +1,4 @@
-import unittest
+import pytest
 import tempfile
 from os import path, remove
 
@@ -7,17 +7,17 @@ import numpy as np
 from deepchem.feat import CGCNNFeaturizer
 from deepchem.molnet import load_perovskite, load_mp_metallicity
 from deepchem.metrics import Metric, mae_score, roc_auc_score
-from deepchem.models import CGCNNModel
 
 try:
   import dgl  # noqa
   import torch  # noqa
+  from deepchem.models import CGCNNModel
   has_pytorch_and_dgl = True
 except:
   has_pytorch_and_dgl = False
 
 
-@unittest.skipIf(not has_pytorch_and_dgl, 'PyTorch and DGL are not installed')
+@pytest.mark.torch
 def test_cgcnn_regression():
   # load datasets
   current_dir = path.dirname(path.abspath(__file__))
@@ -53,7 +53,7 @@ def test_cgcnn_regression():
     remove(path.join(current_dir, 'perovskite.json'))
 
 
-@unittest.skipIf(not has_pytorch_and_dgl, 'PyTorch and DGL are not installed')
+@pytest.mark.torch
 def test_cgcnn_classification():
   # load datasets
   current_dir = path.dirname(path.abspath(__file__))
@@ -95,7 +95,7 @@ def test_cgcnn_classification():
     remove(path.join(current_dir, 'mp_is_metal.json'))
 
 
-@unittest.skipIf(not has_pytorch_and_dgl, 'PyTorch and DGL are not installed')
+@pytest.mark.torch
 def test_cgcnn_reload():
   # load datasets
   current_dir = path.dirname(path.abspath(__file__))

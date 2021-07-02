@@ -9,7 +9,18 @@ from deepchem.feat.molecule_featurizers.atomic_coordinates import AtomicCoordina
 class BPSymmetryFunctionInput(MolecularFeaturizer):
   """Calculate symmetry function for each atom in the molecules
 
-  This method is described in [1]_
+  This method is described in [1]_.
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> smiles = ['C1C=CC=CC=1']
+  >>> featurizer = dc.feat.BPSymmetryFunctionInput(max_atoms=10)
+  >>> features = featurizer.featurize(smiles)
+  >>> type(features[0])
+  <class 'numpy.ndarray'>
+  >>> features[0].shape  # (max_atoms, 4)
+  (10, 4)
 
   References
   ----------

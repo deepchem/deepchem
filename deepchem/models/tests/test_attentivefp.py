@@ -1,24 +1,23 @@
-import unittest
 import tempfile
+import pytest
 
 import numpy as np
 
 import deepchem as dc
 from deepchem.feat import MolGraphConvFeaturizer
-from deepchem.models import AttentiveFPModel
 from deepchem.models.tests.test_graph_models import get_dataset
 
 try:
   import dgl
   import dgllife
   import torch
+  from deepchem.models import AttentiveFPModel
   has_torch_and_dgl = True
 except:
   has_torch_and_dgl = False
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_attentivefp_regression():
   # load datasets
   featurizer = MolGraphConvFeaturizer(use_edges=True)
@@ -48,8 +47,7 @@ def test_attentivefp_regression():
   model.fit(train_set, nb_epoch=1)
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_attentivefp_classification():
   # load datasets
   featurizer = MolGraphConvFeaturizer(use_edges=True)
@@ -84,8 +82,7 @@ def test_attentivefp_classification():
   model.fit(train_set, nb_epoch=1)
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_attentivefp_reload():
   # load datasets
   featurizer = MolGraphConvFeaturizer(use_edges=True)

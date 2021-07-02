@@ -6,7 +6,6 @@ import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
-from deepchem.molnet.load_function.bace_features import bace_user_specified_features
 
 BACE_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/bace.csv"
 BACE_REGRESSION_TASKS = ["pIC50"]
