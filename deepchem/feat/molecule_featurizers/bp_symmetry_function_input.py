@@ -11,8 +11,8 @@ class BPSymmetryFunctionInput(MolecularFeaturizer):
 
   This method is described in [1]_.
 
-  Standalone usage:
-
+  Examples
+  --------
   >>> import deepchem as dc
   >>> smiles = ['C1C=CC=CC=1']
   >>> featurizer = dc.feat.BPSymmetryFunctionInput(max_atoms=10)

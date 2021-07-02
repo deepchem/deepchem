@@ -31,7 +31,6 @@ class CircularFingerprint(MolecularFeaturizer):
   >>> import deepchem as dc
   >>> from rdkit import Chem
   >>> smiles = ['C1=CC=CC=C1']
-  
   >>> # Example 1: (size = 2048, radius = 4)
   >>> featurizer = dc.feat.CircularFingerprint(size=2048, radius=4)
   >>> features = featurizer.featurize(smiles)

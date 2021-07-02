@@ -28,14 +28,14 @@ class OneHotFeaturizer(Featurizer):
 
   >>> import deepchem as dc
   >>> featurizer = dc.feat.OneHotFeaturizer()
-  >>> smiles = ['CC(=O)OC1=CC=CC=C1C(=O)O']
+  >>> smiles = ['CCC']
   >>> encodings = featurizer.featurize(smiles)
   >>> type(encodings[0])
   <class 'numpy.ndarray'>
   >>> encodings[0].shape
   (100, 35)
   >>> featurizer.untransform(encodings[0])
-  'CC(=O)Oc1ccccc1C(=O)O'
+  'CCC'
 
   Note
   ----
