@@ -1,5 +1,8 @@
 from deepchem.feat import MolecularFeaturizer
-from transformers import RobertaTokenizerFast
+try:
+  from transformers import RobertaTokenizerFast
+except:
+  raise ImportError('This class requires transformers.')
 from deepchem.utils.typing import RDKitMol
 
 from typing import Dict, List
