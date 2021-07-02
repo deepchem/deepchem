@@ -17,14 +17,14 @@ class _FreesolvLoader(_MolnetLoader):
     dataset_file = os.path.join(self.data_dir, 'freesolv.csv.gz')
     if not os.path.exists(dataset_file):
       dc.utils.data_utils.download_url(url=FREESOLV_URL, dest_dir=self.data_dir)
-      loader = dc.data.CSVLoader(
-          tasks=self.tasks, feature_field='smiles', featurizer=self.featurizer)
-      return loader.create_dataset(dataset_file)
+    loader = dc.data.CSVLoader(
+        tasks=self.tasks, feature_field='smiles', featurizer=self.featurizer)
+    return loader.create_dataset(dataset_file)
 
 
 def load_freesolv(
     featurizer: Union[dc.feat.Featurizer, str] = dc.feat.MATFeaturizer(),
-    splitter: Union[dc.splits.Splitter, str, None] = None,
+    splitter: Union[dc.splits.Splitter, str, None] = 'random',
     transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
     reload: bool = True,
     data_dir: Optional[str] = None,
@@ -34,10 +34,10 @@ def load_freesolv(
   """Load Freesolv dataset
 
   The FreeSolv dataset is a collection of experimental and calculated hydration 
-  free energies for small molecules in water, along with their experiemental values.
+  free energies for small molecules in water, along with their experiemental values. 
   Here, we are using a modified version of the dataset with the molecule smile string 
   and the corresponding experimental hydration free energies. 
-  
+
 
   Random splitting is recommended for this dataset.
 
