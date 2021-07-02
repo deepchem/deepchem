@@ -43,7 +43,7 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
     return
   
 
-  def _featurize(self, mol: RDKitMol, **kwargs) -> List[List[int]]:
+  def _featurize(self, mol: RDKitMol) -> List[List[int]]:
     """Calculate encoding using HuggingFace's RobertaTokenizerFast
 
         Parameters
@@ -69,5 +69,5 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
 
     return encoding
 
-  def __call__(self, *args, **kwargs) -> Dict[str, List[int]]:
-    return super().__call__(*args, **kwargs)
+  def __call__(self, *args) -> Dict[str, List[int]]:
+    return super().__call__(*args)
