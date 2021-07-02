@@ -3,6 +3,7 @@ import tensorflow as tf
 import time
 import logging
 import os
+
 try:
   from collections.abc import Sequence as SequenceCollection
 except:
@@ -18,6 +19,7 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
+from deepchem.models.wandblogger import WandbLogger
 
 try:
   import wandb
@@ -133,6 +135,7 @@ class KerasModel(Model):
                tensorboard: bool = False,
                wandb: bool = False,
                log_frequency: int = 100,
+               wandb_logger: Optional[WandbLogger] = None,
                **kwargs) -> None:
     """Create a new KerasModel.
 
@@ -159,7 +162,7 @@ class KerasModel(Model):
     tensorboard: bool
       whether to log progress to TensorBoard during training
     wandb: bool
-      whether to log progress to Weights & Biases during training
+      whether to log progress to Weights & Biases during training (deprecated)
     log_frequency: int
       The frequency at which to log data. Data is logged using
       `logging` by default. If `tensorboard` is set, data is also
@@ -168,6 +171,8 @@ class KerasModel(Model):
       a global step corresponds to one batch of training. If you'd
       like a printout every 10 batch steps, you'd set
       `log_frequency=10` for example.
+    wandb_logger: WandbLogger
+      the Weights & Biases logger object used to log data and metrics
     """
     super(KerasModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
     if isinstance(loss, Loss):
@@ -181,13 +186,40 @@ class KerasModel(Model):
       self.optimizer = optimizer
     self.tensorboard = tensorboard
 
-    # W&B logging
+    # W&B flag support (DEPRECATED)
+    if wandb:
+      logger.warning(
+          "`wandb` argument is deprecated. Please use `wandb_logger` instead. "
+          "This argument will be removed in a future release of DeepChem.")
     if wandb and not _has_wandb:
       logger.warning(
           "You set wandb to True but W&B is not installed. To use wandb logging, "
-          "run `pip install wandb; wandb login` see https://docs.wandb.com/huggingface."
-      )
+          "run `pip install wandb; wandb login`")
     self.wandb = wandb and _has_wandb
+
+    self.wandb_logger = wandb_logger
+    # If `wandb=True` and no logger is provided, initialize default logger
+    if self.wandb and (self.wandb_logger is None):
+      self.wandb_logger = WandbLogger()
+
+    # Setup and initialize W&B logging
+    if (self.wandb_logger is not None) and (not self.wandb_logger.initialized):
+      self.wandb_logger.setup()
+
+    # Update config with KerasModel params
+    wandb_logger_config = dict(
+        loss=loss,
+        output_types=output_types,
+        batch_size=batch_size,
+        model_dir=model_dir,
+        learning_rate=learning_rate,
+        optimizer=optimizer,
+        tensorboard=tensorboard,
+        log_frequency=log_frequency)
+    wandb_logger_config.update(**kwargs)
+
+    if self.wandb_logger is not None:
+      self.wandb_logger.update_config(wandb_logger_config)
 
     # Backwards compatibility
     if "tensorboard_log_frequency" in kwargs:
@@ -432,8 +464,13 @@ class KerasModel(Model):
         c(self, current_step)
       if self.tensorboard and should_log:
         self._log_scalar_to_tensorboard('loss', batch_loss, current_step)
-      if self.wandb and should_log:
-        wandb.log({'loss': batch_loss}, step=current_step)
+      if (self.wandb_logger is not None) and should_log:
+        all_data = dict({'train/loss': batch_loss})
+        self.wandb_logger.log_data(all_data, step=current_step)
+
+    # Close WandbLogger
+    if self.wandb_logger is not None:
+      self.wandb_logger.finish()
 
     # Report final results.
     if averaged_batches > 0:

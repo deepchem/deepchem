@@ -32,7 +32,7 @@ def remove_missing_entries(dataset):
 def get_transformers(train_dataset):
   """Get transformers applied to datasets."""
   transformers = []
-  #transformers = [
+  # transformers = [
   #    deepchem.trans.LogTransformer(transform_X=True),
   #    deepchem.trans.NormalizationTransformer(transform_y=True,
   #                                      dataset=train_dataset)]
@@ -47,9 +47,9 @@ def gen_kaggle(KAGGLE_tasks,
                data_dir,
                shard_size=2000):
   """Load KAGGLE datasets. Does not do train/test split"""
-  ############################################################## TIMING
+  # TIMING
   time1 = time.time()
-  ############################################################## TIMING
+  # TIMING
   # Set some global variables up top
   train_files = os.path.join(data_dir,
                              "KAGGLE_training_disguised_combined_full.csv.gz")
@@ -108,10 +108,10 @@ def gen_kaggle(KAGGLE_tasks,
   valid_dataset.move(valid_dir)
   test_dataset.move(test_dir)
 
-  ############################################################## TIMING
+  # TIMING
   time2 = time.time()
   logger.info("TIMING: KAGGLE fitting took %0.3f s" % (time2 - time1))
-  ############################################################## TIMING
+  # TIMING
 
   return train_dataset, valid_dataset, test_dataset
 

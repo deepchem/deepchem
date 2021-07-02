@@ -63,7 +63,7 @@ def load_mydataset(
 
   The dataset will be featurized with `featurizer` and separated into
   train/val/test sets according to `splitter`. Some transformers (e.g.
-  `NormalizationTransformer`) must be initialized with a dataset. 
+  `NormalizationTransformer`) must be initialized with a dataset.
   Set up kwargs to enable these transformations. Additional kwargs may
   be given for specific featurizers, transformers, and splitters.
 

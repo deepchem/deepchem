@@ -1,24 +1,23 @@
-import unittest
+import pytest
 import tempfile
 
 import numpy as np
 
 import deepchem as dc
 from deepchem.feat import PagtnMolGraphFeaturizer
-from deepchem.models import PagtnModel
 from deepchem.models.tests.test_graph_models import get_dataset
 
 try:
   import dgl
   import dgllife
   import torch
+  from deepchem.models import PagtnModel
   has_torch_and_dgl = True
 except:
   has_torch_and_dgl = False
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_pagtn_regression():
   # load datasets
   featurizer = PagtnMolGraphFeaturizer(max_length=5)
@@ -43,8 +42,7 @@ def test_pagtn_regression():
   model.fit(train_set, nb_epoch=1)
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_pagtn_classification():
   # load datasets
   featurizer = PagtnMolGraphFeaturizer(max_length=5)
@@ -70,8 +68,7 @@ def test_pagtn_classification():
   model.fit(train_set, nb_epoch=1)
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_pagtn_reload():
   # load datasets
   featurizer = PagtnMolGraphFeaturizer(max_length=5)

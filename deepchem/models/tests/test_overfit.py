@@ -131,6 +131,7 @@ def test_regression_overfit():
   assert scores[regression_metric.name] < .1
 
 
+@pytest.mark.torch
 def test_classification_overfit():
   """Test that MultitaskClassifier can overfit simple classification datasets."""
   n_samples = 10
@@ -163,6 +164,7 @@ def test_classification_overfit():
   assert scores[classification_metric.name] > .9
 
 
+@pytest.mark.torch
 def test_residual_classification_overfit():
   """Test that a residual network can overfit simple classification datasets."""
   n_samples = 10
@@ -230,9 +232,10 @@ def test_fittransform_regression_overfit():
   assert scores[regression_metric.name] < .1
 
 
+@pytest.mark.torch
 def test_skewed_classification_overfit():
   """Test MultitaskClassifier can overfit 0/1 datasets with few actives."""
-  #n_samples = 100
+  # n_samples = 100
   n_samples = 100
   n_features = 3
   n_tasks = 1
@@ -265,6 +268,7 @@ def test_skewed_classification_overfit():
   assert scores[classification_metric.name] > .75
 
 
+@pytest.mark.torch
 def test_skewed_missing_classification_overfit():
   """MultitaskClassifier, skewed data, few actives
 
@@ -375,6 +379,52 @@ def test_multitask_classification_overfit():
   # Eval model on train
   scores = model.evaluate(dataset, [classification_metric])
   assert scores[classification_metric.name] > .9
+
+
+@flaky
+def test_multitask_classification_regularization():
+  """Test regularizing a MultitaskClassifier."""
+  n_tasks = 10
+  n_samples = 10
+  n_features = 3
+  n_classes = 2
+
+  # Generate dummy dataset
+  np.random.seed(123)
+  ids = np.arange(n_samples)
+  X = np.random.rand(n_samples, n_features)
+  y = np.zeros((n_samples, n_tasks))
+  w = np.ones((n_samples, n_tasks))
+  dataset = dc.data.NumpyDataset(X, y, w, ids)
+
+  classification_metric = dc.metrics.Metric(
+      dc.metrics.accuracy_score, task_averager=np.mean, n_tasks=n_tasks)
+  model = dc.models.MultitaskClassifier(
+      n_tasks,
+      n_features,
+      layer_sizes=[1000],
+      dropouts=0,
+      weight_decay_penalty=1.0,
+      weight_decay_penalty_type='l1',
+      batch_size=n_samples,
+      learning_rate=0.0003)
+
+  # Fit trained model
+  model.fit(dataset, nb_epoch=500)
+
+  # Eval model on train
+  scores = model.evaluate(dataset, [classification_metric])
+  assert scores[classification_metric.name] > .9
+
+  # Most weights should be close to zero.
+
+  elements = 0.0
+  num_nonzero = 0.0
+  for p in model.model.parameters():
+    if len(p.shape) == 2 and p.shape[0] == 1000:
+      elements += p.numel()
+      num_nonzero += (p.abs() > 1e-3).sum()
+  assert num_nonzero / elements < 0.1
 
 
 def test_robust_multitask_classification_overfit():
@@ -502,6 +552,50 @@ def test_multitask_regression_overfit():
   # Eval model on train
   scores = model.evaluate(dataset, [regression_metric])
   assert scores[regression_metric.name] < .02
+
+
+def test_multitask_regression_regularization():
+  """Test regularizing a MultitaskRegressor."""
+  n_tasks = 10
+  n_samples = 10
+  n_features = 10
+  n_classes = 2
+
+  # Generate dummy dataset
+  np.random.seed(123)
+  ids = np.arange(n_samples)
+  X = np.random.rand(n_samples, n_features)
+  y = np.random.rand(n_samples, n_tasks)
+  w = np.ones((n_samples, n_tasks))
+
+  dataset = dc.data.NumpyDataset(X, y, w, ids)
+
+  regression_metric = dc.metrics.Metric(
+      dc.metrics.mean_squared_error, task_averager=np.mean, mode="regression")
+  model = dc.models.MultitaskRegressor(
+      n_tasks,
+      n_features,
+      dropouts=0.0,
+      batch_size=n_samples,
+      weight_decay_penalty=0.01,
+      weight_decay_penalty_type='l1')
+
+  # Fit trained model
+  model.fit(dataset, nb_epoch=1000)
+
+  # Eval model on train
+  scores = model.evaluate(dataset, [regression_metric])
+  assert scores[regression_metric.name] < 0.1
+
+  # Most weights should be close to zero.
+
+  elements = 0.0
+  num_nonzero = 0.0
+  for p in model.model.parameters():
+    if len(p.shape) == 2 and p.shape[0] == 1000:
+      elements += p.numel()
+      num_nonzero += (p.abs() > 1e-3).sum()
+  assert num_nonzero / elements < 0.1
 
 
 def test_residual_regression_overfit():
@@ -677,6 +771,17 @@ def test_multitask_regressor_uncertainty():
   pred, std = model.predict_uncertainty(dataset)
   assert np.mean(np.abs(y - pred)) < 1.0
   assert noise < np.mean(std) < 1.0
+
+
+def test_multitask_regressor_delaney_uncertainty():
+  """Test computing uncertainty on a larger dataset."""
+  tasks, datasets, transformers = dc.molnet.load_delaney('ECFP')
+  train_dataset, valid_dataset, test_dataset = datasets
+  model = dc.models.MultitaskRegressor(len(tasks), 1024, uncertainty=True)
+  model.fit(train_dataset, nb_epoch=20)
+  metric = dc.metrics.Metric(dc.metrics.pearsonr)
+  scores = model.evaluate(test_dataset, [metric], transformers)
+  assert scores['pearsonr'] > 0.5
 
 
 @pytest.mark.slow
