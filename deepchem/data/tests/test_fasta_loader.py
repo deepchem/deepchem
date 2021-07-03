@@ -18,11 +18,7 @@ class TestFASTALoader(unittest.TestCase):
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
   def test_legacy_fasta_one_hot(self):
-    input_file = os.path.join(self.current_dir,
-                              "..",
-                              "..",
-                              "data",
-                              "tests",
+    input_file = os.path.join(self.current_dir, "..", "..", "data", "tests",
                               "example.fasta")
     loader = dc.data.FASTALoader(legacy=True)
     sequences = loader.create_dataset(input_file)
@@ -34,11 +30,7 @@ class TestFASTALoader(unittest.TestCase):
     assert sequences.X.shape == (3, 5, 58, 1)
 
   def test_fasta_one_hot(self):
-    input_file = os.path.join(self.current_dir,
-                              "..",
-                              "..",
-                              "data",
-                              "tests",
+    input_file = os.path.join(self.current_dir, "..", "..", "data", "tests",
                               "example.fasta")
     loader = dc.data.FASTALoader(legacy=False)
     sequences = loader.create_dataset(input_file)
@@ -52,11 +44,7 @@ class TestFASTALoader(unittest.TestCase):
         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
         'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '*', '-'
     ]
-    input_file = os.path.join(self.current_dir,
-                              "..",
-                              "..",
-                              "data",
-                              "tests",
+    input_file = os.path.join(self.current_dir, "..", "..", "data", "tests",
                               "uniprot_truncated.fasta")
     loader = dc.data.FASTALoader(
         OneHotFeaturizer(charset=protein, max_length=1000), legacy=False)
