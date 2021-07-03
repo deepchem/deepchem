@@ -42,7 +42,10 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
   #def __init__(self, **kwargs):
   def __init__(self, input_ids, attention_mask):
     # super().__init__(**kwargs)
-    super().__init__(input_ids, attention_mask)
+    #super().__init__(input_ids, attention_mask)
+    self.input_ids = input_ids
+    self.attention_mask = attention_mask
+    
     return
   
 
