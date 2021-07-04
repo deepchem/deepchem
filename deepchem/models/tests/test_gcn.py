@@ -1,4 +1,4 @@
-import unittest
+import pytest
 import tempfile
 
 import numpy as np
@@ -17,8 +17,7 @@ except:
   has_torch_and_dgl = False
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_gcn_regression():
   # load datasets
   featurizer = MolGraphConvFeaturizer()
@@ -32,7 +31,7 @@ def test_gcn_regression():
       n_tasks=n_tasks,
       number_atom_features=30,
       batch_size=10,
-      learning_rate=0.003)
+      learning_rate=0.001)
 
   # overfit test
   model.fit(dataset, nb_epoch=300)
@@ -52,8 +51,7 @@ def test_gcn_regression():
   model.fit(train_set, nb_epoch=1)
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_gcn_classification():
   # load datasets
   featurizer = MolGraphConvFeaturizer()
@@ -89,8 +87,7 @@ def test_gcn_classification():
   model.fit(train_set, nb_epoch=1)
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_gcn_reload():
   # load datasets
   featurizer = MolGraphConvFeaturizer()

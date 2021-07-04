@@ -131,6 +131,7 @@ def test_regression_overfit():
   assert scores[regression_metric.name] < .1
 
 
+@pytest.mark.torch
 def test_classification_overfit():
   """Test that MultitaskClassifier can overfit simple classification datasets."""
   n_samples = 10
@@ -163,6 +164,7 @@ def test_classification_overfit():
   assert scores[classification_metric.name] > .9
 
 
+@pytest.mark.torch
 def test_residual_classification_overfit():
   """Test that a residual network can overfit simple classification datasets."""
   n_samples = 10
@@ -230,9 +232,10 @@ def test_fittransform_regression_overfit():
   assert scores[regression_metric.name] < .1
 
 
+@pytest.mark.torch
 def test_skewed_classification_overfit():
   """Test MultitaskClassifier can overfit 0/1 datasets with few actives."""
-  #n_samples = 100
+  # n_samples = 100
   n_samples = 100
   n_features = 3
   n_tasks = 1
@@ -265,6 +268,7 @@ def test_skewed_classification_overfit():
   assert scores[classification_metric.name] > .75
 
 
+@pytest.mark.torch
 def test_skewed_missing_classification_overfit():
   """MultitaskClassifier, skewed data, few actives
 
