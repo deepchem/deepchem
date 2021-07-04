@@ -54,11 +54,6 @@ Cell Counting Datasets
 
 .. autofunction:: deepchem.molnet.load_cell_counting
 
-Freesolv Dataset
-----------------------
-
-.. autofunction:: deepchem.molnet.load_freesolv
-
 Chembl Datasets
 ---------------
 
@@ -88,6 +83,11 @@ Factors Datasets
 ----------------
 
 .. autofunction:: deepchem.molnet.load_factors
+
+Freesolv Dataset
+----------------------
+
+.. autofunction:: deepchem.molnet.load_freesolv
 
 HIV Datasets
 ------------
