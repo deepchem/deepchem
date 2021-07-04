@@ -12,6 +12,8 @@ from deepchem.metrics import Metric
 from deepchem.models.models import Model
 from deepchem.models.losses import Loss
 from deepchem.models.optimizers import Optimizer
+from deepchem.utils.evaluate import GeneratorEvaluator
+
 from typing import Any, Callable, Iterable, List, Optional, Tuple, Union, Sequence
 from deepchem.utils.typing import LossFn, OneOrMany, ArrayLike
 
@@ -322,7 +324,28 @@ class JaxModel(Model):
                          metrics: List[Metric],
                          transformers: List[Transformer] = [],
                          per_task_metrics: bool = False):
-    pass
+    """Evaluate the performance of this model on the data produced by a generator.
+
+    Parameters
+    ----------
+    generator: generator
+      this should generate batches, each represented as a tuple of the form
+      (inputs, labels, weights).
+    metric: list of deepchem.metrics.Metric
+      Evaluation metric
+    transformers: list of dc.trans.Transformers
+      Transformers that the input data has been transformed by.  The output
+      is passed through these transformers to undo the transformations.
+    per_task_metrics: bool
+      If True, return per-task scores.
+
+    Returns
+    -------
+    dict
+      Maps tasks to scores under metric.
+    """
+    evaluator = GeneratorEvaluator(self, generator, transformers)
+    return evaluator.compute_model_performance(metrics, per_task_metrics)
 
   def _get_trainable_params(self):
     """
