@@ -13,6 +13,7 @@ dependencies:
     - pymatgen==2020.12.31
     - matminer
     - networkx
+    - xgboost==1.*
     - torch-geometric==1.7.1
     - tensorboard
     - pyGPGO
