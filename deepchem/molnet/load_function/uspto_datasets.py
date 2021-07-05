@@ -60,7 +60,7 @@ class _USPTOLoader(_MolnetLoader):
 
     loader = dc.data.CSVLoader(
         tasks=self.tasks,
-        feature_field=["src", "tgt"],
+        feature_field=["reactions"],
         featurizer=self.featurizer)
 
     return loader.create_dataset(dataset_file, shard_size=8192)
