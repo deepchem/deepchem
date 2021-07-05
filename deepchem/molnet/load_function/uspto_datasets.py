@@ -68,13 +68,13 @@ class _USPTOLoader(_MolnetLoader):
 
 def load_uspto(
     featurizer: Union[dc.feat.Featurizer, str] = dc.feat.DummyFeaturizer(),
-    splitter: Union[dc.splits.Splitter, str, None] = 'SpecifiedSplitter',
+    splitter: Union[dc.splits.Splitter, str, None] = None,
     transformers: List[Union[TransformerGenerator, str]] = [],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     subset: str = "MIT",
-    sep_reagent: bool = True,
+    sep_reagent: bool = True,  # functionality to be added!
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
   """Load USPTO Datasets.
@@ -150,9 +150,6 @@ def load_uspto(
          Retrosynthesis prediction with conditional graph logic network.
          arXiv preprint arXiv:2001.01408.
   """
-  # get test and valid lists if subset is MIT, 50K, STEREO and splitter = specified.
-  # if subset is Full use splitter passed by the user.
-  # splitter = dc.splits.SpecifiedSplitter(valid_indices=,test_indices=)
 
   loader = _USPTOLoader(
       featurizer,

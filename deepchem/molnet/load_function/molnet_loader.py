@@ -170,6 +170,7 @@ class _MolnetLoader(object):
             save_folder)
         if all_dataset is not None:
           return self.tasks, all_dataset, transformers
+
     # Create the dataset
 
     logger.info("About to featurize %s dataset." % name)
