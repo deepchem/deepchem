@@ -2,7 +2,8 @@ from deepchem.feat import MolecularFeaturizer
 try:
   from transformers import RobertaTokenizerFast
 except:
-  raise ImportError('This class requires transformers.')
+  raise Warning('This class requires transformers.')
+  pass
 from deepchem.utils.typing import RDKitMol
 
 from typing import Dict, List
@@ -27,7 +28,7 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
 
   References
   ----------
-  .. [1] Chithrananda, Seyone, Gabriel Grand, and Bharath Ramsundar (2020): "Chemberta: Large-scale self-supervised 
+  .. [1] Chithrananda, Seyone, Grand, Gabriel, and Ramsundar, Bharath (2020): "Chemberta: Large-scale self-supervised 
     pretraining for molecular property prediction." arXiv. preprint. arXiv:2010.09885.
 
 
