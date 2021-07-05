@@ -14,13 +14,10 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 from deepchem.utils.typing import LossFn
 
 # JAX depend
-try:
-  import jax.numpy as jnp
-  import jax
-  import haiku as hk
-  import optax
-except:
-  raise ImportError("This class requires Jax, haiku and optax to be installed.")
+import jax.numpy as jnp
+import jax
+import haiku as hk
+import optax
 
 import warnings
 
