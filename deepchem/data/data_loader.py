@@ -91,7 +91,7 @@ class DataLoader(object):
   def __init__(self,
                tasks: List[str],
                featurizer: Featurizer,
-               id_field: Optional[str] = None,
+               id_field: Optional[List[str]] = None,
                log_every_n: int = 1000):
     """Construct a DataLoader object.
 
@@ -308,9 +308,9 @@ class CSVLoader(DataLoader):
   def __init__(self,
                tasks: List[str],
                featurizer: Featurizer,
-               feature_field: Optional[str] = None,
-               id_field: Optional[str] = None,
-               smiles_field: Optional[str] = None,
+               feature_field: Optional[List[str]] = None,
+               id_field: Optional[List[str]] = None,
+              smiles_field: Optional[List[str]] = None,
                log_every_n: int = 1000):
     """Initializes CSVLoader.
 
@@ -535,9 +535,9 @@ class JsonLoader(DataLoader):
                tasks: List[str],
                feature_field: str,
                featurizer: Featurizer,
-               label_field: Optional[str] = None,
-               weight_field: Optional[str] = None,
-               id_field: Optional[str] = None,
+               label_field: Optional[List[str]] = None,
+               weight_field: Optional[List[str]] = None,
+               id_field: Optional[List[str]] = None,
                log_every_n: int = 1000):
     """Initializes JsonLoader.
 
@@ -736,7 +736,7 @@ class SDFLoader(DataLoader):
     # The field in which dc.utils.save.load_sdf_files stores RDKit mol objects
     self.mol_field = "mol"
     # The field in which load_sdf_files return value stores smiles
-    self.id_field = "smiles"
+    self.id_field = ["smiles"]
     self.log_every_n = log_every_n
 
   def create_dataset(self,
