@@ -24,7 +24,7 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
 
   References
   ----------
-  .. [1] Chithrananda, Seyone, Grand, Gabriel, and Ramsundar, Bharath (2020): "Chemberta: Large-scale self-supervised 
+  .. [1] Chithrananda, Seyone, Grand, Gabriel, and Ramsundar, Bharath (2020): "Chemberta: Large-scale self-supervised
     pretraining for molecular property prediction." arXiv. preprint. arXiv:2010.09885.
 
 
@@ -35,13 +35,9 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
   as well as DeepChem's MolecularFeaturizer class.
   """
 
-  #def __init__(self, **kwargs):
   def __init__(self, input_ids, attention_mask):
-    # super().__init__(**kwargs)
-    #super().__init__(input_ids, attention_mask)
     self.input_ids = input_ids
     self.attention_mask = attention_mask
-
     return
 
   def _featurize(self, mol: RDKitMol) -> List[List[int]]:
