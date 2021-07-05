@@ -310,7 +310,7 @@ class CSVLoader(DataLoader):
                featurizer: Featurizer,
                feature_field: Optional[List[str]] = None,
                id_field: Optional[List[str]] = None,
-              smiles_field: Optional[List[str]] = None,
+               smiles_field: Optional[List[str]] = None,
                log_every_n: int = 1000):
     """Initializes CSVLoader.
 
