@@ -23,8 +23,7 @@ class Featurizer(object):
   new datatype.
   """
 
-  def featurize(self,
-                datapoints: Iterable[Any],
+  def featurize(self, datapoints: Iterable[Any],
                 log_every_n: int = 1000) -> np.ndarray:
     """Calculate features for datapoints.
 
@@ -382,8 +381,7 @@ class MaterialCompositionFeaturizer(Featurizer):
   installed.
   """
 
-  def featurize(self,
-                compositions: Iterable[str],
+  def featurize(self, compositions: Iterable[str],
                 log_every_n: int = 1000) -> np.ndarray:
     """Calculate features for crystal compositions.
 
