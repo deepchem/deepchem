@@ -35,7 +35,7 @@ from deepchem.feat.molecule_featurizers import RDKitDescriptors
 from deepchem.feat.molecule_featurizers import SmilesToImage
 from deepchem.feat.molecule_featurizers import SmilesToSeq, create_char_to_idx
 from deepchem.feat.molecule_featurizers import RobertaFeaturizer
-from deepchem.feat.molecule_featurizers import MATFeaturizer
+from deepchem.feat.molecule_featurizers import MATFeaturizers
 
 # complex featurizers
 from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
@@ -69,11 +69,8 @@ from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer
 try:
   import transformers
   from transformers import BertTokenizer
-  from transformers import RobertaTokenizerFast
-
   from deepchem.feat.smiles_tokenizer import SmilesTokenizer
   from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
-  from deepchem.feat.roberta_tokenizer import RobertaFeaturizer
 except ModuleNotFoundError:
   pass
 
