@@ -944,11 +944,10 @@ class FASTALoader(DataLoader):
   def create_dataset(self,
                      input_files: OneOrMany[str],
                      data_dir: Optional[str] = None,
-                     shard_size: Optional[int] = None) -> DiskDataset:
+                     shard_size: int = 0) -> DiskDataset:
     """Creates a `Dataset` from input FASTA files.
 
-    At present, FASTA support is limited and only allows for one-hot
-    featurization, and doesn't allow for sharding.
+    At present, FASTA support is limited and doesn't allow for sharding.
 
     Parameters
     ----------
@@ -956,7 +955,7 @@ class FASTALoader(DataLoader):
       List of fasta files.
     data_dir: str, optional (default None)
       Name of directory where featurized data is stored.
-    shard_size: int, optional (default None)
+    shard_size: int (default 0)
       For now, this argument is ignored and each FASTA file gets its
       own shard.
 
@@ -971,21 +970,27 @@ class FASTALoader(DataLoader):
 
     def shard_generator():  # TODO Enable sharding with shard size parameter
       for input_file in input_files:
-        if self.legacy:
-          X = encode_bio_sequence(input_file)
+        shards = _read_file(input_file)
+        if shard_size >= 1 and not self.legacy:  # Enable sharding
+          for shard in shards:
+            X = self.featurizer(shard)
+            ids = np.ones(len(X))
+            # (X, y, w, ids)
+            yield X, None, None, ids
         else:
-          sequences = _read_file(input_file)
-          X = self.featurizer(sequences)
-        ids = np.ones(len(X))
-        # (X, y, w, ids)
-        yield X, None, None, ids
+          # Ternary: evaluate legacy toggle and set X accordingly
+          X = encode_bio_sequence(
+              input_file) if self.legacy else self.featurizer(shards)
+          ids = np.ones(len(X))
+          # (X, y, w, ids)
+          yield X, None, None, ids
 
     def _read_file(input_file: str, auto_add_annotations: bool = False):
       """
       Convert the FASTA file to a numpy array of FASTA-format strings.
       """
 
-      # TODO don't convert all sequences into np array (allow shards)
+      # TODO yield shards
       def _generate_sequences(fasta_file, header_mark=">") -> np.array:
         """
         Uses a fasta_file to create a numpy array of annotated FASTA-format strings
@@ -1003,7 +1008,7 @@ class FASTALoader(DataLoader):
             if line[-1:] == '\n':  # Check last character in string
               line = line[0:-1]  # Remove last character
             sequence = np.append(sequence, line)
-        sequences = _add_sequence(sequences, sequence)
+        sequences = _add_sequence(sequences, sequence)  # Add last sequence
         return sequences
 
       def _add_sequence(sequences: np.array, sequence: np.array) -> np.array:
