@@ -3,8 +3,8 @@ from deepchem.utils.typing import RDKitMol
 from typing import Dict, List
 try:
   from transformers import RobertaTokenizerFast
-except:
-  raise Warning('This class requires transformers.')
+except ModuleNotFoundError:
+  raise ImportError('This class requires transformers.')
   pass
 
 
