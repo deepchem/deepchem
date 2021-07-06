@@ -50,6 +50,10 @@ class ValidationCallback(object):
       if True, the best model is considered to be the one that minimizes the
       validation metric.  If False, the best model is considered to be the one
       that maximizes it.
+    transformers: List[Transformer]
+      List of `dc.trans.Transformer` objects. These transformations
+      must have been applied to `dataset` previously. The dataset will
+      be untransformed for metric evaluation.
     """
     self.dataset = dataset
     self.interval = interval
