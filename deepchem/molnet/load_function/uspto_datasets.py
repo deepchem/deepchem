@@ -59,9 +59,7 @@ class _USPTOLoader(_MolnetLoader):
       logger.info("Dataset download complete.")
 
     loader = dc.data.CSVLoader(
-        tasks=self.tasks,
-        feature_field="reactions",
-        featurizer=self.featurizer)
+        tasks=self.tasks, feature_field="reactions", featurizer=self.featurizer)
 
     return loader.create_dataset(dataset_file, shard_size=8192)
 
@@ -81,8 +79,8 @@ def load_uspto(
 
   USPTO is a dataset of over 1.8 Million organic chemical reactions extracted
   from US patents and patent applications. The dataset contains the reactions
-  in the form of reaction SMILES, which have the general form:
-  reactant>reagent>product. 
+  in the form of reaction SMILES, which have the general format:
+  reactant>reagent>product.
 
   Molnet provides ability to load subsets of the USPTO dataset namely MIT,
   STEREO and 50K. The MIT dataset contains around 479K reactions, curated by
@@ -143,7 +141,7 @@ def load_uspto(
          uncertainty-calibrated chemical reaction prediction.
          ACS central science, 5(9), 1572-1583.
   .. [3] Somnath, V. R., Bunne, C., Coley, C. W., Krause, A., & Barzilay, R.
-         (2020). Learning Graph Models for Template-Free Retrosynthesis.
+         (2020). Learning Graph Models for Retrosynthesis Prediction.
          arXiv preprint arXiv:2006.07038.
   .. [4] Dai, H., Li, C., Coley, C. W., Dai, B., & Song, L. (2020).
          Retrosynthesis prediction with conditional graph logic network.
