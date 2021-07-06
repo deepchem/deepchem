@@ -80,10 +80,9 @@ def load_uspto(
   """Load USPTO Datasets.
 
   USPTO is a dataset of over 1.8 Million organic chemical reactions extracted
-  from US patents and patent applications. The reactions present in the dataset
-  are split into the source(src) and target(tgt) columns. The src column
-  contains the SMILES of the reactant and reagent molecules in the form
-  reactant>reagent. The tgt contains the SMILES of the product molecules.
+  from US patents and patent applications. The dataset contains the reactions
+  in the form of reaction SMILES, which have the general form:
+  reactant>reagent>product. 
 
   Molnet provides ability to load subsets of the USPTO dataset namely MIT,
   STEREO and 50K. The MIT dataset contains around 479K reactions, curated by
