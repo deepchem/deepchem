@@ -26,7 +26,8 @@ class ValidationCallback(object):
                output_file=sys.stdout,
                save_dir=None,
                save_metric=0,
-               save_on_minimum=True):
+               save_on_minimum=True,
+               transformers=[]):
     """Create a ValidationCallback.
 
     Parameters
@@ -58,6 +59,7 @@ class ValidationCallback(object):
     self.save_metric = save_metric
     self.save_on_minimum = save_on_minimum
     self._best_score = None
+    self.transformers = transformers
 
   def __call__(self, model, step):
     """This is invoked by the KerasModel after every step of fitting.
@@ -71,7 +73,7 @@ class ValidationCallback(object):
     """
     if step % self.interval != 0:
       return
-    scores = model.evaluate(self.dataset, self.metrics)
+    scores = model.evaluate(self.dataset, self.metrics, self.transformers)
     message = 'Step %d validation:' % step
     for key in scores:
       message += ' %s=%g' % (key, scores[key])
