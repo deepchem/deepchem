@@ -20,7 +20,7 @@ USPTO_STEREO_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/USP
 USPTO_50K_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/USPTO_50K.csv"
 USPTO_FULL_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/USPTO_FULL.csv"
 
-USPTO_TASK = []
+USPTO_TASK: List[str] = []
 
 
 class _USPTOLoader(_MolnetLoader):
