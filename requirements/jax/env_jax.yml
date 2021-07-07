@@ -6,5 +6,3 @@ channels:
 dependencies:
   - numpy==1.19.*
   - pip==20.2.*
-  - pip:
-    - tensorflow~=2.4
