@@ -452,10 +452,6 @@ class TorchModel(Model):
         all_data = dict({'train/loss': batch_loss})
         self.wandb_logger.log_data(all_data, step=current_step)
 
-    # Close WandbLogger
-    if self.wandb_logger is not None:
-      self.wandb_logger.finish()
-
     # Report final results.
     if averaged_batches > 0:
       avg_loss = float(avg_loss) / averaged_batches

@@ -90,4 +90,4 @@ class ValidationCallback(object):
     if model.wandb or (model.wandb_logger is not None):
       # Log data to Wandb
       data = {'eval/' + k: v for k, v in scores.items()}
-      model.wandb_logger.log_data(data, step)
+      model.wandb_logger.log_data(data, step, dataset_id=id(self.dataset))

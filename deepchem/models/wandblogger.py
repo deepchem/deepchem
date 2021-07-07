@@ -1,6 +1,6 @@
 import logging
 import importlib.util
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +83,9 @@ class WandbLogger(object):
     self.wandb_init_params.update(**kwargs)
     self.initialized = False
 
+    # Dataset ids are used to differentiate datasets seen by the logger
+    self.dataset_ids = [] # type: List[Union[int, str]]
+
   def setup(self):
     """Initializes a W&B run and create a run object.
     If a pre-existing run is already initialized, use that instead.
@@ -93,7 +96,7 @@ class WandbLogger(object):
       self.wandb_run = self._wandb.run
     self.initialized = True
 
-  def log_data(self, data, step):
+  def log_data(self, data, step, dataset_id: Optional[Union[int, str]] = None):
     """Log data to W&B.
 
     Parameters
@@ -102,7 +105,25 @@ class WandbLogger(object):
       the data to be logged to W&B
     step: int
       the step number at which the data is to be logged
+    dataset_id: int or str, optional (default None)
+      the unique id of the dataset to differentiate during logging.
+      Typically used when there are multiple ValidationCallbacks with
+      different datasets.
     """
+    if dataset_id is not None:
+      if dataset_id in self.dataset_ids:
+        for key in list(data.keys()):
+          idx = self.dataset_ids.index(dataset_id)
+          new_key = str(key) + "_(" + str(idx) + ")"
+          data[new_key] = data.pop(key)
+      else:
+        self.dataset_ids.append(dataset_id)
+        for key in list(data.keys()):
+          idx = self.dataset_ids.index(dataset_id)
+          new_key = str(key) + "_(" + str(idx) + ")"
+          data[new_key] = data.pop(key)
+
+    # log data
     self.wandb_run.log(data, step=step)
 
   def finish(self):
@@ -112,7 +133,8 @@ class WandbLogger(object):
     if self.save_run_history:
       history = self.wandb_run.history._data
       self.run_history = history
-    self.wandb_run.finish()
+    if self.wandb_run is not None:
+      self.wandb_run.finish()
 
   def update_config(self, config_data):
     """Updates the W&B configuration.
