@@ -84,7 +84,7 @@ class WandbLogger(object):
     self.initialized = False
 
     # Dataset ids are used to differentiate datasets seen by the logger
-    self.dataset_ids = [] # type: List[Union[int, str]]
+    self.dataset_ids = []  # type: List[Union[int, str]]
 
   def setup(self):
     """Initializes a W&B run and create a run object.
