@@ -971,45 +971,80 @@ class FASTALoader(DataLoader):
     def shard_generator():  # TODO Enable sharding with shard size parameter
       for input_file in input_files:
         shards = _read_file(input_file)
-        if shard_size >= 1 and not self.legacy:  # Enable sharding
-          for shard in shards:
-            X = self.featurizer(shard)
-            ids = np.ones(len(X))
-            # (X, y, w, ids)
-            yield X, None, None, ids
-        else:
-          # Ternary: evaluate legacy toggle and set X accordingly
-          X = encode_bio_sequence(
-              input_file) if self.legacy else self.featurizer(shards)
+        if self.legacy:  # Use legacy logic
+          X = encode_bio_sequence(input_file)
           ids = np.ones(len(X))
           # (X, y, w, ids)
           yield X, None, None, ids
+        else:  # Don't use legacy logic
+          for shard in shards:  # TODO fix mismatch, (6, 58, 5) vs (3, 58, 5)
+            logger.warning("It's a whole newwww shard~") # TODO REMOVE
+            # Debug notes: TODO REMOVE
+            """Loop didn't originally work when shard_size = 0, but fixing
+            _generate_sequences to always yield and using shard_size to determine
+            its yield frequency fixed this.
+
+            Currently:
+              Expected actions:
+                - Loop runs three times when shard_size = 3.
+              **Unexpected actions (TO FIX)**:
+                - Shape mismatch: (6, 58, 5) vs (3, 58, 5)
+                  - Iterations (SHARD SIZE = 3)
+                    - 0: (1, 58, 5)
+                    - 1: (2, 58, 5)
+                    - 2: (3, 58, 5)
+                    Final shape APPARENTLY simple combination of all 3 iterations
+                    (6, 58, 5)
+                - WHY ARE THERE THREE SHARDS WHEN SHARD SIZE IS 3
+                  (THERE SHOULD BE NO SHARDS)
+
+            Solutions:
+              [ ] Clear `sequences` in _generate_sequences
+              [ ] Change how shards are counted
+            """
+            X = self.featurizer(shard)
+            logger.warning(f"YIELDING SHARD: {X.shape}")
+            ids = np.ones(len(X))
+            # (X, y, w, ids)
+            yield X, None, None, ids
 
     def _read_file(input_file: str, auto_add_annotations: bool = False):
       """
       Convert the FASTA file to a numpy array of FASTA-format strings.
       """
 
-      # TODO yield shards
-      def _generate_sequences(fasta_file, header_mark=">") -> np.array:
+      # TODO yield shards: fix shape mismatch
+      """ Progress Notes
+      - fixed yielding leaing to "I/O operation on closed file" by moving
+        with statement to _generate_sequences instead of passing a file
+        generator (with open as f) to _generate_sequences from outside the fn.
+      """
+      def _generate_sequences(header_mark=">") -> np.array:
         """
         Uses a fasta_file to create a numpy array of annotated FASTA-format strings
         """
         sequences = np.array([])
         sequence = np.array([])
+        count_sequences = 0
         header_read = False
-        for line in fasta_file:
-          # Check if line is a header
-          if line.startswith(header_mark):  # New header line
-            header_read = True
-            sequences = _add_sequence(sequences, sequence)
-            sequence = np.array([])
-          elif header_read:  # Line contains sequence in FASTA format
-            if line[-1:] == '\n':  # Check last character in string
-              line = line[0:-1]  # Remove last character
-            sequence = np.append(sequence, line)
+        with open(input_file, 'r') as f:  # Read FASTA file
+          for line in f:
+            # Check if line is a header
+            if line.startswith(header_mark):  # New header line
+              header_read = True
+              sequences = _add_sequence(sequences, sequence)
+              count_sequences += 1
+              sequence = np.array([])
+            elif header_read:  # Line contains sequence in FASTA format
+              if line[-1:] == '\n':  # Check last character in string
+                line = line[0:-1]  # Remove last character
+              sequence = np.append(sequence, line)
+              count_sequences += 1
+            if shard_size != 0 and count_sequences % shard_size == 0:
+              yield sequences
         sequences = _add_sequence(sequences, sequence)  # Add last sequence
-        return sequences
+        count_sequences += 1
+        yield sequences
 
       def _add_sequence(sequences: np.array, sequence: np.array) -> np.array:
         # Handle empty sequence
@@ -1024,8 +1059,7 @@ class FASTALoader(DataLoader):
         new_sequences = np.append(sequences, new_sequence)
         return new_sequences
 
-      with open(input_file, 'r') as f:  # Read FASTA file
-        return _generate_sequences(f)
+      return _generate_sequences()
 
     return DiskDataset.create_dataset(shard_generator(), data_dir)
 
