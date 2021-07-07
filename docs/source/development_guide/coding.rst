@@ -87,9 +87,9 @@ current development directory. To do this, simply run
 
   python setup.py develop
 
-while installing the package from source. This will let you to test out
-features that are in development, and in particular lets you import new test
-classes/methods.
+while installing the package from source. This will let you see changes that you
+make to the source code when you import the package and, in particular, it
+allows you to import the new classes/methods for unit tests.
 
 Testing Machine Learning Models
 -------------------------------
