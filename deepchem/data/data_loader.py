@@ -1033,11 +1033,12 @@ class FASTALoader(DataLoader):
             if line.startswith(header_mark):  # New header line
               header_read = True
               sequences = _add_sequence(sequences, sequence)
-              count_sequences += 1
               sequence = np.array([])
-              if shard_size > 0 and count_sequences % shard_size == 0:
-                yield sequences
-                sequences = np.array([])
+              if sequences.size > 0:
+                count_sequences += 1
+                if shard_size > 0 and count_sequences % shard_size == 0:
+                  yield sequences
+                  sequences = np.array([])
             elif header_read:  # Line contains sequence in FASTA format
               if line[-1:] == '\n':  # Check last character in string
                 line = line[0:-1]  # Remove last character
