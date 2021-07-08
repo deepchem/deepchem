@@ -999,7 +999,7 @@ class FASTALoader(DataLoader):
                   (THERE SHOULD BE NO SHARDS)
 
             Solutions:
-              [ ] Clear `sequences` in _generate_sequences
+              [X] Clear `sequences` in _generate_sequences
               [ ] Change how shards are counted
             """
             X = self.featurizer(shard)
@@ -1035,16 +1035,18 @@ class FASTALoader(DataLoader):
               sequences = _add_sequence(sequences, sequence)
               count_sequences += 1
               sequence = np.array([])
+              if shard_size > 0 and count_sequences % shard_size == 0:
+                yield sequences
+                sequences = np.array([])
             elif header_read:  # Line contains sequence in FASTA format
               if line[-1:] == '\n':  # Check last character in string
                 line = line[0:-1]  # Remove last character
               sequence = np.append(sequence, line)
               count_sequences += 1
-            if shard_size != 0 and count_sequences % shard_size == 0:
-              yield sequences
         sequences = _add_sequence(sequences, sequence)  # Add last sequence
         count_sequences += 1
         yield sequences
+        sequences = np.array([])
 
       def _add_sequence(sequences: np.array, sequence: np.array) -> np.array:
         # Handle empty sequence

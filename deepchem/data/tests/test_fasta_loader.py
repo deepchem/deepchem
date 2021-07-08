@@ -50,4 +50,14 @@ class TestFASTALoader(unittest.TestCase):
 
     assert sequences.X.shape
 
+  def test_fasta_sharding(self):
+    input_file = os.path.join(self.current_dir,
+                              "../../data/tests/example.fasta")
+    loader = dc.data.FASTALoader(legacy=False)
+    sequences = loader.create_dataset(input_file, shard_size=1)
+
+    # Due to FASTALoader redesign, expected shape is now (3, 58, 5)
+
+    assert sequences.X.shape == (3, 58, 5)
+   
   # TODO: test with full uniprot file once sharding support is added.
