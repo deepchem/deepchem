@@ -61,5 +61,5 @@ class TestFASTALoader(unittest.TestCase):
     # Due to FASTALoader redesign, expected shape is now (3, 58, 5)
 
     assert sequences.X.shape == (3, 58, 5)
-   
+  
   # TODO: test with full uniprot file once sharding support is added.
