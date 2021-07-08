@@ -37,6 +37,19 @@ class Mol2VecFingerprint(MolecularFeaturizer):
   Note
   ----
   This class requires mol2vec to be installed.
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> from rdkit import Chem
+  >>> smiles = ['CCC']
+  >>> featurizer = dc.feat.Mol2VecFingerprint()
+  >>> features = featurizer.featurize(smiles)
+  >>> type(features)
+  <class 'numpy.ndarray'>
+  >>> features[0].shape
+  (300,)
+
   """
 
   def __init__(self,

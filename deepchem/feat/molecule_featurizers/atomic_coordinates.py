@@ -10,6 +10,22 @@ from deepchem.utils.typing import RDKitMol
 class AtomicCoordinates(MolecularFeaturizer):
   """Calculate atomic coordinates.
 
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> from rdkit import Chem
+  >>> mol = Chem.MolFromSmiles('C1C=CC=CC=1')
+  >>> n_atoms = len(mol.GetAtoms())
+  >>> n_atoms
+  6
+  >>> featurizer = dc.feat.AtomicCoordinates(use_bohr=False)
+  >>> features = featurizer.featurize([mol])
+  >>> type(features[0])
+  <class 'numpy.ndarray'>
+  >>> features[0].shape # (n_atoms, 3)
+  (6, 3)
+
+
   Note
   ----
   This class requires RDKit to be installed.
