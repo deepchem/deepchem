@@ -968,42 +968,17 @@ class FASTALoader(DataLoader):
     if isinstance(input_files, str):
       input_files = [input_files]
 
-    def shard_generator():  # TODO Enable sharding with shard size parameter
+    def shard_generator():
       for input_file in input_files:
         shards = _read_file(input_file)
-        if self.legacy:  # Use legacy logic
+        if self.legacy:  # Using legacy logic
           X = encode_bio_sequence(input_file)
           ids = np.ones(len(X))
           # (X, y, w, ids)
           yield X, None, None, ids
-        else:  # Don't use legacy logic
-          for shard in shards:  # TODO fix mismatch, (6, 58, 5) vs (3, 58, 5)
-            logger.warning("It's a whole newwww shard~") # TODO REMOVE
-            # Debug notes: TODO REMOVE
-            """Loop didn't originally work when shard_size = 0, but fixing
-            _generate_sequences to always yield and using shard_size to determine
-            its yield frequency fixed this.
-
-            Currently:
-              Expected actions:
-                - Loop runs three times when shard_size = 3.
-              **Unexpected actions (TO FIX)**:
-                - Shape mismatch: (6, 58, 5) vs (3, 58, 5)
-                  - Iterations (SHARD SIZE = 3)
-                    - 0: (1, 58, 5)
-                    - 1: (2, 58, 5)
-                    - 2: (3, 58, 5)
-                    Final shape APPARENTLY simple combination of all 3 iterations
-                    (6, 58, 5)
-                - WHY ARE THERE THREE SHARDS WHEN SHARD SIZE IS 3
-                  (THERE SHOULD BE NO SHARDS)
-
-            Solutions:
-              [X] Clear `sequences` in _generate_sequences
-              [ ] Change how shards are counted
-            """
+        else:  # Not using legacy logic
+          for shard in shards:
             X = self.featurizer(shard)
-            logger.warning(f"YIELDING SHARD: {X.shape}")
             ids = np.ones(len(X))
             # (X, y, w, ids)
             yield X, None, None, ids
@@ -1013,12 +988,6 @@ class FASTALoader(DataLoader):
       Convert the FASTA file to a numpy array of FASTA-format strings.
       """
 
-      # TODO yield shards: fix shape mismatch
-      """ Progress Notes
-      - fixed yielding leaing to "I/O operation on closed file" by moving
-        with statement to _generate_sequences instead of passing a file
-        generator (with open as f) to _generate_sequences from outside the fn.
-      """
       def _generate_sequences(header_mark=">") -> np.array:
         """
         Uses a fasta_file to create a numpy array of annotated FASTA-format strings
