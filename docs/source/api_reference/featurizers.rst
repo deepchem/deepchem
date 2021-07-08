@@ -403,6 +403,13 @@ UserDefinedFeaturizer
   :members:
   :inherited-members:
 
+DummyFeaturizer
+^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.DummyFeaturizer
+  :members:
+  :inherited-members:
+
 Base Featurizers (for develop)
 ------------------------------
 

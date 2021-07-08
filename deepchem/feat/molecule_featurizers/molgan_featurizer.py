@@ -36,7 +36,25 @@ class MolGanFeaturizer(MolecularFeaturizer):
   Featurizer for MolGAN de-novo molecular generation [1]_.
   The default representation is in form of GraphMatrix object.
   It is wrapper for two matrices containing atom and bond type information.
-  The class also provides reverse capabilities."""
+  The class also provides reverse capabilities.
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> from rdkit import Chem
+  >>> rdkit_mol, smiles_mol = Chem.MolFromSmiles('CCC'), 'C1=CC=CC=C1'
+  >>> molecules = [rdkit_mol, smiles_mol]
+  >>> featurizer = dc.feat.MolGanFeaturizer()
+  >>> features = featurizer.featurize(molecules)
+  >>> len(features) # 2 molecules
+  2
+  >>> type(features[0])
+  <class 'deepchem.feat.molecule_featurizers.molgan_featurizer.GraphMatrix'>
+  >>> molecules = featurizer.defeaturize(features) # defeaturization
+  >>> type(molecules[0])
+  <class 'rdkit.Chem.rdchem.Mol'>
+
+  """
 
   def __init__(
       self,
@@ -62,8 +80,8 @@ class MolGanFeaturizer(MolecularFeaturizer):
 
     References
     ---------
-    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
-    for small molecular graphs`<https://arxiv.org/abs/1805.11973>`"
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model for
+       small molecular graphs" (2018), https://arxiv.org/abs/1805.11973
     """
 
     self.max_atom_count = max_atom_count

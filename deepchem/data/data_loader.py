@@ -996,6 +996,7 @@ class FASTALoader(DataLoader):
         sequence = np.array([])
         count_sequences = 0
         header_read = False
+
         with open(input_file, 'r') as f:  # Read FASTA file
           for line in f:
             # Check if line is a header
