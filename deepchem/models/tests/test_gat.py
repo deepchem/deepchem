@@ -1,4 +1,4 @@
-import unittest
+import pytest
 import tempfile
 
 import numpy as np
@@ -17,8 +17,7 @@ except:
   has_torch_and_dgl = False
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_gat_regression():
   # load datasets
   featurizer = MolGraphConvFeaturizer()
@@ -54,8 +53,7 @@ def test_gat_regression():
   model.fit(train_set, nb_epoch=1)
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_gat_classification():
   # load datasets
   featurizer = MolGraphConvFeaturizer()
@@ -92,8 +90,7 @@ def test_gat_classification():
   model.fit(train_set, nb_epoch=1)
 
 
-@unittest.skipIf(not has_torch_and_dgl,
-                 'PyTorch, DGL, or DGL-LifeSci are not installed')
+@pytest.mark.torch
 def test_gat_reload():
   # load datasets
   featurizer = MolGraphConvFeaturizer()

@@ -145,7 +145,7 @@ jobs:
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: pytest -v -m "not slow and not jax" --cov=deepchem --cov-report=xml deepchem
+      run: pytest -v -m "not slow and not jax and not torch and not tensorflow" --cov=deepchem --cov-report=xml deepchem
     - name: Upload coverage to Codecov
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       uses: codecov/codecov-action@v1

@@ -6,11 +6,16 @@ import os
 
 import numpy as np
 import pytest
-import tensorflow as tf
 from flaky import flaky
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
-from tensorflow.python.framework import test_util
+
+try:
+  import tensorflow as tf
+  from tensorflow.python.framework import test_util
+  has_tensorflow = True
+except:
+  has_tensorflow = False
 
 import deepchem as dc
 from deepchem.models.optimizers import Adam
@@ -99,6 +104,7 @@ def test_sklearn_skewed_classification_overfit():
   assert scores[classification_metric.name] > .9
 
 
+@pytest.mark.torch
 def test_regression_overfit():
   """Test that MultitaskRegressor can overfit simple regression datasets."""
   n_samples = 10
@@ -131,6 +137,7 @@ def test_regression_overfit():
   assert scores[regression_metric.name] < .1
 
 
+@pytest.mark.torch
 def test_classification_overfit():
   """Test that MultitaskClassifier can overfit simple classification datasets."""
   n_samples = 10
@@ -163,6 +170,7 @@ def test_classification_overfit():
   assert scores[classification_metric.name] > .9
 
 
+@pytest.mark.torch
 def test_residual_classification_overfit():
   """Test that a residual network can overfit simple classification datasets."""
   n_samples = 10
@@ -196,6 +204,7 @@ def test_residual_classification_overfit():
 
 
 @flaky
+@pytest.mark.torch
 def test_fittransform_regression_overfit():
   """Test that MultitaskFitTransformRegressor can overfit simple regression datasets."""
   n_samples = 10
@@ -204,7 +213,6 @@ def test_fittransform_regression_overfit():
 
   # Generate dummy dataset
   np.random.seed(123)
-  tf.random.set_seed(123)
   ids = np.arange(n_samples)
   X = np.random.rand(n_samples, n_features, n_features)
   y = np.zeros((n_samples, n_tasks))
@@ -230,9 +238,10 @@ def test_fittransform_regression_overfit():
   assert scores[regression_metric.name] < .1
 
 
+@pytest.mark.torch
 def test_skewed_classification_overfit():
   """Test MultitaskClassifier can overfit 0/1 datasets with few actives."""
-  #n_samples = 100
+  # n_samples = 100
   n_samples = 100
   n_features = 3
   n_tasks = 1
@@ -265,6 +274,7 @@ def test_skewed_classification_overfit():
   assert scores[classification_metric.name] > .75
 
 
+@pytest.mark.torch
 def test_skewed_missing_classification_overfit():
   """MultitaskClassifier, skewed data, few actives
 
@@ -344,6 +354,7 @@ def test_sklearn_multitask_classification_overfit():
 
 
 @flaky
+@pytest.mark.torch
 def test_multitask_classification_overfit():
   """Test MultitaskClassifier overfits tiny data."""
   n_tasks = 10
@@ -378,6 +389,7 @@ def test_multitask_classification_overfit():
 
 
 @flaky
+@pytest.mark.torch
 def test_multitask_classification_regularization():
   """Test regularizing a MultitaskClassifier."""
   n_tasks = 10
@@ -423,6 +435,7 @@ def test_multitask_classification_regularization():
   assert num_nonzero / elements < 0.1
 
 
+@pytest.mark.tensorflow
 def test_robust_multitask_classification_overfit():
   """Test robust multitask overfits tiny data."""
   n_tasks = 10
@@ -458,6 +471,7 @@ def test_robust_multitask_classification_overfit():
   assert scores[classification_metric.name] > .9
 
 
+@pytest.mark.tensorflow
 def test_IRV_multitask_classification_overfit():
   """Test IRV classifier overfits tiny data."""
   n_tasks = 5
@@ -521,6 +535,7 @@ def test_sklearn_multitask_regression_overfit():
   assert scores[regression_metric.name] > .7
 
 
+@pytest.mark.torch
 def test_multitask_regression_overfit():
   """Test MultitaskRegressor overfits tiny data."""
   n_tasks = 10
@@ -550,6 +565,7 @@ def test_multitask_regression_overfit():
   assert scores[regression_metric.name] < .02
 
 
+@pytest.mark.torch
 def test_multitask_regression_regularization():
   """Test regularizing a MultitaskRegressor."""
   n_tasks = 10
@@ -594,6 +610,7 @@ def test_multitask_regression_regularization():
   assert num_nonzero / elements < 0.1
 
 
+@pytest.mark.torch
 def test_residual_regression_overfit():
   """Test that a residual multitask network can overfit tiny data."""
   n_tasks = 10
@@ -628,6 +645,7 @@ def test_residual_regression_overfit():
   assert scores[regression_metric.name] < .02
 
 
+@pytest.mark.tensorflow
 def test_robust_multitask_regression_overfit():
   """Test robust multitask overfits tiny data."""
   np.random.seed(123)
@@ -666,6 +684,7 @@ def test_robust_multitask_regression_overfit():
   assert scores[regression_metric.name] < .2
 
 
+@pytest.mark.tensorflow
 def test_progressive_classification_overfit():
   """Test progressive multitask overfits tiny data."""
   np.random.seed(123)
@@ -702,6 +721,7 @@ def test_progressive_classification_overfit():
   assert scores[metric.name] > .9
 
 
+@pytest.mark.tensorflow
 def test_progressive_regression_overfit():
   """Test progressive multitask overfits tiny data."""
   np.random.seed(123)
@@ -738,6 +758,7 @@ def test_progressive_regression_overfit():
   assert scores[metric.name] < .2
 
 
+@pytest.mark.torch
 def test_multitask_regressor_uncertainty():
   """Test computing uncertainty for a MultitaskRegressor."""
   n_tasks = 1
@@ -769,6 +790,7 @@ def test_multitask_regressor_uncertainty():
   assert noise < np.mean(std) < 1.0
 
 
+@pytest.mark.torch
 def test_multitask_regressor_delaney_uncertainty():
   """Test computing uncertainty on a larger dataset."""
   tasks, datasets, transformers = dc.molnet.load_delaney('ECFP')
@@ -781,6 +803,7 @@ def test_multitask_regressor_delaney_uncertainty():
 
 
 @pytest.mark.slow
+@pytest.mark.tensorflow
 def test_DAG_singletask_regression_overfit():
   """Test DAG regressor multitask overfits tiny data."""
   np.random.seed(123)
@@ -821,6 +844,7 @@ def test_DAG_singletask_regression_overfit():
   assert scores[regression_metric.name] > .8
 
 
+@pytest.mark.tensorflow
 def test_weave_singletask_classification_overfit():
   """Test weave model overfits tiny data."""
   np.random.seed(123)
@@ -856,6 +880,7 @@ def test_weave_singletask_classification_overfit():
 
 
 @pytest.mark.slow
+@pytest.mark.tensorflow
 def test_weave_singletask_regression_overfit():
   """Test weave model overfits tiny data."""
   np.random.seed(123)
@@ -893,6 +918,7 @@ def test_weave_singletask_regression_overfit():
 
 
 @pytest.mark.slow
+@pytest.mark.tensorflow
 def test_MPNN_singletask_regression_overfit():
   """Test MPNN overfits tiny data."""
   np.random.seed(123)
@@ -934,6 +960,7 @@ def test_MPNN_singletask_regression_overfit():
   assert scores[regression_metric.name] > .8
 
 
+@pytest.mark.tensorflow
 def test_textCNN_singletask_classification_overfit():
   """Test textCNN model overfits tiny data."""
   np.random.seed(123)
@@ -972,6 +999,7 @@ def test_textCNN_singletask_classification_overfit():
 
 
 @flaky()
+@pytest.mark.tensorflow
 def test_textCNN_singletask_regression_overfit():
   """Test textCNN model overfits tiny data."""
   np.random.seed(123)

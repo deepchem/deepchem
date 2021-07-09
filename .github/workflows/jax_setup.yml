@@ -42,7 +42,7 @@ jobs:
         python-version: [3.7]
         include:
           - os: ubuntu-latest
-            python-version: 3.6
+            python-version: 3.8
     env:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
@@ -99,9 +99,9 @@ jobs:
         python -m pip install --upgrade pip;
         pip install conda-merge;
         if [ "$(uname)" == 'Darwin' ]; then
-          conda-merge env_jax.yml env.test.yml > env.yml
+          conda-merge requirements/jax/env_jax.yml env.test.yml > env.yml
         else
-          conda-merge env_jax.yml env.test.yml > env.yml
+          conda-merge requirements/jax/env_jax.yml env.test.yml > env.yml
         fi;
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v2
@@ -133,4 +133,4 @@ jobs:
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: pytest -v -m jax deepchem
+      run: pytest -v -m 'jax' deepchem

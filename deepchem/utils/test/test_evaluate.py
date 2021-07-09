@@ -1,9 +1,21 @@
 """Unit tests for evaluators."""
+import pytest
 import deepchem as dc
 import numpy as np
 import sklearn
 from deepchem.utils.evaluate import Evaluator
 from deepchem.utils.evaluate import GeneratorEvaluator
+try:
+  import tensorflow as tf  # noqa
+  has_tensorflow = True
+except:
+  has_tensorflow = False
+
+try:
+  import torch  # noqa
+  has_pytorch = True
+except:
+  has_pytorch = False
 
 
 def test_multiclass_threshold_predictions():
@@ -28,6 +40,7 @@ def test_binary_threshold_predictions():
   assert np.allclose(y_out, np.where(y[:, 1] >= 0.3, np.ones(10), np.zeros(10)))
 
 
+@pytest.mark.torch
 def test_evaluator_dc_metric():
   """Test an evaluator on a dataset."""
   X = np.random.rand(10, 5)
@@ -42,6 +55,7 @@ def test_evaluator_dc_metric():
   assert multitask_scores['mae_score'] > 0
 
 
+@pytest.mark.torch
 def test_multiclass_classification_singletask():
   """Test multiclass classification evaluation."""
   X = np.random.rand(100, 5)
@@ -70,6 +84,7 @@ def test_sklearn_multiclass_classification_singletask():
   assert multitask_scores["metric-1"] >= 0
 
 
+@pytest.mark.torch
 def test_evaluate_multiclass_classification_singletask():
   """Test multiclass classification evaluation."""
   X = np.random.rand(100, 5)
@@ -82,6 +97,7 @@ def test_evaluate_multiclass_classification_singletask():
   assert multitask_scores["metric-1"] >= 0
 
 
+@pytest.mark.torch
 def test_multitask_evaluator():
   """Test evaluation of a multitask metric."""
   X = np.random.rand(10, 5)
@@ -99,6 +115,7 @@ def test_multitask_evaluator():
   assert len(multitask_scores) == 1
 
 
+@pytest.mark.torch
 def test_model_evaluate_dc_metric():
   """Test a model evaluate on a dataset."""
   X = np.random.rand(10, 5)
@@ -112,6 +129,7 @@ def test_model_evaluate_dc_metric():
   assert multitask_scores['mae_score'] > 0
 
 
+@pytest.mark.torch
 def test_multitask_model_evaluate_sklearn():
   """Test evaluation of a multitask metric."""
   X = np.random.rand(10, 5)
@@ -128,6 +146,7 @@ def test_multitask_model_evaluate_sklearn():
   assert len(multitask_scores) == 1
 
 
+@pytest.mark.torch
 def test_multitask_model_evaluate():
   """Test evaluation of a multitask metric."""
   X = np.random.rand(10, 5)
@@ -142,6 +161,7 @@ def test_multitask_model_evaluate():
   assert isinstance(all_task_scores, dict)
 
 
+@pytest.mark.torch
 def test_evaluator_dc_multi_metric():
   """Test an evaluator on a dataset."""
   X = np.random.rand(10, 5)
@@ -158,6 +178,7 @@ def test_evaluator_dc_multi_metric():
   assert "r2_score" in multitask_scores
 
 
+@pytest.mark.torch
 def test_model_evaluate_dc_multi_metric():
   """Test an evaluator on a dataset."""
   X = np.random.rand(10, 5)
@@ -173,6 +194,7 @@ def test_model_evaluate_dc_multi_metric():
   assert "r2_score" in multitask_scores
 
 
+@pytest.mark.torch
 def test_generator_evaluator_dc_metric_multitask_single_point():
   """Test generator evaluator on a generator."""
   X = np.random.rand(10, 5)
@@ -189,6 +211,7 @@ def test_generator_evaluator_dc_metric_multitask_single_point():
   assert len(multitask_scores) == 1
 
 
+@pytest.mark.torch
 def test_evaluator_sklearn_metric():
   """Test an evaluator on a dataset."""
   X = np.random.rand(10, 5)
@@ -205,6 +228,7 @@ def test_evaluator_sklearn_metric():
   assert multitask_scores['metric-1'] > 0
 
 
+@pytest.mark.torch
 def test_generator_evaluator_dc_metric_multitask():
   """Test generator evaluator on a generator."""
   X = np.random.rand(10, 5)
@@ -220,6 +244,7 @@ def test_generator_evaluator_dc_metric_multitask():
   assert multitask_scores['mae_score'] > 0
 
 
+@pytest.mark.torch
 def test_model_evaluate_sklearn_metric():
   """Test a model evaluate on a dataset."""
   X = np.random.rand(10, 5)
@@ -234,6 +259,7 @@ def test_model_evaluate_sklearn_metric():
   assert multitask_scores['metric-1'] > 0
 
 
+@pytest.mark.torch
 def test_evaluator_sklearn_multi_metric():
   """Test an evaluator on a dataset."""
   X = np.random.rand(10, 5)
@@ -251,6 +277,7 @@ def test_evaluator_sklearn_multi_metric():
   assert "metric-2" in multitask_scores
 
 
+@pytest.mark.torch
 def test_model_evaluate_sklearn_multi_metric():
   """Test an evaluator on a dataset."""
   X = np.random.rand(10, 5)
@@ -267,6 +294,7 @@ def test_model_evaluate_sklearn_multi_metric():
   assert "metric-2" in multitask_scores
 
 
+@pytest.mark.tensorflow
 def test_gc_binary_classification():
   """Test multiclass classification evaluation."""
   smiles = ["C", "CC"]
@@ -283,6 +311,7 @@ def test_gc_binary_classification():
   assert multitask_scores["metric-1"] >= 0
 
 
+@pytest.mark.tensorflow
 def test_gc_binary_kappa_classification():
   """Test multiclass classification evaluation."""
   np.random.seed(1234)
@@ -301,6 +330,7 @@ def test_gc_binary_kappa_classification():
   assert multitask_scores["metric-1"] >= -1
 
 
+@pytest.mark.tensorflow
 def test_gc_multiclass_classification():
   """Test multiclass classification evaluation."""
   np.random.seed(1234)

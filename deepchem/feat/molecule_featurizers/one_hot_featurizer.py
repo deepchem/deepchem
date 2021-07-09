@@ -6,7 +6,7 @@ import numpy as np
 from deepchem.utils.typing import RDKitMol
 from deepchem.utils.molecule_feature_utils import one_hot_encode
 from deepchem.feat.base_classes import Featurizer
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,19 @@ class OneHotFeaturizer(Featurizer):
   array. It also works with RDKit molecules: it can convert RDKit molecules to
   SMILES strings and then one-hot encode the characters in said strings.
 
+  Standalone Usage:
+
+  >>> import deepchem as dc
+  >>> featurizer = dc.feat.OneHotFeaturizer()
+  >>> smiles = ['CCC']
+  >>> encodings = featurizer.featurize(smiles)
+  >>> type(encodings[0])
+  <class 'numpy.ndarray'>
+  >>> encodings[0].shape
+  (100, 35)
+  >>> featurizer.untransform(encodings[0])
+  'CCC'
+
   Note
   ----
   This class needs RDKit to be installed in order to accept RDKit molecules as
@@ -32,21 +45,30 @@ class OneHotFeaturizer(Featurizer):
   It does not need RDKit to be installed to work with arbitrary strings.
   """
 
-  def __init__(self, charset: List[str] = ZINC_CHARSET, max_length: int = 100):
+  def __init__(self,
+               charset: List[str] = ZINC_CHARSET,
+               max_length: Optional[int] = 100):
     """Initialize featurizer.
 
     Parameters
     ----------
-    charset: List[str], optional (default ZINC_CHARSET)
+    charset: List[str] (default ZINC_CHARSET)
       A list of strings, where each string is length 1 and unique.
-    max_length: int, optional (default 100)
-      The max length for SMILES string. If the length of SMILES string is
-      shorter than max_length, the SMILES is padded using space.
+    max_length: Optional[int], optional (default 100)
+      The max length for string. If the length of string is shorter than
+      max_length, the string is padded using space.
+
+      If max_length is None, no padding is performed and arbitrary length
+      strings are allowed.
     """
     if len(charset) != len(set(charset)):
       raise ValueError("All values in charset must be unique.")
     self.charset = charset
-    self.max_length = max_length
+    self.max_length = Optional[int]
+    if max_length is not None:
+      self.max_length = int(max_length)
+    else:
+      self.max_length = None
 
   def featurize(self, datapoints: Iterable[Any],
                 log_every_n: int = 1000) -> np.ndarray:
@@ -55,19 +77,19 @@ class OneHotFeaturizer(Featurizer):
     Parameters
     ----------
     datapoints: list
-      A list of either strings or RDKit molecules.
+      A list of either strings (str or numpy.str_) or RDKit molecules.
     log_every_n: int, optional (default 1000)
       How many elements are featurized every time a featurization is logged.
     """
     datapoints = list(datapoints)
     if (len(datapoints) < 1):
       return np.array([])
-    # Featurize data using featurize() in grandparent class
+    # Featurize data using featurize() in parent class
     return Featurizer.featurize(self, datapoints, log_every_n)
 
   def _featurize(self, datapoint: Any):
     # Featurize str data
-    if (type(datapoint) == str):
+    if isinstance(datapoint, (str, np.str_)):
       return self._featurize_string(datapoint)
     # Featurize mol data
     else:
@@ -88,14 +110,11 @@ class OneHotFeaturizer(Featurizer):
       The shape is `(max_length, len(charset) + 1)`.
       The index of unknown character is `len(charset)`.
     """
-    # validation
-    if (len(string) > self.max_length):
-      logger.info(
-          "The length of {} is longer than `max_length`. So we return an empty array."
-      )
-      return np.array([])
+    if isinstance(self.max_length, int):
+      if (len(string) > self.max_length):  # Validation
+        raise ValueError("The length of {} is longer than `max_length`.")
+      string = self.pad_string(string)  # Padding
 
-    string = self.pad_string(string)  # Padding
     return np.array([
         one_hot_encode(val, self.charset, include_unknown_set=True)
         for val in string
@@ -151,7 +170,10 @@ class OneHotFeaturizer(Featurizer):
     str
       String space padded to self.pad_length
     """
-    return string.ljust(self.max_length)
+    if isinstance(self.max_length, int):
+      return string.ljust(self.max_length)
+    else:
+      return string
 
   def untransform(self, one_hot_vectors: np.ndarray) -> str:
     """Convert from one hot representation back to original string
