@@ -1,6 +1,13 @@
+import pytest
 import deepchem as dc
 import numpy as np
 import unittest
+
+try:
+  import tensorflow as tf
+  has_tensorflow = True
+except:
+  has_tensorflow = False
 
 
 def generate_sequences(sequence_length, num_sequences):
@@ -14,6 +21,7 @@ def generate_sequences(sequence_length, num_sequences):
 
 class TestSeqToSeq(unittest.TestCase):
 
+  @pytest.mark.tensorflow
   def test_int_sequence(self):
     """Test learning to reproduce short sequences of integers."""
 
@@ -58,6 +66,7 @@ class TestSeqToSeq(unittest.TestCase):
     assert count1 >= 12
     assert count4 >= 12
 
+  @pytest.mark.tensorflow
   def test_aspuru_guzik(self):
     """Test that the aspuru_guzik encoder doesn't hard error.
     This model takes too long to fit to do an overfit test
@@ -98,6 +107,7 @@ class TestSeqToSeq(unittest.TestCase):
       assert pred1[i] == pred1e[i]
       assert pred4[i] == pred4e[i]
 
+  @pytest.mark.tensorflow
   def test_variational(self):
     """Test using a SeqToSeq model as a variational autoenconder."""
 

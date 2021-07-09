@@ -1,16 +1,23 @@
 import unittest
+import pytest
 import tempfile
 import deepchem as dc
 import numpy as np
-import tensorflow as tf
 try:
   from StringIO import StringIO
 except ImportError:
   from io import StringIO
 
+try:
+  import tensorflow as tf
+  has_tensorflow = True
+except:
+  has_tensorflow = False
+
 
 class TestCallbacks(unittest.TestCase):
 
+  @pytest.mark.torch
   def test_validation(self):
     """Test ValidationCallback."""
     tasks, datasets, transformers = dc.molnet.load_clintox()
@@ -28,7 +35,8 @@ class TestCallbacks(unittest.TestCase):
         30, [metric],
         log,
         save_dir=save_dir,
-        save_on_minimum=False)
+        save_on_minimum=False,
+        transformers=transformers)
     model.fit(train_dataset, callbacks=callback)
 
     # Parse the log to pull out the AUC scores.

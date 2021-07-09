@@ -11,14 +11,19 @@ import numpy as np
 import unittest
 import sklearn
 import shutil
-import tensorflow as tf
 import deepchem as dc
-from tensorflow.python.framework import test_util
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import RandomForestRegressor
+
+try:
+  import tensorflow as tf
+  from tensorflow.python.framework import test_util
+  from sklearn.ensemble import RandomForestClassifier
+  from sklearn.ensemble import RandomForestRegressor
+  has_tensorflow = True
+except:
+  has_tensorflow = False
 
 
-class TestPredict(test_util.TensorFlowTestCase):
+class TestPredict(unittest.TestCase):
   """
   Test that models make deterministic predictions 
 

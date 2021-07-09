@@ -1,13 +1,19 @@
 import numpy as np
-import tensorflow as tf
 from flaky import flaky
-from tensorflow.keras import layers
+import pytest
+try:
+  import tensorflow as tf
+  from tensorflow.keras import layers
+  has_tensorflow = True
+except:
+  has_tensorflow = False
 
 import deepchem as dc
 from deepchem.data import NumpyDataset
 
 
 @flaky
+@pytest.mark.tensorflow
 def test_compute_model_performance_multitask_classifier():
   n_data_points = 20
   n_features = 1
@@ -47,6 +53,7 @@ def test_compute_model_performance_multitask_classifier():
   assert np.all(np.isclose(scores, [1.0, 1.0], atol=0.50))
 
 
+@pytest.mark.tensorflow
 def test_compute_model_performance_singletask_classifier():
   """Computes model performance on singletask dataset with one-hot label encoding."""
   n_data_points = 20
@@ -77,6 +84,7 @@ def test_compute_model_performance_singletask_classifier():
   assert np.isclose(scores, [1.0], atol=0.05)
 
 
+@pytest.mark.tensorflow
 def test_compute_model_performance_multitask_regressor():
   random_seed = 42
   n_data_points = 20
