@@ -1,6 +1,6 @@
 import logging
 import importlib.util
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ class WandbLogger(object):
     self.initialized = False
 
     # Dataset ids are used to differentiate datasets seen by the logger
-    self.dataset_ids = []  # type: List[Union[int, str]]
+    self.dataset_ids: List[Union[int, str]] = []
 
   def setup(self):
     """Initializes a W&B run and create a run object.
@@ -96,7 +96,10 @@ class WandbLogger(object):
       self.wandb_run = self._wandb.run
     self.initialized = True
 
-  def log_data(self, data, step, dataset_id: Optional[Union[int, str]] = None):
+  def log_data(self,
+               data: Dict,
+               step: int,
+               dataset_id: Optional[Union[int, str]] = None):
     """Log data to W&B.
 
     Parameters
