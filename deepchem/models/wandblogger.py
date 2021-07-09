@@ -4,9 +4,12 @@ from typing import Optional, Union
 import shutil
 import os
 from distutils.dir_util import copy_tree
+import tensorflow as tf
+import torch
+import numpy as np
 
 logger = logging.getLogger(__name__)
-
+numeric = Union[tf.Tensor, torch.Tensor, int, float, complex, np.number]
 
 def is_wandb_available():
   return importlib.util.find_spec("wandb") is not None
@@ -86,12 +89,14 @@ class WandbLogger(object):
     self.wandb_init_params.update(**kwargs)
     self.initialized = False
 
-  def setup(self):
+  def setup(self, config):
     """Initializes a W&B run and create a run object.
     If a pre-existing run is already initialized, use that instead.
     """
+
     if self._wandb.run is None:
       self.wandb_run = self._wandb.init(**self.wandb_init_params)
+      self.wandb_run.config.update(config)
     else:
       self.wandb_run = self._wandb.run
     self.initialized = True
@@ -108,6 +113,13 @@ class WandbLogger(object):
     """
     self.wandb_run.log(data, step=step)
 
+  def log_batch(self, step, loss: numeric):
+    data = dict({'train/loss_step': loss})
+    self.wandb_run.log(data, step=step)
+
+  def log_epoch(self, data, epoch):
+    pass
+
   def finish(self):
     """Finishes and closes the W&B run.
     Save run history data as field if configured to do that.
@@ -117,27 +129,24 @@ class WandbLogger(object):
       self.run_history = history
     self.wandb_run.finish()
 
-  def update_config(self, config_data):
-    """Updates the W&B configuration.
-    Parameters
-    ----------
-    config_data: dict
-      additional configuration data to add
-    """
-    self.wandb_run.config.update(config_data)
-
   def save_model(self, path):
-    path = os.path.abspath(path)
-    path_list = path.split(os.sep)
-    # destination folder will have same name as save directory
-    dest = os.path.join(self.wandb_run.dir, path_list[-1])
-    shutil.rmtree(dest, ignore_errors=True) # clear dest folder to avoid file already exist error
-    checkpoint_names = ["ckpt", "checkpoint", ".pt", ".pth"]
-    # Copy all checkpoint files to wandb.run.dir for upload when run finishes
-    for file in os.listdir(path):
-        if any(substring in file.lower() for substring in checkpoint_names):
+    abs_path = os.path.abspath(path)
+    abs_path = abs_path.replace("/", ".")
+    artifact = self._wandb.Artifact(abs_path, type='model')
+    artifact.add_dir(path)
+    self.wandb_run.log_artifact(artifact)
 
-            if not os.path.exists(dest):
-                os.makedirs(dest)
-
-            shutil.copy2(os.path.join(path, file), os.path.join(dest, file))
+    #
+    # path_list = path.split(os.sep)
+    # # destination folder will have same name as save directory
+    # dest = os.path.join(self.wandb_run.dir, path_list[-1])
+    # shutil.rmtree(dest, ignore_errors=True) # clear dest folder to avoid file already exist error
+    # checkpoint_names = ["ckpt", "checkpoint", ".pt", ".pth"]
+    # # Copy all checkpoint files to wandb.run.dir for upload when run finishes
+    # for file in os.listdir(path):
+    #     if any(substring in file.lower() for substring in checkpoint_names):
+    #
+    #         if not os.path.exists(dest):
+    #             os.makedirs(dest)
+    #
+    #         shutil.copy2(os.path.join(path, file), os.path.join(dest, file))

@@ -136,6 +136,7 @@ class KerasModel(Model):
                wandb: bool = False,
                log_frequency: int = 100,
                wandb_logger: Optional[WandbLogger] = None,
+               loggers: Optional[List] = [],
                **kwargs) -> None:
     """Create a new KerasModel.
 
@@ -186,6 +187,8 @@ class KerasModel(Model):
       self.optimizer = optimizer
     self.tensorboard = tensorboard
 
+    self.loggers = loggers
+
     # W&B flag support (DEPRECATED)
     if wandb:
       logger.warning(
@@ -197,17 +200,21 @@ class KerasModel(Model):
           "run `pip install wandb; wandb login`")
     self.wandb = wandb and _has_wandb
 
+    # Wandb_logger flag support (DEPRECATED)
     self.wandb_logger = wandb_logger
     # If `wandb=True` and no logger is provided, initialize default logger
     if self.wandb and (self.wandb_logger is None):
       self.wandb_logger = WandbLogger()
 
-    # Setup and initialize W&B logging
-    if (self.wandb_logger is not None) and (not self.wandb_logger.initialized):
-      self.wandb_logger.setup()
+    # Add wandb_logger to list of loggers (keep until deprecated)
+    if (self.wandb_logger is not None):
+      if any(isinstance(x, WandbLogger) for x in self.loggers):
+          logger.warning("A WandbLogger already exists in `loggers`."
+                         "Setting `wandb_logger` will create duplicate copies.")
+      self.loggers.append(self.wandb_logger)
 
-    # Update config with KerasModel params
-    wandb_logger_config = dict(
+    # Update logger config with KerasModel params
+    logger_config = dict(
         loss=loss,
         output_types=output_types,
         batch_size=batch_size,
@@ -216,10 +223,11 @@ class KerasModel(Model):
         optimizer=optimizer,
         tensorboard=tensorboard,
         log_frequency=log_frequency)
-    wandb_logger_config.update(**kwargs)
+    logger_config.update(**kwargs)
 
-    if self.wandb_logger is not None:
-      self.wandb_logger.update_config(wandb_logger_config)
+    # Setup and initialize external loggers
+    for ext_logger in self.loggers:
+      ext_logger.setup(logger_config)
 
     # Backwards compatibility
     if "tensorboard_log_frequency" in kwargs:
