@@ -1,5 +1,5 @@
+import unittest
 import tempfile
-import pytest
 
 import numpy as np
 
@@ -17,7 +17,8 @@ except:
   has_torch_and_dgl = False
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_torch_and_dgl,
+                 'PyTorch, DGL, or DGL-LifeSci are not installed')
 def test_attentivefp_regression():
   # load datasets
   featurizer = MolGraphConvFeaturizer(use_edges=True)
@@ -47,7 +48,8 @@ def test_attentivefp_regression():
   model.fit(train_set, nb_epoch=1)
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_torch_and_dgl,
+                 'PyTorch, DGL, or DGL-LifeSci are not installed')
 def test_attentivefp_classification():
   # load datasets
   featurizer = MolGraphConvFeaturizer(use_edges=True)
@@ -82,7 +84,8 @@ def test_attentivefp_classification():
   model.fit(train_set, nb_epoch=1)
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_torch_and_dgl,
+                 'PyTorch, DGL, or DGL-LifeSci are not installed')
 def test_attentivefp_reload():
   # load datasets
   featurizer = MolGraphConvFeaturizer(use_edges=True)

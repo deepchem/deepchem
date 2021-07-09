@@ -103,7 +103,6 @@ class TestConvMolFeaturizer(unittest.TestCase):
 class TestAtomicConvFeaturizer(unittest.TestCase):
 
   @pytest.mark.slow
-  @pytest.mark.tensorflow
   def test_feature_generation(self):
     """Test if featurization works using AtomicConvFeaturizer."""
     dir_path = os.path.dirname(os.path.realpath(__file__))

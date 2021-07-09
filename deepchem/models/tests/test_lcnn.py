@@ -1,4 +1,4 @@
-import pytest
+import unittest
 import tempfile
 from os import path
 import numpy as np
@@ -16,7 +16,7 @@ except:
 URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/featurized_datasets/lcnn_data_feature.tar.gz"
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch_and_dgl, 'PyTorch and DGL are not installed')
 def test_lcnn_regression():
 
   current_dir = tempfile.mkdtemp()
@@ -39,7 +39,7 @@ def test_lcnn_regression():
   assert scores[regression_metric.name] < 0.6
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch_and_dgl, 'PyTorch and DGL are not installed')
 def test_lcnn_reload():
 
   # needs change

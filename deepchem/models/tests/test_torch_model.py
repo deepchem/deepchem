@@ -1,9 +1,8 @@
 import os
-import pytest
+import unittest
 import deepchem as dc
 import numpy as np
 import math
-import unittest
 
 try:
   import torch
@@ -19,7 +18,7 @@ except:
   has_wandb = False
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 def test_overfit_subclass_model():
   """Test fitting a TorchModel defined by subclassing Module."""
   n_data_points = 10
@@ -60,7 +59,7 @@ def test_overfit_subclass_model():
   assert scores[metric.name] > 0.9
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 def test_overfit_sequential_model():
   """Test fitting a TorchModel defined as a sequential model."""
   n_data_points = 10
@@ -82,7 +81,7 @@ def test_overfit_sequential_model():
   assert scores[metric.name] > 0.9
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 def test_fit_use_all_losses():
   """Test fitting a TorchModel and getting a loss curve back."""
   n_data_points = 10
@@ -105,7 +104,7 @@ def test_fit_use_all_losses():
   assert np.count_nonzero(np.array(losses)) == 100
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 def test_fit_on_batch():
   """Test fitting a TorchModel to individual batches."""
   n_data_points = 10
@@ -130,7 +129,7 @@ def test_fit_on_batch():
   assert scores[metric.name] > 0.9
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 def test_checkpointing():
   """Test loading and saving checkpoints with TorchModel."""
   # Create two models using the same model directory.
@@ -159,7 +158,7 @@ def test_checkpointing():
   assert np.array_equal(y1, y4)
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 def test_fit_restore():
   """Test specifying restore=True when calling fit()."""
   n_data_points = 10
@@ -194,7 +193,7 @@ def test_fit_restore():
   assert np.array_equal(y, np.round(prediction))
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 def test_uncertainty():
   """Test estimating uncertainty a TorchModel."""
   n_samples = 30
@@ -264,7 +263,7 @@ def test_uncertainty():
   assert noise < np.mean(std) < 1.0
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 def test_saliency_mapping():
   """Test computing a saliency map."""
   n_tasks = 3
@@ -292,7 +291,7 @@ def test_saliency_mapping():
     assert np.allclose(pred1[task], (pred2 + norm * delta)[task], atol=1e-6)
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 def test_saliency_shapes():
   """Test computing saliency maps for multiple outputs with multiple dimensions."""
 
@@ -318,7 +317,7 @@ def test_saliency_shapes():
   assert s[1].shape == (1, 5, 2, 3)
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 def test_tensorboard():
   """Test logging to Tensorboard."""
   n_data_points = 20
@@ -342,7 +341,6 @@ def test_tensorboard():
   assert file_size > 0
 
 
-@pytest.mark.torch
 @unittest.skipIf((not has_pytorch) or (not has_wandb),
                  'PyTorch and/or Wandb is not installed')
 def test_wandblogger():
@@ -372,7 +370,7 @@ def test_wandblogger():
       abs_tol=0.0005)
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 def test_fit_variables():
   """Test training a subset of the variables in a model."""
 
@@ -409,7 +407,7 @@ def test_fit_variables():
   assert np.allclose(vars[1], 0.5)
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
 def test_fit_loss():
   """Test specifying a different loss function when calling fit()."""
 

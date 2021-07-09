@@ -1,14 +1,8 @@
 import numpy as np
+import tensorflow as tf
 import deepchem as dc
-import pytest
-try:
-  import tensorflow as tf
-  has_tensorflow = True
-except:
-  has_tensorflow = False
 
 
-@pytest.mark.tensorflow
 def test_singletask_robust_multitask_classification():
   """Test robust multitask singletask classification."""
   n_tasks = 1
@@ -40,7 +34,6 @@ def test_singletask_robust_multitask_classification():
   model.fit(dataset, nb_epoch=1)
 
 
-@pytest.mark.tensorflow
 def test_singletask_robust_multitask_regression():
   """Test singletask robust multitask regression."""
   np.random.seed(123)

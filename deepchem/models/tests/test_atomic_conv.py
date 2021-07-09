@@ -7,18 +7,11 @@ import os
 import pytest
 
 import numpy as np
+from deepchem.models import atomic_conv
 from deepchem.data import NumpyDataset
 from deepchem.feat import AtomicConvFeaturizer
 
-try:
-  import tensorflow as tf
-  from deepchem.models import atomic_conv
-  has_tensorflow = True
-except:
-  has_tensorflow = False
 
-
-@pytest.mark.tensorflow
 def test_atomic_conv_initialize():
   """Quick test of AtomicConv."""
   acm = atomic_conv.AtomicConvModel(
@@ -36,7 +29,6 @@ def test_atomic_conv_initialize():
 
 
 @pytest.mark.slow
-@pytest.mark.tensorflow
 def test_atomic_conv():
   """A simple test that initializes and fits an AtomicConvModel."""
   # For simplicity, let's assume both molecules have same number of
@@ -88,7 +80,6 @@ def test_atomic_conv():
 
 
 @pytest.mark.slow
-@pytest.mark.tensorflow
 def test_atomic_conv_variable():
   """A simple test that initializes and fits an AtomicConvModel on variable input size."""
   frag1_num_atoms = 1000
@@ -131,7 +122,6 @@ def test_atomic_conv_variable():
 
 
 @pytest.mark.slow
-@pytest.mark.tensorflow
 def test_atomic_conv_with_feat():
   """A simple test for running an atomic convolution on featurized data."""
   dir_path = os.path.dirname(os.path.realpath(__file__))

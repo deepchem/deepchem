@@ -1,6 +1,5 @@
 import deepchem.models.losses as losses
 import unittest
-import pytest
 import numpy as np
 
 try:
@@ -19,7 +18,7 @@ except:
 class TestLosses(unittest.TestCase):
   """Test loss functions."""
 
-  @pytest.mark.tensorflow
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_l1_loss_tf(self):
     """Test L1Loss."""
     loss = losses.L1Loss()
@@ -29,7 +28,7 @@ class TestLosses(unittest.TestCase):
     expected = [[0.1, 0.2], [0.6, 0.6]]
     assert np.allclose(expected, result)
 
-  @pytest.mark.torch
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_l1_loss_pytorch(self):
     """Test L1Loss."""
     loss = losses.L1Loss()
@@ -39,7 +38,7 @@ class TestLosses(unittest.TestCase):
     expected = [[0.1, 0.2], [0.6, 0.6]]
     assert np.allclose(expected, result)
 
-  @pytest.mark.tensorflow
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_huber_loss_tf(self):
     """Test HuberLoss."""
     loss = losses.HuberLoss()
@@ -49,7 +48,7 @@ class TestLosses(unittest.TestCase):
     expected = 0.67125
     assert np.allclose(expected, result)
 
-  @pytest.mark.torch
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_huber_loss_pytorch(self):
     """Test HuberLoss."""
     loss = losses.HuberLoss()
@@ -59,7 +58,7 @@ class TestLosses(unittest.TestCase):
     expected = 0.67125
     assert np.allclose(expected, result)
 
-  @pytest.mark.tensorflow
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_l2_loss_tf(self):
     """Test L2Loss."""
     loss = losses.L2Loss()
@@ -69,7 +68,7 @@ class TestLosses(unittest.TestCase):
     expected = [[0.1**2, 0.2**2], [0.6**2, 0.6**2]]
     assert np.allclose(expected, result)
 
-  @pytest.mark.torch
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_l2_loss_pytorch(self):
     """Test L2Loss."""
     loss = losses.L2Loss()
@@ -79,7 +78,7 @@ class TestLosses(unittest.TestCase):
     expected = [[0.1**2, 0.2**2], [0.6**2, 0.6**2]]
     assert np.allclose(expected, result)
 
-  @pytest.mark.tensorflow
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_hinge_loss_tf(self):
     """Test HingeLoss."""
     loss = losses.HingeLoss()
@@ -89,7 +88,7 @@ class TestLosses(unittest.TestCase):
     expected = [np.mean([0.9, 1.8]), np.mean([1.4, 0.4])]
     assert np.allclose(expected, result)
 
-  @pytest.mark.torch
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_hinge_loss_pytorch(self):
     """Test HingeLoss."""
     loss = losses.HingeLoss()
@@ -99,7 +98,7 @@ class TestLosses(unittest.TestCase):
     expected = [np.mean([0.9, 1.8]), np.mean([1.4, 0.4])]
     assert np.allclose(expected, result)
 
-  @pytest.mark.tensorflow
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_squared_hinge_loss_tf(self):
     """Test SquaredHingeLoss."""
     loss = losses.SquaredHingeLoss()
@@ -109,7 +108,7 @@ class TestLosses(unittest.TestCase):
     expected = [np.mean([0.8100, 3.2400]), np.mean([1.9600, 0.1600])]
     assert np.allclose(expected, result)
 
-  @pytest.mark.torch
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_squared_hinge_loss_pytorch(self):
     """Test SquaredHingeLoss."""
     loss = losses.SquaredHingeLoss()
@@ -119,7 +118,6 @@ class TestLosses(unittest.TestCase):
     expected = [np.mean([0.8100, 3.2400]), np.mean([1.9600, 0.1600])]
     assert np.allclose(expected, result)
 
-  @pytest.mark.tensorflow
   def test_poisson_loss_tf(self):
     """Test PoissonLoss."""
     loss = losses.PoissonLoss()
@@ -129,7 +127,7 @@ class TestLosses(unittest.TestCase):
     expected = 0.75986
     assert np.allclose(expected, result)
 
-  @pytest.mark.torch
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_poisson_loss_pytorch(self):
     """Test PoissonLoss."""
     loss = losses.PoissonLoss()
@@ -139,7 +137,7 @@ class TestLosses(unittest.TestCase):
     expected = 0.75986
     assert np.allclose(expected, result)
 
-  @pytest.mark.tensorflow
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_binary_cross_entropy_tf(self):
     """Test BinaryCrossEntropy."""
     loss = losses.BinaryCrossEntropy()
@@ -152,7 +150,7 @@ class TestLosses(unittest.TestCase):
     ]
     assert np.allclose(expected, result)
 
-  @pytest.mark.torch
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_binary_cross_entropy_pytorch(self):
     """Test BinaryCrossEntropy."""
     loss = losses.BinaryCrossEntropy()
@@ -165,7 +163,7 @@ class TestLosses(unittest.TestCase):
     ]
     assert np.allclose(expected, result)
 
-  @pytest.mark.tensorflow
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_categorical_cross_entropy_tf(self):
     """Test CategoricalCrossEntropy."""
     loss = losses.CategoricalCrossEntropy()
@@ -175,7 +173,7 @@ class TestLosses(unittest.TestCase):
     expected = [-np.log(0.8), -np.log(0.4)]
     assert np.allclose(expected, result)
 
-  @pytest.mark.torch
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_categorical_cross_entropy_pytorch(self):
     """Test CategoricalCrossEntropy."""
     loss = losses.CategoricalCrossEntropy()
@@ -185,7 +183,7 @@ class TestLosses(unittest.TestCase):
     expected = [-np.log(0.8), -np.log(0.4)]
     assert np.allclose(expected, result)
 
-  @pytest.mark.tensorflow
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_sigmoid_cross_entropy_tf(self):
     """Test SigmoidCrossEntropy."""
     loss = losses.SigmoidCrossEntropy()
@@ -198,7 +196,7 @@ class TestLosses(unittest.TestCase):
                 [-np.log(sigmoid[1, 0]), -np.log(1 - sigmoid[1, 1])]]
     assert np.allclose(expected, result)
 
-  @pytest.mark.torch
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_sigmoid_cross_entropy_pytorch(self):
     """Test SigmoidCrossEntropy."""
     loss = losses.SigmoidCrossEntropy()
@@ -211,7 +209,7 @@ class TestLosses(unittest.TestCase):
                 [-np.log(sigmoid[1, 0]), -np.log(1 - sigmoid[1, 1])]]
     assert np.allclose(expected, result)
 
-  @pytest.mark.tensorflow
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_softmax_cross_entropy_tf(self):
     """Test SoftmaxCrossEntropy."""
     loss = losses.SoftmaxCrossEntropy()
@@ -223,7 +221,7 @@ class TestLosses(unittest.TestCase):
     expected = [-np.log(softmax[0, 1]), -np.log(softmax[1, 0])]
     assert np.allclose(expected, result)
 
-  @pytest.mark.torch
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_softmax_cross_entropy_pytorch(self):
     """Test SoftmaxCrossEntropy."""
     loss = losses.SoftmaxCrossEntropy()
@@ -235,7 +233,7 @@ class TestLosses(unittest.TestCase):
     expected = [-np.log(softmax[0, 1]), -np.log(softmax[1, 0])]
     assert np.allclose(expected, result)
 
-  @pytest.mark.tensorflow
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_sparse_softmax_cross_entropy_tf(self):
     """Test SparseSoftmaxCrossEntropy."""
     loss = losses.SparseSoftmaxCrossEntropy()
@@ -253,7 +251,7 @@ class TestLosses(unittest.TestCase):
     expected = [-np.log(softmax[0, 1]), -np.log(softmax[1, 0])]
     assert np.allclose(expected, result)
 
-  @pytest.mark.torch
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_sparse_softmax_cross_entropy_pytorch(self):
     """Test SparseSoftmaxCrossEntropy."""
     loss = losses.SparseSoftmaxCrossEntropy()
@@ -271,7 +269,7 @@ class TestLosses(unittest.TestCase):
     expected = [-np.log(softmax[0, 1]), -np.log(softmax[1, 0])]
     assert np.allclose(expected, result)
 
-  @pytest.mark.tensorflow
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_VAE_ELBO_tf(self):
     """."""
     loss = losses.VAE_ELBO()
@@ -296,7 +294,7 @@ class TestLosses(unittest.TestCase):
     ]
     assert np.allclose(expected, result)
 
-  @pytest.mark.torch
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_VAE_ELBO_pytorch(self):
     """."""
     loss = losses.VAE_ELBO()
@@ -322,7 +320,7 @@ class TestLosses(unittest.TestCase):
     ]
     assert np.allclose(expected, result)
 
-  @pytest.mark.tensorflow
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_VAE_KLDivergence_tf(self):
     """."""
     loss = losses.VAE_KLDivergence()
@@ -340,7 +338,7 @@ class TestLosses(unittest.TestCase):
     ]
     assert np.allclose(expected, result)
 
-  @pytest.mark.torch
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_VAE_KLDivergence_pytorch(self):
     """."""
     loss = losses.VAE_KLDivergence()
@@ -358,7 +356,7 @@ class TestLosses(unittest.TestCase):
     ]
     assert np.allclose(expected, result)
 
-  @pytest.mark.tensorflow
+  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
   def test_ShannonEntropy_tf(self):
     """."""
     loss = losses.ShannonEntropy()
@@ -370,7 +368,7 @@ class TestLosses(unittest.TestCase):
     ]
     assert np.allclose(expected, result)
 
-  @pytest.mark.torch
+  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
   def test_ShannonEntropy_pytorch(self):
     """."""
     loss = losses.ShannonEntropy()

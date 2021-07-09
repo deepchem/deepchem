@@ -10,7 +10,6 @@ import tempfile
 import time
 import shutil
 import multiprocessing
-from multiprocessing.dummy import Pool
 from ast import literal_eval as make_tuple
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
@@ -1581,7 +1580,7 @@ class DiskDataset(Dataset):
       # objects as an extra overhead. Also, as hideously as un-thread safe this looks,
       # we're actually protected by the GIL.
       # mp.dummy aliases ThreadPool to Pool
-      pool = Pool(1)
+      pool = multiprocessing.dummy.Pool(1)
 
       if batch_size is None:
         num_global_batches = num_shards

@@ -1,9 +1,0 @@
-dependencies:
-  - pip:
-    - -f https://download.pytorch.org/whl/torch_stable.html
-    - -f https://pytorch-geometric.com/whl/torch-1.9.0+cpu.html
-    - dgl==0.6.*
-    - torch==1.9.0+cpu
-    - torchvision==0.10.0+cpu
-    - torch-scatter
-    - torch-sparse

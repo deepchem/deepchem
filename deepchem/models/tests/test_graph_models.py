@@ -6,20 +6,13 @@ import scipy
 
 import deepchem as dc
 from deepchem.data import NumpyDataset
+from deepchem.models import GraphConvModel, DAGModel, WeaveModel, MPNNModel
 from deepchem.molnet import load_bace_classification, load_delaney
 from deepchem.feat import ConvMolFeaturizer
-
-try:
-  import tensorflow as tf
-  from deepchem.models import GraphConvModel, DAGModel, WeaveModel, MPNNModel
-  has_tensorflow = True
-except:
-  has_tensorflow = False
 
 from flaky import flaky
 
 
-@pytest.mark.tensorflow
 def get_dataset(mode='classification', featurizer='GraphConv', num_tasks=2):
   data_points = 20
   if mode == 'classification':
@@ -46,7 +39,6 @@ def get_dataset(mode='classification', featurizer='GraphConv', num_tasks=2):
   return tasks, ds, transformers, metric
 
 
-@pytest.mark.tensorflow
 def test_graph_conv_model():
   tasks, dataset, transformers, metric = get_dataset('classification',
                                                      'GraphConv')
@@ -63,7 +55,6 @@ def test_graph_conv_model():
   assert scores['mean-roc_auc_score'] >= 0.9
 
 
-@pytest.mark.tensorflow
 def test_neural_fingerprint_retrieval():
   tasks, dataset, transformers, metric = get_dataset('classification',
                                                      'GraphConv')
@@ -83,7 +74,6 @@ def test_neural_fingerprint_retrieval():
   assert (len(dataset), fp_size * 2) == neural_fingerprints.shape
 
 
-@pytest.mark.tensorflow
 def test_graph_conv_regression_model():
   tasks, dataset, transformers, metric = get_dataset('regression', 'GraphConv')
 
@@ -99,7 +89,6 @@ def test_graph_conv_regression_model():
   assert scores['mean_absolute_error'] < 0.1
 
 
-@pytest.mark.tensorflow
 def test_graph_conv_regression_uncertainty():
   tasks, dataset, transformers, metric = get_dataset('regression', 'GraphConv')
 
@@ -124,7 +113,6 @@ def test_graph_conv_regression_uncertainty():
   assert mean_std < mean_value
 
 
-@pytest.mark.tensorflow
 def test_graph_conv_model_no_task():
   tasks, dataset, _, __ = get_dataset('classification', 'GraphConv')
   batch_size = 10
@@ -144,7 +132,6 @@ def test_graph_conv_model_no_task():
   model.predict(td)
 
 
-@pytest.mark.tensorflow
 def test_graph_conv_atom_features():
   tasks, dataset, transformers, metric = get_dataset(
       'regression', 'Raw', num_tasks=1)
@@ -174,7 +161,6 @@ def test_graph_conv_atom_features():
 
 
 @pytest.mark.slow
-@pytest.mark.tensorflow
 def test_dag_model():
   tasks, dataset, transformers, metric = get_dataset('classification',
                                                      'GraphConv')
@@ -195,7 +181,6 @@ def test_dag_model():
 
 
 @pytest.mark.slow
-@pytest.mark.tensorflow
 def test_dag_regression_model():
   import tensorflow as tf
   np.random.seed(1234)
@@ -215,7 +200,6 @@ def test_dag_regression_model():
 
 
 @pytest.mark.slow
-@pytest.mark.tensorflow
 def test_dag_regression_uncertainty():
   import tensorflow as tf
   np.random.seed(1234)
@@ -247,14 +231,13 @@ def test_dag_regression_uncertainty():
   # The DAG models have high error with dropout
   # Despite a lot of effort tweaking it , there appears to be
   # a limit to how low the error can go with dropout.
-  # assert mean_error < 0.5 * mean_value
+  #assert mean_error < 0.5 * mean_value
   assert mean_error < .7 * mean_value
   assert mean_std > 0.5 * mean_error
   assert mean_std < mean_value
 
 
 @pytest.mark.slow
-@pytest.mark.tensorflow
 def test_mpnn_model():
   tasks, dataset, transformers, metric = get_dataset('classification', 'Weave')
 
@@ -274,7 +257,6 @@ def test_mpnn_model():
 
 
 @pytest.mark.slow
-@pytest.mark.tensorflow
 def test_mpnn_regression_model():
   tasks, dataset, transformers, metric = get_dataset('regression', 'Weave')
 
@@ -295,7 +277,6 @@ def test_mpnn_regression_model():
 
 
 @pytest.mark.slow
-@pytest.mark.tensorflow
 def test_mpnn_regression_uncertainty():
   tasks, dataset, transformers, metric = get_dataset('regression', 'Weave')
 
@@ -325,7 +306,6 @@ def test_mpnn_regression_uncertainty():
 
 
 @flaky
-@pytest.mark.tensorflow
 def test_dtnn_regression_model():
   current_dir = os.path.dirname(os.path.abspath(__file__))
   input_file = os.path.join(current_dir, "example_DTNN.mat")

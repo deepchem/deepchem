@@ -10,7 +10,6 @@ import sklearn
 import sklearn.ensemble
 import deepchem as dc
 import unittest
-import pytest
 import tempfile
 from flaky import flaky
 
@@ -94,7 +93,6 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
     assert valid_score["pearson_r2_score"] > 0
 
   @flaky
-  @pytest.mark.torch
   def test_multitask_example(self):
     """Test a simple example of optimizing a multitask model with a gaussian process search."""
     # Generate dummy dataset
@@ -130,7 +128,6 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
     assert valid_score["mean-mean_squared_error"] > 0
 
   @flaky
-  @pytest.mark.torch
   def test_multitask_example_different_search_range(self):
     """Test a simple example of optimizing a multitask model with a gaussian process search with per-parameter search range."""
     # Generate dummy dataset
@@ -177,7 +174,6 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
     assert valid_score["mean-mean_squared_error"] > 0
 
   @flaky
-  @pytest.mark.torch
   def test_multitask_example_nb_epoch(self):
     """Test a simple example of optimizing a multitask model with a gaussian process search with a different number of training epochs."""
     # Generate dummy dataset

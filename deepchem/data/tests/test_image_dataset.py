@@ -5,9 +5,10 @@ import unittest
 import numpy as np
 import deepchem as dc
 import os
+from tensorflow.python.framework import test_util
 
 
-class TestImageDataset(unittest.TestCase):
+class TestImageDataset(test_util.TensorFlowTestCase):
   """
   Test ImageDataset class.
   """

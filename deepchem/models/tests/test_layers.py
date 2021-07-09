@@ -1,16 +1,10 @@
 import deepchem as dc
 import numpy as np
-import pytest
-try:
-  import tensorflow as tf
-  import deepchem.models.layers as layers
-  from tensorflow.python.framework import test_util
-  has_tensorflow = True
-except:
-  has_tensorflow = False
+import tensorflow as tf
+import deepchem.models.layers as layers
+from tensorflow.python.framework import test_util
 
 
-@pytest.mark.tensorflow
 def test_cosine_dist():
   """Test invoking cosine_dist."""
   x = tf.ones((5, 4), dtype=tf.dtypes.float32, name=None)
@@ -34,7 +28,6 @@ def test_cosine_dist():
   assert all([cos_sim_orth.shape[dim] == 256 for dim in range(2)])  # True
 
 
-@pytest.mark.tensorflow
 def test_highway():
   """Test invoking Highway."""
   width = 5
@@ -58,7 +51,6 @@ def test_highway():
   assert np.allclose(result, result3)
 
 
-@pytest.mark.tensorflow
 def test_combine_mean_std():
   """Test invoking CombineMeanStd."""
   mean = np.random.rand(5, 3).astype(np.float32)
@@ -71,7 +63,6 @@ def test_combine_mean_std():
   assert np.allclose(result2, mean, atol=0.1)
 
 
-@pytest.mark.tensorflow
 def test_stack():
   """Test invoking Stack."""
   input1 = np.random.rand(5, 4).astype(np.float32)
@@ -82,7 +73,6 @@ def test_stack():
   assert np.array_equal(input2, result[:, 1, :])
 
 
-@pytest.mark.tensorflow
 def test_variable():
   """Test invoking Variable."""
   value = np.random.rand(5, 4).astype(np.float32)
@@ -93,7 +83,6 @@ def test_variable():
   assert len(layer.trainable_variables) == 1
 
 
-@pytest.mark.tensorflow
 def test_interatomic_l2_distances():
   """Test invoking InteratomicL2Distances."""
   atoms = 5
@@ -110,7 +99,6 @@ def test_interatomic_l2_distances():
       assert np.allclose(dist2, result[atom, neighbor])
 
 
-@pytest.mark.tensorflow
 def test_weave_layer():
   """Test invoking WeaveLayer."""
   out_channels = 2
@@ -155,7 +143,6 @@ def test_weave_layer():
   assert len(outputs) == 2
 
 
-@pytest.mark.tensorflow
 def test_weave_gather():
   """Test invoking WeaveGather."""
   out_channels = 2
@@ -198,7 +185,6 @@ def test_weave_gather():
   assert np.array(outputs[1]).shape == (75,)
 
 
-@pytest.mark.tensorflow
 def test_weave_gather_gaussian_histogram():
   """Test Gaussian Histograms."""
   import tensorflow as tf
@@ -232,7 +218,6 @@ def test_weave_gather_gaussian_histogram():
   #assert np.array(outputs[1]).shape == (11 * 75,)
 
 
-@pytest.mark.tensorflow
 def test_graph_conv():
   """Test invoking GraphConv."""
   out_channels = 2
@@ -255,7 +240,6 @@ def test_graph_conv():
   assert len(layer.trainable_variables) == 2 * num_deg
 
 
-@pytest.mark.tensorflow
 def test_graph_pool():
   """Test invoking GraphPool."""
   n_atoms = 4  # In CCC and C, there are 4 atoms
@@ -275,7 +259,6 @@ def test_graph_pool():
   # TODO What should shape[1] be?  It's not documented.
 
 
-@pytest.mark.tensorflow
 def test_graph_gather():
   """Test invoking GraphGather."""
   batch_size = 2
@@ -297,7 +280,6 @@ def test_graph_gather():
   assert result.shape == (batch_size, 2 * n_features)
 
 
-@pytest.mark.tensorflow
 def test_lstm_step():
   """Test invoking LSTMStep."""
   max_depth = 5
@@ -315,7 +297,6 @@ def test_lstm_step():
   assert len(layer.trainable_variables) == 1
 
 
-@pytest.mark.tensorflow
 def test_attn_lstm_embedding():
   """Test invoking AttnLSTMEmbedding."""
   max_depth = 5
@@ -331,7 +312,6 @@ def test_attn_lstm_embedding():
   assert len(layer.trainable_variables) == 4
 
 
-@pytest.mark.tensorflow
 def test_iter_ref_lstm_embedding():
   """Test invoking IterRefLSTMEmbedding."""
   max_depth = 5
@@ -347,7 +327,6 @@ def test_iter_ref_lstm_embedding():
   assert len(layer.trainable_variables) == 8
 
 
-@pytest.mark.tensorflow
 def test_vina_free_energy():
   """Test invoking VinaFreeEnergy."""
   n_atoms = 5
@@ -376,7 +355,6 @@ def test_vina_free_energy():
   assert np.allclose(result, result3)
 
 
-@pytest.mark.tensorflow
 def test_weighted_linear_combo():
   """Test invoking WeightedLinearCombo."""
   input1 = np.random.rand(5, 10).astype(np.float32)
@@ -388,7 +366,6 @@ def test_weighted_linear_combo():
   assert np.allclose(result, expected)
 
 
-@pytest.mark.tensorflow
 def test_neighbor_list():
   """Test invoking NeighborList."""
   N_atoms = 5
@@ -404,7 +381,6 @@ def test_neighbor_list():
   assert result.shape == (N_atoms, M_nbrs)
 
 
-@pytest.mark.tensorflow
 def test_atomic_convolution():
   """Test invoking AtomicConvolution."""
   batch_size = 4
@@ -422,7 +398,6 @@ def test_atomic_convolution():
   assert len(layer.trainable_variables) == 3
 
 
-@pytest.mark.tensorflow
 def test_alpha_share_layer():
   """Test invoking AlphaShareLayer."""
   batch_size = 10
@@ -449,7 +424,6 @@ def test_alpha_share_layer():
   assert np.allclose(result[1], result3[1])
 
 
-@pytest.mark.tensorflow
 def test_sluice_loss():
   """Test invoking SluiceLoss."""
   input1 = np.ones((3, 4)).astype(np.float32)
@@ -458,7 +432,6 @@ def test_sluice_loss():
   assert np.allclose(result, 40.0)
 
 
-@pytest.mark.tensorflow
 def test_beta_share():
   """Test invoking BetaShare."""
   batch_size = 10
@@ -483,7 +456,6 @@ def test_beta_share():
   assert np.allclose(result, result3)
 
 
-@pytest.mark.tensorflow
 def test_ani_feat():
   """Test invoking ANIFeat."""
   batch_size = 10
@@ -495,7 +467,6 @@ def test_ani_feat():
   # are no other test cases for it.
 
 
-@pytest.mark.tensorflow
 def test_graph_embed_pool_layer():
   """Test invoking GraphEmbedPoolLayer."""
   V = np.random.uniform(size=(10, 100, 50)).astype(np.float32)
@@ -520,7 +491,6 @@ def test_graph_embed_pool_layer():
   assert np.allclose(result[1], result3[1])
 
 
-@pytest.mark.tensorflow
 def test_graph_cnn():
   """Test invoking GraphCNN."""
   V = np.random.uniform(size=(10, 100, 50)).astype(np.float32)
@@ -542,7 +512,6 @@ def test_graph_cnn():
   assert np.allclose(result, result3)
 
 
-@pytest.mark.tensorflow
 def test_DAG_layer():
   """Test invoking DAGLayer."""
   batch_size = 10
@@ -579,7 +548,6 @@ def test_DAG_layer():
   ## I'm getting (7, 30) here. Where does 7 come from??
 
 
-@pytest.mark.tensorflow
 def test_DAG_gather():
   """Test invoking DAGGather."""
   # TODO(rbharath): We need more documentation about why

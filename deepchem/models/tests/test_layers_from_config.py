@@ -2,16 +2,10 @@ import os
 import unittest
 import deepchem as dc
 import numpy as np
-import pytest
-try:
-  import tensorflow as tf
-  from tensorflow.python.eager import context
-  has_tensorflow = True
-except:
-  has_tensorflow = False
+import tensorflow as tf
+from tensorflow.python.eager import context
 
 
-@pytest.mark.tensorflow
 def test_interatomic_l2_distance():
   N_atoms = 10
   M_nbrs = 15
@@ -27,7 +21,6 @@ def test_interatomic_l2_distance():
   assert layer_copied.ndim == layer.ndim
 
 
-@pytest.mark.tensorflow
 def test_graph_conv():
   out_channel = 10
   min_deg = 0,
@@ -48,7 +41,6 @@ def test_graph_conv():
   assert layer_copied.min_degree == layer.min_degree
 
 
-@pytest.mark.tensorflow
 def test_graph_gather():
   batch_size = 10
   activation_fn = 'relu'
@@ -62,7 +54,6 @@ def test_graph_gather():
   assert layer_copied.activation_fn == layer_copied.activation_fn
 
 
-@pytest.mark.tensorflow
 def test_graph_pool():
   min_degree = 0
   max_degree = 10
@@ -76,7 +67,6 @@ def test_graph_pool():
   assert layer_copied.min_degree == layer_copied.min_degree
 
 
-@pytest.mark.tensorflow
 def test_lstmstep():
   output_dim = 100
   input_dim = 50
@@ -99,7 +89,6 @@ def test_lstmstep():
   assert layer_copied.inner_activation == layer.inner_activation
 
 
-@pytest.mark.tensorflow
 def test_attn_lstm_embedding():
   n_test = 10
   n_support = 100
@@ -117,7 +106,6 @@ def test_attn_lstm_embedding():
   assert layer_copied.max_depth == layer.max_depth
 
 
-@pytest.mark.tensorflow
 def test_iterref_lstm_embedding():
   n_test = 10
   n_support = 100
@@ -135,7 +123,6 @@ def test_iterref_lstm_embedding():
   assert layer_copied.max_depth == layer.max_depth
 
 
-@pytest.mark.tensorflow
 def test_switched_dropout():
   rate = 0.1
   layer = dc.models.layers.SwitchedDropout(rate=rate)
@@ -145,7 +132,6 @@ def test_switched_dropout():
   assert layer_copied.rate == layer.rate
 
 
-@pytest.mark.tensorflow
 def test_weighted_linearcombo():
   std = 0.1
   layer = dc.models.layers.WeightedLinearCombo(std=std)
@@ -156,7 +142,6 @@ def test_weighted_linearcombo():
   assert layer_copied.std == layer.std
 
 
-@pytest.mark.tensorflow
 def test_combine_mean_std():
   training_only = True
   noise_epsilon = 0.001
@@ -169,7 +154,6 @@ def test_combine_mean_std():
   assert layer_copied.noise_epsilon == layer.noise_epsilon
 
 
-@pytest.mark.tensorflow
 def test_stack():
   axis = 2
   layer = dc.models.layers.Stack(axis=axis)
@@ -179,7 +163,6 @@ def test_stack():
   assert layer_copied.axis == layer.axis
 
 
-@pytest.mark.tensorflow
 def test_variable():
   initial_value = 10
   layer = dc.models.layers.Variable(initial_value)
@@ -189,7 +172,6 @@ def test_variable():
   assert layer_copied.initial_value == layer.initial_value
 
 
-@pytest.mark.tensorflow
 def test_vina_free_energy():
   N_atoms = 10
   M_nbrs = 15
@@ -215,7 +197,6 @@ def test_vina_free_energy():
   assert layer_copied.Nrot == layer_copied.Nrot
 
 
-@pytest.mark.tensorflow
 def test_neighbor_list():
   N_atoms = 10
   M_nbrs = 15
@@ -237,7 +218,6 @@ def test_neighbor_list():
   assert layer_copied.stop == layer.stop
 
 
-@pytest.mark.tensorflow
 def test_atomic_convolution():
   atom_types = None
   radial_params = list()
@@ -252,7 +232,6 @@ def test_atomic_convolution():
   assert layer_copied.boxsize == layer.boxsize
 
 
-@pytest.mark.tensorflow
 def test_ani_feat():
   max_atoms = 23
   radial_cutoff = 4.6
@@ -279,7 +258,6 @@ def test_ani_feat():
   assert layer_copied.coordinates_in_bohr == layer.coordinates_in_bohr
 
 
-@pytest.mark.tensorflow
 def test_graph_embed_pool():
   num_vertices = 100
   layer = dc.models.layers.GraphEmbedPoolLayer(num_vertices)
@@ -289,7 +267,6 @@ def test_graph_embed_pool():
   assert layer_copied.num_vertices == layer.num_vertices
 
 
-@pytest.mark.tensorflow
 def test_graph_cnn():
   num_filters = 20
   layer = dc.models.layers.GraphCNN(num_filters)
@@ -299,7 +276,6 @@ def test_graph_cnn():
   assert layer_copied.num_filters == layer.num_filters
 
 
-@pytest.mark.tensorflow
 def test_highway():
   activation_fn = 'relu'
   biases_initializer = 'zeros'
@@ -315,7 +291,6 @@ def test_highway():
   assert layer_copied.weights_initializer == layer.weights_initializer
 
 
-@pytest.mark.tensorflow
 def test_weave():
   n_atom_input_feat = 75
   n_pair_input_feat = 14
@@ -353,7 +328,6 @@ def test_weave():
   assert layer_copied.batch_normalize_kwargs == layer.batch_normalize_kwargs
 
 
-@pytest.mark.tensorflow
 def test_weave_gather():
   batch_size = 32
   n_input = 128
@@ -376,7 +350,6 @@ def test_weave_gather():
   assert layer_copied.activation == layer.activation
 
 
-@pytest.mark.tensorflow
 def test_dtnn_embedding():
   n_embedding = 30
   periodic_table_length = 30
@@ -392,7 +365,6 @@ def test_dtnn_embedding():
   assert layer_copied.init == layer.init
 
 
-@pytest.mark.tensorflow
 def test_dtnn_step():
   n_embedding = 30
   n_distance = 100
@@ -412,7 +384,6 @@ def test_dtnn_step():
   assert layer_copied.activation == layer.activation
 
 
-@pytest.mark.tensorflow
 def test_dtnn_gather():
   n_embedding = 30
   n_outputs = 100
@@ -434,7 +405,6 @@ def test_dtnn_gather():
   assert layer_copied.activation == layer.activation
 
 
-@pytest.mark.tensorflow
 def test_dag():
   n_graph_feat = 30
   n_atom_feat = 75
@@ -461,7 +431,6 @@ def test_dag():
   assert layer_copied.batch_size == layer.batch_size
 
 
-@pytest.mark.tensorflow
 def test_dag_gather():
   n_graph_feat = 30
   n_outputs = 30
@@ -485,7 +454,6 @@ def test_dag_gather():
   assert layer_copied.dropout == layer.dropout
 
 
-@pytest.mark.tensorflow
 def test_message_passing():
   T = 20
   message_fn = 'enn'
@@ -501,7 +469,6 @@ def test_message_passing():
   assert layer_copied.n_hidden == layer.n_hidden
 
 
-@pytest.mark.tensorflow
 def test_edge_network():
   n_pair_features = 8
   n_hidden = 100
@@ -515,7 +482,6 @@ def test_edge_network():
   assert layer_copied.init == layer.init
 
 
-@pytest.mark.tensorflow
 def test_gru():
   n_hidden = 100
   init = 'glorot_uniform'
@@ -527,7 +493,6 @@ def test_gru():
   assert layer_copied.init == layer.init
 
 
-@pytest.mark.tensorflow
 def test_set_gather():
   M = 10
   batch_size = 16

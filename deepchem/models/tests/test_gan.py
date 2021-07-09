@@ -1,48 +1,12 @@
 import deepchem as dc
 import numpy as np
+import tensorflow as tf
 import unittest
-import pytest
 import tempfile
+from tensorflow.keras.layers import Input, Concatenate, Dense
 from flaky import flaky
 
-try:
-  import tensorflow as tf
-  from tensorflow.keras.layers import Input, Concatenate, Dense
 
-  class ExampleGAN(dc.models.GAN):
-
-    def get_noise_input_shape(self):
-      return (2,)
-
-    def get_data_input_shapes(self):
-      return [(1,)]
-
-    def get_conditional_input_shapes(self):
-      return [(1,)]
-
-    def create_generator(self):
-      noise_input = Input(self.get_noise_input_shape())
-      conditional_input = Input(self.get_conditional_input_shapes()[0])
-      inputs = [noise_input, conditional_input]
-      gen_in = Concatenate(axis=1)(inputs)
-      output = Dense(1)(gen_in)
-      return tf.keras.Model(inputs=inputs, outputs=output)
-
-    def create_discriminator(self):
-      data_input = Input(self.get_data_input_shapes()[0])
-      conditional_input = Input(self.get_conditional_input_shapes()[0])
-      inputs = [data_input, conditional_input]
-      discrim_in = Concatenate(axis=1)(inputs)
-      dense = Dense(10, activation=tf.nn.relu)(discrim_in)
-      output = Dense(1, activation=tf.sigmoid)(dense)
-      return tf.keras.Model(inputs=inputs, outputs=output)
-
-  has_tensorflow = True
-except:
-  has_tensorflow = False
-
-
-@pytest.mark.tensorflow
 def generate_batch(batch_size):
   """Draw training data from a Gaussian distribution, where the mean  is a conditional input."""
   means = 10 * np.random.random([batch_size, 1])
@@ -50,7 +14,6 @@ def generate_batch(batch_size):
   return means, values
 
 
-@pytest.mark.tensorflow
 def generate_data(gan, batches, batch_size):
   for i in range(batches):
     means, values = generate_batch(batch_size)
@@ -58,8 +21,36 @@ def generate_data(gan, batches, batch_size):
     yield batch
 
 
+class ExampleGAN(dc.models.GAN):
+
+  def get_noise_input_shape(self):
+    return (2,)
+
+  def get_data_input_shapes(self):
+    return [(1,)]
+
+  def get_conditional_input_shapes(self):
+    return [(1,)]
+
+  def create_generator(self):
+    noise_input = Input(self.get_noise_input_shape())
+    conditional_input = Input(self.get_conditional_input_shapes()[0])
+    inputs = [noise_input, conditional_input]
+    gen_in = Concatenate(axis=1)(inputs)
+    output = Dense(1)(gen_in)
+    return tf.keras.Model(inputs=inputs, outputs=output)
+
+  def create_discriminator(self):
+    data_input = Input(self.get_data_input_shapes()[0])
+    conditional_input = Input(self.get_conditional_input_shapes()[0])
+    inputs = [data_input, conditional_input]
+    discrim_in = Concatenate(axis=1)(inputs)
+    dense = Dense(10, activation=tf.nn.relu)(discrim_in)
+    output = Dense(1, activation=tf.sigmoid)(dense)
+    return tf.keras.Model(inputs=inputs, outputs=output)
+
+
 @flaky
-@pytest.mark.tensorflow
 def test_cgan():
   """Test fitting a conditional GAN."""
 
@@ -78,7 +69,6 @@ def test_cgan():
 
 
 @flaky
-@pytest.mark.tensorflow
 def test_cgan_reload():
   """Test reloading a conditional GAN."""
 
@@ -106,7 +96,6 @@ def test_cgan_reload():
 
 
 @flaky
-@pytest.mark.tensorflow
 def test_mix_gan_reload():
   """Test reloading a GAN with multiple generators and discriminators."""
 
@@ -141,7 +130,6 @@ def test_mix_gan_reload():
 
 
 @flaky
-@pytest.mark.tensorflow
 def test_mix_gan():
   """Test a GAN with multiple generators and discriminators."""
 
@@ -162,7 +150,6 @@ def test_mix_gan():
 
 
 @flaky
-@pytest.mark.tensorflow
 def test_wgan():
   """Test fitting a conditional WGAN."""
 
@@ -211,7 +198,6 @@ def test_wgan():
 
 
 @flaky
-@pytest.mark.tensorflow
 def test_wgan_reload():
   """Test fitting a conditional WGAN."""
 

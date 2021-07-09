@@ -26,8 +26,7 @@ class ValidationCallback(object):
                output_file=sys.stdout,
                save_dir=None,
                save_metric=0,
-               save_on_minimum=True,
-               transformers=[]):
+               save_on_minimum=True):
     """Create a ValidationCallback.
 
     Parameters
@@ -50,10 +49,6 @@ class ValidationCallback(object):
       if True, the best model is considered to be the one that minimizes the
       validation metric.  If False, the best model is considered to be the one
       that maximizes it.
-    transformers: List[Transformer]
-      List of `dc.trans.Transformer` objects. These transformations
-      must have been applied to `dataset` previously. The dataset will
-      be untransformed for metric evaluation.
     """
     self.dataset = dataset
     self.interval = interval
@@ -63,7 +58,6 @@ class ValidationCallback(object):
     self.save_metric = save_metric
     self.save_on_minimum = save_on_minimum
     self._best_score = None
-    self.transformers = transformers
 
   def __call__(self, model, step):
     """This is invoked by the KerasModel after every step of fitting.
@@ -77,7 +71,7 @@ class ValidationCallback(object):
     """
     if step % self.interval != 0:
       return
-    scores = model.evaluate(self.dataset, self.metrics, self.transformers)
+    scores = model.evaluate(self.dataset, self.metrics)
     message = 'Step %d validation:' % step
     for key in scores:
       message += ' %s=%g' % (key, scores[key])

@@ -6,14 +6,9 @@ import scipy
 
 import deepchem as dc
 from deepchem.data import NumpyDataset
+from deepchem.models import GraphConvModel, DAGModel, WeaveModel, MPNNModel
 from deepchem.molnet import load_bace_classification, load_delaney
 from deepchem.feat import ConvMolFeaturizer
-try:
-  import tensorflow as tf
-  from deepchem.models import GraphConvModel, DAGModel, WeaveModel, MPNNModel
-  has_tensorflow = True
-except:
-  has_tensorflow = False
 
 from flaky import flaky
 
@@ -47,7 +42,6 @@ def get_dataset(mode='classification',
   return tasks, ds, transformers, metric
 
 
-@pytest.mark.tensorflow
 def test_compute_features_on_infinity_distance():
   """Test that WeaveModel correctly transforms WeaveMol objects into tensors with infinite max_pair_distance."""
   featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=None)
@@ -85,7 +79,6 @@ def test_compute_features_on_infinity_distance():
                                 [2, 3], [3, 1], [3, 2], [3, 3]]))
 
 
-@pytest.mark.tensorflow
 def test_compute_features_on_distance_1():
   """Test that WeaveModel correctly transforms WeaveMol objects into tensors with finite max_pair_distance."""
   featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=1)
@@ -129,7 +122,6 @@ def test_compute_features_on_distance_1():
 
 @flaky
 @pytest.mark.slow
-@pytest.mark.tensorflow
 def test_weave_model():
   tasks, dataset, transformers, metric = get_dataset(
       'classification', 'Weave', data_points=10)
@@ -147,7 +139,6 @@ def test_weave_model():
 
 
 @pytest.mark.slow
-@pytest.mark.tensorflow
 def test_weave_regression_model():
   import numpy as np
   import tensorflow as tf
@@ -195,7 +186,6 @@ def test_weave_regression_model():
 #   assert scores['mean-roc_auc_score'] >= 0.9
 
 
-@pytest.mark.tensorflow
 def test_weave_fit_simple_distance_1():
   featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=1)
   X = featurizer(["C", "CCC"])

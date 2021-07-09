@@ -1,17 +1,11 @@
 import deepchem as dc
+import tensorflow as tf
 import numpy as np
-import pytest
-import unittest
-try:
-  import tensorflow as tf
-  has_tensorflow = True
-except:
-  has_tensorflow = False
+from tensorflow.python.framework import test_util
 
 
-class TestCNN(unittest.TestCase):
+class TestCNN(test_util.TensorFlowTestCase):
 
-  @pytest.mark.tensorflow
   def test_1d_cnn_regression(self):
     """Test that a 1D CNN can overfit simple regression datasets."""
     n_samples = 10
@@ -40,7 +34,6 @@ class TestCNN(unittest.TestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < 0.1
 
-  @pytest.mark.tensorflow
   def test_2d_cnn_classification(self):
     """Test that a 2D CNN can overfit simple classification datasets."""
     n_samples = 10
@@ -69,7 +62,6 @@ class TestCNN(unittest.TestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > 0.9
 
-  @pytest.mark.tensorflow
   def test_residual_cnn_classification(self):
     """Test that a residual CNN can overfit simple classification datasets."""
     n_samples = 10
@@ -101,7 +93,6 @@ class TestCNN(unittest.TestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > 0.9
 
-  @pytest.mark.tensorflow
   def test_cnn_regression_uncertainty(self):
     """Test computing uncertainty for a CNN regression model."""
     n_samples = 10

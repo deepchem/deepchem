@@ -1,4 +1,4 @@
-import pytest
+import unittest
 import tempfile
 from os import path, remove
 
@@ -17,7 +17,7 @@ except:
   has_pytorch_and_dgl = False
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch_and_dgl, 'PyTorch and DGL are not installed')
 def test_cgcnn_regression():
   # load datasets
   current_dir = path.dirname(path.abspath(__file__))
@@ -53,7 +53,7 @@ def test_cgcnn_regression():
     remove(path.join(current_dir, 'perovskite.json'))
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch_and_dgl, 'PyTorch and DGL are not installed')
 def test_cgcnn_classification():
   # load datasets
   current_dir = path.dirname(path.abspath(__file__))
@@ -95,7 +95,7 @@ def test_cgcnn_classification():
     remove(path.join(current_dir, 'mp_is_metal.json'))
 
 
-@pytest.mark.torch
+@unittest.skipIf(not has_pytorch_and_dgl, 'PyTorch and DGL are not installed')
 def test_cgcnn_reload():
   # load datasets
   current_dir = path.dirname(path.abspath(__file__))

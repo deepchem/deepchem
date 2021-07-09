@@ -80,17 +80,6 @@ that break them may sometimes slip through and get merged into the repository.
 We still try to run them regularly, so hopefully the problem will be discovered
 fairly soon.
 
-To test your code locally, you will have to setup a symbolic link to your
-current development directory. To do this, simply run
-
-.. code-block:: bash
-
-  python setup.py develop
-
-while installing the package from source. This will let you see changes that you
-make to the source code when you import the package and, in particular, it
-allows you to import the new classes/methods for unit tests.
-
 Testing Machine Learning Models
 -------------------------------
 

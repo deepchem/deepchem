@@ -54,7 +54,6 @@ def one_of_k_encoding_unk(x, allowable_set):
   --------
   >>> dc.feat.graph_features.one_of_k_encoding_unk("s", ["a", "b", "c"])
   [False, False, True]
-
   """
   if x not in allowable_set:
     x = allowable_set[-1]
@@ -79,7 +78,6 @@ def get_intervals(l):
 
   >>> dc.feat.graph_features.get_intervals([[1], [], [1, 2], [1, 2, 3]])
   [1, 1, 3, 12]
-
   """
   intervals = len(l) * [0]
   # Initalize with 1
@@ -106,11 +104,10 @@ def safe_index(l, e):
   0
   >>> dc.feat.graph_features.safe_index([1, 2, 3], 7)
   3
-
   """
   try:
     return l.index(e)
-  except ValueError:
+  except:
     return len(l)
 
 
@@ -152,7 +149,7 @@ def get_feature_list(atom):
 
   Parameters
   ----------
-  atom: RDKit.Chem.rdchem.Atom
+  atom: RDKit.rdchem.Atom
     Atom to get features for
 
   Examples
@@ -160,11 +157,8 @@ def get_feature_list(atom):
   >>> from rdkit import Chem
   >>> mol = Chem.MolFromSmiles("C")
   >>> atom = mol.GetAtoms()[0]
-  >>> features = dc.feat.graph_features.get_feature_list(atom)
-  >>> type(features)
-  <class 'list'>
-  >>> len(features)
-  6
+  >>> dc.feat.graph_features.get_feature_list(atom)
+  [0, 4, 4, 3, 0, 2]
 
   Note
   ----
@@ -265,7 +259,7 @@ def atom_to_id(atom):
 
   Parameters
   ----------
-  atom: RDKit.Chem.rdchem.Atom
+  atom: RDKit.rdchem.Atom
     Atom to convert to ids.
 
   Returns
@@ -287,8 +281,6 @@ def atom_features(atom,
 
   Parameters
   ----------
-  atom: RDKit.Chem.rdchem.Atom
-    Atom to compute features on.
   bool_id_feat: bool, optional
     Return an array of unique identifiers corresponding to atom type.
   explicit_H: bool, optional
@@ -298,20 +290,7 @@ def atom_features(atom,
 
   Returns
   -------
-  features: np.ndarray 
-    An array of per-atom features.
-
-  Examples
-  --------
-  >>> from rdkit import Chem
-  >>> mol = Chem.MolFromSmiles('CCC')
-  >>> atom = mol.GetAtoms()[0]
-  >>> features = dc.feat.graph_features.atom_features(atom)
-  >>> type(features)
-  <class 'numpy.ndarray'>
-  >>> features.shape
-  (75,)
-
+  np.ndarray of per-atom features.
   """
   if bool_id_feat:
     return np.array([atom_to_id(atom)])
@@ -397,11 +376,9 @@ def bond_features(bond, use_chirality=False):
 
   Parameters
   ----------
-  bond: rdkit.Chem.rdchem.Bond
-    Bond to compute features on.
   use_chirality: bool, optional
     If true, use chirality information.
-  
+
   Note
   ----
   This method requires RDKit to be installed.
@@ -411,22 +388,6 @@ def bond_features(bond, use_chirality=False):
   bond_feats: np.ndarray
     Array of bond features. This is a 1-D array of length 6 if `use_chirality`
     is `False` else of length 10 with chirality encoded.
-
-  Examples
-  --------
-  >>> from rdkit import Chem
-  >>> mol = Chem.MolFromSmiles('CCC')
-  >>> bond = mol.GetBonds()[0]
-  >>> bond_features = dc.feat.graph_features.bond_features(bond)
-  >>> type(bond_features)
-  <class 'numpy.ndarray'>
-  >>> bond_features.shape
-  (6,)
-
-  Note
-  ----
-  This method requires RDKit to be installed.
-
   """
   try:
     from rdkit import Chem
@@ -445,8 +406,8 @@ def bond_features(bond, use_chirality=False):
   return np.array(bond_feats)
 
 
-def max_pair_distance_pairs(
-    mol: RDKitMol, max_pair_distance: Optional[int] = None) -> np.ndarray:
+def max_pair_distance_pairs(mol: RDKitMol,
+                            max_pair_distance: Optional[int]) -> np.ndarray:
   """Helper method which finds atom pairs within max_pair_distance graph distance.
 
   This helper method is used to find atoms which are within max_pair_distance
@@ -473,15 +434,6 @@ def max_pair_distance_pairs(
     distance 2 apart. If `max_pair_distance` is `None`, all pairs are
     considered (effectively infinite `max_pair_distance`)
 
-  Examples
-  --------
-  >>> from rdkit import Chem
-  >>> mol = Chem.MolFromSmiles('CCC')
-  >>> features = dc.feat.graph_features.max_pair_distance_pairs(mol, 1)
-  >>> type(features)
-  <class 'numpy.ndarray'>
-  >>> features.shape  # (2, num_pairs)
-  (2, 7)
 
   Returns
   -------
@@ -910,24 +862,9 @@ class WeaveFeaturizer(MolecularFeaturizer):
   Examples
   --------
   >>> import deepchem as dc
-  >>> mols = ["CCC"]
+  >>> mols = ["C", "CCC"]
   >>> featurizer = dc.feat.WeaveFeaturizer()
-  >>> features = featurizer.featurize(mols)
-  >>> type(features[0])
-  <class 'deepchem.feat.mol_graphs.WeaveMol'>
-  >>> features[0].get_num_atoms() # 3 atoms in compound
-  3
-  >>> features[0].get_num_features() # feature size
-  75
-  >>> type(features[0].get_atom_features())
-  <class 'numpy.ndarray'>
-  >>> features[0].get_atom_features().shape
-  (3, 75)
-  >>> type(features[0].get_pair_features())
-  <class 'numpy.ndarray'>
-  >>> features[0].get_pair_features().shape
-  (9, 14)
-
+  >>> X = featurizer.featurize(mols)
 
   References
   ----------

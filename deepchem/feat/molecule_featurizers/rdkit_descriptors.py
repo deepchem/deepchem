@@ -11,9 +11,7 @@ from deepchem.feat.base_classes import MolecularFeaturizer
 class RDKitDescriptors(MolecularFeaturizer):
   """RDKit descriptors.
 
-  This class computes a list of chemical descriptors like
-  molecular weight, number of valence electrons, maximum and
-  minimum partial charge, etc using RDKit.
+  This class computes a list of chemical descriptors using RDKit.
 
   Attributes
   ----------
@@ -23,18 +21,6 @@ class RDKitDescriptors(MolecularFeaturizer):
   Note
   ----
   This class requires RDKit to be installed.
-
-  Examples
-  --------
-  >>> import deepchem as dc
-  >>> smiles = ['CC(=O)OC1=CC=CC=C1C(=O)O']
-  >>> featurizer = dc.feat.RDKitDescriptors()
-  >>> features = featurizer.featurize(smiles)
-  >>> type(features[0])
-  <class 'numpy.ndarray'>
-  >>> features[0].shape
-  (208,)
-
   """
 
   def __init__(self, use_fragment=True, ipc_avg=True):

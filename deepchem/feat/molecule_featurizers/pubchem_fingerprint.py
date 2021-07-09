@@ -19,18 +19,6 @@ class PubChemFingerprint(MolecularFeaturizer):
   -----
   This class requires RDKit and PubChemPy to be installed.
   PubChemPy use REST API to get the fingerprint, so you need the internet access.
-
-  Examples
-  --------
-  >>> import deepchem as dc
-  >>> smiles = ['CCC']
-  >>> featurizer = dc.feat.PubChemFingerprint()
-  >>> features = featurizer.featurize(smiles)
-  >>> type(features[0])
-  <class 'numpy.ndarray'>
-  >>> features[0].shape
-  (881,)
-
   """
 
   def __init__(self):

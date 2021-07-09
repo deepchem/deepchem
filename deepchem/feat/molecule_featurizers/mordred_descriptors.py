@@ -25,18 +25,6 @@ class MordredDescriptors(MolecularFeaturizer):
   Note
   ----
   This class requires Mordred to be installed.
-
-  Examples
-  --------
-  >>> import deepchem as dc
-  >>> smiles = ['CC(=O)OC1=CC=CC=C1C(=O)O']
-  >>> featurizer = dc.feat.MordredDescriptors(ignore_3D=True)
-  >>> features = featurizer.featurize(smiles)
-  >>> type(features[0])
-  <class 'numpy.ndarray'>
-  >>> features[0].shape
-  (1613,)
-
   """
 
   def __init__(self, ignore_3D: bool = True):

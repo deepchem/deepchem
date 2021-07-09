@@ -1,12 +1,10 @@
 import unittest
-import pytest
 import numpy as np
 from deepchem.feat.graph_data import GraphData, BatchGraphData
 
 
 class TestGraph(unittest.TestCase):
 
-  @pytest.mark.torch
   def test_graph_data(self):
     num_nodes, num_node_features = 5, 32
     num_edges, num_edge_features = 6, 32
@@ -38,7 +36,6 @@ class TestGraph(unittest.TestCase):
     from dgl import DGLGraph
     assert isinstance(dgl_graph, DGLGraph)
 
-  @pytest.mark.torch
   def test_invalid_graph_data(self):
     with self.assertRaises(ValueError):
       invalid_node_features_type = list(np.random.random_sample((5, 32)))
@@ -78,7 +75,6 @@ class TestGraph(unittest.TestCase):
       node_features = np.random.random_sample((5, 32))
       _ = GraphData(node_features=node_features)
 
-  @pytest.mark.torch
   def test_batch_graph_data(self):
     num_nodes_list, num_edge_list = [3, 4, 5], [2, 4, 5]
     num_node_features, num_edge_features = 32, 32

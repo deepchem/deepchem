@@ -2,15 +2,9 @@
 Integration tests for singletask vector feature models.
 """
 import os
-import pytest
 import deepchem as dc
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
-try:
-  import torch
-  has_pytorch = True
-except:
-  has_pytorch = False
 
 
 def test_singletask_sklearn_rf_ECFP_regression_API():
@@ -129,7 +123,6 @@ def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API():
   _ = model.evaluate(test_dataset, regression_metrics, transformers)
 
 
-@pytest.mark.torch
 def test_singletask_mlp_ECFP_classification_API():
   """Test of singletask MLP classification API."""
   np.random.seed(123)

@@ -10,7 +10,6 @@ from deepchem.feat.base_classes import MaterialStructureFeaturizer
 from deepchem.feat.base_classes import MaterialCompositionFeaturizer
 from deepchem.feat.base_classes import ComplexFeaturizer
 from deepchem.feat.base_classes import UserDefinedFeaturizer
-from deepchem.feat.base_classes import DummyFeaturizer
 
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.graph_features import WeaveFeaturizer

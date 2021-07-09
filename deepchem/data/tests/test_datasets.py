@@ -6,7 +6,6 @@ import math
 import unittest
 import os
 import numpy as np
-import pytest
 import deepchem as dc
 
 try:
@@ -676,7 +675,6 @@ def test_merge():
   assert len(new_data.tasks) == len(datasets[0].tasks)
 
 
-@pytest.mark.tensorflow
 def test_make_tf_dataset():
   """Test creating a Tensorflow Iterator from a Dataset."""
   X = np.random.random((100, 5))
@@ -692,7 +690,6 @@ def test_make_tf_dataset():
   assert i == 19
 
 
-@pytest.mark.torch
 def _validate_pytorch_dataset(dataset):
   X = dataset.X
   y = dataset.y
@@ -823,7 +820,7 @@ class TestDatasets(unittest.TestCase):
       batch_sizes.append(len(X))
     self.assertEqual([3, 3, 3, 1, 3, 3, 3, 1], batch_sizes)
 
-  @pytest.mark.torch
+  @unittest.skipIf(PYTORCH_IMPORT_FAILED, 'PyTorch is not installed')
   def test_make_pytorch_dataset_from_numpy(self):
     """Test creating a PyTorch Dataset from a NumpyDataset."""
     X = np.random.random((100, 5))
@@ -832,7 +829,7 @@ class TestDatasets(unittest.TestCase):
     dataset = dc.data.NumpyDataset(X, y, ids=ids)
     _validate_pytorch_dataset(dataset)
 
-  @pytest.mark.torch
+  @unittest.skipIf(PYTORCH_IMPORT_FAILED, 'PyTorch is not installed')
   def test_make_pytorch_dataset_from_images(self):
     """Test creating a PyTorch Dataset from an ImageDataset."""
     path = os.path.join(os.path.dirname(__file__), 'images')
@@ -842,7 +839,7 @@ class TestDatasets(unittest.TestCase):
     dataset = dc.data.ImageDataset(files, y, ids=ids)
     _validate_pytorch_dataset(dataset)
 
-  @pytest.mark.torch
+  @unittest.skipIf(PYTORCH_IMPORT_FAILED, 'PyTorch is not installed')
   def test_make_pytorch_dataset_from_disk(self):
     """Test creating a PyTorch Dataset from a DiskDataset."""
     dataset = load_solubility_data()
