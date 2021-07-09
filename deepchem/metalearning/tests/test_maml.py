@@ -1,15 +1,20 @@
 import unittest
-
+import pytest
 import numpy as np
-import tensorflow as tf
 from flaky import flaky
-
 import deepchem as dc
+
+try:
+  import tensorflow as tf
+  has_tensorflow = True
+except:
+  has_tensorflow = False
 
 
 class TestMAML(unittest.TestCase):
 
   @flaky
+  @pytest.mark.tensorflow
   def test_sine(self):
     """Test meta-learning for sine function."""
 
