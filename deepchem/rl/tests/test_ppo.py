@@ -2,9 +2,13 @@ import unittest
 
 import pytest
 import numpy as np
-import tensorflow as tf
 from flaky import flaky
-from tensorflow.keras.layers import Input, Dense, GRU, Reshape, Softmax
+try:
+  import tensorflow as tf
+  from tensorflow.keras.layers import Input, Dense, GRU, Reshape, Softmax
+  has_tensorflow = True
+except:
+  has_tensorflow = False
 
 import deepchem as dc
 from deepchem.models.optimizers import Adam
@@ -13,6 +17,7 @@ from deepchem.models.optimizers import Adam
 class TestPPO(unittest.TestCase):
 
   @flaky
+  @pytest.mark.tensorflow
   def test_roulette(self):
     """Test training a policy for the roulette environment."""
 
@@ -102,6 +107,7 @@ class TestPPO(unittest.TestCase):
     action_prob2, value2 = new_ppo.predict([[0]])
     assert value2 == value
 
+  @pytest.mark.tensorflow
   def test_recurrent_states(self):
     """Test a policy that involves recurrent layers."""
 
@@ -167,6 +173,7 @@ class TestPPO(unittest.TestCase):
     assert not np.array_equal(prob2, prob3)
 
   @pytest.mark.slow
+  @pytest.mark.tensorflow
   def test_hindsight(self):
     """Test Hindsight Experience Replay."""
 
