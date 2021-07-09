@@ -30,14 +30,18 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
 
   References
   ----------
-  .. [1] T. Xie and J. C. Grossman, Phys. Rev. Lett. 120, 2018.
+  .. [1] T. Xie and J. C. Grossman, "Crystal graph convolutional
+     neural networks for an accurate and interpretable prediction
+     of material properties", Phys. Rev. Lett. 120, 2018,
+     https://arxiv.org/abs/1710.10324
 
   Examples
   --------
+  >>> import deepchem as dc
   >>> import pymatgen as mg
+  >>> featurizer = dc.feat.CGCNNFeaturizer()
   >>> lattice = mg.core.Lattice.cubic(4.2)
   >>> structure = mg.core.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
-  >>> featurizer = CGCNNFeaturizer()
   >>> features = featurizer.featurize([structure])
   >>> feature = features[0]
   >>> print(type(feature))

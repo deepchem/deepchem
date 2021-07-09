@@ -33,10 +33,15 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
 
   Examples
   --------
+  >>> import deepchem as dc
   >>> import pymatgen as mg
   >>> comp = mg.core.Composition("Fe2O3")
-  >>> featurizer = ElementPropertyFingerprint()
+  >>> featurizer = dc.feat.ElementPropertyFingerprint()
   >>> features = featurizer.featurize([comp])
+  >>> type(features[0])
+  <class 'numpy.ndarray'>
+  >>> features[0].shape
+  (65,)
 
   Note
   ----

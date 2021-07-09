@@ -3,13 +3,13 @@ Gathers all models in one place for convenient imports
 """
 # flake8: noqa
 from deepchem.models.models import Model
+from deepchem.models.multitask import SingletaskToMultitask
 from deepchem.models.wandblogger import WandbLogger
+from deepchem.models.callbacks import ValidationCallback
 
 # Tensorflow Depedency Models
 try:
   from deepchem.models.keras_model import KerasModel
-  from deepchem.models.multitask import SingletaskToMultitask
-  from deepchem.models.callbacks import ValidationCallback
 
   from deepchem.models.IRV import MultitaskIRVClassifier
   from deepchem.models.robust_multitask import RobustMultitaskClassifier

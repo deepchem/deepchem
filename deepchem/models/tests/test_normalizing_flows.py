@@ -8,11 +8,11 @@ import pytest
 
 import deepchem
 import numpy as np
-import tensorflow as tf
 import unittest
 from deepchem.data import NumpyDataset
 
 try:
+  import tensorflow as tf
   import tensorflow_probability as tfp
   from deepchem.models.normalizing_flows import NormalizingFlow, NormalizingFlowModel
   tfd = tfp.distributions
@@ -24,6 +24,7 @@ except:
 
 @unittest.skipIf(not has_tensorflow_probablity,
                  'tensorflow_probability not installed')
+@pytest.mark.tensorflow
 def test_normalizing_flow():
 
   flow_layers = [

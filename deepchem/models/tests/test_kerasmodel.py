@@ -2,16 +2,22 @@ import os
 import math
 import deepchem as dc
 import numpy as np
-import tensorflow as tf
 import unittest
-
+import pytest
 try:
   import wandb
   has_wandb = True
 except:
   has_wandb = False
 
+try:
+  import tensorflow as tf
+  has_tensorflow = True
+except:
+  has_tensorflow = False
 
+
+@pytest.mark.tensorflow
 def test_overfit_graph_model():
   """Test fitting a KerasModel defined as a graph."""
   n_data_points = 10
@@ -43,6 +49,7 @@ def test_overfit_graph_model():
   assert np.allclose(prediction, pred_from_logits, atol=1e-4)
 
 
+@pytest.mark.tensorflow
 def test_overfit_sequential_model():
   """Test fitting a KerasModel defined as a sequential model."""
   n_data_points = 10
@@ -65,6 +72,7 @@ def test_overfit_sequential_model():
   assert scores[metric.name] > 0.9
 
 
+@pytest.mark.tensorflow
 def test_fit_use_all_losses():
   """Test fitting a KerasModel and getting a loss curve back."""
   n_data_points = 10
@@ -88,6 +96,7 @@ def test_fit_use_all_losses():
   assert np.count_nonzero(np.array(losses)) == 100
 
 
+@pytest.mark.tensorflow
 def test_fit_on_batch():
   """Test fitting a KerasModel to individual batches."""
   n_data_points = 10
@@ -113,6 +122,7 @@ def test_fit_on_batch():
   assert scores[metric.name] > 0.9
 
 
+@pytest.mark.tensorflow
 def test_checkpointing():
   """Test loading and saving checkpoints with KerasModel."""
   # Create two models using the same model directory.
@@ -141,6 +151,7 @@ def test_checkpointing():
   assert np.array_equal(y1, y4)
 
 
+@pytest.mark.tensorflow
 def test_fit_restore():
   """Test specifying restore=True when calling fit()."""
   n_data_points = 10
@@ -177,6 +188,7 @@ def test_fit_restore():
   assert np.array_equal(y, np.round(prediction))
 
 
+@pytest.mark.tensorflow
 def test_uncertainty():
   """Test estimating uncertainty a KerasModel."""
   n_samples = 30
@@ -237,6 +249,7 @@ def test_uncertainty():
   assert noise < np.mean(std) < 1.0
 
 
+@pytest.mark.tensorflow
 def test_saliency_mapping():
   """Test computing a saliency map."""
   n_tasks = 3
@@ -265,6 +278,7 @@ def test_saliency_mapping():
     assert np.allclose(pred1[task], (pred2 + norm * delta)[task])
 
 
+@pytest.mark.tensorflow
 def test_saliency_shapes():
   """Test computing saliency maps for multiple outputs with multiple dimensions."""
   inputs = tf.keras.Input(shape=(2, 3))
@@ -280,6 +294,7 @@ def test_saliency_shapes():
   assert s[1].shape == (1, 5, 2, 3)
 
 
+@pytest.mark.tensorflow
 def test_tensorboard():
   """Test logging to Tensorboard."""
   n_data_points = 20
@@ -304,6 +319,7 @@ def test_tensorboard():
   assert file_size > 0
 
 
+@pytest.mark.tensorflow
 @unittest.skipIf(not has_wandb, 'Wandb is not installed')
 def test_wandblogger():
   """Test logging to Weights & Biases."""
@@ -331,6 +347,7 @@ def test_wandblogger():
       abs_tol=0.0005)
 
 
+@pytest.mark.tensorflow
 def test_fit_variables():
   """Test training a subset of the variables in a model."""
 
@@ -367,6 +384,7 @@ def test_fit_variables():
   assert np.allclose(vars[1], 0.5)
 
 
+@pytest.mark.tensorflow
 def test_fit_loss():
   """Test specifying a different loss function when calling fit()."""
 
