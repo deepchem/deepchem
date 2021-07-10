@@ -12,7 +12,11 @@ else:
 # Environment-specific dependencies.
 extras = {
     'jax': ['jax==0.2.14', 'jaxlib==0.1.67', 'dm-haiku==0.0.4', 'optax==0.0.8'],
-    'torch': ['torch', 'torchvision', 'dgl', 'dgllife']
+    'torch': ['torch', 'torchvision', 'dgl', 'dgllife'],
+    'tensorflow': [
+        'tensorflow==2.5.*', 'tensorflow_probability==0.13.*',
+        'tensorflow_addons==0.13.*'
+    ],
 }
 
 

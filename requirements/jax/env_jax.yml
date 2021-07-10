@@ -4,13 +4,11 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - numpy==1.19.*
+  - numpy==1.21.*
   - rdkit
   - pip==20.2.*
   - pip:
-    - tensorflow~=2.4
     - joblib
-    - numpy
     - pandas
     - scikit-learn
     - scipy

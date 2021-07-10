@@ -31,6 +31,7 @@ from deepchem.molnet.load_function.thermosol_datasets import load_thermosol
 from deepchem.molnet.load_function.hppb_datasets import load_hppb
 from deepchem.molnet.load_function.chembl25_datasets import load_chembl25
 from deepchem.molnet.load_function.zinc15_datasets import load_zinc15
+from deepchem.molnet.load_function.freesolv_dataset import load_freesolv
 from deepchem.molnet.load_function.material_datasets.load_bandgap import load_bandgap
 from deepchem.molnet.load_function.material_datasets.load_perovskite import load_perovskite
 from deepchem.molnet.load_function.material_datasets.load_Pt_NO_surface_adsorbate_energy import load_Platinum_Adsorption

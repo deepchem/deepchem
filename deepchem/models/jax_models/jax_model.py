@@ -96,7 +96,7 @@ class JaxModel(Model):
 
     Work in Progress
     ----------------
-    [1] Integerate the optax losses, optimizers, schedulers with Deepchem
+    [1] Integrate the optax losses, optimizers, schedulers with Deepchem
     [2] Support for saving & loading the model.
     """
     super(JaxModel, self).__init__(model=model, **kwargs)
@@ -463,7 +463,7 @@ class JaxModel(Model):
     """
 
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+      for (X_b, y_b, w_b, _) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,
           pad_batches=pad_batches):
