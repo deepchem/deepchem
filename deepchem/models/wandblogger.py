@@ -101,19 +101,26 @@ class WandbLogger(object):
       self.wandb_run = self._wandb.run
     self.initialized = True
 
-  def log_data(self, data, step):
-    """Log data to W&B.
+  def log_score(self, step, scores, dataset_id):
+    data = {'eval/' + k: v for k, v in scores.items()}
 
-    Parameters
-    ----------
-    data: dict
-      the data to be logged to W&B
-    step: int
-      the step number at which the data is to be logged
-    """
+    # Log unique keys for each dataset
+    if dataset_id is not None:
+      if dataset_id in self.dataset_ids:
+        for key in list(data.keys()):
+          idx = self.dataset_ids.index(dataset_id)
+          new_key = str(key) + "_(" + str(idx) + ")"
+          data[new_key] = data.pop(key)
+      else:
+        self.dataset_ids.append(dataset_id)
+        for key in list(data.keys()):
+          idx = self.dataset_ids.index(dataset_id)
+          new_key = str(key) + "_(" + str(idx) + ")"
+          data[new_key] = data.pop(key)
+
     self.wandb_run.log(data, step=step)
 
-  def log_batch(self, step, loss: numeric):
+  def log_batch(self, step, loss: numeric, inputs, labels):
     data = dict({'train/loss_step': loss})
     self.wandb_run.log(data, step=step)
 

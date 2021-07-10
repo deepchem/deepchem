@@ -2,6 +2,7 @@
 Callback functions that can be invoked while fitting a KerasModel.
 """
 import sys
+from deepchem.models.wandblogger import WandbLogger
 
 
 class ValidationCallback(object):
@@ -93,10 +94,8 @@ class ValidationCallback(object):
       if self._best_score is None or score < self._best_score:
         model.save_checkpoint(model_dir=self.save_dir)
         self._best_score = score
-        # Save checkpoint to Wandb
-        if model.wandb or (model.wandb_logger is not None):
-          model.wandb_logger.save_model(self.save_dir)
-    if model.wandb or (model.wandb_logger is not None):
-      # Log data to Wandb
-      data = {'eval/' + k: v for k, v in scores.items()}
-      model.wandb_logger.log_data(data, step)
+    for ext_logger in model.loggers:
+      if isinstance(ext_logger, WandbLogger):
+        ext_logger.log_scores(step, scores, dataset_id=id(self.dataset))
+      else:
+        ext_logger.log_scores(step, scores)
