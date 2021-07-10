@@ -944,7 +944,7 @@ class FASTALoader(DataLoader):
   def create_dataset(self,
                      input_files: OneOrMany[str],
                      data_dir: Optional[str] = None,
-                     shard_size: int = 0) -> DiskDataset:
+                     shard_size: int = 8192) -> DiskDataset:
     """Creates a `Dataset` from input FASTA files.
 
     At present, FASTA support is limited and doesn't allow for sharding.
@@ -977,11 +977,13 @@ class FASTALoader(DataLoader):
           # (X, y, w, ids)
           yield X, None, None, ids
         else:  # Not using legacy logic
+          count = 0
           for shard in shards:
             X = self.featurizer(shard)
-            ids = np.ones(len(X))
+            ids = count + np.arange(len(X))
             # (X, y, w, ids)
             yield X, None, None, ids
+            count += 1
 
     def _read_file(input_file: str, auto_add_annotations: bool = False):
       """
