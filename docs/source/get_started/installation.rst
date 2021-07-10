@@ -59,7 +59,7 @@ For using models with Jax dependencies, you install using
 
     pip install --pre deepchem[jax]
 
-If `cuda` support is required, then make sure its installed and then install the NN library using the below links before installing deepchem
+If GPU support is required, then make sure its cuda packages installed and then install the NN library using the below links before installing deepchem
 
 1. tensorflow - just cuda installed
 2. pytorch - https://pytorch.org/get-started/locally/#start-locally

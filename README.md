@@ -19,9 +19,11 @@ materials science, quantum chemistry, and biology.
 - [Requirements](#requirements)
 - [Installation](#installation)
   - [Stable version](#stable-version)
+  - [Latest version](#latest-version)
   - [Nightly build version](#nightly-build-version)
   - [Docker](#docker)
   - [From source](#from-source)
+  - [From source lightweight](#from-source-lightweight)
 - [Getting Started](#getting-started)
   - [Gitter](#gitter)
 - [About Us](#about-us)
@@ -75,6 +77,37 @@ We recommend installing RDKit with deepchem if you use conda.
 ```bash
 conda install -y -c conda-forge rdkit
 ```
+
+### Latest version
+
+For using general utilites like Molnet, Featurisers, Datasets, etc, then, you install deepchem via pip.  
+
+```bash
+pip install --pre deepchem
+```
+Deepchem provides support for tensorflow, pytorch, jax and each require
+a induvidual pip Installation.
+
+For using models with tensorflow dependencies, you install using
+
+```bash
+pip install --pre deepchem[tensorflow]
+```
+For using models with torch dependencies, you install using
+
+```bash
+pip install --pre deepchem[torch]
+```
+For using models with jax dependencies, you install using
+
+```bash
+pip install --pre deepchem[jax]
+```
+If GPU support is required, then make sure its cuda packages installed and then install the NN library using the below links before installing deepchem
+
+1. tensorflow - just cuda installed
+2. pytorch - https://pytorch.org/get-started/locally/#start-locally
+3. jax - https://github.com/google/jax#pip-installation-gpu-cuda
 
 ### Nightly build version
 
