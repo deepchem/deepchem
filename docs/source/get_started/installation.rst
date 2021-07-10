@@ -32,14 +32,14 @@ We recommend installing RDKit with deepchem if you use conda.
 Latest version
 --------------
 
-Deepchem provides support tensorflow, pytorch, jax and each require
-a induvidual pip Installation.
-
 For using general utilites like Molnet, Featurisers, Datasets, etc, then, you install deepchem via pip.  
 
 .. code-block:: bash
 
     pip install deepchem
+
+Deepchem provides support for tensorflow, pytorch, jax and each require
+a induvidual pip Installation.
 
 For using models with tensorflow dependencies, you install using
 
@@ -217,7 +217,7 @@ First, please clone the deepchem repository from GitHub.
     git clone https://github.com/deepchem/deepchem.git
     cd deepchem
 
-We would advise all users to use with a conda environment, following below-
+We would advise all users to use conda environment, following below-
 
 .. code-block:: bash
 
@@ -225,6 +225,7 @@ We would advise all users to use with a conda environment, following below-
     conda activate deepchem
     pip install -e .
 
+DeepChem provides diffrent additional packages depending on usage & contribution
 If one also wants to build the tensorflow environment, add this
 
 .. code-block:: bash
@@ -241,10 +242,10 @@ If one also wants to build the Jax environment, add this
 
 .. code-block:: bash
 
-    pip install -e .[tensorflow]
+    pip install -e .[jax]
 
 DeepChem has soft requirements, which can be installed on the fly during development inside the environment but if you would a install
-all the soft-dependencies at once, then take a look `deepchem/requirements/ <https://github.com/deepchem/deepchem/tree/master/requirements>`___
+all the soft-dependencies at once, then take a look `deepchem/requirements/<https://github.com/deepchem/deepchem/tree/master/requirements>`___
 
 
 .. _`DeepChem Tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials
