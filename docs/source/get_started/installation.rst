@@ -42,16 +42,19 @@ For using general utilites like Molnet, Featurisers, Datasets, etc, then, you in
     pip install deepchem
 
 For using models with tensorflow dependencies, you install using
+
 .. code-block:: bash
 
     pip install --pre deepchem[tensorflow]
 
 For using models with Pytorch dependencies, you install using
+
 .. code-block:: bash
 
     pip install --pre deepchem[torch]
 
 For using models with Jax dependencies, you install using
+
 .. code-block:: bash
 
     pip install --pre deepchem[jax]
@@ -215,6 +218,7 @@ First, please clone the deepchem repository from GitHub.
     cd deepchem
 
 We would advise all users to use with a conda environment, following below-
+
 .. code-block:: bash
 
     conda create --name deepchem python=3.7
@@ -222,22 +226,25 @@ We would advise all users to use with a conda environment, following below-
     pip install -e .
 
 If one also wants to build the tensorflow environment, add this
+
 .. code-block:: bash
 
     pip install -e .[tensorflow]
 
 If one also wants to build the Pytorch environment, add this
+
 .. code-block:: bash
 
     pip install -e .[torch]
 
 If one also wants to build the Jax environment, add this
+
 .. code-block:: bash
 
     pip install -e .[tensorflow]
 
-DeepChem has soft requirements, which can be installed on the fly during development but if you would a install
-all the packages at once, then take a look `deepchem/requirement/`_
+DeepChem has soft requirements, which can be installed on the fly during development inside the environment but if you would a install
+all the soft-dependencies at once, then take a look `deepchem/requirements/ <https://github.com/deepchem/deepchem/tree/master/requirements>`___
 
 
 .. _`DeepChem Tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials
