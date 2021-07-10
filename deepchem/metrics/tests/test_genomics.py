@@ -5,7 +5,12 @@ import unittest
 
 import numpy as np
 import deepchem as dc
-import tensorflow as tf
+import pytest
+try:
+  import tensorflow as tf
+  has_tensorflow = True
+except:
+  has_tensorflow = False
 
 from deepchem.metrics.genomic_metrics import get_motif_scores
 from deepchem.metrics.genomic_metrics import get_pssm_scores
@@ -54,6 +59,7 @@ class TestGenomicMetrics(unittest.TestCase):
     return dc.models.KerasModel(keras_model,
                                 dc.models.losses.BinaryCrossEntropy())
 
+  @pytest.mark.tensorflow
   def test_in_silico_mutagenesis_shape(self):
     """Test in-silico mutagenesis returns correct shape."""
     # Construct and train SequenceDNN model
@@ -72,6 +78,7 @@ class TestGenomicMetrics(unittest.TestCase):
     mutagenesis_scores = in_silico_mutagenesis(model, sequences)
     self.assertEqual(mutagenesis_scores.shape, (1, 3, 4, 5, 1))
 
+  @pytest.mark.tensorflow
   def test_in_silico_mutagenesis_nonzero(self):
     """Test in-silico mutagenesis returns nonzero output."""
     # Construct and train SequenceDNN model

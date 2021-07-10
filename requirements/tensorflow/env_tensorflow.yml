@@ -1,0 +1,25 @@
+name: deepchem
+channels:
+  - omnia
+  - conda-forge
+  - defaults
+dependencies:
+  - openmm
+  - pdbfixer
+  - rdkit
+  - mdtraj
+  - numpy==1.19.*
+  - pip==20.2.*
+  - pip:
+    - biopython
+    - dgllife==0.2.8
+    - lightgbm==3.*
+    - xgboost==1.*
+    - mordred
+    - networkx
+    - pillow
+    - pubchempy
+    - pyGPGO
+    - simdna
+    - transformers==4.6.*
+    - git+https://github.com/samoturk/mol2vec

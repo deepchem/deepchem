@@ -676,6 +676,7 @@ def test_merge():
   assert len(new_data.tasks) == len(datasets[0].tasks)
 
 
+@pytest.mark.tensorflow
 def test_make_tf_dataset():
   """Test creating a Tensorflow Iterator from a Dataset."""
   X = np.random.random((100, 5))
