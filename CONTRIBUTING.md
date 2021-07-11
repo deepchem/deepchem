@@ -39,7 +39,7 @@ to a specific build of DeepChem. Here are some tips to get started:
 1. Set up a new conda environment for DeepChem
 
 ```bash
-conda create -n deepchem python=3.7
+conda create -n deepchem python=3.8
 conda activate deepchem
 ```
 
@@ -73,7 +73,7 @@ In case you need to reinstall, uninstall DeepChem first by running
 as it is not installed`; run `python setup.py clean` and install in `develop` mode again.
 
 Some other tips:
-
+- DeepChem has a number of requirements which can be found [here](https://deepchem.readthedocs.io/en/latest/get_started/requirements.html).
 - If a commit is simple and doesn't affect any code (keep in mind that some
 docstrings contain code that is used in tests), you can add `[skip ci]`
 (case sensitive) somewhere in your commit message to [skip all build /
@@ -108,7 +108,7 @@ You can confirm how to check your codes from [Coding Conventions](https://deepch
 
 ### Document Conventions
 
-DeepChem use [Sphinx](https://www.sphinx-doc.org/en/master/) to build
+DeepChem uses [Sphinx](https://www.sphinx-doc.org/en/master/) to build
 [the document](https://deepchem.readthedocs.io/en/latest/index.html).
 The document is automatically built by [Numpy style docstrings]
 (https://numpydoc.readthedocs.io/en/latest/format.html#numpydoc-docstring-guide)
