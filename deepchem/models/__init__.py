@@ -45,6 +45,12 @@ try:
 except ModuleNotFoundError:
   pass
 
+# Jax models
+try:
+  from deepchem.models.jax_models import JaxModel
+except ModuleNotFoundError:
+  pass
+
 #####################################################################################
 # Compatibility imports for renamed XGBoost models. Remove below with DeepChem 3.0.
 #####################################################################################
