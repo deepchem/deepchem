@@ -19,7 +19,6 @@ materials science, quantum chemistry, and biology.
 - [Requirements](#requirements)
 - [Installation](#installation)
   - [Stable version](#stable-version)
-  - [Latest version](#latest-version)
   - [Nightly build version](#nightly-build-version)
   - [Docker](#docker)
   - [From source](#from-source)
@@ -32,7 +31,7 @@ materials science, quantum chemistry, and biology.
 
 ## Requirements
 
-DeepChem currently supports Python 3.6 through 3.7 and requires these packages on any condition.
+DeepChem currently supports Python 3.7 through 3.8 and requires these packages on any condition.
 
 - [joblib](https://pypi.python.org/pypi/joblib)
 - [NumPy](https://numpy.org/)
@@ -78,7 +77,8 @@ We recommend installing RDKit with deepchem if you use conda.
 conda install -y -c conda-forge rdkit
 ```
 
-### Latest version
+### Nightly build version
+The nightly version is built by the HEAD of DeepChem.
 
 For using general utilites like Molnet, Featurisers, Datasets, etc, then, you install deepchem via pip.  
 
@@ -86,7 +86,7 @@ For using general utilites like Molnet, Featurisers, Datasets, etc, then, you in
 pip install --pre deepchem
 ```
 Deepchem provides support for tensorflow, pytorch, jax and each require
-a induvidual pip Installation.
+a individual pip Installation.
 
 For using models with tensorflow dependencies, you install using
 
@@ -103,20 +103,11 @@ For using models with jax dependencies, you install using
 ```bash
 pip install --pre deepchem[jax]
 ```
-If GPU support is required, then make sure its cuda packages installed and then install the NN library using the below links before installing deepchem
+If GPU support is required, then make sure CUDA is installed and then install the desired deep learning framework using the links below before installing deepchem
 
 1. tensorflow - just cuda installed
 2. pytorch - https://pytorch.org/get-started/locally/#start-locally
 3. jax - https://github.com/google/jax#pip-installation-gpu-cuda
-
-### Nightly build version
-
-The nightly version is built by the HEAD of DeepChem.
-
-```bash
-pip install tensorflow~=2.4
-pip install --pre deepchem
-```
 
 ### Docker
 
