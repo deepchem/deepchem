@@ -1,11 +1,20 @@
 import unittest
 import tempfile
+
+import pytest
 import deepchem as dc
 import numpy as np
+
+try:
+  import tensorflow as tf
+  has_tensorflow = True
+except:
+  has_tensorflow = False
 
 
 class TestScScoreModel(unittest.TestCase):
 
+  @pytest.mark.tensorflow
   def test_overfit_scscore(self):
     """Test fitting to a small dataset"""
     n_samples = 10
@@ -25,6 +34,7 @@ class TestScScoreModel(unittest.TestCase):
     assert np.array_equal(y, pred[0] > pred[1])
 
 
+@pytest.mark.tensorflow
 def test_scscore_reload():
   """Test reloading of ScScoreModel"""
   n_samples = 10

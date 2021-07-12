@@ -30,15 +30,23 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
 
   References
   ----------
-  .. [1] Faber et al. Inter. J. Quantum Chem. 115, 16, 2015.
+  .. [1] Faber et al. "Crystal Structure Representations for Machine
+         Learning Models of Formation Energies", Inter. J. Quantum Chem.
+         115, 16, 2015. https://arxiv.org/abs/1503.07406
 
   Examples
   --------
+  >>> import deepchem as dc
   >>> import pymatgen as mg
   >>> lattice = mg.core.Lattice.cubic(4.2)
   >>> structure = mg.core.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
-  >>> featurizer = SineCoulombMatrix(max_atoms=2)
+  >>> featurizer = dc.feat.SineCoulombMatrix(max_atoms=2)
   >>> features = featurizer.featurize([structure])
+  >>> type(features[0])
+  <class 'numpy.ndarray'>
+  >>> features[0].shape # (max_atoms,)
+  (2,)
+
 
   Note
   ----
