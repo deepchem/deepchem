@@ -42,7 +42,7 @@ jobs:
         python-version: [3.7]
         include:
           - os: ubuntu-latest
-            python-version: 3.6
+            python-version: 3.8
     env:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
@@ -133,4 +133,4 @@ jobs:
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: pytest -v -m jax deepchem
+      run: pytest -v -m 'jax' deepchem

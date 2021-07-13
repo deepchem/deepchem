@@ -11,6 +11,11 @@ import pytest
 
 import deepchem as dc
 from deepchem.molnet.run_benchmark import run_benchmark
+try:
+  import torch  # noqa
+  has_pytorch = True
+except:
+  has_pytorch = False
 
 
 class TestMolnet(unittest.TestCase):
@@ -23,6 +28,7 @@ class TestMolnet(unittest.TestCase):
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
   @pytest.mark.slow
+  @pytest.mark.tensorflow
   def test_delaney_graphconvreg(self):
     """Tests molnet benchmarking on delaney with graphconvreg."""
     datasets = ['delaney']
@@ -41,6 +47,7 @@ class TestMolnet(unittest.TestCase):
     os.remove(os.path.join(out_path, 'results.csv'))
 
   @pytest.mark.slow
+  @pytest.mark.torch
   def test_qm7_multitask(self):
     """Tests molnet benchmarking on qm7 with multitask network."""
     datasets = ['qm7']
@@ -58,6 +65,7 @@ class TestMolnet(unittest.TestCase):
       assert float(lastrow[-3]) > 0.75
     os.remove(os.path.join(out_path, 'results.csv'))
 
+  @pytest.mark.torch
   def test_clintox_multitask(self):
     """Tests molnet benchmarking on clintox with multitask network."""
     datasets = ['clintox']
