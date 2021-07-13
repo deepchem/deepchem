@@ -2469,3 +2469,17 @@ class DataTransforms(object):
     image = Image.fromarray(self.Image)
     image = image.filter(ImageFilter.MedianFilter(size=size))
     return np.array(image)
+
+
+class RxnSplitTransformer(Transformer):
+
+  def __init__(self):
+    pass
+
+  def transform_array(
+      self, X: np.ndarray, y: np.ndarray, w: np.ndarray,
+      ids: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    return super().transform_array(X, y, w, ids)
+
+  def untransform(self, transformed):
+    return super().untransform(transformed)
