@@ -2474,6 +2474,8 @@ class DataTransforms(object):
 class RxnSplitTransformer(Transformer):
 
   def __init__(self):
+    # the transformer would have to split the source and target sequences
+    # would also consider adding the option of separating the reagent here.
     pass
 
   def transform_array(
@@ -2503,7 +2505,7 @@ class RxnSplitTransformer(Transformer):
     idstrans: np.ndarray
       Transformed array of ids
     """
-    
+
     source = list(map(lambda x: x.split('>')[0] + '>' + x.split('>')[1], X))
 
     target = list(map(lambda x: x.split('>')[2], X))
@@ -2512,5 +2514,17 @@ class RxnSplitTransformer(Transformer):
 
     return (X, y, w, ids)
 
-  def untransform(self, transformed: np.ndarray) -> np.ndarray:
-    return super().untransform(transformed)
+  def untransform(self, z: np.ndarray) -> np.ndarray:
+    """
+    Undo transformation on provided data.
+    Parameters
+    ----------
+    z: np.ndarray
+      Array to transform back
+    Returns
+    -------
+    np.ndarray
+      Array with normalization undone.
+    """
+    # TODO
+    return super().untransform(z)
