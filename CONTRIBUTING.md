@@ -57,16 +57,13 @@ conda create -n deepchem python=3.8
 conda activate deepchem
 ```
 
-&nbsp;&nbsp;&nbsp;&nbsp; 2.1. DeepChem provides backend support with tensorflow, pytorch or jax.
-For developemnt of DeepChem with one of the above backend, update the environment using
-```bash
-conda env update -n deepchem --file requirements/backend-name/env_backend-name.yml --prune
-```
-You need to replace `backend-name` with one of `tensorflow`, `pytorch` or `jax`. PyTorch
-by default is installed with GPU support. For pytorch CPU, use the following command:
-```bash
-conda env update -n deepchem --file requirements/torch/env_torch.cpu.yml --prune
-```
+&nbsp;&nbsp;&nbsp;&nbsp; 2.1. DeepChem provides backend support for deep
+learning using tensorflow, pytorch or jax. By default, the deep learning frameworks
+gets installed in CPU. If GPU support is required, make sure CUDA is installed
+and then install the desired deep learning framework before installing DeepChem:
+- [tensorflow](https://www.tensorflow.org/install)
+- [pytorch](https://pytorch.org/get-started/locally/#start-locally)
+- [jax](https://github.com/google/jax#installation)
 
 3. Install DeepChem in `develop` mode
 
