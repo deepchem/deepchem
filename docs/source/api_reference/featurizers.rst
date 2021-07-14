@@ -133,6 +133,13 @@ MACCSKeysFingerprint
 .. autoclass:: deepchem.feat.MACCSKeysFingerprint
   :members:
 
+MATFeaturizer
+^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.MATFeaturizer
+  :members:
+  :inherited-members:
+
 CircularFingerprint
 ^^^^^^^^^^^^^^^^^^^
 
