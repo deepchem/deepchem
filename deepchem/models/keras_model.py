@@ -19,6 +19,7 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
+from deepchem.models.logger import Logger
 from deepchem.models.wandblogger import WandbLogger
 
 try:
@@ -136,7 +137,7 @@ class KerasModel(Model):
                wandb: bool = False,
                log_frequency: int = 100,
                wandb_logger: Optional[WandbLogger] = None,
-               loggers: Optional[List] = [],
+               logger: OneOrMany[Logger] = None,
                **kwargs) -> None:
     """Create a new KerasModel.
 
@@ -187,7 +188,12 @@ class KerasModel(Model):
       self.optimizer = optimizer
     self.tensorboard = tensorboard
 
-    self.loggers = loggers
+    self.loggers = logger
+    # Create a list of loggers
+    if self.loggers is not None:
+      if not isinstance(self.loggers, list):
+        # if not a list of loggers, make it a list of 1 logger
+        self.loggers = [logger]
 
     # W&B flag support (DEPRECATED)
     if wandb:
@@ -206,7 +212,7 @@ class KerasModel(Model):
     if self.wandb and (self.wandb_logger is None):
       self.wandb_logger = WandbLogger()
 
-    # Add wandb_logger to list of loggers (keep until deprecated)
+    # Add wandb_logger to list of loggers
     if (self.wandb_logger is not None):
       if any(isinstance(x, WandbLogger) for x in self.loggers):
           logger.warning("A WandbLogger already exists in `loggers`."
@@ -473,7 +479,10 @@ class KerasModel(Model):
       if self.tensorboard and should_log:
         self._log_scalar_to_tensorboard('loss', batch_loss, current_step)
       for ext_logger in self.loggers:
-        ext_logger.log_batch(current_step, batch_loss, inputs, labels)
+        if isinstance(ext_logger, WandbLogger):
+          ext_logger.log_batch({"loss": batch_loss}, current_step, inputs, labels, group="train")
+        else:
+          ext_logger.log_batch({"loss": batch_loss}, current_step, inputs, labels)
 
     # Report final results.
     if averaged_batches > 0:
@@ -487,15 +496,6 @@ class KerasModel(Model):
     if checkpoint_interval > 0:
       manager.save()
       # Save training checkpoints to loggers at end of fit()
-      for ext_logger in self.loggers:
-        if isinstance(ext_logger, WandbLogger):
-          ext_logger.save_model(self.model_dir)
-
-    # Save validation checkpoints to logger at end of fit()
-    for c in callbacks:
-      for ext_logger in self.loggers:
-        if isinstance(ext_logger, WandbLogger):
-          ext_logger.save_model(c.save_dir)
 
     time2 = time.time()
     logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))

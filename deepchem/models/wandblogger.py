@@ -1,21 +1,23 @@
 import logging
 import importlib.util
-from typing import Optional, Union
+from typing import Optional, Union, Dict, List
 import shutil
 import os
 from distutils.dir_util import copy_tree
 import tensorflow as tf
 import torch
 import numpy as np
+from deepchem.models.logger import Logger
 
 logger = logging.getLogger(__name__)
 numeric = Union[tf.Tensor, torch.Tensor, int, float, complex, np.number]
+tensor = Union[tf.Tensor, torch.Tensor]
 
 def is_wandb_available():
   return importlib.util.find_spec("wandb") is not None
 
 
-class WandbLogger(object):
+class WandbLogger(Logger):
   """Weights & Biases Logger.
 
     This is a logger class that can be passed into the initialization
@@ -89,6 +91,9 @@ class WandbLogger(object):
     self.wandb_init_params.update(**kwargs)
     self.initialized = False
 
+    # Dataset ids are used to differentiate datasets seen by the logger
+    self.dataset_ids: List[Union[int, str]] = []
+
   def setup(self, config):
     """Initializes a W&B run and create a run object.
     If a pre-existing run is already initialized, use that instead.
@@ -101,8 +106,11 @@ class WandbLogger(object):
       self.wandb_run = self._wandb.run
     self.initialized = True
 
-  def log_score(self, step, scores, dataset_id):
-    data = {'eval/' + k: v for k, v in scores.items()}
+  def log_values(self, values: Dict, step: int, group=None, dataset_id=None):
+    data = values
+    # Log into the correct category
+    if group is not None:
+      data = {group + '/' + k: v for k, v in values.items()}
 
     # Log unique keys for each dataset
     if dataset_id is not None:
@@ -120,11 +128,15 @@ class WandbLogger(object):
 
     self.wandb_run.log(data, step=step)
 
-  def log_batch(self, step, loss: numeric, inputs, labels):
-    data = dict({'train/loss_step': loss})
+  def log_batch(self, loss: Dict, step: int, inputs: tensor, labels: tensor, group=None):
+    data = loss
+    # Log into the correct category (for example: "train", "eval")
+    if group is not None:
+      data = {group + '/' + k: v for k, v in loss.items()}
+
     self.wandb_run.log(data, step=step)
 
-  def log_epoch(self, data, epoch):
+  def log_epoch(self, data: Dict, epoch: int):
     pass
 
   def finish(self):

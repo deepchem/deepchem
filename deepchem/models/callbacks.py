@@ -96,6 +96,6 @@ class ValidationCallback(object):
         self._best_score = score
     for ext_logger in model.loggers:
       if isinstance(ext_logger, WandbLogger):
-        ext_logger.log_scores(step, scores, dataset_id=id(self.dataset))
+        ext_logger.log_values(scores, step, group="eval", dataset_id=id(self.dataset))
       else:
-        ext_logger.log_scores(step, scores)
+        ext_logger.log_values(scores, step)
