@@ -2479,7 +2479,14 @@ class RxnSplitTransformer(Transformer):
   def transform_array(
       self, X: np.ndarray, y: np.ndarray, w: np.ndarray,
       ids: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    return super().transform_array(X, y, w, ids)
+    
+    source = list(map(lambda x: x.split('>')[0] + '>' + x.split('>')[1], X))
+
+    target = list(map(lambda x: x.split('>')[2], X))
+
+    X = np.column_stack((source, target))
+
+    return (X, y, w, ids)
 
   def untransform(self, transformed):
     return super().untransform(transformed)
