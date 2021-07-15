@@ -2488,10 +2488,12 @@ class RxnSplitTransformer(Transformer):
   
   """
 
-  def __init__(self):
+  def __init__(self, sep_reagent: bool):
     # the transformer would have to split the source and target sequences
     # would also consider adding the option of separating the reagent here.
-    pass
+
+    self.sep_reagent = sep_reagent
+    super(RxnSplitTransformer, self).__init__(transform_X=True, dataset=dataset)
 
   def transform_array(
       self, X: np.ndarray, y: np.ndarray, w: np.ndarray,
@@ -2525,13 +2527,12 @@ class RxnSplitTransformer(Transformer):
     reagent = list(map(lambda x: x.split('>')[1], X))
     product = list(map(lambda x: x.split('>')[2], X))
 
-    if sep_reagent:
+    if self.sep_reagent:
       source = [x + '>' + y for x,y in zip(reactant, reagent)]
-
     else:
-      source = [x + '.' + y + '>' if not y else x + '>' + y for x,y in zip(reactant, reagent)]
+      source = [x + '.' + y + '>' if y else x + '>' + y for x,y in zip(reactant, reagent)]
 
-    target = product 
+    target = product
 
     X = np.column_stack((source, target))
 
