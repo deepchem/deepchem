@@ -604,15 +604,14 @@ def test_DAG_gather():
   outputs = layer([atom_features, membership])
 
 @pytest.mark.pytorch
-def test_combine_mean_std():
-  """Test invoking CombineMeanStd."""
-  mean = np.random.rand(5, 3).astype(np.float32)
-  std = np.random.rand(5, 3).astype(np.float32)
-  layer = layers.CombineMeanStd(training_only=True, noise_epsilon=0.01)
-  result1 = layer([mean, std], training=False)
-  assert np.array_equal(result1, mean)  # No noise in test mode
-  result2 = layer([mean, std], training=True)
-  assert not np.array_equal(result2, mean)
-  assert np.allclose(result2, mean, atol=0.1)
+def test_layer_norm():
+  """Test invoking LayerNorm."""
+  input_ar = torch.tensor([[1., 99., 10000.], [0.003, 999.37, 23.]])
+  layer = torch_layers.LayerNorm(input_ar.shape)
+  result1 = layer.forward(input_ar)
+  output_ar = np.array([[-0.58585864, -0.5687999 ,  1.1546584 ],
+       [-0.59738946,  1.1544659 , -0.55707645]])
+  assert np.allclose(result1, output_ar)
+  
   
 
