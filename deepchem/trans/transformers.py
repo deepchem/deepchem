@@ -2472,6 +2472,21 @@ class DataTransforms(object):
 
 
 class RxnSplitTransformer(Transformer):
+  """Splits the reaction SMILES input into the source and target strings
+  required for machine translation tasks.
+
+  The input is expected to be in the form reactant>reagent>product. The source
+  string would be reactants>reagents and the target string would be the products.
+
+  Examples
+  -----
+
+  Note
+  -----
+  This class only transforms the feature field of a reaction dataset like USPTO.
+
+  
+  """
 
   def __init__(self):
     # the transformer would have to split the source and target sequences
