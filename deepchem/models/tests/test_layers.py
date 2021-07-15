@@ -9,6 +9,13 @@ try:
 except:
   has_tensorflow = False
 
+try:
+  import torch
+  import deepchem.models.torch_models.layers as torch_layers
+  has_torch = True
+except:
+  has_torch = False
+
 
 @pytest.mark.tensorflow
 def test_cosine_dist():
@@ -70,10 +77,7 @@ def test_combine_mean_std():
   assert not np.array_equal(result2, mean)
   assert np.allclose(result2, mean, atol=0.1)
 
-
-@pytest.mark.tensorflow
-def test_stack():
-  """Test invoking Stack."""
+np.array
   input1 = np.random.rand(5, 4).astype(np.float32)
   input2 = np.random.rand(5, 4).astype(np.float32)
   result = layers.Stack()([input1, input2])
@@ -598,3 +602,17 @@ def test_DAG_gather():
   atom_features = np.random.rand(batch_size, n_atom_feat)
   membership = np.sort(np.random.randint(0, batch_size, size=(batch_size)))
   outputs = layer([atom_features, membership])
+
+@pytest.mark.pytorch
+def test_combine_mean_std():
+  """Test invoking CombineMeanStd."""
+  mean = np.random.rand(5, 3).astype(np.float32)
+  std = np.random.rand(5, 3).astype(np.float32)
+  layer = layers.CombineMeanStd(training_only=True, noise_epsilon=0.01)
+  result1 = layer([mean, std], training=False)
+  assert np.array_equal(result1, mean)  # No noise in test mode
+  result2 = layer([mean, std], training=True)
+  assert not np.array_equal(result2, mean)
+  assert np.allclose(result2, mean, atol=0.1)
+  
+
