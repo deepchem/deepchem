@@ -611,8 +611,8 @@ def test_DAG_gather():
 def test_layer_norm():
   """Test invoking LayerNorm."""
   input_ar = torch.tensor([[1., 99., 10000.], [0.003, 999.37, 23.]])
-  layer = torch_layers.LayerNorm(input_ar.shape)
+  layer = torch_layers.ScaleNorm(0.35)
   result1 = layer.forward(input_ar)
-  output_ar = np.array([[-0.58585864, -0.5687999, 1.1546584],
-                        [-0.59738946, 1.1544659, -0.55707645]])
+  output_ar = np.array([[5.9157897e-05, 5.8566318e-03, 5.9157896e-01],
+                        [1.7754727e-06, 5.9145141e-01, 1.3611957e-02]])
   assert np.allclose(result1, output_ar)

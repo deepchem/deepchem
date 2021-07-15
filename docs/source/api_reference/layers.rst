@@ -112,7 +112,7 @@ another tensor. DeepChem maintains an extensive collection of layers which perfo
 .. autoclass:: deepchem.models.layers.SetGather
   :members:
 
-.. autoclass:: deepchem.models.torch_models.layers.LayerNorm
+.. autoclass:: deepchem.models.torch_models.layers.ScaleNorm
   :members:
 
 .. autofunction:: deepchem.models.layers.cosine_dist
