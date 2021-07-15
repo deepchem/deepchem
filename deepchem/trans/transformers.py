@@ -2521,9 +2521,17 @@ class RxnSplitTransformer(Transformer):
       Transformed array of ids
     """
 
-    source = list(map(lambda x: x.split('>')[0] + '>' + x.split('>')[1], X))
+    reactant = list(map(lambda x: x.split('>')[0], X))
+    reagent = list(map(lambda x: x.split('>')[1], X))
+    product = list(map(lambda x: x.split('>')[2], X))
 
-    target = list(map(lambda x: x.split('>')[2], X))
+    if sep_reagent:
+      source = [x + '>' + y for x,y in zip(reactant, reagent)]
+
+    else:
+      source = [x + '.' + y + '>' if y is not '' else x + '>' + y for x,y in zip(reactant, reagent)]
+
+    target = product 
 
     X = np.column_stack((source, target))
 
