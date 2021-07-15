@@ -2529,7 +2529,7 @@ class RxnSplitTransformer(Transformer):
       source = [x + '>' + y for x,y in zip(reactant, reagent)]
 
     else:
-      source = [x + '.' + y + '>' if y is not '' else x + '>' + y for x,y in zip(reactant, reagent)]
+      source = [x + '.' + y + '>' if not y else x + '>' + y for x,y in zip(reactant, reagent)]
 
     target = product 
 
