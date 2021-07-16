@@ -94,6 +94,9 @@ class WandbLogger(Logger):
     # Dataset ids are used to differentiate datasets seen by the logger
     self.dataset_ids: List[Union[int, str]] = []
 
+    # Keep track of best models during training and callbacks
+    self.best_models = {}
+
   def setup(self, config):
     """Initializes a W&B run and create a run object.
     If a pre-existing run is already initialized, use that instead.
@@ -148,24 +151,49 @@ class WandbLogger(Logger):
       self.run_history = history
     self.wandb_run.finish()
 
-  def save_model(self, path):
-    abs_path = os.path.abspath(path)
-    abs_path = abs_path.replace("/", ".")
-    artifact = self._wandb.Artifact(abs_path, type='model')
-    artifact.add_dir(path)
-    self.wandb_run.log_artifact(artifact)
+  def add_checkpoint(self, path, model, tracking_key, value):
+    # Tracking key is the key in the best_models dictionary
+    # Value is the value that will be used for sorting checkpointgs
+    if (tracking_key not in self.best_models):
+      # Set up a tracking list
+      self.best_models[tracking_key]["models"] = {}
+      self.best_models[tracking_key]["checkpoint_num"] = 0
 
-    #
-    # path_list = path.split(os.sep)
-    # # destination folder will have same name as save directory
-    # dest = os.path.join(self.wandb_run.dir, path_list[-1])
-    # shutil.rmtree(dest, ignore_errors=True) # clear dest folder to avoid file already exist error
-    # checkpoint_names = ["ckpt", "checkpoint", ".pt", ".pth"]
-    # # Copy all checkpoint files to wandb.run.dir for upload when run finishes
-    # for file in os.listdir(path):
-    #     if any(substring in file.lower() for substring in checkpoint_names):
-    #
-    #         if not os.path.exists(dest):
-    #             os.makedirs(dest)
-    #
-    #         shutil.copy2(os.path.join(path, file), os.path.join(dest, file))
+    # Save the model
+    model_name = "checkpoint_" + self.best_models[tracking_key]["checkpoint_num"]
+    model_path = os.path.join(path, model_name)
+    model.save(model_path)
+
+    # Modify tracking (increment and save to dictionary)
+    self.best_models[tracking_key]["checkpoint_num"] += 1
+    self.best_models[tracking_key]["models"][model_path] = value
+
+
+  def save_checkpoints(self, tracking_key, max_checkpoints_to_keep, save_on_minimum):
+    # Save top k models in the tracking list to Wandb
+
+    # Sort and keep only top k models
+    reverse = not save_on_minimum
+    best_k = sorted(self.best_models[tracking_key]["models"],
+                     key=self.best_models[tracking_key]["models"].get,
+                     reverse=reverse)[:max_checkpoints_to_keep]
+
+    # Delete all non top k models
+    for model_path in list(self.best_models[tracking_key]["models"].keys()):
+      if model_path not in best_k:
+        # Delete model from directory
+        if os.path.exists(model_path):
+          os.remove(model_path)
+        # Delete model from tracking dict
+        del self.best_models[tracking_key]["models"][model_path]
+
+    if self.initialized is False:
+      logger.warning(
+        'WARNING: The wandb run has not been initialized. Cannot call `save_checkpoints()`')
+    else:
+      # Upload Artifacts
+      artifact = self._wandb.Artifact(tracking_key, type='model')
+      for key in self.best_models[tracking_key]["models"]:
+        artifact.add_file(key)
+      self.wandb_run.log_artifact(artifact)
+

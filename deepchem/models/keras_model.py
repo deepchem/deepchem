@@ -474,6 +474,9 @@ class KerasModel(Model):
 
       if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
         manager.save()
+        for ext_logger in self.loggers:
+          if isinstance(ext_logger, WandbLogger):
+            ext_logger.add_checkpoint(self.model_dir, self.model, "train_checkpoints", batch_loss)
       for c in callbacks:
         c(self, current_step)
       if self.tensorboard and should_log:
@@ -495,7 +498,9 @@ class KerasModel(Model):
 
     if checkpoint_interval > 0:
       manager.save()
-      # Save training checkpoints to loggers at end of fit()
+    for ext_logger in self.loggers:
+      if isinstance(ext_logger, WandbLogger):
+        ext_logger.add_checkpoint(self.model_dir, self.model, "train_checkpoints", batch_loss)
 
     time2 = time.time()
     logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
