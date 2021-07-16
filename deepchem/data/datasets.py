@@ -1151,6 +1151,7 @@ class DiskDataset(Dataset):
 
     logger.info("Loading dataset from disk.")
     tasks, self.metadata_df = self.load_metadata()
+    print('constructor', self.metadata_df)
     self.tasks = np.array(tasks)
     if len(self.metadata_df.columns) == 4 and list(
         self.metadata_df.columns) == ['ids', 'X', 'y', 'w']:
@@ -1172,6 +1173,7 @@ class DiskDataset(Dataset):
     self._cached_shards: Optional[List] = None
     self._memory_cache_size = 20 * (1 << 20)  # 20 MB
     self._cache_used = 0
+    print('constructor end', self.metadata_df)
 
   @staticmethod
   def create_dataset(shard_generator: Iterable[Batch],
@@ -1203,7 +1205,6 @@ class DiskDataset(Dataset):
     time1 = time.time()
     for shard_num, (X, y, w, ids) in enumerate(shard_generator):
       basename = "shard-%d" % shard_num
-      print('shard y:', y)
       metadata_rows.append(
           DiskDataset.write_data_to_disk(data_dir, basename, X, y, w, ids))
     metadata_df = DiskDataset._construct_metadata(metadata_rows)
@@ -1225,6 +1226,7 @@ class DiskDataset(Dataset):
       pass
 
     # Load obsolete format -> save in new format
+    print('old format')
     metadata_filename = os.path.join(self.data_dir, "metadata.joblib")
     if os.path.exists(metadata_filename):
       tasks, metadata_df = load_from_disk(metadata_filename)
