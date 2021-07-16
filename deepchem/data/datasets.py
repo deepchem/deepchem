@@ -1878,7 +1878,8 @@ class DiskDataset(Dataset):
 
   @staticmethod
   def merge(datasets: Iterable["Dataset"],
-            merge_dir: Optional[str] = None) -> "DiskDataset":
+            merge_dir: Optional[str] = None,
+            **kwargs) -> "DiskDataset":
     """Merges provided datasets into a merged dataset.
 
     Parameters
@@ -1925,7 +1926,7 @@ class DiskDataset(Dataset):
         yield (X, y, w, ids)
 
     return DiskDataset.create_dataset(
-        generator(), data_dir=merge_dir, tasks=merge_tasks)
+        generator(), data_dir=merge_dir, tasks=merge_tasks, **kwargs)
 
   def subset(self, shard_nums: Sequence[int],
              subset_dir: Optional[str] = None) -> "DiskDataset":
