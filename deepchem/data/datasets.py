@@ -1203,6 +1203,7 @@ class DiskDataset(Dataset):
     time1 = time.time()
     for shard_num, (X, y, w, ids) in enumerate(shard_generator):
       basename = "shard-%d" % shard_num
+      print('shard y:', y)
       metadata_rows.append(
           DiskDataset.write_data_to_disk(data_dir, basename, X, y, w, ids))
     metadata_df = DiskDataset._construct_metadata(metadata_rows)
@@ -1257,6 +1258,7 @@ class DiskDataset(Dataset):
     with open(tasks_filename, 'w') as fout:
       json.dump(tasks, fout)
     metadata_df.to_csv(metadata_filename, index=False, compression='gzip')
+    print('save metadata:', metadata_df)
 
   @staticmethod
   def _construct_metadata(metadata_entries: List) -> pd.DataFrame:
@@ -2102,6 +2104,7 @@ class DiskDataset(Dataset):
     row = self.metadata_df.iloc[i]
     X = np.array(load_from_disk(os.path.join(self.data_dir, row['X'])))
 
+    print('row[y]:', row['y'])
     if row['y'] is not None:
       y: Optional[np.ndarray] = np.array(
           load_from_disk(os.path.join(self.data_dir, row['y'])))
