@@ -2485,10 +2485,9 @@ class RxnSplitTransformer(Transformer):
   -----
   This class only transforms the feature field of a reaction dataset like USPTO.
 
-  
   """
 
-  def __init__(self, sep_reagent: bool):
+  def __init__(self, sep_reagent: bool, dataset: Optional[Dataset] = None):
     # the transformer would have to split the source and target sequences
     # would also consider adding the option of separating the reagent here.
 
@@ -2528,9 +2527,12 @@ class RxnSplitTransformer(Transformer):
     product = list(map(lambda x: x.split('>')[2], X))
 
     if self.sep_reagent:
-      source = [x + '>' + y for x,y in zip(reactant, reagent)]
+      source = [x + '>' + y for x, y in zip(reactant, reagent)]
     else:
-      source = [x + '.' + y + '>' if y else x + '>' + y for x,y in zip(reactant, reagent)]
+      source = [
+          x + '.' + y + '>' if y else x + '>' + y
+          for x, y in zip(reactant, reagent)
+      ]
 
     target = product
 
