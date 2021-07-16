@@ -1921,8 +1921,11 @@ class DiskDataset(Dataset):
     def generator():
       for ind, dataset in enumerate(datasets):
         logger.info("Merging in dataset %d/%d" % (ind, len(datasets)))
-        X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
-        yield (X, y, w, ids)
+        if hasattr(dataset, 'itershards'):
+            for (X, y, w, ids) in dataset.itershards():
+                yield (X, y, w, ids)
+        else:
+            yield (dataset.X, dataset.y, dataset.w, dataset.ids)
 
     return DiskDataset.create_dataset(
         generator(), data_dir=merge_dir, tasks=merge_tasks, **kwargs)
