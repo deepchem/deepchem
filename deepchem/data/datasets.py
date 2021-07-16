@@ -1151,7 +1151,6 @@ class DiskDataset(Dataset):
 
     logger.info("Loading dataset from disk.")
     tasks, self.metadata_df = self.load_metadata()
-    print('constructor', self.metadata_df)
     self.tasks = np.array(tasks)
     if len(self.metadata_df.columns) == 4 and list(
         self.metadata_df.columns) == ['ids', 'X', 'y', 'w']:
@@ -1173,7 +1172,6 @@ class DiskDataset(Dataset):
     self._cached_shards: Optional[List] = None
     self._memory_cache_size = 20 * (1 << 20)  # 20 MB
     self._cache_used = 0
-    print('constructor end', self.metadata_df)
 
   @staticmethod
   def create_dataset(shard_generator: Iterable[Batch],
@@ -1220,13 +1218,18 @@ class DiskDataset(Dataset):
       with open(tasks_filename) as fin:
         tasks = json.load(fin)
       metadata_df = pd.read_csv(metadata_filename, compression='gzip')
+      print('load 1')
+      print(metadata_df)
+      print('not null')
+      print(pd.notnull(metadata_df))
       metadata_df = metadata_df.where((pd.notnull(metadata_df)), None)
+      print('load 2')
+      print(metadata_df)
       return tasks, metadata_df
     except Exception:
       pass
 
     # Load obsolete format -> save in new format
-    print('old format')
     metadata_filename = os.path.join(self.data_dir, "metadata.joblib")
     if os.path.exists(metadata_filename):
       tasks, metadata_df = load_from_disk(metadata_filename)
@@ -1261,6 +1264,9 @@ class DiskDataset(Dataset):
       json.dump(tasks, fout)
     metadata_df.to_csv(metadata_filename, index=False, compression='gzip')
     print('save metadata:', metadata_df)
+    print('csv contents')
+    import gzip
+    print(gzip.open(metadata_filename).read())
 
   @staticmethod
   def _construct_metadata(metadata_entries: List) -> pd.DataFrame:
@@ -2106,7 +2112,6 @@ class DiskDataset(Dataset):
     row = self.metadata_df.iloc[i]
     X = np.array(load_from_disk(os.path.join(self.data_dir, row['X'])))
 
-    print('row[y]:', row['y'])
     if row['y'] is not None:
       y: Optional[np.ndarray] = np.array(
           load_from_disk(os.path.join(self.data_dir, row['y'])))
