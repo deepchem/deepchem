@@ -985,7 +985,7 @@ class FASTALoader(DataLoader):
       """
 
       # TODO don't convert all sequences into np array (allow shards)
-      def _generate_sequences(fasta_file, header_mark=">") -> np.array:
+      def _generate_sequences(fasta_file, header_mark=">") -> np.ndarray:
         """
         Uses a fasta_file to create a numpy array of annotated FASTA-format strings
         """
@@ -1005,7 +1005,7 @@ class FASTALoader(DataLoader):
         sequences = _add_sequence(sequences, sequence)  # Add last sequence
         return sequences
 
-      def _add_sequence(sequences: np.array, sequence: np.array) -> np.array:
+      def _add_sequence(sequences: np.ndarray, sequence: np.ndarray) -> np.ndarray:
         # Handle empty sequence
         if sequence is None or len(sequence) <= 0:
           # TODO log attempts to add empty sequences every shard
