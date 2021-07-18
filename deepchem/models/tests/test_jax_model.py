@@ -27,7 +27,7 @@ def test_jax_model_for_regression():
   def rms_loss(pred, tar, w):
     return jnp.mean(optax.l2_loss(pred, tar))
 
-  # Model Initilisation
+  # Model Initialization
   model = hk.transform(f)
   rng = jax.random.PRNGKey(500)
   inputs, _, _, _ = next(iter(dataset.iterbatches(batch_size=256)))
@@ -207,6 +207,7 @@ def test_fit_use_all_losses():
 
 
 @pytest.mark.jax
+@pytest.mark.slow
 def test_uncertainty():
   """Test estimating uncertainty a TorchModel."""
   n_samples = 30
