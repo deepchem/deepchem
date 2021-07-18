@@ -1,40 +1,50 @@
 import os
 import unittest
+import pytest
 import deepchem as dc
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.layers import Input, Dense
 from deepchem.models.losses import L2Loss
 from deepchem.feat.mol_graphs import ConvMol
 
+try:
+  import tensorflow as tf
+  from tensorflow.keras.layers import Input, Dense
 
-class MLP(dc.models.KerasModel):
+  class MLP(dc.models.KerasModel):
 
-  def __init__(self, n_tasks=1, feature_dim=100, hidden_layer_size=64,
-               **kwargs):
-    self.feature_dim = feature_dim
-    self.hidden_layer_size = hidden_layer_size
-    self.n_tasks = n_tasks
+    def __init__(self,
+                 n_tasks=1,
+                 feature_dim=100,
+                 hidden_layer_size=64,
+                 **kwargs):
+      self.feature_dim = feature_dim
+      self.hidden_layer_size = hidden_layer_size
+      self.n_tasks = n_tasks
 
-    model, loss, output_types = self._build_graph()
-    super(MLP, self).__init__(
-        model=model, loss=loss, output_types=output_types, **kwargs)
+      model, loss, output_types = self._build_graph()
+      super(MLP, self).__init__(
+          model=model, loss=loss, output_types=output_types, **kwargs)
 
-  def _build_graph(self):
-    inputs = Input(dtype=tf.float32, shape=(self.feature_dim,), name="Input")
-    out1 = Dense(units=self.hidden_layer_size, activation='relu')(inputs)
+    def _build_graph(self):
+      inputs = Input(dtype=tf.float32, shape=(self.feature_dim,), name="Input")
+      out1 = Dense(units=self.hidden_layer_size, activation='relu')(inputs)
 
-    final = Dense(units=self.n_tasks, activation='sigmoid')(out1)
-    outputs = [final]
-    output_types = ['prediction']
-    loss = dc.models.losses.BinaryCrossEntropy()
+      final = Dense(units=self.n_tasks, activation='sigmoid')(out1)
+      outputs = [final]
+      output_types = ['prediction']
+      loss = dc.models.losses.BinaryCrossEntropy()
 
-    model = tf.keras.Model(inputs=[inputs], outputs=outputs)
-    return model, loss, output_types
+      model = tf.keras.Model(inputs=[inputs], outputs=outputs)
+      return model, loss, output_types
+
+  has_tensorflow = True
+except:
+  has_tensorflow = False
 
 
 class TestPretrained(unittest.TestCase):
 
+  @pytest.mark.tensorflow
   def setUp(self):
     self.feature_dim = 2
     self.hidden_layer_size = 10
@@ -45,6 +55,7 @@ class TestPretrained(unittest.TestCase):
 
     self.dataset = dc.data.NumpyDataset(X, y)
 
+  @pytest.mark.tensorflow
   def test_load_from_pretrained(self):
     """Tests loading pretrained model."""
     source_model = MLP(
@@ -78,6 +89,7 @@ class TestPretrained(unittest.TestCase):
       dest_val = dest_var.numpy()
       np.testing.assert_array_almost_equal(source_val, dest_val)
 
+  @pytest.mark.tensorflow
   def test_load_pretrained_subclassed_model(self):
     from rdkit import Chem
     bi_tasks = ['a', 'b']
@@ -135,6 +147,7 @@ class TestPretrained(unittest.TestCase):
       dest_val = dest_var.numpy()
       np.testing.assert_array_almost_equal(source_val, dest_val)
 
+  @pytest.mark.tensorflow
   def test_restore_equivalency(self):
     """Test for restore based pretrained model loading."""
     source_model = MLP(

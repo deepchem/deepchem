@@ -21,13 +21,13 @@ def test_one_hot():
   assert np.array_equal(y, yp)
 
 
-def test_handle_classification_mode_none():
+def test_handle_classification_mode_direct():
   """Test proper thresholding."""
   y = np.random.rand(10, 2)
   y = y / np.sum(y, axis=1)[:, np.newaxis]
   y = np.expand_dims(y, 1)
   y_expected = y
-  y_out = handle_classification_mode(y, None)
+  y_out = handle_classification_mode(y, "direct")
   assert y_out.shape == (10, 1, 2)
   assert np.array_equal(y_out, y_expected)
 

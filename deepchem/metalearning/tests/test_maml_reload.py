@@ -2,43 +2,52 @@
 
 import deepchem as dc
 import numpy as np
-import tensorflow as tf
+import pytest
+
+try:
+  import tensorflow as tf
+
+  class SineLearner(dc.metalearning.MetaLearner):
+
+    def __init__(self):
+      self.batch_size = 10
+      self.w1 = tf.Variable(np.random.normal(size=[1, 40], scale=1.0))
+      self.w2 = tf.Variable(
+          np.random.normal(size=[40, 40], scale=np.sqrt(1 / 40)))
+      self.w3 = tf.Variable(
+          np.random.normal(size=[40, 1], scale=np.sqrt(1 / 40)))
+      self.b1 = tf.Variable(np.zeros(40))
+      self.b2 = tf.Variable(np.zeros(40))
+      self.b3 = tf.Variable(np.zeros(1))
+
+    def compute_model(self, inputs, variables, training):
+      x, y = inputs
+      w1, w2, w3, b1, b2, b3 = variables
+      dense1 = tf.nn.relu(tf.matmul(x, w1) + b1)
+      dense2 = tf.nn.relu(tf.matmul(dense1, w2) + b2)
+      output = tf.matmul(dense2, w3) + b3
+      loss = tf.reduce_mean(tf.square(output - y))
+      return loss, [output]
+
+    @property
+    def variables(self):
+      return [self.w1, self.w2, self.w3, self.b1, self.b2, self.b3]
+
+    def select_task(self):
+      self.amplitude = 5.0 * np.random.random()
+      self.phase = np.pi * np.random.random()
+
+    def get_batch(self):
+      x = np.random.uniform(-5.0, 5.0, (self.batch_size, 1))
+      return [x, self.amplitude * np.sin(x + self.phase)]
+
+  has_tensorflow = True
+
+except:
+  has_tensorflow = False
 
 
-class SineLearner(dc.metalearning.MetaLearner):
-
-  def __init__(self):
-    self.batch_size = 10
-    self.w1 = tf.Variable(np.random.normal(size=[1, 40], scale=1.0))
-    self.w2 = tf.Variable(
-        np.random.normal(size=[40, 40], scale=np.sqrt(1 / 40)))
-    self.w3 = tf.Variable(np.random.normal(size=[40, 1], scale=np.sqrt(1 / 40)))
-    self.b1 = tf.Variable(np.zeros(40))
-    self.b2 = tf.Variable(np.zeros(40))
-    self.b3 = tf.Variable(np.zeros(1))
-
-  def compute_model(self, inputs, variables, training):
-    x, y = inputs
-    w1, w2, w3, b1, b2, b3 = variables
-    dense1 = tf.nn.relu(tf.matmul(x, w1) + b1)
-    dense2 = tf.nn.relu(tf.matmul(dense1, w2) + b2)
-    output = tf.matmul(dense2, w3) + b3
-    loss = tf.reduce_mean(tf.square(output - y))
-    return loss, [output]
-
-  @property
-  def variables(self):
-    return [self.w1, self.w2, self.w3, self.b1, self.b2, self.b3]
-
-  def select_task(self):
-    self.amplitude = 5.0 * np.random.random()
-    self.phase = np.pi * np.random.random()
-
-  def get_batch(self):
-    x = np.random.uniform(-5.0, 5.0, (self.batch_size, 1))
-    return [x, self.amplitude * np.sin(x + self.phase)]
-
-
+@pytest.mark.tensorflow
 def test_reload():
   """Test that a Metalearner can be reloaded."""
   learner = SineLearner()

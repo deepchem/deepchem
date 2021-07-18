@@ -10,6 +10,7 @@ import tempfile
 import time
 import shutil
 import multiprocessing
+from multiprocessing.dummy import Pool
 from ast import literal_eval as make_tuple
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
@@ -1216,7 +1217,8 @@ class DiskDataset(Dataset):
       tasks_filename, metadata_filename = self._get_metadata_filename()
       with open(tasks_filename) as fin:
         tasks = json.load(fin)
-      metadata_df = pd.read_csv(metadata_filename, compression='gzip')
+      metadata_df = pd.read_csv(
+          metadata_filename, compression='gzip', dtype=object)
       metadata_df = metadata_df.where((pd.notnull(metadata_df)), None)
       return tasks, metadata_df
     except Exception:
@@ -1580,7 +1582,7 @@ class DiskDataset(Dataset):
       # objects as an extra overhead. Also, as hideously as un-thread safe this looks,
       # we're actually protected by the GIL.
       # mp.dummy aliases ThreadPool to Pool
-      pool = multiprocessing.dummy.Pool(1)
+      pool = Pool(1)
 
       if batch_size is None:
         num_global_batches = num_shards
