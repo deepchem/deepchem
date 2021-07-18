@@ -2478,16 +2478,21 @@ class RxnSplitTransformer(Transformer):
   The input is expected to be in the form reactant>reagent>product. The source
   string would be reactants>reagents and the target string would be the products.
 
+  The transformer can also separate the reagents from the reactants for a mixed
+  training mode. This can be toggled (default True) by setting the value of
+  sep_reagent while calling the transformer.
+
   Examples
-  -----
+  --------
 
   Note
-  -----
+  ----
   This class only transforms the feature field of a reaction dataset like USPTO.
-
   """
 
-  def __init__(self, sep_reagent: bool = True, dataset: Optional[Dataset] = None):
+  def __init__(self,
+               sep_reagent: bool = True,
+               dataset: Optional[Dataset] = None):
     """Initializes the Reaction split Transformer.
 
     Parameters
@@ -2495,7 +2500,7 @@ class RxnSplitTransformer(Transformer):
     sep_reagent: bool, optional (default True)
       To separate the reagent and reactants for training.
     dataset: dc.data.Dataset object, optional (default None)
-      Dataset to be transformed. 
+      Dataset to be transformed.
     """
     # the transformer would have to split the source and target sequences
     # would also consider adding the option of separating the reagent here.
