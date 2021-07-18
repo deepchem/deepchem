@@ -1217,7 +1217,8 @@ class DiskDataset(Dataset):
       tasks_filename, metadata_filename = self._get_metadata_filename()
       with open(tasks_filename) as fin:
         tasks = json.load(fin)
-      metadata_df = pd.read_csv(metadata_filename, compression='gzip')
+      metadata_df = pd.read_csv(
+          metadata_filename, compression='gzip', dtype=object)
       metadata_df = metadata_df.where((pd.notnull(metadata_df)), None)
       return tasks, metadata_df
     except Exception:
