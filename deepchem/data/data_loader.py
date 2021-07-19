@@ -944,7 +944,7 @@ class FASTALoader(DataLoader):
   def create_dataset(self,
                      input_files: OneOrMany[str],
                      data_dir: Optional[str] = None,
-                     shard_size: Optional[int] = None) -> DiskDataset:
+                     shard_size: int = 8192) -> DiskDataset:
     """Creates a `Dataset` from input FASTA files.
 
     At present, FASTA support is limited and doesn't allow for sharding.
@@ -955,7 +955,7 @@ class FASTALoader(DataLoader):
       List of fasta files.
     data_dir: str, optional (default None)
       Name of directory where featurized data is stored.
-    shard_size: int, optional (default None)
+    shard_size: int (default 0)
       For now, this argument is ignored and each FASTA file gets its
       own shard.
 
@@ -968,42 +968,57 @@ class FASTALoader(DataLoader):
     if isinstance(input_files, str):
       input_files = [input_files]
 
-    def shard_generator():  # TODO Enable sharding with shard size parameter
+    def shard_generator():
       for input_file in input_files:
-        if self.legacy:
+        shards = _read_file(input_file)
+        if self.legacy:  # Using legacy logic
           X = encode_bio_sequence(input_file)
-        else:
-          sequences = _read_file(input_file)
-          X = self.featurizer(sequences)
-        ids = np.ones(len(X))
-        # (X, y, w, ids)
-        yield X, None, None, ids
+          ids = np.ones(len(X))
+          # (X, y, w, ids)
+          yield X, None, None, ids
+        else:  # Not using legacy logic
+          count = 0
+          for shard in shards:
+            X = self.featurizer(shard)
+            ids = count + np.arange(len(X))
+            # (X, y, w, ids)
+            yield X, None, None, ids
+            count += 1
 
     def _read_file(input_file: str, auto_add_annotations: bool = False):
       """
       Convert the FASTA file to a numpy array of FASTA-format strings.
       """
 
-      # TODO don't convert all sequences into np array (allow shards)
-      def _generate_sequences(fasta_file, header_mark=">") -> np.array:
+      def _generate_sequences(header_mark=">") -> np.array:
         """
         Uses a fasta_file to create a numpy array of annotated FASTA-format strings
         """
         sequences = np.array([])
         sequence = np.array([])
+        count_sequences = 0
         header_read = False
-        for line in fasta_file:
-          # Check if line is a header
-          if line.startswith(header_mark):  # New header line
-            header_read = True
-            sequences = _add_sequence(sequences, sequence)
-            sequence = np.array([])
-          elif header_read:  # Line contains sequence in FASTA format
-            if line[-1:] == '\n':  # Check last character in string
-              line = line[0:-1]  # Remove last character
-            sequence = np.append(sequence, line)
+        with open(input_file, 'r') as f:  # Read FASTA file
+          for line in f:
+            # Check if line is a header
+            if line.startswith(header_mark):  # New header line
+              header_read = True
+              sequences = _add_sequence(sequences, sequence)
+              sequence = np.array([])
+              if sequences.size > 0:
+                count_sequences += 1
+                if shard_size > 0 and count_sequences % shard_size == 0:
+                  yield sequences
+                  sequences = np.array([])
+            elif header_read:  # Line contains sequence in FASTA format
+              if line[-1:] == '\n':  # Check last character in string
+                line = line[0:-1]  # Remove last character
+              sequence = np.append(sequence, line)
+              count_sequences += 1
         sequences = _add_sequence(sequences, sequence)  # Add last sequence
-        return sequences
+        count_sequences += 1
+        yield sequences
+        sequences = np.array([])
 
       def _add_sequence(sequences: np.array, sequence: np.array) -> np.array:
         # Handle empty sequence
@@ -1018,8 +1033,7 @@ class FASTALoader(DataLoader):
         new_sequences = np.append(sequences, new_sequence)
         return new_sequences
 
-      with open(input_file, 'r') as f:  # Read FASTA file
-        return _generate_sequences(f)
+      return _generate_sequences()
 
     return DiskDataset.create_dataset(shard_generator(), data_dir)
 
