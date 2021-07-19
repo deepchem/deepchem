@@ -10,8 +10,11 @@ class ScaleNorm(nn.Module):
   """Apply Scale Normalization to input.
 
   The ScaleNorm layer first computes the square root of the scale, then computes the matrix/vector norm of the input tensor.
-  The norm value is calculated as `sqrt(scale) / matrix norm`. 
+  The norm value is calculated as `sqrt(scale) / matrix norm`.
   Finally, the result is returned as `input_tensor * norm value`.
+
+  This layer can be used instead of LayerNorm when a scaled version of the norm is required.
+  Instead of performing the scaling operation (`scale / norm`) in a lambda-like layer, we are defining it within this layer to make prototyping more efficient.
 
   References
   ----------
