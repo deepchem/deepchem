@@ -94,6 +94,16 @@ class ValidationCallback(object):
       if self._best_score is None or score < self._best_score:
         model.save_checkpoint(model_dir=self.save_dir)
         self._best_score = score
+        # Execute external logger checkpointing
+        for ext_logger in model.loggers:
+          if isinstance(ext_logger, WandbLogger):
+            checkpoint_key_name = "val_" + self.metrics[self.save_metric].name + "_checkpoints"
+            ext_logger.add_checkpoint(self.save_dir,
+                                      model.model,
+                                      checkpoint_key_name,
+                                      score,
+                                      max_checkpoints_to_keep=5,
+                                      save_min=True)
     for ext_logger in model.loggers:
       if isinstance(ext_logger, WandbLogger):
         ext_logger.log_values(scores, step, group="eval", dataset_id=id(self.dataset))

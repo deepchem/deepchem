@@ -476,7 +476,12 @@ class KerasModel(Model):
         manager.save()
         for ext_logger in self.loggers:
           if isinstance(ext_logger, WandbLogger):
-            ext_logger.add_checkpoint(self.model_dir, self.model, "train_checkpoints", batch_loss)
+            ext_logger.add_checkpoint(self.model_dir,
+                                      self.model,
+                                      "train_checkpoints",
+                                      batch_loss,
+                                      max_checkpoints_to_keep,
+                                      save_min=True)
       for c in callbacks:
         c(self, current_step)
       if self.tensorboard and should_log:
@@ -500,7 +505,12 @@ class KerasModel(Model):
       manager.save()
     for ext_logger in self.loggers:
       if isinstance(ext_logger, WandbLogger):
-        ext_logger.add_checkpoint(self.model_dir, self.model, "train_checkpoints", batch_loss)
+        ext_logger.add_checkpoint(self.model_dir,
+                                  self.model,
+                                  "train_checkpoints",
+                                  batch_loss,
+                                  max_checkpoints_to_keep,
+                                  save_min=True)
 
     time2 = time.time()
     logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
