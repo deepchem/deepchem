@@ -14,7 +14,7 @@ class ScaleNorm(nn.Module):
   Finally, the result is returned as `input_tensor * norm value`.
 
   This layer can be used instead of LayerNorm when a scaled version of the norm is required.
-  Instead of performing the scaling operation (`scale / norm`) in a lambda-like layer, we are defining it within this layer to make prototyping more efficient.
+  Instead of performing the scaling operation (scale / norm) in a lambda-like layer, we are defining it within this layer to make prototyping more efficient.
 
   References
   ----------
