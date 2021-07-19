@@ -335,15 +335,19 @@ def test_wandblogger():
        tf.keras.layers.Dense(1)])
   model = dc.models.KerasModel(
       keras_model, dc.models.losses.L2Loss(), wandb_logger=wandblogger)
-  vc = dc.models.ValidationCallback(valid_dataset, 1, [metric])
-  model.fit(train_dataset, nb_epoch=10, callbacks=[vc])
+  vc_train = dc.models.ValidationCallback(train_dataset, 1, [metric])
+  vc_valid = dc.models.ValidationCallback(valid_dataset, 1, [metric])
+  model.fit(train_dataset, nb_epoch=10, callbacks=[vc_train, vc_valid])
+  # call model.fit again to test multiple fit() calls
+  model.fit(train_dataset, nb_epoch=10, callbacks=[vc_train, vc_valid])
+  wandblogger.finish()
 
   run_data = wandblogger.run_history
   valid_score = model.evaluate(valid_dataset, [metric], transformers)
 
   assert math.isclose(
       valid_score["pearson_r2_score"],
-      run_data['eval/pearson_r2_score'],
+      run_data['eval/pearson_r2_score_(1)'],
       abs_tol=0.0005)
 
 
