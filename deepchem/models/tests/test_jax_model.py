@@ -221,14 +221,15 @@ def test_uncertainty():
 
     def __init__(self, output_size: int = 1):
       super().__init__()
-      self._network = hk.Sequential([hk.Linear(200), jax.nn.relu])
+      self._network1 = hk.Sequential([hk.Linear(200), jax.nn.relu])
+      self._network2 = hk.Sequential([hk.Linear(200), jax.nn.relu])
       self.output = hk.Linear(output_size)
       self.log_var = hk.Linear(output_size)
 
     def __call__(self, x):
-      # x, dropout_rate = x
-      x = self._network(x)
-      # if x is not None:
+      x = self._network1(x)
+      x = hk.dropout(hk.next_rng_key(), 0.1, x)
+      x = self._network2(x)
       x = hk.dropout(hk.next_rng_key(), 0.1, x)
       output = self.output(x)
       log_var = self.log_var(x)
@@ -274,5 +275,5 @@ def test_uncertainty():
       learning_rate=0.003)
   model.fit(dataset, nb_epochs=2500)
   pred, std = model.predict_uncertainty(dataset)
-  assert np.mean(np.abs(y - pred)) < 1.0
+  assert np.mean(np.abs(y - pred)) < 2.0
   assert noise < np.mean(std) < 1.0

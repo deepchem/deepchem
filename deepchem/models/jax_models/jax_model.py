@@ -197,7 +197,7 @@ class JaxModel(Model):
     restore: bool
       if True, restore the model from the most recent checkpoint and continue training
       from there.  If False, retrain the model from scratch.
-    variables: list of torch.nn.Parameter
+    variables: list of hk.Variable
       the variables to train.  If None (the default), all trainable variables in
       the model are used.
 
