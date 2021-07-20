@@ -493,6 +493,7 @@ class KerasModel(Model):
         else:
           ext_logger.log_batch({"loss": batch_loss}, current_step, inputs, labels)
 
+
     # Report final results.
     if averaged_batches > 0:
       avg_loss = float(avg_loss) / averaged_batches

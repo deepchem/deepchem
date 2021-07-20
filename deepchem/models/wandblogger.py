@@ -98,6 +98,7 @@ class WandbLogger(Logger):
     self.best_models = {}
 
   def setup(self, config):
+
     """Initializes a W&B run and create a run object.
     If a pre-existing run is already initialized, use that instead.
     """
@@ -116,7 +117,8 @@ class WandbLogger(Logger):
     if self.save_run_history:
       history = self.wandb_run.history._data
       self.run_history = history
-    self.wandb_run.finish()
+    if self.wandb_run is not None:
+      self.wandb_run.finish()
 
   def log_values(self, values: Dict, step: int, group=None, dataset_id=None):
     data = values

@@ -114,3 +114,4 @@ class ValidationCallback(object):
         ext_logger.log_values(scores, step, group="eval", dataset_id=id(self.dataset))
       else:
         ext_logger.log_values(scores, step)
+
