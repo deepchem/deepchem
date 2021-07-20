@@ -31,10 +31,16 @@ class ElemNetFeaturizer(MaterialCompositionFeaturizer):
 
   Examples
   --------
-  >>> import pymatgen as mg
+  >>> import deepchem as dc
   >>> comp = "Fe2O3"
-  >>> featurizer = ElemNetFeaturizer()
+  >>> featurizer = dc.feat.ElemNetFeaturizer()
   >>> features = featurizer.featurize([comp])
+  >>> type(features[0])
+  <class 'numpy.ndarray'>
+  >>> features[0].shape
+  (86,)
+  >>> round(sum(features[0]))
+  1
 
   Note
   ----
