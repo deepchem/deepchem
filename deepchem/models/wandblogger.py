@@ -116,23 +116,7 @@ class WandbLogger(Logger):
     if self.save_run_history:
       history = self.wandb_run.history._data
       self.run_history = history
-
     self.wandb_run.finish()
-
-
-  def clear_old_artifacts(self):
-    api_info = {"project": self.wandb_run.project,
-                "entity": self.wandb_run.entity}
-
-    # Remove old artifacts (non-latest versions)
-    api = self._wandb.Api(overrides=api_info)
-    artifact_type = "model"
-    for artifact_name in self.best_models:
-      for version in api.artifact_versions(artifact_type, artifact_name):
-        # Delete any artifacts with no alias
-        # Only latest artifact version in a run will have aliases
-        if len(version.aliases) == 0:
-          version.delete()
 
   def log_values(self, values: Dict, step: int, group=None, dataset_id=None):
     data = values
@@ -167,57 +151,45 @@ class WandbLogger(Logger):
   def log_epoch(self, data: Dict, epoch: int):
     pass
 
-  def add_checkpoint(self, path, model, tracking_key, value, max_checkpoints_to_keep, save_min, metadata=None):
-    # Tracking key is the key in the best_models dictionary
-    # Value is the value that will be used for sorting checkpoints
-    if (tracking_key not in self.best_models):
-      # Set up a tracking list
-      self.best_models[tracking_key] = {}
-      self.best_models[tracking_key]["models"] = {}
-      self.best_models[tracking_key]["checkpoint_num"] = 0
+  def save_checkpoint(self, path, model, checkpoint_name, value_name, value, max_checkpoints_to_keep, checkpoint_on_min, metadata=None):
 
-    # Save the model
-    model_name = "checkpoint_" + str(self.best_models[tracking_key]["checkpoint_num"])
-    model_path = os.path.abspath(os.path.join(path, model_name))
-    model.save(model_path)
+    if (checkpoint_name not in self.best_models):
+      # Set up to track top values of this checkpoint
+      self.best_models[checkpoint_name] = {}
+      self.best_models[checkpoint_name]["model_values"] = []
 
-    # Modify tracking (increment and save to dictionary)
-    self.best_models[tracking_key]["checkpoint_num"] += 1
-    self.best_models[tracking_key]["models"][model_path] = value
+    # sort in order
+    if checkpoint_on_min:
+      self.best_models[checkpoint_name]["model_values"] = sorted(self.best_models[checkpoint_name]["model_values"])[:max_checkpoints_to_keep]
+    else:
+      self.best_models[checkpoint_name]["model_values"] = sorted(self.best_models[checkpoint_name]["model_values"], reverse=True)[:max_checkpoints_to_keep]
 
-    # Save checkpoints as artifact to Wandb
-    self._save_checkpoints(tracking_key, max_checkpoints_to_keep, save_min, metadata)
+    print(value_name + ": " + str(value))
+    print(self.best_models[checkpoint_name]["model_values"])
 
-
-  def _save_checkpoints(self, tracking_key, max_checkpoints_to_keep, save_min, metadata=None):
-    # Save top k models in the tracking list to Wandb
-
-    # Sort and keep only top k models
-    reverse = not save_min
-    best_k = sorted(self.best_models[tracking_key]["models"],
-                     key=self.best_models[tracking_key]["models"].get,
-                     reverse=reverse)[:max_checkpoints_to_keep]
-
-    # Delete all non top k models
-    for model_path in list(self.best_models[tracking_key]["models"].keys()):
-      if model_path not in best_k:
-        # Delete model from directory
-        if os.path.exists(model_path):
-          os.remove(model_path)
-        # Delete model from tracking dict
-        del self.best_models[tracking_key]["models"][model_path]
+    # save checkpoint only if passes the cutoff
+    should_save = False
+    if (len(self.best_models[checkpoint_name]["model_values"]) == 0) or (checkpoint_on_min and value < self.best_models[checkpoint_name]["model_values"][-1]):
+      should_save = True
+    if (len(self.best_models[checkpoint_name]["model_values"]) == 0) or ((not checkpoint_on_min) and value > self.best_models[checkpoint_name]["model_values"][-1]):
+      should_save = True
 
     if self.initialized is False:
       logger.warning(
-        'WARNING: The wandb run has not been initialized. Cannot call `save_checkpoints()`')
+        'WARNING: The wandb run has not been initialized. Cannot call `save_checkpoint()`')
     else:
-      # Upload Artifacts
-      artifact = self._wandb.Artifact(tracking_key,
-                                      type='model',
-                                      metadata=metadata)
-      for key in self.best_models[tracking_key]["models"]:
-        print(key)
-        artifact.add_dir(key)
-      self.wandb_run.log_artifact(artifact, aliases=["latest", self.wandb_run.name])
+      if should_save:
+        print("SAVING")
+        self.best_models[checkpoint_name]["model_values"].append(value)
 
+        model_name = checkpoint_name + "_" + self.wandb_run.name
+        model_path = os.path.abspath(os.path.join(path, model_name))
+        model.save(model_path)
 
+        # Upload Artifacts
+        artifact = self._wandb.Artifact(model_name,
+                                        type='model',
+                                        metadata=metadata)
+
+        artifact.add_dir(model_path)
+        self.wandb_run.log_artifact(artifact, aliases=["latest", value_name + "=" + str(value)])

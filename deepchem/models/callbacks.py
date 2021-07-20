@@ -97,13 +97,18 @@ class ValidationCallback(object):
         # Execute external logger checkpointing
         for ext_logger in model.loggers:
           if isinstance(ext_logger, WandbLogger):
-            checkpoint_key_name = "val_" + self.metrics[self.save_metric].name + "_checkpoints"
-            ext_logger.add_checkpoint(self.save_dir,
+            checkpoint_name = "val_" + self.metrics[self.save_metric].name + "_checkpoints"
+            # ensure score is positive if negated previously
+            checkpoint_score = score
+            if not self.save_on_minimum:
+              checkpoint_score = abs(checkpoint_score)
+            ext_logger.save_checkpoint(self.save_dir,
                                       model.model,
-                                      checkpoint_key_name,
-                                      score,
+                                      checkpoint_name,
+                                      self.metrics[self.save_metric].name,
+                                      checkpoint_score,
                                       max_checkpoints_to_keep=5,
-                                      save_min=True)
+                                      checkpoint_on_min=self.save_on_minimum)
     for ext_logger in model.loggers:
       if isinstance(ext_logger, WandbLogger):
         ext_logger.log_values(scores, step, group="eval", dataset_id=id(self.dataset))
