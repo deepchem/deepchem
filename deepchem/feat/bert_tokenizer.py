@@ -15,8 +15,8 @@ class BertFeaturizer(Featurizer, BertTokenizerFast):
   This class intends to allow users to use the BertTokenizer API while
   remaining inside the DeepChem ecosystem.
 
-  Example
-  -------
+  Examples
+  --------
   >>> from deepchem.feat import BertFeaturizer
   >>> featurizer = BertFeaturizer.from_pretrained("Rostlab/prot_bert", do_lower_case=False)
   >>> inputs = featurizer.featurize('D L I P [MASK] L V T', return_tensors="pt")

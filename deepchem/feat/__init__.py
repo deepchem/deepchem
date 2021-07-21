@@ -15,6 +15,7 @@ from deepchem.feat.base_classes import DummyFeaturizer
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.graph_features import WeaveFeaturizer
 from deepchem.feat.binding_pocket_features import BindingPocketFeaturizer
+from deepchem.feat.bert_tokenizer import BertFeaturizer
 
 # molecule featurizers
 from deepchem.feat.molecule_featurizers import AtomicCoordinates
