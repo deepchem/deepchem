@@ -1,14 +1,11 @@
 from deepchem.feat.base_classes import Featurizer
-from deepchem.feat.molecule_featurizers import RobertaFeaturizer
-from typing import Iterable
-import numpy as np
-import logging, warnings
-logger = logging.getLogger(__name__)
+from typing import List, Dict
 try:
   from transformers import BertTokenizerFast
 except:
   raise ImportError("""This class requires the transformers package,
                     which was not found in your environment.""")
+
 
 class BertFeaturizer(Featurizer, BertTokenizerFast):
   """Bert Featurizer.
@@ -44,11 +41,11 @@ class BertFeaturizer(Featurizer, BertTokenizerFast):
     Parameters
     ----------
     sequence: str
-    An arbitrary string. 
+    An arbitrary string.
 
     Returns
     -------
-    encoding: list 
+    encoding: list
     list containing two lists: `input_ids` and `attention_mask`
     """
     obj = self(sequence, self.input_ids, self.attention_mask)
