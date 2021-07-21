@@ -153,7 +153,7 @@ class WandbLogger(Logger):
   def log_epoch(self, data: Dict, epoch: int):
     pass
 
-  def save_checkpoint(self, path, model, checkpoint_name, value_name, value, max_checkpoints_to_keep, checkpoint_on_min, metadata=None):
+  def save_checkpoint(self, path, dc_model, checkpoint_name, value_name, value, max_checkpoints_to_keep, checkpoint_on_min, metadata=None):
 
     if (checkpoint_name not in self.best_models):
       # Set up to track top values of this checkpoint
@@ -166,8 +166,8 @@ class WandbLogger(Logger):
     else:
       self.best_models[checkpoint_name]["model_values"] = sorted(self.best_models[checkpoint_name]["model_values"], reverse=True)[:max_checkpoints_to_keep]
 
-    print(value_name + ": " + str(value))
-    print(self.best_models[checkpoint_name]["model_values"])
+    #print(value_name + ": " + str(value))
+    #print(self.best_models[checkpoint_name]["model_values"])
 
     # save checkpoint only if passes the cutoff
     should_save = False
@@ -181,17 +181,35 @@ class WandbLogger(Logger):
         'WARNING: The wandb run has not been initialized. Cannot call `save_checkpoint()`')
     else:
       if should_save:
-        print("SAVING")
         self.best_models[checkpoint_name]["model_values"].append(value)
 
-        model_name = checkpoint_name + "_" + self.wandb_run.name
-        model_path = os.path.abspath(os.path.join(path, model_name))
-        model.save(model_path)
+        # Different saving mechanisms for different types of models
+        if isinstance(dc_model.model, tf.keras.Model):
+          model_name = checkpoint_name + "_" + self.wandb_run.name
+          model_path = os.path.abspath(os.path.join(path, model_name))
+          dc_model.model.save(model_path)
 
-        # Upload Artifacts
-        artifact = self._wandb.Artifact(model_name,
-                                        type='model',
-                                        metadata=metadata)
+          # Upload Artifact
+          artifact = self._wandb.Artifact(model_name,
+                                          type='model',
+                                          metadata=metadata)
 
-        artifact.add_dir(model_path)
-        self.wandb_run.log_artifact(artifact, aliases=["latest", value_name + "=" + str(value)])
+          artifact.add_dir(model_path)
+          self.wandb_run.log_artifact(artifact, aliases=["latest", value_name + "=" + str(value)])
+        elif isinstance(dc_model.model, torch.nn.Module):
+          data = {
+            'model_state_dict': dc_model.model.state_dict(),
+            'optimizer_state_dict': dc_model._pytorch_optimizer.state_dict(),
+            'global_step': dc_model._global_step
+          }
+
+          model_name = checkpoint_name + "_" + self.wandb_run.name + ".pt"
+          model_path = os.path.abspath(os.path.join(path, model_name))
+          torch.save(data, model_path)
+
+          # Upload Artifact
+          artifact = self._wandb.Artifact(model_name,
+                                          type='model',
+                                          metadata=metadata)
+          artifact.add_file(model_path)
+          self.wandb_run.log_artifact(artifact, aliases=["latest", value_name + "=" + str(value)])

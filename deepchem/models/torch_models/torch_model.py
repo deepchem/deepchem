@@ -23,6 +23,7 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
+from deepchem.models.logger import Logger
 from deepchem.models.wandblogger import WandbLogger
 
 try:
@@ -125,6 +126,7 @@ class TorchModel(Model):
                device: Optional[torch.device] = None,
                regularization_loss: Optional[Callable] = None,
                wandb_logger: Optional[WandbLogger] = None,
+               logger: OneOrMany[Logger] = None,
                **kwargs) -> None:
     """Create a new TorchModel.
 
@@ -192,7 +194,14 @@ class TorchModel(Model):
     self.device = device
     self.model = model.to(device)
 
-    # W&B logging
+    self.loggers = logger
+    # Create a list of loggers
+    if self.loggers is not None:
+      if not isinstance(self.loggers, list):
+        # if not a list of loggers, make it a list of 1 logger
+        self.loggers = [logger]
+
+    # W&B logging (DEPRECATED
     if wandb:
       logger.warning(
           "`wandb` argument is deprecated. Please use `wandb_logger` instead. "
@@ -209,12 +218,15 @@ class TorchModel(Model):
     if self.wandb and (self.wandb_logger is None):
       self.wandb_logger = WandbLogger()
 
-    # Setup and initialize W&B logging
-    if (self.wandb_logger is not None) and (not self.wandb_logger.initialized):
-      self.wandb_logger.setup()
+    # Add wandb_logger to list of loggers
+    if (self.wandb_logger is not None):
+      if any(isinstance(x, WandbLogger) for x in self.loggers):
+          logger.warning("A WandbLogger already exists in `loggers`."
+                         "Setting `wandb_logger` will create duplicate copies.")
+      self.loggers.append(self.wandb_logger)
 
     # Update config with KerasModel params
-    wandb_logger_config = dict(
+    logger_config = dict(
         loss=loss,
         output_types=output_types,
         batch_size=batch_size,
@@ -224,10 +236,11 @@ class TorchModel(Model):
         tensorboard=tensorboard,
         log_frequency=log_frequency,
         regularization_loss=regularization_loss)
-    wandb_logger_config.update(**kwargs)
+    logger_config.update(**kwargs)
 
-    if self.wandb_logger is not None:
-      self.wandb_logger.update_config(wandb_logger_config)
+    # Setup and initialize external loggers
+    for ext_logger in self.loggers:
+      ext_logger.setup(logger_config)
 
     self.log_frequency = log_frequency
     if self.tensorboard and not _has_tensorboard:
@@ -444,16 +457,24 @@ class TorchModel(Model):
 
       if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
         self.save_checkpoint(max_checkpoints_to_keep)
-        # Save checkpoint to Wandb
-        if (self.wandb_logger is not None):
-          self.wandb_logger.save_model(self.model_dir)
+        for ext_logger in self.loggers:
+          if isinstance(ext_logger, WandbLogger):
+            ext_logger.save_checkpoint(self.model_dir,
+                                      self,
+                                      "train_checkpoints",
+                                      "step",
+                                      current_step,
+                                      max_checkpoints_to_keep,
+                                      checkpoint_on_min=False)
       for c in callbacks:
         c(self, current_step)
       if self.tensorboard and should_log:
         self._log_scalar_to_tensorboard('loss', batch_loss, current_step)
-      if (self.wandb_logger is not None) and should_log:
-        all_data = dict({'train/loss': batch_loss})
-        self.wandb_logger.log_data(all_data, step=current_step)
+      for ext_logger in self.loggers:
+        if isinstance(ext_logger, WandbLogger):
+          ext_logger.log_batch({"loss": batch_loss}, current_step, inputs, labels, group="train")
+        else:
+          ext_logger.log_batch({"loss": batch_loss}, current_step, inputs, labels)
 
     # Report final results.
     if averaged_batches > 0:
@@ -466,13 +487,15 @@ class TorchModel(Model):
 
     if checkpoint_interval > 0:
       self.save_checkpoint(max_checkpoints_to_keep)
-      # Save checkpoint to Wandb
-      if (self.wandb_logger is not None):
-        self.wandb_logger.save_model(self.model_dir)
-
-    # Close WandbLogger
-    if self.wandb_logger is not None:
-      self.wandb_logger.finish()
+      for ext_logger in self.loggers:
+        if isinstance(ext_logger, WandbLogger):
+          ext_logger.save_checkpoint(self.model_dir,
+                                     self,
+                                     "train_checkpoints",
+                                     "step",
+                                     current_step,
+                                     max_checkpoints_to_keep,
+                                     checkpoint_on_min=False)
 
     time2 = time.time()
     logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))

@@ -28,7 +28,8 @@ class ValidationCallback(object):
                save_dir=None,
                save_metric=0,
                save_on_minimum=True,
-               transformers=[]):
+               transformers=[],
+               name=None):
     """Create a ValidationCallback.
 
     Parameters
@@ -65,6 +66,7 @@ class ValidationCallback(object):
     self.save_on_minimum = save_on_minimum
     self._best_score = None
     self.transformers = transformers
+    self.name = name
 
   def __call__(self, model, step):
     """This is invoked by the KerasModel after every step of fitting.
@@ -97,13 +99,16 @@ class ValidationCallback(object):
         # Execute external logger checkpointing
         for ext_logger in model.loggers:
           if isinstance(ext_logger, WandbLogger):
-            checkpoint_name = "val_" + self.metrics[self.save_metric].name + "_checkpoints"
+            if (self.name is None) or (not self.name):
+              # assign a default name to the callback based on dataset and metric
+              self.name = str(id(self.dataset)) + "-" + self.metrics[self.save_metric].name
+            checkpoint_name = "callback-" + self.name + "-checkpoints"
             # ensure score is positive if negated previously
             checkpoint_score = score
             if not self.save_on_minimum:
               checkpoint_score = abs(checkpoint_score)
             ext_logger.save_checkpoint(self.save_dir,
-                                      model.model,
+                                      model,
                                       checkpoint_name,
                                       self.metrics[self.save_metric].name,
                                       checkpoint_score,
