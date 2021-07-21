@@ -1,10 +1,12 @@
 import unittest
 from deepchem.feat import RobertaFeaturizer
+import pytest
 
 
 class TestRobertaFeaturizer(unittest.TestCase):
   """Tests for RobertaFeaturizer"""
 
+  @pytest.mark.torch
   def setUp(self):
     self.smiles = ["Cn1c(=O)c2c(ncn2C)n(C)c1=O", "CC(=O)N1CN(C(C)=O)C(O)C1O"]
     self.long_molecule_smiles = [
@@ -13,6 +15,7 @@ class TestRobertaFeaturizer(unittest.TestCase):
     self.featurizer = RobertaFeaturizer.from_pretrained(
         "seyonec/SMILES_tokenized_PubChem_shard00_160k")
 
+  @pytest.mark.torch
   def test_smiles_call(self):
     """Test __call__ method for the featurizer, which is inherited from HuggingFace's RobertaTokenizerFast"""
     embedding = self.featurizer(
@@ -23,6 +26,7 @@ class TestRobertaFeaturizer(unittest.TestCase):
       assert 'input_ids' in emb.keys() and 'attention_mask' in emb.keys()
       assert len(emb['input_ids']) == 2 and len(emb['attention_mask']) == 2
 
+  @pytest.mark.torch
   def test_smiles_featurize(self):
     """Test the .featurize method, which will convert the dictionary output to an array
 
