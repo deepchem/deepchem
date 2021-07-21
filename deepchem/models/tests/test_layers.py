@@ -608,7 +608,7 @@ def test_DAG_gather():
 
 
 @pytest.mark.pytorch
-def test_layer_norm():
+def test_scale_norm():
   """Test invoking LayerNorm."""
   input_ar = torch.tensor([[1., 99., 10000.], [0.003, 999.37, 23.]])
   layer = torch_layers.ScaleNorm(0.35)
