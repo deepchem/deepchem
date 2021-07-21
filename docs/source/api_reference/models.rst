@@ -297,6 +297,7 @@ Training loss and validation metrics can be automatically logged to `Weights & B
   vc = dc.models.ValidationCallback(…)
   model = KerasModel(…, wandb_logger=logger)
   model.fit(…, callbacks=[vc])
+  logger.finish()
 
 .. _`Keras`: https://keras.io/
 
