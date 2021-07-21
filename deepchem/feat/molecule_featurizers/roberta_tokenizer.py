@@ -43,25 +43,20 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
     self.attention_mask = attention_mask
     return
 
-  def _featurize(self, mol: RDKitMol) -> List[List[int]]:
+  def _featurize(self, smiles_string: str) -> List[List[int]]:
     """Calculate encoding using HuggingFace's RobertaTokenizerFast
 
-        Parameters
-        ----------
-        mol: rdkit.Chem.rdchem.Mol
-          RDKit Mol object
+    Parameters
+    ----------
+    smiles_string: str
+      String containing SMILES sequence.
 
-        Returns
-        -------
-        encoding: List
-          List containing two lists; the `input_ids` and the `attention_mask`
+    Returns
+    -------
+    encoding: List
+      List containing two lists; the `input_ids` and the `attention_mask`
+    """
 
-        """
-    try:
-      from rdkit import Chem
-    except ModuleNotFoundError:
-      raise ImportError("This class requires RDKit to be installed.")
-    smiles_string = Chem.MolToSmiles(mol)
     # the encoding is natively a dictionary with keys 'input_ids' and 'attention_mask'
     # -> make this a list of two lists to allow np to handle it
     # encoding = list(self(smiles_string, **kwargs).values())

@@ -27,8 +27,6 @@ class Featurizer(object):
                 log_every_n: int = 1000) -> np.ndarray:
     """Calculate features for datapoints.
 
-    `**kwargs` will get passed directly to `Featurizer._featurize`
-
     Parameters
     ----------
     datapoints: Iterable[Any]
