@@ -1,5 +1,4 @@
-from deepchem.feat import MolecularFeaturizer
-from deepchem.utils.typing import RDKitMol
+from deepchem.feat import Featurizer
 from typing import Dict, List
 try:
   from transformers import RobertaTokenizerFast
@@ -8,7 +7,7 @@ except ModuleNotFoundError:
   pass
 
 
-class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
+class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
   """Roberta Featurizer.
 
   The Roberta Featurizer is a wrapper class of the Roberta Tokenizer,
@@ -43,13 +42,13 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
     self.attention_mask = attention_mask
     return
 
-  def _featurize(self, smiles_string: str) -> List[List[int]]:
+  def _featurize(self, sequence: str) -> List[List[int]]:
     """Calculate encoding using HuggingFace's RobertaTokenizerFast
 
     Parameters
     ----------
-    smiles_string: str
-      String containing SMILES sequence.
+    sequence: str
+      Arbitrary string sequence to be tokenized.
 
     Returns
     -------
@@ -61,7 +60,7 @@ class RobertaFeaturizer(RobertaTokenizerFast, MolecularFeaturizer):
     # -> make this a list of two lists to allow np to handle it
     # encoding = list(self(smiles_string, **kwargs).values())
     encoding = list(
-        self(smiles_string, self.input_ids, self.attention_mask).values())
+        self(sequence, self.input_ids, self.attention_mask).values())
 
     return encoding
 
