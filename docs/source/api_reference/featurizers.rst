@@ -396,6 +396,13 @@ References:
 Other Featurizers
 -----------------
 
+BertFeaturizer
+^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.BertFeaturizer
+  :members:
+  :inherited-members:
+
 BindingPocketFeaturizer
 ^^^^^^^^^^^^^^^^^^^^^^^
 
