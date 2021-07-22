@@ -24,7 +24,7 @@ class Featurizer(object):
   """
 
   def featurize(self, datapoints: Iterable[Any],
-                log_every_n: int = 1000) -> np.ndarray:
+                log_every_n: int = 1000, **kwargs) -> np.ndarray:
     """Calculate features for datapoints.
 
     Parameters
@@ -47,7 +47,7 @@ class Featurizer(object):
       if i % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % i)
       try:
-        features.append(self._featurize(point))
+        features.append(self._featurize(point), **kwargs)
       except:
         logger.warning(
             "Failed to featurize datapoint %d. Appending empty array")
@@ -55,7 +55,7 @@ class Featurizer(object):
 
     return np.asarray(features)
 
-  def __call__(self, datapoints: Iterable[Any]):
+  def __call__(self, datapoints: Iterable[Any], **kwargs):
     """Calculate features for datapoints.
 
     `**kwargs` will get passed directly to `Featurizer.featurize`
@@ -65,9 +65,9 @@ class Featurizer(object):
     datapoints: Iterable[Any]
       Any blob of data you like. Subclasss should instantiate this.
     """
-    return self.featurize(datapoints)
+    return self.featurize(datapoints, **kwargs)
 
-  def _featurize(self, datapoint: Any):
+  def _featurize(self, datapoint: Any, **kwargs):
     """Calculate features for a single datapoint.
 
     Parameters
@@ -157,7 +157,7 @@ class ComplexFeaturizer(Featurizer):
 
   def featurize(self,
                 complexes: Iterable[Tuple[str, str]],
-                log_every_n: int = 100) -> np.ndarray:
+                log_every_n: int = 100, **kwargs) -> np.ndarray:
     """
     Calculate features for mol/protein complexes.
 
@@ -181,7 +181,7 @@ class ComplexFeaturizer(Featurizer):
       if idx % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % idx)
       try:
-        features.append(self._featurize(point))
+        features.append(self._featurize(point, **kwargs))
         successes.append(idx)
       except:
         logger.warning(
@@ -204,7 +204,7 @@ class ComplexFeaturizer(Featurizer):
 
     return np.asarray(features)
 
-  def _featurize(self, complex: Tuple[str, str]):
+  def _featurize(self, complex: Tuple[str, str], **kwargs):
     """
     Calculate features for single mol/protein complex.
 
@@ -234,7 +234,7 @@ class MolecularFeaturizer(Featurizer):
   The subclasses of this class require RDKit to be installed.
   """
 
-  def featurize(self, molecules, log_every_n=1000) -> np.ndarray:
+  def featurize(self, molecules, log_every_n=1000, **kwargs) -> np.ndarray:
     """Calculate features for molecules.
 
     Parameters
@@ -278,7 +278,7 @@ class MolecularFeaturizer(Featurizer):
           new_order = rdmolfiles.CanonicalRankAtoms(mol)
           mol = rdmolops.RenumberAtoms(mol, new_order)
 
-        features.append(self._featurize(mol))
+        features.append(self._featurize(mol), **kwargs)
       except Exception as e:
         if isinstance(mol, Chem.rdchem.Mol):
           mol = Chem.MolToSmiles(mol)
@@ -316,7 +316,7 @@ class MaterialStructureFeaturizer(Featurizer):
 
   def featurize(self,
                 structures: Iterable[Union[Dict[str, Any], PymatgenStructure]],
-                log_every_n: int = 1000) -> np.ndarray:
+                log_every_n: int = 1000, **kwargs) -> np.ndarray:
     """Calculate features for crystal structures.
 
     Parameters
@@ -347,7 +347,7 @@ class MaterialStructureFeaturizer(Featurizer):
       try:
         if isinstance(structure, Dict):
           structure = Structure.from_dict(structure)
-        features.append(self._featurize(structure))
+        features.append(self._featurize(structure, **kwargs))
       except:
         logger.warning(
             "Failed to featurize datapoint %i. Appending empty array" % idx)
@@ -380,7 +380,7 @@ class MaterialCompositionFeaturizer(Featurizer):
   """
 
   def featurize(self, compositions: Iterable[str],
-                log_every_n: int = 1000) -> np.ndarray:
+                log_every_n: int = 1000, **kwargs) -> np.ndarray:
     """Calculate features for crystal compositions.
 
     Parameters
@@ -408,7 +408,7 @@ class MaterialCompositionFeaturizer(Featurizer):
         logger.info("Featurizing datapoint %i" % idx)
       try:
         c = Composition(composition)
-        features.append(self._featurize(c))
+        features.append(self._featurize(c, **kwargs))
       except:
         logger.warning(
             "Failed to featurize datapoint %i. Appending empty array" % idx)
