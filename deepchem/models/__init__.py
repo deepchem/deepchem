@@ -4,11 +4,17 @@ Gathers all models in one place for convenient imports
 # flake8: noqa
 from deepchem.models.models import Model
 from deepchem.models.multitask import SingletaskToMultitask
-from deepchem.models.logger import Logger
-from deepchem.models.wandblogger import WandbLogger
 from deepchem.models.callbacks import ValidationCallback
 
-# Tensorflow Depedency Models
+from deepchem.models.logger import Logger
+
+# Logger Classes
+try:
+  from deepchem.models.wandblogger import WandbLogger
+except ModuleNotFoundError:
+  pass
+
+# Tensorflow Dependency Models
 try:
   from deepchem.models.keras_model import KerasModel
 

@@ -328,18 +328,27 @@ def test_wandblogger():
       featurizer='ECFP', splitter='random')
   train_dataset, valid_dataset, test_dataset = datasets
   metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
+  metric2 = dc.metrics.Metric(dc.metrics.mae_score)
   wandblogger = dc.models.WandbLogger(anonymous="allow", save_run_history=True)
 
   keras_model = tf.keras.Sequential(
       [tf.keras.layers.Dense(10, activation='relu'),
        tf.keras.layers.Dense(1)])
   model = dc.models.KerasModel(
-      keras_model, dc.models.losses.L2Loss(), wandb_logger=wandblogger)
-  vc_train = dc.models.ValidationCallback(train_dataset, 1, [metric])
-  vc_valid = dc.models.ValidationCallback(valid_dataset, 1, [metric])
-  model.fit(train_dataset, nb_epoch=10, callbacks=[vc_train, vc_valid])
+    keras_model, dc.models.losses.L2Loss(), logger=wandblogger,
+    model_dir="./testing_train_checkpoints")
+
+  vc_train = dc.models.ValidationCallback(train_dataset, 10, [metric, metric2],
+                                          save_dir="./testing_val_checkpoints",
+                                          save_on_minimum=False,
+                                          name="callback1")
+  vc_valid = dc.models.ValidationCallback(valid_dataset, 10, [metric, metric2],
+                                          save_dir="./testing_val_checkpoints",
+                                          save_on_minimum=False,
+                                          name="callback2")
+  model.fit(train_dataset, nb_epoch=10, checkpoint_interval=10, callbacks=[vc_train, vc_valid])
   # call model.fit again to test multiple fit() calls
-  model.fit(train_dataset, nb_epoch=10, callbacks=[vc_train, vc_valid])
+  model.fit(train_dataset, nb_epoch=10, checkpoint_interval=10, callbacks=[vc_train, vc_valid])
   wandblogger.finish()
 
   run_data = wandblogger.run_history

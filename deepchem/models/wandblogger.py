@@ -1,15 +1,15 @@
 import logging
 import importlib.util
 from typing import Optional, Union, Dict, List
-import shutil
 import os
-from distutils.dir_util import copy_tree
 import tensorflow as tf
 import torch
 import numpy as np
+
+from deepchem.models import Model
 from deepchem.models.logger import Logger
 
-logger = logging.getLogger(__name__)
+logs = logging.getLogger(__name__)
 numeric = Union[tf.Tensor, torch.Tensor, int, float, complex, np.number]
 tensor = Union[tf.Tensor, torch.Tensor]
 
@@ -71,7 +71,7 @@ class WandbLogger(Logger):
     self._wandb = wandb
 
     if mode == "offline":
-      logger.warning(
+      logs.warning(
           'Note: Model checkpoints will not be uploaded to W&B in offline mode.\n'
           'Please set `mode="online"` if you need to log your model.')
 
@@ -97,7 +97,7 @@ class WandbLogger(Logger):
     # Keep track of best models during training and callbacks
     self.best_models = {}
 
-  def setup(self, config):
+  def setup(self, config: Dict):
 
     """Initializes a W&B run and create a run object.
     If a pre-existing run is already initialized, use that instead.
@@ -120,7 +120,7 @@ class WandbLogger(Logger):
     if self.wandb_run is not None:
       self.wandb_run.finish()
 
-  def log_values(self, values: Dict, step: int, group=None, dataset_id=None):
+  def log_values(self, values: Dict, step: int, group: Optional[str] = None, dataset_id: Optional[str] = None):
     data = values
     # Log into the correct category
     if group is not None:
@@ -142,7 +142,7 @@ class WandbLogger(Logger):
 
     self.wandb_run.log(data, step=step)
 
-  def log_batch(self, loss: Dict, step: int, inputs: tensor, labels: tensor, group=None):
+  def log_batch(self, loss: Dict, step: int, inputs: tensor, labels: tensor, group: Optional[str] = None):
     data = loss
     # Log into the correct category (for example: "train", "eval")
     if group is not None:
@@ -153,49 +153,60 @@ class WandbLogger(Logger):
   def log_epoch(self, data: Dict, epoch: int):
     pass
 
-  def save_checkpoint(self, path, dc_model, checkpoint_name, value_name, value, max_checkpoints_to_keep, checkpoint_on_min, metadata=None):
+  def save_checkpoint(self,
+                      path: str,
+                      dc_model: Model,
+                      checkpoint_name: str,
+                      value_name: str,
+                      value: numeric,
+                      max_checkpoints_to_keep: int,
+                      checkpoint_on_min: bool,
+                      metadata: Optional[Dict] = None):
 
+    # Only called once when first checkpoint is saved to create tracking record
     if (checkpoint_name not in self.best_models):
       # Set up to track top values of this checkpoint
       self.best_models[checkpoint_name] = {}
       self.best_models[checkpoint_name]["model_values"] = []
 
-    # sort in order
+    # Sort in order
     if checkpoint_on_min:
       self.best_models[checkpoint_name]["model_values"] = sorted(self.best_models[checkpoint_name]["model_values"])[:max_checkpoints_to_keep]
     else:
       self.best_models[checkpoint_name]["model_values"] = sorted(self.best_models[checkpoint_name]["model_values"], reverse=True)[:max_checkpoints_to_keep]
 
-    #print(value_name + ": " + str(value))
-    #print(self.best_models[checkpoint_name]["model_values"])
 
-    # save checkpoint only if passes the cutoff
+    # Save checkpoint only if it passes the cutoff in the model values
     should_save = False
-    if (len(self.best_models[checkpoint_name]["model_values"]) == 0) or (checkpoint_on_min and value < self.best_models[checkpoint_name]["model_values"][-1]):
+    if len(self.best_models[checkpoint_name]["model_values"]) == 0:
+      # first checkpoint to be saved
       should_save = True
-    if (len(self.best_models[checkpoint_name]["model_values"]) == 0) or ((not checkpoint_on_min) and value > self.best_models[checkpoint_name]["model_values"][-1]):
+    elif checkpoint_on_min and (value < self.best_models[checkpoint_name]["model_values"][-1]):
+      # value passes minimum cut off
+      should_save = True
+    elif (not checkpoint_on_min) and (value > self.best_models[checkpoint_name]["model_values"][-1]):
+      # value passes maximum cut off
       should_save = True
 
     if self.initialized is False:
-      logger.warning(
-        'WARNING: The wandb run has not been initialized. Cannot call `save_checkpoint()`')
+      logs.warning(
+        'WARNING: The wandb run has not been initialized. Cannot call `save_checkpoint()`\n'
+        'Please run the model\'s fit() function to setup wandb and start checkpointing.')
     else:
       if should_save:
         self.best_models[checkpoint_name]["model_values"].append(value)
 
+        model_name = checkpoint_name + "_" + self.wandb_run.name
+        artifact = self._wandb.Artifact(model_name,
+                                        type='model',
+                                        metadata=metadata)
+
         # Different saving mechanisms for different types of models
         if isinstance(dc_model.model, tf.keras.Model):
-          model_name = checkpoint_name + "_" + self.wandb_run.name
           model_path = os.path.abspath(os.path.join(path, model_name))
           dc_model.model.save(model_path)
-
-          # Upload Artifact
-          artifact = self._wandb.Artifact(model_name,
-                                          type='model',
-                                          metadata=metadata)
-
           artifact.add_dir(model_path)
-          self.wandb_run.log_artifact(artifact, aliases=["latest", value_name + "=" + str(value)])
+
         elif isinstance(dc_model.model, torch.nn.Module):
           data = {
             'model_state_dict': dc_model.model.state_dict(),
@@ -203,13 +214,17 @@ class WandbLogger(Logger):
             'global_step': dc_model._global_step
           }
 
-          model_name = checkpoint_name + "_" + self.wandb_run.name + ".pt"
-          model_path = os.path.abspath(os.path.join(path, model_name))
+          saved_name = model_name + ".pt"
+          model_path = os.path.abspath(os.path.join(path, saved_name))
           torch.save(data, model_path)
-
-          # Upload Artifact
-          artifact = self._wandb.Artifact(model_name,
-                                          type='model',
-                                          metadata=metadata)
           artifact.add_file(model_path)
-          self.wandb_run.log_artifact(artifact, aliases=["latest", value_name + "=" + str(value)])
+
+        # apply aliases and log artifact
+        step = dc_model._global_step
+        if not isinstance(step, int):
+          # If tensorflow tensor convert to number
+          step = step.numpy()
+        aliases = ["latest", "step=" + str(step), value_name + "=" + str(value)]
+        aliases = list(set(aliases))  # remove duplicates
+
+        self.wandb_run.log_artifact(artifact, aliases=aliases)
