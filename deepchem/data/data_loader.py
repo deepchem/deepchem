@@ -1005,7 +1005,8 @@ class FASTALoader(DataLoader):
         sequences = _add_sequence(sequences, sequence)  # Add last sequence
         return sequences
 
-      def _add_sequence(sequences: np.ndarray, sequence: np.ndarray) -> np.ndarray:
+      def _add_sequence(sequences: np.ndarray,
+                        sequence: np.ndarray) -> np.ndarray:
         # Handle empty sequence
         if sequence is None or len(sequence) <= 0:
           # TODO log attempts to add empty sequences every shard
