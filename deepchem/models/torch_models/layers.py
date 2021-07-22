@@ -22,6 +22,12 @@ def clones(module, N):
   Returns
   -------
   Torch module with N identical layers.
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> d_model = 1024
+  >>> cloned_layer = dc.models.torch_models.layers.clones(nn.Linear(1024, 1024), 3)
   """
 
   return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
@@ -45,7 +51,7 @@ class ScaleNorm(nn.Module):
   --------
   >>> import deepchem as dc
   >>> scale = 0.35
-  >>> layer = dc.models.torch_models.ScaleNorm(scale)
+  >>> layer = dc.models.torch_models.layers.ScaleNorm(scale)
   >>> input_tensor = torch.tensor([[1.269, 39.36], [0.00918, -9.12]])
   >>> output_tensor = layer.forward(input_tensor)
   """
@@ -73,7 +79,7 @@ class ScaleNorm(nn.Module):
 class Encoder(nn.Module):
   """Encoder block for the Molecule Attention Transformer in [1]_.
   
-  A stack of N layers which form the encoder block.
+  A stack of N layers which form the encoder block. The block primarily consists of a self-attention layer and a feed-forward layer.
   
   References
   ----------
@@ -107,23 +113,42 @@ class Encoder(nn.Module):
     self.norm = nn.LayerNorm(layer.size)
 
   def forward(self, x, mask, **kwargs):
+    """Output computation for the Encoder block.
+
+    Parameters
+    ----------
+    x: dc.torch_models.layers or nn.Module
+      Self-Attention layer to be used in the encoder block.
+    mask: dc.torch_models.layers or nn.Module
+      Feed-Forward layer to be used in the encoder block.
+    """
+
     for layer in self.layers:
       x = layer(x, mask, **kwargs)
     return self.norm(x)
 
 
 class SublayerConnection(nn.Module):
-  """SublayerConnection layer as used in [1]_.
+  """SublayerConnection layer which establishes a residual connection, as used in the Molecular Attention Transformer [1]_.
   
   The SublayerConnection layer is a residual layer which is then passed through Layer Normalization.
+  The residual connection is established by computing the dropout-adjusted layer output of a normalized input tensor and adding this to the originial input tensor. 
   
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+  
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> scale = 0.35
+  >>> layer = dc.models.torch_models.layers.SublayerConnection(2, 0.)
+  >>> output = layer.forward(torch.Tensor([1.,2.]), nn.Linear(2,1))
   """
 
   def __init__(self, size, dropout):
     """Initialize a SublayerConnection Layer.
+
     Parameters
     ----------
     size: int
@@ -137,6 +162,17 @@ class SublayerConnection(nn.Module):
     self.dropout = nn.Dropout(dropout)
 
   def forward(self, x, sublayer):
+    """Output computation for the SublayerConnection layer.
+    
+    Takes an input tensor x, then adds the dropout-adjusted sublayer output for normalized x to it.
+
+    Parameters
+    ----------
+    x: torch.tensor
+      Input tensor.
+    sublayer: nn.Module
+      Layer whose output for normalized x will be added to x.
+    """
     return x + self.dropout(sublayer(self.norm(x)))
 
 
@@ -226,7 +262,16 @@ class MultiHeadedAttention(nn.Module):
 
 
 class PositionwiseFeedForward(nn.Module):
-  """Implements FFN equation."""
+  """Positionwise Feed Forward is a layer used to define the feed-forward algorithm for the Molecular Attention Transformer [1]_
+  
+  
+
+  References
+  ----------
+  .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+  
+
+  """
 
   def __init__(self,
                *,
