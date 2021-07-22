@@ -37,12 +37,11 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
   as well as DeepChem's MolecularFeaturizer class.
   """
 
-  def __init__(self, input_ids, attention_mask):
-    self.input_ids = input_ids
-    self.attention_mask = attention_mask
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)    
     return
 
-  def _featurize(self, sequence: str) -> List[List[int]]:
+  def _featurize(self, sequence: str, **kwargs) -> List[List[int]]:
     """Calculate encoding using HuggingFace's RobertaTokenizerFast
 
     Parameters
@@ -60,9 +59,8 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
     # -> make this a list of two lists to allow np to handle it
     # encoding = list(self(smiles_string, **kwargs).values())
     encoding = list(
-        self(sequence, self.input_ids, self.attention_mask).values())
-
+        self(sequence, **kwargs).values())
     return encoding
 
-  def __call__(self, *args) -> Dict[str, List[int]]:
-    return super().__call__(*args)
+  def __call__(self, *args, **kwargs) -> Dict[str, List[int]]:
+    return super().__call__(*args, **kwargs)

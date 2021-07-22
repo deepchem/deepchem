@@ -1,5 +1,5 @@
 import unittest
-from deepchem.feat import RobertaFeaturizer
+from deepchem.feat.roberta_tokenizer import RobertaFeaturizer
 import pytest
 
 
