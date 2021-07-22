@@ -34,7 +34,6 @@ from deepchem.feat.molecule_featurizers import RawFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitDescriptors
 from deepchem.feat.molecule_featurizers import SmilesToImage
 from deepchem.feat.molecule_featurizers import SmilesToSeq, create_char_to_idx
-from deepchem.feat.molecule_featurizers import RobertaFeaturizer
 from deepchem.feat.molecule_featurizers import MATFeaturizer
 
 # complex featurizers
@@ -73,6 +72,8 @@ try:
   from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
 except ModuleNotFoundError:
   pass
+
+from deepchem.feat.roberta_tokenizer import RobertaFeaturizer
 
 # support classes
 from deepchem.feat.molecule_featurizers import GraphMatrix
