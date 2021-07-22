@@ -179,7 +179,12 @@ class EncoderLayer(nn.Module):
 
 
 class MultiHeadedAttention(nn.Module):
+  """Multi-Headed Attention layer for the Molecular Attention Transformer [1]_
 
+  References
+  ----------
+  .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+  """
   def __init__(self,
                attention,
                h,
