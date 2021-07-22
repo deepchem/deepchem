@@ -6,6 +6,7 @@ try:
 except:
   raise ImportError('These classes require Torch to be installed.')
 
+
 def clones(module, N):
   """Produce N identical layers.
 
@@ -24,6 +25,7 @@ def clones(module, N):
   """
 
   return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
+
 
 class ScaleNorm(nn.Module):
   """Apply Scale Normalization to input.
@@ -67,40 +69,48 @@ class ScaleNorm(nn.Module):
     norm = self.scale / torch.norm(x, dim=-1, keepdim=True).clamp(min=self.eps)
     return x * norm
 
-class Encoder(nn.Module):
-    """Encoder block for the Molecule Attention Transformer in [1]_.
-    
-    A stack of N layers which form the encoder block.
-    
-    References
-    ----------
-    .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
-    """
-    
-    def __init__(self, layer, N, scale_norm):
-        """Initialize an Encoder block.
-        Parameters
-        ----------
-        layer: dc.layers
-          Layer to be stacked in the encoder block.
-        N: int
-          Number of identical layers to be stacked.
-        scale_norm: Bool
-          If True, uses ScaleNorm, else uses LayerNorm.
-        """
 
-        super(Encoder, self).__init__()
-        self.layers = clones(layer, N)
-        if scale_norm:
-            self.norm = ScaleNorm(layer.size)
-        else:
-            self.norm = torch.LayerNorm(layer.size)
-    
-    def forward(self, x, mask, adj_matrix, distances_matrix, edges_att):
-        "Pass the input (and mask) through each layer in turn."
-        for layer in self.layers:
-            x = layer(x, mask, adj_matrix, distances_matrix, edges_att)
-        return self.norm(x)
+class Encoder(nn.Module):
+  """Encoder block for the Molecule Attention Transformer in [1]_.
+  
+  A stack of N layers which form the encoder block.
+  
+  References
+  ----------
+  .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+  """
+
+  def __init__(self, self_attn_layer, feed_fwd_layer, d_model, dropout, N):
+    """Initialize an Encoder block.
+
+    Parameters
+    ----------
+    self_attn_layer: dc.torch_models.layers or nn.Module
+      Self-Attention layer to be used in the encoder block.
+    feed_fwd_layer: dc.torch_models.layers or nn.Module
+      Feed-Forward layer to be used in the encoder block.
+    d_model: int
+      Size of model
+    dropout: float
+      Probability of Dropout
+    N: int
+      Number of identical layers to be stacked.
+    """
+
+    super(Encoder, self).__init__()
+    layer = EncoderLayer(
+        self_attn_layer=self_attn_layer,
+        feed_fwd_layer=feed_fwd_layer,
+        d_model=d_model,
+        dropout=dropout)
+    self.layers = clones(layer, N)
+    self.norm = nn.LayerNorm(layer.size)
+
+  def forward(self, x, mask, **kwargs):
+    for layer in self.layers:
+      x = layer(x, mask, **kwargs)
+    return self.norm(x)
+
 
 class SublayerConnection(nn.Module):
   """SublayerConnection layer as used in [1]_.
@@ -111,26 +121,24 @@ class SublayerConnection(nn.Module):
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
   """
-    
-  def __init__(self, size, dropout, scale_norm):
-      """Initialize a SublayerConnection Layer.
-      Parameters
-      ----------
-      size: int
-        Normalized shape of LayerNorm/ScaleNorm layer.
-      dropout: float
-        Dropout probability.
-      scale_norm: Bool
-        If True, uses ScaleNorm, else uses LayerNorm.
-      """
 
-      super(SublayerConnection, self).__init__()
-      self.norm = ScaleNorm(size) if scale_norm else torch.LayerNorm(size)
-      self.dropout = nn.Dropout(dropout)
+  def __init__(self, size, dropout):
+    """Initialize a SublayerConnection Layer.
+    Parameters
+    ----------
+    size: int
+      Size of layer.
+    dropout: float
+      Dropout probability.
+    """
+
+    super(SublayerConnection, self).__init__()
+    self.norm = nn.LayerNorm(size)
+    self.dropout = nn.Dropout(dropout)
 
   def forward(self, x, sublayer):
-      "Apply residual connection to any sublayer with the same size."
-      return x + self.dropout(sublayer(self.norm(x)))
+    return x + self.dropout(sublayer(self.norm(x)))
+
 
 class EncoderLayer(nn.Module):
   """Encoder layer for use in the Molecular Attention Transformer.
@@ -142,44 +150,111 @@ class EncoderLayer(nn.Module):
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
   """
 
-  def __init__(self, size, self_attn, feed_forward, dropout, scale_norm):
-      """Initialize an Encoder layer.
+  def __init__(self, self_attn_layer, feed_fwd_layer, d_model, dropout):
+    """Initialize an Encoder layer.
 
-      Parameters
-      ----------
-      size: int
-        Normalized shape/length of ScaleNorm/LayerNorm layer.
-      self_attn: Tensor
-        The p_attn attribute from the attention function for the Molecular Attention Transformer.
-      feed_forward: Bool
-        If True, uses ScaleNorm, else uses LayerNorm.
-      dropout:
-        asd
-      scale_norm: Bool
-        If True, uses ScaleNorm, else uses LayerNorm.
-      """
+    Parameters
+    ----------
+    self_attn_layer: dc.torch_models.layers or nn.Module
+      Self-Attention layer to be used in the encoder layer.
+    feed_fwd_layer: dc.torch_models.layers or nn.Module
+      Feed-Forward layer to be used in the encoder layer.
+    d_model: int
+      Size of model
+    dropout: float
+      Probability of Dropout
+    """
 
-      super(EncoderLayer, self).__init__()
-      self.self_attn = self_attn
-      self.feed_forward = feed_forward
-      self.sublayer = clones(SublayerConnection(size, dropout, scale_norm), 2)
-      self.size = size
+    super(EncoderLayer, self).__init__()
+    self.self_attn = self_attn_layer
+    self.feed_forward = feed_fwd_layer
+    self.sublayer = clones(SublayerConnection(size=d_model, dropout=dropout), 2)
+    self.size = d_model
 
-  def forward(self, x, mask, adj_matrix, distances_matrix, edges_att):
-      "Follow Figure 1 (left) for connections."
-      x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, adj_matrix, distances_matrix, edges_att, mask))
-      return self.sublayer[1](x, self.feed_forward)
+  def forward(self, x, mask, **kwargs):
+    "Follow Figure 1 (left) for connections."
+    x = self.sublayer[0](x,
+                         lambda x: self.self_attn(x, x, x, mask=mask, **kwargs))
+    return self.sublayer[1](x, self.feed_forward)
 
-class EdgeFeaturesLayer(nn.Module):
-  def __init__(self, d_model, d_edge, h, dropout):
-      super(EdgeFeaturesLayer, self).__init__()
-      assert d_model % h == 0
-      d_k = d_model // h
-      self.linear = nn.Linear(d_edge, 1, bias=False)
-      with torch.no_grad():
-          self.linear.weight.fill_(0.25)
+
+class MultiHeadedAttention(nn.Module):
+
+  def __init__(self,
+               attention,
+               h,
+               d_model,
+               dropout,
+               output_bias = True):
+    super().__init__()
+    assert d_model % h == 0
+
+    self.d_k = d_model // h
+    self.h = h
+
+    self.linear_layers = clones(nn.Linear(d_model, d_model), 3)
+    self.dropout = nn.Dropout(dropout)
+    self.output_linear = nn.Linear(d_model, d_model, output_bias)
+    self.attention = attention
+
+  def forward(self,
+              query,
+              key,
+              value,
+              mask = None,
+              **kwargs):
+    if mask is not None:
+      mask = mask.unsqueeze(1)
+
+    batch_size = query.size(0)
+
+    query, key, value = [
+        layer(x).view(batch_size, -1, self.h, self.d_k).transpose(1, 2)
+        for layer, x in zip(self.linear_layers, (query, key, value))
+    ]
+
+    x, _ = self.attention(
+        query, key, value, mask=mask, dropout=self.dropout, **kwargs)
+    x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.h * self.d_k)
+
+    return self.output_linear(x)
+
+
+class PositionwiseFeedForward(nn.Module):
+  """Implements FFN equation."""
+
+  def __init__(self,
+               *,
+               d_input,
+               d_hidden = None,
+               d_output = None,
+               activation,
+               n_layers,
+               dropout):
+    super(PositionwiseFeedForward, self).__init__()
+    self.n_layers = n_layers
+    d_output = d_output if d_output is not None else d_input
+    d_hidden = d_hidden if d_hidden is not None else d_input
+    if n_layers == 1:
+      self.linears = [nn.Linear(d_input, d_output)]
+    else:
+      self.linears = [nn.Linear(d_input, d_hidden)] + \
+                      [nn.Linear(d_hidden, d_hidden) for _ in range(n_layers - 2)] + \
+                      [nn.Linear(d_hidden, d_output)]
+
+    self.linears = nn.ModuleList(self.linears)
+    self.dropout = clones(nn.Dropout(dropout), n_layers)
+    self.act_func = activation
 
   def forward(self, x):
-      p_edge = x.permute(0, 2, 3, 1)
-      p_edge = self.linear(p_edge).permute(0, 3, 1, 2)
-      return torch.relu(p_edge)
+
+    if self.n_layers == 0:
+      return x
+
+    elif self.n_layers == 1:
+      return self.dropout[0](self.act_func(self.linears[0](x)))
+
+    else:
+      for i in range(self.n_layers - 1):
+        x = self.dropout[i](self.act_func(self.linears[i](x)))
+      return self.linears[-1](x)
