@@ -30,11 +30,9 @@ logger = logging.getLogger(__name__)
 
 class JaxModel(Model):
   """This is a DeepChem model implemented by a Jax Model
-
   Here is a simple example of that uses JaxModel to train a
   Haiku (JAX Neural Network Library) based model on deepchem
   dataset.
-
   >> def f(x):
   >>   net = hk.nets.MLP([512, 256, 128, 1])
   >>   return net(x)
@@ -44,7 +42,6 @@ class JaxModel(Model):
   >> params = model.init(rng, x)
   >> j_m = JaxModel(model, params, 256, 0.001, 100)
   >> j_m.fit(train_dataset)
-
   All optimizations will be done using the optax library.
   """
 
@@ -62,7 +59,6 @@ class JaxModel(Model):
                **kwargs):
     """
     Create a new JaxModel
-
     Parameters
     ----------
     model: hk.State or Function
@@ -87,7 +83,6 @@ class JaxModel(Model):
     log_frequency: int, optional (default 100)
       The frequency at which to log data. Data is logged using
       `logging` by default.
-
     Miscellanous Parameters Yet To Add
     ----------------------------------
     model_dir: str, optional (default None)
@@ -96,7 +91,6 @@ class JaxModel(Model):
       whether to log progress to TensorBoard during training
     wandb: bool, optional (default False)
       whether to log progress to Weights & Biases during training
-
     Work in Progress
     ----------------
     [1] Integrate the optax losses, optimizers, schedulers with Deepchem
@@ -140,11 +134,9 @@ class JaxModel(Model):
 
   def _ensure_built(self):
     """The first time this is called, create internal data structures.
-
     Work in Progress
     ----------------
     [1] Integerate the optax losses, optimizers, schedulers with Deepchem
-
     """
     if self._built:
       return
@@ -161,7 +153,6 @@ class JaxModel(Model):
           callbacks: Union[Callable, List[Callable]] = [],
           all_losses: Optional[List[float]] = None) -> float:
     """Train this model on a dataset.
-
     Parameters
     ----------
     dataset: Dataset
@@ -182,11 +173,9 @@ class JaxModel(Model):
       If specified, all logged losses are appended into this list. Note that
       you can call `fit()` repeatedly with the same list and losses will
       continue to be appended.
-
     Returns
     -------
     The average loss over the most recent checkpoint interval
-
     Miscellanous Parameters Yet To Add
     ----------------------------------
     max_checkpoints_to_keep: int
@@ -200,7 +189,6 @@ class JaxModel(Model):
     variables: list of hk.Variable
       the variables to train.  If None (the default), all trainable variables in
       the model are used.
-
     Work in Progress
     ----------------
     [1] Integerate the optax losses, optimizers, schedulers with Deepchem
@@ -287,11 +275,9 @@ class JaxModel(Model):
       other_output_types: Optional[OneOrMany[str]]) -> OneOrMany[np.ndarray]:
     """
     Predict outputs for data provided by a generator.
-
     This is the private implementation of prediction.  Do not
     call it directly.  Instead call one of the public prediction
     methods.
-
     Parameters
     ----------
     generator: generator
@@ -306,7 +292,6 @@ class JaxModel(Model):
       returns the values of the uncertainty outputs.
     other_output_types: list, optional
       Provides a list of other output_types (strings) to predict from model.
-
     Returns
     -------
       a NumPy array of the model produces a single output, or a list of arrays
@@ -400,7 +385,6 @@ class JaxModel(Model):
       If specified, all outputs of this type will be retrieved
       from the model. If output_types is specified, outputs must
       be None.
-
     Returns
     -------
       a NumPy array of the model produces a single output, or a list of arrays
@@ -411,7 +395,6 @@ class JaxModel(Model):
   def predict_on_batch(self, X: ArrayLike, transformers: List[Transformer] = []
                       ) -> OneOrMany[np.ndarray]:
     """Generates predictions for input samples, processing samples in a batch.
-
     Parameters
     ----------
     X: ndarray
@@ -419,7 +402,6 @@ class JaxModel(Model):
     transformers: List[dc.trans.Transformers]
       Transformers that the input data has been transformed by.  The output
       is passed through these transformers to undo the transformations.
-
     Returns
     -------
     a NumPy array of the model produces a single output, or a list of arrays
@@ -440,7 +422,6 @@ class JaxModel(Model):
       output_types: Optional[List[str]] = None) -> OneOrMany[np.ndarray]:
     """
     Uses self to make predictions on provided Dataset object.
-
     Parameters
     ----------
     dataset: dc.data.Dataset
@@ -452,7 +433,6 @@ class JaxModel(Model):
       If specified, all outputs of this type will be retrieved
       from the model. If output_types is specified, outputs must
       be None.
-
     Returns
     -------
     a NumPy array of the model produces a single output, or a list of arrays
@@ -523,7 +503,6 @@ class JaxModel(Model):
                          transformers: List[Transformer] = [],
                          per_task_metrics: bool = False):
     """Evaluate the performance of this model on the data produced by a generator.
-
     Parameters
     ----------
     generator: generator
@@ -536,7 +515,6 @@ class JaxModel(Model):
       is passed through these transformers to undo the transformations.
     per_task_metrics: bool
       If True, return per-task scores.
-
     Returns
     -------
     dict
@@ -623,10 +601,8 @@ class JaxModel(Model):
       deterministic: bool = True,
       pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
     """Create a generator that iterates batches for a dataset.
-
     Subclasses may override this method to customize how model inputs are
     generated from the data.
-
     Parameters
     ----------
     dataset: Dataset
@@ -642,7 +618,6 @@ class JaxModel(Model):
       data for each epoch
     pad_batches: bool
       whether to pad each batch up to this model's preferred batch size
-
     Returns
     -------
     a generator that iterates batches, each represented as a tuple of lists:
