@@ -91,10 +91,10 @@ class Encoder(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
-  >>> attention = MATAttention('softmax', 0.33, 0.33)
-  >>> self_attn_layer = MultiHeadedAttention(8, 1024, 0.1, attention)
-  >>> feed_fwd_layer = PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout = 0.1)
-  >>> block = Encoder(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, d_model = 1024, dropout = 0.0, N = 3)
+  >>> attention = dc.models.torch_models.layers.MATAttention('softmax', 0.33, 0.33)
+  >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(8, 1024, 0.1, attention)
+  >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout = 0.1)
+  >>> block = dc.models.torch_models.layers.Encoder(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, d_model = 1024, dropout = 0.0, N = 3)
   """
 
   def __init__(self, self_attn_layer, feed_fwd_layer, d_model, dropout, N):
@@ -200,10 +200,10 @@ class EncoderLayer(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
-  >>> attention = MATAttention('softmax', 0.33, 0.33)
-  >>> self_attn_layer = MultiHeadedAttention(h = 8, d_model = 1024, dropout = 0.1, attention = attention)
-  >>> feed_fwd_layer = PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout = 0.1)
-  >>> layer = EncoderLayer(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, d_model = 1024, dropout = 0.1, N = 3)
+  >>> attention = dc.models.torch_models.layers.MATAttention('softmax', 0.33, 0.33)
+  >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(h = 8, d_model = 1024, dropout = 0.1, attention = attention)
+  >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout = 0.1)
+  >>> layer = dc.models.torch_models.layers.EncoderLayer(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, d_model = 1024, dropout = 0.1, N = 3)
   """
 
   def __init__(self, self_attn_layer, feed_fwd_layer, d_model, dropout):
@@ -263,7 +263,7 @@ class MATAttention(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
-  >>> attention = MATAttention(dist_kernel = 'softmax', lambda_attention = 0.33, lambda_distance = 0.33)
+  >>> attention = dc.models.torch_models.layers.MATAttention(dist_kernel = 'softmax', lambda_attention = 0.33, lambda_distance = 0.33)
   """
 
   def __init__(self, dist_kernel, lambda_attention, lambda_distance):
@@ -359,8 +359,8 @@ class MultiHeadedAttention(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
-  >>> attention = MATAttention('softmax', 0.33, 0.33')
-  >>> self_attn_layer = MultiHeadedAttention(h = 8, d_model = 1024, dropout = 0.1, attention = attention)
+  >>> attention = dc.models.torch_models.layers.MATAttention('softmax', 0.33, 0.33')
+  >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(h = 8, d_model = 1024, dropout = 0.1, attention = attention)
   """
 
   def __init__(self, attention, h, d_model, dropout, output_bias=True):
@@ -435,7 +435,7 @@ class PositionwiseFeedForward(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
-  >>> feed_fwd_layer = PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout = 0.1)
+  >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout = 0.1)
   """
 
   def __init__(self,
