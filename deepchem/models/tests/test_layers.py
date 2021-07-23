@@ -628,4 +628,4 @@ def test_clones():
 def test_sub_layer_connection():
   """Test invoking SublayerConnection."""
   layer = torch_layers.SublayerConnection(2, 0.3)
-  output = layer.forward(torch.Tensor([1.,2.]), torch.nn.Linear(2,1))
+  output = layer(torch.Tensor([1.,2.]), torch.nn.Linear(2,1))

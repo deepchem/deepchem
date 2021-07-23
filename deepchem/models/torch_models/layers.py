@@ -52,8 +52,8 @@ class ScaleNorm(nn.Module):
   >>> import deepchem as dc
   >>> scale = 0.35
   >>> layer = dc.models.torch_models.layers.ScaleNorm(scale)
-  >>> input_tensor = torch.tensor([[1.269, 39.36], [0.00918, -9.12]])
-  >>> output_tensor = layer.forward(input_tensor)
+  >>> input_tensor = torch.Tensor([[1.269, 39.36], [0.00918, -9.12]])
+  >>> output_tensor = layer(input_tensor)
   """
 
   def __init__(self, scale, eps=1e-5):
@@ -264,7 +264,7 @@ class MultiHeadedAttention(nn.Module):
 class PositionwiseFeedForward(nn.Module):
   """Positionwise Feed Forward is a layer used to define the feed-forward algorithm for the Molecular Attention Transformer [1]_
   
-  
+  The input activation function is applied to each layer, followed by dropout adjustment.
 
   References
   ----------
