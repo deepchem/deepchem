@@ -70,6 +70,8 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
 
     valid_score = best_model.evaluate(self.valid_dataset, [metric],
                                       transformers)
+    print('all_results', all_results)
+    print('valid_score', valid_score)
     assert valid_score["pearson_r2_score"] == min(all_results.values())
     assert valid_score["pearson_r2_score"] > 0
 

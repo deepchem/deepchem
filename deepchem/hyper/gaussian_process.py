@@ -305,6 +305,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
           f.write("Score: %s" % str(score))
           f.write('\n')
       # Store all results
+      print('eval', hp_str, score)
       all_results[hp_str] = score
       # Store reference to model
       all_models[hp_str] = model
@@ -355,6 +356,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     hp_str = _convert_hyperparam_dict_to_filename(hyper_parameters)
 
     # Let's fetch the model with the best parameters
+    print('hp_opt', hp_opt)
+    print('valid_performance_opt', valid_performance_opt)
     best_model = all_models[hp_str]
 
     # Compare best model to default hyperparameters
