@@ -2501,8 +2501,8 @@ class RxnSplitTransformer(Transformer):
            'CC(C)CC(=O)c1ccc(O)nc1'],
           ['CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(N)cc3)cc21.O=CO>',
            'CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(NC=O)cc3)cc21']], dtype='<U51'), array([], dtype=float64), array([], dtype=float64), array([], dtype=float64))
-  
-  When mixed training is diabled, you get the following outputs
+
+  When mixed training is disabled, you get the following outputs:
 
   >>> trans_disable = RxnSplitTransformer(sep_reagent=False)
   >>> split_reactions = trans_disable.transform_array(X=reactions, y=np.array([]), w=np.array([]), ids=np.array([]))
@@ -2529,8 +2529,6 @@ class RxnSplitTransformer(Transformer):
     dataset: dc.data.Dataset object, optional (default None)
       Dataset to be transformed.
     """
-    # the transformer would have to split the source and target sequences
-    # would also consider adding the option of separating the reagent here.
 
     self.sep_reagent = sep_reagent
     super(RxnSplitTransformer, self).__init__(transform_X=True, dataset=dataset)
