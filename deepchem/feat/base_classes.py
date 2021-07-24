@@ -23,8 +23,10 @@ class Featurizer(object):
   new datatype.
   """
 
-  def featurize(self, datapoints: Iterable[Any],
-                log_every_n: int = 1000, **kwargs) -> np.ndarray:
+  def featurize(self,
+                datapoints: Iterable[Any],
+                log_every_n: int = 1000,
+                **kwargs) -> np.ndarray:
     """Calculate features for datapoints.
 
     Parameters
@@ -157,7 +159,8 @@ class ComplexFeaturizer(Featurizer):
 
   def featurize(self,
                 datapoints: Iterable[Tuple[str, str]] = None,
-                log_every_n: int = 100, **kwargs) -> np.ndarray:
+                log_every_n: int = 100,
+                **kwargs) -> np.ndarray:
     """
     Calculate features for mol/protein complexes.
 
@@ -176,7 +179,9 @@ class ComplexFeaturizer(Featurizer):
 
     if 'complexes' in kwargs:
       datapoints = kwargs.get("complexes")
-      raise DeprecationWarning('Complexes is being phased out as a parameter, please pass "datapoints" instead.')
+      raise DeprecationWarning(
+          'Complexes is being phased out as a parameter, please pass "datapoints" instead.'
+      )
     if not isinstance(datapoints, Iterable):
       datapoints = [cast(Tuple[str, str], datapoints)]
     features, failures, successes = [], [], []
@@ -319,7 +324,8 @@ class MaterialStructureFeaturizer(Featurizer):
 
   def featurize(self,
                 structures: Iterable[Union[Dict[str, Any], PymatgenStructure]],
-                log_every_n: int = 1000, **kwargs) -> np.ndarray:
+                log_every_n: int = 1000,
+                **kwargs) -> np.ndarray:
     """Calculate features for crystal structures.
 
     Parameters
@@ -382,8 +388,10 @@ class MaterialCompositionFeaturizer(Featurizer):
   installed.
   """
 
-  def featurize(self, compositions: Iterable[str],
-                log_every_n: int = 1000, **kwargs) -> np.ndarray:
+  def featurize(self,
+                compositions: Iterable[str],
+                log_every_n: int = 1000,
+                **kwargs) -> np.ndarray:
     """Calculate features for crystal compositions.
 
     Parameters
