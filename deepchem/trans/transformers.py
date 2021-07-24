@@ -2479,8 +2479,9 @@ class RxnSplitTransformer(Transformer):
   string would be reactants>reagents and the target string would be the products.
 
   The transformer can also separate the reagents from the reactants for a mixed
-  training mode. This can be toggled (default True) by setting the value of
-  sep_reagent while calling the transformer.
+  training mode. During mixed training, the source string is transformed from
+  reactants>reagent to reactants.reagent> . This can be toggled (default True)
+  by setting the value of sep_reagent while calling the transformer.
 
   Examples
   --------
@@ -2490,7 +2491,6 @@ class RxnSplitTransformer(Transformer):
   >>> reactions = np.array(
     [
         "CC(C)C[Mg+].CON(C)C(=O)c1ccc(O)nc1>C1CCOC1.[Cl-]>CC(C)CC(=O)c1ccc(O)nc1",
-        "CN.O=C(O)c1ccc(Cl)c([N+](=O)[O-])c1>O>CNc1ccc(C(=O)O)cc1[N+](=O)[O-]",
         "CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(N)cc3)cc21.O=CO>>CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(NC=O)cc3)cc21"
     ],
     dtype=object)
@@ -2499,18 +2499,16 @@ class RxnSplitTransformer(Transformer):
   >>> split_reactions
   (array([['CC(C)C[Mg+].CON(C)C(=O)c1ccc(O)nc1>C1CCOC1.[Cl-]',
            'CC(C)CC(=O)c1ccc(O)nc1'],
-          ['CN.O=C(O)c1ccc(Cl)c([N+](=O)[O-])c1>O',
-           'CNc1ccc(C(=O)O)cc1[N+](=O)[O-]'],
           ['CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(N)cc3)cc21.O=CO>',
            'CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(NC=O)cc3)cc21']], dtype='<U51'), array([], dtype=float64), array([], dtype=float64), array([], dtype=float64))
-  >>> # When mixed training is diabled.
+  
+  When mixed training is diabled, you get the following outputs
+
   >>> trans_disable = RxnSplitTransformer(sep_reagent=False)
   >>> split_reactions = trans_disable.transform_array(X=reactions, y=np.array([]), w=np.array([]), ids=np.array([]))
   >>> split_reactions
   (array([['CC(C)C[Mg+].CON(C)C(=O)c1ccc(O)nc1.C1CCOC1.[Cl-]>',
            'CC(C)CC(=O)c1ccc(O)nc1'],
-          ['CN.O=C(O)c1ccc(Cl)c([N+](=O)[O-])c1.O>',
-           'CNc1ccc(C(=O)O)cc1[N+](=O)[O-]'],
           ['CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(N)cc3)cc21.O=CO>',
            'CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(NC=O)cc3)cc21']], dtype='<U51'), array([], dtype=float64), array([], dtype=float64), array([], dtype=float64))
 

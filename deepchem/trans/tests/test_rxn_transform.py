@@ -6,17 +6,9 @@ from deepchem.trans.transformers import RxnSplitTransformer
 reactions: np.ndarray = np.array(
     [
         "CC(C)C[Mg+].CON(C)C(=O)c1ccc(O)nc1>C1CCOC1.[Cl-]>CC(C)CC(=O)c1ccc(O)nc1",
-        "CN.O=C(O)c1ccc(Cl)c([N+](=O)[O-])c1>O>CNc1ccc(C(=O)O)cc1[N+](=O)[O-]",
         "CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(N)cc3)cc21.O=CO>>CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(NC=O)cc3)cc21"
     ],
     dtype=object)
-
-# sep_split: Tuple[np.ndarray, ...] = (np.array([['CC(C)C[Mg+].CON(C)C(=O)c1ccc(O)nc1>C1CCOC1.[Cl-]',
-#        'CC(C)CC(=O)c1ccc(O)nc1'],
-#       ['CN.O=C(O)c1ccc(Cl)c([N+](=O)[O-])c1>O',
-#        'CNc1ccc(C(=O)O)cc1[N+](=O)[O-]'],
-#       ['CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(N)cc3)cc21.O=CO>',
-#        'CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(NC=O)cc3)cc21']], dtype='<U51'), [], [], [])
 
 
 class TestRxnSplitTransformer(unittest.TestCase):
