@@ -75,13 +75,14 @@ except ModuleNotFoundError:
 
 try:
   from transformers import RobertaTokenizerFast
+  from deepchem.feat.roberta_tokenizer import RobertaFeaturizer
 except ModuleNotFoundError:
   # raise ImportError('This class requires transformers.')
-  raise ImportWarning(
+  """   raise ImportWarning(
       'This class requires transformers. Please use "pip install transformers" to continue.'
   )
+  """
   pass
-from deepchem.feat.roberta_tokenizer import RobertaFeaturizer
 
 # support classes
 from deepchem.feat.molecule_featurizers import GraphMatrix

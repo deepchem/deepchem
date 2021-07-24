@@ -3,7 +3,7 @@ from typing import Dict, List
 try:
   from transformers import RobertaTokenizerFast
 except ModuleNotFoundError:
-  raise ImportError('This class requires transformers.')
+  # raise ImportError('This class requires transformers.')
   pass
 
 
