@@ -17,5 +17,4 @@ from deepchem.feat.molecule_featurizers.smiles_to_seq import SmilesToSeq, create
 from deepchem.feat.molecule_featurizers.mol_graph_conv_featurizer import MolGraphConvFeaturizer
 from deepchem.feat.molecule_featurizers.mol_graph_conv_featurizer import PagtnMolGraphFeaturizer
 from deepchem.feat.molecule_featurizers.molgan_featurizer import MolGanFeaturizer
-from deepchem.feat.molecule_featurizers.roberta_tokenizer import RobertaFeaturizer
 from deepchem.feat.molecule_featurizers.mat_featurizer import MATFeaturizer
