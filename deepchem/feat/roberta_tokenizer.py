@@ -56,7 +56,6 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
     """
 
     # the encoding is natively a dictionary with keys 'input_ids' and 'attention_mask'
-    # -> make this a list of two lists to allow np to handle it
     # encoding = list(self(smiles_string, **kwargs).values())
     encoding = list(self(sequence, **kwargs).values())
     return encoding
