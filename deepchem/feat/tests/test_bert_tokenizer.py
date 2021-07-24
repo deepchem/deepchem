@@ -8,7 +8,8 @@ class TestBertFeaturizer(unittest.TestCase):
   usage examples in Rostlab prot_bert documentation hosted by HuggingFace."""
 
   def setUp(self):
-    self.sequence = '[CLS] D L I P T S S K L V V L D T S L Q V K K A F F A L V T [SEP]'
+    self.sequence = ['[CLS] D L I P T S S K L V [SEP]', '[CLS] V K K A F F A L V T [SEP]']
+    self.sequence_long = ['[CLS] D L I P T S S K L V V K K A F F A L V T [SEP]']
     self.featurizer = BertFeaturizer.from_pretrained(
         "Rostlab/prot_bert", do_lower_case=False)
 
@@ -16,8 +17,11 @@ class TestBertFeaturizer(unittest.TestCase):
     """Test BertFeaturizer.__call__(), which is based on BertTokenizerFast."""
     embedding = self.featurizer(
         self.sequence, return_tensors='pt')
-    assert 'input_ids' in embedding and 'attention_mask' in embedding
-    assert len(embedding['input_ids']) == 2 and len(embedding['attention_mask']) == 2
+    embedding_long = self.featurizer(
+      self.sequence_long * 2, return_tensors='pt')
+    for emb in [embedding, embedding_long]:
+      assert 'input_ids' in emb.keys() and 'attention_mask' in emb.keys()
+      assert len(embedding['input_ids']) == 2 and len(emb['attention_mask']) == 2
 
   def test_featurize(self):
     """Test that BertFeaturizer.featurize() correctly featurizes all sequences,
