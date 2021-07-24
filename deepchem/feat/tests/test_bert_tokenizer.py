@@ -28,10 +28,10 @@ class TestBertFeaturizer(unittest.TestCase):
     correctly outputs input_ids and attention_mask.
     """
     feats = self.featurizer.featurize(self.sequence)
-    assert (len(feats) == 2)
-    assert (all([len(f) == 2 for f in feats]))
-
     long_feat = self.featurizer.featurize(
-        self.sequence)
+        self.sequence_long)
+
+    assert (len(feats) == 2)
+    assert (all([len(f) == 3 for f in feats]))
     assert (len(long_feat) == 1)
-    assert (len(long_feat[0] == 2))
+    assert (len(long_feat[0] == 3))
