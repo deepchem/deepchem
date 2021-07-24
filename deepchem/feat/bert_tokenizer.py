@@ -7,7 +7,7 @@ except:
                     which was not found in your environment.""")
 
 
-class BertFeaturizer(Featurizer, BertTokenizerFast):
+class BertFeaturizer(BertTokenizerFast, Featurizer):
   """Bert Featurizer.
 
   The Bert Featurizer is a wrapper class for HuggingFace's BertTokenizerFast.
@@ -30,27 +30,26 @@ class BertFeaturizer(Featurizer, BertTokenizerFast):
   code restructuring.
   """
 
-  def __init__(self, input_ids, attention_mask):
-    self.input_ids = input_ids
-    self.attention_mask = attention_mask
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
     return
 
-  def _featurize(self, sequence: str) -> List[List[int]]:
+  def _featurize(self, sequence: str, **kwargs) -> List[List[int]]:
     """Tokenizes a datapoint with BertTokenizerFast.
 
     Parameters
     ----------
     sequence: str
-    An arbitrary string.
+        An arbitrary string sequence to be tokenized.
 
     Returns
     -------
     encoding: list
-    list containing two lists: `input_ids` and `attention_mask`
+        list containing two lists: `input_ids` and `attention_mask`
     """
-    obj = self(sequence, self.input_ids, self.attention_mask)
-    encoding = list(obj.values())
+    # print(f"encoding {sequence}")  # Bug: This is getting called 142 times per token
+    encoding = list(self(sequence, **kwargs).values())
     return encoding
 
-  def __call__(self, *args) -> Dict[str, List[int]]:
-    return super().__call__(*args)
+  def __call__(self, *args, **kwargs) -> Dict[str, List[int]]:
+    return super().__call__(*args, **kwargs)
