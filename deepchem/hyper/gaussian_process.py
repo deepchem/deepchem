@@ -305,7 +305,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
           f.write("Score: %s" % str(score))
           f.write('\n')
       # Store all results
-      print('eval', hp_str, score)
+      print('eval', placeholders, hyper_parameters, score)
       all_results[hp_str] = score
       # Store reference to model
       all_models[hp_str] = model
