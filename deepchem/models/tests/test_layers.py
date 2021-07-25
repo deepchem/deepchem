@@ -9,6 +9,13 @@ try:
 except:
   has_tensorflow = False
 
+try:
+  import torch
+  import deepchem.models.torch_models.layers as torch_layers
+  has_torch = True
+except:
+  has_torch = False
+
 
 @pytest.mark.tensorflow
 def test_cosine_dist():
@@ -598,3 +605,14 @@ def test_DAG_gather():
   atom_features = np.random.rand(batch_size, n_atom_feat)
   membership = np.sort(np.random.randint(0, batch_size, size=(batch_size)))
   outputs = layer([atom_features, membership])
+
+
+@pytest.mark.torch
+def test_scale_norm():
+  """Test invoking ScaleNorm."""
+  input_ar = torch.tensor([[1., 99., 10000.], [0.003, 999.37, 23.]])
+  layer = torch_layers.ScaleNorm(0.35)
+  result1 = layer.forward(input_ar)
+  output_ar = np.array([[5.9157897e-05, 5.8566318e-03, 5.9157896e-01],
+                        [1.7754727e-06, 5.9145141e-01, 1.3611957e-02]])
+  assert np.allclose(result1, output_ar)
