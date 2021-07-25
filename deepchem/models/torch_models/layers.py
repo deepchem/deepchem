@@ -28,7 +28,7 @@ def clones(module, N):
   Examples
   --------
   >>> import deepchem as dc
-  >>> d_model = 1024
+  >>> hsize = 1024
   >>> cloned_layer = dc.models.torch_models.layers.clones(nn.Linear(1024, 1024), 3)
   """
 
@@ -94,10 +94,10 @@ class MATEncoder(nn.Module):
   >>> attention = dc.models.torch_models.layers.MATAttention('softmax', 0.33, 0.33)
   >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(8, 1024, 0.1, attention)
   >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout = 0.1)
-  >>> block = dc.models.torch_models.layers.MATEncoder(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, d_model = 1024, dropout = 0.0, N = 3)
+  >>> block = dc.models.torch_models.layers.MATEncoder(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, hsize = 1024, dropout = 0.0, N = 3)
   """
 
-  def __init__(self, self_attn_layer, feed_fwd_layer, d_model, dropout, N):
+  def __init__(self, self_attn_layer, feed_fwd_layer, hsize, dropout_p, N):
     """Initialize a MATEncoder block.
 
     Parameters
@@ -106,9 +106,9 @@ class MATEncoder(nn.Module):
       Self-Attention layer to be used in the MAT encoder block.
     feed_fwd_layer: dc.torch_models.layers or nn.Module
       Feed-Forward layer to be used in the MAT encoder block.
-    d_model: int
+    hsize: int
       Size of dense layer.
-    dropout: float
+    dropout_p: float
       Dropout probability.
     N: int
       Number of identical layers to be stacked.
@@ -118,8 +118,8 @@ class MATEncoder(nn.Module):
     layer = MATEncoderLayer(
         self_attn_layer=self_attn_layer,
         feed_fwd_layer=feed_fwd_layer,
-        d_model=d_model,
-        dropout=dropout)
+        hsize=hsize,
+        dropout_p=dropout_p)
     self.layers = clones(layer, N)
     self.norm = nn.LayerNorm(layer.size)
 
@@ -157,20 +157,20 @@ class SublayerConnection(nn.Module):
   >>> output = layer(torch.Tensor([1.,2.]), nn.Linear(2,1))
   """
 
-  def __init__(self, size, dropout):
+  def __init__(self, size, dropout_p):
     """Initialize a SublayerConnection Layer.
 
     Parameters
     ----------
     size: int
       Size of layer.
-    dropout: float
+    dropout_p: float
       Dropout probability.
     """
 
     super(SublayerConnection, self).__init__()
     self.norm = nn.LayerNorm(size)
-    self.dropout = nn.Dropout(dropout)
+    self.dropout_p = nn.Dropout(dropout_p)
 
   def forward(self, x, sublayer):
     """Output computation for the SublayerConnection layer.
@@ -184,7 +184,7 @@ class SublayerConnection(nn.Module):
     sublayer: nn.Module
       Layer whose output for normalized x will be added to x.
     """
-    return x + self.dropout(sublayer(self.norm(x)))
+    return x + self.dropout_p(sublayer(self.norm(x)))
 
 
 class MATEncoderLayer(nn.Module):
@@ -201,12 +201,12 @@ class MATEncoderLayer(nn.Module):
   --------
   >>> import deepchem as dc
   >>> attention = dc.models.torch_models.layers.MATAttention('softmax', 0.33, 0.33)
-  >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(h = 8, d_model = 1024, dropout = 0.1, attention = attention)
+  >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(h = 8, hsize = 1024, dropout = 0.1, attention = attention)
   >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout = 0.1)
-  >>> layer = dc.models.torch_models.layers.MATEncoderLayer(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, d_model = 1024, dropout = 0.1, N = 3)
+  >>> layer = dc.models.torch_models.layers.MATEncoderLayer(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, hsize = 1024, dropout = 0.1, N = 3)
   """
 
-  def __init__(self, self_attn_layer, feed_fwd_layer, d_model, dropout):
+  def __init__(self, self_attn_layer, feed_fwd_layer, hsize, dropout_p):
     """Initialize a MATEncoder layer.
 
     Parameters
@@ -215,17 +215,17 @@ class MATEncoderLayer(nn.Module):
       Self-Attention layer to be used in the MAT encoder layer.
     feed_fwd_layer: dc.torch_models.layers or nn.Module
       Feed-Forward layer to be used in the MAT encoder layer.
-    d_model: int
+    hsize: int
       Size of dense layer.
-    dropout: float
+    dropout_p: float
       Dropout probability.
     """
 
     super(MATEncoderLayer, self).__init__()
     self.self_attn = self_attn_layer
     self.feed_forward = feed_fwd_layer
-    self.sublayer = clones(SublayerConnection(size=d_model, dropout=dropout), 2)
-    self.size = d_model
+    self.sublayer = clones(SublayerConnection(size=hsize, dropout_p=dropout_p), 2)
+    self.size = hsize
 
   def forward(self, x, mask, **kwargs):
     """Output computation for the MATEncoder layer.
@@ -294,7 +294,7 @@ class MATAttention(nn.Module):
               key,
               value,
               mask,
-              dropout,
+              dropout_p,
               adj_matrix,
               distance_matrix,
               eps=1e-6,
@@ -311,7 +311,7 @@ class MATAttention(nn.Module):
       Standard value parameter for attention.
     mask: torch.Tensor
       Masks out padding values so that they are not taken into account when computing the attention score.
-    dropout: float
+    dropout_p: float
       Dropout probability.
     adj_matrix: np.ndarray
       Adjacency matrix of the input molecule, returned from dc.feat.MATFeaturizer()
@@ -340,7 +340,7 @@ class MATAttention(nn.Module):
     p_dist = distance_matrix.unsqueeze(1).repeat(1, query.shape[1], 1, 1)
 
     p_weighted = self.lambda_attention * p_attn + self.lambda_distance * p_dist + self.lambda_adjacency * p_adj
-    p_weighted = dropout(p_weighted)
+    p_weighted = dropout_p(p_weighted)
 
     return torch.matmul(p_weighted, value), p_attn
 
@@ -360,10 +360,10 @@ class MultiHeadedAttention(nn.Module):
   --------
   >>> import deepchem as dc
   >>> attention = dc.models.torch_models.layers.MATAttention('softmax', 0.33, 0.33')
-  >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(h = 8, d_model = 1024, dropout = 0.1, attention = attention)
+  >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(h = 8, hsize = 1024, dropout = 0.1, attention = attention)
   """
 
-  def __init__(self, attention, h, d_model, dropout, output_bias=True):
+  def __init__(self, attention, h, hsize, dropout_p, output_bias=True):
     """Initialize a multi-headed attention layer.
 
     Parameters
@@ -372,9 +372,9 @@ class MultiHeadedAttention(nn.Module):
       Module to be used as the attention layer.
     h: int
       Number of attention heads.
-    d_model: int
+    hsize: int
       Size of dense layer.
-    dropout: float
+    dropout_p: float
       Dropout probability.
     output_bias: bool
       If True, dense layers will use bias vectors.
@@ -382,12 +382,12 @@ class MultiHeadedAttention(nn.Module):
 
     super().__init__()
 
-    self.d_k = d_model // h
+    self.d_k = hsize // h
     self.h = h
 
-    self.linear_layers = clones(nn.Linear(d_model, d_model), 3)
-    self.dropout = nn.Dropout(dropout)
-    self.output_linear = nn.Linear(d_model, d_model, output_bias)
+    self.linear_layers = clones(nn.Linear(hsize, hsize), 3)
+    self.dropout_p = nn.Dropout(dropout_p)
+    self.output_linear = nn.Linear(hsize, hsize, output_bias)
     self.attention = attention
 
   def forward(self, query, key, value, mask=None, **kwargs):
@@ -416,7 +416,7 @@ class MultiHeadedAttention(nn.Module):
     ]
 
     x, _ = self.attention(
-        query, key, value, mask=mask, dropout=self.dropout, **kwargs)
+        query, key, value, mask=mask, dropout_p=self.dropout_p, **kwargs)
     x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.h * self.d_k)
 
     return self.output_linear(x)
@@ -445,7 +445,7 @@ class PositionwiseFeedForward(nn.Module):
                d_output=None,
                activation,
                n_layers,
-               dropout):
+               dropout_p):
     """Initialize a PositionwiseFeedForward layer.
 
     Parameters
@@ -460,7 +460,7 @@ class PositionwiseFeedForward(nn.Module):
       Activation function to be used.
     n_layers: int
       Number of layers.
-    dropout: float
+    dropout_p: float
       Dropout probability.
     """
 
@@ -478,7 +478,7 @@ class PositionwiseFeedForward(nn.Module):
                       [nn.Linear(d_hidden, d_output)]
 
     self.linears = nn.ModuleList(self.linears)
-    self.dropout = clones(nn.Dropout(dropout), n_layers)
+    self.dropout_p = clones(nn.Dropout(dropout_p), n_layers)
     self.act_func = activation
 
   def forward(self, x):
@@ -494,9 +494,9 @@ class PositionwiseFeedForward(nn.Module):
       return x
 
     elif self.n_layers == 1:
-      return self.dropout[0](self.act_func(self.linears[0](x)))
+      return self.dropout_p[0](self.act_func(self.linears[0](x)))
 
     else:
       for i in range(self.n_layers - 1):
-        x = self.dropout[i](self.act_func(self.linears[i](x)))
+        x = self.dropout_p[i](self.act_func(self.linears[i](x)))
       return self.linears[-1](x)
