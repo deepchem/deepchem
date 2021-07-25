@@ -27,7 +27,7 @@ class ScaleNorm(nn.Module):
   >>> import deepchem as dc
   >>> scale = 0.35
   >>> layer = dc.models.torch_models.layers.ScaleNorm(scale)
-  >>> input_tensor = torch.Tensor([[1.269, 39.36], [0.00918, -9.12]])
+  >>> input_tensor = torch.tensor([[1.269, 39.36], [0.00918, -9.12]])
   >>> output_tensor = layer(input_tensor)
   """
 
