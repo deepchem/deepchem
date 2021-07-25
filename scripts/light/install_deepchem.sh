@@ -23,36 +23,36 @@ then
     # We expect the CUDA vesion is 10.1.
     if [ "$3" = "tensorflow" ];
     then
-        conda-merge $PWD/requirements/tensorflow/env_tensorflow.yml > $PWD/env.yml
+        conda-merge $PWD/requirements/tensorflow/env_tensorflow.yml $PWD/env.test.yml > $PWD/env.yml
         echo "Installing Tensorflow environment with GPU"
-    elif [ "$3" = "pytorch" ];
+    elif [ "$3" = "torch" ];
     then
-        conda-merge $PWD/requirements/pytorch/env_pytorch.yml $PWD/requirements/pytorch/env_pytorch.gpu.yml > $PWD/env.yml
+        conda-merge $PWD/requirements/pytorch/env_pytorch.yml $PWD/requirements/pytorch/env_pytorch.gpu.yml $PWD/env.test.yml > $PWD/env.yml
         echo "Installing pytorch environment with GPU"
     elif [ "$3" = "jax" ];
     then
-        conda-merge $PWD/requirements/jax/env_jax.yml $PWD/requirements/jax/env_jax.gpu.yml > $PWD/env.yml
+        conda-merge $PWD/requirements/jax/env_jax.yml $PWD/requirements/jax/env_jax.gpu.yml $PWD/env.test.yml > $PWD/env.yml
         echo "Installing jax environment with GPU"
     else
-        conda-merge $PWD/requirements/env_common.yml > $PWD/env.yml
+        conda-merge $PWD/requirements/env_common.yml $PWD/env.test.yml > $PWD/env.yml
         echo "Installing common environment with GPU"
     fi
 else
     # We expect the CUDA vesion is 10.1.
     if [ "$3" = "tensorflow" ];
     then
-        conda-merge $PWD/requirements/tensorflow/env_tensorflow.yml > $PWD/env.yml
+        conda-merge $PWD/requirements/tensorflow/env_tensorflow.yml $PWD/env.test.yml > $PWD/env.yml
         echo "Installing Tensorflow environment with CPU"
-    elif [ "$3" = "pytorch" ];
+    elif [ "$3" = "torch" ];
     then
-        conda-merge $PWD/requirements/pytorch/env_pytorch.yml $PWD/requirements/pytorch/env_pytorch.cpu.yml > $PWD/env.yml
+        conda-merge $PWD/requirements/pytorch/env_pytorch.yml $PWD/requirements/pytorch/env_pytorch.cpu.yml $PWD/env.test.yml > $PWD/env.yml
         echo "Installing pytorch environment with CPU"
     elif [ "$3" = "jax" ];
     then
-        conda-merge $PWD/requirements/jax/env_jax.yml $PWD/requirements/jax/env_jax.cpu.yml > $PWD/env.yml
+        conda-merge $PWD/requirements/jax/env_jax.yml $PWD/requirements/jax/env_jax.cpu.yml $PWD/env.test.yml > $PWD/env.yml
         echo "Installing jax environment with CPU"
     else
-        conda-merge $PWD/requirements/env_common.yml > $PWD/env.yml
+        conda-merge $PWD/requirements/env_common.yml $PWD/env.test.yml > $PWD/env.yml
         echo "Installing common environment with CPU"
     fi
 fi
