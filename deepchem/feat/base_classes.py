@@ -44,12 +44,12 @@ class Featurizer(object):
       A numpy array containing a featurized representation of `datapoints`.
     """
     datapoints = list(datapoints)
-    features = []
+    features: list[any] = []
     for i, point in enumerate(datapoints):
       if i % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % i)
       try:
-        features.append(self._featurize(point), **kwargs)
+        features.append(self._featurize(point, **kwargs))
       except:
         logger.warning(
             "Failed to featurize datapoint %d. Appending empty array")
@@ -212,7 +212,7 @@ class ComplexFeaturizer(Featurizer):
 
     return np.asarray(features)
 
-  def _featurize(self, complex: Tuple[str, str], **kwargs):
+  def _featurize(self, datapoints: Iterable[Tuple[str, str]] = None, **kwargs):
     """
     Calculate features for single mol/protein complex.
 
@@ -273,7 +273,7 @@ class MolecularFeaturizer(Featurizer):
       # Convert iterables to list
       molecules = list(molecules)
 
-    features = []
+    features: list = []
     for i, mol in enumerate(molecules):
       if i % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % i)
