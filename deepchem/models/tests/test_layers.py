@@ -617,15 +617,9 @@ def test_scale_norm():
                         [1.7754727e-06, 5.9145141e-01, 1.3611957e-02]])
   assert np.allclose(result1, output_ar)
 
-@pytest.mark.torch
-def test_clones():
-  """Test invoking the Clones function."""
-  layers = torch_layers.clones(torch.nn.Linear(1024, 1024), 3)
-  assert type(layers) == torch.nn.modules.container.ModuleList
-  assert len(layers) == 3
 
 @pytest.mark.torch
 def test_sub_layer_connection():
   """Test invoking SublayerConnection."""
   layer = torch_layers.SublayerConnection(2, 0.3)
-  output = layer(torch.Tensor([1.,2.]), torch.nn.Linear(2,1))
+  output = layer(torch.Tensor([1., 2.]), torch.nn.Linear(2, 1))

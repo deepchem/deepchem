@@ -1,5 +1,4 @@
 import math
-import copy
 import numpy as np
 try:
   import torch
@@ -7,32 +6,6 @@ try:
   import torch.nn.functional as F
 except:
   raise ImportError('These classes require Torch to be installed.')
-
-
-def clones(module, N):
-  """Produce N identical layers.
-
-  This function returns a stack of Modules replicated N times. 
-  
-  Parameters
-  ----------
-  N: int
-    Number of identical layers to be returned.
-  module: nn.Module
-    The module where the N identical layers are to be added.
-  
-  Returns
-  -------
-  Torch module with N identical layers.
-
-  Examples
-  --------
-  >>> import deepchem as dc
-  >>> hsize = 1024
-  >>> cloned_layer = dc.models.torch_models.layers.clones(nn.Linear(1024, 1024), 3)
-  """
-
-  return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
 
 
 class ScaleNorm(nn.Module):
@@ -48,7 +21,7 @@ class ScaleNorm(nn.Module):
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
-  
+
   Examples
   --------
   >>> import deepchem as dc
@@ -80,48 +53,38 @@ class ScaleNorm(nn.Module):
 
 class MATEncoder(nn.Module):
   """Encoder block for the Molecule Attention Transformer [1]_.
-  
+
   A stack of N layers which form the MAT encoder block. The block primarily consists of a self-attention layer and a feed-forward layer.
   This block is constructed from its basic layer: MATEncoderLayer. See dc.models.torch_models.layers.MATEncoderLayer for more details regarding the working of the block.
 
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
-  
+
   Examples
   --------
   >>> import deepchem as dc
   >>> attention = dc.models.torch_models.layers.MATAttention('softmax', 0.33, 0.33)
   >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(8, 1024, 0.1, attention)
-  >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout = 0.1)
-  >>> block = dc.models.torch_models.layers.MATEncoder(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, hsize = 1024, dropout = 0.0, N = 3)
+  >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout_p = 0.1)
+  >>> encoder_layer = dc.models.torch_models.layers.MATEncoderLayer(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, hsize = 1024, dropout_p = 0.1)
+  >>> block = dc.models.torch_models.layers.MATEncoder(encoder_layer = encoder_layer, N = 3)
   """
 
-  def __init__(self, self_attn_layer, feed_fwd_layer, hsize, dropout_p, N):
+  def __init__(self, encoder_layer, N):
     """Initialize a MATEncoder block.
 
     Parameters
     ----------
-    self_attn_layer: dc.torch_models.layers or nn.Module
-      Self-Attention layer to be used in the MAT encoder block.
-    feed_fwd_layer: dc.torch_models.layers or nn.Module
-      Feed-Forward layer to be used in the MAT encoder block.
-    hsize: int
-      Size of dense layer.
-    dropout_p: float
-      Dropout probability.
+    encoder_layer: nn.Module
+      The base encoder layer which forms the encoder block. Intended to be primarily used with the MATEncoderLayer.
     N: int
-      Number of identical layers to be stacked.
+      Number of identical encoder layers to be stacked.
     """
 
     super(MATEncoder, self).__init__()
-    layer = MATEncoderLayer(
-        self_attn_layer=self_attn_layer,
-        feed_fwd_layer=feed_fwd_layer,
-        hsize=hsize,
-        dropout_p=dropout_p)
-    self.layers = clones(layer, N)
-    self.norm = nn.LayerNorm(layer.size)
+    self.layers = nn.ModuleList([encoder_layer for _ in range(N)])
+    self.norm = nn.LayerNorm(encoder_layer.size)
 
   def forward(self, x, mask, **kwargs):
     """Output computation for the MATEncoder block.
@@ -141,14 +104,14 @@ class MATEncoder(nn.Module):
 
 class SublayerConnection(nn.Module):
   """SublayerConnection layer which establishes a residual connection, as used in the Molecular Attention Transformer [1]_.
-  
+
   The SublayerConnection layer is a residual layer which is then passed through Layer Normalization.
-  The residual connection is established by computing the dropout-adjusted layer output of a normalized input tensor and adding this to the originial input tensor. 
-  
+  The residual connection is established by computing the dropout-adjusted layer output of a normalized input tensor and adding this to the originial input tensor.
+
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
-  
+
   Examples
   --------
   >>> import deepchem as dc
@@ -174,7 +137,7 @@ class SublayerConnection(nn.Module):
 
   def forward(self, x, sublayer):
     """Output computation for the SublayerConnection layer.
-    
+
     Takes an input tensor x, then adds the dropout-adjusted sublayer output for normalized x to it.
 
     Parameters
@@ -189,21 +152,21 @@ class SublayerConnection(nn.Module):
 
 class MATEncoderLayer(nn.Module):
   """Encoder layer for use in the Molecular Attention Transformer [1]_.
-  
-  The MATEncoder layer is formed by adding self-attention and feed-forward to the encoder block. 
+
+  The MATEncoder layer is formed by adding self-attention and feed-forward to the encoder block.
   It is the basis of the MATEncoder block.
-  
+
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
-  
+
   Examples
   --------
   >>> import deepchem as dc
   >>> attention = dc.models.torch_models.layers.MATAttention('softmax', 0.33, 0.33)
-  >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(h = 8, hsize = 1024, dropout = 0.1, attention = attention)
-  >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout = 0.1)
-  >>> layer = dc.models.torch_models.layers.MATEncoderLayer(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, hsize = 1024, dropout = 0.1, N = 3)
+  >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(h = 8, hsize = 1024, dropout_p = 0.1, attention = attention)
+  >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout_p = 0.1)
+  >>> layer = dc.models.torch_models.layers.MATEncoderLayer(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, hsize = 1024, dropout_p = 0.1)
   """
 
   def __init__(self, self_attn_layer, feed_fwd_layer, hsize, dropout_p):
@@ -224,7 +187,8 @@ class MATEncoderLayer(nn.Module):
     super(MATEncoderLayer, self).__init__()
     self.self_attn = self_attn_layer
     self.feed_forward = feed_fwd_layer
-    self.sublayer = clones(SublayerConnection(size=hsize, dropout_p=dropout_p), 2)
+    layer = SublayerConnection(size=hsize, dropout_p=dropout_p)
+    self.sublayer = nn.ModuleList([layer for _ in range(2)])
     self.size = hsize
 
   def forward(self, x, mask, **kwargs):
@@ -248,18 +212,18 @@ class MATEncoderLayer(nn.Module):
 
 class MATAttention(nn.Module):
   """Primary molecular self-attention layer for the Molecular Attention Transformer [1]_.
-  
+
   This layer also computes attention score with the given query, mask and value along with the mask so that the score is not influenced by padding.
-  The score is first calculated as the result of multiplying the query and the transpose of the key, then divided by the root of the size of the transpose of the key. 
+  The score is first calculated as the result of multiplying the query and the transpose of the key, then divided by the root of the size of the transpose of the key.
   The result is then passed through softmax activation. This forms our p_attn.
 
   The weights tensor is calculated by computing the summation of the products of lambda attention with p_attn, lambda_distance with the distance matrix, and lambda adjacency with the adjacency matrix, and finally adjusting it with dropout.
 
-  
+
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
-  
+
   Examples
   --------
   >>> import deepchem as dc
@@ -355,12 +319,12 @@ class MultiHeadedAttention(nn.Module):
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
-  
+
   Examples
   --------
   >>> import deepchem as dc
   >>> attention = dc.models.torch_models.layers.MATAttention('softmax', 0.33, 0.33')
-  >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(h = 8, hsize = 1024, dropout = 0.1, attention = attention)
+  >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(h = 8, hsize = 1024, dropout_p = 0.1, attention = attention)
   """
 
   def __init__(self, attention, h, hsize, dropout_p, output_bias=True):
@@ -384,8 +348,8 @@ class MultiHeadedAttention(nn.Module):
 
     self.d_k = hsize // h
     self.h = h
-
-    self.linear_layers = clones(nn.Linear(hsize, hsize), 3)
+    linear_layer = nn.Linear(hsize, hsize)
+    self.linear_layers = nn.ModuleList([linear_layer for _ in range(3)])
     self.dropout_p = nn.Dropout(dropout_p)
     self.output_linear = nn.Linear(hsize, hsize, output_bias)
     self.attention = attention
@@ -424,18 +388,18 @@ class MultiHeadedAttention(nn.Module):
 
 class PositionwiseFeedForward(nn.Module):
   """PositionwiseFeedForward is a layer used to define the position-wise feed-forward (FFN) algorithm for the Molecular Attention Transformer [1]_
-  
+
   Each layer in the MAT encoder contains a fully connected feed-forward network which applies two linear transformations and the given activation function.
   This is done in addition to the SublayerConnection module.
 
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
-  
+
   Examples
   --------
   >>> import deepchem as dc
-  >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout = 0.1)
+  >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout_p = 0.1)
   """
 
   def __init__(self,
@@ -478,7 +442,8 @@ class PositionwiseFeedForward(nn.Module):
                       [nn.Linear(d_hidden, d_output)]
 
     self.linears = nn.ModuleList(self.linears)
-    self.dropout_p = clones(nn.Dropout(dropout_p), n_layers)
+    dropout_layer = nn.Dropout(dropout_p)
+    self.dropout_p = nn.ModuleList([dropout_layer for _ in range(n_layers)])
     self.act_func = activation
 
   def forward(self, x):
