@@ -78,11 +78,11 @@ class ScaleNorm(nn.Module):
     return x * norm
 
 
-class Encoder(nn.Module):
-  """Encoder block for the Molecule Attention Transformer in [1]_.
+class MATEncoder(nn.Module):
+  """Encoder block for the Molecule Attention Transformer [1]_.
   
-  A stack of N layers which form the encoder block. The block primarily consists of a self-attention layer and a feed-forward layer.
-  This block is constructed from its basic layer: EncoderLayer. See dc.models.torch_models.layers.EncoderLayer for more details regarding the working of the block.
+  A stack of N layers which form the MAT encoder block. The block primarily consists of a self-attention layer and a feed-forward layer.
+  This block is constructed from its basic layer: MATEncoderLayer. See dc.models.torch_models.layers.MATEncoderLayer for more details regarding the working of the block.
 
   References
   ----------
@@ -94,18 +94,18 @@ class Encoder(nn.Module):
   >>> attention = dc.models.torch_models.layers.MATAttention('softmax', 0.33, 0.33)
   >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(8, 1024, 0.1, attention)
   >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout = 0.1)
-  >>> block = dc.models.torch_models.layers.Encoder(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, d_model = 1024, dropout = 0.0, N = 3)
+  >>> block = dc.models.torch_models.layers.MATEncoder(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, d_model = 1024, dropout = 0.0, N = 3)
   """
 
   def __init__(self, self_attn_layer, feed_fwd_layer, d_model, dropout, N):
-    """Initialize an Encoder block.
+    """Initialize a MATEncoder block.
 
     Parameters
     ----------
     self_attn_layer: dc.torch_models.layers or nn.Module
-      Self-Attention layer to be used in the encoder block.
+      Self-Attention layer to be used in the MAT encoder block.
     feed_fwd_layer: dc.torch_models.layers or nn.Module
-      Feed-Forward layer to be used in the encoder block.
+      Feed-Forward layer to be used in the MAT encoder block.
     d_model: int
       Size of dense layer.
     dropout: float
@@ -114,8 +114,8 @@ class Encoder(nn.Module):
       Number of identical layers to be stacked.
     """
 
-    super(Encoder, self).__init__()
-    layer = EncoderLayer(
+    super(MATEncoder, self).__init__()
+    layer = MATEncoderLayer(
         self_attn_layer=self_attn_layer,
         feed_fwd_layer=feed_fwd_layer,
         d_model=d_model,
@@ -124,7 +124,7 @@ class Encoder(nn.Module):
     self.norm = nn.LayerNorm(layer.size)
 
   def forward(self, x, mask, **kwargs):
-    """Output computation for the Encoder block.
+    """Output computation for the MATEncoder block.
 
     Parameters
     ----------
@@ -187,11 +187,11 @@ class SublayerConnection(nn.Module):
     return x + self.dropout(sublayer(self.norm(x)))
 
 
-class EncoderLayer(nn.Module):
+class MATEncoderLayer(nn.Module):
   """Encoder layer for use in the Molecular Attention Transformer [1]_.
   
-  The Encoder layer is formed by adding self-attention and feed-forward to the encoder block. 
-  It is the basis of the Encoder block.
+  The MATEncoder layer is formed by adding self-attention and feed-forward to the encoder block. 
+  It is the basis of the MATEncoder block.
   
   References
   ----------
@@ -203,32 +203,32 @@ class EncoderLayer(nn.Module):
   >>> attention = dc.models.torch_models.layers.MATAttention('softmax', 0.33, 0.33)
   >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(h = 8, d_model = 1024, dropout = 0.1, attention = attention)
   >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, activation = torch.nn.ReLU(), n_layers = 1, dropout = 0.1)
-  >>> layer = dc.models.torch_models.layers.EncoderLayer(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, d_model = 1024, dropout = 0.1, N = 3)
+  >>> layer = dc.models.torch_models.layers.MATEncoderLayer(self_attn_layer = self_attn_layer, feed_fwd_layer = feed_fwd_layer, d_model = 1024, dropout = 0.1, N = 3)
   """
 
   def __init__(self, self_attn_layer, feed_fwd_layer, d_model, dropout):
-    """Initialize an Encoder layer.
+    """Initialize a MATEncoder layer.
 
     Parameters
     ----------
     self_attn_layer: dc.torch_models.layers or nn.Module
-      Self-Attention layer to be used in the encoder layer.
+      Self-Attention layer to be used in the MAT encoder layer.
     feed_fwd_layer: dc.torch_models.layers or nn.Module
-      Feed-Forward layer to be used in the encoder layer.
+      Feed-Forward layer to be used in the MAT encoder layer.
     d_model: int
       Size of dense layer.
     dropout: float
       Dropout probability.
     """
 
-    super(EncoderLayer, self).__init__()
+    super(MATEncoderLayer, self).__init__()
     self.self_attn = self_attn_layer
     self.feed_forward = feed_fwd_layer
     self.sublayer = clones(SublayerConnection(size=d_model, dropout=dropout), 2)
     self.size = d_model
 
   def forward(self, x, mask, **kwargs):
-    """Output computation for the Encoder layer.
+    """Output computation for the MATEncoder layer.
 
     Parameters
     ----------
@@ -425,7 +425,7 @@ class MultiHeadedAttention(nn.Module):
 class PositionwiseFeedForward(nn.Module):
   """PositionwiseFeedForward is a layer used to define the position-wise feed-forward (FFN) algorithm for the Molecular Attention Transformer [1]_
   
-  Each layer in the encoder contains a fully connected feed-forward network which applies two linear transformations and the given activation function.
+  Each layer in the MAT encoder contains a fully connected feed-forward network which applies two linear transformations and the given activation function.
   This is done in addition to the SublayerConnection module.
 
   References
