@@ -616,10 +616,3 @@ def test_scale_norm():
   output_ar = np.array([[5.9157897e-05, 5.8566318e-03, 5.9157896e-01],
                         [1.7754727e-06, 5.9145141e-01, 1.3611957e-02]])
   assert np.allclose(result1, output_ar)
-
-
-@pytest.mark.torch
-def test_sub_layer_connection():
-  """Test invoking SublayerConnection."""
-  layer = torch_layers.SublayerConnection(2, 0.3)
-  output = layer(torch.Tensor([1., 2.]), torch.nn.Linear(2, 1))
