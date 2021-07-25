@@ -62,8 +62,8 @@ class CGCNNLayer(nn.Module):
     self.batch_norm = nn.BatchNorm1d(liner_out_dim) if batch_norm else None
 
   def message_func(self, edges):
-    z = torch.cat(
-        [edges.src['x'], edges.dst['x'], edges.data['edge_attr']], dim=1)
+    z = torch.cat([edges.src['x'], edges.dst['x'], edges.data['edge_attr']],
+                  dim=1)
     z = self.linear(z)
     if self.batch_norm is not None:
       z = self.batch_norm(z)
@@ -192,10 +192,9 @@ class CGCNN(nn.Module):
     self.n_classes = n_classes
     self.embedding = nn.Linear(in_node_dim, hidden_node_dim)
     self.conv_layers = nn.ModuleList([
-        CGCNNLayer(
-            hidden_node_dim=hidden_node_dim,
-            edge_dim=in_edge_dim,
-            batch_norm=True) for _ in range(num_conv)
+        CGCNNLayer(hidden_node_dim=hidden_node_dim,
+                   edge_dim=in_edge_dim,
+                   batch_norm=True) for _ in range(num_conv)
     ])
     self.pooling = dgl.mean_nodes
     self.fc = nn.Linear(hidden_node_dim, predictor_hidden_feats)
@@ -253,12 +252,14 @@ class CGCNNModel(TorchModel):
   Here is a simple example of code that uses the CGCNNModel with
   materials dataset.
 
-  >> import deepchem as dc
-  >> dataset_config = {"reload": False, "featurizer": dc.feat.CGCNNFeaturizer, "transformers": []}
-  >> tasks, datasets, transformers = dc.molnet.load_perovskite(**dataset_config)
-  >> train, valid, test = datasets
-  >> model = dc.models.CGCNNModel(mode='regression', batch_size=32, learning_rate=0.001)
-  >> model.fit(train, nb_epoch=50)
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> dataset_config = {"reload": False, "featurizer": dc.feat.CGCNNFeaturizer(), "transformers": []}
+  >>> tasks, datasets, transformers = dc.molnet.load_perovskite(**dataset_config)
+  >>> train, valid, test = datasets
+  >>> model = dc.models.CGCNNModel(mode='regression', batch_size=32, learning_rate=0.001)
+  >>> avg_loss = model.fit(train, nb_epoch=50)
 
   This model takes arbitary crystal structures as an input, and predict material properties
   using the element information and connection of atoms in the crystal. If you want to get
@@ -326,8 +327,10 @@ class CGCNNModel(TorchModel):
     else:
       loss = SparseSoftmaxCrossEntropy()
       output_types = ['prediction', 'loss']
-    super(CGCNNModel, self).__init__(
-        model, loss=loss, output_types=output_types, **kwargs)
+    super(CGCNNModel, self).__init__(model,
+                                     loss=loss,
+                                     output_types=output_types,
+                                     **kwargs)
 
   def _prepare_batch(self, batch):
     """Create batch data for CGCNN.
@@ -354,6 +357,6 @@ class CGCNNModel(TorchModel):
     inputs, labels, weights = batch
     dgl_graphs = [graph.to_dgl_graph() for graph in inputs[0]]
     inputs = dgl.batch(dgl_graphs).to(self.device)
-    _, labels, weights = super(CGCNNModel, self)._prepare_batch(([], labels,
-                                                                 weights))
+    _, labels, weights = super(CGCNNModel, self)._prepare_batch(
+        ([], labels, weights))
     return inputs, labels, weights
