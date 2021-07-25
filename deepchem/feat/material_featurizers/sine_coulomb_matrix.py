@@ -67,7 +67,7 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
     self.flatten = flatten
     self.scm: Any = None
 
-  def _featurize(self, struct: PymatgenStructure) -> np.ndarray:
+  def _featurize(self, struct: PymatgenStructure, **kwargs) -> np.ndarray:
     """
     Calculate sine Coulomb matrix from pymatgen structure.
 

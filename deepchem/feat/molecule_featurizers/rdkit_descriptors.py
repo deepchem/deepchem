@@ -53,7 +53,7 @@ class RDKitDescriptors(MolecularFeaturizer):
     self.descriptors = []
     self.descList = []
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
     """
     Calculate RDKit descriptors.
 

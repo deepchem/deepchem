@@ -93,7 +93,7 @@ class ContactCircularFingerprint(ComplexFeaturizer):
     self.radius = radius
     self.size = size
 
-  def _featurize(self, complex: Tuple[str, str]):
+  def _featurize(self, complex: Tuple[str, str], **kwargs):
     """
     Compute featurization for a molecular complex
 

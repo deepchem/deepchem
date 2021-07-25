@@ -37,7 +37,7 @@ class MACCSKeysFingerprint(MolecularFeaturizer):
     """Initialize this featurizer."""
     self.calculator = None
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
     """
     Calculate MACCS keys fingerprint.
 

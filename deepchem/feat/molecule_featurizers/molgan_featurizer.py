@@ -117,7 +117,7 @@ class MolGanFeaturizer(MolecularFeaturizer):
     self.atom_encoder = {l: i for i, l in enumerate(self.atom_labels)}
     self.atom_decoder = {i: l for i, l in enumerate(self.atom_labels)}
 
-  def _featurize(self, mol: RDKitMol) -> Optional[GraphMatrix]:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> Optional[GraphMatrix]:
     """
     Calculate adjacency matrix and nodes features for RDKitMol.
     It strips any chirality and charges

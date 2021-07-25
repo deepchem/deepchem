@@ -157,7 +157,7 @@ class LCNNFeaturizer(MaterialStructureFeaturizer):
     self.cutoff = np.around(cutoff, 2)
     self.setup_env = _load_primitive_cell(structure, aos, pbc, ns, na, cutoff)
 
-  def _featurize(self, structure: PymatgenStructure) -> GraphData:
+  def _featurize(self, structure: PymatgenStructure, **kwargs) -> GraphData:
     """
     Parameters
     ----------

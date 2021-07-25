@@ -168,7 +168,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     self.use_partial_charge = use_partial_charge
     self.use_chirality = use_chirality
 
-  def _featurize(self, mol: RDKitMol) -> GraphData:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> GraphData:
     """Calculate molecule graph features from RDKit mol object.
 
     Parameters
@@ -420,7 +420,7 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
 
     return np.array([src, dest], dtype=np.int), np.array(feats, dtype=np.float)
 
-  def _featurize(self, mol: RDKitMol) -> GraphData:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> GraphData:
     """Calculate molecule graph features from RDKit mol object.
 
     Parameters

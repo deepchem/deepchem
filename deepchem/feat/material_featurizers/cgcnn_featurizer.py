@@ -84,7 +84,7 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
     }
     self.valid_atom_number = set(self.atom_features.keys())
 
-  def _featurize(self, struct: PymatgenStructure) -> GraphData:
+  def _featurize(self, struct: PymatgenStructure, **kwargs) -> GraphData:
     """
     Calculate crystal graph features from pymatgen structure.
 

@@ -146,7 +146,7 @@ class SplifFingerprint(ComplexFeaturizer):
     self.size = size
     self.radius = radius
 
-  def _featurize(self, complex: Tuple[str, str]):
+  def _featurize(self, complex: Tuple[str, str], **kwargs):
     """
     Compute featurization for a molecular complex
 
@@ -236,7 +236,7 @@ class SplifVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.voxels_per_edge = int(self.box_width / self.voxel_width)
 
-  def _featurize(self, complex: Tuple[str, str]):
+  def _featurize(self, complex: Tuple[str, str], **kwargs):
     """
     Compute featurization for a molecular complex
 

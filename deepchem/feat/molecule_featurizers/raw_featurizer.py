@@ -26,7 +26,7 @@ class RawFeaturizer(MolecularFeaturizer):
     """
     self.smiles = smiles
 
-  def _featurize(self, mol: RDKitMol) -> Union[str, RDKitMol]:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> Union[str, RDKitMol]:
     """Calculate either smiles string or pass through raw molecule.
 
     Parameters

@@ -76,7 +76,7 @@ class SmilesToImage(MolecularFeaturizer):
     self.img_spec = img_spec
     self.embed = int(img_size * res / 2)
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
     """Featurizes a single SMILE into an image.
 
     Parameters

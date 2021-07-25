@@ -128,7 +128,7 @@ class Mol2VecFingerprint(MolecularFeaturizer):
             ]))
     return np.array(vec)
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
     """
     Calculate Mordred descriptors.
 

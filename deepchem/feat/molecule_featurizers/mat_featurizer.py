@@ -73,7 +73,7 @@ class MATFeaturizer(MolecularFeaturizer):
 
     return np.array(attrib, dtype=np.float32)
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
     """
     Featurize the molecule.
 

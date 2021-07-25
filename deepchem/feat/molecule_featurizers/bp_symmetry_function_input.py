@@ -45,7 +45,7 @@ class BPSymmetryFunctionInput(MolecularFeaturizer):
     self.max_atoms = max_atoms
     self.coordfeat = AtomicCoordinates(use_bohr=True)
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
     """Calculate symmetry function.
 
     Parameters

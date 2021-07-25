@@ -43,7 +43,7 @@ class PubChemFingerprint(MolecularFeaturizer):
 
     self.get_pubchem_compounds = pcp.get_compounds
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
     """
     Calculate PubChem fingerprint.
 

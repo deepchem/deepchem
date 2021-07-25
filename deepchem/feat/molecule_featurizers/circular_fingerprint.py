@@ -85,7 +85,7 @@ class CircularFingerprint(MolecularFeaturizer):
     self.sparse = sparse
     self.smiles = smiles
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
     """Calculate circular fingerprint.
 
     Parameters

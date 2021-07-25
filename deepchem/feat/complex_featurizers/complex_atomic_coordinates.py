@@ -118,7 +118,7 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     # Type of data created by this featurizer
     self.dtype = object
 
-  def _featurize(self, complex: Tuple[str, str]):
+  def _featurize(self, complex: Tuple[str, str], **kwargs):
     """
     Compute neighbor list for complex.
 

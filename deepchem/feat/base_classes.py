@@ -286,7 +286,7 @@ class MolecularFeaturizer(Featurizer):
           new_order = rdmolfiles.CanonicalRankAtoms(mol)
           mol = rdmolops.RenumberAtoms(mol, new_order)
 
-        features.append(self._featurize(mol), **kwargs)
+        features.append(self._featurize(mol, **kwargs))
       except Exception as e:
         if isinstance(mol, Chem.rdchem.Mol):
           mol = Chem.MolToSmiles(mol)
@@ -456,7 +456,7 @@ class DummyFeaturizer(Featurizer):
   """
 
   def featurize(self, datapoints: Iterable[Any],
-                log_every_n: int = 1000) -> np.ndarray:
+                log_every_n: int = 1000, **kwargs) -> np.ndarray:
     """Passes through dataset, and returns the datapoint.
 
     Parameters

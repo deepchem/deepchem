@@ -115,7 +115,7 @@ class SmilesToSeq(MolecularFeaturizer):
     smile = "".join([letter for letter in characters])
     return smile
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
     """Featurizes a SMILES sequence.
 
     Parameters

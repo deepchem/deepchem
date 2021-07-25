@@ -40,7 +40,7 @@ class AtomicCoordinates(MolecularFeaturizer):
     """
     self.use_bohr = use_bohr
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
     """Calculate atomic coordinates.
 
     Parameters

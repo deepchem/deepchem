@@ -74,7 +74,7 @@ class CoulombMatrix(MolecularFeaturizer):
       seed = int(seed)
     self.seed = seed
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
     """
     Calculate Coulomb matrices for molecules. If extra randomized
     matrices are generated, they are treated as if they are features
@@ -261,7 +261,7 @@ class CoulombMatrixEig(CoulombMatrix):
       seed = int(seed)
     self.seed = seed
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
     """
     Calculate eigenvalues of Coulomb matrix for molecules. Eigenvalues
     are returned sorted by absolute value in descending order and padded
