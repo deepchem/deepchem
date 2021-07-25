@@ -18,19 +18,18 @@ class _PerovskiteLoader(_MolnetLoader):
     targz_file = os.path.join(self.data_dir, 'perovskite.tar.gz')
     if not os.path.exists(dataset_file):
       if not os.path.exists(targz_file):
-        dc.utils.data_utils.download_url(
-            url=PEROVSKITE_URL, dest_dir=self.data_dir)
+        dc.utils.data_utils.download_url(url=PEROVSKITE_URL,
+                                         dest_dir=self.data_dir)
       dc.utils.data_utils.untargz_file(targz_file, self.data_dir)
-    loader = dc.data.JsonLoader(
-        tasks=self.tasks,
-        feature_field="structure",
-        label_field="formation_energy",
-        featurizer=self.featurizer)
+    loader = dc.data.JsonLoader(tasks=self.tasks,
+                                feature_field="structure",
+                                label_field="formation_energy",
+                                featurizer=self.featurizer)
     return loader.create_dataset(dataset_file)
 
 
 def load_perovskite(
-    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.SineCoulombMatrix(),
+    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.CGCNNFeaturizer(),
     splitter: Union[dc.splits.Splitter, str, None] = 'random',
     transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
     reload: bool = True,
@@ -93,13 +92,10 @@ def load_perovskite(
 
   Examples
   --------
-  >>>
-  >> import deepchem as dc
-  >> tasks, datasets, transformers = dc.molnet.load_perovskite()
-  >> train_dataset, val_dataset, test_dataset = datasets
-  >> n_tasks = len(tasks)
-  >> n_features = train_dataset.get_data_shape()[0]
-  >> model = dc.models.MultitaskRegressor(n_tasks, n_features)
+  >>> import deepchem as dc
+  >>> tasks, datasets, transformers = dc.molnet.load_perovskite()
+  >>> train_dataset, val_dataset, test_dataset = datasets
+  >>> model = dc.models.CGCNNModel(mode='regression', batch_size=32, learning_rate=0.001)
 
   """
   loader = _PerovskiteLoader(featurizer, splitter, transformers,
