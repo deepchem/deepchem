@@ -514,9 +514,9 @@ class Metric(object):
       if self.metric.__name__ in [
           "roc_auc_score", "matthews_corrcoef", "recall_score",
           "accuracy_score", "kappa_score", "cohen_kappa_score",
-          "precision_score", "balanced_accuracy_score", "prc_auc_score",
-          "f1_score", "bedroc_score", "jaccard_score", "jaccard_index",
-          "pixel_error"
+          "precision_score", "precision_recall_curve",
+          "balanced_accuracy_score", "prc_auc_score", "f1_score",
+          "bedroc_score", "jaccard_score", "jaccard_index", "pixel_error"
       ]:
         mode = "classification"
       elif self.metric.__name__ in [
@@ -543,7 +543,9 @@ class Metric(object):
             "accuracy_score", "precision_score", "bedroc_score"
         ]:
           classification_handling_mode = "threshold-one-hot"
-        elif self.metric.__name__ in ["roc_auc_score", "prc_auc_score"]:
+        elif self.metric.__name__ in [
+            "roc_auc_score", "prc_auc_score", "precision_recall_curve"
+        ]:
           classification_handling_mode = "direct"
       if classification_handling_mode not in [
           "direct", "threshold", "threshold-one-hot"
