@@ -419,6 +419,7 @@ class SublayerConnection(nn.Module):
     """Output computation for the SublayerConnection layer.
 
     Takes an input tensor x, then adds the dropout-adjusted sublayer output for normalized x to it.
+    This is done to add a residual connection followed by LayerNorm.
 
     Parameters
     ----------
@@ -427,7 +428,9 @@ class SublayerConnection(nn.Module):
     sublayer: nn.Module
       Layer whose output for normalized x will be added to x.
     """
-    return x + self.dropout_p(sublayer(self.norm(x)))
+    if x is None:
+      return self.dropout(self.norm(x))
+    return x + self.dropout(self.norm(x))
 
 
 class PositionwiseFeedForward(nn.Module):
