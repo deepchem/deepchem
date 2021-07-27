@@ -613,6 +613,7 @@ def test_scale_norm():
   input_ar = torch.tensor([[1., 99., 10000.], [0.003, 999.37, 23.]])
   layer = torch_layers.ScaleNorm(0.35)
   result1 = layer.forward(input_ar)
+<<<<<<< HEAD
   output_ar = np.array([[5.9157897e-05, 5.8566318e-03, 5.9157896e-01],
                         [1.7754727e-06, 5.9145141e-01, 1.3611957e-02]])
   assert np.allclose(result1, output_ar)
@@ -678,3 +679,8 @@ def test_mat_encoder_layer():
                             [[5.0000, 6.0000], [3.0000, 8.0000],
                              [5.0000, 6.0000], [3.0000, 8.0000]]])
   assert torch.allclose(result, output_ar, rtol=1e-4)
+=======
+  output_ar = torch.tensor([[5.9157897e-05, 5.8566318e-03, 5.9157896e-01],
+                        [1.7754727e-06, 5.9145141e-01, 1.3611957e-02]])
+  assert torch.allclose(result1, output_ar)
+>>>>>>> Change np.array to torch.tensor
