@@ -612,24 +612,6 @@ def test_scale_norm():
   """Test invoking ScaleNorm."""
   input_ar = torch.tensor([[1., 99., 10000.], [0.003, 999.37, 23.]])
   layer = torch_layers.ScaleNorm(0.35)
-<<<<<<< HEAD
-  result1 = layer(input_ar)
-  output_ar = torch.tensor([[5.9157897e-05, 5.8566318e-03, 5.9157896e-01],
-                            [1.7754727e-06, 5.9145141e-01, 1.3611957e-02]])
-  assert torch.allclose(result1, output_ar)
-
-
-@pytest.mark.torch
-def test_multi_headed_mat_attention():
-  """Test invoking MultiHeadedMATAttention."""
-  from rdkit import Chem
-  torch.manual_seed(0)
-  input_smile = "CC"
-  mol = Chem.MolFromSmiles(input_smile)
-  adj_matrix = Chem.GetAdjacencyMatrix(mol)
-  distance_matrix = Chem.GetDistanceMatrix(mol)
-  layer = torch_layers.MultiHeadedMATAttention(
-=======
   result1 = layer.forward(input_ar)
   output_ar = np.array([[5.9157897e-05, 5.8566318e-03, 5.9157896e-01],
                         [1.7754727e-06, 5.9145141e-01, 1.3611957e-02]])
@@ -668,31 +650,17 @@ def test_sub_layer_connection():
 def test_mat_encoder_layer():
   """Test invoking MATEncoderLayer."""
   torch.manual_seed(0)
-  from rdkit import Chem
+  import rdkit
   input_ar = torch.Tensor([[1., 2.], [5., 6.]])
   mask = torch.Tensor([[1., 1.], [1., 1.]])
-  mol = Chem.MolFromSmiles("CC")
-  adj_matrix = Chem.GetAdjacencyMatrix(mol)
-  distance_matrix = Chem.GetDistanceMatrix(mol)
+  mol = rdkit.Chem.rdmolfiles.MolFromSmiles("CC")
+  adj_matrix = rdkit.Chem.rdmolops.GetAdjacencyMatrix(mol)
+  distance_matrix = rdkit.Chem.rdmolops.GetDistanceMatrix(mol)
   layer = torch_layers.MATEncoderLayer(
->>>>>>> Tests for encoder
       dist_kernel='softmax',
       lambda_attention=0.33,
       lambda_distance=0.33,
       h=2,
-<<<<<<< HEAD
-      hsize=2,
-      dropout_p=0.0)
-  input_tensor = torch.tensor([[1., 2.], [5., 6.]])
-  mask = torch.tensor([[1., 1.], [1., 1.]])
-  result = layer(input_tensor, input_tensor, input_tensor, mask, 0.0,
-                 adj_matrix, distance_matrix)
-  output_ar = torch.tensor([[[0.0492, -0.0792], [-0.9971, -0.3172],
-                             [0.0492, -0.0792], [-0.9971, -0.3172]],
-                            [[0.8671, 0.1069], [-3.4075, -0.8656],
-                             [0.8671, 0.1069], [-3.4075, -0.8656]]])
-  assert torch.allclose(result, output_ar, rtol=1e-3)
-=======
       sa_hsize=2,
       sa_dropout_p=0.0,
       output_bias=True,
@@ -710,4 +678,3 @@ def test_mat_encoder_layer():
                             [[5.0000, 6.0000], [3.0000, 8.0000],
                              [5.0000, 6.0000], [3.0000, 8.0000]]])
   assert torch.allclose(result, output_ar, rtol=1e-4)
->>>>>>> Tests for encoder
