@@ -188,7 +188,7 @@ def test_overfit_subclass_model():
   params = params_init(rng, modified_inputs)
 
   # Loss Function
-  criterion = lambda pred, tar, w: jnp.mean(optax.sigmoid_binary_cross_entropy(pred[0], tar)) #noqa
+  criterion = lambda pred, tar, w: jnp.mean(optax.sigmoid_binary_cross_entropy(pred[0], tar))  # noqa
 
   # JaxModel Working
   j_m = JaxModel(
@@ -290,7 +290,7 @@ def test_fit_use_all_losses():
   params = model.init(rng, modified_inputs)
 
   # Loss Function
-  criterion = lambda pred, tar, w: jnp.mean(optax.sigmoid_binary_cross_entropy(pred[0], tar)) #noqa
+  criterion = lambda pred, tar, w: jnp.mean(optax.sigmoid_binary_cross_entropy(pred[0], tar)) # noqa
 
   # JaxModel Working
   j_m = JaxModel(
@@ -308,74 +308,74 @@ def test_fit_use_all_losses():
   assert np.count_nonzero(np.array(losses)) == 100
 
 
-@pytest.mark.jax
-@pytest.mark.slow
-def test_uncertainty():
-  """Test estimating uncertainty a TorchModel."""
-  n_samples = 30
-  n_features = 1
-  noise = 0.1
-  X = np.random.rand(n_samples, n_features)
-  y = (10 * X + np.random.normal(scale=noise, size=(n_samples, n_features)))
-  dataset = dc.data.NumpyDataset(X, y)
+# @pytest.mark.jax
+# @pytest.mark.slow
+# def test_uncertainty():
+#   """Test estimating uncertainty a TorchModel."""
+#   n_samples = 30
+#   n_features = 1
+#   noise = 0.1
+#   X = np.random.rand(n_samples, n_features)
+#   y = (10 * X + np.random.normal(scale=noise, size=(n_samples, n_features)))
+#   dataset = dc.data.NumpyDataset(X, y)
 
-  class Net(hk.Module):
+#   class Net(hk.Module):
 
-    def __init__(self, output_size: int = 1):
-      super().__init__()
-      self._network1 = hk.Sequential([hk.Linear(200), jax.nn.relu])
-      self._network2 = hk.Sequential([hk.Linear(200), jax.nn.relu])
-      self.output = hk.Linear(output_size)
-      self.log_var = hk.Linear(output_size)
+#     def __init__(self, output_size: int = 1):
+#       super().__init__()
+#       self._network1 = hk.Sequential([hk.Linear(200), jax.nn.relu])
+#       self._network2 = hk.Sequential([hk.Linear(200), jax.nn.relu])
+#       self.output = hk.Linear(output_size)
+#       self.log_var = hk.Linear(output_size)
 
-    def __call__(self, x):
-      x = self._network1(x)
-      x = hk.dropout(hk.next_rng_key(), 0.1, x)
-      x = self._network2(x)
-      x = hk.dropout(hk.next_rng_key(), 0.1, x)
-      output = self.output(x)
-      log_var = self.log_var(x)
-      var = jnp.exp(log_var)
-      return output, var, output, log_var
+#     def __call__(self, x):
+#       x = self._network1(x)
+#       x = hk.dropout(hk.next_rng_key(), 0.1, x)
+#       x = self._network2(x)
+#       x = hk.dropout(hk.next_rng_key(), 0.1, x)
+#       output = self.output(x)
+#       log_var = self.log_var(x)
+#       var = jnp.exp(log_var)
+#       return output, var, output, log_var
 
-  def f(x):
-    net = Net(1)
-    return net(x)
+#   def f(x):
+#     net = Net(1)
+#     return net(x)
 
-  def loss(outputs, labels, weights):
-    diff = labels[0] - outputs[0]
-    log_var = outputs[1]
-    var = jnp.exp(log_var)
-    return jnp.mean(diff * diff / var + log_var)
+#   def loss(outputs, labels, weights):
+#     diff = labels[0] - outputs[0]
+#     log_var = outputs[1]
+#     var = jnp.exp(log_var)
+#     return jnp.mean(diff * diff / var + log_var)
 
-  class UncertaintyModel(JaxModel):
+#   class UncertaintyModel(JaxModel):
 
-    def default_generator(self,
-                          dataset,
-                          epochs=1,
-                          mode='fit',
-                          deterministic=True,
-                          pad_batches=True):
-      for epoch in range(epochs):
-        for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-            batch_size=self.batch_size,
-            deterministic=deterministic,
-            pad_batches=pad_batches):
-          yield ([X_b], [y_b], [w_b])
+#     def default_generator(self,
+#                           dataset,
+#                           epochs=1,
+#                           mode='fit',
+#                           deterministic=True,
+#                           pad_batches=True):
+#       for epoch in range(epochs):
+#         for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+#             batch_size=self.batch_size,
+#             deterministic=deterministic,
+#             pad_batches=pad_batches):
+#           yield ([X_b], [y_b], [w_b])
 
-  jm_model = hk.transform(f)
-  rng = jax.random.PRNGKey(500)
-  inputs, _, _, _ = next(iter(dataset.iterbatches(batch_size=100)))
-  modified_inputs = jnp.array(
-      [x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs])
-  params = jm_model.init(rng, modified_inputs)
-  model = UncertaintyModel(
-      jm_model.apply,
-      params,
-      loss,
-      output_types=['prediction', 'variance', 'loss', 'loss'],
-      learning_rate=0.003)
-  model.fit(dataset, nb_epochs=2500)
-  pred, std = model.predict_uncertainty(dataset)
-  assert np.mean(np.abs(y - pred)) < 2.0
-  assert noise < np.mean(std) < 1.0
+#   jm_model = hk.transform(f)
+#   rng = jax.random.PRNGKey(500)
+#   inputs, _, _, _ = next(iter(dataset.iterbatches(batch_size=100)))
+#   modified_inputs = jnp.array(
+#       [x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs])
+#   params = jm_model.init(rng, modified_inputs)
+#   model = UncertaintyModel(
+#       jm_model.apply,
+#       params,
+#       loss,
+#       output_types=['prediction', 'variance', 'loss', 'loss'],
+#       learning_rate=0.003)
+#   model.fit(dataset, nb_epochs=2500)
+#   pred, std = model.predict_uncertainty(dataset)
+#   assert np.mean(np.abs(y - pred)) < 2.0
+#   assert noise < np.mean(std) < 1.0
