@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM nvidia/cuda:11.2.1-cudnn8-devel-ubuntu18.04
 
 # Install some utilities
 RUN apt-get update && \
