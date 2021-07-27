@@ -455,8 +455,10 @@ class DummyFeaturizer(Featurizer):
           'FCC(c1cccc(Br)n1)N1CCOCC1']], dtype='<U55')
   """
 
-  def featurize(self, datapoints: Iterable[Any],
-                log_every_n: int = 1000, **kwargs) -> np.ndarray:
+  def featurize(self,
+                datapoints: Iterable[Any],
+                log_every_n: int = 1000,
+                **kwargs) -> np.ndarray:
     """Passes through dataset, and returns the datapoint.
 
     Parameters

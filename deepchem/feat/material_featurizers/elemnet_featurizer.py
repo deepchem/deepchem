@@ -68,8 +68,8 @@ class ElemNetFeaturizer(MaterialCompositionFeaturizer):
     else:
       return None
 
-  def _featurize(self,
-                 composition: PymatgenComposition, **kwargs) -> Optional[np.ndarray]:
+  def _featurize(self, composition: PymatgenComposition,
+                 **kwargs) -> Optional[np.ndarray]:
     """
     Calculate 86 dimensional vector containing fractional compositions of
     each element in the compound.

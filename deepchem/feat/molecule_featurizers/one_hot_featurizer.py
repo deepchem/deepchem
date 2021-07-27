@@ -70,8 +70,10 @@ class OneHotFeaturizer(Featurizer):
     else:
       self.max_length = None
 
-  def featurize(self, datapoints: Iterable[Any],
-                log_every_n: int = 1000, **kwargs) -> np.ndarray:
+  def featurize(self,
+                datapoints: Iterable[Any],
+                log_every_n: int = 1000,
+                **kwargs) -> np.ndarray:
     """Featurize strings or mols.
 
     Parameters

@@ -59,7 +59,8 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
     self.data_source = data_source
     self.ep_featurizer: Any = None
 
-  def _featurize(self, composition: PymatgenComposition, **kwargs) -> np.ndarray:
+  def _featurize(self, composition: PymatgenComposition,
+                 **kwargs) -> np.ndarray:
     """
     Calculate chemical fingerprint from crystal composition.
 

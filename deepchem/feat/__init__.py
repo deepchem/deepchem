@@ -77,11 +77,6 @@ try:
   from transformers import RobertaTokenizerFast
   from deepchem.feat.roberta_tokenizer import RobertaFeaturizer
 except ModuleNotFoundError:
-  # raise ImportError('This class requires transformers.')
-  """   raise ImportWarning(
-      'This class requires transformers. Please use "pip install transformers" to continue.'
-  )
-  """
   pass
 
 # support classes
