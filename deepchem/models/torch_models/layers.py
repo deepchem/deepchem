@@ -28,6 +28,7 @@ class ScaleNorm(nn.Module):
   >>> scale = 0.35
   >>> layer = dc.models.torch_models.layers.ScaleNorm(scale)
 <<<<<<< HEAD
+<<<<<<< HEAD
   >>> input_tensor = torch.tensor([[1.269, 39.36], [0.00918, -9.12]])
 =======
   >>> input_tensor = torch.Tensor([[1.269, 39.36], [0.00918, -9.12]])
@@ -36,6 +37,13 @@ class ScaleNorm(nn.Module):
   """
 
   def __init__(self, scale: float, eps: float = 1e-5):
+=======
+  >>> input_tensor = torch.tensor([[1.269, 39.36], [0.00918, -9.12]])
+  >>> output_tensor = layer(input_tensor)
+  """
+
+  def __init__(self, scale: int, eps: float = 1e-5):
+>>>>>>> Type annotations
     """Initialize a ScaleNorm layer.
 
     Parameters
@@ -45,7 +53,6 @@ class ScaleNorm(nn.Module):
     eps: float
       Epsilon value. Default = 1e-5.
     """
-
     super(ScaleNorm, self).__init__()
     self.scale = nn.Parameter(torch.tensor(math.sqrt(scale)))
     self.eps = eps
@@ -229,10 +236,12 @@ class MATEncoder(nn.Module):
   >>> block = dc.models.torch_models.layers.MATEncoder(dist_kernel = 'softmax', lambda_attention = 0.33, lambda_adistance = 0.33, h = 8, sa_hsize = 1024, sa_dropout_p = 0.1, d_input = 1024, activation = 'relu', n_layers = 1, ff_dropout_p = 0.1, encoder_hsize = 1024, encoder_dropout_p = 0.1, N = 3)
   """
 
-  def __init__(self, dist_kernel, lambda_attention, lambda_distance, h,
-               sa_hsize, sa_dropout_p, output_bias, d_input, d_hidden, d_output,
-               activation, n_layers, ff_dropout_p, encoder_hsize,
-               encoder_dropout_p, N):
+  def __init__(self, dist_kernel: str, lambda_attention: float,
+               lambda_distance: float, h: int, sa_hsize: int,
+               sa_dropout_p: float, output_bias: bool, d_input: int,
+               d_hidden: int, d_output: int, activation: str, n_layers: int,
+               ff_dropout_p: float, encoder_hsize: int,
+               encoder_dropout_p: float, N: int):
     """Initialize a MATEncoder block.
 
     Parameters
@@ -274,7 +283,6 @@ class MATEncoder(nn.Module):
     N: int
       Number of identical encoder layers to be stacked.
     """
-
     super(MATEncoder, self).__init__()
     encoder_layer = MATEncoderLayer(
         dist_kernel, lambda_attention, lambda_distance, h, sa_hsize,
@@ -283,7 +291,7 @@ class MATEncoder(nn.Module):
     self.layers = nn.ModuleList([encoder_layer for _ in range(N)])
     self.norm = nn.LayerNorm(encoder_layer.size)
 
-  def forward(self, x, mask, **kwargs):
+  def forward(self, x: torch.Tensor, mask: torch.Tensor):
     """Output computation for the MATEncoder block.
 
     Parameters
@@ -293,9 +301,8 @@ class MATEncoder(nn.Module):
     mask: torch.Tensor
       Mask for padding so that padded values do not get included in attention score calculation.
     """
-
     for layer in self.layers:
-      x = layer(x, mask, **kwargs)
+      x = layer(x, mask)
     return self.norm(x)
 
 
@@ -315,10 +322,12 @@ class MATEncoderLayer(nn.Module):
   >>> layer = dc.models.torch_models.layers.MATEncoderLayer(dist_kernel = 'softmax', lambda_attention = 0.33, lambda_distance = 0.33, h = 8, sa_hsize = 1024, sa_dropout_p = 0.1, d_input = 1024, activation = 'relu', n_layers = 1, ff_dropout_p = 0.1, encoder_hsize = 1024, encoder_dropout_p = 0.1)
   """
 
-  def __init__(self, dist_kernel, lambda_attention, lambda_distance, h,
-               sa_hsize, sa_dropout_p, output_bias, d_input, d_hidden, d_output,
-               activation, n_layers, ff_dropout_p, encoder_hsize,
-               encoder_dropout_p):
+  def __init__(self, dist_kernel: str, lambda_attention: float,
+               lambda_distance: float, h: int, sa_hsize: int,
+               sa_dropout_p: float, output_bias: bool, d_input: int,
+               d_hidden: int, d_output: int, activation: str, n_layers: int,
+               ff_dropout_p: float, encoder_hsize: int,
+               encoder_dropout_p: float):
     """Initialize a MATEncoder layer.
 
     Parameters
@@ -356,7 +365,6 @@ class MATEncoderLayer(nn.Module):
     encoder_dropout_p: float
       Dropout probability for connections in the encoder layer.
     """
-
     super(MATEncoderLayer, self).__init__()
     self.self_attn = MultiHeadedMATAttention(dist_kernel, lambda_attention,
                                              lambda_distance, h, sa_hsize,
@@ -367,7 +375,7 @@ class MATEncoderLayer(nn.Module):
     self.sublayer = nn.ModuleList([layer for _ in range(2)])
     self.size = encoder_hsize
 
-  def forward(self, x, mask, **kwargs):
+  def forward(self, x: torch.Tensor, mask: torch.Tensor, **kwargs):
     """Output computation for the MATEncoder layer.
 
     Parameters
@@ -386,7 +394,7 @@ class SublayerConnection(nn.Module):
   """SublayerConnection layer which establishes a residual connection, as used in the Molecular Attention Transformer [1]_.
 
   The SublayerConnection layer is a residual layer which is then passed through Layer Normalization.
-  The residual connection is established by computing the dropout-adjusted layer output of a normalized input tensor and adding this to the originial input tensor.
+  The residual connection is established by computing the dropout-adjusted layer output of a normalized tensor and adding this to the original input tensor.
 
   References
   ----------
@@ -400,7 +408,7 @@ class SublayerConnection(nn.Module):
   >>> output = layer(torch.Tensor([1.,2.]), nn.Linear(2,1))
   """
 
-  def __init__(self, size, dropout_p):
+  def __init__(self, size: int, dropout_p: float):
     """Initialize a SublayerConnection Layer.
 
     Parameters
@@ -410,12 +418,11 @@ class SublayerConnection(nn.Module):
     dropout_p: float
       Dropout probability.
     """
-
     super(SublayerConnection, self).__init__()
     self.norm = nn.LayerNorm(size)
     self.dropout_p = nn.Dropout(dropout_p)
 
-  def forward(self, x, sublayer):
+  def forward(self, x: torch.Tensor, output: torch.Tensor):
     """Output computation for the SublayerConnection layer.
 
     Takes an input tensor x, then adds the dropout-adjusted sublayer output for normalized x to it.
@@ -425,12 +432,12 @@ class SublayerConnection(nn.Module):
     ----------
     x: torch.Tensor
       Input tensor.
-    sublayer: nn.Module
-      Layer whose output for normalized x will be added to x.
+    output: torch.Tensor
+      Layer whose normalized output will be added to x.
     """
     if x is None:
-      return self.dropout(self.norm(x))
-    return x + self.dropout(self.norm(x))
+      return self.dropout(self.norm(output))
+    return x + self.dropout(self.norm(output))
 
 
 class PositionwiseFeedForward(nn.Module):
@@ -451,12 +458,12 @@ class PositionwiseFeedForward(nn.Module):
 
   def __init__(self,
                *,
-               d_input,
-               d_hidden=None,
-               d_output=None,
-               activation,
-               n_layers,
-               dropout_p):
+               d_input: int,
+               d_hidden: int = None,
+               d_output: int = None,
+               activation: str,
+               n_layers: int,
+               dropout_p: float):
     """Initialize a PositionwiseFeedForward layer.
 
     Parameters
@@ -475,7 +482,6 @@ class PositionwiseFeedForward(nn.Module):
     dropout_p: float
       Dropout probability.
     """
-
     super(PositionwiseFeedForward, self).__init__()
 
     if activation == 'relu':
@@ -516,7 +522,7 @@ class PositionwiseFeedForward(nn.Module):
     self.dropout_p = nn.ModuleList([dropout_layer for _ in range(n_layers)])
     self.act_func = activation
 
-  def forward(self, x):
+  def forward(self, x: torch.Tensor):
     """Output Computation for the PositionwiseFeedForward layer.
 
     Parameters
@@ -524,7 +530,6 @@ class PositionwiseFeedForward(nn.Module):
     x: torch.Tensor
       Input tensor.
     """
-
     if self.n_layers == 0:
       return x
 
