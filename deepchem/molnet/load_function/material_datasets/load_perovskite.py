@@ -18,13 +18,14 @@ class _PerovskiteLoader(_MolnetLoader):
     targz_file = os.path.join(self.data_dir, 'perovskite.tar.gz')
     if not os.path.exists(dataset_file):
       if not os.path.exists(targz_file):
-        dc.utils.data_utils.download_url(url=PEROVSKITE_URL,
-                                         dest_dir=self.data_dir)
+        dc.utils.data_utils.download_url(
+            url=PEROVSKITE_URL, dest_dir=self.data_dir)
       dc.utils.data_utils.untargz_file(targz_file, self.data_dir)
-    loader = dc.data.JsonLoader(tasks=self.tasks,
-                                feature_field="structure",
-                                label_field="formation_energy",
-                                featurizer=self.featurizer)
+    loader = dc.data.JsonLoader(
+        tasks=self.tasks,
+        feature_field="structure",
+        label_field="formation_energy",
+        featurizer=self.featurizer)
     return loader.create_dataset(dataset_file)
 
 
