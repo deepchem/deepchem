@@ -39,7 +39,7 @@ class ScaleNorm(nn.Module):
     scale: Real number or single element tensor
       Scale magnitude.
     eps: float
-      Epsilon value.
+      Epsilon value. Default = 1e-5.
     """
 
     super(ScaleNorm, self).__init__()
