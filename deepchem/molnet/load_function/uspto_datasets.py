@@ -80,7 +80,7 @@ def load_uspto(
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
   """Load USPTO Datasets.
 
-  The USPTO dataset [1]_ consists of over 1.8 Million organic chemical reactions
+  The USPTO dataset consists of over 1.8 Million organic chemical reactions
   extracted from US patents and patent applications. The dataset contains the
   reactions in the form of reaction SMILES, which have the general format:
   reactant>reagent>product.
@@ -92,14 +92,14 @@ def load_uspto(
   The 50K dataset contatins 50,000 reactions and is the benchmark for
   retrosynthesis predictions. The reactions are additionally classified into 10
   reaction classes. The canonicalized version of the dataset used by the loader
-  is the same as that used by Somnath et. al [2]_.
+  is the same as that used by Somnath et. al.
 
   The loader uses the SpecifiedSplitter to use the same splits as specified
-  by Schwaller [3]_ and Dai [4]_. Custom splitters could also be used. There
+  by Schwaller et. al and Dai et. al. Custom splitters could also be used. There
   is a toggle in the loader to skip the source/target transformation needed for
   seq2seq tasks. There is an additional toggle to load the dataset with the
   reagents and reactants separated or mixed. This alters the entries in source
-  by replacing the '>' with '.', effectively loading them as an unified
+  by replacing the '>' with '.' , effectively loading them as an unified
   SMILES string.
 
   Parameters
@@ -132,7 +132,7 @@ def load_uspto(
 
   Returns
   -------
-  tasks, datasets, transformers : tuple
+  tasks, datasets, transformers: tuple
     tasks : list
       Column names corresponding to machine learning target variables.
     datasets : tuple
