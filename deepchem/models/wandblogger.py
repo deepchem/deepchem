@@ -40,6 +40,7 @@ class WandbLogger(Logger):
                resume: Optional[Union[bool, str]] = None,
                anonymous: Optional[str] = "never",
                save_run_history: Optional[bool] = False,
+               checkpoint_interval,
                **kwargs):
     """Creates a WandbLogger.
 
@@ -91,8 +92,8 @@ class WandbLogger(Logger):
     self.wandb_init_params.update(**kwargs)
     self.initialized = False
 
-    # Dataset ids are used to differentiate datasets seen by the logger
-    self.dataset_ids: List[Union[int, str]] = []
+    # Location ids are used to differentiate callbacks and logging locations seen by the logger
+    self.location_ids: List[str] = []
 
     # Keep track of best models during training and callbacks
     self.best_models = {}
@@ -120,38 +121,39 @@ class WandbLogger(Logger):
     if self.wandb_run is not None:
       self.wandb_run.finish()
 
-  def log_values(self, values: Dict, step: int, group: Optional[str] = None, dataset_id: Optional[str] = None):
+  def log_values(self, values: Dict, step: int, location: Optional[str] = None):
     data = values
     # Log into the correct category
-    if group is not None:
-      data = {group + '/' + k: v for k, v in values.items()}
-
-    # Log unique keys for each dataset
-    if dataset_id is not None:
-      if dataset_id in self.dataset_ids:
+    if location is not None:
+      if location in self.location_ids:
         for key in list(data.keys()):
-          idx = self.dataset_ids.index(dataset_id)
-          new_key = str(key) + "_(" + str(idx) + ")"
+          new_key = location + "/" + str(key)
           data[new_key] = data.pop(key)
       else:
-        self.dataset_ids.append(dataset_id)
+        self.location_ids.append(location)
         for key in list(data.keys()):
-          idx = self.dataset_ids.index(dataset_id)
-          new_key = str(key) + "_(" + str(idx) + ")"
+          new_key = location + "/" + str(key)
           data[new_key] = data.pop(key)
 
     self.wandb_run.log(data, step=step)
 
-  def log_batch(self, loss: Dict, step: int, inputs: tensor, labels: tensor, group: Optional[str] = None):
+  def log_batch(self, loss: Dict, step: int, inputs: tensor, labels: tensor, location: Optional[str] = None):
     data = loss
-    # Log into the correct category (for example: "train", "eval")
-    if group is not None:
-      data = {group + '/' + k: v for k, v in loss.items()}
+    if location is not None:
+      if location in self.location_ids:
+        for key in list(data.keys()):
+          new_key = location + "/" + str(key)
+          data[new_key] = data.pop(key)
+      else:
+        self.location_ids.append(location)
+        for key in list(data.keys()):
+          new_key = location + "/" + str(key)
+          data[new_key] = data.pop(key)
 
     self.wandb_run.log(data, step=step)
 
-  def log_epoch(self, data: Dict, epoch: int):
-    pass
+  def log_epoch(self, data: Dict, epoch: int, group: Optional[str] = None):
+    raise NotImplementedError
 
   def save_checkpoint(self,
                       path: str,

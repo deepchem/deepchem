@@ -6,8 +6,6 @@ from deepchem.models.models import Model
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem.models.callbacks import ValidationCallback
 
-from deepchem.models.logger import Logger
-
 # Logger Classes
 try:
   from deepchem.models.wandblogger import WandbLogger

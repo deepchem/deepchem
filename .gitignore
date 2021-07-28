@@ -69,6 +69,8 @@ target/
 
 # Weights & Biases
 wandb/
+testing_train_checkpoints/
+testing_val_checkpoints/
 
 # Dataset files
 datasets/2008-2011_USPTO_reactionSmiles_filtered.zip
