@@ -31,7 +31,19 @@ class ScaleNorm(nn.Module):
   >>> output_tensor = layer(input_tensor)
   """
 
+<<<<<<< HEAD
   def __init__(self, scale: float, eps: float = 1e-5):
+=======
+<<<<<<< HEAD
+<<<<<<< HEAD
+  def __init__(self, scale: float, eps: float = 1e-5):
+=======
+  def __init__(self, scale: int, eps: float = 1e-5):
+>>>>>>> Type annotations
+=======
+  def __init__(self, scale: float, eps: float = 1e-5):
+>>>>>>> Scalenorm scale to float
+>>>>>>> Scalenorm scale to float
     """Initialize a ScaleNorm layer.
 
     Parameters
