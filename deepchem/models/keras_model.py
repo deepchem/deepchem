@@ -476,21 +476,20 @@ class KerasModel(Model):
 
       if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
         manager.save()
-        for ext_logger in self.loggers:
-          if isinstance(ext_logger, WandbLogger):
-            ext_logger.save_checkpoint(self.model_dir,
-                                      self,
-                                      "train_checkpoints",
-                                      "step",
-                                      current_step,
-                                      max_checkpoints_to_keep,
-                                      checkpoint_on_min=False)
       for c in callbacks:
         c(self, current_step)
       if self.tensorboard and should_log:
         self._log_scalar_to_tensorboard('loss', batch_loss, current_step)
       for ext_logger in self.loggers:
-        ext_logger.log_batch({"loss": batch_loss}, current_step, inputs, labels, group="train")
+        ext_logger.log_batch({"loss": batch_loss},
+                             current_step,
+                             inputs,
+                             labels,
+                             location="train",
+                             model=self,
+                             checkpoint_metric="step",
+                             checkpoint_metric_value=current_step,
+                             checkpoint_on_min=False)
 
     # Report final results.
     if averaged_batches > 0:
