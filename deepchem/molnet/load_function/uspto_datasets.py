@@ -25,7 +25,8 @@ USPTO_TASK: List[str] = []
 
 class _USPTOLoader(_MolnetLoader):
 
-  def __init__(self, *args, subset: str, sep_reagent: bool, skip_transform: bool, **kwargs):
+  def __init__(self, *args, subset: str, sep_reagent: bool,
+               skip_transform: bool, **kwargs):
     super(_USPTOLoader, self).__init__(*args, **kwargs)
     self.subset = subset
     self.sep_reagent = sep_reagent
@@ -94,10 +95,11 @@ def load_uspto(
   is the same as that used by somnath et. al.
 
   The loader uses the SpecifiedSplitter to use the same splits as specified
-  by Schwaller and Coley. Custom splitters could also be used. There is also a
-  toggle to load the dataset with the reagents separated or mixed. This alters
-  the entries in src by replacing the '>' with '.', effectively loading them as
-  a unified SMILES string.
+  by Schwaller and Coley. Custom splitters could also be used. There is a toggle
+  in the loader to skip the source/target transformation needed for seq2seq
+  tasks. There is an additional toggle to load the dataset with the reagents and
+  reactants separated or mixed. This alters the entries in source by replacing
+  the '>' with '.', effectively loading them as an unified SMILES string.
 
   Parameters
   ----------
@@ -138,6 +140,8 @@ def load_uspto(
     transformers : list
       ``deepchem.trans.transformers.Transformer`` instances applied
       to dataset.
+
+  References
   ----------
   .. [1] Lowe, D.. (2017). Chemical reactions from US patents (1976-Sep2016)
         (Version 1). figshare. https://doi.org/10.6084/m9.figshare.5104873.v1
@@ -152,17 +156,22 @@ def load_uspto(
          Retrosynthesis prediction with conditional graph logic network.
          arXiv preprint arXiv:2001.01408.
   """
-  
+
   if skip_transform:
     if not sep_reagent:
-      raise ValueError("To enable mixed training you must not skip the transformation.")
+      raise ValueError(
+          "To enable mixed training you must not skip the transformation.")
     transformers = []
   else:
     if sep_reagent:
-      transformers = [TransformerGenerator(dc.trans.RxnSplitTransformer, sep_reagent=True)]
+      transformers = [
+          TransformerGenerator(dc.trans.RxnSplitTransformer, sep_reagent=True)
+      ]
     else:
-      transformers = [TransformerGenerator(dc.trans.RxnSplitTransformer, sep_reagent=False)]
-  
+      transformers = [
+          TransformerGenerator(dc.trans.RxnSplitTransformer, sep_reagent=False)
+      ]
+
   loader = _USPTOLoader(
       featurizer,
       splitter,
