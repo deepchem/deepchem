@@ -32,15 +32,15 @@ class ScaleNorm(nn.Module):
   >>> output_tensor = layer(input_tensor)
   """
 
-  def __init__(self, scale: int, eps: float = 1e-5):
+  def __init__(self, scale: float, eps: float = 1e-5):
     """Initialize a ScaleNorm layer.
 
     Parameters
     ----------
     scale: float
       Scale magnitude.
-    eps: float
-      Epsilon value. Default = 1e-5.
+    eps: float (default 1e-5)
+      Epsilon value.
     """
     super(ScaleNorm, self).__init__()
     self.scale = nn.Parameter(torch.tensor(math.sqrt(scale)))
@@ -64,7 +64,9 @@ class MATEmbedding(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
-  >>> layer = MATEmbedding(d_input = 1024, d_output = 1024, dropout_p = 0.2)
+  >>> layer = MATEmbedding(d_input = 3, d_output = 3, dropout_p = 0.2)
+  >>> input_tensor = torch.tensor([1., 2., 3.])
+  >>> output = layer(input_tensor)
   """
 
   def __init__(self, d_input: int, d_output: int, dropout_p: float):
@@ -107,7 +109,10 @@ class MATGenerator(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
-  >>> layer = MATGenerator(hsize = 1024, aggregation_type = 'mean', d_output = 1, n_layers = 1, attn_hidden = 128, attn_out = 4)
+  >>> layer = MATGenerator(hsize = 3, aggregation_type = 'mean', d_output = 1, n_layers = 1, dropout_p = 0.3, attn_hidden = 128, attn_out = 4)
+  >>> input_tensor = torch.tensor([1., 2., 3.])
+  >>> mask = torch.tensor([1., 1., 1.])
+  >>> output = gen(input_tensor, mask)
   """
 
   def __init__(self,
