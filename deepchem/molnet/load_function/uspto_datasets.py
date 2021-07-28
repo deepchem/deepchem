@@ -72,7 +72,7 @@ def load_uspto(
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     subset: str = "MIT",
-    sep_reagent: bool = True,  # functionality to be added!
+    sep_reagent: bool = False,
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
   """Load USPTO Datasets.
@@ -147,7 +147,12 @@ def load_uspto(
          Retrosynthesis prediction with conditional graph logic network.
          arXiv preprint arXiv:2001.01408.
   """
-
+  
+  if sep_reagent:
+    transformers = [TransformerGenerator(dc.trans.RxnSplitTransformer, sep_reagent=True)]
+  else:
+    transformers = [TransformerGenerator(dc.trans.RxnSplitTransformer, sep_reagent=False)]
+  
   loader = _USPTOLoader(
       featurizer,
       splitter,
