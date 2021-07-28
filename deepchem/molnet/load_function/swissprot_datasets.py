@@ -8,34 +8,38 @@ from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
 SWISSP_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/uniprot_swissprot_14_06_21.csv"
-SWISSP_TASK=[]
+SWISSP_TASK = []
 
 class _SWISSPROTLoader(_MolnetLoader):
-  
+
   def create_dataset(self) -> Dataset:
     dataset_file = os.path.join(self.data_dir, "uniprot_swissprot_14_06_21.csv")
+    print(dataset_file)
     if not os.path.exists(dataset_file):
       dc.utils.data_utils.download_url(url=SWISSP_URL, dest_dir=self.data_dir)
-      dataset_file = os.path.join(self.data_dir, "uniprot_swissprot_14_06_21.csv")
-
-      
+      dataset_file = os.path.join(self.data_dir,
+                                  "uniprot_swissprot_14_06_21.csv")
+    print("loader")
     loader = dc.data.CSVLoader(
-        tasks=self.tasks, featurizer=self.featurizer, sanitize=True)
-    return loader.create_dataset(dataset_file, shard_size=8192)
+        tasks=self.tasks, featurizer=self.featurizer)
+    return loader.create_dataset(dataset_file)#,shard_size=8192)
 
-  codes = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L',
-         'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
-         
-  def load_swissprot(
-    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.OneHotFeaturizer(codes),
-    splitter: Union[dc.splits.Splitter, str, None] = 'random',
-    transformers: List[Union[TransformerGenerator, str]] = [],
-    reload: bool = True,
-    data_dir: Optional[str] = None,
-    save_dir: Optional[str] = None,
-    **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...] ]:
-    """Load Swissprot dataset.
+
+#codes =
+
+
+def load_swissprot(
+  featurizer: Union[dc.feat.Featurizer, str] = dc.feat.OneHotFeaturizer([
+      'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q',
+      'R', 'S', 'T', 'V', 'W', 'Y'
+  ]),
+  splitter: Union[dc.splits.Splitter, str, None] = 'random',
+  transformers: List[Union[TransformerGenerator, str]] = [],
+  reload: bool = True,
+  data_dir: Optional[str] = None,
+  save_dir: Optional[str] = None,
+  **kwargs) -> Tuple[List[str], Tuple[Dataset, ...]]:
+  """Load Swissprot dataset.
 
     The Swiss-Prot Database is parto og the UniprotKnowledebase (UniprotKB) that contains a
     collection of functiona information on protiens. Specially the Swiss-Prot Database 
@@ -72,8 +76,6 @@ class _SWISSPROTLoader(_MolnetLoader):
      Nucleic Acids Res 2018, 46 (5), 2699–2699. https://doi.org/10.1093/nar/gky092.
 
     """
-    loader = _SWISSPROTLoader(featurizer, splitter,transformers,SWISSP_TASK, data_dir,
-                      save_dir, **kwargs)
-    return loader.load_dataset('swissprot', reload)
-
-
+  loader = _SWISSPROTLoader(featurizer, splitter, transformers, SWISSP_TASK,
+                            data_dir, save_dir, **kwargs)
+  return loader.load_dataset('swissprot', reload)
