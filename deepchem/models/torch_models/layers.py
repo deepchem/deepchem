@@ -46,7 +46,7 @@ class ScaleNorm(nn.Module):
     self.scale = nn.Parameter(torch.tensor(math.sqrt(scale)))
     self.eps = eps
 
-  def forward(self, x : torch.Tensor):
+  def forward(self, x: torch.Tensor):
     norm = self.scale / torch.norm(x, dim=-1, keepdim=True).clamp(min=self.eps)
     return x * norm
 
@@ -65,8 +65,14 @@ class MultiHeadedMATAttention(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
-  >>> attention = dc.models.torch_models.layers.MATAttention('softmax', 0.33, 0.33')
-  >>> self_attn_layer = dc.models.torch_models.layers.MultiHeadedAttention(dist_kernel = 'softmax', lambda_attention = 0.33, lambda_adistance = 0.33, h = 8, hsize = 1024, dropout_p = 0.1)
+  >>> import rdkit
+  >>> mol = rdkit.Chem.rdmolfiles.MolFromSmiles("CC")
+  >>> adj_matrix = rdkit.Chem.rdmolops.GetAdjacencyMatrix(mol)
+  >>> distance_matrix = rdkit.Chem.rdmolops.GetDistanceMatrix(mol)
+  >>> layer = dc.models.torch_models.layers.MultiHeadedMATAttention(dist_kernel='softmax', lambda_attention=0.33, lambda_distance=0.33, h=2, hsize=2, dropout_p=0.0)
+  >>> input_tensor = torch.tensor([[1., 2.], [5., 6.]])
+  >>> mask = torch.tensor([[1., 1.], [1., 1.]])
+  >>> result = layer(input_tensor, input_tensor, input_tensor, mask, 0.0, adj_matrix, distance_matrix)
   """
 
   def __init__(self,
@@ -153,18 +159,19 @@ class MultiHeadedMATAttention(nn.Module):
           -inf)
     p_attn = F.softmax(scores, dim=-1)
 
-    adj_matrix = adj_matrix / (adj_matrix.sum(dim=-1).unsqueeze(2) + eps)
-    p_adj = adj_matrix.unsqueeze(1).repeat(1, query.shape[1], 1, 1)
+    adj_matrix = adj_matrix / (
+        torch.sum(torch.tensor(adj_matrix), dim=-1).unsqueeze(1) + eps)
+    p_adj = adj_matrix.repeat(1, query.shape[1], 1, 1)
 
-    distance_matrix = distance_matrix.masked_fill(
+    distance_matrix = torch.tensor(distance_matrix).masked_fill(
         mask.repeat(1, mask.shape[-1], 1) == 0, np.inf)
     distance_matrix = self.dist_kernel(distance_matrix)
     p_dist = distance_matrix.unsqueeze(1).repeat(1, query.shape[1], 1, 1)
-
     p_weighted = self.lambda_attention * p_attn + self.lambda_distance * p_dist + self.lambda_adjacency * p_adj
-    p_weighted = dropout_p(p_weighted)
+    p_weighted = self.dropout_p(p_weighted)
 
-    return torch.matmul(p_weighted, value), p_attn
+    bd = value.broadcast_to(p_weighted.shape)
+    return torch.matmul(p_weighted.float(), bd.float()), p_attn
 
   def forward(self,
               query: torch.Tensor,
