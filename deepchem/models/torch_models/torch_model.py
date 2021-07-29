@@ -125,7 +125,6 @@ class TorchModel(Model):
                log_frequency: int = 100,
                device: Optional[torch.device] = None,
                regularization_loss: Optional[Callable] = None,
-               wandb_logger: Optional[WandbLogger] = None,
                logger: OneOrMany[Logger] = None,
                **kwargs) -> None:
     """Create a new TorchModel.
@@ -168,8 +167,6 @@ class TorchModel(Model):
     regularization_loss: Callable, optional
       a function that takes no arguments, and returns an extra contribution to add
       to the loss function
-    wandb_logger: WandbLogger
-      the Weights & Biases logger object used to log data and metrics
     """
     super(TorchModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
     if isinstance(loss, Loss):
@@ -214,17 +211,6 @@ class TorchModel(Model):
           "run `pip install wandb; wandb login` see https://docs.wandb.com/huggingface."
       )
     self.wandb = wandb and _has_wandb
-
-    self.wandb_logger = wandb_logger
-    # If `wandb=True` and no logger is provided, initialize default logger
-    if self.wandb and (self.wandb_logger is None):
-      self.wandb_logger = WandbLogger()
-
-    # Add wandb_logger to list of loggers
-    if (self.wandb_logger is not None):
-      if any(isinstance(x, WandbLogger) for x in self.loggers):
-          logs.warning("A WandbLogger is already provided in argument `logger`."
-                         " Ignoring the arguments `wandb` and `wandb_logger`.")
 
     # Update config with model params
     logger_config = dict(
@@ -458,25 +444,20 @@ class TorchModel(Model):
 
       if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
         self.save_checkpoint(max_checkpoints_to_keep)
-        for ext_logger in self.loggers:
-          if isinstance(ext_logger, WandbLogger):
-            ext_logger.save_checkpoint(self.model_dir,
-                                      self,
-                                      "train_checkpoints",
-                                      "step",
-                                      current_step,
-                                      max_checkpoints_to_keep,
-                                      checkpoint_on_min=False)
       for c in callbacks:
         c(self, current_step)
       if self.tensorboard and should_log:
         self._log_scalar_to_tensorboard('loss', batch_loss, current_step)
       for ext_logger in self.loggers:
-        if isinstance(ext_logger, WandbLogger):
-          ext_logger.log_batch({"loss": batch_loss}, current_step, inputs, labels, group="train")
-        else:
-          ext_logger.log_batch({"loss": batch_loss}, current_step, inputs, labels)
-
+        ext_logger.log_batch({"loss": batch_loss},
+                             current_step,
+                             inputs,
+                             labels,
+                             location="train",
+                             model=self,
+                             checkpoint_metric="step",
+                             checkpoint_metric_value=current_step,
+                             checkpoint_on_min=False)
     # Report final results.
     if averaged_batches > 0:
       avg_loss = float(avg_loss) / averaged_batches
@@ -488,15 +469,11 @@ class TorchModel(Model):
 
     if checkpoint_interval > 0:
       self.save_checkpoint(max_checkpoints_to_keep)
-      for ext_logger in self.loggers:
-        if isinstance(ext_logger, WandbLogger):
-          ext_logger.save_checkpoint(self.model_dir,
-                                     self,
-                                     "train_checkpoints",
-                                     "step",
-                                     current_step,
-                                     max_checkpoints_to_keep,
-                                     checkpoint_on_min=False)
+
+    # Call loggers end of fit behaviour
+    for ext_logger in self.loggers:
+      ext_logger.end_run({"global_step": current_step, "final_avg_loss": last_avg_loss},
+                         location="train")
 
     time2 = time.time()
     logs.info("TIMING: model fitting took %0.3f s" % (time2 - time1))

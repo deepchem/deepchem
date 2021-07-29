@@ -136,7 +136,6 @@ class KerasModel(Model):
                tensorboard: bool = False,
                wandb: bool = False,
                log_frequency: int = 100,
-               wandb_logger: Optional[WandbLogger] = None,
                logger: OneOrMany[Logger] = None,
                **kwargs) -> None:
     """Create a new KerasModel.
@@ -173,8 +172,6 @@ class KerasModel(Model):
       a global step corresponds to one batch of training. If you'd
       like a printout every 10 batch steps, you'd set
       `log_frequency=10` for example.
-    wandb_logger: WandbLogger
-      the Weights & Biases logger object used to log data and metrics
     """
     super(KerasModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
     if isinstance(loss, Loss):
@@ -208,18 +205,6 @@ class KerasModel(Model):
           "run `pip install wandb` then log in using `wandb login` "
           "or `import wandb; wandb.login()` in script.")
     self.wandb = wandb and _has_wandb
-
-    # Wandb_logger flag support (DEPRECATED)
-    self.wandb_logger = wandb_logger
-    # If `wandb=True` and no logger is provided, initialize default logger
-    if self.wandb and (self.wandb_logger is None):
-      self.wandb_logger = WandbLogger()
-
-    # Add wandb_logger to list of loggers
-    if (self.wandb_logger is not None):
-      if any(isinstance(x, WandbLogger) for x in self.loggers):
-          logs.warning("A WandbLogger is already provided in argument `logger`."
-                         " Ignoring the arguments `wandb` and `wandb_logger`.")
 
     # Update logger config with model params
     logger_config = dict(
@@ -502,6 +487,11 @@ class KerasModel(Model):
 
     if checkpoint_interval > 0:
       manager.save()
+
+    # Call loggers end of fit behaviour
+    for ext_logger in self.loggers:
+      ext_logger.end_run({"global_step": current_step, "final_avg_loss": last_avg_loss},
+                         location="train")
 
     time2 = time.time()
     logs.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
