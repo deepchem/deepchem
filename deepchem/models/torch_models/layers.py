@@ -46,22 +46,20 @@ class ScaleNorm(nn.Module):
     self.scale = nn.Parameter(torch.tensor(math.sqrt(scale)))
     self.eps = eps
 
-  def forward(self, x: torch.Tensor):
+  def forward(self, x : torch.Tensor):
     norm = self.scale / torch.norm(x, dim=-1, keepdim=True).clamp(min=self.eps)
     return x * norm
 
 
 class MultiHeadedMATAttention(nn.Module):
-  """Converts an existing attention layer to a multi-headed attention module.
+  """First constructs an attention layer tailored to the Molecular Attention Transformer [1]_ and then converts it into Multi-Headed Attention.
 
-  Multi-Headed attention the attention mechanism multiple times parallely through the multiple attention heads.
+  In Multi-Headed attention the attention mechanism multiple times parallely through the multiple attention heads.
   Thus, different subsequences of a given sequences can be processed differently.
   The query, key and value parameters are split multiple ways and each split is passed separately through a different attention head.
-
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
-
   Examples
   --------
   >>> import deepchem as dc
@@ -84,7 +82,6 @@ class MultiHeadedMATAttention(nn.Module):
                dropout_p: float,
                output_bias: bool = True):
     """Initialize a multi-headed attention layer.
-
     Parameters
     ----------
     dist_kernel: str
@@ -128,7 +125,6 @@ class MultiHeadedMATAttention(nn.Module):
                         eps: float = 1e-6,
                         inf: float = 1e12):
     """Defining and computing output for a single MAT attention layer.
-
     Parameters
     ----------
     query: torch.Tensor
@@ -185,7 +181,6 @@ class MultiHeadedMATAttention(nn.Module):
               inf: float = 1e12,
               **kwargs):
     """Output computation for the MultiHeadedAttention layer.
-
     Parameters
     ----------
     query: torch.Tensor
