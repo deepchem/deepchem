@@ -58,33 +58,69 @@ class ScaleNorm(nn.Module):
     self.scale = nn.Parameter(torch.tensor(math.sqrt(scale)))
     self.eps = eps
 
+<<<<<<< HEAD
   def forward(self, x: torch.Tensor):
+=======
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+  def forward(self, x: torch.Tensor):
+=======
+  def forward(self, x : torch.Tensor):
+>>>>>>> scalenorm forward annotation
+=======
+  def forward(self, x: torch.Tensor):
+>>>>>>> Code changes + Test + docs
+=======
+  def forward(self, x : torch.Tensor):
+>>>>>>> Update
+>>>>>>> Update
     norm = self.scale / torch.norm(x, dim=-1, keepdim=True).clamp(min=self.eps)
     return x * norm
 
 
+<<<<<<< HEAD
 class MATEncoder(nn.Module):
   """Encoder block for the Molecule Attention Transformer [1]_.
 
   A stack of N layers which form the MAT encoder block. The block primarily consists of a self-attention layer and a feed-forward layer.
   This block is constructed from its basic layer: MATEncoderLayer. See dc.models.torch_models.layers.MATEncoderLayer for more details regarding the working of the block.
 
+=======
+class MultiHeadedMATAttention(nn.Module):
+  """First constructs an attention layer tailored to the Molecular Attention Transformer [1]_ and then converts it into Multi-Headed Attention.
+
+  In Multi-Headed attention the attention mechanism multiple times parallely through the multiple attention heads.
+  Thus, different subsequences of a given sequences can be processed differently.
+  The query, key and value parameters are split multiple ways and each split is passed separately through a different attention head.
+>>>>>>> Update
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
-
   Examples
   --------
   >>> import deepchem as dc
   >>> block = dc.models.torch_models.layers.MATEncoder(dist_kernel = 'softmax', lambda_attention = 0.33, lambda_adistance = 0.33, h = 8, sa_hsize = 1024, sa_dropout_p = 0.1, d_input = 1024, activation = 'relu', n_layers = 1, ff_dropout_p = 0.1, encoder_hsize = 1024, encoder_dropout_p = 0.1, N = 3)
   """
 
+<<<<<<< HEAD
   def __init__(self, dist_kernel, lambda_attention, lambda_distance, h,
                sa_hsize, sa_dropout_p, output_bias, d_input, d_hidden, d_output,
                activation, n_layers, ff_dropout_p, encoder_hsize,
                encoder_dropout_p, N):
     """Initialize a MATEncoder block.
 
+=======
+  def __init__(self,
+               dist_kernel: str,
+               lambda_attention: float,
+               lambda_distance: float,
+               h: int,
+               hsize: int,
+               dropout_p: float,
+               output_bias: bool = True):
+    """Initialize a multi-headed attention layer.
+>>>>>>> Update
     Parameters
     ----------
     Parameters
@@ -206,6 +242,7 @@ class MATEncoderLayer(nn.Module):
     encoder_dropout_p: float
       Dropout probability for connections in the encoder layer.
     """
+<<<<<<< HEAD
 
     super(MATEncoderLayer, self).__init__()
     self.self_attn = MultiHeadedMATAttention(dist_kernel, lambda_attention,
@@ -220,6 +257,34 @@ class MATEncoderLayer(nn.Module):
   def forward(self, x, mask, **kwargs):
     """Output computation for the MATEncoder layer.
 
+=======
+    super().__init__()
+    if dist_kernel == "softmax":
+      self.dist_kernel = lambda x: torch.softmax(-x, dim=-1)
+    elif dist_kernel == "exp":
+      self.dist_kernel = lambda x: torch.exp(-x)
+    self.lambda_attention = lambda_attention
+    self.lambda_distance = lambda_distance
+    self.lambda_adjacency = 1.0 - self.lambda_attention - self.lambda_distance
+    self.d_k = hsize // h
+    self.h = h
+    linear_layer = nn.Linear(hsize, hsize)
+    self.linear_layers = nn.ModuleList([linear_layer for _ in range(3)])
+    self.dropout_p = nn.Dropout(dropout_p)
+    self.output_linear = nn.Linear(hsize, hsize, output_bias)
+
+  def _single_attention(self,
+                        query: torch.Tensor,
+                        key: torch.Tensor,
+                        value: torch.Tensor,
+                        mask: torch.Tensor,
+                        dropout_p: float,
+                        adj_matrix: np.ndarray,
+                        distance_matrix: np.ndarray,
+                        eps: float = 1e-6,
+                        inf: float = 1e12):
+    """Defining and computing output for a single MAT attention layer.
+>>>>>>> Update
     Parameters
     ----------
     x: torch.Tensor
@@ -260,6 +325,7 @@ class SublayerConnection(nn.Module):
     dropout_p: float
       Dropout probability.
     """
+<<<<<<< HEAD
 
     super(SublayerConnection, self).__init__()
     self.norm = nn.LayerNorm(size)
@@ -270,6 +336,43 @@ class SublayerConnection(nn.Module):
 
     Takes an input tensor x, then adds the dropout-adjusted sublayer output for normalized x to it.
 
+=======
+    d_k = query.size(-1)
+    scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
+
+    if mask is not None:
+      scores = scores.masked_fill(
+          mask.unsqueeze(1).repeat(1, query.shape[1], query.shape[2], 1) == 0,
+          -inf)
+    p_attn = F.softmax(scores, dim=-1)
+
+    adj_matrix = adj_matrix / (
+        torch.sum(torch.tensor(adj_matrix), dim=-1).unsqueeze(1) + eps)
+    p_adj = adj_matrix.repeat(1, query.shape[1], 1, 1)
+
+    distance_matrix = torch.tensor(distance_matrix).masked_fill(
+        mask.repeat(1, mask.shape[-1], 1) == 0, np.inf)
+    distance_matrix = self.dist_kernel(distance_matrix)
+    p_dist = distance_matrix.unsqueeze(1).repeat(1, query.shape[1], 1, 1)
+    p_weighted = self.lambda_attention * p_attn + self.lambda_distance * p_dist + self.lambda_adjacency * p_adj
+    p_weighted = self.dropout_p(p_weighted)
+
+    bd = value.broadcast_to(p_weighted.shape)
+    return torch.matmul(p_weighted.float(), bd.float()), p_attn
+
+  def forward(self,
+              query: torch.Tensor,
+              key: torch.Tensor,
+              value: torch.Tensor,
+              mask: torch.Tensor,
+              dropout_p: float,
+              adj_matrix: np.ndarray,
+              distance_matrix: np.ndarray,
+              eps: float = 1e-6,
+              inf: float = 1e12,
+              **kwargs):
+    """Output computation for the MultiHeadedAttention layer.
+>>>>>>> Update
     Parameters
     ----------
     x: torch.Tensor
@@ -378,7 +481,11 @@ class PositionwiseFeedForward(nn.Module):
     elif self.n_layers == 1:
       return self.dropout_p[0](self.act_func(self.linears[0](x)))
 
+<<<<<<< HEAD
     else:
       for i in range(self.n_layers - 1):
         x = self.dropout_p[i](self.act_func(self.linears[i](x)))
       return self.linears[-1](x)
+=======
+    return self.output_linear(x)
+>>>>>>> Update
