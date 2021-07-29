@@ -46,7 +46,7 @@ class ScaleNorm(nn.Module):
     self.scale = nn.Parameter(torch.tensor(math.sqrt(scale)))
     self.eps = eps
 
-  def forward(self, x : torch.Tensor):
+  def forward(self, x: torch.Tensor):
     norm = self.scale / torch.norm(x, dim=-1, keepdim=True).clamp(min=self.eps)
     return x * norm
 
