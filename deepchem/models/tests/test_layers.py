@@ -621,12 +621,12 @@ def test_scale_norm():
 @pytest.mark.torch
 def test_multi_headed_mat_attention():
   """Test invoking MultiHeadedMATAttention."""
-  import rdkit
+  from rdkit import Chem
   torch.manual_seed(0)
   input_smile = "CC"
-  mol = rdkit.Chem.rdmolfiles.MolFromSmiles(input_smile)
-  adj_matrix = rdkit.Chem.rdmolops.GetAdjacencyMatrix(mol)
-  distance_matrix = rdkit.Chem.rdmolops.GetDistanceMatrix(mol)
+  mol = Chem.MolFromSmiles(input_smile)
+  adj_matrix = Chem.GetAdjacencyMatrix(mol)
+  distance_matrix = Chem.GetDistanceMatrix(mol)
   layer = torch_layers.MultiHeadedMATAttention(
       dist_kernel='softmax',
       lambda_attention=0.33,

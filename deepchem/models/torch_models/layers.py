@@ -63,10 +63,10 @@ class MultiHeadedMATAttention(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
-  >>> import rdkit
-  >>> mol = rdkit.Chem.rdmolfiles.MolFromSmiles("CC")
-  >>> adj_matrix = rdkit.Chem.rdmolops.GetAdjacencyMatrix(mol)
-  >>> distance_matrix = rdkit.Chem.rdmolops.GetDistanceMatrix(mol)
+  >>> from rdkit import Chem
+  >>> mol = rdkit.Chem.MolFromSmiles("CC")
+  >>> adj_matrix = Chem.GetAdjacencyMatrix(mol)
+  >>> distance_matrix = Chem.GetDistanceMatrix(mol)
   >>> layer = dc.models.torch_models.layers.MultiHeadedMATAttention(dist_kernel='softmax', lambda_attention=0.33, lambda_distance=0.33, h=2, hsize=2, dropout_p=0.0)
   >>> input_tensor = torch.tensor([[1., 2.], [5., 6.]])
   >>> mask = torch.tensor([[1., 1.], [1., 1.]])
