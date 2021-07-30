@@ -3,6 +3,7 @@ Callback functions that can be invoked while fitting a KerasModel.
 """
 import sys
 
+
 class ValidationCallback(object):
   """Performs validation while training a KerasModel.
 
@@ -95,21 +96,19 @@ class ValidationCallback(object):
         model.save_checkpoint(model_dir=self.save_dir)
         self._best_score = score
     for ext_logger in model.loggers:
-        # Assign unique name
-        if (self.name is None) or (not self.name):
-          # assign a default name to the callback
-          self.name = str(id(self))
+      # Assign unique name
+      if (self.name is None) or (not self.name):
+        # assign a default name to the callback
+        self.name = str(id(self))
 
-        # Get value of checkpointed metric
-        checkpoint_score = score
-        if not self.save_on_minimum:
-          checkpoint_score = abs(checkpoint_score)
+      # Get value of checkpointed metric
+      checkpoint_score = scores[self.metrics[self.save_metric].name]
 
-        ext_logger.log_values(scores,
-                              step,
-                              location="eval/" + self.name,
-                              model=model,
-                              checkpoint_metric=self.metrics[self.save_metric].name,
-                              checkpoint_metric_value=checkpoint_score,
-                              checkpoint_on_min=self.save_on_minimum)
-
+      ext_logger.log_values(
+          scores,
+          step,
+          location="eval/" + self.name,
+          model=model,
+          checkpoint_metric=self.metrics[self.save_metric].name,
+          checkpoint_metric_value=checkpoint_score,
+          checkpoint_on_min=self.save_on_minimum)

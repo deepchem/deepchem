@@ -353,27 +353,40 @@ def test_wandblogger():
   train_dataset, valid_dataset, test_dataset = datasets
   metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
   metric2 = dc.metrics.Metric(dc.metrics.mae_score)
-  wandblogger = dc.models.WandbLogger(anonymous="allow", save_run_history=True)
+  wandblogger = dc.models.WandbLogger(
+      anonymous="allow",
+      save_run_history=True,
+      checkpoint_interval=50,
+      max_checkpoints_to_track=1,
+      model_dir="./wandb_checkpoints")
 
   pytorch_model = torch.nn.Sequential(
       torch.nn.Linear(1024, 1000),
       torch.nn.Dropout(p=0.5),
       torch.nn.Linear(1000, 1))
   model = dc.models.TorchModel(
-    pytorch_model, dc.models.losses.L2Loss(), logger=wandblogger,
-    model_dir="./testing_train_checkpoints")
-
-  vc_train = dc.models.ValidationCallback(train_dataset, 10, [metric, metric2],
-                                          save_dir="./testing_val_checkpoints",
-                                          save_on_minimum=False,
-                                          name="callback1")
-  vc_valid = dc.models.ValidationCallback(valid_dataset, 10, [metric, metric2],
-                                          save_dir="./testing_val_checkpoints",
-                                          save_on_minimum=False,
-                                          name="callback2")
-  model.fit(train_dataset, nb_epoch=10, checkpoint_interval=10, callbacks=[vc_train, vc_valid])
+      pytorch_model, dc.models.losses.L2Loss(), wandb=True, logger=wandblogger)
+  vc_train = dc.models.ValidationCallback(
+      train_dataset,
+      10, [metric, metric2],
+      save_on_minimum=False,
+      name="callback1")
+  vc_valid = dc.models.ValidationCallback(
+      valid_dataset,
+      10, [metric, metric2],
+      save_on_minimum=False,
+      name="callback2")
+  model.fit(
+      train_dataset,
+      nb_epoch=10,
+      checkpoint_interval=10,
+      callbacks=[vc_train, vc_valid])
   # call model.fit again to test multiple fit() calls
-  model.fit(train_dataset, nb_epoch=10, checkpoint_interval=10, callbacks=[vc_train, vc_valid])
+  model.fit(
+      train_dataset,
+      nb_epoch=10,
+      checkpoint_interval=10,
+      callbacks=[vc_train, vc_valid])
   wandblogger.finish()
 
   run_data = wandblogger.run_history
@@ -381,7 +394,7 @@ def test_wandblogger():
 
   assert math.isclose(
       valid_score["pearson_r2_score"],
-      run_data['eval/pearson_r2_score_(1)'],
+      run_data['eval/callback2/pearson_r2_score'],
       abs_tol=0.0005)
 
 

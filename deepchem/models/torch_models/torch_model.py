@@ -191,14 +191,15 @@ class TorchModel(Model):
     self.device = device
     self.model = model.to(device)
 
-    self.loggers = logger
     # Create a list of loggers
-    if self.loggers is not None:
-      if not isinstance(self.loggers, list):
-        # if not a list of loggers, make it a list of one logger
-        self.loggers = [self.loggers]
+    self.loggers = list()
+    if logger is not None:
+      if isinstance(logger, list):
+        self.loggers = logger
+      else:
+        self.loggers.append(logger)
     else:
-      self.loggers = []
+      self.loggers = list()
 
     # W&B logging (DEPRECATED
     if wandb:
@@ -211,6 +212,12 @@ class TorchModel(Model):
           "run `pip install wandb; wandb login` see https://docs.wandb.com/huggingface."
       )
     self.wandb = wandb and _has_wandb
+    if self.wandb:
+      if any(isinstance(x, WandbLogger) for x in self.loggers):
+        logs.warning("A WandbLogger is already provided in argument `logger`. "
+                     "Ignoring the argument `wandb`.")
+      else:
+        self.loggers.append(WandbLogger())
 
     # Update config with model params
     logger_config = dict(
@@ -449,15 +456,18 @@ class TorchModel(Model):
       if self.tensorboard and should_log:
         self._log_scalar_to_tensorboard('loss', batch_loss, current_step)
       for ext_logger in self.loggers:
-        ext_logger.log_batch({"loss": batch_loss},
-                             current_step,
-                             inputs,
-                             labels,
-                             location="train",
-                             model=self,
-                             checkpoint_metric="step",
-                             checkpoint_metric_value=current_step,
-                             checkpoint_on_min=False)
+        ext_logger.log_batch(
+            {
+                "loss": batch_loss
+            },
+            current_step,
+            inputs,
+            labels,
+            location="train",
+            model=self,
+            checkpoint_metric="step",
+            checkpoint_metric_value=current_step,
+            checkpoint_on_min=False)
     # Report final results.
     if averaged_batches > 0:
       avg_loss = float(avg_loss) / averaged_batches
@@ -472,8 +482,12 @@ class TorchModel(Model):
 
     # Call loggers end of fit behaviour
     for ext_logger in self.loggers:
-      ext_logger.end_run({"global_step": current_step, "final_avg_loss": last_avg_loss},
-                         location="train")
+      ext_logger.on_fit_end(
+          {
+              "global_step": current_step,
+              "final_avg_loss": last_avg_loss
+          },
+          location="train")
 
     time2 = time.time()
     logs.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
