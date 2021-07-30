@@ -389,14 +389,8 @@ class MATEncoderLayer(nn.Module):
     self.sublayer = nn.ModuleList([layer for _ in range(2)])
     self.size = encoder_hsize
 
-  def forward(
-      self,
-      x: torch.Tensor,
-      mask: torch.Tensor,
-      sa_dropout_p: float,
-      adj_matrix: np.ndarray,
-      distance_matrix: np.ndarray
-  ):
+  def forward(self, x: torch.Tensor, mask: torch.Tensor, sa_dropout_p: float,
+              adj_matrix: np.ndarray, distance_matrix: np.ndarray):
     """Output computation for the MATEncoder layer.
 
     Parameters
@@ -439,7 +433,7 @@ class SublayerConnection(nn.Module):
   >>> import deepchem as dc
   >>> scale = 0.35
   >>> layer = dc.models.torch_models.layers.SublayerConnection(2, 0.)
-  >>> input_ar = torch.tensor([[1., 2.], [5., 6.]]) 
+  >>> input_ar = torch.tensor([[1., 2.], [5., 6.]])
   >>> output = layer(input_ar, input_ar)
   """
 
