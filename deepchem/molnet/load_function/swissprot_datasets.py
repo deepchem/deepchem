@@ -21,7 +21,7 @@ class _SWISSPROTLoader(_MolnetLoader):
                                   "uniprot_swissprot_14_06_21.csv")
     print("loader")
     loader = dc.data.CSVLoader(
-        tasks=self.tasks, featurizer=self.featurizer)
+        tasks=self.tasks, featurizer=self.featurizer,feature_field="SEQUENCE",id_field="ACCNUM")
     return loader.create_dataset(dataset_file)#,shard_size=8192)
 
 
