@@ -67,6 +67,7 @@ class ScaleNorm(nn.Module):
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 class MultiHeadedMATAttention(nn.Module):
   """First constructs an attention layer tailored to the Molecular Attention Transformer [1]_ and then converts it into Multi-Headed Attention.
 
@@ -310,11 +311,13 @@ class MATEncoder(nn.Module):
     return self.norm(x)
 
 
+=======
+>>>>>>> Tests for encoder
 class MATEncoderLayer(nn.Module):
   """Encoder layer for use in the Molecular Attention Transformer [1]_.
 
-  The MATEncoder layer is formed by adding self-attention and feed-forward to the encoder block.
-  It is the basis of the MATEncoder block.
+  The MATEncoder layer primarily consists of a self-attention layer (MultiHeadedMATAttention) and a feed-forward layer (PositionwiseFeedForward).
+  This layer can be stacked multiple times to form an encoder.
 
   References
   ----------
@@ -323,7 +326,14 @@ class MATEncoderLayer(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
+  >>> import rdkit
+  >>> mol = rdkit.Chem.rdmolfiles.MolFromSmiles("CC")
+  >>> adj_matrix = GetAdjacencyMatrix(mol)
+  >>> distance_matrix = GetDistanceMatrix(mol)
   >>> layer = dc.models.torch_models.layers.MATEncoderLayer(dist_kernel = 'softmax', lambda_attention = 0.33, lambda_distance = 0.33, h = 8, sa_hsize = 1024, sa_dropout_p = 0.1, d_input = 1024, activation = 'relu', n_layers = 1, ff_dropout_p = 0.1, encoder_hsize = 1024, encoder_dropout_p = 0.1)
+  >>> x = torch.Tensor([[1., 2.], [5., 6.]])
+  >>> mask = torch.Tensor([[1., 1.], [1., 1.]])
+  >>> output = layer(x, mask, sa_dropout_p = 0.0, adj_matrix = adj_matrix, distance_matrix = distance_matrix)
   """
 
   def __init__(self, dist_kernel: str, lambda_attention: float,
@@ -379,7 +389,14 @@ class MATEncoderLayer(nn.Module):
     self.sublayer = nn.ModuleList([layer for _ in range(2)])
     self.size = encoder_hsize
 
-  def forward(self, x: torch.Tensor, mask: torch.Tensor, **kwargs):
+  def forward(
+      self,
+      x: torch.Tensor,
+      mask: torch.Tensor,
+      sa_dropout_p: float,
+      adj_matrix: np.ndarray,
+      distance_matrix: np.ndarray
+  ):
     """Output computation for the MATEncoder layer.
 
     Parameters
@@ -388,10 +405,23 @@ class MATEncoderLayer(nn.Module):
       Input tensor.
     mask: torch.Tensor
       Masks out padding values so that they are not taken into account when computing the attention score.
+    sa_dropout_p: float
+      Dropout probability for the self-attention layer (MultiHeadedMATAttention).
+    adj_matrix: np.ndarray
+      Adjacency matrix of a molecule.
+    distance_matrix: np.ndarray
+      Distance matrix of a molecule.
     """
     x = self.sublayer[0](x,
-                         lambda x: self.self_attn(x, x, x, mask=mask, **kwargs))
-    return self.sublayer[1](x, self.feed_forward)
+                         self.self_attn(
+                             x,
+                             x,
+                             x,
+                             mask=mask,
+                             dropout_p=sa_dropout_p,
+                             adj_matrix=adj_matrix,
+                             distance_matrix=distance_matrix))
+    return self.sublayer[1](x, self.feed_forward(x))
 
 
 class SublayerConnection(nn.Module):
@@ -409,7 +439,8 @@ class SublayerConnection(nn.Module):
   >>> import deepchem as dc
   >>> scale = 0.35
   >>> layer = dc.models.torch_models.layers.SublayerConnection(2, 0.)
-  >>> output = layer(torch.Tensor([1.,2.]), nn.Linear(2,1))
+  >>> input_ar = torch.tensor([[1., 2.], [5., 6.]]) 
+  >>> output = layer(input_ar, input_ar)
   """
 
   def __init__(self, size: int, dropout_p: float):
@@ -440,8 +471,20 @@ class SublayerConnection(nn.Module):
       Layer whose normalized output will be added to x.
     """
     if x is None:
-      return self.dropout(self.norm(output))
-    return x + self.dropout(self.norm(output))
+      return self.dropout_p(self.norm(output))
+
+    if len(x.shape) < len(output.shape):
+      temp_ar = x
+      op_ar = output
+      adjusted = temp_ar.unsqueeze(1).repeat(1, op_ar.shape[1], 1)
+    elif len(x.shape) > len(output.shape):
+      temp_ar = output
+      op_ar = x
+      adjusted = temp_ar.unsqueeze(1).repeat(1, op_ar.shape[1], 1)
+    else:
+      return x + self.dropout_p(self.norm(output))
+
+    return adjusted + self.dropout_p(self.norm(op_ar))
 
 
 class PositionwiseFeedForward(nn.Module):
@@ -460,13 +503,8 @@ class PositionwiseFeedForward(nn.Module):
   >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, d_hidden = None, d_output = None, activation = 'relu', n_layers = 1, dropout_p = 0.1)
   """
 
-  def __init__(self,
-               d_input: int,
-               d_hidden: int,
-               d_output: int,
-               activation: str,
-               n_layers: int,
-               dropout_p: float):
+  def __init__(self, d_input: int, d_hidden: int, d_output: int,
+               activation: str, n_layers: int, dropout_p: float):
     """Initialize a PositionwiseFeedForward layer.
 
     Parameters
@@ -509,8 +547,8 @@ class PositionwiseFeedForward(nn.Module):
       self.activation = lambda x: x
 
     self.n_layers = n_layers
-    d_output = d_output if d_output is not 0 else d_input
-    d_hidden = d_hidden if d_hidden is not 0 else d_input
+    d_output = d_output if d_output != 0 else d_input
+    d_hidden = d_hidden if d_hidden != 0 else d_input
 
     if n_layers == 1:
       self.linears = [nn.Linear(d_input, d_output)]
@@ -523,7 +561,6 @@ class PositionwiseFeedForward(nn.Module):
     self.linears = nn.ModuleList(self.linears)
     dropout_layer = nn.Dropout(dropout_p)
     self.dropout_p = nn.ModuleList([dropout_layer for _ in range(n_layers)])
-    self.act_func = activation
 
   def forward(self, x: torch.Tensor):
     """Output Computation for the PositionwiseFeedForward layer.
@@ -537,10 +574,10 @@ class PositionwiseFeedForward(nn.Module):
       return x
 
     if self.n_layers == 1:
-      return self.dropout_p[0](self.act_func(self.linears[0](x)))
+      return self.dropout_p[0](self.activation(self.linears[0](x)))
 
     else:
       for i in range(self.n_layers - 1):
-        x = self.dropout_p[i](self.act_func(self.linears[i](x)))
+        x = self.dropout_p[i](self.activation(self.linears[i](x)))
       return self.linears[-1](x)
 >>>>>>> Added encoder layers
