@@ -100,7 +100,18 @@ class MultiHeadedMATAttention(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
+<<<<<<< HEAD
   >>> block = dc.models.torch_models.layers.MATEncoder(dist_kernel = 'softmax', lambda_attention = 0.33, lambda_adistance = 0.33, h = 8, sa_hsize = 1024, sa_dropout_p = 0.1, d_input = 1024, activation = 'relu', n_layers = 1, ff_dropout_p = 0.1, encoder_hsize = 1024, encoder_dropout_p = 0.1, N = 3)
+=======
+  >>> from rdkit import Chem
+  >>> mol = rdkit.Chem.MolFromSmiles("CC")
+  >>> adj_matrix = Chem.GetAdjacencyMatrix(mol)
+  >>> distance_matrix = Chem.GetDistanceMatrix(mol)
+  >>> layer = dc.models.torch_models.layers.MultiHeadedMATAttention(dist_kernel='softmax', lambda_attention=0.33, lambda_distance=0.33, h=2, hsize=2, dropout_p=0.0)
+  >>> input_tensor = torch.tensor([[1., 2.], [5., 6.]])
+  >>> mask = torch.tensor([[1., 1.], [1., 1.]])
+  >>> result = layer(input_tensor, input_tensor, input_tensor, mask, 0.0, adj_matrix, distance_matrix)
+>>>>>>> Update
   """
 
 <<<<<<< HEAD
