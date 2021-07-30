@@ -668,12 +668,12 @@ def test_sub_layer_connection():
 def test_mat_encoder_layer():
   """Test invoking MATEncoderLayer."""
   torch.manual_seed(0)
-  import rdkit
+  from rdkit import Chem
   input_ar = torch.Tensor([[1., 2.], [5., 6.]])
   mask = torch.Tensor([[1., 1.], [1., 1.]])
-  mol = rdkit.Chem.rdmolfiles.MolFromSmiles("CC")
-  adj_matrix = rdkit.Chem.rdmolops.GetAdjacencyMatrix(mol)
-  distance_matrix = rdkit.Chem.rdmolops.GetDistanceMatrix(mol)
+  mol = Chem.MolFromSmiles("CC")
+  adj_matrix = Chem.GetAdjacencyMatrix(mol)
+  distance_matrix = Chem.GetDistanceMatrix(mol)
   layer = torch_layers.MATEncoderLayer(
 >>>>>>> Tests for encoder
       dist_kernel='softmax',

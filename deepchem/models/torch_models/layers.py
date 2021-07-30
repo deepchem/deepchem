@@ -326,10 +326,10 @@ class MATEncoderLayer(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
-  >>> import rdkit
-  >>> mol = rdkit.Chem.rdmolfiles.MolFromSmiles("CC")
-  >>> adj_matrix = GetAdjacencyMatrix(mol)
-  >>> distance_matrix = GetDistanceMatrix(mol)
+  >>> from rdkit import Chem
+  >>> mol = Chem.MolFromSmiles("CC")
+  >>> adj_matrix = Chem.GetAdjacencyMatrix(mol)
+  >>> distance_matrix = Chem.GetDistanceMatrix(mol)
   >>> layer = dc.models.torch_models.layers.MATEncoderLayer(dist_kernel = 'softmax', lambda_attention = 0.33, lambda_distance = 0.33, h = 8, sa_hsize = 1024, sa_dropout_p = 0.1, d_input = 1024, activation = 'relu', n_layers = 1, ff_dropout_p = 0.1, encoder_hsize = 1024, encoder_dropout_p = 0.1)
   >>> x = torch.Tensor([[1., 2.], [5., 6.]])
   >>> mask = torch.Tensor([[1., 1.], [1., 1.]])
