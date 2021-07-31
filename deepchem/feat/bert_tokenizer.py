@@ -1,17 +1,17 @@
-from deepchem.feat.base_classes import Featurizer
-from typing import List, Dict
+from deepchem.feat import Featurizer
+from typing import Dict, List
 try:
   from transformers import BertTokenizerFast
-except:
-  raise ImportError("""This class requires the transformers package,
-                    which was not found in your environment.""")
+except ModuleNotFoundError:
+  raise ImportError(
+      'Transformers must be installed for BertFeaturizer to be used!')
+  pass
 
 
 class BertFeaturizer(BertTokenizerFast, Featurizer):
   """Bert Featurizer.
 
   The Bert Featurizer is a wrapper class for HuggingFace's BertTokenizerFast.
-
   This class intends to allow users to use the BertTokenizer API while
   remaining inside the DeepChem ecosystem.
 
@@ -47,7 +47,6 @@ class BertFeaturizer(BertTokenizerFast, Featurizer):
     encoding: list
         list containing two lists: `input_ids` and `attention_mask`
     """
-    # print(f"encoding {sequence}")  # Bug: This is getting called 142 times per token
     encoding = list(self(sequence, **kwargs).values())
     return encoding
 
