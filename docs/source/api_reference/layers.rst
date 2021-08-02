@@ -115,4 +115,7 @@ another tensor. DeepChem maintains an extensive collection of layers which perfo
 .. autoclass:: deepchem.models.torch_models.layers.ScaleNorm
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.MultiHeadedMATAttention
+  :members:
+
 .. autofunction:: deepchem.models.layers.cosine_dist
