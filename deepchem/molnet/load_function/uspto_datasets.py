@@ -25,11 +25,13 @@ USPTO_TASK: List[str] = []
 
 class _USPTOLoader(_MolnetLoader):
 
-  def __init__(self, *args, subset: str, sep_reagent: bool, **kwargs):
+  def __init__(self, *args, subset: str, sep_reagent: bool,
+               skip_transform: bool, **kwargs):
     super(_USPTOLoader, self).__init__(*args, **kwargs)
     self.subset = subset
     self.sep_reagent = sep_reagent
     self.name = 'USPTO_' + subset
+    self.skip_transform = skip_transform
 
   def create_dataset(self) -> Dataset:
     if self.subset not in ['MIT', 'STEREO', '50K', 'FULL']:
@@ -72,14 +74,15 @@ def load_uspto(
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     subset: str = "MIT",
-    sep_reagent: bool = True,  # functionality to be added!
+    sep_reagent: bool = True,
+    skip_transform: bool = True,
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
   """Load USPTO Datasets.
 
-  USPTO is a dataset of over 1.8 Million organic chemical reactions extracted
-  from US patents and patent applications. The dataset contains the reactions
-  in the form of reaction SMILES, which have the general format:
+  The USPTO dataset consists of over 1.8 Million organic chemical reactions
+  extracted from US patents and patent applications. The dataset contains the
+  reactions in the form of reaction SMILES, which have the general format:
   reactant>reagent>product.
 
   Molnet provides ability to load subsets of the USPTO dataset namely MIT,
@@ -89,13 +92,15 @@ def load_uspto(
   The 50K dataset contatins 50,000 reactions and is the benchmark for
   retrosynthesis predictions. The reactions are additionally classified into 10
   reaction classes. The canonicalized version of the dataset used by the loader
-  is the same as that used by somnath et. al.
+  is the same as that used by Somnath et. al.
 
   The loader uses the SpecifiedSplitter to use the same splits as specified
-  by Schwaller and Coley. Custom splitters could also be used. There is also a
-  toggle to load the dataset with the reagents separated or mixed. This alters
-  the entries in src by replacing the '>' with '.', effectively loading them as
-  a unified SMILES string.
+  by Schwaller et. al and Dai et. al. Custom splitters could also be used. There
+  is a toggle in the loader to skip the source/target transformation needed for
+  seq2seq tasks. There is an additional toggle to load the dataset with the
+  reagents and reactants separated or mixed. This alters the entries in source
+  by replacing the '>' with '.' , effectively loading them as an unified
+  SMILES string.
 
   Parameters
   ----------
@@ -118,13 +123,16 @@ def load_uspto(
     a directory to save the raw data in
   save_dir: str
     a directory to save the dataset in
-  subset : str (default 'MIT')
+  subset: str (default 'MIT')
     Subset of dataset to download. 'FULL', 'MIT', 'STEREO', and '50K' are supported.
-  sep_reagent : bool (default True)
-    Toggle to load dataset with reactants and reado I call it
+  sep_reagent: bool (default True)
+    Toggle to load dataset with reactants and reagents either separated or mixed.
+  skip_transform: bool (default True)
+    Toggle to skip the source/target transformation.
+
   Returns
   -------
-  tasks, datasets, transformers : tuple
+  tasks, datasets, transformers: tuple
     tasks : list
       Column names corresponding to machine learning target variables.
     datasets : tuple
@@ -133,20 +141,34 @@ def load_uspto(
     transformers : list
       ``deepchem.trans.transformers.Transformer`` instances applied
       to dataset.
+
+  References
   ----------
-  .. [1] Lowe, D.. (2017). Chemical reactions from US patents (1976-Sep2016)
-        (Version 1). figshare. https://doi.org/10.6084/m9.figshare.5104873.v1
-  .. [2] Schwaller, P., Laino, T., Gaudin, T., Bolgar, P., Hunter, C. A., Bekas,
-         C., & Lee, A. A. (2019). Molecular transformer: a model for
-         uncertainty-calibrated chemical reaction prediction.
-         ACS central science, 5(9), 1572-1583.
-  .. [3] Somnath, V. R., Bunne, C., Coley, C. W., Krause, A., & Barzilay, R.
-         (2020). Learning Graph Models for Retrosynthesis Prediction.
-         arXiv preprint arXiv:2006.07038.
-  .. [4] Dai, H., Li, C., Coley, C. W., Dai, B., & Song, L. (2020).
-         Retrosynthesis prediction with conditional graph logic network.
-         arXiv preprint arXiv:2001.01408.
+  .. [1] Lowe, D. Chemical reactions from US patents (1976-Sep2016)
+        (Version 1). figshare (2017). https://doi.org/10.6084/m9.figshare.5104873.v1
+  .. [2] Somnath, Vignesh Ram, et al. "Learning graph models for retrosynthesis
+         prediction." arXiv preprint arXiv:2006.07038 (2020).
+  .. [3] Schwaller, Philippe, et al. "Molecular transformer: a model for
+         uncertainty-calibrated chemical reaction prediction."
+         ACS central science 5.9 (2019): 1572-1583.
+  .. [4] Dai, Hanjun, et al. "Retrosynthesis prediction with conditional
+         graph logic network." arXiv preprint arXiv:2001.01408 (2020).
   """
+
+  if skip_transform:
+    if not sep_reagent:
+      raise ValueError(
+          "To enable mixed training you must not skip the transformation.")
+    transformers = []
+  else:
+    if sep_reagent:
+      transformers = [
+          TransformerGenerator(dc.trans.RxnSplitTransformer, sep_reagent=True)
+      ]
+    else:
+      transformers = [
+          TransformerGenerator(dc.trans.RxnSplitTransformer, sep_reagent=False)
+      ]
 
   loader = _USPTOLoader(
       featurizer,
@@ -157,5 +179,6 @@ def load_uspto(
       save_dir,
       subset=subset,
       sep_reagent=sep_reagent,
+      skip_transform=skip_transform,
       **kwargs)
   return loader.load_dataset(loader.name, reload)
