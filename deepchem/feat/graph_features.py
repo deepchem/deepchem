@@ -757,7 +757,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
 
   def featurize(
       self,
-      molecules: Union[RDKitMol, str, Iterable[RDKitMol], Iterable[str]],
+      datapoints: Union[RDKitMol, str, Iterable[RDKitMol], Iterable[str]],
       log_every_n: int = 1000,
       **kwargs) -> np.ndarray:
     """
@@ -765,7 +765,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     
     Parameters
     ----------
-    molecules: rdkit.Chem.rdchem.Mol / SMILES string / iterable
+    datapoints: rdkit.Chem.rdchem.Mol / SMILES string / iterable
       RDKit Mol, or SMILES string or iterable sequence of RDKit mols/SMILES
       strings.
     log_every_n: int, default 1000
@@ -776,8 +776,14 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     features: np.ndarray
       A numpy array containing a featurized representation of `datapoints`.
     """
+    if 'molecules' in kwargs and datapoints is None:
+      datapoints = kwargs.get("molecules")
+      raise DeprecationWarning(
+          'Molecules is being phased out as a parameter, please pass "datapoints" instead.'
+      )
+
     features = super(ConvMolFeaturizer, self).featurize(
-        molecules, log_every_n=1000)
+        datapoints, log_every_n=1000)
     if self.per_atom_fragmentation:
       # create temporary valid ids serving to filter out failed featurizations from every sublist
       # of features (i.e. every molecules' frags list), and also totally failed sublists.

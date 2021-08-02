@@ -42,7 +42,7 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
     super().__init__(**kwargs)
     return
 
-  def _featurize(self, sequence: str, **kwargs) -> List[List[int]]:
+  def _featurize(self, datapoint: str, **kwargs) -> List[List[int]]:
     """Calculate encoding using HuggingFace's RobertaTokenizerFast
 
     Parameters
@@ -52,13 +52,13 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
 
     Returns
     -------
-    encoding: List
+    datapoint: List
       List containing two lists; the `input_ids` and the `attention_mask`
     """
 
     # the encoding is natively a dictionary with keys 'input_ids' and 'attention_mask'
     # encoding = list(self(smiles_string, **kwargs).values())
-    encoding = list(self(sequence, **kwargs).values())
+    encoding = list(self(datapoint, **kwargs).values())
     return encoding
 
   def __call__(self, *args, **kwargs) -> Dict[str, List[int]]:

@@ -73,19 +73,24 @@ class MATFeaturizer(MolecularFeaturizer):
 
     return np.array(attrib, dtype=np.float32)
 
-  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """
     Featurize the molecule.
 
     Parameters
     ----------
-    mol: RDKitMol
+    datapoint: RDKitMol
       RDKit mol object.
 
     Returns
     -------
     np.ndarray: A concatenated matrix consisting of node_features, adjacency_matrix and distance_matrix.
     """
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
 
     try:
       from rdkit import Chem
@@ -93,9 +98,9 @@ class MATFeaturizer(MolecularFeaturizer):
       raise ImportError("This class requires RDKit to be installed.")
 
     node_features = np.array(
-        [self.atom_features(atom) for atom in mol.GetAtoms()])
-    adjacency_matrix = Chem.rdmolops.GetAdjacencyMatrix(mol)
-    distance_matrix = Chem.rdmolops.GetDistanceMatrix(mol)
+        [self.atom_features(atom) for atom in datapoint.GetAtoms()])
+    adjacency_matrix = Chem.rdmolops.GetAdjacencyMatrix(datapoint)
+    distance_matrix = Chem.rdmolops.GetDistanceMatrix(datapoint)
 
     result = np.concatenate(
         [node_features, adjacency_matrix, distance_matrix], axis=1)

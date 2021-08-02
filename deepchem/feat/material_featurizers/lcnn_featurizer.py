@@ -157,11 +157,11 @@ class LCNNFeaturizer(MaterialStructureFeaturizer):
     self.cutoff = np.around(cutoff, 2)
     self.setup_env = _load_primitive_cell(structure, aos, pbc, ns, na, cutoff)
 
-  def _featurize(self, structure: PymatgenStructure, **kwargs) -> GraphData:
+  def _featurize(self, datapoint: PymatgenStructure, **kwargs) -> GraphData:
     """
     Parameters
     ----------
-    structure: : PymatgenStructure
+    datapoint: : PymatgenStructure
       Pymatgen Structure object of the surface configuration. It also requires
       site_properties attribute with "Sitetypes"(Active or spectator site) and
       "oss"(Species of Active site from the list of self.aos and "-1" for
@@ -172,7 +172,13 @@ class LCNNFeaturizer(MaterialStructureFeaturizer):
     graph: GraphData
       Node features, All edges for each node in diffrent permutations
     """
-    xSites, xNSs = self.setup_env.read_datum(structure)
+    if 'structure' in kwargs and datapoint is None:
+      datapoint = kwargs.get("structure")
+      raise DeprecationWarning(
+          'Structure is being phased out as a parameter, please pass "datapoint" instead.'
+      )
+
+    xSites, xNSs = self.setup_env.read_datum(datapoint)
     config_size = xNSs.shape
     v = np.arange(0, len(xSites)).repeat(config_size[2] * config_size[3])
     u = xNSs.flatten()

@@ -59,14 +59,13 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
     self.data_source = data_source
     self.ep_featurizer: Any = None
 
-  def _featurize(self, composition: PymatgenComposition,
-                 **kwargs) -> np.ndarray:
+  def _featurize(self, datapoint: PymatgenComposition, **kwargs) -> np.ndarray:
     """
     Calculate chemical fingerprint from crystal composition.
 
     Parameters
     ----------
-    composition: pymatgen.core.Composition object
+    datapoint: pymatgen.core.Composition object
       Composition object.
 
     Returns
@@ -75,6 +74,12 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
       Vector of properties and statistics derived from chemical
       stoichiometry. Some values may be NaN.
     """
+    if 'composition' in kwargs and datapoint is None:
+      datapoint = kwargs.get("composition")
+      raise DeprecationWarning(
+          'Composition is being phased out as a parameter, please pass "datapoint" instead.'
+      )
+
     if self.ep_featurizer is None:
       try:
         from matminer.featurizers.composition import ElementProperty
@@ -83,7 +88,7 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
         raise ImportError("This class requires matminer to be installed.")
 
     try:
-      feats = self.ep_featurizer.featurize(composition)
+      feats = self.ep_featurizer.featurize(datapoint)
     except:
       feats = []
 

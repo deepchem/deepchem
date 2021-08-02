@@ -89,7 +89,7 @@ class OneHotFeaturizer(Featurizer):
     # Featurize data using featurize() in parent class
     return Featurizer.featurize(self, datapoints, log_every_n)
 
-  def _featurize(self, datapoint: Any):
+  def _featurize(self, datapoint: Any, **kwargs):
     # Featurize str data
     if isinstance(datapoint, (str, np.str_)):
       return self._featurize_string(datapoint)

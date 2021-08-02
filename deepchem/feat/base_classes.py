@@ -4,7 +4,7 @@ Feature calculations.
 import inspect
 import logging
 import numpy as np
-from typing import Any, Dict, Iterable, Tuple, Union, cast
+from typing import Any, Dict, Iterable, Optional, Tuple, Union, cast
 
 from deepchem.utils import get_print_threshold
 from deepchem.utils.typing import PymatgenStructure
@@ -44,7 +44,7 @@ class Featurizer(object):
       A numpy array containing a featurized representation of `datapoints`.
     """
     datapoints = list(datapoints)
-    features: list[any] = []
+    features = []
     for i, point in enumerate(datapoints):
       if i % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % i)
@@ -158,7 +158,7 @@ class ComplexFeaturizer(Featurizer):
   """
 
   def featurize(self,
-                datapoints: Iterable[Tuple[str, str]] = None,
+                datapoints: Optional[Iterable[Tuple[str, str]]] = None,
                 log_every_n: int = 100,
                 **kwargs) -> np.ndarray:
     """
@@ -212,7 +212,7 @@ class ComplexFeaturizer(Featurizer):
 
     return np.asarray(features)
 
-  def _featurize(self, datapoints: Iterable[Tuple[str, str]] = None, **kwargs):
+  def _featurize(self, datapoint: Optional[Tuple[str, str]] = None, **kwargs):
     """
     Calculate features for single mol/protein complex.
 
@@ -242,12 +242,12 @@ class MolecularFeaturizer(Featurizer):
   The subclasses of this class require RDKit to be installed.
   """
 
-  def featurize(self, molecules, log_every_n=1000, **kwargs) -> np.ndarray:
+  def featurize(self, datapoints, log_every_n=1000, **kwargs) -> np.ndarray:
     """Calculate features for molecules.
 
     Parameters
     ----------
-    molecules: rdkit.Chem.rdchem.Mol / SMILES string / iterable
+    datapoints: rdkit.Chem.rdchem.Mol / SMILES string / iterable
       RDKit Mol, or SMILES string or iterable sequence of RDKit mols/SMILES
       strings.
     log_every_n: int, default 1000
@@ -266,15 +266,21 @@ class MolecularFeaturizer(Featurizer):
     except ModuleNotFoundError:
       raise ImportError("This class requires RDKit to be installed.")
 
+    if 'molecules' in kwargs:
+      datapoints = kwargs.get("molecules")
+      raise DeprecationWarning(
+          'Molecules is being phased out as a parameter, please pass "datapoints" instead.'
+      )
+
     # Special case handling of single molecule
-    if isinstance(molecules, str) or isinstance(molecules, Mol):
-      molecules = [molecules]
+    if isinstance(datapoints, str) or isinstance(datapoints, Mol):
+      datapoints = [datapoints]
     else:
       # Convert iterables to list
-      molecules = list(molecules)
+      datapoints = list(datapoints)
 
     features: list = []
-    for i, mol in enumerate(molecules):
+    for i, mol in enumerate(datapoints):
       if i % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % i)
 
@@ -323,14 +329,15 @@ class MaterialStructureFeaturizer(Featurizer):
   """
 
   def featurize(self,
-                structures: Iterable[Union[Dict[str, Any], PymatgenStructure]],
+                datapoints: Optional[Iterable[Union[Dict[str, Any],
+                                                    PymatgenStructure]]] = None,
                 log_every_n: int = 1000,
                 **kwargs) -> np.ndarray:
     """Calculate features for crystal structures.
 
     Parameters
     ----------
-    structures: Iterable[Union[Dict, pymatgen.core.Structure]]
+    datapoints: Iterable[Union[Dict, pymatgen.core.Structure]]
       Iterable sequence of pymatgen structure dictionaries
       or pymatgen.core.Structure. Please confirm the dictionary representations
       of pymatgen.core.Structure from https://pymatgen.org/pymatgen.core.structure.html.
@@ -341,16 +348,25 @@ class MaterialStructureFeaturizer(Featurizer):
     -------
     features: np.ndarray
       A numpy array containing a featurized representation of
-      `structures`.
+      `datapoints`.
     """
     try:
       from pymatgen.core import Structure
     except ModuleNotFoundError:
       raise ImportError("This class requires pymatgen to be installed.")
 
-    structures = list(structures)
+    if 'structures' in kwargs:
+      datapoints = kwargs.get("structures")
+      raise DeprecationWarning(
+          'Structures is being phased out as a parameter, please pass "datapoints" instead.'
+      )
+
+    if not isinstance(datapoints, Iterable):
+      datapoints = [cast(Union[Dict[str, Any], PymatgenStructure], datapoints)]
+
+    datapoints = list(datapoints)
     features = []
-    for idx, structure in enumerate(structures):
+    for idx, structure in enumerate(datapoints):
       if idx % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % idx)
       try:
@@ -389,14 +405,14 @@ class MaterialCompositionFeaturizer(Featurizer):
   """
 
   def featurize(self,
-                compositions: Iterable[str],
+                datapoints: Optional[Iterable[str]] = None,
                 log_every_n: int = 1000,
                 **kwargs) -> np.ndarray:
     """Calculate features for crystal compositions.
 
     Parameters
     ----------
-    compositions: Iterable[str]
+    datapoints: Iterable[str]
       Iterable sequence of composition strings, e.g. "MoS2".
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
@@ -412,9 +428,18 @@ class MaterialCompositionFeaturizer(Featurizer):
     except ModuleNotFoundError:
       raise ImportError("This class requires pymatgen to be installed.")
 
-    compositions = list(compositions)
+    if 'compositions' in kwargs and datapoints is None:
+      datapoints = kwargs.get("compositions")
+      raise DeprecationWarning(
+          'Compositions is being phased out as a parameter, please pass "datapoints" instead.'
+      )
+
+    if not isinstance(datapoints, Iterable):
+      datapoints = [cast(str, datapoints)]
+
+    datapoints = list(datapoints)
     features = []
-    for idx, composition in enumerate(compositions):
+    for idx, composition in enumerate(datapoints):
       if idx % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % idx)
       try:

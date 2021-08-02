@@ -76,12 +76,12 @@ class SmilesToImage(MolecularFeaturizer):
     self.img_spec = img_spec
     self.embed = int(img_size * res / 2)
 
-  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """Featurizes a single SMILE into an image.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
@@ -95,12 +95,17 @@ class SmilesToImage(MolecularFeaturizer):
       from rdkit.Chem import AllChem
     except ModuleNotFoundError:
       raise ImportError("This class requires RDKit to be installed.")
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
 
-    smile = Chem.MolToSmiles(mol)
+    smile = Chem.MolToSmiles(datapoint)
     if len(smile) > self.max_len:
       return np.array([])
 
-    cmol = Chem.Mol(mol.ToBinary())
+    cmol = Chem.Mol(datapoint.ToBinary())
     cmol.ComputeGasteigerCharges()
     AllChem.Compute2DCoords(cmol)
     atom_coords = cmol.GetConformer(0).GetPositions()
@@ -111,7 +116,7 @@ class SmilesToImage(MolecularFeaturizer):
       # Compute bond properties
       bond_props = np.array(
           [[2.0, bond.GetBeginAtomIdx(),
-            bond.GetEndAtomIdx()] for bond in mol.GetBonds()])
+            bond.GetEndAtomIdx()] for bond in datapoint.GetBonds()])
       # Compute atom properties
       atom_props = np.array([[atom.GetAtomicNum()] for atom in cmol.GetAtoms()])
 
@@ -126,7 +131,7 @@ class SmilesToImage(MolecularFeaturizer):
           bond.GetBondTypeAsDouble(),
           bond.GetBeginAtomIdx(),
           bond.GetEndAtomIdx()
-      ] for bond in mol.GetBonds()])
+      ] for bond in datapoint.GetBonds()])
       # Compute atom properties
       atom_props = np.array([[
           atom.GetAtomicNum(),

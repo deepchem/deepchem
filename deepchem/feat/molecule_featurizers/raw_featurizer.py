@@ -26,12 +26,12 @@ class RawFeaturizer(MolecularFeaturizer):
     """
     self.smiles = smiles
 
-  def _featurize(self, mol: RDKitMol, **kwargs) -> Union[str, RDKitMol]:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> Union[str, RDKitMol]:
     """Calculate either smiles string or pass through raw molecule.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
@@ -43,8 +43,13 @@ class RawFeaturizer(MolecularFeaturizer):
       from rdkit import Chem
     except ModuleNotFoundError:
       raise ImportError("This class requires RDKit to be installed.")
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
 
     if self.smiles:
-      return Chem.MolToSmiles(mol)
+      return Chem.MolToSmiles(datapoint)
     else:
-      return mol
+      return datapoint

@@ -68,7 +68,7 @@ class ElemNetFeaturizer(MaterialCompositionFeaturizer):
     else:
       return None
 
-  def _featurize(self, composition: PymatgenComposition,
+  def _featurize(self, datapoint: PymatgenComposition,
                  **kwargs) -> Optional[np.ndarray]:
     """
     Calculate 86 dimensional vector containing fractional compositions of
@@ -76,7 +76,7 @@ class ElemNetFeaturizer(MaterialCompositionFeaturizer):
 
     Parameters
     ----------
-    composition: pymatgen.core.Composition object
+    datapoint: pymatgen.core.Composition object
       Composition object.
 
     Returns
@@ -84,5 +84,11 @@ class ElemNetFeaturizer(MaterialCompositionFeaturizer):
     feats: np.ndarray
       86 dimensional vector containing fractional compositions of elements.
     """
-    fractions = composition.fractional_composition.get_el_amt_dict()
+    if 'composition' in kwargs and datapoint is None:
+      datapoint = kwargs.get("composition")
+      raise DeprecationWarning(
+          'Composition is being phased out as a parameter, please pass "datapoint" instead.'
+      )
+
+    fractions = datapoint.fractional_composition.get_el_amt_dict()
     return self.get_vector(fractions)

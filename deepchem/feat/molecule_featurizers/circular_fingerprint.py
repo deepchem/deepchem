@@ -85,12 +85,12 @@ class CircularFingerprint(MolecularFeaturizer):
     self.sparse = sparse
     self.smiles = smiles
 
-  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """Calculate circular fingerprint.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
@@ -103,11 +103,15 @@ class CircularFingerprint(MolecularFeaturizer):
       from rdkit.Chem import rdMolDescriptors
     except ModuleNotFoundError:
       raise ImportError("This class requires RDKit to be installed.")
-
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
     if self.sparse:
       info: Dict = {}
       fp = rdMolDescriptors.GetMorganFingerprint(
-          mol,
+          datapoint,
           self.radius,
           useChirality=self.chiral,
           useBondTypes=self.bonds,
@@ -120,14 +124,14 @@ class CircularFingerprint(MolecularFeaturizer):
         fp_smiles = {}
         for fragment_id, count in fp.items():
           root, radius = info[fragment_id][0]
-          env = Chem.FindAtomEnvironmentOfRadiusN(mol, radius, root)
-          frag = Chem.PathToSubmol(mol, env)
+          env = Chem.FindAtomEnvironmentOfRadiusN(datapoint, radius, root)
+          frag = Chem.PathToSubmol(datapoint, env)
           smiles = Chem.MolToSmiles(frag)
           fp_smiles[fragment_id] = {'smiles': smiles, 'count': count}
         fp = fp_smiles
     else:
       fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(
-          mol,
+          datapoint,
           self.radius,
           nBits=self.size,
           useChirality=self.chiral,

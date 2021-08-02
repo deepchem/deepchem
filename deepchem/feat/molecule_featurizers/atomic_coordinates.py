@@ -40,12 +40,12 @@ class AtomicCoordinates(MolecularFeaturizer):
     """
     self.use_bohr = use_bohr
 
-  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """Calculate atomic coordinates.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
@@ -58,11 +58,16 @@ class AtomicCoordinates(MolecularFeaturizer):
       from rdkit.Chem import AllChem
     except ModuleNotFoundError:
       raise ImportError("This class requires RDKit to be installed.")
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
 
     # Check whether num_confs >=1 or not
-    num_confs = len(mol.GetConformers())
+    num_confs = len(datapoint.GetConformers())
     if num_confs == 0:
-      mol = Chem.AddHs(mol)
+      mol = Chem.AddHs(datapoint)
       AllChem.EmbedMolecule(mol, AllChem.ETKDG())
       mol = Chem.RemoveHs(mol)
 

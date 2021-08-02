@@ -128,13 +128,13 @@ class Mol2VecFingerprint(MolecularFeaturizer):
             ]))
     return np.array(vec)
 
-  def _featurize(self, mol: RDKitMol, **kwargs) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """
     Calculate Mordred descriptors.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
@@ -142,6 +142,11 @@ class Mol2VecFingerprint(MolecularFeaturizer):
     np.ndarray
       1D array of mol2vec fingerprint. The default length is 300.
     """
-    sentence = self.mol2alt_sentence(mol, self.radius)
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
+    sentence = self.mol2alt_sentence(datapoint, self.radius)
     feature = self.sentences2vec([sentence], self.model, unseen=self.unseen)[0]
     return feature
