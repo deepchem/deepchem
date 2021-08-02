@@ -380,8 +380,7 @@ class SublayerConnection(nn.Module):
               adj_matrix: np.ndarray,
               distance_matrix: np.ndarray,
               eps: float = 1e-6,
-              inf: float = 1e12,
-              **kwargs):
+              inf: float = 1e12):
     """Output computation for the MultiHeadedAttention layer.
 >>>>>>> Update
     Parameters
@@ -400,9 +399,15 @@ class PositionwiseFeedForward(nn.Module):
   Each layer in the MAT encoder contains a fully connected feed-forward network which applies two linear transformations and the given activation function.
   This is done in addition to the SublayerConnection module.
 
+<<<<<<< HEAD
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+=======
+    x, _ = self._single_attention(query, key, value, mask, dropout_p,
+                                  adj_matrix, distance_matrix, eps, inf)
+    x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.h * self.d_k)
+>>>>>>> Removed kwargs
 
   Examples
   --------
