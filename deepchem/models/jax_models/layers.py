@@ -1,9 +1,6 @@
-import math
-import numpy as np
 import logging
 try:
   import jax.numpy as jnp
-  import jax
   import haiku as hk
 except:
   raise ImportError('These classes require Jax and Haiku to be installed.')
