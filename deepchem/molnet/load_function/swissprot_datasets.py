@@ -71,9 +71,11 @@ def load_swissprot(
     ----
     The uniportKB update the swissprot data base each 8 weeks. For download the whole uniprotKB
     please visit : https://www.uniprot.org/downloads
+    The version avaible in the AWS Bucket is from 14/06/21
 
 
-    This version of the swissprot DB contains 564638 curated sequences. 
+    This version of the swissprot DB contains 564638 curated sequences. The dataset contains a 
+    featurized sequences ( Using the one hot featurizer by default) 
     
 
     References
