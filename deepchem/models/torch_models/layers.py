@@ -166,7 +166,7 @@ class MultiHeadedMATAttention(nn.Module):
     p_weighted = self.lambda_attention * p_attn + self.lambda_distance * p_dist + self.lambda_adjacency * p_adj
     p_weighted = self.dropout_p(p_weighted)
 
-    bd = value.broadcast_to(p_weighted.shape)
+    bd = torch.broadcast_to(value, p_weighted.shape)
     return torch.matmul(p_weighted.float(), bd.float()), p_attn
 
   def forward(self,
