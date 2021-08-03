@@ -57,7 +57,7 @@ class TorchModel(Model):
   ...   torch.nn.Tanh(),
   ...   torch.nn.Linear(1000, 1))
   >>> model = dc.models.TorchModel(pytorch_model, loss=dc.models.losses.L2Loss())
-  >>> loss = model.fit(dataset, nb_epoch=10)
+  >>> loss = model.fit(dataset, nb_epoch=5)
 
   The loss function for a model can be defined in two different
   ways.  For models that have only a single output and use a

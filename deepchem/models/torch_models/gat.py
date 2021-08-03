@@ -229,13 +229,16 @@ class GATModel(TorchModel):
   --------
   >>> import deepchem as dc
   >>> from deepchem.models import GATModel
+  >>> # preparing dataset
+  >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
+  >>> labels = [0., 1.]
   >>> featurizer = dc.feat.MolGraphConvFeaturizer()
-  >>> tasks, datasets, transformers = dc.molnet.load_tox21(
-  ...    reload=False, featurizer=featurizer, transformers=[])
-  >>> train, valid, test = datasets
-  >>> model = GATModel(mode='classification', n_tasks=len(tasks),
-  ...                  batch_size=32, learning_rate=0.001)
-  >>> loss = model.fit(train, nb_epoch=10)
+  >>> X = featurizer.featurize(smiles)
+  >>> dataset = dc.data.NumpyDataset(X=X, y=labels)
+  >>> # training model
+  >>> model = GATModel(mode='classification', n_tasks=1,
+  ...                  batch_size=16, learning_rate=0.001)
+  >>> loss = model.fit(dataset, nb_epoch=5)
 
   References
   ----------
