@@ -22,6 +22,7 @@ class Linear(hk.Module):
   --------
   >>> import deepchem as dc
   >>> import haiku as hk
+  >>> import jax
   >>> import deepchem.models.jax_models.layers
   >>> def forward_model(x):
   ...   layer = dc.models.jax_models.layers.Linear(2)
