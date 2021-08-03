@@ -1,8 +1,15 @@
 Layers
 ======
 Deep learning models are often said to be made up of "layers".
-Intuitively, a "layer" is a function which transforms some tensor into
-another tensor. DeepChem maintains an extensive collection of layers which perform various useful scientific transformations. For now, most layers are Keras only but over time we expect this support to expand to other types of models and layers.
+Intuitively, a "layer" is a function which transforms some
+tensor into another tensor. DeepChem maintains an extensive
+collection of layers which perform various useful scientific
+transformations. For now, most layers are Keras only but over
+time we expect this support to expand to other types of models
+and layers.
+
+Keras Layers
+------------
 
 .. autoclass:: deepchem.models.layers.InteratomicL2Distances
   :members:
@@ -112,6 +119,9 @@ another tensor. DeepChem maintains an extensive collection of layers which perfo
 .. autoclass:: deepchem.models.layers.SetGather
   :members:
 
+Torch Layers
+------------
+
 .. autoclass:: deepchem.models.torch_models.layers.ScaleNorm
   :members:
 
@@ -119,3 +129,10 @@ another tensor. DeepChem maintains an extensive collection of layers which perfo
   :members:
 
 .. autofunction:: deepchem.models.layers.cosine_dist
+
+Jax Layers
+----------
+
+.. autoclass:: deepchem.models.jax_models.layers.Linear
+  :members:
+
