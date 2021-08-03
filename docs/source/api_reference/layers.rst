@@ -126,6 +126,12 @@ Torch Layers
   :members:
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+.. autoclass:: deepchem.models.torch_models.layers.MATEncoderLayer
+  :members:
+
+>>>>>>> Rebase+Update
 .. autoclass:: deepchem.models.torch_models.layers.MultiHeadedMATAttention
 =======
 .. autoclass:: deepchem.models.torch_models.layers.MATEncoderLayer
@@ -136,6 +142,12 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.PositionwiseFeedForward
 >>>>>>> Tests for encoder
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SublayerConnection
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.PositionwiseFeedForward
   :members:
 
 .. autofunction:: deepchem.models.layers.cosine_dist

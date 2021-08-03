@@ -32,6 +32,7 @@ class ScaleNorm(nn.Module):
   """
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   def __init__(self, scale: float, eps: float = 1e-5):
 =======
 <<<<<<< HEAD
@@ -44,6 +45,9 @@ class ScaleNorm(nn.Module):
   def __init__(self, scale: float, eps: float = 1e-5):
 >>>>>>> Scalenorm scale to float
 >>>>>>> Scalenorm scale to float
+=======
+  def __init__(self, scale: float, eps: float = 1e-5):
+>>>>>>> Rebase+Update
     """Initialize a ScaleNorm layer.
 
     Parameters
@@ -58,6 +62,7 @@ class ScaleNorm(nn.Module):
     self.scale = nn.Parameter(torch.tensor(math.sqrt(scale)))
     self.eps = eps
 
+<<<<<<< HEAD
 <<<<<<< HEAD
   def forward(self, x: torch.Tensor):
 =======
@@ -75,6 +80,9 @@ class ScaleNorm(nn.Module):
   def forward(self, x : torch.Tensor):
 >>>>>>> Update
 >>>>>>> Update
+=======
+  def forward(self, x: torch.Tensor):
+>>>>>>> Rebase+Update
     norm = self.scale / torch.norm(x, dim=-1, keepdim=True).clamp(min=self.eps)
     return x * norm
 
@@ -459,6 +467,233 @@ class PositionwiseFeedForward(nn.Module):
     elif activation == 'selu':
       self.activation = nn.SELU()
 
+<<<<<<< HEAD
+=======
+    return self.output_linear(x)
+
+
+class MATEncoderLayer(nn.Module):
+  """Encoder layer for use in the Molecular Attention Transformer [1]_.
+
+  The MATEncoder layer primarily consists of a self-attention layer (MultiHeadedMATAttention) and a feed-forward layer (PositionwiseFeedForward).
+  This layer can be stacked multiple times to form an encoder.
+
+  References
+  ----------
+  .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> from rdkit import Chem
+  >>> mol = Chem.MolFromSmiles("CC")
+  >>> adj_matrix = Chem.GetAdjacencyMatrix(mol)
+  >>> distance_matrix = Chem.GetDistanceMatrix(mol)
+  >>> layer = dc.models.torch_models.layers.MATEncoderLayer(dist_kernel = 'softmax', lambda_attention = 0.33, lambda_distance = 0.33, h = 8, sa_hsize = 1024, sa_dropout_p = 0.1, d_input = 1024, activation = 'relu', n_layers = 1, ff_dropout_p = 0.1, encoder_hsize = 1024, encoder_dropout_p = 0.1)
+  >>> x = torch.Tensor([[1., 2.], [5., 6.]])
+  >>> mask = torch.Tensor([[1., 1.], [1., 1.]])
+  >>> output = layer(x, mask, sa_dropout_p = 0.0, adj_matrix = adj_matrix, distance_matrix = distance_matrix)
+  """
+
+  def __init__(self, dist_kernel: str, lambda_attention: float,
+               lambda_distance: float, h: int, sa_hsize: int,
+               sa_dropout_p: float, output_bias: bool, d_input: int,
+               d_hidden: int, d_output: int, activation: str, n_layers: int,
+               ff_dropout_p: float, encoder_hsize: int,
+               encoder_dropout_p: float):
+    """Initialize a MATEncoder layer.
+
+    Parameters
+    ----------
+    dist_kernel: str
+      Kernel activation to be used. Can be either 'softmax' for softmax or 'exp' for exponential, for the self-attention layer.
+    lambda_attention: float
+      Constant to be multiplied with the attention matrix in the self-attention layer.
+    lambda_distance: float
+      Constant to be multiplied with the distance matrix in the self-attention layer.
+    h: int
+      Number of attention heads for the self-attention layer.
+    sa_hsize: int
+      Size of dense layer in the self-attention layer.
+    sa_dropout_p: float
+      Dropout probability for the self-attention layer.
+    output_bias: bool
+      If True, dense layers will use bias vectors in the self-attention layer.
+    d_input: int
+      Size of input layer in the feed-forward layer.
+    d_hidden: int
+      Size of hidden layer in the feed-forward layer.
+    d_output: int
+      Size of output layer in the feed-forward layer.
+    activation: str
+      Activation function to be used in the feed-forward layer.
+      Can choose between 'relu' for ReLU, 'leakyrelu' for LeakyReLU, 'prelu' for PReLU,
+      'tanh' for TanH, 'selu' for SELU, 'elu' for ELU and 'linear' for linear activation.
+    n_layers: int
+      Number of layers in the feed-forward layer.
+    dropout_p: float
+      Dropout probability in the feeed-forward layer.
+    encoder_hsize: int
+      Size of Dense layer for the encoder itself.
+    encoder_dropout_p: float
+      Dropout probability for connections in the encoder layer.
+    """
+    super(MATEncoderLayer, self).__init__()
+    self.self_attn = MultiHeadedMATAttention(dist_kernel, lambda_attention,
+                                             lambda_distance, h, sa_hsize,
+                                             sa_dropout_p, output_bias)
+    self.feed_forward = PositionwiseFeedForward(
+        d_input, d_hidden, d_output, activation, n_layers, ff_dropout_p)
+    layer = SublayerConnection(size=encoder_hsize, dropout_p=encoder_dropout_p)
+    self.sublayer = nn.ModuleList([layer for _ in range(2)])
+    self.size = encoder_hsize
+
+  def forward(self, x: torch.Tensor, mask: torch.Tensor, sa_dropout_p: float,
+              adj_matrix: np.ndarray, distance_matrix: np.ndarray):
+    """Output computation for the MATEncoder layer.
+
+    Parameters
+    ----------
+    x: torch.Tensor
+      Input tensor.
+    mask: torch.Tensor
+      Masks out padding values so that they are not taken into account when computing the attention score.
+    sa_dropout_p: float
+      Dropout probability for the self-attention layer (MultiHeadedMATAttention).
+    adj_matrix: np.ndarray
+      Adjacency matrix of a molecule.
+    distance_matrix: np.ndarray
+      Distance matrix of a molecule.
+    """
+    x = self.sublayer[0](x,
+                         self.self_attn(
+                             x,
+                             x,
+                             x,
+                             mask=mask,
+                             dropout_p=sa_dropout_p,
+                             adj_matrix=adj_matrix,
+                             distance_matrix=distance_matrix))
+    return self.sublayer[1](x, self.feed_forward(x))
+
+
+class SublayerConnection(nn.Module):
+  """SublayerConnection layer which establishes a residual connection, as used in the Molecular Attention Transformer [1]_.
+
+  The SublayerConnection layer is a residual layer which is then passed through Layer Normalization.
+  The residual connection is established by computing the dropout-adjusted layer output of a normalized tensor and adding this to the original input tensor.
+
+  References
+  ----------
+  .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> scale = 0.35
+  >>> layer = dc.models.torch_models.layers.SublayerConnection(2, 0.)
+  >>> input_ar = torch.tensor([[1., 2.], [5., 6.]])
+  >>> output = layer(input_ar, input_ar)
+  """
+
+  def __init__(self, size: int, dropout_p: float):
+    """Initialize a SublayerConnection Layer.
+
+    Parameters
+    ----------
+    size: int
+      Size of layer.
+    dropout_p: float
+      Dropout probability.
+    """
+    super(SublayerConnection, self).__init__()
+    self.norm = nn.LayerNorm(size)
+    self.dropout_p = nn.Dropout(dropout_p)
+
+  def forward(self, x: torch.Tensor, output: torch.Tensor):
+    """Output computation for the SublayerConnection layer.
+
+    Takes an input tensor x, then adds the dropout-adjusted sublayer output for normalized x to it.
+    This is done to add a residual connection followed by LayerNorm.
+
+    Parameters
+    ----------
+    x: torch.Tensor
+      Input tensor.
+    output: torch.Tensor
+      Layer whose normalized output will be added to x.
+    """
+    if x is None:
+      return self.dropout_p(self.norm(output))
+
+    if len(x.shape) < len(output.shape):
+      temp_ar = x
+      op_ar = output
+      adjusted = temp_ar.unsqueeze(1).repeat(1, op_ar.shape[1], 1)
+    elif len(x.shape) > len(output.shape):
+      temp_ar = output
+      op_ar = x
+      adjusted = temp_ar.unsqueeze(1).repeat(1, op_ar.shape[1], 1)
+    else:
+      return x + self.dropout_p(self.norm(output))
+
+    return adjusted + self.dropout_p(self.norm(op_ar))
+
+
+class PositionwiseFeedForward(nn.Module):
+  """PositionwiseFeedForward is a layer used to define the position-wise feed-forward (FFN) algorithm for the Molecular Attention Transformer [1]_
+
+  Each layer in the MAT encoder contains a fully connected feed-forward network which applies two linear transformations and the given activation function.
+  This is done in addition to the SublayerConnection module.
+
+  References
+  ----------
+  .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, d_hidden = None, d_output = None, activation = 'relu', n_layers = 1, dropout_p = 0.1)
+  """
+
+  def __init__(self, d_input: int, d_hidden: int, d_output: int,
+               activation: str, n_layers: int, dropout_p: float):
+    """Initialize a PositionwiseFeedForward layer.
+
+    Parameters
+    ----------
+    d_input: int
+      Size of input layer.
+    d_hidden: int (same as d_input if d_output = 0)
+      Size of hidden layer.
+    d_output: int (same as d_input if d_output = 0)
+      Size of output layer.
+    activation: str
+      Activation function to be used. Can choose between 'relu' for ReLU, 'leakyrelu' for LeakyReLU, 'prelu' for PReLU,
+      'tanh' for TanH, 'selu' for SELU, 'elu' for ELU and 'linear' for linear activation.
+    n_layers: int
+      Number of layers.
+    dropout_p: float
+      Dropout probability.
+    """
+    super(PositionwiseFeedForward, self).__init__()
+
+    if activation == 'relu':
+      self.activation = nn.ReLU()
+
+    elif activation == 'leakyrelu':
+      self.activation = nn.LeakyReLU(0.1)
+
+    elif activation == 'prelu':
+      self.activation = nn.PReLU()
+
+    elif activation == 'tanh':
+      self.activation = nn.Tanh()
+
+    elif activation == 'selu':
+      self.activation = nn.SELU()
+
+>>>>>>> Rebase+Update
     elif activation == 'elu':
       self.activation = nn.ELU()
 
@@ -466,8 +701,13 @@ class PositionwiseFeedForward(nn.Module):
       self.activation = lambda x: x
 
     self.n_layers = n_layers
+<<<<<<< HEAD
     d_output = d_output if d_output is not None else d_input
     d_hidden = d_hidden if d_hidden is not None else d_input
+=======
+    d_output = d_output if d_output != 0 else d_input
+    d_hidden = d_hidden if d_hidden != 0 else d_input
+>>>>>>> Rebase+Update
 
     if n_layers == 1:
       self.linears = [nn.Linear(d_input, d_output)]
@@ -480,9 +720,14 @@ class PositionwiseFeedForward(nn.Module):
     self.linears = nn.ModuleList(self.linears)
     dropout_layer = nn.Dropout(dropout_p)
     self.dropout_p = nn.ModuleList([dropout_layer for _ in range(n_layers)])
+<<<<<<< HEAD
     self.act_func = activation
 
   def forward(self, x):
+=======
+
+  def forward(self, x: torch.Tensor):
+>>>>>>> Rebase+Update
     """Output Computation for the PositionwiseFeedForward layer.
 
     Parameters
@@ -490,6 +735,7 @@ class PositionwiseFeedForward(nn.Module):
     x: torch.Tensor
       Input tensor.
     """
+<<<<<<< HEAD
 
     if self.n_layers == 0:
       return x
@@ -505,3 +751,15 @@ class PositionwiseFeedForward(nn.Module):
 =======
     return self.output_linear(x)
 >>>>>>> Update
+=======
+    if not self.n_layers:
+      return x
+
+    if self.n_layers == 1:
+      return self.dropout_p[0](self.activation(self.linears[0](x)))
+
+    else:
+      for i in range(self.n_layers - 1):
+        x = self.dropout_p[i](self.activation(self.linears[i](x)))
+      return self.linears[-1](x)
+>>>>>>> Rebase+Update
