@@ -37,13 +37,13 @@ class MACCSKeysFingerprint(MolecularFeaturizer):
     """Initialize this featurizer."""
     self.calculator = None
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """
     Calculate MACCS keys fingerprint.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
@@ -51,6 +51,12 @@ class MACCSKeysFingerprint(MolecularFeaturizer):
     np.ndarray
       1D array of RDKit descriptors for `mol`. The length is 167.
     """
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
+
     if self.calculator is None:
       try:
         from rdkit.Chem.AllChem import GetMACCSKeysFingerprint
@@ -58,4 +64,4 @@ class MACCSKeysFingerprint(MolecularFeaturizer):
       except ModuleNotFoundError:
         raise ImportError("This class requires RDKit to be installed.")
 
-    return self.calculator(mol)
+    return self.calculator(datapoint)

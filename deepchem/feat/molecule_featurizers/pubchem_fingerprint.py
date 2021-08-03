@@ -43,13 +43,13 @@ class PubChemFingerprint(MolecularFeaturizer):
 
     self.get_pubchem_compounds = pcp.get_compounds
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """
     Calculate PubChem fingerprint.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
@@ -62,8 +62,13 @@ class PubChemFingerprint(MolecularFeaturizer):
       import pubchempy as pcp
     except ModuleNotFoundError:
       raise ImportError("This class requires PubChemPy to be installed.")
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
 
-    smiles = Chem.MolToSmiles(mol)
+    smiles = Chem.MolToSmiles(datapoint)
     pubchem_compound = pcp.get_compounds(smiles, 'smiles')[0]
     feature = [int(bit) for bit in pubchem_compound.cactvs_fingerprint]
     return np.asarray(feature)

@@ -4,7 +4,7 @@ Feature calculations.
 import inspect
 import logging
 import numpy as np
-from typing import Any, Dict, Iterable, Tuple, Union, cast
+from typing import Any, Dict, Iterable, Optional, Tuple, Union, cast
 
 from deepchem.utils import get_print_threshold
 from deepchem.utils.typing import PymatgenStructure
@@ -23,8 +23,10 @@ class Featurizer(object):
   new datatype.
   """
 
-  def featurize(self, datapoints: Iterable[Any],
-                log_every_n: int = 1000) -> np.ndarray:
+  def featurize(self,
+                datapoints: Iterable[Any],
+                log_every_n: int = 1000,
+                **kwargs) -> np.ndarray:
     """Calculate features for datapoints.
 
     Parameters
@@ -47,7 +49,7 @@ class Featurizer(object):
       if i % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % i)
       try:
-        features.append(self._featurize(point))
+        features.append(self._featurize(point, **kwargs))
       except:
         logger.warning(
             "Failed to featurize datapoint %d. Appending empty array")
@@ -55,17 +57,19 @@ class Featurizer(object):
 
     return np.asarray(features)
 
-  def __call__(self, datapoints: Iterable[Any]):
+  def __call__(self, datapoints: Iterable[Any], **kwargs):
     """Calculate features for datapoints.
+
+    `**kwargs` will get passed directly to `Featurizer.featurize`
 
     Parameters
     ----------
     datapoints: Iterable[Any]
       Any blob of data you like. Subclasss should instantiate this.
     """
-    return self.featurize(datapoints)
+    return self.featurize(datapoints, **kwargs)
 
-  def _featurize(self, datapoint: Any):
+  def _featurize(self, datapoint: Any, **kwargs):
     """Calculate features for a single datapoint.
 
     Parameters
@@ -154,14 +158,15 @@ class ComplexFeaturizer(Featurizer):
   """
 
   def featurize(self,
-                complexes: Iterable[Tuple[str, str]],
-                log_every_n: int = 100) -> np.ndarray:
+                datapoints: Optional[Iterable[Tuple[str, str]]] = None,
+                log_every_n: int = 100,
+                **kwargs) -> np.ndarray:
     """
     Calculate features for mol/protein complexes.
 
     Parameters
     ----------
-    complexes: Iterable[Tuple[str, str]]
+    datapoints: Iterable[Tuple[str, str]]
       List of filenames (PDB, SDF, etc.) for ligand molecules and proteins.
       Each element should be a tuple of the form (ligand_filename,
       protein_filename).
@@ -172,14 +177,19 @@ class ComplexFeaturizer(Featurizer):
       Array of features
     """
 
-    if not isinstance(complexes, Iterable):
-      complexes = [cast(Tuple[str, str], complexes)]
+    if 'complexes' in kwargs:
+      datapoints = kwargs.get("complexes")
+      raise DeprecationWarning(
+          'Complexes is being phased out as a parameter, please pass "datapoints" instead.'
+      )
+    if not isinstance(datapoints, Iterable):
+      datapoints = [cast(Tuple[str, str], datapoints)]
     features, failures, successes = [], [], []
-    for idx, point in enumerate(complexes):
+    for idx, point in enumerate(datapoints):
       if idx % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % idx)
       try:
-        features.append(self._featurize(point))
+        features.append(self._featurize(point, **kwargs))
         successes.append(idx)
       except:
         logger.warning(
@@ -202,7 +212,7 @@ class ComplexFeaturizer(Featurizer):
 
     return np.asarray(features)
 
-  def _featurize(self, complex: Tuple[str, str]):
+  def _featurize(self, datapoint: Optional[Tuple[str, str]] = None, **kwargs):
     """
     Calculate features for single mol/protein complex.
 
@@ -232,12 +242,12 @@ class MolecularFeaturizer(Featurizer):
   The subclasses of this class require RDKit to be installed.
   """
 
-  def featurize(self, molecules, log_every_n=1000) -> np.ndarray:
+  def featurize(self, datapoints, log_every_n=1000, **kwargs) -> np.ndarray:
     """Calculate features for molecules.
 
     Parameters
     ----------
-    molecules: rdkit.Chem.rdchem.Mol / SMILES string / iterable
+    datapoints: rdkit.Chem.rdchem.Mol / SMILES string / iterable
       RDKit Mol, or SMILES string or iterable sequence of RDKit mols/SMILES
       strings.
     log_every_n: int, default 1000
@@ -256,15 +266,21 @@ class MolecularFeaturizer(Featurizer):
     except ModuleNotFoundError:
       raise ImportError("This class requires RDKit to be installed.")
 
+    if 'molecules' in kwargs:
+      datapoints = kwargs.get("molecules")
+      raise DeprecationWarning(
+          'Molecules is being phased out as a parameter, please pass "datapoints" instead.'
+      )
+
     # Special case handling of single molecule
-    if isinstance(molecules, str) or isinstance(molecules, Mol):
-      molecules = [molecules]
+    if isinstance(datapoints, str) or isinstance(datapoints, Mol):
+      datapoints = [datapoints]
     else:
       # Convert iterables to list
-      molecules = list(molecules)
+      datapoints = list(datapoints)
 
-    features = []
-    for i, mol in enumerate(molecules):
+    features: list = []
+    for i, mol in enumerate(datapoints):
       if i % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % i)
 
@@ -276,7 +292,7 @@ class MolecularFeaturizer(Featurizer):
           new_order = rdmolfiles.CanonicalRankAtoms(mol)
           mol = rdmolops.RenumberAtoms(mol, new_order)
 
-        features.append(self._featurize(mol))
+        features.append(self._featurize(mol, **kwargs))
       except Exception as e:
         if isinstance(mol, Chem.rdchem.Mol):
           mol = Chem.MolToSmiles(mol)
@@ -313,13 +329,15 @@ class MaterialStructureFeaturizer(Featurizer):
   """
 
   def featurize(self,
-                structures: Iterable[Union[Dict[str, Any], PymatgenStructure]],
-                log_every_n: int = 1000) -> np.ndarray:
+                datapoints: Optional[Iterable[Union[Dict[str, Any],
+                                                    PymatgenStructure]]] = None,
+                log_every_n: int = 1000,
+                **kwargs) -> np.ndarray:
     """Calculate features for crystal structures.
 
     Parameters
     ----------
-    structures: Iterable[Union[Dict, pymatgen.core.Structure]]
+    datapoints: Iterable[Union[Dict, pymatgen.core.Structure]]
       Iterable sequence of pymatgen structure dictionaries
       or pymatgen.core.Structure. Please confirm the dictionary representations
       of pymatgen.core.Structure from https://pymatgen.org/pymatgen.core.structure.html.
@@ -330,22 +348,31 @@ class MaterialStructureFeaturizer(Featurizer):
     -------
     features: np.ndarray
       A numpy array containing a featurized representation of
-      `structures`.
+      `datapoints`.
     """
     try:
       from pymatgen.core import Structure
     except ModuleNotFoundError:
       raise ImportError("This class requires pymatgen to be installed.")
 
-    structures = list(structures)
+    if 'structures' in kwargs:
+      datapoints = kwargs.get("structures")
+      raise DeprecationWarning(
+          'Structures is being phased out as a parameter, please pass "datapoints" instead.'
+      )
+
+    if not isinstance(datapoints, Iterable):
+      datapoints = [cast(Union[Dict[str, Any], PymatgenStructure], datapoints)]
+
+    datapoints = list(datapoints)
     features = []
-    for idx, structure in enumerate(structures):
+    for idx, structure in enumerate(datapoints):
       if idx % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % idx)
       try:
         if isinstance(structure, Dict):
           structure = Structure.from_dict(structure)
-        features.append(self._featurize(structure))
+        features.append(self._featurize(structure, **kwargs))
       except:
         logger.warning(
             "Failed to featurize datapoint %i. Appending empty array" % idx)
@@ -377,13 +404,15 @@ class MaterialCompositionFeaturizer(Featurizer):
   installed.
   """
 
-  def featurize(self, compositions: Iterable[str],
-                log_every_n: int = 1000) -> np.ndarray:
+  def featurize(self,
+                datapoints: Optional[Iterable[str]] = None,
+                log_every_n: int = 1000,
+                **kwargs) -> np.ndarray:
     """Calculate features for crystal compositions.
 
     Parameters
     ----------
-    compositions: Iterable[str]
+    datapoints: Iterable[str]
       Iterable sequence of composition strings, e.g. "MoS2".
     log_every_n: int, default 1000
       Logging messages reported every `log_every_n` samples.
@@ -399,14 +428,23 @@ class MaterialCompositionFeaturizer(Featurizer):
     except ModuleNotFoundError:
       raise ImportError("This class requires pymatgen to be installed.")
 
-    compositions = list(compositions)
+    if 'compositions' in kwargs and datapoints is None:
+      datapoints = kwargs.get("compositions")
+      raise DeprecationWarning(
+          'Compositions is being phased out as a parameter, please pass "datapoints" instead.'
+      )
+
+    if not isinstance(datapoints, Iterable):
+      datapoints = [cast(str, datapoints)]
+
+    datapoints = list(datapoints)
     features = []
-    for idx, composition in enumerate(compositions):
+    for idx, composition in enumerate(datapoints):
       if idx % log_every_n == 0:
         logger.info("Featurizing datapoint %i" % idx)
       try:
         c = Composition(composition)
-        features.append(self._featurize(c))
+        features.append(self._featurize(c, **kwargs))
       except:
         logger.warning(
             "Failed to featurize datapoint %i. Appending empty array" % idx)
@@ -442,8 +480,10 @@ class DummyFeaturizer(Featurizer):
           'FCC(c1cccc(Br)n1)N1CCOCC1']], dtype='<U55')
   """
 
-  def featurize(self, datapoints: Iterable[Any],
-                log_every_n: int = 1000) -> np.ndarray:
+  def featurize(self,
+                datapoints: Iterable[Any],
+                log_every_n: int = 1000,
+                **kwargs) -> np.ndarray:
     """Passes through dataset, and returns the datapoint.
 
     Parameters
