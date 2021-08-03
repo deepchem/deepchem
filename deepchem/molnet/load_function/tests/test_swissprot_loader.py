@@ -24,7 +24,7 @@ def test_swissprot_loader():
   train, val, test = datasets
   assert len(tasks) == 1
   assert train.X.shape == (45796, 100, 21)
-  assert train.X[0].shape = (100,21)
+  assert train.X[0].shape == (100,21)
   #assert datasets.X.shape == (564638, 100, 35)
 
 
