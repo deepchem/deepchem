@@ -81,7 +81,7 @@ class ChargeVoxelizer(ComplexFeaturizer):
     self.voxel_width = voxel_width
     self.reduce_to_contacts = reduce_to_contacts
 
-  def _featurize(self, datapoint, **kwargs):  #-> Optional[np.ndarray]:
+  def _featurize(self, datapoint, **kwargs):  # -> Optional[np.ndarray]:
     """
     Compute featurization for a single mol/protein complex
 
