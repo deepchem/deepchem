@@ -12,8 +12,6 @@ from deepchem.utils.data_utils import pad_array
 from deepchem.utils.rdkit_utils import MoleculeLoadException, get_xyz_from_mol, \
   load_molecule, merge_molecules_xyz, merge_molecules
 
-from typing import Tuple, Optional, Iterable, cast
-
 
 def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
                           periodic_box_size):
