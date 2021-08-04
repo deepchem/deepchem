@@ -84,13 +84,13 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
     }
     self.valid_atom_number = set(self.atom_features.keys())
 
-  def _featurize(self, struct: PymatgenStructure) -> GraphData:
+  def _featurize(self, datapoint: PymatgenStructure, **kwargs) -> GraphData:
     """
     Calculate crystal graph features from pymatgen structure.
 
     Parameters
     ----------
-    struct: pymatgen.core.Structure
+    datapoint: pymatgen.core.Structure
       A periodic crystal composed of a lattice and a sequence of atomic
       sites with 3D coordinates and elements.
 
@@ -99,9 +99,14 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
     graph: GraphData
       A crystal graph with CGCNN style features.
     """
+    if 'struct' in kwargs and datapoint is None:
+      datapoint = kwargs.get("struct")
+      raise DeprecationWarning(
+          'Struct is being phased out as a parameter, please pass "datapoint" instead.'
+      )
 
-    node_features = self._get_node_features(struct)
-    edge_index, edge_features = self._get_edge_features_and_index(struct)
+    node_features = self._get_node_features(datapoint)
+    edge_index, edge_features = self._get_edge_features_and_index(datapoint)
     graph = GraphData(node_features, edge_index, edge_features)
     return graph
 

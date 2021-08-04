@@ -115,12 +115,12 @@ class SmilesToSeq(MolecularFeaturizer):
     smile = "".join([letter for letter in characters])
     return smile
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """Featurizes a SMILES sequence.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoints: rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
@@ -134,7 +134,12 @@ class SmilesToSeq(MolecularFeaturizer):
     except ModuleNotFoundError:
       raise ImportError("This class requires RDKit to be installed.")
 
-    smile = Chem.MolToSmiles(mol)
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
+    smile = Chem.MolToSmiles(datapoint)
     if len(smile) > self.max_len:
       return np.array([])
 

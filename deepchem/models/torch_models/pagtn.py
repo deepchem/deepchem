@@ -197,17 +197,18 @@ class PagtnModel(TorchModel):
 
   Examples
   --------
-
-  >>>
-  >> import deepchem as dc
-  >> from deepchem.models import PagtnModel
-  >> featurizer = dc.feat.PagtnMolGraphFeaturizer(max_length=5)
-  >> tasks, datasets, transformers = dc.molnet.load_tox21(
-  ..     reload=False, featurizer=featurizer, transformers=[])
-  >> train, valid, test = datasets
-  >> model = PagtnModel(mode='classification', n_tasks=len(tasks),
-  ..                    batch_size=16, learning_rate=0.001)
-  >> model.fit(train, nb_epoch=50)
+  >>> import deepchem as dc
+  >>> from deepchem.models import PagtnModel
+  >>> # preparing dataset
+  >>> smiles = ["C1CCC1", "CCC"]
+  >>> labels = [0., 1.]
+  >>> featurizer = dc.feat.PagtnMolGraphFeaturizer(max_length=5)
+  >>> X = featurizer.featurize(smiles)
+  >>> dataset = dc.data.NumpyDataset(X=X, y=labels)
+  >>> # training model
+  >>> model = PagtnModel(mode='classification', n_tasks=1,
+  ...                    batch_size=16, learning_rate=0.001)
+  >>> loss = model.fit(dataset, nb_epoch=5)
 
   References
   ----------

@@ -45,12 +45,12 @@ class BPSymmetryFunctionInput(MolecularFeaturizer):
     self.max_atoms = max_atoms
     self.coordfeat = AtomicCoordinates(use_bohr=True)
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """Calculate symmetry function.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
@@ -58,8 +58,14 @@ class BPSymmetryFunctionInput(MolecularFeaturizer):
     np.ndarray
       A numpy array of symmetry function. The shape is `(max_atoms, 4)`.
     """
-    coordinates = self.coordfeat._featurize(mol)
-    atom_numbers = np.array([atom.GetAtomicNum() for atom in mol.GetAtoms()])
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
+    coordinates = self.coordfeat._featurize(datapoint)
+    atom_numbers = np.array(
+        [atom.GetAtomicNum() for atom in datapoint.GetAtoms()])
     atom_numbers = np.expand_dims(atom_numbers, axis=1)
     assert atom_numbers.shape[0] == coordinates.shape[0]
     features = np.concatenate([atom_numbers, coordinates], axis=1)

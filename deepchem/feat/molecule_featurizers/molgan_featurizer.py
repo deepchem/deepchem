@@ -117,14 +117,14 @@ class MolGanFeaturizer(MolecularFeaturizer):
     self.atom_encoder = {l: i for i, l in enumerate(self.atom_labels)}
     self.atom_decoder = {i: l for i, l in enumerate(self.atom_labels)}
 
-  def _featurize(self, mol: RDKitMol) -> Optional[GraphMatrix]:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> Optional[GraphMatrix]:
     """
     Calculate adjacency matrix and nodes features for RDKitMol.
     It strips any chirality and charges
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit mol object.
 
     Returns
@@ -137,13 +137,18 @@ class MolGanFeaturizer(MolecularFeaturizer):
       from rdkit import Chem
     except ModuleNotFoundError:
       raise ImportError("This method requires RDKit to be installed.")
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
 
     if self.kekulize:
-      Chem.Kekulize(mol)
+      Chem.Kekulize(datapoint)
 
     A = np.zeros(
         shape=(self.max_atom_count, self.max_atom_count), dtype=np.float32)
-    bonds = mol.GetBonds()
+    bonds = datapoint.GetBonds()
 
     begin, end = [b.GetBeginAtomIdx() for b in bonds], [
         b.GetEndAtomIdx() for b in bonds
@@ -153,10 +158,13 @@ class MolGanFeaturizer(MolecularFeaturizer):
     A[begin, end] = bond_type
     A[end, begin] = bond_type
 
-    degree = np.sum(A[:mol.GetNumAtoms(), :mol.GetNumAtoms()], axis=-1)
+    degree = np.sum(
+        A[:datapoint.GetNumAtoms(), :datapoint.GetNumAtoms()], axis=-1)
     X = np.array(
-        [self.atom_encoder[atom.GetAtomicNum()] for atom in mol.GetAtoms()] +
-        [0] * (self.max_atom_count - mol.GetNumAtoms()),
+        [
+            self.atom_encoder[atom.GetAtomicNum()]
+            for atom in datapoint.GetAtoms()
+        ] + [0] * (self.max_atom_count - datapoint.GetNumAtoms()),
         dtype=np.int32,
     )
     graph = GraphMatrix(A, X)
