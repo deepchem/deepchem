@@ -623,6 +623,9 @@ class MATEncoderLayer(nn.Module):
               sa_dropout_p: float = 0.0) -> torch.Tensor:
     """Output computation for the MATEncoder layer.
 
+    In the MATEncoderLayer intialization, self.sublayer is defined as an nn.ModuleList of 2 layers. We will be passing our computation through these layers sequentially.
+    nn.ModuleList is subscriptable and thus we can access it as self.sublayer[0], for example.
+
     Parameters
     ----------
     x: torch.Tensor
