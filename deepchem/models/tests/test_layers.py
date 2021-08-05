@@ -636,8 +636,8 @@ def test_multi_headed_mat_attention():
       dropout_p=0.0)
   input_tensor = torch.tensor([[1., 2.], [5., 6.]])
   mask = torch.tensor([[1., 1.], [1., 1.]])
-  result = layer(input_tensor, input_tensor, input_tensor, mask, 0.0,
-                 adj_matrix, distance_matrix)
+  result = layer(input_tensor, input_tensor, input_tensor, mask, adj_matrix,
+                 distance_matrix, 0.0)
   output_ar = torch.tensor([[[0.0492, -0.0792], [-0.9971, -0.3172],
                              [0.0492, -0.0792], [-0.9971, -0.3172]],
                             [[0.8671, 0.1069], [-3.4075, -0.8656],
@@ -699,7 +699,7 @@ def test_mat_encoder_layer():
       ff_dropout_p=0.0,
       encoder_hsize=2,
       encoder_dropout_p=0.0)
-  result = layer(input_ar, mask, 0.0, adj_matrix, distance_matrix)
+  result = layer(input_ar, mask, adj_matrix, distance_matrix, 0.0)
   output_ar = torch.tensor([[[0.9988, 2.0012], [-0.9999, 3.9999],
                              [0.9988, 2.0012], [-0.9999, 3.9999]],
                             [[5.0000, 6.0000], [3.0000, 8.0000],

@@ -1,5 +1,6 @@
 import math
 import numpy as np
+from typing import Any, Tuple
 try:
   import torch
   import torch.nn as nn
@@ -24,10 +25,15 @@ class ScaleNorm(nn.Module):
 
   Examples
   --------
-  >>> import deepchem as dc
+  >>> from deepchem.models.torch_models.layers import ScaleNorm
   >>> scale = 0.35
+<<<<<<< HEAD
   >>> layer = dc.models.torch_models.layers.ScaleNorm(scale)
   >>> input_tensor = torch.Tensor([[1.269, 39.36], [0.00918, -9.12]])
+=======
+  >>> layer = ScaleNorm(scale)
+  >>> input_tensor = torch.tensor([[1.269, 39.36], [0.00918, -9.12]])
+>>>>>>> Added return type annotations + doctest fixes
   >>> output_tensor = layer(input_tensor)
   """
 
@@ -64,6 +70,7 @@ class ScaleNorm(nn.Module):
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   def forward(self, x: torch.Tensor):
 =======
 <<<<<<< HEAD
@@ -83,6 +90,9 @@ class ScaleNorm(nn.Module):
 =======
   def forward(self, x: torch.Tensor):
 >>>>>>> Rebase+Update
+=======
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
+>>>>>>> Added return type annotations + doctest fixes
     norm = self.scale / torch.norm(x, dim=-1, keepdim=True).clamp(min=self.eps)
     return x * norm
 
@@ -107,19 +117,27 @@ class MultiHeadedMATAttention(nn.Module):
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
   Examples
   --------
+<<<<<<< HEAD
   >>> import deepchem as dc
 <<<<<<< HEAD
   >>> block = dc.models.torch_models.layers.MATEncoder(dist_kernel = 'softmax', lambda_attention = 0.33, lambda_adistance = 0.33, h = 8, sa_hsize = 1024, sa_dropout_p = 0.1, d_input = 1024, activation = 'relu', n_layers = 1, ff_dropout_p = 0.1, encoder_hsize = 1024, encoder_dropout_p = 0.1, N = 3)
 =======
+=======
+  >>> from deepchem.models.torch_models.layers import MultiHeadedMATAttention
+>>>>>>> Added return type annotations + doctest fixes
   >>> from rdkit import Chem
-  >>> mol = rdkit.Chem.MolFromSmiles("CC")
+  >>> mol = Chem.MolFromSmiles("CC")
   >>> adj_matrix = Chem.GetAdjacencyMatrix(mol)
   >>> distance_matrix = Chem.GetDistanceMatrix(mol)
-  >>> layer = dc.models.torch_models.layers.MultiHeadedMATAttention(dist_kernel='softmax', lambda_attention=0.33, lambda_distance=0.33, h=2, hsize=2, dropout_p=0.0)
+  >>> layer = MultiHeadedMATAttention(dist_kernel='softmax', lambda_attention=0.33, lambda_distance=0.33, h=2, hsize=2, dropout_p=0.0)
   >>> input_tensor = torch.tensor([[1., 2.], [5., 6.]])
   >>> mask = torch.tensor([[1., 1.], [1., 1.]])
+<<<<<<< HEAD
   >>> result = layer(input_tensor, input_tensor, input_tensor, mask, 0.0, adj_matrix, distance_matrix)
 >>>>>>> Update
+=======
+  >>> result = layer(input_tensor, input_tensor, input_tensor, mask, adj_matrix, distance_matrix, 0.0)
+>>>>>>> Added return type annotations + doctest fixes
   """
 
 <<<<<<< HEAD
@@ -131,12 +149,12 @@ class MultiHeadedMATAttention(nn.Module):
 
 =======
   def __init__(self,
-               dist_kernel: str,
-               lambda_attention: float,
-               lambda_distance: float,
-               h: int,
-               hsize: int,
-               dropout_p: float,
+               dist_kernel: str = 'softmax',
+               lambda_attention: float = 0.33,
+               lambda_distance: float = 0.33,
+               h: int = 16,
+               hsize: int = 1024,
+               dropout_p: float = 0.0,
                output_bias: bool = True):
     """Initialize a multi-headed attention layer.
 >>>>>>> Update
@@ -297,11 +315,11 @@ class MATEncoderLayer(nn.Module):
                         key: torch.Tensor,
                         value: torch.Tensor,
                         mask: torch.Tensor,
-                        dropout_p: float,
                         adj_matrix: np.ndarray,
                         distance_matrix: np.ndarray,
+                        dropout_p: float = 0.0,
                         eps: float = 1e-6,
-                        inf: float = 1e12):
+                        inf: float = 1e12) -> Tuple[torch.Tensor, torch.Tensor]:
     """Defining and computing output for a single MAT attention layer.
 >>>>>>> Update
     Parameters
@@ -310,6 +328,7 @@ class MATEncoderLayer(nn.Module):
       Input tensor.
     mask: torch.Tensor
       Masks out padding values so that they are not taken into account when computing the attention score.
+<<<<<<< HEAD
     """
     x = self.sublayer[0](x,
                          lambda x: self.self_attn(x, x, x, mask=mask, **kwargs))
@@ -343,6 +362,18 @@ class SublayerConnection(nn.Module):
       Size of layer.
     dropout_p: float
       Dropout probability.
+=======
+    adj_matrix: np.ndarray
+      Adjacency matrix of the input molecule, returned from dc.feat.MATFeaturizer()
+    dist_matrix: np.ndarray
+      Distance matrix of the input molecule, returned from dc.feat.MATFeaturizer()
+    dropout_p: float
+      Dropout probability.
+    eps: float
+      Epsilon value
+    inf: float
+      Value of infinity to be used.
+>>>>>>> Added return type annotations + doctest fixes
     """
 <<<<<<< HEAD
 
@@ -384,19 +415,40 @@ class SublayerConnection(nn.Module):
               key: torch.Tensor,
               value: torch.Tensor,
               mask: torch.Tensor,
-              dropout_p: float,
               adj_matrix: np.ndarray,
               distance_matrix: np.ndarray,
+              dropout_p: float = 0.0,
               eps: float = 1e-6,
-              inf: float = 1e12):
+              inf: float = 1e12) -> torch.Tensor:
     """Output computation for the MultiHeadedAttention layer.
 >>>>>>> Update
     Parameters
     ----------
+<<<<<<< HEAD
     x: torch.Tensor
       Input tensor.
     sublayer: nn.Module
       Layer whose output for normalized x will be added to x.
+=======
+    query: torch.Tensor
+      Standard query parameter for attention.
+    key: torch.Tensor
+      Standard key parameter for attention.
+    value: torch.Tensor
+      Standard value parameter for attention.
+    mask: torch.Tensor
+      Masks out padding values so that they are not taken into account when computing the attention score.
+    adj_matrix: np.ndarray
+      Adjacency matrix of the input molecule, returned from dc.feat.MATFeaturizer()
+    dist_matrix: np.ndarray
+      Distance matrix of the input molecule, returned from dc.feat.MATFeaturizer()
+    dropout_p: float
+      Dropout probability.
+    eps: float
+      Epsilon value
+    inf: float
+      Value of infinity to be used.
+>>>>>>> Added return type annotations + doctest fixes
     """
     return x + self.dropout_p(sublayer(self.norm(x)))
 
@@ -408,12 +460,17 @@ class PositionwiseFeedForward(nn.Module):
   This is done in addition to the SublayerConnection module.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
 =======
     x, _ = self._single_attention(query, key, value, mask, dropout_p,
                                   adj_matrix, distance_matrix, eps, inf)
+=======
+    x, _ = self._single_attention(query, key, value, mask, adj_matrix,
+                                  distance_matrix, dropout_p, eps, inf)
+>>>>>>> Added return type annotations + doctest fixes
     x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.h * self.d_k)
 >>>>>>> Removed kwargs
 
@@ -484,23 +541,33 @@ class MATEncoderLayer(nn.Module):
 
   Examples
   --------
-  >>> import deepchem as dc
+  >>> from deepchem.models.torch_models.layers import MATEncoderLayer
   >>> from rdkit import Chem
   >>> mol = Chem.MolFromSmiles("CC")
   >>> adj_matrix = Chem.GetAdjacencyMatrix(mol)
   >>> distance_matrix = Chem.GetDistanceMatrix(mol)
-  >>> layer = dc.models.torch_models.layers.MATEncoderLayer(dist_kernel = 'softmax', lambda_attention = 0.33, lambda_distance = 0.33, h = 8, sa_hsize = 1024, sa_dropout_p = 0.1, d_input = 1024, activation = 'relu', n_layers = 1, ff_dropout_p = 0.1, encoder_hsize = 1024, encoder_dropout_p = 0.1)
+  >>> layer = MATEncoderLayer(dist_kernel='softmax', lambda_attention=0.33, lambda_distance=0.33, h=2, sa_hsize=2, sa_dropout_p=0.0, output_bias=True, d_input=2, d_hidden=2, d_output=2, activation='relu', n_layers=2, ff_dropout_p=0.0, encoder_hsize=2, encoder_dropout_p=0.0)
   >>> x = torch.Tensor([[1., 2.], [5., 6.]])
   >>> mask = torch.Tensor([[1., 1.], [1., 1.]])
-  >>> output = layer(x, mask, sa_dropout_p = 0.0, adj_matrix = adj_matrix, distance_matrix = distance_matrix)
+  >>> output = layer(x, mask, adj_matrix = adj_matrix, distance_matrix = distance_matrix, sa_dropout_p = 0.0)
   """
 
-  def __init__(self, dist_kernel: str, lambda_attention: float,
-               lambda_distance: float, h: int, sa_hsize: int,
-               sa_dropout_p: float, output_bias: bool, d_input: int,
-               d_hidden: int, d_output: int, activation: str, n_layers: int,
-               ff_dropout_p: float, encoder_hsize: int,
-               encoder_dropout_p: float):
+  def __init__(self,
+               dist_kernel: str = 'softmax',
+               lambda_attention: float = 0.33,
+               lambda_distance: float = 0.33,
+               h: int = 16,
+               sa_hsize: int = 1024,
+               sa_dropout_p: float = 0.0,
+               output_bias: bool = True,
+               d_input: int = 1024,
+               d_hidden: int = 1024,
+               d_output: int = 1024,
+               activation: Any = nn.LeakyReLU(),
+               n_layers: int = 1,
+               ff_dropout_p: float = 0.0,
+               encoder_hsize: int = 1024,
+               encoder_dropout_p: float = 0.0):
     """Initialize a MATEncoder layer.
 
     Parameters
@@ -548,8 +615,12 @@ class MATEncoderLayer(nn.Module):
     self.sublayer = nn.ModuleList([layer for _ in range(2)])
     self.size = encoder_hsize
 
-  def forward(self, x: torch.Tensor, mask: torch.Tensor, sa_dropout_p: float,
-              adj_matrix: np.ndarray, distance_matrix: np.ndarray):
+  def forward(self,
+              x: torch.Tensor,
+              mask: torch.Tensor,
+              adj_matrix: np.ndarray,
+              distance_matrix: np.ndarray,
+              sa_dropout_p: float = 0.0) -> torch.Tensor:
     """Output computation for the MATEncoder layer.
 
     Parameters
@@ -558,12 +629,12 @@ class MATEncoderLayer(nn.Module):
       Input tensor.
     mask: torch.Tensor
       Masks out padding values so that they are not taken into account when computing the attention score.
-    sa_dropout_p: float
-      Dropout probability for the self-attention layer (MultiHeadedMATAttention).
     adj_matrix: np.ndarray
       Adjacency matrix of a molecule.
     distance_matrix: np.ndarray
       Distance matrix of a molecule.
+    sa_dropout_p: float
+      Dropout probability for the self-attention layer (MultiHeadedMATAttention).
     """
     x = self.sublayer[0](x,
                          self.self_attn(
@@ -589,14 +660,14 @@ class SublayerConnection(nn.Module):
 
   Examples
   --------
-  >>> import deepchem as dc
+  >>> from deepchem.models.torch_models.layers import SublayerConnection
   >>> scale = 0.35
-  >>> layer = dc.models.torch_models.layers.SublayerConnection(2, 0.)
+  >>> layer = SublayerConnection(2, 0.)
   >>> input_ar = torch.tensor([[1., 2.], [5., 6.]])
   >>> output = layer(input_ar, input_ar)
   """
 
-  def __init__(self, size: int, dropout_p: float):
+  def __init__(self, size: int, dropout_p: float = 0.0):
     """Initialize a SublayerConnection Layer.
 
     Parameters
@@ -610,7 +681,7 @@ class SublayerConnection(nn.Module):
     self.norm = nn.LayerNorm(size)
     self.dropout_p = nn.Dropout(dropout_p)
 
-  def forward(self, x: torch.Tensor, output: torch.Tensor):
+  def forward(self, x: torch.Tensor, output: torch.Tensor) -> torch.Tensor:
     """Output computation for the SublayerConnection layer.
 
     Takes an input tensor x, then adds the dropout-adjusted sublayer output for normalized x to it.
@@ -652,12 +723,19 @@ class PositionwiseFeedForward(nn.Module):
 
   Examples
   --------
-  >>> import deepchem as dc
-  >>> feed_fwd_layer = dc.models.torch_models.layers.PositionwiseFeedForward(d_input = 1024, d_hidden = None, d_output = None, activation = 'relu', n_layers = 1, dropout_p = 0.1)
+  >>> from deepchem.models.torch_models.layers import PositionwiseFeedForward
+  >>> feed_fwd_layer = PositionwiseFeedForward(d_input = 2, d_hidden = 2, d_output = 2, activation = 'relu', n_layers = 1, dropout_p = 0.1)
+  >>> input_tensor = torch.tensor([[1., 2.], [5., 6.]])
+  >>> output_tensor = feed_fwd_layer(input_tensor)
   """
 
-  def __init__(self, d_input: int, d_hidden: int, d_output: int,
-               activation: str, n_layers: int, dropout_p: float):
+  def __init__(self,
+               d_input: int = 1024,
+               d_hidden: int = 1024,
+               d_output: int = 1024,
+               activation: Any = 'leakyrelu',
+               n_layers: int = 1,
+               dropout_p: float = 0.0):
     """Initialize a PositionwiseFeedForward layer.
 
     Parameters
@@ -726,8 +804,12 @@ class PositionwiseFeedForward(nn.Module):
   def forward(self, x):
 =======
 
+<<<<<<< HEAD
   def forward(self, x: torch.Tensor):
 >>>>>>> Rebase+Update
+=======
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
+>>>>>>> Added return type annotations + doctest fixes
     """Output Computation for the PositionwiseFeedForward layer.
 
     Parameters
