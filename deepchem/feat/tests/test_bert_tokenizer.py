@@ -19,6 +19,7 @@ def test_call():
     assert len(embedding['input_ids']) == 2 and len(
         emb['attention_mask']) == 2
 
+
 def test_featurize():
   """Test that BertFeaturizer.featurize() correctly featurizes all sequences,
   correctly outputs input_ids and attention_mask.
@@ -32,10 +33,6 @@ def test_featurize():
       "Rostlab/prot_bert", do_lower_case=False)
   feats = featurizer.featurize(sequence)
   long_feat = featurizer.featurize(sequence_long)
-  """
-  for f in feats:
-    print(f)
-  """
   assert (len(feats) == 2)
   assert (all([len(f) == 3 for f in feats]))
   assert (len(long_feat) == 1)

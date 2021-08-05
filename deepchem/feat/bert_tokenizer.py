@@ -1,5 +1,5 @@
 from deepchem.feat import Featurizer
-from typing import Dict, List
+from typing import Dict, List, Optional
 try:
   from transformers import BertTokenizerFast
 except ModuleNotFoundError:
@@ -8,7 +8,7 @@ except ModuleNotFoundError:
   pass
 
 
-class BertFeaturizer(BertFeaturizerFast, Featurizer):
+class BertFeaturizer(Featurizer):
   """Bert Featurizer.
 
   Bert Featurizer.
@@ -24,15 +24,14 @@ class BertFeaturizer(BertFeaturizerFast, Featurizer):
 
   Notes
   -----
-  This class inherits from BertTokenizerFast.
   This class may contain code and/or documentation taken from the
   RobertaFeaturizer pull request (#2581), which have been moved here due to
   code restructuring.
   """
 
-  def __init__(self, **kwargs):
-    super().__init__(**kwargs)
-    return
+  def __init__(self, tokenizer: BertTokenizerFast = BertTokenizerFast()):
+    self.tokenizer = tokenizer
+    return self.tokenizer
 
   def _featurize(self, datapoint: str, **kwargs) -> List[List[int]]:
     """Calculate encoding using HuggingFace's RobertaTokenizerFast
@@ -49,7 +48,6 @@ class BertFeaturizer(BertFeaturizerFast, Featurizer):
     """
 
     # the encoding is natively a dictionary with keys 'input_ids', 'token_type_ids', and 'attention_mask'
-    # encoding = list(self(smiles_string, **kwargs).values())
     encoding = list(self(datapoint, **kwargs).values())
     return encoding
 
