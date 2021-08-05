@@ -125,7 +125,16 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.ScaleNorm
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.MATEncoderLayer
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.layers.MultiHeadedMATAttention
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SublayerConnection
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.PositionwiseFeedForward
   :members:
 
 .. autofunction:: deepchem.models.layers.cosine_dist
