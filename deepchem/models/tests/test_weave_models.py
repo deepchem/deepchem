@@ -140,7 +140,7 @@ def test_weave_model():
       batch_size=batch_size,
       mode='classification',
       dropouts=0,
-      learning_rate=0.002)
+      learning_rate=0.0001)
   model.fit(dataset, nb_epoch=250)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.9
