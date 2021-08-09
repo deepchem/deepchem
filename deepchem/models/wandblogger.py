@@ -17,9 +17,28 @@ class WandbLogger(object):
     will log the specified metrics calculated on the specific datasets
     to the user's W&B dashboard.
 
-    If a WandbLogger is provided to the wandb_logger flag,
+    If a WandbLogger is provided to the wandb_logger flag of the model,
     the metrics are logged to Weights & Biases, along with other information
     such as epoch number, losses, sample counts, and model configuration data.
+
+    Usage
+    --------
+    Here's how WandbLogger can be used with KerasModel training and validation.
+    Apart from initialization, you do not need to call any other methods.
+    All other methods (such as setup, log_data, update_config) are part of the
+    logging API and are already integrated in the KerasModel/TorchModel classes.
+
+    >>> from deepchem.models import KerasModel, ValidationCallback
+    ... from deepchem.models import WandbLogger
+    ... logger = WandbLogger(entity="my_entity", project="my_project")
+    ... vc = ValidationCallback(...)
+    ... model = KerasModel(some_model, wandb_logger=logger)
+    ... model.fit(some_dataset, nb_epochs=10, callbacks=[vc]) # WandbLogger will automatically detect callbacks
+    >>> logger.finish() # closes the wandb process
+
+    Notes
+    -----
+    This class requires wandb to be installed.
     """
 
   def __init__(self,
@@ -141,6 +160,7 @@ class WandbLogger(object):
 
   def update_config(self, config_data):
     """Updates the W&B configuration.
+
     Parameters
     ----------
     config_data: dict

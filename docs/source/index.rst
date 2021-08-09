@@ -126,3 +126,4 @@ To listen in, please email X.Y@gmail.com, where X=bharath and Y=ramsundar to int
    api_reference/rl
    api_reference/docking
    api_reference/utils
+   api_reference/loggers
