@@ -127,7 +127,8 @@ def test_get_shard_size():
   file_path = os.path.join(current_dir, "reaction_smiles.csv")
 
   featurizer = dc.feat.DummyFeaturizer()
-  loader = dc.data.CSVLoader(tasks=[], feature_field="reactions", featurizer=featurizer)
+  loader = dc.data.CSVLoader(
+      tasks=[], feature_field="reactions", featurizer=featurizer)
 
   dataset = loader.create_dataset(file_path)
   assert dataset.get_shard_size() == 4
