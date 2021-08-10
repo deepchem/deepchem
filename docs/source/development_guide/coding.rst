@@ -40,7 +40,7 @@ Whenever you modify a file, run :code:`flake8` on it.
 
   flake8 <modified file> --count
 
-If the command return 0, it means your code pass Flake8 check.
+If the command returns 0, it means your code passes the Flake8 check.
 
 Docstrings
 ----------
@@ -94,6 +94,12 @@ current development directory. To do this, simply run
 while installing the package from source. This will let you see changes that you
 make to the source code when you import the package and, in particular, it
 allows you to import the new classes/methods for unit tests.
+
+Ensure that the tests pass locally! Check this by running
+
+.. code-block:: bash
+
+  python -m pytest <modified file>
 
 Testing Machine Learning Models
 -------------------------------
