@@ -53,8 +53,12 @@ appropriate, cite the relevant publications.
 
 .. _`numpy`: https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard
 
-All docstrings should follow the `numpy`_ docstring formatting conventions.
+All docstrings should follow the `numpy`_ docstring formatting conventions. To
+ensure that the code examples in the docstrings are working as expected, run
 
+.. code-block:: bash
+
+  python -m doctest <modified file>
 
 Unit Tests
 ----------
