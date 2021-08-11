@@ -969,17 +969,17 @@ class FASTALoader(DataLoader):
       input_files = [input_files]
 
     def shard_generator():  # TODO Enable sharding with shard size parameter
-      for input_file in input_files:
+      for i, input_file in enumerate(input_files):
         if self.legacy:
           X = encode_bio_sequence(input_file)
         else:
           sequences = _read_file(input_file)
           X = self.featurizer(sequences)
-        ids = np.ones(len(X))
+        ids = np.ones(len(X) * i)
         # (X, y, w, ids)
         yield X, None, None, ids
 
-    def _read_file(input_file: str):
+    def _read_file(input_file: str) -> np.ndarray:
       """
       Convert the FASTA file to a numpy array of FASTA-format strings.
       """

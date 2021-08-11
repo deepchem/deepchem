@@ -1,7 +1,6 @@
 from deepchem.feat import Featurizer
 import numpy as np
-from icecream import ic
-from typing import Dict, List
+from typing import List
 try:
   from transformers import BertTokenizerFast
 except ModuleNotFoundError:
