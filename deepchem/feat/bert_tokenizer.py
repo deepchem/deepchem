@@ -1,5 +1,5 @@
 from deepchem.feat import Featurizer
-from typing import Dict, List, Optional
+from typing import Dict, List
 try:
   from transformers import BertTokenizerFast
 except ModuleNotFoundError:
@@ -28,6 +28,7 @@ class BertFeaturizer(Featurizer):
   RobertaFeaturizer pull request (#2581), which have been moved here due to
   code restructuring.
   """
+
   def __init__(self, tokenizer: BertTokenizerFast):
     if not isinstance(tokenizer, BertTokenizerFast):
       raise TypeError(f"""`tokenizer` must be a constructed `BertTokenizerFast`

@@ -14,12 +14,11 @@ def test_call():
       "Rostlab/prot_bert", do_lower_case=False)
   featurizer = BertFeaturizer(tokenizer)
   embedding = featurizer(sequence, return_tensors='pt')
-  embedding_long = featurizer(
-      sequence_long * 2, return_tensors='pt')
+  embedding_long = featurizer(sequence_long * 2, return_tensors='pt')
   for emb in [embedding, embedding_long]:
     assert 'input_ids' in emb.keys() and 'attention_mask' in emb.keys()
-    assert len(embedding['input_ids']) == 2 and len(
-        emb['attention_mask']) == 2
+    assert len(embedding['input_ids']) == 2 and len(emb['attention_mask']) == 2
+
 
 def test_featurize():
   """Test that BertFeaturizer.featurize() correctly featurizes all sequences,
