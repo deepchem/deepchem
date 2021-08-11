@@ -97,12 +97,12 @@ class Splitter(object):
       train_ds_to_merge: Iterator[Dataset] = filter(
           None, [train_ds_base, rem_dataset])
       train_ds_to_merge = filter(lambda x: len(x) > 0, train_ds_to_merge)
-      train_dataset = DiskDataset.merge(train_ds_to_merge, merge_dir=train_dir, **kwargs)
+      train_dataset = DiskDataset.merge(train_ds_to_merge, merge_dir=train_dir)
       train_datasets.append(train_dataset)
 
       update_train_base_merge: Iterator[Dataset] = filter(
           None, [train_ds_base, cv_dataset])
-      train_ds_base = DiskDataset.merge(update_train_base_merge, **kwargs)
+      train_ds_base = DiskDataset.merge(update_train_base_merge)
     return list(zip(train_datasets, cv_datasets))
 
   def train_valid_test_split(self,
