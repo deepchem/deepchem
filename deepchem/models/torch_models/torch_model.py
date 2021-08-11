@@ -47,12 +47,17 @@ class TorchModel(Model):
   Here is a simple example of code that uses TorchModel to train
   a PyTorch model on a DeepChem dataset.
 
-  >> pytorch_model = torch.nn.Sequential(
-  >>    torch.nn.Linear(100, 1000),
-  >>    torch.nn.Tanh(),
-  >>    torch.nn.Linear(1000, 1))
-  >> model = TorchModel(pytorch_model, loss=dc.models.losses.L2Loss())
-  >> model.fit(dataset)
+  >>> import torch
+  >>> import deepchem as dc
+  >>> import numpy as np
+  >>> X, y = np.random.random((10, 100)), np.random.random((10, 1))
+  >>> dataset = dc.data.NumpyDataset(X=X, y=y)
+  >>> pytorch_model = torch.nn.Sequential(
+  ...   torch.nn.Linear(100, 1000),
+  ...   torch.nn.Tanh(),
+  ...   torch.nn.Linear(1000, 1))
+  >>> model = dc.models.TorchModel(pytorch_model, loss=dc.models.losses.L2Loss())
+  >>> loss = model.fit(dataset, nb_epoch=5)
 
   The loss function for a model can be defined in two different
   ways.  For models that have only a single output and use a
@@ -451,10 +456,6 @@ class TorchModel(Model):
       if (self.wandb_logger is not None) and should_log:
         all_data = dict({'train/loss': batch_loss})
         self.wandb_logger.log_data(all_data, step=current_step)
-
-    # Close WandbLogger
-    if self.wandb_logger is not None:
-      self.wandb_logger.finish()
 
     # Report final results.
     if averaged_batches > 0:
