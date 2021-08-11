@@ -30,7 +30,7 @@ class _PerovskiteLoader(_MolnetLoader):
 
 
 def load_perovskite(
-    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.SineCoulombMatrix(),
+    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.CGCNNFeaturizer(),
     splitter: Union[dc.splits.Splitter, str, None] = 'random',
     transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
     reload: bool = True,
@@ -93,13 +93,10 @@ def load_perovskite(
 
   Examples
   --------
-  >>>
-  >> import deepchem as dc
-  >> tasks, datasets, transformers = dc.molnet.load_perovskite()
-  >> train_dataset, val_dataset, test_dataset = datasets
-  >> n_tasks = len(tasks)
-  >> n_features = train_dataset.get_data_shape()[0]
-  >> model = dc.models.MultitaskRegressor(n_tasks, n_features)
+  >>> import deepchem as dc
+  >>> tasks, datasets, transformers = dc.molnet.load_perovskite()
+  >>> train_dataset, val_dataset, test_dataset = datasets
+  >>> model = dc.models.CGCNNModel(mode='regression', batch_size=32, learning_rate=0.001)
 
   """
   loader = _PerovskiteLoader(featurizer, splitter, transformers,

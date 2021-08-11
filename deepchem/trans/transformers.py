@@ -2469,3 +2469,111 @@ class DataTransforms(object):
     image = Image.fromarray(self.Image)
     image = image.filter(ImageFilter.MedianFilter(size=size))
     return np.array(image)
+
+
+class RxnSplitTransformer(Transformer):
+  """Splits the reaction SMILES input into the source and target strings
+  required for machine translation tasks.
+
+  The input is expected to be in the form reactant>reagent>product. The source
+  string would be reactants>reagents and the target string would be the products.
+
+  The transformer can also separate the reagents from the reactants for a mixed
+  training mode. During mixed training, the source string is transformed from
+  reactants>reagent to reactants.reagent> . This can be toggled (default True)
+  by setting the value of sep_reagent while calling the transformer.
+
+  Examples
+  --------
+  >>> # When mixed training is toggled.
+  >>> import numpy as np
+  >>> from deepchem.trans.transformers import RxnSplitTransformer
+  >>> reactions = np.array(["CC(C)C[Mg+].CON(C)C(=O)c1ccc(O)nc1>C1CCOC1.[Cl-]>CC(C)CC(=O)c1ccc(O)nc1","CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(N)cc3)cc21.O=CO>>CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(NC=O)cc3)cc21"], dtype=object)
+  >>> trans = RxnSplitTransformer(sep_reagent=True)
+  >>> split_reactions = trans.transform_array(X=reactions, y=np.array([]), w=np.array([]), ids=np.array([]))
+  >>> split_reactions
+  (array([['CC(C)C[Mg+].CON(C)C(=O)c1ccc(O)nc1>C1CCOC1.[Cl-]',
+          'CC(C)CC(=O)c1ccc(O)nc1'],
+         ['CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(N)cc3)cc21.O=CO>',
+          'CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(NC=O)cc3)cc21']], dtype='<U51'), array([], dtype=float64), array([], dtype=float64), array([], dtype=float64))
+
+  When mixed training is disabled, you get the following outputs:
+
+  >>> trans_disable = RxnSplitTransformer(sep_reagent=False)
+  >>> split_reactions = trans_disable.transform_array(X=reactions, y=np.array([]), w=np.array([]), ids=np.array([]))
+  >>> split_reactions
+  (array([['CC(C)C[Mg+].CON(C)C(=O)c1ccc(O)nc1.C1CCOC1.[Cl-]>',
+          'CC(C)CC(=O)c1ccc(O)nc1'],
+         ['CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(N)cc3)cc21.O=CO>',
+          'CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(NC=O)cc3)cc21']], dtype='<U51'), array([], dtype=float64), array([], dtype=float64), array([], dtype=float64))
+
+  Note
+  ----
+  This class only transforms the feature field of a reaction dataset like USPTO.
+  """
+
+  def __init__(self,
+               sep_reagent: bool = True,
+               dataset: Optional[Dataset] = None):
+    """Initializes the Reaction split Transformer.
+
+    Parameters
+    ----------
+    sep_reagent: bool, optional (default True)
+      To separate the reagent and reactants for training.
+    dataset: dc.data.Dataset object, optional (default None)
+      Dataset to be transformed.
+    """
+
+    self.sep_reagent = sep_reagent
+    super(RxnSplitTransformer, self).__init__(transform_X=True, dataset=dataset)
+
+  def transform_array(
+      self, X: np.ndarray, y: np.ndarray, w: np.ndarray,
+      ids: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Transform the data in a set of (X, y, w, ids) arrays.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Array of features(the reactions)
+    y: np.ndarray
+      Array of labels
+    w: np.ndarray
+      Array of weights.
+    ids: np.ndarray
+      Array of weights.
+
+    Returns
+    -------
+    Xtrans: np.ndarray
+      Transformed array of features
+    ytrans: np.ndarray
+      Transformed array of labels
+    wtrans: np.ndarray
+      Transformed array of weights
+    idstrans: np.ndarray
+      Transformed array of ids
+    """
+
+    reactant = list(map(lambda x: x.split('>')[0], X))
+    reagent = list(map(lambda x: x.split('>')[1], X))
+    product = list(map(lambda x: x.split('>')[2], X))
+
+    if self.sep_reagent:
+      source = [x + '>' + y for x, y in zip(reactant, reagent)]
+    else:
+      source = [
+          x + '.' + y + '>' if y else x + '>' + y
+          for x, y in zip(reactant, reagent)
+      ]
+
+    target = product
+
+    X = np.column_stack((source, target))
+
+    return (X, y, w, ids)
+
+  def untransform(self, z):
+    """Not Implemented."""
+    raise NotImplementedError("Cannot untransform the source/target split.")

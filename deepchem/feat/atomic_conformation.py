@@ -149,7 +149,7 @@ class AtomicConformationFeaturizer(Featurizer):
 
   """
 
-  def _featurize(self, datapoint: str) -> AtomicConformation:
+  def _featurize(self, datapoint: str, **kwargs) -> AtomicConformation:
     """Calculate features for a single datapoint.
 
     Parameters
