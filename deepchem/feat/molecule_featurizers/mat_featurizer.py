@@ -56,18 +56,8 @@ class MATFeaturizer(MolecularFeaturizer):
   This class requires RDKit to be installed.
   """
 
-  def __init__(
-      self,
-      one_hot_formal_charge: bool = True,
-  ):
-    """
-    Parameters
-    ----------
-    one_hot_formal_charge: bool, default True
-      If True, formal charges on atoms are one-hot encoded.
-    """
-
-    self.one_hot_formal_charge = one_hot_formal_charge
+  def __init__(self):
+    pass
 
   def construct_mol(self, mol: RDKitMol) -> RDKitMol:
     """
