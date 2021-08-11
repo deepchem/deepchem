@@ -1,4 +1,6 @@
 from deepchem.feat import Featurizer
+import numpy as np
+from icecream import ic
 from typing import Dict, List
 try:
   from transformers import BertTokenizerFast
@@ -55,5 +57,5 @@ class BertFeaturizer(Featurizer):
     encoding = list(self.tokenizer(datapoint, **kwargs).values())
     return encoding
 
-  def __call__(self, *args, **kwargs) -> Dict[str, List[int]]:
-    return self.tokenizer.__call__(*args, **kwargs)
+  def __call__(self, *args, **kwargs) -> np.ndarray:
+    return self.featurize(*args, **kwargs)
