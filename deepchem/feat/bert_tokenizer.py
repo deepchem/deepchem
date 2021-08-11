@@ -28,13 +28,16 @@ class BertFeaturizer(Featurizer):
   RobertaFeaturizer pull request (#2581), which have been moved here due to
   code restructuring.
   """
-
-  def __init__(self, tokenizer: BertTokenizerFast = BertTokenizerFast()):
-    self.tokenizer = tokenizer
-    return self.tokenizer
+  def __init__(self, tokenizer: BertTokenizerFast):
+    if not isinstance(tokenizer, BertTokenizerFast):
+      raise TypeError(f"""`tokenizer` must be a constructed `BertTokenizerFast`
+                       object, not {type(tokenizer)}""")
+    else:
+      self.tokenizer = tokenizer
 
   def _featurize(self, datapoint: str, **kwargs) -> List[List[int]]:
-    """Calculate encoding using HuggingFace's RobertaTokenizerFast
+    """
+    Calculate encoding using HuggingFace's RobertaTokenizerFast
 
     Parameters
     ----------
@@ -48,8 +51,8 @@ class BertFeaturizer(Featurizer):
     """
 
     # the encoding is natively a dictionary with keys 'input_ids', 'token_type_ids', and 'attention_mask'
-    encoding = list(self(datapoint, **kwargs).values())
+    encoding = list(self.tokenizer(datapoint, **kwargs).values())
     return encoding
 
   def __call__(self, *args, **kwargs) -> Dict[str, List[int]]:
-    return super().__call__(*args, **kwargs)
+    return self.tokenizer.__call__(*args, **kwargs)
