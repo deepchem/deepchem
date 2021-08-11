@@ -1916,18 +1916,31 @@ class DiskDataset(Dataset):
       merge_tasks = tasks[0]
     else:
       merge_tasks = []
-
+    
+    # determine the shard sizes of the datasets to merge
+    shard_sizes = []
+    for dataset in datasets:
+      if hasattr(dataset, 'get_shard_size'):
+        shard_sizes.append(dataset.get_shard_size())
+    
     def generator():
       for ind, dataset in enumerate(datasets):
         logger.info("Merging in dataset %d/%d" % (ind, len(datasets)))
         if hasattr(dataset, 'itershards'):
-            for (X, y, w, ids) in dataset.itershards():
-                yield (X, y, w, ids)
+          for (X, y, w, ids) in dataset.itershards():
+            yield (X, y, w, ids)
         else:
-            yield (dataset.X, dataset.y, dataset.w, dataset.ids)
-
-    return DiskDataset.create_dataset(
-        generator(), data_dir=merge_dir, tasks=merge_tasks)
+          yield (dataset.X, dataset.y, dataset.w, dataset.ids)
+    
+    merged_dataset = DiskDataset.create_dataset(
+      generator(), data_dir=merge_dir, tasks=merge_tasks)
+    
+    # we must reshard the dataset to have a uniform size
+    # choose the smallest shard size
+    if len(set(shard_sizes)) > 1:
+      merged_dataset.reshard(min(shard_sizes))
+        
+    return merged_dataset
 
   def subset(self, shard_nums: Sequence[int],
              subset_dir: Optional[str] = None) -> "DiskDataset":

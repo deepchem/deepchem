@@ -17,11 +17,13 @@ def test_merge():
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
   first_dataset = loader.create_dataset(dataset_file)
+  first_dataset.reshard(10)
   second_dataset = loader.create_dataset(dataset_file)
 
   merged_dataset = dc.data.DiskDataset.merge([first_dataset, second_dataset])
 
   assert len(merged_dataset) == len(first_dataset) + len(second_dataset)
+  assert merged_dataset.get_shard_size() == 10
 
 
 def test_subset():
