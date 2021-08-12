@@ -40,7 +40,7 @@ Whenever you modify a file, run :code:`flake8` on it.
 
   flake8 <modified file> --count
 
-If the command return 0, it means your code pass Flake8 check.
+If the command returns 0, it means your code passes the Flake8 check.
 
 Docstrings
 ----------
@@ -53,8 +53,12 @@ appropriate, cite the relevant publications.
 
 .. _`numpy`: https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard
 
-All docstrings should follow the `numpy`_ docstring formatting conventions.
+All docstrings should follow the `numpy`_ docstring formatting conventions. To
+ensure that the code examples in the docstrings are working as expected, run
 
+.. code-block:: bash
+
+  python -m doctest <modified file>
 
 Unit Tests
 ----------
@@ -90,6 +94,12 @@ current development directory. To do this, simply run
 while installing the package from source. This will let you see changes that you
 make to the source code when you import the package and, in particular, it
 allows you to import the new classes/methods for unit tests.
+
+Ensure that the tests pass locally! Check this by running
+
+.. code-block:: bash
+
+  python -m pytest <modified file>
 
 Testing Machine Learning Models
 -------------------------------
