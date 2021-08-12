@@ -969,13 +969,13 @@ class FASTALoader(DataLoader):
       input_files = [input_files]
 
     def shard_generator():  # TODO Enable sharding with shard size parameter
-      for i, input_file in enumerate(input_files):
+      for input_file in input_files:
         if self.legacy:
           X = encode_bio_sequence(input_file)
         else:
           sequences = _read_file(input_file)
           X = self.featurizer(sequences)
-        ids = np.ones(len(X) * i)
+        ids = np.ones(len(X))
         # (X, y, w, ids)
         yield X, None, None, ids
 
