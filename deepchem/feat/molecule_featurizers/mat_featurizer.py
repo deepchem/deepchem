@@ -4,11 +4,11 @@ from deepchem.utils.typing import RDKitMol, RDKitAtom
 import numpy as np
 from typing import Tuple
 from dataclasses import dataclass
-try:
-  from rdkit.Chem import AllChem
-  from rdkit import Chem
-except:
-  raise ModuleNotFoundError('This class requires RDKit to be installed.')
+# try:
+#   from rdkit.Chem import AllChem
+#   from rdkit import Chem
+# except:
+#   raise ModuleNotFoundError('This class requires RDKit to be installed.')
 
 
 @dataclass
@@ -73,6 +73,11 @@ class MATFeaturizer(MolecularFeaturizer):
     mol: RDKitMol
       A processed RDKitMol objeect which is embedded, UFF Optimized and has Hydrogen atoms removed. If the former conditions are not met and there is a value error, then 2D Coordinates are computed instead.
     """
+    try:
+      from rdkit.Chem import AllChem
+      from rdkit import Chem
+    except:
+      raise ModuleNotFoundError('This class requires RDKit to be installed.')
     try:
       mol = Chem.AddHs(mol)
       AllChem.EmbedMolecule(mol, maxAttempts=5000)
