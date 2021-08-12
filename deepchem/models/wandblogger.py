@@ -28,30 +28,30 @@ class WandbLogger(object):
     All other methods (such as setup, log_data, update_config) are part of the
     logging API and are already integrated in the KerasModel/TorchModel classes.
 
-    >>> import torch
-    >>> import deepchem as dc
-    >>> from deepchem.models import TorchModel
-    >>> from deepchem.models import ValidationCallback
-    >>> from deepchem.models import WandbLogger
+    >>> import torch # doctest: +SKIP
+    >>> import deepchem as dc # doctest: +SKIP
+    >>> from deepchem.models import TorchModel # doctest: +SKIP
+    >>> from deepchem.models import ValidationCallback # doctest: +SKIP
+    >>> from deepchem.models import WandbLogger # doctest: +SKIP
     >>> tasks, datasets, transformers = dc.molnet.load_delaney(
-    ...   featurizer='ECFP', splitter='random')
-    >>> train_dataset, valid_dataset, test_dataset = datasets
-    >>> metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
-    >>> wandblogger = WandbLogger(project="deepchem")
+    ...   featurizer='ECFP', splitter='random') # doctest: +SKIP
+    >>> train_dataset, valid_dataset, test_dataset = datasets # doctest: +SKIP
+    >>> metric = dc.metrics.Metric(dc.metrics.pearson_r2_score) # doctest: +SKIP
+    >>> wandblogger = WandbLogger(project="deepchem") # doctest: +SKIP
     >>> layers = torch.nn.Sequential(
     ...    torch.nn.Linear(1024, 1000),
     ...    torch.nn.Dropout(p=0.5),
-    ...    torch.nn.Linear(1000, 1))
-    >>> model = TorchModel(layers, dc.models.losses.L2Loss(), logger=wandblogger) # doctest: +NORMALIZE_WHITESPACE
-    >>> vc_valid = ValidationCallback(valid_dataset, 10, [metric])
+    ...    torch.nn.Linear(1000, 1)) # doctest: +SKIP
+    >>> model = TorchModel(layers, dc.models.losses.L2Loss(), logger=wandblogger) # doctest: +SKIP
+    >>> vc_valid = ValidationCallback(valid_dataset, 10, [metric]) # doctest: +SKIP
     >>> # WandbLogger will automatically detect callbacks in model.fit()
     >>> loss = model.fit(train_dataset, nb_epoch=10, callbacks=[vc_valid]) # doctest: +SKIP
     >>> # close the wandb process
-    >>> wandblogger.finish() # doctest: +NORMALIZE_WHITESPACE
+    >>> wandblogger.finish() # doctest: +SKIP
 
     Notes
     -----
-    This class requires wandb to be installed.
+    This class requires wandb to be installed. More info: https://docs.wandb.ai/
     """
 
   def __init__(self,
