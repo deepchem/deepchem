@@ -17,24 +17,37 @@ class WandbLogger(object):
     will log the specified metrics calculated on the specific datasets
     to the user's W&B dashboard.
 
-    If a WandbLogger is provided to the wandb_logger flag of the model,
+    If a WandbLogger is provided to the `logger` flag of the model,
     the metrics are logged to Weights & Biases, along with other information
     such as epoch number, losses, sample counts, and model configuration data.
 
-    Usage
+    Examples
     --------
-    Here's how WandbLogger can be used with KerasModel training and validation.
-    Apart from initialization, you do not need to call any other methods.
+    Here's a full example of how WandbLogger can be used with TorchModel training and
+    validation. Apart from initialization, you do not need to call any other methods.
     All other methods (such as setup, log_data, update_config) are part of the
     logging API and are already integrated in the KerasModel/TorchModel classes.
 
-    >>> from deepchem.models import KerasModel, ValidationCallback
-    ... from deepchem.models import WandbLogger
-    ... logger = WandbLogger(entity="my_entity", project="my_project")
-    ... vc = ValidationCallback(...)
-    ... model = KerasModel(some_model, wandb_logger=logger)
-    ... model.fit(some_dataset, nb_epochs=10, callbacks=[vc]) # WandbLogger will automatically detect callbacks
-    >>> logger.finish() # closes the wandb process
+    >>> import torch
+    >>> import deepchem as dc
+    >>> from deepchem.models import TorchModel
+    >>> from deepchem.models import ValidationCallback
+    >>> from deepchem.models import WandbLogger
+    >>> tasks, datasets, transformers = dc.molnet.load_delaney(
+    ...   featurizer='ECFP', splitter='random')
+    >>> train_dataset, valid_dataset, test_dataset = datasets
+    >>> metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
+    >>> wandblogger = WandbLogger(project="deepchem")
+    >>> layers = torch.nn.Sequential(
+    ...    torch.nn.Linear(1024, 1000),
+    ...    torch.nn.Dropout(p=0.5),
+    ...    torch.nn.Linear(1000, 1))
+    >>> model = TorchModel(layers, dc.models.losses.L2Loss(), logger=wandblogger) # doctest: +NORMALIZE_WHITESPACE
+    >>> vc_valid = ValidationCallback(valid_dataset, 10, [metric])
+    >>> # WandbLogger will automatically detect callbacks in model.fit()
+    >>> loss = model.fit(train_dataset, nb_epoch=10, callbacks=[vc_valid]) # doctest: +SKIP
+    >>> # close the wandb process
+    >>> wandblogger.finish() # doctest: +NORMALIZE_WHITESPACE
 
     Notes
     -----

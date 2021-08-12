@@ -38,7 +38,7 @@ try:
 except (ImportError, AttributeError):
   _has_wandb = False
 
-logger = logging.getLogger(__name__)
+logs = logging.getLogger(__name__)
 
 
 class TorchModel(Model):
@@ -129,7 +129,7 @@ class TorchModel(Model):
                log_frequency: int = 100,
                device: Optional[torch.device] = None,
                regularization_loss: Optional[Callable] = None,
-               wandb_logger: Optional[WandbLogger] = None,
+               logger: Optional[WandbLogger] = None,
                **kwargs) -> None:
     """Create a new TorchModel.
 
@@ -171,7 +171,7 @@ class TorchModel(Model):
     regularization_loss: Callable, optional
       a function that takes no arguments, and returns an extra contribution to add
       to the loss function
-    wandb_logger: WandbLogger
+    logger: WandbLogger
       the Weights & Biases logger object used to log data and metrics
     """
     super(TorchModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
@@ -199,17 +199,17 @@ class TorchModel(Model):
 
     # W&B logging
     if wandb:
-      logger.warning(
-          "`wandb` argument is deprecated. Please use `wandb_logger` instead. "
+      logs.warning(
+          "`wandb` argument is deprecated. Please use `logger` instead. "
           "This argument will be removed in a future release of DeepChem.")
     if wandb and not _has_wandb:
-      logger.warning(
+      logs.warning(
           "You set wandb to True but W&B is not installed. To use wandb logging, "
           "run `pip install wandb; wandb login` see https://docs.wandb.com/huggingface."
       )
     self.wandb = wandb and _has_wandb
 
-    self.wandb_logger = wandb_logger
+    self.wandb_logger = logger
     # If `wandb=True` and no logger is provided, initialize default logger
     if self.wandb and (self.wandb_logger is None):
       self.wandb_logger = WandbLogger()
@@ -438,7 +438,7 @@ class TorchModel(Model):
       should_log = (current_step % self.log_frequency == 0)
       if should_log:
         avg_loss = float(avg_loss) / averaged_batches
-        logger.info(
+        logs.info(
             'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
         if all_losses is not None:
           all_losses.append(avg_loss)
@@ -460,7 +460,7 @@ class TorchModel(Model):
     # Report final results.
     if averaged_batches > 0:
       avg_loss = float(avg_loss) / averaged_batches
-      logger.info(
+      logs.info(
           'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
       if all_losses is not None:
         all_losses.append(avg_loss)
@@ -470,7 +470,7 @@ class TorchModel(Model):
       self.save_checkpoint(max_checkpoints_to_keep)
 
     time2 = time.time()
-    logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
+    logs.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return last_avg_loss
 
   def fit_on_batch(self,
@@ -1148,14 +1148,14 @@ class TorchModel(Model):
 
     self._ensure_built()
     if value_map is None:
-      logger.info(
+      logs.info(
           "No value map provided. Creating default value map from restored model."
       )
       source_model.restore(model_dir=model_dir, checkpoint=checkpoint)
       value_map = self._create_value_map(source_model=source_model)
 
     if assignment_map is None:
-      logger.info("No assignment map provided. Creating custom assignment map.")
+      logs.info("No assignment map provided. Creating custom assignment map.")
       assignment_map = self._create_assignment_map(
           source_model=source_model, include_top=include_top)
 

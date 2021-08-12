@@ -34,7 +34,7 @@ try:
 except (ImportError, AttributeError):
   _has_wandb = False
 
-logger = logging.getLogger(__name__)
+logs = logging.getLogger(__name__)
 
 
 class KerasModel(Model):
@@ -135,7 +135,7 @@ class KerasModel(Model):
                tensorboard: bool = False,
                wandb: bool = False,
                log_frequency: int = 100,
-               wandb_logger: Optional[WandbLogger] = None,
+               logger: Optional[WandbLogger] = None,
                **kwargs) -> None:
     """Create a new KerasModel.
 
@@ -171,7 +171,7 @@ class KerasModel(Model):
       a global step corresponds to one batch of training. If you'd
       like a printout every 10 batch steps, you'd set
       `log_frequency=10` for example.
-    wandb_logger: WandbLogger
+    logger: WandbLogger
       the Weights & Biases logger object used to log data and metrics
     """
     super(KerasModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
@@ -188,16 +188,16 @@ class KerasModel(Model):
 
     # W&B flag support (DEPRECATED)
     if wandb:
-      logger.warning(
-          "`wandb` argument is deprecated. Please use `wandb_logger` instead. "
+      logs.warning(
+          "`wandb` argument is deprecated. Please use `logger` instead. "
           "This argument will be removed in a future release of DeepChem.")
     if wandb and not _has_wandb:
-      logger.warning(
+      logs.warning(
           "You set wandb to True but W&B is not installed. To use wandb logging, "
           "run `pip install wandb; wandb login`")
     self.wandb = wandb and _has_wandb
 
-    self.wandb_logger = wandb_logger
+    self.wandb_logger = logger
     # If `wandb=True` and no logger is provided, initialize default logger
     if self.wandb and (self.wandb_logger is None):
       self.wandb_logger = WandbLogger()
@@ -223,7 +223,7 @@ class KerasModel(Model):
 
     # Backwards compatibility
     if "tensorboard_log_frequency" in kwargs:
-      logger.warning(
+      logs.warning(
           "tensorboard_log_frequency is deprecated. Please use log_frequency instead. This argument will be removed in a future release of DeepChem."
       )
       self.log_frequency = kwargs["tensorboard_log_frequency"]
@@ -448,7 +448,7 @@ class KerasModel(Model):
       should_log = (current_step % self.log_frequency == 0)
       if should_log:
         avg_loss = float(avg_loss) / averaged_batches
-        logger.info(
+        logs.info(
             'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
         if all_losses is not None:
           all_losses.append(avg_loss)
@@ -471,7 +471,7 @@ class KerasModel(Model):
     # Report final results.
     if averaged_batches > 0:
       avg_loss = float(avg_loss) / averaged_batches
-      logger.info(
+      logs.info(
           'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
       if all_losses is not None:
         all_losses.append(avg_loss)
@@ -481,7 +481,7 @@ class KerasModel(Model):
       manager.save()
 
     time2 = time.time()
-    logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
+    logs.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return last_avg_loss
 
   def _create_gradient_fn(self,
@@ -1219,14 +1219,14 @@ class KerasModel(Model):
 
     self._ensure_built()
     if value_map is None:
-      logger.info(
+      logs.info(
           "No value map provided. Creating default value map from restored model."
       )
       source_model.restore(model_dir=model_dir, checkpoint=checkpoint)
       value_map = self._create_value_map(source_model=source_model)
 
     if assignment_map is None:
-      logger.info("No assignment map provided. Creating custom assignment map.")
+      logs.info("No assignment map provided. Creating custom assignment map.")
       assignment_map = self._create_assignment_map(
           source_model=source_model, include_top=include_top)
 
