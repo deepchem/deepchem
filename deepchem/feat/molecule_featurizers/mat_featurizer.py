@@ -2,13 +2,8 @@ from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.utils.molecule_feature_utils import one_hot_encode
 from deepchem.utils.typing import RDKitMol, RDKitAtom
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Any
 from dataclasses import dataclass
-# try:
-#   from rdkit.Chem import AllChem
-#   from rdkit import Chem
-# except:
-#   raise ModuleNotFoundError('This class requires RDKit to be installed.')
 
 
 @dataclass
@@ -172,7 +167,7 @@ class MATFeaturizer(MolecularFeaturizer):
 
     return node_features, adj_matrix, dist_matrix
 
-  def pad_array(self, array, shape):
+  def pad_array(self, array: np.ndarray, shape: Any) -> np.ndarray:
     """
     Pads an array to the desired shape.
 
@@ -193,7 +188,7 @@ class MATFeaturizer(MolecularFeaturizer):
     result[slices] = array
     return result
 
-  def pad_sequence(self, sequence):
+  def pad_sequence(self, sequence: np.ndarray) -> np.ndarray:
     """
     Pads a given sequence using the pad_array function.
 
