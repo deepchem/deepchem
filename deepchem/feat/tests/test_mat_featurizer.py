@@ -24,10 +24,10 @@ class TestMATFeaturizer(unittest.TestCase):
     out = featurizer.featurize(self.mol)
     assert (type(out) == np.ndarray)
     assert (out.shape == (1,))
-    assert (out[0].node_features.shape == (3, 36))
-    assert (out[0].adjacency_matrix.shape == (3, 3))
-    assert (out[0].distance_matrix.shape == (3, 3))
-    expected_node_features = np.array([[
+    assert (out[0].node_features.shape == (1, 3, 36))
+    assert (out[0].adjacency_matrix.shape == (1, 3, 3))
+    assert (out[0].distance_matrix.shape == (1, 3, 3))
+    expected_node_features = np.array([[[
         1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
         0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
     ], [
@@ -36,12 +36,12 @@ class TestMATFeaturizer(unittest.TestCase):
     ], [
         0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0.,
         0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0.
-    ]])
-    expected_adjacency_matrix = np.array([[0., 0., 0.], [0., 0., 1.],
-                                          [0., 1., 0.]])
-    expected_distance_matrix = np.array([[1.e+06, 1.e+06,
-                                          1.e+06], [1.e+06, 0.e+00, 1.e+00],
-                                         [1.e+06, 1.e+00, 0.e+00]])
+    ]]])
+    expected_adjacency_matrix = np.array([[[0., 0., 0.], [0., 0., 1.],
+                                           [0., 1., 0.]]])
+    expected_distance_matrix = np.array([[[1.e+06, 1.e+06,
+                                           1.e+06], [1.e+06, 0.e+00, 1.e+00],
+                                          [1.e+06, 1.e+00, 0.e+00]]])
     assert (np.array_equal(out[0].node_features, expected_node_features))
     assert (np.array_equal(out[0].adjacency_matrix, expected_adjacency_matrix))
     assert (np.array_equal(out[0].distance_matrix, expected_distance_matrix))
