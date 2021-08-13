@@ -18,7 +18,7 @@ class RxnFeaturizer(Featurizer):
       self.tokenizer = tokenizer
     self.sep_reagent = sep_reagent
 
-  def _featurize(self, datapoint: str, **kwargs) -> List[List[int]]:
+  def _featurize(self, datapoint: str, **kwargs) -> List[List[List[int]], List[List[int]]]:
     #if dont want to tokenize, return raw reaction SMILES.
     #sep_reagent then tokenize, source and target separately.
     reactant = list(map(lambda x: x.split('>')[0], datapoint))
@@ -32,10 +32,9 @@ class RxnFeaturizer(Featurizer):
           x + '.' + y + '>' if y else x + '>' + y
           for x, y in zip(reactant, reagent)
       ]
-
     target = product
 
+    source_encoding = list(self.tokenizer(source, **kwargs).values())
+    target_encoding = list(self.tokenizer(target, **kwargs).values())
 
-
-
-    return self.tokenizer(source), self.tokenizer(target)
+    return [source_encoding, target_encoding]
