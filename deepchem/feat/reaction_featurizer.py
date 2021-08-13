@@ -6,10 +6,18 @@ try:
     from transformers import RobertaTokenizerFast
 except ModuleNotFoundError:
   raise ImportError(
-      'Transformers must be installed for RobertaFeaturizer to be used!')
+      'Transformers must be installed for RxnFeaturizer to be used!')
   pass
 
 class RxnFeaturizer(Featurizer):
+  """Reaction Featurizer.
+  
+  RxnFeaturizer is a wrapper class for the HuggingFace's RobertaTokenizerFast,
+  that is intended for featurizing chemical reaction datasets. The featurizer
+  computes the source and target required for a seq2seq task and applies the
+  RobertaTokenizer on them separately.
+  
+  """
   def __init__(self, tokenizer: RobertaTokenizerFast, sep_reagent: bool):
     if not isinstance(tokenizer, RobertaTokenizerFast):
       raise TypeError(f"""`tokenizer` must be a constructed `RobertaTokenizerFast`
