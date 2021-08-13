@@ -37,39 +37,41 @@ The following tutorials covers the core features of DeepChem. Covering these
 tutorials will help you in getting started with DeepChem for machine learning. The later
 tutorials discuss about using DeepChem for specific applications.
 
-* [1.1 The Basic Tools of the Deep Life Sciences](01_The_Basic_Tools_of_the_Deep_Life_Sciences.ipynb)
-* [1.2 Working With Datasets](02_Working_With_Datasets.ipynb)
-* [1.3 An Introduction to MoleculeNet](03_An_Introduction_To_MoleculeNet.ipynb)
-* [1.4 Working With Splitters](08_Working_With_Splitters.ipynb)
-* [1.5 Creating Models with Tensorflow and Pytorch](05_Creating_Models_with_TensorFlow_and_PyTorch.ipynb)
-* [1.6 Advanced Model Training](09_Advanced_Model_Training.ipynb)
-* [1.7 Putting Multitask Learning to Work](11_Putting_Multitask_Learning_to_Work.ipynb)
-* [1.8 Creating a high fidelity model from experimental data](10_Creating_a_high_fidelity_model_from_experimental_data.ipynb)
-* [1.9 Using Reinforcement Learning to Play Pong](26_Using_Reinforcement_Learning_to_Play_Pong.ipynb)
-* [1.10 Training a Generative Adversarial Network on MNIST](15_Training_a_Generative_Adversarial_Network_on_MNIST.ipynb)
-* [1.11 Conditional Generative Adversarial Networks](14_Conditional_Generative_Adversarial_Networks.ipynb)
-* [1.12 Introduction to Graph Convolutions](06_Introduction_to_Graph_Convolutions.ipynb)
-* [1.13 Uncertainty in Deep Learning](25_Uncertainty_In_Deep_Learning.ipynb)
-* [1.14 Introduction to Model Interpretability](23_Introduction_to_Model_Interpretability.ipynb)
-* [1.15 Large Scale Chemical Screens](19_Large_Scale_Chemical_Screens.ipynb)
+* [1 The Basic Tools of the Deep Life Sciences](The_Basic_Tools_of_the_Deep_Life_Sciences.ipynb)
+* [2 Working With Datasets](Working_With_Datasets.ipynb)
+* [3 An Introduction to MoleculeNet](An_Introduction_To_MoleculeNet.ipynb)
+* [4 Creating Models with Tensorflow and Pytorch](Creating_Models_with_TensorFlow_and_PyTorch.ipynb)
+* [5 Introduction to Graph Convolutions](Introduction_to_Graph_Convolutions.ipynb)
+* [6 Working With Splitters](Working_With_Splitters.ipynb)
+* [7 Advanced Model Training](Advanced_Model_Training.ipynb)
+* [8 Putting Multitask Learning to Work](Putting_Multitask_Learning_to_Work.ipynb)
+* [9 Conditional Generative Adversarial Networks](Conditional_Generative_Adversarial_Networks.ipynb)
+* [10 Training a Generative Adversarial Network on MNIST](Training_a_Generative_Adversarial_Network_on_MNIST.ipynb)
+* [11 Introduction to Model Interpretability](Introduction_to_Model_Interpretability.ipynb)
+* [12 Uncertainty in Deep Learning](Uncertainty_In_Deep_Learning.ipynb)
+* [13 Creating a high fidelity model from experimental data](Creating_a_high_fidelity_model_from_experimental_data.ipynb)
+* [14 Large Scale Chemical Screens](Large_Scale_Chemical_Screens.ipynb)
+* [15 Using Reinforcement Learning to Play Pong](Using_Reinforcement_Learning_to_Play_Pong.ipynb)
 
 ### Molecular Machine Learning
-* [2.1 Molecular Fingerprints](04_Molecular_Fingerprints.ipynb)
-* [2.2 Going Deeper on Molecular Featurizations](07_Going_Deeper_on_Molecular_Featurizations.ipynb)
-* [2.3 Learning Unsupervised Embeddings for Molecules](16_Learning_Unsupervised_Embeddings_for_Molecules.ipynb)
-* [2.4 Synthetic Feasibility Scoring](24_Synthetic_Feasibility_Scoring.ipynb)
-* [2.5 Modeling Protein Ligand Interactions](13_Modeling_Protein_Ligand_Interactions.ipynb)
-* [2.6 Modeling Protein Ligand Interactions with Atomic Convolutions](14_Modeling_Protein_Ligand_Interactions_With_Atomic_Convolutions.ipynb)
-* [2.7 Atomic Contributions for Molecules](28_Atomic_Contributions_for_Molecules.ipynb)
-* [2.8 Transfer Learning with ChemBERTa Transformers](22_Transfer_Learning_With_ChemBERTa_Transformers.ipynb)
-* [2.9 Protein Deep Learning](30_Protein_Deep_Learning.ipynb)
-* [2.10 Training a Normalizing Flow on QM9](Training_a_Normalizing_Flow_on_QM9.ipynb)
+* [1 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
+* [2 Going Deeper on Molecular Featurizations](Going_Deeper_on_Molecular_Featurizations.ipynb)
+* [3 Learning Unsupervised Embeddings for Molecules](Learning_Unsupervised_Embeddings_for_Molecules.ipynb)
+* [4 Synthetic Feasibility Scoring](Synthetic_Feasibility_Scoring.ipynb)
+* [5 Atomic Contributions for Molecules](Atomic_Contributions_for_Molecules.ipynb)
+* [6 Transfer Learning with ChemBERTa Transformers](Transfer_Learning_With_ChemBERTa_Transformers.ipynb)
+* [7 Training a Normalizing Flow on QM9](Training_a_Normalizing_Flow_on_QM9.ipynb)
+
+### Modeling Proteins
+* [1 Modeling Protein Ligand Interactions](Modeling_Protein_Ligand_Interactions.ipynb)
+* [2 Modeling Protein Ligand Interactions with Atomic Convolutions](Modeling_Protein_Ligand_Interactions_With_Atomic_Convolutions.ipynb)
+* [3 Protein Deep Learning](Protein_Deep_Learning.ipynb)
 
 ### Quantum Chemistry
-* [3.1 Exploring Quantum Chemistry with GDB1k](21_Exploring_Quantum_Chemistry_with_GDB1k.ipynb)
+* [1 Exploring Quantum Chemistry with GDB1k](Exploring_Quantum_Chemistry_with_GDB1k.ipynb)
 
 ### Bioinformatics
-* [4.1 Introduction to BioInformatics](21_Introduction_to_Bioinformatics.ipynb)
+* [1 Introduction to BioInformatics](Introduction_to_Bioinformatics.ipynb)
 
 ### Material Science
-* [5.1 Introduction to Material Science](31_Introduction_To_Material_Science.ipynb)
+* [1 Introduction to Material Science](Introduction_To_Material_Science.ipynb)
