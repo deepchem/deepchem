@@ -1,4 +1,3 @@
-
 from deepchem.feat import Featurizer
 from typing import List
 
@@ -29,8 +28,7 @@ class RxnFeaturizer(Featurizer):
       self.tokenizer = tokenizer
     self.sep_reagent = sep_reagent
 
-  def _featurize(self, datapoint: str,
-                 **kwargs) -> List[List[List[int]]]:
+  def _featurize(self, datapoint: str, **kwargs) -> List[List[List[int]]]:
     # if dont want to tokenize, return raw reaction SMILES.
     # sep_reagent then tokenize, source and target separately.
     reactant = list(map(lambda x: x.split('>')[0], datapoint))
