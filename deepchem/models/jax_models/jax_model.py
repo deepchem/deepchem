@@ -1,4 +1,3 @@
-from deepchem.trans.transformers import Transformer
 import numpy as np
 import time
 import logging
@@ -13,6 +12,7 @@ from deepchem.models.models import Model
 from deepchem.models.losses import Loss
 from deepchem.models.optimizers import Optimizer
 from deepchem.utils.evaluate import GeneratorEvaluator
+from deepchem.trans.transformers import Transformer, undo_transforms
 
 from typing import Any, Callable, Iterable, List, Optional, Tuple, Union, Sequence
 from deepchem.utils.typing import LossFn, OneOrMany, ArrayLike
@@ -402,6 +402,14 @@ class JaxModel(Model):
 
       if len(access_values) > 0:
         output_values = [output_values[i] for i in access_values]
+
+      if len(transformers) > 0:
+        if len(output_values) > 1:
+          raise ValueError(
+              "predict() does not support Transformers for models with multiple outputs."
+          )
+        elif len(output_values) == 1:
+          output_values = [undo_transforms(output_values[0], transformers)]
 
       if results is None:
         results = [[] for i in range(len(output_values))]
