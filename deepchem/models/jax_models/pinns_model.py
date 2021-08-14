@@ -46,7 +46,6 @@ def create_default_update_fn(optimizer, model_loss):
 
 
 class PINN_Model(JaxModel):
-
   def __init__(self,
                forward_fn: hk.State,
                params: hk.Params,
