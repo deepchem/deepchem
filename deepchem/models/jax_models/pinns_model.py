@@ -1,9 +1,5 @@
 '''
-<<<<<<< HEAD
-This module contains different variations of the Physics Informer Neural Network model using the JaxModel API
-=======
 This python consists of diffrent variations of PINNs model using the JaxModel API
->>>>>>> adding transformers
 '''
 import numpy as np
 import time
@@ -25,43 +21,23 @@ import jax
 import jax.numpy as jnp
 import haiku as hk
 import optax
-<<<<<<< HEAD
-from deepchem.models.jax_models.jax_model import JaxModel
-from deepchem.models.jax_models.jax_model import create_default_gradient_fn, create_default_eval_fn
-
-import logging
-import warnings
-=======
 from deepchem.models import JaxModel
 from deepchem.models.jax_models.jax_model import create_default_gradient_fn, create_default_eval_fn
 
 import logging
->>>>>>> adding transformers
 
 logger = logging.getLogger(__name__)
 
 
-<<<<<<< HEAD
-def create_default_update_fn(optimizer: optax.GradientTransformation,
-                             model_loss: Callable):
-  """
-  This function calls the update function, to implement the backpropagation
-=======
 def create_default_update_fn(optimizer, model_loss):
   """
   This function calls the update function, to implement the backpropogation
->>>>>>> adding transformers
   """
 
   @jax.jit
   def update(params, opt_state, batch, target, weights,
              rng) -> Tuple[hk.Params, optax.OptState, jnp.ndarray]:
-<<<<<<< HEAD
-    batch_loss, grads = jax.value_and_grad(model_loss)(params, target, weights,
-                                                       rng, *batch)
-=======
     batch_loss, grads = jax.value_and_grad(model_loss)(params, target, weights, rng, *batch)
->>>>>>> adding transformers
     updates, opt_state = optimizer.update(grads, opt_state)
     new_params = optax.apply_updates(params, updates)
     return new_params, opt_state, batch_loss
@@ -69,143 +45,29 @@ def create_default_update_fn(optimizer, model_loss):
   return update
 
 
-<<<<<<< HEAD
-class PINNModel(JaxModel):
-  """
-  This is class is derived from the JaxModel class and methods are also very similar to JaxModel,
-  but it has the option of passing multiple arguments(Done using *args) suitable for PINNs model.
-  Ex - Approximating f(x, y, z, t) satisfying a Linear differential equation.
-
-  This model is recommended for linear partial differential equations but if you can accurately write
-  the gradient function in Jax depending on your use case, then it will work as well.
-
-  This class requires two functions apart from the usual function definition and weights
-
-  [1] **grad_fn** : Each PINNs have a different strategy for calculating its final losses. This
-  function tells the PINNModel how to go about computing the derivatives for backpropagation.
-  It should follow this format:
-
-  >>>
-  >> def gradient_fn(forward_fn, loss_outputs, initial_data):
-  >>
-  >>  def model_loss(params, target, weights, rng, ...):
-  >>
-  >>    # write code using the arguments.
-  >>    # ... indicates the variable number of positional arguments.
-  >>    return
-  >>
-  >>  return model_loss
-
-  "..." can be replaced with various arguments like (x, y, z, y) but should match with eval_fn
-
-  [2] **eval_fn**: Function for defining how the model needs to compute during inference.
-  It should follow this format
-
-  >>>
-  >> def create_eval_fn(forward_fn, params):
-  >>  def eval_model(..., rng=None):
-  >>    # write code here using arguments
-  >>
-  >>    return
-  >>  return eval_model
-
-  "..." can be replaced with various arguments like (x, y, z, y) but should match with grad_fn
-
-  [3] boundary_data:
-  For a detailed example, check out - deepchem/models/jax_models/tests/test_pinn.py where we have
-  solved f'(x) = -sin(x)
-
-  References
-  ----------
-  .. [1] Raissi et. al. "Physics-informed neural networks: A deep learning framework for solving
-     forward and inverse problems involving nonlinear partial differential equations" Journal of
-     Computational Physics https://doi.org/10.1016/j.jcp.2018.10.045
-
-  .. [2] Raissi et. al. "Physics Informed Deep Learning (Part I): Data-driven
-     Solutions of Nonlinear Partial Differential Equations" arXiv preprint arXiv:1711.10561
-
-  Notes
-  -----
-  This class requires Jax, Haiku and Optax to be installed.
-  """
-=======
 class PINN_Model(JaxModel):
-<<<<<<< HEAD
->>>>>>> adding transformers
 
-=======
->>>>>>> adding tests
   def __init__(self,
                forward_fn: hk.State,
                params: hk.Params,
-<<<<<<< HEAD
-               initial_data: dict = {},
-               output_types: Optional[List[str]] = None,
-               batch_size: int = 100,
-               learning_rate: float = 0.001,
-               optimizer: Union[optax.GradientTransformation, Optimizer] = None,
-=======
                boundary_data: dict = {},
                output_types: Optional[List[str]] = None,
                batch_size: int = 100,
                learning_rate: float = 0.001,
                optimizer: Union[optax.GradientTransformation,
                                 Optimizer] = optax.adam(1e-3),
->>>>>>> adding transformers
                grad_fn: Callable = create_default_gradient_fn,
                update_fn: Callable = create_default_update_fn,
                eval_fn: Callable = create_default_eval_fn,
                rng=jax.random.PRNGKey(1),
                log_frequency: int = 100,
                **kwargs):
-<<<<<<< HEAD
-    """
-    Parameters
-    ----------
-    forward_fn: hk.State or Function
-      Any Jax based model that has a `apply` method for computing the network. Currently
-      only haiku models are supported.
-    params: hk.Params
-      The parameter of the Jax based networks
-    initial_data: dict
-      This acts as a session variable which will be passed as a dictionary in grad_fn
-    output_types: list of strings, optional (default None)
-      the type of each output from the model, as described above
-    batch_size: int, optional (default 100)
-      default batch size for training and evaluating
-    learning_rate: float or LearningRateSchedule, optional (default 0.001)
-      the learning rate to use for fitting.  If optimizer is specified, this is
-      ignored.
-    optimizer: optax object
-      For the time being, it is optax object
-    grad_fn: Callable (default create_default_gradient_fn)
-      It defines how the loss function and gradients need to be calculated for the PINNs model
-    update_fn: Callable (default create_default_update_fn)
-      It defines how the weights need to be updated using backpropogation. We have used optax library
-      for optimisation operations. Its reccomended to leave this default.
-    eval_fn: Callable (default create_default_eval_fn)
-      Function for defining on how the model needs to compute during inference.
-    rng: jax.random.PRNGKey, optional (default 1)
-      A default global PRNG key to use for drawing random numbers.
-    log_frequency: int, optional (default 100)
-      The frequency at which to log data. Data is logged using
-      `logging` by default.
-    """
-    warnings.warn(
-        'PinnModel is still in active development and we could change the design of the API in the future.'
-    )
-    self.boundary_data = initial_data
-    super(PINNModel, self).__init__(
-        forward_fn, params, None, output_types, batch_size, learning_rate,
-        optimizer, grad_fn, update_fn, eval_fn, rng, log_frequency, **kwargs)
-=======
 
     self.boundary_data = boundary_data
     super(PINN_Model, self).__init__(
         forward_fn, params, None, output_types, batch_size, learning_rate,
         optimizer, grad_fn, update_fn, eval_fn, rng, log_frequency, **kwargs
     )
->>>>>>> adding transformers
 
   def fit_generator(self,
                     generator: Iterable[Tuple[Any, Any, Any]],
@@ -220,13 +82,8 @@ class PINN_Model(JaxModel):
     averaged_batches = 0
     if loss is None:
       loss = self._loss_fn
-<<<<<<< HEAD
-    model_loss_fn = self._create_gradient_fn(
-        self.forward_fn, self._loss_outputs, self.boundary_data)
-=======
     model_loss_fn = self._create_gradient_fn(self.forward_fn,
                                              self._loss_outputs, self.boundary_data)
->>>>>>> adding transformers
     grad_update = self._create_update_fn(self.optimizer, model_loss_fn)
 
     params, opt_state = self._get_trainable_params()
@@ -288,13 +145,9 @@ class PINN_Model(JaxModel):
     inputs = [
         x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs
     ]
-<<<<<<< HEAD
-    inputs = [np.split(x, x.shape[1], 1) for x in inputs]
-=======
     inputs = [
         np.split(x, x.shape[1], 1) for x in inputs
     ]
->>>>>>> adding transformers
     if labels is not None:
       labels = [
           x.astype(np.float32) if x.dtype == np.float64 else x for x in labels
@@ -321,10 +174,6 @@ class PINN_Model(JaxModel):
     """Create a generator that iterates batches for a dataset.
     Subclasses may override this method to customize how model inputs are
     generated from the data.
-<<<<<<< HEAD
-
-=======
->>>>>>> adding transformers
     Parameters
     ----------
     dataset: Dataset
