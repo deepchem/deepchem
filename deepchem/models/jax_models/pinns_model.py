@@ -130,8 +130,11 @@ class PINNModel(JaxModel):
   """
 =======
 class PINN_Model(JaxModel):
+<<<<<<< HEAD
 >>>>>>> adding transformers
 
+=======
+>>>>>>> adding tests
   def __init__(self,
                forward_fn: hk.State,
                params: hk.Params,
