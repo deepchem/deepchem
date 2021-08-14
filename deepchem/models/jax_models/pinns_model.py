@@ -21,7 +21,7 @@ import jax
 import jax.numpy as jnp
 import haiku as hk
 import optax
-from deepchem.models import JaxModel
+from deepchem.models.jax_models.jax_model import JaxModel
 from deepchem.models.jax_models.jax_model import create_default_gradient_fn, create_default_eval_fn
 
 import logging
@@ -37,7 +37,8 @@ def create_default_update_fn(optimizer, model_loss):
   @jax.jit
   def update(params, opt_state, batch, target, weights,
              rng) -> Tuple[hk.Params, optax.OptState, jnp.ndarray]:
-    batch_loss, grads = jax.value_and_grad(model_loss)(params, target, weights, rng, *batch)
+    batch_loss, grads = jax.value_and_grad(model_loss)(params, target, weights,
+                                                       rng, *batch)
     updates, opt_state = optimizer.update(grads, opt_state)
     new_params = optax.apply_updates(params, updates)
     return new_params, opt_state, batch_loss
@@ -46,6 +47,17 @@ def create_default_update_fn(optimizer, model_loss):
 
 
 class PINN_Model(JaxModel):
+  """
+  This is class is derived from the JaxModel class and methods are also very similar to JaxModel, 
+  but it has the optional of passing multiple arguments(Done using *args) suitable for PINNs model. 
+  Ex - Approximating f(x, y, z, t) satisfying a Linear diffrential equation.
+
+  This model is reccomended for Linear diffrential equations but if you can accurately write
+  the gradient function in Jax depending on your use case, then it will work as well.
+
+  
+  """
+
   def __init__(self,
                forward_fn: hk.State,
                params: hk.Params,
@@ -65,8 +77,7 @@ class PINN_Model(JaxModel):
     self.boundary_data = boundary_data
     super(PINN_Model, self).__init__(
         forward_fn, params, None, output_types, batch_size, learning_rate,
-        optimizer, grad_fn, update_fn, eval_fn, rng, log_frequency, **kwargs
-    )
+        optimizer, grad_fn, update_fn, eval_fn, rng, log_frequency, **kwargs)
 
   def fit_generator(self,
                     generator: Iterable[Tuple[Any, Any, Any]],
@@ -81,8 +92,8 @@ class PINN_Model(JaxModel):
     averaged_batches = 0
     if loss is None:
       loss = self._loss_fn
-    model_loss_fn = self._create_gradient_fn(self.forward_fn,
-                                             self._loss_outputs, self.boundary_data)
+    model_loss_fn = self._create_gradient_fn(
+        self.forward_fn, self._loss_outputs, self.boundary_data)
     grad_update = self._create_update_fn(self.optimizer, model_loss_fn)
 
     params, opt_state = self._get_trainable_params()
@@ -144,9 +155,7 @@ class PINN_Model(JaxModel):
     inputs = [
         x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs
     ]
-    inputs = [
-        np.split(x, x.shape[1], 1) for x in inputs
-    ]
+    inputs = [np.split(x, x.shape[1], 1) for x in inputs]
     if labels is not None:
       labels = [
           x.astype(np.float32) if x.dtype == np.float64 else x for x in labels
