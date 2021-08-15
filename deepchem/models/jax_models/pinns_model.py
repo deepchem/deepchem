@@ -45,7 +45,52 @@ def create_default_update_fn(optimizer, model_loss):
   return update
 
 
-class PINN_Model(JaxModel):
+class PinnModel(JaxModel):
+  """
+  This is class is derived from the JaxModel class and methods are also very similar to JaxModel,
+  but it has the optional of passing multiple arguments(Done using *args) suitable for PINNs model.
+  Ex - Approximating f(x, y, z, t) satisfying a Linear diffrential equation.
+
+  This model is reccomended for Linear diffrential equations but if you can accurately write
+  the gradient function in Jax depending on your use case, then it will work as well.
+
+  This class requires two functions apart from the usual function definition and weights
+
+  [1] grad_fn : Each PINNs have a diffrent stratergy for calculating its final losses. This 
+  function tells the PinnModel on how to go about computing the derivatives for backpropogation.
+  It should follow this format:
+
+  >> def gradient_fn(forward_fn, loss_outputs, initial_data):
+  >>
+  >>  def model_loss(params, target, weights, rng, ...):
+  >>
+  >>    # write code using the arguments. ... indicates the variable arguments
+  >>    return
+  >>
+  >>  return model_loss
+
+  [2] eval_fn: Function for letting the model know how to compute the model during inference.
+  It should follow this format
+
+  >> def create_eval_fn(forward_fn, params):
+  >>  def eval_model(..., rng=None):
+  >>    # write code here using arguments
+  >>
+  >>    return
+  >>  return eval_model
+
+  For a detailed example, check out - deepchem/models/jax_models/tests/test_pinn.py where we have
+  solved f'(x) = -sin(x)
+
+  References
+  ----------
+  .. [1] Raissi et. al. "Physics Informed Deep Learning (Part I): Data-driven
+     Solutions of Nonlinear Partial Differential Equations" arXiv preprint arXiv:1711.10561
+
+  Notes
+  -----
+  This class requires Jax, Haiku and Optax to be installed.
+  """
 
   def __init__(self,
                forward_fn: hk.State,
@@ -64,7 +109,7 @@ class PINN_Model(JaxModel):
                **kwargs):
 
     self.boundary_data = boundary_data
-    super(PINN_Model, self).__init__(
+    super(PinnModel, self).__init__(
         forward_fn, params, None, output_types, batch_size, learning_rate,
         optimizer, grad_fn, update_fn, eval_fn, rng, log_frequency, **kwargs
     )
