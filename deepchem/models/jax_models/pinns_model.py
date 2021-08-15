@@ -61,6 +61,7 @@ class PinnModel(JaxModel):
   function tells the PinnModel on how to go about computing the derivatives for backpropogation.
   It should follow this format:
 
+  >>>
   >> def gradient_fn(forward_fn, loss_outputs, initial_data):
   >>
   >>  def model_loss(params, target, weights, rng, ...):
@@ -73,6 +74,7 @@ class PinnModel(JaxModel):
   [2] eval_fn: Function for letting the model know how to compute the model during inference.
   It should follow this format
 
+  >>>
   >> def create_eval_fn(forward_fn, params):
   >>  def eval_model(..., rng=None):
   >>    # write code here using arguments
@@ -80,6 +82,7 @@ class PinnModel(JaxModel):
   >>    return
   >>  return eval_model
 
+  [3] boundary_data:
   For a detailed example, check out - deepchem/models/jax_models/tests/test_pinn.py where we have
   solved f'(x) = -sin(x)
 
@@ -96,7 +99,7 @@ class PinnModel(JaxModel):
   def __init__(self,
                forward_fn: hk.State,
                params: hk.Params,
-               boundary_data: dict = {},
+               initial_data: dict = {},
                output_types: Optional[List[str]] = None,
                batch_size: int = 100,
                learning_rate: float = 0.001,
@@ -108,8 +111,36 @@ class PinnModel(JaxModel):
                rng=jax.random.PRNGKey(1),
                log_frequency: int = 100,
                **kwargs):
+    """
+    Parameters
+    ----------
+    forward_fn: hk.State or Function
+      Any Jax based model that has a `apply` method for computing the network. Currently
+      only haiku models are supported.
+    params: hk.Params
+      The parameter of the Jax based networks
+    boundary_data: dict
+      This acts as a session variable while calculating the loss
+    loss: dc.models.losses.Loss or function
+      a Loss or function defining how to compute the training loss for each
+      batch, as described above
+    output_types: list of strings, optional (default None)
+      the type of each output from the model, as described above
+    batch_size: int, optional (default 100)
+      default batch size for training and evaluating
+    learning_rate: float or LearningRateSchedule, optional (default 0.001)
+      the learning rate to use for fitting.  If optimizer is specified, this is
+      ignored.
+    optimizer: optax object
+      For the time being, it is optax object
+    rng: jax.random.PRNGKey, optional (default 1)
+      A default global PRNG key to use for drawing random numbers.
+    log_frequency: int, optional (default 100)
+      The frequency at which to log data. Data is logged using
+      `logging` by default.
+    """
 
-    self.boundary_data = boundary_data
+    self.boundary_data = initial_data
     super(PinnModel, self).__init__(
         forward_fn, params, None, output_types, batch_size, learning_rate,
         optimizer, grad_fn, update_fn, eval_fn, rng, log_frequency, **kwargs)

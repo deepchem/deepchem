@@ -79,6 +79,8 @@ class JaxModel(Model):
   Here is a simple example of that uses JaxModel to train a
   Haiku (JAX Neural Network Library) based model on deepchem
   dataset.
+
+  >>>
   >> def f(x):
   >>   net = hk.nets.MLP([512, 256, 128, 1])
   >>   return net(x)
@@ -88,6 +90,8 @@ class JaxModel(Model):
   >> params = model.init(rng, x)
   >> j_m = JaxModel(model, params, 256, 0.001, 100)
   >> j_m.fit(train_dataset)
+  >>>
+
   All optimizations will be done using the optax library.
   """
 
@@ -133,6 +137,8 @@ class JaxModel(Model):
     log_frequency: int, optional (default 100)
       The frequency at which to log data. Data is logged using
       `logging` by default.
+
+
     Miscellanous Parameters Yet To Add
     ----------------------------------
     model_dir: str, optional (default None)
@@ -141,6 +147,8 @@ class JaxModel(Model):
       whether to log progress to TensorBoard during training
     wandb: bool, optional (default False)
       whether to log progress to Weights & Biases during training
+
+
     Work in Progress
     ----------------
     [1] Integrate the optax losses, optimizers, schedulers with Deepchem
