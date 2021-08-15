@@ -85,7 +85,7 @@ def test_sine_x():
   # giving a initial boundary condition at 5 points between [-pi, pi] which will be used in l2 loss
   in_array = np.linspace(-1 * np.pi, 1 * np.pi, 5)
   out_array = np.cos(in_array)
-  boundary_data = {
+  initial_data = {
       'X0': jnp.expand_dims(in_array, 1),
       'u0': jnp.expand_dims(out_array, 1)
   }
@@ -93,7 +93,7 @@ def test_sine_x():
   j_m = PinnModel(
       forward_fn=forward_fn,
       params=params,
-      boundary_data=boundary_data,
+      initial_data=initial_data,
       batch_size=1000,
       optimizer=opt,
       grad_fn=gradient_fn,
