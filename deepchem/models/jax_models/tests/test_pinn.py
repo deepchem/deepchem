@@ -6,7 +6,7 @@ try:
   import jax.numpy as jnp
   import haiku as hk
   import optax
-  from deepchem.models import PINN_Model
+  from deepchem.models import PinnModel
   from deepchem.data import NumpyDataset
   from jax import jacrev
   has_haiku_and_optax = True
@@ -17,15 +17,19 @@ except:
 @pytest.mark.jax
 def test_sine_x():
   """
-    Here we are solving the diffrential equation- f`(x) = -sin(x) and f(0) = 1
+    Here we are solving the diffrential equation- f'(x) = -sin(x) and f(0) = 1
     We give initial for the neural network at x_init --> np.linspace(-1 * np.pi, 1 * np.pi, 5)
     And we try to approximate the function for domain (-np.pi, np.pi)
-    """
+  """
 
+  # The PinnModel requires you to create two functions
+  # `create_eval`_fn for letting the model know how to compute the model in inference and
+  # `gradient_fn` for letting model know how to compute the graident and diffrent regulariser
+  # equation loss depending on the diffrential equation
   def create_eval_fn(forward_fn, params):
     """
       Calls the function to evaluate the model
-      """
+    """
 
     @jax.jit
     def eval_model(x, rng=None):
@@ -37,8 +41,8 @@ def test_sine_x():
 
   def gradient_fn(forward_fn, loss_outputs, initial_data):
     """
-        This function calls the gradient function, to implement the backpropogation
-        """
+    This function calls the gradient function, to implement the backpropogation
+    """
     boundary_data = initial_data['X0']
     boundary_target = initial_data['u0']
 
@@ -47,6 +51,10 @@ def test_sine_x():
 
       @functools.partial(jax.vmap, in_axes=(None, 0))
       def periodic_loss(params, x):
+        """
+        diffrential equation => grad(f(x)) = - sin(x) 
+        minimize f(x) := grad(f(x)) + sin(x)
+        """
         x = jnp.expand_dims(x, 0)
         u_x = jacrev(forward_fn, argnums=(2))(params, rng, x)
         return u_x + jnp.sin(x)
@@ -61,6 +69,7 @@ def test_sine_x():
 
     return model_loss
 
+  # defining the Haiku model
   def f(x):
     net = hk.nets.MLP(output_sizes=[256, 128, 1], activation=jax.nn.softplus)
     val = net(x)
@@ -73,6 +82,7 @@ def test_sine_x():
   opt = optax.chain(
       optax.clip_by_global_norm(1.00), optax.adam(1e-2, b1=0.9, b2=0.99))
 
+  # giving a initial boundary condition at 5 points between [-pi, pi] which will be used in l2 loss
   in_array = np.linspace(-1 * np.pi, 1 * np.pi, 5)
   out_array = np.cos(in_array)
   boundary_data = {
@@ -80,7 +90,7 @@ def test_sine_x():
       'u0': jnp.expand_dims(out_array, 1)
   }
 
-  j_m = PINN_Model(
+  j_m = PinnModel(
       forward_fn=forward_fn,
       params=params,
       boundary_data=boundary_data,
@@ -91,10 +101,13 @@ def test_sine_x():
       deterministic=True,
       log_frequency=1000)
 
+  # defining our training data. We feed 100 points between [-pi, pi] without the labels,
+  # which will be used as the diffrential loss(regulariser)
   X_f = np.expand_dims(np.linspace(-1 * np.pi, 1 * np.pi, 100), 1)
   dataset = NumpyDataset(X_f)
   _ = j_m.fit(dataset, nb_epochs=1000)
 
+  # The expected solution must be as close to cos(x)
   test = np.expand_dims(np.linspace(-1 * np.pi, 1 * np.pi, 1000), 1)
   dataset_test = NumpyDataset(test)
   ans = j_m.predict(dataset_test)
