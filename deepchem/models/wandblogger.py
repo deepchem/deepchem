@@ -145,11 +145,7 @@ class WandbLogger(Logger):
                 step: int,
                 inputs: tensor,
                 labels: tensor,
-                location: Optional[str] = None,
-                model: Optional[Model] = None,
-                checkpoint_metric: Optional[str] = None,
-                checkpoint_metric_value: Optional[numeric] = None,
-                checkpoint_on_min: bool = True):
+                location: Optional[str] = None):
     data = loss
     if location is not None:
       if location in self.location_ids:
@@ -166,31 +162,10 @@ class WandbLogger(Logger):
     if self.wandb_run is not None:
       self.wandb_run.log(data, step=step)
 
-    # Save checkpoint
-    if (checkpoint_metric is not None) and (checkpoint_metric_value is not None) and \
-            (self.max_checkpoints_to_track is not None) and \
-            (checkpoint_on_min is not None) and \
-            (self.checkpoint_interval is not None) and \
-            (self.model_dir is not None) and \
-            (model is not None):
-      if (self.checkpoint_interval >
-          0) and (step % self.checkpoint_interval == 0):
-        if location is None:
-          location = "train"
-        checkpoint_name = location.replace(
-            "/", ".") + "." + checkpoint_metric + ".checkpoints"
-        self._save_checkpoint(self.model_dir, model, checkpoint_name,
-                              checkpoint_metric, checkpoint_metric_value,
-                              self.max_checkpoints_to_track, checkpoint_on_min)
-
   def log_values(self,
                  data: Dict,
                  step: int,
-                 location: Optional[str] = None,
-                 model: Optional[Model] = None,
-                 checkpoint_metric: Optional[str] = None,
-                 checkpoint_metric_value: Optional[numeric] = None,
-                 checkpoint_on_min: bool = True):
+                 location: Optional[str] = None):
     # Rename keys to the correct category
     if location is not None:
       if location in self.location_ids:
@@ -207,31 +182,8 @@ class WandbLogger(Logger):
     if self.wandb_run is not None:
       self.wandb_run.log(data, step=step)
 
-    # Save checkpoint
-    if (checkpoint_metric is not None) and (checkpoint_metric_value is not None) and \
-            (self.max_checkpoints_to_track is not None) and \
-            (checkpoint_on_min is not None) and \
-            (self.checkpoint_interval is not None) and \
-            (self.model_dir is not None) and \
-            (model is not None):
-      if (self.checkpoint_interval > 0 is
-          not None) and (self.checkpoint_interval >
-                         0) and step % self.checkpoint_interval == 0:
-        if location is None:
-          location = "eval"
-        checkpoint_name = location.replace(
-            "/", ".") + "." + checkpoint_metric + ".checkpoints"
-        self._save_checkpoint(self.model_dir, model, checkpoint_name,
-                              checkpoint_metric, checkpoint_metric_value,
-                              self.max_checkpoints_to_track, checkpoint_on_min)
-
   def on_fit_end(self,
-                 data: Dict,
-                 location: Optional[str] = None,
-                 model: Optional[Model] = None,
-                 checkpoint_metric: Optional[str] = None,
-                 checkpoint_metric_value: Optional[numeric] = None,
-                 checkpoint_on_min: Optional[bool] = True):
+                 data: Dict):
     # Set summary
     if self.wandb_run is not None:
       if "global_step" in data:
@@ -239,31 +191,15 @@ class WandbLogger(Logger):
       if "final_avg_loss" in data:
         self.wandb_run.summary["final_avg_loss"] = data["final_avg_loss"]
 
-    # Save checkpoint
-    if (checkpoint_metric is not None) and \
-            (checkpoint_metric_value is not None) and \
-            (self.max_checkpoints_to_track is not None) and \
-            (checkpoint_on_min is not None) and \
-            (self.checkpoint_interval is not None) and \
-            (self.model_dir is not None) and \
-            (model is not None):
-      if location is None:
-        location = "train"
-      checkpoint_name = location.replace(
-          "/", ".") + "." + checkpoint_metric + ".checkpoints"
-      self._save_checkpoint(self.model_dir, model, checkpoint_name,
-                            checkpoint_metric, checkpoint_metric_value,
-                            self.max_checkpoints_to_track, checkpoint_on_min)
-
-  def _save_checkpoint(self,
-                       path: str,
-                       dc_model: Model,
-                       checkpoint_name: str,
-                       value_name: str,
-                       value: numeric,
-                       max_checkpoints_to_track: int,
-                       checkpoint_on_min: bool,
-                       metadata: Optional[Dict] = None):
+  def save_checkpoint(self,
+                      path: str,
+                      dc_model: Model,
+                      checkpoint_name: str,
+                      value_name: str,
+                      value: numeric,
+                      max_checkpoints_to_track: int,
+                      checkpoint_on_min: bool,
+                      metadata: Optional[Dict] = None):
 
     # Only called once when first checkpoint is saved to create tracking record
     if (checkpoint_name not in self.best_models):
@@ -274,12 +210,12 @@ class WandbLogger(Logger):
     # Sort in order
     if checkpoint_on_min:
       self.best_models[checkpoint_name]["model_values"] = sorted(
-          self.best_models[checkpoint_name][
-              "model_values"])[:max_checkpoints_to_track]
+        self.best_models[checkpoint_name][
+          "model_values"])[:max_checkpoints_to_track]
     else:
       self.best_models[checkpoint_name]["model_values"] = sorted(
-          self.best_models[checkpoint_name]["model_values"],
-          reverse=True)[:max_checkpoints_to_track]
+        self.best_models[checkpoint_name]["model_values"],
+        reverse=True)[:max_checkpoints_to_track]
 
     # Save checkpoint only if it passes the cutoff in the model values
     should_save = False
@@ -288,17 +224,17 @@ class WandbLogger(Logger):
       # first checkpoint to be saved
       should_save = True
     elif checkpoint_on_min and (
-        value < self.best_models[checkpoint_name]["model_values"][-1]):
+            value < self.best_models[checkpoint_name]["model_values"][-1]):
       # value passes minimum cut off
       should_save = True
     elif (not checkpoint_on_min) and (
-        value > self.best_models[checkpoint_name]["model_values"][-1]):
+            value > self.best_models[checkpoint_name]["model_values"][-1]):
       # value passes maximum cut off
       should_save = True
 
     if (self.initialized is False) or (self.wandb_run is None):
       logs.warning(
-          'WARNING: The wandb run has not been initialized. Please start training and in order to start checkpointing.'
+        'WARNING: The wandb run has not been initialized. Please start training and in order to start checkpointing.'
       )
     else:
       if should_save:
@@ -308,7 +244,7 @@ class WandbLogger(Logger):
         else:
           model_name = checkpoint_name
         artifact = self._wandb.Artifact(
-            model_name, type='model', metadata=metadata)
+          model_name, type='model', metadata=metadata)
 
         # Different saving mechanisms for different types of models
         if isinstance(dc_model.model, tf.keras.Model):
@@ -318,9 +254,9 @@ class WandbLogger(Logger):
 
         elif isinstance(dc_model.model, torch.nn.Module):
           data = {
-              'model_state_dict': dc_model.model.state_dict(),
-              'optimizer_state_dict': dc_model._pytorch_optimizer.state_dict(),
-              'global_step': dc_model._global_step
+            'model_state_dict': dc_model.model.state_dict(),
+            'optimizer_state_dict': dc_model._pytorch_optimizer.state_dict(),
+            'global_step': dc_model._global_step
           }
 
           saved_name = model_name + ".pt"

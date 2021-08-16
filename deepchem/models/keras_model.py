@@ -468,6 +468,14 @@ class KerasModel(Model):
 
       if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
         manager.save()
+        for ext_logger in self.loggers:
+          ext_logger.save_checkpoint(self.model_dir,
+                                    self,
+                                    "train_checkpoints",
+                                    "step",
+                                    current_step,
+                                    max_checkpoints_to_keep,
+                                    checkpoint_on_min=False)
       for c in callbacks:
         c(self, current_step)
       if self.tensorboard and should_log:
@@ -480,11 +488,7 @@ class KerasModel(Model):
             current_step,
             inputs,
             labels,
-            location="train",
-            model=self,
-            checkpoint_metric="step",
-            checkpoint_metric_value=current_step,
-            checkpoint_on_min=False)
+            location="train")
 
     # Report final results.
     if averaged_batches > 0:
@@ -497,6 +501,14 @@ class KerasModel(Model):
 
     if checkpoint_interval > 0:
       manager.save()
+      for ext_logger in self.loggers:
+        ext_logger.save_checkpoint(self.model_dir,
+                                   self,
+                                   "train_checkpoints",
+                                   "step",
+                                   current_step,
+                                   max_checkpoints_to_keep,
+                                   checkpoint_on_min=False)
 
     # Call loggers end of fit behaviour
     for ext_logger in self.loggers:
@@ -504,8 +516,7 @@ class KerasModel(Model):
           {
               "global_step": current_step,
               "final_avg_loss": last_avg_loss
-          },
-          location="train")
+          })
 
     time2 = time.time()
     logs.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
