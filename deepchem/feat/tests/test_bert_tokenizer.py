@@ -6,14 +6,14 @@ def test_featurize():
   correctly outputs input_ids and attention_mask."""
   from deepchem.feat.bert_tokenizer import BertFeaturizer
   from transformers import BertTokenizerFast
-  sequence = [
+  sequences = [
       '[CLS] D L I P T S S K L V [SEP]', '[CLS] V K K A F F A L V T [SEP]'
   ]
   sequence_long = ['[CLS] D L I P T S S K L V V K K A F F A L V T [SEP]']
   tokenizer = BertTokenizerFast.from_pretrained(
       "Rostlab/prot_bert", do_lower_case=False)
   featurizer = BertFeaturizer(tokenizer)
-  feats = featurizer(sequence)
+  feats = featurizer(sequences)
   long_feat = featurizer(sequence_long)
   assert (len(feats) == 2)
   assert (all([len(f) == 3 for f in feats]))
