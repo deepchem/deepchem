@@ -82,11 +82,7 @@ class JaxModel(Model):
   dataset.
 
   >>>
-<<<<<<< HEAD
-  >> def forward_model(x):
-=======
   >> def f(x):
->>>>>>> minor fixes for docs
   >>   net = hk.nets.MLP([512, 256, 128, 1])
   >>   return net(x)
   >> def rms_loss(pred, tar, w):
@@ -98,9 +94,12 @@ class JaxModel(Model):
   >> j_m = JaxModel(forward_fn, params, rms_loss, 256, 0.001, 100)
   >> j_m.fit(train_dataset)
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
   >>>
 >>>>>>> minor fixes for docs
+=======
+>>>>>>> docs formatting
 
   All optimizations will be done using the optax library.
   """
