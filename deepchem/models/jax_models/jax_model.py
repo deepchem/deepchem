@@ -90,7 +90,6 @@ class JaxModel(Model):
   >> params = model.init(rng, x)
   >> j_m = JaxModel(model, params, 256, 0.001, 100)
   >> j_m.fit(train_dataset)
-  >>>
 
   All optimizations will be done using the optax library.
   """

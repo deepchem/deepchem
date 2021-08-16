@@ -57,7 +57,7 @@ class PinnModel(JaxModel):
 
   This class requires two functions apart from the usual function definition and weights
 
-  [1] grad_fn : Each PINNs have a diffrent stratergy for calculating its final losses. This 
+  [1] **grad_fn** : Each PINNs have a diffrent stratergy for calculating its final losses. This 
   function tells the PinnModel on how to go about computing the derivatives for backpropogation.
   It should follow this format:
 
@@ -66,12 +66,15 @@ class PinnModel(JaxModel):
   >>
   >>  def model_loss(params, target, weights, rng, ...):
   >>
-  >>    # write code using the arguments. ... indicates the variable arguments
+  >>    # write code using the arguments.
+  >>    # ... indicates the variable number of positional arguments.
   >>    return
   >>
   >>  return model_loss
 
-  [2] eval_fn: Function for letting the model know how to compute the model during inference.
+  "..." can be replaced with various arguments like (x, y, z, y) but should match with eval_fn
+
+  [2] **eval_fn**: Function for defining on how the model needs to compute during inference.
   It should follow this format
 
   >>>
@@ -81,6 +84,8 @@ class PinnModel(JaxModel):
   >>
   >>    return
   >>  return eval_model
+
+  "..." can be replaced with various arguments like (x, y, z, y) but should match with grad_fn
 
   [3] boundary_data:
   For a detailed example, check out - deepchem/models/jax_models/tests/test_pinn.py where we have
@@ -119,11 +124,8 @@ class PinnModel(JaxModel):
       only haiku models are supported.
     params: hk.Params
       The parameter of the Jax based networks
-    boundary_data: dict
-      This acts as a session variable while calculating the loss
-    loss: dc.models.losses.Loss or function
-      a Loss or function defining how to compute the training loss for each
-      batch, as described above
+    initial_data: dict
+      This acts as a session variable which will be passed as a dictionary in grad_fn
     output_types: list of strings, optional (default None)
       the type of each output from the model, as described above
     batch_size: int, optional (default 100)
@@ -133,6 +135,13 @@ class PinnModel(JaxModel):
       ignored.
     optimizer: optax object
       For the time being, it is optax object
+    grad_fn: Callable (default create_default_gradient_fn)
+      It defines how the loss function and gradients need to be calculated for the PINNs model
+    update_fn: Callable (default create_default_update_fn)
+      It defines how the weights need to be updated using backpropogation. We have used optax library
+      for optimisation operations. Its reccomended to leave this default.
+    eval_fn: Callable (default create_default_eval_fn)
+      Function for defining on how the model needs to compute during inference.
     rng: jax.random.PRNGKey, optional (default 1)
       A default global PRNG key to use for drawing random numbers.
     log_frequency: int, optional (default 100)
