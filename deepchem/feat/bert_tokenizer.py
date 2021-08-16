@@ -20,8 +20,10 @@ class BertFeaturizer(Featurizer):
   Examples
   --------
   >>> from deepchem.feat import BertFeaturizer
-  >>> featurizer = BertFeaturizer.from_pretrained("Rostlab/prot_bert", do_lower_case=False)
-  >>> inputs = featurizer.featurize('D L I P [MASK] L V T', return_tensors="pt")
+  >>> from transformers import BertTokenizerFast
+  >>> tokenizer = BertTokenizerFast.from_pretrained("Rostlab/prot_bert", do_lower_case=False)
+  >>> featurizer = BertFeaturizer(tokenizer)
+  >>> feats = featurizer.featurize('D L I P [MASK] L V T', return_tensors="pt")
 
   Notes
   -----
@@ -55,6 +57,3 @@ class BertFeaturizer(Featurizer):
     # the encoding is natively a dictionary with keys 'input_ids', 'token_type_ids', and 'attention_mask'
     encoding = list(self.tokenizer(datapoint, **kwargs).values())
     return encoding
-
-  def __call__(self, *args, **kwargs) -> np.ndarray:
-    return self.featurize(*args, **kwargs)
