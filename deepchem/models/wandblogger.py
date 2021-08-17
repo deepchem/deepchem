@@ -162,10 +162,7 @@ class WandbLogger(Logger):
     if self.wandb_run is not None:
       self.wandb_run.log(data, step=step)
 
-  def log_values(self,
-                 data: Dict,
-                 step: int,
-                 location: Optional[str] = None):
+  def log_values(self, data: Dict, step: int, location: Optional[str] = None):
     # Rename keys to the correct category
     if location is not None:
       if location in self.location_ids:
@@ -182,8 +179,7 @@ class WandbLogger(Logger):
     if self.wandb_run is not None:
       self.wandb_run.log(data, step=step)
 
-  def on_fit_end(self,
-                 data: Dict):
+  def on_fit_end(self, data: Dict):
     # Set summary
     if self.wandb_run is not None:
       if "global_step" in data:
@@ -210,12 +206,12 @@ class WandbLogger(Logger):
     # Sort in order
     if checkpoint_on_min:
       self.best_models[checkpoint_name]["model_values"] = sorted(
-        self.best_models[checkpoint_name][
-          "model_values"])[:max_checkpoints_to_track]
+          self.best_models[checkpoint_name][
+              "model_values"])[:max_checkpoints_to_track]
     else:
       self.best_models[checkpoint_name]["model_values"] = sorted(
-        self.best_models[checkpoint_name]["model_values"],
-        reverse=True)[:max_checkpoints_to_track]
+          self.best_models[checkpoint_name]["model_values"],
+          reverse=True)[:max_checkpoints_to_track]
 
     # Save checkpoint only if it passes the cutoff in the model values
     should_save = False
@@ -224,17 +220,17 @@ class WandbLogger(Logger):
       # first checkpoint to be saved
       should_save = True
     elif checkpoint_on_min and (
-            value < self.best_models[checkpoint_name]["model_values"][-1]):
+        value < self.best_models[checkpoint_name]["model_values"][-1]):
       # value passes minimum cut off
       should_save = True
     elif (not checkpoint_on_min) and (
-            value > self.best_models[checkpoint_name]["model_values"][-1]):
+        value > self.best_models[checkpoint_name]["model_values"][-1]):
       # value passes maximum cut off
       should_save = True
 
     if (self.initialized is False) or (self.wandb_run is None):
       logs.warning(
-        'WARNING: The wandb run has not been initialized. Please start training and in order to start checkpointing.'
+          'WARNING: The wandb run has not been initialized. Please start training and in order to start checkpointing.'
       )
     else:
       if should_save:
@@ -244,7 +240,7 @@ class WandbLogger(Logger):
         else:
           model_name = checkpoint_name
         artifact = self._wandb.Artifact(
-          model_name, type='model', metadata=metadata)
+            model_name, type='model', metadata=metadata)
 
         # Different saving mechanisms for different types of models
         if isinstance(dc_model.model, tf.keras.Model):
@@ -254,9 +250,9 @@ class WandbLogger(Logger):
 
         elif isinstance(dc_model.model, torch.nn.Module):
           data = {
-            'model_state_dict': dc_model.model.state_dict(),
-            'optimizer_state_dict': dc_model._pytorch_optimizer.state_dict(),
-            'global_step': dc_model._global_step
+              'model_state_dict': dc_model.model.state_dict(),
+              'optimizer_state_dict': dc_model._pytorch_optimizer.state_dict(),
+              'global_step': dc_model._global_step
           }
 
           saved_name = model_name + ".pt"
