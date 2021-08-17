@@ -36,6 +36,6 @@ def test_loading():
   loader = FASTALoader(
       featurizer=featurizer, legacy=False, auto_add_annotations=True)
   data = loader.create_dataset(
-      input_files="../../data/tests/uniprot_truncated.fasta")
+      input_files="../uniprot_truncated.fasta")
 
   assert data.X.shape == (61, 3, 5)
