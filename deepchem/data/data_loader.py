@@ -979,7 +979,7 @@ class FASTALoader(DataLoader):
         # (X, y, w, ids)
         yield X, None, None, ids
 
-    def _read_file(input_file: str) -> np.ndarray:
+    def _read_file(input_file: str):
       """
       Convert the FASTA file to a numpy array of FASTA-format strings.
       """
