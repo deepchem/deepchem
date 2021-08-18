@@ -6,7 +6,8 @@ import warnings
 try:
   from transformers import PreTrainedModel, PretrainedConfig
 except ModuleNotFoundError:
-  raise ImportError("HuggingFace wrappers cannot function without transformers.")
+  raise ImportError(
+      "HuggingFace wrappers cannot function without transformers.")
 
 from deepchem.models.torch_models.torch_model import TorchModel
 
