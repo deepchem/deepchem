@@ -40,9 +40,6 @@ class WandbLogger(Logger):
                resume: Optional[Union[bool, str]] = None,
                anonymous: Optional[str] = "never",
                save_run_history: bool = False,
-               checkpoint_interval: int = 0,
-               max_checkpoints_to_track: int = 1,
-               model_dir: Optional[str] = None,
                **kwargs):
     """Creates a WandbLogger.
 
@@ -74,23 +71,6 @@ class WandbLogger(Logger):
       logs.warning(
           'Note: Model checkpoints will not be uploaded to W&B in offline mode. '
           'Please set `mode="online"` if you need to log your model.')
-
-    if checkpoint_interval == 0:
-      logs.warning(
-          'Note: WandbLogger model checkpointing is disabled since `checkpoint_interval = 0`. '
-          'To enable checkpointing, please set `checkpoint_interval` to a positive integer value.'
-      )
-
-    if (checkpoint_interval is not None) and (checkpoint_interval >
-                                              0) and (model_dir is None):
-      raise ValueError(
-          'Model checkpointing is active, but `model_dir` is not set. '
-          'Please set `model_dir` to create a local location for your checkpoints.'
-      )
-
-    self.checkpoint_interval = checkpoint_interval
-    self.max_checkpoints_to_track = max_checkpoints_to_track
-    self.model_dir = model_dir
 
     self.save_run_history = save_run_history
 
