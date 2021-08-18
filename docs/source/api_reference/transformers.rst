@@ -108,6 +108,13 @@ DAGTransformer
   :members:
   :inherited-members:
 
+RxnSplitTransformer
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.trans.RxnSplitTransformer
+  :members:
+  :inherited-members:
+
 Base Transformer (for develop)
 -------------------------------
 

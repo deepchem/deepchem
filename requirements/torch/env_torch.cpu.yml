@@ -7,3 +7,5 @@ dependencies:
     - torchvision==0.10.0+cpu
     - torch-scatter
     - torch-sparse
+    - transformers==4.6.*
+

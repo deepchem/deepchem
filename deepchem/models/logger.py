@@ -10,7 +10,7 @@ tensor = Union[tf.Tensor, torch.Tensor]
 
 class Logger(object):
   """
-  Abstract base class for loggers.
+  Abstract base class for loggers used in DeepChem.
   """
 
   def __init__(self):
@@ -23,12 +23,25 @@ class Logger(object):
     raise NotImplementedError
 
   def __iter__(self):
+    """
+    Allow list of loggers to be iterable.
+    """
     return self
 
   def setup(self, config: Dict):
+    """
+    Set up and initialize a logger.
+
+    Parameters
+    ----------
+    config: Configuration/settings to be passed to logger.
+    """
     raise NotImplementedError
 
   def finish(self):
+    """
+    Close a logger and end its process.
+    """
     raise NotImplementedError
 
   def log_batch(self,
@@ -37,6 +50,17 @@ class Logger(object):
                 inputs: tensor,
                 labels: tensor,
                 location: Optional[str] = None):
+    """
+    Log a single training batch.
+
+    Parameters
+    ----------
+    loss
+    step
+    inputs
+    labels
+    location
+    """
     raise NotImplementedError
 
   def log_epoch(self,

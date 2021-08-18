@@ -4,7 +4,7 @@ Contains class for gaussian process hyperparameter optimizations.
 import os
 import logging
 import tempfile
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Any
 
 from deepchem.data import Dataset
 from deepchem.trans import Transformer
@@ -228,7 +228,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     param_keys = list(param_range.keys())
 
     # Stores all results
-    all_results = {}
+    all_results: Dict[Any, Any] = {}
     # Store all model references so we don't have to reload
     all_models = {}
     # Stores all model locations
@@ -269,6 +269,12 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
           f.write('\n')
 
       hp_str = _convert_hyperparam_dict_to_filename(hyper_parameters)
+      if hp_str in all_results:
+        # We have already evaluated the model for these hyperparameters.
+        if use_max:
+          return all_results[hp_str]
+        else:
+          return -all_results[hp_str]
       if logdir is not None:
         filename = "model%s" % hp_str
         model_dir = os.path.join(logdir, filename)

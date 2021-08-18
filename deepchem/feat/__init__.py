@@ -64,12 +64,18 @@ from deepchem.feat.material_featurizers import LCNNFeaturizer
 from deepchem.feat.atomic_conformation import AtomicConformation
 from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer
 
+# tokenizers
 try:
   import transformers
   from transformers import BertTokenizer
-
   from deepchem.feat.smiles_tokenizer import SmilesTokenizer
   from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
+except ModuleNotFoundError:
+  pass
+
+try:
+  from transformers import RobertaTokenizerFast
+  from deepchem.feat.roberta_tokenizer import RobertaFeaturizer
 except ModuleNotFoundError:
   pass
 

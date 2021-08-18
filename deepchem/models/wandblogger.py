@@ -34,8 +34,7 @@ class WandbLogger(Logger):
   def __init__(self,
                name: Optional[str] = None,
                entity: Optional[str] = None,
-               project: Optional[str] = None,
-               save_dir: Optional[str] = None,
+               project: Optional[str] = "deepchem",
                mode: Optional[str] = "online",
                id: Optional[str] = None,
                resume: Optional[Union[bool, str]] = None,
@@ -55,8 +54,6 @@ class WandbLogger(Logger):
       an entity is a username or team name where you're sending the W&B run
     project: str
       the name of the project where you're sending the new W&B run
-    save_dir: str
-      path where data is saved (wandb dir by default)
     mode: str
       W&B online or offline mode
     id: str
@@ -95,7 +92,6 @@ class WandbLogger(Logger):
     self.max_checkpoints_to_track = max_checkpoints_to_track
     self.model_dir = model_dir
 
-    self.save_dir = save_dir
     self.save_run_history = save_run_history
 
     # set wandb init arguments
@@ -105,7 +101,6 @@ class WandbLogger(Logger):
         entity=entity,
         mode=mode,
         id=id,
-        dir=save_dir,
         resume=resume,
         anonymous=anonymous)
     self.wandb_init_params.update(**kwargs)
