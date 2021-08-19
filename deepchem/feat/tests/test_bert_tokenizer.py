@@ -1,6 +1,5 @@
 import pytest
-import os
-from os.path import join
+from os.path import join, realpath, dirname
 
 
 @pytest.mark.torch
@@ -37,8 +36,9 @@ def test_loading():
 
   loader = FASTALoader(
       featurizer=featurizer, legacy=False, auto_add_annotations=True)
-  cwd = os.getcwd()
+  file_loc = realpath(__file__)
+  directory = dirname(file_loc)
   data = loader.create_dataset(
-      input_files=join(cwd, "data/uniprot_truncated.fasta"))
+      input_files=join(directory, "data/uniprot_truncated.fasta"))
 
   assert data.X.shape == (61, 3, 5)
