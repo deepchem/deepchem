@@ -20,7 +20,7 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
 
   Examples
   --------
-  >>> from deepchem.feat.molecule_featurizers import RobertaFeaturizer
+  >>> from deepchem.feat import RobertaFeaturizer
   >>> smiles = ["Cn1c(=O)c2c(ncn2C)n(C)c1=O", "CC(=O)N1CN(C(C)=O)C(O)C1O"]
   >>> featurizer = RobertaFeaturizer.from_pretrained("seyonec/SMILES_tokenized_PubChem_shard00_160k")
   >>> featurizer.featurize(smiles, add_special_tokens=True, truncation=True)
