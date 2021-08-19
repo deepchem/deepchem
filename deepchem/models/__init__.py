@@ -48,7 +48,7 @@ except ModuleNotFoundError:
 # Jax models
 try:
   from deepchem.models.jax_models import JaxModel
-  from deepchem.models.jax_models import PinnModel
+  from deepchem.models.jax_models import PINNModel
 except ModuleNotFoundError:
   pass
 

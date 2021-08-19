@@ -1,5 +1,5 @@
 '''
-This python consists of diffrent variations of PINNs model using the JaxModel API
+This python consists of diffrent variations of Physics Informer Neural Network model using the JaxModel API
 '''
 import numpy as np
 import time
@@ -46,7 +46,7 @@ def create_default_update_fn(optimizer, model_loss):
   return update
 
 
-class PinnModel(JaxModel):
+class PINNModel(JaxModel):
   """
   This is class is derived from the JaxModel class and methods are also very similar to JaxModel,
   but it has the optional of passing multiple arguments(Done using *args) suitable for PINNs model.
@@ -57,8 +57,8 @@ class PinnModel(JaxModel):
 
   This class requires two functions apart from the usual function definition and weights
 
-  [1] **grad_fn** : Each PINNs have a diffrent stratergy for calculating its final losses. This 
-  function tells the PinnModel on how to go about computing the derivatives for backpropogation.
+  [1] **grad_fn** : Each PINNs have a diffrent stratergy for calculating its final losses. This
+  function tells the PINNModel on how to go about computing the derivatives for backpropogation.
   It should follow this format:
 
   >>>
@@ -93,7 +93,11 @@ class PinnModel(JaxModel):
 
   References
   ----------
-  .. [1] Raissi et. al. "Physics Informed Deep Learning (Part I): Data-driven
+  .. [1] Raissi et. al. "Physics-informed neural networks: A deep learning framework for solving
+     forward and inverse problems involving nonlinear partial differential equations" Journal of
+     Computational Physics https://doi.org/10.1016/j.jcp.2018.10.045
+
+  .. [2] Raissi et. al. "Physics Informed Deep Learning (Part I): Data-driven
      Solutions of Nonlinear Partial Differential Equations" arXiv preprint arXiv:1711.10561
 
   Notes
@@ -150,7 +154,7 @@ class PinnModel(JaxModel):
     """
 
     self.boundary_data = initial_data
-    super(PinnModel, self).__init__(
+    super(PINNModel, self).__init__(
         forward_fn, params, None, output_types, batch_size, learning_rate,
         optimizer, grad_fn, update_fn, eval_fn, rng, log_frequency, **kwargs)
 
@@ -257,6 +261,7 @@ class PinnModel(JaxModel):
     """Create a generator that iterates batches for a dataset.
     Subclasses may override this method to customize how model inputs are
     generated from the data.
+
     Parameters
     ----------
     dataset: Dataset
