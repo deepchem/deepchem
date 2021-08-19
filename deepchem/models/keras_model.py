@@ -172,6 +172,8 @@ class KerasModel(Model):
       a global step corresponds to one batch of training. If you'd
       like a printout every 10 batch steps, you'd set
       `log_frequency=10` for example.
+    logger: Logger or list of Loggers
+      the logger object(s) used to log data and metrics
     """
     super(KerasModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
     if isinstance(loss, Loss):
@@ -195,7 +197,7 @@ class KerasModel(Model):
     else:
       self.loggers = list()
 
-    # W&B flag support (DEPRECATED)
+    # W&B flag support
     if wandb:
       logs.warning(
           "`wandb` argument is deprecated. Please use `logger` instead. "
@@ -469,13 +471,14 @@ class KerasModel(Model):
       if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
         manager.save()
         for ext_logger in self.loggers:
-          ext_logger.save_checkpoint(self.model_dir,
-                                    self,
-                                    "train_checkpoints",
-                                    "step",
-                                    current_step,
-                                    max_checkpoints_to_keep,
-                                    checkpoint_on_min=False)
+          ext_logger.save_checkpoint(
+              self.model_dir,
+              self,
+              "train_checkpoints",
+              "step",
+              current_step,
+              max_checkpoints_to_keep,
+              checkpoint_on_min=False)
       for c in callbacks:
         c(self, current_step)
       if self.tensorboard and should_log:
@@ -502,21 +505,21 @@ class KerasModel(Model):
     if checkpoint_interval > 0:
       manager.save()
       for ext_logger in self.loggers:
-        ext_logger.save_checkpoint(self.model_dir,
-                                   self,
-                                   "train_checkpoints",
-                                   "step",
-                                   current_step,
-                                   max_checkpoints_to_keep,
-                                   checkpoint_on_min=False)
+        ext_logger.save_checkpoint(
+            self.model_dir,
+            self,
+            "train_checkpoints",
+            "step",
+            current_step,
+            max_checkpoints_to_keep,
+            checkpoint_on_min=False)
 
     # Call loggers end of fit behaviour
     for ext_logger in self.loggers:
-      ext_logger.on_fit_end(
-          {
-              "global_step": current_step,
-              "final_avg_loss": last_avg_loss
-          })
+      ext_logger.on_fit_end({
+          "global_step": current_step,
+          "final_avg_loss": last_avg_loss
+      })
 
     time2 = time.time()
     logs.info("TIMING: model fitting took %0.3f s" % (time2 - time1))

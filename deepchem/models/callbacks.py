@@ -99,21 +99,20 @@ class ValidationCallback(object):
         for ext_logger in model.loggers:
           if (self.name is None) or (not self.name):
             # assign a default name to the callback based on dataset and metric
-            self.name = str(id(self.dataset)) + "-" + self.metrics[self.save_metric].name
+            self.name = str(id(
+                self.dataset)) + "-" + self.metrics[self.save_metric].name
           checkpoint_name = "callback-" + self.name + "-checkpoints"
           # ensure score is positive if negated previously
           checkpoint_score = score
           if not self.save_on_minimum:
             checkpoint_score = abs(checkpoint_score)
-          ext_logger.save_checkpoint(self.save_dir,
-                                    model,
-                                    checkpoint_name,
-                                    self.metrics[self.save_metric].name,
-                                    checkpoint_score,
-                                    max_checkpoints_to_track=5,
-                                    checkpoint_on_min=self.save_on_minimum)
+          ext_logger.save_checkpoint(
+              self.save_dir,
+              model,
+              checkpoint_name,
+              self.metrics[self.save_metric].name,
+              checkpoint_score,
+              max_checkpoints_to_track=5,
+              checkpoint_on_min=self.save_on_minimum)
     for ext_logger in model.loggers:
-      ext_logger.log_values(
-          scores,
-          step,
-          location="eval/" + self.name)
+      ext_logger.log_values(scores, step, location="eval/" + self.name)

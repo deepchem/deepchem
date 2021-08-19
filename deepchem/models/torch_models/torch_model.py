@@ -172,6 +172,8 @@ class TorchModel(Model):
     regularization_loss: Callable, optional
       a function that takes no arguments, and returns an extra contribution to add
       to the loss function
+    logger: Logger or list of Loggers
+      the logger object(s) used to log data and metrics
     """
     super(TorchModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
     if isinstance(loss, Loss):
@@ -206,7 +208,7 @@ class TorchModel(Model):
     else:
       self.loggers = list()
 
-    # W&B logging (DEPRECATED
+    # W&B flag support
     if wandb:
       logs.warning(
           "`wandb` argument is deprecated. Please use `logger` instead. "
@@ -214,8 +216,8 @@ class TorchModel(Model):
     if wandb and not _has_wandb:
       logs.warning(
           "You set wandb to True but W&B is not installed. To use wandb logging, "
-          "run `pip install wandb; wandb login` see https://docs.wandb.com/huggingface."
-      )
+          "run `pip install wandb` then log in using `wandb login` "
+          "or `import wandb; wandb.login()` in script.")
     self.wandb = wandb and _has_wandb
     if self.wandb:
       if any(isinstance(x, WandbLogger) for x in self.loggers):
@@ -457,13 +459,14 @@ class TorchModel(Model):
       if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
         self.save_checkpoint(max_checkpoints_to_keep)
         for ext_logger in self.loggers:
-          ext_logger.save_checkpoint(self.model_dir,
-                                    self,
-                                    "train_checkpoints",
-                                    "step",
-                                    current_step,
-                                    max_checkpoints_to_keep,
-                                    checkpoint_on_min=False)
+          ext_logger.save_checkpoint(
+              self.model_dir,
+              self,
+              "train_checkpoints",
+              "step",
+              current_step,
+              max_checkpoints_to_keep,
+              checkpoint_on_min=False)
       for c in callbacks:
         c(self, current_step)
       if self.tensorboard and should_log:
@@ -489,21 +492,21 @@ class TorchModel(Model):
     if checkpoint_interval > 0:
       self.save_checkpoint(max_checkpoints_to_keep)
       for ext_logger in self.loggers:
-        ext_logger.save_checkpoint(self.model_dir,
-                                   self,
-                                   "train_checkpoints",
-                                   "step",
-                                   current_step,
-                                   max_checkpoints_to_keep,
-                                   checkpoint_on_min=False)
+        ext_logger.save_checkpoint(
+            self.model_dir,
+            self,
+            "train_checkpoints",
+            "step",
+            current_step,
+            max_checkpoints_to_keep,
+            checkpoint_on_min=False)
 
     # Call loggers end of fit behaviour
     for ext_logger in self.loggers:
-      ext_logger.on_fit_end(
-          {
-              "global_step": current_step,
-              "final_avg_loss": last_avg_loss
-          })
+      ext_logger.on_fit_end({
+          "global_step": current_step,
+          "final_avg_loss": last_avg_loss
+      })
 
     time2 = time.time()
     logs.info("TIMING: model fitting took %0.3f s" % (time2 - time1))

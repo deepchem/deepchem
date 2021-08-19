@@ -329,12 +329,7 @@ def test_wandblogger():
   train_dataset, valid_dataset, test_dataset = datasets
   metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
   metric2 = dc.metrics.Metric(dc.metrics.mae_score)
-  wandblogger = dc.models.WandbLogger(
-      anonymous="allow",
-      save_run_history=True,
-      checkpoint_interval=50,
-      max_checkpoints_to_track=1,
-      model_dir="./wandb_checkpoints")
+  wandblogger = dc.models.WandbLogger(anonymous="allow", save_run_history=True)
 
   keras_model = tf.keras.Sequential(
       [tf.keras.layers.Dense(10, activation='relu'),

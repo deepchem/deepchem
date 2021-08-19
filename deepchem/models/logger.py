@@ -34,7 +34,8 @@ class Logger(object):
 
     Parameters
     ----------
-    config: Configuration/settings to be passed to logger.
+    config: Dict
+      configuration/settings to be passed to logger.
     """
     raise NotImplementedError
 
@@ -50,37 +51,63 @@ class Logger(object):
                 inputs: tensor,
                 labels: tensor,
                 location: Optional[str] = None):
-    """
-    Log a single training batch.
+    """Log values for a single training batch.
 
     Parameters
     ----------
-    loss
-    step
-    inputs
-    labels
-    location
+    loss: Dict
+      the loss values for the batch
+    step: int
+      the current training step
+    inputs: tensor
+      batch input tensor
+    labels: tensor
+      batch labels tensor
+    location: str, optional (default None)
+      the logging location or chart panel section/group
     """
     raise NotImplementedError
 
-  def log_epoch(self,
-                data: Dict,
-                epoch: int,
-                location: Optional[str] = None):
+  def log_epoch(self, data: Dict, epoch: int, location: Optional[str] = None):
+    """Log values for a epoch.
+
+    Parameters
+    ----------
+    data: Dict
+      data values to be logged
+    epoch: int
+      epoch number
+    location: str, optional (default None)
+      the logging location or chart panel section/group
+    """
     raise NotImplementedError
 
-  def log_values(self,
-                 data: Dict,
-                 step: int,
-                 location: Optional[str] = None):
+  def log_values(self, data: Dict, step: int, location: Optional[str] = None):
+    """Log values for a certain step in training/evaluation.
+
+    Parameters
+    ----------
+    data: Dict
+      data values to be logged
+    step: int
+      epoch number
+    location: str, optional (default None)
+      the logging location or chart panel section/group
+    """
     raise NotImplementedError
 
-  def on_fit_end(self,
-                 data: Dict):
+  def on_fit_end(self, data: Dict):
+    """Called before the end of training.
+
+    Parameters
+    ----------
+    data: Dict
+      Training summary values to be logged
+    """
     raise NotImplementedError
 
   def save_checkpoint(self,
-                      path: str,
+                      model_dir: str,
                       dc_model: Model,
                       checkpoint_name: str,
                       value_name: str,
@@ -88,4 +115,28 @@ class Logger(object):
                       max_checkpoints_to_track: int,
                       checkpoint_on_min: bool,
                       metadata: Optional[Dict] = None):
+    """Save model checkpoint.
+
+    Parameters
+    ----------
+    model_dir: str
+      directory containing model checkpoints
+    dc_model: Model
+      DeepChem model object to be saved
+    checkpoint_name: str
+      name of the checkpoint
+    value_name: str
+      the name metric to checkpoint on
+    value: numeric
+      the value of the metric to checkpoint on
+    max_checkpoints_to_track: int
+      the maximum number of checkpoints to track. Logger implementations
+      can choose what to do with older checkpoints (discard, keep, tag as old, etc.)
+    checkpoint_on_min:
+      if True, the best model is considered to be the one that minimizes the
+      value. If False, the best model is considered to be the one
+      that maximizes it.
+    metadata: Dict, optional(default None)
+      metadata to be save along with the checkpoint
+    """
     raise NotImplementedError

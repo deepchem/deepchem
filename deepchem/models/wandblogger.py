@@ -95,6 +95,11 @@ class WandbLogger(Logger):
   def setup(self, config: Dict):
     """Initializes a W&B run and create a run object.
     If a pre-existing run is already initialized, use that instead.
+
+    Parameters
+    ----------
+    config: Dict
+      W&B logger configurations
     """
 
     if self._wandb.run is None:
@@ -121,6 +126,21 @@ class WandbLogger(Logger):
                 inputs: tensor,
                 labels: tensor,
                 location: Optional[str] = None):
+    """Log values for a single training batch.
+
+    Parameters
+    ----------
+    loss: Dict
+      the loss values for the batch
+    step: int
+      the current training step
+    inputs: tensor
+      batch input tensor
+    labels: tensor
+      batch labels tensor
+    location: str, optional (default None)
+      W&B chart panel section to log under
+    """
     data = loss
     if location is not None:
       if location in self.location_ids:
@@ -138,6 +158,17 @@ class WandbLogger(Logger):
       self.wandb_run.log(data, step=step)
 
   def log_values(self, data: Dict, step: int, location: Optional[str] = None):
+    """Log values for a certain step in training/evaluation.
+
+    Parameters
+    ----------
+    data: Dict
+      data values to be logged
+    step: int
+      epoch number
+    location: str, optional (default None)
+      W&B chart panel section to log under
+    """
     # Rename keys to the correct category
     if location is not None:
       if location in self.location_ids:
@@ -155,6 +186,13 @@ class WandbLogger(Logger):
       self.wandb_run.log(data, step=step)
 
   def on_fit_end(self, data: Dict):
+    """Called before the end of training.
+
+    Parameters
+    ----------
+    data: Dict
+      Training summary values to be logged
+    """
     # Set summary
     if self.wandb_run is not None:
       if "global_step" in data:
@@ -163,7 +201,7 @@ class WandbLogger(Logger):
         self.wandb_run.summary["final_avg_loss"] = data["final_avg_loss"]
 
   def save_checkpoint(self,
-                      path: str,
+                      model_dir: str,
                       dc_model: Model,
                       checkpoint_name: str,
                       value_name: str,
@@ -171,6 +209,31 @@ class WandbLogger(Logger):
                       max_checkpoints_to_track: int,
                       checkpoint_on_min: bool,
                       metadata: Optional[Dict] = None):
+    """Save model checkpoint.
+
+    Parameters
+    ----------
+    model_dir: str
+      directory containing model checkpoints
+    dc_model: Model
+      DeepChem model object to be saved
+    checkpoint_name: str
+      name of the checkpoint
+    value_name: str
+      the name metric to checkpoint on
+    value: numeric
+      the value of the metric to checkpoint on
+    max_checkpoints_to_track: int
+      the maximum number of checkpoints to track. New checkpoint must have
+      score better than the [max_checkpoints_to_track]th best checkpoint
+      in order to be saved.
+    checkpoint_on_min:
+      if True, the best model is considered to be the one that minimizes the
+      value. If False, the best model is considered to be the one
+      that maximizes it.
+    metadata: Dict, optional(default None)
+      metadata to be save along with the checkpoint
+    """
 
     # Only called once when first checkpoint is saved to create tracking record
     if (checkpoint_name not in self.best_models):
@@ -219,7 +282,7 @@ class WandbLogger(Logger):
 
         # Different saving mechanisms for different types of models
         if isinstance(dc_model.model, tf.keras.Model):
-          model_path = os.path.abspath(os.path.join(path, model_name))
+          model_path = os.path.abspath(os.path.join(model_dir, model_name))
           dc_model.model.save(model_path)
           artifact.add_dir(model_path)
 
@@ -231,7 +294,7 @@ class WandbLogger(Logger):
           }
 
           saved_name = model_name + ".pt"
-          model_path = os.path.abspath(os.path.join(path, saved_name))
+          model_path = os.path.abspath(os.path.join(model_dir, saved_name))
           torch.save(data, model_path)
           artifact.add_file(model_path)
 
