@@ -135,7 +135,7 @@ class KerasModel(Model):
                tensorboard: bool = False,
                wandb: bool = False,
                log_frequency: int = 100,
-               logger: Optional[WandbLogger] = None,
+               wandb_logger: Optional[WandbLogger] = None,
                **kwargs) -> None:
     """Create a new KerasModel.
 
@@ -171,7 +171,7 @@ class KerasModel(Model):
       a global step corresponds to one batch of training. If you'd
       like a printout every 10 batch steps, you'd set
       `log_frequency=10` for example.
-    logger: WandbLogger
+    wandb_logger: WandbLogger
       the Weights & Biases logger object used to log data and metrics
     """
     super(KerasModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
@@ -189,7 +189,7 @@ class KerasModel(Model):
     # W&B flag support (DEPRECATED)
     if wandb:
       logs.warning(
-          "`wandb` argument is deprecated. Please use `logger` instead. "
+          "`wandb` argument is deprecated. Please use `wandb_logger` instead. "
           "This argument will be removed in a future release of DeepChem.")
     if wandb and not _has_wandb:
       logs.warning(
@@ -197,7 +197,7 @@ class KerasModel(Model):
           "run `pip install wandb; wandb login`")
     self.wandb = wandb and _has_wandb
 
-    self.wandb_logger = logger
+    self.wandb_logger = wandb_logger
     # If `wandb=True` and no logger is provided, initialize default logger
     if self.wandb and (self.wandb_logger is None):
       self.wandb_logger = WandbLogger()

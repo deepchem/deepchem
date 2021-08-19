@@ -4,6 +4,7 @@ import deepchem as dc
 import numpy as np
 import unittest
 import pytest
+
 try:
   import wandb
   has_wandb = True
@@ -334,7 +335,7 @@ def test_wandblogger():
       [tf.keras.layers.Dense(10, activation='relu'),
        tf.keras.layers.Dense(1)])
   model = dc.models.KerasModel(
-      keras_model, dc.models.losses.L2Loss(), logger=wandblogger)
+      keras_model, dc.models.losses.L2Loss(), wandb_logger=wandblogger)
   vc_train = dc.models.ValidationCallback(train_dataset, 1, [metric])
   vc_valid = dc.models.ValidationCallback(valid_dataset, 1, [metric])
   model.fit(train_dataset, nb_epoch=10, callbacks=[vc_train, vc_valid])

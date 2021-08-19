@@ -129,7 +129,7 @@ class TorchModel(Model):
                log_frequency: int = 100,
                device: Optional[torch.device] = None,
                regularization_loss: Optional[Callable] = None,
-               logger: Optional[WandbLogger] = None,
+               wandb_logger: Optional[WandbLogger] = None,
                **kwargs) -> None:
     """Create a new TorchModel.
 
@@ -171,7 +171,7 @@ class TorchModel(Model):
     regularization_loss: Callable, optional
       a function that takes no arguments, and returns an extra contribution to add
       to the loss function
-    logger: WandbLogger
+    wandb_logger: WandbLogger
       the Weights & Biases logger object used to log data and metrics
     """
     super(TorchModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
@@ -200,16 +200,15 @@ class TorchModel(Model):
     # W&B logging
     if wandb:
       logs.warning(
-          "`wandb` argument is deprecated. Please use `logger` instead. "
+          "`wandb` argument is deprecated. Please use `wandb_logger` instead. "
           "This argument will be removed in a future release of DeepChem.")
     if wandb and not _has_wandb:
       logs.warning(
           "You set wandb to True but W&B is not installed. To use wandb logging, "
-          "run `pip install wandb; wandb login` see https://docs.wandb.com/huggingface."
-      )
+          "run `pip install wandb; wandb login`")
     self.wandb = wandb and _has_wandb
 
-    self.wandb_logger = logger
+    self.wandb_logger = wandb_logger
     # If `wandb=True` and no logger is provided, initialize default logger
     if self.wandb and (self.wandb_logger is None):
       self.wandb_logger = WandbLogger()
