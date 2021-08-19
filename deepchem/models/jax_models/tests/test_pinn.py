@@ -6,7 +6,7 @@ try:
   import jax.numpy as jnp
   import haiku as hk
   import optax
-  from deepchem.models import PinnModel
+  from deepchem.models import PINNModel
   from deepchem.data import NumpyDataset
   from jax import jacrev
   has_haiku_and_optax = True
@@ -22,7 +22,7 @@ def test_sine_x():
     And we try to approximate the function for domain (-np.pi, np.pi)
   """
 
-  # The PinnModel requires you to create two functions
+  # The PINNModel requires you to create two functions
   # `create_eval`_fn for letting the model know how to compute the model in inference and
   # `gradient_fn` for letting model know how to compute the graident and diffrent regulariser
   # equation loss depending on the diffrential equation
@@ -52,7 +52,7 @@ def test_sine_x():
       @functools.partial(jax.vmap, in_axes=(None, 0))
       def periodic_loss(params, x):
         """
-        diffrential equation => grad(f(x)) = - sin(x) 
+        diffrential equation => grad(f(x)) = - sin(x)
         minimize f(x) := grad(f(x)) + sin(x)
         """
         x = jnp.expand_dims(x, 0)
@@ -90,7 +90,7 @@ def test_sine_x():
       'u0': jnp.expand_dims(out_array, 1)
   }
 
-  j_m = PinnModel(
+  j_m = PINNModel(
       forward_fn=forward_fn,
       params=params,
       initial_data=initial_data,
