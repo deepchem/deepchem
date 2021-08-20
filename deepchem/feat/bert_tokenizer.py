@@ -27,10 +27,6 @@ class BertFeaturizer(Featurizer):
   Notes
   -----
   Examples are based on RostLab's ProtBert documentation.
-
-  This class may contain code and/or documentation taken from the
-  RobertaFeaturizer pull request (#2581), which have been moved here due to
-  code restructuring.
   """
 
   def __init__(self, tokenizer: BertTokenizerFast):
