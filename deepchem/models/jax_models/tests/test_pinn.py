@@ -19,13 +19,13 @@ def test_sine_x():
   """
     Here we are solving the diffrential equation- f'(x) = -sin(x) and f(0) = 1
     We give initial for the neural network at x_init --> np.linspace(-1 * np.pi, 1 * np.pi, 5)
-    And we try to approximate the function for domain (-np.pi, np.pi)
+    And we try to approximate the function for the domain (-np.pi, np.pi)
   """
 
   # The PINNModel requires you to create two functions
   # `create_eval`_fn for letting the model know how to compute the model in inference and
-  # `gradient_fn` for letting model know how to compute the graident and diffrent regulariser
-  # equation loss depending on the diffrential equation
+  # `gradient_fn` for letting model know how to compute the gradient and different regulariser
+  # equation loss depending on the differential equation
   def create_eval_fn(forward_fn, params):
     """
       Calls the function to evaluate the model
@@ -41,7 +41,7 @@ def test_sine_x():
 
   def gradient_fn(forward_fn, loss_outputs, initial_data):
     """
-    This function calls the gradient function, to implement the backpropogation
+    This function calls the gradient function, to implement the backpropagation
     """
     boundary_data = initial_data['X0']
     boundary_target = initial_data['u0']
@@ -82,7 +82,7 @@ def test_sine_x():
   opt = optax.chain(
       optax.clip_by_global_norm(1.00), optax.adam(1e-2, b1=0.9, b2=0.99))
 
-  # giving a initial boundary condition at 5 points between [-pi, pi] which will be used in l2 loss
+  # giving an initial boundary condition at 5 points between [-pi, pi] which will be used in l2 loss
   in_array = np.linspace(-1 * np.pi, 1 * np.pi, 5)
   out_array = np.cos(in_array)
   initial_data = {
@@ -102,7 +102,7 @@ def test_sine_x():
       log_frequency=1000)
 
   # defining our training data. We feed 100 points between [-pi, pi] without the labels,
-  # which will be used as the diffrential loss(regulariser)
+  # which will be used as the differential loss(regulariser)
   X_f = np.expand_dims(np.linspace(-1 * np.pi, 1 * np.pi, 100), 1)
   dataset = NumpyDataset(X_f)
   _ = j_m.fit(dataset, nb_epochs=1000)

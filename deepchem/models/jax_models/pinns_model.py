@@ -1,5 +1,5 @@
 '''
-This python consists of diffrent variations of Physics Informer Neural Network model using the JaxModel API
+This python consists of different variations of the Physics Informer Neural Network model using the JaxModel API
 '''
 import numpy as np
 import time
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 def create_default_update_fn(optimizer, model_loss):
   """
-  This function calls the update function, to implement the backpropogation
+  This function calls the update function, to implement the backpropagation
   """
 
   @jax.jit
@@ -49,16 +49,16 @@ def create_default_update_fn(optimizer, model_loss):
 class PINNModel(JaxModel):
   """
   This is class is derived from the JaxModel class and methods are also very similar to JaxModel,
-  but it has the optional of passing multiple arguments(Done using *args) suitable for PINNs model.
-  Ex - Approximating f(x, y, z, t) satisfying a Linear diffrential equation.
+  but it has the option of passing multiple arguments(Done using *args) suitable for PINNs model.
+  Ex - Approximating f(x, y, z, t) satisfying a Linear differential equation.
 
-  This model is reccomended for Linear diffrential equations but if you can accurately write
+  This model is recommended for Linear differential equations but if you can accurately write
   the gradient function in Jax depending on your use case, then it will work as well.
 
   This class requires two functions apart from the usual function definition and weights
 
-  [1] **grad_fn** : Each PINNs have a diffrent stratergy for calculating its final losses. This
-  function tells the PINNModel on how to go about computing the derivatives for backpropogation.
+  [1] **grad_fn** : Each PINNs have a different strategy for calculating its final losses. This
+  function tells the PINNModel how to go about computing the derivatives for backpropagation.
   It should follow this format:
 
   >>>
@@ -74,7 +74,7 @@ class PINNModel(JaxModel):
 
   "..." can be replaced with various arguments like (x, y, z, y) but should match with eval_fn
 
-  [2] **eval_fn**: Function for defining on how the model needs to compute during inference.
+  [2] **eval_fn**: Function for defining how the model needs to compute during inference.
   It should follow this format
 
   >>>
