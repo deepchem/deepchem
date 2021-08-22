@@ -70,8 +70,13 @@ class MATFeaturizer(MolecularFeaturizer):
     try:
       from rdkit.Chem import AllChem
       from rdkit import Chem
+<<<<<<< HEAD
     except ModuleNotFoundError:
       pass
+=======
+    except:
+      raise ModuleNotFoundError('This class requires RDKit to be installed.')
+>>>>>>> Model + tests + fixes
     try:
       mol = Chem.AddHs(mol)
       AllChem.EmbedMolecule(mol, maxAttempts=5000)
@@ -127,7 +132,11 @@ class MATFeaturizer(MolecularFeaturizer):
     """
     return np.array([self.atom_features(atom) for atom in mol.GetAtoms()])
 
+<<<<<<< HEAD
   def _add_dummy_node(
+=======
+  def add_dummy_node(
+>>>>>>> Model + tests + fixes
       self, node_features: np.ndarray, adj_matrix: np.ndarray,
       dist_matrix: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -166,7 +175,11 @@ class MATFeaturizer(MolecularFeaturizer):
 
     return node_features, adj_matrix, dist_matrix
 
+<<<<<<< HEAD
   def _pad_array(self, array: np.ndarray, shape: Any) -> np.ndarray:
+=======
+  def pad_array(self, array: np.ndarray, shape: Any) -> np.ndarray:
+>>>>>>> Model + tests + fixes
     """
     Pads an array to the desired shape.
 
@@ -187,7 +200,11 @@ class MATFeaturizer(MolecularFeaturizer):
     result[slices] = array
     return result
 
+<<<<<<< HEAD
   def _pad_sequence(self, sequence: np.ndarray) -> np.ndarray:
+=======
+  def pad_sequence(self, sequence: np.ndarray) -> np.ndarray:
+>>>>>>> Model + tests + fixes
     """
     Pads a given sequence using the pad_array function.
 
@@ -203,7 +220,11 @@ class MATFeaturizer(MolecularFeaturizer):
     """
     shapes = np.stack([np.array(t.shape) for t in sequence])
     max_shape = tuple(np.max(shapes, axis=0))
+<<<<<<< HEAD
     return np.stack([self._pad_array(t, shape=max_shape) for t in sequence])
+=======
+    return np.stack([self.pad_array(t, shape=max_shape) for t in sequence])
+>>>>>>> Model + tests + fixes
 
   def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """
@@ -227,6 +248,7 @@ class MATFeaturizer(MolecularFeaturizer):
 
     datapoint = self.construct_mol(datapoint)
 
+<<<<<<< HEAD
     node_features = self.construct_node_features_matrix(datapoint)
     adjacency_matrix = Chem.GetAdjacencyMatrix(datapoint)
     distance_matrix = Chem.GetDistanceMatrix(datapoint)
@@ -237,5 +259,19 @@ class MATFeaturizer(MolecularFeaturizer):
     node_features = self._pad_sequence(node_features)
     adjacency_matrix = self._pad_sequence(adjacency_matrix)
     distance_matrix = self._pad_sequence(distance_matrix)
+=======
+    datapoint = self.construct_mol(datapoint)
+
+    node_features = self.construct_node_features_matrix(datapoint)
+    adjacency_matrix = Chem.GetAdjacencyMatrix(datapoint)
+    distance_matrix = Chem.GetDistanceMatrix(datapoint)
+
+    node_features, adjacency_matrix, distance_matrix = self.add_dummy_node(
+        node_features, adjacency_matrix, distance_matrix)
+
+    node_features = self.pad_sequence(node_features)
+    adjacency_matrix = self.pad_sequence(adjacency_matrix)
+    distance_matrix = self.pad_sequence(distance_matrix)
+>>>>>>> Model + tests + fixes
 
     return MATEncoding(node_features, adjacency_matrix, distance_matrix)
