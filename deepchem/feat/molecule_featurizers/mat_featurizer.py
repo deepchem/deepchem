@@ -243,8 +243,4 @@ class MATFeaturizer(MolecularFeaturizer):
     adjacency_matrix = self.pad_sequence(adjacency_matrix)
     distance_matrix = self.pad_sequence(distance_matrix)
 
-    node_features = np.expand_dims(node_features, 0)
-    adjacency_matrix = np.expand_dims(adjacency_matrix, 0)
-    distance_matrix = np.expand_dims(distance_matrix, 0)
-
     return MATEncoding(node_features, adjacency_matrix, distance_matrix)
