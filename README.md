@@ -109,6 +109,10 @@ If GPU support is required, then make sure CUDA is installed and then install th
 2. pytorch - https://pytorch.org/get-started/locally/#start-locally
 3. jax - https://github.com/google/jax#pip-installation-gpu-cuda
 
+In `zsh` square brackets are used for globbing/pattern matching. This means you
+need to escape the square brackets in the above installation. You can do so
+by including the dependencies in quotes like `pip install --pre 'deepchem[jax]'`
+
 ### Docker
 
 If you want to install deepchem using a docker, you can pull two kinds of images.  
