@@ -106,3 +106,29 @@ def test_disk_dataset_get_legacy_shape_multishard():
   assert y_shape == (num_datapoints, num_tasks)
   assert w_shape == (num_datapoints, num_tasks)
   assert ids_shape == (num_datapoints,)
+
+
+def test_get_shard_size():
+  """
+  Test that using ids for getting the shard size does not break the method.
+  The issue arises when attempting to load a dataset that does not have a labels
+  column. The create_dataset method of the DataLoader class sets the y to None
+  in this case, which causes the existing implementation of the get_shard_size()
+  method to fail, as it relies on the dataset having a not None y column. This
+  consequently breaks all methods depending on this, like the splitters for
+  example.
+
+  Note
+  ----
+  DiskDatasets without labels cannot be resharded!
+  """
+
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  file_path = os.path.join(current_dir, "reaction_smiles.csv")
+
+  featurizer = dc.feat.DummyFeaturizer()
+  loader = dc.data.CSVLoader(
+      tasks=[], feature_field="reactions", featurizer=featurizer)
+
+  dataset = loader.create_dataset(file_path)
+  assert dataset.get_shard_size() == 4
