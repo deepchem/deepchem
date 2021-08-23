@@ -199,14 +199,12 @@ class TorchModel(Model):
     self.model = model.to(device)
 
     # Create a list of loggers
-    self.loggers = list()
+    self.loggers: SequenceCollection[Logger] = list()
     if logger is not None:
-      if isinstance(logger, list):
+      if isinstance(logger, SequenceCollection):
         self.loggers = logger
       else:
         self.loggers.append(logger)
-    else:
-      self.loggers = list()
 
     # W&B flag support
     if wandb:
@@ -224,24 +222,9 @@ class TorchModel(Model):
         logs.warning("A WandbLogger is already provided in argument `logger`. "
                      "Ignoring the argument `wandb`.")
       else:
-        self.loggers.append(WandbLogger())
-
-    # Update config with model params
-    logger_config = dict(
-        loss=loss,
-        output_types=output_types,
-        batch_size=batch_size,
-        model_dir=model_dir,
-        learning_rate=learning_rate,
-        optimizer=optimizer,
-        tensorboard=tensorboard,
-        log_frequency=log_frequency,
-        regularization_loss=regularization_loss)
-    logger_config.update(**kwargs)
-
-    # Setup and initialize external loggers
-    for ext_logger in self.loggers:
-      ext_logger.setup(logger_config)
+        list_of_loggers = list(self.loggers)  # logger list might be tuple
+        list_of_loggers.append(WandbLogger())
+        self.loggers = list_of_loggers
 
     self.log_frequency = log_frequency
     if self.tensorboard and not _has_tensorboard:
@@ -273,6 +256,10 @@ class TorchModel(Model):
     self._built = False
     self._output_functions: Dict[Any, Any] = {}
     self._optimizer_for_vars: Dict[Any, Any] = {}
+
+    # Setup and initialize external loggers
+    for ext_logger in self.loggers:
+      ext_logger.setup(self, **kwargs)
 
   def _ensure_built(self) -> None:
     """The first time this is called, create internal data structures."""
@@ -459,14 +446,7 @@ class TorchModel(Model):
       if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
         self.save_checkpoint(max_checkpoints_to_keep)
         for ext_logger in self.loggers:
-          ext_logger.save_checkpoint(
-              self.model_dir,
-              self,
-              "train_checkpoints",
-              "step",
-              current_step,
-              max_checkpoints_to_keep,
-              checkpoint_on_min=False)
+          ext_logger.save_checkpoint("train_checkpoints")
       for c in callbacks:
         c(self, current_step)
       if self.tensorboard and should_log:
@@ -492,14 +472,7 @@ class TorchModel(Model):
     if checkpoint_interval > 0:
       self.save_checkpoint(max_checkpoints_to_keep)
       for ext_logger in self.loggers:
-        ext_logger.save_checkpoint(
-            self.model_dir,
-            self,
-            "train_checkpoints",
-            "step",
-            current_step,
-            max_checkpoints_to_keep,
-            checkpoint_on_min=False)
+        ext_logger.save_checkpoint("train_checkpoints")
 
     # Call loggers end of fit behaviour
     for ext_logger in self.loggers:

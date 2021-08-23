@@ -28,14 +28,14 @@ class Logger(object):
     """
     return self
 
-  def setup(self, config: Dict):
+  def setup(self, model: Model, **kwargs):
     """
     Set up and initialize a logger.
 
     Parameters
     ----------
-    config: Dict
-      configuration/settings to be passed to logger.
+    model: Model
+      DeepChem model object
     """
     raise NotImplementedError
 
@@ -107,35 +107,14 @@ class Logger(object):
     raise NotImplementedError
 
   def save_checkpoint(self,
-                      model_dir: str,
-                      dc_model: Model,
                       checkpoint_name: str,
-                      value_name: str,
-                      value: numeric,
-                      max_checkpoints_to_track: int,
-                      checkpoint_on_min: bool,
                       metadata: Optional[Dict] = None):
     """Save model checkpoint.
 
     Parameters
     ----------
-    model_dir: str
-      directory containing model checkpoints
-    dc_model: Model
-      DeepChem model object to be saved
     checkpoint_name: str
       name of the checkpoint
-    value_name: str
-      the name metric to checkpoint on
-    value: numeric
-      the value of the metric to checkpoint on
-    max_checkpoints_to_track: int
-      the maximum number of checkpoints to track. Logger implementations
-      can choose what to do with older checkpoints (discard, keep, tag as old, etc.)
-    checkpoint_on_min:
-      if True, the best model is considered to be the one that minimizes the
-      value. If False, the best model is considered to be the one
-      that maximizes it.
     metadata: Dict, optional(default None)
       metadata to be save along with the checkpoint
     """

@@ -89,25 +89,33 @@ class WandbLogger(Logger):
     # Location ids are used to differentiate callbacks and logging locations seen by the logger
     self.location_ids: List[str] = []
 
-    # Keep track of best models during training and callbacks
-    self.best_models: Dict = {}
-
-  def setup(self, config: Dict):
+  def setup(self, model: Model, **kwargs):
     """Initializes a W&B run and create a run object.
     If a pre-existing run is already initialized, use that instead.
 
     Parameters
     ----------
-    config: Dict
-      W&B logger configurations
+    model: Model
+      DeepChem model object
     """
-
+    self.model = model
     if self._wandb.run is None:
       self.wandb_run = self._wandb.init(**self.wandb_init_params)
-      if self.wandb_run is not None:
-        self.wandb_run.config.update(config)
     else:
       self.wandb_run = self._wandb.run
+
+    # Add model settings to wandb config
+    if (self.wandb_run is not None) and (self.model is not None):
+      logger_config = dict(
+          loss=self.model._loss_fn.loss,
+          batch_size=self.model.batch_size,
+          model_dir=self.model.model_dir,
+          optimizer=self.model.optimizer,
+          tensorboard=self.model.tensorboard,
+          log_frequency=self.model.log_frequency)
+      logger_config.update(**kwargs)
+      self.wandb_run.config.update(logger_config)
+
     self.initialized = True
 
   def finish(self):
@@ -201,109 +209,55 @@ class WandbLogger(Logger):
         self.wandb_run.summary["final_avg_loss"] = data["final_avg_loss"]
 
   def save_checkpoint(self,
-                      model_dir: str,
-                      dc_model: Model,
                       checkpoint_name: str,
-                      value_name: str,
-                      value: numeric,
-                      max_checkpoints_to_track: int,
-                      checkpoint_on_min: bool,
                       metadata: Optional[Dict] = None):
     """Save model checkpoint.
 
     Parameters
     ----------
-    model_dir: str
-      directory containing model checkpoints
-    dc_model: Model
-      DeepChem model object to be saved
     checkpoint_name: str
       name of the checkpoint
-    value_name: str
-      the name metric to checkpoint on
-    value: numeric
-      the value of the metric to checkpoint on
-    max_checkpoints_to_track: int
-      the maximum number of checkpoints to track. New checkpoint must have
-      score better than the [max_checkpoints_to_track]th best checkpoint
-      in order to be saved.
-    checkpoint_on_min:
-      if True, the best model is considered to be the one that minimizes the
-      value. If False, the best model is considered to be the one
-      that maximizes it.
     metadata: Dict, optional(default None)
       metadata to be save along with the checkpoint
     """
-
-    # Only called once when first checkpoint is saved to create tracking record
-    if (checkpoint_name not in self.best_models):
-      # Set up to track top values of this checkpoint
-      self.best_models[checkpoint_name] = {}
-      self.best_models[checkpoint_name]["model_values"] = []
-
-    # Sort in order
-    if checkpoint_on_min:
-      self.best_models[checkpoint_name]["model_values"] = sorted(
-          self.best_models[checkpoint_name][
-              "model_values"])[:max_checkpoints_to_track]
-    else:
-      self.best_models[checkpoint_name]["model_values"] = sorted(
-          self.best_models[checkpoint_name]["model_values"],
-          reverse=True)[:max_checkpoints_to_track]
-
-    # Save checkpoint only if it passes the cutoff in the model values
-    should_save = False
-    if len(self.best_models[checkpoint_name]
-           ["model_values"]) < max_checkpoints_to_track:
-      # first checkpoint to be saved
-      should_save = True
-    elif checkpoint_on_min and (
-        value < self.best_models[checkpoint_name]["model_values"][-1]):
-      # value passes minimum cut off
-      should_save = True
-    elif (not checkpoint_on_min) and (
-        value > self.best_models[checkpoint_name]["model_values"][-1]):
-      # value passes maximum cut off
-      should_save = True
-
     if (self.initialized is False) or (self.wandb_run is None):
       logs.warning(
           'WARNING: The wandb run has not been initialized. Please start training and in order to start checkpointing.'
       )
     else:
-      if should_save:
-        self.best_models[checkpoint_name]["model_values"].append(value)
-        if self.wandb_run.name is not None:
-          model_name = checkpoint_name + "_" + self.wandb_run.name
-        else:
-          model_name = checkpoint_name
-        artifact = self._wandb.Artifact(
-            model_name, type='model', metadata=metadata)
+      if self.wandb_run.name is not None:
+        model_name = checkpoint_name + "_" + self.wandb_run.name
+      else:
+        model_name = checkpoint_name
+      artifact = self._wandb.Artifact(
+          model_name, type='model', metadata=metadata)
 
-        # Different saving mechanisms for different types of models
-        if isinstance(dc_model.model, tf.keras.Model):
-          model_path = os.path.abspath(os.path.join(model_dir, model_name))
-          dc_model.model.save(model_path)
-          artifact.add_dir(model_path)
+      # Different saving mechanisms for different types of models
+      if isinstance(self.model.model, tf.keras.Model):
+        model_path = os.path.abspath(
+            os.path.join(self.model.model_dir, model_name))
+        self.model.model.save(model_path)
+        artifact.add_dir(model_path)
+      elif isinstance(self.model.model, torch.nn.Module):
+        data = {
+            'model_state_dict': self.model.model.state_dict(),
+            'optimizer_state_dict': self.model._pytorch_optimizer.state_dict(),
+            'global_step': self.model._global_step
+        }
 
-        elif isinstance(dc_model.model, torch.nn.Module):
-          data = {
-              'model_state_dict': dc_model.model.state_dict(),
-              'optimizer_state_dict': dc_model._pytorch_optimizer.state_dict(),
-              'global_step': dc_model._global_step
-          }
+        saved_name = model_name + ".pt"
+        model_path = os.path.abspath(
+            os.path.join(self.model.model_dir, saved_name))
+        torch.save(data, model_path)
+        artifact.add_file(model_path)
 
-          saved_name = model_name + ".pt"
-          model_path = os.path.abspath(os.path.join(model_dir, saved_name))
-          torch.save(data, model_path)
-          artifact.add_file(model_path)
+      # apply aliases and log artifact
+      step = self.model._global_step
+      if not isinstance(step, int):
+        # If tensorflow tensor convert to number
+        step = step.numpy()
 
-        # apply aliases and log artifact
-        step = dc_model._global_step
-        if not isinstance(step, int):
-          # If tensorflow tensor convert to number
-          step = step.numpy()
-        aliases = ["latest", "step=" + str(step), value_name + "=" + str(value)]
-        aliases = list(set(aliases))  # remove duplicates
+      aliases = ["latest", "step=" + str(step)]
+      aliases = list(set(aliases))  # remove duplicates
 
-        self.wandb_run.log_artifact(artifact, aliases=aliases)
+      self.wandb_run.log_artifact(artifact, aliases=aliases)

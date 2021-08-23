@@ -366,7 +366,7 @@ def test_wandblogger():
 
   assert math.isclose(
       valid_score["pearson_r2_score"],
-      run_data['eval/callback2/pearson_r2_score'],
+      run_data['validation-callback2/pearson_r2_score'],
       abs_tol=0.0005)
 
 

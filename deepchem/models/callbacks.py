@@ -102,17 +102,6 @@ class ValidationCallback(object):
             self.name = str(id(
                 self.dataset)) + "-" + self.metrics[self.save_metric].name
           checkpoint_name = "callback-" + self.name + "-checkpoints"
-          # ensure score is positive if negated previously
-          checkpoint_score = score
-          if not self.save_on_minimum:
-            checkpoint_score = abs(checkpoint_score)
-          ext_logger.save_checkpoint(
-              self.save_dir,
-              model,
-              checkpoint_name,
-              self.metrics[self.save_metric].name,
-              checkpoint_score,
-              max_checkpoints_to_track=5,
-              checkpoint_on_min=self.save_on_minimum)
+          ext_logger.save_checkpoint(checkpoint_name)
     for ext_logger in model.loggers:
-      ext_logger.log_values(scores, step, location="eval/" + self.name)
+      ext_logger.log_values(scores, step, location=f'validation-{self.name}')
