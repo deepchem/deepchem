@@ -40,18 +40,18 @@ tutorials discuss about using DeepChem for specific applications.
 * [1 The Basic Tools of the Deep Life Sciences](The_Basic_Tools_of_the_Deep_Life_Sciences.ipynb)
 * [2 Working With Datasets](Working_With_Datasets.ipynb)
 * [3 An Introduction to MoleculeNet](An_Introduction_To_MoleculeNet.ipynb)
-* [4 Creating Models with Tensorflow and Pytorch](Creating_Models_with_TensorFlow_and_PyTorch.ipynb)
-* [5 Introduction to Graph Convolutions](Introduction_to_Graph_Convolutions.ipynb)
-* [6 Working With Splitters](Working_With_Splitters.ipynb)
-* [7 Advanced Model Training](Advanced_Model_Training.ipynb)
-* [8 Putting Multitask Learning to Work](Putting_Multitask_Learning_to_Work.ipynb)
-* [9 Conditional Generative Adversarial Networks](Conditional_Generative_Adversarial_Networks.ipynb)
-* [10 Training a Generative Adversarial Network on MNIST](Training_a_Generative_Adversarial_Network_on_MNIST.ipynb)
-* [11 Introduction to Model Interpretability](Introduction_to_Model_Interpretability.ipynb)
-* [12 Uncertainty in Deep Learning](Uncertainty_In_Deep_Learning.ipynb)
-* [13 Creating a high fidelity model from experimental data](Creating_a_high_fidelity_model_from_experimental_data.ipynb)
-* [14 Large Scale Chemical Screens](Large_Scale_Chemical_Screens.ipynb)
-* [15 Using Reinforcement Learning to Play Pong](Using_Reinforcement_Learning_to_Play_Pong.ipynb)
+* [4 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
+* [5 Creating Models with Tensorflow and Pytorch](Creating_Models_with_TensorFlow_and_PyTorch.ipynb)
+* [6 Introduction to Graph Convolutions](Introduction_to_Graph_Convolutions.ipynb)
+* [7 Going Deeper on Molecular Featurizations](Going_Deeper_on_Molecular_Featurizations.ipynb)
+* [8 Working With Splitters](Working_With_Splitters.ipynb)
+* [9 Advanced Model Training](Advanced_Model_Training.ipynb)
+* [10 Creating a high fidelity model from experimental data](Creating_a_high_fidelity_model_from_experimental_data.ipynb)
+* [11 Putting Multitask Learning to Work](Putting_Multitask_Learning_to_Work.ipynb)
+* [12 Modeling Protein Ligand Interactions](Modeling_Protein_Ligand_Interactions.ipynb)
+* [13 Modeling Protein Ligand Interactions with Atomic Convolutions](Modeling_Protein_Ligand_Interactions_With_Atomic_Convolutions.ipynb)
+* [14 Conditional Generative Adversarial Networks](Conditional_Generative_Adversarial_Networks.ipynb)
+* [15 Training a Generative Adversarial Network on MNIST](Training_a_Generative_Adversarial_Network_on_MNIST.ipynb)
 
 ### Molecular Machine Learning
 * [1 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
@@ -61,11 +61,14 @@ tutorials discuss about using DeepChem for specific applications.
 * [5 Atomic Contributions for Molecules](Atomic_Contributions_for_Molecules.ipynb)
 * [6 Transfer Learning with ChemBERTa Transformers](Transfer_Learning_With_ChemBERTa_Transformers.ipynb)
 * [7 Training a Normalizing Flow on QM9](Training_a_Normalizing_Flow_on_QM9.ipynb)
+* [8 Large Scale Chemical Screens](Large_Scale_Chemical_Screens.ipynb)
 
 ### Modeling Proteins
+* [1 Protein Deep Learning](Protein_Deep_Learning.ipynb)
+
+### Protein Ligand Modeling
 * [1 Modeling Protein Ligand Interactions](Modeling_Protein_Ligand_Interactions.ipynb)
 * [2 Modeling Protein Ligand Interactions with Atomic Convolutions](Modeling_Protein_Ligand_Interactions_With_Atomic_Convolutions.ipynb)
-* [3 Protein Deep Learning](Protein_Deep_Learning.ipynb)
 
 ### Quantum Chemistry
 * [1 Exploring Quantum Chemistry with GDB1k](Exploring_Quantum_Chemistry_with_GDB1k.ipynb)
@@ -75,3 +78,8 @@ tutorials discuss about using DeepChem for specific applications.
 
 ### Material Science
 * [1 Introduction to Material Science](Introduction_To_Material_Science.ipynb)
+
+### Machine Learning Methods 
+* [1 Using Reinforcement Learning to Play Pong](Using_Reinforcement_Learning_to_Play_Pong.ipynb)
+* [2 Introduction to Model Interpretability](Introduction_to_Model_Interpretability.ipynb)
+* [3 Uncertainty in Deep Learning](Uncertainty_In_Deep_Learning.ipynb)
