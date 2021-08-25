@@ -1,5 +1,7 @@
 from deepchem.feat import Featurizer
 from typing import List
+import numpy as np
+from logging import Logger
 
 try:
   from transformers import RobertaTokenizerFast
@@ -31,6 +33,8 @@ class RxnFeaturizer(Featurizer):
   def _featurize(self, datapoint: str, **kwargs) -> List[List[List[int]]]:
     # if dont want to tokenize, return raw reaction SMILES.
     # sep_reagent then tokenize, source and target separately.
+
+    datapoint = [datapoint]
     reactant = list(map(lambda x: x.split('>')[0], datapoint))
     reagent = list(map(lambda x: x.split('>')[1], datapoint))
     product = list(map(lambda x: x.split('>')[2], datapoint))
@@ -44,7 +48,10 @@ class RxnFeaturizer(Featurizer):
       ]
     target = product
 
-    source_encoding = list(self.tokenizer(source, **kwargs).values())
-    target_encoding = list(self.tokenizer(target, **kwargs).values())
+    source_encoding = list(self.tokenizer(source, padding=True, **kwargs).values())
+    target_encoding = list(self.tokenizer(target, padding=True, **kwargs).values())
 
     return [source_encoding, target_encoding]
+
+def __call__(self, *args, **kwargs) -> np.ndarray:
+  return self.featurize(*args, **kwargs)
