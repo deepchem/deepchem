@@ -14,7 +14,7 @@ except ModuleNotFoundError:
 class RxnFeaturizer(Featurizer):
   """Reaction Featurizer.
 
-  RxnFeaturizer is a wrapper class for the HuggingFace's RobertaTokenizerFast,
+  RxnFeaturizer is a wrapper class for HuggingFace's RobertaTokenizerFast,
   that is intended for featurizing chemical reaction datasets. The featurizer
   computes the source and target required for a seq2seq task and applies the
   RobertaTokenizer on them separately.
