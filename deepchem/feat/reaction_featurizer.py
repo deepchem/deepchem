@@ -1,7 +1,6 @@
 from deepchem.feat import Featurizer
 from typing import List
 import numpy as np
-from logging import Logger
 
 try:
   from transformers import RobertaTokenizerFast
@@ -34,10 +33,10 @@ class RxnFeaturizer(Featurizer):
     # if dont want to tokenize, return raw reaction SMILES.
     # sep_reagent then tokenize, source and target separately.
 
-    datapoint = [datapoint]
-    reactant = list(map(lambda x: x.split('>')[0], datapoint))
-    reagent = list(map(lambda x: x.split('>')[1], datapoint))
-    product = list(map(lambda x: x.split('>')[2], datapoint))
+    datapoint_list = [datapoint]
+    reactant = list(map(lambda x: x.split('>')[0], datapoint_list))
+    reagent = list(map(lambda x: x.split('>')[1], datapoint_list))
+    product = list(map(lambda x: x.split('>')[2], datapoint_list))
 
     if self.sep_reagent:
       source = [x + '>' + y for x, y in zip(reactant, reagent)]
@@ -48,10 +47,13 @@ class RxnFeaturizer(Featurizer):
       ]
     target = product
 
-    source_encoding = list(self.tokenizer(source, padding=True, **kwargs).values())
-    target_encoding = list(self.tokenizer(target, padding=True, **kwargs).values())
+    source_encoding = list(
+        self.tokenizer(source, padding=True, **kwargs).values())
+    target_encoding = list(
+        self.tokenizer(target, padding=True, **kwargs).values())
 
     return [source_encoding, target_encoding]
+
 
 def __call__(self, *args, **kwargs) -> np.ndarray:
   return self.featurize(*args, **kwargs)
