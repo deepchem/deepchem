@@ -82,11 +82,7 @@ class _USPTOLoader(_MolnetLoader):
 
 
 def load_uspto(
-<<<<<<< HEAD
-    featurizer: Union[dc.feat.Featurizer, str] = "RxnFeaturizer",
-=======
     featurizer: Union[dc.feat.Featurizer, str] = RxnFeaturizer(tokenizer, sep_reagent=True),
->>>>>>> update loader
     splitter: Union[dc.splits.Splitter, str, None] = None,
     transformers: List[Union[TransformerGenerator, str]] = [],
     reload: bool = True,
