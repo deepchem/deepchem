@@ -55,5 +55,9 @@ class RxnFeaturizer(Featurizer):
     return [source_encoding, target_encoding]
 
 
-def __call__(self, *args, **kwargs) -> np.ndarray:
-  return self.featurize(*args, **kwargs)
+  def __call__(self, *args, **kwargs) -> np.ndarray:
+    return self.featurize(*args, **kwargs)
+
+  def __str__(self) -> str:
+  # perhaps a bit hacky?!
+    return 'RxnFeaturizer'
