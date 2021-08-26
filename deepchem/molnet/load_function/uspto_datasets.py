@@ -9,11 +9,16 @@ import logging
 import deepchem
 from deepchem.data import Dataset
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
+from deepchem.feat.reaction_featurizer import RxnFeaturizer
 from typing import List, Optional, Tuple, Union
 import deepchem as dc
 
-from transformers import RobertaTokenizerFast
-from deepchem.feat.reaction_featurizer import RxnFeaturizer
+try:
+  from transformers import RobertaTokenizerFast
+except ModuleNotFoundError:
+  raise ImportError(
+      'Transformers must be installed for RxnFeaturizer to be used!')
+  pass
 
 tokenizer = RobertaTokenizerFast.from_pretrained(
     "seyonec/PubChem10M_SMILES_BPE_450k")
