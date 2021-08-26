@@ -5,6 +5,11 @@ This file contains loaders for synthetic reaction datasets from the US Patent Of
 """
 import os
 import logging
+
+from transformers.models.roberta.configuration_roberta import ROBERTA_PRETRAINED_CONFIG_ARCHIVE_MAP
+import deepchem
+from deepchem.data import Dataset
+from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from typing import List, Optional, Tuple, Union
 
 import deepchem as dc
@@ -16,6 +21,12 @@ try:
   from deepchem.feat.reaction_featurizer import RxnFeaturizer
 except ModuleNotFoundError:
   pass
+
+from transformers import RobertaTokenizerFast
+from deepchem.feat.reaction_featurizer import RxnFeaturizer
+
+tokenizer = RobertaTokenizerFast.from_pretrained("seyonec/PubChem10M_SMILES_BPE_450k")
+
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +82,11 @@ class _USPTOLoader(_MolnetLoader):
 
 
 def load_uspto(
+<<<<<<< HEAD
     featurizer: Union[dc.feat.Featurizer, str] = "RxnFeaturizer",
+=======
+    featurizer: Union[dc.feat.Featurizer, str] = RxnFeaturizer(tokenizer, sep_reagent=True),
+>>>>>>> update loader
     splitter: Union[dc.splits.Splitter, str, None] = None,
     transformers: List[Union[TransformerGenerator, str]] = [],
     reload: bool = True,
