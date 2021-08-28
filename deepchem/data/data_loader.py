@@ -979,7 +979,7 @@ class FASTALoader(DataLoader):
         # (X, y, w, ids)
         yield X, None, None, ids
 
-    def _read_file(input_file: str, auto_add_annotations: bool = False):
+    def _read_file(input_file: str):
       """
       Convert the FASTA file to a numpy array of FASTA-format strings.
       """
@@ -1012,7 +1012,7 @@ class FASTALoader(DataLoader):
           # TODO log attempts to add empty sequences every shard
           return np.array([])
         # Annotate start/stop of sequence
-        if auto_add_annotations:
+        if self.auto_add_annotations:
           sequence = np.insert(sequence, 0, "[CLS]")
           sequence = np.append(sequence, "[SEP]")
         new_sequence = ''.join(sequence)
