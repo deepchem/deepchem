@@ -17,7 +17,7 @@ except:
 @pytest.mark.jax
 def test_sine_x():
   """
-    Here we are solving the diffrential equation- f'(x) = -sin(x) and f(0) = 1
+    Here we are solving the differential equation- f'(x) = -sin(x) and f(0) = 1
     We give initial for the neural network at x_init --> np.linspace(-1 * np.pi, 1 * np.pi, 5)
     And we try to approximate the function for the domain (-np.pi, np.pi)
   """
