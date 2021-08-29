@@ -13,8 +13,9 @@ class MAT(nn.Module):
   In this class, we define the various layers and establish a sequential model for the Molecular Attention Transformer.
   We also define the forward call of this model in the forward function.
 
-  All arguments have the same meaning as in MATModel.
-
+  References
+  ----------
+  .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
   '''
 
   def __init__(self,
@@ -43,6 +44,62 @@ class MAT(nn.Module):
                gen_attn_out: int = 4,
                gen_d_output: int = 1,
                **kwargs):
+    '''
+    Initialization for the internal MAT class.
+
+    Parameters
+    ----------
+    dist_kernel: str
+        Kernel activation to be used. Can be either 'softmax' for softmax or 'exp' for exponential, for the self-attention layer.
+    n_encoders: int
+        Number of encoder layers in the encoder block.
+    lambda_attention: float
+        Constant to be multiplied with the attention matrix in the self-attention layer.
+    lambda_distance: float
+        Constant to be multiplied with the distance matrix in the self-attention layer.
+    h: int
+        Number of attention heads for the self-attention layer.
+    sa_hsize: int
+        Size of dense layer in the self-attention layer.
+    sa_dropout_p: float
+        Dropout probability for the self-attention layer.
+    output_bias: bool
+        If True, dense layers will use bias vectors in the self-attention layer.
+    d_input: int
+        Size of input layer in the feed-forward layer.
+    d_hidden: int
+        Size of hidden layer in the feed-forward layer. Will also be used as d_output for the MATEmbedding layer.
+    d_output: int
+        Size of output layer in the feed-forward layer.
+    activation: str
+        Activation function to be used in the feed-forward layer.
+        Can choose between 'relu' for ReLU, 'leakyrelu' for LeakyReLU, 'prelu' for PReLU,
+        'tanh' for TanH, 'selu' for SELU, 'elu' for ELU and 'linear' for linear activation.
+    n_layers: int
+        Number of layers in the feed-forward layer.
+    ff_dropout_p: float
+        Dropout probability in the feeed-forward layer.
+    encoder_hsize: int
+        Size of Dense layer for the encoder itself.
+    encoder_dropout_p: float
+        Dropout probability for connections in the encoder layer.
+    embed_input_hsize: int
+        Size of input layer for the MATEmbedding layer.
+    embed_dropout_p: float
+        Dropout probability for the MATEmbedding layer.
+    gen_aggregation_type: str
+        Type of aggregation to be used. Can be 'grover', 'mean' or 'contextual'.
+    gen_dropout_p: float
+        Dropout probability for the MATGenerator layer.
+    gen_n_layers: int
+        Number of layers in MATGenerator.
+    gen_attn_hidden: int
+        Size of hidden attention layer in the MATGenerator layer.
+    gen_attn_out: int
+        Size of output attention layer in the MATGenerator layer.
+    gen_d_output: int
+        Size of output layer in the MATGenerator layer.
+    '''
 
     super(MAT, self).__init__()
 

@@ -407,21 +407,6 @@ class SublayerConnection(nn.Module):
     output: torch.Tensor
       Layer whose normalized output will be added to x.
     """
-    # if x is None:
-    #   return self.dropout_p(self.norm(output))
-
-    # if len(x.shape) < len(output.shape):
-    #   temp_ar = x
-    #   op_ar = output
-    #   adjusted = temp_ar.unsqueeze(1).repeat(1, op_ar.shape[1], 1)
-    # elif len(x.shape) > len(output.shape):
-    #   temp_ar = output
-    #   op_ar = x
-    #   adjusted = temp_ar.unsqueeze(1).repeat(1, op_ar.shape[1], 1)
-    # else:
-    #   return x + self.dropout_p(self.norm(output))
-
-    # return adjusted + self.dropout_p(self.norm(op_ar))
     if x is None:
       return self.dropout(self.norm(output))
     return x + self.dropout_p(self.norm(output))
