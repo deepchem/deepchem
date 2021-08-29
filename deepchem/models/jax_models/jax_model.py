@@ -82,7 +82,7 @@ class JaxModel(Model):
   dataset.
 
   >>>
-  >> def f(x):
+  >> def forward_model(x):
   >>   net = hk.nets.MLP([512, 256, 128, 1])
   >>   return net(x)
   >> def rms_loss(pred, tar, w):
