@@ -29,9 +29,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def create_default_update_fn(
-  optimizer: optax.GradientTransformation,
-  model_loss: callable):
+def create_default_update_fn(optimizer: optax.GradientTransformation,
+                             model_loss: callable):
   """
   This function calls the update function, to implement the backpropagation
   """
