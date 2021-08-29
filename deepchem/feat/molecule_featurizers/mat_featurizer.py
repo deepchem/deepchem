@@ -2,29 +2,6 @@ from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.utils.molecule_feature_utils import one_hot_encode
 from deepchem.utils.typing import RDKitMol, RDKitAtom
 import numpy as np
-from typing import Tuple, Any
-from dataclasses import dataclass
-
-
-@dataclass
-class MATEncoding:
-  """
-  Dataclass specific to the Molecular Attention Transformer [1]_.
-
-  This dataclass class wraps around three different matrices for a given molecule: Node Features, Adjacency Matrix, and the Distance Matrix.
-
-  Parameters
-  ----------
-  node_features: np.ndarray
-    Node Features matrix for the molecule. For MAT, derived from the construct_node_features_matrix function.
-  adjacency_matrix: np.ndarray
-    Adjacency matrix for the molecule. Derived from rdkit.Chem.rdmolops.GetAdjacencyMatrix
-  distance_matrix: np.ndarray
-    Distance matrix for the molecule. Derived from rdkit.Chem.rdmolops.GetDistanceMatrix
-  """
-  node_features: np.ndarray
-  adjacency_matrix: np.ndarray
-  distance_matrix: np.ndarray
 
 
 class MATFeaturizer(MolecularFeaturizer):
@@ -50,23 +27,17 @@ class MATFeaturizer(MolecularFeaturizer):
   This class requires RDKit to be installed.
   """
 
-  def __init__(self):
-    pass
-
-  def construct_mol(self, mol: RDKitMol) -> RDKitMol:
+  def __init__(
+      self,
+      one_hot_formal_charge: bool = True,
+  ):
     """
-    Processes an input RDKitMol further to be able to extract id-specific Conformers from it using mol.GetConformer().
-
     Parameters
     ----------
-    mol: RDKitMol
-      RDKit Mol object.
-
-    Returns
-    ----------
-    mol: RDKitMol
-      A processed RDKitMol objeect which is embedded, UFF Optimized and has Hydrogen atoms removed. If the former conditions are not met and there is a value error, then 2D Coordinates are computed instead.
+    one_hot_formal_charge: bool, default True
+      If True, formal charges on atoms are one-hot encoded.
     """
+<<<<<<< HEAD
     try:
       from rdkit.Chem import AllChem
       from rdkit import Chem
@@ -84,8 +55,10 @@ class MATFeaturizer(MolecularFeaturizer):
       mol = Chem.RemoveHs(mol)
     except ValueError:
       AllChem.Compute2DCoords(mol)
+=======
+>>>>>>> Removed extra file changes from other PRs
 
-    return mol
+    self.one_hot_formal_charge = one_hot_formal_charge
 
   def atom_features(self, atom: RDKitAtom) -> np.ndarray:
     """
@@ -101,6 +74,7 @@ class MATFeaturizer(MolecularFeaturizer):
     ----------
     Atom_features: ndarray
       Numpy array containing atom features.
+
     """
     attrib = []
     attrib += one_hot_encode(atom.GetAtomicNum(),
@@ -108,14 +82,17 @@ class MATFeaturizer(MolecularFeaturizer):
     attrib += one_hot_encode(len(atom.GetNeighbors()), [0, 1, 2, 3, 4, 5])
     attrib += one_hot_encode(atom.GetTotalNumHs(), [0, 1, 2, 3, 4])
 
-    attrib += one_hot_encode(atom.GetFormalCharge(),
-                             [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
+    if self.one_hot_formal_charge:
+      attrib += one_hot_encode(atom.GetFormalCharge(), [-1, 0, 1])
+    else:
+      attrib.append(atom.GetFormalCharge())
 
     attrib.append(atom.IsInRing())
     attrib.append(atom.GetIsAromatic())
 
     return np.array(attrib, dtype=np.float32)
 
+<<<<<<< HEAD
   def construct_node_features_matrix(self, mol: RDKitMol) -> np.ndarray:
     """
     This function constructs a matrix of atom features for all atoms in a given molecule using the atom_features function.
@@ -226,6 +203,8 @@ class MATFeaturizer(MolecularFeaturizer):
     return np.stack([self.pad_array(t, shape=max_shape) for t in sequence])
 >>>>>>> Model + tests + fixes
 
+=======
+>>>>>>> Removed extra file changes from other PRs
   def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """
     Featurize the molecule.
@@ -237,7 +216,7 @@ class MATFeaturizer(MolecularFeaturizer):
 
     Returns
     -------
-    MATEncoding: A MATEncoding dataclass instance consisting of processed node_features, adjacency_matrix and distance_matrix.
+    np.ndarray: A concatenated matrix consisting of node_features, adjacency_matrix and distance_matrix.
     """
     if 'mol' in kwargs:
       datapoint = kwargs.get("mol")
@@ -256,16 +235,23 @@ class MATFeaturizer(MolecularFeaturizer):
     node_features, adjacency_matrix, distance_matrix = self._add_dummy_node(
         node_features, adjacency_matrix, distance_matrix)
 
+<<<<<<< HEAD
     node_features = self._pad_sequence(node_features)
     adjacency_matrix = self._pad_sequence(adjacency_matrix)
     distance_matrix = self._pad_sequence(distance_matrix)
 =======
     datapoint = self.construct_mol(datapoint)
+=======
+    node_features = np.array(
+        [self.atom_features(atom) for atom in datapoint.GetAtoms()])
+    adjacency_matrix = Chem.rdmolops.GetAdjacencyMatrix(datapoint)
+    distance_matrix = Chem.rdmolops.GetDistanceMatrix(datapoint)
+>>>>>>> Removed extra file changes from other PRs
 
-    node_features = self.construct_node_features_matrix(datapoint)
-    adjacency_matrix = Chem.GetAdjacencyMatrix(datapoint)
-    distance_matrix = Chem.GetDistanceMatrix(datapoint)
+    result = np.concatenate(
+        [node_features, adjacency_matrix, distance_matrix], axis=1)
 
+<<<<<<< HEAD
     node_features, adjacency_matrix, distance_matrix = self.add_dummy_node(
         node_features, adjacency_matrix, distance_matrix)
 
@@ -275,3 +261,6 @@ class MATFeaturizer(MolecularFeaturizer):
 >>>>>>> Model + tests + fixes
 
     return MATEncoding(node_features, adjacency_matrix, distance_matrix)
+=======
+    return result
+>>>>>>> Removed extra file changes from other PRs
