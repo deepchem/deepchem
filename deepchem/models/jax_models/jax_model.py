@@ -81,14 +81,16 @@ class JaxModel(Model):
   dataset.
 
   >>>
-  >> def f(x):
+  >> def forward_model(x):
   >>   net = hk.nets.MLP([512, 256, 128, 1])
   >>   return net(x)
-  >> model = hk.without_apply_rng(hk.transform(f))
+  >> def rms_loss(pred, tar, w):
+  >>   return jnp.mean(optax.l2_loss(pred, tar))
+  >> params_init, forward_fn = hk.transform(forward_model)
   >> rng = jax.random.PRNGKey(500)
-  >> x, _, _, _ = next(iter(train_dataset.iterbatches(batch_size=256)))
-  >> params = model.init(rng, x)
-  >> j_m = JaxModel(model, params, 256, 0.001, 100)
+  >> inputs, _, _, _ = next(iter(dataset.iterbatches(batch_size=256)))
+  >> params = params_init(rng, inputs)
+  >> j_m = JaxModel(forward_fn, params, rms_loss, 256, 0.001, 100)
   >> j_m.fit(train_dataset)
 
   All optimizations will be done using the optax library.
