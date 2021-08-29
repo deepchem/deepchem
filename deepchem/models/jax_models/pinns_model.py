@@ -1,5 +1,5 @@
 '''
-This python consists of different variations of the Physics Informer Neural Network model using the JaxModel API
+This module contains different variations of the Physics Informer Neural Network model using the JaxModel API
 '''
 import numpy as np
 import time
@@ -29,7 +29,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def create_default_update_fn(optimizer, model_loss):
+def create_default_update_fn(
+  optimizer: optax.GradientTransformation,
+  model_loss: callable):
   """
   This function calls the update function, to implement the backpropagation
   """
@@ -51,7 +53,7 @@ class PINNModel(JaxModel):
   but it has the option of passing multiple arguments(Done using *args) suitable for PINNs model.
   Ex - Approximating f(x, y, z, t) satisfying a Linear differential equation.
 
-  This model is recommended for Linear differential equations but if you can accurately write
+  This model is recommended for linear partial differential equations but if you can accurately write
   the gradient function in Jax depending on your use case, then it will work as well.
 
   This class requires two functions apart from the usual function definition and weights
