@@ -70,8 +70,8 @@ class MATFeaturizer(MolecularFeaturizer):
     try:
       from rdkit.Chem import AllChem
       from rdkit import Chem
-    except:
-      raise ModuleNotFoundError('This class requires RDKit to be installed.')
+    except ModuleNotFoundError:
+      pass
     try:
       mol = Chem.AddHs(mol)
       AllChem.EmbedMolecule(mol, maxAttempts=5000)
@@ -223,11 +223,7 @@ class MATFeaturizer(MolecularFeaturizer):
       raise DeprecationWarning(
           'Mol is being phased out as a parameter, please pass "datapoint" instead.'
       )
-
-    try:
-      from rdkit import Chem
-    except:
-      raise ImportError("This class requires RDKit to be installed.")
+    from rdkit import Chem
 
     datapoint = self.construct_mol(datapoint)
 
