@@ -175,6 +175,9 @@ class KerasModel(Model):
       the Weights & Biases logger object used to log data and metrics
     """
     super(KerasModel, self).__init__(model=model, model_dir=model_dir, **kwargs)
+    self.loss = loss  # not used
+    self.learning_rate = learning_rate  # not used
+    self.output_types = output_types  # not used
     if isinstance(loss, Loss):
       self._loss_fn: LossFn = _StandardLoss(model, loss)
     else:

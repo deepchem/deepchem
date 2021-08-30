@@ -705,3 +705,26 @@ def test_mat_encoder_layer():
                             [[5.0000, 6.0000], [3.0000, 8.0000],
                              [5.0000, 6.0000], [3.0000, 8.0000]]])
   assert torch.allclose(result, output_ar, rtol=1e-4)
+
+
+@pytest.mark.torch
+def test_mat_embedding():
+  """Test invoking MATEmbedding."""
+  torch.manual_seed(0)
+  input_ar = torch.tensor([1., 2., 3.])
+  layer = torch_layers.MATEmbedding(3, 1, 0.0)
+  result = layer(input_ar).detach()
+  output_ar = torch.tensor([-1.2353])
+  assert torch.allclose(result, output_ar, rtol=1e-4)
+
+
+@pytest.mark.torch
+def test_mat_generator():
+  """Test invoking MATGenerator."""
+  torch.manual_seed(0)
+  input_ar = torch.tensor([1., 2., 3.])
+  layer = torch_layers.MATGenerator(3, 'mean', 1, 1, 0.0)
+  mask = torch.tensor([1., 1., 1.])
+  result = layer(input_ar, mask)
+  output_ar = torch.tensor([-1.4436])
+  assert torch.allclose(result, output_ar, rtol=1e-4)

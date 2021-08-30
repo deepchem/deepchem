@@ -74,6 +74,12 @@ except ModuleNotFoundError:
   pass
 
 try:
+  from transformers import BertTokenizerFast
+  from deepchem.feat.bert_tokenizer import BertFeaturizer
+except ModuleNotFoundError:
+  pass
+
+try:
   from transformers import RobertaTokenizerFast
   from deepchem.feat.roberta_tokenizer import RobertaFeaturizer
   from deepchem.feat.reaction_featurizer import RxnFeaturizer

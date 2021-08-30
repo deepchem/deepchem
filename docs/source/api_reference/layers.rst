@@ -137,6 +137,12 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.PositionwiseFeedForward
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.MATEmbedding
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.MATGenerator
+  :members:
+
 .. autofunction:: deepchem.models.layers.cosine_dist
 
 Jax Layers
@@ -144,4 +150,3 @@ Jax Layers
 
 .. autoclass:: deepchem.models.jax_models.layers.Linear
   :members:
-

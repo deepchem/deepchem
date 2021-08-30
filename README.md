@@ -109,6 +109,10 @@ If GPU support is required, then make sure CUDA is installed and then install th
 2. pytorch - https://pytorch.org/get-started/locally/#start-locally
 3. jax - https://github.com/google/jax#pip-installation-gpu-cuda
 
+In `zsh` square brackets are used for globbing/pattern matching. This means you
+need to escape the square brackets in the above installation. You can do so
+by including the dependencies in quotes like `pip install --pre 'deepchem[jax]'`
+
 ### Docker
 
 If you want to install deepchem using a docker, you can pull two kinds of images.  
@@ -142,6 +146,10 @@ Please check [this introduction](https://deepchem.readthedocs.io/en/latest/insta
 The DeepChem project maintains an extensive collection of [tutorials](https://github.com/deepchem/deepchem/tree/master/examples/tutorials). All tutorials are designed to be run on Google colab (or locally if you prefer). Tutorials are arranged in a suggested learning sequence which will take you from beginner to proficient at molecular machine learning and computational biology more broadly.
 
 After working through the tutorials, you can also go through other [examples](https://github.com/deepchem/deepchem/tree/master/examples). To apply `deepchem` to a new problem, try starting from one of the existing examples or tutorials and modifying it step by step to work with your new use-case. If you have questions or comments you can raise them on our [gitter](https://gitter.im/deepchem/Lobby).
+
+### Supported Integrations
+
+- [Weights & Biases](https://docs.wandb.ai/guides/integrations/other/deepchem): Track your DeepChem model's training and evaluation metrics.
 
 ### Gitter
 
