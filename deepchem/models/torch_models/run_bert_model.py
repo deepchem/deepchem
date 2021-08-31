@@ -7,7 +7,7 @@ from icecream import ic
 
 tokenizer = BertTokenizerFast.from_pretrained(
     "Rostlab/prot_bert", do_lower_case=False)
-featurizer = BertFeaturizer(tokenizer)
+featurizer = BertFeaturizer(tokenizer, return_tensors="pt")
 
 loader = FASTALoader(
     featurizer=featurizer, legacy=False, auto_add_annotations=True)
@@ -16,10 +16,19 @@ directory = dirname(file_loc)
 data = loader.create_dataset(
     input_files=join(directory,
                      "../../feat/tests/data/uniprot_truncated.fasta"))
-print(f"data: {data}")
 
-for datapt in data.itersamples():
-  print(list(datapt))
+model = BertModel.from_pretrained("Rostlab/prot_bert")
+model = BertModelWrapper(model)
+
+for X, y, w, ids in data.itersamples():
+  encoded_input = {
+      'input_ids': X[0],
+      'token_type_ids': X[1],
+      'attention_mask': X[2]
+  }
+  output = model(**encoded_input)
+  ic(output)
+
 
 """
 sequence_long = ['[CLS] D L I P T S S K L V V K K A F F A L V T [SEP]']
@@ -30,7 +39,6 @@ encoded_input = {
     'attention_mask': encoded_input[2]
 }
 ic(encoded_input)
-
 model = BertModel.from_pretrained("Rostlab/prot_bert")
 model = BertModelWrapper(model)
 output = model(**encoded_input)
