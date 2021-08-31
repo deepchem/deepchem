@@ -1,6 +1,7 @@
 from deepchem.feat import Featurizer
-from typing import List
+from typing import Optional, List, Union
 try:
+  import transformers
   from transformers import BertTokenizerFast
 except ModuleNotFoundError:
   raise ImportError(
@@ -29,12 +30,28 @@ class BertFeaturizer(Featurizer):
   Examples are based on RostLab's ProtBert documentation.
   """
 
-  def __init__(self, tokenizer: BertTokenizerFast):
+  def __init__(self,
+               tokenizer: BertTokenizerFast,
+               return_tensors: Optional[Union[
+                   str, transformers.file_utils.TensorType]] = None):
+    """
+    Initialize a BertFeaturizer object
+
+    Parameters
+    ----------
+    tokenizer: BertTokenizerFast
+      Tokenizer to be used for featurization.
+    return_tensors: Optional[Union[str, transformers.file_utils.TensorType]]
+      HuggingFace argument to "return tensors instead of python integers."
+      src: https://huggingface.co/transformers/internal/tokenization_utils.html
+    """
+
     if not isinstance(tokenizer, BertTokenizerFast):
       raise TypeError(f"""`tokenizer` must be a constructed `BertTokenizerFast`
                        object, not {type(tokenizer)}""")
     else:
       self.tokenizer = tokenizer
+    self.return_tensors = return_tensors
 
   def _featurize(self, datapoint: str, **kwargs) -> List[List[int]]:
     """
@@ -52,5 +69,7 @@ class BertFeaturizer(Featurizer):
     """
 
     # the encoding is natively a dictionary with keys 'input_ids', 'token_type_ids', and 'attention_mask'
-    encoding = list(self.tokenizer(datapoint, **kwargs).values())
+    encoding = self.tokenizer(
+        datapoint, return_tensors=self.return_tensors, **kwargs)
+    encoding = list(encoding.values())
     return encoding
