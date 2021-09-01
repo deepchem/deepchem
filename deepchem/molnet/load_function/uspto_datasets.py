@@ -10,7 +10,6 @@ from transformers.models.roberta.configuration_roberta import ROBERTA_PRETRAINED
 import deepchem
 from deepchem.data import Dataset
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
-from deepchem.feat.reaction_featurizer import RxnFeaturizer
 from typing import List, Optional, Tuple, Union
 
 import deepchem as dc
@@ -25,6 +24,7 @@ except ModuleNotFoundError:
 
 try:
   from transformers import RobertaTokenizerFast
+  from deepchem.feat.reaction_featurizer import RxnFeaturizer
 except ModuleNotFoundError:
   raise ImportError(
       'Transformers must be installed for RxnFeaturizer to be used!')
