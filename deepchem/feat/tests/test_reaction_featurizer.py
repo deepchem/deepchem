@@ -6,8 +6,8 @@ def test_featurize():
   """Test that RxnFeaturizer.featurize() correctly featurizes the reactions,
     correctly outputs the input_ids and attention_mask.
     """
-  from deepchem.feat.reaction_featurizer import RxnFeaturizer
   from transformers import RobertaTokenizerFast
+  from deepchem.feat.reaction_featurizer import RxnFeaturizer
   tokenizer = RobertaTokenizerFast.from_pretrained(
       "seyonec/PubChem10M_SMILES_BPE_450k")
   featurizer = RxnFeaturizer(tokenizer, sep_reagent=True)
@@ -22,8 +22,8 @@ def test_separation():
     The tokenized reaction is decoded before testing for equality, to make the
     test more readable.
     """
-  from deepchem.feat.reaction_featurizer import RxnFeaturizer
   from transformers import RobertaTokenizerFast
+  from deepchem.feat.reaction_featurizer import RxnFeaturizer
   tokenizer = RobertaTokenizerFast.from_pretrained(
       "seyonec/PubChem10M_SMILES_BPE_450k")
   featurizer_mix = RxnFeaturizer(tokenizer, sep_reagent=False)
