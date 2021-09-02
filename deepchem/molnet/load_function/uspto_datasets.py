@@ -79,8 +79,7 @@ class _USPTOLoader(_MolnetLoader):
 
 
 def load_uspto(
-    featurizer: Union[dc.feat.Featurizer, str] = RxnFeaturizer(
-        tokenizer, sep_reagent=True),
+    featurizer: Union[dc.feat.Featurizer, str] = "RxnFeaturizer",
     splitter: Union[dc.splits.Splitter, str, None] = None,
     transformers: List[Union[TransformerGenerator, str]] = [],
     reload: bool = True,
@@ -167,6 +166,9 @@ def load_uspto(
   .. [4] Dai, Hanjun, et al. "Retrosynthesis prediction with conditional
          graph logic network." arXiv preprint arXiv:2001.01408 (2020).
   """
+
+  if featurizer == "RxnFeaturizer":
+    featurizer = RxnFeaturizer(tokenizer, sep_reagent=True)
 
   if skip_transform:
     if not sep_reagent:
