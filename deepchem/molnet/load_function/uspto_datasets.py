@@ -87,7 +87,7 @@ class _USPTOLoader(_MolnetLoader):
 
 
 def load_uspto(
-    featurizer: Union[dc.feat.Featurizer, str] = RxnFeaturizer(tokenizer, sep_reagent=True),
+    featurizer: Union[dc.feat.Featurizer, str] = "RxnFeaturizer",
     splitter: Union[dc.splits.Splitter, str, None] = None,
     transformers: List[Union[TransformerGenerator, str]] = [],
     reload: bool = True,
@@ -174,11 +174,14 @@ def load_uspto(
          graph logic network." arXiv preprint arXiv:2001.01408 (2020).
   """
 
-  tokenizer = RobertaTokenizerFast.from_pretrained(
-      "seyonec/PubChem10M_SMILES_BPE_450k")
+  if featurizer == "RxnFeaturizer":
+    featurizer = RxnFeaturizer(tokenizer, sep_reagent=True)
 
-  if featurizer == "plain":
-    featurizer = dc.feat.DummyFeaturizer()
+  if skip_transform:
+    if not sep_reagent:
+      raise ValueError(
+          "To enable mixed training you must not skip the transformation.")
+    transformers = []
   else:
     featurizer = RxnFeaturizer(tokenizer, sep_reagent=sep_reagent)
 
