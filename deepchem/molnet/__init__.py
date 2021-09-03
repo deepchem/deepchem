@@ -23,7 +23,6 @@ from deepchem.molnet.load_function.sider_datasets import load_sider
 from deepchem.molnet.load_function.sweetlead_datasets import load_sweet
 from deepchem.molnet.load_function.tox21_datasets import load_tox21
 from deepchem.molnet.load_function.toxcast_datasets import load_toxcast
-from deepchem.molnet.load_function.uspto_datasets import load_uspto
 from deepchem.molnet.load_function.uv_datasets import load_uv
 from deepchem.molnet.load_function.factors_datasets import load_factors
 from deepchem.molnet.load_function.kinase_datasets import load_kinase
@@ -49,8 +48,8 @@ from deepchem.molnet.dnasim import simulate_single_motif_detection
 
 # transformers
 try:
-  import transformers
   from transformers import RobertaTokenizerFast
   from deepchem.feat.reaction_featurizer import RxnFeaturizer
+  from deepchem.molnet.load_function.uspto_datasets import load_uspto
 except ModuleNotFoundError:
   pass
