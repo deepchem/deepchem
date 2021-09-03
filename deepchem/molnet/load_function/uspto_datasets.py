@@ -16,8 +16,6 @@ try:
   from transformers import RobertaTokenizerFast
   from deepchem.feat.reaction_featurizer import RxnFeaturizer
 except ModuleNotFoundError:
-  raise ImportError(
-      'Transformers must be installed for RxnFeaturizer to be used!')
   pass
 
 tokenizer = RobertaTokenizerFast.from_pretrained(
