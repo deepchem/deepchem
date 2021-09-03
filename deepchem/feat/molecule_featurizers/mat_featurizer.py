@@ -67,25 +67,11 @@ class MATFeaturizer(MolecularFeaturizer):
     mol: RDKitMol
       A processed RDKitMol object which is embedded, UFF Optimized and has Hydrogen atoms removed. If the former conditions are not met and there is a value error, then 2D Coordinates are computed instead.
     """
-<<<<<<< HEAD
-<<<<<<< HEAD
-    try:
-      from rdkit.Chem import AllChem
-      from rdkit import Chem
-<<<<<<< HEAD
-    except ModuleNotFoundError:
-      pass
-=======
-    except:
-      raise ModuleNotFoundError('This class requires RDKit to be installed.')
->>>>>>> Model + tests + fixes
-=======
     try:
       from rdkit.Chem import AllChem
       from rdkit import Chem
     except ModuleNotFoundError:
       pass
->>>>>>> Update
     try:
       mol = Chem.AddHs(mol)
       AllChem.EmbedMolecule(mol, maxAttempts=5000)
@@ -93,11 +79,6 @@ class MATFeaturizer(MolecularFeaturizer):
       mol = Chem.RemoveHs(mol)
     except ValueError:
       AllChem.Compute2DCoords(mol)
-<<<<<<< HEAD
-=======
->>>>>>> Removed extra file changes from other PRs
-=======
->>>>>>> Update
 
     return mol
 
@@ -113,7 +94,7 @@ class MATFeaturizer(MolecularFeaturizer):
 
     Returns
     ----------
-    Atom_features: ndarray
+    ndarray
       Numpy array containing atom features.
     """
     attrib = []
@@ -130,10 +111,6 @@ class MATFeaturizer(MolecularFeaturizer):
 
     return np.array(attrib, dtype=np.float32)
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> Update
   def construct_node_features_matrix(self, mol: RDKitMol) -> np.ndarray:
     """
     This function constructs a matrix of atom features for all atoms in a given molecule using the atom_features function.
@@ -145,20 +122,12 @@ class MATFeaturizer(MolecularFeaturizer):
 
     Returns
     ----------
-    ndarray
+    Atom_features: ndarray
       Numpy array containing atom features.
     """
     return np.array([self.atom_features(atom) for atom in mol.GetAtoms()])
 
-<<<<<<< HEAD
-<<<<<<< HEAD
   def _add_dummy_node(
-=======
-  def add_dummy_node(
->>>>>>> Model + tests + fixes
-=======
-  def _add_dummy_node(
->>>>>>> Update
       self, node_features: np.ndarray, adj_matrix: np.ndarray,
       dist_matrix: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -197,15 +166,7 @@ class MATFeaturizer(MolecularFeaturizer):
 
     return node_features, adj_matrix, dist_matrix
 
-<<<<<<< HEAD
-<<<<<<< HEAD
   def _pad_array(self, array: np.ndarray, shape: Any) -> np.ndarray:
-=======
-  def pad_array(self, array: np.ndarray, shape: Any) -> np.ndarray:
->>>>>>> Model + tests + fixes
-=======
-  def _pad_array(self, array: np.ndarray, shape: Any) -> np.ndarray:
->>>>>>> Update
     """
     Pads an array to the desired shape.
 
@@ -226,15 +187,7 @@ class MATFeaturizer(MolecularFeaturizer):
     result[slices] = array
     return result
 
-<<<<<<< HEAD
-<<<<<<< HEAD
   def _pad_sequence(self, sequence: np.ndarray) -> np.ndarray:
-=======
-  def pad_sequence(self, sequence: np.ndarray) -> np.ndarray:
->>>>>>> Model + tests + fixes
-=======
-  def _pad_sequence(self, sequence: np.ndarray) -> np.ndarray:
->>>>>>> Update
     """
     Pads a given sequence using the pad_array function.
 
@@ -250,19 +203,8 @@ class MATFeaturizer(MolecularFeaturizer):
     """
     shapes = np.stack([np.array(t.shape) for t in sequence])
     max_shape = tuple(np.max(shapes, axis=0))
-<<<<<<< HEAD
-<<<<<<< HEAD
-    return np.stack([self._pad_array(t, shape=max_shape) for t in sequence])
-=======
-    return np.stack([self.pad_array(t, shape=max_shape) for t in sequence])
->>>>>>> Model + tests + fixes
-
-=======
->>>>>>> Removed extra file changes from other PRs
-=======
     return np.stack([self._pad_array(t, shape=max_shape) for t in sequence])
 
->>>>>>> Update
   def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """
     Featurize the molecule.
@@ -285,9 +227,7 @@ class MATFeaturizer(MolecularFeaturizer):
     from rdkit import Chem
 
     datapoint = self.construct_mol(datapoint)
-<<<<<<< HEAD
 
-<<<<<<< HEAD
     node_features = self.construct_node_features_matrix(datapoint)
     adjacency_matrix = Chem.GetAdjacencyMatrix(datapoint)
     distance_matrix = Chem.GetDistanceMatrix(datapoint)
@@ -295,46 +235,8 @@ class MATFeaturizer(MolecularFeaturizer):
     node_features, adjacency_matrix, distance_matrix = self._add_dummy_node(
         node_features, adjacency_matrix, distance_matrix)
 
-<<<<<<< HEAD
-    node_features = self._pad_sequence(node_features)
-    adjacency_matrix = self._pad_sequence(adjacency_matrix)
-    distance_matrix = self._pad_sequence(distance_matrix)
-=======
-    datapoint = self.construct_mol(datapoint)
-=======
-    node_features = np.array(
-        [self.atom_features(atom) for atom in datapoint.GetAtoms()])
-    adjacency_matrix = Chem.rdmolops.GetAdjacencyMatrix(datapoint)
-    distance_matrix = Chem.rdmolops.GetDistanceMatrix(datapoint)
->>>>>>> Removed extra file changes from other PRs
-=======
-
-    node_features = self.construct_node_features_matrix(datapoint)
-    adjacency_matrix = Chem.GetAdjacencyMatrix(datapoint)
-    distance_matrix = Chem.GetDistanceMatrix(datapoint)
->>>>>>> Update
-
-    node_features, adjacency_matrix, distance_matrix = self._add_dummy_node(
-        node_features, adjacency_matrix, distance_matrix)
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-    node_features, adjacency_matrix, distance_matrix = self.add_dummy_node(
-        node_features, adjacency_matrix, distance_matrix)
-
-    node_features = self.pad_sequence(node_features)
-    adjacency_matrix = self.pad_sequence(adjacency_matrix)
-    distance_matrix = self.pad_sequence(distance_matrix)
->>>>>>> Model + tests + fixes
-
-    return MATEncoding(node_features, adjacency_matrix, distance_matrix)
-=======
-    return result
->>>>>>> Removed extra file changes from other PRs
-=======
     node_features = self._pad_sequence(node_features)
     adjacency_matrix = self._pad_sequence(adjacency_matrix)
     distance_matrix = self._pad_sequence(distance_matrix)
 
     return MATEncoding(node_features, adjacency_matrix, distance_matrix)
->>>>>>> Update
