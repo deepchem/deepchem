@@ -16,6 +16,26 @@ class MAT(nn.Module):
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+  
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> task, df, trans = dc.molnet.load_freesolv()
+  >>> train, valid, test = df
+  >>> model = dc.models.torch_models.MAT()
+  >>> # To simulate input data, we will generate matrices for a single molecule.
+  >>> vals = valid.X[0]
+  >>> node = vals.node_features
+  >>> adj = vals.adjacency_matrix
+  >>> dist = vals.distance_matrix
+  >>> # We will now utilize a helper function defined in MATModel to get our matrices ready, and convert them into a batch consisting of a single molecule.
+  >>> node_features = dc.models.torch_models.MATModel.pad_sequence(torch.tensor(node).unsqueeze(0).float())
+  >>> adjacency = dc.models.torch_models.MATModel.pad_sequence(torch.tensor(adj).unsqueeze(0).float())
+  >>> distance = dc.models.torch_models.MATModel.pad_sequence(torch.tensor(dist).unsqueeze(0).float())
+  >>> inputs = [node_features, adjacency, distance]
+  >>> inputs = [x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs]
+  >>> # Get the forward call of the model for this batch.
+  >>> model(inputs)
   '''
 
   def __init__(self,
@@ -168,7 +188,7 @@ class MATModel(TorchModel):
   >>> import deepchem as dc
   >>> task, df, trans = dc.molnet.load_freesolv()
   >>> train, valid, test = df
-  >>> model = dc.models.torch_models.MATModel(device = device, batch_size = 2)
+  >>> model = dc.models.torch_models.MATModel(batch_size = 2)
   >>> model.fit(test, nb_epoch = 1)
   """
 
