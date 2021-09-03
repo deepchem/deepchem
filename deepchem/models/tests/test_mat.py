@@ -33,8 +33,7 @@ def test_mat_reload():
   model_dir = tempfile.mkdtemp()
   _, df, trans = dc.molnet.load_freesolv()
   _, valid, _ = df
-  model = MATModel(
-      batch_size=100, learning_rate=0.1, model_dir=model_dir)
+  model = MATModel(batch_size=100, learning_rate=0.1, model_dir=model_dir)
   model.fit(valid, nb_epoch=400)
   metric = dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression")
   scores = model.evaluate(valid, [metric], trans)
