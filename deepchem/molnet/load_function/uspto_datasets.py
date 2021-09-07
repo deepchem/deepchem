@@ -5,12 +5,11 @@ This file contains loaders for synthetic reaction datasets from the US Patent Of
 """
 import os
 import logging
+from typing import List, Optional, Tuple, Union
 
-import deepchem
+import deepchem as dc
 from deepchem.data import Dataset
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
-from typing import List, Optional, Tuple, Union
-import deepchem as dc
 
 try:
   from transformers import RobertaTokenizerFast
@@ -18,12 +17,9 @@ try:
 except ModuleNotFoundError:
   pass
 
-tokenizer = RobertaTokenizerFast.from_pretrained(
-    "seyonec/PubChem10M_SMILES_BPE_450k")
-
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = deepchem.utils.data_utils.get_data_dir()
+DEFAULT_DIR = dc.utils.data_utils.get_data_dir()
 
 USPTO_MIT_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/USPTO_MIT.csv"
 USPTO_STEREO_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/USPTO_STEREO.csv"
@@ -164,6 +160,9 @@ def load_uspto(
   .. [4] Dai, Hanjun, et al. "Retrosynthesis prediction with conditional
          graph logic network." arXiv preprint arXiv:2001.01408 (2020).
   """
+
+  tokenizer = RobertaTokenizerFast.from_pretrained(
+      "seyonec/PubChem10M_SMILES_BPE_450k")
 
   if featurizer == "RxnFeaturizer":
     featurizer = RxnFeaturizer(tokenizer, sep_reagent=True)
