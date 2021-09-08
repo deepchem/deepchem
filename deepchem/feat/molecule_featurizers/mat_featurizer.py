@@ -65,7 +65,7 @@ class MATFeaturizer(MolecularFeaturizer):
     Returns
     ----------
     mol: RDKitMol
-      A processed RDKitMol objeect which is embedded, UFF Optimized and has Hydrogen atoms removed. If the former conditions are not met and there is a value error, then 2D Coordinates are computed instead.
+      A processed RDKitMol object which is embedded, UFF Optimized and has Hydrogen atoms removed. If the former conditions are not met and there is a value error, then 2D Coordinates are computed instead.
     """
     try:
       from rdkit.Chem import AllChem
@@ -94,7 +94,7 @@ class MATFeaturizer(MolecularFeaturizer):
 
     Returns
     ----------
-    Atom_features: ndarray
+    ndarray
       Numpy array containing atom features.
     """
     attrib = []
@@ -216,7 +216,8 @@ class MATFeaturizer(MolecularFeaturizer):
 
     Returns
     -------
-    MATEncoding: A MATEncoding dataclass instance consisting of processed node_features, adjacency_matrix and distance_matrix.
+    MATEncoding
+      A MATEncoding dataclass instance consisting of processed node_features, adjacency_matrix and distance_matrix.
     """
     if 'mol' in kwargs:
       datapoint = kwargs.get("mol")
