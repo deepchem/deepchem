@@ -31,13 +31,11 @@ USPTO_TASK: List[str] = []
 
 class _USPTOLoader(_MolnetLoader):
 
-  def __init__(self, *args, subset: str, sep_reagent: bool,
-               skip_transform: bool, **kwargs):
+  def __init__(self, *args, subset: str, sep_reagent: bool, **kwargs):
     super(_USPTOLoader, self).__init__(*args, **kwargs)
     self.subset = subset
     self.sep_reagent = sep_reagent
     self.name = 'USPTO_' + subset
-    self.skip_transform = skip_transform
 
   def create_dataset(self) -> Dataset:
     if self.subset not in ['MIT', 'STEREO', '50K', 'FULL']:
@@ -81,7 +79,6 @@ def load_uspto(
     save_dir: Optional[str] = None,
     subset: str = "MIT",
     sep_reagent: bool = True,
-    skip_transform: bool = True,
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
   """Load USPTO Datasets.
@@ -164,23 +161,10 @@ def load_uspto(
   tokenizer = RobertaTokenizerFast.from_pretrained(
       "seyonec/PubChem10M_SMILES_BPE_450k")
 
-  if featurizer == "RxnFeaturizer":
-    featurizer = RxnFeaturizer(tokenizer, sep_reagent=True)
-
-  if skip_transform:
-    if not sep_reagent:
-      raise ValueError(
-          "To enable mixed training you must not skip the transformation.")
-    transformers = []
+  if featurizer == "plain":
+    featurizer = dc.feat.DummyFeaturizer()
   else:
-    if sep_reagent:
-      transformers = [
-          TransformerGenerator(dc.trans.RxnSplitTransformer, sep_reagent=True)
-      ]
-    else:
-      transformers = [
-          TransformerGenerator(dc.trans.RxnSplitTransformer, sep_reagent=False)
-      ]
+    featurizer = RxnFeaturizer(tokenizer, sep_reagent=sep_reagent)
 
   loader = _USPTOLoader(
       featurizer,
@@ -191,6 +175,5 @@ def load_uspto(
       save_dir,
       subset=subset,
       sep_reagent=sep_reagent,
-      skip_transform=skip_transform,
       **kwargs)
   return loader.load_dataset(loader.name, reload)
