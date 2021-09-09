@@ -621,28 +621,23 @@ def test_scale_norm():
 @pytest.mark.torch
 def test_multi_headed_mat_attention():
   """Test invoking MultiHeadedMATAttention."""
-  from rdkit import Chem
-  torch.manual_seed(0)
+  feat = dc.feat.MATFeaturizer()
   input_smile = "CC"
-  mol = Chem.MolFromSmiles(input_smile)
-  adj_matrix = Chem.GetAdjacencyMatrix(mol)
-  distance_matrix = Chem.GetDistanceMatrix(mol)
+  out = feat.featurize(input_smile)
+  node = torch.tensor(out[0].node_features).float().unsqueeze(0)
+  adj = torch.tensor(out[0].adjacency_matrix).float().unsqueeze(0)
+  dist = torch.tensor(out[0].distance_matrix).float().unsqueeze(0)
+  mask = torch.sum(torch.abs(node), dim=-1) != 0
   layer = torch_layers.MultiHeadedMATAttention(
       dist_kernel='softmax',
       lambda_attention=0.33,
       lambda_distance=0.33,
-      h=2,
-      hsize=2,
+      h=16,
+      hsize=1024,
       dropout_p=0.0)
-  input_tensor = torch.tensor([[1., 2.], [5., 6.]])
-  mask = torch.tensor([[1., 1.], [1., 1.]])
-  result = layer(input_tensor, input_tensor, input_tensor, mask, adj_matrix,
-                 distance_matrix, 0.0)
-  output_ar = torch.tensor([[[0.0492, -0.0792], [-0.9971, -0.3172],
-                             [0.0492, -0.0792], [-0.9971, -0.3172]],
-                            [[0.8671, 0.1069], [-3.4075, -0.8656],
-                             [0.8671, 0.1069], [-3.4075, -0.8656]]])
-  assert torch.allclose(result, output_ar, rtol=1e-3)
+  op = torch_layers.MATEmbedding()(node)
+  output = layer(op, op, op, mask, adj, dist)
+  assert (output.shape == (1, 3, 1024))
 
 
 @pytest.mark.torch
@@ -676,35 +671,18 @@ def test_sub_layer_connection():
 @pytest.mark.torch
 def test_mat_encoder_layer():
   """Test invoking MATEncoderLayer."""
-  torch.manual_seed(0)
-  from rdkit import Chem
-  input_ar = torch.Tensor([[1., 2.], [5., 6.]])
-  mask = torch.Tensor([[1., 1.], [1., 1.]])
-  mol = Chem.MolFromSmiles("CC")
-  adj_matrix = Chem.GetAdjacencyMatrix(mol)
-  distance_matrix = Chem.GetDistanceMatrix(mol)
-  layer = torch_layers.MATEncoderLayer(
-      dist_kernel='softmax',
-      lambda_attention=0.33,
-      lambda_distance=0.33,
-      h=2,
-      sa_hsize=2,
-      sa_dropout_p=0.0,
-      output_bias=True,
-      d_input=2,
-      d_hidden=2,
-      d_output=2,
-      activation='relu',
-      n_layers=2,
-      ff_dropout_p=0.0,
-      encoder_hsize=2,
-      encoder_dropout_p=0.0)
-  result = layer(input_ar, mask, adj_matrix, distance_matrix, 0.0)
-  output_ar = torch.tensor([[[0.9988, 2.0012], [-0.9999, 3.9999],
-                             [0.9988, 2.0012], [-0.9999, 3.9999]],
-                            [[5.0000, 6.0000], [3.0000, 8.0000],
-                             [5.0000, 6.0000], [3.0000, 8.0000]]])
-  assert torch.allclose(result, output_ar, rtol=1e-4)
+  input_smile = "CC"
+  feat = dc.feat.MATFeaturizer()
+  input_smile = "CC"
+  out = feat.featurize(input_smile)
+  node = torch.tensor(out[0].node_features).float().unsqueeze(0)
+  adj = torch.tensor(out[0].adjacency_matrix).float().unsqueeze(0)
+  dist = torch.tensor(out[0].distance_matrix).float().unsqueeze(0)
+  mask = torch.sum(torch.abs(node), dim=-1) != 0
+  layer = torch_layers.MATEncoderLayer()
+  op = torch_layers.MATEmbedding()(node)
+  output = layer(op, mask, adj, dist)
+  assert (output.shape == (1, 3, 1024))
 
 
 @pytest.mark.torch
