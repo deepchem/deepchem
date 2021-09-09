@@ -19,11 +19,25 @@ class RxnFeaturizer(Featurizer):
   RobertaTokenizer on them separately. Additionally, it can also separate or
   mix the reactants and reagents before tokenizing.
 
+  Examples
+  --------
+  >>> from deepchem.feat import RxnFeaturizer
+  >>> from transformers import RobertaTokenizerFast
+  >>> tokenizer = RobertaTokenizerFast.from_pretrained("seyonec/PubChem10M_SMILES_BPE_450k")
+  >>> featurizer = RxnFeaturizer(tokenizer, sep_reagent=True)
+  >>> feats = featurizer.featurize(['CCS(=O)(=O)Cl.OCCBr>CCN(CC)CC.CCOCC>CCS(=O)(=O)OCCBr'])
+
+  Notes
+  -----
+  The featurize method expects a List of reactions.
+  Use the sep_reagent toggle to enable/disable reagent separation.
+    True - Separate the reactants and reagents
+    False - Mix the reactants and reagents
   """
 
   def __init__(self, tokenizer: RobertaTokenizerFast, sep_reagent: bool):
     """Initialize a ReactionFeaturizer object.
-    
+
     Parameters
     ----------
     tokenizer: RobertaTokenizerFast
