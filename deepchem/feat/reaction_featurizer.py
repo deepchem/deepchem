@@ -29,10 +29,10 @@ class RxnFeaturizer(Featurizer):
 
   Notes
   -----
-  The featurize method expects a List of reactions.
-  Use the sep_reagent toggle to enable/disable reagent separation.
-    True - Separate the reactants and reagents
-    False - Mix the reactants and reagents
+  - The featurize method expects a List of reactions.
+  - Use the sep_reagent toggle to enable/disable reagent separation.
+      - True - Separate the reactants and reagents
+      - False - Mix the reactants and reagents
   """
 
   def __init__(self, tokenizer: RobertaTokenizerFast, sep_reagent: bool):
