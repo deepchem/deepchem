@@ -59,4 +59,4 @@ class RxnFeaturizer(Featurizer):
 
   def __str__(self) -> str:
     # perhaps a bit hacky?!
-    return 'RxnFeaturizer'
+    return 'RxnFeaturizer_' + str(self.sep_reagent)
