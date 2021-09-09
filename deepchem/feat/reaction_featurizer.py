@@ -22,7 +22,15 @@ class RxnFeaturizer(Featurizer):
   """
 
   def __init__(self, tokenizer: RobertaTokenizerFast, sep_reagent: bool):
-    """Initialises the featurizer with an appropriate HuggingFace Tokenizer."""
+    """Initialize a ReactionFeaturizer object.
+    
+    Parameters
+    ----------
+    tokenizer: RobertaTokenizerFast
+      HuggingFace Tokenizer to be used for featurization.
+    sep_reagent: bool
+      Toggle to separate or mix the reactants and reagents.
+    """
     if not isinstance(tokenizer, RobertaTokenizerFast):
       raise TypeError(
           f"""`tokenizer` must be a constructed `RobertaTokenizerFast`
@@ -38,6 +46,17 @@ class RxnFeaturizer(Featurizer):
     mixing, the source/target separation and then the pretrained tokenizer on the
     separated strings.
 
+    Parameters
+    ----------
+    datapoint: str
+      the reaction SMILES to be processed.
+
+    Returns
+    -------
+    encoding: List
+      List containing two lists for the source and target encodings.
+      The encodings are lists containing two lists: `the input_ids` and the
+     `attention_mask`.
     """
 
     datapoint_list = [datapoint]
