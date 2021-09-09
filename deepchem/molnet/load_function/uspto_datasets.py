@@ -161,14 +161,8 @@ def load_uspto(
   tokenizer = RobertaTokenizerFast.from_pretrained(
       "seyonec/PubChem10M_SMILES_BPE_450k")
 
-  if featurizer == "RxnFeaturizer":
-    featurizer = RxnFeaturizer(tokenizer, sep_reagent=True)
-
-  if skip_transform:
-    if not sep_reagent:
-      raise ValueError(
-          "To enable mixed training you must not skip the transformation.")
-    transformers = []
+  if featurizer == "plain":
+    featurizer = dc.feat.DummyFeaturizer()
   else:
     featurizer = RxnFeaturizer(tokenizer, sep_reagent=sep_reagent)
 
