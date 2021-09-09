@@ -16,11 +16,13 @@ class RxnFeaturizer(Featurizer):
   RxnFeaturizer is a wrapper class for HuggingFace's RobertaTokenizerFast,
   that is intended for featurizing chemical reaction datasets. The featurizer
   computes the source and target required for a seq2seq task and applies the
-  RobertaTokenizer on them separately.
+  RobertaTokenizer on them separately. Additionally, it can also separate or
+  mix the reactants and reagents before tokenizing.
 
   """
 
   def __init__(self, tokenizer: RobertaTokenizerFast, sep_reagent: bool):
+    """Initialises the featurizer with an appropriate HuggingFace Tokenizer."""
     if not isinstance(tokenizer, RobertaTokenizerFast):
       raise TypeError(
           f"""`tokenizer` must be a constructed `RobertaTokenizerFast`
@@ -30,8 +32,13 @@ class RxnFeaturizer(Featurizer):
     self.sep_reagent = sep_reagent
 
   def _featurize(self, datapoint: str, **kwargs) -> List[List[List[int]]]:
-    # if dont want to tokenize, return raw reaction SMILES.
-    # sep_reagent then tokenize, source and target separately.
+    """Featurizes a datapoint.
+
+    Processes each entry in the dataset by first applying the reactant-reagent
+    mixing, the source/target separation and then the pretrained tokenizer on the
+    separated strings.
+
+    """
 
     datapoint_list = [datapoint]
     reactant = list(map(lambda x: x.split('>')[0], datapoint_list))
@@ -58,5 +65,10 @@ class RxnFeaturizer(Featurizer):
     return self.featurize(*args, **kwargs)
 
   def __str__(self) -> str:
-    # perhaps a bit hacky?!
+    """Handles file name error.
+
+    Overrides the __str__ method of the Featurizer base class to avoid errors
+    while saving the dataset, due to the large default name of the HuggingFace
+    tokenizer.
+    """
     return 'RxnFeaturizer_' + str(self.sep_reagent)
