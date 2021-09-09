@@ -20,14 +20,18 @@ class MAT(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
-  >>> task, df, trans = dc.molnet.load_freesolv()
-  >>> train, valid, test = df
+  >>> smiles = ['CC', 'CCC',  'CCCC', 'CCCCC', 'CCCCCCC']
+  >>> vals = [1.35, 6.72, 5.67, 1.23, 1.76]
+  >>> df = pd.DataFrame(list(zip(smiles, vals)), columns = ['smiles', 'y'])
+  >>> loader = dc.data.CSVLoader(tasks=['y'], feature_field='smiles', featurizer=dc.feat.MATFeaturizer())
+  >>> df.to_csv('test.csv')
+  >>> dataset = loader.create_dataset('test.csv')
   >>> model = dc.models.torch_models.MAT()
   >>> # To simulate input data, we will generate matrices for a single molecule.
-  >>> vals = valid.X[0]
-  >>> node = vals.node_features
-  >>> adj = vals.adjacency_matrix
-  >>> dist = vals.distance_matrix
+  >>> vals = dataset.X[0]
+  >>> node = datset.node_features
+  >>> adj = datset.adjacency_matrix
+  >>> dist = dataset.distance_matrix
   >>> # We will now utilize a helper function defined in MATModel to get our matrices ready, and convert them into a batch consisting of a single molecule.
   >>> node_features = dc.models.torch_models.MATModel.pad_sequence(torch.tensor(node).unsqueeze(0).float())
   >>> adjacency = dc.models.torch_models.MATModel.pad_sequence(torch.tensor(adj).unsqueeze(0).float())
@@ -186,10 +190,15 @@ class MATModel(TorchModel):
   Examples
   --------
   >>> import deepchem as dc
-  >>> task, df, trans = dc.molnet.load_freesolv()
-  >>> train, valid, test = df
+  >>> import pandas
+  >>> smiles = ['CC', 'CCC',  'CCCC', 'CCCCC', 'CCCCCCC']
+  >>> vals = [1.35, 6.72, 5.67, 1.23, 1.76]
+  >>> df = pd.DataFrame(list(zip(smiles, vals)), columns = ['smiles', 'y'])
+  >>> loader = dc.data.CSVLoader(tasks=['y'], feature_field='smiles', featurizer=dc.feat.MATFeaturizer())
+  >>> df.to_csv('test.csv')
+  >>> dataset = loader.create_dataset('test.csv')
   >>> model = dc.models.torch_models.MATModel(batch_size = 2)
-  >>> model.fit(test, nb_epoch = 1)
+  >>> model.fit(dataset, nb_epoch = 1)
   """
 
   def __init__(self,
