@@ -410,6 +410,13 @@ RobertaFeaturizer
   :members:
   :inherited-members:
 
+RxnFeaturizer
+^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.RxnFeaturizer
+  :members:
+  :inherited-members:
+
 BindingPocketFeaturizer
 ^^^^^^^^^^^^^^^^^^^^^^^
 
