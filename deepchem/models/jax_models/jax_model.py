@@ -520,6 +520,10 @@ class JaxModel(Model):
     return self.predict_on_generator(
         generator, transformers=transformers, output_types=output_types)
 
+  def get_global_step(self) -> int:
+    """Get the number of steps of fitting that have been performed."""
+    return self._global_step
+
   def predict_embedding(self, dataset: Dataset) -> OneOrMany[np.ndarray]:
 
     pass

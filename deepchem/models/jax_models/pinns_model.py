@@ -25,6 +25,7 @@ from deepchem.models.jax_models.jax_model import JaxModel
 from deepchem.models.jax_models.jax_model import create_default_gradient_fn, create_default_eval_fn
 
 import logging
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +154,9 @@ class PINNModel(JaxModel):
       The frequency at which to log data. Data is logged using
       `logging` by default.
     """
-
+    warnings.warn(
+        'PinnModel is still in active development and we could change the design of the API in the future.'
+    )
     self.boundary_data = initial_data
     super(PINNModel, self).__init__(
         forward_fn, params, None, output_types, batch_size, learning_rate,
