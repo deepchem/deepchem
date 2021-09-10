@@ -5,12 +5,6 @@ import deepchem as dc
 from deepchem.feat import MATFeaturizer
 from deepchem.models.torch_models import MATModel
 
-try:
-  import torch
-  has_torch = True
-except:
-  has_torch = False
-
 
 @pytest.mark.torch
 def test_mat_regression():
