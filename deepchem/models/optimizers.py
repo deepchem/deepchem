@@ -49,6 +49,15 @@ class Optimizer(object):
     """
     raise NotImplementedError("Subclasses must implement this")
 
+  def _create_jax_optimizer(self):
+    """Construct a Jax optimizer.
+
+    Returns
+    -------
+    a new Optax optimizer optax.GradientTransformation implementing the algorithm
+    """
+    raise NotImplementedError("Subclasses must implement this")
+
 
 class LearningRateSchedule(object):
   """A schedule for changing the learning rate over the course of optimization.
@@ -81,6 +90,20 @@ class LearningRateSchedule(object):
     Returns
     -------
     a PyTorch scheduler implementing the schedule
+    """
+    raise NotImplementedError("Subclasses must implement this")
+
+  def _create_jax_schedule(self, learning_rate):
+    """Construct a Jax learning rate scheduler using optax.
+
+    Parameters
+    ----------
+    learning_rate: float
+      the initial learning rate that will be modified
+
+    Returns
+    -------
+    a optax scheduler implementing the schedule
     """
     raise NotImplementedError("Subclasses must implement this")
 
@@ -142,6 +165,23 @@ class AdaGrad(Optimizer):
         initial_accumulator_value=self.initial_accumulator_value,
         eps=self.epsilon)
 
+  def _create_jax_optimizer(self):
+    import optax
+    process = []
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      lr = self.learning_rate.initial_rate
+      last_process = optax.scale(-1.0)
+    else:
+      lr = self.learning_rate
+      last_process = optax.scale(-1.0 * lr)
+
+    process.append(
+        optax.scale_by_rss(
+            initial_accumulator_value=self.initial_accumulator_value,
+            eps=self.epsilon))
+    process.append(last_process)
+    return optax.chain(*process)
+
 
 class Adam(Optimizer):
   """The Adam optimization algorithm."""
@@ -189,10 +229,26 @@ class Adam(Optimizer):
       lr = self.learning_rate
     return torch.optim.Adam(params, lr, (self.beta1, self.beta2), self.epsilon)
 
+  def _create_jax_optimizer(self):
+    import optax
+    process = []
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      scheduler = self.learning_rate._create_jax_schedule()
+      process.append(optax.scale_by_schedule(scheduler))
+      last_process = optax.scale(-1.0)
+    else:
+      lr = self.learning_rate
+      last_process = optax.scale(-1.0 * lr)
+
+    process.append(
+        optax.scale_by_adam(b1=self.beta1, b2=self.beta2, eps=self.epsilon))
+    process.append(last_process)
+    return optax.chain(*process)
+
 
 class SparseAdam(Optimizer):
   """The Sparse Adam optimization algorithm, also known as Lazy Adam.
-  Sparse Adam is suitable for sparse tensors. It handles sparse updates more efficiently. 
+  Sparse Adam is suitable for sparse tensors. It handles sparse updates more efficiently.
   It only updates moving-average accumulators for sparse variable indices that appear in the current batch, rather than updating the accumulators for all indices.
   """
 
@@ -202,7 +258,7 @@ class SparseAdam(Optimizer):
                beta2: float = 0.999,
                epsilon: float = 1e-08):
     """Construct an Adam optimizer.
-    
+
     Parameters
     ----------
     learning_rate: float or LearningRateSchedule
@@ -427,6 +483,14 @@ class ExponentialDecay(LearningRateSchedule):
     return torch.optim.lr_scheduler.ExponentialLR(
         optimizer, math.pow(self.decay_rate, 1 / self.decay_steps))
 
+  def _create_jax_schedule(self):
+    import optax
+    return optax.exponential_decay(
+        init_value=self.initial_rate,
+        transition_steps=self.decay_steps,
+        decay_rate=self.decay_rate,
+        staircase=self.staircase)
+
 
 class PolynomialDecay(LearningRateSchedule):
   """A learning rate that decreases from an initial value to a final value over a fixed number of training steps."""
@@ -475,6 +539,15 @@ class PolynomialDecay(LearningRateSchedule):
 
     import torch
     return torch.optim.lr_scheduler.LambdaLR(optimizer, f)
+
+  def _create_jax_schedule(self):
+    import optax
+    return optax.polynomial_schedule(
+        init_value=self.initial_rate,
+        end_value=self.final_rate,
+        transition_steps=self.decay_steps,
+        decay_rate=self.decay_rate,
+        staircase=self.staircase)
 
 
 class LinearCosineDecay(LearningRateSchedule):
