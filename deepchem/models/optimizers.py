@@ -359,6 +359,28 @@ class AdamW(Optimizer):
     return torch.optim.AdamW(params, lr, (self.beta1, self.beta2), self.epsilon,
                              self.weight_decay, self.amsgrad)
 
+  def _create_jax_optimizer(self):
+    import optax
+    process = []
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      scheduler = self.learning_rate._create_jax_schedule()
+      process.append(optax.scale_by_schedule(scheduler))
+      last_process = optax.scale(-1.0)
+    else:
+      lr = self.learning_rate
+      last_process = optax.scale(-1.0 * lr)
+
+    process.append(
+        optax.scale_by_adam(
+            b1=self.beta1,
+            b2=self.beta2,
+            eps=self.epsilon,
+            eps_root=0.0,
+            mu_dtype=None))
+    process.append(optax.add_decayed_weights(self.weight_decay, None))
+    process.append(last_process)
+    return optax.chain(*process)
+
 
 class RMSProp(Optimizer):
   """RMSProp Optimization algorithm."""
@@ -407,6 +429,25 @@ class RMSProp(Optimizer):
     return torch.optim.RMSprop(
         params, lr, alpha=self.decay, eps=self.epsilon, momentum=self.momentum)
 
+  def _create_jax_optimizer(self):
+    import optax
+    process = []
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      scheduler = self.learning_rate._create_jax_schedule()
+      process.append(optax.scale_by_schedule(scheduler))
+      last_process = optax.scale(-1.0)
+    else:
+      lr = self.learning_rate
+      last_process = optax.scale(-1.0 * lr)
+
+    process.append(
+        optax.scale_by_rms(
+            decay=self.decay, eps=self.epsilon, initial_scale=0.0))
+    if self.momentum is not None or self.momentum != 0.0:
+      process.append(optax.trace(decay=self.momentum, nesterov=False))
+    process.append(last_process)
+    return optax.chain(*process)
+
 
 class GradientDescent(Optimizer):
   """The gradient descent optimization algorithm."""
@@ -436,6 +477,18 @@ class GradientDescent(Optimizer):
     else:
       lr = self.learning_rate
     return torch.optim.SGD(params, lr)
+
+  def _create_jax_optimizer(self):
+    import optax
+    process = []
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      lr = self.learning_rate.initial_rate
+      last_process = optax.scale(-1.0)
+    else:
+      lr = self.learning_rate
+      last_process = optax.scale(-1.0 * lr)
+    process.append(last_process)
+    return optax.chain(*process)
 
 
 class ExponentialDecay(LearningRateSchedule):
@@ -545,9 +598,8 @@ class PolynomialDecay(LearningRateSchedule):
     return optax.polynomial_schedule(
         init_value=self.initial_rate,
         end_value=self.final_rate,
-        transition_steps=self.decay_steps,
-        decay_rate=self.decay_rate,
-        staircase=self.staircase)
+        power=self.power,
+        transition_steps=self.decay_steps)
 
 
 class LinearCosineDecay(LearningRateSchedule):
@@ -596,3 +648,10 @@ class LinearCosineDecay(LearningRateSchedule):
 
     import torch
     return torch.optim.lr_scheduler.LambdaLR(optimizer, f)
+
+  def _create_jax_schedule(self):
+    import optax
+    return optax.cosine_decay_schedule(
+        init_value=self.initial_rate,
+        decay_steps=self.decay_steps,
+        alpha=self.alpha)
