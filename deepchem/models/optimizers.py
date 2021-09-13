@@ -2,7 +2,7 @@
 
 import math
 
-from typing import Union
+from typing import Dict, Union, Optional
 
 
 class Optimizer(object):
@@ -372,11 +372,7 @@ class AdamW(Optimizer):
 
     process.append(
         optax.scale_by_adam(
-            b1=self.beta1,
-            b2=self.beta2,
-            eps=self.epsilon,
-            eps_root=0.0,
-            mu_dtype=None))
+            b1=self.beta1, b2=self.beta2, eps=self.epsilon, eps_root=0.0))
     process.append(optax.add_decayed_weights(self.weight_decay, None))
     process.append(last_process)
     return optax.chain(*process)
@@ -482,7 +478,8 @@ class GradientDescent(Optimizer):
     import optax
     process = []
     if isinstance(self.learning_rate, LearningRateSchedule):
-      lr = self.learning_rate.initial_rate
+      scheduler = self.learning_rate._create_jax_schedule()
+      process.append(optax.scale_by_schedule(scheduler))
       last_process = optax.scale(-1.0)
     else:
       lr = self.learning_rate
@@ -655,3 +652,29 @@ class LinearCosineDecay(LearningRateSchedule):
         init_value=self.initial_rate,
         decay_steps=self.decay_steps,
         alpha=self.alpha)
+
+
+class PiecewiseConstantSchedule(LearningRateSchedule):
+  """Applies scheduler which multiplies by a constant factor on the boundaries"""
+
+  def __init__(self,
+               initial_rate: float,
+               boundaries_and_scales: Optional[Dict[int, float]] = None):
+    """
+    Parameters
+    ----------
+    init_value : float
+      initial learning rate
+    boundaries_and_scales:
+      A map from boundaries b_i to non-negative scaling factors f_i. For any step
+      count s, the schedule returns init_v scaled by the product of all factors f_i
+      such that b_i < s.
+    """
+    self.initial_rate = initial_rate
+    self.boundaries_and_scales = boundaries_and_scales
+
+  def _create_jax_schedule(self):
+    import optax
+    return optax.piecewise_constant_schedule(
+        init_value=self.initial_rate,
+        boundaries_and_scales=self.boundaries_and_scales)
