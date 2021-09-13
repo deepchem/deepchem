@@ -63,6 +63,7 @@ class MultiHeadedMATAttention(nn.Module):
   Examples
   --------
   >>> from deepchem.models.torch_models.layers import MultiHeadedMATAttention, MATEmbedding
+  >>> import deepchem as dc
   >>> import torch
   >>> input_smile = "CC"
   >>> feat = dc.feat.MATFeaturizer()
@@ -259,7 +260,7 @@ class MATEncoderLayer(nn.Module):
   >>> mask = torch.sum(torch.abs(node), dim=-1) != 0
   >>> layer = MATEncoderLayer()
   >>> op = MATEmbedding()(node)
-  >>> output = layer(op, mask, adj, dist))
+  >>> output = layer(op, mask, adj, dist)
   """
 
   def __init__(self,

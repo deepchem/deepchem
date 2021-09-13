@@ -190,7 +190,7 @@ class MATModel(TorchModel):
   Examples
   --------
   >>> import deepchem as dc
-  >>> import pandas
+  >>> import pandas as pd
   >>> smiles = ['CC', 'CCC',  'CCCC', 'CCCCC', 'CCCCCCC']
   >>> vals = [1.35, 6.72, 5.67, 1.23, 1.76]
   >>> df = pd.DataFrame(list(zip(smiles, vals)), columns = ['smiles', 'y'])
