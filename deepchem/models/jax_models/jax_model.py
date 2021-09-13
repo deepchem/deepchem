@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import logging
+
 try:
   from collections.abc import Sequence as SequenceCollection
 except:
@@ -10,7 +11,7 @@ from deepchem.data import Dataset, NumpyDataset
 from deepchem.metrics import Metric
 from deepchem.models.models import Model
 from deepchem.models.losses import Loss
-from deepchem.models.optimizers import Optimizer
+from deepchem.models.optimizers import Optimizer, Adam
 from deepchem.utils.evaluate import GeneratorEvaluator
 from deepchem.trans.transformers import Transformer, undo_transforms
 
@@ -103,8 +104,7 @@ class JaxModel(Model):
                output_types: Optional[List[str]] = None,
                batch_size: int = 100,
                learning_rate: float = 0.001,
-               optimizer: Union[optax.GradientTransformation,
-                                Optimizer] = optax.adam(1e-3),
+               optimizer: Union[optax.GradientTransformation, Optimizer] = None,
                grad_fn: Callable = create_default_gradient_fn,
                update_fn: Callable = create_default_update_fn,
                eval_fn: Callable = create_default_eval_fn,
@@ -162,7 +162,13 @@ class JaxModel(Model):
     self._loss_fn = loss  # lambda pred, tar: jnp.mean(optax.l2_loss(pred, tar))
     self.batch_size = batch_size
     self.learning_rate = learning_rate
-    self.optimizer = optimizer
+    if optimizer is None:
+      optimizer = Adam(1e-3)
+
+    if not isinstance(optimizer, optax.GradientTransformation):
+      self.optimizer = optimizer._create_jax_optimizer()
+    else:
+      self.optimizer = optimizer
     self.forward_fn = forward_fn
     self.params = params
     self._built = False
