@@ -8,6 +8,7 @@ try:
   import optax
   from deepchem.models import PINNModel
   from deepchem.data import NumpyDataset
+  from deepchem.models.optimizers import Adam
   from jax import jacrev
   has_haiku_and_optax = True
 except:
@@ -79,9 +80,7 @@ def test_sine_x():
   rng = jax.random.PRNGKey(500)
   params = init_params(rng, np.random.rand(1000, 1))
 
-  opt = optax.chain(
-      optax.clip_by_global_norm(1.00), optax.adam(1e-2, b1=0.9, b2=0.99))
-
+  opt = Adam(learning_rate=1e-2)
   # giving an initial boundary condition at 5 points between [-pi, pi] which will be used in l2 loss
   in_array = np.linspace(-1 * np.pi, 1 * np.pi, 5)
   out_array = np.cos(in_array)

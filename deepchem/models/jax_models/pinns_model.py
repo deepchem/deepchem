@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_default_update_fn(optimizer: optax.GradientTransformation,
-                             model_loss: callable):
+                             model_loss: Callable):
   """
   This function calls the update function, to implement the backpropagation
   """
@@ -114,8 +114,7 @@ class PINNModel(JaxModel):
                output_types: Optional[List[str]] = None,
                batch_size: int = 100,
                learning_rate: float = 0.001,
-               optimizer: Union[optax.GradientTransformation,
-                                Optimizer] = optax.adam(1e-3),
+               optimizer: Union[optax.GradientTransformation, Optimizer] = None,
                grad_fn: Callable = create_default_gradient_fn,
                update_fn: Callable = create_default_update_fn,
                eval_fn: Callable = create_default_eval_fn,
