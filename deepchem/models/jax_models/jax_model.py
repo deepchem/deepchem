@@ -100,7 +100,7 @@ class JaxModel(Model):
   def __init__(self,
                forward_fn: hk.State,
                params: hk.Params,
-               loss: Union[Loss, LossFn],
+               loss: Optional[Union[Loss, LossFn]],
                output_types: Optional[List[str]] = None,
                batch_size: int = 100,
                learning_rate: float = 0.001,
