@@ -20,6 +20,8 @@ class MAT(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
+  >>> import pandas as pd
+  >>> import numpy as np
   >>> smiles = ['CC', 'CCC',  'CCCC', 'CCCCC', 'CCCCCCC']
   >>> vals = [1.35, 6.72, 5.67, 1.23, 1.76]
   >>> df = pd.DataFrame(list(zip(smiles, vals)), columns = ['smiles', 'y'])
@@ -29,13 +31,14 @@ class MAT(nn.Module):
   >>> model = dc.models.torch_models.MAT()
   >>> # To simulate input data, we will generate matrices for a single molecule.
   >>> vals = dataset.X[0]
-  >>> node = datset.node_features
-  >>> adj = datset.adjacency_matrix
-  >>> dist = dataset.distance_matrix
+  >>> node = vals.node_features
+  >>> adj = vals.adjacency_matrix
+  >>> dist = vals.distance_matrix
   >>> # We will now utilize a helper function defined in MATModel to get our matrices ready, and convert them into a batch consisting of a single molecule.
-  >>> node_features = dc.models.torch_models.MATModel.pad_sequence(torch.tensor(node).unsqueeze(0).float())
-  >>> adjacency = dc.models.torch_models.MATModel.pad_sequence(torch.tensor(adj).unsqueeze(0).float())
-  >>> distance = dc.models.torch_models.MATModel.pad_sequence(torch.tensor(dist).unsqueeze(0).float())
+  >>> helper = dc.models.torch_models.MATModel()
+  >>> node_features = helper.pad_sequence(torch.tensor(node).unsqueeze(0).float())
+  >>> adjacency = helper.pad_sequence(torch.tensor(adj).unsqueeze(0).float())
+  >>> distance = helper.pad_sequence(torch.tensor(dist).unsqueeze(0).float())
   >>> inputs = [node_features, adjacency, distance]
   >>> inputs = [x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs]
   >>> # Get the forward call of the model for this batch.
