@@ -93,13 +93,6 @@ class JaxModel(Model):
   >> params = params_init(rng, inputs)
   >> j_m = JaxModel(forward_fn, params, rms_loss, 256, 0.001, 100)
   >> j_m.fit(train_dataset)
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-  >>>
->>>>>>> minor fixes for docs
-=======
->>>>>>> docs formatting
 
   All optimizations will be done using the optax library.
   """
