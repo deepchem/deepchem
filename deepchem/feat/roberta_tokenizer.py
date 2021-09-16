@@ -23,7 +23,7 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
   >>> from deepchem.feat import RobertaFeaturizer
   >>> smiles = ["Cn1c(=O)c2c(ncn2C)n(C)c1=O", "CC(=O)N1CN(C(C)=O)C(O)C1O"]
   >>> featurizer = RobertaFeaturizer.from_pretrained("seyonec/SMILES_tokenized_PubChem_shard00_160k")
-  >>> featurizer.featurize(smiles, add_special_tokens=True, truncation=True)
+  >>> out = featurizer.featurize(smiles, add_special_tokens=True, truncation=True)
 
   References
   ----------
@@ -57,7 +57,6 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
     """
 
     # the encoding is natively a dictionary with keys 'input_ids' and 'attention_mask'
-    # encoding = list(self(smiles_string, **kwargs).values())
     encoding = list(self(datapoint, **kwargs).values())
     return encoding
 
