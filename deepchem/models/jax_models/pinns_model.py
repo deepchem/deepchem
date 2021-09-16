@@ -21,7 +21,7 @@ import jax
 import jax.numpy as jnp
 import haiku as hk
 import optax
-from deepchem.models import JaxModel
+from deepchem.models.jax_models.jax_model import JaxModel
 from deepchem.models.jax_models.jax_model import create_default_gradient_fn, create_default_eval_fn
 
 import logging
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_default_update_fn(optimizer: optax.GradientTransformation,
-                             model_loss: callable):
+                             model_loss: Callable):
   """
   This function calls the update function, to implement the backpropagation
   """
@@ -39,7 +39,8 @@ def create_default_update_fn(optimizer: optax.GradientTransformation,
   @jax.jit
   def update(params, opt_state, batch, target, weights,
              rng) -> Tuple[hk.Params, optax.OptState, jnp.ndarray]:
-    batch_loss, grads = jax.value_and_grad(model_loss)(params, target, weights, rng, *batch)
+    batch_loss, grads = jax.value_and_grad(model_loss)(params, target, weights,
+                                                       rng, *batch)
     updates, opt_state = optimizer.update(grads, opt_state)
     new_params = optax.apply_updates(params, updates)
     return new_params, opt_state, batch_loss
@@ -113,8 +114,7 @@ class PINNModel(JaxModel):
                output_types: Optional[List[str]] = None,
                batch_size: int = 100,
                learning_rate: float = 0.001,
-               optimizer: Union[optax.GradientTransformation,
-                                Optimizer] = optax.adam(1e-3),
+               optimizer: Union[optax.GradientTransformation, Optimizer] = None,
                grad_fn: Callable = create_default_gradient_fn,
                update_fn: Callable = create_default_update_fn,
                eval_fn: Callable = create_default_eval_fn,
@@ -159,8 +159,7 @@ class PINNModel(JaxModel):
     self.boundary_data = initial_data
     super(PINNModel, self).__init__(
         forward_fn, params, None, output_types, batch_size, learning_rate,
-        optimizer, grad_fn, update_fn, eval_fn, rng, log_frequency, **kwargs
-    )
+        optimizer, grad_fn, update_fn, eval_fn, rng, log_frequency, **kwargs)
 
   def fit_generator(self,
                     generator: Iterable[Tuple[Any, Any, Any]],
@@ -175,8 +174,8 @@ class PINNModel(JaxModel):
     averaged_batches = 0
     if loss is None:
       loss = self._loss_fn
-    model_loss_fn = self._create_gradient_fn(self.forward_fn,
-                                             self._loss_outputs, self.boundary_data)
+    model_loss_fn = self._create_gradient_fn(
+        self.forward_fn, self._loss_outputs, self.boundary_data)
     grad_update = self._create_update_fn(self.optimizer, model_loss_fn)
 
     params, opt_state = self._get_trainable_params()
@@ -238,9 +237,7 @@ class PINNModel(JaxModel):
     inputs = [
         x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs
     ]
-    inputs = [
-        np.split(x, x.shape[1], 1) for x in inputs
-    ]
+    inputs = [np.split(x, x.shape[1], 1) for x in inputs]
     if labels is not None:
       labels = [
           x.astype(np.float32) if x.dtype == np.float64 else x for x in labels
