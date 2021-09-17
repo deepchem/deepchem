@@ -2,8 +2,6 @@ import pytest
 import tempfile
 import numpy as np
 import deepchem as dc
-from deepchem.feat import MATFeaturizer
-from deepchem.models.torch_models import MATModel
 
 
 @pytest.mark.torch
@@ -24,6 +22,8 @@ def test_mat_regression():
 
 @pytest.mark.torch
 def test_mat_reload():
+  from deepchem.feat import MATFeaturizer
+  from deepchem.models.torch_models import MATModel
   model_dir = tempfile.mkdtemp()
   _, df, trans = dc.molnet.load_freesolv()
   _, valid, _ = df
