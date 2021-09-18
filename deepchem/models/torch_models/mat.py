@@ -42,7 +42,7 @@ class MAT(nn.Module):
   >>> inputs = [node_features, adjacency, distance]
   >>> inputs = [x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs]
   >>> # Get the forward call of the model for this batch.
-  >>> model(inputs)
+  >>> output = model(inputs)
   '''
 
   def __init__(self,
@@ -365,7 +365,6 @@ class MATModel(TorchModel):
                         pad_batches=True,
                         **kwargs):
     for epoch in range(epochs):
-      print(epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,
