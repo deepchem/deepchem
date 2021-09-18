@@ -1315,6 +1315,35 @@ def _split_fingerprints(fps: List, size1: int,
 
 class ScaffoldSplitter(Splitter):
   """Class for doing data splits based on the scaffold of small molecules.
+  
+  The Bemis-Murcko scaffold representation in this splitter identifies rings,
+  linkers, frameworks ( combiantions between linkers and rings) and atomic properties 
+  such as atom type, hibridization and bond order in a dataset of molecules.
+
+
+  Examples
+  ---------
+  >>> import deepchem as dc
+  >>> # creation of demo data set with some smiles strings
+  ... data_test = ['CC(C)=CCCC(C)=CC(=O)', 'CCCC=C', 'CCCCCCCCCCCCCC', 'CC(C)Cl',
+  ...          'CCC(C)CO', 'CCCCCCCCCC(C)O', 'CCOP(=S)(OCC)SCSCC', 'CCCCCCCO',
+  ...          'CCCCCCCC(=O)OC', 'CCOP(=S)(OCC)SCSC(C)(C)C','c3ccc2nc1ccccc1cc2c3', 
+  ...          'Nc2cccc3nc1ccccc1cc23 ', 'C1CCCCCC1','OC1CCCCCC1']
+  >>> Xs= np.zeros(len(data_test))
+  >>> Ys = np.ones(len(data_test))
+  >>> # creation of a deepchem dataset with the smile codes in the ids field
+  ... dataset = dc.data.DiskDataset.from_numpy(X=Xs,y=Ys,w=np.zeros(len(data_test)),ids=data_test)
+  >>> scaffoldsplitter = dc.splits.ScaffoldSplitter()
+  >>> train,test = scaffoldsplitter.train_test_split(dataset)
+  >>> train
+  <DiskDataset X.shape: (10,), y.shape: (10,), w.shape: (10,), ids: ['CC(C)=CCCC(C)=CC(=O)' 'CCCC=C' 'CCCCCCCCCCCCCC' 'CC(C)Cl' 'CCC(C)CO'
+ 'CCCCCCCCCC(C)O' 'CCOP(=S)(OCC)SCSCC' 'CCCCCCCO' 'CCCCCCCC(=O)OC'
+ 'CCOP(=S)(OCC)SCSC(C)(C)C'], task_names: [0]>
+
+  References
+  ----------
+  .. [1] Bemis, Guy W., and Mark A. Murcko. "The properties of known drugs.
+     1. Molecular frameworks." Journal of medicinal chemistry 39.15 (1996): 2887-2893.
 
   Note
   ----
