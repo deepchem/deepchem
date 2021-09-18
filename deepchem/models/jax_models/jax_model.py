@@ -1,7 +1,7 @@
-from deepchem.trans.transformers import Transformer
 import numpy as np
 import time
 import logging
+
 try:
   from collections.abc import Sequence as SequenceCollection
 except:
@@ -11,8 +11,9 @@ from deepchem.data import Dataset, NumpyDataset
 from deepchem.metrics import Metric
 from deepchem.models.models import Model
 from deepchem.models.losses import Loss
-from deepchem.models.optimizers import Optimizer
+from deepchem.models.optimizers import Optimizer, Adam
 from deepchem.utils.evaluate import GeneratorEvaluator
+from deepchem.trans.transformers import Transformer, undo_transforms
 
 from typing import Any, Callable, Iterable, List, Optional, Tuple, Union, Sequence
 from deepchem.utils.typing import LossFn, OneOrMany, ArrayLike
@@ -79,27 +80,31 @@ class JaxModel(Model):
   Here is a simple example of that uses JaxModel to train a
   Haiku (JAX Neural Network Library) based model on deepchem
   dataset.
-  >> def f(x):
+
+  >>>
+  >> def forward_model(x):
   >>   net = hk.nets.MLP([512, 256, 128, 1])
   >>   return net(x)
-  >> model = hk.without_apply_rng(hk.transform(f))
+  >> def rms_loss(pred, tar, w):
+  >>   return jnp.mean(optax.l2_loss(pred, tar))
+  >> params_init, forward_fn = hk.transform(forward_model)
   >> rng = jax.random.PRNGKey(500)
-  >> x, _, _, _ = next(iter(train_dataset.iterbatches(batch_size=256)))
-  >> params = model.init(rng, x)
-  >> j_m = JaxModel(model, params, 256, 0.001, 100)
+  >> inputs, _, _, _ = next(iter(dataset.iterbatches(batch_size=256)))
+  >> params = params_init(rng, inputs)
+  >> j_m = JaxModel(forward_fn, params, rms_loss, 256, 0.001, 100)
   >> j_m.fit(train_dataset)
+
   All optimizations will be done using the optax library.
   """
 
   def __init__(self,
                forward_fn: hk.State,
                params: hk.Params,
-               loss: Union[Loss, LossFn],
+               loss: Optional[Union[Loss, LossFn]],
                output_types: Optional[List[str]] = None,
                batch_size: int = 100,
                learning_rate: float = 0.001,
-               optimizer: Union[optax.GradientTransformation,
-                                Optimizer] = optax.adam(1e-3),
+               optimizer: Union[optax.GradientTransformation, Optimizer] = None,
                grad_fn: Callable = create_default_gradient_fn,
                update_fn: Callable = create_default_update_fn,
                eval_fn: Callable = create_default_eval_fn,
@@ -133,6 +138,8 @@ class JaxModel(Model):
     log_frequency: int, optional (default 100)
       The frequency at which to log data. Data is logged using
       `logging` by default.
+
+
     Miscellanous Parameters Yet To Add
     ----------------------------------
     model_dir: str, optional (default None)
@@ -141,6 +148,8 @@ class JaxModel(Model):
       whether to log progress to TensorBoard during training
     wandb: bool, optional (default False)
       whether to log progress to Weights & Biases during training
+
+
     Work in Progress
     ----------------
     [1] Integrate the optax losses, optimizers, schedulers with Deepchem
@@ -153,7 +162,13 @@ class JaxModel(Model):
     self._loss_fn = loss  # lambda pred, tar: jnp.mean(optax.l2_loss(pred, tar))
     self.batch_size = batch_size
     self.learning_rate = learning_rate
-    self.optimizer = optimizer
+    if optimizer is None:
+      optimizer = Adam(1e-3)
+
+    if not isinstance(optimizer, optax.GradientTransformation):
+      self.optimizer = optimizer._create_jax_optimizer()
+    else:
+      self.optimizer = optimizer
     self.forward_fn = forward_fn
     self.params = params
     self._built = False
@@ -403,6 +418,14 @@ class JaxModel(Model):
       if len(access_values) > 0:
         output_values = [output_values[i] for i in access_values]
 
+      if len(transformers) > 0:
+        if len(output_values) > 1:
+          raise ValueError(
+              "predict() does not support Transformers for models with multiple outputs."
+          )
+        elif len(output_values) == 1:
+          output_values = [undo_transforms(output_values[0], transformers)]
+
       if results is None:
         results = [[] for i in range(len(output_values))]
       for i, t in enumerate(output_values):
@@ -502,6 +525,10 @@ class JaxModel(Model):
         dataset, mode='predict', pad_batches=False)
     return self.predict_on_generator(
         generator, transformers=transformers, output_types=output_types)
+
+  def get_global_step(self) -> int:
+    """Get the number of steps of fitting that have been performed."""
+    return self._global_step
 
   def predict_embedding(self, dataset: Dataset) -> OneOrMany[np.ndarray]:
 

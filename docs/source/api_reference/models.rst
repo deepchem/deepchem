@@ -520,3 +520,24 @@ LCNNModel
 
 .. autoclass:: deepchem.models.LCNNModel
   :members:
+
+
+Jax Models
+==============
+
+DeepChem supports the use of `Jax`_ to build deep learning models.
+
+.. _`Jax`: https://github.com/google/jax 
+
+JaxModel
+----------
+
+.. autoclass:: deepchem.models.JaxModel
+  :members:
+
+PinnModel
+----------
+
+.. autoclass:: deepchem.models.PinnModel
+  :members:
+
