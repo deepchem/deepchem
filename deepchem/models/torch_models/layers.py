@@ -62,15 +62,26 @@ class MultiHeadedMATAttention(nn.Module):
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
   Examples
   --------
-  >>> from deepchem.models.torch_models.layers import MultiHeadedMATAttention
-  >>> from rdkit import Chem
-  >>> mol = Chem.MolFromSmiles("CC")
-  >>> adj_matrix = Chem.GetAdjacencyMatrix(mol)
-  >>> distance_matrix = Chem.GetDistanceMatrix(mol)
-  >>> layer = MultiHeadedMATAttention(dist_kernel='softmax', lambda_attention=0.33, lambda_distance=0.33, h=2, hsize=2, dropout_p=0.0)
-  >>> input_tensor = torch.tensor([[1., 2.], [5., 6.]])
-  >>> mask = torch.tensor([[1., 1.], [1., 1.]])
-  >>> result = layer(input_tensor, input_tensor, input_tensor, mask, adj_matrix, distance_matrix, 0.0)
+  >>> from deepchem.models.torch_models.layers import MultiHeadedMATAttention, MATEmbedding
+  >>> import deepchem as dc
+  >>> import torch
+  >>> input_smile = "CC"
+  >>> feat = dc.feat.MATFeaturizer()
+  >>> input_smile = "CC"
+  >>> out = feat.featurize(input_smile)
+  >>> node = torch.tensor(out[0].node_features).float().unsqueeze(0)
+  >>> adj = torch.tensor(out[0].adjacency_matrix).float().unsqueeze(0)
+  >>> dist = torch.tensor(out[0].distance_matrix).float().unsqueeze(0)
+  >>> mask = torch.sum(torch.abs(node), dim=-1) != 0
+  >>> layer = MultiHeadedMATAttention(
+  ...    dist_kernel='softmax',
+  ...    lambda_attention=0.33,
+  ...    lambda_distance=0.33,
+  ...    h=16,
+  ...    hsize=1024,
+  ...    dropout_p=0.0)
+  >>> op = MATEmbedding()(node)
+  >>> output = layer(op, op, op, mask, adj, dist)
   """
 
   def __init__(self,
@@ -147,6 +158,7 @@ class MultiHeadedMATAttention(nn.Module):
       Value of infinity to be used.
     """
     d_k = query.size(-1)
+
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
 
     if mask is not None:
@@ -156,18 +168,24 @@ class MultiHeadedMATAttention(nn.Module):
     p_attn = F.softmax(scores, dim=-1)
 
     adj_matrix = adj_matrix / (
-        torch.sum(torch.tensor(adj_matrix), dim=-1).unsqueeze(1) + eps)
-    p_adj = adj_matrix.repeat(1, query.shape[1], 1, 1)
+        torch.sum(torch.tensor(adj_matrix), dim=-1).unsqueeze(2) + eps)
 
-    distance_matrix = torch.tensor(distance_matrix).masked_fill(
+    if len(adj_matrix.shape) <= 3:
+      p_adj = adj_matrix.unsqueeze(1).repeat(1, query.shape[1], 1, 1)
+    else:
+      p_adj = adj_matrix.repeat(1, query.shape[1], 1, 1)
+
+    distance_matrix = torch.tensor(distance_matrix).squeeze().masked_fill(
         mask.repeat(1, mask.shape[-1], 1) == 0, np.inf)
+
     distance_matrix = self.dist_kernel(distance_matrix)
+
     p_dist = distance_matrix.unsqueeze(1).repeat(1, query.shape[1], 1, 1)
+
     p_weighted = self.lambda_attention * p_attn + self.lambda_distance * p_dist + self.lambda_adjacency * p_adj
     p_weighted = self.dropout_p(p_weighted)
 
-    bd = value.broadcast_to(p_weighted.shape)
-    return torch.matmul(p_weighted.float(), bd.float()), p_attn
+    return torch.matmul(p_weighted.float(), value.float()), p_attn
 
   def forward(self,
               query: torch.Tensor,
@@ -201,11 +219,10 @@ class MultiHeadedMATAttention(nn.Module):
     inf: float
       Value of infinity to be used.
     """
-    if mask is not None:
+    if mask is not None and len(mask.shape) <= 2:
       mask = mask.unsqueeze(1)
 
     batch_size = query.size(0)
-
     query, key, value = [
         layer(x).view(batch_size, -1, self.h, self.d_k).transpose(1, 2)
         for layer, x in zip(self.linear_layers, (query, key, value))
@@ -230,15 +247,20 @@ class MATEncoderLayer(nn.Module):
 
   Examples
   --------
-  >>> from deepchem.models.torch_models.layers import MATEncoderLayer
   >>> from rdkit import Chem
-  >>> mol = Chem.MolFromSmiles("CC")
-  >>> adj_matrix = Chem.GetAdjacencyMatrix(mol)
-  >>> distance_matrix = Chem.GetDistanceMatrix(mol)
-  >>> layer = MATEncoderLayer(dist_kernel='softmax', lambda_attention=0.33, lambda_distance=0.33, h=2, sa_hsize=2, sa_dropout_p=0.0, output_bias=True, d_input=2, d_hidden=2, d_output=2, activation='relu', n_layers=2, ff_dropout_p=0.0, encoder_hsize=2, encoder_dropout_p=0.0)
-  >>> x = torch.Tensor([[1., 2.], [5., 6.]])
-  >>> mask = torch.Tensor([[1., 1.], [1., 1.]])
-  >>> output = layer(x, mask, adj_matrix = adj_matrix, distance_matrix = distance_matrix, sa_dropout_p = 0.0)
+  >>> import torch
+  >>> import deepchem
+  >>> from deepchem.models.torch_models.layers import MATEmbedding, MATEncoderLayer
+  >>> input_smile = "CC"
+  >>> feat = deepchem.feat.MATFeaturizer()
+  >>> out = feat.featurize(input_smile)
+  >>> node = torch.tensor(out[0].node_features).float().unsqueeze(0)
+  >>> adj = torch.tensor(out[0].adjacency_matrix).float().unsqueeze(0)
+  >>> dist = torch.tensor(out[0].distance_matrix).float().unsqueeze(0)
+  >>> mask = torch.sum(torch.abs(node), dim=-1) != 0
+  >>> layer = MATEncoderLayer()
+  >>> op = MATEmbedding()(node)
+  >>> output = layer(op, mask, adj, dist)
   """
 
   def __init__(self,
@@ -252,7 +274,7 @@ class MATEncoderLayer(nn.Module):
                d_input: int = 1024,
                d_hidden: int = 1024,
                d_output: int = 1024,
-               activation: Any = nn.LeakyReLU(),
+               activation: str = 'leakyrelu',
                n_layers: int = 1,
                ff_dropout_p: float = 0.0,
                encoder_hsize: int = 1024,
@@ -387,20 +409,8 @@ class SublayerConnection(nn.Module):
       Layer whose normalized output will be added to x.
     """
     if x is None:
-      return self.dropout_p(self.norm(output))
-
-    if len(x.shape) < len(output.shape):
-      temp_ar = x
-      op_ar = output
-      adjusted = temp_ar.unsqueeze(1).repeat(1, op_ar.shape[1], 1)
-    elif len(x.shape) > len(output.shape):
-      temp_ar = output
-      op_ar = x
-      adjusted = temp_ar.unsqueeze(1).repeat(1, op_ar.shape[1], 1)
-    else:
-      return x + self.dropout_p(self.norm(output))
-
-    return adjusted + self.dropout_p(self.norm(op_ar))
+      return self.dropout(self.norm(output))
+    return x + self.dropout_p(self.norm(output))
 
 
 class PositionwiseFeedForward(nn.Module):
@@ -590,6 +600,8 @@ class MATGenerator(nn.Module):
       Type of aggregation to be used. Can be 'grover', 'mean' or 'contextual'.
     d_output: int
       Size of output layer.
+    n_layers: int
+      Number of layers in MATGenerator.
     dropout_p: float
       Dropout probability for layer.
     attn_hidden: int
@@ -632,8 +644,10 @@ class MATGenerator(nn.Module):
     mask: torch.Tensor
       Mask for padding so that padded values do not get included in attention score calculation.
     """
+
     mask = mask.unsqueeze(-1).float()
     out_masked = x * mask
+
     if self.aggregation_type == 'mean':
       out_sum = out_masked.sum(dim=1)
       mask_sum = mask.sum(dim=(1))
@@ -649,5 +663,5 @@ class MATGenerator(nn.Module):
 
     elif self.aggregation_type == 'contextual':
       out_avg_pooling = x
-    projected = self.proj(out_avg_pooling)
-    return projected
+
+    return self.proj(out_avg_pooling)
