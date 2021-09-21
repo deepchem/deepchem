@@ -201,7 +201,7 @@ class MATModel(TorchModel):
   >>> df.to_csv('test.csv')
   >>> dataset = loader.create_dataset('test.csv')
   >>> model = dc.models.torch_models.MATModel(batch_size = 2)
-  >>> model.fit(dataset, nb_epoch = 1)
+  >>> out = model.fit(dataset, nb_epoch = 1)
   """
 
   def __init__(self,
