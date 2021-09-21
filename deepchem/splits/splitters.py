@@ -1316,6 +1316,33 @@ def _split_fingerprints(fps: List, size1: int,
 class ScaffoldSplitter(Splitter):
   """Class for doing data splits based on the scaffold of small molecules.
 
+  Group  molecules  based on  the Bemis-Murcko scaffold representation, which identifies rings,
+  linkers, frameworks (combinations between linkers and rings) and atomic properties  such as
+  atom type, hibridization and bond order in a dataset of molecules. Then split the groups by
+  the number of molecules in each group in decreasing order.
+
+  It is necessary to add the smiles representation in the ids field during the
+  DiskDataset creation.
+
+  Examples
+  ---------
+  >>> import deepchem as dc
+  >>> # creation of demo data set with some smiles strings
+  ... data_test= ["CC(C)Cl" , "CCC(C)CO" ,  "CCCCCCCO" , "CCCCCCCC(=O)OC" , "c3ccc2nc1ccccc1cc2c3" , "Nc2cccc3nc1ccccc1cc23" , "C1CCCCCC1" ]
+  >>> Xs = np.zeros(len(data_test))
+  >>> Ys = np.ones(len(data_test))
+  >>> # creation of a deepchem dataset with the smile codes in the ids field
+  ... dataset = dc.data.DiskDataset.from_numpy(X=Xs,y=Ys,w=np.zeros(len(data_test)),ids=data_test)
+  >>> scaffoldsplitter = dc.splits.ScaffoldSplitter()
+  >>> train,test = scaffoldsplitter.train_test_split(dataset)
+  >>> train
+  <DiskDataset X.shape: (5,), y.shape: (5,), w.shape: (5,), ids: ['CC(C)Cl' 'CCC(C)CO' 'CCCCCCCO' 'CCCCCCCC(=O)OC' 'C1CCCCCC1'], task_names: [0]>
+
+  References
+  ----------
+  .. [1] Bemis, Guy W., and Mark A. Murcko. "The properties of known drugs.
+     1. Molecular frameworks." Journal of medicinal chemistry 39.15 (1996): 2887-2893.
+
   Note
   ----
   This class requires RDKit to be installed.
