@@ -1,4 +1,5 @@
 import pytest
+from transformers.tokenization_roberta import RobertaTokenizerFast
 
 
 @pytest.mark.torch
@@ -9,8 +10,9 @@ def test_smiles_call():
   long_molecule_smiles = [
       "CCCCCCCCCCCCCCCCCCCC(=O)OCCCNC(=O)c1ccccc1SSc1ccccc1C(=O)NCCCOC(=O)CCCCCCCCCCCCCCCCCCC"
   ]
-  featurizer = RobertaFeaturizer.from_pretrained(
-      "seyonec/SMILES_tokenized_PubChem_shard00_160k")
+  tokenizer = RobertaTokenizerFast.from_pretrained(
+      "seyonec/SMILES_tokenized_PubChem_shard00_160k", do_lower_case=False)
+  featurizer = RobertaFeaturizer(tokenizer)
   embedding = featurizer(smiles, add_special_tokens=True, truncation=True)
   embedding_long = featurizer(
       long_molecule_smiles * 2, add_special_tokens=True, truncation=True)
@@ -31,8 +33,9 @@ def test_smiles_featurize():
   long_molecule_smiles = [
       "CCCCCCCCCCCCCCCCCCCC(=O)OCCCNC(=O)c1ccccc1SSc1ccccc1C(=O)NCCCOC(=O)CCCCCCCCCCCCCCCCCCC"
   ]
-  featurizer = RobertaFeaturizer.from_pretrained(
-      "seyonec/SMILES_tokenized_PubChem_shard00_160k")
+  tokenizer = RobertaTokenizerFast.from_pretrained(
+      "seyonec/SMILES_tokenized_PubChem_shard00_160k", do_lower_case=False)
+  featurizer = RobertaFeaturizer(tokenizer)
   feats = featurizer.featurize(smiles, add_special_tokens=True, truncation=True)
   assert (len(feats) == 2)
   assert (all([len(f) == 2 for f in feats]))
