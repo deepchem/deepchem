@@ -37,14 +37,15 @@ class RobertaFeaturizer(Featurizer):
   Note
   -----
   This class requires transformers to be installed.
-  RobertaFeaturizer uses inheritance with DeepChem's 
-  Featurizer class while instantiating RobertaTokenizerFast 
+  RobertaFeaturizer uses inheritance with DeepChem's
+  Featurizer class while instantiating RobertaTokenizerFast
   in Huggingface as an attribute for rapid tokenization.
   """
 
   def __init__(self, tokenizer: RobertaTokenizerFast):
     if not isinstance(tokenizer, RobertaTokenizerFast):
-      raise TypeError(f"""`tokenizer` must be a constructed `RobertaTokenizerFast`
+      raise TypeError(
+          f"""`tokenizer` must be a constructed `RobertaTokenizerFast`
                        object, not {type(tokenizer)}""")
     else:
       self.tokenizer = tokenizer
