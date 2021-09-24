@@ -968,7 +968,6 @@ class NumpyDataset(Dataset):
     """
     return NumpyDataset(ds.X, ds.y, ds.w, ds.ids)
 
-  @staticmethod
   def to_json(self, fname: str) -> None:
     """Dump NumpyDataset to the json file .
 
