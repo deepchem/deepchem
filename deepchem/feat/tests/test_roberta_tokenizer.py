@@ -1,5 +1,5 @@
 import pytest
-from transformers.tokenization_roberta import RobertaTokenizerFast
+from transformers import RobertaTokenizerFast
 
 
 @pytest.mark.torch
