@@ -21,6 +21,7 @@ from deepchem.molnet.load_function.qm9_datasets import load_qm9
 from deepchem.molnet.load_function.sampl_datasets import load_sampl
 from deepchem.molnet.load_function.sider_datasets import load_sider
 from deepchem.molnet.load_function.sweetlead_datasets import load_sweet
+from deepchem.molnet.load_function.swissprot_datasets import load_swissprot
 from deepchem.molnet.load_function.tox21_datasets import load_tox21
 from deepchem.molnet.load_function.toxcast_datasets import load_toxcast
 from deepchem.molnet.load_function.uspto_datasets import load_uspto
