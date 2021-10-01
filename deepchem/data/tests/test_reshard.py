@@ -69,3 +69,21 @@ def test_reshard_with_X_y_w_ids():
   assert (dataset.w.flatten() == w).all()
   assert (dataset.ids == ids).all()
   assert dataset.get_number_shards() == 10
+
+
+def test_reshard_nolabels_smiles():
+  featurizer = dc.feat.DummyFeaturizer()
+  loader = dc.data.CSVLoader(
+      tasks=[], feature_field="reactions", featurizer=featurizer)
+  dataset = loader.create_dataset("reaction_smiles.csv")
+  dataset.reshard(shard_size=10)
+  assert dataset.get_number_shards() == 1
+
+
+def test_reshard_1000sequences():
+  featurizer = dc.feat.DummyFeaturizer()
+  loader = dc.data.CSVLoader(
+      tasks=[], feature_field="SEQUENCE", featurizer=featurizer)
+  dataset = loader.create_dataset("1000sequences.csv")
+  dataset.reshard(shard_size=10)
+  assert dataset.get_number_shards() == 100
