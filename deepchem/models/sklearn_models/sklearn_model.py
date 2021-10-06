@@ -38,6 +38,19 @@ class SklearnModel(Model):
   models that allows scikit-learn models to be trained on `Dataset` objects
   and evaluated with the same metrics as other DeepChem models.
 
+  Example
+  ------
+  >>> import deepchem as dc
+  >>> import numpy as np
+  >>> from sklearn.linear_model import LinearRegression
+  >>> # Generating a random data and creating a dataset
+  >>> X, y = np.random.randn(5, 1), np.random.randn(5)
+  >>> dataset = dc.data.NumpyDataset(X, y)
+  >>> # Wrapping a Sklearn Linear Regression model using DeepChem models API
+  >>> sklearn_model = LinearRegression()
+  >>> dc_model = dc.models.SklearnModel(sklearn_model)
+  >>> dc_model.fit(dataset)  # fitting dataset
+
   Notes
   -----
   All `SklearnModels` perform learning solely in memory. This means that it
