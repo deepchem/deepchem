@@ -42,20 +42,38 @@ class GridHyperparamOpt(HyperparamOpt):
   some parameters of a model. In this case, we have some parameters we
   want to optimize, and others which we don't. To handle this type of
   search, we create a `model_builder` which hard codes some arguments
-  (in this case, `n_tasks` and `n_features` which are properties of a
-  dataset and not hyperparameters to search over.)
+  (in this case, `max_iter` is a hyperparameter which we don't want
+  to search over)
 
-  >>> def model_builder(model_dir, **model_params):
-  ...   n_layers = model_params['layers']
-  ...   layer_width = model_params['width']
-  ...   dropout = model_params['dropout']
-  ...   return dc.models.MultitaskClassifier(
-  ...     n_tasks=5,
-  ...     n_features=100,
-  ...     layer_sizes=[layer_width]*n_layers,
-  ...     dropouts=dropout
-  ...   )
+  >>> import deepchem as dc
+  >>> import numpy as np
+  >>> from sklearn.linear_model import LogisticRegression as LR
+  >>> # generating data
+  >>> X = np.arange(1, 11, 1).reshape(-1, 1)
+  >>> y = np.hstack((np.zeros(5), np.ones(5)))
+  >>> dataset = dc.data.NumpyDataset(X, y)
+  >>> # splitting dataset into train and test
+  >>> splitter = dc.splits.RandomSplitter()
+  >>> train_dataset, test_dataset = splitter.train_test_split(dataset)
+  >>> # metric to evaluate result of a set of parameters
+  >>> metric = dc.metrics.Metric(dc.metrics.accuracy_score)
+  >>> # defining `model_builder`
+  >>> def model_builder(**model_params):
+  ...   penalty = model_params['penalty']
+  ...   solver = model_params['solver']
+  ...   lr = LR(penalty=penalty, solver=solver, max_iter=100)
+  ...   return dc.models.SklearnModel(lr)
+  >>> # the parameters which are to be optimized
+  >>> params = {
+  ...   'penalty': ['l1', 'l2'],
+  ...   'solver': ['liblinear', 'saga']
+  ...   }
+  >>> # Creating optimizer and searching over hyperparameters
   >>> optimizer = dc.hyper.GridHyperparamOpt(model_builder)
+  >>> best_model, best_hyperparams, all_results = \
+  optimizer.hyperparam_search(params, train_dataset, test_dataset, metric)
+  >>> best_hyperparams  # the best hyperparameters
+  ('l2', 'saga')
 
   """
 
@@ -107,7 +125,7 @@ class GridHyperparamOpt(HyperparamOpt):
     Tuple[`best_model`, `best_hyperparams`, `all_scores`]
       `(best_model, best_hyperparams, all_scores)` where `best_model` is
       an instance of `dc.model.Model`, `best_hyperparams` is a
-      dictionary of parameters, and `all_scores` is a dictionary mapping
+      tuple of parameters, and `all_scores` is a dictionary mapping
       string representations of hyperparameter sets to validation
       scores.
     """
