@@ -62,6 +62,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [6 Transfer Learning with ChemBERTa Transformers](Transfer_Learning_With_ChemBERTa_Transformers.ipynb)
 * [7 Training a Normalizing Flow on QM9](Training_a_Normalizing_Flow_on_QM9.ipynb)
 * [8 Large Scale Chemical Screens](Large_Scale_Chemical_Screens.ipynb)
+* [9 Chemical Reactions and Retrosynthesis with HuggingFace](Working_with_Chemical_Reactions.ipynb)
 
 ### Modeling Proteins
 * [1 Protein Deep Learning](Protein_Deep_Learning.ipynb)
