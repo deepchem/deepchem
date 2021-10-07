@@ -328,7 +328,21 @@ class Splitter(object):
 
 
 class RandomSplitter(Splitter):
-  """Class for doing random data splits."""
+  """Class for doing random data splits.
+
+  Examples
+  --------
+  >>> import numpy as np
+  >>> import deepchem as dc
+  >>> # Creating a dummy NumPy dataset
+  >>> X, y = np.random.randn(5), np.random.randn(5)
+  >>> dataset = dc.data.NumpyDataset(X, y)
+  >>> # Creating a RandomSplitter object
+  >>> splitter = dc.splits.RandomSplitter()
+  >>> # Splitting dataset into train and test datasets
+  >>> train_dataset, test_dataset = splitter.train_test_split(dataset)
+
+  """
 
   def split(self,
             dataset: Dataset,
