@@ -84,6 +84,6 @@ def test_reshard_1000sequences():
   featurizer = dc.feat.DummyFeaturizer()
   loader = dc.data.CSVLoader(
       tasks=[], feature_field="SEQUENCE", featurizer=featurizer)
-  dataset = loader.create_dataset("1000sequences.csv")
+  dataset = loader.create_dataset("50_sequences.csv")
   dataset.reshard(shard_size=10)
-  assert dataset.get_number_shards() == 100
+  assert dataset.get_number_shards() == 5
