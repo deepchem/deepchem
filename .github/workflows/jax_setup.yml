@@ -113,20 +113,6 @@ jobs:
       id: install
       shell: bash -l {0}
       run: pip install -e '.[jax]'
-    - name: Yapf (version 0.22.0)
-      id: yapf
-      # on Windows, yapf raise the strange error..., so ignore
-      if: runner.os == 'Linux' || runner.os == 'macOS'
-      shell: bash -l {0}
-      run: |
-        CHANGED_FILES=`git diff --name-only $COMMIT_RANGE | grep .py$ | grep -v contrib/ || true`
-        if [ -n "$CHANGED_FILES" ]; then
-          yapf -d $CHANGED_FILES
-        fi
-    - name: Flake8
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
-      shell: bash -l {0}
-      run: source scripts/flake8_for_ci.sh
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
