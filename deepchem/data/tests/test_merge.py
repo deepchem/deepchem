@@ -25,6 +25,13 @@ def test_merge():
   assert len(merged_dataset) == len(first_dataset) + len(second_dataset)
   assert merged_dataset.get_shard_size() == 10
 
+  # Test merging of numpy datasets
+  X1, y1 = np.random.rand(5, 3), np.random.randn(5, 1)
+  first_dataset = dc.data.NumpyDataset(X1, y1)
+  X2, y2 = np.random.rand(5, 3), np.random.randn(5, 1)
+  second_dataset = dc.data.NumpyDataset(X2, y2)
+  merged_dataset = dc.data.NumpyDataset.merge([first_dataset, second_dataset])
+  assert len(merged_dataset) == len(first_dataset) + len(second_dataset)
 
 def test_subset():
   """Tests that subsetting of datasets works."""
