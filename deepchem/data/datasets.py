@@ -1935,7 +1935,7 @@ class DiskDataset(Dataset):
     shard_sizes = []
     for dataset in datasets:
       if hasattr(dataset, 'get_shard_size'):
-        shard_sizes.append(dataset.get_shard_size())
+        shard_sizes.append(dataset.get_shard_size())  # type: ignore
       # otherwise the entire dataset is the "shard size"
       else:
         shard_sizes.append(len(dataset))
