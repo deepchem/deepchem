@@ -1016,6 +1016,17 @@ class NumpyDataset(Dataset):
     -------
     NumpyDataset
       A single NumpyDataset containing all the samples from all datasets.
+
+    Example
+    -------
+    >>> X1, y1 = np.random.rand(5, 3), np.random.randn(5, 1)
+    >>> first_dataset = dc.data.NumpyDataset(X1, y1)
+    >>> X2, y2 = np.random.rand(5, 3), np.random.randn(5, 1)
+    >>> second_dataset = dc.data.NumpyDataset(X2, y2)
+    >>> merged_dataset = dc.data.NumpyDataset.merge([first_dataset, second_dataset])
+    >>> print(len(merged_dataset) == len(first_dataset) + len(second_dataset))
+    True
+
     """
     X, y, w, ids = datasets[0].X, datasets[0].y, datasets[0].w, datasets[0].ids
     for dataset in datasets[1:]:
