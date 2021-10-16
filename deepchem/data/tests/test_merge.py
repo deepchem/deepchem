@@ -33,6 +33,7 @@ def test_merge():
   merged_dataset = dc.data.NumpyDataset.merge([first_dataset, second_dataset])
   assert len(merged_dataset) == len(first_dataset) + len(second_dataset)
 
+
 def test_subset():
   """Tests that subsetting of datasets works."""
   current_dir = os.path.dirname(os.path.realpath(__file__))
