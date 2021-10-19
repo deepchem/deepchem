@@ -9,7 +9,6 @@ import logging
 from typing import List, Optional, Sequence
 
 import numpy as np
-from sklearn.base import BaseEstimator
 
 from deepchem.data import Dataset
 from deepchem.metrics import Metric
@@ -20,7 +19,7 @@ from deepchem.utils.typing import ArrayLike
 logger = logging.getLogger(__name__)
 
 
-class Model(BaseEstimator):
+class Model(object):
   """
   Abstract base class for DeepChem models.
   """
