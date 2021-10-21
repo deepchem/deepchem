@@ -248,6 +248,7 @@ def prepare_inputs(protein: str,
 
   Examples
   --------
+  >>> from deepchem.utils import prepare_inputs
   >>> p, m = prepare_inputs('3cyx', 'CCC')
   >>> p.GetNumAtoms()
   1415
@@ -264,7 +265,7 @@ def prepare_inputs(protein: str,
     from rdkit import Chem
     from rdkit.Chem import AllChem
     from pdbfixer import PDBFixer
-    from simtk.openmm.app import PDBFile
+    from openmm.app import PDBFile
   except ModuleNotFoundError:
     raise ImportError(
         "This function requires RDKit and OpenMM to be installed.")
