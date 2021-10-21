@@ -8,6 +8,7 @@ import pytest
 import deepchem as dc
 import sklearn
 import sklearn.ensemble
+import os
 
 
 class TestGridHyperparamOpt(unittest.TestCase):
@@ -80,10 +81,8 @@ class TestGridHyperparamOpt(unittest.TestCase):
           metric,
           transformers,
           logdir=tmpdirname)
-    valid_score = best_model.evaluate(self.valid_dataset, [metric],
-                                      transformers)
-    assert valid_score["pearson_r2_score"] == max(all_results.values())
-    assert valid_score["pearson_r2_score"] > 0
+      # 2 model variants, 1 results.txt file
+      assert len(os.listdir(tmpdirname)) == 2 + 1
 
   @pytest.mark.torch
   def test_multitask_example(self):
