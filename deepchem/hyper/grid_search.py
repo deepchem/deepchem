@@ -72,7 +72,7 @@ class GridHyperparamOpt(HyperparamOpt):
   >>> best_model, best_hyperparams, all_results = \
   optimizer.hyperparam_search(params, train_dataset, test_dataset, metric)
   >>> best_hyperparams  # the best hyperparameters
-  ('l2', 'saga')
+  {'penalty': 'l2', 'solver': 'saga'}
 
   """
 
@@ -86,6 +86,7 @@ class GridHyperparamOpt(HyperparamOpt):
       nb_epoch: int = 10,
       use_max: bool = True,
       logdir: Optional[str] = None,
+      logfile: Optional[str] = None,
       **kwargs,
   ):
     """Perform hyperparams search according to params_dict.
@@ -118,6 +119,10 @@ class GridHyperparamOpt(HyperparamOpt):
     logdir: str, optional
       The directory in which to store created models. If not set, will
       use a temporary directory.
+    logfile: str, optional (default None)
+      Name of logfile to write results to. If specified, this is must
+      be a valid file name. If not specified, results of hyperparameter
+      search will be written to `logdir/results.txt`.
 
     Returns
     -------
@@ -146,7 +151,10 @@ class GridHyperparamOpt(HyperparamOpt):
     if logdir is not None:
       if not os.path.exists(logdir):
         os.makedirs(logdir, exist_ok=True)
-      log_file = os.path.join(logdir, "results.txt")
+      if logfile is not None:
+        log_file = os.path.join(logdir, logfile)
+      else:
+        log_file = os.path.join(logdir, "results.txt")
 
     for ind, hyperparameter_tuple in enumerate(
         itertools.product(*hyperparam_vals)):
@@ -201,8 +209,9 @@ class GridHyperparamOpt(HyperparamOpt):
     if best_model is None:
       logger.info("No models trained correctly.")
       # arbitrarily return last model
-      with open(log_file, 'w+') as f:
-        f.write("No model trained correctly. Arbitary models returned")
+      if logdir is not None:
+        with open(log_file, 'w+') as f:
+          f.write("No model trained correctly. Arbitary models returned")
       best_model, best_hyperparams = model, hyperparameter_tuple
       return best_model, best_hyperparams, all_scores
     multitask_scores = best_model.evaluate(train_dataset, [metric],
@@ -211,7 +220,8 @@ class GridHyperparamOpt(HyperparamOpt):
     logger.info("Best hyperparameters: %s" % str(best_hyperparams))
     logger.info("train_score: %f" % train_score)
     logger.info("validation_score: %f" % best_validation_score)
-    with open(log_file, 'w+') as f:
-      f.write("Best Hyperparameters dictionary %s\n" % str(best_hyperparams))
-      f.write("Best validation score %s" % str(train_score))
+    if logdir is not None:
+      with open(log_file, 'w+') as f:
+        f.write("Best Hyperparameters dictionary %s\n" % str(best_hyperparams))
+        f.write("Best validation score %s" % str(train_score))
     return best_model, best_hyperparams, all_scores
