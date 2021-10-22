@@ -132,6 +132,13 @@ class GridHyperparamOpt(HyperparamOpt):
       dictionary of parameters, and `all_scores` is a dictionary mapping
       string representations of hyperparameter sets to validation
       scores.
+
+    Notes
+    -----
+    From DeepChem 2.6, the return type of `best_hyperparams` is a dictionary of
+    parameters rather than a tuple of parameters as it was previously. The new
+    changes have been made to standardize the behaviour across different
+    hyperparameter optimization techniques available in DeepChem.
     """
     hyperparams = params_dict.keys()
     hyperparam_vals = params_dict.values()
