@@ -36,7 +36,7 @@ jobs:
         miniconda-version: "latest"
         auto-update-conda: true
         activate-environment: deepchem
-        channels: omnia,conda-forge,defaults
+        channels: conda-forge,defaults
         python-version: ${{ matrix.python-version }}
         environment-file: env.yml
     - name: Install dependencies (docs)
