@@ -97,6 +97,8 @@ def download_url(url: str,
       name = name[:name.find('?')]
     if '/' in name:
       name = name[name.rfind('/') + 1:]
+  if not os.path.exists(dest_dir):
+    os.makedirs(dest_dir)
   urlretrieve(url, os.path.join(dest_dir, name))
 
 
