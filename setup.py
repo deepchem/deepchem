@@ -78,6 +78,7 @@ setup(
         'pandas',
         'scikit-learn',
         'scipy',
+        'rdkit-pypi',
     ],
     extras_require=extras,
     python_requires='>=3.5')

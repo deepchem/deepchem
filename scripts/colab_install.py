@@ -16,10 +16,8 @@ logger.setLevel(INFO)
 
 default_channels = [
     "conda-forge",
-    "omnia",
 ]
 default_packages = [
-    "rdkit=2020.09.02",
     "openmm",
     "pdbfixer",
 ]
@@ -107,7 +105,7 @@ def install(
   subprocess.check_call(["bash", file_name, "-b", "-p", conda_path])
   logger.info('done')
 
-  logger.info("installing rdkit, openmm, pdbfixer")
+  logger.info("installing openmm, pdbfixer")
   channels = list(set(default_channels + additional_channels))
   for channel in channels:
     subprocess.check_call([
