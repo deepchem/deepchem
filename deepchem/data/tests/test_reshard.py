@@ -1,6 +1,6 @@
 import deepchem as dc
 import numpy as np
-
+import os
 
 def test_reshard_with_X():
   """Test resharding on a simple example"""
@@ -72,18 +72,22 @@ def test_reshard_with_X_y_w_ids():
 
 
 def test_reshard_nolabels_smiles():
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  data_dir = os.path.join(current_dir, "reaction_smiles.csv")
   featurizer = dc.feat.DummyFeaturizer()
   loader = dc.data.CSVLoader(
       tasks=[], feature_field="reactions", featurizer=featurizer)
-  dataset = loader.create_dataset("reaction_smiles.csv")
+  dataset = loader.create_dataset(data_dir)
   dataset.reshard(shard_size=10)
   assert dataset.get_number_shards() == 1
 
 
-def test_reshard_1000sequences():
+def test_reshard_50sequences():
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  data_dir = os.path.join(current_dir, "50_sequences.csv")
   featurizer = dc.feat.DummyFeaturizer()
   loader = dc.data.CSVLoader(
       tasks=[], feature_field="SEQUENCE", featurizer=featurizer)
-  dataset = loader.create_dataset("50_sequences.csv")
+  dataset = loader.create_dataset(data_dir)
   dataset.reshard(shard_size=10)
   assert dataset.get_number_shards() == 5
