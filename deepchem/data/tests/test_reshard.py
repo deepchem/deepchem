@@ -2,6 +2,7 @@ import deepchem as dc
 import numpy as np
 import os
 
+
 def test_reshard_with_X():
   """Test resharding on a simple example"""
   X = np.random.rand(100, 10)
