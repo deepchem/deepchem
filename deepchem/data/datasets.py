@@ -1468,8 +1468,12 @@ class DiskDataset(Dataset):
         X = np.reshape(X, (len(X),) + self.get_data_shape())
         # Note that this means that DiskDataset resharding currently doesn't
         # work for datasets that aren't regression/classification.
-        y = np.reshape(y, (len(y),) + y_shape[1:])
-        w = np.reshape(w, (len(w),) + w_shape[1:])
+        if y is None:  # datasets without label
+          y = y_next
+          w = w_next
+        else:
+          y = np.reshape(y, (len(y),) + y_shape[1:])
+          w = np.reshape(w, (len(w),) + w_shape[1:])
         X_next = np.concatenate([X_next, X], axis=0)
         y_next = np.concatenate([y_next, y], axis=0)
         w_next = np.concatenate([w_next, w], axis=0)
