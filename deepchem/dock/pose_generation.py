@@ -5,10 +5,8 @@ import platform
 import logging
 import os
 import tempfile
-import tarfile
 import numpy as np
-from subprocess import call, Popen, PIPE
-from subprocess import check_output
+from subprocess import Popen, PIPE
 from typing import List, Optional, Tuple, Union
 
 from deepchem.dock.binding_pocket import BindingPocketFinder
@@ -244,18 +242,14 @@ class VinaPoseGenerator(PoseGenerator):
   """Uses Autodock Vina to generate binding poses.
 
   This class uses Autodock Vina to make make predictions of
-  binding poses. It downloads the Autodock Vina executable for
-  your system to your specified DEEPCHEM_DATA_DIR (remember this
-  is an environment variable you set) and invokes the executable
-  to perform pose generation for you.
+  binding poses.
 
   Note
   ----
   This class requires RDKit and vina to be installed.
   """
 
-  def __init__(self,
-               pocket_finder: Optional[BindingPocketFinder] = None):
+  def __init__(self, pocket_finder: Optional[BindingPocketFinder] = None):
     """Initializes Vina Pose Generator
 
     Parameters
@@ -278,9 +272,6 @@ class VinaPoseGenerator(PoseGenerator):
                     ) -> Union[Tuple[DOCKED_POSES, List[float]], DOCKED_POSES]:
     """Generates the docked complex and outputs files for docked complex.
 
-    TODO: How can this work on Windows? We need to install a .msi file and
-    invoke it correctly from Python for this to work.
-
     Parameters
     ----------
     molecular_complexes: Tuple[str, str]
@@ -293,7 +284,7 @@ class VinaPoseGenerator(PoseGenerator):
       A numpy array of shape `(3,)` holding the size of the box to dock. If not
       specified is set to size of molecular complex plus 5 angstroms.
     exhaustiveness: int, optional (default 10)
-      Tells Autodock Vina how exhaustive it should be with pose
+      Tells Autodock Vina the number of MC runs it should run for pose
       generation.
     num_modes: int, optional (default 9)
       Tells Autodock Vina how many binding modes it should generate at
@@ -321,6 +312,11 @@ class VinaPoseGenerator(PoseGenerator):
     ------
     `ValueError` if `num_pockets` is set but `self.pocket_finder is None`.
     """
+    try:
+      from vina import Vina
+    except ModuleNotFoundError:
+      raise ImportError("This function requires vina to be installed")
+
     if out_dir is None:
       out_dir = tempfile.mkdtemp()
 
@@ -391,6 +387,7 @@ class VinaPoseGenerator(PoseGenerator):
 
     docked_complexes = []
     all_scores = []
+    vpg = Vina(sf_name='vina', cpu=0, seed=0, no_refine=False, verbosity=1)
     for i, (protein_centroid, box_dims) in enumerate(
         zip(centroids, dimensions)):
       logger.info("Docking in pocket %d/%d" % (i + 1, len(centroids)))
@@ -407,23 +404,22 @@ class VinaPoseGenerator(PoseGenerator):
           num_modes=num_modes,
           exhaustiveness=exhaustiveness)
 
-      # Define locations of log and output files
-      log_file = os.path.join(out_dir, "%s_log.txt" % ligand_name)
+      # Define locations of output files
       out_pdbqt = os.path.join(out_dir, "%s_docked.pdbqt" % ligand_name)
       logger.info("About to call Vina")
-      if platform.system() == 'Windows':
-        args = [
-            self.vina_cmd, "--config", conf_file, "--log", log_file, "--out",
-            out_pdbqt
-        ]
-      else:
-        # I'm not sure why specifying the args as a list fails on other platforms,
-        # but for some reason it only works if I pass it as a string.
-        # FIXME: Incompatible types in assignment
-        args = "%s --config %s --log %s --out %s" % (  # type: ignore
-            self.vina_cmd, conf_file, log_file, out_pdbqt)
-      # FIXME: We should use `subprocess.run` instead of `call`
-      call(args, shell=True)
+
+      vpg.set_receptor(protein_pdbqt)
+      vpg.set_ligand_from_file(ligand_pdbqt)
+
+      vpg.compute_vina_maps(center=protein_centroid, box_size=box_dims)
+      vpg.dock(
+          exhaustiveness=exhaustiveness,
+          n_poses=num_modes,
+          min_rmsd=1.0,
+          max_evals=0)
+      vpg.write_poses(
+          out_pdbqt, n_poses=num_modes, energy_range=3.0, overwrite=True)
+
       ligands, scores = load_docked_ligands(out_pdbqt)
       docked_complexes += [(protein_mol[1], ligand) for ligand in ligands]
       all_scores += scores
