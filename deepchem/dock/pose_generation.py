@@ -251,64 +251,20 @@ class VinaPoseGenerator(PoseGenerator):
 
   Note
   ----
-  This class requires RDKit to be installed.
+  This class requires RDKit and vina to be installed.
   """
 
   def __init__(self,
-               sixty_four_bits: bool = True,
                pocket_finder: Optional[BindingPocketFinder] = None):
     """Initializes Vina Pose Generator
 
     Parameters
     ----------
-    sixty_four_bits: bool, optional (default True)
-      Specifies whether this is a 64-bit machine. Needed to download
-      the correct executable.
     pocket_finder: BindingPocketFinder, optional (default None)
       If specified should be an instance of
       `dc.dock.BindingPocketFinder`.
     """
-    data_dir = get_data_dir()
-    if platform.system() == 'Linux':
-      url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_linux_x86.tgz"
-      filename = "autodock_vina_1_1_2_linux_x86.tgz"
-      dirname = "autodock_vina_1_1_2_linux_x86"
-      self.vina_dir = os.path.join(data_dir, dirname)
-      self.vina_cmd = os.path.join(self.vina_dir, "bin/vina")
-    elif platform.system() == 'Darwin':
-      if sixty_four_bits:
-        url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_mac_64bit.tar.gz"
-        filename = "autodock_vina_1_1_2_mac_64bit.tar.gz"
-        dirname = "autodock_vina_1_1_2_mac_catalina_64bit"
-      else:
-        url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_mac.tgz"
-        filename = "autodock_vina_1_1_2_mac.tgz"
-        dirname = "autodock_vina_1_1_2_mac"
-      self.vina_dir = os.path.join(data_dir, dirname)
-      self.vina_cmd = os.path.join(self.vina_dir, "bin/vina")
-    elif platform.system() == 'Windows':
-      url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_win32.msi"
-      filename = "autodock_vina_1_1_2_win32.msi"
-      self.vina_dir = "\\Program Files (x86)\\The Scripps Research Institute\\Vina"
-      self.vina_cmd = os.path.join(self.vina_dir, "vina.exe")
-    else:
-      raise ValueError(
-          "Unknown operating system. Try using a cloud platform to run this code instead."
-      )
     self.pocket_finder = pocket_finder
-    if not os.path.exists(self.vina_dir):
-      logger.info("Vina not available. Downloading")
-      download_url(url, data_dir)
-      downloaded_file = os.path.join(data_dir, filename)
-      logger.info("Downloaded Vina. Extracting")
-      if platform.system() == 'Windows':
-        msi_cmd = "msiexec /i %s" % downloaded_file
-        check_output(msi_cmd.split())
-      else:
-        with tarfile.open(downloaded_file) as tar:
-          tar.extractall(data_dir)
-      logger.info("Cleanup: removing downloaded vina tar.gz")
-      os.remove(downloaded_file)
 
   def generate_poses(self,
                      molecular_complex: Tuple[str, str],
