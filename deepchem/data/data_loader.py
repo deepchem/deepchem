@@ -303,6 +303,21 @@ class CSVLoader(DataLoader):
   Of course in practice you should already have your data in a CSV file if
   you're using `CSVLoader`. If your data is already in memory, use
   `InMemoryLoader` instead.
+
+  Sometimes there will be datasets without specific tasks, for example
+  datasets which are used in unsupervised learning tasks. Such datasets
+  can be loaded by leaving the `tasks` field empty.
+
+  >>> x1, x2 = [2, 3, 4], [4, 6, 8]
+  >>> df = pd.DataFrame({"x1":x1, "x2": x2}).reset_index()
+  >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
+  ...   df.to_csv(tmpfile.name)
+  ...   loader = dc.data.CSVLoader(tasks=[], id_field="index", feature_field=["x1", "x2"],
+  ...                              featurizer=dc.feat.DummyFeaturizer())
+  ...   dataset = loader.create_dataset(tmpfile.name)
+  >>> len(dataset)
+  3
+
   """
 
   def __init__(self,
