@@ -5,10 +5,8 @@ import platform
 import logging
 import os
 import tempfile
-import tarfile
 import numpy as np
-from subprocess import call, Popen, PIPE
-from subprocess import check_output
+from subprocess import Popen, PIPE
 from typing import List, Optional, Tuple, Union
 
 from deepchem.dock.binding_pocket import BindingPocketFinder
@@ -244,86 +242,49 @@ class VinaPoseGenerator(PoseGenerator):
   """Uses Autodock Vina to generate binding poses.
 
   This class uses Autodock Vina to make make predictions of
-  binding poses. It downloads the Autodock Vina executable for
-  your system to your specified DEEPCHEM_DATA_DIR (remember this
-  is an environment variable you set) and invokes the executable
-  to perform pose generation for you.
+  binding poses.
+
+  Example
+  -------
+  >> import deepchem as dc
+  >> vpg = dc.dock.VinaPoseGenerator(pocket_finder=None)
+  >> protein_file = '1jld_protein.pdb'
+  >> ligand_file = '1jld_ligand.sdf'
+  >> poses, scores = vpg.generate_poses(
+  ..        (protein_file, ligand_file),
+  ..        exhaustiveness=1,
+  ..        num_modes=1,
+  ..        out_dir=tmp,
+  ..        generate_scores=True)
 
   Note
   ----
-  This class requires RDKit to be installed.
+  This class requires RDKit and vina to be installed.
   """
 
-  def __init__(self,
-               sixty_four_bits: bool = True,
-               pocket_finder: Optional[BindingPocketFinder] = None):
+  def __init__(self, pocket_finder: Optional[BindingPocketFinder] = None):
     """Initializes Vina Pose Generator
 
     Parameters
     ----------
-    sixty_four_bits: bool, optional (default True)
-      Specifies whether this is a 64-bit machine. Needed to download
-      the correct executable.
     pocket_finder: BindingPocketFinder, optional (default None)
       If specified should be an instance of
       `dc.dock.BindingPocketFinder`.
     """
-    data_dir = get_data_dir()
-    if platform.system() == 'Linux':
-      url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_linux_x86.tgz"
-      filename = "autodock_vina_1_1_2_linux_x86.tgz"
-      dirname = "autodock_vina_1_1_2_linux_x86"
-      self.vina_dir = os.path.join(data_dir, dirname)
-      self.vina_cmd = os.path.join(self.vina_dir, "bin/vina")
-    elif platform.system() == 'Darwin':
-      if sixty_four_bits:
-        url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_mac_64bit.tar.gz"
-        filename = "autodock_vina_1_1_2_mac_64bit.tar.gz"
-        dirname = "autodock_vina_1_1_2_mac_catalina_64bit"
-      else:
-        url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_mac.tgz"
-        filename = "autodock_vina_1_1_2_mac.tgz"
-        dirname = "autodock_vina_1_1_2_mac"
-      self.vina_dir = os.path.join(data_dir, dirname)
-      self.vina_cmd = os.path.join(self.vina_dir, "bin/vina")
-    elif platform.system() == 'Windows':
-      url = "http://vina.scripps.edu/download/autodock_vina_1_1_2_win32.msi"
-      filename = "autodock_vina_1_1_2_win32.msi"
-      self.vina_dir = "\\Program Files (x86)\\The Scripps Research Institute\\Vina"
-      self.vina_cmd = os.path.join(self.vina_dir, "vina.exe")
-    else:
-      raise ValueError(
-          "Unknown operating system. Try using a cloud platform to run this code instead."
-      )
     self.pocket_finder = pocket_finder
-    if not os.path.exists(self.vina_dir):
-      logger.info("Vina not available. Downloading")
-      download_url(url, data_dir)
-      downloaded_file = os.path.join(data_dir, filename)
-      logger.info("Downloaded Vina. Extracting")
-      if platform.system() == 'Windows':
-        msi_cmd = "msiexec /i %s" % downloaded_file
-        check_output(msi_cmd.split())
-      else:
-        with tarfile.open(downloaded_file) as tar:
-          tar.extractall(data_dir)
-      logger.info("Cleanup: removing downloaded vina tar.gz")
-      os.remove(downloaded_file)
 
-  def generate_poses(self,
-                     molecular_complex: Tuple[str, str],
-                     centroid: Optional[np.ndarray] = None,
-                     box_dims: Optional[np.ndarray] = None,
-                     exhaustiveness: int = 10,
-                     num_modes: int = 9,
-                     num_pockets: Optional[int] = None,
-                     out_dir: Optional[str] = None,
-                     generate_scores: Optional[bool] = False
-                    ) -> Union[Tuple[DOCKED_POSES, List[float]], DOCKED_POSES]:
+  def generate_poses(
+      self,
+      molecular_complex: Tuple[str, str],
+      centroid: Optional[np.ndarray] = None,
+      box_dims: Optional[np.ndarray] = None,
+      exhaustiveness: int = 10,
+      num_modes: int = 9,
+      num_pockets: Optional[int] = None,
+      out_dir: Optional[str] = None,
+      generate_scores: Optional[bool] = False,
+      **kwargs) -> Union[Tuple[DOCKED_POSES, List[float]], DOCKED_POSES]:
     """Generates the docked complex and outputs files for docked complex.
-
-    TODO: How can this work on Windows? We need to install a .msi file and
-    invoke it correctly from Python for this to work.
 
     Parameters
     ----------
@@ -337,8 +298,9 @@ class VinaPoseGenerator(PoseGenerator):
       A numpy array of shape `(3,)` holding the size of the box to dock. If not
       specified is set to size of molecular complex plus 5 angstroms.
     exhaustiveness: int, optional (default 10)
-      Tells Autodock Vina how exhaustive it should be with pose
-      generation.
+      Tells Autodock Vina how exhaustive it should be with pose generation. A
+      higher value of exhaustiveness implies more computation effort for the
+      docking experiment.
     num_modes: int, optional (default 9)
       Tells Autodock Vina how many binding modes it should generate at
       each invocation.
@@ -352,6 +314,9 @@ class VinaPoseGenerator(PoseGenerator):
       If `True`, the pose generator will return scores for complexes.
       This is used typically when invoking external docking programs
       that compute scores.
+    kwargs:
+      Any args supported by VINA as documented in
+      https://autodock-vina.readthedocs.io/en/latest/vina.html
 
     Returns
     -------
@@ -365,6 +330,28 @@ class VinaPoseGenerator(PoseGenerator):
     ------
     `ValueError` if `num_pockets` is set but `self.pocket_finder is None`.
     """
+    if "cpu" in kwargs:
+      cpu = kwargs["cpu"]
+    else:
+      cpu = 0
+    if "min_rmsd" in kwargs:
+      min_rmsd = kwargs["min_rmsd"]
+    else:
+      min_rmsd = 1.0
+    if "max_evals" in kwargs:
+      max_evals = kwargs["max_evals"]
+    else:
+      max_evals = 0
+    if "energy_range" in kwargs:
+      energy_range = kwargs["energy_range"]
+    else:
+      energy_range = 3.0
+
+    try:
+      from vina import Vina
+    except ModuleNotFoundError:
+      raise ImportError("This function requires vina to be installed")
+
     if out_dir is None:
       out_dir = tempfile.mkdtemp()
 
@@ -435,6 +422,7 @@ class VinaPoseGenerator(PoseGenerator):
 
     docked_complexes = []
     all_scores = []
+    vpg = Vina(sf_name='vina', cpu=cpu, seed=0, no_refine=False, verbosity=1)
     for i, (protein_centroid, box_dims) in enumerate(
         zip(centroids, dimensions)):
       logger.info("Docking in pocket %d/%d" % (i + 1, len(centroids)))
@@ -451,23 +439,25 @@ class VinaPoseGenerator(PoseGenerator):
           num_modes=num_modes,
           exhaustiveness=exhaustiveness)
 
-      # Define locations of log and output files
-      log_file = os.path.join(out_dir, "%s_log.txt" % ligand_name)
+      # Define locations of output files
       out_pdbqt = os.path.join(out_dir, "%s_docked.pdbqt" % ligand_name)
       logger.info("About to call Vina")
-      if platform.system() == 'Windows':
-        args = [
-            self.vina_cmd, "--config", conf_file, "--log", log_file, "--out",
-            out_pdbqt
-        ]
-      else:
-        # I'm not sure why specifying the args as a list fails on other platforms,
-        # but for some reason it only works if I pass it as a string.
-        # FIXME: Incompatible types in assignment
-        args = "%s --config %s --log %s --out %s" % (  # type: ignore
-            self.vina_cmd, conf_file, log_file, out_pdbqt)
-      # FIXME: We should use `subprocess.run` instead of `call`
-      call(args, shell=True)
+
+      vpg.set_receptor(protein_pdbqt)
+      vpg.set_ligand_from_file(ligand_pdbqt)
+
+      vpg.compute_vina_maps(center=protein_centroid, box_size=box_dims)
+      vpg.dock(
+          exhaustiveness=exhaustiveness,
+          n_poses=num_modes,
+          min_rmsd=min_rmsd,
+          max_evals=max_evals)
+      vpg.write_poses(
+          out_pdbqt,
+          n_poses=num_modes,
+          energy_range=energy_range,
+          overwrite=True)
+
       ligands, scores = load_docked_ligands(out_pdbqt)
       docked_complexes += [(protein_mol[1], ligand) for ligand in ligands]
       all_scores += scores
