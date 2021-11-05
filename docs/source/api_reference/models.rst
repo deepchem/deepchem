@@ -306,24 +306,6 @@ Training loss and validation metrics can be automatically logged to `Weights & B
 .. autoclass:: deepchem.models.KerasModel
   :members:
 
-MultitaskRegressor
-------------------
-
-.. autoclass:: deepchem.models.MultitaskRegressor
-  :members:
-
-MultitaskFitTransformRegressor
-------------------------------
-
-.. autoclass:: deepchem.models.MultitaskFitTransformRegressor
-  :members:
-
-MultitaskClassifier
--------------------
-
-.. autoclass:: deepchem.models.MultitaskClassifier
-  :members:
-
 TensorflowMultitaskIRVClassifier
 --------------------------------
 
@@ -473,6 +455,24 @@ TorchModel
 You can wrap an arbitrary :code:`torch.nn.Module` in a :code:`TorchModel` object.
 
 .. autoclass:: deepchem.models.TorchModel
+  :members:
+
+MultitaskRegressor
+------------------
+
+.. autoclass:: deepchem.models.MultitaskRegressor
+  :members:
+
+MultitaskFitTransformRegressor
+------------------------------
+
+.. autoclass:: deepchem.models.MultitaskFitTransformRegressor
+  :members:
+
+MultitaskClassifier
+-------------------
+
+.. autoclass:: deepchem.models.MultitaskClassifier
   :members:
 
 CGCNNModel
