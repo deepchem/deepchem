@@ -244,6 +244,19 @@ class VinaPoseGenerator(PoseGenerator):
   This class uses Autodock Vina to make make predictions of
   binding poses.
 
+  Example
+  -------
+  >> import deepchem as dc
+  >> vpg = dc.dock.VinaPoseGenerator(pocket_finder=None)
+  >> protein_file = '1jld_protein.pdb'
+  >> ligand_file = '1jld_ligand.sdf'
+  >> poses, scores = vpg.generate_poses(
+  ..        (protein_file, ligand_file),
+  ..        exhaustiveness=1,
+  ..        num_modes=1,
+  ..        out_dir=tmp,
+  ..        generate_scores=True)
+
   Note
   ----
   This class requires RDKit and vina to be installed.
@@ -285,8 +298,9 @@ class VinaPoseGenerator(PoseGenerator):
       A numpy array of shape `(3,)` holding the size of the box to dock. If not
       specified is set to size of molecular complex plus 5 angstroms.
     exhaustiveness: int, optional (default 10)
-      Tells Autodock Vina the number of MC runs it should run for pose
-      generation.
+      Tells Autodock Vina how exhaustive it should be with pose generation. A
+      higher value of exhaustiveness implies more computation effort for the
+      docking experiment.
     num_modes: int, optional (default 9)
       Tells Autodock Vina how many binding modes it should generate at
       each invocation.
