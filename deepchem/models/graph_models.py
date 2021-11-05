@@ -926,7 +926,7 @@ class GraphConvModel(KerasModel):
     graph_conv_layers: list of int
       Width of channels for the Graph Convolution Layers
     dense_layer_size: int
-      Width of channels for Atom Level Dense Layer before GraphPool
+      Width of channels for Atom Level Dense Layer after GraphPool
     dropout: list or float
       the dropout probablity to use for each layer.  The length of this list
       should equal len(graph_conv_layers)+1 (one value for each convolution
