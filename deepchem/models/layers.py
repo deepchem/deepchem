@@ -395,8 +395,8 @@ class MolGANConvolutionLayer(tf.keras.layers.Layer):
   >>> edges = 5
   >>> units = 128
 
-  >>> layer1 = MolGANConvolutionLayer(units=units,edges=edges)
-  >>> layer2 = MolGANConvolutionLayer(units=units,edges=edges)
+  >>> layer1 = MolGANConvolutionLayer(units=units,edges=edges, name='layer1')
+  >>> layer2 = MolGANConvolutionLayer(units=units,edges=edges, name='layer2')
   >>> adjacency_tensor= Input(shape=(vertices, vertices, edges))
   >>> node_tensor = Input(shape=(vertices,nodes))
   >>> hidden1 = layer1([adjacency_tensor,node_tensor])
@@ -519,9 +519,9 @@ class MolGANAggregationLayer(tf.keras.layers.Layer):
   >>> edges = 5
   >>> units = 128
 
-  >>> layer_1 = MolGANConvolutionLayer(units=units,edges=edges)
-  >>> layer_2 = MolGANConvolutionLayer(units=units,edges=edges)
-  >>> layer_3 = MolGANAggregationLayer(units=128)
+  >>> layer_1 = MolGANConvolutionLayer(units=units,edges=edges, name='layer1')
+  >>> layer_2 = MolGANConvolutionLayer(units=units,edges=edges, name='layer2')
+  >>> layer_3 = MolGANAggregationLayer(units=128, name='layer3')
   >>> adjacency_tensor= Input(shape=(vertices, vertices, edges))
   >>> node_tensor = Input(shape=(vertices,nodes))
   >>> hidden_1 = layer_1([adjacency_tensor,node_tensor])
@@ -622,8 +622,8 @@ class MolGANMultiConvolutionLayer(tf.keras.layers.Layer):
   >>> edges = 5
   >>> units = 128
 
-  >>> layer_1 = MolGANMultiConvolutionLayer(units=(128,64))
-  >>> layer_2 = MolGANAggregationLayer(units=128)
+  >>> layer_1 = MolGANMultiConvolutionLayer(units=(128,64), name='layer1')
+  >>> layer_2 = MolGANAggregationLayer(units=128, name='layer2')
   >>> adjacency_tensor= Input(shape=(vertices, vertices, edges))
   >>> node_tensor = Input(shape=(vertices,nodes))
   >>> hidden = layer_1([adjacency_tensor,node_tensor])
