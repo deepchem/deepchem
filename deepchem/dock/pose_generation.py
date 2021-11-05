@@ -260,16 +260,17 @@ class VinaPoseGenerator(PoseGenerator):
     """
     self.pocket_finder = pocket_finder
 
-  def generate_poses(self,
-                     molecular_complex: Tuple[str, str],
-                     centroid: Optional[np.ndarray] = None,
-                     box_dims: Optional[np.ndarray] = None,
-                     exhaustiveness: int = 10,
-                     num_modes: int = 9,
-                     num_pockets: Optional[int] = None,
-                     out_dir: Optional[str] = None,
-                     generate_scores: Optional[bool] = False
-                    ) -> Union[Tuple[DOCKED_POSES, List[float]], DOCKED_POSES]:
+  def generate_poses(
+      self,
+      molecular_complex: Tuple[str, str],
+      centroid: Optional[np.ndarray] = None,
+      box_dims: Optional[np.ndarray] = None,
+      exhaustiveness: int = 10,
+      num_modes: int = 9,
+      num_pockets: Optional[int] = None,
+      out_dir: Optional[str] = None,
+      generate_scores: Optional[bool] = False,
+      **kwargs) -> Union[Tuple[DOCKED_POSES, List[float]], DOCKED_POSES]:
     """Generates the docked complex and outputs files for docked complex.
 
     Parameters
@@ -299,6 +300,9 @@ class VinaPoseGenerator(PoseGenerator):
       If `True`, the pose generator will return scores for complexes.
       This is used typically when invoking external docking programs
       that compute scores.
+    kwargs:
+      Any args supported by VINA as documented in
+      https://autodock-vina.readthedocs.io/en/latest/vina.html
 
     Returns
     -------
@@ -312,6 +316,23 @@ class VinaPoseGenerator(PoseGenerator):
     ------
     `ValueError` if `num_pockets` is set but `self.pocket_finder is None`.
     """
+    if "cpu" in kwargs:
+      cpu = kwargs["cpu"]
+    else:
+      cpu = 0
+    if "min_rmsd" in kwargs:
+      min_rmsd = kwargs["min_rmsd"]
+    else:
+      min_rmsd = 1.0
+    if "max_evals" in kwargs:
+      max_evals = kwargs["max_evals"]
+    else:
+      max_evals = 0
+    if "energy_range" in kwargs:
+      energy_range = kwargs["energy_range"]
+    else:
+      energy_range = 3.0
+
     try:
       from vina import Vina
     except ModuleNotFoundError:
@@ -387,7 +408,7 @@ class VinaPoseGenerator(PoseGenerator):
 
     docked_complexes = []
     all_scores = []
-    vpg = Vina(sf_name='vina', cpu=0, seed=0, no_refine=False, verbosity=1)
+    vpg = Vina(sf_name='vina', cpu=cpu, seed=0, no_refine=False, verbosity=1)
     for i, (protein_centroid, box_dims) in enumerate(
         zip(centroids, dimensions)):
       logger.info("Docking in pocket %d/%d" % (i + 1, len(centroids)))
@@ -415,10 +436,13 @@ class VinaPoseGenerator(PoseGenerator):
       vpg.dock(
           exhaustiveness=exhaustiveness,
           n_poses=num_modes,
-          min_rmsd=1.0,
-          max_evals=0)
+          min_rmsd=min_rmsd,
+          max_evals=max_evals)
       vpg.write_poses(
-          out_pdbqt, n_poses=num_modes, energy_range=3.0, overwrite=True)
+          out_pdbqt,
+          n_poses=num_modes,
+          energy_range=energy_range,
+          overwrite=True)
 
       ligands, scores = load_docked_ligands(out_pdbqt)
       docked_complexes += [(protein_mol[1], ligand) for ligand in ligands]
