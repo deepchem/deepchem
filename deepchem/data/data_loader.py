@@ -308,6 +308,9 @@ class CSVLoader(DataLoader):
   datasets which are used in unsupervised learning tasks. Such datasets
   can be loaded by leaving the `tasks` field empty.
 
+  Example
+  -------
+
   >>> x1, x2 = [2, 3, 4], [4, 6, 8]
   >>> df = pd.DataFrame({"x1":x1, "x2": x2}).reset_index()
   >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:

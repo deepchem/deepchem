@@ -315,8 +315,8 @@ class VinaPoseGenerator(PoseGenerator):
       This is used typically when invoking external docking programs
       that compute scores.
     kwargs:
-      Any args supported by VINA as documented in
-      https://autodock-vina.readthedocs.io/en/latest/vina.html
+      The kwargs - cpu, min_rmsd, max_evals, energy_range supported by VINA
+      are as documented in https://autodock-vina.readthedocs.io/en/latest/vina.html
 
     Returns
     -------
