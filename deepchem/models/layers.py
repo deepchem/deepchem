@@ -91,7 +91,8 @@ class GraphConv(tf.keras.layers.Layer):
 
   References
   ----------
-  .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints." Advances in neural information processing systems. 2015. https://arxiv.org/abs/1509.09292
+  .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints."
+         Advances in neural information processing systems. 2015. https://arxiv.org/abs/1509.09292
 
   """
 
@@ -227,8 +228,8 @@ class GraphPool(tf.keras.layers.Layer):
   References
   ----------
   .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
-  learning molecular fingerprints." Advances in neural information processing
-  systems. 2015. https://arxiv.org/abs/1509.09292
+         learning molecular fingerprints." Advances in neural information processing
+         systems. 2015. https://arxiv.org/abs/1509.09292
 
   """
 
@@ -315,8 +316,8 @@ class GraphGather(tf.keras.layers.Layer):
   References
   ----------
   .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
-  learning molecular fingerprints." Advances in neural information processing
-  systems. 2015. https://arxiv.org/abs/1509.09292
+         learning molecular fingerprints." Advances in neural information processing
+         systems. 2015. https://arxiv.org/abs/1509.09292
   """
 
   def __init__(self, batch_size, activation_fn=None, **kwargs):
@@ -384,7 +385,7 @@ class MolGANConvolutionLayer(tf.keras.layers.Layer):
   input tensors.
 
   Example
-  --------
+  -------
   See: MolGANMultiConvolutionLayer for using in layers.
 
   >>> from tensorflow.keras import Model
@@ -394,8 +395,8 @@ class MolGANConvolutionLayer(tf.keras.layers.Layer):
   >>> edges = 5
   >>> units = 128
 
-  >>> layer1 = MolGANConvolutionLayer(units=units,edges=edges)
-  >>> layer2 = MolGANConvolutionLayer(units=units,edges=edges)
+  >>> layer1 = MolGANConvolutionLayer(units=units,edges=edges, name='layer1')
+  >>> layer2 = MolGANConvolutionLayer(units=units,edges=edges, name='layer2')
   >>> adjacency_tensor= Input(shape=(vertices, vertices, edges))
   >>> node_tensor = Input(shape=(vertices,nodes))
   >>> hidden1 = layer1([adjacency_tensor,node_tensor])
@@ -405,7 +406,7 @@ class MolGANConvolutionLayer(tf.keras.layers.Layer):
   References
   ----------
   .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
-  for small molecular graphs", https://arxiv.org/abs/1805.11973
+         for small molecular graphs", https://arxiv.org/abs/1805.11973
   """
 
   def __init__(self,
@@ -510,7 +511,7 @@ class MolGANAggregationLayer(tf.keras.layers.Layer):
 
 
   Example
-  --------
+  -------
   >>> from tensorflow.keras import Model
   >>> from tensorflow.keras.layers import Input
   >>> vertices = 9
@@ -518,9 +519,9 @@ class MolGANAggregationLayer(tf.keras.layers.Layer):
   >>> edges = 5
   >>> units = 128
 
-  >>> layer_1 = MolGANConvolutionLayer(units=units,edges=edges)
-  >>> layer_2 = MolGANConvolutionLayer(units=units,edges=edges)
-  >>> layer_3 = MolGANAggregationLayer(units=128)
+  >>> layer_1 = MolGANConvolutionLayer(units=units,edges=edges, name='layer1')
+  >>> layer_2 = MolGANConvolutionLayer(units=units,edges=edges, name='layer2')
+  >>> layer_3 = MolGANAggregationLayer(units=128, name='layer3')
   >>> adjacency_tensor= Input(shape=(vertices, vertices, edges))
   >>> node_tensor = Input(shape=(vertices,nodes))
   >>> hidden_1 = layer_1([adjacency_tensor,node_tensor])
@@ -528,28 +529,10 @@ class MolGANAggregationLayer(tf.keras.layers.Layer):
   >>> output = layer_3(hidden_2[2])
   >>> model = Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
 
-
-  Example
-  --------
-  vertices = 9
-  nodes = 5
-  edges = 5
-  units = 128
-
-  layer_1 = MolGANConvolutionLayer(units=units,edges=edges)
-  layer_2 = MolGANConvolutionLayer(units=units,edges=edges)
-  layer_3 = MolGANAggregationLayer(units=128)
-  adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
-  node_tensor = layers.Input(shape=(vertices,nodes))
-  hidden_1 = layer_1([adjacency_tensor,node_tensor])
-  hidden_2 = layer_2(hidden_1)
-  output = layer_3(hidden_2[2])
-  model = keras.Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
-
   References
   ----------
   .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
-  for small molecular graphs", https://arxiv.org/abs/1805.11973
+         for small molecular graphs", https://arxiv.org/abs/1805.11973
   """
 
   def __init__(self,
@@ -639,33 +622,18 @@ class MolGANMultiConvolutionLayer(tf.keras.layers.Layer):
   >>> edges = 5
   >>> units = 128
 
-  >>> layer_1 = MolGANMultiConvolutionLayer(units=(128,64))
-  >>> layer_2 = MolGANAggregationLayer(units=128)
+  >>> layer_1 = MolGANMultiConvolutionLayer(units=(128,64), name='layer1')
+  >>> layer_2 = MolGANAggregationLayer(units=128, name='layer2')
   >>> adjacency_tensor= Input(shape=(vertices, vertices, edges))
   >>> node_tensor = Input(shape=(vertices,nodes))
   >>> hidden = layer_1([adjacency_tensor,node_tensor])
   >>> output = layer_2(hidden)
   >>> model = Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
 
-  Example
-  --------
-  vertices = 9
-  nodes = 5
-  edges = 5
-  units = 128
-
-  layer_1 = MolGANMultiConvolutionLayer(units=(128,64))
-  layer_2 = MolGANAggregationLayer(units=128)
-  adjacency_tensor= layers.Input(shape=(vertices, vertices, edges))
-  node_tensor = layers.Input(shape=(vertices,nodes))
-  hidden = layer_1([adjacency_tensor,node_tensor])
-  output = layer_2(hidden)
-  model = keras.Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
-
   References
   ----------
   .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
-  for small molecular graphs", https://arxiv.org/abs/1805.11973
+         for small molecular graphs", https://arxiv.org/abs/1805.11973
   """
 
   def __init__(self,
@@ -784,7 +752,7 @@ class MolGANEncoderLayer(tf.keras.layers.Layer):
   References
   ----------
   .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
-  for small molecular graphs", https://arxiv.org/abs/1805.11973
+         for small molecular graphs", https://arxiv.org/abs/1805.11973
   """
 
   def __init__(self,
@@ -2751,8 +2719,8 @@ class WeaveLayer(tf.keras.layers.Layer):
   References
   ----------
   .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
-  fingerprints." Journal of computer-aided molecular design 30.8 (2016):
-  595-608.
+         fingerprints." Journal of computer-aided molecular design 30.8 (2016):
+         595-608.
 
   """
 
@@ -3014,8 +2982,8 @@ class WeaveGather(tf.keras.layers.Layer):
   References
   ----------
   .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
-  fingerprints." Journal of computer-aided molecular design 30.8 (2016):
-  595-608.
+         fingerprints." Journal of computer-aided molecular design 30.8 (2016):
+         595-608.
 
   Note
   ----
