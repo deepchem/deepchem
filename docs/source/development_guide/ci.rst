@@ -29,3 +29,20 @@ tests are run from the following workflows.
 
 #. Tests for Release
     * These tests are run only when pushing a tag. It is run on ubuntu latest with Python 3.7.
+
+General recommendations 
+ 
+#. Handling additional or external files in unittest
+
+When a new feature is added to DeepChem, the respective unittest should included too.
+Sometimes, this test functions uses an external or additional file. To avoid problems in the CI
+the absolute path of the file has to be included. For example, for the use of a file called
+“Test_data_feature.csv”, the unittest function should manage the absolute path as :
+
+::
+
+  import os 
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  data_dir = os.path.join(current_dir, "Test_data_feature.csv")
+  result = newFeature(data_dir)
+
