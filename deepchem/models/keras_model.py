@@ -52,7 +52,7 @@ class KerasModel(Model):
      models with Keras.
 
   3. It provides various additional features not found in the
-     Keras Model class, such as uncertainty prediction and
+     Keras model class, such as uncertainty prediction and
      saliency mapping.
 
   Here is a simple example of code that uses KerasModel to train
@@ -1183,7 +1183,7 @@ class KerasModel(Model):
     `value_map` is created. `assignment_map` is a dictionary mapping variables
     from the `source_model` to the current model. If no `assignment_map` is
     provided, one is made from scratch and assumes the model is composed of
-    several different layers, with the final one being a dense layer. include_top
+    several different layers, with the final one being a dense layer. `include_top`
     is used to control whether or not the final dense layer is used. The default
     assignment map is useful in cases where the type of task is different
     (classification vs regression) and/or number of tasks in the setting.
