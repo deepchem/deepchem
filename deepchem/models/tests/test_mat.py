@@ -7,14 +7,21 @@ import deepchem as dc
 @pytest.mark.torch
 def test_mat_regression():
   # load datasets
-  task, df, trans = dc.molnet.load_freesolv()
-  train, valid, test = df
+  task, datasets, trans = dc.molnet.load_freesolv()
+  train, valid, test = datasets
 
   # initialize model
-  model = model = dc.models.torch_models.MATModel(
-      batch_size=100, learning_rate=0.01)
+  model = dc.models.torch_models.MATModel(
+      n_encoders=2,
+      sa_hsize=128,
+      d_input=128,
+      d_hidden=128,
+      d_output=128,
+      encoder_hsize=128,
+      embed_input_hsize=36,
+      gen_attn_hidden=32)
   # overfit test
-  model.fit(valid, nb_epoch=400)
+  model.fit(valid, nb_epoch=100)
   metric = dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression")
   scores = model.evaluate(valid, [metric], trans)
   assert scores['mean_absolute_error'] < 1.0
