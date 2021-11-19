@@ -2,6 +2,7 @@
 HPPB Dataset Loader.
 """
 import os
+import numpy as np
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
@@ -18,7 +19,19 @@ def remove_missing_entries(dataset):
   feature vectors. Get rid of them.
   """
   for i, (X, y, w, ids) in enumerate(dataset.itershards()):
-    available_rows = X.any(axis=1)
+    if X.ndim == 1:
+      X = np.expand_dims(X, axis=1)
+
+    if isinstance(X.flat[0], object):
+      available_rows = []
+      for obj in X:
+        if obj.flat[0] is not None:
+          available_rows.append(True)
+        else:
+          available_rows.append(False)
+    else:
+      available_rows = X.any(axis=1)
+
     X = X[available_rows]
     y = y[available_rows]
     w = w[available_rows]
