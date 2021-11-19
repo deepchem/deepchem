@@ -63,6 +63,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [7 Training a Normalizing Flow on QM9](Training_a_Normalizing_Flow_on_QM9.ipynb)
 * [8 Large Scale Chemical Screens](Large_Scale_Chemical_Screens.ipynb)
 * [9 Introduction to Molecular Attention Transformer](Introduction_to_Molecular_Attention_Transformer.ipynb)
+* [10 Visualizing Masking For Token Prediction](Visualizing_Masking_For_Token_Prediction.ipynb)
 
 ### Modeling Proteins
 * [1 Protein Deep Learning](Protein_Deep_Learning.ipynb)
