@@ -4,6 +4,7 @@ import deepchem as dc
 import numpy as np
 import unittest
 import pytest
+
 try:
   import wandb
   has_wandb = True

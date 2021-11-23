@@ -17,9 +17,41 @@ class WandbLogger(object):
     will log the specified metrics calculated on the specific datasets
     to the user's W&B dashboard.
 
-    If a WandbLogger is provided to the wandb_logger flag,
+    If a WandbLogger is provided to the `logger` flag of the model,
     the metrics are logged to Weights & Biases, along with other information
     such as epoch number, losses, sample counts, and model configuration data.
+
+    Examples
+    --------
+    Here's a full example of how WandbLogger can be used with TorchModel training and
+    validation. Apart from initialization, you do not need to call any other methods.
+    All other methods (such as setup, log_data, update_config) are part of the
+    logging API and are already integrated in the KerasModel/TorchModel classes.
+
+    >>> import torch # doctest: +SKIP
+    >>> import deepchem as dc # doctest: +SKIP
+    >>> from deepchem.models import TorchModel # doctest: +SKIP
+    >>> from deepchem.models import ValidationCallback # doctest: +SKIP
+    >>> from deepchem.models import WandbLogger # doctest: +SKIP
+    >>> tasks, datasets, transformers = dc.molnet.load_delaney(
+    ...   featurizer='ECFP', splitter='random') # doctest: +SKIP
+    >>> train_dataset, valid_dataset, test_dataset = datasets # doctest: +SKIP
+    >>> metric = dc.metrics.Metric(dc.metrics.pearson_r2_score) # doctest: +SKIP
+    >>> wandblogger = WandbLogger(project="deepchem") # doctest: +SKIP
+    >>> layers = torch.nn.Sequential(
+    ...    torch.nn.Linear(1024, 1000),
+    ...    torch.nn.Dropout(p=0.5),
+    ...    torch.nn.Linear(1000, 1)) # doctest: +SKIP
+    >>> model = TorchModel(layers, dc.models.losses.L2Loss(), logger=wandblogger) # doctest: +SKIP
+    >>> vc_valid = ValidationCallback(valid_dataset, 10, [metric]) # doctest: +SKIP
+    >>> # WandbLogger will automatically detect callbacks in model.fit()
+    >>> loss = model.fit(train_dataset, nb_epoch=10, callbacks=[vc_valid]) # doctest: +SKIP
+    >>> # close the wandb process
+    >>> wandblogger.finish() # doctest: +SKIP
+
+    Notes
+    -----
+    This class requires wandb to be installed. More info: https://docs.wandb.ai/
     """
 
   def __init__(self,
@@ -136,6 +168,7 @@ class WandbLogger(object):
 
   def update_config(self, config_data):
     """Updates the W&B configuration.
+
     Parameters
     ----------
     config_data: dict
