@@ -5,10 +5,10 @@ import os
 import logging
 import time
 
-import numpy as np
 import deepchem
 from deepchem.molnet.load_function.kaggle_features import merck_descriptors
 from deepchem.molnet.load_function.uv_tasks import UV_tasks
+from deepchem.utils import remove_missing_entries
 
 logger = logging.getLogger(__name__)
 
@@ -19,23 +19,6 @@ TEST_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/UV_test2_di
 TRAIN_FILENAME = "UV_training_disguised_combined_full.csv.gz"
 VALID_FILENAME = "UV_test1_disguised_combined_full.csv.gz"
 TEST_FILENAME = "UV_test2_disguised_combined_full.csv.gz"
-
-
-def remove_missing_entries(dataset):
-  """Remove missing entries.
-
-  Some of the datasets have missing entries that sneak in as zero'd out
-  feature vectors. Get rid of them.
-  """
-  for i, (X, y, w, ids) in enumerate(dataset.itershards()):
-    available_rows = X.any(axis=1)
-    logger.info("Shard %d has %d missing entries." %
-                (i, np.count_nonzero(~available_rows)))
-    X = X[available_rows]
-    y = y[available_rows]
-    w = w[available_rows]
-    ids = ids[available_rows]
-    dataset.set_shard(i, X, y, w, ids)
 
 
 def get_transformers(train_dataset):
