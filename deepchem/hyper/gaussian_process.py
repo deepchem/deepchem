@@ -98,7 +98,6 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   --------
   This example shows the type of constructor function expected.
 
-  >>> import sklearn
   >>> import deepchem as dc
   >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(lambda **p: dc.models.GraphConvModel(n_tasks=1, **p))
 
@@ -109,17 +108,26 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   (in this case, `n_tasks` and `n_features` which are properties of a
   dataset and not hyperparameters to search over.)
 
+  >>> import numpy as np
+  >>> from sklearn.ensemble import RandomForestRegressor as RF
   >>> def model_builder(**model_params):
-  ...   n_layers = model_params['layers']
-  ...   layer_width = model_params['width']
-  ...   dropout = model_params['dropout']
-  ...   return dc.models.MultitaskClassifier(
-  ...     n_tasks=5,
-  ...     n_features=100,
-  ...     layer_sizes=[layer_width]*n_layers,
-  ...     dropouts=dropout
-  ...   )
+  ...   n_estimators = model_params['n_estimators']
+  ...   min_samples_split = model_params['min_samples_split']
+  ...   rf_model = RF(n_estimators=n_estimators, min_samples_split=min_samples_split)
+  ...   rf_model = RF(n_estimators=n_estimators)
+  ...   return dc.models.SklearnModel(rf_model)
   >>> optimizer = dc.hyper.GaussianProcessHyperparamOpt(model_builder)
+  >>> params_dict = {"n_estimators":100, "min_samples_split":2}
+  >>> train_dataset = dc.data.NumpyDataset(X=np.random.rand(50, 5),
+  ...   y=np.random.rand(50, 1))
+  >>> valid_dataset = dc.data.NumpyDataset(X=np.random.rand(20, 5),
+  ...   y=np.random.rand(20, 1))
+  >>> metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
+
+  >> best_model, best_hyperparams, all_results =\
+  optimizer.hyperparam_search(params_dict, train_dataset, valid_dataset, metric, max_iter=2)
+  >> type(best_hyperparams)
+  <class 'dict'>
 
   Notes
   -----
