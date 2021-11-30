@@ -30,6 +30,7 @@ from deepchem.utils.data_utils import save_to_disk
 from deepchem.utils.data_utils import load_from_disk
 from deepchem.utils.data_utils import save_dataset_to_disk
 from deepchem.utils.data_utils import load_dataset_from_disk
+from deepchem.utils.data_utils import remove_missing_entries
 
 from deepchem.utils.debug_utils import get_print_threshold
 from deepchem.utils.debug_utils import set_print_threshold
