@@ -1,4 +1,3 @@
-import unittest
 import os
 import numpy as np
 import tempfile
@@ -10,7 +9,6 @@ from deepchem.feat import create_char_to_idx, SmilesToSeq, SmilesToImage
 from deepchem.molnet.load_function.chembl25_datasets import CHEMBL25_TASKS
 
 try:
-  import tensorflow as tf
   from deepchem.models import Smiles2Vec, ChemCeption
   has_tensorflow = True
 except:
