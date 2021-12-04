@@ -172,6 +172,7 @@ class TestPPO(unittest.TestCase):
     assert np.array_equal(prob3, prob4)
     assert not np.array_equal(prob2, prob3)
 
+  @flaky
   @pytest.mark.slow
   @pytest.mark.tensorflow
   def test_hindsight(self):
