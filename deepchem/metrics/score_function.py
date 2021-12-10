@@ -16,10 +16,29 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import roc_auc_score  # noqa
 from sklearn.metrics import accuracy_score  # noqa
 from sklearn.metrics import balanced_accuracy_score  # noqa
+from sklearn.metrics import top_k_accuracy_score
 
 # kappa_score is an alias for `sklearn.metrics.cohen_kappa_score`
 kappa_score = cohen_kappa_score
 
+def top_k_accuracy(y: np.ndarray, y_pred: np.ndarray, k: int = 2) -> float:
+  """Computes top-k accuracy.
+
+  Parameters
+  ----------
+  y: np.ndarray
+    A numpy array of shape `(N, n_classes)` or `(N,)` with true labels
+  y_pred: np.ndarray
+    A numpy array of shape `(N, n_classes)` with class probabilities.
+  k: int
+    The number of top classes to consider.
+
+  Returns
+  -------
+  float
+    The top-k accuracy. A number between 0 and 1.
+  """
+  return top_k_accuracy_score(y, y_pred, k=k)
 
 def pearsonr(y: np.ndarray, y_pred: np.ndarray) -> float:
   """Computes Pearson correlation coefficient.
