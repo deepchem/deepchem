@@ -21,6 +21,7 @@ from sklearn.metrics import top_k_accuracy_score
 # kappa_score is an alias for `sklearn.metrics.cohen_kappa_score`
 kappa_score = cohen_kappa_score
 
+
 def pearsonr(y: np.ndarray, y_pred: np.ndarray) -> float:
   """Computes Pearson correlation coefficient.
 
