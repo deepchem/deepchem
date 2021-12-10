@@ -21,25 +21,6 @@ from sklearn.metrics import top_k_accuracy_score
 # kappa_score is an alias for `sklearn.metrics.cohen_kappa_score`
 kappa_score = cohen_kappa_score
 
-def top_k_accuracy(y: np.ndarray, y_pred: np.ndarray, k: int = 2) -> float:
-  """Computes top-k accuracy.
-
-  Parameters
-  ----------
-  y: np.ndarray
-    A numpy array of shape `(N, n_classes)` or `(N,)` with true labels
-  y_pred: np.ndarray
-    A numpy array of shape `(N, n_classes)` with class probabilities.
-  k: int
-    The number of top classes to consider.
-
-  Returns
-  -------
-  float
-    The top-k accuracy. A number between 0 and 1.
-  """
-  return top_k_accuracy_score(y, y_pred, k=k)
-
 def pearsonr(y: np.ndarray, y_pred: np.ndarray) -> float:
   """Computes Pearson correlation coefficient.
 
@@ -185,9 +166,9 @@ def bedroc_score(y_true: np.ndarray, y_pred: np.ndarray, alpha: float = 20.0):
 
   # validation
   assert len(y_true) == len(y_pred), 'Number of examples do not match'
-  assert np.array_equal(
-      np.unique(y_true).astype(int),
-      [0, 1]), ('Class labels must be binary: %s' % np.unique(y_true))
+  assert np.array_equal(np.unique(y_true).astype(int),
+                        [0, 1]), ('Class labels must be binary: %s' %
+                                  np.unique(y_true))
 
   yt = np.asarray(y_true)
   yp = np.asarray(y_pred)
