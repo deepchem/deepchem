@@ -108,10 +108,10 @@ DAGTransformer
   :members:
   :inherited-members:
 
-ANITransformer
-^^^^^^^^^^^^^^
+RxnSplitTransformer
+^^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: deepchem.trans.ANITransformer
+.. autoclass:: deepchem.trans.RxnSplitTransformer
   :members:
   :inherited-members:
 

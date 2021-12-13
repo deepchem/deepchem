@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from typing import List, Union, Tuple, Iterable, Dict, Optional
-from deepchem.utils.typing import OneOrMany, LossFn, KerasActivationFn
+from deepchem.utils.typing import OneOrMany, LossFn, ActivationFn
 from deepchem.data import Dataset, NumpyDataset, pad_features
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
@@ -75,40 +75,39 @@ class WeaveModel(KerasModel):
 
   References
   ----------
-  .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
-  fingerprints." Journal of computer-aided molecular design 30.8 (2016):
-  595-608.
+  .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond 
+         fingerprints." Journal of computer-aided molecular design 30.8 (2016): 
+         595-608.
 
   """
 
-  def __init__(
-      self,
-      n_tasks: int,
-      n_atom_feat: OneOrMany[int] = 75,
-      n_pair_feat: OneOrMany[int] = 14,
-      n_hidden: int = 50,
-      n_graph_feat: int = 128,
-      n_weave: int = 2,
-      fully_connected_layer_sizes: List[int] = [2000, 100],
-      conv_weight_init_stddevs: OneOrMany[float] = 0.03,
-      weight_init_stddevs: OneOrMany[float] = 0.01,
-      bias_init_consts: OneOrMany[float] = 0.0,
-      weight_decay_penalty: float = 0.0,
-      weight_decay_penalty_type: str = "l2",
-      dropouts: OneOrMany[float] = 0.25,
-      final_conv_activation_fn: Optional[KerasActivationFn] = tf.nn.tanh,
-      activation_fns: OneOrMany[KerasActivationFn] = tf.nn.relu,
-      batch_normalize: bool = True,
-      batch_normalize_kwargs: Dict = {
-          "renorm": True,
-          "fused": False
-      },
-      gaussian_expand: bool = True,
-      compress_post_gaussian_expansion: bool = False,
-      mode: str = "classification",
-      n_classes: int = 2,
-      batch_size: int = 100,
-      **kwargs):
+  def __init__(self,
+               n_tasks: int,
+               n_atom_feat: OneOrMany[int] = 75,
+               n_pair_feat: OneOrMany[int] = 14,
+               n_hidden: int = 50,
+               n_graph_feat: int = 128,
+               n_weave: int = 2,
+               fully_connected_layer_sizes: List[int] = [2000, 100],
+               conv_weight_init_stddevs: OneOrMany[float] = 0.03,
+               weight_init_stddevs: OneOrMany[float] = 0.01,
+               bias_init_consts: OneOrMany[float] = 0.0,
+               weight_decay_penalty: float = 0.0,
+               weight_decay_penalty_type: str = "l2",
+               dropouts: OneOrMany[float] = 0.25,
+               final_conv_activation_fn: Optional[ActivationFn] = tf.nn.tanh,
+               activation_fns: OneOrMany[ActivationFn] = tf.nn.relu,
+               batch_normalize: bool = True,
+               batch_normalize_kwargs: Dict = {
+                   "renorm": True,
+                   "fused": False
+               },
+               gaussian_expand: bool = True,
+               compress_post_gaussian_expansion: bool = False,
+               mode: str = "classification",
+               n_classes: int = 2,
+               batch_size: int = 100,
+               **kwargs):
     """
     Parameters
     ----------
@@ -151,7 +150,7 @@ class WeaveModel(KerasModel):
       The dropout probablity to use for each fully connected layer.  The length of this list
       should equal len(layer_sizes).  Alternatively this may be a single value
       instead of a list, in which case the same value is used for every layer.
-    final_conv_activation_fn: Optional[KerasActivationFn] (default `tf.nn.tanh`)
+    final_conv_activation_fn: Optional[ActivationFn] (default `tf.nn.tanh`)
       The Tensorflow activation funcntion to apply to the final
       convolution at the end of the weave convolutions. If `None`, then no
       activate is applied (hence linear).
@@ -411,8 +410,8 @@ class DTNNModel(KerasModel):
 
   References
   ----------
-  .. [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
-  tensor neural networks." Nature communications 8.1 (2017): 1-8.
+  .. [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep 
+         tensor neural networks." Nature communications 8.1 (2017): 1-8.
   """
 
   def __init__(self,
@@ -693,8 +692,19 @@ class DAGModel(KerasModel):
         output_types = ['prediction', 'variance', 'loss', 'loss']
 
         def loss(outputs, labels, weights):
-          diff = labels[0] - outputs[0]
-          return tf.reduce_mean(diff * diff / tf.exp(outputs[1]) + outputs[1])
+          output, labels = dc.models.losses._make_tf_shapes_consistent(
+              outputs[0], labels[0])
+          output, labels = dc.models.losses._ensure_float(output, labels)
+          losses = tf.square(output - labels) / tf.exp(outputs[1]) + outputs[1]
+          w = weights[0]
+          if len(w.shape) < len(losses.shape):
+            if tf.is_tensor(w):
+              shape = tuple(w.shape.as_list())
+            else:
+              shape = w.shape
+            shape = tuple(-1 if x is None else x for x in shape)
+            w = tf.reshape(w, shape + (1,) * (len(losses.shape) - len(w.shape)))
+          return tf.reduce_mean(losses * w) + sum(self.model.losses)
       else:
         outputs = [output]
         output_types = ['prediction']
@@ -886,9 +896,9 @@ class GraphConvModel(KerasModel):
 
   References
   ----------
-  .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
-  learning molecular fingerprints." Advances in neural information processing
-  systems. 2015.
+  .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for 
+         learning molecular fingerprints." Advances in neural information processing 
+         systems. 2015.
   """
 
   def __init__(self,
@@ -916,7 +926,7 @@ class GraphConvModel(KerasModel):
     graph_conv_layers: list of int
       Width of channels for the Graph Convolution Layers
     dense_layer_size: int
-      Width of channels for Atom Level Dense Layer before GraphPool
+      Width of channels for Atom Level Dense Layer after GraphPool
     dropout: list or float
       the dropout probablity to use for each layer.  The length of this list
       should equal len(graph_conv_layers)+1 (one value for each convolution
@@ -961,8 +971,19 @@ class GraphConvModel(KerasModel):
         output_types = ['prediction', 'variance', 'loss', 'loss', 'embedding']
 
         def loss(outputs, labels, weights):
-          diff = labels[0] - outputs[0]
-          return tf.reduce_mean(diff * diff / tf.exp(outputs[1]) + outputs[1])
+          output, labels = dc.models.losses._make_tf_shapes_consistent(
+              outputs[0], labels[0])
+          output, labels = dc.models.losses._ensure_float(output, labels)
+          losses = tf.square(output - labels) / tf.exp(outputs[1]) + outputs[1]
+          w = weights[0]
+          if len(w.shape) < len(losses.shape):
+            if tf.is_tensor(w):
+              shape = tuple(w.shape.as_list())
+            else:
+              shape = w.shape
+            shape = tuple(-1 if x is None else x for x in shape)
+            w = tf.reshape(w, shape + (1,) * (len(losses.shape) - len(w.shape)))
+          return tf.reduce_mean(losses * w) + sum(self.model.losses)
       else:
         output_types = ['prediction', 'embedding']
         loss = L2Loss()
@@ -1007,8 +1028,8 @@ class MPNNModel(KerasModel):
 
   References
   ----------
-  .. [1] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters:
-  Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
+  .. [1] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters: 
+         Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
   """
 
   def __init__(self,
@@ -1102,8 +1123,19 @@ class MPNNModel(KerasModel):
         output_types = ['prediction', 'variance', 'loss', 'loss']
 
         def loss(outputs, labels, weights):
-          diff = labels[0] - outputs[0]
-          return tf.reduce_mean(diff * diff / tf.exp(outputs[1]) + outputs[1])
+          output, labels = dc.models.losses._make_tf_shapes_consistent(
+              outputs[0], labels[0])
+          output, labels = dc.models.losses._ensure_float(output, labels)
+          losses = tf.square(output - labels) / tf.exp(outputs[1]) + outputs[1]
+          w = weights[0]
+          if len(w.shape) < len(losses.shape):
+            if tf.is_tensor(w):
+              shape = tuple(w.shape.as_list())
+            else:
+              shape = w.shape
+            shape = tuple(-1 if x is None else x for x in shape)
+            w = tf.reshape(w, shape + (1,) * (len(losses.shape) - len(w.shape)))
+          return tf.reduce_mean(losses * w) + sum(self.model.losses)
       else:
         outputs = [output]
         output_types = ['prediction']

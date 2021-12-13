@@ -5,9 +5,9 @@ import os
 import logging
 import time
 
-import numpy as np
 import deepchem
 from deepchem.molnet.load_function.kaggle_features import merck_descriptors
+from deepchem.utils import remove_missing_entries
 
 logger = logging.getLogger(__name__)
 
@@ -20,28 +20,11 @@ VALID_FILENAME = "FACTORS_test1_disguised_combined_full.csv.gz"
 TEST_FILENAME = "FACTORS_test2_disguised_combined_full.csv.gz"
 
 
-def remove_missing_entries(dataset):
-  """Remove missing entries.
-
-  Some of the datasets have missing entries that sneak in as zero'd out
-  feature vectors. Get rid of them.
-  """
-  for i, (X, y, w, ids) in enumerate(dataset.itershards()):
-    available_rows = X.any(axis=1)
-    logger.info("Shard %d has %d missing entries." %
-                (i, np.count_nonzero(~available_rows)))
-    X = X[available_rows]
-    y = y[available_rows]
-    w = w[available_rows]
-    ids = ids[available_rows]
-    dataset.set_shard(i, X, y, w, ids)
-
-
 def get_transformers(train_dataset):
   """Gets transformers applied to the dataset"""
 
   transformers = list()
-  #TODO: Check if anything needs to be added
+  # TODO: Check if anything needs to be added
 
   return transformers
 
@@ -128,7 +111,7 @@ def gen_factors(FACTORS_tasks,
 
   time2 = time.time()
 
-  ########## TIMING ################
+  # TIMING
   logger.info("TIMING: FACTORS fitting took %0.3f s" % (time2 - time1))
 
   return train_dataset, valid_dataset, test_dataset
@@ -142,7 +125,7 @@ def load_factors(shard_size=2000, featurizer=None, split=None, reload=True):
 
   It contains 1500 Merck in-house compounds that were measured
   for IC50 of inhibition on 12 serine proteases. Unlike most of
-  the other datasets featured in MoleculeNet, the Factors 
+  the other datasets featured in MoleculeNet, the Factors
   collection does not have structures for the compounds tested
   since they were proprietary Merck compounds. However, the
   collection does feature pre-computed descriptors for these
@@ -192,9 +175,13 @@ def load_factors(shard_size=2000, featurizer=None, split=None, reload=True):
 
   else:
     logger.info("Featurizing datasets")
-    train_dataset, valid_dataset, test_dataset = \
-    gen_factors(FACTORS_tasks=FACTORS_tasks, data_dir=data_dir, train_dir=train_dir,
-                valid_dir=valid_dir, test_dir=test_dir, shard_size=shard_size)
+    train_dataset, valid_dataset, test_dataset = gen_factors(
+        FACTORS_tasks=FACTORS_tasks,
+        data_dir=data_dir,
+        train_dir=train_dir,
+        valid_dir=valid_dir,
+        test_dir=test_dir,
+        shard_size=shard_size)
 
   transformers = get_transformers(train_dataset)
 

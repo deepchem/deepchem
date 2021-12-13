@@ -30,6 +30,7 @@ from deepchem.utils.data_utils import save_to_disk
 from deepchem.utils.data_utils import load_from_disk
 from deepchem.utils.data_utils import save_dataset_to_disk
 from deepchem.utils.data_utils import load_dataset_from_disk
+from deepchem.utils.data_utils import remove_missing_entries
 
 from deepchem.utils.debug_utils import get_print_threshold
 from deepchem.utils.debug_utils import set_print_threshold
@@ -71,6 +72,7 @@ from deepchem.utils.molecule_feature_utils import get_atom_hybridization_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_total_num_Hs_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_chirality_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_formal_charge
+from deepchem.utils.molecule_feature_utils import get_atom_formal_charge_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_partial_charge
 from deepchem.utils.molecule_feature_utils import get_atom_total_degree_one_hot
 from deepchem.utils.molecule_feature_utils import get_bond_type_one_hot

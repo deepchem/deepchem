@@ -14,7 +14,8 @@ class CircularFingerprint(MolecularFeaturizer):
 
   Extended Connectivity Circular Fingerprints compute a bag-of-words style
   representation of a molecule by breaking it into local neighborhoods and
-  hashing into a bit vector of the specified size. See [1]_ for more details.
+  hashing into a bit vector of the specified size. It is used specifically
+  for structure-activity modelling. See [1]_ for more details.
 
   References
   ----------
@@ -24,6 +25,27 @@ class CircularFingerprint(MolecularFeaturizer):
   Note
   ----
   This class requires RDKit to be installed.
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> from rdkit import Chem
+  >>> smiles = ['C1=CC=CC=C1']
+  >>> # Example 1: (size = 2048, radius = 4)
+  >>> featurizer = dc.feat.CircularFingerprint(size=2048, radius=4)
+  >>> features = featurizer.featurize(smiles)
+  >>> type(features[0])
+  <class 'numpy.ndarray'>
+  >>> features[0].shape
+  (2048,)
+
+  >>> # Example 2: (size = 2048, radius = 4, sparse = True, smiles = True)
+  >>> featurizer = dc.feat.CircularFingerprint(size=2048, radius=8,
+  ...                                          sparse=True, smiles=True)
+  >>> features = featurizer.featurize(smiles)
+  >>> type(features[0]) # dict containing fingerprints
+  <class 'dict'>
+
   """
 
   def __init__(self,
@@ -63,12 +85,12 @@ class CircularFingerprint(MolecularFeaturizer):
     self.sparse = sparse
     self.smiles = smiles
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """Calculate circular fingerprint.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
@@ -81,11 +103,15 @@ class CircularFingerprint(MolecularFeaturizer):
       from rdkit.Chem import rdMolDescriptors
     except ModuleNotFoundError:
       raise ImportError("This class requires RDKit to be installed.")
-
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
     if self.sparse:
       info: Dict = {}
       fp = rdMolDescriptors.GetMorganFingerprint(
-          mol,
+          datapoint,
           self.radius,
           useChirality=self.chiral,
           useBondTypes=self.bonds,
@@ -98,14 +124,14 @@ class CircularFingerprint(MolecularFeaturizer):
         fp_smiles = {}
         for fragment_id, count in fp.items():
           root, radius = info[fragment_id][0]
-          env = Chem.FindAtomEnvironmentOfRadiusN(mol, radius, root)
-          frag = Chem.PathToSubmol(mol, env)
+          env = Chem.FindAtomEnvironmentOfRadiusN(datapoint, radius, root)
+          frag = Chem.PathToSubmol(datapoint, env)
           smiles = Chem.MolToSmiles(frag)
           fp_smiles[fragment_id] = {'smiles': smiles, 'count': count}
         fp = fp_smiles
     else:
       fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(
-          mol,
+          datapoint,
           self.radius,
           nBits=self.size,
           useChirality=self.chiral,

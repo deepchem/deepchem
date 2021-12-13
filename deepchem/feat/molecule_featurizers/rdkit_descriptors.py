@@ -11,7 +11,9 @@ from deepchem.feat.base_classes import MolecularFeaturizer
 class RDKitDescriptors(MolecularFeaturizer):
   """RDKit descriptors.
 
-  This class computes a list of chemical descriptors using RDKit.
+  This class computes a list of chemical descriptors like
+  molecular weight, number of valence electrons, maximum and
+  minimum partial charge, etc using RDKit.
 
   Attributes
   ----------
@@ -21,6 +23,18 @@ class RDKitDescriptors(MolecularFeaturizer):
   Note
   ----
   This class requires RDKit to be installed.
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> smiles = ['CC(=O)OC1=CC=CC=C1C(=O)O']
+  >>> featurizer = dc.feat.RDKitDescriptors()
+  >>> features = featurizer.featurize(smiles)
+  >>> type(features[0])
+  <class 'numpy.ndarray'>
+  >>> features[0].shape
+  (208,)
+
   """
 
   def __init__(self, use_fragment=True, ipc_avg=True):
@@ -39,13 +53,13 @@ class RDKitDescriptors(MolecularFeaturizer):
     self.descriptors = []
     self.descList = []
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """
     Calculate RDKit descriptors.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
@@ -54,6 +68,11 @@ class RDKitDescriptors(MolecularFeaturizer):
       1D array of RDKit descriptors for `mol`.
       The length is `len(self.descriptors)`.
     """
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
     # initialize
     if len(self.descList) == 0:
       try:
@@ -72,8 +91,8 @@ class RDKitDescriptors(MolecularFeaturizer):
     features = []
     for desc_name, function in self.descList:
       if desc_name == 'Ipc' and self.ipc_avg:
-        feature = function(mol, avg=True)
+        feature = function(datapoint, avg=True)
       else:
-        feature = function(mol)
+        feature = function(datapoint)
       features.append(feature)
     return np.asarray(features)

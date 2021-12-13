@@ -253,12 +253,14 @@ class CGCNNModel(TorchModel):
   Here is a simple example of code that uses the CGCNNModel with
   materials dataset.
 
-  >> import deepchem as dc
-  >> dataset_config = {"reload": False, "featurizer": dc.feat.CGCNNFeaturizer, "transformers": []}
-  >> tasks, datasets, transformers = dc.molnet.load_perovskite(**dataset_config)
-  >> train, valid, test = datasets
-  >> model = dc.models.CGCNNModel(mode='regression', batch_size=32, learning_rate=0.001)
-  >> model.fit(train, nb_epoch=50)
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> dataset_config = {"reload": False, "featurizer": dc.feat.CGCNNFeaturizer(), "transformers": []}
+  >>> tasks, datasets, transformers = dc.molnet.load_perovskite(**dataset_config)
+  >>> train, valid, test = datasets
+  >>> model = dc.models.CGCNNModel(mode='regression', batch_size=32, learning_rate=0.001)
+  >>> avg_loss = model.fit(train, nb_epoch=50)
 
   This model takes arbitary crystal structures as an input, and predict material properties
   using the element information and connection of atoms in the crystal. If you want to get

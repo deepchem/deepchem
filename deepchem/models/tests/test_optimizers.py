@@ -1,5 +1,6 @@
 import deepchem.models.optimizers as optimizers
 import unittest
+import pytest
 
 try:
   import tensorflow as tf
@@ -19,11 +20,18 @@ try:
 except:
   has_pytorch = False
 
+try:
+  import jax
+  import optax
+  has_jax = True
+except:
+  has_jax = False
+
 
 class TestOptimizers(unittest.TestCase):
   """Test optimizers and related classes."""
 
-  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
+  @pytest.mark.tensorflow
   def test_adam_tf(self):
     """Test creating an Adam optimizer."""
     opt = optimizers.Adam(learning_rate=0.01)
@@ -31,7 +39,7 @@ class TestOptimizers(unittest.TestCase):
     tfopt = opt._create_tf_optimizer(global_step)
     assert isinstance(tfopt, tf.keras.optimizers.Adam)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_adam_pytorch(self):
     """Test creating an Adam optimizer."""
     opt = optimizers.Adam(learning_rate=0.01)
@@ -39,8 +47,15 @@ class TestOptimizers(unittest.TestCase):
     torchopt = opt._create_pytorch_optimizer(params)
     assert isinstance(torchopt, torch.optim.Adam)
 
-  @unittest.skipIf(not has_tensorflow_addons,
-                   'TensorFlow Addons is not installed')
+  @pytest.mark.jax
+  def test_adam_jax(self):
+    """Test creating an Adam optimizer."""
+    import optax
+    opt = optimizers.Adam(learning_rate=0.01)
+    jaxopt = opt._create_jax_optimizer()
+    assert isinstance(jaxopt, optax.GradientTransformation)
+
+  @pytest.mark.tensorflow
   def test_adamw_tf(self):
     """Test creating an AdamW optimizer."""
     opt = optimizers.AdamW(learning_rate=0.01)
@@ -48,7 +63,7 @@ class TestOptimizers(unittest.TestCase):
     tfopt = opt._create_tf_optimizer(global_step)
     assert isinstance(tfopt, tfa.optimizers.AdamW)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_adamw_pytorch(self):
     """Test creating an AdamW optimizer."""
     opt = optimizers.AdamW(learning_rate=0.01)
@@ -56,8 +71,15 @@ class TestOptimizers(unittest.TestCase):
     torchopt = opt._create_pytorch_optimizer(params)
     assert isinstance(torchopt, torch.optim.AdamW)
 
-  @unittest.skipIf(not has_tensorflow_addons,
-                   'TensorFlow Addons is not installed')
+  @pytest.mark.jax
+  def test_adamw_jax(self):
+    """Test creating an AdamW optimizer."""
+    import optax
+    opt = optimizers.AdamW(learning_rate=0.01)
+    jaxopt = opt._create_jax_optimizer()
+    assert isinstance(jaxopt, optax.GradientTransformation)
+
+  @pytest.mark.tensorflow
   def test_sparseadam_tf(self):
     """Test creating a SparseAdam optimizer."""
     opt = optimizers.SparseAdam(learning_rate=0.01)
@@ -65,7 +87,7 @@ class TestOptimizers(unittest.TestCase):
     tfopt = opt._create_tf_optimizer(global_step)
     assert isinstance(tfopt, tfa.optimizers.LazyAdam)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_sparseadam_pytorch(self):
     """Test creating a SparseAdam optimizer."""
     opt = optimizers.SparseAdam(learning_rate=0.01)
@@ -73,7 +95,7 @@ class TestOptimizers(unittest.TestCase):
     torchopt = opt._create_pytorch_optimizer(params)
     assert isinstance(torchopt, torch.optim.SparseAdam)
 
-  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
+  @pytest.mark.tensorflow
   def test_adagrad_tf(self):
     """Test creating an AdaGrad optimizer."""
     opt = optimizers.AdaGrad(learning_rate=0.01)
@@ -81,7 +103,7 @@ class TestOptimizers(unittest.TestCase):
     tfopt = opt._create_tf_optimizer(global_step)
     assert isinstance(tfopt, tf.keras.optimizers.Adagrad)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_adagrad_pytorch(self):
     """Test creating an AdaGrad optimizer."""
     opt = optimizers.AdaGrad(learning_rate=0.01)
@@ -89,7 +111,15 @@ class TestOptimizers(unittest.TestCase):
     torchopt = opt._create_pytorch_optimizer(params)
     assert isinstance(torchopt, torch.optim.Adagrad)
 
-  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
+  @pytest.mark.jax
+  def test_adagrad_jax(self):
+    """Test creating an AdaGrad optimizer."""
+    import optax
+    opt = optimizers.AdaGrad(learning_rate=0.01)
+    jaxopt = opt._create_jax_optimizer()
+    assert isinstance(jaxopt, optax.GradientTransformation)
+
+  @pytest.mark.tensorflow
   def test_rmsprop_tf(self):
     """Test creating an RMSProp Optimizer."""
     opt = optimizers.RMSProp(learning_rate=0.01)
@@ -97,7 +127,7 @@ class TestOptimizers(unittest.TestCase):
     tfopt = opt._create_tf_optimizer(global_step)
     assert isinstance(tfopt, tf.keras.optimizers.RMSprop)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_rmsprop_pytorch(self):
     """Test creating an RMSProp Optimizer."""
     opt = optimizers.RMSProp(learning_rate=0.01)
@@ -105,7 +135,15 @@ class TestOptimizers(unittest.TestCase):
     torchopt = opt._create_pytorch_optimizer(params)
     assert isinstance(torchopt, torch.optim.RMSprop)
 
-  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
+  @pytest.mark.jax
+  def test_rmsprop_jax(self):
+    """Test creating an RMSProp Optimizer."""
+    import optax
+    opt = optimizers.RMSProp(learning_rate=0.01)
+    jaxopt = opt._create_jax_optimizer()
+    assert isinstance(jaxopt, optax.GradientTransformation)
+
+  @pytest.mark.tensorflow
   def test_gradient_descent_tf(self):
     """Test creating a Gradient Descent optimizer."""
     opt = optimizers.GradientDescent(learning_rate=0.01)
@@ -113,7 +151,7 @@ class TestOptimizers(unittest.TestCase):
     tfopt = opt._create_tf_optimizer(global_step)
     assert isinstance(tfopt, tf.keras.optimizers.SGD)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_gradient_descent_pytorch(self):
     """Test creating a Gradient Descent optimizer."""
     opt = optimizers.GradientDescent(learning_rate=0.01)
@@ -121,7 +159,15 @@ class TestOptimizers(unittest.TestCase):
     torchopt = opt._create_pytorch_optimizer(params)
     assert isinstance(torchopt, torch.optim.SGD)
 
-  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
+  @pytest.mark.jax
+  def test_gradient_descent_jax(self):
+    """Test creating an Gradient Descent Optimizer."""
+    import optax
+    opt = optimizers.GradientDescent(learning_rate=0.01)
+    jaxopt = opt._create_jax_optimizer()
+    assert isinstance(jaxopt, optax.GradientTransformation)
+
+  @pytest.mark.tensorflow
   def test_exponential_decay_tf(self):
     """Test creating an optimizer with an exponentially decaying learning rate."""
     rate = optimizers.ExponentialDecay(
@@ -130,7 +176,7 @@ class TestOptimizers(unittest.TestCase):
     global_step = tf.Variable(0)
     tfopt = opt._create_tf_optimizer(global_step)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_exponential_decay_pytorch(self):
     """Test creating an optimizer with an exponentially decaying learning rate."""
     rate = optimizers.ExponentialDecay(
@@ -140,7 +186,17 @@ class TestOptimizers(unittest.TestCase):
     torchopt = opt._create_pytorch_optimizer(params)
     schedule = rate._create_pytorch_schedule(torchopt)
 
-  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
+  @pytest.mark.jax
+  def test_exponential_decay_jax(self):
+    """Test creating an optimizer with an exponentially decaying learning rate."""
+    import optax
+    rate = optimizers.ExponentialDecay(
+        initial_rate=0.001, decay_rate=0.99, decay_steps=10000)
+    opt = optimizers.Adam(learning_rate=rate)
+    jaxopt = opt._create_jax_optimizer()
+    assert isinstance(jaxopt, optax.GradientTransformation)
+
+  @pytest.mark.tensorflow
   def test_polynomial_decay_tf(self):
     """Test creating an optimizer with a polynomially decaying learning rate."""
     rate = optimizers.PolynomialDecay(
@@ -149,7 +205,7 @@ class TestOptimizers(unittest.TestCase):
     global_step = tf.Variable(0)
     tfopt = opt._create_tf_optimizer(global_step)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_polynomial_decay_pytorch(self):
     """Test creating an optimizer with a polynomially decaying learning rate."""
     rate = optimizers.PolynomialDecay(
@@ -159,7 +215,17 @@ class TestOptimizers(unittest.TestCase):
     torchopt = opt._create_pytorch_optimizer(params)
     schedule = rate._create_pytorch_schedule(torchopt)
 
-  @unittest.skipIf(not has_tensorflow, 'TensorFlow is not installed')
+  @pytest.mark.jax
+  def test_polynomial_decay_jax(self):
+    """Test creating an optimizer with a polynomially decaying learning rate."""
+    import optax
+    rate = optimizers.PolynomialDecay(
+        initial_rate=0.001, final_rate=0.0001, decay_steps=10000)
+    opt = optimizers.Adam(learning_rate=rate)
+    jaxopt = opt._create_jax_optimizer()
+    assert isinstance(jaxopt, optax.GradientTransformation)
+
+  @pytest.mark.tensorflow
   def test_linearCosine_decay_tf(self):
     """test creating an optimizer with a linear cosine decay to the learning rate"""
     rate = optimizers.LinearCosineDecay(initial_rate=0.1, decay_steps=10000)
@@ -167,7 +233,7 @@ class TestOptimizers(unittest.TestCase):
     global_step = tf.Variable(0)
     tfopt = opt._create_tf_optimizer(global_step)
 
-  @unittest.skipIf(not has_pytorch, 'PyTorch is not installed')
+  @pytest.mark.torch
   def test_linearCosine_decay_pytorch(self):
     """test creating an optimizer with a linear cosine decay to the learning rate"""
     rate = optimizers.LinearCosineDecay(initial_rate=0.1, decay_steps=10000)
@@ -175,3 +241,27 @@ class TestOptimizers(unittest.TestCase):
     params = [torch.nn.Parameter(torch.Tensor([1.0]))]
     torchopt = opt._create_pytorch_optimizer(params)
     schedule = rate._create_pytorch_schedule(torchopt)
+
+  @pytest.mark.jax
+  def test_linearCosine_decay_jax(self):
+    """test creating an optimizer with a linear cosine decay to the learning rate"""
+    import optax
+    rate = optimizers.LinearCosineDecay(initial_rate=0.1, decay_steps=10000)
+    opt = optimizers.Adam(learning_rate=rate)
+    jaxopt = opt._create_jax_optimizer()
+    assert isinstance(jaxopt, optax.GradientTransformation)
+
+  @pytest.mark.jax
+  def test_PieceWise_decay_jax(self):
+    """test creating an optimizer with a PeiceWise constant decay to the learning rate"""
+    import optax
+    rate = optimizers.PiecewiseConstantSchedule(
+        initial_rate=0.1,
+        boundaries_and_scales={
+            5000: 0.1,
+            10000: 0.1,
+            15000: 0.1
+        })
+    opt = optimizers.Adam(learning_rate=rate)
+    jaxopt = opt._create_jax_optimizer()
+    assert isinstance(jaxopt, optax.GradientTransformation)

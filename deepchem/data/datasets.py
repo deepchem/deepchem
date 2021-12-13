@@ -10,6 +10,7 @@ import tempfile
 import time
 import shutil
 import multiprocessing
+from multiprocessing.dummy import Pool
 from ast import literal_eval as make_tuple
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
@@ -969,7 +970,6 @@ class NumpyDataset(Dataset):
     """
     return NumpyDataset(ds.X, ds.y, ds.w, ds.ids)
 
-  @staticmethod
   def to_json(self, fname: str) -> None:
     """Dump NumpyDataset to the json file .
 
@@ -1018,6 +1018,17 @@ class NumpyDataset(Dataset):
     -------
     NumpyDataset
       A single NumpyDataset containing all the samples from all datasets.
+
+    Example
+    -------
+    >>> X1, y1 = np.random.rand(5, 3), np.random.randn(5, 1)
+    >>> first_dataset = dc.data.NumpyDataset(X1, y1)
+    >>> X2, y2 = np.random.rand(5, 3), np.random.randn(5, 1)
+    >>> second_dataset = dc.data.NumpyDataset(X2, y2)
+    >>> merged_dataset = dc.data.NumpyDataset.merge([first_dataset, second_dataset])
+    >>> print(len(merged_dataset) == len(first_dataset) + len(second_dataset))
+    True
+
     """
     X, y, w, ids = datasets[0].X, datasets[0].y, datasets[0].w, datasets[0].ids
     for dataset in datasets[1:]:
@@ -1218,7 +1229,8 @@ class DiskDataset(Dataset):
       tasks_filename, metadata_filename = self._get_metadata_filename()
       with open(tasks_filename) as fin:
         tasks = json.load(fin)
-      metadata_df = pd.read_csv(metadata_filename, compression='gzip')
+      metadata_df = pd.read_csv(
+          metadata_filename, compression='gzip', dtype=object)
       metadata_df = metadata_df.where((pd.notnull(metadata_df)), None)
       return tasks, metadata_df
     except Exception:
@@ -1458,8 +1470,12 @@ class DiskDataset(Dataset):
         X = np.reshape(X, (len(X),) + self.get_data_shape())
         # Note that this means that DiskDataset resharding currently doesn't
         # work for datasets that aren't regression/classification.
-        y = np.reshape(y, (len(y),) + y_shape[1:])
-        w = np.reshape(w, (len(w),) + w_shape[1:])
+        if y is None:  # datasets without label
+          y = y_next
+          w = w_next
+        else:
+          y = np.reshape(y, (len(y),) + y_shape[1:])
+          w = np.reshape(w, (len(w),) + w_shape[1:])
         X_next = np.concatenate([X_next, X], axis=0)
         y_next = np.concatenate([y_next, y], axis=0)
         w_next = np.concatenate([w_next, w], axis=0)
@@ -1500,10 +1516,10 @@ class DiskDataset(Dataset):
     """Gets size of shards on disk."""
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
-    sample_y = load_from_disk(
+    sample_ids = load_from_disk(
         os.path.join(self.data_dir,
-                     next(self.metadata_df.iterrows())[1]['y']))
-    return len(sample_y)
+                     next(self.metadata_df.iterrows())[1]['ids']))
+    return len(sample_ids)
 
   def _get_metadata_filename(self) -> Tuple[str, str]:
     """Get standard location for metadata file."""
@@ -1582,7 +1598,7 @@ class DiskDataset(Dataset):
       # objects as an extra overhead. Also, as hideously as un-thread safe this looks,
       # we're actually protected by the GIL.
       # mp.dummy aliases ThreadPool to Pool
-      pool = multiprocessing.dummy.Pool(1)
+      pool = Pool(1)
 
       if batch_size is None:
         num_global_batches = num_shards
@@ -1918,14 +1934,33 @@ class DiskDataset(Dataset):
     else:
       merge_tasks = []
 
+    # determine the shard sizes of the datasets to merge
+    shard_sizes = []
+    for dataset in datasets:
+      if hasattr(dataset, 'get_shard_size'):
+        shard_sizes.append(dataset.get_shard_size())  # type: ignore
+      # otherwise the entire dataset is the "shard size"
+      else:
+        shard_sizes.append(len(dataset))
+
     def generator():
       for ind, dataset in enumerate(datasets):
         logger.info("Merging in dataset %d/%d" % (ind, len(datasets)))
-        X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
-        yield (X, y, w, ids)
+        if hasattr(dataset, 'itershards'):
+          for (X, y, w, ids) in dataset.itershards():
+            yield (X, y, w, ids)
+        else:
+          yield (dataset.X, dataset.y, dataset.w, dataset.ids)
 
-    return DiskDataset.create_dataset(
+    merged_dataset = DiskDataset.create_dataset(
         generator(), data_dir=merge_dir, tasks=merge_tasks)
+
+    # we must reshard the dataset to have a uniform size
+    # choose the smallest shard size
+    if len(set(shard_sizes)) > 1:
+      merged_dataset.reshard(min(shard_sizes))
+
+    return merged_dataset
 
   def subset(self, shard_nums: Sequence[int],
              subset_dir: Optional[str] = None) -> "DiskDataset":
@@ -2370,11 +2405,11 @@ class DiskDataset(Dataset):
           if y is not None:
             y_sel = y[shard_inds]
           else:
-            y_sel = None
+            y_sel = np.array([])
           if w is not None:
             w_sel = w[shard_inds]
           else:
-            w_sel = None
+            w_sel = np.array([])
           ids_sel = ids[shard_inds]
           Xs.append(X_sel)
           ys.append(y_sel)
@@ -2400,9 +2435,16 @@ class DiskDataset(Dataset):
                 np.where(sorted_indices == orig_index)[0][0]
                 for orig_index in select_shard_indices
             ])
-        X, y, w, ids = X[reverted_indices], y[reverted_indices], w[
-            reverted_indices], ids[reverted_indices]
-        yield (X, y, w, ids)
+        if y.size == 0:
+          tup_y = y
+        else:
+          tup_y = y[reverted_indices]
+        if w.size == 0:
+          tup_w = w
+        else:
+          tup_w = w[reverted_indices]
+        X, ids = X[reverted_indices], ids[reverted_indices]
+        yield (X, tup_y, tup_w, ids)
         start = end
         select_shard_num += 1
 

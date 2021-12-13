@@ -4,9 +4,11 @@ Tests for hyperparam optimization.
 import unittest
 import tempfile
 import numpy as np
+import pytest
 import deepchem as dc
 import sklearn
 import sklearn.ensemble
+import os
 
 
 class TestGridHyperparamOpt(unittest.TestCase):
@@ -79,11 +81,10 @@ class TestGridHyperparamOpt(unittest.TestCase):
           metric,
           transformers,
           logdir=tmpdirname)
-    valid_score = best_model.evaluate(self.valid_dataset, [metric],
-                                      transformers)
-    assert valid_score["pearson_r2_score"] == max(all_results.values())
-    assert valid_score["pearson_r2_score"] > 0
+      # 2 model variants, 1 results.txt file
+      assert len(os.listdir(tmpdirname)) == 2 + 1
 
+  @pytest.mark.torch
   def test_multitask_example(self):
     """Test a simple example of optimizing a multitask model with a grid search."""
     # Generate dummy dataset
@@ -117,6 +118,7 @@ class TestGridHyperparamOpt(unittest.TestCase):
     assert valid_score["mean-mean_squared_error"] == min(all_results.values())
     assert valid_score["mean-mean_squared_error"] > 0
 
+  @pytest.mark.torch
   def test_multitask_example_multiple_params(self):
     """Test a simple example of optimizing a multitask model with a grid search with multiple parameters to optimize."""
     # Generate dummy dataset
@@ -160,6 +162,7 @@ class TestGridHyperparamOpt(unittest.TestCase):
     assert valid_score["mean-mean_squared_error"] == min(all_results.values())
     assert valid_score["mean-mean_squared_error"] > 0
 
+  @pytest.mark.torch
   def test_multitask_nb_epoch(self):
     """Test a simple example of optimizing a multitask model with a grid search with a different number of training epochs."""
     # Generate dummy dataset

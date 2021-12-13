@@ -18,9 +18,9 @@ def threshold_predictions(y: np.ndarray,
   threshold: float, default None
     The threshold probability for the positive class. Note that this
     threshold will only be applied for binary classifiers (where
-    `n_classes==2`). If specified for multiclass problems, will be
-    ignored. If `threshold` is None, and `n_classes==2` then a default
-    threshold of 0.5 will be applied.
+    `n_classes==2`). If specified for multiclass problems, or if
+    `threshold` is None, the threshold is ignored and argmax(y) is
+    returned.
 
   Returns
   -------
@@ -32,13 +32,7 @@ def threshold_predictions(y: np.ndarray,
     raise ValueError("y must be a ndarray of shape (N, n_classes)")
   N = y.shape[0]
   n_classes = y.shape[1]
-  if threshold is None and n_classes == 2:
-    logger.info("Using default threshold of 0.5 for binary dataset.")
-    threshold = 0.5
-  if not np.allclose(np.sum(y, axis=1), np.ones(N)):
-    raise ValueError(
-        "y must be a class probability matrix with rows summing to 1.")
-  if n_classes != 2:
+  if n_classes != 2 or threshold is None:
     return np.argmax(y, axis=1)
   else:
     return np.where(y[:, 1] >= threshold, np.ones(N), np.zeros(N))
@@ -301,7 +295,7 @@ def normalize_prediction_shape(y: np.ndarray,
 
 def handle_classification_mode(
     y: np.ndarray,
-    classification_handling_mode: Optional[str] = None,
+    classification_handling_mode: Optional[str],
     threshold_value: Optional[float] = None) -> np.ndarray:
   """Handle classification mode.
 
@@ -333,14 +327,14 @@ def handle_classification_mode(
   Returns
   -------
   y_out: np.ndarray
-    If `classification_handling_mode` is None, then of shape `(N, n_tasks, n_classes)`.
+    If `classification_handling_mode` is "direct", then of shape `(N, n_tasks, n_classes)`.
     If `classification_handling_mode` is "threshold", then of shape `(N, n_tasks)`.
     If `classification_handling_mode is "threshold-one-hot", then of shape `(N, n_tasks, n_classes)"
   """
   if len(y.shape) != 3:
     raise ValueError("y must be of shape (N, n_tasks, n_classes)")
   N, n_tasks, n_classes = y.shape
-  if classification_handling_mode is None:
+  if classification_handling_mode == "direct":
     return y
   elif classification_handling_mode == "threshold":
     thresholded = []
@@ -368,7 +362,7 @@ def handle_classification_mode(
     return np.concatenate(thresholded, axis=1)
   else:
     raise ValueError(
-        "classification_handling_mode must be one of None, threshold, threshold-one-hot"
+        "classification_handling_mode must be one of direct, threshold, threshold-one-hot"
     )
 
 
@@ -473,21 +467,24 @@ class Metric(object):
     classification_handling_mode: str, default None
       DeepChem models by default predict class probabilities for
       classification problems. This means that for a given singletask
-      prediction, after shape normalization, the DeepChem prediction will be a
-      numpy array of shape `(N, n_classes)` with class probabilities.
+      prediction, after shape normalization, the DeepChem labels and prediction will be
+      numpy arrays of shape `(n_samples, n_tasks, n_classes)` with class probabilities.
       `classification_handling_mode` is a string that instructs this method
       how to handle transforming these probabilities. It can take on the
       following values:
-      - None: default value. Pass in `y_pred` directy into `self.metric`.
-      - "threshold": Use `threshold_predictions` to threshold `y_pred`. Use
-        `threshold_value` as the desired threshold.
-      - "threshold-one-hot": Use `threshold_predictions` to threshold `y_pred`
+      - "direct": Pass `y_true` and `y_pred` directy into `self.metric`.
+      - "threshold": Use `threshold_predictions` to threshold `y_true` and `y_pred`.
+        Use `threshold_value` as the desired threshold. This converts them into
+        arrays of shape `(n_samples, n_tasks)`, where each element is a class index.
+      - "threshold-one-hot": Use `threshold_predictions` to threshold `y_true` and `y_pred`
         using `threshold_values`, then apply `to_one_hot` to output.
+      - None: Select a mode automatically based on the metric.
     threshold_value: float, default None
       If set, and `classification_handling_mode` is "threshold" or
-      "threshold-one-hot" apply a thresholding operation to values with this
+      "threshold-one-hot", apply a thresholding operation to values with this
       threshold. This option is only sensible on binary classification tasks.
-      If float, this will be applied as a binary classification value.
+      For multiclass problems, or if `threshold_value` is None, argmax() is used
+      to select the highest probability class for each task.
     """
     if threshold is not None:
       logger.warn(
@@ -518,26 +515,11 @@ class Metric(object):
       if self.metric.__name__ in [
           "roc_auc_score", "matthews_corrcoef", "recall_score",
           "accuracy_score", "kappa_score", "cohen_kappa_score",
-          "precision_score", "balanced_accuracy_score", "prc_auc_score",
-          "f1_score", "bedroc_score", "jaccard_score", "jaccard_index",
-          "pixel_error"
+          "precision_score", "precision_recall_curve",
+          "balanced_accuracy_score", "prc_auc_score", "f1_score",
+          "bedroc_score", "jaccard_score", "jaccard_index", "pixel_error"
       ]:
         mode = "classification"
-        # These are some smart defaults corresponding to sklearn's required
-        # behavior
-        if classification_handling_mode is None:
-          if self.metric.__name__ in [
-              "matthews_corrcoef", "cohen_kappa_score", "kappa_score",
-              "balanced_accuracy_score", "recall_score", "jaccard_score",
-              "jaccard_index", "pixel_error", "f1_score"
-          ]:
-            classification_handling_mode = "threshold"
-          elif self.metric.__name__ in [
-              "accuracy_score", "precision_score", "bedroc_score"
-          ]:
-            classification_handling_mode = "threshold-one-hot"
-          elif self.metric.__name__ in ["roc_auc_score", "prc_auc_score"]:
-            classification_handling_mode = None
       elif self.metric.__name__ in [
           "pearson_r2_score", "r2_score", "mean_squared_error",
           "mean_absolute_error", "rms_score", "mae_score", "pearsonr",
@@ -548,15 +530,33 @@ class Metric(object):
         raise ValueError(
             "Please specify the mode of this metric. mode must be 'regression' or 'classification'"
         )
+    if mode == "classification":
+      if classification_handling_mode is None:
+        # These are some smart defaults corresponding to sklearn's required
+        # behavior
+        if self.metric.__name__ in [
+            "matthews_corrcoef", "cohen_kappa_score", "kappa_score",
+            "balanced_accuracy_score", "recall_score", "jaccard_score",
+            "jaccard_index", "pixel_error", "f1_score"
+        ]:
+          classification_handling_mode = "threshold"
+        elif self.metric.__name__ in [
+            "accuracy_score", "precision_score", "bedroc_score"
+        ]:
+          classification_handling_mode = "threshold-one-hot"
+        elif self.metric.__name__ in [
+            "roc_auc_score", "prc_auc_score", "precision_recall_curve"
+        ]:
+          classification_handling_mode = "direct"
+      if classification_handling_mode not in [
+          "direct", "threshold", "threshold-one-hot"
+      ]:
+        raise ValueError(
+            "classification_handling_mode must be one of 'direct', 'threshold', 'threshold_one_hot'"
+        )
 
     self.mode = mode
     self.n_tasks = n_tasks
-    if classification_handling_mode not in [
-        None, "threshold", "threshold-one-hot"
-    ]:
-      raise ValueError(
-          "classification_handling_mode must be one of None, 'threshold', 'threshold_one_hot'"
-      )
     self.classification_handling_mode = classification_handling_mode
     self.threshold_value = threshold_value
 

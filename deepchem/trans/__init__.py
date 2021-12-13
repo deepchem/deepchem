@@ -15,11 +15,11 @@ from deepchem.trans.transformers import PowerTransformer
 from deepchem.trans.transformers import CoulombFitTransformer
 from deepchem.trans.transformers import IRVTransformer
 from deepchem.trans.transformers import DAGTransformer
-from deepchem.trans.transformers import ANITransformer
 from deepchem.trans.transformers import MinMaxTransformer
 from deepchem.trans.transformers import FeaturizationTransformer
 from deepchem.trans.transformers import ImageTransformer
 from deepchem.trans.transformers import DataTransforms
 from deepchem.trans.transformers import Transformer
 from deepchem.trans.transformers import FlatteningTransformer
+from deepchem.trans.transformers import RxnSplitTransformer
 from deepchem.trans.duplicate import DuplicateBalancingTransformer

@@ -168,12 +168,12 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     self.use_partial_charge = use_partial_charge
     self.use_chirality = use_chirality
 
-  def _featurize(self, mol: RDKitMol) -> GraphData:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> GraphData:
     """Calculate molecule graph features from RDKit mol object.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit mol object.
 
     Returns
@@ -181,31 +181,39 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     graph: GraphData
       A molecule graph with some features.
     """
+    assert datapoint.GetNumAtoms(
+    ) > 1, "More than one atom should be present in the molecule for this featurizer to work."
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
+
     if self.use_partial_charge:
       try:
-        mol.GetAtomWithIdx(0).GetProp('_GasteigerCharge')
+        datapoint.GetAtomWithIdx(0).GetProp('_GasteigerCharge')
       except:
         # If partial charges were not computed
         try:
           from rdkit.Chem import AllChem
-          AllChem.ComputeGasteigerCharges(mol)
+          AllChem.ComputeGasteigerCharges(datapoint)
         except ModuleNotFoundError:
           raise ImportError("This class requires RDKit to be installed.")
 
     # construct atom (node) feature
-    h_bond_infos = construct_hydrogen_bonding_info(mol)
+    h_bond_infos = construct_hydrogen_bonding_info(datapoint)
     atom_features = np.asarray(
         [
             _construct_atom_feature(atom, h_bond_infos, self.use_chirality,
                                     self.use_partial_charge)
-            for atom in mol.GetAtoms()
+            for atom in datapoint.GetAtoms()
         ],
         dtype=float,
     )
 
     # construct edge (bond) index
     src, dest = [], []
-    for bond in mol.GetBonds():
+    for bond in datapoint.GetBonds():
       # add edge list considering a directed graph
       start, end = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
       src += [start, end]
@@ -215,7 +223,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     bond_features = None  # deafult None
     if self.use_edges:
       features = []
-      for bond in mol.GetBonds():
+      for bond in datapoint.GetBonds():
         features += 2 * [_construct_bond_feature(bond)]
       bond_features = np.asarray(features, dtype=float)
 
@@ -420,12 +428,12 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
 
     return np.array([src, dest], dtype=int), np.array(feats, dtype=float)
 
-  def _featurize(self, mol: RDKitMol) -> GraphData:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> GraphData:
     """Calculate molecule graph features from RDKit mol object.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit mol object.
 
     Returns
@@ -433,9 +441,15 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
     graph: GraphData
       A molecule graph with some features.
     """
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
+
     node_features = np.asarray(
-        [self._pagtn_atom_featurizer(atom) for atom in mol.GetAtoms()],
-        dtype=float)
-    edge_index, edge_features = self._pagtn_edge_featurizer(mol)
+        [self._pagtn_atom_featurizer(atom) for atom in datapoint.GetAtoms()],
+        dtype=np.float)
+    edge_index, edge_features = self._pagtn_edge_featurizer(datapoint)
     graph = GraphData(node_features, edge_index, edge_features)
     return graph

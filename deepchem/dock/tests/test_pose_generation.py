@@ -19,7 +19,6 @@ class TestPoseGeneration(unittest.TestCase):
   Does sanity checks on pose generation.
   """
 
-  @unittest.skipIf(IS_WINDOWS, 'Skip the test on Windows')
   def test_vina_initialization(self):
     """Test that VinaPoseGenerator can be initialized."""
     dc.dock.VinaPoseGenerator()
@@ -29,7 +28,6 @@ class TestPoseGeneration(unittest.TestCase):
     """Test that GninaPoseGenerator can be initialized."""
     dc.dock.GninaPoseGenerator()
 
-  @unittest.skipIf(IS_WINDOWS, 'Skip the test on Windows')
   def test_pocket_vina_initialization(self):
     """Test that VinaPoseGenerator can be initialized."""
     pocket_finder = dc.dock.ConvexHullPocketFinder()

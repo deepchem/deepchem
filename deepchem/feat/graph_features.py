@@ -3,7 +3,6 @@
 import numpy as np
 import deepchem as dc
 from deepchem.feat.base_classes import MolecularFeaturizer
-from deepchem.feat.complex_featurizers import ComplexNeighborListFragmentAtomicCoordinates
 from deepchem.feat.mol_graphs import ConvMol, WeaveMol
 from deepchem.data import DiskDataset
 import logging
@@ -54,6 +53,7 @@ def one_of_k_encoding_unk(x, allowable_set):
   --------
   >>> dc.feat.graph_features.one_of_k_encoding_unk("s", ["a", "b", "c"])
   [False, False, True]
+
   """
   if x not in allowable_set:
     x = allowable_set[-1]
@@ -78,6 +78,7 @@ def get_intervals(l):
 
   >>> dc.feat.graph_features.get_intervals([[1], [], [1, 2], [1, 2, 3]])
   [1, 1, 3, 12]
+
   """
   intervals = len(l) * [0]
   # Initalize with 1
@@ -104,10 +105,11 @@ def safe_index(l, e):
   0
   >>> dc.feat.graph_features.safe_index([1, 2, 3], 7)
   3
+
   """
   try:
     return l.index(e)
-  except:
+  except ValueError:
     return len(l)
 
 
@@ -149,7 +151,7 @@ def get_feature_list(atom):
 
   Parameters
   ----------
-  atom: RDKit.rdchem.Atom
+  atom: RDKit.Chem.rdchem.Atom
     Atom to get features for
 
   Examples
@@ -157,8 +159,11 @@ def get_feature_list(atom):
   >>> from rdkit import Chem
   >>> mol = Chem.MolFromSmiles("C")
   >>> atom = mol.GetAtoms()[0]
-  >>> dc.feat.graph_features.get_feature_list(atom)
-  [0, 4, 4, 3, 0, 2]
+  >>> features = dc.feat.graph_features.get_feature_list(atom)
+  >>> type(features)
+  <class 'list'>
+  >>> len(features)
+  6
 
   Note
   ----
@@ -259,7 +264,7 @@ def atom_to_id(atom):
 
   Parameters
   ----------
-  atom: RDKit.rdchem.Atom
+  atom: RDKit.Chem.rdchem.Atom
     Atom to convert to ids.
 
   Returns
@@ -281,6 +286,8 @@ def atom_features(atom,
 
   Parameters
   ----------
+  atom: RDKit.Chem.rdchem.Atom
+    Atom to compute features on.
   bool_id_feat: bool, optional
     Return an array of unique identifiers corresponding to atom type.
   explicit_H: bool, optional
@@ -290,7 +297,20 @@ def atom_features(atom,
 
   Returns
   -------
-  np.ndarray of per-atom features.
+  features: np.ndarray 
+    An array of per-atom features.
+
+  Examples
+  --------
+  >>> from rdkit import Chem
+  >>> mol = Chem.MolFromSmiles('CCC')
+  >>> atom = mol.GetAtoms()[0]
+  >>> features = dc.feat.graph_features.atom_features(atom)
+  >>> type(features)
+  <class 'numpy.ndarray'>
+  >>> features.shape
+  (75,)
+
   """
   if bool_id_feat:
     return np.array([atom_to_id(atom)])
@@ -376,9 +396,11 @@ def bond_features(bond, use_chirality=False):
 
   Parameters
   ----------
+  bond: rdkit.Chem.rdchem.Bond
+    Bond to compute features on.
   use_chirality: bool, optional
     If true, use chirality information.
-
+  
   Note
   ----
   This method requires RDKit to be installed.
@@ -388,6 +410,22 @@ def bond_features(bond, use_chirality=False):
   bond_feats: np.ndarray
     Array of bond features. This is a 1-D array of length 6 if `use_chirality`
     is `False` else of length 10 with chirality encoded.
+
+  Examples
+  --------
+  >>> from rdkit import Chem
+  >>> mol = Chem.MolFromSmiles('CCC')
+  >>> bond = mol.GetBonds()[0]
+  >>> bond_features = dc.feat.graph_features.bond_features(bond)
+  >>> type(bond_features)
+  <class 'numpy.ndarray'>
+  >>> bond_features.shape
+  (6,)
+
+  Note
+  ----
+  This method requires RDKit to be installed.
+
   """
   try:
     from rdkit import Chem
@@ -406,8 +444,8 @@ def bond_features(bond, use_chirality=False):
   return np.array(bond_feats)
 
 
-def max_pair_distance_pairs(mol: RDKitMol,
-                            max_pair_distance: Optional[int]) -> np.ndarray:
+def max_pair_distance_pairs(
+    mol: RDKitMol, max_pair_distance: Optional[int] = None) -> np.ndarray:
   """Helper method which finds atom pairs within max_pair_distance graph distance.
 
   This helper method is used to find atoms which are within max_pair_distance
@@ -434,6 +472,15 @@ def max_pair_distance_pairs(mol: RDKitMol,
     distance 2 apart. If `max_pair_distance` is `None`, all pairs are
     considered (effectively infinite `max_pair_distance`)
 
+  Examples
+  --------
+  >>> from rdkit import Chem
+  >>> mol = Chem.MolFromSmiles('CCC')
+  >>> features = dc.feat.graph_features.max_pair_distance_pairs(mol, 1)
+  >>> type(features)
+  <class 'numpy.ndarray'>
+  >>> features.shape  # (2, num_pairs)
+  (2, 7)
 
   Returns
   -------
@@ -710,14 +757,15 @@ class ConvMolFeaturizer(MolecularFeaturizer):
 
   def featurize(
       self,
-      molecules: Union[RDKitMol, str, Iterable[RDKitMol], Iterable[str]],
-      log_every_n: int = 1000) -> np.ndarray:
+      datapoints: Union[RDKitMol, str, Iterable[RDKitMol], Iterable[str]],
+      log_every_n: int = 1000,
+      **kwargs) -> np.ndarray:
     """
     Override parent: aim is to add handling atom-depleted molecules featurization
 
     Parameters
     ----------
-    molecules: rdkit.Chem.rdchem.Mol / SMILES string / iterable
+    datapoints: rdkit.Chem.rdchem.Mol / SMILES string / iterable
       RDKit Mol, or SMILES string or iterable sequence of RDKit mols/SMILES
       strings.
     log_every_n: int, default 1000
@@ -728,8 +776,14 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     features: np.ndarray
       A numpy array containing a featurized representation of `datapoints`.
     """
+    if 'molecules' in kwargs and datapoints is None:
+      datapoints = kwargs.get("molecules")
+      raise DeprecationWarning(
+          'Molecules is being phased out as a parameter, please pass "datapoints" instead.'
+      )
+
     features = super(ConvMolFeaturizer, self).featurize(
-        molecules, log_every_n=1000)
+        datapoints, log_every_n=1000)
     if self.per_atom_fragmentation:
       # create temporary valid ids serving to filter out failed featurizations from every sublist
       # of features (i.e. every molecules' frags list), and also totally failed sublists.
@@ -863,9 +917,24 @@ class WeaveFeaturizer(MolecularFeaturizer):
   Examples
   --------
   >>> import deepchem as dc
-  >>> mols = ["C", "CCC"]
+  >>> mols = ["CCC"]
   >>> featurizer = dc.feat.WeaveFeaturizer()
-  >>> X = featurizer.featurize(mols)
+  >>> features = featurizer.featurize(mols)
+  >>> type(features[0])
+  <class 'deepchem.feat.mol_graphs.WeaveMol'>
+  >>> features[0].get_num_atoms() # 3 atoms in compound
+  3
+  >>> features[0].get_num_features() # feature size
+  75
+  >>> type(features[0].get_atom_features())
+  <class 'numpy.ndarray'>
+  >>> features[0].get_atom_features().shape
+  (3, 75)
+  >>> type(features[0].get_pair_features())
+  <class 'numpy.ndarray'>
+  >>> features[0].get_pair_features().shape
+  (9, 14)
+
 
   References
   ----------
@@ -963,136 +1032,3 @@ class WeaveFeaturizer(MolecularFeaturizer):
         max_pair_distance=self.max_pair_distance)
 
     return WeaveMol(nodes, pairs, pair_edges)
-
-
-class AtomicConvFeaturizer(ComplexNeighborListFragmentAtomicCoordinates):
-  """This class computes the Atomic Convolution features"""
-
-  # TODO (VIGS25): Complete the description
-
-  name = ['atomic_conv']
-
-  def __init__(self,
-               labels,
-               neighbor_cutoff,
-               frag1_num_atoms=70,
-               frag2_num_atoms=634,
-               complex_num_atoms=701,
-               max_num_neighbors=12,
-               batch_size=24,
-               atom_types=[
-                   6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35.,
-                   53., -1.
-               ],
-               radial=[[
-                   1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0,
-                   7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0
-               ], [0.0, 4.0, 8.0], [0.4]],
-               layer_sizes=[32, 32, 16],
-               strip_hydrogens=True,
-               learning_rate=0.001,
-               epochs=10):
-    """
-    Parameters
-
-    labels: numpy.ndarray
-      Labels which we want to predict using the model
-    neighbor_cutoff: int
-      TODO (VIGS25): Add description
-    frag1_num_atoms: int
-      Number of atoms in first fragment
-    frag2_num_atoms: int
-      Number of atoms in second fragment
-    complex_num_atoms: int
-      TODO (VIGS25) : Add description
-    max_num_neighbors: int
-      Maximum number of neighbors possible for an atom
-    batch_size: int
-      Batch size used for training and evaluation
-    atom_types: list
-      List of atoms recognized by model. Atoms are indicated by their
-      nuclear numbers.
-    radial: list
-      TODO (VIGS25): Add description
-    layer_sizes: list
-      List of layer sizes for the AtomicConvolutional Network
-    strip_hydrogens: bool
-      Whether to remove hydrogens while computing neighbor features
-    learning_rate: float
-      Learning rate for training the model
-    epochs: int
-      Number of epochs to train the model for
-    """
-
-    self.atomic_conv_model = dc.models.atomic_conv.AtomicConvModel(
-        frag1_num_atoms=frag1_num_atoms,
-        frag2_num_atoms=frag2_num_atoms,
-        complex_num_atoms=complex_num_atoms,
-        max_num_neighbors=max_num_neighbors,
-        batch_size=batch_size,
-        atom_types=atom_types,
-        radial=radial,
-        layer_sizes=layer_sizes,
-        learning_rate=learning_rate)
-
-    super(AtomicConvFeaturizer, self).__init__(
-        frag1_num_atoms=frag1_num_atoms,
-        frag2_num_atoms=frag2_num_atoms,
-        complex_num_atoms=complex_num_atoms,
-        max_num_neighbors=max_num_neighbors,
-        neighbor_cutoff=neighbor_cutoff,
-        strip_hydrogens=strip_hydrogens)
-
-    self.epochs = epochs
-    self.labels = labels
-
-  def featurize(self, mol_files, protein_files):
-    features = []
-    failures = []
-    for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_files)):
-      logging.info("Featurizing %d / %d" % (i, len(mol_files)))
-      new_features = self._featurize(mol_file, protein_pdb)
-      # Handle loading failures which return None
-      if new_features is not None:
-        features.append(new_features)
-      else:
-        failures.append(ind)
-
-    features = np.asarray(features)
-    labels = np.delete(self.labels, failures)
-    dataset = DiskDataset.from_numpy(features, labels)
-
-    # Fit atomic conv model
-    self.atomic_conv_model.fit(dataset, nb_epoch=self.epochs)
-
-    # Add the Atomic Convolution layers to fetches
-    layers_to_fetch = [
-        self.atomic_conv_model._frag1_conv, self.atomic_conv_model._frag2_conv,
-        self.atomic_conv_model._complex_conv
-    ]
-
-    # Extract the atomic convolution features
-    atomic_conv_features = list()
-    batch_generator = self.atomic_conv_model.default_generator(
-        dataset=dataset, epochs=1)
-
-    for X, y, w in batch_generator:
-      frag1_conv, frag2_conv, complex_conv = self.atomic_conv_model.predict_on_generator(
-          [(X, y, w)], outputs=layers_to_fetch)
-      concatenated = np.concatenate(
-          [frag1_conv, frag2_conv, complex_conv], axis=1)
-      atomic_conv_features.append(concatenated)
-
-    batch_size = self.atomic_conv_model.batch_size
-
-    if len(features) % batch_size != 0:
-      num_batches = (len(features) // batch_size) + 1
-      num_to_skip = num_batches * batch_size - len(features)
-    else:
-      num_to_skip = 0
-
-    atomic_conv_features = np.asarray(atomic_conv_features)
-    atomic_conv_features = atomic_conv_features[-num_to_skip:]
-    atomic_conv_features = np.squeeze(atomic_conv_features)
-
-    return atomic_conv_features, failures

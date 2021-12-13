@@ -30,15 +30,23 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
 
   References
   ----------
-  .. [1] Faber et al. Inter. J. Quantum Chem. 115, 16, 2015.
+  .. [1] Faber et al. "Crystal Structure Representations for Machine
+         Learning Models of Formation Energies", Inter. J. Quantum Chem.
+         115, 16, 2015. https://arxiv.org/abs/1503.07406
 
   Examples
   --------
+  >>> import deepchem as dc
   >>> import pymatgen as mg
   >>> lattice = mg.core.Lattice.cubic(4.2)
   >>> structure = mg.core.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
-  >>> featurizer = SineCoulombMatrix(max_atoms=2)
+  >>> featurizer = dc.feat.SineCoulombMatrix(max_atoms=2)
   >>> features = featurizer.featurize([structure])
+  >>> type(features[0])
+  <class 'numpy.ndarray'>
+  >>> features[0].shape # (max_atoms,)
+  (2,)
+
 
   Note
   ----
@@ -59,13 +67,13 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
     self.flatten = flatten
     self.scm: Any = None
 
-  def _featurize(self, struct: PymatgenStructure) -> np.ndarray:
+  def _featurize(self, datapoint: PymatgenStructure, **kwargs) -> np.ndarray:
     """
     Calculate sine Coulomb matrix from pymatgen structure.
 
     Parameters
     ----------
-    struct: pymatgen.core.Structure
+    datapoint: pymatgen.core.Structure
       A periodic crystal composed of a lattice and a sequence of atomic
       sites with 3D coordinates and elements.
 
@@ -75,6 +83,12 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
       2D sine Coulomb matrix with shape (max_atoms, max_atoms),
       or 1D matrix eigenvalues with shape (max_atoms,).
     """
+    if 'struct' in kwargs and datapoint is None:
+      datapoint = kwargs.get("struct")
+      raise DeprecationWarning(
+          'Struct is being phased out as a parameter, please pass "datapoint" instead.'
+      )
+
     if self.scm is None:
       try:
         from matminer.featurizers.structure import SineCoulombMatrix as SCM
@@ -83,7 +97,7 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
         raise ImportError("This class requires matminer to be installed.")
 
     # Get full N x N SCM
-    sine_mat = self.scm.featurize(struct)
+    sine_mat = self.scm.featurize(datapoint)
 
     if self.flatten:
       eigs, _ = np.linalg.eig(sine_mat)

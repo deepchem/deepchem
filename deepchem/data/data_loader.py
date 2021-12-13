@@ -14,9 +14,10 @@ import numpy as np
 
 from deepchem.utils.typing import OneOrMany
 from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files
-from deepchem.utils.genomics_utils import encode_bio_sequence
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
+from deepchem.feat.molecule_featurizers import OneHotFeaturizer
+from deepchem.utils.genomics_utils import encode_bio_sequence
 
 logger = logging.getLogger(__name__)
 
@@ -302,6 +303,24 @@ class CSVLoader(DataLoader):
   Of course in practice you should already have your data in a CSV file if
   you're using `CSVLoader`. If your data is already in memory, use
   `InMemoryLoader` instead.
+
+  Sometimes there will be datasets without specific tasks, for example
+  datasets which are used in unsupervised learning tasks. Such datasets
+  can be loaded by leaving the `tasks` field empty.
+
+  Example
+  -------
+
+  >>> x1, x2 = [2, 3, 4], [4, 6, 8]
+  >>> df = pd.DataFrame({"x1":x1, "x2": x2}).reset_index()
+  >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
+  ...   df.to_csv(tmpfile.name)
+  ...   loader = dc.data.CSVLoader(tasks=[], id_field="index", feature_field=["x1", "x2"],
+  ...                              featurizer=dc.feat.DummyFeaturizer())
+  ...   dataset = loader.create_dataset(tmpfile.name)
+  >>> len(dataset)
+  3
+
   """
 
   def __init__(self,
@@ -875,9 +894,70 @@ class FASTALoader(DataLoader):
   learning tasks.
   """
 
-  def __init__(self):
-    """Initialize loader."""
-    pass
+  def __init__(self,
+               featurizer: Optional[Featurizer] = None,
+               auto_add_annotations: bool = False,
+               legacy: bool = True):
+    """Initialize FASTALoader.
+
+    Parameters
+    ----------
+    featurizer: Featurizer (default: None)
+      The Featurizer to be used for the loaded FASTA data.
+
+      If featurizer is None and legacy is True, the original featurization
+      logic is used, creating a one hot encoding of all included FASTA strings
+      of shape
+      (number of FASTA sequences, number of channels + 1, sequence length, 1).
+
+      If featurizer is None and legacy is False, the featurizer is initialized
+      as a OneHotFeaturizer object with charset ("A", "C", "T", "G") and
+      max_length = None.
+
+    auto_add_annotations: bool (default False)
+      Whether create_dataset will automatically add [CLS] and [SEP] annotations
+      to the sequences it reads in order to assist tokenization.
+      Keep False if your FASTA file already includes [CLS] and [SEP] annotations.
+
+    legacy: bool (default True)
+      Whether to use legacy logic for featurization. Legacy mode will create
+      a one hot encoding of the FASTA content of shape
+      (number of FASTA sequences, number of channels + 1, max length, 1).
+
+      Legacy mode is only tested for ACTGN charsets, and will be deprecated.
+   """
+
+    # Process legacy toggle
+    if legacy:
+      warnings.warn(
+          """
+                    Legacy mode is deprecated and will be removed in
+                    DeepChem 3.0. Disable legacy mode by passing legacy=False
+                    during construction of FASTALoader object.
+                    """, FutureWarning)
+      if featurizer is not None or auto_add_annotations:
+        raise ValueError(f"""
+                          featurizer option must be None and
+                          auto_add_annotations must be false when legacy mode
+                          is enabled. You set featurizer to {featurizer} and
+                          auto_add_annotations to {auto_add_annotations}.
+                          """)
+
+    # Set attributes
+    self.legacy = legacy
+    self.auto_add_annotations = auto_add_annotations
+
+    self.user_specified_features = None
+
+    # Handle special featurizer cases
+    if isinstance(featurizer, UserDefinedFeaturizer):  # User defined featurizer
+      self.user_specified_features = featurizer.feature_fields
+    elif featurizer is None:  # Default featurizer
+      featurizer = OneHotFeaturizer(
+          charset=["A", "C", "T", "G"], max_length=None)
+
+    # Set self.featurizer
+    self.featurizer = featurizer
 
   def create_dataset(self,
                      input_files: OneOrMany[str],
@@ -885,8 +965,7 @@ class FASTALoader(DataLoader):
                      shard_size: Optional[int] = None) -> DiskDataset:
     """Creates a `Dataset` from input FASTA files.
 
-    At present, FASTA support is limited and only allows for one-hot
-    featurization, and doesn't allow for sharding.
+    At present, FASTA support is limited and doesn't allow for sharding.
 
     Parameters
     ----------
@@ -907,12 +986,59 @@ class FASTALoader(DataLoader):
     if isinstance(input_files, str):
       input_files = [input_files]
 
-    def shard_generator():
+    def shard_generator():  # TODO Enable sharding with shard size parameter
       for input_file in input_files:
-        X = encode_bio_sequence(input_file)
+        if self.legacy:
+          X = encode_bio_sequence(input_file)
+        else:
+          sequences = _read_file(input_file)
+          X = self.featurizer(sequences)
         ids = np.ones(len(X))
         # (X, y, w, ids)
         yield X, None, None, ids
+
+    def _read_file(input_file: str):
+      """
+      Convert the FASTA file to a numpy array of FASTA-format strings.
+      """
+
+      # TODO don't convert all sequences into np array (allow shards)
+      def _generate_sequences(fasta_file, header_mark=">") -> np.ndarray:
+        """
+        Uses a fasta_file to create a numpy array of annotated FASTA-format strings
+        """
+        sequences = np.array([])
+        sequence = np.array([])
+        header_read = False
+        for line in fasta_file:
+          # Check if line is a header
+          if line.startswith(header_mark):  # New header line
+            header_read = True
+            sequences = _add_sequence(sequences, sequence)
+            sequence = np.array([])
+          elif header_read:  # Line contains sequence in FASTA format
+            if line[-1:] == '\n':  # Check last character in string
+              line = line[0:-1]  # Remove last character
+            sequence = np.append(sequence, line)
+        sequences = _add_sequence(sequences, sequence)  # Add last sequence
+        return sequences
+
+      def _add_sequence(sequences: np.ndarray,
+                        sequence: np.ndarray) -> np.ndarray:
+        # Handle empty sequence
+        if sequence is None or len(sequence) <= 0:
+          # TODO log attempts to add empty sequences every shard
+          return np.array([])
+        # Annotate start/stop of sequence
+        if self.auto_add_annotations:
+          sequence = np.insert(sequence, 0, "[CLS]")
+          sequence = np.append(sequence, "[SEP]")
+        new_sequence = ''.join(sequence)
+        new_sequences = np.append(sequences, new_sequence)
+        return new_sequences
+
+      with open(input_file, 'r') as f:  # Read FASTA file
+        return _generate_sequences(f)
 
     return DiskDataset.create_dataset(shard_generator(), data_dir)
 

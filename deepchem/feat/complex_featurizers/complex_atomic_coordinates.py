@@ -12,8 +12,6 @@ from deepchem.utils.data_utils import pad_array
 from deepchem.utils.rdkit_utils import MoleculeLoadException, get_xyz_from_mol, \
   load_molecule, merge_molecules_xyz, merge_molecules
 
-from typing import Tuple
-
 
 def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,
                           periodic_box_size):
@@ -118,16 +116,22 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     # Type of data created by this featurizer
     self.dtype = object
 
-  def _featurize(self, complex: Tuple[str, str]):
+  def _featurize(self, datapoint, **kwargs):
     """
     Compute neighbor list for complex.
 
     Parameters
     ----------
-    complex: Tuple[str, str]
+    datapoint: Tuple[str, str]
       Filenames for molecule and protein.
     """
-    mol_pdb_file, protein_pdb_file = complex
+    if 'complex' in kwargs:
+      datapoint = kwargs.get("complex")
+      raise DeprecationWarning(
+          'Complex is being phased out as a parameter, please pass "datapoint" instead.'
+      )
+
+    mol_pdb_file, protein_pdb_file = datapoint
     mol_coords, ob_mol = load_molecule(mol_pdb_file)
     protein_coords, protein_mol = load_molecule(protein_pdb_file)
     system_coords = merge_molecules_xyz([mol_coords, protein_coords])
@@ -210,6 +214,11 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
       # TODO: Is there a better handling procedure?
       logging.warning("Some molecules cannot be loaded by Rdkit. Skipping")
       return None
+
+    except ImportError as e:
+      logging.warning("%s" % e)
+      raise ImportError(e)
+
     system_mol = merge_molecules([frag1_mol, frag2_mol])
     system_coords = get_xyz_from_mol(system_mol)
 
@@ -230,6 +239,9 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
       logging.warning(
           "max_atoms was set too low. Some complexes too large and skipped")
       return None
+    except ImportError as e:
+      logging.warning("%s" % e)
+      raise ImportError(e)
 
     return frag1_coords, frag1_neighbor_list, frag1_z, frag2_coords, frag2_neighbor_list, frag2_z, \
            system_coords, system_neighbor_list, system_z

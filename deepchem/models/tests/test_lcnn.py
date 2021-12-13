@@ -1,14 +1,14 @@
-import unittest
+import pytest
 import tempfile
 from os import path
 import numpy as np
 from deepchem.utils import load_dataset_from_disk, download_url, untargz_file
 from deepchem.metrics import Metric, mae_score
-from deepchem.models import LCNNModel
 
 try:
   import dgl
   import torch
+  from deepchem.models import LCNNModel
   has_pytorch_and_dgl = True
 except:
   has_pytorch_and_dgl = False
@@ -16,7 +16,7 @@ except:
 URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/featurized_datasets/lcnn_data_feature.tar.gz"
 
 
-@unittest.skipIf(not has_pytorch_and_dgl, 'PyTorch and DGL are not installed')
+@pytest.mark.torch
 def test_lcnn_regression():
 
   current_dir = tempfile.mkdtemp()
@@ -39,7 +39,7 @@ def test_lcnn_regression():
   assert scores[regression_metric.name] < 0.6
 
 
-@unittest.skipIf(not has_pytorch_and_dgl, 'PyTorch and DGL are not installed')
+@pytest.mark.torch
 def test_lcnn_reload():
 
   # needs change

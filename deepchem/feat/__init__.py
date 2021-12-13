@@ -10,6 +10,7 @@ from deepchem.feat.base_classes import MaterialStructureFeaturizer
 from deepchem.feat.base_classes import MaterialCompositionFeaturizer
 from deepchem.feat.base_classes import ComplexFeaturizer
 from deepchem.feat.base_classes import UserDefinedFeaturizer
+from deepchem.feat.base_classes import DummyFeaturizer
 
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.graph_features import WeaveFeaturizer
@@ -33,6 +34,7 @@ from deepchem.feat.molecule_featurizers import RawFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitDescriptors
 from deepchem.feat.molecule_featurizers import SmilesToImage
 from deepchem.feat.molecule_featurizers import SmilesToSeq, create_char_to_idx
+from deepchem.feat.molecule_featurizers import MATFeaturizer
 
 # complex featurizers
 from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
@@ -62,12 +64,25 @@ from deepchem.feat.material_featurizers import LCNNFeaturizer
 from deepchem.feat.atomic_conformation import AtomicConformation
 from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer
 
+# tokenizers
 try:
   import transformers
   from transformers import BertTokenizer
-
   from deepchem.feat.smiles_tokenizer import SmilesTokenizer
   from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
+except ModuleNotFoundError:
+  pass
+
+try:
+  from transformers import BertTokenizerFast
+  from deepchem.feat.bert_tokenizer import BertFeaturizer
+except ModuleNotFoundError:
+  pass
+
+try:
+  from transformers import RobertaTokenizerFast
+  from deepchem.feat.roberta_tokenizer import RobertaFeaturizer
+  from deepchem.feat.reaction_featurizer import RxnFeaturizer
 except ModuleNotFoundError:
   pass
 

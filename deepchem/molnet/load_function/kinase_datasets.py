@@ -5,12 +5,12 @@ import os
 import logging
 import time
 
-import numpy as np
 import deepchem
 from deepchem.molnet.load_function.kaggle_features import merck_descriptors
+from deepchem.utils import remove_missing_entries
 
 TRAIN_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KINASE_training_disguised_combined_full.csv.gz"
-VALID_UR = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KINASE_test1_disguised_combined_full.csv.gz"
+VALID_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KINASE_test1_disguised_combined_full.csv.gz"
 TEST_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/KINASE_test2_disguised_combined_full.csv.gz"
 
 TRAIN_FILENAME = "KINASE_training_disguised_combined_full.csv.gz"
@@ -20,26 +20,9 @@ TEST_FILENAME = "KINASE_test2_disguised_combined_full.csv.gz"
 logger = logging.getLogger(__name__)
 
 
-def remove_missing_entries(dataset):
-  """Remove missing entries.
-
-  Some of the datasets have missing entries that sneak in as zero'd out
-  feature vectors. Get rid of them.
-  """
-  for i, (X, y, w, ids) in enumerate(dataset.itershards()):
-    available_rows = X.any(axis=1)
-    logger.info("Shard %d has %d missing entries." %
-                (i, np.count_nonzero(~available_rows)))
-    X = X[available_rows]
-    y = y[available_rows]
-    w = w[available_rows]
-    ids = ids[available_rows]
-    dataset.set_shard(i, X, y, w, ids)
-
-
 def get_transformers(train_dataset):
   """Gets transformers applied to the dataset"""
-  #TODO: Check for this
+  # TODO: Check for this
 
   transformers = list()
 
@@ -133,7 +116,7 @@ def gen_kinase(KINASE_tasks,
 
   time2 = time.time()
 
-  ##### TIMING ######
+  # TIMING
 
   logger.info("TIMING: KINASE fitting took %0.3f s" % (time2 - time1))
 
@@ -212,10 +195,13 @@ def load_kinase(shard_size=2000, featurizer=None, split=None, reload=True):
 
   else:
     logger.info("Featurizing datasets")
-    train_dataset, valid_dataset, test_dataset = \
-    gen_kinase(KINASE_tasks=KINASE_tasks, train_dir=train_dir,
-               valid_dir=valid_dir, test_dir=test_dir, data_dir=data_dir,
-               shard_size=shard_size)
+    train_dataset, valid_dataset, test_dataset = gen_kinase(
+        KINASE_tasks=KINASE_tasks,
+        train_dir=train_dir,
+        valid_dir=valid_dir,
+        test_dir=test_dir,
+        data_dir=data_dir,
+        shard_size=shard_size)
 
   transformers = get_transformers(train_dataset)
 

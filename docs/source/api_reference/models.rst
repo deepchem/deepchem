@@ -279,36 +279,31 @@ Training loss and validation metrics can be automatically logged to `Weights & B
 
   # Login in shell (required only once)
   wandb login
+  # Login in notebook (required only once)
+  import wandb
+  wandb.login()
 
-  # Start a W&B run in your script (refer to docs for optional parameters)
-  wandb.init(project="my project")
+  # Initialize a WandbLogger
+  logger = WandbLogger(…)
 
-  # Set `wandb` arg when creating `KerasModel`
-  model = KerasModel(…, wandb=True)
+  # Set `wandb_logger` when creating `KerasModel`
+  import deepchem as dc
+  # Log training loss to wandb
+  model = dc.models.KerasModel(…, wandb_logger=logger)
+  model.fit(…)
+
+  # Log validation metrics to wandb using ValidationCallback
+  import deepchem as dc
+  vc = dc.models.ValidationCallback(…)
+  model = KerasModel(…, wandb_logger=logger)
+  model.fit(…, callbacks=[vc])
+  logger.finish()
 
 .. _`Keras`: https://keras.io/
 
 .. _`Weights & Biases`: http://docs.wandb.com/
 
 .. autoclass:: deepchem.models.KerasModel
-  :members:
-
-MultitaskRegressor
-------------------
-
-.. autoclass:: deepchem.models.MultitaskRegressor
-  :members:
-
-MultitaskFitTransformRegressor
-------------------------------
-
-.. autoclass:: deepchem.models.MultitaskFitTransformRegressor
-  :members:
-
-MultitaskClassifier
--------------------
-
-.. autoclass:: deepchem.models.MultitaskClassifier
   :members:
 
 TensorflowMultitaskIRVClassifier
@@ -462,6 +457,24 @@ You can wrap an arbitrary :code:`torch.nn.Module` in a :code:`TorchModel` object
 .. autoclass:: deepchem.models.TorchModel
   :members:
 
+MultitaskRegressor
+------------------
+
+.. autoclass:: deepchem.models.MultitaskRegressor
+  :members:
+
+MultitaskFitTransformRegressor
+------------------------------
+
+.. autoclass:: deepchem.models.MultitaskFitTransformRegressor
+  :members:
+
+MultitaskClassifier
+-------------------
+
+.. autoclass:: deepchem.models.MultitaskClassifier
+  :members:
+
 CGCNNModel
 ----------
 
@@ -507,3 +520,24 @@ LCNNModel
 
 .. autoclass:: deepchem.models.LCNNModel
   :members:
+
+
+Jax Models
+==============
+
+DeepChem supports the use of `Jax`_ to build deep learning models.
+
+.. _`Jax`: https://github.com/google/jax 
+
+JaxModel
+----------
+
+.. autoclass:: deepchem.models.JaxModel
+  :members:
+
+PinnModel
+----------
+
+.. autoclass:: deepchem.models.PinnModel
+  :members:
+

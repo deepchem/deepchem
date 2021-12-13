@@ -1,0 +1,18 @@
+name: deepchem
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - rdkit
+  - numpy==1.21.*
+  - pip==20.2.*
+  - pip:
+    - transformers==4.6.*
+    - dgllife==0.2.8
+    - pymatgen==2020.12.31
+    - matminer
+    - networkx
+    - xgboost==1.*
+    - torch-geometric==1.7.1
+    - tensorboard
+    - pyGPGO

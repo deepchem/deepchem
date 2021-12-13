@@ -36,7 +36,25 @@ class MolGanFeaturizer(MolecularFeaturizer):
   Featurizer for MolGAN de-novo molecular generation [1]_.
   The default representation is in form of GraphMatrix object.
   It is wrapper for two matrices containing atom and bond type information.
-  The class also provides reverse capabilities."""
+  The class also provides reverse capabilities.
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> from rdkit import Chem
+  >>> rdkit_mol, smiles_mol = Chem.MolFromSmiles('CCC'), 'C1=CC=CC=C1'
+  >>> molecules = [rdkit_mol, smiles_mol]
+  >>> featurizer = dc.feat.MolGanFeaturizer()
+  >>> features = featurizer.featurize(molecules)
+  >>> len(features) # 2 molecules
+  2
+  >>> type(features[0])
+  <class 'deepchem.feat.molecule_featurizers.molgan_featurizer.GraphMatrix'>
+  >>> molecules = featurizer.defeaturize(features) # defeaturization
+  >>> type(molecules[0])
+  <class 'rdkit.Chem.rdchem.Mol'>
+
+  """
 
   def __init__(
       self,
@@ -62,8 +80,8 @@ class MolGanFeaturizer(MolecularFeaturizer):
 
     References
     ---------
-    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
-    for small molecular graphs`<https://arxiv.org/abs/1805.11973>`"
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model for
+       small molecular graphs" (2018), https://arxiv.org/abs/1805.11973
     """
 
     self.max_atom_count = max_atom_count
@@ -99,14 +117,14 @@ class MolGanFeaturizer(MolecularFeaturizer):
     self.atom_encoder = {l: i for i, l in enumerate(self.atom_labels)}
     self.atom_decoder = {i: l for i, l in enumerate(self.atom_labels)}
 
-  def _featurize(self, mol: RDKitMol) -> Optional[GraphMatrix]:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> Optional[GraphMatrix]:
     """
     Calculate adjacency matrix and nodes features for RDKitMol.
     It strips any chirality and charges
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit mol object.
 
     Returns
@@ -119,13 +137,18 @@ class MolGanFeaturizer(MolecularFeaturizer):
       from rdkit import Chem
     except ModuleNotFoundError:
       raise ImportError("This method requires RDKit to be installed.")
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
 
     if self.kekulize:
-      Chem.Kekulize(mol)
+      Chem.Kekulize(datapoint)
 
     A = np.zeros(
         shape=(self.max_atom_count, self.max_atom_count), dtype=np.float32)
-    bonds = mol.GetBonds()
+    bonds = datapoint.GetBonds()
 
     begin, end = [b.GetBeginAtomIdx() for b in bonds], [
         b.GetEndAtomIdx() for b in bonds
@@ -135,10 +158,13 @@ class MolGanFeaturizer(MolecularFeaturizer):
     A[begin, end] = bond_type
     A[end, begin] = bond_type
 
-    degree = np.sum(A[:mol.GetNumAtoms(), :mol.GetNumAtoms()], axis=-1)
+    degree = np.sum(
+        A[:datapoint.GetNumAtoms(), :datapoint.GetNumAtoms()], axis=-1)
     X = np.array(
-        [self.atom_encoder[atom.GetAtomicNum()] for atom in mol.GetAtoms()] +
-        [0] * (self.max_atom_count - mol.GetNumAtoms()),
+        [
+            self.atom_encoder[atom.GetAtomicNum()]
+            for atom in datapoint.GetAtoms()
+        ] + [0] * (self.max_atom_count - datapoint.GetNumAtoms()),
         dtype=np.int32,
     )
     graph = GraphMatrix(A, X)

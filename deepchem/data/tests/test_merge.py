@@ -17,10 +17,20 @@ def test_merge():
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
   first_dataset = loader.create_dataset(dataset_file)
+  first_dataset.reshard(10)
   second_dataset = loader.create_dataset(dataset_file)
 
   merged_dataset = dc.data.DiskDataset.merge([first_dataset, second_dataset])
 
+  assert len(merged_dataset) == len(first_dataset) + len(second_dataset)
+  assert merged_dataset.get_shard_size() == 10
+
+  # Test merging of numpy datasets
+  X1, y1 = np.random.rand(5, 3), np.random.randn(5, 1)
+  first_dataset = dc.data.NumpyDataset(X1, y1)
+  X2, y2 = np.random.rand(5, 3), np.random.randn(5, 1)
+  second_dataset = dc.data.NumpyDataset(X2, y2)
+  merged_dataset = dc.data.NumpyDataset.merge([first_dataset, second_dataset])
   assert len(merged_dataset) == len(first_dataset) + len(second_dataset)
 
 

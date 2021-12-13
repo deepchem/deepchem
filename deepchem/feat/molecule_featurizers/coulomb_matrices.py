@@ -14,8 +14,11 @@ from deepchem.feat.base_classes import MolecularFeaturizer
 class CoulombMatrix(MolecularFeaturizer):
   """Calculate Coulomb matrices for molecules.
 
-  Coulomb matrices provide a representation of the electronic structure of a
-  molecule. This method is described in [1]_.
+  Coulomb matrices provide a representation of the electronic structure of
+  a molecule. For a molecule with `N` atoms, the Coulomb matrix is a
+  `N X N` matrix where each element gives the strength of the
+  electrostatic interaction between two atoms. The method is described
+  in more detail in [1]_.
 
   Examples
   --------
@@ -25,7 +28,6 @@ class CoulombMatrix(MolecularFeaturizer):
   >>> tasks = ["atomization_energy"]
   >>> loader = dc.data.SDFLoader(tasks, featurizer=featurizers)
   >>> dataset = loader.create_dataset(input_file)
-
 
   References
   ----------
@@ -72,7 +74,7 @@ class CoulombMatrix(MolecularFeaturizer):
       seed = int(seed)
     self.seed = seed
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """
     Calculate Coulomb matrices for molecules. If extra randomized
     matrices are generated, they are treated as if they are features
@@ -83,7 +85,7 @@ class CoulombMatrix(MolecularFeaturizer):
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
@@ -93,7 +95,13 @@ class CoulombMatrix(MolecularFeaturizer):
       The default shape is `(num_confs, max_atoms, max_atoms)`.
       If num_confs == 1, the shape is `(max_atoms, max_atoms)`.
     """
-    features = self.coulomb_matrix(mol)
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
+
+    features = self.coulomb_matrix(datapoint)
     if self.upper_tri:
       features = np.asarray([f[np.triu_indices_from(f)] for f in features])
     if features.shape[0] == 1:
@@ -258,7 +266,7 @@ class CoulombMatrixEig(CoulombMatrix):
       seed = int(seed)
     self.seed = seed
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """
     Calculate eigenvalues of Coulomb matrix for molecules. Eigenvalues
     are returned sorted by absolute value in descending order and padded
@@ -266,7 +274,7 @@ class CoulombMatrixEig(CoulombMatrix):
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
@@ -276,7 +284,13 @@ class CoulombMatrixEig(CoulombMatrix):
       The default shape is `(num_confs, max_atoms)`.
       If num_confs == 1, the shape is `(max_atoms,)`.
     """
-    cmat = self.coulomb_matrix(mol)
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
+
+    cmat = self.coulomb_matrix(datapoint)
     features_list = []
     for f in cmat:
       w, v = np.linalg.eig(f)

@@ -31,15 +31,44 @@ We recommend installing RDKit with deepchem if you use conda.
 
 Nightly build version
 ---------------------
-
-You install the nightly build version via pip.
 The nightly version is built by the HEAD of DeepChem.
+
+For using general utilites like Molnet, Featurisers, Datasets, etc, then, you install deepchem via pip.  
 
 .. code-block:: bash
 
-    pip install tensorflow~=2.4
-    pip install --pre deepchem
+    pip install deepchem
 
+Deepchem provides support for tensorflow, pytorch, jax and each require
+a individual pip Installation.
+
+For using models with tensorflow dependencies, you install using
+
+.. code-block:: bash
+
+    pip install --pre deepchem[tensorflow]
+
+For using models with Pytorch dependencies, you install using
+
+.. code-block:: bash
+
+    pip install --pre deepchem[torch]
+
+For using models with Jax dependencies, you install using
+
+.. code-block:: bash
+
+    pip install --pre deepchem[jax]
+
+If GPU support is required, then make sure CUDA is installed and then install the desired deep learning framework using the links below before installing deepchem
+
+1. tensorflow - just cuda installed
+2. pytorch - https://pytorch.org/get-started/locally/#start-locally
+3. jax - https://github.com/google/jax#pip-installation-gpu-cuda
+
+In :code:`zsh` square brackets are used for globbing/pattern matching. This means
+you need to escape the square brackets in the above installation. You can do so by
+including the dependencies in quotes like :code:`pip install --pre 'deepchem[jax]'`
 
 Google Colab
 ------------
@@ -161,6 +190,55 @@ If you are using the Windows and the PowerShell:
     conda activate deepchem
     pip install -e .
     pytest -m "not slow" deepchem # optional
+
+
+From source lightweight guide
+-------------------------------------
+
+**Installing via these steps will ensure you are installing from the source**.
+
+**Prerequisite**
+
+- Shell: Bash, Zsh, PowerShell
+- Conda: >4.6
+
+
+First, please clone the deepchem repository from GitHub.
+
+.. code-block:: bash
+
+    git clone https://github.com/deepchem/deepchem.git
+    cd deepchem
+
+We would advise all users to use conda environment, following below-
+
+.. code-block:: bash
+
+    conda create --name deepchem python=3.8
+    conda activate deepchem
+    pip install -e .
+
+DeepChem provides diffrent additional packages depending on usage & contribution
+If one also wants to build the tensorflow environment, add this
+
+.. code-block:: bash
+
+    pip install -e .[tensorflow]
+
+If one also wants to build the Pytorch environment, add this
+
+.. code-block:: bash
+
+    pip install -e .[torch]
+
+If one also wants to build the Jax environment, add this
+
+.. code-block:: bash
+
+    pip install -e .[jax]
+
+DeepChem has soft requirements, which can be installed on the fly during development inside the environment but if you would a install
+all the soft-dependencies at once, then take a look `deepchem/requirements/<https://github.com/deepchem/deepchem/tree/master/requirements>`___
 
 
 .. _`DeepChem Tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials

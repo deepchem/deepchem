@@ -29,7 +29,6 @@ jobs:
     - name: Build DeepChem
       run: |
         python -m pip install --upgrade pip
-        pip install tensorflow'>=2.3,<2.4'
         pip install -e .
     - name: Import checking
       run: python -c "import deepchem"
@@ -39,11 +38,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        python-version: [3.7]
+        os: [ubuntu-latest]
+        python-version: [3.7, 3.8, 3.9]
         include:
-          - os: ubuntu-latest
-            python-version: 3.6
+          - os: windows-latest
+            python-version: 3.7
     env:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
@@ -113,7 +112,7 @@ jobs:
         miniconda-version: "latest"
         auto-update-conda: true
         activate-environment: deepchem
-        channels: omnia,conda-forge,defaults
+        channels: conda-forge,defaults
         python-version: ${{ matrix.python-version }}
         environment-file: env.yml
     - name: Install DeepChem
@@ -142,10 +141,11 @@ jobs:
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
       run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem
-    - name: PyTest
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
-      shell: bash -l {0}
-      run: pytest -v -m "not slow" --cov=deepchem --cov-report=xml deepchem
+      # These tests are handled by new CI runs
+      #- name: PyTest
+      #  if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
+      #  shell: bash -l {0}
+      #  run: pytest -v -m "not slow and not jax and not torch and not tensorflow" --cov=deepchem --cov-report=xml deepchem
     - name: Upload coverage to Codecov
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       uses: codecov/codecov-action@v1

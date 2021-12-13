@@ -22,6 +22,7 @@ materials science, quantum chemistry, and biology.
   - [Nightly build version](#nightly-build-version)
   - [Docker](#docker)
   - [From source](#from-source)
+  - [From source lightweight](#from-source-lightweight)
 - [Getting Started](#getting-started)
   - [Gitter](#gitter)
 - [About Us](#about-us)
@@ -30,7 +31,7 @@ materials science, quantum chemistry, and biology.
 
 ## Requirements
 
-DeepChem currently supports Python 3.6 through 3.7 and requires these packages on any condition.
+DeepChem currently supports Python 3.7 through 3.8 and requires these packages on any condition.
 
 - [joblib](https://pypi.python.org/pypi/joblib)
 - [NumPy](https://numpy.org/)
@@ -77,13 +78,40 @@ conda install -y -c conda-forge rdkit
 ```
 
 ### Nightly build version
-
 The nightly version is built by the HEAD of DeepChem.
 
+For using general utilites like Molnet, Featurisers, Datasets, etc, then, you install deepchem via pip.  
+
 ```bash
-pip install tensorflow~=2.4
 pip install --pre deepchem
 ```
+Deepchem provides support for tensorflow, pytorch, jax and each require
+a individual pip Installation.
+
+For using models with tensorflow dependencies, you install using
+
+```bash
+pip install --pre deepchem[tensorflow]
+```
+For using models with torch dependencies, you install using
+
+```bash
+pip install --pre deepchem[torch]
+```
+For using models with jax dependencies, you install using
+
+```bash
+pip install --pre deepchem[jax]
+```
+If GPU support is required, then make sure CUDA is installed and then install the desired deep learning framework using the links below before installing deepchem
+
+1. tensorflow - just cuda installed
+2. pytorch - https://pytorch.org/get-started/locally/#start-locally
+3. jax - https://github.com/google/jax#pip-installation-gpu-cuda
+
+In `zsh` square brackets are used for globbing/pattern matching. This means you
+need to escape the square brackets in the above installation. You can do so
+by including the dependencies in quotes like `pip install --pre 'deepchem[jax]'`
 
 ### Docker
 
@@ -118,6 +146,10 @@ Please check [this introduction](https://deepchem.readthedocs.io/en/latest/insta
 The DeepChem project maintains an extensive collection of [tutorials](https://github.com/deepchem/deepchem/tree/master/examples/tutorials). All tutorials are designed to be run on Google colab (or locally if you prefer). Tutorials are arranged in a suggested learning sequence which will take you from beginner to proficient at molecular machine learning and computational biology more broadly.
 
 After working through the tutorials, you can also go through other [examples](https://github.com/deepchem/deepchem/tree/master/examples). To apply `deepchem` to a new problem, try starting from one of the existing examples or tutorials and modifying it step by step to work with your new use-case. If you have questions or comments you can raise them on our [gitter](https://gitter.im/deepchem/Lobby).
+
+### Supported Integrations
+
+- [Weights & Biases](https://docs.wandb.ai/guides/integrations/other/deepchem): Track your DeepChem model's training and evaluation metrics.
 
 ### Gitter
 

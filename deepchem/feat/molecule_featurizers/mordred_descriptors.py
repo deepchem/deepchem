@@ -25,6 +25,18 @@ class MordredDescriptors(MolecularFeaturizer):
   Note
   ----
   This class requires Mordred to be installed.
+
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> smiles = ['CC(=O)OC1=CC=CC=C1C(=O)O']
+  >>> featurizer = dc.feat.MordredDescriptors(ignore_3D=True)
+  >>> features = featurizer.featurize(smiles)
+  >>> type(features[0])
+  <class 'numpy.ndarray'>
+  >>> features[0].shape
+  (1613,)
+
   """
 
   def __init__(self, ignore_3D: bool = True):
@@ -38,13 +50,13 @@ class MordredDescriptors(MolecularFeaturizer):
     self.calc: Optional[Callable] = None
     self.descriptors: Optional[List] = None
 
-  def _featurize(self, mol: RDKitMol) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """
     Calculate Mordred descriptors.
 
     Parameters
     ----------
-    mol: rdkit.Chem.rdchem.Mol
+    datapoint: rdkit.Chem.rdchem.Mol
       RDKit Mol object
 
     Returns
@@ -54,6 +66,11 @@ class MordredDescriptors(MolecularFeaturizer):
       If ignore_3D is True, the length is 1613.
       If ignore_3D is False, the length is 1826.
     """
+    if 'mol' in kwargs:
+      datapoint = kwargs.get("mol")
+      raise DeprecationWarning(
+          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+      )
     if self.calc is None:
       try:
         from mordred import Calculator, descriptors, is_missing
@@ -63,7 +80,7 @@ class MordredDescriptors(MolecularFeaturizer):
       except ModuleNotFoundError:
         raise ImportError("This class requires Mordred to be installed.")
 
-    feature = self.calc(mol)
+    feature = self.calc(datapoint)
     # convert errors to zero
     feature = [
         0.0 if self.is_missing(val) or isinstance(val, str) else val

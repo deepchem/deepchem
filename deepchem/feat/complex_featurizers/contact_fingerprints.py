@@ -93,17 +93,23 @@ class ContactCircularFingerprint(ComplexFeaturizer):
     self.radius = radius
     self.size = size
 
-  def _featurize(self, complex: Tuple[str, str]):
+  def _featurize(self, datapoint, **kwargs):
     """
     Compute featurization for a molecular complex
 
     Parameters
     ----------
-    complex: Tuple[str, str]
+    datapoint: Tuple[str, str]
       Filenames for molecule and protein.
     """
+    if 'complex' in kwargs:
+      datapoint = kwargs.get("complex")
+      raise DeprecationWarning(
+          'Complex is being phased out as a parameter, please pass "datapoint" instead.'
+      )
+
     try:
-      fragments = load_complex(complex, add_hydrogens=False)
+      fragments = load_complex(datapoint, add_hydrogens=False)
 
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")

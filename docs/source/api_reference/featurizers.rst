@@ -133,6 +133,13 @@ MACCSKeysFingerprint
 .. autoclass:: deepchem.feat.MACCSKeysFingerprint
   :members:
 
+MATFeaturizer
+^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.MATFeaturizer
+  :members:
+  :inherited-members:
+
 CircularFingerprint
 ^^^^^^^^^^^^^^^^^^^
 
@@ -389,6 +396,27 @@ References:
 Other Featurizers
 -----------------
 
+BertFeaturizer
+^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.BertFeaturizer
+  :members:
+  :inherited-members:
+
+RobertaFeaturizer
+^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.RobertaFeaturizer
+  :members:
+  :inherited-members:
+
+RxnFeaturizer
+^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.RxnFeaturizer
+  :members:
+  :inherited-members:
+
 BindingPocketFeaturizer
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -400,6 +428,13 @@ UserDefinedFeaturizer
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.UserDefinedFeaturizer
+  :members:
+  :inherited-members:
+
+DummyFeaturizer
+^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.DummyFeaturizer
   :members:
   :inherited-members:
 

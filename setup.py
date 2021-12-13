@@ -9,6 +9,16 @@ else:
   # Build a nightly package by default.
   IS_RELEASE = False
 
+# Environment-specific dependencies.
+extras = {
+    'jax': ['jax', 'jaxlib', 'dm-haiku', 'optax'],
+    'torch': ['torch', 'torchvision', 'dgl', 'dgllife'],
+    'tensorflow': [
+        'tensorflow==2.5.*', 'tensorflow_probability==0.13.*',
+        'tensorflow_addons==0.13.*'
+    ],
+}
+
 
 # get the version from deepchem/__init__.py
 def _get_version():
@@ -68,5 +78,7 @@ setup(
         'pandas',
         'scikit-learn',
         'scipy',
+        'rdkit-pypi',
     ],
+    extras_require=extras,
     python_requires='>=3.5')

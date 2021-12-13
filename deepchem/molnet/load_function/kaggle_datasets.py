@@ -5,34 +5,17 @@ import os
 import logging
 import time
 
-import numpy as np
 import deepchem
 from deepchem.molnet.load_function.kaggle_features import merck_descriptors
+from deepchem.utils import remove_missing_entries
 
 logger = logging.getLogger(__name__)
-
-
-def remove_missing_entries(dataset):
-  """Remove missing entries.
-
-  Some of the datasets have missing entries that sneak in as zero'd out
-  feature vectors. Get rid of them.
-  """
-  for i, (X, y, w, ids) in enumerate(dataset.itershards()):
-    available_rows = X.any(axis=1)
-    logger.info("Shard %d has %d missing entries." %
-                (i, np.count_nonzero(~available_rows)))
-    X = X[available_rows]
-    y = y[available_rows]
-    w = w[available_rows]
-    ids = ids[available_rows]
-    dataset.set_shard(i, X, y, w, ids)
 
 
 def get_transformers(train_dataset):
   """Get transformers applied to datasets."""
   transformers = []
-  #transformers = [
+  # transformers = [
   #    deepchem.trans.LogTransformer(transform_X=True),
   #    deepchem.trans.NormalizationTransformer(transform_y=True,
   #                                      dataset=train_dataset)]
@@ -47,9 +30,9 @@ def gen_kaggle(KAGGLE_tasks,
                data_dir,
                shard_size=2000):
   """Load KAGGLE datasets. Does not do train/test split"""
-  ############################################################## TIMING
+  # TIMING
   time1 = time.time()
-  ############################################################## TIMING
+  # TIMING
   # Set some global variables up top
   train_files = os.path.join(data_dir,
                              "KAGGLE_training_disguised_combined_full.csv.gz")
@@ -108,10 +91,10 @@ def gen_kaggle(KAGGLE_tasks,
   valid_dataset.move(valid_dir)
   test_dataset.move(test_dir)
 
-  ############################################################## TIMING
+  # TIMING
   time2 = time.time()
   logger.info("TIMING: KAGGLE fitting took %0.3f s" % (time2 - time1))
-  ############################################################## TIMING
+  # TIMING
 
   return train_dataset, valid_dataset, test_dataset
 
