@@ -19,8 +19,8 @@ First you'll need to setup the git hook scripts by installing them.
 
   pre-commit install
 
-That's it !! now pre-commit will run everytime on the changed files every time
-you commit any changes.
+Now whenever you commit, pre-commit will run the necessary hooks on the modified 
+files.
 
 Code Formatting
 ---------------
