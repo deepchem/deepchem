@@ -449,7 +449,7 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
 
     node_features = np.asarray(
         [self._pagtn_atom_featurizer(atom) for atom in datapoint.GetAtoms()],
-        dtype=np.float)
+        dtype=float)
     edge_index, edge_features = self._pagtn_edge_featurizer(datapoint)
     graph = GraphData(node_features, edge_index, edge_features)
     return graph

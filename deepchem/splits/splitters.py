@@ -585,10 +585,10 @@ class RandomStratifiedSplitter(Splitter):
               1 if set_target[i][task] == 0 else
               set_counts[i][task] / set_target[i][task] for i in range(3)
           ]
-          set = np.argmin(set_frac)
-          set_inds[set].append(index)
+          set_index = np.argmin(set_frac)
+          set_inds[set_index].append(index)
           assigned.add(index)
-          set_counts[set] += y_present[index]
+          set_counts[set_index] += y_present[index]
 
     # The remaining samples are negative for all tasks.  Add them to fill out
     # each set to the correct total number.

@@ -666,19 +666,20 @@ def _get_SiteEnvironments(struct: PymatgenStructure,
         local_env_sym.append(n[0].specie)
         local_env_dist.append(n[1])
         local_env_sitemap.append(n[2])
-    local_env_xyz = np.subtract(local_env_xyz, np.mean(local_env_xyz, 0))
+    local_env_pos = np.subtract(local_env_xyz, np.mean(local_env_xyz, 0))
 
     perm = []
     if get_permutations:
       finder = PointGroupAnalyzer(
-          Molecule(local_env_sym, local_env_xyz), eigen_tolerance=eigen_tol)
+          Molecule(local_env_sym, local_env_pos),
+          eigen_tolerance=eigen_tol)  # type: ignore
       pg = finder.get_pointgroup()
       for i, op in enumerate(pg):
-        newpos = op.operate_multi(local_env_xyz)
-        perm.append(np.argmin(cdist(local_env_xyz, newpos), axis=1).tolist())
+        newpos = op.operate_multi(local_env_pos)
+        perm.append(np.argmin(cdist(local_env_pos, newpos), axis=1).tolist())
 
     site_env = {
-        'pos': local_env_xyz,
+        'pos': local_env_pos,
         'sitetypes': [sym_site_map[s] for s in local_env_sym],
         'env2config': local_env_sitemap,
         'permutations': perm,

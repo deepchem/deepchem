@@ -435,7 +435,7 @@ class Dataset(object):
     raise NotImplementedError()
 
   def get_statistics(self, X_stats: bool = True,
-                     y_stats: bool = True) -> Tuple[float, ...]:
+                     y_stats: bool = True) -> Tuple[np.ndarray, ...]:
     """Compute and return statistics of this dataset.
 
     Uses `self.itersamples()` to compute means and standard deviations
@@ -456,10 +456,11 @@ class Dataset(object):
       - If `y_stats == True`, returns `(y_means, y_stds)`.
       - If both are true, returns `(X_means, X_stds, y_means, y_stds)`.
     """
-    X_means = 0.0
-    X_m2 = 0.0
-    y_means = 0.0
-    y_m2 = 0.0
+    x_shape, y_shape, w_shape, ids_shape = self.get_shape()
+    X_means = np.zeros(x_shape[1:])
+    X_m2 = np.zeros(x_shape[1:])
+    y_means = np.zeros(y_shape[1:])
+    y_m2 = np.zeros(y_shape[1:])
     n = 0
     for X, y, _, _ in self.itersamples():
       n += 1
@@ -472,8 +473,8 @@ class Dataset(object):
         y_means += dy / n
         y_m2 += dy * (y - y_means)
     if n < 2:
-      X_stds = 0.0
-      y_stds = 0
+      X_stds = np.zeros(x_shape[1:])
+      y_stds = np.zeros(y_shape[1:])
     else:
       X_stds = np.sqrt(X_m2 / n)
       y_stds = np.sqrt(y_m2 / n)
@@ -2072,7 +2073,7 @@ class DiskDataset(Dataset):
       A DiskDataset whose data is a randomly shuffled version of this dataset.
     """
     N = len(self)
-    perm = np.random.permutation(N)
+    perm = np.random.permutation(N).tolist()
     shard_size = self.get_shard_size()
     return self.select(perm, data_dir, shard_size)
 
