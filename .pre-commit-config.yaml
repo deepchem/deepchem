@@ -18,16 +18,6 @@ repos:
     -   id: flake8
         args: [--count]
 
--   repo: local
-    hooks:
-      - id: pytest-check
-        name: pytest-check
-        types: [python]
-        entry: pytest -v -m 'slow'
-        language: system
-        pass_filenames: false
-        always_run: true
-
 -   repo: https://github.com/pre-commit/mirrors-mypy
     rev: v0.790
     hooks:
