@@ -7,9 +7,10 @@ dependencies:
   - pdbfixer
   - rdkit
   - mdtraj
-  - numpy==1.21.*
+  - numpy==1.19.*
   - pip==20.2.*
   - pip:
+    - pre-commit
     - biopython
     - lightgbm==3.*
     - matminer==0.6.5
@@ -23,4 +24,3 @@ dependencies:
     - transformers==4.6.*
     - xgboost==1.*
     - git+https://github.com/samoturk/mol2vec
-    - vina
