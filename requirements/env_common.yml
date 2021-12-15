@@ -12,8 +12,9 @@ dependencies:
   - pip:
     - pre-commit
     - biopython
+    - dgllife==0.2.8
     - lightgbm==3.*
-    - matminer==0.6.5
+    - matminer
     - mordred
     - networkx
     - pillow
@@ -21,6 +22,9 @@ dependencies:
     - pyGPGO
     - pymatgen==2020.12.31
     - simdna
+    - dm-haiku==0.0.4
+    - optax==0.0.8
+    - torch-geometric==1.7.0
     - transformers==4.6.*
     - xgboost==1.*
     - git+https://github.com/samoturk/mol2vec
