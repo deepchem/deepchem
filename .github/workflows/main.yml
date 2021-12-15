@@ -137,7 +137,6 @@ jobs:
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
       run: |
-        mypy --install-types
         mypy -p deepchem
     - name: Doctest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
