@@ -1,0 +1,9 @@
+dependencies:
+  - pip:
+    - flake8
+    - flaky
+    - mypy
+    - pytest
+    - pytest-cov
+    - types-setuptools
+    - yapf==0.22.0
