@@ -16,10 +16,11 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import roc_auc_score  # noqa
 from sklearn.metrics import accuracy_score  # noqa
 from sklearn.metrics import balanced_accuracy_score  # noqa
-from sklearn.metrics import top_k_accuracy_score # noqa
+from sklearn.metrics import top_k_accuracy_score  # noqa
 
 # kappa_score is an alias for `sklearn.metrics.cohen_kappa_score`
 kappa_score = cohen_kappa_score
+
 
 def pearsonr(y: np.ndarray, y_pred: np.ndarray) -> float:
   """Computes Pearson correlation coefficient.
@@ -166,9 +167,9 @@ def bedroc_score(y_true: np.ndarray, y_pred: np.ndarray, alpha: float = 20.0):
 
   # validation
   assert len(y_true) == len(y_pred), 'Number of examples do not match'
-  assert np.array_equal(
-      np.unique(y_true).astype(int),
-      [0, 1]), ('Class labels must be binary: %s' % np.unique(y_true))
+  assert np.array_equal(np.unique(y_true).astype(int),
+                        [0, 1]), ('Class labels must be binary: %s' %
+                                  np.unique(y_true))
 
   yt = np.asarray(y_true)
   yp = np.asarray(y_pred)
