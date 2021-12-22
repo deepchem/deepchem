@@ -134,7 +134,7 @@ def test_regression_overfit():
 
   # Eval model on train
   scores = model.evaluate(dataset, [regression_metric])
-  assert scores[regression_metric.name] < .1
+  assert scores[regression_metric.name] < 0.007
 
 
 @pytest.mark.torch
