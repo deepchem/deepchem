@@ -22,8 +22,6 @@ dependencies:
     - pyGPGO
     - pymatgen==2020.12.31
     - simdna
-    - dm-haiku==0.0.4
-    - optax==0.0.8
     - torch-geometric==1.7.0
     - transformers==4.6.*
     - xgboost==1.*
