@@ -8,3 +8,4 @@ dependencies:
     - torch-scatter
     - torch-sparse
     - transformers==4.6.*
+    - torch-geometric==1.7.1

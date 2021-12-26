@@ -22,7 +22,6 @@ dependencies:
     - pyGPGO
     - pymatgen==2020.12.31
     - simdna
-    - torch-geometric==1.7.0
     - transformers==4.6.*
     - xgboost==1.*
     - git+https://github.com/samoturk/mol2vec

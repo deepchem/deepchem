@@ -7,3 +7,4 @@ dependencies:
     - torchvision==0.9.1
     - torch-scatter==2.0.8
     - torch-sparse
+    - torch-geometric==1.7.1
