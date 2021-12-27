@@ -175,6 +175,7 @@ def test_graph_conv_atom_features():
   y_pred1 = model.predict(dataset)
 
 
+@flaky
 @pytest.mark.slow
 @pytest.mark.tensorflow
 def test_dag_model():
