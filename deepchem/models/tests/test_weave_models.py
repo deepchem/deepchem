@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pytest
 import scipy
+from flaky import flaky
 
 import deepchem as dc
 from deepchem.data import NumpyDataset
@@ -14,8 +15,6 @@ try:
   has_tensorflow = True
 except:
   has_tensorflow = False
-
-from flaky import flaky
 
 
 def get_dataset(mode='classification',
