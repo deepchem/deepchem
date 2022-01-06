@@ -52,6 +52,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [13 Modeling Protein Ligand Interactions with Atomic Convolutions](Modeling_Protein_Ligand_Interactions_With_Atomic_Convolutions.ipynb)
 * [14 Conditional Generative Adversarial Networks](Conditional_Generative_Adversarial_Networks.ipynb)
 * [15 Training a Generative Adversarial Network on MNIST](Training_a_Generative_Adversarial_Network_on_MNIST.ipynb)
+* [16 Distributed Multi-GPU Training of DeepChem Models with LitMatter](https://github.com/ncfrey/litmatter/blob/main/LitDeepChem.ipynb)
 
 ### Molecular Machine Learning
 * [1 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
