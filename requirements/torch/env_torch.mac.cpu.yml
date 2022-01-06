@@ -1,10 +1,10 @@
 dependencies:
   - pip:
-    - -f https://download.pytorch.org/whl/torch_stable.html
+    - -f https://pytorch-geometric.com/whl/torch-1.8.1.html
     - -f https://pytorch-geometric.com/whl/torch-1.8.0+cpu.html
     - dgl==0.6.*
-    - torch==1.8.1+cpu
-    - torchvision==0.9.1+cpu
+    - torch==1.8.1
+    - torchvision==0.9.1
     - torch-scatter==2.0.8
     - torch-sparse
-    - jax[cpu]
+    - torch-geometric==1.7.1

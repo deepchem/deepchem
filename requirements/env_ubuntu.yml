@@ -1,0 +1,4 @@
+name: deepchem
+dependencies:
+  - pip:
+    - vina

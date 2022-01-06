@@ -17,9 +17,13 @@ jobs:
     - uses: actions/checkout@v2
     - name: Cache pip packages for Linux
       uses: actions/cache@v2
+      # use cached dependencies to speed up workflow
+      # ref: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('env.*.yml') }}
+        # the key is used to search for cache
+        # hashFile(paths) return a single hash for the set of files that matches the path pattern
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/**/docs/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
@@ -30,7 +34,9 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install conda-merge
-        conda-merge env.common.yml env.cpu.yml env.test.yml > env.yml
+        cd requirements
+        conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml > env.yml
+        cd ..
     - uses: conda-incubator/setup-miniconda@v2
       with:
         miniconda-version: "latest"
@@ -38,7 +44,7 @@ jobs:
         activate-environment: deepchem
         channels: conda-forge,defaults
         python-version: ${{ matrix.python-version }}
-        environment-file: env.yml
+        environment-file: requirements/env.yml
     - name: Install dependencies (docs)
       shell: bash -l {0}
       working-directory: ./docs

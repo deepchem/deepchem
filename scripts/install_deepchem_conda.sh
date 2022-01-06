@@ -24,10 +24,11 @@ then
     conda-merge $PWD/env.common.yml $PWD/env.gpu.yml $PWD/env.test.yml > $PWD/env.yml
     echo "Installing DeepChem in the GPU environment"
 else
+    dir="$PWD/requirements"
     if [ "$(uname)" = 'Darwin' ]; then
-        conda-merge $PWD/env.common.yml $PWD/env.cpu.mac.yml $PWD/env.test.yml > $PWD/env.yml
-    else
-        conda-merge $PWD/env.common.yml $PWD/env.cpu.yml $PWD/env.test.yml > $PWD/env.yml
+        conda-merge $dir/env_common.yml $dir/env_mac.yml $dir/env_test.yml $dir/tensorflow/env_tensorflow.cpu.yml $dir/torch/env_torch.mac.cpu.yml $dir/jax/env_jax.cpu.yml > $PWD/env.yml
+    elif [ "$(uname)" = 'Linux' ]; then
+        conda-merge $dir/env_common.yml $dir/env_test.yml $dir/env_ubuntu.yml $dir/tensorflow/env_tensorflow.cpu.yml $dir/torch/env_torch.cpu.yml $dir/jax/env_jax.cpu.yml > $PWD/env.yml
     fi
     echo "Installing DeepChem in the CPU environment"
 fi

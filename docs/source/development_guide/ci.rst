@@ -46,3 +46,13 @@ the absolute path of the file has to be included. For example, for the use of a 
   data_dir = os.path.join(current_dir, "Test_data_feature.csv")
   result = newFeature(data_dir)
 
+Notes on Requirement Files
+--------------------------
+
+DeepChem's CI as well as installation procedures use requirement files defined in
+``requirements`` directory. Currently, there are a number of requirement files. Their
+purposes are listed here.
++ `env_common.yml` - this file lists the scientific dependencies used by DeepChem like rdkit.
++ `env_ubuntu.yml` and `env_mac.yml` contain scientific dependencies which are have OS specific support. Currently, vina
++ `env_test.yml` - it is mostly used for the purpose of testing in development purpose. It contains the test dependencies.
++ The installation files in `tensorflow`, `torch` and `jax` directories contain the installation command for backend deep learning frameworks. For torch and jax, installation command is different for CPU and GPU. Hence, we use different installation files for CPU and GPU respectively.
