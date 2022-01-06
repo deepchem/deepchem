@@ -1,0 +1,5 @@
+dependencies:
+  - pip:
+    - tensorflow
+    - tensorflow_probability
+    - tensorflow_addons

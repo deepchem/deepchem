@@ -10,9 +10,11 @@ dependencies:
   - numpy>=1.20
   - pip==20.2.*
   - pip:
+    - pre-commit
     - biopython
+    - dgllife==0.2.8
     - lightgbm==3.*
-    - matminer==0.6.5
+    - matminer
     - mordred
     - networkx
     - pillow
@@ -23,4 +25,3 @@ dependencies:
     - transformers==4.6.*
     - xgboost==1.*
     - git+https://github.com/samoturk/mol2vec
-    - vina

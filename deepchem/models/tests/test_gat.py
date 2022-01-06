@@ -1,6 +1,6 @@
 import pytest
 import tempfile
-
+from flaky import flaky
 import numpy as np
 
 import deepchem as dc
@@ -53,6 +53,7 @@ def test_gat_regression():
   model.fit(train_set, nb_epoch=1)
 
 
+@flaky
 @pytest.mark.torch
 def test_gat_classification():
   # load datasets

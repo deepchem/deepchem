@@ -2,6 +2,7 @@ import deepchem as dc
 import numpy as np
 import pytest
 import unittest
+from flaky import flaky
 try:
   import tensorflow as tf
   has_tensorflow = True
@@ -69,6 +70,7 @@ class TestCNN(unittest.TestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > 0.9
 
+  @flaky
   @pytest.mark.tensorflow
   def test_residual_cnn_classification(self):
     """Test that a residual CNN can overfit simple classification datasets."""

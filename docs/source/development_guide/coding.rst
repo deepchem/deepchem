@@ -1,6 +1,27 @@
 Coding Conventions
 ==================
 
+Pre-Commit
+-----------
+
+.. _`Pre-Commit`: https://pre-commit.com/
+
+We use `pre-commit`_ to ensure that we're always keeping up with the best 
+practices when it comes to linting, standard code conventions and type 
+annotations. Although it may seem time consuming at first as to why is one 
+supposed to run all these tests and checks but it helps in identifying simple 
+issues before submission to code review. We've already specified a configuration 
+file with a list of hooks that will get executed before every commit. 
+
+First you'll need to setup the git hook scripts by installing them.
+
+.. code-block:: bash
+
+  pre-commit install
+
+Now whenever you commit, pre-commit will run the necessary hooks on the modified 
+files.
+
 Code Formatting
 ---------------
 

@@ -718,6 +718,7 @@ def test_DAG_regression_reload():
   assert scores[regression_metric.name] > .1
 
 
+@flaky
 @pytest.mark.tensorflow
 def test_weave_classification_reload():
   """Test weave model can be reloaded."""
