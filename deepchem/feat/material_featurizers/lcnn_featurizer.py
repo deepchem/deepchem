@@ -671,8 +671,8 @@ def _get_SiteEnvironments(struct: PymatgenStructure,
     perm = []
     if get_permutations:
       finder = PointGroupAnalyzer(
-          Molecule(local_env_sym, local_env_pos),
-          eigen_tolerance=eigen_tol)  # type: ignore
+          Molecule(local_env_sym, local_env_pos),  # type: ignore
+          eigen_tolerance=eigen_tol)
       pg = finder.get_pointgroup()
       for i, op in enumerate(pg):
         newpos = op.operate_multi(local_env_pos)
