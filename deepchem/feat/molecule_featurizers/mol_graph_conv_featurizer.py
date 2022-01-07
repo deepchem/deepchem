@@ -64,11 +64,11 @@ def _construct_atom_feature(
 
   if use_chirality:
     chirality = get_atom_chirality_one_hot(atom)
-    atom_feat = np.concatenate([atom_feat, chirality])
+    atom_feat = np.concatenate([atom_feat, np.array(chirality)])
 
   if use_partial_charge:
     partial_charge = get_atom_partial_charge(atom)
-    atom_feat = np.concatenate([atom_feat, partial_charge])
+    atom_feat = np.concatenate([atom_feat, np.array(partial_charge)])
   return atom_feat
 
 
@@ -352,7 +352,7 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
     ring_info: list
         Different rings that contain the pair of atoms
     """
-    features = []
+    features: List = []
     path_bonds = []
     path_length = len(path_atoms)
     for path_idx in range(path_length - 1):

@@ -421,7 +421,8 @@ class Dataset(object):
     """
     raise NotImplementedError()
 
-  def select(self, indices: Sequence[int],
+  def select(self,
+             indices: Union[Sequence[int], np.ndarray],
              select_dir: Optional[str] = None) -> "Dataset":
     """Creates a new dataset from a selection of indices from self.
 
@@ -890,7 +891,8 @@ class NumpyDataset(Dataset):
         self._X, self._y, self._w, self._ids)
     return NumpyDataset(newx, newy, neww, newids)
 
-  def select(self, indices: Sequence[int],
+  def select(self,
+             indices: Union[Sequence[int], np.ndarray],
              select_dir: Optional[str] = None) -> "NumpyDataset":
     """Creates a new dataset from a selection of indices from self.
 
@@ -2292,7 +2294,7 @@ class DiskDataset(Dataset):
     self._cached_shards = None
 
   def select(self,
-             indices: Sequence[int],
+             indices: Union[Sequence[int], np.ndarray],
              select_dir: Optional[str] = None,
              select_shard_size: Optional[int] = None,
              output_numpy_dataset: Optional[bool] = False) -> Dataset:
@@ -2677,7 +2679,7 @@ class ImageDataset(Dataset):
     if isinstance(array, np.ndarray):
       return array.shape
     image_shape = load_image_files([array[0]]).shape[1:]
-    return np.concatenate([[len(array)], image_shape])
+    return tuple(np.concatenate([[len(array)], image_shape]))
 
   def __len__(self) -> int:
     """Get the number of elements in the dataset."""
@@ -2844,7 +2846,8 @@ class ImageDataset(Dataset):
         self.X, self.y, self.w, self.ids)
     return NumpyDataset(newx, newy, neww, newids)
 
-  def select(self, indices: Sequence[int],
+  def select(self,
+             indices: Union[Sequence[int], np.ndarray],
              select_dir: Optional[str] = None) -> "ImageDataset":
     """Creates a new dataset from a selection of indices from self.
 
