@@ -1,7 +1,7 @@
 """
 Genomic data handling Iterable.
 """
-from typing import Dict, Iterator, Iterable, Union
+from typing import Dict, Iterable, Union
 import numpy as np
 
 
