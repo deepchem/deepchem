@@ -2286,6 +2286,7 @@ class DiskDataset(Dataset):
     basename = "shard-%d" % shard_num
     DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w, ids)
     self._cached_shards = None
+    self.legacy_metadata = True
 
   def select(self,
              indices: Sequence[int],
