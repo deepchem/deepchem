@@ -130,8 +130,8 @@ class MultiHeadedMATAttention(nn.Module):
                         key: torch.Tensor,
                         value: torch.Tensor,
                         mask: torch.Tensor,
-                        adj_matrix: np.ndarray,
-                        distance_matrix: np.ndarray,
+                        adj_matrix: torch.Tensor,
+                        distance_matrix: torch.Tensor,
                         dropout_p: float = 0.0,
                         eps: float = 1e-6,
                         inf: float = 1e12) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -146,9 +146,9 @@ class MultiHeadedMATAttention(nn.Module):
       Standard value parameter for attention.
     mask: torch.Tensor
       Masks out padding values so that they are not taken into account when computing the attention score.
-    adj_matrix: np.ndarray
+    adj_matrix: torch.Tensor
       Adjacency matrix of the input molecule, returned from dc.feat.MATFeaturizer()
-    dist_matrix: np.ndarray
+    dist_matrix: torch.Tensor
       Distance matrix of the input molecule, returned from dc.feat.MATFeaturizer()
     dropout_p: float
       Dropout probability.
@@ -192,8 +192,8 @@ class MultiHeadedMATAttention(nn.Module):
               key: torch.Tensor,
               value: torch.Tensor,
               mask: torch.Tensor,
-              adj_matrix: np.ndarray,
-              distance_matrix: np.ndarray,
+              adj_matrix: torch.Tensor,
+              distance_matrix: torch.Tensor,
               dropout_p: float = 0.0,
               eps: float = 1e-6,
               inf: float = 1e12) -> torch.Tensor:
@@ -208,9 +208,9 @@ class MultiHeadedMATAttention(nn.Module):
       Standard value parameter for attention.
     mask: torch.Tensor
       Masks out padding values so that they are not taken into account when computing the attention score.
-    adj_matrix: np.ndarray
+    adj_matrix: torch.Tensor
       Adjacency matrix of the input molecule, returned from dc.feat.MATFeaturizer()
-    dist_matrix: np.ndarray
+    dist_matrix: torch.Tensor
       Distance matrix of the input molecule, returned from dc.feat.MATFeaturizer()
     dropout_p: float
       Dropout probability.
@@ -329,8 +329,8 @@ class MATEncoderLayer(nn.Module):
   def forward(self,
               x: torch.Tensor,
               mask: torch.Tensor,
-              adj_matrix: np.ndarray,
-              distance_matrix: np.ndarray,
+              adj_matrix: torch.Tensor,
+              distance_matrix: torch.Tensor,
               sa_dropout_p: float = 0.0) -> torch.Tensor:
     """Output computation for the MATEncoder layer.
 
@@ -343,9 +343,9 @@ class MATEncoderLayer(nn.Module):
       Input tensor.
     mask: torch.Tensor
       Masks out padding values so that they are not taken into account when computing the attention score.
-    adj_matrix: np.ndarray
+    adj_matrix: torch.Tensor
       Adjacency matrix of a molecule.
-    distance_matrix: np.ndarray
+    distance_matrix: torch.Tensor
       Distance matrix of a molecule.
     sa_dropout_p: float
       Dropout probability for the self-attention layer (MultiHeadedMATAttention).

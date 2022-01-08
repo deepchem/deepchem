@@ -131,8 +131,7 @@ def read_gnina_log(log_file: str) -> np.ndarray:
       score = [float(x) for x in mode[1:]]
       scores.append(score)
 
-  scores = np.array(scores)
-  return scores
+  return np.array(scores)
 
 
 def load_docked_ligands(

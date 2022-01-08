@@ -14,7 +14,7 @@ from deepchem.data import Dataset
 from deepchem.metrics import Metric
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import Evaluator
-from deepchem.utils.typing import ArrayLike
+from deepchem.utils.typing import OneOrMany
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ class Model(object):
     raise NotImplementedError(
         "Each model is responsible for its own fit_on_batch method.")
 
-  def predict_on_batch(self, X: ArrayLike):
+  def predict_on_batch(self, X: np.typing.ArrayLike):
     """
     Makes predictions on given batch of new data.
 
@@ -127,7 +127,7 @@ class Model(object):
         "Each model is responsible for its own fit method.")
 
   def predict(self, dataset: Dataset,
-              transformers: List[Transformer] = []) -> np.ndarray:
+              transformers: List[Transformer] = []) -> OneOrMany[np.ndarray]:
     """
     Uses self to make predictions on provided Dataset object.
 

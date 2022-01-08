@@ -525,10 +525,9 @@ class TorchModel(Model):
         loss=loss,
         callbacks=callbacks)
 
-  def _predict(
-      self, generator: Iterable[Tuple[Any, Any, Any]],
-      transformers: List[Transformer], uncertainty: bool,
-      other_output_types: Optional[OneOrMany[str]]) -> OneOrMany[np.ndarray]:
+  def _predict(self, generator: Iterable[Tuple[Any, Any, Any]],
+               transformers: List[Transformer], uncertainty: bool,
+               other_output_types: Optional[OneOrMany[str]]):
     """
     Predict outputs for data provided by a generator.
 
@@ -653,7 +652,9 @@ class TorchModel(Model):
     """
     return self._predict(generator, transformers, False, output_types)
 
-  def predict_on_batch(self, X: ArrayLike, transformers: List[Transformer] = []
+  def predict_on_batch(self,
+                       X: np.typing.ArrayLike,
+                       transformers: List[Transformer] = []
                       ) -> OneOrMany[np.ndarray]:
     """Generates predictions for input samples, processing samples in a batch.
 

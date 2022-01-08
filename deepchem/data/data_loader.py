@@ -1007,8 +1007,8 @@ class FASTALoader(DataLoader):
         """
         Uses a fasta_file to create a numpy array of annotated FASTA-format strings
         """
-        sequences = np.array([])
-        sequence = np.array([])
+        sequences: np.ndarray = np.array([])
+        sequence: np.ndarray = np.array([])
         header_read = False
         for line in fasta_file:
           # Check if line is a header

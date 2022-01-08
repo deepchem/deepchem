@@ -6,7 +6,7 @@ from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.feat.mol_graphs import ConvMol, WeaveMol
 from deepchem.data import DiskDataset
 import logging
-from typing import Optional, List, Union, Iterable
+from typing import Optional, List, Tuple, Union, Iterable
 from deepchem.utils.typing import RDKitMol, RDKitAtom
 
 
@@ -512,12 +512,13 @@ def max_pair_distance_pairs(
   return pair_edges
 
 
-def pair_features(mol: RDKitMol,
-                  bond_features_map: dict,
-                  bond_adj_list: List,
-                  bt_len: int = 6,
-                  graph_distance: bool = True,
-                  max_pair_distance: Optional[int] = None) -> np.ndarray:
+def pair_features(
+    mol: RDKitMol,
+    bond_features_map: dict,
+    bond_adj_list: List,
+    bt_len: int = 6,
+    graph_distance: bool = True,
+    max_pair_distance: Optional[int] = None) -> Tuple[np.ndarray, np.ndarray]:
   """Helper method used to compute atom pair feature vectors.
 
   Many different featurization methods compute atom pair features
@@ -738,8 +739,8 @@ class ConvMolFeaturizer(MolecularFeaturizer):
       name of the molecule level property in mol where the solvent
       accessible surface area of atom 0 would be stored.
     per_atom_fragmentation: Boolean
-      If True, then multiple "atom-depleted" versions of each molecule will be created (using featurize() method). 
-      For each molecule, atoms are removed one at a time and the resulting molecule is featurized. 
+      If True, then multiple "atom-depleted" versions of each molecule will be created (using featurize() method).
+      For each molecule, atoms are removed one at a time and the resulting molecule is featurized.
       The result is a list of ConvMol objects,
       one with each heavy atom removed. This is useful for subsequent model interpretation: finding atoms
       favorable/unfavorable for (modelled) activity. This option is typically used in combination
@@ -761,7 +762,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
       **kwargs) -> np.ndarray:
     """
     Override parent: aim is to add handling atom-depleted molecules featurization
-    
+
     Parameters
     ----------
     datapoints: rdkit.Chem.rdchem.Mol / SMILES string / iterable
@@ -790,11 +791,11 @@ class ConvMolFeaturizer(MolecularFeaturizer):
       valid_frag_inds = [[
           True if np.array(elt).size > 0 else False for elt in f
       ] for f in features]
-      features = [[elt
-                   for (is_valid, elt) in zip(l, m)
-                   if is_valid]
-                  for (l, m) in zip(valid_frag_inds, features)
-                  if any(l)]
+      features = np.array([[elt
+                            for (is_valid, elt) in zip(l, m)
+                            if is_valid]
+                           for (l, m) in zip(valid_frag_inds, features)
+                           if any(l)])
     return features
 
   def _get_atom_properties(self, atom):

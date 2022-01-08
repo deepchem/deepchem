@@ -103,8 +103,7 @@ class CoulombMatrix(MolecularFeaturizer):
 
     features = self.coulomb_matrix(datapoint)
     if self.upper_tri:
-      features = [f[np.triu_indices_from(f)] for f in features]
-    features = np.asarray(features)
+      features = np.asarray([f[np.triu_indices_from(f)] for f in features])
     if features.shape[0] == 1:
       # `(1, max_atoms, max_atoms)` -> `(max_atoms, max_atoms)`
       features = np.squeeze(features, axis=0)

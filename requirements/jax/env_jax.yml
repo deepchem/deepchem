@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - numpy==1.21.*
+  - numpy>=1.20
   - rdkit
   - pip==20.2.*
   - pip:
