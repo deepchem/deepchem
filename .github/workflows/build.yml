@@ -37,7 +37,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/Library/Caches/pip
-        key: ${{ matrix.os }}-pip-${{ hashFiles('env.*.yml') }}
+        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Install miniconda
@@ -55,11 +55,10 @@ jobs:
       shell: bash -l {0}
       run: |
         source scripts/install_deepchem_conda.sh ${{ matrix.python-version }} cpu
-    - name: Build DeepChem from source
+    - name: Import Checks
       shell: bash -l {0}
       run: |
         conda activate deepchem
-        pip install -e .
         python -V
         python -c 'import deepchem; print("DeepChem version %s" % deepchem.__version__)'
         python -c 'import rdkit; print("RDKIT version %s" % rdkit.__version__)'
@@ -95,11 +94,10 @@ jobs:
       shell: pwsh
       run: |
         . .\scripts\install_deepchem_conda.ps1 ${{ matrix.python-version }} cpu
-    - name: Build DeepChem from source
+    - name: Import Checks
       shell: pwsh
       run: |
         conda activate deepchem
-        pip install -e .
         python -V
         python -c "import deepchem; print('DeepChem version %s' % deepchem.__version__)"
         python -c "import rdkit; print('RDKIT version %s' % rdkit.__version__)"

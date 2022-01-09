@@ -25,3 +25,4 @@ dependencies:
     - transformers==4.6.*
     - xgboost==1.*
     - git+https://github.com/samoturk/mol2vec
+    - tensorboard
