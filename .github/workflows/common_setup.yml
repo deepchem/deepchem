@@ -100,8 +100,11 @@ jobs:
         pip install conda-merge;
         if [ "$(uname)" == 'Linux' ]; then
           conda-merge requirements/env_common.yml requirements/env_test.yml requirements/env_ubuntu.yml > env.yml
+        elif [  "$(uname)" == 'Darwin' ]; then
+          conda-merge requirements/env_common.yml requirements/env_test.yml requirements/env_mac.yml > env.yml
+        elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
+          conda-merge requirements/env_common.yml requirements/env_test.yml > env.yml
         fi;
-        # TODO For windows and mac
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v2
       with:
