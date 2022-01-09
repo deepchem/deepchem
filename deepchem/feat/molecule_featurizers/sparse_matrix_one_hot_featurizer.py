@@ -7,22 +7,28 @@ from deepchem.feat.base_classes import Featurizer
 from typing import Any, Iterable
 
 logger = logging.getLogger(__name__)
-codes = [
+CHARSET = [
     'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R',
     'S', 'T', 'V', 'W', 'Y', 'X', 'Z', 'B', 'U', 'O'
 ]
 
+
 class SparseMatrixOneHotFeaturizer(Featurizer):
-  """Encodes any arbitrary string as a one-hot array .
+  """Encodes any arbitrary string as a one-hot array.
+  This featurizer uses the sklearn OneHotEncoder to create
+  sparse matrix representation of a one-hot array of any string.
+  It is expected to be used in large datasets that produces memory overload
+  using standard featurizer such as OneHotFeaturizer. For example: SwissprotDataset
+
 
   Standalone Usage:
 
   >>> import deepchem as dc
-  >>> codes = [
+  >>> charset = [
       'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R',
       'S', 'T', 'V', 'W', 'Y','X','Z','B','U','O'
       ]
-  >>> featurizer = dc.feat.SparseMatrixOneHotFeaturizer(codes)
+  >>> featurizer = dc.feat.SparseMatrixOneHotFeaturizer(charset)
   >>> sequence = "MMMQLA"
   >>> encodings = featurizer.featurize(sequence)
   >>> print(encodings)
@@ -41,7 +47,7 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
 
   def __init__(
       self,
-      charset: List[str] = codes,
+      charset: List[str] = CHARSET,
   ):
     """Initialize featurizer.
 
@@ -54,40 +60,15 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
       raise ValueError("All values in charset must be unique.")
     self.charset = charset
     from sklearn.preprocessing import OneHotEncoder
-    from sklearn.preprocessing import LabelEncoder
-
-    label_encoder = LabelEncoder()
-    integer_encoded = label_encoder.fit_transform(self.charset)
-    integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
     cat = np.array(self.charset).reshape(1, len(self.charset))
-    self.ohe = OneHotEncoder(categories=list(cat))
+    self.ohe = OneHotEncoder(categories=list(cat),handle_unknown='ignore')
 
   def featurize(self,
                 datapoints: Iterable[Any],
-                log_every_n: int = 1000,
-                **kwargs) -> np.ndarray:
-    """Featurize strings.
+                ) -> scipy.sparse:
 
-    Parameters
-    ----------
-    datapoints: list
-      A list of either strings (str or numpy.str_)
-    log_every_n: int, optional (default 1000)
-      How many elements are featurized every time a featurization is logged.
     """
-    datapoints = list(datapoints)
-    if (len(datapoints) < 1):
-      return np.array([])
-    # Featurize data using featurize() in parent class
-    return Featurizer.featurize(self, datapoints, log_every_n)
-
-  def _featurize(self, datapoint: Any, **kwargs):
-    # Featurize str data
-    if isinstance(datapoint, (str, np.str_)):
-      return self._featurize_string(datapoint)
-
-  def _featurize_string(self, string: str) -> scipy.sparse:
-    """Compute one-hot featurization of string.
+    Compute one-hot featurization of string.
 
     Parameters
     ----------
@@ -98,10 +79,24 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
     -------
     scipy.sparse using a OneHotEncoder of Sklearn
 
-    """
+    Parameters
+    ----------
+    datapoints: list
+      A list of either strings (str or numpy.str_)
+    log_every_n: int, optional (default 1000)
+      How many elements are featurized every time a featurization is logged.
 
-    sparse_mat = self.ohe.fit_transform(np.array(list(string)).reshape(-1, 1))
-    return sparse_mat
+    """
+    if (len(datapoints) < 1):
+      return np.array([])
+    if isinstance(datapoints, (str, np.str_)):
+      datapoints = list(datapoints)
+      sparse_mat = self.ohe.fit_transform(
+          np.array(datapoints).reshape(-1, 1))
+      return sparse_mat
+    else:
+      raise ValueError("Datapoint is not a string")
+
 
   def untransform(self, one_hot_vectors: scipy.sparse) -> str:
     """Convert from one hot representation back to original string
