@@ -1,6 +1,5 @@
 import logging
 from typing import List
-
 import numpy as np
 import scipy
 from deepchem.feat.base_classes import Featurizer
@@ -15,6 +14,7 @@ CHARSET = [
 
 class SparseMatrixOneHotFeaturizer(Featurizer):
   """Encodes any arbitrary string as a one-hot array.
+
   This featurizer uses the sklearn OneHotEncoder to create
   sparse matrix representation of a one-hot array of any string.
   It is expected to be used in large datasets that produces memory overload
@@ -24,11 +24,7 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
   Standalone Usage:
 
   >>> import deepchem as dc
-  >>> charset = [
-      'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R',
-      'S', 'T', 'V', 'W', 'Y','X','Z','B','U','O'
-      ]
-  >>> featurizer = dc.feat.SparseMatrixOneHotFeaturizer(charset)
+  >>> featurizer = dc.feat.SparseMatrixOneHotFeaturizer()
   >>> sequence = "MMMQLA"
   >>> encodings = featurizer.featurize(sequence)
   >>> print(encodings)
@@ -61,12 +57,12 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
     self.charset = charset
     from sklearn.preprocessing import OneHotEncoder
     cat = np.array(self.charset).reshape(1, len(self.charset))
-    self.ohe = OneHotEncoder(categories=list(cat),handle_unknown='ignore')
+    self.ohe = OneHotEncoder(categories=list(cat), handle_unknown='ignore')
 
-  def featurize(self,
-                datapoints: Iterable[Any],
-                ) -> scipy.sparse:
-
+  def featurize(
+      self,
+      datapoints: Iterable[Any],
+  ) -> scipy.sparse:
     """
     Compute one-hot featurization of string.
 
@@ -91,12 +87,10 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
       return np.array([])
     if isinstance(datapoints, (str, np.str_)):
       datapoints = list(datapoints)
-      sparse_mat = self.ohe.fit_transform(
-          np.array(datapoints).reshape(-1, 1))
+      sparse_mat = self.ohe.fit_transform(np.array(datapoints).reshape(-1, 1))
       return sparse_mat
     else:
       raise ValueError("Datapoint is not a string")
-
 
   def untransform(self, one_hot_vectors: scipy.sparse) -> str:
     """Convert from one hot representation back to original string
