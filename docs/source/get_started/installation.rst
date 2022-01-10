@@ -158,6 +158,7 @@ First, please create a conda virtual environment (here it's named "deepchem-test
     conda activate deepchem-test
 
 Install DeepChem, RDKit, Jupyter and matplotlib into the conda environment.
+
 .. code-block:: bash
     conda install -y -c conda-forge rdkit nb_conda_kernels matplotlib
     pip install tensorflow==2.2.0
