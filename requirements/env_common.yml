@@ -7,7 +7,7 @@ dependencies:
   - pdbfixer
   - rdkit
   - mdtraj
-  - numpy>=1.20
+  - numpy>=1.21
   - pip==20.2.*
   - pip:
     - pre-commit
