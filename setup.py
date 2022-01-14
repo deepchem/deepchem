@@ -71,7 +71,7 @@ setup(
     },
     install_requires=[
         'joblib',
-        'numpy',
+        'numpy>=1.21',
         'pandas',
         'scikit-learn',
         'scipy',
