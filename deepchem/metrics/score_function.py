@@ -16,6 +16,7 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import roc_auc_score  # noqa
 from sklearn.metrics import accuracy_score  # noqa
 from sklearn.metrics import balanced_accuracy_score  # noqa
+from sklearn.metrics import top_k_accuracy_score  # noqa
 
 # kappa_score is an alias for `sklearn.metrics.cohen_kappa_score`
 kappa_score = cohen_kappa_score
