@@ -532,12 +532,12 @@ DeepChem supports the use of `Jax`_ to build deep learning models.
 JaxModel
 ----------
 
-.. autoclass:: deepchem.models.JaxModel
+.. autoclass:: deepchem.models.jax_models.jax_model.JaxModel
   :members:
 
 PinnModel
 ----------
 
-.. autoclass:: deepchem.models.PINNModel
+.. autoclass:: deepchem.models.jax_models.pinns_model.PINNModel
   :members:
 
