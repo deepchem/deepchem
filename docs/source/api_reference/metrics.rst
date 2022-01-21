@@ -63,6 +63,8 @@ DeepChem has a variety of different metrics which are useful for measuring model
 
 .. autofunction:: deepchem.metrics.balanced_accuracy_score
 
+.. autofunction:: deepchem.metrics.top_k_accuracy_score
+
 .. autofunction:: deepchem.metrics.pearson_r2_score
 
 .. autofunction:: deepchem.metrics.jaccard_index

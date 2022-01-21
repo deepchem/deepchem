@@ -27,6 +27,7 @@ from deepchem.metrics.score_function import f1_score
 from deepchem.metrics.score_function import roc_auc_score
 from deepchem.metrics.score_function import accuracy_score
 from deepchem.metrics.score_function import balanced_accuracy_score
+from deepchem.metrics.score_function import top_k_accuracy_score
 from deepchem.metrics.score_function import pearsonr
 
 # original score function
