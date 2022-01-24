@@ -1,18 +1,7 @@
 import torch
-
 import math
 from typing import Tuple, Optional, NamedTuple
 import sys
-import warnings
-import importlib_metadata
-
-has_cuaev = 'torchaev.cuaev' in importlib_metadata.metadata(__package__).get_all('Provides')
-
-if has_cuaev:
-    # We need to import torchani.cuaev to tell PyTorch to initialize torch.ops.cuaev
-    from . import cuaev  # type: ignore # noqa: F401
-else:
-    warnings.warn("cuaev not installed")
 
 if sys.version_info[:2] < (3, 7):
     class FakeFinal:
@@ -33,7 +22,11 @@ def cutoff_cosine(distances: torch.Tensor, cutoff: float) -> torch.Tensor:
     return 0.5 * torch.cos(distances * (math.pi / cutoff)) + 0.5
 
 
-def radial_terms(Rcr: float, EtaR: torch.Tensor, ShfR: torch.Tensor, distances: torch.Tensor) -> torch.Tensor:
+def radial_terms(
+    Rcr: float, 
+    EtaR: torch.Tensor, 
+    ShfR: torch.Tensor, 
+    distances: torch.Tensor) -> torch.Tensor:
     """Compute the radial subAEV terms of the center atom given neighbors
 
     This correspond to equation (3) in the `ANI paper`_. This function just
@@ -59,8 +52,13 @@ def radial_terms(Rcr: float, EtaR: torch.Tensor, ShfR: torch.Tensor, distances: 
     return ret.flatten(start_dim=1)
 
 
-def angular_terms(Rca: float, ShfZ: torch.Tensor, EtaA: torch.Tensor, Zeta: torch.Tensor,
-                  ShfA: torch.Tensor, vectors12: torch.Tensor) -> torch.Tensor:
+def angular_terms(
+    Rca: float, 
+    ShfZ: torch.Tensor, 
+    EtaA: torch.Tensor, 
+    Zeta: torch.Tensor,
+    ShfA: torch.Tensor, 
+    vectors12: torch.Tensor) -> torch.Tensor:
     """Compute the angular subAEV terms of the center atom given neighbor pairs.
 
     This correspond to equation (4) in the `ANI paper`_. This function just
@@ -90,7 +88,10 @@ def angular_terms(Rca: float, ShfZ: torch.Tensor, EtaA: torch.Tensor, Zeta: torc
     return ret.flatten(start_dim=1)
 
 
-def compute_shifts(cell: torch.Tensor, pbc: torch.Tensor, cutoff: float) -> torch.Tensor:
+def compute_shifts(
+    cell: torch.Tensor, 
+    pbc: torch.Tensor, 
+    cutoff: float) -> torch.Tensor:
     """Compute the shifts of unit cell along the given cell vectors to make it
     large enough to contain all pairs of neighbor atoms with PBC under
     consideration
@@ -132,8 +133,12 @@ def compute_shifts(cell: torch.Tensor, pbc: torch.Tensor, cutoff: float) -> torc
     ])
 
 
-def neighbor_pairs(padding_mask: torch.Tensor, coordinates: torch.Tensor, cell: torch.Tensor,
-                   shifts: torch.Tensor, cutoff: float) -> Tuple[torch.Tensor, torch.Tensor]:
+def neighbor_pairs(
+    padding_mask: torch.Tensor, 
+    coordinates: torch.Tensor, 
+    cell: torch.Tensor,
+    shifts: torch.Tensor, 
+    cutoff: float) -> Tuple[torch.Tensor, torch.Tensor]:
     """Compute pairs of atoms that are neighbors
 
     Arguments:
@@ -182,7 +187,10 @@ def neighbor_pairs(padding_mask: torch.Tensor, coordinates: torch.Tensor, cell: 
     return molecule_index + atom_index12, shifts
 
 
-def neighbor_pairs_nopbc(padding_mask: torch.Tensor, coordinates: torch.Tensor, cutoff: float) -> torch.Tensor:
+def neighbor_pairs_nopbc(
+    padding_mask: torch.Tensor, 
+    coordinates: torch.Tensor, 
+    cutoff: float) -> torch.Tensor:
     """Compute pairs of atoms that are neighbors (doesn't use PBC)
 
     This function bypasses the calculation of shifts and duplication
@@ -266,9 +274,13 @@ def triple_by_molecule(atom_index12: torch.Tensor) -> Tuple[torch.Tensor, torch.
     return central_atom_index, local_index12 % n, sign12
 
 
-def compute_aev(species: torch.Tensor, coordinates: torch.Tensor, triu_index: torch.Tensor,
-                constants: Tuple[float, torch.Tensor, torch.Tensor, float, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
-                sizes: Tuple[int, int, int, int, int], cell_shifts: Optional[Tuple[torch.Tensor, torch.Tensor]]) -> torch.Tensor:
+def compute_aev(
+    species: torch.Tensor, 
+    coordinates: torch.Tensor, 
+    triu_index: torch.Tensor,
+    constants: Tuple[float, torch.Tensor, torch.Tensor, float, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
+    sizes: Tuple[int, int, int, int, int], cell_shifts: Optional[Tuple[torch.Tensor, torch.Tensor]]) -> torch.Tensor:
+    
     Rcr, EtaR, ShfR, Rca, ShfZ, EtaA, Zeta, ShfA = constants
     num_species, radial_sublength, radial_length, angular_sublength, angular_length = sizes
     num_molecules = species.shape[0]
@@ -320,14 +332,6 @@ def compute_aev(species: torch.Tensor, coordinates: torch.Tensor, triu_index: to
     angular_aev.index_add_(0, index, angular_terms_)
     angular_aev = angular_aev.reshape(num_molecules, num_atoms, angular_length)
     return torch.cat([radial_aev, angular_aev], dim=-1)
-
-
-def jit_unused_if_no_cuaev(condition=has_cuaev):
-    def decorator(func):
-        if not condition:
-            return torch.jit.unused(func)
-        return func
-    return decorator
 
 
 class AEVComputer(torch.nn.Module):
@@ -414,24 +418,6 @@ class AEVComputer(torch.nn.Module):
         self.register_buffer('default_cell', default_cell)
         self.register_buffer('default_shifts', default_shifts)
 
-        # Should create only when use_cuda_extension is True.
-        # However jit needs to know cuaev_computer's Type even when use_cuda_extension is False, because it is enabled when cuaev is available
-        if has_cuaev:
-            self.init_cuaev_computer()
-        # When has_cuaev is true, and use_cuda_extension is false, and user enable use_cuda_extension afterwards,
-        # then another init_cuaev_computer will be needed
-        self.cuaev_enabled = True if self.use_cuda_extension else False
-
-    @jit_unused_if_no_cuaev()
-    def init_cuaev_computer(self):
-        self.cuaev_computer = torch.classes.cuaev.CuaevComputer(self.Rcr, self.Rca, self.EtaR.flatten(), self.ShfR.flatten(), self.EtaA.flatten(), self.Zeta.flatten(), self.ShfA.flatten(), self.ShfZ.flatten(), self.num_species)
-
-    @jit_unused_if_no_cuaev()
-    def compute_cuaev(self, species, coordinates):
-        species_int = species.to(torch.int32)
-        aev = torch.ops.cuaev.run(coordinates, species_int, self.cuaev_computer)
-        return aev
-
     @classmethod
     def cover_linearly(cls, radial_cutoff: float, angular_cutoff: float,
                        radial_eta: float, angular_eta: float,
@@ -514,14 +500,6 @@ class AEVComputer(torch.nn.Module):
         assert species.dim() == 2
         assert species.shape == coordinates.shape[:-1]
         assert coordinates.shape[-1] == 3
-
-        if self.use_cuda_extension:
-            assert (cell is None and pbc is None), "cuaev currently does not support PBC"
-            # if use_cuda_extension is enabled after initialization
-            if not self.cuaev_enabled:
-                self.init_cuaev_computer()
-            aev = self.compute_cuaev(species, coordinates)
-            return SpeciesAEV(species, aev)
 
         if cell is None and pbc is None:
             aev = compute_aev(species, coordinates, self.triu_index, self.constants(), self.sizes, None)
