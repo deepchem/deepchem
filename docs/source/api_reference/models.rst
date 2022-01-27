@@ -538,6 +538,6 @@ JaxModel
 PinnModel
 ----------
 
-.. autoclass:: deepchem.models.PinnModel
+.. autoclass:: deepchem.models.PINNModel
   :members:
 
