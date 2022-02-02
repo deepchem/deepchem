@@ -145,6 +145,9 @@ Torch Layers
 
 .. autofunction:: deepchem.models.layers.cosine_dist
 
+.. autoclass:: deepchem.models.torch_models.layers.GraphNetwork
+  :members:
+
 Jax Layers
 ----------
 
