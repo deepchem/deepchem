@@ -21,7 +21,7 @@ import deepchem  # noqa
 # -- Project information -----------------------------------------------------
 
 project = 'deepchem'
-copyright = '2020, deepchem-contributors'
+copyright = '2022, deepchem-contributors'
 author = 'deepchem-contributors'
 
 # The full version, including alpha/beta/rc tags
@@ -54,8 +54,6 @@ autodoc_default_options = {
 
 # How to represents typehints
 autodoc_typehints = "signature"
-
-mathjax_path = 'http://mathjax.connectmv.com/MathJax.js?config=default'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
