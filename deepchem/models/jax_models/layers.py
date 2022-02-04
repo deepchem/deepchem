@@ -108,6 +108,20 @@ class Linear(hk.Module):
 def layer_norm(arr: jnp.ndarray, name: Optional[str] = None) -> jnp.ndarray:
   """
   Implementation of LayerNorm
+  
+  Parameters
+  ----------
+  
+  Inputs:
+    arr   : jnp.ndarray
+            input matrix
+    name  : str, optional
+            name of layer
+  
+  Returns:
+            jnp.ndarray
+            the array, normalized
+  
   """
   return hk.LayerNorm(
       axis=-1, create_scale=True, create_offset=True, name=name)(arr)
@@ -126,7 +140,7 @@ class SelfAttention(hk.MultiHeadAttention):
     '''
     Parameters
     ----------
-    inputs:
+    Inputs:
       q    :   jnp.ndarray
                Standard query parameter for attention
       k    :   jnp.ndarray [Optional Parameter]
@@ -138,8 +152,8 @@ class SelfAttention(hk.MultiHeadAttention):
 
     Returns
     -------
-      torch.Tensor
-         output of shape [..., num_output]
+               jnp.ndarray
+               output of shape [..., num_output]
     '''
 
     if k is None:
