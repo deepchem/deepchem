@@ -119,26 +119,27 @@ class SelfAttention(hk.MultiHeadAttention):
   '''
 
   def __call__(self,
-               q: jnp.ndarray,
-               k: Optional[jnp.ndarray] = None,
-               v: Optional[jnp.ndarray] = None,
-               mask: Optional[jnp.ndarray] = None) -> jnp.ndarray:
+      q: jnp.ndarray,
+      k: Optional[jnp.ndarray] = None,
+      v: Optional[jnp.ndarray] = None,
+      mask: Optional[jnp.ndarray] = None) -> jnp.ndarray:
     '''
     Parameters
     ----------
     inputs:
-      q : jnp.ndarray
-        Standard query parameter for attention
-      k : jnp.ndarray [Optional Parameter]
-        Standard key parameter for attention
-      v : jnp.ndarray [Optional Parameter]
-        Standard value parameter for attention
-      mask : jnp.ndarray [Optional Parameter]
-        Attention Mask
+      q    :   jnp.ndarray
+               Standard query parameter for attention
+      k    :   jnp.ndarray [Optional Parameter]
+               Standard key parameter for attention
+      v    :   jnp.ndarray [Optional Parameter]
+               Standard value parameter for attention
+      mask :   jnp.ndarray [Optional Parameter]
+               Attention Mask
 
     Returns
     -------
-    output of shape [..., num_output]
+      torch.Tensor
+         output of shape [..., num_output]
     '''
 
     if k is None:
