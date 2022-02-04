@@ -40,7 +40,6 @@ def test_selfattention_single():
     sa = dc.models.jax_models.layers.SelfAttention(
         key_size=7, num_heads=11, value_size=13, model_size=2,
         w_init_scale=1.0)(q, k, v, causal_mask)
-    print(sa.shape)
     return sa
 
   x = jnp.ones([1, 5])
