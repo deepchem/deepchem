@@ -41,10 +41,8 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
 
   """
 
-  def __init__(
-      self,
-      charset: List[str] = CHARSET,
-  ):
+  def __init__(self,
+               charset: List[str] = CHARSET):
     """Initialize featurizer.
 
     Parameters
@@ -59,38 +57,48 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
     cat = np.array(self.charset).reshape(1, len(self.charset))
     self.ohe = OneHotEncoder(categories=list(cat), handle_unknown='ignore')
 
-  def featurize(
-      self,
-      datapoints: Iterable[Any],
-  ) -> scipy.sparse:
-    """
-    Compute one-hot featurization of string.
 
-    Parameters
-    ----------
-    string: str
-      An arbitrary string to be featurized.
-
-    Returns
-    -------
-    scipy.sparse using a OneHotEncoder of Sklearn
-
+  def featurize(self,
+                datapoints: Iterable[Any],
+                log_every_n: int = 1000,
+                **kwargs) -> np.ndarray:
+    """Featurize strings.
     Parameters
     ----------
     datapoints: list
       A list of either strings (str or numpy.str_)
     log_every_n: int, optional (default 1000)
       How many elements are featurized every time a featurization is logged.
-
     """
+    #datapoints = datapoints)
     if (len(datapoints) < 1):
       return np.array([])
-    if isinstance(datapoints, (str, np.str_)):
-      datapoints = list(datapoints)
-      sparse_mat = self.ohe.fit_transform(np.array(datapoints).reshape(-1, 1))
-      return sparse_mat
-    else:
-      raise ValueError("Datapoint is not a string")
+    # Featurize data using featurize() in parent class
+    return Featurizer.featurize(self, datapoints, log_every_n)
+
+  def _featurize(self, datapoint: Any, **kwargs):
+      """ Use parent method of base clase Featurizer.
+      
+      Parameters
+      ----------
+      datapoint : Any
+          DESCRIPTION.
+      **kwargs : TYPE
+          DESCRIPTION.
+
+      Returns
+      -------
+      TYPE
+          DESCRIPTION.
+
+      """
+    # Featurize str data
+      if isinstance(datapoint, (str, np.str_)):
+        sequence = np.array(list(datapoint)).reshape(-1,1)
+        sparse_mat = self.ohe.fit_transform(sequence)
+        return  sparse_mat    #self._featurize_string(datapoint)
+      else:
+        raise ValueError("Datapoint is not a string")
 
   def untransform(self, one_hot_vectors: scipy.sparse) -> str:
     """Convert from one hot representation back to original string
