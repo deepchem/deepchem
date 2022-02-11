@@ -62,15 +62,13 @@ def gen_uv(UV_tasks, data_dir, train_dir, valid_dir, test_dir, shard_size=2000):
       tasks=UV_tasks, id_field="Molecule", featurizer=featurizer)
 
   logger.info("Featurizing train datasets...")
-  train_dataset = loader.featurize(
-      input_files=train_files, shard_size=shard_size)
+  train_dataset = loader.featurize(train_files, shard_size=shard_size)
 
   logger.info("Featurizing validation datasets...")
-  valid_dataset = loader.featurize(
-      input_files=valid_files, shard_size=shard_size)
+  valid_dataset = loader.featurize(valid_files, shard_size=shard_size)
 
   logger.info("Featurizing test datasets....")
-  test_dataset = loader.featurize(input_files=test_files, shard_size=shard_size)
+  test_dataset = loader.featurize(test_files, shard_size=shard_size)
 
   # Missing entry removal
   logger.info("Removing missing entries from dataset.")

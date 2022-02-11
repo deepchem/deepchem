@@ -31,17 +31,14 @@ materials science, quantum chemistry, and biology.
 
 ## Requirements
 
-DeepChem currently supports Python 3.7 through 3.8 and requires these packages on any condition.
+DeepChem currently supports Python 3.7 through 3.9 and requires these packages on any condition.
 
 - [joblib](https://pypi.python.org/pypi/joblib)
 - [NumPy](https://numpy.org/)
 - [pandas](http://pandas.pydata.org/)
 - [scikit-learn](https://scikit-learn.org/stable/)
 - [SciPy](https://www.scipy.org/)
-- [TensorFlow](https://www.tensorflow.org/)
-  - `deepchem>=2.4.0` depends on TensorFlow v2
-  - `deepchem<2.4.0` depends on TensorFlow v1
-- [Tensorflow Addons](https://www.tensorflow.org/addons) for Tensorflow v2 if you want to use advanced optimizers such as AdamW and Sparse Adam. (Optional)
+- [rdkit](https://www.rdkit.org/)
 
 ### Soft Requirements
 
@@ -54,13 +51,7 @@ Please check [the document](https://deepchem.readthedocs.io/en/latest/requiremen
 
 ### Stable version
 
-Please install tensorflow ~2.4 before installing deepchem.
-
-```bash
-pip install tensorflow~=2.4
-```
-
-Then, you install deepchem via pip or conda.  
+DeepChem stable version can be installed using pip or conda as
 
 ```bash
 pip install deepchem
@@ -70,21 +61,13 @@ or
 conda install -c conda-forge deepchem
 ```
 
-RDKit is a soft requirement package, but many useful methods like molnet depend on it.
-We recommend installing RDKit with deepchem if you use conda.
-
-```bash
-conda install -y -c conda-forge rdkit
-```
-
 ### Nightly build version
-The nightly version is built by the HEAD of DeepChem.
-
-For using general utilites like Molnet, Featurisers, Datasets, etc, then, you install deepchem via pip.  
+The nightly version is built by the HEAD of DeepChem. It can be installed using
 
 ```bash
 pip install --pre deepchem
 ```
+
 Deepchem provides support for tensorflow, pytorch, jax and each require
 a individual pip Installation.
 
