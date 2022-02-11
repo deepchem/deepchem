@@ -1,40 +1,42 @@
-from Bio import Seq, SeqIO, AlignIO
+from logging import raiseExceptions
+from re import L
 import os
 import subprocess
-import tempfile
 
 def system_call(command):
   """ Wrapper for system command call """
   p = subprocess.Popen([command], stdout=subprocess.PIPE, shell=True)
   return p.stdout.read()
 
-def hhblits(dataset_path, dataset_file_type, database=None, data_dir=None, save_dir=None, evalue=0.001, num_iterations=2, num_threads=4):
+def hhblits(dataset_path, database=None, data_dir=None, evalue=0.001, num_iterations=2, num_threads=4):
         
   """
   Run hhblits multisequence alignment search on a dataset. This function
-  requires the hhblits binary to be installed and in the path. It can be
+  requires the hhblits binary to be installed and in the path. This function 
+  also requires a Hidden Markov Model reference database to be provided. Both can be
   found here: https://github.com/soedinglab/hh-suite
+
+  The database should be in the deepchem data directory or specified as an argument. 
+  To set the deepchem data directory, run this command in your environment:
+
+  export DEEPCHEM_DATA_DIR=<path to data directory>
 
   Example:
 
   >>> from deepchem.utils.sequence_utils import hhblits
-  >>> hhblits('dataset.seq', 'fasta', 'uniprot20_2016_02', 'data_dir', 'save_dir', evalue=0.001, num_iterations=2, num_threads=4)
+  >>> hhblits(''path/to/dataset.seq', database='uniprot20_2016_02', data_dir='path/to/data_dir', evalue=0.001, num_iterations=2, num_threads=4)
 
-  results.fas is a multisequence alignment and will be saved in save_dir.
+  The output files results.a3m amd results.hhr will be saved in the dataset directory. results.a3m is a MSA and results.hhr is a hhsuite results file.
   
 
   Parameters
   ----------
   dataset_path: str
-    Path to single sequence or multiple sequence alignment (MSA) dataset.
-  dataset_file_type: str
-    a3m, a2m, or FASTA file format, or HMM in hhm format
+    Path to single sequence or multiple sequence alignment (MSA) dataset. Results will be saved in this directory.
   database: str
-    Name of database to search against.
+    Name of database to search against. Note this is not the path, but the name of the database.
   data_dir: str
     Path to database directory.
-  save_dir: str
-    Path to save results.
   evalue: float
     E-value cutoff.
   num_iterations: int
@@ -46,11 +48,15 @@ def hhblits(dataset_path, dataset_file_type, database=None, data_dir=None, save_
 
   if data_dir is None:
     data_dir = os.environ['DEEPCHEM_DATA_DIR']
+  if len(data_dir) == 0:
+    raiseExceptions('hhblits requires a database. Please follow the instructions here \
+    to download a database: https://github.com/soedinglab/hh-suite/wiki#hh-suite-databases') 
 
-  if save_dir is None:
-    save_dir = tempfile.mkdtemp()
+  _, dataset_file_type = os.path.splitext(dataset_path)
 
-  if dataset_file_type == 'fasta':
+  save_dir = os.path.dirname(os.path.realpath(dataset_path))
+
+  if dataset_file_type == '.fas' or '.fasta':
     command = 'hhsearch ' + \
         ' -i ' + os.path.abspath(dataset_path) + \
         ' -d ' + os.path.join(data_dir, database) + \
@@ -59,44 +65,48 @@ def hhblits(dataset_path, dataset_file_type, database=None, data_dir=None, save_
         ' -n ' + str(num_iterations) + \
         ' -e ' + str(evalue) + \
         ' -M first'
-  else:
+  if dataset_file_type == '.a3m' or '.a2m' or '.hmm':
     command = 'hhsearch ' + \
-            ' -i ' + os.path.abspath(dataset_path) + \
-            ' -d ' + os.path.join(data_dir, database) + \
-            ' -oa3m ' + os.path.join(save_dir, 'results.a3m') + \
-            ' -cpu ' + str(num_threads) + \
-            ' -n ' + str(num_iterations) + \
-            ' -e ' + str(evalue)
+        ' -i ' + os.path.abspath(dataset_path) + \
+        ' -d ' + os.path.join(data_dir, database) + \
+        ' -oa3m ' + os.path.join(save_dir, 'results.a3m') + \
+        ' -cpu ' + str(num_threads) + \
+        ' -n ' + str(num_iterations) + \
+        ' -e ' + str(evalue)
+  else:
+    raiseExceptions('Unsupported file type')
 
   flag = system_call(command)
 
-  return os.path.join(save_dir, 'results.fas')
+  return os.path.join(save_dir, 'results.a3m')
 
-def hhsearch(dataset_path, dataset_file_type, database=None, data_dir=None, save_dir=None, evalue=0.001, num_iterations=2, num_threads=4):
+def hhsearch(dataset_path, database=None, data_dir=None, evalue=0.001, num_iterations=2, num_threads=4):
         
   """
   Run hhsearch multisequence alignment search on a dataset. This function
-  requires the hhblits binary to be installed and in the path. It can be
+  requires the hhblits binary to be installed and in the path. This function 
+  also requires a Hidden Markov Model reference database to be provided. Both can be
   found here: https://github.com/soedinglab/hh-suite
+
+  The database should be in the deepchem data directory or specified as an argument. 
+  To set the deepchem data directory, run this command in your environment:
+
+  export DEEPCHEM_DATA_DIR=<path to data directory> 
 
   Example:
   >>> from deepchem.utils.sequence_utils import hhsearch
-  >>> hhsearch('dataset.seq', 'fasta', 'uniprot20_2016_02', 'data_dir', 'save_dir', evalue=0.001, num_iterations=2, num_threads=4)
+  >>> hhsearch('path/to/dataset.seq', database='uniprot20_2016_02', data_dir='path/to/data_dir', evalue=0.001, num_iterations=2, num_threads=4)
   
-  results.fas is a multisequence alignment and will be saved in save_dir.
+  The output files results.a3m amd results.hhr will be saved in the dataset directory. results.a3m is a MSA and results.hhr is a hhsuite results file.
 
   Parameters
   ----------
   dataset_path: str
-    Path to multiple sequence alignment dataset.
-  dataset_file_type: str
-    a2m, a3m, FASTA file format or HMM
+    Path to multiple sequence alignment dataset. Results will be saved in this directory.
   database: str
-    Name of database to search against.
+    Name of database to search against. Note this is not the path, but the name of the database.
   data_dir: str
     Path to database directory.
-  save_dir: str
-    Path to save results.
   evalue: float
     E-value cutoff.
   num_iterations: int
@@ -108,28 +118,32 @@ def hhsearch(dataset_path, dataset_file_type, database=None, data_dir=None, save
 
   if data_dir is None:
     data_dir = os.environ['DEEPCHEM_DATA_DIR']
+  if len(data_dir) == 0:
+    raiseExceptions('hhblits requires a database. Please follow the instructions here \
+    to download a database: https://github.com/soedinglab/hh-suite/wiki#hh-suite-databases') 
+    
+  _, dataset_file_type = os.path.splitext(dataset_path)
 
-  if save_dir is None:
-    save_dir = tempfile.mkdtemp()
+  save_dir = os.path.dirname(os.path.abspath(dataset_path))
 
-  if dataset_file_type == 'fasta':
+  if dataset_file_type == '.fas' or '.fasta':
     command = 'hhsearch ' + \
         ' -i ' + os.path.abspath(dataset_path) + \
         ' -d ' + os.path.join(data_dir, database) + \
         ' -oa3m ' + os.path.join(save_dir, 'results.a3m') + \
         ' -cpu ' + str(num_threads) + \
-        ' -n ' + str(num_iterations) + \
         ' -e ' + str(evalue) + \
         ' -M first'
-  else:
+  if dataset_file_type == '.a3m' or '.a2m' or '.hmm':
     command = 'hhsearch ' + \
-            ' -i ' + os.path.abspath(dataset_path) + \
-            ' -d ' + os.path.join(data_dir, database) + \
-            ' -oa3m ' + os.path.join(save_dir, 'results.a3m') + \
-            ' -cpu ' + str(num_threads) + \
-            ' -n ' + str(num_iterations) + \
-            ' -e ' + str(evalue)
+        ' -i ' + os.path.abspath(dataset_path) + \
+        ' -d ' + os.path.join(data_dir, database) + \
+        ' -oa3m ' + os.path.join(save_dir, 'results.a3m') + \
+        ' -cpu ' + str(num_threads) + \
+        ' -e ' + str(evalue)
+  else:
+    raiseExceptions('Unsupported file type')
 
   flag = system_call(command)
 
-  return os.path.join(save_dir, 'results.fas')
+  return os.path.join(save_dir, 'results.a3m')
