@@ -139,10 +139,10 @@ If you want to check the tox21 benchmark:
     (deepchem) root@xxxxxxxxxxxxx:~/mydir# wget https://raw.githubusercontent.com/deepchem/deepchem/master/examples/benchmark.py
     (deepchem) root@xxxxxxxxxxxxx:~/mydir# python benchmark.py -d tox21 -m graphconv -s random
 
-Conda Environment and Jupyter Notebook
+Jupyter Notebook
 ----------------------
 
-**Installing via these steps will allow you to install DeepChem into a conda virtual environment that can be used in Jupyter Notebook**.
+**Installing via these steps will allow you to install and import DeepChem into a jupyter notebook within a conda virtual environment.**
 
 **Prerequisite**
 
@@ -158,11 +158,11 @@ First, please create a conda virtual environment (here it's named "deepchem-test
     conda activate deepchem-test
 
 
-Install DeepChem, RDKit, Jupyter and matplotlib into the conda environment.
+Install DeepChem, Jupyter and matplotlib into the conda environment.
 
 .. code-block:: bash
 
-    conda install -y -c conda-forge rdkit nb_conda_kernels matplotlib
+    conda install -y -c conda-forge nb_conda_kernels matplotlib
     pip install tensorflow==2.2.0
     pip install --pre deepchem 
 
