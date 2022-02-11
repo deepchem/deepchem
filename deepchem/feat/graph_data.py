@@ -34,21 +34,15 @@ class GraphData:
   >>> edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int64)
   >>> edge_features = np.random.rand(5, 5)
   >>> graph = GraphData(node_features=node_features, edge_index=edge_index, edge_features=edge_features)
-  >>> print(graph)
-  
-  Returns
-  -------
-  GraphData(node_features=[5, 10], edge_index=[2, 5], edge_features=[5, 5])
+
   """
 
-  def __init__(
-      self,
-      node_features: np.ndarray,
-      edge_index: np.ndarray,
-      edge_features: Optional[np.ndarray] = None,
-      node_pos_features: Optional[np.ndarray] = None,
-      **kwargs
-  ):
+  def __init__(self,
+               node_features: np.ndarray,
+               edge_index: np.ndarray,
+               edge_features: Optional[np.ndarray] = None,
+               node_pos_features: Optional[np.ndarray] = None,
+               **kwargs):
     """
     Parameters
     ----------
@@ -88,9 +82,6 @@ class GraphData:
         raise ValueError(
             'The length of node_pos_features must be the same as the \
                           length of node_features.')
-        
-    for key, value in kwargs.items():
-      setattr(self, key, value)
 
     self.node_features = node_features
     self.edge_index = edge_index
@@ -100,19 +91,22 @@ class GraphData:
     self.num_edges = edge_index.shape[1]
     if self.edge_features is not None:
       self.num_edge_features = self.edge_features.shape[1]
-  
-  def __repr__(self):
-    "Utility to print the graph in more useful way."
-    
-    node_features_str = str(list(node_features.shape))
-    edge_index_str = str(list(edge_index.shape))
+    for key, value in kwargs.items():
+      setattr(self, key, value)
+
+  def __repr__(self) -> str:
+    """Returns a string containing the printable representation of the object"""
+    node_features_str = str(list(self.node_features.shape))
+    edge_index_str = str(list(self.edge_index.shape))
     if self.edge_features is not None:
-      edge_features_str = str(list(edge_features.shape))
-     else:
-      edge_feature_str = None
-    
-     return  "GraphData(node_features=%s, edge_index=%s, edge_features=%s)"%(node_features_str, edge_index_str, edge_features_str)
-  
+      edge_features_str = str(list(self.edge_features.shape))
+    else:
+      edge_features_str = None
+
+    out = "GraphData(node_features=%s, edge_index=%s, edge_features=%s)" % (
+        node_features_str, edge_index_str, edge_features_str)
+    return out
+
   def to_pyg_graph(self):
     """Convert to PyTorch Geometric graph data instance
 
