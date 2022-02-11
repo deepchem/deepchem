@@ -1,12 +1,11 @@
 import unittest
 import os
 import platform
-
-from deepchem.utils.sequence_utils import hhblits, hhsearch
+from deepchem.utils import sequence_utils as seq_utils
 
 IS_WINDOWS = platform.system() == 'Windows'
 
-@unittest.skipIf(IS_WINDOWS, "Skip test on Windows")
+@unittest.skipIf(IS_WINDOWS, "Skip test on Windows") #hhsuite does not run on windows
 class TestSeq(unittest.TestCase):
   """
   Tests sequence handling utilities.
@@ -14,20 +13,23 @@ class TestSeq(unittest.TestCase):
   def setUp(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     self.dataset_file = os.path.join(current_dir, '../data/example.fasta')
-    self.database_file = os.path.join(current_dir,'../') #create test database
+    self.database_file = os.path.join(current_dir,'../') #need to create small test database
     self.data_dir = os.path.join(current_dir,'../data/')
     self.save_dir = os.path.join(current_dir,'../data/')
 
-  def test_load_dataset(self): #Probably not necessary right?
-    assert os.path.exists(self.dataset_file)
-
-  def test_load_database(self):
-    assert os.path.exists(self.database_file)
-
   def test_hhsearch(self):
-    hhsearch(self.dataset_file, self.database_file)
-    assert os.path.exists(self.save_dir)
+    seq_utils.hhsearch(self.dataset_file, database = self.database_file)
+    f = open('results.a3m', 'r')
+    # with open('results.a3m', 'r') as f:
+    lines = f.readlines()
+    f.close()
+    assert len(lines) > 0 # and expected results
 
   def test_hhblits(self):
-    hhblits(self.dataset_file, self.database_file)
-    assert os.path.exists(self.save_dir)
+    seq_utils.hhblits(self.dataset_file, database = self.database_file)
+    f = open('results.a3m', 'r')
+    lines = f.readlines()
+    f.close()
+    assert len(lines) > 0 # and expected results
+
+  
