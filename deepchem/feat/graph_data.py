@@ -83,9 +83,6 @@ class GraphData:
             'The length of node_pos_features must be the same as the \
                           length of node_features.')
 
-    for key, value in kwargs.items():
-      setattr(self, key, value)
-
     self.node_features = node_features
     self.edge_index = edge_index
     self.edge_features = edge_features
@@ -94,6 +91,8 @@ class GraphData:
     self.num_edges = edge_index.shape[1]
     if self.edge_features is not None:
       self.num_edge_features = self.edge_features.shape[1]
+    for key, value in kwargs.items():
+      setattr(self, key, value)
 
   def __repr__(self):
     node_features_str = str(list(self.node_features.shape))
