@@ -163,7 +163,7 @@ Install DeepChem, Jupyter and matplotlib into the conda environment.
 .. code-block:: bash
 
     conda install -y -c conda-forge nb_conda_kernels matplotlib
-    pip install tensorflow==2.2.0
+    pip install tensorflow
     pip install --pre deepchem 
 
 
