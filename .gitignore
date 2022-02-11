@@ -106,8 +106,3 @@ datasets/qm8.csv
 .vscode/
 env.yml
 .python-version
-deepchem/utils/hh_help.py
-.gitignore
-.gitignore
-workspace.code-workspace
-.gitignore
