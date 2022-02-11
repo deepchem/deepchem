@@ -41,6 +41,7 @@ class GraphData:
       edge_index: np.ndarray,
       edge_features: Optional[np.ndarray] = None,
       node_pos_features: Optional[np.ndarray] = None,
+      **kwargs
   ):
     """
     Parameters
@@ -81,6 +82,9 @@ class GraphData:
         raise ValueError(
             'The length of node_pos_features must be the same as the \
                           length of node_features.')
+        
+    for key, value in kwargs.items():
+      setattr(self, key, value)
 
     self.node_features = node_features
     self.edge_index = edge_index
@@ -92,23 +96,16 @@ class GraphData:
       self.num_edge_features = self.edge_features.shape[1]
   
   def __repr__(self):
-    """Utility to print the graph in more useful way.
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> node_features = np.random.rand(5, 10)
-    >>> edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int64)
-    >>> graph = GraphData(node_features=node_features, edge_index=edge_index)
-    >>> print(graph)
-
-    Returns
-    -------
-        GraphData(node_features=[5, 10], edge_index=[2, 5])
-     """
+    "Utility to print the graph in more useful way."
+    
     node_features_str = str(list(node_features.shape))
     edge_index_str = str(list(edge_index.shape))
-    return  "GraphData(node_features="+node_features_str+", edge_index="+edge_index_str+")"
+    if self.edge_features is not None:
+      edge_features_str = str(list(edge_features.shape))
+     else:
+      edge_feature_str = None
+    
+     return  "GraphData(node_features=%s, edge_index=%s, edge_features=%s)"%(node_features_str, edge_index_str, edge_features_str)
   
   def to_pyg_graph(self):
     """Convert to PyTorch Geometric graph data instance
