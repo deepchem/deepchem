@@ -53,6 +53,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [14 Conditional Generative Adversarial Networks](Conditional_Generative_Adversarial_Networks.ipynb)
 * [15 Training a Generative Adversarial Network on MNIST](Training_a_Generative_Adversarial_Network_on_MNIST.ipynb)
 * [16 Distributed Multi-GPU Training of DeepChem Models with LitMatter](https://github.com/ncfrey/litmatter/blob/main/LitDeepChem.ipynb)
+* [17 Advanced model training using Hyperopt](Advanced_model_training_using_hyperopt.ipynb)
 
 ### Molecular Machine Learning
 * [1 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
