@@ -1,4 +1,7 @@
 name: deepchem
+channels:
+  - conda-forge
 dependencies:
+  - hhsuite
   - pip:
     - vina

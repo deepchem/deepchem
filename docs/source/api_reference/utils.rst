@@ -119,6 +119,10 @@ Genomic Utilities
 
 .. autofunction:: deepchem.utils.genomics_utils.encode_bio_sequence
 
+..autofunction:: deepchem.utils.sequence_utils.hhblits
+
+..autofunction:: deepchem.utils.sequence_utils.hhsearch
+
 
 Geometry Utilities
 ------------------
