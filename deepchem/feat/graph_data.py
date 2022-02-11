@@ -32,7 +32,13 @@ class GraphData:
   >>> import numpy as np
   >>> node_features = np.random.rand(5, 10)
   >>> edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int64)
-  >>> graph = GraphData(node_features=node_features, edge_index=edge_index)
+  >>> edge_features = np.random.rand(5, 5)
+  >>> graph = GraphData(node_features=node_features, edge_index=edge_index, edge_features=edge_features)
+  >>> print(graph)
+  
+  Returns
+  -------
+  GraphData(node_features=[5, 10], edge_index=[2, 5], edge_features=[5, 5])
   """
 
   def __init__(
