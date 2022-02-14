@@ -9,18 +9,17 @@ import logging
 from typing import List, Optional, Sequence
 
 import numpy as np
-from sklearn.base import BaseEstimator
 
 from deepchem.data import Dataset
 from deepchem.metrics import Metric
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import Evaluator
-from deepchem.utils.typing import ArrayLike
+from deepchem.utils.typing import OneOrMany
 
 logger = logging.getLogger(__name__)
 
 
-class Model(BaseEstimator):
+class Model(object):
   """
   Abstract base class for DeepChem models.
   """
@@ -75,7 +74,7 @@ class Model(BaseEstimator):
     raise NotImplementedError(
         "Each model is responsible for its own fit_on_batch method.")
 
-  def predict_on_batch(self, X: ArrayLike):
+  def predict_on_batch(self, X: np.typing.ArrayLike):
     """
     Makes predictions on given batch of new data.
 
@@ -128,7 +127,7 @@ class Model(BaseEstimator):
         "Each model is responsible for its own fit method.")
 
   def predict(self, dataset: Dataset,
-              transformers: List[Transformer] = []) -> np.ndarray:
+              transformers: List[Transformer] = []) -> OneOrMany[np.ndarray]:
     """
     Uses self to make predictions on provided Dataset object.
 

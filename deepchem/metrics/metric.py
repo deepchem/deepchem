@@ -2,6 +2,7 @@ import logging
 from typing import Any, Callable, Optional
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 logger = logging.getLogger(__name__)
 
@@ -560,9 +561,9 @@ class Metric(object):
     self.threshold_value = threshold_value
 
   def compute_metric(self,
-                     y_true: np.ndarray,
-                     y_pred: np.ndarray,
-                     w: Optional[np.ndarray] = None,
+                     y_true: ArrayLike,
+                     y_pred: ArrayLike,
+                     w: Optional[ArrayLike] = None,
                      n_tasks: Optional[int] = None,
                      n_classes: int = 2,
                      per_task_metrics: bool = False,
@@ -572,19 +573,19 @@ class Metric(object):
 
     Parameters
     ----------
-    y_true: np.ndarray
-      An np.ndarray containing true values for each task. Must be of shape
+    y_true: ArrayLike
+      An ArrayLike containing true values for each task. Must be of shape
       `(N,)` or `(N, n_tasks)` or `(N, n_tasks, n_classes)` if a
       classification metric. If of shape `(N, n_tasks)` values can either be
       class-labels or probabilities of the positive class for binary
       classification problems. If a regression problem, must be of shape
       `(N,)` or `(N, n_tasks)` or `(N, n_tasks, 1)` if a regression metric.
-    y_pred: np.ndarray
-      An np.ndarray containing predicted values for each task. Must be
+    y_pred: ArrayLike
+      An ArrayLike containing predicted values for each task. Must be
       of shape `(N, n_tasks, n_classes)` if a classification metric,
       else must be of shape `(N, n_tasks)` if a regression metric.
-    w: np.ndarray, default None
-      An np.ndarray containing weights for each datapoint. If
+    w: ArrayLike, default None
+      An ArrayLike containing weights for each datapoint. If
       specified,  must be of shape `(N, n_tasks)`.
     n_tasks: int, default None
       The number of tasks this class is expected to handle.
@@ -603,38 +604,41 @@ class Metric(object):
       A numpy array containing metric values for each task.
     """
     # Attempt some limited shape imputation to find n_tasks
+    y_true_arr = np.asarray(y_true)
+    y_pred_arr = np.asarray(y_pred)
     if n_tasks is None:
-      if self.n_tasks is None and isinstance(y_true, np.ndarray):
-        if len(y_true.shape) == 1:
+      if self.n_tasks is None and isinstance(y_true_arr, np.ndarray):
+        if len(y_true_arr.shape) == 1:
           n_tasks = 1
-        elif len(y_true.shape) >= 2:
-          n_tasks = y_true.shape[1]
+        elif len(y_true_arr.shape) >= 2:
+          n_tasks = y_true_arr.shape[1]
       else:
         n_tasks = self.n_tasks
     # check whether n_tasks is int or not
     # This is because `normalize_weight_shape` require int value.
     assert isinstance(n_tasks, int)
 
-    y_true = normalize_labels_shape(
-        y_true, mode=self.mode, n_tasks=n_tasks, n_classes=n_classes)
-    y_pred = normalize_prediction_shape(
-        y_pred, mode=self.mode, n_tasks=n_tasks, n_classes=n_classes)
+    y_true_arr = normalize_labels_shape(
+        y_true_arr, mode=self.mode, n_tasks=n_tasks, n_classes=n_classes)
+    y_pred_arr = normalize_prediction_shape(
+        y_pred_arr, mode=self.mode, n_tasks=n_tasks, n_classes=n_classes)
     if self.mode == "classification":
-      y_true = handle_classification_mode(
-          y_true, self.classification_handling_mode, self.threshold_value)
-      y_pred = handle_classification_mode(
-          y_pred, self.classification_handling_mode, self.threshold_value)
-    n_samples = y_true.shape[0]
-    w = normalize_weight_shape(w, n_samples, n_tasks)
+      y_true_arr = handle_classification_mode(
+          y_true_arr, self.classification_handling_mode, self.threshold_value)
+      y_pred_arr = handle_classification_mode(
+          y_pred_arr, self.classification_handling_mode, self.threshold_value)
+    n_samples = y_true_arr.shape[0]
+    w = normalize_weight_shape(None if w is None else np.asarray(w), n_samples,
+                               n_tasks)
     computed_metrics = []
     for task in range(n_tasks):
-      y_task = y_true[:, task]
-      y_pred_task = y_pred[:, task]
+      y_task = y_true_arr[:, task]
+      y_pred_arr_task = y_pred_arr[:, task]
       w_task = w[:, task]
 
       metric_value = self.compute_singletask_metric(
           y_task,
-          y_pred_task,
+          y_pred_arr_task,
           w_task,
           use_sample_weights=use_sample_weights,
           **kwargs)
@@ -650,9 +654,9 @@ class Metric(object):
       return self.task_averager(computed_metrics), computed_metrics
 
   def compute_singletask_metric(self,
-                                y_true: np.ndarray,
-                                y_pred: np.ndarray,
-                                w: Optional[np.ndarray] = None,
+                                y_true: ArrayLike,
+                                y_pred: ArrayLike,
+                                w: Optional[ArrayLike] = None,
                                 n_samples: Optional[int] = None,
                                 use_sample_weights: bool = False,
                                 **kwargs) -> float:
@@ -660,13 +664,13 @@ class Metric(object):
 
     Parameters
     ----------
-    y_true: `np.ndarray`
+    y_true: ArrayLike
       True values array. This array must be of shape `(N,
       n_classes)` if classification and `(N,)` if regression.
-    y_pred: `np.ndarray`
+    y_pred: ArrayLike
       Predictions array. This array must be of shape `(N, n_classes)`
       if classification and `(N,)` if regression.
-    w: `np.ndarray`, default None
+    w: ArrayLike, default None
       Sample weight array. This array must be of shape `(N,)`
     n_samples: int, default None (DEPRECATED)
       The number of samples in the dataset. This is `N`. This argument is
@@ -684,9 +688,11 @@ class Metric(object):
     if n_samples is not None:
       logger.warning("n_samples is a deprecated argument which is ignored.")
     # Attempt to convert both into the same type
+    y_true_arr = np.asarray(y_true)
+    y_pred_arr = np.asarray(y_pred)
     if self.mode == "regression":
-      if len(y_true.shape) != 1 or len(
-          y_pred.shape) != 1 or len(y_true) != len(y_pred):
+      if len(y_true_arr.shape) != 1 or len(
+          y_pred_arr.shape) != 1 or y_true_arr.shape != y_pred_arr.shape:
         raise ValueError(
             "For regression metrics, y_true and y_pred must both be of shape (N,)"
         )
@@ -699,7 +705,8 @@ class Metric(object):
           "Only classification and regression are supported for metrics calculations."
       )
     if use_sample_weights:
-      metric_value = self.metric(y_true, y_pred, sample_weight=w, **kwargs)
+      metric_value = self.metric(
+          y_true_arr, y_pred_arr, sample_weight=w, **kwargs)
     else:
-      metric_value = self.metric(y_true, y_pred, **kwargs)
+      metric_value = self.metric(y_true_arr, y_pred_arr, **kwargs)
     return metric_value

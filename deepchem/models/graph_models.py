@@ -75,9 +75,9 @@ class WeaveModel(KerasModel):
 
   References
   ----------
-  .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
-  fingerprints." Journal of computer-aided molecular design 30.8 (2016):
-  595-608.
+  .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond 
+         fingerprints." Journal of computer-aided molecular design 30.8 (2016): 
+         595-608.
 
   """
 
@@ -410,8 +410,8 @@ class DTNNModel(KerasModel):
 
   References
   ----------
-  .. [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
-  tensor neural networks." Nature communications 8.1 (2017): 1-8.
+  .. [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep 
+         tensor neural networks." Nature communications 8.1 (2017): 1-8.
   """
 
   def __init__(self,
@@ -896,9 +896,9 @@ class GraphConvModel(KerasModel):
 
   References
   ----------
-  .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
-  learning molecular fingerprints." Advances in neural information processing
-  systems. 2015.
+  .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for 
+         learning molecular fingerprints." Advances in neural information processing 
+         systems. 2015.
   """
 
   def __init__(self,
@@ -1028,8 +1028,8 @@ class MPNNModel(KerasModel):
 
   References
   ----------
-  .. [1] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters:
-  Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
+  .. [1] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters: 
+         Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
   """
 
   def __init__(self,

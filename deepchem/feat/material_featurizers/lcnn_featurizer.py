@@ -401,7 +401,7 @@ class _SiteEnvironment(object):
 class _SiteEnvironments(object):
 
   def __init__(self, site_envs: List[_SiteEnvironment], ns: int, na: int,
-               aos: List[str], eigen_tol: float, pbc: np.ndarray,
+               aos: List[str], eigen_tol: float, pbc: np.typing.ArrayLike,
                cutoff: float):
     """
     Initialize
@@ -420,7 +420,7 @@ class _SiteEnvironments(object):
       string should be the name of the occupancy. (consistent with the input data)
     eigen_tol : float
       tolerance for eigenanalysis of point group analysis in pymatgen.
-    pbc : List[str]
+    pbc : ArrayLike
       Boolean array, periodic boundary condition.
     cutoff : float
       Cutoff radius in angstrom for pooling sites to construct local environment
@@ -598,7 +598,7 @@ def _load_primitive_cell(struct: PymatgenStructure,
 
 def _get_SiteEnvironments(struct: PymatgenStructure,
                           cutoff: float,
-                          PBC: List[bool],
+                          PBC: np.typing.ArrayLike,
                           get_permutations: bool = True,
                           eigen_tol: float = 1e-5) -> List[Dict[str, Any]]:
   """
@@ -618,7 +618,7 @@ def _get_SiteEnvironments(struct: PymatgenStructure,
   cutoff : float
     cutoff distance in angstrom for collecting local
     environment.
-  pbc : np.ndarray
+  pbc : ArrayLike
     Periodic boundary condition
   get_permutations : bool (default True)
     Whether to find permuted neighbor list or not.
@@ -666,19 +666,20 @@ def _get_SiteEnvironments(struct: PymatgenStructure,
         local_env_sym.append(n[0].specie)
         local_env_dist.append(n[1])
         local_env_sitemap.append(n[2])
-    local_env_xyz = np.subtract(local_env_xyz, np.mean(local_env_xyz, 0))
+    local_env_pos = np.subtract(local_env_xyz, np.mean(local_env_xyz, 0))
 
     perm = []
     if get_permutations:
       finder = PointGroupAnalyzer(
-          Molecule(local_env_sym, local_env_xyz), eigen_tolerance=eigen_tol)
+          Molecule(local_env_sym, local_env_pos),  # type: ignore
+          eigen_tolerance=eigen_tol)
       pg = finder.get_pointgroup()
       for i, op in enumerate(pg):
-        newpos = op.operate_multi(local_env_xyz)
-        perm.append(np.argmin(cdist(local_env_xyz, newpos), axis=1).tolist())
+        newpos = op.operate_multi(local_env_pos)
+        perm.append(np.argmin(cdist(local_env_pos, newpos), axis=1).tolist())
 
     site_env = {
-        'pos': local_env_xyz,
+        'pos': local_env_pos,
         'sitetypes': [sym_site_map[s] for s in local_env_sym],
         'env2config': local_env_sitemap,
         'permutations': perm,

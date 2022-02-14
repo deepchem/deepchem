@@ -52,7 +52,7 @@ class KerasModel(Model):
      models with Keras.
 
   3. It provides various additional features not found in the
-     Keras Model class, such as uncertainty prediction and
+     Keras model class, such as uncertainty prediction and
      saliency mapping.
 
   Here is a simple example of code that uses KerasModel to train
@@ -563,11 +563,10 @@ class KerasModel(Model):
         loss=loss,
         callbacks=callbacks)
 
-  def _predict(
-      self, generator: Iterable[Tuple[Any, Any, Any]],
-      transformers: List[Transformer], outputs: Optional[OneOrMany[tf.Tensor]],
-      uncertainty: bool,
-      other_output_types: Optional[OneOrMany[str]]) -> OneOrMany[np.ndarray]:
+  def _predict(self, generator: Iterable[Tuple[Any, Any, Any]],
+               transformers: List[Transformer],
+               outputs: Optional[OneOrMany[tf.Tensor]], uncertainty: bool,
+               other_output_types: Optional[OneOrMany[str]]):
     """
     Predict outputs for data provided by a generator.
 
@@ -735,7 +734,7 @@ class KerasModel(Model):
 
   def predict_on_batch(
       self,
-      X: ArrayLike,
+      X: np.typing.ArrayLike,
       transformers: List[Transformer] = [],
       outputs: Optional[OneOrMany[tf.Tensor]] = None) -> OneOrMany[np.ndarray]:
     """Generates predictions for input samples, processing samples in a batch.
@@ -954,15 +953,15 @@ class KerasModel(Model):
     input_shape = X.shape
     X = np.reshape(X, [1] + list(X.shape))
     self._create_inputs([X])
-    X, _, _ = self._prepare_batch(([X], None, None))
+    X_b, _, _ = self._prepare_batch(([X], None, None))
 
     # Use a GradientTape to compute gradients.
 
-    X = tf.constant(X[0])
+    X_c = tf.constant(X_b[0])
     with tf.GradientTape(
         persistent=True, watch_accessed_variables=False) as tape:
-      tape.watch(X)
-      outputs = self._compute_model(X)
+      tape.watch(X_c)
+      outputs = self._compute_model(X_c)
       if tf.is_tensor(outputs):
         outputs = [outputs]
       final_result = []
@@ -971,7 +970,7 @@ class KerasModel(Model):
         output = tf.reshape(output, [-1])
         result = []
         for i in range(output.shape[0]):
-          result.append(tape.gradient(output[i], X))
+          result.append(tape.gradient(output[i], X_c))
         final_result.append(
             tf.reshape(tf.stack(result), output_shape + input_shape).numpy())
     if len(final_result) == 1:
@@ -1183,7 +1182,7 @@ class KerasModel(Model):
     `value_map` is created. `assignment_map` is a dictionary mapping variables
     from the `source_model` to the current model. If no `assignment_map` is
     provided, one is made from scratch and assumes the model is composed of
-    several different layers, with the final one being a dense layer. include_top
+    several different layers, with the final one being a dense layer. `include_top`
     is used to control whether or not the final dense layer is used. The default
     assignment map is useful in cases where the type of task is different
     (classification vs regression) and/or number of tasks in the setting.

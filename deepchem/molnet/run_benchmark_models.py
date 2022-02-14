@@ -439,7 +439,7 @@ def benchmark_regression(train_dataset,
       'dtnn', 'dag_regression', 'xgb_regression', 'weave_regression',
       'textcnn_regression', 'krr', 'ani', 'krr_ft', 'mpnn'
   ]
-  import xgboost
+
   if hyper_parameters is None:
     hyper_parameters = hps[model]
   model_name = model
@@ -732,6 +732,7 @@ def benchmark_regression(train_dataset,
 
     # Building xgboost regression model
     def model_builder(model_dir):
+      import xgboost
       xgboost_model = xgboost.XGBRegressor(
           max_depth=max_depth,
           learning_rate=learning_rate,

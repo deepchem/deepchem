@@ -1,6 +1,8 @@
 # This script creates the new deepchem enviroment
 # This script works on only Bash and Zsh
 
+set -e # Exit if any command fails.
+
 CMDNAME=`basename ${BASH_SOURCE:-$0}`
 if [ $# -ne 2 ]; then
     echo "Please set two arguments."
@@ -18,16 +20,17 @@ conda config --set always_yes yes
 conda create --name deepchem python=$1
 conda install -c conda-forge conda-merge
 
+dir="$PWD/requirements"
 if [ "$2" = "gpu" ];
 then
     # We expect the CUDA vesion is 10.1.
-    conda-merge $PWD/env.common.yml $PWD/env.gpu.yml $PWD/env.test.yml > $PWD/env.yml
+    conda-merge $dir/env_common.yml $dir/torch/env_torch.gpu.yml $dir/env_test.yml $dir/jax/env_jax.gpu.yml > $PWD/env.yml
     echo "Installing DeepChem in the GPU environment"
 else
     if [ "$(uname)" = 'Darwin' ]; then
-        conda-merge $PWD/env.common.yml $PWD/env.cpu.mac.yml $PWD/env.test.yml > $PWD/env.yml
-    else
-        conda-merge $PWD/env.common.yml $PWD/env.cpu.yml $PWD/env.test.yml > $PWD/env.yml
+        conda-merge $dir/env_common.yml $dir/env_mac.yml $dir/env_test.yml $dir/tensorflow/env_tensorflow.cpu.yml $dir/torch/env_torch.mac.cpu.yml $dir/jax/env_jax.cpu.yml > $PWD/env.yml
+    elif [ "$(uname)" = 'Linux' ]; then
+        conda-merge $dir/env_common.yml $dir/env_test.yml $dir/env_ubuntu.yml $dir/tensorflow/env_tensorflow.cpu.yml $dir/torch/env_torch.cpu.yml $dir/jax/env_jax.cpu.yml > $PWD/env.yml
     fi
     echo "Installing DeepChem in the CPU environment"
 fi

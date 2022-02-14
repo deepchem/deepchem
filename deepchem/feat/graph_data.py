@@ -223,13 +223,13 @@ class BatchGraphData(GraphData):
     # we should check whether these are None or not
     if graph_list[0].edge_features is not None:
       batch_edge_features: Optional[np.ndarray] = np.vstack(
-          [graph.edge_features for graph in graph_list])
+          [graph.edge_features for graph in graph_list])  # type: ignore
     else:
       batch_edge_features = None
 
     if graph_list[0].node_pos_features is not None:
       batch_node_pos_features: Optional[np.ndarray] = np.vstack(
-          [graph.node_pos_features for graph in graph_list])
+          [graph.node_pos_features for graph in graph_list])  # type: ignore
     else:
       batch_node_pos_features = None
 

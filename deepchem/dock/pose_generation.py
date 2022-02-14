@@ -141,7 +141,7 @@ class GninaPoseGenerator(PoseGenerator):
       num_pockets: Optional[int] = None,
       out_dir: Optional[str] = None,
       generate_scores: bool = True,
-      **kwargs) -> Union[Tuple[DOCKED_POSES, List[float]], DOCKED_POSES]:
+      **kwargs) -> Union[Tuple[DOCKED_POSES, np.ndarray], DOCKED_POSES]:
     """Generates the docked complex and outputs files for docked complex.
 
     Parameters
@@ -384,10 +384,8 @@ class VinaPoseGenerator(PoseGenerator):
     else:
       if self.pocket_finder is None:
         logger.info("Pockets not specified. Will use whole protein to dock")
-        protein_centroid = compute_centroid(protein_mol[0])
-        protein_range = compute_protein_range(protein_mol[0])
-        box_dims = protein_range + 5.0
-        centroids, dimensions = [protein_centroid], [box_dims]
+        centroids = [compute_centroid(protein_mol[0])]
+        dimensions = [compute_protein_range(protein_mol[0]) + 5.0]
       else:
         logger.info("About to find putative binding pockets")
         pockets = self.pocket_finder.find_pockets(protein_file)
@@ -395,16 +393,14 @@ class VinaPoseGenerator(PoseGenerator):
         logger.info("Computing centroid and size of proposed pockets.")
         centroids, dimensions = [], []
         for pocket in pockets:
-          protein_centroid = pocket.center()
           (x_min, x_max), (y_min, y_max), (
               z_min, z_max) = pocket.x_range, pocket.y_range, pocket.z_range
           # TODO(rbharath: Does vina divide box dimensions by 2?
           x_box = (x_max - x_min) / 2.
           y_box = (y_max - y_min) / 2.
           z_box = (z_max - z_min) / 2.
-          box_dims = (x_box, y_box, z_box)
-          centroids.append(protein_centroid)
-          dimensions.append(box_dims)
+          centroids.append(pocket.center())
+          dimensions.append(np.array((x_box, y_box, z_box)))
 
     if num_pockets is not None:
       logger.info("num_pockets = %d so selecting this many pockets for docking."

@@ -19,7 +19,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('env.*.yml') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/tensorflow/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
@@ -70,7 +70,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('env.*.yml') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/tensorflow/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Cache pip packages for MacOS
@@ -78,7 +78,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/Library/Caches/pip
-        key: ${{ matrix.os }}-pip-${{ hashFiles('env.*.yml') }}
+        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/tensorflow/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Cache pip packages for Windows
@@ -86,7 +86,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~\AppData\Local\pip\Cache
-        key: ${{ matrix.os }}-pip-${{ hashFiles('env.*.yml') }}
+        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/tensorflow/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
@@ -98,7 +98,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip;
         pip install conda-merge;
-        conda-merge requirements/tensorflow/env_tensorflow.yml env.test.yml > env.yml
+        conda-merge requirements/env_common.yml requirements/env_test.yml > env.yml
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v2
       with:

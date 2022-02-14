@@ -205,7 +205,7 @@ class MATFeaturizer(MolecularFeaturizer):
     max_shape = tuple(np.max(shapes, axis=0))
     return np.stack([self._pad_array(t, shape=max_shape) for t in sequence])
 
-  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> MATEncoding:
     """
     Featurize the molecule.
 

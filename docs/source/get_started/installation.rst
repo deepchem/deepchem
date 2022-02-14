@@ -4,13 +4,7 @@ Installation
 Stable version
 --------------
 
-Please install tensorflow ~2.4 before installing deepchem.
-
-.. code-block:: bash
-
-    pip install tensorflow~=2.4
-
-Then, you install deepchem via pip or conda.  
+Install deepchem via pip or conda by simply running,
 
 .. code-block:: bash
 
@@ -22,13 +16,6 @@ or
 
     conda install -c conda-forge deepchem
 
-RDKit is a soft requirement package, but many useful methods like molnet depend on it.
-We recommend installing RDKit with deepchem if you use conda.
-
-.. code-block:: bash
-
-    conda install -y -c conda-forge rdkit
-
 Nightly build version
 ---------------------
 The nightly version is built by the HEAD of DeepChem.
@@ -37,7 +24,7 @@ For using general utilites like Molnet, Featurisers, Datasets, etc, then, you in
 
 .. code-block:: bash
 
-    pip install deepchem
+    pip install --pre deepchem
 
 Deepchem provides support for tensorflow, pytorch, jax and each require
 a individual pip Installation.
@@ -69,6 +56,8 @@ If GPU support is required, then make sure CUDA is installed and then install th
 In :code:`zsh` square brackets are used for globbing/pattern matching. This means
 you need to escape the square brackets in the above installation. You can do so by
 including the dependencies in quotes like :code:`pip install --pre 'deepchem[jax]'`
+
+Note: Support for jax is not available in windows (jax is not officially supported in windows).
 
 Google Colab
 ------------
@@ -164,14 +153,14 @@ Then, execute the shell script. The shell scripts require two arguments,
 
 .. code-block:: bash
 
-    source scripts/install_deepchem_conda.sh 3.7 cpu
+    source scripts/install_deepchem_conda.sh 3.8 cpu
 
 
 If you want GPU support (we supports only CUDA 10.1):
 
 .. code-block:: bash
 
-    source scripts/install_deepchem_conda.sh 3.7 gpu
+    source scripts/install_deepchem_conda.sh 3.8 gpu
 
 
 If you are using the Windows and the PowerShell:
@@ -237,8 +226,9 @@ If one also wants to build the Jax environment, add this
 
     pip install -e .[jax]
 
-DeepChem has soft requirements, which can be installed on the fly during development inside the environment but if you would a install
-all the soft-dependencies at once, then take a look `deepchem/requirements/<https://github.com/deepchem/deepchem/tree/master/requirements>`___
+DeepChem has soft requirements, which can be installed on the fly during development inside the environment 
+but if you want to install all the soft-dependencies at once, then take a look at 
+`deepchem/requirements <https://github.com/deepchem/deepchem/tree/master/requirements>`_
 
 
 .. _`DeepChem Tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials

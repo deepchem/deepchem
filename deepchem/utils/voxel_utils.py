@@ -75,7 +75,7 @@ def convert_atom_pair_to_voxel(coordinates_tuple: Tuple[np.ndarray, np.ndarray],
 
 
 def voxelize(get_voxels: Callable[..., Any],
-             coordinates: np.ndarray,
+             coordinates: Any,
              box_width: float = 16.0,
              voxel_width: float = 1.0,
              hash_function: Optional[Callable[..., Any]] = None,
@@ -94,8 +94,9 @@ def voxelize(get_voxels: Callable[..., Any],
   ----------
   get_voxels: Function
     Function that voxelizes inputs
-  coordinates: np.ndarray
-    Contains the 3D coordinates of a molecular system.
+  coordinates: Any
+    Contains the 3D coordinates of a molecular system.  This should have
+    whatever type get_voxels() expects as its first argument.
   box_width: float, optional (default 16.0)
     Size of a box in which voxel features are calculated. Box
     is centered on a ligand centroid.

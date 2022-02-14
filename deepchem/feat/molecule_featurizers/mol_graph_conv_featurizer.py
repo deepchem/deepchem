@@ -64,11 +64,11 @@ def _construct_atom_feature(
 
   if use_chirality:
     chirality = get_atom_chirality_one_hot(atom)
-    atom_feat = np.concatenate([atom_feat, chirality])
+    atom_feat = np.concatenate([atom_feat, np.array(chirality)])
 
   if use_partial_charge:
     partial_charge = get_atom_partial_charge(atom)
-    atom_feat = np.concatenate([atom_feat, partial_charge])
+    atom_feat = np.concatenate([atom_feat, np.array(partial_charge)])
   return atom_feat
 
 
@@ -181,6 +181,8 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     graph: GraphData
       A molecule graph with some features.
     """
+    assert datapoint.GetNumAtoms(
+    ) > 1, "More than one atom should be present in the molecule for this featurizer to work."
     if 'mol' in kwargs:
       datapoint = kwargs.get("mol")
       raise DeprecationWarning(
@@ -350,7 +352,7 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
     ring_info: list
         Different rings that contain the pair of atoms
     """
-    features = []
+    features: List = []
     path_bonds = []
     path_length = len(path_atoms)
     for path_idx in range(path_length - 1):
@@ -424,7 +426,7 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
         ring_info = rings_dict.get(self.ordered_pair(i, j), [])
         feats.append(self._edge_features(mol, paths_dict[(i, j)], ring_info))
 
-    return np.array([src, dest], dtype=np.int), np.array(feats, dtype=np.float)
+    return np.array([src, dest], dtype=int), np.array(feats, dtype=float)
 
   def _featurize(self, datapoint: RDKitMol, **kwargs) -> GraphData:
     """Calculate molecule graph features from RDKit mol object.
@@ -447,7 +449,7 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
 
     node_features = np.asarray(
         [self._pagtn_atom_featurizer(atom) for atom in datapoint.GetAtoms()],
-        dtype=np.float)
+        dtype=float)
     edge_index, edge_features = self._pagtn_edge_featurizer(datapoint)
     graph = GraphData(node_features, edge_index, edge_features)
     return graph

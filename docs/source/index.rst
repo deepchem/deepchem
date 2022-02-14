@@ -97,17 +97,7 @@ To listen in, please email X.Y@gmail.com, where X=bharath and Y=ramsundar to int
    get_started/tutorials
    get_started/examples
    get_started/issues
-
-.. toctree::
-   :glob:
-   :maxdepth: 1
-   :caption: Development Guide
-
-   development_guide/licence
-   development_guide/scientists
-   development_guide/coding
-   development_guide/ci
-   development_guide/infra
+   get_started/Docker-tutorial
 
 .. toctree::
    :glob:
@@ -127,3 +117,14 @@ To listen in, please email X.Y@gmail.com, where X=bharath and Y=ramsundar to int
    api_reference/rl
    api_reference/docking
    api_reference/utils
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: Development Guide
+
+   development_guide/licence
+   development_guide/scientists
+   development_guide/coding
+   development_guide/ci
+   development_guide/infra

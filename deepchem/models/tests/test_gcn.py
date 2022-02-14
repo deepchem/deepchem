@@ -1,6 +1,6 @@
 import pytest
 import tempfile
-
+from flaky import flaky
 import numpy as np
 
 import deepchem as dc
@@ -51,6 +51,7 @@ def test_gcn_regression():
   model.fit(train_set, nb_epoch=1)
 
 
+@flaky
 @pytest.mark.torch
 def test_gcn_classification():
   # load datasets
@@ -87,6 +88,7 @@ def test_gcn_classification():
   model.fit(train_set, nb_epoch=1)
 
 
+@flaky
 @pytest.mark.torch
 def test_gcn_reload():
   # load datasets
