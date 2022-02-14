@@ -21,8 +21,8 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
   using standard featurizer such as OneHotFeaturizer. For example: SwissprotDataset
 
 
-  Standalone Usage:
-
+  Examples
+  --------
   >>> import deepchem as dc
   >>> featurizer = dc.feat.SparseMatrixOneHotFeaturizer()
   >>> sequence = "MMMQLA"
@@ -59,8 +59,6 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
     log_every_n: int, optional (default 1000)
       How many elements are featurized every time a featurization is logged.
     """
-    if (len(datapoints) < 1):
-      return np.array([])
     # Featurize data using featurize() in parent class
     return Featurizer.featurize(self, datapoints, log_every_n)
 
