@@ -15,10 +15,11 @@ from ast import literal_eval as make_tuple
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
+from numpy.typing import ArrayLike
 import pandas as pd
 
 import deepchem as dc
-from deepchem.utils.typing import ArrayLike, OneOrMany, Shape
+from deepchem.utils.typing import OneOrMany, Shape
 from deepchem.utils.data_utils import save_to_disk, load_from_disk, load_image_files
 
 Batch = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
@@ -420,7 +421,8 @@ class Dataset(object):
     """
     raise NotImplementedError()
 
-  def select(self, indices: Sequence[int],
+  def select(self,
+             indices: Union[Sequence[int], np.ndarray],
              select_dir: Optional[str] = None) -> "Dataset":
     """Creates a new dataset from a selection of indices from self.
 
@@ -434,7 +436,7 @@ class Dataset(object):
     raise NotImplementedError()
 
   def get_statistics(self, X_stats: bool = True,
-                     y_stats: bool = True) -> Tuple[float, ...]:
+                     y_stats: bool = True) -> Tuple[np.ndarray, ...]:
     """Compute and return statistics of this dataset.
 
     Uses `self.itersamples()` to compute means and standard deviations
@@ -455,10 +457,11 @@ class Dataset(object):
       - If `y_stats == True`, returns `(y_means, y_stds)`.
       - If both are true, returns `(X_means, X_stds, y_means, y_stds)`.
     """
-    X_means = 0.0
-    X_m2 = 0.0
-    y_means = 0.0
-    y_m2 = 0.0
+    x_shape, y_shape, w_shape, ids_shape = self.get_shape()
+    X_means = np.zeros(x_shape[1:])
+    X_m2 = np.zeros(x_shape[1:])
+    y_means = np.zeros(y_shape[1:])
+    y_m2 = np.zeros(y_shape[1:])
     n = 0
     for X, y, _, _ in self.itersamples():
       n += 1
@@ -471,8 +474,8 @@ class Dataset(object):
         y_means += dy / n
         y_m2 += dy * (y - y_means)
     if n < 2:
-      X_stds = 0.0
-      y_stds = 0
+      X_stds = np.zeros(x_shape[1:])
+      y_stds = np.zeros(y_shape[1:])
     else:
       X_stds = np.sqrt(X_m2 / n)
       y_stds = np.sqrt(y_m2 / n)
@@ -525,9 +528,10 @@ class Dataset(object):
     # Retrieve the first sample so we can determine the dtypes.
     X, y, w, ids = next(self.itersamples())
     dtypes = (tf.as_dtype(X.dtype), tf.as_dtype(y.dtype), tf.as_dtype(w.dtype))
-    shapes = (tf.TensorShape([None] + list(X.shape)),
-              tf.TensorShape([None] + list(y.shape)),
-              tf.TensorShape([None] + list(w.shape)))
+    shapes = (
+        tf.TensorShape([None] + list(X.shape)),  # type: ignore
+        tf.TensorShape([None] + list(y.shape)),  # type: ignore
+        tf.TensorShape([None] + list(w.shape)))  # type: ignore
 
     # Create a Tensorflow Dataset.
     def gen_data():
@@ -725,7 +729,7 @@ class NumpyDataset(Dataset):
     n_tasks: int, default 1
       Number of learning tasks.
     """
-    n_samples = len(X)
+    n_samples = np.shape(X)[0]
     if n_samples > 0:
       if y is None:
         # Set labels to be zero, with zero weights
@@ -887,7 +891,8 @@ class NumpyDataset(Dataset):
         self._X, self._y, self._w, self._ids)
     return NumpyDataset(newx, newy, neww, newids)
 
-  def select(self, indices: Sequence[int],
+  def select(self,
+             indices: Union[Sequence[int], np.ndarray],
              select_dir: Optional[str] = None) -> "NumpyDataset":
     """Creates a new dataset from a selection of indices from self.
 
@@ -2012,10 +2017,10 @@ class DiskDataset(Dataset):
     time1 = time.time()
     shard_size = self.get_shard_size()
     num_shards = self.get_number_shards()
-    X_sparses: List[np.ndarray] = []
-    ys: List[np.ndarray] = []
-    ws: List[np.ndarray] = []
-    ids: List[np.ndarray] = []
+    X_sparse_list: List[np.ndarray] = []
+    y_list: List[np.ndarray] = []
+    w_list: List[np.ndarray] = []
+    ids_list: List[np.ndarray] = []
     num_features = -1
     for i in range(num_shards):
       logger.info("Sparsifying shard %d/%d" % (i, num_shards))
@@ -2023,11 +2028,12 @@ class DiskDataset(Dataset):
       if num_features == -1:
         num_features = X_s.shape[1]
       X_sparse = sparsify_features(X_s)
-      X_sparses, ys, ws, ids = (X_sparses + [X_sparse], ys + [y_s], ws + [w_s],
-                                ids + [np.atleast_1d(np.squeeze(ids_s))])
+      X_sparse_list, y_list, w_list, ids_list = (
+          X_sparse_list + [X_sparse], y_list + [y_s], w_list + [w_s],
+          ids_list + [np.atleast_1d(np.squeeze(ids_s))])
     # Get full dataset in memory
-    (X_sparse, y, w, ids) = (np.vstack(X_sparses), np.vstack(ys), np.vstack(ws),
-                             np.concatenate(ids))
+    (X_sparse, y, w, ids) = (np.vstack(X_sparse_list), np.vstack(y_list),
+                             np.vstack(w_list), np.concatenate(ids_list))
     # Shuffle in memory
     num_samples = len(X_sparse)
     permutation = np.random.permutation(num_samples)
@@ -2069,7 +2075,7 @@ class DiskDataset(Dataset):
       A DiskDataset whose data is a randomly shuffled version of this dataset.
     """
     N = len(self)
-    perm = np.random.permutation(N)
+    perm = np.random.permutation(N).tolist()
     shard_size = self.get_shard_size()
     return self.select(perm, data_dir, shard_size)
 
@@ -2286,9 +2292,10 @@ class DiskDataset(Dataset):
     basename = "shard-%d" % shard_num
     DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w, ids)
     self._cached_shards = None
+    self.legacy_metadata = True
 
   def select(self,
-             indices: Sequence[int],
+             indices: Union[Sequence[int], np.ndarray],
              select_dir: Optional[str] = None,
              select_shard_size: Optional[int] = None,
              output_numpy_dataset: Optional[bool] = False) -> Dataset:
@@ -2596,8 +2603,8 @@ class DiskDataset(Dataset):
             y_shape = np.array(y.shape)
             w_shape = np.array(w.shape)
           else:
-            y_shape = tuple()
-            w_shape = tuple()
+            y_shape = np.array([])
+            w_shape = np.array([])
           ids_shape = np.array(ids.shape)
         else:
           X_shape[0] += np.array(X.shape)[0]
@@ -2666,14 +2673,14 @@ class ImageDataset(Dataset):
         ids = np.arange(n_samples)
     self._X = X
     self._y = y
-    self._w: np.ndarray = w
+    self._w = np.asarray(w)
     self._ids = np.array(ids, dtype=object)
 
-  def _find_array_shape(self, array: Sequence) -> Shape:
+  def _find_array_shape(self, array: Union[np.ndarray, List[str]]) -> Shape:
     if isinstance(array, np.ndarray):
       return array.shape
     image_shape = load_image_files([array[0]]).shape[1:]
-    return np.concatenate([[len(array)], image_shape])
+    return tuple(np.concatenate([[len(array)], image_shape]))
 
   def __len__(self) -> int:
     """Get the number of elements in the dataset."""
@@ -2840,7 +2847,8 @@ class ImageDataset(Dataset):
         self.X, self.y, self.w, self.ids)
     return NumpyDataset(newx, newy, neww, newids)
 
-  def select(self, indices: Sequence[int],
+  def select(self,
+             indices: Union[Sequence[int], np.ndarray],
              select_dir: Optional[str] = None) -> "ImageDataset":
     """Creates a new dataset from a selection of indices from self.
 

@@ -108,13 +108,23 @@ def apply_pdbfixer(mol,
   """
   molecule_file = None
   try:
+    from pdbfixer import PDBFixer
+  except ModuleNotFoundError:
+    raise ImportError("This function requires pdbfixer")
+
+  try:
+    import simtk
+  except ModuleNotFoundError:
+    raise ImportError("This function requires openmm")
+
+  try:
     from rdkit import Chem
     pdbblock = Chem.MolToPDBBlock(mol)
     pdb_stringio = StringIO()
     pdb_stringio.write(pdbblock)
     pdb_stringio.seek(0)
-    import pdbfixer
-    fixer = pdbfixer.PDBFixer(pdbfile=pdb_stringio)
+
+    fixer = PDBFixer(pdbfile=pdb_stringio)
     if add_missing:
       fixer.findMissingResidues()
       fixer.findMissingAtoms()
@@ -126,7 +136,6 @@ def apply_pdbfixer(mol,
       fixer.removeHeterogens(False)
 
     hydrogenated_io = StringIO()
-    import simtk
     simtk.openmm.app.PDBFile.writeFile(fixer.topology, fixer.positions,
                                        hydrogenated_io)
     hydrogenated_io.seek(0)
@@ -282,7 +291,7 @@ def load_molecule(molecule_file,
   if sanitize:
     try:
       Chem.SanitizeMol(my_mol)
-    # Ideally we should catch AtomValenceException but Travis seems to choke on it for some reason.
+    # TODO: Ideally we should catch AtomValenceException but Travis seems to choke on it for some reason.
     except:
       logger.warning("Mol %s failed sanitization" % Chem.MolToSmiles(my_mol))
   if calc_charges:

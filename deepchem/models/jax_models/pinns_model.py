@@ -293,10 +293,9 @@ class PINNModel(JaxModel):
           pad_batches=pad_batches):
         yield ([X_b], [y_b], [w_b])
 
-  def _predict(
-      self, generator: Iterable[Tuple[Any, Any, Any]],
-      transformers: List[Transformer], uncertainty: bool,
-      other_output_types: Optional[OneOrMany[str]]) -> OneOrMany[np.ndarray]:
+  def _predict(self, generator: Iterable[Tuple[Any, Any, Any]],
+               transformers: List[Transformer], uncertainty: bool,
+               other_output_types: Optional[OneOrMany[str]]):
     """
     Predict outputs for data provided by a generator.
     This is the private implementation of prediction.  Do not

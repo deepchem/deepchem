@@ -5,25 +5,11 @@ import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
+from deepchem.utils import remove_missing_entries
 from typing import List, Optional, Tuple, Union
 
 HPPB_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/hppb.csv"
 HPPB_TASKS = ["target"]  # Task is solubility in pH 7.4 buffer
-
-
-def remove_missing_entries(dataset):
-  """Remove missing entries.
-
-  Some of the datasets have missing entries that sneak in as zero'd out
-  feature vectors. Get rid of them.
-  """
-  for i, (X, y, w, ids) in enumerate(dataset.itershards()):
-    available_rows = X.any(axis=1)
-    X = X[available_rows]
-    y = y[available_rows]
-    w = w[available_rows]
-    ids = ids[available_rows]
-    dataset.set_shard(i, X, y, w, ids)
 
 
 class _HPPBLoader(_MolnetLoader):

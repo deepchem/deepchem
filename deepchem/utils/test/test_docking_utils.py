@@ -49,13 +49,13 @@ class TestVinaUtils(unittest.TestCase):
     protein, ligand = docking_utils.prepare_inputs(
         pdbid, ligand_smiles, pdb_name=pdbid)
 
-    assert np.isclose(protein.GetNumAtoms(), 1415, atol=3)
+    assert np.isclose(protein.GetNumAtoms(), 1510, atol=3)
     assert np.isclose(ligand.GetNumAtoms(), 124, atol=3)
 
     protein, ligand = docking_utils.prepare_inputs(pdbid + '.pdb',
                                                    'ligand_' + pdbid + '.pdb')
 
-    assert np.isclose(protein.GetNumAtoms(), 1415, atol=3)
+    assert np.isclose(protein.GetNumAtoms(), 1510, atol=3)
     assert np.isclose(ligand.GetNumAtoms(), 124, atol=3)
 
     os.remove(pdbid + '.pdb')

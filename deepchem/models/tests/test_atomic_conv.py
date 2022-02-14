@@ -3,9 +3,8 @@ Tests for Atomic Convolutions.
 """
 
 import os
-
 import pytest
-
+from flaky import flaky
 import numpy as np
 from deepchem.data import NumpyDataset
 from deepchem.feat import AtomicConvFeaturizer
@@ -35,6 +34,7 @@ def test_atomic_conv_initialize():
   assert len(acm.atom_types) == 15
 
 
+@flaky
 @pytest.mark.slow
 @pytest.mark.tensorflow
 def test_atomic_conv():

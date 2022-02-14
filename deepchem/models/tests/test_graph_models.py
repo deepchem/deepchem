@@ -46,6 +46,7 @@ def get_dataset(mode='classification', featurizer='GraphConv', num_tasks=2):
   return tasks, ds, transformers, metric
 
 
+@flaky
 @pytest.mark.tensorflow
 def test_graph_conv_model():
   tasks, dataset, transformers, metric = get_dataset('classification',
@@ -83,6 +84,7 @@ def test_neural_fingerprint_retrieval():
   assert (len(dataset), fp_size * 2) == neural_fingerprints.shape
 
 
+@flaky
 @pytest.mark.tensorflow
 def test_graph_conv_regression_model():
   tasks, dataset, transformers, metric = get_dataset('regression', 'GraphConv')
@@ -173,6 +175,7 @@ def test_graph_conv_atom_features():
   y_pred1 = model.predict(dataset)
 
 
+@flaky
 @pytest.mark.slow
 @pytest.mark.tensorflow
 def test_dag_model():

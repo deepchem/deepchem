@@ -214,6 +214,11 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
       # TODO: Is there a better handling procedure?
       logging.warning("Some molecules cannot be loaded by Rdkit. Skipping")
       return None
+
+    except ImportError as e:
+      logging.warning("%s" % e)
+      raise ImportError(e)
+
     system_mol = merge_molecules([frag1_mol, frag2_mol])
     system_coords = get_xyz_from_mol(system_mol)
 
@@ -234,6 +239,9 @@ class AtomicConvFeaturizer(ComplexFeaturizer):
       logging.warning(
           "max_atoms was set too low. Some complexes too large and skipped")
       return None
+    except ImportError as e:
+      logging.warning("%s" % e)
+      raise ImportError(e)
 
     return frag1_coords, frag1_neighbor_list, frag1_z, frag2_coords, frag2_neighbor_list, frag2_z, \
            system_coords, system_neighbor_list, system_z

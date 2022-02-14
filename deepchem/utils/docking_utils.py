@@ -131,8 +131,7 @@ def read_gnina_log(log_file: str) -> np.ndarray:
       score = [float(x) for x in mode[1:]]
       scores.append(score)
 
-  scores = np.array(scores)
-  return scores
+  return np.array(scores)
 
 
 def load_docked_ligands(
@@ -249,14 +248,13 @@ def prepare_inputs(protein: str,
   Examples
   --------
   >>> p, m = prepare_inputs('3cyx', 'CCC')
-  >>> p.GetNumAtoms()
-  1415
-  >>> m.GetNumAtoms()
-  11
+
+  >> p.GetNumAtoms()
+  >> m.GetNumAtoms()
 
   >>> p, m = prepare_inputs('3cyx', 'CCC', remove_heterogens=False)
-  >>> p.GetNumAtoms()
-  1720
+
+  >> p.GetNumAtoms()
 
   """
 

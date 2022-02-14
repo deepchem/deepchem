@@ -611,3 +611,20 @@ def save_transformers(save_dir: str,
   """Save the transformers for a MoleculeNet dataset to disk."""
   with open(os.path.join(save_dir, "transformers.pkl"), 'wb') as f:
     pickle.dump(transformers, f)
+
+
+def remove_missing_entries(dataset):
+  """Remove missing entries.
+
+  Some of the datasets have missing entries that sneak in as zero'd out
+  feature vectors. Get rid of them.
+  """
+  for i, (X, y, w, ids) in enumerate(dataset.itershards()):
+    available_rows = X.any(axis=1)
+    logger.info("Shard %d has %d missing entries." %
+                (i, np.count_nonzero(~available_rows)))
+    X = X[available_rows]
+    y = y[available_rows]
+    w = w[available_rows]
+    ids = ids[available_rows]
+    dataset.set_shard(i, X, y, w, ids)

@@ -585,10 +585,10 @@ class RandomStratifiedSplitter(Splitter):
               1 if set_target[i][task] == 0 else
               set_counts[i][task] / set_target[i][task] for i in range(3)
           ]
-          s = np.argmin(set_frac)
-          set_inds[s].append(index)
+          set_index = np.argmin(set_frac)
+          set_inds[set_index].append(index)
           assigned.add(index)
-          set_counts[s] += y_present[index]
+          set_counts[set_index] += y_present[index]
 
     # The remaining samples are negative for all tasks.  Add them to fill out
     # each set to the correct total number.
@@ -732,9 +732,9 @@ class SingletaskStratifiedSplitter(Splitter):
     train_cutoff = int(np.round(frac_train * split_cd))
     valid_cutoff = int(np.round(frac_valid * split_cd)) + train_cutoff
 
-    train_idx = np.array([])
-    valid_idx = np.array([])
-    test_idx = np.array([])
+    train_idx: np.ndarray = np.array([])
+    valid_idx: np.ndarray = np.array([])
+    test_idx: np.ndarray = np.array([])
 
     while sortidx.shape[0] >= split_cd:
       sortidx_split, sortidx = np.split(sortidx, [split_cd])

@@ -1,15 +1,14 @@
-import unittest
 import os
 import numpy as np
 import tempfile
 
 import pytest
+from flaky import flaky
 import deepchem as dc
 from deepchem.feat import create_char_to_idx, SmilesToSeq, SmilesToImage
 from deepchem.molnet.load_function.chembl25_datasets import CHEMBL25_TASKS
 
 try:
-  import tensorflow as tf
   from deepchem.models import Smiles2Vec, ChemCeption
   has_tensorflow = True
 except:
@@ -137,6 +136,7 @@ def test_smiles_to_vec_classification():
   assert scores['mean-roc_auc_score'] >= 0.9
 
 
+@flaky
 @pytest.mark.slow
 @pytest.mark.tensorflow
 def test_chemception_fit_with_augmentation():

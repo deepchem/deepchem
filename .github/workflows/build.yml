@@ -6,14 +6,14 @@ on:
     paths:
       - "scripts/install_deepchem_conda.ps1"
       - "scripts/install_deepchem_conda.sh"
-      - "env.*.yml"
+      - "requirements/**"
   pull_request: # ci work when creating a PR to master branch
     branches:
       - master
     paths:
       - "scripts/install_deepchem_conda.ps1"
       - "scripts/install_deepchem_conda.sh"
-      - "env.*.yml"
+      - "requirements/**"
 jobs:
   bash-build:
     runs-on: ${{ matrix.os }}
@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: [3.7]
+        python-version: [3.8]
     steps:
     - uses: actions/checkout@v2
     - name: Cache pip modules for Linux
@@ -29,7 +29,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('env.*.yml') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Cache pip modules for MacOS
@@ -37,7 +37,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/Library/Caches/pip
-        key: ${{ matrix.os }}-pip-${{ hashFiles('env.*.yml') }}
+        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Install miniconda
@@ -55,23 +55,23 @@ jobs:
       shell: bash -l {0}
       run: |
         source scripts/install_deepchem_conda.sh ${{ matrix.python-version }} cpu
-    - name: Build DeepChem from source
+    - name: Import Checks
       shell: bash -l {0}
       run: |
         conda activate deepchem
-        pip install -e .
         python -V
-        python -c 'import deepchem; print(deepchem.__version__)'
-        python -c 'import rdkit; print(rdkit.__version__)'
-        python -c 'import torch; print(torch.__version__)'
-        python -c 'import tensorflow; print(tensorflow.__version__)'
+        python -c 'import deepchem; print("DeepChem version %s" % deepchem.__version__)'
+        python -c 'import rdkit; print("RDKIT version %s" % rdkit.__version__)'
+        python -c 'import torch; print("Torch version %s" % torch.__version__)'
+        python -c 'import tensorflow; print("Tensorflow version %s" % tensorflow.__version__)'
+        python -c 'import jax; print ("Jax version %s" % jax.__version__)'
 
   powershell-build:
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.7]
+        python-version: [3.8]
     steps:
     - uses: actions/checkout@v2
     - name: Cache pip packages for Windows
@@ -94,13 +94,12 @@ jobs:
       shell: pwsh
       run: |
         . .\scripts\install_deepchem_conda.ps1 ${{ matrix.python-version }} cpu
-    - name: Build DeepChem from source
+    - name: Import Checks
       shell: pwsh
       run: |
         conda activate deepchem
-        pip install -e .
         python -V
-        python -c 'import deepchem; print(deepchem.__version__)'
-        python -c 'import rdkit; print(rdkit.__version__)'
-        python -c 'import torch; print(torch.__version__)'
-        python -c 'import tensorflow; print(tensorflow.__version__)'
+        python -c "import deepchem; print('DeepChem version %s' % deepchem.__version__)"
+        python -c "import rdkit; print('RDKIT version %s' % rdkit.__version__)"
+        python -c "import torch; print('Torch version %s' % torch.__version__)"
+        python -c "import tensorflow; print('Tensorflow version %s' % tensorflow.__version__)"

@@ -49,8 +49,8 @@ class BasicMolGANModel(WGAN):
 
   References
   ----------
-  .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
-  for small molecular graphs", https://arxiv.org/abs/1805.11973
+  .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model 
+         for small molecular graphs", https://arxiv.org/abs/1805.11973
   """
 
   def __init__(self,

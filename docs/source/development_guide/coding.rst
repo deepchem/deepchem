@@ -1,6 +1,27 @@
 Coding Conventions
 ==================
 
+Pre-Commit
+-----------
+
+.. _`Pre-Commit`: https://pre-commit.com/
+
+We use `pre-commit`_ to ensure that we're always keeping up with the best 
+practices when it comes to linting, standard code conventions and type 
+annotations. Although it may seem time consuming at first as to why is one 
+supposed to run all these tests and checks but it helps in identifying simple 
+issues before submission to code review. We've already specified a configuration 
+file with a list of hooks that will get executed before every commit. 
+
+First you'll need to setup the git hook scripts by installing them.
+
+.. code-block:: bash
+
+  pre-commit install
+
+Now whenever you commit, pre-commit will run the necessary hooks on the modified 
+files.
+
 Code Formatting
 ---------------
 
@@ -84,6 +105,12 @@ that break them may sometimes slip through and get merged into the repository.
 We still try to run them regularly, so hopefully the problem will be discovered
 fairly soon.
 
+The full suite of slow tests can be run from the root directory of the source code as
+
+.. code-block:: bash
+
+  pytest -v -m 'slow' deepchem
+
 To test your code locally, you will have to setup a symbolic link to your
 current development directory. To do this, simply run
 
@@ -121,6 +148,36 @@ DeepChem, you should add at least a few basic types of unit tests:
 Note that unit tests are not sufficient to gauge the real performance
 of a model. You should benchmark your model on larger datasets as well
 and report your benchmarking tests in the PR comments.
+
+For testing tensorflow models and pytorch models, we recommend testing in
+different conda environments. Tensorflow 2.6 supports numpy 1.19 while
+pytorch supports numpy 1.21. This version mismatch on numpy dependency
+sometimes causes trouble in installing tensorflow and pytorch backends in
+the same environment.
+
+For testing tensorflow models of deepchem, we create a tensorflow test environment
+and then run the test as follows:
+
+.. code-block:: bash
+
+  conda create -n tf-test python=3.8
+  conda activate tf-test
+  pip install conda-merge
+  conda-merge requirements/tensorflow/env_tensorflow.yml env.test.yml > env.yml
+  conda env update --file env.yml --prune
+  pytest -v -m 'tensorflow' deepchem
+
+For testing pytorch models of deepchem, first create a pytorch test environment
+and then run the tests as follows:
+
+.. code-block:: bash
+
+  conda create -n pytorch-test python=3.8
+  conda activate pytorch-test
+  pip install conda-merge
+  conda-merge requirements/torch/env_torch.yml requirements/torch/env_torch.cpu.yml env.test.yml > env.yml
+  conda env update --file env.yml --prune
+  pytest -v -m 'torch' deepchem
 
 Type Annotations
 ----------------
