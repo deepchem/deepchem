@@ -9,8 +9,8 @@ class TestSparseMatrixOneHotFeaturizer(unittest.TestCase):
 
   def test_sparsemat_arbitrary_default_charset(self):
     """
-      Test simple one hot encoding
-      """
+    Test simple one hot encoding
+    """
     featurizer = SparseMatrixOneHotFeaturizer()
     sequence = "MMMQLA"
     encodings = featurizer.featurize([sequence])
@@ -19,8 +19,8 @@ class TestSparseMatrixOneHotFeaturizer(unittest.TestCase):
 
   def test_sparsemat_arbitrary_default_charset_utransform(self):
     """
-      Test simple one hot encoding
-      """
+    Test simple one hot encoding
+    """
     featurizer = SparseMatrixOneHotFeaturizer()
     sequence = "MMMQLA"
     encodings = featurizer.featurize([sequence])
@@ -28,8 +28,8 @@ class TestSparseMatrixOneHotFeaturizer(unittest.TestCase):
 
   def test_sparsemat_arbitrary_arbitrary_charset(self):
     """
-      Test simple one hot encoding
-      """
+    Test simple one hot encoding
+    """
     charset = ["A", "B", "C"]
     featurizer = SparseMatrixOneHotFeaturizer(charset)
     sequence = "AAAB"
@@ -42,8 +42,8 @@ class TestSparseMatrixOneHotFeaturizer(unittest.TestCase):
 
   def test_sparsemat_arbitrary_unkonw_val(self):
     """
-      Test simple one hot encoding
-      """
+    Test simple one hot encoding
+    """
     charset = ["A", "B", "C"]
     featurizer = SparseMatrixOneHotFeaturizer(charset)
     sequence = "AAAD"
