@@ -8,7 +8,7 @@ dependencies:
   - rdkit
   - mdtraj
   - numpy>=1.21
-  - pip==20.2.*
+  - pip
   - pip:
     - pre-commit
     - biopython
