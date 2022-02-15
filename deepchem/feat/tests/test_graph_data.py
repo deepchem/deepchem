@@ -1,6 +1,7 @@
 import unittest
 import pytest
 import numpy as np
+import torch
 from deepchem.feat.graph_data import GraphData, BatchGraphData
 
 
@@ -17,22 +18,28 @@ class TestGraph(unittest.TestCase):
         [1, 2, 0, 3, 4, 0],
     ])
     node_pos_features = None
+    # global_features is kwargs
+    global_features = np.random.random(5)
 
     graph = GraphData(
         node_features=node_features,
         edge_index=edge_index,
         edge_features=edge_features,
-        node_pos_features=node_pos_features)
+        node_pos_features=node_pos_features,
+        global_features=global_features)
 
     assert graph.num_nodes == num_nodes
     assert graph.num_node_features == num_node_features
     assert graph.num_edges == num_edges
     assert graph.num_edge_features == num_edge_features
+    assert graph.global_features.shape == global_features.shape
 
     # check convert function
     pyg_graph = graph.to_pyg_graph()
     from torch_geometric.data import Data
     assert isinstance(pyg_graph, Data)
+    assert pyg_graph.global_features.shape == torch.from_numpy(
+        global_features).float().shape
 
     dgl_graph = graph.to_dgl_graph()
     from dgl import DGLGraph
