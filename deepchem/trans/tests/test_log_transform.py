@@ -10,8 +10,7 @@ def load_feat_multitask_data():
   features = ["feat0", "feat1", "feat2", "feat3", "feat4", "feat5"]
   featurizer = dc.feat.UserDefinedFeaturizer(features)
   tasks = ["task0", "task1", "task2", "task3", "task4", "task5"]
-  input_file = os.path.join(current_dir,
-                            "../../models/tests/feat_multitask_example.csv")
+  input_file = os.path.join(current_dir, "assets/feat_multitask_example.csv")
   loader = dc.data.UserCSVLoader(
       tasks=tasks, featurizer=featurizer, id_field="id")
   return loader.create_dataset(input_file)
@@ -84,8 +83,7 @@ def test_y_log_transformer_select():
   current_dir = os.path.dirname(os.path.abspath(__file__))
   multitask_dataset = load_feat_multitask_data()
   dfe = pd.read_csv(
-      os.path.join(current_dir,
-                   "../../models/tests/feat_multitask_example.csv"))
+      os.path.join(current_dir, "assets/feat_multitask_example.csv"))
   tid = []
   tasklist = ["task0", "task3", "task4", "task5"]
   first_task = "task0"
@@ -120,8 +118,7 @@ def test_X_log_transformer_select():
   current_dir = os.path.dirname(os.path.abspath(__file__))
   multitask_dataset = load_feat_multitask_data()
   dfe = pd.read_csv(
-      os.path.join(current_dir,
-                   "../../models/tests/feat_multitask_example.csv"))
+      os.path.join(current_dir, "assets/feat_multitask_example.csv"))
   fid = []
   featurelist = ["feat0", "feat1", "feat2", "feat3", "feat5"]
   first_feature = "feat0"

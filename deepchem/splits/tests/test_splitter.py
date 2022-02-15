@@ -18,7 +18,7 @@ def load_sparse_multitask_dataset():
       "task9"
   ]
   input_file = os.path.join(current_dir,
-                            "../../models/tests/sparse_multitask_example.csv")
+                            "assets/sparse_multitask_example.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
   return loader.create_dataset(input_file)
@@ -58,8 +58,7 @@ def load_butina_data():
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["task"]
   # task_type = "regression"
-  input_file = os.path.join(current_dir,
-                            "../../models/tests/butina_example.csv")
+  input_file = os.path.join(current_dir, "assets/butina_example.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
 
