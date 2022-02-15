@@ -87,11 +87,12 @@ class GraphData:
     self.edge_index = edge_index
     self.edge_features = edge_features
     self.node_pos_features = node_pos_features
+    self.kwargs = kwargs
     self.num_nodes, self.num_node_features = self.node_features.shape
     self.num_edges = edge_index.shape[1]
     if self.edge_features is not None:
       self.num_edge_features = self.edge_features.shape[1]
-    for key, value in kwargs.items():
+    for key, value in self.kwargs.items():
       setattr(self, key, value)
 
   def __repr__(self) -> str:
@@ -132,12 +133,15 @@ class GraphData:
     node_pos_features = self.node_pos_features
     if node_pos_features is not None:
       node_pos_features = torch.from_numpy(self.node_pos_features).float()
-
+    kwargs = {}
+    for key, value in self.kwargs.items():
+      kwargs[key] = torch.from_numpy(value).float()
     return Data(
         x=torch.from_numpy(self.node_features).float(),
         edge_index=torch.from_numpy(self.edge_index).long(),
         edge_attr=edge_features,
-        pos=node_pos_features)
+        pos=node_pos_features,
+        **kwargs)
 
   def to_dgl_graph(self, self_loop: bool = False):
     """Convert to DGL graph data instance
