@@ -9,6 +9,11 @@ from deepchem.models.losses import Loss, L2Loss, SparseSoftmaxCrossEntropy
 from deepchem.models.torch_models.layers import GraphNetwork as GN
 from deepchem.models.torch_models import TorchModel
 
+try:
+  from torch_geometric.data import Batch as PyGBatch
+except ModuleNotFoundError:
+  raise ImportError("This module requires pytorch geometric")
+
 
 class MEGNet(nn.Module):
   """MatErials Graph Network
@@ -18,7 +23,7 @@ class MEGNet(nn.Module):
   Example
   -------
   >>> import torch
-  >>> from torch_geometric.data import Data as GraphData
+  >>> from torch_geometric.data import Data as GraphData, Batch
   >>> from deepchem.models.torch_models import MEGNet
   >>> num_nodes, num_node_features = 5, 10
   >>> num_edges, num_edge_attrs = 5, 2
@@ -28,8 +33,10 @@ class MEGNet(nn.Module):
   >>> edge_index = torch.tensor([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]).long()
   >>> global_features = torch.randn(num_global_features)
   >>> graph = GraphData(node_features, edge_index, edge_attrs, global_features=global_features)
+  >>> batch = Batch()
+  >>> batch = batch.from_graph_list([graph.to_pyg_graph()])
   >>> model = MEGNet(n_node_features=num_node_features, n_edge_features=num_edge_attrs, n_global_features=num_global_features)
-  >>> pred = model(graph.x, graph.edge_index, graph.edge_attr, graph.global_features)
+  >>> pred = model(batch)
 
   Note
   ----
@@ -37,23 +44,37 @@ class MEGNet(nn.Module):
   """
 
   def __init__(self,
-               n_node_features=32,
-               n_edge_features=32,
-               n_global_features=32,
-               n_blocks=1,
-               mode='regression',
-               n_classes=2,
-               n_tasks=1):
+               n_node_features: int = 32,
+               n_edge_features: int = 32,
+               n_global_features: int = 32,
+               n_blocks: int = 1,
+               is_undirected: bool = True,
+               residual_connection: bool = True,
+               mode: str = 'regression',
+               n_classes: int = 2,
+               n_tasks: int = 1):
     """
 
     Parameters
     ----------
+    n_node_features: int
+      Number of features in a node
+    n_edge_features: int
+      Number of features in a edge
+    n_global_features: int
+      Number of global features
+    n_blocks: int
+      Number of GraphNetworks block to use in update
+    is_undirected: bool, optional (default True)
+      True when the graph is undirected graph , otherwise False
+    residual_connection: bool, optional (default True)
+      If True, the layer uses a residual connection during training
     n_tasks: int, default 1
-      The number of output size
+      The number of tasks
     mode: str, default 'regression'
       The model type - classification or regression
     n_classes: int, default 2
-      The number of classes to predict when used in classification mode.
+      The number of classes to predict (used only in classification mode).
     """
     super(MEGNet, self).__init__()
     try:
@@ -72,7 +93,9 @@ class MEGNet(nn.Module):
       self.megnet_blocks.append(
           GN(n_node_features=n_node_features,
              n_edge_features=n_edge_features,
-             n_global_features=n_global_features))
+             n_global_features=n_global_features,
+             is_undirected=is_undirected,
+             residual_connection=residual_connection))
     self.n_tasks = n_tasks
     self.mode = mode
     self.n_classes = n_classes
@@ -93,41 +116,30 @@ class MEGNet(nn.Module):
     elif self.mode == 'classification':
       self.out = nn.Linear(in_features=16, out_features=n_tasks * n_classes)
 
-
   def forward(self, pyg_batch: PyGBatch):
     """
     Parameters
     ----------
-    node_features: torch.Tensor
-      Input node features of shape :math:`(|\mathcal{V}|, F_n)`
-    edge_index: torch.Tensor
-      Edge indexes of shape :math:`(2, |\mathcal{E}|)`
-    edge_features: torch.Tensor
-      Edge features of the graph, shape: :math:`(|\mathcal{E}|, F_e)`
-    global_features: torch.Tensor
-      Global features of the graph, shape: :math:`(F_g, 1)`
-    where :math:`|\mathcal{V}|` and :math:`|\mathcal{E}|` denotes the number of nodes and edges in the graph,
-      :math:F_n, :math:F_e, :math:F_g denotes the number of node features, edge features and global state features respectively.
-    node_batch_map: torch.LongTensor (optional)
-      A vector that maps each node to its respective graph identifier.
-    edge_batch_map: torch.LongTensor (optional)
-      A vector that maps each edge to its respective graph identifier.
+    pyg_batch: PyGBatch
+      A pytorch-geometric batch of graphs where node attributes are stores
+      as pyg_batch['x'], edge_index in pyg_batch['edge_index'], edge features
+      in pyg_batch['edge_attr'], global features in pyg_batch['global_features']
 
     Returns
     -------
     torch.Tensor: Predictions for the graph
     """
-    if node_batch_map is None:
-      node_batch_map = node_features.new_zeros(node_features.size(0), dtype=torch.int64)
-    if edge_batch_map is None:
-      edge_batch_map = edge_features.new_zeros(edge_features.size(0), dtype=torch.int64)
+    node_features = pyg_batch['x']
+    edge_index, edge_features = pyg_batch['edge_index'], pyg_batch['edge_attr']
+    global_features = pyg_batch['global_features']
+    batch = pyg_batch['batch']
 
     for i in range(self.n_blocks):
       node_features, edge_features, global_features = self.megnet_blocks[i](
-          node_features, edge_index, edge_features, global_features, node_batch_map, edge_batch_map)
+          node_features, edge_index, edge_features, global_features, batch)
 
-    node_features = self.set2set_nodes(node_features, node_batch_map) 
-    edge_features = self.set2set_edges(edge_features, edge_batch_map) 
+    node_features = self.set2set_nodes(node_features, batch)
+    edge_features = self.set2set_edges(edge_features, batch[edge_index[0]])
     out = torch.cat([node_features, edge_features, global_features], axis=1)
     out = self.out(self.dense(out))
 
@@ -149,19 +161,48 @@ class MEGNetModel(TorchModel):
 
   """
   def __init__(self,
-               n_node_features=32,
-               n_edge_features=32,
-               n_global_features=32,
-               n_blocks=1,
-               mode='regression',
-               n_classes=2,
-               n_tasks=1):
+               n_node_features: int = 32,
+               n_edge_features: int = 32,
+               n_global_features: int = 32,
+               n_blocks: int = 1,
+               is_undirected: bool = True,
+               residual_connection: bool = True,
+               mode: str = 'regression',
+               n_classes: int = 2,
+               n_tasks: int = 1,
+               **kwargs):
+    """
 
+    Parameters
+    ----------
+    n_node_features: int
+      Number of features in a node
+    n_edge_features: int
+      Number of features in a edge
+    n_global_features: int
+      Number of global features
+    n_blocks: int
+      Number of GraphNetworks block to use in update
+    is_undirected: bool, optional (default True)
+      True when the model is used on undirected graphs otherwise false
+    residual_connection: bool, optional (default True)
+      If True, the layer uses a residual connection during training
+    n_tasks: int, default 1
+      The number of tasks
+    mode: str, default 'regression'
+      The model type - classification or regression
+    n_classes: int, default 2
+      The number of classes to predict (used only in classification mode).
+    kwargs: Dict
+      kwargs supported by TorchModel
+    """
     model = MEGNet(
         n_node_features=n_node_features,
         n_edge_features=n_edge_features,
         n_global_features=n_global_features,
         n_blocks=n_blocks,
+        is_undirected=is_undirected,
+        residual_connection=residual_connection,
         mode=mode,
         n_classes=n_classes,
         n_tasks=n_tasks)
@@ -199,6 +240,7 @@ class MEGNetModel(TorchModel):
     pyg_batch = Batch()
     pyg_batch = pyg_batch.from_data_list(graph_list)
 
-    _, labels, weights = super(MEGNetModel, self)._prepare_batch(([], labels, weights))
+    _, labels, weights = super(MEGNetModel, self)._prepare_batch(([], labels,
+                                                                  weights))
 
     return pyg_batch, labels, weights
