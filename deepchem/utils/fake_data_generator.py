@@ -15,7 +15,7 @@ class FakeGraphGenerator:
   Example
   -------
   >>> from deepchem.utils.fake_data_generator import FakeGraphGenerator
-  >>> fgg  = FakeGraphGenerator(min_nodes=8, max_nodes=10,  n_node_features=5, avg_degree=4, n_edge_features=3, n_classes=2, task='graph', z=5)
+  >>> fgg  = FakeGraphGenerator(min_nodes=8, max_nodes=10,  n_node_features=5, avg_degree=8, n_edge_features=3, n_classes=2, task='graph', z=5)
   >>> graphs = fgg.sample(n_graphs=10)
   >>> type(graphs)
   <class 'deepchem.data.datasets.NumpyDataset'>
