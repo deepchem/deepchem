@@ -98,6 +98,7 @@ class GraphData:
 
   def __repr__(self) -> str:
     """Returns a string containing the printable representation of the object"""
+    cls = self.__class__.__name__
     node_features_str = str(list(self.node_features.shape))
     edge_index_str = str(list(self.edge_index.shape))
     if self.edge_features is not None:
@@ -105,8 +106,12 @@ class GraphData:
     else:
       edge_features_str = None
 
-    out = "GraphData(node_features=%s, edge_index=%s, edge_features=%s)" % (
-        node_features_str, edge_index_str, edge_features_str)
+    out = "%s(node_features=%s, edge_index=%s, edge_features=%s" % (
+        cls, node_features_str, edge_index_str, edge_features_str)
+    # Adding shapes of kwargs
+    for key, value in self.kwargs.items():
+      out += (', ' + key + '=' + str(list(value.shape)))
+    out += ')'
     return out
 
   def to_pyg_graph(self):
