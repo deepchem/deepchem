@@ -23,6 +23,6 @@ dependencies:
     - pymatgen==2020.12.31
     - simdna
     - transformers==4.6.*
-    - xgboost==1.*
+    - xgboost
     - git+https://github.com/samoturk/mol2vec
     - tensorboard
