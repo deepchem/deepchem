@@ -33,8 +33,10 @@ class GraphData:
   >>> node_features = np.random.rand(5, 10)
   >>> edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int64)
   >>> edge_features = np.random.rand(5, 5)
-  >>> graph = GraphData(node_features=node_features, edge_index=edge_index, edge_features=edge_features)
-
+  >>> global_features = np.random.random(5)
+  >>> graph = GraphData(node_features, edge_index, edge_features, z=global_features)
+  >>> graph
+  GraphData(node_features=[5, 10], edge_index=[2, 5], edge_features=[5, 5], z=[5])
   """
 
   def __init__(self,
@@ -54,6 +56,8 @@ class GraphData:
       Edge feature matrix with shape [num_edges, num_edge_features]
     node_pos_features: np.ndarray, optional (default None)
       Node position matrix with shape [num_nodes, num_dimensions].
+    kwargs: optional
+      Additional attributes and their values
     """
     # validate params
     if isinstance(node_features, np.ndarray) is False:
