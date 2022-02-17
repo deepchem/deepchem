@@ -53,7 +53,6 @@ tutorials discuss about using DeepChem for specific applications.
 * [14 Conditional Generative Adversarial Networks](Conditional_Generative_Adversarial_Networks.ipynb)
 * [15 Training a Generative Adversarial Network on MNIST](Training_a_Generative_Adversarial_Network_on_MNIST.ipynb)
 * [16 Distributed Multi-GPU Training of DeepChem Models with LitMatter](https://github.com/ncfrey/litmatter/blob/main/LitDeepChem.ipynb)
-* [17 Advanced model training using Hyperopt](Advanced_model_training_using_hyperopt.ipynb)
 
 ### Molecular Machine Learning
 * [1 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
@@ -65,7 +64,6 @@ tutorials discuss about using DeepChem for specific applications.
 * [7 Training a Normalizing Flow on QM9](Training_a_Normalizing_Flow_on_QM9.ipynb)
 * [8 Large Scale Chemical Screens](Large_Scale_Chemical_Screens.ipynb)
 * [9 Introduction to Molecular Attention Transformer](Introduction_to_Molecular_Attention_Transformer.ipynb)
-* [10 Generating Molecules with MolGAN](Generating_molecules_with_MolGAN.ipynb)
 
 ### Modeling Proteins
 * [1 Protein Deep Learning](Protein_Deep_Learning.ipynb)
