@@ -1078,7 +1078,8 @@ def test_chemception_reload():
 @pytest.mark.tensorflow
 def test_smiles2vec_reload():
   """Test that smiles2vec models can be saved and reloaded."""
-  dataset_file = os.path.join(os.path.dirname(__file__), "assets", "chembl_25_small.csv")
+  dataset_file = os.path.join(
+      os.path.dirname(__file__), "assets", "chembl_25_small.csv")
   max_len = 250
   pad_len = 10
   max_seq_len = 20

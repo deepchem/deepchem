@@ -27,7 +27,8 @@ class TestLoad(unittest.TestCase):
     base_dir = tempfile.mkdtemp()
     data_dir = os.path.join(base_dir, "data")
     moved_data_dir = os.path.join(base_dir, "moved_data")
-    dataset_file = os.path.join(current_dir, "../../models/tests/assets/example.csv")
+    dataset_file = os.path.join(current_dir,
+                                "../../models/tests/assets/example.csv")
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
@@ -60,8 +61,8 @@ class TestLoad(unittest.TestCase):
 
     # Load dataset
     logger.info("About to load dataset.")
-    dataset_file = os.path.join(current_dir,
-                                "../../models/tests/assets/multitask_example.csv")
+    dataset_file = os.path.join(
+        current_dir, "../../models/tests/assets/multitask_example.csv")
 
     # Featurize tox21 dataset
     logger.info("About to featurize dataset.")
@@ -108,8 +109,8 @@ class TestLoad(unittest.TestCase):
 
     # Load dataset
     logger.info("About to load dataset.")
-    dataset_file = os.path.join(current_dir,
-                                "../../models/tests/assets/multitask_example.csv")
+    dataset_file = os.path.join(
+        current_dir, "../../models/tests/assets/multitask_example.csv")
 
     # Featurize tox21 dataset
     logger.info("About to featurize dataset.")
