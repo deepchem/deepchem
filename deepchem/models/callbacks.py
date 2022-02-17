@@ -78,6 +78,11 @@ class ValidationCallback(object):
     if step % self.interval != 0:
       return
     scores = model.evaluate(self.dataset, self.metrics, self.transformers)
+    score = scores[self.metrics[self.save_metric].name]
+    if not self.save_on_minimum:
+      score = -score
+    if self._best_score is None or score < self._best_score:
+      self._best_score = score
     message = 'Step %d validation:' % step
     for key in scores:
       message += ' %s=%g' % (key, scores[key])
@@ -86,14 +91,16 @@ class ValidationCallback(object):
       for key in scores:
         model._log_scalar_to_tensorboard(key, scores[key],
                                          model.get_global_step())
-    if self.save_dir is not None:
-      score = scores[self.metrics[self.save_metric].name]
-      if not self.save_on_minimum:
-        score = -score
-      if self._best_score is None or score < self._best_score:
-        model.save_checkpoint(model_dir=self.save_dir)
-        self._best_score = score
+    if self.save_dir is not None and (self._best_score is None or
+                                      score < self._best_score):
+      model.save_checkpoint(model_dir=self.save_dir)
     if model.wandb_logger is not None:
       # Log data to Wandb
       data = {'eval/' + k: v for k, v in scores.items()}
       model.wandb_logger.log_data(data, step, dataset_id=id(self.dataset))
+
+  def get_best_score(self):
+    if self.save_on_minimum:
+      return self._best_score
+    else:
+      return -self._best_score
