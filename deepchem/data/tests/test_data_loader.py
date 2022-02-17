@@ -22,7 +22,7 @@ def test_scaffold_test_train_valid_test_split():
   """Test of singletask RF ECFP regression API."""
   current_dir = os.path.dirname(os.path.abspath(__file__))
   tasks = ["log-solubility"]
-  input_file = os.path.join(current_dir, "../../models/tests/example.csv")
+  input_file = os.path.join(current_dir, "../../models/tests/assets/example.csv")
   featurizer = dc.feat.CircularFingerprint(size=1024)
 
   input_file = os.path.join(current_dir, input_file)
@@ -44,7 +44,7 @@ def test_scaffold_test_train_test_split():
   """Test of singletask RF ECFP regression API."""
   current_dir = os.path.dirname(os.path.abspath(__file__))
   tasks = ["log-solubility"]
-  input_file = os.path.join(current_dir, "../../models/tests/example.csv")
+  input_file = os.path.join(current_dir, "../../models/tests/assets/example.csv")
   featurizer = dc.feat.CircularFingerprint(size=1024)
 
   input_file = os.path.join(current_dir, input_file)
@@ -64,7 +64,7 @@ def test_random_test_train_valid_test_split():
   """Test of singletask RF ECFP regression API."""
   current_dir = os.path.dirname(os.path.abspath(__file__))
   tasks = ["log-solubility"]
-  input_file = os.path.join(current_dir, "../../models/tests/example.csv")
+  input_file = os.path.join(current_dir, "../../models/tests/assets/example.csv")
   featurizer = dc.feat.CircularFingerprint(size=1024)
 
   input_file = os.path.join(current_dir, input_file)
@@ -86,7 +86,7 @@ def test_random_test_train_test_split():
   """Test of singletask RF ECFP regression API."""
   current_dir = os.path.dirname(os.path.abspath(__file__))
   tasks = ["log-solubility"]
-  input_file = os.path.join(current_dir, "../../models/tests/example.csv")
+  input_file = os.path.join(current_dir, "../../models/tests/assets/example.csv")
   featurizer = dc.feat.CircularFingerprint(size=1024)
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
@@ -103,7 +103,7 @@ def test_random_test_train_test_split():
 def test_log_solubility_dataset():
   """Test of loading for simple log-solubility dataset."""
   current_dir = os.path.dirname(os.path.realpath(__file__))
-  input_file = "../../models/tests/example.csv"
+  input_file = "../../models/tests/assets/example.csv"
   input_file = os.path.join(current_dir, input_file)
 
   tasks = ["log-solubility"]
@@ -122,7 +122,7 @@ def test_dataset_move():
   base_dir = tempfile.mkdtemp()
   data_dir = os.path.join(base_dir, "data")
   moved_data_dir = os.path.join(base_dir, "moved_data")
-  dataset_file = os.path.join(current_dir, "../../models/tests/example.csv")
+  dataset_file = os.path.join(current_dir, "../../models/tests/assets/example.csv")
 
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]

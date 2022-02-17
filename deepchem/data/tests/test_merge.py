@@ -10,7 +10,7 @@ def test_merge():
   """Test that datasets can be merged."""
   current_dir = os.path.dirname(os.path.realpath(__file__))
 
-  dataset_file = os.path.join(current_dir, "../../models/tests/example.csv")
+  dataset_file = os.path.join(current_dir, "../../models/tests/assets/example.csv")
 
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]
@@ -38,7 +38,7 @@ def test_subset():
   """Tests that subsetting of datasets works."""
   current_dir = os.path.dirname(os.path.realpath(__file__))
 
-  dataset_file = os.path.join(current_dir, "../../models/tests/example.csv")
+  dataset_file = os.path.join(current_dir, "../../models/tests/assets/example.csv")
 
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]
