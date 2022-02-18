@@ -88,7 +88,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [1 Using Reinforcement Learning to Play Pong](Using_Reinforcement_Learning_to_Play_Pong.ipynb)
 * [2 Introduction to Model Interpretability](Introduction_to_Model_Interpretability.ipynb)
 * [3 Uncertainty in Deep Learning](Uncertainty_In_Deep_Learning.ipynb)
-* [4 Uncertainty Estimation Using Gaussian Processes](Uncertainty_Estimation_Using_Gaussian_Processes.ipynb)
+* [4 Uncertainty Estimation Using Gaussian Processes](Uncertainty_Estimation_using_Gaussian_Processes.ipynb)
 
 ### Physics Informed Neural Networks
 * [1 Physics Informed Neural Networks (Burgers Equation)](Physics_Informed_Neural_Networks.ipynb) 
