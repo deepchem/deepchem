@@ -17,22 +17,30 @@ class TestGraph(unittest.TestCase):
         [1, 2, 0, 3, 4, 0],
     ])
     node_pos_features = None
+    # z is kwargs
+    z = np.random.random(5)
 
     graph = GraphData(
         node_features=node_features,
         edge_index=edge_index,
         edge_features=edge_features,
-        node_pos_features=node_pos_features)
+        node_pos_features=node_pos_features,
+        z=z)
 
     assert graph.num_nodes == num_nodes
     assert graph.num_node_features == num_node_features
     assert graph.num_edges == num_edges
     assert graph.num_edge_features == num_edge_features
+    assert graph.z.shape == z.shape
+    assert str(
+        graph
+    ) == 'GraphData(node_features=[5, 32], edge_index=[2, 6], edge_features=[6, 32], z=[5])'
 
     # check convert function
     pyg_graph = graph.to_pyg_graph()
     from torch_geometric.data import Data
     assert isinstance(pyg_graph, Data)
+    assert tuple(pyg_graph.z.shape) == z.shape
 
     dgl_graph = graph.to_dgl_graph()
     from dgl import DGLGraph
