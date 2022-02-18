@@ -53,6 +53,10 @@ class TestCallbacks(unittest.TestCase):
     self.assertAlmostEqual(
         valid_score['mean-roc_auc_score'], scores[-1], places=5)
 
+    # The highest recorded score should match get_best_score().
+
+    self.assertAlmostEqual(max(scores), callback.get_best_score(), places=5)
+
     # Reload the save model and confirm that it matches the best logged score.
 
     model.restore(model_dir=save_dir)
