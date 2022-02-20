@@ -13,7 +13,7 @@ def test_DAG_transformer():
   featurizer = dc.feat.ConvMolFeaturizer()
   tasks = ["outcome"]
   input_file = os.path.join(current_dir,
-                            "../../models/tests/example_regression.csv")
+                            "../../models/tests/assets/example_regression.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)

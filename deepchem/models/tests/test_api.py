@@ -51,7 +51,7 @@ def test_singletask_sklearn_rf_user_specified_regression_API():
       ["user-specified1", "user-specified2"])
   tasks = ["log-solubility"]
   current_dir = os.path.dirname(os.path.abspath(__file__))
-  input_file = os.path.join(current_dir, "user_specified_example.csv")
+  input_file = os.path.join(current_dir, "assets/user_specified_example.csv")
   loader = dc.data.UserCSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)
@@ -92,7 +92,7 @@ def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API():
   tasks = ["log-solubility"]
 
   current_dir = os.path.dirname(os.path.abspath(__file__))
-  input_file = os.path.join(current_dir, "example.csv")
+  input_file = os.path.join(current_dir, "assets/example.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)
