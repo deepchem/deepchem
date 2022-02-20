@@ -764,7 +764,7 @@ class GraphNetwork(torch.nn.Module):
     out = torch.cat(
         (node_features[src_index], node_features[dst_index], edge_features,
          global_features[batch]),
-        axis=1)
+        dim=1)
     assert out.shape[
         1] == self.n_node_features * 2 + self.n_edge_features + self.n_global_features
     for model in self.edge_models:
@@ -781,7 +781,7 @@ class GraphNetwork(torch.nn.Module):
     edge_features_mean_by_node = scatter_mean(edge_features, dst_index, dim=0)
     out = torch.cat(
         (node_features, edge_features_mean_by_node, global_features[batch]),
-        axis=1)
+        dim=1)
     for model in self.node_models:
       out = model(out)
     return self.node_dense(out)
@@ -791,7 +791,7 @@ class GraphNetwork(torch.nn.Module):
     edge_features_mean = scatter_mean(edge_features, edge_batch_map, dim=0)
     node_features_mean = scatter_mean(node_features, node_batch_map, dim=0)
     out = torch.cat(
-        (edge_features_mean, node_features_mean, global_features), axis=1)
+        (edge_features_mean, node_features_mean, global_features), dim=1)
     for model in self.global_models:
       out = model(out)
     return self.global_dense(out)
@@ -825,11 +825,9 @@ class GraphNetwork(torch.nn.Module):
     node_features_copy, edge_features_copy, global_features_copy = node_features, edge_features, global_features
     if self.is_undirected is True:
       # holding bi-directional edges in case of undirected graphs
-      edge_index = torch.cat(
-          (edge_index, edge_index.flip([0])), axis=1)  # type: ignore
+      edge_index = torch.cat((edge_index, edge_index.flip([0])), dim=1)
       edge_features_len = edge_features.shape[0]
-      edge_features = torch.cat(
-          (edge_features, edge_features), axis=0)  # type: ignore
+      edge_features = torch.cat((edge_features, edge_features), dim=0)
     edge_batch_map = batch[edge_index[0]]
     edge_features = self._update_edge_features(node_features, edge_index,
                                                edge_features, global_features,
@@ -853,5 +851,5 @@ class GraphNetwork(torch.nn.Module):
 
   def __repr__(self) -> str:
     return (
-        f'{self.__class__.__name__}(n_node_features={self.n_node_features}, n_edge_features={self.n_edge_features}, n_global_features={self.n_global_features}, residual_connection={self.residual_connection})'
+        f'{self.__class__.__name__}(n_node_features={self.n_node_features}, n_edge_features={self.n_edge_features}, n_global_features={self.n_global_features}, is_undirected={self.is_undirected}, residual_connection={self.residual_connection})'
     )

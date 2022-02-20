@@ -23,7 +23,7 @@ def test_graphnet_layer():
 
   assert repr(
       graphnet
-  ) == 'GraphNetwork(n_node_features=10, n_edge_features=3, n_global_features=4, residual_connection=True)'
+  ) == 'GraphNetwork(n_node_features=10, n_edge_features=3, n_global_features=4, is_undirected=True, residual_connection=True)'
 
   new_node_features, new_edge_features, new_global_features = graphnet(
       node_features, edge_index, edge_features, global_features)
